@@ -36,6 +36,7 @@ class PageShapeItem {
     int? seed,
     this.version = 0,
     this.versionNonce = 0,
+    this.fractionalIndex,
   }) : seed = seed ?? _newSeed();
 
   final String id;
@@ -55,6 +56,10 @@ class PageShapeItem {
   /// 随机种子：手绘风格/rough 抖动的稳定随机源（对齐 Excalidraw 元素模型），
   /// 同一形状重复渲染时使用同一 seed 保证质感一致。
   int seed;
+
+  /// 层级排序键（fractional indexing，参考 Excalidraw）：重排只需在相邻
+  /// 键之间生成新键，无需重排其余元素。null = 旧文档，回退按 [zOrder] 排序。
+  String? fractionalIndex;
 
   /// 元素版本号：每次内容变更单调递增，供协作/增量同步的冲突检测。
   int version;
@@ -117,6 +122,7 @@ class PageShapeItem {
     seed: seed,
     version: version,
     versionNonce: versionNonce,
+    fractionalIndex: fractionalIndex,
   );
 
   Map<String, dynamic> toJson() => {
@@ -144,6 +150,7 @@ class PageShapeItem {
     'seed': seed,
     'version': version,
     'versionNonce': versionNonce,
+    if (fractionalIndex != null) 'fractionalIndex': fractionalIndex,
   };
 
   factory PageShapeItem.fromJson(Map<String, dynamic> json) => PageShapeItem(
@@ -174,6 +181,7 @@ class PageShapeItem {
     seed: (json['seed'] as num?)?.toInt(),
     version: (json['version'] as num?)?.toInt() ?? 0,
     versionNonce: (json['versionNonce'] as num?)?.toInt() ?? 0,
+    fractionalIndex: json['fractionalIndex'] as String?,
   );
 
   static ShapeEndpointBinding? _bindingFromJson(Object? value) {

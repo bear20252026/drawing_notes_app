@@ -15,6 +15,7 @@ class DocumentImageItem {
     this.height = 150,
     this.zOrder = 0,
     this.locked = false,
+    this.fractionalIndex,
   });
 
   final String id;
@@ -24,6 +25,11 @@ class DocumentImageItem {
   double width;
   double height;
   int zOrder;
+
+  /// 层级排序键（fractional indexing，参考 Excalidraw）：任意两次重排
+  /// 只需在相邻键之间生成新键，无需重排其余元素。null = 旧文档，回退
+  /// 按 [zOrder] 排序，序列化向后兼容。
+  String? fractionalIndex;
 
   /// 锁定后仍可被选择以解除锁定，但拒绝移动、缩放和删除，防止资料底图误触。
   bool locked;
@@ -42,6 +48,7 @@ class DocumentImageItem {
     height: height,
     zOrder: zOrder,
     locked: locked,
+    fractionalIndex: fractionalIndex,
   );
 
   /// 以同一对象标识的快照覆盖可编辑几何与资源元数据。
@@ -54,6 +61,7 @@ class DocumentImageItem {
     height = snapshot.height;
     zOrder = snapshot.zOrder;
     locked = snapshot.locked;
+    fractionalIndex = snapshot.fractionalIndex;
   }
 
   Map<String, dynamic> toJson() => {
@@ -65,6 +73,7 @@ class DocumentImageItem {
     'height': height,
     'zOrder': zOrder,
     'locked': locked,
+    if (fractionalIndex != null) 'fractionalIndex': fractionalIndex,
   };
 
   factory DocumentImageItem.fromJson(Map<String, dynamic> json) =>
@@ -77,5 +86,6 @@ class DocumentImageItem {
         height: (json['height'] as num?)?.toDouble() ?? 150,
         zOrder: (json['zOrder'] as num?)?.toInt() ?? 0,
         locked: json['locked'] as bool? ?? false,
+        fractionalIndex: json['fractionalIndex'] as String?,
       );
 }

@@ -70,6 +70,7 @@ class PageTextItem {
     this.groupId,
     this.href,
     this.fontFamily,
+    this.fractionalIndex,
   });
 
   final String id;
@@ -111,6 +112,10 @@ class PageTextItem {
   /// 图层顺序（借鉴 Excalidraw 图层操作：置顶/置底/上移/下移）。
   int zOrder;
 
+  /// 层级排序键（fractional indexing，参考 Excalidraw）：重排只需在相邻
+  /// 键之间生成新键，无需重排其余元素。null = 旧文档，回退按 [zOrder] 排序。
+  String? fractionalIndex;
+
   /// 元素超链接（借鉴 Excalidraw hyperlink）：点击打开链接。
   String? href;
 
@@ -148,6 +153,7 @@ class PageTextItem {
     if (groupId != null) 'groupId': groupId,
     if (href != null) 'href': href,
     if (fontFamily != null) 'fontFamily': fontFamily,
+    if (fractionalIndex != null) 'fractionalIndex': fractionalIndex,
   };
 
   factory PageTextItem.fromJson(Map<String, dynamic> json) => PageTextItem(
@@ -173,6 +179,7 @@ class PageTextItem {
       (a) => a.name == json['align'],
       orElse: () => TextAlignType.left,
     ),
+    fractionalIndex: json['fractionalIndex'] as String?,
   );
 }
 
@@ -191,6 +198,7 @@ class PageImageItem {
     this.zOrder = 0,
     this.groupId,
     this.href,
+    this.fractionalIndex,
   });
 
   final String id;
@@ -202,6 +210,10 @@ class PageImageItem {
 
   /// 图层顺序（借鉴 Excalidraw 图层操作）。
   int zOrder;
+
+  /// 层级排序键（fractional indexing，参考 Excalidraw）：重排只需在相邻
+  /// 键之间生成新键，无需重排其余元素。null = 旧文档，回退按 [zOrder] 排序。
+  String? fractionalIndex;
 
   /// 元素分组（借鉴 Excalidraw groupIds）。
   String? groupId;
@@ -221,6 +233,7 @@ class PageImageItem {
     'zOrder': zOrder,
     if (groupId != null) 'groupId': groupId,
     if (href != null) 'href': href,
+    if (fractionalIndex != null) 'fractionalIndex': fractionalIndex,
   };
 
   factory PageImageItem.fromJson(Map<String, dynamic> json) => PageImageItem(
@@ -233,6 +246,7 @@ class PageImageItem {
     zOrder: (json['zOrder'] as num?)?.toInt() ?? 0,
     groupId: json['groupId'] as String?,
     href: json['href'] as String?,
+    fractionalIndex: json['fractionalIndex'] as String?,
   );
 }
 

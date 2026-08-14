@@ -19,6 +19,7 @@ import '../../engine/drawing_controller.dart';
 import '../../engine/editor_input_arbiter.dart';
 import '../../engine/eraser_mode.dart';
 import '../../engine/eraser_mode_store.dart';
+import '../../engine/fractional_index.dart';
 import '../../engine/gesture_math.dart';
 import '../../engine/paged_note_rtf_exporter.dart';
 import '../../engine/pdf_hybrid_exporter.dart';
@@ -2070,7 +2071,11 @@ class _EditorPageState extends State<EditorPage> {
   }
 
   /// 图层顺序操作（置顶/置底/上移/下移，借鉴 Excalidraw 图层操作）。
-  /// 通过调整混排对象的 zOrder 实现；当前作用于选中/多选元素。
+  ///
+  /// 使用 fractional indexing 排序键（[fractionalIndex]，参考 Excalidraw）：
+  /// 置顶/置底只需在边界生成一个新键，上移/下移只需与相邻元素交换键，
+  /// 不需要重排其余元素的层级号。旧文档无键时按 zOrder 相对顺序补齐一次，
+  /// 序列化向后兼容。
   void _reorderSelected(int mode) {
     final page = widget.page;
     if (page == null) return;
@@ -2081,74 +2086,112 @@ class _EditorPageState extends State<EditorPage> {
     );
     if (ids.isEmpty) return;
 
-    // 收集目标元素（文字/图片/形状）。
-    final targets = <({int z, String id})>[];
+    // 统一收集三类混排元素：文本 / 图片 / 形状。
+    final all = <({String id, String? key})>[];
     for (final t in page.textItems) {
-      if (ids.contains(t.id)) targets.add((z: t.zOrder, id: t.id));
+      all.add((id: t.id, key: t.fractionalIndex));
     }
     for (final i in page.imageItems) {
-      if (ids.contains(i.id)) targets.add((z: i.zOrder, id: i.id));
+      all.add((id: i.id, key: i.fractionalIndex));
     }
     for (final s in page.shapes) {
-      if (ids.contains(s.id)) targets.add((z: s.zOrder, id: s.id));
+      all.add((id: s.id, key: s.fractionalIndex));
     }
-    if (targets.isEmpty) return;
+    if (all.isEmpty) return;
 
-    // 收集全部元素的最大/最小 zOrder（用于置顶/置底）。
-    var maxZ = 0;
-    var minZ = 0;
-    bool any = false;
-    void scan(int z) {
-      any = true;
-      if (z > maxZ) maxZ = z;
-      if (z < minZ) minZ = z;
-    }
-
+    // 排序：有键按键序；无键（旧文档）回退 zOrder 相对顺序。
+    // 先把 zOrder 升序作为无键元素的初始次序，再整体按 (key ?? 占位) 排。
+    final zOf = <String, int>{};
     for (final t in page.textItems) {
-      scan(t.zOrder);
+      zOf[t.id] = t.zOrder;
     }
     for (final i in page.imageItems) {
-      scan(i.zOrder);
+      zOf[i.id] = i.zOrder;
     }
     for (final s in page.shapes) {
-      scan(s.zOrder);
+      zOf[s.id] = s.zOrder;
     }
-    if (!any) return;
+    all.sort((a, b) {
+      final ka = a.key ?? _zToKey(zOf[a.id] ?? 0);
+      final kb = b.key ?? _zToKey(zOf[b.id] ?? 0);
+      final cmp = ka.compareTo(kb);
+      return cmp != 0 ? cmp : (zOf[a.id] ?? 0).compareTo(zOf[b.id] ?? 0);
+    });
 
-    setState(() {
+    final selected = all.where((e) => ids.contains(e.id)).toList();
+    if (selected.isEmpty) return;
+
+    void assign(String id, String? key) {
       for (final t in page.textItems) {
-        if (ids.contains(t.id)) {
-          t.zOrder = switch (mode) {
-            0 => maxZ + 1, // 置顶
-            1 => minZ - 1, // 置底
-            2 => t.zOrder + 1, // 上移
-            _ => t.zOrder - 1, // 下移
-          };
+        if (t.id == id) {
+          t.fractionalIndex = key;
+          return;
         }
       }
       for (final i in page.imageItems) {
-        if (ids.contains(i.id)) {
-          i.zOrder = switch (mode) {
-            0 => maxZ + 1,
-            1 => minZ - 1,
-            2 => i.zOrder + 1,
-            _ => i.zOrder - 1,
-          };
+        if (i.id == id) {
+          i.fractionalIndex = key;
+          return;
         }
       }
       for (final s in page.shapes) {
-        if (ids.contains(s.id)) {
-          s.zOrder = switch (mode) {
-            0 => maxZ + 1,
-            1 => minZ - 1,
-            2 => s.zOrder + 1,
-            _ => s.zOrder - 1,
-          };
+        if (s.id == id) {
+          s.fractionalIndex = key;
+          return;
         }
+      }
+    }
+
+    String keyOf(String id) =>
+        zOf.containsKey(id)
+            ? (all.firstWhere((e) => e.id == id).key ??
+                  _zToKey(zOf[id] ?? 0))
+            : 'a0';
+
+    setState(() {
+      switch (mode) {
+        case 0: // 置顶：在最大键之后生成新键。
+          final maxKey = all.map((e) => keyOf(e.id)).reduce(
+            (a, b) => a.compareTo(b) > 0 ? a : b,
+          );
+          for (final e in selected) {
+            assign(e.id, generateKeyBetween(maxKey, null));
+          }
+        case 1: // 置底：在最小键之前生成新键。
+          final minKey = all.map((e) => keyOf(e.id)).reduce(
+            (a, b) => a.compareTo(b) < 0 ? a : b,
+          );
+          for (final e in selected) {
+            assign(e.id, generateKeyBetween(null, minKey));
+          }
+        case 2: // 上移：与紧邻上方元素交换键。
+          for (final e in selected) {
+            final idx = all.indexWhere((x) => x.id == e.id);
+            if (idx <= 0) continue;
+            final prev = all[idx - 1];
+            if (selected.any((s) => s.id == prev.id)) continue;
+            final curKey = keyOf(e.id);
+            assign(prev.id, curKey);
+            assign(e.id, keyOf(prev.id));
+          }
+        default: // 下移：与紧邻下方元素交换键。
+          for (final e in selected.reversed) {
+            final idx = all.indexWhere((x) => x.id == e.id);
+            if (idx < 0 || idx >= all.length - 1) continue;
+            final next = all[idx + 1];
+            if (selected.any((s) => s.id == next.id)) continue;
+            final curKey = keyOf(e.id);
+            assign(next.id, curKey);
+            assign(e.id, keyOf(next.id));
+          }
       }
     });
     _notifyChanged();
   }
+
+  /// 旧文档无 fractionalIndex 时的回退键：按 zOrder 数值生成可比较的键。
+  /// 仅用于排序占位，不写入模型（保持序列化向后兼容）。
+  static String _zToKey(int z) => 'a0.${z + 0x10000000}';
 
   /// 右键上下文菜单（借鉴 Excalidraw 菜单）：复制样式/删除/置顶/置底。
   void _showItemContextMenu(String itemId) {
