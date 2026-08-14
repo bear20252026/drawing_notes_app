@@ -1,5 +1,136 @@
 part of 'editor_page.dart';
 
+/// 命令面板对话框（Ctrl/Cmd+K，对齐 Excalidraw CommandPalette）。
+///
+/// 独立 StatefulWidget：搜索框 [TextEditingController] 生命周期由 State 管理，
+/// 对话框退出动画完成后才释放，避免关闭期间重建访问已释放对象。
+/// 命令条目完全来自统一注册表 [CommandRegistry]，只展示当前可执行命令。
+class _CommandPaletteDialog extends StatefulWidget {
+  const _CommandPaletteDialog({
+    required this.registry,
+    this.initialLastCommandId,
+  });
+
+  final CommandRegistry registry;
+  final String? initialLastCommandId;
+
+  @override
+  State<_CommandPaletteDialog> createState() => _CommandPaletteDialogState();
+}
+
+class _CommandPaletteDialogState extends State<_CommandPaletteDialog> {
+  final TextEditingController _queryController = TextEditingController();
+
+  @override
+  void dispose() {
+    _queryController.dispose();
+    super.dispose();
+  }
+
+  IconData _commandCategoryIcon(EditorCommandCategory category) {
+    return switch (category) {
+      EditorCommandCategory.edit => Icons.edit_outlined,
+      EditorCommandCategory.format => Icons.format_size_rounded,
+      EditorCommandCategory.insert => Icons.add_box_outlined,
+      EditorCommandCategory.arrange => Icons.layers_outlined,
+      EditorCommandCategory.view => Icons.visibility_outlined,
+      EditorCommandCategory.export => Icons.ios_share_rounded,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final query = _queryController.text;
+    final commands = widget.registry.search(query);
+    final grouped = <EditorCommandCategory, List<EditorCommand>>{};
+    for (final command in commands) {
+      grouped.putIfAbsent(command.category, () => []).add(command);
+    }
+    final recent = query.trim().isEmpty
+        ? widget.registry.find(widget.initialLastCommandId ?? '')
+        : null;
+    final showRecent = recent != null && recent.available;
+
+    Widget commandTile(EditorCommand command, {bool recentItem = false}) {
+      return ListTile(
+        dense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+        leading: Icon(_commandCategoryIcon(command.category), size: 19),
+        title: Text(command.label),
+        subtitle: recentItem ? const Text('最近使用') : null,
+        trailing: command.shortcut.isEmpty
+            ? null
+            : Text(
+                command.shortcut,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+        onTap: () => Navigator.of(context).pop(command.id),
+      );
+    }
+
+    return AlertDialog(
+      title: const Text('命令面板'),
+      content: SizedBox(
+        width: 520,
+        height: 460,
+        child: Column(
+          children: [
+            TextField(
+              controller: _queryController,
+              autofocus: true,
+              textInputAction: TextInputAction.done,
+              onChanged: (_) => setState(() {}),
+              onSubmitted: (_) {
+                if (commands.isNotEmpty) {
+                  Navigator.of(context).pop(commands.first.id);
+                }
+              },
+              decoration: const InputDecoration(
+                hintText: '搜索操作、工具或导出格式…',
+                prefixIcon: Icon(Icons.search_rounded),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Expanded(
+              child: commands.isEmpty
+                  ? const Center(child: Text('没有可执行的匹配命令'))
+                  : ListView(
+                      children: [
+                        if (showRecent) ...[
+                          const Padding(
+                            padding: EdgeInsets.fromLTRB(8, 4, 8, 2),
+                            child: Text('最近使用'),
+                          ),
+                          commandTile(recent, recentItem: true),
+                          const Divider(),
+                        ],
+                        for (final category in EditorCommandCategory.values)
+                          if (grouped[category]?.isNotEmpty ?? false) ...[
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(8, 10, 8, 2),
+                              child: Text(
+                                category.label,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.labelMedium,
+                              ),
+                            ),
+                            for (final command in grouped[category]!)
+                              if (!showRecent || command.id != recent.id)
+                                commandTile(command),
+                          ],
+                      ],
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// 文字输入对话框的返回结果（文本 + 字号）。
 class _TextDialogResult {
   const _TextDialogResult({required this.text, required this.fontSize});

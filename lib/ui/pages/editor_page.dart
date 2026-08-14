@@ -2891,125 +2891,22 @@ class _EditorPageState extends State<EditorPage> {
   ///
   /// 条目完全来自统一命令注册表；只显示当前可执行的动作，并按类别、
   /// 关键词和最近执行状态组织。这样不会再出现菜单中展示无法完成的命令。
+  ///
+  /// 对话框本体为自管理生命周期的 [_CommandPaletteDialog]（见
+  /// editor_page_dialogs.dart），确保搜索框 TextEditingController 在对话框
+  /// 完全退出后才释放，避免关闭动画期间重建访问已释放对象。
   Future<void> _showCommandPalette() async {
-    final queryController = TextEditingController();
     final result = await showDialog<String>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) {
-          final query = queryController.text;
-          final commands = _commands.search(query);
-          final grouped = <EditorCommandCategory, List<EditorCommand>>{};
-          for (final command in commands) {
-            grouped.putIfAbsent(command.category, () => []).add(command);
-          }
-          final recent = query.trim().isEmpty
-              ? _commands.find(_lastCommandId ?? '')
-              : null;
-          final showRecent = recent != null && recent.available;
-
-          Widget commandTile(EditorCommand command, {bool recentItem = false}) {
-            return ListTile(
-              dense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-              leading: Icon(_commandCategoryIcon(command.category), size: 19),
-              title: Text(command.label),
-              subtitle: recentItem ? const Text('最近使用') : null,
-              trailing: command.shortcut.isEmpty
-                  ? null
-                  : Text(
-                      command.shortcut,
-                      style: Theme.of(ctx).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(ctx).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-              onTap: () => Navigator.of(ctx).pop(command.id),
-            );
-          }
-
-          return AlertDialog(
-            title: const Text('命令面板'),
-            content: SizedBox(
-              width: 520,
-              height: 460,
-              child: Column(
-                children: [
-                  TextField(
-                    controller: queryController,
-                    autofocus: true,
-                    textInputAction: TextInputAction.done,
-                    onChanged: (_) => setDialogState(() {}),
-                    onSubmitted: (_) {
-                      if (commands.isNotEmpty) {
-                        Navigator.of(ctx).pop(commands.first.id);
-                      }
-                    },
-                    decoration: const InputDecoration(
-                      hintText: '搜索操作、工具或导出格式…',
-                      prefixIcon: Icon(Icons.search_rounded),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Expanded(
-                    child: commands.isEmpty
-                        ? const Center(child: Text('没有可执行的匹配命令'))
-                        : ListView(
-                            children: [
-                              if (showRecent) ...[
-                                const Padding(
-                                  padding: EdgeInsets.fromLTRB(8, 4, 8, 2),
-                                  child: Text('最近使用'),
-                                ),
-                                commandTile(recent, recentItem: true),
-                                const Divider(),
-                              ],
-                              for (final category
-                                  in EditorCommandCategory.values)
-                                if (grouped[category]?.isNotEmpty ?? false) ...[
-                                  Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      8,
-                                      10,
-                                      8,
-                                      2,
-                                    ),
-                                    child: Text(
-                                      category.label,
-                                      style: Theme.of(
-                                        ctx,
-                                      ).textTheme.labelMedium,
-                                    ),
-                                  ),
-                                  for (final command in grouped[category]!)
-                                    if (!showRecent || command.id != recent.id)
-                                      commandTile(command),
-                                ],
-                            ],
-                          ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+      builder: (ctx) => _CommandPaletteDialog(
+        registry: _commands,
+        initialLastCommandId: _lastCommandId,
       ),
     );
-    queryController.dispose();
     if (result == null) return;
     if (_commands.run(result)) {
       setState(() => _lastCommandId = result);
     }
-  }
-
-  IconData _commandCategoryIcon(EditorCommandCategory category) {
-    return switch (category) {
-      EditorCommandCategory.edit => Icons.edit_outlined,
-      EditorCommandCategory.format => Icons.format_size_rounded,
-      EditorCommandCategory.insert => Icons.add_box_outlined,
-      EditorCommandCategory.arrange => Icons.layers_outlined,
-      EditorCommandCategory.view => Icons.visibility_outlined,
-      EditorCommandCategory.export => Icons.ios_share_rounded,
-    };
   }
 
   /// 剪贴板元素（复制/粘贴的元素，借鉴 Excalidraw 元素复制）。
