@@ -170,23 +170,39 @@ class DocumentCodec {
           continue;
         }
         final points = <StrokePoint>[];
-        for (final pointValue in rawPoints) {
-          if (pointValue is! Map) continue;
-          final point = StrokePoint.fromJson(
-            Map<String, dynamic>.from(pointValue),
-          );
-          if (!_isSafeCoordinate(point.x) ||
-              !_isSafeCoordinate(point.y) ||
-              !point.pressure.isFinite) {
-            continue;
+        if (rawPoints.isNotEmpty && rawPoints.first is Map) {
+          // 旧格式：对象数组 [{x,y,p}, ...]。
+          for (final pointValue in rawPoints) {
+            if (pointValue is! Map) continue;
+            final point = StrokePoint.fromJson(
+              Map<String, dynamic>.from(pointValue),
+            );
+            if (!_isSafeCoordinate(point.x) ||
+                !_isSafeCoordinate(point.y) ||
+                !point.pressure.isFinite) {
+              continue;
+            }
+            points.add(
+              StrokePoint(
+                point.x,
+                point.y,
+                point.pressure.clamp(0.0, 1.0).toDouble(),
+              ),
+            );
           }
-          points.add(
-            StrokePoint(
-              point.x,
-              point.y,
-              point.pressure.clamp(0.0, 1.0).toDouble(),
-            ),
-          );
+        } else {
+          // 新格式（压缩点列）：扁平数值数组 [x0,y0,p0, x1,y1,p1, ...]。
+          // 对齐 Saber SBN 二进制点列压缩思路，防御性恢复同步兼容。
+          final flat = rawPoints.cast<num>();
+          for (var i = 0; i + 2 < flat.length; i += 3) {
+            final x = flat[i].toDouble();
+            final y = flat[i + 1].toDouble();
+            final p = flat[i + 2].toDouble();
+            if (!_isSafeCoordinate(x) || !_isSafeCoordinate(y) || !p.isFinite) {
+              continue;
+            }
+            points.add(StrokePoint(x, y, p.clamp(0.0, 1.0).toDouble()));
+          }
         }
         if (points.isEmpty) continue;
         final opacity = json['opacity'];

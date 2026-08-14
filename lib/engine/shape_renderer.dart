@@ -143,25 +143,54 @@ class ShapeRenderer {
       case ShapeType.arrow:
         final start = shape.lineStart ?? Offset(0, size.height);
         final end = shape.lineEnd ?? Offset(size.width, 0);
-        drawOutline(
-          Path()
-            ..moveTo(start.dx, start.dy)
-            ..lineTo(end.dx, end.dy),
-        );
-        final angle = (end - start).direction;
-        const length = 14.0;
-        drawOutline(
-          Path()
-            ..moveTo(end.dx, end.dy)
-            ..lineTo(
-              end.dx - length * math.cos(angle - 0.4),
-              end.dy - length * math.sin(angle - 0.4),
-            )
-            ..lineTo(
-              end.dx - length * math.cos(angle + 0.4),
-              end.dy - length * math.sin(angle + 0.4),
-            ),
-        );
+        if (shape.elbow) {
+          // 弯折箭头（对齐 Excalidraw binding.ts 的 elbow arrow）：
+          // 以两端点中点为拐点做 90° 直角三段式（先水平再垂直），
+          // 规避流程图中横跨的文本/元素，视觉更清晰。
+          final corner = Offset((start.dx + end.dx) / 2, start.dy);
+          drawOutline(
+            Path()
+              ..moveTo(start.dx, start.dy)
+              ..lineTo(corner.dx, corner.dy)
+              ..lineTo(end.dx, end.dy),
+          );
+          // 箭头头部仍指向末端（按末端附近线段方向计算）。
+          final lastSegment = end - corner;
+          final angle = lastSegment.direction;
+          const length = 14.0;
+          drawOutline(
+            Path()
+              ..moveTo(end.dx, end.dy)
+              ..lineTo(
+                end.dx - length * math.cos(angle - 0.4),
+                end.dy - length * math.sin(angle - 0.4),
+              )
+              ..lineTo(
+                end.dx - length * math.cos(angle + 0.4),
+                end.dy - length * math.sin(angle + 0.4),
+              ),
+          );
+        } else {
+          drawOutline(
+            Path()
+              ..moveTo(start.dx, start.dy)
+              ..lineTo(end.dx, end.dy),
+          );
+          final angle = (end - start).direction;
+          const length = 14.0;
+          drawOutline(
+            Path()
+              ..moveTo(end.dx, end.dy)
+              ..lineTo(
+                end.dx - length * math.cos(angle - 0.4),
+                end.dy - length * math.sin(angle - 0.4),
+              )
+              ..lineTo(
+                end.dx - length * math.cos(angle + 0.4),
+                end.dy - length * math.sin(angle + 0.4),
+              ),
+          );
+        }
     }
   }
 }

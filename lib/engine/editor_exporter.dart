@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import '../models/document.dart' show DrawingDocument;
 import '../models/notebook.dart' show NotebookPage;
 import '../models/stroke.dart' show BrushType, Stroke;
 import 'drawing_controller.dart';
@@ -446,24 +447,10 @@ class EditorExporter {
   /// 导出画布为 JSON（Excalidraw 开放格式对齐：.excalidraw 语义）。
   Future<void> exportJson() async {
     try {
-      final doc = controller.document;
-      final page = _page;
-      final data = {
-        'type': 'drawing-notes',
-        'version': 1,
-        'title': doc.title,
-        'width': doc.width,
-        'height': doc.height,
-        'layers': doc.layers.map((l) => l.toJson()).toList(),
-        if (page != null)
-          'textItems': page.textItems.map((t) => t.toJson()).toList(),
-        if (page != null)
-          'imageItems': page.imageItems.map((i) => i.toJson()).toList(),
-        if (page != null) 'shapes': page.shapes.map((s) => s.toJson()).toList(),
-      };
+      final data = buildExportPayload(controller.document, page: _page);
       final json = const JsonEncoder.withIndent('  ').convert(data);
       final location = await getSaveLocation(
-        suggestedName: '${doc.title}.json',
+        suggestedName: '${controller.document.title}.json',
         acceptedTypeGroups: const [
           XTypeGroup(label: 'JSON 工程文件', extensions: ['json']),
         ],
@@ -477,3 +464,27 @@ class EditorExporter {
     }
   }
 }
+
+/// 导出数据净化（落地 Excalidraw cleanAppStateForExport 的三态分离思路）。
+///
+/// 导出/存储/本地三个出口各自剥离运行时状态：
+/// - 导出：只含文档域数据（图层/文字/图片/形状），**绝不携带**选区、
+///   视图变换（缩放/平移）、当前工具等 UI 状态，避免污染工程文件；
+/// - 存储：由 [DrawingDocument.toJson] 负责（仅文档域）；
+/// - 本地：编辑器内部状态不落盘。
+/// 独立静态方法便于单元测试断言净化边界。
+Map<String, dynamic> buildExportPayload(
+  DrawingDocument doc, {
+  NotebookPage? page,
+}) => {
+  'type': 'drawing-notes',
+  'version': 1,
+  'title': doc.title,
+  'width': doc.width,
+  'height': doc.height,
+  'layers': doc.layers.map((l) => l.toJson()).toList(),
+  if (page != null) 'textItems': page.textItems.map((t) => t.toJson()).toList(),
+  if (page != null)
+    'imageItems': page.imageItems.map((i) => i.toJson()).toList(),
+  if (page != null) 'shapes': page.shapes.map((s) => s.toJson()).toList(),
+};

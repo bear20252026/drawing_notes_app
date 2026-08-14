@@ -25,6 +25,7 @@ class PageShapeItem {
     this.rotation = 0,
     this.dash = false,
     this.rough = false,
+    this.elbow = false,
     this.flipX = false,
     this.flipY = false,
     this.boundElementId,
@@ -54,6 +55,11 @@ class PageShapeItem {
   double rotation;
   bool dash;
   bool rough;
+
+  /// 弯折箭头（对齐 Excalidraw binding.ts 的 elbow 箭头）：
+  /// 启用后箭头线在两端点之间以 90° 直角弯折（三段式），
+  /// 适合流程图中连接节点时规避重叠的文本/元素。
+  bool elbow;
 
   /// 随机种子：手绘风格/rough 抖动的稳定随机源（对齐 Excalidraw 元素模型），
   /// 同一形状重复渲染时使用同一 seed 保证质感一致。
@@ -152,6 +158,7 @@ class PageShapeItem {
     'rotation': rotation,
     'dash': dash,
     'rough': rough,
+    'elbow': elbow,
     'flipX': flipX,
     'flipY': flipY,
     if (boundElementId != null) 'boundElementId': boundElementId,
@@ -186,6 +193,7 @@ class PageShapeItem {
     rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
     dash: json['dash'] as bool? ?? false,
     rough: json['rough'] as bool? ?? false,
+    elbow: json['elbow'] as bool? ?? false,
     flipX: json['flipX'] as bool? ?? false,
     flipY: json['flipY'] as bool? ?? false,
     boundElementId: json['boundElementId'] as String?,

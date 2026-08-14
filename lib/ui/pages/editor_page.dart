@@ -183,6 +183,10 @@ class _EditorPageState extends State<EditorPage> {
   /// 元素为 (vertical: 是否垂直线, pos: 画布坐标位置)。
   List<({bool vertical, double pos})> _snapGuides = [];
 
+  /// 文字缩放手柄的拖拽基准（落地 Excalidraw resizeElements）：
+  /// 记录手势开始时的宽度/字号，供缩放联动字号计算；null = 无进行中手势。
+  ({double width, double fontSize, double x})? _textResizeAnchor;
+
   /// 框选工具激活（借鉴 Excalidraw 多选：矩形框选多个混排对象）。
   bool _marqueeActive = false;
 
@@ -3952,67 +3956,141 @@ class _EditorPageState extends State<EditorPage> {
                               maxWidth: item.width! * _controller.viewScale,
                             )
                           : const BoxConstraints(),
-                      child: Text(
-                        item.text,
-                        softWrap: item.width != null,
-                        textAlign: switch (item.align) {
-                          TextAlignType.left => TextAlign.left,
-                          TextAlignType.center => TextAlign.center,
-                          TextAlignType.right => TextAlign.right,
-                        },
-                        style: TextStyle(
-                          fontSize: item.fontSize * _controller.viewScale,
-                          // 字体族（借鉴 Excalidraw FontPicker）。
-                          fontFamily: switch (item.fontFamily) {
-                            'serif' => 'serif',
-                            'monospace' => 'monospace',
-                            'handwriting' => 'cursive',
-                            _ => null,
-                          },
-                          // 颜色：已勾选待办淡化；便利贴默认黄底用深色文字。
-                          color: item.isTodo && item.todoChecked
-                              ? Color(item.color).withValues(alpha: 0.45)
-                              : (item.isSticky && item.color == 0xFFFFF59D
-                                    ? const Color(0xFF3E2723)
-                                    : Color(item.color)),
-                          fontWeight: item.bold
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                          fontStyle: item.italic
-                              ? FontStyle.italic
-                              : FontStyle.normal,
-                          decoration: item.underline && item.strikethrough
-                              ? TextDecoration.combine([
-                                  TextDecoration.underline,
-                                  TextDecoration.lineThrough,
-                                ])
-                              : (item.underline
-                                    ? TextDecoration.underline
-                                    : (item.strikethrough
-                                          ? TextDecoration.lineThrough
-                                          : TextDecoration.none)),
-                        ),
-                      ),
+                      // 富文本片段渲染（落地 Quill Delta runs，独立实现）：
+                      // 有 runs 时按片段应用各自样式（加粗/斜体/下划线/颜色），
+                      // 无 runs（旧文档）回退整块样式。
+                      child: item.runs != null
+                          ? Text.rich(
+                              TextSpan(
+                                style: TextStyle(
+                                  fontSize: item.fontSize *
+                                      _controller.viewScale,
+                                  fontFamily: switch (item.fontFamily) {
+                                    'serif' => 'serif',
+                                    'monospace' => 'monospace',
+                                    'handwriting' => 'cursive',
+                                    _ => null,
+                                  },
+                                ),
+                                children: [
+                                  for (final run in item.runs!)
+                                    TextSpan(
+                                      text: run.text,
+                                      style: TextStyle(
+                                        color: run.color != null
+                                            ? Color(run.color!)
+                                            : Color(item.color),
+                                        fontWeight: run.bold
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                        fontStyle: run.italic
+                                            ? FontStyle.italic
+                                            : FontStyle.normal,
+                                        decoration: run.underline &&
+                                                run.strikethrough
+                                            ? TextDecoration.combine([
+                                                TextDecoration.underline,
+                                                TextDecoration.lineThrough,
+                                              ])
+                                            : (run.underline
+                                                  ? TextDecoration.underline
+                                                  : (run.strikethrough
+                                                        ? TextDecoration
+                                                              .lineThrough
+                                                        : TextDecoration.none)),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              softWrap: item.width != null,
+                              textAlign: switch (item.align) {
+                                TextAlignType.left => TextAlign.left,
+                                TextAlignType.center => TextAlign.center,
+                                TextAlignType.right => TextAlign.right,
+                              },
+                            )
+                          : Text(
+                              item.text,
+                              softWrap: item.width != null,
+                              textAlign: switch (item.align) {
+                                TextAlignType.left => TextAlign.left,
+                                TextAlignType.center => TextAlign.center,
+                                TextAlignType.right => TextAlign.right,
+                              },
+                              style: TextStyle(
+                                fontSize: item.fontSize *
+                                    _controller.viewScale,
+                                // 字体族（借鉴 Excalidraw FontPicker）。
+                                fontFamily: switch (item.fontFamily) {
+                                  'serif' => 'serif',
+                                  'monospace' => 'monospace',
+                                  'handwriting' => 'cursive',
+                                  _ => null,
+                                },
+                                // 颜色：已勾选待办淡化；便利贴默认黄底用深色文字。
+                                color: item.isTodo && item.todoChecked
+                                    ? Color(item.color).withValues(alpha: 0.45)
+                                    : (item.isSticky && item.color == 0xFFFFF59D
+                                          ? const Color(0xFF3E2723)
+                                          : Color(item.color)),
+                                fontWeight: item.bold
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                fontStyle: item.italic
+                                    ? FontStyle.italic
+                                    : FontStyle.normal,
+                                decoration: item.underline &&
+                                        item.strikethrough
+                                    ? TextDecoration.combine([
+                                        TextDecoration.underline,
+                                        TextDecoration.lineThrough,
+                                      ])
+                                    : (item.underline
+                                          ? TextDecoration.underline
+                                          : (item.strikethrough
+                                                ? TextDecoration.lineThrough
+                                                : TextDecoration.none)),
+                              ),
+                            ),
                     ),
                   ),
                 ],
               ),
             ),
-            // 宽度拖拽手柄（对齐 Excalidraw 文本框宽度拖拽）：选中且有宽度时，
-            // 右下角手柄拖拽调整文本框宽度。
+            // 宽度拖拽手柄（落地 Excalidraw resizeElements 的文字缩放
+            // 重排版）：选中且有宽度时，右下角手柄拖拽同步调整宽度与字号
+            // （字号随宽度比例缩放，保持文字整体版式不变形）。
             if (selected && item.width != null)
               Positioned(
                 right: -4,
                 bottom: -4,
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
+                  onPanStart: (_) {
+                    _textResizeAnchor = (
+                      width: item.width!,
+                      fontSize: item.fontSize,
+                      x: _controller.canvasToView(item.position).dx,
+                    );
+                  },
                   onPanUpdate: (d) {
+                    final anchor = _textResizeAnchor;
+                    if (anchor == null) return;
                     final delta = _screenDeltaToCanvas(d.delta);
                     setState(() {
-                      item.width = (item.width! + delta.dx).clamp(40, 2000);
+                      final newWidth = (anchor.width + delta.dx)
+                          .clamp(40, 2000)
+                          .toDouble();
+                      // 字号随宽度等比缩放（Excalidraw measureFontSizeFromWidth
+                      // 思路），最小 8pt 保证可读性。
+                      item.fontSize = (anchor.fontSize * newWidth / anchor.width)
+                          .clamp(8.0, 120.0)
+                          .toDouble();
+                      item.width = newWidth;
                     });
                     _notifyChanged();
                   },
+                  onPanEnd: (_) => _textResizeAnchor = null,
                   child: Container(
                     width: 10,
                     height: 10,
@@ -4186,14 +4264,20 @@ class _EditorPageState extends State<EditorPage> {
   /// 容差 [snapTol]（画布坐标）；仅当拖动对象与任一参考线足够近时吸附，
   /// 视觉上形成"对齐参考线"的体验（借鉴 Excalidraw）。
   void _snapDragItemToAlign(String id) {
+    // 画布模式的对象拖动由 controller 统一管理（不走 _dragItem），
+    // 因此对齐吸附仅作用于分页笔记的混排对象；无限画布吸附属于
+    // controller 层后续工程（记录于审查报告）。
     final page = widget.page;
     if (page == null) return;
     const snapTol = 10.0;
+    final textItems = page.textItems;
+    final imageItems = page.imageItems;
+    final shapes = page.shapes;
 
     // 收集所有混排对象的边界（左/右/上/下/水平中心/垂直中心）。
     final refs =
         <({double l, double r, double t, double b, double cx, double cy})>[];
-    for (final t in page.textItems) {
+    for (final t in textItems) {
       if (t.id == id) continue;
       final w = t.fontSize * 2.0;
       refs.add((
@@ -4205,7 +4289,7 @@ class _EditorPageState extends State<EditorPage> {
         cy: t.y + t.fontSize / 2,
       ));
     }
-    for (final i in page.imageItems) {
+    for (final i in imageItems) {
       if (i.id == id) continue;
       refs.add((
         l: i.x,
@@ -4216,7 +4300,7 @@ class _EditorPageState extends State<EditorPage> {
         cy: i.y + i.height / 2,
       ));
     }
-    for (final s in page.shapes) {
+    for (final s in shapes) {
       if (s.id == id) continue;
       refs.add((
         l: s.x,
@@ -4231,7 +4315,7 @@ class _EditorPageState extends State<EditorPage> {
 
     // 当前拖动元素边界。
     double l = 0, r = 0, top = 0, bottom = 0;
-    for (final t in page.textItems) {
+    for (final t in textItems) {
       if (t.id == id) {
         l = t.x;
         r = t.x + t.fontSize * 2;
@@ -4239,7 +4323,7 @@ class _EditorPageState extends State<EditorPage> {
         bottom = t.y + t.fontSize;
       }
     }
-    for (final i in page.imageItems) {
+    for (final i in imageItems) {
       if (i.id == id) {
         l = i.x;
         r = i.x + i.width;
@@ -4247,7 +4331,7 @@ class _EditorPageState extends State<EditorPage> {
         bottom = i.y + i.height;
       }
     }
-    for (final s in page.shapes) {
+    for (final s in shapes) {
       if (s.id == id) {
         l = s.x;
         r = s.x + s.width;
@@ -4313,19 +4397,19 @@ class _EditorPageState extends State<EditorPage> {
       if (dx != 0) guides.add((vertical: true, pos: l + dx));
       if (dy != 0) guides.add((vertical: false, pos: top + dy));
       _snapGuides = guides;
-      for (final t in page.textItems) {
+      for (final t in textItems) {
         if (t.id == id) {
           t.x += dx;
           t.y += dy;
         }
       }
-      for (final i in page.imageItems) {
+      for (final i in imageItems) {
         if (i.id == id) {
           i.x += dx;
           i.y += dy;
         }
       }
-      for (final s in page.shapes) {
+      for (final s in shapes) {
         if (s.id == id) {
           s.x += dx;
           s.y += dy;

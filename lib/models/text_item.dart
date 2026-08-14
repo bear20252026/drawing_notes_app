@@ -30,6 +30,7 @@ class PageTextItem {
     this.href,
     this.fontFamily,
     this.fractionalIndex,
+    this.runs,
   });
 
   final String id;
@@ -90,6 +91,10 @@ class PageTextItem {
   /// 可拖拽右侧手柄调整（对齐 Excalidraw 宽度拖拽）。
   double? width;
 
+  /// 富文本片段（借鉴 Quill Delta runs，独立实现）：null = 整块样式
+  /// （旧文档），非 null 时按片段渲染 [TextRun] 各自的样式。
+  List<TextRun>? runs;
+
   Offset get position => Offset(x, y);
 
   Map<String, dynamic> toJson() => {
@@ -113,6 +118,7 @@ class PageTextItem {
     if (href != null) 'href': href,
     if (fontFamily != null) 'fontFamily': fontFamily,
     if (fractionalIndex != null) 'fractionalIndex': fractionalIndex,
+    if (runs != null) 'runs': runs!.map((r) => r.toJson()).toList(),
   };
 
   factory PageTextItem.fromJson(Map<String, dynamic> json) => PageTextItem(
@@ -139,5 +145,51 @@ class PageTextItem {
       orElse: () => TextAlignType.left,
     ),
     fractionalIndex: json['fractionalIndex'] as String?,
+    runs: (json['runs'] as List?)
+        ?.map((e) => TextRun.fromJson(e as Map<String, dynamic>))
+        .toList(),
+  );
+}
+
+/// 富文本片段（借鉴 Quill Delta runs 的思想，独立实现）。
+///
+/// 一个文字块可以由多个 [TextRun] 组成，每段拥有独立的样式
+/// （加粗/斜体/下划线/删除线/颜色）。旧文档没有 runs 时回退为整块
+/// 样式（[PageTextItem.bold] 等块级字段），序列化完全向后兼容。
+class TextRun {
+  const TextRun({
+    required this.text,
+    this.bold = false,
+    this.italic = false,
+    this.underline = false,
+    this.strikethrough = false,
+    this.color,
+  });
+
+  final String text;
+  final bool bold;
+  final bool italic;
+  final bool underline;
+  final bool strikethrough;
+
+  /// 片段颜色（ARGB int）；null = 继承块级 [PageTextItem.color]。
+  final int? color;
+
+  Map<String, dynamic> toJson() => {
+    'text': text,
+    'bold': bold,
+    'italic': italic,
+    'underline': underline,
+    'strikethrough': strikethrough,
+    if (color != null) 'color': color,
+  };
+
+  factory TextRun.fromJson(Map<String, dynamic> json) => TextRun(
+    text: json['text'] as String? ?? '',
+    bold: json['bold'] as bool? ?? false,
+    italic: json['italic'] as bool? ?? false,
+    underline: json['underline'] as bool? ?? false,
+    strikethrough: json['strikethrough'] as bool? ?? false,
+    color: (json['color'] as num?)?.toInt(),
   );
 }

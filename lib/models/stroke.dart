@@ -98,8 +98,41 @@ class Stroke {
 
   // ---- 序列化 ----
 
+  /// 点列压缩编码（落地 Saber SBN v13 的二进制点列压缩思想，独立实现）：
+  /// 把 `[{x,y,p}, ...]` 对象数组压扁为 `[x0,y0,p0, x1,y1,p1, ...]`
+  /// 数值数组，消除每个点的键名开销（约省一半体积）；读取端双向兼容
+  /// 旧对象数组格式。
+  static List<num> _encodePoints(List<StrokePoint> points) => [
+    for (final p in points) ...[p.x, p.y, p.pressure],
+  ];
+
+  static List<StrokePoint> _decodePoints(Object? raw) {
+    final list = raw as List? ?? const [];
+    if (list.isEmpty) return const [];
+    // 旧格式：元素为 Map（对象数组）；新格式：元素为 num（扁平数组）。
+    final first = list.first;
+    if (first is Map) {
+      return [
+        for (final e in list)
+          StrokePoint.fromJson(Map<String, dynamic>.from(e as Map)),
+      ];
+    }
+    final flat = list.cast<num>();
+    return [
+      for (var i = 0; i + 2 < flat.length || i < flat.length; i += 3)
+        if (i + 2 < flat.length)
+          StrokePoint(
+            flat[i].toDouble(),
+            flat[i + 1].toDouble(),
+            flat[i + 2].toDouble(),
+          )
+        else
+          StrokePoint(flat[i].toDouble(), 0, 1),
+    ];
+  }
+
   Map<String, dynamic> toJson() => {
-    'points': points.map((p) => p.toJson()).toList(),
+    'points': _encodePoints(points),
     'color': color.toARGB32(),
     'width': width,
     'type': type.name,
@@ -110,9 +143,7 @@ class Stroke {
   };
 
   factory Stroke.fromJson(Map<String, dynamic> json) => Stroke(
-    points: (json['points'] as List)
-        .map((e) => StrokePoint.fromJson(e as Map<String, dynamic>))
-        .toList(),
+    points: _decodePoints(json['points']),
     color: Color((json['color'] as num).toInt()),
     width: (json['width'] as num).toDouble(),
     type: BrushType.values.firstWhere(

@@ -439,28 +439,54 @@ class ShapePainter extends CustomPainter {
             ..lineTo(j(Offset(size.width, 0)).dx, j(Offset(size.width, 0)).dy),
         );
       case ShapeType.arrow:
-        final start = Offset(0, size.height);
-        final end = Offset(size.width, 0);
-        drawStroke(
-          Path()
-            ..moveTo(j(start).dx, j(start).dy)
-            ..lineTo(j(end).dx, j(end).dy),
-        );
-        // 箭头三角（指向 end 端）。
-        final angle = (end - start).direction;
+        final start = shape.lineStart ?? Offset(0, size.height);
+        final end = shape.lineEnd ?? Offset(size.width, 0);
+        // 箭头三角（指向 end 端，按末端线段方向计算）。
         const len = 14.0;
-        final arrow = Path()
-          ..moveTo(end.dx, end.dy)
-          ..lineTo(
-            end.dx - len * math.cos(angle - 0.4),
-            end.dy - len * math.sin(angle - 0.4),
-          )
-          ..lineTo(
-            end.dx - len * math.cos(angle + 0.4),
-            end.dy - len * math.sin(angle + 0.4),
-          )
-          ..close();
-        drawStroke(arrow);
+        if (shape.elbow) {
+          // 弯折箭头（对齐 Excalidraw elbow arrow）：先水平再垂直三段式。
+          final corner = Offset((start.dx + end.dx) / 2, start.dy);
+          drawStroke(
+            Path()
+              ..moveTo(j(start).dx, j(start).dy)
+              ..lineTo(j(corner).dx, j(corner).dy)
+              ..lineTo(j(end).dx, j(end).dy),
+          );
+          final lastSegment = end - corner;
+          final angle = lastSegment.direction;
+          final elbowArrow = Path()
+            ..moveTo(end.dx, end.dy)
+            ..lineTo(
+              end.dx - len * math.cos(angle - 0.4),
+              end.dy - len * math.sin(angle - 0.4),
+            )
+            ..lineTo(
+              end.dx - len * math.cos(angle + 0.4),
+              end.dy - len * math.sin(angle + 0.4),
+            )
+            ..close();
+          drawStroke(elbowArrow);
+        } else {
+          drawStroke(
+            Path()
+              ..moveTo(j(start).dx, j(start).dy)
+              ..lineTo(j(end).dx, j(end).dy),
+          );
+          final angle = (end - start).direction;
+          drawStroke(
+            Path()
+              ..moveTo(end.dx, end.dy)
+              ..lineTo(
+                end.dx - len * math.cos(angle - 0.4),
+                end.dy - len * math.sin(angle - 0.4),
+              )
+              ..lineTo(
+                end.dx - len * math.cos(angle + 0.4),
+                end.dy - len * math.sin(angle + 0.4),
+              )
+              ..close(),
+          );
+        }
     }
   }
 
