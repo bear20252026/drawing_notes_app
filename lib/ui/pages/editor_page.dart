@@ -28,6 +28,7 @@ import '../../engine/shape_binding_geometry.dart';
 import '../../engine/shape_creation_geometry.dart';
 import '../../engine/shape_library.dart';
 import '../../engine/stylus_input.dart';
+import '../../engine/svg_exporter.dart';
 import '../../engine/view_transform_cache.dart';
 import '../../models/document.dart';
 import '../../models/document_image_item.dart';
@@ -1056,6 +1057,8 @@ class _EditorPageState extends State<EditorPage> {
   /// 矢量导出：笔画转 SVG path 元素（Catmull-Rom 平滑曲线），
   /// 文字块转 SVG text 元素，白纸底 + viewBox 自适应；
   /// SVG 可无损缩放、供政府公文/网页嵌入。
+  ///
+  /// 片段生成由 engine/svg_exporter.dart 的纯函数承担（导出域拆分第一步）。
   Future<void> _exportSvg() async {
     try {
       final doc = _controller.document;
@@ -1073,14 +1076,14 @@ class _EditorPageState extends State<EditorPage> {
       for (final layer in doc.layers) {
         if (!layer.visible || layer.opacity <= 0) continue;
         for (final stroke in layer.strokes) {
-          buf.write(_strokeToSvgPath(stroke));
+          buf.write(strokeToSvgPath(stroke));
         }
       }
       // 文字块（笔记本模式）。
       final page = widget.page;
       if (page != null) {
         for (final t in page.textItems) {
-          buf.write(_textToSvgText(t));
+          buf.write(textToSvgText(t));
         }
       }
       buf.writeln('</svg>');
@@ -1098,40 +1101,6 @@ class _EditorPageState extends State<EditorPage> {
     } catch (e) {
       _showSnack('导出失败：$e');
     }
-  }
-
-  /// 笔画 -> SVG path（用采样点折线 + 线宽 stroke，与画布视觉一致）。
-  String _strokeToSvgPath(Stroke stroke) {
-    if (stroke.points.isEmpty) return '';
-    final w = stroke.width.toDouble();
-    final argb = stroke.color.toARGB32();
-    // 颜色格式：#RRGGBB，透明 alpha 用 stroke-opacity。
-    final hex = (argb & 0xFFFFFF).toRadixString(16).padLeft(6, '0');
-    final alpha = ((argb >> 24) & 0xFF) / 255;
-    final d = StringBuffer()
-      ..write('M${stroke.points.first.x},${stroke.points.first.y}');
-    for (final p in stroke.points.skip(1)) {
-      d.write(' L${p.x},${p.y}');
-    }
-    return '<path d="$d" fill="none" stroke="#$hex" '
-        'stroke-width="$w" stroke-linecap="round" stroke-linejoin="round" '
-        'stroke-opacity="${alpha.toStringAsFixed(3)}"/>\n';
-  }
-
-  /// 文字块 -> SVG text（字号/颜色/粗斜体/对齐）。
-  String _textToSvgText(PageTextItem t) {
-    final hex = (t.color & 0xFFFFFF).toRadixString(16).padLeft(6, '0');
-    final bold = t.bold ? ' font-weight="bold"' : '';
-    final italic = t.italic ? ' font-style="italic"' : '';
-    // XML 转义，防止特殊字符破坏 SVG。
-    final text = t.text
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;');
-    return '<text x="${t.x}" y="${t.y + t.fontSize}" '
-        'font-size="${t.fontSize}" fill="#$hex"$bold$italic '
-        'font-family="sans-serif">$text</text>\n';
   }
 
   /// 导出分页笔记为可由 Microsoft Word、WPS 等直接打开的 RTF 文档。
