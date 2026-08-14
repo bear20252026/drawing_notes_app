@@ -131,3 +131,21 @@ git push   # 若遇 408，先 unset 代理再推
 | 远程仓库 | https://github.com/bear20252026/drawing_notes_app（PRIVATE, master） |
 | 远程首个提交 | `8ee0c992`（与本地一致） |
 | 质量门禁 | flutter analyze 零问题 / 231 项测试全过 / dart_code_metrics 无问题 |
+
+---
+
+## 五、SelectionManager 拆分评估结论（2026-08-15）
+
+**决策**：不拆分 drawing_controller，保持单一内聚类。
+
+**评估过程**：
+1. 尝试提取独立 SelectionManager（对象选择/变换），已完成 811 行逻辑迁移；
+2. 发现选择状态字段（_selectedDocumentImageId 等）在 controller 中被 79 处引用，
+   与绘制、历史、图层深度耦合；
+3. Dart 私有成员为库级可见性，独立类若要共享状态需 part 机制或公开 getter，
+   且 SelectionManager 自持字段与 controller 同名字段会形成双状态源；
+4. 强行拆分需删除约 890 行旧方法并全量委托，风险远大于收益。
+
+**结论**：遵循"不为了拆而拆、逻辑简单不易出错、政府验收项目严谨优先"
+原则，drawing_controller 保持内聚；文档记录本次评估，供未来在
+引入协作/多端同步需求时重新评估。
