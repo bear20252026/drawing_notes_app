@@ -57,3 +57,8 @@ app.*.map.json
 /.pyscn/
 /.skylos/
 /tools/uv.lock
+
+# 工具本地状态/缓存（CI 重新生成，不入库）
+/.desloppify/
+/.hotspottriage/
+/.repopilot/

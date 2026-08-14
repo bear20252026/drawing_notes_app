@@ -165,3 +165,64 @@ jobs:
         run: |
           pyscn analyze tools --skip-clones --skip-communities --skip-lcom --json || true
 
+  repopilot-gate:
+    name: RepoPilot Diff Evidence Gate (零上传)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # --base 需要完整历史
+
+      - name: Install RepoPilot (官方预编译二进制)
+        # 本地优先 Rust CLI；零上传、无 LLM 调用——契合政府涉密红线。
+        run: |
+          curl -sL -o /tmp/repopilot.tar.gz \
+            "https://github.com/MykytaStel/repopilot/releases/download/v0.21.0/repopilot-v0.21.0-x86_64-unknown-linux-gnu.tar.gz"
+          tar -xzf /tmp/repopilot.tar.gz -C /usr/local/bin
+          repopilot --version
+
+      - name: RepoPilot git diff 证据门禁
+        # 先 preview 观测（continue-on-error），后续迭代收紧为
+        # --fail-on-review definitely。
+        continue-on-error: true
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="HEAD~1"
+          fi
+          repopilot review . --base "$BASE" --json || true
+
+  desloppify-gate:
+    name: Desloppify Dart Health Gate (OSNL-0.2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install desloppify (官方 PyPI 包)
+        # 支持 29 语言含 Dart（full plugin depth）；机械检测 + LLM 主观审查。
+        # 许可 OSNL-0.2（非 MIT/Apache）——接入前需法务确认，先观测。
+        run: pip install desloppify
+
+      - name: Desloppify Dart 健康扫描（CI profile，先观测）
+        # 客观维度为主；subjective（LLM 审查）默认 0 不计入，避免涉密上传。
+        continue-on-error: true
+        run: |
+          desloppify --exclude ".dart_tool,build" scan --profile ci || true
+
+      - name: Desloppify 状态面板（审计留痕）
+        if: always()
+        continue-on-error: true
+        run: |
+          desloppify status || true
+
