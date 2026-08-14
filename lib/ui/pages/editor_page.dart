@@ -329,17 +329,24 @@ class _EditorPageState extends State<EditorPage> {
     if (start == null || current == null || tool == null) return null;
     final dx = current.dx - start.dx;
     final dy = current.dy - start.dy;
+    final left = math.min(start.dx, current.dx);
+    final top = math.min(start.dy, current.dy);
     return PageShapeItem(
       id: '_shape_draft',
       shapeType: tool,
-      x: math.min(start.dx, current.dx),
-      y: math.min(start.dy, current.dy),
+      x: left,
+      y: top,
       width: dx.abs().clamp(2.0, 10000.0).toDouble(),
       height: dy.abs().clamp(2.0, 10000.0).toDouble(),
       color: _controller.color.toARGB32(),
       strokeWidth: _controller.brushSize.clamp(1, 20).toDouble(),
       flipX: dx < 0,
       flipY: dy < 0,
+      // 线性元素预览也保存真实端点（审查发现 P1：预览与落定方向
+      // 不一致——落定走 ShapeCreationGeometry.fromDrag 的真实端点，
+      // 而预览此前仅靠 flipX/flipY 对角线，用户会看到方向跳动）。
+      lineStart: start - Offset(left, top),
+      lineEnd: current - Offset(left, top),
       // 填充模式开启时预览也带填充色，所见即所得（问题4）。
       fillColor: _fillShapeEnabled ? _shapeFillColor : null,
     );

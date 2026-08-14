@@ -1334,8 +1334,12 @@ class DrawingController extends ChangeNotifier {
         shape.shapeType == ShapeType.arrow) {
       final start = shape.lineStart ?? Offset(0, shape.height);
       final end = shape.lineEnd ?? Offset(shape.width, 0);
-      final startAbs = start + bounds.topLeft;
-      final endAbs = end + bounds.topLeft;
+      // 审查发现 P1：绝对坐标基准必须用形状原始外接框左上角
+      // （shape.position），而不是已膨胀 radius 的 bounds.topLeft，
+      // 否则线段整体偏移 radius 导致命中判定偏差（漏擦/误擦）。
+      final origin = Offset(shape.x, shape.y);
+      final startAbs = start + origin;
+      final endAbs = end + origin;
       return _distanceToSegment(center, startAbs, endAbs) <= radius;
     }
     return true;
