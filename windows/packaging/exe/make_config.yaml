@@ -1,0 +1,15 @@
+# Fastforge Windows EXE installer configuration.
+# Official documentation: https://fastforge.dev/makers/exe
+# Keep app_id stable across future releases; Windows uses it to recognize upgrades.
+app_id: 64F061D3-BDCF-45D3-A14F-5E900686909F
+publisher: Drawing Notes Studio
+# Add publisher_url and support_url only after a real public website exists.
+display_name: 绘图笔记
+create_desktop_icon: true
+setup_icon_file: windows\\runner\\resources\\app_icon.ico
+locales:
+  - en
+  - zh
+# Support native x64 and Windows on ARM running the x64 application.
+architectures_allowed: x64compatible
+architectures_install_in_64bit_mode: x64compatible

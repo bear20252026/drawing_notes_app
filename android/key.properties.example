@@ -1,0 +1,6 @@
+# Copy this file to android/key.properties on the release machine.
+# Never commit android/key.properties or the referenced keystore file.
+storePassword=REPLACE_WITH_KEYSTORE_PASSWORD
+keyPassword=REPLACE_WITH_KEY_PASSWORD
+keyAlias=release
+storeFile=C:\\secure\\drawing-notes-release.jks

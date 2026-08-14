@@ -1,0 +1,30 @@
+# Fastforge 0.6.x release configuration.
+# Official docs: https://fastforge.dev/
+#
+# Windows EXE uses windows/packaging/exe/make_config.yaml and requires
+# Inno Setup 6 on a Windows host. Android release builds require a real
+# signing key configured in android/key.properties (never commit that file).
+
+output: dist/
+releases:
+  - name: production
+    jobs:
+      # Traditional Windows installer (.exe) with uninstall and shortcuts.
+      - name: windows-exe
+        package:
+          platform: windows
+          target: exe
+      # Direct-install Android package for internal QA and sideload distribution.
+      - name: android-apk
+        package:
+          platform: android
+          target: apk
+          build_args:
+            target-platform: android-arm,android-arm64
+      # Google Play Console upload artifact.
+      - name: android-aab
+        package:
+          platform: android
+          target: aab
+          build_args:
+            target-platform: android-arm,android-arm64
