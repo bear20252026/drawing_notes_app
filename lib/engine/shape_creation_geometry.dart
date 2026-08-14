@@ -11,6 +11,8 @@ class ShapeCreationGeometry {
     required this.height,
     required this.flipX,
     required this.flipY,
+    this.lineStart,
+    this.lineEnd,
   });
 
   static const double _clickThreshold = 4;
@@ -26,6 +28,11 @@ class ShapeCreationGeometry {
   final bool flipX;
   final bool flipY;
 
+  /// 线性元素（直线/箭头）的真实端点（相对外接框左上角），
+  /// 用于修复方向与鼠标轨迹不一致的问题（参考 Saber shape_pen）。
+  final Offset? lineStart;
+  final Offset? lineEnd;
+
   factory ShapeCreationGeometry.fromDrag(Offset start, Offset end) {
     final dx = end.dx - start.dx;
     final dy = end.dy - start.dy;
@@ -36,13 +43,18 @@ class ShapeCreationGeometry {
     final height = isClick
         ? _defaultHeight
         : dy.abs().clamp(_minSize, _maxSize).toDouble();
+    final left = isClick ? start.dx - width / 2 : _min(start.dx, end.dx);
+    final top = isClick ? start.dy - height / 2 : _min(start.dy, end.dy);
     return ShapeCreationGeometry(
-      x: isClick ? start.dx - width / 2 : _min(start.dx, end.dx),
-      y: isClick ? start.dy - height / 2 : _min(start.dy, end.dy),
+      x: left,
+      y: top,
       width: width,
       height: height,
       flipX: !isClick && dx < 0,
       flipY: !isClick && dy < 0,
+      // 线性元素保存相对外接框的真实端点（含拖动方向）。
+      lineStart: start - Offset(left, top),
+      lineEnd: end - Offset(left, top),
     );
   }
 
@@ -52,6 +64,7 @@ class ShapeCreationGeometry {
     required int color,
     required double strokeWidth,
     String? boundElementId,
+    int? fillColor,
   }) => PageShapeItem(
     id: id,
     shapeType: shapeType,
@@ -60,10 +73,13 @@ class ShapeCreationGeometry {
     width: width,
     height: height,
     color: color,
+    fillColor: fillColor,
     strokeWidth: strokeWidth.clamp(1, 20).toDouble(),
     flipX: flipX,
     flipY: flipY,
     boundElementId: boundElementId,
+    lineStart: lineStart,
+    lineEnd: lineEnd,
   );
 
   static double _min(double a, double b) => a < b ? a : b;

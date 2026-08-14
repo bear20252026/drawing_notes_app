@@ -159,9 +159,12 @@ class StrokeRenderer {
       ..blendMode = BlendMode.plus;
     canvas.drawPath(outerOutline, outer);
 
+    // 内芯使用所选颜色（修复问题2：激光中间为白色、颜色不醒目的缺陷）。
+    // 参考 Saber 激光的双层同色发光思路：外层模糊营造光晕，内芯同色
+    // 高不透明度保证激光清晰醒目。
     final innerStroke = Stroke(
       points: visibleStroke.points,
-      color: const Color(0xFFFFFFFF),
+      color: stroke.color.withValues(alpha: 1),
       width: (stroke.width * 0.42).clamp(1.0, 100.0),
       type: BrushType.laser,
     );

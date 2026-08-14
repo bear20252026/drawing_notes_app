@@ -382,11 +382,15 @@ class ShapePainter extends CustomPainter {
     // 虚线样式（借鉴 Excalidraw 线样式面板）：dash 时用虚线绘制描边。
     switch (shape.shapeType) {
       case ShapeType.rect:
-        fill?.color = Color(shape.fillColor!);
-        if (shape.rough && shape.fillColor != null) {
-          roughFill(Path()..addRect(rect));
-        } else {
-          canvas.drawRect(rect, fill ?? Paint());
+        // 仅填充模式绘制内部颜色；非填充模式中间保持透明纸色，
+        // 避免默认 Paint()（黑色实心）造成"绘制中中间全黑"（问题6）。
+        if (fill != null) {
+          fill.color = Color(shape.fillColor!);
+          if (shape.rough) {
+            roughFill(Path()..addRect(rect));
+          } else {
+            canvas.drawRect(rect, fill);
+          }
         }
         drawStroke(
           Path()
@@ -397,11 +401,13 @@ class ShapePainter extends CustomPainter {
             ..close(),
         );
       case ShapeType.ellipse:
-        fill?.color = Color(shape.fillColor!);
-        if (shape.rough && shape.fillColor != null) {
-          roughFill(Path()..addOval(rect));
-        } else {
-          canvas.drawOval(rect, fill ?? Paint());
+        if (fill != null) {
+          fill.color = Color(shape.fillColor!);
+          if (shape.rough) {
+            roughFill(Path()..addOval(rect));
+          } else {
+            canvas.drawOval(rect, fill);
+          }
         }
         drawStroke(Path()..addOval(rect));
       case ShapeType.diamond:
@@ -417,11 +423,13 @@ class ShapePainter extends CustomPainter {
           )
           ..lineTo(j(Offset(0, center.dy)).dx, j(Offset(0, center.dy)).dy)
           ..close();
-        fill?.color = Color(shape.fillColor!);
-        if (shape.rough && shape.fillColor != null) {
-          roughFill(diamond);
-        } else {
-          canvas.drawPath(diamond, fill ?? Paint());
+        if (fill != null) {
+          fill.color = Color(shape.fillColor!);
+          if (shape.rough) {
+            roughFill(diamond);
+          } else {
+            canvas.drawPath(diamond, fill);
+          }
         }
         drawStroke(diamond);
       case ShapeType.line:
@@ -525,8 +533,17 @@ class MarqueePainter extends CustomPainter {
             const Color(0x3342A5F5) // 半透明蓝填充
         ..style = PaintingStyle.fill,
     );
-    canvas.drawRect(
-      viewRect,
+    // 虚线框选（问题10）：与其他白板软件一致，用虚线勾勒框选区域，
+    // 与正式选区实线区分。用 PathMetrics 手工分段，避免引入新依赖。
+    final outline = Path()..addRect(viewRect);
+    final dashed = Path();
+    for (final metric in outline.computeMetrics()) {
+      for (var offset = 0.0; offset < metric.length; offset += 12) {
+        dashed.addPath(metric.extractPath(offset, offset + 8), Offset.zero);
+      }
+    }
+    canvas.drawPath(
+      dashed,
       Paint()
         ..color = const Color(0xFF42A5F5)
         ..style = PaintingStyle.stroke

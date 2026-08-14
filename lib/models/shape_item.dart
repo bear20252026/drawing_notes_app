@@ -37,6 +37,8 @@ class PageShapeItem {
     this.version = 0,
     this.versionNonce = 0,
     this.fractionalIndex,
+    this.lineStart,
+    this.lineEnd,
   }) : seed = seed ?? _newSeed();
 
   final String id;
@@ -66,6 +68,15 @@ class PageShapeItem {
 
   /// 每次编辑递增的快速变化指示器；比 [version] 更细粒度。
   int versionNonce;
+
+  /// 线性元素（直线/箭头）的真实起点（相对外接框左上角）。
+  ///
+  /// 参考 Saber shape_pen 的 `convertToLine()`（保存真实端点）：仅靠
+  /// [flipX]/[flipY] 无法表达"从左往右画一条水平线"这类方向（渲染端固定
+  /// 画对角线会翻转或变形）。保存相对端点后，渲染与命中按真实轨迹绘制；
+  /// 旧文档缺失时回退为原"左下→右上"对角线行为。
+  Offset? lineStart;
+  Offset? lineEnd;
 
   static int _newSeed() => Random().nextInt(0x7FFFFFFF);
 
@@ -123,6 +134,8 @@ class PageShapeItem {
     version: version,
     versionNonce: versionNonce,
     fractionalIndex: fractionalIndex,
+    lineStart: lineStart,
+    lineEnd: lineEnd,
   );
 
   Map<String, dynamic> toJson() => {
@@ -151,6 +164,9 @@ class PageShapeItem {
     'version': version,
     'versionNonce': versionNonce,
     if (fractionalIndex != null) 'fractionalIndex': fractionalIndex,
+    if (lineStart != null)
+      'lineStart': [lineStart!.dx, lineStart!.dy],
+    if (lineEnd != null) 'lineEnd': [lineEnd!.dx, lineEnd!.dy],
   };
 
   factory PageShapeItem.fromJson(Map<String, dynamic> json) => PageShapeItem(
@@ -182,7 +198,17 @@ class PageShapeItem {
     version: (json['version'] as num?)?.toInt() ?? 0,
     versionNonce: (json['versionNonce'] as num?)?.toInt() ?? 0,
     fractionalIndex: json['fractionalIndex'] as String?,
+    lineStart: _offsetFromJson(json['lineStart']),
+    lineEnd: _offsetFromJson(json['lineEnd']),
   );
+
+  static Offset? _offsetFromJson(Object? value) {
+    if (value is! List || value.length != 2) return null;
+    final dx = value[0];
+    final dy = value[1];
+    if (dx is! num || dy is! num) return null;
+    return Offset(dx.toDouble(), dy.toDouble());
+  }
 
   static ShapeEndpointBinding? _bindingFromJson(Object? value) {
     if (value is! Map) return null;

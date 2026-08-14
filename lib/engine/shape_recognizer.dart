@@ -100,11 +100,18 @@ class ShapeRecognizer {
       math.max(2, bounds.width),
       math.max(2, bounds.height),
     );
+    // 保存真实端点（相对外接框左上角），修复"从左往右画却生成
+    // 反向/斜线"的问题（对齐 Saber shape_pen.convertToLine）。
+    // flipX/flipY 不再用于线性元素的方向表达，改为 false。
+    final lineStart = start - normalized.topLeft;
+    final lineEnd = end - normalized.topLeft;
     return RecognizedShape(
       ShapeType.line,
       normalized,
-      flipX: end.dx < start.dx,
-      flipY: end.dy < start.dy,
+      flipX: false,
+      flipY: false,
+      lineStart: lineStart,
+      lineEnd: lineEnd,
     );
   }
 
@@ -230,10 +237,17 @@ class RecognizedShape {
     this.bounds, {
     this.flipX = false,
     this.flipY = false,
+    this.lineStart,
+    this.lineEnd,
   });
 
   final ShapeType type;
   final Rect bounds;
   final bool flipX;
   final bool flipY;
+
+  /// 线性元素的真实端点（相对 [bounds] 左上角），用于修复
+  /// 直线/箭头方向与鼠标轨迹不一致的问题。
+  final Offset? lineStart;
+  final Offset? lineEnd;
 }

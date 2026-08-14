@@ -243,4 +243,5 @@ enum _MainMenuItem {
   library,
   stats,
   shortcuts,
+  toggleInfinite,
 }

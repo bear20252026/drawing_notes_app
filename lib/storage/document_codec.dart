@@ -22,7 +22,14 @@ import '../models/stroke.dart';
 class DocumentCodec {
   const DocumentCodec();
 
-  static const int _version = 2;
+  /// 当前支持的工程文件格式版本。
+  ///
+  /// 对齐 Saber SBN 的版本管理思路：写入固定 [version]，读取时若遇到
+  /// 高于本值的文件（由新版本应用生成）则明确拒绝并提示升级，而不是
+  /// 静默忽略未知字段造成数据损坏（政府审计项目严禁静默丢数据）。
+  static const int latestVersion = 2;
+
+  static const int _version = latestVersion;
 
   /// 序列化为 JSON 字节。
   Uint8List encode(DrawingDocument doc) {
@@ -62,6 +69,14 @@ class DocumentCodec {
     }
     if (decoded is! Map) {
       throw FormatException('文档根节点必须是对象');
+    }
+    // 版本只读降级（对齐 Saber SBN）：文件版本高于当前支持版本时，
+    // 拒绝以旧逻辑解码（避免静默丢失新字段），提示用户升级应用。
+    final fileVersion = decoded['version'];
+    if (fileVersion is num && fileVersion.toInt() > _version) {
+      throw FormatException(
+        '文档版本过新（v$fileVersion，当前支持 v$_version），请升级应用后再打开',
+      );
     }
     final documentValue = decoded['document'];
     if (documentValue is! Map) {

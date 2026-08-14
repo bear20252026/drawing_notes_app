@@ -78,16 +78,24 @@ class AddStrokeCommand extends DocCommand {
 
 /// 对象橡皮擦的增量命令（对齐 excalidraw StoreDelta 只存变更的设计）。
 ///
-/// 一次擦除手势可能删除多条笔画；相比原先的整层快照
+/// 一次擦除手势可能删除多条笔画和/或标准形状；相比原先的整层快照
 /// [SnapshotCommand]（深拷贝全部图层），这里只保存被删笔画的
 /// 图层索引、原位置与对象引用，撤销/重做零整层拷贝、内存开销极小。
+/// 形状擦除（问题3：标准直线/图案可被橡皮擦除）同样按引用记录。
 class EraseStrokesCommand extends DocCommand {
-  EraseStrokesCommand(this._controller, this._removed);
+  EraseStrokesCommand(
+    this._controller,
+    this._removed, {
+    this.removedShapes = const [],
+  });
 
   final DrawingController _controller;
 
   /// 被删笔画按删除顺序记录：(图层索引, 删除前原位置, 笔画对象)。
   final List<({int layerIndex, int index, Stroke stroke})> _removed;
+
+  /// 本次手势一并删除的标准形状（引用快照），撤销时插回、重做时再移除。
+  final List<PageShapeItem> removedShapes;
 
   @override
   void undo() {
@@ -107,6 +115,12 @@ class EraseStrokesCommand extends DocCommand {
       }
       _controller.afterStrokeUndoRedo(layerIndex);
     }
+    // 恢复被擦除的标准形状（保持原顺序追加）。
+    if (removedShapes.isNotEmpty) {
+      _controller.document.shapes.addAll(
+        removedShapes.map((shape) => shape.copy()),
+      );
+    }
     _controller.touchDocument();
   }
 
@@ -121,6 +135,10 @@ class EraseStrokesCommand extends DocCommand {
     }
     for (final layerIndex in changedLayers) {
       _controller.afterStrokeUndoRedo(layerIndex);
+    }
+    // 再次移除被擦除的标准形状。
+    for (final shape in removedShapes) {
+      _controller.document.shapes.remove(shape);
     }
     _controller.touchDocument();
   }

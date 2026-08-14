@@ -212,6 +212,8 @@ class StorageService implements DocumentRepository {
   /// 加载指定文档。文件不存在返回 null，格式损坏抛出异常（由调用方提示）。
   ///
   /// 崩溃恢复：正式文件损坏时，尝试读取 `.bak` 上一版备份。
+  /// 读失败重试（对齐 Saber FileManager）：瞬时 IO 错误自动重试 3 次，
+  /// 避免 U 盘/网络盘抖动导致误报"文档损坏"。
   @override
   Future<DrawingDocument?> load(String id) async {
     await _ensureDocumentsDir();
@@ -219,15 +221,35 @@ class StorageService implements DocumentRepository {
     final bak = File('${_pathFor(id)}.bak');
     if (!await file.exists() && !await bak.exists()) return null;
     try {
-      final bytes = await (await file.exists() ? file : bak).readAsBytes();
+      final bytes = await _readWithRetry(
+        () async => await (await file.exists() ? file : bak).readAsBytes(),
+      );
       return _codec.decode(bytes);
     } on FormatException {
       // 正式文件损坏：尝试备份恢复。
       if (await bak.exists()) {
-        final bytes = await bak.readAsBytes();
+        final bytes = await _readWithRetry(() async => await bak.readAsBytes());
         return _codec.decode(bytes);
       }
       rethrow;
+    }
+  }
+
+  /// 带重试的文件读取：瞬时 IO 错误（`FileSystemException`）自动重试
+  /// [retries] 次，间隔 50ms 递增；最终仍失败则向上抛出。
+  static Future<Uint8List> _readWithRetry(
+    Future<Uint8List> Function() read, {
+    int retries = 3,
+  }) async {
+    for (var attempt = 0; ; attempt++) {
+      try {
+        return await read();
+      } on FileSystemException {
+        if (attempt >= retries) rethrow;
+        await Future<void>.delayed(
+          Duration(milliseconds: 50 * (attempt + 1)),
+        );
+      }
     }
   }
 

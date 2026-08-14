@@ -1294,9 +1294,57 @@ class DrawingController extends ChangeNotifier {
       [];
   bool _objectEraseChanged = false;
 
+  /// 被擦除的标准形状（问题3）：整笔/透明模式的擦除开关。
+  ///
+  /// 用户实测反馈"标准直线无法被橡皮擦擦除"，且需要按擦除模式细分：
+  /// 两个开关分别控制整笔模式（[EraserMode.stroke]）与透明模式
+  /// （[EraserMode.pixel]）是否擦除标准形状；两者都关 = 形状不可被擦除，
+  /// 只开其一 = 仅该模式可擦除，两者都开 = 两种模式均可擦除。
+  bool _eraserCanEraseShapesStroke = true;
+  bool _eraserCanEraseShapesPixel = true;
+  bool get eraserCanEraseShapesStroke => _eraserCanEraseShapesStroke;
+  bool get eraserCanEraseShapesPixel => _eraserCanEraseShapesPixel;
+  set eraserCanEraseShapesStroke(bool value) {
+    if (_eraserCanEraseShapesStroke == value) return;
+    _eraserCanEraseShapesStroke = value;
+    notifyListeners();
+  }
+
+  set eraserCanEraseShapesPixel(bool value) {
+    if (_eraserCanEraseShapesPixel == value) return;
+    _eraserCanEraseShapesPixel = value;
+    notifyListeners();
+  }
+
+  /// 当前擦除模式是否允许擦除标准形状。
+  bool get _eraserCanEraseShapes =>
+      _eraserMode == EraserMode.stroke
+          ? _eraserCanEraseShapesStroke
+          : _eraserCanEraseShapesPixel;
+
+  /// 本次手势中被擦除的标准形状（按引用记录，供增量命令还原）。
+  final List<PageShapeItem> _objectEraseShapes = [];
+
+  /// 命中测试：橡皮擦中心点是否触及标准形状（外接框膨胀橡皮擦半径）。
+  bool _eraserHitsShape(PageShapeItem shape, Offset center, double radius) {
+    final bounds = ShapeBindingGeometry.rawBounds(shape).inflate(radius);
+    if (!bounds.contains(center)) return false;
+    // 线性元素（直线/箭头）用真实端点做线段距离判定，避免大外接框误擦。
+    if (shape.shapeType == ShapeType.line ||
+        shape.shapeType == ShapeType.arrow) {
+      final start = shape.lineStart ?? Offset(0, shape.height);
+      final end = shape.lineEnd ?? Offset(shape.width, 0);
+      final startAbs = start + bounds.topLeft;
+      final endAbs = end + bounds.topLeft;
+      return _distanceToSegment(center, startAbs, endAbs) <= radius;
+    }
+    return true;
+  }
+
   /// 开始对象橡皮擦手势。调用方只在 [EraserMode.stroke] 下调用。
   void beginObjectErase() {
     _objectEraseRemoved.clear();
+    _objectEraseShapes.clear();
     _objectEraseChanged = false;
   }
 
@@ -1334,6 +1382,25 @@ class DrawingController extends ChangeNotifier {
       changed = true;
       changedLayers.add(layerIndex);
     }
+
+    // 标准形状擦除（问题3）：开关开启时，命中标准直线/图案也一并删除，
+    // 并纳入同一条增量撤销记录。线性元素按真实端点做线段距离判定。
+    if (_eraserCanEraseShapes && _document.shapes.isNotEmpty) {
+      final hitShapes = <PageShapeItem>[];
+      for (final shape in _document.shapes) {
+        if (_eraserHitsShape(shape, canvasPoint, radius)) {
+          hitShapes.add(shape);
+        }
+      }
+      if (hitShapes.isNotEmpty) {
+        for (final shape in hitShapes) {
+          _document.shapes.remove(shape);
+        }
+        _objectEraseShapes.addAll(hitShapes);
+        changed = true;
+      }
+    }
+
     if (!changed) return false;
     _objectEraseChanged = true;
     _document.touch();
@@ -1348,21 +1415,34 @@ class DrawingController extends ChangeNotifier {
   void endObjectErase() {
     if (!_objectEraseChanged) {
       _objectEraseRemoved.clear();
+      _objectEraseShapes.clear();
       return;
     }
     _objectEraseChanged = false;
-    _pushCommand(EraseStrokesCommand(this, List.of(_objectEraseRemoved)));
+    _pushCommand(
+      EraseStrokesCommand(
+        this,
+        List.of(_objectEraseRemoved),
+        removedShapes: List.of(_objectEraseShapes),
+      ),
+    );
     _objectEraseRemoved.clear();
+    _objectEraseShapes.clear();
     notifyListeners();
   }
 
   /// 取消对象橡皮擦手势；如已经移除对象则还原（按增量记录插回）。
   void cancelObjectErase() {
     final changed = _objectEraseChanged;
-    if (changed && _objectEraseRemoved.isNotEmpty) {
-      EraseStrokesCommand(this, List.of(_objectEraseRemoved)).undo();
+    if (changed && (_objectEraseRemoved.isNotEmpty || _objectEraseShapes.isNotEmpty)) {
+      EraseStrokesCommand(
+        this,
+        List.of(_objectEraseRemoved),
+        removedShapes: List.of(_objectEraseShapes),
+      ).undo();
     }
     _objectEraseRemoved.clear();
+    _objectEraseShapes.clear();
     _objectEraseChanged = false;
   }
 
@@ -1474,6 +1554,10 @@ class DrawingController extends ChangeNotifier {
         strokeWidth: s.width.clamp(1, 20).toDouble(),
         flipX: recognized.flipX,
         flipY: recognized.flipY,
+        // 线性元素保存真实端点，确保直线/箭头方向与鼠标轨迹一致
+        // （修复"从左往右画却生成反向/斜线"的问题，参考 Saber shape_pen）。
+        lineStart: recognized.lineStart,
+        lineEnd: recognized.lineEnd,
       );
       _document.shapes.add(shape);
       _document.touch();
@@ -1953,6 +2037,27 @@ class DrawingController extends ChangeNotifier {
   /// 当前选区（多边形 + 命中笔画）。
   Selection _selection = const Selection();
   Selection get selection => _selection;
+
+  /// 选区主色（对齐 Saber select.dart 的 getDominantStrokeColor）：
+  /// 按笔画长度加权统计当前选中笔画的颜色，最“长”的颜色胜出，
+  /// 用于"取主色/批量改色"时给出代表性颜色，避免被零星小笔画误导。
+  Color? get dominantStrokeColor {
+    final distribution = <int, double>{};
+    for (final index in _selection.selectedStrokeIndices) {
+      if (index < 0 || index >= currentLayer.strokes.length) continue;
+      final stroke = currentLayer.strokes[index];
+      distribution.update(
+        stroke.color.toARGB32(),
+        (weight) => weight + stroke.points.length,
+        ifAbsent: () => stroke.points.length.toDouble(),
+      );
+    }
+    if (distribution.isEmpty) return null;
+    final entry = distribution.entries.reduce(
+      (a, b) => a.value >= b.value ? a : b,
+    );
+    return Color(entry.key);
+  }
 
   /// 正在绘制选区过程中的点（未完成）。
   final List<Offset> _selectionDraft = [];

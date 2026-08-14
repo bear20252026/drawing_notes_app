@@ -131,20 +131,18 @@ class ShapeRenderer {
         drawFill(path);
         drawOutline(path);
       case ShapeType.line:
+        // 优先使用保存的真实端点（相对外接框左上角），确保方向与
+        // 鼠标轨迹一致；旧文档无端点时回退为"左下→右上"对角线。
+        final lineStart = shape.lineStart ?? Offset(0, size.height);
+        final lineEnd = shape.lineEnd ?? Offset(size.width, 0);
         drawOutline(
           Path()
-            ..moveTo(
-              jitter(Offset(0, size.height)).dx,
-              jitter(Offset(0, size.height)).dy,
-            )
-            ..lineTo(
-              jitter(Offset(size.width, 0)).dx,
-              jitter(Offset(size.width, 0)).dy,
-            ),
+            ..moveTo(jitter(lineStart).dx, jitter(lineStart).dy)
+            ..lineTo(jitter(lineEnd).dx, jitter(lineEnd).dy),
         );
       case ShapeType.arrow:
-        final start = Offset(0, size.height);
-        final end = Offset(size.width, 0);
+        final start = shape.lineStart ?? Offset(0, size.height);
+        final end = shape.lineEnd ?? Offset(size.width, 0);
         drawOutline(
           Path()
             ..moveTo(start.dx, start.dy)

@@ -134,28 +134,17 @@ class _EditorPageState extends State<EditorPage> {
   /// 阅读反相仅作用于当前编辑器显示层；不修改页面颜色、资源字节、导出或保存。
   bool _readingInverted = false;
 
-  // Rec. 709 保亮度反相矩阵：与常规 RGB 反转相比，阅读彩色笔迹时层次更稳定。
+  // 深色阅读反相矩阵（问题9修复）。
+  //
+  // 原 Rec.709 保亮度矩阵系数误算：白色 (255,255,255) 经其作用后变为
+  // (0,255,0) 纯绿色，即用户实测的"一片绿幕"。标准 RGB 反相矩阵保证
+  // 白色背景 → 黑色、黑色墨迹 → 白色，实现真正的深色阅读（仅显示层
+  // 反相，不修改文档数据）。
   static const ColorFilter _readingInvertFilter = ColorFilter.matrix(<double>[
-    0.5748,
-    -1.4304,
-    -0.1444,
-    0,
-    255,
-    -0.4252,
-    0.5696,
-    -0.1444,
-    0,
-    255,
-    -0.4252,
-    -1.4304,
-    0.8556,
-    0,
-    255,
-    0,
-    0,
-    0,
-    1,
-    0,
+    -1, 0, 0, 0, 255,
+    0, -1, 0, 0, 255,
+    0, 0, -1, 0, 255,
+    0, 0, 0, 1, 0,
   ]);
 
   /// 图层与详细属性默认按需展开，避免在普通屏幕上长期挤压创作区域。
@@ -327,6 +316,12 @@ class _EditorPageState extends State<EditorPage> {
   Offset? _shapeDraftStart;
   Offset? _shapeDraftCurrent;
 
+  /// 形状填充模式开关（问题4）：开启后新建形状默认带填充色。
+  bool _fillShapeEnabled = false;
+
+  /// 形状填充色（ARGB，默认半透明绿，与样式面板一致）。
+  final int _shapeFillColor = 0x66A5D6A7;
+
   PageShapeItem? get _shapeDraft {
     final start = _shapeDraftStart;
     final current = _shapeDraftCurrent;
@@ -345,6 +340,8 @@ class _EditorPageState extends State<EditorPage> {
       strokeWidth: _controller.brushSize.clamp(1, 20).toDouble(),
       flipX: dx < 0,
       flipY: dy < 0,
+      // 填充模式开启时预览也带填充色，所见即所得（问题4）。
+      fillColor: _fillShapeEnabled ? _shapeFillColor : null,
     );
   }
 
@@ -1196,8 +1193,8 @@ class _EditorPageState extends State<EditorPage> {
     // 框选工具：结算框选，把矩形内的混排对象加入多选（借鉴 Excalidraw）。
     if (_marqueeActive && _marqueeRect != null) {
       final page = widget.page;
+      final rect = _marqueeRect!;
       if (page != null) {
-        final rect = _marqueeRect!;
         setState(() {
           _multiSelectedIds.clear();
           for (final t in page.textItems) {
@@ -1221,6 +1218,20 @@ class _EditorPageState extends State<EditorPage> {
           _marqueeStart = null;
         });
         _notifyChanged();
+      } else {
+        // 画布模式（问题10）：把虚线框转为多边形，交由控制器做
+        // 笔画/形状/图片的统一混合对象选择（选中后可移动/缩放）。
+        _controller.selectDocumentObjectsInPolygon([
+          rect.topLeft,
+          rect.topRight,
+          rect.bottomRight,
+          rect.bottomLeft,
+        ]);
+        setState(() {
+          _marqueeRect = null;
+          _marqueeStart = null;
+        });
+        _notifyChanged();
       }
       return;
     }
@@ -1240,6 +1251,8 @@ class _EditorPageState extends State<EditorPage> {
           color: _controller.color.toARGB32(),
           strokeWidth: _controller.brushSize,
           boundElementId: snapId,
+          // 填充模式开启时新建形状带填充色（问题4）。
+          fillColor: _fillShapeEnabled ? _shapeFillColor : null,
         );
         // 独立画布的箭头在起终点落入既有形状时自动建立双端关系。
         // 分页笔记保持原有轻量 `boundElementId` 行为，避免改变其旧格式语义。
@@ -1413,7 +1426,8 @@ class _EditorPageState extends State<EditorPage> {
   void _addTextItem(Offset canvasPoint) {
     final page = widget.page;
     if (page == null) {
-      _showSnack('文字框当前用于分页笔记；无限画布文字对象将在资料工作流阶段开放');
+      // 画布模式（问题5）：文字块存入文档 textItems，不再禁用文字工具。
+      _addCanvasTextItem(canvasPoint);
       return;
     }
 
@@ -1440,23 +1454,58 @@ class _EditorPageState extends State<EditorPage> {
     });
   }
 
+  /// 画布模式（无限画布）添加文字块（问题5修复）。
+  ///
+  /// 与笔记本页一致：创建临时文字块进入就地编辑，提交时写入
+  /// [DrawingDocument.textItems]，渲染由画布 overlay 层承载。
+  void _addCanvasTextItem(Offset canvasPoint) {
+    _commitTextEditing();
+    setState(() {
+      final item = PageTextItem(
+        id: NotebookStorage.newId('txt'),
+        x: canvasPoint.dx,
+        y: canvasPoint.dy,
+        text: '',
+      );
+      _editingItemId = item.id;
+      _editController.clear();
+      _viewModel.setTextToolActive(false);
+      _pendingTextItem = item;
+      _selectedItemId = null;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _editFocus.requestFocus();
+    });
+  }
+
   /// 画布双击（对齐 Excalidraw 双击插入文字）：
   /// 双击空白处 -> 新建文字块并立即进入就地编辑；
   /// 双击已有文字块 -> 进入该文字块的编辑。
   void _onCanvasDoubleTap(TapDownDetails details) {
     final page = widget.page;
-    if (page == null) return;
     final canvasPoint = _controller.viewToCanvas(details.localPosition);
     // 查找双击位置命中的文字块（取其编辑框）。
-    for (final t in page.textItems) {
-      final w = t.fontSize * 2;
-      if (Rect.fromLTWH(t.x, t.y, w, t.fontSize).contains(canvasPoint)) {
-        setState(() => _selectedItemId = t.id);
-        _editTextItem();
-        return;
+    if (page != null) {
+      for (final t in page.textItems) {
+        final w = t.fontSize * 2;
+        if (Rect.fromLTWH(t.x, t.y, w, t.fontSize).contains(canvasPoint)) {
+          setState(() => _selectedItemId = t.id);
+          _editTextItem();
+          return;
+        }
+      }
+    } else {
+      for (final t in _controller.document.textItems) {
+        final w = t.fontSize * 2;
+        if (Rect.fromLTWH(t.x, t.y, w, t.fontSize).contains(canvasPoint)) {
+          setState(() => _selectedItemId = t.id);
+          _editTextItem();
+          return;
+        }
       }
     }
-    // 空白处：新建文字并编辑（Excalidraw 同款顺滑插入）。
+    // 空白处：新建文字并编辑（Excalidraw 同款顺滑插入，问题11：
+    // 一点画面即可打字；画布/笔记两种模式均支持）。
     _addTextItem(canvasPoint);
   }
 
@@ -1467,14 +1516,24 @@ class _EditorPageState extends State<EditorPage> {
   void _commitTextEditing() {
     final page = widget.page;
     final pending = _pendingTextItem;
-    if (page == null || pending == null || _editingItemId == null) return;
+    if (pending == null || _editingItemId == null) return;
 
     final text = _editController.text.trim();
     if (text.isNotEmpty) {
       setState(() {
         pending.text = text;
-        if (!page.textItems.any((t) => t.id == pending.id)) {
-          page.textItems.add(pending); // 仅新文字块才加入
+        if (page != null) {
+          // 笔记本页：写入页面文字块集合。
+          if (!page.textItems.any((t) => t.id == pending.id)) {
+            page.textItems.add(pending); // 仅新文字块才加入
+          }
+        } else {
+          // 画布模式（问题5）：写入文档 textItems。
+          final items = _controller.document.textItems;
+          if (!items.any((t) => t.id == pending.id)) {
+            items.add(pending);
+          }
+          _controller.document.touch();
         }
         _selectedItemId = pending.id;
       });
@@ -2264,7 +2323,25 @@ class _EditorPageState extends State<EditorPage> {
         _openShapeLibrary();
       case _MainMenuItem.shortcuts:
         _showShortcutHelp();
+      case _MainMenuItem.toggleInfinite:
+        _toggleInfiniteCanvas();
     }
+  }
+
+  /// 切换无限画布模式（问题8）：开启后画布尺寸随内容动态扩展，
+  /// 元素可超出默认 A4 边界；关闭后回到固定纸张。仅独立画布可用，
+  /// 笔记本页由页面模板决定纸张，不提供运行时切换。
+  void _toggleInfiniteCanvas() {
+    final doc = _controller.document;
+    setState(() {
+      doc.infinite = !doc.infinite;
+      _viewportInitialized = false;
+      _gridVisible = doc.infinite ? true : _gridVisible;
+    });
+    _controller.document.touch();
+    _controller.tickFrame();
+    _showSnack(doc.infinite ? '已切换为无限画布（可无限延展）' : '已切回固定纸张');
+    _notifyChanged();
   }
 
   /// 导出画布为 PPTX（委托给 [EditorExporter]）。
@@ -3038,6 +3115,25 @@ class _EditorPageState extends State<EditorPage> {
                       title: Text('快捷键帮助'),
                     ),
                   ),
+                  // 切换无限画布（问题8）：仅独立画布可用。
+                  if (!_isNotebookMode)
+                    PopupMenuItem(
+                      value: _MainMenuItem.toggleInfinite,
+                      child: ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(
+                          _controller.document.infinite
+                              ? Icons.all_out
+                              : Icons.crop_free,
+                        ),
+                        title: Text(
+                          _controller.document.infinite
+                              ? '切换为固定纸张'
+                              : '切换为无限画布',
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ],
@@ -3277,9 +3373,13 @@ class _EditorPageState extends State<EditorPage> {
                       : Stack(children: [_buildShapeOverlay(_shapeDraft!)]),
                 ),
               ),
-            // 混排对象层（文字/图片，仅笔记本模式）：
-            // 监听 frameTick，使双指缩放/旋转画布时文字/图片位置同步刷新。
-            if (_isNotebookMode)
+            // 混排对象层（文字/图片）：
+            // 笔记本模式渲染页面文字/图片/形状；画布模式（问题5）渲染
+            // 文档文字块。监听 frameTick，使双指缩放/旋转画布时文字/图片
+            // 位置同步刷新。
+            if (_isNotebookMode ||
+                _controller.document.textItems.isNotEmpty ||
+                _pendingTextItem != null)
               Positioned.fill(
                 child: ListenableBuilder(
                   listenable: _controller.frameTick,
@@ -3287,14 +3387,15 @@ class _EditorPageState extends State<EditorPage> {
                     final overlay = Stack(
                       children: [
                         // 连接线层（D1：节点关联标注，借鉴 Relatum 连线）
-                        Positioned.fill(
-                          child: CustomPaint(
-                            painter: ConnectorPainter(
-                              page: widget.page!,
-                              controller: _controller,
+                        if (_isNotebookMode)
+                          Positioned.fill(
+                            child: CustomPaint(
+                              painter: ConnectorPainter(
+                                page: widget.page!,
+                                controller: _controller,
+                              ),
                             ),
                           ),
-                        ),
                         ..._buildOverlayItems(),
                         // 拖动轨迹动画层（对齐 Excalidraw animatedTrail）
                         if (_trailPoints.isNotEmpty)
@@ -3421,7 +3522,32 @@ class _EditorPageState extends State<EditorPage> {
 
   /// 构建画布上方的混排对象（文字块/图片块）。
   List<Widget> _buildOverlayItems() {
-    final page = widget.page!;
+    final page = widget.page;
+    if (page == null) {
+      // 画布模式（问题5）：渲染文档文字块 overlay（文字块可拖动/编辑）。
+      final items = <Widget>[];
+      final pending = _pendingTextItem;
+      if (pending != null && _editingItemId == pending.id) {
+        items.add(_buildInlineEditor(pending));
+      }
+      final ordered = <({String id, int z, Object item})>[
+        for (final t in _controller.document.textItems)
+          (id: t.id, z: t.zOrder, item: t),
+      ]..sort((a, b) => a.z.compareTo(b.z));
+      for (final entry in ordered) {
+        final t = _controller.document.textItems
+            .where((x) => x.id == entry.id)
+            .firstOrNull;
+        if (t == null) continue;
+        if (entry.id == _editingItemId) {
+          items.add(_buildInlineEditor(t));
+        } else {
+          items.add(_buildTextOverlay(t));
+        }
+      }
+      return items;
+    }
+
     final items = <Widget>[];
     // 就地编辑中的临时文字块（尚未加入页面，优先渲染在最上层）。
     final pending = _pendingTextItem;
@@ -4732,8 +4858,12 @@ class _EditorPageState extends State<EditorPage> {
             selectedTextItem: _selectedTextItem,
             activeShape: _activeShapeTool,
             selectedShape: _selectedShapeItem,
+            shapeFillEnabled: _fillShapeEnabled,
             marqueeActive: _marqueeActive,
             pixelEraser: _controller.eraserMode == EraserMode.pixel,
+            eraserCanEraseShapesStroke:
+                _controller.eraserCanEraseShapesStroke,
+            eraserCanEraseShapesPixel: _controller.eraserCanEraseShapesPixel,
             gridVisible: _gridVisible,
             snapToGrid: _snapToGrid,
           ),
@@ -4753,6 +4883,8 @@ class _EditorPageState extends State<EditorPage> {
             onToggleMarquee: _toggleMarqueeTool,
             onReorder: _reorderSelected,
             onSelectShape: _selectShapeTool,
+            setShapeFillEnabled: (enabled) =>
+                setState(() => _fillShapeEnabled = enabled),
             onDistribute: _distributeItems,
             onShapeStrokeWidth: (v) {
               final s = _selectedShapeItem;
@@ -4788,6 +4920,10 @@ class _EditorPageState extends State<EditorPage> {
               setState(() => _controller.eraserMode = mode);
               unawaited(_eraserModeStore.save(mode));
             },
+            setEraserCanEraseShapesStroke: (value) =>
+                setState(() => _controller.eraserCanEraseShapesStroke = value),
+            setEraserCanEraseShapesPixel: (value) =>
+                setState(() => _controller.eraserCanEraseShapesPixel = value),
             setTemporaryMarkerEnabled: (enabled) =>
                 setState(() => _controller.temporaryMarkerEnabled = enabled),
             selectEyedropper: () => setState(() {

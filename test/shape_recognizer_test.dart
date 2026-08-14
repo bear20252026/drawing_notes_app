@@ -48,8 +48,11 @@ void main() {
 
     expect(recognized, isNotNull);
     expect(recognized!.type, ShapeType.line);
-    expect(recognized.flipX, isTrue);
-    expect(recognized.flipY, isFalse);
+    // 真实端点保存了鼠标轨迹方向（从右往左），
+    // 取代旧的 flipX/flipY 表达（修复方向不一致问题）。
+    expect(recognized.lineStart, isNotNull);
+    expect(recognized.lineEnd, isNotNull);
+    expect(recognized.lineStart!.dx, greaterThan(recognized.lineEnd!.dx));
   });
 
   test('闭合菱形轮廓识别为菱形而非椭圆', () {

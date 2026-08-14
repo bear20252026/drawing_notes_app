@@ -3,6 +3,7 @@ import 'dart:ui' show Size;
 import 'document_image_item.dart';
 import 'layer.dart';
 import 'shape_item.dart';
+import 'text_item.dart';
 
 /// 纸张模板类型（借鉴 Relatum / GoodNotes 等笔记软件的纸张背景）。
 ///
@@ -27,6 +28,7 @@ class DrawingDocument {
     List<Layer>? layers,
     List<PageShapeItem>? shapes,
     List<DocumentImageItem>? imageItems,
+    List<PageTextItem>? textItems,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : layers = layers != null
@@ -36,6 +38,7 @@ class DrawingDocument {
        imageItems = imageItems != null
            ? List.of(imageItems)
            : <DocumentImageItem>[],
+       textItems = textItems != null ? List.of(textItems) : <PageTextItem>[],
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 
@@ -64,6 +67,12 @@ class DrawingDocument {
   /// 独立绘图文档的离线图片元素。
   final List<DocumentImageItem> imageItems;
 
+  /// 画布模式下的文字块（问题5：画布不再禁用文字工具）。
+  ///
+  /// 独立于图层位图的对象，与笔记本页面的文字块共用 [PageTextItem]；
+  /// 序列化向后兼容（旧文档缺失时为空列表）。
+  final List<PageTextItem> textItems;
+
   final DateTime createdAt;
   DateTime updatedAt;
 
@@ -87,6 +96,8 @@ class DrawingDocument {
     'layers': layers.map((l) => l.toJson()).toList(),
     'shapes': shapes.map((shape) => shape.toJson()).toList(),
     'imageItems': imageItems.map((item) => item.toJson()).toList(),
+    if (textItems.isNotEmpty)
+      'textItems': textItems.map((item) => item.toJson()).toList(),
   };
 
   factory DrawingDocument.fromJson(
@@ -109,6 +120,9 @@ class DrawingDocument {
         .toList(),
     imageItems: (json['imageItems'] as List? ?? const [])
         .map((e) => DocumentImageItem.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    textItems: (json['textItems'] as List? ?? const [])
+        .map((e) => PageTextItem.fromJson(e as Map<String, dynamic>))
         .toList(),
     createdAt:
         DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),

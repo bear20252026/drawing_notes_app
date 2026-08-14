@@ -59,6 +59,32 @@ class EditorToolbar extends StatelessWidget {
                   isEraser && !state.eyedropperActive && !state.textToolActive,
               onTap: actions.selectEraser,
             ),
+            // 橡皮擦形状擦除开关（问题3）：整笔/透明模式各自决定
+            // 是否擦除标准直线/图案，两个按钮可独立开关。
+            if (isEraser)
+              PopupMenuButton<VoidCallback>(
+                tooltip: '标准形状擦除设置',
+                icon: const Icon(Icons.shape_line_outlined, size: 20),
+                onSelected: (callback) => callback(),
+                itemBuilder: (_) => [
+                  CheckedPopupMenuItem(
+                    checked: state.eraserCanEraseShapesStroke,
+                    value: () =>
+                        actions.setEraserCanEraseShapesStroke(
+                          !state.eraserCanEraseShapesStroke,
+                        ),
+                    child: const Text('整笔模式擦除标准形状'),
+                  ),
+                  CheckedPopupMenuItem(
+                    checked: state.eraserCanEraseShapesPixel,
+                    value: () =>
+                        actions.setEraserCanEraseShapesPixel(
+                          !state.eraserCanEraseShapesPixel,
+                        ),
+                    child: const Text('透明模式擦除标准形状'),
+                  ),
+                ],
+              ),
             _toolButton(
               context,
               icon: Icons.colorize,
@@ -146,6 +172,24 @@ class EditorToolbar extends StatelessWidget {
                     PopupMenuItem(value: s, child: Text(shapeTypeName(s))),
                 ],
               ),
+              // 形状填充模式开关（问题4）：开启后新建形状默认带填充色。
+              if (state.activeShape != null)
+                IconButton(
+                  tooltip: '形状填充：${state.shapeFillEnabled ? '开' : '关'}'
+                      '（新建形状默认填充）',
+                  icon: Icon(
+                    state.shapeFillEnabled
+                        ? Icons.format_color_fill
+                        : Icons.format_color_reset,
+                    size: 20,
+                  ),
+                  isSelected: state.shapeFillEnabled,
+                  color: state.shapeFillEnabled
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
+                  onPressed: () =>
+                      actions.setShapeFillEnabled(!state.shapeFillEnabled),
+                ),
               // 等间距分布（水平/垂直，借鉴 Excalidraw 对齐/分布工具）
               PopupMenuButton<bool>(
                 tooltip: '等间距分布',
@@ -480,8 +524,11 @@ class EditorToolbarState {
     this.selectedTextItem,
     this.activeShape,
     this.selectedShape,
+    this.shapeFillEnabled = false,
     this.marqueeActive = false,
     this.pixelEraser = false,
+    this.eraserCanEraseShapesStroke = true,
+    this.eraserCanEraseShapesPixel = true,
     this.gridVisible = false,
     this.snapToGrid = false,
   });
@@ -510,11 +557,20 @@ class EditorToolbarState {
   /// 选中的形状元素（选中形状时显示样式控件）。
   final PageShapeItem? selectedShape;
 
+  /// 形状填充模式开关（问题4）：开启后新建形状默认带填充色。
+  final bool shapeFillEnabled;
+
   /// 框选工具是否激活（矩形框选多元素，借鉴 Excalidraw 多选）。
   final bool marqueeActive;
 
   /// 橡皮擦为 true 时以透明像素挖空；false 时命中整笔删除。
   final bool pixelEraser;
+
+  /// 标准形状擦除开关（问题3）：整笔模式是否可擦除标准直线/图案。
+  final bool eraserCanEraseShapesStroke;
+
+  /// 标准形状擦除开关（问题3）：透明模式是否可擦除标准直线/图案。
+  final bool eraserCanEraseShapesPixel;
 
   /// 网格显示开关（借鉴 Excalidraw 画布导航）。
   final bool gridVisible;
@@ -529,6 +585,8 @@ class EditorToolbarActions {
     required this.selectBrush,
     required this.selectEraser,
     required this.setPixelEraserMode,
+    required this.setEraserCanEraseShapesStroke,
+    required this.setEraserCanEraseShapesPixel,
     required this.setTemporaryMarkerEnabled,
     required this.selectEyedropper,
     required this.selectRect,
@@ -553,6 +611,7 @@ class EditorToolbarActions {
     required this.deleteSelected,
     required this.onBrushSelected,
     required this.onSelectShape,
+    required this.setShapeFillEnabled,
     required this.onDistribute,
     required this.onShapeStrokeWidth,
     required this.onShapeOpacity,
@@ -573,6 +632,12 @@ class EditorToolbarActions {
 
   /// 橡皮擦模式：false=命中整笔删除，true=透明像素挖空。
   final ValueChanged<bool> setPixelEraserMode;
+
+  /// 整笔模式是否可擦除标准形状（问题3）。
+  final ValueChanged<bool> setEraserCanEraseShapesStroke;
+
+  /// 透明模式是否可擦除标准形状（问题3）。
+  final ValueChanged<bool> setEraserCanEraseShapesPixel;
 
   /// 临时高亮笔开关：启用后墨迹平滑淡出且不写入文档。
   final ValueChanged<bool> setTemporaryMarkerEnabled;
@@ -602,6 +667,9 @@ class EditorToolbarActions {
 
   /// 选择形状工具（矩形/椭圆/菱形/箭头/直线，借鉴 Excalidraw）。
   final ValueChanged<ShapeType> onSelectShape;
+
+  /// 形状填充模式开关（问题4）：新建形状是否默认填充。
+  final ValueChanged<bool> setShapeFillEnabled;
 
   /// 等间距分布（true=水平，false=垂直，借鉴 Excalidraw 对齐/分布）。
   final ValueChanged<bool> onDistribute;
