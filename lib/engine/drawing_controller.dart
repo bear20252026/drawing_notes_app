@@ -1287,13 +1287,16 @@ class DrawingController extends ChangeNotifier {
   /// 是否正在绘制。
   bool get isDrawing => _activeStroke != null;
 
-  /// 对象橡皮擦手势的操作前快照。整段擦除只生成一条撤销记录。
-  List<Layer>? _objectEraseBefore;
+  /// 对象橡皮擦手势的增量记录（对齐 excalidraw StoreDelta 只存变更）。
+  /// 记录被删笔画：(图层索引, 删除前原位置, 笔画对象)，整段擦除只生成
+  /// 一条撤销记录，且不深拷贝整层。
+  final List<({int layerIndex, int index, Stroke stroke})> _objectEraseRemoved =
+      [];
   bool _objectEraseChanged = false;
 
   /// 开始对象橡皮擦手势。调用方只在 [EraserMode.stroke] 下调用。
   void beginObjectErase() {
-    _objectEraseBefore = _snapshotLayers();
+    _objectEraseRemoved.clear();
     _objectEraseChanged = false;
   }
 
@@ -1312,13 +1315,22 @@ class DrawingController extends ChangeNotifier {
     ) {
       final layer = _document.layers[layerIndex];
       if (!layer.visible) continue;
-      final removed = layer.strokes
-          .where((stroke) {
-            return _strokeHitsCircle(stroke, canvasPoint, radius);
-          })
-          .toList(growable: false);
+      // 记录命中笔画在删除前的原位置，供增量命令精确还原。
+      final removed = <({int index, Stroke stroke})>[];
+      for (var i = 0; i < layer.strokes.length; i++) {
+        final stroke = layer.strokes[i];
+        if (_strokeHitsCircle(stroke, canvasPoint, radius)) {
+          removed.add((index: i, stroke: stroke));
+        }
+      }
       if (removed.isEmpty) continue;
-      layer.strokes.removeWhere(removed.contains);
+      for (final entry in removed.reversed) {
+        layer.strokes.removeAt(entry.index);
+      }
+      _objectEraseRemoved.addAll([
+        for (final entry in removed)
+          (layerIndex: layerIndex, index: entry.index, stroke: entry.stroke),
+      ]);
       changed = true;
       changedLayers.add(layerIndex);
     }
@@ -1332,23 +1344,26 @@ class DrawingController extends ChangeNotifier {
     return true;
   }
 
-  /// 提交一个对象橡皮擦手势的统一撤销记录。
+  /// 提交一个对象橡皮擦手势的统一撤销记录（增量命令，零整层拷贝）。
   void endObjectErase() {
-    final before = _objectEraseBefore;
-    _objectEraseBefore = null;
-    if (before == null || !_objectEraseChanged) return;
+    if (!_objectEraseChanged) {
+      _objectEraseRemoved.clear();
+      return;
+    }
     _objectEraseChanged = false;
-    _pushCommand(SnapshotCommand(this, before, _snapshotLayers()));
+    _pushCommand(EraseStrokesCommand(this, List.of(_objectEraseRemoved)));
+    _objectEraseRemoved.clear();
     notifyListeners();
   }
 
-  /// 取消对象橡皮擦手势；如已经移除对象则还原操作前快照。
+  /// 取消对象橡皮擦手势；如已经移除对象则还原（按增量记录插回）。
   void cancelObjectErase() {
-    final before = _objectEraseBefore;
     final changed = _objectEraseChanged;
-    _objectEraseBefore = null;
+    if (changed && _objectEraseRemoved.isNotEmpty) {
+      EraseStrokesCommand(this, List.of(_objectEraseRemoved)).undo();
+    }
+    _objectEraseRemoved.clear();
     _objectEraseChanged = false;
-    if (before != null && changed) _restoreLayers(before);
   }
 
   static bool _strokeHitsCircle(Stroke stroke, Offset center, double radius) {

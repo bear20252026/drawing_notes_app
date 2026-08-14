@@ -76,6 +76,56 @@ class AddStrokeCommand extends DocCommand {
   }
 }
 
+/// 对象橡皮擦的增量命令（对齐 excalidraw StoreDelta 只存变更的设计）。
+///
+/// 一次擦除手势可能删除多条笔画；相比原先的整层快照
+/// [SnapshotCommand]（深拷贝全部图层），这里只保存被删笔画的
+/// 图层索引、原位置与对象引用，撤销/重做零整层拷贝、内存开销极小。
+class EraseStrokesCommand extends DocCommand {
+  EraseStrokesCommand(this._controller, this._removed);
+
+  final DrawingController _controller;
+
+  /// 被删笔画按删除顺序记录：(图层索引, 删除前原位置, 笔画对象)。
+  final List<({int layerIndex, int index, Stroke stroke})> _removed;
+
+  @override
+  void undo() {
+    // 按 (图层, 原位置) 升序插回原处；同一图层先插小索引不会影响大索引位置。
+    final byLayer = <int, List<({int index, Stroke stroke})>>{};
+    for (final entry in _removed) {
+      byLayer.putIfAbsent(entry.layerIndex, () => []).add(
+        (index: entry.index, stroke: entry.stroke),
+      );
+    }
+    for (final layerIndex in byLayer.keys) {
+      final entries = byLayer[layerIndex]!
+        ..sort((a, b) => a.index.compareTo(b.index));
+      final strokes = _controller.document.layers[layerIndex].strokes;
+      for (final entry in entries) {
+        strokes.insert(entry.index, entry.stroke);
+      }
+      _controller.afterStrokeUndoRedo(layerIndex);
+    }
+    _controller.touchDocument();
+  }
+
+  @override
+  void redo() {
+    // 按引用移除即可，无需关心原位置（与擦除时行为一致）。
+    final layers = _controller.document.layers;
+    final changedLayers = <int>{};
+    for (final entry in _removed) {
+      layers[entry.layerIndex].strokes.remove(entry.stroke);
+      changedLayers.add(entry.layerIndex);
+    }
+    for (final layerIndex in changedLayers) {
+      _controller.afterStrokeUndoRedo(layerIndex);
+    }
+    _controller.touchDocument();
+  }
+}
+
 /// 手绘识别形状的原子替换命令。
 ///
 /// 创建时控制器已将笔画替换为 [shape]；撤销恢复原笔画，重做再次显示形状，

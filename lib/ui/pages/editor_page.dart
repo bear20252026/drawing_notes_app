@@ -1,17 +1,13 @@
 import 'dart:async';
 
-import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:archive/archive.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
 
 import '../../engine/brush_preset_store.dart';
 import '../../engine/command_registry.dart';
@@ -19,16 +15,14 @@ import '../../engine/drawing_controller.dart';
 import '../../engine/editor_input_arbiter.dart';
 import '../../engine/eraser_mode.dart';
 import '../../engine/eraser_mode_store.dart';
+import '../../engine/editor_exporter.dart';
 import '../../engine/fractional_index.dart';
 import '../../engine/gesture_math.dart';
-import '../../engine/paged_note_rtf_exporter.dart';
-import '../../engine/pdf_hybrid_exporter.dart';
 import '../../engine/pencil_shader.dart';
 import '../../engine/shape_binding_geometry.dart';
 import '../../engine/shape_creation_geometry.dart';
 import '../../engine/shape_library.dart';
 import '../../engine/stylus_input.dart';
-import '../../engine/svg_exporter.dart';
 import '../../engine/view_transform_cache.dart';
 import '../../models/document.dart';
 import '../../models/document_image_item.dart';
@@ -95,6 +89,10 @@ class EditorPage extends StatefulWidget {
 
 class _EditorPageState extends State<EditorPage> {
   late final DrawingController _controller;
+
+  /// 画布导出域（参考 Saber editor_exporter 模块化）：PNG/PDF/SVG/RTF/
+  /// TXT/PPTX/JSON 与剪贴板复制集中在独立模块，本页只负责调用。
+  late final EditorExporter _exporter;
 
   /// 编辑器 ViewModel 胶水层（R4）：工具状态 + 防抖保存调度，
   /// editor_page 只通过它读写工具状态与触发保存（见 editor_viewmodel.dart）。
@@ -434,6 +432,11 @@ class _EditorPageState extends State<EditorPage> {
         widget._initialDocument ??
         DrawingDocument(id: StorageService.newId(), title: '未命名画布');
     _controller = DrawingController(doc);
+    _exporter = EditorExporter(
+      controller: _controller,
+      pageProvider: () => widget.page,
+      showSnack: _showSnack,
+    );
     unawaited(_loadBrushPresets());
     unawaited(_loadEraserMode());
     // 异步加载铅笔颗粒着色器；失败时渲染层自动回退到普通铅笔绘制。
@@ -854,61 +857,11 @@ class _EditorPageState extends State<EditorPage> {
   }
 
   /// 导出当前画布为 PNG（用户选择保存位置）。
-  /// 复制 PNG 到剪贴板（对齐 Excalidraw 剪贴板复制，平台通道）。
-  ///
-  /// 流程：渲染 PNG -> 解码为 RGBA 像素 -> 平台通道传给 C++/Android，
-  /// 由平台写入剪贴板（Windows 用 CF_DIB 位图格式）。
-  Future<void> _copyPngToClipboard() async {
-    try {
-      final png = await _controller.renderToPng();
-      if (png == null) {
-        _showSnack('复制失败：无法渲染画布');
-        return;
-      }
-      // 解码 PNG 为 RGBA 像素（供平台构造 DIB 位图）。
-      final codec = await ui.instantiateImageCodec(png);
-      final frame = await codec.getNextFrame();
-      final image = frame.image;
-      final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-      if (data == null) {
-        _showSnack('复制失败：像素解码失败');
-        return;
-      }
-      const channel = MethodChannel('gov.drawingnotes/clipboard');
-      await channel.invokeMethod('copyPng', {
-        'width': image.width,
-        'height': image.height,
-        'rgba': data.buffer.asUint8List(),
-      });
-      image.dispose();
-      _showSnack('已复制 PNG 到剪贴板');
-    } catch (e) {
-      _showSnack('复制 PNG 需平台支持：$e');
-    }
-  }
+  /// 复制 PNG 到剪贴板（委托给 [EditorExporter]，逻辑见 editor_exporter.dart）。
+  Future<void> _copyPngToClipboard() => _exporter.copyPngToClipboard();
 
-  Future<void> _exportPng() async {
-    try {
-      final png = await _controller.renderToPng();
-      if (png == null) {
-        _showSnack('导出失败：无法渲染画布');
-        return;
-      }
-      final suggested = '${_controller.document.title}.png';
-      final location = await getSaveLocation(
-        suggestedName: suggested,
-        acceptedTypeGroups: const [
-          XTypeGroup(label: 'PNG 图片', extensions: ['png']),
-        ],
-      );
-      if (location == null) return; // 用户取消
-      final file = File(location.path);
-      await file.writeAsBytes(png, flush: true);
-      _showSnack('已导出到：${location.path}');
-    } catch (e) {
-      _showSnack('导出失败：$e');
-    }
-  }
+  /// 导出当前画布为 PNG（委托给 [EditorExporter]）。
+  Future<void> _exportPng() => _exporter.exportPng();
 
   void _showSnack(String message) {
     if (!mounted) return;
@@ -917,266 +870,17 @@ class _EditorPageState extends State<EditorPage> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  /// 导出当前画布为 PDF（D4，借鉴 ONLYOFFICE 保真打印与 Saber 混合导出）。
-  ///
-  /// 钢笔笔画以矢量路径写入（任意缩放清晰）；高亮笔/铅笔/图片/形状以
-  /// 光栅位图嵌入，页面尺寸与画布导出区域一致，保证矢量与位图精确对齐。
-  Future<void> _exportPdf() async {
-    final page = widget.page;
-    if (page != null) {
-      await _exportNotebookPdf(page);
-      return;
-    }
-    try {
-      final bounds = _controller.document.infinite
-          ? _controller.contentBounds()
-          : Rect.fromLTWH(
-              0,
-              0,
-              _controller.document.width.toDouble(),
-              _controller.document.height.toDouble(),
-            );
-      final vectorStrokes = <Stroke>[
-        for (final layer in _controller.document.layers)
-          for (final stroke in layer.strokes)
-            if (!PdfHybridExporter.shouldRasterize(stroke)) stroke,
-      ];
-      final png = await _controller.renderToPng(
-        excludedTypes: const {BrushType.pen},
-      );
-      if (png == null) {
-        _showSnack('导出失败：无法渲染画布');
-        return;
-      }
-      final bytes = await PdfHybridExporter.export(
-        bounds: bounds,
-        rasterPng: png,
-        vectorStrokes: vectorStrokes,
-      );
-      final location = await getSaveLocation(
-        suggestedName: '${_controller.document.title}.pdf',
-        acceptedTypeGroups: const [
-          XTypeGroup(label: 'PDF 文档', extensions: ['pdf']),
-        ],
-      );
-      if (location == null) return; // 用户取消
-      final file = File(location.path);
-      await file.writeAsBytes(bytes, flush: true);
-      _showSnack('已导出到：${location.path}');
-    } catch (e) {
-      _showSnack('导出失败：$e');
-    }
-  }
+  /// 导出当前画布为 PDF（委托给 [EditorExporter]，含 notebook 分支）。
+  Future<void> _exportPdf() => _exporter.exportPdf();
 
-  /// 导出分页笔记为 A4 PDF：结构化文字以可检索 CJK 字体排版；同时附加
-  /// 手写墨迹图层页，避免只导出文字而丢失原始书写内容。
-  Future<void> _exportNotebookPdf(NotebookPage page) async {
-    try {
-      final fontData = await rootBundle.load(
-        'assets/fonts/DroidSansFallbackFull.ttf',
-      );
-      final cjk = pw.Font.ttf(fontData);
-      final theme = pw.ThemeData.withFont(
-        base: cjk,
-        bold: cjk,
-        italic: cjk,
-        boldItalic: cjk,
-      );
-      final ordered = page.textItems.toList()
-        ..sort((a, b) {
-          final byY = a.y.compareTo(b.y);
-          return byY == 0 ? a.x.compareTo(b.x) : byY;
-        });
-      final document = pw.Document(theme: theme);
-      document.addPage(
-        pw.MultiPage(
-          pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.fromLTRB(52, 56, 52, 56),
-          build: (context) => [
-            pw.Text(
-              page.title,
-              style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(height: 18),
-            for (final item in ordered)
-              pw.Padding(
-                padding: const pw.EdgeInsets.only(bottom: 10),
-                child: pw.Text(
-                  '${item.isTodo ? (item.todoChecked ? '[x] ' : '[ ] ') : ''}${item.text}',
-                  style: pw.TextStyle(
-                    fontSize: (item.fontSize * 0.72).clamp(10, 28),
-                    fontWeight: item.bold
-                        ? pw.FontWeight.bold
-                        : pw.FontWeight.normal,
-                    fontStyle: item.italic
-                        ? pw.FontStyle.italic
-                        : pw.FontStyle.normal,
-                    decoration: item.strikethrough
-                        ? pw.TextDecoration.lineThrough
-                        : (item.underline
-                              ? pw.TextDecoration.underline
-                              : pw.TextDecoration.none),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      );
+  /// 导出画布为 SVG（委托给 [EditorExporter]；片段生成见 svg_exporter.dart）。
+  Future<void> _exportSvg() => _exporter.exportSvg();
 
-      final inkPng = await _controller.renderToPng();
-      if (inkPng != null) {
-        document.addPage(
-          pw.Page(
-            pageFormat: PdfPageFormat.a4,
-            margin: const pw.EdgeInsets.all(24),
-            build: (context) => pw.Center(
-              child: pw.Image(pw.MemoryImage(inkPng), fit: pw.BoxFit.contain),
-            ),
-          ),
-        );
-      }
+  /// 导出 Word 兼容文档（委托给 [EditorExporter]）。
+  Future<void> _exportWordCompatibleRtf() => _exporter.exportWordCompatibleRtf();
 
-      final location = await getSaveLocation(
-        suggestedName: '${page.title}.pdf',
-        acceptedTypeGroups: const [
-          XTypeGroup(label: 'PDF 文档', extensions: ['pdf']),
-        ],
-      );
-      if (location == null) return;
-      await File(
-        location.path,
-      ).writeAsBytes(await document.save(), flush: true);
-      _showSnack('已导出分页笔记 PDF：${location.path}');
-    } catch (e) {
-      _showSnack('导出分页笔记 PDF 失败：$e');
-    }
-  }
-
-  /// 导出画布为 SVG（借鉴 Excalidraw 开放矢量格式）。
-  ///
-  /// 矢量导出：笔画转 SVG path 元素（Catmull-Rom 平滑曲线），
-  /// 文字块转 SVG text 元素，白纸底 + viewBox 自适应；
-  /// SVG 可无损缩放、供政府公文/网页嵌入。
-  ///
-  /// 片段生成由 engine/svg_exporter.dart 的纯函数承担（导出域拆分第一步）。
-  Future<void> _exportSvg() async {
-    try {
-      final doc = _controller.document;
-      final w = doc.width.toDouble();
-      final h = doc.height.toDouble();
-      final buf = StringBuffer()
-        ..writeln('<?xml version="1.0" encoding="UTF-8"?>')
-        ..writeln(
-          '<svg xmlns="http://www.w3.org/2000/svg" width="$w" height="$h" '
-          'viewBox="0 0 $w $h">',
-        )
-        ..writeln('<rect width="$w" height="$h" fill="white"/>');
-
-      // 各图层笔画（可见层，按顺序绘制）。
-      for (final layer in doc.layers) {
-        if (!layer.visible || layer.opacity <= 0) continue;
-        for (final stroke in layer.strokes) {
-          buf.write(strokeToSvgPath(stroke));
-        }
-      }
-      // 文字块（笔记本模式）。
-      final page = widget.page;
-      if (page != null) {
-        for (final t in page.textItems) {
-          buf.write(textToSvgText(t));
-        }
-      }
-      buf.writeln('</svg>');
-
-      final location = await getSaveLocation(
-        suggestedName: '${doc.title}.svg',
-        acceptedTypeGroups: const [
-          XTypeGroup(label: 'SVG 矢量图', extensions: ['svg']),
-        ],
-      );
-      if (location == null) return; // 用户取消
-      final file = File(location.path);
-      await file.writeAsString(buf.toString(), flush: true);
-      _showSnack('已导出 SVG 到：${location.path}');
-    } catch (e) {
-      _showSnack('导出失败：$e');
-    }
-  }
-
-  /// 导出分页笔记为可由 Microsoft Word、WPS 等直接打开的 RTF 文档。
-  ///
-  /// 手写、图片和形状属于版面内容，推荐以 PDF/PNG/SVG 导出保真；此处导出
-  /// 的是可继续编辑的结构化文字流，按页面坐标从上到下排序。
-  Future<void> _exportWordCompatibleRtf() async {
-    final page = widget.page;
-    if (page == null) {
-      _showSnack('仅分页笔记支持导出 Word 兼容文档');
-      return;
-    }
-    if (page.textItems.isEmpty) {
-      _showSnack('本页还没有可导出的文字内容');
-      return;
-    }
-    try {
-      final rtf = PagedNoteRtfExporter.build(
-        title: page.title,
-        textItems: page.textItems,
-      );
-      final location = await getSaveLocation(
-        suggestedName: '${page.title}.rtf',
-        acceptedTypeGroups: const [
-          XTypeGroup(label: 'Word 兼容文档', extensions: ['rtf']),
-        ],
-      );
-      if (location == null) return;
-      await File(location.path).writeAsString(rtf, flush: true);
-      _showSnack('已导出 Word 兼容文档：${location.path}');
-    } catch (e) {
-      _showSnack('导出 Word 兼容文档失败：$e');
-    }
-  }
-
-  /// 导出页面文字块内容为 Markdown/TXT（借鉴 nb/Joplin）。
-  ///
-  /// 样式映射：待办 -> `- [ ]/[x]`；粗体 -> `**`；斜体 -> `*`；
-  /// 便利贴 -> 引用块 `>`；其余为纯文本行。
-  Future<void> _exportText() async {
-    final page = widget.page;
-    if (page == null) {
-      _showSnack('仅笔记本页面支持导出文本');
-      return;
-    }
-    if (page.textItems.isEmpty) {
-      _showSnack('本页还没有文字内容');
-      return;
-    }
-
-    final lines = <String>[];
-    for (final t in page.textItems) {
-      var text = t.text;
-      if (t.bold) text = '**$text**';
-      if (t.italic) text = '*$text*';
-      if (t.isTodo) text = '- [${t.todoChecked ? 'x' : ' '}] $text';
-      if (t.isSticky) text = '> $text';
-      lines.add(text);
-    }
-    final content = '# ${page.title}\n\n${lines.join('\n\n')}\n';
-
-    try {
-      final location = await getSaveLocation(
-        suggestedName: '${page.title}.md',
-        acceptedTypeGroups: const [
-          XTypeGroup(label: 'Markdown / 文本', extensions: ['md', 'txt']),
-        ],
-      );
-      if (location == null) return; // 用户取消
-      final file = File(location.path);
-      await file.writeAsString(content, flush: true);
-      _showSnack('已导出文本到：${location.path}');
-    } catch (e) {
-      _showSnack('导出失败：$e');
-    }
-  }
+  /// 导出页面文字为 Markdown/TXT（委托给 [EditorExporter]）。
+  Future<void> _exportText() => _exporter.exportText();
 
   // ---------------- 手势处理 ----------------
 
@@ -2563,137 +2267,11 @@ class _EditorPageState extends State<EditorPage> {
     }
   }
 
-  /// 导出画布为 PPTX（对齐 Excalidraw PPTX 导出）。
-  ///
-  /// 用 archive 包手动构造最小 OOXML PPTX：一张幻灯片嵌入画布 PNG 图片，
-  /// 可在 PowerPoint/WPS 中打开编辑。
-  Future<void> _exportPptx() async {
-    try {
-      final png = await _controller.renderToPng();
-      if (png == null) {
-        _showSnack('导出失败：无法渲染画布');
-        return;
-      }
-      final doc = _controller.document;
-      final w = doc.width.toDouble();
-      final h = doc.height.toDouble();
+  /// 导出画布为 PPTX（委托给 [EditorExporter]）。
+  Future<void> _exportPptx() => _exporter.exportPptx();
 
-      // OOXML PPTX 文件结构（最小可打开）。
-      final files = <String, List<int>>{
-        '[Content_Types].xml': utf8.encode(
-          '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-<Default Extension="xml" ContentType="application/xml"/>
-<Default Extension="png" ContentType="image/png"/>
-<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>
-<Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>
-</Types>''',
-        ),
-        '_rels/.rels': utf8.encode(
-          '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/>
-</Relationships>''',
-        ),
-        'ppt/presentation.xml': utf8.encode(
-          '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
-<p:sldIdLst><p:sldId id="256" r:id="rId1"/></p:sldIdLst>
-<p:sldSz cx="${(w * 9525).round()}" cy="${(h * 9525).round()}"/>
-</p:presentation>''',
-        ),
-        'ppt/_rels/presentation.xml.rels': utf8.encode(
-          '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/>
-</Relationships>''',
-        ),
-        'ppt/slides/slide1.xml': utf8.encode(
-          '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
-<p:cSld><p:spTree>
-<p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>
-<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>
-<p:pic>
-<p:nvPicPr><p:cNvPr id="2" name="Canvas"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr>
-<p:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></p:blipFill>
-<p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${(w * 9525).round()}" cy="${(h * 9525).round()}"/></a:xfrm>
-<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>
-</p:pic>
-</p:spTree></p:cSld>
-</p:sld>''',
-        ),
-        'ppt/slides/_rels/slide1.xml.rels': utf8.encode(
-          '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image1.png"/>
-</Relationships>''',
-        ),
-        'ppt/media/image1.png': png,
-      };
-
-      // 打包 ZIP（PPTX = OOXML ZIP 容器）。
-      final archive = Archive();
-      for (final entry in files.entries) {
-        archive.addFile(
-          ArchiveFile(entry.key, entry.value.length, entry.value),
-        );
-      }
-      final bytes = ZipEncoder().encode(archive);
-      if (bytes.isEmpty) {
-        _showSnack('导出失败：PPTX 打包失败');
-        return;
-      }
-
-      final location = await getSaveLocation(
-        suggestedName: '${doc.title}.pptx',
-        acceptedTypeGroups: const [
-          XTypeGroup(label: 'PPTX 演示文稿', extensions: ['pptx']),
-        ],
-      );
-      if (location == null) return; // 用户取消
-      final file = File(location.path);
-      await file.writeAsBytes(bytes, flush: true);
-      _showSnack('已导出 PPTX 到：${location.path}');
-    } catch (e) {
-      _showSnack('导出失败：$e');
-    }
-  }
-
-  /// 导出画布为 JSON（Excalidraw 开放格式对齐：.excalidraw 语义）。
-  Future<void> _exportJson() async {
-    try {
-      final doc = _controller.document;
-      final page = widget.page;
-      final data = {
-        'type': 'drawing-notes',
-        'version': 1,
-        'title': doc.title,
-        'width': doc.width,
-        'height': doc.height,
-        'layers': doc.layers.map((l) => l.toJson()).toList(),
-        if (page != null)
-          'textItems': page.textItems.map((t) => t.toJson()).toList(),
-        if (page != null)
-          'imageItems': page.imageItems.map((i) => i.toJson()).toList(),
-        if (page != null) 'shapes': page.shapes.map((s) => s.toJson()).toList(),
-      };
-      final json = const JsonEncoder.withIndent('  ').convert(data);
-      final location = await getSaveLocation(
-        suggestedName: '${doc.title}.json',
-        acceptedTypeGroups: const [
-          XTypeGroup(label: 'JSON 工程文件', extensions: ['json']),
-        ],
-      );
-      if (location == null) return; // 用户取消
-      final file = File(location.path);
-      await file.writeAsString(json, flush: true);
-      _showSnack('已导出 JSON 到：${location.path}');
-    } catch (e) {
-      _showSnack('导出失败：$e');
-    }
-  }
+  /// 导出画布为 JSON（委托给 [EditorExporter]）。
+  Future<void> _exportJson() => _exporter.exportJson();
 
   /// 图表生成（借鉴 Excalidraw charts）：粘贴数值（逗号/空格/换行分隔），
   /// 自动生成柱状图/折线图元素并放入画布中心。
