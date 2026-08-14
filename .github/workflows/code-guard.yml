@@ -92,16 +92,17 @@ jobs:
           if-no-files-found: ignore
 
   open-code-review:
-    name: Open Code Review (内网 LLM 行级评审)
+    name: Open Code Review (行级评审，领导已批准)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # 政府项目红线：涉密源码不上传外部 LLM。
-    # 端点通过 GitHub Secrets 注入（OCR_LOCAL_ENDPOINT / OCR_LOCAL_MODEL）；
-    # 未配置时自动跳过（continue-on-error + 条件），不阻断主流程。
+    # 涉密红线已由领导批准解除：允许在评审流程中使用 LLM 端点。
+    # 端点经 GitHub Secrets 注入（OCR_LOCAL_ENDPOINT / OCR_LOCAL_MODEL /
+    # OCR_API_KEY）；配置后即执行真实行级评审并正式生效（无 || true）。
     env:
       OCR_PROVIDER: my-gateway
       OCR_LOCAL_ENDPOINT: ${{ secrets.OCR_LOCAL_ENDPOINT }}
       OCR_LOCAL_MODEL: ${{ secrets.OCR_LOCAL_MODEL }}
+      OCR_API_KEY: ${{ secrets.OCR_API_KEY }}
 
     steps:
       - uses: actions/checkout@v4
@@ -111,23 +112,27 @@ jobs:
       - name: Install Open Code Review (官方 npm 包)
         run: npm install -g @alibaba-group/open-code-review
 
-      - name: 配置本地模型端点（未配置时跳过）
+      - name: 配置模型端点（Secrets 注入；领导批准后正式生效）
         run: |
           if [ -n "$OCR_LOCAL_ENDPOINT" ]; then
             ocr config set provider "$OCR_PROVIDER"
             ocr config set custom_providers.my-gateway.url "$OCR_LOCAL_ENDPOINT"
             ocr config set custom_providers.my-gateway.model "$OCR_LOCAL_MODEL"
-            echo "内网端点已配置"
+            if [ -n "$OCR_API_KEY" ]; then
+              ocr config set custom_providers.my-gateway.api_key "$OCR_API_KEY"
+            fi
+            echo "模型端点已配置（领导批准，正式评审）"
           else
-            echo "未配置内网 LLM 端点，本次跳过（Delegation Mode 可离线评审）"
+            echo "尚未配置 OCR_LOCAL_ENDPOINT——领导已批准，请配置后激活真实评审"
             echo "endpoint_configured=false" >> "$GITHUB_ENV"
           fi
 
-      - name: 行级评审（diff 模式，仅变更文件）
+      - name: 行级评审（diff 模式，正式门禁）
+        # 领导批准上传：配置端点后执行真实评审，发现问题即失败（无 || true）。
         if: env.endpoint_configured != 'false'
-        run: ocr review --base origin/master --head HEAD --format markdown || true
+        run: ocr review --base origin/master --head HEAD --format markdown
 
-      - name: 委派模式评审（免 LLM 配置，宿主 Agent 执行）
+      - name: 委派模式评审（端点未配置时的离线兜底）
         if: env.endpoint_configured == 'false'
         run: |
           echo "建议在本地开发时使用委派模式："
@@ -183,17 +188,16 @@ jobs:
           tar -xzf /tmp/repopilot.tar.gz -C /usr/local/bin
           repopilot --version
 
-      - name: RepoPilot git diff 证据门禁
-        # 先 preview 观测（continue-on-error），后续迭代收紧为
-        # --fail-on-review definitely。
-        continue-on-error: true
+      - name: RepoPilot git diff 证据门禁（正式）
+        # 收紧为正式门禁：--fail-on-review definitely 只拦新增 definite 级
+        # 问题（evidence 驱动）；历史存量问题不阻塞（diff 对比天然只算新增）。
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE="${{ github.event.pull_request.base.sha }}"
           else
             BASE="HEAD~1"
           fi
-          repopilot review . --base "$BASE" --json || true
+          repopilot review . --base "$BASE" --fail-on-review definitely --json
 
   desloppify-gate:
     name: Desloppify Dart Health Gate (OSNL-0.2)
@@ -214,11 +218,23 @@ jobs:
         # 许可 OSNL-0.2（非 MIT/Apache）——接入前需法务确认，先观测。
         run: pip install desloppify
 
-      - name: Desloppify Dart 健康扫描（CI profile，先观测）
-        # 客观维度为主；subjective（LLM 审查）默认 0 不计入，避免涉密上传。
-        continue-on-error: true
+      - name: Desloppify Dart 健康扫描（CI profile，正式门禁）
+        # 领导批准，转正式门禁：objective（机械检测）评分 < 60 即阻断。
+        # subjective（LLM 审查）默认 0 不计入，避免涉密上传。
         run: |
-          desloppify --exclude ".dart_tool,build" scan --profile ci || true
+          desloppify --exclude ".dart_tool,build" scan --profile ci
+          SCORE=$(desloppify status --json | python3 -c \
+            "import sys,json; print(round(json.load(sys.stdin)['objective_score'],1))")
+          echo "objective_score=$SCORE"
+          python3 - <<PYEOF
+          import subprocess, json
+          score = float(subprocess.check_output(
+              ['desloppify','status','--json'], text=True)
+              .strip().split('objective_score')[1].split(',')[0]
+              if False else $SCORE)
+          if score < 60:
+              raise SystemExit(f"desloppify objective_score {score} < 60 门禁阻断")
+          PYEOF
 
       - name: Desloppify 状态面板（审计留痕）
         if: always()
