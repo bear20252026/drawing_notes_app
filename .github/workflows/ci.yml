@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  analyze-and-test:
+    name: Analyze + Test + Metrics
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.9
+          cache: true
+
+      - name: Enable Flutter Windows desktop support
+        run: flutter config --enable-windows-desktop
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Static analysis
+        run: flutter analyze
+
+      - name: Unit & widget tests
+        run: flutter test
+
+      - name: Install dart_code_metrics
+        run: dart pub global activate dart_code_metrics 5.7.6
+
+      - name: DCM quality gates
+        # metrics 未加入 PATH 时通过完整路径调用（Windows）。
+        run: |
+          $dcm = "$env:LOCALAPPDATA\Pub\Cache\bin\metrics.bat"
+          if (Test-Path $dcm) {
+            & $dcm analyze lib --reporter=console
+          } else {
+            metrics analyze lib --reporter=console
+          }
