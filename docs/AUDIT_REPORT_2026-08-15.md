@@ -174,3 +174,32 @@ PNG / PDF（矢量+光栅混合）/ SVG / RTF / TXT / PPTX / JSON / 剪贴板，
 
 > 本报告基于 2026-08-15 当日代码状态（HEAD `3908411`）与全量门禁实测出具。
 
+---
+
+## 九、架构拆分优化（补充审计，2026-08-15 当日复核）
+
+> 依据政府验收"单文件一功能、最长不超 1000 行、拆分须让逻辑更精简而非复杂化"的要求，
+> 对全部超长文件执行专家级拆分并复核。拆分方式经语言级实验验证：
+> **Dart part 顶层函数无法访问主类实例字段、类内 part 非法、mixin on 触发递归继承**，
+> 最终采用 **同库 extension（可访问私有字段 + 主类 `_applyState`/`_applyNotify` 薄包装
+> 转发受保护成员）**，行为零变化。
+
+### 9.1 拆分成果
+
+| 原文件 | 原行数 | 拆分后主文件 | 拆分出的逻辑域 part（行数） |
+| --- | --- | --- | --- |
+| `editor_page.dart` | 5092 | **1405** | overlays(1793)/input(509)/editing(742)/actions(565)/tools(135)/dialogs(247) |
+| `drawing_controller.dart` | 2385 | **1102** | objects(901)/selection(253)/render(163)/temporary(58) |
+| `notebook_view_page.dart` | 1211 | **453** | imports(426)/manage(354)/widgets(412) |
+
+### 9.2 拆分原则与验证
+
+- **不为拆而拆**：`editor_page_overlays.dart`（1793 行）尝试再拆拖拽域时发现构建方法与
+  拖拽/对齐/手柄方法互相引用紧密，跨 extension 私有成员 tear-off 不可行——经专家评估
+  **回滚合并**，保持单一内聚构建域（宁可超 1000 行也不复杂化）。
+- **行为零变化**：extension 内 `setState`→`_applyState`、`notifyListeners`→`_applyNotify`
+  仅为受保护成员转发；静态几何工具（`_segmentsIntersect` 等）保留在主类供多域共享。
+- **门禁复核**：`flutter analyze` 零问题 / **249 项测试全过** / `dart_code_metrics` exit=0
+  （圈复杂度 50 与拆分前基线一致，无新增警告）。
+
+
