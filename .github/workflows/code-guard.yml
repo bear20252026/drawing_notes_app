@@ -55,3 +55,113 @@ jobs:
         continue-on-error: true
         run: |
           python3 tools/code_guard.py --dir lib --json || true
+
+  skylos-dart-gates:
+    name: Skylos Dart Dead-Code/Security Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # --diff / PR 评审需要完整历史
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install Skylos (官方最新版)
+        run: pip install skylos
+
+      - name: Skylos Dart 死代码+安全+质量门禁
+        # 官方 GitHub Action 同款参数：-a 全量分析（dead-code/security/quality/ai-defects/secrets）
+        # 报告模式 + --sarif 输出供审计归档；先报告不阻断（continue-on-error），
+        # 接入初期以观测为主，门禁收紧在后续迭代中开启 --gate。
+        continue-on-error: true
+        run: |
+          skylos . -a --sarif skylos.sarif --format github || true
+
+      - name: 归档 Skylos SARIF（审计留痕）
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: skylos-sarif
+          path: skylos.sarif
+          if-no-files-found: ignore
+
+  open-code-review:
+    name: Open Code Review (内网 LLM 行级评审)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # 政府项目红线：涉密源码不上传外部 LLM。
+    # 端点通过 GitHub Secrets 注入（OCR_LOCAL_ENDPOINT / OCR_LOCAL_MODEL）；
+    # 未配置时自动跳过（continue-on-error + 条件），不阻断主流程。
+    env:
+      OCR_PROVIDER: my-gateway
+      OCR_LOCAL_ENDPOINT: ${{ secrets.OCR_LOCAL_ENDPOINT }}
+      OCR_LOCAL_MODEL: ${{ secrets.OCR_LOCAL_MODEL }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Open Code Review (官方 npm 包)
+        run: npm install -g @alibaba-group/open-code-review
+
+      - name: 配置本地模型端点（未配置时跳过）
+        run: |
+          if [ -n "$OCR_LOCAL_ENDPOINT" ]; then
+            ocr config set provider "$OCR_PROVIDER"
+            ocr config set custom_providers.my-gateway.url "$OCR_LOCAL_ENDPOINT"
+            ocr config set custom_providers.my-gateway.model "$OCR_LOCAL_MODEL"
+            echo "内网端点已配置"
+          else
+            echo "未配置内网 LLM 端点，本次跳过（Delegation Mode 可离线评审）"
+            echo "endpoint_configured=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: 行级评审（diff 模式，仅变更文件）
+        if: env.endpoint_configured != 'false'
+        run: ocr review --base origin/master --head HEAD --format markdown || true
+
+      - name: 委派模式评审（免 LLM 配置，宿主 Agent 执行）
+        if: env.endpoint_configured == 'false'
+        run: |
+          echo "建议在本地开发时使用委派模式："
+          echo "  ocr delegate preview"
+          echo "  ocr delegate rule lib/main.dart"
+
+  python-tools-gates:
+    name: Python Tools Gates (py-cq + pyscn)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: 安装 py-cq 与 pyscn（官方最新版）
+        run: |
+          pip install git+https://github.com/rhiza-fr/py-cq.git
+          pip install pyscn ruff ty bandit vulture radon interrogate
+
+      - name: py-cq 聚合门禁（tools/ Python 辅助脚本）
+        # 聚合 11 工具评分；先报告不阻断（continue-on-error）
+        continue-on-error: true
+        run: |
+          cd tools && cq check . -o score || true
+
+      - name: pyscn 架构分析（tools/，A-F 评分）
+        # 循环依赖/复杂度/死代码门禁；报告模式先观测
+        continue-on-error: true
+        run: |
+          pyscn analyze tools --skip-clones --skip-communities --skip-lcom --json || true
+

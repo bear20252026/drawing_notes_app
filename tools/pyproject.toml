@@ -1,0 +1,11 @@
+# tools/ Python 辅助脚本的最小项目配置（供 py-cq 聚合门禁识别）
+# 主项目为 Flutter/Dart；此文件仅用于对 tools/*.py 运行 Python 质量工具链。
+[project]
+name = "drawing-notes-tools"
+version = "1.0.0"
+description = "绘图笔记项目 Python 辅助脚本（构建/门禁/覆盖率）"
+requires-python = ">=3.10"
+
+[tool.cq]
+# py-cq 聚合 11 工具：compileall/ruff/ty/bandit/pytest/coverage/radon/vulture/interrogate
+# 阈值：warning_threshold=0.9 / error_threshold=0.9（聚合评分 90% 为界）

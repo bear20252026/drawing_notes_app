@@ -1,0 +1,34 @@
+# Open Code Review 配置（中国政府内部项目）
+# 文档：https://open-codereview.ai/docs/configuration
+# 安全红线：涉密源码不得上传外部 LLM —— 仅允许本地/内网模型端点。
+#
+# 用法：
+#   1) 本地内网端点（Ollama/vLLM 兼容 OpenAI 协议）：
+#      ocr config set provider my-gateway
+#      ocr config set custom_providers.my-gateway.url http://127.0.0.1:11434/v1
+#      ocr config set custom_providers.my-gateway.model llama3.1
+#   2) 免 LLM 配置的委派模式（推荐 CI 首用）：
+#      ocr delegate preview
+#      ocr delegate rule src/main.dart
+#   3) 规则调试：
+#      ocr rules ls
+
+# 默认 provider（占位；实际值通过环境变量 OCR_PROVIDER 注入，避免明文入库）
+provider: ${OCR_PROVIDER:-my-gateway}
+
+custom_providers:
+  # 本地 Ollama / vLLM 端点（OpenAI 兼容协议）——政府内网部署
+  my-gateway:
+    url: ${OCR_LOCAL_ENDPOINT:-http://127.0.0.1:11434/v1}
+    model: ${OCR_LOCAL_MODEL:-qwen2.5:14b}
+
+review:
+  # 行级评审：匹配文件特征聚焦规则，减少信息噪音
+  # 内置规则集覆盖 NPE/线程安全/XSS/SQL 注入等
+  mode: default
+  # 内网模型端点超时放宽
+  timeout: 120s
+
+scan:
+  # 全文件扫描（无 diff 场景审计用）
+  enabled: true
