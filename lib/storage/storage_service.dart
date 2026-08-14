@@ -269,6 +269,7 @@ class StorageService implements DocumentRepository {
     return metas;
   }
 
+  // ignore: avoid-dynamic — 防御性恢复路径：文件损坏时跳过而非抛错，dynamic 属合理用法。
   int _countStrokes(List<dynamic> layers) {
     var n = 0;
     for (final l in layers) {
