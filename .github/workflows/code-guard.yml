@@ -75,13 +75,12 @@ jobs:
       - name: Install Skylos (官方最新版)
         run: pip install skylos
 
-      - name: Skylos Dart 死代码+安全+质量门禁
-        # 官方 GitHub Action 同款参数：-a 全量分析（dead-code/security/quality/ai-defects/secrets）
-        # 报告模式 + --sarif 输出供审计归档；先报告不阻断（continue-on-error），
-        # 接入初期以观测为主，门禁收紧在后续迭代中开启 --gate。
-        continue-on-error: true
+      - name: Skylos Dart 安全门禁（正式裁决）
+        # 转正式门禁：--gate 阻断 + 聚焦安全域（secrets/danger），
+        # 只拦安全 definite 问题；dead-code 存量不阻断（避免历史债阻塞
+        # 合并），由 desloppify/pyscn 跟踪。SARIF 归档审计留痕。
         run: |
-          skylos . -a --sarif skylos.sarif --format github || true
+          skylos . --gate --secrets --danger --sarif skylos.sarif --format github
 
       - name: 归档 Skylos SARIF（审计留痕）
         if: always()
@@ -111,6 +110,29 @@ jobs:
 
       - name: Install Open Code Review (官方 npm 包)
         run: npm install -g @alibaba-group/open-code-review
+
+      - name: 涉密预检（评审前红线检查）
+        # 白名单外目录或涉密内容（密钥/口令）一律拦截，禁止提交给 OCR。
+        # 依据 docs/OCR_REVIEW_POLICY.md 第三节。
+        run: |
+          CHANGED=$(git diff origin/master...HEAD --name-only 2>/dev/null || echo "")
+          echo "本次变更文件:"
+          echo "$CHANGED"
+          # 1) 白名单检查：只允许 lib/test/tools/.github/workflows
+          OUTSIDE=$(echo "$CHANGED" | grep -vE "^(lib/|test/|tools/|\.github/workflows/)" || true)
+          if [ -n "$OUTSIDE" ]; then
+            echo "⚠ 白名单外文件（跳过评审，不阻断）:"
+            echo "$OUTSIDE"
+            echo "out_of_scope=true" >> "$GITHUB_ENV"
+          fi
+          # 2) 涉密内容检查：变更 diff 中出现密钥/口令即拦截
+          if echo "$CHANGED" | grep -qiE "key|secret|token|password|口令|密钥"; then
+            if git diff origin/master...HEAD | grep -qiE "api[_-]?key|secret|password|token|口令|密钥"; then
+              echo "::error::检测到疑似涉密内容，禁止评审！请检查变更文件"
+              exit 1
+            fi
+          fi
+          echo "涉密预检通过"
 
       - name: 配置模型端点（Secrets 注入；领导批准后正式生效）
         run: |

@@ -1,32 +1,48 @@
 # Open Code Review 配置（中国政府内部项目）
 # 文档：https://open-codereview.ai/docs/configuration
-# 安全红线：涉密源码不得上传外部 LLM —— 仅允许本地/内网模型端点。
-#
-# 用法：
-#   1) 本地内网端点（Ollama/vLLM 兼容 OpenAI 协议）：
-#      ocr config set provider my-gateway
-#      ocr config set custom_providers.my-gateway.url http://127.0.0.1:11434/v1
-#      ocr config set custom_providers.my-gateway.model llama3.1
-#   2) 免 LLM 配置的委派模式（推荐 CI 首用）：
-#      ocr delegate preview
-#      ocr delegate rule src/main.dart
-#   3) 规则调试：
-#      ocr rules ls
+# 安全红线：仅评审白名单目录；涉密内容（密钥/口令）严禁上传。
+# 评审范围白名单（见 docs/OCR_REVIEW_POLICY.md 第三节）：
+#   允许：lib/、test/、tools/、.github/workflows/
+#   禁止：docs/、assets/ 涉密素材、任何含密钥文件
 
 # 默认 provider（占位；实际值通过环境变量 OCR_PROVIDER 注入，避免明文入库）
-provider: ${OCR_PROVIDER:-my-gateway}
+provider: ${OCR_PROVIDER:-z-ai}
+model: ${OCR_MODEL:-glm-5.2}
+
+# 可评审目录白名单（硬性过滤：白名单外一律跳过评审）
+review_include:
+  - "lib/**"
+  - "test/**"
+  - "tools/**"
+  - ".github/workflows/**"
+
+# 评审排除（涉密/非代码，即使命中 include 也跳过）
+review_exclude:
+  - "docs/**"
+  - "assets/**"
+  - "shaders/**"
+  - "**/*.md"
+  - "**/*.png"
+  - "**/*.jpg"
+  - "**/*.pdf"
+  - "**/keys.json"
+  - "**/*_key*"
+  - "**/*secret*"
 
 custom_providers:
-  # 本地 Ollama / vLLM 端点（OpenAI 兼容协议）——政府内网部署
-  my-gateway:
-    url: ${OCR_LOCAL_ENDPOINT:-http://127.0.0.1:11434/v1}
-    model: ${OCR_LOCAL_MODEL:-qwen2.5:14b}
+  # 智谱 GLM 主审（官方 OpenAI 兼容端点）
+  z-ai:
+    url: ${OCR_LOCAL_ENDPOINT:-https://open.bigmodel.cn/api/paas/v4}
+    model: ${OCR_LOCAL_MODEL:-glm-5.2}
+  # DeepSeek 备选（额度用尽切换）
+  deepseek:
+    url: https://api.deepseek.com
+    model: deepseek-v4-pro
 
 review:
   # 行级评审：匹配文件特征聚焦规则，减少信息噪音
   # 内置规则集覆盖 NPE/线程安全/XSS/SQL 注入等
   mode: default
-  # 内网模型端点超时放宽
   timeout: 120s
 
 scan:
