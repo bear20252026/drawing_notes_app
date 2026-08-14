@@ -49,3 +49,6 @@ app.*.map.json
 /android/*.jks
 /android/*.keystore
 /dist/
+
+# 本地预编译工具二进制（CI 用 cargo 安装官方最新版，不提交二进制）
+/tools/bin/

@@ -1,0 +1,36 @@
+# sloc-guard 配置（中国政府开发项目行数门禁）
+# 文档：https://github.com/doraemonkeys/sloc-guard
+# 原则：新增文件硬上限 ≤1000 行（极限条件才可突破），正常 500 行左右（<500 最佳）。
+# 阈值：max_lines=1000（硬错误）、warn_threshold=0.5（500 行起警告），不降级。
+
+version = "2"
+
+[scanner]
+gitignore = true
+exclude = [
+    "**/.git/**",
+    "**/build/**",
+    "**/.dart_tool/**",
+]
+
+[content]
+# Dart 为主力语言，保留常用语言扩展便于混合开发
+extensions = ["dart", "rs", "go", "py", "js", "ts", "c", "cpp"]
+# 硬上限：1000 行（超过即 CI 失败，符合政府验收"极限条件才可突破"）
+max_lines = 1000
+# 警告阈值：50% 即 500 行（正常控制线，符合"500 行左右即好文件"）
+warn_threshold = 0.5
+skip_comments = true
+skip_blank = true
+
+[structure]
+# 目录结构门禁（防止架构腐化）：单目录文件数上限。
+# docs/test 为文档与测试目录，文件较多属正常，不计入上限。
+max_files = 40
+max_dirs = 15
+max_depth = 10
+warn_threshold = 0.8
+count_exclude = ["*.md", ".gitkeep", "docs/**", "test/**"]
+
+[sarif]
+min_level = "error"

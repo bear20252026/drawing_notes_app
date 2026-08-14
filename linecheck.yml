@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tupe12334/linecheck/main/schema/linecheck.schema.json
+# linecheck 配置（轻量双档行数门禁，官方 schema）
+# 文档：https://github.com/tupe12334/linecheck
+# 语义：文件行数超过 warn 即警告（退出码 0，非阻断），超过 error 即错误（退出码 1）。
+# 阈值：warn=500（正常控制线）、error=1000（硬上限，极限条件才可突破）。
+# 语言无关：仅按行数统计（与 sloc-guard 的 SLOC 口径互补）。
+
+rules:
+  # Dart 主力代码：500 行警告 / 1000 行错误（政府项目双档）
+  - pattern: "**/*.dart"
+    warn: 500
+    warn_message: "接近行数上限（500）——考虑按逻辑域拆分（不为拆而拆，拆分须让逻辑更精简）"
+    error: 1000
+    error_message: "超过硬上限（1000 行）——极限条件才可突破，必须拆分"
+
+  # 测试文件适当放宽（测试辅助代码往往较长）
+  - pattern: "**/test/**/*.dart"
+    warn: 600
+    error: 1200
+
+  # 生成代码/构建产物大幅放宽（不约束自动生成内容）
+  - pattern: "**/generated/**"
+    warn: 2000
+    error: 3000
+
+exclude:
+  - "**/generated/**"
+  - "build/**"
+  - ".dart_tool/**"
+  - "**/.git/**"

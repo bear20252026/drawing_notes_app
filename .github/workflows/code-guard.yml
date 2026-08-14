@@ -1,0 +1,57 @@
+name: Code Guard (行数门禁)
+
+# 独立代码质量门禁（与主 CI 解耦，可单独触发）：
+# - linecheck：轻量双档（500 行警告 / 1000 行错误），官方 Rust 工具
+# - sloc-guard：SLOC+目录结构门禁，--diff 模式只查本次变更文件
+#   （既有超限文件祖父化放行，新增/变更超限即拦截——灵活不降级）
+# - 回退：若 Rust 工具链不可用，调用 tools/code_guard.py 内置检查
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  line-count-gates:
+    name: Line Count Gates (500 warn / 1000 error)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # --diff 需要完整历史
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Install linecheck (官方最新版)
+        run: cargo install linecheck --locked
+
+      - name: Install sloc-guard (官方最新版)
+        run: cargo install sloc-guard --locked
+
+      - name: linecheck 双档门禁
+        # 警告非阻断（退出码 0），错误阻断（退出码 1）
+        continue-on-error: true  # 历史超限文件先报告，不阻断合并
+        run: linecheck --config linecheck.yml lib/ || true
+
+      - name: sloc-guard 变更文件门禁（灵活祖父化）
+        # 只检查 PR 变更的文件；既有超限文件不在此列，不阻断。
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="origin/main"
+          fi
+          sloc-guard check --config .sloc-guard.toml --diff "$BASE..HEAD" || exit $?
+
+      - name: 内置回退检查（Python，语言无关）
+        # 若 Rust 工具未装/失败，仍能通过内置检查发现超限文件（报告级别）。
+        continue-on-error: true
+        run: |
+          python3 tools/code_guard.py --dir lib --json || true
