@@ -363,9 +363,10 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     });
     notebook.encrypted = true;
     notebook.encryptionMode = EncryptionMode.keyfile;
-    notebook.encryptedPayload = await _encryption.encryptWithKey(
-      payloadJson,
-      masterKey,
+    notebook.encryptedPayload = await _encryption.encryptNotebookPayload(
+      notebookId: notebook.id,
+      plaintext: payloadJson,
+      key: masterKey,
     );
     notebook.recoveryEnvelope = await _encryption.wrapMasterKey(
       masterKey,
@@ -383,7 +384,14 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
   ) async {
     final payload = notebook.encryptedPayload;
     if (payload == null) return false;
-    final clear = await _encryption.decryptWithKey(payload, masterKey);
+    // 任务#2（专家审计 2026-08-15）：v4 AAD 优先（绑定 notebook.id——
+    // 跨笔记密文交换认证失败），v3 旧数据回退（flutter_secure_storage
+    // 两步迁移模式：兼容期新旧并存，迁移后旧格式仅读）。
+    final clear = await _decryptKeyfilePayloadCompat(
+      notebook.id,
+      payload,
+      masterKey,
+    );
     final map = jsonDecode(clear) as Map<String, dynamic>;
     final pages = (map['pages'] as List? ?? const [])
         .map((e) => NotebookPage.fromJson(e as Map<String, dynamic>))
@@ -392,6 +400,25 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
       ..clear()
       ..addAll(pages);
     return true;
+  }
+
+  /// v4/v3 兼容解密（keyfile 模式，任务#2 专家审计 2026-08-15）：
+  /// v4 AAD 优先（绑定 notebook.id——跨笔记密文交换认证失败），
+  /// v3 旧数据回退（flutter_secure_storage 两步迁移：兼容期新旧并存）。
+  Future<String> _decryptKeyfilePayloadCompat(
+    String notebookId,
+    String payload,
+    List<int> masterKey,
+  ) async {
+    try {
+      return await _encryption.decryptNotebookPayload(
+        notebookId: notebookId,
+        encryptedJson: payload,
+        key: masterKey,
+      );
+    } on FormatException {
+      return _encryption.decryptWithKey(payload, masterKey);
+    }
   }
 
   /// 用 U盘主密钥 + 恢复密钥重加密保存（keyfile 编辑会话保存用）。
@@ -408,9 +435,10 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     });
     notebook.encrypted = true;
     notebook.encryptionMode = EncryptionMode.keyfile;
-    notebook.encryptedPayload = await _encryption.encryptWithKey(
-      payloadJson,
-      masterKey,
+    notebook.encryptedPayload = await _encryption.encryptNotebookPayload(
+      notebookId: notebook.id,
+      plaintext: payloadJson,
+      key: masterKey,
     );
     if (newRecoveryKey != null) {
       notebook.recoveryEnvelope = await _encryption.wrapMasterKey(
