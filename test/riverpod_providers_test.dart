@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/di/providers.dart';
 import 'package:drawing_notes_app/features/drawing/application/di_providers.dart';
+import 'package:drawing_notes_app/features/drawing/application/viewport_notifier.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 
 /// S5 验证：Riverpod 编译时安全 + 可测试性（ProviderContainer 独立构建）。
@@ -90,5 +91,18 @@ void main() {
     container.invalidate(drawingCurrentLayerProvider(doc));
     expect(container.read(drawingCurrentLayerProvider(doc)), 0,
         reason: 'touchDocument 不改图层索引，派生值稳定');
+  });
+  test('视口域 Notifier：首个域迁移示范（不可变 state + 方法）', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    expect(container.read(viewportProvider).scale, 1.0);
+    container.read(viewportProvider.notifier).setScale(2.0);
+    expect(container.read(viewportProvider).scale, 2.0,
+        reason: 'setScale 更新不可变 state');
+    container.read(viewportProvider.notifier).pan(10, 20);
+    expect(container.read(viewportProvider).offsetX, 10);
+    expect(container.read(viewportProvider).offsetY, 20);
+    container.read(viewportProvider.notifier).reset();
+    expect(container.read(viewportProvider).scale, 1.0);
   });
 }
