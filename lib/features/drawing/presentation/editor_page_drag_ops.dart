@@ -648,37 +648,37 @@ extension _EditorPageDragOps on _EditorPageState {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             child: Row(
               children: [
-                _selectionAction(
+                SelectionActionButton(
                   icon: Icons.copy,
                   tooltip: '复制选中内容',
                   onTap: hasStrokes ? _controller.copySelectedStrokes : null,
                 ),
-                _selectionAction(
+                SelectionActionButton(
                   icon: Icons.content_paste,
                   tooltip: '粘贴',
                   onTap: _controller.pasteClipboard,
                 ),
                 if (hasMixed)
-                  _selectionAction(
+                  SelectionActionButton(
                     icon: hasLockedObjects ? Icons.lock : Icons.lock_open,
                     tooltip: hasLockedObjects ? '解锁选中对象' : '锁定选中对象，防止误触编辑',
                     onTap: _controller.toggleSelectedDocumentObjectsLock,
                   )
                 else ...[
                   if (hasImage)
-                    _selectionAction(
+                    SelectionActionButton(
                       icon: imageLocked ? Icons.lock : Icons.lock_open,
                       tooltip: imageLocked ? '解除图片锁定' : '锁定图片，防止误触编辑',
                       onTap: _controller.toggleSelectedDocumentImageLock,
                     ),
                   if (hasShape)
-                    _selectionAction(
+                    SelectionActionButton(
                       icon: shapeLocked ? Icons.lock : Icons.lock_open,
                       tooltip: shapeLocked ? '解除形状锁定' : '锁定形状，防止误触编辑',
                       onTap: _controller.toggleSelectedDocumentShapeLock,
                     ),
                 ],
-                _selectionAction(
+                SelectionActionButton(
                   icon: Icons.delete_outline,
                   tooltip: hasMixed
                       ? hasLockedObjects
@@ -699,7 +699,7 @@ extension _EditorPageDragOps on _EditorPageState {
                       ? _controller.deleteSelectedStrokes
                       : null,
                 ),
-                _selectionAction(
+                SelectionActionButton(
                   icon: Icons.close,
                   tooltip: '清除选区',
                   onTap: () => _applyState(() {
@@ -812,20 +812,5 @@ extension _EditorPageDragOps on _EditorPageState {
     );
   }
 
-  Widget _selectionAction({
-    required IconData icon,
-    required String tooltip,
-    required VoidCallback? onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2),
-      child: IconButton(
-        tooltip: tooltip,
-        icon: Icon(icon, size: 20),
-        visualDensity: VisualDensity.compact,
-        onPressed: onTap,
-      ),
-    );
-  }
 }
 
