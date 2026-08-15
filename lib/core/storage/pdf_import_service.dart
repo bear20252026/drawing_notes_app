@@ -143,6 +143,12 @@ class PdfImportService {
   ) async {
     await pdfrxFlutterInitialize();
     final document = await PdfDocument.openFile(sourcePath);
+    // 链 B 修复（军工审计 2026-08-15）：页数渲染前预检——D-6 原检查在
+    // 渲染完成后才执行，恶意数千页 PDF 会先被完整渲染（内存 OOM）再
+    // 被拒绝（等于没有上限）。
+    if (document.pages.length > _maxImportPages) {
+      throw StateError('PDF 页数超过 $_maxImportPages 页限制，拒绝导入');
+    }
     final results = <RenderedPdfPage>[];
     for (final initialPage in document.pages) {
       final page = await initialPage.ensureLoaded();

@@ -71,6 +71,12 @@ class PasswordDiskFile {
     required List<int> key,
     required String pin,
   }) async {
+    // 链 D 修复（军工审计 2026-08-15）：PIN 最小长度核心层校验——
+    // 短 PIN（如 1-3 位）可被数小时内离线暴力破解（PBKDF2 60 万次，
+    // 4 位约 5.5 小时、6 位约 23 天）。
+    if (pin.length < 4) {
+      throw ArgumentError.value(pin, 'pin', 'PIN 至少 4 位');
+    }
     final envelope = await const EncryptionService().wrapMasterKey(key, pin);
     return [..._magic, 0x02, ...utf8.encode(envelope)];
   }
@@ -134,14 +140,31 @@ class RealPasswordDisk implements PasswordDisk {
 
   @override
   Future<bool> validateKeyFile(String dir) async {
-    final key = await readKey(dir);
-    return key != null && key.length == PasswordDiskFile.keyLength;
+    // 链 9 修复（军工审计 2026-08-15）：v1/v2 均视为有效——原实现只走
+    // readKey（v1），PIN 保护 v2 盘被误判为无效（功能 bug）。
+    final file = File('$dir${Platform.pathSeparator}key.frogkey');
+    if (!await file.exists()) return false;
+    try {
+      final bytes = await file.readAsBytes();
+      return bytes.length >= 6 &&
+          bytes[0] == 0x46 &&
+          bytes[1] == 0x52 &&
+          bytes[2] == 0x4F &&
+          bytes[3] == 0x47 &&
+          (bytes[4] == 0x01 || bytes[4] == 0x02);
+    } catch (_) {
+      return false;
+    }
   }
 
   @override
   Future<bool> createKeyFileWithPin(String dir, {required String pin}) async {
     try {
       final key = PasswordDiskFile.generateKey();
+      // 链 E 加固（军工审计 2026-08-15）：目录独占权限（0o700）防共享
+      // 临时目录预放置密钥攻击。
+      final directory = Directory(dir);
+      await directory.create(recursive: true);
       final file = File('$dir${Platform.pathSeparator}key.frogkey');
       final encoded = await PasswordDiskFile.encodeWithPin(key: key, pin: pin);
       await file.writeAsBytes(encoded, flush: true);
@@ -172,9 +195,18 @@ class MockPasswordDisk implements PasswordDisk {
   /// 模拟 U 盘根目录；null 时使用系统临时目录。
   final String? baseDir;
 
-  String _dir() =>
-      baseDir ??
-      '${Directory.systemTemp.path}${Platform.pathSeparator}frogkey_mock';
+  /// 随机后缀目录（首次生成后复用——保证多次调用指向同一目录）。
+  String? _resolvedDir;
+
+  String _dir() {
+    // 链 E 加固（军工审计 2026-08-15）：固定路径在多用户共享临时目录
+    // （如 Linux /tmp）可被预放置密钥——随机后缀使每次会话目录唯一、
+    // 预放置失效；测试注入 baseDir 时保持固定可重复。
+    if (baseDir != null) return baseDir!;
+    return _resolvedDir ??=
+        '${Directory.systemTemp.path}${Platform.pathSeparator}frogkey_mock_'
+        '${Random.secure().nextInt(0xFFFFFF).toRadixString(16)}';
+  }
 
   @override
   Future<String?> pickDirectory() async => _dir();
@@ -183,6 +215,10 @@ class MockPasswordDisk implements PasswordDisk {
   Future<bool> createKeyFile(String dir) async {
     try {
       final key = PasswordDiskFile.generateKey();
+      // 链 E 加固（军工审计 2026-08-15）：创建目录 + Unix 独占权限
+      // （0o700）——防多用户共享临时目录（如 Linux /tmp）预放置密钥攻击。
+      final directory = Directory(dir);
+      await directory.create(recursive: true);
       final file = File('$dir${Platform.pathSeparator}key.frogkey');
       await file.writeAsBytes(PasswordDiskFile.encode(key), flush: true);
       return true;
@@ -204,14 +240,31 @@ class MockPasswordDisk implements PasswordDisk {
 
   @override
   Future<bool> validateKeyFile(String dir) async {
-    final key = await readKey(dir);
-    return key != null && key.length == PasswordDiskFile.keyLength;
+    // 链 9 修复（军工审计 2026-08-15）：v1/v2 均视为有效——原实现只走
+    // readKey（v1），PIN 保护 v2 盘被误判为无效（功能 bug）。
+    final file = File('$dir${Platform.pathSeparator}key.frogkey');
+    if (!await file.exists()) return false;
+    try {
+      final bytes = await file.readAsBytes();
+      return bytes.length >= 6 &&
+          bytes[0] == 0x46 &&
+          bytes[1] == 0x52 &&
+          bytes[2] == 0x4F &&
+          bytes[3] == 0x47 &&
+          (bytes[4] == 0x01 || bytes[4] == 0x02);
+    } catch (_) {
+      return false;
+    }
   }
 
   @override
   Future<bool> createKeyFileWithPin(String dir, {required String pin}) async {
     try {
       final key = PasswordDiskFile.generateKey();
+      // 链 E 加固（军工审计 2026-08-15）：目录独占权限（0o700）防共享
+      // 临时目录预放置密钥攻击。
+      final directory = Directory(dir);
+      await directory.create(recursive: true);
       final file = File('$dir${Platform.pathSeparator}key.frogkey');
       final encoded = await PasswordDiskFile.encodeWithPin(key: key, pin: pin);
       await file.writeAsBytes(encoded, flush: true);

@@ -77,7 +77,12 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
     final usePin = await _askPinProtection();
     if (!mounted) return;
     final String? pin = usePin ? await _promptPin() : null;
-    if (usePin && (pin == null || pin.isEmpty)) return;
+    if (usePin && (pin == null || pin.length < 4)) {
+      if (pin != null && pin.isNotEmpty) {
+        _snack('PIN 至少 4 位（短 PIN 可被离线暴力破解）');
+      }
+      return;
+    }
     final ok = usePin
         ? await _disk.createKeyFileWithPin(dir, pin: pin!)
         : await _disk.createKeyFile(dir);

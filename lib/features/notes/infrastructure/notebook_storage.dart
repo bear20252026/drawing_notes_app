@@ -83,7 +83,9 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
   ///
   /// 安全说明：ID 直接拼入文件路径，若允许 `../` 等字符会造成路径遍历。
   /// 所有合法 ID 由 [newId] 生成；此校验作为防御性边界。
-  static bool isValidId(String id) => RegExp(r'^[A-Za-z0-9_]+$').hasMatch(id);
+  /// 链 9 修复（军工审计 2026-08-15）：允许 '-'（与 StorageService/
+  /// DocumentCodec 一致——'-' 无路径遍历风险）。
+  static bool isValidId(String id) => RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(id);
 
   Future<String> _pathFor(String id) async {
     assert(isValidId(id), '非法 ID: $id');

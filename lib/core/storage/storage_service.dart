@@ -91,15 +91,27 @@ class StorageService implements DocumentRepository {
   ///
   /// 安全说明：ID 直接拼入文件路径，若允许 `../` 等字符会造成路径遍历。
   /// 所有合法 ID 由 [newId] 生成；此校验作为防御性边界。
-  static bool isValidId(String id) => RegExp(r'^[A-Za-z0-9_]+$').hasMatch(id);
+  /// 允许 '-'（与 DocumentCodec._validDocumentId 一致，消除合法文档
+  /// 无法保存的不一致；'-' 无路径遍历风险）。
+  static bool isValidId(String id) => RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(id);
+
+  /// 列表页单文件大小上限（链 9 修复 2026-08-15）：防恶意超大 .json
+  /// 在 listDocuments 时 OOM（与 DocumentCodec 100MB 预检一致）。
+  static const int _maxListMetaBytes = 100 * 1024 * 1024;
 
   String _pathFor(String id) {
-    assert(isValidId(id), '非法文档 ID: $id');
+    // 链 A 修复（军工审计 2026-08-15）：assert-only 校验在 release 失效——
+    // 运行时强制校验（load/delete/saveThumbnail 均经此统一防护路径遍历）。
+    if (!isValidId(id)) {
+      throw ArgumentError.value(id, 'id', '文档 ID 不合法（路径遍历防护）');
+    }
     return '${_documentsDir!.path}${Platform.pathSeparator}$id.json';
   }
 
   String _thumbPathFor(String id) {
-    assert(isValidId(id), '非法文档 ID: $id');
+    if (!isValidId(id)) {
+      throw ArgumentError.value(id, 'id', '缩略图 ID 不合法（路径遍历防护）');
+    }
     return '${_thumbsDir!.path}${Platform.pathSeparator}$id.png';
   }
 
@@ -156,6 +168,10 @@ class StorageService implements DocumentRepository {
   ///
   /// 崩溃恢复：写入新版本前，把上一版正式文件备份为 `.bak`，
   /// 加载时若正式文件损坏可自动回退到备份（借鉴 nb 版本回溯思想）。
+  ///
+  /// 链 G 说明（军工审计 2026-08-15）：`.bak` 保留上一版内容（含用户已
+  /// 删除的对象——崩溃恢复的必要代价，仅最近 1 版且 delete 时彻底清理）；
+  /// 敏感内容建议启用加密（密文 .bak 无明文残留）。
   @override
   Future<String> save(DrawingDocument doc) {
     if (!isValidId(doc.id)) {
@@ -261,12 +277,20 @@ class StorageService implements DocumentRepository {
     await for (final entity in dir.list()) {
       if (entity is! File || !entity.path.endsWith('.json')) continue;
       try {
+        // 链 9 修复（军工审计 2026-08-15）：列表页大小预检——原实现无
+        // 限制 readAsBytes + jsonDecode，恶意超大 .json（如 90MB）会在
+        // 打开主页时 OOM（D-4 只约束 load 路径）。
+        if (await entity.length() > _maxListMetaBytes) continue;
         final bytes = await entity.readAsBytes();
         final root = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
         final doc = root['document'] as Map<String, dynamic>;
+        final docId = doc['id'];
+        // 链 A 修复（军工审计 2026-08-15）：列表 id 校验——恶意工程文件
+        // 可携带任意 id，过滤不合法 id 防路径遍历（load/delete 入口）。
+        if (docId is! String || !isValidId(docId)) continue;
         metas.add(
           DocumentMeta(
-            id: doc['id'] as String,
+            id: docId,
             title: doc['title'] as String? ?? '未命名',
             width: (doc['width'] as num?)?.toInt() ?? 2048,
             height: (doc['height'] as num?)?.toInt() ?? 1536,

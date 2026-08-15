@@ -41,7 +41,7 @@ class PagedNoteRtfExporter {
       final fontHalfPoints = (item.fontSize * 1.5).clamp(16, 96).round();
       out
         ..write('\\fs$fontHalfPoints ')
-        ..write(_escape(text).replaceAll(r'\u10?', r'\line '));
+        ..write(_escape(text));
 
       if (item.bold) out.write(r'\b0 ');
       if (item.italic) out.write(r'\i0 ');
@@ -68,6 +68,11 @@ class PagedNoteRtfExporter {
         default:
           if (unit >= 0x20 && unit <= 0x7e) {
             out.writeCharCode(unit);
+          } else if (unit == 0x0a) {
+            // 链 10 修复（军工审计 2026-08-15）：换行在 _escape 内处理——
+            // 原 _escape 后 replaceAll(r'\u10?') 会误伤字面 "\\u10?" 子串
+            // （用户文本含字面 \u10? 时被误替换为 \line——排版注入）。
+            out.write(r'\line ');
           } else {
             final signed = unit > 0x7fff ? unit - 0x10000 : unit;
             out.write('\\u$signed?');

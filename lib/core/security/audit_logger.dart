@@ -7,6 +7,10 @@ class AuditLogger {
 
   static final List<String> _entries = [];
 
+  /// 审计记录内存上限（链 10 修复 2026-08-15）：长期会话高频操作防
+  /// 无限增长（保留最近 [_maxEntries] 条）。
+  static const int _maxEntries = 1000;
+
   /// 记录一次安全操作：operation 为操作名（如 'password_disk.read_key'），
   /// success 标识结果，detail 为补充说明（**禁止传密钥/内容**）。
   static void log(String operation, {bool success = true, String? detail}) {
@@ -15,6 +19,9 @@ class AuditLogger {
       '[$time] $operation ${success ? 'OK' : 'FAIL'}'
       '${detail != null ? ' $detail' : ''}',
     );
+    if (_entries.length > _maxEntries) {
+      _entries.removeRange(0, _entries.length - _maxEntries);
+    }
   }
 
   /// 当前审计记录快照（只读，供 UI/调试查看）。

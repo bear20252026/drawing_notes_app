@@ -125,6 +125,9 @@ class DocumentCodec {
   static const int _maxDecodeBytes = 100 * 1024 * 1024; // 100MB
   static const int _maxLayerCount = 200;
   static const int _maxStrokeCount = 10000;
+  // 链 C 修复（军工审计 2026-08-15）：单笔点数上限——D-4 只限笔画数，
+  // 一笔可含海量点（JSON 炸弹放大：95MB 文件反序列化内存爆 500MB+）。
+  static const int _maxPointsPerStroke = 50000;
   static const int _maxShapeCount = 5000;
   static const int _maxImageCount = 5000;
 
@@ -190,6 +193,7 @@ class DocumentCodec {
         if (rawPoints.isNotEmpty && rawPoints.first is Map) {
           // 旧格式：对象数组 [{x,y,p}, ...]。
           for (final pointValue in rawPoints) {
+            if (points.length >= _maxPointsPerStroke) break;
             if (pointValue is! Map) continue;
             final point = StrokePoint.fromJson(
               Map<String, dynamic>.from(pointValue),
@@ -212,6 +216,7 @@ class DocumentCodec {
           // 对齐 Saber SBN 二进制点列压缩思路，防御性恢复同步兼容。
           final flat = rawPoints.cast<num>();
           for (var i = 0; i + 2 < flat.length; i += 3) {
+            if (points.length >= _maxPointsPerStroke) break;
             final x = flat[i].toDouble();
             final y = flat[i + 1].toDouble();
             final p = flat[i + 2].toDouble();

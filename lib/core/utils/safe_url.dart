@@ -17,5 +17,11 @@ String? sanitizeHref(String? input) {
     return null;
   }
   if (url.contains('"')) return null;
+  // 链 F 修复（军工审计 2026-08-15）：拒绝含 % 的 URL——Windows cmd
+  // 打开链接时 %VAR% 会被展开为环境变量（双引号不阻止变量展开），
+  // 攻击者可经 %PATH:~x,y% 逐字符构造任意字符突破引号边界（命令注入，
+  // CVE-2024 类模式）。安全取舍：拒绝百分号编码 URL（%20 等）在画图
+  // 应用超链接场景可接受。
+  if (url.contains('%')) return null;
   return url;
 }

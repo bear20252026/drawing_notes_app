@@ -23,6 +23,14 @@ void main() {
       expect(sanitizeHref('https://a.com/";start calc'), isNull);
     });
 
+    test('拒绝 % 变量展开（cmd 环境变量注入，链 F）', () {
+      expect(sanitizeHref('https://a.com/%PATH%'), isNull);
+      expect(sanitizeHref('https://a.com/%PATH:~0,1%'), isNull);
+      expect(sanitizeHref('https://a.com/%USERNAME%'), isNull);
+      // 安全取舍：百分号编码 URL 也被拒绝（防 cmd 展开）。
+      expect(sanitizeHref('https://a.com/a%20b'), isNull);
+    });
+
     test('空/空白返回 null（清除链接语义）', () {
       expect(sanitizeHref(null), isNull);
       expect(sanitizeHref(''), isNull);
