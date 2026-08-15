@@ -367,6 +367,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No matching content found'**
   String get searchNoResults;
+
+  /// Stroke color tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Stroke color'**
+  String get editorStrokeColor;
+
+  /// Eraser tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Hit a stroke to delete the whole line'**
+  String get editorEraseStroke;
+
+  /// Transparent eraser tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Carve out the current layer with transparent pixels'**
+  String get editorEraseTransparent;
+
+  /// Highlighter tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Write as a normal highlighter; undoable, savable and exportable'**
+  String get editorHighlightNormal;
+
+  /// Laser pointer tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Shown briefly, fades out smoothly after ~4 seconds, not written to the page'**
+  String get editorLaserTemporary;
+
+  /// Text color tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Text color'**
+  String get editorTextColor;
+
+  /// Bold tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Bold (Ctrl+B)'**
+  String get editorBold;
+
+  /// Italic tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Italic (Ctrl+I)'**
+  String get editorItalic;
+
+  /// PIN protection explanation
+  ///
+  /// In en, this message translates to:
+  /// **'After enabling, the master key is stored encrypted with a PIN (OWASP KEK mode); a lost USB drive cannot expose it directly. Unlocking requires entering the PIN.'**
+  String get diskPinInfo;
 }
 
 class _AppLocalizationsDelegate

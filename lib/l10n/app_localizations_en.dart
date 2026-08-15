@@ -146,4 +146,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchNoResults => 'No matching content found';
+
+  @override
+  String get editorStrokeColor => 'Stroke color';
+
+  @override
+  String get editorEraseStroke => 'Hit a stroke to delete the whole line';
+
+  @override
+  String get editorEraseTransparent =>
+      'Carve out the current layer with transparent pixels';
+
+  @override
+  String get editorHighlightNormal =>
+      'Write as a normal highlighter; undoable, savable and exportable';
+
+  @override
+  String get editorLaserTemporary =>
+      'Shown briefly, fades out smoothly after ~4 seconds, not written to the page';
+
+  @override
+  String get editorTextColor => 'Text color';
+
+  @override
+  String get editorBold => 'Bold (Ctrl+B)';
+
+  @override
+  String get editorItalic => 'Italic (Ctrl+I)';
+
+  @override
+  String get diskPinInfo =>
+      'After enabling, the master key is stored encrypted with a PIN (OWASP KEK mode); a lost USB drive cannot expose it directly. Unlocking requires entering the PIN.';
 }

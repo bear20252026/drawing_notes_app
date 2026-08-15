@@ -44,4 +44,26 @@ void main() {
     expect(r.x, 125); // 中心(150,225) → x = 150 - 25 = 125
     expect(r.y, closeTo(212.5, 1e-9));
   });
+
+  test('形状缩放：围绕中心 + clamp 16 边界', () {
+    final r = ImageTransformService.clampedShapeScale(
+      center: const Offset(50, 25),
+      width: 100,
+      height: 50,
+      factor: 2,
+    );
+    expect(r.width, 200);
+    expect(r.height, 100);
+    expect(r.x, -50); // 中心(50,25) → x = 50 - 100 = -50
+    expect(r.y, closeTo(-25, 1e-9));
+    // clamp 最小 16（形状最小尺寸）。
+    final small = ImageTransformService.clampedShapeScale(
+      center: const Offset(0, 0),
+      width: 10,
+      height: 10,
+      factor: 0.1,
+    );
+    expect(small.width, 16);
+    expect(small.height, 16);
+  });
 }

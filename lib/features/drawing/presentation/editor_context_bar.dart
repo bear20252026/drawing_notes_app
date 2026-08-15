@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 /// 编辑器上下文工具条。
 ///
@@ -77,7 +78,7 @@ class EditorContextBar extends StatelessWidget {
         _colorButton(
           context,
           color: state.color,
-          tooltip: '笔触颜色',
+          tooltip: AppLocalizations.of(context)?.editorStrokeColor ?? '笔触颜色',
           onPressed: actions.showColorPicker,
         ),
         const SizedBox(width: 8),
@@ -104,18 +105,18 @@ class EditorContextBar extends StatelessWidget {
           const SizedBox(width: 12),
           SegmentedButton<bool>(
             showSelectedIcon: false,
-            segments: const [
+            segments: [
               ButtonSegment(
                 value: false,
                 icon: Icon(Icons.format_paint_outlined, size: 18),
                 label: Text('整笔'),
-                tooltip: '命中笔画即删除整条线',
+                tooltip: AppLocalizations.of(context)?.editorEraseStroke ?? '命中笔画即删除整条线',
               ),
               ButtonSegment(
                 value: true,
                 icon: Icon(Icons.auto_fix_high_outlined, size: 18),
                 label: Text('透明'),
-                tooltip: '以透明像素挖空当前图层',
+                tooltip: AppLocalizations.of(context)?.editorEraseTransparent ?? '以透明像素挖空当前图层',
               ),
             ],
             selected: {state.pixelEraser},
@@ -127,18 +128,18 @@ class EditorContextBar extends StatelessWidget {
           const SizedBox(width: 12),
           SegmentedButton<bool>(
             showSelectedIcon: false,
-            segments: const [
+            segments: [
               ButtonSegment(
                 value: false,
                 icon: Icon(Icons.save_outlined, size: 18),
                 label: Text('保存'),
-                tooltip: '作为普通高亮笔写入页面，可撤销、保存和导出',
+                tooltip: AppLocalizations.of(context)?.editorHighlightNormal ?? '作为普通高亮笔写入页面，可撤销、保存和导出',
               ),
               ButtonSegment(
                 value: true,
                 icon: Icon(Icons.gesture_rounded, size: 18),
                 label: Text('自动消失'),
-                tooltip: '仅短暂显示，约 4 秒后平滑淡出，不写入页面',
+                tooltip: AppLocalizations.of(context)?.editorLaserTemporary ?? '仅短暂显示，约 4 秒后平滑淡出，不写入页面',
               ),
             ],
             selected: {state.temporaryMarkerEnabled},
@@ -170,20 +171,20 @@ class EditorContextBar extends StatelessWidget {
         _colorButton(
           context,
           color: Color(text.color),
-          tooltip: '文字颜色',
+          tooltip: AppLocalizations.of(context)?.editorTextColor ?? '文字颜色',
           onPressed: actions.changeTextColor,
         ),
         _toggleButton(
           context,
           icon: Icons.format_bold,
-          tooltip: '加粗 (Ctrl+B)',
+          tooltip: AppLocalizations.of(context)?.editorBold ?? '加粗 (Ctrl+B)',
           selected: text.bold,
           onPressed: actions.toggleBold,
         ),
         _toggleButton(
           context,
           icon: Icons.format_italic,
-          tooltip: '斜体 (Ctrl+I)',
+          tooltip: AppLocalizations.of(context)?.editorItalic ?? '斜体 (Ctrl+I)',
           selected: text.italic,
           onPressed: actions.toggleItalic,
         ),

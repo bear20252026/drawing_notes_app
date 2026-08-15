@@ -144,4 +144,32 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get searchNoResults => '未找到匹配内容';
+
+  @override
+  String get editorStrokeColor => '笔触颜色';
+
+  @override
+  String get editorEraseStroke => '命中笔画即删除整条线';
+
+  @override
+  String get editorEraseTransparent => '以透明像素挖空当前图层';
+
+  @override
+  String get editorHighlightNormal => '作为普通高亮笔写入页面，可撤销、保存和导出';
+
+  @override
+  String get editorLaserTemporary => '仅短暂显示，约 4 秒后平滑淡出，不写入页面';
+
+  @override
+  String get editorTextColor => '文字颜色';
+
+  @override
+  String get editorBold => '加粗 (Ctrl+B)';
+
+  @override
+  String get editorItalic => '斜体 (Ctrl+I)';
+
+  @override
+  String get diskPinInfo =>
+      '启用后主密钥经 PIN 加密存储（OWASP KEK 模式），U 盘丢失也无法直接读出；解锁需输入 PIN。';
 }

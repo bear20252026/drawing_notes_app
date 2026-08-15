@@ -154,8 +154,9 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
           context: context,
           builder: (ctx) => AlertDialog(
             title: Text(AppLocalizations.of(context)?.diskPinProtection ?? '是否启用 PIN 保护？'),
-            content: const Text(
-              '启用后主密钥经 PIN 加密存储（OWASP KEK 模式），U 盘丢失也无法直接读出；解锁需输入 PIN。',
+            content: Text(
+              AppLocalizations.of(context)?.diskPinInfo ??
+                  '启用后主密钥经 PIN 加密存储（OWASP KEK 模式），U 盘丢失也无法直接读出；解锁需输入 PIN。',
             ),
             actions: [
               TextButton(

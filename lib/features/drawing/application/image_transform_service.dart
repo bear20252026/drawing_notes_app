@@ -29,4 +29,23 @@ class ImageTransformService {
       height: nextHeight,
     );
   }
+
+  /// 形状围绕中心等比缩放（尺寸分别 clamp 16..8192——形状最小 16）。
+  /// 中心由调用方计算（rawBounds——含旋转形状包围盒）——忠实原语义。
+  /// 返回 (x, y, width, height) 变换结果。
+  static ({double x, double y, double width, double height}) clampedShapeScale({
+    required Offset center,
+    required double width,
+    required double height,
+    required double factor,
+  }) {
+    final nextWidth = (width * factor).clamp(16.0, 8192.0);
+    final nextHeight = (height * factor).clamp(16.0, 8192.0);
+    return (
+      x: center.dx - nextWidth / 2,
+      y: center.dy - nextHeight / 2,
+      width: nextWidth,
+      height: nextHeight,
+    );
+  }
 }

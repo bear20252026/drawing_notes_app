@@ -91,5 +91,14 @@
   "searchTitle": "全文搜索",
   "searchHint": "搜索文字块内容 / 标题…",
   "searchEmptyHint": "输入关键词开始搜索",
-  "searchNoResults": "未找到匹配内容"
+  "searchNoResults": "未找到匹配内容",
+  "editorStrokeColor": "笔触颜色",
+  "editorEraseStroke": "命中笔画即删除整条线",
+  "editorEraseTransparent": "以透明像素挖空当前图层",
+  "editorHighlightNormal": "作为普通高亮笔写入页面，可撤销、保存和导出",
+  "editorLaserTemporary": "仅短暂显示，约 4 秒后平滑淡出，不写入页面",
+  "editorTextColor": "文字颜色",
+  "editorBold": "加粗 (Ctrl+B)",
+  "editorItalic": "斜体 (Ctrl+I)",
+  "diskPinInfo": "启用后主密钥经 PIN 加密存储（OWASP KEK 模式），U 盘丢失也无法直接读出；解锁需输入 PIN。"
 }

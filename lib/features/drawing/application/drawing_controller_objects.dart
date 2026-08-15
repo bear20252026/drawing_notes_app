@@ -304,14 +304,18 @@ extension DrawingControllerObjectOps on DrawingController {
       return;
     }
     _ensureDocumentShapesTransformBefore();
-    final center = ShapeBindingGeometry.rawBounds(shape).center;
-    final width = (shape.width * factor).clamp(16.0, 8192.0);
-    final height = (shape.height * factor).clamp(16.0, 8192.0);
+    // Q-1 拆分（2026-08-16）：形状缩放纯计算委托 ImageTransformService。
+    final result = ImageTransformService.clampedShapeScale(
+      center: ShapeBindingGeometry.rawBounds(shape).center,
+      width: shape.width,
+      height: shape.height,
+      factor: factor,
+    );
     shape
-      ..width = width
-      ..height = height
-      ..x = center.dx - width / 2
-      ..y = center.dy - height / 2;
+      ..x = result.x
+      ..y = result.y
+      ..width = result.width
+      ..height = result.height;
     _reprojectBoundArrows();
     _document.touch();
     tickFrame();

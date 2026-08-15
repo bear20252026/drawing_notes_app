@@ -184,5 +184,41 @@
   "searchNoResults": "No matching content found",
   "@searchNoResults": {
     "description": "Search no results state"
+  },
+  "editorStrokeColor": "Stroke color",
+  "@editorStrokeColor": {
+    "description": "Stroke color tooltip"
+  },
+  "editorEraseStroke": "Hit a stroke to delete the whole line",
+  "@editorEraseStroke": {
+    "description": "Eraser tooltip"
+  },
+  "editorEraseTransparent": "Carve out the current layer with transparent pixels",
+  "@editorEraseTransparent": {
+    "description": "Transparent eraser tooltip"
+  },
+  "editorHighlightNormal": "Write as a normal highlighter; undoable, savable and exportable",
+  "@editorHighlightNormal": {
+    "description": "Highlighter tooltip"
+  },
+  "editorLaserTemporary": "Shown briefly, fades out smoothly after ~4 seconds, not written to the page",
+  "@editorLaserTemporary": {
+    "description": "Laser pointer tooltip"
+  },
+  "editorTextColor": "Text color",
+  "@editorTextColor": {
+    "description": "Text color tooltip"
+  },
+  "editorBold": "Bold (Ctrl+B)",
+  "@editorBold": {
+    "description": "Bold tooltip"
+  },
+  "editorItalic": "Italic (Ctrl+I)",
+  "@editorItalic": {
+    "description": "Italic tooltip"
+  },
+  "diskPinInfo": "After enabling, the master key is stored encrypted with a PIN (OWASP KEK mode); a lost USB drive cannot expose it directly. Unlocking requires entering the PIN.",
+  "@diskPinInfo": {
+    "description": "PIN protection explanation"
   }
 }
