@@ -15,6 +15,12 @@ enum EditorPointerDisposition {
 ///
 /// 使用触控笔时默认拒绝新增 touch 指针，避免手掌或第二根手指产生墨迹。
 /// 鼠标始终可以作为桌面创作回退输入；手指墨迹则必须由用户明确启用。
+///
+/// 仲裁规则（专家审查文档补充 2026-08-15）：
+/// 1. 指针事件先经 [EditorInputPolicy] 判定 → [EditorPointerDisposition]；
+/// 2. 墨迹与视口手势两类高层行为互斥：beginViewportGesture 会取消进行中
+///    的墨迹（cancelInkForViewportGesture），避免双指捏合缩放与笔画冲突；
+/// 3. 触控笔优先：stylus 事件始终允许墨迹，touch 受 allowInk 约束。
 class EditorInputPolicy {
   const EditorInputPolicy({
     required this.allowInk,
