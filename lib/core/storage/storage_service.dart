@@ -33,6 +33,11 @@ class StorageService implements DocumentRepository {
   /// 文档存放目录（懒加载，首次调用时创建）。
   Directory? _documentsDir;
 
+  /// M-06 修复（专家审计 2026-08-15）：回收站目录与保留期——删除移入
+  /// 回收站（Android 官方 createTrashRequest/Files by Google 30 天模式）。
+  Directory? _trashDir;
+  static const Duration _trashRetention = Duration(days: 30);
+
   /// 缩略图存放目录。
   Directory? _thumbsDir;
 
@@ -54,6 +59,23 @@ class StorageService implements DocumentRepository {
       await dir.create(recursive: true);
     }
     _documentsDir = dir;
+    return dir;
+  }
+
+  /// 回收站目录（M-06：删除移入 + 30 天保留——Android 官方模式）。
+  Future<Directory> _ensureTrashDir() async {
+    if (_trashDir != null) return _trashDir!;
+    final provider = directoryProvider;
+    final appDir = provider != null
+        ? await provider()
+        : await getApplicationDocumentsDirectory();
+    final dir = Directory(
+      '${appDir.path}${Platform.pathSeparator}documents_trash',
+    );
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    _trashDir = dir;
     return dir;
   }
 
@@ -272,6 +294,8 @@ class StorageService implements DocumentRepository {
   /// 列出所有已保存文档（含元信息），按更新时间倒序。
   @override
   Future<List<DocumentMeta>> listDocuments() async {
+    // M-06：列表时自动清理过期回收站项（30 天保留——Android 官方模式）。
+    await purgeTrash();
     final dir = await _ensureDocumentsDir();
     final metas = <DocumentMeta>[];
     await for (final entity in dir.list()) {
@@ -351,7 +375,13 @@ class StorageService implements DocumentRepository {
       }
     }
 
-    await file.delete();
+    // M-06 修复（专家审计 2026-08-15）：删除移入回收站（30 天保留——
+    // Android 官方 createTrashRequest 模式），非永久删除——误删可恢复。
+    final trashDir = await _ensureTrashDir();
+    await file.rename(
+      '${trashDir.path}${Platform.pathSeparator}'
+      '${id}_${DateTime.now().millisecondsSinceEpoch}.json',
+    );
     final backup = File('${file.path}.bak');
     if (await backup.exists()) {
       await backup.delete();
@@ -370,6 +400,56 @@ class StorageService implements DocumentRepository {
 
     await _deleteUnreferencedManagedImages(imagePaths, excludingDocumentId: id);
     return true;
+  }
+
+  /// 恢复回收站项（M-06）：trashName 如 `doc123_1720000000000.json`——
+  /// 移回 documents/ 目录。返回恢复后的文档 ID；失败（原 ID 冲突等）返回 null。
+  Future<String?> restoreTrash(String trashName) async {
+    final trashDir = await _ensureTrashDir();
+    final src = File('${trashDir.path}${Platform.pathSeparator}$trashName');
+    if (!await src.exists()) return null;
+    final id = trashName.split('_').first;
+    if (!isValidId(id)) return null;
+    final dest = File(_pathFor(id));
+    if (await dest.exists()) return null; // 原 ID 已存在——拒绝覆盖
+    await src.rename(dest.path);
+    return id;
+  }
+
+  /// 列出回收站项（M-06）：返回 (trashName, 原始 id, 删除时间)，最近在前。
+  Future<List<(String, String, DateTime)>> listTrash() async {
+    final trashDir = await _ensureTrashDir();
+    final items = <(String, String, DateTime)>[];
+    await for (final entity in trashDir.list()) {
+      if (entity is! File || !entity.path.endsWith('.json')) continue;
+      final name = entity.uri.pathSegments.last;
+      final parts = name.split('_');
+      if (parts.length < 2 || !isValidId(parts.first)) continue;
+      final ts = int.tryParse(parts[1].split('.').first) ?? 0;
+      items.add((name, parts.first, DateTime.fromMillisecondsSinceEpoch(ts)));
+    }
+    items.sort((a, b) => b.$3.compareTo(a.$3));
+    return items;
+  }
+
+  /// 清理过期回收站项（M-06）：超过保留期（默认 30 天）永久删除。
+  Future<int> purgeTrash({Duration retention = _trashRetention}) async {
+    final trashDir = await _ensureTrashDir();
+    final now = DateTime.now();
+    var purged = 0;
+    await for (final entity in trashDir.list()) {
+      if (entity is! File) continue;
+      try {
+        final stat = await entity.stat();
+        if (now.difference(stat.modified) > retention) {
+          await entity.delete();
+          purged++;
+        }
+      } catch (_) {
+        // 单个清理失败忽略。
+      }
+    }
+    return purged;
   }
 
   /// 返回规范化后的受管离线图片路径；外部路径、嵌套路径和非法路径返回 null。
