@@ -106,4 +106,34 @@ void main() {
       isTrue,
     );
   });
+
+  test('几何：点到线段距离（投影 t + clamp）', () {
+    // 垂足在线段内：点 (5,5) 到 (0,0)-(10,0) → 5。
+    expect(
+      SelectionGeometryService.distanceToSegment(
+        const Offset(5, 5),
+        const Offset(0, 0),
+        const Offset(10, 0),
+      ),
+      closeTo(5, 1e-9),
+    );
+    // 投影在段外：点 (15,5) → 端点 (10,0) 距离 √(25+25)。
+    expect(
+      SelectionGeometryService.distanceToSegment(
+        const Offset(15, 5),
+        const Offset(0, 0),
+        const Offset(10, 0),
+      ),
+      closeTo(7.0710678119, 1e-6),
+    );
+    // 零长度段：退化为点到端点距离。
+    expect(
+      SelectionGeometryService.distanceToSegment(
+        const Offset(3, 4),
+        const Offset(0, 0),
+        const Offset(0, 0),
+      ),
+      closeTo(5, 1e-9),
+    );
+  });
 }

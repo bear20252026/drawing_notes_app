@@ -54,6 +54,20 @@ class SelectionGeometryService {
   static double _cross(Offset o, Offset p, Offset q) =>
       (p.dx - o.dx) * (q.dy - o.dy) - (p.dy - o.dy) * (q.dx - o.dx);
 
+  /// 点到线段距离（Q-1 拆分 2026-08-16——第八步）：点 [point] 到线段
+  /// [ab] 的最短距离（投影 t + clamp 0-1——权威算法，对齐 tldraw
+  /// DistanceToLineSegment parametric t-projection 与掘金投影公式）。
+  static double distanceToSegment(Offset point, Offset a, Offset b) {
+    final segment = b - a;
+    final lengthSquared = segment.dx * segment.dx + segment.dy * segment.dy;
+    if (lengthSquared <= 1e-8) return (point - a).distance;
+    final projected =
+        ((point - a).dx * segment.dx + (point - a).dy * segment.dy) /
+        lengthSquared;
+    final t = projected.clamp(0.0, 1.0);
+    return (point - (a + segment * t)).distance;
+  }
+
   /// 缩放变换（纯计算）：点 [p] 围绕 [center] 缩放 [factor] 倍。
   static Offset scalePoint(Offset p, Offset center, double factor) =>
       center + (p - center) * factor;

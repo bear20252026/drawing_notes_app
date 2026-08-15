@@ -591,14 +591,8 @@ class DrawingController extends ChangeNotifier {
   }
 
   static double _distanceToSegment(Offset point, Offset a, Offset b) {
-    final segment = b - a;
-    final lengthSquared = segment.dx * segment.dx + segment.dy * segment.dy;
-    if (lengthSquared <= 1e-8) return (point - a).distance;
-    final projected =
-        ((point - a).dx * segment.dx + (point - a).dy * segment.dy) /
-        lengthSquared;
-    final t = projected.clamp(0.0, 1.0);
-    return (point - (a + segment * t)).distance;
+    // Q-1 拆分（2026-08-16）：点-线段距离委托 SelectionGeometryService。
+    return SelectionGeometryService.distanceToSegment(point, a, b);
   }
 
   /// 开始一笔：创建活动笔画。
