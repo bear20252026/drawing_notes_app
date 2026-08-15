@@ -73,4 +73,37 @@ void main() {
     expect(rotated.dx, closeTo(0, 1e-9));
     expect(rotated.dy, closeTo(10, 1e-9));
   });
+
+  test('几何：线段相交判定（含共线重叠）', () {
+    // 相交：对角线交叉。
+    expect(
+      SelectionGeometryService.segmentsIntersect(
+        const Offset(0, 0),
+        const Offset(10, 10),
+        const Offset(0, 10),
+        const Offset(10, 0),
+      ),
+      isTrue,
+    );
+    // 不相交：平行线段。
+    expect(
+      SelectionGeometryService.segmentsIntersect(
+        const Offset(0, 0),
+        const Offset(10, 0),
+        const Offset(0, 5),
+        const Offset(10, 5),
+      ),
+      isFalse,
+    );
+    // 共线重叠。
+    expect(
+      SelectionGeometryService.segmentsIntersect(
+        const Offset(0, 0),
+        const Offset(10, 0),
+        const Offset(5, 0),
+        const Offset(15, 0),
+      ),
+      isTrue,
+    );
+  });
 }

@@ -3,3 +3,6 @@ arb-dir: lib/l10n
 template-arb-file: app_en.arb
 output-localization-file: app_localizations.dart
 output-class: AppLocalizations
+# 国际化收尾（2026-08-16）：未翻译消息排查文件——gen-l10n 生成缺失 key
+# 清单，开发/CI 对照补全（火山引擎 untranslated-messages-file 模式）。
+untranslated-messages-file: lib/l10n/untranslated_messages.json

@@ -91,23 +91,8 @@ class DrawingController extends ChangeNotifier {
   }
 
   static bool _segmentsIntersect(Offset a, Offset b, Offset c, Offset d) {
-    double cross(Offset p, Offset q, Offset r) =>
-        (q.dx - p.dx) * (r.dy - p.dy) - (q.dy - p.dy) * (r.dx - p.dx);
-    final abC = cross(a, b, c);
-    final abD = cross(a, b, d);
-    final cdA = cross(c, d, a);
-    final cdB = cross(c, d, b);
-    const epsilon = 1e-8;
-    if (abC.abs() < epsilon && abD.abs() < epsilon) {
-      final overlapX =
-          math.max(math.min(a.dx, b.dx), math.min(c.dx, d.dx)) <=
-          math.min(math.max(a.dx, b.dx), math.max(c.dx, d.dx));
-      final overlapY =
-          math.max(math.min(a.dy, b.dy), math.min(c.dy, d.dy)) <=
-          math.min(math.max(a.dy, b.dy), math.max(c.dy, d.dy));
-      return overlapX && overlapY;
-    }
-    return (abC >= 0) != (abD >= 0) && (cdA >= 0) != (cdB >= 0);
+    // Q-1 拆分（2026-08-16）：相交判定委托 SelectionGeometryService。
+    return SelectionGeometryService.segmentsIntersect(a, b, c, d);
   }
 
   /// 选中的文档形状/图片持久 ID 集合（统一对象选择）。

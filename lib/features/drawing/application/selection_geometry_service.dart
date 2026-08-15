@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
@@ -29,6 +30,29 @@ class SelectionGeometryService {
     if (!minX.isFinite) return null;
     return Offset((minX + maxX) / 2, (minY + maxY) / 2);
   }
+
+  /// 线段相交判定（Q-1 拆分 2026-08-16——第七步）：[ab] 与 [cd] 是否相交
+  /// （含共线重叠）。从 DrawingController 提取——纯几何判定——可独立单测。
+  static bool segmentsIntersect(Offset a, Offset b, Offset c, Offset d) {
+    final abC = _cross(a, b, c);
+    final abD = _cross(a, b, d);
+    final cdA = _cross(c, d, a);
+    final cdB = _cross(c, d, b);
+    const epsilon = 1e-8;
+    if (abC.abs() < epsilon && abD.abs() < epsilon) {
+      final overlapX =
+          math.max(math.min(a.dx, b.dx), math.min(c.dx, d.dx)) <=
+          math.min(math.max(a.dx, b.dx), math.max(c.dx, d.dx));
+      final overlapY =
+          math.max(math.min(a.dy, b.dy), math.min(c.dy, d.dy)) <=
+          math.min(math.max(a.dy, b.dy), math.max(c.dy, d.dy));
+      return overlapX && overlapY;
+    }
+    return (abC >= 0) != (abD >= 0) && (cdA >= 0) != (cdB >= 0);
+  }
+
+  static double _cross(Offset o, Offset p, Offset q) =>
+      (p.dx - o.dx) * (q.dy - o.dy) - (p.dy - o.dy) * (q.dx - o.dx);
 
   /// 缩放变换（纯计算）：点 [p] 围绕 [center] 缩放 [factor] 倍。
   static Offset scalePoint(Offset p, Offset center, double factor) =>
