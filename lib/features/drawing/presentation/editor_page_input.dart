@@ -334,7 +334,7 @@ extension _EditorPageInput on _EditorPageState {
         final page = widget.page;
         final snapId = page == null ? null : _findSnapTargetId(end);
         final shape = geometry.createShape(
-          id: NotebookStorage.newId('shp'),
+          id: LocalIdGenerator.next('shp'),
           shapeType: _activeShapeTool!,
           color: _controller.color.toARGB32(),
           strokeWidth: _controller.brushSize,

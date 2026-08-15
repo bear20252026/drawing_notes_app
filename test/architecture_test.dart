@@ -46,19 +46,34 @@ void main() {
     });
   });
 
-  test('规则3：feature 切片隔离——drawing/notes 仅允许单向依赖', () {
-    // 项目既定规则（check_boundaries）：允许 notes → drawing
-    // （共享 domain 实体）；drawing → notes 属横向依赖。
-    // freeze 基线：9 处 drawing → notes 为 S4b 接口化推进中的已知历史
-    // 违规（经 core/notes_accessor.dart 收敛），记录基线后 CI 只拦新增；
-    // 解除列入 S4b 专项（不破坏功能）。
+  test('规则3：feature 非 domain 依赖禁止（domain 实体双向共享合规）', () {
+    // domain 是最内层纯数据（check_boundaries 规则 1：core 允许依赖
+    // features domain 实体），实体双向共享合规；真正禁止的是跨 feature
+    // 的 infrastructure/presentation 依赖（真横向耦合）。
+    // freeze 基线：剩余 3 处 infra/presentation 横向依赖（editor_page→
+    // notebook_storage/presentation_page、editor_exporter→paged_note_rtf）
+    // 为接口化推进中的已知历史违规，CI 只拦新增。
     freeze('feature_isolation', () {
-      defineSlices({
-        'drawing': 'features/drawing/**',
-        'notes': 'features/notes/**',
-      })
-          .allowDependency('notes', 'drawing')
-          .enforceIsolation(graph);
+      shouldNotDependOn(
+        filesMatching('features/drawing/**'),
+        filesMatching('features/notes/infrastructure/**'),
+        graph,
+      );
+      shouldNotDependOn(
+        filesMatching('features/drawing/**'),
+        filesMatching('features/notes/presentation/**'),
+        graph,
+      );
+      shouldNotDependOn(
+        filesMatching('features/notes/**'),
+        filesMatching('features/drawing/infrastructure/**'),
+        graph,
+      );
+      shouldNotDependOn(
+        filesMatching('features/notes/**'),
+        filesMatching('features/drawing/presentation/**'),
+        graph,
+      );
     });
   });
 

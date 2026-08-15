@@ -145,7 +145,7 @@ extension _EditorPageActions on _EditorPageState {
     _applyState(() {
       page.charts.add(
         PageChartItem(
-          id: NotebookStorage.newId('cht'),
+          id: LocalIdGenerator.next('cht'),
           chartType: chartType,
           data: data,
           x: center.dx - 160,
@@ -490,7 +490,7 @@ extension _EditorPageActions on _EditorPageState {
         _applyState(() {
           page.textItems.add(
             PageTextItem(
-              id: NotebookStorage.newId('txt'),
+              id: LocalIdGenerator.next('txt'),
               x: center.dx - text.length * 3,
               y: center.dy - 12,
               text: text.trim(),

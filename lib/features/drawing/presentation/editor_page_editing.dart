@@ -19,7 +19,7 @@ extension _EditorPageEditing on _EditorPageState {
     _applyState(() {
       // 创建临时文字块（尚未加入页面，提交时才加入）。
       final item = PageTextItem(
-        id: NotebookStorage.newId('txt'),
+        id: LocalIdGenerator.next('txt'),
         x: canvasPoint.dx,
         y: canvasPoint.dy,
         text: '',
@@ -45,7 +45,7 @@ extension _EditorPageEditing on _EditorPageState {
     _commitTextEditing();
     _applyState(() {
       final item = PageTextItem(
-        id: NotebookStorage.newId('txt'),
+        id: LocalIdGenerator.next('txt'),
         x: canvasPoint.dx,
         y: canvasPoint.dy,
         text: '',
@@ -154,7 +154,7 @@ extension _EditorPageEditing on _EditorPageState {
     _applyState(() {
       page.textItems.add(
         PageTextItem(
-          id: NotebookStorage.newId('txt'),
+          id: LocalIdGenerator.next('txt'),
           x: _controller.document.width / 2 - 100,
           y: _controller.document.height / 2 - 40,
           text: result.text.trim(),
@@ -282,7 +282,7 @@ extension _EditorPageEditing on _EditorPageState {
         _applyState(() {
           page.imageItems.add(
             PageImageItem(
-              id: NotebookStorage.newId('img'),
+              id: LocalIdGenerator.next('img'),
               x: center.dx,
               y: center.dy,
               filePath: storedPath,
@@ -368,7 +368,7 @@ extension _EditorPageEditing on _EditorPageState {
           _applyState(() {
             page.connectors.add(
               PageConnector(
-                id: NotebookStorage.newId('cn'),
+                id: LocalIdGenerator.next('cn'),
                 fromItemId: _linkSourceId!,
                 toItemId: itemId,
               ),
@@ -644,7 +644,7 @@ extension _EditorPageEditing on _EditorPageState {
       _showSnack('请先框选/多选至少 2 个元素再分组');
       return;
     }
-    final groupId = NotebookStorage.newId('grp');
+    final groupId = LocalIdGenerator.next('grp');
     _applyState(() {
       for (final t in page.textItems) {
         if (ids.contains(t.id)) t.groupId = groupId;
