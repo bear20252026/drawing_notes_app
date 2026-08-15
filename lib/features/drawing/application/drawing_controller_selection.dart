@@ -33,6 +33,7 @@ extension DrawingControllerSelectionOps on DrawingController {
   void endSelection() {
     if (_selectionDraft.isEmpty) {
       _selection = const Selection();
+    _selectionCenterDirty = true;
       _applyNotify();
       return;
     }
@@ -57,7 +58,9 @@ extension DrawingControllerSelectionOps on DrawingController {
     } else {
       // 草稿不构成有效选区（矩形只有单点 / 套索少于 3 点）。
       _selection = const Selection();
+    _selectionCenterDirty = true;
     }
+    _selectionCenterDirty = true;
     _selectionDraft.clear();
     _applyNotify();
   }
@@ -97,6 +100,7 @@ extension DrawingControllerSelectionOps on DrawingController {
   void clearSelection() {
     if (_selection.polygon.isEmpty && _selectedDocumentImageId == null) return;
     _selection = const Selection();
+    _selectionCenterDirty = true;
     _selectedDocumentImageId = null;
     _applyNotify();
   }
@@ -132,6 +136,12 @@ extension DrawingControllerSelectionOps on DrawingController {
   /// 已选笔画的实际外接框中心。手势套索可画得很大，因此不能把套索包围盒
   /// 中心误用为变换锚点，否则用户会感到缩放、旋转“漂移”。
   Offset _selectedStrokeCenter() {
+    // P-1 修复（专家审查 2026-08-15）：缓存选区中心——scale/rotate 围绕
+    // 中心变换（中心不变），滑块连续拖动不再每次 O(N×M) 重算；选区
+    // 变化时经 _selectionCenterDirty 失效。
+    if (!_selectionCenterDirty && _selectionCenterCache != null) {
+      return _selectionCenterCache!;
+    }
     var minX = double.infinity;
     var minY = double.infinity;
     var maxX = -double.infinity;
@@ -145,8 +155,12 @@ extension DrawingControllerSelectionOps on DrawingController {
         maxY = math.max(maxY, point.y);
       }
     }
-    if (!minX.isFinite) return _selection.center;
-    return Offset((minX + maxX) / 2, (minY + maxY) / 2);
+    final center = !minX.isFinite
+        ? _selection.center
+        : Offset((minX + maxX) / 2, (minY + maxY) / 2);
+    _selectionCenterCache = center;
+    _selectionCenterDirty = false;
+    return center;
   }
 
   /// 记录变换前的图层快照（首次变换时调用一次）。
@@ -198,6 +212,7 @@ extension DrawingControllerSelectionOps on DrawingController {
     }
     _document.touch();
     _selection = const Selection();
+    _selectionCenterDirty = true;
     _pushHistory(HistoryEntry(before: before, after: _snapshotLayers()));
     _invalidateLayer(currentLayer.id);
     _applyNotify();
@@ -224,6 +239,7 @@ extension DrawingControllerSelectionOps on DrawingController {
     }
     _document.touch();
     _selection = const Selection();
+    _selectionCenterDirty = true;
     _pushHistory(HistoryEntry(before: before, after: _snapshotLayers()));
     _invalidateLayer(currentLayer.id);
     _applyNotify();

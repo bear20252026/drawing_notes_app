@@ -896,12 +896,19 @@ class DrawingController extends ChangeNotifier {
   set selectionTool(SelectionTool value) {
     _selectionTool = value;
     _selection = const Selection();
+    _selectionCenterDirty = true;
     notifyListeners();
   }
 
   /// 当前选区（多边形 + 命中笔画）。
   Selection _selection = const Selection();
   Selection get selection => _selection;
+
+  /// 选区中心缓存（P-1 修复 2026-08-15）：_selectedStrokeCenter 的
+  /// O(N×M) 计算缓存，选区变化时置 dirty 失效（scale/rotate 围绕中心
+  /// 变换中心不变——滑块连续拖动复用缓存免每次重算）。
+  Offset? _selectionCenterCache;
+  bool _selectionCenterDirty = true;
 
   /// 选区主色（对齐 Saber select.dart 的 getDominantStrokeColor）：
   /// 按笔画长度加权统计当前选中笔画的颜色，最“长”的颜色胜出，

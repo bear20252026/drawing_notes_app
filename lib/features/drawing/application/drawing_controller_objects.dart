@@ -8,10 +8,19 @@ part of 'drawing_controller.dart';
 /// 文档对象选择/变换域（拆分自 drawing_controller.dart）。
 extension DrawingControllerObjectOps on DrawingController {
   Future<void> _ensureDocumentImagesLoaded() async {
-    await Future.wait([
+    final pending = <DocumentImageItem>[
       for (final item in _document.imageItems)
-        if (!_documentImages.containsKey(item.id)) _loadDocumentImage(item),
-    ]);
+        if (!_documentImages.containsKey(item.id)) item,
+    ];
+    // P-5 修复（专家审查 2026-08-15）：限制并发加载（每批最多 4 个）——
+    // 一次性 Future.wait 全部图片在大量图片时会造成内存峰值。
+    const batchSize = 4;
+    for (var i = 0; i < pending.length; i += batchSize) {
+      final batch = pending.skip(i).take(batchSize);
+      await Future.wait([
+        for (final item in batch) _loadDocumentImage(item),
+      ]);
+    }
   }
 
   Future<void> _loadDocumentImage(DocumentImageItem item) async {
