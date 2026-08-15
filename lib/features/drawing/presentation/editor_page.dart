@@ -45,6 +45,7 @@ import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar.d
 import 'package:drawing_notes_app/features/drawing/presentation/editor_viewmodel.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/layer_panel.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/properties_panel.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/resize_handles.dart';
 
 part 'editor_page_dialogs.dart';
 part 'editor_page_overlays.dart';

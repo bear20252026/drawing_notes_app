@@ -417,7 +417,50 @@ extension _EditorPageOverlays on _EditorPageState {
                               ),
                             ),
                             // 8 向缩放手柄（四角 + 四边中点，借鉴 Excalidraw）。
-                            ..._buildResizeHandles(shape, w, h),
+                            ResizeHandles(
+                              shape: shape,
+                              width: w,
+                              height: h,
+                              screenToCanvasDelta: _screenDeltaToCanvas,
+                              onResize: (pos, delta, isCorner) {
+                                _applyState(() {
+                                  if (isCorner) {
+                                    final left = pos.dx == 0;
+                                    final top = pos.dy == 0;
+                                    if (left) {
+                                      shape.x += delta.dx;
+                                      shape.width = (shape.width - delta.dx).clamp(20, 1000);
+                                    } else {
+                                      shape.width = (shape.width + delta.dx).clamp(20, 1000);
+                                    }
+                                    if (top) {
+                                      shape.y += delta.dy;
+                                      shape.height = (shape.height - delta.dy).clamp(20, 1000);
+                                    } else {
+                                      shape.height = (shape.height + delta.dy).clamp(20, 1000);
+                                    }
+                                  } else {
+                                    final horizontal = pos.dx == 0 || pos.dx == w;
+                                    if (horizontal) {
+                                      if (pos.dx == 0) {
+                                        shape.x += delta.dx;
+                                        shape.width = (shape.width - delta.dx).clamp(20, 1000);
+                                      } else {
+                                        shape.width = (shape.width + delta.dx).clamp(20, 1000);
+                                      }
+                                    } else {
+                                      if (pos.dy == 0) {
+                                        shape.y += delta.dy;
+                                        shape.height = (shape.height - delta.dy).clamp(20, 1000);
+                                      } else {
+                                        shape.height = (shape.height + delta.dy).clamp(20, 1000);
+                                      }
+                                    }
+                                  }
+                                });
+                              },
+                              onChanged: _notifyChanged,
+                            ),
                           ],
                         )
                       : null,
