@@ -25,4 +25,30 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get delete => '删除';
+
+  @override
+  String get homeTrashEmpty => '回收站为空';
+
+  @override
+  String homeDeletedAt(String time) {
+    return '删除于 $time';
+  }
+
+  @override
+  String get homeRecover => '恢复';
+
+  @override
+  String get homeDeleteForever => '永久删除';
+
+  @override
+  String get homeEmptyTrash => '清空回收站';
+
+  @override
+  String get homeCancel => '取消';
+
+  @override
+  String get homeSwitchTheme => '切换外观（系统 / 浅色 / 深色）';
+
+  @override
+  String get homeMore => '更多操作';
 }

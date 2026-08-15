@@ -133,6 +133,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete'**
   String get delete;
+
+  /// Trash dialog empty state
+  ///
+  /// In en, this message translates to:
+  /// **'Trash is empty'**
+  String get homeTrashEmpty;
+
+  /// Trash item deletion time
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted at {time}'**
+  String homeDeletedAt(String time);
+
+  /// Restore from trash action
+  ///
+  /// In en, this message translates to:
+  /// **'Recover'**
+  String get homeRecover;
+
+  /// Permanent delete action
+  ///
+  /// In en, this message translates to:
+  /// **'Delete forever'**
+  String get homeDeleteForever;
+
+  /// Empty trash action
+  ///
+  /// In en, this message translates to:
+  /// **'Empty trash'**
+  String get homeEmptyTrash;
+
+  /// Cancel action
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get homeCancel;
+
+  /// Theme toggle tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Switch appearance (system / light / dark)'**
+  String get homeSwitchTheme;
+
+  /// More actions tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'More options'**
+  String get homeMore;
 }
 
 class _AppLocalizationsDelegate

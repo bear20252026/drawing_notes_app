@@ -25,4 +25,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get delete => 'Delete';
+
+  @override
+  String get homeTrashEmpty => 'Trash is empty';
+
+  @override
+  String homeDeletedAt(String time) {
+    return 'Deleted at $time';
+  }
+
+  @override
+  String get homeRecover => 'Recover';
+
+  @override
+  String get homeDeleteForever => 'Delete forever';
+
+  @override
+  String get homeEmptyTrash => 'Empty trash';
+
+  @override
+  String get homeCancel => 'Cancel';
+
+  @override
+  String get homeSwitchTheme => 'Switch appearance (system / light / dark)';
+
+  @override
+  String get homeMore => 'More options';
 }

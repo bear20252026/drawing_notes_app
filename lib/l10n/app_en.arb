@@ -23,5 +23,42 @@
   "delete": "Delete",
   "@delete": {
     "description": "Delete action"
+  },
+  "homeTrashEmpty": "Trash is empty",
+  "@homeTrashEmpty": {
+    "description": "Trash dialog empty state"
+  },
+  "homeDeletedAt": "Deleted at {time}",
+  "@homeDeletedAt": {
+    "description": "Trash item deletion time",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "homeRecover": "Recover",
+  "@homeRecover": {
+    "description": "Restore from trash action"
+  },
+  "homeDeleteForever": "Delete forever",
+  "@homeDeleteForever": {
+    "description": "Permanent delete action"
+  },
+  "homeEmptyTrash": "Empty trash",
+  "@homeEmptyTrash": {
+    "description": "Empty trash action"
+  },
+  "homeCancel": "Cancel",
+  "@homeCancel": {
+    "description": "Cancel action"
+  },
+  "homeSwitchTheme": "Switch appearance (system / light / dark)",
+  "@homeSwitchTheme": {
+    "description": "Theme toggle tooltip"
+  },
+  "homeMore": "More options",
+  "@homeMore": {
+    "description": "More actions tooltip"
   }
 }

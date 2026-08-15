@@ -23,5 +23,42 @@
   "delete": "删除",
   "@delete": {
     "description": "删除操作"
+  },
+  "homeTrashEmpty": "回收站为空",
+  "@homeTrashEmpty": {
+    "description": "回收站对话框空状态"
+  },
+  "homeDeletedAt": "删除于 {time}",
+  "@homeDeletedAt": {
+    "description": "回收站项删除时间",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "homeRecover": "恢复",
+  "@homeRecover": {
+    "description": "从回收站恢复操作"
+  },
+  "homeDeleteForever": "永久删除",
+  "@homeDeleteForever": {
+    "description": "永久删除操作"
+  },
+  "homeEmptyTrash": "清空回收站",
+  "@homeEmptyTrash": {
+    "description": "清空回收站操作"
+  },
+  "homeCancel": "取消",
+  "@homeCancel": {
+    "description": "取消操作"
+  },
+  "homeSwitchTheme": "切换外观（系统 / 浅色 / 深色）",
+  "@homeSwitchTheme": {
+    "description": "主题切换提示"
+  },
+  "homeMore": "更多操作",
+  "@homeMore": {
+    "description": "更多操作提示"
   }
 }

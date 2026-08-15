@@ -217,13 +217,13 @@ class _HomePageState extends State<HomePage> {
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('回收站（30 天内可恢复）'),
+        title: Text(AppLocalizations.of(context)?.trash ?? '回收站（30 天内可恢复）'),
         content: ConstrainedBox(
           // L-02 响应式（专家审计 2026-08-15）：maxWidth 而非固定宽度——
           // 窄屏自适应（原 SizedBox 固定 380 在窄屏可能溢出）。
           constraints: const BoxConstraints(maxWidth: 380),
           child: trash.isEmpty
-              ? const Text('回收站为空')
+              ? Text(AppLocalizations.of(context)?.homeTrashEmpty ?? '回收站为空')
               : ListView.builder(
                   shrinkWrap: true,
                   itemCount: trash.length,
@@ -232,12 +232,16 @@ class _HomePageState extends State<HomePage> {
                     final time = item.$3.toLocal().toString().substring(0, 16);
                     return ListTile(
                       title: Text(item.$2),
-                      subtitle: Text('删除于 $time'),
+                      subtitle: Text(
+                        AppLocalizations.of(context)?.homeDeletedAt(time) ??
+                            '删除于 $time',
+                      ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            tooltip: '恢复',
+                            tooltip: AppLocalizations.of(context)?.homeRecover ??
+                                '恢复',
                             icon: const Icon(Icons.restore),
                             onPressed: () async {
                               final id =
@@ -248,7 +252,8 @@ class _HomePageState extends State<HomePage> {
                             },
                           ),
                           IconButton(
-                            tooltip: '永久删除',
+                            tooltip: AppLocalizations.of(context)?.homeDeleteForever ??
+                                '永久删除',
                             icon: const Icon(Icons.delete_forever),
                             onPressed: () async {
                               final ok = await _confirmDelete(
@@ -277,11 +282,11 @@ class _HomePageState extends State<HomePage> {
                 if (ctx.mounted) Navigator.of(ctx).pop();
                 _refresh();
               },
-              child: const Text('清空回收站'),
+              child: Text(AppLocalizations.of(context)?.homeEmptyTrash ?? '清空回收站'),
             ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('关闭'),
+            child: Text(AppLocalizations.of(context)?.close ?? '关闭'),
           ),
         ],
       ),
@@ -297,14 +302,14 @@ class _HomePageState extends State<HomePage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('取消'),
+            child: Text(AppLocalizations.of(context)?.homeCancel ?? '取消'),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(ctx).colorScheme.error,
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('删除'),
+            child: Text(AppLocalizations.of(context)?.delete ?? '删除'),
           ),
         ],
       ),
@@ -367,7 +372,7 @@ class _HomePageState extends State<HomePage> {
           title: Text(AppLocalizations.of(context)?.appTitle ?? '绘图笔记'),
           actions: [
             IconButton(
-              tooltip: '搜索全部内容',
+              tooltip: AppLocalizations.of(context)?.search ?? '搜索全部内容',
               icon: const Icon(Icons.search_rounded),
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(
@@ -383,7 +388,7 @@ class _HomePageState extends State<HomePage> {
             // M-06 回收站入口（专家审计 2026-08-15）：查看/恢复/永久删除
             // 已删除文档（UX Patterns 官方模式——专用回收站界面）。
             IconButton(
-              tooltip: '回收站（30 天内可恢复）',
+              tooltip: AppLocalizations.of(context)?.trash ?? '回收站（30 天内可恢复）',
               icon: const Icon(Icons.delete_outline),
               onPressed: _showTrashDialog,
             ),
@@ -398,7 +403,7 @@ class _HomePageState extends State<HomePage> {
                 onPressed: widget.themeController!.cycle,
               ),
             PopupMenuButton<_HomeMenuItem>(
-              tooltip: '更多操作',
+              tooltip: AppLocalizations.of(context)?.homeMore ?? '更多操作',
               icon: const Icon(Icons.more_horiz_rounded),
               onSelected: _onHomeMenuSelected,
               itemBuilder: (_) => const [

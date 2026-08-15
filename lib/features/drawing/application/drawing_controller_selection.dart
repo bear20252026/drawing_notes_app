@@ -142,22 +142,14 @@ extension DrawingControllerSelectionOps on DrawingController {
     if (!_selectionCenterDirty && _selectionCenterCache != null) {
       return _selectionCenterCache!;
     }
-    var minX = double.infinity;
-    var minY = double.infinity;
-    var maxX = -double.infinity;
-    var maxY = -double.infinity;
-    for (final index in _selection.selectedStrokeIndices) {
-      final stroke = currentLayer.strokes[index];
-      for (final point in stroke.points) {
-        minX = math.min(minX, point.x);
-        minY = math.min(minY, point.y);
-        maxX = math.max(maxX, point.x);
-        maxY = math.max(maxY, point.y);
-      }
-    }
-    final center = !minX.isFinite
-        ? _selection.center
-        : Offset((minX + maxX) / 2, (minY + maxY) / 2);
+    // Q-1 拆分（2026-08-16）：纯计算委托 SelectionGeometryService——
+    // controller 保留缓存与状态编排，几何计算解耦可独立单测。
+    final strokes = [
+      for (final index in _selection.selectedStrokeIndices)
+        currentLayer.strokes[index],
+    ];
+    final center = SelectionGeometryService.centerOfStrokes(strokes) ??
+        _selection.center;
     _selectionCenterCache = center;
     _selectionCenterDirty = false;
     return center;
