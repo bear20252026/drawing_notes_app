@@ -1,6 +1,6 @@
-import 'package:drawing_notes_app/engine/paged_note_rtf_exporter.dart';
-import 'package:drawing_notes_app/models/notebook.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/paged_note_rtf_exporter.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
 
 void main() {
   test('分页笔记转换为包含中文和格式的 Word 兼容 RTF', () {

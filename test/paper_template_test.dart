@@ -1,8 +1,8 @@
 import 'dart:ui' as ui;
 
-import 'package:drawing_notes_app/engine/drawing_controller.dart';
-import 'package:drawing_notes_app/models/document.dart';
-import 'package:drawing_notes_app/ui/canvas_painter.dart';
+import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
+import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/canvas_painter.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

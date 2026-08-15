@@ -3,8 +3,8 @@ import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:drawing_notes_app/engine/sync_path_cipher.dart';
-import 'package:drawing_notes_app/engine/sync_service.dart';
+import 'package:drawing_notes_app/features/drawing/infrastructure/sync_path_cipher.dart';
+import 'package:drawing_notes_app/features/drawing/infrastructure/sync_service.dart';
 
 void main() {
   const cipher = SyncPathCipher();

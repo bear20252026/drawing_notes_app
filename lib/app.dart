@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 
-import 'app_design.dart';
-import 'app_theme_controller.dart';
-import 'models/document.dart';
-import 'storage/storage_service.dart';
-import 'ui/pages/editor_page.dart';
-import 'ui/pages/home_page.dart';
+import 'package:drawing_notes_app/core/theme/app_design.dart';
+import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
+import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/core/storage/storage_service.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
+import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
 
 /// 应用根组件：主题 + 路由。
 ///

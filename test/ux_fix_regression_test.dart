@@ -1,6 +1,6 @@
-import 'package:drawing_notes_app/engine/drawing_controller.dart';
-import 'package:drawing_notes_app/models/document.dart';
-import 'package:drawing_notes_app/models/notebook.dart';
+import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
+import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// 用户体验缺陷修复回归测试（对应"画笔延迟"与"记笔记不跳转"两处修复）。

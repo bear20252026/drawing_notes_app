@@ -1,4 +1,4 @@
-import 'package:drawing_notes_app/engine/command_registry.dart';
+import 'package:drawing_notes_app/features/drawing/application/command_registry.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

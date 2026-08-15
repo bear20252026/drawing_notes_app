@@ -1,7 +1,7 @@
-import 'package:drawing_notes_app/engine/drawing_controller.dart';
-import 'package:drawing_notes_app/engine/shape_binding_geometry.dart';
-import 'package:drawing_notes_app/models/document.dart';
-import 'package:drawing_notes_app/models/shape_item.dart';
+import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
+import 'package:drawing_notes_app/features/drawing/infrastructure/shape_binding_geometry.dart';
+import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

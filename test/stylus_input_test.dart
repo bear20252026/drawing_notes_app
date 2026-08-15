@@ -1,4 +1,4 @@
-import 'package:drawing_notes_app/engine/stylus_input.dart';
+import 'package:drawing_notes_app/features/drawing/application/stylus_input.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 

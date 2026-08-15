@@ -1,5 +1,5 @@
-import 'package:drawing_notes_app/models/document.dart';
-import 'package:drawing_notes_app/models/notebook.dart';
+import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

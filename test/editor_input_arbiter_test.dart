@@ -1,4 +1,4 @@
-import 'package:drawing_notes_app/engine/editor_input_arbiter.dart';
+import 'package:drawing_notes_app/features/drawing/application/editor_input_arbiter.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 

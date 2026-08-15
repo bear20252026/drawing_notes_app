@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:drawing_notes_app/engine/document_commands.dart';
-import 'package:drawing_notes_app/engine/document_transaction.dart';
+import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
+import 'package:drawing_notes_app/features/drawing/application/document_transaction.dart';
 
 /// 测试用假命令：记录调用顺序，验证事务的 redo/undo 顺序与原子性。
 class _RecordingCommand extends DocCommand {

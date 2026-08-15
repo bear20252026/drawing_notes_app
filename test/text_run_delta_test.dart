@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:drawing_notes_app/engine/text_run_delta.dart';
-import 'package:drawing_notes_app/models/text_item.dart';
+import 'package:drawing_notes_app/features/drawing/application/text_run_delta.dart';
+import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
 
 void main() {
   group('TextRunDeltaCodec', () {

@@ -1,6 +1,6 @@
-import 'package:drawing_notes_app/engine/drawing_controller.dart';
-import 'package:drawing_notes_app/models/document.dart';
-import 'package:drawing_notes_app/models/stroke.dart';
+import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
+import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Phase 1 验收测试：最小画布（绘制、撤销、清空）。

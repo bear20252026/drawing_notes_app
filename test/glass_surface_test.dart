@@ -1,5 +1,5 @@
-import 'package:drawing_notes_app/ui/widgets/ambient_background.dart';
-import 'package:drawing_notes_app/ui/widgets/glass_surface.dart';
+import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

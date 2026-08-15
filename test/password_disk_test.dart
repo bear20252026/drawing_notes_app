@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:drawing_notes_app/engine/encryption_service.dart';
-import 'package:drawing_notes_app/storage/password_disk.dart';
+import 'package:drawing_notes_app/features/drawing/infrastructure/encryption_service.dart';
+import 'package:drawing_notes_app/core/storage/password_disk.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// 密码盘（U盘即钥匙）全闭环回归测试。

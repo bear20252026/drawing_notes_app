@@ -1,10 +1,10 @@
 import 'dart:ui';
 
-import 'package:drawing_notes_app/engine/drawing_controller.dart';
-import 'package:drawing_notes_app/engine/pdf_hybrid_exporter.dart';
-import 'package:drawing_notes_app/engine/stroke_renderer.dart';
-import 'package:drawing_notes_app/models/document.dart';
-import 'package:drawing_notes_app/models/stroke.dart';
+import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
+import 'package:drawing_notes_app/features/drawing/infrastructure/pdf_hybrid_exporter.dart';
+import 'package:drawing_notes_app/features/drawing/infrastructure/stroke_renderer.dart';
+import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Stroke _penStroke() => Stroke(

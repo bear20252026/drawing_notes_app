@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:drawing_notes_app/storage/pdf_import_service.dart';
+import 'package:drawing_notes_app/core/storage/pdf_import_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

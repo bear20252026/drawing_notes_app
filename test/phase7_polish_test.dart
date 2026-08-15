@@ -1,5 +1,5 @@
-import 'package:drawing_notes_app/engine/drawing_controller.dart';
-import 'package:drawing_notes_app/models/document.dart';
+import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
+import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Phase 7 验收测试：体验打磨（引擎层可测部分）。

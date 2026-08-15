@@ -1,10 +1,10 @@
 import 'dart:io';
 
-import 'package:drawing_notes_app/engine/encryption_service.dart';
-import 'package:drawing_notes_app/models/document.dart';
-import 'package:drawing_notes_app/models/notebook.dart';
-import 'package:drawing_notes_app/storage/notebook_storage.dart';
-import 'package:drawing_notes_app/storage/password_disk.dart';
+import 'package:drawing_notes_app/features/drawing/infrastructure/encryption_service.dart';
+import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
+import 'package:drawing_notes_app/core/storage/password_disk.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// 密码盘接入笔记本加密（keyfile 模式）集成测试。

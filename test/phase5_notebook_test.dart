@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:drawing_notes_app/models/document.dart';
-import 'package:drawing_notes_app/models/notebook.dart';
-import 'package:drawing_notes_app/storage/notebook_storage.dart';
+import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Phase 5 验收测试：笔记功能。

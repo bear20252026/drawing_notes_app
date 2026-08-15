@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:drawing_notes_app/storage/password_disk.dart';
-import 'package:drawing_notes_app/ui/pages/password_disk_page.dart';
+import 'package:drawing_notes_app/core/storage/password_disk.dart';
+import 'package:drawing_notes_app/features/notes/presentation/password_disk_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
