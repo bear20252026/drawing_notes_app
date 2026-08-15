@@ -556,8 +556,12 @@ extension _EditorPageEditing on _EditorPageState {
     }
     try {
       if (Platform.isWindows) {
-        // 双引号包裹：实测确认 cmd 引号内的 & 等元字符不被解析。
-        Process.start('cmd', ['/c', 'start', '', '"$safe"']);
+        // 链 F 调用点加固（军工审计 2026-08-15）：cmd /c start 会把 URL 的
+        // & | ^ 解释为命令分隔符（CVE-2026-32948/22168 同源模式），且 %VAR%
+        // 会被展开——改用 rundll32 url.dll,FileProtocolHandler 绕过 cmd.exe，
+        // URL 原样交给 OS 协议处理器（multica PR #1202 社区批准标准修复）。
+        // sanitizeHref 已拒绝 " 和 %（输入侧双保险）。
+        Process.start('rundll32', ['url.dll,FileProtocolHandler', safe]);
       } else {
         Process.start('xdg-open', [safe]);
       }
