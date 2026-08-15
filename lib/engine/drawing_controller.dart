@@ -764,7 +764,23 @@ class DrawingController extends ChangeNotifier {
   /// 因此提供等价的公开入口，行为完全一致（R5 拆分）。
   void restoreLayersSnapshot(List<Layer> snapshot) => _restoreLayers(snapshot);
 
-  void touchDocument() => _document.touch();
+  void touchDocument() {
+    _isDirty = true;
+    _document.touch();
+  }
+
+  /// 是否有未保存的修改（借鉴 Saber EditorHistory 的保存状态跟踪，
+  /// 见 docs/AUDIT_READ_5_PROJECTS_2026-08-15.md）。
+  ///
+  /// 任何内容变更（命令入栈/触摸文档）都会置脏；自动保存成功后调用
+  /// [markSaved] 清除。可用于标题栏未保存标记与退出前提示。
+  bool _isDirty = false;
+
+  /// 是否存在未保存的修改。
+  bool get isDirty => _isDirty;
+
+  /// 标记当前状态为"已保存"（自动保存成功后调用）。
+  void markSaved() => _isDirty = false;
 
   Future<void> afterStrokeUndoRedo(int layerIndex) =>
       _afterStrokeUndoRedo(layerIndex);

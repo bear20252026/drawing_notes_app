@@ -7,6 +7,7 @@ part of 'drawing_controller.dart';
 /// 历史/图层管理域（拆分自 drawing_controller.dart）。
 extension DrawingControllerHistoryOps on DrawingController {
   void _pushCommand(DocCommand command) {
+    _isDirty = true; // 任何命令入栈 = 文档有未保存修改（保存状态跟踪）。
     if (_historyPosition < _history.length) {
       _history.removeRange(_historyPosition, _history.length);
     }

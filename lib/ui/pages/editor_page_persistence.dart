@@ -36,6 +36,8 @@ extension _EditorPagePersistence on _EditorPageState {
           if (png != null) await storage.saveThumbnail(doc.id, png);
         }
       } while (_autosaveQueued);
+      // 保存成功：清除未保存标记（借鉴 Saber markLastChangeAsSaved）。
+      _controller.markSaved();
       completion.complete();
     } catch (e, stackTrace) {
       debugPrint('自动保存失败: $e\n$stackTrace');
