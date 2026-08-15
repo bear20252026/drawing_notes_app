@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 
@@ -223,6 +224,65 @@ class EncryptionService {
       throw FormatException('未知加密格式版本：v$version');
     }
   }
+
+  /// ---- H-06 修复（专家审计 2026-08-15）：AAD v4 上下文绑定 ----
+  ///
+  /// NIST SP 800-38D：AAD 绑定协议上下文（版本/用途/ID——"指示明文如何
+  /// 处理的字段"）——使"把 A 笔记的密文替换到 B 笔记"在认证时失败。
+  /// v4 格式：{mode:'payload', v:4, n, c, m}——AAD 不落盘（解密时按
+  /// notebookId 重构），密文无法跨笔记/跨用途交换。现有 v2/v3 流程保持
+  /// 只读兼容；迁移（保存流程切换 v4 + 全量重加密）需向量/迁移测试后实施。
+  Future<String> encryptNotebookPayload({
+    required String notebookId,
+    required String plaintext,
+    required List<int> key,
+  }) async {
+    final aes = AesGcm.with256bits();
+    final nonce = _randomBytes(12);
+    final aad = _payloadAad(notebookId);
+    final box = await aes.encrypt(
+      utf8.encode(plaintext),
+      secretKey: SecretKey(key),
+      nonce: nonce,
+      aad: aad,
+    );
+    return jsonEncode({
+      'mode': 'payload',
+      'v': 4,
+      'n': base64Encode(nonce),
+      'c': base64Encode(box.cipherText),
+      'm': box.mac.bytes.isNotEmpty ? base64Encode(box.mac.bytes) : '',
+    });
+  }
+
+  /// 解密 v4 载荷（AAD 校验：notebookId 不符即认证失败）。
+  Future<String> decryptNotebookPayload({
+    required String notebookId,
+    required String encryptedJson,
+    required List<int> key,
+  }) async {
+    _requireInputSize(encryptedJson);
+    final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
+    if (map['mode'] != 'payload' || map['v'] != 4) {
+      throw FormatException('不是 v4 载荷数据');
+    }
+    final nonce = base64Decode(_requireString(map, 'n'));
+    final cipher = base64Decode(_requireString(map, 'c'));
+    final macBytes = base64Decode(_requireString(map, 'm'));
+    _requireFixedLength('nonce', nonce, _nonceLength);
+    _requireFixedLength('MAC', macBytes, _macLength);
+    final clear = await AesGcm.with256bits().decrypt(
+      SecretBox(cipher, nonce: nonce, mac: Mac(macBytes)),
+      secretKey: SecretKey(key),
+      aad: _payloadAad(notebookId),
+    );
+    return utf8.decode(clear);
+  }
+
+  /// v4 AAD：绑定应用/笔记 ID/用途/版本（NIST SP 800-38D 上下文绑定）。
+  static Uint8List _payloadAad(String notebookId) => Uint8List.fromList(
+    utf8.encode('drawing-notes|notebook|$notebookId|payload|v4'),
+  );
 
   /// 生成 [n] 字节随机数（盐/nonce）。
   static List<int> _randomBytes(int n) {

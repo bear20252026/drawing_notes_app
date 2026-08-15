@@ -107,6 +107,9 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
   /// DocumentCodec 一致——'-' 无路径遍历风险）。
   static bool isValidId(String id) => RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(id);
 
+  /// H-03 部分落地（专家审计 2026-08-15）：图片源文件大小上限。
+  static const int _maxImageSourceBytes = 50 * 1024 * 1024; // 50MB
+
   Future<String> _pathFor(String id) async {
     // C-02 修复（专家审计 2026-08-15）：assert-only 校验在 release 失效——
     // 运行时强制校验（load/save/delete 均经此统一防护路径遍历）。
@@ -278,6 +281,12 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     final dir = await _ensureImagesDir();
     final src = File(sourcePath);
     if (!await src.exists()) throw FileSystemException('源图片不存在', sourcePath);
+    // H-03 部分落地（专家审计 2026-08-15）：源文件大小配额（防超大图片
+    // 资产入库；完整媒体加密——每笔记 DEK + 渲染解密——评估为数据保密
+    // 重构专项，涉及渲染管线跨域改造，见 Inqrypt/heritage 分层加密模式）。
+    if (await src.length() > _maxImageSourceBytes) {
+      throw FileSystemException('图片源文件过大（超过 50MB 限制）', sourcePath);
+    }
     // 扩展名白名单：只接受常见图片格式，防止任意文件以图片身份入库。
     final ext = sourcePath.contains('.')
         ? sourcePath.split('.').last.toLowerCase()
