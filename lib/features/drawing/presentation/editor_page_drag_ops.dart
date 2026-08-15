@@ -204,7 +204,7 @@ extension _EditorPageDragOps on _EditorPageState {
     final page = widget.page;
     if (page == null) return;
     // 屏幕位移 -> 画布位移（除以缩放、反向旋转）。
-    final canvasDelta = _screenDeltaToCanvas(screenDelta);
+    final canvasDelta = screenDeltaToCanvas(screenDelta, _controller.viewRotation, _controller.viewScale);
     // 动画尾迹（借鉴 Excalidraw animatedTrail）：记录最近拖动点。
     _trailPoints.add(canvasDelta);
     if (_trailPoints.length > 8) {
@@ -526,7 +526,7 @@ extension _EditorPageDragOps on _EditorPageState {
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanUpdate: (d) {
-              final delta = _screenDeltaToCanvas(d.delta);
+              final delta = screenDeltaToCanvas(d.delta, _controller.viewRotation, _controller.viewScale);
               _applyState(() {
                 // 按角位置调整 _cropRect 的对应边（限制在图片区域内）。
                 final img = _cropItem!;
@@ -615,15 +615,6 @@ extension _EditorPageDragOps on _EditorPageState {
       consider(s.id, s.position + Offset(s.width / 2, s.height / 2));
     }
     return best;
-  }
-
-  Offset _screenDeltaToCanvas(Offset screenDelta) {
-    final rot = -_controller.viewRotation;
-    final cosA = math.cos(rot);
-    final sinA = math.sin(rot);
-    final vx = screenDelta.dx * cosA - screenDelta.dy * sinA;
-    final vy = screenDelta.dx * sinA + screenDelta.dy * cosA;
-    return Offset(vx / _controller.viewScale, vy / _controller.viewScale);
   }
 
   // ---------------- 工具条 ----------------

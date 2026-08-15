@@ -421,7 +421,7 @@ extension _EditorPageOverlays on _EditorPageState {
                               shape: shape,
                               width: w,
                               height: h,
-                              screenToCanvasDelta: _screenDeltaToCanvas,
+                              screenToCanvasDelta: (d) => screenDeltaToCanvas(d, _controller.viewRotation, _controller.viewScale),
                               onResize: (pos, delta, isCorner) {
                                 _applyState(() {
                                   if (isCorner) {
@@ -824,7 +824,7 @@ extension _EditorPageOverlays on _EditorPageState {
                   onPanUpdate: (d) {
                     final anchor = _textResizeAnchor;
                     if (anchor == null) return;
-                    final delta = _screenDeltaToCanvas(d.delta);
+                    final delta = screenDeltaToCanvas(d.delta, _controller.viewRotation, _controller.viewScale);
                     _applyState(() {
                       final newWidth = (anchor.width + delta.dx)
                           .clamp(40, 2000)

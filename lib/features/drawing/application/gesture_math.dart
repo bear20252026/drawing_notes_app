@@ -104,3 +104,21 @@ Offset canvasToViewPointMatrix(vmath.Matrix4 m, Offset canvasPoint) =>
 /// 矩阵版视口逆变换：视图点 -> 画布点（[viewToCanvasPoint] 的等价实现）。
 Offset viewToCanvasPointMatrix(vmath.Matrix4 m, Offset viewPoint) =>
     transformPoint(m.clone()..invert(), viewPoint);
+
+/// 屏幕增量 → 画布增量（视口旋转/缩放逆变换，纯函数）。
+///
+/// 阶段二提取（2026-08-15）：原 drag_ops._screenDeltaToCanvas 依赖
+/// controller 状态，参数化后为顶层纯函数（Effective Dart：不绑定类
+/// 就放顶层），可单测验证数学正确性。
+Offset screenDeltaToCanvas(
+  Offset screenDelta,
+  double viewRotation,
+  double viewScale,
+) {
+  final rot = -viewRotation;
+  final cosA = cos(rot);
+  final sinA = sin(rot);
+  final vx = screenDelta.dx * cosA - screenDelta.dy * sinA;
+  final vy = screenDelta.dx * sinA + screenDelta.dy * cosA;
+  return Offset(vx / viewScale, vy / viewScale);
+}
