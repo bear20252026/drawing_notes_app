@@ -114,4 +114,34 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get noteRecoveryKeyTitle => '保存您的恢复密钥（非常重要！）';
+
+  @override
+  String get diskCopied => '我已抄写';
+
+  @override
+  String get diskPinProtection => '是否启用 PIN 保护？';
+
+  @override
+  String get diskNoPin => '不启用';
+
+  @override
+  String get diskYesPin => '启用';
+
+  @override
+  String get diskEnterPin => '输入密码盘 PIN';
+
+  @override
+  String get diskConfirm => '确定';
+
+  @override
+  String get searchTitle => '全文搜索';
+
+  @override
+  String get searchHint => '搜索文字块内容 / 标题…';
+
+  @override
+  String get searchEmptyHint => '输入关键词开始搜索';
+
+  @override
+  String get searchNoResults => '未找到匹配内容';
 }

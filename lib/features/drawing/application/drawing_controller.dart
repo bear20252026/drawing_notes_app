@@ -15,6 +15,7 @@ import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
 import 'package:drawing_notes_app/features/drawing/application/selection_geometry_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/color_sampling_service.dart';
+import 'package:drawing_notes_app/features/drawing/application/image_transform_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_transaction.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
 import 'package:drawing_notes_app/features/drawing/application/temporary_markers.dart';

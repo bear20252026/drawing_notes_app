@@ -120,14 +120,19 @@ extension DrawingControllerObjectOps on DrawingController {
       return;
     }
     _ensureDocumentImageTransformBefore();
-    final center = image.bounds.center;
-    final nextWidth = (image.width * factor).clamp(32.0, 8192.0);
-    final ratio = image.height / image.width;
+    // Q-1 拆分（2026-08-16）：缩放纯计算委托 ImageTransformService。
+    final result = ImageTransformService.clampedScale(
+      x: image.x,
+      y: image.y,
+      width: image.width,
+      height: image.height,
+      factor: factor,
+    );
     image
-      ..width = nextWidth
-      ..height = (nextWidth * ratio).clamp(24.0, 8192.0)
-      ..x = center.dx - nextWidth / 2
-      ..y = center.dy - image.height / 2;
+      ..x = result.x
+      ..y = result.y
+      ..width = result.width
+      ..height = result.height;
     _document.touch();
     tickFrame();
   }

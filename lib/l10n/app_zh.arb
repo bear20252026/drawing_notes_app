@@ -81,5 +81,15 @@
   "noteMemoryPasswordSub": "设置密码，打开时输入密码解密",
   "noteUsbKey": "U盘钥匙（密码盘）",
   "noteUsbKeySub": "U盘即钥匙：插入 U 盘解锁，拔盘即锁（零知识）",
-  "noteRecoveryKeyTitle": "保存您的恢复密钥（非常重要！）"
+  "noteRecoveryKeyTitle": "保存您的恢复密钥（非常重要！）",
+  "diskCopied": "我已抄写",
+  "diskPinProtection": "是否启用 PIN 保护？",
+  "diskNoPin": "不启用",
+  "diskYesPin": "启用",
+  "diskEnterPin": "输入密码盘 PIN",
+  "diskConfirm": "确定",
+  "searchTitle": "全文搜索",
+  "searchHint": "搜索文字块内容 / 标题…",
+  "searchEmptyHint": "输入关键词开始搜索",
+  "searchNoResults": "未找到匹配内容"
 }

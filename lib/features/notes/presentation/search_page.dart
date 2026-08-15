@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/features/drawing/application/search_service.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
@@ -90,7 +91,7 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('全文搜索'),
+        title: Text(AppLocalizations.of(context)?.searchTitle ?? '全文搜索'),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
           child: Padding(
@@ -100,7 +101,7 @@ class _SearchPageState extends State<SearchPage> {
               autofocus: true,
               onChanged: _onQueryChanged,
               decoration: InputDecoration(
-                hintText: '搜索文字块内容 / 标题…',
+                hintText: AppLocalizations.of(context)?.searchHint ?? '搜索文字块内容 / 标题…',
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -117,16 +118,16 @@ class _SearchPageState extends State<SearchPage> {
 
   Widget _buildBody() {
     if (_searching) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(child: CircularProgressIndicator());
     }
     if (_controller.text.trim().isEmpty) {
-      return const Center(
-        child: Text('输入关键词开始搜索', style: TextStyle(color: Colors.grey)),
+      return Center(
+        child: Text(AppLocalizations.of(context)?.searchEmptyHint ?? '输入关键词开始搜索', style: TextStyle(color: Colors.grey)),
       );
     }
     if (_results.isEmpty) {
-      return const Center(
-        child: Text('未找到匹配内容', style: TextStyle(color: Colors.grey)),
+      return Center(
+        child: Text(AppLocalizations.of(context)?.searchNoResults ?? '未找到匹配内容', style: TextStyle(color: Colors.grey)),
       );
     }
     return ListView.builder(

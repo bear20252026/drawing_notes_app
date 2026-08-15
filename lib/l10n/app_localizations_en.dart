@@ -116,4 +116,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noteRecoveryKeyTitle => 'Save your recovery key (very important!)';
+
+  @override
+  String get diskCopied => 'I have copied it';
+
+  @override
+  String get diskPinProtection => 'Enable PIN protection?';
+
+  @override
+  String get diskNoPin => 'No';
+
+  @override
+  String get diskYesPin => 'Enable';
+
+  @override
+  String get diskEnterPin => 'Enter password disk PIN';
+
+  @override
+  String get diskConfirm => 'OK';
+
+  @override
+  String get searchTitle => 'Full-text search';
+
+  @override
+  String get searchHint => 'Search text block content / title…';
+
+  @override
+  String get searchEmptyHint => 'Enter keywords to start searching';
+
+  @override
+  String get searchNoResults => 'No matching content found';
 }

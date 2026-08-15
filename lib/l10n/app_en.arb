@@ -144,5 +144,45 @@
   "noteRecoveryKeyTitle": "Save your recovery key (very important!)",
   "@noteRecoveryKeyTitle": {
     "description": "Recovery key dialog title"
+  },
+  "diskCopied": "I have copied it",
+  "@diskCopied": {
+    "description": "Recovery key acknowledge button"
+  },
+  "diskPinProtection": "Enable PIN protection?",
+  "@diskPinProtection": {
+    "description": "PIN protection choice title"
+  },
+  "diskNoPin": "No",
+  "@diskNoPin": {
+    "description": "Do not enable PIN"
+  },
+  "diskYesPin": "Enable",
+  "@diskYesPin": {
+    "description": "Enable PIN"
+  },
+  "diskEnterPin": "Enter password disk PIN",
+  "@diskEnterPin": {
+    "description": "PIN input dialog title"
+  },
+  "diskConfirm": "OK",
+  "@diskConfirm": {
+    "description": "Confirm button"
+  },
+  "searchTitle": "Full-text search",
+  "@searchTitle": {
+    "description": "Search page title"
+  },
+  "searchHint": "Search text block content / title…",
+  "@searchHint": {
+    "description": "Search input hint"
+  },
+  "searchEmptyHint": "Enter keywords to start searching",
+  "@searchEmptyHint": {
+    "description": "Search empty state hint"
+  },
+  "searchNoResults": "No matching content found",
+  "@searchNoResults": {
+    "description": "Search no results state"
   }
 }

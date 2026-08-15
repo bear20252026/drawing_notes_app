@@ -307,6 +307,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save your recovery key (very important!)'**
   String get noteRecoveryKeyTitle;
+
+  /// Recovery key acknowledge button
+  ///
+  /// In en, this message translates to:
+  /// **'I have copied it'**
+  String get diskCopied;
+
+  /// PIN protection choice title
+  ///
+  /// In en, this message translates to:
+  /// **'Enable PIN protection?'**
+  String get diskPinProtection;
+
+  /// Do not enable PIN
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get diskNoPin;
+
+  /// Enable PIN
+  ///
+  /// In en, this message translates to:
+  /// **'Enable'**
+  String get diskYesPin;
+
+  /// PIN input dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Enter password disk PIN'**
+  String get diskEnterPin;
+
+  /// Confirm button
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get diskConfirm;
+
+  /// Search page title
+  ///
+  /// In en, this message translates to:
+  /// **'Full-text search'**
+  String get searchTitle;
+
+  /// Search input hint
+  ///
+  /// In en, this message translates to:
+  /// **'Search text block content / title…'**
+  String get searchHint;
+
+  /// Search empty state hint
+  ///
+  /// In en, this message translates to:
+  /// **'Enter keywords to start searching'**
+  String get searchEmptyHint;
+
+  /// Search no results state
+  ///
+  /// In en, this message translates to:
+  /// **'No matching content found'**
+  String get searchNoResults;
 }
 
 class _AppLocalizationsDelegate

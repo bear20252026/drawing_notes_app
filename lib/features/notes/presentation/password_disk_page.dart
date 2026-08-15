@@ -5,6 +5,7 @@ import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/storage/password_disk.dart';
 import 'package:drawing_notes_app/core/storage/recovery_key_generator.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 /// 密码盘管理页（U盘即钥匙，设计见 docs/PASSWORD_DISK_DESIGN.md）。
 ///
@@ -115,7 +116,7 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('保存您的恢复密钥（非常重要！）'),
+        title: Text(AppLocalizations.of(context)?.noteRecoveryKeyTitle ?? '保存您的恢复密钥（非常重要！）'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,7 +141,7 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
         actions: [
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('我已抄写'),
+            child: Text(AppLocalizations.of(context)?.diskCopied ?? '我已抄写'),
           ),
         ],
       ),
@@ -152,18 +153,18 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
     return await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('是否启用 PIN 保护？'),
+            title: Text(AppLocalizations.of(context)?.diskPinProtection ?? '是否启用 PIN 保护？'),
             content: const Text(
               '启用后主密钥经 PIN 加密存储（OWASP KEK 模式），U 盘丢失也无法直接读出；解锁需输入 PIN。',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('不启用'),
+                child: Text(AppLocalizations.of(context)?.diskNoPin ?? '不启用'),
               ),
               FilledButton(
                 onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('启用'),
+                child: Text(AppLocalizations.of(context)?.diskYesPin ?? '启用'),
               ),
             ],
           ),
@@ -177,7 +178,7 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
     final pin = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('输入密码盘 PIN'),
+        title: Text(AppLocalizations.of(context)?.diskEnterPin ?? '输入密码盘 PIN'),
         content: TextField(
           controller: controller,
           obscureText: true,
@@ -191,11 +192,11 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('取消'),
+            child: Text(AppLocalizations.of(context)?.homeCancel ?? '取消'),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(controller.text),
-            child: const Text('确定'),
+            child: Text(AppLocalizations.of(context)?.diskConfirm ?? '确定'),
           ),
         ],
       ),
@@ -273,7 +274,7 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('取消'),
+            child: Text(AppLocalizations.of(context)?.homeCancel ?? '取消'),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(controller.text),
