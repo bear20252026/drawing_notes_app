@@ -58,4 +58,38 @@ void main() {
       reason: '反序列化耗时基线（1200 笔画）：${decodeWatch.elapsedMilliseconds}ms',
     );
   });
+
+  test('5 万点单笔（上限边界）：编解码耗时基线（L-05 扩展）', () {
+    final document = DrawingDocument(id: 'perf_points', title: '高密度点列');
+    final points = List.generate(
+      50000,
+      (j) => StrokePoint(j % 800.0, j % 600.0, 0.5),
+    );
+    document.layers.single.strokes.add(
+      Stroke(
+        points: points,
+        color: const Color(0xFF000000),
+        width: 2,
+        type: BrushType.pen,
+      ),
+    );
+    final codec = DocumentCodec();
+    final encodeWatch = Stopwatch()..start();
+    final bytes = codec.encode(document);
+    encodeWatch.stop();
+    final decodeWatch = Stopwatch()..start();
+    final decoded = codec.decode(bytes);
+    decodeWatch.stop();
+    expect(decoded.layers.single.strokes.single.points.length, 50000);
+    expect(
+      encodeWatch.elapsedMilliseconds,
+      lessThan(10000),
+      reason: '编码耗时基线（5 万点）：${encodeWatch.elapsedMilliseconds}ms',
+    );
+    expect(
+      decodeWatch.elapsedMilliseconds,
+      lessThan(15000),
+      reason: '解码耗时基线（5 万点）：${decodeWatch.elapsedMilliseconds}ms',
+    );
+  });
 }

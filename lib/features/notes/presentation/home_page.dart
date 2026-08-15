@@ -10,6 +10,7 @@ import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/core/storage/password_disk.dart';
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
+import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/notes/presentation/onboarding.dart';
@@ -206,6 +207,84 @@ class _HomePageState extends State<HomePage> {
 
   // ---------------- 通用 ----------------
 
+  /// M-06 回收站对话框（专家审计 2026-08-15）：列出已删除文档（id/删除
+  /// 时间）+ 恢复/永久删除/清空（UX Patterns 官方模式——Restore 主操作、
+  /// 永久删除分离——操作后刷新列表）。
+  Future<void> _showTrashDialog() async {
+    final trash = await _docStorage.listTrash();
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('回收站（30 天内可恢复）'),
+        content: SizedBox(
+          width: 380,
+          child: trash.isEmpty
+              ? const Text('回收站为空')
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: trash.length,
+                  itemBuilder: (context, i) {
+                    final item = trash[i];
+                    final time = item.$3.toLocal().toString().substring(0, 16);
+                    return ListTile(
+                      title: Text(item.$2),
+                      subtitle: Text('删除于 $time'),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: '恢复',
+                            icon: const Icon(Icons.restore),
+                            onPressed: () async {
+                              final id =
+                                  await _docStorage.restoreTrash(item.$1);
+                              if (ctx.mounted) Navigator.of(ctx).pop();
+                              _refresh();
+                              if (id != null) _showSnack('已恢复「$id」');
+                            },
+                          ),
+                          IconButton(
+                            tooltip: '永久删除',
+                            icon: const Icon(Icons.delete_forever),
+                            onPressed: () async {
+                              final ok = await _confirmDelete(
+                                '永久删除',
+                                '确定永久删除「${item.$2}」吗？此操作不可恢复。',
+                              );
+                              if (ok == true) {
+                                await _docStorage
+                                    .deleteTrashPermanently(item.$1);
+                                if (ctx.mounted) Navigator.of(ctx).pop();
+                                _refresh();
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          if (trash.isNotEmpty)
+            TextButton(
+              onPressed: () async {
+                await _docStorage.purgeTrash();
+                if (ctx.mounted) Navigator.of(ctx).pop();
+                _refresh();
+              },
+              child: const Text('清空回收站'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<bool?> _confirmDelete(String title, String content) {
     return showDialog<bool>(
       context: context,
@@ -292,6 +371,13 @@ class _HomePageState extends State<HomePage> {
                   builder: (_) => SearchPage(searchService: SearchService()),
                 ),
               ),
+            ),
+            // M-06 回收站入口（专家审计 2026-08-15）：查看/恢复/永久删除
+            // 已删除文档（UX Patterns 官方模式——专用回收站界面）。
+            IconButton(
+              tooltip: '回收站（30 天内可恢复）',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _showTrashDialog,
             ),
             if (widget.themeController != null)
               IconButton(
@@ -648,6 +734,11 @@ class _HomePageState extends State<HomePage> {
           }
           notebook = fresh;
           await _upgradeLegacyPasswordEncryption(fresh, password);
+          // H-03 密码模式媒体加密（方案 B）：解锁后全局盐派生注入
+          // （媒体解密 key 与加密时一致）。
+          final mediaSalt = await _nbStorage.ensureMediaSalt();
+          await MediaCryptoService.instance
+              .setSessionPassword(password, mediaSalt);
         } catch (_) {
           _showSnack('密码错误或数据已损坏');
           return;

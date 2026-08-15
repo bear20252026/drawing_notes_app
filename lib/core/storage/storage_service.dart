@@ -452,6 +452,20 @@ class StorageService implements DocumentRepository {
     return purged;
   }
 
+  /// 永久删除单个回收站项（M-06 UI：Delete forever 与 Restore 分离——
+  /// UX Patterns 官方模式）。返回是否删除成功。
+  Future<bool> deleteTrashPermanently(String trashName) async {
+    final trashDir = await _ensureTrashDir();
+    // 防路径遍历：trashName 仅允许 `id_时间戳.json` 形态。
+    if (!RegExp(r'^[A-Za-z0-9_-]+_\d+\.json$').hasMatch(trashName)) {
+      return false;
+    }
+    final file = File('${trashDir.path}${Platform.pathSeparator}$trashName');
+    if (!await file.exists()) return false;
+    await file.delete();
+    return true;
+  }
+
   /// 返回规范化后的受管离线图片路径；外部路径、嵌套路径和非法路径返回 null。
   ///
   /// [storeImage] 只向 `document_images/` 顶层写入文件。严格的父目录相等检查

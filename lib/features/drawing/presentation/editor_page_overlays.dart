@@ -893,6 +893,8 @@ extension _EditorPageOverlays on _EditorPageState {
                   ? Image(
                       image: EncryptedFileImage(File(item.filePath)),
                       fit: BoxFit.contain,
+                      // L-03 语义（专家审计 2026-08-15）：图片可读名。
+                      semanticLabel: '笔记图片',
                     )
                   : const ColoredBox(color: Colors.grey),
             ),

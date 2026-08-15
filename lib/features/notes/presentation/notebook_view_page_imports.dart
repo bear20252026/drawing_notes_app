@@ -206,6 +206,10 @@ extension _NotebookPageImports on _NotebookViewPageState {
       // 记录会话密码：设置后本页内编辑可重加密保存（修复"无法保存"问题）。
       _sessionPassword = password;
       _sessionMasterKey = null;
+      // H-03 密码模式媒体加密（方案 B）：全局盐派生注入（storeImage 加密
+      // 写入 + EncryptedFileImage 渲染解密用——跨会话同盐重派生 key 一致）。
+      final mediaSalt = await widget.storage.ensureMediaSalt();
+      await MediaCryptoService.instance.setSessionPassword(password, mediaSalt);
       if (mounted) {
         _applyState(() {});
         ScaffoldMessenger.of(

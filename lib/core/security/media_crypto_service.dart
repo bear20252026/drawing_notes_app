@@ -20,6 +20,28 @@ class MediaCryptoService {
   /// 注入会话密钥（解锁后调用；密钥仅内存——不落盘）。
   void setSessionKey(List<int> key) => _sessionKey = List.of(key);
 
+  /// 密码模式注入（H-03 方案 B——HelloPrivacy salt.dat 模式）：PBKDF2
+  /// 派生 key 后注入（与 keyfile setSessionKey 统一——服务不感知模式）。
+  /// [salt] 为全局持久盐（明文无害——盐无需保密）；跨会话用同一全局
+  /// 盐重派生（解密媒体 key 一致）。
+  Future<void> setSessionPassword(String password, List<int> salt) async {
+    final key = await Pbkdf2(
+      macAlgorithm: Hmac.sha256(),
+      iterations: 600000,
+      bits: 256,
+    ).deriveKeyFromPassword(
+      password: password,
+      nonce: salt,
+    );
+    _sessionKey = List.of(await key.extractBytes());
+  }
+
+  /// 生成 16 字节全局盐（密码模式媒体加密派生用——明文无害）。
+  static List<int> generateSalt() {
+    final rng = Random.secure();
+    return List<int>.generate(16, (_) => rng.nextInt(256));
+  }
+
   /// 清除会话密钥（退出/锁定——fillRange 主动擦除，D-2 模式）。
   void clearSessionKey() {
     final key = _sessionKey;

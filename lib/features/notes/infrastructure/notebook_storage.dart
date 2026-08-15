@@ -345,6 +345,20 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     return migrated;
   }
 
+  /// 全局媒体加密盐（H-03 方案 B 2026-08-15）：密码模式媒体加密的派生
+  /// 盐——明文持久（盐无需保密），跨会话一致（解密媒体重派生同 key）。
+  Future<List<int>> ensureMediaSalt() async {
+    final base = await _baseDir();
+    final file = File('${base.path}${Platform.pathSeparator}media_crypto_salt');
+    if (await file.exists()) {
+      final bytes = await file.readAsBytes();
+      if (bytes.length >= 16) return bytes.take(16).toList();
+    }
+    final salt = MediaCryptoService.generateSalt();
+    await file.writeAsBytes(salt, flush: true);
+    return salt;
+  }
+
   /// 启用密码保护并保存：把页面内容 AES-GCM 加密为载荷，明文不落盘。
   Future<String> encryptAndSave(Notebook notebook, String password) async {
     final payloadJson = jsonEncode({

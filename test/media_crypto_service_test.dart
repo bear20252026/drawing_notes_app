@@ -52,6 +52,25 @@ void main() {
       throwsStateError,
     );
   });
+
+  test('密码模式：同盐往返 + 不同盐失败（方案 B）', () async {
+    final salt = MediaCryptoService.generateSalt();
+    await MediaCryptoService.instance.setSessionPassword('secret123', salt);
+    final enc = await MediaCryptoService.instance
+        .encryptBytes(Uint8List.fromList(utf8Encode('数据')));
+    // 同盐重派生（跨会话同全局盐）可解密。
+    await MediaCryptoService.instance.setSessionPassword('secret123', salt);
+    expect(await MediaCryptoService.instance.decryptBytes(enc), isNotEmpty);
+    // 不同盐派生——key 不同——解密认证失败。
+    await MediaCryptoService.instance.setSessionPassword(
+      'secret123',
+      MediaCryptoService.generateSalt(),
+    );
+    expect(
+      () => MediaCryptoService.instance.decryptBytes(enc),
+      throwsA(isA<SecretBoxAuthenticationError>()),
+    );
+  });
 }
 
 Uint8List utf8Encode(String s) => Uint8List.fromList(
