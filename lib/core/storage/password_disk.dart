@@ -24,6 +24,12 @@ abstract class PasswordDisk {
 
   /// 校验 [dir] 下的密码盘文件是否有效（Magic/版本/长度）。
   Future<bool> validateKeyFile(String dir);
+
+  /// 创建带 PIN 保护的密码盘（v2：主密钥经 PIN 派生 KEK 包裹，防物理提取）。
+  Future<bool> createKeyFileWithPin(String dir, {required String pin});
+
+  /// 读取 PIN 保护密码盘的主密钥（v2 格式；PIN 错误/损坏返回 null）。
+  Future<List<int>?> readKeyWithPin(String dir, {required String pin});
 }
 
 /// key.frogkey 文件格式（37 字节定长）：
@@ -131,6 +137,30 @@ class RealPasswordDisk implements PasswordDisk {
     final key = await readKey(dir);
     return key != null && key.length == PasswordDiskFile.keyLength;
   }
+
+  @override
+  Future<bool> createKeyFileWithPin(String dir, {required String pin}) async {
+    try {
+      final key = PasswordDiskFile.generateKey();
+      final file = File('$dir${Platform.pathSeparator}key.frogkey');
+      final encoded = await PasswordDiskFile.encodeWithPin(key: key, pin: pin);
+      await file.writeAsBytes(encoded, flush: true);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Future<List<int>?> readKeyWithPin(String dir, {required String pin}) async {
+    final file = File('$dir${Platform.pathSeparator}key.frogkey');
+    if (!await file.exists()) return null;
+    try {
+      return await PasswordDiskFile.decodeWithPin(await file.readAsBytes(), pin);
+    } catch (_) {
+      return null;
+    }
+  }
 }
 
 /// 模拟密码盘：固定测试目录（开发/测试环境，kDebugMode 注入）。
@@ -176,6 +206,30 @@ class MockPasswordDisk implements PasswordDisk {
   Future<bool> validateKeyFile(String dir) async {
     final key = await readKey(dir);
     return key != null && key.length == PasswordDiskFile.keyLength;
+  }
+
+  @override
+  Future<bool> createKeyFileWithPin(String dir, {required String pin}) async {
+    try {
+      final key = PasswordDiskFile.generateKey();
+      final file = File('$dir${Platform.pathSeparator}key.frogkey');
+      final encoded = await PasswordDiskFile.encodeWithPin(key: key, pin: pin);
+      await file.writeAsBytes(encoded, flush: true);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Future<List<int>?> readKeyWithPin(String dir, {required String pin}) async {
+    final file = File('$dir${Platform.pathSeparator}key.frogkey');
+    if (!await file.exists()) return null;
+    try {
+      return await PasswordDiskFile.decodeWithPin(await file.readAsBytes(), pin);
+    } catch (_) {
+      return null;
+    }
   }
 }
 

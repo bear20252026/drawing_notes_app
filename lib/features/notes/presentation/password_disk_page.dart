@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/storage/password_disk.dart';
 import 'package:drawing_notes_app/core/storage/recovery_key_generator.dart';
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
 
 /// 密码盘管理页（U盘即钥匙，设计见 docs/PASSWORD_DISK_DESIGN.md）。
 ///
@@ -67,14 +68,24 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
   Future<void> _createKeyFile() async {
     final dir = await _disk.pickDirectory();
     if (dir == null) return;
-    final ok = await _disk.createKeyFile(dir);
+    // D-5 UI 集成（2026-08-15）：可选 PIN 保护——主密钥经 PIN 派生
+    // KEK 包裹（OWASP KEK 模式），U 盘丢失也无法直接读出。
+    final usePin = await _askPinProtection();
+    if (!mounted) return;
+    final String? pin = usePin ? await _promptPin() : null;
+    if (usePin && (pin == null || pin.isEmpty)) return;
+    final ok = usePin
+        ? await _disk.createKeyFileWithPin(dir, pin: pin!)
+        : await _disk.createKeyFile(dir);
     if (!mounted) return;
     if (!ok) {
       _snack('创建密码盘失败');
       return;
     }
     // 读取刚创建的密钥用于演示，并生成恢复信封。
-    final key = await _disk.readKey(dir);
+    final key = usePin
+        ? await _disk.readKeyWithPin(dir, pin: pin!)
+        : await _disk.readKey(dir);
     final recovery = generateRecoveryKey();
     final envelope = key != null
         ? await _encryption.wrapMasterKey(key, recovery)
@@ -86,6 +97,7 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
       _envelope = envelope;
     });
     await _showRecoveryDialog(recovery);
+    AuditLogger.log('password_disk.create_key_file');
     _snack('密码盘已创建');
   }
 
@@ -126,6 +138,63 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
     );
   }
 
+  /// 询问是否启用 PIN 保护（D-5 UI 集成 2026-08-15）。
+  Future<bool> _askPinProtection() async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('是否启用 PIN 保护？'),
+            content: const Text(
+              '启用后主密钥经 PIN 加密存储（OWASP KEK 模式），U 盘丢失也无法直接读出；解锁需输入 PIN。',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('不启用'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('启用'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  /// 输入 PIN 保护密码盘的 PIN。
+  Future<String?> _promptPin() async {
+    final controller = TextEditingController();
+    final pin = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('输入密码盘 PIN'),
+        content: TextField(
+          controller: controller,
+          obscureText: true,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: '请输入 PIN',
+            border: OutlineInputBorder(),
+          ),
+          onSubmitted: (v) => Navigator.of(ctx).pop(v),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(controller.text),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return pin;
+  }
+
   Future<void> _unlock() async {
     // 军工级增强：锁定期间拒绝解锁尝试（防暴力破解）。
     if (_isLocked) {
@@ -135,20 +204,30 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
     }
     final dir = await _disk.pickDirectory();
     if (dir == null) return;
-    final key = await _disk.readKey(dir);
+    var key = await _disk.readKey(dir);
+    // D-5 UI 集成：v2 PIN 保护格式 readKey 返回 null——提示输入 PIN。
+    if (key == null && mounted) {
+      final pin = await _promptPin();
+      if (pin != null && pin.isNotEmpty) {
+        key = await _disk.readKeyWithPin(dir, pin: pin);
+      }
+    }
     if (!mounted) return;
-    if (key == null) {
+    final resolved = key;
+    if (resolved == null) {
+      AuditLogger.log('password_disk.unlock', success: false);
       // 军工级增强：失败计数 + 阈值锁定。
       _registerFailure();
       return;
     }
     setState(() {
-      _masterKey = key;
-      _keyFingerprint = _fingerprint(key);
+      _masterKey = resolved;
+      _keyFingerprint = _fingerprint(resolved);
       _failCount = 0; // 解锁成功清零
       _lockedUntil = null;
     });
-    _snack('密码盘已解锁，密钥指纹 ${_fingerprint(key)}');
+    AuditLogger.log('password_disk.unlock');
+    _snack('密码盘已解锁，密钥指纹 ${_fingerprint(resolved)}');
   }
 
   /// 军工级增强：记录一次失败，达到阈值触发临时锁定。

@@ -247,6 +247,26 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  /// 旧格式密码笔记本自动升级（hsh verify_and_upgrade 模式，
+  /// D-1 完整修复 2026-08-15）：v≤2（PBKDF2 10 万次）解锁成功后自动用
+  /// 当前参数（encrypt 现标 v=3/60 万次）重加密保存——零停机升级弱加密，
+  /// 免用户手动操作。keyfile 模式需恢复密钥（用户抄写件）无法自动重加密，
+  /// 保持 [_maybeWarnLegacyEncryption] 提示。
+  Future<void> _upgradeLegacyPasswordEncryption(
+    Notebook nb,
+    String password,
+  ) async {
+    final payload = nb.encryptedPayload;
+    if (payload == null) return;
+    if (EncryptionService.formatVersionOf(payload) > 2) return;
+    try {
+      await _nbStorage.encryptAndSave(nb, password);
+      _showSnack('已自动升级加密至最新标准（60 万次迭代）');
+    } catch (_) {
+      _showSnack('旧版加密格式：建议手动重新保存升级');
+    }
+  }
+
   void _onHomeMenuSelected(_HomeMenuItem item) {
     switch (item) {
       case _HomeMenuItem.passwordDisk:
@@ -627,7 +647,7 @@ class _HomePageState extends State<HomePage> {
             return;
           }
           notebook = fresh;
-          _maybeWarnLegacyEncryption(fresh);
+          await _upgradeLegacyPasswordEncryption(fresh, password);
         } catch (_) {
           _showSnack('密码错误或数据已损坏');
           return;
