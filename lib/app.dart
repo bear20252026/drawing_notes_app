@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 
 import 'package:drawing_notes_app/core/theme/app_design.dart';
+import 'package:drawing_notes_app/core/di/providers.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
@@ -88,14 +90,16 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: _themeController,
-      builder: (context, _) => MaterialApp(
-        navigatorKey: _navigatorKey,
-        title: '绘图笔记',
-        debugShowCheckedModeBanner: false,
-        themeMode: _themeController.mode,
-        theme: AppDesign.lightTheme(),
-        darkTheme: AppDesign.darkTheme(),
-        home: HomePage(themeController: _themeController),
+      builder: (context, _) => Consumer(
+        builder: (context, ref, _) => MaterialApp(
+          navigatorKey: _navigatorKey,
+          title: '绘图笔记',
+          debugShowCheckedModeBanner: false,
+          themeMode: _themeController.mode,
+          theme: ref.watch(themeProvider),
+          darkTheme: AppDesign.darkTheme(),
+          home: HomePage(themeController: _themeController),
+        ),
       ),
     );
   }

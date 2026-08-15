@@ -37,11 +37,12 @@ fi
 drawing_to_notes=$(grep -rln "features/notes" lib/features/drawing/ 2>/dev/null || true)
 notes_to_drawing=$(grep -rln "features/drawing" lib/features/notes/ 2>/dev/null || true)
 
-# 白名单（业务真实依赖，文档化于 docs/ARCHITECTURE_ASSESSMENT_2026-08-15.md 观察项）
+# 白名单（业务真实依赖，文档化于 docs/ARCHITECTURE_ANALYSIS_2026-08-15.md 观察项 B）
 # 允许单向：notes → drawing（domain 实体共享，符合"domain 是内层"原则）
-# drawing → notes 属横向依赖，白名单记录待治理项
+# drawing → notes 属横向依赖；S4b 接口化推进中——已落地 core/notes_accessor.dart
+# 契约骨架，完整迁移（editor_exporter/search_service/editor_page 注入化）渐进进行。
 if [ -n "$drawing_to_notes" ]; then
-  echo "⚠ drawing → notes 横向依赖（已知待治理项，非阻断，见报告观察项）:"
+  echo "⚠ drawing → notes 横向依赖（S4b 接口化推进中，非阻断，见 core/notes_accessor.dart）:"
   echo "$drawing_to_notes" | sed 's/^/    /'
 else
   echo "✓ drawing 无 notes 横向依赖"
