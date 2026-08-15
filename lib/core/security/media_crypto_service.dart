@@ -73,4 +73,27 @@ class MediaCryptoService {
   static final Uint8List _mediaAad = Uint8List.fromList(
     utf8.encode('drawing-notes|media|v1'),
   );
+
+  /// 媒体密文文件头魔数（H-03 双端接入 2026-08-15）：AES 密文与随机噪声
+  /// 不可区分（无法用图片魔数检测）——用应用层文件头标记密文。
+  static const List<int> _fileMagic = [0x44, 0x41, 0x4E]; // 'DAN'
+  static const int _fileVersion = 1;
+
+  /// 加密并封装为文件格式：[DAN, 版本, ...密文载荷]。
+  Future<Uint8List> encryptFile(Uint8List plain) async {
+    final payload = await encryptBytes(plain);
+    return Uint8List.fromList([..._fileMagic, _fileVersion, ...payload]);
+  }
+
+  /// 读取媒体文件：DAN 文件头 → 解密；否则原样返回（明文兼容——
+  /// 旧数据/未加密笔记本）。
+  Future<Uint8List> readMediaFile(Uint8List data) async {
+    if (data.length >= 4 &&
+        data[0] == _fileMagic[0] &&
+        data[1] == _fileMagic[1] &&
+        data[2] == _fileMagic[2]) {
+      return decryptBytes(Uint8List.fromList(data.sublist(4)));
+    }
+    return data;
+  }
 }

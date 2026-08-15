@@ -14,6 +14,7 @@ import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/core/storage/password_disk.dart';
+import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/storage/pdf_import_service.dart';
 import 'package:drawing_notes_app/core/storage/recovery_key_generator.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
@@ -114,6 +115,8 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
       _sessionMasterKey = null;
     }
     _sessionPassword = null;
+    // H-03 密钥清理时机：页面退出清除媒体加密会话密钥（D-2 内存清理）。
+    MediaCryptoService.instance.clearSessionKey();
     _lifecycleListener?.dispose();
     super.dispose();
   }

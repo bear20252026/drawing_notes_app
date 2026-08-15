@@ -890,7 +890,10 @@ extension _EditorPageOverlays on _EditorPageState {
                     )
                   : null,
               child: item.filePath.isNotEmpty
-                  ? Image.file(File(item.filePath), fit: BoxFit.contain)
+                  ? Image(
+                      image: EncryptedFileImage(File(item.filePath)),
+                      fit: BoxFit.contain,
+                    )
                   : const ColoredBox(color: Colors.grey),
             ),
             // 裁剪框 4 角手柄（对齐 Excalidraw 图片裁剪）：拖拽调整 _cropRect。

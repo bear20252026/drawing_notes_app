@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
+import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/notes_accessor.dart';
@@ -308,7 +309,14 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     final target = File(
       '${dir.path}${Platform.pathSeparator}${pageId}_${DateTime.now().microsecondsSinceEpoch}.$safeExt',
     );
-    await src.copy(target.path);
+    // H-03 双端接入（专家审计 2026-08-15）：会话密钥已注入（加密笔记本
+    // 解锁场景）→ 加密副本（DAN 文件头标记）；否则明文写入（兼容——
+    // 未加密笔记本/未解锁）。
+    final bytes = await src.readAsBytes();
+    final stored = MediaCryptoService.instance.isActive
+        ? await MediaCryptoService.instance.encryptFile(bytes)
+        : bytes;
+    await target.writeAsBytes(stored, flush: true);
     return target.path;
   }
 

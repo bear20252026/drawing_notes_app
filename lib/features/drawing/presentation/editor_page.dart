@@ -36,6 +36,7 @@ import 'package:drawing_notes_app/core/notes_accessor.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/canvas_painter.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/encrypted_file_image.dart';
 import 'package:drawing_notes_app/shared/widgets/color_picker_dialog.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_components.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_context_bar.dart';

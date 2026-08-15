@@ -250,6 +250,10 @@ extension _NotebookPageImports on _NotebookViewPageState {
       );
       // 会话主密钥：本页内编辑可重加密保存。
       _sessionMasterKey = masterKey;
+      // H-03 密钥注入时机（专家审计 2026-08-15）：解锁成功注入媒体加密
+      // 服务（storeImage 加密写入 + EncryptedFileImage 渲染解密用——
+      // 服务层持有、不散传）。
+      MediaCryptoService.instance.setSessionKey(masterKey);
       _sessionPassword = null;
       if (mounted) {
         _applyState(() {});
