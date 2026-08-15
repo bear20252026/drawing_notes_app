@@ -15,6 +15,7 @@ import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_transaction.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
+import 'package:drawing_notes_app/features/drawing/application/temporary_markers.dart';
 import 'package:drawing_notes_app/core/rendering/ink_layer_painter.dart';
 import 'package:drawing_notes_app/core/rendering/layer_compositor.dart';
 import 'package:drawing_notes_app/core/rendering/stroke_geometry_cache.dart';
@@ -22,8 +23,6 @@ import 'package:drawing_notes_app/core/rendering/shape_recognizer.dart';
 import 'package:drawing_notes_app/core/rendering/shape_binding_geometry.dart';
 import 'package:drawing_notes_app/core/rendering/shape_renderer.dart';
 import 'package:drawing_notes_app/core/rendering/stroke_renderer.dart';
-
-part 'drawing_controller_temporary.dart';
 
 /// 绘图引擎控制器：UI 层与数据模型之间的唯一桥梁。
 ///
@@ -387,12 +386,8 @@ class DrawingController extends ChangeNotifier {
     notifyListeners();
   }
 
-  static const Duration temporaryMarkerLifetime = Duration(seconds: 4);
-  static const Duration laserHoldDuration = Duration(milliseconds: 700);
-  static const Duration laserSweepDuration = Duration(milliseconds: 1800);
-  static const Duration laserFinalFadeDuration = Duration(milliseconds: 260);
-  final List<_TemporaryInk> _temporaryInks = <_TemporaryInk>[];
-  final List<_TemporaryLaserInk> _temporaryLasers = <_TemporaryLaserInk>[];
+  final List<TemporaryInk> _temporaryInks = <TemporaryInk>[];
+  final List<TemporaryLaserInk> _temporaryLasers = <TemporaryLaserInk>[];
   Timer? _temporaryInkTicker;
 
   /// 尚在淡出期的临时高亮笔，供画布在矢量图层之上直接绘制。
@@ -725,12 +720,12 @@ class DrawingController extends ChangeNotifier {
   }
 
   void _addTemporaryMarker(Stroke stroke) {
-    _temporaryInks.add(_TemporaryInk(stroke, DateTime.now()));
+    _temporaryInks.add(TemporaryInk(stroke, DateTime.now()));
     _ensureTemporaryInkTicker();
   }
 
   void _addTemporaryLaser(Stroke stroke, DateTime startedAt) {
-    _temporaryLasers.add(_TemporaryLaserInk(stroke, startedAt));
+    _temporaryLasers.add(TemporaryLaserInk(stroke, startedAt));
     _ensureTemporaryInkTicker();
   }
 
