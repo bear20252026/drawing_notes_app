@@ -71,6 +71,31 @@ void main() {
       throwsA(isA<SecretBoxAuthenticationError>()),
     );
   });
+
+  test('每笔记 K_note：AAD 绑定笔记 ID——跨笔记密钥不能互解', () async {
+    MediaCryptoService.instance.setNotebookKey('noteA', key);
+    final enc = await MediaCryptoService.instance
+        .encryptBytes(Uint8List.fromList(utf8Encode('笔记A媒体')));
+    // 切换到 noteB（不同 K_note）——AAD 不同——解密认证失败。
+    MediaCryptoService.instance.setNotebookKey(
+      'noteB',
+      List<int>.generate(32, (i) => i + 1),
+    );
+    expect(
+      () => MediaCryptoService.instance.decryptBytes(enc),
+      throwsA(isA<SecretBoxAuthenticationError>()),
+    );
+    // 同一笔记 K_note 可解。
+    MediaCryptoService.instance.setNotebookKey('noteA', key);
+    final dec = await MediaCryptoService.instance.decryptBytes(enc);
+    expect(dec, Uint8List.fromList(utf8Encode('笔记A媒体')));
+  });
+
+  test('每笔记 K_note：clearNotebookKey 清除后不可用', () async {
+    MediaCryptoService.instance.setNotebookKey('noteA', key);
+    MediaCryptoService.instance.clearNotebookKey();
+    expect(MediaCryptoService.instance.isActive, isFalse);
+  });
 }
 
 Uint8List utf8Encode(String s) => Uint8List.fromList(

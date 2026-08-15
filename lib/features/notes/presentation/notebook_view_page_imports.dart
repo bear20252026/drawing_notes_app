@@ -268,7 +268,9 @@ extension _NotebookPageImports on _NotebookViewPageState {
       // H-03 密钥注入时机（专家审计 2026-08-15）：解锁成功注入媒体加密
       // 服务（storeImage 加密写入 + EncryptedFileImage 渲染解密用——
       // 服务层持有、不散传）。
-      MediaCryptoService.instance.setSessionKey(masterKey);
+      // K_note 每笔记密钥（专家审计最优先③——2026-08-16）：媒体加解密
+      // 绑定当前笔记本 ID（AAD 'media|notebookId'——防跨笔记密文交换）。
+      MediaCryptoService.instance.setNotebookKey(widget.notebook.id, masterKey);
       // H-03 旧明文迁移（专家审计 2026-08-15）：解锁后批量重加密旧明文
       // 媒体（payload-plugins 批量加密器——幂等，异步不阻塞解锁流程）。
       unawaited(widget.storage.migrateLegacyMedia());

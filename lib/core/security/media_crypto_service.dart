@@ -16,9 +16,23 @@ class MediaCryptoService {
   static final MediaCryptoService instance = MediaCryptoService._();
 
   List<int>? _sessionKey;
+  String? _notebookId;
 
-  /// 注入会话密钥（解锁后调用；密钥仅内存——不落盘）。
+  /// 注入全局媒体会话密钥（解锁时由外部派生/解包后传入——兼容旧路径）。
   void setSessionKey(List<int> key) => _sessionKey = List.of(key);
+
+  /// 注入每笔记数据密钥 K_note（专家审计最优先行动③——Knovya 每笔记
+  /// DEK 隔离模式 2026-08-16）：媒体加解密使用该笔记的 K_note，AAD 绑定
+  /// 笔记本 ID（note_id——防跨笔记密文交换；一笔记密钥泄露不影响其他
+  /// 笔记）。密钥由调用方从笔记本加密载荷解包/派生后传入（K_user 包裹
+  /// K_note——信封加密——SiYuan KEK 包络模式）。
+  void setNotebookKey(String notebookId, List<int> noteKey) {
+    _notebookId = notebookId;
+    _sessionKey = List.of(noteKey);
+  }
+
+  /// 清除每笔记密钥（锁定时——D-2 内存清零语义）。
+  void clearNotebookKey() => clearSessionKey();
 
   /// 密码模式注入（H-03 方案 B——HelloPrivacy salt.dat 模式）：PBKDF2
   /// 派生 key 后注入（与 keyfile setSessionKey 统一——服务不感知模式）。
@@ -46,6 +60,7 @@ class MediaCryptoService {
   void clearSessionKey() {
     final key = _sessionKey;
     if (key != null) key.fillRange(0, key.length, 0);
+    _notebookId = null;
     _sessionKey = null;
   }
 
@@ -65,7 +80,7 @@ class MediaCryptoService {
       plain,
       secretKey: SecretKey(key),
       nonce: nonce,
-      aad: _mediaAad,
+      aad: _currentAad,
     );
     return Uint8List.fromList([
       ...nonce,
@@ -83,18 +98,38 @@ class MediaCryptoService {
     final cipher = data.sublist(12, data.length - 16);
     final mac = data.sublist(data.length - 16);
     final aes = AesGcm.with256bits();
-    final clear = await aes.decrypt(
-      SecretBox(cipher, nonce: nonce, mac: Mac(mac)),
-      secretKey: SecretKey(key),
-      aad: _mediaAad,
-    );
-    return Uint8List.fromList(clear);
+    // 旧媒体兼容（K_note 迁移 2026-08-16）：AAD 绑定 noteId 前加密的媒体
+    // （AAD 'media'）解密失败时回退旧 AAD——渐进迁移，旧数据可读。
+    try {
+      final clear = await aes.decrypt(
+        SecretBox(cipher, nonce: nonce, mac: Mac(mac)),
+        secretKey: SecretKey(key),
+        aad: _currentAad,
+      );
+      return Uint8List.fromList(clear);
+    } on SecretBoxAuthenticationError {
+      final legacy = await aes.decrypt(
+        SecretBox(cipher, nonce: nonce, mac: Mac(mac)),
+        secretKey: SecretKey(key),
+        aad: _mediaAad,
+      );
+      return Uint8List.fromList(legacy);
+    }
   }
 
-  /// 媒体 AAD：绑定应用/用途/版本（NIST SP 800-38D 上下文绑定）。
+  /// 媒体 AAD：绑定应用/用途/版本（NIST SP 800-38D 上下文绑定）；
+  /// 存在每笔记上下文时附加笔记本 ID（'|notebookId'——Knovya AAD
+  /// binding note_id——防跨笔记密文交换）。
   static final Uint8List _mediaAad = Uint8List.fromList(
     utf8.encode('drawing-notes|media|v1'),
   );
+
+  Uint8List get _currentAad => _notebookId == null
+      ? _mediaAad
+      : Uint8List.fromList([
+          ..._mediaAad,
+          ...utf8.encode('|$_notebookId'),
+        ]);
 
   /// 媒体密文文件头魔数（H-03 双端接入 2026-08-15）：AES 密文与随机噪声
   /// 不可区分（无法用图片魔数检测）——用应用层文件头标记密文。
