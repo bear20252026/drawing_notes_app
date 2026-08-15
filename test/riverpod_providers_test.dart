@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/di/providers.dart';
 import 'package:drawing_notes_app/features/drawing/application/di_providers.dart';
+import 'package:drawing_notes_app/features/drawing/application/selection_notifier.dart';
+import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
 import 'package:drawing_notes_app/features/drawing/application/viewport_notifier.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 
@@ -104,5 +106,20 @@ void main() {
     expect(container.read(viewportProvider).offsetY, 20);
     container.read(viewportProvider.notifier).reset();
     expect(container.read(viewportProvider).scale, 1.0);
+  });
+  test('选区域 Notifier：第二个域迁移示范（begin/extend/end/clear）', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final sel = container.read(selectionProvider);
+    expect(sel.isActive, isFalse);
+    container.read(selectionProvider.notifier)
+        .beginSelection(SelectionTool.rect, const Offset(10, 10));
+    expect(container.read(selectionProvider).isActive, isTrue);
+    container.read(selectionProvider.notifier)
+        .extendSelection(const Offset(100, 100));
+    expect(container.read(selectionProvider).draft.length, 2,
+        reason: '矩形=2 点');
+    container.read(selectionProvider.notifier).clearSelection();
+    expect(container.read(selectionProvider).isActive, isFalse);
   });
 }
