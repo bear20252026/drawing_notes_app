@@ -88,12 +88,16 @@ class MediaCryptoService {
   /// 读取媒体文件：DAN 文件头 → 解密；否则原样返回（明文兼容——
   /// 旧数据/未加密笔记本）。
   Future<Uint8List> readMediaFile(Uint8List data) async {
-    if (data.length >= 4 &&
-        data[0] == _fileMagic[0] &&
-        data[1] == _fileMagic[1] &&
-        data[2] == _fileMagic[2]) {
+    if (isEncryptedFile(data)) {
       return decryptBytes(Uint8List.fromList(data.sublist(4)));
     }
     return data;
   }
+
+  /// 检测媒体文件是否为 DAN 密文（旧明文迁移用——明文重加密判断）。
+  static bool isEncryptedFile(List<int> data) =>
+      data.length >= 4 &&
+      data[0] == _fileMagic[0] &&
+      data[1] == _fileMagic[1] &&
+      data[2] == _fileMagic[2];
 }

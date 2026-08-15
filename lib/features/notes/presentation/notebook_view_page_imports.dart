@@ -254,6 +254,9 @@ extension _NotebookPageImports on _NotebookViewPageState {
       // 服务（storeImage 加密写入 + EncryptedFileImage 渲染解密用——
       // 服务层持有、不散传）。
       MediaCryptoService.instance.setSessionKey(masterKey);
+      // H-03 旧明文迁移（专家审计 2026-08-15）：解锁后批量重加密旧明文
+      // 媒体（payload-plugins 批量加密器——幂等，异步不阻塞解锁流程）。
+      unawaited(widget.storage.migrateLegacyMedia());
       _sessionPassword = null;
       if (mounted) {
         _applyState(() {});

@@ -320,6 +320,31 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     return target.path;
   }
 
+  /// 旧明文媒体迁移（H-03 专家审计 2026-08-15）：解锁后批量重加密——
+  /// payload-plugins 批量加密器模式（幂等——已 DAN 密文跳过）。
+  /// 返回迁移的文件数；未解锁（会话密钥未注入）返回 0。
+  Future<int> migrateLegacyMedia() async {
+    final service = MediaCryptoService.instance;
+    if (!service.isActive) return 0; // 未解锁——不迁移
+    final dir = await _ensureImagesDir();
+    var migrated = 0;
+    await for (final entity in dir.list()) {
+      if (entity is! File) continue;
+      try {
+        final bytes = await entity.readAsBytes();
+        if (MediaCryptoService.isEncryptedFile(bytes)) continue;
+        await entity.writeAsBytes(
+          await service.encryptFile(bytes),
+          flush: true,
+        );
+        migrated++;
+      } catch (_) {
+        // 单个迁移失败忽略（后续解锁再试——幂等）。
+      }
+    }
+    return migrated;
+  }
+
   /// 启用密码保护并保存：把页面内容 AES-GCM 加密为载荷，明文不落盘。
   Future<String> encryptAndSave(Notebook notebook, String password) async {
     final payloadJson = jsonEncode({
