@@ -220,5 +220,42 @@
   "diskPinInfo": "After enabling, the master key is stored encrypted with a PIN (OWASP KEK mode); a lost USB drive cannot expose it directly. Unlocking requires entering the PIN.",
   "@diskPinInfo": {
     "description": "PIN protection explanation"
+  },
+  "editorExportPdf": "Export PDF",
+  "@editorExportPdf": {
+    "description": "Export PDF menu item"
+  },
+  "editorExportJson": "Export JSON",
+  "@editorExportJson": {
+    "description": "Export JSON menu item"
+  },
+  "editorExportPptx": "Export PPTX",
+  "@editorExportPptx": {
+    "description": "Export PPTX menu item"
+  },
+  "editorExportWord": "Export Word-compatible document",
+  "@editorExportWord": {
+    "description": "Export Word menu item"
+  },
+  "editorUnderline": "Underline (Ctrl+U)",
+  "@editorUnderline": {
+    "description": "Underline tooltip"
+  },
+  "editorPdfPreview": "Page preview (A4 pagination)",
+  "@editorPdfPreview": {
+    "description": "PDF preview tooltip"
+  },
+  "editorPasteValues": "Paste values separated by commas / spaces / newlines, e.g.: 10, 25, 18, 42, 30",
+  "@editorPasteValues": {
+    "description": "Paste values hint"
+  },
+  "editorImageInsertFail": "Failed to insert image: {error}",
+  "@editorImageInsertFail": {
+    "description": "Image insert failure message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   }
 }

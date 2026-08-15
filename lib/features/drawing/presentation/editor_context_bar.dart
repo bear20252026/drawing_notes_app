@@ -191,7 +191,7 @@ class EditorContextBar extends StatelessWidget {
         _toggleButton(
           context,
           icon: Icons.format_underline,
-          tooltip: '下划线 (Ctrl+U)',
+          tooltip: AppLocalizations.of(context)?.editorUnderline ?? '下划线 (Ctrl+U)',
           selected: text.underline,
           onPressed: actions.toggleUnderline,
         ),

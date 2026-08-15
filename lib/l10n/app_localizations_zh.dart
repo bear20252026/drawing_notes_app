@@ -172,4 +172,30 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get diskPinInfo =>
       '启用后主密钥经 PIN 加密存储（OWASP KEK 模式），U 盘丢失也无法直接读出；解锁需输入 PIN。';
+
+  @override
+  String get editorExportPdf => '导出 PDF';
+
+  @override
+  String get editorExportJson => '导出 JSON';
+
+  @override
+  String get editorExportPptx => '导出 PPTX';
+
+  @override
+  String get editorExportWord => '导出 Word 兼容文档';
+
+  @override
+  String get editorUnderline => '下划线 (Ctrl+U)';
+
+  @override
+  String get editorPdfPreview => '分页预览（按 A4 分页）';
+
+  @override
+  String get editorPasteValues => '粘贴数值，用逗号/空格/换行分隔，例如：10, 25, 18, 42, 30';
+
+  @override
+  String editorImageInsertFail(String error) {
+    return '插入图片失败：$error';
+  }
 }

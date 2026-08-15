@@ -177,4 +177,31 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get diskPinInfo =>
       'After enabling, the master key is stored encrypted with a PIN (OWASP KEK mode); a lost USB drive cannot expose it directly. Unlocking requires entering the PIN.';
+
+  @override
+  String get editorExportPdf => 'Export PDF';
+
+  @override
+  String get editorExportJson => 'Export JSON';
+
+  @override
+  String get editorExportPptx => 'Export PPTX';
+
+  @override
+  String get editorExportWord => 'Export Word-compatible document';
+
+  @override
+  String get editorUnderline => 'Underline (Ctrl+U)';
+
+  @override
+  String get editorPdfPreview => 'Page preview (A4 pagination)';
+
+  @override
+  String get editorPasteValues =>
+      'Paste values separated by commas / spaces / newlines, e.g.: 10, 25, 18, 42, 30';
+
+  @override
+  String editorImageInsertFail(String error) {
+    return 'Failed to insert image: $error';
+  }
 }

@@ -749,7 +749,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.picture_as_pdf_outlined),
-                      title: Text('导出 PDF'),
+                      title: Text(AppLocalizations.of(context)?.editorExportPdf ?? '导出 PDF'),
                     ),
                   ),
                   PopupMenuItem(
@@ -758,7 +758,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.data_object),
-                      title: Text('导出 JSON'),
+                      title: Text(AppLocalizations.of(context)?.editorExportJson ?? '导出 JSON'),
                     ),
                   ),
                   PopupMenuItem(
@@ -767,7 +767,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.slideshow_outlined),
-                      title: Text('导出 PPTX'),
+                      title: Text(AppLocalizations.of(context)?.editorExportPptx ?? '导出 PPTX'),
                     ),
                   ),
                   if (_isNotebookMode)
@@ -777,7 +777,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                         dense: true,
                         contentPadding: EdgeInsets.zero,
                         leading: Icon(Icons.article_outlined),
-                        title: Text('导出 Word 兼容文档'),
+                        title: Text(AppLocalizations.of(context)?.editorExportWord ?? '导出 Word 兼容文档'),
                       ),
                     ),
                   PopupMenuItem(

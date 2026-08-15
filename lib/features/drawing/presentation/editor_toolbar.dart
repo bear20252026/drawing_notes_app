@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/features/drawing/application/plugin_registry.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
@@ -133,7 +134,7 @@ class EditorToolbar extends StatelessWidget {
               _toolButton(
                 context,
                 icon: Icons.menu_book,
-                tooltip: '分页预览（按 A4 分页）',
+                tooltip: AppLocalizations.of(context)?.editorPdfPreview ?? '分页预览（按 A4 分页）',
                 selected: false,
                 onTap: actions.showPagination,
               ),

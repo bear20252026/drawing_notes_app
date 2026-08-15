@@ -421,6 +421,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'After enabling, the master key is stored encrypted with a PIN (OWASP KEK mode); a lost USB drive cannot expose it directly. Unlocking requires entering the PIN.'**
   String get diskPinInfo;
+
+  /// Export PDF menu item
+  ///
+  /// In en, this message translates to:
+  /// **'Export PDF'**
+  String get editorExportPdf;
+
+  /// Export JSON menu item
+  ///
+  /// In en, this message translates to:
+  /// **'Export JSON'**
+  String get editorExportJson;
+
+  /// Export PPTX menu item
+  ///
+  /// In en, this message translates to:
+  /// **'Export PPTX'**
+  String get editorExportPptx;
+
+  /// Export Word menu item
+  ///
+  /// In en, this message translates to:
+  /// **'Export Word-compatible document'**
+  String get editorExportWord;
+
+  /// Underline tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Underline (Ctrl+U)'**
+  String get editorUnderline;
+
+  /// PDF preview tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Page preview (A4 pagination)'**
+  String get editorPdfPreview;
+
+  /// Paste values hint
+  ///
+  /// In en, this message translates to:
+  /// **'Paste values separated by commas / spaces / newlines, e.g.: 10, 25, 18, 42, 30'**
+  String get editorPasteValues;
+
+  /// Image insert failure message
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to insert image: {error}'**
+  String editorImageInsertFail(String error);
 }
 
 class _AppLocalizationsDelegate

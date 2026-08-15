@@ -318,7 +318,7 @@ extension _EditorPageEditing on _EditorPageState {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('插入图片失败：$e')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)?.editorImageInsertFail(e.runtimeType.toString()) ?? '插入图片失败：${e.runtimeType}')));
       }
     }
   }

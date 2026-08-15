@@ -107,8 +107,8 @@ extension _EditorPageActions on _EditorPageState {
                   controller: input,
                   autofocus: true,
                   maxLines: 5,
-                  decoration: const InputDecoration(
-                    hintText: '粘贴数值，用逗号/空格/换行分隔，例如：10, 25, 18, 42, 30',
+                  decoration: InputDecoration(
+                    hintText: AppLocalizations.of(context)?.editorPasteValues ?? '粘贴数值，用逗号/空格/换行分隔，例如：10, 25, 18, 42, 30',
                     border: OutlineInputBorder(),
                     isDense: true,
                   ),
