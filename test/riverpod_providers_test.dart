@@ -6,6 +6,7 @@ import 'package:drawing_notes_app/core/di/providers.dart';
 import 'package:drawing_notes_app/features/drawing/application/di_providers.dart';
 import 'package:drawing_notes_app/features/drawing/application/history_notifier.dart';
 import 'package:drawing_notes_app/features/drawing/application/selection_notifier.dart';
+import 'package:drawing_notes_app/features/drawing/application/shapes_notifier.dart';
 import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
 import 'package:drawing_notes_app/features/drawing/application/viewport_notifier.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
@@ -136,5 +137,19 @@ void main() {
         .afterUndo(canUndo: false, canRedo: true);
     expect(container.read(historyProvider).canRedo, isTrue);
     expect(container.read(historyProvider).canUndo, isFalse);
+  });
+  test('objects 子域 Notifier：形状选中状态（select/add/clear）', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    expect(container.read(shapesProvider).hasSelection, isFalse);
+    container.read(shapesProvider.notifier)
+        .select(ids: {'s1'}, activeId: 's1');
+    expect(container.read(shapesProvider).hasSelection, isTrue);
+    container.read(shapesProvider.notifier).addToSelection('s2');
+    expect(container.read(shapesProvider).selectedIds, {'s1', 's2'});
+    expect(container.read(shapesProvider).activeId, 's2',
+        reason: '新选中成为活动形状');
+    container.read(shapesProvider.notifier).clearSelection();
+    expect(container.read(shapesProvider).hasSelection, isFalse);
   });
 }
