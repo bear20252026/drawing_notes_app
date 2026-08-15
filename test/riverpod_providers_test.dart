@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/di/providers.dart';
 import 'package:drawing_notes_app/features/drawing/application/di_providers.dart';
+import 'package:drawing_notes_app/features/drawing/application/history_notifier.dart';
 import 'package:drawing_notes_app/features/drawing/application/selection_notifier.dart';
 import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
 import 'package:drawing_notes_app/features/drawing/application/viewport_notifier.dart';
@@ -121,5 +122,19 @@ void main() {
         reason: '矩形=2 点');
     container.read(selectionProvider.notifier).clearSelection();
     expect(container.read(selectionProvider).isActive, isFalse);
+  });
+  test('历史域 Notifier：第三个域迁移示范（canUndo/canRedo 可见状态）', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final hist = container.read(historyProvider);
+    expect(hist.canUndo, isFalse);
+    expect(hist.canRedo, isFalse);
+    container.read(historyProvider.notifier)
+        .notifyChanged(canUndo: true, canRedo: false);
+    expect(container.read(historyProvider).canUndo, isTrue);
+    container.read(historyProvider.notifier)
+        .afterUndo(canUndo: false, canRedo: true);
+    expect(container.read(historyProvider).canRedo, isTrue);
+    expect(container.read(historyProvider).canUndo, isFalse);
   });
 }
