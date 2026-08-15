@@ -97,7 +97,7 @@ class _HomePageState extends State<HomePage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = '读取列表失败：$e';
+        _error = '读取列表失败：${e.runtimeType}';
         _loading = false;
       });
     }
@@ -143,7 +143,7 @@ class _HomePageState extends State<HomePage> {
       );
       _refresh();
     } catch (e) {
-      _showSnack('打开画作失败：$e');
+      _showSnack('打开画作失败：${e.runtimeType}');
     }
   }
 
@@ -155,7 +155,7 @@ class _HomePageState extends State<HomePage> {
       await _docStorage.delete(meta.id);
       await _refresh();
     } catch (e) {
-      _showSnack('删除失败：$e');
+      _showSnack('删除失败：${e.runtimeType}');
     }
   }
 
@@ -186,7 +186,7 @@ class _HomePageState extends State<HomePage> {
       );
       _refresh();
     } catch (e) {
-      _showSnack('新建失败：$e');
+      _showSnack('新建失败：${e.runtimeType}');
     }
   }
 
@@ -200,7 +200,7 @@ class _HomePageState extends State<HomePage> {
       await _nbStorage.delete(nb.id);
       await _refresh();
     } catch (e) {
-      _showSnack('删除失败：$e');
+      _showSnack('删除失败：${e.runtimeType}');
     }
   }
 

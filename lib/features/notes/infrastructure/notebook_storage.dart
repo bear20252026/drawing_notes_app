@@ -31,7 +31,27 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
   // ---- INotebookAccessor 跨功能契约适配（S4b：NotebookStorage 直接实现契约）----
 
   @override
-  NotebookPage? pageById(String notebookId, String pageId) => null;
+  NotebookPage? pageById(String notebookId, String pageId) {
+    // M-09 修复（专家审计 2026-08-15）：实现跨页面查找（原恒 null——
+    // 克隆/跨页访问/混合 PDF 导出不可用）。
+    try {
+      if (!isValidId(notebookId) || !isValidId(pageId)) return null;
+      if (_notebooksDir == null) return null; // 目录未初始化（尚未加载过）
+      final file = File(
+        '${_notebooksDir!.path}${Platform.pathSeparator}$notebookId.json',
+      );
+      if (!file.existsSync()) return null;
+      final root =
+          jsonDecode(utf8.decode(file.readAsBytesSync())) as Map<String, dynamic>;
+      final notebook = Notebook.fromJson(root);
+      for (final page in notebook.pages) {
+        if (page.id == pageId) return page;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Future<List<Notebook>> listNotebooks() => listAll();
@@ -88,7 +108,11 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
   static bool isValidId(String id) => RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(id);
 
   Future<String> _pathFor(String id) async {
-    assert(isValidId(id), '非法 ID: $id');
+    // C-02 修复（专家审计 2026-08-15）：assert-only 校验在 release 失效——
+    // 运行时强制校验（load/save/delete 均经此统一防护路径遍历）。
+    if (!isValidId(id)) {
+      throw ArgumentError.value(id, 'id', '非法 ID（路径遍历防护）');
+    }
     return '${(await _ensureNotebooksDir()).path}${Platform.pathSeparator}$id.json';
   }
 
@@ -195,7 +219,14 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     // 清理该笔记本所有页面引用的图片副本（尽力而为）。
     for (final p in imagePaths) {
       try {
-        final f = File(p);
+        // C-01 修复（专家审计 2026-08-15）：图片路径来自笔记 JSON（不可信
+        // 数据）——删除前验证受管目录 + 非符号链接（CVE-2026-55667 同源：
+        // 符号链接跟随可删除越界文件）。仅删除受管目录内的普通文件。
+        final managed = await _managedImagePathOrNull(p);
+        if (managed == null) continue;
+        final type = await FileSystemEntity.type(managed, followLinks: false);
+        if (type != FileSystemEntityType.file) continue;
+        final f = File(managed);
         if (await f.exists()) await f.delete();
       } catch (_) {
         // 单个图片删除失败忽略。
@@ -217,6 +248,22 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
       }.toList();
     } catch (_) {
       return const [];
+    }
+  }
+
+  /// C-01 修复（专家审计 2026-08-15）：验证路径位于受管图片目录内
+  /// （防笔记 JSON 携带外部路径驱动越界删除——CVE-2026-55667 同源）。
+  Future<String?> _managedImagePathOrNull(String path) async {
+    if (path.isEmpty) return null;
+    try {
+      final root = await _ensureImagesDir();
+      final image = File(path).absolute;
+      final parentPath = image.parent.absolute.uri.normalizePath().toFilePath();
+      final rootPath = root.absolute.uri.normalizePath().toFilePath();
+      if (parentPath != rootPath) return null;
+      return image.uri.normalizePath().toFilePath();
+    } catch (_) {
+      return null;
     }
   }
 

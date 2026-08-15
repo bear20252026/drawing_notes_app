@@ -20,6 +20,14 @@ class EncryptionService {
   static const int _pbkdf2IterationsLegacy = 100000; // 旧数据（v ≤ 2）
   static const int _pbkdf2IterationsCurrent = 600000; // 新数据（v ≥ 3）
 
+  // H-07 修复（专家审计 2026-08-15）：封装输入严格校验——固定字段长度
+  // （GCM nonce 12 / MAC 16 / PBKDF2 盐 16 / 主密钥 32）+ 输入大小上限。
+  static const int _saltLength = 16;
+  static const int _nonceLength = 12;
+  static const int _macLength = 16;
+  static const int _masterKeyLength = 32;
+  static const int _maxEncryptedInputBytes = 10 * 1024 * 1024; // 10MB
+
   /// 按格式版本选择 PBKDF2 迭代次数（无 v 字段视为旧格式 v=2）。
   static int _iterationsFor(int version) =>
       version >= 3 ? _pbkdf2IterationsCurrent : _pbkdf2IterationsLegacy;
@@ -63,10 +71,14 @@ class EncryptionService {
 
   /// 解密 [encryptedJson]；密码错误或数据损坏时抛出 [FormatException]。
   Future<String> decrypt(String encryptedJson, String password) async {
+    // H-07 修复：输入大小预检（防恶意超长输入资源消耗）。
+    _requireInputSize(encryptedJson);
     final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
     final salt = base64Decode(_requireString(map, 's'));
+    _requireFixedLength('盐', salt, _saltLength);
     // 按 v 字段分派迭代次数：v≥3 用 60 万次（新数据），v≤2/无 v 用 10 万次（旧数据兼容）。
     final v = map['v'] is int ? map['v'] as int : 2;
+    _requireKnownVersion(v);
     final key = await _deriveKey(
       password,
       salt,
@@ -105,6 +117,9 @@ class EncryptionService {
     String encryptedJson,
     List<int> masterKey,
   ) async {
+    // H-07 修复：主密钥长度 + 输入大小预检。
+    _requireFixedLength('主密钥', masterKey, _masterKeyLength);
+    _requireInputSize(encryptedJson);
     final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
     if (map['mode'] != 'keyfile') {
       throw FormatException('不是密码盘加密数据');
@@ -132,22 +147,29 @@ class EncryptionService {
 
   /// 解恢复密钥信封：恢复密钥错误或信封损坏抛 [FormatException]。
   Future<List<int>> unwrapMasterKey(String envelope, String recoveryKey) async {
+    // H-07 修复：输入大小预检 + 盐长度校验。
+    _requireInputSize(envelope);
     final map = jsonDecode(envelope) as Map<String, dynamic>;
     final salt = base64Decode(_requireString(map, 'salt'));
+    _requireFixedLength('盐', salt, _saltLength);
     // 按 v 字段分派迭代次数：v≥3 用 60 万次，v≤2/无 v 用 10 万次（旧信封兼容）。
     final v = map['v'] is int ? map['v'] as int : 2;
+    _requireKnownVersion(v);
     final kek = await _deriveKey(
       recoveryKey,
       salt,
       iterations: _iterationsFor(v),
     );
     final aes = AesGcm.with256bits();
+    final ek = base64Decode(_requireString(map, 'ek'));
+    final n2 = base64Decode(_requireString(map, 'n2'));
+    final m2 = base64Decode(_requireString(map, 'm2'));
+    // H-07 修复：信封固定字段长度校验（nonce 12 / MAC 16 / 主密钥 32）。
+    _requireFixedLength('nonce2', n2, _nonceLength);
+    _requireFixedLength('MAC2', m2, _macLength);
+    _requireFixedLength('主密钥', ek, _masterKeyLength);
     final clear = await aes.decrypt(
-      SecretBox(
-        base64Decode(_requireString(map, 'ek')),
-        nonce: base64Decode(_requireString(map, 'n2')),
-        mac: Mac(base64Decode(_requireString(map, 'm2'))),
-      ),
+      SecretBox(ek, nonce: n2, mac: Mac(m2)),
       secretKey: kek,
     );
     return clear;
@@ -161,6 +183,9 @@ class EncryptionService {
     final nonce = base64Decode(_requireString(map, 'n'));
     final cipher = base64Decode(_requireString(map, 'c'));
     final macBytes = base64Decode(_requireString(map, 'm'));
+    // H-07 修复：固定字段长度校验（GCM nonce 12 / MAC 16——防畸形封装）。
+    _requireFixedLength('nonce', nonce, _nonceLength);
+    _requireFixedLength('MAC', macBytes, _macLength);
     final aes = AesGcm.with256bits();
     final clear = await aes.decrypt(
       SecretBox(cipher, nonce: nonce, mac: Mac(macBytes)),
@@ -176,6 +201,27 @@ class EncryptionService {
       throw FormatException('加密数据缺少字段：$key');
     }
     return value;
+  }
+
+  /// H-07 修复：封装输入大小预检（防恶意超长输入资源消耗）。
+  static void _requireInputSize(String input) {
+    if (input.length > _maxEncryptedInputBytes) {
+      throw FormatException('加密数据过大（超过 10MB 限制）');
+    }
+  }
+
+  /// H-07 修复：固定字段长度校验（防畸形/截断封装）。
+  static void _requireFixedLength(String name, List<int> bytes, int expected) {
+    if (bytes.length != expected) {
+      throw FormatException('$name 长度不合法（应为 $expected 字节）');
+    }
+  }
+
+  /// H-07 修复：格式版本白名单（防未知 v 字段分派意外路径）。
+  static void _requireKnownVersion(int version) {
+    if (version != 2 && version != 3) {
+      throw FormatException('未知加密格式版本：v$version');
+    }
   }
 
   /// 生成 [n] 字节随机数（盐/nonce）。

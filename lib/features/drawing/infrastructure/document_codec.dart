@@ -128,6 +128,10 @@ class DocumentCodec {
   // 链 C 修复（军工审计 2026-08-15）：单笔点数上限——D-4 只限笔画数，
   // 一笔可含海量点（JSON 炸弹放大：95MB 文件反序列化内存爆 500MB+）。
   static const int _maxPointsPerStroke = 50000;
+  // H-02 补全（专家审计 2026-08-15）：全局预算——层×笔画×点累计上限，
+  // 防 200 层 × 1 万笔 × 海量点的 JSON 炸弹放大（100MB 输入解出天文对象）。
+  static const int _maxTotalStrokes = 50000;
+  static const int _maxTotalPoints = 1000000;
   static const int _maxShapeCount = 5000;
   static const int _maxImageCount = 5000;
 
@@ -139,6 +143,9 @@ class DocumentCodec {
   static List<Layer> _restoreLayers(Object? value) {
     final layers = <Layer>[];
     final ids = <String>{};
+    // H-02 补全：全局笔画/点预算计数器。
+    var totalStrokes = 0;
+    var totalPoints = 0;
     if (value is List) {
       final limit = value.length.clamp(0, _maxLayerCount);
       for (var i = 0; i < limit; i++) {
@@ -153,6 +160,12 @@ class DocumentCodec {
               ? opacity.toDouble().clamp(0.0, 1.0).toDouble()
               : 1.0;
           final strokes = _restoreStrokes(json['strokes']);
+          // H-02 补全：全局笔画/点预算——超限跳过后续层（防 JSON 炸弹放大）。
+          totalStrokes += strokes.length;
+          totalPoints += strokes.fold(0, (sum, s) => sum + s.points.length);
+          if (totalStrokes > _maxTotalStrokes || totalPoints > _maxTotalPoints) {
+            break;
+          }
           layers.add(
             Layer(
               id: id,

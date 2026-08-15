@@ -64,6 +64,11 @@ class PdfImportService {
   /// 防恶意多页 PDF 触发 OOM（拒绝服务）。
   static const int _maxImportPages = 500;
 
+  /// H-01 补全（专家审计 2026-08-15）：PDF 源文件大小上限（防超大源文件）。
+  static const int _maxSourceBytes = 200 * 1024 * 1024; // 200MB
+  /// H-01 补全：导入总 PNG 输出字节预算（防累积输出耗尽磁盘/内存）。
+  static const int _maxTotalOutputBytes = 500 * 1024 * 1024; // 500MB
+
   static Future<List<ImportedPdfPage>> renderPages({
     required String sourcePath,
     required Directory outputDirectory,
@@ -83,6 +88,10 @@ class PdfImportService {
     if (!await source.exists()) {
       throw FileSystemException('PDF 文件不存在', sourcePath);
     }
+    // H-01 补全：源文件大小预检（解析前——防超大 PDF 源资源耗尽）。
+    if (await source.length() > _maxSourceBytes) {
+      throw StateError('PDF 源文件过大（超过 200MB 限制），拒绝导入');
+    }
     if (!sourcePath.toLowerCase().endsWith('.pdf')) {
       throw ArgumentError.value(sourcePath, 'sourcePath', '仅支持导入 .pdf 文件');
     }
@@ -99,6 +108,8 @@ class PdfImportService {
       throw StateError('PDF 页数超过 $_maxImportPages 页限制，拒绝导入');
     }
     final results = <ImportedPdfPage>[];
+    // H-01 补全：累积 PNG 输出字节预算（防多页累积耗尽磁盘/内存）。
+    var totalOutputBytes = 0;
     try {
       for (final page in rendered) {
         // 页范围选择（本地化适配 2026-08-15）：pageNumbers 为空表示导入全部页。
@@ -107,6 +118,10 @@ class PdfImportService {
         }
         if (page.width <= 0 || page.height <= 0 || page.pngBytes.isEmpty) {
           throw StateError('PDF 第 ${page.pageNumber} 页渲染结果无效');
+        }
+        totalOutputBytes += page.pngBytes.length;
+        if (totalOutputBytes > _maxTotalOutputBytes) {
+          throw StateError('PDF 导入输出总量超限（超过 500MB），拒绝继续');
         }
         final filename =
             '${importId}_pdf_${page.pageNumber}_${LocalIdGenerator.next('page')}.png';

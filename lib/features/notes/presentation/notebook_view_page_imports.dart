@@ -60,7 +60,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
       await _save();
       _showSnack('已导入 ${paragraphs.length} 段文字');
     } catch (e) {
-      _showSnack('导入失败：$e');
+      _showSnack('导入失败：${e.runtimeType}');
     }
   }
 
@@ -120,7 +120,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
       await _save();
       _showSnack('已导入 PDF 共 ${created.length} 页；打开任一页面即可手写批注');
     } catch (error) {
-      _showSnack('导入 PDF 失败：$error');
+      _showSnack('导入 PDF 失败：${error.runtimeType}');
     }
   }
 
@@ -202,7 +202,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
         ).showSnackBar(const SnackBar(content: Text('已启用密码保护（页面内容加密存储）')));
       }
     } catch (e) {
-      _showSnack('设置密码失败：$e');
+      _showSnack('设置密码失败：${e.runtimeType}');
     }
   }
 
@@ -247,7 +247,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
         ).showSnackBar(const SnackBar(content: Text('已启用 U盘钥匙加密（拔盘即锁）')));
       }
     } catch (e) {
-      _showSnack('启用 U盘钥匙加密失败：$e');
+      _showSnack('启用 U盘钥匙加密失败：${e.runtimeType}');
     }
   }
 

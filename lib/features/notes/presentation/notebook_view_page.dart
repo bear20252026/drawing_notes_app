@@ -80,6 +80,11 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   /// 会话内 U盘主密钥（keyfile 模式解锁后记录，仅内存；保存时重加密）。
   List<int>? _sessionMasterKey;
 
+  /// H-05 部分落地（专家审计 2026-08-15）：生命周期监听——后台/切出时
+  /// 自动保存草稿（防丢失）。完整会话锁定（清密钥 + 重解锁状态机）评估
+  /// 为后续专项（涉及解锁流程重构，拆分须简化）。
+  AppLifecycleListener? _lifecycleListener;
+
   /// 当前生效的会话密码（优先用本页设置过的，其次用打开时传入的）。
   String? get _effectivePassword => _sessionPassword ?? widget.sessionPassword;
 
@@ -91,6 +96,11 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   void initState() {
     super.initState();
     _notebook = widget.notebook;
+    // H-05 部分落地：后台/切出自动保存草稿（防数据丢失；_save 有
+    // _saving 保护不会并发堆叠；onInactive 覆盖切后台/失去焦点场景）。
+    _lifecycleListener = AppLifecycleListener(
+      onInactive: () => _save(),
+    );
   }
 
   /// 会话密钥内存清理（红蓝攻防 D-2 修复 2026-08-15）：
@@ -104,6 +114,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
       _sessionMasterKey = null;
     }
     _sessionPassword = null;
+    _lifecycleListener?.dispose();
     super.dispose();
   }
 
@@ -191,10 +202,13 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
       } while (_saveQueued);
       completion.complete();
     } catch (e) {
+      // M-04 修复（专家审计 2026-08-15）：异常完成 Completer——防调用方
+      // await _saveCompletion.future 永久等待（保存失败挂起）。
+      completion.completeError(e);
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('保存失败：$e')));
+        ).showSnackBar(SnackBar(content: Text('保存失败：${e.runtimeType}')));
       }
     } finally {
       _saving = false;
