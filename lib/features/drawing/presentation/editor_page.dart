@@ -20,7 +20,7 @@ import 'package:drawing_notes_app/features/drawing/application/eraser_mode_store
 import 'package:drawing_notes_app/features/drawing/application/editor_exporter.dart';
 import 'package:drawing_notes_app/features/drawing/domain/fractional_index.dart';
 import 'package:drawing_notes_app/features/drawing/application/gesture_math.dart';
-import 'package:drawing_notes_app/features/drawing/infrastructure/pencil_shader.dart';
+import 'package:drawing_notes_app/core/rendering/pencil_shader.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/shape_binding_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/shape_creation_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/shape_library.dart';

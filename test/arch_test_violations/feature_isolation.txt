@@ -1,5 +1,4 @@
-Architecture violations (4):
-  [shouldNotDependOn] package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart → package:drawing_notes_app/features/drawing/infrastructure/encryption_service.dart: must not import package:drawing_notes_app/features/drawing/infrastructure/encryption_service.dart
-  [shouldNotDependOn] package:drawing_notes_app/features/notes/presentation/password_disk_page.dart → package:drawing_notes_app/features/drawing/infrastructure/encryption_service.dart: must not import package:drawing_notes_app/features/drawing/infrastructure/encryption_service.dart
-  [shouldNotDependOn] package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart → package:drawing_notes_app/features/drawing/infrastructure/ink_layer_painter.dart: must not import package:drawing_notes_app/features/drawing/infrastructure/ink_layer_painter.dart
-  [shouldNotDependOn] package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart → package:drawing_notes_app/features/drawing/infrastructure/shape_renderer.dart: must not import package:drawing_notes_app/features/drawing/infrastructure/shape_renderer.dart
+Architecture violations (3):
+  [shouldNotDependOn] package:drawing_notes_app/features/notes/presentation/home_page.dart → package:drawing_notes_app/features/drawing/presentation/editor_page.dart: must not import package:drawing_notes_app/features/drawing/presentation/editor_page.dart
+  [shouldNotDependOn] package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart → package:drawing_notes_app/features/drawing/presentation/editor_page.dart: must not import package:drawing_notes_app/features/drawing/presentation/editor_page.dart
+  [shouldNotDependOn] package:drawing_notes_app/features/notes/presentation/search_page.dart → package:drawing_notes_app/features/drawing/presentation/editor_page.dart: must not import package:drawing_notes_app/features/drawing/presentation/editor_page.dart

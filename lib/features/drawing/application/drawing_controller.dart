@@ -15,13 +15,13 @@ import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_transaction.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
-import 'package:drawing_notes_app/features/drawing/infrastructure/ink_layer_painter.dart';
+import 'package:drawing_notes_app/core/rendering/ink_layer_painter.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/layer_compositor.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/stroke_geometry_cache.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/shape_recognizer.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/shape_binding_geometry.dart';
-import 'package:drawing_notes_app/features/drawing/infrastructure/shape_renderer.dart';
-import 'package:drawing_notes_app/features/drawing/infrastructure/stroke_renderer.dart';
+import 'package:drawing_notes_app/core/rendering/shape_renderer.dart';
+import 'package:drawing_notes_app/core/rendering/stroke_renderer.dart';
 
 part 'drawing_controller_temporary.dart';
 

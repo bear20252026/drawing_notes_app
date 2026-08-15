@@ -1,7 +1,7 @@
 import 'dart:ui';
 
-import 'package:drawing_notes_app/features/drawing/infrastructure/pencil_shader.dart';
-import 'package:drawing_notes_app/features/drawing/infrastructure/stroke_renderer.dart';
+import 'package:drawing_notes_app/core/rendering/pencil_shader.dart';
+import 'package:drawing_notes_app/core/rendering/stroke_renderer.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 import 'package:flutter_test/flutter_test.dart';
 

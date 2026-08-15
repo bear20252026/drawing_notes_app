@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:drawing_notes_app/features/drawing/infrastructure/encryption_service.dart';
+import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/storage/password_disk.dart';
 import 'package:flutter_test/flutter_test.dart';
 

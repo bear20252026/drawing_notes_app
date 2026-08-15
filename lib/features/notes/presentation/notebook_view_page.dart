@@ -8,8 +8,8 @@ import 'dart:math' as math;
 import 'package:file_selector/file_selector.dart';
 import 'package:material_ui/material_ui.dart';
 
-import 'package:drawing_notes_app/features/drawing/infrastructure/ink_layer_painter.dart';
-import 'package:drawing_notes_app/features/drawing/infrastructure/shape_renderer.dart';
+import 'package:drawing_notes_app/core/rendering/ink_layer_painter.dart';
+import 'package:drawing_notes_app/core/rendering/shape_renderer.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';

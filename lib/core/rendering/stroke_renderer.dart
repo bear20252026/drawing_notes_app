@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:perfect_freehand/perfect_freehand.dart' hide StrokePoint;
 
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
-import 'package:drawing_notes_app/features/drawing/infrastructure/pencil_shader.dart';
+import 'package:drawing_notes_app/core/rendering/pencil_shader.dart';
 
 /// 笔画渲染器：将原始输入点转为连续、填充式的压感笔触轮廓。
 ///

@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
-import 'package:drawing_notes_app/features/drawing/infrastructure/stroke_renderer.dart';
+import 'package:drawing_notes_app/core/rendering/stroke_renderer.dart';
 
 /// 已完成笔画集合的预渲染 Picture 缓存（借鉴 scribe_canvas
 /// `ScribePainter.cachedPicture` 的 O(1) 重绘思想，见

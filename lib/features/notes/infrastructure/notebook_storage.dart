@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
 
-import 'package:drawing_notes_app/features/drawing/infrastructure/encryption_service.dart';
+import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/notes_accessor.dart';

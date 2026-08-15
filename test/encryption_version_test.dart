@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:drawing_notes_app/features/drawing/infrastructure/encryption_service.dart';
+import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 
 /// 审计修复（2026-08-15）：PBKDF2 迭代 10 万 → 60 万（OWASP 2026 推荐）。
 /// 验证 v 字段版本兼容：新数据 v=3（60 万次）、旧数据 v=2（10 万次）均可解。

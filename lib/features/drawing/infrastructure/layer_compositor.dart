@@ -3,9 +3,9 @@ import 'dart:ui' show Offset, Rect;
 
 import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
-import 'package:drawing_notes_app/features/drawing/infrastructure/ink_layer_painter.dart';
+import 'package:drawing_notes_app/core/rendering/ink_layer_painter.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/stroke_picture_cache.dart';
-import 'package:drawing_notes_app/features/drawing/infrastructure/stroke_renderer.dart';
+import 'package:drawing_notes_app/core/rendering/stroke_renderer.dart';
 
 /// 图层的离屏渲染缓存。
 ///
