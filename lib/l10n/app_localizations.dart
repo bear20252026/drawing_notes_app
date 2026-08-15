@@ -235,6 +235,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Shape tool'**
   String get editorShapeTool;
+
+  /// Notebook menu tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Notebook actions'**
+  String get noteActions;
+
+  /// Import page menu item
+  ///
+  /// In en, this message translates to:
+  /// **'Import page from another notebook'**
+  String get noteImportPage;
+
+  /// Import text menu item
+  ///
+  /// In en, this message translates to:
+  /// **'Import Markdown or text'**
+  String get noteImportMarkdown;
+
+  /// Import PDF menu item
+  ///
+  /// In en, this message translates to:
+  /// **'Import PDF and annotate per page'**
+  String get noteImportPdf;
+
+  /// Tidy pages menu item
+  ///
+  /// In en, this message translates to:
+  /// **'Tidy up pages'**
+  String get noteTidyPages;
+
+  /// Page filter hint
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by tag or keyword'**
+  String get noteFilterHint;
+
+  /// Encryption choice dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Choose encryption method'**
+  String get noteEncryptionChoice;
+
+  /// Password option title
+  ///
+  /// In en, this message translates to:
+  /// **'Memory password'**
+  String get noteMemoryPassword;
+
+  /// Password option subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Set a password; enter it to decrypt when opening'**
+  String get noteMemoryPasswordSub;
+
+  /// Keyfile option title
+  ///
+  /// In en, this message translates to:
+  /// **'USB key (password disk)'**
+  String get noteUsbKey;
+
+  /// Keyfile option subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'USB is the key: unlock by plugging in, lock on removal (zero knowledge)'**
+  String get noteUsbKeySub;
+
+  /// Recovery key dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Save your recovery key (very important!)'**
+  String get noteRecoveryKeyTitle;
 }
 
 class _AppLocalizationsDelegate

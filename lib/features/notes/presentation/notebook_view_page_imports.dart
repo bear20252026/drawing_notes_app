@@ -163,22 +163,22 @@ extension _NotebookPageImports on _NotebookViewPageState {
     final mode = await showDialog<EncryptionMode>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('选择加密方式'),
+        title: Text(AppLocalizations.of(context)?.noteEncryptionChoice ?? '选择加密方式'),
         children: [
           SimpleDialogOption(
             onPressed: () => Navigator.of(ctx).pop(EncryptionMode.password),
-            child: const ListTile(
+            child: ListTile(
               leading: Icon(Icons.lock_outline),
-              title: Text('记忆密码'),
-              subtitle: Text('设置密码，打开时输入密码解密'),
+              title: Text(AppLocalizations.of(context)?.noteMemoryPassword ?? '记忆密码'),
+              subtitle: Text(AppLocalizations.of(context)?.noteMemoryPasswordSub ?? '设置密码，打开时输入密码解密'),
             ),
           ),
           SimpleDialogOption(
             onPressed: () => Navigator.of(ctx).pop(EncryptionMode.keyfile),
-            child: const ListTile(
+            child: ListTile(
               leading: Icon(Icons.usb),
-              title: Text('U盘钥匙（密码盘）'),
-              subtitle: Text('U盘即钥匙：插入 U 盘解锁，拔盘即锁（零知识）'),
+              title: Text(AppLocalizations.of(context)?.noteUsbKey ?? 'U盘钥匙（密码盘）'),
+              subtitle: Text(AppLocalizations.of(context)?.noteUsbKeySub ?? 'U盘即钥匙：插入 U 盘解锁，拔盘即锁（零知识）'),
             ),
           ),
         ],
@@ -279,7 +279,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('保存您的恢复密钥（非常重要！）'),
+        title: Text(AppLocalizations.of(context)?.noteRecoveryKeyTitle ?? '保存您的恢复密钥（非常重要！）'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,

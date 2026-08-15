@@ -96,5 +96,53 @@
   "editorShapeTool": "Shape tool",
   "@editorShapeTool": {
     "description": "Shape tool tooltip"
+  },
+  "noteActions": "Notebook actions",
+  "@noteActions": {
+    "description": "Notebook menu tooltip"
+  },
+  "noteImportPage": "Import page from another notebook",
+  "@noteImportPage": {
+    "description": "Import page menu item"
+  },
+  "noteImportMarkdown": "Import Markdown or text",
+  "@noteImportMarkdown": {
+    "description": "Import text menu item"
+  },
+  "noteImportPdf": "Import PDF and annotate per page",
+  "@noteImportPdf": {
+    "description": "Import PDF menu item"
+  },
+  "noteTidyPages": "Tidy up pages",
+  "@noteTidyPages": {
+    "description": "Tidy pages menu item"
+  },
+  "noteFilterHint": "Filter by tag or keyword",
+  "@noteFilterHint": {
+    "description": "Page filter hint"
+  },
+  "noteEncryptionChoice": "Choose encryption method",
+  "@noteEncryptionChoice": {
+    "description": "Encryption choice dialog title"
+  },
+  "noteMemoryPassword": "Memory password",
+  "@noteMemoryPassword": {
+    "description": "Password option title"
+  },
+  "noteMemoryPasswordSub": "Set a password; enter it to decrypt when opening",
+  "@noteMemoryPasswordSub": {
+    "description": "Password option subtitle"
+  },
+  "noteUsbKey": "USB key (password disk)",
+  "@noteUsbKey": {
+    "description": "Keyfile option title"
+  },
+  "noteUsbKeySub": "USB is the key: unlock by plugging in, lock on removal (zero knowledge)",
+  "@noteUsbKeySub": {
+    "description": "Keyfile option subtitle"
+  },
+  "noteRecoveryKeyTitle": "Save your recovery key (very important!)",
+  "@noteRecoveryKeyTitle": {
+    "description": "Recovery key dialog title"
   }
 }

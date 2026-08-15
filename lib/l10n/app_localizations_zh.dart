@@ -78,4 +78,40 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get editorShapeTool => '形状工具';
+
+  @override
+  String get noteActions => '笔记本操作';
+
+  @override
+  String get noteImportPage => '从其他笔记本引入页面';
+
+  @override
+  String get noteImportMarkdown => '导入 Markdown 或文本';
+
+  @override
+  String get noteImportPdf => '导入 PDF 并逐页批注';
+
+  @override
+  String get noteTidyPages => '批量整理页面';
+
+  @override
+  String get noteFilterHint => '筛选标签或关键词';
+
+  @override
+  String get noteEncryptionChoice => '选择加密方式';
+
+  @override
+  String get noteMemoryPassword => '记忆密码';
+
+  @override
+  String get noteMemoryPasswordSub => '设置密码，打开时输入密码解密';
+
+  @override
+  String get noteUsbKey => 'U盘钥匙（密码盘）';
+
+  @override
+  String get noteUsbKeySub => 'U盘即钥匙：插入 U 盘解锁，拔盘即锁（零知识）';
+
+  @override
+  String get noteRecoveryKeyTitle => '保存您的恢复密钥（非常重要！）';
 }

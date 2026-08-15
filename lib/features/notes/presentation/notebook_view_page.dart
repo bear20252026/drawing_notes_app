@@ -14,6 +14,7 @@ import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/core/storage/password_disk.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/storage/pdf_import_service.dart';
 import 'package:drawing_notes_app/core/storage/recovery_key_generator.dart';
@@ -336,35 +337,35 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
             ),
           ),
           PopupMenuButton<_NotebookMenuItem>(
-            tooltip: '笔记本操作',
+            tooltip: AppLocalizations.of(context)?.noteActions ?? '笔记本操作',
             icon: const Icon(Icons.more_horiz_rounded),
             onSelected: _onNotebookMenuSelected,
             itemBuilder: (_) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: _NotebookMenuItem.importPage,
                 child: ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(Icons.link_rounded),
-                  title: Text('从其他笔记本引入页面'),
+                  title: Text(AppLocalizations.of(context)?.noteImportPage ?? '从其他笔记本引入页面'),
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: _NotebookMenuItem.importText,
                 child: ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(Icons.upload_file_rounded),
-                  title: Text('导入 Markdown 或文本'),
+                  title: Text(AppLocalizations.of(context)?.noteImportMarkdown ?? '导入 Markdown 或文本'),
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: _NotebookMenuItem.importPdf,
                 child: ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(Icons.picture_as_pdf_outlined),
-                  title: Text('导入 PDF 并逐页批注'),
+                  title: Text(AppLocalizations.of(context)?.noteImportPdf ?? '导入 PDF 并逐页批注'),
                 ),
               ),
               PopupMenuItem(
@@ -381,13 +382,13 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                 ),
               ),
               const PopupMenuDivider(),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: _NotebookMenuItem.organize,
                 child: ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(Icons.drive_file_move_outlined),
-                  title: Text('批量整理页面'),
+                  title: Text(AppLocalizations.of(context)?.noteTidyPages ?? '批量整理页面'),
                 ),
               ),
             ],
@@ -411,8 +412,8 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                 padding: const EdgeInsets.all(4),
                 child: TextField(
                   onChanged: (v) => setState(() => _tagFilter = v.trim()),
-                  decoration: const InputDecoration(
-                    hintText: '筛选标签或关键词',
+                  decoration: InputDecoration(
+                    hintText: AppLocalizations.of(context)?.noteFilterHint ?? '筛选标签或关键词',
                     prefixIcon: Icon(Icons.search_rounded, size: 20),
                   ),
                 ),

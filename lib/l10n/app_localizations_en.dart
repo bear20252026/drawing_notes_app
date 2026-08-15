@@ -78,4 +78,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get editorShapeTool => 'Shape tool';
+
+  @override
+  String get noteActions => 'Notebook actions';
+
+  @override
+  String get noteImportPage => 'Import page from another notebook';
+
+  @override
+  String get noteImportMarkdown => 'Import Markdown or text';
+
+  @override
+  String get noteImportPdf => 'Import PDF and annotate per page';
+
+  @override
+  String get noteTidyPages => 'Tidy up pages';
+
+  @override
+  String get noteFilterHint => 'Filter by tag or keyword';
+
+  @override
+  String get noteEncryptionChoice => 'Choose encryption method';
+
+  @override
+  String get noteMemoryPassword => 'Memory password';
+
+  @override
+  String get noteMemoryPasswordSub =>
+      'Set a password; enter it to decrypt when opening';
+
+  @override
+  String get noteUsbKey => 'USB key (password disk)';
+
+  @override
+  String get noteUsbKeySub =>
+      'USB is the key: unlock by plugging in, lock on removal (zero knowledge)';
+
+  @override
+  String get noteRecoveryKeyTitle => 'Save your recovery key (very important!)';
 }

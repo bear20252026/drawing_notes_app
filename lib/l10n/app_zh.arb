@@ -69,5 +69,17 @@
   "editorCopyPng": "复制 PNG 到剪贴板",
   "editorExportPng": "导出 PNG",
   "editorExportSvg": "导出 SVG",
-  "editorShapeTool": "形状工具"
+  "editorShapeTool": "形状工具",
+  "noteActions": "笔记本操作",
+  "noteImportPage": "从其他笔记本引入页面",
+  "noteImportMarkdown": "导入 Markdown 或文本",
+  "noteImportPdf": "导入 PDF 并逐页批注",
+  "noteTidyPages": "批量整理页面",
+  "noteFilterHint": "筛选标签或关键词",
+  "noteEncryptionChoice": "选择加密方式",
+  "noteMemoryPassword": "记忆密码",
+  "noteMemoryPasswordSub": "设置密码，打开时输入密码解密",
+  "noteUsbKey": "U盘钥匙（密码盘）",
+  "noteUsbKeySub": "U盘即钥匙：插入 U 盘解锁，拔盘即锁（零知识）",
+  "noteRecoveryKeyTitle": "保存您的恢复密钥（非常重要！）"
 }

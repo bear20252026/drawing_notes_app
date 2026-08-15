@@ -33,12 +33,12 @@ extension DrawingControllerRenderOps on DrawingController {
       final y = canvasPoint.dy.round().clamp(0, _document.height - 1);
       final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
       if (bytes == null) return null;
-      final offset = (y * _document.width + x) * 4;
-      return Color.fromARGB(
-        bytes.getUint8(offset + 3),
-        bytes.getUint8(offset),
-        bytes.getUint8(offset + 1),
-        bytes.getUint8(offset + 2),
+      // Q-1 拆分（2026-08-16）：取色纯计算委托 ColorSamplingService。
+      return ColorSamplingService.colorFromRgbaBytes(
+        bytes,
+        _document.width,
+        x,
+        y,
       );
     } finally {
       // 无论成功/失败都释放位图，避免泄漏。
