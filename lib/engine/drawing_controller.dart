@@ -13,6 +13,7 @@ import '../models/shape_item.dart';
 import '../models/stroke.dart';
 import '../storage/local_id_generator.dart';
 import 'document_commands.dart';
+import 'document_transaction.dart';
 import 'eraser_mode.dart';
 import 'ink_layer_painter.dart';
 import 'layer_compositor.dart';

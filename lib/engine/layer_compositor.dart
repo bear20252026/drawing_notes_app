@@ -4,6 +4,7 @@ import 'dart:ui' show Offset, Rect;
 import '../models/layer.dart';
 import '../models/stroke.dart';
 import 'ink_layer_painter.dart';
+import 'stroke_picture_cache.dart';
 import 'stroke_renderer.dart';
 
 /// 图层的离屏渲染缓存。
@@ -30,7 +31,14 @@ class LayerRenderCache {
 
 /// 图层内容合成器：负责把某图层的笔画列表光栅化为位图。
 class LayerCompositor {
-  const LayerCompositor();
+  /// [pictureCache] 非 null 时启用笔画集合的 Picture 缓存
+  /// （借鉴 scribe_canvas cachedPicture 的 O(1) 重绘思想）：
+  /// 全量重建时命中指纹直接 drawPicture，避免逐笔画重建轮廓。
+  /// null = 回退旧路径（增量/逐笔画绘制），保证可随时回滚。
+  const LayerCompositor({this.pictureCache});
+
+  /// 可选的笔画集合 Picture 缓存（null = 关闭，走原路径）。
+  final StrokePictureCache? pictureCache;
 
   /// 把 [layer] 的笔画光栅化到 [width]x[height] 的透明位图上。
   ///
@@ -77,7 +85,22 @@ class LayerCompositor {
         StrokeRenderer.drawStroke(canvas, stroke);
       }
     } else {
-      InkLayerPainter.paintStrokes(canvas, fullBounds, layer.strokes);
+      // 全量重建：优先走 Picture 缓存（无 marker 时），命中直接
+      // drawPicture（O(1) 重绘）；未命中/未启用则逐笔画绘制原路径。
+      final cached = pictureCache;
+      if (cached != null && !hasHighlighter) {
+        final pic = cached.pictureFor(
+          layer.strokes,
+          size: ui.Size(width.toDouble(), height.toDouble()),
+        );
+        if (pic != null) {
+          canvas.drawPicture(pic);
+        } else {
+          InkLayerPainter.paintStrokes(canvas, fullBounds, layer.strokes);
+        }
+      } else {
+        InkLayerPainter.paintStrokes(canvas, fullBounds, layer.strokes);
+      }
     }
     canvas.restore();
 

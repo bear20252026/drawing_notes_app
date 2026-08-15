@@ -26,6 +26,18 @@ extension DrawingControllerHistoryOps on DrawingController {
     _pushCommand(SnapshotCommand(this, entry.before, entry.after));
   }
 
+  /// 批量命令原子提交（借鉴 iwb_canvas_engine SceneWriteTxn 思想，
+  /// 见 docs/SOURCE_READ_ADAPTATION_REPORT.md）。
+  ///
+  /// 把多个 [DocCommand] 包装为 [DocumentTransaction] 整体入栈：
+  /// - 一次撤销/重做作用于整批命令（原子语义，审计留痕）；
+  /// - 执行任一子命令失败时事务自动逆序回滚已执行部分（全部成功或全部回滚）。
+  /// 空列表直接忽略（无操作），不产生空事务条目。
+  void pushTransaction(List<DocCommand> commands) {
+    if (commands.isEmpty) return;
+    _pushCommand(DocumentTransaction(commands));
+  }
+
   void undo() {
     if (!canUndo) return;
     _historyPosition--;
