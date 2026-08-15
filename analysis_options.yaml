@@ -43,6 +43,15 @@ dart_code_metrics:
   anti-patterns:
     - long-method
     - long-parameter-list
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 
 
 # Additional information about this file can be found at

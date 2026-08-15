@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/features/drawing/application/search_service.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';

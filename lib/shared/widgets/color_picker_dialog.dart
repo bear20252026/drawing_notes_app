@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// 颜色选择对话框（Phase 2 验收：色板 + 自由调色）。
 ///

@@ -49,6 +49,8 @@ dependencies:
   # 状态管理：编译时安全/可测试（2026 官方推荐，见架构约束）
   flutter_riverpod: ^2.6.1
 
+  material_ui: any
+  cupertino_ui: any
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -61,7 +63,6 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
-  dart_code_metrics: ^5.7.6
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -107,3 +108,8 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Flutter 3.47 兼容修复：pdfrx_engine 0.4.5 在 3.47 下 PdfFileCache?
+# 可空性编译错误（官方 0.4.6 修复）；主包约束仍锁 0.4.5，用 override 强制。
+dependency_overrides:
+  pdfrx_engine: 0.4.6

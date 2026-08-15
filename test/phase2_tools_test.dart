@@ -4,7 +4,7 @@ import 'package:drawing_notes_app/features/drawing/application/drawing_controlle
 import 'package:drawing_notes_app/features/drawing/infrastructure/layer_compositor.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Phase 2 验收测试：基础绘图工具。
