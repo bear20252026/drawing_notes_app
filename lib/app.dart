@@ -1,11 +1,13 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:material_ui/material_ui.dart' hide GlobalMaterialLocalizations;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/di/providers.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
+import 'l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
@@ -93,7 +95,18 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
       builder: (context, _) => Consumer(
         builder: (context, ref, _) => MaterialApp(
           navigatorKey: _navigatorKey,
-          title: '绘图笔记',
+          // L-04 国际化（专家审计 2026-08-15）：gen_l10n 本地化标题。
+          title: AppLocalizations.of(context)?.appTitle ?? '绘图笔记',
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('zh'),
+            Locale('en'),
+          ],
           debugShowCheckedModeBanner: false,
           themeMode: _themeController.mode,
           theme: ref.watch(themeProvider),

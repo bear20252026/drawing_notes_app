@@ -1,0 +1,27 @@
+{
+  "@@locale": "zh",
+  "appTitle": "绘图笔记",
+  "@appTitle": {
+    "description": "应用程序标题"
+  },
+  "search": "搜索",
+  "@search": {
+    "description": "搜索操作"
+  },
+  "trash": "回收站（30 天内可恢复）",
+  "@trash": {
+    "description": "回收站入口"
+  },
+  "close": "关闭",
+  "@close": {
+    "description": "关闭对话框"
+  },
+  "newNotebook": "新建笔记本",
+  "@newNotebook": {
+    "description": "新建笔记本操作"
+  },
+  "delete": "删除",
+  "@delete": {
+    "description": "删除操作"
+  }
+}

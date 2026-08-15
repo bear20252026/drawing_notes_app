@@ -1,0 +1,27 @@
+{
+  "@@locale": "en",
+  "appTitle": "Drawing Notes",
+  "@appTitle": {
+    "description": "Application title"
+  },
+  "search": "Search",
+  "@search": {
+    "description": "Search action"
+  },
+  "trash": "Trash (recoverable within 30 days)",
+  "@trash": {
+    "description": "Recycle bin entry"
+  },
+  "close": "Close",
+  "@close": {
+    "description": "Close dialog"
+  },
+  "newNotebook": "New notebook",
+  "@newNotebook": {
+    "description": "Create notebook action"
+  },
+  "delete": "Delete",
+  "@delete": {
+    "description": "Delete action"
+  }
+}

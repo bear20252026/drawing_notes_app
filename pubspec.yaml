@@ -30,6 +30,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
   path_provider: ^2.1.5
   shared_preferences: ^2.3.2
   cryptography: ^2.7.0
@@ -80,6 +83,7 @@ flutter:
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
+  generate: true # L-04 国际化（专家审计 2026-08-15）：gen_l10n 生成本地化
   uses-material-design: true
 
   # 分页笔记 PDF 导出使用的离线 CJK 字体，避免依赖设备字体或网络下载。

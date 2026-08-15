@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/features/drawing/application/search_service.dart';
@@ -20,6 +22,18 @@ class _SearchPageState extends State<SearchPage> {
   final TextEditingController _controller = TextEditingController();
   List<SearchResult> _results = const [];
   bool _searching = false;
+  // M-08 去抖（专家审计 2026-08-15）：停止输入 300ms 后才触发搜索——
+  // 防每键全盘扫描（Flutter 官方 Riverpod debounce 模式——Timer 取消
+  // 旧任务 + 延迟触发）。
+  Timer? _debounceTimer;
+
+  /// M-08 去抖入口：停止输入 300ms 后触发搜索。
+  void _onQueryChanged(String query) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      _search(query);
+    });
+  }
 
   Future<void> _search(String query) async {
     if (query.trim().isEmpty) {
@@ -67,6 +81,7 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -83,7 +98,7 @@ class _SearchPageState extends State<SearchPage> {
             child: TextField(
               controller: _controller,
               autofocus: true,
-              onChanged: _search,
+              onChanged: _onQueryChanged,
               decoration: InputDecoration(
                 hintText: '搜索文字块内容 / 标题…',
                 prefixIcon: const Icon(Icons.search),

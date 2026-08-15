@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
@@ -217,8 +218,10 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('回收站（30 天内可恢复）'),
-        content: SizedBox(
-          width: 380,
+        content: ConstrainedBox(
+          // L-02 响应式（专家审计 2026-08-15）：maxWidth 而非固定宽度——
+          // 窄屏自适应（原 SizedBox 固定 380 在窄屏可能溢出）。
+          constraints: const BoxConstraints(maxWidth: 380),
           child: trash.isEmpty
               ? const Text('回收站为空')
               : ListView.builder(
@@ -361,14 +364,19 @@ class _HomePageState extends State<HomePage> {
       length: 3, // 画作 / 笔记本 / 时间线
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('绘图笔记'),
+          title: Text(AppLocalizations.of(context)?.appTitle ?? '绘图笔记'),
           actions: [
             IconButton(
               tooltip: '搜索全部内容',
               icon: const Icon(Icons.search_rounded),
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => SearchPage(searchService: SearchService()),
+                  builder: (_) => SearchPage(
+                    searchService: SearchService(
+                      notebookAccessor: _nbStorage,
+                      docStorage: _docStorage,
+                    ),
+                  ),
                 ),
               ),
             ),

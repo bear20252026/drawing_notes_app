@@ -1,0 +1,5 @@
+# L-04 国际化（专家审计 2026-08-15）：Flutter 官方 gen_l10n 配置。
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
