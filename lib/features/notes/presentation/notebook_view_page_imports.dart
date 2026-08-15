@@ -22,7 +22,11 @@ extension _NotebookPageImports on _NotebookViewPageState {
       label: 'Markdown / 文本',
       extensions: ['md', 'txt'],
     );
+    // 会话守卫豁免（专家审计最优先③——2026-08-16）：文件选择器运行期间
+    // 不触发锁定（防导入误锁——private_notes_light filePickerRunning 模式）。
+    _sessionGuard.setFilePickerActive(true);
     final file = await openFile(acceptedTypeGroups: [typeGroup]);
+    _sessionGuard.setFilePickerActive(false);
     if (file == null) return;
     try {
       // 任务#3（专家审计 2026-08-15）：文本导入大小配额——防超大文件
@@ -90,7 +94,9 @@ extension _NotebookPageImports on _NotebookViewPageState {
       return;
     }
     const typeGroup = XTypeGroup(label: 'PDF 文档', extensions: ['pdf']);
+    _sessionGuard.setFilePickerActive(true);
     final selected = await openFile(acceptedTypeGroups: [typeGroup]);
+    _sessionGuard.setFilePickerActive(false);
     if (selected == null) return;
     try {
       final importId = NotebookStorage.newId('pdf');

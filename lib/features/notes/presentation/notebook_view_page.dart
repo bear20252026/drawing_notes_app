@@ -15,6 +15,7 @@ import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/core/storage/password_disk.dart';
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
+import 'package:drawing_notes_app/core/security/session_guard.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/storage/pdf_import_service.dart';
@@ -95,6 +96,28 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   List<int>? get _effectiveMasterKey =>
       _sessionMasterKey ?? widget.sessionMasterKey;
 
+  /// 会话守卫（专家审计最优先③——2026-08-16）：失去焦点立即锁定（保存 +
+  /// 清除媒体密钥——private_notes_light 模式）；resume 已锁定则提示重新
+  /// 解锁（文件选择器运行中豁免——防导入/导出误锁）。
+  late final SessionGuard _sessionGuard = SessionGuard(
+    onLock: () {
+      _save();
+      MediaCryptoService.instance.clearSessionKey();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('会话已锁定，请重新解锁')),
+        );
+      }
+    },
+    onReauthenticateRequired: () {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('会话已过期，请重新解锁')),
+        );
+      }
+    },
+  );
+
   @override
   void initState() {
     super.initState();
@@ -117,6 +140,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
       _sessionMasterKey = null;
     }
     _sessionPassword = null;
+    _sessionGuard.dispose();
     // H-03 密钥清理时机：页面退出清除媒体加密会话密钥（D-2 内存清理）。
     MediaCryptoService.instance.clearSessionKey();
     _lifecycleListener?.dispose();
