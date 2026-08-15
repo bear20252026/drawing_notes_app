@@ -42,4 +42,35 @@ void main() {
     ];
     expect(SelectionGeometryService.centerOfStrokes(strokes), const Offset(7, 9));
   });
+
+  test('变换：缩放点围绕中心', () {
+    expect(
+      SelectionGeometryService.scalePoint(
+        const Offset(10, 10),
+        const Offset(0, 0),
+        2,
+      ),
+      const Offset(20, 20),
+    );
+    expect(
+      SelectionGeometryService.scalePoint(
+        const Offset(10, 0),
+        const Offset(5, 0),
+        0.5,
+      ),
+      const Offset(7.5, 0),
+    );
+  });
+
+  test('变换：旋转点围绕中心（90°）', () {
+    // cos(π/2)=0, sin(π/2)=1——(10,0) 绕 (0,0) 旋转 90° → (0,10)。
+    final rotated = SelectionGeometryService.rotatePoint(
+      const Offset(10, 0),
+      const Offset(0, 0),
+      0,
+      1,
+    );
+    expect(rotated.dx, closeTo(0, 1e-9));
+    expect(rotated.dy, closeTo(10, 1e-9));
+  });
 }

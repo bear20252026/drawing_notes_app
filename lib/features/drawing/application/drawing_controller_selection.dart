@@ -117,7 +117,10 @@ extension DrawingControllerSelectionOps on DrawingController {
     if (!hasSelectedStrokes) return;
     _ensureTransformBefore();
     final c = _selectedStrokeCenter();
-    _transformSelected((p) => c + (p - c) * factor);
+    // Q-1 拆分（2026-08-16）：变换计算委托 SelectionGeometryService。
+    _transformSelected(
+      (p) => SelectionGeometryService.scalePoint(p, c, factor),
+    );
   }
 
   /// 旋转选中的笔画（围绕选区中心，角度为弧度）。
@@ -127,10 +130,10 @@ extension DrawingControllerSelectionOps on DrawingController {
     final c = _selectedStrokeCenter();
     final cosA = math.cos(radians);
     final sinA = math.sin(radians);
-    _transformSelected((p) {
-      final dx = p.dx - c.dx, dy = p.dy - c.dy;
-      return Offset(c.dx + dx * cosA - dy * sinA, c.dy + dx * sinA + dy * cosA);
-    });
+    // Q-1 拆分（2026-08-16）：变换计算委托 SelectionGeometryService。
+    _transformSelected(
+      (p) => SelectionGeometryService.rotatePoint(p, c, cosA, sinA),
+    );
   }
 
   /// 已选笔画的实际外接框中心。手势套索可画得很大，因此不能把套索包围盒

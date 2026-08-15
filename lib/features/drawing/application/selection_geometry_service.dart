@@ -29,4 +29,24 @@ class SelectionGeometryService {
     if (!minX.isFinite) return null;
     return Offset((minX + maxX) / 2, (minY + maxY) / 2);
   }
+
+  /// 缩放变换（纯计算）：点 [p] 围绕 [center] 缩放 [factor] 倍。
+  static Offset scalePoint(Offset p, Offset center, double factor) =>
+      center + (p - center) * factor;
+
+  /// 旋转变换（纯计算）：点 [p] 围绕 [center] 旋转（cosA/sinA 由调用方
+  /// 预先计算——避免每点重复三角函数）。
+  static Offset rotatePoint(
+    Offset p,
+    Offset center,
+    double cosA,
+    double sinA,
+  ) {
+    final dx = p.dx - center.dx;
+    final dy = p.dy - center.dy;
+    return Offset(
+      center.dx + dx * cosA - dy * sinA,
+      center.dy + dx * sinA + dy * cosA,
+    );
+  }
 }
