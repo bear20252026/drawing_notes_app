@@ -60,6 +60,10 @@ class PdfImportService {
 
   static const int defaultMaxRenderSide = 1800;
 
+  /// 单次导入页数上限（红蓝攻防 D-6 修复 2026-08-15）：
+  /// 防恶意多页 PDF 触发 OOM（拒绝服务）。
+  static const int _maxImportPages = 500;
+
   static Future<List<ImportedPdfPage>> renderPages({
     required String sourcePath,
     required Directory outputDirectory,
@@ -90,6 +94,10 @@ class PdfImportService {
       sourcePath,
       maxRenderSide,
     );
+    // D-6 修复：页数上限，防恶意多页 PDF 耗尽内存。
+    if (rendered.length > _maxImportPages) {
+      throw StateError('PDF 页数超过 $_maxImportPages 页限制，拒绝导入');
+    }
     final results = <ImportedPdfPage>[];
     try {
       for (final page in rendered) {

@@ -61,6 +61,11 @@ class DocumentCodec {
   /// 重复 ID、危险几何和指向已不存在目标的箭头绑定，避免外部/旧版文件使渲染
   /// 或后续编辑陷入异常状态。
   DrawingDocument decode(Uint8List bytes) {
+    // 入口大小预检（红蓝攻防 D-4 修复 2026-08-15）：拒绝超大文档，
+    // 防恶意构造文件耗尽内存（OOM）。
+    if (bytes.length > _maxDecodeBytes) {
+      throw FormatException('文档过大（超过 100MB 限制），拒绝打开');
+    }
     final Object? decoded;
     try {
       decoded = jsonDecode(utf8.decode(bytes));
@@ -115,6 +120,14 @@ class DocumentCodec {
   static const double _maxShapeExtent = 8192;
   static const double _maxStrokeWidth = 512;
 
+  // 对象数量/大小上限（红蓝攻防 D-4 修复 2026-08-15）：
+  // 防恶意 JSON 堆叠海量条目触发 OOM（拒绝服务）。
+  static const int _maxDecodeBytes = 100 * 1024 * 1024; // 100MB
+  static const int _maxLayerCount = 200;
+  static const int _maxStrokeCount = 10000;
+  static const int _maxShapeCount = 5000;
+  static const int _maxImageCount = 5000;
+
   static int _restoreCanvasDimension(Object? value, int fallback) {
     if (value is! num || !value.toDouble().isFinite) return fallback;
     return value.toInt().clamp(16, 32768).toInt();
@@ -124,7 +137,9 @@ class DocumentCodec {
     final layers = <Layer>[];
     final ids = <String>{};
     if (value is List) {
-      for (final entry in value) {
+      final limit = value.length.clamp(0, _maxLayerCount);
+      for (var i = 0; i < limit; i++) {
+        final entry = value[i];
         if (entry is! Map) continue;
         try {
           final json = Map<String, dynamic>.from(entry);
@@ -155,7 +170,9 @@ class DocumentCodec {
   static List<Stroke> _restoreStrokes(Object? value) {
     final strokes = <Stroke>[];
     if (value is! List) return strokes;
-    for (final entry in value) {
+    final limit = value.length.clamp(0, _maxStrokeCount);
+    for (var i = 0; i < limit; i++) {
+      final entry = value[i];
       if (entry is! Map) continue;
       try {
         final json = Map<String, dynamic>.from(entry);
@@ -231,7 +248,9 @@ class DocumentCodec {
     final shapes = <PageShapeItem>[];
     final ids = <String>{};
     if (value is List) {
-      for (final entry in value) {
+      final limit = value.length.clamp(0, _maxShapeCount);
+      for (var i = 0; i < limit; i++) {
+        final entry = value[i];
         if (entry is! Map) continue;
         try {
           final shape = PageShapeItem.fromJson(
@@ -293,7 +312,9 @@ class DocumentCodec {
     final images = <DocumentImageItem>[];
     final ids = <String>{};
     if (value is! List) return images;
-    for (final entry in value) {
+    final limit = value.length.clamp(0, _maxImageCount);
+    for (var i = 0; i < limit; i++) {
+      final entry = value[i];
       if (entry is! Map) continue;
       try {
         final item = DocumentImageItem.fromJson(

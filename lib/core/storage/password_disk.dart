@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
+
+import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 
 /// 密码盘（U盘即钥匙）服务接口（设计见 docs/PASSWORD_DISK_DESIGN.md）。
 ///
@@ -50,6 +53,41 @@ class PasswordDiskFile {
     }
     if (bytes[4] != _version) return null;
     return bytes.sublist(5);
+  }
+
+  /// PIN 保护 v2 编码（红蓝攻防 D-5 修复 2026-08-15，P2 中期核心机制）：
+  /// 用 PIN 派生 KEK 包裹主密钥（OWASP Key Management Cheat Sheet：存储
+  /// 密钥须用 KEK 加密，KEK 强度不低于被保护密钥）——key.frogkey 不再
+  /// 明文存主密钥，物理获取 U 盘也无法直接读出。
+  /// 格式：[magic(4), 0x02, ...信封 JSON（salt/nonce/ek/mac，复用
+  /// EncryptionService.wrapMasterKey——PIN 作 KEK 派生输入）]。
+  static Future<List<int>> encodeWithPin({
+    required List<int> key,
+    required String pin,
+  }) async {
+    final envelope = await const EncryptionService().wrapMasterKey(key, pin);
+    return [..._magic, 0x02, ...utf8.encode(envelope)];
+  }
+
+  /// PIN 保护 v2 解码：PIN 正确返回主密钥，错误/损坏返回 null。
+  static Future<List<int>?> decodeWithPin(
+    List<int> bytes,
+    String pin,
+  ) async {
+    if (bytes.length < 6 ||
+        bytes[0] != _magic[0] ||
+        bytes[1] != _magic[1] ||
+        bytes[2] != _magic[2] ||
+        bytes[3] != _magic[3] ||
+        bytes[4] != 0x02) {
+      return null;
+    }
+    try {
+      final envelope = utf8.decode(bytes.sublist(5));
+      return await const EncryptionService().unwrapMasterKey(envelope, pin);
+    } catch (_) {
+      return null;
+    }
   }
 }
 

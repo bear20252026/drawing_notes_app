@@ -183,4 +183,16 @@ class EncryptionService {
     final rng = Random.secure();
     return List<int>.generate(n, (_) => rng.nextInt(256));
   }
+
+  /// 读取加密数据格式版本（红蓝攻防 D-1 修复 2026-08-15）：
+  /// 用于判断旧格式（v≤2 = PBKDF2 10 万次迭代）提示用户重新保存升级；
+  /// 无 v 字段的旧数据视为 v=2，解析失败保守视为旧格式。
+  static int formatVersionOf(String encryptedJson) {
+    try {
+      final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
+      return map['v'] is int ? map['v'] as int : 2;
+    } catch (_) {
+      return 2;
+    }
+  }
 }

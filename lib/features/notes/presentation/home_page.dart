@@ -9,6 +9,7 @@ import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/core/storage/password_disk.dart';
+import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/notes/presentation/onboarding.dart';
@@ -233,6 +234,17 @@ class _HomePageState extends State<HomePage> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// 旧版加密格式提示（红蓝攻防 D-1 修复 2026-08-15）：
+  /// v≤2 旧数据用 PBKDF2 10 万次迭代，弱密码可被 GPU 集群暴力破解——
+  /// 解锁成功后提示用户重新保存以升级至 60 万次新标准。
+  void _maybeWarnLegacyEncryption(Notebook nb) {
+    final payload = nb.encryptedPayload;
+    if (payload == null) return;
+    if (EncryptionService.formatVersionOf(payload) <= 2) {
+      _showSnack('检测到旧版加密格式（10 万次迭代），建议重新保存以升级至最新加密标准（60 万次）');
+    }
   }
 
   void _onHomeMenuSelected(_HomeMenuItem item) {
@@ -594,6 +606,7 @@ class _HomePageState extends State<HomePage> {
             return;
           }
           notebook = fresh;
+          _maybeWarnLegacyEncryption(fresh);
         } catch (_) {
           _showSnack('密码盘无法解锁该笔记本');
           return;
@@ -614,6 +627,7 @@ class _HomePageState extends State<HomePage> {
             return;
           }
           notebook = fresh;
+          _maybeWarnLegacyEncryption(fresh);
         } catch (_) {
           _showSnack('密码错误或数据已损坏');
           return;

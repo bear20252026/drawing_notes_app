@@ -16,22 +16,34 @@ class SyncPathCipher {
   /// 加密文件名的扩展名（对齐 Saber `.sbe`）。
   static const String encryptedExtension = '.sbe';
 
-  /// 派生确定性 nonce：SHA-256(主密钥 ‖ 文件名) 前 12 字节。
-  /// 同一文件名必然得到同一 nonce，保证可逆且无额外索引。
-  Future<Uint8List> _deriveNonce(
+  /// 派生确定性 nonce 与 padding 长度：SHA-256(主密钥 ‖ 文件名)。
+  /// nonce 取前 12 字节（同一文件名必然同一 nonce，保证可逆无索引）；
+  /// padding 长度由第 13 字节派生（4-16 确定性——同明文同密文保持云端
+  /// 按名找回，同时不同文件名的密文长度区间化，防精确推断明文长度）。
+  Future<(Uint8List, int)> _deriveNonceAndPad(
     List<int> masterKey,
     String plainName,
   ) async {
     final digest = await Sha256().hash([...masterKey, ...utf8.encode(plainName)]);
-    return Uint8List.fromList(digest.bytes.take(12).toList());
+    final nonce = Uint8List.fromList(digest.bytes.take(12).toList());
+    final padLen = 4 + (digest.bytes[12] % 13);
+    return (nonce, padLen);
   }
 
   /// 加密文件名：`note标题.json` → `3f9a…c2.sbe`。
   Future<String> encryptPath(String fileName, List<int> masterKey) async {
     final aes = AesGcm.with256bits();
-    final nonce = await _deriveNonce(masterKey, fileName);
+    final (nonce, padLen) = await _deriveNonceAndPad(masterKey, fileName);
+    // 长度混淆（红蓝攻防 D-3 修复 2026-08-15）：加密前加 4-16 字节
+    // padding（长度确定性派生——保持同明文同密文、云端按名找回；
+    // 不同文件名的密文长度区间化，防 .sbe 列表长度精确推断明文，
+    // 见 mozilla/sops #223 GCM 长度泄露）。
+    final plainBytes = utf8.encode(fileName);
+    final payload = Uint8List(1 + plainBytes.length + padLen);
+    payload[0] = plainBytes.length; // 真实长度（文件名 < 255 字节）
+    payload.setRange(1, 1 + plainBytes.length, plainBytes);
     final box = await aes.encrypt(
-      utf8.encode(fileName),
+      payload,
       secretKey: SecretKey(masterKey),
       nonce: nonce,
     );
@@ -69,14 +81,16 @@ class SyncPathCipher {
   ) async {
     final aes = AesGcm.with256bits();
     for (final candidate in candidates) {
-      final nonce = await _deriveNonce(masterKey, candidate);
+      final (nonce, _) = await _deriveNonceAndPad(masterKey, candidate);
       final Uint8List combined;
       try {
         final body = encryptedName.substring(
           0,
           encryptedName.length - encryptedExtension.length,
         );
-        combined = base64Url.decode(body.length % 4 == 1 ? '$body=' : body);
+        // D-3 修复：新格式带 padding 的密文 base64 长度 %4 可能为 2/3，
+        // 原实现只对 %4==1 补 '='——用 normalize 自动补全填充防解码失败。
+        combined = base64Url.decode(base64Url.normalize(body));
       } on FormatException {
         return null;
       }
@@ -89,7 +103,26 @@ class SyncPathCipher {
           box,
           secretKey: SecretKey(masterKey),
         );
-        return utf8.decode(clear);
+        // D-3：新格式载荷 = [真实长度, ...明文, ...随机 padding]——
+        // 先按首字节长度截断；解析失败回退旧格式（无 padding 直解，
+        // 旧数据明文首字节为 ASCII 字母（65-122）几乎总大于密文长度，
+        // 自动落入整段直解分支，保持向后兼容）。
+        if (clear.isNotEmpty) {
+          final realLen = clear[0];
+          if (realLen > 0 && realLen < clear.length) {
+            try {
+              return utf8.decode(clear.sublist(1, 1 + realLen));
+            } on FormatException {
+              // 落到旧格式整段直解。
+            }
+          }
+          try {
+            return utf8.decode(clear);
+          } on FormatException {
+            continue;
+          }
+        }
+        continue;
       } on SecretBoxAuthenticationError {
         continue; // nonce 不符，试下一个候选
       } on FormatException {

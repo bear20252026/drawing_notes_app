@@ -93,6 +93,20 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
     _notebook = widget.notebook;
   }
 
+  /// 会话密钥内存清理（红蓝攻防 D-2 修复 2026-08-15）：
+  /// Widget 销毁时显式清零堆内存中的主密钥/密码——Dart GC 不保证立即
+  /// 回收，fillRange 主动擦除可防冷启动/内存转储（frida/proc mem）提取。
+  @override
+  void dispose() {
+    final key = _sessionMasterKey;
+    if (key != null) {
+      key.fillRange(0, key.length, 0);
+      _sessionMasterKey = null;
+    }
+    _sessionPassword = null;
+    super.dispose();
+  }
+
   /// 保存笔记本到本地（每次变更后调用）。
   ///
   /// 版本历史（C1，对齐 nb"每次修改自动 commit"）：保存前为每个页面
