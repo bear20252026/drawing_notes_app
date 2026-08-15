@@ -21,7 +21,7 @@ import '../../engine/gesture_math.dart';
 import '../../engine/pencil_shader.dart';
 import '../../engine/shape_binding_geometry.dart';
 import '../../engine/shape_creation_geometry.dart';
-import '../../engine/shape_library.dart';
+import '../widgets/shape_library.dart';
 import '../../engine/stylus_input.dart';
 import '../../engine/view_transform_cache.dart';
 import '../../models/document.dart';
