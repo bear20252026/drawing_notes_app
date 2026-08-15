@@ -9,6 +9,7 @@ library;
 import 'dart:math';
 
 import 'package:flutter/widgets.dart';
+import 'package:vector_math/vector_math_64.dart' as vmath;
 
 /// 绕原点旋转点 [p]（角度 [angle] 弧度，逆时针为正）。
 ///
@@ -62,3 +63,44 @@ Offset viewToCanvasPoint(
   final unrotated = rotatePoint2(viewPoint - center - offset, -angle);
   return unrotated / scale + center;
 }
+
+// ---------------------------------------------------------------------------
+// 矩阵化视口变换（本地化适配 vector_math，审计改造 2026-08-15）
+//
+// 原理：view = R(angle)·(scale·(p - center)) + center + offset 是标准 2D
+// 仿射变换，可组合为单个矩阵 M = T(center+offset)·R(angle)·S(scale)·T(-center)
+// 一次构建、多次应用（矩阵乘法），替代每次调用都重算 cos/sin 的方式；
+// 逆变换用 M⁻¹（Matrix3.inverted），与函数式版本数学严格等价。
+// ---------------------------------------------------------------------------
+
+/// 构建视口变换矩阵：T(center+offset)·R(angle)·S(scale)·T(-center)。
+///
+/// 与 [canvasToViewPoint] 的数学模型严格一致（组合一次，供批量点变换）。
+vmath.Matrix4 viewTransformMatrix(
+  double scale,
+  double angle,
+  Offset center,
+  Offset offset,
+) {
+  return vmath.Matrix4.identity()
+    ..translateByDouble(center.dx + offset.dx, center.dy + offset.dy, 0.0, 1.0)
+    ..rotateZ(angle)
+    ..scaleByDouble(scale, scale, 1.0, 1.0)
+    ..translateByDouble(-center.dx, -center.dy, 0.0, 1.0);
+}
+
+/// 应用 2D 仿射矩阵到点 [p]（视口变换矩阵版）。
+Offset transformPoint(vmath.Matrix4 m, Offset p) {
+  final v = m.transform3(vmath.Vector3(p.dx, p.dy, 1.0));
+  return Offset(v.x, v.y);
+}
+
+/// 矩阵版视口正变换：画布点 -> 视图点（[canvasToViewPoint] 的等价实现）。
+///
+/// [m] 由 [viewTransformMatrix] 构建；批量变换同一矩阵时性能优于逐点重建。
+Offset canvasToViewPointMatrix(vmath.Matrix4 m, Offset canvasPoint) =>
+    transformPoint(m, canvasPoint);
+
+/// 矩阵版视口逆变换：视图点 -> 画布点（[viewToCanvasPoint] 的等价实现）。
+Offset viewToCanvasPointMatrix(vmath.Matrix4 m, Offset viewPoint) =>
+    transformPoint(m.clone()..invert(), viewPoint);

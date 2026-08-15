@@ -65,6 +65,7 @@ class PdfImportService {
     required Directory outputDirectory,
     required String importId,
     int maxRenderSide = defaultMaxRenderSide,
+    Set<int>? pageNumbers,
     PdfRasterizer? rasterizer,
   }) async {
     if (maxRenderSide < 256) {
@@ -92,6 +93,10 @@ class PdfImportService {
     final results = <ImportedPdfPage>[];
     try {
       for (final page in rendered) {
+        // 页范围选择（本地化适配 2026-08-15）：pageNumbers 为空表示导入全部页。
+        if (pageNumbers != null && !pageNumbers.contains(page.pageNumber)) {
+          continue;
+        }
         if (page.width <= 0 || page.height <= 0 || page.pngBytes.isEmpty) {
           throw StateError('PDF 第 ${page.pageNumber} 页渲染结果无效');
         }

@@ -97,4 +97,25 @@ void main() {
     final header = String.fromCharCodes(bytes.take(4));
     expect(header, '%PDF');
   });
+
+  test('jpegQuality 压缩路径：JPEG 光栅层导出成功（%PDF）', () async {
+    final document = DrawingDocument(id: 'pdf_jpeg', title: 'JPEG 导出');
+    document.layers.single.strokes.add(_markerStroke());
+    final controller = DrawingController(document);
+    addTearDown(controller.dispose);
+
+    final rasterPng = await controller.renderToPng();
+    expect(rasterPng, isNotNull);
+
+    final bytes = await PdfHybridExporter.export(
+      bounds: const Rect.fromLTWH(0, 0, 200, 150),
+      rasterPng: rasterPng!,
+      vectorStrokes: const [],
+      jpegQuality: 80,
+    );
+
+    expect(bytes, isNotEmpty);
+    expect(String.fromCharCodes(bytes.take(4)), '%PDF',
+        reason: 'JPEG 压缩路径同样产出合法 PDF');
+  });
 }

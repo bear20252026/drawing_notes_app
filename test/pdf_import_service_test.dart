@@ -45,6 +45,40 @@ void main() {
     }
   });
 
+  test('页范围选择：pageNumbers 仅导入指定页（本地化适配）', () async {
+    final temp = await Directory.systemTemp.createTemp('pdf_range_test_');
+    addTearDown(() => temp.delete(recursive: true));
+    final source = File('${temp.path}${Platform.pathSeparator}source.pdf');
+    await source.writeAsBytes(const [37, 80, 68, 70, 45], flush: true);
+    final output = Directory('${temp.path}${Platform.pathSeparator}pages');
+
+    final pages = await PdfImportService.renderPages(
+      sourcePath: source.path,
+      outputDirectory: output,
+      importId: 'pdf_range',
+      maxRenderSide: 512,
+      pageNumbers: {1},
+      rasterizer: (_, _) async => [
+        RenderedPdfPage(
+          pageNumber: 1,
+          pngBytes: Uint8List.fromList(pngHeader),
+          width: 362,
+          height: 512,
+        ),
+        RenderedPdfPage(
+          pageNumber: 2,
+          pngBytes: Uint8List.fromList(pngHeader),
+          width: 362,
+          height: 512,
+        ),
+      ],
+    );
+
+    expect(pages, hasLength(1), reason: 'pageNumbers={1} 只导入第 1 页');
+    expect(pages.single.pageNumber, 1);
+    expect(pages.single.width, 362);
+  });
+
   test('PDF 导入拒绝非 PDF 路径，不调用渲染后端', () async {
     final temp = await Directory.systemTemp.createTemp('pdf_import_invalid_');
     addTearDown(() => temp.delete(recursive: true));

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:image/image.dart' as img;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -29,14 +30,20 @@ class PdfHybridExporter {
   /// （背景 + 高亮/铅笔/图片/形状，即“排除矢量笔画后的全部内容”）；
   /// [vectorStrokes] 为以矢量写入的钢笔笔画。位图与矢量共用同一坐标系，
   /// [bounds.topLeft] 作为偏移，保证无限画布下两者精确对齐。
+  /// [jpegQuality] 可选：1-100 时把光栅层转 JPEG 压缩（导出体积优化，
+  /// 有损；默认 null 保持 PNG 无损质量）。含文本/形状时建议保持 PNG。
   static Future<Uint8List> export({
     required ui.Rect bounds,
     required Uint8List rasterPng,
     required List<Stroke> vectorStrokes,
     ui.Color background = const ui.Color(0xFFFFFFFF),
+    int? jpegQuality,
   }) async {
     final pdfBackground = PdfColor.fromInt(background.toARGB32());
     final offset = ui.Offset(-bounds.left, -bounds.top);
+    final rasterBytes = jpegQuality == null
+        ? rasterPng
+        : _encodeJpeg(rasterPng, jpegQuality);
 
     final doc = pw.Document();
     doc.addPage(
@@ -47,7 +54,7 @@ class PdfHybridExporter {
           children: [
             pw.Positioned.fill(
               child: pw.Image(
-                pw.MemoryImage(rasterPng),
+                pw.MemoryImage(rasterBytes),
                 fit: pw.BoxFit.fill,
               ),
             ),
@@ -75,5 +82,17 @@ class PdfHybridExporter {
       ),
     );
     return doc.save();
+  }
+
+  /// 将 PNG 字节转 JPEG（[quality] 1-100，越高质量越高体积越大）。
+  ///
+  /// 用纯 Dart image 包编码（dart:ui 的 ImageByteFormat 不支持 JPEG 输出）；
+  /// 解码失败时回退原字节，保证导出永不因压缩失败中断。
+  static Uint8List _encodeJpeg(Uint8List pngBytes, int quality) {
+    final decoded = img.decodeImage(pngBytes);
+    if (decoded == null) return pngBytes;
+    return Uint8List.fromList(
+      img.encodeJpg(decoded, quality: quality.clamp(1, 100)),
+    );
   }
 }
