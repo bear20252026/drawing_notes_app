@@ -24,4 +24,8 @@ class NotebookAccessorImpl implements INotebookAccessor {
     // 此处按 id 返回占位（跨笔记搜索不需要页面级，见 IMPROVEMENT_PLAN）。
     return null;
   }
+
+  @override
+  Future<String> storeImage(String sourcePath, String pageId) =>
+      _storage.storeImage(sourcePath, pageId);
 }

@@ -123,4 +123,8 @@ class _DefaultNotebookAccessor implements INotebookAccessor {
 
   @override
   NotebookPage? pageById(String notebookId, String pageId) => null;
+
+  @override
+  Future<String> storeImage(String sourcePath, String pageId) async =>
+      throw UnimplementedError('未注入笔记存储，图片保存不可用');
 }

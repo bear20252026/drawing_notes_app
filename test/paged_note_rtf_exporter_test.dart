@@ -1,4 +1,4 @@
-import 'package:drawing_notes_app/features/notes/infrastructure/paged_note_rtf_exporter.dart';
+import 'package:drawing_notes_app/core/rtf_exporter.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
 

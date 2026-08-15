@@ -20,6 +20,7 @@ import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
+import 'package:drawing_notes_app/features/notes/presentation/presentation_page.dart';
 
 part 'notebook_view_page_widgets.dart';
 part 'notebook_view_page_imports.dart';

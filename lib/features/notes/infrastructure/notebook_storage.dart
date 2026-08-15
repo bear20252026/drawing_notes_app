@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/encryption_service.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
+import 'package:drawing_notes_app/core/notes_accessor.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
 
 /// 笔记本本地存储服务。
@@ -24,8 +25,19 @@ import 'package:drawing_notes_app/core/storage/repository.dart';
 ///
 /// 已通过 [NotebookRepository] 接口抽象（见 repository.dart），
 /// 未来替换为云同步实现时无需改动上层逻辑。
-class NotebookStorage implements NotebookRepository {
+class NotebookStorage implements NotebookRepository, INotebookAccessor {
   NotebookStorage({this.directoryProvider});
+
+  // ---- INotebookAccessor 跨功能契约适配（S4b：NotebookStorage 直接实现契约）----
+
+  @override
+  NotebookPage? pageById(String notebookId, String pageId) => null;
+
+  @override
+  Future<List<Notebook>> listNotebooks() => listAll();
+
+  @override
+  bool get isStorageAvailable => true;
 
   /// 目录提供者：测试时可注入临时目录，生产环境使用系统文档目录。
   final Future<Directory> Function()? directoryProvider;
@@ -209,6 +221,7 @@ class NotebookStorage implements NotebookRepository {
   /// 保存页面图片副本，返回副本的绝对路径。
   ///
   /// [sourcePath] 为用户选择的图片原路径；[pageId] 用于文件名分组。
+  @override
   Future<String> storeImage(String sourcePath, String pageId) async {
     if (!isValidId(pageId)) {
       throw ArgumentError('非法 pageId: $pageId');

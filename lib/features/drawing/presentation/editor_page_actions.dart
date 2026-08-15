@@ -171,15 +171,12 @@ extension _EditorPageActions on _EditorPageState {
       _showSnack('本页还没有可演示的内容');
       return;
     }
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PresentationPage(
-          textItems: page.textItems,
-          imageItems: page.imageItems,
-          shapes: page.shapes,
-        ),
-      ),
-    );
+    final onOpen = widget.openPresentation;
+    if (onOpen == null) {
+      _showSnack('演示功能不可用');
+      return;
+    }
+    onOpen(context, page);
   }
 
   /// 统计面板（对齐 Excalidraw Stats）：显示元素数量/类型统计。

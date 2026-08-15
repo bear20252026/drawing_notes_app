@@ -1,3 +1,5 @@
-Architecture violations (2):
-  [shouldNotDependOn] package:drawing_notes_app/features/drawing/presentation/editor_page.dart → package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart: must not import package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart
-  [shouldNotDependOn] package:drawing_notes_app/features/drawing/application/editor_exporter.dart → package:drawing_notes_app/features/notes/infrastructure/paged_note_rtf_exporter.dart: must not import package:drawing_notes_app/features/notes/infrastructure/paged_note_rtf_exporter.dart
+Architecture violations (4):
+  [shouldNotDependOn] package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart → package:drawing_notes_app/features/drawing/infrastructure/encryption_service.dart: must not import package:drawing_notes_app/features/drawing/infrastructure/encryption_service.dart
+  [shouldNotDependOn] package:drawing_notes_app/features/notes/presentation/password_disk_page.dart → package:drawing_notes_app/features/drawing/infrastructure/encryption_service.dart: must not import package:drawing_notes_app/features/drawing/infrastructure/encryption_service.dart
+  [shouldNotDependOn] package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart → package:drawing_notes_app/features/drawing/infrastructure/ink_layer_painter.dart: must not import package:drawing_notes_app/features/drawing/infrastructure/ink_layer_painter.dart
+  [shouldNotDependOn] package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart → package:drawing_notes_app/features/drawing/infrastructure/shape_renderer.dart: must not import package:drawing_notes_app/features/drawing/infrastructure/shape_renderer.dart

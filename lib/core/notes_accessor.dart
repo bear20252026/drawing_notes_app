@@ -22,4 +22,8 @@ abstract interface class INotebookAccessor {
 
   /// 当前笔记存储是否可用（搜索/编辑器集成时使用）。
   bool get isStorageAvailable;
+
+  /// 将图片复制进笔记页存储（编辑器插入笔记页图片时使用），
+  /// 返回笔记侧存储后的文件路径。
+  Future<String> storeImage(String sourcePath, String pageId);
 }

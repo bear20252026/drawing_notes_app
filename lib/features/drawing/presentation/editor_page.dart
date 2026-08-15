@@ -32,7 +32,7 @@ import 'package:drawing_notes_app/features/drawing/domain/document_image_item.da
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
+import 'package:drawing_notes_app/core/notes_accessor.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/canvas_painter.dart';
@@ -45,7 +45,6 @@ import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar.d
 import 'package:drawing_notes_app/features/drawing/presentation/editor_viewmodel.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/layer_panel.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/properties_panel.dart';
-import 'package:drawing_notes_app/features/notes/presentation/presentation_page.dart';
 
 part 'editor_page_dialogs.dart';
 part 'editor_page_overlays.dart';
@@ -78,6 +77,7 @@ class EditorPage extends ConsumerStatefulWidget {
     this.storage,
     this.docStorage,
     this.onChanged,
+    this.openPresentation,
   }) : _initialDocument = document;
 
   /// 独立画作模式：初始文档（为空时创建默认空白文档）。
@@ -87,11 +87,17 @@ class EditorPage extends ConsumerStatefulWidget {
   final Notebook? notebook;
   final NotebookPage? page;
 
-  /// 笔记本存储（插入图片时复制图片副本用）。
-  final NotebookStorage? storage;
+  /// 笔记侧存储契约（插入图片时复制图片副本用）。
+  final INotebookAccessor? storage;
 
   /// 独立画作存储（Phase 6 自动保存用）。
   final StorageService? docStorage;
+
+  /// 打开放映页的回调（跨 feature 页面跳转契约，S4b 接口化）：
+  /// 由笔记侧注入实现（跳转 PresentationPage），drawing 不直接依赖
+  /// notes 的 presentation UI；null 时演示功能提示不可用。
+  final Future<void> Function(BuildContext context, NotebookPage page)?
+      openPresentation;
 
   /// 内容变更回调（自动保存由上级页面实现）。
   final VoidCallback? onChanged;

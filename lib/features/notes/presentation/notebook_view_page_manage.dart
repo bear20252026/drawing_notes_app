@@ -5,6 +5,20 @@ part of 'notebook_view_page.dart';
 
 /// 笔记页页面管理域（拆分自 notebook_view_page.dart）。
 extension _NotebookPageManage on _NotebookViewPageState {
+  /// 打开放映页（跨 feature 跳转契约回调，S4b 接口化）：
+  /// 由本页（notes 侧）实现跳转，drawing 侧只经回调调用，不依赖本 UI。
+  Future<void> _openPresentation(BuildContext context, NotebookPage page) {
+    return Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PresentationPage(
+          textItems: page.textItems,
+          imageItems: page.imageItems,
+          shapes: page.shapes,
+        ),
+      ),
+    );
+  }
+
   Future<void> _createPage() async {
     final request = await showDialog<_NewPageRequest>(
       context: context,
@@ -29,6 +43,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
           page: page,
           storage: widget.storage,
           onChanged: _save,
+          openPresentation: _openPresentation,
         ),
       ),
     );
@@ -222,6 +237,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
             page: srcPage,
             storage: widget.storage,
             onChanged: () => widget.storage.save(srcNotebook),
+            openPresentation: _openPresentation,
           ),
         ),
       );
@@ -239,6 +255,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
           page: page,
           storage: widget.storage,
           onChanged: _save,
+          openPresentation: _openPresentation,
         ),
       ),
     );
