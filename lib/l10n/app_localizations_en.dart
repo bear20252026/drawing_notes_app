@@ -223,4 +223,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String editorPagePreviewTitle(String title) {
     return 'Page preview $title';
   }
+
+  @override
+  String get paperBlank => 'Blank';
+
+  @override
+  String get paperGrid => 'Grid';
+
+  @override
+  String get paperLined => 'Lined';
+
+  @override
+  String get paperDot => 'Dot grid';
+
+  @override
+  String editorPaperTemplate(String type) {
+    return 'Paper template: $type (click to switch)';
+  }
+
+  @override
+  String get editorShapeFillOn =>
+      'Shape fill: on (new shapes filled by default)';
+
+  @override
+  String get editorShapeFillOff =>
+      'Shape fill: off (new shapes filled by default)';
 }

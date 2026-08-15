@@ -287,5 +287,38 @@
         "type": "String"
       }
     }
+  },
+  "paperBlank": "Blank",
+  "@paperBlank": {
+    "description": "Blank paper template name"
+  },
+  "paperGrid": "Grid",
+  "@paperGrid": {
+    "description": "Grid paper template name"
+  },
+  "paperLined": "Lined",
+  "@paperLined": {
+    "description": "Lined paper template name"
+  },
+  "paperDot": "Dot grid",
+  "@paperDot": {
+    "description": "Dot grid paper template name"
+  },
+  "editorPaperTemplate": "Paper template: {type} (click to switch)",
+  "@editorPaperTemplate": {
+    "description": "Paper template tooltip",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "editorShapeFillOn": "Shape fill: on (new shapes filled by default)",
+  "@editorShapeFillOn": {
+    "description": "Shape fill enabled tooltip"
+  },
+  "editorShapeFillOff": "Shape fill: off (new shapes filled by default)",
+  "@editorShapeFillOff": {
+    "description": "Shape fill disabled tooltip"
   }
 }

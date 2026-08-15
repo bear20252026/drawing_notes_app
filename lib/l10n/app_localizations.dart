@@ -499,6 +499,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Page preview {title}'**
   String editorPagePreviewTitle(String title);
+
+  /// Blank paper template name
+  ///
+  /// In en, this message translates to:
+  /// **'Blank'**
+  String get paperBlank;
+
+  /// Grid paper template name
+  ///
+  /// In en, this message translates to:
+  /// **'Grid'**
+  String get paperGrid;
+
+  /// Lined paper template name
+  ///
+  /// In en, this message translates to:
+  /// **'Lined'**
+  String get paperLined;
+
+  /// Dot grid paper template name
+  ///
+  /// In en, this message translates to:
+  /// **'Dot grid'**
+  String get paperDot;
+
+  /// Paper template tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Paper template: {type} (click to switch)'**
+  String editorPaperTemplate(String type);
+
+  /// Shape fill enabled tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Shape fill: on (new shapes filled by default)'**
+  String get editorShapeFillOn;
+
+  /// Shape fill disabled tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Shape fill: off (new shapes filled by default)'**
+  String get editorShapeFillOff;
 }
 
 class _AppLocalizationsDelegate

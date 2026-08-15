@@ -148,7 +148,12 @@ class EditorToolbar extends StatelessWidget {
               _toolButton(
                 context,
                 icon: paperTypeIcon(state.paperType),
-                tooltip: '纸张模板：${paperTypeName(state.paperType)}（点击切换）',
+                tooltip: (() {
+                  final l10n = AppLocalizations.of(context);
+                  final name = paperTypeName(state.paperType, l10n);
+                  return l10n?.editorPaperTemplate(name) ??
+                      '纸张模板：$name（点击切换）';
+                })(),
                 selected: false,
                 onTap: actions.cyclePaper,
               ),
@@ -177,8 +182,11 @@ class EditorToolbar extends StatelessWidget {
               // 形状填充模式开关（问题4）：开启后新建形状默认带填充色。
               if (state.activeShape != null)
                 IconButton(
-                  tooltip: '形状填充：${state.shapeFillEnabled ? '开' : '关'}'
-                      '（新建形状默认填充）',
+                  tooltip: state.shapeFillEnabled
+                      ? (AppLocalizations.of(context)?.editorShapeFillOn ??
+                          '形状填充：开（新建形状默认填充）')
+                      : (AppLocalizations.of(context)?.editorShapeFillOff ??
+                          '形状填充：关（新建形状默认填充）'),
                   icon: Icon(
                     state.shapeFillEnabled
                         ? Icons.format_color_fill
@@ -721,11 +729,12 @@ IconData paperTypeIcon(PaperType type) => switch (type) {
 };
 
 /// 纸张模板类型的中文名。
-String paperTypeName(PaperType type) => switch (type) {
-  PaperType.blank => '空白',
-  PaperType.grid => '网格',
-  PaperType.lined => '横线',
-  PaperType.dot => '点阵',
+/// 纸张模板本地化名称（国际化收尾 2026-08-16；l10n 为空回落中文）。
+String paperTypeName(PaperType type, AppLocalizations? l10n) => switch (type) {
+  PaperType.blank => l10n?.paperBlank ?? '空白',
+  PaperType.grid => l10n?.paperGrid ?? '网格',
+  PaperType.lined => l10n?.paperLined ?? '横线',
+  PaperType.dot => l10n?.paperDot ?? '点阵',
 };
 
 /// 文字对齐方式对应的图标。

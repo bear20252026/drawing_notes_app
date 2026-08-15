@@ -113,5 +113,12 @@
   "alignCenter": "居中",
   "alignRight": "右对齐",
   "editorAlignTooltip": "对齐：{name} (Ctrl+E)",
-  "editorPagePreviewTitle": "分页预览 {title}"
+  "editorPagePreviewTitle": "分页预览 {title}",
+  "paperBlank": "空白",
+  "paperGrid": "网格",
+  "paperLined": "横线",
+  "paperDot": "点阵",
+  "editorPaperTemplate": "纸张模板：{type}（点击切换）",
+  "editorShapeFillOn": "形状填充：开（新建形状默认填充）",
+  "editorShapeFillOff": "形状填充：关（新建形状默认填充）"
 }

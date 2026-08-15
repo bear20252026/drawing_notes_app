@@ -217,4 +217,27 @@ class AppLocalizationsZh extends AppLocalizations {
   String editorPagePreviewTitle(String title) {
     return '分页预览 $title';
   }
+
+  @override
+  String get paperBlank => '空白';
+
+  @override
+  String get paperGrid => '网格';
+
+  @override
+  String get paperLined => '横线';
+
+  @override
+  String get paperDot => '点阵';
+
+  @override
+  String editorPaperTemplate(String type) {
+    return '纸张模板：$type（点击切换）';
+  }
+
+  @override
+  String get editorShapeFillOn => '形状填充：开（新建形状默认填充）';
+
+  @override
+  String get editorShapeFillOff => '形状填充：关（新建形状默认填充）';
 }
