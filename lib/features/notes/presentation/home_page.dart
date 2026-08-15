@@ -12,6 +12,7 @@ import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage
 import 'package:drawing_notes_app/core/storage/password_disk.dart';
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/security/policy_engine.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/notes/presentation/onboarding.dart';
@@ -193,6 +194,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _deleteNotebook(Notebook nb) async {
+    // 策略门禁（专家审计最优先④）：删除操作白名单判定（回收站——可恢复）。
+    if (!const PolicyEngine().check('note.delete').isAllowed) {
+      _showSnack('操作被策略拒绝（note.delete）');
+      return;
+    }
     final ok = await _confirmDelete(
       '删除笔记本',
       '确定删除笔记本「${nb.title}」吗？其中所有页面内容将一并删除，此操作不可恢复。',

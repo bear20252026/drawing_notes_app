@@ -361,9 +361,9 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
 
   /// 启用密码保护并保存：把页面内容 AES-GCM 加密为载荷，明文不落盘。
   Future<String> encryptAndSave(Notebook notebook, String password) async {
-    // 搜索增强（2026-08-16）：保存时生成脱敏摘要（标题+文本摘要——
-    // 明文搜索用——核心正文仍加密）。
-    notebook.searchSummary = Notebook.buildSearchSummary(notebook);
+    // 第一步合规（2026-08-16 专家审计最优先行动②）：加密笔记本不生成
+    // 明文 searchSummary——"废除默认明文 searchSummary"。未来 K_note
+    // 密钥层级落地后摘要可加密存储（解锁会话内搜索——安全）。
     final payloadJson = jsonEncode({
       'pages': notebook.pages.map((p) => p.toJson()).toList(),
     });
@@ -415,9 +415,9 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     List<int> masterKey,
     String recoveryKey,
   ) async {
-    // 搜索增强（2026-08-16）：保存时生成脱敏摘要（标题+文本摘要——
-    // 明文搜索用——核心正文仍加密）。
-    notebook.searchSummary = Notebook.buildSearchSummary(notebook);
+    // 第一步合规（2026-08-16 专家审计最优先行动②）：加密笔记本不生成
+    // 明文 searchSummary——"废除默认明文 searchSummary"。未来 K_note
+    // 密钥层级落地后摘要可加密存储（解锁会话内搜索——安全）。
     final payloadJson = jsonEncode({
       'pages': notebook.pages.map((p) => p.toJson()).toList(),
     });
@@ -490,9 +490,9 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     List<int> masterKey, {
     String? newRecoveryKey,
   }) async {
-    // 搜索增强（2026-08-16）：保存时生成脱敏摘要（标题+文本摘要——
-    // 明文搜索用——核心正文仍加密）。
-    notebook.searchSummary = Notebook.buildSearchSummary(notebook);
+    // 第一步合规（2026-08-16 专家审计最优先行动②）：加密笔记本不生成
+    // 明文 searchSummary——"废除默认明文 searchSummary"。未来 K_note
+    // 密钥层级落地后摘要可加密存储（解锁会话内搜索——安全）。
     final payloadJson = jsonEncode({
       'pages': notebook.pages.map((p) => p.toJson()).toList(),
     });

@@ -12,6 +12,12 @@ extension _NotebookPageImports on _NotebookViewPageState {
   static const int _maxTextImportBytes = 20 * 1024 * 1024; // 20MB
 
   Future<void> _importText() async {
+    // 策略门禁（专家审计最优先④——2026-08-16）：默认拒绝——白名单操作
+    // 才允许（deny 时提示拒绝，不执行——fail-closed）。
+    if (!const PolicyEngine().check('note.import.text').isAllowed) {
+      _showSnack('操作被策略拒绝（note.import.text）');
+      return;
+    }
     const typeGroup = XTypeGroup(
       label: 'Markdown / 文本',
       extensions: ['md', 'txt'],
@@ -78,6 +84,11 @@ extension _NotebookPageImports on _NotebookViewPageState {
   /// 导入 PDF：每一页渲染为一张独立分页笔记的底图，手写内容仍保存在
   /// 页面自己的矢量图层中，因此创建、批注、保存和重开构成完整闭环。
   Future<void> _importPdf() async {
+    // 策略门禁（专家审计最优先④）：PDF 导入白名单判定（deny 时拒绝执行）。
+    if (!const PolicyEngine().check('note.import.pdf').isAllowed) {
+      _showSnack('操作被策略拒绝（note.import.pdf）');
+      return;
+    }
     const typeGroup = XTypeGroup(label: 'PDF 文档', extensions: ['pdf']);
     final selected = await openFile(acceptedTypeGroups: [typeGroup]);
     if (selected == null) return;
