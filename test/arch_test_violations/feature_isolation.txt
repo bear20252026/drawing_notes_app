@@ -1,0 +1,10 @@
+Architecture violations (9):
+  [enforceIsolation] package:drawing_notes_app/features/drawing/presentation/editor_page.dart → package:drawing_notes_app/features/notes/domain/notebook.dart: slice "drawing" must not import slice "notes"
+  [enforceIsolation] package:drawing_notes_app/features/drawing/presentation/editor_page.dart → package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart: slice "drawing" must not import slice "notes"
+  [enforceIsolation] package:drawing_notes_app/features/drawing/presentation/editor_page.dart → package:drawing_notes_app/features/notes/presentation/presentation_page.dart: slice "drawing" must not import slice "notes"
+  [enforceIsolation] package:drawing_notes_app/features/drawing/application/editor_exporter.dart → package:drawing_notes_app/features/notes/domain/notebook.dart: slice "drawing" must not import slice "notes"
+  [enforceIsolation] package:drawing_notes_app/features/drawing/application/editor_exporter.dart → package:drawing_notes_app/features/notes/infrastructure/paged_note_rtf_exporter.dart: slice "drawing" must not import slice "notes"
+  [enforceIsolation] package:drawing_notes_app/features/drawing/application/di_providers.dart → package:drawing_notes_app/features/notes/domain/notebook.dart: slice "drawing" must not import slice "notes"
+  [enforceIsolation] package:drawing_notes_app/features/drawing/application/search_service.dart → package:drawing_notes_app/features/notes/domain/notebook.dart: slice "drawing" must not import slice "notes"
+  [enforceIsolation] package:drawing_notes_app/features/drawing/presentation/editor_components.dart → package:drawing_notes_app/features/notes/domain/notebook.dart: slice "drawing" must not import slice "notes"
+  [enforceIsolation] package:drawing_notes_app/features/drawing/presentation/properties_panel.dart → package:drawing_notes_app/features/notes/domain/notebook.dart: slice "drawing" must not import slice "notes"

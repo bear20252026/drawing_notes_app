@@ -61,6 +61,8 @@ dev_dependencies:
     sdk: flutter
   integration_test:
     sdk: flutter
+  # 架构规则测试（2026-08-15 引入）：层方向/循环依赖/切片隔离/耦合度量
+  dart_arch_test: ^0.3.1
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
