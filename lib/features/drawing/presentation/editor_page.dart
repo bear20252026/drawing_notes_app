@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/gestures.dart';
 import 'package:material_ui/material_ui.dart';
@@ -11,6 +12,7 @@ import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/features/drawing/application/brush_preset_store.dart';
 import 'package:drawing_notes_app/features/drawing/application/command_registry.dart';
+import 'package:drawing_notes_app/features/drawing/application/di_providers.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/features/drawing/application/editor_input_arbiter.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
@@ -65,7 +67,7 @@ part 'editor_page_persistence.dart';
 /// - 手势采集：笔画 / 选区 / 吸管 / 文字与图片放置
 /// - 工具面板：撤销、重做、清空、画笔/橡皮擦/吸管/选区/文字/图片
 /// - 保存回调：任何变更后调用 [onChanged]（由上级页面负责落盘）
-class EditorPage extends StatefulWidget {
+class EditorPage extends ConsumerStatefulWidget {
   const EditorPage({
     super.key,
     DrawingDocument? document,
@@ -93,10 +95,10 @@ class EditorPage extends StatefulWidget {
   final VoidCallback? onChanged;
 
   @override
-  State<EditorPage> createState() => _EditorPageState();
+  ConsumerState<EditorPage> createState() => _EditorPageState();
 }
 
-class _EditorPageState extends State<EditorPage> {
+class _EditorPageState extends ConsumerState<EditorPage> {
   late final DrawingController _controller;
 
   /// 画布导出域（参考 Saber editor_exporter 模块化）：PNG/PDF/SVG/RTF/
@@ -395,7 +397,7 @@ class _EditorPageState extends State<EditorPage> {
     _editFocus.dispose();
     _hoverPos.dispose();
     _inkPressureSample.dispose();
-    _controller.dispose();
+    // _controller 生命周期由 drawingControllerProvider(ref.onDispose) 管理。
     super.dispose();
   }
 
@@ -462,7 +464,7 @@ class _EditorPageState extends State<EditorPage> {
         widget.page?.document ??
         widget._initialDocument ??
         DrawingDocument(id: StorageService.newId(), title: '未命名画布');
-    _controller = DrawingController(doc);
+    _controller = ref.read(drawingControllerProvider(doc));
     _exporter = EditorExporter(
       controller: _controller,
       pageProvider: () => widget.page,

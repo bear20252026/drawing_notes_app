@@ -14,10 +14,12 @@ import 'drawing_controller.dart';
 ///   本 provider 提供容器接入（可回滚），分域迁移渐进推进
 /// - history 操作（undo/redo）经 ref.read(provider.notifier) 可达，
 ///   ProviderContainer 可独立单测（可测性闭环第一步）
-final drawingControllerProvider =
-    Provider.family<DrawingController, DrawingDocument>(
-  (ref, document) => DrawingController(document),
-);
+final drawingControllerProvider = Provider.autoDispose
+    .family<DrawingController, DrawingDocument>((ref, document) {
+  final controller = DrawingController(document);
+  ref.onDispose(controller.dispose); // provider 销毁时释放控制器资源
+  return controller;
+});
 
 /// 文档脏标记派生 Provider（P1-a B2 示范：状态派生走 Riverpod）。
 ///
