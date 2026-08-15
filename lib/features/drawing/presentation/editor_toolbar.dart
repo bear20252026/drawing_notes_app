@@ -390,8 +390,7 @@ class EditorToolbar extends StatelessWidget {
                   onPressed: actions.toggleStrikethrough,
                 ),
                 IconButton(
-                  tooltip:
-                      '对齐：${alignName(state.selectedTextItem!.align)} (Ctrl+E)',
+                  tooltip: alignTooltip(context, state.selectedTextItem!.align),
                   icon: Icon(
                     alignIcon(state.selectedTextItem!.align),
                     size: 20,
@@ -736,12 +735,16 @@ IconData alignIcon(TextAlignType align) => switch (align) {
   TextAlignType.right => Icons.format_align_right,
 };
 
-/// 文字对齐方式的中文名。
-String alignName(TextAlignType align) => switch (align) {
-  TextAlignType.left => '左对齐',
-  TextAlignType.center => '居中',
-  TextAlignType.right => '右对齐',
-};
+/// 对齐工具提示（本地化——国际化收尾 2026-08-16）。
+String alignTooltip(BuildContext context, TextAlignType align) {
+  final l10n = AppLocalizations.of(context);
+  final name = switch (align) {
+    TextAlignType.left => l10n?.alignLeft ?? '左对齐',
+    TextAlignType.center => l10n?.alignCenter ?? '居中',
+    TextAlignType.right => l10n?.alignRight ?? '右对齐',
+  };
+  return l10n?.editorAlignTooltip(name) ?? '对齐：$name (Ctrl+E)';
+}
 
 /// 形状类型对应的图标（借鉴 Excalidraw 图形工具）。
 IconData shapeTypeIcon(ShapeType type) => switch (type) {

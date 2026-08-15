@@ -198,7 +198,7 @@ extension _EditorPageEditing on _EditorPageState {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('分页预览 · ${page.title}'),
+        title: Text(AppLocalizations.of(context)?.editorPagePreviewTitle(page.title) ?? '分页预览 · ${page.title}'),
         content: SizedBox(
           width: 480,
           height: 560,

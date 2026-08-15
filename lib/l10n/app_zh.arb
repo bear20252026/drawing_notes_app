@@ -108,5 +108,10 @@
   "editorUnderline": "下划线 (Ctrl+U)",
   "editorPdfPreview": "分页预览（按 A4 分页）",
   "editorPasteValues": "粘贴数值，用逗号/空格/换行分隔，例如：10, 25, 18, 42, 30",
-  "editorImageInsertFail": "插入图片失败：{error}"
+  "editorImageInsertFail": "插入图片失败：{error}",
+  "alignLeft": "左对齐",
+  "alignCenter": "居中",
+  "alignRight": "右对齐",
+  "editorAlignTooltip": "对齐：{name} (Ctrl+E)",
+  "editorPagePreviewTitle": "分页预览 {title}"
 }

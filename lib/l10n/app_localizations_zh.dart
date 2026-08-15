@@ -198,4 +198,23 @@ class AppLocalizationsZh extends AppLocalizations {
   String editorImageInsertFail(String error) {
     return '插入图片失败：$error';
   }
+
+  @override
+  String get alignLeft => '左对齐';
+
+  @override
+  String get alignCenter => '居中';
+
+  @override
+  String get alignRight => '右对齐';
+
+  @override
+  String editorAlignTooltip(String name) {
+    return '对齐：$name (Ctrl+E)';
+  }
+
+  @override
+  String editorPagePreviewTitle(String title) {
+    return '分页预览 $title';
+  }
 }

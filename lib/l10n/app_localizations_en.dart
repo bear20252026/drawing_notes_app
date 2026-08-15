@@ -204,4 +204,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String editorImageInsertFail(String error) {
     return 'Failed to insert image: $error';
   }
+
+  @override
+  String get alignLeft => 'Left';
+
+  @override
+  String get alignCenter => 'Center';
+
+  @override
+  String get alignRight => 'Right';
+
+  @override
+  String editorAlignTooltip(String name) {
+    return 'Align: $name (Ctrl+E)';
+  }
+
+  @override
+  String editorPagePreviewTitle(String title) {
+    return 'Page preview $title';
+  }
 }

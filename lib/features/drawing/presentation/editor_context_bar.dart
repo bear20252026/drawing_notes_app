@@ -198,7 +198,7 @@ class EditorContextBar extends StatelessWidget {
         _toggleButton(
           context,
           icon: alignIcon(text.align),
-          tooltip: '对齐：${alignName(text.align)} (Ctrl+E)',
+          tooltip: alignTooltip(context, text.align),
           selected: false,
           onPressed: actions.cycleAlign,
         ),

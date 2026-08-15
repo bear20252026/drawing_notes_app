@@ -257,5 +257,35 @@
         "type": "String"
       }
     }
+  },
+  "alignLeft": "Left",
+  "@alignLeft": {
+    "description": "Left alignment name"
+  },
+  "alignCenter": "Center",
+  "@alignCenter": {
+    "description": "Center alignment name"
+  },
+  "alignRight": "Right",
+  "@alignRight": {
+    "description": "Right alignment name"
+  },
+  "editorAlignTooltip": "Align: {name} (Ctrl+E)",
+  "@editorAlignTooltip": {
+    "description": "Alignment tooltip with alignment name",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "editorPagePreviewTitle": "Page preview {title}",
+  "@editorPagePreviewTitle": {
+    "description": "Page preview dialog title",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
   }
 }

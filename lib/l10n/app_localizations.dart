@@ -469,6 +469,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to insert image: {error}'**
   String editorImageInsertFail(String error);
+
+  /// Left alignment name
+  ///
+  /// In en, this message translates to:
+  /// **'Left'**
+  String get alignLeft;
+
+  /// Center alignment name
+  ///
+  /// In en, this message translates to:
+  /// **'Center'**
+  String get alignCenter;
+
+  /// Right alignment name
+  ///
+  /// In en, this message translates to:
+  /// **'Right'**
+  String get alignRight;
+
+  /// Alignment tooltip with alignment name
+  ///
+  /// In en, this message translates to:
+  /// **'Align: {name} (Ctrl+E)'**
+  String editorAlignTooltip(String name);
+
+  /// Page preview dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Page preview {title}'**
+  String editorPagePreviewTitle(String title);
 }
 
 class _AppLocalizationsDelegate
