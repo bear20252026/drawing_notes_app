@@ -96,11 +96,19 @@ void main() {
     });
   });
 
-  test('规则3b：Martin 耦合度量——domain/core 稳定层（instability 基线）', () {
+  test('规则3b：Martin 耦合度量——domain/core 数据层稳定（instability 基线）', () {
     // Robert C. Martin 耦合指标：I = Ce/(Ca+Ce)，0=稳定（被依赖多），
-    // 1=不稳定。domain（纯数据内层）与 core 应为稳定层：被大量依赖
-    // 而几乎不依赖他人（I 低）。先打印实测，阈值按小步基线收紧。
-    final report = {...Metrics.martin('domain/**', graph), ...Metrics.martin('core/**', graph)};
+    // 1=不稳定。domain（纯数据内层）与 core 数据层（storage/di/theme/
+    // utils）应为稳定层：被大量依赖而几乎不依赖他人（I 低）。
+    // core/rendering（渲染/导出器）为六边形"输出适配器"性质（工具
+    // 依赖多、被依赖少，I 天然偏高），不纳入稳定层断言。
+    final report = {
+      ...Metrics.martin('domain/**', graph),
+      ...Metrics.martin('core/storage/**', graph),
+      ...Metrics.martin('core/di/**', graph),
+      ...Metrics.martin('core/theme/**', graph),
+      ...Metrics.martin('core/utils/**', graph),
+    };
     var worst = 0.0;
     // ignore: avoid_print
     print('--- Martin 耦合报告（domain/core）---');
