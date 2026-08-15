@@ -29,6 +29,24 @@ final drawingDirtyProvider = Provider.family<bool, DrawingDocument>(
       ref.watch(drawingControllerProvider(document)).isDirty,
 );
 
+/// 撤销可用状态派生 Provider（B3：history 域核心状态走 Riverpod）。
+final drawingCanUndoProvider = Provider.family<bool, DrawingDocument>(
+  (ref, document) =>
+      ref.watch(drawingControllerProvider(document)).canUndo,
+);
+
+/// 重做可用状态派生 Provider（B3：history 域核心状态走 Riverpod）。
+final drawingCanRedoProvider = Provider.family<bool, DrawingDocument>(
+  (ref, document) =>
+      ref.watch(drawingControllerProvider(document)).canRedo,
+);
+
+/// 当前图层索引派生 Provider（B4：核心状态走 Riverpod，供图层面板接线）。
+final drawingCurrentLayerProvider = Provider.family<int, DrawingDocument>(
+  (ref, document) =>
+      ref.watch(drawingControllerProvider(document)).currentLayerIndex,
+);
+
 /// 笔记访问接口 Provider（S4b 接口化装配点）：默认空实现，
 /// 正式装配由 app 层 override 注入真实 [NotebookAccessorImpl]。
 final notebookAccessorProvider = Provider<INotebookAccessor>(

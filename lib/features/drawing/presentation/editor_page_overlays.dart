@@ -11,7 +11,7 @@ extension _EditorPageOverlays on _EditorPageState {
     // 状态栏为纯展示组件（架构重构 R3）：监听 controller + hoverPos 渲染，
     // 不承载业务逻辑（见 editor_statusbar.dart）。
     return EditorStatusBar(
-      controller: _controller,
+      document: _controller.document,
       hoverPos: _hoverPos,
       inkPressureSample: _inkPressureSample,
     );

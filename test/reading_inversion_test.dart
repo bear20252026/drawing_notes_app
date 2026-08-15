@@ -2,6 +2,7 @@ import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -17,7 +18,11 @@ void main() {
     );
     final before = document.toJson();
 
-    await tester.pumpWidget(MaterialApp(home: EditorPage(document: document)));
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(home: EditorPage(document: document)),
+      ),
+    );
     await tester.pump();
 
     expect(find.byType(ColorFiltered), findsNothing);

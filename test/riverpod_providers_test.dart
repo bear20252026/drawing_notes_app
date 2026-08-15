@@ -77,4 +77,18 @@ void main() {
     expect(container.read(drawingDirtyProvider(doc)), isTrue,
         reason: 'invalidate 后派生 provider 反映控制器脏标记');
   });
+  test('B3-B4: 核心状态派生 provider（undo/redo/图层）可独立单测', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final doc = DrawingDocument(id: 'b34', title: 'B3-B4 派生示范');
+    final controller = container.read(drawingControllerProvider(doc));
+    expect(container.read(drawingCanUndoProvider(doc)), isFalse);
+    expect(container.read(drawingCanRedoProvider(doc)), isFalse);
+    expect(container.read(drawingCurrentLayerProvider(doc)), 0);
+    controller.touchDocument();
+    container.invalidate(drawingCanUndoProvider(doc));
+    container.invalidate(drawingCurrentLayerProvider(doc));
+    expect(container.read(drawingCurrentLayerProvider(doc)), 0,
+        reason: 'touchDocument 不改图层索引，派生值稳定');
+  });
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
-import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
+import 'package:drawing_notes_app/features/drawing/application/di_providers.dart';
+import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/drawing/application/stylus_input.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 
@@ -11,15 +13,16 @@ import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 /// 设计原则（见 docs/ARCHITECTURE_REVISION.md）：
 /// - 纯展示：只监听 [controller] 与 [hoverPos] 并渲染，不含业务逻辑；
 /// - 不读写文件、不操作存储层。
-class EditorStatusBar extends StatelessWidget {
+class EditorStatusBar extends ConsumerWidget {
   const EditorStatusBar({
     super.key,
-    required this.controller,
+    required this.document,
     required this.hoverPos,
     required this.inkPressureSample,
   });
 
-  final DrawingController controller;
+  /// 文档（family provider 参数；controller 经 Riverpod 派生获取）。
+  final DrawingDocument document;
 
   /// 鼠标悬停/移动时的画布坐标（状态栏显示）。
   final ValueListenable<Offset?> hoverPos;
@@ -28,7 +31,8 @@ class EditorStatusBar extends StatelessWidget {
   final ValueListenable<InkPressureSample?> inkPressureSample;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final controller = ref.watch(drawingControllerProvider(document));
     return Material(
       elevation: 2,
       color: Theme.of(context).colorScheme.surfaceContainerLow,
