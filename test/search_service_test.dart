@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:drawing_notes_app/features/drawing/application/search_service.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/notebook_accessor_impl.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
@@ -38,7 +39,7 @@ void main() {
     await docStorage.save(drawing);
 
     final svc = SearchService(
-      notebookStorage: nbStorage,
+      notebookAccessor: NotebookAccessorImpl(storage: nbStorage),
       docStorage: docStorage,
     );
     final results = await svc.search('政府');
@@ -53,7 +54,9 @@ void main() {
 
   test('空关键词返回空结果', () async {
     final svc = SearchService(
-      notebookStorage: NotebookStorage(directoryProvider: () async => tempDir),
+      notebookAccessor: NotebookAccessorImpl(
+        storage: NotebookStorage(directoryProvider: () async => tempDir),
+      ),
       docStorage: StorageService(directoryProvider: () async => tempDir),
     );
     expect(await svc.search('   '), isEmpty);

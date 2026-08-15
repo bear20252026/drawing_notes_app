@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' show Brightness;
+import 'package:flutter/material.dart' show Brightness, ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -31,5 +31,29 @@ void main() {
     addTearDown(container.dispose);
 
     expect(container.read(darkModeProvider), isTrue, reason: 'override 生效');
+  });
+
+  test('themeModeProvider：Notifier 维护主题模式（替代 ChangeNotifier）', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    expect(container.read(themeModeProvider), ThemeMode.system,
+        reason: '初始跟随系统');
+    container.read(themeModeProvider.notifier).setMode(ThemeMode.dark);
+    expect(container.read(themeModeProvider), ThemeMode.dark,
+        reason: 'setMode 更新状态');
+  });
+
+  test('themeModeProvider：cycle 循环切换（system→light→dark→system）', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    container.read(themeModeProvider.notifier).setMode(ThemeMode.system);
+    container.read(themeModeProvider.notifier).cycle();
+    expect(container.read(themeModeProvider), ThemeMode.light);
+    container.read(themeModeProvider.notifier).cycle();
+    expect(container.read(themeModeProvider), ThemeMode.dark);
+    container.read(themeModeProvider.notifier).cycle();
+    expect(container.read(themeModeProvider), ThemeMode.system);
   });
 }

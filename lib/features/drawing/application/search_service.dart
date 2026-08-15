@@ -1,4 +1,5 @@
-import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
+import 'package:drawing_notes_app/core/notes_accessor.dart';
+import 'package:drawing_notes_app/features/notes/domain/notebook.dart' show Notebook, NotebookPage;
 import 'package:drawing_notes_app/core/storage/repository.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 
@@ -26,11 +27,11 @@ class SearchResult {
 /// 纯本地扫描（listAll 读取全部工程文件），无需索引文件；
 /// 规模增长后可换 SQLite 索引（见学习报告 C1 备注）。
 class SearchService {
-  SearchService({NotebookStorage? notebookStorage, StorageService? docStorage})
-    : _notebookStorage = notebookStorage ?? NotebookStorage(),
+  SearchService({INotebookAccessor? notebookAccessor, StorageService? docStorage})
+    : _notebookAccessor = notebookAccessor ?? _DefaultNotebookAccessor(),
       _docStorage = docStorage ?? StorageService();
 
-  final NotebookStorage _notebookStorage;
+  final INotebookAccessor _notebookAccessor;
   final StorageService _docStorage;
 
   /// 搜索 [query]，忽略大小写；命中文字块内容或标题。
@@ -40,7 +41,7 @@ class SearchService {
 
     final results = <SearchResult>[];
     // 1) 笔记本：搜索页面标题与文字块内容。
-    final notebooks = await _notebookStorage.listAll();
+    final notebooks = await _notebookAccessor.listNotebooks();
     for (final nb in notebooks) {
       if (nb.title.toLowerCase().contains(q)) {
         results.add(
@@ -109,4 +110,17 @@ class SearchService {
     final suffix = e < text.length ? '…' : '';
     return '$prefix${text.substring(s, e)}$suffix';
   }
+}
+
+/// 无注入时的默认实现（空访问器）：不依赖 notes 具体类，保持 drawing
+/// 完全隔离（S4b）。正式装配由 app 层注入真实实现（NotebookAccessorImpl）。
+class _DefaultNotebookAccessor implements INotebookAccessor {
+  @override
+  bool get isStorageAvailable => false;
+
+  @override
+  Future<List<Notebook>> listNotebooks() async => const [];
+
+  @override
+  NotebookPage? pageById(String notebookId, String pageId) => null;
 }
