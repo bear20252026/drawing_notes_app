@@ -1,4 +1,4 @@
-import 'package:drawing_notes_app/features/drawing/infrastructure/stroke_geometry_cache.dart';
+import 'package:drawing_notes_app/core/rendering/stroke_geometry_cache.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 import 'package:flutter_test/flutter_test.dart';
 

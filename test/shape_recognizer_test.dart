@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
-import 'package:drawing_notes_app/features/drawing/infrastructure/shape_recognizer.dart';
+import 'package:drawing_notes_app/core/rendering/shape_recognizer.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';

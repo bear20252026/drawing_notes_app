@@ -1,7 +1,7 @@
 import 'dart:ui' as ui;
 
-import 'package:drawing_notes_app/features/drawing/infrastructure/layer_compositor.dart';
-import 'package:drawing_notes_app/features/drawing/infrastructure/stroke_picture_cache.dart';
+import 'package:drawing_notes_app/core/rendering/layer_compositor.dart';
+import 'package:drawing_notes_app/core/rendering/stroke_picture_cache.dart';
 import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 import 'package:flutter_test/flutter_test.dart';
