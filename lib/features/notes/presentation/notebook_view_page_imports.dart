@@ -6,6 +6,11 @@ part of 'notebook_view_page.dart';
 
 /// 笔记页导入/加密/历史域（拆分自 notebook_view_page.dart）。
 extension _NotebookPageImports on _NotebookViewPageState {
+  /// 任务#3（专家审计 2026-08-15）：文本导入文件大小上限（51CTO
+  /// ImportSession 模式："文本长度不设上限是错误"——readAsString 无
+  /// 限制会加载超大文件）。
+  static const int _maxTextImportBytes = 20 * 1024 * 1024; // 20MB
+
   Future<void> _importText() async {
     const typeGroup = XTypeGroup(
       label: 'Markdown / 文本',
@@ -14,6 +19,12 @@ extension _NotebookPageImports on _NotebookViewPageState {
     final file = await openFile(acceptedTypeGroups: [typeGroup]);
     if (file == null) return;
     try {
+      // 任务#3（专家审计 2026-08-15）：文本导入大小配额——防超大文件
+      // 一次性 readAsString 加载（内存/卡顿）。
+      if (await File(file.path).length() > _maxTextImportBytes) {
+        _showSnack('文本文件过大（超过 20MB 限制），拒绝导入');
+        return;
+      }
       final content = await File(file.path).readAsString();
       if (content.trim().isEmpty) {
         _showSnack('文件内容为空');

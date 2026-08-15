@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 任务#4（专家审计 2026-08-15）：Android 备份排除规则——应用含加密笔记
+     与密钥相关数据（Android Developers 官方：备份含敏感数据应排除或
+     端到端加密；allowBackup=false + 本规则双保险，防加密数据经 Auto
+     Backup 泄露）。 -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="file" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="file" path="." />
+    </device-transfer>
+</data-extraction-rules>

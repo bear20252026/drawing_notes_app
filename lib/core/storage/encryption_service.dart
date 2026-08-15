@@ -284,6 +284,49 @@ class EncryptionService {
     utf8.encode('drawing-notes|notebook|$notebookId|payload|v4'),
   );
 
+  /// 密码模式 v4（H-06 补全，专家审计 2026-08-15）：PBKDF2 派生 key +
+  /// AAD 上下文绑定。载荷 v4 信封内嵌 salt（供解密派生）。
+  Future<String> encryptWithPasswordAad({
+    required String notebookId,
+    required String plaintext,
+    required String password,
+  }) async {
+    final salt = _randomBytes(_saltLength);
+    final key = await _deriveKey(password, salt);
+    final keyBytes = await key.extractBytes();
+    final payload = await encryptNotebookPayload(
+      notebookId: notebookId,
+      plaintext: plaintext,
+      key: keyBytes,
+    );
+    final map = jsonDecode(payload) as Map<String, dynamic>;
+    map['s'] = base64Encode(salt);
+    return jsonEncode(map);
+  }
+
+  /// 密码模式 v4 解密：v4 AAD 优先，v3 旧数据回退（flutter_secure_storage
+  /// 两步迁移：兼容期新旧并存，旧格式仅读）。
+  Future<String> decryptWithPasswordAad({
+    required String notebookId,
+    required String encryptedJson,
+    required String password,
+  }) async {
+    _requireInputSize(encryptedJson);
+    final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
+    if (map['mode'] == 'payload' && map['v'] == 4) {
+      final salt = base64Decode(_requireString(map, 's'));
+      _requireFixedLength('盐', salt, _saltLength);
+      final key = await _deriveKey(password, salt);
+      final keyBytes = await key.extractBytes();
+      return decryptNotebookPayload(
+        notebookId: notebookId,
+        encryptedJson: encryptedJson,
+        key: keyBytes,
+      );
+    }
+    return decrypt(encryptedJson, password);
+  }
+
   /// 生成 [n] 字节随机数（盐/nonce）。
   static List<int> _randomBytes(int n) {
     final rng = Random.secure();

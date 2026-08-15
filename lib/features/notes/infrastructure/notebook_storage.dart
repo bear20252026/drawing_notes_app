@@ -318,9 +318,10 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
       'pages': notebook.pages.map((p) => p.toJson()).toList(),
     });
     notebook.encrypted = true;
-    notebook.encryptedPayload = await _encryption.encrypt(
-      payloadJson,
-      password,
+    notebook.encryptedPayload = await _encryption.encryptWithPasswordAad(
+      notebookId: notebook.id,
+      plaintext: payloadJson,
+      password: password,
     );
     // 直接原子写入（toJson 中 encrypted 时 pages 序列化为空，仅存密文载荷）。
     // 注意：不能走 save()——save 对"加密且内存有明文页面"会抛 StateError
@@ -337,7 +338,13 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
   Future<bool> decryptNotebook(Notebook notebook, String password) async {
     final payload = notebook.encryptedPayload;
     if (payload == null) return false;
-    final clear = await _encryption.decrypt(payload, password);
+    // 密码模式 v4（H-06 补全）：AAD 绑定 notebook.id——v4 优先，v3 旧数据
+    // 回退（兼容期新旧并存）。
+    final clear = await _encryption.decryptWithPasswordAad(
+      notebookId: notebook.id,
+      encryptedJson: payload,
+      password: password,
+    );
     final map = jsonDecode(clear) as Map<String, dynamic>;
     final pages = (map['pages'] as List? ?? const [])
         .map((e) => NotebookPage.fromJson(e as Map<String, dynamic>))
