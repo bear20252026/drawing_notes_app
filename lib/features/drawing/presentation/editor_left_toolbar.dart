@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
 
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
@@ -167,7 +168,7 @@ class EditorLeftToolbar extends StatelessWidget {
               ),
               // 形状弹出菜单
               PopupMenuButton<ShapeType>(
-                tooltip: '形状工具',
+                tooltip: AppLocalizations.of(context)?.editorShapeTool ?? '形状工具',
                 icon: Icon(
                   activeShape != null
                       ? _shapeIcon(activeShape!)

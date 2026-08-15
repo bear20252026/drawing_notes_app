@@ -60,5 +60,41 @@
   "homeMore": "More options",
   "@homeMore": {
     "description": "More actions tooltip"
+  },
+  "editorUndo": "Undo",
+  "@editorUndo": {
+    "description": "Undo action"
+  },
+  "editorRedo": "Redo",
+  "@editorRedo": {
+    "description": "Redo action"
+  },
+  "editorShortcutsHelp": "Keyboard shortcuts",
+  "@editorShortcutsHelp": {
+    "description": "Shortcuts help tooltip"
+  },
+  "editorMenu": "Main menu",
+  "@editorMenu": {
+    "description": "Main menu tooltip"
+  },
+  "editorClearCanvas": "Clear canvas",
+  "@editorClearCanvas": {
+    "description": "Clear canvas dialog title"
+  },
+  "editorCopyPng": "Copy PNG to clipboard",
+  "@editorCopyPng": {
+    "description": "Copy PNG dialog title"
+  },
+  "editorExportPng": "Export PNG",
+  "@editorExportPng": {
+    "description": "Export PNG dialog title"
+  },
+  "editorExportSvg": "Export SVG",
+  "@editorExportSvg": {
+    "description": "Export SVG dialog title"
+  },
+  "editorShapeTool": "Shape tool",
+  "@editorShapeTool": {
+    "description": "Shape tool tooltip"
   }
 }

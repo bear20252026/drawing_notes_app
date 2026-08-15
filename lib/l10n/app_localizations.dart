@@ -181,6 +181,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'More options'**
   String get homeMore;
+
+  /// Undo action
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get editorUndo;
+
+  /// Redo action
+  ///
+  /// In en, this message translates to:
+  /// **'Redo'**
+  String get editorRedo;
+
+  /// Shortcuts help tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Keyboard shortcuts'**
+  String get editorShortcutsHelp;
+
+  /// Main menu tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Main menu'**
+  String get editorMenu;
+
+  /// Clear canvas dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Clear canvas'**
+  String get editorClearCanvas;
+
+  /// Copy PNG dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Copy PNG to clipboard'**
+  String get editorCopyPng;
+
+  /// Export PNG dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Export PNG'**
+  String get editorExportPng;
+
+  /// Export SVG dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Export SVG'**
+  String get editorExportSvg;
+
+  /// Shape tool tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Shape tool'**
+  String get editorShapeTool;
 }
 
 class _AppLocalizationsDelegate

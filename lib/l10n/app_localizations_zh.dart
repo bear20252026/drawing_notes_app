@@ -51,4 +51,31 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get homeMore => '更多操作';
+
+  @override
+  String get editorUndo => '撤销';
+
+  @override
+  String get editorRedo => '重做';
+
+  @override
+  String get editorShortcutsHelp => '快捷键帮助';
+
+  @override
+  String get editorMenu => '主菜单';
+
+  @override
+  String get editorClearCanvas => '清空画布';
+
+  @override
+  String get editorCopyPng => '复制 PNG 到剪贴板';
+
+  @override
+  String get editorExportPng => '导出 PNG';
+
+  @override
+  String get editorExportSvg => '导出 SVG';
+
+  @override
+  String get editorShapeTool => '形状工具';
 }

@@ -367,16 +367,15 @@ extension DrawingControllerObjectOps on DrawingController {
         arrow,
         _document.shapes,
       );
-      var changed = false;
-      if (arrow.startBinding?.targetShapeId == selected.id) {
-        arrow.startBinding = null;
-        changed = true;
-      }
-      if (arrow.endBinding?.targetShapeId == selected.id) {
-        arrow.endBinding = null;
-        changed = true;
-      }
-      if (changed) {
+      // Q-1 拆分（2026-08-16）：解绑判定委托 ShapeBindingGeometry.isBoundTo
+      // （纯函数）——副作用（置 null + 应用端点）保留在协调层。
+      if (ShapeBindingGeometry.isBoundTo(arrow, selected.id)) {
+        if (arrow.startBinding?.targetShapeId == selected.id) {
+          arrow.startBinding = null;
+        }
+        if (arrow.endBinding?.targetShapeId == selected.id) {
+          arrow.endBinding = null;
+        }
         ShapeBindingGeometry.applyArrowEndpoints(
           arrow,
           start: endpoints.start,

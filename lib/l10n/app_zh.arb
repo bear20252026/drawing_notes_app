@@ -60,5 +60,14 @@
   "homeMore": "更多操作",
   "@homeMore": {
     "description": "更多操作提示"
-  }
+  },
+  "editorUndo": "撤销",
+  "editorRedo": "重做",
+  "editorShortcutsHelp": "快捷键帮助",
+  "editorMenu": "主菜单",
+  "editorClearCanvas": "清空画布",
+  "editorCopyPng": "复制 PNG 到剪贴板",
+  "editorExportPng": "导出 PNG",
+  "editorExportSvg": "导出 SVG",
+  "editorShapeTool": "形状工具"
 }

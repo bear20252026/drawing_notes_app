@@ -102,6 +102,12 @@ class ShapeBindingGeometry {
     );
   }
 
+  /// Q-1 拆分（2026-08-16）：解绑判定纯函数——箭头是否绑定到 [targetId]
+  /// （start 或 end 端点）。从 DrawingController 提取——可独立单测。
+  static bool isBoundTo(PageShapeItem arrow, String targetId) =>
+      arrow.startBinding?.targetShapeId == targetId ||
+      arrow.endBinding?.targetShapeId == targetId;
+
   /// 将箭头重写为表示指定全局端点的现有 `x/y/width/height/flip` 规范格式。
   /// 旋转在此基础上会引入语义歧义，绑定箭头第一版固定清除 rotation；这比同时
   /// 保存旋转和错误投影端点更安全，也与目前箭头创建行为一致。

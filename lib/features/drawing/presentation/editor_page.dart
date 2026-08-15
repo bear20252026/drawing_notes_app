@@ -38,6 +38,7 @@ import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/canvas_painter.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/encrypted_file_image.dart';
 import 'package:drawing_notes_app/shared/widgets/color_picker_dialog.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_components.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_context_bar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_left_toolbar.dart';
@@ -638,7 +639,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
               ListenableBuilder(
                 listenable: _controller,
                 builder: (context, _) => IconButton(
-                  tooltip: '撤销',
+                  tooltip: AppLocalizations.of(context)?.editorUndo ?? '撤销',
                   icon: const Icon(Icons.undo),
                   onPressed: _commands.find('undo')?.available ?? false
                       ? () => _commands.run('undo')
@@ -648,7 +649,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
               ListenableBuilder(
                 listenable: _controller,
                 builder: (context, _) => IconButton(
-                  tooltip: '重做',
+                  tooltip: AppLocalizations.of(context)?.editorRedo ?? '重做',
                   icon: const Icon(Icons.redo),
                   onPressed: _commands.find('redo')?.available ?? false
                       ? () => _commands.run('redo')
@@ -695,54 +696,54 @@ class _EditorPageState extends ConsumerState<EditorPage> {
               ),
               // 快捷键帮助面板（借鉴 Notes 快捷键文档化）
               IconButton(
-                tooltip: '快捷键帮助',
+                tooltip: AppLocalizations.of(context)?.editorShortcutsHelp ?? '快捷键帮助',
                 icon: const Icon(Icons.help_outline),
                 onPressed: _showShortcutHelp,
               ),
               // 右上角汉堡菜单（对齐 Excalidraw main-menu）
               PopupMenuButton<_MainMenuItem>(
-                tooltip: '主菜单',
+                tooltip: AppLocalizations.of(context)?.editorMenu ?? '主菜单',
                 icon: const Icon(Icons.menu),
                 onSelected: _onMainMenuSelected,
                 itemBuilder: (_) => [
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: _MainMenuItem.clearCanvas,
                     child: ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.delete_sweep_outlined),
-                      title: Text('清空画布'),
+                      title: Text(AppLocalizations.of(context)?.editorClearCanvas ?? '清空画布'),
                     ),
                   ),
                   const PopupMenuDivider(),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: _MainMenuItem.copyPng,
                     child: ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.content_copy),
-                      title: Text('复制 PNG 到剪贴板'),
+                      title: Text(AppLocalizations.of(context)?.editorCopyPng ?? '复制 PNG 到剪贴板'),
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: _MainMenuItem.exportPng,
                     child: ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.image_outlined),
-                      title: Text('导出 PNG'),
+                      title: Text(AppLocalizations.of(context)?.editorExportPng ?? '导出 PNG'),
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: _MainMenuItem.exportSvg,
                     child: ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.ios_share),
-                      title: Text('导出 SVG'),
+                      title: Text(AppLocalizations.of(context)?.editorExportSvg ?? '导出 SVG'),
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: _MainMenuItem.exportPdf,
                     child: ListTile(
                       dense: true,
@@ -751,7 +752,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       title: Text('导出 PDF'),
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: _MainMenuItem.exportJson,
                     child: ListTile(
                       dense: true,
@@ -760,7 +761,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       title: Text('导出 JSON'),
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: _MainMenuItem.exportPptx,
                     child: ListTile(
                       dense: true,
@@ -770,7 +771,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                     ),
                   ),
                   if (_isNotebookMode)
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: _MainMenuItem.exportWord,
                       child: ListTile(
                         dense: true,
@@ -779,7 +780,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                         title: Text('导出 Word 兼容文档'),
                       ),
                     ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: _MainMenuItem.exportText,
                     child: ListTile(
                       dense: true,
@@ -789,7 +790,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                     ),
                   ),
                   const PopupMenuDivider(),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: _MainMenuItem.commandPalette,
                     child: ListTile(
                       dense: true,
@@ -798,7 +799,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       title: Text('命令面板'),
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: _MainMenuItem.chart,
                     child: ListTile(
                       dense: true,
@@ -807,7 +808,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       title: Text('图表（粘贴数据）'),
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: _MainMenuItem.presentation,
                     child: ListTile(
                       dense: true,
@@ -816,7 +817,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       title: Text('幻灯片演示'),
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: _MainMenuItem.stats,
                     child: ListTile(
                       dense: true,
@@ -825,7 +826,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       title: Text('统计'),
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: _MainMenuItem.library,
                     child: ListTile(
                       dense: true,
@@ -835,7 +836,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                     ),
                   ),
 
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: _MainMenuItem.shortcuts,
                     child: ListTile(
                       dense: true,

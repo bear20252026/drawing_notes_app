@@ -51,4 +51,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeMore => 'More options';
+
+  @override
+  String get editorUndo => 'Undo';
+
+  @override
+  String get editorRedo => 'Redo';
+
+  @override
+  String get editorShortcutsHelp => 'Keyboard shortcuts';
+
+  @override
+  String get editorMenu => 'Main menu';
+
+  @override
+  String get editorClearCanvas => 'Clear canvas';
+
+  @override
+  String get editorCopyPng => 'Copy PNG to clipboard';
+
+  @override
+  String get editorExportPng => 'Export PNG';
+
+  @override
+  String get editorExportSvg => 'Export SVG';
+
+  @override
+  String get editorShapeTool => 'Shape tool';
 }
