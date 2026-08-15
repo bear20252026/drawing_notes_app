@@ -53,7 +53,7 @@ class ShortcutRow extends StatelessWidget {
 ///
 /// 在页面混排对象（文字/图片块）之间画连线，坐标随画布视口变换。
 class ConnectorPainter extends CustomPainter {
-  ConnectorPainter({required this.page, required this.controller});
+  const ConnectorPainter({required this.page, required this.controller});
 
   final NotebookPage page;
   final DrawingController controller;
@@ -289,7 +289,7 @@ class PaginationPreview extends StatelessWidget {
 /// 按 [PageShapeItem.shapeType] 绘制矩形/椭圆/菱形/箭头/直线，
 /// 支持描边色、填充色与线宽；坐标基于元素外接框（0,0 → width,height）。
 class ShapePainter extends CustomPainter {
-  ShapePainter({required this.shape, required this.viewScale});
+  const ShapePainter({required this.shape, required this.viewScale});
 
   final PageShapeItem shape;
   final double viewScale;
@@ -500,7 +500,7 @@ class ShapePainter extends CustomPainter {
 /// 拖动元素接近对齐位置时，在画布上画出参考线（垂直线/水平线），
 /// 让用户直观看到"吸附到哪里"。
 class SnapGuidePainter extends CustomPainter {
-  SnapGuidePainter({required this.guides, required this.controller});
+  const SnapGuidePainter({required this.guides, required this.controller});
 
   final List<({bool vertical, double pos})> guides;
   final DrawingController controller;
@@ -542,7 +542,7 @@ class SnapGuidePainter extends CustomPainter {
 ///
 /// 框选时显示半透明蓝色矩形，直观呈现多选范围。
 class MarqueePainter extends CustomPainter {
-  MarqueePainter({required this.rect, required this.controller});
+  const MarqueePainter({required this.rect, required this.controller});
 
   final Rect rect; // 画布坐标
   final DrawingController controller;
@@ -585,7 +585,7 @@ class MarqueePainter extends CustomPainter {
 ///
 /// 在画布上绘制 20px 网格（浅灰线），帮助对齐与布局参考。
 class GridPainter extends CustomPainter {
-  GridPainter({required this.controller});
+  const GridPainter({required this.controller});
 
   final DrawingController controller;
 
@@ -610,7 +610,7 @@ class GridPainter extends CustomPainter {
 
 /// 图表渲染器（借鉴 Excalidraw charts）：柱状图/折线图。
 class ChartPainter extends CustomPainter {
-  ChartPainter({required this.chart, required this.viewScale});
+  const ChartPainter({required this.chart, required this.viewScale});
 
   final PageChartItem chart;
   final double viewScale;

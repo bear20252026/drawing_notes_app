@@ -53,6 +53,10 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
 
   @override
   void dispose() {
+    final key = _masterKey;
+    if (key != null) {
+      key.fillRange(0, key.length, 0); // S-4 增强（专家审查）：主动擦除内容
+    }
     _masterKey = null; // 内存安全：关闭页面即清空密钥
     super.dispose();
   }

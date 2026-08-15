@@ -57,7 +57,9 @@ extension DrawingControllerHistoryOps on DrawingController {
   void addLayer({String? name}) {
     final before = _snapshotLayers();
     final layer = Layer(
-      id: 'layer_${DateTime.now().microsecondsSinceEpoch}',
+      // Q-4 修复（专家审查 2026-08-15）：统一用 LocalIdGenerator——
+      // 微秒时间戳在快速连续操作下可能碰撞（批量加图层）。
+      id: LocalIdGenerator.next('layer'),
       name: name ?? '图层 ${_document.layers.length + 1}',
     );
     _document.layers.add(layer);

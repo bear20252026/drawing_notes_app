@@ -237,6 +237,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   /// 手型工具激活（对齐 Excalidraw hand：拖动画布平移）。
   bool _handToolActive = false;
 
+  /// 上次取色时间（P-2 修复 2026-08-15）：pickColorAt 每次完整重绘文档
+  /// 到图片（极重操作），取色做 200ms 冷却节流防连续触发卡顿。
+  DateTime? _lastPickColorAt;
+
   /// 拖动轨迹点（对齐 Excalidraw animatedTrail：拖动元素显示轨迹动画）。
   final List<Offset> _trailPoints = [];
 

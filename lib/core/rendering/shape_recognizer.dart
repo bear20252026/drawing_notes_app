@@ -17,6 +17,17 @@ class ShapeRecognizer {
   static const double _closureRatio = 0.16;
   static const double _maxEllipseRadialError = 0.16;
 
+  // Q-6 修复（专家审查 2026-08-15）：识别阈值提取命名常量（原魔法数字）。
+  static const double _strokeWidthClosureFactor = 2.4; // 闭合距离上限系数
+  static const double _rectPerimeterMin = 0.88; // 矩形周长比下限
+  static const double _rectPerimeterMax = 1.32; // 矩形周长比上限
+  static const double _maxRectEdgeDistance = 0.055; // 矩形贴合阈值（×对角线）
+  static const double _diamondPerimeterMin = 0.58; // 菱形周长比下限
+  static const double _diamondPerimeterMax = 0.75; // 菱形周长比上限
+  static const double _maxDiamondEdgeDistance = 0.06; // 菱形贴合阈值（×对角线）
+  static const double _ellipsePerimeterMin = 0.60; // 椭圆周长比下限
+  static const double _ellipsePerimeterMax = 0.94; // 椭圆周长比上限
+
   static RecognizedShape? recognize(Stroke stroke) {
     if (stroke.type != BrushType.pen && stroke.type != BrushType.pencil) {
       return null;
@@ -40,7 +51,7 @@ class ShapeRecognizer {
     );
     final closureDistance = (points.first.offset - points.last.offset).distance;
     if (closureDistance >
-        math.max(stroke.width * 2.4, diagonal * _closureRatio)) {
+        math.max(stroke.width * _strokeWidthClosureFactor, diagonal * _closureRatio)) {
       return null;
     }
 
@@ -49,9 +60,9 @@ class ShapeRecognizer {
     final perimeterRatio = pathLength / boxPerimeter;
 
     // 矩形沿外接框四条边行进，路径长度接近盒周长；椭圆则显著更短。
-    if (perimeterRatio >= 0.88 &&
-        perimeterRatio <= 1.32 &&
-        _meanDistanceToBoxEdge(points, bounds) <= diagonal * 0.055 &&
+    if (perimeterRatio >= _rectPerimeterMin &&
+        perimeterRatio <= _rectPerimeterMax &&
+        _meanDistanceToBoxEdge(points, bounds) <= diagonal * _maxRectEdgeDistance &&
         _hasCornerEvidence(points, bounds)) {
       return RecognizedShape(ShapeType.rect, bounds);
     }
@@ -59,15 +70,15 @@ class ShapeRecognizer {
     final ellipseError = _meanEllipseRadialError(points, bounds);
     // 椭圆同样经过上下左右四个极值点；仅凭菱形顶点证据会产生误判。
     // 菱形路径通常显著短于椭圆路径，因此同时收紧其外接框周长比。
-    if (perimeterRatio >= 0.58 &&
-        perimeterRatio <= 0.75 &&
-        _meanDistanceToDiamondEdge(points, bounds) <= diagonal * 0.06 &&
+    if (perimeterRatio >= _diamondPerimeterMin &&
+        perimeterRatio <= _diamondPerimeterMax &&
+        _meanDistanceToDiamondEdge(points, bounds) <= diagonal * _maxDiamondEdgeDistance &&
         _hasDiamondCornerEvidence(points, bounds)) {
       return RecognizedShape(ShapeType.diamond, bounds);
     }
 
-    if (perimeterRatio >= 0.60 &&
-        perimeterRatio <= 0.94 &&
+    if (perimeterRatio >= _ellipsePerimeterMin &&
+        perimeterRatio <= _ellipsePerimeterMax &&
         ellipseError <= _maxEllipseRadialError) {
       return RecognizedShape(ShapeType.ellipse, bounds);
     }

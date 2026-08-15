@@ -488,8 +488,15 @@ extension _EditorPageInput on _EditorPageState {
     _controller.tickFrame(); // 高频重绘：仅画布。
   }
 
-  /// 在画布坐标处取色并更新当前画笔颜色。
+  /// 在画布坐标处取色并更新当前画笔颜色（P-2 修复 2026-08-15：200ms
+  /// 冷却节流——pickColorAt 每次完整重绘文档到图片，极重操作）。
   Future<void> _pickColor(Offset canvasPoint) async {
+    final now = DateTime.now();
+    if (_lastPickColorAt != null &&
+        now.difference(_lastPickColorAt!) < const Duration(milliseconds: 200)) {
+      return; // 节流：200ms 冷却期内忽略重复取色
+    }
+    _lastPickColorAt = now;
     final color = await _controller.pickColorAt(canvasPoint);
     if (color == null) return;
     _updateCurrentBrushPreset(color: color);

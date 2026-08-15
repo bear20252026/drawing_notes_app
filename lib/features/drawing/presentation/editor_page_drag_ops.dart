@@ -126,27 +126,36 @@ extension _EditorPageDragOps on _EditorPageState {
             onSelectedFontSize: _setSelectedTextFontSize,
             changeTextColor: _changeSelectedTextColor,
             toggleBold: () => _applyState(() {
-              _selectedTextItem!.bold = !_selectedTextItem!.bold;
+              final s = _selectedTextItem;
+              if (s == null) return;
+              s.bold = !s.bold;
               _notifyChanged();
             }),
             toggleItalic: () => _applyState(() {
-              _selectedTextItem!.italic = !_selectedTextItem!.italic;
+              final s = _selectedTextItem;
+              if (s == null) return;
+              s.italic = !s.italic;
               _notifyChanged();
             }),
             toggleUnderline: () => _applyState(() {
-              _selectedTextItem!.underline = !_selectedTextItem!.underline;
+              final s = _selectedTextItem;
+              if (s == null) return;
+              s.underline = !s.underline;
               _notifyChanged();
             }),
             toggleStrikethrough: () => _applyState(() {
-              _selectedTextItem!.strikethrough =
-                  !_selectedTextItem!.strikethrough;
+              final s = _selectedTextItem;
+              if (s == null) return;
+              s.strikethrough = !s.strikethrough;
               _notifyChanged();
             }),
             cycleAlign: () => _applyState(() {
+              final s = _selectedTextItem;
+              if (s == null) return;
               final next =
-                  TextAlignType.values[(_selectedTextItem!.align.index + 1) %
+                  TextAlignType.values[(s.align.index + 1) %
                       TextAlignType.values.length];
-              _selectedTextItem!.align = next;
+              s.align = next;
               _notifyChanged();
             }),
             editText: _editTextItem,

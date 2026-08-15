@@ -426,7 +426,7 @@ class CanvasPainter extends CustomPainter {
 /// 1. 各图层位图按 miniScale 缩放到小地图区域（白纸底）；
 /// 2. 当前视口（可见区域）矩形框，随缩放/平移实时更新。
 class MiniMapPainter extends CustomPainter {
-  MiniMapPainter({
+  const MiniMapPainter({
     required this.controller,
     required this.miniScale,
     required this.viewport,
