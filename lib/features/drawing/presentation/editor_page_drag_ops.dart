@@ -10,35 +10,23 @@ extension _EditorPageDragOps on _EditorPageState {
     return ListenableBuilder(
       listenable: _controller,
       builder: (context, _) {
-        final isEraser = _controller.tool == BrushType.eraser;
         return EditorContextBar(
-          state: EditorToolbarState(
-            isEraser: isEraser,
-            isHighlighter: _controller.tool == BrushType.marker,
-            isLaser: _controller.tool == BrushType.laser,
-            temporaryMarkerEnabled: _controller.temporaryMarkerEnabled,
-            activeSize: isEraser
-                ? _controller.eraserSize
-                : _controller.brushSize,
-            showNoteTools: _isNotebookMode,
-            eyedropperActive: _eyedropperActive,
-            textToolActive: _textToolActive,
-            selectionTool: _controller.selectionTool,
-            linkMode: _linkMode,
-            color: _controller.color,
-            paperType: _controller.document.paperType,
-            selectedItemId: _selectedItemId,
-            selectedTextItem: _selectedTextItem,
-            activeShape: _activeShapeTool,
-            selectedShape: _selectedShapeItem,
-            shapeFillEnabled: _fillShapeEnabled,
-            marqueeActive: _marqueeActive,
-            pixelEraser: _controller.eraserMode == EraserMode.pixel,
-            eraserCanEraseShapesStroke:
-                _controller.eraserCanEraseShapesStroke,
-            eraserCanEraseShapesPixel: _controller.eraserCanEraseShapesPixel,
-            gridVisible: _gridVisible,
-            snapToGrid: _snapToGrid,
+          state: mapEditorToolbarState(
+            _controller,
+            ToolbarUiFlags(
+              isNotebookMode: _isNotebookMode,
+              eyedropperActive: _eyedropperActive,
+              textToolActive: _textToolActive,
+              linkMode: _linkMode,
+              selectedItemId: _selectedItemId,
+              selectedTextItem: _selectedTextItem,
+              activeShape: _activeShapeTool,
+              selectedShape: _selectedShapeItem,
+              shapeFillEnabled: _fillShapeEnabled,
+              marqueeActive: _marqueeActive,
+              gridVisible: _gridVisible,
+              snapToGrid: _snapToGrid,
+            ),
           ),
           actions: EditorToolbarActions(
             onToggleGrid: () => _applyState(() => _gridVisible = !_gridVisible),
