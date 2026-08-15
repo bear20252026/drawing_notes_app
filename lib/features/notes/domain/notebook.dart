@@ -438,6 +438,7 @@ class Notebook {
     this.encryptionMode = EncryptionMode.password,
     this.encryptedPayload,
     this.recoveryEnvelope,
+    this.searchSummary = '',
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : pages = pages ?? [],
@@ -464,10 +465,35 @@ class Notebook {
   /// 解信封找回主密钥（EncryptionService.wrapMasterKey 产物）。
   String? recoveryEnvelope;
 
+  /// 脱敏搜索摘要（搜索增强 2026-08-16）：加密笔记本的明文摘要（标题 +
+  /// 文本块前 [searchSummaryMaxChars] 字符——不含敏感正文细节），供列表/
+  /// 搜索展示——核心正文仍加密（51CTO titlePreview 权威模式）。
+  String searchSummary;
+
   final DateTime createdAt;
   DateTime updatedAt;
 
   void touch() => updatedAt = DateTime.now();
+
+  /// 脱敏摘要最大字符数（搜索增强 2026-08-16）。
+  static const int searchSummaryMaxChars = 200;
+
+  /// 构建脱敏搜索摘要（标题 + 文本块前若干字符——截断防敏感正文细节
+  /// 全量暴露；纯函数——可独立单测；51CTO titlePreview 权威模式）。
+  static String buildSearchSummary(Notebook notebook) {
+    final buffer = StringBuffer(notebook.title);
+    for (final page in notebook.pages) {
+      for (final text in page.textItems) {
+        if (buffer.length >= searchSummaryMaxChars) break;
+        buffer.write(' ');
+        buffer.write(text.text);
+      }
+    }
+    final summary = buffer.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
+    return summary.length > searchSummaryMaxChars
+        ? summary.substring(0, searchSummaryMaxChars)
+        : summary;
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -478,6 +504,7 @@ class Notebook {
     'encryptionMode': encryptionMode.name,
     if (encryptedPayload != null) 'encryptedPayload': encryptedPayload,
     if (recoveryEnvelope != null) 'recoveryEnvelope': recoveryEnvelope,
+    if (searchSummary.isNotEmpty) 'searchSummary': searchSummary,
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
   };
@@ -495,6 +522,7 @@ class Notebook {
     ),
     encryptedPayload: json['encryptedPayload'] as String?,
     recoveryEnvelope: json['recoveryEnvelope'] as String?,
+    searchSummary: json['searchSummary'] as String? ?? '',
     createdAt:
         DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
     updatedAt:

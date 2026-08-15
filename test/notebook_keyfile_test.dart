@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
@@ -51,7 +52,13 @@ void main() {
       '${tempDir.path}${Platform.pathSeparator}notebooks'
       '${Platform.pathSeparator}nb1.json',
     ).readAsString();
-    expect(raw.contains('绝密内容'), isFalse, reason: '明文不应落盘');
+    // 密文载荷不含明文（searchSummary 脱敏摘要是有意例外——搜索用，
+    // 仅标题+前 200 字符，51CTO titlePreview 权威模式）。
+    expect(
+      jsonEncode(jsonDecode(raw)['encryptedPayload']).contains('绝密内容'),
+      isFalse,
+      reason: '密文载荷不应含明文正文',
+    );
     expect(raw.contains('keyfile'), isTrue, reason: '应标记 keyfile 模式');
     expect(raw.contains('recoveryEnvelope'), isTrue, reason: '应存恢复信封');
 
@@ -141,7 +148,12 @@ void main() {
       '${tempDir.path}${Platform.pathSeparator}notebooks'
       '${Platform.pathSeparator}nb1.json',
     ).readAsString();
-    expect(raw.contains('编辑后新增'), isFalse, reason: '明文不应落盘');
+    // 密文载荷不含明文（searchSummary 脱敏摘要是有意例外）。
+    expect(
+      jsonEncode(jsonDecode(raw)['encryptedPayload']).contains('编辑后新增'),
+      isFalse,
+      reason: '密文载荷不应含明文正文',
+    );
     await storage.decryptNotebookWithKey(reloaded, masterKey);
     expect(
       reloaded.pages.first.textItems.any((t) => t.text == '编辑后新增'),

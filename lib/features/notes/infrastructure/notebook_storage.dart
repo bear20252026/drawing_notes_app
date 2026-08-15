@@ -361,6 +361,9 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
 
   /// 启用密码保护并保存：把页面内容 AES-GCM 加密为载荷，明文不落盘。
   Future<String> encryptAndSave(Notebook notebook, String password) async {
+    // 搜索增强（2026-08-16）：保存时生成脱敏摘要（标题+文本摘要——
+    // 明文搜索用——核心正文仍加密）。
+    notebook.searchSummary = Notebook.buildSearchSummary(notebook);
     final payloadJson = jsonEncode({
       'pages': notebook.pages.map((p) => p.toJson()).toList(),
     });
@@ -412,6 +415,9 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     List<int> masterKey,
     String recoveryKey,
   ) async {
+    // 搜索增强（2026-08-16）：保存时生成脱敏摘要（标题+文本摘要——
+    // 明文搜索用——核心正文仍加密）。
+    notebook.searchSummary = Notebook.buildSearchSummary(notebook);
     final payloadJson = jsonEncode({
       'pages': notebook.pages.map((p) => p.toJson()).toList(),
     });
@@ -484,6 +490,9 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     List<int> masterKey, {
     String? newRecoveryKey,
   }) async {
+    // 搜索增强（2026-08-16）：保存时生成脱敏摘要（标题+文本摘要——
+    // 明文搜索用——核心正文仍加密）。
+    notebook.searchSummary = Notebook.buildSearchSummary(notebook);
     final payloadJson = jsonEncode({
       'pages': notebook.pages.map((p) => p.toJson()).toList(),
     });

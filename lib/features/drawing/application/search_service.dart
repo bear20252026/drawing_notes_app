@@ -54,6 +54,21 @@ class SearchService {
           ),
         );
       }
+      // 搜索增强（2026-08-16）：脱敏摘要匹配——加密笔记本可搜摘要
+      // （标题 + 文本前 200 字符——明文脱敏——未解锁也可搜，安全；
+      // 51CTO titlePreview/掘金"核心正文加密+必要摘要脱敏"权威模式）。
+      else if (nb.searchSummary.toLowerCase().contains(q)) {
+        final idx = nb.searchSummary.toLowerCase().indexOf(q);
+        results.add(
+          SearchResult(
+            kind: 'notebook',
+            notebookId: nb.id,
+            pageId: null,
+            title: nb.title,
+            snippet: _snippet(nb.searchSummary, idx, q.length),
+          ),
+        );
+      }
       for (final page in nb.pages) {
         if (page.title.toLowerCase().contains(q)) {
           results.add(
