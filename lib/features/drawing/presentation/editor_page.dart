@@ -46,7 +46,7 @@ import 'package:drawing_notes_app/features/drawing/presentation/editor_viewmodel
 import 'package:drawing_notes_app/features/drawing/presentation/layer_panel.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/properties_panel.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/resize_handles.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/selection_action_button.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/selection_bar.dart';
 
 part 'editor_page_dialogs.dart';
 part 'editor_page_overlays.dart';
@@ -914,7 +914,53 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       child: Column(
                         children: [
                           _buildContextBar(),
-                          _buildSelectionBar(),
+                          SelectionBar(
+                            controller: _controller,
+                            isNotebookMode: _isNotebookMode,
+                            scaleValue: _scaleValue,
+                            rotateDegrees: _rotateDegrees,
+                            onScaleChanged: (v) {
+                              _applyState(() {
+                                final factor = v / _scaleValue;
+                                _scaleValue = v;
+                                final c = _controller;
+                                if (_isNotebookMode &&
+                                    c.hasMixedDocumentObjectSelection) {
+                                  c.scaleSelectedDocumentObjects(factor);
+                                } else if (c.hasSelectedDocumentShape) {
+                                  c.scaleSelectedDocumentShape(factor);
+                                } else if (c.hasSelectedDocumentImage) {
+                                  c.scaleSelectedDocumentImage(factor);
+                                } else {
+                                  c.scaleSelectedStrokes(factor);
+                                }
+                              });
+                            },
+                            onRotateChanged: (v) {
+                              _applyState(() {
+                                final delta =
+                                    (v - _rotateDegrees) * 3.14159265 / 180;
+                                _rotateDegrees = v;
+                                _controller.rotateSelectedStrokes(delta);
+                              });
+                            },
+                            onClearSelection: () => _applyState(() {
+                              _viewModel.setSelectionDone(false);
+                              _controller.clearDocumentObjectSelection();
+                            }),
+                            onTransformEnd: () {
+                              final c = _controller;
+                              if (_isNotebookMode &&
+                                  c.hasMixedDocumentObjectSelection) {
+                                c.endDocumentObjectsTransform();
+                              } else if (c.hasSelectedDocumentShape) {
+                                c.endDocumentShapeTransform();
+                              } else if (c.hasSelectedDocumentImage) {
+                                c.endDocumentImageTransform();
+                              }
+                              _notifyChanged();
+                            },
+                          ),
                           Expanded(child: _buildCanvasArea()),
                         ],
                       ),
