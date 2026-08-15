@@ -65,7 +65,7 @@ class Stroke {
   /// 每次编辑递增的快速变化指示器；比 [version] 更细粒度。
   int versionNonce;
 
-  static int _newSeed() => Random().nextInt(0x7FFFFFFF);
+  static int _newSeed() => Random.secure().nextInt(0x7FFFFFFF);
 
   /// 几何版本号：点列被替换时递增，用于使渲染 Path 缓存失效。
   /// 移动/缩放/旋转会重建新 Stroke 对象（新 identity），无需手动递增。

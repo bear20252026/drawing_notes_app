@@ -1,5 +1,0 @@
-Architecture violations (4):
-  [enforceOnionRules] package:drawing_notes_app/features/drawing/application/drawing_controller.dart → package:drawing_notes_app/features/drawing/infrastructure/layer_compositor.dart: inner layer "application" must not import outer layer "infrastructure"
-  [enforceOnionRules] package:drawing_notes_app/features/drawing/application/drawing_controller.dart → package:drawing_notes_app/features/drawing/infrastructure/stroke_geometry_cache.dart: inner layer "application" must not import outer layer "infrastructure"
-  [enforceOnionRules] package:drawing_notes_app/features/drawing/application/drawing_controller.dart → package:drawing_notes_app/features/drawing/infrastructure/shape_recognizer.dart: inner layer "application" must not import outer layer "infrastructure"
-  [enforceOnionRules] package:drawing_notes_app/features/drawing/application/drawing_controller.dart → package:drawing_notes_app/features/drawing/infrastructure/shape_binding_geometry.dart: inner layer "application" must not import outer layer "infrastructure"

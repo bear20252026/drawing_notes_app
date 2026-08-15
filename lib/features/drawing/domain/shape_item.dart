@@ -84,7 +84,7 @@ class PageShapeItem {
   Offset? lineStart;
   Offset? lineEnd;
 
-  static int _newSeed() => Random().nextInt(0x7FFFFFFF);
+  static int _newSeed() => Random.secure().nextInt(0x7FFFFFFF);
 
   /// 内容变更后调用：递增版本号，为增量同步/冲突检测提供依据。
   void bumpVersion() {

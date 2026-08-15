@@ -30,7 +30,10 @@ extension _EditorPageOverlays on _EditorPageState {
             // 笔触/选区/视口变换期间仅局部重绘画布，不重建低频 UI。
             // 外包 GestureDetector 识别双击（双击空白插入文字，对齐 Excalidraw）。
             Positioned.fill(
-              child: GestureDetector(
+              child: Semantics(
+                label: '绘图画布',
+                hint: '双击空白处插入文字；使用工具栏工具绘制',
+                child: GestureDetector(
                 onDoubleTapDown: _onCanvasDoubleTap,
                 child: Listener(
                   behavior: HitTestBehavior.opaque,
@@ -55,6 +58,7 @@ extension _EditorPageOverlays on _EditorPageState {
                             size: Size.infinite,
                           ),
                         ),
+                ),
                 ),
               ),
             ),
