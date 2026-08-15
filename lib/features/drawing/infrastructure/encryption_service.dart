@@ -13,13 +13,26 @@ class EncryptionService {
   const EncryptionService();
 
   /// PBKDF2 迭代次数（慢 KDF，抵御离线暴力破解）。
-  static const int _pbkdf2Iterations = 100000;
+  ///
+  /// 审计修复（2026-08-15）：OWASP 2026 对 PBKDF2-HMAC-SHA256 推荐
+  /// 60 万次，原 10 万次（v=2）低于推荐。新数据用 60 万次（v=3），
+  /// 解密按 v 字段分派迭代次数，旧数据（v≤2）继续用 10 万次可解。
+  static const int _pbkdf2IterationsLegacy = 100000; // 旧数据（v ≤ 2）
+  static const int _pbkdf2IterationsCurrent = 600000; // 新数据（v ≥ 3）
 
-  /// 派生 32 字节密钥：PBKDF2-HMAC-SHA256(密码, 随机盐, 10 万次)。
-  Future<SecretKey> _deriveKey(String password, List<int> salt) async {
+  /// 按格式版本选择 PBKDF2 迭代次数（无 v 字段视为旧格式 v=2）。
+  static int _iterationsFor(int version) =>
+      version >= 3 ? _pbkdf2IterationsCurrent : _pbkdf2IterationsLegacy;
+
+  /// 派生 32 字节密钥：PBKDF2-HMAC-SHA256(密码, 随机盐, [iterations])。
+  Future<SecretKey> _deriveKey(
+    String password,
+    List<int> salt, {
+    int iterations = _pbkdf2IterationsCurrent,
+  }) async {
     final pbkdf2 = Pbkdf2(
       macAlgorithm: Hmac.sha256(),
-      iterations: _pbkdf2Iterations,
+      iterations: iterations,
       bits: 256,
     );
     return pbkdf2.deriveKey(
@@ -44,7 +57,7 @@ class EncryptionService {
       'n': base64Encode(nonce),
       'c': base64Encode(box.cipherText),
       'm': box.mac.bytes.isNotEmpty ? base64Encode(box.mac.bytes) : '',
-      'v': 2, // 格式版本（KDF=PBKDF2 10 万次）
+      'v': 3, // 格式版本（KDF=PBKDF2 60 万次，审计修复 2026-08-15）
     });
   }
 
@@ -52,7 +65,13 @@ class EncryptionService {
   Future<String> decrypt(String encryptedJson, String password) async {
     final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
     final salt = base64Decode(_requireString(map, 's'));
-    final key = await _deriveKey(password, salt);
+    // 按 v 字段分派迭代次数：v≥3 用 60 万次（新数据），v≤2/无 v 用 10 万次（旧数据兼容）。
+    final v = map['v'] is int ? map['v'] as int : 2;
+    final key = await _deriveKey(
+      password,
+      salt,
+      iterations: _iterationsFor(v),
+    );
     return _gcmDecrypt(map, key);
   }
 
@@ -107,6 +126,7 @@ class EncryptionService {
       'n2': base64Encode(nonce2),
       'ek': base64Encode(box.cipherText),
       'm2': box.mac.bytes.isNotEmpty ? base64Encode(box.mac.bytes) : '',
+      'v': 3, // 审计修复（2026-08-15）：PBKDF2 60 万次
     });
   }
 
@@ -114,7 +134,13 @@ class EncryptionService {
   Future<List<int>> unwrapMasterKey(String envelope, String recoveryKey) async {
     final map = jsonDecode(envelope) as Map<String, dynamic>;
     final salt = base64Decode(_requireString(map, 'salt'));
-    final kek = await _deriveKey(recoveryKey, salt);
+    // 按 v 字段分派迭代次数：v≥3 用 60 万次，v≤2/无 v 用 10 万次（旧信封兼容）。
+    final v = map['v'] is int ? map['v'] as int : 2;
+    final kek = await _deriveKey(
+      recoveryKey,
+      salt,
+      iterations: _iterationsFor(v),
+    );
     final aes = AesGcm.with256bits();
     final clear = await aes.decrypt(
       SecretBox(

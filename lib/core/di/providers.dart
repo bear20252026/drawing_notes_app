@@ -14,8 +14,23 @@ import '../theme/app_design.dart';
 /// 主题 provider（首个示例，验证管线打通；AppThemeController 保留兼容）。
 final themeProvider = Provider<ThemeData>((ref) => AppDesign.lightTheme());
 
-/// 深色模式开关（StateProvider 轻量示例，供 UI 层 ref.watch 驱动）。
-final darkModeProvider = StateProvider<bool>((ref) => false);
+/// 深色模式开关（Notifier 迁移示范，审计修复 2026-08-15）：
+/// 原 StateProvider 为 Riverpod 3.0 legacy API（3.0 已移出主 import），
+/// 迁为 Notifier（与 themeModeProvider 同模式）；无 UI 消费点，纯示例。
+final darkModeProvider =
+    NotifierProvider<DarkModeNotifier, bool>(DarkModeNotifier.new);
+
+/// 深色模式 Notifier：维护布尔开关（供 UI 层 ref.watch 驱动）。
+class DarkModeNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  /// 切换深色模式。
+  void toggle() => state = !state;
+
+  /// 直接设置深色模式。
+  void setDark(bool value) => state = value;
+}
 
 /// 主题模式状态（Notifier，替代 ChangeNotifier 的渐进迁移示范）：
 /// - [AppThemeController]（ChangeNotifier）职责迁入 [AppThemeNotifier]

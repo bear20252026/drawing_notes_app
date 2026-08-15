@@ -1,205 +1,117 @@
-# 国家专家级代码审计报告
+# Drawing Notes App 全面代码架构审计报告（2026-08-15）
 
-> **审计对象**：drawing_notes_app（绘图笔记桌面应用，Flutter）
-> **审计日期**：2026-08-15
-> **审计标准**：中国政府标准化采购项目 / 政府验收级（严谨性、安全性、数据完整性、可审计性、可维护性）
-> **审计范围**：全部源代码（lib 72 文件 / 22,423 行；test 56 文件 / 5,874 行）+ 依赖清单 + 全量门禁实测
-> **基准提交**：`3908411`（含本轮全部工程项）
+> 审计范围：`D:/write/1/build_latest/drawing_notes_app`（23602 行，lib 5 层）
+> 审计方法：中英双语官方文档调研（docs.flutter.dev/security、dart.dev/security、riverpod.dev、
+> OWASP 风格 checklist、ostorlab 中文清单交叉校验）+ 逐行代码审计 + 危险模式扫描 + 测试全量验证
+> 审计结论：架构整体健康，1 个中危安全漏洞 + 4 项合规差距，修复建议见文末清单
 
 ---
 
-## 一、审计结论总览
+## 一、2026 合规性对照（截止 2026-08-15）
 
-| 维度 | 结论 | 等级 |
+| 检查项 | 状态 | 证据 |
 | --- | --- | --- |
-| 架构合理性 | 分层清晰（models/engine/storage/ui），单一职责、依赖单向 | 🟢 通过 |
-| 加密安全 | PBKDF2 10 万次 + AES-256-GCM + 随机盐/nonce，零知识架构 | 🟢 通过 |
-| 数据完整性 | 版本降级 + 防御性恢复 + 原子写 + .bak 崩溃恢复 + 读重试 | 🟢 通过 |
-| 撤销/重做 | 增量命令（StoreDelta 思想），零整层拷贝 | 🟢 通过 |
-| 导出安全 | 三态净化（导出不含 UI 状态），防敏感信息外泄 | 🟢 通过 |
-| 测试门禁 | analyze 零问题 / 249 测试全过 / metrics exit=0 | 🟢 通过 |
-| 覆盖率 | 总计 46.2%，核心域 engine 73.5% / models 82.8% / storage 84.6% | 🟡 达标（UI 18.0% 待补） |
-| 遗留观察项 | 3 项（圈复杂度 50、UI 覆盖率、WebDAV 传输层未接入） | 🟡 记录 |
+| 最小权限 | ✅ | AndroidManifest.xml 零 uses-permission |
+| 明文流量禁用 | ✅ | 离线应用：lib 全量 0 处 HttpClient/Dio/WebSocket；`http://` 仅 XML schema 命名空间 |
+| 无硬编码机密 | ✅ | 无 token/密码字面量；密码盘零知识架构（主密钥只存 U 盘 key.frogkey） |
+| 敏感存储安全 | ✅ | shared_preferences 仅存 ThemeMode（非敏感）；机密走 AES-GCM-256 加密 |
+| 加密强度 | ⚠️ | AES-GCM-256 ✓ + PBKDF2-HMAC-SHA256 10 万次迭代（**低于 OWASP 2026 推荐 60 万**） |
+| 弱 PRNG | ❌ | **CWE-338**：恢复密钥用非安全 `Random()`（2 处，见漏洞 #1） |
+| CI 门禁 | ✅ | flutter analyze 零问题 + 298 测试全过 + code_guard + check_boundaries 工具链完备 |
+| 依赖版本 | ⚠️ | flutter_riverpod ^2.6.1（3.0 已发布 1 年+）；flutter_lints ^6.0.0 ✓ 最新 |
+| 资源泄漏 | ✅ | _temporaryInkTicker / 倒计时 Timer 均正确 cancel（dispose 全覆盖） |
+| 输入校验 | ⚠️ | `cmd /c start` 打开超链接无 scheme/元字符校验（见漏洞 #2） |
+| SBOM/CVE 追踪 | ⚠️ | pubspec.lock 存在，未见 CVE 定期核查流程 |
+| 异常健壮性 | ✅ | 加密路径 FormatException 统一包装（防 TypeError 破坏上层）；锁/磁盘异常保守降级 |
 
-**总体判定**：达到政府验收级质量基线，**无阻断性/高风险问题**；3 项中低风险观察项建议按整改计划推进。
+## 二、架构审计（Clean Architecture 5 层）
+
+| 层 | 行数 | 审计结论 |
+| --- | --- | --- |
+| presentation | 12447 | 合理拆分 20 文件（page/actions/commands/dialogs/drag/editing/input/overlays/persistence/shortcuts/tools）；**偏大，可再拆** |
+| application | 4686 | DrawingController + 5 分域文件（history/objects/render/selection/temporary）+ 命令模式；**主 controller 偏大** |
+| infrastructure | 2976 | 加密/编解码/渲染缓存/形状识别/同步（纯本地）分层清晰 |
+| domain | 1653 | 纯 Dart 领域模型（document/layer/stroke/shape/text/image/selection）无 UI 依赖 ✓ |
+| core + shared | 1635 | DI（Riverpod）、密码盘、存储、主题、通用组件 |
+
+亮点：
+- **命令模式 + 事务回滚**：command_registry / document_commands / document_transaction（回滚失败逐条打印）
+- **多文档隔离**：multi_document_controller_isolation_test 验证控制器互不污染
+- **Riverpod 五域 Notifier 化迁移进行中**：viewport/selection/history/shapes/images（本系列已提交 5 个域）
+
+改进点：
+1. presentation 12447 行偏大（>40% 总量），建议按功能域继续拆（如编辑器拆分 editor 子目录）
+2. 重复代码：`_generateRecoveryKey` 在 password_disk_page.dart 与 notebook_view_page_imports.dart **完全复制两份**（且同带漏洞）——应收敛为共享工具
+3. DrawingController 主文件（1000+ 行）建议后续继续按域抽离
+
+## 三、安全漏洞清单（按严重度）
+
+### 漏洞 #1【中危】CWE-338 弱 PRNG 生成恢复密钥（影响真实加密路径）
+- **位置**：`lib/features/notes/presentation/password_disk_page.dart:75`、`lib/features/notes/presentation/notebook_view_page_imports.dart:257`
+- **问题**：24 位恢复密钥（字母表 32 字符 ≈ 113 bits 熵）用 `Random()`（线性同余伪随机、可预测）生成，而**该密钥经 PBKDF2 派生 KEK 包裹主密钥**（notebook_storage.dart:299/345 wrapMasterKey）——U 盘丢失的恢复路径建立在可预测的密钥材料上
+- **对比证据**：同项目 PasswordDiskFile.generateKey()（password_disk.dart:38）正确使用 `Random.secure()`
+- **修复**：两处 `Random()` → `Random.secure()`（一行修复）
+- **验证**：security_regression_test.dart（14 测试）已覆盖加密回归，修复后全量重跑
+
+### 漏洞 #2【低-中危】`cmd /c start` 命令注入面（本地自助触发）
+- **位置**：`lib/features/drawing/presentation/editor_page_editing.dart:553`（_openHref）
+- **问题**：href 为用户自行输入并绑定到元素，点击时 `Process.start('cmd', ['/c', 'start', '', href])`——cmd 会解析 href 中的 `&`、`|`、`^` 等元字符；`javascript:`/`file:` scheme 也未被拦截
+- **降级因素**：桌面应用、href 为本人输入本人点击（无远程攻击面）
+- **修复建议**：打开前校验 scheme 白名单（http/https/mailto）并拒绝含 cmd 元字符的输入；或改用 `url_launcher` 插件（平台安全打开）
+
+### 漏洞 #3【低】PBKDF2 迭代次数低于 OWASP 2026 推荐
+- **位置**：encryption_service.dart:16（100000 次）
+- **问题**：OWASP Password Storage Cheat Sheet 2026 对 PBKDF2-HMAC-SHA256 推荐 **600,000 次**；10 万次仍可防基础字典攻击，但硬件加速下离线爆破成本偏低
+- **修复建议**：提升至 600000（兼容旧数据：解密时按 `v` 字段分派迭代次数，v=1 用旧值、v=2 用新值）
+
+### 漏洞 #4【低】flutter_riverpod ^2.6.1 非 2026 最新
+- **问题**：Riverpod 3.0 已发布（StateProvider 等 legacy 化、== 过滤、Ref 统一、family Notifier 移除），2.6.1 仍受支持但非推荐
+- **修复建议**：短期可维持；中长期按官方 3.0 迁移指南升级（本系列 Notifier 化迁移已与 3.0 语义对齐：不可变 state + == 过滤 + Notifier 无 mounted）
+
+## 四、功能完整性核对（全部功能可完全实现）
+
+**验证基础**：flutter analyze 零问题 + **298 单测全过（64 文件）** + 16 集成测试全过
+
+| 功能域 | 单测覆盖 | 状态 |
+| --- | --- | --- |
+| 画布/笔画/手写 | phase1_canvas(6)/phase2_tools(5)/stroke_*(14)/stylus(4)/pencil_shader(3) | ✅ |
+| 形状（识别/创建/绑定/渲染） | shape_*(13)/standalone_shape(2)/stroke_renderer_outline(4) | ✅ |
+| 文本（run delta/样式） | text_run_delta(6)/text_style_regression(6) | ✅ |
+| 图片（插入/编辑/持久化/资产生命周期） | document_image_*(13)/document_asset_lifecycle(3) | ✅ |
+| 图层合成 | layer_compositor_cache(4)/highlighter_compositor(3)/phase3_layers(8) | ✅ |
+| 选区/变换/混排对象 | phase4_selection(12)/selection_transform(2)/mixed_document_object(5)/reading_inversion(1) | ✅ |
+| 无限画布/视口 | infinite_canvas(3)/view_transform_cache(4)/glass_surface(3) | ✅ |
+| 导出（PPT/SVG/PDF/RTF） | export_payload(1)/pdf_hybrid(4)/paged_note_rtf(2)/paged_note_pdf_asset(1) | ✅ |
+| 加密/密码盘/恢复 | security_regression(14)/password_disk(7)/password_disk_page(3)/notebook_keyfile(5)/notebook_page_metadata(2) | ✅ |
+| 同步/搜索 | sync_service(5)/search_service(2) | ✅ |
+| 命令/事务/脏跟踪 | command_registry(3)/command_palette(1)/document_transaction(6)/push_transaction(3)/dirty_tracking(5) | ✅ |
+| Riverpod 五域迁移 | riverpod_providers(13) | ✅ |
+| 回归/可用性 | fix_regression(10)/usability(4)/ux_*(15)/paper_template(2)/fractional_index(9)/eraser_*(6)/laser(2)/temporary_marker(2)/brush_preset(4)/multi_document(1) | ✅ |
+
+**结论**：所有功能域均有实现 + 测试覆盖，无"只实现不验证"的死角；导出/加密/同步等关键路径有专项测试。
+
+## 五、性能审计
+
+| 项 | 结论 |
+| --- | --- |
+| 渲染缓存 | ✅ stroke_picture_cache（指纹缓存）/ layer_compositor_cache / view_transform_cache 三层缓存 |
+| 增量重绘 | ✅ 脏标记 + 增量重建（dirty_tracking_test 5 测试） |
+| 视口裁剪 | ✅ 无限画布仅绘制可见区（infinite_canvas_controller_test） |
+| 临时标记 | ✅ 临时墨水/激光/橡皮擦 ticker 16ms 帧率控制 + dispose 清理 |
+| 文本布局 | ✅ text_run_delta 增量差异计算 |
 
 ---
 
-## 二、审计范围与方法
+## 六、修复建议清单（按优先级）
 
-### 2.1 代码规模
-
-| 目录 | 行数 | 文件数 | 职责 |
+| 优先级 | 修复项 | 改动量 | 建议 |
 | --- | --- | --- | --- |
-| lib/engine | 6,451 | 31 | 绘图引擎、加密、命令、导出、同步、形状识别 |
-| lib/models | 1,446 | 9 | 数据模型（文档/笔画/形状/文字/图片） |
-| lib/storage | 1,501 | 7 | 编解码、文件存储、密钥管理 |
-| lib/ui | 12,518 | 21 | 页面、画布、工具栏、组件 |
-| **lib 合计** | **22,423** | **72** | — |
-| test | 5,874 | 56 | 单元/组件/回归测试 |
+| P1 | 漏洞 #1：两处 `Random()` → `Random.secure()` | 2 行 | 立即修复 + security_regression 补测 |
+| P2 | 漏洞 #2：href scheme 白名单 + cmd 元字符校验（或换 url_launcher） | ~15 行 | 下个迭代 |
+| P2 | 漏洞 #3：PBKDF2 迭代提至 60 万（v 字段版本兼容解密） | ~10 行 | 下个迭代 |
+| P3 | 漏洞 #4：Riverpod 3.0 迁移评估（迁移指南已存在） | 大 | 排期评估 |
+| P3 | 重复代码收敛：_generateRecoveryKey 提取共享工具（顺带消漏洞 #1） | ~30 行 | 随 P1 一起 |
+| P4 | 架构：presentation 12447 行再拆分、DrawingController 主文件按域抽离 | 中 | 长期 |
+| P4 | SBOM/CVE 定期核查流程（dart pub outdated 纳入 CI） | 小 | 长期 |
 
-### 2.2 第三方依赖（审计通过）
-
-| 依赖 | 用途 | 审计结论 |
-| --- | --- | --- |
-| cryptography ^2.7.0 | AES-256-GCM / PBKDF2 / SHA-256 | ✅ 主流密码学库 |
-| perfect_freehand | 手写笔画几何 | ✅ |
-| pdf / pdfrx | PDF 导出/导入 | ✅ |
-| archive | 打包 | ✅ |
-| hotkey_manager | 快捷键 | ✅ |
-| file_selector / path_provider | 文件/路径 | ✅ |
-| shared_preferences | 轻量设置 | ✅ |
-| dart_code_metrics ^5.7.6 | 复杂度门禁 | ✅ 未过阈 |
-
-无新增网络/风险依赖；全部为官方维护的主流包。
-
----
-
-## 三、安全审计（高风险模块精读）
-
-### 3.1 密码保护加密（`encryption_service.dart`）✅
-
-| 检查项 | 实现 | 结论 |
-| --- | --- | --- |
-| 密钥派生 | PBKDF2-HMAC-SHA256，**10 万次迭代**（慢 KDF 抗离线暴力） | ✅ |
-| 对称加密 | AES-256-GCM（认证加密，防篡改） | ✅ |
-| 盐/nonce | 每次加密随机盐 16B + 随机 nonce 12B，一并存入密文 JSON | ✅ |
-| 错误处理 | 缺失/类型错误统一抛 `FormatException`（`_requireString`），不抛 TypeError | ✅ |
-| 格式版本 | `v: 2` 记录 KDF 参数，可迁移 | ✅ |
-
-### 3.2 密码盘（U 盘即钥匙）零知识架构 ✅
-
-| 检查项 | 实现 | 结论 |
-| --- | --- | --- |
-| 主密钥驻留 | 仅存 U 盘 `key.frogkey`（37 字节），软件不持久化 | ✅ |
-| 内容加密 | 主密钥 AES-256-GCM 加密页面 | ✅ |
-| 恢复信封 | 恢复密钥（24 位纸备份）PBKDF2 派生 KEK → 包裹主密钥成信封 | ✅ |
-| 防篡改 | 错误密钥/篡改数据抛 FormatException 而非崩溃 | ✅ |
-
-### 3.3 同步路径加密（`sync_path_cipher.dart`）✅
-
-- `.sbe` 扩展 + AES-256-GCM 确定性 nonce（SHA-256(主密钥‖明文)），云端文件名不泄露明文标题；
-- 解密需候选明文（`decryptPathWithCandidates`），失败返回 null 不中断同步；
-- 本项为上轮新落地，随审计同步核验通过。
-
-### 3.4 敏感数据面
-
-- 工程文件不含口令/密钥；导出 payload 已净化（见 5.4）；
-- GitHub 令牌按项目纪律走凭据感知工具，未入库。
-
----
-
-## 四、数据完整性与可靠性审计
-
-### 4.1 工程文件编解码（`document_codec.dart`）✅
-
-| 检查项 | 实现 | 结论 |
-| --- | --- | --- |
-| 版本只读降级 | `fileVersion > 当前支持版本` 明确拒绝（防静默丢新字段），提示升级 | ✅ |
-| 根/ID 校验 | 根必须为对象、文档 ID 必须匹配 `_validDocumentId` | ✅ |
-| 防御性恢复 | 图层/笔画/形状/图片**逐对象隔离**：单条损坏不阻塞其余内容 | ✅ |
-| 安全边界 | 坐标 ≤1e6、形状尺寸 ≤8192、线宽 ≤512、宽高为正、值有限 | ✅ |
-| 重复 ID 清理 | 形状/图片集合去重，`ids.add` 失败即丢弃 | ✅ |
-| 绑定修复 | 指向已删除目标的箭头端点自动置空（防悬挂引用） | ✅ |
-
-### 4.2 文件存储（`storage_service.dart`）✅
-
-| 检查项 | 实现 | 结论 |
-| --- | --- | --- |
-| 原子写 | 临时文件写满 + `flush:true` 后 rename 替换 | ✅ |
-| .bak 崩溃恢复 | 写新版本前备份上一版，正式文件损坏自动回退 | ✅ |
-| 写队列保序 | 每文档 `_writeTails` 串行化，旧快照不覆盖新版本 | ✅ |
-| 读失败重试 | `_readWithRetry` 3 次重试抗瞬态 IO | ✅ |
-| 资产回收 | 引用无法读取时不回收（数据安全优先） | ✅ |
-
-### 4.3 撤销/重做（`document_commands.dart`）✅
-
-- 8 个命令：Snapshot / AddStroke / **EraseStrokes（增量）** / ReplaceStrokeWithShape / DocumentImageState / DocumentShapesSnapshot 等；
-- `EraseStrokesCommand` 只存被删笔画（图层索引+原位置+引用），undo 按升序插回、redo 按引用移除——**零整层拷贝**（对齐 Excalidraw StoreDelta）；
-- 形状擦除撤销同样按引用快照还原。
-
-### 4.4 状态管理（`drawing_controller.dart`）✅
-
-- 文档变更统一 `touch()`/`touchDocument()` + `notifyListeners()`；
-- 历史栈有上限防内存无限增长；命令注册表驱动快捷键面板（可审计）。
-
----
-
-## 五、导出安全审计
-
-### 5.1 三态净化（`buildExportPayload`，`editor_exporter.dart`）✅
-
-- 导出：仅文档域数据（图层/文字/图片/形状），**绝不携带**选区、视图缩放/平移、当前工具等 UI 状态；
-- 存储：`DrawingDocument.toJson` 仅文档域；
-- 本地：编辑器内部状态不落盘；
-- 有独立测试 `test/export_payload_test.dart` 断言净化边界。
-
-### 5.2 导出格式
-
-PNG / PDF（矢量+光栅混合）/ SVG / RTF / TXT / PPTX / JSON / 剪贴板，共用 `ShapeRenderer` 无 UI 依赖（编辑器所见即导出所得）。
-
----
-
-## 六、测试与质量门禁实测（2026-08-15 现场复核）
-
-| 门禁 | 实测结果 | 结论 |
-| --- | --- | --- |
-| `flutter analyze` | **No issues found** | ✅ |
-| `flutter test`（全量） | **249 / 249 通过**（含新增同步 5 项、导出净化 1 项） | ✅ |
-| `dart_code_metrics` | exit=0（唯一警告：圈复杂度 50，为 editor_page 既有状态类） | ✅ |
-| 覆盖率（`tools/measure_coverage.sh`） | 总计 46.2% / engine **73.5%** / models **82.8%** / storage **84.6%** / ui 18.0% | 🟡 核心域达标 |
-
----
-
-## 七、观察项与整改建议（中低风险，不阻断验收）
-
-| # | 观察项 | 等级 | 整改建议 |
-| --- | --- | --- | --- |
-| O1 | `editor_page.dart` 圈复杂度 50（单一巨型状态类） | 🟡 中 | 按既有"提取独立类/纯函数"路线继续拆分；`SelectionManager` 拆分需双状态源评审后再动 |
-| O2 | UI 层覆盖率 18.0%（widget 测试聚焦核心交互） | 🟡 中 | 优先补画布/工具栏高频路径的 widget 测试 |
-| O3 | WebDAV 传输层为抽象接口 + 路径加密，实际 HTTP 客户端未接入 | 🟡 低 | 引入 `http` 依赖实现 `SyncService` 具体类时，保持三件套接口不变 |
-| O4 | 选区主色 `dominantStrokeColor` 无 UI 调用方 | 🟢 低 | 在"批量改色/吸管"入口接入 |
-| O5 | 无限画布对齐吸附属于 controller 层后续工程 | 🟢 低 | 在 controller 拖动路径复用 notebook 吸附算法 |
-
----
-
-## 八、审计结论
-
-**判定：达到中国政府验收级质量基线（通过）。**
-
-- 无阻断性缺陷、无高风险安全问题；加密零知识架构、数据完整性与崩溃恢复、增量历史、导出净化均达审计标准；
-- 249 项测试全绿 + 静态分析零问题 + 复杂度门禁通过；核心域（engine/models/storage）覆盖率 73.5%–84.6%；
-- 5 项观察项（O1–O5）全部为中低风险，已给出可执行的整改路径，建议作为验收后持续改进项；
-- 全程 git 双备份（本地 + GitHub），提交链可完整追溯：`17dd5e1 → 28f91a4 → 3908411`。
-
-> 本报告基于 2026-08-15 当日代码状态（HEAD `3908411`）与全量门禁实测出具。
-
----
-
-## 九、架构拆分优化（补充审计，2026-08-15 当日复核）
-
-> 依据政府验收"单文件一功能、最长不超 1000 行、拆分须让逻辑更精简而非复杂化"的要求，
-> 对全部超长文件执行专家级拆分并复核。拆分方式经语言级实验验证：
-> **Dart part 顶层函数无法访问主类实例字段、类内 part 非法、mixin on 触发递归继承**，
-> 最终采用 **同库 extension（可访问私有字段 + 主类 `_applyState`/`_applyNotify` 薄包装
-> 转发受保护成员）**，行为零变化。
-
-### 9.1 拆分成果
-
-| 原文件 | 原行数 | 拆分后主文件 | 拆分出的逻辑域 part（行数） |
-| --- | --- | --- | --- |
-| `editor_page.dart` | 5092 | **1405** | overlays(1793)/input(509)/editing(742)/actions(565)/tools(135)/dialogs(247) |
-| `drawing_controller.dart` | 2385 | **1102** | objects(901)/selection(253)/render(163)/temporary(58) |
-| `notebook_view_page.dart` | 1211 | **453** | imports(426)/manage(354)/widgets(412) |
-
-### 9.2 拆分原则与验证
-
-- **不为拆而拆**：`editor_page_overlays.dart`（1793 行）尝试再拆拖拽域时发现构建方法与
-  拖拽/对齐/手柄方法互相引用紧密，跨 extension 私有成员 tear-off 不可行——经专家评估
-  **回滚合并**，保持单一内聚构建域（宁可超 1000 行也不复杂化）。
-- **行为零变化**：extension 内 `setState`→`_applyState`、`notifyListeners`→`_applyNotify`
-  仅为受保护成员转发；静态几何工具（`_segmentsIntersect` 等）保留在主类供多域共享。
-- **门禁复核**：`flutter analyze` 零问题 / **249 项测试全过** / `dart_code_metrics` exit=0
-  （圈复杂度 50 与拆分前基线一致，无新增警告）。
-
-
+> 已验证门禁：flutter analyze 零问题 / 298 单测全过 / 16 集成测试全过 / check_boundaries 通过 / code_guard 0 错误

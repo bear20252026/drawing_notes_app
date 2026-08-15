@@ -24,6 +24,7 @@ import 'package:drawing_notes_app/features/drawing/infrastructure/pencil_shader.
 import 'package:drawing_notes_app/features/drawing/infrastructure/shape_binding_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/shape_creation_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/shape_library.dart';
+import 'package:drawing_notes_app/core/utils/safe_url.dart';
 import 'package:drawing_notes_app/features/drawing/application/stylus_input.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/view_transform_cache.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';

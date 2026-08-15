@@ -548,11 +548,18 @@ extension _EditorPageEditing on _EditorPageState {
   /// 删除选中的混排对象。
   /// 打开超链接（Windows 用 start 命令调默认浏览器；其他平台提示）。
   void _openHref(String href) {
+    // 审计修复（2026-08-15，命令注入面）：scheme 白名单 + 引号包裹。
+    final safe = sanitizeHref(href);
+    if (safe == null) {
+      _showSnack('链接无效或不受支持');
+      return;
+    }
     try {
       if (Platform.isWindows) {
-        Process.start('cmd', ['/c', 'start', '', href]);
+        // 双引号包裹：实测确认 cmd 引号内的 & 等元字符不被解析。
+        Process.start('cmd', ['/c', 'start', '', '"$safe"']);
       } else {
-        Process.start('xdg-open', [href]);
+        Process.start('xdg-open', [safe]);
       }
       _showSnack('已打开链接');
     } catch (e) {
@@ -604,7 +611,13 @@ extension _EditorPageEditing on _EditorPageState {
       ),
     );
     if (url == null) return;
-    final link = url.trim().isEmpty ? null : url.trim();
+    final trimmed = url.trim();
+    // 审计修复（2026-08-15）：保存前 scheme 白名单校验，拒绝危险链接。
+    final link = trimmed.isEmpty ? null : sanitizeHref(trimmed);
+    if (trimmed.isNotEmpty && link == null) {
+      _showSnack('链接仅支持 http/https/mailto');
+      return;
+    }
     _applyState(() {
       for (final t in page.textItems) {
         if (t.id == id) t.href = link;

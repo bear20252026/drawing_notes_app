@@ -227,7 +227,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
       return;
     }
     // 生成 24 位恢复密钥并展示（U 盘丢失时找回主密钥）。
-    final recoveryKey = _generateRecoveryKey();
+    final recoveryKey = generateRecoveryKey();
     await _showRecoveryKeyWarning(recoveryKey);
     if (!mounted) return;
 
@@ -251,17 +251,6 @@ extension _NotebookPageImports on _NotebookViewPageState {
     }
   }
 
-  /// 生成 24 位恢复密钥（去易混字符 0/O/1/I）。
-  String _generateRecoveryKey() {
-    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    final rng = math.Random();
-    final sb = StringBuffer();
-    for (var i = 0; i < 24; i++) {
-      if (i > 0 && i % 4 == 0) sb.write('-');
-      sb.write(alphabet[rng.nextInt(alphabet.length)]);
-    }
-    return sb.toString();
-  }
 
   /// 展示恢复密钥（警示必须抄写）。
   Future<void> _showRecoveryKeyWarning(String recoveryKey) async {

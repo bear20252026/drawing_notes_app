@@ -1,10 +1,9 @@
-import 'dart:math';
-
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/features/drawing/infrastructure/encryption_service.dart';
 import 'package:drawing_notes_app/core/storage/password_disk.dart';
+import 'package:drawing_notes_app/core/storage/recovery_key_generator.dart';
 
 /// 密码盘管理页（U盘即钥匙，设计见 docs/PASSWORD_DISK_DESIGN.md）。
 ///
@@ -65,22 +64,6 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
     return hex.toUpperCase();
   }
 
-  /// 生成 24 位恢复密钥（去易混字符 0/O/1/I）。
-  /// 生成 24 位恢复密钥（去易混字符 0/O/1/I）。
-  ///
-  /// 修复：原实现用时间戳算术取模，可能超出字母表长度导致 RangeError；
-  /// 改用 Random 安全取下标。
-  String _generateRecoveryKey() {
-    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    final rng = Random();
-    final sb = StringBuffer();
-    for (var i = 0; i < 24; i++) {
-      if (i > 0 && i % 4 == 0) sb.write('-');
-      sb.write(alphabet[rng.nextInt(alphabet.length)]);
-    }
-    return sb.toString();
-  }
-
   Future<void> _createKeyFile() async {
     final dir = await _disk.pickDirectory();
     if (dir == null) return;
@@ -92,7 +75,7 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
     }
     // 读取刚创建的密钥用于演示，并生成恢复信封。
     final key = await _disk.readKey(dir);
-    final recovery = _generateRecoveryKey();
+    final recovery = generateRecoveryKey();
     final envelope = key != null
         ? await _encryption.wrapMasterKey(key, recovery)
         : null;

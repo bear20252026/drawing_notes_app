@@ -33,8 +33,9 @@ void main() {
   });
 
   test('provider override 可测试替换（依赖注入）', () {
+    // Riverpod 3.x：overrideWithBuild 覆盖 build 返回值（closure 签名 (ref, notifier)）。
     final container = ProviderContainer(
-      overrides: [darkModeProvider.overrideWith((ref) => true)],
+      overrides: [darkModeProvider.overrideWithBuild((ref, notifier) => true)],
     );
     addTearDown(container.dispose);
 
