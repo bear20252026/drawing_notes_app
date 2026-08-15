@@ -77,6 +77,25 @@ void main() {
     });
   });
 
+  test('规则4：六边形方向——依赖仅指向内层（domain 最内）', () {
+    // 洋葱/六边形规则（dart_arch_test defineOnion，官方 API）：
+    // 内层列表在前，内层不得依赖外层；core 与 shared 为 out-of-scope
+    // 共享层（任何 feature 层均可依赖，视为 SDK 同级）。
+    // freeze 基线：6 处 application→infrastructure（drawing_controller→
+    // layer_compositor/stroke_geometry_cache/shape_recognizer/shape_
+    // binding_geometry、editor_exporter→pdf_hybrid/svg_exporter，控制器
+    // 与导出器直接使用基础设施具体类），记录基线后 CI 只拦新增；
+    // 接口化解除列入专项（不破坏功能）。
+    freeze('onion_direction', () {
+      defineOnion({
+        'domain': 'features/**/domain/**',
+        'application': 'features/**/application/**',
+        'infrastructure': 'features/**/infrastructure/**',
+        'presentation': 'features/**/presentation/**',
+      }).enforceOnionRules(graph);
+    });
+  });
+
   test('规则3b：Martin 耦合度量——domain/core 稳定层（instability 基线）', () {
     // Robert C. Martin 耦合指标：I = Ce/(Ca+Ce)，0=稳定（被依赖多），
     // 1=不稳定。domain（纯数据内层）与 core 应为稳定层：被大量依赖
@@ -91,8 +110,9 @@ void main() {
       print('${e.key}: I=${i.toStringAsFixed(2)} Ca=${e.value.afferent} Ce=${e.value.efferent}');
       if (i > worst) worst = i;
     }
-    // 基线：稳定层最差 instability 不得超过 0.6（先宽松，后续按实测收紧）。
-    expect(worst, lessThanOrEqualTo(0.6),
-        reason: 'domain/core 应为稳定层（I≤0.6），实测最差 $worst');
+    // 基线：稳定层最差 instability 不得超过 0.4（实测 domain/core 最差
+    // 0.33 有余量，收紧自 0.6——2026 架构守护收紧）。
+    expect(worst, lessThanOrEqualTo(0.4),
+        reason: 'domain/core 应为稳定层（I≤0.4），实测最差 $worst');
   });
 }
