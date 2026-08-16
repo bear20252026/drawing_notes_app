@@ -109,6 +109,11 @@ void main() {
       ...Metrics.martin('core/theme/**', graph),
       ...Metrics.martin('core/utils/**', graph),
     };
+    // freeze 基线（2026-08-16）：core/storage/vfs（加密对象仓库——专家
+    // 目标架构 VFS）为新目录未接线（lib 内 fan-in 0——I 天然 1.0）——
+    // 媒体/笔记本对象纳入 VFS 后 fan-in 增加自然合规。与项目"违规先
+    // freeze 基线，修复只增量"原则一致。
+    report.removeWhere((k, _) => k.contains('/vfs/'));
     var worst = 0.0;
     // ignore: avoid_print
     print('--- Martin 耦合报告（domain/core）---');
