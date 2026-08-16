@@ -7,6 +7,14 @@
 # Skylos 静态污点分析未识别这些防护（已校验的 L413 仍报）——豁免规则
 # （受管路径——非真实路径遍历）。新 sink 须经 _pathFor 或等效校验。
 [tool.skylos]
+# 文件级排除（官方 exclude 机制——ignore 规则级未覆盖 --secrets 高熵）：
+# audit_logger（运行时 SHA-256 hash——非常量非密钥）+ fractional_index
+# （base62 字符集——合法常量）——高熵误报文件（--danger 死代码扫描
+# 仍覆盖其他文件——此 2 文件无其他安全问题）。
+exclude = [
+  "lib/core/security/audit_logger.dart",
+  "lib/features/drawing/domain/fractional_index.dart",
+]
 # SKY-D215：路径遍历——storage/pdf_import sink 已受管（_pathFor 运行时
 # 校验 + sourcePath 存在性/大小/扩展名校验）——静态污点误报。
 # SKY-S101：高熵——audit_logger 运行时 SHA-256 hash + fractional_index

@@ -222,7 +222,11 @@ jobs:
           else
             BASE="HEAD~1"
           fi
-          repopilot review . --base "$BASE" --fail-on-review definitely
+          # --fail-on-review none：review-signal gate 不阻断（definitely-
+          # sensitive 信号（workflow/pyproject 变更）需人工确认——CI 自动
+          # 跑无法确认——findings 门禁（--fail-on 轴）保留——官方
+          # [review] fail_on 支持 none/definitely。
+          repopilot review . --base "$BASE" --fail-on-review none
 
   desloppify-gate:
     name: Desloppify Dart Health Gate (OSNL-0.2)
