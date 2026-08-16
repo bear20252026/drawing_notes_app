@@ -1,0 +1,10 @@
+# 冻结基线文件强制 LF（2026-08-16）：dart_arch_test freeze 精确匹配
+# 基线条目——Windows CI 检出 CRLF 会导致基线条目与架构测试输出（LF）
+# 不匹配（"新违规不在基线"误报）——强制 LF 稳定基线匹配。
+test/arch_test_violations/*.txt text eol=lf
+
+# 通用：文本文件 LF（避免行尾漂移——跨平台一致）。
+*.dart text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
