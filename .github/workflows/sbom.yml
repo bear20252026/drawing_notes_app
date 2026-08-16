@@ -1,0 +1,33 @@
+name: SBOM（软件物料清单门禁）
+
+# 发布材料门禁（专家审计最优先④，2026-08-16）：
+# pubspec.lock → CycloneDX 1.5 SBOM（tools/generate_sbom.py——145 组件——
+# sbomify 官方 Dart 指南：pubspec.lock 为 SBOM 首选源——精确版本+sha256）。
+# push master 触发——生成 SBOM 制品（发布门禁材料——发布流水线附件/审计；
+# 后续可接 GitHub 官方 attest-sbom@v2 签名——Sigstore 来源证明）。
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate-sbom:
+    name: 生成 CycloneDX SBOM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: 生成 SBOM（pubspec.lock → CycloneDX 1.5）
+        run: |
+          python tools/generate_sbom.py
+          python -c "import json; bom=json.load(open('sbom.cdx.json')); assert bom['bomFormat']=='CycloneDX'; print('SBOM 验证通过：', len(bom['components']), '组件')"
+
+      - name: 上传 SBOM 制品
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.cdx.json
