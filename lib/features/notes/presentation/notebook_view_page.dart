@@ -16,6 +16,7 @@ import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage
 import 'package:drawing_notes_app/core/storage/password_disk.dart';
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
 import 'package:drawing_notes_app/core/security/session_guard.dart';
+import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/storage/pdf_import_service.dart';

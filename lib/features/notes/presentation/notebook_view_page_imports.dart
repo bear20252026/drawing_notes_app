@@ -277,6 +277,10 @@ extension _NotebookPageImports on _NotebookViewPageState {
       // K_note 每笔记密钥（专家审计最优先③——2026-08-16）：媒体加解密
       // 绑定当前笔记本 ID（AAD 'media|notebookId'——防跨笔记密文交换）。
       MediaCryptoService.instance.setNotebookKey(widget.notebook.id, masterKey);
+      // 媒体 VFS 双轨（2026-08-16）：初始化 VFS 媒体仓库（K_note 上下文——
+      // 新媒体对象写 VFS——旧媒体 DAN 兼容读——s3eg 双读窗口模式）。
+      VaultService.configure(await widget.storage.ensureImagesDir())
+          .setKey(masterKey);
       // H-03 旧明文迁移（专家审计 2026-08-15）：解锁后批量重加密旧明文
       // 媒体（payload-plugins 批量加密器——幂等，异步不阻塞解锁流程）。
       unawaited(widget.storage.migrateLegacyMedia());

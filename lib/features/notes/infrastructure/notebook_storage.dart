@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/notes_accessor.dart';
@@ -27,7 +28,11 @@ import 'package:drawing_notes_app/core/storage/repository.dart';
 /// 已通过 [NotebookRepository] 接口抽象（见 repository.dart），
 /// 未来替换为云同步实现时无需改动上层逻辑。
 class NotebookStorage implements NotebookRepository, INotebookAccessor {
-  NotebookStorage({this.directoryProvider});
+  NotebookStorage({this.directoryProvider, this.vaultService});
+
+  /// VFS 媒体仓库（可选——解锁时注入——新媒体写 VFS 对象——双轨：
+  /// s3-encryption-gateway 双读窗口模式——旧媒体 DAN 文件兼容读）。
+  VaultService? vaultService;
 
   // ---- INotebookAccessor 跨功能契约适配（S4b：NotebookStorage 直接实现契约）----
 
@@ -278,6 +283,23 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
   Future<String> storeImage(String sourcePath, String pageId) async {
     if (!isValidId(pageId)) {
       throw ArgumentError('非法 pageId: $pageId');
+    }
+    // 媒体 VFS 双轨（2026-08-16）：新媒体写入 VFS 对象（'vfs:' 标记——
+    // 解锁会话内 VaultService 注入——s3-encryption-gateway 双读窗口模式）；
+    // 旧媒体 DAN 文件保持兼容读。
+    final vfs = vaultService;
+    if (vfs != null && vfs.hasKey) {
+      final src = File(sourcePath);
+      if (!await src.exists()) {
+        throw FileSystemException('源图片不存在', sourcePath);
+      }
+      final id = 'media/${pageId}_${DateTime.now().microsecondsSinceEpoch}';
+      await vfs.putObject(
+        id,
+        plain: await src.readAsBytes(),
+        type: 'media',
+      );
+      return 'vfs:$id';
     }
     final dir = await _ensureImagesDir();
     final src = File(sourcePath);

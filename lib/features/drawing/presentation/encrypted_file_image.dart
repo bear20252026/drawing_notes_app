@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
 
 /// 加密媒体图片渲染（H-03 双端接入 2026-08-15）。
 ///
@@ -42,6 +43,19 @@ class EncryptedFileImage extends ImageProvider<EncryptedFileImage> {
     ImageDecoderCallback decode,
   ) async {
     assert(key == this);
+    // 媒体 VFS 双轨（2026-08-16）：'vfs:' 前缀对象（新媒体——VaultService
+    // 解密明文）→ 直接渲染；否则文件路径（旧媒体——DAN 检测兼容——
+    // s3-encryption-gateway 双读窗口模式）。
+    final path = key.file.path;
+    if (path.startsWith('vfs:')) {
+      final clear = await VaultService.instance.getObject(path.substring(4));
+      if (clear.isEmpty) {
+        PaintingBinding.instance.imageCache.evict(key);
+        throw StateError('$file 无法加载为图片（VFS 对象）');
+      }
+      final buffer = await ui.ImmutableBuffer.fromUint8List(clear);
+      return decode(buffer);
+    }
     final bytes = await key.file.readAsBytes();
     // DAN 密文 → 解密；明文（旧数据/未加密）→ 原样返回。
     final clear = await MediaCryptoService.instance.readMediaFile(bytes);

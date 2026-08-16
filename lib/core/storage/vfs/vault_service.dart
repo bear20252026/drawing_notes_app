@@ -17,6 +17,29 @@ import 'package:drawing_notes_app/core/storage/vfs/vault_manifest.dart';
 class VaultService {
   VaultService({required this.directory});
 
+  /// 全局实例（媒体读取双轨——'vfs:' 前缀对象——解锁时 [configure] + setKey）。
+  static VaultService? _instance;
+
+  /// 获取全局实例（未初始化抛 StateError——解锁时 configure）。
+  static VaultService get instance {
+    final i = _instance;
+    if (i == null) {
+      throw StateError('VaultService 未初始化（解锁时 configure）');
+    }
+    return i;
+  }
+
+  /// 初始化全局实例（解锁时——目录与媒体仓库对齐；幂等——同目录复用）。
+  static VaultService configure(Directory directory) {
+    final current = _instance;
+    if (current != null && current.directory.path == directory.path) {
+      return current;
+    }
+    final service = VaultService(directory: directory);
+    _instance = service;
+    return service;
+  }
+
   final Directory directory;
 
   List<int>? _key;
