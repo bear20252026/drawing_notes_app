@@ -1,0 +1,48 @@
+name: Bug 报告
+description: 提交缺陷（请勿在此报告安全漏洞——安全漏洞走 SECURITY.md 私有通道）
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢报告缺陷！请尽量提供完整信息以加快定位。
+        ⚠️ **安全漏洞请勿在此公开描述**——请通过 SECURITY.md 的私有披露通道。
+  - type: input
+    id: environment
+    attributes:
+      label: 环境信息
+      description: 操作系统、Flutter 版本、构建类型（Windows/Android）
+      placeholder: "Windows 11 / Flutter 3.47.0 / Windows 桌面"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 如何复现该问题（最小步骤优先）
+      placeholder: |
+        1. 打开应用
+        2. 创建笔记本并插入图片
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+      description: 应当发生什么
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+      description: 实际发生了什么（含错误信息/日志片段——请脱敏）
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志/截图（可选）
+      description: 审计日志或截图（如有）——注意不要包含敏感内容
