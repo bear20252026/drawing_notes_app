@@ -30,6 +30,9 @@ RULES = [
 # 扫描排除（构建/缓存/生成的产物）。
 EXCLUDED_DIRS = {".git", ".dart_tool", "build", ".idea", ".vs", "node_modules", ".desloppify"}
 EXCLUDED_FILES = {"sbom.cdx.json", "pubspec.lock", "untranslated_messages.json", "generated_plugin_registrant.cc"}
+# 误报豁免（2026-08-16）：base62 字符集 const（fractional_index——默认
+# 参数要求 const——合法字符集常量非密钥——高熵检测误报）。
+EXCLUDED_PATHS = {"lib/features/drawing/domain/fractional_index.dart"}
 # 二进制/无关扩展名跳过。
 SKIP_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".ttf", ".ico", ".exe", ".dll", ".pdb", ".class", ".jar", ".zip", ".lock"}
 
@@ -79,6 +82,8 @@ def main() -> int:
         if any(part in EXCLUDED_DIRS for part in rel.parts):
             continue
         if path.name in EXCLUDED_FILES or path.name in args.exclude:
+            continue
+        if rel.as_posix() in EXCLUDED_PATHS:
             continue
         if path.suffix.lower() in SKIP_EXTENSIONS:
             continue
