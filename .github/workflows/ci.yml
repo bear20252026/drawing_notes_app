@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [master]
 
+# CI/CD 加固（Skylos SKY-D291——2026-08-16）：最小权限——不声明即拒绝。
+permissions: {}
+
 jobs:
   analyze-and-test:
     name: Analyze + Test + Metrics
@@ -13,7 +16,10 @@ jobs:
     timeout-minutes: 30
 
     steps:
+      # Skylos SKY-D293（2026-08-16）：checkout 不持久化凭据（无后续 git push）。
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2

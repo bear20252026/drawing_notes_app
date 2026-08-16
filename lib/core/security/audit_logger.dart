@@ -30,6 +30,8 @@ class AuditLogger {
   static void log(String operation, {bool success = true, String? detail}) {
     final time = DateTime.now().toIso8601String();
     final prevHash = _lastHash;
+    // skylos: ignore —— 运行时 SHA-256 哈希（非硬编码密钥）——Skylos 静态
+    // 高熵检测误报（熵 3.98——hash 是计算值非常量）。
     final hash = _sha256(_payload(time, operation, success, detail, prevHash));
     _entries.add(
       _AuditEntry(

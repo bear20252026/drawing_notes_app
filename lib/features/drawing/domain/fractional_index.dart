@@ -6,6 +6,8 @@
 library;
 
 /// base62 数字字符集（字符码升序，供 [generateKeyBetween] 使用）。
+// skylos: ignore —— base62 字符集常量（合法常量——非密钥）——Skylos 高熵
+// 检测误报（熵 5.95——字符集与 scan_secrets EXCLUDED_PATHS 同类豁免）。
 const String base62Digits =
     '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 

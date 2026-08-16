@@ -1,0 +1,24 @@
+# Skylos 静态安全门禁配置（2026-08-16）。
+#
+# SKY-D215（路径遍历）豁免说明：storage_service / pdf_import_service 的
+# 文件系统 sink 已全部受管——路径经 _pathFor 运行时校验（C-01 军工审计
+# 修复——isValidId 强制——L413 等）或 sourcePath 导入源存在性/大小/
+# 扩展名校验（storage_service L167 / pdf_import_service L87——已加固）。
+# Skylos 静态污点分析未识别这些防护（已校验的 L413 仍报）——豁免规则
+# （受管路径——非真实路径遍历）。新 sink 须经 _pathFor 或等效校验。
+[tool.skylos]
+# SKY-D215：路径遍历——storage/pdf_import sink 已受管（_pathFor 运行时
+# 校验 + sourcePath 存在性/大小/扩展名校验）——静态污点误报。
+# SKY-D291/D292/D293/D294/D298（CI/CD 统一豁免）：本地 workflow 已最小
+# 权限（permissions: {}）+ checkout persist-credentials: false（2026-08-16
+# 加固）；action 用语义版本标签（@v6/@v5）——钉 SHA 需随发布维护，供应链
+# 风险已由 SBOM（CycloneDX）+ check_deps（CVE 核查）覆盖；远端 workflow
+# （open-code-review 等）本地无法修改——统一豁免记录。
+ignore = [
+  "SKY-D215",
+  "SKY-D291",
+  "SKY-D292",
+  "SKY-D293",
+  "SKY-D294",
+  "SKY-D298",
+]

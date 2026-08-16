@@ -13,6 +13,9 @@ on:
     branches: [master]
   workflow_dispatch:
 
+# CI/CD 加固（Skylos SKY-D291——2026-08-16）：最小权限。
+permissions: {}
+
 jobs:
   line-count-gates:
     name: Line Count Gates (500 warn / 1000 error)
