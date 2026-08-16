@@ -1,0 +1,14 @@
+name: editor_core
+description: Pure Dart editor core for Drawing Notes V2 (immutable document, commands, geometry, history, serialization).
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.12.0
+
+# 纯 Dart——禁止 Flutter/dart:io/file_selector/path_provider/shared_preferences（专家 R-02）。
+dependencies: {}
+
+dev_dependencies:
+  test: ^1.25.0
+  lints: ^6.0.0

@@ -281,9 +281,10 @@ extension _NotebookPageImports on _NotebookViewPageState {
       // 新媒体对象写 VFS——旧媒体 DAN 兼容读——s3eg 双读窗口模式）。
       VaultService.configure(await widget.storage.ensureImagesDir())
           .setKey(masterKey);
-      // H-03 旧明文迁移（专家审计 2026-08-15）：解锁后批量重加密旧明文
-      // 媒体（payload-plugins 批量加密器——幂等，异步不阻塞解锁流程）。
-      unawaited(widget.storage.migrateLegacyMedia());
+      // I-003 关闭全局媒体迁移（专家方案 2026-08-16——P0）：解锁后不再
+      // 自动执行 migrateLegacyMedia（专家："绝不对旧媒体目录执行全局自动
+      // 扫描"）——旧明文媒体保持兼容读（DAN 检测）；迁移改为显式调用
+      // （V2 MigrationService——用户明确选择时复制-认证-校验-切换）。
       _sessionPassword = null;
       if (mounted) {
         _applyState(() {});

@@ -6,6 +6,10 @@ gradle-wrapper.jar
 /local.properties
 GeneratedPluginRegistrant.java
 .cxx/
+# ⚠️ 签名机密（2026-08-16）：keystore 与 key.properties 绝不入仓——
+# 泄露 = 签名身份被冒用（更新劫持风险）。
+key.properties
+app/release.jks
 
 # Remember to never publicly share your keystore.
 # See https://flutter.dev/to/reference-keystore

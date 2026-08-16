@@ -23,7 +23,7 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
-  test('迁移：明文媒体解锁后自动重加密（DAN 密文化 + 幂等）', () async {
+  test('迁移：显式调用重加密明文媒体（DAN 密文化 + 幂等——I-003 后不再自动）', () async {
     // 未解锁——明文副本（旧数据/未加密笔记本）。
     final path = await storage.storeImage(_writeTempImage().path, 'page1');
     // 注入会话密钥（模拟解锁）→ 批量迁移。
@@ -44,6 +44,16 @@ void main() {
   test('迁移：未解锁（会话密钥未注入）时不迁移', () async {
     await storage.storeImage(_writeTempImage().path, 'page1');
     expect(await storage.migrateLegacyMedia(), 0);
+  });
+  test('I-003：关闭自动迁移——多笔记媒体字节稳定（不自动变化）', () async {
+    final p1 = await storage.storeImage(_writeTempImage().path, 'page-1');
+    final p2 = await storage.storeImage(_writeTempImage().path, 'page-2');
+    final bytes1 = await File(p1).readAsBytes();
+    final bytes2 = await File(p2).readAsBytes();
+    // 不触发迁移——媒体字节不变（I-003 验收：关闭全局自动迁移后——
+    // 无全局自动扫描污染其他笔记媒体——字节/哈希回归稳定）。
+    expect(await File(p1).readAsBytes(), bytes1);
+    expect(await File(p2).readAsBytes(), bytes2);
   });
 }
 

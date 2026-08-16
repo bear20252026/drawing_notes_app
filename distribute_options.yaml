@@ -14,6 +14,11 @@ releases:
         package:
           platform: windows
           target: exe
+          # 防逆向（2026-08-16）：Dart AOT 混淆（--obfuscate）+ 调试符号
+          # 分离（--split-debug-info——分发不带符号——逆向难度大增）。
+          build_args:
+            obfuscate: true
+            split-debug-info: build/symbols
       # Direct-install Android package for internal QA and sideload distribution.
       - name: android-apk
         package:
