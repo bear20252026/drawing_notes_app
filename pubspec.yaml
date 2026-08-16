@@ -36,6 +36,7 @@ dependencies:
   path_provider: ^2.1.5
   shared_preferences: ^2.3.2
   cryptography: ^2.7.0
+  crypto: ^3.0.0
   pdf: ^3.11.1
   # MIT：基于 PDFium 的跨平台本地 PDF 读取与逐页渲染，供资料批注导入使用。
   pdfrx: ^2.4.7
