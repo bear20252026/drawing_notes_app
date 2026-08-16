@@ -2,3 +2,4 @@
 library;
 
 export 'src/domain/document_v2.dart';
+export 'src/geometry/geometry_engine.dart';

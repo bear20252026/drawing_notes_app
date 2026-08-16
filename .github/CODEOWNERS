@@ -1,0 +1,15 @@
+# CODEOWNERS（专家 I-001——2026-08-16——GitHub 治理——require_codeowners）。
+# 关键路径由仓库所有者 bear20252026 负责；敏感路径（安全/存储/领域核心/
+# 平台/工作流）在 ruleset（GitHub 侧——master-production）中需额外批准
+# （sensitive_paths: 2）。
+* @bear20252026
+
+# 敏感路径（安全/加密/存储——ruleset sensitive_paths 需 2 人批准）
+/lib/core/security/                @bear20252026
+/lib/infrastructure/storage/       @bear20252026
+/packages/notebook_domain/         @bear20252026
+/packages/editor_core/             @bear20252026
+/architecture/                     @bear20252026
+/android/                          @bear20252026
+/windows/                          @bear20252026
+/.github/workflows/                @bear20252026
