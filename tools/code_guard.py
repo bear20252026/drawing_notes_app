@@ -73,7 +73,7 @@ def _count_lines(path: Path) -> int:
     """统计源行数：忽略空行与纯注释行（对齐 sloc-guard 的 skip_blank/skip_comments 语义）。"""
     count = 0
     try:
-        with open(path, "r", encoding="utf-8", errors="replace") as f:
+        with open(path, "r", encoding="utf-8", errors="replace") as f:  # skylos: ignore —— SKY-D215 受管路径（读本地源文件——pyproject 已规则级豁免——inline 双保险）
             for raw in f:
                 line = raw.strip()
                 if not line:

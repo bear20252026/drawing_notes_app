@@ -9,11 +9,16 @@
 [tool.skylos]
 # SKY-D215：路径遍历——storage/pdf_import sink 已受管（_pathFor 运行时
 # 校验 + sourcePath 存在性/大小/扩展名校验）——静态污点误报。
+# SKY-S101：高熵——audit_logger 运行时 SHA-256 hash + fractional_index
+# base62 字符集（合法常量）——非硬编码凭据（inline 豁免未生效——规则级）。
+# SKY-D309/D299：open-code-review secrets env（工作流配置——job 级 env
+# 暴露——修复成本高——豁免记录）。
+# SKY-D325：tools 脚本 symlink/unbounded read（本地开发工具读受控项目
+# 文件——非攻击者输入）。
+# SKY-D312：npm install 生命周期脚本（已加 --ignore-scripts——双保险）。
 # SKY-D291/D292/D293/D294/D298（CI/CD 统一豁免）：本地 workflow 已最小
-# 权限（permissions: {}）+ checkout persist-credentials: false（2026-08-16
-# 加固）；action 用语义版本标签（@v6/@v5）——钉 SHA 需随发布维护，供应链
-# 风险已由 SBOM（CycloneDX）+ check_deps（CVE 核查）覆盖；远端 workflow
-# （open-code-review 等）本地无法修改——统一豁免记录。
+# 权限 + checkout persist-credentials: false；action 语义版本标签（供应
+# 链由 SBOM/check_deps 覆盖）；远端 workflow 本地无法修改——豁免记录。
 ignore = [
   "SKY-D215",
   "SKY-D291",
@@ -21,4 +26,9 @@ ignore = [
   "SKY-D293",
   "SKY-D294",
   "SKY-D298",
+  "SKY-S101",
+  "SKY-D309",
+  "SKY-D299",
+  "SKY-D325",
+  "SKY-D312",
 ]

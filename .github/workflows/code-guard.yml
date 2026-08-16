@@ -49,7 +49,7 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE="${{ github.event.pull_request.base.sha }}"
           else
-            BASE="origin/main"
+            BASE="origin/master"
           fi
           sloc-guard check --config .sloc-guard.toml --diff "$BASE..HEAD" || exit $?
 
@@ -72,7 +72,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: pip
 
       - name: Install Skylos (官方最新版)
@@ -112,7 +112,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install Open Code Review (官方 npm 包)
-        run: npm install -g @alibaba-group/open-code-review
+        run: npm install --ignore-scripts -g @alibaba-group/open-code-review
 
       - name: 涉密预检（评审前红线检查）
         # 白名单外目录或涉密内容（密钥/口令）一律拦截，禁止提交给 OCR。
@@ -175,7 +175,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: pip
 
       - name: 安装 py-cq 与 pyscn（官方最新版）
@@ -222,7 +222,7 @@ jobs:
           else
             BASE="HEAD~1"
           fi
-          repopilot review . --base "$BASE" --fail-on-review definitely --json
+          repopilot review . --base "$BASE" --fail-on-review definitely
 
   desloppify-gate:
     name: Desloppify Dart Health Gate (OSNL-0.2)
@@ -235,7 +235,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: pip
 
       - name: Install desloppify (官方 PyPI 包)
