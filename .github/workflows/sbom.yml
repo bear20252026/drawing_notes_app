@@ -27,7 +27,7 @@ jobs:
           python -c "import json; bom=json.load(open('sbom.cdx.json')); assert bom['bomFormat']=='CycloneDX'; print('SBOM 验证通过：', len(bom['components']), '组件')"
 
       - name: 上传 SBOM 制品
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: sbom
           path: sbom.cdx.json
