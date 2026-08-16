@@ -1,0 +1,2453 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:00000000-0000-0000-0000-000000000000",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "drawing_notes_app",
+      "version": "1.0.0"
+    },
+    "timestamp": ""
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "_fe_analyzer_shared",
+      "version": "97.0.0",
+      "purl": "pkg:pub/_fe_analyzer_shared@97.0.0",
+      "bom-ref": "pkg:pub/_fe_analyzer_shared@97.0.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1dd467c7e56541bea70bbd35d537e3aa12dfba81f39e2a75bb6a61fc5595985b"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "analyzer",
+      "version": "11.0.0",
+      "purl": "pkg:pub/analyzer@11.0.0",
+      "bom-ref": "pkg:pub/analyzer@11.0.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "041602214e3ec5a02ba85c08fe8e381aa25ac5367db17d03fbb6d22d851d4bba"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "archive",
+      "version": "4.0.9",
+      "purl": "pkg:pub/archive@4.0.9",
+      "bom-ref": "pkg:pub/archive@4.0.9",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "args",
+      "version": "2.7.0",
+      "purl": "pkg:pub/args@2.7.0",
+      "bom-ref": "pkg:pub/args@2.7.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "async",
+      "version": "2.13.1",
+      "purl": "pkg:pub/async@2.13.1",
+      "bom-ref": "pkg:pub/async@2.13.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "barcode",
+      "version": "2.2.9",
+      "purl": "pkg:pub/barcode@2.2.9",
+      "bom-ref": "pkg:pub/barcode@2.2.9",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7b6729c37e3b7f34233e2318d866e8c48ddb46c1f7ad01ff7bb2a8de1da2b9f4"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "bidi",
+      "version": "2.0.13",
+      "purl": "pkg:pub/bidi@2.0.13",
+      "bom-ref": "pkg:pub/bidi@2.0.13",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "77f475165e94b261745cf1032c751e2032b8ed92ccb2bf5716036db79320637d"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "boolean_selector",
+      "version": "2.1.2",
+      "purl": "pkg:pub/boolean_selector@2.1.2",
+      "bom-ref": "pkg:pub/boolean_selector@2.1.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8aab1771e1243a5063b8b0ff68042d67334e3feab9e95b9490f9a6ebf73b42ea"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "characters",
+      "version": "1.4.1",
+      "purl": "pkg:pub/characters@1.4.1",
+      "bom-ref": "pkg:pub/characters@1.4.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "cli_config",
+      "version": "0.2.0",
+      "purl": "pkg:pub/cli_config@0.2.0",
+      "bom-ref": "pkg:pub/cli_config@0.2.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "clock",
+      "version": "1.1.2",
+      "purl": "pkg:pub/clock@1.1.2",
+      "bom-ref": "pkg:pub/clock@1.1.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "code_assets",
+      "version": "1.2.1",
+      "purl": "pkg:pub/code_assets@1.2.1",
+      "bom-ref": "pkg:pub/code_assets@1.2.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "collection",
+      "version": "1.19.1",
+      "purl": "pkg:pub/collection@1.19.1",
+      "bom-ref": "pkg:pub/collection@1.19.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2f5709ae4d3d59dd8f7cd309b4e023046b57d8a6c82130785d2b0e5868084e76"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "convert",
+      "version": "3.1.2",
+      "purl": "pkg:pub/convert@3.1.2",
+      "bom-ref": "pkg:pub/convert@3.1.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "coverage",
+      "version": "1.15.1",
+      "purl": "pkg:pub/coverage@1.15.1",
+      "bom-ref": "pkg:pub/coverage@1.15.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "956a3de0725ca232ad353565a8290d3357592bf4250f6f298a185e2d949c5d3d"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "cross_file",
+      "version": "0.3.5+4",
+      "purl": "pkg:pub/cross_file@0.3.5+4",
+      "bom-ref": "pkg:pub/cross_file@0.3.5+4",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "92c9c43c383bfa1c32079d3bc492d55d6d4318044b7b47edaff8971cbb555c51"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "crypto",
+      "version": "3.0.7",
+      "purl": "pkg:pub/crypto@3.0.7",
+      "bom-ref": "pkg:pub/crypto@3.0.7",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "cryptography",
+      "version": "2.9.0",
+      "purl": "pkg:pub/cryptography@2.9.0",
+      "bom-ref": "pkg:pub/cryptography@2.9.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "3eda3029d34ec9095a27a198ac9785630fe525c0eb6a49f3d575272f8e792ef0"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "cupertino_icons",
+      "version": "1.0.9",
+      "purl": "pkg:pub/cupertino_icons@1.0.9",
+      "bom-ref": "pkg:pub/cupertino_icons@1.0.9",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "41e005c33bd814be4d3096aff55b1908d419fde52ca656c8c47719ec745873cd"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "cupertino_ui",
+      "version": "1.0.0",
+      "purl": "pkg:pub/cupertino_ui@1.0.0",
+      "bom-ref": "pkg:pub/cupertino_ui@1.0.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7ed8ce4159d342eec4c65f4ea6eec57adaf9365404378541f38efc1da20a5b3d"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "dart",
+      "version": "unknown",
+      "purl": "pkg:pub/dart@unknown",
+      "bom-ref": "pkg:pub/dart@unknown",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "dart_arch_test",
+      "version": "0.3.1",
+      "purl": "pkg:pub/dart_arch_test@0.3.1",
+      "bom-ref": "pkg:pub/dart_arch_test@0.3.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "59eb58712bcebba27a3b19bab69bfc8c43928aa5cc13afde881fe93ee074fda7"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "fake_async",
+      "version": "1.3.3",
+      "purl": "pkg:pub/fake_async@1.3.3",
+      "bom-ref": "pkg:pub/fake_async@1.3.3",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5368f224a74523e8d2e7399ea1638b37aecfca824a3cc4dfdf77bf1fa905ac44"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ffi",
+      "version": "2.2.0",
+      "purl": "pkg:pub/ffi@2.2.0",
+      "bom-ref": "pkg:pub/ffi@2.2.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "6d7fd89431262d8f3125e81b50d3847a091d846eafcd4fdb88dd06f36d705a45"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "file",
+      "version": "6.1.4",
+      "purl": "pkg:pub/file@6.1.4",
+      "bom-ref": "pkg:pub/file@6.1.4",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1b92bec4fc2a72f59a8e15af5f52cd441e4a7860b49499d69dfa817af20e925d"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "file_selector",
+      "version": "1.1.0",
+      "purl": "pkg:pub/file_selector@1.1.0",
+      "bom-ref": "pkg:pub/file_selector@1.1.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "file_selector_android",
+      "version": "0.5.2+9",
+      "purl": "pkg:pub/file_selector_android@0.5.2+9",
+      "bom-ref": "pkg:pub/file_selector_android@0.5.2+9",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1d45e9910f68c16eb0c74f0b10097ad81aed516ea28054c027137e8f7d75e840"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "file_selector_ios",
+      "version": "0.5.3+5",
+      "purl": "pkg:pub/file_selector_ios@0.5.3+5",
+      "bom-ref": "pkg:pub/file_selector_ios@0.5.3+5",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "file_selector_linux",
+      "version": "0.9.4",
+      "purl": "pkg:pub/file_selector_linux@0.9.4",
+      "bom-ref": "pkg:pub/file_selector_linux@0.9.4",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2567f398e06ac72dcf2e98a0c95df2a9edd03c2c2e0cacd4780f20cdf56263a0"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "file_selector_macos",
+      "version": "0.9.5",
+      "purl": "pkg:pub/file_selector_macos@0.9.5",
+      "bom-ref": "pkg:pub/file_selector_macos@0.9.5",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5e0bbe9c312416f1787a68259ea1505b52f258c587f12920422671807c4d618a"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "file_selector_platform_interface",
+      "version": "2.7.0",
+      "purl": "pkg:pub/file_selector_platform_interface@2.7.0",
+      "bom-ref": "pkg:pub/file_selector_platform_interface@2.7.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "35e0bd61ebcdb91a3505813b055b09b79dfdc7d0aee9c09a7ba59ae4bb13dc85"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "file_selector_web",
+      "version": "0.9.5",
+      "purl": "pkg:pub/file_selector_web@0.9.5",
+      "bom-ref": "pkg:pub/file_selector_web@0.9.5",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "73181fbc5257776d8ecaa6a94ab3c8e920ad143b9132a6d984a9271dfc6928d3"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "file_selector_windows",
+      "version": "0.9.3+5",
+      "purl": "pkg:pub/file_selector_windows@0.9.3+5",
+      "bom-ref": "pkg:pub/file_selector_windows@0.9.3+5",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "62197474ae75893a62df75939c777763d39c2bc5f73ce5b88497208bc269abfd"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "flutter",
+      "version": "unknown",
+      "purl": "pkg:pub/flutter@unknown",
+      "bom-ref": "pkg:pub/flutter@unknown",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "flutter_driver",
+      "version": "0.0.0",
+      "purl": "pkg:pub/flutter_driver@0.0.0",
+      "bom-ref": "pkg:pub/flutter_driver@0.0.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "flutter_lints",
+      "version": "6.0.0",
+      "purl": "pkg:pub/flutter_lints@6.0.0",
+      "bom-ref": "pkg:pub/flutter_lints@6.0.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "3105dc8492f6183fb076ccf1f351ac3d60564bff92e20bfc4af9cc1651f4e7e1"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "flutter_localizations",
+      "version": "0.0.0",
+      "purl": "pkg:pub/flutter_localizations@0.0.0",
+      "bom-ref": "pkg:pub/flutter_localizations@0.0.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "flutter_riverpod",
+      "version": "3.3.1",
+      "purl": "pkg:pub/flutter_riverpod@3.3.1",
+      "bom-ref": "pkg:pub/flutter_riverpod@3.3.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4e166be88e1dbbaa34a280bdb744aeae73b7ef25fdf8db7a3bb776760a3648e2"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "flutter_test",
+      "version": "0.0.0",
+      "purl": "pkg:pub/flutter_test@0.0.0",
+      "bom-ref": "pkg:pub/flutter_test@0.0.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "flutter_web_plugins",
+      "version": "0.0.0",
+      "purl": "pkg:pub/flutter_web_plugins@0.0.0",
+      "bom-ref": "pkg:pub/flutter_web_plugins@0.0.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "frontend_server_client",
+      "version": "4.0.0",
+      "purl": "pkg:pub/frontend_server_client@4.0.0",
+      "bom-ref": "pkg:pub/frontend_server_client@4.0.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "fuchsia_remote_debug_protocol",
+      "version": "0.0.0",
+      "purl": "pkg:pub/fuchsia_remote_debug_protocol@0.0.0",
+      "bom-ref": "pkg:pub/fuchsia_remote_debug_protocol@0.0.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "glob",
+      "version": "2.1.3",
+      "purl": "pkg:pub/glob@2.1.3",
+      "bom-ref": "pkg:pub/glob@2.1.3",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "hooks",
+      "version": "2.0.2",
+      "purl": "pkg:pub/hooks@2.0.2",
+      "bom-ref": "pkg:pub/hooks@2.0.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9a62a50b50b769a737bc0a8ff381f333529df3ab746b2f6b02e83760231455ba"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "hotkey_manager",
+      "version": "0.2.3",
+      "purl": "pkg:pub/hotkey_manager@0.2.3",
+      "bom-ref": "pkg:pub/hotkey_manager@0.2.3",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "06f0655b76c8dd322fb7101dc615afbdbf39c3d3414df9e059c33892104479cd"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "hotkey_manager_linux",
+      "version": "0.2.0",
+      "purl": "pkg:pub/hotkey_manager_linux@0.2.0",
+      "bom-ref": "pkg:pub/hotkey_manager_linux@0.2.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "83676bda8210a3377bc6f1977f193bc1dbdd4c46f1bdd02875f44b6eff9a8473"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "hotkey_manager_macos",
+      "version": "0.2.0",
+      "purl": "pkg:pub/hotkey_manager_macos@0.2.0",
+      "bom-ref": "pkg:pub/hotkey_manager_macos@0.2.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "03b5967e64357b9ac05188ea4a5df6fe4ed4205762cb80aaccf8916ee1713c96"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "hotkey_manager_platform_interface",
+      "version": "0.2.0",
+      "purl": "pkg:pub/hotkey_manager_platform_interface@0.2.0",
+      "bom-ref": "pkg:pub/hotkey_manager_platform_interface@0.2.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "98ffca25b8cc9081552902747b2942e3bc37855389a4218c9d50ca316b653b13"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "hotkey_manager_windows",
+      "version": "0.2.0",
+      "purl": "pkg:pub/hotkey_manager_windows@0.2.0",
+      "bom-ref": "pkg:pub/hotkey_manager_windows@0.2.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0d03ced9fe563ed0b68f0a0e1b22c9ffe26eb8053cb960e401f68a4f070e0117"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "http",
+      "version": "1.6.0",
+      "purl": "pkg:pub/http@1.6.0",
+      "bom-ref": "pkg:pub/http@1.6.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "87721a4a50b19c7f1d49001e51409bddc46303966ce89a65af4f4e6004896412"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "http_multi_server",
+      "version": "3.2.2",
+      "purl": "pkg:pub/http_multi_server@3.2.2",
+      "bom-ref": "pkg:pub/http_multi_server@3.2.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "http_parser",
+      "version": "4.1.2",
+      "purl": "pkg:pub/http_parser@4.1.2",
+      "bom-ref": "pkg:pub/http_parser@4.1.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "178d74305e7866013777bab2c3d8726205dc5a4dd935297175b19a23a2e66571"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "image",
+      "version": "4.8.0",
+      "purl": "pkg:pub/image@4.8.0",
+      "bom-ref": "pkg:pub/image@4.8.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "integration_test",
+      "version": "0.0.0",
+      "purl": "pkg:pub/integration_test@0.0.0",
+      "bom-ref": "pkg:pub/integration_test@0.0.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "intl",
+      "version": "0.20.3",
+      "purl": "pkg:pub/intl@0.20.3",
+      "bom-ref": "pkg:pub/intl@0.20.3",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1ca20c894b1717686a2319b8548763d812bc0aabdac580420a44c5178c57a867"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "io",
+      "version": "1.0.5",
+      "purl": "pkg:pub/io@1.0.5",
+      "bom-ref": "pkg:pub/io@1.0.5",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "jni",
+      "version": "1.0.3",
+      "purl": "pkg:pub/jni@1.0.3",
+      "bom-ref": "pkg:pub/jni@1.0.3",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "jni_flutter",
+      "version": "1.0.2",
+      "purl": "pkg:pub/jni_flutter@1.0.2",
+      "bom-ref": "pkg:pub/jni_flutter@1.0.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7b717011ea40d04fd47c2731d3d1d36eb99eba3435c2753d62489e8c3c9991d5"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "jni_util",
+      "version": "1.0.0",
+      "purl": "pkg:pub/jni_util@1.0.0",
+      "bom-ref": "pkg:pub/jni_util@1.0.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1ba86da04a5f2bf18fde2edb235587e70c5b0fc5bd4ba955f46b00942c3fc35f"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "json_annotation",
+      "version": "4.12.0",
+      "purl": "pkg:pub/json_annotation@4.12.0",
+      "bom-ref": "pkg:pub/json_annotation@4.12.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2a743920d81b7910627f68ee2c9ac1fc0bfee32b9fc3403587d7c6791ca12f80"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "leak_tracker",
+      "version": "11.0.2",
+      "purl": "pkg:pub/leak_tracker@11.0.2",
+      "bom-ref": "pkg:pub/leak_tracker@11.0.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "33e2e26bdd85a0112ec15400c8cbffea70d0f9c3407491f672a2fad47915e2de"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "leak_tracker_flutter_testing",
+      "version": "3.0.10",
+      "purl": "pkg:pub/leak_tracker_flutter_testing@3.0.10",
+      "bom-ref": "pkg:pub/leak_tracker_flutter_testing@3.0.10",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1dbc140bb5a23c75ea9c4811222756104fbcd1a27173f0c34ca01e16bea473c1"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "leak_tracker_testing",
+      "version": "3.0.2",
+      "purl": "pkg:pub/leak_tracker_testing@3.0.2",
+      "bom-ref": "pkg:pub/leak_tracker_testing@3.0.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8d5a2d49f4a66b49744b23b018848400d23e54caf9463f4eb20df3eb8acb2eb1"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "lints",
+      "version": "6.1.0",
+      "purl": "pkg:pub/lints@6.1.0",
+      "bom-ref": "pkg:pub/lints@6.1.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "12f842a479589fea194fe5c5a3095abc7be0c1f2ddfa9a0e76aed1dbd26a87df"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "logging",
+      "version": "1.3.0",
+      "purl": "pkg:pub/logging@1.3.0",
+      "bom-ref": "pkg:pub/logging@1.3.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "matcher",
+      "version": "0.12.20",
+      "purl": "pkg:pub/matcher@0.12.20",
+      "bom-ref": "pkg:pub/matcher@0.12.20",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "31bd099b47c10cd1aeb55146a2d46ce0277630ecef3f7dae54ad7873f36696cd"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "material_color_utilities",
+      "version": "0.13.0",
+      "purl": "pkg:pub/material_color_utilities@0.13.0",
+      "bom-ref": "pkg:pub/material_color_utilities@0.13.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9c337007e82b1889149c82ed242ed1cb24a66044e30979c44912381e9be4c48b"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "material_ui",
+      "version": "1.0.0",
+      "purl": "pkg:pub/material_ui@1.0.0",
+      "bom-ref": "pkg:pub/material_ui@1.0.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "meta",
+      "version": "1.19.0",
+      "purl": "pkg:pub/meta@1.19.0",
+      "bom-ref": "pkg:pub/meta@1.19.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "307249ce4ff29d58a18e97f6345f539382eb9c9c29ecda628900f31de0443dd9"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "mime",
+      "version": "2.0.0",
+      "purl": "pkg:pub/mime@2.0.0",
+      "bom-ref": "pkg:pub/mime@2.0.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "41a20518f0cb1256669420fdba0cd90d21561e560ac240f26ef8322e45bb7ed6"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "node_preamble",
+      "version": "2.0.2",
+      "purl": "pkg:pub/node_preamble@2.0.2",
+      "bom-ref": "pkg:pub/node_preamble@2.0.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "6e7eac89047ab8a8d26cf16127b5ed26de65209847630400f9aefd7cd5c730db"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "objective_c",
+      "version": "9.5.0",
+      "purl": "pkg:pub/objective_c@9.5.0",
+      "bom-ref": "pkg:pub/objective_c@9.5.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "package_config",
+      "version": "2.2.0",
+      "purl": "pkg:pub/package_config@2.2.0",
+      "bom-ref": "pkg:pub/package_config@2.2.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "path",
+      "version": "1.9.1",
+      "purl": "pkg:pub/path@1.9.1",
+      "bom-ref": "pkg:pub/path@1.9.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "75cca69d1490965be98c73ceaea117e8a04dd21217b37b292c9ddbec0d955bc5"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "path_parsing",
+      "version": "1.1.0",
+      "purl": "pkg:pub/path_parsing@1.1.0",
+      "bom-ref": "pkg:pub/path_parsing@1.1.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "883402936929eac138ee0a45da5b0f2c80f89913e6dc3bf77eb65b84b409c6ca"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "path_provider",
+      "version": "2.1.6",
+      "purl": "pkg:pub/path_provider@2.1.6",
+      "bom-ref": "pkg:pub/path_provider@2.1.6",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "path_provider_android",
+      "version": "2.3.1",
+      "purl": "pkg:pub/path_provider_android@2.3.1",
+      "bom-ref": "pkg:pub/path_provider_android@2.3.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "69cbd515a62b94d32a7944f086b2f82b4ac40a1d45bebfc00813a430ab2dabcd"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "path_provider_foundation",
+      "version": "2.6.0",
+      "purl": "pkg:pub/path_provider_foundation@2.6.0",
+      "bom-ref": "pkg:pub/path_provider_foundation@2.6.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2a376b7d6392d80cd3705782d2caa734ca4727776db0b6ec36ef3f1855197699"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "path_provider_linux",
+      "version": "2.2.2",
+      "purl": "pkg:pub/path_provider_linux@2.2.2",
+      "bom-ref": "pkg:pub/path_provider_linux@2.2.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "58c2005f147315b11e9b4a7bc889cd5203e250cba8e3f012dae259b4972b5c16"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "path_provider_platform_interface",
+      "version": "2.1.3",
+      "purl": "pkg:pub/path_provider_platform_interface@2.1.3",
+      "bom-ref": "pkg:pub/path_provider_platform_interface@2.1.3",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "484838772624c3a4b94f1e44a3e19897fee738f2d5c4ce448443b0417f7c9dda"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "path_provider_windows",
+      "version": "2.3.0",
+      "purl": "pkg:pub/path_provider_windows@2.3.0",
+      "bom-ref": "pkg:pub/path_provider_windows@2.3.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pdf",
+      "version": "3.12.0",
+      "purl": "pkg:pub/pdf@3.12.0",
+      "bom-ref": "pkg:pub/pdf@3.12.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pdfium_dart",
+      "version": "0.2.5",
+      "purl": "pkg:pub/pdfium_dart@0.2.5",
+      "bom-ref": "pkg:pub/pdfium_dart@0.2.5",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "86e95c66b09f3245b95c4924f2edce8d4f7c9786876e5c5ee8e36b104a94bbb0"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pdfium_flutter",
+      "version": "0.2.3",
+      "purl": "pkg:pub/pdfium_flutter@0.2.3",
+      "bom-ref": "pkg:pub/pdfium_flutter@0.2.3",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0b115c0917aef9cf6bb9c4d47d0efc61d97f44844cd76287c921f997c26cf15d"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pdfrx",
+      "version": "2.4.7",
+      "purl": "pkg:pub/pdfrx@2.4.7",
+      "bom-ref": "pkg:pub/pdfrx@2.4.7",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pdfrx_engine",
+      "version": "0.4.6",
+      "purl": "pkg:pub/pdfrx_engine@0.4.6",
+      "bom-ref": "pkg:pub/pdfrx_engine@0.4.6",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "perfect_freehand",
+      "version": "2.5.2+1",
+      "purl": "pkg:pub/perfect_freehand@2.5.2+1",
+      "bom-ref": "pkg:pub/perfect_freehand@2.5.2+1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "petitparser",
+      "version": "7.0.2",
+      "purl": "pkg:pub/petitparser@7.0.2",
+      "bom-ref": "pkg:pub/petitparser@7.0.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "91bd59303e9f769f108f8df05e371341b15d59e995e6806aefab827b58336675"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "platform",
+      "version": "3.1.6",
+      "purl": "pkg:pub/platform@3.1.6",
+      "bom-ref": "pkg:pub/platform@3.1.6",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5d6b1b0036a5f331ebc77c850ebc8506cbc1e9416c27e59b439f917a902a4984"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "plugin_platform_interface",
+      "version": "2.1.8",
+      "purl": "pkg:pub/plugin_platform_interface@2.1.8",
+      "bom-ref": "pkg:pub/plugin_platform_interface@2.1.8",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4820fbfdb9478b1ebae27888254d445073732dae3d6ea81f0b7e06d5dedc3f02"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pool",
+      "version": "1.5.2",
+      "purl": "pkg:pub/pool@1.5.2",
+      "bom-ref": "pkg:pub/pool@1.5.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "978783255c543aa3586a1b3c21f6e9d720eb315376a915872c61ef8b5c20177d"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "posix",
+      "version": "6.5.2",
+      "purl": "pkg:pub/posix@6.5.2",
+      "bom-ref": "pkg:pub/posix@6.5.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "process",
+      "version": "4.2.4",
+      "purl": "pkg:pub/process@4.2.4",
+      "bom-ref": "pkg:pub/process@4.2.4",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "53fd8db9cec1d37b0574e12f07520d582019cb6c44abf5479a01505099a34a09"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pub_semver",
+      "version": "2.2.0",
+      "purl": "pkg:pub/pub_semver@2.2.0",
+      "bom-ref": "pkg:pub/pub_semver@2.2.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5bfcf68ca79ef689f8990d1160781b4bad40a3bd5e5218ad4076ddb7f4081585"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "qr",
+      "version": "3.0.2",
+      "purl": "pkg:pub/qr@3.0.2",
+      "bom-ref": "pkg:pub/qr@3.0.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5a1d2586170e172b8a8c8470bbbffd5eb0cd38a66c0d77155ea138d3af3a4445"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "record_use",
+      "version": "0.6.0",
+      "purl": "pkg:pub/record_use@0.6.0",
+      "bom-ref": "pkg:pub/record_use@0.6.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2551bd8eecfe95d14ae75f6021ad0248be5c27f138c2ec12fcb52b500b3ba1ed"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "riverpod",
+      "version": "3.2.1",
+      "purl": "pkg:pub/riverpod@3.2.1",
+      "bom-ref": "pkg:pub/riverpod@3.2.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8c22216be8ad3ef2b44af3a329693558c98eca7b8bd4ef495c92db0bba279f83"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "rxdart",
+      "version": "0.28.0",
+      "purl": "pkg:pub/rxdart@0.28.0",
+      "bom-ref": "pkg:pub/rxdart@0.28.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5c3004a4a8dbb94bd4bf5412a4def4acdaa12e12f269737a5751369e12d1a962"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "shared_preferences",
+      "version": "2.5.5",
+      "purl": "pkg:pub/shared_preferences@2.5.5",
+      "bom-ref": "pkg:pub/shared_preferences@2.5.5",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "shared_preferences_android",
+      "version": "2.4.27",
+      "purl": "pkg:pub/shared_preferences_android@2.4.27",
+      "bom-ref": "pkg:pub/shared_preferences_android@2.4.27",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0634e64bd719f89c012f392938e173521f535d3ecaf66558fa94a056d22b5cc7"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "shared_preferences_foundation",
+      "version": "2.5.6",
+      "purl": "pkg:pub/shared_preferences_foundation@2.5.6",
+      "bom-ref": "pkg:pub/shared_preferences_foundation@2.5.6",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4e7eaffc2b17ba398759f1151415869a34771ba11ebbccd1b0145472a619a64f"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "shared_preferences_linux",
+      "version": "2.4.1",
+      "purl": "pkg:pub/shared_preferences_linux@2.4.1",
+      "bom-ref": "pkg:pub/shared_preferences_linux@2.4.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "580abfd40f415611503cae30adf626e6656dfb2f0cee8f465ece7b6defb40f2f"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "shared_preferences_platform_interface",
+      "version": "2.4.2",
+      "purl": "pkg:pub/shared_preferences_platform_interface@2.4.2",
+      "bom-ref": "pkg:pub/shared_preferences_platform_interface@2.4.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "649dc798a33931919ea356c4305c2d1f81619ea6e92244070b520187b5140ef9"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "shared_preferences_web",
+      "version": "2.4.3",
+      "purl": "pkg:pub/shared_preferences_web@2.4.3",
+      "bom-ref": "pkg:pub/shared_preferences_web@2.4.3",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "shared_preferences_windows",
+      "version": "2.4.1",
+      "purl": "pkg:pub/shared_preferences_windows@2.4.1",
+      "bom-ref": "pkg:pub/shared_preferences_windows@2.4.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "94ef0f72b2d71bc3e700e025db3710911bd51a71cefb65cc609dd0d9a982e3c1"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "shelf",
+      "version": "1.4.2",
+      "purl": "pkg:pub/shelf@1.4.2",
+      "bom-ref": "pkg:pub/shelf@1.4.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "shelf_packages_handler",
+      "version": "3.0.2",
+      "purl": "pkg:pub/shelf_packages_handler@3.0.2",
+      "bom-ref": "pkg:pub/shelf_packages_handler@3.0.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "89f967eca29607c933ba9571d838be31d67f53f6e4ee15147d5dc2934fee1b1e"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "shelf_static",
+      "version": "1.1.3",
+      "purl": "pkg:pub/shelf_static@1.1.3",
+      "bom-ref": "pkg:pub/shelf_static@1.1.3",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "shelf_web_socket",
+      "version": "3.0.0",
+      "purl": "pkg:pub/shelf_web_socket@3.0.0",
+      "bom-ref": "pkg:pub/shelf_web_socket@3.0.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "3632775c8e90d6c9712f883e633716432a27758216dfb61bd86a8321c0580925"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "sky_engine",
+      "version": "0.0.0",
+      "purl": "pkg:pub/sky_engine@0.0.0",
+      "bom-ref": "pkg:pub/sky_engine@0.0.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "source_map_stack_trace",
+      "version": "2.1.2",
+      "purl": "pkg:pub/source_map_stack_trace@2.1.2",
+      "bom-ref": "pkg:pub/source_map_stack_trace@2.1.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "source_maps",
+      "version": "0.10.13",
+      "purl": "pkg:pub/source_maps@0.10.13",
+      "bom-ref": "pkg:pub/source_maps@0.10.13",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "190222579a448b03896e0ca6eca5998fa810fda630c1d65e2f78b3f638f54812"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "source_span",
+      "version": "1.10.2",
+      "purl": "pkg:pub/source_span@1.10.2",
+      "bom-ref": "pkg:pub/source_span@1.10.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "56a02f1f4cd1a2d96303c0144c93bd6d909eea6bee6bf5a0e0b685edbd4c47ab"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "stack_trace",
+      "version": "1.12.1",
+      "purl": "pkg:pub/stack_trace@1.12.1",
+      "bom-ref": "pkg:pub/stack_trace@1.12.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8b27215b45d22309b5cddda1aa2b19bdfec9df0e765f2de506401c071d38d1b1"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "state_notifier",
+      "version": "1.0.0",
+      "purl": "pkg:pub/state_notifier@1.0.0",
+      "bom-ref": "pkg:pub/state_notifier@1.0.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "stream_channel",
+      "version": "2.1.4",
+      "purl": "pkg:pub/stream_channel@2.1.4",
+      "bom-ref": "pkg:pub/stream_channel@2.1.4",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "969e04c80b8bcdf826f8f16579c7b14d780458bd97f56d107d3950fdbeef059d"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "string_scanner",
+      "version": "1.4.1",
+      "purl": "pkg:pub/string_scanner@1.4.1",
+      "bom-ref": "pkg:pub/string_scanner@1.4.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "921cd31725b72fe181906c6a94d987c78e3b98c2e205b397ea399d4054872b43"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "sync_http",
+      "version": "0.3.1",
+      "purl": "pkg:pub/sync_http@0.3.1",
+      "bom-ref": "pkg:pub/sync_http@0.3.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7f0cd72eca000d2e026bcd6f990b81d0ca06022ef4e32fb257b30d3d1014a961"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "synchronized",
+      "version": "3.4.1+1",
+      "purl": "pkg:pub/synchronized@3.4.1+1",
+      "bom-ref": "pkg:pub/synchronized@3.4.1+1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "61894a1956de6b4fc1aefd0892e109514a1a706cbece3ac59decd90ff5a7a423"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "term_glyph",
+      "version": "1.2.2",
+      "purl": "pkg:pub/term_glyph@1.2.2",
+      "bom-ref": "pkg:pub/term_glyph@1.2.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7f554798625ea768a7518313e58f83891c7f5024f88e46e7182a4558850a4b8e"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "test",
+      "version": "1.31.1",
+      "purl": "pkg:pub/test@1.31.1",
+      "bom-ref": "pkg:pub/test@1.31.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "test_api",
+      "version": "0.7.12",
+      "purl": "pkg:pub/test_api@0.7.12",
+      "bom-ref": "pkg:pub/test_api@0.7.12",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2a122cbe059f8b610d3a5415f42e255b6c17b1f21eee1d960f31080237fb4f11"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "test_core",
+      "version": "0.6.18",
+      "purl": "pkg:pub/test_core@0.6.18",
+      "bom-ref": "pkg:pub/test_core@0.6.18",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "typed_data",
+      "version": "1.4.0",
+      "purl": "pkg:pub/typed_data@1.4.0",
+      "bom-ref": "pkg:pub/typed_data@1.4.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "uni_platform",
+      "version": "0.1.3",
+      "purl": "pkg:pub/uni_platform@0.1.3",
+      "bom-ref": "pkg:pub/uni_platform@0.1.3",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "url_launcher",
+      "version": "6.3.2",
+      "purl": "pkg:pub/url_launcher@6.3.2",
+      "bom-ref": "pkg:pub/url_launcher@6.3.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "url_launcher_android",
+      "version": "6.3.32",
+      "purl": "pkg:pub/url_launcher_android@6.3.32",
+      "bom-ref": "pkg:pub/url_launcher_android@6.3.32",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "url_launcher_ios",
+      "version": "6.4.1",
+      "purl": "pkg:pub/url_launcher_ios@6.4.1",
+      "bom-ref": "pkg:pub/url_launcher_ios@6.4.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "580fe5dfb51671ae38191d316e027f6b76272b026370708c2d898799750a02b0"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "url_launcher_linux",
+      "version": "3.2.2",
+      "purl": "pkg:pub/url_launcher_linux@3.2.2",
+      "bom-ref": "pkg:pub/url_launcher_linux@3.2.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "url_launcher_macos",
+      "version": "3.2.5",
+      "purl": "pkg:pub/url_launcher_macos@3.2.5",
+      "bom-ref": "pkg:pub/url_launcher_macos@3.2.5",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "368adf46f71ad3c21b8f06614adb38346f193f3a59ba8fe9a2fd74133070ba18"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "url_launcher_platform_interface",
+      "version": "2.3.2",
+      "purl": "pkg:pub/url_launcher_platform_interface@2.3.2",
+      "bom-ref": "pkg:pub/url_launcher_platform_interface@2.3.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "552f8a1e663569be95a8190206a38187b531910283c3e982193e4f2733f01029"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "url_launcher_web",
+      "version": "2.4.3",
+      "purl": "pkg:pub/url_launcher_web@2.4.3",
+      "bom-ref": "pkg:pub/url_launcher_web@2.4.3",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "85c81589622fbc87c1c683aaea164d3604a7777495a79d91e39ffcdec39ddb34"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "url_launcher_windows",
+      "version": "3.1.5",
+      "purl": "pkg:pub/url_launcher_windows@3.1.5",
+      "bom-ref": "pkg:pub/url_launcher_windows@3.1.5",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "712c70ab1b99744ff066053cbe3e80c73332b38d46e5e945c98689b2e66fc15f"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "uuid",
+      "version": "3.0.7",
+      "purl": "pkg:pub/uuid@3.0.7",
+      "bom-ref": "pkg:pub/uuid@3.0.7",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "648e103079f7c64a36dc7d39369cabb358d377078a051d6ae2ad3aa539519313"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "vector_math",
+      "version": "2.4.2",
+      "purl": "pkg:pub/vector_math@2.4.2",
+      "bom-ref": "pkg:pub/vector_math@2.4.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "vm_service",
+      "version": "15.2.0",
+      "purl": "pkg:pub/vm_service@15.2.0",
+      "bom-ref": "pkg:pub/vm_service@15.2.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0016aef94fc66495ac78af5859181e3f3bf2026bd8eecc72b9565601e19ab360"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "watcher",
+      "version": "1.2.1",
+      "purl": "pkg:pub/watcher@1.2.1",
+      "bom-ref": "pkg:pub/watcher@1.2.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1398c9f081a753f9226febe8900fce8f7d0a67163334e1c94a2438339d79d635"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "web",
+      "version": "1.1.1",
+      "purl": "pkg:pub/web@1.1.1",
+      "bom-ref": "pkg:pub/web@1.1.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "868d88a33d8a87b18ffc05f9f030ba328ffefba92d6c127917a2ba740f9cfe4a"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "web_socket",
+      "version": "1.0.1",
+      "purl": "pkg:pub/web_socket@1.0.1",
+      "bom-ref": "pkg:pub/web_socket@1.0.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "34d64019aa8e36bf9842ac014bb5d2f5586ca73df5e4d9bf5c936975cae6982c"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "web_socket_channel",
+      "version": "3.0.3",
+      "purl": "pkg:pub/web_socket_channel@3.0.3",
+      "bom-ref": "pkg:pub/web_socket_channel@3.0.3",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "webdriver",
+      "version": "3.1.0",
+      "purl": "pkg:pub/webdriver@3.1.0",
+      "bom-ref": "pkg:pub/webdriver@3.1.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2f3a14ca026957870cfd9c635b83507e0e51d8091568e90129fbf805aba7cade"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "webkit_inspection_protocol",
+      "version": "1.2.1",
+      "purl": "pkg:pub/webkit_inspection_protocol@1.2.1",
+      "bom-ref": "pkg:pub/webkit_inspection_protocol@1.2.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "87d3f2333bb240704cd3f1c6b5b7acd8a10e7f0bc28c28dcf14e782014f4a572"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "xdg_directories",
+      "version": "1.1.0",
+      "purl": "pkg:pub/xdg_directories@1.1.0",
+      "bom-ref": "pkg:pub/xdg_directories@1.1.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7a3f37b05d989967cdddcbb571f1ea834867ae2faa29725fd085180e0883aa15"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "xml",
+      "version": "6.6.1",
+      "purl": "pkg:pub/xml@6.6.1",
+      "bom-ref": "pkg:pub/xml@6.6.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "971043b3a0d3da28727e40ed3e0b5d18b742fa5a68665cca88e74b7876d5e025"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "yaml",
+      "version": "3.1.3",
+      "purl": "pkg:pub/yaml@3.1.3",
+      "bom-ref": "pkg:pub/yaml@3.1.3",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    }
+  ]
+}
