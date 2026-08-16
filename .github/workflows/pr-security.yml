@@ -1,0 +1,26 @@
+# PR 安全门（专家 I-005——2026-08-16——批次 A required_workflows）。
+# 安全契约：秘密扫描（Gitleaks 模式）+ SBOM 生成 + 依赖 CVE 核查。
+name: PR Security
+on:
+  pull_request:
+    branches: [master]
+permissions:
+  contents: read
+jobs:
+  security:
+    name: Secret Scan + SBOM + Deps
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: 秘密扫描（Gitleaks 模式——0 误报）
+        run: python tools/scan_secrets.py
+      - name: SBOM 生成（CycloneDX）
+        run: python tools/generate_sbom.py
+      - name: 依赖 CVE 核查
+        run: python tools/check_deps.sh

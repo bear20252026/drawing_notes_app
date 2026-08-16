@@ -1,0 +1,43 @@
+# PR 平台证据门（专家 I-005——2026-08-16——批次 A required_workflows）。
+# 平台契约（R-08）：受影响变更需 Android/Windows 构建证据——
+# Windows release（防逆向混淆）+ Android debug 构建。
+name: PR Platform
+on:
+  pull_request:
+    branches: [master]
+permissions:
+  contents: read
+jobs:
+  windows-build:
+    name: Windows Build Evidence
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.0
+          cache: true
+      - run: flutter pub get
+      - run: flutter config --enable-windows-desktop
+      - name: Windows Release（防逆向混淆——R-08 证据）
+        run: flutter build windows --release --obfuscate --split-debug-info=build/symbols
+  android-build:
+    name: Android Build Evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.0
+          cache: true
+      - run: flutter pub get
+      - name: Android Debug（R-08 证据——release 需签名密钥不在 CI）
+        run: flutter build apk --debug

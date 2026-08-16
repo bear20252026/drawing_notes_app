@@ -1,0 +1,28 @@
+# PR 质量门（专家 I-005——2026-08-16——批次 A required_workflows）。
+# 质量契约：analyze 零问题 + 全量测试 + 行数门禁。
+name: PR Quality
+on:
+  pull_request:
+    branches: [master]
+permissions: {}
+jobs:
+  quality:
+    name: Analyze + Test + Line Count
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.0
+          cache: true
+      - run: flutter pub get
+      - name: 静态分析
+        run: flutter analyze
+      - name: 全量测试
+        run: flutter test
+      - name: 行数门禁
+        run: python tools/code_guard.py --dir lib --force-native --json

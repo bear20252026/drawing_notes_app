@@ -1,0 +1,26 @@
+# PR 架构门（专家 I-005——2026-08-16——批次 A required_workflows）。
+# 架构契约：层方向/零循环/隔离/耦合度量 + 边界检查。
+name: PR Architecture
+on:
+  pull_request:
+    branches: [master]
+permissions: {}
+jobs:
+  architecture:
+    name: Architecture + Boundaries
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.0
+          cache: true
+      - run: flutter pub get
+      - name: 架构规则（+5）
+        run: flutter test test/architecture_test.dart
+      - name: 边界检查
+        run: bash tools/check_boundaries.sh

@@ -1,4 +1,7 @@
-// notebook_domain——纯 Dart 笔记本安全域（V2 引导占位）。
+// notebook_domain——纯 Dart 笔记本安全域（V2 引导——批次 A）。
 //
 // 专家目标架构（ADR-001）：NotebookSession/KeyHandle/LockPolicy/UseCases/
-// Ports 的唯一可信来源——禁 Widget/BuildContext/Platform/File。批次 A 引导空包。
+// Ports 的唯一可信来源——禁 Widget/BuildContext/Platform/File。
+library;
+
+export 'src/ports/repository_ports.dart';
