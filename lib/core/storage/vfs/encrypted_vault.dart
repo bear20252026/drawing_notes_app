@@ -124,6 +124,9 @@ class EncryptedVault {
   /// 原子写入（腾讯云 Git 五细节：临时文件 + rename——crash 不留中间
   /// 状态——幂等——孤儿清理）。
   Future<void> _atomicWrite(File target, Uint8List data) async {
+    // 目录预创建（腾讯云 Git 五细节）：id 可含 usecase 子路径
+    // （'media/note-1' → objects/media/note-1.1）——写前确保父目录存在。
+    await target.parent.create(recursive: true);
     final tmp = File('${target.path}.tmp.${DateTime.now().microsecondsSinceEpoch}');
     await tmp.writeAsBytes(data, flush: true);
     try {
