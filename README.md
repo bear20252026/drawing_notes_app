@@ -4,9 +4,16 @@
 本项目依据《绘图笔记App-完整方案汇编》开发计划实施，全部为本地离线功能，
 **不涉及**云同步、账号系统、AI 功能、网络请求。
 
+![CI](https://img.shields.io/github/actions/workflow/status/bear20252026/drawing_notes_app/ci.yml)
+![License](https://img.shields.io/github/license/bear20252026/drawing_notes_app)
+
+> **安全定位**：政府级安全设计——加密笔记（K_note 每笔记密钥）、策略引擎
+> （默认拒绝）、会话守卫（自动锁定）、VFS 加密对象仓库（版本/原子提交）、
+> 不可篡改审计（SHA-256 哈希链）、导入隔离（SVG/PDF 预检）。
+
 ---
 
-## 功能概览（按开发阶段）
+## 功能概览
 
 | 阶段 | 内容 | 状态 |
 |------|------|------|
@@ -17,10 +24,11 @@
 | Phase 5 | 笔记功能：笔记本/页面管理、文字输入、图片插入混排 | ✅ 完成 |
 | Phase 6 | 文件管理与持久化：自动保存、作品列表缩略图、导出 PNG、删除确认 | ✅ 完成 |
 | Phase 7 | 体验打磨：深色模式、双指手势、全屏模式、首次启动引导 | ✅ 完成 |
+| 安全加固 | 专家审计闭环：P0-P2 封堵 + 军工审计链 + 加密体系（详见下文） | ✅ 完成 |
 
 ## 环境要求
 
-- Flutter 3.44.9（Dart 3.12.2）或更高稳定版
+- Flutter 3.47.0（Dart 3.12.2）或更高稳定版
 - Windows 构建：Visual Studio 2022+（含"使用 C++ 的桌面开发"组件）
 - Android 构建：Android SDK（compileSdk 36）+ JDK 17 及以上
 
@@ -50,20 +58,29 @@ flutter build apk --debug
 # 静态检查（本项目用 dart analyze，flutter analyze 的 LSP 通道与中文路径有兼容问题）
 dart analyze
 
-# 全部单元/组件测试（覆盖 Phase 1-7 核心逻辑）
+# 全部单元/组件测试（当前 391+ 项——覆盖 Phase 1-7 + 安全审计回归）
 flutter test
+
+# 架构守护（层方向/零循环/feature 隔离/耦合度量）
+flutter test test/architecture_test.dart
+
+# 边界检查与行数门禁
+bash tools/check_boundaries.sh
+python tools/code_guard.py --dir lib --force-native --json
 ```
 
-当前共 **74 个测试**，覆盖：
-- Phase 1：绘制/撤销/重做/清空/单点墨点
-- Phase 2：粗细/颜色/橡皮擦透明擦除/吸管取色
-- Phase 3：图层新建/删除/显隐/透明度/排序/合并/撤销
-- Phase 4：矩形/套索选区、命中检测、移动/缩放/旋转/复制/粘贴/删除
-- Phase 5：笔记本/页面/文字块/图片块模型与存储
-- Phase 6：保存/重新加载/缩略图/导出 PNG/删除/列表排序
-- Phase 7：视口缩放/平移/旋转坐标换算
-- 安全审计回归：14 项（dispose 防护/缓存竞态/位图泄漏/历史上限/路径校验等）
-- UX 修复回归：7 项（绘制帧通知机制、页面 document 非空）
+## 安全特性（专家审计闭环）
+
+| 安全组件 | 说明 |
+| --- | --- |
+| **加密笔记** | AES-256-GCM + AAD 上下文绑定（NIST SP 800-38D）——正文/媒体/回收站加密 |
+| **K_note 每笔记密钥** | 每笔记独立数据密钥 + AAD 绑定笔记 ID——一笔记密钥泄露不影响其他（Knovya 模式） |
+| **策略引擎** | 操作白名单**默认拒绝**（fail-closed）+ 审计（PolicyEngine）——导入/删除经策略门禁 |
+| **会话守卫** | 失去焦点立即锁定（清除内存密钥）+ 文件选择器豁免 + 再认证（SessionGuard） |
+| **VFS 加密对象仓库** | 对象清单 + 版本回溯 + AAD 绑定 + 原子提交（临时文件+rename——崩溃安全）——媒体对象已接入 |
+| **不可篡改审计** | SHA-256 哈希链（prevHash 链接——篡改断链）+ verifyIntegrity（AuditLogger） |
+| **导入隔离** | SVG 预检（XXE/Billion Laughs/脚本注入/膨胀防护）+ PDF 页数/大小配额 |
+| **发布门禁** | SBOM 生成（CycloneDX）+ 秘密扫描（Gitleaks 模式）+ CI 集成 |
 
 ## 数据存储位置
 
@@ -74,7 +91,7 @@ flutter test
 ├── documents/        独立画作工程文件（JSON，含全部图层与笔画）
 ├── thumbnails/       画作缩略图（PNG，列表页展示）
 ├── notebooks/        笔记本工程文件（JSON，含全部页面）
-└── notebook_images/  笔记页插入的图片副本
+└── notebook_images/  笔记页插入的图片副本（新媒体走 VFS 加密对象）
 ```
 
 ## 技术要点
@@ -84,8 +101,17 @@ flutter test
 - 图层缓存：离屏位图（`PictureRecorder → toImage`）保证绘制流畅
 - 自动保存：变更后 800ms 防抖落盘 + 退出前兜底保存
 - 删除保护：所有删除操作均有二次确认对话框
+- 架构解耦：God Class 拆分（8 个纯计算服务提取——官方渐进节奏）+ 五域 Notifier
 
-详细设计见 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) 与 [`docs/PHASES.md`](docs/PHASES.md)。
+详细设计见 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)、[`docs/AUDIT_REPORT_2026-08-15.md`](docs/AUDIT_REPORT_2026-08-15.md) 与 [`docs/PHASES.md`](docs/PHASES.md)。
+
+## 开源
+
+- 📄 许可证：[MIT](LICENSE)
+- 🤝 贡献指南：[CONTRIBUTING.md](CONTRIBUTING.md)
+- 🔒 安全政策：[SECURITY.md](SECURITY.md)
+- 📜 行为准则：[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- 📝 变更日志：[CHANGELOG.md](CHANGELOG.md)
 
 ## 开发计划约束遵守情况
 
