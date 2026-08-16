@@ -61,7 +61,7 @@ class LineGeometry {
 
 /// 几何引擎（直线几何的单一可信来源——专家 I-007）。
 class GeometryEngine {
-  const GeometryEngine._();
+  const GeometryEngine();
 
   /// 创建直线（端点规范化——包围盒由 [LineGeometry.bounds] 提供）。
   static LineGeometry line({

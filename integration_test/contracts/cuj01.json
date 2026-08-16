@@ -1,0 +1,13 @@
+{
+  "id": "CUJ-01",
+  "name": "create_draw_save_reopen",
+  "steps": ["create", "draw", "save", "terminate", "reopen"],
+  "assertions": [
+    "same_document_id",
+    "same_stroke_id",
+    "same_point_count",
+    "same_bounds",
+    "revision_increases_once"
+  ],
+  "platforms": ["android", "windows"]
+}

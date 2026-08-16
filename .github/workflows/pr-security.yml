@@ -22,5 +22,8 @@ jobs:
         run: python tools/scan_secrets.py
       - name: SBOM 生成（CycloneDX）
         run: python tools/generate_sbom.py
-      - name: 依赖 CVE 核查
-        run: python tools/check_deps.sh
+      # C-004/C-005（专家更正期）：check_deps.sh 是 Bash 脚本——用 bash
+      # 解释器；脚本仅输出依赖概览 + dart pub outdated（无真实 CVE 数据源/
+      # 失败阈值）——步骤名诚实化为"依赖清单与过期检查"（不得声称 CVE 扫描）。
+      - name: 依赖清单与过期检查
+        run: bash tools/check_deps.sh

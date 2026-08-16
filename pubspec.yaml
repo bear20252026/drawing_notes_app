@@ -46,6 +46,12 @@ dependencies:
   file_selector: ^1.0.3
   # MIT：将压感输入点转为连续的填充轮廓，避免粗笔分段成离散圆点。
   perfect_freehand: ^2.5.2+1
+  # V2 纯 Dart 核心（专家第一周更正期 V-001——path dependency 接线——
+  # 应用运行时依赖——不得放入 dev_dependencies 伪装接线）。
+  editor_core:
+    path: packages/editor_core
+  notebook_domain:
+    path: packages/notebook_domain
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

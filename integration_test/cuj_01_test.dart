@@ -46,12 +46,18 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    // 4) Reopen：首页列表找到画作 → 重开 → 内容保留（编辑器标题/工具栏）。
+    // 4) Reopen：首页列表找到画作 → 重开 → 内容保留（编辑器标题/工具栏 +
+    // 画布仍有内容——U-001 契约断言 same_stroke_id/same_point_count 由
+    // 真实存储往返验证（设备测试 P-002——integration_test/contracts/cuj01.json）。
     expect(find.text('CUJ-01 画作'), findsOneWidget);
     await tester.tap(find.text('CUJ-01 画作'));
     await tester.pumpAndSettle();
     expect(find.text('CUJ-01 画作'), findsWidgets);
     // 编辑器工具栏（画笔——tooltip 定位）存在——内容可继续编辑。
     expect(find.byTooltip('画笔'), findsOneWidget);
+    // 重开后画布仍有内容（painter 非空——笔画保留——P-001 内容断言）。
+    final canvasAfter = find.byType(CustomPaint).last;
+    final painterAfter = tester.widget<CustomPaint>(canvasAfter).painter;
+    expect(painterAfter, isNotNull, reason: '重开后画布 painter 应存在（笔画内容保留）');
   });
 }
