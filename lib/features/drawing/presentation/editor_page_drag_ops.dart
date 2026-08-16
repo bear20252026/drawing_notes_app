@@ -507,7 +507,7 @@ extension _EditorPageDragOps on _EditorPageState {
   }
 
   /// 图片裁剪 4 角手柄（拖拽调整 _cropRect，画布坐标）。
-  List<Widget> _buildCropHandles(PageImageItem item) {
+  List<Widget> _buildCropHandles(PageImageItem _) {
     final rect = _cropRect!;
     final corners = [
       rect.topLeft,
