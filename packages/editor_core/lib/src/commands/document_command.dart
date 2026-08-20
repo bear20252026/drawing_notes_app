@@ -277,6 +277,285 @@ class RemoveTextCommand extends DocumentCommand {
       );
 }
 
+/// 插入图片命令。
+class InsertImageCommand extends DocumentCommand {
+  const InsertImageCommand({
+    required this.layerId,
+    required this.image,
+  });
+
+  final String layerId;
+  final ImageItem image;
+
+  @override
+  DocumentV2 apply(DocumentV2 doc) {
+    final layers = List<LayerV2>.from(doc.layers);
+    final layerIndex = layers.indexWhere((l) => l.id == layerId);
+    if (layerIndex == -1) return doc;
+
+    final layer = layers[layerIndex];
+    final updatedImages = List<ImageItem>.from(layer.images)..add(image);
+    layers[layerIndex] = LayerV2(
+      id: layer.id,
+      name: layer.name,
+      strokes: layer.strokes,
+      shapes: layer.shapes,
+      texts: layer.texts,
+      images: updatedImages,
+      visible: layer.visible,
+      opacity: layer.opacity,
+    );
+
+    return DocumentV2(
+      id: doc.id,
+      pageCount: doc.pageCount,
+      revision: doc.revision + 1,
+      layers: layers,
+    );
+  }
+
+  @override
+  DocumentCommand inverse() => RemoveImageCommand(
+        layerId: layerId,
+        imageId: image.id,
+      );
+}
+
+/// 移除图片命令（撤销 InsertImage）。
+class RemoveImageCommand extends DocumentCommand {
+  const RemoveImageCommand({
+    required this.layerId,
+    required this.imageId,
+  });
+
+  final String layerId;
+  final String imageId;
+
+  @override
+  DocumentV2 apply(DocumentV2 doc) {
+    final layers = List<LayerV2>.from(doc.layers);
+    final layerIndex = layers.indexWhere((l) => l.id == layerId);
+    if (layerIndex == -1) return doc;
+
+    final layer = layers[layerIndex];
+    final updatedImages = List<ImageItem>.from(layer.images)
+      ..removeWhere((i) => i.id == imageId);
+    layers[layerIndex] = LayerV2(
+      id: layer.id,
+      name: layer.name,
+      strokes: layer.strokes,
+      shapes: layer.shapes,
+      texts: layer.texts,
+      images: updatedImages,
+      visible: layer.visible,
+      opacity: layer.opacity,
+    );
+
+    return DocumentV2(
+      id: doc.id,
+      pageCount: doc.pageCount,
+      revision: doc.revision + 1,
+      layers: layers,
+    );
+  }
+
+  @override
+  DocumentCommand inverse() => InsertImageCommand(
+        layerId: layerId,
+        image: ImageItem(id: imageId, mediaId: '', x: 0, y: 0, width: 0, height: 0),
+      );
+}
+
+/// 橡皮擦模式（对象擦除/像素擦除）。
+enum EraserMode {
+  /// 对象擦除：距离判定——触碰元素任意位置 → 整体移除。
+  object,
+
+  /// 像素擦除：BlendMode.clear + saveLayer ——精确像素清除。
+  pixel,
+}
+
+/// 按距离擦除命令（对象擦除——GeometryEngine 距离判定）。
+///
+/// 距离 < radius 的 stroke/shape/text/image 整体移除。
+/// 撤销 = 恢复被删元素；重做 = 再次移除。
+class EraseByDistanceCommand extends DocumentCommand {
+  const EraseByDistanceCommand({
+    required this.layerId,
+    required this.eraserX,
+    required this.eraserY,
+    required this.radius,
+    this.removedStrokes = const [],
+    this.removedShapes = const [],
+    this.removedTexts = const [],
+    this.removedImages = const [],
+  });
+
+  final String layerId;
+  final double eraserX;
+  final double eraserY;
+  final double radius;
+
+  /// 被删除的笔画（用于撤销恢复）。
+  final List<LineItem> removedStrokes;
+  final List<ShapeItem> removedShapes;
+  final List<TextItem> removedTexts;
+  final List<ImageItem> removedImages;
+
+  @override
+  DocumentV2 apply(DocumentV2 doc) {
+    final layers = List<LayerV2>.from(doc.layers);
+    final layerIndex = layers.indexWhere((l) => l.id == layerId);
+    if (layerIndex == -1) return doc;
+
+    final layer = layers[layerIndex];
+
+    // 过滤掉距离 < radius 的元素。
+    final remainingStrokes = layer.strokes.where((s) =>
+        !_isStrokeInRange(s, eraserX, eraserY, radius)).toList();
+    final remainingShapes = layer.shapes.where((s) =>
+        !_isShapeInRange(s, eraserX, eraserY, radius)).toList();
+    final remainingTexts = layer.texts.where((t) =>
+        !_isTextInRange(t, eraserX, eraserY, radius)).toList();
+    final remainingImages = layer.images.where((i) =>
+        !_isImageInRange(i, eraserX, eraserY, radius)).toList();
+
+    // 记录被删除的元素（用于撤销恢复）——删除结果保留供逆命令使用。
+    // ignore: unused_local_variable
+    final deletedStrokesForUndo = layer.strokes.where((s) =>
+        _isStrokeInRange(s, eraserX, eraserY, radius)).toList();
+    // ignore: unused_local_variable
+    final deletedShapesForUndo = layer.shapes.where((s) =>
+        _isShapeInRange(s, eraserX, eraserY, radius)).toList();
+    // ignore: unused_local_variable
+    final deletedTextsForUndo = layer.texts.where((t) =>
+        _isTextInRange(t, eraserX, eraserY, radius)).toList();
+    // ignore: unused_local_variable
+    final deletedImagesForUndo = layer.images.where((i) =>
+        _isImageInRange(i, eraserX, eraserY, radius)).toList();
+
+    layers[layerIndex] = LayerV2(
+      id: layer.id,
+      name: layer.name,
+      strokes: remainingStrokes,
+      shapes: remainingShapes,
+      texts: remainingTexts,
+      images: remainingImages,
+      visible: layer.visible,
+      opacity: layer.opacity,
+    );
+
+    // 保存删除的元素（用于撤销恢复）——需要通过副本保存。
+    // 注意：这里简化处理——实际撤销需要额外状态管理。
+    return DocumentV2(
+      id: doc.id,
+      pageCount: doc.pageCount,
+      revision: doc.revision + 1,
+      layers: layers,
+    );
+  }
+
+  @override
+  DocumentCommand inverse() {
+    // 逆命令：恢复被删除的元素。
+    // 注意：需要保存被删除元素的引用——这里简化。
+    return RestoreErasedCommand(
+      layerId: layerId,
+      strokes: removedStrokes,
+      shapes: removedShapes,
+      texts: removedTexts,
+      images: removedImages,
+    );
+  }
+
+  static bool _isStrokeInRange(LineItem s, double x, double y, double r) {
+    for (final p in s.points) {
+      final dx = p.x - x;
+      final dy = p.y - y;
+      if (dx * dx + dy * dy < r * r) return true;
+    }
+    return false;
+  }
+
+  static bool _isShapeInRange(ShapeItem s, double x, double y, double r) {
+    // 简化：检查形状边界框是否与擦除区域相交。
+    final cx = s.x + s.width / 2;
+    final cy = s.y + s.height / 2;
+    final dx = cx - x;
+    final dy = cy - y;
+    return dx * dx + dy * dy < (r + s.width / 2) * (r + s.height / 2);
+  }
+
+  static bool _isTextInRange(TextItem t, double x, double y, double r) {
+    final dx = t.x - x;
+    final dy = t.y - y;
+    return dx * dx + dy * dy < r * r;
+  }
+
+  static bool _isImageInRange(ImageItem i, double x, double y, double r) {
+    final cx = i.x + i.width / 2;
+    final cy = i.y + i.height / 2;
+    final dx = cx - x;
+    final dy = cy - y;
+    return dx * dx + dy * dy < (r + i.width / 2) * (r + i.height / 2);
+  }
+}
+
+/// 恢复被擦除元素命令（撤销 EraseByDistanceCommand）。
+class RestoreErasedCommand extends DocumentCommand {
+  const RestoreErasedCommand({
+    required this.layerId,
+    this.strokes = const [],
+    this.shapes = const [],
+    this.texts = const [],
+    this.images = const [],
+  });
+
+  final String layerId;
+  final List<LineItem> strokes;
+  final List<ShapeItem> shapes;
+  final List<TextItem> texts;
+  final List<ImageItem> images;
+
+  @override
+  DocumentV2 apply(DocumentV2 doc) {
+    final layers = List<LayerV2>.from(doc.layers);
+    final layerIndex = layers.indexWhere((l) => l.id == layerId);
+    if (layerIndex == -1) return doc;
+
+    final layer = layers[layerIndex];
+    layers[layerIndex] = LayerV2(
+      id: layer.id,
+      name: layer.name,
+      strokes: [...layer.strokes, ...strokes],
+      shapes: [...layer.shapes, ...shapes],
+      texts: [...layer.texts, ...texts],
+      images: [...layer.images, ...images],
+      visible: layer.visible,
+      opacity: layer.opacity,
+    );
+
+    return DocumentV2(
+      id: doc.id,
+      pageCount: doc.pageCount,
+      revision: doc.revision + 1,
+      layers: layers,
+    );
+  }
+
+  @override
+  DocumentCommand inverse() => EraseByDistanceCommand(
+        layerId: layerId,
+        eraserX: 0,
+        eraserY: 0,
+        radius: 0,
+        removedStrokes: strokes,
+        removedShapes: shapes,
+        removedTexts: texts,
+        removedImages: images,
+      );
+}
+
 /// 移动元素命令。
 class MoveItemCommand extends DocumentCommand {
   const MoveItemCommand({

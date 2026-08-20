@@ -136,6 +136,51 @@ class TextItem {
   int get hashCode => Object.hash(id, content, x, y);
 }
 
+/// 图片（不可变）。
+class ImageItem {
+  const ImageItem({
+    required this.id,
+    required this.mediaId,
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+    this.rotation = 0,
+  });
+
+  final String id;
+  final String mediaId;
+  final double x;
+  final double y;
+  final double width;
+  final double height;
+  final double rotation;
+
+  ImageItem copyWith({double? x, double? y, double? width, double? height, double? rotation}) {
+    return ImageItem(
+      id: id,
+      mediaId: mediaId,
+      x: x ?? this.x,
+      y: y ?? this.y,
+      width: width ?? this.width,
+      height: height ?? this.height,
+      rotation: rotation ?? this.rotation,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ImageItem &&
+          id == other.id &&
+          mediaId == other.mediaId &&
+          x == other.x &&
+          y == other.y;
+
+  @override
+  int get hashCode => Object.hash(id, mediaId, x, y);
+}
+
 /// 图层（不可变）。
 class LayerV2 {
   const LayerV2({
@@ -144,6 +189,7 @@ class LayerV2 {
     this.strokes = const [],
     this.shapes = const [],
     this.texts = const [],
+    this.images = const [],
     this.visible = true,
     this.opacity = 1.0,
   });
@@ -153,6 +199,7 @@ class LayerV2 {
   final List<LineItem> strokes;
   final List<ShapeItem> shapes;
   final List<TextItem> texts;
+  final List<ImageItem> images;
   final bool visible;
   final double opacity;
 
@@ -161,6 +208,7 @@ class LayerV2 {
     List<LineItem>? strokes,
     List<ShapeItem>? shapes,
     List<TextItem>? texts,
+    List<ImageItem>? images,
     bool? visible,
     double? opacity,
   }) {
@@ -170,6 +218,7 @@ class LayerV2 {
       strokes: strokes ?? this.strokes,
       shapes: shapes ?? this.shapes,
       texts: texts ?? this.texts,
+      images: images ?? this.images,
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
     );
@@ -184,11 +233,12 @@ class LayerV2 {
           _listEquals(strokes, other.strokes) &&
           _listEquals(shapes, other.shapes) &&
           _listEquals(texts, other.texts) &&
+          _listEquals(images, other.images) &&
           visible == other.visible &&
           opacity == other.opacity;
 
   @override
-  int get hashCode => Object.hash(id, name, strokes, shapes, texts, visible, opacity);
+  int get hashCode => Object.hash(id, name, strokes, shapes, texts, images, visible, opacity);
 
   static bool _listEquals<T>(List<T> a, List<T> b) {
     if (a.length != b.length) return false;
