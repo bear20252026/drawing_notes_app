@@ -16,16 +16,26 @@ import 'package:editor_core/editor_core.dart';
 /// - 直接 Canvas 操作（无每元素 Widget——性能最优）
 /// - 分层渲染：背景层/内容层/交互层（独立 CustomPainter）
 class CanvasPainterV2 extends CustomPainter {
-  CanvasPainterV2({required this.document});
+  CanvasPainterV2({required this.document, this.isInverted = false});
 
   final DocumentV2 document;
 
+  /// 深色反转（Saber 借鉴——2026-08-21——白墨黑底——暗光护眼——
+  /// 图片/PDF 也反转——默认 false 不反转——向后兼容——不搞崩）。
+  final bool isInverted;
+
+  /// 前景色（反转：白/黑——Saber 深色模式——白墨黑底）。
+  Color get _foreground => isInverted ? Colors.white : Colors.black;
+
+  /// 形状颜色（反转：浅蓝/蓝）。
+  Color get _shapeColor => isInverted ? Colors.lightBlue : Colors.blue;
+
   @override
   void paint(Canvas canvas, Size size) {
-    // 背景
+    // 背景（反转：黑底/白底——Saber 深色模式）。
     canvas.drawRect(
       Rect.fromLTWH(0, 0, size.width, size.height),
-      Paint()..color = Colors.white,
+      Paint()..color = isInverted ? Colors.black : Colors.white,
     );
 
     // 遍历图层绘制
@@ -52,7 +62,7 @@ class CanvasPainterV2 extends CustomPainter {
   void _paintStroke(Canvas canvas, LineItem stroke, double opacity) {
     if (stroke.points.length < 2) return;
     final paint = Paint()
-      ..color = Colors.black.withValues(alpha: opacity)
+      ..color = _foreground.withValues(alpha: opacity)
       ..strokeWidth = 2.0
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
@@ -76,7 +86,7 @@ class CanvasPainterV2 extends CustomPainter {
 
   void _paintShape(Canvas canvas, ShapeItem shape, double opacity) {
     final paint = Paint()
-      ..color = Colors.blue.withValues(alpha: opacity)
+      ..color = _shapeColor.withValues(alpha: opacity)
       ..strokeWidth = 2.0
       ..style = PaintingStyle.stroke;
 
