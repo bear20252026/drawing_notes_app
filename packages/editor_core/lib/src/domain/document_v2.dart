@@ -5,6 +5,8 @@
 // 最小引导：DocumentV2 骨架（页码/图层/修改版本）——后续批次 C 迁移
 // AddStroke/CreateShape/CreateText/MoveItem 命令。
 
+import 'line_item.dart';
+
 /// V2 不可变文档（最小引导——I-006 immutable_document_state_exists）。
 ///
 /// 不可变约定：所有字段 final；修改通过 [copyWith]（返回新实例——
@@ -14,6 +16,7 @@ class DocumentV2 {
     required this.id,
     required this.pageCount,
     this.revision = 0,
+    this.layers = const [],
   });
 
   final String id;
@@ -22,11 +25,19 @@ class DocumentV2 {
   /// 修改版本号（每次变更递增——审计/同步版本策略）。
   final int revision;
 
+  /// 文档包含的图层列表（不可变）。
+  final List<LayerV2> layers;
+
   /// 不可变拷贝：仅更新指定字段——原实例不变。
-  DocumentV2 copyWith({int? pageCount, int? revision}) => DocumentV2(
+  DocumentV2 copyWith({
+    int? pageCount,
+    int? revision,
+    List<LayerV2>? layers,
+  }) => DocumentV2(
     id: id,
     pageCount: pageCount ?? this.pageCount,
     revision: revision ?? this.revision,
+    layers: layers ?? this.layers,
   );
 
   @override
