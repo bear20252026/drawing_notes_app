@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../application/editor_v2_viewmodel.dart';
 import 'canvas_painter.dart';
 import 'infinite_canvas_widget.dart';
+import 'sidebar_widget.dart';
 import 'toolbar_widget.dart';
 
 /// Editor V2 最小 Screen（CUJ-01/02/04/05）。
@@ -44,6 +45,9 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
     final state = ref.watch(editorV2NotifierProvider);
 
     return Scaffold(
+      // 侧边栏页面导航（AFFiNE 页面设计借鉴——不大幅变动——
+      // 现有工具栏/画布保留——批次 F 页面管理）。
+      drawer: const EditorV2Sidebar(),
       appBar: AppBar(
         title: Text('Editor V2 - ${widget.documentId}'),
         actions: [

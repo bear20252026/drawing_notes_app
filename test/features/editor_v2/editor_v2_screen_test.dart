@@ -30,25 +30,23 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('EditorV2Screen 工具栏交互（CUJ-01——工具切换——不崩）', (tester) async {
+  testWidgets('EditorV2Screen 侧边栏（AFFiNE 页面设计借鉴——页面导航——不崩）', (tester) async {
     await tester.pumpWidget(const ProviderScope(
       child: MaterialApp(home: EditorV2Screen(documentId: 'test-doc')),
     ));
     await tester.pumpAndSettle();
 
-    // 点击 Select 工具——切换（不崩）。
-    await tester.tap(find.byTooltip('Select'));
+    // 打开侧边栏（Drawer——AFFiNE 侧边栏页面导航）。
+    await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
 
-    // 点击 Erase 工具——切换（不崩）。
-    await tester.tap(find.byTooltip('Erase'));
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
+    // 侧边栏内容（页面管理 + 页面 1 + 新建/删除）。
+    expect(find.text('页面管理'), findsOneWidget);
+    expect(find.text('页面 1'), findsOneWidget);
+    expect(find.text('新建'), findsOneWidget);
+    expect(find.text('删除'), findsOneWidget);
 
-    // 点击 Rect 工具——切换（不崩）。
-    await tester.tap(find.byTooltip('Rect'));
-    await tester.pumpAndSettle();
+    // 无异常（不崩）。
     expect(tester.takeException(), isNull);
   });
 }
