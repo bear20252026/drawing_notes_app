@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../application/editor_v2_viewmodel.dart';
 import 'canvas_painter.dart';
+import 'infinite_canvas_widget.dart';
 import 'toolbar_widget.dart';
 
 /// Editor V2 最小 Screen（CUJ-01/02/04/05）。
@@ -74,12 +75,15 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
             onShapeTypeChanged: (type) =>
                 ref.read(editorV2NotifierProvider.notifier).setShapeType(type),
           ),
-          // 画布（CustomPainter + RepaintBoundary——直接绘画）
+          // 画布（无限画布——Excalidraw Transform 模式——批次 F-6——
+          // 包装现有 painter——不修改 CanvasPainterV2——安全约束不搞崩）。
           Expanded(
-            child: RepaintBoundary(
-              child: CustomPaint(
-                painter: CanvasPainterV2(document: state.document),
-                size: Size.infinite,
+            child: InfiniteCanvasWidget(
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  painter: CanvasPainterV2(document: state.document),
+                  size: Size.infinite,
+                ),
               ),
             ),
           ),

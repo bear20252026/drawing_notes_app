@@ -55,12 +55,21 @@ class CanvasPainterV2 extends CustomPainter {
       ..color = Colors.black.withValues(alpha: opacity)
       ..strokeWidth = 2.0
       ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
 
+    // 手绘风格（Excalidraw Rough.js 简化版——二次贝塞尔平滑——
+    // 平滑手绘线条——批次 F-6——不修改现有逻辑仅改进绘制）。
+    final pts = stroke.points;
     final path = Path();
-    path.moveTo(stroke.points.first.x, stroke.points.first.y);
-    for (var i = 1; i < stroke.points.length; i++) {
-      path.lineTo(stroke.points[i].x, stroke.points[i].y);
+    path.moveTo(pts.first.x, pts.first.y);
+    for (var i = 1; i < pts.length - 1; i++) {
+      final midX = (pts[i].x + pts[i + 1].x) / 2;
+      final midY = (pts[i].y + pts[i + 1].y) / 2;
+      path.quadraticBezierTo(pts[i].x, pts[i].y, midX, midY);
+    }
+    if (pts.length > 1) {
+      path.lineTo(pts.last.x, pts.last.y);
     }
     canvas.drawPath(path, paint);
   }
