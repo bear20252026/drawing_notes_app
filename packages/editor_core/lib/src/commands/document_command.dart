@@ -7,6 +7,8 @@ library;
 
 import '../domain/document_v2.dart';
 import '../domain/line_item.dart';
+import '../domain/note_item.dart';
+import '../domain/table_v2.dart';
 
 /// 文档命令基类（所有 V2 命令的抽象接口）。
 abstract class DocumentCommand {
@@ -553,6 +555,132 @@ class RestoreErasedCommand extends DocumentCommand {
         removedShapes: shapes,
         removedTexts: texts,
         removedImages: images,
+      );
+}
+
+/// 创建表格命令（AFFiNE 数据库借鉴——表格块）。
+class CreateTableCommand extends DocumentCommand {
+  const CreateTableCommand({required this.layerId, required this.table});
+
+  final String layerId;
+  final TableV2 table;
+
+  @override
+  DocumentV2 apply(DocumentV2 doc) {
+    final layers = List<LayerV2>.from(doc.layers);
+    final layerIndex = layers.indexWhere((l) => l.id == layerId);
+    if (layerIndex == -1) return doc;
+
+    final layer = layers[layerIndex];
+    layers[layerIndex] = layer.copyWith(
+      tables: [...layer.tables, table],
+    );
+
+    return DocumentV2(
+      id: doc.id,
+      pageCount: doc.pageCount,
+      revision: doc.revision + 1,
+      layers: layers,
+    );
+  }
+
+  @override
+  DocumentCommand inverse() => RemoveTableCommand(layerId: layerId, tableId: table.id);
+}
+
+/// 移除表格命令（撤销 CreateTable）。
+class RemoveTableCommand extends DocumentCommand {
+  const RemoveTableCommand({required this.layerId, required this.tableId});
+
+  final String layerId;
+  final String tableId;
+
+  @override
+  DocumentV2 apply(DocumentV2 doc) {
+    final layers = List<LayerV2>.from(doc.layers);
+    final layerIndex = layers.indexWhere((l) => l.id == layerId);
+    if (layerIndex == -1) return doc;
+
+    final layer = layers[layerIndex];
+    layers[layerIndex] = layer.copyWith(
+      tables: layer.tables.where((t) => t.id != tableId).toList(),
+    );
+
+    return DocumentV2(
+      id: doc.id,
+      pageCount: doc.pageCount,
+      revision: doc.revision + 1,
+      layers: layers,
+    );
+  }
+
+  @override
+  DocumentCommand inverse() => CreateTableCommand(
+        layerId: layerId,
+        table: TableV2(id: tableId, headers: const []),
+      );
+}
+
+/// 创建便签命令（AFFiNE sticky note 借鉴）。
+class CreateNoteCommand extends DocumentCommand {
+  const CreateNoteCommand({required this.layerId, required this.note});
+
+  final String layerId;
+  final NoteItem note;
+
+  @override
+  DocumentV2 apply(DocumentV2 doc) {
+    final layers = List<LayerV2>.from(doc.layers);
+    final layerIndex = layers.indexWhere((l) => l.id == layerId);
+    if (layerIndex == -1) return doc;
+
+    final layer = layers[layerIndex];
+    layers[layerIndex] = layer.copyWith(
+      notes: [...layer.notes, note],
+    );
+
+    return DocumentV2(
+      id: doc.id,
+      pageCount: doc.pageCount,
+      revision: doc.revision + 1,
+      layers: layers,
+    );
+  }
+
+  @override
+  DocumentCommand inverse() => RemoveNoteCommand(layerId: layerId, noteId: note.id);
+}
+
+/// 移除便签命令（撤销 CreateNote）。
+class RemoveNoteCommand extends DocumentCommand {
+  const RemoveNoteCommand({required this.layerId, required this.noteId});
+
+  final String layerId;
+  final String noteId;
+
+  @override
+  DocumentV2 apply(DocumentV2 doc) {
+    final layers = List<LayerV2>.from(doc.layers);
+    final layerIndex = layers.indexWhere((l) => l.id == layerId);
+    if (layerIndex == -1) return doc;
+
+    final layer = layers[layerIndex];
+    layers[layerIndex] = layer.copyWith(
+      notes: layer.notes.where((n) => n.id != noteId).toList(),
+    );
+
+    return DocumentV2(
+      id: doc.id,
+      pageCount: doc.pageCount,
+      revision: doc.revision + 1,
+      layers: layers,
+    );
+  }
+
+  @override
+  DocumentCommand inverse() => CreateNoteCommand(
+        layerId: layerId,
+        note: NoteItem(id: noteId, content: '', x: 0, y: 0),
       );
 }
 

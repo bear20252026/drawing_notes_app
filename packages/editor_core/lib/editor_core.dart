@@ -3,7 +3,10 @@ library;
 
 export 'src/domain/document_v2.dart';
 export 'src/domain/line_item.dart';
+export 'src/domain/note_item.dart';
 export 'src/domain/page_v2.dart';
+export 'src/domain/table_v2.dart';
 export 'src/geometry/geometry_engine.dart';
 export 'src/commands/document_command.dart';
 export 'src/commands/document_reducer.dart';
+export 'src/presentation/presentation_service.dart';

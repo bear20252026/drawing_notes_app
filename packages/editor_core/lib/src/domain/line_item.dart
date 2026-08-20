@@ -6,7 +6,12 @@
 // - TextItem（文本——不可变）
 // - LineItem（笔画——不可变）
 // - Point（点——不可变）
+// - TableV2（数据库表格——AFFiNE 借鉴——不可变）
+// - NoteItem（便签块——AFFiNE 借鉴——不可变）
 library;
+
+import 'note_item.dart';
+import 'table_v2.dart';
 
 /// 点（不可变）。
 class Point {
@@ -190,6 +195,8 @@ class LayerV2 {
     this.shapes = const [],
     this.texts = const [],
     this.images = const [],
+    this.tables = const [],
+    this.notes = const [],
     this.visible = true,
     this.opacity = 1.0,
   });
@@ -200,6 +207,12 @@ class LayerV2 {
   final List<ShapeItem> shapes;
   final List<TextItem> texts;
   final List<ImageItem> images;
+
+  /// 数据库表格（AFFiNE 借鉴——表格块——不可变）。
+  final List<TableV2> tables;
+
+  /// 便签块（AFFiNE 借鉴——sticky note——不可变）。
+  final List<NoteItem> notes;
   final bool visible;
   final double opacity;
 
@@ -209,6 +222,8 @@ class LayerV2 {
     List<ShapeItem>? shapes,
     List<TextItem>? texts,
     List<ImageItem>? images,
+    List<TableV2>? tables,
+    List<NoteItem>? notes,
     bool? visible,
     double? opacity,
   }) {
@@ -219,6 +234,8 @@ class LayerV2 {
       shapes: shapes ?? this.shapes,
       texts: texts ?? this.texts,
       images: images ?? this.images,
+      tables: tables ?? this.tables,
+      notes: notes ?? this.notes,
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
     );
@@ -234,11 +251,13 @@ class LayerV2 {
           _listEquals(shapes, other.shapes) &&
           _listEquals(texts, other.texts) &&
           _listEquals(images, other.images) &&
+          _listEquals(tables, other.tables) &&
+          _listEquals(notes, other.notes) &&
           visible == other.visible &&
           opacity == other.opacity;
 
   @override
-  int get hashCode => Object.hash(id, name, strokes, shapes, texts, images, visible, opacity);
+  int get hashCode => Object.hash(id, name, strokes, shapes, texts, images, tables, notes, visible, opacity);
 
   static bool _listEquals<T>(List<T> a, List<T> b) {
     if (a.length != b.length) return false;
