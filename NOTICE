@@ -53,6 +53,9 @@ open-source projects. We gratefully acknowledge their contributions.
   - Gesture recognizer (tap/doubleTap/longPress/drag/pinch/rotate — state machine)
   - Node graph (NodeItem/NodeField/NodeConnection/NodeGraph — fldraw 借鉴)
   - Alignment/distribution (left/center/right/top/centerVertical/bottom — tldraw 借鉴)
+  - Command palette (CommandEntry/CommandPalette — fuzzy search/shortcut/priority — Excalidraw 借鉴)
+  - Feature flags (FeatureFlag/FeatureFlagManager — experimental/beta/stable — AFFiNE 借鉴)
+  - Workspace manager (Workspace/WorkspaceManager — multi-workspace — AFFiNE 借鉴)
 
 ## excalidraw-cn
 
@@ -99,7 +102,7 @@ open-source projects. We gratefully acknowledge their contributions.
 All borrowed concepts have been:
 1. **Analyzed** (deep study of architecture, design, and implementation)
 2. **Localized** (adapted to Flutter/Dart with our own immutable models + command pattern)
-3. **Tested** (505+ tests passing — zero regressions — never breaks the app)
+3. **Tested** (530+ tests passing — zero regressions — never breaks the app)
 4. **Attributed** (this NOTICE file — preserving original copyright)
 5. **Respected** (no verbatim code copying without license compatibility check)
 
