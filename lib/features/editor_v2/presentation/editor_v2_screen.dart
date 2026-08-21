@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:editor_core/editor_core.dart';
 
 import '../application/editor_v2_viewmodel.dart';
+import '../../../shared/widgets/apple_glass.dart';
 import 'canvas_painter.dart';
 import 'infinite_canvas_widget.dart';
 import 'sidebar_widget.dart';
@@ -109,16 +110,11 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
       ),
       body: Column(
         children: [
-          // 工具栏（AFFiNE 质感升级——Card 容器——圆角/阴影/边框——精致感）。
+          // 工具栏（苹果设计语言——Liquid Glass 毛玻璃——2026-08-22——
+          // 借鉴 AFFiNE/Saber 清爽 UI——大圆角 + 半透明）。
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-            child: Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.grey.shade300),
-              ),
-              clipBehavior: Clip.antiAlias,
+            child: AppleGlassWidget.toolbar(
               child: EditorV2Toolbar(
                 currentTool: state.currentTool,
                 currentShapeType: state.currentShapeType,
@@ -129,18 +125,12 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
               ),
             ),
           ),
-          // 画布（AFFiNE 质感升级——Card 容器 + AnimatedSwitcher 页面转换动画——
-          // 圆角/阴影/边框——精致感——不大幅变动——现有 InfiniteCanvasWidget 保留）。
+          // 画布（苹果设计语言——Liquid Glass 毛玻璃卡片——2026-08-22——
+          // 借鉴 Excalidraw/Saber 清爽画布——半透明 + 圆角 + 页面转换动画）。
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-              child: Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: Colors.grey.shade300),
-                ),
-                clipBehavior: Clip.antiAlias,
+              child: AppleGlassWidget.card(
                 // text 工具时点击画布 → 弹出文本输入框（修复打字崩溃——
                 // Flutter 原生 TextField——不依赖 material_ui——不崩溃——2026-08-22）。
                 child: GestureDetector(

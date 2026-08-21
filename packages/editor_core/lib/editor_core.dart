@@ -3,6 +3,7 @@ library;
 
 export 'src/domain/alignment.dart';
 export 'src/domain/animated_trail.dart';
+export 'src/domain/apple_theme.dart';
 export 'src/domain/arrow_binding.dart';
 export 'src/domain/audit_log.dart';
 export 'src/domain/bound_text.dart';
