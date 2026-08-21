@@ -1,10 +1,13 @@
 // editor_core 导出（专家 I-006——批次 A 引导）。
 library;
 
+export 'src/domain/animated_trail.dart';
 export 'src/domain/arrow_binding.dart';
+export 'src/domain/chart_data.dart';
 export 'src/domain/clipboard_data.dart';
 export 'src/domain/document_v2.dart';
 export 'src/domain/grid_config.dart';
+export 'src/domain/i18n_service.dart';
 export 'src/domain/inline_edit_state.dart';
 export 'src/domain/kanban_board.dart';
 export 'src/domain/lasso_selection.dart';
