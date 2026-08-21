@@ -1,127 +1,200 @@
-# 架构说明（ARCHITECTURE）
+# 绘图笔记（drawing_notes_app）架构文档
 
-> 本文件说明"绘图笔记 App"的分层架构与核心设计决策，
-> 供项目负责人（可能非专业开发）理解整体结构。
+> 2026-08-21 | 框架化 · 积木化 · 管道化 | 每个模块独立可插拔——不耦合
 
-## 一、总体分层
+---
 
-项目严格遵循三层分离：**UI 层 / 绘图引擎层 / 数据存储层**。
-存储层可以整体替换（例如未来接云同步），而不影响绘图逻辑。
+## 一、架构总览（四层积木）
 
 ```
-lib/
-├── main.dart                    应用入口（仅装配）
-├── app.dart                     根组件：主题 + 路由
-├── app_theme_controller.dart    深色模式控制器（持久化用户选择）
-│
-├── models/                      数据模型层（纯数据，无逻辑依赖）
-│   ├── stroke.dart              笔画（点列 + 笔刷参数）
-│   ├── layer.dart               图层（笔画列表 + 显隐/透明度）
-│   ├── document.dart            画布文档（图层集合 + 尺寸）
-│   ├── selection.dart           选区（多边形 + 命中笔画索引）
-│   └── notebook.dart            笔记本/页面/文字块/图片块
-│
-├── engine/                      绘图引擎层（核心逻辑，不依赖 UI）
-│   ├── drawing_controller.dart  文档状态机：绘制/撤销/图层/选区/导出
-│   ├── stroke_renderer.dart     笔画光栅化（平滑曲线 + 压感宽度）
-│   ├── layer_compositor.dart    图层离屏位图合成（性能关键）
-│   ├── gesture_math.dart        手势变换纯数学（旋转/缩放/平移，可单测）
-│   ├── document_commands.dart   撤销命令类（HistoryEntry/DocCommand 等，R5 拆分）
-│   ├── encryption_service.dart  加密服务（AES-256-GCM + PBKDF2 + 密码盘信封）
-│   ├── command_registry.dart    命令注册表（快捷键/菜单/工具栏同源）
-│   ├── plugin_registry.dart     插件接口（笔刷/工具扩展注册表）
-│   └── search_service.dart      全文搜索（文字块 + 标题）
-│
-├── storage/                     数据存储层（本地文件，可整体替换）
-│   ├── storage_service.dart     独立画作：JSON 工程文件 + PNG 缩略图
-│   ├── notebook_storage.dart    笔记本：JSON 工程文件 + 图片副本
-│   ├── password_disk.dart       U盘密码盘（Real/Mock 双实现 + 依赖注入）
-│   ├── repository.dart          仓库接口抽象（Document/NotebookRepository）
-│   └── document_codec.dart      编解码（版本化 JSON 格式）
-│
-└── ui/                          UI 层（页面 + 组件 + 渲染器）
-    ├── pages/home_page.dart     首页（画作/笔记本列表、删除确认）
-    ├── pages/editor_page.dart   编辑器主页面（手势调度、混排对象）
-    ├── pages/notebook_view_page.dart  笔记本页面管理
-    ├── pages/password_disk_page.dart  密码盘管理（创建/解锁/恢复/指纹）
-    ├── pages/search_page.dart   全文搜索页
-    ├── widgets/                 可复用组件
-    │   ├── editor_components.dart  编辑器纯展示组件（番茄钟/快捷键/分页/连线）
-    │   ├── editor_toolbar.dart     工具栏（状态 + 回调参数化）
-    │   ├── editor_statusbar.dart   状态栏（工具/缩放/坐标）
-    │   ├── editor_viewmodel.dart   编辑器 ViewModel（工具状态 + 防抖保存，R4）
-    │   ├── layer_panel.dart        图层面板
-    │   └── color_picker_dialog.dart 色板
-    ├── canvas_painter.dart      画布 CustomPainter（含选区高亮 + 小地图）
-    ├── onboarding.dart          首次引导
-    └── app_theme_controller.dart 深色模式控制器（持久化用户选择）
+┌─────────────────────────────────────────────────────────────┐
+│                        apps 层                              │
+│  lib/app/composition_root.dart（组合根——依赖注入——唯一入口） │
+├─────────────────────────────────────────────────────────────┤
+│                      features 层                            │
+│  lib/features/editor_v2/（UI 积木——可插拔——不互相依赖）      │
+│  presentation/  application/  adapters/                     │
+├─────────────────────────────────────────────────────────────┤
+│                      modules 层                             │
+│  packages/editor_core/（纯 Dart 核心——NO UI——独立可测试）    │
+│  domain/  commands/  geometry/  presentation/                │
+├─────────────────────────────────────────────────────────────┤
+│                       ports 层                              │
+│  packages/notebook_domain/（会话/端口——纯 Dart 接口）        │
+│  session/  ports/                                           │
+└─────────────────────────────────────────────────────────────┘
+
+依赖方向：presentation → application → domain/ports ← infrastructure
+         features → modules（单向——modules 不依赖 features）
 ```
 
-## 二、核心设计决策
+---
 
-### 1. 笔画以"矢量点列"存储
+## 二、packages/editor_core/（modules 层——21 个积木块）
 
-- 每笔 = 一连串采样点（坐标 + 笔压）+ 笔刷参数（颜色/粗细/类型）。
-- 不直接写死在位图上 → 撤销/重做、图层合并、任意分辨率导出均无损。
-- 存储文件小（JSON），为未来云同步/多设备预留了干净的替换面。
+### domain/（16 个不可变模型——纯 Dart）
 
-### 2. 图层离屏位图缓存（性能关键）
+| 积木块 | 文件 | 功能 |
+|--------|------|------|
+| **DocumentV2** | document_v2.dart | 不可变文档（id/revision/layers——copyWith） |
+| **LineItem** | line_item.dart | 笔画（id/points——不可变） |
+| **ShapeItem** | line_item.dart | 形状（id/type/x/y/width/height） |
+| **TextItem** | line_item.dart | 文本（id/content/x/y） |
+| **ImageItem** | line_item.dart | 图片（id/mediaId/x/y/width/height） |
+| **LayerV2** | line_item.dart | 图层（id/name/strokes/shapes/texts/images/tables/notes/visible/opacity） |
+| **Point** | line_item.dart | 坐标点（x/y——不可变） |
+| **PageV2** | page_v2.dart | 分页（id/index/document——多页画布） |
+| **TableV2** | table_v2.dart | 数据库表格（id/headers/rows——AFFiNE 借鉴） |
+| **NoteItem** | note_item.dart | 便签块（id/content/x/y/backgroundColor——AFFiNE 借鉴） |
+| **RichTextBlock** | rich_text_block.dart | 富文本块（TextFormat/RichTextSpan——AFFiNE 借鉴） |
+| **KanbanBoard** | kanban_board.dart | 看板视图（KanbanCard/Column/Board——AFFiNE 借鉴） |
+| **ShapeLibrary** | shape_library.dart | 形状库（ShapeLibraryItem/ShapeDef——Excalidraw 借鉴） |
+| **ArrowBinding** | arrow_binding.dart | 箭头绑定（EndpointBinding——Excalidraw 借鉴） |
+| **StrokeStyle** | stroke_style.dart | 画笔样式（color/width/opacity/lineType） |
+| **ClipboardData** | clipboard_data.dart | 剪贴板（elements/offset——Excalidraw 借鉴） |
+| **LassoSelection** | lasso_selection.dart | 套索选择（rectangle/freeform——ray casting——Excalidraw 借鉴） |
+| **GridConfig** | grid_config.dart | 网格吸附（GridSnap.snapToGrid/snapToElement——Excalidraw 借鉴） |
+| **InlineEditState** | inline_edit_state.dart | 行内编辑状态机（idle/editing/committing/aborting——Excalidraw 借鉴） |
+| **ChartData** | chart_data.dart | 图表（bar/line/pie——Excalidraw 借鉴） |
+| **I18nService** | i18n_service.dart | 国际化（9 语言/RTL/参数替换——Excalidraw 借鉴） |
+| **AnimatedTrail** | animated_trail.dart | 绘制动画（轨迹/插值/缓动/压力——Excalidraw 借鉴） |
 
-- 绘制中：只画"正在画的一笔"（矢量路径），保证跟手不卡顿。
-- 笔画结束：把该图层的全部笔画合成为一张位图（`PictureRecorder → toImage`），
-  此后每帧只需 `drawImage` 一次。
-- 任何内容变更（新增笔画/撤销/合并/变换）都会把对应图层标记为脏并重建缓存。
-- 橡皮擦使用 `BlendMode.clear` + `saveLayer`，实现真正的"透明擦除"。
+### commands/（2 个文件——25 种命令）
 
-### 3. 撤销/重做 = 图层快照
+| 积木块 | 文件 | 功能 |
+|--------|------|------|
+| **DocumentCommand** | document_command.dart | 命令基类（apply/inverse）+ 25 种命令 |
+| **DocumentReducer** | document_reducer.dart | 状态 + 命令 → 新状态 + 逆命令（undo/redo 双栈） |
 
-- 每次操作前后保存"各图层笔画列表的拷贝"（`HistoryEntry.before/after`）。
-- 优点：不依赖操作类型，笔画/图层/选区/变换全部统一支持撤销。
-- 撤销后画新内容会丢弃"重做分支"（与主流绘图软件行为一致）。
+命令清单：AddStroke/RemoveStroke/CreateShape/RemoveShape/CreateText/RemoveText/InsertImage/RemoveImage/CreateTable/RemoveTable/CreateNote/RemoveNote/EraseByDistance/RestoreErased/MoveItem/UpdateDocument + ...（25 种）
 
-### 4. 选区作用于笔画（矢量级）
+### geometry/（1 个文件——5 种几何）
 
-- 矩形/套索选区画出一个多边形，命中检测 = 笔画上任意采样点落在多边形内。
-- 选中后可移动/缩放/旋转/复制/粘贴/删除，全程走撤销历史。
-- 与 CSP 等软件的"矢量图层"行为一致，天然支持无损缩放。
+| 积木块 | 文件 | 功能 |
+|--------|------|------|
+| **GeometryEngine** | geometry_engine.dart | 几何引擎（Line/Rectangle/Ellipse/Arrow + bounds/containsPoint/distanceTo） |
 
-### 5. 自动保存（防抖）
+### presentation/（1 个文件）
 
-- 编辑器在每次变更后安排 800ms 防抖定时器，连续操作结束后落盘一次。
-- 退出页面时再兜底保存一次，最大限度避免数据丢失。
-- 独立画作 → 工程文件 + 缩略图；笔记本页面 → 由上级页面保存整个笔记本。
+| 积木块 | 文件 | 功能 |
+|--------|------|------|
+| **PresentationService** | presentation_service.dart | 幻灯片模式（next/prev/goTo/play/stop——AFFiNE 借鉴） |
 
-### 6. 存储格式（版本化 JSON）
+---
+
+## 三、packages/notebook_domain/（ports 层——4 个积木块）
+
+| 积木块 | 文件 | 功能 |
+|--------|------|------|
+| **NotebookSession** | notebook_session.dart | 状态机（uninitialized/unlocked/locked/expired——R-05 锁定阻断） |
+| **KeyHandle** | key_handle.dart | scoped 密钥持有者（dispose 清零——内存安全） |
+| **LockPolicy** | lock_policy.dart | 锁定策略（autoLockDuration/shortTimeout/longTimeout） |
+| **RepositoryPorts** | repository_ports.dart | 端口接口（NotebookRepository/MediaRepository/KeyProvider） |
+
+---
+
+## 四、lib/features/editor_v2/（features 层——18 个积木块）
+
+### application/（8 个 Notifier/ViewModel/Service）
+
+| 积木块 | 文件 | 功能 |
+|--------|------|------|
+| **EditorV2Notifier** | editor_v2_viewmodel.dart | 核心 ViewModel（命令分发/undo/redo/setTool） |
+| **StrokeStyleNotifier** | stroke_style_notifier.dart | 画笔样式（独立——不耦合 EditorV2） |
+| **PagedCanvasNotifier** | paged_canvas_viewmodel.dart | 分页画布（addPage/deletePage/movePage） |
+| **InfiniteCanvasNotifier** | infinite_canvas_notifier.dart | 无限画布（pan/zoom/reset） |
+| **ViewportState** | viewport_state.dart | 视口状态（scale/offset/坐标转换/可见区域） |
+| **ExportService** | export_service.dart | 导出（toJson/toSvg/toPng——Excalidraw 借鉴） |
+| **PdfImportService** | pdf_import_service.dart | PDF 导入（pdfx 渲染——批次 F-4） |
+| **StrokeStyle** | stroke_style.dart | 画笔样式数据（重导出自 editor_core） |
+
+### presentation/（10 个 Widget——积木式独立）
+
+| 积木块 | 文件 | 功能 |
+|--------|------|------|
+| **EditorV2Screen** | editor_v2_screen.dart | 主屏幕（Scaffold + Drawer + AppBar + Toolbar + Canvas） |
+| **CanvasPainterV2** | canvas_painter.dart | 画布绘制（CustomPainter——手绘风格/深色反转/图表） |
+| **InfiniteCanvasWidget** | infinite_canvas_widget.dart | 无限画布包装（GestureDetector + Transform） |
+| **EditorV2Toolbar** | toolbar_widget.dart | 工具栏（8 工具图标——选中动画） |
+| **EditorV2Sidebar** | sidebar_widget.dart | 侧边栏（AFFiNE 页面导航——新建/切换/删除） |
+| **LayerPanel** | layer_panel.dart | 层管理面板（可见性/透明度/重排——AFFiNE 借鉴） |
+| **PropertyPanel** | property_panel.dart | 属性面板（颜色/线宽/透明度/线条样式——AFFiNE 借鉴） |
+| **HistoryPanel** | history_panel.dart | 历史面板（撤销/重做列表/当前位置/跳转——AFFiNE/Excalidraw 借鉴） |
+| **ExportPanel** | export_panel.dart | 导出面板（PNG/SVG/JSON 选择器/预览——Excalidraw 借鉴） |
+| **ZoomControls** | zoom_controls.dart | 缩放控件（滑块/百分比/缩小/放大/重置/适应窗口——Excalidraw 借鉴） |
+
+### adapters/（1 个文件）
+
+| 积木块 | 文件 | 功能 |
+|--------|------|------|
+| **DrawingAdapter** | drawing_adapter.dart | V1 → V2 桥接（迁移期——旧控制器桥接到 V2 命令模式） |
+
+---
+
+## 五、管道式数据流
 
 ```
-{ "version": 1, "document": { id, title, width, height, createdAt,
-  updatedAt, layers: [ { id, name, visible, opacity, strokes: [...] } ] } }
+用户操作（手势/键盘/工具栏）
+    ↓
+EditorV2Screen（presentation 层——Widget）
+    ↓
+EditorV2Notifier（application 层——命令分发）
+    ↓
+DocumentCommand（modules 层——命令模式）
+    ↓
+DocumentReducer（state + command → new state + inverse）
+    ↓
+DocumentV2（modules 层——不可变状态）
+    ↓
+CanvasPainterV2（presentation 层——CustomPainter 渲染）
+    ↓
+屏幕输出（画布/工具栏/侧边栏/面板）
 ```
 
-- 原子写入：先写 `.tmp` 临时文件再重命名，防止写入中断损坏文件。
-- 损坏文件在列表读取时被跳过，不影响其他内容。
+---
 
-## 三、手势与交互流
+## 六、积木式依赖图
 
-| 操作 | 处理 |
-|------|------|
-| 单指/鼠标拖动 | 绘制笔画（按下 start → 移动 extend → 抬起 end） |
-| 双指捏合 | 缩放画布（两指距离比 → viewScale） |
-| 双指旋转 | 旋转画布（两指连线角度差 → viewRotation） |
-| 吸管工具点击 | 读取合成位图像素 → 更新画笔颜色 |
-| 选区工具拖动 | 画矩形/套索 → 命中检测 → 变换控制条 |
-| 文字工具点击 | 弹出输入框 → 生成文字块（可拖动/编辑/删除） |
-| 图片按钮 | 文件选择器 → 复制副本进应用目录 → 生成图片块 |
+```
+apps/composition_root
+    └── features/editor_v2/*
+        ├── presentation/*（10 Widget）
+        │   └── application/*（8 Notifier/Service）
+        │       └── packages/editor_core/*（21 domain + 2 commands + 1 geometry）
+        │           └── packages/notebook_domain/*（4 session/ports）
+        └── adapters/*（1 桥接——迁移期）
+```
 
-## 四、测试策略
+**规则**：
+- modules 不依赖 features（单向）
+- features 不互相依赖（独立积木）
+- 每个积木块可独立测试（NO UI — editor_core 纯 Dart）
+- 新功能 = 新积木块（添加到对应层——不修改现有积木）
 
-- 每个 Phase 都有对应测试文件（`test/phaseN_*.dart`），共 53 个用例。
-- 测试重点：引擎层纯逻辑（绘制/撤销/选区/视口变换）与存储层（保存/加载/导出）。
-- UI 层（按钮点击、对话框）通过双端构建 + 代码评审验证。
+---
 
-## 五、扩展预留
+## 七、测试基线
 
-- **云同步**：存储层为独立模块，替换 `StorageService`/`NotebookStorage`
-  的实现即可，绘图引擎与 UI 无需改动。
-- **更多笔刷**：`BrushType` 枚举 + `StrokeRenderer` 增加渲染分支即可。
-- **混合模式/蒙版**：`Layer` 增加字段，`LayerCompositor` 增加合成逻辑。
+| 包 | 测试文件 | 测试数 |
+|----|---------|--------|
+| editor_core | 18 个测试文件 | **137 项** |
+| editor_v2 | 5 个测试文件 | **28 项** |
+| notebook_domain | 1 个测试文件 | **8 项** |
+| 架构边界 | 1 个测试文件 | 3 项 |
+| **合计** | **25 个测试文件** | **429 项** |
+
+---
+
+## 八、借鉴清单（34 项——4 个项目）
+
+| 来源 | 功能 | 数量 |
+|------|------|------|
+| **AFFiNE** | 数据库/幻灯片/便签/侧边栏/质感/动画/工具栏/块编辑器/Kanban/层管理/属性面板/历史面板/导出 UI | 16 |
+| **Excalidraw** | 无限画布/手绘/导出/转换/形状库/箭头绑定/画笔/缩放控件/Lasso/Clipboard/Grid-Snap/WYSIWYG/Charts/i18n/Animated Trail | 17 |
+| **Saber** | 深色反转 | 1 |
+| **合计** | — | **34** |
+
+---
+
+Generated: 2026-08-21
+Project: drawing_notes_app (绘图笔记)

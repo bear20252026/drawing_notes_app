@@ -49,6 +49,8 @@ open-source projects. We gratefully acknowledge their contributions.
   - Charts (ChartData bar/line/pie — data visualization)
   - i18n internationalization (LocaleConfig + I18nService — 9 languages)
   - Animated trail (AnimatedTrail — hand-drawn animation with easing)
+  - Measurement (distance/angle/area — polygon area via Shoelace formula)
+  - Gesture recognizer (tap/doubleTap/longPress/drag/pinch/rotate — state machine)
 
 ## excalidraw-cn
 
@@ -95,7 +97,7 @@ open-source projects. We gratefully acknowledge their contributions.
 All borrowed concepts have been:
 1. **Analyzed** (deep study of architecture, design, and implementation)
 2. **Localized** (adapted to Flutter/Dart with our own immutable models + command pattern)
-3. **Tested** (465+ tests passing — zero regressions — never breaks the app)
+3. **Tested** (485+ tests passing — zero regressions — never breaks the app)
 4. **Attributed** (this NOTICE file — preserving original copyright)
 5. **Respected** (no verbatim code copying without license compatibility check)
 

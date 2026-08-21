@@ -7,13 +7,13 @@ void main() {
   test('LocaleConfig：默认值（LTR）', () {
     const locale = LocaleConfig(code: 'en', name: 'English', nativeName: 'English');
     expect(locale.code, 'en');
-    expect(locale.direction, TextDirection.ltr);
+    expect(locale.direction, TextFlowDirection.ltr);
     expect(locale.isRtl, false);
   });
 
   test('LocaleConfig：RTL（阿拉伯语）', () {
     expect(LocaleConfig.ar.isRtl, true);
-    expect(LocaleConfig.ar.direction, TextDirection.rtl);
+    expect(LocaleConfig.ar.direction, TextFlowDirection.rtl);
   });
 
   test('LocaleConfig：预设语言', () {
