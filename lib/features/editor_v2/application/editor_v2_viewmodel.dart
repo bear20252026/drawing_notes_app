@@ -90,6 +90,12 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
 
   // ──────────────────────────── 命令分发 ────────────────────────────
 
+  /// 撤销栈（只读——历史面板显示用——委托 DocumentReducer）。
+  List<HistoryEntry> get undoStack => _reducer.undoStack;
+
+  /// 重做栈（只读——历史面板显示用——委托 DocumentReducer）。
+  List<HistoryEntry> get redoStack => _reducer.redoStack;
+
   /// 执行命令（通过 DocumentReducer——不可变状态更新）。
   void execute(DocumentCommand command) {
     final newDoc = _reducer.execute(command);

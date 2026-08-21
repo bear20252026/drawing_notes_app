@@ -40,11 +40,17 @@ class DocumentReducer {
   /// 当前文档状态（只读）。
   DocumentV2 get current => _current;
 
-  /// 撤销栈（执行命令时记录逆命令）。
+  /// 撤销栈（执行命令时记录逆命令——只读暴露——历史面板用）。
   final List<HistoryEntry> _undoStack = [];
 
-  /// 重做栈（撤销时记录命令）。
+  /// 重做栈（撤销时记录命令——只读暴露——历史面板用）。
   final List<HistoryEntry> _redoStack = [];
+
+  /// 撤销栈（只读——历史面板显示用）。
+  List<HistoryEntry> get undoStack => List.unmodifiable(_undoStack);
+
+  /// 重做栈（只读——历史面板显示用）。
+  List<HistoryEntry> get redoStack => List.unmodifiable(_redoStack);
 
   /// 是否可撤销。
   bool get canUndo => _undoStack.isNotEmpty;
