@@ -106,9 +106,26 @@ open-source projects. We gratefully acknowledge their contributions.
   - MCP server (AI assistant integration)
   - Privacy-first design (no account/telemetry)
 
+## Cryptomator
+
+- **Repository**: https://github.com/cryptomator/cryptomator
+- **License**: GPL-3.0 License
+- **Copyright**: © 2016 Cryptomator
+- **Website**: https://cryptomator.org
+- **Acknowledged concepts**:
+  - Vault-based encryption architecture (AES-256-GCM + AES-SIV)
+  - PBKDF2 key derivation (600k iterations — OWASP 2026 recommendation)
+  - AAD binding (version/ID — anti-tampering)
+  - Vault state machine (locked/unlocked/auto-locked)
+  - Atomic write transaction (temp file + rename)
+  - Vault format 8 (JWT config + decoupled masterkey)
+
 ## License Compatibility
 
 - **capd** (MIT): Compatible. Patterns and concepts inspired by.
+- **Cryptomator** (GPL-3.0): Patterns inspired by. No source code copied.
+  Our project uses a separate license; GPL-3.0 obligations do not extend
+  to our codebase as we only reference architectural patterns.
 - **AFFiNE** (BSL 1.1 / MIT): Design patterns and architectural concepts only.
   No source code copied verbatim. MIT-licensed components acknowledged.
 - **Excalidraw** (MIT): Compatible. Patterns and algorithms inspired by.
@@ -124,7 +141,7 @@ open-source projects. We gratefully acknowledge their contributions.
 All borrowed concepts have been:
 1. **Analyzed** (deep study of architecture, design, and implementation)
 2. **Localized** (adapted to Flutter/Dart with our own immutable models + command pattern)
-3. **Tested** (580+ tests passing — zero regressions — never breaks the app)
+3. **Tested** (590+ tests passing — zero regressions — never breaks the app)
 4. **Attributed** (this NOTICE file — preserving original copyright)
 5. **Respected** (no verbatim code copying without license compatibility check)
 
