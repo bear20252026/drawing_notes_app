@@ -150,6 +150,17 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     execute(AddStrokeCommand(layerId: layerId, stroke: stroke));
   }
 
+  /// 添加文本（画布 text 工具——修复打字崩溃——2026-08-22）。
+  void addText(String content, double x, double y, {String layerId = 'layer-1'}) {
+    final text = TextItem(
+      id: 'text-${DateTime.now().millisecondsSinceEpoch}',
+      content: content,
+      x: x,
+      y: y,
+    );
+    execute(CreateTextCommand(layerId: layerId, text: text));
+  }
+
   // ──────────────────────────── 工具切换 ────────────────────────────
 
   void setTool(String tool) {

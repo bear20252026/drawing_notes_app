@@ -40,6 +40,43 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
     });
   }
 
+  /// 弹出文本输入框（画布 text 工具——修复打字崩溃——2026-08-22）。
+  ///
+  /// 使用 Flutter 原生 TextField（不依赖 material_ui——避免中文环境崩溃）。
+  Future<void> _showTextInput(Offset position) async {
+    final controller = TextEditingController();
+    final content = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('输入文字'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            hintText: '输入文字内容',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+    if (content != null && content.isNotEmpty) {
+      ref.read(editorV2NotifierProvider.notifier)
+          .addText(content, position.dx, position.dy);
+    }
+    controller.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(editorV2NotifierProvider);
@@ -102,15 +139,22 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
                   side: BorderSide(color: Colors.grey.shade300),
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  switchInCurve: Curves.easeInOut,
-                  child: InfiniteCanvasWidget(
-                    key: ValueKey(state.document.id),
-                    child: RepaintBoundary(
-                      child: CustomPaint(
-                        painter: CanvasPainterV2(document: state.document),
-                        size: Size.infinite,
+                // text 工具时点击画布 → 弹出文本输入框（修复打字崩溃——
+                // Flutter 原生 TextField——不依赖 material_ui——不崩溃——2026-08-22）。
+                child: GestureDetector(
+                  onTapUp: state.currentTool == 'text'
+                      ? (details) => _showTextInput(details.localPosition)
+                      : null,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    switchInCurve: Curves.easeInOut,
+                    child: InfiniteCanvasWidget(
+                      key: ValueKey(state.document.id),
+                      child: RepaintBoundary(
+                        child: CustomPaint(
+                          painter: CanvasPainterV2(document: state.document),
+                          size: Size.infinite,
+                        ),
                       ),
                     ),
                   ),

@@ -12,6 +12,7 @@ export 'src/domain/command_palette.dart';
 export 'src/domain/document_v2.dart';
 export 'src/domain/document_import.dart';
 export 'src/domain/encryption_vault.dart';
+export 'src/domain/encryption_scope.dart';
 export 'src/domain/envelope_encryption.dart';
 export 'src/domain/feature_flag.dart';
 export 'src/domain/frame.dart';
