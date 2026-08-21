@@ -40,6 +40,12 @@ open-source projects. We gratefully acknowledge their contributions.
   - Eraser mode (object eraser + pixel eraser)
   - Viewport state (scale/pan/zoom with focal point)
   - Canvas architecture (CustomPainter + RepaintBoundary)
+  - Shape library (Library System — reusable element collections)
+  - Arrow binding (element connection — endpoint binding)
+  - Lasso selection (rectangle/freeform — ray casting algorithm)
+  - Clipboard operations (copy/paste/cut with offset)
+  - Grid/Snap (grid snapping + element alignment)
+  - WYSIWYG inline editing (InlineEditState state machine)
 
 ## excalidraw-cn
 
@@ -86,11 +92,11 @@ open-source projects. We gratefully acknowledge their contributions.
 All borrowed concepts have been:
 1. **Analyzed** (deep study of architecture, design, and implementation)
 2. **Localized** (adapted to Flutter/Dart with our own immutable models + command pattern)
-3. **Tested** (426+ tests passing — zero regressions — never breaks the app)
+3. **Tested** (445+ tests passing — zero regressions — never breaks the app)
 4. **Attributed** (this NOTICE file — preserving original copyright)
 5. **Respected** (no verbatim code copying without license compatibility check)
 
 ---
 
-Generated: 2026-08-21
+Generated: 2026-08-21 (updated)
 Project: drawing_notes_app (绘图笔记)

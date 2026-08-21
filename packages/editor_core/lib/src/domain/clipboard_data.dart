@@ -9,7 +9,6 @@
 library;
 
 import 'line_item.dart';
-import 'document_v2.dart';
 
 /// 剪贴板数据（Excalidraw Clipboard 本地化——不可变）。
 ///

@@ -9,8 +9,6 @@
 // - 元素包含检测（bounds 交叉判定）
 library;
 
-import 'dart:math' as math;
-
 /// 选择区域类型（Excalidraw lasso 模式借鉴）。
 enum LassoType {
   /// 矩形框选（拖拽矩形区域）。
