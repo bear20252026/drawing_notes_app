@@ -67,6 +67,7 @@ dependencies:
 
   material_ui: any
   cupertino_ui: any
+  pdfx: ^2.11.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
