@@ -56,6 +56,11 @@ open-source projects. We gratefully acknowledge their contributions.
   - Command palette (CommandEntry/CommandPalette — fuzzy search/shortcut/priority — Excalidraw 借鉴)
   - Feature flags (FeatureFlag/FeatureFlagManager — experimental/beta/stable — AFFiNE 借鉴)
   - Workspace manager (Workspace/WorkspaceManager — multi-workspace — AFFiNE 借鉴)
+  - Frames (Frame/FrameManager — element grouping/clipping/containment — Excalidraw 借鉴)
+  - Bound text (TextBinding/Container/TextBindingManager — text-to-shape binding — Excalidraw 借鉴)
+  - Document import (DocumentImporter — multi-format import/validation — AFFiNE 借鉴)
+  - Hint system (Hint/HintSystem — context hints/shortcuts/help panel — Excalidraw 借鉴)
+  - Shape container (ShapeContainer — text binding container — renamed from Container — Excalidraw 借鉴)
 
 ## excalidraw-cn
 
@@ -102,7 +107,7 @@ open-source projects. We gratefully acknowledge their contributions.
 All borrowed concepts have been:
 1. **Analyzed** (deep study of architecture, design, and implementation)
 2. **Localized** (adapted to Flutter/Dart with our own immutable models + command pattern)
-3. **Tested** (530+ tests passing — zero regressions — never breaks the app)
+3. **Tested** (560+ tests passing — zero regressions — never breaks the app)
 4. **Attributed** (this NOTICE file — preserving original copyright)
 5. **Respected** (no verbatim code copying without license compatibility check)
 
