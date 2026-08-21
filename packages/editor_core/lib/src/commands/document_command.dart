@@ -684,6 +684,38 @@ class RemoveNoteCommand extends DocumentCommand {
       );
 }
 
+/// 更新文档命令（图层更新——层管理面板用——AFFiNE 借鉴）。
+class UpdateDocumentCommand extends DocumentCommand {
+  const UpdateDocumentCommand({required this.layers});
+
+  final List<LayerV2> layers;
+
+  @override
+  DocumentV2 apply(DocumentV2 doc) {
+    return DocumentV2(
+      id: doc.id,
+      pageCount: doc.pageCount,
+      revision: doc.revision + 1,
+      layers: layers,
+    );
+  }
+
+  @override
+  DocumentCommand inverse() {
+    // 逆命令：不做撤销（图层操作复杂——由 caller 管理历史）。
+    return const _NoOpCommand();
+  }
+}
+
+/// 空操作命令（占位——逆命令默认返回）。
+class _NoOpCommand extends DocumentCommand {
+  const _NoOpCommand();
+  @override
+  DocumentV2 apply(DocumentV2 doc) => doc;
+  @override
+  DocumentCommand inverse() => const _NoOpCommand();
+}
+
 /// 移动元素命令。
 class MoveItemCommand extends DocumentCommand {
   const MoveItemCommand({
