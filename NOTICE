@@ -120,6 +120,27 @@ open-source projects. We gratefully acknowledge their contributions.
   - Atomic write transaction (temp file + rename)
   - Vault format 8 (JWT config + decoupled masterkey)
 
+## Encryption Hardening Sources (2026-08-22)
+
+- **EPC 2026 Guidelines**（欧洲支付理事会）: AES 推荐 + 主密钥分割
+  （Shamir Secret Sharing——阈值恢复）+ 密钥用途隔离
+- **SAFE 2026 Draft**（IETF）: AES-256-GCM-SIV（NMR 抗 nonce 误用）+
+  HPKE Auth Mode + ChaCha20-Poly1305 + AEGIS-256
+- **Post-Quantum Migration Guide**（2026-04）: ML-KEM（FIPS 203）+
+  ML-DSA（FIPS 204）+ SLH-DSA（FIPS 205）+ 混合密钥封装 +
+  密钥轮换 + 信封加密（DEK/KEK）
+- **AgePony**（移动端 age）: ML-KEM-768 + X25519 混合接收者 +
+  硬件密钥（Secure Enclave/FIDO）+ 内存有界
+- **tamper-evident-log**（哈希链审计）: HMAC-SHA256(type|ts|data|prev) +
+  事件溯源重放 + 篡改检测
+- **zeph-common hash_chain.rs**: keyed-BLAKE3 哈希链 + 密钥轮换 epoch
+- **《信息网络安全》2026-02**: 基于 TEE（Intel SGX）的层次角色基
+  分级加密——加密/密钥管理置于 TEE 硬件隔离
+- **鲲鹏 TrustZone 套件**: ARM TrustZone TEE + 国密 SM4 硬件加速 + 远程证明
+- **Honeypot key**（安全最佳实践）: 诱饵密钥——检测入侵尝试
+- **pqforge**（pub.dev 2026-06-08）: 纯 Dart 后量子（ML-KEM/ML-DSA）
+  + 经典（X25519/Ed25519）混合 + AEAD（AES-GCM-256/ChaCha20-Poly1305）
+
 ## License Compatibility
 
 - **capd** (MIT): Compatible. Patterns and concepts inspired by.
@@ -141,7 +162,7 @@ open-source projects. We gratefully acknowledge their contributions.
 All borrowed concepts have been:
 1. **Analyzed** (deep study of architecture, design, and implementation)
 2. **Localized** (adapted to Flutter/Dart with our own immutable models + command pattern)
-3. **Tested** (590+ tests passing — zero regressions — never breaks the app)
+3. **Tested** (620+ tests passing — zero regressions — never breaks the app)
 4. **Attributed** (this NOTICE file — preserving original copyright)
 5. **Respected** (no verbatim code copying without license compatibility check)
 

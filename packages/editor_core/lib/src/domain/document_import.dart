@@ -186,7 +186,7 @@ class DocumentImporter {
     if (fileSize > effectiveConfig.maxFileSize) {
       return ImportResult(
         status: ImportStatus.failed,
-        message: 'File too large (${fileSize} > ${effectiveConfig.maxFileSize})',
+        message: 'File too large ($fileSize > ${effectiveConfig.maxFileSize})',
         errors: ['File too large'],
       );
     }
