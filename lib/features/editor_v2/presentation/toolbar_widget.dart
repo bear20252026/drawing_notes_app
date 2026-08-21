@@ -109,15 +109,30 @@ class _ToolButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Tooltip(
-        message: label,
-        child: IconButton(
-          icon: Icon(icon, color: isActive ? Colors.blue : Colors.grey[700]),
-          onPressed: onTap,
-          style: IconButton.styleFrom(
-            backgroundColor: isActive ? Colors.blue[50] : null,
+    // AFFiNE 工具栏精致化（选中圆角/阴影/白图标动画——不大幅变动微调）。
+    return Tooltip(
+      message: label,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: isActive ? Colors.blue : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: isActive
+                ? [BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 2,
+                    offset: const Offset(0, 1),
+                  )]
+                : null,
+          ),
+          child: Icon(
+            icon,
+            color: isActive ? Colors.white : Colors.grey[700],
+            size: 20,
           ),
         ),
       ),

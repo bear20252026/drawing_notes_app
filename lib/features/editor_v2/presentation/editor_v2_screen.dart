@@ -70,23 +70,50 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
       ),
       body: Column(
         children: [
-          // 工具栏
-          EditorV2Toolbar(
-            currentTool: state.currentTool,
-            currentShapeType: state.currentShapeType,
-            onToolChanged: (tool) =>
-                ref.read(editorV2NotifierProvider.notifier).setTool(tool),
-            onShapeTypeChanged: (type) =>
-                ref.read(editorV2NotifierProvider.notifier).setShapeType(type),
+          // 工具栏（AFFiNE 质感升级——Card 容器——圆角/阴影/边框——精致感）。
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+            child: Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.grey.shade300),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: EditorV2Toolbar(
+                currentTool: state.currentTool,
+                currentShapeType: state.currentShapeType,
+                onToolChanged: (tool) =>
+                    ref.read(editorV2NotifierProvider.notifier).setTool(tool),
+                onShapeTypeChanged: (type) =>
+                    ref.read(editorV2NotifierProvider.notifier).setShapeType(type),
+              ),
+            ),
           ),
-          // 画布（无限画布——Excalidraw Transform 模式——批次 F-6——
-          // 包装现有 painter——不修改 CanvasPainterV2——安全约束不搞崩）。
+          // 画布（AFFiNE 质感升级——Card 容器 + AnimatedSwitcher 页面转换动画——
+          // 圆角/阴影/边框——精致感——不大幅变动——现有 InfiniteCanvasWidget 保留）。
           Expanded(
-            child: InfiniteCanvasWidget(
-              child: RepaintBoundary(
-                child: CustomPaint(
-                  painter: CanvasPainterV2(document: state.document),
-                  size: Size.infinite,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+              child: Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: Colors.grey.shade300),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  switchInCurve: Curves.easeInOut,
+                  child: InfiniteCanvasWidget(
+                    key: ValueKey(state.document.id),
+                    child: RepaintBoundary(
+                      child: CustomPaint(
+                        painter: CanvasPainterV2(document: state.document),
+                        size: Size.infinite,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
