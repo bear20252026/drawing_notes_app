@@ -61,6 +61,8 @@ open-source projects. We gratefully acknowledge their contributions.
   - Document import (DocumentImporter — multi-format import/validation — AFFiNE 借鉴)
   - Hint system (Hint/HintSystem — context hints/shortcuts/help panel — Excalidraw 借鉴)
   - Shape container (ShapeContainer — text binding container — renamed from Container — Excalidraw 借鉴)
+  - Page design (MenuItem/QuickSearchConfig/SearchResult/SidebarContainer/TabItem/TabBar — AFFiNE sidebar 借鉴)
+  - capd architecture reference (local-first/full-text search/CLI/MCP/HUD — capd 借鉴)
 
 ## excalidraw-cn
 
@@ -90,8 +92,23 @@ open-source projects. We gratefully acknowledge their contributions.
 
 ---
 
+## capd
+
+- **Repository**: https://github.com/jamiedavenport/capd
+- **License**: MIT License
+- **Copyright**: © 2026 Jamie Davenport
+- **Website**: https://capd.jxd.dev
+- **Acknowledged concepts**:
+  - Local-first architecture (SQLite + FTS5 full-text search)
+  - On-device tagging (automatic topic grouping)
+  - CLI integration (command-line automation)
+  - HUD feedback (compact notification system)
+  - MCP server (AI assistant integration)
+  - Privacy-first design (no account/telemetry)
+
 ## License Compatibility
 
+- **capd** (MIT): Compatible. Patterns and concepts inspired by.
 - **AFFiNE** (BSL 1.1 / MIT): Design patterns and architectural concepts only.
   No source code copied verbatim. MIT-licensed components acknowledged.
 - **Excalidraw** (MIT): Compatible. Patterns and algorithms inspired by.
@@ -107,7 +124,7 @@ open-source projects. We gratefully acknowledge their contributions.
 All borrowed concepts have been:
 1. **Analyzed** (deep study of architecture, design, and implementation)
 2. **Localized** (adapted to Flutter/Dart with our own immutable models + command pattern)
-3. **Tested** (560+ tests passing — zero regressions — never breaks the app)
+3. **Tested** (580+ tests passing — zero regressions — never breaks the app)
 4. **Attributed** (this NOTICE file — preserving original copyright)
 5. **Respected** (no verbatim code copying without license compatibility check)
 

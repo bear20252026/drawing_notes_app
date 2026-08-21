@@ -23,6 +23,7 @@ export 'src/domain/line_item.dart';
 export 'src/domain/measurement.dart';
 export 'src/domain/note_item.dart';
 export 'src/domain/node_graph.dart';
+export 'src/domain/page_design.dart';
 export 'src/domain/page_v2.dart';
 export 'src/domain/rich_text_block.dart';
 export 'src/domain/shape_library.dart';
