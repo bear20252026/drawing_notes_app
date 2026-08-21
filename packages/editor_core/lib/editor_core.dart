@@ -2,8 +2,10 @@
 library;
 
 export 'src/domain/arrow_binding.dart';
+export 'src/domain/clipboard_data.dart';
 export 'src/domain/document_v2.dart';
 export 'src/domain/kanban_board.dart';
+export 'src/domain/lasso_selection.dart';
 export 'src/domain/line_item.dart';
 export 'src/domain/note_item.dart';
 export 'src/domain/page_v2.dart';
