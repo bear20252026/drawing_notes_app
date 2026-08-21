@@ -368,15 +368,6 @@ class RemoveImageCommand extends DocumentCommand {
       );
 }
 
-/// 橡皮擦模式（对象擦除/像素擦除）。
-enum EraserMode {
-  /// 对象擦除：距离判定——触碰元素任意位置 → 整体移除。
-  object,
-
-  /// 像素擦除：BlendMode.clear + saveLayer ——精确像素清除。
-  pixel,
-}
-
 /// 按距离擦除命令（对象擦除——GeometryEngine 距离判定）。
 ///
 /// 距离 < radius 的 stroke/shape/text/image 整体移除。

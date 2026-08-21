@@ -32,9 +32,8 @@ extension _EditorPageOverlays on _EditorPageState {
             Positioned.fill(
               child: Semantics(
                 label: '绘图画布',
-                hint: '双击空白处插入文字；使用工具栏工具绘制',
+                hint: '使用工具栏文字工具插入文字；其他工具绘制',
                 child: GestureDetector(
-                onDoubleTapDown: _onCanvasDoubleTap,
                 child: Listener(
                   behavior: HitTestBehavior.opaque,
                   onPointerDown: (e) => _onPointerDown(e, e.localPosition),
@@ -637,7 +636,6 @@ extension _EditorPageOverlays on _EditorPageState {
       top: viewPos.dy,
       child: GestureDetector(
         onTap: () => _onItemTap(item.id),
-        onDoubleTap: _editTextItem,
         onSecondaryTapDown: (d) => _showItemContextMenu(item.id),
         onPanUpdate: (d) => _dragItem(item.id, d.delta),
         onPanEnd: (_) => _notifyChanged(),

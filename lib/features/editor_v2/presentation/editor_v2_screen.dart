@@ -8,6 +8,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:editor_core/editor_core.dart';
+
 import '../application/editor_v2_viewmodel.dart';
 import 'canvas_painter.dart';
 import 'infinite_canvas_widget.dart';
@@ -152,7 +154,10 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
                       key: ValueKey(state.document.id),
                       child: RepaintBoundary(
                         child: CustomPaint(
-                          painter: CanvasPainterV2(document: state.document),
+                          painter: CanvasPainterV2(
+                            document: state.document,
+                            fillMode: FillMode.stroke, // 当前默认空心——UI 切换后续接入。
+                          ),
                           size: Size.infinite,
                         ),
                       ),
