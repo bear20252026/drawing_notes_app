@@ -187,10 +187,13 @@ class _HomePageState extends State<HomePage> {
       if (!mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => NotebookViewPage(
-            notebook: notebook,
-            storage: _nbStorage,
-            onChanged: _refresh,
+          // 统一架构 V2（2026-08-22）：笔记本 → EditorV2Screen（note 模式——
+          // AFFiNE Page 借鉴——单独界面（线性文档）——与画布（whiteboard
+          // 无限画布）功能共通（同一编辑器——共用核心——不重复显示）——
+          // 替代 V1 NotebookViewPage（material_ui 中文崩溃——修复无法使用）。
+          builder: (_) => EditorV2Screen(
+            documentId: notebook.id,
+            mode: UnifiedEditorMode.note,
           ),
         ),
       );
@@ -598,10 +601,11 @@ class _HomePageState extends State<HomePage> {
     if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => NotebookViewPage(
-          notebook: nb,
-          storage: _nbStorage,
-          onChanged: _refresh,
+        // 统一架构 V2（2026-08-22）：打开笔记本 → EditorV2Screen（note 模式——
+        // 单独界面 + 功能共通——替代 V1 NotebookViewPage（material_ui）。
+        builder: (_) => EditorV2Screen(
+          documentId: nb.id,
+          mode: UnifiedEditorMode.note,
         ),
       ),
     );
