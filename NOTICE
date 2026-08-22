@@ -94,6 +94,9 @@ open-source projects. We gratefully acknowledge their contributions.
   - Home page patterns (recent/browse/whiteboard/settings subpages)
   - Responsive navigation (large screens sidebar / small screens bottom bar)
   - Document model + file tree organization (nested folders — recent notes)
+  - Brush styles (Pen — pressure-sensitive stroke width / Ballpoint — uniform /
+    Highlighter — translucent wide stroke / Pencil — textured stroke —
+    brush stroke styles borrowed — style parameters only, no code copied)
 
 ---
 

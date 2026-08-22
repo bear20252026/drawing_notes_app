@@ -7,6 +7,7 @@ export 'src/domain/apple_theme.dart';
 export 'src/domain/arrow_binding.dart';
 export 'src/domain/audit_log.dart';
 export 'src/domain/bound_text.dart';
+export 'src/domain/brush_styles.dart';
 export 'src/domain/chart_data.dart';
 export 'src/domain/clipboard_data.dart';
 export 'src/domain/color_magnifier.dart';

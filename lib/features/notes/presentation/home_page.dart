@@ -19,6 +19,8 @@ import 'package:drawing_notes_app/features/notes/presentation/onboarding.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
+import 'package:drawing_notes_app/features/editor_v2/presentation/editor_v2_screen.dart';
+import 'package:editor_core/editor_core.dart' hide TabBar;
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/password_disk_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/search_page.dart';
@@ -124,7 +126,12 @@ class _HomePageState extends State<HomePage> {
     if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => EditorPage(document: doc, docStorage: _docStorage),
+        // 统一架构 V2（2026-08-22）：新建画布 → EditorV2Screen
+        // （画板模式——无限画布——问题已修——不用旧 V1 editor_page）。
+        builder: (_) => EditorV2Screen(
+          documentId: doc.id,
+          mode: UnifiedEditorMode.whiteboard,
+        ),
       ),
     );
     _refresh();
@@ -476,7 +483,11 @@ class _HomePageState extends State<HomePage> {
     );
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => EditorPage(document: doc, docStorage: _docStorage),
+        // 统一架构 V2（2026-08-22）：快速记录 → EditorV2Screen（画板模式）。
+        builder: (_) => EditorV2Screen(
+          documentId: doc.id,
+          mode: UnifiedEditorMode.whiteboard,
+        ),
       ),
     );
   }
