@@ -202,7 +202,17 @@ class BrushStyles {
     return List.generate(points.length, (i) {
       final t = points.length > 1 ? i / (points.length - 1) : 0.5;
       final pressure = 0.65 + 0.35 * math.sin(t * math.pi); // 起笔收笔轻。
-      return points[i].copyWith(pressure: pressure);
+      return points[i].copyWith(pressure: normalizePressure(pressure));
     });
+  }
+
+  /// 压感规范化（Saber v1.34/1.35 借鉴——2026-08-22——S Pen 等手写笔兼容）。
+  ///
+  /// 部分手写笔（S Pen）压力值偏大/偏小——规范化到 0~1：
+  /// 低于 0.05 视为误触（0）；高于 0.95 视为满压（1）。
+  static double normalizePressure(double raw) {
+    if (raw < 0.05) return 0;
+    if (raw > 0.95) return 1;
+    return raw;
   }
 }

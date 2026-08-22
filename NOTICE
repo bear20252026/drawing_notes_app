@@ -97,6 +97,10 @@ open-source projects. We gratefully acknowledge their contributions.
   - Brush styles (Pen — pressure-sensitive stroke width / Ballpoint — uniform /
     Highlighter — translucent wide stroke / Pencil — textured stroke —
     brush stroke styles borrowed — style parameters only, no code copied)
+  - Highlighter canvas compositing (overlap does not darken — rendered below
+    text — more natural highlight — style parameters only, no code copied)
+  - Pressure normalization (stylus compatibility — S Pen etc — normalized
+    pressure values — style parameters only, no code copied)
 
 ---
 
@@ -148,6 +152,15 @@ open-source projects. We gratefully acknowledge their contributions.
 - **Honeypot key**（安全最佳实践）: 诱饵密钥——检测入侵尝试
 - **pqforge**（pub.dev 2026-06-08）: 纯 Dart 后量子（ML-KEM/ML-DSA）
   + 经典（X25519/Ed25519）混合 + AEAD（AES-GCM-256/ChaCha20-Poly1305）
+
+## Excalidraw+
+
+- **Repository**: https://plus.excalidraw.com
+- **License**: MIT (Excalidraw ecosystem)
+- **Acknowledged concepts**:
+  - Autoshape (Shift+X — freehand sketch auto-corrected into perfect
+    geometric shapes — line/rectangle/circle — concept only)
+  - Export quality improvements (SVG font embedding / dark mode filters)
 
 ## License Compatibility
 
