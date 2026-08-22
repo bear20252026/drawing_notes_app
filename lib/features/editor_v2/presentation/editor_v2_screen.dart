@@ -24,9 +24,17 @@ import 'toolbar_widget.dart';
 /// - Canvas（CustomPainter + RepaintBoundary）——直接绘画
 /// - Toolbar（工具切换）——最小 UI
 class EditorV2Screen extends ConsumerStatefulWidget {
-  const EditorV2Screen({super.key, required this.documentId});
+  const EditorV2Screen({
+    super.key,
+    required this.documentId,
+    this.mode = UnifiedEditorMode.whiteboard,
+  });
 
   final String documentId;
+
+  /// 统一编辑器模式（笔记/画板共用——Saber Editor 借鉴——2026-08-22——
+  /// 默认 whiteboard（无限画布——向后兼容）——note 模式（分页普通画布）。
+  final UnifiedEditorMode mode;
 
   @override
   ConsumerState<EditorV2Screen> createState() => _EditorV2ScreenState();
@@ -140,18 +148,32 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
                     switchInCurve: Curves.easeInOut,
-                    child: InfiniteCanvasWidget(
-                      key: ValueKey(state.document.id),
-                      child: RepaintBoundary(
-                        child: CustomPaint(
-                          painter: CanvasPainterV2(
-                            document: state.document,
-                            fillMode: FillMode.stroke, // 当前默认空心——UI 切换后续接入。
+                    // 统一架构（笔记/画板共用——2026-08-22）：
+                    // - whiteboard 模式：无限画布（InfiniteCanvas——缩放平移）
+                    // - note 模式：普通画布（分页——PagedCanvasNotifier 管理）
+                    child: widget.mode == UnifiedEditorMode.whiteboard
+                        ? InfiniteCanvasWidget(
+                            key: ValueKey('canvas-${state.document.id}'),
+                            child: RepaintBoundary(
+                              child: CustomPaint(
+                                painter: CanvasPainterV2(
+                                  document: state.document,
+                                  fillMode: FillMode.stroke,
+                                ),
+                                size: Size.infinite,
+                              ),
+                            ),
+                          )
+                        : RepaintBoundary(
+                            key: ValueKey('note-${state.document.id}'),
+                            child: CustomPaint(
+                              painter: CanvasPainterV2(
+                                document: state.document,
+                                fillMode: FillMode.stroke,
+                              ),
+                              size: Size.infinite,
+                            ),
                           ),
-                          size: Size.infinite,
-                        ),
-                      ),
-                    ),
                   ),
                 ),
               ),

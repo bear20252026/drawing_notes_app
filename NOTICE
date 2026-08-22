@@ -89,6 +89,11 @@ open-source projects. We gratefully acknowledge their contributions.
   - Dual-password protection system
   - Cross-device sync architecture
   - PDF/image inversion in dark mode
+  - Unified editor mode (note/whiteboard — same editor core for notes and
+    whiteboard — one editor, two modes — avoids duplicate maintenance)
+  - Home page patterns (recent/browse/whiteboard/settings subpages)
+  - Responsive navigation (large screens sidebar / small screens bottom bar)
+  - Document model + file tree organization (nested folders — recent notes)
 
 ---
 
@@ -162,7 +167,7 @@ open-source projects. We gratefully acknowledge their contributions.
 All borrowed concepts have been:
 1. **Analyzed** (deep study of architecture, design, and implementation)
 2. **Localized** (adapted to Flutter/Dart with our own immutable models + command pattern)
-3. **Tested** (620+ tests passing — zero regressions — never breaks the app)
+3. **Tested** (650+ tests passing — zero regressions — never breaks the app)
 4. **Attributed** (this NOTICE file — preserving original copyright)
 5. **Respected** (no verbatim code copying without license compatibility check)
 

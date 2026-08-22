@@ -44,6 +44,7 @@ export 'src/domain/shape_library.dart';
 export 'src/domain/stroke_style.dart';
 export 'src/domain/table_v2.dart';
 export 'src/domain/tool_engine.dart';
+export 'src/domain/unified_editor_mode.dart';
 export 'src/domain/workspace_manager.dart';
 export 'src/geometry/geometry_engine.dart';
 export 'src/domain/gcm_siv_selector.dart';
