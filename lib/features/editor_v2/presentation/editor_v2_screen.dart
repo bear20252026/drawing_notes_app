@@ -14,6 +14,7 @@ import '../application/editor_v2_viewmodel.dart';
 import '../../../shared/widgets/apple_glass.dart';
 import 'canvas_painter.dart';
 import 'infinite_canvas_widget.dart';
+import 'note_editor_widget.dart';
 import 'sidebar_widget.dart';
 import 'toolbar_widget.dart';
 
@@ -49,6 +50,18 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
       final notifier = ref.read(editorV2NotifierProvider.notifier);
     notifier.createDocument(widget.documentId);
     });
+  }
+
+  /// 初始笔记文档（note 模式——Word 文档式——2026-08-22——
+  /// 标题 + 一个空段落（直接打字——Word 式））。
+  NoteDocument _initialNoteDocument(String documentId) {
+    return NoteDocument(
+      id: documentId,
+      title: '未命名笔记',
+      paragraphs: [
+        NoteParagraph(id: 'p1', content: ''),
+      ],
+    );
   }
 
   /// 弹出文本输入框（画布 text 工具——修复打字崩溃——2026-08-22）。
@@ -150,7 +163,8 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
                     switchInCurve: Curves.easeInOut,
                     // 统一架构（笔记/画板共用——2026-08-22）：
                     // - whiteboard 模式：无限画布（InfiniteCanvas——缩放平移）
-                    // - note 模式：普通画布（分页——PagedCanvasNotifier 管理）
+                    // - note 模式：Word 文档式编辑器（NoteEditorWidget——
+                    //   直接打字——AFFiNE Page 借鉴——2026-08-22）
                     child: widget.mode == UnifiedEditorMode.whiteboard
                         ? InfiniteCanvasWidget(
                             key: ValueKey('canvas-${state.document.id}'),
@@ -164,15 +178,10 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
                               ),
                             ),
                           )
-                        : RepaintBoundary(
+                        : NoteEditorWidget(
                             key: ValueKey('note-${state.document.id}'),
-                            child: CustomPaint(
-                              painter: CanvasPainterV2(
-                                document: state.document,
-                                fillMode: FillMode.stroke,
-                              ),
-                              size: Size.infinite,
-                            ),
+                            document: _initialNoteDocument(state.document.id),
+                            onChanged: (_) {},
                           ),
                   ),
                 ),
