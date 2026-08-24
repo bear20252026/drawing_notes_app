@@ -8,6 +8,9 @@
 library;
 
 import 'dart:math' as math;
+import 'dart:typed_data';
+
+import 'crypto_utils.dart';
 
 /// 数据信封（Envelope Encryption 本地化——不可变）。
 ///
@@ -107,23 +110,19 @@ class EnvelopeEncryptionService {
     return List<int>.generate(12, (_) => rng.nextInt(256));
   }
 
-  /// 包裹 DEK（用 KEK——简化模型：XOR + 校验——实际由 infrastructure 层
-  /// 用 AES 密钥封装实现）。
+  /// 包裹 DEK（RFC 3394 AES-256 Key Wrap）。
+  ///
+  /// 输出长度 = dek.length + 8（RFC 3394 标准特征）。
+  /// [kek] Key Encryption Key（主密钥——256 位）。
   List<int> wrapDek(List<int> dek, List<int> kek) {
-    if (kek.length < dek.length) {
-      throw ArgumentError('KEK 长度不足（需 ≥ DEK 长度）');
-    }
-    final wrapped = List<int>.generate(dek.length, (i) => dek[i] ^ kek[i]);
-    return wrapped;
+    return aes256KeyWrap(plaintext: dek, key: kek);
   }
 
-  /// 解包 DEK（用 KEK）。
+  /// 解包 DEK（RFC 3394 AES-256 Key Unwrap）。
+  ///
+  /// 认证失败时抛出 [StateError]。
   List<int> unwrapDek(List<int> wrappedDek, List<int> kek) {
-    if (kek.length < wrappedDek.length) {
-      throw ArgumentError('KEK 长度不足（需 ≥ wrappedDEK 长度）');
-    }
-    final dek = List<int>.generate(wrappedDek.length, (i) => wrappedDek[i] ^ kek[i]);
-    return dek;
+    return aes256KeyUnwrap(ciphertext: wrappedDek, key: kek);
   }
 
   /// 创建信封（简化模型——封装流程——实际加密由 infrastructure 层）。
@@ -134,9 +133,12 @@ class EnvelopeEncryptionService {
     required List<int> kek,
   }) {
     final nonce = generateNonce();
-    // 实际内容加密（AES-256-GCM）由 infrastructure 层执行——
-    // 此处模型层简化：plain XOR dek（占位——真实实现用 AES-GCM）。
-    final ciphertext = List<int>.generate(plain.length, (i) => plain[i] ^ dek[i % dek.length]);
+    // AES-256-GCM 加密（NIST SP 800-38D）。
+    final ciphertext = aes256GcmEncrypt(
+      plaintext: plain,
+      key: dek,
+      nonce: nonce,
+    );
     final wrappedDek = wrapDek(dek, kek);
     return DataEnvelope(
       keyId: keyId,
@@ -146,15 +148,18 @@ class EnvelopeEncryptionService {
     );
   }
 
-  /// 打开信封（解密内容——模型层简化）。
+  /// 打开信封（AES-256-GCM 解密 + 认证验证）。
+  ///
+  /// 认证失败时抛出 [InvalidCipherTextException]。
   List<int> open({
     required DataEnvelope envelope,
     required List<int> kek,
   }) {
     final dek = unwrapDek(envelope.wrappedDek, kek);
-    return List<int>.generate(
-      envelope.ciphertext.length,
-      (i) => envelope.ciphertext[i] ^ dek[i % dek.length],
+    return aes256GcmDecrypt(
+      ciphertextWithTag: envelope.ciphertext,
+      key: dek,
+      nonce: envelope.nonce,
     );
   }
 }

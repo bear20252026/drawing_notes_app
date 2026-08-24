@@ -16,17 +16,18 @@ void main() {
     expect(nonce.length, 12);
   });
 
-  test('wrapDek/unwrapDek：XOR 往返', () {
+  test('wrapDek/unwrapDek：AES-256 Key Wrap 往返', () {
     const service = EnvelopeEncryptionService();
     final dek = List.generate(32, (i) => i * 3 % 256);
     final kek = List.generate(32, (i) => i * 5 % 256);
     final wrapped = service.wrapDek(dek, kek);
-    expect(wrapped.length, 32);
+    // RFC 3394：wrappedDek 长度 = dek.length + 8 = 40 字节。
+    expect(wrapped.length, 40);
     final unwrapped = service.unwrapDek(wrapped, kek);
     expect(unwrapped, dek); // 往返一致。
   });
 
-  test('seal/open：信封加密流程', () {
+  test('seal/open：AES-256-GCM 信封加密流程', () {
     const service = EnvelopeEncryptionService();
     final dek = service.generateDek();
     final kek = List.generate(32, (i) => i * 7 % 256);
@@ -39,8 +40,10 @@ void main() {
       kek: kek,
     );
     expect(envelope.keyId, 'kek-1');
-    expect(envelope.wrappedDek.length, 32);
-    expect(envelope.ciphertext.length, 64);
+    // RFC 3394：wrappedDek 长度 = 32 + 8 = 40 字节。
+    expect(envelope.wrappedDek.length, 40);
+    // AES-256-GCM：密文 = 明文长度 + 16 字节认证标签。
+    expect(envelope.ciphertext.length, 64 + 16);
     expect(envelope.version, 1);
 
     final opened = service.open(envelope: envelope, kek: kek);
@@ -58,11 +61,11 @@ void main() {
     expect(envelope1.ciphertext, isNot(equals(envelope2.ciphertext)));
   });
 
-  test('wrapDek：KEK 长度不足抛异常', () {
+  test('wrapDek：KEK 长度不匹配抛异常', () {
     const service = EnvelopeEncryptionService();
     final dek = List.generate(32, (i) => i);
-    final shortKek = List.generate(16, (i) => i);
-    expect(() => service.wrapDek(dek, shortKek), throwsArgumentError);
+    final shortKek = List.generate(16, (i) => i); // AES-256 需要 32 字节。
+    expect(() => service.wrapDek(dek, shortKek), throwsA(isA<AssertionError>()));
   });
 
   test('DataEnvelope：copyWith + 相等性', () {

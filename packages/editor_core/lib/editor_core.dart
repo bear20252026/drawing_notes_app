@@ -13,6 +13,7 @@ export 'src/domain/chart_data.dart';
 export 'src/domain/clipboard_data.dart';
 export 'src/domain/color_magnifier.dart';
 export 'src/domain/command_palette.dart';
+export 'src/domain/crypto_utils.dart';
 export 'src/domain/document_v2.dart';
 export 'src/domain/document_import.dart';
 export 'src/domain/encryption_vault.dart';

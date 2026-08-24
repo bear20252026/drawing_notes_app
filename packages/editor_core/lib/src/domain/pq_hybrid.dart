@@ -7,6 +7,10 @@
 //（mlkem768x25519 混合接收者——经典 + 量子双保险）。
 library;
 
+import 'dart:typed_data';
+
+import 'crypto_utils.dart';
+
 /// 后量子混合配置（SAFE 2026 借鉴——不可变）。
 class PqHybridConfig {
   const PqHybridConfig({
@@ -114,20 +118,13 @@ class PqHybridService {
     return session.derivedKey;
   }
 
-  /// HKDF 派生（简化——SHA-256 迭代——实际用 cryptography 包的 Hkdf）。
+  /// HKDF 派生（HKDF-SHA256——RFC 5869）。
   List<int> _hkdfDerive(List<int> combined, PqHybridConfig config) {
-    // 简化：FNV-1a 风格哈希（占位——实际用 HKDF-SHA256）。
-    var h1 = 0x811c9dc5;
-    var h2 = 0x01000193;
-    for (final b in combined) {
-      h1 = (h1 ^ b) * 0x01000193 & 0xFFFFFFFF;
-      h2 = (h2 + b) * 0x85EBCA6B & 0xFFFFFFFF;
-    }
-    // 生成 32 字节（AES-256）。
-    return List.generate(32, (i) {
-      final v = (h1 + h2 * (i + 1)) & 0xFFFFFFFF;
-      return v % 256;
-    });
+    return hkdfSha256(
+      ikm: combined,
+      info: '${config.kemAlgorithm}+${config.classicalKem}'.codeUnits,
+      outputLength: 32,
+    );
   }
 
   /// 检查混合密钥长度（X25519 32 字节 + ML-KEM 32 字节）。
