@@ -149,7 +149,7 @@ abstract final class AppDesign {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size(48, 48),
+          minimumSize: const Size(44, 44),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(controlRadius),
@@ -171,7 +171,7 @@ abstract final class AppDesign {
       ),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
-          minimumSize: const Size(48, 48),
+          minimumSize: const Size(44, 44),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
