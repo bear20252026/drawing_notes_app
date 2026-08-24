@@ -20,6 +20,9 @@ void main() {
       // 初始状态：文本存在但不可见
       expect(find.text('Hello'), findsOneWidget);
       expect(find.text('World'), findsOneWidget);
+
+      // 推进时间让 Future.delayed 和 Timer.periodic 触发。
+      await tester.pump(const Duration(milliseconds: 100));
     });
 
     testWidgets('分词正确', (tester) async {
@@ -38,6 +41,8 @@ void main() {
       expect(find.text('one'), findsOneWidget);
       expect(find.text('two'), findsOneWidget);
       expect(find.text('three'), findsOneWidget);
+
+      await tester.pump(const Duration(milliseconds: 100));
     });
 
     testWidgets('空文本不报错', (tester) async {
@@ -55,6 +60,9 @@ void main() {
 
       // 不应抛出异常
       expect(tester.takeException(), isNull);
+
+      // 推进时间让 Future.delayed 触发。
+      await tester.pump(const Duration(milliseconds: 100));
     });
 
     testWidgets('动画参数可配置', (tester) async {
@@ -64,7 +72,8 @@ void main() {
             body: TextGenerateEffect(
               text: 'Styled Text',
               duration: Duration(milliseconds: 500),
-              delay: Duration(seconds: 1),
+              delay: Duration.zero,
+              wordDelay: Duration.zero,
               enableBlur: false,
               blurSigma: 5.0,
             ),
@@ -74,6 +83,8 @@ void main() {
 
       expect(find.text('Styled'), findsOneWidget);
       expect(find.text('Text'), findsOneWidget);
+
+      await tester.pump(const Duration(milliseconds: 100));
     });
 
     testWidgets('支持文本对齐', (tester) async {
@@ -91,6 +102,8 @@ void main() {
       );
 
       expect(find.text('Centered'), findsOneWidget);
+
+      await tester.pump(const Duration(milliseconds: 100));
     });
   });
 }
