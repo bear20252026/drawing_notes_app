@@ -5,3 +5,6 @@
 library;
 
 export 'src/ports/repository_ports.dart';
+export 'src/session/notebook_session.dart';
+export 'src/session/key_handle.dart';
+export 'src/session/lock_policy.dart';

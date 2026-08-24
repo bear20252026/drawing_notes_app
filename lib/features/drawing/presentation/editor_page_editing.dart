@@ -64,38 +64,6 @@ extension _EditorPageEditing on _EditorPageState {
   /// 画布双击（对齐 Excalidraw 双击插入文字）：
   /// 双击空白处 -> 新建文字块并立即进入就地编辑；
   /// 双击已有文字块 -> 进入该文字块的编辑。
-  void _onCanvasDoubleTap(TapDownDetails details) {
-    final page = widget.page;
-    final canvasPoint = _controller.viewToCanvas(details.localPosition);
-    // 查找双击位置命中的文字块（取其编辑框）。
-    if (page != null) {
-      for (final t in page.textItems) {
-        final w = t.fontSize * 2;
-        if (Rect.fromLTWH(t.x, t.y, w, t.fontSize).contains(canvasPoint)) {
-          _applyState(() => _selectedItemId = t.id);
-          _editTextItem();
-          return;
-        }
-      }
-    } else {
-      for (final t in _controller.document.textItems) {
-        final w = t.fontSize * 2;
-        if (Rect.fromLTWH(t.x, t.y, w, t.fontSize).contains(canvasPoint)) {
-          _applyState(() => _selectedItemId = t.id);
-          _editTextItem();
-          return;
-        }
-      }
-    }
-    // 空白处：新建文字并编辑（Excalidraw 同款顺滑插入，问题11：
-    // 一点画面即可打字；画布/笔记两种模式均支持）。
-    _addTextItem(canvasPoint);
-  }
-
-  /// 提交就地编辑的文字块：空文本则丢弃，非空则加入页面并保存。
-  ///
-  /// 注意：编辑"已有"文字块时，[pending] 已在 [page.textItems] 中，
-  /// 不能重复添加（评审发现 P1：重复项会被持久化并叠加渲染）。
   void _commitTextEditing() {
     final page = widget.page;
     final pending = _pendingTextItem;

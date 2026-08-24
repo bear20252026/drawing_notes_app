@@ -190,8 +190,8 @@ class EditorLeftToolbar extends StatelessWidget {
                     ),
                 ],
               ),
-              // 连线
-              _tool(context, Icons.call_merge, '节点连线', linkMode, onLink),
+              // 连线（节点连线——连接两个节点——2026-08-22 明确化）
+              _tool(context, Icons.call_merge, '节点连线(连两点)', linkMode, onLink),
               const Divider(height: 12),
             ],
           ),
