@@ -72,10 +72,10 @@ class PasswordDiskFile {
     required String pin,
   }) async {
     // 链 D 修复（军工审计 2026-08-15）：PIN 最小长度核心层校验——
-    // 短 PIN（如 1-3 位）可被数小时内离线暴力破解（PBKDF2 60 万次，
-    // 4 位约 5.5 小时、6 位约 23 天）。
-    if (pin.length < 4) {
-      throw ArgumentError.value(pin, 'pin', 'PIN 至少 4 位');
+    // 短 PIN（如 1-5 位）可被数小时内离线暴力破解（Argon2id t=3 m=64MiB，
+    // 6 位数字 PIN 空间 100 万——单卡 ~3 H/s 需 ~92h；配合渐进式延迟更安全）。
+    if (pin.length < 6) {
+      throw ArgumentError.value(pin, 'pin', 'PIN 至少 6 位');
     }
     final envelope = await const EncryptionService().wrapMasterKey(key, pin);
     return [..._magic, 0x02, ...utf8.encode(envelope)];

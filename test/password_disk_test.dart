@@ -12,7 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   late Directory tempDir;
   late MockPasswordDisk disk;
-  const encryption = EncryptionService();
+  const encryption = EncryptionService.test();
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('frogkey_test_');

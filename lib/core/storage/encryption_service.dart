@@ -18,24 +18,24 @@ import 'package:cryptography/cryptography.dart';
 /// - v=4: PBKDF2 + AAD 上下文绑定（H-06 修复 2026-08-15）
 /// - v=5: Argon2id + HKDF-SHA256 密钥派生链（军工升级 2026-08-24）
 class EncryptionService {
-  /// 生产默认参数：Argon2id t=3, m=64MiB, p=1。
+  /// 生产默认参数：Argon2id t=3, m=65536KiB(64MiB), p=1。
   const EncryptionService()
       : argon2Iterations = 3,
-        argon2MemoryPowerOf2 = 16, // 2^16 = 64 MiB
+        argon2MemoryKiB = 65536, // 64 MiB in KiB
         argon2Parallelism = 1;
 
-  /// 测试用构造函数：可降低 Argon2id 参数（m=12→4MiB 测试加速）。
+  /// 测试用构造函数：可降低 Argon2id 参数（m=1024KiB→1MiB 测试加速）。
   const EncryptionService.test({
     this.argon2Iterations = 1,
-    this.argon2MemoryPowerOf2 = 12, // 2^12 = 4 MiB（测试加速）
+    this.argon2MemoryKiB = 1024, // 1 MiB（测试加速）
     this.argon2Parallelism = 1,
   });
 
   /// Argon2id 迭代次数（t）。
   final int argon2Iterations;
 
-  /// Argon2id 内存参数（2^N KiB）。N=16 → 64 MiB，N=15 → 32 MiB。
-  final int argon2MemoryPowerOf2;
+  /// Argon2id 内存参数（KiB）。65536 = 64 MiB。
+  final int argon2MemoryKiB;
 
   /// Argon2id 并行度（p）。
   final int argon2Parallelism;
@@ -65,20 +65,20 @@ class EncryptionService {
   static int _pbkdf2IterationsFor(int version) =>
       version >= 3 ? _pbkdf2IterationsCurrent : _pbkdf2IterationsLegacy;
 
-  /// Argon2id 密钥派生（t=iterations, m=2^memoryPowerOf2 KiB, p=parallelism → 32 字节）。
+  /// Argon2id 密钥派生（t=iterations, m=memoryKiB, p=parallelism → 32 字节）。
   Future<SecretKey> _deriveKeyArgon2id(
     String password,
     List<int> salt,
   ) async {
     final algorithm = Argon2id(
       parallelism: argon2Parallelism,
-      memoryPowerOf2: argon2MemoryPowerOf2,
+      memory: argon2MemoryKiB,
       iterations: argon2Iterations,
+      hashLength: 32,
     );
     return algorithm.deriveKey(
       secretKey: SecretKey(utf8.encode(password)),
       nonce: salt,
-      length: 32,
     );
   }
 
@@ -147,6 +147,29 @@ class EncryptionService {
 
   /// 验证 PIN 长度是否符合最小要求。
   static bool isPinLengthValid(String pin) => pin.length >= kPinMinLength;
+
+  /// 渐进式延迟序列（秒）：1s → 5s → 30s → 5min → 1h。
+  ///
+  /// 每次认证失败递增延迟级别，成功后重置。用于防暴力破解。
+  static const List<int> progressiveDelaySeconds = [1, 5, 30, 300, 3600];
+
+  /// 计算渐进式延迟（失败次数 → 延迟秒数）。
+  ///
+  /// 返回延迟秒数（0 = 无延迟）。失败次数超过序列长度时取最大值。
+  static int getProgressiveDelay(int failCount) {
+    if (failCount <= 0) return 0;
+    final index = (failCount - 1).clamp(0, progressiveDelaySeconds.length - 1);
+    return progressiveDelaySeconds[index];
+  }
+
+  /// 获取渐进式延迟信息（用于 UI 显示）。
+  static String getProgressiveDelayInfo(int failCount) {
+    if (failCount <= 0) return '无延迟';
+    final delay = getProgressiveDelay(failCount);
+    if (delay < 60) return '${delay}秒';
+    if (delay < 3600) return '${delay ~/ 60}分钟';
+    return '${delay ~/ 3600}小时';
+  }
 
   /// 加密 [plainText]，返回 JSON 串（含盐、nonce 与密文，base64）。
   ///
