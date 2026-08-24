@@ -15,6 +15,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/text_scale_helper.dart';
 import '../../../l10n/app_localizations.dart';
 
 /// 统一图层面板（V1/V2 合并——2026-08-24）。
@@ -93,7 +94,7 @@ class UnifiedLayerPanel extends StatelessWidget {
                 Text(
                   '${layers.length}',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: TextScaleHelper.scaled(context, 12),
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -239,7 +240,7 @@ class _LayerTile extends StatelessWidget {
     if (onRenamed == null) {
       return Text(
         layer.name,
-        style: TextStyle(fontSize: 13),
+        style: TextStyle(fontSize: TextScaleHelper.scaled(context, 13)),
         overflow: TextOverflow.ellipsis,
       );
     }
@@ -279,7 +280,7 @@ class _LayerTile extends StatelessWidget {
       },
       child: Text(
         layer.name,
-        style: TextStyle(fontSize: 13),
+        style: TextStyle(fontSize: TextScaleHelper.scaled(context, 13)),
         overflow: TextOverflow.ellipsis,
       ),
     );

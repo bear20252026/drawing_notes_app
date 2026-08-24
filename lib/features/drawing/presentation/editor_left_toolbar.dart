@@ -216,13 +216,23 @@ class EditorLeftToolbar extends StatelessWidget {
     VoidCallback onTap,
   ) {
     final scheme = Theme.of(context).colorScheme;
-    return Tooltip(
-      message: tip,
-      child: IconButton(
-        icon: Icon(icon, size: 20),
-        isSelected: selected,
-        color: selected ? scheme.primary : null,
-        onPressed: onTap,
+    // 无障碍：Semantics 标签供读屏器朗读；48dp 最小触摸目标（WCAG 2.5.5）。
+    return Semantics(
+      label: tip,
+      button: true,
+      selected: selected,
+      child: Tooltip(
+        message: tip,
+        child: IconButton(
+          icon: Icon(icon, size: 20),
+          isSelected: selected,
+          color: selected ? scheme.primary : null,
+          onPressed: onTap,
+          constraints: const BoxConstraints(
+            minWidth: 48,
+            minHeight: 48,
+          ),
+        ),
       ),
     );
   }

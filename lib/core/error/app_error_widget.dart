@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/text_scale_helper.dart';
 import '../../l10n/app_localizations.dart';
 
 import 'error_log_service.dart';
@@ -88,7 +89,8 @@ class AppErrorWidget extends StatelessWidget {
                       child: SelectableText(
                         'Error: $error\n\n$stack',
                         style: TextStyle(
-                          fontSize: 11.0,
+                          fontSize:
+                              TextScaleHelper.scaled(context, 11.0),
                           fontFamily: 'monospace',
                         ),
                       ),

@@ -85,12 +85,15 @@ class EditorContextBar extends StatelessWidget {
         const Icon(Icons.line_weight, size: 18),
         SizedBox(
           width: 132,
-          child: Slider(
-            value: state.activeSize.clamp(1, 100),
-            min: 1,
-            max: 100,
-            label: '${state.activeSize.round()} px',
-            onChanged: actions.onSizeChanged,
+          child: Semantics(
+            label: AppLocalizations.of(context)?.editorStrokeWidth ?? '笔触粗细',
+            child: Slider(
+              value: state.activeSize.clamp(1, 100),
+              min: 1,
+              max: 100,
+              label: '${state.activeSize.round()} px',
+              onChanged: actions.onSizeChanged,
+            ),
           ),
         ),
         SizedBox(
@@ -159,12 +162,15 @@ class EditorContextBar extends StatelessWidget {
         const Icon(Icons.format_size, size: 18),
         SizedBox(
           width: 120,
-          child: Slider(
-            value: text.fontSize.clamp(8, 200),
-            min: 8,
-            max: 200,
-            label: '${text.fontSize.round()}',
-            onChanged: actions.onSelectedFontSize,
+          child: Semantics(
+            label: AppLocalizations.of(context)?.editorFontSize ?? '文字大小',
+            child: Slider(
+              value: text.fontSize.clamp(8, 200),
+              min: 8,
+              max: 200,
+              label: '${text.fontSize.round()}',
+              onChanged: actions.onSelectedFontSize,
+            ),
           ),
         ),
         SizedBox(width: 34, child: Text('${text.fontSize.round()}')),
@@ -214,12 +220,16 @@ class EditorContextBar extends StatelessWidget {
         const Icon(Icons.line_weight, size: 18),
         SizedBox(
           width: 96,
-          child: Slider(
-            value: shape.strokeWidth.clamp(1, 20),
-            min: 1,
-            max: 20,
-            label: '${shape.strokeWidth.round()} px',
-            onChanged: actions.onShapeStrokeWidth,
+          child: Semantics(
+            label: AppLocalizations.of(context)?.editorShapeStrokeWidth ??
+                '形状边框粗细',
+            child: Slider(
+              value: shape.strokeWidth.clamp(1, 20),
+              min: 1,
+              max: 20,
+              label: '${shape.strokeWidth.round()} px',
+              onChanged: actions.onShapeStrokeWidth,
+            ),
           ),
         ),
         _toggleButton(
@@ -238,10 +248,15 @@ class EditorContextBar extends StatelessWidget {
           selected: shape.dash,
           onPressed: actions.onToggleDash,
         ),
-        IconButton(
-          tooltip: '删除选中对象',
-          icon: const Icon(Icons.delete_outline, size: 20),
-          onPressed: actions.deleteSelected,
+        Semantics(
+          label: '删除选中对象',
+          button: true,
+          child: IconButton(
+            tooltip: '删除选中对象',
+            icon: const Icon(Icons.delete_outline, size: 20),
+            onPressed: actions.deleteSelected,
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          ),
         ),
       ],
     );
@@ -289,23 +304,31 @@ class EditorContextBar extends StatelessWidget {
     required String tooltip,
     required VoidCallback onPressed,
   }) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: onPressed,
-        child: SizedBox(
-          width: 40,
-          height: 40,
-          child: Center(
-            child: Container(
-              width: 26,
-              height: 26,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
+    // 无障碍：Semantics 标签 + 48dp 最小触摸目标（WCAG 2.5.5）。
+    return Semantics(
+      label: tooltip,
+      button: true,
+      child: Tooltip(
+        message: tooltip,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: onPressed,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: Center(
+                child: Container(
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -322,12 +345,18 @@ class EditorContextBar extends StatelessWidget {
     required bool selected,
     required VoidCallback onPressed,
   }) {
-    return IconButton(
-      tooltip: tooltip,
-      icon: Icon(icon, size: 20),
-      isSelected: selected,
-      color: selected ? Theme.of(context).colorScheme.primary : null,
-      onPressed: onPressed,
+    return Semantics(
+      label: tooltip,
+      button: true,
+      selected: selected,
+      child: IconButton(
+        tooltip: tooltip,
+        icon: Icon(icon, size: 20),
+        isSelected: selected,
+        color: selected ? Theme.of(context).colorScheme.primary : null,
+        onPressed: onPressed,
+        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+      ),
     );
   }
 }

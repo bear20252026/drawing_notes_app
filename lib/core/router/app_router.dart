@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:drawing_notes_app/core/security/auth_guard.dart';
+import 'package:drawing_notes_app/core/theme/text_scale_helper.dart';
 import 'package:drawing_notes_app/features/editor_v2/presentation/editor_v2_screen.dart';
 import 'package:editor_core/editor_core.dart';
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
@@ -184,7 +185,10 @@ Widget _buildNotFoundPage(BuildContext context, {String? subtitle}) {
           const SizedBox(height: 24),
           Text(
             subtitle ?? '页面未找到',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: TextScaleHelper.scaled(context, 18),
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 24),
           FilledButton.icon(

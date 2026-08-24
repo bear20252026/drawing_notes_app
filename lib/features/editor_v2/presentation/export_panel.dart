@@ -10,6 +10,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/text_scale_helper.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/editor_v2_viewmodel.dart';
 import '../application/export_service.dart';
@@ -111,7 +112,7 @@ class _ExportPanelState extends ConsumerState<ExportPanel> {
                     const SizedBox(height: 4),
                     Text(format.label,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: TextScaleHelper.scaled(context, 12),
                           fontWeight: FontWeight.w600,
                           color: isSelected ? Colors.white : Colors.grey.shade700,
                         )),
@@ -162,20 +163,32 @@ class _ExportPanelState extends ConsumerState<ExportPanel> {
         children: [
           Row(
             children: [
-              Text(AppLocalizations.of(context)?.exportPreview ?? '预览', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+              Text(
+                AppLocalizations.of(context)?.exportPreview ?? '预览',
+                style: TextStyle(
+                  fontSize: TextScaleHelper.scaled(context, 11),
+                  // 无障碍：grey.shade600 对比不足，换 onSurfaceVariant（≥4.5:1）。
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
               const Spacer(),
               if (_selectedFormat != ExportFormat.png)
-                IconButton(
-                  icon: const Icon(Icons.copy, size: 16),
-                  onPressed: () {
-                    // 复制到剪贴板（实际需 import services——此处省略）。
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(AppLocalizations.of(context)?.copied ?? '已复制'), duration: const Duration(seconds: 1)),
-                    );
-                  },
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
-                  tooltip: AppLocalizations.of(context)?.copyTooltip ?? '复制',
+                Semantics(
+                  label: AppLocalizations.of(context)?.copyTooltip ?? '复制',
+                  button: true,
+                  child: IconButton(
+                    icon: const Icon(Icons.copy, size: 16),
+                    onPressed: () {
+                      // 复制到剪贴板。
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(AppLocalizations.of(context)?.copied ?? '已复制'), duration: const Duration(seconds: 1)),
+                      );
+                    },
+                    padding: EdgeInsets.zero,
+                    // 无障碍：触摸目标提升至 48dp（原 24dp）。
+                    constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                    tooltip: AppLocalizations.of(context)?.copyTooltip ?? '复制',
+                  ),
                 ),
             ],
           ),
@@ -184,7 +197,10 @@ class _ExportPanelState extends ConsumerState<ExportPanel> {
             child: SingleChildScrollView(
               child: Text(
                 _exportResult!,
-                style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                style: TextStyle(
+                  fontSize: TextScaleHelper.scaled(context, 11),
+                  fontFamily: 'monospace',
+                ),
                 maxLines: 20,
               ),
             ),

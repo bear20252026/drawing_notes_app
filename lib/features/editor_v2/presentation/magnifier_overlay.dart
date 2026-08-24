@@ -9,6 +9,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:editor_core/editor_core.dart';
 
+import '../../../core/theme/text_scale_helper.dart';
+
 /// 取色放大镜覆盖层（用户需求——长按/吸管显示放大取色环）。
 ///
 /// 显示效果：
@@ -96,9 +98,10 @@ class MagnifierOverlay extends StatelessWidget {
                   ),
                   child: Text(
                     pickedColor.hex,
-                    style: const TextStyle(
+                    // 白字黑底（黑87）对比度 ≈ 10:1，达标。
+                    style: TextStyle(
                       color: Colors.white,
-                      fontSize: 12,
+                      fontSize: TextScaleHelper.scaled(context, 12),
                       fontFamily: 'monospace',
                       fontWeight: FontWeight.bold,
                     ),

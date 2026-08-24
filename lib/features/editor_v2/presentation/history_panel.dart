@@ -8,6 +8,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/text_scale_helper.dart';
 import 'package:editor_core/editor_core.dart';
 import '../application/editor_v2_viewmodel.dart';
 
@@ -51,7 +52,11 @@ class HistoryPanel extends ConsumerWidget {
                 Text('历史记录', style: Theme.of(context).textTheme.titleSmall),
                 const Spacer(),
                 Text('$totalCount 步',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    style: TextStyle(
+                      fontSize: TextScaleHelper.scaled(context, 12),
+                      // 无障碍：onSurfaceVariant 保证浅色主题下 ≥4.5:1 对比度。
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    )),
               ],
             ),
           ),
@@ -128,10 +133,14 @@ class HistoryPanel extends ConsumerWidget {
             ),
           // 空状态。
           if (totalCount == 0)
-            const Padding(
-              padding: EdgeInsets.all(16),
+            Padding(
+              padding: const EdgeInsets.all(16),
               child: Center(
-                child: Text('无历史记录', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                child: Text('无历史记录',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: TextScaleHelper.scaled(context, 13),
+                    )),
               ),
             ),
           const SizedBox(height: 8),
@@ -203,7 +212,7 @@ class _HistoryTile extends StatelessWidget {
               child: Text(
                 shortName,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: TextScaleHelper.scaled(context, 12),
                   color: isCurrent ? Colors.blue.shade700 : Colors.black87,
                   fontWeight: isCurrent ? FontWeight.w600 : FontWeight.normal,
                 ),
@@ -212,7 +221,11 @@ class _HistoryTile extends StatelessWidget {
             // revision。
             Text(
               'v${entry.revisionBefore}',
-              style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+              style: TextStyle(
+                fontSize: TextScaleHelper.scaled(context, 10),
+                // 无障碍：替换 grey.shade500（对比不足），保证 ≥4.5:1。
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),

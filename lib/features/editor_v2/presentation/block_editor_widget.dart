@@ -15,6 +15,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/theme/text_scale_helper.dart';
 import 'package:editor_core/editor_core.dart';
 
 /// 块编辑器 Widget（AFFiNE BlockSuite 借鉴——一切皆块）。
@@ -584,11 +585,19 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
             itemCount: _slashCommands.length,
             itemBuilder: (context, index) {
               final cmd = _slashCommands[index];
-              return ListTile(
-                dense: true,
- leading: Text(cmd.icon, style: TextStyle(fontSize: 18)),
-                title: Text(cmd.name),
-                onTap: () => _applySlashCommand(cmd, _slashMenuBlockIndex),
+              return Semantics(
+                label: '${cmd.name} 命令',
+                button: true,
+                child: ListTile(
+                  dense: true,
+                  minLeadingWidth: 48,
+                  leading: Text(
+                    cmd.icon,
+                    style: TextStyle(fontSize: TextScaleHelper.scaled(context, 18)),
+                  ),
+                  title: Text(cmd.name),
+                  onTap: () => _applySlashCommand(cmd, _slashMenuBlockIndex),
+                ),
               );
             },
           ),

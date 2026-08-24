@@ -7,6 +7,8 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/text_scale_helper.dart';
+
 /// 节点连线提示 Widget（用户需求 #10——交互提示/空态引导）。
 ///
 /// 当用户选择箭头/连线工具时显示：
@@ -66,7 +68,7 @@ class BindingHintsWidget extends StatelessWidget {
                     _getToolHint(),
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.9),
-                      fontSize: 13,
+                      fontSize: TextScaleHelper.scaled(context, 13),
                     ),
                   ),
                 ],
@@ -88,7 +90,7 @@ class BindingHintsWidget extends StatelessWidget {
                       '可连接：矩形、椭圆、菱形',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.7),
-                        fontSize: 12,
+                        fontSize: TextScaleHelper.scaled(context, 12),
                       ),
                     ),
                   ],
@@ -111,7 +113,7 @@ class BindingHintsWidget extends StatelessWidget {
                       '先创建形状，再用箭头连接',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.7),
-                        fontSize: 12,
+                        fontSize: TextScaleHelper.scaled(context, 12),
                       ),
                     ),
                   ],

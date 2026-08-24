@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
 
+import 'package:drawing_notes_app/core/theme/text_scale_helper.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 
@@ -264,7 +265,7 @@ class PaginationPreview extends StatelessWidget {
                   child: Text(
                     t.text,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: TextScaleHelper.scaled(context, 13),
                       color: Color(t.color),
                       fontWeight: t.bold ? FontWeight.bold : FontWeight.normal,
                       fontStyle: t.italic ? FontStyle.italic : FontStyle.normal,

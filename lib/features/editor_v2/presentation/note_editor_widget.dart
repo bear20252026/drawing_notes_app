@@ -10,6 +10,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/text_scale_helper.dart';
 import 'package:editor_core/editor_core.dart';
 
 /// 笔记文档编辑器（Word 文档式——直接打字——AFFiNE Page 借鉴）。
@@ -111,8 +112,8 @@ class _NoteEditorWidgetState extends State<NoteEditorWidget> {
                 // 标题（笔记标题——Word 文档标题）。
                 Text(
                   widget.document.title,
-                  style: const TextStyle(
-                    fontSize: 28,
+                  style: TextStyle(
+                    fontSize: TextScaleHelper.scaled(context, 28),
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),

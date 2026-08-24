@@ -5,6 +5,8 @@
 library;
 
 import 'package:flutter/material.dart';
+
+import '../../../core/theme/text_scale_helper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:editor_core/editor_core.dart';
@@ -73,29 +75,39 @@ class _LayerTile extends ConsumerWidget {
         child: Row(
           children: [
             // 可见性切换（眼睛图标）。
-            IconButton(
-              icon: Icon(
-                layer.visible ? Icons.visibility : Icons.visibility_off,
-                size: 18,
-                color: layer.visible ? Colors.blue : Colors.grey,
+            Semantics(
+              label: layer.visible ? '隐藏图层 ${layer.name}' : '显示图层 ${layer.name}',
+              button: true,
+              child: IconButton(
+                icon: Icon(
+                  layer.visible ? Icons.visibility : Icons.visibility_off,
+                  size: 18,
+                  color: layer.visible
+                      ? Colors.blue
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                onPressed: () {
+                  final notifier = ref.read(editorV2NotifierProvider.notifier);
+                  final currentDoc = ref.read(editorV2NotifierProvider).document;
+                  final updatedLayers = List<LayerV2>.from(currentDoc.layers);
+                  updatedLayers[index] = layer.copyWith(visible: !layer.visible);
+                  notifier.execute(UpdateDocumentCommand(layers: updatedLayers));
+                },
+                padding: EdgeInsets.zero,
+                // 无障碍：触摸目标提升至 48dp（原 32dp）。
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               ),
-              onPressed: () {
-                final notifier = ref.read(editorV2NotifierProvider.notifier);
-                final currentDoc = ref.read(editorV2NotifierProvider).document;
-                final updatedLayers = List<LayerV2>.from(currentDoc.layers);
-                updatedLayers[index] = layer.copyWith(visible: !layer.visible);
-                notifier.execute(UpdateDocumentCommand(layers: updatedLayers));
-              },
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             ),
             // 图层名称。
             Expanded(
               child: Text(
                 layer.name,
                 style: TextStyle(
-                  fontSize: 13,
-                  color: layer.visible ? Colors.black87 : Colors.grey,
+                  fontSize: TextScaleHelper.scaled(context, 13),
+                  // 无障碍：不可见层用 onSurfaceVariant 替换 Colors.grey（对比达标）。
+                  color: layer.visible
+                      ? Colors.black87
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -112,17 +124,20 @@ class _LayerTile extends ConsumerWidget {
                   inactiveTrackColor: Colors.grey.shade300,
                   thumbColor: Colors.blue,
                 ),
-                child: Slider(
-                  value: layer.opacity,
-                  min: 0.0,
-                  max: 1.0,
-                  onChanged: (value) {
-                    final notifier = ref.read(editorV2NotifierProvider.notifier);
-                    final currentDoc = ref.read(editorV2NotifierProvider).document;
-                    final updatedLayers = List<LayerV2>.from(currentDoc.layers);
-                    updatedLayers[index] = layer.copyWith(opacity: value);
-                    notifier.execute(UpdateDocumentCommand(layers: updatedLayers));
-                  },
+                child: Semantics(
+                  label: '图层 ${layer.name} 不透明度',
+                  child: Slider(
+                    value: layer.opacity,
+                    min: 0.0,
+                    max: 1.0,
+                    onChanged: (value) {
+                      final notifier = ref.read(editorV2NotifierProvider.notifier);
+                      final currentDoc = ref.read(editorV2NotifierProvider).document;
+                      final updatedLayers = List<LayerV2>.from(currentDoc.layers);
+                      updatedLayers[index] = layer.copyWith(opacity: value);
+                      notifier.execute(UpdateDocumentCommand(layers: updatedLayers));
+                    },
+                  ),
                 ),
               ),
             ),
@@ -130,35 +145,48 @@ class _LayerTile extends ConsumerWidget {
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  icon: Icon(Icons.keyboard_arrow_up, size: 18,
-                      color: index > 0 ? Colors.black54 : Colors.grey.shade300),
-                  onPressed: index > 0 ? () {
-                    final notifier = ref.read(editorV2NotifierProvider.notifier);
-                    final currentDoc = ref.read(editorV2NotifierProvider).document;
-                    final updatedLayers = List<LayerV2>.from(currentDoc.layers);
-                    final temp = updatedLayers[index - 1];
-                    updatedLayers[index - 1] = updatedLayers[index];
-                    updatedLayers[index] = temp;
-                    notifier.execute(UpdateDocumentCommand(layers: updatedLayers));
-                  } : null,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+                Semantics(
+                  label: '上移图层 ${layer.name}',
+                  button: true,
+                  child: IconButton(
+                    icon: Icon(Icons.keyboard_arrow_up, size: 18,
+                        color: index > 0
+                            ? Colors.black87
+                            : Theme.of(context).colorScheme.outlineVariant),
+                    onPressed: index > 0 ? () {
+                      final notifier = ref.read(editorV2NotifierProvider.notifier);
+                      final currentDoc = ref.read(editorV2NotifierProvider).document;
+                      final updatedLayers = List<LayerV2>.from(currentDoc.layers);
+                      final temp = updatedLayers[index - 1];
+                      updatedLayers[index - 1] = updatedLayers[index];
+                      updatedLayers[index] = temp;
+                      notifier.execute(UpdateDocumentCommand(layers: updatedLayers));
+                    } : null,
+                    padding: EdgeInsets.zero,
+                    // 无障碍：触摸目标提升至 48dp（原 24dp）。
+                    constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                  ),
                 ),
-                IconButton(
-                  icon: Icon(Icons.keyboard_arrow_down, size: 18,
-                      color: index < totalLayers - 1 ? Colors.black54 : Colors.grey.shade300),
-                  onPressed: index < totalLayers - 1 ? () {
-                    final notifier = ref.read(editorV2NotifierProvider.notifier);
-                    final currentDoc = ref.read(editorV2NotifierProvider).document;
-                    final updatedLayers = List<LayerV2>.from(currentDoc.layers);
-                    final temp = updatedLayers[index + 1];
-                    updatedLayers[index + 1] = updatedLayers[index];
-                    updatedLayers[index] = temp;
-                    notifier.execute(UpdateDocumentCommand(layers: updatedLayers));
-                  } : null,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+                Semantics(
+                  label: '下移图层 ${layer.name}',
+                  button: true,
+                  child: IconButton(
+                    icon: Icon(Icons.keyboard_arrow_down, size: 18,
+                        color: index < totalLayers - 1
+                            ? Colors.black87
+                            : Theme.of(context).colorScheme.outlineVariant),
+                    onPressed: index < totalLayers - 1 ? () {
+                      final notifier = ref.read(editorV2NotifierProvider.notifier);
+                      final currentDoc = ref.read(editorV2NotifierProvider).document;
+                      final updatedLayers = List<LayerV2>.from(currentDoc.layers);
+                      final temp = updatedLayers[index + 1];
+                      updatedLayers[index + 1] = updatedLayers[index];
+                      updatedLayers[index] = temp;
+                      notifier.execute(UpdateDocumentCommand(layers: updatedLayers));
+                    } : null,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                  ),
                 ),
               ],
             ),
