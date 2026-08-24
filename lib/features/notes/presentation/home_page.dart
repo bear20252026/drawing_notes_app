@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/theme/app_design.dart';
+import 'package:drawing_notes_app/core/theme/responsive.dart';
 import 'package:drawing_notes_app/core/di/providers.dart';
 import 'package:drawing_notes_app/features/notes/presentation/search_widget.dart';
 import 'package:drawing_notes_app/core/search/search_index.dart';
@@ -401,7 +402,12 @@ class _HomePageState extends ConsumerState<HomePage> {
           },
           child: Scaffold(
         appBar: AppBar(
-          title: Text(AppLocalizations.of(context)?.appTitle ?? '绘图笔记'),
+          title: Text(
+            AppLocalizations.of(context)?.appTitle ?? '绘图笔记',
+            style: TextStyle(
+              fontSize: context.responsiveFont(mobile: 20, tablet: 24, desktop: 28),
+            ),
+          ),
           actions: [
             Semantics(
               label: AppLocalizations.of(context)?.search ?? '搜索全部内容（Ctrl+F）',
@@ -466,18 +472,39 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
           ],
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(56),
+            preferredSize: Size.fromHeight(context.responsiveFont(mobile: 52, desktop: 60)),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              padding: EdgeInsets.symmetric(
+                horizontal: context.responsivePadding().horizontal / 2,
+                vertical: 8,
+              ),
               child: GlassSurface(
                 borderRadius: BorderRadius.circular(AppDesign.controlRadius),
                 sigma: 10,
                 child: TabBar(
                   onTap: (i) => setState(() => _tabIndex = i),
+                  labelPadding: EdgeInsets.symmetric(
+                    horizontal: context.responsiveFont(mobile: 8, desktop: 16),
+                  ),
+                  labelStyle: TextStyle(
+                    fontSize: context.responsiveFont(mobile: 12, desktop: 14),
+                  ),
+                  unselectedLabelStyle: TextStyle(
+                    fontSize: context.responsiveFont(mobile: 12, desktop: 14),
+                  ),
                   tabs: [
-                    Tab(icon: const Icon(Icons.dashboard_outlined), text: AppLocalizations.of(context)?.homeInfiniteCanvas ?? '无限画布'), // #14 图标区分
-                    Tab(icon: const Icon(Icons.menu_book), text: AppLocalizations.of(context)?.homeNotebook ?? '笔记本'),
-                    Tab(icon: const Icon(Icons.access_time), text: AppLocalizations.of(context)?.homeRecent ?? '最近'),
+                    Tab(
+                      icon: const Icon(Icons.dashboard_outlined, size: 20),
+                      text: AppLocalizations.of(context)?.homeInfiniteCanvas ?? '无限画布',
+                    ),
+                    Tab(
+                      icon: const Icon(Icons.menu_book, size: 20),
+                      text: AppLocalizations.of(context)?.homeNotebook ?? '笔记本',
+                    ),
+                    Tab(
+                      icon: const Icon(Icons.access_time, size: 20),
+                      text: AppLocalizations.of(context)?.homeRecent ?? '最近',
+                    ),
                   ],
                 ),
               ),
@@ -492,7 +519,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                 child: FloatingActionButton.extended(
                   onPressed: _createDrawing,
                   icon: const Icon(Icons.add),
-                  label: Text(AppLocalizations.of(context)?.homeNewInfiniteCanvas ?? '新建无限画布'),
+                  label: Text(
+                    AppLocalizations.of(context)?.homeNewInfiniteCanvas ?? '新建无限画布',
+                    style: TextStyle(fontSize: context.responsiveFont(mobile: 13, desktop: 15)),
+                  ),
                 ),
               )
             : _tabIndex == 2
@@ -502,7 +532,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                 child: FloatingActionButton.extended(
                   onPressed: _quickRecord,
                   icon: const Icon(Icons.edit_note),
-                  label: Text(AppLocalizations.of(context)?.homeQuickRecord ?? '快速记录'),
+                  label: Text(
+                    AppLocalizations.of(context)?.homeQuickRecord ?? '快速记录',
+                    style: TextStyle(fontSize: context.responsiveFont(mobile: 13, desktop: 15)),
+                  ),
                 ),
               )
             : Semantics(
@@ -511,7 +544,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                 child: FloatingActionButton.extended(
                   onPressed: _createNotebook,
                   icon: const Icon(Icons.edit_note), // #14 笔记本专用图标——区分画布
-                  label: Text(AppLocalizations.of(context)?.newNotebook ?? '新建笔记本'),
+                  label: Text(
+                    AppLocalizations.of(context)?.newNotebook ?? '新建笔记本',
+                    style: TextStyle(fontSize: context.responsiveFont(mobile: 13, desktop: 15)),
+                  ),
                 ),
               ),
           ), // Scaffold
@@ -706,24 +742,41 @@ class _HomePageState extends ConsumerState<HomePage> {
     }
     entries.sort((a, b) => b.time.compareTo(a.time));
     if (entries.isEmpty) {
-      return const Center(
-        child: Text('还没有任何内容，先新建画作或笔记本吧', style: TextStyle(color: Colors.grey)),
+      return Center(
+        child: Text(
+          '还没有任何内容，先新建画作或笔记本吧',
+          style: TextStyle(
+            color: Colors.grey,
+            fontSize: context.responsiveFont(mobile: 13, desktop: 15),
+          ),
+        ),
       );
     }
     return RefreshIndicator(
       onRefresh: _refresh,
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(context.responsivePadding().left, 8, context.responsivePadding().right, context.responsiveFont(mobile: 80, desktop: 120)),
         itemCount: entries.length,
         itemBuilder: (context, i) {
           final e = entries[i];
           return ListTile(
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: context.responsiveFont(mobile: 12, desktop: 18),
+              vertical: context.responsiveFont(mobile: 6, desktop: 10),
+            ),
             leading: Icon(e.type == '画作' ? Icons.brush : Icons.menu_book),
-            title: Text(e.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+            title: Text(
+              e.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: context.responsiveFont(mobile: 14, desktop: 16)),
+            ),
             subtitle: Text(
               '${e.sub} · ${_formatTime(e.time)}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: context.responsiveFont(mobile: 12, desktop: 13)),
             ),
             // 可用性修复：时间线条目可点击跳转（此前点击无反应）。
             onTap: e.drawing != null
@@ -758,38 +811,51 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Widget _buildDrawingsTab() {
     if (_documents.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.brush_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 12),
-            Text('还没有无限画布，点击右下角按钮新建一个吧'),
+            Icon(Icons.brush_outlined, size: context.responsiveFont(mobile: 56, desktop: 72), color: Colors.grey),
+            SizedBox(height: context.responsiveFont(mobile: 8, desktop: 14)),
+            Text(
+              '还没有无限画布，点击右下角按钮新建一个吧',
+              style: TextStyle(fontSize: context.responsiveFont(mobile: 13, desktop: 15)),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       );
     }
+    final paddingH = context.responsivePadding().left;
     return RefreshIndicator(
       onRefresh: _refresh,
-      child: GridView.builder(
+      child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(
-          AppDesign.pagePadding,
+        padding: EdgeInsets.fromLTRB(
+          paddingH,
           12,
-          AppDesign.pagePadding,
-          96,
+          paddingH,
+          context.responsiveFont(mobile: 80, desktop: 120),
         ),
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 256,
-          childAspectRatio: 0.82,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-        ),
-        itemCount: _documents.length,
-        itemBuilder: (context, i) => _DrawingCard(
-          meta: _documents[i],
-          onTap: () => _openDrawing(_documents[i]),
-          onDelete: () => _deleteDrawing(_documents[i]),
+        child: ResponsiveGrid(
+          mobileColumns: 2,
+          tabletColumns: 3,
+          desktopColumns: 4,
+          crossAxisSpacing: context.responsiveFont(mobile: 12, desktop: 18),
+          mainAxisSpacing: context.responsiveFont(mobile: 12, desktop: 18),
+          childAspectRatio: ResponsiveValue<double>(
+            mobile: 0.78,
+            tablet: 0.80,
+            desktop: 0.82,
+          ).value(context),
+          children: [
+            for (var i = 0; i < _documents.length; i++)
+              _DrawingCard(
+                meta: _documents[i],
+                onTap: () => _openDrawing(_documents[i]),
+                onDelete: () => _deleteDrawing(_documents[i]),
+              ),
+          ],
         ),
       ),
     );
@@ -799,36 +865,41 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Widget _buildNotebooksTab() {
     if (_notebooks.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.menu_book_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 12),
-            Text('还没有笔记本，点击右下角按钮新建一个吧'),
+            Icon(Icons.menu_book_outlined, size: context.responsiveFont(mobile: 56, desktop: 72), color: Colors.grey),
+            SizedBox(height: context.responsiveFont(mobile: 8, desktop: 14)),
+            Text(
+              '还没有笔记本，点击右下角按钮新建一个吧',
+              style: TextStyle(fontSize: context.responsiveFont(mobile: 13, desktop: 15)),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       );
     }
+    final paddingH = context.responsivePadding().left;
     return RefreshIndicator(
       onRefresh: _refresh,
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(
-          AppDesign.pagePadding,
+        padding: EdgeInsets.fromLTRB(
+          paddingH,
           8,
-          AppDesign.pagePadding,
-          96,
+          paddingH,
+          context.responsiveFont(mobile: 80, desktop: 120),
         ),
         itemCount: _notebooks.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 10),
+        separatorBuilder: (_, _) => SizedBox(height: context.responsiveFont(mobile: 8, desktop: 12)),
         itemBuilder: (context, i) {
           final nb = _notebooks[i];
           return Card(
             child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 8,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: context.responsiveFont(mobile: 12, desktop: 18),
+                vertical: context.responsiveFont(mobile: 6, desktop: 10),
               ),
               leading: CircleAvatar(
                 backgroundColor: Theme.of(context).colorScheme.primaryContainer,
@@ -841,11 +912,13 @@ class _HomePageState extends ConsumerState<HomePage> {
                 nb.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: context.responsiveFont(mobile: 14, desktop: 16)),
               ),
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: 3),
                 child: Text(
                   '${nb.pages.length} 页 · 更新于 ${_formatTime(nb.updatedAt)}',
+                  style: TextStyle(fontSize: context.responsiveFont(mobile: 12, desktop: 13)),
                 ),
               ),
               trailing: IconButton(
