@@ -54,6 +54,8 @@ import 'package:drawing_notes_app/features/drawing/presentation/selection_bar.da
 import 'package:drawing_notes_app/features/drawing/presentation/toolbar_state_mapper.dart';
 import 'package:drawing_notes_app/core/theme/animation_constants.dart';
 
+import 'editor_page_drop_handler.dart';
+
 part 'editor_page_appbar.dart';
 part 'editor_page_body.dart';
 part 'editor_page_dialogs.dart';
@@ -66,7 +68,6 @@ part 'editor_page_tools.dart';
 part 'editor_page_commands.dart';
 part 'editor_page_shortcuts.dart';
 part 'editor_page_persistence.dart';
-part 'editor_page_drop_handler.dart';
 
 /// 编辑器页面。
 ///

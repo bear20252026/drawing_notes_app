@@ -1,5 +1,10 @@
-// 拖放导入域（借鉴 Excalidraw 拖放导入）：支持从文件管理器拖入图片/文件。
-part of 'editor_page.dart';
+/// 拖放导入域（借鉴 Excalidraw 拖放导入）：支持从文件管理器拖入图片/文件。
+library;
+
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
 
 /// 拖放文件类型。
 enum DropFileType { image, unknown }
