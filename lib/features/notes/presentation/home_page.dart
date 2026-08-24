@@ -1,12 +1,15 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/di/providers.dart';
-import 'package:drawing_notes_app/features/drawing/application/search_service.dart';
+import 'package:drawing_notes_app/features/notes/presentation/search_widget.dart';
+import 'package:drawing_notes_app/core/search/search_index.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
@@ -24,7 +27,7 @@ import 'package:drawing_notes_app/features/editor_v2/presentation/editor_v2_scre
 import 'package:editor_core/editor_core.dart' hide TabBar;
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/password_disk_page.dart';
-import 'package:drawing_notes_app/features/notes/presentation/search_page.dart';
+import 'package:drawing_notes_app/features/notes/presentation/search_widget.dart';
 
 part 'home_page_widgets.dart';
 
@@ -387,26 +390,28 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 3, // 画作 / 笔记本 / 时间线
-      child: Scaffold(
+      // 无障碍/效率：Ctrl+F（macOS ⌘F）全局唤起全文搜索。
+      child: Focus(
+        autofocus: true,
+        child: CallbackShortcuts(
+          bindings: <ShortcutActivator, VoidCallback>{
+            const SingleActivator(LogicalKeyboardKey.keyF, control: true):
+                _openSearch,
+            const SingleActivator(LogicalKeyboardKey.keyF, meta: true):
+                _openSearch,
+          },
+          child: Scaffold(
         appBar: AppBar(
           title: Text(AppLocalizations.of(context)?.appTitle ?? '绘图笔记'),
           actions: [
             Semantics(
-              label: AppLocalizations.of(context)?.search ?? '搜索全部内容',
+              label: AppLocalizations.of(context)?.search ?? '搜索全部内容（Ctrl+F）',
               button: true,
               child: IconButton(
-                tooltip: AppLocalizations.of(context)?.search ?? '搜索全部内容',
+                tooltip: AppLocalizations.of(context)?.search ?? '搜索全部内容（Ctrl+F）',
                 icon: const Icon(Icons.search_rounded),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => SearchPage(
-                      searchService: SearchService(
-                        notebookAccessor: _nbStorage,
-                        docStorage: _docStorage,
-                      ),
-                    ),
-                  ),
-                ),
+                // 全文搜索 V2：倒排索引 + 高亮 + 手写徽章（见 search_widget.dart）。
+                onPressed: _openSearch,
               ),
             ),
             // M-06 回收站入口（专家审计 2026-08-15）：查看/恢复/永久删除
@@ -510,8 +515,94 @@ class _HomePageState extends ConsumerState<HomePage> {
                   label: Text(AppLocalizations.of(context)?.newNotebook ?? '新建笔记本'),
                 ),
               ),
+          ), // Scaffold
+        ), // CallbackShortcuts
+      ), // Focus
+    ); // DefaultTabController
+  }
+
+  /// 全文搜索 V2 入口：构建倒排索引 → 弹出搜索面板。
+  ///
+  /// 索引数据面：页面标题 + 文字块内容 + 手写字体文本（OCR）+ 画作标题。
+  Future<void> _openSearch() async {
+    final l10n = AppLocalizations.of(context);
+    // 构建索引可能涉及解密读取，先显示加载指示。
+    final index = await showDialog<SearchIndex>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        content: SizedBox(
+          width: 220,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(width: 16),
+              Text(l10n?.searchHint ?? '正在建立搜索索引…'),
+            ],
+          ),
+        ),
       ),
     );
+    if (index == null || !mounted) return;
+
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560, maxHeight: 560),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: SearchWidget(
+              index: index,
+              onOpenTarget: (target) async {
+                Navigator.of(dialogContext).pop(); // 关闭搜索面板
+                await _navigateToTarget(target);
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 搜索结果跳转：复用首页既有的打开流程（含笔记本解锁）。
+  Future<void> _navigateToTarget(SearchTarget target) async {
+    try {
+      if (target.notebookId != null) {
+        final notebooks = await _nbStorage.listAll();
+        for (final nb in notebooks) {
+          for (final page in nb.pages) {
+            if (page.id == target.pageId) {
+              await _openNotebook(nb);
+              return;
+            }
+          }
+        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)?.searchNoResults ?? '未找到匹配内容')),
+        );
+      } else if (target.documentId != null) {
+        final metas = await _docStorage.listDocuments();
+        for (final meta in metas) {
+          if (meta.id == target.documentId) {
+            await _openDrawing(meta);
+            return;
+          }
+        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)?.searchNoResults ?? '未找到匹配内容')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${AppLocalizations.of(context)?.exportFailed ?? '打开失败'}: $e')),
+      );
+    }
   }
 
   /// 极简快速记录入口（D7，借鉴 Memos"打开即写"）：直接新建画作并进入编辑器，
