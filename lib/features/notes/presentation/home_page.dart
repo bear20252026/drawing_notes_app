@@ -391,15 +391,19 @@ class _HomePageState extends ConsumerState<HomePage> {
         appBar: AppBar(
           title: Text(AppLocalizations.of(context)?.appTitle ?? '绘图笔记'),
           actions: [
-            IconButton(
-              tooltip: AppLocalizations.of(context)?.search ?? '搜索全部内容',
-              icon: const Icon(Icons.search_rounded),
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => SearchPage(
-                    searchService: SearchService(
-                      notebookAccessor: _nbStorage,
-                      docStorage: _docStorage,
+            Semantics(
+              label: AppLocalizations.of(context)?.search ?? '搜索全部内容',
+              button: true,
+              child: IconButton(
+                tooltip: AppLocalizations.of(context)?.search ?? '搜索全部内容',
+                icon: const Icon(Icons.search_rounded),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => SearchPage(
+                      searchService: SearchService(
+                        notebookAccessor: _nbStorage,
+                        docStorage: _docStorage,
+                      ),
                     ),
                   ),
                 ),
@@ -407,41 +411,54 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
             // M-06 回收站入口（专家审计 2026-08-15）：查看/恢复/永久删除
             // 已删除文档（UX Patterns 官方模式——专用回收站界面）。
-            IconButton(
-              tooltip: AppLocalizations.of(context)?.trash ?? '回收站（30 天内可恢复）',
-              icon: const Icon(Icons.delete_outline),
-              onPressed: _showTrashDialog,
+            Semantics(
+              label: AppLocalizations.of(context)?.trash ?? '回收站（30 天内可恢复）',
+              button: true,
+              child: IconButton(
+                tooltip: AppLocalizations.of(context)?.trash ?? '回收站（30 天内可恢复）',
+                icon: const Icon(Icons.delete_outline),
+                onPressed: _showTrashDialog,
+              ),
             ),
             // 主题切换按钮（Riverpod 迁移：从 AppThemeController → themeModeProvider）。
             Builder(
               builder: (context) {
                 final mode = ref.watch(themeModeProvider);
-                return IconButton(
-                  tooltip: AppLocalizations.of(context)?.homeSwitchTheme ?? '切换外观（系统 / 浅色 / 深色）',
-                  icon: Icon(
-                    mode == ThemeMode.dark
-                        ? Icons.dark_mode_outlined
-                        : Icons.light_mode_outlined,
+                return Semantics(
+                  label: AppLocalizations.of(context)?.homeSwitchTheme ?? '切换外观（系统 / 浅色 / 深色）',
+                  button: true,
+                  value: mode == ThemeMode.dark ? '深色' : '浅色',
+                  child: IconButton(
+                    tooltip: AppLocalizations.of(context)?.homeSwitchTheme ?? '切换外观（系统 / 浅色 / 深色）',
+                    icon: Icon(
+                      mode == ThemeMode.dark
+                          ? Icons.dark_mode_outlined
+                          : Icons.light_mode_outlined,
+                    ),
+                    onPressed: () => ref.read(themeModeProvider.notifier).cycle(),
                   ),
-                  onPressed: () => ref.read(themeModeProvider.notifier).cycle(),
                 );
               },
             ),
-            PopupMenuButton<_HomeMenuItem>(
-              tooltip: AppLocalizations.of(context)?.homeMore ?? '更多操作',
-              icon: const Icon(Icons.more_horiz_rounded),
-              onSelected: _onHomeMenuSelected,
-              itemBuilder: (_) => [
-                PopupMenuItem(
-                  value: _HomeMenuItem.passwordDisk,
-                  child: ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.usb_rounded),
-                    title: Text(AppLocalizations.of(context)?.homePasswordDiskAndRecovery ?? 'Password Disk & Recovery'),
+            Semantics(
+              label: AppLocalizations.of(context)?.homeMore ?? '更多操作',
+              button: true,
+              child: PopupMenuButton<_HomeMenuItem>(
+                tooltip: AppLocalizations.of(context)?.homeMore ?? '更多操作',
+                icon: const Icon(Icons.more_horiz_rounded),
+                onSelected: _onHomeMenuSelected,
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: _HomeMenuItem.passwordDisk,
+                    child: ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.usb_rounded),
+                      title: Text(AppLocalizations.of(context)?.homePasswordDiskAndRecovery ?? 'Password Disk & Recovery'),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
           bottom: PreferredSize(
@@ -465,21 +482,33 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
         body: AmbientBackground(child: _buildBody()),
         floatingActionButton: _tabIndex == 0
-            ? FloatingActionButton.extended(
-                onPressed: _createDrawing,
-                icon: const Icon(Icons.add),
-                label: Text(AppLocalizations.of(context)?.homeNewInfiniteCanvas ?? '新建无限画布'),
+            ? Semantics(
+                label: AppLocalizations.of(context)?.homeNewInfiniteCanvas ?? '新建无限画布',
+                button: true,
+                child: FloatingActionButton.extended(
+                  onPressed: _createDrawing,
+                  icon: const Icon(Icons.add),
+                  label: Text(AppLocalizations.of(context)?.homeNewInfiniteCanvas ?? '新建无限画布'),
+                ),
               )
             : _tabIndex == 2
-            ? FloatingActionButton.extended(
-                onPressed: _quickRecord,
-                icon: const Icon(Icons.edit_note),
-                label: Text(AppLocalizations.of(context)?.homeQuickRecord ?? '快速记录'),
+            ? Semantics(
+                label: AppLocalizations.of(context)?.homeQuickRecord ?? '快速记录',
+                button: true,
+                child: FloatingActionButton.extended(
+                  onPressed: _quickRecord,
+                  icon: const Icon(Icons.edit_note),
+                  label: Text(AppLocalizations.of(context)?.homeQuickRecord ?? '快速记录'),
+                ),
               )
-            : FloatingActionButton.extended(
-                onPressed: _createNotebook,
-                icon: const Icon(Icons.edit_note), // #14 笔记本专用图标——区分画布
-                label: Text(AppLocalizations.of(context)?.newNotebook ?? '新建笔记本'),
+            : Semantics(
+                label: AppLocalizations.of(context)?.newNotebook ?? '新建笔记本',
+                button: true,
+                child: FloatingActionButton.extended(
+                  onPressed: _createNotebook,
+                  icon: const Icon(Icons.edit_note), // #14 笔记本专用图标——区分画布
+                  label: Text(AppLocalizations.of(context)?.newNotebook ?? '新建笔记本'),
+                ),
               ),
       ),
     );
