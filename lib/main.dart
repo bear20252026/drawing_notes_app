@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -122,5 +123,27 @@ Future<void> main() async {
   if (!await _acquireSingleInstance()) {
     return;
   }
-  runApp(const ProviderScope(child: DrawingNotesApp()));
+  // runZonedGuarded：捕获所有未处理的异步异常（Dart zone 级别）。
+  // 补充 FlutterError.onError + PlatformDispatcher.onError 的覆盖范围，
+  // 确保 Future/Stream/Timer 中的未捕获异常也被记录。
+  runZonedGuarded<void>(
+    () {
+      runApp(const ProviderScope(child: DrawingNotesApp()));
+    },
+    (error, stack) {
+      AuditLogger.log(
+        'app.zoned.${error.runtimeType}',
+        success: false,
+        detail: error.toString(),
+      );
+      ErrorLogService.log(error, stack, context: 'runZonedGuarded');
+      // 开发模式下输出到控制台
+      if (kDebugMode) {
+        debugPrint('╔══════════════════════════════════════════');
+        debugPrint('║ ZonedGuarded Error: $error');
+        debugPrint('║ Stack: $stack');
+        debugPrint('╚══════════════════════════════════════════');
+      }
+    },
+  );
 }
