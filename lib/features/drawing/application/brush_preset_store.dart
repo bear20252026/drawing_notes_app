@@ -48,7 +48,7 @@ class BrushPresetBook {
     : _presets = Map<BrushType, BrushPreset>.unmodifiable(presets);
 
   static const double minSize = 1;
-  static const double maxSize = 96;
+  static const double maxSize = 100;
 
   final Map<BrushType, BrushPreset> _presets;
 
