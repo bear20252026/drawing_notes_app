@@ -243,6 +243,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   /// 到图片（极重操作），取色做 200ms 冷却节流防连续触发卡顿。
   DateTime? _lastPickColorAt;
 
+  /// 上次文字工具点击时间（问题#6修复）：防止双击导致重复触发文本框。
+  DateTime? _lastTextToolTap;
+
   /// 拖动轨迹点（对齐 Excalidraw animatedTrail：拖动元素显示轨迹动画）。
   final List<Offset> _trailPoints = [];
 
