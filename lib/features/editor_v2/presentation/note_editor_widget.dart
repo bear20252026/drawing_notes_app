@@ -98,8 +98,9 @@ class _NoteEditorWidgetState extends State<NoteEditorWidget> {
   @override
   Widget build(BuildContext context) {
     // Word 文档式页面（白纸——AFFiNE Page——居中——可读性好）。
+    final scheme = Theme.of(context).colorScheme;
     return Container(
-      color: Colors.white,
+      color: scheme.surface,
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Center(
@@ -111,10 +112,10 @@ class _NoteEditorWidgetState extends State<NoteEditorWidget> {
                 // 标题（笔记标题——Word 文档标题）。
                 Text(
                   widget.document.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: scheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -148,7 +149,7 @@ class _NoteEditorWidgetState extends State<NoteEditorWidget> {
       fontSize: paragraph.isHeading ? 24 : 17, // 标题大——正文 17（SF Pro——苹果）。
       fontWeight: paragraph.isHeading ? FontWeight.bold : FontWeight.normal,
       height: 1.6,
-      color: Colors.black87,
+      color: scheme.onSurface,
     );
 
     return TextField(

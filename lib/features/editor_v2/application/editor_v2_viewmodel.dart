@@ -23,6 +23,8 @@ class EditorV2State {
     this.canRedo = false,
     this.currentTool = 'draw',
     this.currentShapeType = 'line',
+    this.eyedropperActive = false,
+    this.eyedropperPosition = Offset.zero,
   });
 
   /// 当前文档（不可变）。
@@ -34,11 +36,17 @@ class EditorV2State {
   /// 是否可重做。
   final bool canRedo;
 
-  /// 当前工具（draw/select/pan/erase/text/line/rect/ellipse/arrow）。
+  /// 当前工具（draw/select/pan/erase/text/line/rect/ellipse/arrow/eyedropper）。
   final String currentTool;
 
   /// 当前形状类型（line/rect/ellipse/arrow）。
   final String currentShapeType;
+
+  /// 取色器是否激活。
+  final bool eyedropperActive;
+
+  /// 取色器光标位置（画布坐标）。
+  final Offset eyedropperPosition;
 
   /// 不可变拷贝：仅更新指定字段——原实例不变。
   EditorV2State copyWith({
@@ -47,6 +55,8 @@ class EditorV2State {
     bool? canRedo,
     String? currentTool,
     String? currentShapeType,
+    bool? eyedropperActive,
+    Offset? eyedropperPosition,
   }) {
     return EditorV2State(
       document: document ?? this.document,
@@ -54,6 +64,8 @@ class EditorV2State {
       canRedo: canRedo ?? this.canRedo,
       currentTool: currentTool ?? this.currentTool,
       currentShapeType: currentShapeType ?? this.currentShapeType,
+      eyedropperActive: eyedropperActive ?? this.eyedropperActive,
+      eyedropperPosition: eyedropperPosition ?? this.eyedropperPosition,
     );
   }
 
@@ -65,10 +77,14 @@ class EditorV2State {
           canUndo == other.canUndo &&
           canRedo == other.canRedo &&
           currentTool == other.currentTool &&
-          currentShapeType == other.currentShapeType;
+          currentShapeType == other.currentShapeType &&
+          eyedropperActive == other.eyedropperActive &&
+          eyedropperPosition == other.eyedropperPosition;
 
   @override
-  int get hashCode => Object.hash(document, canUndo, canRedo, currentTool, currentShapeType);
+  int get hashCode => Object.hash(
+      document, canUndo, canRedo, currentTool, currentShapeType,
+      eyedropperActive, eyedropperPosition);
 }
 
 /// Editor V2 ViewModel（Riverpod 3.x Notifier——手动声明——不依赖 build_runner）。
@@ -161,6 +177,30 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     execute(CreateTextCommand(layerId: layerId, text: text));
   }
 
+  /// 添加形状（图形工具——支持描边/填充颜色——2026-08-24）。
+  void addShape(
+    String type,
+    double x,
+    double y,
+    double width,
+    double height, {
+    String layerId = 'layer-1',
+    String strokeColor = '#000000',
+    String fillColor = '#CCCCCC',
+  }) {
+    final shape = ShapeItem(
+      id: 'shape-${DateTime.now().millisecondsSinceEpoch}',
+      type: type,
+      x: x,
+      y: y,
+      width: width,
+      height: height,
+      strokeColor: strokeColor,
+      fillColor: fillColor,
+    );
+    execute(CreateShapeCommand(layerId: layerId, shape: shape));
+  }
+
   // ──────────────────────────── 工具切换 ────────────────────────────
 
   void setTool(String tool) {
@@ -169,6 +209,35 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
 
   void setShapeType(String type) {
     state = state.copyWith(currentShapeType: type);
+  }
+
+  /// 激活取色器（放大镜取色——用户需求 #7）。
+  void activateEyedropper() {
+    state = state.copyWith(
+      currentTool: 'eyedropper',
+      eyedropperActive: true,
+    );
+  }
+
+  /// 取消取色器。
+  void deactivateEyedropper() {
+    state = state.copyWith(
+      currentTool: 'draw',
+      eyedropperActive: false,
+    );
+  }
+
+  /// 更新取色器光标位置。
+  void updateEyedropperPosition(Offset position) {
+    state = state.copyWith(eyedropperPosition: position);
+  }
+
+  /// 应用取色结果（设置当前画笔颜色为取到的颜色）。
+  void applyPickedColor(String color) {
+    state = state.copyWith(
+      currentTool: 'draw',
+      eyedropperActive: false,
+    );
   }
 }
 

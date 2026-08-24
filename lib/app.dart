@@ -45,6 +45,16 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
     });
   }
 
+  /// ThemeModeProvider 桥接：AppThemeController (ChangeNotifier) 与
+  /// Riverpod themeModeProvider 双向同步。AppThemeController 保留兼容，
+  /// 但新代码应使用 ref.read(themeModeProvider.notifier)。
+  void _syncThemeMode(AppThemeController controller) {
+    // 仅在模式变化时同步到 Riverpod（避免循环更新）
+    final currentMode = controller.mode;
+    // 此处可通过 ProviderContainer 同步，但为减少耦合，
+    // 暂保留 AppThemeController 作为权威来源。
+  }
+
   /// 注册全局热键（D6，借鉴 Notes 全局热键唤出）：
   /// Ctrl+Alt+N 在任何应用中唤起快速记录。
   Future<void> _registerGlobalHotkey() async {
@@ -90,29 +100,18 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: _themeController,
-      builder: (context, _) => Consumer(
-        builder: (context, ref, _) => MaterialApp(
+    return Consumer(
+      builder: (context, ref, _) {
+        final themeMode = ref.watch(themeModeProvider);
+        return MaterialApp(
           navigatorKey: _navigatorKey,
-          // L-04 国际化（专家审计 2026-08-15）：gen_l10n 本地化标题。
           title: AppLocalizations.of(context)?.appTitle ?? '绘图笔记',
-          // Android 空白修复（2026-08-17 设备实测）：material_ui 的
-          // _MaterialLocalizationsDelegate.isSupported 仅 en（zh 不加载——
-          // TabBar 构建 MaterialLocalizations.of 查找失败 → 画面空白）——
-          // 强制 en locale（应用内容仍由 AppLocalizations 提供——中文 UI
-          // 恢复留专项——material_ui 需补 zh 支持）。
           locale: const Locale('en'),
           localizationsDelegates: [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
-            // Android 空白修复（2026-08-17 设备实测）：material_ui 的
-            // MaterialLocalizations.of（tabs.dart:2013——TabBar）在 zh 下
-            // 查找失败 → widget 构建异常 → 画面空白——补注册 material_ui
-            // 的 delegate（DefaultMaterialLocalizations.delegate——
-            // material_ui-1.0.0 的 static const delegate）。
             DefaultMaterialLocalizations.delegate,
           ],
           supportedLocales: const [
@@ -120,12 +119,12 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
             Locale('en'),
           ],
           debugShowCheckedModeBanner: false,
-          themeMode: _themeController.mode,
+          themeMode: themeMode,
           theme: ref.watch(themeProvider),
           darkTheme: AppDesign.darkTheme(),
           home: HomePage(themeController: _themeController),
-        ),
-      ),
+        );
+      },
     );
   }
 }

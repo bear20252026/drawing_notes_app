@@ -4,6 +4,8 @@
 // 纯 Dart 不可变模型——可独立测试——不搞崩。
 library;
 
+import 'tool_engine.dart';
+
 /// 笔画样式（画笔参数——AFFiNE/Excalidraw 借鉴——不可变）。
 class StrokeStyle {
   const StrokeStyle({
@@ -12,6 +14,7 @@ class StrokeStyle {
     this.strokeWidth = 2.0,
     this.opacity = 1.0,
     this.strokeStyle = StrokeLineType.solid,
+    this.fillMode = FillMode.stroke,
   });
 
   final String strokeColor;
@@ -20,12 +23,16 @@ class StrokeStyle {
   final double opacity;
   final StrokeLineType strokeStyle;
 
+  /// 图形填充模式（stroke/fill/both）。
+  final FillMode fillMode;
+
   StrokeStyle copyWith({
     String? strokeColor,
     String? backgroundColor,
     double? strokeWidth,
     double? opacity,
     StrokeLineType? strokeStyle,
+    FillMode? fillMode,
   }) {
     return StrokeStyle(
       strokeColor: strokeColor ?? this.strokeColor,
@@ -33,6 +40,7 @@ class StrokeStyle {
       strokeWidth: strokeWidth ?? this.strokeWidth,
       opacity: opacity ?? this.opacity,
       strokeStyle: strokeStyle ?? this.strokeStyle,
+      fillMode: fillMode ?? this.fillMode,
     );
   }
 
@@ -71,10 +79,11 @@ class StrokeStyle {
           backgroundColor == other.backgroundColor &&
           strokeWidth == other.strokeWidth &&
           opacity == other.opacity &&
-          strokeStyle == other.strokeStyle;
+          strokeStyle == other.strokeStyle &&
+          fillMode == other.fillMode;
 
   @override
-  int get hashCode => Object.hash(strokeColor, backgroundColor, strokeWidth, opacity, strokeStyle);
+  int get hashCode => Object.hash(strokeColor, backgroundColor, strokeWidth, opacity, strokeStyle, fillMode);
 }
 
 /// 线条类型（Excalidraw stroke style 借鉴）。

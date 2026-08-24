@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:editor_core/editor_core.dart';
 import '../application/stroke_style_notifier.dart';
 
+
 /// AFFiNE 属性面板（积木式独立 Widget——选中元素属性编辑）。
 ///
 /// 功能：
@@ -53,6 +54,9 @@ class PropertyPanel extends ConsumerWidget {
             const SizedBox(height: 12),
             // 颜色选择器（预设方块）。
             _buildColorSection(ref, strokeStyle),
+            const SizedBox(height: 12),
+            // 填充模式（stroke/fill/both）。
+            _buildFillModeSection(ref, strokeStyle),
             const SizedBox(height: 12),
             // 线宽滑块。
             _buildStrokeWidthSection(ref, strokeStyle),
@@ -104,6 +108,49 @@ class PropertyPanel extends ConsumerWidget {
           }).toList(),
         ),
       ],
+    );
+  }
+
+  /// 填充模式区（stroke/fill/both）。
+  Widget _buildFillModeSection(WidgetRef ref, StrokeStyle style) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('填充模式', style: TextStyle(fontSize: 12, color: Colors.grey)),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            _fillModeButton(ref, style, FillMode.stroke, '描边', Icons.rectangle_outlined),
+            const SizedBox(width: 4),
+            _fillModeButton(ref, style, FillMode.fill, '填充', Icons.rectangle),
+            const SizedBox(width: 4),
+            _fillModeButton(ref, style, FillMode.both, '两者', Icons.layers_outlined),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _fillModeButton(WidgetRef ref, StrokeStyle style, FillMode mode, String label, IconData icon) {
+    final isSelected = style.fillMode == mode;
+    return Expanded(
+      child: OutlinedButton.icon(
+        onPressed: () {
+          ref.read(strokeStyleProvider.notifier).updateFillMode(mode);
+        },
+        icon: Icon(icon, size: 14),
+        label: Text(label, style: const TextStyle(fontSize: 11)),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          backgroundColor: isSelected ? Colors.blue.withValues(alpha: 0.1) : null,
+          side: BorderSide(
+            color: isSelected ? Colors.blue : Colors.grey.shade400,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
     );
   }
 

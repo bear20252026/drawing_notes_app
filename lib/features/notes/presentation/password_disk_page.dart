@@ -329,8 +329,8 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
         children: [
           // 状态卡（军工级增强：状态动画 + 锁定倒计时 + 指纹仪表盘）
           AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
+            duration: AppAnimation.standardDuration,
+            curve: AppAnimation.standardMotion,
             decoration: BoxDecoration(
               color: _isLocked
                   ? Theme.of(context).colorScheme.errorContainer

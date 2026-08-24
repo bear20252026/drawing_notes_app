@@ -11,8 +11,16 @@ import '../theme/app_design.dart';
 /// - 编译时安全：provider 类型在编译期解析，拼写错误即编译失败
 /// - 可测试：ProviderContainer 可独立构建，provider 可用 override 替换
 ///
-/// 主题 provider（首个示例，验证管线打通；AppThemeController 保留兼容）。
-final themeProvider = Provider<ThemeData>((ref) => AppDesign.lightTheme());
+/// 主题 provider：根据 themeModeProvider 的当前模式返回对应主题。
+///
+/// 浅色/跟随系统 → lightTheme，深色 → darkTheme。
+final themeProvider = Provider<ThemeData>((ref) {
+  final mode = ref.watch(themeModeProvider);
+  return switch (mode) {
+    ThemeMode.dark => AppDesign.darkTheme(),
+    _ => AppDesign.lightTheme(),
+  };
+});
 
 /// 深色模式开关（Notifier 迁移示范，审计修复 2026-08-15）：
 /// 原 StateProvider 为 Riverpod 3.0 legacy API（3.0 已移出主 import），

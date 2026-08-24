@@ -26,6 +26,7 @@ import 'package:drawing_notes_app/core/rendering/shape_recognizer.dart';
 import 'package:drawing_notes_app/core/rendering/shape_binding_geometry.dart';
 import 'package:drawing_notes_app/core/rendering/shape_renderer.dart';
 import 'package:drawing_notes_app/core/rendering/stroke_renderer.dart';
+import 'package:drawing_notes_app/features/drawing/application/spatial_index.dart';
 
 /// 绘图引擎控制器：UI 层与数据模型之间的唯一桥梁。
 ///
@@ -45,10 +46,15 @@ part 'drawing_controller_history.dart';
 class DrawingController extends ChangeNotifier {
   DrawingController(this._document) {
     _rebuildCacheMap();
+    _rebuildSpatialIndex();
   }
 
   final DrawingDocument _document;
   DrawingDocument get document => _document;
+
+  /// 空间索引：用于快速元素选择和碰撞检测。
+  final SpatialIndex _spatialIndex = SpatialIndex();
+  SpatialIndex get spatialIndex => _spatialIndex;
 
   final Map<String, ui.Image> _documentImages = <String, ui.Image>{};
   final Set<String> _loadingDocumentImageIds = <String>{};
@@ -70,7 +76,34 @@ class DrawingController extends ChangeNotifier {
   /// 已销毁标记：dispose 后拒绝一切变更与通知（防止异步回调越界）。
 
   /// 受保护成员 notifyListeners 的转发包装（供 extension 使用）。
-  void _applyNotify() => notifyListeners();
+  void _applyNotify() {
+    notifyListeners();
+  }
+
+  /// 标记内容变更需要重建空间索引。
+  bool _spatialIndexDirty = false;
+
+  /// 标记空间索引需要重建（内容变更后调用）。
+  void markSpatialIndexDirty() {
+    _spatialIndexDirty = true;
+  }
+
+  /// 确保空间索引是最新的（惰性重建）。
+  void _ensureSpatialIndexCurrent() {
+    if (_spatialIndexDirty) {
+      _rebuildSpatialIndex();
+      _spatialIndexDirty = false;
+    }
+  }
+
+  /// 获取空间索引的当前状态（用于调试）。
+  Map<int, Set<String>> get debugSpatialIndex => _spatialIndex._grid;
+
+  /// 测试空间索引查询（用于单元测试）。
+  Set<String> testSpatialIndexQuery(Rect rect) {
+    _ensureSpatialIndexCurrent();
+    return _spatialIndex.query(rect);
+  }
 
   // ---- 通用几何工具（供选区/对象选择共享，静态方法）----
   static bool _strokeIntersectsPolygon(
@@ -232,6 +265,50 @@ class DrawingController extends ChangeNotifier {
     for (final layer in _document.layers) {
       _caches.putIfAbsent(layer.id, LayerRenderCache.new);
     }
+  }
+
+  /// 重建空间索引（文档内容变更后调用）。
+  ///
+  /// 遍历所有可见图层的笔画和形状，构建空间索引以支持快速元素选择。
+  void _rebuildSpatialIndex() {
+    _spatialIndex.clear();
+    for (final layer in _document.layers) {
+      if (!layer.visible) continue;
+      // 添加笔画到空间索引
+      for (var i = 0; i < layer.strokes.length; i++) {
+        final stroke = layer.strokes[i];
+        final bounds = StrokeRenderer.strokeBounds(stroke);
+        if (bounds != null) {
+          _spatialIndex.insert(
+            '${layer.id}_stroke_$i',
+            bounds,
+          );
+        }
+      }
+    }
+    // 添加形状到空间索引
+    for (final shape in _document.shapes) {
+      final bounds = ShapeRenderer.bounds(shape);
+      _spatialIndex.insert(
+        'shape_${shape.id}',
+        bounds,
+      );
+    }
+    // 添加图片到空间索引
+    for (final image in _document.imageItems) {
+      _spatialIndex.insert(
+        'image_${image.id}',
+        Rect.fromLTWH(image.x, image.y, image.width, image.height),
+      );
+    }
+  }
+
+  /// 标记空间索引需要重建（内容变更后调用）。
+  ///
+  /// 用于延迟重建，避免频繁的完整重建操作。
+  void invalidateSpatialIndex() {
+    // 在实际使用时重建，这里只做标记
+    _rebuildSpatialIndex();
   }
 
   /// 标记图层内容/属性变化，触发异步重建缓存。

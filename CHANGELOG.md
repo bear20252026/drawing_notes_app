@@ -2,6 +2,19 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### 新增
+- **CVE 依赖扫描工具**：`tools/scan_cve.py`，基于 OSV.dev API 扫描 pubspec.lock 中所有已知漏洞
+- **CVE 扫描 CI Workflow**：`.github/workflows/cve-scan.yml`，PR 自动扫描 + 每周定时扫描 + 手动触发
+- **Schema 迁移机制**：`lib/core/storage/migration/`，版本化存储格式迁移框架
+  - `SchemaMigrator`：版本检测 → 链式执行 → 备份 → 失败回滚
+  - `MigrationRunner`：应用启动时自动迁移
+  - `allMigrations`：迁移注册表，新增迁移只需在此添加
+
+### 依赖精简
+- **PDF 包分析**：确认 `pdf`（生成）与 `pdfrx`（渲染）职责不同，均需保留；`pdfx` 已迁移删除，无残留引用
+
 ## [1.1.0] - 2026-08-16
 
 ### 安全（专家审计闭环——P0-P2 封堵 + 军工审计链 A-H + 专家审计包）

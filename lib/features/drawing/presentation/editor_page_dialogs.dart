@@ -231,6 +231,7 @@ enum _MainMenuItem {
   clearCanvas,
   copyPng,
   exportPng,
+  exportSelectionPng,
   exportSvg,
   exportPdf,
   exportJson,

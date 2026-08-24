@@ -25,10 +25,15 @@ import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 ///
 /// 注意：本渲染器只做"绘制"，不处理手势；手势由编辑器页面负责。
 class CanvasPainter extends CustomPainter {
-  CanvasPainter({required this.controller})
-    : super(repaint: Listenable.merge([controller, controller.frameTick]));
+  CanvasPainter({
+    required this.controller,
+    this.backgroundColor = const Color(0xFFFFFFFF),
+  }) : super(repaint: Listenable.merge([controller, controller.frameTick]));
 
   final DrawingController controller;
+
+  /// 画布背景色（暗色模式下由调用方传入深色值）。
+  final Color backgroundColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -66,7 +71,7 @@ class CanvasPainter extends CustomPainter {
     if (!doc.infinite) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(canvasRect, const Radius.circular(4)),
-        Paint()..color = const Color(0xFFFFFFFF),
+        Paint()..color = backgroundColor,
       );
       _paintPaperTemplate(canvas, doc);
     }

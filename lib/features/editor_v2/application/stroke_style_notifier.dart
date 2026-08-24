@@ -38,6 +38,11 @@ class StrokeStyleNotifier extends Notifier<StrokeStyle> {
     state = state.copyWith(strokeStyle: type);
   }
 
+  /// 更新填充模式（stroke/fill/both）。
+  void updateFillMode(FillMode mode) {
+    state = state.copyWith(fillMode: mode);
+  }
+
   /// 重置为默认。
   void reset() {
     state = const StrokeStyle();

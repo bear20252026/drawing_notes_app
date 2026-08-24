@@ -68,11 +68,37 @@ extension DrawingControllerSelectionOps on DrawingController {
   /// 命中检测：返回选区多边形命中的当前图层笔画索引。
   ///
   /// 除了采样点落在内部，也检测笔画线段与套索边界的交叉，避免一条只含两个
-  /// 端点的长线“穿过选区却选不中”。
+  /// 端点的长线”穿过选区却选不中”。
+  ///
+  /// 优化：使用空间索引快速排除不可能相交的笔画，将 O(N) 降低到 O(K)，
+  /// 其中 K 为候选集大小。
   List<int> _hitTestStrokes(List<Offset> polygon) {
     final strokes = currentLayer.strokes;
+    if (strokes.isEmpty) return [];
+
+    // 确保空间索引是最新的
+    _ensureSpatialIndexCurrent();
+
+    // 计算选区边界框
+    var minX = double.infinity, minY = double.infinity;
+    var maxX = -double.infinity, maxY = -double.infinity;
+    for (final p in polygon) {
+      if (p.dx < minX) minX = p.dx;
+      if (p.dy < minY) minY = p.dy;
+      if (p.dx > maxX) maxX = p.dx;
+      if (p.dy > maxY) maxY = p.dy;
+    }
+    final selectionBounds = Rect.fromLTRB(minX, minY, maxX, maxY);
+
+    // 使用空间索引快速获取可能相交的元素
+    final candidateIds = _spatialIndex.query(selectionBounds);
+
     final result = <int>[];
     for (var i = 0; i < strokes.length; i++) {
+      final strokeId = '${currentLayer.id}_stroke_$i';
+      // 只有空间索引返回的候选元素才进行详细命中检测
+      if (!candidateIds.contains(strokeId)) continue;
+
       final points = strokes[i].points;
       if (points.any((point) => _pointInPolygon(point.offset, polygon)) ||
           DrawingController._strokeIntersectsPolygon(points, polygon)) {
@@ -80,6 +106,38 @@ extension DrawingControllerSelectionOps on DrawingController {
       }
     }
     return result;
+  }
+
+  /// 点击检测：返回点击位置命中的元素（使用空间索引优化）。
+  ///
+  /// 返回命中的笔画索引、形状 ID 或图片 ID（按优先级）。
+  /// 用于鼠标点击选择元素，优先选择最上层的元素。
+  int? hitTestAtPoint(Offset canvasPoint) {
+    // 确保空间索引是最新的
+    _ensureSpatialIndexCurrent();
+
+    // 使用空间索引查询点击位置的候选元素
+    final candidates = _spatialIndex.queryPoint(canvasPoint);
+
+    // 优先级：图片 > 形状 > 笔画
+    for (final id in candidates) {
+      if (id.startsWith('image_')) {
+        return -1; // 图片
+      }
+      if (id.startsWith('shape_')) {
+        return -2; // 形状
+      }
+    }
+
+    // 检查当前图层的笔画
+    for (var i = currentLayer.strokes.length - 1; i >= 0; i--) {
+      final strokeId = '${currentLayer.id}_stroke_$i';
+      if (candidates.contains(strokeId)) {
+        return i;
+      }
+    }
+
+    return null;
   }
 
 
