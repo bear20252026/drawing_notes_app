@@ -164,6 +164,36 @@ void main() {
       expect(utf8.decode(decrypted), plaintext);
     });
 
+    test('边界条件：空数据端到端回环', () async {
+      final (k1s, k2s, k3s) = await encryption.deriveKeyChain(
+        password: 'empty-data-edge',
+        salt: Uint8List.fromList(List.filled(16, 0x21)),
+      );
+      final signingKeyPair = await signatureService.generateKeyPair();
+      final kek = secureKey32();
+
+      final encrypted = await threeLayer.encrypt(
+        plaintext: const [],
+        k1: await k1s.extractBytes(),
+        k2: await k2s.extractBytes(),
+        k3: await k3s.extractBytes(),
+        signingKeyPair: signingKeyPair,
+        kek: kek,
+      );
+
+      // 空明文仍产生有效三层结构与合法填充。
+      expect(encrypted.l2PaddingLength, inInclusiveRange(16, 256));
+
+      final decrypted = await threeLayer.decrypt(
+        result: encrypted,
+        k1: await k1s.extractBytes(),
+        k2: await k2s.extractBytes(),
+        kek: kek,
+        signingPublicKey: signingKeyPair.publicKey,
+      );
+      expect(decrypted, isEmpty);
+    });
+
     test('大数据端到端：100KB 笔记载荷全链路', () async {
       final (k1s, k2s, k3s) = await encryption.deriveKeyChain(
         password: 'large-payload-test',
