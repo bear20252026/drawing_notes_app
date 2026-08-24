@@ -280,5 +280,97 @@
   "unifiedLayerPanelRename": "Rename Layer",
   "unifiedLayerPanelRenameHint": "Enter layer name",
   "unifiedLayerPanelCancel": "Cancel",
-  "unifiedLayerPanelConfirm": "Confirm"
+  "unifiedLayerPanelConfirm": "Confirm",
+
+  "unnamedNote": "Untitled Note",
+  "inputText": "Input Text",
+  "inputTextContent": "Enter text content",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "note": "Note",
+  "save": "Save",
+  "loadFailed": "Load failed",
+  "noteTitle": "Note Title",
+  "editorV2Title": "Editor V2 - {docId}",
+  "@editorV2Title": {
+    "description": "Editor V2 title",
+    "placeholders": {
+      "docId": {
+        "type": "String",
+        "example": "doc1"
+      }
+    }
+  },
+
+  "historyPanelTitle": "History",
+  "historySteps": "{count} steps",
+  "@historySteps": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "undo": "Undo",
+  "redo": "Redo",
+  "noHistory": "No history",
+
+  "exportPanelTitle": "Export",
+  "exporting": "Exporting...",
+  "exportFormat": "Export {format}",
+  "@exportFormat": {
+    "placeholders": {
+      "format": { "type": "String" }
+    }
+  },
+  "exportPreview": "Preview",
+  "copied": "Copied",
+  "copyTooltip": "Copy",
+  "pngExportHint": "PNG export requires Canvas rendering — use canvas context menu to export.",
+  "exportFailed": "Export failed: {error}",
+  "@exportFailed": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "exportFormatPNG": "Image format",
+  "exportFormatSVG": "Vector format",
+  "exportFormatJSON": "Document format",
+
+  "propertiesPanelTitle": "Properties",
+  "colorLabel": "Color",
+  "strokeWidthLabel": "Stroke Width",
+  "opacityLabel": "Opacity",
+  "lineStyleLabel": "Line Style",
+  "solidLine": "Solid",
+  "dashedLine": "Dashed",
+  "dottedLine": "Dotted",
+
+  "titleHint": "Title",
+  "startTypingHint": "Start typing…",
+
+  "zoomOut": "Zoom Out",
+  "zoomIn": "Zoom In",
+  "zoomReset": "Reset (1x)",
+  "fitWindow": "Fit to Window",
+
+  "pageManagement": "Page Management",
+  "pageN": "Page {index}",
+  "@pageN": {
+    "placeholders": {
+      "index": { "type": "int" }
+    }
+  },
+  "newPage": "New",
+  "deletePage": "Delete",
+
+  "slideN": "Slide {index}",
+  "@slideN": {
+    "placeholders": {
+      "index": { "type": "int" }
+    }
+  },
+  "newColumn": "New Column",
+
+  "noLayers": "No layers",
+
+  "selectColor": "Select Color"
 }

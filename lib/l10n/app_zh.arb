@@ -864,5 +864,97 @@
   "unifiedLayerPanelRename": "重命名图层",
   "unifiedLayerPanelRenameHint": "输入图层名称",
   "unifiedLayerPanelCancel": "取消",
-  "unifiedLayerPanelConfirm": "确定"
+  "unifiedLayerPanelConfirm": "确定",
+
+  "unnamedNote": "未命名笔记",
+  "inputText": "输入文字",
+  "inputTextContent": "输入文字内容",
+  "cancel": "取消",
+  "confirm": "确定",
+  "note": "笔记",
+  "save": "保存",
+  "loadFailed": "加载失败",
+  "noteTitle": "笔记标题",
+  "editorV2Title": "Editor V2 - {docId}",
+  "@editorV2Title": {
+    "description": "Editor V2 标题",
+    "placeholders": {
+      "docId": {
+        "type": "String",
+        "example": "doc1"
+      }
+    }
+  },
+
+  "historyPanelTitle": "历史记录",
+  "historySteps": "{count} 步",
+  "@historySteps": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "undo": "撤销",
+  "redo": "重做",
+  "noHistory": "无历史记录",
+
+  "exportPanelTitle": "导出",
+  "exporting": "导出中...",
+  "exportFormat": "导出 {format}",
+  "@exportFormat": {
+    "placeholders": {
+      "format": { "type": "String" }
+    }
+  },
+  "exportPreview": "预览",
+  "copied": "已复制",
+  "copyTooltip": "复制",
+  "pngExportHint": "PNG 导出需要 Canvas 渲染——请使用画布右键菜单导出。",
+  "exportFailed": "导出失败: {error}",
+  "@exportFailed": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "exportFormatPNG": "图片格式",
+  "exportFormatSVG": "矢量格式",
+  "exportFormatJSON": "文档格式",
+
+  "propertiesPanelTitle": "属性",
+  "colorLabel": "颜色",
+  "strokeWidthLabel": "线宽",
+  "opacityLabel": "透明度",
+  "lineStyleLabel": "线条样式",
+  "solidLine": "实线",
+  "dashedLine": "虚线",
+  "dottedLine": "点线",
+
+  "titleHint": "标题",
+  "startTypingHint": "开始输入…",
+
+  "zoomOut": "缩小",
+  "zoomIn": "放大",
+  "zoomReset": "重置 (1x)",
+  "fitWindow": "适应窗口",
+
+  "pageManagement": "页面管理",
+  "pageN": "页面 {index}",
+  "@pageN": {
+    "placeholders": {
+      "index": { "type": "int" }
+    }
+  },
+  "newPage": "新建",
+  "deletePage": "删除",
+
+  "slideN": "幻灯片 {index}",
+  "@slideN": {
+    "placeholders": {
+      "index": { "type": "int" }
+    }
+  },
+  "newColumn": "新列",
+
+  "noLayers": "无图层",
+
+  "selectColor": "选择颜色"
 }
