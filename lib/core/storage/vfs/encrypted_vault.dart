@@ -110,6 +110,25 @@ class EncryptedVault {
     return Uint8List.fromList(clear);
   }
 
+  /// 删除对象（标记为已删除——实际删除文件 + 清单更新）。
+  Future<void> deleteObject(String id) async {
+    final manifest = await _loadManifest();
+    final entry = manifest.find(id);
+    if (entry == null) return; // 不存在——幂等。
+
+    // 删除所有版本的文件。
+    for (var v = 1; v <= entry.version; v++) {
+      final file = _objectFile(id, v);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    }
+
+    // 更新清单。
+    manifest.entries.removeWhere((e) => e.id == id);
+    await _atomicWriteText(_manifestFile, manifest.encode());
+  }
+
   /// 当前清单快照（对象条目集——版本/大小/AAD）。
   Future<List<VaultManifestEntry>> listObjects() async =>
       List.unmodifiable((await _loadManifest()).entries);
