@@ -50,6 +50,13 @@ android {
         release {
             // A production APK/AAB must never silently use the debug key.
             signingConfig = signingConfigs.getByName("release")
+            // R8 混淆 + 资源缩减（安全加固 P0——减小 APK 体积 + 防逆向）。
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }
