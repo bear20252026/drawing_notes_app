@@ -373,13 +373,17 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
 
   /// 获取当前位置的取色结果（用于放大镜显示）。
   ///
-  /// 优先使用实时采样的颜色（通过 MagnifierOverlay 传入），
-  // 如果没有则返回占位灰色。
-  Color _getCurrentPickedColor(Offset position) {
-    // 取色器已通过 setMagnifierColor 实时更新状态，
-    // 此处直接返回状态中的颜色即可。
+  /// 使用 editor_core 的 PickedColor 构建结果。
+  PickedColor _getCurrentPickedColor(Offset position) {
     final state = ref.read(editorV2NotifierProvider);
-    return state.currentColor;
+    final c = state.currentColor;
+    return PickedColor(
+      r: c.red,
+      g: c.green,
+      b: c.blue,
+      positionX: position.dx,
+      positionY: position.dy,
+    );
   }
 }
 

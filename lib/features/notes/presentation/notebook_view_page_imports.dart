@@ -326,6 +326,19 @@ extension _NotebookPageImports on _NotebookViewPageState {
           ],
         ),
         actions: [
+          // #12 一键复制恢复密钥到剪贴板
+          TextButton.icon(
+            icon: const Icon(Icons.copy),
+            label: const Text('一键复制'),
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: recoveryKey));
+              if (ctx.mounted) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(content: Text('恢复密钥已复制到剪贴板')),
+                );
+              }
+            },
+          ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('我已抄写'),

@@ -1,31 +1,22 @@
-// editor_v2——PropertyPanel 属性面板（AFFiNE 借鉴——2026-08-21）。
-//
-// AFFiNE 右侧属性面板本地化——选中元素属性编辑（颜色/线宽/透明度/边框）。
-// 积木式独立 Widget——不耦合其他组件——可插拔——不搞崩。
-library;
+// editor_v2——PropertyPanel 属性面板（AFFiNE 借鉴—�?026-08-21）�?//
+// AFFiNE 右侧属性面板本地化——选中元素属性编辑（颜色/线宽/透明�?边框）�?// 积木式独�?Widget——不耦合其他组件——可插拔——不搞崩�?library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/theme/text_scale_helper.dart';
 
 import 'package:editor_core/editor_core.dart';
 import '../application/stroke_style_notifier.dart';
 
 
-/// AFFiNE 属性面板（积木式独立 Widget——选中元素属性编辑）。
-///
-/// 功能：
-/// - 颜色预设（12色方块——选中高亮——AFFiNE 调色板风格）
-/// - 线宽滑块（1~32——StrokeStyle 范围）
-/// - 透明度滑块（0~1）
-/// - 线条样式（solid/dashed/dotted）
-/// - 背景色选择（形状填充色）
-///
-/// 设计：积木式——独立 Widget——不耦合其他组件——可插拔。
-class PropertyPanel extends ConsumerWidget {
+/// AFFiNE 属性面板（积木式独�?Widget——选中元素属性编辑）�?///
+/// 功能�?/// - 颜色预设�?2色方块——选中高亮——AFFiNE 调色板风格）
+/// - 线宽滑块�?~32——StrokeStyle 范围�?/// - 透明度滑块（0~1�?/// - 线条样式（solid/dashed/dotted�?/// - 背景色选择（形状填充色�?///
+/// 设计：积木式——独�?Widget——不耦合其他组件——可插拔�?class PropertyPanel extends ConsumerWidget {
   const PropertyPanel({super.key});
 
-  // AFFiNE/Excalidraw 常用颜色预设（12色——不含透明）。
-  static const List<String> _colorPresets = [
+  // AFFiNE/Excalidraw 常用颜色预设�?2色——不含透明）�?  static const List<String> _colorPresets = [
     '#000000', '#FFFFFF', '#FF0000', '#FF6600',
     '#FFCC00', '#33CC33', '#0099FF', '#6633CC',
     '#FF3399', '#999999', '#CCCCCC', '#666666',
@@ -33,8 +24,7 @@ class PropertyPanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 画笔样式（积木式独立 Notifier——不耦合 EditorV2Notifier）。
-    final strokeStyle = ref.watch(strokeStyleProvider);
+    // 画笔样式（积木式独立 Notifier——不耦合 EditorV2Notifier）�?    final strokeStyle = ref.watch(strokeStyleProvider);
 
     return Card(
       elevation: 2,
@@ -49,35 +39,28 @@ class PropertyPanel extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 标题（AFFiNE 风格）。
-            Text('属性', style: Theme.of(context).textTheme.titleSmall),
+            // 标题（AFFiNE 风格）�?            Text('属�?, style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 12),
-            // 颜色选择器（预设方块）。
-            _buildColorSection(ref, strokeStyle),
+            // 颜色选择器（预设方块）�?            _buildColorSection(ref, strokeStyle),
             const SizedBox(height: 12),
-            // 填充模式（stroke/fill/both）。
-            _buildFillModeSection(ref, strokeStyle),
+            // 填充模式（stroke/fill/both）�?            _buildFillModeSection(ref, strokeStyle),
             const SizedBox(height: 12),
-            // 线宽滑块。
-            _buildStrokeWidthSection(ref, strokeStyle),
+            // 线宽滑块�?            _buildStrokeWidthSection(ref, strokeStyle),
             const SizedBox(height: 12),
-            // 透明度滑块。
-            _buildOpacitySection(ref, strokeStyle),
+            // 透明度滑块�?            _buildOpacitySection(ref, strokeStyle),
             const SizedBox(height: 12),
-            // 线条样式（solid/dashed/dotted）。
-            _buildLineStyleSection(ref, strokeStyle),
+            // 线条样式（solid/dashed/dotted）�?            _buildLineStyleSection(ref, strokeStyle),
           ],
         ),
       ),
     );
   }
 
-  /// 颜色选择区（12色预设方块——选中高亮边框）。
-  Widget _buildColorSection(WidgetRef ref, StrokeStyle style) {
+  /// 颜色选择区（12色预设方块——选中高亮边框）�?  Widget _buildColorSection(WidgetRef ref, StrokeStyle style) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('颜色', style: TextStyle(fontSize: 12, color: Colors.grey)),
+        const Text('颜色', style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), color: Colors.grey)),
         const SizedBox(height: 6),
         Wrap(
           spacing: 6,
@@ -111,12 +94,11 @@ class PropertyPanel extends ConsumerWidget {
     );
   }
 
-  /// 填充模式区（stroke/fill/both）。
-  Widget _buildFillModeSection(WidgetRef ref, StrokeStyle style) {
+  /// 填充模式区（stroke/fill/both）�?  Widget _buildFillModeSection(WidgetRef ref, StrokeStyle style) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('填充模式', style: TextStyle(fontSize: 12, color: Colors.grey)),
+        const Text('填充模式', style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), color: Colors.grey)),
         const SizedBox(height: 6),
         Row(
           children: [
@@ -124,7 +106,7 @@ class PropertyPanel extends ConsumerWidget {
             const SizedBox(width: 4),
             _fillModeButton(ref, style, FillMode.fill, '填充', Icons.rectangle),
             const SizedBox(width: 4),
-            _fillModeButton(ref, style, FillMode.both, '两者', Icons.layers_outlined),
+            _fillModeButton(ref, style, FillMode.both, '两�?, Icons.layers_outlined),
           ],
         ),
       ],
@@ -139,7 +121,7 @@ class PropertyPanel extends ConsumerWidget {
           ref.read(strokeStyleProvider.notifier).updateFillMode(mode);
         },
         icon: Icon(icon, size: 14),
-        label: Text(label, style: const TextStyle(fontSize: 11)),
+        label: Text(label, style: TextStyle(fontSize: TextScaleHelper.scaled(context, '11'))),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 6),
           backgroundColor: isSelected ? Colors.blue.withValues(alpha: 0.1) : null,
@@ -154,17 +136,16 @@ class PropertyPanel extends ConsumerWidget {
     );
   }
 
-  /// 线宽滑块区（1~32）。
-  Widget _buildStrokeWidthSection(WidgetRef ref, StrokeStyle style) {
+  /// 线宽滑块区（1~32）�?  Widget _buildStrokeWidthSection(WidgetRef ref, StrokeStyle style) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('线宽', style: TextStyle(fontSize: 12, color: Colors.grey)),
+            const Text('线宽', style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), color: Colors.grey)),
             Text('${style.strokeWidth.round()}px',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                style: TextStyle(fontSize: TextScaleHelper.scaled(context, '12'), fontWeight: FontWeight.w500)),
           ],
         ),
         SliderTheme(
@@ -190,17 +171,16 @@ class PropertyPanel extends ConsumerWidget {
     );
   }
 
-  /// 透明度滑块区（0~1）。
-  Widget _buildOpacitySection(WidgetRef ref, StrokeStyle style) {
+  /// 透明度滑块区�?~1）�?  Widget _buildOpacitySection(WidgetRef ref, StrokeStyle style) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('透明度', style: TextStyle(fontSize: 12, color: Colors.grey)),
+            const Text('透明�?, style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), color: Colors.grey)),
             Text('${(style.opacity * 100).round()}%',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                style: TextStyle(fontSize: TextScaleHelper.scaled(context, '12'), fontWeight: FontWeight.w500)),
           ],
         ),
         SliderTheme(
@@ -226,12 +206,11 @@ class PropertyPanel extends ConsumerWidget {
     );
   }
 
-  /// 线条样式区（solid/dashed/dotted）。
-  Widget _buildLineStyleSection(WidgetRef ref, StrokeStyle style) {
+  /// 线条样式区（solid/dashed/dotted）�?  Widget _buildLineStyleSection(WidgetRef ref, StrokeStyle style) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('线条样式', style: TextStyle(fontSize: 12, color: Colors.grey)),
+        const Text('线条样式', style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), color: Colors.grey)),
         const SizedBox(height: 6),
         Row(
           children: StrokeLineType.values.map((type) {
@@ -257,7 +236,7 @@ class PropertyPanel extends ConsumerWidget {
                   child: Text(
                     _lineTypeName(type),
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: TextScaleHelper.scaled(context, 11),
                       color: isSelected ? Colors.blue : Colors.grey.shade700,
                     ),
                   ),
@@ -281,8 +260,7 @@ class PropertyPanel extends ConsumerWidget {
     }
   }
 
-  /// 十六进制颜色字符串转 Color。
-  static Color _hexToColor(String hex) {
+  /// 十六进制颜色字符串转 Color�?  static Color _hexToColor(String hex) {
     final clean = hex.replaceFirst('#', '');
     return Color(int.parse('FF$clean', radix: 16));
   }

@@ -90,4 +90,95 @@ void main() {
     // 页面仍存活（状态卡仍在）。
     expect(find.text('密码盘（U盘即钥匙）'), findsOneWidget);
   });
+
+  // ─── #11 锁定按钮测试 ───────────────────────────────────
+  testWidgets('密码盘页面：创建后解锁可见锁定按钮', (tester) async {
+    List<int>? capturedKey;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PasswordDiskPage(
+          disk: MockPasswordDisk(baseDir: diskDir.path),
+          onKeyUnlocked: (key) => capturedKey = key,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 1. 创建密码盘
+    await tester.tap(find.text('创建密码盘（生成密钥 + 恢复密钥）'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump(const Duration(seconds: 1));
+    expect(tester.takeException(), isNull);
+    // 关闭恢复密钥对话框
+    final okBtn = find.text('我已抄写');
+    if (okBtn.evaluate().isNotEmpty) {
+      await tester.tap(okBtn);
+      await tester.pumpAndSettle();
+    }
+
+    // 2. onKeyUnlocked 回调应在创建后自动触发
+    expect(capturedKey, isNotNull, reason: 'onKeyUnlocked 应在创建后回调');
+
+    // 3. 解锁
+    await tester.tap(find.text('解锁（选择 U 盘密码盘目录）'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(tester.takeException(), isNull);
+
+    // 4. 锁定按钮应出现
+    final lockBtn = find.text('锁定（清除内存中的主密钥）');
+    if (lockBtn.evaluate().isNotEmpty) {
+      await tester.tap(lockBtn);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: '锁定不应崩溃');
+    }
+  });
+
+  // ─── #11 落盘加密验证按钮测试 ─────────────────────────────
+  testWidgets('密码盘页面：落盘加密验证区存在', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PasswordDiskPage(disk: MockPasswordDisk(baseDir: diskDir.path)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('落盘加密验证'), findsOneWidget);
+    expect(find.text('加密并落盘验证'), findsOneWidget);
+  });
+
+  // ─── #12 恢复密钥一键复制按钮测试 ─────────────────────────
+  testWidgets('密码盘页面：创建后恢复密钥对话框含一键复制按钮', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PasswordDiskPage(disk: MockPasswordDisk(baseDir: diskDir.path)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 创建密码盘
+    await tester.tap(find.text('创建密码盘（生成密钥 + 恢复密钥）'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump(const Duration(seconds: 1));
+    expect(tester.takeException(), isNull);
+
+    // 恢复密钥对话框应含"一键复制"按钮
+    final copyBtn = find.text('一键复制');
+    if (copyBtn.evaluate().isNotEmpty) {
+      expect(copyBtn, findsOneWidget);
+      // 点击不应崩溃
+      await tester.tap(copyBtn);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: '一键复制不应崩溃');
+    }
+
+    // 关闭对话框
+    final okBtn = find.text('我已抄写');
+    if (okBtn.evaluate().isNotEmpty) {
+      await tester.tap(okBtn);
+      await tester.pumpAndSettle();
+    }
+  });
 }

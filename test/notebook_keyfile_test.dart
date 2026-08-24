@@ -17,7 +17,7 @@ void main() {
   late Directory diskDir;
   late NotebookStorage storage;
   late MockPasswordDisk disk;
-  const encryption = EncryptionService();
+  const encryption = EncryptionService.test();
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('nb_keyfile_');

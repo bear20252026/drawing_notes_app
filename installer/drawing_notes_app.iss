@@ -15,6 +15,9 @@ SolidCompression=yes
 ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
 WizardStyle=modern
+AppPublisherURL=https://drawingnotes.app
+AppSupportURL=https://drawingnotes.app/support
+AppUpdatesURL=https://drawingnotes.app/update
 
 [Files]
 Source: "..\build\windows\x64\runner\Release\drawing_notes_app.exe"; DestDir: "{app}"; Flags: ignoreversion

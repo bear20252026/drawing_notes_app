@@ -64,6 +64,8 @@ dependencies:
   vector_math: ^2.4.2
   # 图片编解码（本地化适配 2026-08-15：PDF 导出 JPEG 压缩，原为传递依赖）
   image: ^4.3.0
+  # 安全存储：KEK 持久化（Android Keystore / iOS Keychain）
+  flutter_secure_storage: ^9.2.4
 
   go_router: ^14.8.1
   material_ui: any

@@ -7,7 +7,7 @@ import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 /// NIST SP 800-38D 附加认证数据绑定笔记 ID/用途/版本，
 /// 使跨笔记/跨用途密文交换在认证时失败。
 void main() {
-  const service = EncryptionService();
+  const service = EncryptionService.test();
   final key = List<int>.generate(32, (i) => i);
 
   test('v4 AAD：往返解密（正确 notebookId）', () async {
