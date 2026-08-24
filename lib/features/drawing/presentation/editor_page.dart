@@ -21,6 +21,8 @@ import 'package:drawing_notes_app/features/drawing/application/editor_exporter.d
 import 'package:drawing_notes_app/features/drawing/domain/fractional_index.dart';
 import 'package:drawing_notes_app/features/drawing/application/gesture_math.dart';
 import 'package:drawing_notes_app/core/rendering/pencil_shader.dart';
+import 'package:drawing_notes_app/core/rendering/brush_shader.dart';
+import 'package:drawing_notes_app/core/rendering/marker_shader.dart';
 import 'package:drawing_notes_app/core/rendering/shape_binding_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/shape_creation_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/shape_library.dart';
@@ -493,8 +495,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     );
     unawaited(_loadBrushPresets());
     unawaited(_loadEraserMode());
-    // 异步加载铅笔颗粒着色器；失败时渲染层自动回退到普通铅笔绘制。
+    // 异步加载笔触纹理着色器；失败时渲染层自动回退到普通绘制。
     unawaited(PencilShader.init());
+    unawaited(BrushShader.init());
+    unawaited(MarkerShader.init());
     // 修改文档标题显示为页面标题。
     if (widget.page != null && doc.title == '未命名画布') {
       doc.title = widget.page!.title;

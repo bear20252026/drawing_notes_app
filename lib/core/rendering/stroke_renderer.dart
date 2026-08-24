@@ -6,6 +6,8 @@ import 'package:perfect_freehand/perfect_freehand.dart' hide StrokePoint;
 
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 import 'package:drawing_notes_app/core/rendering/pencil_shader.dart';
+import 'package:drawing_notes_app/core/rendering/brush_shader.dart';
+import 'package:drawing_notes_app/core/rendering/marker_shader.dart';
 import 'package:drawing_notes_app/core/rendering/stroke_geometry_cache.dart';
 
 /// 笔画渲染器：将原始输入点转为连续、填充式的压感笔触轮廓。
@@ -120,8 +122,8 @@ class StrokeRenderer {
           ? BlendMode.clear
           : BlendMode.srcOver;
 
-    // 铅笔启用颗粒着色器：用石墨纹理替代纯色填充。
-    // 着色器未就绪（加载失败/不支持编译的环境）时回退到普通低透明度绘制。
+    // 铅笔启用颗粒着色器：用 fbm 噪声石墨纹理替代纯色填充。
+    // 着色器未就绪时回退到普通低透明度绘制。
     if (stroke.type == BrushType.pencil && PencilShader.isReady) {
       final shader = PencilShader.create(
         color: color,
@@ -136,6 +138,35 @@ class StrokeRenderer {
             BlurStyle.normal,
             (stroke.width * 0.12).clamp(0.5, 4.0),
           );
+      }
+    }
+
+    // 荧光笔启用马克笔着色器：极轻微的墨水浓度波动，比纯 srcOver 更自然。
+    if (stroke.type == BrushType.marker && MarkerShader.isReady) {
+      final shader = MarkerShader.create(
+        color: color,
+        grainScale: (stroke.width * 0.3).clamp(2.0, 8.0),
+        opacity: color.a * opacity,
+      );
+      if (shader != null) {
+        paint
+          ..color = const Color(0xFFFFFFFF)
+          ..shader = shader;
+      }
+    }
+
+    // 钢笔可选毛笔质感着色器：条纹噪声模拟刷毛痕迹。
+    if (stroke.type == BrushType.pen && BrushShader.isReady) {
+      final shader = BrushShader.create(
+        color: color,
+        grainScale: (stroke.width * 0.35).clamp(2.0, 8.0),
+        opacity: color.a * opacity,
+        width: stroke.width,
+      );
+      if (shader != null) {
+        paint
+          ..color = const Color(0xFFFFFFFF)
+          ..shader = shader;
       }
     }
 

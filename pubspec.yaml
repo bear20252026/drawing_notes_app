@@ -99,9 +99,11 @@ flutter:
   assets:
     - assets/fonts/DroidSansFallbackFull.ttf
 
-  # 铅笔颗粒着色器（FragmentShader）：为铅笔笔触提供纸张石墨质感。
+  # 笔触纹理着色器（FragmentShader）：为不同笔刷提供质感渲染。
   shaders:
     - shaders/pencil.frag
+    - shaders/brush.frag
+    - shaders/marker.frag
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
