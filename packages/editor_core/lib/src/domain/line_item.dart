@@ -32,13 +32,31 @@ class LineItem {
   const LineItem({
     required this.id,
     required this.points,
+    this.strokeWidth = 2.0,
+    this.color = '#000000',
+    this.opacity = 1.0,
   });
 
   final String id;
   final List<Point> points;
 
-  LineItem copyWith({List<Point>? points}) {
-    return LineItem(id: id, points: points ?? this.points);
+  /// 笔画宽度（V1/V2 迁移阶段1——2026-08-24）。
+  final double strokeWidth;
+
+  /// 笔画颜色（#RRGGBB——V1/V2 迁移阶段1——2026-08-24）。
+  final String color;
+
+  /// 笔画不透明度（0.0~1.0——V1/V2 迁移阶段1——2026-08-24）。
+  final double opacity;
+
+  LineItem copyWith({List<Point>? points, double? strokeWidth, String? color, double? opacity}) {
+    return LineItem(
+      id: id,
+      points: points ?? this.points,
+      strokeWidth: strokeWidth ?? this.strokeWidth,
+      color: color ?? this.color,
+      opacity: opacity ?? this.opacity,
+    );
   }
 
   @override
@@ -46,10 +64,13 @@ class LineItem {
       identical(this, other) ||
       other is LineItem &&
           id == other.id &&
+          strokeWidth == other.strokeWidth &&
+          color == other.color &&
+          opacity == other.opacity &&
           _listEquals(points, other.points);
 
   @override
-  int get hashCode => Object.hash(id, points);
+  int get hashCode => Object.hash(id, strokeWidth, color, opacity, points);
 
   static bool _listEquals<T>(List<T> a, List<T> b) {
     if (a.length != b.length) return false;
