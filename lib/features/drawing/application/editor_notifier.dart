@@ -92,6 +92,17 @@ class EditorNotifier extends Notifier<EditorState> {
     );
   }
 
+  // ─── 便捷只读属性（供 EditorPage part 文件兼容使用） ───
+
+  bool get eyedropperActive => state.eyedropperActive;
+  bool get textToolActive => state.textToolActive;
+  bool get linkMode => state.linkMode;
+  String? get linkSourceId => state.linkSourceId;
+  bool get selectionDone => state.selectionDone;
+  String? get selectedItemId => state.selectedItemId;
+  String? get editingItemId => state.editingItemId;
+  PageTextItem? get pendingTextItem => state.pendingTextItem;
+
   // ─── 工具切换（UI 只调用这些方法） ───
 
   /// 进入吸管取色模式。

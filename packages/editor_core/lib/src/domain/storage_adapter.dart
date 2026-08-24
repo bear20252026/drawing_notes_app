@@ -15,13 +15,13 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:drawing_notes_app/core/storage/storage_service.dart';
-import 'package:drawing_notes_app/core/storage/repository.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-
+import 'document_lock.dart';
+import 'legacy_storage_interface.dart';
 import 'schema_version.dart';
 import 'storage_backend.dart';
+import 'sync_provider.dart';
 import 'unified_storage.dart';
+import 'vector_clock.dart';
 
 /// StorageService → UnifiedStorage 桥接适配器。
 ///
@@ -37,7 +37,7 @@ class StorageAdapter implements UnifiedStorageService {
     SchemaMigrationManager? migrationManager,
   }) : _migrationManager = migrationManager ?? SchemaMigrationManager();
 
-  final StorageService storageService;
+  final LegacyStorageService storageService;
   final String nodeId;
   final SchemaMigrationManager _migrationManager;
 
@@ -91,13 +91,11 @@ class StorageAdapter implements UnifiedStorageService {
 
       // 添加版本向量到数据。
       migrated['vectorClock'] = {
-        'clocks': updatedClock.clocks.map(
-          (key, value) => MapEntry(key, value),
-        ),
+        'clocks': updatedClock.toMap(),
       };
 
       // 保存到 StorageService。
-      final doc = DrawingDocument.fromJson(migrated);
+      final doc = LegacyDocument.fromJson(migrated);
       await storageService.save(doc);
 
       return UnifiedStorageResult.success(null, vectorClock: updatedClock);
@@ -248,7 +246,7 @@ class StorageAdapter implements UnifiedStorageService {
 class _StorageServiceBackend implements StorageBackend {
   _StorageServiceBackend(this._storageService);
 
-  final StorageService _storageService;
+  final LegacyStorageService _storageService;
 
   @override
   String get backendId => 'storage-service';
@@ -260,7 +258,7 @@ class _StorageServiceBackend implements StorageBackend {
   Future<StorageResult<void>> saveDoc(String docId, Uint8List data) async {
     try {
       final json = jsonDecode(utf8.decode(data)) as Map<String, dynamic>;
-      final doc = DrawingDocument.fromJson(json);
+      final doc = LegacyDocument.fromJson(json);
       await _storageService.save(doc);
       return const StorageResult.success(null);
     } catch (e) {

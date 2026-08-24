@@ -115,7 +115,9 @@ void main() {
         }),
       ]);
 
-      expect(() => migrator.migrate(), throwsA(isA<MigrationException>()));
+      // 迁移失败应抛出 MigrationException（必须 await 异步异常）
+      await expectLater(migrator.migrate(), throwsA(isA<MigrationException>()));
+      // 回滚后版本应恢复到失败迁移的起始版本 (v1)
       expect(await migrator.getCurrentVersion(), 1);
     });
 

@@ -1178,6 +1178,60 @@ abstract class AppLocalizations {
   /// **'Capture ideas with your pen. Supports infinite canvas, notebooks, and encryption.'**
   String get onboardingSubtitle;
 
+  /// No description provided for @onboardingBrush.
+  ///
+  /// In en, this message translates to:
+  /// **'Pen / Eraser / Eyedropper: switch via top toolbar, drag mouse or finger to draw'**
+  String get onboardingBrush;
+
+  /// No description provided for @onboardingColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Color & Width: color circle and width slider on the right side of toolbar'**
+  String get onboardingColor;
+
+  /// No description provided for @onboardingLayers.
+  ///
+  /// In en, this message translates to:
+  /// **'Layer panel on the right: new, show/hide, opacity, order, merge'**
+  String get onboardingLayers;
+
+  /// No description provided for @onboardingSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Selection tool: select area to move / scale / rotate / copy / delete'**
+  String get onboardingSelect;
+
+  /// No description provided for @onboardingText.
+  ///
+  /// In en, this message translates to:
+  /// **'Notebook supports text and images: tap canvas with text tool to input, image button to insert'**
+  String get onboardingText;
+
+  /// No description provided for @onboardingPinch.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinch to zoom canvas, two-finger rotate canvas (touchscreen devices)'**
+  String get onboardingPinch;
+
+  /// No description provided for @onboardingFullscreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Fullscreen button top-right: hide toolbar, view canvas only'**
+  String get onboardingFullscreen;
+
+  /// No description provided for @onboardingSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Content auto-saves, no manual save needed; export to PNG anytime'**
+  String get onboardingSave;
+
+  /// No description provided for @onboardingStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Get Started'**
+  String get onboardingStart;
+
   /// No description provided for @onboardingGetStarted.
   ///
   /// In en, this message translates to:
@@ -1189,6 +1243,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Skip'**
   String get onboardingSkip;
+
+  /// No description provided for @appErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong'**
+  String get appErrorTitle;
+
+  /// No description provided for @appErrorBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The app encountered an error, but your data is safe.'**
+  String get appErrorBody;
+
+  /// No description provided for @appErrorBackHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Home'**
+  String get appErrorBackHome;
+
+  /// No description provided for @appErrorDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Error Details (Debug Mode)'**
+  String get appErrorDetails;
 
   /// No description provided for @settings.
   ///
@@ -2035,51 +2113,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select Color'**
   String get selectColor;
-
-  // === 错误页面 ===
-  /// No description provided for @appErrorTitle.
-  String get appErrorTitle;
-
-  /// No description provided for @appErrorBody.
-  String get appErrorBody;
-
-  /// No description provided for @appErrorBackHome.
-  String get appErrorBackHome;
-
-  /// No description provided for @appErrorDetails.
-  String get appErrorDetails;
-
-  // === 引导页 ===
-  /// No description provided for @onboardingBrush.
-  String get onboardingBrush;
-
-  /// No description provided for @onboardingColor.
-  String get onboardingColor;
-
-  /// No description provided for @onboardingLayers.
-  String get onboardingLayers;
-
-  /// No description provided for @onboardingSelect.
-  String get onboardingSelect;
-
-  /// No description provided for @onboardingText.
-  String get onboardingText;
-
-  /// No description provided for @onboardingPinch.
-  String get onboardingPinch;
-
-  /// No description provided for @onboardingFullscreen.
-  String get onboardingFullscreen;
-
-  /// No description provided for @onboardingSave.
-  String get onboardingSave;
-
-  /// No description provided for @onboardingStart.
-  String get onboardingStart;
-
-  // === 导出 ===
-  /// No description provided for @exportTimeout.
-  String get exportTimeout;
 }
 
 class _AppLocalizationsDelegate

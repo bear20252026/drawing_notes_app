@@ -42,10 +42,12 @@ class NoteEditorWidget extends StatefulWidget {
 
 class _NoteEditorWidgetState extends State<NoteEditorWidget> {
   final List<TextEditingController> _controllers = [];
+  late TextEditingController _titleController;
 
   @override
   void initState() {
     super.initState();
+    _titleController = TextEditingController(text: widget.document.title);
     _syncControllers();
   }
 
@@ -69,6 +71,7 @@ class _NoteEditorWidgetState extends State<NoteEditorWidget> {
 
   @override
   void dispose() {
+    _titleController.dispose();
     for (final c in _controllers) {
       c.dispose();
     }
@@ -109,25 +112,28 @@ class _NoteEditorWidgetState extends State<NoteEditorWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 标题（笔记标题——Word 文档标题）。
-                Text(
-                  widget.document.title,
+                // 标题（可编辑——Word 文档标题）。
+                TextField(
+                  controller: _titleController,
                   style: TextStyle(
                     fontSize: TextScaleHelper.scaled(context, 28),
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
+                  decoration: const InputDecoration(
+                    hintText: '标题',
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                  onChanged: (text) {
+                    widget.onChanged(widget.document.copyWith(title: text));
+                  },
                 ),
                 const SizedBox(height: 16),
                 // 段落列表（每段 TextField——直接打字——Word 式）。
                 for (var i = 0; i < widget.document.paragraphCount; i++)
                   _buildParagraphField(i),
-                // 新增段落按钮（Word 式——点击加段落）。
-                TextButton.icon(
-                  onPressed: _addParagraph,
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('新增段落'),
-                ),
+                // 无"新增段落"按钮——Enter 键新增（Word 式体验）。
               ],
             ),
           ),
@@ -157,7 +163,7 @@ class _NoteEditorWidgetState extends State<NoteEditorWidget> {
       maxLines: null, // 多行——Word 式。
       style: style,
       decoration: InputDecoration(
-        hintText: paragraph.isHeading ? '标题' : '开始打字……（Word 文档式）',
+        hintText: paragraph.isHeading ? '标题' : '开始输入…',
         border: InputBorder.none, // 白纸无边框。
         contentPadding: const EdgeInsets.symmetric(vertical: 8),
       ),

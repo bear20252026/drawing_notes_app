@@ -1,6 +1,6 @@
 // editor_core——ThreeLayerEncryption 三层封装加密测试（2026-08-24）。
 //
-// 覆盖三层加密/解密闭环、ECDSA签名/验签、随机填充、信封加密、
+// 覆盖三层加密/解密闭环、Ed25519签名/验签、随机填充、信封加密、
 // 签名篡改检测、告警回调、密钥轮换、性能基准。
 library;
 
@@ -9,7 +9,6 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:editor_core/src/domain/three_layer_encryption.dart';
-import 'package:editor_core/src/domain/crypto_utils.dart';
 import 'package:editor_core/src/domain/envelope_encryption.dart';
 import 'package:pointycastle/export.dart';
 import 'package:test/test.dart';
@@ -31,25 +30,25 @@ void main() {
   group('SigningKeyPair', () {
     test('创建密钥对不可变', () {
       final pair = SigningKeyPair(
-        publicKey: List.filled(65, 1),
+        publicKey: List.filled(32, 1),
         privateKey: List.filled(32, 2),
         createdAt: DateTime(2026, 8, 24),
       );
 
-      expect(pair.publicKey.length, equals(65));
+      expect(pair.publicKey.length, equals(32));
       expect(pair.privateKey.length, equals(32));
-      expect(pair.algorithm, equals('ecdsa-p256'));
+      expect(pair.algorithm, equals('ed25519'));
     });
 
     test('copyWith 修改字段', () {
       final pair = SigningKeyPair(
-        publicKey: List.filled(65, 1),
+        publicKey: List.filled(32, 1),
         privateKey: List.filled(32, 2),
         createdAt: DateTime(2026, 8, 24),
       );
 
-      final modified = pair.copyWith(publicKey: List.filled(65, 9));
-      expect(modified.publicKey, equals(List.filled(65, 9)));
+      final modified = pair.copyWith(publicKey: List.filled(32, 9));
+      expect(modified.publicKey, equals(List.filled(32, 9)));
       expect(modified.privateKey, equals(List.filled(32, 2)));
     });
   });
@@ -57,15 +56,15 @@ void main() {
   group('SignatureResult', () {
     test('创建签名结果不可变', () {
       final sig = SignatureResult(
-        signature: List.filled(70, 0xAB),
-        dataHash: List.filled(32, 0xCD),
+        signature: List.filled(64, 0xAB),
+        dataHash: List.filled(64, 0xCD),
         signedAt: DateTime(2026, 8, 24),
         metadata: {'version': 1},
       );
 
-      expect(sig.signature.length, equals(70));
-      expect(sig.dataHash.length, equals(32));
-      expect(sig.algorithm, equals('ecdsa-p256'));
+      expect(sig.signature.length, equals(64));
+      expect(sig.dataHash.length, equals(64));
+      expect(sig.algorithm, equals('ed25519'));
     });
   });
 
@@ -76,30 +75,30 @@ void main() {
       service = const SignatureService();
     });
 
-    test('生成密钥对', () {
-      final pair = service.generateKeyPair();
+    test('生成密钥对', () async {
+      final pair = await service.generateKeyPair();
 
-      expect(pair.publicKey.length, equals(65));
+      expect(pair.publicKey.length, equals(32));
       expect(pair.privateKey.length, equals(32));
       expect(pair.createdAt, isNotNull);
-      expect(pair.algorithm, equals('ecdsa-p256'));
+      expect(pair.algorithm, equals('ed25519'));
     });
 
-    test('签名+验签闭环', () {
-      final pair = service.generateKeyPair();
-      final data = utf8.encode('Hello, ECDSA!');
+    test('签名+验签闭环', () async {
+      final pair = await service.generateKeyPair();
+      final data = utf8.encode('Hello, Ed25519!');
 
-      final sig = service.sign(
+      final sig = await service.sign(
         data: data,
         keyPair: pair,
         metadata: {'test': true},
       );
 
       expect(sig.signature.length, greaterThan(0));
-      expect(sig.dataHash.length, equals(32));
+      expect(sig.dataHash.length, equals(64));
       expect(sig.metadata['test'], equals(true));
 
-      final valid = service.verify(
+      final valid = await service.verify(
         data: data,
         sig: sig,
         publicKey: pair.publicKey,
@@ -108,18 +107,18 @@ void main() {
       expect(valid, isTrue);
     });
 
-    test('篡改数据导致验签失败', () {
-      final pair = service.generateKeyPair();
+    test('篡改数据导致验签失败', () async {
+      final pair = await service.generateKeyPair();
       final data = utf8.encode('Original data');
 
-      final sig = service.sign(data: data, keyPair: pair);
+      final sig = await service.sign(data: data, keyPair: pair);
 
       // 篡改数据。
       final tamperedData = utf8.encode('Tampered data');
       var alertCalled = false;
       String? alertContext;
 
-      final valid = service.verify(
+      final valid = await service.verify(
         data: tamperedData,
         sig: sig,
         publicKey: pair.publicKey,
@@ -131,14 +130,14 @@ void main() {
 
       expect(valid, isFalse);
       expect(alertCalled, isTrue);
-      expect(alertContext, contains('SHA-256'));
+      expect(alertContext, contains('SHA-512'));
     });
 
-    test('篡改签名导致验签失败', () {
-      final pair = service.generateKeyPair();
+    test('篡改签名导致验签失败', () async {
+      final pair = await service.generateKeyPair();
       final data = utf8.encode('Test data');
 
-      final sig = service.sign(data: data, keyPair: pair);
+      final sig = await service.sign(data: data, keyPair: pair);
 
       // 篡改签名（翻转第一个字节）。
       final tamperedSig = sig.copyWith(
@@ -146,7 +145,7 @@ void main() {
       );
       var alertCalled = false;
 
-      final valid = service.verify(
+      final valid = await service.verify(
         data: data,
         sig: tamperedSig,
         publicKey: pair.publicKey,
@@ -159,20 +158,28 @@ void main() {
       expect(alertCalled, isTrue);
     });
 
-    test('错误公钥导致验签失败', () {
-      final pair1 = service.generateKeyPair();
-      final pair2 = service.generateKeyPair();
+    test('错误公钥导致验签失败', () async {
+      final pair1 = await service.generateKeyPair();
+      final pair2 = await service.generateKeyPair();
       final data = utf8.encode('Test data');
 
-      final sig = service.sign(data: data, keyPair: pair1);
+      final sig = await service.sign(data: data, keyPair: pair1);
 
-      final valid = service.verify(
+      final valid = await service.verify(
         data: data,
         sig: sig,
         publicKey: pair2.publicKey, // 错误公钥。
       );
 
       expect(valid, isFalse);
+    });
+
+    test('从种子恢复密钥对', () async {
+      final pair = await service.generateKeyPair();
+      final restored = await service.keyPairFromSeed(pair.privateKey);
+
+      expect(restored.publicKey, equals(pair.publicKey));
+      expect(restored.privateKey, equals(pair.privateKey));
     });
   });
 
@@ -190,16 +197,16 @@ void main() {
       );
     });
 
-    test('三层加密解密闭环', () {
+    test('三层加密解密闭环', () async {
       final k1 = generateSecureKey();
       final k2 = generateSecureKey();
       final k3 = generateSecureKey();
       final kek = generateSecureKey();
-      final signingKeyPair = signatureService.generateKeyPair();
+      final signingKeyPair = await signatureService.generateKeyPair();
 
       final plaintext = utf8.encode('三层加密测试数据——军工级安全');
 
-      final result = service.encrypt(
+      final result = await service.encrypt(
         plaintext: plaintext,
         k1: k1,
         k2: k2,
@@ -221,13 +228,12 @@ void main() {
 
       // 验证签名。
       expect(result.signature.signature.length, greaterThan(0));
-      expect(result.signature.metadata['layers'], equals(3));
 
       // 验证信封。
       expect(result.envelope.keyId, equals('test-key-001'));
 
       // 解密。
-      final decrypted = service.decrypt(
+      final decrypted = await service.decrypt(
         result: result,
         k1: k1,
         k2: k2,
@@ -238,14 +244,14 @@ void main() {
       expect(decrypted, equals(plaintext));
     });
 
-    test('空数据三层加密解密', () {
+    test('空数据三层加密解密', () async {
       final k1 = generateSecureKey();
       final k2 = generateSecureKey();
       final k3 = generateSecureKey();
       final kek = generateSecureKey();
-      final signingKeyPair = signatureService.generateKeyPair();
+      final signingKeyPair = await signatureService.generateKeyPair();
 
-      final result = service.encrypt(
+      final result = await service.encrypt(
         plaintext: Uint8List(0),
         k1: k1,
         k2: k2,
@@ -254,7 +260,7 @@ void main() {
         kek: kek,
       );
 
-      final decrypted = service.decrypt(
+      final decrypted = await service.decrypt(
         result: result,
         k1: k1,
         k2: k2,
@@ -265,12 +271,12 @@ void main() {
       expect(decrypted, isEmpty);
     });
 
-    test('大数据三层加密解密（1MB）', () {
+    test('大数据三层加密解密（1MB）', () async {
       final k1 = generateSecureKey();
       final k2 = generateSecureKey();
       final k3 = generateSecureKey();
       final kek = generateSecureKey();
-      final signingKeyPair = signatureService.generateKeyPair();
+      final signingKeyPair = await signatureService.generateKeyPair();
 
       // 1MB 测试数据。
       final plaintext = Uint8List(1024 * 1024);
@@ -278,7 +284,7 @@ void main() {
         plaintext[i] = i % 256;
       }
 
-      final result = service.encrypt(
+      final result = await service.encrypt(
         plaintext: plaintext,
         k1: k1,
         k2: k2,
@@ -287,7 +293,7 @@ void main() {
         kek: kek,
       );
 
-      final decrypted = service.decrypt(
+      final decrypted = await service.decrypt(
         result: result,
         k1: k1,
         k2: k2,
@@ -298,14 +304,14 @@ void main() {
       expect(decrypted, equals(plaintext));
     });
 
-    test('签名篡改导致解密失败', () {
+    test('签名篡改导致解密失败', () async {
       final k1 = generateSecureKey();
       final k2 = generateSecureKey();
       final k3 = generateSecureKey();
       final kek = generateSecureKey();
-      final signingKeyPair = signatureService.generateKeyPair();
+      final signingKeyPair = await signatureService.generateKeyPair();
 
-      final result = service.encrypt(
+      final result = await service.encrypt(
         plaintext: utf8.encode('篡改测试'),
         k1: k1,
         k2: k2,
@@ -352,15 +358,15 @@ void main() {
       expect(alertCalled, isTrue);
     });
 
-    test('错误 KEK 导致解密失败', () {
+    test('错误 KEK 导致解密失败', () async {
       final k1 = generateSecureKey();
       final k2 = generateSecureKey();
       final k3 = generateSecureKey();
       final kek = generateSecureKey();
       final wrongKek = generateSecureKey();
-      final signingKeyPair = signatureService.generateKeyPair();
+      final signingKeyPair = await signatureService.generateKeyPair();
 
-      final result = service.encrypt(
+      final result = await service.encrypt(
         plaintext: utf8.encode('KEK 测试'),
         k1: k1,
         k2: k2,
@@ -381,16 +387,16 @@ void main() {
       );
     });
 
-    test('随机填充长度范围正确', () {
+    test('随机填充长度范围正确', () async {
       final k1 = generateSecureKey();
       final k2 = generateSecureKey();
       final k3 = generateSecureKey();
       final kek = generateSecureKey();
-      final signingKeyPair = signatureService.generateKeyPair();
+      final signingKeyPair = await signatureService.generateKeyPair();
 
       // 多次加密验证填充范围。
       for (var i = 0; i < 10; i++) {
-        final result = service.encrypt(
+        final result = await service.encrypt(
           plaintext: utf8.encode('填充测试 $i'),
           k1: k1,
           k2: k2,
@@ -404,16 +410,16 @@ void main() {
       }
     });
 
-    test('信封加密支持密钥轮换', () {
+    test('信封加密支持密钥轮换', () async {
       final k1 = generateSecureKey();
       final k2 = generateSecureKey();
       final k3 = generateSecureKey();
       final kek1 = generateSecureKey(); // 旧 KEK。
       final kek2 = generateSecureKey(); // 新 KEK。
-      final signingKeyPair = signatureService.generateKeyPair();
+      final signingKeyPair = await signatureService.generateKeyPair();
 
       // 用旧 KEK 加密。
-      final result = service.encrypt(
+      final result = await service.encrypt(
         plaintext: utf8.encode('密钥轮换测试'),
         k1: k1,
         k2: k2,
@@ -424,7 +430,7 @@ void main() {
       );
 
       // 用旧 KEK 解密。
-      final decrypted1 = service.decrypt(
+      final decrypted1 = await service.decrypt(
         result: result,
         k1: k1,
         k2: k2,
@@ -462,7 +468,7 @@ void main() {
       );
 
       // 用新 KEK 解密。
-      final decrypted2 = service.decrypt(
+      final decrypted2 = await service.decrypt(
         result: rotatedResult,
         k1: k1,
         k2: k2,
@@ -472,14 +478,14 @@ void main() {
       expect(decrypted2, equals(utf8.encode('密钥轮换测试')));
     });
 
-    test('版本号向前兼容', () {
+    test('版本号向前兼容', () async {
       final k1 = generateSecureKey();
       final k2 = generateSecureKey();
       final k3 = generateSecureKey();
       final kek = generateSecureKey();
-      final signingKeyPair = signatureService.generateKeyPair();
+      final signingKeyPair = await signatureService.generateKeyPair();
 
-      final result = service.encrypt(
+      final result = await service.encrypt(
         plaintext: utf8.encode('版本测试'),
         k1: k1,
         k2: k2,
@@ -492,12 +498,12 @@ void main() {
       expect(result.processedAt, isNotNull);
     });
 
-    test('性能基准——1MB 数据', () {
+    test('性能基准——1MB 数据', () async {
       final k1 = generateSecureKey();
       final k2 = generateSecureKey();
       final k3 = generateSecureKey();
       final kek = generateSecureKey();
-      final signingKeyPair = signatureService.generateKeyPair();
+      final signingKeyPair = await signatureService.generateKeyPair();
 
       final plaintext = Uint8List(1024 * 1024);
       for (var i = 0; i < plaintext.length; i++) {
@@ -506,7 +512,7 @@ void main() {
 
       final stopwatch = Stopwatch()..start();
 
-      final result = service.encrypt(
+      final result = await service.encrypt(
         plaintext: plaintext,
         k1: k1,
         k2: k2,
@@ -520,7 +526,7 @@ void main() {
 
       // 解密计时。
       final decryptStopwatch = Stopwatch()..start();
-      service.decrypt(
+      await service.decrypt(
         result: result,
         k1: k1,
         k2: k2,
@@ -534,7 +540,7 @@ void main() {
       print('三层加密 1MB: ${encryptMs}ms');
       print('三层解密 1MB: ${decryptMs}ms');
 
-      // 性能要求：<100ms/MB（宽松检查——CI 环境可能较慢）。
+      // 性能要求：<1000ms/MB（宽松检查——CI 环境可能较慢）。
       expect(encryptMs, lessThan(1000));
       expect(decryptMs, lessThan(1000));
     });

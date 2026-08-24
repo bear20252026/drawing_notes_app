@@ -56,14 +56,17 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
   Timer? _autoSaveTimer;
   static const _autoSaveDuration = Duration(milliseconds: 800);
 
+  /// Notifier 引用（dispose 时 ref 不可用，提前捕获）。
+  late final EditorV2Notifier _notifier;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _notifier = ref.read(editorV2NotifierProvider.notifier);
     // 初始化文档（CUJ-01 创建）。
     Future.microtask(() {
-      final notifier = ref.read(editorV2NotifierProvider.notifier);
-      notifier.createDocument(widget.documentId);
+      _notifier.createDocument(widget.documentId);
     });
   }
 
@@ -96,7 +99,8 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
   void _saveNow() {
     // TODO: 阶段4 入口切换时接入 StorageService.save()
     // 此处仅序列化为 JSON 备用。
-    final json = ref.read(editorV2NotifierProvider.notifier).toJson();
+    // 使用 _notifier 而非 ref.read()——dispose 后 ref 不可用。
+    final json = _notifier.toJson();
     debugPrint('EditorV2: _saveNow keys=${json.keys.toList()}');
   }
 
@@ -340,7 +344,7 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            '已取色: #${state.currentColor.value.toRadixString(16).substring(2).toUpperCase()}',
+                            '已取色: #${state.currentColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
                           ),
                           duration: const Duration(seconds: 1),
                           backgroundColor: state.currentColor,
@@ -349,24 +353,23 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
                       );
                     }
                   },
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    switchInCurve: Curves.easeInOut,
-                    child: widget.mode == UnifiedEditorMode.whiteboard
-                        ? InfiniteCanvasWidget(
-                            key: ValueKey('canvas-${state.document.id}'),
-                            child: Stack(
-                              children: [
-                                RepaintBoundary(
-                                  key: _canvasKey,
-                                  child: CustomPaint(
+                  child: RepaintBoundary(
+                    key: _canvasKey,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      switchInCurve: Curves.easeInOut,
+                      child: widget.mode == UnifiedEditorMode.whiteboard
+                          ? InfiniteCanvasWidget(
+                              key: ValueKey('canvas-${state.document.id}'),
+                              child: Stack(
+                                children: [
+                                  CustomPaint(
                                     painter: CanvasPainterV2(
                                       document: state.document,
                                       fillMode: FillMode.stroke,
                                     ),
                                     size: Size.infinite,
                                   ),
-                                ),
                                 // P2 #30：取色放大镜覆盖层。
                                 if (state.eyedropperActive)
                                   MagnifierOverlay(
@@ -389,6 +392,7 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
                             document: _initialNoteDocument(state.document.id),
                             onChanged: (_) {},
                           ),
+                    ),
                   ),
                 ),
               ),

@@ -276,6 +276,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editorStrokeWidth => 'Stroke Width';
 
   @override
+  String get editorFontSize => 'Text Size';
+
+  @override
+  String get editorShapeStrokeWidth => 'Shape Border Width';
+
+  @override
   String get editorPressureSettings => 'Pressure Settings';
 
   @override
@@ -592,10 +598,58 @@ class AppLocalizationsEn extends AppLocalizations {
       'Capture ideas with your pen. Supports infinite canvas, notebooks, and encryption.';
 
   @override
+  String get onboardingBrush =>
+      'Pen / Eraser / Eyedropper: switch via top toolbar, drag mouse or finger to draw';
+
+  @override
+  String get onboardingColor =>
+      'Color & Width: color circle and width slider on the right side of toolbar';
+
+  @override
+  String get onboardingLayers =>
+      'Layer panel on the right: new, show/hide, opacity, order, merge';
+
+  @override
+  String get onboardingSelect =>
+      'Selection tool: select area to move / scale / rotate / copy / delete';
+
+  @override
+  String get onboardingText =>
+      'Notebook supports text and images: tap canvas with text tool to input, image button to insert';
+
+  @override
+  String get onboardingPinch =>
+      'Pinch to zoom canvas, two-finger rotate canvas (touchscreen devices)';
+
+  @override
+  String get onboardingFullscreen =>
+      'Fullscreen button top-right: hide toolbar, view canvas only';
+
+  @override
+  String get onboardingSave =>
+      'Content auto-saves, no manual save needed; export to PNG anytime';
+
+  @override
+  String get onboardingStart => 'Get Started';
+
+  @override
   String get onboardingGetStarted => 'Get Started';
 
   @override
   String get onboardingSkip => 'Skip';
+
+  @override
+  String get appErrorTitle => 'Something went wrong';
+
+  @override
+  String get appErrorBody =>
+      'The app encountered an error, but your data is safe.';
+
+  @override
+  String get appErrorBackHome => 'Back to Home';
+
+  @override
+  String get appErrorDetails => 'Error Details (Debug Mode)';
 
   @override
   String get settings => 'Settings';
@@ -1033,57 +1087,4 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get selectColor => 'Select Color';
-
-  // === Error page ===
-  @override
-  String get appErrorTitle => 'Something went wrong';
-
-  @override
-  String get appErrorBody => 'The app encountered an error, but your data is safe.';
-
-  @override
-  String get appErrorBackHome => 'Back to Home';
-
-  @override
-  String get appErrorDetails => 'Error Details (Debug Mode)';
-
-  // === Onboarding ===
-  @override
-  String get onboardingBrush => 'Brush / Eraser / Eyedropper: switch via top toolbar, drag to draw';
-
-  @override
-  String get onboardingColor => 'Color & Width: circular color dots and width slider on the right of toolbar';
-
-  @override
-  String get onboardingLayers => 'Layer panel on the right: create, toggle visibility, opacity, reorder, merge';
-
-  @override
-  String get onboardingSelect => 'Selection tool: box-select to move / scale / rotate / copy / delete';
-
-  @override
-  String get onboardingText => 'Notes page supports text & images: tap text tool then canvas to type, image button to insert';
-
-  @override
-  String get onboardingPinch => 'Pinch to zoom canvas, two-finger rotate canvas (touch devices)';
-
-  @override
-  String get onboardingFullscreen => 'Fullscreen button top-right: hide toolbars, view canvas only';
-
-  @override
-  String get onboardingSave => 'Content auto-saves, no manual save needed; export to PNG anytime';
-
-  @override
-  String get onboardingStart => 'Get Started';
-
-  // === Export supplement ===
-  @override
-  String get exportTimeout => '⚠️ Export timed out (30s), please shrink the document and retry';
-
-  // === Editor property panel ===
-  @override
-  String get editorFontSize => 'Font Size';
-
-  @override
-  String get editorShapeStrokeWidth => 'Shape Stroke Width';
-
 }

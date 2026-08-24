@@ -192,17 +192,17 @@ extension DrawingControllerRenderOps on DrawingController {
   /// 否则返回 null。
   Rect? get currentSelectionBounds {
     // 1. 优先返回选中元素的边界框
-    if (_selectedStrokeIndices.isNotEmpty || selectedDocumentObjectCount > 0) {
+    if (_selection.selectedStrokeIndices.isNotEmpty || selectedDocumentObjectCount > 0) {
       return selectedDocumentObjectsBounds;
     }
 
     // 2. 检查活跃的选区工具
-    if (_currentSelection != null && !_currentSelection!.isEmpty) {
-      return _currentSelection!.polygon.fold<Rect?>(
+    if (!_selection.isEmpty) {
+      return _selection.polygon.fold<Rect?>(
         null,
         (rect, point) => rect == null
-            ? Rect.fromPoint(point)
-            : rect.expandToInclude(point),
+            ? Rect.fromLTWH(point.dx, point.dy, 0, 0)
+            : rect.expandToInclude(Rect.fromLTWH(point.dx, point.dy, 0, 0)),
       );
     }
 

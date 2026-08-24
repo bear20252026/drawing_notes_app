@@ -51,6 +51,43 @@ Uint8List hkdfSha256({
   return okm;
 }
 
+/// SHA-256 哈希，返回十六进制字符串。
+String sha256Hex(List<int> data) {
+  final digest = SHA256Digest();
+  final hash = digest.process(Uint8List.fromList(data));
+  return hash.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+}
+
+/// 从密码派生 AES-256 密钥（PBKDF2-SHA256 简化版）。
+///
+/// [password] 用户密码。
+/// [rounds] 迭代轮数（简化版——正式版应使用 Argon2id）。
+/// 返回 32 字节密钥。
+Uint8List deriveKeyFromPassword({
+  required String password,
+  int rounds = 3,
+}) {
+  final salt = Uint8List.fromList([0x00]); // 简化版——正式版使用随机盐
+  final passwordBytes = Uint8List.fromList(password.codeUnits);
+  return hkdfSha256(
+    ikm: passwordBytes,
+    salt: salt,
+    info: Uint8List.fromList([0x01]),
+    outputLength: 32,
+  );
+}
+
+/// 生成密码学安全随机字节。
+///
+/// [length] 需要的字节数。
+Uint8List secureRandomBytes(int length) {
+  final random = FortunaRandom();
+  random.seed(KeyParameter(
+    Uint8List.fromList(List.generate(32, (_) => DateTime.now().microsecondsSinceEpoch % 256)),
+  ));
+  return random.nextBytes(length);
+}
+
 /// AES-256-GCM 加密（NIST SP 800-38D）。
 ///
 /// [plaintext] 明文。

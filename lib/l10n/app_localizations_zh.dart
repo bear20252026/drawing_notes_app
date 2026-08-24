@@ -274,6 +274,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get editorStrokeWidth => '画笔粗细';
 
   @override
+  String get editorFontSize => '文字大小';
+
+  @override
+  String get editorShapeStrokeWidth => '形状边框粗细';
+
+  @override
   String get editorPressureSettings => '压感设置';
 
   @override
@@ -579,10 +585,49 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingSubtitle => '用画笔记录灵感，支持无限画布、笔记本和加密保护';
 
   @override
+  String get onboardingBrush => '画笔 / 橡皮擦 / 吸管：顶部工具条切换，拖动鼠标或手指绘画';
+
+  @override
+  String get onboardingColor => '颜色与粗细：工具条右侧圆形色块与粗细滑块';
+
+  @override
+  String get onboardingLayers => '图层面板在右侧：新建、显隐、透明度、顺序、合并';
+
+  @override
+  String get onboardingSelect => '选区工具：框选后可移动 / 缩放 / 旋转 / 复制 / 删除';
+
+  @override
+  String get onboardingText => '笔记页支持文字与图片：文字工具点击画布输入，图片按钮插入';
+
+  @override
+  String get onboardingPinch => '双指捏合缩放画布、双指旋转画布（触屏设备）';
+
+  @override
+  String get onboardingFullscreen => '右上角全屏按钮：隐藏工具栏只看画布';
+
+  @override
+  String get onboardingSave => '内容自动保存，无需手动保存；可随时导出为 PNG';
+
+  @override
+  String get onboardingStart => '开始使用';
+
+  @override
   String get onboardingGetStarted => '开始使用';
 
   @override
   String get onboardingSkip => '跳过';
+
+  @override
+  String get appErrorTitle => '出了点问题';
+
+  @override
+  String get appErrorBody => '应用遇到了一个错误，但数据不会丢失。';
+
+  @override
+  String get appErrorBackHome => '返回首页';
+
+  @override
+  String get appErrorDetails => '错误详情（调试模式）';
 
   @override
   String get settings => '设置';
@@ -1018,57 +1063,4 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get selectColor => '选择颜色';
-
-  // === 错误页面 ===
-  @override
-  String get appErrorTitle => '出了点问题';
-
-  @override
-  String get appErrorBody => '应用遇到了一个错误，但数据不会丢失。';
-
-  @override
-  String get appErrorBackHome => '返回首页';
-
-  @override
-  String get appErrorDetails => '错误详情（调试模式）';
-
-  // === 引导页 ===
-  @override
-  String get onboardingBrush => '画笔 / 橡皮擦 / 吸管：顶部工具条切换，拖动鼠标或手指绘画';
-
-  @override
-  String get onboardingColor => '颜色与粗细：工具条右侧圆形色块与粗细滑块';
-
-  @override
-  String get onboardingLayers => '图层面板在右侧：新建、显隐、透明度、顺序、合并';
-
-  @override
-  String get onboardingSelect => '选区工具：框选后可移动 / 缩放 / 旋转 / 复制 / 删除';
-
-  @override
-  String get onboardingText => '笔记页支持文字与图片：文字工具点击画布输入，图片按钮插入';
-
-  @override
-  String get onboardingPinch => '双指捏合缩放画布、双指旋转画布（触屏设备）';
-
-  @override
-  String get onboardingFullscreen => '右上角全屏按钮：隐藏工具栏只看画布';
-
-  @override
-  String get onboardingSave => '内容自动保存，无需手动保存；可随时导出为 PNG';
-
-  @override
-  String get onboardingStart => '开始使用';
-
-  // === 导出补充 ===
-  @override
-  String get exportTimeout => '⚠️ 导出超时（30 秒），请缩小文档后重试';
-
-  // === 编辑器属性面板 ===
-  @override
-  String get editorFontSize => '字体大小';
-
-  @override
-  String get editorShapeStrokeWidth => '形状边框粗细';
-
 }

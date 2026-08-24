@@ -249,6 +249,7 @@ class SchemaMigrator {
       final latestBackup = backups.first;
 
       await _restoreFromBackup(latestBackup);
+      // 回滚到迁移链中前一个成功版本（fromVersion 是失败迁移的起始版本）
       await setVersion(failedMigration.fromVersion);
 
       await _appendLog(MigrationLogEntry(
@@ -262,7 +263,7 @@ class SchemaMigrator {
 
       debugPrint(
           'SchemaMigrator: 回滚完成 → v${failedMigration.fromVersion}');
-    } catch (e) {
+    } on Exception catch (e) {
       debugPrint('SchemaMigrator: 回滚失败: $e');
     }
   }

@@ -248,8 +248,6 @@ class TextPreprocessor {
   List<String> _splitTokens(String text) {
     final tokens = <String>[];
     final buffer = StringBuffer();
-    var lastWasChinese = false;
-
     for (final char in text.runes) {
       final isChinese = _isChinese(char);
       final isSpace = char == 0x20; // 空格
@@ -259,7 +257,6 @@ class TextPreprocessor {
           tokens.add(buffer.toString());
           buffer.clear();
         }
-        lastWasChinese = false;
       } else if (isChinese) {
         // 中文单字分割
         if (buffer.isNotEmpty) {
@@ -267,10 +264,8 @@ class TextPreprocessor {
           buffer.clear();
         }
         tokens.add(String.fromCharCode(char));
-        lastWasChinese = true;
       } else {
         buffer.write(String.fromCharCode(char));
-        lastWasChinese = false;
       }
     }
 

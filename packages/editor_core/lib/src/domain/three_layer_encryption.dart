@@ -20,7 +20,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
-import 'package:pointycastle/export.dart';
+import 'package:pointycastle/export.dart' hide Signature;
 
 import 'crypto_utils.dart';
 import 'envelope_encryption.dart';
@@ -322,8 +322,10 @@ class SignatureService {
       // Ed25519 验签——委托 cryptography 包。
       final valid = await _algorithm.verify(
         payload,
-        signature: Signature(Uint8List.fromList(sig.signature)),
-        publicKey: edPublicKey,
+        signature: Signature(
+          Uint8List.fromList(sig.signature),
+          publicKey: edPublicKey,
+        ),
       );
 
       if (!valid) {
@@ -540,7 +542,7 @@ class ThreeLayerEncryptionService {
     assert(kek.length == 32, 'KEK 必须 32 字节');
 
     // ─── 验证数字签名（L3 外层） ─────────────────────────────────────
-    final signatureValid = _signatureService.verify(
+    final signatureValid = await _signatureService.verify(
       data: result.l3Ciphertext,
       sig: result.signature,
       publicKey: Uint8List.fromList(signingPublicKey),

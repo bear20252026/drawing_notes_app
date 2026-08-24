@@ -7,6 +7,17 @@ part of 'editor_page.dart';
 
 /// 编辑器 overlay/组件构建域（拆分自 editor_page.dart）。
 extension _EditorPageOverlays on _EditorPageState {
+  /// 阅读模式滤镜：阅读反转开启时包裹 ColorFiltered，否则原样返回。
+  /// 统一避免每个图层重复 `if (_readingInverted) ... else ...` 分支。
+  Widget _applyReadingFilter(Widget child) {
+    return _readingInverted
+        ? ColorFiltered(
+            colorFilter: _EditorPageState._readingInvertFilter,
+            child: child,
+          )
+        : child;
+  }
+
   Widget _buildStatusBar() {
     // 状态栏为纯展示组件（架构重构 R3）：监听 controller + hoverPos 渲染，
     // 不承载业务逻辑（见 editor_statusbar.dart）。
@@ -46,28 +57,17 @@ extension _EditorPageOverlays on _EditorPageState {
                       final bgColor = Theme.of(context).brightness == Brightness.dark
                           ? Theme.of(context).colorScheme.surface
                           : const Color(0xFFFFFFFF);
-                      return _readingInverted
-                          ? ColorFiltered(
-                              colorFilter: _EditorPageState._readingInvertFilter,
-                              child: RepaintBoundary(
-                                child: CustomPaint(
-                                  painter: CanvasPainter(
-                                    controller: _controller,
-                                    backgroundColor: bgColor,
-                                  ),
-                                  size: Size.infinite,
-                                ),
-                              ),
-                            )
-                          : RepaintBoundary(
-                              child: CustomPaint(
-                                painter: CanvasPainter(
-                                  controller: _controller,
-                                  backgroundColor: bgColor,
-                                ),
-                                size: Size.infinite,
-                              ),
-                            );
+                      return _applyReadingFilter(
+                        RepaintBoundary(
+                          child: CustomPaint(
+                            painter: CanvasPainter(
+                              controller: _controller,
+                              backgroundColor: bgColor,
+                            ),
+                            size: Size.infinite,
+                          ),
+                        ),
+                      );
                     },
                   ),
                 ),
@@ -78,30 +78,20 @@ extension _EditorPageOverlays on _EditorPageState {
             if (_gridVisible)
               Positioned.fill(
                 child: IgnorePointer(
-                  child: _readingInverted
-                      ? ColorFiltered(
-                          colorFilter: _EditorPageState._readingInvertFilter,
-                          child: CustomPaint(
-                            painter: GridPainter(controller: _controller),
-                          ),
-                        )
-                      : CustomPaint(
-                          painter: GridPainter(controller: _controller),
-                        ),
+                  child: _applyReadingFilter(
+                    CustomPaint(
+                      painter: GridPainter(controller: _controller),
+                    ),
+                  ),
                 ),
               ),
             // 形状草稿层：所有工作区均可见，且不拦截正在创建形状的指针。
             if (_shapeDraft != null)
               Positioned.fill(
                 child: IgnorePointer(
-                  child: _readingInverted
-                      ? ColorFiltered(
-                          colorFilter: _EditorPageState._readingInvertFilter,
-                          child: Stack(
-                            children: [_buildShapeOverlay(_shapeDraft!)],
-                          ),
-                        )
-                      : Stack(children: [_buildShapeOverlay(_shapeDraft!)]),
+                  child: _applyReadingFilter(
+                    Stack(children: [_buildShapeOverlay(_shapeDraft!)]),
+                  ),
                 ),
               ),
             // 混排对象层（文字/图片）：
@@ -164,12 +154,7 @@ extension _EditorPageOverlays on _EditorPageState {
                           ),
                       ],
                     );
-                    return _readingInverted
-                        ? ColorFiltered(
-                            colorFilter: _EditorPageState._readingInvertFilter,
-                            child: overlay,
-                          )
-                        : overlay;
+                    return _applyReadingFilter(overlay);
                   },
                 ),
               ),

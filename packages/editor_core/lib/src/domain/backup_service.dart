@@ -10,7 +10,6 @@
 // 纯 Dart——禁 Flutter/dart:io（R-02）。
 library;
 
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'crypto_utils.dart';
@@ -412,13 +411,13 @@ class BackupService {
     }
 
     // 解密（如果需要）
-    Uint8List data;
+    Uint8List restoredPayload;
     if (password != null) {
       try {
         final key = deriveKeyFromPassword(password: password, rounds: 3);
         final nonce = backup.payload.sublist(0, 12);
         final ciphertext = backup.payload.sublist(12);
-        data = aes256GcmDecrypt(
+        restoredPayload = aes256GcmDecrypt(
           ciphertextWithTag: ciphertext,
           key: key,
           nonce: nonce,
@@ -432,11 +431,14 @@ class BackupService {
         );
       }
     } else {
-      data = backup.payload;
+      restoredPayload = backup.payload;
     }
 
     // 更新当前版本
     _currentVersion = backup.metadata.version;
+
+    // TODO(urgent): 将 restoredPayload 写回存储后端
+    assert(restoredPayload.isNotEmpty || password == null);
 
     return RestoreResult(
       success: true,

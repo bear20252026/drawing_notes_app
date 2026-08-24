@@ -13,7 +13,9 @@ void main() {
     await tester.pumpWidget(const ProviderScope(
       child: MaterialApp(home: EditorV2Screen(documentId: 'test-doc')),
     ));
-    await tester.pumpAndSettle();
+    // 使用 pump 替代 pumpAndSettle，避免 AnimatedSwitcher 持续动画导致超时
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
     // 工具栏存在（Draw/Select/形状工具）。
     expect(find.byTooltip('Draw'), findsOneWidget);
@@ -34,11 +36,12 @@ void main() {
     await tester.pumpWidget(const ProviderScope(
       child: MaterialApp(home: EditorV2Screen(documentId: 'test-doc')),
     ));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
     // 打开侧边栏（Drawer——AFFiNE 侧边栏页面导航）。
     await tester.tap(find.byIcon(Icons.menu));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
 
     // 侧边栏内容（页面管理 + 页面 1 + 新建/删除）。
     expect(find.text('页面管理'), findsOneWidget);
