@@ -82,10 +82,13 @@ jobs:
         # 转正式门禁：--gate 阻断 + 聚焦安全域（secrets/danger），
         # 只拦安全 definite 问题；dead-code 存量不阻断（避免历史债阻塞
         # 合并），由 desloppify/pyscn 跟踪。SARIF 归档审计留痕。
-        # --exclude 排除 recovery_key.dart 所在目录（base58 字符集高熵误报，
-        # 该目录已由 scan_secrets.py + Gitleaks 双重覆盖）。
+        # --exclude 排除：
+        #   - packages/editor_core/lib/src/domain: base58 字符集高熵误报
+        #     （该目录已由 scan_secrets.py + Gitleaks 双重覆盖）
+        #   - docs: 文档含示例密码/路径（高熵误报，非真实密钥）
+        #   - windows: 生成文件（generated_plugin_registrant.cc 含高熵标识符）
         run: |
-          skylos . --gate --secrets --danger --sarif skylos.sarif --format github --exclude packages/editor_core/lib/src/domain
+          skylos . --gate --secrets --danger --sarif skylos.sarif --format github --exclude packages/editor_core/lib/src/domain --exclude docs --exclude windows
 
       - name: 归档 Skylos SARIF（审计留痕）
         if: always()
