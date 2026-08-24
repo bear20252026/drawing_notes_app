@@ -114,50 +114,6 @@ class StrokeGeometryCache {
     return result;
   }
 
-  /// 当前给活动笔画渲染的低开销点列。调用方不可替换该列表。
-  List<StrokePoint> get previewPoints => _previewPoints;
-
-  /// 收笔前的完整原始采样数，供性能诊断与测试使用。
-  int get rawPointCount => _rawPoints.length;
-
-  /// 追加一个原始输入样本，并同步更新稀疏预览。
-  void append(StrokePoint point) {
-    _rawPoints.add(point);
-    final tail = _previewPoints.last;
-    if (_distanceSquared(tail, point) >= previewSpacing * previewSpacing ||
-        (tail.pressure - point.pressure).abs() >= pressureTolerance) {
-      _previewPoints.add(point);
-    } else {
-      // 不增加几何复杂度，但让当前笔尖准确跟随输入位置。
-      _previewPoints[_previewPoints.length - 1] = point;
-    }
-  }
-
-  /// 基于完整原始采样构建最终点列。
-  ///
-  /// 只删除空间与压感都近似不变的重复样本；第一点、最后一点以及任何明显
-  /// 压感变化均会保留，因此最终路径的质量不依赖于实时预览的稀疏程度。
-  List<StrokePoint> finish() {
-    if (_rawPoints.length <= 2) return List<StrokePoint>.of(_rawPoints);
-
-    final result = <StrokePoint>[_rawPoints.first];
-    for (var i = 1; i < _rawPoints.length - 1; i++) {
-      final point = _rawPoints[i];
-      final last = result.last;
-      final isFarEnough =
-          _distanceSquared(last, point) >= finalSpacing * finalSpacing;
-      final hasPressureChange =
-          (last.pressure - point.pressure).abs() >= pressureTolerance;
-      if (isFarEnough || hasPressureChange) {
-        result.add(point);
-      }
-    }
-
-    final lastPoint = _rawPoints.last;
-    if (!_sameSample(result.last, lastPoint)) result.add(lastPoint);
-    return result;
-  }
-
   static bool _sameSample(StrokePoint a, StrokePoint b) =>
       a.x == b.x && a.y == b.y && a.pressure == b.pressure;
 
