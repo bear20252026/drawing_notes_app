@@ -36,8 +36,20 @@ EXCLUDED_PATHS = {
     "lib/features/drawing/domain/fractional_index.dart",
     "packages/editor_core/lib/src/domain/recovery_key.dart",
 }
+# 安全加固 P0（2026-08-25）：熵检测令牌豁免——已审查的存储键名常量
+# （非密钥，熵 4.04 恰好越界 4.0 阈值）。仅豁免熵规则，其余规则全量生效。
+ENTROPY_ALLOWLIST_TOKENS = {"progressive_delay_fail_count"}
 # 二进制/无关扩展名跳过。
 SKIP_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".ttf", ".ico", ".exe", ".dll", ".pdb", ".class", ".jar", ".zip", ".lock"}
+
+# 安全加固 P0（2026-08-25）：
+# - 测试夹具密码不是秘密（随仓库公开、仅用于验证加解密回环）——
+#   凭据赋值规则对测试路径豁免（Gitleaks 官方同样允许测试文件 allowlist）。
+TEST_PATH_MARKER = re.compile(r"(^|[\\/])(test|integration_test)([\\/]|$)|_test\.dart$")
+# - 本地化 .arb 的 camelCase 键名是标识符非密钥——熵检测豁免。
+ENTROPY_SKIP_SUFFIXES = {".arb"}
+# - 分析产物转储（临时调试输出）——全规则豁免。
+ENTROPY_SKIP_FILES = {"analyze_raw.txt"}
 
 
 def shannon_entropy(s: str) -> float:
@@ -56,21 +68,41 @@ def scan_file(path: Path, findings: list) -> None:
         text = path.read_text(encoding="utf-8", errors="ignore")
     except OSError:
         return
+    rel_posix = path.as_posix()
+    is_test = TEST_PATH_MARKER.search(rel_posix) is not None
+    entropy_skipped = (
+        path.suffix.lower() in ENTROPY_SKIP_SUFFIXES
+        or path.name in ENTROPY_SKIP_FILES
+    )
     for line_no, line in enumerate(text.splitlines(), 1):
         for pattern, desc in RULES:
+            # 安全加固 P0：测试夹具密码豁免凭据赋值规则（其余规则全量生效——
+            # 私钥/AWS/GitHub/Stripe 真实令牌在测试中同样非法）。
+            if is_test and desc.startswith("凭据赋值"):
+                continue
             m = pattern.search(line)
             if m:
                 findings.append((str(path), line_no, desc, line.strip()[:80]))
         # 熵检测（Gitleaks 模式——高熵字符串疑似随机令牌，阈值 4.0）：
         # 仅检测引号内的长字符串（真实密钥/令牌通常出现在字符串字面量中——
-        # 避免裸标识符/类名误报）。
+        # 避免裸标识符/类名误报）。本地化 .arb 键名与调试转储豁免。
+        if entropy_skipped:
+            continue
         for token in re.findall(r"['\"]([0-9a-zA-Z_\-]{24,})['\"]", line):
+            if token in ENTROPY_ALLOWLIST_TOKENS:
+                continue
             if shannon_entropy(token) > 4.0:
                 findings.append((str(path), line_no, f"高熵字符串（熵 {shannon_entropy(token):.2f}）", token[:32]))
                 break  # 每行一条熵告警即可
 
 
 def main() -> int:
+    # Windows 控制台默认 GBK——⚠/✅ emoji 会触发 UnicodeEncodeError（2026-08-25）。
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
     parser = argparse.ArgumentParser(description="秘密扫描（Gitleaks 模式）")
     parser.add_argument("--path", default=".")
     parser.add_argument("--exclude", action="append", default=[], help="额外排除路径")
