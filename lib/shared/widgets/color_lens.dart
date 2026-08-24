@@ -46,8 +46,6 @@ class ColorLens extends StatefulWidget {
 }
 
 class _ColorLensState extends State<ColorLens> {
-  Color? _currentColor;
-
   @override
   Widget build(BuildContext context) {
     if (!widget.visible) {
@@ -92,9 +90,7 @@ class _ColorLensState extends State<ColorLens> {
             magnification: widget.magnification,
             canvasKey: _canvasKey,
             onColorSampled: (color) {
-              if (mounted) {
-                setState(() => _currentColor = color);
-              }
+              // Color sampling callback - can be used for external color preview.
             },
           ),
         ),
