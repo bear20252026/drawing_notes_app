@@ -1,3 +1,5 @@
+import 'package:drawing_notes_app/features/drawing/application/editor_input_arbiter.dart'
+    show EditorInputPolicy;
 import 'package:drawing_notes_app/features/drawing/application/gesture_system.dart'
     as gesture;
 import 'package:flutter/foundation.dart' show TargetPlatform;
@@ -326,6 +328,122 @@ void main() {
     test('最大持续时间默认 300ms', () {
       final animator = gesture.FlingAnimator(onUpdate: (_) {});
       expect(animator.maxDuration, const Duration(milliseconds: 300));
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // EnhancedInputArbiter
+  // ---------------------------------------------------------------------------
+  group('EnhancedInputArbiter', () {
+    test('构造后初始状态正确', () {
+      final state = gesture.GestureState();
+      final policy = EditorInputPolicy(allowInk: true, allowFingerDrawing: true);
+      final arbiter = gesture.EnhancedInputArbiter(
+        policy: policy,
+        gestureState: state,
+      );
+
+      expect(arbiter.inMultiFingerGesture, isFalse);
+      expect(arbiter.policy, same(policy));
+      expect(arbiter.gestureState, same(state));
+    });
+
+    test('reset 清除所有内部状态', () {
+      final state = gesture.GestureState();
+      final policy = EditorInputPolicy(allowInk: true, allowFingerDrawing: true);
+      final arbiter = gesture.EnhancedInputArbiter(
+        policy: policy,
+        gestureState: state,
+      );
+
+      state.setMode(gesture.GestureMode.zoom);
+      state.addPointer(1, const Offset(10, 20));
+      arbiter.reset();
+
+      expect(state.mode, gesture.GestureMode.idle);
+      expect(state.activePointerCount, 0);
+      expect(arbiter.inMultiFingerGesture, isFalse);
+    });
+
+    test('多指手势状态初始为 false', () {
+      final state = gesture.GestureState();
+      final policy = EditorInputPolicy(allowInk: true, allowFingerDrawing: false);
+      final arbiter = gesture.EnhancedInputArbiter(
+        policy: policy,
+        gestureState: state,
+      );
+      expect(arbiter.inMultiFingerGesture, isFalse);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // GestureState 边界条件
+  // ---------------------------------------------------------------------------
+  group('GestureState 边界条件', () {
+    test('多次 setMode 后模式保持最新', () {
+      final state = gesture.GestureState();
+      state.setMode(gesture.GestureMode.ink);
+      state.setMode(gesture.GestureMode.pan);
+      state.setMode(gesture.GestureMode.rotate);
+      expect(state.mode, gesture.GestureMode.rotate);
+    });
+
+    test('updateRotationAccumulator 精确归一化到 [-π, π]', () {
+      final state = gesture.GestureState();
+
+      // 正好等于 2π 应归一化到接近 0
+      state.updateRotationAccumulator(2 * 3.141592653589793);
+      expect(state.rotationAccumulator, closeTo(0, 0.001));
+
+      // 正好等于 -2π 应归一化到接近 0
+      final state2 = gesture.GestureState();
+      state2.updateRotationAccumulator(-2 * 3.141592653589793);
+      expect(state2.rotationAccumulator, closeTo(0, 0.001));
+    });
+
+    test('activePointerPositions 返回空列表当无指针', () {
+      final state = gesture.GestureState();
+      expect(state.activePointerPositions, isEmpty);
+    });
+
+    test('addPointer 使用相同 ID 覆盖', () {
+      final state = gesture.GestureState();
+      state.addPointer(1, const Offset(10, 20));
+      state.addPointer(1, const Offset(50, 60));
+      expect(state.activePointerCount, 1);
+      expect(state.getPointerPosition(1), const Offset(50, 60));
+    });
+
+    test('removePointer 不存在的指针不抛异常', () {
+      final state = gesture.GestureState();
+      expect(() => state.removePointer(999), returnsNormally);
+    });
+
+    test('setFlingVelocity 精确 45 度方向判定', () {
+      final state = gesture.GestureState();
+      // x 和 y 速度相等 → 实现先检查 dy，dy.abs() >= dx.abs() 时取垂直方向
+      state.setFlingVelocity(const Offset(100, 100));
+      expect(state.flingDirection, gesture.FlingDirection.down);
+
+      final state2 = gesture.GestureState();
+      state2.setFlingVelocity(const Offset(-100, -100));
+      expect(state2.flingDirection, gesture.FlingDirection.up);
+
+      final state3 = gesture.GestureState();
+      state3.setFlingVelocity(const Offset(200, 100));
+      expect(state3.flingDirection, gesture.FlingDirection.right);
+    });
+
+    test('isModifierPressed 检查所有修饰键组合', () {
+      final state = gesture.GestureState();
+      state
+        ..setModifierKey(gesture.ModifierKey.command, true)
+        ..setModifierKey(gesture.ModifierKey.shift, true);
+
+      expect(state.isModifierPressed(gesture.ModifierKey.command), isTrue);
+      expect(state.isModifierPressed(gesture.ModifierKey.shift), isTrue);
+      expect(state.isModifierPressed(gesture.ModifierKey.control), isFalse);
+      expect(state.isModifierPressed(gesture.ModifierKey.option), isFalse);
     });
   });
 }

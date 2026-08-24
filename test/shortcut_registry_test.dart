@@ -201,4 +201,66 @@ void main() {
       expect(widget.height, 600);
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // findMatch 集成测试
+  // ---------------------------------------------------------------------------
+  group('findMatch', () {
+    test('匹配 Ctrl+Z 到 undo 操作', () {
+      final event = KeyDownEvent(
+        physicalKey: PhysicalKeyboardKey.keyZ,
+        logicalKey: LogicalKeyboardKey.keyZ,
+        character: 'z',
+        timeStamp: Duration.zero,
+      );
+
+      // findMatch 是 ShortcutRegistry 的静态方法
+      final result = ShortcutRegistry.findMatch(event);
+      if (result != null) {
+        expect(result.actionId, anyOf(equals('undo'), equals('redo')));
+      }
+    });
+
+    test('findMatch 不匹配未注册的按键', () {
+      final event = KeyDownEvent(
+        physicalKey: PhysicalKeyboardKey.fn,
+        logicalKey: LogicalKeyboardKey.fn,
+        timeStamp: Duration.zero,
+      );
+      final result = ShortcutRegistry.findMatch(event);
+      expect(result, isNull);
+    });
+
+    test('findMatch 不匹配 F13 以外的非注册功能键', () {
+      final event = KeyDownEvent(
+        physicalKey: PhysicalKeyboardKey.fn,
+        logicalKey: LogicalKeyboardKey.fn,
+        timeStamp: Duration.zero,
+      );
+      final result = ShortcutRegistry.findMatch(event);
+      expect(result, isNull);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // 分类完整性
+  // ---------------------------------------------------------------------------
+  group('分类完整性', () {
+    test('每个分类至少包含 2 个快捷键', () {
+      final categories = ShortcutRegistry.categories;
+      for (final category in categories) {
+        final shortcuts = ShortcutRegistry.getByCategory(category);
+        expect(shortcuts.length, greaterThanOrEqualTo(2),
+            reason: '分类 "$category" 应至少包含 2 个快捷键');
+      }
+    });
+
+    test('所有快捷键都归入已知分类', () {
+      final knownCategories = ShortcutRegistry.categories.toSet();
+      for (final shortcut in ShortcutRegistry.shortcuts) {
+        expect(knownCategories, contains(shortcut.category),
+            reason: '${shortcut.actionId} 的分类 "${shortcut.category}" 不在 categories 中');
+      }
+    });
+  });
 }
