@@ -32,7 +32,10 @@ EXCLUDED_DIRS = {".git", ".dart_tool", "build", ".idea", ".vs", "node_modules", 
 EXCLUDED_FILES = {"sbom.cdx.json", "pubspec.lock", "untranslated_messages.json", "generated_plugin_registrant.cc"}
 # 误报豁免（2026-08-16）：base62 字符集 const（fractional_index——默认
 # 参数要求 const——合法字符集常量非密钥——高熵检测误报）。
-EXCLUDED_PATHS = {"lib/features/drawing/domain/fractional_index.dart"}
+EXCLUDED_PATHS = {
+    "lib/features/drawing/domain/fractional_index.dart",
+    "packages/editor_core/lib/src/domain/recovery_key.dart",
+}
 # 二进制/无关扩展名跳过。
 SKIP_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".ttf", ".ico", ".exe", ".dll", ".pdb", ".class", ".jar", ".zip", ".lock"}
 
