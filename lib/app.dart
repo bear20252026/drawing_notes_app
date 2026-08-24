@@ -12,6 +12,7 @@ import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
+import 'package:drawing_notes_app/core/error/error_service.dart';
 
 /// 应用根组件：主题 + 路由。
 ///
@@ -38,6 +39,7 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
   void initState() {
     super.initState();
     _themeController = widget.themeController ?? AppThemeController();
+    ErrorService.init(_navigatorKey);
     // 全局热键必须在首帧后注册：此时 MaterialApp 已 build，
     // _navigatorKey.currentState 才可用（否则热键触发导航会静默失败）。
     WidgetsBinding.instance.addPostFrameCallback((_) {

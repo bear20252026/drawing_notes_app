@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'app.dart';
+import 'core/error/app_error_widget.dart';
+import 'core/error/error_log_service.dart';
 import 'core/security/audit_logger.dart';
 
 /// 单实例锁（借鉴 QOwnNotes 二次启动聚焦：
@@ -96,6 +98,8 @@ Future<void> main() async {
   // L-01 错误边界（专家审计 2026-08-15）：Flutter 官方模式（FlutterError
   // .onError + PlatformDispatcher.onError）——保留 presentError 控制台输出，
   // 同时脱敏记录（仅错误类型/库名——不含敏感正文/路径/内部格式）。
+  // 自定义 ErrorWidget：替换默认红色错误屏幕，提供用户友好页面。
+  ErrorWidget.builder = AppErrorWidget.handler;
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
     AuditLogger.log(
@@ -103,9 +107,15 @@ Future<void> main() async {
       success: false,
       detail: details.library ?? 'framework',
     );
+    ErrorLogService.log(
+      details.exception,
+      details.stack ?? StackTrace.empty,
+      context: details.context?.toString(),
+    );
   };
   PlatformDispatcher.instance.onError = (error, stack) {
     AuditLogger.log('app.uncaught.${error.runtimeType}', success: false);
+    ErrorLogService.log(error, stack, context: 'PlatformDispatcher');
     return true;
   };
   // 二次启动检测：已有实例则直接退出（桌面单实例）。
