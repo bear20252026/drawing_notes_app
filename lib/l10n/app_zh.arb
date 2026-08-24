@@ -37,7 +37,7 @@
   "exportPngHint": "PNG 导出需要 Canvas 渲染——请使用画布右键菜单导出",
   "exportTimeout": "⚠️ 导出超时（30 秒），请缩小文档后重试",
   "exportFailed": "导出失败: {error}",
-  "@exportFailed": {"placeholders": {"error": {"type": "String"}}}
+  "@exportFailed": {"placeholders": {"error": {"type": "String"}}},
   "@close": {
     "description": "关闭对话框"
   },
@@ -377,6 +377,14 @@
   "editorStrokeWidth": "画笔粗细",
   "@editorStrokeWidth": {
     "description": "画笔粗细提示"
+  },
+  "editorFontSize": "文字大小",
+  "@editorFontSize": {
+    "description": "文字大小滑块提示"
+  },
+  "editorShapeStrokeWidth": "形状边框粗细",
+  "@editorShapeStrokeWidth": {
+    "description": "形状边框粗细滑块提示"
   },
   "editorPressureSettings": "压感设置",
   "@editorPressureSettings": {

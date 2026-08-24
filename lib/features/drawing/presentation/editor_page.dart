@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -44,7 +45,7 @@ import 'package:drawing_notes_app/features/drawing/presentation/editor_context_b
 import 'package:drawing_notes_app/features/drawing/presentation/editor_left_toolbar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_statusbar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar.dart';
-import 'package:drawing_notes_app/features/drawing/application/editor_notifier.dart';
+
 import 'package:drawing_notes_app/features/drawing/presentation/editor_viewmodel.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/layer_panel.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/properties_panel.dart';
@@ -65,6 +66,7 @@ part 'editor_page_tools.dart';
 part 'editor_page_commands.dart';
 part 'editor_page_shortcuts.dart';
 part 'editor_page_persistence.dart';
+part 'editor_page_drop_handler.dart';
 
 /// 编辑器页面。
 ///
@@ -158,6 +160,12 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   /// 全屏模式：隐藏应用框架，只保留画布。
   bool _fullscreen = false;
+
+  /// 拖放状态跟踪（用于 UI 反馈）。
+  final DropRegionState _dropState = DropRegionState();
+
+  /// 是否正在拖放文件到画布区域。
+  bool get _isDraggingFile => _dropState.isDragging;
 
   /// 阅读反相仅作用于当前编辑器显示层；不修改页面颜色、资源字节、导出或保存。
   bool _readingInverted = false;
@@ -422,6 +430,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     _editFocus.dispose();
     _hoverPos.dispose();
     _inkPressureSample.dispose();
+    // 拖放状态清理。
+    _dropState.removeListener(_onDropStateChanged);
+    _dropState.dispose();
     // _controller 生命周期由 drawingControllerProvider(ref.onDispose) 管理。
     super.dispose();
   }
@@ -510,6 +521,13 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     // 注册编辑器命令（B2：命令表驱动快捷键面板）。
     _commands = CommandRegistry();
     _registerCommands();
+    // 拖放状态监听：触发重建以显示/隐藏拖放提示。
+    _dropState.addListener(_onDropStateChanged);
+  }
+
+  /// 拖放状态变化回调：触发重建。
+  void _onDropStateChanged() {
+    if (mounted) setState(() {});
   }
 
   bool get _hasObjectSelection =>
@@ -886,8 +904,51 @@ class _EditorPageState extends ConsumerState<EditorPage> {
             ],
           ),
           body: _fullscreen
-              // 全屏模式：只保留画布区域。
-              ? _buildCanvasArea()
+              // 全屏模式：只保留画布区域（也支持拖放导入）。
+              ? DragTarget<String>(
+                  onWillAcceptWithDetails: (_) {
+                    _dropState.setDragging(true);
+                    return true;
+                  },
+                  onLeave: (_) => _dropState.setDragging(false),
+                  onAcceptWithDetails: (details) {
+                    _dropState.setDragging(false);
+                    _handleDroppedFile(details.data);
+                  },
+                  builder: (context, candidateData, rejectedData) {
+                    return Stack(
+                      children: [
+                        _buildCanvasArea(),
+                        if (_isDraggingFile)
+                          Container(
+                            color: Colors.blue.withValues(alpha: 0.1),
+                            child: Center(
+                              child: Container(
+                                padding: const EdgeInsets.all(24),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.blue,
+                                    width: 2,
+                                    style: BorderStyle.solid,
+                                  ),
+                                ),
+                                child: const Text(
+                                  '释放以导入图片',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                )
               : Row(
                   children: [
                     // 左侧垂直工具条（对齐 Excalidraw LayerUI 布局）。
@@ -985,7 +1046,52 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                               _notifyChanged();
                             },
                           ),
-                          Expanded(child: _buildCanvasArea()),
+                          Expanded(
+                            child: DragTarget<String>(
+                              onWillAcceptWithDetails: (_) {
+                                _dropState.setDragging(true);
+                                return true;
+                              },
+                              onLeave: (_) => _dropState.setDragging(false),
+                              onAcceptWithDetails: (details) {
+                                _dropState.setDragging(false);
+                                _handleDroppedFile(details.data);
+                              },
+                              builder: (context, candidateData, rejectedData) {
+                                return Stack(
+                                  children: [
+                                    _buildCanvasArea(),
+                                    if (_isDraggingFile)
+                                      Container(
+                                        color: Colors.blue.withValues(alpha: 0.1),
+                                        child: Center(
+                                          child: Container(
+                                            padding: const EdgeInsets.all(24),
+                                            decoration: BoxDecoration(
+                                              color: Colors.blue.shade50,
+                                              borderRadius: BorderRadius.circular(12),
+                                              border: Border.all(
+                                                color: Colors.blue,
+                                                width: 2,
+                                                style: BorderStyle.solid,
+                                              ),
+                                            ),
+                                            child: const Text(
+                                              '释放以导入图片',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.blue,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1085,4 +1191,71 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   }
 
   /// 底部状态栏：缩放比例、当前工具粗细、鼠标画布坐标。
+
+  // ---------------------------------------------------------------------------
+  // 拖放导入
+  // ---------------------------------------------------------------------------
+
+  /// 处理拖放的文件路径，读取图片并添加到画布。
+  Future<void> _handleDroppedFile(String path) async {
+    try {
+      final file = File(path);
+      if (!await file.exists()) {
+        _showSnack('文件不存在: $path');
+        return;
+      }
+      final name = path.split(RegExp(r'[/\\]')).last;
+      final type = DropHandler.detectType(name);
+      if (type != DropFileType.image) {
+        _showSnack('不支持的文件类型: $name');
+        return;
+      }
+      final center = Offset(
+        _controller.document.width / 2,
+        _controller.document.height / 2,
+      );
+      final page = widget.page;
+      if (page != null) {
+        final storage = widget.storage;
+        if (storage == null) {
+          _showSnack('笔记页图片存储不可用');
+          return;
+        }
+        final storedPath = await storage.storeImage(path, page.id);
+        _applyState(() {
+          page.imageItems.add(
+            PageImageItem(
+              id: LocalIdGenerator.next('img'),
+              x: center.dx,
+              y: center.dy,
+              filePath: storedPath,
+            ),
+          );
+          _selectedItemId = page.imageItems.last.id;
+        });
+      } else {
+        final storage = widget.docStorage;
+        if (storage == null) {
+          _showSnack('绘图文档图片存储不可用');
+          return;
+        }
+        final storedPath = await storage.storeImage(path, _controller.document.id);
+        _applyState(() {
+          _controller.document.imageItems.add(
+            DocumentImageItem(
+              id: LocalIdGenerator.next('img'),
+              x: center.dx,
+              y: center.dy,
+              filePath: storedPath,
+            ),
+          );
+          _selectedItemId = _controller.document.imageItems.last.id;
+        });
+      }
+      _showSnack('已导入图片: $name');
+      _notifyChanged();
+    } catch (e) {
+      _showSnack('导入失败: $e');
+    }
+  }
 }

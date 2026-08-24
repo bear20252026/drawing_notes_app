@@ -1078,4 +1078,12 @@ class AppLocalizationsEn extends AppLocalizations {
   // === Export supplement ===
   @override
   String get exportTimeout => '⚠️ Export timed out (30s), please shrink the document and retry';
+
+  // === Editor property panel ===
+  @override
+  String get editorFontSize => 'Font Size';
+
+  @override
+  String get editorShapeStrokeWidth => 'Shape Stroke Width';
+
 }

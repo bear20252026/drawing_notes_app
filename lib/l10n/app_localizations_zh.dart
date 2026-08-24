@@ -1063,4 +1063,12 @@ class AppLocalizationsZh extends AppLocalizations {
   // === 导出补充 ===
   @override
   String get exportTimeout => '⚠️ 导出超时（30 秒），请缩小文档后重试';
+
+  // === 编辑器属性面板 ===
+  @override
+  String get editorFontSize => '字体大小';
+
+  @override
+  String get editorShapeStrokeWidth => '形状边框粗细';
+
 }

@@ -80,6 +80,8 @@
   "toolEyedropper": "Eyedropper",
   "editorSelectionColor": "Selection Color",
   "editorStrokeWidth": "Stroke Width",
+  "editorFontSize": "Text Size",
+  "editorShapeStrokeWidth": "Shape Border Width",
   "editorPressureSettings": "Pressure Settings",
   "editorMinWidth": "Min Width",
   "editorMaxWidth": "Max Width",

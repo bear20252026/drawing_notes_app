@@ -578,6 +578,18 @@ abstract class AppLocalizations {
   /// **'Stroke Width'**
   String get editorStrokeWidth;
 
+  /// No description provided for @editorFontSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Text Size'**
+  String get editorFontSize;
+
+  /// No description provided for @editorShapeStrokeWidth.
+  ///
+  /// In en, this message translates to:
+  /// **'Shape Border Width'**
+  String get editorShapeStrokeWidth;
+
   /// No description provided for @editorPressureSettings.
   ///
   /// In en, this message translates to:
@@ -2025,23 +2037,48 @@ abstract class AppLocalizations {
   String get selectColor;
 
   // === 错误页面 ===
+  /// No description provided for @appErrorTitle.
   String get appErrorTitle;
+
+  /// No description provided for @appErrorBody.
   String get appErrorBody;
+
+  /// No description provided for @appErrorBackHome.
   String get appErrorBackHome;
+
+  /// No description provided for @appErrorDetails.
   String get appErrorDetails;
 
   // === 引导页 ===
+  /// No description provided for @onboardingBrush.
   String get onboardingBrush;
+
+  /// No description provided for @onboardingColor.
   String get onboardingColor;
+
+  /// No description provided for @onboardingLayers.
   String get onboardingLayers;
+
+  /// No description provided for @onboardingSelect.
   String get onboardingSelect;
+
+  /// No description provided for @onboardingText.
   String get onboardingText;
+
+  /// No description provided for @onboardingPinch.
   String get onboardingPinch;
+
+  /// No description provided for @onboardingFullscreen.
   String get onboardingFullscreen;
+
+  /// No description provided for @onboardingSave.
   String get onboardingSave;
+
+  /// No description provided for @onboardingStart.
   String get onboardingStart;
 
   // === 导出 ===
+  /// No description provided for @exportTimeout.
   String get exportTimeout;
 }
 
