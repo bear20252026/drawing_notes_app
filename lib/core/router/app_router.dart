@@ -184,7 +184,7 @@ Widget _buildNotFoundPage(BuildContext context, {String? subtitle}) {
           const SizedBox(height: 24),
           Text(
             subtitle ?? '页面未找到',
-            style: TextStyle(fontSize: TextScaleHelper.scaled(context, 18), fontWeight: FontWeight.w600),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 24),
           FilledButton.icon(

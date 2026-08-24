@@ -3,15 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/di/providers.dart';
 import 'l10n/app_localizations.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/core/storage/storage_service.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
-import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
-import 'package:drawing_notes_app/core/error/error_service.dart';
+import 'package:drawing_notes_app/core/router/app_router.dart';
+import 'package:drawing_notes_app/core/security/auth_guard.dart';
 
 /// 应用根组件：主题 + 路由。
 ///
@@ -28,17 +26,25 @@ class DrawingNotesApp extends ConsumerStatefulWidget {
 }
 
 class _DrawingNotesAppState extends ConsumerState<DrawingNotesApp> {
-  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  GoRouter? _router;
 
   @override
   void initState() {
     super.initState();
-    ErrorService.init(_navigatorKey);
-    // 全局热键必须在首帧后注册：此时 MaterialApp 已 build，
-    // _navigatorKey.currentState 才可用（否则热键触发导航会静默失败）。
+    _initRouter();
+    // 全局热键必须在首帧后注册。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _registerGlobalHotkey();
     });
+  }
+
+  Future<void> _initRouter() async {
+    await AuthGuard.instance.initialize();
+    if (mounted) {
+      setState(() {
+        _router = createAppRouter();
+      });
+    }
   }
 
   /// 注册全局热键（D6，借鉴 Notes 全局热键唤出）：
@@ -58,21 +64,9 @@ class _DrawingNotesAppState extends ConsumerState<DrawingNotesApp> {
     }
   }
 
-  /// 全局热键触发：打开快速记录页（新建画作并进入编辑器）。
+  /// 全局热键触发：通过 GoRouter 打开快速记录页。
   void _openQuickRecord() {
-    final nav = _navigatorKey.currentState;
-    if (nav == null) return;
-    final doc = DrawingDocument(
-      id: StorageService.newId(),
-      title:
-          '快速记录 ${DateTime.now().hour.toString().padLeft(2, '0')}:'
-          '${DateTime.now().minute.toString().padLeft(2, '0')}',
-    );
-    nav.push(
-      MaterialPageRoute(
-        builder: (_) => EditorPage(document: doc, docStorage: StorageService()),
-      ),
-    );
+    _router?.go('/editor/new');
   }
 
   @override
@@ -85,8 +79,19 @@ class _DrawingNotesAppState extends ConsumerState<DrawingNotesApp> {
   Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeProvider);
 
-    return MaterialApp(
-      navigatorKey: _navigatorKey,
+    if (_router == null) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: AppDesign.lightTheme(),
+        darkTheme: AppDesign.darkTheme(),
+        themeMode: themeMode,
+        home: const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
+    return MaterialApp.router(
       title: AppLocalizations.of(context)?.appTitle ?? '绘图笔记',
       locale: const Locale('en'),
       localizationsDelegates: [
@@ -104,7 +109,7 @@ class _DrawingNotesAppState extends ConsumerState<DrawingNotesApp> {
       themeMode: themeMode,
       theme: ref.watch(themeProvider),
       darkTheme: AppDesign.darkTheme(),
-      home: const HomePage(),
+      routerConfig: _router,
     );
   }
 }
