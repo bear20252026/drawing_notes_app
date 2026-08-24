@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
@@ -221,7 +222,13 @@ class StorageService implements DocumentRepository {
     await _ensureDocumentsDir();
     final finalFile = File(_pathFor(id));
     final tmp = File('${finalFile.path}.${LocalIdGenerator.next('write')}.tmp');
-    await tmp.writeAsBytes(data, flush: true);
+
+    // 计算 SHA-256 完整性哈希并写入数据末尾。
+    final hash = sha256.convert(data);
+    final hashBytes = utf8.encode(hash.toString());
+    final dataWithHash = Uint8List.fromList([...data, ...hashBytes]);
+
+    await tmp.writeAsBytes(dataWithHash, flush: true);
 
     // 备份上一版：若平台不允许直接覆盖目标文件，恢复路径仍保留上一份完整数据。
     if (await finalFile.exists()) {
@@ -259,10 +266,32 @@ class StorageService implements DocumentRepository {
     final bak = File('${_pathFor(id)}.bak');
     if (!await file.exists() && !await bak.exists()) return null;
     try {
-      final bytes = await _readWithRetry(
+      final rawBytes = await _readWithRetry(
         () async => await (await file.exists() ? file : bak).readAsBytes(),
       );
-      return _codec.decode(bytes);
+
+      // 验证 SHA-256 完整性哈希。
+      final hashLength = 64; // SHA-256 十六进制字符串长度。
+      if (rawBytes.length > hashLength) {
+        final dataBytes = rawBytes.sublist(0, rawBytes.length - hashLength);
+        final storedHashBytes = rawBytes.sublist(rawBytes.length - hashLength);
+        final storedHash = utf8.decode(storedHashBytes);
+        final computedHash = sha256.convert(dataBytes).toString();
+
+        if (computedHash != storedHash) {
+          // 数据损坏——尝试备份恢复。
+          if (await bak.exists()) {
+            final bakBytes = await _readWithRetry(() async => await bak.readAsBytes());
+            return _codec.decode(bakBytes);
+          }
+          throw FormatException('数据完整性校验失败: $id');
+        }
+
+        return _codec.decode(dataBytes);
+      }
+
+      // 兼容旧格式（无哈希）。
+      return _codec.decode(rawBytes);
     } on FormatException {
       // 正式文件损坏：尝试备份恢复。
       if (await bak.exists()) {

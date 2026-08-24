@@ -40,7 +40,7 @@ class SecureBytes {
     _finalizer.attach(this, _data, detach: this);
   }
 
-  static final Finalizer<Uint8List> _finalizer = Finalizer(_zeroize);
+  static final Finalizer<Uint8List> _finalizer = Finalizer(zeroize);
 
   Uint8List _data;
   bool _disposed;
@@ -74,12 +74,14 @@ class SecureBytes {
   void dispose() {
     if (_disposed) return;
     _disposed = true;
-    _zeroize(_data);
+    zeroize(_data);
     _finalizer.detach(this);
   }
 
   /// 静态清零函数（Finalizer 回调——必须是静态/顶级函数）。
-  static void _zeroize(Uint8List data) {
+  ///
+  /// 公开供外部使用（如清零临时密钥材料）。
+  static void zeroize(Uint8List data) {
     // 多次覆写（防御编译器优化——volatile 等效）：
     // 第一次：全零
     for (var i = 0; i < data.length; i++) {
@@ -97,7 +99,7 @@ class SecureBytes {
 
   /// 异步安全版本——在 isolate 中清零（大密钥时避免阻塞 UI）。
   static Future<void> zeroizeAsync(Uint8List data) async {
-    _zeroize(data);
+    zeroize(data);
   }
 }
 
