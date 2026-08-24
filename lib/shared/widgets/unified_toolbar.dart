@@ -74,7 +74,9 @@ class UnifiedToolbar extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       color: Colors.grey[200],
-      child: Row(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
         children: [
           // 画笔工具
           ToolButton(

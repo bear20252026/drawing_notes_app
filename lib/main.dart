@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -6,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'app.dart';
+import 'core/error/app_error_widget.dart';
+import 'core/error/error_log_service.dart';
 import 'core/security/audit_logger.dart';
 
 /// 单实例锁（借鉴 QOwnNotes 二次启动聚焦：
@@ -96,6 +99,8 @@ Future<void> main() async {
   // L-01 错误边界（专家审计 2026-08-15）：Flutter 官方模式（FlutterError
   // .onError + PlatformDispatcher.onError）——保留 presentError 控制台输出，
   // 同时脱敏记录（仅错误类型/库名——不含敏感正文/路径/内部格式）。
+  // 自定义 ErrorWidget：替换默认红色错误屏幕，提供用户友好页面。
+  ErrorWidget.builder = AppErrorWidget.handler;
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
     AuditLogger.log(
@@ -103,14 +108,42 @@ Future<void> main() async {
       success: false,
       detail: details.library ?? 'framework',
     );
+    ErrorLogService.log(
+      details.exception,
+      details.stack ?? StackTrace.empty,
+      context: details.context?.toString(),
+    );
   };
   PlatformDispatcher.instance.onError = (error, stack) {
     AuditLogger.log('app.uncaught.${error.runtimeType}', success: false);
+    ErrorLogService.log(error, stack, context: 'PlatformDispatcher');
     return true;
   };
   // 二次启动检测：已有实例则直接退出（桌面单实例）。
   if (!await _acquireSingleInstance()) {
     return;
   }
-  runApp(const ProviderScope(child: DrawingNotesApp()));
+  // runZonedGuarded：捕获所有未处理的异步异常（Dart zone 级别）。
+  // 补充 FlutterError.onError + PlatformDispatcher.onError 的覆盖范围，
+  // 确保 Future/Stream/Timer 中的未捕获异常也被记录。
+  runZonedGuarded<void>(
+    () {
+      runApp(const ProviderScope(child: DrawingNotesApp()));
+    },
+    (error, stack) {
+      AuditLogger.log(
+        'app.zoned.${error.runtimeType}',
+        success: false,
+        detail: error.toString(),
+      );
+      ErrorLogService.log(error, stack, context: 'runZonedGuarded');
+      // 开发模式下输出到控制台
+      if (kDebugMode) {
+        debugPrint('╔══════════════════════════════════════════');
+        debugPrint('║ ZonedGuarded Error: $error');
+        debugPrint('║ Stack: $stack');
+        debugPrint('╚══════════════════════════════════════════');
+      }
+    },
+  );
 }

@@ -1,25 +1,18 @@
-// editor_v2——LayerPanel 层管理面板（AFFiNE 借鉴——2026-08-21）。
-//
-// AFFiNE 图层管理（可见性/透明度/重排）本地化——积木式独立 Widget。
-// 不修改现有功能——保证现有功能正常——不搞崩。
-library;
+// editor_v2——LayerPanel 层管理面板（AFFiNE 借鉴—�?026-08-21）�?//
+// AFFiNE 图层管理（可见�?透明�?重排）本地化——积木式独立 Widget�?// 不修改现有功能——保证现有功能正常——不搞崩�?library;
 
 import 'package:flutter/material.dart';
+
+import '../../../core/theme/text_scale_helper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:editor_core/editor_core.dart';
 import '../application/editor_v2_viewmodel.dart';
 
-/// AFFiNE 层管理面板（积木式独立 Widget——不大幅变动）。
-///
-/// 功能：
-/// - 图层列表（LayerV2——名称/可见性/透明度）
-/// - 可见性切换（visible 字段）
-/// - 透明度调整（opacity 滑块 0~1）
-/// - 重排（上下移动——AFFiNE 图层排序）
-///
-/// 设计：积木式——独立 Widget——不耦合其他组件——可插拔。
-class LayerPanel extends ConsumerWidget {
+/// AFFiNE 层管理面板（积木式独�?Widget——不大幅变动）�?///
+/// 功能�?/// - 图层列表（LayerV2——名�?可见�?透明度）
+/// - 可见性切换（visible 字段�?/// - 透明度调整（opacity 滑块 0~1�?/// - 重排（上下移动——AFFiNE 图层排序�?///
+/// 设计：积木式——独�?Widget——不耦合其他组件——可插拔�?class LayerPanel extends ConsumerWidget {
   const LayerPanel({super.key});
 
   @override
@@ -30,7 +23,7 @@ class LayerPanel extends ConsumerWidget {
 
     if (layers.isEmpty) {
       return const Center(
-        child: Text('无图层', style: TextStyle(color: Colors.grey)),
+        child: Text('无图�?, style: TextStyle(color: Colors.grey)),
       );
     }
 
@@ -49,8 +42,7 @@ class LayerPanel extends ConsumerWidget {
   }
 }
 
-/// 单个图层条目（积木式——不耦合）。
-class _LayerTile extends ConsumerWidget {
+/// 单个图层条目（积木式——不耦合）�?class _LayerTile extends ConsumerWidget {
   const _LayerTile({
     required this.layer,
     required this.index,
@@ -72,8 +64,7 @@ class _LayerTile extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Row(
           children: [
-            // 可见性切换（眼睛图标）。
-            IconButton(
+            // 可见性切换（眼睛图标）�?            IconButton(
               icon: Icon(
                 layer.visible ? Icons.visibility : Icons.visibility_off,
                 size: 18,
@@ -89,19 +80,17 @@ class _LayerTile extends ConsumerWidget {
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             ),
-            // 图层名称。
-            Expanded(
+            // 图层名称�?            Expanded(
               child: Text(
                 layer.name,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: TextScaleHelper.scaled(context, 13),
                   color: layer.visible ? Colors.black87 : Colors.grey,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            // 透明度调整（滑块）。
-            SizedBox(
+            // 透明度调整（滑块）�?            SizedBox(
               width: 80,
               child: SliderTheme(
                 data: SliderThemeData(
@@ -126,8 +115,7 @@ class _LayerTile extends ConsumerWidget {
                 ),
               ),
             ),
-            // 重排按钮（上移/下移——AFFiNE 图层排序）。
-            Column(
+            // 重排按钮（上�?下移——AFFiNE 图层排序）�?            Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(

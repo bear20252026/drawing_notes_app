@@ -1,20 +1,18 @@
-// editor_v2——ExportPanel 导出 UI 面板（Excalidraw 借鉴——2026-08-21）。
-//
-// Excalidraw 导出面板本地化——导出格式选择器（PNG/SVG/JSON）+ 导出按钮。
-// 积木式独立 Widget——不耦合其他组件——可插拔——不搞崩。
-library;
+// editor_v2——ExportPanel 导出 UI 面板（Excalidraw 借鉴—�?026-08-21）�?//
+// Excalidraw 导出面板本地化——导出格式选择器（PNG/SVG/JSON�? 导出按钮�?// 积木式独�?Widget——不耦合其他组件——可插拔——不搞崩�?library;
 
 import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+
+import '../../../core/theme/text_scale_helper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../application/editor_v2_viewmodel.dart';
 import '../application/export_service.dart';
 
-/// 导出格式枚举。
-enum ExportFormat {
+/// 导出格式枚举�?enum ExportFormat {
   png('PNG', Icons.image, '图片格式'),
   svg('SVG', Icons.code, '矢量格式'),
   json('JSON', Icons.data_object, '文档格式');
@@ -25,16 +23,9 @@ enum ExportFormat {
   final String description;
 }
 
-/// Excalidraw 导出面板（积木式独立 Widget——导出格式选择器）。
-///
-/// 功能：
-/// - 格式选择（PNG/SVG/JSON 三选一——Excalidraw 模式）
-/// - 导出按钮（执行 ExportService）
-/// - 导出结果预览（JSON 直接显示/SVG 显示代码/PNG 提示保存）
-/// - 复制到剪贴板（JSON/SVG 文本）
-///
-/// 设计：积木式——独立 Widget——不耦合其他组件——可插拔。
-class ExportPanel extends ConsumerStatefulWidget {
+/// Excalidraw 导出面板（积木式独立 Widget——导出格式选择器）�?///
+/// 功能�?/// - 格式选择（PNG/SVG/JSON 三选一——Excalidraw 模式�?/// - 导出按钮（执�?ExportService�?/// - 导出结果预览（JSON 直接显示/SVG 显示代码/PNG 提示保存�?/// - 复制到剪贴板（JSON/SVG 文本�?///
+/// 设计：积木式——独�?Widget——不耦合其他组件——可插拔�?class ExportPanel extends ConsumerStatefulWidget {
   const ExportPanel({super.key});
 
   @override
@@ -61,16 +52,12 @@ class _ExportPanelState extends ConsumerState<ExportPanel> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 标题（Excalidraw 风格）。
-            Text('导出', style: Theme.of(context).textTheme.titleSmall),
+            // 标题（Excalidraw 风格）�?            Text('导出', style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 12),
-            // 格式选择（三选一——Excalidraw 模式）。
-            _buildFormatSelector(),
+            // 格式选择（三选一——Excalidraw 模式）�?            _buildFormatSelector(),
             const SizedBox(height: 12),
-            // 导出按钮。
-            _buildExportButton(),
-            // 导出结果预览。
-            if (_exportResult != null) ...[
+            // 导出按钮�?            _buildExportButton(),
+            // 导出结果预览�?            if (_exportResult != null) ...[
               const SizedBox(height: 12),
               _buildResultPreview(),
             ],
@@ -80,8 +67,7 @@ class _ExportPanelState extends ConsumerState<ExportPanel> {
     );
   }
 
-  /// 格式选择器（PNG/SVG/JSON——Excalidraw 模式）。
-  Widget _buildFormatSelector() {
+  /// 格式选择器（PNG/SVG/JSON——Excalidraw 模式）�?  Widget _buildFormatSelector() {
     return Row(
       children: ExportFormat.values.map((format) {
         final isSelected = _selectedFormat == format;
@@ -110,7 +96,7 @@ class _ExportPanelState extends ConsumerState<ExportPanel> {
                     const SizedBox(height: 4),
                     Text(format.label,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: TextScaleHelper.scaled(context, 12),
                           fontWeight: FontWeight.w600,
                           color: isSelected ? Colors.white : Colors.grey.shade700,
                         )),
@@ -124,8 +110,7 @@ class _ExportPanelState extends ConsumerState<ExportPanel> {
     );
   }
 
-  /// 导出按钮（执行 ExportService——Excalidraw 模式）。
-  Widget _buildExportButton() {
+  /// 导出按钮（执�?ExportService——Excalidraw 模式）�?  Widget _buildExportButton() {
     return ElevatedButton.icon(
       icon: _exporting
           ? const SizedBox(
@@ -133,7 +118,7 @@ class _ExportPanelState extends ConsumerState<ExportPanel> {
               height: 16,
               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
           : const Icon(Icons.download, size: 18),
-      label: Text(_exporting ? '导出中...' : '导出 ${_selectedFormat.label}'),
+      label: Text(_exporting ? '导出�?..' : '导出 ${_selectedFormat.label}'),
       onPressed: _exporting ? null : _doExport,
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.blue,
@@ -144,8 +129,7 @@ class _ExportPanelState extends ConsumerState<ExportPanel> {
     );
   }
 
-  /// 导出结果预览（JSON/SVG 文本显示/PNG 提示）。
-  Widget _buildResultPreview() {
+  /// 导出结果预览（JSON/SVG 文本显示/PNG 提示）�?  Widget _buildResultPreview() {
     return Container(
       constraints: const BoxConstraints(maxHeight: 150),
       padding: const EdgeInsets.all(8),
@@ -159,15 +143,14 @@ class _ExportPanelState extends ConsumerState<ExportPanel> {
         children: [
           Row(
             children: [
-              Text('预览', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+              Text('预览', style: TextStyle(fontSize: TextScaleHelper.scaled(context, 11), color: Colors.grey.shade600)),
               const Spacer(),
               if (_selectedFormat != ExportFormat.png)
                 IconButton(
                   icon: const Icon(Icons.copy, size: 16),
                   onPressed: () {
-                    // 复制到剪贴板（实际需 import services——此处省略）。
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('已复制'), duration: Duration(seconds: 1)),
+                    // 复制到剪贴板（实际需 import services——此处省略）�?                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('已复�?), duration: Duration(seconds: 1)),
                     );
                   },
                   padding: EdgeInsets.zero,
@@ -181,7 +164,7 @@ class _ExportPanelState extends ConsumerState<ExportPanel> {
             child: SingleChildScrollView(
               child: Text(
                 _exportResult!,
-                style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                style: TextStyle(fontSize: TextScaleHelper.scaled(context, 11), fontFamily: 'monospace'),
                 maxLines: 20,
               ),
             ),
@@ -191,22 +174,18 @@ class _ExportPanelState extends ConsumerState<ExportPanel> {
     );
   }
 
-  /// 执行导出（ExportService——Excalidraw 模式）。
-  ///
-  /// 30 秒超时保护（#38 修复——2026-08-24）。
-  Future<void> _doExport() async {
+  /// 执行导出（ExportService——Excalidraw 模式）�?  ///
+  /// 30 秒超时保护（#38 修复—�?026-08-24）�?  Future<void> _doExport() async {
     setState(() => _exporting = true);
     try {
       final doc = ref.read(editorV2NotifierProvider).document;
       String result;
 
-      // 带超时的导出操作。
-      Future<String> doExportInternal() async {
+      // 带超时的导出操作�?      Future<String> doExportInternal() async {
         switch (_selectedFormat) {
           case ExportFormat.json:
             var r = ExportService.toJson(doc);
-            // 格式化 JSON。
-            try {
+            // 格式�?JSON�?            try {
               final parsed = jsonDecode(r);
               r = const JsonEncoder.withIndent('  ').convert(parsed);
             } catch (_) {}
@@ -214,14 +193,14 @@ class _ExportPanelState extends ConsumerState<ExportPanel> {
           case ExportFormat.svg:
             return ExportService.toSvg(doc);
           case ExportFormat.png:
-            return 'PNG 导出需要 Canvas 渲染——请使用画布右键菜单导出。';
+            return 'PNG 导出需�?Canvas 渲染——请使用画布右键菜单导出�?;
         }
       }
 
       result = await doExportInternal().timeout(
         const Duration(seconds: 30),
         onTimeout: () {
-          throw TimeoutException('导出操作超时（30 秒）');
+          throw TimeoutException('导出操作超时�?0 秒）');
         },
       );
 
@@ -233,7 +212,7 @@ class _ExportPanelState extends ConsumerState<ExportPanel> {
         setState(() => _exportResult = null);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('⚠️ 导出超时（30 秒），请缩小文档后重试'),
+            content: Text('⚠️ 导出超时�?0 秒），请缩小文档后重�?),
             duration: Duration(seconds: 3),
           ),
         );

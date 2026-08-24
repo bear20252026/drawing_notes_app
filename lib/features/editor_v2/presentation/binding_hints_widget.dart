@@ -1,20 +1,15 @@
-// editor_v2——BindingHintsWidget 节点连线提示（用户需求 #10——2026-08-24）。
-//
-// 用户需求：节点连线功能指示不明——应提供交互提示、空态引导与说明文案。
-//
-// Excalidraw 借鉴：上下文提示 + 空态引导 + 工具说明。
-library;
+// editor_v2——BindingHintsWidget 节点连线提示（用户需�?#10—�?026-08-24）�?//
+// 用户需求：节点连线功能指示不明——应提供交互提示、空态引导与说明文案�?//
+// Excalidraw 借鉴：上下文提示 + 空态引�?+ 工具说明�?library;
 
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/text_scale_helper.dart';
 
-/// 节点连线提示 Widget（用户需求 #10——交互提示/空态引导）。
-///
+/// 节点连线提示 Widget（用户需�?#10——交互提�?空态引导）�?///
 /// 当用户选择箭头/连线工具时显示：
 /// - 工具说明（如何使用箭头连接形状）
-/// - 可绑定形状提示（矩形/椭圆/菱形可被连接）
-/// - 操作建议（拖拽起点到形状，再拖拽到目标形状）
+/// - 可绑定形状提示（矩形/椭圆/菱形可被连接�?/// - 操作建议（拖拽起点到形状，再拖拽到目标形状）
 class BindingHintsWidget extends StatelessWidget {
   const BindingHintsWidget({
     super.key,
@@ -22,16 +17,13 @@ class BindingHintsWidget extends StatelessWidget {
     this.hasShapes = false,
   });
 
-  /// 当前工具名称。
-  final String currentTool;
+  /// 当前工具名称�?  final String currentTool;
 
-  /// 画布上是否有形状（用于空态引导）。
-  final bool hasShapes;
+  /// 画布上是否有形状（用于空态引导）�?  final bool hasShapes;
 
   @override
   Widget build(BuildContext context) {
-    // 只在箭头/连线工具时显示提示。
-    if (currentTool != 'shape') return const SizedBox.shrink();
+    // 只在箭头/连线工具时显示提示�?    if (currentTool != 'shape') return const SizedBox.shrink();
 
     return Positioned(
       bottom: 16,
@@ -54,8 +46,7 @@ class BindingHintsWidget extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 工具说明。
-              Row(
+              // 工具说明�?              Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
@@ -74,8 +65,7 @@ class BindingHintsWidget extends StatelessWidget {
                 ],
               ),
 
-              // 可绑定形状提示。
-              if (hasShapes) ...[
+              // 可绑定形状提示�?              if (hasShapes) ...[
                 const SizedBox(height: 6),
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -87,7 +77,7 @@ class BindingHintsWidget extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '可连接：矩形、椭圆、菱形',
+                      '可连接：矩形、椭圆、菱�?,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.7),
                         fontSize: TextScaleHelper.scaled(context, 12),
@@ -97,8 +87,7 @@ class BindingHintsWidget extends StatelessWidget {
                 ),
               ],
 
-              // 空态引导。
-              if (!hasShapes) ...[
+              // 空态引导�?              if (!hasShapes) ...[
                 const SizedBox(height: 6),
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -113,7 +102,7 @@ class BindingHintsWidget extends StatelessWidget {
                       '先创建形状，再用箭头连接',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.7),
-                        fontSize: 12,
+                        fontSize: TextScaleHelper.scaled(context, 12),
                       ),
                     ),
                   ],
@@ -127,6 +116,6 @@ class BindingHintsWidget extends StatelessWidget {
   }
 
   String _getToolHint() {
-    return '拖拽起点到形状，释放到目标形状完成连接';
+    return '拖拽起点到形状，释放到目标形状完成连�?;
   }
 }

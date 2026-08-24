@@ -1,34 +1,26 @@
-// editor_v2——HistoryPanel 历史面板（AFFiNE/Excalidraw 借鉴——2026-08-21）。
-//
-// AFFiNE/Excalidraw 历史记录可视化本地化——积木式独立 Widget。
-// 显示撤销/重做历史列表 + 当前位置高亮 + 快速跳转。
-// 不修改现有功能——保证现有功能正常——不搞崩。
-library;
+// editor_v2——HistoryPanel 历史面板（AFFiNE/Excalidraw 借鉴—�?026-08-21）�?//
+// AFFiNE/Excalidraw 历史记录可视化本地化——积木式独立 Widget�?// 显示撤销/重做历史列表 + 当前位置高亮 + 快速跳转�?// 不修改现有功能——保证现有功能正常——不搞崩�?library;
 
 import 'package:flutter/material.dart';
+
+import '../../../core/theme/text_scale_helper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:editor_core/editor_core.dart';
 import '../application/editor_v2_viewmodel.dart';
 
-/// AFFiNE/Excalidraw 历史面板（积木式独立 Widget——撤销/重做历史可视化）。
+/// AFFiNE/Excalidraw 历史面板（积木式独立 Widget——撤销/重做历史可视化）�?///
+/// 功能�?/// - 历史记录列表（每条显示命令类�?+ 时间�?/// - 当前位置高亮（蓝色标记）
+/// - 撤销/重做快速按�?/// - 历史清空按钮
 ///
-/// 功能：
-/// - 历史记录列表（每条显示命令类型 + 时间）
-/// - 当前位置高亮（蓝色标记）
-/// - 撤销/重做快速按钮
-/// - 历史清空按钮
-///
-/// 设计：积木式——独立 Widget——不耦合其他组件——可插拔。
-class HistoryPanel extends ConsumerWidget {
+/// 设计：积木式——独�?Widget——不耦合其他组件——可插拔�?class HistoryPanel extends ConsumerWidget {
   const HistoryPanel({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(editorV2NotifierProvider);
     final notifier = ref.read(editorV2NotifierProvider.notifier);
-    // 从 DocumentReducer 获取历史栈（公开 getter）。
-    final undoStack = notifier.undoStack;
+    // �?DocumentReducer 获取历史栈（公开 getter）�?    final undoStack = notifier.undoStack;
     final redoStack = notifier.redoStack;
     final totalCount = undoStack.length + redoStack.length;
 
@@ -43,20 +35,18 @@ class HistoryPanel extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 标题栏（AFFiNE 风格）。
-          Padding(
+          // 标题栏（AFFiNE 风格）�?          Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
                 Text('历史记录', style: Theme.of(context).textTheme.titleSmall),
                 const Spacer(),
-                Text('$totalCount 步',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text('$totalCount �?,
+                    style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), color: Colors.grey)),
               ],
             ),
           ),
-          // 撤销/重做按钮栏。
-          Padding(
+          // 撤销/重做按钮栏�?          Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
@@ -91,28 +81,24 @@ class HistoryPanel extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
-          // 历史记录列表（限制高度——可滚动）。
-          if (totalCount > 0)
+          // 历史记录列表（限制高度——可滚动）�?          if (totalCount > 0)
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 200),
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 itemCount: totalCount,
                 itemBuilder: (context, index) {
-                  // 重做栈在前（未来），撤销栈在后（过去）。
-                  final isRedo = index < redoStack.length;
+                  // 重做栈在前（未来），撤销栈在后（过去）�?                  final isRedo = index < redoStack.length;
                   final entry = isRedo
                       ? redoStack[index]
                       : undoStack[index - redoStack.length];
-                  final isCurrent = index == redoStack.length; // 当前位置。
-
+                  final isCurrent = index == redoStack.length; // 当前位置�?
                   return _HistoryTile(
                     entry: entry,
                     isCurrent: isCurrent,
                     isRedo: isRedo,
                     onTap: () {
-                      // 点击跳转（Excalidraw 模式——快速导航）。
-                      if (isRedo) {
+                      // 点击跳转（Excalidraw 模式——快速导航）�?                      if (isRedo) {
                         for (var i = 0; i <= index - redoStack.length; i++) {
                           notifier.redo();
                         }
@@ -126,12 +112,11 @@ class HistoryPanel extends ConsumerWidget {
                 },
               ),
             ),
-          // 空状态。
-          if (totalCount == 0)
+          // 空状态�?          if (totalCount == 0)
             const Padding(
               padding: EdgeInsets.all(16),
               child: Center(
-                child: Text('无历史记录', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                child: Text('无历史记�?, style: TextStyle(color: Colors.grey, fontSize: 13)),
               ),
             ),
           const SizedBox(height: 8),
@@ -141,8 +126,7 @@ class HistoryPanel extends ConsumerWidget {
   }
 }
 
-/// 单条历史记录条目（积木式——不耦合）。
-class _HistoryTile extends StatelessWidget {
+/// 单条历史记录条目（积木式——不耦合）�?class _HistoryTile extends StatelessWidget {
   const _HistoryTile({
     required this.entry,
     required this.isCurrent,
@@ -157,8 +141,7 @@ class _HistoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 命令类型名称（从 runtimeType 提取简短名）。
-    final commandName = entry.command.runtimeType.toString();
+    // 命令类型名称（从 runtimeType 提取简短名）�?    final commandName = entry.command.runtimeType.toString();
     final shortName = commandName
         .replaceAll('Command', '')
         .replaceAll('Add', '+')
@@ -184,8 +167,7 @@ class _HistoryTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // 图标（当前=蓝色圆点/重做=灰色/撤销=黑色）。
-            Container(
+            // 图标（当�?蓝色圆点/重做=灰色/撤销=黑色）�?            Container(
               width: 8,
               height: 8,
               decoration: BoxDecoration(
@@ -198,21 +180,19 @@ class _HistoryTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            // 命令名称。
-            Expanded(
+            // 命令名称�?            Expanded(
               child: Text(
                 shortName,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: TextScaleHelper.scaled(context, 12),
                   color: isCurrent ? Colors.blue.shade700 : Colors.black87,
                   fontWeight: isCurrent ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
             ),
-            // revision。
-            Text(
+            // revision�?            Text(
               'v${entry.revisionBefore}',
-              style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+              style: TextStyle(fontSize: TextScaleHelper.scaled(context, 10), color: Colors.grey.shade500),
             ),
           ],
         ),

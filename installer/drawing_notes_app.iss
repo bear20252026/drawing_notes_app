@@ -36,6 +36,18 @@ Name: "{autodesktop}\绘图笔记"; Filename: "{app}\drawing_notes_app.exe"; Tas
 
 [Tasks]
 Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: "附加任务:"
+Name: "fileassociation"; Description: "关联 .drawingnotes 文件类型"; GroupDescription: "附加任务:"; Flags: checkedonce
+
+[Registry]
+; .drawingnotes 文件关联
+Root: HKA; Subkey: "Software\Classes\.drawingnotes"; ValueType: string; ValueName: ""; ValueData: "DrawingNotesFile"; Flags: uninsdeletevalue; Tasks: fileassociation
+Root: HKA; Subkey: "Software\Classes\DrawingNotesFile"; ValueType: string; ValueName: ""; ValueData: "绘图笔记文件"; Flags: uninsdeletekey; Tasks: fileassociation
+Root: HKA; Subkey: "Software\Classes\DrawingNotesFile\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\drawing_notes_app.exe,0"; Tasks: fileassociation
+Root: HKA; Subkey: "Software\Classes\DrawingNotesFile\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\drawing_notes_app.exe"" ""%1"""; Tasks: fileassociation
+; drawingnotes:// URI scheme
+Root: HKA; Subkey: "Software\Classes\drawingnotes"; ValueType: string; ValueName: ""; ValueData: "URL:drawingnotes Protocol"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\drawingnotes"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
+Root: HKA; Subkey: "Software\Classes\drawingnotes\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\drawing_notes_app.exe"" ""%1"""
 
 [Run]
 Filename: "{app}\drawing_notes_app.exe"; Description: "运行绘图笔记"; Flags: nowait postinstall skipifsilent

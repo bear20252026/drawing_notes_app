@@ -44,14 +44,18 @@ class EditorToolbar extends StatelessWidget {
               onTap: actions.selectBrush,
             ),
             // 笔刷扩展菜单（B3：由插件注册表驱动）
-            PopupMenuButton<String>(
-              tooltip: '笔刷（插件扩展）',
-              icon: const Icon(Icons.brush_outlined, size: 20),
-              onSelected: actions.onBrushSelected,
-              itemBuilder: (_) => [
-                for (final b in brushes)
-                  PopupMenuItem(value: b.id, child: Text(b.name)),
-              ],
+            Semantics(
+              label: '笔刷扩展菜单',
+              button: true,
+              child: PopupMenuButton<String>(
+                tooltip: '笔刷（插件扩展）',
+                icon: const Icon(Icons.brush_outlined, size: 20),
+                onSelected: actions.onBrushSelected,
+                itemBuilder: (_) => [
+                  for (final b in brushes)
+                    PopupMenuItem(value: b.id, child: Text(b.name)),
+                ],
+              ),
             ),
             _toolButton(
               context,
@@ -64,28 +68,32 @@ class EditorToolbar extends StatelessWidget {
             // 橡皮擦形状擦除开关（问题3）：整笔/透明模式各自决定
             // 是否擦除标准直线/图案，两个按钮可独立开关。
             if (isEraser)
-              PopupMenuButton<VoidCallback>(
-                tooltip: '标准形状擦除设置',
-                icon: const Icon(Icons.shape_line_outlined, size: 20),
-                onSelected: (callback) => callback(),
-                itemBuilder: (_) => [
-                  CheckedPopupMenuItem(
-                    checked: state.eraserCanEraseShapesStroke,
-                    value: () =>
-                        actions.setEraserCanEraseShapesStroke(
-                          !state.eraserCanEraseShapesStroke,
-                        ),
-                    child: const Text('整笔模式擦除标准形状'),
-                  ),
-                  CheckedPopupMenuItem(
-                    checked: state.eraserCanEraseShapesPixel,
-                    value: () =>
-                        actions.setEraserCanEraseShapesPixel(
-                          !state.eraserCanEraseShapesPixel,
-                        ),
-                    child: const Text('透明模式擦除标准形状'),
-                  ),
-                ],
+              Semantics(
+                label: '橡皮擦形状擦除设置',
+                button: true,
+                child: PopupMenuButton<VoidCallback>(
+                  tooltip: '标准形状擦除设置',
+                  icon: const Icon(Icons.shape_line_outlined, size: 20),
+                  onSelected: (callback) => callback(),
+                  itemBuilder: (_) => [
+                    CheckedPopupMenuItem(
+                      checked: state.eraserCanEraseShapesStroke,
+                      value: () =>
+                          actions.setEraserCanEraseShapesStroke(
+                            !state.eraserCanEraseShapesStroke,
+                          ),
+                      child: const Text('整笔模式擦除标准形状'),
+                    ),
+                    CheckedPopupMenuItem(
+                      checked: state.eraserCanEraseShapesPixel,
+                      value: () =>
+                          actions.setEraserCanEraseShapesPixel(
+                            !state.eraserCanEraseShapesPixel,
+                          ),
+                      child: const Text('透明模式擦除标准形状'),
+                    ),
+                  ],
+                ),
               ),
             _toolButton(
               context,
@@ -165,131 +173,220 @@ class EditorToolbar extends StatelessWidget {
                 onTap: actions.insertImage,
               ),
               // 形状工具（矩形/椭圆/菱形/箭头/直线，借鉴 Excalidraw 图形工具）
-              PopupMenuButton<ShapeType>(
-                tooltip: '形状工具（点击画布放置）',
-                icon: Icon(
-                  state.activeShape != null
-                      ? shapeTypeIcon(state.activeShape!)
-                      : Icons.category_outlined,
-                  size: 20,
+              Semantics(
+                label: '形状工具',
+                button: true,
+                child: PopupMenuButton<ShapeType>(
+                  tooltip: '形状工具（点击画布放置）',
+                  icon: Icon(
+                    state.activeShape != null
+                        ? shapeTypeIcon(state.activeShape!)
+                        : Icons.category_outlined,
+                    size: 20,
+                  ),
+                  onSelected: actions.onSelectShape,
+                  itemBuilder: (_) => [
+                    for (final s in ShapeType.values)
+                      PopupMenuItem(value: s, child: Text(shapeTypeName(s))),
+                  ],
                 ),
-                onSelected: actions.onSelectShape,
-                itemBuilder: (_) => [
-                  for (final s in ShapeType.values)
-                    PopupMenuItem(value: s, child: Text(shapeTypeName(s))),
-                ],
               ),
               // 形状填充模式开关（问题4）：开启后新建形状默认带填充色。
               if (state.activeShape != null)
-                IconButton(
-                  tooltip: state.shapeFillEnabled
-                      ? (AppLocalizations.of(context)?.editorShapeFillOn ??
-                          '形状填充：开（新建形状默认填充）')
-                      : (AppLocalizations.of(context)?.editorShapeFillOff ??
-                          '形状填充：关（新建形状默认填充）'),
-                  icon: Icon(
-                    state.shapeFillEnabled
-                        ? Icons.format_color_fill
-                        : Icons.format_color_reset,
-                    size: 20,
+                Semantics(
+                  label: state.shapeFillEnabled ? '形状填充：开' : '形状填充：关',
+                  button: true,
+                  toggled: state.shapeFillEnabled,
+                  child: IconButton(
+                    tooltip: state.shapeFillEnabled
+                        ? (AppLocalizations.of(context)?.editorShapeFillOn ??
+                            '形状填充：开（新建形状默认填充）')
+                        : (AppLocalizations.of(context)?.editorShapeFillOff ??
+                            '形状填充：关（新建形状默认填充）'),
+                    icon: Icon(
+                      state.shapeFillEnabled
+                          ? Icons.format_color_fill
+                          : Icons.format_color_reset,
+                      size: 20,
+                    ),
+                    isSelected: state.shapeFillEnabled,
+                    color: state.shapeFillEnabled
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
+                    onPressed: () =>
+                        actions.setShapeFillEnabled(!state.shapeFillEnabled),
+                    constraints: const BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
+                    ),
                   ),
-                  isSelected: state.shapeFillEnabled,
-                  color: state.shapeFillEnabled
-                      ? Theme.of(context).colorScheme.primary
-                      : null,
-                  onPressed: () =>
-                      actions.setShapeFillEnabled(!state.shapeFillEnabled),
                 ),
               // 等间距分布（水平/垂直，借鉴 Excalidraw 对齐/分布工具）
-              PopupMenuButton<bool>(
-                tooltip: '等间距分布',
-                icon: const Icon(Icons.space_bar, size: 20),
-                onSelected: actions.onDistribute,
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: true, child: Text('水平等间距分布')),
-                  PopupMenuItem(value: false, child: Text('垂直等间距分布')),
-                ],
+              Semantics(
+                label: '等间距分布',
+                button: true,
+                child: PopupMenuButton<bool>(
+                  tooltip: '等间距分布',
+                  icon: const Icon(Icons.space_bar, size: 20),
+                  onSelected: actions.onDistribute,
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(value: true, child: Text('水平等间距分布')),
+                    PopupMenuItem(value: false, child: Text('垂直等间距分布')),
+                  ],
+                ),
               ),
               // 框选工具（矩形框选多元素，借鉴 Excalidraw 多选）
-              IconButton(
-                tooltip: '框选（拖动选中多个元素）',
-                icon: const Icon(Icons.select_all, size: 20),
-                isSelected: state.marqueeActive,
-                color: state.marqueeActive
-                    ? Theme.of(context).colorScheme.primary
-                    : null,
-                onPressed: actions.onToggleMarquee,
+              Semantics(
+                label: '框选工具',
+                button: true,
+                toggled: state.marqueeActive,
+                child: IconButton(
+                  tooltip: '框选（拖动选中多个元素）',
+                  icon: const Icon(Icons.select_all, size: 20),
+                  isSelected: state.marqueeActive,
+                  color: state.marqueeActive
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
+                  onPressed: actions.onToggleMarquee,
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
+                ),
               ),
               // 图层顺序（置顶/置底/上移/下移，借鉴 Excalidraw 图层操作）
-              PopupMenuButton<int>(
-                tooltip: '图层顺序',
-                icon: const Icon(Icons.layers, size: 20),
-                onSelected: actions.onReorder,
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: 0, child: Text('置顶')),
-                  PopupMenuItem(value: 1, child: Text('置底')),
-                  PopupMenuItem(value: 2, child: Text('上移一层')),
-                  PopupMenuItem(value: 3, child: Text('下移一层')),
-                ],
+              Semantics(
+                label: '图层顺序',
+                button: true,
+                child: PopupMenuButton<int>(
+                  tooltip: '图层顺序',
+                  icon: const Icon(Icons.layers, size: 20),
+                  onSelected: actions.onReorder,
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(value: 0, child: Text('置顶')),
+                    PopupMenuItem(value: 1, child: Text('置底')),
+                    PopupMenuItem(value: 2, child: Text('上移一层')),
+                    PopupMenuItem(value: 3, child: Text('下移一层')),
+                  ],
+                ),
               ),
               // 网格显示开关（借鉴 Excalidraw 画布导航）
-              IconButton(
-                tooltip: '网格显示',
-                icon: const Icon(Icons.grid_4x4, size: 20),
-                isSelected: state.gridVisible,
-                color: state.gridVisible
-                    ? Theme.of(context).colorScheme.primary
-                    : null,
-                onPressed: actions.onToggleGrid,
+              Semantics(
+                label: '网格显示',
+                button: true,
+                toggled: state.gridVisible,
+                child: IconButton(
+                  tooltip: '网格显示',
+                  icon: const Icon(Icons.grid_4x4, size: 20),
+                  isSelected: state.gridVisible,
+                  color: state.gridVisible
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
+                  onPressed: actions.onToggleGrid,
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
+                ),
               ),
               // 网格吸附开关（借鉴 Excalidraw）
-              IconButton(
-                tooltip: '网格吸附',
-                icon: const Icon(Icons.auto_fix_high, size: 20),
-                isSelected: state.snapToGrid,
-                color: state.snapToGrid
-                    ? Theme.of(context).colorScheme.primary
-                    : null,
-                onPressed: actions.onToggleSnap,
+              Semantics(
+                label: '网格吸附',
+                button: true,
+                toggled: state.snapToGrid,
+                child: IconButton(
+                  tooltip: '网格吸附',
+                  icon: const Icon(Icons.auto_fix_high, size: 20),
+                  isSelected: state.snapToGrid,
+                  color: state.snapToGrid
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
+                  onPressed: actions.onToggleSnap,
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
+                ),
               ),
               // 适应画布（Fit to Screen，借鉴 Excalidraw 导航）
-              IconButton(
-                tooltip: '适应画布',
-                icon: const Icon(Icons.fit_screen, size: 20),
-                onPressed: actions.onFitToScreen,
+              Semantics(
+                label: '适应画布',
+                button: true,
+                child: IconButton(
+                  tooltip: '适应画布',
+                  icon: const Icon(Icons.fit_screen, size: 20),
+                  onPressed: actions.onFitToScreen,
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
+                ),
               ),
               // 缩放控件组（放大/缩小/100%，借鉴 Excalidraw 缩放导航）
-              IconButton(
-                tooltip: '缩小',
-                icon: const Icon(Icons.zoom_out, size: 20),
-                onPressed: actions.onZoomOut,
+              Semantics(
+                label: '缩小',
+                button: true,
+                child: IconButton(
+                  tooltip: '缩小',
+                  icon: const Icon(Icons.zoom_out, size: 20),
+                  onPressed: actions.onZoomOut,
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
+                ),
               ),
-              IconButton(
-                tooltip: '放大',
-                icon: const Icon(Icons.zoom_in, size: 20),
-                onPressed: actions.onZoomIn,
+              Semantics(
+                label: '放大',
+                button: true,
+                child: IconButton(
+                  tooltip: '放大',
+                  icon: const Icon(Icons.zoom_in, size: 20),
+                  onPressed: actions.onZoomIn,
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
+                ),
               ),
-              IconButton(
-                tooltip: '100%',
-                icon: const Icon(Icons.filter_1, size: 20),
-                onPressed: actions.onZoomReset,
+              Semantics(
+                label: '重置缩放',
+                button: true,
+                child: IconButton(
+                  tooltip: '100%',
+                  icon: const Icon(Icons.filter_1, size: 20),
+                  onPressed: actions.onZoomReset,
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
+                ),
               ),
             ],
             // 当前颜色选择圆点
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Tooltip(
-                message: '选择颜色',
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: actions.showColorPicker,
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: state.color,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.black26),
+              child: Semantics(
+                label: '选择颜色',
+                button: true,
+                child: Tooltip(
+                  message: '选择颜色',
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(24),
+                    onTap: actions.showColorPicker,
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      alignment: Alignment.center,
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: state.color,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.black26),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -357,54 +454,98 @@ class EditorToolbar extends StatelessWidget {
                     ),
                   ),
                 ),
-                IconButton(
-                  tooltip: '加粗 (Ctrl+B)',
-                  icon: const Icon(Icons.format_bold, size: 20),
-                  visualDensity: VisualDensity.compact,
-                  isSelected: state.selectedTextItem!.bold,
-                  color: state.selectedTextItem!.bold
-                      ? Theme.of(context).colorScheme.primary
-                      : null,
-                  onPressed: actions.toggleBold,
-                ),
-                IconButton(
-                  tooltip: '斜体 (Ctrl+I)',
-                  icon: const Icon(Icons.format_italic, size: 20),
-                  visualDensity: VisualDensity.compact,
-                  isSelected: state.selectedTextItem!.italic,
-                  color: state.selectedTextItem!.italic
-                      ? Theme.of(context).colorScheme.primary
-                      : null,
-                  onPressed: actions.toggleItalic,
-                ),
-                IconButton(
-                  tooltip: '下划线 (Ctrl+U)',
-                  icon: const Icon(Icons.format_underline, size: 20),
-                  visualDensity: VisualDensity.compact,
-                  isSelected: state.selectedTextItem!.underline,
-                  color: state.selectedTextItem!.underline
-                      ? Theme.of(context).colorScheme.primary
-                      : null,
-                  onPressed: actions.toggleUnderline,
-                ),
-                IconButton(
-                  tooltip: '删除线 (Ctrl+Shift+X)',
-                  icon: const Icon(Icons.strikethrough_s, size: 20),
-                  visualDensity: VisualDensity.compact,
-                  isSelected: state.selectedTextItem!.strikethrough,
-                  color: state.selectedTextItem!.strikethrough
-                      ? Theme.of(context).colorScheme.primary
-                      : null,
-                  onPressed: actions.toggleStrikethrough,
-                ),
-                IconButton(
-                  tooltip: alignTooltip(context, state.selectedTextItem!.align),
-                  icon: Icon(
-                    alignIcon(state.selectedTextItem!.align),
-                    size: 20,
+                Semantics(
+                  label: '加粗',
+                  button: true,
+                  toggled: state.selectedTextItem!.bold,
+                  child: IconButton(
+                    tooltip: '加粗 (Ctrl+B)',
+                    icon: const Icon(Icons.format_bold, size: 20),
+                    visualDensity: VisualDensity.compact,
+                    isSelected: state.selectedTextItem!.bold,
+                    color: state.selectedTextItem!.bold
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
+                    onPressed: actions.toggleBold,
+                    constraints: const BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
+                    ),
                   ),
-                  visualDensity: VisualDensity.compact,
-                  onPressed: actions.cycleAlign,
+                ),
+                Semantics(
+                  label: '斜体',
+                  button: true,
+                  toggled: state.selectedTextItem!.italic,
+                  child: IconButton(
+                    tooltip: '斜体 (Ctrl+I)',
+                    icon: const Icon(Icons.format_italic, size: 20),
+                    visualDensity: VisualDensity.compact,
+                    isSelected: state.selectedTextItem!.italic,
+                    color: state.selectedTextItem!.italic
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
+                    onPressed: actions.toggleItalic,
+                    constraints: const BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
+                    ),
+                  ),
+                ),
+                Semantics(
+                  label: '下划线',
+                  button: true,
+                  toggled: state.selectedTextItem!.underline,
+                  child: IconButton(
+                    tooltip: '下划线 (Ctrl+U)',
+                    icon: const Icon(Icons.format_underline, size: 20),
+                    visualDensity: VisualDensity.compact,
+                    isSelected: state.selectedTextItem!.underline,
+                    color: state.selectedTextItem!.underline
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
+                    onPressed: actions.toggleUnderline,
+                    constraints: const BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
+                    ),
+                  ),
+                ),
+                Semantics(
+                  label: '删除线',
+                  button: true,
+                  toggled: state.selectedTextItem!.strikethrough,
+                  child: IconButton(
+                    tooltip: '删除线 (Ctrl+Shift+X)',
+                    icon: const Icon(Icons.strikethrough_s, size: 20),
+                    visualDensity: VisualDensity.compact,
+                    isSelected: state.selectedTextItem!.strikethrough,
+                    color: state.selectedTextItem!.strikethrough
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
+                    onPressed: actions.toggleStrikethrough,
+                    constraints: const BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
+                    ),
+                  ),
+                ),
+                Semantics(
+                  label: '对齐方式',
+                  button: true,
+                  child: IconButton(
+                    tooltip: alignTooltip(context, state.selectedTextItem!.align),
+                    icon: Icon(
+                      alignIcon(state.selectedTextItem!.align),
+                      size: 20,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: actions.cycleAlign,
+                    constraints: const BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
+                    ),
+                  ),
                 ),
               ],
               // 选中形状：样式控件（线宽/透明度/填充色，借鉴 Excalidraw 样式面板）
@@ -429,43 +570,76 @@ class EditorToolbar extends StatelessWidget {
                     onChanged: actions.onShapeOpacity,
                   ),
                 ),
-                IconButton(
-                  tooltip: '切换填充色',
-                  icon: Icon(
-                    state.selectedShape!.fillColor != null
-                        ? Icons.format_color_fill
-                        : Icons.format_color_reset,
-                    size: 20,
+                Semantics(
+                  label: '切换填充色',
+                  button: true,
+                  child: IconButton(
+                    tooltip: '切换填充色',
+                    icon: Icon(
+                      state.selectedShape!.fillColor != null
+                          ? Icons.format_color_fill
+                          : Icons.format_color_reset,
+                      size: 20,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: actions.onShapeFillColor,
+                    constraints: const BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
+                    ),
                   ),
-                  visualDensity: VisualDensity.compact,
-                  onPressed: actions.onShapeFillColor,
                 ),
               ],
               // 选中形状：实线/虚线切换（借鉴 Excalidraw 线样式面板）
               if (state.selectedShape != null)
-                IconButton(
-                  tooltip: '实线/虚线切换',
-                  icon: Icon(
-                    state.selectedShape!.dash ? Icons.more_horiz : Icons.remove,
-                    size: 20,
+                Semantics(
+                  label: '实线/虚线切换',
+                  button: true,
+                  toggled: state.selectedShape!.dash,
+                  child: IconButton(
+                    tooltip: '实线/虚线切换',
+                    icon: Icon(
+                      state.selectedShape!.dash ? Icons.more_horiz : Icons.remove,
+                      size: 20,
+                    ),
+                    isSelected: state.selectedShape!.dash,
+                    color: state.selectedShape!.dash
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
+                    onPressed: actions.onToggleDash,
+                    constraints: const BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
+                    ),
                   ),
-                  isSelected: state.selectedShape!.dash,
-                  color: state.selectedShape!.dash
-                      ? Theme.of(context).colorScheme.primary
-                      : null,
-                  onPressed: actions.onToggleDash,
                 ),
-              IconButton(
-                tooltip: '编辑文字',
-                icon: const Icon(Icons.edit_outlined, size: 20),
-                visualDensity: VisualDensity.compact,
-                onPressed: actions.editText,
+              Semantics(
+                label: '编辑文字',
+                button: true,
+                child: IconButton(
+                  tooltip: '编辑文字',
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: actions.editText,
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
+                ),
               ),
-              IconButton(
-                tooltip: '删除选中对象',
-                icon: const Icon(Icons.delete_outline, size: 20),
-                visualDensity: VisualDensity.compact,
-                onPressed: actions.deleteSelected,
+              Semantics(
+                label: '删除选中对象',
+                button: true,
+                child: IconButton(
+                  tooltip: '删除选中对象',
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: actions.deleteSelected,
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
+                ),
               ),
             ],
             // 模式提示文本
@@ -503,12 +677,21 @@ class EditorToolbar extends StatelessWidget {
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
-      child: IconButton(
-        tooltip: tooltip,
-        icon: Icon(icon),
-        isSelected: selected,
-        color: selected ? Theme.of(context).colorScheme.primary : null,
-        onPressed: onTap,
+      child: Semantics(
+        label: tooltip,
+        button: true,
+        selected: selected,
+        child: IconButton(
+          tooltip: tooltip,
+          icon: Icon(icon),
+          isSelected: selected,
+          color: selected ? Theme.of(context).colorScheme.primary : null,
+          onPressed: onTap,
+          constraints: const BoxConstraints(
+            minWidth: 48,
+            minHeight: 48,
+          ),
+        ),
       ),
     );
   }

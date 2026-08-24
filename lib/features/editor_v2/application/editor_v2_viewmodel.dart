@@ -27,6 +27,8 @@ class EditorV2State {
     this.eyedropperActive = false,
     this.eyedropperPosition = Offset.zero,
     this.currentColor = const Color(0xFF000000),
+    this.brushSize = 2.0,
+    this.strokeColorHex = '#000000',
   });
 
   /// 当前文档（不可变）。
@@ -53,6 +55,12 @@ class EditorV2State {
   /// 取色器实时采样颜色（P2 #30）。
   final Color currentColor;
 
+  /// 当前笔刷粗细（V1/V2 迁移阶段1——2026-08-24）。
+  final double brushSize;
+
+  /// 当前笔画颜色 #RRGGBB（V1/V2 迁移阶段1——2026-08-24）。
+  final String strokeColorHex;
+
   /// 不可变拷贝：仅更新指定字段——原实例不变。
   EditorV2State copyWith({
     DocumentV2? document,
@@ -63,6 +71,8 @@ class EditorV2State {
     bool? eyedropperActive,
     Offset? eyedropperPosition,
     Color? currentColor,
+    double? brushSize,
+    String? strokeColorHex,
   }) {
     return EditorV2State(
       document: document ?? this.document,
@@ -73,6 +83,8 @@ class EditorV2State {
       eyedropperActive: eyedropperActive ?? this.eyedropperActive,
       eyedropperPosition: eyedropperPosition ?? this.eyedropperPosition,
       currentColor: currentColor ?? this.currentColor,
+      brushSize: brushSize ?? this.brushSize,
+      strokeColorHex: strokeColorHex ?? this.strokeColorHex,
     );
   }
 
@@ -87,12 +99,15 @@ class EditorV2State {
           currentShapeType == other.currentShapeType &&
           eyedropperActive == other.eyedropperActive &&
           eyedropperPosition == other.eyedropperPosition &&
-          currentColor == other.currentColor;
+          currentColor == other.currentColor &&
+          brushSize == other.brushSize &&
+          strokeColorHex == other.strokeColorHex;
 
   @override
   int get hashCode => Object.hash(
       document, canUndo, canRedo, currentTool, currentShapeType,
-      eyedropperActive, eyedropperPosition, currentColor);
+      eyedropperActive, eyedropperPosition, currentColor,
+      brushSize, strokeColorHex);
 }
 
 /// Editor V2 ViewModel（Riverpod 3.x Notifier——手动声明——不依赖 build_runner）。

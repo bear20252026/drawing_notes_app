@@ -32,7 +32,16 @@ extension _EditorPageInput on _EditorPageState {
     }
 
     // 文字工具模式：点击放置文字。
+    // 添加防抖处理，避免双击导致重复触发（问题#6修复）。
     if (_textToolActive) {
+      final now = DateTime.now();
+      if (_lastTextToolTap != null &&
+          now.difference(_lastTextToolTap!) < const Duration(milliseconds: 300)) {
+        // 双击间隔内忽略重复触发。
+        _lastTextToolTap = null;
+        return;
+      }
+      _lastTextToolTap = now;
       _addTextItem(canvasPoint);
       return;
     }
