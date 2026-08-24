@@ -13,6 +13,9 @@ import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 /// 应用软件不持久化任何密钥；无 U 盘谁也解不开。
 /// UI/ViewModel 只依赖本抽象，通过依赖注入切换 Real/Mock 实现。
 abstract class PasswordDisk {
+  /// 密码盘基础目录（Mock 注入用；Real 实现返回 null）。
+  String? get baseDir;
+
   /// 让用户选择密码盘位置（U 盘目录 / 测试目录），取消返回 null。
   Future<String?> pickDirectory();
 
@@ -109,6 +112,9 @@ class RealPasswordDisk implements PasswordDisk {
   const RealPasswordDisk();
 
   static const String keyFileName = 'key.frogkey';
+
+  @override
+  String? get baseDir => null;
 
   @override
   Future<String?> pickDirectory() async {

@@ -57,4 +57,26 @@ class NoteItem {
 
   @override
   int get hashCode => Object.hash(id, content, x, y, backgroundColor);
+
+  /// 序列化为 JSON 映射。
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'content': content,
+        'x': x,
+        'y': y,
+        'width': width,
+        'height': height,
+        'backgroundColor': backgroundColor,
+      };
+
+  /// 从 JSON 映射反序列化。
+  static NoteItem fromJson(Map<String, dynamic> json) => NoteItem(
+        id: json['id'] as String,
+        content: json['content'] as String,
+        x: (json['x'] as num).toDouble(),
+        y: (json['y'] as num).toDouble(),
+        width: (json['width'] as num?)?.toDouble() ?? 200,
+        height: (json['height'] as num?)?.toDouble() ?? 150,
+        backgroundColor: (json['backgroundColor'] as String?) ?? '#FFF9C4',
+      );
 }

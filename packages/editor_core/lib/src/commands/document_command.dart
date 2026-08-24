@@ -812,3 +812,33 @@ class MoveItemCommand extends DocumentCommand {
         newY: oldY,
       );
 }
+
+/// 重排图层顺序命令（图层面板拖拽排序——AFFiNE 借鉴）。
+class ReorderLayerCommand extends DocumentCommand {
+  const ReorderLayerCommand({
+    required this.layerId,
+    required this.newIndex,
+  });
+
+  final String layerId;
+  final int newIndex;
+
+  @override
+  DocumentV2 apply(DocumentV2 doc) {
+    final layers = List<LayerV2>.from(doc.layers);
+    final currentIndex = layers.indexWhere((l) => l.id == layerId);
+    if (currentIndex == -1 || currentIndex == newIndex) return doc;
+    final layer = layers.removeAt(currentIndex);
+    final targetIndex = newIndex > currentIndex ? newIndex - 1 : newIndex;
+    layers.insert(targetIndex.clamp(0, layers.length), layer);
+    return DocumentV2(
+      id: doc.id,
+      pageCount: doc.pageCount,
+      revision: doc.revision + 1,
+      layers: layers,
+    );
+  }
+
+  @override
+  DocumentCommand inverse() => const _NoOpCommand();
+}

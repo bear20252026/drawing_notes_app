@@ -38,6 +38,11 @@ part 'home_page_widgets.dart';
 /// - 新建无限画布 / 新建笔记本
 /// - 打开、删除（二次确认）
 /// - 展示缩略图
+/// 主页面菜单项枚举。
+enum _HomeMenuItem {
+  passwordDisk,
+}
+
 ///
 /// 数据来源：本地文件存储（[StorageService] / [NotebookStorage]），无网络请求。
 class HomePage extends ConsumerStatefulWidget {
@@ -192,7 +197,6 @@ class _HomePageState extends ConsumerState<HomePage> {
           builder: (_) => EditorV2Screen(
             documentId: notebook.id,
             mode: UnifiedEditorMode.note,
-            notebookStorage: _nbStorage,
           ),
         ),
       );
@@ -427,14 +431,14 @@ class _HomePageState extends ConsumerState<HomePage> {
               tooltip: AppLocalizations.of(context)?.homeMore ?? '更多操作',
               icon: const Icon(Icons.more_horiz_rounded),
               onSelected: _onHomeMenuSelected,
-              itemBuilder: (_) => const [
+              itemBuilder: (_) => [
                 PopupMenuItem(
                   value: _HomeMenuItem.passwordDisk,
                   child: ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.usb_rounded),
-                    title: Text(AppLocalizations.of(context)?.homePasswordDiskAndRecovery ?? '密码盘与恢复'),
+                    leading: const Icon(Icons.usb_rounded),
+                    title: Text(AppLocalizations.of(context)?.homePasswordDiskAndRecovery ?? 'Password Disk & Recovery'),
                   ),
                 ),
               ],
@@ -611,7 +615,6 @@ class _HomePageState extends ConsumerState<HomePage> {
         builder: (_) => EditorV2Screen(
           documentId: nb.id,
           mode: UnifiedEditorMode.note,
-          notebookStorage: _nbStorage,
         ),
       ),
     );
@@ -794,7 +797,6 @@ class _HomePageState extends ConsumerState<HomePage> {
           builder: (_) => EditorV2Screen(
             documentId: notebook.id,
             mode: UnifiedEditorMode.note,
-            notebookStorage: _nbStorage,
           ),
         ),
       );
@@ -816,4 +818,8 @@ class _HomePageState extends ConsumerState<HomePage> {
   String _formatTime(DateTime t) {
     final now = DateTime.now();
     if (t.year == now.year && t.month == now.month && t.day == now.day) {
-      return 
+      return '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+    }
+    return '${t.year}-${t.month.toString().padLeft(2, '0')}-${t.day.toString().padLeft(2, '0')}';
+  }
+} 

@@ -40,6 +40,24 @@ class DocumentV2 {
     layers: layers ?? this.layers,
   );
 
+  /// 序列化为 JSON 映射（持久化存储）。
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'pageCount': pageCount,
+        'revision': revision,
+        'layers': layers.map((l) => l.toJson()).toList(),
+      };
+
+  /// 从 JSON 映射反序列化。
+  static DocumentV2 fromJson(Map<String, dynamic> json) => DocumentV2(
+        id: json['id'] as String,
+        pageCount: json['pageCount'] as int,
+        revision: (json['revision'] as int?) ?? 0,
+        layers: (json['layers'] as List<dynamic>)
+            .map((e) => LayerV2.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+
   @override
   bool operator ==(Object other) =>
       other is DocumentV2 &&

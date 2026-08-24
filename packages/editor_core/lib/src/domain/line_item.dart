@@ -79,6 +79,26 @@ class LineItem {
     }
     return true;
   }
+
+  /// 序列化为 JSON 映射。
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'points': points.map((p) => {'x': p.x, 'y': p.y}).toList(),
+        'strokeWidth': strokeWidth,
+        'color': color,
+        'opacity': opacity,
+      };
+
+  /// 从 JSON 映射反序列化。
+  static LineItem fromJson(Map<String, dynamic> json) => LineItem(
+        id: json['id'] as String,
+        points: (json['points'] as List<dynamic>)
+            .map((e) => Point((e['x'] as num).toDouble(), (e['y'] as num).toDouble()))
+            .toList(),
+        strokeWidth: (json['strokeWidth'] as num?)?.toDouble() ?? 2.0,
+        color: (json['color'] as String?) ?? '#000000',
+        opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+      );
 }
 
 /// 形状（不可变）。
@@ -144,6 +164,32 @@ class ShapeItem {
 
   @override
   int get hashCode => Object.hash(id, type, x, y, strokeColor, fillColor);
+
+  /// 序列化为 JSON 映射。
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'type': type,
+        'x': x,
+        'y': y,
+        'width': width,
+        'height': height,
+        'rotation': rotation,
+        'strokeColor': strokeColor,
+        'fillColor': fillColor,
+      };
+
+  /// 从 JSON 映射反序列化。
+  static ShapeItem fromJson(Map<String, dynamic> json) => ShapeItem(
+        id: json['id'] as String,
+        type: json['type'] as String,
+        x: (json['x'] as num).toDouble(),
+        y: (json['y'] as num).toDouble(),
+        width: (json['width'] as num).toDouble(),
+        height: (json['height'] as num).toDouble(),
+        rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
+        strokeColor: (json['strokeColor'] as String?) ?? '#000000',
+        fillColor: (json['fillColor'] as String?) ?? '#CCCCCC',
+      );
 }
 
 /// 文本（不可变）。
@@ -180,6 +226,22 @@ class TextItem {
 
   @override
   int get hashCode => Object.hash(id, content, x, y);
+
+  /// 序列化为 JSON 映射。
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'content': content,
+        'x': x,
+        'y': y,
+      };
+
+  /// 从 JSON 映射反序列化。
+  static TextItem fromJson(Map<String, dynamic> json) => TextItem(
+        id: json['id'] as String,
+        content: json['content'] as String,
+        x: (json['x'] as num).toDouble(),
+        y: (json['y'] as num).toDouble(),
+      );
 }
 
 /// 图片（不可变）。
@@ -225,6 +287,28 @@ class ImageItem {
 
   @override
   int get hashCode => Object.hash(id, mediaId, x, y);
+
+  /// 序列化为 JSON 映射。
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'mediaId': mediaId,
+        'x': x,
+        'y': y,
+        'width': width,
+        'height': height,
+        'rotation': rotation,
+      };
+
+  /// 从 JSON 映射反序列化。
+  static ImageItem fromJson(Map<String, dynamic> json) => ImageItem(
+        id: json['id'] as String,
+        mediaId: json['mediaId'] as String,
+        x: (json['x'] as num).toDouble(),
+        y: (json['y'] as num).toDouble(),
+        width: (json['width'] as num).toDouble(),
+        height: (json['height'] as num).toDouble(),
+        rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
+      );
 }
 
 /// 图层（不可变）。
@@ -307,4 +391,44 @@ class LayerV2 {
     }
     return true;
   }
+
+  /// 序列化为 JSON 映射。
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'strokes': strokes.map((s) => s.toJson()).toList(),
+        'shapes': shapes.map((s) => s.toJson()).toList(),
+        'texts': texts.map((t) => t.toJson()).toList(),
+        'images': images.map((i) => i.toJson()).toList(),
+        'tables': tables.map((t) => t.toJson()).toList(),
+        'notes': notes.map((n) => n.toJson()).toList(),
+        'visible': visible,
+        'opacity': opacity,
+      };
+
+  /// 从 JSON 映射反序列化。
+  static LayerV2 fromJson(Map<String, dynamic> json) => LayerV2(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        strokes: (json['strokes'] as List<dynamic>)
+            .map((e) => LineItem.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        shapes: (json['shapes'] as List<dynamic>)
+            .map((e) => ShapeItem.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        texts: (json['texts'] as List<dynamic>)
+            .map((e) => TextItem.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        images: (json['images'] as List<dynamic>)
+            .map((e) => ImageItem.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        tables: (json['tables'] as List<dynamic>)
+            .map((e) => TableV2.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        notes: (json['notes'] as List<dynamic>)
+            .map((e) => NoteItem.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        visible: (json['visible'] as bool?) ?? true,
+        opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+      );
 }

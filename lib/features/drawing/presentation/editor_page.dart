@@ -44,12 +44,14 @@ import 'package:drawing_notes_app/features/drawing/presentation/editor_context_b
 import 'package:drawing_notes_app/features/drawing/presentation/editor_left_toolbar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_statusbar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar.dart';
+import 'package:drawing_notes_app/features/drawing/application/editor_notifier.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_viewmodel.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/layer_panel.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/properties_panel.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/resize_handles.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/selection_bar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/toolbar_state_mapper.dart';
+import 'package:drawing_notes_app/core/theme/animation_constants.dart';
 
 part 'editor_page_appbar.dart';
 part 'editor_page_body.dart';
@@ -245,6 +247,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   /// 到图片（极重操作），取色做 200ms 冷却节流防连续触发卡顿。
   DateTime? _lastPickColorAt;
 
+  /// 文字工具双击防抖（问题#6修复——editor_page_input 使用）。
+  DateTime? _lastTextToolTap;
+
   /// 拖动轨迹点（对齐 Excalidraw animatedTrail：拖动元素显示轨迹动画）。
   final List<Offset> _trailPoints = [];
 
@@ -266,6 +271,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   /// 每种书写工具独立的颜色与尺寸，跨启动持久化。
   final BrushPresetStore _brushPresetStore = BrushPresetStore();
   final EraserModeStore _eraserModeStore = EraserModeStore();
+  EraserMode _lastEraserMode = EraserMode.stroke;
   BrushPresetBook _brushPresets = BrushPresetBook.defaults();
 
   /// 当前选中的图片元素。

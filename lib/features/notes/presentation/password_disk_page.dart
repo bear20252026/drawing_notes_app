@@ -48,7 +48,7 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
   String? _keyFingerprint;
 
   /// #11 密码盘目录（解锁/创建后缓存，供落盘验证使用）。
-  Directory? _diskDir;
+  String? _diskDir;
 
   /// 恢复密钥信封（创建密码盘时生成，U 盘丢失时用于恢复主密钥）。
   String? _envelope;
@@ -427,7 +427,7 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
       // 1. 加密
       final encrypted = await _encryption.encryptWithKey(plaintext, key);
       // 2. 写入磁盘文件（密码盘目录旁；若目录未知则用系统临时目录）
-      final baseDir = _diskDir ?? Directory.systemTemp;
+      final baseDir = _diskDir != null ? Directory(_diskDir!) : Directory.systemTemp;
       final verifyFile = File(
         '${baseDir.path}${Platform.pathSeparator}.encryption_verify.bin',
       );

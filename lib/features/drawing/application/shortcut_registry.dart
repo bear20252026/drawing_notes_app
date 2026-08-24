@@ -719,7 +719,7 @@ class _ShortcutHelpWidgetState extends State<ShortcutHelpWidget> {
     }).toList();
 
     if (results.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           '未找到匹配的快捷键',
           style: TextStyle(fontSize: TextScaleHelper.scaled(context, 14), color: Colors.grey),

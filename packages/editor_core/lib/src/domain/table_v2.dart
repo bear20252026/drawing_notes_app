@@ -22,6 +22,18 @@ class TableCellV2 {
 
   @override
   int get hashCode => Object.hash(id, content);
+
+  /// 序列化为 JSON 映射。
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'content': content,
+      };
+
+  /// 从 JSON 映射反序列化。
+  static TableCellV2 fromJson(Map<String, dynamic> json) => TableCellV2(
+        id: json['id'] as String,
+        content: json['content'] as String,
+      );
 }
 
 /// 行（不可变——列头对齐的单元格列表）。
@@ -54,6 +66,20 @@ class TableRowV2 {
     }
     return true;
   }
+
+  /// 序列化为 JSON 映射。
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'cells': cells.map((c) => c.toJson()).toList(),
+      };
+
+  /// 从 JSON 映射反序列化。
+  static TableRowV2 fromJson(Map<String, dynamic> json) => TableRowV2(
+        id: json['id'] as String,
+        cells: (json['cells'] as List<dynamic>)
+            .map((e) => TableCellV2.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
 }
 
 /// 数据库表格（AFFiNE database view 本地化——不可变）。
@@ -125,4 +151,20 @@ class TableV2 {
     }
     return true;
   }
+
+  /// 序列化为 JSON 映射。
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'headers': headers,
+        'rows': rows.map((r) => r.toJson()).toList(),
+      };
+
+  /// 从 JSON 映射反序列化。
+  static TableV2 fromJson(Map<String, dynamic> json) => TableV2(
+        id: json['id'] as String,
+        headers: (json['headers'] as List<dynamic>).cast<String>(),
+        rows: (json['rows'] as List<dynamic>)
+            .map((e) => TableRowV2.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
 }
