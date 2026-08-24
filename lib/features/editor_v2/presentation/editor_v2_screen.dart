@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:editor_core/editor_core.dart';
 
 import '../application/editor_v2_viewmodel.dart';
+import '../application/pdf_import_service.dart';
 import '../../../shared/widgets/apple_glass.dart';
 import 'canvas_painter.dart';
 import 'infinite_canvas_widget.dart';
@@ -101,6 +102,27 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
     controller.dispose();
   }
 
+  /// 导入 PDF（多页 → 多页画布背景——Saber 借鉴）。
+  Future<void> _importPdf() async {
+    // 使用文件选择器让用户选择 PDF。
+    // 注意：此处需要 file_picker 包，但在 V2 架构中不直接依赖。
+    // 实际实现时应通过 ViewModel 或适配器层调用。
+    // 此处提供接口骨架，具体文件选择逻辑由上层集成。
+    try {
+      final pages = await PdfImportService.importPdf('');
+      if (pages.isNotEmpty && mounted) {
+        // TODO: 将导入的页面添加到编辑器
+        // 实际实现需要通过 ViewModel 添加多页支持
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('PDF 导入失败: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(editorV2NotifierProvider);
@@ -143,6 +165,7 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
                     ref.read(editorV2NotifierProvider.notifier).setTool(tool),
                 onShapeTypeChanged: (type) =>
                     ref.read(editorV2NotifierProvider.notifier).setShapeType(type),
+                onImportPdf: _importPdf,
               ),
             ),
           ),
@@ -172,6 +195,7 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
                               child: CustomPaint(
                                 painter: CanvasPainterV2(
                                   document: state.document,
+                                  isInverted: Theme.of(context).brightness == Brightness.dark,
                                   fillMode: FillMode.stroke,
                                 ),
                                 size: Size.infinite,

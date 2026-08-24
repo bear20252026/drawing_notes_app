@@ -14,12 +14,14 @@ class EditorV2Toolbar extends StatelessWidget {
     required this.currentShapeType,
     required this.onToolChanged,
     required this.onShapeTypeChanged,
+    this.onImportPdf,
   });
 
   final String currentTool;
   final String currentShapeType;
   final ValueChanged<String> onToolChanged;
   final ValueChanged<String> onShapeTypeChanged;
+  final VoidCallback? onImportPdf;
 
   @override
   Widget build(BuildContext context) {
@@ -87,6 +89,12 @@ class EditorV2Toolbar extends StatelessWidget {
             label: 'Erase',
             isActive: currentTool == 'erase',
             onTap: () => onToolChanged('erase'),
+          ),
+          _ToolButton(
+            icon: Icons.picture_as_pdf,
+            label: 'Import PDF',
+            isActive: false,
+            onTap: onImportPdf ?? () {},
           ),
         ],
       ),

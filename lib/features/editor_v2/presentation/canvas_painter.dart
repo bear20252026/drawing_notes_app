@@ -171,7 +171,7 @@ class CanvasPainterV2 extends CustomPainter {
     final textPainter = TextPainter(
       text: TextSpan(
         text: text.content,
-        style: TextStyle(color: Colors.black.withValues(alpha: opacity), fontSize: 14),
+        style: TextStyle(color: _foreground.withValues(alpha: opacity), fontSize: 14),
       ),
       textDirection: TextDirection.ltr,
     );
@@ -181,6 +181,6 @@ class CanvasPainterV2 extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CanvasPainterV2 oldDelegate) {
-    return document != oldDelegate.document;
+    return document != oldDelegate.document || isInverted != oldDelegate.isInverted;
   }
 }
