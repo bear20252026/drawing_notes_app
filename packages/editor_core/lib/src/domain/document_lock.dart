@@ -128,7 +128,8 @@ class DocumentLockManager {
   bool unlock(String docId) {
     final lock = _locks[docId];
     if (lock == null) return true; // 未锁定
-    if (lock.ownerId != nodeId) return false; // 非持有者
+    final isOwner = lock.ownerId == nodeId;
+    if (!isOwner) return false; // 非持有者
 
     _locks.remove(docId);
     return true;

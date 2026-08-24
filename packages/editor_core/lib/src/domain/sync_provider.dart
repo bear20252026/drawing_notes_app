@@ -69,14 +69,14 @@ enum SyncOperationType {
 
 /// 同步操作（不可变）。
 class SyncOperation {
-  const SyncOperation({
+  SyncOperation({
     required this.docId,
     required this.type,
     required this.priority,
     required this.vectorClock,
     this.data,
     this.metadata,
-  });
+  }) : createdAt = DateTime.now();
 
   final String docId;
   final SyncOperationType type;
@@ -86,7 +86,7 @@ class SyncOperation {
   final Map<String, String>? metadata;
 
   /// 创建时间（用于队列排序——FIFO within same priority）。
-  final DateTime createdAt = DateTime.now();
+  final DateTime createdAt;
 }
 
 /// 同步结果（不可变）。
