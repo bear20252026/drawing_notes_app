@@ -97,7 +97,7 @@ class DrawingController extends ChangeNotifier {
   }
 
   /// 获取空间索引的当前状态（用于调试）。
-  Map<int, Set<String>> get debugSpatialIndex => _spatialIndex._grid;
+  Map<int, Set<String>> get debugSpatialIndex => _spatialIndex.debugGrid;
 
   /// 测试空间索引查询（用于单元测试）。
   Set<String> testSpatialIndexQuery(Rect rect) {

@@ -15,6 +15,7 @@ import 'package:drawing_notes_app/features/drawing/application/drawing_controlle
 import 'package:drawing_notes_app/core/rtf_exporter.dart';
 import 'package:drawing_notes_app/core/rendering/pdf_hybrid_exporter.dart';
 import 'package:drawing_notes_app/core/rendering/svg_exporter.dart';
+import 'package:drawing_notes_app/core/utils/safe_image_decode.dart';
 
 /// 画布导出域（参考 Saber 的 editor_exporter 模块化设计）。
 ///

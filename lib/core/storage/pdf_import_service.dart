@@ -58,6 +58,12 @@ typedef PdfRasterizer =
 class PdfImportService {
   const PdfImportService._();
 
+  /// 单页渲染超时（秒），防止损坏/超大 PDF 页面无限阻塞主线程。
+  static const int _perPageTimeoutSeconds = 30;
+
+  /// 整体渲染超时（秒），防止多页 PDF 累积阻塞。
+  static const int _totalRenderTimeoutSeconds = 300;
+
   static const int defaultMaxRenderSide = 1800;
 
   /// 单次导入页数上限（红蓝攻防 D-6 修复 2026-08-15）：
@@ -102,6 +108,11 @@ class PdfImportService {
     final rendered = await (rasterizer ?? _renderWithPdfium)(
       sourcePath,
       maxRenderSide,
+    ).timeout(
+      Duration(seconds: _totalRenderTimeoutSeconds),
+      onTimeout: () => throw TimeoutException(
+        'PDF 渲染超时（$_totalRenderTimeoutSeconds秒），文件可能过大或已损坏',
+      ),
     );
     // D-6 修复：页数上限，防恶意多页 PDF 耗尽内存。
     if (rendered.length > _maxImportPages) {
@@ -166,7 +177,12 @@ class PdfImportService {
     }
     final results = <RenderedPdfPage>[];
     for (final initialPage in document.pages) {
-      final page = await initialPage.ensureLoaded();
+      final page = await initialPage.ensureLoaded().timeout(
+            Duration(seconds: _perPageTimeoutSeconds),
+            onTimeout: () => throw TimeoutException(
+              'PDF 页面加载超时（$_perPageTimeoutSeconds秒），可能文件已损坏',
+            ),
+          );
       final longest = page.width > page.height ? page.width : page.height;
       final scale = (maxRenderSide / longest).clamp(1.0, 2.0);
       final targetWidth = (page.width * scale).round().clamp(1, maxRenderSide);
@@ -178,6 +194,11 @@ class PdfImportService {
         fullWidth: targetWidth.toDouble(),
         fullHeight: targetHeight.toDouble(),
         backgroundColor: 0xFFFFFFFF,
+      ).timeout(
+        Duration(seconds: _perPageTimeoutSeconds),
+        onTimeout: () => throw TimeoutException(
+          'PDF 页面渲染超时（$_perPageTimeoutSeconds秒），可能页面过大或已损坏',
+        ),
       );
       if (image == null) {
         throw StateError('无法渲染 PDF 第 ${page.pageNumber} 页');
@@ -208,7 +229,12 @@ class PdfImportService {
       completer.complete,
       rowBytes: source.width * 4,
     );
-    final image = await completer.future;
+    final image = await completer.future.timeout(
+      Duration(seconds: _perPageTimeoutSeconds),
+      onTimeout: () => throw TimeoutException(
+        'PDF 页面 PNG 编码超时（$_perPageTimeoutSeconds秒），可能页面过大或已损坏',
+      ),
+    );
     try {
       final data = await image.toByteData(format: ui.ImageByteFormat.png);
       if (data == null) throw StateError('无法编码 PDF 页面 PNG');
