@@ -17,7 +17,15 @@ void main() {
         ),
       );
 
-      expect(find.text('Hello'), findsOneWidget);
+      // BreathingText renders each letter as a separate Text widget.
+      expect(find.byType(BreathingText), findsOneWidget);
+      expect(find.text('H'), findsOneWidget);
+      expect(find.text('e'), findsOneWidget);
+      expect(find.text('l'), findsNWidgets(2));
+      expect(find.text('o'), findsOneWidget);
+
+      // Advance time to let all staggered timers fire.
+      await tester.pump(const Duration(milliseconds: 200));
     });
 
     testWidgets('空文本不报错', (tester) async {
@@ -50,7 +58,10 @@ void main() {
         ),
       );
 
-      expect(find.text('Styled'), findsOneWidget);
+      expect(find.byType(BreathingText), findsOneWidget);
+      expect(find.text('S'), findsOneWidget);
+
+      await tester.pump(const Duration(milliseconds: 200));
     });
 
     testWidgets('支持文本对齐', (tester) async {
@@ -67,7 +78,10 @@ void main() {
         ),
       );
 
-      expect(find.text('Centered'), findsOneWidget);
+      expect(find.byType(BreathingText), findsOneWidget);
+      expect(find.text('C'), findsOneWidget);
+
+      await tester.pump(const Duration(milliseconds: 200));
     });
 
     testWidgets('字体粗细范围可配置', (tester) async {
@@ -85,7 +99,10 @@ void main() {
         ),
       );
 
-      expect(find.text('Weight'), findsOneWidget);
+      expect(find.byType(BreathingText), findsOneWidget);
+      expect(find.text('W'), findsOneWidget);
+
+      await tester.pump(const Duration(milliseconds: 200));
     });
   });
 }
