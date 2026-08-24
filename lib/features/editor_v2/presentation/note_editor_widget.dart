@@ -10,6 +10,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/responsive.dart';
 import '../../../core/theme/text_scale_helper.dart';
 import 'package:editor_core/editor_core.dart';
 
@@ -102,13 +103,14 @@ class _NoteEditorWidgetState extends State<NoteEditorWidget> {
   @override
   Widget build(BuildContext context) {
     // Word 文档式页面（白纸——AFFiNE Page——居中——可读性好）。
+    final padding = context.responsivePadding();
     return Container(
       color: Colors.white,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: padding,
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720), // Word 页面宽度。
+            constraints: BoxConstraints(maxWidth: context.responsiveFont(mobile: 640, desktop: 800)), // Word 页面宽度。
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -116,20 +118,20 @@ class _NoteEditorWidgetState extends State<NoteEditorWidget> {
                 TextField(
                   controller: _titleController,
                   style: TextStyle(
-                    fontSize: TextScaleHelper.scaled(context, 28),
+                    fontSize: TextScaleHelper.scaled(context, 24) + 4, // 28 → responsive
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: '标题',
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(vertical: context.responsiveFont(mobile: 6, desktop: 10)),
                   ),
                   onChanged: (text) {
                     widget.onChanged(widget.document.copyWith(title: text));
                   },
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: context.responsiveFont(mobile: 12, desktop: 20)),
                 // 段落列表（每段 TextField——直接打字——Word 式）。
                 for (var i = 0; i < widget.document.paragraphCount; i++)
                   _buildParagraphField(i),
@@ -152,7 +154,7 @@ class _NoteEditorWidgetState extends State<NoteEditorWidget> {
     }
 
     final style = TextStyle(
-      fontSize: paragraph.isHeading ? 24 : 17, // 标题大——正文 17（SF Pro——苹果）。
+      fontSize: context.responsiveFont(mobile: paragraph.isHeading ? 22 : 15, desktop: paragraph.isHeading ? 26 : 18),
       fontWeight: paragraph.isHeading ? FontWeight.bold : FontWeight.normal,
       height: 1.6,
       color: Colors.black87,
@@ -165,7 +167,7 @@ class _NoteEditorWidgetState extends State<NoteEditorWidget> {
       decoration: InputDecoration(
         hintText: paragraph.isHeading ? '标题' : '开始输入…',
         border: InputBorder.none, // 白纸无边框。
-        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        contentPadding: EdgeInsets.symmetric(vertical: context.responsiveFont(mobile: 6, desktop: 10)),
       ),
       onChanged: (text) => _updateParagraph(index, text),
       onSubmitted: (_) => _addParagraph(), // 回车新增段落（Word 式）。

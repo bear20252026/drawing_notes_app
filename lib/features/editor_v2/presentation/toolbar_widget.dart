@@ -6,6 +6,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/responsive.dart';
 import '../../../core/theme/text_scale_helper.dart';
 
 /// V2 工具栏（阶段2——笔刷类型/粗细/颜色——2026-08-24）。
@@ -129,7 +130,7 @@ class EditorV2Toolbar extends StatelessWidget {
           ),
           // 第二行：绘图模式下的笔刷选项（V1/V2 迁移阶段2）。
           if (showBrushOptions) ...[
-            const SizedBox(height: 4),
+            SizedBox(height: context.responsiveFont(mobile: 3, desktop: 5)),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -161,7 +162,7 @@ class EditorV2Toolbar extends StatelessWidget {
                 const SizedBox(width: 8),
                 // 粗细滑块。
                 SizedBox(
-                  width: 80,
+                  width: context.responsiveFont(mobile: 64, desktop: 96),
                   child: Slider(
                     value: brushSize,
                     min: 1,
@@ -182,8 +183,8 @@ class EditorV2Toolbar extends StatelessWidget {
                     // TODO: 打开颜色选择器。
                   },
                   child: Container(
-                    width: 24,
-                    height: 24,
+                    width: context.responsiveFont(mobile: 20, desktop: 28),
+                    height: context.responsiveFont(mobile: 20, desktop: 28),
                     decoration: BoxDecoration(
                       color: _hexToColor(strokeColorHex),
                       shape: BoxShape.circle,
@@ -229,10 +230,10 @@ class _ToolButton extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
-          padding: const EdgeInsets.all(6),
+          padding: EdgeInsets.all(context.responsiveFont(mobile: 5, desktop: 7)),
           decoration: BoxDecoration(
             color: isActive ? Colors.blue : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(context.responsiveFont(mobile: 6, desktop: 10)),
             boxShadow: isActive
                 ? [BoxShadow(
                     color: Colors.black.withValues(alpha: 0.15),
@@ -244,7 +245,7 @@ class _ToolButton extends StatelessWidget {
           child: Icon(
             icon,
             color: isActive ? Colors.white : Colors.grey[700],
-            size: 20,
+            size: context.responsiveFont(mobile: 18, desktop: 22),
           ),
         ),
       ),
@@ -269,11 +270,11 @@ class _BrushChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2),
+      padding: EdgeInsets.symmetric(horizontal: context.responsiveFont(mobile: 1, desktop: 3)),
       child: ChoiceChip(
         avatar: Icon(
           icon,
-          size: 14,
+          size: context.responsiveFont(mobile: 12, desktop: 16),
           color: isActive ? Colors.white : Colors.grey[700],
         ),
         label: Text(

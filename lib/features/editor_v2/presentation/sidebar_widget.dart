@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/responsive.dart';
 import '../application/paged_canvas_viewmodel.dart';
 
 /// AFFiNE 侧边栏页面导航（左侧边栏借鉴——PageV2 列表）。
@@ -24,30 +25,43 @@ class EditorV2Sidebar extends ConsumerWidget {
     final state = ref.watch(pagedCanvasNotifierProvider);
     final notifier = ref.read(pagedCanvasNotifierProvider.notifier);
 
+    final isMobile = context.isMobile;
+    final basePadding = context.responsiveScale(16.0); // responsive padding
     return Drawer(
+      width: isMobile ? 280 : 360,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // 侧边栏头（AFFiNE 风格——当前文档名）。
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(basePadding),
               child: Text(
                 '页面管理',
-                style: Theme.of(context).textTheme.titleMedium,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontSize: context.responsiveFont(mobile: 16, desktop: 20),
+                    ),
               ),
             ),
             // 页面列表（可滚动）。
             Expanded(
               child: ListView.builder(
+                padding: EdgeInsets.symmetric(horizontal: basePadding * 0.5),
                 itemCount: state.pages.length,
                 itemBuilder: (context, index) {
                   final page = state.pages[index];
                   return ListTile(
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: context.responsiveFont(mobile: 12, desktop: 16),
+                      vertical: context.responsiveFont(mobile: 6, desktop: 10),
+                    ),
                     selected: index == state.currentPageIndex,
                     selectedTileColor: Colors.blue.withValues(alpha: 0.1),
                     leading: const Icon(Icons.description_outlined),
-                    title: Text('页面 ${page.index + 1}'),
+                    title: Text(
+                      '页面 ${page.index + 1}',
+                      style: TextStyle(fontSize: context.responsiveFont(mobile: 14, desktop: 16)),
+                    ),
                     onTap: () {
                       notifier.setCurrentPage(index);
                       Navigator.pop(context); // 选择后收起侧边栏。
@@ -58,24 +72,30 @@ class EditorV2Sidebar extends ConsumerWidget {
             ),
             // 操作区（新建/删除页面——AFFiNE 页面管理）。
             Padding(
-              padding: const EdgeInsets.all(8),
+              padding: EdgeInsets.all(context.responsiveFont(mobile: 6, desktop: 10)),
               child: Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.add),
-                      label: const Text('新建'),
+                      label: Text(
+                        '新建',
+                        style: TextStyle(fontSize: context.responsiveFont(mobile: 13, desktop: 15)),
+                      ),
                       onPressed: () {
                         notifier.addPage();
                         Navigator.pop(context);
                       },
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: context.responsiveFont(mobile: 6, desktop: 10)),
                   Expanded(
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.delete_outline),
-                      label: const Text('删除'),
+                      label: Text(
+                        '删除',
+                        style: TextStyle(fontSize: context.responsiveFont(mobile: 13, desktop: 15)),
+                      ),
                       onPressed: state.pages.length > 1
                           ? () {
                               notifier.deletePage(state.currentPageIndex);
