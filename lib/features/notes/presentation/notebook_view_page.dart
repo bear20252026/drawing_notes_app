@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:drawing_notes_app/core/theme/app_design.dart';
+import 'package:drawing_notes_app/core/theme/text_scale_helper.dart';
 import 'dart:io';
 import 'dart:math' as math;
 
@@ -49,11 +50,16 @@ class NotebookViewPage extends StatefulWidget {
     this.onChanged,
     this.sessionPassword,
     this.sessionMasterKey,
+    this.initialPageId,
   });
 
   final Notebook notebook;
   final NotebookStorage storage;
   final VoidCallback? onChanged;
+
+  /// 搜索高亮跳转：携带命中页 ID 时，进入笔记本后自动打开该页
+  /// （全文搜索「高亮跳转」链路——首页 _navigateToTarget 传入）。
+  final String? initialPageId;
 
   /// 会话内密码（仅内存持有，不落盘）：解密密码模式笔记本后传入，
   /// 使保存时可重加密最新内容（修复"编辑后无法保存"的致命问题）。
@@ -129,6 +135,21 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
     _lifecycleListener = AppLifecycleListener(
       onInactive: () => _save(),
     );
+    // 搜索高亮跳转：携带命中页 ID 时，首帧后直接打开该页。
+    final jumpToPageId = widget.initialPageId;
+    if (jumpToPageId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        NotebookPage? target;
+        for (final page in _notebook.pages) {
+          if (page.id == jumpToPageId) {
+            target = page;
+            break;
+          }
+        }
+        if (target != null) _openPage(target);
+      });
+    }
   }
 
   /// 会话密钥内存清理（红蓝攻防 D-2 修复 2026-08-15）：

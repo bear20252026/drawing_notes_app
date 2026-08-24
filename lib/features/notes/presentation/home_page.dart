@@ -588,7 +588,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         for (final nb in notebooks) {
           for (final page in nb.pages) {
             if (page.id == target.pageId) {
-              await _openNotebook(nb);
+              // 携带命中页 ID：进入笔记本后直接定位到该页（高亮跳转）。
+              await _openNotebook(nb, initialPageId: target.pageId);
               return;
             }
           }
@@ -862,7 +863,11 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   /// 打开笔记本：若已启用加密（C3/keyfile），先解锁后再进入。
-  Future<void> _openNotebook(Notebook nb) async {
+  ///
+  /// [initialPageId]：搜索高亮跳转的命中页 ID——加密笔记本进入
+  /// NotebookViewPage 后自动打开该页；非加密笔记本走 EditorV2Screen
+  /// （其暂无分页定位 API，待 EditorV2 分页能力落地后接入）。
+  Future<void> _openNotebook(Notebook nb, {String? initialPageId}) async {
     var notebook = nb;
     // 会话内密码（仅内存，不落盘）：解密后传入页面，使编辑后能重加密保存。
     String? password;
@@ -942,6 +947,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             onChanged: _refresh,
             sessionPassword: password,
             sessionMasterKey: masterKey,
+            initialPageId: initialPageId,
           ),
         ),
       );
