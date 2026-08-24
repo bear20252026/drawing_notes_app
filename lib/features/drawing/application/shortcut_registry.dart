@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:io' show Platform;
 
+import '../../../core/theme/text_scale_helper.dart';
+
 /// 键盘快捷键系统
 ///
 /// 参考 Excalidraw shortcuts.ts 的设计理念实现
@@ -720,7 +722,7 @@ class _ShortcutHelpWidgetState extends State<ShortcutHelpWidget> {
       return const Center(
         child: Text(
           '未找到匹配的快捷键',
-          style: TextStyle(fontSize: 14, color: Colors.grey),
+          style: TextStyle(fontSize: TextScaleHelper.scaled(context, 14), color: Colors.grey),
         ),
       );
     }
@@ -745,7 +747,7 @@ class _ShortcutHelpWidgetState extends State<ShortcutHelpWidget> {
             Text(
               category,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: TextScaleHelper.scaled(context, 14),
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).primaryColor,
               ),
@@ -774,8 +776,8 @@ class _ShortcutHelpWidgetState extends State<ShortcutHelpWidget> {
             flex: 3,
             child: Text(
               shortcut.description,
-              style: const TextStyle(
-                fontSize: 14,
+              style: TextStyle(
+                fontSize: TextScaleHelper.scaled(context, 14),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -810,7 +812,7 @@ class _ShortcutHelpWidgetState extends State<ShortcutHelpWidget> {
           child: Text(
             key,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: TextScaleHelper.scaled(context, 12),
               fontFamily: 'monospace',
               fontWeight: FontWeight.bold,
               color: Theme.of(context).brightness == Brightness.dark

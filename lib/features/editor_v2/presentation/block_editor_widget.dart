@@ -1,9 +1,9 @@
-// BlockEditorWidget——块编辑器（AFFiNE BlockSuite 借鉴—�?026-08-24）�?//
-// 参�?BlockSuite 五层架构：Component �?Block �?Store �?Extension �?Preset�?// 本地化：NoteBlock + BlockEditorWidget + SlashCommandService�?//
-// 功能�?// - 一切皆块（文本�?标题�?列表�?代码�?引用�?分隔线块�?// - / 命令菜单（插入块类型�?// - 块可拖拽排序
+﻿// BlockEditorWidget——块编辑器（AFFiNE BlockSuite 借鉴—�?026-08-24）�?//
+// 参�?BlockSuite 五层架构：Component �?Block �?Store �?Extension �?Preset�?// 本地化：NoteBlock + BlockEditorWidget + SlashCommandService�?//
+// 功能�?// - 一切皆块（文本�?标题�?列表�?代码�?引用�?分隔线块�?// - / 命令菜单（插入块类型�?// - 块可拖拽排序
 // - Enter 新增块、Backspace 删除空块
 //
-// 版权：AFFiNE（BSL 1.1——BlockSuite MIT）——仅概念借鉴——NOTICE 已记录�?library;
+// 版权：AFFiNE（BSL 1.1——BlockSuite MIT）——仅概念借鉴——NOTICE 已记录�?library;
 
 import 'package:flutter/material.dart';
 
@@ -12,8 +12,8 @@ import 'package:flutter/services.dart';
 
 import 'package:editor_core/editor_core.dart';
 
-/// 块编辑器 Widget（AFFiNE BlockSuite 借鉴——一切皆块）�?///
-/// 受控组件：blocks 来自父组件，onChanged 回调变更�?/// 支持�?0+ 种块类型 + / 命令菜单 + 拖拽排序�?class BlockEditorWidget extends StatefulWidget {
+/// 块编辑器 Widget（AFFiNE BlockSuite 借鉴——一切皆块）�?///
+/// 受控组件：blocks 来自父组件，onChanged 回调变更�?/// 支持�?0+ 种块类型 + / 命令菜单 + 拖拽排序�?class BlockEditorWidget extends StatefulWidget {
   const BlockEditorWidget({
     super.key,
     required this.blocks,
@@ -21,11 +21,11 @@ import 'package:editor_core/editor_core.dart';
     this.onSlashCommand,
   });
 
-  /// 块列表（来自父组件——受控模式）�?  final List<NoteBlock> blocks;
+  /// 块列表（来自父组件——受控模式）�?  final List<NoteBlock> blocks;
 
-  /// 块变更回调（父组件更新状�?+ 持久化）�?  final ValueChanged<List<NoteBlock>> onChanged;
+  /// 块变更回调（父组件更新状�?+ 持久化）�?  final ValueChanged<List<NoteBlock>> onChanged;
 
-  /// / 命令回调（可选——自定义处理）�?  final void Function(SlashCommand command, int blockIndex)? onSlashCommand;
+  /// / 命令回调（可选——自定义处理）�?  final void Function(SlashCommand command, int blockIndex)? onSlashCommand;
 
   @override
   State<BlockEditorWidget> createState() => _BlockEditorWidgetState();
@@ -36,7 +36,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
   late List<FocusNode> _focusNodes;
   late int _currentBlockCount;
 
-  /// / 命令菜单状态�?  bool _showSlashMenu = false;
+  /// / 命令菜单状态�?  bool _showSlashMenu = false;
   int _slashMenuBlockIndex = -1;
   List<SlashCommand> _slashCommands = [];
 
@@ -86,12 +86,12 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
     super.dispose();
   }
 
-  // ──────────────────────────── 块操�?────────────────────────────
+  // ──────────────────────────── 块操�?────────────────────────────
 
-  /// 更新块内容�?  void _updateBlock(int index, String text) {
+  /// 更新块内容�?  void _updateBlock(int index, String text) {
     if (index >= widget.blocks.length) return;
 
-    // 检�?/ 命令
+    // 检�?/ 命令
     if (SlashCommandService.isSlash(text)) {
       final commands = _slashService.search(text);
       setState(() {
@@ -110,7 +110,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
     widget.onChanged(updated);
   }
 
-  /// 新增块（Enter 键——在指定位置后插入新段落块）�?  void _addBlock(int afterIndex) {
+  /// 新增块（Enter 键——在指定位置后插入新段落块）�?  void _addBlock(int afterIndex) {
     final updated = List<NoteBlock>.from(widget.blocks);
     final newId = 'block_${DateTime.now().millisecondsSinceEpoch}';
     updated.insert(
@@ -127,7 +127,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
     });
   }
 
-  /// 删除块（Backspace 空块——合并到上一块）�?  void _deleteBlock(int index) {
+  /// 删除块（Backspace 空块——合并到上一块）�?  void _deleteBlock(int index) {
     if (index <= 0) return; // 保留第一个块
     if (widget.blocks.length <= 1) return; // 至少保留一个块
 
@@ -135,7 +135,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
     updated.removeAt(index);
     widget.onChanged(updated);
 
-    // 聚焦前一块末�?    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // 聚焦前一块末�?    WidgetsBinding.instance.addPostFrameCallback((_) {
       final targetIndex = index - 1;
       if (targetIndex < _focusNodes.length) {
         _focusNodes[targetIndex].requestFocus();
@@ -147,7 +147,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
     });
   }
 
-  /// 转换块类型（/ 命令或工具栏）�?  void _convertBlock(int index, NoteBlockType newType) {
+  /// 转换块类型（/ 命令或工具栏）�?  void _convertBlock(int index, NoteBlockType newType) {
     if (index >= widget.blocks.length) return;
     final updated = List<NoteBlock>.from(widget.blocks);
     updated[index] = updated[index].copyWith(type: newType);
@@ -157,7 +157,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
     });
   }
 
-  /// 应用 / 命令�?  void _applySlashCommand(SlashCommand command, int blockIndex) {
+  /// 应用 / 命令�?  void _applySlashCommand(SlashCommand command, int blockIndex) {
     final newType = NoteBlock.fromSlashType(command.type);
     _convertBlock(blockIndex, newType);
 
@@ -172,7 +172,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
     }
   }
 
-  /// 移动块（拖拽排序）�?  void _moveBlock(int fromIndex, int toIndex) {
+  /// 移动块（拖拽排序）�?  void _moveBlock(int fromIndex, int toIndex) {
     if (fromIndex == toIndex) return;
     final updated = List<NoteBlock>.from(widget.blocks);
     final block = updated.removeAt(fromIndex);
@@ -187,9 +187,9 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // 块列�?        GestureDetector(
+        // 块列�?        GestureDetector(
           onTap: () {
-            // 点击空白聚焦最后一�?            if (_focusNodes.isNotEmpty) {
+            // 点击空白聚焦最后一�?            if (_focusNodes.isNotEmpty) {
               _focusNodes.last.requestFocus();
             }
             // 关闭 / 菜单
@@ -225,7 +225,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
 
     final controller = _controllers[index];
 
-    // 同步控制器文�?    if (controller.text != block.content) {
+    // 同步控制器文�?    if (controller.text != block.content) {
       final oldOffset = controller.selection.extentOffset;
       controller.text = block.content;
       try {
@@ -234,7 +234,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
       } catch (_) {}
     }
 
-    // 分隔线块——特殊渲�?    if (block.type == NoteBlockType.divider) {
+    // 分隔线块——特殊渲�?    if (block.type == NoteBlockType.divider) {
       return ReorderableDragStartListener(
         key: ValueKey('block-${block.id}'),
         index: index,
@@ -263,7 +263,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 块类型图标（拖拽手柄�?            Padding(
+            // 块类型图标（拖拽手柄�?            Padding(
               padding: const EdgeInsets.only(top: 8, right: 8),
               child: Icon(
                 _getBlockIcon(block.type),
@@ -271,7 +271,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
                 color: Theme.of(context).colorScheme.outline,
               ),
             ),
-            // 块内�?            Expanded(
+            // 块内�?            Expanded(
               child: Focus(
                 onKeyEvent: (node, event) {
                   if (event is! KeyDownEvent) return KeyEventResult.ignored;
@@ -283,7 +283,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
                     return KeyEventResult.handled;
                   }
 
-                  // Backspace：删除空�?                  if (event.logicalKey == LogicalKeyboardKey.backspace &&
+                  // Backspace：删除空�?                  if (event.logicalKey == LogicalKeyboardKey.backspace &&
                       controller.text.isEmpty &&
                       index > 0) {
                     _deleteBlock(index);
@@ -372,12 +372,12 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
           minLines: 1,
           keyboardType: TextInputType.multiline,
           decoration: InputDecoration(
-            hintText: '列表�?,
+            hintText: '列表�?,
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
             contentPadding: EdgeInsets.zero,
-            prefixText: '�?',
+            prefixText: '�?',
             prefixStyle: theme.textTheme.bodyLarge,
           ),
           onChanged: (text) => _updateBlock(index, text),
@@ -391,7 +391,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
           minLines: 1,
           keyboardType: TextInputType.multiline,
           decoration: InputDecoration(
-            hintText: '列表�?,
+            hintText: '列表�?,
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
@@ -419,7 +419,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
               fontFamily: 'monospace',
             ),
             decoration: InputDecoration(
-              hintText: '输入代码�?,
+              hintText: '输入代码�?,
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
@@ -451,7 +451,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
               color: theme.colorScheme.onSurfaceVariant,
             ),
             decoration: InputDecoration(
-              hintText: '引用�?,
+              hintText: '引用�?,
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
@@ -509,7 +509,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
             borderRadius: BorderRadius.circular(8),
           ),
           padding: const EdgeInsets.all(8),
-          child: Text('表格块（详见 TableViewWidget�?,
+          child: Text('表格块（详见 TableViewWidget�?,
               style: theme.textTheme.bodySmall),
         );
 
@@ -523,7 +523,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
           keyboardType: TextInputType.multiline,
           textInputAction: TextInputAction.newline,
           decoration: InputDecoration(
-            hintText: '输入文字，或输入 / 打开命令菜单�?,
+            hintText: '输入文字，或输入 / 打开命令菜单�?,
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
@@ -534,7 +534,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
     }
   }
 
-  /// / 命令菜单�?  Widget _buildSlashMenu(BuildContext context) {
+  /// / 命令菜单�?  Widget _buildSlashMenu(BuildContext context) {
     final theme = Theme.of(context);
 
     return Positioned(
@@ -558,7 +558,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
               final cmd = _slashCommands[index];
               return ListTile(
                 dense: true,
- leading: Text(cmd.icon, style: TextStyle(fontSize: 18)),
+ leading: Text(cmd.icon, style: TextStyle(fontSize: TextScaleHelper.scaled(context, 18))),
                 title: Text(cmd.name),
                 onTap: () => _applySlashCommand(cmd, _slashMenuBlockIndex),
               );

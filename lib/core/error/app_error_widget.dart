@@ -85,8 +85,8 @@ class AppErrorWidget extends StatelessWidget {
                       ),
                       child: SelectableText(
                         'Error: $error\n\n$stack',
-                        style: const TextStyle(
-                          fontSize: 11,
+                        style: TextStyle(
+                          fontSize: 11.0,
                           fontFamily: 'monospace',
                         ),
                       ),

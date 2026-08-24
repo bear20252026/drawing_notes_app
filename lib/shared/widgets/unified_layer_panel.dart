@@ -1,11 +1,11 @@
-// shared/widgets——统一图层面板（V1/V2 合并—�?026-08-24）�?//
-// �?V1/V2 重复代码中统一的图层面板：
+﻿// shared/widgets——统一图层面板（V1/V2 合并—�?026-08-24）�?//
+// �?V1/V2 重复代码中统一的图层面板：
 // - 支持图层列表显示
-// - 支持图层选择/重命�?删除
-// - 支持图层可见�?锁定切换
+// - 支持图层选择/重命�?删除
+// - 支持图层可见�?锁定切换
 // - 支持图层顺序调整
 //
-// 设计原则�?// - �?UI 组件，不含业务逻辑
+// 设计原则�?// - �?UI 组件，不含业务逻辑
 // - 所有状态通过参数传入
 // - 所有操作通过回调返回
 // - 可被 V1/V2 共同使用
@@ -15,11 +15,11 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/text_scale_helper.dart';
 
-/// 统一图层面板（V1/V2 合并—�?026-08-24）�?///
+/// 统一图层面板（V1/V2 合并—�?026-08-24）�?///
 /// 显示图层列表，支持：
 /// - 图层选择
-/// - 图层可见性切�?/// - 图层锁定切换
-/// - 图层重命�?/// - 图层删除
+/// - 图层可见性切�?/// - 图层锁定切换
+/// - 图层重命�?/// - 图层删除
 /// - 图层顺序调整
 class UnifiedLayerPanel extends StatelessWidget {
   const UnifiedLayerPanel({
@@ -35,23 +35,23 @@ class UnifiedLayerPanel extends StatelessWidget {
     this.width = 200,
   });
 
-  /// 图层列表�?  final List<LayerInfo> layers;
+  /// 图层列表�?  final List<LayerInfo> layers;
 
-  /// 当前选中的图�?ID�?  final String? selectedLayerId;
+  /// 当前选中的图�?ID�?  final String? selectedLayerId;
 
-  /// 图层选择回调�?  final ValueChanged<String> onLayerSelected;
+  /// 图层选择回调�?  final ValueChanged<String> onLayerSelected;
 
-  /// 图层可见性变更回调�?  final ValueChanged<String>? onLayerVisibilityChanged;
+  /// 图层可见性变更回调�?  final ValueChanged<String>? onLayerVisibilityChanged;
 
-  /// 图层锁定变更回调�?  final ValueChanged<String>? onLayerLockChanged;
+  /// 图层锁定变更回调�?  final ValueChanged<String>? onLayerLockChanged;
 
-  /// 图层重命名回调�?  final void Function(String id, String newName)? onLayerRenamed;
+  /// 图层重命名回调�?  final void Function(String id, String newName)? onLayerRenamed;
 
-  /// 图层删除回调�?  final ValueChanged<String>? onLayerDeleted;
+  /// 图层删除回调�?  final ValueChanged<String>? onLayerDeleted;
 
-  /// 图层顺序调整回调�?  final void Function(String id, int newIndex)? onLayerReorder;
+  /// 图层顺序调整回调�?  final void Function(String id, int newIndex)? onLayerReorder;
 
-  /// 面板宽度�?  final double width;
+  /// 面板宽度�?  final double width;
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +63,7 @@ class UnifiedLayerPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 标题�?          Container(
+          // 标题�?          Container(
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             color: scheme.surfaceContainerHighest,
             child: Row(
@@ -171,7 +171,7 @@ class _LayerTile extends StatelessWidget {
                 child: _buildLayerName(context),
               ),
 
-              // 可见性切�?              if (onVisibilityChanged != null)
+              // 可见性切�?              if (onVisibilityChanged != null)
                 GestureDetector(
                   onTap: onVisibilityChanged,
                   child: Icon(
@@ -223,19 +223,19 @@ class _LayerTile extends StatelessWidget {
     if (onRenamed == null) {
       return Text(
         layer.name,
-        style: TextStyle(fontSize: 13),
+        style: TextStyle(fontSize: TextScaleHelper.scaled(context, 13)),
         overflow: TextOverflow.ellipsis,
       );
     }
 
     return GestureDetector(
       onDoubleTap: () {
-        // 双击重命�?        showDialog(
+        // 双击重命�?        showDialog(
           context: context,
           builder: (context) {
             final controller = TextEditingController(text: layer.name);
             return AlertDialog(
-              title: Text('重命名图�?),
+              title: Text('重命名图�?),
               content: TextField(
                 controller: controller,
                 autofocus: true,
@@ -262,14 +262,14 @@ class _LayerTile extends StatelessWidget {
       },
       child: Text(
         layer.name,
-        style: TextStyle(fontSize: 13),
+        style: TextStyle(fontSize: TextScaleHelper.scaled(context, 13)),
         overflow: TextOverflow.ellipsis,
       ),
     );
   }
 }
 
-/// 图层信息（公共数据模型）�?class LayerInfo {
+/// 图层信息（公共数据模型）�?class LayerInfo {
   const LayerInfo({
     required this.id,
     required this.name,
@@ -278,13 +278,13 @@ class _LayerTile extends StatelessWidget {
     this.itemCount = 0,
   });
 
-  /// 图层 ID�?  final String id;
+  /// 图层 ID�?  final String id;
 
-  /// 图层名称�?  final String name;
+  /// 图层名称�?  final String name;
 
-  /// 是否可见�?  final bool isVisible;
+  /// 是否可见�?  final bool isVisible;
 
-  /// 是否锁定�?  final bool isLocked;
+  /// 是否锁定�?  final bool isLocked;
 
-  /// 图层中的元素数量�?  final int itemCount;
+  /// 图层中的元素数量�?  final int itemCount;
 }

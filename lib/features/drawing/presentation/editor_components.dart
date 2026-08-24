@@ -6,11 +6,15 @@ import 'package:material_ui/material_ui.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 
-/// 编辑器纯展示组件集（架构重构 R1：从 editor_page 外移的零耦合组件）�?///
+/// 编辑器纯展示组件集（架构重构 R1：从 editor_page 外移的零耦合组件）。
+///
 /// 设计原则（见 docs/ARCHITECTURE_REVISION.md）：
-/// - 本文件内组件**不持有编辑器状�?*，全部通过构造参数传入；
-/// - 不读写文件、不调用存储层——纯展示/渲染职责�?/// - 每个组件 �?00 行，职责单一，可独立测试�?
-/// 快捷键帮助条目（键位 + 说明）�?class ShortcutRow extends StatelessWidget {
+/// - 本文件内组件**不持有编辑器状态**，全部通过构造参数传入；
+/// - 不读写文件、不调用存储层——纯展示/渲染职责；
+/// - 每个组件 ≤100 行，职责单一，可独立测试。
+
+/// 快捷键帮助条目（键位 + 说明）。
+class ShortcutRow extends StatelessWidget {
   const ShortcutRow({super.key, required this.shortcut, required this.action});
 
   final String shortcut;
@@ -45,9 +49,11 @@ import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
   }
 }
 
-/// 连接线渲染器（D1：节点关联标注，借鉴 Relatum 连线）�?///
-/// 在页面混排对象（文字/图片块）之间画连线，坐标随画布视口变换�?class ConnectorPainter extends CustomPainter {
-  const ConnectorPainter({required this.page, required this.controller});
+/// 连接线渲染器（D1：节点关联标注，借鉴 Relatum 连线）。
+///
+/// 在页面混排对象（文字/图片块）之间画连线，坐标随画布视口变换。
+class ConnectorPainter extends CustomPainter {
+  ConnectorPainter({required this.page, required this.controller});
 
   final NotebookPage page;
   final DrawingController controller;
@@ -62,10 +68,12 @@ import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
       final from = _itemPosition(c.fromItemId);
       final to = _itemPosition(c.toItemId);
       if (from == null || to == null) continue;
-      // 画布坐标 -> 视图坐标�?      final vFrom = controller.canvasToView(from);
+      // 画布坐标 -> 视图坐标。
+      final vFrom = controller.canvasToView(from);
       final vTo = controller.canvasToView(to);
       canvas.drawLine(vFrom, vTo, paint);
-      // 箭头（指�?to 端的小三角）�?      final angle = (vTo - vFrom).direction;
+      // 箭头（指向 to 端的小三角）。
+      final angle = (vTo - vFrom).direction;
       const arrowLen = 10.0;
       final arrow = Path()
         ..moveTo(vTo.dx, vTo.dy)
@@ -82,7 +90,8 @@ import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
     }
   }
 
-  /// 查找混排对象的位置（画布坐标），无则返回 null�?  Offset? _itemPosition(String id) {
+  /// 查找混排对象的位置（画布坐标），无则返回 null。
+  Offset? _itemPosition(String id) {
     for (final t in page.textItems) {
       if (t.id == id) return t.position;
     }
@@ -96,13 +105,16 @@ import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
   bool shouldRepaint(ConnectorPainter oldDelegate) => true;
 }
 
-/// 番茄钟专注计时浮层（D2，借鉴 Relatum 学习工具）�?///
-/// 默认 25 分钟专注计时，支持开�?暂停/重置；到时触�?[onFinished]�?class PomodoroTimer extends StatefulWidget {
+/// 番茄钟专注计时浮层（D2，借鉴 Relatum 学习工具）。
+///
+/// 默认 25 分钟专注计时，支持开始/暂停/重置；到时触发 [onFinished]。
+class PomodoroTimer extends StatefulWidget {
   const PomodoroTimer({super.key, this.onFinished});
 
   final VoidCallback? onFinished;
 
-  /// 默认专注时长�?5 分钟�?  static const Duration defaultDuration = Duration(minutes: 25);
+  /// 默认专注时长：25 分钟。
+  static const Duration defaultDuration = Duration(minutes: 25);
 
   @override
   State<PomodoroTimer> createState() => _PomodoroTimerState();
@@ -168,7 +180,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
             ),
             const SizedBox(width: 4),
             IconButton(
-              tooltip: running ? '暂停' : '开�?,
+              tooltip: running ? '暂停' : '开始',
               icon: Icon(running ? Icons.pause : Icons.play_arrow, size: 18),
               visualDensity: VisualDensity.compact,
               onPressed: _toggle,
@@ -186,20 +198,25 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
   }
 }
 
-/// 分页预览组件（D3：长笔记多页预览，借鉴 Umo Editor 分页模式）�?///
-/// 把文字块�?A4 页面高度（逻辑像素）分页渲染，
-/// 每页显示页眉（标�?页码）与内容，超出页高的内容流到下一页�?class PaginationPreview extends StatelessWidget {
+/// 分页预览组件（D3：长笔记多页预览，借鉴 Umo Editor 分页模式）。
+///
+/// 把文字块按 A4 页面高度（逻辑像素）分页渲染，
+/// 每页显示页眉（标题+页码）与内容，超出页高的内容流到下一页。
+class PaginationPreview extends StatelessWidget {
   const PaginationPreview({super.key, required this.textItems});
 
   final List<PageTextItem> textItems;
 
-  /// A4 页面逻辑高度（对应画�?2480x3508 的近似高度）�?  static const double _pageHeight = 800;
+  /// A4 页面逻辑高度（对应画布 2480x3508 的近似高度）。
+  static const double _pageHeight = 800;
 
-  /// 单行文字估算高度�?  static const double _lineHeight = 28;
+  /// 单行文字估算高度。
+  static const double _lineHeight = 28;
 
   @override
   Widget build(BuildContext context) {
-    // 分页：按估算行数把文字块分配到多页�?    final pages = <List<PageTextItem>>[];
+    // 分页：按估算行数把文字块分配到多页。
+    final pages = <List<PageTextItem>>[];
     var current = <PageTextItem>[];
     var used = 60.0; // 页顶留白
     for (final t in textItems) {
@@ -234,7 +251,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                 children: [
                   Expanded(
                     child: Text(
-                      '�?${i + 1} �?/ �?${pages.length} �?,
+                      '第 ${i + 1} 页 / 共 ${pages.length} 页',
                       style: Theme.of(context).textTheme.labelSmall,
                     ),
                   ),
@@ -247,7 +264,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                   child: Text(
                     t.text,
                     style: TextStyle(
-                      fontSize: TextScaleHelper.scaled(context, 13),
+                      fontSize: 13,
                       color: Color(t.color),
                       fontWeight: t.bold ? FontWeight.bold : FontWeight.normal,
                       fontStyle: t.italic ? FontStyle.italic : FontStyle.normal,
@@ -267,9 +284,12 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
   }
 }
 
-/// 形状元素渲染器（借鉴 Excalidraw 图形工具）�?///
-/// �?[PageShapeItem.shapeType] 绘制矩形/椭圆/菱形/箭头/直线�?/// 支持描边色、填充色与线宽；坐标基于元素外接框（0,0 �?width,height）�?class ShapePainter extends CustomPainter {
-  const ShapePainter({required this.shape, required this.viewScale});
+/// 形状元素渲染器（借鉴 Excalidraw 图形工具）。
+///
+/// 按 [PageShapeItem.shapeType] 绘制矩形/椭圆/菱形/箭头/直线，
+/// 支持描边色、填充色与线宽；坐标基于元素外接框（0,0 → width,height）。
+class ShapePainter extends CustomPainter {
+  ShapePainter({required this.shape, required this.viewScale});
 
   final PageShapeItem shape;
   final double viewScale;
@@ -279,7 +299,8 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
     final stroke = Paint()
       ..color = Color(shape.color)
       ..style = PaintingStyle.stroke
-      // 线宽不随画布缩放（保持视觉一致，Excalidraw 同款行为）�?      ..strokeWidth = shape.strokeWidth
+      // 线宽不随画布缩放（保持视觉一致，Excalidraw 同款行为）。
+      ..strokeWidth = shape.strokeWidth
       ..strokeCap = StrokeCap.round;
     final fill = shape.fillColor != null
         ? (Paint()
@@ -290,7 +311,9 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
     final rect = Offset.zero & size;
     final center = size.center(Offset.zero);
 
-    // 手绘风格（借鉴 Excalidraw/rough.js）：seeded 随机抖动顶点�?    // 绘制 2 次轻微偏移的描边，形�?手绘不完�?的粗糙边缘�?    final rough = shape.rough;
+    // 手绘风格（借鉴 Excalidraw/rough.js）：seeded 随机抖动顶点，
+    // 绘制 2 次轻微偏移的描边，形成"手绘不完美"的粗糙边缘。
+    final rough = shape.rough;
 
     Path dashPath(Path path) {
       if (!shape.dash) return path;
@@ -314,23 +337,28 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
         canvas.drawPath(dashPath(path), stroke);
         return;
       }
-      // 手绘：两条轻微偏移的描边叠加（rough.js 多重描边思路）�?      canvas.drawPath(dashPath(path), stroke);
+      // 手绘：两条轻微偏移的描边叠加（rough.js 多重描边思路）。
+      canvas.drawPath(dashPath(path), stroke);
       final rough2 = Path.from(path);
-      // 整体再偏移一次（2px），强化手绘感�?      final shift = Offset(
+      // 整体再偏移一次（2px），强化手绘感。
+      final shift = Offset(
         rng.nextDouble() * 3 - 1.5,
         rng.nextDouble() * 3 - 1.5,
       );
       canvas.drawPath(dashPath(rough2.shift(shift)), stroke);
     }
 
-    // 手绘粗糙填充（借鉴 Excalidraw/rough.js）：rough 且有填充色时�?    // 用一组斜线阴影填充（而非纯色），形成"手绘涂色"质感�?    void roughFill(Path clipPath) {
+    // 手绘粗糙填充（借鉴 Excalidraw/rough.js）：rough 且有填充色时，
+    // 用一组斜线阴影填充（而非纯色），形成"手绘涂色"质感。
+    void roughFill(Path clipPath) {
       if (!shape.rough || shape.fillColor == null) return;
       final hatch = Paint()
         ..color = Color(shape.fillColor!).withValues(alpha: 0.55)
         ..strokeWidth = 1.6
         ..strokeCap = StrokeCap.round;
       final rng2 = math.Random(shape.id.hashCode ^ 0x5A);
-      final angle = 0.7 + rng2.nextDouble() * 0.2; // 斜线角度微随�?      final spacing = 7.0;
+      final angle = 0.7 + rng2.nextDouble() * 0.2; // 斜线角度微随机
+      final spacing = 7.0;
       canvas.save();
       canvas.clipPath(clipPath);
       final diag = math.sqrt(
@@ -351,9 +379,12 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
       canvas.restore();
     }
 
-    // 虚线样式（借鉴 Excalidraw 线样式面板）：dash 时用虚线绘制描边�?    switch (shape.shapeType) {
+    // 虚线样式（借鉴 Excalidraw 线样式面板）：dash 时用虚线绘制描边。
+    switch (shape.shapeType) {
       case ShapeType.rect:
-        // 仅填充模式绘制内部颜色；非填充模式中间保持透明纸色�?        // 避免默认 Paint()（黑色实心）造成"绘制中中间全�?（问�?）�?        if (fill != null) {
+        // 仅填充模式绘制内部颜色；非填充模式中间保持透明纸色，
+        // 避免默认 Paint()（黑色实心）造成"绘制中中间全黑"（问题6）。
+        if (fill != null) {
           fill.color = Color(shape.fillColor!);
           if (shape.rough) {
             roughFill(Path()..addRect(rect));
@@ -410,9 +441,11 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
       case ShapeType.arrow:
         final start = shape.lineStart ?? Offset(0, size.height);
         final end = shape.lineEnd ?? Offset(size.width, 0);
-        // 箭头三角（指�?end 端，按末端线段方向计算）�?        const len = 14.0;
+        // 箭头三角（指向 end 端，按末端线段方向计算）。
+        const len = 14.0;
         if (shape.elbow) {
-          // 弯折箭头（对�?Excalidraw elbow arrow）：先水平再垂直三段式�?          final corner = Offset((start.dx + end.dx) / 2, start.dy);
+          // 弯折箭头（对齐 Excalidraw elbow arrow）：先水平再垂直三段式。
+          final corner = Offset((start.dx + end.dx) / 2, start.dy);
           drawStroke(
             Path()
               ..moveTo(j(start).dx, j(start).dy)
@@ -462,9 +495,12 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
       oldDelegate.shape != shape || oldDelegate.viewScale != viewScale;
 }
 
-/// 对齐参考线绘制器（借鉴 Excalidraw 对齐可视化）�?///
-/// 拖动元素接近对齐位置时，在画布上画出参考线（垂直线/水平线）�?/// 让用户直观看�?吸附到哪�?�?class SnapGuidePainter extends CustomPainter {
-  const SnapGuidePainter({required this.guides, required this.controller});
+/// 对齐参考线绘制器（借鉴 Excalidraw 对齐可视化）。
+///
+/// 拖动元素接近对齐位置时，在画布上画出参考线（垂直线/水平线），
+/// 让用户直观看到"吸附到哪里"。
+class SnapGuidePainter extends CustomPainter {
+  SnapGuidePainter({required this.guides, required this.controller});
 
   final List<({bool vertical, double pos})> guides;
   final DrawingController controller;
@@ -502,9 +538,11 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
   bool shouldRepaint(SnapGuidePainter oldDelegate) => true;
 }
 
-/// 框选矩形绘制器（借鉴 Excalidraw 多选可视化）�?///
-/// 框选时显示半透明蓝色矩形，直观呈现多选范围�?class MarqueePainter extends CustomPainter {
-  const MarqueePainter({required this.rect, required this.controller});
+/// 框选矩形绘制器（借鉴 Excalidraw 多选可视化）。
+///
+/// 框选时显示半透明蓝色矩形，直观呈现多选范围。
+class MarqueePainter extends CustomPainter {
+  MarqueePainter({required this.rect, required this.controller});
 
   final Rect rect; // 画布坐标
   final DrawingController controller;
@@ -518,10 +556,12 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
       viewRect,
       Paint()
         ..color =
-            const Color(0x3342A5F5) // 半透明蓝填�?        ..style = PaintingStyle.fill,
+            const Color(0x3342A5F5) // 半透明蓝填充
+        ..style = PaintingStyle.fill,
     );
     // 虚线框选（问题10）：与其他白板软件一致，用虚线勾勒框选区域，
-    // 与正式选区实线区分。用 PathMetrics 手工分段，避免引入新依赖�?    final outline = Path()..addRect(viewRect);
+    // 与正式选区实线区分。用 PathMetrics 手工分段，避免引入新依赖。
+    final outline = Path()..addRect(viewRect);
     final dashed = Path();
     for (final metric in outline.computeMetrics()) {
       for (var offset = 0.0; offset < metric.length; offset += 12) {
@@ -541,9 +581,11 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
   bool shouldRepaint(MarqueePainter oldDelegate) => true;
 }
 
-/// 网格绘制器（借鉴 Excalidraw 画布导航）�?///
-/// 在画布上绘制 20px 网格（浅灰线），帮助对齐与布局参考�?class GridPainter extends CustomPainter {
-  const GridPainter({required this.controller});
+/// 网格绘制器（借鉴 Excalidraw 画布导航）。
+///
+/// 在画布上绘制 20px 网格（浅灰线），帮助对齐与布局参考。
+class GridPainter extends CustomPainter {
+  GridPainter({required this.controller});
 
   final DrawingController controller;
 
@@ -553,7 +595,8 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
       ..color = const Color(0x1A000000)
       ..strokeWidth = 1;
     const step = 20.0;
-    // 视图坐标绘制网格（随画布缩放平移）�?    for (var x = 0.0; x <= size.width; x += step) {
+    // 视图坐标绘制网格（随画布缩放平移）。
+    for (var x = 0.0; x <= size.width; x += step) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
     }
     for (var y = 0.0; y <= size.height; y += step) {
@@ -565,8 +608,9 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
   bool shouldRepaint(GridPainter oldDelegate) => true;
 }
 
-/// 图表渲染器（借鉴 Excalidraw charts）：柱状�?折线图�?class ChartPainter extends CustomPainter {
-  const ChartPainter({required this.chart, required this.viewScale});
+/// 图表渲染器（借鉴 Excalidraw charts）：柱状图/折线图。
+class ChartPainter extends CustomPainter {
+  ChartPainter({required this.chart, required this.viewScale});
 
   final PageChartItem chart;
   final double viewScale;
@@ -611,7 +655,8 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
         }
       }
       canvas.drawPath(path, paint);
-      // 数据点圆点�?      final dot = Paint()
+      // 数据点圆点。
+      final dot = Paint()
         ..color = Color(chart.color)
         ..style = PaintingStyle.fill;
       for (var i = 0; i < data.length; i++) {
@@ -620,10 +665,11 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
         canvas.drawCircle(Offset(px, py), 3, dot);
       }
     }
-    // 数值标签（顶部）�?    final tp = TextPainter(
+    // 数值标签（顶部）。
+    final tp = TextPainter(
       text: TextSpan(
         text: data.map((v) => v.round().toString()).join(', '),
-        style: TextStyle(fontSize: TextScaleHelper.scaled(context, 9), color: Colors.black54),
+        style: const TextStyle(fontSize: 9, color: Colors.black54),
       ),
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: size.width);
@@ -635,8 +681,10 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
       oldDelegate.chart != chart || oldDelegate.viewScale != viewScale;
 }
 
-/// 拖动轨迹绘制器（借鉴 Excalidraw animatedTrail）�?///
-/// 拖动元素时绘制渐隐轨迹线：越早的点越透明，形�?尾迹"视觉引导�?class TrailPainter extends CustomPainter {
+/// 拖动轨迹绘制器（借鉴 Excalidraw animatedTrail）。
+///
+/// 拖动元素时绘制渐隐轨迹线：越早的点越透明，形成"尾迹"视觉引导。
+class TrailPainter extends CustomPainter {
   TrailPainter({required this.points, required this.controller});
 
   final List<Offset> points; // 画布坐标增量序列
@@ -645,14 +693,16 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
   @override
   void paint(Canvas canvas, Size size) {
     if (points.length < 2) return;
-    // 累计画布坐标（增�?-> 绝对位置，相对画布中心）�?    var acc = Offset.zero;
+    // 累计画布坐标（增量 -> 绝对位置，相对画布中心）。
+    var acc = Offset.zero;
     final pts = <Offset>[acc];
     for (final d in points) {
       acc += d;
       pts.add(acc);
     }
     for (var i = 1; i < pts.length; i++) {
-      final opacity = 0.05 + 0.35 * (i / pts.length); // 越新越明�?      final paint = Paint()
+      final opacity = 0.05 + 0.35 * (i / pts.length); // 越新越明显
+      final paint = Paint()
         ..color = const Color(0xFF42A5F5).withValues(alpha: opacity)
         ..strokeWidth = 2.5
         ..style = PaintingStyle.stroke

@@ -5,6 +5,7 @@
 // 纯 Flutter UI——业务逻辑在 EditorV2ViewModel。
 library;
 
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -46,13 +47,19 @@ class EditorV2Screen extends ConsumerStatefulWidget {
   ConsumerState<EditorV2Screen> createState() => _EditorV2ScreenState();
 }
 
-class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
+class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
+    with WidgetsBindingObserver {
   /// 画布 RepaintBoundary Key——用于截图取色（P2 #30）。
   final GlobalKey _canvasKey = GlobalKey();
+
+  /// 自动保存防抖计时器（V1/V2 迁移阶段2——2026-08-24）。
+  Timer? _autoSaveTimer;
+  static const _autoSaveDuration = Duration(milliseconds: 800);
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // 初始化文档（CUJ-01 创建）。
     Future.microtask(() {
       final notifier = ref.read(editorV2NotifierProvider.notifier);
@@ -61,11 +68,36 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 切到后台时立即保存。
+    if (state == AppLifecycleState.paused) {
+      _saveNow();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _autoSaveTimer?.cancel();
+    _saveNow();
     _removeTextOverlay();
     _textController.dispose();
     _textFocus.dispose();
     super.dispose();
+  }
+
+  /// 安排一次防抖自动保存。
+  void _scheduleAutoSave() {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(_autoSaveDuration, _saveNow);
+  }
+
+  /// 立即执行保存（供切后台、销毁时调用）。
+  void _saveNow() {
+    // TODO: 阶段4 入口切换时接入 StorageService.save()
+    // 此处仅序列化为 JSON 备用。
+    final json = ref.read(editorV2NotifierProvider.notifier).toJson();
+    debugPrint('EditorV2: _saveNow keys=${json.keys.toList()}');
   }
 
   /// 初始笔记文档（note 模式——Word 文档式——2026-08-22——
@@ -206,9 +238,9 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
     final state = ref.read(editorV2NotifierProvider);
     final c = state.currentColor;
     return PickedColor(
-      r: c.red,
-      g: c.green,
-      b: c.blue,
+      r: (c.r * 255.0).round().clamp(0, 255),
+      g: (c.g * 255.0).round().clamp(0, 255),
+      b: (c.b * 255.0).round().clamp(0, 255),
       positionX: position.dx,
       positionY: position.dy,
     );
@@ -249,11 +281,20 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
               child: AppleGlassWidget.toolbar(
                 child: EditorV2Toolbar(
                   currentTool: state.currentTool,
+                  brushType: state.brushType,
                   currentShapeType: state.currentShapeType,
+                  brushSize: state.brushSize,
+                  strokeColorHex: state.strokeColorHex,
                   onToolChanged: (tool) =>
                       ref.read(editorV2NotifierProvider.notifier).setTool(tool),
                   onShapeTypeChanged: (type) =>
                       ref.read(editorV2NotifierProvider.notifier).setShapeType(type),
+                  onBrushTypeChanged: (type) =>
+                      ref.read(editorV2NotifierProvider.notifier).setBrushType(type),
+                  onBrushSizeChanged: (size) =>
+                      ref.read(editorV2NotifierProvider.notifier).setBrushSize(size),
+                  onColorChanged: (hex) =>
+                      ref.read(editorV2NotifierProvider.notifier).setStrokeColor(hex),
                 ),
               ),
             ),

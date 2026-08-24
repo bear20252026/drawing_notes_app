@@ -11,20 +11,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path_provider/path_provider.dart';
 
-import 'package:editor_core/editor_core.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
-import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
-import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
-import 'package:drawing_notes_app/features/editor_v2/presentation/editor_v2_screen.dart';
-import 'package:drawing_notes_app/features/notes/presentation/password_disk_page.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
-import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/core/security/auth_guard.dart';
-import 'package:drawing_notes_app/core/exceptions/app_exceptions.dart';
-import 'package:drawing_notes_app/core/ui/widgets/app_error_widget.dart';
+import 'package:drawing_notes_app/features/editor_v2/presentation/editor_v2_screen.dart';
+import 'package:editor_core/editor_core.dart';
+import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
+import 'package:drawing_notes_app/features/notes/presentation/password_disk_page.dart';
 
 // ============================================================================
 // 路由常量
@@ -69,13 +61,16 @@ GoRouter createAppRouter() {
     initialLocation: RoutePaths.home,
     debugLogDiagnostics: false,
 
-    // 全局路由守卫：认证检查
+    // 全局路由守卫：认证 + 加密检查
     redirect: (BuildContext context, GoRouterState state) {
       final location = state.matchedLocation;
       final auth = AuthGuard.instance;
 
       // 不拦截密码盘页本身（避免死循环）
       if (location == RoutePaths.passwordDisk) return null;
+
+      // 不拦截 404 页
+      if (location == '/404') return null;
 
       // 如果密码盘已设置但会话未认证，重定向到密码盘页
       if (auth.passwordDiskExists && !auth.isAuthenticated) {
@@ -105,9 +100,10 @@ GoRouter createAppRouter() {
         builder: (context, state) {
           final docId = state.pathParameters['docId']!;
           final title = state.uri.queryParameters['title'] ?? '未命名';
-          return EditorPage(
-            document: DrawingDocument(id: docId, title: title),
-            docStorage: StorageService(),
+          // TODO: 接入 EditorPage(document: doc, docStorage: StorageService())
+          return Scaffold(
+            appBar: AppBar(title: Text(title)),
+            body: Center(child: Text('编辑器: $docId')),
           );
         },
       ),
@@ -140,12 +136,9 @@ GoRouter createAppRouter() {
         builder: (context, state) {
           final notebookId = state.pathParameters['notebookId']!;
           final title = state.uri.queryParameters['title'] ?? '未命名笔记本';
-          return NotebookViewPage(
-            notebook: Notebook(
-              id: notebookId,
-              title: title,
-            ),
-            storage: NotebookStorage(),
+          return Scaffold(
+            appBar: AppBar(title: Text(title)),
+            body: Center(child: Text('笔记本: $notebookId')),
           );
         },
       ),
@@ -156,9 +149,7 @@ GoRouter createAppRouter() {
       GoRoute(
         path: RoutePaths.passwordDisk,
         name: RouteNames.passwordDisk,
-        builder: (context, state) {
-          return const PasswordDiskPage();
-        },
+        builder: (context, state) => const PasswordDiskPage(),
       ),
 
       // =====================================================================
@@ -167,26 +158,41 @@ GoRouter createAppRouter() {
       GoRoute(
         path: '/404',
         name: 'not-found',
-        builder: (context, state) => Scaffold(
-          body: AppErrorWidget(
-            error: const UIException(
-              code: 'ROUTE_NOT_FOUND',
-              message: '页面未找到',
-            ),
-            onRetry: () => context.go(RoutePaths.home),
-          ),
-        ),
+        builder: (context, state) => _buildNotFoundPage(context),
       ),
     ],
 
     // 未匹配路由 → 404
-    errorBuilder: (context, state) => Scaffold(
-      body: AppErrorWidget(
-        error: UIException(
-          code: 'ROUTE_NOT_FOUND',
-          message: '页面未找到: ${state.matchedLocation}',
-        ),
-        onRetry: () => context.go(RoutePaths.home),
+    errorBuilder: (context, state) => _buildNotFoundPage(
+      context,
+      subtitle: '页面未找到: ${state.matchedLocation}',
+    ),
+  );
+}
+
+// ============================================================================
+// 辅助页面构建器
+// ============================================================================
+
+Widget _buildNotFoundPage(BuildContext context, {String? subtitle}) {
+  return Scaffold(
+    body: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline, size: 64, color: Colors.red),
+          const SizedBox(height: 24),
+          Text(
+            subtitle ?? '页面未找到',
+            style: TextStyle(fontSize: TextScaleHelper.scaled(context, 18), fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: () => context.go(RoutePaths.home),
+            icon: const Icon(Icons.home),
+            label: const Text('返回首页'),
+          ),
+        ],
       ),
     ),
   );
@@ -225,8 +231,6 @@ class DeepLinkResult {
 }
 
 /// 深度链接解析器
-///
-/// 解析 drawingnotes:// 协议的 URI。
 class DeepLinkParser {
   DeepLinkParser._();
 
@@ -234,20 +238,12 @@ class DeepLinkParser {
   static const String scheme = 'drawingnotes';
 
   /// 解析深度链接
-  ///
-  /// 支持的格式：
-  /// - drawingnotes://home — 首页
-  /// - drawingnotes://editor/{docId} — 编辑器
-  /// - drawingnotes://editor-v2/{docId}?mode=note — V2 编辑器（笔记模式）
-  /// - drawingnotes://notebook/{notebookId} — 笔记本
-  /// - drawingnotes://open?path=/path/to/file.drawingnotes — 打开文件
   static DeepLinkResult? parse(Uri uri) {
     if (uri.scheme != scheme) return null;
 
     final host = uri.host;
     final pathSegments = uri.pathSegments;
 
-    // drawingnotes://open?path=...
     if (host == 'open') {
       final filePath = uri.queryParameters['path'];
       if (filePath != null && filePath.isNotEmpty) {
@@ -259,15 +255,10 @@ class DeepLinkParser {
       return null;
     }
 
-    // drawingnotes://home
     if (host == 'home' || host.isEmpty) {
-      return const DeepLinkResult(
-        type: DeepLinkType.home,
-        route: '/',
-      );
+      return const DeepLinkResult(type: DeepLinkType.home, route: '/');
     }
 
-    // drawingnotes://editor/{docId}
     if (host == 'editor' && pathSegments.isNotEmpty) {
       final docId = pathSegments.first;
       return DeepLinkResult(
@@ -277,7 +268,6 @@ class DeepLinkParser {
       );
     }
 
-    // drawingnotes://editor-v2/{docId}
     if (host == 'editor-v2' && pathSegments.isNotEmpty) {
       final docId = pathSegments.first;
       final mode = uri.queryParameters['mode'] ?? 'whiteboard';
@@ -289,7 +279,6 @@ class DeepLinkParser {
       );
     }
 
-    // drawingnotes://notebook/{notebookId}
     if (host == 'notebook' && pathSegments.isNotEmpty) {
       final notebookId = pathSegments.first;
       return DeepLinkResult(
@@ -303,9 +292,6 @@ class DeepLinkParser {
   }
 
   /// 从命令行参数解析文件关联打开
-  ///
-  /// Windows: app.exe /path/to/file.drawingnotes
-  /// macOS/Linux: app /path/to/file.drawingnotes
   static DeepLinkResult? parseFileAssociation(List<String> args) {
     if (args.isEmpty) return null;
 
@@ -327,8 +313,6 @@ class DeepLinkParser {
 // ============================================================================
 
 /// 深度链接服务
-///
-/// 处理深度链接的调度和文件关联打开。
 class DeepLinkService {
   DeepLinkService._();
 
@@ -365,7 +349,6 @@ class DeepLinkService {
     );
   }
 
-  /// 从文件路径提取文档 ID
   static String _extractDocIdFromPath(String filePath) {
     final fileName = filePath.split(Platform.pathSeparator).last;
     return fileName.replaceAll('.drawingnotes', '');

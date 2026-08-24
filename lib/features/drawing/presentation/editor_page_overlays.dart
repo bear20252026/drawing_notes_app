@@ -656,7 +656,7 @@ extension _EditorPageOverlays on _EditorPageState {
           children: [
             Container(
               constraints: item.isSticky
-                  ? const BoxConstraints(minWidth: 120, minHeight: 40)
+                  ? const BoxConstraints(minWidth: 120, minHeight: 48)
                   : null,
               padding: item.isSticky
                   ? const EdgeInsets.symmetric(horizontal: 10, vertical: 6)

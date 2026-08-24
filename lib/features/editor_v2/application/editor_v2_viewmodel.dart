@@ -23,12 +23,15 @@ class EditorV2State {
     this.canUndo = false,
     this.canRedo = false,
     this.currentTool = 'draw',
+    this.brushType = 'pen',
     this.currentShapeType = 'line',
     this.eyedropperActive = false,
     this.eyedropperPosition = Offset.zero,
     this.currentColor = const Color(0xFF000000),
     this.brushSize = 2.0,
     this.strokeColorHex = '#000000',
+    this.selectedTextId,
+    this.selectedItemId,
   });
 
   /// 当前文档（不可变）。
@@ -42,6 +45,9 @@ class EditorV2State {
 
   /// 当前工具（draw/select/pan/erase/text/line/rect/ellipse/arrow/eyedropper）。
   final String currentTool;
+
+  /// 当前笔刷类型（pen/pencil/marker/laser/eraser——V1/V2 迁移阶段2）。
+  final String brushType;
 
   /// 当前形状类型（line/rect/ellipse/arrow）。
   final String currentShapeType;
@@ -61,30 +67,42 @@ class EditorV2State {
   /// 当前笔画颜色 #RRGGBB（V1/V2 迁移阶段1——2026-08-24）。
   final String strokeColorHex;
 
+  /// 选中的文字 ID（V1/V2 迁移阶段2——文字工具编辑）。
+  final String? selectedTextId;
+
+  /// 选中的任意元素 ID（V1/V2 迁移阶段2——通用选中）。
+  final String? selectedItemId;
+
   /// 不可变拷贝：仅更新指定字段——原实例不变。
   EditorV2State copyWith({
     DocumentV2? document,
     bool? canUndo,
     bool? canRedo,
     String? currentTool,
+    String? brushType,
     String? currentShapeType,
     bool? eyedropperActive,
     Offset? eyedropperPosition,
     Color? currentColor,
     double? brushSize,
     String? strokeColorHex,
+    String? selectedTextId,
+    String? selectedItemId,
   }) {
     return EditorV2State(
       document: document ?? this.document,
       canUndo: canUndo ?? this.canUndo,
       canRedo: canRedo ?? this.canRedo,
       currentTool: currentTool ?? this.currentTool,
+      brushType: brushType ?? this.brushType,
       currentShapeType: currentShapeType ?? this.currentShapeType,
       eyedropperActive: eyedropperActive ?? this.eyedropperActive,
       eyedropperPosition: eyedropperPosition ?? this.eyedropperPosition,
       currentColor: currentColor ?? this.currentColor,
       brushSize: brushSize ?? this.brushSize,
       strokeColorHex: strokeColorHex ?? this.strokeColorHex,
+      selectedTextId: selectedTextId,
+      selectedItemId: selectedItemId,
     );
   }
 
@@ -96,18 +114,21 @@ class EditorV2State {
           canUndo == other.canUndo &&
           canRedo == other.canRedo &&
           currentTool == other.currentTool &&
+          brushType == other.brushType &&
           currentShapeType == other.currentShapeType &&
           eyedropperActive == other.eyedropperActive &&
           eyedropperPosition == other.eyedropperPosition &&
           currentColor == other.currentColor &&
           brushSize == other.brushSize &&
-          strokeColorHex == other.strokeColorHex;
+          strokeColorHex == other.strokeColorHex &&
+          selectedTextId == other.selectedTextId &&
+          selectedItemId == other.selectedItemId;
 
   @override
   int get hashCode => Object.hash(
-      document, canUndo, canRedo, currentTool, currentShapeType,
+      document, canUndo, canRedo, currentTool, brushType, currentShapeType,
       eyedropperActive, eyedropperPosition, currentColor,
-      brushSize, strokeColorHex);
+      brushSize, strokeColorHex, selectedTextId, selectedItemId);
 }
 
 /// Editor V2 ViewModel（Riverpod 3.x Notifier——手动声明——不依赖 build_runner）。
@@ -180,19 +201,47 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     state = EditorV2State(document: doc);
   }
 
-  /// 添加笔画（CUJ-01 绘制）。
+  /// 添加笔画（CUJ-01 绘制——阶段2：传递笔刷类型+透明度）。
   void addStroke(List<Point> points, {String layerId = 'layer-1'}) {
+    // 激光笔仅视觉预览，不写入文档（V1 行为）。
+    if (state.brushType == 'laser') return;
+    final opacity = state.brushType == 'marker' ? 0.5 : 1.0;
     final stroke = LineItem(
       id: 'stroke-${DateTime.now().millisecondsSinceEpoch}',
       points: points,
       strokeWidth: state.brushSize,
       color: state.strokeColorHex,
+      opacity: opacity,
     );
     execute(AddStrokeCommand(layerId: layerId, stroke: stroke));
   }
 
-  /// 添加文本（画布 text 工具——修复打字崩溃——2026-08-22）。
+  /// 添加或更新文本（V1/V2 迁移阶段2——文字工具点击/编辑）。
   void addText(String content, double x, double y, {String layerId = 'layer-1'}) {
+    // 若已有选中文本且内容非空，更新而非新建。
+    final editingId = state.selectedTextId;
+    if (editingId != null && content.isNotEmpty) {
+      final doc = state.document;
+      for (final layer in doc.layers) {
+        final idx = layer.texts.indexWhere((t) => t.id == editingId);
+        if (idx >= 0) {
+          final old = layer.texts[idx];
+          final updated = old.copyWith(content: content);
+          final newTexts = List<TextItem>.from(layer.texts);
+          newTexts[idx] = updated;
+          final newLayer = layer.copyWith(texts: newTexts);
+          final newLayers = List<LayerV2>.from(doc.layers);
+          final layerIdx = doc.layers.indexOf(layer);
+          newLayers[layerIdx] = newLayer;
+          execute(ReorderLayerCommand(
+            layerId: layer.id,
+            newIndex: layerIdx,
+          ));
+          return;
+        }
+      }
+    }
+    // 新建文本。
     final text = TextItem(
       id: 'text-${DateTime.now().millisecondsSinceEpoch}',
       content: content,
@@ -200,6 +249,97 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
       y: y,
     );
     execute(CreateTextCommand(layerId: layerId, text: text));
+  }
+
+  /// 选中文本元素（进入编辑模式）。
+  void selectText(String textId) {
+    state = state.copyWith(
+      selectedTextId: textId,
+      selectedItemId: textId,
+    );
+  }
+
+  /// 取消选中。
+  void clearSelection() {
+    state = state.copyWith(
+      selectedTextId: null,
+      selectedItemId: null,
+    );
+  }
+
+  // ──────────────────── 图片（V1/V2 迁移阶段2——2026-08-24） ────────────────────
+
+  /// 插入图片到画布。
+  void insertImage(String mediaId, double x, double y,
+      {double width = 200, double height = 200, String layerId = 'layer-1'}) {
+    final image = ImageItem(
+      id: 'img-${DateTime.now().millisecondsSinceEpoch}',
+      mediaId: mediaId,
+      x: x,
+      y: y,
+      width: width,
+      height: height,
+    );
+    execute(InsertImageCommand(layerId: layerId, image: image));
+  }
+
+  // ──────────────────── 橡皮擦（V1/V2 迁移阶段2——2026-08-24） ────────────────────
+
+  /// 擦除指定位置的元素（按距离判定）。
+  void eraseAt(double x, double y, {String layerId = 'layer-1'}) {
+    final radius = state.brushSize;
+    execute(EraseByDistanceCommand(
+      layerId: layerId,
+      eraserX: x,
+      eraserY: y,
+      radius: radius,
+    ));
+  }
+
+  // ──────────────────── 图层（V1/V2 迁移阶段2——2026-08-24） ────────────────────
+
+  /// 新增图层。
+  void addLayer({String? name}) {
+    final doc = state.document;
+    final newId = 'layer-${doc.layers.length + 1}';
+    final newLayer = LayerV2(
+      id: newId,
+      name: name ?? '图层 ${doc.layers.length + 1}',
+    );
+    execute(UpdateDocumentCommand(
+      layers: [...doc.layers, newLayer],
+    ));
+  }
+
+  /// 切换图层可见性。
+  void toggleLayerVisibility(String layerId) {
+    final doc = state.document;
+    final newLayers = doc.layers.map((l) {
+      if (l.id == layerId) {
+        return l.copyWith(visible: !l.visible);
+      }
+      return l;
+    }).toList();
+    execute(UpdateDocumentCommand(layers: newLayers));
+  }
+
+  /// 删除图层。
+  void deleteLayer(String layerId) {
+    final doc = state.document;
+    if (doc.layers.length <= 1) return; // 至少保留一个图层
+    final newLayers = doc.layers.where((l) => l.id != layerId).toList();
+    execute(UpdateDocumentCommand(layers: newLayers));
+  }
+
+  // ──────────────────── 持久化（V1/V2 迁移阶段2——2026-08-24） ────────────────────
+
+  /// 序列化当前文档为 JSON Map（供 StorageService 落盘）。
+  Map<String, dynamic> toJson() => state.document.toJson();
+
+  /// 从 JSON Map 恢复文档状态（供 StorageService 加载）。
+  void loadFromJson(Map<String, dynamic> json) {
+    final doc = DocumentV2.fromJson(json);
+    state = state.copyWith(document: doc);
   }
 
   /// 添加形状（图形工具——支持描边/填充颜色——2026-08-24）。
@@ -226,10 +366,20 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     execute(CreateShapeCommand(layerId: layerId, shape: shape));
   }
 
-  // ──────────────────────────── 工具切换 ────────────────────────────
+  // ──────────────────── 工具切换 ────────────────────────────
 
   void setTool(String tool) {
     state = state.copyWith(currentTool: tool);
+  }
+
+  /// 设置笔刷类型（V1/V2 迁移阶段2——pen/pencil/marker/laser/eraser）。
+  void setBrushType(String type) {
+    // 自动切换到绘图工具。
+    state = state.copyWith(
+      brushType: type,
+      currentTool: 'draw',
+      eyedropperActive: false,
+    );
   }
 
   void setShapeType(String type) {

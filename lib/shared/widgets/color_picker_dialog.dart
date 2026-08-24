@@ -101,19 +101,24 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                 runSpacing: 10,
                 children: [
                   for (final c in _presetColors)
-                    InkWell(
-                      borderRadius: BorderRadius.circular(20),
-                      onTap: () => _apply(HSVColor.fromColor(c)),
-                      child: Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: c,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: c.computeLuminance() > 0.5
-                                ? Colors.black26
-                                : Colors.white24,
+                    SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(24),
+                        onTap: () => _apply(HSVColor.fromColor(c)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(7),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: c,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: c.computeLuminance() > 0.5
+                                    ? Colors.black26
+                                    : Colors.white24,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -197,28 +202,33 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                 runSpacing: 8,
                 children: [
                   for (var i = 0; i <= 5; i++)
-                    InkWell(
-                      borderRadius: BorderRadius.circular(14),
-                      onTap: () => _apply(
-                        HSVColor.fromAHSV(
-                          1,
-                          _hsv.hue,
-                          _hsv.saturation,
-                          0.2 + 0.15 * i,
-                        ),
-                      ),
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: HSVColor.fromAHSV(
+                    SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(24),
+                        onTap: () => _apply(
+                          HSVColor.fromAHSV(
                             1,
                             _hsv.hue,
                             _hsv.saturation,
                             0.2 + 0.15 * i,
-                          ).toColor(),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.black26),
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: HSVColor.fromAHSV(
+                                1,
+                                _hsv.hue,
+                                _hsv.saturation,
+                                0.2 + 0.15 * i,
+                              ).toColor(),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.black26),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -232,16 +242,21 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                   runSpacing: 8,
                   children: [
                     for (final c in _recentColors.reversed.take(12))
-                      InkWell(
-                        borderRadius: BorderRadius.circular(14),
-                        onTap: () => _apply(HSVColor.fromColor(c)),
-                        child: Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            color: c,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.black26),
+                      SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(24),
+                          onTap: () => _apply(HSVColor.fromColor(c)),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: c,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.black26),
+                              ),
+                            ),
                           ),
                         ),
                       ),
