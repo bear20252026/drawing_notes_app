@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
@@ -15,10 +17,14 @@ import 'package:drawing_notes_app/l10n/app_localizations.dart';
 /// 3. 加密演示：用密码盘主密钥加密/解密一段文本（闭环验证）；
 /// 4. 恢复主密钥：输入恢复密钥 + 信封 → 解出主密钥（U 盘丢失场景）。
 class PasswordDiskPage extends StatefulWidget {
-  const PasswordDiskPage({super.key, this.disk});
+  const PasswordDiskPage({super.key, this.disk, this.onKeyUnlocked});
 
   /// 密码盘实现（测试注入 Mock；生产默认 Real）。
   final PasswordDisk? disk;
+
+  /// 解锁成功后回调主密钥（供调用方加密笔记本）。
+  /// 回调方应自行管理密钥生命周期，不在页面内持久化。
+  final void Function(List<int> masterKey)? onKeyUnlocked;
 
   @override
   State<PasswordDiskPage> createState() => _PasswordDiskPageState();
@@ -31,6 +37,9 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
   /// 当前读取到的主密钥（解锁后驻留内存；关闭页面即失效）。
   List<int>? _masterKey;
   String? _keyFingerprint;
+
+  /// #11 密码盘目录（解锁/创建后缓存，供落盘验证使用）。
+  Directory? _diskDir;
 
   /// 恢复密钥信封（创建密码盘时生成，U 盘丢失时用于恢复主密钥）。
   String? _envelope;
@@ -51,6 +60,15 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
 
   String? _demoInput;
   String? _demoOutput;
+
+  /// #11 落盘密文验证：加密后写入的文件路径。
+  String? _diskVerifyPath;
+
+  /// #11 落盘密文验证：验证是否通过（文件内容不可读）。
+  bool? _diskVerifyPassed;
+
+  /// #11 用户主动锁定后标记（区别于自动过期锁定）。
+  bool _userLocked = false;
 
   @override
   void dispose() {
@@ -73,6 +91,7 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
   Future<void> _createKeyFile() async {
     final dir = await _disk.pickDirectory();
     if (dir == null) return;
+    _diskDir = dir; // #11 缓存目录供落盘验证使用
     // D-5 UI 集成（2026-08-15）：可选 PIN 保护——主密钥经 PIN 派生
     // KEK 包裹（OWASP KEK 模式），U 盘丢失也无法直接读出。
     final usePin = await _askPinProtection();
@@ -139,6 +158,19 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
           ],
         ),
         actions: [
+          // #12 一键复制恢复密钥到剪贴板
+          TextButton.icon(
+            icon: const Icon(Icons.copy),
+            label: const Text('一键复制'),
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: recovery));
+              if (ctx.mounted) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(content: Text('恢复密钥已复制到剪贴板')),
+                );
+              }
+            },
+          ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text(AppLocalizations.of(context)?.diskCopied ?? '我已抄写'),
@@ -215,6 +247,7 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
     }
     final dir = await _disk.pickDirectory();
     if (dir == null) return;
+    _diskDir = dir; // #11 缓存目录供落盘验证使用
     var key = await _disk.readKey(dir);
     // D-5 UI 集成：v2 PIN 保护格式 readKey 返回 null——提示输入 PIN。
     if (key == null && mounted) {
@@ -236,7 +269,12 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
       _keyFingerprint = _fingerprint(resolved);
       _failCount = 0; // 解锁成功清零
       _lockedUntil = null;
+      _userLocked = false;
+      _diskVerifyPath = null;
+      _diskVerifyPassed = null;
     });
+    // #11 回调主密钥供调用方加密笔记本。
+    widget.onKeyUnlocked?.call(resolved);
     AuditLogger.log('password_disk.unlock');
     _snack('密码盘已解锁，密钥指纹 ${_fingerprint(resolved)}');
   }
@@ -294,25 +332,79 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
       setState(() {
         _masterKey = key;
         _keyFingerprint = _fingerprint(key);
+        _userLocked = false;
+        _diskVerifyPath = null;
+        _diskVerifyPassed = null;
       });
+      // #11 回调主密钥供调用方加密笔记本。
+      widget.onKeyUnlocked?.call(key);
       _snack('恢复成功，主密钥指纹 ${_fingerprint(key)}');
     } catch (_) {
       _snack('恢复密钥错误');
     }
   }
 
+  // ─── #11 锁定：清除内存中的主密钥 ────────────────────────────
+  void _lock() {
+    setState(() {
+      _masterKey = null;
+      _keyFingerprint = null;
+      _userLocked = true;
+      _demoInput = null;
+      _demoOutput = null;
+      // 保留 _diskVerifyPath 和 _diskVerifyPassed 供用户验证落盘密文。
+    });
+    AuditLogger.log('password_disk.lock');
+    _snack('已锁定 — 主密钥已从内存清除，需要重新解锁才能解密数据');
+  }
+
+  // ─── #11 落盘加密闭环演示 ─────────────────────────────────
+  /// 加密演示文本 → 写入磁盘文件 → 读回验证肉眼不可读 → 解密验证可还原。
   Future<void> _demoEncrypt() async {
     final key = _masterKey;
     if (key == null) {
       _snack('请先解锁密码盘');
       return;
     }
-    final text = _demoInput ?? '政府项目演示文本';
-    final encrypted = await _encryption.encryptWithKey(text, key);
-    final decrypted = await _encryption.decryptWithKey(encrypted, key);
-    if (!mounted) return;
-    setState(() => _demoOutput = '解密回显：$decrypted');
-    _snack('加密→解密闭环成功');
+    const plaintext = '这是测试明文数据_用于验证落盘密文不可读_假数据';
+    setState(() {
+      _demoInput = plaintext;
+      _demoOutput = null;
+      _diskVerifyPassed = null;
+    });
+    try {
+      // 1. 加密
+      final encrypted = await _encryption.encryptWithKey(plaintext, key);
+      // 2. 写入磁盘文件（密码盘目录旁；若目录未知则用系统临时目录）
+      final baseDir = _diskDir ?? Directory.systemTemp;
+      final verifyFile = File(
+        '${baseDir.path}${Platform.pathSeparator}.encryption_verify.bin',
+      );
+      await verifyFile.writeAsString(encrypted, flush: true);
+      // 3. 读回原始文件内容
+      final rawContent = await verifyFile.readAsString();
+      // 4. 验证：文件内容不包含原始明文
+      final containsPlaintext = rawContent.contains('这是测试明文数据');
+      // 5. 解密验证可还原
+      final decrypted = await _encryption.decryptWithKey(rawContent, key);
+      if (!mounted) return;
+      setState(() {
+        _diskVerifyPath = verifyFile.path;
+        _diskVerifyPassed = !containsPlaintext;
+        _demoOutput = '📁 落盘文件: ${verifyFile.path}'
+            '\n🔍 文件含明文: ${containsPlaintext ? '⚠️ 是 — 未通过' : '✅ 否 — 通过'}'
+            '\n🔓 解密回显: $decrypted'
+            '\n\n✅ 落盘后打开文件，看到的是密文而非明文';
+      });
+      if (!containsPlaintext) {
+        _snack('✅ 落盘密文验证通过：文件内容肉眼不可读');
+      } else {
+        _snack('⚠️ 落盘验证失败：文件中仍包含明文');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _demoOutput = '加密验证失败: $e');
+    }
   }
 
   void _snack(String msg) {
@@ -411,29 +503,74 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
             label: const Text('用恢复密钥找回主密钥（U 盘丢失）'),
             onPressed: _recoverFromKey,
           ),
-          const SizedBox(height: 24),
-          // 加密演示
-          const Text('加密闭环演示', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          TextField(
-            decoration: const InputDecoration(
-              labelText: '待加密文本',
-              border: OutlineInputBorder(),
+          // #11 锁定按钮：仅在已解锁时显示
+          if (_masterKey != null) ...[
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.lock_outline),
+              label: const Text('锁定（清除内存中的主密钥）'),
+              onPressed: _lock,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.orange,
+              ),
             ),
-            onChanged: (v) => _demoInput = v,
+          ],
+          const SizedBox(height: 24),
+          // #11 落盘加密闭环演示
+          const Text('落盘加密验证', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Text(
+            '加密测试数据 → 写入磁盘文件 → 读回验证肉眼不可读 → 解密验证可还原',
+            style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
             icon: const Icon(Icons.lock_outline),
-            label: const Text('用密码盘密钥加密并解密回显'),
-            onPressed: _demoEncrypt,
+            label: Text(_masterKey != null
+                ? '加密并落盘验证'
+                : '请先解锁密码盘'),
+            onPressed: _masterKey != null ? _demoEncrypt : null,
           ),
+          // #11 落盘验证结果指示器
+          if (_diskVerifyPassed != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                children: [
+                  Icon(
+                    _diskVerifyPassed! ? Icons.check_circle : Icons.error,
+                    color: _diskVerifyPassed! ? Colors.green : Colors.red,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _diskVerifyPassed!
+                          ? '✅ 落盘密文验证通过：文件内容肉眼不可读'
+                          : '⚠️ 落盘验证失败：文件中仍包含明文',
+                      style: TextStyle(
+                        color: _diskVerifyPassed! ? Colors.green : Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           if (_demoOutput != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                _demoOutput!,
-                style: const TextStyle(color: Colors.green),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  _demoOutput!,
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                ),
               ),
             ),
           const SizedBox(height: 16),
