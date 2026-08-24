@@ -40,8 +40,8 @@ class DarkModeNotifier extends Notifier<bool> {
   void setDark(bool value) => state = value;
 }
 
-/// 主题模式状态（Notifier，替代 ChangeNotifier 的渐进迁移示范）：
-/// - [AppThemeController]（ChangeNotifier）职责迁入 [AppThemeNotifier]
+/// 主题模式状态（Riverpod Notifier，已完成迁移）：
+/// - AppThemeController（ChangeNotifier）已删除，职责由 [AppThemeNotifier] 承接
 /// - build() 承载初始化（恢复本地存储），AsyncValue 免手工 loading 标记
 /// - UI 用 ref.watch(themeModeProvider) 消费，改模式调 ref.read(..notifier)
 final themeModeProvider =
