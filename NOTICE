@@ -162,6 +162,17 @@ open-source projects. We gratefully acknowledge their contributions.
     geometric shapes — line/rectangle/circle — concept only)
   - Export quality improvements (SVG font embedding / dark mode filters)
 
+## AFFiNE (BlockSuite concepts — extended)
+
+- **Repository**: https://github.com/toeverything/AFFiNE
+- **License**: BSL 1.1 (BlockSuite components MIT)
+- **Acknowledged concepts (2026-08-22 audit — extended)**:
+  - Slash commands (/ key — block menu — paragraph/heading/list/quote/code/
+    divider — concept only)
+  - Markdown shortcuts (# headings / - lists / [] todo — input quick
+    conversion — concept only)
+  - Page vs Edgeless mode (document/whiteboard dual mode — one editor)
+
 ## License Compatibility
 
 - **capd** (MIT): Compatible. Patterns and concepts inspired by.
