@@ -78,7 +78,10 @@ extension _EditorPageDragOps on _EditorPageState {
             selectEraser: () => _selectWritingTool(BrushType.eraser),
             setPixelEraserMode: (pixel) {
               final mode = pixel ? EraserMode.pixel : EraserMode.stroke;
-              _applyState(() => _controller.eraserMode = mode);
+              _applyState(() {
+                _controller.eraserMode = mode;
+                _lastEraserMode = mode;
+              });
               unawaited(_eraserModeStore.save(mode));
             },
             setEraserCanEraseShapesStroke: (value) =>

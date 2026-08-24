@@ -87,7 +87,10 @@ extension _EditorPageTools on _EditorPageState {
     try {
       final mode = await _eraserModeStore.load();
       if (!mounted) return;
-      _applyState(() => _controller.eraserMode = mode);
+      _applyState(() {
+        _controller.eraserMode = mode;
+        _lastEraserMode = mode;
+      });
     } catch (_) {
       // 偏好不可用时保留安全默认的整笔删除模式。
     }
@@ -98,6 +101,8 @@ extension _EditorPageTools on _EditorPageState {
     _controller.tool = tool;
     if (tool == BrushType.eraser) {
       _controller.eraserSize = preset.size;
+      // 恢复用户上次选择的橡皮擦模式（整笔/透明），解决"切走再切回模式丢失"。
+      _controller.eraserMode = _lastEraserMode;
     } else {
       _controller.color = preset.color;
       _controller.brushSize = preset.size;

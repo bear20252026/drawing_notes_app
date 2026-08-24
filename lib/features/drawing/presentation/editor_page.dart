@@ -266,6 +266,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   final EraserModeStore _eraserModeStore = EraserModeStore();
   BrushPresetBook _brushPresets = BrushPresetBook.defaults();
 
+  /// 记住用户最后一次选择的橡皮擦模式（整笔/透明），切换工具后返回
+  /// 橡皮擦时恢复该模式，避免"点几下模式就变"的漂移问题。
+  EraserMode _lastEraserMode = EraserMode.stroke;
+
   /// 当前选中的图片元素。
   PageImageItem? get _selectedImageItem {
     final page = widget.page;
