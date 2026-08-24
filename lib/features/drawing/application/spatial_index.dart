@@ -26,6 +26,9 @@ class SpatialIndex {
   /// 元素 ID 到边界框的缓存。
   final Map<String, Rect> _boundsCache = {};
 
+  /// 调试用：获取网格到元素 ID 映射的只读副本。
+  Map<int, Set<String>> get debugGrid => Map.unmodifiable(_grid);
+
   /// 清空空间索引。
   void clear() {
     _grid.clear();

@@ -41,13 +41,15 @@ class StrokeRenderer {
     final end = points.length - skip;
     if (skip >= end) return 0;
 
+    // 距离计算需要前一个采样点：起点至少为 1，避免 skip==0 时 points[-1] 越界。
+    final start = skip > 0 ? skip : 1;
     double totalDistance = 0;
-    for (var i = skip; i < end; i++) {
+    for (var i = start; i < end; i++) {
       final dx = points[i].x - points[i - 1].x;
       final dy = points[i].y - points[i - 1].y;
       totalDistance += math.sqrt(dx * dx + dy * dy);
     }
-    final count = end - skip;
+    final count = end - start;
     final avgDistance = totalDistance / count;
     // 归一化：referenceSpeed ≈ 0.8 px/ms 对应约 12 px/sample（60fps）
     return (avgDistance / 12.0).clamp(0.0, 3.0);
