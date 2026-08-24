@@ -121,8 +121,8 @@ class _ToolButton extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
+          duration: AppAnimation.quickDuration,
+          curve: AppAnimation.quickMotion,
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
             color: isActive ? Colors.blue : Colors.transparent,

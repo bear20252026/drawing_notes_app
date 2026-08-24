@@ -41,22 +41,35 @@ extension _EditorPageOverlays on _EditorPageState {
                   onPointerUp: (e) => _onPointerUp(e),
                   onPointerCancel: (e) => _onPointerCancel(e),
                   onPointerSignal: _onPointerSignal, // 滚轮缩放画布
-                  child: _readingInverted
-                      ? ColorFiltered(
-                          colorFilter: _EditorPageState._readingInvertFilter,
-                          child: RepaintBoundary(
-                            child: CustomPaint(
-                              painter: CanvasPainter(controller: _controller),
-                              size: Size.infinite,
-                            ),
-                          ),
-                        )
-                      : RepaintBoundary(
-                          child: CustomPaint(
-                            painter: CanvasPainter(controller: _controller),
-                            size: Size.infinite,
-                          ),
-                        ),
+                  child: Builder(
+                    builder: (context) {
+                      final bgColor = Theme.of(context).brightness == Brightness.dark
+                          ? Theme.of(context).colorScheme.surface
+                          : const Color(0xFFFFFFFF);
+                      return _readingInverted
+                          ? ColorFiltered(
+                              colorFilter: _EditorPageState._readingInvertFilter,
+                              child: RepaintBoundary(
+                                child: CustomPaint(
+                                  painter: CanvasPainter(
+                                    controller: _controller,
+                                    backgroundColor: bgColor,
+                                  ),
+                                  size: Size.infinite,
+                                ),
+                              ),
+                            )
+                          : RepaintBoundary(
+                              child: CustomPaint(
+                                painter: CanvasPainter(
+                                  controller: _controller,
+                                  backgroundColor: bgColor,
+                                ),
+                                size: Size.infinite,
+                              ),
+                            );
+                    },
+                  ),
                 ),
                 ),
               ),
@@ -613,8 +626,8 @@ extension _EditorPageOverlays on _EditorPageState {
     // 删除淡出：删除中的元素透明度渐变为 0（_deletingIds 标记）。
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
+      duration: AppAnimation.quickDuration,
+      curve: AppAnimation.quickMotion,
       builder: (context, opacity, child) =>
           Opacity(opacity: opacity, child: child),
       child: AnimatedOpacity(
