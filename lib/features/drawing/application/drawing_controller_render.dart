@@ -124,16 +124,17 @@ extension DrawingControllerRenderOps on DrawingController {
   Future<Uint8List?> renderToPng({
     double scale = 1.0,
     Set<BrushType> excludedTypes = const {},
+    Rect? selectionBounds,
   }) async {
     await _ensureDocumentImagesLoaded();
-    final bounds = _document.infinite
+    final bounds = selectionBounds ?? (_document.infinite
         ? contentBounds()
         : Rect.fromLTWH(
             0,
             0,
             _document.width.toDouble(),
             _document.height.toDouble(),
-          );
+          ));
     final w = (bounds.width * scale).round();
     final h = (bounds.height * scale).round();
     if (w <= 0 || h <= 0) return null;
@@ -159,5 +160,52 @@ extension DrawingControllerRenderOps on DrawingController {
       image?.dispose();
       picture.dispose();
     }
+  }
+
+  /// 渲染选区区域为 PNG（借鉴 Excalidraw 选区导出）。
+  ///
+  /// 如果有选区（selection），只渲染选区边界框内的内容；
+  /// 否则退回到全画布渲染。
+  Future<Uint8List?> renderSelectionToPng({
+    double scale = 1.0,
+    Set<BrushType> excludedTypes = const {},
+  }) async {
+    // 获取选区边界
+    final selectionBounds = currentSelectionBounds;
+    if (selectionBounds == null) {
+      // 没有选区，退回到全画布渲染
+      return renderToPng(scale: scale, excludedTypes: excludedTypes);
+    }
+    // 添加一些 padding 以避免选区内容被裁剪
+    final paddedBounds = selectionBounds.inflate(10);
+    return renderToPng(
+      scale: scale,
+      excludedTypes: excludedTypes,
+      selectionBounds: paddedBounds,
+    );
+  }
+
+  /// 获取当前选区的边界框。
+  ///
+  /// 如果有选中的元素，返回它们的联合边界框；
+  /// 如果有活跃的选区工具（矩形/套索），返回选区多边形的边界框；
+  /// 否则返回 null。
+  Rect? get currentSelectionBounds {
+    // 1. 优先返回选中元素的边界框
+    if (_selectedStrokeIndices.isNotEmpty || selectedDocumentObjectCount > 0) {
+      return selectedDocumentObjectsBounds;
+    }
+
+    // 2. 检查活跃的选区工具
+    if (_currentSelection != null && !_currentSelection!.isEmpty) {
+      return _currentSelection!.polygon.fold<Rect?>(
+        null,
+        (rect, point) => rect == null
+            ? Rect.fromPoint(point)
+            : rect.expandToInclude(point),
+      );
+    }
+
+    return null;
   }
 }

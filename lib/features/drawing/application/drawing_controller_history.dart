@@ -8,6 +8,7 @@ part of 'drawing_controller.dart';
 extension DrawingControllerHistoryOps on DrawingController {
   void _pushCommand(DocCommand command) {
     _isDirty = true; // 任何命令入栈 = 文档有未保存修改（保存状态跟踪）。
+    markSpatialIndexDirty(); // 标记内容变更，需要重建空间索引
     if (_historyPosition < _history.length) {
       _history.removeRange(_historyPosition, _history.length);
     }

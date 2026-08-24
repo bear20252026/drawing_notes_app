@@ -735,6 +735,15 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                     ),
                   ),
                   PopupMenuItem(
+                    value: _MainMenuItem.exportSelectionPng,
+                    child: ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.crop_free),
+                      title: Text('导出选区 PNG'),
+                    ),
+                  ),
+                  PopupMenuItem(
                     value: _MainMenuItem.exportSvg,
                     child: ListTile(
                       dense: true,

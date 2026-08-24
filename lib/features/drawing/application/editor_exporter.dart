@@ -39,7 +39,7 @@ class EditorExporter {
   /// 由平台写入剪贴板（Windows 用 CF_DIB 位图格式）。
   Future<void> copyPngToClipboard() async {
     try {
-      final png = await controller.renderToPng();
+      final png = await controller.renderSelectionToPng();
       if (png == null) {
         showSnack('复制失败：无法渲染画布');
         return;
@@ -67,9 +67,11 @@ class EditorExporter {
   }
 
   /// 导出当前画布为 PNG（用户选择保存位置）。
+  ///
+  /// 如果有选区，只导出选区内容；否则导出整个画布。
   Future<void> exportPng() async {
     try {
-      final png = await controller.renderToPng();
+      final png = await controller.renderSelectionToPng();
       if (png == null) {
         showSnack('导出失败：无法渲染画布');
         return;
@@ -87,6 +89,37 @@ class EditorExporter {
       showSnack('已导出到：${location.path}');
     } catch (e) {
       showSnack('导出失败：$e');
+    }
+  }
+
+  /// 导出选区为 PNG（借鉴 Excalidraw 选区导出）。
+  ///
+  /// 只导出当前选中的区域，如果没有选区则提示错误。
+  Future<void> exportSelectionPng() async {
+    final selectionBounds = controller.currentSelectionBounds;
+    if (selectionBounds == null) {
+      showSnack('请先选择要导出的区域');
+      return;
+    }
+    try {
+      final png = await controller.renderSelectionToPng();
+      if (png == null) {
+        showSnack('导出失败：无法渲染选区');
+        return;
+      }
+      final suggested = '${controller.document.title}_selection.png';
+      final location = await getSaveLocation(
+        suggestedName: suggested,
+        acceptedTypeGroups: const [
+          XTypeGroup(label: 'PNG 图片', extensions: ['png']),
+        ],
+      );
+      if (location == null) return; // 用户取消
+      final file = File(location.path);
+      await file.writeAsBytes(png, flush: true);
+      showSnack('已导出选区到：${location.path}');
+    } catch (e) {
+      showSnack('导出选区失败：$e');
     }
   }
 

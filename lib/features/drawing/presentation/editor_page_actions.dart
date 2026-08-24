@@ -14,6 +14,8 @@ extension _EditorPageActions on _EditorPageState {
         _copyPngToClipboard();
       case _MainMenuItem.exportPng:
         _exportPng();
+      case _MainMenuItem.exportSelectionPng:
+        _exportSelectionPng();
       case _MainMenuItem.exportSvg:
         _exportSvg();
       case _MainMenuItem.exportPdf:
@@ -64,6 +66,9 @@ extension _EditorPageActions on _EditorPageState {
 
   /// 导出画布为 JSON（委托给 [EditorExporter]）。
   Future<void> _exportJson() => _exporter.exportJson();
+
+  /// 导出选区为 PNG（委托给 [EditorExporter]）。
+  Future<void> _exportSelectionPng() => _exporter.exportSelectionPng();
 
   /// 图表生成（借鉴 Excalidraw charts）：粘贴数值（逗号/空格/换行分隔），
   /// 自动生成柱状图/折线图元素并放入画布中心。
