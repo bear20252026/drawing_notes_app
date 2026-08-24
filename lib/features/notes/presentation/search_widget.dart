@@ -14,6 +14,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/search/search_index.dart';
+import '../../../shared/widgets/inspira/stagger_list.dart';
 import '../../../core/storage/storage_service.dart';
 import '../infrastructure/notebook_storage.dart';
 import '../../../l10n/app_localizations.dart';
@@ -222,7 +223,8 @@ class _SearchWidgetState extends State<SearchWidget> {
         ),
       );
     }
-    return ListView.builder(
+    // 入场 stagger 动画（Inspira UI）；系统减少动态效果时自动跳过。
+    return StaggeredListView(
       shrinkWrap: true,
       itemCount: _results.length,
       itemBuilder: (context, i) {
