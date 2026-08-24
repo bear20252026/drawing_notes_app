@@ -88,6 +88,12 @@ class EditorV2Toolbar extends StatelessWidget {
             isActive: currentTool == 'erase',
             onTap: () => onToolChanged('erase'),
           ),
+          _ToolButton(
+            icon: Icons.colorize,
+            label: 'Eyedropper',
+            isActive: currentTool == 'eyedropper',
+            onTap: () => onToolChanged('eyedropper'),
+          ),
         ],
       ),
     );
