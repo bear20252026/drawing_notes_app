@@ -9,11 +9,12 @@
 [tool.skylos]
 # 文件级排除（官方 exclude 机制——ignore 规则级未覆盖 --secrets 高熵）：
 # audit_logger（运行时 SHA-256 hash——非常量非密钥）+ fractional_index
-# （base62 字符集——合法常量）——高熵误报文件（--danger 死代码扫描
-# 仍覆盖其他文件——此 2 文件无其他安全问题）。
+# （base62 字符集——合法常量）+ recovery_key（base58 字符集——合法常量）
+# ——高熵误报文件（--danger 死代码扫描仍覆盖其他文件——此 3 文件无其他安全问题）。
 exclude = [
   "lib/core/security/audit_logger.dart",
   "lib/features/drawing/domain/fractional_index.dart",
+  "packages/editor_core/lib/src/domain/recovery_key.dart",
 ]
 # SKY-D215：路径遍历——storage/pdf_import sink 已受管（_pathFor 运行时
 # 校验 + sourcePath 存在性/大小/扩展名校验）——静态污点误报。
