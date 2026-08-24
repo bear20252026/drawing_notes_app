@@ -52,6 +52,14 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
     });
   }
 
+  @override
+  void dispose() {
+    _removeTextOverlay();
+    _textController.dispose();
+    _textFocus.dispose();
+    super.dispose();
+  }
+
   /// 初始笔记文档（note 模式——Word 文档式——2026-08-22——
   /// 标题 + 一个空段落（直接打字——Word 式））。
   NoteDocument _initialNoteDocument(String documentId) {
@@ -64,41 +72,80 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
     );
   }
 
-  /// 弹出文本输入框（画布 text 工具——修复打字崩溃——2026-08-22）。
+  /// 就地文本输入（画布 text 工具——修复打字崩溃——2026-08-24）。
   ///
-  /// 使用 Flutter 原生 TextField（不依赖 material_ui——避免中文环境崩溃）。
-  Future<void> _showTextInput(Offset position) async {
-    final controller = TextEditingController();
-    final content = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('输入文字'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLines: 3,
-          decoration: const InputDecoration(
-            hintText: '输入文字内容',
-            border: OutlineInputBorder(),
+  /// 使用 Overlay 就地编辑，不使用 showDialog（避免模态对话框中断画布手势）。
+  /// 借鉴 editor_page.dart 的就地编辑实现。
+  OverlayEntry? _textOverlayEntry;
+  final TextEditingController _textController = TextEditingController();
+  final FocusNode _textFocus = FocusNode();
+  Offset _textInputPosition = Offset.zero;
+
+  void _showTextInput(Offset position) {
+    // 先清理之前的 overlay（如果有）。
+    _removeTextOverlay();
+
+    _textInputPosition = position;
+    _textController.clear();
+    _textOverlayEntry = OverlayEntry(
+      builder: (ctx) => Positioned(
+        left: position.dx,
+        top: position.dy,
+        child: Material(
+          elevation: 4,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 300),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: _textController,
+              focusNode: _textFocus,
+              autofocus: true,
+              maxLines: null,
+              decoration: const InputDecoration(
+                hintText: '输入文字...',
+                border: InputBorder.none,
+              ),
+              onSubmitted: (_) => _commitTextInput(),
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, controller.text),
-            child: const Text('确定'),
-          ),
-        ],
       ),
     );
-    if (content != null && content.isNotEmpty) {
+
+    Overlay.of(context).insert(_textOverlayEntry!);
+
+    // 延迟聚焦，确保 overlay 已渲染。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _textFocus.requestFocus();
+    });
+  }
+
+  void _commitTextInput() {
+    final content = _textController.text.trim();
+    if (content.isNotEmpty) {
       ref.read(editorV2NotifierProvider.notifier)
-          .addText(content, position.dx, position.dy);
+          .addText(content, _textInputPosition.dx, _textInputPosition.dy);
     }
-    controller.dispose();
+    _removeTextOverlay();
+  }
+
+  void _removeTextOverlay() {
+    if (_textOverlayEntry != null) {
+      _textOverlayEntry!.remove();
+      _textOverlayEntry = null;
+    }
+    _textController.clear();
   }
 
   @override
