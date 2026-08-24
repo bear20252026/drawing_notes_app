@@ -162,13 +162,13 @@ class UnlockResult {
   final String message;
   final String errorCode;
 
-  static UnlockResult success(int slotIndex) => UnlockResult(
+  static UnlockResult createSuccess(int slotIndex) => UnlockResult(
         success: true,
         slotIndex: slotIndex,
         message: 'Unlocked slot $slotIndex',
       );
 
-  static UnlockResult failure(String message, [String code = '']) =>
+  static UnlockResult createFailure(String message, [String code = '']) =>
       UnlockResult(
         success: false,
         slotIndex: -1,
@@ -486,7 +486,7 @@ class DeniableEncryptionService {
   }) {
     // 检查是否已自毁
     if (_selfDestructState.destroyed) {
-      return UnlockResult.failure(
+      return UnlockResult.createFailure(
         'Container destroyed due to too many failures',
         'CONTAINER_DESTROYED',
       );
@@ -507,7 +507,7 @@ class DeniableEncryptionService {
       // 成功——重置失败计数
       _selfDestructState = const SelfDestructState();
 
-      return UnlockResult.success(slotA);
+      return UnlockResult.createSuccess(slotA);
     } catch (e) {
       // Slot A 解密失败，尝试 Slot B
     }
@@ -527,7 +527,7 @@ class DeniableEncryptionService {
       // 成功——重置失败计数
       _selfDestructState = const SelfDestructState();
 
-      return UnlockResult.success(slotB);
+      return UnlockResult.createSuccess(slotB);
     } catch (e) {
       // 两个槽都失败
     }
@@ -535,7 +535,7 @@ class DeniableEncryptionService {
     // 记录失败
     _recordFailure();
 
-    return UnlockResult.failure(
+    return UnlockResult.createFailure(
       'Invalid password',
       'INVALID_PASSWORD',
     );
