@@ -667,7 +667,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pageManagement => 'Page Management';
 
   @override
-  String get deletePage => 'Delete Page';
+  String get deletePage => 'Delete';
 
   @override
   String get renamePage => 'Rename';
@@ -755,4 +755,327 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewAllPages => 'View All Pages';
+
+  @override
+  String get blockEditorTitle1 => 'Heading 1';
+
+  @override
+  String get blockEditorTitle2 => 'Heading 2';
+
+  @override
+  String get blockEditorTitle3 => 'Heading 3';
+
+  @override
+  String get blockEditorListItem => 'List item';
+
+  @override
+  String get blockEditorCodeHint => 'Enter code…';
+
+  @override
+  String get blockEditorQuoteHint => 'Quote…';
+
+  @override
+  String get blockEditorParagraphHint =>
+      'Type text, or type / to open command menu…';
+
+  @override
+  String get blockEditorImageLoadFail => 'Image load failed';
+
+  @override
+  String get blockEditorTableBlock => 'Table block (see TableViewWidget)';
+
+  @override
+  String get blockEditorAddRow => 'Add Row';
+
+  @override
+  String get slidePresenterSlide => 'Slide';
+
+  @override
+  String get slidePresenterExit => 'Exit';
+
+  @override
+  String get unifiedToolbarBrush => 'Brush';
+
+  @override
+  String get unifiedToolbarEraser => 'Eraser';
+
+  @override
+  String get unifiedToolbarSelect => 'Select';
+
+  @override
+  String get unifiedToolbarRectSelect => 'Rectangle Selection';
+
+  @override
+  String get unifiedToolbarLassoSelect => 'Lasso Selection';
+
+  @override
+  String get unifiedToolbarRect => 'Rectangle';
+
+  @override
+  String get unifiedToolbarEllipse => 'Ellipse';
+
+  @override
+  String get unifiedToolbarLine => 'Line';
+
+  @override
+  String get unifiedToolbarArrow => 'Arrow';
+
+  @override
+  String get unifiedToolbarText => 'Text';
+
+  @override
+  String get unifiedToolbarEyedropper => 'Eyedropper';
+
+  @override
+  String get unifiedToolbarEraserOptions => 'Eraser Options';
+
+  @override
+  String get unifiedToolbarEraseShapes => 'Can erase shapes';
+
+  @override
+  String get unifiedToolbarGrid => 'Show Grid';
+
+  @override
+  String get unifiedToolbarSnap => 'Snap to Grid';
+
+  @override
+  String get unifiedToolbarZoomOut => 'Zoom Out';
+
+  @override
+  String get unifiedToolbarZoomIn => 'Zoom In';
+
+  @override
+  String get unifiedToolbarFitCanvas => 'Fit to Canvas';
+
+  @override
+  String get unifiedToolbarClickToPlaceText => 'Click canvas to place text';
+
+  @override
+  String get unifiedToolbarClickToPickColor => 'Click canvas to pick color';
+
+  @override
+  String get unifiedPropertyBrush => 'Brush';
+
+  @override
+  String get unifiedPropertyShape => 'Shape';
+
+  @override
+  String get unifiedPropertyText => 'Text';
+
+  @override
+  String get unifiedPropertyFillColor => 'Fill Color';
+
+  @override
+  String get unifiedPropertyDashLine => 'Solid/Dashed';
+
+  @override
+  String get unifiedPropertyTextColor => 'Text Color';
+
+  @override
+  String get unifiedLayerPanelTitle => 'Layers';
+
+  @override
+  String get unifiedLayerPanelRename => 'Rename Layer';
+
+  @override
+  String get unifiedLayerPanelRenameHint => 'Enter layer name';
+
+  @override
+  String get unifiedLayerPanelCancel => 'Cancel';
+
+  @override
+  String get unifiedLayerPanelConfirm => 'Confirm';
+
+  @override
+  String get unnamedNote => 'Untitled Note';
+
+  @override
+  String get inputText => 'Input Text';
+
+  @override
+  String get inputTextContent => 'Enter text content';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get note => 'Note';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get loadFailed => 'Load failed';
+
+  @override
+  String get noteTitle => 'Note Title';
+
+  @override
+  String editorV2Title(String docId) {
+    return 'Editor V2 - $docId';
+  }
+
+  @override
+  String get historyPanelTitle => 'History';
+
+  @override
+  String historySteps(int count) {
+    return '$count steps';
+  }
+
+  @override
+  String get undo => 'Undo';
+
+  @override
+  String get redo => 'Redo';
+
+  @override
+  String get noHistory => 'No history';
+
+  @override
+  String get exportPanelTitle => 'Export';
+
+  @override
+  String get exporting => 'Exporting...';
+
+  @override
+  String exportFormat(String format) {
+    return 'Export $format';
+  }
+
+  @override
+  String get exportPreview => 'Preview';
+
+  @override
+  String get copied => 'Copied';
+
+  @override
+  String get copyTooltip => 'Copy';
+
+  @override
+  String get pngExportHint =>
+      'PNG export requires Canvas rendering — use canvas context menu to export.';
+
+  @override
+  String exportFailed(String error) {
+    return 'Export failed: $error';
+  }
+
+  @override
+  String get exportFormatPNG => 'Image format';
+
+  @override
+  String get exportFormatSVG => 'Vector format';
+
+  @override
+  String get exportFormatJSON => 'Document format';
+
+  @override
+  String get propertiesPanelTitle => 'Properties';
+
+  @override
+  String get colorLabel => 'Color';
+
+  @override
+  String get strokeWidthLabel => 'Stroke Width';
+
+  @override
+  String get opacityLabel => 'Opacity';
+
+  @override
+  String get lineStyleLabel => 'Line Style';
+
+  @override
+  String get solidLine => 'Solid';
+
+  @override
+  String get dashedLine => 'Dashed';
+
+  @override
+  String get dottedLine => 'Dotted';
+
+  @override
+  String get titleHint => 'Title';
+
+  @override
+  String get startTypingHint => 'Start typing…';
+
+  @override
+  String get zoomOut => 'Zoom Out';
+
+  @override
+  String get zoomIn => 'Zoom In';
+
+  @override
+  String get zoomReset => 'Reset (1x)';
+
+  @override
+  String get fitWindow => 'Fit to Window';
+
+  @override
+  String pageN(int index) {
+    return 'Page $index';
+  }
+
+  @override
+  String get newPage => 'New';
+
+  @override
+  String slideN(int index) {
+    return 'Slide $index';
+  }
+
+  @override
+  String get newColumn => 'New Column';
+
+  @override
+  String get noLayers => 'No layers';
+
+  @override
+  String get selectColor => 'Select Color';
+
+  // === Error page ===
+  @override
+  String get appErrorTitle => 'Something went wrong';
+
+  @override
+  String get appErrorBody => 'The app encountered an error, but your data is safe.';
+
+  @override
+  String get appErrorBackHome => 'Back to Home';
+
+  @override
+  String get appErrorDetails => 'Error Details (Debug Mode)';
+
+  // === Onboarding ===
+  @override
+  String get onboardingBrush => 'Brush / Eraser / Eyedropper: switch via top toolbar, drag to draw';
+
+  @override
+  String get onboardingColor => 'Color & Width: circular color dots and width slider on the right of toolbar';
+
+  @override
+  String get onboardingLayers => 'Layer panel on the right: create, toggle visibility, opacity, reorder, merge';
+
+  @override
+  String get onboardingSelect => 'Selection tool: box-select to move / scale / rotate / copy / delete';
+
+  @override
+  String get onboardingText => 'Notes page supports text & images: tap text tool then canvas to type, image button to insert';
+
+  @override
+  String get onboardingPinch => 'Pinch to zoom canvas, two-finger rotate canvas (touch devices)';
+
+  @override
+  String get onboardingFullscreen => 'Fullscreen button top-right: hide toolbars, view canvas only';
+
+  @override
+  String get onboardingSave => 'Content auto-saves, no manual save needed; export to PNG anytime';
+
+  @override
+  String get onboardingStart => 'Get Started';
+
+  // === Export supplement ===
+  @override
+  String get exportTimeout => '⚠️ Export timed out (30s), please shrink the document and retry';
 }

@@ -17,6 +17,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/text_scale_helper.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// 颜色选择网格（V1/V2 公共组件）。
 ///
@@ -94,24 +95,26 @@ class StrokeWidthSlider extends StatelessWidget {
     required this.onChanged,
     this.min = 1,
     this.max = 32,
-    this.label = '线宽',
+    this.label,
   });
 
   final double value;
   final ValueChanged<double> onChanged;
   final double min;
   final double max;
-  final String label;
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final resolvedLabel = label ?? l?.strokeWidthLabel ?? '线宽';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), color: Colors.grey)),
+            Text(resolvedLabel, style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), color: Colors.grey)),
             Text('${value.round()}px',
                 style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), fontWeight: FontWeight.w500)),
           ],
@@ -145,22 +148,24 @@ class OpacitySlider extends StatelessWidget {
     super.key,
     required this.value,
     required this.onChanged,
-    this.label = '透明度',
+    this.label,
   });
 
   final double value;
   final ValueChanged<double> onChanged;
-  final String label;
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final resolvedLabel = label ?? l?.opacityLabel ?? '透明度';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), color: Colors.grey)),
+            Text(resolvedLabel, style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), color: Colors.grey)),
             Text('${(value * 100).round()}%',
                 style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), fontWeight: FontWeight.w500)),
           ],
@@ -204,7 +209,7 @@ class LineStyleSelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('线条样式', style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), color: Colors.grey)),
+        Text(AppLocalizations.of(context)?.lineStyleLabel ?? '线条样式', style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), color: Colors.grey)),
         SizedBox(height: 6),
         Row(
           children: LineStyle.values.map((style) {
@@ -227,7 +232,7 @@ class LineStyleSelector extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    style.label,
+                    style.label(context),
                     style: TextStyle(
                       fontSize: TextScaleHelper.scaled(context, 11),
                       color: isSelected ? Colors.blue : Colors.grey.shade700,
@@ -249,7 +254,21 @@ enum LineStyle {
   dashed,
   dotted;
 
-  String get label {
+  /// 本地化标签（需要 BuildContext）。
+  String label(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    switch (this) {
+      case LineStyle.solid:
+        return l?.solidLine ?? '实线';
+      case LineStyle.dashed:
+        return l?.dashedLine ?? '虚线';
+      case LineStyle.dotted:
+        return l?.dottedLine ?? '点线';
+    }
+  }
+
+  /// 非本地化标签（向后兼容，返回中文）。
+  String get labelCN {
     switch (this) {
       case LineStyle.solid:
         return '实线';
@@ -323,18 +342,21 @@ class ColorPickerDot extends StatelessWidget {
     required this.color,
     required this.onTap,
     this.size = 28,
-    this.tooltip = '选择颜色',
+    this.tooltip,
   });
 
   final Color color;
   final VoidCallback onTap;
   final double size;
-  final String tooltip;
+  final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final localizedColor = l?.selectColor;
+    final resolvedTooltip = tooltip ?? localizedColor ?? '选择颜色';
     return Tooltip(
-      message: tooltip,
+      message: resolvedTooltip,
       child: InkWell(
         borderRadius: BorderRadius.circular(size / 2),
         onTap: onTap,

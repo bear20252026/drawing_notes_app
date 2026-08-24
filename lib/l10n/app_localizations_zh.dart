@@ -654,7 +654,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pageManagement => '页面管理';
 
   @override
-  String get deletePage => '删除页面';
+  String get deletePage => '删除';
 
   @override
   String get renamePage => '重命名';
@@ -742,4 +742,325 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get viewAllPages => '查看所有页面';
+
+  @override
+  String get blockEditorTitle1 => '标题 1';
+
+  @override
+  String get blockEditorTitle2 => '标题 2';
+
+  @override
+  String get blockEditorTitle3 => '标题 3';
+
+  @override
+  String get blockEditorListItem => '列表项';
+
+  @override
+  String get blockEditorCodeHint => '输入代码…';
+
+  @override
+  String get blockEditorQuoteHint => '引用…';
+
+  @override
+  String get blockEditorParagraphHint => '输入文字，或输入 / 打开命令菜单…';
+
+  @override
+  String get blockEditorImageLoadFail => '图片加载失败';
+
+  @override
+  String get blockEditorTableBlock => '表格块（详见 TableViewWidget）';
+
+  @override
+  String get blockEditorAddRow => '添加行';
+
+  @override
+  String get slidePresenterSlide => '幻灯片';
+
+  @override
+  String get slidePresenterExit => '退出';
+
+  @override
+  String get unifiedToolbarBrush => '画笔';
+
+  @override
+  String get unifiedToolbarEraser => '橡皮擦';
+
+  @override
+  String get unifiedToolbarSelect => '选择';
+
+  @override
+  String get unifiedToolbarRectSelect => '矩形选区';
+
+  @override
+  String get unifiedToolbarLassoSelect => '套索选区';
+
+  @override
+  String get unifiedToolbarRect => '矩形';
+
+  @override
+  String get unifiedToolbarEllipse => '椭圆';
+
+  @override
+  String get unifiedToolbarLine => '直线';
+
+  @override
+  String get unifiedToolbarArrow => '箭头';
+
+  @override
+  String get unifiedToolbarText => '文字';
+
+  @override
+  String get unifiedToolbarEyedropper => '吸管取色';
+
+  @override
+  String get unifiedToolbarEraserOptions => '橡皮擦选项';
+
+  @override
+  String get unifiedToolbarEraseShapes => '可擦除形状';
+
+  @override
+  String get unifiedToolbarGrid => '网格显示';
+
+  @override
+  String get unifiedToolbarSnap => '网格吸附';
+
+  @override
+  String get unifiedToolbarZoomOut => '缩小';
+
+  @override
+  String get unifiedToolbarZoomIn => '放大';
+
+  @override
+  String get unifiedToolbarFitCanvas => '适应画布';
+
+  @override
+  String get unifiedToolbarClickToPlaceText => '点击画布放置文字';
+
+  @override
+  String get unifiedToolbarClickToPickColor => '点击画布取色';
+
+  @override
+  String get unifiedPropertyBrush => '画笔';
+
+  @override
+  String get unifiedPropertyShape => '形状';
+
+  @override
+  String get unifiedPropertyText => '文字';
+
+  @override
+  String get unifiedPropertyFillColor => '填充色';
+
+  @override
+  String get unifiedPropertyDashLine => '实线/虚线';
+
+  @override
+  String get unifiedPropertyTextColor => '文字颜色';
+
+  @override
+  String get unifiedLayerPanelTitle => '图层';
+
+  @override
+  String get unifiedLayerPanelRename => '重命名图层';
+
+  @override
+  String get unifiedLayerPanelRenameHint => '输入图层名称';
+
+  @override
+  String get unifiedLayerPanelCancel => '取消';
+
+  @override
+  String get unifiedLayerPanelConfirm => '确定';
+
+  @override
+  String get unnamedNote => '未命名笔记';
+
+  @override
+  String get inputText => '输入文字';
+
+  @override
+  String get inputTextContent => '输入文字内容';
+
+  @override
+  String get cancel => '取消';
+
+  @override
+  String get note => '笔记';
+
+  @override
+  String get save => '保存';
+
+  @override
+  String get loadFailed => '加载失败';
+
+  @override
+  String get noteTitle => '笔记标题';
+
+  @override
+  String editorV2Title(String docId) {
+    return 'Editor V2 - $docId';
+  }
+
+  @override
+  String get historyPanelTitle => '历史记录';
+
+  @override
+  String historySteps(int count) {
+    return '$count 步';
+  }
+
+  @override
+  String get undo => '撤销';
+
+  @override
+  String get redo => '重做';
+
+  @override
+  String get noHistory => '无历史记录';
+
+  @override
+  String get exportPanelTitle => '导出';
+
+  @override
+  String get exporting => '导出中...';
+
+  @override
+  String exportFormat(String format) {
+    return '导出 $format';
+  }
+
+  @override
+  String get exportPreview => '预览';
+
+  @override
+  String get copied => '已复制';
+
+  @override
+  String get copyTooltip => '复制';
+
+  @override
+  String get pngExportHint => 'PNG 导出需要 Canvas 渲染——请使用画布右键菜单导出。';
+
+  @override
+  String exportFailed(String error) {
+    return '导出失败: $error';
+  }
+
+  @override
+  String get exportFormatPNG => '图片格式';
+
+  @override
+  String get exportFormatSVG => '矢量格式';
+
+  @override
+  String get exportFormatJSON => '文档格式';
+
+  @override
+  String get propertiesPanelTitle => '属性';
+
+  @override
+  String get colorLabel => '颜色';
+
+  @override
+  String get strokeWidthLabel => '线宽';
+
+  @override
+  String get opacityLabel => '透明度';
+
+  @override
+  String get lineStyleLabel => '线条样式';
+
+  @override
+  String get solidLine => '实线';
+
+  @override
+  String get dashedLine => '虚线';
+
+  @override
+  String get dottedLine => '点线';
+
+  @override
+  String get titleHint => '标题';
+
+  @override
+  String get startTypingHint => '开始输入…';
+
+  @override
+  String get zoomOut => '缩小';
+
+  @override
+  String get zoomIn => '放大';
+
+  @override
+  String get zoomReset => '重置 (1x)';
+
+  @override
+  String get fitWindow => '适应窗口';
+
+  @override
+  String pageN(int index) {
+    return '页面 $index';
+  }
+
+  @override
+  String get newPage => '新建';
+
+  @override
+  String slideN(int index) {
+    return '幻灯片 $index';
+  }
+
+  @override
+  String get newColumn => '新列';
+
+  @override
+  String get noLayers => '无图层';
+
+  @override
+  String get selectColor => '选择颜色';
+
+  // === 错误页面 ===
+  @override
+  String get appErrorTitle => '出了点问题';
+
+  @override
+  String get appErrorBody => '应用遇到了一个错误，但数据不会丢失。';
+
+  @override
+  String get appErrorBackHome => '返回首页';
+
+  @override
+  String get appErrorDetails => '错误详情（调试模式）';
+
+  // === 引导页 ===
+  @override
+  String get onboardingBrush => '画笔 / 橡皮擦 / 吸管：顶部工具条切换，拖动鼠标或手指绘画';
+
+  @override
+  String get onboardingColor => '颜色与粗细：工具条右侧圆形色块与粗细滑块';
+
+  @override
+  String get onboardingLayers => '图层面板在右侧：新建、显隐、透明度、顺序、合并';
+
+  @override
+  String get onboardingSelect => '选区工具：框选后可移动 / 缩放 / 旋转 / 复制 / 删除';
+
+  @override
+  String get onboardingText => '笔记页支持文字与图片：文字工具点击画布输入，图片按钮插入';
+
+  @override
+  String get onboardingPinch => '双指捏合缩放画布、双指旋转画布（触屏设备）';
+
+  @override
+  String get onboardingFullscreen => '右上角全屏按钮：隐藏工具栏只看画布';
+
+  @override
+  String get onboardingSave => '内容自动保存，无需手动保存；可随时导出为 PNG';
+
+  @override
+  String get onboardingStart => '开始使用';
+
+  // === 导出补充 ===
+  @override
+  String get exportTimeout => '⚠️ 导出超时（30 秒），请缩小文档后重试';
 }

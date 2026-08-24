@@ -1319,7 +1319,7 @@ abstract class AppLocalizations {
   /// No description provided for @deletePage.
   ///
   /// In en, this message translates to:
-  /// **'Delete Page'**
+  /// **'Delete'**
   String get deletePage;
 
   /// No description provided for @renamePage.
@@ -1495,6 +1495,554 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View All Pages'**
   String get viewAllPages;
+
+  /// No description provided for @blockEditorTitle1.
+  ///
+  /// In en, this message translates to:
+  /// **'Heading 1'**
+  String get blockEditorTitle1;
+
+  /// No description provided for @blockEditorTitle2.
+  ///
+  /// In en, this message translates to:
+  /// **'Heading 2'**
+  String get blockEditorTitle2;
+
+  /// No description provided for @blockEditorTitle3.
+  ///
+  /// In en, this message translates to:
+  /// **'Heading 3'**
+  String get blockEditorTitle3;
+
+  /// No description provided for @blockEditorListItem.
+  ///
+  /// In en, this message translates to:
+  /// **'List item'**
+  String get blockEditorListItem;
+
+  /// No description provided for @blockEditorCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter code…'**
+  String get blockEditorCodeHint;
+
+  /// No description provided for @blockEditorQuoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Quote…'**
+  String get blockEditorQuoteHint;
+
+  /// No description provided for @blockEditorParagraphHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type text, or type / to open command menu…'**
+  String get blockEditorParagraphHint;
+
+  /// No description provided for @blockEditorImageLoadFail.
+  ///
+  /// In en, this message translates to:
+  /// **'Image load failed'**
+  String get blockEditorImageLoadFail;
+
+  /// No description provided for @blockEditorTableBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Table block (see TableViewWidget)'**
+  String get blockEditorTableBlock;
+
+  /// No description provided for @blockEditorAddRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Row'**
+  String get blockEditorAddRow;
+
+  /// No description provided for @slidePresenterSlide.
+  ///
+  /// In en, this message translates to:
+  /// **'Slide'**
+  String get slidePresenterSlide;
+
+  /// No description provided for @slidePresenterExit.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit'**
+  String get slidePresenterExit;
+
+  /// No description provided for @unifiedToolbarBrush.
+  ///
+  /// In en, this message translates to:
+  /// **'Brush'**
+  String get unifiedToolbarBrush;
+
+  /// No description provided for @unifiedToolbarEraser.
+  ///
+  /// In en, this message translates to:
+  /// **'Eraser'**
+  String get unifiedToolbarEraser;
+
+  /// No description provided for @unifiedToolbarSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get unifiedToolbarSelect;
+
+  /// No description provided for @unifiedToolbarRectSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Rectangle Selection'**
+  String get unifiedToolbarRectSelect;
+
+  /// No description provided for @unifiedToolbarLassoSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Lasso Selection'**
+  String get unifiedToolbarLassoSelect;
+
+  /// No description provided for @unifiedToolbarRect.
+  ///
+  /// In en, this message translates to:
+  /// **'Rectangle'**
+  String get unifiedToolbarRect;
+
+  /// No description provided for @unifiedToolbarEllipse.
+  ///
+  /// In en, this message translates to:
+  /// **'Ellipse'**
+  String get unifiedToolbarEllipse;
+
+  /// No description provided for @unifiedToolbarLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Line'**
+  String get unifiedToolbarLine;
+
+  /// No description provided for @unifiedToolbarArrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrow'**
+  String get unifiedToolbarArrow;
+
+  /// No description provided for @unifiedToolbarText.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get unifiedToolbarText;
+
+  /// No description provided for @unifiedToolbarEyedropper.
+  ///
+  /// In en, this message translates to:
+  /// **'Eyedropper'**
+  String get unifiedToolbarEyedropper;
+
+  /// No description provided for @unifiedToolbarEraserOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Eraser Options'**
+  String get unifiedToolbarEraserOptions;
+
+  /// No description provided for @unifiedToolbarEraseShapes.
+  ///
+  /// In en, this message translates to:
+  /// **'Can erase shapes'**
+  String get unifiedToolbarEraseShapes;
+
+  /// No description provided for @unifiedToolbarGrid.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Grid'**
+  String get unifiedToolbarGrid;
+
+  /// No description provided for @unifiedToolbarSnap.
+  ///
+  /// In en, this message translates to:
+  /// **'Snap to Grid'**
+  String get unifiedToolbarSnap;
+
+  /// No description provided for @unifiedToolbarZoomOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom Out'**
+  String get unifiedToolbarZoomOut;
+
+  /// No description provided for @unifiedToolbarZoomIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom In'**
+  String get unifiedToolbarZoomIn;
+
+  /// No description provided for @unifiedToolbarFitCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit to Canvas'**
+  String get unifiedToolbarFitCanvas;
+
+  /// No description provided for @unifiedToolbarClickToPlaceText.
+  ///
+  /// In en, this message translates to:
+  /// **'Click canvas to place text'**
+  String get unifiedToolbarClickToPlaceText;
+
+  /// No description provided for @unifiedToolbarClickToPickColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Click canvas to pick color'**
+  String get unifiedToolbarClickToPickColor;
+
+  /// No description provided for @unifiedPropertyBrush.
+  ///
+  /// In en, this message translates to:
+  /// **'Brush'**
+  String get unifiedPropertyBrush;
+
+  /// No description provided for @unifiedPropertyShape.
+  ///
+  /// In en, this message translates to:
+  /// **'Shape'**
+  String get unifiedPropertyShape;
+
+  /// No description provided for @unifiedPropertyText.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get unifiedPropertyText;
+
+  /// No description provided for @unifiedPropertyFillColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill Color'**
+  String get unifiedPropertyFillColor;
+
+  /// No description provided for @unifiedPropertyDashLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Solid/Dashed'**
+  String get unifiedPropertyDashLine;
+
+  /// No description provided for @unifiedPropertyTextColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text Color'**
+  String get unifiedPropertyTextColor;
+
+  /// No description provided for @unifiedLayerPanelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Layers'**
+  String get unifiedLayerPanelTitle;
+
+  /// No description provided for @unifiedLayerPanelRename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename Layer'**
+  String get unifiedLayerPanelRename;
+
+  /// No description provided for @unifiedLayerPanelRenameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter layer name'**
+  String get unifiedLayerPanelRenameHint;
+
+  /// No description provided for @unifiedLayerPanelCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get unifiedLayerPanelCancel;
+
+  /// No description provided for @unifiedLayerPanelConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get unifiedLayerPanelConfirm;
+
+  /// No description provided for @unnamedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled Note'**
+  String get unnamedNote;
+
+  /// No description provided for @inputText.
+  ///
+  /// In en, this message translates to:
+  /// **'Input Text'**
+  String get inputText;
+
+  /// No description provided for @inputTextContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter text content'**
+  String get inputTextContent;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @note.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get note;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @loadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Load failed'**
+  String get loadFailed;
+
+  /// No description provided for @noteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Note Title'**
+  String get noteTitle;
+
+  /// Editor V2 title
+  ///
+  /// In en, this message translates to:
+  /// **'Editor V2 - {docId}'**
+  String editorV2Title(String docId);
+
+  /// No description provided for @historyPanelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get historyPanelTitle;
+
+  /// No description provided for @historySteps.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} steps'**
+  String historySteps(int count);
+
+  /// No description provided for @undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undo;
+
+  /// No description provided for @redo.
+  ///
+  /// In en, this message translates to:
+  /// **'Redo'**
+  String get redo;
+
+  /// No description provided for @noHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'No history'**
+  String get noHistory;
+
+  /// No description provided for @exportPanelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get exportPanelTitle;
+
+  /// No description provided for @exporting.
+  ///
+  /// In en, this message translates to:
+  /// **'Exporting...'**
+  String get exporting;
+
+  /// No description provided for @exportFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Export {format}'**
+  String exportFormat(String format);
+
+  /// No description provided for @exportPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get exportPreview;
+
+  /// No description provided for @copied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get copied;
+
+  /// No description provided for @copyTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copyTooltip;
+
+  /// No description provided for @pngExportHint.
+  ///
+  /// In en, this message translates to:
+  /// **'PNG export requires Canvas rendering — use canvas context menu to export.'**
+  String get pngExportHint;
+
+  /// No description provided for @exportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed: {error}'**
+  String exportFailed(String error);
+
+  /// No description provided for @exportFormatPNG.
+  ///
+  /// In en, this message translates to:
+  /// **'Image format'**
+  String get exportFormatPNG;
+
+  /// No description provided for @exportFormatSVG.
+  ///
+  /// In en, this message translates to:
+  /// **'Vector format'**
+  String get exportFormatSVG;
+
+  /// No description provided for @exportFormatJSON.
+  ///
+  /// In en, this message translates to:
+  /// **'Document format'**
+  String get exportFormatJSON;
+
+  /// No description provided for @propertiesPanelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Properties'**
+  String get propertiesPanelTitle;
+
+  /// No description provided for @colorLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get colorLabel;
+
+  /// No description provided for @strokeWidthLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Stroke Width'**
+  String get strokeWidthLabel;
+
+  /// No description provided for @opacityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Opacity'**
+  String get opacityLabel;
+
+  /// No description provided for @lineStyleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Line Style'**
+  String get lineStyleLabel;
+
+  /// No description provided for @solidLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Solid'**
+  String get solidLine;
+
+  /// No description provided for @dashedLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Dashed'**
+  String get dashedLine;
+
+  /// No description provided for @dottedLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Dotted'**
+  String get dottedLine;
+
+  /// No description provided for @titleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get titleHint;
+
+  /// No description provided for @startTypingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Start typing…'**
+  String get startTypingHint;
+
+  /// No description provided for @zoomOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom Out'**
+  String get zoomOut;
+
+  /// No description provided for @zoomIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom In'**
+  String get zoomIn;
+
+  /// No description provided for @zoomReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset (1x)'**
+  String get zoomReset;
+
+  /// No description provided for @fitWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit to Window'**
+  String get fitWindow;
+
+  /// No description provided for @pageN.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {index}'**
+  String pageN(int index);
+
+  /// No description provided for @newPage.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get newPage;
+
+  /// No description provided for @slideN.
+  ///
+  /// In en, this message translates to:
+  /// **'Slide {index}'**
+  String slideN(int index);
+
+  /// No description provided for @newColumn.
+  ///
+  /// In en, this message translates to:
+  /// **'New Column'**
+  String get newColumn;
+
+  /// No description provided for @noLayers.
+  ///
+  /// In en, this message translates to:
+  /// **'No layers'**
+  String get noLayers;
+
+  /// No description provided for @selectColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Color'**
+  String get selectColor;
+
+  // === 错误页面 ===
+  String get appErrorTitle;
+  String get appErrorBody;
+  String get appErrorBackHome;
+  String get appErrorDetails;
+
+  // === 引导页 ===
+  String get onboardingBrush;
+  String get onboardingColor;
+  String get onboardingLayers;
+  String get onboardingSelect;
+  String get onboardingText;
+  String get onboardingPinch;
+  String get onboardingFullscreen;
+  String get onboardingSave;
+  String get onboardingStart;
+
+  // === 导出 ===
+  String get exportTimeout;
 }
 
 class _AppLocalizationsDelegate

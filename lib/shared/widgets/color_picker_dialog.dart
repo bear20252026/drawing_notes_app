@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 /// 颜色选择对话框（Phase 2 验收：色板 + 自由调色）。
 ///
 /// 提供两种取色方式：
@@ -87,7 +89,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('选择颜色'),
+      title: Text(AppLocalizations.of(context)?.selectColor ?? '选择颜色'),
       content: SizedBox(
         width: 320,
         child: SingleChildScrollView(
@@ -290,7 +292,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
         ),
         FilledButton(
           onPressed: () {
@@ -299,7 +301,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
             }
             Navigator.of(context).pop(_selected);
           },
-          child: const Text('确定'),
+          child: Text(AppLocalizations.of(context)?.confirm ?? '确定'),
         ),
       ],
     );

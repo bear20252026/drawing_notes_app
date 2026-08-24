@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 import 'error_log_service.dart';
 
 /// 自定义 ErrorWidget：替换 Flutter 默认的红色错误屏幕，
@@ -46,14 +48,14 @@ class AppErrorWidget extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                '出了点问题',
+                AppLocalizations.of(context)?.appErrorTitle ?? '出了点问题',
                 style: theme.textTheme.headlineSmall?.copyWith(
                   color: theme.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                '应用遇到了一个错误，但数据不会丢失。',
+                AppLocalizations.of(context)?.appErrorBody ?? '应用遇到了一个错误，但数据不会丢失。',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -68,12 +70,12 @@ class AppErrorWidget extends StatelessWidget {
                   WidgetsBinding.instance.reassembleApplication();
                 },
                 icon: const Icon(Icons.refresh_rounded),
-                label: const Text('返回首页'),
+                label: Text(AppLocalizations.of(context)?.appErrorBackHome ?? '返回首页'),
               ),
               if (isDebug) ...[
                 const SizedBox(height: 16),
                 ExpansionTile(
-                  title: const Text('错误详情（调试模式）'),
+                  title: Text(AppLocalizations.of(context)?.appErrorDetails ?? '错误详情（调试模式）'),
                   tilePadding: EdgeInsets.zero,
                   children: [
                     Container(

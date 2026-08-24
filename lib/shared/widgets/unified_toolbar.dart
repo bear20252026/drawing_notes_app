@@ -14,6 +14,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'editor_components.dart';
 
 /// 统一工具栏（V1/V2 合并——2026-08-24）。
@@ -69,6 +70,12 @@ class UnifiedToolbar extends StatelessWidget {
   /// 自定义按钮列表。
   final List<Widget> customButtons;
 
+  /// 本地化辅助方法。
+  String _t(BuildContext context, String Function(AppLocalizations) getter, String fallback) {
+    final l = AppLocalizations.of(context);
+    return l != null ? getter(l) : fallback;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -81,7 +88,7 @@ class UnifiedToolbar extends StatelessWidget {
           // 画笔工具
           ToolButton(
             icon: Icons.brush,
-            tooltip: '画笔',
+            tooltip: _t(context, (l) => l.unifiedToolbarBrush, '画笔'),
             isSelected: state.currentTool == 'draw',
             onTap: () => actions.onToolChanged('draw'),
           ),
@@ -89,7 +96,7 @@ class UnifiedToolbar extends StatelessWidget {
           // 橡皮擦工具
           ToolButton(
             icon: Icons.auto_fix_high,
-            tooltip: '橡皮擦',
+            tooltip: _t(context, (l) => l.unifiedToolbarEraser, '橡皮擦'),
             isSelected: state.currentTool == 'erase',
             onTap: () => actions.onToolChanged('erase'),
           ),
@@ -102,19 +109,19 @@ class UnifiedToolbar extends StatelessWidget {
           if (showSelectionTools) ...[
             ToolButton(
               icon: Icons.select_all,
-              tooltip: '选择',
+              tooltip: _t(context, (l) => l.unifiedToolbarSelect, '选择'),
               isSelected: state.currentTool == 'select',
               onTap: () => actions.onToolChanged('select'),
             ),
             ToolButton(
               icon: Icons.rectangle_outlined,
-              tooltip: '矩形选区',
+              tooltip: _t(context, (l) => l.unifiedToolbarRectSelect, '矩形选区'),
               isSelected: state.selectionTool == 'rect',
               onTap: () => actions.onSelectionToolChanged?.call('rect'),
             ),
             ToolButton(
               icon: Icons.gesture,
-              tooltip: '套索选区',
+              tooltip: _t(context, (l) => l.unifiedToolbarLassoSelect, '套索选区'),
               isSelected: state.selectionTool == 'lasso',
               onTap: () => actions.onSelectionToolChanged?.call('lasso'),
             ),
@@ -124,7 +131,7 @@ class UnifiedToolbar extends StatelessWidget {
           if (showShapeTools) ...[
             ToolButton(
               icon: Icons.rectangle_outlined,
-              tooltip: '矩形',
+              tooltip: _t(context, (l) => l.unifiedToolbarRect, '矩形'),
               isSelected: state.currentTool == 'shape' &&
                   state.currentShapeType == 'rect',
               onTap: () {
@@ -134,7 +141,7 @@ class UnifiedToolbar extends StatelessWidget {
             ),
             ToolButton(
               icon: Icons.circle_outlined,
-              tooltip: '椭圆',
+              tooltip: _t(context, (l) => l.unifiedToolbarEllipse, '椭圆'),
               isSelected: state.currentTool == 'shape' &&
                   state.currentShapeType == 'ellipse',
               onTap: () {
@@ -144,7 +151,7 @@ class UnifiedToolbar extends StatelessWidget {
             ),
             ToolButton(
               icon: Icons.remove,
-              tooltip: '直线',
+              tooltip: _t(context, (l) => l.unifiedToolbarLine, '直线'),
               isSelected: state.currentTool == 'shape' &&
                   state.currentShapeType == 'line',
               onTap: () {
@@ -154,7 +161,7 @@ class UnifiedToolbar extends StatelessWidget {
             ),
             ToolButton(
               icon: Icons.arrow_forward,
-              tooltip: '箭头',
+              tooltip: _t(context, (l) => l.unifiedToolbarArrow, '箭头'),
               isSelected: state.currentTool == 'shape' &&
                   state.currentShapeType == 'arrow',
               onTap: () {
@@ -168,7 +175,7 @@ class UnifiedToolbar extends StatelessWidget {
           if (showTextTools)
             ToolButton(
               icon: Icons.text_fields,
-              tooltip: '文字',
+              tooltip: _t(context, (l) => l.unifiedToolbarText, '文字'),
               isSelected: state.currentTool == 'text',
               onTap: () => actions.onToolChanged('text'),
             ),
@@ -176,7 +183,7 @@ class UnifiedToolbar extends StatelessWidget {
           // 吸管工具
           ToolButton(
             icon: Icons.colorize,
-            tooltip: '吸管取色',
+            tooltip: _t(context, (l) => l.unifiedToolbarEyedropper, '吸管取色'),
             isSelected: state.currentTool == 'eyedropper',
             onTap: () => actions.onToolChanged('eyedropper'),
           ),
@@ -226,13 +233,13 @@ class UnifiedToolbar extends StatelessWidget {
           if (showGridControls) ...[
             ToolButton(
               icon: Icons.grid_4x4,
-              tooltip: '网格显示',
+              tooltip: _t(context, (l) => l.unifiedToolbarGrid, '网格显示'),
               isSelected: state.gridVisible,
               onTap: actions.onToggleGrid ?? () {},
             ),
             ToolButton(
               icon: Icons.auto_fix_high,
-              tooltip: '网格吸附',
+              tooltip: _t(context, (l) => l.unifiedToolbarSnap, '网格吸附'),
               isSelected: state.snapToGrid,
               onTap: actions.onToggleSnap ?? () {},
             ),
@@ -242,19 +249,19 @@ class UnifiedToolbar extends StatelessWidget {
           if (showZoomControls) ...[
             ToolButton(
               icon: Icons.zoom_out,
-              tooltip: '缩小',
+              tooltip: _t(context, (l) => l.unifiedToolbarZoomOut, '缩小'),
               isSelected: false,
               onTap: actions.onZoomOut ?? () {},
             ),
             ToolButton(
               icon: Icons.zoom_in,
-              tooltip: '放大',
+              tooltip: _t(context, (l) => l.unifiedToolbarZoomIn, '放大'),
               isSelected: false,
               onTap: actions.onZoomIn ?? () {},
             ),
             ToolButton(
               icon: Icons.fit_screen,
-              tooltip: '适应画布',
+              tooltip: _t(context, (l) => l.unifiedToolbarFitCanvas, '适应画布'),
               isSelected: false,
               onTap: actions.onFitToScreen ?? () {},
             ),
@@ -273,7 +280,7 @@ class UnifiedToolbar extends StatelessWidget {
 
   Widget _buildEraserOptions(BuildContext context) {
     return PopupMenuButton<VoidCallback>(
-      tooltip: '橡皮擦选项',
+      tooltip: _t(context, (l) => l.unifiedToolbarEraserOptions, '橡皮擦选项'),
       icon: Icon(Icons.shape_line_outlined, size: 20),
       onSelected: (callback) => callback(),
       itemBuilder: (_) => [
@@ -282,7 +289,7 @@ class UnifiedToolbar extends StatelessWidget {
           value: () => actions.onEraserOptionChanged?.call(
             !state.eraserCanEraseShapes,
           ),
-          child: Text('可擦除形状'),
+          child: Text(_t(context, (l) => l.unifiedToolbarEraseShapes, '可擦除形状')),
         ),
       ],
     );

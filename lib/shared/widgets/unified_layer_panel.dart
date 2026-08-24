@@ -15,6 +15,8 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 /// 统一图层面板（V1/V2 合并——2026-08-24）。
 ///
 /// 显示图层列表，支持：
@@ -84,7 +86,7 @@ class UnifiedLayerPanel extends StatelessWidget {
                 Icon(Icons.layers, size: 16),
                 SizedBox(width: 8),
                 Text(
-                  '图层',
+                  AppLocalizations.of(context)?.layerPanel ?? '图层',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Spacer(),
@@ -250,25 +252,25 @@ class _LayerTile extends StatelessWidget {
           builder: (context) {
             final controller = TextEditingController(text: layer.name);
             return AlertDialog(
-              title: Text('重命名图层'),
+              title: Text(AppLocalizations.of(context)?.unifiedLayerPanelRename ?? '重命名图层'),
               content: TextField(
                 controller: controller,
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText: '输入图层名称',
+                  hintText: AppLocalizations.of(context)?.unifiedLayerPanelRenameHint ?? '输入图层名称',
                 ),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('取消'),
+                  child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
                 ),
                 FilledButton(
                   onPressed: () {
                     onRenamed!(controller.text);
                     Navigator.pop(context);
                   },
-                  child: Text('确定'),
+                  child: Text(AppLocalizations.of(context)?.confirm ?? '确定'),
                 ),
               ],
             );
