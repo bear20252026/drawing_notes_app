@@ -142,7 +142,7 @@ class _HomePageState extends State<HomePage> {
     try {
       final doc = await _docStorage.load(meta.id);
       if (doc == null) {
-        _showSnack('画作文件不存在或已损坏');
+        _showSnack(AppLocalizations.of(context)?.homeErrorDrawingNotFound ?? '画作文件不存在或已损坏');
         return;
       }
       if (!mounted) return;
@@ -153,28 +153,29 @@ class _HomePageState extends State<HomePage> {
       );
       _refresh();
     } catch (e) {
-      _showSnack('打开画作失败：${e.runtimeType}');
+      _showSnack(AppLocalizations.of(context)?.homeErrorOpenDrawing('${e.runtimeType}') ?? '打开画作失败：${e.runtimeType}');
     }
   }
 
   /// 删除画作（二次确认）。
   Future<void> _deleteDrawing(DocumentMeta meta) async {
-    final ok = await _confirmDelete('删除画作', '确定删除画作「${meta.title}」吗？此操作不可恢复。');
+    final ok = await _confirmDelete(AppLocalizations.of(context)?.homeDeleteDrawing ?? '删除画作', AppLocalizations.of(context)?.homeConfirmDeleteDrawing(meta.title) ?? '确定删除画作「${meta.title}」吗？此操作不可恢复。');
     if (ok != true) return;
     try {
       await _docStorage.delete(meta.id);
       await _refresh();
     } catch (e) {
-      _showSnack('删除失败：${e.runtimeType}');
+      _showSnack(AppLocalizations.of(context)?.homeErrorDeleteFailed('${e.runtimeType}') ?? '删除失败：${e.runtimeType}');
     }
   }
 
   // ---------------- 笔记本 ----------------
 
   Future<void> _createNotebook() async {
+    final l10n = AppLocalizations.of(context);
     final name = await showDialog<String>(
       context: context,
-      builder: (ctx) => const _NameDialog(title: '新建笔记本'),
+      builder: (ctx) => _NameDialog(title: l10n?.newNotebook ?? '新建笔记本'),
     );
     if (name == null || name.trim().isEmpty) return;
 
@@ -200,26 +201,27 @@ class _HomePageState extends State<HomePage> {
       );
       _refresh();
     } catch (e) {
-      _showSnack('新建失败：${e.runtimeType}');
+      _showSnack(AppLocalizations.of(context)?.homeErrorCreateFailed('${e.runtimeType}') ?? '新建失败：${e.runtimeType}');
     }
   }
 
   Future<void> _deleteNotebook(Notebook nb) async {
     // 策略门禁（专家审计最优先④）：删除操作白名单判定（回收站——可恢复）。
     if (!const PolicyEngine().check('note.delete').isAllowed) {
-      _showSnack('操作被策略拒绝（note.delete）');
+      _showSnack(AppLocalizations.of(context)?.homeErrorPolicyDenied('note.delete') ?? '操作被策略拒绝（note.delete）');
       return;
     }
+    final l10n = AppLocalizations.of(context);
     final ok = await _confirmDelete(
-      '删除笔记本',
-      '确定删除笔记本「${nb.title}」吗？其中所有页面内容将一并删除，此操作不可恢复。',
+      l10n?.homeDeleteNotebook ?? '删除笔记本',
+      l10n?.homeConfirmDeleteNotebook(nb.title) ?? '确定删除笔记本「${nb.title}」吗？其中所有页面内容将一并删除，此操作不可恢复。',
     );
     if (ok != true) return;
     try {
       await _nbStorage.delete(nb.id);
       await _refresh();
     } catch (e) {
-      _showSnack('删除失败：${e.runtimeType}');
+      _showSnack(l10n?.homeErrorDeleteFailed('${e.runtimeType}') ?? '删除失败：${e.runtimeType}');
     }
   }
 
@@ -265,7 +267,7 @@ class _HomePageState extends State<HomePage> {
                                   await _docStorage.restoreTrash(item.$1);
                               if (ctx.mounted) Navigator.of(ctx).pop();
                               _refresh();
-                              if (id != null) _showSnack('已恢复「$id」');
+                              if (id != null) _showSnack(AppLocalizations.of(context)?.homeRecovered(id) ?? '已恢复「$id」');
                             },
                           ),
                           IconButton(
@@ -274,8 +276,8 @@ class _HomePageState extends State<HomePage> {
                             icon: const Icon(Icons.delete_forever),
                             onPressed: () async {
                               final ok = await _confirmDelete(
-                                '永久删除',
-                                '确定永久删除「${item.$2}」吗？此操作不可恢复。',
+                                AppLocalizations.of(context)?.homeDeleteForever ?? '永久删除',
+                                AppLocalizations.of(context)?.homeConfirmPermanentDelete(item.$2) ?? '确定永久删除「${item.$2}」吗？此操作不可恢复。',
                               );
                               if (ok == true) {
                                 await _docStorage
@@ -347,7 +349,7 @@ class _HomePageState extends State<HomePage> {
     final payload = nb.encryptedPayload;
     if (payload == null) return;
     if (EncryptionService.formatVersionOf(payload) <= 2) {
-      _showSnack('检测到旧版加密格式（10 万次迭代），建议重新保存以升级至最新加密标准（60 万次）');
+      _showSnack(AppLocalizations.of(context)?.homeLegacyEncryptionWarning ?? '检测到旧版加密格式（10 万次迭代），建议重新保存以升级至最新加密标准（60 万次）');
     }
   }
 
@@ -365,9 +367,9 @@ class _HomePageState extends State<HomePage> {
     if (EncryptionService.formatVersionOf(payload) > 2) return;
     try {
       await _nbStorage.encryptAndSave(nb, password);
-      _showSnack('已自动升级加密至最新标准（60 万次迭代）');
+      _showSnack(AppLocalizations.of(context)?.homeEncryptionUpgraded ?? '已自动升级加密至最新标准（60 万次迭代）');
     } catch (_) {
-      _showSnack('旧版加密格式：建议手动重新保存升级');
+      _showSnack(AppLocalizations.of(context)?.homeLegacyEncryptionManual ?? '旧版加密格式：建议手动重新保存升级');
     }
   }
 
@@ -411,7 +413,7 @@ class _HomePageState extends State<HomePage> {
             ),
             if (widget.themeController != null)
               IconButton(
-                tooltip: '切换外观（系统 / 浅色 / 深色）',
+                tooltip: AppLocalizations.of(context)?.homeSwitchTheme ?? '切换外观（系统 / 浅色 / 深色）',
                 icon: Icon(
                   widget.themeController!.mode == ThemeMode.dark
                       ? Icons.dark_mode_outlined
@@ -430,7 +432,7 @@ class _HomePageState extends State<HomePage> {
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                     leading: Icon(Icons.usb_rounded),
-                    title: Text('密码盘与恢复'),
+                    title: Text(AppLocalizations.of(context)?.homePasswordDiskAndRecovery ?? '密码盘与恢复'),
                   ),
                 ),
               ],
@@ -445,10 +447,10 @@ class _HomePageState extends State<HomePage> {
                 sigma: 10,
                 child: TabBar(
                   onTap: (i) => setState(() => _tabIndex = i),
-                  tabs: const [
-                    Tab(icon: Icon(Icons.dashboard_outlined), text: '无限画布'), // #14 图标区分
-                    Tab(icon: Icon(Icons.menu_book), text: '笔记本'),
-                    Tab(icon: Icon(Icons.access_time), text: '最近'),
+                  tabs: [
+                    Tab(icon: const Icon(Icons.dashboard_outlined), text: AppLocalizations.of(context)?.homeInfiniteCanvas ?? '无限画布'), // #14 图标区分
+                    Tab(icon: const Icon(Icons.menu_book), text: AppLocalizations.of(context)?.homeNotebook ?? '笔记本'),
+                    Tab(icon: const Icon(Icons.access_time), text: AppLocalizations.of(context)?.homeRecent ?? '最近'),
                   ],
                 ),
               ),
@@ -460,18 +462,18 @@ class _HomePageState extends State<HomePage> {
             ? FloatingActionButton.extended(
                 onPressed: _createDrawing,
                 icon: const Icon(Icons.add),
-                label: const Text('新建无限画布'),
+                label: Text(AppLocalizations.of(context)?.homeNewInfiniteCanvas ?? '新建无限画布'),
               )
             : _tabIndex == 2
             ? FloatingActionButton.extended(
                 onPressed: _quickRecord,
                 icon: const Icon(Icons.edit_note),
-                label: const Text('快速记录'),
+                label: Text(AppLocalizations.of(context)?.homeQuickRecord ?? '快速记录'),
               )
             : FloatingActionButton.extended(
                 onPressed: _createNotebook,
                 icon: const Icon(Icons.edit_note), // #14 笔记本专用图标——区分画布
-                label: const Text('新建笔记本'),
+                label: Text(AppLocalizations.of(context)?.newNotebook ?? '新建笔记本'),
               ),
       ),
     );
@@ -482,7 +484,7 @@ class _HomePageState extends State<HomePage> {
   void _quickRecord() {
     final doc = DrawingDocument(
       id: StorageService.newId(),
-      title: '快速记录 ${_formatTime(DateTime.now())}',
+      title: '${AppLocalizations.of(context)?.homeQuickRecord ?? '快速记录'} ${_formatTime(DateTime.now())}',
       infinite: true,
     );
     Navigator.of(context).push(
@@ -507,7 +509,7 @@ class _HomePageState extends State<HomePage> {
           children: [
             Text(_error!, style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 8),
-            OutlinedButton(onPressed: _refresh, child: const Text('重试')),
+            OutlinedButton(onPressed: _refresh, child: Text(AppLocalizations.of(context)?.retry ?? '重试')),
           ],
         ),
       );
