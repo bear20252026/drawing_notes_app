@@ -10,21 +10,25 @@
 // - 交错延迟封顶，长列表不会越排越慢
 import 'package:flutter/material.dart';
 
+/// 入场方向：上/下/左/右滑入。
+enum StaggerDirection { up, down, left, right }
+
 /// 默认单项时长 / 交错步长 / 最大总延迟。
 const Duration kStaggerItemDuration = Duration(milliseconds: 360);
 const Duration kStaggerStep = Duration(milliseconds: 40);
 const int kStaggerMaxSteps = 12; // 第 13 项起与第 12 项同时入场
 
-/// 单项入场动画包装器：透明度 0→1 + 垂直位移 [offsetY]→0。
+/// 单项入场动画包装器：透明度 0→1 + 沿 [direction] 反向位移归位。
 ///
-/// [index] 决定交错延迟；[playAnimation]=false 时直接显示
+/// [index] 决定交错延迟；[enabled]=false 时直接显示
 /// （由宿主根据 MediaQuery.disableAnimations 决定）。
 class StaggerEntrance extends StatefulWidget {
   const StaggerEntrance({
     super.key,
     required this.child,
     required this.index,
-    this.offsetY = 24,
+    this.direction = StaggerDirection.up,
+    this.distance = 24,
     this.itemDuration = kStaggerItemDuration,
     this.step = kStaggerStep,
     this.enabled = true,
@@ -32,7 +36,12 @@ class StaggerEntrance extends StatefulWidget {
 
   final Widget child;
   final int index;
-  final double offsetY;
+
+  /// 入场方向：元素从该方向的反侧滑入（[StaggerDirection.up] = 自下而上）。
+  final StaggerDirection direction;
+
+  /// 起始位移距离（逻辑像素）。
+  final double distance;
   final Duration itemDuration;
   final Duration step;
   final bool enabled;
@@ -72,10 +81,18 @@ class _StaggerEntranceState extends State<StaggerEntrance>
       animation: _controller,
       builder: (context, child) {
         final t = Curves.easeOutCubic.transform(_controller.value);
+        final d = widget.distance * (1 - t);
+        // up=自下而上；down=自上而下；left=自右向左；right=自左向右。
+        final offset = switch (widget.direction) {
+          StaggerDirection.up => Offset(0, d),
+          StaggerDirection.down => Offset(0, -d),
+          StaggerDirection.left => Offset(d, 0),
+          StaggerDirection.right => Offset(-d, 0),
+        };
         return Opacity(
           opacity: t,
           child: Transform.translate(
-            offset: Offset(0, widget.offsetY * (1 - t)),
+            offset: offset,
             child: child,
           ),
         );
@@ -99,6 +116,10 @@ class StaggeredListView extends StatelessWidget {
     this.physics,
     this.padding,
     this.disableAnimations = false,
+    this.direction = StaggerDirection.up,
+    this.distance = 24,
+    this.itemDuration = kStaggerItemDuration,
+    this.step = kStaggerStep,
   });
 
   final int itemCount;
@@ -108,6 +129,12 @@ class StaggeredListView extends StatelessWidget {
   final ScrollPhysics? physics;
   final EdgeInsetsGeometry? padding;
   final bool disableAnimations;
+
+  /// 入场方向与距离、单项目时长与交错步长，透传给 [StaggerEntrance]。
+  final StaggerDirection direction;
+  final double distance;
+  final Duration itemDuration;
+  final Duration step;
 
   @override
   Widget build(BuildContext context) {
@@ -123,6 +150,10 @@ class StaggeredListView extends StatelessWidget {
           ? itemBuilder(context, index)
           : StaggerEntrance(
               index: index,
+              direction: direction,
+              distance: distance,
+              itemDuration: itemDuration,
+              step: step,
               child: KeyedSubtree(
                 key: ValueKey('stagger-$index'),
                 child: itemBuilder(context, index),

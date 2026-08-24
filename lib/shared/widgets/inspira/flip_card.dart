@@ -17,6 +17,7 @@ class FlipCard extends StatefulWidget {
     super.key,
     required this.front,
     required this.back,
+    this.axis = Axis.horizontal,
     this.height = 180,
     this.borderRadius = 12,
     this.duration = const Duration(milliseconds: 500),
@@ -28,6 +29,9 @@ class FlipCard extends StatefulWidget {
 
   /// 背面（如：标题/页数/修改时间等元数据）。
   final Widget back;
+
+  /// 翻转轴：水平轴（上下翻转，rotateX）或垂直轴（左右翻转，rotateY）。
+  final Axis axis;
 
   final double height;
   final double borderRadius;
@@ -108,7 +112,13 @@ class _FlipCardState extends State<FlipCard>
                   alignment: Alignment.center,
                   transform: Matrix4.identity()
                     ..setEntry(3, 2, 0.001) // 透视深度
-                    ..rotateY(displayAngle),
+                    // 垂直轴 → 左右翻转(rotateY)；水平轴 → 上下翻转(rotateX)。
+                    ..rotateY(
+                      widget.axis == Axis.horizontal ? displayAngle : 0,
+                    )
+                    ..rotateX(
+                      widget.axis == Axis.vertical ? displayAngle : 0,
+                    ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(widget.borderRadius),
                     child: DecoratedBox(

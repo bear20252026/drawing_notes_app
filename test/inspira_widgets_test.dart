@@ -75,6 +75,22 @@ void main() {
 
       expect(find.text('Z'), findsOneWidget);
     });
+
+    testWidgets('自定义翻转轴：axis=vertical 同样完成换面', (tester) async {
+      await tester.pumpWidget(_host(const FlipCard(
+        front: Text('VF'),
+        back: Text('VB'),
+        axis: Axis.vertical, // 水平轴上下翻转（rotateX）
+        height: 120,
+        duration: Duration(milliseconds: 100),
+      )));
+
+      expect(find.text('VB'), findsNothing);
+      await tester.tap(find.byType(FlipCard));
+      await tester.pumpAndSettle();
+
+      expect(find.text('VB'), findsOneWidget);
+    });
   });
 
   group('StaggeredListView', () {
@@ -111,6 +127,88 @@ void main() {
             .first,
       );
       expect(opacity.opacity, 1.0);
+    });
+
+    testWidgets('direction=left 首帧水平位移、动画后归位', (tester) async {
+      await tester.pumpWidget(_host(StaggeredListView(
+        shrinkWrap: true,
+        itemCount: 2,
+        direction: StaggerDirection.left,
+        distance: 30,
+        itemBuilder: (_, i) => ListTile(title: Text('col-$i')),
+      )));
+
+      // 首帧 index 0 无延迟，t=0 → 水平位移 ≈ distance。
+      final before = tester
+          .widget<Transform>(
+            find
+                .ancestor(
+                  of: find.text('col-0'),
+                  matching: find.byType(Transform),
+                )
+                .first,
+          )
+          .transform
+          .storage;
+      expect(before[12], closeTo(30, 0.5)); // 平移矩阵 tx
+      expect(before[13], 0); // ty
+
+      await tester.pumpAndSettle();
+      final after = tester
+          .widget<Transform>(
+            find
+                .ancestor(
+                  of: find.text('col-0'),
+                  matching: find.byType(Transform),
+                )
+                .first,
+          )
+          .transform
+          .storage;
+      expect(after[12], 0);
+    });
+
+    testWidgets('disableAnimations 直接静态渲染（无动画包装）', (tester) async {
+      await tester.pumpWidget(_host(StaggeredListView(
+        shrinkWrap: true,
+        itemCount: 3,
+        disableAnimations: true,
+        itemBuilder: (_, i) => ListTile(title: Text('static-$i')),
+      )));
+
+      for (var i = 0; i < 3; i++) {
+        expect(find.text('static-$i'), findsOneWidget);
+      }
+      // disableAnimations=true 时不应出现 StaggerEntrance 动画包装器。
+      expect(find.byType(StaggerEntrance), findsNothing);
+    });
+
+    testWidgets('自定义 step/itemDuration 透传（step=0 全体同时入场）', (tester) async {
+      await tester.pumpWidget(_host(StaggeredListView(
+        shrinkWrap: true,
+        itemCount: 3,
+        step: Duration.zero,
+        itemDuration: const Duration(milliseconds: 200),
+        itemBuilder: (_, i) => ListTile(title: Text('fast-$i')),
+      )));
+
+      // pump 0ms 触发 Future.delayed(Duration.zero) 微任务，启动控制器；
+      // 再 pump 200ms 驱动动画到终点。
+      await tester.pump(Duration.zero);
+      await tester.pump(const Duration(milliseconds: 200));
+      for (var i = 0; i < 3; i++) {
+        final opacity = tester.widget<Opacity>(
+          find
+              .ancestor(
+                of: find.text('fast-$i'),
+                matching: find.byType(Opacity),
+              )
+              .first,
+        );
+        expect(opacity.opacity, 1.0, reason: 'fast-$i 应已完成入场');
+      }
+
+      await tester.pumpAndSettle(); // 冲掉残余定时器
     });
   });
 
@@ -159,6 +257,84 @@ void main() {
         ),
       );
       expect(inkwellSize.height, greaterThanOrEqualTo(48));
+    });
+
+    testWidgets('自定义颜色生效（选中底色 + 未选中图标色）', (tester) async {
+      await tester.pumpWidget(_host(MorphingTabs<String>(
+        tabs: tabs,
+        selected: 'eraser',
+        selectedColor: const Color(0xFF123456),
+        unselectedIconColor: const Color(0xFF654321),
+        onChanged: (_) {},
+      )));
+      await tester.pumpAndSettle();
+
+      // 选中项胶囊底色。
+      final selectedContainer = tester.widget<AnimatedContainer>(
+        find
+            .ancestor(
+              of: find.byIcon(Icons.cleaning_services),
+              matching: find.byType(AnimatedContainer),
+            )
+            .first,
+      );
+      final selectedDeco = selectedContainer.decoration! as BoxDecoration;
+      expect(selectedDeco.color, const Color(0xFF123456));
+
+      // 未选中项图标色。
+      final penIcon = tester.widget<Icon>(find.byIcon(Icons.brush));
+      expect(penIcon.color, const Color(0xFF654321));
+    });
+
+    testWidgets('形状变形：selectedBorderRadius 与 borderRadius 可不同', (tester) async {
+      await tester.pumpWidget(_host(MorphingTabs<String>(
+        tabs: tabs,
+        selected: 'pen',
+        borderRadius: BorderRadius.circular(4),
+        selectedBorderRadius: BorderRadius.circular(22),
+        onChanged: (_) {},
+      )));
+      await tester.pumpAndSettle();
+
+      // 选中项（圆角 22）与未选中项（圆角 4）形状不同——切换时即产生
+      // 圆形↔方形↔圆角的形变补间目标。
+      final penContainer = tester.widget<AnimatedContainer>(
+        find
+            .ancestor(of: find.byIcon(Icons.brush),
+                matching: find.byType(AnimatedContainer))
+            .first,
+      );
+      final penDeco = penContainer.decoration! as BoxDecoration;
+      expect(penDeco.borderRadius, BorderRadius.circular(22));
+
+      final eraserContainer = tester.widget<AnimatedContainer>(
+        find
+            .ancestor(of: find.byIcon(Icons.cleaning_services),
+                matching: find.byType(AnimatedContainer))
+            .first,
+      );
+      final eraserDeco = eraserContainer.decoration! as BoxDecoration;
+      expect(eraserDeco.borderRadius, BorderRadius.circular(4));
+    });
+
+    testWidgets('animate=false 立即呈现最终态（无需等待动画）', (tester) async {
+      await tester.pumpWidget(_host(MorphingTabs<String>(
+        tabs: tabs,
+        selected: 'eraser',
+        animate: false,
+        selectedColor: const Color(0xFF010203),
+        onChanged: (_) {},
+      )));
+      await tester.pump(); // 单帧，不 pumpAndSettle
+
+      final eraserContainer = tester.widget<AnimatedContainer>(
+        find
+            .ancestor(of: find.byIcon(Icons.cleaning_services),
+                matching: find.byType(AnimatedContainer))
+            .first,
+      );
+      final eraserDeco = eraserContainer.decoration! as BoxDecoration;
+      expect(eraserDeco.color, const Color(0xFF010203));
     });
   });
 }
