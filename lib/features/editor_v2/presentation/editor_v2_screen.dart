@@ -214,8 +214,8 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
                             ? (details) => _pickColorFromCanvas(state.eyedropperPosition)
                             : null,
                         child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
-                          switchInCurve: Curves.easeInOut,
+                          duration: AppAnimation.standardDuration,
+                          switchInCurve: AppAnimation.standardMotion,
                           // 统一架构（笔记/画板共用——2026-08-22）：
                           // - whiteboard 模式：无限画布（InfiniteCanvas——缩放平移）
                           // - note 模式：Word 文档式编辑器（NoteEditorWidget——
