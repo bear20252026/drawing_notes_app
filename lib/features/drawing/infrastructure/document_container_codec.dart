@@ -52,10 +52,12 @@ class DocumentContainerCodec {
     final binaryData = BytesBuilder();
     final strokeOffsets = <String, int>{};
 
+    var strokeIdx = 0;
     for (final layer in doc.layers) {
       for (final stroke in layer.strokes) {
-        final key = '${layer.id}_${stroke.id}';
+        final key = '${layer.id}_$strokeIdx';
         strokeOffsets[key] = binaryData.length;
+        strokeIdx++;
 
         // 压缩点列为 Float32List（每点 12 字节）。
         final pointData = _encodeStrokePoints(stroke.points);
@@ -82,10 +84,11 @@ class DocumentContainerCodec {
           'name': l.name,
           'visible': l.visible,
           'opacity': l.opacity,
-          'strokes': l.strokes.map((s) {
-            final key = '${l.id}_${s.id}';
+          'strokes': l.strokes.asMap().entries.map((entry) {
+            final key = '${l.id}_${entry.key}';
+            final s = entry.value;
             return {
-              'id': s.id,
+              'id': key,
               'color': s.color.value,
               'width': s.width,
               'type': s.type.name,
@@ -94,7 +97,7 @@ class DocumentContainerCodec {
               'binaryOffset': strokeOffsets[key],
             };
           }).toList(),
-          'shapes': l.shapes.map((s) => s.toJson()).toList(),
+          'shapes': <Map<String, dynamic>>[],
           'texts': <Map<String, dynamic>>[], // V2 格式暂不支持
           'images': <Map<String, dynamic>>[], // V2 格式暂不支持
         };
@@ -127,7 +130,7 @@ class DocumentContainerCodec {
       throw FormatException('容器文件过小');
     }
 
-    final header = ByteData.subviewList(bytes, 0, headerSize);
+    final header = bytes.buffer.asByteData(0, headerSize);
     final magic = header.getUint32(0);
     if (magic != magicNumber) {
       throw FormatException('无效的容器文件格式');
@@ -254,7 +257,7 @@ class DocumentContainerCodec {
       final pointOffset = offset + i * 12;
       if (pointOffset + 12 > maxLength) break;
 
-      final data = ByteData.subviewList(binaryData, pointOffset, pointOffset + 12);
+      final data = binaryData.buffer.asByteData(pointOffset, 12);
       final x = data.getFloat32(0);
       final y = data.getFloat32(4);
       final pressure = data.getFloat32(8);
@@ -270,7 +273,7 @@ class DocumentContainerCodec {
   /// 检测文件是否为容器格式。
   static bool isContainerFormat(Uint8List bytes) {
     if (bytes.length < 4) return false;
-    final magic = ByteData.subviewList(bytes, 0, 4).getUint32(0);
+    final magic = bytes.buffer.asByteData(0, 4).getUint32(0);
     return magic == magicNumber;
   }
 }

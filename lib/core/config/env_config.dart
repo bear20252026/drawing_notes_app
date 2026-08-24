@@ -70,7 +70,7 @@ class EnvConfig {
   static String require(String key) {
     final value = _config[key];
     if (value == null || value.isEmpty) {
-      throw EnvironmentError(
+      throw ArgumentError(
         '缺少必需的环境变量: $key\n'
         '请在 .env 文件中配置此变量（参考 .env.example）',
       );

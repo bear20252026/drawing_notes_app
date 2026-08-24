@@ -96,7 +96,7 @@ class PersistentAuditLogger {
     await _ensureAuditDir();
 
     // 1. 获取审计日志快照。
-    final entries = logger.snapshot();
+    final entries = AuditLogger.snapshot();
 
     // 2. 序列化为 JSON。
     final jsonData = jsonEncode({
