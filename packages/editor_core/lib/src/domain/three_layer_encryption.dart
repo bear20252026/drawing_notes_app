@@ -19,8 +19,8 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:cryptography/cryptography.dart';
-import 'package:pointycastle/export.dart';
+import 'package:cryptography/cryptography.dart' as crypto;
+import 'package:pointycastle/export.dart' as pc;
 
 import 'crypto_utils.dart';
 import 'envelope_encryption.dart';
@@ -82,7 +82,7 @@ class SignatureResult {
     required this.signature,
     required this.dataHash,
     required this.signedAt,
-    this.algorithm = 'ecdsa-p256',
+    this.algorithm = 'ed25519',
     this.metadata = const {},
   });
 
@@ -201,7 +201,7 @@ class ThreeLayerResult {
 class SignatureService {
   const SignatureService();
 
-  static final Ed25519 _algorithm = Ed25519();
+  static final crypto.Ed25519 _algorithm = crypto.Ed25519();
 
   /// 生成 Ed25519 密钥对。
   Future<SigningKeyPair> generateKeyPair() async {
@@ -262,13 +262,13 @@ class SignatureService {
     final seedKeyPair = await _algorithm.newKeyPairFromSeed(
       Uint8List.fromList(keyPair.privateKey),
     );
-    final signature = await _algorithm.sign(
+    final cryptoSignature = await _algorithm.sign(
       payload,
       keyPair: seedKeyPair,
     );
 
     return SignatureResult(
-      signature: signature.bytes,
+      signature: cryptoSignature.bytes,
       dataHash: dataHash,
       signedAt: DateTime.fromMillisecondsSinceEpoch(timestamp),
       metadata: metadata,
@@ -304,7 +304,7 @@ class SignatureService {
 
       // 验证 SHA-512 摘要。
       final computedHash = _sha512Hash(payload);
-      if (!_constantTimeEqual(computedHash.sublist(0, 32), sig.dataHash)) {
+      if (!_constantTimeEqual(computedHash, sig.dataHash)) {
         onAlert?.call('数据完整性校验失败：SHA-512 摘要不匹配', {
           'expected_hash': _hexEncode(computedHash),
           'actual_hash': _hexEncode(sig.dataHash),
@@ -314,16 +314,21 @@ class SignatureService {
       }
 
       // 构造 Ed25519 公钥。
-      final edPublicKey = SimplePublicKey(
+      final edPublicKey = crypto.SimplePublicKey(
         Uint8List.fromList(publicKey),
-        type: KeyPairType.ed25519,
+        type: crypto.KeyPairType.ed25519,
+      );
+
+      // 构造 cryptography 包 Signature 对象（包含公钥）。
+      final cryptoSignature = crypto.Signature(
+        Uint8List.fromList(sig.signature),
+        publicKey: edPublicKey,
       );
 
       // Ed25519 验签——委托 cryptography 包。
       final valid = await _algorithm.verify(
         payload,
-        signature: Signature(Uint8List.fromList(sig.signature)),
-        publicKey: edPublicKey,
+        signature: cryptoSignature,
       );
 
       if (!valid) {
@@ -349,7 +354,7 @@ class SignatureService {
 
   /// SHA-512 摘要（截取前 32 字节用于存储——节省空间）。
   static List<int> _sha512Hash(List<int> data) {
-    final digest = SHA512Digest();
+    final digest = pc.SHA512Digest();
     final hash = digest.process(Uint8List.fromList(data));
     // 返回完整 64 字节——供 Ed25519 内部使用。
     return hash;
@@ -468,9 +473,16 @@ class ThreeLayerEncryptionService {
       'layers': 'ChaCha20+AES-GCM+AES-GCM',
       'padding_length': paddingLength,
     }));
-    final l3Plaintext = Uint8List(l2Ciphertext.length + metadataBytes.length);
-    l3Plaintext.setRange(0, l2Ciphertext.length, l2Ciphertext);
-    l3Plaintext.setRange(l2Ciphertext.length, l3Plaintext.length, metadataBytes);
+    // L3 载荷格式：[l2Len:4bytes BE][l2Ciphertext][metadata(json)]。
+    final l2LenBytes = Uint8List(4);
+    l2LenBytes[0] = (l2Ciphertext.length >> 24) & 0xFF;
+    l2LenBytes[1] = (l2Ciphertext.length >> 16) & 0xFF;
+    l2LenBytes[2] = (l2Ciphertext.length >> 8) & 0xFF;
+    l2LenBytes[3] = l2Ciphertext.length & 0xFF;
+    final l3Plaintext = Uint8List(4 + l2Ciphertext.length + metadataBytes.length);
+    l3Plaintext.setRange(0, 4, l2LenBytes);
+    l3Plaintext.setRange(4, 4 + l2Ciphertext.length, l2Ciphertext);
+    l3Plaintext.setRange(4 + l2Ciphertext.length, l3Plaintext.length, metadataBytes);
 
     final l3Nonce = _generateNonce(12);
     final l3Ciphertext = aes256GcmEncrypt(
@@ -540,7 +552,7 @@ class ThreeLayerEncryptionService {
     assert(kek.length == 32, 'KEK 必须 32 字节');
 
     // ─── 验证数字签名（L3 外层） ─────────────────────────────────────
-    final signatureValid = _signatureService.verify(
+    final signatureValid = await _signatureService.verify(
       data: result.l3Ciphertext,
       sig: result.signature,
       publicKey: Uint8List.fromList(signingPublicKey),
@@ -569,15 +581,18 @@ class ThreeLayerEncryptionService {
     );
 
     // 分离 L2 密文和元数据。
-    // 元数据在末尾——格式：l2Ciphertext || metadata(json)。
-    // 需要找到元数据边界——元数据以 '{' 开头 '}' 结尾。
-    final l3PlainStr = utf8.decode(l3Plaintext, allowMalformed: true);
-    final metaStart = l3PlainStr.lastIndexOf('{');
-    final metaEnd = l3PlainStr.lastIndexOf('}');
-    if (metaStart < 0 || metaEnd < 0 || metaEnd <= metaStart) {
-      throw const FormatException('L3 载荷格式异常：找不到元数据边界');
+    // L3 载荷格式：[l2Len:4bytes BE][l2Ciphertext][metadata(json)]。
+    if (l3Plaintext.length < 4) {
+      throw const FormatException('L3 载荷过短：缺少 L2 长度头');
     }
-    final l2Ciphertext = l3Plaintext.sublist(0, metaStart);
+    final l2Len = (l3Plaintext[0] << 24) |
+        (l3Plaintext[1] << 16) |
+        (l3Plaintext[2] << 8) |
+        l3Plaintext[3];
+    if (l2Len < 0 || l2Len > l3Plaintext.length - 4) {
+      throw FormatException('L2 长度异常：$l2Len（可用 ${l3Plaintext.length - 4} 字节）');
+    }
+    final l2Ciphertext = l3Plaintext.sublist(4, 4 + l2Len);
 
     // ─── L2：AES-256-GCM 解密 + 去除填充 ──────────────────────────────
     final l2Plaintext = aes256GcmDecrypt(
@@ -586,9 +601,9 @@ class ThreeLayerEncryptionService {
       nonce: Uint8List.fromList(result.l2Nonce),
     );
 
-    // 解析填充格式：数据在前，尾部是 [length:2bytes][random:Nbytes]。
+    // 解析填充格式：尾部是 [random:Nbytes][length:2bytes]——长度在最后。
     if (l2Plaintext.length < 2) {
-      throw const FormatException('L2 载荷过短：缺少填充长度头');
+      throw const FormatException('L2 载荷过短：缺少填充长度尾');
     }
     final paddingLength = (l2Plaintext[l2Plaintext.length - 2] << 8) |
         l2Plaintext[l2Plaintext.length - 1];
@@ -618,18 +633,18 @@ class ThreeLayerEncryptionService {
   /// 生成随机填充长度（16~256 字节——CSPRNG——隐藏真实大小）。
   int _randomPaddingLength() {
     final secureRandom = _createSecureRandom();
-    return 16 + secureRandom.nextUint8() % 241; // 16 + [0..240] = [16..256]。
+    return 16 + (secureRandom.nextUint8() as int) % 241; // 16 + [0..240] = [16..256]。
   }
 
-  /// 构造填充字节：[length:2bytes][random:Nbytes]。
+  /// 构造填充字节：[random:Nbytes][length:2bytes]——长度在末尾（方便解密时直接读取）。
   Uint8List _buildPaddingBytes(int length) {
     final secureRandom = _createSecureRandom();
-    final result = Uint8List(2 + length);
-    result[0] = (length >> 8) & 0xFF;
-    result[1] = length & 0xFF;
+    final result = Uint8List(length + 2);
     for (var i = 0; i < length; i++) {
-      result[2 + i] = secureRandom.nextUint8();
+      result[i] = secureRandom.nextUint8() as int;
     }
+    result[length] = (length >> 8) & 0xFF;
+    result[length + 1] = length & 0xFF;
     return result;
   }
 
@@ -638,17 +653,17 @@ class ThreeLayerEncryptionService {
     final secureRandom = _createSecureRandom();
     final nonce = Uint8List(length);
     for (var i = 0; i < length; i++) {
-      nonce[i] = secureRandom.nextUint8();
+      nonce[i] = secureRandom.nextUint8() as int;
     }
     return nonce;
   }
 
   /// 创建安全随机数生成器。
-  static FortunaRandom _createSecureRandom() {
-    final secureRandom = FortunaRandom();
+  static pc.FortunaRandom _createSecureRandom() {
+    final secureRandom = pc.FortunaRandom();
     final random = Random.secure();
     final seeds = List.generate(32, (_) => random.nextInt(256));
-    secureRandom.seed(KeyParameter(Uint8List.fromList(seeds)));
+    secureRandom.seed(pc.KeyParameter(Uint8List.fromList(seeds)));
     return secureRandom;
   }
 }
