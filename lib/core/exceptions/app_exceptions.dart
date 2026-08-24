@@ -169,7 +169,7 @@ class UIException extends AppException {
     super.stackTrace,
   }) : super(code: 'UI_RENDER_FAILED', message: message);
 
-  const UIException.exportFailed({
+  UIException.exportFailed({
     String format = '',
     String message = '导出失败',
     super.cause,
@@ -179,7 +179,7 @@ class UIException extends AppException {
           message: message,
         );
 
-  const UIException.importFailed({
+  UIException.importFailed({
     String format = '',
     String message = '导入失败',
     super.cause,
