@@ -6,35 +6,84 @@ import 'package:cryptography/cryptography.dart';
 
 /// 密码保护加密服务（C3/C5，借鉴 Joplin 端到端加密理念）。
 ///
-/// 使用 AES-GCM 256 对称加密；密钥由 PBKDF2（加盐、10 万次迭代）从密码
-/// 派生（评审发现 P2：单次 SHA-256 可被离线暴力破解，必须使用慢 KDF），
+/// 使用 AES-GCM 256 对称加密；密钥由 Argon2id（t=3, m=64MiB, p=1）
+/// 从密码派生（2026-08-24 军工升级：替换 PBKDF2 为 Argon2id——
+/// OWASP 2026 推荐慢 KDF + 内存硬度，抗 GPU/ASIC 暴力破解），
 /// 每次加密生成随机盐（16B）与随机 nonce（12B），一并存入密文 JSON。
 /// 纯 Dart 实现，离线可用，无平台依赖。
+///
+/// 版本历史：
+/// - v=2: PBKDF2 10 万次（旧数据兼容）
+/// - v=3: PBKDF2 60 万次（审计修复 2026-08-15）
+/// - v=4: PBKDF2 + AAD 上下文绑定（H-06 修复 2026-08-15）
+/// - v=5: Argon2id + HKDF-SHA256 密钥派生链（军工升级 2026-08-24）
 class EncryptionService {
-  const EncryptionService();
+  /// 生产默认参数：Argon2id t=3, m=64MiB, p=1。
+  const EncryptionService()
+      : argon2Iterations = 3,
+        argon2MemoryPowerOf2 = 16, // 2^16 = 64 MiB
+        argon2Parallelism = 1;
 
-  /// PBKDF2 迭代次数（慢 KDF，抵御离线暴力破解）。
-  ///
-  /// 审计修复（2026-08-15）：OWASP 2026 对 PBKDF2-HMAC-SHA256 推荐
-  /// 60 万次，原 10 万次（v=2）低于推荐。新数据用 60 万次（v=3），
-  /// 解密按 v 字段分派迭代次数，旧数据（v≤2）继续用 10 万次可解。
+  /// 测试用构造函数：可降低 Argon2id 参数（m=12→4MiB 测试加速）。
+  const EncryptionService.test({
+    this.argon2Iterations = 1,
+    this.argon2MemoryPowerOf2 = 12, // 2^12 = 4 MiB（测试加速）
+    this.argon2Parallelism = 1,
+  });
+
+  /// Argon2id 迭代次数（t）。
+  final int argon2Iterations;
+
+  /// Argon2id 内存参数（2^N KiB）。N=16 → 64 MiB，N=15 → 32 MiB。
+  final int argon2MemoryPowerOf2;
+
+  /// Argon2id 并行度（p）。
+  final int argon2Parallelism;
+
+  /// PBKDF2 迭代次数（旧数据兼容）。
   static const int _pbkdf2IterationsLegacy = 100000; // 旧数据（v ≤ 2）
-  static const int _pbkdf2IterationsCurrent = 600000; // 新数据（v ≥ 3）
+  static const int _pbkdf2IterationsCurrent = 600000; // 旧数据（v = 3/4）
 
   // H-07 修复（专家审计 2026-08-15）：封装输入严格校验——固定字段长度
-  // （GCM nonce 12 / MAC 16 / PBKDF2 盐 16 / 主密钥 32）+ 输入大小上限。
+  // （GCM nonce 12 / MAC 16 / Argon2id 盐 16 / 主密钥 32）+ 输入大小上限。
   static const int _saltLength = 16;
   static const int _nonceLength = 12;
   static const int _macLength = 16;
   static const int _masterKeyLength = 32;
   static const int _maxEncryptedInputBytes = 10 * 1024 * 1024; // 10MB
 
-  /// 按格式版本选择 PBKDF2 迭代次数（无 v 字段视为旧格式 v=2）。
-  static int _iterationsFor(int version) =>
+  /// PIN 最小长度（军工级安全要求）。
+  static const int kPinMinLength = 6;
+
+  /// 按格式版本选择 KDF 策略。
+  ///
+  /// v=5: Argon2id + HKDF-SHA256 密钥派生链
+  /// v=3/4: PBKDF2 60 万次
+  /// v=2/无: PBKDF2 10 万次
+  static bool _isArgon2id(int version) => version >= 5;
+
+  static int _pbkdf2IterationsFor(int version) =>
       version >= 3 ? _pbkdf2IterationsCurrent : _pbkdf2IterationsLegacy;
 
-  /// 派生 32 字节密钥：PBKDF2-HMAC-SHA256(密码, 随机盐, [iterations])。
-  Future<SecretKey> _deriveKey(
+  /// Argon2id 密钥派生（t=iterations, m=2^memoryPowerOf2 KiB, p=parallelism → 32 字节）。
+  Future<SecretKey> _deriveKeyArgon2id(
+    String password,
+    List<int> salt,
+  ) async {
+    final algorithm = Argon2id(
+      parallelism: argon2Parallelism,
+      memoryPowerOf2: argon2MemoryPowerOf2,
+      iterations: argon2Iterations,
+    );
+    return algorithm.deriveKey(
+      secretKey: SecretKey(utf8.encode(password)),
+      nonce: salt,
+      length: 32,
+    );
+  }
+
+  /// PBKDF2 密钥派生（旧数据兼容）。
+  Future<SecretKey> _deriveKeyPbkdf2(
     String password,
     List<int> salt, {
     int iterations = _pbkdf2IterationsCurrent,
@@ -50,15 +99,67 @@ class EncryptionService {
     );
   }
 
+  /// 统一密钥派生入口（按版本分派 KDF）。
+  Future<SecretKey> _deriveKey(
+    String password,
+    List<int> salt, {
+    int version = 5,
+    int? pbkdf2Iterations,
+  }) async {
+    if (_isArgon2id(version)) {
+      return _deriveKeyArgon2id(password, salt);
+    }
+    return _deriveKeyPbkdf2(
+      password,
+      salt,
+      iterations: pbkdf2Iterations ?? _pbkdf2IterationsFor(version),
+    );
+  }
+
+  /// HKDF-SHA256 密钥派生链：masterKey → K1(enc) + K2(auth) + K3(kek)。
+  ///
+  /// 军工标准（2026-08-24）：Argon2id 派生主密钥后，通过 HKDF 分离不同用途子密钥，
+  /// 避免密钥重用攻击（NIST SP 800-108）。
+  Future<(SecretKey, SecretKey, SecretKey)> deriveKeyChain({
+    required String password,
+    required List<int> salt,
+  }) async {
+    final masterKey = await _deriveKeyArgon2id(password, salt);
+    final masterBytes = await masterKey.extractBytes();
+    final hkdf = Hkdf(hmac: Hmac.sha256(), outputLength: 32);
+    final k1 = await hkdf.deriveKey(
+      secretKey: SecretKey(masterBytes),
+      info: utf8.encode('drawing-notes|enc|v5'),
+      nonce: salt,
+    );
+    final k2 = await hkdf.deriveKey(
+      secretKey: SecretKey(masterBytes),
+      info: utf8.encode('drawing-notes|auth|v5'),
+      nonce: salt,
+    );
+    final k3 = await hkdf.deriveKey(
+      secretKey: SecretKey(masterBytes),
+      info: utf8.encode('drawing-notes|kek|v5'),
+      nonce: salt,
+    );
+    return (k1, k2, k3);
+  }
+
+  /// 验证 PIN 长度是否符合最小要求。
+  static bool isPinLengthValid(String pin) => pin.length >= kPinMinLength;
+
   /// 加密 [plainText]，返回 JSON 串（含盐、nonce 与密文，base64）。
+  ///
+  /// v=5 格式（Argon2id + HKDF-SHA256 密钥派生链）。
   Future<String> encrypt(String plainText, String password) async {
-    final salt = _randomBytes(16);
-    final key = await _deriveKey(password, salt);
+    final salt = _randomBytes(_saltLength);
+    // v=5: Argon2id → HKDF-SHA256 → K1(enc)
+    final (k1, _, _) = await deriveKeyChain(password: password, salt: salt);
     final aes = AesGcm.with256bits();
-    final nonce = _randomBytes(12);
+    final nonce = _randomBytes(_nonceLength);
     final box = await aes.encrypt(
       utf8.encode(plainText),
-      secretKey: key,
+      secretKey: k1,
       nonce: nonce,
     );
     return jsonEncode({
@@ -66,26 +167,36 @@ class EncryptionService {
       'n': base64Encode(nonce),
       'c': base64Encode(box.cipherText),
       'm': box.mac.bytes.isNotEmpty ? base64Encode(box.mac.bytes) : '',
-      'v': 3, // 格式版本（KDF=PBKDF2 60 万次，审计修复 2026-08-15）
+      'v': 5, // 格式版本（KDF=Argon2id t=3 m=64MiB p=1，军工升级 2026-08-24）
     });
   }
 
   /// 解密 [encryptedJson]；密码错误或数据损坏时抛出 [FormatException]。
+  ///
+  /// 自动按 v 字段分派 KDF：v≥5 Argon2id，v≤4 PBKDF2。
   Future<String> decrypt(String encryptedJson, String password) async {
     // H-07 修复：输入大小预检（防恶意超长输入资源消耗）。
     _requireInputSize(encryptedJson);
     final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
     final salt = base64Decode(_requireString(map, 's'));
     _requireFixedLength('盐', salt, _saltLength);
-    // 按 v 字段分派迭代次数：v≥3 用 60 万次（新数据），v≤2/无 v 用 10 万次（旧数据兼容）。
+    // 按 v 字段分派 KDF。
     final v = map['v'] is int ? map['v'] as int : 2;
     _requireKnownVersion(v);
-    final key = await _deriveKey(
-      password,
-      salt,
-      iterations: _iterationsFor(v),
-    );
-    return _gcmDecrypt(map, key);
+
+    if (_isArgon2id(v)) {
+      // v=5: Argon2id → HKDF-SHA256 → K1(enc)
+      final (k1, _, _) = await deriveKeyChain(password: password, salt: salt);
+      return _gcmDecrypt(map, k1);
+    } else {
+      // v≤4: PBKDF2（旧数据兼容）
+      final key = await _deriveKeyPbkdf2(
+        password,
+        salt,
+        iterations: _pbkdf2IterationsFor(v),
+      );
+      return _gcmDecrypt(map, key);
+    }
   }
 
   /// ---- 密码盘（U盘即钥匙）keyfile 模式 ----
@@ -128,39 +239,50 @@ class EncryptionService {
     return _gcmDecrypt(map, SecretKey(masterKey));
   }
 
-  /// 生成恢复密钥信封：恢复密钥 + 随机盐 -> PBKDF2 派生 KEK -> 加密主密钥。
+  /// 生成恢复密钥信封：恢复密钥 + 随机盐 -> Argon2id 派生 KEK -> 加密主密钥。
   ///
+  /// v=5 格式（Argon2id t=3 m=64MiB p=1，军工升级 2026-08-24）。
   /// 返回 (salt, nonce2, ek) 的 JSON 串，供数据头保存。
   Future<String> wrapMasterKey(List<int> masterKey, String recoveryKey) async {
     final salt = _randomBytes(16);
-    final kek = await _deriveKey(recoveryKey, salt);
+    // v=5: Argon2id → HKDF-SHA256 → K1(enc)
+    final (k1, _, _) = await deriveKeyChain(password: recoveryKey, salt: salt);
     final aes = AesGcm.with256bits();
     final nonce2 = _randomBytes(12);
-    final box = await aes.encrypt(masterKey, secretKey: kek, nonce: nonce2);
+    final box = await aes.encrypt(masterKey, secretKey: k1, nonce: nonce2);
     return jsonEncode({
       'salt': base64Encode(salt),
       'n2': base64Encode(nonce2),
       'ek': base64Encode(box.cipherText),
       'm2': box.mac.bytes.isNotEmpty ? base64Encode(box.mac.bytes) : '',
-      'v': 3, // 审计修复（2026-08-15）：PBKDF2 60 万次
+      'v': 5, // 军工升级（2026-08-24）：Argon2id t=3 m=64MiB p=1
     });
   }
 
   /// 解恢复密钥信封：恢复密钥错误或信封损坏抛 [FormatException]。
+  ///
+  /// 自动按 v 字段分派 KDF：v≥5 Argon2id + HKDF，v≤4 PBKDF2（旧信封兼容）。
   Future<List<int>> unwrapMasterKey(String envelope, String recoveryKey) async {
     // H-07 修复：输入大小预检 + 盐长度校验。
     _requireInputSize(envelope);
     final map = jsonDecode(envelope) as Map<String, dynamic>;
     final salt = base64Decode(_requireString(map, 'salt'));
     _requireFixedLength('盐', salt, _saltLength);
-    // 按 v 字段分派迭代次数：v≥3 用 60 万次，v≤2/无 v 用 10 万次（旧信封兼容）。
+    // 按 v 字段分派 KDF：v≥5 Argon2id + HKDF，v≤4 PBKDF2（旧信封兼容）。
     final v = map['v'] is int ? map['v'] as int : 2;
     _requireKnownVersion(v);
-    final kek = await _deriveKey(
-      recoveryKey,
-      salt,
-      iterations: _iterationsFor(v),
-    );
+    SecretKey kek;
+    if (_isArgon2id(v)) {
+      // v=5: Argon2id → HKDF-SHA256 → K1(enc)
+      final (k1, _, _) = await deriveKeyChain(password: recoveryKey, salt: salt);
+      kek = k1;
+    } else {
+      kek = await _deriveKeyPbkdf2(
+        recoveryKey,
+        salt,
+        iterations: _pbkdf2IterationsFor(v),
+      );
+    }
     final aes = AesGcm.with256bits();
     final ek = base64Decode(_requireString(map, 'ek'));
     final n2 = base64Decode(_requireString(map, 'n2'));
@@ -219,8 +341,13 @@ class EncryptionService {
   }
 
   /// H-07 修复：格式版本白名单（防未知 v 字段分派意外路径）。
+  ///
+  /// v=5: Argon2id + HKDF-SHA256 密钥派生链（军工升级 2026-08-24）
+  /// v=4: PBKDF2 + AAD 上下文绑定（H-06 修复 2026-08-15）
+  /// v=3: PBKDF2 60 万次（审计修复 2026-08-15）
+  /// v=2: PBKDF2 10 万次（旧数据兼容）
   static void _requireKnownVersion(int version) {
-    if (version != 2 && version != 3) {
+    if (version < 2 || version > 5) {
       throw FormatException('未知加密格式版本：v$version');
     }
   }

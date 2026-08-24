@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/storage/password_disk.dart';
+import 'package:drawing_notes_app/core/storage/progressive_delay.dart';
 import 'package:drawing_notes_app/core/storage/recovery_key_generator.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
@@ -16,6 +17,11 @@ import 'package:drawing_notes_app/l10n/app_localizations.dart';
 /// 2. 校验/解锁：选目录 → 读取主密钥 → 显示指纹（证明密码盘有效）；
 /// 3. 加密演示：用密码盘主密钥加密/解密一段文本（闭环验证）；
 /// 4. 恢复主密钥：输入恢复密钥 + 信封 → 解出主密钥（U 盘丢失场景）。
+///
+/// 安全增强（v5）：
+/// - 渐进式延迟（HMAC-SHA256 保护计数器）：1s → 5s → 30s → 5min → 1h
+/// - PIN 最小长度 6 位（防离线暴力破解）
+/// - Argon2id 密码哈希（t=3, m=64MiB, p=1）
 class PasswordDiskPage extends StatefulWidget {
   const PasswordDiskPage({super.key, this.disk, this.onKeyUnlocked});
 
@@ -44,19 +50,10 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
   /// 恢复密钥信封（创建密码盘时生成，U 盘丢失时用于恢复主密钥）。
   String? _envelope;
 
-  /// 军工级增强：连续解锁失败计数（达到阈值触发临时锁定）。
+  /// 渐进式延迟状态（HMAC 保护计数器，防篡改）。
   int _failCount = 0;
-
-  /// 军工级增强：锁定截止时间（锁定期间拒绝解锁尝试）。
-  DateTime? _lockedUntil;
-
-  /// 军工级增强：连续失败锁定阈值与锁定时长。
-  static const int _maxFailures = 3;
-  static const Duration _lockDuration = Duration(seconds: 30);
-
-  /// 是否处于锁定状态。
-  bool get _isLocked =>
-      _lockedUntil != null && DateTime.now().isBefore(_lockedUntil!);
+  int _currentDelaySec = 0;
+  bool _isDelaying = false;
 
   String? _demoInput;
   String? _demoOutput;
@@ -69,6 +66,30 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
 
   /// #11 用户主动锁定后标记（区别于自动过期锁定）。
   bool _userLocked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 加载渐进式延迟状态（HMAC 保护，防篡改）。
+    _loadDelayState();
+    // 若外部传入 disk，初始化目录并自动尝试解锁
+    if (widget.disk != null) {
+      _diskDir = widget.disk!.baseDir;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _unlock());
+    }
+  }
+
+  /// 从持久化存储加载延迟状态（HMAC 签名验证）。
+  Future<void> _loadDelayState() async {
+    final count = await ProgressiveDelay.getFailCount();
+    final delay = await ProgressiveDelay.getCurrentDelay();
+    if (mounted) {
+      setState(() {
+        _failCount = count;
+        _currentDelaySec = delay;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -97,9 +118,10 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
     final usePin = await _askPinProtection();
     if (!mounted) return;
     final String? pin = usePin ? await _promptPin() : null;
-    if (usePin && (pin == null || pin.length < 4)) {
+    // v5：PIN 最小长度 6 位（Argon2id + 渐进式延迟防护）。
+    if (usePin && (pin == null || pin.length < EncryptionService.kPinMinLength)) {
       if (pin != null && pin.isNotEmpty) {
-        _snack('PIN 至少 4 位（短 PIN 可被离线暴力破解）');
+        _snack('PIN 至少 ${EncryptionService.kPinMinLength} 位（Argon2id + 渐进式延迟防护）');
       }
       return;
     }
@@ -216,9 +238,9 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
           controller: controller,
           obscureText: true,
           autofocus: true,
-          decoration: const InputDecoration(
-            hintText: '请输入 PIN',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            hintText: '请输入 PIN（至少 ${EncryptionService.kPinMinLength} 位）',
+            border: const OutlineInputBorder(),
           ),
           onSubmitted: (v) => Navigator.of(ctx).pop(v),
         ),
@@ -239,12 +261,14 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
   }
 
   Future<void> _unlock() async {
-    // 军工级增强：锁定期间拒绝解锁尝试（防暴力破解）。
-    if (_isLocked) {
-      final remain = _lockedUntil!.difference(DateTime.now()).inSeconds + 1;
-      _snack('解锁尝试过多，已锁定 $remain 秒');
+    // v5：渐进式延迟（HMAC 保护计数器，防暴力破解）。
+    final remainingMs = await ProgressiveDelay.getRemainingDelayMs();
+    if (remainingMs > 0) {
+      final remainingSec = (remainingMs / 1000).ceil();
+      _snack('解锁尝试过多，请等待 $remainingSec 秒后重试');
       return;
     }
+
     final dir = await _disk.pickDirectory();
     if (dir == null) return;
     _diskDir = dir; // #11 缓存目录供落盘验证使用
@@ -260,15 +284,20 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
     final resolved = key;
     if (resolved == null) {
       AuditLogger.log('password_disk.unlock', success: false);
-      // 军工级增强：失败计数 + 阈值锁定。
-      _registerFailure();
+      // v5：记录失败，渐进式延迟（HMAC 保护计数器）。
+      await ProgressiveDelay.recordFailure();
+      await _loadDelayState();
+      _snack('未找到有效的密码盘（key.frogkey），'
+          '下次延迟 ${ProgressiveDelay.getDelayInfoForCount(_failCount + 1)}');
       return;
     }
+    // v5：解锁成功，重置渐进式延迟计数器。
+    await ProgressiveDelay.resetOnSuccess();
     setState(() {
       _masterKey = resolved;
       _keyFingerprint = _fingerprint(resolved);
-      _failCount = 0; // 解锁成功清零
-      _lockedUntil = null;
+      _failCount = 0;
+      _currentDelaySec = 0;
       _userLocked = false;
       _diskVerifyPath = null;
       _diskVerifyPassed = null;
@@ -277,22 +306,6 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
     widget.onKeyUnlocked?.call(resolved);
     AuditLogger.log('password_disk.unlock');
     _snack('密码盘已解锁，密钥指纹 ${_fingerprint(resolved)}');
-  }
-
-  /// 军工级增强：记录一次失败，达到阈值触发临时锁定。
-  void _registerFailure() {
-    setState(() {
-      _failCount++;
-      if (_failCount >= _maxFailures) {
-        _lockedUntil = DateTime.now().add(_lockDuration);
-        _failCount = 0;
-      }
-    });
-    if (_isLocked) {
-      _snack('连续失败 $_maxFailures 次，密码盘已锁定 ${_lockDuration.inSeconds} 秒');
-    } else {
-      _snack('未找到有效的密码盘（key.frogkey），还剩 ${_maxFailures - _failCount} 次机会');
-    }
   }
 
   Future<void> _recoverFromKey() async {
@@ -412,6 +425,79 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  /// 构建渐进式延迟状态卡片。
+  Widget _buildDelayStatusCard(BuildContext context) {
+    final hasFailures = _failCount > 0;
+    final isDelayed = _currentDelaySec > 0;
+    
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      decoration: BoxDecoration(
+        color: isDelayed
+            ? Theme.of(context).colorScheme.errorContainer
+            : (_masterKey == null
+                  ? Theme.of(context).colorScheme.surfaceContainerHighest
+                  : Theme.of(context).colorScheme.primaryContainer),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: Icon(
+              isDelayed
+                  ? Icons.lock_clock
+                  : (_masterKey == null ? Icons.usb_off : Icons.usb),
+              key: ValueKey('status_${isDelayed}_${_masterKey != null}'),
+              size: 40,
+              color: isDelayed
+                  ? Theme.of(context).colorScheme.error
+                  : (_masterKey == null ? Colors.grey : Colors.green),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isDelayed
+                      ? '密码盘已临时锁定'
+                      : (_masterKey == null ? '密码盘未解锁' : '密码盘已解锁'),
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                // 渐进式延迟状态 / 指纹仪表盘 / 提示
+                if (isDelayed)
+                  Text(
+                    '解锁尝试过多，${ProgressiveDelay.getDelayInfoForCount(_failCount)} 后重试',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  )
+                else if (hasFailures && _masterKey == null)
+                  Text(
+                    '已失败 $_failCount 次，下次延迟 ${ProgressiveDelay.getDelayInfoForCount(_failCount + 1)}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  )
+                else if (_masterKey == null)
+                  Text(
+                    '插入 U 盘并选择密码盘目录解锁',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  )
+                else
+                  _FingerprintBadge(fingerprint: _keyFingerprint ?? ''),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -419,69 +505,8 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // 状态卡（军工级增强：状态动画 + 锁定倒计时 + 指纹仪表盘）
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            decoration: BoxDecoration(
-              color: _isLocked
-                  ? Theme.of(context).colorScheme.errorContainer
-                  : (_masterKey == null
-                        ? Theme.of(context).colorScheme.surfaceContainerHighest
-                        : Theme.of(context).colorScheme.primaryContainer),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: Icon(
-                    _isLocked
-                        ? Icons.lock_clock
-                        : (_masterKey == null ? Icons.usb_off : Icons.usb),
-                    key: ValueKey('status_${_isLocked}_${_masterKey != null}'),
-                    size: 40,
-                    color: _isLocked
-                        ? Theme.of(context).colorScheme.error
-                        : (_masterKey == null ? Colors.grey : Colors.green),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _isLocked
-                            ? '密码盘已临时锁定'
-                            : (_masterKey == null ? '密码盘未解锁' : '密码盘已解锁'),
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      // 锁定倒计时 / 指纹仪表盘 / 提示
-                      if (_isLocked)
-                        Text(
-                          '解锁尝试过多，${_lockedUntil!.difference(DateTime.now()).inSeconds + 1} 秒后重试',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                        )
-                      else if (_masterKey == null)
-                        Text(
-                          '插入 U 盘并选择密码盘目录解锁 · 剩余机会 '
-                          '${_maxFailures - _failCount} 次',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        )
-                      else
-                        _FingerprintBadge(fingerprint: _keyFingerprint ?? ''),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+          // 状态卡（v5：渐进式延迟 + HMAC 保护计数器 + 指纹仪表盘）
+          _buildDelayStatusCard(context),
           const SizedBox(height: 12),
           // 创建密码盘
           FilledButton.icon(
@@ -576,7 +601,8 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
           const SizedBox(height: 16),
           Text(
             '安全说明：主密钥（256 位随机）仅存于 U 盘 key.frogkey，'
-            '本应用不持久化任何密钥；无 U 盘谁也解不开。',
+            '本应用不持久化任何密钥；无 U 盘谁也解不开。\n'
+            'v5 安全增强：Argon2id + HKDF-SHA256 + 渐进式延迟（HMAC 保护）',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],

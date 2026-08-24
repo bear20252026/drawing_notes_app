@@ -233,14 +233,14 @@ Uint8List aes256KeyUnwrap({
 // ChaCha20-Poly1305 (RFC 8439) & XChaCha20-Poly1305 AEAD
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/// ChaCha20-Poly1305 加密（RFC 8439）。
+/// ChaCha20-Poly1305 加密（RFC 8439 §2.8）。
 ///
 /// [plaintext] 明文。
 /// [key] 256 位密钥（32 字节）。
 /// [nonce] 96 位 nonce（12 字节——每次加密必须唯一）。
 /// [aad] 附加认证数据（可选）。
 ///
-/// 返回密文 + 128 位 Poly1305 认证标签（tag 在密文末尾）。
+/// 返回密文 + 128 位 Poly1305 认证标签（tag 在密文末尾，共 plaintext.length + 16）。
 Uint8List chacha20Poly1305Encrypt({
   required List<int> plaintext,
   required List<int> key,
@@ -250,21 +250,21 @@ Uint8List chacha20Poly1305Encrypt({
   assert(key.length == 32, 'ChaCha20 密钥必须 32 字节');
   assert(nonce.length == 12, 'ChaCha20-Poly1305 nonce 必须 12 字节');
 
-  final cipher = ChaCha20Poly1305(Uint8List.fromList(key))
-    ..init(
-      true, // encrypt
-      AEADParameters(
-        KeyParameter(Uint8List.fromList(key)),
-        128, // tag length in bits
-        Uint8List.fromList(nonce),
-        Uint8List.fromList(aad),
-      ),
-    );
+  final k = Uint8List.fromList(key);
+  final n = Uint8List.fromList(nonce);
+  final pt = Uint8List.fromList(plaintext);
+  final ad = Uint8List.fromList(aad);
 
-  return cipher.process(Uint8List.fromList(plaintext));
+  return _aeadEncrypt(
+    key: k,
+    nonce: n,
+    plaintext: pt,
+    aad: ad,
+    deriveSubkey: false,
+  );
 }
 
-/// ChaCha20-Poly1305 解密 + 认证验证（RFC 8439）。
+/// ChaCha20-Poly1305 解密 + 认证验证（RFC 8439 §2.8）。
 ///
 /// [ciphertextWithTag] 密文 + Poly1305 认证标签（tag 在密文末尾）。
 /// [key] 256 位密钥（32 字节）。
@@ -281,18 +281,18 @@ Uint8List chacha20Poly1305Decrypt({
   assert(key.length == 32, 'ChaCha20 密钥必须 32 字节');
   assert(nonce.length == 12, 'ChaCha20-Poly1305 nonce 必须 12 字节');
 
-  final cipher = ChaCha20Poly1305(Uint8List.fromList(key))
-    ..init(
-      false, // decrypt
-      AEADParameters(
-        KeyParameter(Uint8List.fromList(key)),
-        128,
-        Uint8List.fromList(nonce),
-        Uint8List.fromList(aad),
-      ),
-    );
+  final k = Uint8List.fromList(key);
+  final n = Uint8List.fromList(nonce);
+  final ct = Uint8List.fromList(ciphertextWithTag);
+  final ad = Uint8List.fromList(aad);
 
-  return cipher.process(Uint8List.fromList(ciphertextWithTag));
+  return _aeadDecrypt(
+    key: k,
+    nonce: n,
+    ciphertextWithTag: ct,
+    aad: ad,
+    deriveSubkey: false,
+  );
 }
 
 /// XChaCha20-Poly1305 加密（扩展 nonce——192 位/24 字节）。
@@ -306,7 +306,7 @@ Uint8List chacha20Poly1305Decrypt({
 /// [nonce] 192 位 nonce（24 字节——可安全使用随机值）。
 /// [aad] 附加认证数据（可选）。
 ///
-/// 返回密文 + 128 位 Poly1305 认证标签（tag 在密文末尾）。
+/// 返回密文 + 128 位 Poly1305 认证标签（tag 在密文末尾，共 plaintext.length + 16）。
 Uint8List xchacha20Poly1305Encrypt({
   required List<int> plaintext,
   required List<int> key,
@@ -326,19 +326,13 @@ Uint8List xchacha20Poly1305Encrypt({
   final chachaNonce = Uint8List(12);
   chachaNonce.setRange(4, 12, nonce.sublist(16, 24));
 
-  // ChaCha20-Poly1305 with derived subkey
-  final cipher = ChaCha20Poly1305(subkey)
-    ..init(
-      true,
-      AEADParameters(
-        KeyParameter(subkey),
-        128,
-        chachaNonce,
-        Uint8List.fromList(aad),
-      ),
-    );
-
-  return cipher.process(Uint8List.fromList(plaintext));
+  return _aeadEncrypt(
+    key: subkey,
+    nonce: chachaNonce,
+    plaintext: Uint8List.fromList(plaintext),
+    aad: Uint8List.fromList(aad),
+    deriveSubkey: false,
+  );
 }
 
 /// XChaCha20-Poly1305 解密 + 认证验证。
@@ -366,18 +360,178 @@ Uint8List xchacha20Poly1305Decrypt({
   final chachaNonce = Uint8List(12);
   chachaNonce.setRange(4, 12, nonce.sublist(16, 24));
 
-  final cipher = ChaCha20Poly1305(subkey)
-    ..init(
-      false,
-      AEADParameters(
-        KeyParameter(subkey),
-        128,
-        chachaNonce,
-        Uint8List.fromList(aad),
-      ),
-    );
+  return _aeadDecrypt(
+    key: subkey,
+    nonce: chachaNonce,
+    ciphertextWithTag: Uint8List.fromList(ciphertextWithTag),
+    aad: Uint8List.fromList(aad),
+    deriveSubkey: false,
+  );
+}
 
-  return cipher.process(Uint8List.fromList(ciphertextWithTag));
+// ─── RFC 8439 AEAD 内部实现 ──────────────────────────────────────────────────
+
+/// RFC 8439 AEAD 加密核心（ChaCha20-Poly1305）。
+///
+/// 步骤：
+/// 1. 从 ChaCha20 keystream (counter=0) 派生 Poly1305 密钥
+/// 2. 用 ChaCha20 (counter=1) 加密明文
+/// 3. 计算 Poly1305 MAC 覆盖：AAD || pad || ciphertext || pad || len(AAD) || len(ciphertext)
+/// 4. 返回 ciphertext || tag
+Uint8List _aeadEncrypt({
+  required Uint8List key,
+  required Uint8List nonce,
+  required Uint8List plaintext,
+  required Uint8List aad,
+  required bool deriveSubkey,
+}) {
+  // Step 1: Poly1305 key = ChaCha20(key, nonce, counter=0)[0..31]
+  final chacha = ChaCha7539Engine();
+  chacha.init(
+    true,
+    ParametersWithIV(KeyParameter(key), nonce),
+  );
+
+  // Generate Poly1305 key (32 bytes from counter=0)
+  final poly1305Key = Uint8List(32);
+  final zeros32 = Uint8List(32);
+  chacha.processBytes(zeros32, 0, 32, poly1305Key, 0);
+
+  // Step 2: Encrypt plaintext with ChaCha20 (counter=1, already advanced)
+  final ciphertext = Uint8List(plaintext.length);
+  if (plaintext.isNotEmpty) {
+    chacha.processBytes(plaintext, 0, plaintext.length, ciphertext, 0);
+  }
+
+  // Step 3: Compute Poly1305 MAC
+  final tag = _computePoly1305Tag(
+    poly1305Key: poly1305Key,
+    aad: aad,
+    ciphertext: ciphertext,
+  );
+
+  // Step 4: Return ciphertext || tag
+  final result = Uint8List(ciphertext.length + 16);
+  result.setRange(0, ciphertext.length, ciphertext);
+  result.setRange(ciphertext.length, result.length, tag);
+  return result;
+}
+
+/// RFC 8439 AEAD 解密核心（ChaCha20-Poly1305）。
+///
+/// 步骤：
+/// 1. 分离密文和 tag
+/// 2. 从 ChaCha20 keystream (counter=0) 派生 Poly1305 密钥
+/// 3. 验证 Poly1305 tag
+/// 4. 用 ChaCha20 (counter=1) 解密密文
+Uint8List _aeadDecrypt({
+  required Uint8List key,
+  required Uint8List nonce,
+  required Uint8List ciphertextWithTag,
+  required Uint8List aad,
+  required bool deriveSubkey,
+}) {
+  // Step 1: Split ciphertext and tag
+  if (ciphertextWithTag.length < 16) {
+    throw InvalidCipherTextException('密文太短——至少需要 16 字节 tag');
+  }
+  final ctLen = ciphertextWithTag.length - 16;
+  final ciphertext = Uint8List(ctLen);
+  final receivedTag = Uint8List(16);
+  ciphertext.setRange(0, ctLen, ciphertextWithTag);
+  receivedTag.setRange(0, 16, ciphertextWithTag.sublist(ctLen));
+
+  // Step 2: Derive Poly1305 key
+  final chacha = ChaCha7539Engine();
+  chacha.init(
+    true,
+    ParametersWithIV(KeyParameter(key), nonce),
+  );
+  final poly1305Key = Uint8List(32);
+  final zeros32 = Uint8List(32);
+  chacha.processBytes(zeros32, 0, 32, poly1305Key, 0);
+
+  // Step 3: Verify tag (constant-time comparison)
+  final expectedTag = _computePoly1305Tag(
+    poly1305Key: poly1305Key,
+    aad: aad,
+    ciphertext: ciphertext,
+  );
+  if (!_constantTimeEqual(receivedTag, expectedTag)) {
+    throw InvalidCipherTextException('Poly1305 认证失败——密文或 AAD 被篡改');
+  }
+
+  // Step 4: Decrypt
+  final plaintext = Uint8List(ctLen);
+  if (ctLen > 0) {
+    // Re-init ChaCha20 (counter=0, same key+nonce)
+    final chacha2 = ChaCha7539Engine();
+    chacha2.init(
+      true,
+      ParametersWithIV(KeyParameter(key), nonce),
+    );
+    // Skip 32 bytes (Poly1305 key generation, counter=0→1)
+    final skip = Uint8List(32);
+    final skipOut = Uint8List(32);
+    chacha2.processBytes(skip, 0, 32, skipOut, 0);
+    // Now at counter=1, decrypt
+    chacha2.processBytes(ciphertext, 0, ctLen, plaintext, 0);
+  }
+  return plaintext;
+}
+
+/// 计算 Poly1305 标签（RFC 8439 §2.8）。
+///
+/// MAC 覆盖：AAD || pad16 || ciphertext || pad16 || len(AAD) || len(ciphertext)
+Uint8List _computePoly1305Tag({
+  required Uint8List poly1305Key,
+  required Uint8List aad,
+  required Uint8List ciphertext,
+}) {
+  final poly = Poly1305();
+  poly.init(KeyParameter(poly1305Key));
+
+  // AAD
+  if (aad.isNotEmpty) {
+    poly.update(aad, 0, aad.length);
+    // Pad to 16-byte boundary
+    final aadPad = (16 - (aad.length % 16)) % 16;
+    if (aadPad > 0) {
+      poly.update(Uint8List(aadPad), 0, aadPad);
+    }
+  }
+
+  // Ciphertext
+  if (ciphertext.isNotEmpty) {
+    poly.update(ciphertext, 0, ciphertext.length);
+    // Pad to 16-byte boundary
+    final ctPad = (16 - (ciphertext.length % 16)) % 16;
+    if (ctPad > 0) {
+      poly.update(Uint8List(ctPad), 0, ctPad);
+    }
+  }
+
+  // Lengths (little-endian 64-bit)
+  final lenBlock = Uint8List(16);
+  final lenData = ByteData.view(lenBlock.buffer);
+  lenData.setUint64(0, aad.length, Endian.little);
+  lenData.setUint64(8, ciphertext.length, Endian.little);
+  poly.update(lenBlock, 0, 16);
+
+  // Finalize and get tag
+  final tag = Uint8List(16);
+  poly.doFinal(tag, 0);
+  return tag;
+}
+
+/// 常量时间比较（防时序攻击）。
+bool _constantTimeEqual(Uint8List a, Uint8List b) {
+  if (a.length != b.length) return false;
+  var diff = 0;
+  for (var i = 0; i < a.length; i++) {
+    diff |= a[i] ^ b[i];
+  }
+  return diff == 0;
 }
 
 /// HChaCha20 密钥派生（XChaCha20 基础——draft-irtf-cfrg-xchacha）。
