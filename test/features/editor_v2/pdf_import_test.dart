@@ -1,4 +1,4 @@
-import 'package:test/test.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 import 'package:editor_core/editor_core.dart';
 import 'package:drawing_notes_app/features/editor_v2/application/pdf_import_service.dart';
