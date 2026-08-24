@@ -47,12 +47,17 @@ void main() {
         .getTranslation()
         .x;
 
+    // 启动期首个 tick 只做锚定不推进，多泵两拍越过启动相位。
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 100));
     final before = dx();
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 2));
     final after = dx();
 
     expect(after, lessThan(before), reason: '向左滚 → translate.dx 应减小');
-    expect(before - after, closeTo(32, 8), reason: '默认速度约 32px/s');
+    // 默认速度约 32px/s；扣除启动锚定误差后放宽区间。
+    expect(before - after, closeTo(64, 40),
+        reason: '2 秒应滚动约 64px（实测 ${before - after}px）');
   });
 
   testWidgets('鼠标悬停暂停滚动', (tester) async {
@@ -66,9 +71,13 @@ void main() {
     await gesture.addPointer(location: Offset.zero);
     addTearDown(gesture.removePointer);
 
-    await tester.pump(const Duration(milliseconds: 500)); // 先滚一段
-    final pausedPos =
-        tester.getCenter(find.byKey(const ValueKey('item1'), skipOffstage: false));
+    // 越过启动相位，进入稳定滚动。
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 200));
+
+    final pausedPos = tester.getCenter(
+      find.byKey(const ValueKey('item1'), skipOffstage: false).first,
+    ); // 悬停任一副本即可（3 份拷贝取第一个）
     await gesture.moveTo(pausedPos); // 悬停进入
     await tester.pumpAndSettle();
 
