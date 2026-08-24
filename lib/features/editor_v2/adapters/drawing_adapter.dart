@@ -25,7 +25,16 @@ class DrawingAdapter {
   }
 
   /// 旧形状操作 → V2 CreateShapeCommand。
-  void bridgeCreateShape(String layerId, String type, double x, double y, double w, double h) {
+  void bridgeCreateShape(
+    String layerId,
+    String type,
+    double x,
+    double y,
+    double w,
+    double h, {
+    String strokeColor = '#000000',
+    String fillColor = '#CCCCCC',
+  }) {
     final shape = ShapeItem(
       id: 'bridge-${DateTime.now().millisecondsSinceEpoch}',
       type: type,
@@ -33,6 +42,8 @@ class DrawingAdapter {
       y: y,
       width: w,
       height: h,
+      strokeColor: strokeColor,
+      fillColor: fillColor,
     );
     _reducer.execute(CreateShapeCommand(layerId: layerId, shape: shape));
   }

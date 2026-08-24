@@ -70,6 +70,8 @@ class ShapeItem {
     required this.width,
     required this.height,
     this.rotation = 0,
+    this.strokeColor = '#000000',
+    this.fillColor = '#CCCCCC',
   });
 
   final String id;
@@ -80,7 +82,21 @@ class ShapeItem {
   final double height;
   final double rotation;
 
-  ShapeItem copyWith({double? x, double? y, double? width, double? height, double? rotation}) {
+  /// 描边颜色（#RRGGBB）。
+  final String strokeColor;
+
+  /// 填充颜色（#RRGGBB）。
+  final String fillColor;
+
+  ShapeItem copyWith({
+    double? x,
+    double? y,
+    double? width,
+    double? height,
+    double? rotation,
+    String? strokeColor,
+    String? fillColor,
+  }) {
     return ShapeItem(
       id: id,
       type: type,
@@ -89,6 +105,8 @@ class ShapeItem {
       width: width ?? this.width,
       height: height ?? this.height,
       rotation: rotation ?? this.rotation,
+      strokeColor: strokeColor ?? this.strokeColor,
+      fillColor: fillColor ?? this.fillColor,
     );
   }
 
@@ -99,10 +117,12 @@ class ShapeItem {
           id == other.id &&
           type == other.type &&
           x == other.x &&
-          y == other.y;
+          y == other.y &&
+          strokeColor == other.strokeColor &&
+          fillColor == other.fillColor;
 
   @override
-  int get hashCode => Object.hash(id, type, x, y);
+  int get hashCode => Object.hash(id, type, x, y, strokeColor, fillColor);
 }
 
 /// 文本（不可变）。

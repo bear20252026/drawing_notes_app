@@ -188,7 +188,8 @@ class RemoveShapeCommand extends DocumentCommand {
   @override
   DocumentCommand inverse() => CreateShapeCommand(
         layerId: layerId,
-        shape: ShapeItem(id: shapeId, type: '', x: 0, y: 0, width: 0, height: 0),
+        shape: ShapeItem(id: shapeId, type: '', x: 0, y: 0, width: 0, height: 0,
+            strokeColor: '#000000', fillColor: '#CCCCCC'),
       );
 }
 

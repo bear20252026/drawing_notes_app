@@ -100,23 +100,24 @@ class CanvasPainterV2 extends CustomPainter {
   void _paintShape(Canvas canvas, ShapeItem shape, double opacity) {
     // 用户需求修复（2026-08-22）：图形可换色 + 实心填充——
     // 支持 fillMode（stroke/fill/both——描边/填充/描边+填充）。
+    // 使用每个形状自身的颜色（strokeColor/fillColor）。
     final shouldStroke = fillMode == FillMode.stroke || fillMode == FillMode.both;
     final shouldFill = fillMode == FillMode.fill || fillMode == FillMode.both;
 
     final rect = Rect.fromLTWH(shape.x, shape.y, shape.width, shape.height);
 
-    // 先填充（实心覆盖——用户需求——用 fillColor）。
+    // 先填充（实心覆盖——用形状自身的 fillColor）。
     if (shouldFill) {
       final fillPaint = Paint()
-        ..color = _hexToColor(fillColor).withValues(alpha: opacity)
+        ..color = _hexToColor(shape.fillColor).withValues(alpha: opacity)
         ..style = PaintingStyle.fill;
       _drawShapeBody(canvas, shape, rect, fillPaint);
     }
 
-    // 后描边（空心轮廓——用 strokeColor——可换色）。
+    // 后描边（空心轮廓——用形状自身的 strokeColor——可换色）。
     if (shouldStroke) {
       final strokePaint = Paint()
-        ..color = _hexToColor(strokeColor).withValues(alpha: opacity)
+        ..color = _hexToColor(shape.strokeColor).withValues(alpha: opacity)
         ..strokeWidth = 2.0
         ..style = PaintingStyle.stroke;
       _drawShapeBody(canvas, shape, rect, strokePaint);
