@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 /// 颜色选择对话框（Phase 2 验收：色板 + 自由调色）。
@@ -31,6 +33,9 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
   late HSVColor _hsv;
   late Color _selected;
 
+  /// 取色超时计时器（#38 修复——5 秒自动关闭——2026-08-24）。
+  Timer? _timeoutTimer;
+
   /// 预设色板（12 种常用色）。
   static const List<Color> _presetColors = [
     Color(0xFF1A1A1A), // 黑
@@ -52,6 +57,23 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
     super.initState();
     _hsv = HSVColor.fromColor(widget.initialColor);
     _selected = widget.initialColor;
+    _startTimeout();
+  }
+
+  /// 启动 5 秒超时计时器（#38——2026-08-24）。
+  void _startTimeout() {
+    _timeoutTimer?.cancel();
+    _timeoutTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) {
+        Navigator.of(context).pop(_selected);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timeoutTimer?.cancel();
+    super.dispose();
   }
 
   void _apply(HSVColor hsv) {
@@ -59,6 +81,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
       _hsv = hsv;
       _selected = hsv.toColor();
     });
+    _startTimeout(); // 用户交互——重置超时。
   }
 
   @override

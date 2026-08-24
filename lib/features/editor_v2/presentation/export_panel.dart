@@ -4,6 +4,7 @@
 // 积木式独立 Widget——不耦合其他组件——可插拔——不搞崩。
 library;
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -191,32 +192,60 @@ class _ExportPanelState extends ConsumerState<ExportPanel> {
   }
 
   /// 执行导出（ExportService——Excalidraw 模式）。
+  ///
+  /// 30 秒超时保护（#38 修复——2026-08-24）。
   Future<void> _doExport() async {
     setState(() => _exporting = true);
     try {
       final doc = ref.read(editorV2NotifierProvider).document;
       String result;
-      switch (_selectedFormat) {
-        case ExportFormat.json:
-          result = ExportService.toJson(doc);
-          // 格式化 JSON。
-          try {
-            final parsed = jsonDecode(result);
-            result = const JsonEncoder.withIndent('  ').convert(parsed);
-          } catch (_) {}
-          break;
-        case ExportFormat.svg:
-          result = ExportService.toSvg(doc);
-          break;
-        case ExportFormat.png:
-          result = 'PNG 导出需要 Canvas 渲染——请使用画布右键菜单导出。';
-          break;
+
+      // 带超时的导出操作。
+      Future<String> doExportInternal() async {
+        switch (_selectedFormat) {
+          case ExportFormat.json:
+            var r = ExportService.toJson(doc);
+            // 格式化 JSON。
+            try {
+              final parsed = jsonDecode(r);
+              r = const JsonEncoder.withIndent('  ').convert(parsed);
+            } catch (_) {}
+            return r;
+          case ExportFormat.svg:
+            return ExportService.toSvg(doc);
+          case ExportFormat.png:
+            return 'PNG 导出需要 Canvas 渲染——请使用画布右键菜单导出。';
+        }
       }
-      setState(() => _exportResult = result);
+
+      result = await doExportInternal().timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw TimeoutException('导出操作超时（30 秒）');
+        },
+      );
+
+      if (mounted) {
+        setState(() => _exportResult = result);
+      }
+    } on TimeoutException {
+      if (mounted) {
+        setState(() => _exportResult = null);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('⚠️ 导出超时（30 秒），请缩小文档后重试'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
     } catch (e) {
-      setState(() => _exportResult = '导出失败: $e');
+      if (mounted) {
+        setState(() => _exportResult = '导出失败: $e');
+      }
     } finally {
-      setState(() => _exporting = false);
+      if (mounted) {
+        setState(() => _exporting = false);
+      }
     }
   }
 }

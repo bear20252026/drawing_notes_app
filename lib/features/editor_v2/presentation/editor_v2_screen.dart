@@ -153,22 +153,33 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
       ),
       body: Column(
         children: [
-          // 工具栏（苹果设计语言——Liquid Glass 毛玻璃——2026-08-22——
-          // 借鉴 AFFiNE/Saber 清爽 UI——大圆角 + 半透明）。
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-            child: AppleGlassWidget.toolbar(
-              child: EditorV2Toolbar(
-                currentTool: state.currentTool,
-                currentShapeType: state.currentShapeType,
-                onToolChanged: (tool) =>
-                    ref.read(editorV2NotifierProvider.notifier).setTool(tool),
-                onShapeTypeChanged: (type) =>
-                    ref.read(editorV2NotifierProvider.notifier).setShapeType(type),
-                onImportPdf: _importPdf,
+          // 工具栏——根据模式互斥显示（2026-08-24 修复 #23）。
+          // note 模式：文字格式化工具栏（加粗/斜体/列表/标题等）。
+          // drawing 模式：绘图工具栏（画笔/形状/颜色等）。
+          if (widget.mode == UnifiedEditorMode.whiteboard) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+              child: AppleGlassWidget.toolbar(
+                child: EditorV2Toolbar(
+                  currentTool: state.currentTool,
+                  currentShapeType: state.currentShapeType,
+                  onToolChanged: (tool) =>
+                      ref.read(editorV2NotifierProvider.notifier).setTool(tool),
+                  onShapeTypeChanged: (type) =>
+                      ref.read(editorV2NotifierProvider.notifier).setShapeType(type),
+                  onImportPdf: _importPdf,
+                ),
               ),
             ),
-          ),
+          ] else ...[
+            // 笔记模式——文字格式化工具栏（加粗/斜体/下划线/删除线/列表/标题）。
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+              child: AppleGlassWidget.toolbar(
+                child: const _NoteFormattingToolbar(),
+              ),
+            ),
+          ],
           // 画布（苹果设计语言——Liquid Glass 毛玻璃卡片——2026-08-22——
           // 借鉴 Excalidraw/Saber 清爽画布——半透明 + 圆角 + 页面转换动画）。
           Expanded(
@@ -213,6 +224,106 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 笔记模式——文字格式化工具栏（#23 修复——2026-08-24）。
+///
+/// note 模式显示：加粗/斜体/下划线/删除线/无序列表/有序列表/标题。
+/// 与绘图工具栏互斥——同一时间只显示一个。
+class _NoteFormattingToolbar extends StatelessWidget {
+  const _NoteFormattingToolbar();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _ToolButton(
+            icon: Icons.format_bold,
+            tooltip: '加粗 (Ctrl+B)',
+            onPressed: () {
+              // TODO: 接入富文本编辑器加粗逻辑
+            },
+          ),
+          _ToolButton(
+            icon: Icons.format_italic,
+            tooltip: '斜体 (Ctrl+I)',
+            onPressed: () {
+              // TODO: 接入富文本编辑器斜体逻辑
+            },
+          ),
+          _ToolButton(
+            icon: Icons.format_underline,
+            tooltip: '下划线 (Ctrl+U)',
+            onPressed: () {
+              // TODO: 接入富文本编辑器下划线逻辑
+            },
+          ),
+          _ToolButton(
+            icon: Icons.strikethrough_s,
+            tooltip: '删除线',
+            onPressed: () {
+              // TODO: 接入富文本编辑器删除线逻辑
+            },
+          ),
+          const VerticalDivider(indent: 8, endIndent: 8),
+          _ToolButton(
+            icon: Icons.format_list_bulleted,
+            tooltip: '无序列表',
+            onPressed: () {
+              // TODO: 接入列表逻辑
+            },
+          ),
+          _ToolButton(
+            icon: Icons.format_list_numbered,
+            tooltip: '有序列表',
+            onPressed: () {
+              // TODO: 接入列表逻辑
+            },
+          ),
+          const VerticalDivider(indent: 8, endIndent: 8),
+          _ToolButton(
+            icon: Icons.title,
+            tooltip: '标题',
+            onPressed: () {
+              // TODO: 接入标题逻辑
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 工具按钮封装——统一风格。
+class _ToolButton extends StatelessWidget {
+  const _ToolButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: IconButton(
+        icon: Icon(icon, size: 20),
+        onPressed: onPressed,
+        style: IconButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
       ),
     );
   }
