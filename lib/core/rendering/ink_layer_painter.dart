@@ -40,8 +40,7 @@ class InkLayerPainter {
 
   /// 绘制一条不会进入文档的临时荧光笔，并按 [opacity] 平滑淡出。
   ///
-  /// 使用外层 alpha 合成，而非修改 marker 的颜色/笔画透明度，保证仍沿用
-  /// 高亮笔的同色分组和 `darken` 混合规则。
+  /// 使用外层 alpha 合成控制淡出，marker 渲染沿用 srcOver + 半透明笔触。
   static void paintTemporaryMarker(
     Canvas canvas,
     Rect bounds,
@@ -57,29 +56,28 @@ class InkLayerPainter {
     canvas.restore();
   }
 
+  /// 绘制同一颜色的高亮笔笔画组。
+  ///
+  /// 使用 srcOver + 半透明笔触实现荧光笔质感：
+  /// - 底层内容透过半透明墨迹可见（荧光笔核心体验）；
+  /// - 同色笔画重叠处颜色一致（不存在 darken 模式下的白底干扰变色）；
+  /// - 重叠区域自然略深，符合真实荧光笔行为。
   static void _paintMarkerColorGroup(
     Canvas canvas,
     Rect bounds,
     Iterable<Stroke> strokes, {
     bool isComplete = true,
   }) {
-    // 以白色半透明层与深色混合实现纸面上的真实荧光笔质感。所有同色
-    // 笔画共享一个合成层，重叠部分不会因 srcOver 而反复增加不透明度。
-    final layerPaint = Paint()
-      ..blendMode = BlendMode.darken
-      ..color = const Color(0x64FFFFFF);
-    canvas.saveLayer(bounds, layerPaint);
     for (final stroke in strokes) {
       StrokeRenderer.drawStroke(
         canvas,
         stroke,
-        colorOverride: stroke.color.withValues(alpha: 1),
+        colorOverride: stroke.color.withValues(alpha: 0.5),
         opacityOverride: 1,
         usePressure: false,
         isComplete: isComplete,
       );
     }
-    canvas.restore();
   }
 }
 
