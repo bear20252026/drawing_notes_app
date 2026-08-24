@@ -194,6 +194,7 @@ class _HomePageState extends State<HomePage> {
           builder: (_) => EditorV2Screen(
             documentId: notebook.id,
             mode: UnifiedEditorMode.note,
+            notebookStorage: _nbStorage,
           ),
         ),
       );
@@ -445,9 +446,9 @@ class _HomePageState extends State<HomePage> {
                 child: TabBar(
                   onTap: (i) => setState(() => _tabIndex = i),
                   tabs: const [
-                    Tab(text: '无限画布'),
-                    Tab(text: '笔记本'),
-                    Tab(text: '最近'),
+                    Tab(icon: Icon(Icons.dashboard_outlined), text: '无限画布'), // #14 图标区分
+                    Tab(icon: Icon(Icons.menu_book), text: '笔记本'),
+                    Tab(icon: Icon(Icons.access_time), text: '最近'),
                   ],
                 ),
               ),
@@ -469,7 +470,7 @@ class _HomePageState extends State<HomePage> {
               )
             : FloatingActionButton.extended(
                 onPressed: _createNotebook,
-                icon: const Icon(Icons.add),
+                icon: const Icon(Icons.edit_note), // #14 笔记本专用图标——区分画布
                 label: const Text('新建笔记本'),
               ),
       ),
@@ -606,6 +607,7 @@ class _HomePageState extends State<HomePage> {
         builder: (_) => EditorV2Screen(
           documentId: nb.id,
           mode: UnifiedEditorMode.note,
+          notebookStorage: _nbStorage,
         ),
       ),
     );
@@ -780,17 +782,31 @@ class _HomePageState extends State<HomePage> {
       }
     }
     if (!mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => NotebookViewPage(
-          notebook: notebook,
-          storage: _nbStorage,
-          onChanged: _refresh,
-          sessionPassword: password,
-          sessionMasterKey: masterKey,
+    // 非加密笔记本 → EditorV2Screen（note 模式——#13 持久化修复）。
+    // 加密笔记本 → NotebookViewPage（旧版流程——密码/密钥管理复杂，暂不迁移）。
+    if (!notebook.encrypted) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => EditorV2Screen(
+            documentId: notebook.id,
+            mode: UnifiedEditorMode.note,
+            notebookStorage: _nbStorage,
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => NotebookViewPage(
+            notebook: notebook,
+            storage: _nbStorage,
+            onChanged: _refresh,
+            sessionPassword: password,
+            sessionMasterKey: masterKey,
+          ),
+        ),
+      );
+    }
   }
 
   String _formatTime(DateTime t) {

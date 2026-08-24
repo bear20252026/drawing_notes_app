@@ -1,27 +1,23 @@
-// editor_v2——NoteEditorWidget 笔记文档编辑器（AFFiNE Page 借鉴——2026-08-22）。
+// NoteEditorWidget——笔记模式编辑器（#18 Word 式直接打字——2026-08-22——
+// #13 持久化修复——2026-08-24）。
 //
-// 用户需求：笔记区域就是一个笔记——像 Word 文档一样可以直接打字。
-// 校验 AFFiNE：Page Mode = 块编辑器（BlockSuite——直接打字——Word 文档式）。
-//
-// 本地化：段落列表（NoteParagraph[]——可编辑——直接打字——Word 式——
-// 每段落一个 TextField——回车新增段落——标题/正文）。
-// 积木式独立 Widget——可插拔——不搞崩。
+// 设计理念（借鉴 AFFiNE Page——保留版权声明）：
+// - Word 式文档编辑：标题 + 多段落（直接打字——不弹窗）
+// - Enter 新增段落（光标移到新段落——Word 体验）
+// - Backspace 删除空段落（合并到上一段——Word 体验）
+// - 每个段落独立 TextEditingController（精准光标控制）
+// - onChanged 回调父组件（持久化由 EditorV2Screen 处理——#13）
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:editor_core/editor_core.dart';
 
-/// 笔记文档编辑器（Word 文档式——直接打字——AFFiNE Page 借鉴）。
+/// NoteEditorWidget——Word 式文档编辑器（#18）。
 ///
-/// 用法（note 模式）：
-/// ```dart
-/// NoteEditorWidget(
-///   document: noteDocument,
-///   onChanged: (doc) => save(doc),
-/// )
-/// ```
-/// 每段落一个 TextField——直接打字——Word 式——回车新增段落。
+/// 受控组件：document 来自父组件，onChanged 回调变更。
+/// 父组件（EditorV2Screen）负责存储状态和持久化（#13）。
 class NoteEditorWidget extends StatefulWidget {
   const NoteEditorWidget({
     super.key,
@@ -29,10 +25,10 @@ class NoteEditorWidget extends StatefulWidget {
     required this.onChanged,
   });
 
-  /// 笔记文档（段落列表——Word 式）。
+  /// 当前笔记文档（来自父组件——受控模式）。
   final NoteDocument document;
 
-  /// 内容变更回调（保存）。
+  /// 内容变更回调（父组件更新状态 + 持久化）。
   final ValueChanged<NoteDocument> onChanged;
 
   @override
@@ -40,128 +36,272 @@ class NoteEditorWidget extends StatefulWidget {
 }
 
 class _NoteEditorWidgetState extends State<NoteEditorWidget> {
-  final List<TextEditingController> _controllers = [];
+  late TextEditingController _titleController;
+  late List<TextEditingController> _paragraphControllers;
+  late List<FocusNode> _focusNodes;
+
+  /// 当前 document 的段落数（用于检测外部变化）。
+  late int _currentParagraphCount;
 
   @override
   void initState() {
     super.initState();
-    _syncControllers();
+    _currentParagraphCount = widget.document.paragraphs.length;
+    _titleController = TextEditingController(text: widget.document.title);
+    _paragraphControllers = widget.document.paragraphs
+        .map((p) => TextEditingController(text: p.content))
+        .toList();
+    _focusNodes = List.generate(
+      widget.document.paragraphs.length,
+      (_) => FocusNode(),
+    );
   }
 
   @override
-  void didUpdateWidget(covariant NoteEditorWidget oldWidget) {
+  void didUpdateWidget(NoteEditorWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.document.paragraphCount != widget.document.paragraphCount) {
-      _syncControllers();
+
+    // 外部 document 变化（从存储加载、撤销等）→ 重建控制器。
+    final newCount = widget.document.paragraphs.length;
+    if (newCount != _currentParagraphCount) {
+      _rebuildControllers();
+      _currentParagraphCount = newCount;
+    }
+
+    // 同步标题（外部变更时）
+    if (_titleController.text != widget.document.title) {
+      _titleController.text = widget.document.title;
     }
   }
 
-  /// 同步控制器（每个段落一个——Word 式打字）。
-  void _syncControllers() {
-    while (_controllers.length > widget.document.paragraphCount) {
-      _controllers.removeLast().dispose();
+  /// 重建所有段落控制器（段落数变化时调用）。
+  void _rebuildControllers() {
+    // 释放旧控制器
+    for (final c in _paragraphControllers) {
+      c.dispose();
     }
-    while (_controllers.length < widget.document.paragraphCount) {
-      _controllers.add(TextEditingController());
+    for (final f in _focusNodes) {
+      f.dispose();
     }
+    // 创建新控制器
+    _paragraphControllers = widget.document.paragraphs
+        .map((p) => TextEditingController(text: p.content))
+        .toList();
+    _focusNodes = List.generate(
+      widget.document.paragraphs.length,
+      (_) => FocusNode(),
+    );
   }
 
   @override
   void dispose() {
-    for (final c in _controllers) {
+    _titleController.dispose();
+    for (final c in _paragraphControllers) {
       c.dispose();
+    }
+    for (final f in _focusNodes) {
+      f.dispose();
     }
     super.dispose();
   }
 
-  /// 新增段落（回车——Word 式）。
-  void _addParagraph() {
-    final paragraphs = List<NoteParagraph>.from(widget.document.paragraphs);
-    paragraphs.add(NoteParagraph(
-      id: 'para-${DateTime.now().millisecondsSinceEpoch}',
-      content: '',
-    ));
-    widget.onChanged(widget.document.copyWith(paragraphs: paragraphs));
-    Future.microtask(() {
-      if (mounted) setState(() {});
+  // ──────────────────────────── 段落操作 ────────────────────────────
+
+  /// 更新指定段落内容（触发 onChanged 回调）。
+  void _updateParagraph(int index, String text) {
+    if (index >= widget.document.paragraphs.length) return;
+    final updated = List<NoteParagraph>.from(widget.document.paragraphs);
+    updated[index] = updated[index].copyWith(content: text);
+    widget.onChanged(widget.document.copyWith(paragraphs: updated));
+  }
+
+  /// 更新标题（触发 onChanged 回调）。
+  void _updateTitle(String text) {
+    widget.onChanged(widget.document.copyWith(title: text));
+  }
+
+  /// 新增段落（Enter 键触发——Word 式——#18）。
+  void _addParagraph(int afterIndex) {
+    final updated = List<NoteParagraph>.from(widget.document.paragraphs);
+    final newId = 'p${DateTime.now().millisecondsSinceEpoch}';
+    updated.insert(afterIndex + 1, NoteParagraph(id: newId, content: ''));
+    widget.onChanged(widget.document.copyWith(paragraphs: updated));
+    // 新段落聚焦（延迟等 build 完成——控制器已重建）
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final targetIndex = afterIndex + 1;
+      if (targetIndex < _focusNodes.length) {
+        _focusNodes[targetIndex].requestFocus();
+      }
     });
   }
 
-  /// 更新段落内容。
-  void _updateParagraph(int index, String content) {
-    if (index >= widget.document.paragraphCount) return;
-    final paragraphs = List<NoteParagraph>.from(widget.document.paragraphs);
-    paragraphs[index] = paragraphs[index].copyWith(content: content);
-    widget.onChanged(widget.document.copyWith(paragraphs: paragraphs));
+  /// 删除段落（Backspace 空段落触发——Word 式——#18）。
+  void _deleteParagraph(int index) {
+    if (index <= 0) return; // 保留第一个段落
+    final updated = List<NoteParagraph>.from(widget.document.paragraphs);
+    if (updated.length <= 1) return; // 至少保留一个段落
+    updated.removeAt(index);
+    widget.onChanged(widget.document.copyWith(paragraphs: updated));
+    // 聚焦前一段末尾（延迟等 build 完成）
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final targetIndex = index - 1;
+      if (targetIndex < _focusNodes.length) {
+        _focusNodes[targetIndex].requestFocus();
+        // 移动光标到末尾
+        final controller = _paragraphControllers[targetIndex];
+        controller.selection = TextSelection.collapsed(
+          offset: controller.text.length,
+        );
+      }
+    });
   }
+
+  // ──────────────────────────── 构建 UI ────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    // Word 文档式页面（白纸——AFFiNE Page——居中——可读性好）。
-    return Container(
-      color: Colors.white,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720), // Word 页面宽度。
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // 标题（笔记标题——Word 文档标题）。
-                Text(
-                  widget.document.title,
-                  style: const TextStyle(
-                    fontSize: 28,
+    return GestureDetector(
+      // 点击空白区域聚焦最后一个段落（Word 体验——#18）
+      onTap: () {
+        if (_focusNodes.isNotEmpty) {
+          _focusNodes.last.requestFocus();
+        }
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── 标题区（可编辑——Word 式标题——#18）──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+            child: TextField(
+              controller: _titleController,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
                   ),
-                ),
-                const SizedBox(height: 16),
-                // 段落列表（每段 TextField——直接打字——Word 式）。
-                for (var i = 0; i < widget.document.paragraphCount; i++)
-                  _buildParagraphField(i),
-                // 新增段落按钮（Word 式——点击加段落）。
-                TextButton.icon(
-                  onPressed: _addParagraph,
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('新增段落'),
-                ),
-              ],
+              decoration: const InputDecoration(
+                hintText: '标题',
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+              ),
+              onChanged: _updateTitle,
+              textInputAction: TextInputAction.next,
+              onSubmitted: (_) {
+                // 从标题跳转到第一段落（Word 体验——Tab/Enter）
+                if (_focusNodes.isNotEmpty) {
+                  _focusNodes.first.requestFocus();
+                }
+              },
             ),
           ),
-        ),
+          const Divider(height: 1, thickness: 0.5),
+          // ── 段落列表（Word 式——Enter 新增——Backspace 删除——直接打字）──
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 80),
+              itemCount: widget.document.paragraphs.length,
+              itemBuilder: (context, index) {
+                if (index >= widget.document.paragraphs.length) {
+                  return const SizedBox.shrink();
+                }
+                final paragraph = widget.document.paragraphs[index];
+                return _buildParagraphField(context, index, paragraph);
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  /// 段落输入框（Word 文档式——直接打字）。
-  Widget _buildParagraphField(int index) {
-    final paragraph = widget.document.paragraphs[index];
-    final controller = _controllers[index];
-    if (controller.text != paragraph.content) {
-      controller.text = paragraph.content;
-      controller.selection = TextSelection.collapsed(offset: controller.text.length);
+  Widget _buildParagraphField(
+    BuildContext context,
+    int index,
+    NoteParagraph paragraph,
+  ) {
+    // 防越界
+    if (index >= _paragraphControllers.length) {
+      return const SizedBox.shrink();
     }
 
-    final style = TextStyle(
-      fontSize: paragraph.isHeading ? 24 : 17, // 标题大——正文 17（SF Pro——苹果）。
-      fontWeight: paragraph.isHeading ? FontWeight.bold : FontWeight.normal,
-      height: 1.6,
-      color: Colors.black87,
-    );
+    final controller = _paragraphControllers[index];
 
-    return TextField(
-      controller: controller,
-      maxLines: null, // 多行——Word 式。
-      style: style,
-      decoration: InputDecoration(
-        hintText: paragraph.isHeading ? '标题' : '开始打字……（Word 文档式）',
-        border: InputBorder.none, // 白纸无边框。
-        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+    // 同步控制器文本（外部更新时——如从存储加载）
+    if (controller.text != paragraph.content) {
+      final oldOffset = controller.selection.extentOffset;
+      controller.text = paragraph.content;
+      // 尝试恢复光标位置（最佳努力——不崩溃）
+      try {
+        final safeOffset = oldOffset.clamp(0, controller.text.length);
+        controller.selection = TextSelection.collapsed(offset: safeOffset);
+      } catch (_) {}
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Focus(
+        onKeyEvent: (node, event) {
+          if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+          // Enter 键：新增段落（Word 式——#18）。
+          if (event.logicalKey == LogicalKeyboardKey.enter &&
+              !HardwareKeyboard.instance.isShiftPressed) {
+            _addParagraph(index);
+            return KeyEventResult.handled;
+          }
+
+          // Backspace 键：删除空段落（Word 式——合并到上一段——#18）。
+          if (event.logicalKey == LogicalKeyboardKey.backspace &&
+              controller.text.isEmpty &&
+              index > 0) {
+            _deleteParagraph(index);
+            return KeyEventResult.handled;
+          }
+
+          return KeyEventResult.ignored;
+        },
+        child: paragraph.isHeading
+            ? TextField(
+                controller: controller,
+                focusNode: _focusNodes[index],
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                decoration: const InputDecoration(
+                  hintText: '标题',
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                onChanged: (text) => _updateParagraph(index, text),
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) {
+                  // 段落标题 Enter → 跳转下一段（已由 _addParagraph 处理，
+                  // 此处作为 fallback）
+                  if (index + 1 < _focusNodes.length) {
+                    _focusNodes[index + 1].requestFocus();
+                  }
+                },
+              )
+            : TextField(
+                controller: controller,
+                focusNode: _focusNodes[index],
+                maxLines: null,
+                minLines: 1,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                decoration: const InputDecoration(
+                  hintText: '开始输入…',
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                onChanged: (text) => _updateParagraph(index, text),
+              ),
       ),
-      onChanged: (text) => _updateParagraph(index, text),
-      onSubmitted: (_) => _addParagraph(), // 回车新增段落（Word 式）。
     );
   }
 }
