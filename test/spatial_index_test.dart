@@ -7,6 +7,7 @@
 // - 负坐标（Cantor pairing 键映射）
 // - 大元素跨多网格单元
 // - ElementBounds 批量重建（updateAll）
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -228,6 +229,67 @@ void main() {
         index.query(const Rect.fromLTWH(0, 0, 32, 32)),
         contains('L1/stroke_0'),
       );
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // 性能基准
+  // ---------------------------------------------------------------------------
+  group('性能基准', () {
+    test('1000 笔画 insert + query 耗时合理', () {
+      final index = SpatialIndex();
+      final rng = math.Random(42);
+      final sw = Stopwatch()..start();
+      for (var i = 0; i < 1000; i++) {
+        final x = rng.nextDouble() * 5000;
+        final y = rng.nextDouble() * 5000;
+        index.insert('s$i', Rect.fromLTWH(x, y, 20, 20));
+      }
+      // 查询 100 个随机区域
+      for (var i = 0; i < 100; i++) {
+        final x = rng.nextDouble() * 5000;
+        final y = rng.nextDouble() * 5000;
+        index.query(Rect.fromLTWH(x, y, 100, 100));
+      }
+      sw.stop();
+      // 1000 insert + 100 query 应在 500ms 内完成
+      expect(sw.elapsedMilliseconds, lessThan(500),
+          reason: '1000 insert + 100 query 耗时 ${sw.elapsedMilliseconds}ms');
+    });
+
+    test('5000 笔画批量 insert 性能', () {
+      final index = SpatialIndex();
+      final rng = math.Random(42);
+      final sw = Stopwatch()..start();
+      for (var i = 0; i < 5000; i++) {
+        final x = rng.nextDouble() * 10000;
+        final y = rng.nextDouble() * 10000;
+        index.insert('s$i', Rect.fromLTWH(x, y, 20, 20));
+      }
+      sw.stop();
+      // 5000 insert 应在 1s 内完成
+      expect(sw.elapsedMilliseconds, lessThan(1000),
+          reason: '5000 insert 耗时 ${sw.elapsedMilliseconds}ms');
+    });
+
+    test('10000 笔画 query 高频查询性能', () {
+      final index = SpatialIndex();
+      final rng = math.Random(42);
+      for (var i = 0; i < 10000; i++) {
+        final x = rng.nextDouble() * 20000;
+        final y = rng.nextDouble() * 20000;
+        index.insert('s$i', Rect.fromLTWH(x, y, 10, 10));
+      }
+      final sw = Stopwatch()..start();
+      for (var i = 0; i < 1000; i++) {
+        final x = rng.nextDouble() * 20000;
+        final y = rng.nextDouble() * 20000;
+        index.query(Rect.fromLTWH(x, y, 50, 50));
+      }
+      sw.stop();
+      // 1000 query on 10000 elements 应在 1s 内完成
+      expect(sw.elapsedMilliseconds, lessThan(1000),
+          reason: '1000 query 耗时 ${sw.elapsedMilliseconds}ms');
     });
   });
 }
