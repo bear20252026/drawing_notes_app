@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:editor_core/editor_core.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 /// 块编辑器 Widget（AFFiNE BlockSuite 借鉴——一切皆块）。
 ///
@@ -221,7 +222,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
           child: ReorderableListView.builder(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 80),
             itemCount: widget.blocks.length,
-            onReorder: _moveBlock,
+            onReorder: _moveBlock, // ignore: deprecated_member_use
             itemBuilder: (context, index) {
               if (index >= widget.blocks.length) {
                 return const SizedBox.shrink(key: ValueKey('empty'));
@@ -344,7 +345,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
             fontWeight: FontWeight.bold,
           ),
           decoration: InputDecoration(
-            hintText: '标题 1',
+            hintText: AppLocalizations.of(context)!.blockEditorTitle1,
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
@@ -362,7 +363,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
             fontWeight: FontWeight.bold,
           ),
           decoration: InputDecoration(
-            hintText: '标题 2',
+            hintText: AppLocalizations.of(context)!.blockEditorTitle2,
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
@@ -380,7 +381,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
             fontWeight: FontWeight.bold,
           ),
           decoration: InputDecoration(
-            hintText: '标题 3',
+            hintText: AppLocalizations.of(context)!.blockEditorTitle3,
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
@@ -398,7 +399,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
           minLines: 1,
           keyboardType: TextInputType.multiline,
           decoration: InputDecoration(
-            hintText: '列表项',
+            hintText: AppLocalizations.of(context)!.blockEditorListItem,
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
@@ -417,7 +418,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
           minLines: 1,
           keyboardType: TextInputType.multiline,
           decoration: InputDecoration(
-            hintText: '列表项',
+            hintText: AppLocalizations.of(context)!.blockEditorListItem,
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
@@ -445,7 +446,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
               fontFamily: 'monospace',
             ),
             decoration: InputDecoration(
-              hintText: '输入代码…',
+              hintText: AppLocalizations.of(context)!.blockEditorCodeHint,
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
@@ -477,7 +478,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
               color: theme.colorScheme.onSurfaceVariant,
             ),
             decoration: InputDecoration(
-              hintText: '引用…',
+              hintText: AppLocalizations.of(context)!.blockEditorQuoteHint,
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
@@ -497,6 +498,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
                 child: Image.network(
                   block.meta['url'] as String,
                   fit: BoxFit.contain,
+                  // ignore: unnecessary_underscores
                   errorBuilder: (_, __, ___) => Container(
                     height: 100,
                     color: theme.colorScheme.surfaceContainerHighest,
@@ -549,7 +551,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
           keyboardType: TextInputType.multiline,
           textInputAction: TextInputAction.newline,
           decoration: InputDecoration(
-            hintText: '输入文字，或输入 / 打开命令菜单…',
+            hintText: AppLocalizations.of(context)!.blockEditorParagraphHint,
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
