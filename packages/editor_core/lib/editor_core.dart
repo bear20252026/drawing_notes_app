@@ -53,6 +53,7 @@ export 'src/domain/stroke_style.dart';
 export 'src/domain/storage_backend.dart';
 export 'src/domain/sync_provider.dart';
 export 'src/domain/table_v2.dart';
+export 'src/domain/three_layer_encryption.dart';
 export 'src/domain/tool_engine.dart';
 export 'src/domain/unified_editor_mode.dart';
 export 'src/domain/vector_clock.dart';

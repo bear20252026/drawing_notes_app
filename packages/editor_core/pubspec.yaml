@@ -8,7 +8,7 @@ environment:
 
 # 纯 Dart——禁止 Flutter/dart:io/file_selector/path_provider/shared_preferences（专家 R-02）。
 dependencies:
-  pointycastle: ^3.9.0  # 纯 Dart 加密库（AES-GCM/AES-KW/HKDF/SHA-256）。
+  pointycastle: ^3.9.0  # 纯 Dart 加密库（AES-GCM/AES-KW/HKDF/SHA-256/Ed25519）。
 
 dev_dependencies:
   test: ^1.25.0
