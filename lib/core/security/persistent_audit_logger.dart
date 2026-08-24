@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart' as crypto;
+import 'package:flutter/foundation.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:path_provider/path_provider.dart';
 
@@ -138,7 +139,9 @@ class PersistentAuditLogger {
         // 超时：清理分片文件，保留已有分片。
         try {
           if (await file.exists()) await file.delete();
-        } catch (_) {}
+        } catch (deleteErr) {
+          debugPrint('[PersistentAuditLogger] 超时清理分片失败: $deleteErr');
+        }
         throw FileSystemException(
           '审计日志分片写入超时（30秒）。',
           shardPath,
@@ -188,12 +191,11 @@ class PersistentAuditLogger {
     final jsonData = jsonDecode(utf8.decode(decryptedBytes)) as Map<String, dynamic>;
     final entries = (jsonData['entries'] as List).cast<String>();
 
-    // 4. 验证哈希链完整性（可选，生产环境建议启用）。
-    // final isValid = _verifyHashChain(entries);
-    // if (!isValid) {
-    //   // 哈希链损坏，可能被篡改——记录警告但不拒绝加载。
-    //   print('警告：审计日志哈希链验证失败');
-    // }
+    // 4. 验证哈希链完整性（生产环境已启用）。
+    final isValid = _verifyHashChain(entries);
+    if (!isValid) {
+      debugPrint('[PersistentAuditLogger] 警告：审计日志哈希链验证失败，日志可能被篡改');
+    }
 
     return entries;
   }
@@ -248,19 +250,57 @@ class PersistentAuditLogger {
         if (now.difference(stat.modified) > maxAge) {
           await entity.delete();
         }
-      } catch (_) {
-        // 单个清理失败忽略。
+      } catch (e) {
+        debugPrint('[PersistentAuditLogger] 清理过期分片失败: ${entity.path} — $e');
       }
     }
   }
 
-  /// 验证哈希链完整性（简化版本）。
+  /// 验证哈希链完整性。
   ///
-  /// 实际实现需要与 AuditLogger 的哈希链机制对接。
+  /// 每条日志格式为 JSON 字符串，包含 "hash" 字段。
+  /// 验证逻辑：每条日志的 hash = SHA-256(prevHash || entryContent)。
+  /// 第一条日志的 prevHash 为创世哈希。
   bool _verifyHashChain(List<String> entries) {
-    // TODO: 实现完整的哈希链验证逻辑。
-    // 当前简化版本总是返回 true。
+    if (entries.isEmpty) return true;
+
+    const genesisHash = '0000000000000000000000000000000000000000000000000000000000000000'; // 创世哈希（64个零）。
+
+    var prevHash = genesisHash;
+    for (final entry in entries) {
+      try {
+        final map = jsonDecode(entry) as Map<String, dynamic>;
+        final storedHash = map['hash'] as String?;
+        if (storedHash == null || storedHash.isEmpty) {
+          debugPrint('[PersistentAuditLogger] 哈希链断点：条目缺少 hash 字段');
+          return false;
+        }
+
+        // 重建哈希：SHA-256(prevHash || entry 除 hash 外的内容)。
+        final contentMap = Map<String, dynamic>.from(map)..remove('hash');
+        final contentJson = jsonEncode(contentMap);
+        final payload = utf8.encode('$prevHash$contentJson');
+        final computedHash = _sha256Hex(payload);
+
+        if (computedHash != storedHash) {
+          debugPrint('[PersistentAuditLogger] 哈希链校验失败：'
+              '期望 $computedHash，实际 $storedHash');
+          return false;
+        }
+
+        prevHash = storedHash;
+      } catch (e) {
+        debugPrint('[PersistentAuditLogger] 哈希链验证异常：$e');
+        return false;
+      }
+    }
+
     return true;
+  }
+
+  /// 计算 SHA-256 哈希并返回十六进制字符串。
+  static String _sha256Hex(List<int> data) {
+    return crypto.sha256.convert(data).toString();
   }
 
   /// 清除所有持久化的审计日志（测试用）。
@@ -274,8 +314,8 @@ class PersistentAuditLogger {
       if (name.startsWith(_shardPrefix)) {
         try {
           await entity.delete();
-        } catch (_) {
-          // 忽略删除失败。
+        } catch (e) {
+          debugPrint('[PersistentAuditLogger] 删除日志分片失败: ${entity.path} — $e');
         }
       }
     }
@@ -308,8 +348,8 @@ class PersistentAuditLogger {
         if (newestShard == null || stat.modified.isAfter(newestShard)) {
           newestShard = stat.modified;
         }
-      } catch (_) {
-        // 忽略统计失败。
+      } catch (e) {
+        debugPrint('[PersistentAuditLogger] 统计分片信息失败: ${entity.path} — $e');
       }
     }
 

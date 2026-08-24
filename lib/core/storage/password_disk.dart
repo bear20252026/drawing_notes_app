@@ -97,7 +97,8 @@ class PasswordDiskFile {
     try {
       final envelope = utf8.decode(bytes.sublist(5));
       return await const EncryptionService().unwrapMasterKey(envelope, pin);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[PasswordDiskFile] decodeWithPin 解信封失败: $e');
       return null;
     }
   }
@@ -122,7 +123,8 @@ class RealPasswordDisk implements PasswordDisk {
       final file = File('$dir${Platform.pathSeparator}$keyFileName');
       await file.writeAsBytes(PasswordDiskFile.encode(key), flush: true);
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[RealPasswordDisk] createKeyFile 写入失败: $e');
       return false;
     }
   }
@@ -133,7 +135,8 @@ class RealPasswordDisk implements PasswordDisk {
     if (!await file.exists()) return null;
     try {
       return PasswordDiskFile.decode(await file.readAsBytes());
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[RealPasswordDisk] readKey 读取失败: $e');
       return null;
     }
   }
@@ -152,7 +155,8 @@ class RealPasswordDisk implements PasswordDisk {
           bytes[2] == 0x4F &&
           bytes[3] == 0x47 &&
           (bytes[4] == 0x01 || bytes[4] == 0x02);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[RealPasswordDisk] validateKeyFile 校验失败: $e');
       return false;
     }
   }
@@ -169,7 +173,8 @@ class RealPasswordDisk implements PasswordDisk {
       final encoded = await PasswordDiskFile.encodeWithPin(key: key, pin: pin);
       await file.writeAsBytes(encoded, flush: true);
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[RealPasswordDisk] createKeyFileWithPin 写入失败: $e');
       return false;
     }
   }
@@ -180,7 +185,8 @@ class RealPasswordDisk implements PasswordDisk {
     if (!await file.exists()) return null;
     try {
       return await PasswordDiskFile.decodeWithPin(await file.readAsBytes(), pin);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[RealPasswordDisk] readKeyWithPin 读取失败: $e');
       return null;
     }
   }
@@ -222,7 +228,8 @@ class MockPasswordDisk implements PasswordDisk {
       final file = File('$dir${Platform.pathSeparator}key.frogkey');
       await file.writeAsBytes(PasswordDiskFile.encode(key), flush: true);
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[MockPasswordDisk] createKeyFile 写入失败: $e');
       return false;
     }
   }
@@ -233,7 +240,8 @@ class MockPasswordDisk implements PasswordDisk {
     if (!await file.exists()) return null;
     try {
       return PasswordDiskFile.decode(await file.readAsBytes());
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[MockPasswordDisk] readKey 解码失败: $e');
       return null;
     }
   }
@@ -252,7 +260,8 @@ class MockPasswordDisk implements PasswordDisk {
           bytes[2] == 0x4F &&
           bytes[3] == 0x47 &&
           (bytes[4] == 0x01 || bytes[4] == 0x02);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[MockPasswordDisk] validateKeyFile 校验失败: $e');
       return false;
     }
   }
@@ -269,7 +278,8 @@ class MockPasswordDisk implements PasswordDisk {
       final encoded = await PasswordDiskFile.encodeWithPin(key: key, pin: pin);
       await file.writeAsBytes(encoded, flush: true);
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[MockPasswordDisk] createKeyFileWithPin 写入失败: $e');
       return false;
     }
   }
@@ -280,7 +290,8 @@ class MockPasswordDisk implements PasswordDisk {
     if (!await file.exists()) return null;
     try {
       return await PasswordDiskFile.decodeWithPin(await file.readAsBytes(), pin);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[MockPasswordDisk] readKeyWithPin 解码失败: $e');
       return null;
     }
   }

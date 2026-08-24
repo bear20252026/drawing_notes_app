@@ -72,7 +72,8 @@ class AuthGuard extends ChangeNotifier {
         '${appDir.path}${Platform.pathSeparator}password_disk.json',
       );
       return passwordFile.existsSync();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[AuthGuard] 检查密码盘文件失败: $e');
       return false;
     }
   }

@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
+import 'package:flutter/foundation.dart';
 
 /// 密码保护加密服务（C3/C5，借鉴 Joplin 端到端加密理念）。
 ///
@@ -490,7 +490,8 @@ class EncryptionService {
     try {
       final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
       return map['v'] is int ? map['v'] as int : 2;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[EncryptionService] formatVersionOf 解析失败，视为旧格式: $e');
       return 2;
     }
   }
