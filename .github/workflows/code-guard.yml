@@ -129,7 +129,9 @@ jobs:
             echo "out_of_scope=true" >> "$GITHUB_ENV"
           fi
           # 2) 涉密内容检查：变更 diff 中出现密钥/口令即拦截
-          if echo "$CHANGED" | grep -qiE "key|secret|token|password|口令|密钥"; then
+          #    文件名模式排除领域概念（recovery_key/key_rotation/honeypot_key 等），
+          #    仅匹配凭证类关键词（api_key/secret/password/token/口令/密钥）。
+          if echo "$CHANGED" | grep -qiE "api[_-]?key|secret|password|token|口令|密钥"; then
             if git diff origin/master...HEAD | grep -qiE "api[_-]?key|secret|password|token|口令|密钥"; then
               echo "::error::检测到疑似涉密内容，禁止评审！请检查变更文件"
               exit 1
