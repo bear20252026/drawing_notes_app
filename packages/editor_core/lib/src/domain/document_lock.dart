@@ -1,24 +1,26 @@
-// editor_core——文档锁与冲突检测（2026-08-24）。
+// editor_core——文档锁（单文档编辑锁+.lock 文件检测——2026-08-24）。
 //
-// 单文档编辑锁——防止并发编辑冲突。
-// 文件级 .lock 检测——跨进程锁。
+// 防止并发编辑冲突：
+// 1. 内存锁：单文档编辑锁（同一时刻只允许一个编辑会话）
+// 2. 文件锁：.lock 文件检测（跨进程/跨设备锁）
+// 3. 锁超时：自动释放过期锁（防死锁）
 // 纯 Dart——禁 Flutter/dart:io（R-02）。
 library;
 
 import 'dart:collection';
 
 /// 锁状态。
-enum LockState {
+enum LockStatus {
   /// 未锁定。
   unlocked,
 
-  /// 已锁定（当前持有者）。
-  lockedByMe,
+  /// 已锁定（当前会话持有）.
+  locked,
 
-  /// 已锁定（其他持有者）。
+  /// 已锁定（其他会话持有）.
   lockedByOther,
 
-  /// 锁已过期。
+  /// 锁已过期.
   expired,
 }
 
@@ -26,161 +28,216 @@ enum LockState {
 class LockInfo {
   const LockInfo({
     required this.docId,
-    required this.holderId,
-    required this.acquiredAt,
-    required this.expiresAt,
+    required this.ownerId,
+    required this.lockedAt,
+    this.timeout = const Duration(minutes: 30),
     this.metadata = const {},
   });
 
+  /// 文档 ID。
   final String docId;
-  final String holderId;
-  final DateTime acquiredAt;
-  final DateTime expiresAt;
+
+  /// 锁持有者 ID（设备 ID / 会话 ID）。
+  final String ownerId;
+
+  /// 锁定时间。
+  final DateTime lockedAt;
+
+  /// 锁超时时间（默认 30 分钟）。
+  final Duration timeout;
+
+  /// 附加元数据。
   final Map<String, String> metadata;
 
   /// 锁是否已过期。
-  bool get isExpired => DateTime.now().isAfter(expiresAt);
+  bool get isExpired => DateTime.now().difference(lockedAt) > timeout;
 
-  /// 剩余有效时长。
-  Duration get remaining => isExpired ? Duration.zero : expiresAt.difference(DateTime.now());
+  /// 剩余时间。
+  Duration get remaining => timeout - DateTime.now().difference(lockedAt);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LockInfo && docId == other.docId && ownerId == other.ownerId;
+
+  @override
+  int get hashCode => Object.hash(docId, ownerId);
+
+  @override
+  String toString() => 'LockInfo($docId, owner=$ownerId, '
+      'locked=$lockedAt, timeout=$timeout)';
 }
 
-/// 文档锁管理器（单文档编辑锁 + 自动过期）。
+/// 文档锁管理器（内存锁+.lock 文件检测）。
 ///
-/// 设计要点：
-/// 1. 每个文档最多一个活跃锁
-/// 2. 锁有 TTL（默认 30 秒），防止进程崩溃后死锁
-/// 3. 支持续期（heartbeat）——编辑中定期延长锁
-/// 4. 支持强制释放（管理员/超时）
+/// 设计原则：
+/// 1. 内存锁优先：同一进程内快速锁定
+/// 2. 文件锁备份：跨进程/跨设备锁检测
+/// 3. 超时自动释放：防死锁
+/// 4. 不可变状态：锁信息不可变，状态变化返回新实例
 class DocumentLockManager {
   DocumentLockManager({
-    this.defaultTtl = const Duration(seconds: 30),
-    this.localHolderId = 'local',
+    required this.nodeId,
+    this.defaultTimeout = const Duration(minutes: 30),
   });
 
-  /// 默认锁 TTL。
-  final Duration defaultTtl;
+  /// 当前节点 ID（设备/会话标识）。
+  final String nodeId;
 
-  /// 当前进程/会话的持有者 ID。
-  final String localHolderId;
+  /// 默认锁超时时间。
+  final Duration defaultTimeout;
 
-  /// 活跃锁（docId → LockInfo）。
-  final SplayTreeMap<String, LockInfo> _locks = {};
+  /// 内存锁表（文档 ID → 锁信息）。
+  final SplayTreeMap<String, LockInfo> _locks = SplayTreeMap();
 
-  /// 获取锁状态。
-  LockState getState(String docId) {
+  /// 获取指定文档的锁状态。
+  LockStatus getStatus(String docId) {
     final lock = _locks[docId];
-    if (lock == null) return LockState.unlocked;
+    if (lock == null) return LockStatus.unlocked;
     if (lock.isExpired) {
       _locks.remove(docId);
-      return LockState.expired;
+      return LockStatus.expired;
     }
-    return lock.holderId == localHolderId
-        ? LockState.lockedByMe
-        : LockState.lockedByOther;
+    if (lock.ownerId == nodeId) return LockStatus.locked;
+    return LockStatus.lockedByOther;
   }
 
-  /// 尝试获取锁。成功返回 LockInfo，失败返回 null（已被他人持有）。
-  LockInfo? tryAcquire(String docId, {Duration? ttl}) {
-    final existing = _locks[docId];
-    if (existing != null && !existing.isExpired) {
-      if (existing.holderId == localHolderId) {
-        // 已持有——续期。
-        return _renew(docId, ttl ?? defaultTtl);
-      }
-      return null; // 被他人持有。
-    }
+  /// 尝试锁定文档。
+  ///
+  /// 返回锁定是否成功。
+  /// 如果文档已被其他节点锁定，返回 false。
+  bool tryLock(String docId, {Duration? timeout, Map<String, String>? metadata}) {
+    final status = getStatus(docId);
+    if (status == LockStatus.lockedByOther) return false;
+    if (status == LockStatus.locked) return true; // 已经持有锁
 
-    final now = DateTime.now();
-    final lock = LockInfo(
+    _locks[docId] = LockInfo(
       docId: docId,
-      holderId: localHolderId,
-      acquiredAt: now,
-      expiresAt: now.add(ttl ?? defaultTtl),
+      ownerId: nodeId,
+      lockedAt: DateTime.now(),
+      timeout: timeout ?? defaultTimeout,
+      metadata: metadata ?? {},
     );
-    _locks[docId] = lock;
-    return lock;
+    return true;
   }
 
-  /// 续期（heartbeat）。返回续期后的 LockInfo，锁不存在/非持有者返回 null。
-  LockInfo? renew(String docId, {Duration? ttl}) {
+  /// 释放文档锁。
+  ///
+  /// 只有锁持有者才能释放锁。
+  /// 返回释放是否成功。
+  bool unlock(String docId) {
     final lock = _locks[docId];
-    if (lock == null || lock.isExpired || lock.holderId != localHolderId) {
-      return null;
-    }
-    return _renew(docId, ttl ?? defaultTtl);
-  }
+    if (lock == null) return true; // 未锁定
+    if (lock.ownerId != nodeId) return false; // 非持有者
 
-  LockInfo _renew(String docId, Duration ttl) {
-    final now = DateTime.now();
-    final renewed = LockInfo(
-      docId: docId,
-      holderId: localHolderId,
-      acquiredAt: _locks[docId]!.acquiredAt,
-      expiresAt: now.add(ttl),
-      metadata: _locks[docId]!.metadata,
-    );
-    _locks[docId] = renewed;
-    return renewed;
-  }
-
-  /// 释放锁。只有持有者可以释放。
-  bool release(String docId) {
-    final lock = _locks[docId];
-    if (lock == null || lock.holderId != localHolderId) return false;
     _locks.remove(docId);
     return true;
   }
 
-  /// 强制释放锁（管理员操作）。
-  void forceRelease(String docId) {
+  /// 强制释放文档锁（管理员操作）。
+  ///
+  /// 无论锁持有者是谁，都释放锁。
+  /// 用于处理异常情况（如锁持有者崩溃）。
+  void forceUnlock(String docId) {
     _locks.remove(docId);
   }
 
-  /// 清理所有过期锁。
-  int purgeExpired() {
-    final expired = _locks.entries.where((e) => e.value.isExpired).toList();
-    for (final e in expired) {
-      _locks.remove(e.key);
+  /// 获取锁信息。
+  LockInfo? getLockInfo(String docId) {
+    final lock = _locks[docId];
+    if (lock == null) return null;
+    if (lock.isExpired) {
+      _locks.remove(docId);
+      return null;
     }
-    return expired.length;
+    return lock;
   }
 
-  /// 当前活跃锁数量。
-  int get activeLockCount => _locks.length;
-
-  /// 当前持有的锁。
-  List<LockInfo> get myLocks =>
-      _locks.values.where((l) => l.holderId == localHolderId).toList();
-}
-
-/// 冲突检测器（文件级 .lock 检测）。
-///
-/// 用于检测外部进程/编辑器是否正在编辑同一文档。
-/// 基于约定：编辑时创建 `.lock` 文件，编辑完成删除。
-class FileLockDetector {
-  /// 生成 .lock 文件路径。
-  static String lockPath(String docPath) => '$docPath.lock';
-
-  /// 生成锁文件内容（持有者 + 时间戳）。
-  static String generateLockContent(String holderId) {
-    return '$holderId@${DateTime.now().toIso8601String()}';
+  /// 获取所有活跃锁。
+  List<LockInfo> getActiveLocks() {
+    _purgeExpired();
+    return _locks.values.toList();
   }
 
-  /// 解析锁文件内容。返回 (holderId, timestamp)，解析失败返回 null。
-  static (String, DateTime)? parseLockContent(String content) {
-    final parts = content.split('@');
-    if (parts.length < 2) return null;
-    final timestamp = DateTime.tryParse(parts.sublist(1).join('@'));
-    if (timestamp == null) return null;
-    return (parts[0], timestamp);
+  /// 获取当前节点持有的所有锁。
+  List<LockInfo> getMyLocks() {
+    _purgeExpired();
+    return _locks.values.where((lock) => lock.ownerId == nodeId).toList();
   }
 
-  /// 检查锁是否已过期（默认 5 分钟超时）。
-  static bool isLockExpired(
-    DateTime lockTimestamp, {
-    Duration timeout = const Duration(minutes: 5),
-  }) {
-    return DateTime.now().difference(lockTimestamp) > timeout;
+  /// 清理过期锁。
+  void _purgeExpired() {
+    _locks.removeWhere((_, lock) => lock.isExpired);
+  }
+
+  /// 清理所有锁。
+  void clear() {
+    _locks.clear();
+  }
+
+  /// 生成 .lock 文件内容（JSON 格式）。
+  ///
+  /// 用于跨进程/跨设备锁检测。
+  String generateLockFileContent(String docId) {
+    final lock = _locks[docId];
+    if (lock == null) return '{}';
+
+    return '''
+{
+  "docId": "${lock.docId}",
+  "ownerId": "${lock.ownerId}",
+  "lockedAt": "${lock.lockedAt.toIso8601String()}",
+  "timeout": ${lock.timeout.inSeconds},
+  "metadata": ${_serializeMetadata(lock.metadata)}
+}''';
+  }
+
+  /// 解析 .lock 文件内容。
+  ///
+  /// 返回锁信息，解析失败返回 null。
+  LockInfo? parseLockFileContent(String docId, String content) {
+    try {
+      // 简化版 JSON 解析（实际应使用 jsonDecode）
+      final ownerId = _extractJsonString(content, 'ownerId');
+      final lockedAtStr = _extractJsonString(content, 'lockedAt');
+      final timeoutSeconds = _extractJsonInt(content, 'timeout');
+
+      if (ownerId == null || lockedAtStr == null) return null;
+
+      final lockedAt = DateTime.tryParse(lockedAtStr);
+      if (lockedAt == null) return null;
+
+      return LockInfo(
+        docId: docId,
+        ownerId: ownerId,
+        lockedAt: lockedAt,
+        timeout: Duration(seconds: timeoutSeconds ?? 1800),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 序列化元数据。
+  String _serializeMetadata(Map<String, String> metadata) {
+    if (metadata.isEmpty) return '{}';
+    final entries = metadata.entries
+        .map((e) => '"${e.key}": "${e.value}"')
+        .join(', ');
+    return '{ $entries }';
+  }
+
+  /// 提取 JSON 字符串值（简化版）。
+  String? _extractJsonString(String json, String key) {
+    final pattern = RegExp('"$key"\\s*:\\s*"([^"]*)"');
+    final match = pattern.firstMatch(json);
+    return match?.group(1);
+  }
+
+  /// 提取 JSON 整数值（简化版）。
+  int? _extractJsonInt(String json, String key) {
+    final pattern = RegExp('"$key"\\s*:\\s*(\\d+)');
+    final match = pattern.firstMatch(json);
+    return match != null ? int.tryParse(match.group(1)!) : null;
   }
 }
