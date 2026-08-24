@@ -37,7 +37,7 @@ class _PresentationPageState extends State<PresentationPage> {
           t.text,
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 28,
+            fontSize: TextScaleHelper.scaled(context, 28),
             color: Colors.white,
             fontWeight: t.bold ? FontWeight.bold : FontWeight.normal,
             fontStyle: t.italic ? FontStyle.italic : FontStyle.normal,
@@ -141,7 +141,7 @@ class _PresentationPageState extends State<PresentationPage> {
                 child: Center(
                   child: Text(
                     '${_index + 1} / ${elements.length} · 点击或 → 下一页，Esc 退出',
-                    style: const TextStyle(color: Colors.white38, fontSize: 13),
+                    style: TextStyle(color: Colors.white38, fontSize: TextScaleHelper.scaled(context, 13)),
                   ),
                 ),
               ),

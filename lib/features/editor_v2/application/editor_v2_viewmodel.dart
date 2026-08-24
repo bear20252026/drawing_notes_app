@@ -7,6 +7,7 @@
 library;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:editor_core/editor_core.dart';
@@ -25,6 +26,7 @@ class EditorV2State {
     this.currentShapeType = 'line',
     this.eyedropperActive = false,
     this.eyedropperPosition = Offset.zero,
+    this.currentColor = const Color(0xFF000000),
   });
 
   /// 当前文档（不可变）。
@@ -48,6 +50,9 @@ class EditorV2State {
   /// 取色器光标位置（画布坐标）。
   final Offset eyedropperPosition;
 
+  /// 取色器实时采样颜色（P2 #30）。
+  final Color currentColor;
+
   /// 不可变拷贝：仅更新指定字段——原实例不变。
   EditorV2State copyWith({
     DocumentV2? document,
@@ -57,6 +62,7 @@ class EditorV2State {
     String? currentShapeType,
     bool? eyedropperActive,
     Offset? eyedropperPosition,
+    Color? currentColor,
   }) {
     return EditorV2State(
       document: document ?? this.document,
@@ -66,6 +72,7 @@ class EditorV2State {
       currentShapeType: currentShapeType ?? this.currentShapeType,
       eyedropperActive: eyedropperActive ?? this.eyedropperActive,
       eyedropperPosition: eyedropperPosition ?? this.eyedropperPosition,
+      currentColor: currentColor ?? this.currentColor,
     );
   }
 
@@ -79,12 +86,13 @@ class EditorV2State {
           currentTool == other.currentTool &&
           currentShapeType == other.currentShapeType &&
           eyedropperActive == other.eyedropperActive &&
-          eyedropperPosition == other.eyedropperPosition;
+          eyedropperPosition == other.eyedropperPosition &&
+          currentColor == other.currentColor;
 
   @override
   int get hashCode => Object.hash(
       document, canUndo, canRedo, currentTool, currentShapeType,
-      eyedropperActive, eyedropperPosition);
+      eyedropperActive, eyedropperPosition, currentColor);
 }
 
 /// Editor V2 ViewModel（Riverpod 3.x Notifier——手动声明——不依赖 build_runner）。
@@ -237,6 +245,13 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     state = state.copyWith(
       currentTool: 'draw',
       eyedropperActive: false,
+    );
+  }
+
+  /// 设置采样颜色（P2 #30 放大镜取色器——实时更新 + 回写画笔颜色）。
+  void setMagnifierColor(Color color) {
+    state = state.copyWith(
+      currentColor: color,
     );
   }
 }

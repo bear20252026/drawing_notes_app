@@ -51,7 +51,7 @@ class ZoomControls extends ConsumerWidget {
                 notifier.zoom(newScale / viewport.scale, 0, 0);
               },
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               tooltip: '缩小',
             ),
             // 百分比显示 + 缩放滑块。
@@ -85,7 +85,7 @@ class ZoomControls extends ConsumerWidget {
                 notifier.zoom(newScale / viewport.scale, 0, 0);
               },
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               tooltip: '放大',
             ),
             // 百分比文字。
@@ -104,7 +104,7 @@ class ZoomControls extends ConsumerWidget {
                 notifier.reset();
               },
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               tooltip: '重置 (1x)',
             ),
             // 适应窗口按钮（fit）。
@@ -112,7 +112,7 @@ class ZoomControls extends ConsumerWidget {
               icon: const Icon(Icons.fit_screen, size: 18),
               onPressed: onFitToScreen,
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               tooltip: '适应窗口',
             ),
           ],

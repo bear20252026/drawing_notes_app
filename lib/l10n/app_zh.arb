@@ -33,7 +33,7 @@
     "description": "回收站项删除时间",
     "placeholders": {
       "time": {
-        "type": "String"
+        "type": "Object"
       }
     }
   },
@@ -61,6 +61,161 @@
   "@homeMore": {
     "description": "更多操作提示"
   },
+  "homeRecovered": "已恢复「{id}」",
+  "@homeRecovered": {
+    "description": "回收站恢复成功提示",
+    "placeholders": {
+      "id": {
+        "type": "Object"
+      }
+    }
+  },
+  "homePasswordDiskAndRecovery": "密码盘与恢复",
+  "@homePasswordDiskAndRecovery": {
+    "description": "密码盘与恢复菜单项"
+  },
+  "homeInfiniteCanvas": "无限画布",
+  "@homeInfiniteCanvas": {
+    "description": "无限画布 Tab 标签"
+  },
+  "homeNotebook": "笔记本",
+  "@homeNotebook": {
+    "description": "笔记本 Tab 标签"
+  },
+  "homeRecent": "最近",
+  "@homeRecent": {
+    "description": "最近 Tab 标签"
+  },
+  "homeNewInfiniteCanvas": "新建无限画布",
+  "@homeNewInfiniteCanvas": {
+    "description": "新建无限画布按钮"
+  },
+  "homeQuickRecord": "快速记录",
+  "@homeQuickRecord": {
+    "description": "快速记录按钮"
+  },
+  "homeRetry": "重试",
+  "@homeRetry": {
+    "description": "重试按钮"
+  },
+  "homeErrorDrawingNotFound": "画作文件不存在或已损坏",
+  "@homeErrorDrawingNotFound": {
+    "description": "画作文件不存在错误"
+  },
+  "homeErrorOpenDrawing": "打开画作失败：{error}",
+  "@homeErrorOpenDrawing": {
+    "description": "打开画作失败错误",
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "homeDeleteDrawing": "删除画作",
+  "@homeDeleteDrawing": {
+    "description": "删除画作对话框标题"
+  },
+  "homeConfirmDeleteDrawing": "确定删除画作「{title}」吗？此操作不可恢复。",
+  "@homeConfirmDeleteDrawing": {
+    "description": "删除画作确认对话框",
+    "placeholders": {
+      "title": {
+        "type": "Object"
+      }
+    }
+  },
+  "homeDeleteNotebook": "删除笔记本",
+  "@homeDeleteNotebook": {
+    "description": "删除笔记本对话框标题"
+  },
+  "homeConfirmDeleteNotebook": "确定删除笔记本「{title}」吗？其中所有页面内容将一并删除，此操作不可恢复。",
+  "@homeConfirmDeleteNotebook": {
+    "description": "删除笔记本确认对话框",
+    "placeholders": {
+      "title": {
+        "type": "Object"
+      }
+    }
+  },
+  "homeConfirmPermanentDelete": "确定永久删除「{name}」吗？此操作不可恢复。",
+  "@homeConfirmPermanentDelete": {
+    "description": "永久删除确认对话框",
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "homeErrorDeleteFailed": "删除失败：{error}",
+  "@homeErrorDeleteFailed": {
+    "description": "删除失败错误",
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "homeErrorPolicyDenied": "操作被策略拒绝（{policy}）",
+  "@homeErrorPolicyDenied": {
+    "description": "策略拒绝操作错误",
+    "placeholders": {
+      "policy": {
+        "type": "Object"
+      }
+    }
+  },
+  "homeLegacyEncryptionWarning": "检测到旧版加密格式（10 万次迭代），建议重新保存以升级至最新加密标准（60 万次）",
+  "@homeLegacyEncryptionWarning": {
+    "description": "旧版加密格式警告"
+  },
+  "homeEncryptionUpgraded": "已自动升级加密至最新标准（60 万次迭代）",
+  "@homeEncryptionUpgraded": {
+    "description": "加密升级成功提示"
+  },
+  "homeLegacyEncryptionManual": "旧版加密格式：建议手动重新保存升级",
+  "@homeLegacyEncryptionManual": {
+    "description": "旧版加密手动升级提示"
+  },
+  "homeErrorLoadList": "读取列表失败：{error}",
+  "@homeErrorLoadList": {
+    "description": "读取列表失败错误",
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "homeNewDrawingTitle": "新建无限画布",
+  "@homeNewDrawingTitle": {
+    "description": "新建无限画布对话框标题"
+  },
+  "homeErrorCreateFailed": "新建失败：{error}",
+  "@homeErrorCreateFailed": {
+    "description": "新建失败错误",
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "homeOpenCanvasTitle": "打开无限画布 {title}",
+  "@homeOpenCanvasTitle": {
+    "description": "打开画布标题",
+    "placeholders": {
+      "title": {
+        "type": "Object"
+      }
+    }
+  },
+  "homeQuickRecordTitle": "快速记录 {time}",
+  "@homeQuickRecordTitle": {
+    "description": "快速记录默认标题",
+    "placeholders": {
+      "time": {
+        "type": "Object"
+      }
+    }
+  },
   "editorUndo": "撤销",
   "editorRedo": "重做",
   "editorShortcutsHelp": "快捷键帮助",
@@ -70,6 +225,214 @@
   "editorExportPng": "导出 PNG",
   "editorExportSvg": "导出 SVG",
   "editorShapeTool": "形状工具",
+  "editorCopySelection": "复制选中对象",
+  "@editorCopySelection": {
+    "description": "复制选中对象命令"
+  },
+  "editorPasteFromClipboard": "从剪贴板粘贴",
+  "@editorPasteFromClipboard": {
+    "description": "从剪贴板粘贴命令"
+  },
+  "editorCopyPasteSelection": "复制并粘贴选中对象",
+  "@editorCopyPasteSelection": {
+    "description": "复制并粘贴选中对象命令"
+  },
+  "editorDeleteSelection": "删除选中对象",
+  "@editorDeleteSelection": {
+    "description": "删除选中对象命令"
+  },
+  "editorBoldText": "加粗选中文字",
+  "@editorBoldText": {
+    "description": "加粗选中文字命令"
+  },
+  "editorItalicText": "斜体选中文字",
+  "@editorItalicText": {
+    "description": "斜体选中文字命令"
+  },
+  "editorUnderlineText": "下划线选中文字",
+  "@editorUnderlineText": {
+    "description": "下划线选中文字命令"
+  },
+  "editorStrikethroughText": "删除线选中文字",
+  "@editorStrikethroughText": {
+    "description": "删除线选中文字命令"
+  },
+  "editorCycleAlignment": "循环切换文本对齐",
+  "@editorCycleAlignment": {
+    "description": "循环切换文本对齐命令"
+  },
+  "editorFitCanvas": "适应画布",
+  "@editorFitCanvas": {
+    "description": "适应画布命令"
+  },
+  "editorToggleGrid": "显示或隐藏网格",
+  "@editorToggleGrid": {
+    "description": "显示或隐藏网格命令"
+  },
+  "editorToggleGridSnap": "切换网格吸附",
+  "@editorToggleGridSnap": {
+    "description": "切换网格吸附命令"
+  },
+  "editorDrawingCanvas": "绘图画布",
+  "@editorDrawingCanvas": {
+    "description": "绘图画布无障碍标签"
+  },
+  "editorBoldLabel": "加粗",
+  "@editorBoldLabel": {
+    "description": "加粗标签"
+  },
+  "editorItalicLabel": "斜体",
+  "@editorItalicLabel": {
+    "description": "斜体标签"
+  },
+  "editorTodoLabel": "待办",
+  "@editorTodoLabel": {
+    "description": "待办标签"
+  },
+  "editorCenterAlign": "居中",
+  "@editorCenterAlign": {
+    "description": "居中对齐标签"
+  },
+  "editorImage": "图片",
+  "@editorImage": {
+    "description": "图片标签"
+  },
+  "editorCancelSelection": "取消选择",
+  "@editorCancelSelection": {
+    "description": "取消选择按钮"
+  },
+  "toolPen": "画笔",
+  "@toolPen": {
+    "description": "画笔工具"
+  },
+  "toolPencil": "铅笔",
+  "@toolPencil": {
+    "description": "铅笔工具"
+  },
+  "toolBrush": "毛笔",
+  "@toolBrush": {
+    "description": "毛笔工具"
+  },
+  "toolHighlighter": "荧光笔",
+  "@toolHighlighter": {
+    "description": "荧光笔工具"
+  },
+  "toolEraser": "橡皮擦",
+  "@toolEraser": {
+    "description": "橡皮擦工具"
+  },
+  "toolLasso": "套索",
+  "@toolLasso": {
+    "description": "套索工具"
+  },
+  "toolText": "文字",
+  "@toolText": {
+    "description": "文字工具"
+  },
+  "toolImage": "图片",
+  "@toolImage": {
+    "description": "图片工具"
+  },
+  "toolRuler": "直尺",
+  "@toolRuler": {
+    "description": "直尺工具"
+  },
+  "toolLaser": "激光笔",
+  "@toolLaser": {
+    "description": "激光笔工具"
+  },
+  "toolEyedropper": "吸色",
+  "@toolEyedropper": {
+    "description": "吸色工具"
+  },
+  "editorSelectionColor": "选区颜色",
+  "@editorSelectionColor": {
+    "description": "选区颜色提示"
+  },
+  "editorStrokeWidth": "画笔粗细",
+  "@editorStrokeWidth": {
+    "description": "画笔粗细提示"
+  },
+  "editorPressureSettings": "压感设置",
+  "@editorPressureSettings": {
+    "description": "压感设置提示"
+  },
+  "editorMinWidth": "最小粗细",
+  "@editorMinWidth": {
+    "description": "最小粗细标签"
+  },
+  "editorMaxWidth": "最大粗细",
+  "@editorMaxWidth": {
+    "description": "最大粗细标签"
+  },
+  "editorPressureCurve": "压感曲线",
+  "@editorPressureCurve": {
+    "description": "压感曲线提示"
+  },
+  "editorFullStroke": "整笔",
+  "@editorFullStroke": {
+    "description": "整笔上下文栏标签"
+  },
+  "editorTransparent": "透明",
+  "@editorTransparent": {
+    "description": "透明上下文栏标签"
+  },
+  "editorSave": "保存",
+  "@editorSave": {
+    "description": "保存按钮"
+  },
+  "editorAutoFade": "自动消失",
+  "@editorAutoFade": {
+    "description": "自动消失上下文栏标签"
+  },
+  "chartBar": "柱状图",
+  "@chartBar": {
+    "description": "柱状图类型"
+  },
+  "chartLine": "折线图",
+  "@chartLine": {
+    "description": "折线图类型"
+  },
+  "cropImage": "裁剪图片",
+  "@cropImage": {
+    "description": "裁剪图片操作"
+  },
+  "copiedToClipboard": "已复制",
+  "@copiedToClipboard": {
+    "description": "已复制到剪贴板提示"
+  },
+  "exportTypePng": "PNG 图片",
+  "@exportTypePng": {
+    "description": "PNG 导出类型"
+  },
+  "exportTypePdf": "PDF 文档",
+  "@exportTypePdf": {
+    "description": "PDF 导出类型"
+  },
+  "exportTypeSvg": "SVG 矢量图",
+  "@exportTypeSvg": {
+    "description": "SVG 导出类型"
+  },
+  "exportTypeWord": "Word 兼容文档",
+  "@exportTypeWord": {
+    "description": "Word 导出类型"
+  },
+  "exportTypeMarkdown": "Markdown / 文本",
+  "@exportTypeMarkdown": {
+    "description": "Markdown 导出类型"
+  },
+  "exportTypePptx": "PPTX 演示文稿",
+  "@exportTypePptx": {
+    "description": "PPTX 导出类型"
+  },
+  "exportTypeJson": "JSON 工程文件",
+  "@exportTypeJson": {
+    "description": "JSON 导出类型"
+  },
+  "exportTypeUnknown": "未知格式",
+  "@exportTypeUnknown": {
+    "description": "未知导出类型"
+  },
   "noteActions": "笔记本操作",
   "noteImportPage": "从其他笔记本引入页面",
   "noteImportMarkdown": "导入 Markdown 或文本",
@@ -82,6 +445,71 @@
   "noteUsbKey": "U盘钥匙（密码盘）",
   "noteUsbKeySub": "U盘即钥匙：插入 U 盘解锁，拔盘即锁（零知识）",
   "noteRecoveryKeyTitle": "保存您的恢复密钥（非常重要！）",
+  "noteNewPage": "新建页面",
+  "@noteNewPage": {
+    "description": "新建页面操作"
+  },
+  "noteSessionLocked": "会话已锁定，请重新解锁",
+  "@noteSessionLocked": {
+    "description": "会话锁定提示"
+  },
+  "noteSessionExpired": "会话已过期，请重新解锁",
+  "@noteSessionExpired": {
+    "description": "会话过期提示"
+  },
+  "noteErrorSaveFailed": "保存失败：{error}",
+  "@noteErrorSaveFailed": {
+    "description": "保存失败错误",
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "noteEncryptionPasswordEnabled": "已启用密码保护（页面内容加密存储）",
+  "@noteEncryptionPasswordEnabled": {
+    "description": "密码保护已启用提示"
+  },
+  "noteEncryptionUsbKeyEnabled": "已启用 U盘钥匙加密（拔盘即锁）",
+  "@noteEncryptionUsbKeyEnabled": {
+    "description": "U盘钥匙加密已启用提示"
+  },
+  "passwordUnlock": "密码解锁",
+  "@passwordUnlock": {
+    "description": "密码解锁标题"
+  },
+  "passwordDisk": "密码盘",
+  "@passwordDisk": {
+    "description": "密码盘标题"
+  },
+  "unlock": "解锁",
+  "@unlock": {
+    "description": "解锁按钮"
+  },
+  "enterPassword": "请输入密码",
+  "@enterPassword": {
+    "description": "请输入密码提示"
+  },
+  "diskCreate": "创建密码盘（生成密钥 + 恢复密钥）",
+  "@diskCreate": {
+    "description": "创建密码盘操作"
+  },
+  "diskUnlock": "解锁（选择 U 盘密码盘目录）",
+  "@diskUnlock": {
+    "description": "解锁密码盘操作"
+  },
+  "diskRecover": "用恢复密钥找回主密钥（U 盘丢失）",
+  "@diskRecover": {
+    "description": "恢复密钥操作"
+  },
+  "diskEncryptDecrypt": "用密码盘密钥加密并解密回显",
+  "@diskEncryptDecrypt": {
+    "description": "加密解密回显操作"
+  },
+  "diskFingerprintCopied": "指纹已复制",
+  "@diskFingerprintCopied": {
+    "description": "指纹已复制提示"
+  },
   "diskCopied": "我已抄写",
   "diskPinProtection": "是否启用 PIN 保护？",
   "diskNoPin": "不启用",
@@ -120,5 +548,413 @@
   "paperDot": "点阵",
   "editorPaperTemplate": "纸张模板：{type}（点击切换）",
   "editorShapeFillOn": "形状填充：开（新建形状默认填充）",
-  "editorShapeFillOff": "形状填充：关（新建形状默认填充）"
+  "editorShapeFillOff": "形状填充：关（新建形状默认填充）",
+  "create": "新建",
+  "@create": {
+    "description": "新建操作"
+  },
+  "retry": "重试",
+  "@retry": {
+    "description": "重试操作"
+  },
+  "confirm": "确定",
+  "@confirm": {
+    "description": "确定按钮"
+  },
+  "errorLoadDocument": "加载文档失败",
+  "@errorLoadDocument": {
+    "description": "加载文档失败错误"
+  },
+  "errorSaveFailed": "保存失败",
+  "@errorSaveFailed": {
+    "description": "保存失败错误"
+  },
+  "errorAutoSaveFailed": "自动保存失败",
+  "@errorAutoSaveFailed": {
+    "description": "自动保存失败错误"
+  },
+  "appearance": "外观",
+  "@appearance": {
+    "description": "外观设置标题"
+  },
+  "themeLight": "浅色主题",
+  "@themeLight": {
+    "description": "浅色主题选项"
+  },
+  "themeDark": "深色主题",
+  "@themeDark": {
+    "description": "深色主题选项"
+  },
+  "themeSystem": "跟随系统",
+  "@themeSystem": {
+    "description": "跟随系统主题选项"
+  },
+  "onboardingTitle": "欢迎使用绘图笔记",
+  "@onboardingTitle": {
+    "description": "引导页标题"
+  },
+  "onboardingSubtitle": "用画笔记录灵感，支持无限画布、笔记本和加密保护",
+  "@onboardingSubtitle": {
+    "description": "引导页副标题"
+  },
+  "onboardingGetStarted": "开始使用",
+  "@onboardingGetStarted": {
+    "description": "引导页开始使用按钮"
+  },
+  "onboardingSkip": "跳过",
+  "@onboardingSkip": {
+    "description": "引导页跳过按钮"
+  },
+  "settings": "设置",
+  "@settings": {
+    "description": "设置页面标题"
+  },
+  "about": "关于",
+  "@about": {
+    "description": "关于页面标题"
+  },
+  "version": "版本",
+  "@version": {
+    "description": "版本标签"
+  },
+  "aiChat": "AI 助手",
+  "@aiChat": {
+    "description": "AI 助手标题"
+  },
+  "aiChatHint": "输入问题开始对话…",
+  "@aiChatHint": {
+    "description": "AI 聊天输入提示"
+  },
+  "aiChatEmpty": "还没有对话记录",
+  "@aiChatEmpty": {
+    "description": "AI 聊天空状态"
+  },
+  "securityLevel": "安全等级",
+  "@securityLevel": {
+    "description": "安全等级标签"
+  },
+  "encryptionStatus": "加密状态",
+  "@encryptionStatus": {
+    "description": "加密状态标签"
+  },
+  "exportTitle": "导出",
+  "@exportTitle": {
+    "description": "导出面板标题"
+  },
+  "importTitle": "导入",
+  "@importTitle": {
+    "description": "导入标题"
+  },
+  "layerPanel": "图层",
+  "@layerPanel": {
+    "description": "图层面板标题"
+  },
+  "historyTitle": "历史记录",
+  "@historyTitle": {
+    "description": "历史记录标题"
+  },
+  "recentDocuments": "最近文档",
+  "@recentDocuments": {
+    "description": "最近文档标题"
+  },
+  "noRecentDocuments": "暂无最近文档",
+  "@noRecentDocuments": {
+    "description": "无最近文档状态"
+  },
+  "enableSync": "启用同步",
+  "@enableSync": {
+    "description": "启用同步开关"
+  },
+  "syncStatus": "同步状态",
+  "@syncStatus": {
+    "description": "同步状态标签"
+  },
+  "storagePermissionRequired": "需要存储权限",
+  "@storagePermissionRequired": {
+    "description": "存储权限提示"
+  },
+  "pen": "画笔",
+  "@pen": {
+    "description": "画笔工具标签"
+  },
+  "eraser": "橡皮擦",
+  "@eraser": {
+    "description": "橡皮擦工具标签"
+  },
+  "selection": "选择",
+  "@selection": {
+    "description": "选择工具标签"
+  },
+  "textTool": "文字",
+  "@textTool": {
+    "description": "文字工具标签"
+  },
+  "shape": "形状",
+  "@shape": {
+    "description": "形状工具标签"
+  },
+  "pageManagement": "页面管理",
+  "@pageManagement": {
+    "description": "页面管理标题"
+  },
+  "deletePage": "删除页面",
+  "@deletePage": {
+    "description": "删除页面操作"
+  },
+  "renamePage": "重命名",
+  "@renamePage": {
+    "description": "重命名页面操作"
+  },
+  "reorderPages": "拖拽排序",
+  "@reorderPages": {
+    "description": "拖拽排序提示"
+  },
+  "drawingLayers": "绘图层",
+  "@drawingLayers": {
+    "description": "绘图层标题"
+  },
+  "textLayers": "文字层",
+  "@textLayers": {
+    "description": "文字层标题"
+  },
+  "noteContent": "笔记内容",
+  "@noteContent": {
+    "description": "笔记内容标题"
+  },
+  "recentlyUsed": "最近使用",
+  "@recentlyUsed": {
+    "description": "最近使用标题"
+  },
+  "allShapes": "全部形状",
+  "@allShapes": {
+    "description": "全部形状标题"
+  },
+  "basicShapes": "基础形状",
+  "@basicShapes": {
+    "description": "基础形状分类"
+  },
+  "lines": "线条",
+  "@lines": {
+    "description": "线条分类"
+  },
+  "arrows": "箭头",
+  "@arrows": {
+    "description": "箭头分类"
+  },
+  "highlighter": "荧光笔",
+  "@highlighter": {
+    "description": "荧光笔标签"
+  },
+  "laserPointer": "激光笔",
+  "@laserPointer": {
+    "description": "激光笔标签"
+  },
+  "settingsTitle": "设置",
+  "@settingsTitle": {
+    "description": "设置页面标题"
+  },
+  "themeLabel": "主题",
+  "@themeLabel": {
+    "description": "主题设置标签"
+  },
+  "languageLabel": "语言",
+  "@languageLabel": {
+    "description": "语言设置标签"
+  },
+  "selectLanguage": "选择语言",
+  "@selectLanguage": {
+    "description": "选择语言标题"
+  },
+  "autoSaveLabel": "自动保存",
+  "@autoSaveLabel": {
+    "description": "自动保存设置"
+  },
+  "storageLabel": "存储",
+  "@storageLabel": {
+    "description": "存储设置"
+  },
+  "securityLabel": "安全",
+  "@securityLabel": {
+    "description": "安全设置"
+  },
+  "aiLabel": "AI",
+  "@aiLabel": {
+    "description": "AI 设置"
+  },
+  "experimentalLabel": "实验功能",
+  "@experimentalLabel": {
+    "description": "实验功能设置"
+  },
+  "hotkeysLabel": "快捷键",
+  "@hotkeysLabel": {
+    "description": "快捷键设置"
+  },
+  "syncLabel": "同步",
+  "@syncLabel": {
+    "description": "同步设置"
+  },
+  "diagnostics": "诊断",
+  "@diagnostics": {
+    "description": "诊断页面"
+  },
+  "testRunnerTitle": "测试运行器",
+  "@testRunnerTitle": {
+    "description": "测试运行器标题"
+  },
+  "testRunnerStart": "开始测试",
+  "@testRunnerStart": {
+    "description": "开始测试按钮"
+  },
+  "p2pSyncTitle": "点对点同步",
+  "@p2pSyncTitle": {
+    "description": "点对点同步标题"
+  },
+  "p2pSyncSubtitle": "局域网设备间直接同步",
+  "@p2pSyncSubtitle": {
+    "description": "点对点同步副标题"
+  },
+  "viewAllPages": "查看所有页面",
+  "@viewAllPages": {
+    "description": "查看所有页面按钮"
+  },
+
+  "blockEditorTitle1": "标题 1",
+  "blockEditorTitle2": "标题 2",
+  "blockEditorTitle3": "标题 3",
+  "blockEditorListItem": "列表项",
+  "blockEditorCodeHint": "输入代码…",
+  "blockEditorQuoteHint": "引用…",
+  "blockEditorParagraphHint": "输入文字，或输入 / 打开命令菜单…",
+  "blockEditorImageLoadFail": "图片加载失败",
+  "blockEditorTableBlock": "表格块（详见 TableViewWidget）",
+  "blockEditorAddRow": "添加行",
+
+  "slidePresenterSlide": "幻灯片",
+  "slidePresenterExit": "退出",
+
+  "unifiedToolbarBrush": "画笔",
+  "unifiedToolbarEraser": "橡皮擦",
+  "unifiedToolbarSelect": "选择",
+  "unifiedToolbarRectSelect": "矩形选区",
+  "unifiedToolbarLassoSelect": "套索选区",
+  "unifiedToolbarRect": "矩形",
+  "unifiedToolbarEllipse": "椭圆",
+  "unifiedToolbarLine": "直线",
+  "unifiedToolbarArrow": "箭头",
+  "unifiedToolbarText": "文字",
+  "unifiedToolbarEyedropper": "吸管取色",
+  "unifiedToolbarEraserOptions": "橡皮擦选项",
+  "unifiedToolbarEraseShapes": "可擦除形状",
+  "unifiedToolbarGrid": "网格显示",
+  "unifiedToolbarSnap": "网格吸附",
+  "unifiedToolbarZoomOut": "缩小",
+  "unifiedToolbarZoomIn": "放大",
+  "unifiedToolbarFitCanvas": "适应画布",
+  "unifiedToolbarClickToPlaceText": "点击画布放置文字",
+  "unifiedToolbarClickToPickColor": "点击画布取色",
+
+  "unifiedPropertyBrush": "画笔",
+  "unifiedPropertyShape": "形状",
+  "unifiedPropertyText": "文字",
+  "unifiedPropertyFillColor": "填充色",
+  "unifiedPropertyDashLine": "实线/虚线",
+  "unifiedPropertyTextColor": "文字颜色",
+
+  "unifiedLayerPanelTitle": "图层",
+  "unifiedLayerPanelRename": "重命名图层",
+  "unifiedLayerPanelRenameHint": "输入图层名称",
+  "unifiedLayerPanelCancel": "取消",
+  "unifiedLayerPanelConfirm": "确定",
+
+  "unnamedNote": "未命名笔记",
+  "inputText": "输入文字",
+  "inputTextContent": "输入文字内容",
+  "cancel": "取消",
+  "confirm": "确定",
+  "note": "笔记",
+  "save": "保存",
+  "loadFailed": "加载失败",
+  "noteTitle": "笔记标题",
+  "editorV2Title": "Editor V2 - {docId}",
+  "@editorV2Title": {
+    "description": "Editor V2 标题",
+    "placeholders": {
+      "docId": {
+        "type": "String",
+        "example": "doc1"
+      }
+    }
+  },
+
+  "historyPanelTitle": "历史记录",
+  "historySteps": "{count} 步",
+  "@historySteps": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "undo": "撤销",
+  "redo": "重做",
+  "noHistory": "无历史记录",
+
+  "exportPanelTitle": "导出",
+  "exporting": "导出中...",
+  "exportFormat": "导出 {format}",
+  "@exportFormat": {
+    "placeholders": {
+      "format": { "type": "String" }
+    }
+  },
+  "exportPreview": "预览",
+  "copied": "已复制",
+  "copyTooltip": "复制",
+  "pngExportHint": "PNG 导出需要 Canvas 渲染——请使用画布右键菜单导出。",
+  "exportFailed": "导出失败: {error}",
+  "@exportFailed": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "exportFormatPNG": "图片格式",
+  "exportFormatSVG": "矢量格式",
+  "exportFormatJSON": "文档格式",
+
+  "propertiesPanelTitle": "属性",
+  "colorLabel": "颜色",
+  "strokeWidthLabel": "线宽",
+  "opacityLabel": "透明度",
+  "lineStyleLabel": "线条样式",
+  "solidLine": "实线",
+  "dashedLine": "虚线",
+  "dottedLine": "点线",
+
+  "titleHint": "标题",
+  "startTypingHint": "开始输入…",
+
+  "zoomOut": "缩小",
+  "zoomIn": "放大",
+  "zoomReset": "重置 (1x)",
+  "fitWindow": "适应窗口",
+
+  "pageManagement": "页面管理",
+  "pageN": "页面 {index}",
+  "@pageN": {
+    "placeholders": {
+      "index": { "type": "int" }
+    }
+  },
+  "newPage": "新建",
+  "deletePage": "删除",
+
+  "slideN": "幻灯片 {index}",
+  "@slideN": {
+    "placeholders": {
+      "index": { "type": "int" }
+    }
+  },
+  "newColumn": "新列",
+
+  "noLayers": "无图层",
+
+  "selectColor": "选择颜色"
 }

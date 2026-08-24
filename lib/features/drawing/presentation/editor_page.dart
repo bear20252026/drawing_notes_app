@@ -295,9 +295,12 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         return;
       }
       final bytes = await file.readAsBytes();
-      final codec = await ui.instantiateImageCodec(bytes);
-      final frame = await codec.getNextFrame();
-      final src = frame.image;
+      final decodeResult = await SafeImageDecode.decode(bytes);
+      if (decodeResult.isError) {
+        _showSnack(decodeResult.errorMessage!);
+        return;
+      }
+      final src = decodeResult.image!;
       // 按比例映射：裁剪矩形（画布坐标）-> 原图像素坐标。
       final scaleX = src.width / (img.width + 1);
       final scaleY = src.height / (img.height + 1);

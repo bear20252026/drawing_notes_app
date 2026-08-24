@@ -30,7 +30,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeTrashEmpty => '回收站为空';
 
   @override
-  String homeDeletedAt(String time) {
+  String homeDeletedAt(Object time) {
     return '删除于 $time';
   }
 
@@ -51,6 +51,104 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get homeMore => '更多操作';
+
+  @override
+  String homeRecovered(Object id) {
+    return '已恢复「$id」';
+  }
+
+  @override
+  String get homePasswordDiskAndRecovery => '密码盘与恢复';
+
+  @override
+  String get homeInfiniteCanvas => '无限画布';
+
+  @override
+  String get homeNotebook => '笔记本';
+
+  @override
+  String get homeRecent => '最近';
+
+  @override
+  String get homeNewInfiniteCanvas => '新建无限画布';
+
+  @override
+  String get homeQuickRecord => '快速记录';
+
+  @override
+  String get homeRetry => '重试';
+
+  @override
+  String get homeErrorDrawingNotFound => '画作文件不存在或已损坏';
+
+  @override
+  String homeErrorOpenDrawing(Object error) {
+    return '打开画作失败：$error';
+  }
+
+  @override
+  String get homeDeleteDrawing => '删除画作';
+
+  @override
+  String homeConfirmDeleteDrawing(Object title) {
+    return '确定删除画作「$title」吗？此操作不可恢复。';
+  }
+
+  @override
+  String get homeDeleteNotebook => '删除笔记本';
+
+  @override
+  String homeConfirmDeleteNotebook(Object title) {
+    return '确定删除笔记本「$title」吗？其中所有页面内容将一并删除，此操作不可恢复。';
+  }
+
+  @override
+  String homeConfirmPermanentDelete(Object name) {
+    return '确定永久删除「$name」吗？此操作不可恢复。';
+  }
+
+  @override
+  String homeErrorDeleteFailed(Object error) {
+    return '删除失败：$error';
+  }
+
+  @override
+  String homeErrorPolicyDenied(Object policy) {
+    return '操作被策略拒绝（$policy）';
+  }
+
+  @override
+  String get homeLegacyEncryptionWarning =>
+      '检测到旧版加密格式（10 万次迭代），建议重新保存以升级至最新加密标准（60 万次）';
+
+  @override
+  String get homeEncryptionUpgraded => '已自动升级加密至最新标准（60 万次迭代）';
+
+  @override
+  String get homeLegacyEncryptionManual => '旧版加密格式：建议手动重新保存升级';
+
+  @override
+  String homeErrorLoadList(Object error) {
+    return '读取列表失败：$error';
+  }
+
+  @override
+  String get homeNewDrawingTitle => '新建无限画布';
+
+  @override
+  String homeErrorCreateFailed(Object error) {
+    return '新建失败：$error';
+  }
+
+  @override
+  String homeOpenCanvasTitle(Object title) {
+    return '打开无限画布 $title';
+  }
+
+  @override
+  String homeQuickRecordTitle(Object time) {
+    return '快速记录 $time';
+  }
 
   @override
   String get editorUndo => '撤销';
@@ -78,6 +176,162 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get editorShapeTool => '形状工具';
+
+  @override
+  String get editorCopySelection => '复制选中对象';
+
+  @override
+  String get editorPasteFromClipboard => '从剪贴板粘贴';
+
+  @override
+  String get editorCopyPasteSelection => '复制并粘贴选中对象';
+
+  @override
+  String get editorDeleteSelection => '删除选中对象';
+
+  @override
+  String get editorBoldText => '加粗选中文字';
+
+  @override
+  String get editorItalicText => '斜体选中文字';
+
+  @override
+  String get editorUnderlineText => '下划线选中文字';
+
+  @override
+  String get editorStrikethroughText => '删除线选中文字';
+
+  @override
+  String get editorCycleAlignment => '循环切换文本对齐';
+
+  @override
+  String get editorFitCanvas => '适应画布';
+
+  @override
+  String get editorToggleGrid => '显示或隐藏网格';
+
+  @override
+  String get editorToggleGridSnap => '切换网格吸附';
+
+  @override
+  String get editorDrawingCanvas => '绘图画布';
+
+  @override
+  String get editorBoldLabel => '加粗';
+
+  @override
+  String get editorItalicLabel => '斜体';
+
+  @override
+  String get editorTodoLabel => '待办';
+
+  @override
+  String get editorCenterAlign => '居中';
+
+  @override
+  String get editorImage => '图片';
+
+  @override
+  String get editorCancelSelection => '取消选择';
+
+  @override
+  String get toolPen => '画笔';
+
+  @override
+  String get toolPencil => '铅笔';
+
+  @override
+  String get toolBrush => '毛笔';
+
+  @override
+  String get toolHighlighter => '荧光笔';
+
+  @override
+  String get toolEraser => '橡皮擦';
+
+  @override
+  String get toolLasso => '套索';
+
+  @override
+  String get toolText => '文字';
+
+  @override
+  String get toolImage => '图片';
+
+  @override
+  String get toolRuler => '直尺';
+
+  @override
+  String get toolLaser => '激光笔';
+
+  @override
+  String get toolEyedropper => '吸色';
+
+  @override
+  String get editorSelectionColor => '选区颜色';
+
+  @override
+  String get editorStrokeWidth => '画笔粗细';
+
+  @override
+  String get editorPressureSettings => '压感设置';
+
+  @override
+  String get editorMinWidth => '最小粗细';
+
+  @override
+  String get editorMaxWidth => '最大粗细';
+
+  @override
+  String get editorPressureCurve => '压感曲线';
+
+  @override
+  String get editorFullStroke => '整笔';
+
+  @override
+  String get editorTransparent => '透明';
+
+  @override
+  String get editorSave => '保存';
+
+  @override
+  String get editorAutoFade => '自动消失';
+
+  @override
+  String get chartBar => '柱状图';
+
+  @override
+  String get chartLine => '折线图';
+
+  @override
+  String get cropImage => '裁剪图片';
+
+  @override
+  String get copiedToClipboard => '已复制';
+
+  @override
+  String get exportTypePng => 'PNG 图片';
+
+  @override
+  String get exportTypePdf => 'PDF 文档';
+
+  @override
+  String get exportTypeSvg => 'SVG 矢量图';
+
+  @override
+  String get exportTypeWord => 'Word 兼容文档';
+
+  @override
+  String get exportTypeMarkdown => 'Markdown / 文本';
+
+  @override
+  String get exportTypePptx => 'PPTX 演示文稿';
+
+  @override
+  String get exportTypeJson => 'JSON 工程文件';
+
+  @override
+  String get exportTypeUnknown => '未知格式';
 
   @override
   String get noteActions => '笔记本操作';
@@ -114,6 +368,53 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get noteRecoveryKeyTitle => '保存您的恢复密钥（非常重要！）';
+
+  @override
+  String get noteNewPage => '新建页面';
+
+  @override
+  String get noteSessionLocked => '会话已锁定，请重新解锁';
+
+  @override
+  String get noteSessionExpired => '会话已过期，请重新解锁';
+
+  @override
+  String noteErrorSaveFailed(Object error) {
+    return '保存失败：$error';
+  }
+
+  @override
+  String get noteEncryptionPasswordEnabled => '已启用密码保护（页面内容加密存储）';
+
+  @override
+  String get noteEncryptionUsbKeyEnabled => '已启用 U盘钥匙加密（拔盘即锁）';
+
+  @override
+  String get passwordUnlock => '密码解锁';
+
+  @override
+  String get passwordDisk => '密码盘';
+
+  @override
+  String get unlock => '解锁';
+
+  @override
+  String get enterPassword => '请输入密码';
+
+  @override
+  String get diskCreate => '创建密码盘（生成密钥 + 恢复密钥）';
+
+  @override
+  String get diskUnlock => '解锁（选择 U 盘密码盘目录）';
+
+  @override
+  String get diskRecover => '用恢复密钥找回主密钥（U 盘丢失）';
+
+  @override
+  String get diskEncryptDecrypt => '用密码盘密钥加密并解密回显';
+
+  @override
+  String get diskFingerprintCopied => '指纹已复制';
 
   @override
   String get diskCopied => '我已抄写';
@@ -195,7 +496,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get editorPasteValues => '粘贴数值，用逗号/空格/换行分隔，例如：10, 25, 18, 42, 30';
 
   @override
-  String editorImageInsertFail(String error) {
+  String editorImageInsertFail(Object error) {
     return '插入图片失败：$error';
   }
 
@@ -209,12 +510,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get alignRight => '右对齐';
 
   @override
-  String editorAlignTooltip(String name) {
+  String editorAlignTooltip(Object name) {
     return '对齐：$name (Ctrl+E)';
   }
 
   @override
-  String editorPagePreviewTitle(String title) {
+  String editorPagePreviewTitle(Object title) {
     return '分页预览 $title';
   }
 
@@ -231,7 +532,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get paperDot => '点阵';
 
   @override
-  String editorPaperTemplate(String type) {
+  String editorPaperTemplate(Object type) {
     return '纸张模板：$type（点击切换）';
   }
 
@@ -240,4 +541,205 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get editorShapeFillOff => '形状填充：关（新建形状默认填充）';
+
+  @override
+  String get create => '新建';
+
+  @override
+  String get retry => '重试';
+
+  @override
+  String get confirm => '确定';
+
+  @override
+  String get errorLoadDocument => '加载文档失败';
+
+  @override
+  String get errorSaveFailed => '保存失败';
+
+  @override
+  String get errorAutoSaveFailed => '自动保存失败';
+
+  @override
+  String get appearance => '外观';
+
+  @override
+  String get themeLight => '浅色主题';
+
+  @override
+  String get themeDark => '深色主题';
+
+  @override
+  String get themeSystem => '跟随系统';
+
+  @override
+  String get onboardingTitle => '欢迎使用绘图笔记';
+
+  @override
+  String get onboardingSubtitle => '用画笔记录灵感，支持无限画布、笔记本和加密保护';
+
+  @override
+  String get onboardingGetStarted => '开始使用';
+
+  @override
+  String get onboardingSkip => '跳过';
+
+  @override
+  String get settings => '设置';
+
+  @override
+  String get about => '关于';
+
+  @override
+  String get version => '版本';
+
+  @override
+  String get aiChat => 'AI 助手';
+
+  @override
+  String get aiChatHint => '输入问题开始对话…';
+
+  @override
+  String get aiChatEmpty => '还没有对话记录';
+
+  @override
+  String get securityLevel => '安全等级';
+
+  @override
+  String get encryptionStatus => '加密状态';
+
+  @override
+  String get exportTitle => '导出';
+
+  @override
+  String get importTitle => '导入';
+
+  @override
+  String get layerPanel => '图层';
+
+  @override
+  String get historyTitle => '历史记录';
+
+  @override
+  String get recentDocuments => '最近文档';
+
+  @override
+  String get noRecentDocuments => '暂无最近文档';
+
+  @override
+  String get enableSync => '启用同步';
+
+  @override
+  String get syncStatus => '同步状态';
+
+  @override
+  String get storagePermissionRequired => '需要存储权限';
+
+  @override
+  String get pen => '画笔';
+
+  @override
+  String get eraser => '橡皮擦';
+
+  @override
+  String get selection => '选择';
+
+  @override
+  String get textTool => '文字';
+
+  @override
+  String get shape => '形状';
+
+  @override
+  String get pageManagement => '页面管理';
+
+  @override
+  String get deletePage => '删除页面';
+
+  @override
+  String get renamePage => '重命名';
+
+  @override
+  String get reorderPages => '拖拽排序';
+
+  @override
+  String get drawingLayers => '绘图层';
+
+  @override
+  String get textLayers => '文字层';
+
+  @override
+  String get noteContent => '笔记内容';
+
+  @override
+  String get recentlyUsed => '最近使用';
+
+  @override
+  String get allShapes => '全部形状';
+
+  @override
+  String get basicShapes => '基础形状';
+
+  @override
+  String get lines => '线条';
+
+  @override
+  String get arrows => '箭头';
+
+  @override
+  String get highlighter => '荧光笔';
+
+  @override
+  String get laserPointer => '激光笔';
+
+  @override
+  String get settingsTitle => '设置';
+
+  @override
+  String get themeLabel => '主题';
+
+  @override
+  String get languageLabel => '语言';
+
+  @override
+  String get selectLanguage => '选择语言';
+
+  @override
+  String get autoSaveLabel => '自动保存';
+
+  @override
+  String get storageLabel => '存储';
+
+  @override
+  String get securityLabel => '安全';
+
+  @override
+  String get aiLabel => 'AI';
+
+  @override
+  String get experimentalLabel => '实验功能';
+
+  @override
+  String get hotkeysLabel => '快捷键';
+
+  @override
+  String get syncLabel => '同步';
+
+  @override
+  String get diagnostics => '诊断';
+
+  @override
+  String get testRunnerTitle => '测试运行器';
+
+  @override
+  String get testRunnerStart => '开始测试';
+
+  @override
+  String get p2pSyncTitle => '点对点同步';
+
+  @override
+  String get p2pSyncSubtitle => '局域网设备间直接同步';
+
+  @override
+  String get viewAllPages => '查看所有页面';
 }

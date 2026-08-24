@@ -1,0 +1,143 @@
+﻿Resolving dependencies...
+Downloading packages...
+  _fe_analyzer_shared 97.0.0 (105.0.0 available)
+  analyzer 11.0.0 (14.1.0 available)
+  archive 4.0.9 (4.2.0 available)
+  code_assets 1.2.1 (2.0.0 available)
+  file 6.1.4 (7.0.1 available)
+  flutter_riverpod 3.3.1 (3.4.2 available)
+  hooks 2.0.2 (2.2.0 available)
+  image 4.8.0 (4.9.2 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  material_ui 1.0.0 (1.0.1 available)
+  objective_c 9.5.0 (9.6.0 available)
+  package_config 2.2.0 (3.0.0 available)
+  pdf 3.12.0 (3.13.0 available)
+! pdfrx_engine 0.4.6 (overridden)
+  process 4.2.4 (5.0.5 available)
+  qr 3.0.2 (4.0.0 available)
+  record_use 0.6.0 (1.1.1 available)
+  riverpod 3.2.1 (3.4.2 available)
+  source_maps 0.10.13 (0.10.14 available)
+  synchronized 3.4.1+1 (3.4.1+2 available)
+  test 1.31.1 (1.31.2 available)
+  test_api 0.7.12 (0.7.13 available)
+  test_core 0.6.18 (0.6.19 available)
+  vm_service 15.2.0 (15.3.0 available)
+  xml 6.6.1 (7.0.1 available)
+Got dependencies!
+24 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing drawing_notes_app...                                  
+
+   info - The imported package 'go_router' isn't a dependency of the importing package. Try adding a dependency for 'go_router' in the 'pubspec.yaml' file - lib\core\router\app_router.dart:14:8 - depend_on_referenced_packages
+   info - The imported package 'go_router' isn't a dependency of the importing package. Try adding a dependency for 'go_router' in the 'pubspec.yaml' file - lib\core\router\app_router.dart:14:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:go_router/go_router.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - lib\core\router\app_router.dart:14:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'package:go_router/go_router.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - lib\core\router\app_router.dart:14:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'package:drawing_notes_app/core/ui/widgets/app_error_widget.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - lib\core\router\app_router.dart:26:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'package:drawing_notes_app/core/ui/widgets/app_error_widget.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - lib\core\router\app_router.dart:26:8 - uri_does_not_exist
+  error - The getter 'isUnlocked' isn't defined for the type 'SessionGuard'. Try importing the library that defines 'isUnlocked', correcting the name to the name of an existing getter, or defining a getter or field named 'isUnlocked' - lib\core\router\app_router.dart:80:26 - undefined_getter
+  error - The getter 'isUnlocked' isn't defined for the type 'SessionGuard'. Try importing the library that defines 'isUnlocked', correcting the name to the name of an existing getter, or defining a getter or field named 'isUnlocked' - lib\core\router\app_router.dart:80:26 - undefined_getter
+  error - The method 'getAppDirectory' isn't defined for the type 'StorageService'. Try correcting the name to the name of an existing method, or defining a method named 'getAppDirectory' - lib\core\router\app_router.dart:94:36 - undefined_method
+  error - The method 'getAppDirectory' isn't defined for the type 'StorageService'. Try correcting the name to the name of an existing method, or defining a method named 'getAppDirectory' - lib\core\router\app_router.dart:94:36 - undefined_method
+  error - Undefined class 'GoRouter'. Try changing the name to the name of an existing class, or creating a class with the name 'GoRouter' - lib\core\router\app_router.dart:111:1 - undefined_class
+  error - Undefined class 'GoRouter'. Try changing the name to the name of an existing class, or creating a class with the name 'GoRouter' - lib\core\router\app_router.dart:111:1 - undefined_class
+  error - The function 'GoRouter' isn't defined. Try importing the library that defines 'GoRouter', correcting the name to the name of an existing function, or defining a function named 'GoRouter' - lib\core\router\app_router.dart:114:10 - undefined_function
+  error - The function 'GoRouter' isn't defined. Try importing the library that defines 'GoRouter', correcting the name to the name of an existing function, or defining a function named 'GoRouter' - lib\core\router\app_router.dart:114:10 - undefined_function
+  error - Undefined class 'GoRouterState'. Try changing the name to the name of an existing class, or creating a class with the name 'GoRouterState' - lib\core\router\app_router.dart:120:38 - undefined_class
+  error - Undefined class 'GoRouterState'. Try changing the name to the name of an existing class, or creating a class with the name 'GoRouterState' - lib\core\router\app_router.dart:120:38 - undefined_class
+  error - The function 'GoRoute' isn't defined. Try importing the library that defines 'GoRoute', correcting the name to the name of an existing function, or defining a function named 'GoRoute' - lib\core\router\app_router.dart:138:7 - undefined_function
+  error - The function 'GoRoute' isn't defined. Try importing the library that defines 'GoRoute', correcting the name to the name of an existing function, or defining a function named 'GoRoute' - lib\core\router\app_router.dart:138:7 - undefined_function
+  error - The function 'GoRoute' isn't defined. Try importing the library that defines 'GoRoute', correcting the name to the name of an existing function, or defining a function named 'GoRoute' - lib\core\router\app_router.dart:149:7 - undefined_function
+  error - The function 'GoRoute' isn't defined. Try importing the library that defines 'GoRoute', correcting the name to the name of an existing function, or defining a function named 'GoRoute' - lib\core\router\app_router.dart:149:7 - undefined_function
+  error - The named parameter 'title' is required, but there's no corresponding argument. Try adding the required argument - lib\core\router\app_router.dart:155:23 - missing_required_argument
+  error - The named parameter 'title' is required, but there's no corresponding argument. Try adding the required argument - lib\core\router\app_router.dart:155:23 - missing_required_argument
+  error - The function 'GoRoute' isn't defined. Try importing the library that defines 'GoRoute', correcting the name to the name of an existing function, or defining a function named 'GoRoute' - lib\core\router\app_router.dart:164:7 - undefined_function
+  error - The function 'GoRoute' isn't defined. Try importing the library that defines 'GoRoute', correcting the name to the name of an existing function, or defining a function named 'GoRoute' - lib\core\router\app_router.dart:164:7 - undefined_function
+  error - Undefined name 'UnifiedEditorMode'. Try correcting the name to one that is defined, or defining the name - lib\core\router\app_router.dart:171:17 - undefined_identifier
+  error - Undefined name 'UnifiedEditorMode'. Try correcting the name to one that is defined, or defining the name - lib\core\router\app_router.dart:171:17 - undefined_identifier
+  error - Undefined name 'UnifiedEditorMode'. Try correcting the name to one that is defined, or defining the name - lib\core\router\app_router.dart:172:17 - undefined_identifier
+  error - Undefined name 'UnifiedEditorMode'. Try correcting the name to one that is defined, or defining the name - lib\core\router\app_router.dart:172:17 - undefined_identifier
+  error - The function 'GoRoute' isn't defined. Try importing the library that defines 'GoRoute', correcting the name to the name of an existing function, or defining a function named 'GoRoute' - lib\core\router\app_router.dart:183:7 - undefined_function
+  error - The function 'GoRoute' isn't defined. Try importing the library that defines 'GoRoute', correcting the name to the name of an existing function, or defining a function named 'GoRoute' - lib\core\router\app_router.dart:183:7 - undefined_function
+  error - The function 'Notebook' isn't defined. Try importing the library that defines 'Notebook', correcting the name to the name of an existing function, or defining a function named 'Notebook' - lib\core\router\app_router.dart:189:23 - undefined_function
+  error - The function 'Notebook' isn't defined. Try importing the library that defines 'Notebook', correcting the name to the name of an existing function, or defining a function named 'Notebook' - lib\core\router\app_router.dart:189:23 - undefined_function
+  error - The function 'NotebookStorage' isn't defined. Try importing the library that defines 'NotebookStorage', correcting the name to the name of an existing function, or defining a function named 'NotebookStorage' - lib\core\router\app_router.dart:190:22 - undefined_function
+  error - The function 'NotebookStorage' isn't defined. Try importing the library that defines 'NotebookStorage', correcting the name to the name of an existing function, or defining a function named 'NotebookStorage' - lib\core\router\app_router.dart:190:22 - undefined_function
+  error - The function 'GoRoute' isn't defined. Try importing the library that defines 'GoRoute', correcting the name to the name of an existing function, or defining a function named 'GoRoute' - lib\core\router\app_router.dart:198:7 - undefined_function
+  error - The function 'GoRoute' isn't defined. Try importing the library that defines 'GoRoute', correcting the name to the name of an existing function, or defining a function named 'GoRoute' - lib\core\router\app_router.dart:198:7 - undefined_function
+  error - The function 'GoRoute' isn't defined. Try importing the library that defines 'GoRoute', correcting the name to the name of an existing function, or defining a function named 'GoRoute' - lib\core\router\app_router.dart:207:7 - undefined_function
+  error - The function 'GoRoute' isn't defined. Try importing the library that defines 'GoRoute', correcting the name to the name of an existing function, or defining a function named 'GoRoute' - lib\core\router\app_router.dart:207:7 - undefined_function
+  error - The name 'OnboardingPage' isn't a class. Try correcting the name to match an existing class - lib\core\router\app_router.dart:210:44 - creation_with_non_type
+  error - The name 'OnboardingPage' isn't a class. Try correcting the name to match an existing class - lib\core\router\app_router.dart:210:44 - creation_with_non_type
+  error - The function 'GoRoute' isn't defined. Try importing the library that defines 'GoRoute', correcting the name to the name of an existing function, or defining a function named 'GoRoute' - lib\core\router\app_router.dart:216:7 - undefined_function
+  error - The function 'GoRoute' isn't defined. Try importing the library that defines 'GoRoute', correcting the name to the name of an existing function, or defining a function named 'GoRoute' - lib\core\router\app_router.dart:216:7 - undefined_function
+  error - The function 'AppErrorWidget' isn't defined. Try importing the library that defines 'AppErrorWidget', correcting the name to the name of an existing function, or defining a function named 'AppErrorWidget' - lib\core\router\app_router.dart:220:17 - undefined_function
+  error - The function 'AppErrorWidget' isn't defined. Try importing the library that defines 'AppErrorWidget', correcting the name to the name of an existing function, or defining a function named 'AppErrorWidget' - lib\core\router\app_router.dart:220:17 - undefined_function
+  error - The function 'UIException' isn't defined. Try importing the library that defines 'UIException', correcting the name to the name of an existing function, or defining a function named 'UIException' - lib\core\router\app_router.dart:221:20 - undefined_function
+  error - The function 'UIException' isn't defined. Try importing the library that defines 'UIException', correcting the name to the name of an existing function, or defining a function named 'UIException' - lib\core\router\app_router.dart:221:20 - undefined_function
+  error - The function 'AppErrorWidget' isn't defined. Try importing the library that defines 'AppErrorWidget', correcting the name to the name of an existing function, or defining a function named 'AppErrorWidget' - lib\core\router\app_router.dart:232:13 - undefined_function
+  error - The function 'AppErrorWidget' isn't defined. Try importing the library that defines 'AppErrorWidget', correcting the name to the name of an existing function, or defining a function named 'AppErrorWidget' - lib\core\router\app_router.dart:232:13 - undefined_function
+  error - The function 'UIException' isn't defined. Try importing the library that defines 'UIException', correcting the name to the name of an existing function, or defining a function named 'UIException' - lib\core\router\app_router.dart:233:16 - undefined_function
+  error - The function 'UIException' isn't defined. Try importing the library that defines 'UIException', correcting the name to the name of an existing function, or defining a function named 'UIException' - lib\core\router\app_router.dart:233:16 - undefined_function
+warning - Unused import: 'package:crypto/crypto.dart'. Try removing the import directive - lib\core\security\persistent_audit_logger.dart:6:8 - unused_import
+warning - Unused import: 'package:crypto/crypto.dart'. Try removing the import directive - lib\core\security\persistent_audit_logger.dart:6:8 - unused_import
+warning - Unused import: 'package:crypto/crypto.dart'. Try removing the import directive - lib\core\security\persistent_audit_logger.dart:6:8 - unused_import
+   info - The imported package 'encrypt' isn't a dependency of the importing package. Try adding a dependency for 'encrypt' in the 'pubspec.yaml' file - lib\core\security\persistent_audit_logger.dart:7:8 - depend_on_referenced_packages
+   info - The imported package 'encrypt' isn't a dependency of the importing package. Try adding a dependency for 'encrypt' in the 'pubspec.yaml' file - lib\core\security\persistent_audit_logger.dart:7:8 - depend_on_referenced_packages
+   info - The imported package 'encrypt' isn't a dependency of the importing package. Try adding a dependency for 'encrypt' in the 'pubspec.yaml' file - lib\core\security\persistent_audit_logger.dart:7:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:encrypt/encrypt.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - lib\core\security\persistent_audit_logger.dart:7:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'package:encrypt/encrypt.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - lib\core\security\persistent_audit_logger.dart:7:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'package:encrypt/encrypt.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - lib\core\security\persistent_audit_logger.dart:7:8 - uri_does_not_exist
+  error - The static method 'snapshot' can't be accessed through an instance. Try using the class 'AuditLogger' to access the method - lib\core\security\persistent_audit_logger.dart:99:28 - instance_access_to_static_member
+  error - The static method 'snapshot' can't be accessed through an instance. Try using the class 'AuditLogger' to access the method - lib\core\security\persistent_audit_logger.dart:99:28 - instance_access_to_static_member
+  error - The static method 'snapshot' can't be accessed through an instance. Try using the class 'AuditLogger' to access the method - lib\core\security\persistent_audit_logger.dart:99:28 - instance_access_to_static_member
+warning - The declaration '_verifyHashChain' isn't referenced. Try removing the declaration of '_verifyHashChain' - lib\core\security\persistent_audit_logger.dart:261:8 - unused_element
+warning - The declaration '_verifyHashChain' isn't referenced. Try removing the declaration of '_verifyHashChain' - lib\core\security\persistent_audit_logger.dart:261:8 - unused_element
+warning - The declaration '_verifyHashChain' isn't referenced. Try removing the declaration of '_verifyHashChain' - lib\core\security\persistent_audit_logger.dart:261:8 - unused_element
+  error - The getter 'id' isn't defined for the type 'Stroke'. Try importing the library that defines 'id', correcting the name to the name of an existing getter, or defining a getter or field named 'id' - lib\features\drawing\infrastructure\document_container_codec.dart:57:43 - undefined_getter
+  error - The getter 'id' isn't defined for the type 'Stroke'. Try importing the library that defines 'id', correcting the name to the name of an existing getter, or defining a getter or field named 'id' - lib\features\drawing\infrastructure\document_container_codec.dart:57:43 - undefined_getter
+  error - The getter 'id' isn't defined for the type 'Stroke'. Try importing the library that defines 'id', correcting the name to the name of an existing getter, or defining a getter or field named 'id' - lib\features\drawing\infrastructure\document_container_codec.dart:86:38 - undefined_getter
+  error - The getter 'id' isn't defined for the type 'Stroke'. Try importing the library that defines 'id', correcting the name to the name of an existing getter, or defining a getter or field named 'id' - lib\features\drawing\infrastructure\document_container_codec.dart:86:38 - undefined_getter
+  error - The getter 'id' isn't defined for the type 'Stroke'. Try importing the library that defines 'id', correcting the name to the name of an existing getter, or defining a getter or field named 'id' - lib\features\drawing\infrastructure\document_container_codec.dart:88:23 - undefined_getter
+  error - The getter 'id' isn't defined for the type 'Stroke'. Try importing the library that defines 'id', correcting the name to the name of an existing getter, or defining a getter or field named 'id' - lib\features\drawing\infrastructure\document_container_codec.dart:88:23 - undefined_getter
+   info - 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion. Try replacing the use of the deprecated member with the replacement - lib\features\drawing\infrastructure\document_container_codec.dart:89:32 - deprecated_member_use
+   info - 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion. Try replacing the use of the deprecated member with the replacement - lib\features\drawing\infrastructure\document_container_codec.dart:89:32 - deprecated_member_use
+  error - The getter 'shapes' isn't defined for the type 'Layer'. Try importing the library that defines 'shapes', correcting the name to the name of an existing getter, or defining a getter or field named 'shapes' - lib\features\drawing\infrastructure\document_container_codec.dart:97:23 - undefined_getter
+  error - The getter 'shapes' isn't defined for the type 'Layer'. Try importing the library that defines 'shapes', correcting the name to the name of an existing getter, or defining a getter or field named 'shapes' - lib\features\drawing\infrastructure\document_container_codec.dart:97:23 - undefined_getter
+  error - The method 'subviewList' isn't defined for the type 'ByteData'. Try correcting the name to the name of an existing method, or defining a method named 'subviewList' - lib\features\drawing\infrastructure\document_container_codec.dart:130:29 - undefined_method
+  error - The method 'subviewList' isn't defined for the type 'ByteData'. Try correcting the name to the name of an existing method, or defining a method named 'subviewList' - lib\features\drawing\infrastructure\document_container_codec.dart:130:29 - undefined_method
+  error - The method 'subviewList' isn't defined for the type 'ByteData'. Try correcting the name to the name of an existing method, or defining a method named 'subviewList' - lib\features\drawing\infrastructure\document_container_codec.dart:257:29 - undefined_method
+  error - The method 'subviewList' isn't defined for the type 'ByteData'. Try correcting the name to the name of an existing method, or defining a method named 'subviewList' - lib\features\drawing\infrastructure\document_container_codec.dart:257:29 - undefined_method
+  error - The method 'subviewList' isn't defined for the type 'ByteData'. Try correcting the name to the name of an existing method, or defining a method named 'subviewList' - lib\features\drawing\infrastructure\document_container_codec.dart:273:28 - undefined_method
+  error - The method 'subviewList' isn't defined for the type 'ByteData'. Try correcting the name to the name of an existing method, or defining a method named 'subviewList' - lib\features\drawing\infrastructure\document_container_codec.dart:273:28 - undefined_method
+warning - Unused import: 'package:drawing_notes_app/core/theme/text_scale_helper.dart'. Try removing the import directive - lib\features\drawing\presentation\editor_components.dart:6:8 - unused_import
+warning - Unused import: 'package:drawing_notes_app/core/theme/text_scale_helper.dart'. Try removing the import directive - lib\features\drawing\presentation\editor_components.dart:6:8 - unused_import
+warning - The value of the local variable 'pngBytes' isn't used. Try removing the variable or using it - lib\features\editor_v2\application\pdf_import_service.dart:60:19 - unused_local_variable
+warning - The value of the local variable 'pngBytes' isn't used. Try removing the variable or using it - lib\features\editor_v2\application\pdf_import_service.dart:60:19 - unused_local_variable
+warning - The value of the local variable 'pngBytes' isn't used. Try removing the variable or using it - lib\features\editor_v2\application\pdf_import_service.dart:60:19 - unused_local_variable
+  error - 'textScaleFactor' isn't a field in the enclosing class. Try correcting the name to match an existing field, or defining a field named 'textScaleFactor' - lib\features\editor_v2\presentation\canvas_painter.dart:25:5 - initializing_formal_for_non_existent_field
+  error - The getter 'length' isn't defined for the type 'List<Widget> Function(BuildContext)'. Try importing the library that defines 'length', correcting the name to the name of an existing getter, or defining a getter or field named 'length' - lib\features\notes\presentation\presentation_page.dart:78:28 - undefined_getter
+  error - The getter 'length' isn't defined for the type 'List<Widget> Function(BuildContext)'. Try importing the library that defines 'length', correcting the name to the name of an existing getter, or defining a getter or field named 'length' - lib\features\notes\presentation\presentation_page.dart:78:28 - undefined_getter
+  error - The getter 'length' isn't defined for the type 'List<Widget> Function(BuildContext)'. Try importing the library that defines 'length', correcting the name to the name of an existing getter, or defining a getter or field named 'length' - lib\features\notes\presentation\presentation_page.dart:78:28 - undefined_getter
+  error - Undefined name 'GlobalExceptionHandler'. Try correcting the name to one that is defined, or defining the name - lib\main.dart:109:3 - undefined_identifier
+  error - Undefined name 'GlobalExceptionHandler'. Try correcting the name to one that is defined, or defining the name - lib\main.dart:109:3 - undefined_identifier
+  error - The function 'DebugCrashlyticsReporter' isn't defined. Try importing the library that defines 'DebugCrashlyticsReporter', correcting the name to the name of an existing function, or defining a function named 'DebugCrashlyticsReporter' - lib\main.dart:110:39 - undefined_function
+  error - The function 'DebugCrashlyticsReporter' isn't defined. Try importing the library that defines 'DebugCrashlyticsReporter', correcting the name to the name of an existing function, or defining a function named 'DebugCrashlyticsReporter' - lib\main.dart:110:39 - undefined_function
+  error - Undefined name 'OfflineCacheService'. Try correcting the name to one that is defined, or defining the name - lib\main.dart:114:9 - undefined_identifier
+  error - Undefined name 'OfflineCacheService'. Try correcting the name to one that is defined, or defining the name - lib\main.dart:114:9 - undefined_identifier
+  error - The function 'runZonedGuarded' isn't defined. Try importing the library that defines 'runZonedGuarded', correcting the name to the name of an existing function, or defining a function named 'runZonedGuarded' - lib\main.dart:123:3 - undefined_function
+  error - The function 'runZonedGuarded' isn't defined. Try importing the library that defines 'runZonedGuarded', correcting the name to the name of an existing function, or defining a function named 'runZonedGuarded' - lib\main.dart:123:3 - undefined_function
+  error - Undefined name 'GlobalExceptionHandler'. Try correcting the name to one that is defined, or defining the name - lib\main.dart:129:7 - undefined_identifier
+  error - Undefined name 'GlobalExceptionHandler'. Try correcting the name to one that is defined, or defining the name - lib\main.dart:129:7 - undefined_identifier
+   info - The imported package 'test' isn't a dependency of the importing package. Try adding a dependency for 'test' in the 'pubspec.yaml' file - test\features\editor_v2\pdf_import_test.dart:1:8 - depend_on_referenced_packages
+   info - The imported package 'test' isn't a dependency of the importing package. Try adding a dependency for 'test' in the 'pubspec.yaml' file - test\features\editor_v2\pdf_import_test.dart:1:8 - depend_on_referenced_packages
+warning - Unused import: 'dart:convert'. Try removing the import directive - test\password_disk_file_test.dart:1:8 - unused_import
+
+flutter : 103 issues found. (ran in 228.1s)
+At line:2 char:47
++ ... \write\1\build_latest\drawing_notes_app; flutter analyze 2>&1 | Out-F ...
++                                              ~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (103 issues found. (ran in 228.1s):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 

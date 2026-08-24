@@ -1,0 +1,398 @@
+﻿Analyzing drawing_notes_app...
+
+  error - lib\core\router\app_router.dart:23:8 - Target of URI doesn't exist: 'package:drawing_notes_app/core/exceptions/app_exceptions.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist. - uri_does_not_exist
+  error - lib\core\router\app_router.dart:24:8 - Target of URI doesn't exist: 'package:drawing_notes_app/core/ui/widgets/app_error_widget.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist. - uri_does_not_exist
+  error - lib\core\router\app_router.dart:72:41 - The getter 'instance' isn't defined for the type 'SessionGuard'. Try importing the library that defines 'instance', correcting the name to the name of an existing getter, or defining a getter or field named 'instance'. - undefined_getter
+  error - lib\core\router\app_router.dart:109:25 - The function 'StorageService' isn't defined. Try importing the library that defines 'StorageService', correcting the name to the name of an existing function, or defining a function named 'StorageService'. - undefined_function
+  error - lib\core\router\app_router.dart:124:17 - Undefined name 'UnifiedEditorMode'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\core\router\app_router.dart:125:17 - Undefined name 'UnifiedEditorMode'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\core\router\app_router.dart:143:23 - The function 'Notebook' isn't defined. Try importing the library that defines 'Notebook', correcting the name to the name of an existing function, or defining a function named 'Notebook'. - undefined_function
+  error - lib\core\router\app_router.dart:147:22 - The constructor being called isn't a const constructor. Try removing 'const' from the constructor invocation. - const_with_non_const
+  error - lib\core\router\app_router.dart:170:17 - The function 'AppErrorWidget' isn't defined. Try importing the library that defines 'AppErrorWidget', correcting the name to the name of an existing function, or defining a function named 'AppErrorWidget'. - undefined_function
+  error - lib\core\router\app_router.dart:171:26 - The name 'UIException' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib\core\router\app_router.dart:183:13 - The function 'AppErrorWidget' isn't defined. Try importing the library that defines 'AppErrorWidget', correcting the name to the name of an existing function, or defining a function named 'AppErrorWidget'. - undefined_function
+  error - lib\core\router\app_router.dart:184:16 - The function 'UIException' isn't defined. Try importing the library that defines 'UIException', correcting the name to the name of an existing function, or defining a function named 'UIException'. - undefined_function
+  error - lib\core\security\persistent_audit_logger.dart:6:8 - Target of URI doesn't exist: 'package:encrypt/encrypt.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist. - uri_does_not_exist
+  error - lib\core\security\persistent_audit_logger.dart:98:28 - The static method 'snapshot' can't be accessed through an instance. Try using the class 'AuditLogger' to access the method. - instance_access_to_static_member
+  error - lib\core\utils\safe_image_decode.dart:61:10 - Functions marked 'async' must have a return type which is a supertype of 'Future'. Try fixing the return type of the function, or removing the modifier 'async' from the function body. - illegal_async_return_type
+  error - lib\features\drawing\application\drawing_controller.dart:100:64 - The getter '_grid' isn't defined for the type 'SpatialIndex'. Try importing the library that defines '_grid', correcting the name to the name of an existing getter, or defining a getter or field named '_grid'. - undefined_getter
+  error - lib\features\drawing\application\drawing_controller_render.dart:195:9 - Undefined name '_selectedStrokeIndices'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\application\drawing_controller_render.dart:200:9 - Undefined name '_currentSelection'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\application\drawing_controller_render.dart:200:39 - Undefined name '_currentSelection'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\application\drawing_controller_render.dart:201:14 - Undefined name '_currentSelection'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\application\drawing_controller_render.dart:204:20 - The method 'fromPoint' isn't defined for the type 'Rect'. Try correcting the name to the name of an existing method, or defining a method named 'fromPoint'. - undefined_method
+  error - lib\features\drawing\infrastructure\document_container_codec.dart:57:43 - The getter 'id' isn't defined for the type 'Stroke'. Try importing the library that defines 'id', correcting the name to the name of an existing getter, or defining a getter or field named 'id'. - undefined_getter
+  error - lib\features\drawing\infrastructure\document_container_codec.dart:86:38 - The getter 'id' isn't defined for the type 'Stroke'. Try importing the library that defines 'id', correcting the name to the name of an existing getter, or defining a getter or field named 'id'. - undefined_getter
+  error - lib\features\drawing\infrastructure\document_container_codec.dart:88:23 - The getter 'id' isn't defined for the type 'Stroke'. Try importing the library that defines 'id', correcting the name to the name of an existing getter, or defining a getter or field named 'id'. - undefined_getter
+  error - lib\features\drawing\infrastructure\document_container_codec.dart:97:23 - The getter 'shapes' isn't defined for the type 'Layer'. Try importing the library that defines 'shapes', correcting the name to the name of an existing getter, or defining a getter or field named 'shapes'. - undefined_getter
+  error - lib\features\drawing\infrastructure\document_container_codec.dart:130:29 - The method 'subviewList' isn't defined for the type 'ByteData'. Try correcting the name to the name of an existing method, or defining a method named 'subviewList'. - undefined_method
+  error - lib\features\drawing\infrastructure\document_container_codec.dart:257:29 - The method 'subviewList' isn't defined for the type 'ByteData'. Try correcting the name to the name of an existing method, or defining a method named 'subviewList'. - undefined_method
+  error - lib\features\drawing\infrastructure\document_container_codec.dart:273:28 - The method 'subviewList' isn't defined for the type 'ByteData'. Try correcting the name to the name of an existing method, or defining a method named 'subviewList'. - undefined_method
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:4:32 - Undefined class '_EditorPageState'. Try changing the name to the name of an existing class, or creating a class with the name '_EditorPageState'. - undefined_class
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:5:3 - Undefined class 'PreferredSizeWidget'. Try changing the name to the name of an existing class, or creating a class with the name 'PreferredSizeWidget'. - undefined_class
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:5:36 - Undefined class 'BuildContext'. Try changing the name to the name of an existing class, or creating a class with the name 'BuildContext'. - undefined_class
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:8:21 - Undefined name '_controller'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:10:26 - Undefined name '_isNotebookMode'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:15:19 - Undefined name '_controller'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:17:29 - Undefined name 'TextOverflow'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:20:21 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:22:32 - Undefined name 'VisualDensity'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:24:28 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:24:53 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:36:23 - Undefined name '_controller'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:38:22 - Undefined name 'AppLocalizations'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:39:25 - The name 'Icon' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:39:30 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:40:24 - Undefined name '_commands'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:41:25 - Undefined name '_commands'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:46:23 - Undefined name '_controller'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:48:22 - Undefined name 'AppLocalizations'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:49:25 - The name 'Icon' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:49:30 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:50:24 - Undefined name '_commands'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:51:25 - Undefined name '_commands'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:58:20 - Undefined name '_layersVisible'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:60:13 - Undefined name '_layersVisible'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:60:30 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:60:45 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:62:23 - Undefined name '_layersVisible'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:64:30 - Undefined name '_layersVisible'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:64:48 - Undefined name '_layersVisible'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:67:20 - Undefined name '_inspectorVisible'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:69:13 - Undefined name '_inspectorVisible'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:69:33 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:69:46 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:71:23 - Undefined name '_inspectorVisible'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:73:30 - Undefined name '_inspectorVisible'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:73:51 - Undefined name '_inspectorVisible'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:78:20 - Undefined name '_fullscreen'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:80:13 - Undefined name '_fullscreen'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:80:27 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:80:51 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:82:43 - Undefined name '_fullscreen'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:82:58 - Undefined name '_fullscreen'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:85:20 - Undefined name '_readingInverted'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:87:13 - Undefined name '_readingInverted'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:88:19 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:89:19 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:91:23 - Undefined name '_readingInverted'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:93:30 - Undefined name '_readingInverted'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:93:50 - Undefined name '_readingInverted'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:98:20 - Undefined name 'AppLocalizations'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:99:23 - The name 'Icon' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:99:28 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:100:22 - Undefined name '_showShortcutHelp'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:111:3 - Undefined class 'PopupMenuButton'. Try changing the name to the name of an existing class, or creating a class with the name 'PopupMenuButton'. - undefined_class
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:111:19 - The name '_MainMenuItem' isn't a type, so it can't be used as a type argument. Try correcting the name to an existing type, or defining a type named '_MainMenuItem'. - non_type_as_type_argument
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:111:55 - Undefined class 'BuildContext'. Try changing the name to the name of an existing class, or creating a class with the name 'BuildContext'. - undefined_class
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:112:28 - The name '_MainMenuItem' isn't a type, so it can't be used as a type argument. Try correcting the name to an existing type, or defining a type named '_MainMenuItem'. - non_type_as_type_argument
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:113:16 - Undefined name 'AppLocalizations'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:114:19 - The name 'Icon' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:114:24 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:115:19 - Undefined name '_onMainMenuSelected'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:118:18 - Undefined name '_MainMenuItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:121:29 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:122:27 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:123:25 - Undefined name 'AppLocalizations'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:126:15 - The name 'PopupMenuDivider' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:128:18 - Undefined name '_MainMenuItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:131:29 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:132:27 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:133:25 - Undefined name 'AppLocalizations'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:137:18 - Undefined name '_MainMenuItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:140:29 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:141:27 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:142:25 - Undefined name 'AppLocalizations'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:146:18 - Undefined name '_MainMenuItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:149:29 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:150:27 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:155:18 - Undefined name '_MainMenuItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:158:29 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:159:27 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:160:25 - Undefined name 'AppLocalizations'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:164:18 - Undefined name '_MainMenuItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:167:29 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:168:27 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:169:25 - Undefined name 'AppLocalizations'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:173:18 - Undefined name '_MainMenuItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:176:29 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:177:27 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:178:25 - Undefined name 'AppLocalizations'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:182:18 - Undefined name '_MainMenuItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:185:29 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:186:27 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:187:25 - Undefined name 'AppLocalizations'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:190:13 - Undefined name '_isNotebookMode'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:192:20 - Undefined name '_MainMenuItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:195:31 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:196:29 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:197:27 - Undefined name 'AppLocalizations'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:201:18 - Undefined name '_MainMenuItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:204:29 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:205:27 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:209:15 - The name 'PopupMenuDivider' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:211:18 - Undefined name '_MainMenuItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:214:29 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:215:27 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:220:18 - Undefined name '_MainMenuItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:223:29 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:224:27 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:229:18 - Undefined name '_MainMenuItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:232:29 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:233:27 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:238:18 - Undefined name '_MainMenuItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:241:29 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:242:27 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:247:18 - Undefined name '_MainMenuItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:250:29 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:251:27 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:256:18 - Undefined name '_MainMenuItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:259:29 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:260:27 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:265:14 - Undefined name '_isNotebookMode'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:267:20 - Undefined name '_MainMenuItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:270:31 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:272:17 - Undefined name '_controller'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:273:23 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:274:23 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_appbar.dart:277:17 - Undefined name '_controller'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:4:30 - Undefined class '_EditorPageState'. Try changing the name to the name of an existing class, or creating a class with the name '_EditorPageState'. - undefined_class
+  error - lib\features\drawing\presentation\editor_page_body.dart:8:3 - Undefined class 'Widget'. Try changing the name to the name of an existing class, or creating a class with the name 'Widget'. - undefined_class
+  error - lib\features\drawing\presentation\editor_page_body.dart:8:21 - Undefined class 'BuildContext'. Try changing the name to the name of an existing class, or creating a class with the name 'BuildContext'. - undefined_class
+  error - lib\features\drawing\presentation\editor_page_body.dart:11:28 - Undefined name 'Orientation'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:20:3 - Undefined class 'Widget'. Try changing the name to the name of an existing class, or creating a class with the name 'Widget'. - undefined_class
+  error - lib\features\drawing\presentation\editor_page_body.dart:20:29 - Undefined class 'BuildContext'. Try changing the name to the name of an existing class, or creating a class with the name 'BuildContext'. - undefined_class
+  error - lib\features\drawing\presentation\editor_page_body.dart:31:3 - Undefined class 'Widget'. Try changing the name to the name of an existing class, or creating a class with the name 'Widget'. - undefined_class
+  error - lib\features\drawing\presentation\editor_page_body.dart:31:30 - Undefined class 'BuildContext'. Try changing the name to the name of an existing class, or creating a class with the name 'BuildContext'. - undefined_class
+  error - lib\features\drawing\presentation\editor_page_body.dart:36:23 - Undefined name '_controller'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:37:29 - Undefined name '_eyedropperActive'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:38:27 - Undefined name '_textToolActive'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:39:26 - Undefined name '_marqueeActive'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:40:21 - Undefined name '_linkMode'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:41:23 - Undefined name '_handToolActive'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:42:19 - Undefined name '_toggleHandTool'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:43:24 - Undefined name '_activeShapeTool'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:44:45 - Undefined name 'BrushType'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:45:46 - Undefined name 'BrushType'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:46:51 - Undefined name 'BrushType'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:47:45 - Undefined name 'BrushType'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:48:46 - Undefined name 'BrushType'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:50:13 - Undefined name '_handToolActive'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:51:13 - Undefined name '_activeShapeTool'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:52:13 - Undefined name '_marqueeActive'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:53:13 - Undefined name '_controller'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:53:41 - Undefined name 'SelectionTool'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:54:13 - Undefined name '_viewModel'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:55:13 - Undefined name '_viewModel'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:58:13 - Undefined name '_handToolActive'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:59:13 - Undefined name '_activeShapeTool'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:60:13 - Undefined name '_marqueeActive'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:61:13 - Undefined name '_viewModel'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:62:13 - Undefined name '_viewModel'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:63:13 - Undefined name '_viewModel'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:64:13 - Undefined name '_controller'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:64:41 - Undefined name 'SelectionTool'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:66:22 - Undefined name '_toggleMarqueeTool'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:68:13 - Undefined name '_handToolActive'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:69:13 - Undefined name '_activeShapeTool'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:70:13 - Undefined name '_marqueeActive'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:71:13 - Undefined name '_controller'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:71:41 - Undefined name 'SelectionTool'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:72:13 - Undefined name '_viewModel'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:73:13 - Undefined name '_viewModel'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:75:20 - Undefined name '_selectShapeTool'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:76:19 - Undefined name '_toggleLinkMode'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:88:13 - Undefined name '_layersVisible'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:88:52 - Undefined name '_controller'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:89:13 - Undefined name '_inspectorVisible'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:95:3 - Undefined class 'Widget'. Try changing the name to the name of an existing class, or creating a class with the name 'Widget'. - undefined_class
+  error - lib\features\drawing\presentation\editor_page_body.dart:97:19 - Undefined name '_controller'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:98:23 - Undefined name '_isNotebookMode'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:99:19 - Undefined name '_scaleValue'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:100:22 - Undefined name '_rotateDegrees'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:103:30 - Undefined name '_scaleValue'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:104:11 - Undefined name '_scaleValue'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:105:21 - Undefined name '_controller'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:106:15 - Undefined name '_isNotebookMode'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:119:30 - Undefined name '_rotateDegrees'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:120:11 - Undefined name '_rotateDegrees'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:121:11 - Undefined name '_controller'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:125:9 - Undefined name '_viewModel'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:126:9 - Undefined name '_controller'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:129:19 - Undefined name '_controller'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:130:13 - Undefined name '_isNotebookMode'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:143:3 - Undefined class 'Widget'. Try changing the name to the name of an existing class, or creating a class with the name 'Widget'. - undefined_class
+  error - lib\features\drawing\presentation\editor_page_body.dart:145:19 - Undefined name '_controller'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:146:22 - Undefined name '_selectedShapeItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:147:21 - Undefined name '_selectedTextItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:148:22 - Undefined name '_selectedImageItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:149:20 - Undefined name '_showColorPicker'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:152:19 - Undefined name '_selectedShapeItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:158:19 - Undefined name '_selectedShapeItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:170:19 - Undefined name '_selectedShapeItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:178:19 - Undefined name '_selectedShapeItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:184:19 - Undefined name '_selectedShapeItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:189:20 - Undefined name '_changeSelectedTextColor'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:190:23 - Undefined name '_setSelectedTextFontSize'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:192:13 - Undefined name '_cropItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:196:21 - Undefined name '_selectedImageItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:199:11 - Undefined name '_cropItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:200:11 - Undefined name '_cropRect'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:200:23 - Undefined name 'Rect'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_body.dart:205:19 - Undefined name '_selectedTextItem'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_overlays.dart:629:17 - Undefined name 'AppAnimation'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\drawing\presentation\editor_page_overlays.dart:630:14 - Undefined name 'AppAnimation'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\editor_v2\application\editor_v2_viewmodel.dart:27:31 - Undefined name 'Offset'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\editor_v2\application\editor_v2_viewmodel.dart:49:9 - Undefined class 'Offset'. Try changing the name to the name of an existing class, or creating a class with the name 'Offset'. - undefined_class
+  error - lib\features\editor_v2\application\editor_v2_viewmodel.dart:59:5 - Undefined class 'Offset'. Try changing the name to the name of an existing class, or creating a class with the name 'Offset'. - undefined_class
+  error - lib\features\editor_v2\application\editor_v2_viewmodel.dart:231:33 - Undefined class 'Offset'. Try changing the name to the name of an existing class, or creating a class with the name 'Offset'. - undefined_class
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:49:7 - Missing concrete implementation of 'State.build'. Try implementing the missing method, or make the class abstract. - non_abstract_class_inherits_abstract_member
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:109:1 - Methods must have an explicit list of parameters. Try adding a parameter list. - missing_method_parameters
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:109:1 - Operator '<<' should declare exactly 1 parameters, but 0 found. - wrong_number_of_parameters_for_operator
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:109:1 - Operator declarations must be preceded by the keyword 'operator'. Try adding the keyword 'operator'. - missing_keyword_operator
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:109:3 - A function body must be provided. Try adding a function body. - missing_function_body
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:109:3 - Methods must have an explicit list of parameters. Try adding a parameter list. - missing_method_parameters
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:109:3 - Operator '<<' should declare exactly 1 parameters, but 0 found. - wrong_number_of_parameters_for_operator
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:109:3 - Operator declarations must be preceded by the keyword 'operator'. Try adding the keyword 'operator'. - missing_keyword_operator
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:109:3 - The name '<<' is already defined. Try renaming one of the declarations. - duplicate_definition
+           - The first definition of this name at lib\features\editor_v2\presentation\editor_v2_screen.dart:109:1.
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:109:5 - A function body must be provided. Try adding a function body. - missing_function_body
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:109:5 - Methods must have an explicit list of parameters. Try adding a parameter list. - missing_method_parameters
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:109:5 - Operator '<<' should declare exactly 1 parameters, but 0 found. - wrong_number_of_parameters_for_operator
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:109:5 - Operator declarations must be preceded by the keyword 'operator'. Try adding the keyword 'operator'. - missing_keyword_operator
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:109:5 - The name '<<' is already defined. Try renaming one of the declarations. - duplicate_definition
+           - The first definition of this name at lib\features\editor_v2\presentation\editor_v2_screen.dart:109:1.
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:109:7 - Types parameters aren't allowed when defining an operator. Try removing the type parameters. - type_parameter_on_operator
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:109:9 - Expected to find '>'. - expected_token
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:111:3 - A function body must be provided. Try adding a function body. - missing_function_body
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:129:1 - Expected an identifier. - missing_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:129:1 - The '===' operator is not supported. - unsupported_operator
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:129:4 - Illegal assignment to non-assignable expression. - illegal_assignment_to_non_assignable
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:129:4 - Missing selector such as '.identifier' or '[0]'. Try adding a selector. - missing_assignable_selector
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:129:4 - The '===' operator is not supported. - unsupported_operator
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:129:7 - Expected an identifier. - missing_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:131:8 - Function expressions can't be named. Try removing the name, or moving the function expression to a function declaration statement. - named_function_expression
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:142:3 - Expected to find ';'. - expected_token
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:153:1 - Expected an identifier. - missing_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:153:4 - Expected an identifier. - missing_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:153:7 - Expected an identifier. - missing_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:153:9 - Undefined name 'rework'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:153:16 - Undefined name 'wp2'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:153:20 - Undefined name 'shapes'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:153:27 - Expected to find ';'. - expected_token
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:153:27 - Undefined name 'colors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:187:1 - Expected an identifier. - missing_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:187:3 - Expected an identifier. - missing_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:187:5 - Expected an identifier. - missing_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:187:9 - Expected to find '>'. - expected_token
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:187:9 - The name 'HEAD' isn't a type, so it can't be used as a type argument. Try correcting the name to an existing type, or defining a type named 'HEAD'. - non_type_as_type_argument
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:191:11 - Expected to find ','. - expected_token
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:191:11 - Expected to find '['. - expected_token
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:211:30 - The name '_NoteFormattingToolbar' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:253:1 - Expected an identifier. - missing_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:253:1 - The '===' operator is not supported. - unsupported_operator
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:253:4 - Missing selector such as '.identifier' or '[0]'. Try adding a selector. - missing_assignable_selector
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:253:4 - The '===' operator is not supported. - unsupported_operator
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:253:4 - Too many positional arguments: 0 expected, but 2 found. Try removing the extra positional arguments, or specifying the name for named arguments. - extra_positional_arguments_could_be_named
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:253:7 - Expected an identifier. - missing_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:280:1 - Expected an identifier. - missing_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:280:1 - Too many positional arguments: 0 expected, but 1 found. Try removing the extra arguments. - extra_positional_arguments
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:280:4 - Expected an identifier. - missing_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:280:7 - Expected an identifier. - missing_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:280:9 - Undefined name 'rework'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:280:16 - Undefined name 'wp2'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:280:20 - Undefined name 'shapes'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:280:27 - Undefined name 'colors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:305:44 - The method '_pickColorFromCanvas' isn't defined for the type '_EditorV2ScreenState'. Try correcting the name to the name of an existing method, or defining a method named '_pickColorFromCanvas'. - undefined_method
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:308:37 - Undefined name 'AppAnimation'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:309:42 - Undefined name 'AppAnimation'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:362:9 - Expected to find ')'. - expected_token
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:372:1 - Classes can't be declared inside other classes. Try moving the class to the top-level. - class_in_class
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:372:30 - Expected a class member. Try placing this code inside a class member. - expected_class_member
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:372:38 - Methods must have an explicit list of parameters. Try adding a parameter list. - missing_method_parameters
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:373:9 - The name '_NoteFormattingToolbar' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:382:11 - The method '_ToolButton' isn't defined for the type '_EditorV2ScreenState'. Try correcting the name to the name of an existing method, or defining a method named '_ToolButton'. - undefined_method
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:389:11 - The method '_ToolButton' isn't defined for the type '_EditorV2ScreenState'. Try correcting the name to the name of an existing method, or defining a method named '_ToolButton'. - undefined_method
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:396:11 - The method '_ToolButton' isn't defined for the type '_EditorV2ScreenState'. Try correcting the name to the name of an existing method, or defining a method named '_ToolButton'. - undefined_method
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:403:11 - The method '_ToolButton' isn't defined for the type '_EditorV2ScreenState'. Try correcting the name to the name of an existing method, or defining a method named '_ToolButton'. - undefined_method
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:411:11 - The method '_ToolButton' isn't defined for the type '_EditorV2ScreenState'. Try correcting the name to the name of an existing method, or defining a method named '_ToolButton'. - undefined_method
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:418:11 - The method '_ToolButton' isn't defined for the type '_EditorV2ScreenState'. Try correcting the name to the name of an existing method, or defining a method named '_ToolButton'. - undefined_method
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:426:11 - The method '_ToolButton' isn't defined for the type '_EditorV2ScreenState'. Try correcting the name to the name of an existing method, or defining a method named '_ToolButton'. - undefined_method
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:440:1 - Classes can't be declared inside other classes. Try moving the class to the top-level. - class_in_class
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:440:19 - Expected a class member. Try placing this code inside a class member. - expected_class_member
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:440:27 - Methods must have an explicit list of parameters. Try adding a parameter list. - missing_method_parameters
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:440:27 - The name 'StatelessWidget' is already defined. Try renaming one of the declarations. - duplicate_definition
+           - The first definition of this name at lib\features\editor_v2\presentation\editor_v2_screen.dart:372:38.
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:441:9 - The name '_ToolButton' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:442:14 - Expected to find ','. - expected_token
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:442:19 - The getter 'icon' isn't defined for the type '_EditorV2ScreenState'. Try importing the library that defines 'icon', correcting the name to the name of an existing getter, or defining a getter or field named 'icon'. - undefined_getter
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:443:14 - Expected to find ','. - expected_token
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:443:19 - The getter 'tooltip' isn't defined for the type '_EditorV2ScreenState'. Try importing the library that defines 'tooltip', correcting the name to the name of an existing getter, or defining a getter or field named 'tooltip'. - undefined_getter
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:444:14 - Expected to find ','. - expected_token
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:444:19 - The getter 'onPressed' isn't defined for the type '_EditorV2ScreenState'. Try importing the library that defines 'onPressed', correcting the name to the name of an existing getter, or defining a getter or field named 'onPressed'. - undefined_getter
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:454:16 - The final variable 'tooltip' can't be read because it's potentially unassigned at this point. Ensure that it is assigned on necessary execution paths. - read_potentially_unassigned_final
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:456:20 - The final variable 'icon' can't be read because it's potentially unassigned at this point. Ensure that it is assigned on necessary execution paths. - read_potentially_unassigned_final
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:457:20 - The final variable 'onPressed' can't be read because it's potentially unassigned at this point. Ensure that it is assigned on necessary execution paths. - read_potentially_unassigned_final
+  error - lib\features\editor_v2\presentation\editor_v2_screen.dart:467:1 - Expected to find '}'. - expected_token
+  error - lib\features\editor_v2\presentation\note_editor_widget.dart:152:14 - Undefined name 'scheme'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\editor_v2\presentation\toolbar_widget.dart:94:1 - Expected an identifier. - missing_identifier
+  error - lib\features\editor_v2\presentation\toolbar_widget.dart:94:1 - Too many positional arguments: 0 expected, but 2 found. Try removing the extra arguments. - extra_positional_arguments
+  error - lib\features\editor_v2\presentation\toolbar_widget.dart:94:3 - Expected an identifier. - missing_identifier
+  error - lib\features\editor_v2\presentation\toolbar_widget.dart:94:5 - Expected an identifier. - missing_identifier
+  error - lib\features\editor_v2\presentation\toolbar_widget.dart:94:9 - Expected to find '>'. - expected_token
+  error - lib\features\editor_v2\presentation\toolbar_widget.dart:94:9 - The name 'HEAD' isn't a type, so it can't be used as a type argument. Try correcting the name to an existing type, or defining a type named 'HEAD'. - non_type_as_type_argument
+  error - lib\features\editor_v2\presentation\toolbar_widget.dart:95:13 - Expected to find ','. - expected_token
+  error - lib\features\editor_v2\presentation\toolbar_widget.dart:95:13 - Expected to find '['. - expected_token
+  error - lib\features\editor_v2\presentation\toolbar_widget.dart:99:1 - Expected an identifier. - missing_identifier
+  error - lib\features\editor_v2\presentation\toolbar_widget.dart:99:1 - The '===' operator is not supported. - unsupported_operator
+  error - lib\features\editor_v2\presentation\toolbar_widget.dart:99:4 - Missing selector such as '.identifier' or '[0]'. Try adding a selector. - missing_assignable_selector
+  error - lib\features\editor_v2\presentation\toolbar_widget.dart:99:4 - The '===' operator is not supported. - unsupported_operator
+  error - lib\features\editor_v2\presentation\toolbar_widget.dart:99:7 - Expected an identifier. - missing_identifier
+  error - lib\features\editor_v2\presentation\toolbar_widget.dart:100:13 - Undefined name 'icon'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\editor_v2\presentation\toolbar_widget.dart:100:17 - Expected to find ')'. - expected_token
+  error - lib\features\editor_v2\presentation\toolbar_widget.dart:133:21 - Undefined name 'AppAnimation'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\editor_v2\presentation\toolbar_widget.dart:134:18 - Undefined name 'AppAnimation'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\notes\presentation\password_disk_page.dart:257:25 - Undefined name '_maxFailures'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\notes\presentation\password_disk_page.dart:258:43 - Undefined name '_lockDuration'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\notes\presentation\password_disk_page.dart:263:21 - Undefined name '_maxFailures'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\notes\presentation\password_disk_page.dart:263:45 - Undefined name '_lockDuration'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\notes\presentation\password_disk_page.dart:265:43 - Undefined name '_maxFailures'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\notes\presentation\password_disk_page.dart:341:23 - Undefined name 'AppAnimation'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\notes\presentation\password_disk_page.dart:342:20 - Undefined name 'AppAnimation'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib\features\notes\presentation\password_disk_page.dart:391:30 - Undefined name '_maxFailures'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+warning - lib\app.dart:51:8 - The declaration '_syncThemeMode' isn't referenced. Try removing the declaration of '_syncThemeMode'. - unused_element
+warning - lib\app.dart:53:11 - The value of the local variable 'currentMode' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib\core\security\persistent_audit_logger.dart:260:8 - The declaration '_verifyHashChain' isn't referenced. Try removing the declaration of '_verifyHashChain'. - unused_element
+warning - lib\features\drawing\presentation\editor_page_appbar.dart:5:23 - The declaration '_buildAppBar' isn't referenced. Try removing the declaration of '_buildAppBar'. - unused_element
+warning - lib\features\drawing\presentation\editor_page_body.dart:8:10 - The declaration '_buildBody' isn't referenced. Try removing the declaration of '_buildBody'. - unused_element
+warning - lib\features\editor_v2\presentation\editor_v2_screen.dart:153:1 - Dead code. Try removing the code, or fixing the code before it so that it can be reached. - dead_code
+warning - lib\features\editor_v2\presentation\editor_v2_screen.dart:156:4 - The annotation 'override' can only be used on fields, getters, methods, or setters. - invalid_annotation_target
+warning - lib\features\editor_v2\presentation\editor_v2_screen.dart:157:10 - The declaration 'build' isn't referenced. Try removing the declaration of 'build'. - unused_element
+warning - lib\features\editor_v2\presentation\editor_v2_screen.dart:375:4 - The annotation 'override' can only be used on fields, getters, methods, or setters. - invalid_annotation_target
+warning - lib\features\editor_v2\presentation\editor_v2_screen.dart:376:10 - The declaration 'build' isn't referenced. Try removing the declaration of 'build'. - unused_element
+warning - lib\features\editor_v2\presentation\editor_v2_screen.dart:451:4 - The annotation 'override' can only be used on fields, getters, methods, or setters. - invalid_annotation_target
+warning - lib\features\editor_v2\presentation\editor_v2_screen.dart:452:10 - The declaration 'build' isn't referenced. Try removing the declaration of 'build'. - unused_element
+warning - lib\features\notes\presentation\password_disk_page.dart:47:57 - The value of the field '_lockThresholds' isn't used. Try removing the field, or using it. - unused_field
+   info - lib\core\security\persistent_audit_logger.dart:6:8 - The imported package 'encrypt' isn't a dependency of the importing package. Try adding a dependency for 'encrypt' in the 'pubspec.yaml' file. - depend_on_referenced_packages
+   info - lib\core\utils\safe_image_decode.dart:2:8 - The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/foundation.dart'. Try removing the import directive. - unnecessary_import
+   info - lib\core\utils\safe_image_decode.dart:43:19 - Unnecessary braces in a string interpolation. Try removing the braces. - unnecessary_brace_in_string_interps
+   info - lib\core\utils\safe_image_decode.dart:53:17 - Unnecessary braces in a string interpolation. Try removing the braces. - unnecessary_brace_in_string_interps
+   info - lib\features\drawing\infrastructure\document_container_codec.dart:89:32 - 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\features\editor_v2\application\color_magnifier.dart:50:22 - 'red' is deprecated and shouldn't be used. Use (*.r * 255.0).round().clamp(0, 255). Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\features\editor_v2\application\color_magnifier.dart:51:22 - 'green' is deprecated and shouldn't be used. Use (*.g * 255.0).round().clamp(0, 255). Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\features\editor_v2\application\color_magnifier.dart:52:22 - 'blue' is deprecated and shouldn't be used. Use (*.b * 255.0).round().clamp(0, 255). Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\features\editor_v2\presentation\editor_v2_screen.dart:109:1 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib\features\editor_v2\presentation\editor_v2_screen.dart:109:3 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib\features\editor_v2\presentation\editor_v2_screen.dart:109:5 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib\features\editor_v2\presentation\editor_v2_screen.dart:145:15 - The local variable '_getCurrentPickedColor' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - lib\features\editor_v2\presentation\editor_v2_screen.dart:372:38 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib\features\editor_v2\presentation\editor_v2_screen.dart:372:38 - The variable name 'StatelessWidget' isn't a lowerCamelCase identifier. Try changing the name to follow the lowerCamelCase style. - non_constant_identifier_names
+   info - lib\features\editor_v2\presentation\editor_v2_screen.dart:440:27 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib\features\editor_v2\presentation\editor_v2_screen.dart:440:27 - The variable name 'StatelessWidget' isn't a lowerCamelCase identifier. Try changing the name to follow the lowerCamelCase style. - non_constant_identifier_names
+   info - lib\features\editor_v2\presentation\editor_v2_screen.dart:442:5 - 'required' is deprecated and shouldn't be used. In Dart 2.12 and later, use the built-in `required` keyword to mark a named parameter as required. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\features\editor_v2\presentation\editor_v2_screen.dart:443:5 - 'required' is deprecated and shouldn't be used. In Dart 2.12 and later, use the built-in `required` keyword to mark a named parameter as required. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\features\editor_v2\presentation\editor_v2_screen.dart:444:5 - 'required' is deprecated and shouldn't be used. In Dart 2.12 and later, use the built-in `required` keyword to mark a named parameter as required. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\features\editor_v2\presentation\magnifier_overlay.dart:50:9 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - test\features\editor_v2\pdf_import_test.dart:1:8 - The imported package 'test' isn't a dependency of the importing package. Try adding a dependency for 'test' in the 'pubspec.yaml' file. - depend_on_referenced_packages
+
+391 issues found.

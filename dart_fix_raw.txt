@@ -1,0 +1,40 @@
+﻿Computing fixes in drawing_notes_app...
+Applying fixes...
+
+lib\core\security\persistent_audit_logger.dart
+  unused_import - 1 fix
+
+lib\core\security\session_guard.dart
+  dangling_library_doc_comments - 1 fix
+
+lib\features\drawing\infrastructure\document_container_codec.dart
+  deprecated_member_use - 1 fix
+
+lib\features\editor_v2\application\editor_v2_viewmodel.dart
+  unused_import - 1 fix
+
+lib\features\editor_v2\presentation\color_magnifier_overlay.dart
+  unused_import - 1 fix
+
+lib\features\editor_v2\presentation\export_panel.dart
+  unused_import - 1 fix
+
+lib\features\editor_v2\presentation\layer_panel.dart
+  unused_import - 1 fix
+
+lib\features\editor_v2\presentation\note_editor_widget.dart
+  unused_import - 1 fix
+
+lib\features\editor_v2\presentation\property_panel.dart
+  unused_import - 1 fix
+
+lib\features\editor_v2\presentation\zoom_controls.dart
+  unused_import - 1 fix
+
+pubspec.yaml
+  missing_dependency - 1 fix
+
+test\password_disk_file_test.dart
+  unused_import - 1 fix
+
+12 fixes made in 12 files.

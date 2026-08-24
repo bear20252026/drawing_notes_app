@@ -98,449 +98,1403 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
-  /// Application title
+  /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
   /// **'Drawing Notes'**
   String get appTitle;
 
-  /// Search action
+  /// No description provided for @search.
   ///
   /// In en, this message translates to:
   /// **'Search'**
   String get search;
 
-  /// Recycle bin entry
+  /// No description provided for @trash.
   ///
   /// In en, this message translates to:
   /// **'Trash (recoverable within 30 days)'**
   String get trash;
 
-  /// Close dialog
+  /// No description provided for @close.
   ///
   /// In en, this message translates to:
   /// **'Close'**
   String get close;
 
-  /// Create notebook action
+  /// No description provided for @newNotebook.
   ///
   /// In en, this message translates to:
-  /// **'New notebook'**
+  /// **'New Notebook'**
   String get newNotebook;
 
-  /// Delete action
+  /// No description provided for @delete.
   ///
   /// In en, this message translates to:
   /// **'Delete'**
   String get delete;
 
-  /// Trash dialog empty state
+  /// No description provided for @homeTrashEmpty.
   ///
   /// In en, this message translates to:
   /// **'Trash is empty'**
   String get homeTrashEmpty;
 
-  /// Trash item deletion time
+  /// No description provided for @homeDeletedAt.
   ///
   /// In en, this message translates to:
   /// **'Deleted at {time}'**
-  String homeDeletedAt(String time);
+  String homeDeletedAt(Object time);
 
-  /// Restore from trash action
+  /// No description provided for @homeRecover.
   ///
   /// In en, this message translates to:
   /// **'Recover'**
   String get homeRecover;
 
-  /// Permanent delete action
+  /// No description provided for @homeDeleteForever.
   ///
   /// In en, this message translates to:
-  /// **'Delete forever'**
+  /// **'Delete Forever'**
   String get homeDeleteForever;
 
-  /// Empty trash action
+  /// No description provided for @homeEmptyTrash.
   ///
   /// In en, this message translates to:
-  /// **'Empty trash'**
+  /// **'Empty Trash'**
   String get homeEmptyTrash;
 
-  /// Cancel action
+  /// No description provided for @homeCancel.
   ///
   /// In en, this message translates to:
   /// **'Cancel'**
   String get homeCancel;
 
-  /// Theme toggle tooltip
+  /// No description provided for @homeSwitchTheme.
   ///
   /// In en, this message translates to:
-  /// **'Switch appearance (system / light / dark)'**
+  /// **'Switch Theme (System / Light / Dark)'**
   String get homeSwitchTheme;
 
-  /// More actions tooltip
+  /// No description provided for @homeMore.
   ///
   /// In en, this message translates to:
-  /// **'More options'**
+  /// **'More Actions'**
   String get homeMore;
 
-  /// Undo action
+  /// No description provided for @homeRecovered.
+  ///
+  /// In en, this message translates to:
+  /// **'Recovered \"{id}\"'**
+  String homeRecovered(Object id);
+
+  /// No description provided for @homePasswordDiskAndRecovery.
+  ///
+  /// In en, this message translates to:
+  /// **'Password Disk & Recovery'**
+  String get homePasswordDiskAndRecovery;
+
+  /// No description provided for @homeInfiniteCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'Canvas'**
+  String get homeInfiniteCanvas;
+
+  /// No description provided for @homeNotebook.
+  ///
+  /// In en, this message translates to:
+  /// **'Notebooks'**
+  String get homeNotebook;
+
+  /// No description provided for @homeRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent'**
+  String get homeRecent;
+
+  /// No description provided for @homeNewInfiniteCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'New Canvas'**
+  String get homeNewInfiniteCanvas;
+
+  /// No description provided for @homeQuickRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Record'**
+  String get homeQuickRecord;
+
+  /// No description provided for @homeRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get homeRetry;
+
+  /// No description provided for @homeErrorDrawingNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Drawing file not found or corrupted'**
+  String get homeErrorDrawingNotFound;
+
+  /// No description provided for @homeErrorOpenDrawing.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to open drawing: {error}'**
+  String homeErrorOpenDrawing(Object error);
+
+  /// No description provided for @homeDeleteDrawing.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Drawing'**
+  String get homeDeleteDrawing;
+
+  /// No description provided for @homeConfirmDeleteDrawing.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete \"{title}\"? This action cannot be undone.'**
+  String homeConfirmDeleteDrawing(Object title);
+
+  /// No description provided for @homeDeleteNotebook.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Notebook'**
+  String get homeDeleteNotebook;
+
+  /// No description provided for @homeConfirmDeleteNotebook.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete notebook \"{title}\"? All pages and content will be permanently deleted.'**
+  String homeConfirmDeleteNotebook(Object title);
+
+  /// No description provided for @homeConfirmPermanentDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to permanently delete \"{name}\"? This action cannot be undone.'**
+  String homeConfirmPermanentDelete(Object name);
+
+  /// No description provided for @homeErrorDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete failed: {error}'**
+  String homeErrorDeleteFailed(Object error);
+
+  /// No description provided for @homeErrorPolicyDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Operation denied by policy ({policy})'**
+  String homeErrorPolicyDenied(Object policy);
+
+  /// No description provided for @homeLegacyEncryptionWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Legacy encryption format detected (100K iterations). Please re-save to upgrade to the latest standard (600K iterations).'**
+  String get homeLegacyEncryptionWarning;
+
+  /// No description provided for @homeEncryptionUpgraded.
+  ///
+  /// In en, this message translates to:
+  /// **'Encryption automatically upgraded to latest standard (600K iterations)'**
+  String get homeEncryptionUpgraded;
+
+  /// No description provided for @homeLegacyEncryptionManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Legacy encryption: manual re-save recommended'**
+  String get homeLegacyEncryptionManual;
+
+  /// No description provided for @homeErrorLoadList.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load list: {error}'**
+  String homeErrorLoadList(Object error);
+
+  /// No description provided for @homeNewDrawingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New Canvas'**
+  String get homeNewDrawingTitle;
+
+  /// No description provided for @homeErrorCreateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Creation failed: {error}'**
+  String homeErrorCreateFailed(Object error);
+
+  /// No description provided for @homeOpenCanvasTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Canvas {title}'**
+  String homeOpenCanvasTitle(Object title);
+
+  /// No description provided for @homeQuickRecordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Record {time}'**
+  String homeQuickRecordTitle(Object time);
+
+  /// No description provided for @editorUndo.
   ///
   /// In en, this message translates to:
   /// **'Undo'**
   String get editorUndo;
 
-  /// Redo action
+  /// No description provided for @editorRedo.
   ///
   /// In en, this message translates to:
   /// **'Redo'**
   String get editorRedo;
 
-  /// Shortcuts help tooltip
+  /// No description provided for @editorShortcutsHelp.
   ///
   /// In en, this message translates to:
-  /// **'Keyboard shortcuts'**
+  /// **'Keyboard Shortcuts Help'**
   String get editorShortcutsHelp;
 
-  /// Main menu tooltip
+  /// No description provided for @editorMenu.
   ///
   /// In en, this message translates to:
-  /// **'Main menu'**
+  /// **'Main Menu'**
   String get editorMenu;
 
-  /// Clear canvas dialog title
+  /// No description provided for @editorClearCanvas.
   ///
   /// In en, this message translates to:
-  /// **'Clear canvas'**
+  /// **'Clear Canvas'**
   String get editorClearCanvas;
 
-  /// Copy PNG dialog title
+  /// No description provided for @editorCopyPng.
   ///
   /// In en, this message translates to:
-  /// **'Copy PNG to clipboard'**
+  /// **'Copy PNG to Clipboard'**
   String get editorCopyPng;
 
-  /// Export PNG dialog title
+  /// No description provided for @editorExportPng.
   ///
   /// In en, this message translates to:
   /// **'Export PNG'**
   String get editorExportPng;
 
-  /// Export SVG dialog title
+  /// No description provided for @editorExportSvg.
   ///
   /// In en, this message translates to:
   /// **'Export SVG'**
   String get editorExportSvg;
 
-  /// Shape tool tooltip
+  /// No description provided for @editorShapeTool.
   ///
   /// In en, this message translates to:
-  /// **'Shape tool'**
+  /// **'Shape Tool'**
   String get editorShapeTool;
 
-  /// Notebook menu tooltip
+  /// No description provided for @editorCopySelection.
   ///
   /// In en, this message translates to:
-  /// **'Notebook actions'**
+  /// **'Copy Selection'**
+  String get editorCopySelection;
+
+  /// No description provided for @editorPasteFromClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste from Clipboard'**
+  String get editorPasteFromClipboard;
+
+  /// No description provided for @editorCopyPasteSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy and Paste Selection'**
+  String get editorCopyPasteSelection;
+
+  /// No description provided for @editorDeleteSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Selection'**
+  String get editorDeleteSelection;
+
+  /// No description provided for @editorBoldText.
+  ///
+  /// In en, this message translates to:
+  /// **'Bold Selected Text'**
+  String get editorBoldText;
+
+  /// No description provided for @editorItalicText.
+  ///
+  /// In en, this message translates to:
+  /// **'Italic Selected Text'**
+  String get editorItalicText;
+
+  /// No description provided for @editorUnderlineText.
+  ///
+  /// In en, this message translates to:
+  /// **'Underline Selected Text'**
+  String get editorUnderlineText;
+
+  /// No description provided for @editorStrikethroughText.
+  ///
+  /// In en, this message translates to:
+  /// **'Strikethrough Selected Text'**
+  String get editorStrikethroughText;
+
+  /// No description provided for @editorCycleAlignment.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycle Text Alignment'**
+  String get editorCycleAlignment;
+
+  /// No description provided for @editorFitCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit to Canvas'**
+  String get editorFitCanvas;
+
+  /// No description provided for @editorToggleGrid.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle Grid'**
+  String get editorToggleGrid;
+
+  /// No description provided for @editorToggleGridSnap.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle Grid Snap'**
+  String get editorToggleGridSnap;
+
+  /// No description provided for @editorDrawingCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'Drawing Canvas'**
+  String get editorDrawingCanvas;
+
+  /// No description provided for @editorBoldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Bold'**
+  String get editorBoldLabel;
+
+  /// No description provided for @editorItalicLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Italic'**
+  String get editorItalicLabel;
+
+  /// No description provided for @editorTodoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Todo'**
+  String get editorTodoLabel;
+
+  /// No description provided for @editorCenterAlign.
+  ///
+  /// In en, this message translates to:
+  /// **'Center'**
+  String get editorCenterAlign;
+
+  /// No description provided for @editorImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get editorImage;
+
+  /// No description provided for @editorCancelSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel Selection'**
+  String get editorCancelSelection;
+
+  /// No description provided for @toolPen.
+  ///
+  /// In en, this message translates to:
+  /// **'Pen'**
+  String get toolPen;
+
+  /// No description provided for @toolPencil.
+  ///
+  /// In en, this message translates to:
+  /// **'Pencil'**
+  String get toolPencil;
+
+  /// No description provided for @toolBrush.
+  ///
+  /// In en, this message translates to:
+  /// **'Brush'**
+  String get toolBrush;
+
+  /// No description provided for @toolHighlighter.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlighter'**
+  String get toolHighlighter;
+
+  /// No description provided for @toolEraser.
+  ///
+  /// In en, this message translates to:
+  /// **'Eraser'**
+  String get toolEraser;
+
+  /// No description provided for @toolLasso.
+  ///
+  /// In en, this message translates to:
+  /// **'Lasso'**
+  String get toolLasso;
+
+  /// No description provided for @toolText.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get toolText;
+
+  /// No description provided for @toolImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get toolImage;
+
+  /// No description provided for @toolRuler.
+  ///
+  /// In en, this message translates to:
+  /// **'Ruler'**
+  String get toolRuler;
+
+  /// No description provided for @toolLaser.
+  ///
+  /// In en, this message translates to:
+  /// **'Laser Pointer'**
+  String get toolLaser;
+
+  /// No description provided for @toolEyedropper.
+  ///
+  /// In en, this message translates to:
+  /// **'Eyedropper'**
+  String get toolEyedropper;
+
+  /// No description provided for @editorSelectionColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Selection Color'**
+  String get editorSelectionColor;
+
+  /// No description provided for @editorStrokeWidth.
+  ///
+  /// In en, this message translates to:
+  /// **'Stroke Width'**
+  String get editorStrokeWidth;
+
+  /// No description provided for @editorPressureSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Pressure Settings'**
+  String get editorPressureSettings;
+
+  /// No description provided for @editorMinWidth.
+  ///
+  /// In en, this message translates to:
+  /// **'Min Width'**
+  String get editorMinWidth;
+
+  /// No description provided for @editorMaxWidth.
+  ///
+  /// In en, this message translates to:
+  /// **'Max Width'**
+  String get editorMaxWidth;
+
+  /// No description provided for @editorPressureCurve.
+  ///
+  /// In en, this message translates to:
+  /// **'Pressure Curve'**
+  String get editorPressureCurve;
+
+  /// No description provided for @editorFullStroke.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Stroke'**
+  String get editorFullStroke;
+
+  /// No description provided for @editorTransparent.
+  ///
+  /// In en, this message translates to:
+  /// **'Transparent'**
+  String get editorTransparent;
+
+  /// No description provided for @editorSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get editorSave;
+
+  /// No description provided for @editorAutoFade.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto Fade'**
+  String get editorAutoFade;
+
+  /// No description provided for @chartBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Bar Chart'**
+  String get chartBar;
+
+  /// No description provided for @chartLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Line Chart'**
+  String get chartLine;
+
+  /// No description provided for @cropImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Crop Image'**
+  String get cropImage;
+
+  /// No description provided for @copiedToClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get copiedToClipboard;
+
+  /// No description provided for @exportTypePng.
+  ///
+  /// In en, this message translates to:
+  /// **'PNG Image'**
+  String get exportTypePng;
+
+  /// No description provided for @exportTypePdf.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF Document'**
+  String get exportTypePdf;
+
+  /// No description provided for @exportTypeSvg.
+  ///
+  /// In en, this message translates to:
+  /// **'SVG Vector'**
+  String get exportTypeSvg;
+
+  /// No description provided for @exportTypeWord.
+  ///
+  /// In en, this message translates to:
+  /// **'Word Document'**
+  String get exportTypeWord;
+
+  /// No description provided for @exportTypeMarkdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Markdown / Text'**
+  String get exportTypeMarkdown;
+
+  /// No description provided for @exportTypePptx.
+  ///
+  /// In en, this message translates to:
+  /// **'PPTX Presentation'**
+  String get exportTypePptx;
+
+  /// No description provided for @exportTypeJson.
+  ///
+  /// In en, this message translates to:
+  /// **'JSON Project File'**
+  String get exportTypeJson;
+
+  /// No description provided for @exportTypeUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown Format'**
+  String get exportTypeUnknown;
+
+  /// No description provided for @noteActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Notebook Actions'**
   String get noteActions;
 
-  /// Import page menu item
+  /// No description provided for @noteImportPage.
   ///
   /// In en, this message translates to:
-  /// **'Import page from another notebook'**
+  /// **'Import Pages from Other Notebooks'**
   String get noteImportPage;
 
-  /// Import text menu item
+  /// No description provided for @noteImportMarkdown.
   ///
   /// In en, this message translates to:
-  /// **'Import Markdown or text'**
+  /// **'Import Markdown or Text'**
   String get noteImportMarkdown;
 
-  /// Import PDF menu item
+  /// No description provided for @noteImportPdf.
   ///
   /// In en, this message translates to:
-  /// **'Import PDF and annotate per page'**
+  /// **'Import PDF for Page-by-Page Annotation'**
   String get noteImportPdf;
 
-  /// Tidy pages menu item
+  /// No description provided for @noteTidyPages.
   ///
   /// In en, this message translates to:
-  /// **'Tidy up pages'**
+  /// **'Batch Tidy Pages'**
   String get noteTidyPages;
 
-  /// Page filter hint
+  /// No description provided for @noteFilterHint.
   ///
   /// In en, this message translates to:
   /// **'Filter by tag or keyword'**
   String get noteFilterHint;
 
-  /// Encryption choice dialog title
+  /// No description provided for @noteEncryptionChoice.
   ///
   /// In en, this message translates to:
-  /// **'Choose encryption method'**
+  /// **'Choose Encryption Method'**
   String get noteEncryptionChoice;
 
-  /// Password option title
+  /// No description provided for @noteMemoryPassword.
   ///
   /// In en, this message translates to:
-  /// **'Memory password'**
+  /// **'Remember Password'**
   String get noteMemoryPassword;
 
-  /// Password option subtitle
+  /// No description provided for @noteMemoryPasswordSub.
   ///
   /// In en, this message translates to:
-  /// **'Set a password; enter it to decrypt when opening'**
+  /// **'Set a password, enter it to decrypt when opening'**
   String get noteMemoryPasswordSub;
 
-  /// Keyfile option title
+  /// No description provided for @noteUsbKey.
   ///
   /// In en, this message translates to:
-  /// **'USB key (password disk)'**
+  /// **'USB Key (Password Disk)'**
   String get noteUsbKey;
 
-  /// Keyfile option subtitle
+  /// No description provided for @noteUsbKeySub.
   ///
   /// In en, this message translates to:
-  /// **'USB is the key: unlock by plugging in, lock on removal (zero knowledge)'**
+  /// **'USB as Key: insert to unlock, remove to lock (zero-knowledge)'**
   String get noteUsbKeySub;
 
-  /// Recovery key dialog title
+  /// No description provided for @noteRecoveryKeyTitle.
   ///
   /// In en, this message translates to:
-  /// **'Save your recovery key (very important!)'**
+  /// **'Save Your Recovery Key (Very Important!)'**
   String get noteRecoveryKeyTitle;
 
-  /// Recovery key acknowledge button
+  /// No description provided for @noteNewPage.
   ///
   /// In en, this message translates to:
-  /// **'I have copied it'**
+  /// **'New Page'**
+  String get noteNewPage;
+
+  /// No description provided for @noteSessionLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Session locked, please unlock again'**
+  String get noteSessionLocked;
+
+  /// No description provided for @noteSessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Session expired, please unlock again'**
+  String get noteSessionExpired;
+
+  /// No description provided for @noteErrorSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Save failed: {error}'**
+  String noteErrorSaveFailed(Object error);
+
+  /// No description provided for @noteEncryptionPasswordEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Password protection enabled (content encrypted)'**
+  String get noteEncryptionPasswordEnabled;
+
+  /// No description provided for @noteEncryptionUsbKeyEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'USB key encryption enabled (lock on removal)'**
+  String get noteEncryptionUsbKeyEnabled;
+
+  /// No description provided for @passwordUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Password Unlock'**
+  String get passwordUnlock;
+
+  /// No description provided for @passwordDisk.
+  ///
+  /// In en, this message translates to:
+  /// **'Password Disk'**
+  String get passwordDisk;
+
+  /// No description provided for @unlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get unlock;
+
+  /// No description provided for @enterPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter password'**
+  String get enterPassword;
+
+  /// No description provided for @diskCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Password Disk (Generate Key + Recovery Key)'**
+  String get diskCreate;
+
+  /// No description provided for @diskUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock (Select USB Password Disk Directory)'**
+  String get diskUnlock;
+
+  /// No description provided for @diskRecover.
+  ///
+  /// In en, this message translates to:
+  /// **'Recover Master Key with Recovery Key (USB Lost)'**
+  String get diskRecover;
+
+  /// No description provided for @diskEncryptDecrypt.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypt and Decrypt with Password Disk Key'**
+  String get diskEncryptDecrypt;
+
+  /// No description provided for @diskFingerprintCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Fingerprint copied'**
+  String get diskFingerprintCopied;
+
+  /// No description provided for @diskCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'ve saved it'**
   String get diskCopied;
 
-  /// PIN protection choice title
+  /// No description provided for @diskPinProtection.
   ///
   /// In en, this message translates to:
   /// **'Enable PIN protection?'**
   String get diskPinProtection;
 
-  /// Do not enable PIN
+  /// No description provided for @diskNoPin.
   ///
   /// In en, this message translates to:
   /// **'No'**
   String get diskNoPin;
 
-  /// Enable PIN
+  /// No description provided for @diskYesPin.
   ///
   /// In en, this message translates to:
-  /// **'Enable'**
+  /// **'Yes'**
   String get diskYesPin;
 
-  /// PIN input dialog title
+  /// No description provided for @diskEnterPin.
   ///
   /// In en, this message translates to:
-  /// **'Enter password disk PIN'**
+  /// **'Enter Password Disk PIN'**
   String get diskEnterPin;
 
-  /// Confirm button
+  /// No description provided for @diskConfirm.
   ///
   /// In en, this message translates to:
-  /// **'OK'**
+  /// **'Confirm'**
   String get diskConfirm;
 
-  /// Search page title
+  /// No description provided for @searchTitle.
   ///
   /// In en, this message translates to:
-  /// **'Full-text search'**
+  /// **'Full-text Search'**
   String get searchTitle;
 
-  /// Search input hint
+  /// No description provided for @searchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search text block content / title…'**
+  /// **'Search text content / titles…'**
   String get searchHint;
 
-  /// Search empty state hint
+  /// No description provided for @searchEmptyHint.
   ///
   /// In en, this message translates to:
   /// **'Enter keywords to start searching'**
   String get searchEmptyHint;
 
-  /// Search no results state
+  /// No description provided for @searchNoResults.
   ///
   /// In en, this message translates to:
   /// **'No matching content found'**
   String get searchNoResults;
 
-  /// Stroke color tooltip
+  /// No description provided for @editorStrokeColor.
   ///
   /// In en, this message translates to:
-  /// **'Stroke color'**
+  /// **'Stroke Color'**
   String get editorStrokeColor;
 
-  /// Eraser tooltip
+  /// No description provided for @editorEraseStroke.
   ///
   /// In en, this message translates to:
-  /// **'Hit a stroke to delete the whole line'**
+  /// **'Erase entire stroke on hit'**
   String get editorEraseStroke;
 
-  /// Transparent eraser tooltip
+  /// No description provided for @editorEraseTransparent.
   ///
   /// In en, this message translates to:
-  /// **'Carve out the current layer with transparent pixels'**
+  /// **'Erase with transparent pixels on current layer'**
   String get editorEraseTransparent;
 
-  /// Highlighter tooltip
+  /// No description provided for @editorHighlightNormal.
   ///
   /// In en, this message translates to:
-  /// **'Write as a normal highlighter; undoable, savable and exportable'**
+  /// **'Writes as normal highlighter, undoable, saveable and exportable'**
   String get editorHighlightNormal;
 
-  /// Laser pointer tooltip
+  /// No description provided for @editorLaserTemporary.
   ///
   /// In en, this message translates to:
-  /// **'Shown briefly, fades out smoothly after ~4 seconds, not written to the page'**
+  /// **'Shows temporarily only, fades out in ~4 seconds, not saved'**
   String get editorLaserTemporary;
 
-  /// Text color tooltip
+  /// No description provided for @editorTextColor.
   ///
   /// In en, this message translates to:
-  /// **'Text color'**
+  /// **'Text Color'**
   String get editorTextColor;
 
-  /// Bold tooltip
+  /// No description provided for @editorBold.
   ///
   /// In en, this message translates to:
   /// **'Bold (Ctrl+B)'**
   String get editorBold;
 
-  /// Italic tooltip
+  /// No description provided for @editorItalic.
   ///
   /// In en, this message translates to:
   /// **'Italic (Ctrl+I)'**
   String get editorItalic;
 
-  /// PIN protection explanation
+  /// No description provided for @diskPinInfo.
   ///
   /// In en, this message translates to:
-  /// **'After enabling, the master key is stored encrypted with a PIN (OWASP KEK mode); a lost USB drive cannot expose it directly. Unlocking requires entering the PIN.'**
+  /// **'When enabled, the master key is encrypted with PIN (OWASP KEK mode). Even if the USB is lost, the key cannot be read directly. Unlocking requires the PIN.'**
   String get diskPinInfo;
 
-  /// Export PDF menu item
+  /// No description provided for @editorExportPdf.
   ///
   /// In en, this message translates to:
   /// **'Export PDF'**
   String get editorExportPdf;
 
-  /// Export JSON menu item
+  /// No description provided for @editorExportJson.
   ///
   /// In en, this message translates to:
   /// **'Export JSON'**
   String get editorExportJson;
 
-  /// Export PPTX menu item
+  /// No description provided for @editorExportPptx.
   ///
   /// In en, this message translates to:
   /// **'Export PPTX'**
   String get editorExportPptx;
 
-  /// Export Word menu item
+  /// No description provided for @editorExportWord.
   ///
   /// In en, this message translates to:
-  /// **'Export Word-compatible document'**
+  /// **'Export Word Document'**
   String get editorExportWord;
 
-  /// Underline tooltip
+  /// No description provided for @editorUnderline.
   ///
   /// In en, this message translates to:
   /// **'Underline (Ctrl+U)'**
   String get editorUnderline;
 
-  /// PDF preview tooltip
+  /// No description provided for @editorPdfPreview.
   ///
   /// In en, this message translates to:
-  /// **'Page preview (A4 pagination)'**
+  /// **'Page Preview (A4 pagination)'**
   String get editorPdfPreview;
 
-  /// Paste values hint
+  /// No description provided for @editorPasteValues.
   ///
   /// In en, this message translates to:
-  /// **'Paste values separated by commas / spaces / newlines, e.g.: 10, 25, 18, 42, 30'**
+  /// **'Paste values separated by comma/space/newline, e.g.: 10, 25, 18, 42, 30'**
   String get editorPasteValues;
 
-  /// Image insert failure message
+  /// No description provided for @editorImageInsertFail.
   ///
   /// In en, this message translates to:
   /// **'Failed to insert image: {error}'**
-  String editorImageInsertFail(String error);
+  String editorImageInsertFail(Object error);
 
-  /// Left alignment name
+  /// No description provided for @alignLeft.
   ///
   /// In en, this message translates to:
-  /// **'Left'**
+  /// **'Align Left'**
   String get alignLeft;
 
-  /// Center alignment name
+  /// No description provided for @alignCenter.
   ///
   /// In en, this message translates to:
   /// **'Center'**
   String get alignCenter;
 
-  /// Right alignment name
+  /// No description provided for @alignRight.
   ///
   /// In en, this message translates to:
-  /// **'Right'**
+  /// **'Align Right'**
   String get alignRight;
 
-  /// Alignment tooltip with alignment name
+  /// No description provided for @editorAlignTooltip.
   ///
   /// In en, this message translates to:
-  /// **'Align: {name} (Ctrl+E)'**
-  String editorAlignTooltip(String name);
+  /// **'Alignment: {name} (Ctrl+E)'**
+  String editorAlignTooltip(Object name);
 
-  /// Page preview dialog title
+  /// No description provided for @editorPagePreviewTitle.
   ///
   /// In en, this message translates to:
-  /// **'Page preview {title}'**
-  String editorPagePreviewTitle(String title);
+  /// **'Page Preview {title}'**
+  String editorPagePreviewTitle(Object title);
 
-  /// Blank paper template name
+  /// No description provided for @paperBlank.
   ///
   /// In en, this message translates to:
   /// **'Blank'**
   String get paperBlank;
 
-  /// Grid paper template name
+  /// No description provided for @paperGrid.
   ///
   /// In en, this message translates to:
   /// **'Grid'**
   String get paperGrid;
 
-  /// Lined paper template name
+  /// No description provided for @paperLined.
   ///
   /// In en, this message translates to:
   /// **'Lined'**
   String get paperLined;
 
-  /// Dot grid paper template name
+  /// No description provided for @paperDot.
   ///
   /// In en, this message translates to:
-  /// **'Dot grid'**
+  /// **'Dotted'**
   String get paperDot;
 
-  /// Paper template tooltip
+  /// No description provided for @editorPaperTemplate.
   ///
   /// In en, this message translates to:
-  /// **'Paper template: {type} (click to switch)'**
-  String editorPaperTemplate(String type);
+  /// **'Paper Template: {type} (tap to switch)'**
+  String editorPaperTemplate(Object type);
 
-  /// Shape fill enabled tooltip
+  /// No description provided for @editorShapeFillOn.
   ///
   /// In en, this message translates to:
-  /// **'Shape fill: on (new shapes filled by default)'**
+  /// **'Shape Fill: On (new shapes filled by default)'**
   String get editorShapeFillOn;
 
-  /// Shape fill disabled tooltip
+  /// No description provided for @editorShapeFillOff.
   ///
   /// In en, this message translates to:
-  /// **'Shape fill: off (new shapes filled by default)'**
+  /// **'Shape Fill: Off (new shapes filled by default)'**
   String get editorShapeFillOff;
+
+  /// No description provided for @create.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get create;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get confirm;
+
+  /// No description provided for @errorLoadDocument.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load document'**
+  String get errorLoadDocument;
+
+  /// No description provided for @errorSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Save failed'**
+  String get errorSaveFailed;
+
+  /// No description provided for @errorAutoSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-save failed'**
+  String get errorAutoSaveFailed;
+
+  /// No description provided for @appearance.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get appearance;
+
+  /// No description provided for @themeLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light Theme'**
+  String get themeLight;
+
+  /// No description provided for @themeDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark Theme'**
+  String get themeDark;
+
+  /// No description provided for @themeSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow System'**
+  String get themeSystem;
+
+  /// No description provided for @onboardingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to Drawing Notes'**
+  String get onboardingTitle;
+
+  /// No description provided for @onboardingSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture ideas with your pen. Supports infinite canvas, notebooks, and encryption.'**
+  String get onboardingSubtitle;
+
+  /// No description provided for @onboardingGetStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Get Started'**
+  String get onboardingGetStarted;
+
+  /// No description provided for @onboardingSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get onboardingSkip;
+
+  /// No description provided for @settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settings;
+
+  /// No description provided for @about.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get about;
+
+  /// No description provided for @version.
+  ///
+  /// In en, this message translates to:
+  /// **'Version'**
+  String get version;
+
+  /// No description provided for @aiChat.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Assistant'**
+  String get aiChat;
+
+  /// No description provided for @aiChatHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a question to start chatting…'**
+  String get aiChatHint;
+
+  /// No description provided for @aiChatEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No chat history yet'**
+  String get aiChatEmpty;
+
+  /// No description provided for @securityLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Security Level'**
+  String get securityLevel;
+
+  /// No description provided for @encryptionStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Encryption Status'**
+  String get encryptionStatus;
+
+  /// No description provided for @exportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get exportTitle;
+
+  /// No description provided for @importTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get importTitle;
+
+  /// No description provided for @layerPanel.
+  ///
+  /// In en, this message translates to:
+  /// **'Layers'**
+  String get layerPanel;
+
+  /// No description provided for @historyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get historyTitle;
+
+  /// No description provided for @recentDocuments.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Documents'**
+  String get recentDocuments;
+
+  /// No description provided for @noRecentDocuments.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent documents'**
+  String get noRecentDocuments;
+
+  /// No description provided for @enableSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Sync'**
+  String get enableSync;
+
+  /// No description provided for @syncStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync Status'**
+  String get syncStatus;
+
+  /// No description provided for @storagePermissionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage permission required'**
+  String get storagePermissionRequired;
+
+  /// No description provided for @pen.
+  ///
+  /// In en, this message translates to:
+  /// **'Pen'**
+  String get pen;
+
+  /// No description provided for @eraser.
+  ///
+  /// In en, this message translates to:
+  /// **'Eraser'**
+  String get eraser;
+
+  /// No description provided for @selection.
+  ///
+  /// In en, this message translates to:
+  /// **'Selection'**
+  String get selection;
+
+  /// No description provided for @textTool.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get textTool;
+
+  /// No description provided for @shape.
+  ///
+  /// In en, this message translates to:
+  /// **'Shape'**
+  String get shape;
+
+  /// No description provided for @pageManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Page Management'**
+  String get pageManagement;
+
+  /// No description provided for @deletePage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Page'**
+  String get deletePage;
+
+  /// No description provided for @renamePage.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get renamePage;
+
+  /// No description provided for @reorderPages.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to Reorder'**
+  String get reorderPages;
+
+  /// No description provided for @drawingLayers.
+  ///
+  /// In en, this message translates to:
+  /// **'Drawing Layers'**
+  String get drawingLayers;
+
+  /// No description provided for @textLayers.
+  ///
+  /// In en, this message translates to:
+  /// **'Text Layers'**
+  String get textLayers;
+
+  /// No description provided for @noteContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Note Content'**
+  String get noteContent;
+
+  /// No description provided for @recentlyUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently Used'**
+  String get recentlyUsed;
+
+  /// No description provided for @allShapes.
+  ///
+  /// In en, this message translates to:
+  /// **'All Shapes'**
+  String get allShapes;
+
+  /// No description provided for @basicShapes.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic Shapes'**
+  String get basicShapes;
+
+  /// No description provided for @lines.
+  ///
+  /// In en, this message translates to:
+  /// **'Lines'**
+  String get lines;
+
+  /// No description provided for @arrows.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrows'**
+  String get arrows;
+
+  /// No description provided for @highlighter.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlighter'**
+  String get highlighter;
+
+  /// No description provided for @laserPointer.
+  ///
+  /// In en, this message translates to:
+  /// **'Laser Pointer'**
+  String get laserPointer;
+
+  /// No description provided for @settingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTitle;
+
+  /// No description provided for @themeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get themeLabel;
+
+  /// No description provided for @languageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get languageLabel;
+
+  /// No description provided for @selectLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Language'**
+  String get selectLanguage;
+
+  /// No description provided for @autoSaveLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto Save'**
+  String get autoSaveLabel;
+
+  /// No description provided for @storageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage'**
+  String get storageLabel;
+
+  /// No description provided for @securityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Security'**
+  String get securityLabel;
+
+  /// No description provided for @aiLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'AI'**
+  String get aiLabel;
+
+  /// No description provided for @experimentalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Experimental'**
+  String get experimentalLabel;
+
+  /// No description provided for @hotkeysLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Hotkeys'**
+  String get hotkeysLabel;
+
+  /// No description provided for @syncLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync'**
+  String get syncLabel;
+
+  /// No description provided for @diagnostics.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics'**
+  String get diagnostics;
+
+  /// No description provided for @testRunnerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Test Runner'**
+  String get testRunnerTitle;
+
+  /// No description provided for @testRunnerStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Tests'**
+  String get testRunnerStart;
+
+  /// No description provided for @p2pSyncTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Peer-to-Peer Sync'**
+  String get p2pSyncTitle;
+
+  /// No description provided for @p2pSyncSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync directly between LAN devices'**
+  String get p2pSyncSubtitle;
+
+  /// No description provided for @viewAllPages.
+  ///
+  /// In en, this message translates to:
+  /// **'View All Pages'**
+  String get viewAllPages;
 }
 
 class _AppLocalizationsDelegate

@@ -45,9 +45,13 @@ class EditorExporter {
         return;
       }
       // 解码 PNG 为 RGBA 像素（供平台构造 DIB 位图）。
-      final codec = await ui.instantiateImageCodec(png);
-      final frame = await codec.getNextFrame();
-      final image = frame.image;
+      // 使用超时保护防止损坏图片阻塞主线程。
+      final decodeResult = await SafeImageDecode.decode(png);
+      if (decodeResult.isError) {
+        showSnack('复制失败：${decodeResult.errorMessage}');
+        return;
+      }
+      final image = decodeResult.image!;
       final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
       if (data == null) {
         showSnack('复制失败：像素解码失败');

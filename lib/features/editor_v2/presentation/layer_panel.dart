@@ -87,7 +87,7 @@ class _LayerTile extends ConsumerWidget {
                 notifier.execute(UpdateDocumentCommand(layers: updatedLayers));
               },
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             ),
             // 图层名称。
             Expanded(

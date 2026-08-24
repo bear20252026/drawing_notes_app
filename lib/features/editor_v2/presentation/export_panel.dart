@@ -171,7 +171,7 @@ class _ExportPanelState extends ConsumerState<ExportPanel> {
                     );
                   },
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+                  constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                   tooltip: '复制',
                 ),
             ],

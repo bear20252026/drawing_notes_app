@@ -72,11 +72,11 @@ class CanvasPainterV2 extends CustomPainter {
     }
   }
 
-  void _paintStroke(Canvas canvas, LineItem stroke, double opacity) {
+  void _paintStroke(Canvas canvas, LineItem stroke, double layerOpacity) {
     if (stroke.points.length < 2) return;
     final paint = Paint()
-      ..color = _foreground.withValues(alpha: opacity)
-      ..strokeWidth = 2.0
+      ..color = _hexToColor(stroke.color).withValues(alpha: stroke.opacity * layerOpacity)
+      ..strokeWidth = stroke.strokeWidth
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
@@ -182,6 +182,10 @@ class CanvasPainterV2 extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CanvasPainterV2 oldDelegate) {
-    return document != oldDelegate.document || isInverted != oldDelegate.isInverted;
+    return document != oldDelegate.document ||
+        isInverted != oldDelegate.isInverted ||
+        fillMode != oldDelegate.fillMode ||
+        strokeColor != oldDelegate.strokeColor ||
+        fillColor != oldDelegate.fillColor;
   }
 }

@@ -1,324 +1,376 @@
 {
   "@@locale": "en",
   "appTitle": "Drawing Notes",
-  "@appTitle": {
-    "description": "Application title"
-  },
   "search": "Search",
-  "@search": {
-    "description": "Search action"
-  },
   "trash": "Trash (recoverable within 30 days)",
-  "@trash": {
-    "description": "Recycle bin entry"
-  },
   "close": "Close",
-  "@close": {
-    "description": "Close dialog"
-  },
-  "newNotebook": "New notebook",
-  "@newNotebook": {
-    "description": "Create notebook action"
-  },
+  "newNotebook": "New Notebook",
   "delete": "Delete",
-  "@delete": {
-    "description": "Delete action"
-  },
   "homeTrashEmpty": "Trash is empty",
-  "@homeTrashEmpty": {
-    "description": "Trash dialog empty state"
-  },
   "homeDeletedAt": "Deleted at {time}",
-  "@homeDeletedAt": {
-    "description": "Trash item deletion time",
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
-  },
   "homeRecover": "Recover",
-  "@homeRecover": {
-    "description": "Restore from trash action"
-  },
-  "homeDeleteForever": "Delete forever",
-  "@homeDeleteForever": {
-    "description": "Permanent delete action"
-  },
-  "homeEmptyTrash": "Empty trash",
-  "@homeEmptyTrash": {
-    "description": "Empty trash action"
-  },
+  "homeDeleteForever": "Delete Forever",
+  "homeEmptyTrash": "Empty Trash",
   "homeCancel": "Cancel",
-  "@homeCancel": {
-    "description": "Cancel action"
-  },
-  "homeSwitchTheme": "Switch appearance (system / light / dark)",
-  "@homeSwitchTheme": {
-    "description": "Theme toggle tooltip"
-  },
-  "homeMore": "More options",
-  "@homeMore": {
-    "description": "More actions tooltip"
-  },
+  "homeSwitchTheme": "Switch Theme (System / Light / Dark)",
+  "homeMore": "More Actions",
+  "homeRecovered": "Recovered \"{id}\"",
+  "homePasswordDiskAndRecovery": "Password Disk & Recovery",
+  "homeInfiniteCanvas": "Canvas",
+  "homeNotebook": "Notebooks",
+  "homeRecent": "Recent",
+  "homeNewInfiniteCanvas": "New Canvas",
+  "homeQuickRecord": "Quick Record",
+  "homeRetry": "Retry",
+  "homeErrorDrawingNotFound": "Drawing file not found or corrupted",
+  "homeErrorOpenDrawing": "Failed to open drawing: {error}",
+  "homeDeleteDrawing": "Delete Drawing",
+  "homeConfirmDeleteDrawing": "Are you sure you want to delete \"{title}\"? This action cannot be undone.",
+  "homeDeleteNotebook": "Delete Notebook",
+  "homeConfirmDeleteNotebook": "Are you sure you want to delete notebook \"{title}\"? All pages and content will be permanently deleted.",
+  "homeConfirmPermanentDelete": "Are you sure you want to permanently delete \"{name}\"? This action cannot be undone.",
+  "homeErrorDeleteFailed": "Delete failed: {error}",
+  "homeErrorPolicyDenied": "Operation denied by policy ({policy})",
+  "homeLegacyEncryptionWarning": "Legacy encryption format detected (100K iterations). Please re-save to upgrade to the latest standard (600K iterations).",
+  "homeEncryptionUpgraded": "Encryption automatically upgraded to latest standard (600K iterations)",
+  "homeLegacyEncryptionManual": "Legacy encryption: manual re-save recommended",
+  "homeErrorLoadList": "Failed to load list: {error}",
+  "homeNewDrawingTitle": "New Canvas",
+  "homeErrorCreateFailed": "Creation failed: {error}",
+  "homeOpenCanvasTitle": "Open Canvas {title}",
+  "homeQuickRecordTitle": "Quick Record {time}",
   "editorUndo": "Undo",
-  "@editorUndo": {
-    "description": "Undo action"
-  },
   "editorRedo": "Redo",
-  "@editorRedo": {
-    "description": "Redo action"
-  },
-  "editorShortcutsHelp": "Keyboard shortcuts",
-  "@editorShortcutsHelp": {
-    "description": "Shortcuts help tooltip"
-  },
-  "editorMenu": "Main menu",
-  "@editorMenu": {
-    "description": "Main menu tooltip"
-  },
-  "editorClearCanvas": "Clear canvas",
-  "@editorClearCanvas": {
-    "description": "Clear canvas dialog title"
-  },
-  "editorCopyPng": "Copy PNG to clipboard",
-  "@editorCopyPng": {
-    "description": "Copy PNG dialog title"
-  },
+  "editorShortcutsHelp": "Keyboard Shortcuts Help",
+  "editorMenu": "Main Menu",
+  "editorClearCanvas": "Clear Canvas",
+  "editorCopyPng": "Copy PNG to Clipboard",
   "editorExportPng": "Export PNG",
-  "@editorExportPng": {
-    "description": "Export PNG dialog title"
-  },
   "editorExportSvg": "Export SVG",
-  "@editorExportSvg": {
-    "description": "Export SVG dialog title"
-  },
-  "editorShapeTool": "Shape tool",
-  "@editorShapeTool": {
-    "description": "Shape tool tooltip"
-  },
-  "noteActions": "Notebook actions",
-  "@noteActions": {
-    "description": "Notebook menu tooltip"
-  },
-  "noteImportPage": "Import page from another notebook",
-  "@noteImportPage": {
-    "description": "Import page menu item"
-  },
-  "noteImportMarkdown": "Import Markdown or text",
-  "@noteImportMarkdown": {
-    "description": "Import text menu item"
-  },
-  "noteImportPdf": "Import PDF and annotate per page",
-  "@noteImportPdf": {
-    "description": "Import PDF menu item"
-  },
-  "noteTidyPages": "Tidy up pages",
-  "@noteTidyPages": {
-    "description": "Tidy pages menu item"
-  },
+  "editorShapeTool": "Shape Tool",
+  "editorCopySelection": "Copy Selection",
+  "editorPasteFromClipboard": "Paste from Clipboard",
+  "editorCopyPasteSelection": "Copy and Paste Selection",
+  "editorDeleteSelection": "Delete Selection",
+  "editorBoldText": "Bold Selected Text",
+  "editorItalicText": "Italic Selected Text",
+  "editorUnderlineText": "Underline Selected Text",
+  "editorStrikethroughText": "Strikethrough Selected Text",
+  "editorCycleAlignment": "Cycle Text Alignment",
+  "editorFitCanvas": "Fit to Canvas",
+  "editorToggleGrid": "Toggle Grid",
+  "editorToggleGridSnap": "Toggle Grid Snap",
+  "editorDrawingCanvas": "Drawing Canvas",
+  "editorBoldLabel": "Bold",
+  "editorItalicLabel": "Italic",
+  "editorTodoLabel": "Todo",
+  "editorCenterAlign": "Center",
+  "editorImage": "Image",
+  "editorCancelSelection": "Cancel Selection",
+  "toolPen": "Pen",
+  "toolPencil": "Pencil",
+  "toolBrush": "Brush",
+  "toolHighlighter": "Highlighter",
+  "toolEraser": "Eraser",
+  "toolLasso": "Lasso",
+  "toolText": "Text",
+  "toolImage": "Image",
+  "toolRuler": "Ruler",
+  "toolLaser": "Laser Pointer",
+  "toolEyedropper": "Eyedropper",
+  "editorSelectionColor": "Selection Color",
+  "editorStrokeWidth": "Stroke Width",
+  "editorPressureSettings": "Pressure Settings",
+  "editorMinWidth": "Min Width",
+  "editorMaxWidth": "Max Width",
+  "editorPressureCurve": "Pressure Curve",
+  "editorFullStroke": "Full Stroke",
+  "editorTransparent": "Transparent",
+  "editorSave": "Save",
+  "editorAutoFade": "Auto Fade",
+  "chartBar": "Bar Chart",
+  "chartLine": "Line Chart",
+  "cropImage": "Crop Image",
+  "copiedToClipboard": "Copied",
+  "exportTypePng": "PNG Image",
+  "exportTypePdf": "PDF Document",
+  "exportTypeSvg": "SVG Vector",
+  "exportTypeWord": "Word Document",
+  "exportTypeMarkdown": "Markdown / Text",
+  "exportTypePptx": "PPTX Presentation",
+  "exportTypeJson": "JSON Project File",
+  "exportTypeUnknown": "Unknown Format",
+  "noteActions": "Notebook Actions",
+  "noteImportPage": "Import Pages from Other Notebooks",
+  "noteImportMarkdown": "Import Markdown or Text",
+  "noteImportPdf": "Import PDF for Page-by-Page Annotation",
+  "noteTidyPages": "Batch Tidy Pages",
   "noteFilterHint": "Filter by tag or keyword",
-  "@noteFilterHint": {
-    "description": "Page filter hint"
-  },
-  "noteEncryptionChoice": "Choose encryption method",
-  "@noteEncryptionChoice": {
-    "description": "Encryption choice dialog title"
-  },
-  "noteMemoryPassword": "Memory password",
-  "@noteMemoryPassword": {
-    "description": "Password option title"
-  },
-  "noteMemoryPasswordSub": "Set a password; enter it to decrypt when opening",
-  "@noteMemoryPasswordSub": {
-    "description": "Password option subtitle"
-  },
-  "noteUsbKey": "USB key (password disk)",
-  "@noteUsbKey": {
-    "description": "Keyfile option title"
-  },
-  "noteUsbKeySub": "USB is the key: unlock by plugging in, lock on removal (zero knowledge)",
-  "@noteUsbKeySub": {
-    "description": "Keyfile option subtitle"
-  },
-  "noteRecoveryKeyTitle": "Save your recovery key (very important!)",
-  "@noteRecoveryKeyTitle": {
-    "description": "Recovery key dialog title"
-  },
-  "diskCopied": "I have copied it",
-  "@diskCopied": {
-    "description": "Recovery key acknowledge button"
-  },
+  "noteEncryptionChoice": "Choose Encryption Method",
+  "noteMemoryPassword": "Remember Password",
+  "noteMemoryPasswordSub": "Set a password, enter it to decrypt when opening",
+  "noteUsbKey": "USB Key (Password Disk)",
+  "noteUsbKeySub": "USB as Key: insert to unlock, remove to lock (zero-knowledge)",
+  "noteRecoveryKeyTitle": "Save Your Recovery Key (Very Important!)",
+  "noteNewPage": "New Page",
+  "noteSessionLocked": "Session locked, please unlock again",
+  "noteSessionExpired": "Session expired, please unlock again",
+  "noteErrorSaveFailed": "Save failed: {error}",
+  "noteEncryptionPasswordEnabled": "Password protection enabled (content encrypted)",
+  "noteEncryptionUsbKeyEnabled": "USB key encryption enabled (lock on removal)",
+  "passwordUnlock": "Password Unlock",
+  "passwordDisk": "Password Disk",
+  "unlock": "Unlock",
+  "enterPassword": "Enter password",
+  "diskCreate": "Create Password Disk (Generate Key + Recovery Key)",
+  "diskUnlock": "Unlock (Select USB Password Disk Directory)",
+  "diskRecover": "Recover Master Key with Recovery Key (USB Lost)",
+  "diskEncryptDecrypt": "Encrypt and Decrypt with Password Disk Key",
+  "diskFingerprintCopied": "Fingerprint copied",
+  "diskCopied": "I've saved it",
   "diskPinProtection": "Enable PIN protection?",
-  "@diskPinProtection": {
-    "description": "PIN protection choice title"
-  },
   "diskNoPin": "No",
-  "@diskNoPin": {
-    "description": "Do not enable PIN"
-  },
-  "diskYesPin": "Enable",
-  "@diskYesPin": {
-    "description": "Enable PIN"
-  },
-  "diskEnterPin": "Enter password disk PIN",
-  "@diskEnterPin": {
-    "description": "PIN input dialog title"
-  },
-  "diskConfirm": "OK",
-  "@diskConfirm": {
-    "description": "Confirm button"
-  },
-  "searchTitle": "Full-text search",
-  "@searchTitle": {
-    "description": "Search page title"
-  },
-  "searchHint": "Search text block content / title…",
-  "@searchHint": {
-    "description": "Search input hint"
-  },
+  "diskYesPin": "Yes",
+  "diskEnterPin": "Enter Password Disk PIN",
+  "diskConfirm": "Confirm",
+  "searchTitle": "Full-text Search",
+  "searchHint": "Search text content / titles…",
   "searchEmptyHint": "Enter keywords to start searching",
-  "@searchEmptyHint": {
-    "description": "Search empty state hint"
-  },
   "searchNoResults": "No matching content found",
-  "@searchNoResults": {
-    "description": "Search no results state"
-  },
-  "editorStrokeColor": "Stroke color",
-  "@editorStrokeColor": {
-    "description": "Stroke color tooltip"
-  },
-  "editorEraseStroke": "Hit a stroke to delete the whole line",
-  "@editorEraseStroke": {
-    "description": "Eraser tooltip"
-  },
-  "editorEraseTransparent": "Carve out the current layer with transparent pixels",
-  "@editorEraseTransparent": {
-    "description": "Transparent eraser tooltip"
-  },
-  "editorHighlightNormal": "Write as a normal highlighter; undoable, savable and exportable",
-  "@editorHighlightNormal": {
-    "description": "Highlighter tooltip"
-  },
-  "editorLaserTemporary": "Shown briefly, fades out smoothly after ~4 seconds, not written to the page",
-  "@editorLaserTemporary": {
-    "description": "Laser pointer tooltip"
-  },
-  "editorTextColor": "Text color",
-  "@editorTextColor": {
-    "description": "Text color tooltip"
-  },
+  "editorStrokeColor": "Stroke Color",
+  "editorEraseStroke": "Erase entire stroke on hit",
+  "editorEraseTransparent": "Erase with transparent pixels on current layer",
+  "editorHighlightNormal": "Writes as normal highlighter, undoable, saveable and exportable",
+  "editorLaserTemporary": "Shows temporarily only, fades out in ~4 seconds, not saved",
+  "editorTextColor": "Text Color",
   "editorBold": "Bold (Ctrl+B)",
-  "@editorBold": {
-    "description": "Bold tooltip"
-  },
   "editorItalic": "Italic (Ctrl+I)",
-  "@editorItalic": {
-    "description": "Italic tooltip"
-  },
-  "diskPinInfo": "After enabling, the master key is stored encrypted with a PIN (OWASP KEK mode); a lost USB drive cannot expose it directly. Unlocking requires entering the PIN.",
-  "@diskPinInfo": {
-    "description": "PIN protection explanation"
-  },
+  "diskPinInfo": "When enabled, the master key is encrypted with PIN (OWASP KEK mode). Even if the USB is lost, the key cannot be read directly. Unlocking requires the PIN.",
   "editorExportPdf": "Export PDF",
-  "@editorExportPdf": {
-    "description": "Export PDF menu item"
-  },
   "editorExportJson": "Export JSON",
-  "@editorExportJson": {
-    "description": "Export JSON menu item"
-  },
   "editorExportPptx": "Export PPTX",
-  "@editorExportPptx": {
-    "description": "Export PPTX menu item"
-  },
-  "editorExportWord": "Export Word-compatible document",
-  "@editorExportWord": {
-    "description": "Export Word menu item"
-  },
+  "editorExportWord": "Export Word Document",
   "editorUnderline": "Underline (Ctrl+U)",
-  "@editorUnderline": {
-    "description": "Underline tooltip"
-  },
-  "editorPdfPreview": "Page preview (A4 pagination)",
-  "@editorPdfPreview": {
-    "description": "PDF preview tooltip"
-  },
-  "editorPasteValues": "Paste values separated by commas / spaces / newlines, e.g.: 10, 25, 18, 42, 30",
-  "@editorPasteValues": {
-    "description": "Paste values hint"
-  },
+  "editorPdfPreview": "Page Preview (A4 pagination)",
+  "editorPasteValues": "Paste values separated by comma/space/newline, e.g.: 10, 25, 18, 42, 30",
   "editorImageInsertFail": "Failed to insert image: {error}",
-  "@editorImageInsertFail": {
-    "description": "Image insert failure message",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "alignLeft": "Left",
-  "@alignLeft": {
-    "description": "Left alignment name"
-  },
+  "alignLeft": "Align Left",
   "alignCenter": "Center",
-  "@alignCenter": {
-    "description": "Center alignment name"
-  },
-  "alignRight": "Right",
-  "@alignRight": {
-    "description": "Right alignment name"
-  },
-  "editorAlignTooltip": "Align: {name} (Ctrl+E)",
-  "@editorAlignTooltip": {
-    "description": "Alignment tooltip with alignment name",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "editorPagePreviewTitle": "Page preview {title}",
-  "@editorPagePreviewTitle": {
-    "description": "Page preview dialog title",
-    "placeholders": {
-      "title": {
-        "type": "String"
-      }
-    }
-  },
+  "alignRight": "Align Right",
+  "editorAlignTooltip": "Alignment: {name} (Ctrl+E)",
+  "editorPagePreviewTitle": "Page Preview {title}",
   "paperBlank": "Blank",
-  "@paperBlank": {
-    "description": "Blank paper template name"
-  },
   "paperGrid": "Grid",
-  "@paperGrid": {
-    "description": "Grid paper template name"
-  },
   "paperLined": "Lined",
-  "@paperLined": {
-    "description": "Lined paper template name"
-  },
-  "paperDot": "Dot grid",
-  "@paperDot": {
-    "description": "Dot grid paper template name"
-  },
-  "editorPaperTemplate": "Paper template: {type} (click to switch)",
-  "@editorPaperTemplate": {
-    "description": "Paper template tooltip",
+  "paperDot": "Dotted",
+  "editorPaperTemplate": "Paper Template: {type} (tap to switch)",
+  "editorShapeFillOn": "Shape Fill: On (new shapes filled by default)",
+  "editorShapeFillOff": "Shape Fill: Off (new shapes filled by default)",
+  "create": "Create",
+  "retry": "Retry",
+  "confirm": "Confirm",
+  "errorLoadDocument": "Failed to load document",
+  "errorSaveFailed": "Save failed",
+  "errorAutoSaveFailed": "Auto-save failed",
+  "appearance": "Appearance",
+  "themeLight": "Light Theme",
+  "themeDark": "Dark Theme",
+  "themeSystem": "Follow System",
+  "onboardingTitle": "Welcome to Drawing Notes",
+  "onboardingSubtitle": "Capture ideas with your pen. Supports infinite canvas, notebooks, and encryption.",
+  "onboardingGetStarted": "Get Started",
+  "onboardingSkip": "Skip",
+  "settings": "Settings",
+  "about": "About",
+  "version": "Version",
+  "aiChat": "AI Assistant",
+  "aiChatHint": "Type a question to start chatting…",
+  "aiChatEmpty": "No chat history yet",
+  "securityLevel": "Security Level",
+  "encryptionStatus": "Encryption Status",
+  "exportTitle": "Export",
+  "importTitle": "Import",
+  "layerPanel": "Layers",
+  "historyTitle": "History",
+  "recentDocuments": "Recent Documents",
+  "noRecentDocuments": "No recent documents",
+  "enableSync": "Enable Sync",
+  "syncStatus": "Sync Status",
+  "storagePermissionRequired": "Storage permission required",
+  "pen": "Pen",
+  "eraser": "Eraser",
+  "selection": "Selection",
+  "textTool": "Text",
+  "shape": "Shape",
+  "pageManagement": "Page Management",
+  "deletePage": "Delete Page",
+  "renamePage": "Rename",
+  "reorderPages": "Drag to Reorder",
+  "drawingLayers": "Drawing Layers",
+  "textLayers": "Text Layers",
+  "noteContent": "Note Content",
+  "recentlyUsed": "Recently Used",
+  "allShapes": "All Shapes",
+  "basicShapes": "Basic Shapes",
+  "lines": "Lines",
+  "arrows": "Arrows",
+  "highlighter": "Highlighter",
+  "laserPointer": "Laser Pointer",
+  "settingsTitle": "Settings",
+  "themeLabel": "Theme",
+  "languageLabel": "Language",
+  "selectLanguage": "Select Language",
+  "autoSaveLabel": "Auto Save",
+  "storageLabel": "Storage",
+  "securityLabel": "Security",
+  "aiLabel": "AI",
+  "experimentalLabel": "Experimental",
+  "hotkeysLabel": "Hotkeys",
+  "syncLabel": "Sync",
+  "diagnostics": "Diagnostics",
+  "testRunnerTitle": "Test Runner",
+  "testRunnerStart": "Start Tests",
+  "p2pSyncTitle": "Peer-to-Peer Sync",
+  "p2pSyncSubtitle": "Sync directly between LAN devices",
+  "viewAllPages": "View All Pages",
+
+  "blockEditorTitle1": "Heading 1",
+  "blockEditorTitle2": "Heading 2",
+  "blockEditorTitle3": "Heading 3",
+  "blockEditorListItem": "List item",
+  "blockEditorCodeHint": "Enter code…",
+  "blockEditorQuoteHint": "Quote…",
+  "blockEditorParagraphHint": "Type text, or type / to open command menu…",
+  "blockEditorImageLoadFail": "Image load failed",
+  "blockEditorTableBlock": "Table block (see TableViewWidget)",
+  "blockEditorAddRow": "Add Row",
+
+  "slidePresenterSlide": "Slide",
+  "slidePresenterExit": "Exit",
+
+  "unifiedToolbarBrush": "Brush",
+  "unifiedToolbarEraser": "Eraser",
+  "unifiedToolbarSelect": "Select",
+  "unifiedToolbarRectSelect": "Rectangle Selection",
+  "unifiedToolbarLassoSelect": "Lasso Selection",
+  "unifiedToolbarRect": "Rectangle",
+  "unifiedToolbarEllipse": "Ellipse",
+  "unifiedToolbarLine": "Line",
+  "unifiedToolbarArrow": "Arrow",
+  "unifiedToolbarText": "Text",
+  "unifiedToolbarEyedropper": "Eyedropper",
+  "unifiedToolbarEraserOptions": "Eraser Options",
+  "unifiedToolbarEraseShapes": "Can erase shapes",
+  "unifiedToolbarGrid": "Show Grid",
+  "unifiedToolbarSnap": "Snap to Grid",
+  "unifiedToolbarZoomOut": "Zoom Out",
+  "unifiedToolbarZoomIn": "Zoom In",
+  "unifiedToolbarFitCanvas": "Fit to Canvas",
+  "unifiedToolbarClickToPlaceText": "Click canvas to place text",
+  "unifiedToolbarClickToPickColor": "Click canvas to pick color",
+
+  "unifiedPropertyBrush": "Brush",
+  "unifiedPropertyShape": "Shape",
+  "unifiedPropertyText": "Text",
+  "unifiedPropertyFillColor": "Fill Color",
+  "unifiedPropertyDashLine": "Solid/Dashed",
+  "unifiedPropertyTextColor": "Text Color",
+
+  "unifiedLayerPanelTitle": "Layers",
+  "unifiedLayerPanelRename": "Rename Layer",
+  "unifiedLayerPanelRenameHint": "Enter layer name",
+  "unifiedLayerPanelCancel": "Cancel",
+  "unifiedLayerPanelConfirm": "Confirm",
+
+  "unnamedNote": "Untitled Note",
+  "inputText": "Input Text",
+  "inputTextContent": "Enter text content",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "note": "Note",
+  "save": "Save",
+  "loadFailed": "Load failed",
+  "noteTitle": "Note Title",
+  "editorV2Title": "Editor V2 - {docId}",
+  "@editorV2Title": {
+    "description": "Editor V2 title",
     "placeholders": {
-      "type": {
-        "type": "String"
+      "docId": {
+        "type": "String",
+        "example": "doc1"
       }
     }
   },
-  "editorShapeFillOn": "Shape fill: on (new shapes filled by default)",
-  "@editorShapeFillOn": {
-    "description": "Shape fill enabled tooltip"
+
+  "historyPanelTitle": "History",
+  "historySteps": "{count} steps",
+  "@historySteps": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
   },
-  "editorShapeFillOff": "Shape fill: off (new shapes filled by default)",
-  "@editorShapeFillOff": {
-    "description": "Shape fill disabled tooltip"
-  }
+  "undo": "Undo",
+  "redo": "Redo",
+  "noHistory": "No history",
+
+  "exportPanelTitle": "Export",
+  "exporting": "Exporting...",
+  "exportFormat": "Export {format}",
+  "@exportFormat": {
+    "placeholders": {
+      "format": { "type": "String" }
+    }
+  },
+  "exportPreview": "Preview",
+  "copied": "Copied",
+  "copyTooltip": "Copy",
+  "pngExportHint": "PNG export requires Canvas rendering — use canvas context menu to export.",
+  "exportFailed": "Export failed: {error}",
+  "@exportFailed": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "exportFormatPNG": "Image format",
+  "exportFormatSVG": "Vector format",
+  "exportFormatJSON": "Document format",
+
+  "propertiesPanelTitle": "Properties",
+  "colorLabel": "Color",
+  "strokeWidthLabel": "Stroke Width",
+  "opacityLabel": "Opacity",
+  "lineStyleLabel": "Line Style",
+  "solidLine": "Solid",
+  "dashedLine": "Dashed",
+  "dottedLine": "Dotted",
+
+  "titleHint": "Title",
+  "startTypingHint": "Start typing…",
+
+  "zoomOut": "Zoom Out",
+  "zoomIn": "Zoom In",
+  "zoomReset": "Reset (1x)",
+  "fitWindow": "Fit to Window",
+
+  "pageManagement": "Page Management",
+  "pageN": "Page {index}",
+  "@pageN": {
+    "placeholders": {
+      "index": { "type": "int" }
+    }
+  },
+  "newPage": "New",
+  "deletePage": "Delete",
+
+  "slideN": "Slide {index}",
+  "@slideN": {
+    "placeholders": {
+      "index": { "type": "int" }
+    }
+  },
+  "newColumn": "New Column",
+
+  "noLayers": "No layers",
+
+  "selectColor": "Select Color"
 }

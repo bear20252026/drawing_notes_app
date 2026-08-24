@@ -3,56 +3,57 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/di/providers.dart';
-import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
+import 'package:drawing_notes_app/core/router/app_router.dart';
 import 'l10n/app_localizations.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
-import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
+import 'package:drawing_notes_app/core/security/auth_guard.dart';
 
 /// 应用根组件：主题 + 路由。
 ///
 /// 设计说明：
 /// - 深色/浅色主题均支持，用户可手动切换（跟随系统/浅色/深色，Phase 7）；
-/// - 主题模式由 [AppThemeController] 统一管理并持久化；
-/// - 路由集中管理，新增页面时在此注册；
+/// - 主题模式由 Riverpod [themeModeProvider] 统一管理并持久化；
+/// - 路由使用 GoRouter 声明式管理，支持深度链接和路由守卫；
 /// - 应用入口不承载业务逻辑，只负责装配。
-class DrawingNotesApp extends StatefulWidget {
-  const DrawingNotesApp({super.key, this.themeController});
-
-  /// 主题控制器（测试时可注入；为空时内部创建）。
-  final AppThemeController? themeController;
+class DrawingNotesApp extends ConsumerStatefulWidget {
+  const DrawingNotesApp({super.key});
 
   @override
-  State<DrawingNotesApp> createState() => _DrawingNotesAppState();
+  ConsumerState<DrawingNotesApp> createState() => _DrawingNotesAppState();
 }
 
-class _DrawingNotesAppState extends State<DrawingNotesApp> {
-  late final AppThemeController _themeController;
-  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+class _DrawingNotesAppState extends ConsumerState<DrawingNotesApp> {
+  late final GoRouter _router;
 
   @override
   void initState() {
     super.initState();
-    _themeController = widget.themeController ?? AppThemeController();
-    // 全局热键必须在首帧后注册：此时 MaterialApp 已 build，
-    // _navigatorKey.currentState 才可用（否则热键触发导航会静默失败）。
+    _router = createAppRouter();
+
+    // 初始化认证守卫（检查密码盘是否存在）
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      AuthGuard.instance.initialize();
       _registerGlobalHotkey();
+      _handleInitialDeepLink();
     });
   }
 
-  /// ThemeModeProvider 桥接：AppThemeController (ChangeNotifier) 与
-  /// Riverpod themeModeProvider 双向同步。AppThemeController 保留兼容，
-  /// 但新代码应使用 ref.read(themeModeProvider.notifier)。
-  void _syncThemeMode(AppThemeController controller) {
-    // 仅在模式变化时同步到 Riverpod（避免循环更新）
-    final currentMode = controller.mode;
-    // 此处可通过 ProviderContainer 同步，但为减少耦合，
-    // 暂保留 AppThemeController 作为权威来源。
+  /// 处理启动时的深度链接/文件关联
+  void _handleInitialDeepLink() {
+    // Windows: 从命令行参数解析 .drawingnotes 文件关联
+    final args = DeepLinkParser.parseFileAssociation(
+      WidgetsBinding.instance.platformDispatcher.views.first
+          .viewConfiguration
+          .debugShowWidgetInspectorOverride == true
+          ? <String>[]
+          : [],
+    );
+    // 注意：命令行参数已通过 project.set_dart_entrypoint_arguments 传递
+    // 实际解析在 main.dart 中完成并传入
   }
 
   /// 注册全局热键（D6，借鉴 Notes 全局热键唤出）：
@@ -72,59 +73,47 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
     }
   }
 
-  /// 全局热键触发：打开快速记录页（新建画作并进入编辑器）。
+  /// 全局热键触发：通过 GoRouter 打开快速记录。
   void _openQuickRecord() {
-    // 首帧后注册已确保 navigator 就绪；若极早期触发（currentState 为
-    // null），静默忽略即可（用户可再按一次）。
-    final nav = _navigatorKey.currentState;
-    if (nav == null) return;
-    final doc = DrawingDocument(
-      id: StorageService.newId(),
-      title:
-          '快速记录 ${DateTime.now().hour.toString().padLeft(2, '0')}:'
-          '${DateTime.now().minute.toString().padLeft(2, '0')}',
-    );
-    nav.push(
-      MaterialPageRoute(
-        builder: (_) => EditorPage(document: doc, docStorage: StorageService()),
-      ),
+    final docId = StorageService.newId();
+    final title =
+        '快速记录 ${DateTime.now().hour.toString().padLeft(2, '0')}:'
+        '${DateTime.now().minute.toString().padLeft(2, '0')}';
+    _router.go(
+      '${RoutePaths.editor}/$docId?title=${Uri.encodeComponent(title)}',
     );
   }
 
   @override
   void dispose() {
     hotKeyManager.unregisterAll();
-    _themeController.dispose();
+    _router.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer(
-      builder: (context, ref, _) {
-        final themeMode = ref.watch(themeModeProvider);
-        return MaterialApp(
-          navigatorKey: _navigatorKey,
-          title: AppLocalizations.of(context)?.appTitle ?? '绘图笔记',
-          locale: const Locale('en'),
-          localizationsDelegates: [
-            AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-            DefaultMaterialLocalizations.delegate,
-          ],
-          supportedLocales: const [
-            Locale('zh'),
-            Locale('en'),
-          ],
-          debugShowCheckedModeBanner: false,
-          themeMode: themeMode,
-          theme: ref.watch(themeProvider),
-          darkTheme: AppDesign.darkTheme(),
-          home: HomePage(themeController: _themeController),
-        );
-      },
+    final themeMode = ref.watch(themeModeProvider);
+
+    return MaterialApp.router(
+      title: AppLocalizations.of(context)?.appTitle ?? '绘图笔记',
+      locale: const Locale('en'),
+      localizationsDelegates: [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        DefaultMaterialLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('zh'),
+        Locale('en'),
+      ],
+      debugShowCheckedModeBanner: false,
+      themeMode: themeMode,
+      theme: ref.watch(themeProvider),
+      darkTheme: AppDesign.darkTheme(),
+      routerConfig: _router,
     );
   }
 }

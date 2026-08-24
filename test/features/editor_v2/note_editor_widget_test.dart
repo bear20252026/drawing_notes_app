@@ -4,18 +4,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:editor_core/editor_core.dart';
 import 'package:drawing_notes_app/features/editor_v2/presentation/note_editor_widget.dart';
 
-/// AFFiNE Page 借鉴——NoteEditorWidget 测试（Widget——不崩）。
+/// NoteEditorWidget 测试（#18 Word 式直接打字——#13 持久化修复——2026-08-24）。
 void main() {
   NoteDocument makeDoc() => const NoteDocument(
         id: 'note1',
         title: '我的笔记',
         paragraphs: [
           NoteParagraph(id: 'p1', content: '第一段文字'),
-          NoteParagraph(id: 'p2', content: '第二段文字', type: NoteParagraphType.heading),
+          NoteParagraph(
+            id: 'p2',
+            content: '第二段文字',
+            type: NoteParagraphType.heading,
+          ),
         ],
       );
 
-  testWidgets('NoteEditorWidget 渲染（Word 文档式——段落显示——不崩）', (tester) async {
+  testWidgets('NoteEditorWidget 渲染（Word 文档式——标题+段落——不崩）',
+      (tester) async {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
         body: NoteEditorWidget(document: makeDoc(), onChanged: (_) {}),
@@ -27,19 +32,43 @@ void main() {
     expect(tester.takeException(), isNull); // 不崩。
   });
 
-  testWidgets('NoteEditorWidget 新增段落按钮（Word 式——不崩）', (tester) async {
+  testWidgets('NoteEditorWidget 标题可编辑（#18 Word 式）', (tester) async {
+    NoteDocument? changed;
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
-        body: NoteEditorWidget(document: makeDoc(), onChanged: (_) {}),
+        body: NoteEditorWidget(
+          document: makeDoc(),
+          onChanged: (doc) => changed = doc,
+        ),
       ),
     ));
-    expect(find.text('新增段落'), findsOneWidget);
-    await tester.tap(find.text('新增段落'));
-    await tester.pump();
-    expect(tester.takeException(), isNull); // 点击后不崩。
+
+    // 编辑标题
+    final titleField = find.widgetWithText(TextField, '我的笔记');
+    expect(titleField, findsOneWidget);
+    await tester.enterText(titleField, '新标题');
+    expect(changed?.title, '新标题');
   });
 
-  testWidgets('NoteEditorWidget 空段落（初始——提示打字——不崩）', (tester) async {
+  testWidgets('NoteEditorWidget 段落可编辑（#13 打字落盘）', (tester) async {
+    NoteDocument? changed;
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: NoteEditorWidget(
+          document: makeDoc(),
+          onChanged: (doc) => changed = doc,
+        ),
+      ),
+    ));
+
+    // 编辑第一段
+    final p1Field = find.widgetWithText(TextField, '第一段文字');
+    expect(p1Field, findsOneWidget);
+    await tester.enterText(p1Field, '修改后的文字');
+    expect(changed?.paragraphs.first.content, '修改后的文字');
+  });
+
+  testWidgets('NoteEditorWidget 空段落（初始——提示文字——不崩）', (tester) async {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
         body: NoteEditorWidget(
@@ -52,7 +81,39 @@ void main() {
         ),
       ),
     ));
-    expect(find.text('开始打字……（Word 文档式）'), findsOneWidget);
+    // 新版 hint text（#18 修改）
+    expect(find.text('开始输入…'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('NoteEditorWidget 没有"新增段落"按钮（#18 Word 式——Enter 新增）',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: NoteEditorWidget(document: makeDoc(), onChanged: (_) {}),
+      ),
+    ));
+    // 新版去掉了"新增段落"按钮（Enter 键新增——Word 体验）
+    expect(find.text('新增段落'), findsNothing);
+  });
+
+  testWidgets('NoteEditorWidget onChanged 回调触发（#13 落盘基础）',
+      (tester) async {
+    int callCount = 0;
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: NoteEditorWidget(
+          document: makeDoc(),
+          onChanged: (_) => callCount++,
+        ),
+      ),
+    ));
+
+    // 输入文字触发 onChanged
+    await tester.enterText(
+      find.widgetWithText(TextField, '第一段文字'),
+      '新内容',
+    );
+    expect(callCount, greaterThanOrEqualTo(1));
   });
 }
