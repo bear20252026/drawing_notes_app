@@ -27,7 +27,6 @@ import 'package:drawing_notes_app/features/editor_v2/presentation/editor_v2_scre
 import 'package:editor_core/editor_core.dart' hide TabBar;
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/password_disk_page.dart';
-import 'package:drawing_notes_app/features/notes/presentation/search_widget.dart';
 
 part 'home_page_widgets.dart';
 
@@ -526,26 +525,40 @@ class _HomePageState extends ConsumerState<HomePage> {
   /// 索引数据面：页面标题 + 文字块内容 + 手写字体文本（OCR）+ 画作标题。
   Future<void> _openSearch() async {
     final l10n = AppLocalizations.of(context);
-    // 构建索引可能涉及解密读取，先显示加载指示。
-    final index = await showDialog<SearchIndex>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        content: SizedBox(
-          width: 220,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(width: 16),
-              Text(l10n?.searchHint ?? '正在建立搜索索引…'),
-            ],
+    // 构建索引可能涉及解密读取，先显示加载指示（不可手动关闭）。
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => AlertDialog(
+          content: SizedBox(
+            width: 220,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(width: 16),
+                Expanded(child: Text(l10n?.searchHint ?? '正在建立搜索索引…')),
+              ],
+            ),
           ),
         ),
       ),
     );
-    if (index == null || !mounted) return;
-
+    final SearchIndex index;
+    try {
+      index = await SearchIndexBuilder.build(
+        notebookStorage: _nbStorage,
+        docStorage: _docStorage,
+      );
+    } finally {
+      // 无论成败都关闭加载指示（原实现等待加载框返回索引值，
+      // 但加载框永不 pop → 搜索入口永久转圈，P0）。
+      if (mounted) {
+        final nav = Navigator.of(context, rootNavigator: true);
+        if (nav.canPop()) nav.pop();
+      }
+    }
     if (!mounted) return;
     await showDialog<void>(
       context: context,
