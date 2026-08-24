@@ -65,9 +65,9 @@ dependencies:
   # 图片编解码（本地化适配 2026-08-15：PDF 导出 JPEG 压缩，原为传递依赖）
   image: ^4.3.0
 
+  go_router: ^14.8.1
   material_ui: any
   cupertino_ui: any
-  pdfx: ^2.11.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
