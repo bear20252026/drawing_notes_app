@@ -5,15 +5,20 @@
 // 纯 Flutter UI——业务逻辑在 EditorV2ViewModel。
 library;
 
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:editor_core/editor_core.dart';
 
 import '../application/editor_v2_viewmodel.dart';
 import '../../../shared/widgets/apple_glass.dart';
+import 'binding_hints_widget.dart';
 import 'canvas_painter.dart';
 import 'infinite_canvas_widget.dart';
+import 'magnifier_overlay.dart';
 import 'note_editor_widget.dart';
 import 'sidebar_widget.dart';
 import 'toolbar_widget.dart';
@@ -42,13 +47,16 @@ class EditorV2Screen extends ConsumerStatefulWidget {
 }
 
 class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
+  /// 画布 RepaintBoundary Key——用于截图取色（P2 #30）。
+  final GlobalKey _canvasKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
     // 初始化文档（CUJ-01 创建）。
     Future.microtask(() {
       final notifier = ref.read(editorV2NotifierProvider.notifier);
-    notifier.createDocument(widget.documentId);
+      notifier.createDocument(widget.documentId);
     });
   }
 
@@ -72,17 +80,17 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
     );
   }
 
+  // ──────────────────── 文本输入 Overlay ────────────────────
+
   /// 就地文本输入（画布 text 工具——修复打字崩溃——2026-08-24）。
   ///
   /// 使用 Overlay 就地编辑，不使用 showDialog（避免模态对话框中断画布手势）。
-  /// 借鉴 editor_page.dart 的就地编辑实现。
   OverlayEntry? _textOverlayEntry;
   final TextEditingController _textController = TextEditingController();
   final FocusNode _textFocus = FocusNode();
   Offset _textInputPosition = Offset.zero;
 
   void _showTextInput(Offset position) {
-    // 先清理之前的 overlay（如果有）。
     _removeTextOverlay();
 
     _textInputPosition = position;
@@ -125,7 +133,6 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
 
     Overlay.of(context).insert(_textOverlayEntry!);
 
-    // 延迟聚焦，确保 overlay 已渲染。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _textFocus.requestFocus();
     });
@@ -148,18 +155,74 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
     _textController.clear();
   }
 
+  // ──────────────────── P2 #30 取色放大镜 ────────────────────
+
+  /// 从画布截图中采样像素颜色。
+  Future<Color?> _sampleColorAt(Offset position) async {
+    try {
+      final boundary = _canvasKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
+      if (boundary == null) return null;
+
+      final image = await boundary.toImage(
+        pixelRatio: MediaQuery.devicePixelRatioOf(context),
+      );
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      if (byteData == null) return null;
+
+      final buffer = byteData.buffer.asUint8List();
+      final dpr = MediaQuery.devicePixelRatioOf(context);
+      final px = (position.dx * dpr).toInt();
+      final py = (position.dy * dpr).toInt();
+      final w = image.width;
+
+      if (px < 0 || px >= w || py < 0 || py >= image.height) return null;
+
+      final offset = (py * w + px) * 4;
+      if (offset + 3 >= buffer.length) return null;
+
+      final r = buffer[offset];
+      final g = buffer[offset + 1];
+      final b = buffer[offset + 2];
+      final a = buffer[offset + 3];
+
+      return Color.fromARGB(a, r, g, b);
+    } catch (e) {
+      debugPrint('ColorMagnifier: 采样失败 $e');
+      return null;
+    }
+  }
+
+  /// 从当前位置取色并更新放大镜。
+  Future<void> _pickColorFromCanvas(Offset position) async {
+    final color = await _sampleColorAt(position);
+    if (color != null && mounted) {
+      ref.read(editorV2NotifierProvider.notifier).setMagnifierColor(color);
+    }
+  }
+
+  /// 获取当前位置的取色结果（用于放大镜显示）。
+  PickedColor _getCurrentPickedColor(Offset position) {
+    final state = ref.read(editorV2NotifierProvider);
+    final c = state.currentColor;
+    return PickedColor(
+      r: c.red,
+      g: c.green,
+      b: c.blue,
+      positionX: position.dx,
+      positionY: position.dy,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(editorV2NotifierProvider);
 
     return Scaffold(
-      // 侧边栏页面导航（AFFiNE 页面设计借鉴——不大幅变动——
-      // 现有工具栏/画布保留——批次 F 页面管理）。
       drawer: const EditorV2Sidebar(),
       appBar: AppBar(
         title: Text('Editor V2 - ${widget.documentId}'),
         actions: [
-          // 撤销/重做按钮
           IconButton(
             icon: const Icon(Icons.undo),
             onPressed: state.canUndo
@@ -178,51 +241,106 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
       ),
       body: Column(
         children: [
-          // 工具栏（苹果设计语言——Liquid Glass 毛玻璃——2026-08-22——
-          // 借鉴 AFFiNE/Saber 清爽 UI——大圆角 + 半透明）。
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-            child: AppleGlassWidget.toolbar(
-              child: EditorV2Toolbar(
-                currentTool: state.currentTool,
-                currentShapeType: state.currentShapeType,
-                onToolChanged: (tool) =>
-                    ref.read(editorV2NotifierProvider.notifier).setTool(tool),
-                onShapeTypeChanged: (type) =>
-                    ref.read(editorV2NotifierProvider.notifier).setShapeType(type),
+          // ──── 工具栏：根据模式互斥显示（#23 修复——2026-08-24） ────
+          if (widget.mode == UnifiedEditorMode.whiteboard) ...[
+            // drawing 模式——绘图工具栏（含取色器按钮）。
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+              child: AppleGlassWidget.toolbar(
+                child: EditorV2Toolbar(
+                  currentTool: state.currentTool,
+                  currentShapeType: state.currentShapeType,
+                  onToolChanged: (tool) =>
+                      ref.read(editorV2NotifierProvider.notifier).setTool(tool),
+                  onShapeTypeChanged: (type) =>
+                      ref.read(editorV2NotifierProvider.notifier).setShapeType(type),
+                ),
               ),
             ),
-          ),
-          // 画布（苹果设计语言——Liquid Glass 毛玻璃卡片——2026-08-22——
-          // 借鉴 Excalidraw/Saber 清爽画布——半透明 + 圆角 + 页面转换动画）。
+          ] else ...[
+            // note 模式——文字格式化工具栏（加粗/斜体/下划线/列表/标题）。
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+              child: AppleGlassWidget.toolbar(
+                child: const _NoteFormattingToolbar(),
+              ),
+            ),
+          ],
+          // ──── 画布 ────
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
               child: AppleGlassWidget.card(
-                // text 工具时点击画布 → 弹出文本输入框（修复打字崩溃——
-                // Flutter 原生 TextField——不依赖 material_ui——不崩溃——2026-08-22）。
                 child: GestureDetector(
                   onTapUp: state.currentTool == 'text'
                       ? (details) => _showTextInput(details.localPosition)
                       : null,
+                  // P2 #30：长按画布 → 放大镜取色。
+                  onLongPressStart: (details) {
+                    final notifier = ref.read(editorV2NotifierProvider.notifier);
+                    if (!state.eyedropperActive) {
+                      notifier.activateEyedropper();
+                    }
+                    notifier.updateEyedropperPosition(details.localPosition);
+                  },
+                  onLongPressMoveUpdate: (details) async {
+                    final notifier = ref.read(editorV2NotifierProvider.notifier);
+                    notifier.updateEyedropperPosition(details.localPosition);
+                    final color = await _sampleColorAt(details.localPosition);
+                    if (color != null && mounted) {
+                      notifier.setMagnifierColor(color);
+                    }
+                  },
+                  onLongPressEnd: (details) {
+                    final notifier = ref.read(editorV2NotifierProvider.notifier);
+                    notifier.applyPickedColor(state.currentColor);
+                    // 显示取色结果 SnackBar。
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            '已取色: #${state.currentColor.value.toRadixString(16).substring(2).toUpperCase()}',
+                          ),
+                          duration: const Duration(seconds: 1),
+                          backgroundColor: state.currentColor,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
                     switchInCurve: Curves.easeInOut,
-                    // 统一架构（笔记/画板共用——2026-08-22）：
-                    // - whiteboard 模式：无限画布（InfiniteCanvas——缩放平移）
-                    // - note 模式：Word 文档式编辑器（NoteEditorWidget——
-                    //   直接打字——AFFiNE Page 借鉴——2026-08-22）
                     child: widget.mode == UnifiedEditorMode.whiteboard
                         ? InfiniteCanvasWidget(
                             key: ValueKey('canvas-${state.document.id}'),
-                            child: RepaintBoundary(
-                              child: CustomPaint(
-                                painter: CanvasPainterV2(
-                                  document: state.document,
-                                  fillMode: FillMode.stroke,
+                            child: Stack(
+                              children: [
+                                RepaintBoundary(
+                                  key: _canvasKey,
+                                  child: CustomPaint(
+                                    painter: CanvasPainterV2(
+                                      document: state.document,
+                                      fillMode: FillMode.stroke,
+                                    ),
+                                    size: Size.infinite,
+                                  ),
                                 ),
-                                size: Size.infinite,
-                              ),
+                                // P2 #30：取色放大镜覆盖层。
+                                if (state.eyedropperActive)
+                                  MagnifierOverlay(
+                                    cursorPosition: state.eyedropperPosition,
+                                    pickedColor: _getCurrentPickedColor(
+                                      state.eyedropperPosition,
+                                    ),
+                                  ),
+                                // 节点连线提示（用户需求 #10）。
+                                BindingHintsWidget(
+                                  currentTool: state.currentTool,
+                                  hasShapes: state.document.layers
+                                      .any((l) => l.shapes.isNotEmpty),
+                                ),
+                              ],
                             ),
                           )
                         : NoteEditorWidget(
@@ -236,6 +354,93 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ──────────────────── 笔记模式文字格式化工具栏（#23） ────────────────────
+
+/// note 模式工具栏——加粗/斜体/下划线/删除线/列表/标题。
+///
+/// 与绘图工具栏互斥——同一时间只显示一个。
+class _NoteFormattingToolbar extends StatelessWidget {
+  const _NoteFormattingToolbar();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _ToolButton(
+            icon: Icons.format_bold,
+            tooltip: '加粗 (Ctrl+B)',
+            onPressed: () {},
+          ),
+          _ToolButton(
+            icon: Icons.format_italic,
+            tooltip: '斜体 (Ctrl+I)',
+            onPressed: () {},
+          ),
+          _ToolButton(
+            icon: Icons.format_underline,
+            tooltip: '下划线 (Ctrl+U)',
+            onPressed: () {},
+          ),
+          _ToolButton(
+            icon: Icons.strikethrough_s,
+            tooltip: '删除线',
+            onPressed: () {},
+          ),
+          const VerticalDivider(indent: 8, endIndent: 8),
+          _ToolButton(
+            icon: Icons.format_list_bulleted,
+            tooltip: '无序列表',
+            onPressed: () {},
+          ),
+          _ToolButton(
+            icon: Icons.format_list_numbered,
+            tooltip: '有序列表',
+            onPressed: () {},
+          ),
+          const VerticalDivider(indent: 8, endIndent: 8),
+          _ToolButton(
+            icon: Icons.title,
+            tooltip: '标题',
+            onPressed: () {},
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 工具按钮封装——统一风格。
+class _ToolButton extends StatelessWidget {
+  const _ToolButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: IconButton(
+        icon: Icon(icon, size: 20),
+        onPressed: onPressed,
+        style: IconButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
       ),
     );
   }

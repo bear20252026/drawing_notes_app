@@ -90,6 +90,13 @@ class EditorV2Toolbar extends StatelessWidget {
             isActive: currentTool == 'erase',
             onTap: () => onToolChanged('erase'),
           ),
+          // P2 #30：取色器/吸管工具（长按画布也可激活）。
+          _ToolButton(
+            icon: Icons.colorize,
+            label: 'Eyedropper',
+            isActive: currentTool == 'eyedropper',
+            onTap: () => onToolChanged('eyedropper'),
+          ),
           _ToolButton(
             icon: Icons.picture_as_pdf,
             label: 'Import PDF',

@@ -33,7 +33,9 @@ class EditorToolbar extends StatelessWidget {
       elevation: 2,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        child: Row(
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
           children: [
             _toolButton(
               context,
@@ -663,6 +665,7 @@ class EditorToolbar extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
           ],
+          ),
         ),
       ),
     );
