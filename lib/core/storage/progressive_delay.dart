@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 ///
 /// 设计原理：
 /// - 失败次数通过 HMAC-SHA256 签名保护，防篡改
-/// - 延迟序列：1s → 5s → 30s → 5min → 1h
+/// - 延迟序列：1s → 5s → 30s(3次) → 2min(5次) → 30min(10次)
 /// - 成功解锁后重置计数器
 /// - HMAC 密钥存储在 SharedPreferences（应用级密钥）
 ///
@@ -22,8 +22,8 @@ class ProgressiveDelay {
   static const String _kLastFailTimeKey = 'progressive_delay_last_fail_time';
   static const String _kHmacSecretKey = 'progressive_delay_hmac_secret';
   
-  /// 延迟序列（秒）：1s → 5s → 30s → 5min → 1h
-  static const List<int> _delaySequence = [1, 5, 30, 300, 3600];
+  /// 延迟序列（秒）：1s → 5s → 30s(3次) → 2min(5次) → 30min(10次)
+  static const List<int> _delaySequence = [1, 5, 30, 60, 120, 180, 300, 600, 1080, 1800];
   
   /// 24小时过期时间（毫秒）
   static const int _expireMs = 24 * 60 * 60 * 1000;

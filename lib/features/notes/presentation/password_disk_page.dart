@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
+
+import 'package:drawing_notes_app/core/theme/text_scale_helper.dart';
 
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/storage/password_disk.dart';
@@ -53,7 +56,9 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
   /// 渐进式延迟状态（HMAC 保护计数器，防篡改）。
   int _failCount = 0;
   int _currentDelaySec = 0;
-  bool _isDelaying = false;
+
+  /// 锁定倒计时定时器（每秒刷新 UI 显示剩余时间）。
+  Timer? _lockCountdownTimer;
 
   String? _demoInput;
   String? _demoOutput;
@@ -88,7 +93,39 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
         _failCount = count;
         _currentDelaySec = delay;
       });
+      if (delay > 0) {
+        _startCountdownTimer();
+      } else {
+        _lockCountdownTimer?.cancel();
+      }
     }
+  }
+
+  /// 启动锁定倒计时定时器，每秒递减并刷新 UI（MM:SS 格式）。
+  void _startCountdownTimer() {
+    _lockCountdownTimer?.cancel();
+    _lockCountdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted || _currentDelaySec <= 0) {
+        timer.cancel();
+        if (mounted) {
+          setState(() {
+            _currentDelaySec = 0;
+          });
+        }
+        return;
+      }
+      setState(() {
+        _currentDelaySec--;
+      });
+    });
+  }
+
+  /// 格式化锁定倒计时显示（MM:SS）。
+  String get _lockCountdownDisplay {
+    if (_currentDelaySec <= 0) return '00:00';
+    final minutes = _currentDelaySec ~/ 60;
+    final seconds = _currentDelaySec % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -98,6 +135,7 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
       key.fillRange(0, key.length, 0); // S-4 增强（专家审查）：主动擦除内容
     }
     _masterKey = null; // 内存安全：关闭页面即清空密钥
+    _lockCountdownTimer?.cancel();
     super.dispose();
   }
 
@@ -164,8 +202,8 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
           children: [
             Text(
               recovery,
-              style: const TextStyle(
-                fontSize: 18,
+              style: TextStyle(
+                fontSize: TextScaleHelper.scaled(context, 18),
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1,
               ),
@@ -473,9 +511,10 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
                 // 渐进式延迟状态 / 指纹仪表盘 / 提示
                 if (isDelayed)
                   Text(
-                    '解锁尝试过多，${ProgressiveDelay.getDelayInfoForCount(_failCount)} 后重试',
+                    '解锁尝试过多，$_lockCountdownDisplay 后重试',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.error,
+                      fontWeight: FontWeight.bold,
                     ),
                   )
                 else if (hasFailures && _masterKey == null)
@@ -505,39 +544,6 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-<<<<<<< HEAD
-          // 状态卡（军工级增强：状态动画 + 锁定倒计时 + 指纹仪表盘）
-          AnimatedContainer(
-            duration: AppAnimation.standardDuration,
-            curve: AppAnimation.standardMotion,
-            decoration: BoxDecoration(
-              color: _isLocked
-                  ? Theme.of(context).colorScheme.errorContainer
-                  : (_masterKey == null
-                        ? Theme.of(context).colorScheme.surfaceContainerHighest
-                        : Theme.of(context).colorScheme.primaryContainer),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: Icon(
-                    _isLocked
-                        ? Icons.lock_clock
-                        : (_masterKey == null ? Icons.usb_off : Icons.usb),
-                    key: ValueKey('status_${_isLocked}_${_masterKey != null}'),
-                    size: 40,
-                    color: _isLocked
-                        ? Theme.of(context).colorScheme.error
-                        : (_masterKey == null ? Colors.grey : Colors.green),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
           // 状态卡（v5：渐进式延迟 + HMAC 保护计数器 + 指纹仪表盘）
           _buildDelayStatusCard(context),
           const SizedBox(height: 12),
@@ -627,7 +633,7 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
                 ),
                 child: Text(
                   _demoOutput!,
-                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                  style: TextStyle(fontFamily: 'monospace', fontSize: TextScaleHelper.scaled(context, 12)),
                 ),
               ),
             ),

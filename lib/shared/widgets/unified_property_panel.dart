@@ -225,7 +225,7 @@ class UnifiedPropertyPanel extends StatelessWidget {
           children: [
             ColorPickerDot(
               color: Color(text.color),
-              onTap: actions.onTextColor,
+              onTap: actions.onTextColor ?? () {},
               size: 22,
               tooltip: '文字颜色',
             ),

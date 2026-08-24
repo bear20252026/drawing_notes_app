@@ -14,7 +14,7 @@ library;
 
 import 'package:flutter/material.dart';
 
-import 'package:drawing_notes_app/shared/widgets/editor_components.dart';
+import 'editor_components.dart';
 
 /// 统一工具栏（V1/V2 合并——2026-08-24）。
 ///
@@ -189,7 +189,7 @@ class UnifiedToolbar extends StatelessWidget {
           if (showColorPicker)
             ColorPickerDot(
               color: state.currentColor,
-              onTap: actions.onShowColorPicker,
+              onTap: actions.onShowColorPicker ?? () {},
             ),
 
           // 线宽滑块

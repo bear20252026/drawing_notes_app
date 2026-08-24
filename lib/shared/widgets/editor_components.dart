@@ -1,8 +1,14 @@
-// shared/widgets——公共绘图工具组件（V1/V2 统一—�?026-08-24）�?//
-// �?V1/V2 重复代码中提取的公共组件�?// - ColorPickerGrid：颜色选择网格
-// - StrokeWidthSlider：线宽滑�?// - OpacitySlider：透明度滑�?// - LineStyleSelector：线条样式选择�?// - ToolButton：工具栏按钮
+// shared/widgets —— 公共绘图工具组件（V1/V2 统一——2026-08-24）。
 //
-// 设计原则�?// - �?UI 组件，不含业务逻辑
+// 从 V1/V2 重复代码中提取的公共组件：
+// - ColorPickerGrid：颜色选择网格
+// - StrokeWidthSlider：线宽滑块
+// - OpacitySlider：透明度滑块
+// - LineStyleSelector：线条样式选择
+// - ToolButton：工具栏按钮
+//
+// 设计原则：
+// - 纯 UI 组件，不含业务逻辑
 // - 所有状态通过参数传入
 // - 所有操作通过回调返回
 // - 可被 V1/V2 共同使用
@@ -12,8 +18,11 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/text_scale_helper.dart';
 
-/// 颜色选择网格（V1/V2 公共组件）�?///
-/// 12 色预设方块，选中高亮边框�?/// 常用于画笔颜色选择、形状填充色选择等�?class ColorPickerGrid extends StatelessWidget {
+/// 颜色选择网格（V1/V2 公共组件）。
+///
+/// 12 色预设方块，选中高亮边框。
+/// 常用于画笔颜色选择、形状填充色选择等。
+class ColorPickerGrid extends StatelessWidget {
   const ColorPickerGrid({
     super.key,
     required this.selectedColor,
@@ -22,13 +31,17 @@ import '../../../core/theme/text_scale_helper.dart';
     this.size = 28,
   });
 
-  /// 当前选中的颜色（十六进制字符串，�?'#FF0000'）�?  final String selectedColor;
+  /// 当前选中的颜色（十六进制字符串，如 '#FF0000'）。
+  final String selectedColor;
 
-  /// 颜色选择回调�?  final ValueChanged<String> onColorSelected;
+  /// 颜色选择回调。
+  final ValueChanged<String> onColorSelected;
 
-  /// 颜色预设列表（默�?12 色）�?  final List<String> colors;
+  /// 颜色预设列表（默认 12 色）。
+  final List<String> colors;
 
-  /// 方块大小�?  final double size;
+  /// 方块大小。
+  final double size;
 
   static const List<String> _defaultColors = [
     '#000000', '#FFFFFF', '#FF0000', '#FF6600',
@@ -71,8 +84,10 @@ import '../../../core/theme/text_scale_helper.dart';
   }
 }
 
-/// 线宽滑块（V1/V2 公共组件）�?///
-/// 常用于画笔粗细、形状线宽等�?class StrokeWidthSlider extends StatelessWidget {
+/// 线宽滑块（V1/V2 公共组件）。
+///
+/// 常用于画笔粗细、形状线宽等。
+class StrokeWidthSlider extends StatelessWidget {
   const StrokeWidthSlider({
     super.key,
     required this.value,
@@ -122,13 +137,15 @@ import '../../../core/theme/text_scale_helper.dart';
   }
 }
 
-/// 透明度滑块（V1/V2 公共组件）�?///
-/// 常用于画笔透明度、形状填充透明度等�?class OpacitySlider extends StatelessWidget {
+/// 透明度滑块（V1/V2 公共组件）。
+///
+/// 常用于画笔透明度、形状填充透明度等。
+class OpacitySlider extends StatelessWidget {
   const OpacitySlider({
     super.key,
     required this.value,
     required this.onChanged,
-    this.label = '透明�?,
+    this.label = '透明度',
   });
 
   final double value;
@@ -169,8 +186,10 @@ import '../../../core/theme/text_scale_helper.dart';
   }
 }
 
-/// 线条样式选择器（V1/V2 公共组件）�?///
-/// 支持实线/虚线/点线三种样式�?class LineStyleSelector extends StatelessWidget {
+/// 线条样式选择器（V1/V2 公共组件）。
+///
+/// 支持实线/虚线/点线三种样式。
+class LineStyleSelector extends StatelessWidget {
   const LineStyleSelector({
     super.key,
     required this.selectedStyle,
@@ -224,7 +243,8 @@ import '../../../core/theme/text_scale_helper.dart';
   }
 }
 
-/// 线条样式枚举�?enum LineStyle {
+/// 线条样式枚举。
+enum LineStyle {
   solid,
   dashed,
   dotted;
@@ -241,8 +261,10 @@ import '../../../core/theme/text_scale_helper.dart';
   }
 }
 
-/// 工具栏按钮（V1/V2 公共组件）�?///
-/// 支持选中状态、图标、提示文字�?class ToolButton extends StatelessWidget {
+/// 工具栏按钮（V1/V2 公共组件）。
+///
+/// 支持选中状态、图标、提示文字。
+class ToolButton extends StatelessWidget {
   const ToolButton({
     super.key,
     required this.icon,
@@ -292,8 +314,10 @@ import '../../../core/theme/text_scale_helper.dart';
   }
 }
 
-/// 颜色选择圆点（V1/V2 公共组件）�?///
-/// 显示当前颜色，点击弹出颜色选择器�?class ColorPickerDot extends StatelessWidget {
+/// 颜色选择圆点（V1/V2 公共组件）。
+///
+/// 显示当前颜色，点击弹出颜色选择器。
+class ColorPickerDot extends StatelessWidget {
   const ColorPickerDot({
     super.key,
     required this.color,
