@@ -122,6 +122,10 @@ class StrokeRenderer {
       isComplete: isComplete,
     );
     if (outline == null) return;
+    // 退化轮廓（零面积路径）在 BlendMode.clear 下会产生视觉伪影（黑线），
+    // 跳过绘制以确保像素橡皮擦轨迹只产生预期的透明擦除效果。
+    final bounds = outline.getBounds();
+    if (bounds.isEmpty || bounds.shortestSide <= 0) return;
     canvas.drawPath(outline, paint);
   }
 
