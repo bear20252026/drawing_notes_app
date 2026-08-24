@@ -185,6 +185,8 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     final stroke = LineItem(
       id: 'stroke-${DateTime.now().millisecondsSinceEpoch}',
       points: points,
+      strokeWidth: state.brushSize,
+      color: state.strokeColorHex,
     );
     execute(AddStrokeCommand(layerId: layerId, stroke: stroke));
   }
@@ -255,19 +257,37 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     state = state.copyWith(eyedropperPosition: position);
   }
 
-  /// 应用取色结果（设置当前画笔颜色为取到的颜色）。
-  void applyPickedColor(String color) {
+  /// 应用取色结果（松手后调用——设置当前画笔颜色为取到的颜色）。
+  ///
+  /// 将采样到的颜色转换为 #RRGGBB 并应用为当前画笔颜色，退出取色模式。
+  void applyPickedColor(Color color) {
+    final hex = '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
     state = state.copyWith(
       currentTool: 'draw',
       eyedropperActive: false,
+      currentColor: color,
+      strokeColorHex: hex,
     );
   }
 
-  /// 设置采样颜色（P2 #30 放大镜取色器——实时更新 + 回写画笔颜色）。
+  /// 实时更新取色放大镜颜色（P2 #30——实时采样——2026-08-24）。
+  ///
+  /// 在拖动取色器时调用，更新放大镜显示颜色。
+  /// 同时更新 currentColor 供画笔工具使用。
   void setMagnifierColor(Color color) {
-    state = state.copyWith(
-      currentColor: color,
-    );
+    state = state.copyWith(currentColor: color);
+  }
+
+  // ──────────────────── 笔刷设置（V1/V2 迁移阶段1——2026-08-24） ────────────────────
+
+  /// 设置笔刷粗细。
+  void setBrushSize(double size) {
+    state = state.copyWith(brushSize: size);
+  }
+
+  /// 设置笔画颜色（#RRGGBB）。
+  void setStrokeColor(String hex) {
+    state = state.copyWith(strokeColorHex: hex);
   }
 }
 

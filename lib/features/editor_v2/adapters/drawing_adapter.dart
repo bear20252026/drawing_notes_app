@@ -15,11 +15,20 @@ class DrawingAdapter {
 
   final DocumentReducer _reducer;
 
-  /// 旧绘制操作 → V2 AddStrokeCommand。
-  void bridgeAddStroke(String layerId, List<Point> points) {
+  /// 旧绘制操作 → V2 AddStrokeCommand（V1/V2 迁移阶段1——2026-08-24）。
+  ///
+  /// [color] 格式：#RRGGBB；[strokeWidth] 默认 2.0。
+  void bridgeAddStroke(
+    String layerId,
+    List<Point> points, {
+    String color = '#000000',
+    double strokeWidth = 2.0,
+  }) {
     final stroke = LineItem(
       id: 'bridge-${DateTime.now().millisecondsSinceEpoch}',
       points: points,
+      strokeWidth: strokeWidth,
+      color: color,
     );
     _reducer.execute(AddStrokeCommand(layerId: layerId, stroke: stroke));
   }

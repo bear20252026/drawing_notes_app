@@ -263,12 +263,10 @@ class UnifiedToolbar extends StatelessWidget {
           // 自定义按钮
           ...customButtons,
 
-          // 填充剩余空间
-          Spacer(),
-
           // 模式提示
           _buildModeHint(context),
         ],
+        ),
       ),
     );
   }
