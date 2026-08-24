@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:editor_core/editor_core.dart';
 
+import '../../../../core/theme/responsive.dart';
 import '../application/editor_v2_viewmodel.dart';
 import '../../../shared/widgets/apple_glass.dart';
 import 'binding_hints_widget.dart';
@@ -138,8 +139,8 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
         child: Material(
           elevation: 4,
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 300),
-            padding: const EdgeInsets.all(8),
+            constraints: BoxConstraints(maxWidth: ctx.responsiveScale(280)),
+            padding: EdgeInsets.all(ctx.responsiveScale(8)),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(8),
@@ -255,9 +256,12 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
     final state = ref.watch(editorV2NotifierProvider);
 
     return Scaffold(
-      drawer: const EditorV2Sidebar(),
+      drawer: context.isMobile ? const EditorV2Sidebar() : null,
       appBar: AppBar(
-        title: Text('Editor V2 - ${widget.documentId}'),
+        title: Text(
+          'Editor V2 - ${widget.documentId}',
+          style: TextStyle(fontSize: context.responsiveScale(16)),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.undo),
@@ -275,13 +279,27 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
           ),
         ],
       ),
-      body: Column(
+      body: Row(
         children: [
-          // ──── 工具栏：根据模式互斥显示（#23 修复——2026-08-24） ────
-          if (widget.mode == UnifiedEditorMode.whiteboard) ...[
+          // tablet/desktop：固定显示侧边栏；mobile：不显示（用 Drawer）。
+          if (!context.isMobile)
+            const SizedBox(
+              width: 240,
+              child: EditorV2Sidebar(),
+            ),
+          Expanded(
+            child: Column(
+              children: [
+                // ──── 工具栏：根据模式互斥显示（#23 修复——2026-08-24） ────
+                if (widget.mode == UnifiedEditorMode.whiteboard) ...[
             // drawing 模式——绘图工具栏（含取色器按钮）。
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+              padding: EdgeInsets.fromLTRB(
+                context.responsiveScale(12),
+                context.responsiveScale(8),
+                context.responsiveScale(12),
+                context.responsiveScale(4),
+              ),
               child: AppleGlassWidget.toolbar(
                 child: EditorV2Toolbar(
                   currentTool: state.currentTool,
@@ -305,7 +323,12 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
           ] else ...[
             // note 模式——文字格式化工具栏（加粗/斜体/下划线/列表/标题）。
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+              padding: EdgeInsets.fromLTRB(
+                context.responsiveScale(12),
+                context.responsiveScale(8),
+                context.responsiveScale(12),
+                context.responsiveScale(4),
+              ),
               child: AppleGlassWidget.toolbar(
                 child: const _NoteFormattingToolbar(),
               ),
@@ -314,7 +337,12 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
           // ──── 画布 ────
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+              padding: EdgeInsets.fromLTRB(
+                context.responsiveScale(12),
+                context.responsiveScale(4),
+                context.responsiveScale(12),
+                context.responsiveScale(12),
+              ),
               child: AppleGlassWidget.card(
                 child: GestureDetector(
                   onTapUp: state.currentTool == 'text'
@@ -398,6 +426,9 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
               ),
             ),
           ),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -415,7 +446,7 @@ class _NoteFormattingToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 48,
+      height: context.responsiveFont(mobile: 44, desktop: 56),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
@@ -479,7 +510,7 @@ class _ToolButton extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: IconButton(
-        icon: Icon(icon, size: 20),
+        icon: Icon(icon, size: context.responsiveFont(mobile: 18, desktop: 22)),
         onPressed: onPressed,
         style: IconButton.styleFrom(
           shape: RoundedRectangleBorder(

@@ -53,6 +53,7 @@ import 'package:drawing_notes_app/features/drawing/presentation/resize_handles.d
 import 'package:drawing_notes_app/features/drawing/presentation/selection_bar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/toolbar_state_mapper.dart';
 import 'package:drawing_notes_app/core/theme/animation_constants.dart';
+import 'package:drawing_notes_app/core/theme/responsive.dart';
 
 import 'editor_page_drop_handler.dart';
 
@@ -952,7 +953,57 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                 )
               : Row(
                   children: [
-                    // 左侧垂直工具条（对齐 Excalidraw LayerUI 布局）。
+                    // 左侧垂直工具条：mobile 可滚动，tablet/desktop 固定显示。
+                    if (context.isMobile)
+                      SizedBox(
+                        width: context.responsiveScale(48),
+                        child: SingleChildScrollView(
+                          child: EditorLeftToolbar(
+                            controller: _controller,
+                            eyedropperActive: _eyedropperActive,
+                            textToolActive: _textToolActive,
+                            marqueeActive: _marqueeActive,
+                            linkMode: _linkMode,
+                            handActive: _handToolActive,
+                            onHand: _toggleHandTool,
+                            activeShape: _activeShapeTool,
+                            onBrush: () => _selectWritingTool(BrushType.pen),
+                            onPencil: () => _selectWritingTool(BrushType.pencil),
+                            onHighlighter: () => _selectWritingTool(BrushType.marker),
+                            onLaser: () => _selectWritingTool(BrushType.laser),
+                            onEraser: () => _selectWritingTool(BrushType.eraser),
+                            onEyedropper: () => setState(() {
+                              _handToolActive = false;
+                              _activeShapeTool = null;
+                              _marqueeActive = false;
+                              _controller.selectionTool = SelectionTool.none;
+                              _viewModel.setEyedropperActive(true);
+                              _viewModel.setTextToolActive(false);
+                            }),
+                            onRectSelect: () => setState(() {
+                              _handToolActive = false;
+                              _activeShapeTool = null;
+                              _marqueeActive = false;
+                              _viewModel.setEyedropperActive(false);
+                              _viewModel.setTextToolActive(false);
+                              _viewModel.setSelectionDone(false);
+                              _controller.selectionTool = SelectionTool.rect;
+                            }),
+                            onMarquee: _toggleMarqueeTool,
+                            onText: () => setState(() {
+                              _handToolActive = false;
+                              _activeShapeTool = null;
+                              _marqueeActive = false;
+                              _controller.selectionTool = SelectionTool.none;
+                              _viewModel.setEyedropperActive(false);
+                              _viewModel.setTextToolActive(true);
+                            }),
+                            onShape: _selectShapeTool,
+                            onLink: _toggleLinkMode,
+                          ),
+                        ),
+                      )
+                    else
                     EditorLeftToolbar(
                       controller: _controller,
                       eyedropperActive: _eyedropperActive,
@@ -1096,10 +1147,24 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                         ],
                       ),
                     ),
-                    // 图层与详细属性仅在用户需要时展开，画布默认保持居中和宽阔。
-                    if (_layersVisible) LayerPanel(controller: _controller),
+                    // 图层与详细属性：mobile 底部抽屉，tablet 右侧窄面板，desktop 右侧宽面板。
+                    if (_layersVisible)
+                      SizedBox(
+                        width: context.isMobile
+                            ? double.infinity
+                            : context.isTablet
+                                ? context.responsiveScale(200)
+                                : context.responsiveScale(260),
+                        child: LayerPanel(controller: _controller),
+                      ),
                     if (_inspectorVisible)
-                      PropertiesPanel(
+                      SizedBox(
+                        width: context.isMobile
+                            ? double.infinity
+                            : context.isTablet
+                                ? context.responsiveScale(200)
+                                : context.responsiveScale(320),
+                        child: PropertiesPanel(
                         controller: _controller,
                         selectedShape: _selectedShapeItem,
                         selectedText: _selectedTextItem,
@@ -1181,6 +1246,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                           });
                           _notifyChanged();
                         },
+                      ),
                       ),
                   ],
                 ),
