@@ -82,8 +82,10 @@ jobs:
         # 转正式门禁：--gate 阻断 + 聚焦安全域（secrets/danger），
         # 只拦安全 definite 问题；dead-code 存量不阻断（避免历史债阻塞
         # 合并），由 desloppify/pyscn 跟踪。SARIF 归档审计留痕。
+        # --exclude 排除 recovery_key.dart 所在目录（base58 字符集高熵误报，
+        # 该目录已由 scan_secrets.py + Gitleaks 双重覆盖）。
         run: |
-          skylos . --gate --secrets --danger --sarif skylos.sarif --format github
+          skylos . --gate --secrets --danger --sarif skylos.sarif --format github --exclude packages/editor_core/lib/src/domain
 
       - name: 归档 Skylos SARIF（审计留痕）
         if: always()
@@ -129,10 +131,11 @@ jobs:
             echo "out_of_scope=true" >> "$GITHUB_ENV"
           fi
           # 2) 涉密内容检查：变更 diff 中出现密钥/口令即拦截
-          #    文件名模式排除领域概念（recovery_key/key_rotation/honeypot_key 等），
-          #    仅匹配凭证类关键词（api_key/secret/password/token/口令/密钥）。
-          if echo "$CHANGED" | grep -qiE "api[_-]?key|secret|password|token|口令|密钥"; then
-            if git diff origin/master...HEAD | grep -qiE "api[_-]?key|secret|password|token|口令|密钥"; then
+          #    文件名模式排除领域概念（recovery_key/key_rotation/honeypot_key/secret_sharing
+          #    /secure_enclave/encryption_* 等安全域模型），仅匹配凭证类关键词。
+          #    注意：bare "secret" 会误拦 secret_sharing.dart 等安全域模型，已移除。
+          if echo "$CHANGED" | grep -qiE "api[_-]?key|api[_-]?secret|password|token|口令|密钥"; then
+            if git diff origin/master...HEAD | grep -qiE "api[_-]?key|api[_-]?secret|password|token|口令|密钥"; then
               echo "::error::检测到疑似涉密内容，禁止评审！请检查变更文件"
               exit 1
             fi

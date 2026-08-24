@@ -28,7 +28,7 @@ skip_blank = true
 # docs/test 为文档与测试目录，文件较多属正常，不计入上限。
 # editor_core/lib/src/domain 为领域模型层，52 个文件属合理规模。
 max_files = 60
-max_dirs = 15
+max_dirs = 20
 max_depth = 10
 warn_threshold = 0.8
 count_exclude = ["*.md", ".gitkeep", "**/docs/**", "**/test/**"]

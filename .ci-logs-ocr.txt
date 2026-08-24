@@ -1,0 +1,546 @@
+﻿Open Code Review (行级评审，领导已批准)	Set up job	﻿2026-08-24T12:12:07.2256536Z Current runner version: '2.336.0'
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2282774Z ##[group]Runner Image Provisioner
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2283719Z Hosted Compute Agent
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2284333Z Version: 20260729.566
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2285082Z Commit: cf7153fe6e25b664e8693c24944bf2b00355d109
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2285838Z Build Date: 2026-07-29T19:17:02Z
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2286647Z Worker ID: {0ca37657-5afd-495f-a433-d0c26792b20e}
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2287683Z Azure Region: eastus2
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2288406Z ##[endgroup]
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2290287Z ##[group]Operating System
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2290960Z Ubuntu
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2291493Z 24.04.4
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2292101Z LTS
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2292640Z ##[endgroup]
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2293278Z ##[group]Runner Image
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2293916Z Image: ubuntu-24.04
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2294535Z Version: 20260816.277.1
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2295690Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260816.277/images/ubuntu/Ubuntu2404-Readme.md
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2297847Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260816.277
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2299763Z ##[endgroup]
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2301266Z ##[group]GITHUB_TOKEN Permissions
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2303972Z Metadata: read
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2304631Z ##[endgroup]
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2306931Z Secret source: Actions
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2308355Z Prepare workflow directory
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2827318Z Prepare all required actions
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.2875388Z Getting action download info
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.5066443Z Download action repository 'actions/checkout@v6' (SHA:d23441a48e516b6c34aea4fa41551a30e30af803)
+Open Code Review (行级评审，领导已批准)	Set up job	2026-08-24T12:12:07.7410662Z Complete job name: Open Code Review (行级评审，领导已批准)
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	﻿2026-08-24T12:12:07.8116455Z ##[group]Run actions/checkout@v6
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.8117321Z with:
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.8117942Z   fetch-depth: 0
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.8118437Z   repository: bear20252026/drawing_notes_app
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.8122670Z   token: ***
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.8123115Z   ssh-strict: true
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.8123595Z   ssh-user: git
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.8124055Z   persist-credentials: true
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.8124555Z   clean: true
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.8125009Z   sparse-checkout-cone-mode: true
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.8125536Z   fetch-tags: false
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.8125977Z   show-progress: true
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.8126421Z   lfs: false
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.8126842Z   submodules: false
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.8127291Z   set-safe-directory: true
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.8127917Z   allow-unsafe-pr-checkout: false
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.8128620Z env:
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.8129037Z   OCR_PROVIDER: my-gateway
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.8129532Z   OCR_LOCAL_ENDPOINT: 
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.8129993Z   OCR_LOCAL_MODEL: 
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.8130431Z   OCR_API_KEY: 
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.8130900Z ##[endgroup]
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9167216Z Syncing repository: bear20252026/drawing_notes_app
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9169753Z ##[group]Getting Git version info
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9170585Z Working directory is '/home/runner/work/drawing_notes_app/drawing_notes_app'
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9171789Z [command]/usr/bin/git version
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9193262Z git version 2.55.0
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9249217Z ##[endgroup]
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9265224Z Temporarily overriding HOME='/home/runner/work/_temp/82f275a0-4116-4022-95ac-85e3a4227948' before making global git config changes
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9267790Z Adding repository directory to the temporary git global config as a safe directory
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9272232Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/drawing_notes_app/drawing_notes_app
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9324970Z Deleting the contents of '/home/runner/work/drawing_notes_app/drawing_notes_app'
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9329186Z ##[group]Determining repository object format
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9331424Z ##[endgroup]
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9332793Z ##[group]Initializing the repository
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9336314Z [command]/usr/bin/git init /home/runner/work/drawing_notes_app/drawing_notes_app
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9411668Z hint: Using 'master' as the name for the initial branch. This default branch name
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9413909Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9415418Z hint: to use in all of your new repositories, which will suppress this warning,
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9416782Z hint: call:
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9417666Z hint:
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9418583Z hint: 	git config --global init.defaultBranch <name>
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9419666Z hint:
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9420691Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9422334Z hint: 'development'. The just-created branch can be renamed via this command:
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9423597Z hint:
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9424383Z hint: 	git branch -m <name>
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9425277Z hint:
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9426401Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9428445Z Initialized empty Git repository in /home/runner/work/drawing_notes_app/drawing_notes_app/.git/
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9431352Z [command]/usr/bin/git remote add origin https://github.com/bear20252026/drawing_notes_app
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9480771Z ##[endgroup]
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9481983Z ##[group]Disabling automatic garbage collection
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9484197Z [command]/usr/bin/git config --local gc.auto 0
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9519825Z ##[endgroup]
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9521080Z ##[group]Setting up auth
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9522012Z Removing SSH command configuration
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9527350Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9563503Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9897085Z Removing HTTP extra header
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9906946Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:07.9948649Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.0199937Z Removing includeIf entries pointing to credentials config files
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.0207031Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.0246842Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.0491821Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-b113be92-da8d-4da0-9521-b0c142265d15.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.0536287Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/drawing_notes_app/drawing_notes_app/.git.path /home/runner/work/_temp/git-credentials-b113be92-da8d-4da0-9521-b0c142265d15.config
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.0572264Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/drawing_notes_app/drawing_notes_app/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-b113be92-da8d-4da0-9521-b0c142265d15.config
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.0609935Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-b113be92-da8d-4da0-9521-b0c142265d15.config
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.0731400Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-b113be92-da8d-4da0-9521-b0c142265d15.config
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.0735820Z ##[endgroup]
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.0737297Z ##[group]Fetching the repository
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.0740606Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +e0172cebb04931c35ec77a00ed432bcffa0b659b:refs/remotes/pull/2/merge
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8892453Z From https://github.com/bear20252026/drawing_notes_app
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8893427Z  * [new branch]      bear20252026-patch-1                     -> origin/bear20252026-patch-1
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8894177Z  * [new branch]      bear20252026-patch-2                     -> origin/bear20252026-patch-2
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8894831Z  * [new branch]      bear20252026-patch-3                     -> origin/bear20252026-patch-3
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8895471Z  * [new branch]      bear20252026-patch-4                     -> origin/bear20252026-patch-4
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8896133Z  * [new branch]      bear20252026-patch-5                     -> origin/bear20252026-patch-5
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8896857Z  * [new branch]      bear20252026-patch-6                     -> origin/bear20252026-patch-6
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8897917Z  * [new branch]      ci/week1-smoke-run                       -> origin/ci/week1-smoke-run
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8898872Z  * [new branch]      master                                   -> origin/master
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8899825Z  * [new branch]      rework/wp1-drawing-tools                 -> origin/rework/wp1-drawing-tools
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8900525Z  * [new branch]      rework/wp2-shapes-colors                 -> origin/rework/wp2-shapes-colors
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8901227Z  * [new branch]      rework/wp4-encryption                    -> origin/rework/wp4-encryption
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8901908Z  * [new branch]      rework/wp5-input-env                     -> origin/rework/wp5-input-env
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8902552Z  * [new branch]      rework/wp6-ci-quality                    -> origin/rework/wp6-ci-quality
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8903194Z  * [new tag]         v1.1.0+2                                 -> v1.1.0+2
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8904289Z  * [new ref]         e0172cebb04931c35ec77a00ed432bcffa0b659b -> pull/2/merge
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8906326Z ##[endgroup]
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8906891Z ##[group]Determining the checkout info
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8907669Z ##[endgroup]
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8908159Z [command]/usr/bin/git sparse-checkout disable
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8957084Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8990856Z ##[group]Checking out the ref
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.8994335Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/2/merge
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.9873059Z Note: switching to 'refs/remotes/pull/2/merge'.
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.9873871Z 
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.9874380Z You are in 'detached HEAD' state. You can look around, make experimental
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.9875576Z changes and commit them, and you can discard any commits you make in this
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.9876733Z state without impacting any branches by switching back to a branch.
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.9877692Z 
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.9878165Z If you want to create a new branch to retain commits you create, you may
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.9879247Z do so (now or later) by using -c with the switch command. Example:
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.9879837Z 
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.9880261Z   git switch -c <new-branch-name>
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.9880716Z 
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.9881036Z Or undo this operation with:
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.9881424Z 
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.9881793Z   git switch -
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.9882052Z 
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.9882405Z Turn off this advice by setting config variable advice.detachedHead to false
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.9882852Z 
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.9883327Z HEAD is now at e0172ce Merge 0b112cb1634aafedeb5d324f30e310e8a079e09c into 8e8cf4222c248763d57670a888b09a0a0474188f
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.9886517Z ##[endgroup]
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.9935455Z [command]/usr/bin/git log -1 --format=%H
+Open Code Review (行级评审，领导已批准)	Run actions/checkout@v6	2026-08-24T12:12:08.9966477Z e0172cebb04931c35ec77a00ed432bcffa0b659b
+Open Code Review (行级评审，领导已批准)	Install Open Code Review (官方 npm 包)	﻿2026-08-24T12:12:09.0196439Z ##[group]Run npm install --ignore-scripts -g @alibaba-group/open-code-review
+Open Code Review (行级评审，领导已批准)	Install Open Code Review (官方 npm 包)	2026-08-24T12:12:09.0197387Z ^[[36;1mnpm install --ignore-scripts -g @alibaba-group/open-code-review^[[0m
+Open Code Review (行级评审，领导已批准)	Install Open Code Review (官方 npm 包)	2026-08-24T12:12:09.0244021Z shell: /usr/bin/bash -e {0}
+Open Code Review (行级评审，领导已批准)	Install Open Code Review (官方 npm 包)	2026-08-24T12:12:09.0244547Z env:
+Open Code Review (行级评审，领导已批准)	Install Open Code Review (官方 npm 包)	2026-08-24T12:12:09.0244935Z   OCR_PROVIDER: my-gateway
+Open Code Review (行级评审，领导已批准)	Install Open Code Review (官方 npm 包)	2026-08-24T12:12:09.0245606Z   OCR_LOCAL_ENDPOINT: 
+Open Code Review (行级评审，领导已批准)	Install Open Code Review (官方 npm 包)	2026-08-24T12:12:09.0245999Z   OCR_LOCAL_MODEL: 
+Open Code Review (行级评审，领导已批准)	Install Open Code Review (官方 npm 包)	2026-08-24T12:12:09.0246376Z   OCR_API_KEY: 
+Open Code Review (行级评审，领导已批准)	Install Open Code Review (官方 npm 包)	2026-08-24T12:12:09.0246743Z ##[endgroup]
+Open Code Review (行级评审，领导已批准)	Install Open Code Review (官方 npm 包)	2026-08-24T12:12:12.7568707Z 
+Open Code Review (行级评审，领导已批准)	Install Open Code Review (官方 npm 包)	2026-08-24T12:12:12.7569579Z added 2 packages in 3s
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	﻿2026-08-24T12:12:12.8122048Z ##[group]Run CHANGED=$(git diff origin/master...HEAD --name-only 2>/dev/null || echo "")
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8123126Z ^[[36;1mCHANGED=$(git diff origin/master...HEAD --name-only 2>/dev/null || echo "")^[[0m
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8123815Z ^[[36;1mecho "本次变更文件:"^[[0m
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8124180Z ^[[36;1mecho "$CHANGED"^[[0m
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8124639Z ^[[36;1m# 1) 白名单检查：只允许 lib/test/tools/.github/workflows^[[0m
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8125438Z ^[[36;1mOUTSIDE=$(echo "$CHANGED" | grep -vE "^(lib/|test/|tools/|\.github/workflows/)" || true)^[[0m
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8126268Z ^[[36;1mif [ -n "$OUTSIDE" ]; then^[[0m
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8126689Z ^[[36;1m  echo "⚠ 白名单外文件（跳过评审，不阻断）:"^[[0m
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8127111Z ^[[36;1m  echo "$OUTSIDE"^[[0m
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8127752Z ^[[36;1m  echo "out_of_scope=true" >> "$GITHUB_ENV"^[[0m
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8128237Z ^[[36;1mfi^[[0m
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8128576Z ^[[36;1m# 2) 涉密内容检查：变更 diff 中出现密钥/口令即拦截^[[0m
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8129181Z ^[[36;1m#    文件名模式排除领域概念（recovery_key/key_rotation/honeypot_key 等），^[[0m
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8129960Z ^[[36;1m#    仅匹配凭证类关键词（api_key/secret/password/token/口令/密钥）。^[[0m
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8130699Z ^[[36;1mif echo "$CHANGED" | grep -qiE "api[_-]?key|secret|password|token|口令|密钥"; then^[[0m
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8131668Z ^[[36;1m  if git diff origin/master...HEAD | grep -qiE "api[_-]?key|secret|password|token|口令|密钥"; then^[[0m
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8132486Z ^[[36;1m    echo "::error::检测到疑似涉密内容，禁止评审！请检查变更文件"^[[0m
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8132962Z ^[[36;1m    exit 1^[[0m
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8133288Z ^[[36;1m  fi^[[0m
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8133566Z ^[[36;1mfi^[[0m
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8133781Z ^[[36;1mecho "涉密预检通过"^[[0m
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8176667Z shell: /usr/bin/bash -e {0}
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8176968Z env:
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8177212Z   OCR_PROVIDER: my-gateway
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8177702Z   OCR_LOCAL_ENDPOINT: 
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8177946Z   OCR_LOCAL_MODEL: 
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8178168Z   OCR_API_KEY: 
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8178418Z ##[endgroup]
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8279401Z 本次变更文件:
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8281349Z .github/workflows/code-guard.yml
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8281781Z .sloc-guard.toml
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8282108Z NOTICE
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8282412Z PROJECT_HANDOVER.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8282934Z android/app/src/main/res/mipmap-hdpi/ic_launcher.png
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8283706Z android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8284324Z android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8284921Z android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8285529Z android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8286074Z android/gradle.properties
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8286468Z docs/ARCHITECTURE.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8286856Z docs/affine_audit_report.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8287322Z docs/affine_research_report.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8287919Z docs/architecture-check-16.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8288323Z docs/batch_f_recovery_plan.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8288819Z docs/borrow_list_affine.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8289192Z docs/borrowing_plan.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8289554Z docs/ci-smoke.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8289909Z docs/editor_v2_architecture_plan.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8290348Z docs/encryption_hardening_report.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8290798Z docs/excalidraw_local_integration_plan.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8291258Z docs/feature_inventory.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8291655Z docs/migration_plan_round2.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8292064Z docs/note_editor_analysis.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8292473Z docs/unified_architecture.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8292867Z installer/drawing_notes_app.iss
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8293350Z integration_test/cuj_01_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8293749Z lib/app.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8294193Z lib/features/drawing/presentation/editor_left_toolbar.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8295172Z lib/features/drawing/presentation/editor_page_editing.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8295845Z lib/features/drawing/presentation/editor_page_overlays.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8296365Z lib/features/editor_v2/adapters/drawing_adapter.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8296953Z lib/features/editor_v2/application/editor_v2_viewmodel.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8297340Z lib/features/editor_v2/application/export_service.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8297985Z lib/features/editor_v2/application/infinite_canvas_notifier.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8298442Z lib/features/editor_v2/application/paged_canvas_viewmodel.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8298927Z lib/features/editor_v2/application/pdf_import_service.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8299331Z lib/features/editor_v2/application/stroke_style_notifier.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8299716Z lib/features/editor_v2/application/viewport_state.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8300084Z lib/features/editor_v2/presentation/canvas_painter.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8300477Z lib/features/editor_v2/presentation/editor_v2_screen.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8300852Z lib/features/editor_v2/presentation/export_panel.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8301210Z lib/features/editor_v2/presentation/history_panel.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8301597Z lib/features/editor_v2/presentation/infinite_canvas_widget.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8301999Z lib/features/editor_v2/presentation/layer_panel.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8302371Z lib/features/editor_v2/presentation/note_editor_widget.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8302750Z lib/features/editor_v2/presentation/property_panel.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8303106Z lib/features/editor_v2/presentation/sidebar_widget.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8303457Z lib/features/editor_v2/presentation/toolbar_widget.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8303815Z lib/features/editor_v2/presentation/zoom_controls.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8304169Z lib/features/notes/presentation/home_page.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8304525Z lib/infrastructure/storage/v2/media_repository_v2.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8304891Z lib/shared/widgets/apple_glass.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8305185Z packages/editor_core/lib/editor_core.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8305539Z packages/editor_core/lib/src/commands/document_command.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8305937Z packages/editor_core/lib/src/commands/document_reducer.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8306305Z packages/editor_core/lib/src/domain/alignment.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8306677Z packages/editor_core/lib/src/domain/animated_trail.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8307043Z packages/editor_core/lib/src/domain/apple_theme.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8307716Z packages/editor_core/lib/src/domain/arrow_binding.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8308201Z packages/editor_core/lib/src/domain/audit_log.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8308615Z packages/editor_core/lib/src/domain/autoshape_service.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8309000Z packages/editor_core/lib/src/domain/bound_text.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8309363Z packages/editor_core/lib/src/domain/brush_styles.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8309709Z packages/editor_core/lib/src/domain/chart_data.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8310081Z packages/editor_core/lib/src/domain/clipboard_data.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8310468Z packages/editor_core/lib/src/domain/color_magnifier.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8310843Z packages/editor_core/lib/src/domain/command_palette.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8311212Z packages/editor_core/lib/src/domain/document_import.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8311596Z packages/editor_core/lib/src/domain/document_v2.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8311966Z packages/editor_core/lib/src/domain/encryption_access.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8312363Z packages/editor_core/lib/src/domain/encryption_scope.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8312753Z packages/editor_core/lib/src/domain/encryption_vault.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8313149Z packages/editor_core/lib/src/domain/envelope_encryption.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8313538Z packages/editor_core/lib/src/domain/feature_flag.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8313885Z packages/editor_core/lib/src/domain/frame.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8314388Z packages/editor_core/lib/src/domain/gcm_siv_selector.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8315239Z packages/editor_core/lib/src/domain/gesture_recognizer.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8315859Z packages/editor_core/lib/src/domain/grid_config.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8316536Z packages/editor_core/lib/src/domain/highlighter_compositing.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8317193Z packages/editor_core/lib/src/domain/hint_system.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8318085Z packages/editor_core/lib/src/domain/honeypot_key.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8318806Z packages/editor_core/lib/src/domain/i18n_service.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8319506Z packages/editor_core/lib/src/domain/inline_edit_state.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8320158Z packages/editor_core/lib/src/domain/kanban_board.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8320894Z packages/editor_core/lib/src/domain/key_rotation.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8321494Z packages/editor_core/lib/src/domain/lasso_selection.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8322077Z packages/editor_core/lib/src/domain/line_item.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8322673Z packages/editor_core/lib/src/domain/markdown_shortcut.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8323304Z packages/editor_core/lib/src/domain/measurement.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8323886Z packages/editor_core/lib/src/domain/node_graph.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8324468Z packages/editor_core/lib/src/domain/note_item.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8325033Z packages/editor_core/lib/src/domain/note_paragraph.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8325422Z packages/editor_core/lib/src/domain/page_design.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8325787Z packages/editor_core/lib/src/domain/page_v2.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8326151Z packages/editor_core/lib/src/domain/pq_hybrid.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8326524Z packages/editor_core/lib/src/domain/rainbow_brush.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8326893Z packages/editor_core/lib/src/domain/recovery_key.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8327275Z packages/editor_core/lib/src/domain/rich_text_block.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8327876Z packages/editor_core/lib/src/domain/secret_sharing.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8328279Z packages/editor_core/lib/src/domain/secure_enclave.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8328670Z packages/editor_core/lib/src/domain/shape_library.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8329066Z packages/editor_core/lib/src/domain/slash_command.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8329444Z packages/editor_core/lib/src/domain/stroke_style.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8329828Z packages/editor_core/lib/src/domain/table_v2.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8330204Z packages/editor_core/lib/src/domain/tool_engine.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8330606Z packages/editor_core/lib/src/domain/unified_editor_mode.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8331028Z packages/editor_core/lib/src/domain/workspace_manager.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8331437Z packages/editor_core/lib/src/geometry/geometry_engine.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8331885Z packages/editor_core/lib/src/presentation/presentation_service.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8332298Z packages/editor_core/test/alignment_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8332655Z packages/editor_core/test/animated_trail_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8333019Z packages/editor_core/test/apple_theme_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8333380Z packages/editor_core/test/arrow_binding_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8333732Z packages/editor_core/test/audit_log_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8334093Z packages/editor_core/test/autoshape_service_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8334455Z packages/editor_core/test/bound_text_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8334802Z packages/editor_core/test/brush_styles_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8335159Z packages/editor_core/test/chart_data_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8335517Z packages/editor_core/test/clipboard_data_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8335891Z packages/editor_core/test/color_magnifier_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8336256Z packages/editor_core/test/command_palette_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8336606Z packages/editor_core/test/document_import_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8336980Z packages/editor_core/test/document_reducer_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8337566Z packages/editor_core/test/encryption_access_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8338150Z packages/editor_core/test/encryption_scope_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8338568Z packages/editor_core/test/encryption_vault_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8339112Z packages/editor_core/test/envelope_encryption_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8339776Z packages/editor_core/test/feature_flag_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8340371Z packages/editor_core/test/frame_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8340916Z packages/editor_core/test/gcm_siv_selector_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8341819Z packages/editor_core/test/geometry/geometry_engine_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8342473Z packages/editor_core/test/gesture_recognizer_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8343084Z packages/editor_core/test/grid_config_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8343733Z packages/editor_core/test/highlighter_compositing_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8344376Z packages/editor_core/test/hint_system_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8345053Z packages/editor_core/test/honeypot_key_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8345641Z packages/editor_core/test/i18n_service_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8346229Z packages/editor_core/test/inline_edit_state_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8346843Z packages/editor_core/test/kanban_board_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8347656Z packages/editor_core/test/key_rotation_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8348253Z packages/editor_core/test/lasso_selection_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8348872Z packages/editor_core/test/markdown_shortcut_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8349482Z packages/editor_core/test/measurement_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8350044Z packages/editor_core/test/node_graph_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8350593Z packages/editor_core/test/note_item_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8351139Z packages/editor_core/test/page_design_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8351690Z packages/editor_core/test/pq_hybrid_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8352296Z packages/editor_core/test/presentation_service_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8352932Z packages/editor_core/test/rainbow_brush_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8353512Z packages/editor_core/test/recovery_key_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8354102Z packages/editor_core/test/rich_text_block_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8354713Z packages/editor_core/test/secret_sharing_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8355294Z packages/editor_core/test/secure_enclave_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8355657Z packages/editor_core/test/shape_library_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8356014Z packages/editor_core/test/slash_command_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8356375Z packages/editor_core/test/stroke_style_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8356719Z packages/editor_core/test/table_v2_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8357059Z packages/editor_core/test/tool_engine_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8357720Z packages/editor_core/test/unified_editor_mode_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8358170Z packages/editor_core/test/workspace_manager_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8358565Z packages/notebook_domain/lib/notebook_domain.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8358945Z packages/notebook_domain/lib/src/session/key_handle.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8359371Z packages/notebook_domain/lib/src/session/lock_policy.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8359805Z packages/notebook_domain/lib/src/session/notebook_session.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8360250Z packages/notebook_domain/test/notebook_session_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8360569Z pubspec.lock
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8360781Z pubspec.yaml
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8360999Z pyproject.toml
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8361273Z test/features/editor_v2/editor_v2_screen_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8361650Z test/features/editor_v2/editor_v2_viewmodel_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8362012Z test/features/editor_v2/export_service_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8362359Z test/features/editor_v2/infinite_canvas_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8362718Z test/features/editor_v2/note_editor_widget_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8363070Z test/features/editor_v2/paged_canvas_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8363410Z test/features/editor_v2/pdf_import_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8363729Z test/shared/widgets/apple_glass_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8364024Z tools/scan_secrets.py
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8364296Z windows/flutter/generated_plugin_registrant.cc
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8364625Z windows/flutter/generated_plugins.cmake
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8365411Z ⚠ 白名单外文件（跳过评审，不阻断）:
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8365641Z .sloc-guard.toml
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8365850Z NOTICE
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8366060Z PROJECT_HANDOVER.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8366486Z android/app/src/main/res/mipmap-hdpi/ic_launcher.png
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8367011Z android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8367578Z android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8367974Z android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8368357Z android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8368696Z android/gradle.properties
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8368949Z docs/ARCHITECTURE.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8369186Z docs/affine_audit_report.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8369457Z docs/affine_research_report.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8369731Z docs/architecture-check-16.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8369999Z docs/batch_f_recovery_plan.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8370253Z docs/borrow_list_affine.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8370514Z docs/borrowing_plan.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8370747Z docs/ci-smoke.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8370985Z docs/editor_v2_architecture_plan.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8371345Z docs/encryption_hardening_report.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8371820Z docs/excalidraw_local_integration_plan.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8372311Z docs/feature_inventory.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8372717Z docs/migration_plan_round2.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8373133Z docs/note_editor_analysis.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8373543Z docs/unified_architecture.md
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8373919Z installer/drawing_notes_app.iss
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8374199Z integration_test/cuj_01_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8374490Z packages/editor_core/lib/editor_core.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8374854Z packages/editor_core/lib/src/commands/document_command.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8375280Z packages/editor_core/lib/src/commands/document_reducer.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8375656Z packages/editor_core/lib/src/domain/alignment.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8376030Z packages/editor_core/lib/src/domain/animated_trail.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8376434Z packages/editor_core/lib/src/domain/apple_theme.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8376807Z packages/editor_core/lib/src/domain/arrow_binding.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8377166Z packages/editor_core/lib/src/domain/audit_log.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8377757Z packages/editor_core/lib/src/domain/autoshape_service.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8378153Z packages/editor_core/lib/src/domain/bound_text.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8378525Z packages/editor_core/lib/src/domain/brush_styles.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8378874Z packages/editor_core/lib/src/domain/chart_data.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8379239Z packages/editor_core/lib/src/domain/clipboard_data.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8379629Z packages/editor_core/lib/src/domain/color_magnifier.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8380019Z packages/editor_core/lib/src/domain/command_palette.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8380398Z packages/editor_core/lib/src/domain/document_import.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8380762Z packages/editor_core/lib/src/domain/document_v2.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8381426Z packages/editor_core/lib/src/domain/encryption_access.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8382129Z packages/editor_core/lib/src/domain/encryption_scope.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8382787Z packages/editor_core/lib/src/domain/encryption_vault.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8383635Z packages/editor_core/lib/src/domain/envelope_encryption.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8384274Z packages/editor_core/lib/src/domain/feature_flag.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8384851Z packages/editor_core/lib/src/domain/frame.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8385460Z packages/editor_core/lib/src/domain/gcm_siv_selector.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8386125Z packages/editor_core/lib/src/domain/gesture_recognizer.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8386555Z packages/editor_core/lib/src/domain/grid_config.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8386980Z packages/editor_core/lib/src/domain/highlighter_compositing.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8387398Z packages/editor_core/lib/src/domain/hint_system.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8388056Z packages/editor_core/lib/src/domain/honeypot_key.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8388610Z packages/editor_core/lib/src/domain/i18n_service.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8388994Z packages/editor_core/lib/src/domain/inline_edit_state.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8389375Z packages/editor_core/lib/src/domain/kanban_board.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8389741Z packages/editor_core/lib/src/domain/key_rotation.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8390238Z packages/editor_core/lib/src/domain/lasso_selection.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8390616Z packages/editor_core/lib/src/domain/line_item.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8390998Z packages/editor_core/lib/src/domain/markdown_shortcut.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8391377Z packages/editor_core/lib/src/domain/measurement.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8391737Z packages/editor_core/lib/src/domain/node_graph.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8392090Z packages/editor_core/lib/src/domain/note_item.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8392455Z packages/editor_core/lib/src/domain/note_paragraph.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8392831Z packages/editor_core/lib/src/domain/page_design.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8393200Z packages/editor_core/lib/src/domain/page_v2.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8393546Z packages/editor_core/lib/src/domain/pq_hybrid.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8393909Z packages/editor_core/lib/src/domain/rainbow_brush.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8394274Z packages/editor_core/lib/src/domain/recovery_key.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8394659Z packages/editor_core/lib/src/domain/rich_text_block.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8395040Z packages/editor_core/lib/src/domain/secret_sharing.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8395423Z packages/editor_core/lib/src/domain/secure_enclave.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8395801Z packages/editor_core/lib/src/domain/shape_library.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8396175Z packages/editor_core/lib/src/domain/slash_command.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8396532Z packages/editor_core/lib/src/domain/stroke_style.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8396903Z packages/editor_core/lib/src/domain/table_v2.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8397262Z packages/editor_core/lib/src/domain/tool_engine.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8397921Z packages/editor_core/lib/src/domain/unified_editor_mode.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8398343Z packages/editor_core/lib/src/domain/workspace_manager.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8398744Z packages/editor_core/lib/src/geometry/geometry_engine.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8399183Z packages/editor_core/lib/src/presentation/presentation_service.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8399606Z packages/editor_core/test/alignment_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8399953Z packages/editor_core/test/animated_trail_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8400310Z packages/editor_core/test/apple_theme_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8400677Z packages/editor_core/test/arrow_binding_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8401015Z packages/editor_core/test/audit_log_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8401361Z packages/editor_core/test/autoshape_service_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8401715Z packages/editor_core/test/bound_text_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8402053Z packages/editor_core/test/brush_styles_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8402384Z packages/editor_core/test/chart_data_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8402730Z packages/editor_core/test/clipboard_data_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8403085Z packages/editor_core/test/color_magnifier_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8403440Z packages/editor_core/test/command_palette_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8403796Z packages/editor_core/test/document_import_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8404157Z packages/editor_core/test/document_reducer_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8404515Z packages/editor_core/test/encryption_access_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8404872Z packages/editor_core/test/encryption_scope_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8405223Z packages/editor_core/test/encryption_vault_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8405599Z packages/editor_core/test/envelope_encryption_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8405961Z packages/editor_core/test/feature_flag_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8406303Z packages/editor_core/test/frame_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8406641Z packages/editor_core/test/gcm_siv_selector_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8407030Z packages/editor_core/test/geometry/geometry_engine_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8407871Z packages/editor_core/test/gesture_recognizer_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8408242Z packages/editor_core/test/grid_config_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8408630Z packages/editor_core/test/highlighter_compositing_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8409144Z packages/editor_core/test/hint_system_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8409484Z packages/editor_core/test/honeypot_key_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8409828Z packages/editor_core/test/i18n_service_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8410186Z packages/editor_core/test/inline_edit_state_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8410538Z packages/editor_core/test/kanban_board_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8410873Z packages/editor_core/test/key_rotation_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8411227Z packages/editor_core/test/lasso_selection_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8411595Z packages/editor_core/test/markdown_shortcut_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8411941Z packages/editor_core/test/measurement_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8412283Z packages/editor_core/test/node_graph_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8412618Z packages/editor_core/test/note_item_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8412946Z packages/editor_core/test/page_design_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8413274Z packages/editor_core/test/pq_hybrid_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8413644Z packages/editor_core/test/presentation_service_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8414021Z packages/editor_core/test/rainbow_brush_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8414373Z packages/editor_core/test/recovery_key_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8414722Z packages/editor_core/test/rich_text_block_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8415072Z packages/editor_core/test/secret_sharing_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8415422Z packages/editor_core/test/secure_enclave_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8415770Z packages/editor_core/test/shape_library_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8416112Z packages/editor_core/test/slash_command_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8416451Z packages/editor_core/test/stroke_style_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8416784Z packages/editor_core/test/table_v2_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8417108Z packages/editor_core/test/tool_engine_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8417658Z packages/editor_core/test/unified_editor_mode_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8418107Z packages/editor_core/test/workspace_manager_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8418478Z packages/notebook_domain/lib/notebook_domain.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8418850Z packages/notebook_domain/lib/src/session/key_handle.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8419243Z packages/notebook_domain/lib/src/session/lock_policy.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8419665Z packages/notebook_domain/lib/src/session/notebook_session.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8420081Z packages/notebook_domain/test/notebook_session_test.dart
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8420402Z pubspec.lock
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8420618Z pubspec.yaml
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8420832Z pyproject.toml
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8421096Z windows/flutter/generated_plugin_registrant.cc
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8421436Z windows/flutter/generated_plugins.cmake
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8439765Z ##[error]检测到疑似涉密内容，禁止评审！请检查变更文件
+Open Code Review (行级评审，领导已批准)	涉密预检（评审前红线检查）	2026-08-24T12:12:12.8447703Z ##[error]Process completed with exit code 1.
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	﻿2026-08-24T12:12:12.8609942Z Post job cleanup.
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:12.9495592Z [command]/usr/bin/git version
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:12.9539617Z git version 2.55.0
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:12.9587838Z Temporarily overriding HOME='/home/runner/work/_temp/bfc26452-f99b-44fa-97af-2c37f909f734' before making global git config changes
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:12.9589739Z Adding repository directory to the temporary git global config as a safe directory
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:12.9594738Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/drawing_notes_app/drawing_notes_app
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:12.9630345Z Removing SSH command configuration
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:12.9638328Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:12.9701343Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:12.9964108Z Removing HTTP extra header
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:12.9970282Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:13.0009563Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:13.0276254Z Removing includeIf entries pointing to credentials config files
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:13.0285542Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:13.0319112Z includeif.gitdir:/home/runner/work/drawing_notes_app/drawing_notes_app/.git.path
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:13.0320676Z includeif.gitdir:/home/runner/work/drawing_notes_app/drawing_notes_app/.git/worktrees/*.path
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:13.0321662Z includeif.gitdir:/github/workspace/.git.path
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:13.0322437Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:13.0332360Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/drawing_notes_app/drawing_notes_app/.git.path
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:13.0362965Z /home/runner/work/_temp/git-credentials-b113be92-da8d-4da0-9521-b0c142265d15.config
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:13.0384494Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/drawing_notes_app/drawing_notes_app/.git.path /home/runner/work/_temp/git-credentials-b113be92-da8d-4da0-9521-b0c142265d15.config
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:13.0427803Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/drawing_notes_app/drawing_notes_app/.git/worktrees/*.path
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:13.0448176Z /home/runner/work/_temp/git-credentials-b113be92-da8d-4da0-9521-b0c142265d15.config
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:13.0458865Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/drawing_notes_app/drawing_notes_app/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-b113be92-da8d-4da0-9521-b0c142265d15.config
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:13.0499603Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:13.0527842Z /github/runner_temp/git-credentials-b113be92-da8d-4da0-9521-b0c142265d15.config
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:13.0536087Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-b113be92-da8d-4da0-9521-b0c142265d15.config
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:13.0574422Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:13.0605473Z /github/runner_temp/git-credentials-b113be92-da8d-4da0-9521-b0c142265d15.config
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:13.0616044Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-b113be92-da8d-4da0-9521-b0c142265d15.config
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:13.0663050Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Open Code Review (行级评审，领导已批准)	Post Run actions/checkout@v6	2026-08-24T12:12:13.0918327Z Removing credentials config '/home/runner/work/_temp/git-credentials-b113be92-da8d-4da0-9521-b0c142265d15.config'
+Open Code Review (行级评审，领导已批准)	Complete job	﻿2026-08-24T12:12:13.1103587Z Cleaning up orphan processes
