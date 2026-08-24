@@ -6,6 +6,7 @@ import 'package:perfect_freehand/perfect_freehand.dart' hide StrokePoint;
 
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 import 'package:drawing_notes_app/core/rendering/pencil_shader.dart';
+import 'package:drawing_notes_app/core/rendering/stroke_geometry_cache.dart';
 
 /// 笔画渲染器：将原始输入点转为连续、填充式的压感笔触轮廓。
 ///
@@ -27,6 +28,28 @@ class StrokeRenderer {
 
   /// 保留给脏矩形计算和兼容调用的最低压感线宽系数。
   static const double minWidthFactor = 0.25;
+
+  /// 从笔画点列估算平均速度（像素/采样间隔），用于已完成笔画的速度感知宽度。
+  ///
+  /// 采样间隔不固定，因此返回值是归一化的相对速度（0~1+），
+  /// 越大表示书写越快。仅取中间 80% 区间（去除首尾加速/减速段）。
+  static double _estimateAverageSpeed(List<StrokePoint> points) {
+    if (points.length < 3) return 0;
+    final skip = (points.length * 0.1).floor();
+    final end = points.length - skip;
+    if (skip >= end) return 0;
+
+    double totalDistance = 0;
+    for (var i = skip; i < end; i++) {
+      final dx = points[i].x - points[i - 1].x;
+      final dy = points[i].y - points[i - 1].y;
+      totalDistance += math.sqrt(dx * dx + dy * dy);
+    }
+    final count = end - skip;
+    final avgDistance = totalDistance / count;
+    // 归一化：referenceSpeed ≈ 0.8 px/ms 对应约 12 px/sample（60fps）
+    return (avgDistance / 12.0).clamp(0.0, 3.0);
+  }
 
   /// 返回已完成笔画的轮廓：命中缓存直接复用，未命中则计算并缓存。
   ///
@@ -186,12 +209,20 @@ class StrokeRenderer {
   /// 对单击点采用显式圆形，确保所有输入设备均可产生墨点。多点笔画由
   /// `perfect_freehand` 生成平滑轮廓，真实压感来自 [StrokePoint.pressure]；
   /// 无压感指针则由调用方传入的速度模拟压力提供稳定回退。
+  ///
+  /// [speed] 启用速度感知宽度：快速书写时笔触自动变细（借鉴 Saber）。
+  /// 若 speed=0 且 usePressure=true，自动从点列估算速度。
   static Path? strokeOutline(
     Stroke stroke, {
     bool usePressure = true,
     bool isComplete = true,
+    double speed = 0,
   }) {
     final points = stroke.points;
+    // 自动估算速度：未显式传入时从点列间距推算
+    if (speed <= 0 && usePressure && points.length >= 3) {
+      speed = _estimateAverageSpeed(points);
+    }
     if (points.isEmpty) return null;
     if (points.length == 1) {
       final radius =
@@ -204,6 +235,7 @@ class StrokeRenderer {
       stroke,
       usePressure: usePressure,
       isComplete: isComplete,
+      speed: speed,
     );
     if (outline == null) return null;
 
@@ -218,20 +250,28 @@ class StrokeRenderer {
   ///
   /// 与 [strokeOutline] 共享同一 `perfect_freehand` 轮廓算法；
   /// 单击点以 32 边形近似圆，保证 SVG/PDF 中也能形成闭合填充。
+  ///
+  /// [speed] 参数启用速度感知宽度：快速书写时笔触自动变细（借鉴 Saber）。
   static List<Offset>? _outlinePolygon(
     Stroke stroke, {
     bool usePressure = true,
     bool isComplete = true,
+    double speed = 0,
   }) {
     final points = stroke.points;
     if (points.isEmpty) return null;
+
+    // 速度→宽度系数：快速书写时整体缩小笔触宽度。
+    final speedFactor = StrokeGeometryCache.speedWidthFactor(speed);
 
     final input = <PointVector>[
       for (final point in points)
         PointVector(
           point.x,
           point.y,
-          usePressure ? point.pressure.clamp(0.0, 1.0) : null,
+          usePressure
+              ? (point.pressure.clamp(0.0, 1.0) * speedFactor).clamp(0.0, 1.0)
+              : null,
         ),
     ];
     final outline = getStroke(
@@ -264,6 +304,10 @@ class StrokeRenderer {
     final points = stroke.points;
     if (points.isEmpty) return null;
 
+    // 自动估算速度用于 SVG 导出
+    final speed =
+        usePressure && points.length >= 3 ? _estimateAverageSpeed(points) : 0.0;
+
     final List<Offset> polygon;
     if (points.length == 1) {
       final radius =
@@ -279,7 +323,8 @@ class StrokeRenderer {
               ),
       ];
     } else {
-      final outline = _outlinePolygon(stroke, usePressure: usePressure);
+      final outline =
+          _outlinePolygon(stroke, usePressure: usePressure, speed: speed);
       if (outline == null) return null;
       polygon = [for (final point in outline) point + offset];
     }
