@@ -233,6 +233,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.5.2"
+  pqcrypto:
+    dependency: "direct main"
+    description:
+      name: pqcrypto
+      sha256: bfcbc0c455e97418ef15e8b8d351c143c39c2000f449062d631d59dd731b74f2
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.1"
   pub_semver:
     dependency: transitive
     description:

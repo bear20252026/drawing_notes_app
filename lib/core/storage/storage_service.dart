@@ -335,7 +335,12 @@ class StorageService implements DocumentRepository {
         // 打开主页时 OOM（D-4 只约束 load 路径）。
         if (await entity.length() > _maxListMetaBytes) continue;
         final bytes = await entity.readAsBytes();
-        final root = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
+        // 剥离尾部 SHA-256 哈希（_saveEncoded 写入时附加 64 字节）。
+        const hashLength = 64;
+        final dataBytes = bytes.length > hashLength
+            ? bytes.sublist(0, bytes.length - hashLength)
+            : bytes;
+        final root = jsonDecode(utf8.decode(dataBytes)) as Map<String, dynamic>;
         final doc = root['document'] as Map<String, dynamic>;
         final docId = doc['id'];
         // 链 A 修复（军工审计 2026-08-15）：列表 id 校验——恶意工程文件
@@ -439,9 +444,16 @@ class StorageService implements DocumentRepository {
     if (!await src.exists()) return null;
     final id = trashName.split('_').first;
     if (!isValidId(id)) return null;
+    await _ensureDocumentsDir();
     final dest = File(_pathFor(id));
     if (await dest.exists()) return null; // 原 ID 已存在——拒绝覆盖
-    await src.rename(dest.path);
+    // 跨平台恢复：rename 失败时 fallback 到 copy + delete。
+    try {
+      await src.rename(dest.path);
+    } catch (_) {
+      await src.copy(dest.path);
+      await src.delete();
+    }
     return id;
   }
 

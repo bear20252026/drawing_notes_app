@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:editor_core/editor_core.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/editor_v2/presentation/note_document_bridge.dart';
+import 'package:drawing_notes_app/core/bridges/note_document_bridge.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 
 void main() {

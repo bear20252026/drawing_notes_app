@@ -10,6 +10,7 @@ environment:
 dependencies:
   pointycastle: ^3.9.0  # 纯 Dart 加密库（AES-GCM/AES-KW/HKDF/SHA-256）。
   cryptography: ^2.5.0  # Ed25519 签名（纯 Dart——禁 Flutter/dart:io）。
+  pqcrypto: ^0.4.1  # 后量子密码学（ML-KEM-768 + ML-DSA-65，纯 Dart）。
 
 dev_dependencies:
   test: ^1.25.0

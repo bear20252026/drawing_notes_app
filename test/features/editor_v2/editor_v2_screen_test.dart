@@ -33,6 +33,12 @@ void main() {
   });
 
   testWidgets('EditorV2Screen 侧边栏（AFFiNE 页面设计借鉴——页面导航——不崩）', (tester) async {
+    // 设定移动端视口，使 context.isMobile == true，触发 Drawer。
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(const ProviderScope(
       child: MaterialApp(home: EditorV2Screen(documentId: 'test-doc')),
     ));

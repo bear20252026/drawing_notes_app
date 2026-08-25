@@ -16,7 +16,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'document_lock.dart';
-import 'legacy_storage_interface.dart';
+import 'compat_storage_interface.dart';
 import 'schema_version.dart';
 import 'storage_backend.dart';
 import 'sync_provider.dart';
@@ -37,7 +37,7 @@ class StorageAdapter implements UnifiedStorageService {
     SchemaMigrationManager? migrationManager,
   }) : _migrationManager = migrationManager ?? SchemaMigrationManager();
 
-  final LegacyStorageService storageService;
+  final CompatStorageService storageService;
   final String nodeId;
   final SchemaMigrationManager _migrationManager;
 
@@ -95,7 +95,7 @@ class StorageAdapter implements UnifiedStorageService {
       };
 
       // 保存到 StorageService。
-      final doc = LegacyDocument.fromJson(migrated);
+      final doc = CompatDocument.fromJson(migrated);
       await storageService.save(doc);
 
       return UnifiedStorageResult.success(null, vectorClock: updatedClock);
@@ -246,7 +246,7 @@ class StorageAdapter implements UnifiedStorageService {
 class _StorageServiceBackend implements StorageBackend {
   _StorageServiceBackend(this._storageService);
 
-  final LegacyStorageService _storageService;
+  final CompatStorageService _storageService;
 
   @override
   String get backendId => 'storage-service';
@@ -258,7 +258,7 @@ class _StorageServiceBackend implements StorageBackend {
   Future<StorageResult<void>> saveDoc(String docId, Uint8List data) async {
     try {
       final json = jsonDecode(utf8.decode(data)) as Map<String, dynamic>;
-      final doc = LegacyDocument.fromJson(json);
+      final doc = CompatDocument.fromJson(json);
       await _storageService.save(doc);
       return const StorageResult.success(null);
     } catch (e) {

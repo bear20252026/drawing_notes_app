@@ -47,129 +47,135 @@ class EditorV2Toolbar extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 第一行：工具按钮。
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _ToolButton(
-                icon: Icons.edit,
-                label: 'Draw',
-                isActive: currentTool == 'draw',
-                onTap: () => onToolChanged('draw'),
-              ),
-              _ToolButton(
-                icon: Icons.select_all,
-                label: 'Select',
-                isActive: currentTool == 'select',
-                onTap: () => onToolChanged('select'),
-              ),
-              _ToolButton(
-                icon: Icons.rectangle_outlined,
-                label: 'Rect',
-                isActive: currentTool == 'shape' && currentShapeType == 'rect',
-                onTap: () {
-                  onToolChanged('shape');
-                  onShapeTypeChanged('rect');
-                },
-              ),
-              _ToolButton(
-                icon: Icons.circle_outlined,
-                label: 'Ellipse',
-                isActive: currentTool == 'shape' && currentShapeType == 'ellipse',
-                onTap: () {
-                  onToolChanged('shape');
-                  onShapeTypeChanged('ellipse');
-                },
-              ),
-              _ToolButton(
-                icon: Icons.remove,
-                label: 'Line',
-                isActive: currentTool == 'shape' && currentShapeType == 'line',
-                onTap: () {
-                  onToolChanged('shape');
-                  onShapeTypeChanged('line');
-                },
-              ),
-              _ToolButton(
-                icon: Icons.arrow_forward,
-                label: 'Arrow',
-                isActive: currentTool == 'shape' && currentShapeType == 'arrow',
-                onTap: () {
-                  onToolChanged('shape');
-                  onShapeTypeChanged('arrow');
-                },
-              ),
-              _ToolButton(
-                icon: Icons.text_fields,
-                label: 'Text',
-                isActive: currentTool == 'text',
-                onTap: () => onToolChanged('text'),
-              ),
-              _ToolButton(
-                icon: Icons.delete,
-                label: 'Erase',
-                isActive: currentTool == 'erase',
-                onTap: () {
-                  onToolChanged('erase');
-                  onBrushTypeChanged('eraser');
-                },
-              ),
-              _ToolButton(
-                icon: Icons.colorize,
-                label: 'Eyedropper',
-                isActive: currentTool == 'eyedropper',
-                onTap: () => onToolChanged('eyedropper'),
-              ),
-              _ToolButton(
-                icon: Icons.picture_as_pdf,
-                label: 'Import PDF',
-                isActive: false,
-                onTap: onImportPdf ?? () {},
-              ),
-            ],
+          // 第一行：工具按钮（移动端可横向滚动防溢出）。
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _ToolButton(
+                  icon: Icons.edit,
+                  label: 'Draw',
+                  isActive: currentTool == 'draw',
+                  onTap: () => onToolChanged('draw'),
+                ),
+                _ToolButton(
+                  icon: Icons.select_all,
+                  label: 'Select',
+                  isActive: currentTool == 'select',
+                  onTap: () => onToolChanged('select'),
+                ),
+                _ToolButton(
+                  icon: Icons.rectangle_outlined,
+                  label: 'Rect',
+                  isActive: currentTool == 'shape' && currentShapeType == 'rect',
+                  onTap: () {
+                    onToolChanged('shape');
+                    onShapeTypeChanged('rect');
+                  },
+                ),
+                _ToolButton(
+                  icon: Icons.circle_outlined,
+                  label: 'Ellipse',
+                  isActive: currentTool == 'shape' && currentShapeType == 'ellipse',
+                  onTap: () {
+                    onToolChanged('shape');
+                    onShapeTypeChanged('ellipse');
+                  },
+                ),
+                _ToolButton(
+                  icon: Icons.remove,
+                  label: 'Line',
+                  isActive: currentTool == 'shape' && currentShapeType == 'line',
+                  onTap: () {
+                    onToolChanged('shape');
+                    onShapeTypeChanged('line');
+                  },
+                ),
+                _ToolButton(
+                  icon: Icons.arrow_forward,
+                  label: 'Arrow',
+                  isActive: currentTool == 'shape' && currentShapeType == 'arrow',
+                  onTap: () {
+                    onToolChanged('shape');
+                    onShapeTypeChanged('arrow');
+                  },
+                ),
+                _ToolButton(
+                  icon: Icons.text_fields,
+                  label: 'Text',
+                  isActive: currentTool == 'text',
+                  onTap: () => onToolChanged('text'),
+                ),
+                _ToolButton(
+                  icon: Icons.delete,
+                  label: 'Erase',
+                  isActive: currentTool == 'erase',
+                  onTap: () {
+                    onToolChanged('erase');
+                    onBrushTypeChanged('eraser');
+                  },
+                ),
+                _ToolButton(
+                  icon: Icons.colorize,
+                  label: 'Eyedropper',
+                  isActive: currentTool == 'eyedropper',
+                  onTap: () => onToolChanged('eyedropper'),
+                ),
+                _ToolButton(
+                  icon: Icons.picture_as_pdf,
+                  label: 'Import PDF',
+                  isActive: false,
+                  onTap: onImportPdf ?? () {},
+                ),
+              ],
+            ),
           ),
           // 第二行：绘图模式下的笔刷选项（V1/V2 迁移阶段2）。
           if (showBrushOptions) ...[
             SizedBox(height: context.responsiveFont(mobile: 3, desktop: 5)),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 笔刷类型。
-                _BrushChip(
-                  icon: Icons.edit,
-                  label: '钢笔',
-                  isActive: brushType == 'pen',
-                  onTap: () => onBrushTypeChanged('pen'),
-                ),
-                _BrushChip(
-                  icon: Icons.brush,
-                  label: '铅笔',
-                  isActive: brushType == 'pencil',
-                  onTap: () => onBrushTypeChanged('pencil'),
-                ),
-                _BrushChip(
-                  icon: Icons.highlight,
-                  label: '荧光笔',
-                  isActive: brushType == 'marker',
-                  onTap: () => onBrushTypeChanged('marker'),
-                ),
-                _BrushChip(
-                  icon: Icons.lens_blur,
-                  label: '激光',
-                  isActive: brushType == 'laser',
-                  onTap: () => onBrushTypeChanged('laser'),
-                ),
-                const SizedBox(width: 8),
-                // 粗细滑块。
-                SizedBox(
-                  width: context.responsiveFont(mobile: 64, desktop: 96),
-                  child: Slider(
-                    value: brushSize,
-                    min: 1,
-                    max: 20,
-                    divisions: 19,
-                    label: brushSize.round().toString(),
-                    onChanged: onBrushSizeChanged,
+            // 笔刷类型 + 粗细滑块（移动端可横向滚动防溢出）。
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 笔刷类型。
+                  _BrushChip(
+                    icon: Icons.edit,
+                    label: '钢笔',
+                    isActive: brushType == 'pen',
+                    onTap: () => onBrushTypeChanged('pen'),
+                  ),
+                  _BrushChip(
+                    icon: Icons.brush,
+                    label: '铅笔',
+                    isActive: brushType == 'pencil',
+                    onTap: () => onBrushTypeChanged('pencil'),
+                  ),
+                  _BrushChip(
+                    icon: Icons.highlight,
+                    label: '荧光笔',
+                    isActive: brushType == 'marker',
+                    onTap: () => onBrushTypeChanged('marker'),
+                  ),
+                  _BrushChip(
+                    icon: Icons.lens_blur,
+                    label: '激光',
+                    isActive: brushType == 'laser',
+                    onTap: () => onBrushTypeChanged('laser'),
+                  ),
+                  const SizedBox(width: 8),
+                  // 粗细滑块。
+                  SizedBox(
+                    width: context.responsiveFont(mobile: 64, desktop: 96),
+                    child: Slider(
+                      value: brushSize,
+                      min: 1,
+                      max: 20,
+                      divisions: 19,
+                      label: brushSize.round().toString(),
+                      onChanged: onBrushSizeChanged,
                   ),
                 ),
                 Text(
@@ -193,6 +199,7 @@ class EditorV2Toolbar extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
             ),
           ],
         ],

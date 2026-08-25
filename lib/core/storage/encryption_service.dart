@@ -9,7 +9,7 @@ import 'package:flutter/foundation.dart';
 /// 使用 AES-GCM 256 对称加密；密钥由 Argon2id（t=3, m=64MiB, p=1）
 /// 从密码派生（2026-08-24 军工升级：替换 PBKDF2 为 Argon2id——
 /// OWASP 2026 推荐慢 KDF + 内存硬度，抗 GPU/ASIC 暴力破解），
-/// 每次加密生成随机盐（16B）与随机 nonce（12B），一并存入密文 JSON。
+/// 每次加密生成随机盐（32B）与随机 nonce（12B），一并存入密文 JSON。
 /// 纯 Dart 实现，离线可用，无平台依赖。
 ///
 /// 版本历史：
@@ -45,8 +45,8 @@ class EncryptionService {
   static const int _pbkdf2IterationsCurrent = 600000; // 旧数据（v = 3/4）
 
   // H-07 修复（专家审计 2026-08-15）：封装输入严格校验——固定字段长度
-  // （GCM nonce 12 / MAC 16 / Argon2id 盐 16 / 主密钥 32）+ 输入大小上限。
-  static const int _saltLength = 16;
+  // （GCM nonce 12 / MAC 16 / Argon2id 盐 32 / 主密钥 32）+ 输入大小上限。
+  static const int _saltLength = 32;
   static const int _nonceLength = 12;
   static const int _macLength = 16;
   static const int _masterKeyLength = 32;
@@ -332,10 +332,13 @@ class EncryptionService {
     // H-07 修复：固定字段长度校验（GCM nonce 12 / MAC 16——防畸形封装）。
     _requireFixedLength('nonce', nonce, _nonceLength);
     _requireFixedLength('MAC', macBytes, _macLength);
+    // AAD（v=4 兼容）：存在 'a' 字段时解码并传入解密。
+    final aad = map['a'] is String ? base64Decode(map['a'] as String) : <int>[];
     final aes = AesGcm.with256bits();
     final clear = await aes.decrypt(
       SecretBox(cipher, nonce: nonce, mac: Mac(macBytes)),
       secretKey: key,
+      aad: aad,
     );
     return utf8.decode(clear);
   }

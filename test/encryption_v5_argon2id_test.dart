@@ -339,7 +339,7 @@ void main() {
       expect(map['v'], 5, reason: '当前版本必须是 v=5（Argon2id）');
     });
 
-    test('盐长度 32 字节（Argon2id 推荐）', () async {
+    test('盐长度 32 字节（Argon2id v=5 标准）', () async {
       const encryption = EncryptionService.test();
       final cipher = await encryption.encrypt('test', 'password');
       final map = jsonDecode(cipher) as Map<String, dynamic>;
