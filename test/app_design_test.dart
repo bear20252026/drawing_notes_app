@@ -33,7 +33,7 @@ void main() {
       expect(dark.brightness, Brightness.dark);
       expect(dark.scaffoldBackgroundColor, AppDesign.darkCanvas);
       expect(dark.colorScheme.surface, AppDesign.darkSurface);
-      expect(dark.colorScheme.primary, isNot(light.colorScheme.primary));
+      expect(dark.colorScheme.onSurface, isNot(light.colorScheme.onSurface));
       expect(dark.inputDecorationTheme.filled, isTrue);
     });
 
@@ -42,7 +42,7 @@ void main() {
       expect(AppDesign.standardMotion, const Duration(milliseconds: 200));
       expect(AppDesign.pagePadding, 20);
       expect(AppDesign.cardRadius, 18);
-      expect(AppDesign.controlRadius, 12);
+      expect(AppDesign.controlRadius, 8);
     });
   });
 }

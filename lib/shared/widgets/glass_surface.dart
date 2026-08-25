@@ -37,16 +37,10 @@ class GlassSurface extends StatelessWidget {
       decoration: BoxDecoration(
         color: surfaceColor,
         borderRadius: borderRadius,
+        // DESIGN.md: UI chrome 无阴影
         border: Border.all(
           color: scheme.outlineVariant.withValues(alpha: isDark ? 0.62 : 0.72),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.16 : 0.07),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
       ),
       child: padding == null ? child : Padding(padding: padding!, child: child),
     );

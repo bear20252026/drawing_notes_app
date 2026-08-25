@@ -1,122 +1,275 @@
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// 应用统一设计语言 — Apple 设计风格。
+/// Apple Design Language — 严格遵照 DESIGN.md (562行 Apple 设计规范)。
 ///
-/// 参照 Apple Human Interface Guidelines (HIG)：
-/// - San Francisco 字体系统
-/// - Apple 标准色彩系统（#007AFF 蓝、#FF3B30 红、#FF9500 橙、#4CD964 绿）
-/// - iOS 圆角：12pt（大卡片）、8pt（按钮）、4pt（小元素）
-/// - 8pt 基础网格，大量留白
-/// - 阴影：0 2pt 8pt rgba(0,0,0,0.08)
-/// - 大标题 + 底部标签栏
+/// 核心原则：
+/// - 单一蓝色 #0066cc（Action Blue）承载所有交互元素
+/// - 无装饰渐变，无阴影在 UI chrome 上
+/// - 颜色变化即分隔线
+/// - SF Pro Display/Text 字体系统，negative letter-spacing
+/// - Body copy 17px（非 16px）
+/// - 80px 区块间距
 abstract final class AppDesign {
-  // ─── Apple 标准色彩 ────────────────────────────────────────────
-  /// Apple Blue — 主色调（链接、主操作、选中态）。
-  static const Color appleBlue = Color(0xFF007AFF);
-  /// Apple Red — 危险/删除操作。
+  // ─── DESIGN.md 色彩体系 ──────────────────────────────────────────
+
+  // Brand & Accent
+  /// Action Blue — 唯一交互色（链接、CTA、选中态）。
+  static const Color primary = Color(0xFF0066CC);
+  /// Focus Blue — 键盘焦点环。
+  static const Color primaryFocus = Color(0xFF0071E3);
+  /// Sky Link Blue — 深色表面链接色。
+  static const Color primaryOnDark = Color(0xFF2997FF);
+
+  // Surface
+  /// 纯白 — 主画布。
+  static const Color canvas = Color(0xFFFFFFFF);
+  /// 羊皮纸色 — Apple 标志性米白。
+  static const Color canvasParchment = Color(0xFFF5F5F7);
+  /// Pearl — 次要按钮底色。
+  static const Color surfacePearl = Color(0xFFFAFAFC);
+  /// Near-Black Tile 1 — 深色瓦片主色。
+  static const Color surfaceTile1 = Color(0xFF272729);
+  /// Near-Black Tile 2 — 深色瓦片微变体。
+  static const Color surfaceTile2 = Color(0xFF2A2A2C);
+  /// Near-Black Tile 3 — 深色瓦片底色。
+  static const Color surfaceTile3 = Color(0xFF252527);
+  /// 纯黑 — 全局导航栏背景。
+  static const Color surfaceBlack = Color(0xFF000000);
+  /// Translucent Chip Gray — 摄影浮层按钮底色。
+  static const Color surfaceChipTranslucent = Color(0xFFD2D2D7);
+
+  // Text
+  /// Near-Black Ink — 所有文字色。
+  static const Color ink = Color(0xFF1D1D1F);
+  /// Body on Dark — 深色表面文字。
+  static const Color bodyOnDark = Color(0xFFFFFFFF);
+  /// Body Muted — 深色表面次要文字。
+  static const Color bodyMuted = Color(0xFFCCCCCC);
+  /// Ink Muted 80 — 白色表面柔和文字。
+  static const Color inkMuted80 = Color(0xFF333333);
+  /// Ink Muted 48 — 禁用文字 / 法律文本。
+  static const Color inkMuted48 = Color(0xFF7A7A7A);
+
+  // Hairlines & Borders
+  /// 柔和分隔线。
+  static const Color dividerSoft = Color(0xFFF0F0F0);
+  /// 1px 发丝线。
+  static const Color hairline = Color(0xFFE0E0E0);
+
+  // ─── 兼容旧引用 ────────────────────────────────────────────────
+  static const Color appleBlue = primary;
   static const Color appleRed = Color(0xFFFF3B30);
-  /// Apple Orange — 警告/次要强调。
   static const Color appleOrange = Color(0xFFFF9500);
-  /// Apple Green — 成功/完成状态。
   static const Color appleGreen = Color(0xFF4CD964);
-  /// Apple Gray — 中性文字/占位符。
   static const Color appleGray = Color(0xFF8E8E93);
-  /// Apple Gray secondary — 次要中性文字。
-  static const Color appleGray2 = Color(0xFFAEAEB2);
-  /// Apple Teal — 信息提示。
-  static const Color appleTeal = Color(0xFF5AC8FA);
-  /// Apple Purple — 特殊分类。
-  static const Color applePurple = Color(0xFFAF52DE);
-  /// Apple Pink — 次要分类。
-  static const Color applePink = Color(0xFFFF2D55);
-  /// Apple Indigo — 系统紫。
-  static const Color appleIndigo = Color(0xFF5856D6);
+  static const Color accent = primary;
+  static const Color lightCanvas = canvas;
+  static const Color lightSurface = canvas;
+  static const Color lightSubtleSurface = canvasParchment;
+  static const Color darkCanvas = surfaceBlack;
+  static const Color darkSurface = surfaceTile1;
+  static const Color darkSubtleSurface = surfaceTile2;
 
-  // ─── 浅色模式表面色 ──────────────────────────────────────────
-  static const Color lightSystemBackground = Color(0xFFF2F2F7);
-  static const Color lightSecondarySystemBackground = Color(0xFFFFFFFF);
-  static const Color lightTertiarySystemBackground = Color(0xFFF2F2F7);
-  static const Color lightLabel = Color(0xFF000000);
-  static const Color lightSecondaryLabel = Color(0xFF3C3C43);
-  static const Color lightTertiaryLabel = Color(0xFF3C3C4399);
-  static const Color lightSeparator = Color(0xFF3C3C4349);
+  // ─── DESIGN.md 排版体系 ─────────────────────────────────────────
+  static const String _fontFamilyDisplay =
+      'SF Pro Display, system-ui, -apple-system, sans-serif';
+  static const String _fontFamilyBody =
+      'SF Pro Text, system-ui, -apple-system, sans-serif';
 
-  // ─── 深色模式表面色 ──────────────────────────────────────────
-  static const Color darkSystemBackground = Color(0xFF000000);
-  static const Color darkSecondarySystemBackground = Color(0xFF1C1C1E);
-  static const Color darkTertiarySystemBackground = Color(0xFF2C2C2E);
-  static const Color darkLabel = Color(0xFFFFFFFF);
-  static const Color darkSecondaryLabel = Color(0xFFEBEBF5);
-  static const Color darkTertiaryLabel = Color(0xFFEBEBF599);
-  static const Color darkSeparator = Color(0xFF38383A);
+  /// Hero Display — 56px/600/1.07/-0.28px
+  static TextStyle get heroDisplay => const TextStyle(
+        fontFamily: 'SF Pro Display, system-ui, -apple-system, sans-serif',
+        fontSize: 56,
+        fontWeight: FontWeight.w600,
+        height: 1.07,
+        letterSpacing: -0.28,
+      );
 
-  // ─── 设计常量（Apple HIG） ───────────────────────────────────
-  /// 页面边距（8pt 网格）。
+  /// Display LG — 40px/600/1.10/0
+  static TextStyle get displayLg => const TextStyle(
+        fontFamily: 'SF Pro Display, system-ui, -apple-system, sans-serif',
+        fontSize: 40,
+        fontWeight: FontWeight.w600,
+        height: 1.10,
+        letterSpacing: 0,
+      );
+
+  /// Display MD — 34px/600/1.47/-0.374px
+  static TextStyle get displayMd => const TextStyle(
+        fontFamily: 'SF Pro Text, system-ui, -apple-system, sans-serif',
+        fontSize: 34,
+        fontWeight: FontWeight.w600,
+        height: 1.47,
+        letterSpacing: -0.374,
+      );
+
+  /// Lead — 28px/400/1.14/0.196px
+  static TextStyle get lead => const TextStyle(
+        fontFamily: 'SF Pro Display, system-ui, -apple-system, sans-serif',
+        fontSize: 28,
+        fontWeight: FontWeight.w400,
+        height: 1.14,
+        letterSpacing: 0.196,
+      );
+
+  /// Tagline — 21px/600/1.19/0.231px
+  static TextStyle get tagline => const TextStyle(
+        fontFamily: 'SF Pro Display, system-ui, -apple-system, sans-serif',
+        fontSize: 21,
+        fontWeight: FontWeight.w600,
+        height: 1.19,
+        letterSpacing: 0.231,
+      );
+
+  /// Body Strong — 17px/600/1.24/-0.374px
+  static TextStyle get bodyStrong => const TextStyle(
+        fontFamily: 'SF Pro Text, system-ui, -apple-system, sans-serif',
+        fontSize: 17,
+        fontWeight: FontWeight.w600,
+        height: 1.24,
+        letterSpacing: -0.374,
+      );
+
+  /// Body — 17px/400/1.47/-0.374px
+  static TextStyle get body => const TextStyle(
+        fontFamily: 'SF Pro Text, system-ui, -apple-system, sans-serif',
+        fontSize: 17,
+        fontWeight: FontWeight.w400,
+        height: 1.47,
+        letterSpacing: -0.374,
+      );
+
+  /// Caption — 14px/400/1.43/-0.224px
+  static TextStyle get caption => const TextStyle(
+        fontFamily: 'SF Pro Text, system-ui, -apple-system, sans-serif',
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+        height: 1.43,
+        letterSpacing: -0.224,
+      );
+
+  /// Caption Strong — 14px/600/1.29/-0.224px
+  static TextStyle get captionStrong => const TextStyle(
+        fontFamily: 'SF Pro Text, system-ui, -apple-system, sans-serif',
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        height: 1.29,
+        letterSpacing: -0.224,
+      );
+
+  /// Button Large — 18px/300/1.0/0
+  static TextStyle get buttonLarge => const TextStyle(
+        fontFamily: 'SF Pro Text, system-ui, -apple-system, sans-serif',
+        fontSize: 18,
+        fontWeight: FontWeight.w300,
+        height: 1.0,
+        letterSpacing: 0,
+      );
+
+  /// Button Utility — 14px/400/1.29/-0.224px
+  static TextStyle get buttonUtility => const TextStyle(
+        fontFamily: 'SF Pro Text, system-ui, -apple-system, sans-serif',
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+        height: 1.29,
+        letterSpacing: -0.224,
+      );
+
+  /// Fine Print — 12px/400/1.0/-0.12px
+  static TextStyle get finePrint => const TextStyle(
+        fontFamily: 'SF Pro Text, system-ui, -apple-system, sans-serif',
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        height: 1.0,
+        letterSpacing: -0.12,
+      );
+
+  /// Nav Link — 12px/400/1.0/-0.12px
+  static TextStyle get navLink => const TextStyle(
+        fontFamily: 'SF Pro Text, system-ui, -apple-system, sans-serif',
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        height: 1.0,
+        letterSpacing: -0.12,
+      );
+
+  // ─── DESIGN.md 圆角体系 ─────────────────────────────────────────
+  /// None — 0px（全出血瓦片）。
+  static const double roundedNone = 0;
+  /// XS — 5px（稀有inline chips）。
+  static const double roundedXs = 5;
+  /// SM — 8px（深色工具按钮）。
+  static const double roundedSm = 8;
+  /// MD — 11px（Pearl Button 胶囊）。
+  static const double roundedMd = 11;
+  /// LG — 18px（Store 工具卡片）。
+  static const double roundedLg = 18;
+  /// Pill — 9999px（主蓝色胶囊CTA、搜索框、chips）。
+  static const double roundedPill = 9999;
+
+  // 兼容旧引用
+  static const double cardRadius = roundedLg;
+  static const double controlRadius = roundedSm;
+  static const double smallRadius = roundedXs;
+  static const double pillRadius = roundedPill;
+
+  // ─── DESIGN.md 间距体系 ─────────────────────────────────────────
+  /// 4px
+  static const double spacingXxs = 4;
+  /// 8px
+  static const double spacingXs = 8;
+  /// 12px
+  static const double spacingSm = 12;
+  /// 17px（基础间距）
+  static const double spacingMd = 17;
+  /// 24px
+  static const double spacingLg = 24;
+  /// 32px
+  static const double spacingXl = 32;
+  /// 48px
+  static const double spacingXxl = 48;
+  /// 80px（区块间距 — Apple 大量留白）
+  static const double spacingSection = 80;
+
+  // 兼容旧引用
   static const double pagePadding = 20;
   static const double compactPagePadding = 12;
-  /// 卡片圆角 — Apple 大卡片 12pt。
-  static const double cardRadius = 12;
-  /// 控件圆角 — Apple 按钮/输入 8pt。
-  static const double controlRadius = 8;
-  /// 小元素圆角（标签/徽章） 4pt。
-  static const double smallRadius = 4;
-  /// Apple 标准阴影。
-  static const List<BoxShadow> appleShadow = [
+
+  // ─── 阴影（仅产品图片使用，UI chrome 无阴影） ─────────────────
+  /// 产品图片阴影 — 系统唯一阴影。
+  static const List<BoxShadow> productShadow = [
     BoxShadow(
-      color: Color(0x14000000), // rgba(0,0,0,0.08)
-      blurRadius: 8,
-      offset: Offset(0, 2),
+      color: Color(0x38000000), // rgba(0,0,0,0.22)
+      blurRadius: 30,
+      offset: Offset(3, 5),
     ),
   ];
-  /// Apple 大阴影（弹窗/浮层）。
-  static const List<BoxShadow> appleShadowLarge = [
-    BoxShadow(
-      color: Color(0x29000000), // rgba(0,0,0,0.16)
-      blurRadius: 24,
-      offset: Offset(0, 4),
-    ),
-  ];
+
+  // 旧引用 — 保留但不再用于 UI chrome
+  static const List<BoxShadow> appleShadow = [];
+  static const List<BoxShadow> appleShadowLarge = [];
+
+  // ─── 动画 ──────────────────────────────────────────────────────
   static const Duration quickMotion = Duration(milliseconds: 140);
   static const Duration standardMotion = Duration(milliseconds: 200);
 
-  // ─── 兼容旧引用（重定向到 Apple 色值） ────────────────────────
-  /// 旧 ink → Apple 深色文字。
-  static const Color ink = lightLabel;
-  /// 旧 accent → Apple Blue。
-  static const Color accent = appleBlue;
-  /// 旧 lightCanvas → Apple 浅色背景。
-  static const Color lightCanvas = lightSystemBackground;
-  /// 旧 lightSurface → Apple 二级浅色背景。
-  static const Color lightSurface = lightSecondarySystemBackground;
-  /// 旧 lightSubtleSurface → Apple 三级浅色背景。
-  static const Color lightSubtleSurface = lightTertiarySystemBackground;
-  /// 旧 darkCanvas → Apple 深色背景。
-  static const Color darkCanvas = darkSystemBackground;
-  /// 旧 darkSurface → Apple 二级深色背景。
-  static const Color darkSurface = darkSecondarySystemBackground;
-  /// 旧 darkSubtleSurface → Apple 三级深色背景。
-  static const Color darkSubtleSurface = darkTertiarySystemBackground;
-
+  // ─── 主题构建 ──────────────────────────────────────────────────
   static ThemeData lightTheme() => _theme(Brightness.light);
   static ThemeData darkTheme() => _theme(Brightness.dark);
 
   static ThemeData _theme(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
 
-    // Apple 色彩系统 — 浅色/深色模式映射。
+    // DESIGN.md 色彩映射
     final colorScheme = ColorScheme(
       brightness: brightness,
-      primary: isDark ? const Color(0xFF0A84FF) : appleBlue,
-      onPrimary: Colors.white,
-      primaryContainer: isDark
-          ? const Color(0xFF003A75)
-          : const Color(0xFFD6E4FF),
-      onPrimaryContainer: isDark
-          ? const Color(0xFFD6E4FF)
-          : const Color(0xFF001B3F),
-      secondary: isDark ? const Color(0xFF5E5CE6) : appleIndigo,
-      onSecondary: Colors.white,
+      primary: primary,
+      onPrimary: canvas,
+      primaryContainer: const Color(0xFFD6E4FF),
+      onPrimaryContainer: const Color(0xFF001B3F),
+      secondary: isDark ? surfaceTile2 : canvasParchment,
+      onSecondary: isDark ? bodyOnDark : ink,
       secondaryContainer: isDark
           ? const Color(0xFF3A3999)
           : const Color(0xFFE0DEF7),
@@ -124,136 +277,156 @@ abstract final class AppDesign {
           ? const Color(0xFFE0DEF7)
           : const Color(0xFF1B1847),
       tertiary: isDark ? const Color(0xFF30D158) : appleGreen,
-      onTertiary: Colors.white,
+      onTertiary: canvas,
       tertiaryContainer: isDark
           ? const Color(0xFF004A1A)
           : const Color(0xFFC8F0D4),
       onTertiaryContainer: isDark
           ? const Color(0xFFC8F0D4)
           : const Color(0xFF002108),
-      error: isDark ? const Color(0xFFFFB4AB) : appleRed,
-      onError: isDark ? const Color(0xFF690005) : Colors.white,
-      errorContainer: isDark
-          ? const Color(0xFF93000A)
-          : const Color(0xFFFFDAD6),
-      onErrorContainer: isDark
-          ? const Color(0xFFFFDAD6)
-          : const Color(0xFF410002),
-      surface: isDark ? darkSecondarySystemBackground : lightSecondarySystemBackground,
-      onSurface: isDark ? darkLabel : lightLabel,
+      error: appleRed,
+      onError: canvas,
+      errorContainer: const Color(0xFFFFDAD6),
+      onErrorContainer: const Color(0xFF410002),
+      surface: isDark ? surfaceTile1 : canvas,
+      onSurface: isDark ? bodyOnDark : ink,
       surfaceContainerHighest: isDark
           ? const Color(0xFF48484A)
-          : const Color(0xFFE5E5EA),
-      onSurfaceVariant: isDark
-          ? const Color(0xFFC7C7CC)
-          : const Color(0xFF636366),
-      outline: isDark ? const Color(0xFF636366) : const Color(0xFFC6C6C8),
+          : hairline,
+      onSurfaceVariant: isDark ? bodyMuted : inkMuted48,
+      outline: isDark ? const Color(0xFF636366) : hairline,
       outlineVariant: isDark
           ? const Color(0xFF48484A)
-          : const Color(0xFFD1D1D6),
+          : dividerSoft,
       shadow: Colors.black,
       scrim: Colors.black,
-      inverseSurface: isDark
-          ? const Color(0xFFE5E5EA)
-          : const Color(0xFF1C1C1E),
-      onInverseSurface: isDark
-          ? const Color(0xFF1C1C1E)
-          : const Color(0xFFF2F2F7),
-      inversePrimary: isDark ? const Color(0xFF0A84FF) : const Color(0xFFB3D7FF),
-      surfaceTint: isDark ? const Color(0xFF0A84FF) : appleBlue,
+      inverseSurface: isDark ? canvas : surfaceTile1,
+      onInverseSurface: isDark ? surfaceTile1 : canvasParchment,
+      inversePrimary: isDark ? primary : const Color(0xFFB3D7FF),
+      surfaceTint: primary,
     );
 
-    // Apple 字体系统 — SF Pro（Flutter 系统默认字体在 Apple 平台即 SF Pro）。
+    // DESIGN.md 排版 — SF Pro
     final textTheme = TextTheme(
       displayLarge: TextStyle(
-        fontSize: 34,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 0.37,
-        color: isDark ? darkLabel : lightLabel,
+        fontFamily: _fontFamilyDisplay,
+        fontSize: 40, // display-lg
+        fontWeight: FontWeight.w600,
+        height: 1.10,
+        letterSpacing: 0,
+        color: isDark ? bodyOnDark : ink,
       ),
       displayMedium: TextStyle(
-        fontSize: 28,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 0.36,
-        color: isDark ? darkLabel : lightLabel,
+        fontFamily: _fontFamilyBody,
+        fontSize: 34, // display-md
+        fontWeight: FontWeight.w600,
+        height: 1.47,
+        letterSpacing: -0.374,
+        color: isDark ? bodyOnDark : ink,
       ),
       displaySmall: TextStyle(
-        fontSize: 22,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 0.35,
-        color: isDark ? darkLabel : lightLabel,
+        fontFamily: _fontFamilyDisplay,
+        fontSize: 28, // lead
+        fontWeight: FontWeight.w400,
+        height: 1.14,
+        letterSpacing: 0.196,
+        color: isDark ? bodyOnDark : ink,
       ),
       headlineLarge: TextStyle(
-        fontSize: 20,
+        fontFamily: _fontFamilyDisplay,
+        fontSize: 21, // tagline
         fontWeight: FontWeight.w600,
-        letterSpacing: 0.38,
-        color: isDark ? darkLabel : lightLabel,
+        height: 1.19,
+        letterSpacing: 0.231,
+        color: isDark ? bodyOnDark : ink,
       ),
       headlineMedium: TextStyle(
-        fontSize: 17,
+        fontFamily: _fontFamilyBody,
+        fontSize: 17, // body-strong
         fontWeight: FontWeight.w600,
-        letterSpacing: -0.41,
-        color: isDark ? darkLabel : lightLabel,
+        height: 1.24,
+        letterSpacing: -0.374,
+        color: isDark ? bodyOnDark : ink,
       ),
       headlineSmall: TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w600,
-        letterSpacing: -0.24,
-        color: isDark ? darkLabel : lightLabel,
+        fontFamily: _fontFamilyBody,
+        fontSize: 17, // body
+        fontWeight: FontWeight.w400,
+        height: 1.47,
+        letterSpacing: -0.374,
+        color: isDark ? bodyOnDark : ink,
       ),
       titleLarge: TextStyle(
-        fontSize: 20,
+        fontFamily: _fontFamilyBody,
+        fontSize: 17, // body-strong
         fontWeight: FontWeight.w600,
-        letterSpacing: 0.38,
-        color: isDark ? darkLabel : lightLabel,
+        height: 1.24,
+        letterSpacing: -0.374,
+        color: isDark ? bodyOnDark : ink,
       ),
       titleMedium: TextStyle(
-        fontSize: 17,
-        fontWeight: FontWeight.w600,
-        letterSpacing: -0.41,
-        color: isDark ? darkLabel : lightLabel,
+        fontFamily: _fontFamilyBody,
+        fontSize: 17, // body
+        fontWeight: FontWeight.w400,
+        height: 1.47,
+        letterSpacing: -0.374,
+        color: isDark ? bodyOnDark : ink,
       ),
       titleSmall: TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w600,
-        letterSpacing: -0.24,
-        color: isDark ? darkLabel : lightLabel,
+        fontFamily: _fontFamilyBody,
+        fontSize: 14, // caption
+        fontWeight: FontWeight.w400,
+        height: 1.43,
+        letterSpacing: -0.224,
+        color: isDark ? bodyOnDark : ink,
       ),
       bodyLarge: TextStyle(
-        fontSize: 17,
+        fontFamily: _fontFamilyBody,
+        fontSize: 17, // body
         fontWeight: FontWeight.w400,
-        letterSpacing: -0.41,
-        color: isDark ? darkLabel : lightLabel,
+        height: 1.47,
+        letterSpacing: -0.374,
+        color: isDark ? bodyOnDark : ink,
       ),
       bodyMedium: TextStyle(
-        fontSize: 15,
+        fontFamily: _fontFamilyBody,
+        fontSize: 14, // caption
         fontWeight: FontWeight.w400,
-        letterSpacing: -0.24,
-        color: isDark ? darkLabel : lightLabel,
+        height: 1.43,
+        letterSpacing: -0.224,
+        color: isDark ? bodyOnDark : ink,
       ),
       bodySmall: TextStyle(
-        fontSize: 13,
+        fontFamily: _fontFamilyBody,
+        fontSize: 12, // fine-print
         fontWeight: FontWeight.w400,
-        letterSpacing: -0.08,
-        color: isDark ? darkSecondaryLabel : lightSecondaryLabel,
+        height: 1.0,
+        letterSpacing: -0.12,
+        color: isDark ? bodyMuted : inkMuted48,
       ),
       labelLarge: TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w600,
-        letterSpacing: -0.24,
-        color: isDark ? darkLabel : lightLabel,
+        fontFamily: _fontFamilyBody,
+        fontSize: 14, // button-utility
+        fontWeight: FontWeight.w400,
+        height: 1.29,
+        letterSpacing: -0.224,
+        color: isDark ? bodyOnDark : ink,
       ),
       labelMedium: TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        letterSpacing: -0.08,
-        color: isDark ? darkSecondaryLabel : lightSecondaryLabel,
+        fontFamily: _fontFamilyBody,
+        fontSize: 12, // fine-print
+        fontWeight: FontWeight.w400,
+        height: 1.0,
+        letterSpacing: -0.12,
+        color: isDark ? bodyMuted : inkMuted48,
       ),
       labelSmall: TextStyle(
-        fontSize: 11,
+        fontFamily: _fontFamilyBody,
+        fontSize: 10, // micro-legal
         fontWeight: FontWeight.w400,
-        letterSpacing: 0.06,
-        color: isDark ? darkTertiaryLabel : lightTertiaryLabel,
+        height: 1.3,
+        letterSpacing: -0.08,
+        color: isDark ? bodyMuted : inkMuted48,
       ),
     );
 
@@ -262,294 +435,298 @@ abstract final class AppDesign {
       brightness: brightness,
       colorScheme: colorScheme,
       textTheme: textTheme,
-      scaffoldBackgroundColor: isDark ? darkSystemBackground : lightSystemBackground,
+      // DESIGN.md: 纯白/羊皮纸背景（非灰色）
+      scaffoldBackgroundColor: isDark ? surfaceBlack : canvas,
       splashFactory: InkSparkle.splashFactory,
       visualDensity: VisualDensity.standard,
       materialTapTargetSize: MaterialTapTargetSize.padded,
-      // Apple 风格分割线 — 细、半透明。
-      dividerColor: isDark ? darkSeparator : lightSeparator,
+      // DESIGN.md: hairline divider
+      dividerColor: isDark ? const Color(0xFF48484A) : hairline,
     );
 
     return base.copyWith(
-      // ─── AppBar — Apple 大标题风格 ──────────────────────────
+      // ─── AppBar — 全局导航栏（DESIGN.md: surface-black, 44px） ──
       appBarTheme: AppBarTheme(
-        backgroundColor: isDark ? darkSystemBackground : lightSystemBackground,
-        foregroundColor: colorScheme.onSurface,
+        backgroundColor: surfaceBlack,
+        foregroundColor: bodyOnDark,
         elevation: 0,
-        scrolledUnderElevation: 0.5,
+        scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         titleSpacing: pagePadding,
-        toolbarHeight: 56,
-        // Apple 大标题 — SF Pro Display, Bold, 17pt。
-        titleTextStyle: TextStyle(
-          fontSize: 17,
-          fontWeight: FontWeight.w600,
-          letterSpacing: -0.41,
-          color: isDark ? darkLabel : lightLabel,
-        ),
-        // Apple 大标题 — Large title style (34pt) for top of page。
-        // ignore: prefer_const_constructors
-        toolbarTextStyle: TextStyle(
-          fontSize: 34,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.37,
-          color: isDark ? darkLabel : lightLabel,
+        toolbarHeight: 44,
+        titleTextStyle: navLink.copyWith(
+          color: bodyOnDark,
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
         ),
       ),
 
-      // ─── Card — Apple 分组列表样式 ──────────────────────────
+      // ─── Card — store-utility-card（DESIGN.md: 18px radius, no shadow） ──
       cardTheme: CardThemeData(
-        color: isDark ? darkSecondarySystemBackground : lightSecondarySystemBackground,
+        color: isDark ? surfaceTile1 : canvas,
         elevation: 0,
         margin: EdgeInsets.zero,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(cardRadius),
-          // Apple 分组列表无描边，用背景色区分层级。
+          borderRadius: BorderRadius.circular(roundedLg),
         ),
         clipBehavior: Clip.antiAlias,
       ),
 
-      // ─── Divider — Apple 细分割线 ──────────────────────────
+      // ─── Divider — hairline（DESIGN.md: 1px rgba(0,0,0,0.08)） ──
       dividerTheme: DividerThemeData(
-        color: (isDark ? darkSeparator : lightSeparator).withValues(alpha: 0.75),
+        color: isDark ? const Color(0xFF48484A) : hairline,
         thickness: 0.5,
         space: 0.5,
       ),
 
-      // ─── InputDecoration — Apple 圆角搜索/输入框 ────────────
+      // ─── InputDecoration — search-input（DESIGN.md: pill radius, 44px height） ──
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark
-            ? darkTertiarySystemBackground
-            : lightTertiarySystemBackground,
+        fillColor: isDark ? surfaceTile2 : canvas,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 10,
+          horizontal: spacingMd,
+          vertical: spacingSm,
         ),
         hintStyle: TextStyle(
-          color: isDark ? darkTertiaryLabel : lightTertiaryLabel,
-          fontSize: 15,
+          fontFamily: _fontFamilyBody,
+          color: inkMuted48,
+          fontSize: 17,
           fontWeight: FontWeight.w400,
+          height: 1.47,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(controlRadius),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(roundedPill),
+          borderSide: BorderSide(color: hairline),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(controlRadius),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(roundedPill),
+          borderSide: BorderSide(color: hairline),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(controlRadius),
-          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+          borderRadius: BorderRadius.circular(roundedPill),
+          borderSide: const BorderSide(color: primary, width: 1.5),
         ),
       ),
 
-      // ─── FilledButton — Apple 蓝色胶囊按钮 ────────────────
+      // ─── FilledButton — button-primary（DESIGN.md: pill, #0066cc） ──
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size(44, 44),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-          backgroundColor: colorScheme.primary,
-          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
+          backgroundColor: primary,
+          foregroundColor: canvas,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(controlRadius),
+            borderRadius: BorderRadius.circular(roundedPill),
           ),
-          textStyle: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.24,
-            color: Colors.white,
+          textStyle: body.copyWith(
+            color: canvas,
           ),
         ),
       ),
 
-      // ─── OutlinedButton — Apple 描边按钮 ──────────────────
+      // ─── OutlinedButton — button-secondary-pill ──────────────────
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(44, 44),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          side: BorderSide(color: colorScheme.primary),
-          foregroundColor: colorScheme.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
+          side: const BorderSide(color: primary),
+          foregroundColor: primary,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(controlRadius),
+            borderRadius: BorderRadius.circular(roundedPill),
           ),
+          textStyle: body.copyWith(color: primary),
         ),
       ),
 
-      // ─── TextButton — Apple 文字按钮 ──────────────────────
+      // ─── TextButton — text-link（DESIGN.md: transparent bg, primary text） ──
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           minimumSize: const Size(44, 44),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          foregroundColor: colorScheme.primary,
+          foregroundColor: primary,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(controlRadius),
+            borderRadius: BorderRadius.circular(roundedSm),
           ),
+          textStyle: body.copyWith(color: primary),
         ),
       ),
 
-      // ─── IconButton — Apple 圆形触控区 ────────────────────
+      // ─── IconButton — button-icon-circular（DESIGN.md: 44x44, full radius） ──
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
           minimumSize: const Size(44, 44),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(controlRadius),
+            borderRadius: BorderRadius.circular(roundedPill),
           ),
         ),
       ),
 
-      // ─── TabBar — Apple 分段控件风格 ──────────────────────
+      // ─── TabBar — sub-nav-frosted（DESIGN.md: parchment bg, tagline text） ──
       tabBarTheme: TabBarThemeData(
         indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: Colors.transparent,
-        labelColor: colorScheme.primary,
-        unselectedLabelColor: colorScheme.onSurfaceVariant,
+        labelColor: primary,
+        unselectedLabelColor: inkMuted48,
         labelStyle: TextStyle(
-          fontSize: 13,
+          fontFamily: _fontFamilyBody,
+          fontSize: 14,
           fontWeight: FontWeight.w600,
-          letterSpacing: -0.08,
-          color: colorScheme.primary,
+          letterSpacing: -0.224,
+          color: primary,
         ),
         unselectedLabelStyle: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          letterSpacing: -0.08,
-          color: colorScheme.onSurfaceVariant,
+          fontFamily: _fontFamilyBody,
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+          letterSpacing: -0.224,
+          color: inkMuted48,
         ),
         indicator: BoxDecoration(
-          color: colorScheme.primaryContainer.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(controlRadius),
+          color: primary.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(roundedSm),
         ),
         labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       ),
 
-      // ─── SnackBar — Apple 风格通知条 ──────────────────────
+      // ─── SnackBar ────────────────────────────────────────────────
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         elevation: 0,
-        backgroundColor: colorScheme.inverseSurface,
-        contentTextStyle: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          letterSpacing: -0.15,
-          color: colorScheme.onInverseSurface,
-        ),
+        backgroundColor: surfaceTile1,
+        contentTextStyle: body.copyWith(color: bodyOnDark),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(controlRadius),
+          borderRadius: BorderRadius.circular(roundedSm),
         ),
       ),
 
-      // ─── Dialog — Apple 风格弹窗 ──────────────────────────
+      // ─── Dialog — Apple 风格弹窗 ──────────────────────────────────
       dialogTheme: DialogThemeData(
         elevation: 0,
-        backgroundColor: isDark ? darkTertiarySystemBackground : Colors.white,
+        backgroundColor: isDark ? surfaceTile2 : canvas,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(cardRadius),
+          borderRadius: BorderRadius.circular(roundedLg),
         ),
         titleTextStyle: TextStyle(
+          fontFamily: _fontFamilyBody,
           fontSize: 17,
           fontWeight: FontWeight.w600,
-          letterSpacing: -0.41,
-          color: isDark ? darkLabel : lightLabel,
+          letterSpacing: -0.374,
+          color: isDark ? bodyOnDark : ink,
         ),
         contentTextStyle: TextStyle(
-          fontSize: 15,
+          fontFamily: _fontFamilyBody,
+          fontSize: 17,
           fontWeight: FontWeight.w400,
-          letterSpacing: -0.24,
-          color: isDark ? darkSecondaryLabel : lightSecondaryLabel,
+          height: 1.47,
+          letterSpacing: -0.374,
+          color: isDark ? bodyMuted : inkMuted80,
         ),
       ),
 
-      // ─── Tooltip — Apple 风格提示 ──────────────────────────
+      // ─── Tooltip ──────────────────────────────────────────────────
       tooltipTheme: TooltipThemeData(
         waitDuration: const Duration(milliseconds: 450),
         decoration: BoxDecoration(
-          color: isDark ? darkTertiarySystemBackground : const Color(0xFF1C1C1E),
-          borderRadius: BorderRadius.circular(controlRadius),
+          color: surfaceTile1,
+          borderRadius: BorderRadius.circular(roundedSm),
         ),
-        textStyle: const TextStyle(
-          fontSize: 13,
+        textStyle: TextStyle(
+          fontFamily: _fontFamilyBody,
+          fontSize: 12,
           fontWeight: FontWeight.w400,
-          color: Colors.white,
+          letterSpacing: -0.12,
+          color: bodyOnDark,
         ),
       ),
 
-      // ─── BottomNavigationBar — Apple 底部标签栏 ────────────
+      // ─── BottomNavigationBar ──────────────────────────────────────
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: isDark ? darkSecondarySystemBackground : lightSecondarySystemBackground,
-        selectedItemColor: colorScheme.primary,
-        unselectedItemColor: colorScheme.onSurfaceVariant,
+        backgroundColor: isDark ? surfaceTile1 : canvas,
+        selectedItemColor: primary,
+        unselectedItemColor: inkMuted48,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
-        selectedLabelStyle: const TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w500,
-        ),
-        unselectedLabelStyle: const TextStyle(
+        selectedLabelStyle: TextStyle(
+          fontFamily: _fontFamilyBody,
           fontSize: 10,
           fontWeight: FontWeight.w400,
+          height: 1.3,
+          letterSpacing: -0.08,
+        ),
+        unselectedLabelStyle: TextStyle(
+          fontFamily: _fontFamilyBody,
+          fontSize: 10,
+          fontWeight: FontWeight.w400,
+          height: 1.3,
+          letterSpacing: -0.08,
         ),
       ),
 
-      // ─── ListTile — Apple 分组列表条目 ────────────────────
+      // ─── ListTile ────────────────────────────────────────────────
       listTileTheme: ListTileThemeData(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+        contentPadding: const EdgeInsets.symmetric(horizontal: spacingSm, vertical: 2),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(controlRadius),
+          borderRadius: BorderRadius.circular(roundedSm),
         ),
         tileColor: Colors.transparent,
         titleTextStyle: TextStyle(
+          fontFamily: _fontFamilyBody,
           fontSize: 17,
           fontWeight: FontWeight.w400,
-          letterSpacing: -0.41,
-          color: isDark ? darkLabel : lightLabel,
+          height: 1.47,
+          letterSpacing: -0.374,
+          color: isDark ? bodyOnDark : ink,
         ),
         subtitleTextStyle: TextStyle(
-          fontSize: 13,
+          fontFamily: _fontFamilyBody,
+          fontSize: 14,
           fontWeight: FontWeight.w400,
-          letterSpacing: -0.08,
-          color: isDark ? darkTertiaryLabel : lightTertiaryLabel,
+          height: 1.43,
+          letterSpacing: -0.224,
+          color: isDark ? bodyMuted : inkMuted48,
         ),
       ),
 
-      // ─── Chip — Apple 标签 ──────────────────────────────────
+      // ─── Chip — configurator-option-chip（DESIGN.md: pill, 12x16 padding） ──
       chipTheme: ChipThemeData(
-        backgroundColor: isDark ? darkTertiarySystemBackground : lightTertiarySystemBackground,
-        selectedColor: colorScheme.primaryContainer,
-        disabledColor: isDark ? darkTertiarySystemBackground : lightTertiarySystemBackground,
+        backgroundColor: isDark ? surfaceTile2 : canvas,
+        selectedColor: primary.withValues(alpha: 0.12),
+        disabledColor: isDark ? surfaceTile3 : dividerSoft,
         labelStyle: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: isDark ? darkLabel : lightLabel,
+          fontFamily: _fontFamilyBody,
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+          letterSpacing: -0.224,
+          color: isDark ? bodyOnDark : ink,
         ),
         secondaryLabelStyle: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: isDark ? darkLabel : lightLabel,
+          fontFamily: _fontFamilyBody,
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+          color: isDark ? bodyOnDark : ink,
         ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(smallRadius),
+          borderRadius: BorderRadius.circular(roundedPill),
         ),
         side: BorderSide.none,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
 
-      // ─── FloatingActionButton — Apple 浮动操作 ────────────
+      // ─── FloatingActionButton ────────────────────────────────────
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: colorScheme.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: primary,
+        foregroundColor: canvas,
         elevation: 0,
         focusElevation: 0,
         hoverElevation: 2,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(controlRadius),
+          borderRadius: BorderRadius.circular(roundedPill),
         ),
       ),
 
-      // ─── Page Transitions — Apple 风格导航动画 ──────────────
+      // ─── Page Transitions — CupertinoPageTransitionsBuilder ──────
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.android: CupertinoPageTransitionsBuilder(),
@@ -560,26 +737,26 @@ abstract final class AppDesign {
         },
       ),
 
-      // ─── Slider — Apple 风格滑块 ──────────────────────────
+      // ─── Slider ──────────────────────────────────────────────────
       sliderTheme: SliderThemeData(
-        activeTrackColor: colorScheme.primary,
-        inactiveTrackColor: colorScheme.surfaceContainerHighest,
-        thumbColor: colorScheme.primary,
-        overlayColor: colorScheme.primary.withValues(alpha: 0.12),
+        activeTrackColor: primary,
+        inactiveTrackColor: isDark ? surfaceTile3 : dividerSoft,
+        thumbColor: primary,
+        overlayColor: primary.withValues(alpha: 0.12),
         overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
         trackHeight: 4,
         thumbShape: const RoundSliderThumbShape(),
       ),
 
-      // ─── Switch — Apple 风格开关 ──────────────────────────
+      // ─── Switch — Apple 风格开关 ──────────────────────────────────
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return Colors.white;
-          return isDark ? darkSecondaryLabel : lightSecondaryLabel;
+          if (states.contains(WidgetState.selected)) return canvas;
+          return isDark ? bodyMuted : inkMuted48;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return colorScheme.primary;
-          return isDark ? darkTertiarySystemBackground : const Color(0xFFE9E9EA);
+          if (states.contains(WidgetState.selected)) return primary;
+          return isDark ? surfaceTile3 : const Color(0xFFE9E9EA);
         }),
       ),
     );

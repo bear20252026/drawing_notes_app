@@ -12,17 +12,9 @@ class AmbientBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? const [Color(0xFF000000), Color(0xFF0A0A0A), Color(0xFF000000)]
-              : const [Color(0xFFF2F2F7), Color(0xFFF5F5F7), Color(0xFFF2F2F7)],
-          stops: const [0, 0.52, 1],
-        ),
-      ),
+    // DESIGN.md: 无装饰渐变 — 颜色变化即分隔线
+    return ColoredBox(
+      color: isDark ? const Color(0xFF272729) : const Color(0xFFF5F5F7),
       child: child,
     );
   }
