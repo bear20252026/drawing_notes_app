@@ -15,11 +15,17 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// 认证守卫
 ///
 /// 全局单例，管理密码盘认证状态。
 /// 在 GoRouter redirect 中检查，未认证则重定向到密码盘页。
+///
+/// 支持三种模式：
+/// 1. 未设置密码盘 → 直接通过（首次使用）
+/// 2. 已设置密码盘 → 需要解锁才能使用
+/// 3. 用户选择跳过加密 → 永久跳过，不再询问
 class AuthGuard extends ChangeNotifier {
   AuthGuard._();
 
@@ -28,14 +34,24 @@ class AuthGuard extends ChangeNotifier {
   /// 获取单例
   static AuthGuard get instance => _instance;
 
+  /// SharedPreferences key for encryption skipped flag
+  static const _kEncryptionSkipped = 'auth_encryption_skipped';
+
   bool _authenticated = false;
   bool _passwordDiskExists = false;
+  bool _encryptionSkipped = false;
 
   /// 当前会话是否已认证（已解锁密码盘）
   bool get isAuthenticated => _authenticated;
 
   /// 密码盘是否已设置（存在密码盘文件）
   bool get passwordDiskExists => _passwordDiskExists;
+
+  /// 用户是否选择了跳过加密
+  bool get encryptionSkipped => _encryptionSkipped;
+
+  /// 是否需要认证（有密码盘且未跳过）
+  bool get requiresAuth => _passwordDiskExists && !_encryptionSkipped;
 
   /// 认证状态变更事件流
   final _authController = StreamController<bool>.broadcast();
@@ -55,11 +71,38 @@ class AuthGuard extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 初始化：检查密码盘是否存在
+  /// 跳过加密（用户选择不设置密码盘）。
+  /// 持久化到 SharedPreferences，后续启动不再询问。
+  Future<void> skipEncryption() async {
+    _encryptionSkipped = true;
+    _authenticated = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kEncryptionSkipped, true);
+    _authController.add(true);
+    notifyListeners();
+  }
+
+  /// 恢复加密要求（用户从设置中重新启用加密）。
+  Future<void> enableEncryption() async {
+    _encryptionSkipped = false;
+    _authenticated = false;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kEncryptionSkipped);
+    _authController.add(false);
+    notifyListeners();
+  }
+
+  /// 初始化：检查密码盘是否已设置、是否已跳过加密
   Future<void> initialize() async {
+    final prefs = await SharedPreferences.getInstance();
+    _encryptionSkipped = prefs.getBool(_kEncryptionSkipped) ?? false;
     _passwordDiskExists = await _checkPasswordDiskExists();
-    // 如果密码盘不存在，直接通过（不需要认证）
-    if (!_passwordDiskExists) {
+
+    if (_encryptionSkipped) {
+      // 用户已选择跳过加密，直接认证通过
+      _authenticated = true;
+    } else if (!_passwordDiskExists) {
+      // 密码盘不存在，直接通过（不需要认证）
       _authenticated = true;
     }
     notifyListeners();

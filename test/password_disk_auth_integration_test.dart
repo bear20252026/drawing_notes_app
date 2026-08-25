@@ -16,6 +16,7 @@ import 'package:drawing_notes_app/features/notes/presentation/password_disk_page
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   late Directory diskDir;
@@ -131,8 +132,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('密码盘未解锁'), findsOneWidget);
-    expect(find.text('落盘加密验证'), findsOneWidget);
-    expect(find.text('请先解锁密码盘'), findsOneWidget);
+    expect(find.text('不想使用加密？'), findsOneWidget);
   });
 
   // ─── 6. 创建后 onKeyUnlocked 回调触发 ──────────────────────────
@@ -175,5 +175,24 @@ void main() {
     expect(capturedKey!.length, greaterThanOrEqualTo(16),
         reason: '主密钥应 >= 16 字节');
     expect(tester.takeException(), isNull);
+  });
+
+  // ─── 7. AuthGuard skipEncryption/enableEncryption ────────────────
+  test('skipEncryption 设置后 requiresAuth 为 false', () async {
+    SharedPreferences.setMockInitialValues({});
+    final auth = AuthGuard.instance;
+    await auth.skipEncryption();
+    expect(auth.encryptionSkipped, isTrue);
+    expect(auth.requiresAuth, isFalse);
+    expect(auth.isAuthenticated, isTrue);
+  });
+
+  test('enableEncryption 恢复后 requiresAuth 恢复', () async {
+    SharedPreferences.setMockInitialValues({});
+    final auth = AuthGuard.instance;
+    await auth.skipEncryption();
+    expect(auth.requiresAuth, isFalse);
+    await auth.enableEncryption();
+    expect(auth.encryptionSkipped, isFalse);
   });
 }
