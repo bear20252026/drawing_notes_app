@@ -68,7 +68,7 @@ class ColorPickerGrid extends StatelessWidget {
                 color: _hexToColor(color),
               borderRadius: BorderRadius.circular(6),
               border: Border.all(
-                color: isSelected ? Colors.blue : Colors.grey.shade400,
+                color: isSelected ? const Color(0xFF0066CC) : const Color(0xFFC7C7CC),
                 width: isSelected ? 2.5 : 1,
               ),
             ),
@@ -117,7 +117,7 @@ class StrokeWidthSlider extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(resolvedLabel, style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), color: Colors.grey)),
+            Text(resolvedLabel, style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), color: const Color(0xFF8E8E93))),
             Text('${value.round()}px',
                 style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), fontWeight: FontWeight.w500)),
           ],
@@ -127,9 +127,9 @@ class StrokeWidthSlider extends StatelessWidget {
             trackHeight: 2,
             thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
             overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-            activeTrackColor: Colors.blue,
-            inactiveTrackColor: Colors.grey.shade300,
-            thumbColor: Colors.blue,
+            activeTrackColor: const Color(0xFF0066CC),
+            inactiveTrackColor: const Color(0xFFE5E5EA),
+            thumbColor: const Color(0xFF0066CC),
           ),
           child: Slider(
             value: value.clamp(min, max),
@@ -168,7 +168,7 @@ class OpacitySlider extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(resolvedLabel, style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), color: Colors.grey)),
+            Text(resolvedLabel, style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), color: const Color(0xFF8E8E93))),
             Text('${(value * 100).round()}%',
                 style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), fontWeight: FontWeight.w500)),
           ],
@@ -178,9 +178,9 @@ class OpacitySlider extends StatelessWidget {
             trackHeight: 2,
             thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
             overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-            activeTrackColor: Colors.blue,
-            inactiveTrackColor: Colors.grey.shade300,
-            thumbColor: Colors.blue,
+            activeTrackColor: const Color(0xFF0066CC),
+            inactiveTrackColor: const Color(0xFFE5E5EA),
+            thumbColor: const Color(0xFF0066CC),
           ),
           child: Slider(
             value: value.clamp(0.0, 1.0),
@@ -210,7 +210,7 @@ class LineStyleSelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(AppLocalizations.of(context)?.lineStyleLabel ?? '线条样式', style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), color: Colors.grey)),
+        Text(AppLocalizations.of(context)?.lineStyleLabel ?? '线条样式', style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), color: const Color(0xFF8E8E93))),
         const SizedBox(height: 6),
         Row(
           children: LineStyle.values.map((style) {
@@ -223,10 +223,10 @@ class LineStyleSelector extends StatelessWidget {
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     backgroundColor: isSelected
-                        ? Colors.blue.withValues(alpha: 0.1)
+                        ? const Color(0xFF0066CC).withValues(alpha: 0.1)
                         : null,
                     side: BorderSide(
-                      color: isSelected ? Colors.blue : Colors.grey.shade400,
+                      color: isSelected ? const Color(0xFF0066CC) : const Color(0xFFC7C7CC),
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -236,7 +236,7 @@ class LineStyleSelector extends StatelessWidget {
                     style.label(context),
                     style: TextStyle(
                       fontSize: TextScaleHelper.scaled(context, 11),
-                      color: isSelected ? Colors.blue : Colors.grey.shade700,
+                      color: isSelected ? const Color(0xFF0066CC) : const Color(0xFF6E6E73),
                     ),
                   ),
                 ),
@@ -311,7 +311,7 @@ class ToolButton extends StatelessWidget {
           curve: Curves.easeInOut,
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.blue : Colors.transparent,
+            color: isSelected ? const Color(0xFF0066CC) : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
             boxShadow: isSelected
                 ? [
@@ -325,7 +325,7 @@ class ToolButton extends StatelessWidget {
           ),
           child: Icon(
             icon,
-            color: isSelected ? Colors.white : Colors.grey[700],
+            color: isSelected ? Colors.white : const Color(0xFF6E6E73),
             size: size,
           ),
         ),

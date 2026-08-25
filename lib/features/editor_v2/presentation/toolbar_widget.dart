@@ -43,8 +43,8 @@ class EditorV2Toolbar extends StatelessWidget {
     final showBrushOptions = currentTool == 'draw';
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final toolbarBg = isDark ? Colors.grey[850] ?? Colors.grey[800]! : Colors.grey[200]!;
-    final iconColor = isDark ? Colors.grey[300]! : Colors.grey[700]!;
+    final toolbarBg = isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7);
+    final iconColor = isDark ? const Color(0xFFE5E5EA) : const Color(0xFF6E6E73);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       color: toolbarBg,
@@ -230,7 +230,7 @@ class EditorV2Toolbar extends StatelessWidget {
                         color: _hexToColor(strokeColorHex),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isDark ? Colors.grey[600]! : Colors.grey,
+                          color: isDark ? const Color(0xFF6E6E73) : const Color(0xFF8E8E93),
                         ),
                       ),
                     ),
@@ -258,7 +258,7 @@ class _ToolButton extends StatelessWidget {
     required this.label,
     required this.isActive,
     required this.onTap,
-    this.activeColor = Colors.blue,
+    this.activeColor = const Color(0xFF0066CC),
     this.inactiveIconColor,
   });
 
@@ -292,7 +292,7 @@ class _ToolButton extends StatelessWidget {
           ),
           child: Icon(
             icon,
-            color: isActive ? Colors.white : (inactiveIconColor ?? Colors.grey[700]),
+            color: isActive ? Colors.white : (inactiveIconColor ?? const Color(0xFF6E6E73)),
             size: context.responsiveFont(mobile: 18, desktop: 22),
           ),
         ),
@@ -308,7 +308,7 @@ class _BrushChip extends StatelessWidget {
     required this.label,
     required this.isActive,
     required this.onTap,
-    this.activeColor = Colors.blue,
+    this.activeColor = const Color(0xFF0066CC),
     this.inactiveIconColor,
   });
 
@@ -327,13 +327,13 @@ class _BrushChip extends StatelessWidget {
         avatar: Icon(
           icon,
           size: context.responsiveFont(mobile: 12, desktop: 16),
-          color: isActive ? Colors.white : (inactiveIconColor ?? Colors.grey[700]),
+          color: isActive ? Colors.white : (inactiveIconColor ?? const Color(0xFF6E6E73)),
         ),
         label: Text(
           label,
           style: TextStyle(
             fontSize: TextScaleHelper.scaled(context, 11),
-            color: isActive ? Colors.white : (inactiveIconColor ?? Colors.grey[700]),
+            color: isActive ? Colors.white : (inactiveIconColor ?? const Color(0xFF6E6E73)),
           ),
         ),
         selected: isActive,

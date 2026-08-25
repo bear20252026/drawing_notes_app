@@ -124,12 +124,12 @@ class _SearchPageState extends State<SearchPage> {
     }
     if (_controller.text.trim().isEmpty) {
       return Center(
-        child: Text(AppLocalizations.of(context)?.searchEmptyHint ?? '输入关键词开始搜索', style: const TextStyle(color: Colors.grey)),
+        child: Text(AppLocalizations.of(context)?.searchEmptyHint ?? '输入关键词开始搜索', style: const TextStyle(color: Color(0xFF8E8E93))),
       );
     }
     if (_results.isEmpty) {
       return Center(
-        child: Text(AppLocalizations.of(context)?.searchNoResults ?? '未找到匹配内容', style: const TextStyle(color: Colors.grey)),
+        child: Text(AppLocalizations.of(context)?.searchNoResults ?? '未找到匹配内容', style: const TextStyle(color: Color(0xFF8E8E93))),
       );
     }
     return ListView.builder(

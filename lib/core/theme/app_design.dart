@@ -558,6 +558,16 @@ abstract final class AppDesign {
           textStyle: body.copyWith(
             color: canvas,
           ),
+        ).copyWith(
+          // Apple HIG: highlightColor 替代水波纹
+          overlayColor: WidgetStateProperty.resolveWith<Color?>(
+            (states) {
+              if (states.contains(WidgetState.pressed)) {
+                return canvas.withValues(alpha: 0.20);
+              }
+              return null;
+            },
+          ),
         ),
       ),
 
@@ -572,6 +582,15 @@ abstract final class AppDesign {
             borderRadius: BorderRadius.circular(roundedPill),
           ),
           textStyle: body.copyWith(color: primary),
+        ).copyWith(
+          overlayColor: WidgetStateProperty.resolveWith<Color?>(
+            (states) {
+              if (states.contains(WidgetState.pressed)) {
+                return primary.withValues(alpha: 0.12);
+              }
+              return null;
+            },
+          ),
         ),
       ),
 
@@ -585,6 +604,15 @@ abstract final class AppDesign {
             borderRadius: BorderRadius.circular(roundedSm),
           ),
           textStyle: body.copyWith(color: primary),
+        ).copyWith(
+          overlayColor: WidgetStateProperty.resolveWith<Color?>(
+            (states) {
+              if (states.contains(WidgetState.pressed)) {
+                return primary.withValues(alpha: 0.12);
+              }
+              return null;
+            },
+          ),
         ),
       ),
 
@@ -596,6 +624,15 @@ abstract final class AppDesign {
           foregroundColor: ink,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(roundedFull),
+          ),
+        ).copyWith(
+          overlayColor: WidgetStateProperty.resolveWith<Color?>(
+            (states) {
+              if (states.contains(WidgetState.pressed)) {
+                return ink.withValues(alpha: 0.12);
+              }
+              return null;
+            },
           ),
         ),
       ),

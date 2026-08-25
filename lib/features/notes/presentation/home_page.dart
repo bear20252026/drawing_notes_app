@@ -561,11 +561,13 @@ class _HomePageState extends ConsumerState<HomePage> {
                       itemBuilder: (_) => [
                         PopupMenuItem(
                           value: _HomeMenuItem.passwordDisk,
-                          child: ListTile(
-                            dense: true,
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.usb_rounded),
-                            title: Text(AppLocalizations.of(context)?.homePasswordDiskAndRecovery ?? 'Password Disk & Recovery'),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.usb_rounded, size: 20, color: Color(0xFF0066CC)),
+                              const SizedBox(width: 10),
+                              Text(AppLocalizations.of(context)?.homePasswordDiskAndRecovery ?? 'Password Disk & Recovery'),
+                            ],
                           ),
                         ),
                       ],
@@ -825,7 +827,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         child: Text(
           '还没有任何内容，先新建画作或笔记本吧',
           style: TextStyle(
-            color: Colors.grey,
+            color: const Color(0xFF8E8E93),
             fontSize: context.responsiveFont(mobile: 13, desktop: 15),
           ),
         ),
@@ -897,7 +899,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.brush_outlined, size: context.responsiveFont(mobile: 56, desktop: 72), color: Colors.grey),
+                Icon(Icons.brush_outlined, size: context.responsiveFont(mobile: 56, desktop: 72), color: const Color(0xFF8E8E93)),
                 SizedBox(height: context.responsiveFont(mobile: 8, desktop: 14)),
                 Text(
                   '还没有无限画布，点击左上角 + 按钮新建一个吧', // Apple 风格：操作在导航栏
@@ -956,7 +958,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.menu_book_outlined, size: context.responsiveFont(mobile: 56, desktop: 72), color: Colors.grey),
+                Icon(Icons.menu_book_outlined, size: context.responsiveFont(mobile: 56, desktop: 72), color: const Color(0xFF8E8E93)),
                 SizedBox(height: context.responsiveFont(mobile: 8, desktop: 14)),
                 Text(
                   '还没有笔记本，点击左上角 + 按钮新建一个吧', // Apple 风格：操作在导航栏

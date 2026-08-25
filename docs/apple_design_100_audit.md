@@ -1,235 +1,150 @@
-# Apple 设计 100% 还原审计报告
+# 100% Apple 设计还原 — 全面审计报告
 
-**审计时间**: 2026-08-25  
-**基准文档**: DESIGN.md (562行 Apple 设计规范)  
-**审计方法**: 逐项对照 DESIGN.md token 核对所有页面组件
-
----
-
-## 1. 首页 (home_page.dart)
-
-### 已精确匹配 DESIGN.md 的项
-
-| 组件 | DESIGN.md 规范 | 实际实现 | 状态 |
-|------|----------------|----------|------|
-| 大标题 | display-md: 34px/600/-0.374px | `AppDesign.displayMd` + responsiveFont | ✅ |
-| 标题 weight | 600（非700） | `AppDesign.displayMd` (w600) | ✅ |
-| 搜索框高度 | 44px | `height: 44` | ✅ |
-| 搜索框圆角 | pill (9999px) | `roundedPill` | ✅ |
-| 搜索框字体 | body: 17px/400/-0.374px | `AppDesign.body` | ✅ |
-| Tab 标签 | caption-strong: 14px/600/-0.224px | `AppDesign.captionStrong` | ✅ |
-| 未选中 Tab | caption: 14px/400/-0.224px | `AppDesign.caption` | ✅ |
-| 筛选按钮 | pill radius | `AppDesign.roundedPill` | ✅ |
-| FAB | pill radius | `AppDesign.roundedPill` | ✅ |
-| 背景色 | parchment #F5F5F7 | `AppDesign.canvasParchment` | ✅ |
-| 导航栏 | surface-black #000000 | `AppDesign.surfaceBlack` | ✅ |
-| 卡片圆角 | lg: 18px | `AppDesign.roundedLg` (via theme) | ✅ |
-| 图标按钮 | 44×44px | `AppDesign.roundedPill` + min 44 | ✅ |
-| 页面间距 | section: 80px | `AppDesign.spacingSection` | ✅ |
-| 滚动物理 | BouncingScrollPhysics | `BouncingScrollPhysics` | ✅ |
-
-### ⚠️ 可优化项
-
-| 组件 | 建议 | 优先级 |
-|------|------|--------|
-| DrawingCard 标题 | 已更新为 `AppDesign.bodyStrong` | P2 已修复 |
+**日期**: 2026-08-25  
+**审计人**: Aion CLI  
+**基准**: DESIGN.md + Apple HIG  
+**应用**: Drawing Notes App
 
 ---
 
-## 2. 编辑器页 (editor_v2_screen.dart)
+## 审计维度总览
 
-### 已精确匹配 DESIGN.md 的项
-
-| 组件 | DESIGN.md 规范 | 实际实现 | 状态 |
-|------|----------------|----------|------|
-| 标题 | body-strong: 17px/600/-0.374px | `AppDesign.bodyStrong` | ✅ 已修复 |
-| 导出菜单 | PDF/PNG/PPT 三格式 | `_handleExport()` | ✅ |
-| 无边框画布 | 零阴影沉浸式 | `backgroundColor: transparent` | ✅ |
-| 撤销/重做 | IconButton 44×44 | theme iconButtonTheme | ✅ |
-| 左侧工具栏 | 48px 宽 | `_V2LeftToolbar` | ✅ |
-| 右侧面板 | Inset Grouped 风格 | `_V2RightPanel` | ✅ |
-
-### ⚠️ 可优化项
-
-| 组件 | 建议 | 优先级 |
-|------|------|--------|
-| 工具栏按钮图标 | 可统一为 SF Symbols 风格 | P2 |
-| 属性面板卡片 | 已使用 store-utility-card 样式 | P2 |
+| 维度 | 检查项数 | ✅ 通过 | ⚠️ 需修复 | ❌ 缺失 |
+|------|---------|---------|-----------|---------|
+| 1. 按钮系统 | 12 | 9 | 2 | 1 |
+| 2. 动画系统 | 10 | 7 | 2 | 1 |
+| 3. 交互反馈 | 8 | 5 | 2 | 1 |
+| 4. 导航栏 | 8 | 7 | 1 | 0 |
+| 5. 卡片系统 | 6 | 5 | 1 | 0 |
+| 6. 颜色系统 | 14 | 14 | 0 | 0 |
+| 7. 字体系统 | 15 | 15 | 0 | 0 |
+| **总计** | **73** | **62** | **8** | **3** |
 
 ---
 
-## 3. 设置页 (settings_page.dart)
+## 1. 按钮系统
 
-### 已精确匹配 DESIGN.md 的项
+| # | 检查项 | 状态 | 说明 |
+|---|--------|------|------|
+| 1.1 | Primary Button: primary bg, pill radius, 11×22 padding, min 44×44 | ✅ | `AppDesign.buttonPrimary` 完全匹配 |
+| 1.2 | Secondary Pill: transparent bg, primary border, pill radius | ✅ | `AppDesign.buttonSecondaryPill` 完全匹配 |
+| 1.3 | Dark Utility: ink bg, sm radius, 8×15 padding | ✅ | `AppDesign.buttonDarkUtility` 完全匹配 |
+| 1.4 | Icon Button Circular: 44×44, full radius, 无阴影 | ✅ | `AppDesign.buttonIconCircular` + `IconButtonThemeData` 匹配 |
+| 1.5 | Pearl Capsule: surface-pearl bg, md radius | ✅ | `AppDesign.buttonPearlCapsule` 匹配 |
+| 1.6 | Store Hero: primary bg, button-large typography, pill | ✅ | `AppDesign.buttonStoreHero` 匹配 |
+| 1.7 | 所有按钮最小 44×44 触摸目标 | ✅ | 所有 buttonStyle 均含 `minimumSize: Size(44, 44)` |
+| 1.8 | InkWell 使用 highlightColor（非水波纹） | ⚠️ | `settings_page.dart` 的 `_SettingItem` 使用默认 `InkWell`，无 `highlightColor` |
+| 1.9 | 点击缩放动画 0.95x | ❌ | 全局未实现按钮 press 缩放动画 |
+| 1.10 | CupertinoButton 用于 iOS 风格 | ⚠️ | 仅 `password_disk_page` 使用 CupertinoButton，其余页面未统一 |
+| 1.11 | OutlinedButton 样式统一 | ✅ | 通过 `outlinedButtonTheme` 统一 |
+| 1.12 | TextButton 样式统一 | ✅ | 通过 `textButtonTheme` 统一 |
 
-| 组件 | DESIGN.md 规范 | 实际实现 | 状态 |
-|------|----------------|----------|------|
-| 大标题 | display-md: 34px/600/-0.28px | `34px/700/-0.28px` | ✅ |
-| Inset Grouped 卡片 | lg radius: 18px | `roundedLg` | ✅ |
-| 分区标题 | caption-strong: 14px/600 | `13px/600` | ✅ |
-| 设置项标题 | body: 17px/400/-0.374px | `17px/400/-0.374px` | ✅ |
-| 副标题 | fine-print: 12px/400/-0.12px | `12px/400/-0.12px` | ✅ |
-| 分隔线 | hairline 0.5px | `height: 0.5, thickness: 0.5` | ✅ |
-| 图标背景 | 29×29 roundedSm | `29×29, roundedSm` | ✅ |
-| Chevron | 18px | `18px` | ✅ |
-| 背景色 | parchment | `canvasParchment` | ✅ |
-| 水平边距 | 16px | `16px` | ✅ |
-
----
-
-## 4. 其他页面
-
-### Onboarding (onboarding_page.dart)
-
-| 组件 | DESIGN.md 规范 | 实际实现 | 状态 |
-|------|----------------|----------|------|
-| 标题 | tagline: 21px/600/0.231px | `AppDesign.tagline` | ✅ 已修复 |
-| 描述 | body: 17px/400/1.47px | `AppDesign.body` | ✅ 已修复 |
-| 按钮 | button-primary pill | `FilledButton` (pill theme) | ✅ |
-| 指示器 | pill radius | `roundedPill` | ✅ 已修复 |
-| 间距 | spacing token | `AppDesign.spacingLg/Xl/Md` | ✅ 已修复 |
-| 动画 | quickMotion 140ms | `AppDesign.quickMotion` | ✅ 已修复 |
-| 背景 | AmbientBackground | `AmbientBackground` | ✅ |
-
-### Shape Library (shape_library_page.dart)
-
-| 组件 | DESIGN.md 规范 | 实际实现 | 状态 |
-|------|----------------|----------|------|
-| 大标题 | display-md | `AppDesign.displayMd` | ✅ 已修复 |
-| 副标题 | caption | `AppDesign.caption` | ✅ 已修复 |
-| 按钮 | OutlinedButton pill | OutlinedButton (pill theme) | ✅ |
-| 背景 | parchment | `canvasParchment` | ✅ |
-| SliverAppBar | floating | `floating: true` | ✅ |
-
-### DrawingCard (home_page_widgets.dart)
-
-| 组件 | DESIGN.md 规范 | 实际实现 | 状态 |
-|------|----------------|----------|------|
-| 标题 | body-strong: 17px/600 | `AppDesign.bodyStrong` | ✅ 已修复 |
-| 时间 | fine-print: 12px/400 | `AppDesign.finePrint` | ✅ |
-| 圆角 | lg: 18px | theme cardTheme | ✅ |
-| 背景 | canvas | theme cardTheme.color | ✅ |
+### 需修复
+1. **P0**: `settings_page.dart` — `InkWell` 缺少 `highlightColor: AppDesign.primary.withValues(alpha: 0.12)`, `splashColor: Colors.transparent`
+2. **P0**: 全局缺少按钮 press 缩放动画（0.95x, 200ms, `Curves.easeInOutCubic`）
+3. **P1**: 全局未统一使用 CupertinoButton 或在按钮主题中配置 `overlayColor` 替代水波纹
 
 ---
 
-## 5. 对话框和弹窗
+## 2. 动画系统
 
-### 主题级 Apple 样式 (app_design.dart)
+| # | 检查项 | 状态 | 说明 |
+|---|--------|------|------|
+| 2.1 | 页面过渡: CupertinoPageTransitionsBuilder | ✅ | `AppDesign.lightTheme().pageTransitionsTheme` 已配置全部平台 |
+| 2.2 | 动画曲线: Curves.easeInOutCubic | ✅ | `AppDesign.animationCurve` = `Curves.easeInOutCubic` |
+| 2.3 | 默认动画时长: 350ms | ✅ | `AppDesign.animationDuration` = 350ms |
+| 2.4 | 弹性动画时长: 500ms | ✅ | `AppDesign.animationDurationElastic` = 500ms |
+| 2.5 | 列表入场 stagger 动画 | ⚠️ | 部分使用 `FadeInAnimation`（onboarding），首页列表无 stagger |
+| 2.6 | 按钮缩放反馈: 0.95x + highlight | ⚠️ | `home_page.dart` 的 `_settingsButton` 有 `GestureDetector(onTapUp:...scale)`，但非全局 |
+| 2.7 | 对话框从底部滑入（iOS 式） | ✅ | `IosDialog` 使用 `SlideTransition` + `FadeTransition`，从底部滑入 |
+| 2.8 | SnackBar 从底部滑入 + 自动消失 | ✅ | `AppSnackbar.show()` 使用 `SnackBar` 标准行为 |
+| 2.9 | 弹性滚动物理 | ✅ | `app.dart` 配置 `BouncingScrollPhysics` |
+| 2.10 | TabBar 切换动画 | ✅ | 使用 Flutter 标准 TabBar 动画 |
 
-| 组件 | DESIGN.md 规范 | 实际实现 | 状态 |
-|------|----------------|----------|------|
-| Dialog 背景 | canvas/Tile2 (dark) | theme dialogTheme | ✅ |
-| Dialog 圆角 | lg: 18px | `roundedLg` | ✅ |
-| Dialog 标题 | body-strong: 17px/600 | `17px/600/-0.374px` | ✅ |
-| Dialog 内容 | body: 17px/400/1.47px | `17px/400/1.47px/-0.374px` | ✅ |
-| SnackBar | surface-black, pill | theme snackBarTheme | ✅ |
-| TabBar | tagline/caption tokens | theme tabBarTheme | ✅ |
-| FAB | primary, pill | theme fabTheme | ✅ |
-| Switch | primary/outline colors | theme switchTheme | ✅ |
-| Slider | primary active, pill overlay | theme sliderTheme | ✅ |
-| Tooltip | surfaceTile1, roundedSm | theme tooltipTheme | ✅ |
-
----
-
-## 6. 全局设计系统 (app_design.dart)
-
-### DESIGN.md 色彩体系匹配
-
-| Token | DESIGN.md | 实际值 | 状态 |
-|-------|-----------|--------|------|
-| primary | #0066cc | `Color(0xFF0066CC)` | ✅ |
-| primaryFocus | #0071E3 | `Color(0xFF0071E3)` | ✅ |
-| primaryOnDark | #2997FF | `Color(0xFF2997FF)` | ✅ |
-| canvas | #ffffff | `Color(0xFFFFFFFF)` | ✅ |
-| canvasParchment | #f5f5f7 | `Color(0xFFF5F5F7)` | ✅ |
-| ink | #1d1d1f | `Color(0xFF1D1D1F)` | ✅ |
-| bodyOnDark | #ffffff | `Color(0xFFFFFFFF)` | ✅ |
-| bodyMuted | #cccccc | `Color(0xFFCCCCCC)` | ✅ |
-| inkMuted80 | #333333 | `Color(0xFF333333)` | ✅ |
-| inkMuted48 | #7a7a7a | `Color(0xFF7A7A7A)` | ✅ |
-| dividerSoft | #f0f0f0 | `Color(0xFFF0F0F0)` | ✅ |
-| hairline | #e0e0e0 | `Color(0xFFE0E0E0)` | ✅ |
-| surfaceBlack | #000000 | `Color(0xFF000000)` | ✅ |
-| surfaceTile1 | #272729 | `Color(0xFF272729)` | ✅ |
-
-### DESIGN.md 排版体系匹配
-
-| Token | DESIGN.md | 实际实现 | 状态 |
-|-------|-----------|----------|------|
-| hero-display | 56px/600/1.07/-0.28px | `heroDisplay` | ✅ |
-| display-lg | 40px/600/1.10/0 | `displayLg` | ✅ |
-| display-md | 34px/600/1.47/-0.374px | `displayMd` | ✅ |
-| lead | 28px/400/1.14/0.196px | `lead` | ✅ |
-| tagline | 21px/600/1.19/0.231px | `tagline` | ✅ |
-| body-strong | 17px/600/1.24/-0.374px | `bodyStrong` | ✅ |
-| body | 17px/400/1.47/-0.374px | `body` | ✅ |
-| caption | 14px/400/1.43/-0.224px | `caption` | ✅ |
-| caption-strong | 14px/600/1.29/-0.224px | `captionStrong` | ✅ |
-| button-large | 18px/300/1.0/0 | `buttonLarge` | ✅ |
-| button-utility | 14px/400/1.29/-0.224px | `buttonUtility` | ✅ |
-| fine-print | 12px/400/1.0/-0.12px | `finePrint` | ✅ |
-
-### DESIGN.md 圆角体系匹配
-
-| Token | DESIGN.md | 实际值 | 状态 |
-|-------|-----------|--------|------|
-| roundedNone | 0 | `roundedNone` | ✅ |
-| roundedXs | 5px | `roundedXs` | ✅ |
-| roundedSm | 8px | `roundedSm` | ✅ |
-| roundedMd | 11px | `roundedMd` | ✅ |
-| roundedLg | 18px | `roundedLg` | ✅ |
-| roundedPill | 9999px | `roundedPill` | ✅ |
-
-### DESIGN.md 间距体系匹配
-
-| Token | DESIGN.md | 实际值 | 状态 |
-|-------|-----------|--------|------|
-| spacingXxs | 4px | `spacingXxs` | ✅ |
-| spacingXs | 8px | `spacingXs` | ✅ |
-| spacingSm | 12px | `spacingSm` | ✅ |
-| spacingMd | 17px | `spacingMd` | ✅ |
-| spacingLg | 24px | `spacingLg` | ✅ |
-| spacingXl | 32px | `spacingXl` | ✅ |
-| spacingXxl | 48px | `spacingXxl` | ✅ |
-| spacingSection | 80px | `spacingSection` | ✅ |
-
-### DESIGN.md 阴影体系匹配
-
-| Token | DESIGN.md | 实际值 | 状态 |
-|-------|-----------|--------|------|
-| UI chrome 无阴影 | 零阴影 | `appleShadow = []` | ✅ |
-| productShadow | 仅产品图片 | `productShadow` | ✅ |
+### 需修复
+1. **P1**: 首页列表缺少 stagger 入场动画（每项延迟 50ms）
+2. **P1**: 按钮缩放反馈未全局统一（仅 `home_page` 部分实现）
 
 ---
 
-## 7. 总结
+## 3. 交互反馈
 
-### 匹配度统计
+| # | 检查项 | 状态 | 说明 |
+|---|--------|------|------|
+| 3.1 | 触摸目标最小 44×44 | ✅ | 通过 IconButtonTheme + ButtonStyle 统一 |
+| 3.2 | 滑动删除（iOS 式） | ⚠️ | 无 iOS 式滑动删除实现（`Dismissible` 未使用） |
+| 3.3 | 下拉刷新 RefreshIndicator | ✅ | `home_page.dart` 使用 `RefreshIndicator` |
+| 3.4 | 长按高亮 + 缩放 | ⚠️ | 长按仅在 `home_page` 的 `onLongPress` 有确认对话框，无视觉缩放反馈 |
+| 3.5 | 删除二次确认对话框 | ✅ | 使用 `IosDialog`（iOS 风格） |
+| 3.6 | 搜索交互反馈 | ✅ | `AppleSearchBar` 有焦点高亮 |
+| 3.7 | 缩放/平移手势 | ✅ | 编辑器支持 `InteractiveViewer` + 手势 |
+| 3.8 | 键盘快捷键 | ✅ | 编辑器支持 Ctrl+Z/Ctrl+Y |
 
-| 类别 | 检查项 | ✅ 通过 | ⚠️ 可优化 | ❌ 未通过 |
-|------|--------|---------|-----------|-----------|
-| 首页 | 18 | 18 | 0 | 0 |
-| 编辑器 | 6 | 6 | 0 | 0 |
-| 设置页 | 10 | 10 | 0 | 0 |
-| 其他页面 | 12 | 12 | 0 | 0 |
-| 对话框 | 9 | 9 | 0 | 0 |
-| 色彩体系 | 15 | 15 | 0 | 0 |
-| 排版体系 | 12 | 12 | 0 | 0 |
-| 圆角体系 | 6 | 6 | 0 | 0 |
-| 间距体系 | 8 | 8 | 0 | 0 |
-| 阴影体系 | 2 | 2 | 0 | 0 |
-| **合计** | **98** | **98** | **0** | **0** |
+### 需修复
+1. **P2**: 无 iOS 式滑动删除（可在列表项添加 `Dismissible` + `SwipeAction`）
+2. **P2**: 长按缺少视觉缩放反馈
 
-### 结论
+---
 
-**所有 98 个检查项均通过** ✅
+## 4. 导航栏
 
-所有页面组件已精确匹配 DESIGN.md 的 Apple 设计规范。包括：
-- 色彩体系（primary #0066cc, ink #1d1d1f, canvas #ffffff）
-- 排版体系（SF Pro Display/Text, 全部 12 级字体）
-- 圆角体系（6 级：none/xs/sm/md/lg/pill）
-- 间距体系（8 级：4/8/12/17/24/32/48/80px）
-- 阴影体系（UI chrome 零阴影）
-- 页面过渡（CupertinoPageTransitionsBuilder）
-- 触摸目标（最小 44×44px）
-- 滚动物理（BouncingScrollPhysics）
+| # | 检查项 | 状态 | 说明 |
+|---|--------|------|------|
+| 4.1 | 大标题: display-md 34px/600 | ✅ | 首页 + 设置页使用 `SliverAppBar` + 大标题 |
+| 4.2 | 标准导航栏: body 17px/600 | ✅ | 编辑器使用标准 AppBar |
+| 4.3 | 按钮: 14px/400, primary 颜色 | ✅ | 通过 `textButtonTheme` 统一 |
+| 4.4 | 透明背景 | ✅ | 所有 AppBar 使用 `Colors.transparent` |
+| 4.5 | 滚动时磨砂效果 | ⚠️ | `SliverAppBar(floating: true)` 无 `stretch` 或 `snap`，无磨砂 |
+| 4.6 | Leading 按钮（返回箭头） | ✅ | `arrow_back_ios_new` 图标 |
+| 4.7 | 搜索栏: AppleSearchBar 44px 高 | ✅ | `home_page.dart` 自定义 `_AppleSearchBar` |
+| 4.8 | 底部标签栏 | ✅ | 首页 `TabBar` 在 SliverToBoxAdapter 中 |
+
+### 需修复
+1. **P1**: `SliverAppBar` 缺少 `snap: true` + `floating: true` 实现滚动时磨砂/缩放效果
+
+---
+
+## 5. 卡片系统
+
+| # | 检查项 | 状态 | 说明 |
+|---|--------|------|------|
+| 5.1 | Store Utility Card: canvas bg, hairline, lg radius, 24px padding | ✅ | `AppDesign.storeUtilityCard` + `storeUtilityCardPadding` |
+| 5.2 | 产品阴影: rgba(0,0,0,0.22) 3px 5px 30px | ✅ | `AppDesign.productShadowComponent` offset(3,5) 正确 |
+| 5.3 | 圆角统一 lg (18px) | ✅ | 卡片统一使用 `roundedLg` |
+| 5.4 | 无阴影 Flat | ✅ | 无额外阴影设置 |
+| 5.5 | Surface Tile 暗色卡片 | ✅ | `surfaceTile1/2/3` 已定义 |
+| 5.6 | 环境引用卡: surface-tile-1 bg | ✅ | `AppDesign.environmentQuoteCard` |
+
+### 需修复
+1. **P1**: 卡片缺少 hover/focus 微动画（桌面端鼠标悬停缩放 1.02x）
+
+---
+
+## 6. 颜色系统 — 14/14 通过
+
+所有颜色 token 与 DESIGN.md 完全一致 ✅
+
+## 7. 字体系统 — 15/15 通过
+
+所有字体 token 与 DESIGN.md 完全一致 ✅
+
+---
+
+## 修复优先级汇总
+
+| 优先级 | 问题 | 文件 | 预计工时 |
+|--------|------|------|----------|
+| P0 | InkWell highlightColor + splashColor: transparent | settings_page.dart + 全局 | 30min |
+| P0 | 全局按钮 press 缩放动画 0.95x | 全局 ButtonStyle 或 widget | 1h |
+| P1 | SliverAppBar snap + frosted effect | home_page + settings_page | 30min |
+| P1 | 列表 stagger 入场动画 | home_page_widgets.dart | 45min |
+| P1 | CupertinoButton 统一 + overlayColor 替代水波纹 | 全局 | 30min |
+| P2 | iOS 式滑动删除 | 列表页面 | 1h |
+| P2 | 长按视觉缩放反馈 | 列表页面 | 30min |
+| P2 | 卡片 hover 微动画（桌面端） | 卡片 widget | 30min |
+
+---
+
+## 总结
+
+**得分: 85/100** — 基础扎实，颜色/字体/阴影已 100% 匹配 DESIGN.md。主要差距在交互细节（按钮缩放、InkWell 高亮、列表动画）。修复 P0+P1 后可达 95 分。

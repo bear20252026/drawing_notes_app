@@ -280,6 +280,9 @@ class _SettingsTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        highlightColor: AppDesign.primary.withValues(alpha: 0.12),
+        splashColor: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppDesign.roundedLg),
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: 16,
