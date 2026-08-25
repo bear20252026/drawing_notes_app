@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -231,7 +230,7 @@ class OfflineCacheRecovery {
       // 验证写入
       final content = await file.readAsString();
       return content == data;
-    } on Exception catch (e) {
+    } on Exception {
       return false;
     }
   }
@@ -246,7 +245,7 @@ class OfflineCacheRecovery {
         await file.delete();
       }
       return true;
-    } on Exception catch (e) {
+    } on Exception {
       return false;
     }
   }
@@ -303,7 +302,7 @@ class OfflineCacheRecovery {
             final data = jsonDecode(content) as Map<String, dynamic>;
             final entry = _CacheEntry.fromJson(data);
             _pendingQueue.add(entry);
-          } on Exception catch (e) {
+          } on Exception {
             // 损坏的缓存文件，删除
             await file.delete();
           }

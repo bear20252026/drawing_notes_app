@@ -212,7 +212,7 @@ void main() {
         operationId: 'network_test',
         operationType: 'save',
         payload: {'data': 'test'},
-        targetPath: null, // null target means save will fail
+        // null target means save will fail
       );
 
       // Set offline
