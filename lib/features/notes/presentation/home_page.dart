@@ -19,6 +19,8 @@ import 'package:drawing_notes_app/features/notes/presentation/onboarding.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
+import 'package:drawing_notes_app/features/editor_v2/presentation/editor_v2_screen.dart';
+import 'package:editor_core/editor_core.dart' hide TabBar;
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/password_disk_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/search_page.dart';
@@ -124,7 +126,12 @@ class _HomePageState extends State<HomePage> {
     if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => EditorPage(document: doc, docStorage: _docStorage),
+        // 统一架构 V2（2026-08-22）：新建画布 → EditorV2Screen
+        // （画板模式——无限画布——问题已修——不用旧 V1 editor_page）。
+        builder: (_) => EditorV2Screen(
+          documentId: doc.id,
+          mode: UnifiedEditorMode.whiteboard,
+        ),
       ),
     );
     _refresh();
@@ -180,10 +187,13 @@ class _HomePageState extends State<HomePage> {
       if (!mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => NotebookViewPage(
-            notebook: notebook,
-            storage: _nbStorage,
-            onChanged: _refresh,
+          // 统一架构 V2（2026-08-22）：笔记本 → EditorV2Screen（note 模式——
+          // AFFiNE Page 借鉴——单独界面（线性文档）——与画布（whiteboard
+          // 无限画布）功能共通（同一编辑器——共用核心——不重复显示）——
+          // 替代 V1 NotebookViewPage（material_ui 中文崩溃——修复无法使用）。
+          builder: (_) => EditorV2Screen(
+            documentId: notebook.id,
+            mode: UnifiedEditorMode.note,
           ),
         ),
       );
@@ -476,7 +486,11 @@ class _HomePageState extends State<HomePage> {
     );
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => EditorPage(document: doc, docStorage: _docStorage),
+        // 统一架构 V2（2026-08-22）：快速记录 → EditorV2Screen（画板模式）。
+        builder: (_) => EditorV2Screen(
+          documentId: doc.id,
+          mode: UnifiedEditorMode.whiteboard,
+        ),
       ),
     );
   }
@@ -587,10 +601,11 @@ class _HomePageState extends State<HomePage> {
     if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => NotebookViewPage(
-          notebook: nb,
-          storage: _nbStorage,
-          onChanged: _refresh,
+        // 统一架构 V2（2026-08-22）：打开笔记本 → EditorV2Screen（note 模式——
+        // 单独界面 + 功能共通——替代 V1 NotebookViewPage（material_ui）。
+        builder: (_) => EditorV2Screen(
+          documentId: nb.id,
+          mode: UnifiedEditorMode.note,
         ),
       ),
     );

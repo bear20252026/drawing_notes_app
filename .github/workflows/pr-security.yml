@@ -1,11 +1,12 @@
 # PR 安全门（专家 I-005——2026-08-16——批次 A required_workflows）。
-# 安全契约：秘密扫描（Gitleaks 模式）+ SBOM 生成 + 依赖 CVE 核查。
+# 安全契约：秘密扫描（Gitleaks 模式）+ SBOM 生成 + Sigstore 签名 + 依赖核查。
 name: PR Security
 on:
   pull_request:
     branches: [master]
 permissions:
   contents: read
+  id-token: write   # Sigstore keyless signing（OIDC 身份）
 jobs:
   security:
     name: Secret Scan + SBOM + Deps
@@ -22,6 +23,26 @@ jobs:
         run: python tools/scan_secrets.py
       - name: SBOM 生成（CycloneDX）
         run: python tools/generate_sbom.py
+
+      # P3 #50：Sigstore 签名（cosign keyless）——SBOM 完整性证明。
+      - uses: sigstore/cosign-installer@v3
+
+      - name: Sigstore sign SBOM
+        run: >
+          cosign sign-blob --yes
+          --output-signature sbom.cdx.json.sig
+          --output-certificate sbom.cdx.json.cert
+          sbom.cdx.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: |
+            sbom.cdx.json
+            sbom.cdx.json.sig
+            sbom.cdx.json.cert
+          retention-days: 90
+
       # C-004/C-005（专家更正期）：check_deps.sh 是 Bash 脚本——用 bash
       # 解释器；脚本仅输出依赖概览 + dart pub outdated（无真实 CVE 数据源/
       # 失败阈值）——步骤名诚实化为"依赖清单与过期检查"（不得声称 CVE 扫描）。

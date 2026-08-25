@@ -1,5 +1,6 @@
 import 'package:drawing_notes_app/app.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,7 +18,12 @@ void main() {
   });
 
   testWidgets('CUJ-01：新建画作 → 绘制 → 返回保存 → 重开内容保留', (tester) async {
-    await tester.pumpWidget(const DrawingNotesApp());
+    // material_ui 的 MaterialLocalizations 检查在 zh 环境下失败——集成
+    // 测试固定 en locale（pumpWidget 前设置——生产 MaterialApp delegates
+    // 完整——app.dart 已含 GlobalMaterialLocalizations）。
+    tester.binding.platformDispatcher.localeTestValue = const Locale('en');
+    // ProviderScope（riverpod——main.dart 的顶层——集成测试需显式提供）。
+    await tester.pumpWidget(const ProviderScope(child: DrawingNotesApp()));
     await tester.pumpAndSettle();
 
     // 1) Create：新建画作（输入名称 → 进入编辑器）。
