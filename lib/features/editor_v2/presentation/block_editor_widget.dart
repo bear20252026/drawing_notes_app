@@ -255,7 +255,9 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
       try {
         final safeOffset = oldOffset.clamp(0, controller.text.length);
         controller.selection = TextSelection.collapsed(offset: safeOffset);
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[BlockEditor] 光标复位失败: $e');
+      }
     }
 
     // 分隔线块——特殊渲染

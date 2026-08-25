@@ -205,7 +205,9 @@ class DocumentContainerCodec {
         shapes.add(PageShapeItem.fromJson(
           Map<String, dynamic>.from(shapeEntry as Map),
         ));
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[DocCodec] 解析 shape 失败: $e');
+      }
     }
 
     final imageItems = <DocumentImageItem>[];
@@ -215,7 +217,9 @@ class DocumentContainerCodec {
         imageItems.add(DocumentImageItem.fromJson(
           Map<String, dynamic>.from(imageEntry as Map),
         ));
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[DocCodec] 解析 image 失败: $e');
+      }
     }
 
     return DrawingDocument(

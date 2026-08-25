@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 /// 文件关联处理器（.dnproj 文件）。
 ///
@@ -110,7 +111,9 @@ class FileAssociation {
         r'HKEY_CLASSES_ROOT\DrawingNotesProject',
         '/f',
       ]);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[FileAssociation] 注销注册表失败: $e');
+    }
   }
 
   // --- macOS Info.plist 操作 ---
@@ -172,7 +175,9 @@ MimeType=application/x-drawing-notes-project;
 
       await Process.run('update-mime-database', ['$home/.local/share/mime']);
       await Process.run('update-desktop-database', [desktopDir]);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[FileAssociation] 注册 Linux MIME 失败: $e');
+    }
   }
 
   static Future<void> _unregisterLinux() async {
@@ -195,6 +200,8 @@ MimeType=application/x-drawing-notes-project;
       await Process.run('update-mime-database', ['$home/.local/share/mime']);
       await Process.run(
           'update-desktop-database', ['$home/.local/share/applications']);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[FileAssociation] 注销 Linux MIME 失败: $e');
+    }
   }
 }

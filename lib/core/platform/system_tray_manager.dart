@@ -77,7 +77,9 @@ class SystemTrayManager {
     if (_tray == null) return;
     try {
       await _tray!.setToolTip(tooltip);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[SystemTray] 更新工具提示失败: $e');
+    }
   }
 
   /// 最小化到托盘（隐藏主窗口）。
