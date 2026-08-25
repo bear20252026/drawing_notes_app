@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_design.dart';
-import '../../../shared/widgets/ambient_background.dart';
 
 /// 形状库页面 — 管理可复用的自定义形状。
 class ShapeLibraryPage extends StatelessWidget {
@@ -54,7 +53,7 @@ class ShapeLibraryPage extends StatelessWidget {
                     const SizedBox(height: AppDesign.spacingLg),
                     Text(
                       '形状库',
-                      style: AppDesign.headlineMedium.copyWith(
+                      style: AppDesign.displayLg.copyWith(
                         color: isDark ? AppDesign.bodyOnDark : AppDesign.ink,
                       ),
                     ),

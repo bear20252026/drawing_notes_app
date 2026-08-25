@@ -39,6 +39,12 @@ abstract final class AppDesign {
   /// Translucent Chip Gray — 摄影浮层按钮底色。
   static const Color surfaceChipTranslucent = Color(0xFFD2D2D7);
 
+  // On-Color Tokens
+  /// On Primary — primary 上的文字色。
+  static const Color onPrimary = Color(0xFFFFFFFF);
+  /// On Dark — 深色表面上的文字色。
+  static const Color onDark = Color(0xFFFFFFFF);
+
   // Text
   /// Near-Black Ink — 所有文字色。
   static const Color ink = Color(0xFF1D1D1F);
