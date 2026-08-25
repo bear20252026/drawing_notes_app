@@ -89,12 +89,12 @@ class _AppleSearchBar extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 36,
+        height: 44, // DESIGN.md: 44px search-input height
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppDesign.roundedPill), // DESIGN.md: pill radius
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
+        padding: const EdgeInsets.symmetric(horizontal: AppDesign.spacingSm),
         child: Row(
           children: [
             Icon(Icons.search, size: 18, color: iconColor),
@@ -102,7 +102,7 @@ class _AppleSearchBar extends StatelessWidget {
             Expanded(
               child: Text(
                 AppLocalizations.of(context)?.search ?? '搜索',
-                style: TextStyle(fontSize: 15, color: hintColor),
+                style: AppDesign.body.copyWith(color: hintColor, fontSize: 17),
               ),
             ),
           ],
@@ -463,11 +463,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                   title: Text(
                     AppLocalizations.of(context)?.appTitle ?? '绘图笔记',
-                    style: TextStyle(
+                    style: AppDesign.displayMd.copyWith(
                       fontSize: context.responsiveFont(mobile: 24, tablet: 28, desktop: 34),
-                      fontWeight: FontWeight.w700,
                       color: Theme.of(context).colorScheme.onSurface,
-                      letterSpacing: -0.5,
                     ),
                   ),
                 ),
@@ -567,14 +565,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                     sigma: 10,
                     child: TabBar(
                       onTap: (i) => setState(() => _tabIndex = i),
-                      labelPadding: EdgeInsets.symmetric(
-                        horizontal: context.responsiveFont(mobile: 8, desktop: 16),
+                      labelPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
                       ),
-                      labelStyle: TextStyle(
-                        fontSize: context.responsiveFont(mobile: 12, desktop: 14),
-                      ),
-                      unselectedLabelStyle: TextStyle(
-                        fontSize: context.responsiveFont(mobile: 12, desktop: 14),
+                      labelStyle: AppDesign.captionStrong,
+                      unselectedLabelStyle: AppDesign.caption.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       tabs: [
                         Tab(
@@ -877,7 +873,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 Icon(Icons.brush_outlined, size: context.responsiveFont(mobile: 56, desktop: 72), color: Colors.grey),
                 SizedBox(height: context.responsiveFont(mobile: 8, desktop: 14)),
                 Text(
-                  '还没有无限画布，点击右下角按钮新建一个吧',
+                  '还没有无限画布，点击左上角 + 按钮新建一个吧', // Apple 风格：操作在导航栏
                   style: TextStyle(fontSize: context.responsiveFont(mobile: 13, desktop: 15)),
                   textAlign: TextAlign.center,
                 ),
@@ -936,7 +932,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 Icon(Icons.menu_book_outlined, size: context.responsiveFont(mobile: 56, desktop: 72), color: Colors.grey),
                 SizedBox(height: context.responsiveFont(mobile: 8, desktop: 14)),
                 Text(
-                  '还没有笔记本，点击右下角按钮新建一个吧',
+                  '还没有笔记本，点击左上角 + 按钮新建一个吧', // Apple 风格：操作在导航栏
                   style: TextStyle(fontSize: context.responsiveFont(mobile: 13, desktop: 15)),
                   textAlign: TextAlign.center,
                 ),
