@@ -1,12 +1,13 @@
-/// 导出功能测试：画板→PDF、笔记→PDF、多页→PPTX。
+/// 导出功能测试：画板→PDF/PNG、笔记→PDF、多页→PPTX。
 ///
-/// 覆盖三大导出路径的核心逻辑：笔画渲染、多页支持、PPTX XML 生成。
+/// 覆盖四大导出路径的核心逻辑：笔画渲染、图片输出、多页支持、PPTX XML 生成。
 library;
 
 import 'dart:convert';
 import 'dart:ui';
 
 import 'package:archive/archive.dart';
+import 'package:drawing_notes_app/core/export/canvas_image_exporter.dart';
 import 'package:drawing_notes_app/core/export/canvas_pdf_exporter.dart';
 import 'package:drawing_notes_app/core/export/note_pdf_exporter.dart';
 import 'package:drawing_notes_app/core/export/pptx_exporter.dart';
@@ -343,6 +344,54 @@ void main() {
       expect(ctStr, contains('slideMaster'));
       expect(ctStr, contains('slideLayout'));
       expect(ctStr, contains('docProps'));
+    });
+  });
+
+  // ===== CanvasImageExporter =====
+  group('CanvasImageExporter', () {
+    late CanvasImageExporter exporter;
+
+    setUp(() {
+      exporter = const CanvasImageExporter();
+    });
+
+    test('空笔画列表生成有效 PNG', () async {
+      final result = await exporter.export(strokes: []);
+      expect(result, isNotEmpty);
+      // PNG 文件头：0x89 0x50 0x4E 0x47
+      expect(result[0], 0x89);
+      expect(result[1], 0x50); // P
+      expect(result[2], 0x4E); // N
+      expect(result[3], 0x47); // G
+    });
+
+    test('含笔画时生成有效 PNG', () async {
+      final result = await exporter.export(
+        strokes: [_createTestStroke()],
+      );
+      expect(result, isNotEmpty);
+      expect(result[0], 0x89); // PNG 魔数
+    });
+
+    test('自定义尺寸和背景色', () async {
+      final result = await exporter.export(
+        strokes: [_createTestStroke()],
+        width: 800,
+        height: 600,
+        background: const Color(0xFFF0F0F0),
+      );
+      expect(result, isNotEmpty);
+      expect(result[0], 0x89);
+    });
+
+    test('JPEG 格式导出（回退到 PNG）', () async {
+      final result = await exporter.export(
+        strokes: [_createTestStroke()],
+        format: ImageExportFormat.jpeg,
+      );
+      expect(result, isNotEmpty);
+      // JPEG 回退到 PNG 编码
+      expect(result[0], 0x89);
     });
   });
 }
