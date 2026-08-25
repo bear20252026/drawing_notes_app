@@ -16,6 +16,7 @@ import 'package:editor_core/editor_core.dart';
 import '../../../core/storage/storage_service.dart';
 
 import '../../../../core/theme/responsive.dart';
+import '../../../../core/theme/app_design.dart';
 import '../application/editor_v2_viewmodel.dart';
 import '../../../shared/widgets/apple_glass.dart';
 import 'binding_hints_widget.dart';
@@ -274,9 +275,17 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
     return Scaffold(
       drawer: context.isMobile ? const EditorV2Sidebar() : null,
       appBar: AppBar(
+        // Apple 风格：用户可读标题
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         title: Text(
-          'Editor V2 - ${widget.documentId}',
-          style: TextStyle(fontSize: context.responsiveScale(16)),
+          '画布', // Apple 风格：简洁标题
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: AppDesign.ink,
+          ),
         ),
         actions: [
           IconButton(

@@ -62,6 +62,57 @@ class HomePage extends ConsumerStatefulWidget {
   ConsumerState<HomePage> createState() => _HomePageState();
 }
 
+/// Apple 风格搜索栏（iOS 15+ 圆角矩形搜索框）。
+///
+/// 视觉特征：
+/// - 圆角矩形（borderRadius 10）
+/// - 背景色 systemGray6（浅色 #F2F2F7 / 深色 #2C2C2E）
+/// - 放大镜图标 + 占位符文本
+/// - 点击后跳转到搜索页面
+class _AppleSearchBar extends StatelessWidget {
+  const _AppleSearchBar({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark
+        ? const Color(0xFF2C2C2E)
+        : const Color(0xFFF2F2F7);
+    final hintColor = isDark
+        ? const Color(0xFF8E8E93)
+        : const Color(0xFF8E8E8E);
+    final iconColor = isDark
+        ? const Color(0xFF8E8E93)
+        : const Color(0xFF8E8E8E);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 36,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Row(
+          children: [
+            Icon(Icons.search, size: 18, color: iconColor),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                AppLocalizations.of(context)?.search ?? '搜索',
+                style: TextStyle(fontSize: 15, color: hintColor),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _HomePageState extends ConsumerState<HomePage> {
   late final NotebookStorage _nbStorage;
   late final StorageService _docStorage;
@@ -1048,59 +1099,5 @@ class _HomePageState extends ConsumerState<HomePage> {
       return '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
     }
     return '${t.year}-${t.month.toString().padLeft(2, '0')}-${t.day.toString().padLeft(2, '0')}';
-  }
-}
-
-/// Apple 风格搜索栏（iOS 15+ 圆角矩形搜索框）。
-///
-/// 视觉特征：
-/// - 圆角矩形（borderRadius 10）
-/// - 背景色 systemGray6（浅色 #F2F2F7 / 深色 #2C2C2E）
-/// - 放大镜图标 + 占位符文本
-/// - 点击后跳转到搜索页面
-class _AppleSearchBar extends StatelessWidget {
-  const _AppleSearchBar({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark
-        ? const Color(0xFF2C2C2E) // systemGray6 dark
-        : const Color(0xFFF2F2F7); // systemGray6 light
-    final hintColor = isDark
-        ? const Color(0xFF8E8E93) // systemGray dark
-        : const Color(0xFF8E8E8E); // systemGray light
-    final iconColor = isDark
-        ? const Color(0xFF8E8E93)
-        : const Color(0xFF8E8E8E);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 36,
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Row(
-          children: [
-            Icon(Icons.search, size: 18, color: iconColor),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                AppLocalizations.of(context)?.search ?? '搜索',
-                style: TextStyle(
-                  fontSize: 15,
-                  color: hintColor,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 } 

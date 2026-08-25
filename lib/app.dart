@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart' hide GlobalMaterialLocalizations;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
@@ -97,6 +98,16 @@ class _DrawingNotesAppState extends ConsumerState<DrawingNotesApp> {
       themeMode: themeMode,
       theme: ref.watch(themeProvider),
       darkTheme: AppDesign.darkTheme(),
+      // Apple 风格滚动物理：iOS 式弹性滚动
+      scrollBehavior: const MaterialScrollBehavior().copyWith(
+        physics: const BouncingScrollPhysics(),
+        scrollbars: true,
+        dragDevices: {
+          PointerDeviceKind.touch,
+          PointerDeviceKind.mouse,
+          PointerDeviceKind.trackpad,
+        },
+      ),
       routerConfig: _router,
     );
   }
