@@ -33,6 +33,10 @@ class RoutePaths {
   static const notebook = '/notebook';
   static const passwordDisk = '/password-disk';
   static const settings = '/settings';
+  static const search = '/search';
+  static const presentation = '/presentation';
+  static const onboarding = '/onboarding';
+  static const shapeLibrary = '/shape-library';
 }
 
 /// 路由名称常量
@@ -45,6 +49,10 @@ class RouteNames {
   static const notebook = 'notebook';
   static const passwordDisk = 'password-disk';
   static const settings = 'settings';
+  static const search = 'search';
+  static const presentation = 'presentation';
+  static const onboarding = 'onboarding';
+  static const shapeLibrary = 'shape-library';
 }
 
 // ============================================================================
@@ -160,6 +168,61 @@ GoRouter createAppRouter() {
         path: '/404',
         name: 'not-found',
         builder: (context, state) => _buildNotFoundPage(context),
+      ),
+
+      // =====================================================================
+      // 设置
+      // =====================================================================
+      GoRoute(
+        path: RoutePaths.settings,
+        name: RouteNames.settings,
+        builder: (context, state) => const Scaffold(
+          body: Center(child: Text('设置')),
+        ),
+      ),
+
+      // =====================================================================
+      // 搜索
+      // =====================================================================
+      GoRoute(
+        path: RoutePaths.search,
+        name: RouteNames.search,
+        builder: (context, state) => const Scaffold(
+          body: Center(child: Text('搜索')),
+        ),
+      ),
+
+      // =====================================================================
+      // 演示模式
+      // =====================================================================
+      GoRoute(
+        path: RoutePaths.presentation,
+        name: RouteNames.presentation,
+        builder: (context, state) => const Scaffold(
+          body: Center(child: Text('演示')),
+        ),
+      ),
+
+      // =====================================================================
+      // 引导页
+      // =====================================================================
+      GoRoute(
+        path: RoutePaths.onboarding,
+        name: RouteNames.onboarding,
+        builder: (context, state) => const Scaffold(
+          body: Center(child: Text('引导')),
+        ),
+      ),
+
+      // =====================================================================
+      // 形状库
+      // =====================================================================
+      GoRoute(
+        path: RoutePaths.shapeLibrary,
+        name: RouteNames.shapeLibrary,
+        builder: (context, state) => const Scaffold(
+          body: Center(child: Text('形状库')),
+        ),
       ),
     ],
 
