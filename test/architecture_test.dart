@@ -15,8 +15,9 @@ void main() {
   late DependencyGraph graph;
 
   setUpAll(() async {
-    // 测试运行于 test/ 下，'../' 即包根（pubspec.yaml 所在目录）。
-    graph = await Collector.buildGraph('../');
+    // 仅扫描 lib/ 目录（排除 test/、build/、.dart_tool/），避免全项目扫描卡死。
+    // dart_arch_test 0.3.1 支持直接指定 lib 子目录作为图构建根。
+    graph = await Collector.buildGraph('../lib');
   });
 
   test('规则1：层方向单向——高层只允许依赖低层', () {
