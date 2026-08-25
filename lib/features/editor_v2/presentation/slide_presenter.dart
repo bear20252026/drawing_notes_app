@@ -1,9 +1,9 @@
-// SlidePresenter——幻灯片模式（AFFiNE 借鉴—�?026-08-24）�?//
+// SlidePresenter——幻灯片模式（AFFiNE 借鉴——2026-08-24）//
 // 基于 NoteDocument 分页——支持：
 // - 全屏播放
-// - 翻页（左右滑�?键盘�?// - 退出（Esc�?// - 页码指示
+// - 翻页（左右滑/键盘）// - 退出（Esc）// - 页码指示
 //
-// 版权：AFFiNE（BSL 1.1）——仅概念借鉴——NOTICE 已记录�?library;
+// 版权：AFFiNE（BSL 1.1）——仅概念借鉴——NOTICE 已记录
 
 import 'package:flutter/material.dart';
 
@@ -12,7 +12,7 @@ import 'package:flutter/services.dart';
 
 import 'package:editor_core/editor_core.dart';
 
-/// 幻灯片页面数据（�?NoteDocument 段落分页生成）�?class SlidePage {
+/// 幻灯片页面数据（—NoteDocument 段落分页生成）—class SlidePage {
   const SlidePage({
     required this.title,
     required this.paragraphs,
@@ -22,8 +22,8 @@ import 'package:editor_core/editor_core.dart';
   final List<NoteParagraph> paragraphs;
 }
 
-/// 幻灯片模�?Widget（AFFiNE page mode 借鉴）�?///
-/// 全屏播放 NoteDocument 页面——支持翻�?退出�?class SlidePresenter extends StatefulWidget {
+/// 幻灯片模—Widget（AFFiNE page mode 借鉴）—///
+/// 全屏播放 NoteDocument 页面——支持翻—退出—class SlidePresenter extends StatefulWidget {
   const SlidePresenter({
     super.key,
     required this.slides,
@@ -31,15 +31,15 @@ import 'package:editor_core/editor_core.dart';
     this.onExit,
   });
 
-  /// 幻灯片列表�?  final List<SlidePage> slides;
+  /// 幻灯片列表—  final List<SlidePage> slides;
 
-  /// 初始幻灯片索引�?  final int initialSlide;
+  /// 初始幻灯片索引—  final int initialSlide;
 
-  /// 退出回调�?  final VoidCallback? onExit;
+  /// 退出回调—  final VoidCallback? onExit;
 
-  /// �?NoteDocument 创建幻灯片（按标题分页）�?  static List<SlidePage> fromDocument(NoteDocument doc) {
+  /// —NoteDocument 创建幻灯片（按标题分页）—  static List<SlidePage> fromDocument(NoteDocument doc) {
     final slides = <SlidePage>[];
-    var currentTitle = doc.title.isNotEmpty ? doc.title : '幻灯�?1';
+    var currentTitle = doc.title.isNotEmpty ? doc.title : '幻灯—1';
     var currentParagraphs = <NoteParagraph>[];
     var slideIndex = 1;
 
@@ -52,19 +52,19 @@ import 'package:editor_core/editor_core.dart';
         ));
         currentParagraphs = [];
         slideIndex++;
-        currentTitle = p.content.isNotEmpty ? p.content : '幻灯�?$slideIndex';
+        currentTitle = p.content.isNotEmpty ? p.content : '幻灯—$slideIndex';
       }
       currentParagraphs.add(p);
     }
 
-    // 最后一�?    if (currentParagraphs.isNotEmpty) {
+    // 最后一—    if (currentParagraphs.isNotEmpty) {
       slides.add(SlidePage(
         title: currentTitle,
         paragraphs: currentParagraphs,
       ));
     }
 
-    // 若没有分页（无标题），整个文档作为一�?    if (slides.isEmpty) {
+    // 若没有分页（无标题），整个文档作为一—    if (slides.isEmpty) {
       slides.add(SlidePage(
         title: currentTitle,
         paragraphs: doc.paragraphs,
@@ -74,7 +74,7 @@ import 'package:editor_core/editor_core.dart';
     return slides;
   }
 
-  /// 显示幻灯片（静态方法——方便调用）�?  static Future<void> show(
+  /// 显示幻灯片（静态方法——方便调用）—  static Future<void> show(
     BuildContext context, {
     required NoteDocument document,
     int initialSlide = 0,
@@ -155,17 +155,17 @@ class _SlidePresenterState extends State<SlidePresenter> {
         onKeyEvent: (node, event) {
           if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
-          // Esc：退�?          if (event.logicalKey == LogicalKeyboardKey.escape) {
+          // Esc：退—          if (event.logicalKey == LogicalKeyboardKey.escape) {
             _exit();
             return KeyEventResult.handled;
           }
 
-          // 左箭头：上一�?          if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+          // 左箭头：上一—          if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
             _previousSlide();
             return KeyEventResult.handled;
           }
 
-          // 右箭�?空格：下一�?          if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
+          // 右箭—空格：下一—          if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
               event.logicalKey == LogicalKeyboardKey.space) {
             _nextSlide();
             return KeyEventResult.handled;
@@ -175,7 +175,7 @@ class _SlidePresenterState extends State<SlidePresenter> {
         },
         child: GestureDetector(
           onTapUp: (details) {
-            // 点击左半屏：上一页，右半屏：下一�?            final width = MediaQuery.of(context).size.width;
+            // 点击左半屏：上一页，右半屏：下一—            final width = MediaQuery.of(context).size.width;
             if (details.globalPosition.dx < width / 2) {
               _previousSlide();
             } else {
@@ -184,7 +184,7 @@ class _SlidePresenterState extends State<SlidePresenter> {
           },
           child: Stack(
             children: [
-              // 幻灯片内�?              PageView.builder(
+              // 幻灯片内—              PageView.builder(
                 controller: _pageController,
                 itemCount: widget.slides.length,
                 onPageChanged: (index) {
@@ -196,7 +196,7 @@ class _SlidePresenterState extends State<SlidePresenter> {
                 },
               ),
 
-              // 页码指示�?              Positioned(
+              // 页码指示—              Positioned(
                 bottom: 40,
                 left: 0,
                 right: 0,
@@ -217,7 +217,7 @@ class _SlidePresenterState extends State<SlidePresenter> {
                 ),
               ),
 
-              // 退出按�?              Positioned(
+              // 退出按—              Positioned(
                 top: 40,
                 right: 20,
                 child: GestureDetector(
@@ -306,7 +306,7 @@ class _SlidePresenterState extends State<SlidePresenter> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 幻灯片标�?              if (slide.title.isNotEmpty)
+              // 幻灯片标—              if (slide.title.isNotEmpty)
                 Padding(
                   padding: EdgeInsets.only(bottom: 24),
                   child: Text(
@@ -317,7 +317,7 @@ class _SlidePresenterState extends State<SlidePresenter> {
                   ),
                 ),
 
-              // 幻灯片内容（段落�?              Expanded(
+              // 幻灯片内容（段落—              Expanded(
                 child: ListView.builder(
                   itemCount: slide.paragraphs.length,
                   itemBuilder: (context, index) {
