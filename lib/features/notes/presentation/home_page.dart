@@ -714,7 +714,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             NotebookPage? page,
           })
         >[];
-    for (final m in _documents) {
+    for (final m in _documents.value) {
       entries.add((
         time: m.updatedAt,
         type: '画作',
@@ -725,7 +725,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         page: null,
       ));
     }
-    for (final nb in _notebooks) {
+    for (final nb in _notebooks.value) {
       for (final p in nb.pages) {
         entries.add((
           time: p.updatedAt,
@@ -899,45 +899,45 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
             itemCount: notebooks.length,
             separatorBuilder: (_, _) => SizedBox(height: context.responsiveFont(mobile: 8, desktop: 12)),
-        itemBuilder: (context, i) {
-          final nb = _notebooks[i];
-          return Card(
-            child: ListTile(
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: context.responsiveFont(mobile: 12, desktop: 18),
-                vertical: context.responsiveFont(mobile: 6, desktop: 10),
-              ),
-              leading: CircleAvatar(
-                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                foregroundColor: Theme.of(
-                  context,
-                ).colorScheme.onPrimaryContainer,
-                child: const Icon(Icons.menu_book_rounded),
-              ),
-              title: Text(
-                nb.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: context.responsiveFont(mobile: 14, desktop: 16)),
-              ),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 3),
-                child: Text(
-                  '${nb.pages.length} 页 · 更新于 ${_formatTime(nb.updatedAt)}',
-                  style: TextStyle(fontSize: context.responsiveFont(mobile: 12, desktop: 13)),
+            itemBuilder: (context, i) {
+              final nb = notebooks[i];
+              return Card(
+                child: ListTile(
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: context.responsiveFont(mobile: 12, desktop: 18),
+                    vertical: context.responsiveFont(mobile: 6, desktop: 10),
+                  ),
+                  leading: CircleAvatar(
+                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+                    child: const Icon(Icons.menu_book_rounded),
+                  ),
+                  title: Text(
+                    nb.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: context.responsiveFont(mobile: 14, desktop: 16)),
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Text(
+                      '${nb.pages.length} 页 · 更新于 ${_formatTime(nb.updatedAt)}',
+                      style: TextStyle(fontSize: context.responsiveFont(mobile: 12, desktop: 13)),
+                    ),
+                  ),
+                  trailing: IconButton(
+                    tooltip: '删除笔记本',
+                    icon: const Icon(Icons.delete_outline_rounded),
+                    color: Theme.of(context).colorScheme.error,
+                    onPressed: () => _deleteNotebook(nb),
+                  ),
+                  onTap: () => _openNotebook(nb),
                 ),
-              ),
-              trailing: IconButton(
-                tooltip: '删除笔记本',
-                icon: const Icon(Icons.delete_outline_rounded),
-                color: Theme.of(context).colorScheme.error,
-                onPressed: () => _deleteNotebook(nb),
-              ),
-              onTap: () => _openNotebook(nb),
-            ),
-          );
-        },
-      ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
