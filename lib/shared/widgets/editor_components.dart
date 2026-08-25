@@ -59,11 +59,13 @@ class ColorPickerGrid extends StatelessWidget {
         final isSelected = selectedColor == color;
         return GestureDetector(
           onTap: () => onColorSelected(color),
-          child: Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              color: _hexToColor(color),
+          child: Padding(
+            padding: const EdgeInsets.all(10), // 扩展触摸区域至 ≥ 48dp（28+20=48）。
+            child: Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                color: _hexToColor(color),
               borderRadius: BorderRadius.circular(6),
               border: Border.all(
                 color: isSelected ? Colors.blue : Colors.grey.shade400,
