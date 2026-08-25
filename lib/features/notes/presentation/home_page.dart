@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,6 +24,7 @@ import '../../../core/storage/storage_service.dart';
 import 'onboarding.dart';
 import '../../../shared/widgets/ambient_background.dart';
 import '../../../shared/widgets/glass_surface.dart';
+import '../../../core/ui/widgets/ios_dialog.dart';
 import '../../editor_v2/presentation/editor_v2_screen.dart';
 import 'package:editor_core/editor_core.dart' hide TabBar;
 import 'notebook_view_page.dart';
@@ -360,33 +362,29 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Future<bool?> _confirmDelete(String title, String content) {
-    return showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(AppLocalizations.of(context)?.homeCancel ?? '取消'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-            ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(AppLocalizations.of(context)?.delete ?? '删除'),
-          ),
-        ],
-      ),
+    return showIosDialog<bool>(
+      context,
+      title: title,
+      content: content,
+      actions: [
+        IosDialogAction(
+          label: AppLocalizations.of(context)?.homeCancel ?? '取消',
+          result: false,
+        ),
+        IosDialogAction(
+          label: AppLocalizations.of(context)?.delete ?? '删除',
+          result: true,
+          isDefault: true,
+          isDestructive: true,
+        ),
+      ],
     );
   }
 
   void _showSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    AppSnackbar.show(context, message: message);
+  }
   }
 
   /// 旧版加密格式提示（红蓝攻防 D-1 修复 2026-08-15）：
@@ -620,7 +618,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const CircularProgressIndicator(),
+                const CupertinoActivityIndicator(radius: 14),
                 const SizedBox(width: 16),
                 Expanded(child: Text(l10n?.searchHint ?? '正在建立搜索索引…')),
               ],
@@ -726,14 +724,14 @@ class _HomePageState extends ConsumerState<HomePage> {
       valueListenable: _loading,
       builder: (context, loading, _) {
         if (loading) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: CupertinoActivityIndicator(radius: 14));
         }
         if (_error.value != null) {
           return Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(_error.value!, style: const TextStyle(color: Colors.red)),
+                Text(_error.value!, style: TextStyle(color: AppDesign.appleRed)),
                 const SizedBox(height: 8),
                 OutlinedButton(onPressed: _refresh, child: Text(AppLocalizations.of(context)?.retry ?? '重试')),
               ],

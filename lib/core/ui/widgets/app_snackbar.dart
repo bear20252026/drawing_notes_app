@@ -57,7 +57,48 @@ class AppSnackbar {
     VoidCallback? onRetry,
     Duration duration = const Duration(seconds: 4),
   }) {
-    final colorScheme = Theme.of(context).colorScheme;
+    // Apple 风格：iOS 式轻提示（深色背景，圆角 12px，无阴影）
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF2C2C2E) : const Color(0xFF1D1D1F);
+    final textColor = Colors.white;
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(_getIcon(type), color: textColor, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: textColor,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: bgColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 0,
+        margin: const EdgeInsets.all(16),
+        duration: duration,
+        action: onRetry != null
+            ? SnackBarAction(
+                label: '重试',
+                textColor: const Color(0xFF2997FF),
+                onPressed: onRetry,
+              )
+            : null,
+      ),
+    );
+  }
     final backgroundColor = _getBackgroundColor(type, colorScheme);
     final foregroundColor = _getForegroundColor(type, colorScheme);
     final icon = _getIcon(type);

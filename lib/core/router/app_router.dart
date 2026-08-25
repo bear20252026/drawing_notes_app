@@ -9,6 +9,7 @@ library;
 
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -338,7 +339,7 @@ class _NotebookViewWrapperState extends State<_NotebookViewWrapper> {
         if (snapshot.connectionState != ConnectionState.done) {
           return Scaffold(
             appBar: AppBar(title: Text(widget.title)),
-            body: const Center(child: CircularProgressIndicator()),
+            body: const Center(child: CupertinoActivityIndicator(radius: 14)),
           );
         }
 
@@ -398,7 +399,7 @@ class _PresentationWrapperState extends State<_PresentationWrapper> {
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+            body: Center(child: CupertinoActivityIndicator(radius: 14)),
           );
         }
 
