@@ -26,8 +26,22 @@ extension _EditorPageActions on _EditorPageState {
         _exportPptx();
       case _MainMenuItem.exportText:
         _exportText();
+      case _MainMenuItem.exportHtml:
+        _exportHtml();
       case _MainMenuItem.exportWord:
         _exportWordCompatibleRtf();
+      case _MainMenuItem.sharePng:
+        _sharePng();
+      case _MainMenuItem.sharePdf:
+        _sharePdf();
+      case _MainMenuItem.shareSvg:
+        _shareSvg();
+      case _MainMenuItem.shareText:
+        _shareText();
+      case _MainMenuItem.shareJson:
+        _shareJson();
+      case _MainMenuItem.pasteImage:
+        _pasteImageFromClipboard();
       case _MainMenuItem.commandPalette:
         _showCommandPalette();
       case _MainMenuItem.chart:
@@ -69,6 +83,108 @@ extension _EditorPageActions on _EditorPageState {
 
   /// 导出选区为 PNG（委托给 [EditorExporter]）。
   Future<void> _exportSelectionPng() => _exporter.exportSelectionPng();
+
+  /// 导出笔记本页面为 HTML（委托给 [EditorExporter]）。
+  Future<void> _exportHtml() => _exporter.exportHtml();
+
+  /// 分享画布为 PNG（委托给 [EditorExporter]）。
+  Future<void> _sharePng() => _exporter.sharePng();
+
+  /// 分享画布为 PDF（委托给 [EditorExporter]）。
+  Future<void> _sharePdf() => _exporter.sharePdf();
+
+  /// 分享画布为 SVG（委托给 [EditorExporter]）。
+  Future<void> _shareSvg() => _exporter.shareSvg();
+
+  /// 分享文字内容（委托给 [EditorExporter]）。
+  Future<void> _shareText() => _exporter.shareText();
+
+  /// 分享画布为 JSON（委托给 [EditorExporter]）。
+  Future<void> _shareJson() => _exporter.shareJson();
+
+  /// 从剪贴板粘贴图片到画布。
+  Future<void> _pasteImageFromClipboard() async {
+    final page = widget.page;
+    if (page == null) {
+      _showSnack('仅笔记本页面支持粘贴图片');
+      return;
+    }
+
+    try {
+      // 尝试从剪贴板获取图片数据
+      final data = await Clipboard.getData(Clipboard.kTextPlain);
+      final text = data?.text;
+      if (text != null && text.trim().isNotEmpty) {
+        // 有文本，提示用户
+        _showSnack('剪贴板中有文本，请使用 Ctrl+V 粘贴文字');
+        return;
+      }
+
+      // 尝试通过平台通道获取图片
+      const channel = MethodChannel('gov.drawingnotes/clipboard');
+      final imageResult = await channel.invokeMapMethod<String, dynamic>(
+        'getImage',
+      );
+
+      if (imageResult == null) {
+        _showSnack('剪贴板中没有图片');
+        return;
+      }
+
+      final width = imageResult['width'] as int;
+      final height = imageResult['height'] as int;
+      final rgba = imageResult['rgba'] as Uint8List;
+
+      // 将 RGBA 数据转换为 PNG
+      final codec = await ui.instantiateImageCodec(
+        rgba,
+        targetWidth: width,
+        targetHeight: height,
+      );
+      final frame = await codec.getNextFrame();
+      final image = frame.image;
+      final byteData = await image.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
+      image.dispose();
+
+      if (byteData == null) {
+        _showSnack('图片转换失败');
+        return;
+      }
+
+      // 保存到临时文件
+      final tempDir = await Directory.systemTemp.createTemp();
+      final tempFile = File('${tempDir.path}/clipboard_image.png');
+      await tempFile.writeAsBytes(
+        byteData.buffer.asUint8List(),
+        flush: true,
+      );
+
+      // 插入图片到画布中心
+      final center = _controller.document.size.center(Offset.zero);
+      final imgWidth = width.toDouble().clamp(100, 400);
+      final imgHeight = height.toDouble().clamp(100, 400);
+
+      _applyState(() {
+        page.imageItems.add(
+          PageImageItem(
+            id: LocalIdGenerator.next('img'),
+            x: center.dx - imgWidth / 2,
+            y: center.dy - imgHeight / 2,
+            width: imgWidth,
+            height: imgHeight,
+            filePath: tempFile.path,
+          ),
+        );
+        _selectedItemId = page.imageItems.last.id;
+      });
+      _notifyChanged();
+      _showSnack('已粘贴图片到画布');
+    } catch (e) {
+      _showSnack('粘贴图片失败：$e');
+    }
+  }
 
   /// 图表生成（借鉴 Excalidraw charts）：粘贴数值（逗号/空格/换行分隔），
   /// 自动生成柱状图/折线图元素并放入画布中心。
@@ -563,5 +679,21 @@ extension _EditorPageActions on _EditorPageState {
         ],
       ),
     );
+  }
+
+  /// 状态刷新薄包装（供 overlays extension 使用）：
+  /// extension 不是 State 子类，不能直接调用受保护的 [setState]，
+  /// 通过本实例方法转发（行为零变化，拆分专用）。
+  void _applyState(VoidCallback fn) => setState(fn);
+
+  /// 标记文档已变更（供外部只读 Widget 调用，避免直接暴露 setState）。
+  void _notifyChanged() {
+    final page = widget.page;
+    if (page != null) {
+      page.title = _controller.document.title;
+      page.updatedAt = DateTime.now();
+    }
+    widget.onChanged?.call();
+    _scheduleAutosave();
   }
 }

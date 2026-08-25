@@ -12,6 +12,7 @@ import 'package:drawing_notes_app/features/drawing/domain/document.dart' show Dr
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart' show NotebookPage;
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart' show BrushType, Stroke;
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
+import 'package:drawing_notes_app/features/drawing/application/share_service.dart';
 import 'package:drawing_notes_app/core/rtf_exporter.dart';
 import 'package:drawing_notes_app/core/rendering/pdf_hybrid_exporter.dart';
 import 'package:drawing_notes_app/core/rendering/svg_exporter.dart';
@@ -494,6 +495,264 @@ class EditorExporter {
       showSnack('已导出 JSON 到：${location.path}');
     } catch (e) {
       showSnack('导出失败：$e');
+    }
+  }
+
+  /// 导出分页笔记为 HTML（借鉴 Excalidraw HTML 导出）。
+  ///
+  /// 结构化文字转为 HTML 标签；手写笔画转为 SVG 内联；
+  /// 支持浏览器直接打开预览。
+  Future<void> exportHtml() async {
+    final page = _page;
+    if (page == null) {
+      showSnack('仅笔记本页面支持导出 HTML');
+      return;
+    }
+    if (page.textItems.isEmpty && page.imageItems.isEmpty) {
+      showSnack('本页还没有可导出的内容');
+      return;
+    }
+
+    try {
+      final buffer = StringBuffer();
+      buffer.writeln('<!DOCTYPE html>');
+      buffer.writeln('<html lang="zh-CN">');
+      buffer.writeln('<head>');
+      buffer.writeln('  <meta charset="UTF-8">');
+      buffer.writeln('  <meta name="viewport" content="width=device-width, initial-scale=1.0">');
+      buffer.writeln('  <title>${_escapeHtml(page.title)}</title>');
+      buffer.writeln('  <style>');
+      buffer.writeln('    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }');
+      buffer.writeln('    .text-item { margin: 10px 0; }');
+      buffer.writeln('    .todo-item { list-style: none; }');
+      buffer.writeln('    .todo-item input { margin-right: 8px; }');
+      buffer.writeln('    .sticky-note { background: #fff9c4; padding: 10px; border-radius: 4px; border-left: 4px solid #fbc02d; }');
+      buffer.writeln('    .canvas-container { margin: 20px 0; border: 1px solid #ddd; border-radius: 4px; }');
+      buffer.writeln('    .image-item { max-width: 100%; height: auto; }');
+      buffer.writeln('  </style>');
+      buffer.writeln('</head>');
+      buffer.writeln('<body>');
+
+      // 标题
+      buffer.writeln('  <h1>${_escapeHtml(page.title)}</h1>');
+
+      // 文字块
+      for (final item in page.textItems) {
+        buffer.write('  <div class="text-item" style="');
+        if (item.isSticky) {
+          buffer.write(' background: #fff9c4; padding: 10px; border-radius: 4px; border-left: 4px solid #fbc02d;');
+        }
+        buffer.write('"');
+
+        // 待办项
+        if (item.isTodo) {
+          buffer.write(' class="todo-item"');
+        }
+
+        buffer.writeln('>');
+        if (item.isTodo) {
+          buffer.write('    <input type="checkbox" ${item.todoChecked ? 'checked' : ''} disabled>');
+        }
+
+        // 文本样式
+        buffer.write('    <span style="');
+        buffer.write('font-size: ${item.fontSize}px;');
+        buffer.write('color: #${item.color.toRadixString(16).padLeft(8, '0').substring(2)};');
+        if (item.bold) buffer.write(' font-weight: bold;');
+        if (item.italic) buffer.write(' font-style: italic;');
+        if (item.underline) buffer.write(' text-decoration: underline;');
+        if (item.strikethrough) buffer.write(' text-decoration: line-through;');
+        buffer.write('">');
+
+        buffer.write(_escapeHtml(item.text));
+        buffer.writeln('</span>');
+        buffer.writeln('  </div>');
+      }
+
+      // 图片块
+      for (final item in page.imageItems) {
+        // 图片需要外部文件引用，这里使用占位符
+        buffer.writeln('  <div class="image-item" style="width: ${item.width}px; height: ${item.height}px;">');
+        buffer.writeln('    <img src="${item.filePath}" alt="Image" style="max-width: 100%; height: auto;">');
+        buffer.writeln('  </div>');
+      }
+
+      // 手写笔画（转为 SVG 内联）
+      final inkPng = await controller.renderToPng();
+      if (inkPng != null) {
+        final base64Png = base64Encode(inkPng);
+        buffer.writeln('  <div class="canvas-container">');
+        buffer.writeln('    <img src="data:image/png;base64,$base64Png" alt="Handwriting" style="max-width: 100%;">');
+        buffer.writeln('  </div>');
+      }
+
+      buffer.writeln('</body>');
+      buffer.writeln('</html>');
+
+      final location = await getSaveLocation(
+        suggestedName: '${page.title}.html',
+        acceptedTypeGroups: const [
+          XTypeGroup(label: 'HTML 网页', extensions: ['html', 'htm']),
+        ],
+      );
+      if (location == null) return; // 用户取消
+      final file = File(location.path);
+      await file.writeAsString(buffer.toString(), flush: true);
+      showSnack('已导出 HTML 到：${location.path}');
+    } catch (e) {
+      showSnack('导出 HTML 失败：$e');
+    }
+  }
+
+  /// HTML 转义辅助方法。
+  String _escapeHtml(String text) {
+    return text
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+  }
+
+  // ==================== 分享功能 ====================
+
+  /// 分享画布为 PNG 图片（对齐 Android/Windows 分享）。
+  Future<void> sharePng() async {
+    try {
+      final png = await controller.renderSelectionToPng();
+      if (png == null) {
+        showSnack('分享失败：无法渲染画布');
+        return;
+      }
+      await ShareService.shareImage(
+        pngData: png,
+        title: controller.document.title,
+      );
+      showSnack('已启动分享');
+    } catch (e) {
+      showSnack('分享 PNG 失败：$e');
+    }
+  }
+
+  /// 分享画布为 PDF 文档。
+  Future<void> sharePdf() async {
+    try {
+      final bounds = controller.document.infinite
+          ? controller.contentBounds()
+          : Rect.fromLTWH(
+              0,
+              0,
+              controller.document.width.toDouble(),
+              controller.document.height.toDouble(),
+            );
+      final vectorStrokes = <Stroke>[
+        for (final layer in controller.document.layers)
+          for (final stroke in layer.strokes)
+            if (!PdfHybridExporter.shouldRasterize(stroke)) stroke,
+      ];
+      final png = await controller.renderToPng(
+        excludedTypes: const {BrushType.pen},
+      );
+      if (png == null) {
+        showSnack('分享失败：无法渲染画布');
+        return;
+      }
+      final bytes = await PdfHybridExporter.export(
+        bounds: bounds,
+        rasterPng: png,
+        vectorStrokes: vectorStrokes,
+      );
+      await ShareService.sharePdf(
+        pdfData: bytes,
+        fileName: '${controller.document.title}.pdf',
+        title: controller.document.title,
+      );
+      showSnack('已启动分享');
+    } catch (e) {
+      showSnack('分享 PDF 失败：$e');
+    }
+  }
+
+  /// 分享画布为 SVG 矢量图。
+  Future<void> shareSvg() async {
+    try {
+      final doc = controller.document;
+      final w = doc.width.toDouble();
+      final h = doc.height.toDouble();
+      final body = StringBuffer();
+
+      for (final layer in doc.layers) {
+        if (!layer.visible || layer.opacity <= 0) continue;
+        for (final stroke in layer.strokes) {
+          body.write(strokeToSvgPath(stroke));
+        }
+      }
+      final page = _page;
+      if (page != null) {
+        for (final t in page.textItems) {
+          body.write(textToSvgText(t));
+        }
+      }
+
+      final svg = buildSvgDocument(
+        width: w,
+        height: h,
+        body: body.toString(),
+      );
+      await ShareService.shareSvg(
+        svgContent: svg,
+        fileName: '${doc.title}.svg',
+        title: doc.title,
+      );
+      showSnack('已启动分享');
+    } catch (e) {
+      showSnack('分享 SVG 失败：$e');
+    }
+  }
+
+  /// 分享文字内容（纯文本）。
+  Future<void> shareText() async {
+    final page = _page;
+    if (page == null) {
+      showSnack('仅笔记本页面支持分享文字');
+      return;
+    }
+    if (page.textItems.isEmpty) {
+      showSnack('本页还没有可分享的文字');
+      return;
+    }
+
+    try {
+      final lines = <String>[];
+      for (final t in page.textItems) {
+        var text = t.text;
+        if (t.isTodo) text = '- [${t.todoChecked ? 'x' : ' '}] $text';
+        lines.add(text);
+      }
+      final content = '${page.title}\n\n${lines.join('\n\n')}\n';
+
+      await ShareService.shareText(
+        text: content,
+        title: page.title,
+      );
+      showSnack('已启动分享');
+    } catch (e) {
+      showSnack('分享文字失败：$e');
+    }
+  }
+
+  /// 分享画布为 JSON 工程文件。
+  Future<void> shareJson() async {
+    try {
+      final data = buildExportPayload(controller.document, page: _page);
+      final json = const JsonEncoder.withIndent('  ').convert(data);
+      await ShareService.shareText(
+        text: json,
+        title: '${controller.document.title}.json',
+      );
+      showSnack('已启动分享');
+    } catch (e) {
+      showSnack('分享 JSON 失败：$e');
     }
   }
 }

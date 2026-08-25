@@ -78,4 +78,57 @@ extension _EditorPagePersistence on _EditorPageState {
   /// 导出页面文字为 Markdown/TXT（委托给 [EditorExporter]）。
   Future<void> _exportText() => _exporter.exportText();
 
+  /// 视图缓存的键：笔记本页面按页面 id，独立画布按文档 id。
+  String get _viewCacheKey => widget.page != null
+      ? 'page:${widget.page!.id}'
+      : 'doc:${_controller.document.id}';
+
+  /// 正常返回编辑器前强制写入并等待落盘，防止 800ms 防抖尚未触发就退出。
+  Future<bool> _flushBeforePop() async {
+    await _viewModel.saveNow();
+    return true;
+  }
+
+  /// 首次布局时把画布适配到视口（居中显示、按比例缩放）。
+  ///
+  /// 若该文档/笔记页在 LRU 视图缓存中有记录，则恢复上次的缩放与平移
+  /// （重开笔记回到上次位置），否则首次进入时居中适配。
+  void _initViewport(Size viewportSize) {
+    if (_viewportInitialized) return;
+    _viewportInitialized = true;
+
+    final cached = ViewTransformCache.restore(_viewCacheKey);
+    if (cached != null) {
+      _controller.setViewport(
+        scale: cached.scale,
+        translation: cached.offset,
+      );
+      setState(() {});
+      return;
+    }
+
+    final bounds = _controller.documentBounds;
+    if (bounds == null || bounds.isEmpty) {
+      setState(() {});
+      return;
+    }
+    final vpW = viewportSize.width;
+    final vpH = viewportSize.height;
+    final docW = bounds.width;
+    final docH = bounds.height;
+    final scaleX = vpW / docW;
+    final scaleY = vpH / docH;
+    final targetScale = (scaleX < 1 || scaleY < 1)
+        ? (math.min(scaleX, scaleY) * 0.9).clamp(0.1, 1.0)
+        : 1.0;
+    final scaledCenter = Offset(
+      (docW * targetScale) / 2 - bounds.center.dx * targetScale,
+      (docH * targetScale) / 2 - bounds.center.dy * targetScale,
+    );
+    _controller.setViewport(
+      scale: targetScale,
+      translation: scaledCenter,
+    );
+    setState(() {});
+  }
 }

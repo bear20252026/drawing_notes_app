@@ -724,4 +724,67 @@ extension _EditorPageEditing on _EditorPageState {
       );
     });
   }
+
+  /// 确认裁剪：按裁剪矩形重新编码图片并写回文件（对齐 Excalidraw 图片裁剪）。
+  Future<void> _confirmCrop() async {
+    final img = _cropItem;
+    final rect = _cropRect;
+    if (img == null || rect == null || rect.width < 10 || rect.height < 10) {
+      _showSnack('裁剪区域无效');
+      return;
+    }
+    try {
+      final file = File(img.filePath);
+      if (!await file.exists()) {
+        _showSnack('原图文件不存在');
+        return;
+      }
+      final bytes = await file.readAsBytes();
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      final src = frame.image;
+      // 按比例映射：裁剪矩形（画布坐标）-> 原图像素坐标。
+      final scaleX = src.width / (img.width + 1);
+      final scaleY = src.height / (img.height + 1);
+      final srcRect = Rect.fromLTWH(
+        (rect.left - img.x).clamp(0, img.width) * scaleX,
+        (rect.top - img.y).clamp(0, img.height) * scaleY,
+        rect.width.clamp(0, img.width) * scaleX,
+        rect.height.clamp(0, img.height) * scaleY,
+      );
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      canvas.drawImageRect(
+        src,
+        srcRect,
+        Rect.fromLTWH(0, 0, srcRect.width, srcRect.height),
+        Paint()..filterQuality = FilterQuality.medium,
+      );
+      final picture = recorder.endRecording();
+      final out = await picture.toImage(
+        srcRect.width.round().clamp(1, 10000),
+        srcRect.height.round().clamp(1, 10000),
+      );
+      final data = await out.toByteData(format: ui.ImageByteFormat.png);
+      src.dispose();
+      out.dispose();
+      if (data == null) {
+        _showSnack('裁剪编码失败');
+        return;
+      }
+      await file.writeAsBytes(data.buffer.asUint8List(), flush: true);
+      setState(() {
+        img.x = rect.left;
+        img.y = rect.top;
+        img.width = rect.width;
+        img.height = rect.height;
+        _cropItem = null;
+        _cropRect = null;
+      });
+      _notifyChanged();
+      _showSnack('已裁剪图片');
+    } catch (e) {
+      _showSnack('裁剪失败：$e');
+    }
+  }
 }
