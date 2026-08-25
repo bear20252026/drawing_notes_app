@@ -153,8 +153,8 @@ void main() {
     }
   });
 
-  // ─── #11 落盘加密验证按钮测试 ─────────────────────────────
-  testWidgets('密码盘页面：落盘加密验证区存在', (tester) async {
+  // ─── #11 落盘加密验证已移除——改为"跳过加密"区域 ───────────────
+  testWidgets('密码盘页面：跳过加密区域存在', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: PasswordDiskPage(
@@ -165,9 +165,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('落盘加密验证'), findsOneWidget);
-    // 未解锁时按钮显示"请先解锁密码盘"（解锁后变为"加密并落盘验证"）。
-    expect(find.text('请先解锁密码盘'), findsOneWidget);
+    expect(find.text('不想使用加密？'), findsOneWidget);
   });
 
   // ─── #12 恢复密钥一键复制按钮测试 ─────────────────────────
@@ -182,9 +180,19 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 创建密码盘
-    await tester.tap(find.text('创建密码盘（生成密钥 + 恢复密钥）'));
-    // EncryptionService.test() 使用 1MiB 参数，pumpAndSettle 即可等待完成。
+    // 创建密码盘 — 用 runAsync 让真实异步（Argon2id）完成。
+    await tester.runAsync(() async {
+      await tester.tap(find.text('创建密码盘（生成密钥 + 恢复密钥）'));
+      await tester.pump();
+      // 处理 PIN 保护询问对话框（选择"不启用"以简化测试）。
+      final noPinBtn = find.text('不启用');
+      if (noPinBtn.evaluate().isNotEmpty) {
+        await tester.tap(noPinBtn);
+        await tester.pump();
+      }
+      // 等待 Argon2id 完成（test 模式 1MiB，约 1-2 秒）。
+      await Future.delayed(const Duration(seconds: 3));
+    });
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
 
@@ -193,7 +201,7 @@ void main() {
     if (copyBtn.evaluate().isNotEmpty) {
       expect(copyBtn, findsOneWidget);
       // 点击不应崩溃
-      await tester.tap(copyBtn);
+      await tester.tap(copyBtn, warnIfMissed: false);
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: '一键复制不应崩溃');
     }

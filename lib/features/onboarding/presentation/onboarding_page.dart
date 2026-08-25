@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/theme/app_design.dart';
 import '../../../shared/widgets/ambient_background.dart';
 import '../../../shared/widgets/glass_surface.dart';
 
@@ -91,26 +92,26 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   itemBuilder: (context, index) {
                     final data = _pages[index];
                     return Padding(
-                      padding: const EdgeInsets.all(32),
+                      padding: const EdgeInsets.all(AppDesign.spacingLg),
                       child: GlassSurface(
-                        padding: const EdgeInsets.all(32),
+                        padding: const EdgeInsets.all(AppDesign.spacingLg),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(data.icon, size: 96, color: theme.colorScheme.primary),
-                            const SizedBox(height: 32),
+                            const SizedBox(height: AppDesign.spacingXl),
                             Text(
                               data.title,
-                              style: theme.textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
+                              style: AppDesign.tagline.copyWith(
+                                color: theme.colorScheme.onSurface,
                               ),
                               textAlign: TextAlign.center,
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: AppDesign.spacingMd),
                             Text(
                               data.description,
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                              style: AppDesign.body.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -128,12 +129,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 children: List.generate(
                   _pages.length,
                   (i) => AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
+                    duration: AppDesign.quickMotion,
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     width: i == _currentPage ? 24 : 8,
                     height: 8,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(AppDesign.roundedPill),
                       color: i == _currentPage
                           ? theme.colorScheme.primary
                           : theme.colorScheme.outline.withValues(alpha: 0.3),
@@ -144,7 +145,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
               // 下一步按钮
               Padding(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppDesign.spacingLg),
                 child: SizedBox(
                   width: double.infinity,
                   child: FilledButton(

@@ -89,7 +89,9 @@ class _DrawingCardState extends State<_DrawingCard> {
                           widget.meta.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleSmall,
+                          style: AppDesign.bodyStrong.copyWith(
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                       IconButton(

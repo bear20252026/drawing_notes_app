@@ -25,8 +25,8 @@ void main() {
     // 画布存在（CustomPaint——CanvasPainterV2 + InfiniteCanvasWidget 包装）。
     expect(find.byType(CustomPaint), findsWidgets);
 
-    // AppBar 标题存在。
-    expect(find.text('Editor V2 - test-doc'), findsOneWidget);
+    // AppBar 标题存在（documentId 未在 StorageService 中注册 → 显示'无标题'）。
+    expect(find.text('无标题'), findsOneWidget);
 
     // 无异常（不崩——集成验证）。
     expect(tester.takeException(), isNull);
