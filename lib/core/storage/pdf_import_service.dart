@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -43,6 +44,153 @@ class RenderedPdfPage {
   final int height;
 }
 
+/// Isolate 渲染消息：主线程 → 后台 Isolate。
+class _IsolateRenderMessage {
+  _IsolateRenderMessage({
+    required this.sourcePath,
+    required this.maxRenderSide,
+    required this.progressPort,
+  });
+
+  final String sourcePath;
+  final int maxRenderSide;
+  final SendPort progressPort;
+}
+
+/// 后台 Isolate 渲染结果：后台 Isolate → 主线程。
+class _IsolateRenderResult {
+  _IsolateRenderResult({
+    required this.pages,
+    required this.totalPageCount,
+  });
+
+  final List<RenderedPdfPage> pages;
+  final int totalPageCount;
+}
+
+/// 后台 Isolate 入口函数（顶层函数，Isolate 无法访问闭包）。
+///
+/// 负责执行 PDFium 渲染并将结果返回主线程。通过 [SendPort] 实时报告
+/// 渲染进度（当前页码, 总页数），让 UI 层可以展示进度条。
+Future<_IsolateRenderResult> _renderPdfInIsolate(
+  _IsolateRenderMessage message,
+) async {
+  await pdfrxFlutterInitialize();
+  final document = await PdfDocument.openFile(message.sourcePath);
+  final totalPages = document.pages.length;
+
+  // 通过 SendPort 向主线程报告总页数。
+  message.progressPort.send(_IsolateProgress(totalPages: totalPages));
+
+  final results = <RenderedPdfPage>[];
+  for (var i = 0; i < document.pages.length; i++) {
+    final initialPage = document.pages[i];
+    final page = await initialPage.ensureLoaded().timeout(
+          const Duration(seconds: 30),
+          onTimeout: () => throw TimeoutException(
+            'PDF 页面加载超时（30秒），可能文件已损坏',
+          ),
+        );
+    final longest = page.width > page.height ? page.width : page.height;
+    final scale =
+        (message.maxRenderSide / longest).clamp(1.0, 2.0);
+    final targetWidth =
+        (page.width * scale).round().clamp(1, message.maxRenderSide);
+    final targetHeight =
+        (page.height * scale).round().clamp(1, message.maxRenderSide);
+    final image = await page.render(
+      fullWidth: targetWidth.toDouble(),
+      fullHeight: targetHeight.toDouble(),
+      backgroundColor: 0xFFFFFFFF,
+    ).timeout(
+      const Duration(seconds: 30),
+      onTimeout: () => throw TimeoutException(
+        'PDF 页面渲染超时（30秒），可能页面过大或已损坏',
+      ),
+    );
+    if (image == null) {
+      throw StateError('无法渲染 PDF 第 ${initialPage.pageNumber} 页');
+    }
+    try {
+      results.add(
+        RenderedPdfPage(
+          pageNumber: initialPage.pageNumber,
+          pngBytes: await _encodePngInIsolate(image),
+          width: image.width,
+          height: image.height,
+        ),
+      );
+    } finally {
+      image.dispose();
+    }
+
+    // 向主线程报告当前页码（i+1 从 1 开始）。
+    message.progressPort.send(_IsolateProgress(
+      totalPages: totalPages,
+      currentPage: i + 1,
+    ));
+  }
+
+  // 发送最终完成信号。
+  message.progressPort.send(_IsolateProgress(
+    totalPages: totalPages,
+    currentPage: totalPages,
+    done: true,
+  ));
+
+  return _IsolateRenderResult(
+    pages: results,
+    totalPageCount: totalPages,
+  );
+}
+
+/// Isolate 内的进度消息。
+class _IsolateProgress {
+  _IsolateProgress({
+    required this.totalPages,
+    this.currentPage = 0,
+    this.done = false,
+  });
+
+  final int totalPages;
+  final int currentPage;
+  final bool done;
+}
+
+/// Isolate 内的 PNG 编码（使用 dart:ui decodeImageFromPixels）。
+Future<Uint8List> _encodePngInIsolate(PdfImage source) async {
+  final completer = Completer<ui.Image>();
+  ui.decodeImageFromPixels(
+    source.pixels,
+    source.width,
+    source.height,
+    ui.PixelFormat.bgra8888,
+    completer.complete,
+    rowBytes: source.width * 4,
+  );
+  final image = await completer.future.timeout(
+    const Duration(seconds: 30),
+    onTimeout: () => throw TimeoutException(
+      'PDF 页面 PNG 编码超时（30秒），可能页面过大或已损坏',
+    ),
+  );
+  try {
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    if (data == null) throw StateError('无法编码 PDF 页面 PNG');
+    return data.buffer.asUint8List();
+  } finally {
+    image.dispose();
+  }
+}
+
+/// Isolate 入口函数（顶层函数），负责渲染并将结果发送回主线程。
+Future<void> _renderPdfEntry(
+  _IsolateRenderMessage message,
+) async {
+  final result = await _renderPdfInIsolate(message);
+  message.progressPort.send(result);
+}
+
 typedef PdfRasterizer =
     Future<List<RenderedPdfPage>> Function(
       String sourcePath,
@@ -57,9 +205,6 @@ typedef PdfRasterizer =
 /// 上限控制在 [maxRenderSide]，同时保持原始比例。
 class PdfImportService {
   const PdfImportService._();
-
-  /// 单页渲染超时（秒），防止损坏/超大 PDF 页面无限阻塞主线程。
-  static const int _perPageTimeoutSeconds = 30;
 
   /// 整体渲染超时（秒），防止多页 PDF 累积阻塞。
   static const int _totalRenderTimeoutSeconds = 300;
@@ -82,6 +227,7 @@ class PdfImportService {
     int maxRenderSide = defaultMaxRenderSide,
     Set<int>? pageNumbers,
     PdfRasterizer? rasterizer,
+    void Function(int current, int total)? onProgress,
   }) async {
     if (maxRenderSide < 256) {
       throw ArgumentError.value(
@@ -105,15 +251,26 @@ class PdfImportService {
       await outputDirectory.create(recursive: true);
     }
 
-    final rendered = await (rasterizer ?? _renderWithPdfium)(
-      sourcePath,
-      maxRenderSide,
-    ).timeout(
-      Duration(seconds: _totalRenderTimeoutSeconds),
-      onTimeout: () => throw TimeoutException(
-        'PDF 渲染超时（$_totalRenderTimeoutSeconds秒），文件可能过大或已损坏',
-      ),
-    );
+    late final List<RenderedPdfPage> rendered;
+    if (rasterizer != null) {
+      // 测试注入的 rasterizer：直接调用，无需 Isolate。
+      rendered = await rasterizer(
+        sourcePath,
+        maxRenderSide,
+      ).timeout(
+        Duration(seconds: _totalRenderTimeoutSeconds),
+        onTimeout: () => throw TimeoutException(
+          'PDF 渲染超时（$_totalRenderTimeoutSeconds秒），文件可能过大或已损坏',
+        ),
+      );
+    } else {
+      // 正式运行：PDFium 渲染迁移到后台 Isolate，不阻塞 UI 线程。
+      rendered = await _renderViaIsolate(
+        sourcePath,
+        maxRenderSide,
+        onProgress,
+      );
+    }
     // D-6 修复：页数上限，防恶意多页 PDF 耗尽内存。
     if (rendered.length > _maxImportPages) {
       throw StateError('PDF 页数超过 $_maxImportPages 页限制，拒绝导入');
@@ -163,84 +320,67 @@ class PdfImportService {
     return List<ImportedPdfPage>.unmodifiable(results);
   }
 
-  static Future<List<RenderedPdfPage>> _renderWithPdfium(
+  /// 通过后台 Isolate 执行 PDF 渲染，避免阻塞 UI 线程。
+  ///
+  /// 渲染进度通过 [onProgress] 回调实时反馈。Isolate 内部通过 [SendPort]
+  /// 向主线程发送 [_IsolateProgress] 消息，主线程监听后转发给回调。
+  static Future<List<RenderedPdfPage>> _renderViaIsolate(
     String sourcePath,
     int maxRenderSide,
+    void Function(int current, int total)? onProgress,
   ) async {
-    await pdfrxFlutterInitialize();
-    final document = await PdfDocument.openFile(sourcePath);
-    // 链 B 修复（军工审计 2026-08-15）：页数渲染前预检——D-6 原检查在
-    // 渲染完成后才执行，恶意数千页 PDF 会先被完整渲染（内存 OOM）再
-    // 被拒绝（等于没有上限）。
-    if (document.pages.length > _maxImportPages) {
-      throw StateError('PDF 页数超过 $_maxImportPages 页限制，拒绝导入');
-    }
-    final results = <RenderedPdfPage>[];
-    for (final initialPage in document.pages) {
-      final page = await initialPage.ensureLoaded().timeout(
-            Duration(seconds: _perPageTimeoutSeconds),
-            onTimeout: () => throw TimeoutException(
-              'PDF 页面加载超时（$_perPageTimeoutSeconds秒），可能文件已损坏',
-            ),
-          );
-      final longest = page.width > page.height ? page.width : page.height;
-      final scale = (maxRenderSide / longest).clamp(1.0, 2.0);
-      final targetWidth = (page.width * scale).round().clamp(1, maxRenderSide);
-      final targetHeight = (page.height * scale).round().clamp(
-        1,
-        maxRenderSide,
-      );
-      final image = await page.render(
-        fullWidth: targetWidth.toDouble(),
-        fullHeight: targetHeight.toDouble(),
-        backgroundColor: 0xFFFFFFFF,
-      ).timeout(
-        Duration(seconds: _perPageTimeoutSeconds),
-        onTimeout: () => throw TimeoutException(
-          'PDF 页面渲染超时（$_perPageTimeoutSeconds秒），可能页面过大或已损坏',
-        ),
-      );
-      if (image == null) {
-        throw StateError('无法渲染 PDF 第 ${page.pageNumber} 页');
-      }
-      try {
-        results.add(
-          RenderedPdfPage(
-            pageNumber: page.pageNumber,
-            pngBytes: await _encodePng(image),
-            width: image.width,
-            height: image.height,
-          ),
-        );
-      } finally {
-        image.dispose();
-      }
-    }
-    return results;
-  }
+    final receivePort = ReceivePort();
+    final message = _IsolateRenderMessage(
+      sourcePath: sourcePath,
+      maxRenderSide: maxRenderSide,
+      progressPort: receivePort.sendPort,
+    );
 
-  static Future<Uint8List> _encodePng(PdfImage source) async {
-    final completer = Completer<ui.Image>();
-    ui.decodeImageFromPixels(
-      source.pixels,
-      source.width,
-      source.height,
-      ui.PixelFormat.bgra8888,
-      completer.complete,
-      rowBytes: source.width * 4,
+    final isolate = await Isolate.spawn(
+      _renderPdfEntry,
+      message,
+      onError: receivePort.sendPort,
+      onExit: receivePort.sendPort,
     );
-    final image = await completer.future.timeout(
-      Duration(seconds: _perPageTimeoutSeconds),
-      onTimeout: () => throw TimeoutException(
-        'PDF 页面 PNG 编码超时（$_perPageTimeoutSeconds秒），可能页面过大或已损坏',
-      ),
+
+    final completer = Completer<List<RenderedPdfPage>>();
+
+    // 单一监听器：处理进度消息、渲染结果、错误和 Isolate 退出。
+    receivePort.listen(
+      (message) {
+        if (message is _IsolateProgress) {
+          if (onProgress != null && message.totalPages > 0) {
+            onProgress(message.currentPage, message.totalPages);
+          }
+        } else if (message is _IsolateRenderResult && !completer.isCompleted) {
+          completer.complete(message.pages);
+        } else if (message is Error && !completer.isCompleted) {
+          completer.completeError(StateError('PDF 渲染 Isolate 错误: ${message.stackTrace}'));
+        }
+      },
+      onError: (Object error) {
+        if (!completer.isCompleted) {
+          completer.completeError(error);
+        }
+      },
+      onDone: () {
+        if (!completer.isCompleted) {
+          completer.completeError(
+            StateError('PDF 渲染 Isolate 意外退出'),
+          );
+        }
+      },
     );
-    try {
-      final data = await image.toByteData(format: ui.ImageByteFormat.png);
-      if (data == null) throw StateError('无法编码 PDF 页面 PNG');
-      return data.buffer.asUint8List();
-    } finally {
-      image.dispose();
-    }
+
+    return completer.future.timeout(
+      Duration(seconds: _totalRenderTimeoutSeconds),
+      onTimeout: () {
+        receivePort.close();
+        isolate.kill(priority: Isolate.immediate);
+        throw TimeoutException(
+          'PDF 渲染超时（$_totalRenderTimeoutSeconds秒），文件可能过大或已损坏',
+        );
+      },
+    );
   }
 }
