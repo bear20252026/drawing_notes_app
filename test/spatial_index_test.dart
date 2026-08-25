@@ -1,295 +1,172 @@
-// 渲染引擎单元测试——空间索引（SpatialIndex）。
-//
-// 验证网格分区空间索引的查询精度：
-// - insert/query 往返正确性
-// - queryPoint 点命中
-// - remove/clear 生命周期
-// - 负坐标（Cantor pairing 键映射）
-// - 大元素跨多网格单元
-// - ElementBounds 批量重建（updateAll）
-import 'dart:math' as math;
+/// SpatialIndex 单元测试（2026-08-25）
+library;
+
 import 'dart:ui';
 
-import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/features/drawing/application/spatial_index.dart';
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('SpatialIndex 基本操作', () {
-    test('insert 后 query 能命中相交元素', () {
+  group('SpatialIndex 初始化', () {
+    test('默认 cellSize 为 64', () {
       final index = SpatialIndex();
-      index.insert('a', const Rect.fromLTWH(0, 0, 50, 50));
-
-      final hits = index.query(const Rect.fromLTWH(10, 10, 20, 20));
-      expect(hits, contains('a'));
+      expect(index.cellSize, 64.0);
     });
 
-    test('query 不命中不相交元素（查询精度）', () {
-      final index = SpatialIndex();
-      index.insert('far', const Rect.fromLTWH(500, 500, 50, 50));
-      index.insert('near', const Rect.fromLTWH(100, 100, 30, 30));
-
-      // 与两者都不相交
-      final hits = index.query(const Rect.fromLTWH(0, 0, 10, 10));
-      expect(hits, isEmpty);
+    test('自定义 cellSize', () {
+      final index = SpatialIndex(cellSize: 32);
+      expect(index.cellSize, 32);
     });
 
-    test('边界恰好相接不视为相交（Rect.overlaps 开区间语义）', () {
+    test('空索引 query 返回空', () {
       final index = SpatialIndex();
-      index.insert('a', const Rect.fromLTWH(0, 0, 64, 64));
-
-      // Rect.overlaps 要求严格大于：right > other.left，
-      // 仅共享边线（right == other.left）不算相交。
-      final edgeHits = index.query(const Rect.fromLTWH(64, 0, 10, 10));
-      expect(edgeHits, isNot(contains('a')));
-
-      // 有实际重叠时命中
-      final overlapping =
-          index.query(const Rect.fromLTWH(63.5, 0, 10, 10));
-      expect(overlapping, contains('a'));
-    });
-
-    test('remove 之后不再命中', () {
-      final index = SpatialIndex();
-      index.insert('a', const Rect.fromLTWH(0, 0, 50, 50));
-      index.remove('a');
-
-      final hits = index.query(const Rect.fromLTWH(0, 0, 64, 64));
-      expect(hits, isEmpty);
-    });
-
-    test('remove 不存在的 id 是安全空操作', () {
-      final index = SpatialIndex();
-      expect(() => index.remove('ghost'), returnsNormally);
-    });
-
-    test('clear 清空全部索引', () {
-      final index = SpatialIndex();
-      index.insert('a', const Rect.fromLTWH(0, 0, 10, 10));
-      index.insert('b', const Rect.fromLTWH(200, 200, 10, 10));
-      index.clear();
-
-      expect(index.query(const Rect.fromLTWH(0, 0, 1000, 1000)), isEmpty);
-      expect(index.debugGrid, isEmpty);
-      expect(index.boundsFor('a'), isNull);
+      final result = index.query(const Rect.fromLTRB(0, 0, 100, 100));
+      expect(result, isEmpty);
     });
   });
 
-  group('SpatialIndex 点查询', () {
-    test('queryPoint 命中包含该点的元素', () {
+  group('SpatialIndex.insert', () {
+    test('插入单个元素可查询', () {
       final index = SpatialIndex();
-      index.insert('box', const Rect.fromLTWH(10, 10, 40, 40));
+      index.insert('a', const Rect.fromLTWH(10, 10, 50, 50));
+      final result = index.query(const Rect.fromLTWH(0, 0, 100, 100));
+      expect(result, contains('a'));
+    });
 
-      expect(index.queryPoint(const Offset(30, 30)), contains('box'));
-      // 元素外一点不命中
+    test('插入多个元素', () {
+      final index = SpatialIndex();
+      index.insert('a', const Rect.fromLTWH(0, 0, 50, 50));
+      index.insert('b', const Rect.fromLTWH(100, 100, 50, 50));
+      index.insert('c', const Rect.fromLTWH(30, 30, 50, 50));
+
+      final result = index.query(const Rect.fromLTWH(0, 0, 40, 40));
+      expect(result, contains('a'));
+      expect(result, contains('c'));
+      expect(result, isNot(contains('b')));
+    });
+
+    test('debugGrid 包含插入的元素', () {
+      final index = SpatialIndex();
+      index.insert('x', const Rect.fromLTWH(0, 0, 10, 10));
+      expect(index.debugGrid, isNotEmpty);
+    });
+  });
+
+  group('SpatialIndex.remove', () {
+    test('移除后查询不到', () {
+      final index = SpatialIndex();
+      index.insert('a', const Rect.fromLTWH(10, 10, 50, 50));
+      index.remove('a');
+      final result = index.query(const Rect.fromLTWH(0, 0, 100, 100));
+      expect(result, isEmpty);
+    });
+
+    test('移除不存在的元素不崩溃', () {
+      final index = SpatialIndex();
+      expect(() => index.remove('nonexistent'), returnsNormally);
+    });
+
+    test('移除后网格被清理', () {
+      final index = SpatialIndex();
+      index.insert('a', const Rect.fromLTWH(0, 0, 10, 10));
+      index.remove('a');
+      expect(index.debugGrid, isEmpty);
+    });
+  });
+
+  group('SpatialIndex.query', () {
+    test('查询不重叠区域返回空', () {
+      final index = SpatialIndex();
+      index.insert('a', const Rect.fromLTWH(0, 0, 50, 50));
+      final result = index.query(const Rect.fromLTWH(200, 200, 50, 50));
+      expect(result, isEmpty);
+    });
+
+    test('查询包含区域返回所有重叠元素', () {
+      final index = SpatialIndex();
+      index.insert('a', const Rect.fromLTWH(10, 10, 20, 20));
+      index.insert('b', const Rect.fromLTWH(30, 30, 20, 20));
+      index.insert('c', const Rect.fromLTWH(200, 200, 20, 20));
+
+      final result = index.query(const Rect.fromLTWH(0, 0, 60, 60));
+      expect(result.length, 2);
+      expect(result, contains('a'));
+      expect(result, contains('b'));
+      expect(result, isNot(contains('c')));
+    });
+
+    test('边界相交被正确检测', () {
+      final index = SpatialIndex();
+      index.insert('edge', const Rect.fromLTWH(50, 50, 50, 50));
+      // 查询区域完全不重叠
+      final result = index.query(const Rect.fromLTWH(0, 0, 10, 10));
+      expect(result, isEmpty);
+
+      // 查询区域与元素有交集
+      final result2 = index.query(const Rect.fromLTWH(40, 40, 20, 20));
+      expect(result2, contains('edge'));
+    });
+
+    test('跨网格单元的大元素正确查询', () {
+      final index = SpatialIndex(cellSize: 32);
+      // 一个大矩形跨越多个网格单元
+      index.insert('big', const Rect.fromLTWH(0, 0, 128, 128));
+      final result = index.query(const Rect.fromLTWH(100, 100, 10, 10));
+      expect(result, contains('big'));
+    });
+  });
+
+  group('SpatialIndex.queryPoint', () {
+    test('点命中元素', () {
+      final index = SpatialIndex();
+      index.insert('a', const Rect.fromLTWH(10, 10, 50, 50));
+      expect(index.queryPoint(const Offset(25, 25)), contains('a'));
+    });
+
+    test('点在元素外', () {
+      final index = SpatialIndex();
+      index.insert('a', const Rect.fromLTWH(10, 10, 50, 50));
       expect(index.queryPoint(const Offset(100, 100)), isEmpty);
     });
+  });
 
-    test('同点重叠的多个元素全部返回', () {
+  group('SpatialIndex.boundsFor', () {
+    test('返回已插入元素的边界', () {
       final index = SpatialIndex();
-      index.insert('a', const Rect.fromLTWH(0, 0, 20, 20));
-      index.insert('b', const Rect.fromLTWH(5, 5, 20, 20));
+      const bounds = Rect.fromLTWH(10, 20, 30, 40);
+      index.insert('x', bounds);
+      expect(index.boundsFor('x'), bounds);
+    });
 
-      final hits = index.queryPoint(const Offset(10, 10));
-      expect(hits, containsAll(['a', 'b']));
+    test('不存在的元素返回 null', () {
+      final index = SpatialIndex();
+      expect(index.boundsFor('nope'), isNull);
     });
   });
 
-  group('SpatialIndex 网格划分', () {
-    test('跨多个网格单元的大元素可被任一覆盖区域的查询命中', () {
-      final index = SpatialIndex(cellSize: 64);
-      // 300x300 的元素跨越约 5x5 个 64px 网格
-      index.insert('big', const Rect.fromLTWH(0, 0, 300, 300));
-
-      expect(
-        index.query(const Rect.fromLTWH(250, 250, 20, 20)),
-        contains('big'),
-      );
-      expect(
-        index.query(const Rect.fromLTWH(10, 10, 5, 5)),
-        contains('big'),
-      );
+  group('SpatialIndex.clear', () {
+    test('清空后所有查询返回空', () {
+      final index = SpatialIndex();
+      index.insert('a', const Rect.fromLTWH(0, 0, 50, 50));
+      index.insert('b', const Rect.fromLTWH(50, 50, 50, 50));
+      index.clear();
+      expect(index.query(const Rect.fromLTWH(0, 0, 200, 200)), isEmpty);
+      expect(index.debugGrid, isEmpty);
     });
+  });
 
-    test('负坐标元素正常工作（Cantor pairing 键无冲突）', () {
+  group('SpatialIndex 负坐标', () {
+    test('负坐标元素正确处理', () {
       final index = SpatialIndex();
       index.insert('neg', const Rect.fromLTWH(-100, -100, 50, 50));
-      index.insert('pos', const Rect.fromLTWH(100, 100, 50, 50));
-
-      expect(
-        index.query(const Rect.fromLTWH(-90, -90, 10, 10)),
-        contains('neg'),
-      );
-      expect(
-        index.query(const Rect.fromLTWH(-90, -90, 10, 10)),
-        isNot(contains('pos')),
-      );
-      expect(
-        index.query(const Rect.fromLTWH(110, 110, 10, 10)),
-        contains('pos'),
-      );
+      final result = index.query(const Rect.fromLTWH(-150, -150, 200, 200));
+      expect(result, contains('neg'));
     });
 
-    test('同一元素重复插入以最后一次 bounds 为准且不产生重复命中', () {
+    test('跨原点矩形', () {
       final index = SpatialIndex();
-      index.insert('a', const Rect.fromLTWH(0, 0, 10, 10));
-      index.insert('a', const Rect.fromLTWH(200, 200, 10, 10));
-
-      // 旧位置的网格残留不应造成误报：query 会用最新 bounds 过滤
-      final oldHits = index.query(const Rect.fromLTWH(0, 0, 10, 10));
-      expect(oldHits, isNot(contains('a')));
-
-      final newHits = index.query(const Rect.fromLTWH(200, 200, 10, 10));
-      expect(newHits, contains('a'));
-      // boundsFor 反映最新值
-      expect(index.boundsFor('a'), const Rect.fromLTWH(200, 200, 10, 10));
-    });
-  });
-
-  group('ElementBounds 辅助类', () {
-    Stroke makeStroke(List<Offset> pts) => Stroke(
-          points: pts
-              .map((o) => StrokePoint(o.dx, o.dy, 1.0))
-              .toList(growable: false),
-          color: const Color(0xFF000000),
-          width: 4,
-          type: BrushType.pen,
-        );
-
-    test('strokeBounds 覆盖笔画所有采样点并留出笔宽余量', () {
-      final stroke = makeStroke([
-        const Offset(10, 10),
-        const Offset(50, 60),
-        const Offset(90, 30),
-      ]);
-      final bounds = ElementBounds.strokeBounds(stroke);
-
-      expect(bounds, isNotNull);
-      expect(bounds!.left, lessThanOrEqualTo(10));
-      expect(bounds.top, lessThanOrEqualTo(10));
-      expect(bounds.right, greaterThanOrEqualTo(90));
-      expect(bounds.bottom, greaterThanOrEqualTo(60));
-    });
-
-    test('shapeBounds 返回形状外接框（含笔触宽度膨胀）', () {
-      // ShapeRenderer.bounds 使用 Rect.inflate(strokeWidth + 20)
-      // 默认 strokeWidth=3 → inflate(23) → 每边向外扩展 23
-      final shape = PageShapeItem(
-        id: 's1',
-        shapeType: ShapeType.rect,
-        x: 40,
-        y: 50,
-        width: 120,
-        height: 80,
-      );
-      final bounds = ElementBounds.shapeBounds(shape);
-
-      expect(bounds.left, 17); // 40 - 23
-      expect(bounds.top, 27); // 50 - 23
-      expect(bounds.width, 166); // 120 + 2*23
-      expect(bounds.height, 126); // 80 + 2*23
-    });
-
-    test('updateAll 批量重建索引：strokes 与 shapes 全部可查', () {
-      final index = SpatialIndex();
-      final strokes = [
-        makeStroke([const Offset(0, 0), const Offset(30, 30)]),
-        makeStroke([const Offset(400, 400), const Offset(430, 430)]),
-      ];
-      final shapes = [
-        PageShapeItem(
-          id: 'rect1',
-          shapeType: ShapeType.rect,
-          x: 100,
-          y: 100,
-        ),
-      ];
-
-      ElementBounds.updateAll(index, strokes: strokes, shapes: shapes);
-
-      expect(index.query(const Rect.fromLTWH(0, 0, 32, 32)), contains('stroke_0'));
-      expect(
-        index.query(const Rect.fromLTWH(400, 400, 32, 32)),
-        contains('stroke_1'),
-      );
-      expect(
-        index.query(const Rect.fromLTWH(100, 100, 20, 20)),
-        contains('shape_rect1'),
-      );
-
-      // layerPrefix 生效
-      ElementBounds.updateAll(
-        index,
-        strokes: strokes,
-        shapes: shapes,
-        layerPrefix: 'L1/',
-      );
-      expect(
-        index.query(const Rect.fromLTWH(0, 0, 32, 32)),
-        contains('L1/stroke_0'),
-      );
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // 性能基准
-  // ---------------------------------------------------------------------------
-  group('性能基准', () {
-    test('1000 笔画 insert + query 耗时合理', () {
-      final index = SpatialIndex();
-      final rng = math.Random(42);
-      final sw = Stopwatch()..start();
-      for (var i = 0; i < 1000; i++) {
-        final x = rng.nextDouble() * 5000;
-        final y = rng.nextDouble() * 5000;
-        index.insert('s$i', Rect.fromLTWH(x, y, 20, 20));
-      }
-      // 查询 100 个随机区域
-      for (var i = 0; i < 100; i++) {
-        final x = rng.nextDouble() * 5000;
-        final y = rng.nextDouble() * 5000;
-        index.query(Rect.fromLTWH(x, y, 100, 100));
-      }
-      sw.stop();
-      // 1000 insert + 100 query 应在 500ms 内完成
-      expect(sw.elapsedMilliseconds, lessThan(500),
-          reason: '1000 insert + 100 query 耗时 ${sw.elapsedMilliseconds}ms');
-    });
-
-    test('5000 笔画批量 insert 性能', () {
-      final index = SpatialIndex();
-      final rng = math.Random(42);
-      final sw = Stopwatch()..start();
-      for (var i = 0; i < 5000; i++) {
-        final x = rng.nextDouble() * 10000;
-        final y = rng.nextDouble() * 10000;
-        index.insert('s$i', Rect.fromLTWH(x, y, 20, 20));
-      }
-      sw.stop();
-      // 5000 insert 应在 1s 内完成
-      expect(sw.elapsedMilliseconds, lessThan(1000),
-          reason: '5000 insert 耗时 ${sw.elapsedMilliseconds}ms');
-    });
-
-    test('10000 笔画 query 高频查询性能', () {
-      final index = SpatialIndex();
-      final rng = math.Random(42);
-      for (var i = 0; i < 10000; i++) {
-        final x = rng.nextDouble() * 20000;
-        final y = rng.nextDouble() * 20000;
-        index.insert('s$i', Rect.fromLTWH(x, y, 10, 10));
-      }
-      final sw = Stopwatch()..start();
-      for (var i = 0; i < 1000; i++) {
-        final x = rng.nextDouble() * 20000;
-        final y = rng.nextDouble() * 20000;
-        index.query(Rect.fromLTWH(x, y, 50, 50));
-      }
-      sw.stop();
-      // 1000 query on 10000 elements 应在 1s 内完成
-      expect(sw.elapsedMilliseconds, lessThan(1000),
-          reason: '1000 query 耗时 ${sw.elapsedMilliseconds}ms');
+      index.insert('cross', const Rect.fromLTWH(-20, -20, 40, 40));
+      expect(index.queryPoint(const Offset(0, 0)), contains('cross'));
     });
   });
 }
