@@ -14,6 +14,7 @@
 //   audit.meta.json      — 元数据（当前分片号、最后哈希）
 
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
@@ -272,7 +273,7 @@ class AuditLogStore {
           final recomputedHash = await _computeEntryHash(entry);
           if (recomputedHash != entry.hash) {
             // 日志被篡改——记录但不中断（可能部分损坏）。
-            print('WARNING: 审计日志条目哈希不匹配: ${entry.timestamp}');
+            developer.log('WARNING: 审计日志条目哈希不匹配: ${entry.timestamp}', name: 'AuditLogStore');
           }
 
           _entries!.add(entry);
@@ -280,7 +281,7 @@ class AuditLogStore {
           _lastHash = entry.hash;
         } catch (e) {
           // 解密失败——跳过（可能是损坏的条目）。
-          print('WARNING: 审计日志条目解密失败: $e');
+          developer.log('WARNING: 审计日志条目解密失败: $e', name: 'AuditLogStore');
         }
       }
     }
