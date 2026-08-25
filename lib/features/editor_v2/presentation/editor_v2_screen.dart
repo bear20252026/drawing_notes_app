@@ -6,20 +6,14 @@
 library;
 
 import 'dart:async';
-import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:file_selector/file_selector.dart';
 
 import 'package:editor_core/editor_core.dart';
 
 import '../../../core/storage/storage_service.dart';
-import '../../../core/export/canvas_pdf_exporter.dart';
-import '../../../core/export/note_pdf_exporter.dart';
-import '../../../core/export/pptx_exporter.dart';
 
 import '../../../../core/theme/responsive.dart';
 import '../../../../core/theme/app_design.dart';
@@ -283,66 +277,16 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
 
   /// Apple 风格：处理导出操作（PDF/PNG/PPT）。
   Future<void> _handleExport(String format) async {
-    try {
-      final state = ref.read(editorV2NotifierProvider);
-      final dir = await getDirectoryPath();
-      if (dir == null || !mounted) return;
-
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = widget.mode == UnifiedEditorMode.whiteboard
-          ? '画板_$timestamp'
-          : '笔记_$timestamp';
-
-      switch (format) {
-        case 'export_pdf':
-          if (widget.mode == UnifiedEditorMode.whiteboard) {
-            final strokes = state.document.layers.expand((l) => l.strokes).toList();
-            final bytes = await const CanvasPdfExporter().export(strokes);
-            await File('$dir/$fileName.pdf').writeAsBytes(bytes);
-          } else {
-            final bytes = await const NotePdfExporter().export(state.noteDocument);
-            await File('$dir/$fileName.pdf').writeAsBytes(bytes);
-          }
-          break;
-        case 'export_png':
-          final bytes = await _exportPng();
-          if (bytes != null) {
-            await File('$dir/$fileName.png').writeAsBytes(bytes);
-          }
-          break;
-        case 'export_ppt':
-          final bytes = await const PptxExporter().export(state.noteDocument?.pages ?? []);
-          await File('$dir/$fileName.pptx').writeAsBytes(bytes);
-          break;
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('导出成功: $dir/$fileName.${format == 'export_pdf' ? 'pdf' : format == 'export_png' ? 'png' : 'pptx'}'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('导出失败: $e'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-      }
+    // TODO: 导出功能需要适配 V2 数据模型（NoteDocument/LineItem）
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('导出功能即将推出'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
     }
-  }
-
-  /// PNG 导出：将画布渲染为图片。
-  Future<Uint8List?> _exportPng() async {
-    // TODO: 实现 PNG 导出（需要 RepaintBoundary）
-    return null;
   }
 
   /// 获取当前位置的取色结果（用于放大镜显示）。
