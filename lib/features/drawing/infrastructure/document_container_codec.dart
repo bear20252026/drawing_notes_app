@@ -22,11 +22,11 @@ import 'dart:typed_data';
 import 'dart:ui' show Color;
 import 'package:flutter/foundation.dart' show debugPrint;
 
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import '../domain/document.dart';
+import '../domain/document_image_item.dart';
+import '../domain/layer.dart';
+import '../domain/shape_item.dart';
+import '../domain/stroke.dart';
 
 /// 容器格式编解码器（Saber .sbn 借鉴——JSON index + 二进制数据）。
 ///
@@ -90,7 +90,7 @@ class DocumentContainerCodec {
             final s = entry.value;
             return {
               'id': key,
-              'color': s.color.value,
+              'color': s.color.toARGB32(),
               'width': s.width,
               'type': s.type.name,
               'opacity': s.opacity,
@@ -128,13 +128,13 @@ class DocumentContainerCodec {
   /// 从容器格式字节解码。
   DrawingDocument decode(Uint8List bytes) {
     if (bytes.length < headerSize) {
-      throw FormatException('容器文件过小');
+      throw const FormatException('容器文件过小');
     }
 
     final header = bytes.buffer.asByteData(0, headerSize);
     final magic = header.getUint32(0);
     if (magic != magicNumber) {
-      throw FormatException('无效的容器文件格式');
+      throw const FormatException('无效的容器文件格式');
     }
 
     final version = header.getUint32(4);
@@ -144,7 +144,7 @@ class DocumentContainerCodec {
 
     final indexOffset = header.getUint32(8);
     if (indexOffset >= bytes.length) {
-      throw FormatException('index 偏移量超出文件范围');
+      throw const FormatException('index 偏移量超出文件范围');
     }
 
     // 读取 JSON index。

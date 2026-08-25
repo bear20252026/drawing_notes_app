@@ -10,8 +10,6 @@ void main() {
     shapeType: ShapeType.rect,
     x: x,
     y: y,
-    width: 120,
-    height: 80,
     zOrder: 1,
   );
 

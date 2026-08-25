@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 
-import 'package:drawing_notes_app/features/drawing/application/search_service.dart';
-import 'package:drawing_notes_app/l10n/app_localizations.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
-import 'package:drawing_notes_app/core/storage/storage_service.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
-import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
+import '../../drawing/application/search_service.dart';
+import '../../../l10n/app_localizations.dart';
+import '../infrastructure/notebook_storage.dart';
+import '../../../core/storage/storage_service.dart';
+import '../../drawing/presentation/editor_page.dart';
+import 'notebook_view_page.dart';
 
 /// 全文搜索页（借鉴 Joplin / nb 的全文搜索）。
 class SearchPage extends StatefulWidget {
@@ -118,16 +118,16 @@ class _SearchPageState extends State<SearchPage> {
 
   Widget _buildBody() {
     if (_searching) {
-      return Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator());
     }
     if (_controller.text.trim().isEmpty) {
       return Center(
-        child: Text(AppLocalizations.of(context)?.searchEmptyHint ?? '输入关键词开始搜索', style: TextStyle(color: Colors.grey)),
+        child: Text(AppLocalizations.of(context)?.searchEmptyHint ?? '输入关键词开始搜索', style: const TextStyle(color: Colors.grey)),
       );
     }
     if (_results.isEmpty) {
       return Center(
-        child: Text(AppLocalizations.of(context)?.searchNoResults ?? '未找到匹配内容', style: TextStyle(color: Colors.grey)),
+        child: Text(AppLocalizations.of(context)?.searchNoResults ?? '未找到匹配内容', style: const TextStyle(color: Colors.grey)),
       );
     }
     return ListView.builder(

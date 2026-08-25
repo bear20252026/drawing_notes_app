@@ -1,5 +1,5 @@
-import 'package:drawing_notes_app/features/drawing/domain/text_item.dart' show PageTextItem;
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart' show Stroke;
+import '../../features/drawing/domain/text_item.dart' show PageTextItem;
+import '../../features/drawing/domain/stroke.dart' show Stroke;
 
 /// SVG 导出纯函数（从 editor_page 拆出的导出域第一步）。
 ///

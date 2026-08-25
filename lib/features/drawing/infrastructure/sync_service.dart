@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:drawing_notes_app/features/drawing/infrastructure/sync_path_cipher.dart';
+import 'sync_path_cipher.dart';
 
 /// 云端同步条目：一个待同步/已同步的文件（本地 + 远程双端描述）。
 ///

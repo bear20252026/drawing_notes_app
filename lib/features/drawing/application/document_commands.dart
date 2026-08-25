@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
-import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
+import '../domain/document_image_item.dart';
+import '../domain/layer.dart';
+import '../domain/shape_item.dart';
+import '../domain/stroke.dart';
+import 'drawing_controller.dart';
 
 /// 撤销/重做历史条目（R5：从 drawing_controller 拆出的命令模式文件）。
 ///

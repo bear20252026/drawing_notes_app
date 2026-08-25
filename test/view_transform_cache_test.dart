@@ -13,13 +13,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/view_transform_cache.dart';
 
 void main() {
-  setUp(() {
-    ViewTransformCache.clear();
-  });
+  setUp(ViewTransformCache.clear);
 
-  tearDown(() {
-    ViewTransformCache.clear();
-  });
+  tearDown(ViewTransformCache.clear);
 
   group('save / restore 往返', () {
     test('保存后恢复得到相同 scale 与 offset', () {

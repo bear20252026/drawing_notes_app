@@ -207,7 +207,7 @@ class DataMigrator {
     final dir = await _ensureMigrationDir();
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final logFile = File(
-      '${dir.path}${Platform.pathSeparator}migration_${timestamp}.json',
+      '${dir.path}${Platform.pathSeparator}migration_$timestamp.json',
     );
     await logFile.writeAsString(
       const JsonEncoder.withIndent('  ').convert(report.toJson()),

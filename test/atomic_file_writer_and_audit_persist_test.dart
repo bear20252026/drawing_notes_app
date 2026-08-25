@@ -24,7 +24,7 @@ void main() {
   // ══════════════════════════════════════════════════════════
 
   group('P1 #26 AtomicFileWriter', () {
-    final writer = AtomicFileWriter(timeout: const Duration(seconds: 5));
+    const writer = AtomicFileWriter(timeout: Duration(seconds: 5));
 
     test('writeBytes 正常写入', () async {
       final file = File('${tmpDir.path}/test_write.bin');
@@ -131,7 +131,7 @@ void main() {
     test('AuditLogEntry 序列化/反序列化', () {
       final entry = AuditLogEntry(
         action: 'user.login',
-        timestamp: DateTime(2026, 8, 24, 12, 0, 0).millisecondsSinceEpoch,
+        timestamp: DateTime(2026, 8, 24, 12).millisecondsSinceEpoch,
         content: 'IP: 192.168.1.1',
       );
 

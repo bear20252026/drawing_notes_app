@@ -175,8 +175,8 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                   onPanUpdate: (d) => _pickHue(d.localPosition),
                   child: Stack(
                     children: [
-                      Positioned.fill(
-                        child: CustomPaint(painter: const _HueBarPainter()),
+                      const Positioned.fill(
+                        child: CustomPaint(painter: _HueBarPainter()),
                       ),
                       // 当前色相指示。
                       Positioned(
@@ -342,9 +342,7 @@ class _SvSquarePainter extends CustomPainter {
     ).createShader(rect);
     canvas.drawRect(rect, Paint()..shader = svGradient);
     // 覆盖：横向饱和度叠加（右侧饱和、左侧去饱和）。
-    final sGradient = LinearGradient(
-      begin: Alignment.centerLeft,
-      end: Alignment.centerRight,
+    final sGradient = const LinearGradient(
       colors: [Colors.transparent, Colors.white],
     ).createShader(rect);
     canvas.drawRect(rect, Paint()..shader = sGradient);

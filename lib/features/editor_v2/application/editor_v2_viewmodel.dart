@@ -6,7 +6,6 @@
 // 使用 Riverpod 3.x Notifier（手动声明——不依赖 build_runner）。
 library;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -145,7 +144,7 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
   EditorV2State build() {
     const initialDoc = DocumentV2(id: 'new', pageCount: 1);
     _reducer = DocumentReducer(initialDoc);
-    return EditorV2State(document: initialDoc);
+    return const EditorV2State(document: initialDoc);
   }
 
   // ──────────────────────────── 命令分发 ────────────────────────────
@@ -262,8 +261,7 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
   /// 取消选中。
   void clearSelection() {
     state = state.copyWith(
-      selectedTextId: null,
-      selectedItemId: null,
+      
     );
   }
 
@@ -411,7 +409,7 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
   ///
   /// 将采样到的颜色转换为 #RRGGBB 并应用为当前画笔颜色，退出取色模式。
   void applyPickedColor(Color color) {
-    final hex = '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
+    final hex = '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
     state = state.copyWith(
       currentTool: 'draw',
       eyedropperActive: false,
@@ -444,5 +442,5 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
 /// Riverpod Provider（手动声明——不依赖代码生成）。
 final editorV2NotifierProvider =
     NotifierProvider<EditorV2Notifier, EditorV2State>(
-  () => EditorV2Notifier(),
+  EditorV2Notifier.new,
 );

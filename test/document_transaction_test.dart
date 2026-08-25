@@ -53,7 +53,7 @@ void main() {
         _RecordingCommand('b', log, failOnRedo: true),
         _RecordingCommand('c', log),
       ]);
-      expect(() => txn.redo(), throwsStateError);
+      expect(txn.redo, throwsStateError);
       // b 失败 → 回滚已执行的 a；c 未执行。
       expect(log, ['redo:a', 'redo:b', 'undo:a']);
     });

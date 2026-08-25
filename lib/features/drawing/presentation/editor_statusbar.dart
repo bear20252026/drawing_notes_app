@@ -2,10 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
-import 'package:drawing_notes_app/features/drawing/application/di_providers.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/application/stylus_input.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import '../application/di_providers.dart';
+import '../domain/document.dart';
+import '../application/stylus_input.dart';
+import '../domain/stroke.dart';
 
 /// 编辑器状态栏（架构重构 R3：从 editor_page 外移的纯展示组件）。
 ///

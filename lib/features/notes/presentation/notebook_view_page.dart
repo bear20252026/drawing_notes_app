@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:drawing_notes_app/core/theme/app_design.dart';
-import 'package:drawing_notes_app/core/theme/text_scale_helper.dart';
+import '../../../core/theme/app_design.dart';
+import '../../../core/theme/text_scale_helper.dart';
 import 'dart:io';
 import 'dart:math' as math;
 
@@ -10,24 +10,24 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
-import 'package:drawing_notes_app/core/rendering/ink_layer_painter.dart';
-import 'package:drawing_notes_app/core/rendering/shape_renderer.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
-import 'package:drawing_notes_app/core/storage/password_disk.dart';
-import 'package:drawing_notes_app/core/security/policy_engine.dart';
-import 'package:drawing_notes_app/core/security/session_guard.dart';
-import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
-import 'package:drawing_notes_app/l10n/app_localizations.dart';
-import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
-import 'package:drawing_notes_app/core/storage/pdf_import_service.dart';
-import 'package:drawing_notes_app/core/storage/recovery_key_generator.dart';
-import 'package:drawing_notes_app/core/storage/storage_service.dart';
-import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
-import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
-import 'package:drawing_notes_app/features/notes/presentation/presentation_page.dart';
+import '../../../core/rendering/ink_layer_painter.dart';
+import '../../../core/rendering/shape_renderer.dart';
+import '../../drawing/domain/document.dart';
+import '../domain/notebook.dart';
+import '../infrastructure/notebook_storage.dart';
+import '../../../core/storage/password_disk.dart';
+import '../../../core/security/policy_engine.dart';
+import '../../../core/security/session_guard.dart';
+import '../../../core/storage/vfs/vault_service.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../../core/security/media_crypto_service.dart';
+import '../../../core/storage/pdf_import_service.dart';
+import '../../../core/storage/recovery_key_generator.dart';
+import '../../../core/storage/storage_service.dart';
+import '../../../shared/widgets/ambient_background.dart';
+import '../../../shared/widgets/glass_surface.dart';
+import '../../drawing/presentation/editor_page.dart';
+import 'presentation_page.dart';
 
 part 'notebook_view_page_widgets.dart';
 part 'notebook_view_page_imports.dart';
@@ -133,7 +133,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
     // H-05 部分落地：后台/切出自动保存草稿（防数据丢失；_save 有
     // _saving 保护不会并发堆叠；onInactive 覆盖切后台/失去焦点场景）。
     _lifecycleListener = AppLifecycleListener(
-      onInactive: () => _save(),
+      onInactive: _save,
     );
     // 搜索高亮跳转：携带命中页 ID 时，首帧后直接打开该页。
     final jumpToPageId = widget.initialPageId;
@@ -394,7 +394,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                 child: ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.link_rounded),
+                  leading: const Icon(Icons.link_rounded),
                   title: Text(AppLocalizations.of(context)?.noteImportPage ?? '从其他笔记本引入页面'),
                 ),
               ),
@@ -403,7 +403,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                 child: ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.upload_file_rounded),
+                  leading: const Icon(Icons.upload_file_rounded),
                   title: Text(AppLocalizations.of(context)?.noteImportMarkdown ?? '导入 Markdown 或文本'),
                 ),
               ),
@@ -412,7 +412,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                 child: ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.picture_as_pdf_outlined),
+                  leading: const Icon(Icons.picture_as_pdf_outlined),
                   title: Text(AppLocalizations.of(context)?.noteImportPdf ?? '导入 PDF 并逐页批注'),
                 ),
               ),
@@ -435,7 +435,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                 child: ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.drive_file_move_outlined),
+                  leading: const Icon(Icons.drive_file_move_outlined),
                   title: Text(AppLocalizations.of(context)?.noteTidyPages ?? '批量整理页面'),
                 ),
               ),
@@ -462,7 +462,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                   onChanged: (v) => setState(() => _tagFilter = v.trim()),
                   decoration: InputDecoration(
                     hintText: AppLocalizations.of(context)?.noteFilterHint ?? '筛选标签或关键词',
-                    prefixIcon: Icon(Icons.search_rounded, size: 20),
+                    prefixIcon: const Icon(Icons.search_rounded, size: 20),
                   ),
                 ),
               ),

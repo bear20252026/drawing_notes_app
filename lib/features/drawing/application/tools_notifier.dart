@@ -7,8 +7,8 @@
 // DrawingController 仍持有 ToolsNotifier 实例，工具变更时同步更新并转发通知。
 
 import 'package:flutter/material.dart';
-import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import 'eraser_mode.dart';
+import '../domain/stroke.dart';
 
 /// 工具状态 ChangeNotifier。
 ///

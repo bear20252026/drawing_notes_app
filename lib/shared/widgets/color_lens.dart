@@ -172,7 +172,7 @@ class _LensPainter extends CustomPainter {
   ) async {
     if (callback == null) return;
 
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final byteData = await image.toByteData();
     if (byteData == null) return;
 
     final centerX = image.width ~/ 2;
@@ -292,7 +292,6 @@ class SimpleColorLens extends StatelessWidget {
                 decoration: BoxDecoration(
                   border: Border.all(
                     color: Colors.white.withValues(alpha: 0.8),
-                    width: 1.0,
                   ),
                 ),
               ),

@@ -1,11 +1,11 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/theme/text_scale_helper.dart';
 import 'package:flutter/services.dart';
 
-import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
+import '../domain/notebook.dart';
 
 /// 幻灯片演示模式（对齐 Excalidraw presentation）。
 ///

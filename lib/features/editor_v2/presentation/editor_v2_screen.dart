@@ -6,7 +6,6 @@
 library;
 
 import 'dart:async';
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -110,9 +109,8 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
   NoteDocument _initialNoteDocument(String documentId) {
     return NoteDocument(
       id: documentId,
-      title: '未命名笔记',
       paragraphs: [
-        NoteParagraph(id: 'p1', content: ''),
+        const NoteParagraph(id: 'p1', content: ''),
       ],
     );
   }
@@ -145,10 +143,10 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
               color: Theme.of(ctx).colorScheme.surface,
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
-                BoxShadow(
+                const BoxShadow(
                   color: Colors.black26,
                   blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  offset: Offset(0, 2),
                 ),
               ],
             ),
@@ -204,7 +202,7 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
       final image = await boundary.toImage(
         pixelRatio: MediaQuery.devicePixelRatioOf(context),
       );
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      final byteData = await image.toByteData();
       if (byteData == null) return null;
 
       final buffer = byteData.buffer.asUint8List();
@@ -394,7 +392,6 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
                                   CustomPaint(
                                     painter: CanvasPainterV2(
                                       document: state.document,
-                                      fillMode: FillMode.stroke,
                                     ),
                                     size: Size.infinite,
                                   ),

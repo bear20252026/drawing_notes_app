@@ -111,7 +111,7 @@ class _InspiraMarqueeState extends State<InspiraMarquee>
 
     if (widget.items.isEmpty) return const SizedBox.shrink();
 
-    Widget viewport = LayoutBuilder(
+    final Widget viewport = LayoutBuilder(
       builder: (context, constraints) {
         final viewW = constraints.maxWidth;
 
@@ -128,7 +128,6 @@ class _InspiraMarqueeState extends State<InspiraMarquee>
             setState(() => _contentWidth = w);
           });
           return Offstage(
-            offstage: true,
             child: UnconstrainedBox(
               child: Row(
                 key: _measureKey,

@@ -3,8 +3,8 @@
 // 职责：管理图层的增删改查、可见性、透明度、排序。
 // 设计：纯状态容器 + onChange 回调，不依赖 ChangeNotifier。
 
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
+import '../domain/document.dart';
+import '../domain/layer.dart';
 
 /// 图层操作管理器。
 ///

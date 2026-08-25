@@ -57,15 +57,15 @@ class PagedCanvasNotifier extends Notifier<PagedCanvasState> {
   @override
   PagedCanvasState build() {
     // 默认一页。
-    final page = PageV2(
+    const page = PageV2(
       id: 'page-1',
-      document: const DocumentV2(id: 'doc-1', pageCount: 1, layers: [
+      document: DocumentV2(id: 'doc-1', pageCount: 1, layers: [
         LayerV2(id: 'layer-1', name: 'Layer 1'),
       ]),
       index: 0,
     );
     _pageReducers['page-1'] = DocumentReducer(page.document);
-    return PagedCanvasState(pages: [page]);
+    return const PagedCanvasState(pages: [page]);
   }
 
   /// 获取当前页的 DocumentReducer。
@@ -186,5 +186,5 @@ class PagedCanvasNotifier extends Notifier<PagedCanvasState> {
 /// Riverpod Provider。
 final pagedCanvasNotifierProvider =
     NotifierProvider<PagedCanvasNotifier, PagedCanvasState>(
-  () => PagedCanvasNotifier(),
+  PagedCanvasNotifier.new,
 );

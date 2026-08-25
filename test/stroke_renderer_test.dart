@@ -37,9 +37,9 @@ void main() {
     test('多点笔画返回非空闭合 Path', () {
       final stroke = makeStroke([
         makePoint(0, pressure: 0.3),
-        makePoint(10, pressure: 0.5),
+        makePoint(10),
         makePoint(20, pressure: 0.7),
-        makePoint(30, pressure: 0.5),
+        makePoint(30),
         makePoint(40, pressure: 0.3),
       ]);
       final outline = StrokeRenderer.strokeOutline(stroke);
@@ -80,7 +80,7 @@ void main() {
     });
 
     test('单点笔画的包围盒包含点位 + 半径', () {
-      final stroke = makeStroke([makePoint(100, pressure: 0.5)]);
+      final stroke = makeStroke([makePoint(100)]);
       final bounds = StrokeRenderer.strokeBounds(stroke);
       expect(bounds, isNotNull);
       expect(bounds!.left, lessThan(100));
@@ -90,9 +90,9 @@ void main() {
 
     test('多点笔画包围盒覆盖所有点', () {
       final stroke = makeStroke([
-        makePoint(0, pressure: 0.5),
-        makePoint(100, pressure: 0.5),
-        makePoint(50, pressure: 0.5),
+        makePoint(0),
+        makePoint(100),
+        makePoint(50),
       ]);
       final bounds = StrokeRenderer.strokeBounds(stroke);
       expect(bounds, isNotNull);
@@ -111,7 +111,7 @@ void main() {
     });
 
     test('单点笔画返回包含 M 和 Z 的 SVG 路径', () {
-      final stroke = makeStroke([makePoint(50, pressure: 0.5)]);
+      final stroke = makeStroke([makePoint(50)]);
       final svg = StrokeRenderer.strokeToSvgPath(stroke);
       expect(svg, isNotNull);
       expect(svg!.startsWith('M '), isTrue);
@@ -131,7 +131,7 @@ void main() {
     });
 
     test('offset 参数平移输出坐标', () {
-      final stroke = makeStroke([makePoint(10, pressure: 0.5)]);
+      final stroke = makeStroke([makePoint(10)]);
       final svg1 = StrokeRenderer.strokeToSvgPath(stroke);
       final svg2 =
           StrokeRenderer.strokeToSvgPath(stroke, offset: const Offset(100, 0));

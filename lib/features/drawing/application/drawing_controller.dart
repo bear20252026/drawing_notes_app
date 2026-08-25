@@ -5,28 +5,28 @@ import 'dart:ui' show Color, Offset, Paint, FilterQuality, Rect;
 
 import 'package:flutter/foundation.dart';
 
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
-import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
-import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
-import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
-import 'package:drawing_notes_app/features/drawing/application/selection_geometry_service.dart';
-import 'package:drawing_notes_app/features/drawing/application/color_sampling_service.dart';
-import 'package:drawing_notes_app/features/drawing/application/image_transform_service.dart';
-import 'package:drawing_notes_app/features/drawing/application/document_transaction.dart';
-import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
-import 'package:drawing_notes_app/features/drawing/application/temporary_markers.dart';
-import 'package:drawing_notes_app/core/rendering/ink_layer_painter.dart';
-import 'package:drawing_notes_app/core/rendering/layer_compositor.dart';
-import 'package:drawing_notes_app/core/rendering/stroke_geometry_cache.dart';
-import 'package:drawing_notes_app/core/rendering/shape_recognizer.dart';
-import 'package:drawing_notes_app/core/rendering/shape_binding_geometry.dart';
-import 'package:drawing_notes_app/core/rendering/shape_renderer.dart';
-import 'package:drawing_notes_app/core/rendering/stroke_renderer.dart';
-import 'package:drawing_notes_app/features/drawing/application/spatial_index.dart';
+import '../domain/document.dart';
+import '../domain/document_image_item.dart';
+import '../domain/layer.dart';
+import '../domain/selection.dart';
+import '../domain/shape_item.dart';
+import '../domain/stroke.dart';
+import '../../../core/storage/local_id_generator.dart';
+import 'document_commands.dart';
+import 'selection_geometry_service.dart';
+import 'color_sampling_service.dart';
+import 'image_transform_service.dart';
+import 'document_transaction.dart';
+import 'eraser_mode.dart';
+import 'temporary_markers.dart';
+import '../../../core/rendering/ink_layer_painter.dart';
+import '../../../core/rendering/layer_compositor.dart';
+import '../../../core/rendering/stroke_geometry_cache.dart';
+import '../../../core/rendering/shape_recognizer.dart';
+import '../../../core/rendering/shape_binding_geometry.dart';
+import '../../../core/rendering/shape_renderer.dart';
+import '../../../core/rendering/stroke_renderer.dart';
+import 'spatial_index.dart';
 
 /// 绘图引擎控制器：UI 层与数据模型之间的唯一桥梁。
 ///

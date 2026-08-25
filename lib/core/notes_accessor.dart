@@ -1,4 +1,4 @@
-import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
+import '../features/notes/domain/notebook.dart';
 
 /// 跨功能笔记访问接口（S4b：drawing→notes 横向依赖接口化）。
 ///

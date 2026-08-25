@@ -1,7 +1,7 @@
-import 'package:drawing_notes_app/core/notes_accessor.dart';
-import 'package:drawing_notes_app/features/notes/domain/notebook.dart' show Notebook, NotebookPage;
-import 'package:drawing_notes_app/core/storage/repository.dart';
-import 'package:drawing_notes_app/core/storage/storage_service.dart';
+import '../../../core/notes_accessor.dart';
+import '../../notes/domain/notebook.dart' show Notebook, NotebookPage;
+import '../../../core/storage/repository.dart';
+import '../../../core/storage/storage_service.dart';
 
 /// 搜索命中结果（借鉴 Joplin / nb 的全文搜索）。
 class SearchResult {

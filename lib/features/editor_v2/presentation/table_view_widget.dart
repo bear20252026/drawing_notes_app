@@ -159,17 +159,17 @@ class _TableViewWidgetState extends State<TableViewWidget> {
         Container(
           decoration: BoxDecoration(
             color: theme.colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
           ),
           child: Row(
             children: [
               // 行号列
-              SizedBox(width: 40),
+              const SizedBox(width: 40),
               // 列头
               ...List.generate(table.headers.length, (colIndex) {
                 return Expanded(
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                     decoration: BoxDecoration(
                       border: Border(
                         right: BorderSide(
@@ -205,7 +205,7 @@ class _TableViewWidgetState extends State<TableViewWidget> {
                 onTap: _addColumn,
                 child: Container(
                   width: 40,
-                  padding: EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(8),
                   child: Icon(Icons.add, size: 16,
                       color: theme.colorScheme.primary),
                 ),
@@ -230,7 +230,7 @@ class _TableViewWidgetState extends State<TableViewWidget> {
                 // 行号
                 Container(
                   width: 40,
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                   child: Text(
                     '${rowIndex + 1}',
                     style: theme.textTheme.bodySmall?.copyWith(
@@ -243,12 +243,12 @@ class _TableViewWidgetState extends State<TableViewWidget> {
                 ...List.generate(table.headers.length, (colIndex) {
                   if (rowIndex >= _cellControllers.length ||
                       colIndex >= _cellControllers[rowIndex].length) {
-                    return Expanded(child: SizedBox.shrink());
+                    return const Expanded(child: SizedBox.shrink());
                   }
                   final controller = _cellControllers[rowIndex][colIndex];
                   return Expanded(
                     child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                       decoration: BoxDecoration(
                         border: Border(
                           right: BorderSide(
@@ -258,7 +258,7 @@ class _TableViewWidgetState extends State<TableViewWidget> {
                       ),
                       child: TextField(
                         controller: controller,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
                           focusedBorder: InputBorder.none,
@@ -280,7 +280,7 @@ class _TableViewWidgetState extends State<TableViewWidget> {
                   onTap: () => _deleteRow(row.id),
                   child: Container(
                     width: 40,
-                    padding: EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(8),
                     child: Icon(Icons.remove, size: 14,
                         color: theme.colorScheme.outline),
                   ),
@@ -294,7 +294,7 @@ class _TableViewWidgetState extends State<TableViewWidget> {
         GestureDetector(
           onTap: _addRow,
           child: Container(
-            padding: EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
               border: Border(
                 top: BorderSide(color: theme.colorScheme.outlineVariant),
@@ -304,7 +304,7 @@ class _TableViewWidgetState extends State<TableViewWidget> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.add, size: 16, color: theme.colorScheme.primary),
-                SizedBox(width: 4),
+                const SizedBox(width: 4),
                 Text(
                   '添加行',
                   style: theme.textTheme.bodySmall?.copyWith(

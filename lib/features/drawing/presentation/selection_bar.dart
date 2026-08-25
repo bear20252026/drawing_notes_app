@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/selection_action_button.dart';
+import '../application/drawing_controller.dart';
+import 'selection_action_button.dart';
 
 /// 选区操作条（复制/粘贴/锁定/删除/清除 + 缩放/旋转滑块 + 状态文案）。
 ///
@@ -159,7 +159,6 @@ class SelectionBar extends StatelessWidget {
                       Expanded(
                         child: Slider(
                           value: rotateDegrees.clamp(0, 360),
-                          min: 0,
                           max: 360,
                           onChanged: hasStrokes ? onRotateChanged : null,
                         ),

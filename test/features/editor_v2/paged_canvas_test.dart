@@ -63,7 +63,7 @@ void main() {
     notifier.setCurrentPage(0); // 回第一页
     final page1Notifier = container.read(pagedCanvasNotifierProvider.notifier);
     page1Notifier.executeOnCurrentPage(
-      AddStrokeCommand(layerId: 'layer-1', stroke: LineItem(id: 's1', points: [Point(0, 0), Point(10, 10)])),
+      const AddStrokeCommand(layerId: 'layer-1', stroke: LineItem(id: 's1', points: [Point(0, 0), Point(10, 10)])),
     );
     expect(container.read(pagedCanvasNotifierProvider).currentPage!.document.layers.first.strokes.length, 1);
 

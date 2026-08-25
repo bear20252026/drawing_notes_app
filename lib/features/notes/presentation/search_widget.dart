@@ -151,7 +151,7 @@ class _SearchWidgetState extends State<SearchWidget> {
     _debounce = Timer(const Duration(milliseconds: 200), () {
       if (!mounted) return;
       setState(() {
-        _results = widget.index.search(value.trim(), limit: 50);
+        _results = widget.index.search(value.trim());
       });
     });
   }
@@ -292,7 +292,7 @@ class _HighlightedSnippet extends StatelessWidget {
     final snippet = result.matchedText;
     final snippetStart = (result.matchStart - 20).clamp(0, snippet.length);
     final offsetInSnippet = result.matchStart - snippetStart;
-    var end = offsetInSnippet + result.matchLength;
+    final end = offsetInSnippet + result.matchLength;
     // 防御：索引数据与结果不同步时避免 RangeError。
     if (offsetInSnippet > snippet.length || end > snippet.length) {
       return Text(snippet, maxLines: 2, overflow: TextOverflow.ellipsis);

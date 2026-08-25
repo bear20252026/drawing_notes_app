@@ -1,33 +1,33 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:drawing_notes_app/l10n/app_localizations.dart';
+import '../../../l10n/app_localizations.dart';
 
-import 'package:drawing_notes_app/core/theme/app_design.dart';
-import 'package:drawing_notes_app/core/theme/responsive.dart';
-import 'package:drawing_notes_app/core/di/providers.dart';
-import 'package:drawing_notes_app/features/notes/presentation/search_widget.dart';
-import 'package:drawing_notes_app/core/search/search_index.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
-import 'package:drawing_notes_app/core/storage/password_disk.dart';
-import 'package:drawing_notes_app/core/storage/encryption_service.dart';
-import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
-import 'package:drawing_notes_app/core/security/policy_engine.dart';
-import 'package:drawing_notes_app/core/storage/repository.dart';
-import 'package:drawing_notes_app/core/storage/storage_service.dart';
-import 'package:drawing_notes_app/features/notes/presentation/onboarding.dart';
-import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
-import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
-import 'package:drawing_notes_app/features/editor_v2/presentation/editor_v2_screen.dart';
+import '../../../core/theme/app_design.dart';
+import '../../../core/theme/responsive.dart';
+import '../../../core/di/providers.dart';
+import 'search_widget.dart';
+import '../../../core/search/search_index.dart';
+import '../../drawing/domain/document.dart';
+import '../domain/notebook.dart';
+import '../infrastructure/notebook_storage.dart';
+import '../../../core/storage/password_disk.dart';
+import '../../../core/storage/encryption_service.dart';
+import '../../../core/security/media_crypto_service.dart';
+import '../../../core/security/policy_engine.dart';
+import '../../../core/storage/repository.dart';
+import '../../../core/storage/storage_service.dart';
+import 'onboarding.dart';
+import '../../../shared/widgets/ambient_background.dart';
+import '../../../shared/widgets/glass_surface.dart';
+import '../../drawing/presentation/editor_page.dart';
+import '../../editor_v2/presentation/editor_v2_screen.dart';
 import 'package:editor_core/editor_core.dart' hide TabBar;
-import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
-import 'package:drawing_notes_app/features/notes/presentation/password_disk_page.dart';
+import 'notebook_view_page.dart';
+import 'password_disk_page.dart';
 
 part 'home_page_widgets.dart';
 
@@ -135,7 +135,6 @@ class _HomePageState extends ConsumerState<HomePage> {
         // （画板模式——无限画布——问题已修——不用旧 V1 editor_page）。
         builder: (_) => EditorV2Screen(
           documentId: doc.id,
-          mode: UnifiedEditorMode.whiteboard,
         ),
       ),
     );
@@ -668,7 +667,6 @@ class _HomePageState extends ConsumerState<HomePage> {
         // 统一架构 V2（2026-08-22）：快速记录 → EditorV2Screen（画板模式）。
         builder: (_) => EditorV2Screen(
           documentId: doc.id,
-          mode: UnifiedEditorMode.whiteboard,
         ),
       ),
     );
@@ -843,7 +841,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           desktopColumns: 4,
           crossAxisSpacing: context.responsiveFont(mobile: 12, desktop: 18),
           mainAxisSpacing: context.responsiveFont(mobile: 12, desktop: 18),
-          childAspectRatio: ResponsiveValue<double>(
+          childAspectRatio: const ResponsiveValue<double>(
             mobile: 0.78,
             tablet: 0.80,
             desktop: 0.82,

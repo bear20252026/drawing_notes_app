@@ -34,7 +34,6 @@ void main() {
     final document = DrawingDocument(
       id: 'paper_blank',
       title: '空白',
-      paperType: PaperType.blank,
     );
     final controller = DrawingController(document);
     addTearDown(controller.dispose);

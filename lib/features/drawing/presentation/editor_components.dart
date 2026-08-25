@@ -3,9 +3,9 @@ import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
 
-import 'package:drawing_notes_app/core/theme/text_scale_helper.dart';
-import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
-import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
+import '../../../core/theme/text_scale_helper.dart';
+import '../application/drawing_controller.dart';
+import '../../notes/domain/notebook.dart';
 
 /// 编辑器纯展示组件集（架构重构 R1：从 editor_page 外移的零耦合组件）。
 ///
@@ -359,7 +359,7 @@ class ShapePainter extends CustomPainter {
         ..strokeCap = StrokeCap.round;
       final rng2 = math.Random(shape.id.hashCode ^ 0x5A);
       final angle = 0.7 + rng2.nextDouble() * 0.2; // 斜线角度微随机
-      final spacing = 7.0;
+      const spacing = 7.0;
       canvas.save();
       canvas.clipPath(clipPath);
       final diag = math.sqrt(
@@ -512,7 +512,7 @@ class SnapGuidePainter extends CustomPainter {
       ..color =
           const Color(0xFFFF5252) // 醒目红（Excalidraw 同款参考线色）
       ..strokeWidth = 1.2;
-    final canvasPoint = Offset.zero;
+    const canvasPoint = Offset.zero;
     for (final g in guides) {
       final viewPos = controller.canvasToView(
         g.vertical
@@ -627,7 +627,7 @@ class ChartPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
     final maxV = data.fold<double>(0, (m, v) => v > m ? v : m);
     final maxY = maxV <= 0 ? 1.0 : maxV;
-    final left = 0.0;
+    const left = 0.0;
     final bw = size.width / data.length;
     final chartBottom = size.height - 8;
 
@@ -674,7 +674,7 @@ class ChartPainter extends CustomPainter {
       ),
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: size.width);
-    tp.paint(canvas, Offset(0, 0));
+    tp.paint(canvas, const Offset(0, 0));
   }
 
   @override

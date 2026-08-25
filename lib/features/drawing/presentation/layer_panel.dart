@@ -2,7 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:material_ui/material_ui.dart';
 
-import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
+import '../application/drawing_controller.dart';
 
 /// 图层面板（Phase 3 验收核心）。
 ///
@@ -184,12 +184,12 @@ class _LayerItem extends StatelessWidget {
                     const SizedBox(width: 48),
                     Expanded(
                       child: SliderTheme(
-                        data: SliderThemeData(
+                        data: const SliderThemeData(
                           trackHeight: 2,
-                          thumbShape: const RoundSliderThumbShape(
+                          thumbShape: RoundSliderThumbShape(
                             enabledThumbRadius: 6,
                           ),
-                          overlayShape: const RoundSliderOverlayShape(
+                          overlayShape: RoundSliderOverlayShape(
                             overlayRadius: 10,
                           ),
                         ),

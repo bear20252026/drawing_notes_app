@@ -52,5 +52,5 @@ class StrokeStyleNotifier extends Notifier<StrokeStyle> {
 /// Riverpod Provider（积木式独立）。
 final strokeStyleProvider =
     NotifierProvider<StrokeStyleNotifier, StrokeStyle>(
-  () => StrokeStyleNotifier(),
+  StrokeStyleNotifier.new,
 );

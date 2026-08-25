@@ -5,7 +5,7 @@ import 'dart:math';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 
-import 'package:drawing_notes_app/core/storage/encryption_service.dart';
+import 'encryption_service.dart';
 
 /// 密码盘（U盘即钥匙）服务接口（设计见 docs/PASSWORD_DISK_DESIGN.md）。
 ///
@@ -205,6 +205,7 @@ class MockPasswordDisk implements PasswordDisk {
   MockPasswordDisk({this.baseDir});
 
   /// 模拟 U 盘根目录；null 时使用系统临时目录。
+  @override
   final String? baseDir;
 
   /// 随机后缀目录（首次生成后复用——保证多次调用指向同一目录）。

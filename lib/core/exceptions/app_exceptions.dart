@@ -1,6 +1,7 @@
 /// 统一异常体系（P2 #33 + P2 #34）
 ///
 /// 所有自定义异常继承 [AppException]，提供统一的错误码和用户友好消息。
+library;
 
 import 'package:flutter/foundation.dart';
 
@@ -32,32 +33,31 @@ abstract class AppException implements Exception {
 
 class NetworkException extends AppException {
   const NetworkException({
-    String code = 'NETWORK_ERROR',
-    String message = '网络连接失败，请检查网络设置',
+    super.code = 'NETWORK_ERROR',
+    super.message = '网络连接失败，请检查网络设置',
     super.cause,
     super.stackTrace,
-  }) : super(code: code, message: message);
+  });
 
   const NetworkException.timeout({
-    String message = '网络请求超时，请稍后重试',
+    super.message = '网络请求超时，请稍后重试',
     super.cause,
     super.stackTrace,
-  }) : super(code: 'NETWORK_TIMEOUT', message: message);
+  }) : super(code: 'NETWORK_TIMEOUT');
 
   const NetworkException.noConnection({
-    String message = '无网络连接，请检查网络设置',
+    super.message = '无网络连接，请检查网络设置',
     super.cause,
     super.stackTrace,
-  }) : super(code: 'NETWORK_NO_CONNECTION', message: message);
+  }) : super(code: 'NETWORK_NO_CONNECTION');
 
   const NetworkException.serverError({
     int? statusCode,
-    String message = '服务器错误，请稍后重试',
+    super.message = '服务器错误，请稍后重试',
     super.cause,
     super.stackTrace,
   }) : super(
           code: 'NETWORK_SERVER_ERROR_${statusCode ?? 500}',
-          message: message,
         );
 }
 
@@ -67,45 +67,45 @@ class NetworkException extends AppException {
 
 class StorageException extends AppException {
   const StorageException({
-    String code = 'STORAGE_ERROR',
-    String message = '存储操作失败',
+    super.code = 'STORAGE_ERROR',
+    super.message = '存储操作失败',
     super.cause,
     super.stackTrace,
-  }) : super(code: code, message: message);
+  });
 
   const StorageException.notFound({
     String? path,
-    String message = '文件未找到',
+    super.message = '文件未找到',
     super.cause,
     super.stackTrace,
-  }) : super(code: 'STORAGE_NOT_FOUND', message: message);
+  }) : super(code: 'STORAGE_NOT_FOUND');
 
   const StorageException.writeFailed({
     String? path,
-    String message = '文件写入失败',
+    super.message = '文件写入失败',
     super.cause,
     super.stackTrace,
-  }) : super(code: 'STORAGE_WRITE_FAILED', message: message);
+  }) : super(code: 'STORAGE_WRITE_FAILED');
 
   const StorageException.readFailed({
     String? path,
-    String message = '文件读取失败',
+    super.message = '文件读取失败',
     super.cause,
     super.stackTrace,
-  }) : super(code: 'STORAGE_READ_FAILED', message: message);
+  }) : super(code: 'STORAGE_READ_FAILED');
 
   const StorageException.permissionDenied({
     String? path,
-    String message = '存储权限不足',
+    super.message = '存储权限不足',
     super.cause,
     super.stackTrace,
-  }) : super(code: 'STORAGE_PERMISSION_DENIED', message: message);
+  }) : super(code: 'STORAGE_PERMISSION_DENIED');
 
   const StorageException.insufficientSpace({
-    String message = '存储空间不足',
+    super.message = '存储空间不足',
     super.cause,
     super.stackTrace,
-  }) : super(code: 'STORAGE_INSUFFICIENT_SPACE', message: message);
+  }) : super(code: 'STORAGE_INSUFFICIENT_SPACE');
 }
 
 // ============================================================================
@@ -114,41 +114,41 @@ class StorageException extends AppException {
 
 class CryptoException extends AppException {
   const CryptoException({
-    String code = 'CRYPTO_ERROR',
-    String message = '加密操作失败',
+    super.code = 'CRYPTO_ERROR',
+    super.message = '加密操作失败',
     super.cause,
     super.stackTrace,
-  }) : super(code: code, message: message);
+  });
 
   const CryptoException.invalidKey({
-    String message = '密钥无效或已损坏',
+    super.message = '密钥无效或已损坏',
     super.cause,
     super.stackTrace,
-  }) : super(code: 'CRYPTO_INVALID_KEY', message: message);
+  }) : super(code: 'CRYPTO_INVALID_KEY');
 
   const CryptoException.wrongPassword({
-    String message = '密码错误',
+    super.message = '密码错误',
     super.cause,
     super.stackTrace,
-  }) : super(code: 'CRYPTO_WRONG_PASSWORD', message: message);
+  }) : super(code: 'CRYPTO_WRONG_PASSWORD');
 
   const CryptoException.dataCorrupted({
-    String message = '数据已损坏，无法解密',
+    super.message = '数据已损坏，无法解密',
     super.cause,
     super.stackTrace,
-  }) : super(code: 'CRYPTO_DATA_CORRUPTED', message: message);
+  }) : super(code: 'CRYPTO_DATA_CORRUPTED');
 
   const CryptoException.decryptionFailed({
-    String message = '解密失败',
+    super.message = '解密失败',
     super.cause,
     super.stackTrace,
-  }) : super(code: 'CRYPTO_DECRYPTION_FAILED', message: message);
+  }) : super(code: 'CRYPTO_DECRYPTION_FAILED');
 
   const CryptoException.encryptionFailed({
-    String message = '加密失败',
+    super.message = '加密失败',
     super.cause,
     super.stackTrace,
-  }) : super(code: 'CRYPTO_ENCRYPTION_FAILED', message: message);
+  }) : super(code: 'CRYPTO_ENCRYPTION_FAILED');
 }
 
 // ============================================================================
@@ -157,43 +157,41 @@ class CryptoException extends AppException {
 
 class UIException extends AppException {
   const UIException({
-    String code = 'UI_ERROR',
-    String message = '界面操作失败',
+    super.code = 'UI_ERROR',
+    super.message = '界面操作失败',
     super.cause,
     super.stackTrace,
-  }) : super(code: code, message: message);
+  });
 
   const UIException.renderFailed({
-    String message = '渲染失败',
+    super.message = '渲染失败',
     super.cause,
     super.stackTrace,
-  }) : super(code: 'UI_RENDER_FAILED', message: message);
+  }) : super(code: 'UI_RENDER_FAILED');
 
   UIException.exportFailed({
     String format = '',
-    String message = '导出失败',
+    super.message = '导出失败',
     super.cause,
     super.stackTrace,
   }) : super(
           code: 'UI_EXPORT_FAILED${format.isNotEmpty ? '_${format.toUpperCase()}' : ''}',
-          message: message,
         );
 
   UIException.importFailed({
     String format = '',
-    String message = '导入失败',
+    super.message = '导入失败',
     super.cause,
     super.stackTrace,
   }) : super(
           code: 'UI_IMPORT_FAILED${format.isNotEmpty ? '_${format.toUpperCase()}' : ''}',
-          message: message,
         );
 
   const UIException.imageInsertFailed({
-    String message = '图片插入失败',
+    super.message = '图片插入失败',
     super.cause,
     super.stackTrace,
-  }) : super(code: 'UI_IMAGE_INSERT_FAILED', message: message);
+  }) : super(code: 'UI_IMAGE_INSERT_FAILED');
 }
 
 // ============================================================================

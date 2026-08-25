@@ -1,4 +1,3 @@
-import 'dart:ui' as ui;
 
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
@@ -52,7 +51,7 @@ void main() {
       }
       // 校验位图右侧有内容（第二笔可见）。
       final bytes = await c.paintViews.first.image!.toByteData(
-        format: ui.ImageByteFormat.rawRgba,
+        
       );
       expect(bytes, isNotNull);
       int alphaAt(int x) =>
@@ -80,7 +79,7 @@ void main() {
       }
 
       final bytes = await c.paintViews.first.image!.toByteData(
-        format: ui.ImageByteFormat.rawRgba,
+        
       );
       expect(bytes, isNotNull);
       int alphaAt(int x) =>
@@ -144,7 +143,7 @@ void main() {
         document: DrawingDocument(id: 'd1', title: '页'),
       );
       page.textItems.add(
-        PageTextItem(id: 'a', x: 0, y: 0, text: '普通', isSticky: false),
+        PageTextItem(id: 'a', x: 0, y: 0, text: '普通'),
       );
       page.textItems.add(
         PageTextItem(id: 'b', x: 100, y: 100, text: '标签', isSticky: true),

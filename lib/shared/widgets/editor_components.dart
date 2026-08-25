@@ -125,8 +125,8 @@ class StrokeWidthSlider extends StatelessWidget {
         SliderTheme(
           data: SliderThemeData(
             trackHeight: 2,
-            thumbShape: RoundSliderThumbShape(enabledThumbRadius: 6),
-            overlayShape: RoundSliderOverlayShape(overlayRadius: 12),
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
             activeTrackColor: Colors.blue,
             inactiveTrackColor: Colors.grey.shade300,
             thumbColor: Colors.blue,
@@ -176,16 +176,14 @@ class OpacitySlider extends StatelessWidget {
         SliderTheme(
           data: SliderThemeData(
             trackHeight: 2,
-            thumbShape: RoundSliderThumbShape(enabledThumbRadius: 6),
-            overlayShape: RoundSliderOverlayShape(overlayRadius: 12),
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
             activeTrackColor: Colors.blue,
             inactiveTrackColor: Colors.grey.shade300,
             thumbColor: Colors.blue,
           ),
           child: Slider(
             value: value.clamp(0.0, 1.0),
-            min: 0.0,
-            max: 1.0,
             onChanged: onChanged,
           ),
         ),
@@ -213,17 +211,17 @@ class LineStyleSelector extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(AppLocalizations.of(context)?.lineStyleLabel ?? '线条样式', style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12), color: Colors.grey)),
-        SizedBox(height: 6),
+        const SizedBox(height: 6),
         Row(
           children: LineStyle.values.map((style) {
             final isSelected = selectedStyle == style;
             return Expanded(
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 2),
                 child: OutlinedButton(
                   onPressed: () => onStyleChanged(style),
                   style: OutlinedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     backgroundColor: isSelected
                         ? Colors.blue.withValues(alpha: 0.1)
                         : null,
@@ -309,9 +307,9 @@ class ToolButton extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
-          duration: Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
-          padding: EdgeInsets.all(6),
+          padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
             color: isSelected ? Colors.blue : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
@@ -320,7 +318,7 @@ class ToolButton extends StatelessWidget {
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.15),
                       blurRadius: 2,
-                      offset: Offset(0, 1),
+                      offset: const Offset(0, 1),
                     ),
                   ]
                 : null,

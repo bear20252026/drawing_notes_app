@@ -65,9 +65,9 @@ void main() {
     });
 
     testWidgets('disableAnimations 时点击立即换面（无动画等待）', (tester) async {
-      await tester.pumpWidget(_host(MediaQuery(
-        data: const MediaQueryData(disableAnimations: true),
-        child: const FlipCard(front: Text('A'), back: Text('Z'), height: 120),
+      await tester.pumpWidget(_host(const MediaQuery(
+        data: MediaQueryData(disableAnimations: true),
+        child: FlipCard(front: Text('A'), back: Text('Z'), height: 120),
       )));
 
       await tester.tap(find.byType(FlipCard));

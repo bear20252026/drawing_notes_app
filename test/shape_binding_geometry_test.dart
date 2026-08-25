@@ -103,7 +103,6 @@ void main() {
       x: 20,
       y: 50,
       width: 280,
-      height: 80,
       flipY: true,
     );
     connector.startBinding = ShapeBindingGeometry.bindingAt(

@@ -7,7 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
+import '../domain/text_item.dart';
 
 /// 编辑器不可变状态。
 @immutable

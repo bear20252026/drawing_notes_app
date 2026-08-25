@@ -11,7 +11,6 @@ extension _EditorPageCommands on _EditorPageState {
         EditorCommand(
           id: 'undo',
           label: '撤销',
-          category: EditorCommandCategory.edit,
           keywords: const ['history', '返回'],
           shortcut: 'Ctrl/Cmd+Z',
           isAvailable: () => _controller.canUndo,
@@ -22,7 +21,6 @@ extension _EditorPageCommands on _EditorPageState {
         EditorCommand(
           id: 'redo',
           label: '重做',
-          category: EditorCommandCategory.edit,
           keywords: const ['history', '恢复'],
           shortcut: 'Ctrl/Cmd+Y 或 Ctrl/Cmd+Shift+Z',
           isAvailable: () => _controller.canRedo,
@@ -33,7 +31,6 @@ extension _EditorPageCommands on _EditorPageState {
         EditorCommand(
           id: 'copy',
           label: '复制选中对象',
-          category: EditorCommandCategory.edit,
           keywords: const ['clipboard', '复制'],
           shortcut: 'Ctrl/Cmd+C',
           isAvailable: () => _hasObjectSelection,
@@ -44,7 +41,6 @@ extension _EditorPageCommands on _EditorPageState {
         EditorCommand(
           id: 'paste',
           label: '从剪贴板粘贴',
-          category: EditorCommandCategory.edit,
           keywords: const ['clipboard', '粘贴', '文本', '图片'],
           shortcut: 'Ctrl/Cmd+V',
           run: _pasteFromClipboard,
@@ -54,7 +50,6 @@ extension _EditorPageCommands on _EditorPageState {
         EditorCommand(
           id: 'duplicate',
           label: '复制并粘贴选中对象',
-          category: EditorCommandCategory.edit,
           keywords: const ['duplicate', '副本'],
           shortcut: 'Ctrl/Cmd+D',
           isAvailable: () => _hasObjectSelection,
@@ -68,7 +63,6 @@ extension _EditorPageCommands on _EditorPageState {
         EditorCommand(
           id: 'deleteSelection',
           label: '删除选中对象',
-          category: EditorCommandCategory.edit,
           keywords: const ['delete', 'remove', '删除'],
           shortcut: 'Delete',
           isAvailable: () => _hasObjectSelection,

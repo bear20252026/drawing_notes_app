@@ -69,7 +69,7 @@ class HistoryPanel extends ConsumerWidget {
                   child: OutlinedButton.icon(
                     icon: const Icon(Icons.undo, size: 16),
                     label: const Text('撤销'),
-                    onPressed: state.canUndo ? () => notifier.undo() : null,
+                    onPressed: state.canUndo ? notifier.undo : null,
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       shape: RoundedRectangleBorder(
@@ -83,7 +83,7 @@ class HistoryPanel extends ConsumerWidget {
                   child: OutlinedButton.icon(
                     icon: const Icon(Icons.redo, size: 16),
                     label: const Text('重做'),
-                    onPressed: state.canRedo ? () => notifier.redo() : null,
+                    onPressed: state.canRedo ? notifier.redo : null,
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       shape: RoundedRectangleBorder(

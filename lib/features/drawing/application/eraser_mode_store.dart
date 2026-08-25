@@ -1,6 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
+import 'eraser_mode.dart';
 
 /// 橡皮擦模式的跨平台持久化设置。
 ///

@@ -366,7 +366,7 @@ class FileSystemUnifiedStorage implements UnifiedStorage {
   Future<ImportResult> importAll(Uint8List backup) async {
     await _ensureDataDir();
     var imported = 0;
-    var skipped = 0;
+    const skipped = 0;
     var errors = 0;
     final errorList = <String>[];
 

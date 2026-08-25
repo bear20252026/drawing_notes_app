@@ -14,7 +14,7 @@ import 'schema_migrator.dart';
 
 /// 所有已注册的迁移（按版本顺序排列）。
 final List<SchemaMigration> allMigrations = [
-  SchemaMigration(1, 2, _migrateV1ToV2),
+  const SchemaMigration(1, 2, _migrateV1ToV2),
 ];
 
 // ─── v1 → v2：manifest 格式规范化 ─────────────────────────────────────────

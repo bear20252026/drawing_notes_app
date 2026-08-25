@@ -16,8 +16,8 @@ void main() {
     final document = DrawingDocument(id: 'mixed_document', title: '混合对象');
     document.layers.first.strokes.add(
       Stroke(
-        points: [StrokePoint(12, 12, 1), StrokePoint(36, 36, 0.8)],
-        color: Color(0xFF112233),
+        points: [const StrokePoint(12, 12, 1), const StrokePoint(36, 36, 0.8)],
+        color: const Color(0xFF112233),
         width: 5,
         type: BrushType.pen,
       ),

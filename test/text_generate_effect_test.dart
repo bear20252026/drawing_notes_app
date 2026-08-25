@@ -10,7 +10,6 @@ void main() {
           home: Scaffold(
             body: TextGenerateEffect(
               text: 'Hello World',
-              delay: Duration.zero,
               wordDelay: Duration.zero,
             ),
           ),
@@ -31,7 +30,6 @@ void main() {
           home: Scaffold(
             body: TextGenerateEffect(
               text: 'one two three',
-              delay: Duration.zero,
               wordDelay: Duration.zero,
             ),
           ),
@@ -51,7 +49,6 @@ void main() {
           home: Scaffold(
             body: TextGenerateEffect(
               text: '',
-              delay: Duration.zero,
               wordDelay: Duration.zero,
             ),
           ),
@@ -72,7 +69,6 @@ void main() {
             body: TextGenerateEffect(
               text: 'Styled Text',
               duration: Duration(milliseconds: 500),
-              delay: Duration.zero,
               wordDelay: Duration.zero,
               enableBlur: false,
               blurSigma: 5.0,
@@ -94,7 +90,6 @@ void main() {
             body: TextGenerateEffect(
               text: 'Centered',
               textAlign: TextAlign.center,
-              delay: Duration.zero,
               wordDelay: Duration.zero,
             ),
           ),

@@ -1,5 +1,5 @@
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
+import '../../features/drawing/domain/document.dart';
+import '../../features/notes/domain/notebook.dart';
 
 /// 画作文档仓库抽象接口（B4，借鉴 Memos REST API 的存储解耦）。
 ///

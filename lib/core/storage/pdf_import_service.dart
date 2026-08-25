@@ -6,7 +6,7 @@ import 'dart:ui' as ui;
 
 import 'package:pdfrx/pdfrx.dart';
 
-import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
+import 'local_id_generator.dart';
 
 /// 已落盘的单个 PDF 页面底图。
 ///
@@ -258,7 +258,7 @@ class PdfImportService {
         sourcePath,
         maxRenderSide,
       ).timeout(
-        Duration(seconds: _totalRenderTimeoutSeconds),
+        const Duration(seconds: _totalRenderTimeoutSeconds),
         onTimeout: () => throw TimeoutException(
           'PDF 渲染超时（$_totalRenderTimeoutSeconds秒），文件可能过大或已损坏',
         ),
@@ -373,7 +373,7 @@ class PdfImportService {
     );
 
     return completer.future.timeout(
-      Duration(seconds: _totalRenderTimeoutSeconds),
+      const Duration(seconds: _totalRenderTimeoutSeconds),
       onTimeout: () {
         receivePort.close();
         isolate.kill(priority: Isolate.immediate);

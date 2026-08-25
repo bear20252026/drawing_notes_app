@@ -55,30 +55,30 @@ class UnifiedPropertyPanel extends StatelessWidget {
 
     return Container(
       width: width,
-      padding: EdgeInsets.all(10),
+      padding: const EdgeInsets.all(10),
       color: scheme.surfaceContainerLow,
       child: ListView(
         children: [
           // 画笔属性
           if (showBrushProperties) ...[
             _buildSectionTitle(context, '画笔'),
-            SizedBox(height: 6),
+            const SizedBox(height: 6),
             _buildBrushProperties(context),
-            Divider(height: 20),
+            const Divider(height: 20),
           ],
 
           // 形状属性
           if (showShapeProperties && state.selectedShape != null) ...[
             _buildSectionTitle(context, '形状'),
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
             _buildShapeProperties(context),
-            Divider(height: 16),
+            const Divider(height: 16),
           ],
 
           // 文字属性
           if (showTextProperties && state.selectedText != null) ...[
             _buildSectionTitle(context, '文字'),
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
             _buildTextProperties(context),
           ],
         ],
@@ -89,7 +89,7 @@ class UnifiedPropertyPanel extends StatelessWidget {
   Widget _buildSectionTitle(BuildContext context, String title) {
     return Text(
       title,
-      style: TextStyle(fontWeight: FontWeight.bold),
+      style: const TextStyle(fontWeight: FontWeight.bold),
     );
   }
 
@@ -104,7 +104,7 @@ class UnifiedPropertyPanel extends StatelessWidget {
               color: state.brushColor,
               onTap: actions.onPickColor,
             ),
-            SizedBox(width: 10),
+            const SizedBox(width: 10),
             // 线宽滑块
             Expanded(
               child: Column(
@@ -138,7 +138,7 @@ class UnifiedPropertyPanel extends StatelessWidget {
         // 线宽
         Row(
           children: [
-            Icon(Icons.line_weight, size: 16),
+            const Icon(Icons.line_weight, size: 16),
             Expanded(
               child: Slider(
                 value: shape.strokeWidth.clamp(1, 20),
@@ -153,12 +153,10 @@ class UnifiedPropertyPanel extends StatelessWidget {
         // 透明度
         Row(
           children: [
-            Icon(Icons.opacity, size: 16),
+            const Icon(Icons.opacity, size: 16),
             Expanded(
               child: Slider(
                 value: shape.fillColor != null ? 1.0 : 0.0,
-                min: 0,
-                max: 1,
                 onChanged: actions.onShapeOpacity,
               ),
             ),
@@ -188,7 +186,7 @@ class UnifiedPropertyPanel extends StatelessWidget {
               isSelected: shape.dash,
               onPressed: actions.onShapeDash,
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Text(
               '线宽 ${shape.strokeWidth.round()}',
               style: Theme.of(context).textTheme.labelSmall,
@@ -208,7 +206,7 @@ class UnifiedPropertyPanel extends StatelessWidget {
         // 字号
         Row(
           children: [
-            Icon(Icons.format_size, size: 16),
+            const Icon(Icons.format_size, size: 16),
             Expanded(
               child: Slider(
                 value: text.fontSize.clamp(8, 200),
@@ -229,7 +227,7 @@ class UnifiedPropertyPanel extends StatelessWidget {
               size: 22,
               tooltip: '文字颜色',
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Text(
               '${text.fontSize.round()}px',
               style: Theme.of(context).textTheme.labelSmall,

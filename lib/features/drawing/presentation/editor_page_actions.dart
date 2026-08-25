@@ -114,7 +114,7 @@ extension _EditorPageActions on _EditorPageState {
                   maxLines: 5,
                   decoration: InputDecoration(
                     hintText: AppLocalizations.of(context)?.editorPasteValues ?? '粘贴数值，用逗号/空格/换行分隔，例如：10, 25, 18, 42, 30',
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
                     isDense: true,
                   ),
                 ),
@@ -333,7 +333,7 @@ extension _EditorPageActions on _EditorPageState {
       for (final entry in _copiedElements) {
         final kind = entry['kind'] as String;
         final data = entry['data'] as Map<String, dynamic>;
-        final dx = 24.0, dy = 24.0;
+        const dx = 24.0, dy = 24.0;
         if (kind == 'text') {
           final t = PageTextItem.fromJson(data);
           t.x += dx;

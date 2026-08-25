@@ -46,7 +46,7 @@ void main() {
     );
 
     // 保存（会话密码重加密，模拟 _save 的加密分支）。
-    final pw = 'secret123';
+    const pw = 'secret123';
     if (loaded.encrypted && pw.isNotEmpty) {
       await storage.encryptAndSave(loaded, pw);
     } else {
@@ -104,7 +104,7 @@ void main() {
   test('导入文本坐标：长段落不越界（原 y+=段长/2 会超画布）', () {
     // 复现 _importText 的坐标计算（可用性修复后：行数估算 + 上限钳制）。
     const docH = 3508;
-    final maxY = docH - 120.0;
+    const maxY = docH - 120.0;
     var y = 60.0;
     final longParagraph = '长' * 3000; // 3000 字的长段落
     final lines = (longParagraph.length / 24).ceil().clamp(1, 40);

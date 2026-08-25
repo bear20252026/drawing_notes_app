@@ -1,6 +1,6 @@
-import 'package:drawing_notes_app/core/notes_accessor.dart';
-import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
+import '../../../core/notes_accessor.dart';
+import '../domain/notebook.dart';
+import 'notebook_storage.dart';
 
 /// [INotebookAccessor] 的笔记侧实现（S4b 接口化落地）。
 ///

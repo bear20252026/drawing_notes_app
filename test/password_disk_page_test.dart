@@ -36,7 +36,7 @@ void main() {
       MaterialApp(
         home: PasswordDiskPage(
           disk: MockPasswordDisk(baseDir: diskDir.path),
-          encryption: EncryptionService.test(),
+          encryption: const EncryptionService.test(),
         ),
       ),
     );
@@ -55,7 +55,7 @@ void main() {
       MaterialApp(
         home: PasswordDiskPage(
           disk: MockPasswordDisk(baseDir: diskDir.path),
-          encryption: EncryptionService.test(),
+          encryption: const EncryptionService.test(),
         ),
       ),
     );
@@ -82,7 +82,7 @@ void main() {
       MaterialApp(
         home: PasswordDiskPage(
           disk: MockPasswordDisk(baseDir: diskDir.path),
-          encryption: EncryptionService.test(),
+          encryption: const EncryptionService.test(),
         ),
       ),
     );
@@ -106,7 +106,7 @@ void main() {
       MaterialApp(
         home: PasswordDiskPage(
           disk: MockPasswordDisk(baseDir: diskDir.path),
-          encryption: EncryptionService.test(),
+          encryption: const EncryptionService.test(),
           onKeyUnlocked: (key) => capturedKey = key,
         ),
       ),
@@ -159,7 +159,7 @@ void main() {
       MaterialApp(
         home: PasswordDiskPage(
           disk: MockPasswordDisk(baseDir: diskDir.path),
-          encryption: EncryptionService.test(),
+          encryption: const EncryptionService.test(),
         ),
       ),
     );
@@ -176,7 +176,7 @@ void main() {
       MaterialApp(
         home: PasswordDiskPage(
           disk: MockPasswordDisk(baseDir: diskDir.path),
-          encryption: EncryptionService.test(),
+          encryption: const EncryptionService.test(),
         ),
       ),
     );

@@ -1,11 +1,11 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:drawing_notes_app/core/security/audit_log_store.dart';
-import 'package:drawing_notes_app/core/security/secure_bytes.dart';
-import 'package:drawing_notes_app/core/security/vault_key_manager.dart';
-import 'package:drawing_notes_app/core/storage/vfs/encrypted_vault.dart';
-import 'package:drawing_notes_app/core/storage/vfs/vault_manifest.dart';
+import '../../security/audit_log_store.dart';
+import '../../security/secure_bytes.dart';
+import '../../security/vault_key_manager.dart';
+import 'encrypted_vault.dart';
+import 'vault_manifest.dart';
 
 /// VFS 统一服务（专家目标架构 VFS 接入层——2026-08-16）。
 ///

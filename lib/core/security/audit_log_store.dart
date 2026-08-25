@@ -27,8 +27,8 @@ import 'secure_bytes.dart';
 class AuditLogStore {
   AuditLogStore({
     required this.directory,
-    required SecureBytes encryptionKey,
-  }) : _encryptionKey = encryptionKey;
+    required this._encryptionKey,
+  });
 
   final Directory directory;
   final SecureBytes _encryptionKey;
@@ -195,7 +195,7 @@ class AuditLogStore {
 
     // 追加写入（4 字节长度前缀 + 加密数据）。
     final sink = shardFile.openWrite(mode: FileMode.append);
-    final lengthPrefix = ByteData(4)..setUint32(0, encrypted.length, Endian.big);
+    final lengthPrefix = ByteData(4)..setUint32(0, encrypted.length);
     sink.add(lengthPrefix.buffer.asUint8List());
     sink.add(encrypted);
     await sink.flush();
@@ -255,7 +255,7 @@ class AuditLogStore {
       while (offset + 4 <= bytes.length) {
         // 读取长度前缀。
         final length = ByteData.sublistView(bytes, offset, offset + 4)
-            .getUint32(0, Endian.big);
+            .getUint32(0);
         offset += 4;
 
         if (offset + length > bytes.length) break;

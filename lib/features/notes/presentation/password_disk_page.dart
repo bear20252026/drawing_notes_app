@@ -4,14 +4,14 @@ import 'dart:io';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
-import 'package:drawing_notes_app/core/theme/text_scale_helper.dart';
+import '../../../core/theme/text_scale_helper.dart';
 
-import 'package:drawing_notes_app/core/storage/encryption_service.dart';
-import 'package:drawing_notes_app/core/storage/password_disk.dart';
-import 'package:drawing_notes_app/core/storage/progressive_delay.dart';
-import 'package:drawing_notes_app/core/storage/recovery_key_generator.dart';
-import 'package:drawing_notes_app/core/security/audit_logger.dart';
-import 'package:drawing_notes_app/l10n/app_localizations.dart';
+import '../../../core/storage/encryption_service.dart';
+import '../../../core/storage/password_disk.dart';
+import '../../../core/storage/progressive_delay.dart';
+import '../../../core/storage/recovery_key_generator.dart';
+import '../../../core/security/audit_logger.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// 密码盘管理页（U盘即钥匙，设计见 docs/PASSWORD_DISK_DESIGN.md）。
 ///
@@ -286,9 +286,9 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
           controller: controller,
           obscureText: true,
           autofocus: true,
-          decoration: InputDecoration(
+          decoration: const InputDecoration(
             hintText: '请输入 PIN（至少 ${EncryptionService.kPinMinLength} 位）',
-            border: const OutlineInputBorder(),
+            border: OutlineInputBorder(),
           ),
           onSubmitted: (v) => Navigator.of(ctx).pop(v),
         ),

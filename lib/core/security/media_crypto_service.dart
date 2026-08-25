@@ -93,7 +93,7 @@ class MediaCryptoService {
   Future<Uint8List> decryptBytes(Uint8List data) async {
     final key = _sessionKey;
     if (key == null) throw StateError('会话密钥未注入（请先解锁）');
-    if (data.length <= 28) throw FormatException('媒体密文长度不合法');
+    if (data.length <= 28) throw const FormatException('媒体密文长度不合法');
     final nonce = data.sublist(0, 12);
     final cipher = data.sublist(12, data.length - 16);
     final mac = data.sublist(data.length - 16);

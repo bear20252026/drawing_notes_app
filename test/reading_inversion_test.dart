@@ -10,8 +10,8 @@ void main() {
     final document = DrawingDocument(id: 'reading_inversion', title: '深色阅读');
     document.layers.single.strokes.add(
       Stroke(
-        points: [StrokePoint(10, 10, 1), StrokePoint(80, 30, 0.7)],
-        color: Color(0xFF1A1A1A),
+        points: [const StrokePoint(10, 10, 1), const StrokePoint(80, 30, 0.7)],
+        color: const Color(0xFF1A1A1A),
         width: 6,
         type: BrushType.pen,
       ),

@@ -34,7 +34,7 @@ void main() {
     }
     expect(document.layers.single.strokes.length, 1200);
 
-    final codec = DocumentCodec();
+    const codec = DocumentCodec();
     final encodeWatch = Stopwatch()..start();
     final bytes = codec.encode(document);
     encodeWatch.stop();
@@ -73,7 +73,7 @@ void main() {
         type: BrushType.pen,
       ),
     );
-    final codec = DocumentCodec();
+    const codec = DocumentCodec();
     final encodeWatch = Stopwatch()..start();
     final bytes = codec.encode(document);
     encodeWatch.stop();

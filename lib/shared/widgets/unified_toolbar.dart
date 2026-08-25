@@ -79,7 +79,7 @@ class UnifiedToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       color: Colors.grey[200],
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -190,7 +190,7 @@ class UnifiedToolbar extends StatelessWidget {
 
           // 分隔线
           if (showColorPicker || showStrokeWidth)
-            VerticalDivider(width: 16, thickness: 1),
+            const VerticalDivider(width: 16, thickness: 1),
 
           // 颜色选择器
           if (showColorPicker)
@@ -205,7 +205,7 @@ class UnifiedToolbar extends StatelessWidget {
               width: 120,
               child: Row(
                 children: [
-                  Icon(Icons.line_weight, size: 18),
+                  const Icon(Icons.line_weight, size: 18),
                   Expanded(
                     child: Slider(
                       value: state.strokeWidth.clamp(1, 100),
@@ -227,7 +227,7 @@ class UnifiedToolbar extends StatelessWidget {
 
           // 分隔线
           if (showZoomControls || showGridControls)
-            VerticalDivider(width: 16, thickness: 1),
+            const VerticalDivider(width: 16, thickness: 1),
 
           // 网格控件
           if (showGridControls) ...[
@@ -281,7 +281,7 @@ class UnifiedToolbar extends StatelessWidget {
   Widget _buildEraserOptions(BuildContext context) {
     return PopupMenuButton<VoidCallback>(
       tooltip: _t(context, (l) => l.unifiedToolbarEraserOptions, '橡皮擦选项'),
-      icon: Icon(Icons.shape_line_outlined, size: 20),
+      icon: const Icon(Icons.shape_line_outlined, size: 20),
       onSelected: (callback) => callback(),
       itemBuilder: (_) => [
         CheckedPopupMenuItem(
@@ -321,7 +321,7 @@ class UnifiedToolbar extends StatelessWidget {
         hint = '';
     }
 
-    if (hint.isEmpty) return SizedBox.shrink();
+    if (hint.isEmpty) return const SizedBox.shrink();
 
     return Text(
       hint,

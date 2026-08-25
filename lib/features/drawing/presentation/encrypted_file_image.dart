@@ -4,8 +4,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 
-import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
-import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
+import '../../../core/security/media_crypto_service.dart';
+import '../../../core/storage/vfs/vault_service.dart';
 
 /// 加密媒体图片渲染（H-03 双端接入 2026-08-15）。
 ///

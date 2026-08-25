@@ -15,8 +15,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:image/image.dart' as img;
-import 'package:path/path.dart' as p;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -213,7 +211,7 @@ class PrintingPdfService implements PdfService {
         pw.Page(
           pageFormat: config.pageFormat,
           build: (context) => pw.Center(
-            child: pw.Image(image, fit: pw.BoxFit.contain),
+            child: pw.Image(image),
           ),
         ),
       );
@@ -233,7 +231,7 @@ class PrintingPdfService implements PdfService {
     await file.parent.create(recursive: true);
 
     // 原子写入（临时文件替换）。
-    final tmp = File('${outputPath}.tmp');
+    final tmp = File('$outputPath.tmp');
     await tmp.writeAsBytes(bytes, flush: true);
     await tmp.rename(outputPath);
   }
@@ -277,7 +275,7 @@ class PrintingPdfService implements PdfService {
   /// 计算 PDF 页数。
   Future<int> _countPages(Uint8List bytes) async {
     var count = 0;
-    await for (final _ in Printing.raster(bytes, dpi: 72)) {
+    await for (final _ in Printing.raster(bytes)) {
       count++;
     }
     return count;
@@ -308,7 +306,7 @@ class PdfExportService {
         pw.Page(
           pageFormat: format,
           build: (context) => pw.Center(
-            child: pw.Image(image, fit: pw.BoxFit.contain),
+            child: pw.Image(image),
           ),
         ),
       );

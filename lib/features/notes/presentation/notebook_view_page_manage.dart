@@ -144,7 +144,6 @@ extension _NotebookPageManage on _NotebookViewPageState {
             110,
             220,
             '线索与问题',
-            size: 24,
             bold: true,
           ),
           item(
@@ -152,7 +151,6 @@ extension _NotebookPageManage on _NotebookViewPageState {
             720,
             220,
             '笔记',
-            size: 24,
             bold: true,
           ),
           item(
@@ -160,7 +158,6 @@ extension _NotebookPageManage on _NotebookViewPageState {
             110,
             2920,
             '总结',
-            size: 24,
             bold: true,
           ),
         ];

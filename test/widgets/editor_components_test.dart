@@ -84,7 +84,7 @@ void main() {
         ),
       ));
 
-      await tester.drag(find.byType(Slider), Offset(50, 0));
+      await tester.drag(find.byType(Slider), const Offset(50, 0));
       await tester.pump();
       expect(value, isNot(2.0));
     });
@@ -285,7 +285,7 @@ void main() {
     testWidgets('渲染形状属性（选中形状时）', (tester) async {
       await tester.pumpWidget(wrapInApp(
         UnifiedPropertyPanel(
-          state: UnifiedPropertyPanelState(
+          state: const UnifiedPropertyPanelState(
             brushColor: Colors.black,
             brushSize: 2.0,
             selectedShape: SelectedShapeInfo(
@@ -308,7 +308,7 @@ void main() {
     testWidgets('渲染文字属性（选中文字时）', (tester) async {
       await tester.pumpWidget(wrapInApp(
         UnifiedPropertyPanel(
-          state: UnifiedPropertyPanelState(
+          state: const UnifiedPropertyPanelState(
             brushColor: Colors.black,
             brushSize: 2.0,
             selectedText: SelectedTextInfo(

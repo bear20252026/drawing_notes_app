@@ -77,7 +77,7 @@ void main() {
       void zoomAt(Offset viewPoint, double factor) {
         final newScale = (c.viewScale * factor).clamp(0.05, 20.0);
         final canvasBefore = c.viewToCanvas(viewPoint);
-        final center = Offset(200.0, 150.0);
+        const center = Offset(200.0, 150.0);
         final rotated = _rotate(
           (canvasBefore - center) * newScale,
           c.viewRotation,

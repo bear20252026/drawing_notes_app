@@ -21,15 +21,13 @@ void main() {
           y: 80,
           width: 260,
           height: 90,
-          color: 0xFF3A6EA5,
           strokeWidth: 5,
           flipX: true,
-          flipY: false,
         ),
       ],
     );
 
-    final codec = DocumentCodec();
+    const codec = DocumentCodec();
     final restored = codec.decode(codec.encode(original));
 
     expect(restored.infinite, isTrue);
@@ -47,7 +45,7 @@ void main() {
   test('旧版独立绘图文件不含形状字段时仍可正常打开', () {
     const legacy =
         '{"version":1,"document":{"id":"legacy","title":"旧文件","width":100,"height":80,"layers":[]}}';
-    final restored = DocumentCodec().decode(
+    final restored = const DocumentCodec().decode(
       Uint8List.fromList(utf8.encode(legacy)),
     );
 

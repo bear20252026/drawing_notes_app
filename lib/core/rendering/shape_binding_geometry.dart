@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
-import 'package:drawing_notes_app/features/drawing/domain/shape_endpoint_binding.dart';
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
+import '../../features/drawing/domain/shape_endpoint_binding.dart';
+import '../../features/drawing/domain/shape_item.dart';
 
 /// 独立绘图文档中直线箭头的绑定几何。
 ///

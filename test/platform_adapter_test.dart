@@ -28,7 +28,7 @@ void main() {
       final mobile = PlatformConfiguration.fromEnvironment(screenWidth: 400);
       expect(mobile.deviceType, DeviceType.mobile);
 
-      final tablet = PlatformConfiguration.fromEnvironment(screenWidth: 800);
+      final tablet = PlatformConfiguration.fromEnvironment();
       expect(tablet.deviceType, DeviceType.tablet);
 
       final desktop = PlatformConfiguration.fromEnvironment(screenWidth: 1400);
@@ -59,7 +59,7 @@ void main() {
     });
 
     test('isTablet 仅在平板设备时为 true', () {
-      final config = PlatformConfiguration.fromEnvironment(screenWidth: 800);
+      final config = PlatformConfiguration.fromEnvironment();
       expect(config.isTablet, isTrue);
       expect(config.isDesktop, isFalse);
       expect(config.isMobile, isFalse);
@@ -232,12 +232,12 @@ void main() {
 
     test('handleTrayClick 未初始化不抛异常', () {
       final mgr = SystemTrayManager.instance;
-      expect(() => mgr.handleTrayClick(), returnsNormally);
+      expect(mgr.handleTrayClick, returnsNormally);
     });
 
     test('handleTrayDoubleClick 未初始化不抛异常', () {
       final mgr = SystemTrayManager.instance;
-      expect(() => mgr.handleTrayDoubleClick(), returnsNormally);
+      expect(mgr.handleTrayDoubleClick, returnsNormally);
     });
 
     test('events 返回 Stream', () {

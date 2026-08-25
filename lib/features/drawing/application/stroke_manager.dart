@@ -5,9 +5,9 @@
 
 import 'dart:ui' show Color, Offset;
 
-import 'package:drawing_notes_app/features/drawing/application/tool_manager.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
-import 'package:drawing_notes_app/core/rendering/stroke_geometry_cache.dart';
+import 'tool_manager.dart';
+import '../domain/stroke.dart';
+import '../../../core/rendering/stroke_geometry_cache.dart';
 
 /// 笔画生命周期管理器。
 ///

@@ -43,7 +43,6 @@ class OnboardingService {
     if (!context.mounted) return;
     await showDialog<void>(
       context: context,
-      barrierDismissible: true,
       builder: (_) => const _OnboardingDialog(),
     );
     await markSeen();

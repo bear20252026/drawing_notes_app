@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'dart:ui';
 
-import 'package:drawing_notes_app/features/drawing/domain/shape_endpoint_binding.dart';
+import 'shape_endpoint_binding.dart';
 
 /// 图形工具形状类型。
 enum ShapeType { rect, ellipse, diamond, arrow, line }

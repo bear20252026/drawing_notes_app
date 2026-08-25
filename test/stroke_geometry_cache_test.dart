@@ -41,14 +41,14 @@ void main() {
     });
 
     test('压感变化强制添加点', () {
-      final cache = StrokeGeometryCache(makePoint(0, 0, 0.5));
+      final cache = StrokeGeometryCache(makePoint(0, 0));
       cache.append(makePoint(0.1, 0.1, 0.8)); // 压感差 0.3 > 0.015
       expect(cache.previewPoints.length, 2);
     });
 
     test('相同压感近距离不添加', () {
-      final cache = StrokeGeometryCache(makePoint(0, 0, 0.5));
-      cache.append(makePoint(0.5, 0.5, 0.5)); // 近距离、相同压感
+      final cache = StrokeGeometryCache(makePoint(0, 0));
+      cache.append(makePoint(0.5, 0.5)); // 近距离、相同压感
       expect(cache.previewPoints.length, 1);
     });
 

@@ -98,17 +98,17 @@ class EnvConfig {
 
   /// Nextcloud 服务器地址。
   static String get nextcloudServer =>
-      get('NEXTCLOUD_SERVER', defaultValue: '');
+      get('NEXTCLOUD_SERVER');
 
   /// Nextcloud 用户名。
   static String get nextcloudUsername =>
-      get('NEXTCLOUD_USERNAME', defaultValue: '');
+      get('NEXTCLOUD_USERNAME');
 
   /// Nextcloud 密码（应用密码，非账户密码）。
   static String get nextcloudPassword =>
-      get('NEXTCLOUD_PASSWORD', defaultValue: '');
+      get('NEXTCLOUD_PASSWORD');
 
   /// Sentry DSN（错误监控）。
   static String get sentryDsn =>
-      get('SENTRY_DSN', defaultValue: '');
+      get('SENTRY_DSN');
 }

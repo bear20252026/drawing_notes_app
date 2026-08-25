@@ -6,7 +6,7 @@ import 'package:editor_core/editor_core.dart';
 void main() {
   group('NoteBlock', () {
     test('创建基本块', () {
-      final block = NoteBlock(
+      const block = NoteBlock(
         id: 'b1',
         type: NoteBlockType.paragraph,
         content: 'Hello',
@@ -18,13 +18,13 @@ void main() {
     });
 
     test('空块判断', () {
-      final emptyBlock = NoteBlock(
+      const emptyBlock = NoteBlock(
         id: 'b1',
         type: NoteBlockType.paragraph,
       );
       expect(emptyBlock.isEmpty, true);
 
-      final nonEmpty = NoteBlock(
+      const nonEmpty = NoteBlock(
         id: 'b2',
         type: NoteBlockType.paragraph,
         content: 'not empty',
@@ -34,53 +34,53 @@ void main() {
 
     test('标题块判断', () {
       expect(
-        NoteBlock(id: 'h1', type: NoteBlockType.heading1).isHeading,
+        const NoteBlock(id: 'h1', type: NoteBlockType.heading1).isHeading,
         true,
       );
       expect(
-        NoteBlock(id: 'h2', type: NoteBlockType.heading2).isHeading,
+        const NoteBlock(id: 'h2', type: NoteBlockType.heading2).isHeading,
         true,
       );
       expect(
-        NoteBlock(id: 'h3', type: NoteBlockType.heading3).isHeading,
+        const NoteBlock(id: 'h3', type: NoteBlockType.heading3).isHeading,
         true,
       );
       expect(
-        NoteBlock(id: 'p', type: NoteBlockType.paragraph).isHeading,
+        const NoteBlock(id: 'p', type: NoteBlockType.paragraph).isHeading,
         false,
       );
     });
 
     test('列表块判断', () {
       expect(
-        NoteBlock(id: 'b', type: NoteBlockType.bulletList).isList,
+        const NoteBlock(id: 'b', type: NoteBlockType.bulletList).isList,
         true,
       );
       expect(
-        NoteBlock(id: 'n', type: NoteBlockType.numberedList).isList,
+        const NoteBlock(id: 'n', type: NoteBlockType.numberedList).isList,
         true,
       );
       expect(
-        NoteBlock(id: 'p', type: NoteBlockType.paragraph).isList,
+        const NoteBlock(id: 'p', type: NoteBlockType.paragraph).isList,
         false,
       );
     });
 
     test('标题级别', () {
       expect(
-        NoteBlock(id: 'h1', type: NoteBlockType.heading1).headingLevel,
+        const NoteBlock(id: 'h1', type: NoteBlockType.heading1).headingLevel,
         1,
       );
       expect(
-        NoteBlock(id: 'h2', type: NoteBlockType.heading2).headingLevel,
+        const NoteBlock(id: 'h2', type: NoteBlockType.heading2).headingLevel,
         2,
       );
       expect(
-        NoteBlock(id: 'h3', type: NoteBlockType.heading3).headingLevel,
+        const NoteBlock(id: 'h3', type: NoteBlockType.heading3).headingLevel,
         3,
       );
       expect(
-        NoteBlock(id: 'p', type: NoteBlockType.paragraph).headingLevel,
+        const NoteBlock(id: 'p', type: NoteBlockType.paragraph).headingLevel,
         0,
       );
     });
@@ -113,7 +113,7 @@ void main() {
     });
 
     test('copyWith', () {
-      final original = NoteBlock(
+      const original = NoteBlock(
         id: 'b1',
         type: NoteBlockType.paragraph,
         content: 'original',
@@ -134,18 +134,18 @@ void main() {
     });
 
     test('相等性', () {
-      final a = NoteBlock(id: 'b1', type: NoteBlockType.paragraph, content: 'x');
-      final b = NoteBlock(id: 'b1', type: NoteBlockType.paragraph, content: 'x');
-      final c = NoteBlock(id: 'b2', type: NoteBlockType.paragraph, content: 'x');
+      const a = NoteBlock(id: 'b1', type: NoteBlockType.paragraph, content: 'x');
+      const b = NoteBlock(id: 'b1', type: NoteBlockType.paragraph, content: 'x');
+      const c = NoteBlock(id: 'b2', type: NoteBlockType.paragraph, content: 'x');
 
       expect(a == b, true);
       expect(a == c, false);
     });
 
     test('icon 属性', () {
-      expect(NoteBlock(id: 'p', type: NoteBlockType.paragraph).icon, '📄');
-      expect(NoteBlock(id: 'h1', type: NoteBlockType.heading1).icon, '🔠');
-      expect(NoteBlock(id: 'code', type: NoteBlockType.code).icon, '💻');
+      expect(const NoteBlock(id: 'p', type: NoteBlockType.paragraph).icon, '📄');
+      expect(const NoteBlock(id: 'h1', type: NoteBlockType.heading1).icon, '🔠');
+      expect(const NoteBlock(id: 'code', type: NoteBlockType.code).icon, '💻');
     });
   });
 }

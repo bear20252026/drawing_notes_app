@@ -135,7 +135,7 @@ class _MorphItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget content = AnimatedContainer(
+    final Widget content = AnimatedContainer(
       duration: animate ? duration : Duration.zero,
       curve: curve,
       // 选中时宽度"变形"以容纳标签文字——morph 的核心观感。

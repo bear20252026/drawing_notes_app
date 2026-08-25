@@ -39,7 +39,6 @@ void main() {
         x: 10,
         y: 20,
         text: '你好',
-        fontSize: 24,
         bold: true,
         color: 0xFF112233,
       );

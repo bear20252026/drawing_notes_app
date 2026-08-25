@@ -49,8 +49,8 @@ extension _EditorPageOverlays on _EditorPageState {
                   behavior: HitTestBehavior.opaque,
                   onPointerDown: (e) => _onPointerDown(e, e.localPosition),
                   onPointerMove: (e) => _onPointerMove(e, e.localPosition),
-                  onPointerUp: (e) => _onPointerUp(e),
-                  onPointerCancel: (e) => _onPointerCancel(e),
+                  onPointerUp: _onPointerUp,
+                  onPointerCancel: _onPointerCancel,
                   onPointerSignal: _onPointerSignal, // 滚轮缩放画布
                   child: Builder(
                     builder: (context) {
@@ -407,7 +407,6 @@ extension _EditorPageOverlays on _EditorPageState {
                                     shape: BoxShape.circle,
                                     border: Border.all(
                                       color: Colors.white,
-                                      width: 1,
                                     ),
                                   ),
                                 ),
@@ -841,7 +840,7 @@ extension _EditorPageOverlays on _EditorPageState {
                     decoration: BoxDecoration(
                       color: const Color(0xFF42A5F5),
                       borderRadius: BorderRadius.circular(2),
-                      border: Border.all(color: Colors.white, width: 1),
+                      border: Border.all(color: Colors.white),
                     ),
                   ),
                 ),

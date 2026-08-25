@@ -1,11 +1,11 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:drawing_notes_app/l10n/app_localizations.dart';
+import '../../../l10n/app_localizations.dart';
 
-import 'package:drawing_notes_app/features/drawing/application/plugin_registry.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
+import '../application/plugin_registry.dart';
+import '../domain/document.dart';
+import '../domain/selection.dart';
+import '../domain/shape_item.dart';
+import '../domain/text_item.dart';
 
 /// 编辑器工具栏（架构重构 R2：从 editor_page 外移，回调参数化）。
 ///
@@ -567,8 +567,6 @@ class EditorToolbar extends StatelessWidget {
                   width: 80,
                   child: Slider(
                     value: state.selectedShape!.fillColor != null ? 1.0 : 0.0,
-                    min: 0,
-                    max: 1,
                     onChanged: actions.onShapeOpacity,
                   ),
                 ),

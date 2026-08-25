@@ -1,8 +1,9 @@
 /// 统一 SnackBar 工具（P2 #33 + P2 #34）
+library;
 
 import 'package:flutter/material.dart';
 
-import 'package:drawing_notes_app/core/exceptions/app_exceptions.dart';
+import '../../exceptions/app_exceptions.dart';
 
 /// SnackBar 类型
 enum SnackBarType { error, success, warning, info }

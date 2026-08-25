@@ -1,4 +1,4 @@
-import 'package:drawing_notes_app/core/security/audit_logger.dart';
+import 'audit_logger.dart';
 
 /// 策略执行引擎（专家审计最优先行动④——SessionGuard + PolicyEngine +
 /// Capability，2026-08-16 落地）。

@@ -5,8 +5,8 @@
 
 import 'dart:ui' show Color;
 
-import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import 'eraser_mode.dart';
+import '../domain/stroke.dart';
 
 /// 工具状态管理器。
 ///

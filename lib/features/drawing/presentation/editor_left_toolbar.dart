@@ -1,10 +1,10 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:drawing_notes_app/l10n/app_localizations.dart';
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
+import '../../../l10n/app_localizations.dart';
+import '../domain/shape_item.dart';
 
-import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
-import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import '../application/drawing_controller.dart';
+import '../domain/selection.dart';
+import '../domain/stroke.dart';
 
 /// 左侧垂直工具条（对齐 Excalidraw LayerUI 布局）。
 ///

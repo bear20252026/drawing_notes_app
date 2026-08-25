@@ -106,20 +106,15 @@ class NetworkException extends AppException {
   /// [context] 错误上下文
   /// [metadata] 附加数据
   NetworkException({
-    required String message,
+    required super.message,
     this.statusCode,
-    Object? originalError,
-    StackTrace? stack,
-    String? context,
-    Map<String, dynamic>? metadata,
+    super.originalError,
+    super.stack,
+    super.context,
+    super.metadata,
   }) : super(
-          message: message,
           code: 'NETWORK_ERROR',
           severity: ErrorSeverity.ERROR,
-          originalError: originalError,
-          stack: stack,
-          context: context,
-          metadata: metadata,
         );
 
   /// HTTP 状态码
@@ -140,21 +135,16 @@ class NetworkException extends AppException {
 class StorageException extends AppException {
   /// 创建存储异常
   StorageException({
-    required String message,
+    required super.message,
     this.operation,
     this.path,
-    Object? originalError,
-    StackTrace? stack,
-    String? context,
-    Map<String, dynamic>? metadata,
+    super.originalError,
+    super.stack,
+    super.context,
+    super.metadata,
   }) : super(
-          message: message,
           code: 'STORAGE_ERROR',
           severity: ErrorSeverity.ERROR,
-          originalError: originalError,
-          stack: stack,
-          context: context,
-          metadata: metadata,
         );
 
   /// 存储操作类型（读取、写入、删除等）
@@ -178,20 +168,15 @@ class StorageException extends AppException {
 class AuthException extends AppException {
   /// 创建认证异常
   AuthException({
-    required String message,
+    required super.message,
     this.authType,
-    Object? originalError,
-    StackTrace? stack,
-    String? context,
-    Map<String, dynamic>? metadata,
+    super.originalError,
+    super.stack,
+    super.context,
+    super.metadata,
   }) : super(
-          message: message,
           code: 'AUTH_FAILED',
           severity: ErrorSeverity.ERROR,
-          originalError: originalError,
-          stack: stack,
-          context: context,
-          metadata: metadata,
         );
 
   /// 认证类型（登录、注册、token 刷新等）
@@ -212,21 +197,16 @@ class AuthException extends AppException {
 class ValidationException extends AppException {
   /// 创建验证异常
   ValidationException({
-    required String message,
+    required super.message,
     this.field,
     this.value,
-    Object? originalError,
-    StackTrace? stack,
-    String? context,
-    Map<String, dynamic>? metadata,
+    super.originalError,
+    super.stack,
+    super.context,
+    super.metadata,
   }) : super(
-          message: message,
           code: 'VALIDATION_ERROR',
           severity: ErrorSeverity.WARNING,
-          originalError: originalError,
-          stack: stack,
-          context: context,
-          metadata: metadata,
         );
 
   /// 验证失败的字段名
@@ -250,21 +230,16 @@ class ValidationException extends AppException {
 class DataFormatException extends AppException {
   /// 创建数据格式异常
   DataFormatException({
-    required String message,
+    required super.message,
     this.expectedFormat,
     this.actualData,
-    Object? originalError,
-    StackTrace? stack,
-    String? context,
-    Map<String, dynamic>? metadata,
+    super.originalError,
+    super.stack,
+    super.context,
+    super.metadata,
   }) : super(
-          message: message,
           code: 'FORMAT_ERROR',
           severity: ErrorSeverity.ERROR,
-          originalError: originalError,
-          stack: stack,
-          context: context,
-          metadata: metadata,
         );
 
   /// 期望的格式
@@ -288,18 +263,14 @@ class DataFormatException extends AppException {
 class CancellationException extends AppException {
   /// 创建取消异常
   CancellationException({
-    String message = '操作已取消',
+    super.message = '操作已取消',
     this.operation,
-    StackTrace? stack,
-    String? context,
-    Map<String, dynamic>? metadata,
+    super.stack,
+    super.context,
+    super.metadata,
   }) : super(
-          message: message,
           code: 'OPERATION_CANCELLED',
           severity: ErrorSeverity.INFO,
-          stack: stack,
-          context: context,
-          metadata: metadata,
         );
 
   /// 被取消的操作名称
@@ -320,21 +291,16 @@ class CancellationException extends AppException {
 class TimeoutException extends AppException {
   /// 创建超时异常
   TimeoutException({
-    required String message,
+    required super.message,
     this.timeout,
     this.operation,
-    Object? originalError,
-    StackTrace? stack,
-    String? context,
-    Map<String, dynamic>? metadata,
+    super.originalError,
+    super.stack,
+    super.context,
+    super.metadata,
   }) : super(
-          message: message,
           code: 'TIMEOUT_ERROR',
           severity: ErrorSeverity.ERROR,
-          originalError: originalError,
-          stack: stack,
-          context: context,
-          metadata: metadata,
         );
 
   /// 超时时长（毫秒）
@@ -358,20 +324,15 @@ class TimeoutException extends AppException {
 class PermissionException extends AppException {
   /// 创建权限异常
   PermissionException({
-    required String message,
+    required super.message,
     this.permission,
-    Object? originalError,
-    StackTrace? stack,
-    String? context,
-    Map<String, dynamic>? metadata,
+    super.originalError,
+    super.stack,
+    super.context,
+    super.metadata,
   }) : super(
-          message: message,
           code: 'PERMISSION_DENIED',
           severity: ErrorSeverity.WARNING,
-          originalError: originalError,
-          stack: stack,
-          context: context,
-          metadata: metadata,
         );
 
   /// 被拒绝的权限名称
@@ -392,20 +353,15 @@ class PermissionException extends AppException {
 class EncryptionException extends AppException {
   /// 创建加密异常
   EncryptionException({
-    required String message,
+    required super.message,
     this.operation,
-    Object? originalError,
-    StackTrace? stack,
-    String? context,
-    Map<String, dynamic>? metadata,
+    super.originalError,
+    super.stack,
+    super.context,
+    super.metadata,
   }) : super(
-          message: message,
           code: 'ENCRYPTION_ERROR',
           severity: ErrorSeverity.ERROR,
-          originalError: originalError,
-          stack: stack,
-          context: context,
-          metadata: metadata,
         );
 
   /// 加密操作类型（加密、解密、哈希等）
@@ -567,7 +523,6 @@ class UnifiedErrorHandler {
       return AppException(
         message: '平台插件缺失: ${error.message ?? "未知插件"}',
         code: 'PLUGIN_MISSING',
-        severity: ErrorSeverity.ERROR,
         originalError: error,
         stack: stack,
         context: context,
@@ -578,7 +533,6 @@ class UnifiedErrorHandler {
     return AppException(
       message: '未知错误: ${error.toString()}',
       code: 'UNKNOWN_ERROR',
-      severity: ErrorSeverity.ERROR,
       originalError: error,
       stack: stack,
       context: context,
@@ -637,7 +591,6 @@ class UnifiedErrorHandler {
     return AppException(
       message: '平台错误: ${error.message}',
       code: 'PLATFORM_ERROR',
-      severity: ErrorSeverity.ERROR,
       originalError: error,
       stack: stack,
       context: context,
@@ -853,7 +806,7 @@ class ErrorSnackBarService {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
         side: style.borderColor != null
-            ? BorderSide(color: style.borderColor!, width: 1)
+            ? BorderSide(color: style.borderColor!)
             : BorderSide.none,
       ),
       margin: const EdgeInsets.all(16),
@@ -999,7 +952,6 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: Theme.of(context).colorScheme.error,
-          width: 1,
         ),
       ),
       child: Column(
@@ -1159,7 +1111,6 @@ class AsyncErrorGuard {
           : AppException(
               message: '操作失败: ${error.toString()}',
               code: 'ASYNC_ERROR',
-              severity: ErrorSeverity.ERROR,
               originalError: error,
               stack: stack,
               context: context,

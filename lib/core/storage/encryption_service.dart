@@ -166,7 +166,7 @@ class EncryptionService {
   static String getProgressiveDelayInfo(int failCount) {
     if (failCount <= 0) return '无延迟';
     final delay = getProgressiveDelay(failCount);
-    if (delay < 60) return '${delay}秒';
+    if (delay < 60) return '$delay秒';
     if (delay < 3600) return '${delay ~/ 60}分钟';
     return '${delay ~/ 3600}小时';
   }
@@ -259,7 +259,7 @@ class EncryptionService {
     _requireInputSize(encryptedJson);
     final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
     if (map['mode'] != 'keyfile') {
-      throw FormatException('不是密码盘加密数据');
+      throw const FormatException('不是密码盘加密数据');
     }
     return _gcmDecrypt(map, SecretKey(masterKey));
   }
@@ -359,7 +359,7 @@ class EncryptionService {
   /// H-07 修复：封装输入大小预检（防恶意超长输入资源消耗）。
   static void _requireInputSize(String input) {
     if (input.length > _maxEncryptedInputBytes) {
-      throw FormatException('加密数据过大（超过 10MB 限制）');
+      throw const FormatException('加密数据过大（超过 10MB 限制）');
     }
   }
 
@@ -421,7 +421,7 @@ class EncryptionService {
     _requireInputSize(encryptedJson);
     final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
     if (map['mode'] != 'payload' || map['v'] != 4) {
-      throw FormatException('不是 v4 载荷数据');
+      throw const FormatException('不是 v4 载荷数据');
     }
     final nonce = base64Decode(_requireString(map, 'n'));
     final cipher = base64Decode(_requireString(map, 'c'));

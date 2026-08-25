@@ -5,11 +5,11 @@ import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:drawing_notes_app/core/theme/app_design.dart';
-import 'package:drawing_notes_app/core/di/providers.dart';
+import 'core/theme/app_design.dart';
+import 'core/di/providers.dart';
 import 'l10n/app_localizations.dart';
-import 'package:drawing_notes_app/core/router/app_router.dart';
-import 'package:drawing_notes_app/core/security/auth_guard.dart';
+import 'core/router/app_router.dart';
+import 'core/security/auth_guard.dart';
 
 /// 应用根组件：主题 + 路由。
 ///

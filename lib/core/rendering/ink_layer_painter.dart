@@ -1,7 +1,7 @@
 import 'dart:ui';
 
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
-import 'package:drawing_notes_app/core/rendering/stroke_renderer.dart';
+import '../../features/drawing/domain/stroke.dart';
+import 'stroke_renderer.dart';
 
 /// 文档墨迹的分层绘制策略。
 ///

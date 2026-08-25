@@ -162,7 +162,7 @@ void main() {
 
     test('matches 方法接受 KeyEvent 和 ShortcutEntry', () {
       // 创建一个模拟按键事件
-      final event = KeyDownEvent(
+      const event = KeyDownEvent(
         physicalKey: PhysicalKeyboardKey.keyZ,
         logicalKey: LogicalKeyboardKey.keyZ,
         character: 'z',
@@ -207,7 +207,7 @@ void main() {
   // ---------------------------------------------------------------------------
   group('findMatch', () {
     test('匹配 Ctrl+Z 到 undo 操作', () {
-      final event = KeyDownEvent(
+      const event = KeyDownEvent(
         physicalKey: PhysicalKeyboardKey.keyZ,
         logicalKey: LogicalKeyboardKey.keyZ,
         character: 'z',
@@ -222,7 +222,7 @@ void main() {
     });
 
     test('findMatch 不匹配未注册的按键', () {
-      final event = KeyDownEvent(
+      const event = KeyDownEvent(
         physicalKey: PhysicalKeyboardKey.fn,
         logicalKey: LogicalKeyboardKey.fn,
         timeStamp: Duration.zero,
@@ -232,7 +232,7 @@ void main() {
     });
 
     test('findMatch 不匹配 F13 以外的非注册功能键', () {
-      final event = KeyDownEvent(
+      const event = KeyDownEvent(
         physicalKey: PhysicalKeyboardKey.fn,
         logicalKey: LogicalKeyboardKey.fn,
         timeStamp: Duration.zero,

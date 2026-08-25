@@ -32,7 +32,7 @@ class AppErrorWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDebug = const bool.fromEnvironment('dart.vm.product') == false;
+    const isDebug = bool.fromEnvironment('dart.vm.product') == false;
 
     return Material(
       color: theme.scaffoldBackgroundColor,

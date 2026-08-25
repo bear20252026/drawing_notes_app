@@ -5,7 +5,7 @@ import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 
-import 'package:drawing_notes_app/core/storage/vfs/vault_manifest.dart';
+import 'vault_manifest.dart';
 
 /// VFS 加密对象仓库核心（专家目标架构 VFS——2026-08-16）。
 ///

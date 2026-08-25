@@ -92,7 +92,7 @@ void main() {
       // GestureDetector 覆盖整个区域 → 28 + 20 = 48dp ≥ 48dp ✅。
       const colorBoxSize = 28.0;
       const paddingTotal = 20.0; // 10dp each side → 20dp total
-      final effectiveHitSize = colorBoxSize + paddingTotal;
+      const effectiveHitSize = colorBoxSize + paddingTotal;
 
       expect(
         effectiveHitSize,

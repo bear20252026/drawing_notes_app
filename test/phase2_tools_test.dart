@@ -1,4 +1,3 @@
-import 'dart:ui' as ui;
 
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/core/rendering/layer_compositor.dart';
@@ -81,7 +80,7 @@ void main() {
 
       const compositor = LayerCompositor();
       final image = await compositor.rasterize(layer, doc.width, doc.height);
-      final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      final bytes = await image.toByteData();
       expect(bytes, isNotNull);
 
       int alphaAt(int x, int y) => bytes!.getUint8((y * doc.width + x) * 4 + 3);

@@ -8,6 +8,7 @@
 /// 注意：此文件与 [SessionGuard]（生命周期观察者）互补。
 /// [AuthGuard] 管理路由级别的认证状态；
 /// [SessionGuard] 管理 App 生命周期级别的锁定/解锁。
+library;
 
 import 'dart:async';
 import 'dart:io';

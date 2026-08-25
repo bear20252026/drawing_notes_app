@@ -128,8 +128,6 @@ class _LayerTile extends ConsumerWidget {
                   label: '图层 ${layer.name} 不透明度',
                   child: Slider(
                     value: layer.opacity,
-                    min: 0.0,
-                    max: 1.0,
                     onChanged: (value) {
                       final notifier = ref.read(editorV2NotifierProvider.notifier);
                       final currentDoc = ref.read(editorV2NotifierProvider).document;

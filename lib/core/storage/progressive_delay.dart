@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -147,7 +146,7 @@ class ProgressiveDelay {
   static String getDelayInfoForCount(int failCount) {
     if (failCount <= 0) return '无延迟';
     final delay = getDelayForCount(failCount);
-    if (delay < 60) return '${delay}秒';
+    if (delay < 60) return '$delay秒';
     if (delay < 3600) return '${delay ~/ 60}分钟';
     return '${delay ~/ 3600}小时';
   }

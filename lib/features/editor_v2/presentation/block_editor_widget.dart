@@ -269,12 +269,12 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
             children: [
-              Expanded(child: Divider(thickness: 1)),
+              const Expanded(child: Divider(thickness: 1)),
               IconButton(
-                icon: Icon(Icons.close, size: 16),
+                icon: const Icon(Icons.close, size: 16),
                 onPressed: () => _deleteBlock(index),
                 padding: EdgeInsets.zero,
-                constraints: BoxConstraints(minWidth: 48, minHeight: 48),
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               ),
             ],
           ),
@@ -347,7 +347,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
           style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
           ),
-          decoration: InputDecoration(
+          decoration: const InputDecoration(
             hintText: '标题 1',
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
@@ -365,7 +365,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
           style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
           ),
-          decoration: InputDecoration(
+          decoration: const InputDecoration(
             hintText: '标题 2',
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
@@ -383,7 +383,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
-          decoration: InputDecoration(
+          decoration: const InputDecoration(
             hintText: '标题 3',
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
@@ -448,7 +448,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
             style: theme.textTheme.bodyMedium?.copyWith(
               fontFamily: 'monospace',
             ),
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               hintText: '输入代码…',
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
@@ -480,7 +480,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
               fontStyle: FontStyle.italic,
               color: theme.colorScheme.onSurfaceVariant,
             ),
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               hintText: '引用…',
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
@@ -504,7 +504,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
                   errorBuilder: (_, _, _) => Container(
                     height: 100,
                     color: theme.colorScheme.surfaceContainerHighest,
-                    child: Center(child: Text('图片加载失败')),
+                    child: const Center(child: Text('图片加载失败')),
                   ),
                 ),
               )
@@ -552,7 +552,7 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
           minLines: 1,
           keyboardType: TextInputType.multiline,
           textInputAction: TextInputAction.newline,
-          decoration: InputDecoration(
+          decoration: const InputDecoration(
             hintText: '输入文字，或输入 / 打开命令菜单…',
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
@@ -576,14 +576,14 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
  borderRadius: BorderRadius.circular(12),
         child: Container(
           width: 220,
-          constraints: BoxConstraints(maxHeight: 300),
+          constraints: const BoxConstraints(maxHeight: 300),
  decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(12),
           ),
           child: ListView.builder(
             shrinkWrap: true,
-            padding: EdgeInsets.symmetric(vertical: 4),
+            padding: const EdgeInsets.symmetric(vertical: 4),
             itemCount: _slashCommands.length,
             itemBuilder: (context, index) {
               final cmd = _slashCommands[index];

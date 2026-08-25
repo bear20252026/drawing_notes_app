@@ -73,7 +73,6 @@ void main() {
           home: Scaffold(
             body: TextRevealCard(
               hiddenText: Text('Secret'),
-              showStars: true,
               starsCount: 50,
             ),
           ),

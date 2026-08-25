@@ -6,14 +6,14 @@ import 'package:flutter_test/flutter_test.dart';
 
 Stroke _thickStroke() => Stroke(
   type: BrushType.pen,
-  color: Color(0xFF1A1A1A),
+  color: const Color(0xFF1A1A1A),
   width: 32,
   points: [
-    StrokePoint(10, 50, 0.25),
-    StrokePoint(28, 46, 0.95),
-    StrokePoint(48, 55, 0.30),
-    StrokePoint(72, 44, 0.88),
-    StrokePoint(100, 50, 0.55),
+    const StrokePoint(10, 50, 0.25),
+    const StrokePoint(28, 46, 0.95),
+    const StrokePoint(48, 55, 0.30),
+    const StrokePoint(72, 44, 0.88),
+    const StrokePoint(100, 50, 0.55),
   ],
 );
 
@@ -48,9 +48,9 @@ void main() {
   test('固定宽度高亮笔不读取压感，生成稳定轮廓', () {
     final marker = Stroke(
       type: BrushType.marker,
-      color: Color(0xFFFFD54F),
+      color: const Color(0xFFFFD54F),
       width: 24,
-      points: [StrokePoint(0, 0, 0.1), StrokePoint(100, 0, 0.9)],
+      points: [const StrokePoint(0, 0, 0.1), const StrokePoint(100, 0, 0.9)],
     );
 
     final outline = StrokeRenderer.strokeOutline(marker, usePressure: false);

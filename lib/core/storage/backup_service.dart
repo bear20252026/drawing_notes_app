@@ -24,9 +24,9 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/infrastructure/document_codec.dart';
-import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
+import '../../features/drawing/domain/document.dart';
+import '../../features/drawing/infrastructure/document_codec.dart';
+import 'local_id_generator.dart';
 
 /// 备份元数据。
 class BackupMeta {
@@ -183,7 +183,7 @@ class BackupService {
 
     // 生成备份文件名。
     final timestampMs = timestamp.millisecondsSinceEpoch;
-    final fileName = '${newVersion}_${timestampMs}.json';
+    final fileName = '${newVersion}_$timestampMs.json';
     final filePath = '${docDir.path}${Platform.pathSeparator}$fileName';
 
     // 写入备份文件（原子写入）。

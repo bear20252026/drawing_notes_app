@@ -1,8 +1,8 @@
 import 'dart:ui' show Offset;
 
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
+import '../../drawing/domain/document.dart';
+import '../../drawing/domain/shape_item.dart';
+import '../../drawing/domain/text_item.dart';
 
 export 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
 export 'package:drawing_notes_app/features/drawing/domain/text_item.dart';

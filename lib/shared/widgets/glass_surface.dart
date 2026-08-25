@@ -33,7 +33,7 @@ class GlassSurface extends StatelessWidget {
     final surfaceColor =
         color ?? scheme.surface.withValues(alpha: isDark ? 0.78 : 0.76);
 
-    Widget content = DecoratedBox(
+    final Widget content = DecoratedBox(
       decoration: BoxDecoration(
         color: surfaceColor,
         borderRadius: borderRadius,

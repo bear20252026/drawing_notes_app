@@ -36,7 +36,7 @@ void main() {
 
   test('addStroke：添加笔画', () {
     notifier.createDocument('test-doc');
-    notifier.addStroke([Point(0, 0), Point(10, 10)]);
+    notifier.addStroke([const Point(0, 0), const Point(10, 10)]);
     final state = container.read(editorV2NotifierProvider);
     expect(state.document.layers.first.strokes.length, 1);
     expect(state.canUndo, true);
@@ -44,7 +44,7 @@ void main() {
 
   test('undo/redo：撤销/重做', () {
     notifier.createDocument('test-doc');
-    notifier.addStroke([Point(0, 0), Point(10, 10)]);
+    notifier.addStroke([const Point(0, 0), const Point(10, 10)]);
     expect(container.read(editorV2NotifierProvider).document.layers.first.strokes.length, 1);
     expect(container.read(editorV2NotifierProvider).canUndo, true);
 

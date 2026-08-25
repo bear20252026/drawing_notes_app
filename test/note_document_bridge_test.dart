@@ -26,7 +26,6 @@ void main() {
         const NoteParagraph(
           id: 'p2',
           content: '正文',
-          type: NoteParagraphType.paragraph,
         ),
       ];
       final items = NoteDocumentBridge.paragraphsToTextItems(paragraphs);
@@ -42,7 +41,7 @@ void main() {
     test('标题字号 28，段落字号 16', () {
       final paragraphs = [
         const NoteParagraph(id: 'h', content: 'H', type: NoteParagraphType.heading),
-        const NoteParagraph(id: 'p', content: 'P', type: NoteParagraphType.paragraph),
+        const NoteParagraph(id: 'p', content: 'P'),
       ];
       final items = NoteDocumentBridge.paragraphsToTextItems(paragraphs);
       expect(items[0].fontSize, 28);
@@ -81,7 +80,7 @@ void main() {
 
     test('fontSize >= 24 被识别为标题', () {
       final items = [
-        PageTextItem(id: 't', x: 0, y: 0, text: 'Title', fontSize: 24),
+        PageTextItem(id: 't', x: 0, y: 0, text: 'Title'),
         PageTextItem(id: 's', x: 0, y: 1, text: 'Sub', fontSize: 23),
       ];
       final paragraphs = NoteDocumentBridge.textItemsToParagraphs(items);
@@ -93,11 +92,11 @@ void main() {
   group('NoteDocumentBridge.applyToNotebook', () {
     test('空 notebook 创建新页面', () {
       final notebook = Notebook(id: 'nb1', title: 'Test');
-      final doc = NoteDocument(
+      const doc = NoteDocument(
         id: 'nb1',
         title: 'Updated',
         paragraphs: [
-          const NoteParagraph(id: 'p1', content: '内容'),
+          NoteParagraph(id: 'p1', content: '内容'),
         ],
       );
 
@@ -124,11 +123,11 @@ void main() {
           ),
         ],
       );
-      final doc = NoteDocument(
+      const doc = NoteDocument(
         id: 'nb2',
         title: 'New',
         paragraphs: [
-          const NoteParagraph(id: 'p1', content: '新内容'),
+          NoteParagraph(id: 'p1', content: '新内容'),
         ],
       );
 

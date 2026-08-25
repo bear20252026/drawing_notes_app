@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui' show Color;
 
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import '../domain/document.dart';
+import '../domain/document_image_item.dart';
+import '../domain/layer.dart';
+import '../domain/shape_item.dart';
+import '../domain/stroke.dart';
 
 /// 文档编解码器：DrawingDocument <-> JSON 字符串（工程文件格式）。
 ///
@@ -64,16 +64,16 @@ class DocumentCodec {
     // 入口大小预检（红蓝攻防 D-4 修复 2026-08-15）：拒绝超大文档，
     // 防恶意构造文件耗尽内存（OOM）。
     if (bytes.length > _maxDecodeBytes) {
-      throw FormatException('文档过大（超过 100MB 限制），拒绝打开');
+      throw const FormatException('文档过大（超过 100MB 限制），拒绝打开');
     }
     final Object? decoded;
     try {
       decoded = jsonDecode(utf8.decode(bytes));
     } on FormatException {
-      throw FormatException('文档 JSON 格式无效');
+      throw const FormatException('文档 JSON 格式无效');
     }
     if (decoded is! Map) {
-      throw FormatException('文档根节点必须是对象');
+      throw const FormatException('文档根节点必须是对象');
     }
     // 版本只读降级（对齐 Saber SBN）：文件版本高于当前支持版本时，
     // 拒绝以旧逻辑解码（避免静默丢失新字段），提示用户升级应用。
@@ -85,12 +85,12 @@ class DocumentCodec {
     }
     final documentValue = decoded['document'];
     if (documentValue is! Map) {
-      throw FormatException('文档缺少 document 对象');
+      throw const FormatException('文档缺少 document 对象');
     }
     final document = Map<String, dynamic>.from(documentValue);
     final id = document['id'];
     if (id is! String || !_validDocumentId.hasMatch(id)) {
-      throw FormatException('文档 ID 无效');
+      throw const FormatException('文档 ID 无效');
     }
 
     return DrawingDocument(

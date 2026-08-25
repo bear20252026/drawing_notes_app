@@ -5,7 +5,7 @@
 // - 通知图层面板/工具栏等低频 UI
 
 import 'package:flutter/material.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import '../domain/stroke.dart';
 
 /// 笔画状态 ChangeNotifier。
 ///

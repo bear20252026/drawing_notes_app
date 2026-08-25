@@ -36,7 +36,7 @@ Stroke hline({
 /// 读取图像指定坐标的像素颜色。
 Future<ui.Color> pixelAt(ui.Image image, int x, int y) async {
   final ByteData? data =
-      await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      await image.toByteData();
   final bytes = data!.buffer.asUint8List();
   final offset = (y * image.width + x) * 4;
   return ui.Color.fromARGB(
@@ -287,7 +287,7 @@ void main() {
 
   group('空间索引大量元素性能冒烟', () {
     test('2000 个元素插入 + 700 次查询在时限内完成且抽查正确', () async {
-      final index = SpatialIndex(cellSize: 64);
+      final index = SpatialIndex();
       final sw = Stopwatch()..start();
 
       // 插入 2000 个互不重叠的网格方块（80 列 × 25 行）

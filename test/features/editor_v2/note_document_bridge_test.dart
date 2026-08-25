@@ -97,11 +97,11 @@ void main() {
 
     test('applyToNotebook — 空 notebook → 创建新 page', () {
       final notebook = Notebook(id: 'nb1', title: '笔记本');
-      final noteDoc = NoteDocument(
+      const noteDoc = NoteDocument(
         id: 'nb1',
         title: '我的笔记',
         paragraphs: [
-          const NoteParagraph(id: 'p1', content: '内容'),
+          NoteParagraph(id: 'p1', content: '内容'),
         ],
       );
 
@@ -128,12 +128,12 @@ void main() {
           ),
         ],
       );
-      final noteDoc = NoteDocument(
+      const noteDoc = NoteDocument(
         id: 'nb1',
         title: '新标题',
         paragraphs: [
-          const NoteParagraph(id: 'p1', content: '新内容1'),
-          const NoteParagraph(id: 'p2', content: '新内容2'),
+          NoteParagraph(id: 'p1', content: '新内容1'),
+          NoteParagraph(id: 'p2', content: '新内容2'),
         ],
       );
 
@@ -188,17 +188,17 @@ void main() {
     // ──────────────────────────── 往返测试（Round-trip） ────────────────────────────
 
     test('round-trip — NoteDocument → Notebook → NoteDocument 内容一致', () {
-      final original = NoteDocument(
+      const original = NoteDocument(
         id: 'nb1',
         title: '测试笔记本',
         paragraphs: [
-          const NoteParagraph(id: 'p1', content: '第一段正文'),
-          const NoteParagraph(
+          NoteParagraph(id: 'p1', content: '第一段正文'),
+          NoteParagraph(
             id: 'h1',
             content: '章节标题',
             type: NoteParagraphType.heading,
           ),
-          const NoteParagraph(id: 'p2', content: '第二段正文'),
+          NoteParagraph(id: 'p2', content: '第二段正文'),
         ],
       );
 
@@ -218,10 +218,10 @@ void main() {
     });
 
     test('round-trip — 空文档往返不丢失', () {
-      final original = NoteDocument(
+      const original = NoteDocument(
         id: 'nb1',
         title: '',
-        paragraphs: [const NoteParagraph(id: 'p1', content: '')],
+        paragraphs: [NoteParagraph(id: 'p1', content: '')],
       );
 
       final notebook = Notebook(id: 'nb1', title: '');

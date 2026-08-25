@@ -24,7 +24,6 @@ void main() {
     setUp(() {
       service = DeniableEncryptionService(
         containerSize: 4 * 1024 * 1024, // 4MB 用于测试（分区布局含 1-2MB 随机填充）
-        maxFailures: 10,
       );
     });
 
@@ -401,7 +400,6 @@ void main() {
       final r1 = service.shouldRotate(
         keyCreatedAt: DateTime.now().subtract(const Duration(days: 91)),
         policy: policy,
-        currentKeyId: '',
       );
       expect(r1.newKeyId, 'key-1');
 
@@ -497,7 +495,7 @@ void main() {
     });
 
     test('密文不包含明文', () async {
-      final plain = '这是一段机密信息';
+      const plain = '这是一段机密信息';
       final cipher = await encryption.encrypt(plain, 'password123');
       expect(cipher.contains(plain), false);
     });
@@ -512,7 +510,7 @@ void main() {
 
     test('恢复密钥信封 roundtrip', () async {
       final masterKey = List<int>.generate(32, (i) => i);
-      final recoveryKey = 'my-recovery-key-phrase';
+      const recoveryKey = 'my-recovery-key-phrase';
 
       final envelope = await encryption.wrapMasterKey(masterKey, recoveryKey);
       final unwrapped =
@@ -631,7 +629,7 @@ void main() {
     });
 
     test('渐进延迟序列单调递增', () {
-      final delays = EncryptionService.progressiveDelaySeconds;
+      const delays = EncryptionService.progressiveDelaySeconds;
       for (var i = 1; i < delays.length; i++) {
         expect(delays[i] > delays[i - 1], true,
             reason: '延迟序列必须单调递增');
@@ -721,7 +719,7 @@ void main() {
     const encryption = EncryptionService.test();
 
     test('完整流程：设置密码 → 加密内容 → 解密验证', () async {
-      final password = 'notebook_password_123';
+      const password = 'notebook_password_123';
       final content = jsonEncode({
         'title': '我的加密笔记',
         'pages': [
@@ -769,8 +767,8 @@ void main() {
 
     test('密钥轮换场景：修改密码后旧密文仍可解密', () async {
       const service = EncryptionService.test();
-      final oldPassword = 'old_password_123';
-      final newPassword = 'new_password_456';
+      const oldPassword = 'old_password_123';
+      const newPassword = 'new_password_456';
 
       // 用旧密码加密
       final encrypted = await service.encrypt('重要笔记', oldPassword);
@@ -854,7 +852,7 @@ void main() {
     });
 
     test('Unicode 内容加解密', () async {
-      final unicode = '🔐 中文笔记 日本語ノート 한국어 📝 emojis 🎨';
+      const unicode = '🔐 中文笔记 日本語ノート 한국어 📝 emojis 🎨';
       final cipher = await encryption.encrypt(unicode, 'pwd');
       final dec = await encryption.decrypt(cipher, 'pwd');
       expect(dec, unicode);

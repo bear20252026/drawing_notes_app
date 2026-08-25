@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
+import '../domain/shape_item.dart';
 
 /// 形状 8 向缩放手柄（四角 + 四边中点，借鉴 Excalidraw）。
 ///
@@ -43,7 +43,7 @@ class ResizeHandles extends StatelessWidget {
   Widget build(BuildContext context) {
     const size = _handleSize;
     final corners = <Offset>[
-      Offset(0, 0), // 左上
+      const Offset(0, 0), // 左上
       Offset(width, 0), // 右上
       Offset(0, height), // 左下
       Offset(width, height), // 右下
@@ -86,7 +86,7 @@ class ResizeHandles extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFF42A5F5),
             borderRadius: BorderRadius.circular(2),
-            border: Border.all(color: Colors.white, width: 1),
+            border: Border.all(color: Colors.white),
           ),
         ),
       ),

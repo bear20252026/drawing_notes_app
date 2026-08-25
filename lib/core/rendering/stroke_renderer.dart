@@ -4,11 +4,11 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:perfect_freehand/perfect_freehand.dart' hide StrokePoint;
 
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
-import 'package:drawing_notes_app/core/rendering/pencil_shader.dart';
-import 'package:drawing_notes_app/core/rendering/brush_shader.dart';
-import 'package:drawing_notes_app/core/rendering/marker_shader.dart';
-import 'package:drawing_notes_app/core/rendering/stroke_geometry_cache.dart';
+import '../../features/drawing/domain/stroke.dart';
+import 'pencil_shader.dart';
+import 'brush_shader.dart';
+import 'marker_shader.dart';
+import 'stroke_geometry_cache.dart';
 
 /// 笔画渲染器：将原始输入点转为连续、填充式的压感笔触轮廓。
 ///
@@ -76,14 +76,11 @@ class StrokeRenderer {
     if (usePressure) {
       return entry.withPressure ??= strokeOutline(
         stroke,
-        usePressure: true,
-        isComplete: true,
       );
     }
     return entry.withoutPressure ??= strokeOutline(
       stroke,
       usePressure: false,
-      isComplete: true,
     );
   }
 

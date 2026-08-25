@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import '../../features/drawing/domain/stroke.dart';
 
 /// 笔画的双质量几何缓存。
 ///

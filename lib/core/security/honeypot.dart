@@ -92,7 +92,6 @@ class HoneypotService {
 
     AuditLogger.log(
       'honeypot.deploy',
-      success: true,
       detail: '${_deployedIds.length} 个假密钥已部署',
     );
   }

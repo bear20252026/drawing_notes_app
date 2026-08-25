@@ -3,13 +3,13 @@ import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
 
-import 'package:drawing_notes_app/core/storage/encryption_service.dart';
-import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
-import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
-import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
-import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
-import 'package:drawing_notes_app/core/notes_accessor.dart';
-import 'package:drawing_notes_app/core/storage/repository.dart';
+import '../../../core/storage/encryption_service.dart';
+import '../../../core/security/media_crypto_service.dart';
+import '../../../core/storage/vfs/vault_service.dart';
+import '../domain/notebook.dart';
+import '../../../core/storage/local_id_generator.dart';
+import '../../../core/notes_accessor.dart';
+import '../../../core/storage/repository.dart';
 
 /// 笔记本本地存储服务。
 ///

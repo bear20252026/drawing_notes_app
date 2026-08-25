@@ -3,7 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 PointerDownEvent _down(int pointer, PointerDeviceKind kind) =>
-    PointerDownEvent(pointer: pointer, kind: kind, position: Offset.zero);
+    PointerDownEvent(pointer: pointer, kind: kind);
 
 PointerMoveEvent _move(int pointer, PointerDeviceKind kind) => PointerMoveEvent(
   pointer: pointer,

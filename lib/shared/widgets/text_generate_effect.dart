@@ -15,7 +15,7 @@ class TextGenerateEffect extends StatefulWidget {
     required this.text,
     this.style,
     this.duration = const Duration(milliseconds: 700),
-    this.delay = const Duration(milliseconds: 0),
+    this.delay = const Duration(),
     this.wordDelay = const Duration(milliseconds: 200),
     this.enableBlur = true,
     this.blurSigma = 10.0,

@@ -237,7 +237,7 @@ class PersistentAuditLogger {
   /// 清理过期的分片文件（超过 30 天）。
   Future<void> _cleanupOldShards() async {
     final now = DateTime.now();
-    final maxAge = Duration(days: _maxRetentionDays);
+    const maxAge = Duration(days: _maxRetentionDays);
 
     await for (final entity in _auditDir!.list()) {
       if (entity is! File) continue;

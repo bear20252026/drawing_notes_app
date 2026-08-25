@@ -49,7 +49,7 @@ class MagnifierOverlay extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         // 子 widget（画布）。
-        if (child != null) child!,
+        ?child,
 
         // 放大镜主体。
         Positioned(

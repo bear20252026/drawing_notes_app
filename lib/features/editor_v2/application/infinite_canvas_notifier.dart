@@ -42,5 +42,5 @@ class InfiniteCanvasNotifier extends Notifier<ViewportState> {
 /// Riverpod Provider。
 final infiniteCanvasProvider =
     NotifierProvider<InfiniteCanvasNotifier, ViewportState>(
-  () => InfiniteCanvasNotifier(),
+  InfiniteCanvasNotifier.new,
 );

@@ -12,12 +12,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:drawing_notes_app/core/security/auth_guard.dart';
-import 'package:drawing_notes_app/core/theme/text_scale_helper.dart';
-import 'package:drawing_notes_app/features/editor_v2/presentation/editor_v2_screen.dart';
+import '../security/auth_guard.dart';
+import '../theme/text_scale_helper.dart';
+import '../../features/editor_v2/presentation/editor_v2_screen.dart';
 import 'package:editor_core/editor_core.dart';
-import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
-import 'package:drawing_notes_app/features/notes/presentation/password_disk_page.dart';
+import '../../features/notes/presentation/home_page.dart';
+import '../../features/notes/presentation/password_disk_page.dart';
 
 // ============================================================================
 // 路由常量
@@ -68,7 +68,6 @@ GoRouter createAppRouter() {
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: RoutePaths.home,
-    debugLogDiagnostics: false,
 
     // 全局路由守卫：认证 + 加密检查
     redirect: (BuildContext context, GoRouterState state) {

@@ -194,22 +194,22 @@ class SchemaVersions {
 /// 注册所有已知 schema 版本和迁移路径。
 void registerAllSchemas(SchemaRegistry registry) {
   // Notebook 模块
-  registry.register(SchemaVersion(
+  registry.register(const SchemaVersion(
     module: SchemaVersions.notebook,
     version: SchemaVersions.notebookV1,
     description: '初始版本',
   ));
-  registry.register(SchemaVersion(
+  registry.register(const SchemaVersion(
     module: SchemaVersions.notebook,
     version: SchemaVersions.notebookV2,
     description: '添加 encrypted、encryptionMode 字段',
   ));
-  registry.register(SchemaVersion(
+  registry.register(const SchemaVersion(
     module: SchemaVersions.notebook,
     version: SchemaVersions.notebookV3,
     description: '添加 recoveryEnvelope、searchSummary',
   ));
-  registry.register(SchemaVersion(
+  registry.register(const SchemaVersion(
     module: SchemaVersions.notebook,
     version: SchemaVersions.notebookV4,
     description: '添加 schemaVersion 字段（内嵌版本追踪）',
@@ -250,24 +250,24 @@ void registerAllSchemas(SchemaRegistry registry) {
   ));
 
   // Document 模块
-  registry.register(SchemaVersion(
+  registry.register(const SchemaVersion(
     module: SchemaVersions.document,
     version: SchemaVersions.documentV1,
     description: '初始版本',
   ));
-  registry.register(SchemaVersion(
+  registry.register(const SchemaVersion(
     module: SchemaVersions.document,
     version: SchemaVersions.documentV2,
     description: 'DocumentCodecV2（DNV2 魔数）',
   ));
 
   // Media 模块
-  registry.register(SchemaVersion(
+  registry.register(const SchemaVersion(
     module: SchemaVersions.media,
     version: SchemaVersions.mediaV1,
     description: '明文存储',
   ));
-  registry.register(SchemaVersion(
+  registry.register(const SchemaVersion(
     module: SchemaVersions.media,
     version: SchemaVersions.mediaV2,
     description: 'DAN 加密（MediaCryptoService）',

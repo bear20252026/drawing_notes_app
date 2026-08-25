@@ -117,7 +117,6 @@ extension _NotebookPageImports on _NotebookViewPageState {
           title: '$sourceName · ${pageImage.pageNumber}',
           width: pageImage.width,
           height: pageImage.height,
-          paperType: PaperType.blank,
         );
         created.add(
           NotebookPage(
@@ -181,7 +180,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
           SimpleDialogOption(
             onPressed: () => Navigator.of(ctx).pop(EncryptionMode.password),
             child: ListTile(
-              leading: Icon(Icons.lock_outline),
+              leading: const Icon(Icons.lock_outline),
               title: Text(AppLocalizations.of(context)?.noteMemoryPassword ?? '记忆密码'),
               subtitle: Text(AppLocalizations.of(context)?.noteMemoryPasswordSub ?? '设置密码，打开时输入密码解锁'),
             ),
@@ -189,7 +188,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
           SimpleDialogOption(
             onPressed: () => Navigator.of(ctx).pop(EncryptionMode.keyfile),
             child: ListTile(
-              leading: Icon(Icons.usb),
+              leading: const Icon(Icons.usb),
               title: Text(AppLocalizations.of(context)?.noteUsbKey ?? 'U盘钥匙（密码盘）'),
               subtitle: Text(AppLocalizations.of(context)?.noteUsbKeySub ?? 'U盘即钥匙：插入 U 盘解锁，拔盘即锁（零知识）'),
             ),
@@ -379,7 +378,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('恢复该版本？'),
-        content: Text('将用所选版本覆盖当前页面内容（当前内容会先存入历史）'),
+        content: const Text('将用所选版本覆盖当前页面内容（当前内容会先存入历史）'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),

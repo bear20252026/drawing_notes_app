@@ -18,7 +18,7 @@ class ShapesState {
   bool get hasSelection => selectedIds.isNotEmpty;
 
   static const ShapesState empty =
-      ShapesState(selectedIds: {}, activeId: null);
+      ShapesState(selectedIds: {});
 
   ShapesState copyWith({Set<String>? selectedIds, String? activeId}) =>
       ShapesState(

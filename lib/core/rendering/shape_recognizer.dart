@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import '../../features/drawing/domain/shape_item.dart';
+import '../../features/drawing/domain/stroke.dart';
 
 /// 手绘闭合轮廓的轻量规则形状识别器。
 ///
@@ -119,8 +119,6 @@ class ShapeRecognizer {
     return RecognizedShape(
       ShapeType.line,
       normalized,
-      flipX: false,
-      flipY: false,
       lineStart: lineStart,
       lineEnd: lineEnd,
     );

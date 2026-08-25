@@ -315,13 +315,13 @@ void main() {
 
     test('摩擦系数在有效范围内', () {
       final animator =
-          gesture.FlingAnimator(onUpdate: (_) {}, friction: 0.95);
+          gesture.FlingAnimator(onUpdate: (_) {});
       expect(animator.friction, closeTo(0.95, 0.001));
     });
 
     test('阈值在有效范围内', () {
       final animator =
-          gesture.FlingAnimator(onUpdate: (_) {}, threshold: 0.5);
+          gesture.FlingAnimator(onUpdate: (_) {});
       expect(animator.threshold, closeTo(0.5, 0.001));
     });
 
@@ -337,7 +337,7 @@ void main() {
   group('EnhancedInputArbiter', () {
     test('构造后初始状态正确', () {
       final state = gesture.GestureState();
-      final policy = EditorInputPolicy(allowInk: true, allowFingerDrawing: true);
+      const policy = EditorInputPolicy(allowInk: true, allowFingerDrawing: true);
       final arbiter = gesture.EnhancedInputArbiter(
         policy: policy,
         gestureState: state,
@@ -350,7 +350,7 @@ void main() {
 
     test('reset 清除所有内部状态', () {
       final state = gesture.GestureState();
-      final policy = EditorInputPolicy(allowInk: true, allowFingerDrawing: true);
+      const policy = EditorInputPolicy(allowInk: true, allowFingerDrawing: true);
       final arbiter = gesture.EnhancedInputArbiter(
         policy: policy,
         gestureState: state,
@@ -367,7 +367,7 @@ void main() {
 
     test('多指手势状态初始为 false', () {
       final state = gesture.GestureState();
-      final policy = EditorInputPolicy(allowInk: true, allowFingerDrawing: false);
+      const policy = EditorInputPolicy(allowInk: true);
       final arbiter = gesture.EnhancedInputArbiter(
         policy: policy,
         gestureState: state,

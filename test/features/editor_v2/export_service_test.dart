@@ -8,7 +8,7 @@ void main() {
   late DocumentV2 doc;
 
   setUp(() {
-    doc = DocumentV2(
+    doc = const DocumentV2(
       id: 'doc1',
       pageCount: 1,
       revision: 1,
@@ -53,7 +53,7 @@ void main() {
   });
 
   test('toSvg：XML 转义', () {
-    final docWithSpecial = DocumentV2(
+    const docWithSpecial = DocumentV2(
       id: 'doc2',
       pageCount: 1,
       layers: [

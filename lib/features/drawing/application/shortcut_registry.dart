@@ -20,7 +20,7 @@ class ShortcutRegistry {
     // ============================
     // 编辑类
     // ============================
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyZ,
       control: true,
       meta: true,
@@ -28,7 +28,7 @@ class ShortcutRegistry {
       description: '撤销',
       category: '编辑',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyZ,
       control: true,
       shift: true,
@@ -37,7 +37,7 @@ class ShortcutRegistry {
       description: '重做 (Shift+Z)',
       category: '编辑',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyY,
       control: true,
       meta: true,
@@ -45,7 +45,7 @@ class ShortcutRegistry {
       description: '重做 (Y)',
       category: '编辑',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyC,
       control: true,
       meta: true,
@@ -53,7 +53,7 @@ class ShortcutRegistry {
       description: '复制',
       category: '编辑',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyV,
       control: true,
       meta: true,
@@ -61,7 +61,7 @@ class ShortcutRegistry {
       description: '粘贴',
       category: '编辑',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyC,
       control: true,
       shift: true,
@@ -70,7 +70,7 @@ class ShortcutRegistry {
       description: '复制样式',
       category: '编辑',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyV,
       control: true,
       shift: true,
@@ -79,7 +79,7 @@ class ShortcutRegistry {
       description: '粘贴样式',
       category: '编辑',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyD,
       control: true,
       meta: true,
@@ -87,13 +87,13 @@ class ShortcutRegistry {
       description: '复制并偏移',
       category: '编辑',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.delete,
       actionId: 'delete',
       description: '删除选中',
       category: '编辑',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.backspace,
       actionId: 'delete_back',
       description: '删除选中 (Backspace)',
@@ -103,7 +103,7 @@ class ShortcutRegistry {
     // ============================
     // 视图类
     // ============================
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.digit0,
       control: true,
       meta: true,
@@ -111,7 +111,7 @@ class ShortcutRegistry {
       description: '重置缩放',
       category: '视图',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.equal,
       control: true,
       meta: true,
@@ -119,7 +119,7 @@ class ShortcutRegistry {
       description: '放大',
       category: '视图',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.add,
       control: true,
       meta: true,
@@ -127,7 +127,7 @@ class ShortcutRegistry {
       description: '放大 (小键盘+)',
       category: '视图',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.minus,
       control: true,
       meta: true,
@@ -135,7 +135,7 @@ class ShortcutRegistry {
       description: '缩小',
       category: '视图',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.digit1,
       control: true,
       meta: true,
@@ -143,7 +143,7 @@ class ShortcutRegistry {
       description: '适应屏幕',
       category: '视图',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyH,
       control: true,
       shift: true,
@@ -156,61 +156,61 @@ class ShortcutRegistry {
     // ============================
     // 工具类 (单字母键，无修饰符)
     // ============================
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyV,
       actionId: 'tool_select',
       description: '选择工具',
       category: '工具',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyP,
       actionId: 'tool_pen',
       description: '画笔',
       category: '工具',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyE,
       actionId: 'tool_eraser',
       description: '橡皮擦',
       category: '工具',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyT,
       actionId: 'tool_text',
       description: '文字',
       category: '工具',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyR,
       actionId: 'tool_rectangle',
       description: '矩形',
       category: '工具',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyO,
       actionId: 'tool_ellipse',
       description: '椭圆',
       category: '工具',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyA,
       actionId: 'tool_arrow',
       description: '箭头',
       category: '工具',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyL,
       actionId: 'tool_line',
       description: '直线',
       category: '工具',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyI,
       actionId: 'tool_eyedropper',
       description: '吸管',
       category: '工具',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyH,
       actionId: 'tool_hand',
       description: '手型',
@@ -220,7 +220,7 @@ class ShortcutRegistry {
     // ============================
     // 文件类
     // ============================
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyS,
       control: true,
       meta: true,
@@ -228,7 +228,7 @@ class ShortcutRegistry {
       description: '保存',
       category: '文件',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyS,
       control: true,
       shift: true,
@@ -237,7 +237,7 @@ class ShortcutRegistry {
       description: '另存为',
       category: '文件',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyN,
       control: true,
       meta: true,
@@ -245,7 +245,7 @@ class ShortcutRegistry {
       description: '新建',
       category: '文件',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyO,
       control: true,
       meta: true,
@@ -253,7 +253,7 @@ class ShortcutRegistry {
       description: '打开',
       category: '文件',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyE,
       control: true,
       meta: true,
@@ -261,7 +261,7 @@ class ShortcutRegistry {
       description: '导出',
       category: '文件',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyP,
       control: true,
       meta: true,
@@ -273,7 +273,7 @@ class ShortcutRegistry {
     // ============================
     // 其他
     // ============================
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyK,
       control: true,
       meta: true,
@@ -281,7 +281,7 @@ class ShortcutRegistry {
       description: '命令面板',
       category: '其他',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.slash,
       control: true,
       meta: true,
@@ -289,13 +289,13 @@ class ShortcutRegistry {
       description: '快捷键帮助',
       category: '其他',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.escape,
       actionId: 'escape',
       description: '取消选中/退出工具',
       category: '其他',
     ),
-    ShortcutEntry(
+    const ShortcutEntry(
       key: LogicalKeyboardKey.keyF,
       control: true,
       shift: true,
@@ -403,7 +403,7 @@ class ShortcutEntry {
   String _keyToDisplayName(LogicalKeyboardKey key) {
     // 使用 keyLabel 或回退到 keyId 名称解析
     final label = key.keyLabel;
-    if (label != null && label.isNotEmpty) return label;
+    if (label.isNotEmpty) return label;
 
     // 回退：从 keyId 解析名称
     final keyId = key.keyId;
@@ -443,7 +443,7 @@ class ShortcutEntry {
 
   @override
   String toString() =>
-      'ShortcutEntry(${displayKey} -> $actionId [$category]: $description)';
+      'ShortcutEntry($displayKey -> $actionId [$category]: $description)';
 }
 
 /// 平台自适应快捷键适配器
@@ -728,9 +728,7 @@ class _ShortcutHelpWidgetState extends State<ShortcutHelpWidget> {
     }
 
     return ListView(
-      children: results.map((shortcut) {
-        return _buildShortcutTile(shortcut);
-      }).toList(),
+      children: results.map(_buildShortcutTile).toList(),
     );
   }
 
@@ -753,7 +751,7 @@ class _ShortcutHelpWidgetState extends State<ShortcutHelpWidget> {
               ),
             ),
             const SizedBox(height: 8),
-            ...shortcuts.map((shortcut) => _buildShortcutTile(shortcut)),
+            ...shortcuts.map(_buildShortcutTile),
           ],
         ),
       ),
@@ -806,7 +804,6 @@ class _ShortcutHelpWidgetState extends State<ShortcutHelpWidget> {
             borderRadius: BorderRadius.circular(4),
             border: Border.all(
               color: Colors.grey[400]!,
-              width: 1,
             ),
           ),
           child: Text(

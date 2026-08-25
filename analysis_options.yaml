@@ -10,19 +10,39 @@
 include: package:flutter_lints/flutter.yaml
 
 linter:
-  # The lint rules applied to this project can be customized in the
-  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
-  # included above or to enable additional rules. A list of all available lints
-  # and their documentation is published at https://dart.dev/lints.
-  #
-  # Instead of disabling a lint rule for the entire project in the
-  # section below, it can also be suppressed for a single line of code
-  # or a specific dart file by using the `// ignore: name_of_lint` and
-  # `// ignore_for_file: name_of_lint` syntax on the line or in the file
-  # producing the lint.
   rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+    # ---- 代码风格 ----
+    prefer_single_quotes: true
+    require_trailing_commas: true
+    avoid_print: true
+    prefer_const_constructors: true
+    prefer_const_declarations: true
+    prefer_final_locals: true
+    use_super_parameters: true
+
+    # ---- 空安全与类型安全 ----
+    avoid_null_checks_in_equality_operators: true
+    prefer_relative_imports: true
+    unnecessary_lambdas: true
+
+    # ---- 正确性 ----
+    annotate_overrides: true
+    avoid_redundant_argument_values: true
+    avoid_unnecessary_containers: true
+    sized_box_for_whitespace: true
+    use_key_in_widget_constructors: true
+    no_leading_underscores_for_local_identifiers: true
+
+    # ---- 可维护性 ----
+    avoid_catches_without_on_clauses: true
+    avoid_catching_errors: true
+    cancel_subscriptions: true
+    close_sinks: true
+    no_duplicate_case_values: true
+    prefer_is_empty: true
+    prefer_is_not_empty: true
+    unnecessary_statements: true
+    unnecessary_this: true
 
 # dart_code_metrics (DCM)：额外质量门禁，由 `metrics analyze lib` 执行。
 # 规则按"政府验收级严谨"选取：偏执检测复杂度过高、过深嵌套、

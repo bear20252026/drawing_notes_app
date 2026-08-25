@@ -42,7 +42,7 @@ class SecureBytes {
 
   static final Finalizer<Uint8List> _finalizer = Finalizer(zeroize);
 
-  Uint8List _data;
+  final Uint8List _data;
   bool _disposed;
 
   /// 字节长度。
@@ -111,7 +111,7 @@ class SecureString {
       : _bytes = SecureBytes(_encode(value)),
         _length = value.length;
 
-  SecureBytes _bytes;
+  final SecureBytes _bytes;
   final int _length;
 
   int get length => _length;

@@ -6,7 +6,7 @@ import 'package:drawing_notes_app/features/drawing/infrastructure/document_codec
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  final codec = DocumentCodec();
+  const codec = DocumentCodec();
 
   Uint8List documentBytes(Map<String, dynamic> document) => Uint8List.fromList(
     utf8.encode(jsonEncode({'version': 2, 'document': document})),

@@ -568,7 +568,7 @@ class FileAssociationHandler {
   bool _isValidFilePath(String path) {
     final lowerPath = path.toLowerCase();
     return supportedExtensions.any(
-      (ext) => lowerPath.endsWith(ext),
+      lowerPath.endsWith,
     );
   }
 

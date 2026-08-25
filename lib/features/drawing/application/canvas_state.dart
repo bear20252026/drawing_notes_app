@@ -6,7 +6,7 @@
 import 'dart:math' as math;
 import 'dart:ui' show Offset;
 
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import '../domain/document.dart';
 
 /// 画布视口状态管理器。
 ///

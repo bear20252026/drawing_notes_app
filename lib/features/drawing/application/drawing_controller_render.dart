@@ -31,7 +31,7 @@ extension DrawingControllerRenderOps on DrawingController {
       image = await picture.toImage(_document.width, _document.height);
       final x = canvasPoint.dx.round().clamp(0, _document.width - 1);
       final y = canvasPoint.dy.round().clamp(0, _document.height - 1);
-      final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      final bytes = await image.toByteData();
       if (bytes == null) return null;
       // Q-1 拆分（2026-08-16）：取色纯计算委托 ColorSamplingService。
       return ColorSamplingService.colorFromRgbaBytes(

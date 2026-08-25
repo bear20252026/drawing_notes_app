@@ -1,8 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 
-import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar.dart';
-import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
-import 'package:drawing_notes_app/l10n/app_localizations.dart';
+import 'editor_toolbar.dart';
+import '../../../shared/widgets/glass_surface.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// 编辑器上下文工具条。
 ///
@@ -111,14 +111,14 @@ class EditorContextBar extends StatelessWidget {
             segments: [
               ButtonSegment(
                 value: false,
-                icon: Icon(Icons.format_paint_outlined, size: 18),
-                label: Text('整笔'),
+                icon: const Icon(Icons.format_paint_outlined, size: 18),
+                label: const Text('整笔'),
                 tooltip: AppLocalizations.of(context)?.editorEraseStroke ?? '命中笔画即删除整条线',
               ),
               ButtonSegment(
                 value: true,
-                icon: Icon(Icons.auto_fix_high_outlined, size: 18),
-                label: Text('透明'),
+                icon: const Icon(Icons.auto_fix_high_outlined, size: 18),
+                label: const Text('透明'),
                 tooltip: AppLocalizations.of(context)?.editorEraseTransparent ?? '以透明像素挖空当前图层',
               ),
             ],
@@ -134,14 +134,14 @@ class EditorContextBar extends StatelessWidget {
             segments: [
               ButtonSegment(
                 value: false,
-                icon: Icon(Icons.save_outlined, size: 18),
-                label: Text('保存'),
+                icon: const Icon(Icons.save_outlined, size: 18),
+                label: const Text('保存'),
                 tooltip: AppLocalizations.of(context)?.editorHighlightNormal ?? '作为普通高亮笔写入页面，可撤销、保存和导出',
               ),
               ButtonSegment(
                 value: true,
-                icon: Icon(Icons.gesture_rounded, size: 18),
-                label: Text('自动消失'),
+                icon: const Icon(Icons.gesture_rounded, size: 18),
+                label: const Text('自动消失'),
                 tooltip: AppLocalizations.of(context)?.editorLaserTemporary ?? '仅短暂显示，约 4 秒后平滑淡出，不写入页面',
               ),
             ],

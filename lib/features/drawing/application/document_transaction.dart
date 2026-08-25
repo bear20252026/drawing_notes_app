@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart' show debugPrint;
-import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
+import 'document_commands.dart';
 
 /// 批量命令事务（借鉴 iwb_canvas_engine SceneWriteTxn 的原子提交思想，
 /// 见 docs/SOURCE_READ_ADAPTATION_REPORT.md）。

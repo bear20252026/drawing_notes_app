@@ -10,7 +10,7 @@ void main() {
     for (final f in _dartFiles('packages/editor_core/lib')) {
       final imports = _importsOf(f);
       for (final line in imports) {
-        expect(line.contains("package:flutter"), isFalse, reason: '$f: $line');
+        expect(line.contains('package:flutter'), isFalse, reason: '$f: $line');
       }
     }
   });
@@ -28,7 +28,7 @@ void main() {
     for (final f in _dartFiles('packages/notebook_domain/lib')) {
       final imports = _importsOf(f);
       for (final line in imports) {
-        expect(line.contains("package:flutter"), isFalse, reason: '$f: $line');
+        expect(line.contains('package:flutter'), isFalse, reason: '$f: $line');
         expect(line.contains("import 'dart:io'"), isFalse, reason: '$f: $line');
       }
     }

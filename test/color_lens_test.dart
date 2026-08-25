@@ -10,7 +10,6 @@ void main() {
         const MaterialApp(
           home: Scaffold(
             body: SimpleColorLens(
-              visible: true,
               position: Offset(100, 100),
               currentColor: Colors.red,
               child: Text('Canvas'),
@@ -44,7 +43,6 @@ void main() {
         const MaterialApp(
           home: Scaffold(
             body: SimpleColorLens(
-              visible: true,
               position: Offset(100, 100),
               currentColor: Colors.blue,
               child: Text('Canvas'),
@@ -61,7 +59,6 @@ void main() {
         const MaterialApp(
           home: Scaffold(
             body: SimpleColorLens(
-              visible: true,
               position: Offset(100, 100),
               radius: 80.0,
               currentColor: Colors.green,
@@ -79,7 +76,6 @@ void main() {
         const MaterialApp(
           home: Scaffold(
             body: SimpleColorLens(
-              visible: true,
               position: Offset(100, 100),
               borderColor: Colors.yellow,
               currentColor: Colors.purple,

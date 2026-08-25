@@ -107,9 +107,6 @@ class AppleGlassWidget extends StatelessWidget {
   /// 苹果毛玻璃卡片（便捷工厂——AppleTheme 参数）。
   factory AppleGlassWidget.card({required Widget child}) {
     return AppleGlassWidget(
-      blurRadius: AppleTheme.glassBlurRadius,
-      opacity: AppleTheme.glassOpacity,
-      cornerRadius: AppleTheme.cornerRadius,
       child: child,
     );
   }
@@ -117,7 +114,6 @@ class AppleGlassWidget extends StatelessWidget {
   /// 苹果毛玻璃工具栏（大圆角——Liquid Glass 控件）。
   factory AppleGlassWidget.toolbar({required Widget child}) {
     return AppleGlassWidget(
-      blurRadius: AppleTheme.glassBlurRadius,
       opacity: 0.85,
       cornerRadius: AppleTheme.cornerRadiusLarge,
       child: child,

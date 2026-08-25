@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
-import 'package:drawing_notes_app/features/drawing/presentation/editor_components.dart';
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
+import 'editor_components.dart';
+import '../domain/shape_item.dart';
 import 'editor_toolbar.dart' show shapeTypeName;
 
 /// 图书馆/形状库（对齐 Excalidraw libraries）。
@@ -18,7 +18,6 @@ class ShapeLibrary {
       y: 0,
       width: 180,
       height: 100,
-      color: 0xFF3A6EA5,
       fillColor: 0x663A6EA5,
     ),
     PageShapeItem(
@@ -28,7 +27,6 @@ class ShapeLibrary {
       y: 0,
       width: 180,
       height: 100,
-      color: 0xFF3A6EA5,
       fillColor: 0x883A6EA5,
     ),
     PageShapeItem(
@@ -38,7 +36,6 @@ class ShapeLibrary {
       y: 0,
       width: 160,
       height: 110,
-      color: 0xFF3A6EA5,
     ),
     PageShapeItem(
       id: 'lib_diamond',
@@ -47,7 +44,6 @@ class ShapeLibrary {
       y: 0,
       width: 140,
       height: 110,
-      color: 0xFF3A6EA5,
     ),
     PageShapeItem(
       id: 'lib_arrow',
@@ -56,7 +52,6 @@ class ShapeLibrary {
       y: 0,
       width: 200,
       height: 60,
-      color: 0xFF3A6EA5,
       strokeWidth: 4,
     ),
     PageShapeItem(
@@ -66,7 +61,6 @@ class ShapeLibrary {
       y: 0,
       width: 200,
       height: 4,
-      color: 0xFF3A6EA5,
       dash: true,
     ),
     PageShapeItem(

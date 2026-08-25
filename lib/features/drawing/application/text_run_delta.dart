@@ -1,4 +1,4 @@
-import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
+import '../domain/text_item.dart';
 
 /// 借鉴 flutter-quill（dart_quill_delta）Delta 模型，为本项目 [TextRun]
 /// 提供与 Quill Delta ops 的双向转换。

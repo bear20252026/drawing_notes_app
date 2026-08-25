@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui' as ui;
 
 import 'package:archive/archive.dart';
 import 'package:file_selector/file_selector.dart';
@@ -8,14 +7,14 @@ import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import 'package:drawing_notes_app/features/drawing/domain/document.dart' show DrawingDocument;
-import 'package:drawing_notes_app/features/notes/domain/notebook.dart' show NotebookPage;
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart' show BrushType, Stroke;
-import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
-import 'package:drawing_notes_app/core/rtf_exporter.dart';
-import 'package:drawing_notes_app/core/rendering/pdf_hybrid_exporter.dart';
-import 'package:drawing_notes_app/core/rendering/svg_exporter.dart';
-import 'package:drawing_notes_app/core/utils/safe_image_decode.dart';
+import '../domain/document.dart' show DrawingDocument;
+import '../../notes/domain/notebook.dart' show NotebookPage;
+import '../domain/stroke.dart' show BrushType, Stroke;
+import 'drawing_controller.dart';
+import '../../../core/rtf_exporter.dart';
+import '../../../core/rendering/pdf_hybrid_exporter.dart';
+import '../../../core/rendering/svg_exporter.dart';
+import '../../../core/utils/safe_image_decode.dart';
 
 /// 画布导出域（参考 Saber 的 editor_exporter 模块化设计）。
 ///
@@ -53,7 +52,7 @@ class EditorExporter {
         return;
       }
       final image = decodeResult.image!;
-      final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      final data = await image.toByteData();
       if (data == null) {
         showSnack('复制失败：像素解码失败');
         return;
@@ -241,7 +240,7 @@ class EditorExporter {
             pageFormat: PdfPageFormat.a4,
             margin: const pw.EdgeInsets.all(24),
             build: (context) => pw.Center(
-              child: pw.Image(pw.MemoryImage(inkPng), fit: pw.BoxFit.contain),
+              child: pw.Image(pw.MemoryImage(inkPng)),
             ),
           ),
         );

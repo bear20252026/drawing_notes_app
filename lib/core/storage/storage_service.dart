@@ -5,10 +5,10 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/infrastructure/document_codec.dart';
-import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
-import 'package:drawing_notes_app/core/storage/repository.dart';
+import '../../features/drawing/domain/document.dart';
+import '../../features/drawing/infrastructure/document_codec.dart';
+import 'local_id_generator.dart';
+import 'repository.dart';
 
 /// 本地文件存储服务：负责工程文件的保存、读取、列表、删除。
 ///
@@ -271,7 +271,7 @@ class StorageService implements DocumentRepository {
       );
 
       // 验证 SHA-256 完整性哈希。
-      final hashLength = 64; // SHA-256 十六进制字符串长度。
+      const hashLength = 64; // SHA-256 十六进制字符串长度。
       if (rawBytes.length > hashLength) {
         final dataBytes = rawBytes.sublist(0, rawBytes.length - hashLength);
         final storedHashBytes = rawBytes.sublist(rawBytes.length - hashLength);

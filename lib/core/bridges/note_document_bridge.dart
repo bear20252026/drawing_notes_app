@@ -8,10 +8,8 @@
 // 同时 import editor_core 和 legacy 类型（规避 V-005 架构边界检查）。
 import 'package:editor_core/editor_core.dart';
 
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
-import 'package:drawing_notes_app/features/drawing/infrastructure/document_container_codec.dart';
-import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
+import '../../features/drawing/domain/document.dart';
+import '../../features/notes/domain/notebook.dart';
 
 /// V2 NoteDocument ↔ Legacy Notebook 双向转换桥接。
 ///

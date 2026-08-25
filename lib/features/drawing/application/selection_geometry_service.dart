@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import '../domain/stroke.dart';
 
 /// 选区几何计算服务（Q-1 God Class 拆分 2026-08-16——最小落地）。
 ///

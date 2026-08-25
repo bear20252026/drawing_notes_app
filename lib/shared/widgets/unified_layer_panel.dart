@@ -80,17 +80,17 @@ class UnifiedLayerPanel extends StatelessWidget {
         children: [
           // 标题栏
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             color: scheme.surfaceContainerHighest,
             child: Row(
               children: [
-                Icon(Icons.layers, size: 16),
-                SizedBox(width: 8),
+                const Icon(Icons.layers, size: 16),
+                const SizedBox(width: 8),
                 Text(
                   AppLocalizations.of(context)?.layerPanel ?? '图层',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                Spacer(),
+                const Spacer(),
                 Text(
                   '${layers.length}',
                   style: TextStyle(
@@ -174,13 +174,13 @@ class _LayerTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           child: Row(
             children: [
               // 拖拽手柄
               Icon(Icons.drag_indicator, size: 16, color: scheme.outline),
 
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
 
               // 图层名称
               Expanded(
@@ -202,7 +202,7 @@ class _LayerTile extends StatelessWidget {
                   ),
                 ),
 
-              SizedBox(width: 4),
+              const SizedBox(width: 4),
 
               // 锁定切换
               if (onLockChanged != null)
@@ -217,7 +217,7 @@ class _LayerTile extends StatelessWidget {
                   ),
                 ),
 
-              SizedBox(width: 4),
+              const SizedBox(width: 4),
 
               // 删除按钮
               if (onDeleted != null)

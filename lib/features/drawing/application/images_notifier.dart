@@ -18,7 +18,7 @@ class ImagesState {
   bool get hasSelection => selectedIds.isNotEmpty;
 
   static const ImagesState empty =
-      ImagesState(selectedIds: {}, activeId: null);
+      ImagesState(selectedIds: {});
 
   ImagesState copyWith({Set<String>? selectedIds, String? activeId}) =>
       ImagesState(

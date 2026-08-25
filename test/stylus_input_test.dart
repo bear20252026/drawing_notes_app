@@ -9,7 +9,6 @@ PointerMoveEvent pointerEvent({
   double pressureMax = 1,
 }) => PointerMoveEvent(
   kind: kind,
-  position: Offset.zero,
   pressure: pressure,
   pressureMin: pressureMin,
   pressureMax: pressureMax,
@@ -54,7 +53,6 @@ void main() {
         kind: PointerDeviceKind.touch,
         pressure: 0.5,
         pressureMin: 0,
-        pressureMax: 1,
       ),
       fallbackPressure: 0.9,
     );
@@ -70,7 +68,6 @@ void main() {
         kind: PointerDeviceKind.stylus,
         pressure: 1,
         pressureMin: 0,
-        pressureMax: 1,
       ),
     );
     processor.resetStroke();
@@ -79,7 +76,6 @@ void main() {
         kind: PointerDeviceKind.stylus,
         pressure: 0,
         pressureMin: 0,
-        pressureMax: 1,
       ),
     );
 

@@ -10,49 +10,49 @@ import 'package:flutter/gestures.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
-import 'package:drawing_notes_app/features/drawing/application/brush_preset_store.dart';
-import 'package:drawing_notes_app/features/drawing/application/command_registry.dart';
-import 'package:drawing_notes_app/features/drawing/application/di_providers.dart';
-import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
-import 'package:drawing_notes_app/features/drawing/application/editor_input_arbiter.dart';
-import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
-import 'package:drawing_notes_app/features/drawing/application/eraser_mode_store.dart';
-import 'package:drawing_notes_app/features/drawing/application/editor_exporter.dart';
-import 'package:drawing_notes_app/features/drawing/domain/fractional_index.dart';
-import 'package:drawing_notes_app/features/drawing/application/gesture_math.dart';
-import 'package:drawing_notes_app/core/rendering/pencil_shader.dart';
-import 'package:drawing_notes_app/core/rendering/shape_binding_geometry.dart';
-import 'package:drawing_notes_app/features/drawing/infrastructure/shape_creation_geometry.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/shape_library.dart';
-import 'package:drawing_notes_app/core/utils/safe_url.dart';
-import 'package:drawing_notes_app/features/drawing/application/stylus_input.dart';
-import 'package:drawing_notes_app/features/drawing/infrastructure/view_transform_cache.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
-import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
-import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
-import 'package:drawing_notes_app/core/notes_accessor.dart';
-import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
-import 'package:drawing_notes_app/core/storage/storage_service.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/canvas_painter.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/encrypted_file_image.dart';
-import 'package:drawing_notes_app/shared/widgets/color_picker_dialog.dart';
-import 'package:drawing_notes_app/l10n/app_localizations.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/editor_components.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/editor_context_bar.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/editor_left_toolbar.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/editor_statusbar.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar.dart';
+import '../application/brush_preset_store.dart';
+import '../application/command_registry.dart';
+import '../application/di_providers.dart';
+import '../application/drawing_controller.dart';
+import '../application/editor_input_arbiter.dart';
+import '../application/eraser_mode.dart';
+import '../application/eraser_mode_store.dart';
+import '../application/editor_exporter.dart';
+import '../domain/fractional_index.dart';
+import '../application/gesture_math.dart';
+import '../../../core/rendering/pencil_shader.dart';
+import '../../../core/rendering/shape_binding_geometry.dart';
+import '../infrastructure/shape_creation_geometry.dart';
+import 'shape_library.dart';
+import '../../../core/utils/safe_url.dart';
+import '../application/stylus_input.dart';
+import '../infrastructure/view_transform_cache.dart';
+import '../domain/document.dart';
+import '../domain/document_image_item.dart';
+import '../../notes/domain/notebook.dart';
+import '../domain/selection.dart';
+import '../domain/stroke.dart';
+import '../../../core/notes_accessor.dart';
+import '../../../core/storage/local_id_generator.dart';
+import '../../../core/storage/storage_service.dart';
+import 'canvas_painter.dart';
+import 'encrypted_file_image.dart';
+import '../../../shared/widgets/color_picker_dialog.dart';
+import '../../../l10n/app_localizations.dart';
+import 'editor_components.dart';
+import 'editor_context_bar.dart';
+import 'editor_left_toolbar.dart';
+import 'editor_statusbar.dart';
+import 'editor_toolbar.dart';
 
-import 'package:drawing_notes_app/features/drawing/presentation/editor_viewmodel.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/layer_panel.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/properties_panel.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/resize_handles.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/selection_bar.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/toolbar_state_mapper.dart';
-import 'package:drawing_notes_app/core/theme/animation_constants.dart';
-import 'package:drawing_notes_app/core/theme/responsive.dart';
+import 'editor_viewmodel.dart';
+import 'layer_panel.dart';
+import 'properties_panel.dart';
+import 'resize_handles.dart';
+import 'selection_bar.dart';
+import 'toolbar_state_mapper.dart';
+import '../../../core/theme/animation_constants.dart';
+import '../../../core/theme/responsive.dart';
 
 import 'editor_page_drop_handler.dart';
 
@@ -738,7 +738,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                     child: ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.delete_sweep_outlined),
+                      leading: const Icon(Icons.delete_sweep_outlined),
                       title: Text(AppLocalizations.of(context)?.editorClearCanvas ?? '清空画布'),
                     ),
                   ),
@@ -748,7 +748,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                     child: ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.content_copy),
+                      leading: const Icon(Icons.content_copy),
                       title: Text(AppLocalizations.of(context)?.editorCopyPng ?? '复制 PNG 到剪贴板'),
                     ),
                   ),
@@ -757,11 +757,11 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                     child: ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.image_outlined),
+                      leading: const Icon(Icons.image_outlined),
                       title: Text(AppLocalizations.of(context)?.editorExportPng ?? '导出 PNG'),
                     ),
                   ),
-                  PopupMenuItem(
+                  const PopupMenuItem(
                     value: _MainMenuItem.exportSelectionPng,
                     child: ListTile(
                       dense: true,
@@ -775,7 +775,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                     child: ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.ios_share),
+                      leading: const Icon(Icons.ios_share),
                       title: Text(AppLocalizations.of(context)?.editorExportSvg ?? '导出 SVG'),
                     ),
                   ),
@@ -784,7 +784,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                     child: ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.picture_as_pdf_outlined),
+                      leading: const Icon(Icons.picture_as_pdf_outlined),
                       title: Text(AppLocalizations.of(context)?.editorExportPdf ?? '导出 PDF'),
                     ),
                   ),
@@ -793,7 +793,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                     child: ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.data_object),
+                      leading: const Icon(Icons.data_object),
                       title: Text(AppLocalizations.of(context)?.editorExportJson ?? '导出 JSON'),
                     ),
                   ),
@@ -802,7 +802,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                     child: ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.slideshow_outlined),
+                      leading: const Icon(Icons.slideshow_outlined),
                       title: Text(AppLocalizations.of(context)?.editorExportPptx ?? '导出 PPTX'),
                     ),
                   ),
@@ -812,11 +812,11 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       child: ListTile(
                         dense: true,
                         contentPadding: EdgeInsets.zero,
-                        leading: Icon(Icons.article_outlined),
+                        leading: const Icon(Icons.article_outlined),
                         title: Text(AppLocalizations.of(context)?.editorExportWord ?? '导出 Word 兼容文档'),
                       ),
                     ),
-                  PopupMenuItem(
+                  const PopupMenuItem(
                     value: _MainMenuItem.exportText,
                     child: ListTile(
                       dense: true,
@@ -826,7 +826,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                     ),
                   ),
                   const PopupMenuDivider(),
-                  PopupMenuItem(
+                  const PopupMenuItem(
                     value: _MainMenuItem.commandPalette,
                     child: ListTile(
                       dense: true,
@@ -835,7 +835,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       title: Text('命令面板'),
                     ),
                   ),
-                  PopupMenuItem(
+                  const PopupMenuItem(
                     value: _MainMenuItem.chart,
                     child: ListTile(
                       dense: true,
@@ -844,7 +844,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       title: Text('图表（粘贴数据）'),
                     ),
                   ),
-                  PopupMenuItem(
+                  const PopupMenuItem(
                     value: _MainMenuItem.presentation,
                     child: ListTile(
                       dense: true,
@@ -853,7 +853,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       title: Text('幻灯片演示'),
                     ),
                   ),
-                  PopupMenuItem(
+                  const PopupMenuItem(
                     value: _MainMenuItem.stats,
                     child: ListTile(
                       dense: true,
@@ -862,7 +862,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       title: Text('统计'),
                     ),
                   ),
-                  PopupMenuItem(
+                  const PopupMenuItem(
                     value: _MainMenuItem.library,
                     child: ListTile(
                       dense: true,
@@ -872,7 +872,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                     ),
                   ),
 
-                  PopupMenuItem(
+                  const PopupMenuItem(
                     value: _MainMenuItem.shortcuts,
                     child: ListTile(
                       dense: true,
@@ -932,7 +932,6 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                                   border: Border.all(
                                     color: Colors.blue,
                                     width: 2,
-                                    style: BorderStyle.solid,
                                   ),
                                 ),
                                 child: const Text(
@@ -1124,7 +1123,6 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                                               border: Border.all(
                                                 color: Colors.blue,
                                                 width: 2,
-                                                style: BorderStyle.solid,
                                               ),
                                             ),
                                             child: const Text(

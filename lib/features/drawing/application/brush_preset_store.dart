@@ -3,7 +3,7 @@ import 'dart:ui';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import '../domain/stroke.dart';
 
 /// 单个书写工具的持久化预设。
 class BrushPreset {
