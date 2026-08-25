@@ -12,12 +12,24 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../security/auth_guard.dart';
-import '../theme/text_scale_helper.dart';
+import '../../features/drawing/application/search_service.dart';
+import '../../features/drawing/domain/document.dart';
+import '../../features/drawing/presentation/editor_page.dart';
 import '../../features/editor_v2/presentation/editor_v2_screen.dart';
-import 'package:editor_core/editor_core.dart';
+import '../../features/notes/domain/notebook.dart';
+import '../../features/notes/infrastructure/notebook_storage.dart';
 import '../../features/notes/presentation/home_page.dart';
+import '../../features/notes/presentation/notebook_view_page.dart';
 import '../../features/notes/presentation/password_disk_page.dart';
+import '../../features/notes/presentation/presentation_page.dart';
+import '../../features/notes/presentation/search_page.dart';
+import '../../features/onboarding/presentation/onboarding_page.dart';
+import '../../features/settings/presentation/settings_page.dart';
+import '../../features/shapes/presentation/shape_library_page.dart';
+import '../security/auth_guard.dart';
+import '../storage/storage_service.dart';
+import '../theme/text_scale_helper.dart';
+import 'package:editor_core/editor_core.dart';
 
 // ============================================================================
 // 路由常量
@@ -100,7 +112,7 @@ GoRouter createAppRouter() {
       ),
 
       // =====================================================================
-      // 编辑器 V1
+      // 编辑器 V1（真实 EditorPage）
       // =====================================================================
       GoRoute(
         path: '${RoutePaths.editor}/:docId',
@@ -108,11 +120,7 @@ GoRouter createAppRouter() {
         builder: (context, state) {
           final docId = state.pathParameters['docId']!;
           final title = state.uri.queryParameters['title'] ?? '未命名';
-          // TODO: 接入 EditorPage(document: doc, docStorage: StorageService())
-          return Scaffold(
-            appBar: AppBar(title: Text(title)),
-            body: Center(child: Text('编辑器: $docId')),
-          );
+          return _EditorPageWrapper(docId: docId, title: title);
         },
       ),
 
@@ -136,7 +144,7 @@ GoRouter createAppRouter() {
       ),
 
       // =====================================================================
-      // 笔记本视图
+      // 笔记本视图（真实 NotebookViewPage）
       // =====================================================================
       GoRoute(
         path: '${RoutePaths.notebook}/:notebookId',
@@ -144,10 +152,7 @@ GoRouter createAppRouter() {
         builder: (context, state) {
           final notebookId = state.pathParameters['notebookId']!;
           final title = state.uri.queryParameters['title'] ?? '未命名笔记本';
-          return Scaffold(
-            appBar: AppBar(title: Text(title)),
-            body: Center(child: Text('笔记本: $notebookId')),
-          );
+          return _NotebookViewWrapper(notebookId: notebookId, title: title);
         },
       ),
 
@@ -170,58 +175,68 @@ GoRouter createAppRouter() {
       ),
 
       // =====================================================================
-      // 设置
+      // 设置（真实 SettingsPage）
       // =====================================================================
       GoRoute(
         path: RoutePaths.settings,
         name: RouteNames.settings,
-        builder: (context, state) => const Scaffold(
-          body: Center(child: Text('设置')),
-        ),
+        builder: (context, state) => const SettingsPage(),
       ),
 
       // =====================================================================
-      // 搜索
+      // 搜索（真实 SearchPage）
       // =====================================================================
       GoRoute(
         path: RoutePaths.search,
         name: RouteNames.search,
-        builder: (context, state) => const Scaffold(
-          body: Center(child: Text('搜索')),
+        builder: (context, state) => SearchPage(
+          searchService: SearchService(docStorage: StorageService()),
         ),
       ),
 
       // =====================================================================
-      // 演示模式
+      // 演示模式（真实 PresentationPage）
       // =====================================================================
       GoRoute(
         path: RoutePaths.presentation,
         name: RouteNames.presentation,
-        builder: (context, state) => const Scaffold(
-          body: Center(child: Text('演示')),
-        ),
+        builder: (context, state) {
+          final notebookId = state.uri.queryParameters['notebookId'];
+          if (notebookId != null) {
+            return _PresentationWrapper(notebookId: notebookId);
+          }
+          return Scaffold(
+            appBar: AppBar(title: const Text('演示模式')),
+            body: const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text(
+                  '请从主页选择一本笔记本进入演示模式。\n\n'
+                  '提示：在主页长按笔记本，选择「演示」。',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          );
+        },
       ),
 
       // =====================================================================
-      // 引导页
+      // 引导页（真实 OnboardingPage）
       // =====================================================================
       GoRoute(
         path: RoutePaths.onboarding,
         name: RouteNames.onboarding,
-        builder: (context, state) => const Scaffold(
-          body: Center(child: Text('引导')),
-        ),
+        builder: (context, state) => const OnboardingPage(),
       ),
 
       // =====================================================================
-      // 形状库
+      // 形状库（真实 ShapeLibraryPage）
       // =====================================================================
       GoRoute(
         path: RoutePaths.shapeLibrary,
         name: RouteNames.shapeLibrary,
-        builder: (context, state) => const Scaffold(
-          body: Center(child: Text('形状库')),
-        ),
+        builder: (context, state) => const ShapeLibraryPage(),
       ),
     ],
 
@@ -262,6 +277,207 @@ Widget _buildNotFoundPage(BuildContext context, {String? subtitle}) {
       ),
     ),
   );
+}
+
+// ============================================================================
+// 路由包装器（异步加载文档/笔记本）
+// ============================================================================
+
+/// V1 编辑器包装器 — 异步加载 DrawingDocument 后传入 EditorPage。
+class _EditorPageWrapper extends StatefulWidget {
+  const _EditorPageWrapper({required this.docId, required this.title});
+
+  final String docId;
+  final String title;
+
+  @override
+  State<_EditorPageWrapper> createState() => _EditorPageWrapperState();
+}
+
+class _EditorPageWrapperState extends State<_EditorPageWrapper> {
+  late final Future<DrawingDocument?> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = StorageService().load(widget.docId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<DrawingDocument?>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return Scaffold(
+            appBar: AppBar(title: Text(widget.title)),
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError || snapshot.data == null) {
+          return Scaffold(
+            appBar: AppBar(title: Text(widget.title)),
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text('无法加载文档: ${widget.docId}'),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: () => context.go(RoutePaths.home),
+                    child: const Text('返回首页'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return EditorPage(
+          document: snapshot.data!,
+          docStorage: StorageService(),
+        );
+      },
+    );
+  }
+}
+
+/// 笔记本视图包装器 — 异步加载 Notebook 后传入 NotebookViewPage。
+class _NotebookViewWrapper extends StatefulWidget {
+  const _NotebookViewWrapper({required this.notebookId, required this.title});
+
+  final String notebookId;
+  final String title;
+
+  @override
+  State<_NotebookViewWrapper> createState() => _NotebookViewWrapperState();
+}
+
+class _NotebookViewWrapperState extends State<_NotebookViewWrapper> {
+  late final Future<Notebook?> _future;
+  final _storage = NotebookStorage();
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _storage.load(widget.notebookId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Notebook?>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return Scaffold(
+            appBar: AppBar(title: Text(widget.title)),
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError || snapshot.data == null) {
+          return Scaffold(
+            appBar: AppBar(title: Text(widget.title)),
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text('无法加载笔记本: ${widget.notebookId}'),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: () => context.go(RoutePaths.home),
+                    child: const Text('返回首页'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return NotebookViewPage(
+          notebook: snapshot.data!,
+          storage: _storage,
+        );
+      },
+    );
+  }
+}
+
+/// 演示模式包装器 — 从笔记本加载内容并映射为 PresentationPage 所需格式。
+class _PresentationWrapper extends StatefulWidget {
+  const _PresentationWrapper({required this.notebookId});
+
+  final String notebookId;
+
+  @override
+  State<_PresentationWrapper> createState() => _PresentationWrapperState();
+}
+
+class _PresentationWrapperState extends State<_PresentationWrapper> {
+  late final Future<Notebook?> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = NotebookStorage().load(widget.notebookId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Notebook?>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError || snapshot.data == null) {
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text('无法加载笔记本: ${widget.notebookId}'),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: () => context.go(RoutePaths.home),
+                    child: const Text('返回首页'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final notebook = snapshot.data!;
+        // 从笔记本页面映射演示内容
+        final allTextItems = <PageTextItem>[];
+        final allImageItems = <PageImageItem>[];
+        final allShapes = <PageShapeItem>[];
+
+        for (final page in notebook.pages) {
+          allTextItems.addAll(page.textItems);
+          allImageItems.addAll(page.imageItems);
+          allShapes.addAll(page.shapes);
+        }
+
+        return PresentationPage(
+          textItems: allTextItems,
+          imageItems: allImageItems,
+          shapes: allShapes,
+        );
+      },
+    );
+  }
 }
 
 // ============================================================================

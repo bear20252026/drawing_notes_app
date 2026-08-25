@@ -93,7 +93,7 @@ class _DrawingNotesAppState extends ConsumerState<DrawingNotesApp> {
 
     return MaterialApp.router(
       title: AppLocalizations.of(context)?.appTitle ?? '绘图笔记',
-      locale: const Locale('en'),
+      locale: null, // 跟随系统语言
       localizationsDelegates: [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
