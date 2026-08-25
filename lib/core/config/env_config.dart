@@ -92,9 +92,9 @@ class EnvConfig {
 
   /// ---- 预定义配置项 ----
 
-  /// 加密服务盐值（生产环境应使用随机值）。
-  static String get encryptionSalt =>
-      get('ENCRYPTION_SALT', defaultValue: 'default-salt-change-in-production');
+  /// 加密服务盐值（生产环境必须通过 .env 配置，无默认值）。
+  /// 缺失时抛出异常，避免使用弱默认盐值。
+  static String get encryptionSalt => require('ENCRYPTION_SALT');
 
   /// Nextcloud 服务器地址。
   static String get nextcloudServer =>
