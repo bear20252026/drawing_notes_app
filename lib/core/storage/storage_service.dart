@@ -302,6 +302,58 @@ class StorageService implements DocumentRepository {
     }
   }
 
+  // ─── V2 JSON 文档持久化（编辑器 V2 使用） ──────────────────────
+
+  /// 将 V2 编辑器的 JSON Map 持久化到磁盘。
+  ///
+  /// 文件格式：与 V1 相同的 SHA-256 完整性哈希 + 原子写入 + .bak 备份。
+  /// 调用方负责 JSON 序列化（如 DocumentV2.toJson() 或 NoteDocument）。
+  Future<String> saveJson(String id, Map<String, dynamic> json) async {
+    if (!isValidId(id)) {
+      throw ArgumentError.value(id, 'id', '文档 ID 不合法');
+    }
+    final bytes = Uint8List.fromList(utf8.encode(jsonEncode(json)));
+    await _saveEncoded(id, bytes);
+    await _ensureDocumentsDir();
+    return _pathFor(id);
+  }
+
+  /// 从磁盘读取 V2 JSON 文档。
+  ///
+  /// 文件不存在返回 null；格式损坏或哈希校验失败时尝试 .bak 恢复。
+  Future<Map<String, dynamic>?> loadJson(String id) async {
+    await _ensureDocumentsDir();
+    final file = File(_pathFor(id));
+    final bak = File('${_pathFor(id)}.bak');
+    if (!await file.exists() && !await bak.exists()) return null;
+    try {
+      final rawBytes = await _readWithRetry(
+        () async => await (await file.exists() ? file : bak).readAsBytes(),
+      );
+      const hashLength = 64;
+      if (rawBytes.length > hashLength) {
+        final dataBytes = rawBytes.sublist(0, rawBytes.length - hashLength);
+        final storedHash = utf8.decode(rawBytes.sublist(rawBytes.length - hashLength));
+        final computedHash = sha256.convert(dataBytes).toString();
+        if (computedHash != storedHash) {
+          if (await bak.exists()) {
+            final bakBytes = await _readWithRetry(() async => await bak.readAsBytes());
+            return jsonDecode(utf8.decode(_stripIntegrityHash(bakBytes))) as Map<String, dynamic>;
+          }
+          throw FormatException('数据完整性校验失败: $id');
+        }
+        return jsonDecode(utf8.decode(dataBytes)) as Map<String, dynamic>;
+      }
+      return jsonDecode(utf8.decode(rawBytes)) as Map<String, dynamic>;
+    } on FormatException {
+      if (await bak.exists()) {
+        final bytes = await _readWithRetry(() async => await bak.readAsBytes());
+        return jsonDecode(utf8.decode(_stripIntegrityHash(bytes))) as Map<String, dynamic>;
+      }
+      rethrow;
+    }
+  }
+
   /// 带重试的文件读取：瞬时 IO 错误（`FileSystemException`）自动重试
   /// [retries] 次，间隔 50ms 递增；最终仍失败则向上抛出。
   static Future<Uint8List> _readWithRetry(

@@ -13,6 +13,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:editor_core/editor_core.dart';
 
+import '../../../core/storage/storage_service.dart';
+
 import '../../../../core/theme/responsive.dart';
 import '../application/editor_v2_viewmodel.dart';
 import '../../../shared/widgets/apple_glass.dart';
@@ -102,9 +104,14 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
   /// 立即执行保存（供切后台、销毁时调用）。
   void _saveNow() {
     // 使用 _notifier 而非 ref.read()——dispose 后 ref 不可用。
-    // 保存绘图文档。
-    final json = _notifier.toJson();
-    debugPrint('EditorV2: _saveNow keys=${json.keys.toList()}');
+    // 保存绘图文档（白板模式）。
+    if (widget.mode != UnifiedEditorMode.note) {
+      final json = _notifier.toJson();
+      StorageService().saveJson(widget.documentId, json).catchError((e, _) {
+        debugPrint('EditorV2: _saveNow draw error: $e');
+        return '';
+      });
+    }
     // 保存笔记文档（note 模式）。
     if (widget.mode == UnifiedEditorMode.note) {
       _notifier.saveNoteDocument();

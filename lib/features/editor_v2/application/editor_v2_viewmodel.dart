@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:editor_core/editor_core.dart';
+import '../../../core/storage/storage_service.dart';
 
 /// Editor V2 不可变状态（Riverpod Provider 输出）。
 ///
@@ -506,15 +507,35 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
 
   // ──────────────────── 笔记模式（V2 编辑器笔记——2026-08-25） ────────────────────
 
-  /// 加载已有笔记文档（防止每次 build 创建新文档导致内容丢失）。
+  /// 加载已有笔记文档（优先从磁盘恢复，否则创建新文档）。
+  ///
+  /// 先同步创建文档保证 noteDocument 非 null（防止 UI 空指针），
+  /// 再异步尝试从磁盘加载恢复。
   void loadNoteDocument(String id) {
-    // 如果已有同 ID 的文档，保留它。
+    // 如果已有同 ID 的文档在内存中，保留它。
     final existing = state.noteDocument;
     if (existing != null && existing.id == id) return;
-    // 否则创建新文档（使用固定 ID，避免每次重建生成新 ID）。
+    // 同步创建文档（保证 noteDocument 立即可用）。
     state = state.copyWith(
       noteDocument: NoteDocument(id: id, title: '未命名笔记'),
     );
+    // 异步从磁盘加载已保存的笔记（若存在则覆盖）。
+    _loadNoteFromDisk(id);
+  }
+
+  /// 异步从磁盘加载笔记文档并替换内存中的文档。
+  Future<void> _loadNoteFromDisk(String id) async {
+    try {
+      final json = await StorageService().loadJson(id);
+      if (json != null) {
+        final doc = NoteDocument.fromJson(json);
+        state = state.copyWith(noteDocument: doc);
+        debugPrint('EditorV2: _loadNoteFromDisk id=$id '
+            'paragraphs=${doc.paragraphCount}');
+      }
+    } catch (e) {
+      debugPrint('EditorV2: _loadNoteFromDisk failed: $e');
+    }
   }
 
   /// 更新笔记文档（NoteEditorWidget onChanged 回调）。
@@ -538,9 +559,11 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     final noteDoc = state.noteDocument;
     if (noteDoc == null) return;
     try {
+      final json = noteDoc.toJson();
+      await StorageService().saveJson(noteDoc.id, json);
       debugPrint('EditorV2: saveNoteDocument id=${noteDoc.id} '
-          'paragraphs=${noteDoc.paragraphCount}');
-    } on Exception catch (e) {
+          'paragraphs=${noteDoc.paragraphCount} saved OK');
+    } catch (e) {
       // 静默失败——自动保存不中断用户操作。
       debugPrint('EditorV2: saveNoteDocument failed: $e');
     }

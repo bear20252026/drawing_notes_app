@@ -41,6 +41,23 @@ class NoteParagraph {
   /// 是否标题。
   bool get isHeading => type == NoteParagraphType.heading;
 
+  /// JSON 序列化。
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'content': content,
+        'type': type.name,
+      };
+
+  /// JSON 反序列化。
+  factory NoteParagraph.fromJson(Map<String, dynamic> json) => NoteParagraph(
+        id: json['id'] as String? ?? '',
+        content: json['content'] as String? ?? '',
+        type: NoteParagraphType.values.firstWhere(
+          (t) => t.name == json['type'],
+          orElse: () => NoteParagraphType.paragraph,
+        ),
+      );
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) || other is NoteParagraph && id == other.id;
@@ -71,6 +88,23 @@ class NoteDocument {
 
   /// 全文（拼接——导出/搜索）。
   String get fullText => paragraphs.map((p) => p.content).join('\n');
+
+  /// JSON 序列化。
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'paragraphs': paragraphs.map((p) => p.toJson()).toList(),
+      };
+
+  /// JSON 反序列化。
+  factory NoteDocument.fromJson(Map<String, dynamic> json) => NoteDocument(
+        id: json['id'] as String? ?? '',
+        title: json['title'] as String? ?? '未命名笔记',
+        paragraphs: (json['paragraphs'] as List<dynamic>?)
+                ?.map((e) => NoteParagraph.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+      );
 
   @override
   bool operator ==(Object other) =>
