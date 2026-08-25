@@ -234,12 +234,15 @@ abstract final class AppDesign {
   static const double roundedLg = 18;
   /// Pill — 9999px（主蓝色胶囊CTA、搜索框、chips）。
   static const double roundedPill = 9999;
+  /// Full — 9999px（圆形控制芯片、button-icon-circular）。
+  static const double roundedFull = 9999;
 
   // 兼容旧引用
   static const double cardRadius = roundedLg;
   static const double controlRadius = roundedSm;
   static const double smallRadius = roundedXs;
   static const double pillRadius = roundedPill;
+  static const double fullRadius = roundedFull;
 
   // ─── DESIGN.md 间距体系 ─────────────────────────────────────────
   /// 4px
@@ -579,12 +582,14 @@ abstract final class AppDesign {
         ),
       ),
 
-      // ─── IconButton — button-icon-circular（DESIGN.md: 44x44, full radius） ──
+      // ─── IconButton — button-icon-circular（DESIGN.md: 44x44, full radius, chip-translucent bg） ──
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
           minimumSize: const Size(44, 44),
+          backgroundColor: surfaceChipTranslucent,
+          foregroundColor: ink,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(roundedPill),
+            borderRadius: BorderRadius.circular(roundedFull),
           ),
         ),
       ),
@@ -850,11 +855,11 @@ abstract final class AppDesign {
         borderRadius: BorderRadius.circular(roundedLg),
       );
 
-  /// Product Shadow — rgba(0,0,0,0.22) 3px 5px 30px
+  /// Product Shadow — rgba(0,0,0,0.22) 3px 5px 30px（唯一阴影）
   static List<BoxShadow> get productShadowComponent => [
         BoxShadow(
           color: const Color(0xFF000000).withValues(alpha: 0.22),
-          offset: const Offset(0, 3),
+          offset: const Offset(3, 5),
           blurRadius: 30,
           spreadRadius: 0,
         ),
@@ -866,12 +871,14 @@ abstract final class AppDesign {
         width: 1,
       );
 
-  /// Button Icon Circular — 44×44px, full radius
+  /// Button Icon Circular — 44×44px, full radius, surface-chip-translucent bg
   static ButtonStyle get buttonIconCircular => ButtonStyle(
         minimumSize: WidgetStateProperty.all(const Size(44, 44)),
+        backgroundColor: WidgetStateProperty.all(surfaceChipTranslucent),
+        foregroundColor: WidgetStateProperty.all(ink),
         shape: WidgetStateProperty.all(
           RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(roundedPill),
+            borderRadius: BorderRadius.circular(roundedFull),
           ),
         ),
       );
@@ -888,4 +895,74 @@ abstract final class AppDesign {
         ),
         side: WidgetStateProperty.all(BorderSide(color: hairline)),
       );
+
+  /// Button Pearl Capsule — surface-pearl bg, ink-muted-80 text, md radius, 8px × 14px padding
+  /// DESIGN.md: product-card secondary button with 3px divider-soft border
+  static ButtonStyle get buttonPearlCapsule => ButtonStyle(
+        backgroundColor: WidgetStateProperty.all(surfacePearl),
+        foregroundColor: WidgetStateProperty.all(inkMuted80),
+        textStyle: WidgetStateProperty.all(
+          caption.copyWith(color: inkMuted80),
+        ),
+        padding: WidgetStateProperty.all(
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        ),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(roundedMd),
+            side: const BorderSide(color: dividerSoft, width: 3),
+          ),
+        ),
+        minimumSize: WidgetStateProperty.all(const Size(44, 44)),
+      );
+
+  /// Button Store Hero — primary bg, on-primary text, button-large typography (18/300), pill, 14px × 28px padding
+  static ButtonStyle get buttonStoreHero => ButtonStyle(
+        backgroundColor: WidgetStateProperty.all(primary),
+        foregroundColor: WidgetStateProperty.all(canvas),
+        textStyle: WidgetStateProperty.all(
+          buttonLarge.copyWith(color: canvas),
+        ),
+        padding: WidgetStateProperty.all(
+          const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+        ),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(roundedPill),
+          ),
+        ),
+        minimumSize: WidgetStateProperty.all(const Size(44, 44)),
+      );
+
+  /// Text Link On Dark — transparent bg, primary-on-dark text, body typography
+  static ButtonStyle get textLinkOnDark => ButtonStyle(
+        backgroundColor: WidgetStateProperty.all(Colors.transparent),
+        foregroundColor: WidgetStateProperty.all(primaryOnDark),
+        textStyle: WidgetStateProperty.all(
+          body.copyWith(color: primaryOnDark),
+        ),
+        padding: WidgetStateProperty.all(EdgeInsets.zero),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(roundedSm),
+          ),
+        ),
+      );
+
+  /// Floating Sticky Bar — canvas-parchment bg (80% opacity), body typography, 64px height, 12px × 32px padding
+  static BoxDecoration get floatingStickyBar => BoxDecoration(
+        color: canvasParchment.withValues(alpha: 0.80),
+        borderRadius: BorderRadius.zero,
+      );
+
+  /// Environment Quote Card — surface-tile-1 bg, on-dark text, display-lg typography, no radius, 80px padding
+  static BoxDecoration get environmentQuoteCard => BoxDecoration(
+        color: surfaceTile1,
+        borderRadius: BorderRadius.circular(roundedNone),
+      );
+
+  /// Footer — canvas-parchment bg, ink-muted-80 text, fine-print typography, 64px padding
+  static TextStyle get footerLinkHeading => captionStrong.copyWith(color: inkMuted80);
+  static TextStyle get footerLink => denseLink.copyWith(color: inkMuted80);
+  static TextStyle get footerLegal => finePrint.copyWith(color: inkMuted48);
 }

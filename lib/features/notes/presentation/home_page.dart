@@ -23,7 +23,6 @@ import '../../../core/storage/storage_service.dart';
 import 'onboarding.dart';
 import '../../../shared/widgets/ambient_background.dart';
 import '../../../shared/widgets/glass_surface.dart';
-import '../../drawing/presentation/editor_page.dart';
 import '../../editor_v2/presentation/editor_v2_screen.dart';
 import 'package:editor_core/editor_core.dart' hide TabBar;
 import 'notebook_view_page.dart';

@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:editor_core/editor_core.dart' hide SearchResult;
 
 import '../../drawing/application/search_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../infrastructure/notebook_storage.dart';
-import '../../../core/storage/storage_service.dart';
-import '../../drawing/presentation/editor_page.dart';
+import '../../editor_v2/presentation/editor_v2_screen.dart';
 import 'notebook_view_page.dart';
 
 /// 全文搜索页（借鉴 Joplin / nb 的全文搜索）。
@@ -56,13 +56,14 @@ class _SearchPageState extends State<SearchPage> {
   Future<void> _openResult(SearchResult r) async {
     if (r.kind == 'drawing') {
       final meta = r.drawingMeta;
-      if (meta == null) return;
-      final storage = StorageService();
-      final doc = await storage.load(meta.id);
-      if (doc == null || !mounted) return;
+      if (meta == null || !mounted) return;
+      // Apple 风格：使用 V2 编辑器
       await Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => EditorPage(document: doc, docStorage: storage),
+          builder: (_) => EditorV2Screen(
+            documentId: meta.id,
+            mode: UnifiedEditorMode.whiteboard,
+          ),
         ),
       );
       return;

@@ -13,12 +13,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/drawing/application/search_service.dart';
-import '../../features/drawing/domain/document.dart';
-import '../../features/drawing/presentation/editor_page.dart';
 import '../../features/editor_v2/presentation/editor_v2_screen.dart';
 import '../../features/notes/domain/notebook.dart';
 import '../../features/notes/infrastructure/notebook_storage.dart';
 import '../../features/notes/presentation/home_page.dart';
+import 'package:editor_core/editor_core.dart';
 import '../../features/notes/presentation/notebook_view_page.dart';
 import '../../features/notes/presentation/password_disk_page.dart';
 import '../../features/notes/presentation/presentation_page.dart';
@@ -29,7 +28,6 @@ import '../../features/shapes/presentation/shape_library_page.dart';
 import '../security/auth_guard.dart';
 import '../storage/storage_service.dart';
 import '../theme/text_scale_helper.dart';
-import 'package:editor_core/editor_core.dart';
 
 // ============================================================================
 // 路由常量
@@ -289,7 +287,7 @@ Widget _buildNotFoundPage(BuildContext context, {String? subtitle}) {
 // 路由包装器（异步加载文档/笔记本）
 // ============================================================================
 
-/// V1 编辑器包装器 — 异步加载 DrawingDocument 后传入 EditorPage。
+/// V2 编辑器包装器 — 异步加载文档后传入 EditorV2Screen。
 class _EditorPageWrapper extends StatefulWidget {
   const _EditorPageWrapper({required this.docId, required this.title});
 
@@ -301,52 +299,12 @@ class _EditorPageWrapper extends StatefulWidget {
 }
 
 class _EditorPageWrapperState extends State<_EditorPageWrapper> {
-  late final Future<DrawingDocument?> _future;
-
-  @override
-  void initState() {
-    super.initState();
-    _future = StorageService().load(widget.docId);
-  }
-
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<DrawingDocument?>(
-      future: _future,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return Scaffold(
-            appBar: AppBar(title: Text(widget.title)),
-            body: const Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        if (snapshot.hasError || snapshot.data == null) {
-          return Scaffold(
-            appBar: AppBar(title: Text(widget.title)),
-            body: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text('无法加载文档: ${widget.docId}'),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: () => context.go(RoutePaths.home),
-                    child: const Text('返回首页'),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        return EditorPage(
-          document: snapshot.data!,
-          docStorage: StorageService(),
-        );
-      },
+    // Apple 风格：使用 V2 编辑器，保持统一架构
+    return EditorV2Screen(
+      documentId: widget.docId,
+      mode: UnifiedEditorMode.whiteboard,
     );
   }
 }
