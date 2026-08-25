@@ -66,19 +66,39 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
   /// Notifier 引用（dispose 时 ref 不可用，提前捕获）。
   late final EditorV2Notifier _notifier;
 
+  /// Apple 风格：文档标题（从 StorageService 加载，非硬编码 documentId）。
+  String _documentTitle = '';
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _notifier = ref.read(editorV2NotifierProvider.notifier);
     // 初始化文档（CUJ-01 创建）。
-    Future.microtask(() {
+    Future.microtask(() async {
       _notifier.createDocument(widget.documentId);
       // note 模式：加载/初始化笔记文档（固定 ID——防止重建丢失内容）。
       if (widget.mode == UnifiedEditorMode.note) {
         _notifier.loadNoteDocument(widget.documentId);
       }
+      // 加载文档标题（Apple 风格：显示可读标题而非原始 ID）。
+      await _loadDocumentTitle();
     });
+  }
+
+  /// 从 StorageService 加载文档标题。
+  Future<void> _loadDocumentTitle() async {
+    try {
+      final docs = await StorageService().listDocuments();
+      final meta = docs.where((d) => d.id == widget.documentId).firstOrNull;
+      if (mounted && meta != null) {
+        setState(() {
+          _documentTitle = meta.title;
+        });
+      }
+    } catch (_) {
+      // 加载失败时静默——使用默认标题。
+    }
   }
 
   @override
@@ -280,11 +300,10 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(
-          '画布', // Apple 风格：简洁标题
-          style: TextStyle(
+          _documentTitle.isNotEmpty ? _documentTitle : '无标题',
+          style: const TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w600,
-            color: AppDesign.ink,
           ),
         ),
         actions: [
