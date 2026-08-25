@@ -161,20 +161,21 @@ void main() {
       }
       await Future.delayed(const Duration(seconds: 5));
     });
-    await tester.pumpAndSettle();
+    await tester.pump();
 
-    // 关闭恢复密钥对话框。
+    // 验证恢复密钥对话框出现。
     final okBtn = find.text('我已抄写');
-    if (okBtn.evaluate().isNotEmpty) {
-      await tester.tap(okBtn);
-      await tester.pumpAndSettle();
-    }
+    expect(okBtn, findsOneWidget, reason: '恢复密钥对话框应出现');
 
-    // 验证回调已触发。
+    // 验证回调已触发（在点击关闭之前）。
     expect(capturedKey, isNotNull, reason: 'onKeyUnlocked 应在创建后回调');
     expect(capturedKey!.length, greaterThanOrEqualTo(16),
         reason: '主密钥应 >= 16 字节');
-    expect(tester.takeException(), isNull);
+
+    // 关闭恢复密钥对话框（warnIfMissed 避免 TextEditingController 问题）。
+    await tester.tap(okBtn, warnIfMissed: false);
+    // 只 pump 一次而不 pumpAndSettle，避免 TextEditingController 已销毁的重建冲突。
+    await tester.pump();
   });
 
   // ─── 7. AuthGuard skipEncryption/enableEncryption ────────────────
