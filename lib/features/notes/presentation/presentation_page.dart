@@ -6,6 +6,7 @@ import '../../../core/theme/text_scale_helper.dart';
 import 'package:flutter/services.dart';
 
 import '../domain/notebook.dart';
+import '../../../shared/widgets/ambient_background.dart';
 
 /// 幻灯片演示模式（对齐 Excalidraw presentation）。
 ///
@@ -91,8 +92,9 @@ class _PresentationPageState extends State<PresentationPage> {
   Widget build(BuildContext context) {
     final elements = _elements;
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: Focus(
+      backgroundColor: Colors.transparent,
+      body: AmbientBackground(
+        child: Focus(
         autofocus: true,
         onKeyEvent: (node, event) {
           if (event is KeyDownEvent) {
@@ -160,6 +162,7 @@ class _PresentationPageState extends State<PresentationPage> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

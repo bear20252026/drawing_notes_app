@@ -8,6 +8,8 @@ import '../../../core/theme/text_scale_helper.dart';
 
 import '../../../core/storage/encryption_service.dart';
 import '../../../core/storage/password_disk.dart';
+import '../../../shared/widgets/ambient_background.dart';
+import '../../../shared/widgets/glass_surface.dart';
 import '../../../core/storage/progressive_delay.dart';
 import '../../../core/storage/recovery_key_generator.dart';
 import '../../../core/security/audit_logger.dart';
@@ -550,111 +552,140 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(title: const Text('密码盘（U盘即钥匙）')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // 状态卡（v5：渐进式延迟 + HMAC 保护计数器 + 指纹仪表盘）
-          _buildDelayStatusCard(context),
-          const SizedBox(height: 12),
-          // 创建密码盘
-          FilledButton.icon(
-            icon: const Icon(Icons.add_box_outlined),
-            label: const Text('创建密码盘（生成密钥 + 恢复密钥）'),
-            onPressed: _createKeyFile,
-          ),
-          const SizedBox(height: 8),
-          // 解锁
-          OutlinedButton.icon(
-            icon: const Icon(Icons.usb),
-            label: const Text('解锁（选择 U 盘密码盘目录）'),
-            onPressed: _unlock,
-          ),
-          const SizedBox(height: 8),
-          // 恢复
-          OutlinedButton.icon(
-            icon: const Icon(Icons.restore),
-            label: const Text('用恢复密钥找回主密钥（U 盘丢失）'),
-            onPressed: _recoverFromKey,
-          ),
-          // #11 锁定按钮：仅在已解锁时显示
-          if (_masterKey != null) ...[
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.lock_outline),
-              label: const Text('锁定（清除内存中的主密钥）'),
-              onPressed: _lock,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.orange,
+      body: AmbientBackground(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // 状态卡（v5：渐进式延迟 + HMAC 保护计数器 + 指纹仪表盘）
+            GlassSurface(
+              padding: const EdgeInsets.all(12),
+              child: _buildDelayStatusCard(context),
+            ),
+            const SizedBox(height: 12),
+            // 创建密码盘
+            GlassSurface(
+              padding: const EdgeInsets.all(12),
+              child: FilledButton.icon(
+                icon: const Icon(Icons.add_box_outlined),
+                label: const Text('创建密码盘（生成密钥 + 恢复密钥）'),
+                onPressed: _createKeyFile,
               ),
             ),
-          ],
-          const SizedBox(height: 24),
-          // #11 落盘加密闭环演示
-          const Text('落盘加密验证', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text(
-            '加密测试数据 → 写入磁盘文件 → 读回验证肉眼不可读 → 解密验证可还原',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.lock_outline),
-            label: Text(_masterKey != null
-                ? '加密并落盘验证'
-                : '请先解锁密码盘'),
-            onPressed: _masterKey != null ? _demoEncrypt : null,
-          ),
-          // #11 落盘验证结果指示器
-          if (_diskVerifyPassed != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Row(
-                children: [
-                  Icon(
-                    _diskVerifyPassed! ? Icons.check_circle : Icons.error,
-                    color: _diskVerifyPassed! ? Colors.green : Colors.red,
-                    size: 20,
+            const SizedBox(height: 8),
+            // 解锁
+            GlassSurface(
+              padding: const EdgeInsets.all(12),
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.usb),
+                label: const Text('解锁（选择 U 盘密码盘目录）'),
+                onPressed: _unlock,
+              ),
+            ),
+            const SizedBox(height: 8),
+            // 恢复
+            GlassSurface(
+              padding: const EdgeInsets.all(12),
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.restore),
+                label: const Text('用恢复密钥找回主密钥（U 盘丢失）'),
+                onPressed: _recoverFromKey,
+              ),
+            ),
+            // #11 锁定按钮：仅在已解锁时显示
+            if (_masterKey != null) ...[
+              const SizedBox(height: 8),
+              GlassSurface(
+                padding: const EdgeInsets.all(12),
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.lock_outline),
+                  label: const Text('锁定（清除内存中的主密钥）'),
+                  onPressed: _lock,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.orange,
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _diskVerifyPassed!
-                          ? '✅ 落盘密文验证通过：文件内容肉眼不可读'
-                          : '⚠️ 落盘验证失败：文件中仍包含明文',
-                      style: TextStyle(
-                        color: _diskVerifyPassed! ? Colors.green : Colors.red,
-                        fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
+            // #11 落盘加密闭环演示
+            GlassSurface(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('落盘加密验证', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text(
+                    '加密测试数据 → 写入磁盘文件 → 读回验证肉眼不可读 → 解密验证可还原',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.lock_outline),
+                    label: Text(_masterKey != null
+                        ? '加密并落盘验证'
+                        : '请先解锁密码盘'),
+                    onPressed: _masterKey != null ? _demoEncrypt : null,
+                  ),
+                  // #11 落盘验证结果指示器
+                  if (_diskVerifyPassed != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _diskVerifyPassed! ? Icons.check_circle : Icons.error,
+                            color: _diskVerifyPassed! ? Colors.green : Colors.red,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _diskVerifyPassed!
+                                  ? '✅ 落盘密文验证通过：文件内容肉眼不可读'
+                                  : '⚠️ 落盘验证失败：文件中仍包含明文',
+                              style: TextStyle(
+                                color: _diskVerifyPassed! ? Colors.green : Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
+                  if (_demoOutput != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                        ),
+                        child: Text(
+                          _demoOutput!,
+                          style: TextStyle(fontFamily: 'monospace', fontSize: TextScaleHelper.scaled(context, 12)),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
-          if (_demoOutput != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
-                ),
-                child: Text(
-                  _demoOutput!,
-                  style: TextStyle(fontFamily: 'monospace', fontSize: TextScaleHelper.scaled(context, 12)),
-                ),
+            const SizedBox(height: 16),
+            GlassSurface(
+              padding: const EdgeInsets.all(12),
+              child: Text(
+                '安全说明：主密钥（256 位随机）仅存于 U 盘 key.frogkey，'
+                '本应用不持久化任何密钥；无 U 盘谁也解不开。\n'
+                'v5 安全增强：Argon2id + HKDF-SHA256 + 渐进式延迟（HMAC 保护）',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
-          const SizedBox(height: 16),
-          Text(
-            '安全说明：主密钥（256 位随机）仅存于 U 盘 key.frogkey，'
-            '本应用不持久化任何密钥；无 U 盘谁也解不开。\n'
-            'v5 安全增强：Argon2id + HKDF-SHA256 + 渐进式延迟（HMAC 保护）',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
