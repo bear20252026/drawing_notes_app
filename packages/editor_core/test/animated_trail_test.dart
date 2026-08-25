@@ -63,7 +63,7 @@ void main() {
 
   test('AnimatedTrail：interpolatedPosition（线性插值）', () {
     final points = [
-      const TrailPoint(x: 0, y: 0, t: 0),
+      const TrailPoint(x: 0, y: 0),
       const TrailPoint(x: 100, y: 100, t: 1),
     ];
     final trail = AnimatedTrail(points: points, progress: 0.5, easing: EasingType.linear);
@@ -74,7 +74,7 @@ void main() {
 
   test('AnimatedTrail：interpolatedPressure（压力插值）', () {
     final points = [
-      const TrailPoint(x: 0, y: 0, pressure: 1.0),
+      const TrailPoint(x: 0, y: 0),
       const TrailPoint(x: 100, y: 100, pressure: 0.2),
     ];
     final trail = AnimatedTrail(points: points, progress: 0.5, easing: EasingType.linear);
@@ -92,7 +92,7 @@ void main() {
     expect(easeInPos.x, lessThan(50)); // easeIn 中点 < 线性中点。
 
     // easeOut（1 - (1-t)^2）——比线性快启动。
-    final easeOut = AnimatedTrail(points: easeInPoints, progress: 0.5, easing: EasingType.easeOut);
+    final easeOut = AnimatedTrail(points: easeInPoints, progress: 0.5);
     final easeOutPos = easeOut.interpolatedPosition!;
     expect(easeOutPos.x, greaterThan(50)); // easeOut 中点 > 线性中点。
   });

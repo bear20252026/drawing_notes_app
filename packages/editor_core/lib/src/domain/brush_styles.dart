@@ -112,7 +112,6 @@ class BrushStyle {
   /// 钢笔（压力感应——手写感）。
   static const pen = BrushStyle(
     type: BrushType.pen,
-    baseWidth: 2.0,
     pressureSensitive: true,
   );
 

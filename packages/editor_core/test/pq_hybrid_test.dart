@@ -128,7 +128,6 @@ void main() {
         x25519Secret: Uint8List.fromList([1]),
         mlkemSecret: Uint8List.fromList([2]),
         derivedKey: Uint8List.fromList([3]),
-        config: const PqHybridConfig(),
       );
       final updated = session.copyWith(derivedKey: Uint8List.fromList([9]));
       expect(session.derivedKey, Uint8List.fromList([3]));
@@ -139,7 +138,6 @@ void main() {
         x25519Secret: Uint8List.fromList([9]),
         mlkemSecret: Uint8List.fromList([9]),
         derivedKey: Uint8List.fromList([9]),
-        config: const PqHybridConfig(),
       );
       expect(session, other); // 按 sessionId 相等。
     });

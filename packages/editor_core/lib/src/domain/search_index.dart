@@ -610,7 +610,7 @@ class SearchEngine {
 
     // 计算摘要范围
     var snippetStart = (firstMatchStart - snippetLength ~/ 3).clamp(0, content.length);
-    var snippetEnd = (snippetStart + snippetLength).clamp(0, content.length);
+    final snippetEnd = (snippetStart + snippetLength).clamp(0, content.length);
 
     // 调整起始位置（避免截断单词）
     if (snippetStart > 0) {

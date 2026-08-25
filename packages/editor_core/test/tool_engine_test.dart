@@ -92,7 +92,7 @@ void main() {
     state = state.setStrokeColor('#FF0000').setFillColor('#0000FF');
     expect(state.strokeColor, '#FF0000');
     expect(state.fillColor, '#0000FF');
-    expect(ToolEngineState().strokeColor, '#000000'); // 原实例不变。
+    expect(const ToolEngineState().strokeColor, '#000000'); // 原实例不变。
   });
 
   test('toggleRainbow：彩虹画笔开关', () {

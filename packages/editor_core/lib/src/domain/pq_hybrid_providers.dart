@@ -142,7 +142,7 @@ class PqcryptoMlKemProvider implements PqcKemProvider {
 /// 使用 FIPS 204 对齐的 ML-DSA-65 算法，提供 192 位安全级别。
 /// 纯 Dart 实现，跨平台（Android/iOS/Windows/Linux/macOS/Web）。
 class PqcryptoMlDsaProvider implements PqcSignatureProvider {
-  static final pq.DilithiumParams _params = pq.DilithiumParams.mlDsa65;
+  static const pq.DilithiumParams _params = pq.DilithiumParams.mlDsa65;
 
   const PqcryptoMlDsaProvider();
 
@@ -296,15 +296,13 @@ class PqHybridSignerEd25519 {
 
   /// 使用现有密钥对构造。
   PqHybridSignerEd25519.withKeyPairs({
-    required List<Uint8List> classicalKeyPair,
-    required MlDsa65KeyPair pqKeyPair,
+    required this._classicalKeyPair,
+    required this._pqKeyPair,
     ClassicalSignatureProvider? classicalProvider,
     PqcSignatureProvider? pqProvider,
   })  : _classicalProvider =
             classicalProvider ?? const Ed25519SignatureProvider(),
-        _pqProvider = pqProvider ?? const PqcryptoMlDsaProvider(),
-        _classicalKeyPair = classicalKeyPair,
-        _pqKeyPair = pqKeyPair;
+        _pqProvider = pqProvider ?? const PqcryptoMlDsaProvider();
 
   /// 初始化并生成经典密钥对（异步）。
   Future<void> initialize() async {
@@ -472,7 +470,6 @@ class PqAlgorithmVersionV2 {
           Uint8List.fromList(List.generate(32, (_) => rng.nextInt(256))),
       nonce: nonce ??
           Uint8List.fromList(List.generate(12, (_) => rng.nextInt(256))),
-      flags: 0x03, // PQC + Dual Signature
     );
   }
 

@@ -83,10 +83,10 @@ class ArrowBinding {
   }
 
   /// 解绑起点（直接构造——避免 copyWith 的 ?? 问题）。
-  ArrowBinding unbindStart() => ArrowBinding(startBinding: null, endBinding: endBinding);
+  ArrowBinding unbindStart() => ArrowBinding(endBinding: endBinding);
 
   /// 解绑终点（直接构造——避免 copyWith 的 ?? 问题）。
-  ArrowBinding unbindEnd() => ArrowBinding(startBinding: startBinding, endBinding: null);
+  ArrowBinding unbindEnd() => ArrowBinding(startBinding: startBinding);
 
   @override
   bool operator ==(Object other) =>

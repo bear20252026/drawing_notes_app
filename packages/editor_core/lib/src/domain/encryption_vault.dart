@@ -107,7 +107,6 @@ class VaultResult {
   static const VaultResult locked = VaultResult(
     success: true,
     message: 'Vault locked',
-    state: VaultState.locked,
   );
 
   static const VaultResult unlocked = VaultResult(

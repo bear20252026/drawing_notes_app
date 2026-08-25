@@ -29,11 +29,11 @@ void main() {
   });
 
   test('KanbanBoard：moveCard 跨列移动', () {
-    final board = KanbanBoard(id: 'kb1', title: 'Project', columns: [
-      const KanbanColumn(id: 'todo', title: 'Todo', cards: [
+    const board = KanbanBoard(id: 'kb1', title: 'Project', columns: [
+      KanbanColumn(id: 'todo', title: 'Todo', cards: [
         KanbanCard(id: 'c1', title: 'Task 1'),
       ]),
-      const KanbanColumn(id: 'doing', title: 'Doing'),
+      KanbanColumn(id: 'doing', title: 'Doing'),
     ]);
     final moved = board.moveCard('c1', 'todo', 'doing');
     expect(moved.columns.first.cards.length, 0); // 源列清空。
@@ -42,11 +42,11 @@ void main() {
   });
 
   test('KanbanBoard：moveCard 带 toIndex（插入位置）', () {
-    final board = KanbanBoard(id: 'kb1', title: 'Project', columns: [
-      const KanbanColumn(id: 'todo', title: 'Todo', cards: [
+    const board = KanbanBoard(id: 'kb1', title: 'Project', columns: [
+      KanbanColumn(id: 'todo', title: 'Todo', cards: [
         KanbanCard(id: 'c1', title: 'Task 1'),
       ]),
-      const KanbanColumn(id: 'doing', title: 'Doing', cards: [
+      KanbanColumn(id: 'doing', title: 'Doing', cards: [
         KanbanCard(id: 'c2', title: 'Task 2'),
         KanbanCard(id: 'c3', title: 'Task 3'),
       ]),

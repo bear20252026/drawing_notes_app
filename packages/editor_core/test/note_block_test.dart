@@ -263,7 +263,7 @@ void main() {
     test('可添加 spans', () {
       const block = NoteBlock(id: 'b1', type: NoteBlockType.paragraph);
       final withSpans = block.copyWith(
-        spans: [RichTextSpan(text: 'Hello')],
+        spans: [const RichTextSpan(text: 'Hello')],
       );
       expect(withSpans.spans.length, 1);
       expect(withSpans.spans.first.text, 'Hello');

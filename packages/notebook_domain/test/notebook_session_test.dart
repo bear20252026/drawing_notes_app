@@ -69,7 +69,7 @@ void main() {
   });
 
   test('LockPolicy.isExpired：超时判定', () {
-    final policy = const LockPolicy(autoLockDuration: Duration(seconds: 2));
+    const policy = LockPolicy(autoLockDuration: Duration(seconds: 2));
     final past = DateTime.now().subtract(const Duration(seconds: 3));
     expect(policy.isExpired(past), true);
     final recent = DateTime.now().subtract(const Duration(seconds: 1));

@@ -63,7 +63,7 @@ void main() {
   });
 
   test('ShapeLibrary：copyWith 不可变', () {
-    const library = ShapeLibrary(name: 'My Library');
+    const library = ShapeLibrary();
     final renamed = library.copyWith(name: 'New Library');
     expect(library.name, 'My Library'); // 原实例不变。
     expect(renamed.name, 'New Library');

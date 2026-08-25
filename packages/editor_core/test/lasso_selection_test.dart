@@ -55,7 +55,7 @@ void main() {
   });
 
   test('isEmpty：点数不足', () {
-    final empty = LassoSelection(type: LassoType.rectangle, points: [(x: 0.0, y: 0.0)]);
+    const empty = LassoSelection(type: LassoType.rectangle, points: [(x: 0.0, y: 0.0)]);
     expect(empty.isEmpty, true);
   });
 

@@ -70,8 +70,6 @@ class SecureEnclaveService {
     // 模型层返回密钥元数据（密钥明文永不出硬件）。
     return SecureEnclaveKey(
       keyId: keyId,
-      hardwareBacked: true,
-      exportable: false,
       attestation: _generateAttestation(keyId),
     );
   }
@@ -89,8 +87,6 @@ class SecureEnclaveService {
     );
     return SecureEnclaveKey(
       keyId: keyId,
-      hardwareBacked: true,
-      exportable: false,
       wrappedKey: wrapped,
     );
   }

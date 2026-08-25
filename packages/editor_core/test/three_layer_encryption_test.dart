@@ -548,7 +548,7 @@ void main() {
 
   group('SignatureVerificationException', () {
     test('异常消息包含上下文', () {
-      final exception = SignatureVerificationException(
+      const exception = SignatureVerificationException(
         '签名验证失败',
         context: 'L3 外层验签',
         metadata: {'key': 'value'},

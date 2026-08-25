@@ -36,7 +36,7 @@ void main() {
   });
 
   test('GridSnap.snapPointToGrid：二维吸附', () {
-    const config = GridConfig(size: 20);
+    const config = GridConfig();
     final snapped = GridSnap.snapPointToGrid(25, 35, config);
     expect(snapped.x, 20.0);
     expect(snapped.y, 40.0);
@@ -51,7 +51,6 @@ void main() {
     final result = GridSnap.snapToElement(
       moveX: 98, moveY: 100, moveW: 50, moveH: 50,
       targetX: 100, targetY: 100, targetW: 80, targetH: 80,
-      threshold: 5.0,
     );
     // moveX=98 与 targetX=100 差 2 < 5——左-左对齐。
     expect(result.snappedX, 100.0);
@@ -79,7 +78,6 @@ void main() {
     final result = GridSnap.snapToElement(
       moveX: 500, moveY: 500, moveW: 50, moveH: 50,
       targetX: 100, targetY: 100, targetW: 80, targetH: 80,
-      threshold: 5.0,
     );
     expect(result.isSnapped, false);
   });

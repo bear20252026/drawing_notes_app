@@ -28,7 +28,7 @@ void main() {
     const note = NoteItem(id: 'n1', content: 'sticky', x: 10, y: 20);
 
     final newState = reducer.execute(
-      CreateNoteCommand(layerId: 'l1', note: note),
+      const CreateNoteCommand(layerId: 'l1', note: note),
     );
     expect(newState.layers.first.notes.length, 1);
     expect(newState.layers.first.notes.first.content, 'sticky');

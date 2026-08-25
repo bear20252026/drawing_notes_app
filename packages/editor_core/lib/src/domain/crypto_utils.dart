@@ -850,7 +850,7 @@ Uint8List aes256GcmSivDecrypt({
   assert(data.length >= 40, 'GCM-SIV 数据过短：至少 40 字节（12 nonce + 12 siv + 16 tag）');
 
   // nonce(12) || siv(12) || ciphertext || tag(16)。
-  final _nonce = data.sublist(0, 12);
+  final nonce = data.sublist(0, 12);
   final siv = data.sublist(12, 24);
   final ciphertextAndTag = data.sublist(24);
 

@@ -29,7 +29,7 @@ void main() {
   });
 
   test('RichTextSpan：copyWith 不可变', () {
-    const span = RichTextSpan(text: 'hello', format: TextFormat());
+    const span = RichTextSpan(text: 'hello');
     final boldSpan = span.copyWith(format: TextFormat.boldStyle);
     expect(span.format.bold, false); // 原实例不变。
     expect(boldSpan.format.bold, true);

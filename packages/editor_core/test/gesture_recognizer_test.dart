@@ -74,8 +74,8 @@ void main() {
 
   test('isDoubleTap：双击检测（间隔 < 300ms）', () {
     final now = DateTime.now();
-    expect(GestureRecognizer.isDoubleTap(now.subtract(Duration(milliseconds: 200)), now), true);
-    expect(GestureRecognizer.isDoubleTap(now.subtract(Duration(milliseconds: 500)), now), false);
+    expect(GestureRecognizer.isDoubleTap(now.subtract(const Duration(milliseconds: 200)), now), true);
+    expect(GestureRecognizer.isDoubleTap(now.subtract(const Duration(milliseconds: 500)), now), false);
     expect(GestureRecognizer.isDoubleTap(null, now), false);
   });
 

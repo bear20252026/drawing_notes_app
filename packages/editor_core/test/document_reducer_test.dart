@@ -22,8 +22,8 @@ void main() {
   });
 
   test('AddStrokeCommand：执行命令后状态更新', () {
-    final stroke = LineItem(id: 's1', points: [Point(0, 0), Point(10, 10)]);
-    final cmd = AddStrokeCommand(layerId: 'l1', stroke: stroke);
+    const stroke = LineItem(id: 's1', points: [Point(0, 0), Point(10, 10)]);
+    const cmd = AddStrokeCommand(layerId: 'l1', stroke: stroke);
     
     final newState = reducer.execute(cmd);
     expect(newState.revision, 1);
@@ -33,8 +33,8 @@ void main() {
   });
 
   test('AddStrokeCommand：撤销后恢复', () {
-    final stroke = LineItem(id: 's1', points: [Point(0, 0), Point(10, 10)]);
-    final cmd = AddStrokeCommand(layerId: 'l1', stroke: stroke);
+    const stroke = LineItem(id: 's1', points: [Point(0, 0), Point(10, 10)]);
+    const cmd = AddStrokeCommand(layerId: 'l1', stroke: stroke);
     
     reducer.execute(cmd);
     final undone = reducer.undo();
@@ -45,8 +45,8 @@ void main() {
   });
 
   test('AddStrokeCommand：重做后恢复', () {
-    final stroke = LineItem(id: 's1', points: [Point(0, 0), Point(10, 10)]);
-    final cmd = AddStrokeCommand(layerId: 'l1', stroke: stroke);
+    const stroke = LineItem(id: 's1', points: [Point(0, 0), Point(10, 10)]);
+    const cmd = AddStrokeCommand(layerId: 'l1', stroke: stroke);
     
     reducer.execute(cmd);
     reducer.undo();
@@ -58,7 +58,7 @@ void main() {
   });
 
   test('CreateShapeCommand：执行命令', () {
-    final shape = ShapeItem(
+    const shape = ShapeItem(
       id: 'shape1',
       type: 'rect',
       x: 10,
@@ -66,7 +66,7 @@ void main() {
       width: 100,
       height: 80,
     );
-    final cmd = CreateShapeCommand(layerId: 'l1', shape: shape);
+    const cmd = CreateShapeCommand(layerId: 'l1', shape: shape);
     
     final newState = reducer.execute(cmd);
     expect(newState.revision, 1);
@@ -75,8 +75,8 @@ void main() {
   });
 
   test('CreateTextCommand：执行命令', () {
-    final text = TextItem(id: 'text1', content: 'Hello', x: 50, y: 50);
-    final cmd = CreateTextCommand(layerId: 'l1', text: text);
+    const text = TextItem(id: 'text1', content: 'Hello', x: 50, y: 50);
+    const cmd = CreateTextCommand(layerId: 'l1', text: text);
     
     final newState = reducer.execute(cmd);
     expect(newState.revision, 1);
@@ -86,7 +86,7 @@ void main() {
 
   test('MoveItemCommand：移动元素', () {
     // 先添加一个形状
-    final shape = ShapeItem(
+    const shape = ShapeItem(
       id: 'shape1',
       type: 'rect',
       x: 10,
@@ -94,11 +94,11 @@ void main() {
       width: 100,
       height: 80,
     );
-    final addCmd = CreateShapeCommand(layerId: 'l1', shape: shape);
+    const addCmd = CreateShapeCommand(layerId: 'l1', shape: shape);
     reducer.execute(addCmd);
 
     // 移动形状
-    final moveCmd = MoveItemCommand(
+    const moveCmd = MoveItemCommand(
       layerId: 'l1',
       itemId: 'shape1',
       itemType: 'shape',
@@ -113,8 +113,8 @@ void main() {
   });
 
   test('clearHistory：清空历史', () {
-    final stroke = LineItem(id: 's1', points: [Point(0, 0)]);
-    reducer.execute(AddStrokeCommand(layerId: 'l1', stroke: stroke));
+    const stroke = LineItem(id: 's1', points: [Point(0, 0)]);
+    reducer.execute(const AddStrokeCommand(layerId: 'l1', stroke: stroke));
     reducer.clearHistory();
     expect(reducer.canUndo, false);
     expect(reducer.canRedo, false);

@@ -81,7 +81,7 @@ void main() {
   });
 
   test('FrameManager：assignElementToFrame（自动从其他 Frame 移除）', () {
-    var manager = FrameManager();
+    var manager = const FrameManager();
     manager = manager.add(const Frame(id: 'f1', name: 'Frame 1', x: 0, y: 0, width: 200, height: 200));
     manager = manager.add(const Frame(id: 'f2', name: 'Frame 2', x: 300, y: 0, width: 200, height: 200));
     // 分配到 f1。
@@ -94,7 +94,7 @@ void main() {
   });
 
   test('FrameManager：getFrameForElement / detectFramesForElement', () {
-    var manager = FrameManager();
+    var manager = const FrameManager();
     manager = manager.add(const Frame(id: 'f1', name: 'Frame 1', x: 0, y: 0, width: 200, height: 200));
     manager = manager.assignElementToFrame('elem1', 'f1');
     expect(manager.getFrameForElement('elem1')!.id, 'f1');
@@ -106,7 +106,7 @@ void main() {
   });
 
   test('FrameManager：unassignElement', () {
-    var manager = FrameManager();
+    var manager = const FrameManager();
     manager = manager.add(const Frame(id: 'f1', name: 'Frame 1', x: 0, y: 0, width: 200, height: 200));
     manager = manager.assignElementToFrame('elem1', 'f1');
     expect(manager.get('f1')!.hasChild('elem1'), true);

@@ -56,7 +56,7 @@ void main() {
     expect(updated.showSidebar, false);
     expect(updated.showLayerPanel, false);
     // 相等性按 mode。
-    const other = UnifiedEditorState(mode: UnifiedEditorMode.note);
+    const other = UnifiedEditorState();
     expect(state, other);
   });
 

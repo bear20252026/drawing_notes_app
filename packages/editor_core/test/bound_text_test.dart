@@ -105,7 +105,7 @@ void main() {
   });
 
   test('TextBindingManager：getContainerForText / getTextsForContainer', () {
-    var manager = TextBindingManager();
+    var manager = const TextBindingManager();
     manager = manager.addContainer(const ShapeContainer(id: 'c1', type: ContainerType.ellipse, x: 0, y: 0, width: 100, height: 100));
     manager = manager.addBinding(const TextBinding(textId: 't1', containerId: 'c1'));
     manager = manager.addBinding(const TextBinding(textId: 't2', containerId: 'c1'));

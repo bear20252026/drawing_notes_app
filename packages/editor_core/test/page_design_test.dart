@@ -123,7 +123,7 @@ void main() {
     });
 
     test('TabBar：markModified', () {
-      final bar = TabBar().addTab(const TabItem(id: 't1', title: 'Doc'));
+      final bar = const TabBar().addTab(const TabItem(id: 't1', title: 'Doc'));
       final modified = bar.markModified('t1');
       expect(modified.activeTab!.modified, true);
       expect(bar.tabs.first.modified, false); // 原实例不变。

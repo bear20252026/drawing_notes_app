@@ -140,10 +140,9 @@ abstract class UnifiedStorageService {
 class LocalUnifiedStorageService implements UnifiedStorageService {
   LocalUnifiedStorageService({
     required this.nodeId,
-    required StorageBackend backend,
+    required this._backend,
     SyncProvider? syncProvider,
-  }) : _backend = backend,
-       _syncProvider = syncProvider ?? LocalSyncProvider(),
+  }) : _syncProvider = syncProvider ?? LocalSyncProvider(),
        _lockManager = DocumentLockManager(nodeId: nodeId);
 
   final String nodeId;
@@ -194,7 +193,7 @@ class LocalUnifiedStorageService implements UnifiedStorageService {
     // 检查锁状态
     final lockStatus = _lockManager.getStatus(docId);
     if (lockStatus == LockStatus.lockedByOther) {
-      return UnifiedStorageResult.failure(
+      return const UnifiedStorageResult.failure(
         'Document locked by another session',
       );
     }
@@ -240,7 +239,7 @@ class LocalUnifiedStorageService implements UnifiedStorageService {
     // 检查锁状态
     final lockStatus = _lockManager.getStatus(docId);
     if (lockStatus == LockStatus.lockedByOther) {
-      return UnifiedStorageResult.failure(
+      return const UnifiedStorageResult.failure(
         'Document locked by another session',
       );
     }

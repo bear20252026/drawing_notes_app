@@ -176,7 +176,7 @@ void main() {
   group('性能基准测试', () {
     // 测试数据大小：1KB、64KB、1MB
     final sizes = [1024, 65536, 1048576];
-    final iterations = 10; // 每个大小重复次数
+    const iterations = 10; // 每个大小重复次数
 
     for (final size in sizes) {
       test('ChaCha20-Poly1305 vs AES-256-GCM @ ${_formatSize(size)}', () {

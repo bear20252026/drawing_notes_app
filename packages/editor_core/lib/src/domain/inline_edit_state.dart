@@ -125,7 +125,6 @@ class InlineEditState {
       elementId: elementId,
       content: originalContent,
       originalContent: originalContent,
-      cursor: const CursorPosition(offset: 0),
       format: originalFormat,
       originalFormat: originalFormat,
     );

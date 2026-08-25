@@ -56,10 +56,10 @@ void main() {
   });
 
   test('NodeGraph：addConnection/removeConnection + getNodeConnections', () {
-    final graph = NodeGraph(
+    const graph = NodeGraph(
       nodes: [
-        const NodeItem(id: 'n1', type: NodeType.card),
-        const NodeItem(id: 'n2', type: NodeType.card),
+        NodeItem(id: 'n1', type: NodeType.card),
+        NodeItem(id: 'n2', type: NodeType.card),
       ],
     );
     final withConn = graph.addConnection(const NodeConnection(id: 'c1', sourceId: 'n1', targetId: 'n2'));
@@ -71,11 +71,11 @@ void main() {
   });
 
   test('NodeGraph：removeNode 同时移除相关连接', () {
-    var graph = NodeGraph(
+    var graph = const NodeGraph(
       nodes: [
-        const NodeItem(id: 'n1', type: NodeType.card),
-        const NodeItem(id: 'n2', type: NodeType.card),
-        const NodeItem(id: 'n3', type: NodeType.card),
+        NodeItem(id: 'n1', type: NodeType.card),
+        NodeItem(id: 'n2', type: NodeType.card),
+        NodeItem(id: 'n3', type: NodeType.card),
       ],
     );
     graph = graph.addConnection(const NodeConnection(id: 'c1', sourceId: 'n1', targetId: 'n2'));

@@ -41,8 +41,8 @@ void main() {
   });
 
   test('TableV2：updateCell 更新单元格（不可变）', () {
-    final table = TableV2(id: 't1', headers: ['Name'], rows: [
-      const TableRowV2(id: 'r1', cells: [TableCellV2(id: 'c1', content: 'A')]),
+    const table = TableV2(id: 't1', headers: ['Name'], rows: [
+      TableRowV2(id: 'r1', cells: [TableCellV2(id: 'c1', content: 'A')]),
     ]);
     final updated = table.updateCell('r1', 0, 'B');
     expect(updated.rows.first.cellAt(0)!.content, 'B');
@@ -62,12 +62,12 @@ void main() {
       LayerV2(id: 'l1', name: 'Layer 1'),
     ]);
     final reducer = DocumentReducer(doc);
-    final table = TableV2(id: 't1', headers: ['Name'], rows: [
-      const TableRowV2(id: 'r1', cells: [TableCellV2(id: 'c1', content: 'A')]),
+    const table = TableV2(id: 't1', headers: ['Name'], rows: [
+      TableRowV2(id: 'r1', cells: [TableCellV2(id: 'c1', content: 'A')]),
     ]);
 
     final newState = reducer.execute(
-      CreateTableCommand(layerId: 'l1', table: table),
+      const CreateTableCommand(layerId: 'l1', table: table),
     );
     expect(newState.layers.first.tables.length, 1);
     expect(newState.layers.first.tables.first.headers, ['Name']);

@@ -35,7 +35,7 @@ void main() {
   });
 
   test('CommandPalette：getByShortcut（快捷键查找）', () {
-    final palette = CommandPalette().add(
+    final palette = const CommandPalette().add(
       const CommandEntry(id: 'undo', label: 'Undo', action: 'undo', shortcut: 'Ctrl+Z'),
     ).add(
       const CommandEntry(id: 'redo', label: 'Redo', action: 'redo', shortcut: 'Ctrl+Y'),
@@ -46,7 +46,7 @@ void main() {
   });
 
   test('CommandPalette：search 模糊搜索', () {
-    final palette = CommandPalette().add(
+    final palette = const CommandPalette().add(
       const CommandEntry(id: 'undo', label: 'Undo', action: 'undo', category: 'Edit'),
     ).add(
       const CommandEntry(id: 'export', label: 'Export', action: 'export', category: 'File'),
@@ -57,12 +57,12 @@ void main() {
   });
 
   test('CommandPalette：byCategory / sortedByPriority', () {
-    final palette = CommandPalette().add(
+    final palette = const CommandPalette().add(
       const CommandEntry(id: 'c1', label: 'C1', action: 'a1', category: 'Edit', priority: CommandPriority.high),
     ).add(
       const CommandEntry(id: 'c2', label: 'C2', action: 'a2', category: 'File', priority: CommandPriority.low),
     ).add(
-      const CommandEntry(id: 'c3', label: 'C3', action: 'a3', category: 'Edit', priority: CommandPriority.medium),
+      const CommandEntry(id: 'c3', label: 'C3', action: 'a3', category: 'Edit'),
     );
     expect(palette.byCategory('Edit').length, 2);
     final sorted = palette.sortedByPriority();

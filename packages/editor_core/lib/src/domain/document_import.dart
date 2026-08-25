@@ -191,7 +191,7 @@ class DocumentImporter {
       );
     }
 
-    return ImportResult(
+    return const ImportResult(
       status: ImportStatus.pending,
       message: 'Validation passed',
     );
@@ -207,7 +207,6 @@ class DocumentImporter {
       status: ImportStatus.pending,
       message: 'Preview: $filename ($format.name)',
       pageCount: format == ImportFormat.pdf ? 1 : 0, // PDF 可能多页。
-      elementCount: 0,
     );
   }
 }

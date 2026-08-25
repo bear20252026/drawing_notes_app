@@ -41,13 +41,13 @@ void main() {
     });
 
     test('version string output', () {
-      final v = SemanticVersion(major: 1, minor: 2, patch: 3);
+      const v = SemanticVersion(major: 1, minor: 2, patch: 3);
       expect(v.version, '1.2.3');
       expect(v.fullVersion, '1.2.3');
     });
 
     test('version string with preRelease', () {
-      final v = SemanticVersion(
+      const v = SemanticVersion(
         major: 1,
         minor: 2,
         patch: 3,
@@ -57,7 +57,7 @@ void main() {
     });
 
     test('incrementMajor', () {
-      final v = SemanticVersion(major: 1, minor: 2, patch: 3);
+      const v = SemanticVersion(major: 1, minor: 2, patch: 3);
       final v2 = v.incrementMajor();
       expect(v2.major, 2);
       expect(v2.minor, 0);
@@ -65,7 +65,7 @@ void main() {
     });
 
     test('incrementMinor', () {
-      final v = SemanticVersion(major: 1, minor: 2, patch: 3);
+      const v = SemanticVersion(major: 1, minor: 2, patch: 3);
       final v2 = v.incrementMinor();
       expect(v2.major, 1);
       expect(v2.minor, 3);
@@ -73,7 +73,7 @@ void main() {
     });
 
     test('incrementPatch', () {
-      final v = SemanticVersion(major: 1, minor: 2, patch: 3);
+      const v = SemanticVersion(major: 1, minor: 2, patch: 3);
       final v2 = v.incrementPatch();
       expect(v2.major, 1);
       expect(v2.minor, 2);
@@ -81,9 +81,9 @@ void main() {
     });
 
     test('compareTo', () {
-      final v1 = SemanticVersion(major: 1, minor: 0, patch: 0);
-      final v2 = SemanticVersion(major: 2, minor: 0, patch: 0);
-      final v3 = SemanticVersion(major: 1, minor: 1, patch: 0);
+      const v1 = SemanticVersion(major: 1, minor: 0, patch: 0);
+      const v2 = SemanticVersion(major: 2, minor: 0, patch: 0);
+      const v3 = SemanticVersion(major: 1, minor: 1, patch: 0);
 
       expect(v1.compareTo(v2), lessThan(0));
       expect(v2.compareTo(v1), greaterThan(0));
@@ -92,9 +92,9 @@ void main() {
     });
 
     test('equality', () {
-      final v1 = SemanticVersion(major: 1, minor: 2, patch: 3);
-      final v2 = SemanticVersion(major: 1, minor: 2, patch: 3);
-      final v3 = SemanticVersion(major: 1, minor: 2, patch: 4);
+      const v1 = SemanticVersion(major: 1, minor: 2, patch: 3);
+      const v2 = SemanticVersion(major: 1, minor: 2, patch: 3);
+      const v3 = SemanticVersion(major: 1, minor: 2, patch: 4);
 
       expect(v1, equals(v2));
       expect(v1, isNot(equals(v3)));
@@ -132,7 +132,7 @@ void main() {
   group('BackupData', () {
     test('verifyIntegrity succeeds for valid backup', () {
       final data = Uint8List.fromList([1, 2, 3, 4, 5]);
-      final sha = 'e41724a43e98e15598c335afa40e9fcf3c78c1970b038572ba2c42e69ac67e39'; // SHA-256 of [1,2,3,4,5]
+      const sha = 'e41724a43e98e15598c335afa40e9fcf3c78c1970b038572ba2c42e69ac67e39'; // SHA-256 of [1,2,3,4,5]
       
       final metadata = BackupMetadata(
         id: 'test',
@@ -187,7 +187,6 @@ void main() {
       final data = Uint8List.fromList([1, 2, 3, 4, 5]);
       final metadata = await service.createBackup(
         data: data,
-        encrypt: true,
         password: 'test-password',
         description: 'Encrypted backup',
       );
@@ -212,7 +211,6 @@ void main() {
       final data = Uint8List.fromList([1, 2, 3, 4, 5]);
       final metadata = await service.createBackup(
         data: data,
-        encrypt: true,
         password: 'test-password',
       );
 
@@ -227,7 +225,6 @@ void main() {
       final data = Uint8List.fromList([1, 2, 3, 4, 5]);
       final metadata = await service.createBackup(
         data: data,
-        encrypt: true,
         password: 'correct-password',
       );
 

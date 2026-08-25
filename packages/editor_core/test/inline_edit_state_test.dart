@@ -24,7 +24,7 @@ void main() {
   });
 
   test('InlineEditState：insertText（输入字符）', () {
-    final editing = const InlineEditState().startEditing('e1', 'Hello', TextFormat());
+    final editing = const InlineEditState().startEditing('e1', 'Hello', const TextFormat());
     final inserted = editing.insertText(' World');
     expect(inserted.content, 'Hello World');
     expect(inserted.cursor.offset, 11);
@@ -32,7 +32,7 @@ void main() {
   });
 
   test('InlineEditState：deleteBackward（退格删除）', () {
-    final editing = const InlineEditState().startEditing('e1', 'Hello', TextFormat());
+    final editing = const InlineEditState().startEditing('e1', 'Hello', const TextFormat());
     final deleted = editing.deleteBackward();
     expect(deleted.content, 'Hell');
     expect(deleted.cursor.offset, 4);
@@ -40,14 +40,14 @@ void main() {
 
   test('InlineEditState：deleteBackward 边界（光标在 0）', () {
     final editing = const InlineEditState()
-        .startEditing('e1', 'Hello', TextFormat())
+        .startEditing('e1', 'Hello', const TextFormat())
         .moveCursor(0);
     final deleted = editing.deleteBackward();
     expect(deleted.content, 'Hello'); // 不变。
   });
 
   test('InlineEditState：moveCursor（光标移动）', () {
-    final editing = const InlineEditState().startEditing('e1', 'Hello', TextFormat());
+    final editing = const InlineEditState().startEditing('e1', 'Hello', const TextFormat());
     final moved = editing.moveCursor(2);
     expect(moved.cursor.offset, 2);
     // 越界——clamp 到边界。
@@ -56,7 +56,7 @@ void main() {
   });
 
   test('InlineEditState：toggleBold/toggleItalic（格式切换）', () {
-    final editing = const InlineEditState().startEditing('e1', 'Hello', TextFormat());
+    final editing = const InlineEditState().startEditing('e1', 'Hello', const TextFormat());
     final bold = editing.toggleBold();
     expect(bold.format.bold, true);
     final boldItalic = bold.toggleItalic();
@@ -65,7 +65,7 @@ void main() {
   });
 
   test('InlineEditState：commit（editing → committing）', () {
-    final editing = const InlineEditState().startEditing('e1', 'Hello', TextFormat());
+    final editing = const InlineEditState().startEditing('e1', 'Hello', const TextFormat());
     final committed = editing.commit();
     expect(committed.phase, InlineEditPhase.committing);
     expect(committed.hasChanges, false); // 内容未变。
@@ -83,7 +83,7 @@ void main() {
 
   test('InlineEditState：finish（committing/aborting → idle）', () {
     final committed = const InlineEditState()
-        .startEditing('e1', 'Hello', TextFormat())
+        .startEditing('e1', 'Hello', const TextFormat())
         .commit();
     final finished = committed.finish();
     expect(finished.phase, InlineEditPhase.idle);
@@ -99,8 +99,8 @@ void main() {
   });
 
   test('InlineEditState：相等性', () {
-    final a = const InlineEditState().startEditing('e1', 'Hello', TextFormat());
-    final b = const InlineEditState().startEditing('e1', 'Hello', TextFormat());
+    final a = const InlineEditState().startEditing('e1', 'Hello', const TextFormat());
+    final b = const InlineEditState().startEditing('e1', 'Hello', const TextFormat());
     expect(a, b);
   });
 }

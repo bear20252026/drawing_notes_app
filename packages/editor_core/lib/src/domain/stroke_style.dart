@@ -60,12 +60,12 @@ class StrokeStyle {
 
   /// 预设样式（AFFiNE/Excalidraw 常用画笔参数）。
   static const thin = StrokeStyle(strokeWidth: 1.0);
-  static const medium = StrokeStyle(strokeWidth: 2.0);
+  static const medium = StrokeStyle();
   static const thick = StrokeStyle(strokeWidth: 4.0);
   static const extraThick = StrokeStyle(strokeWidth: 8.0);
 
   /// 预设颜色（AFFiNE 调色板——常用色）。
-  static const black = StrokeStyle(strokeColor: '#000000');
+  static const black = StrokeStyle();
   static const red = StrokeStyle(strokeColor: '#FF0000');
   static const blue = StrokeStyle(strokeColor: '#0000FF');
   static const green = StrokeStyle(strokeColor: '#00AA00');

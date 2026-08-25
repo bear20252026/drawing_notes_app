@@ -65,7 +65,7 @@ void main() {
     // 4) 小地图区域存在且点击导航不崩溃。
     final miniMap = find.byType(CustomPaint).evaluate().length;
     expect(miniMap, greaterThanOrEqualTo(1), reason: '画布 CustomPaint 应存在');
-    await tester.tapAt(Offset(100, 100));
+    await tester.tapAt(const Offset(100, 100));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull, reason: '画布点击不应抛异常');
   });

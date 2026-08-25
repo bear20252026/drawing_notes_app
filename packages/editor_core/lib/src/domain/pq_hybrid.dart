@@ -629,10 +629,9 @@ class PqHybridSigner {
 
   /// 使用现有密钥对构造。
   PqHybridSigner.withKeyPairs({
-    required PqEcdsaKeyPair ecdsaKeyPair,
-    required MlDsa65KeyPair mldsaKeyPair,
-  })  : _ecdsaKeyPair = ecdsaKeyPair,
-        _mldsaKeyPair = mldsaKeyPair;
+    required this._ecdsaKeyPair,
+    required this._mldsaKeyPair,
+  });
 
   /// ECDSA P-256 公钥。
   Uint8List get ecdsaPublicKey => _ecdsaKeyPair.publicKey;

@@ -102,7 +102,7 @@ class UnifiedEditor {
 
   /// 创建笔记模式（分页——Saber 笔记）。
   static UnifiedEditorState note() =>
-      const UnifiedEditorState(mode: UnifiedEditorMode.note);
+      const UnifiedEditorState();
 
   /// 创建画板模式（无限画布——Saber whiteboard）。
   static UnifiedEditorState whiteboard() =>

@@ -117,7 +117,7 @@ class StorageAdapter implements UnifiedStorageService {
 
       // 验证数据完整性。
       if (!DataIntegrityChecker.verifyDocument(json)) {
-        return UnifiedStorageResult.failure('数据完整性校验失败');
+        return const UnifiedStorageResult.failure('数据完整性校验失败');
       }
 
       // 迁移到最新 Schema 版本（如果需要）。
@@ -188,17 +188,17 @@ class StorageAdapter implements UnifiedStorageService {
     String contentType,
   ) async {
     // StorageService 不支持 Blob 存储——返回失败。
-    return UnifiedStorageResult.failure('StorageService 不支持 Blob 存储');
+    return const UnifiedStorageResult.failure('StorageService 不支持 Blob 存储');
   }
 
   @override
   Future<UnifiedStorageResult<Uint8List?>> loadBlob(String key) async {
-    return UnifiedStorageResult.failure('StorageService 不支持 Blob 存储');
+    return const UnifiedStorageResult.failure('StorageService 不支持 Blob 存储');
   }
 
   @override
   Future<UnifiedStorageResult<void>> deleteBlob(String key) async {
-    return UnifiedStorageResult.failure('StorageService 不支持 Blob 存储');
+    return const UnifiedStorageResult.failure('StorageService 不支持 Blob 存储');
   }
 
   @override
@@ -323,22 +323,22 @@ class _StorageServiceBackend implements StorageBackend {
     Uint8List data,
     String contentType,
   ) async {
-    return StorageResult.failure('StorageService 不支持 Blob 存储');
+    return const StorageResult.failure('StorageService 不支持 Blob 存储');
   }
 
   @override
   Future<StorageResult<Uint8List?>> loadBlob(String key) async {
-    return StorageResult.failure('StorageService 不支持 Blob 存储');
+    return const StorageResult.failure('StorageService 不支持 Blob 存储');
   }
 
   @override
   Future<StorageResult<void>> deleteBlob(String key) async {
-    return StorageResult.failure('StorageService 不支持 Blob 存储');
+    return const StorageResult.failure('StorageService 不支持 Blob 存储');
   }
 
   @override
   Future<StorageResult<List<BlobMetadata>>> listBlobs() async {
-    return StorageResult.failure('StorageService 不支持 Blob 存储');
+    return const StorageResult.failure('StorageService 不支持 Blob 存储');
   }
 
   @override

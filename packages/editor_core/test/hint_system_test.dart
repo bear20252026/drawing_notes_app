@@ -12,7 +12,7 @@ void main() {
     expect(hint.priority, 0);
     expect(hint.duration, 0);
 
-    const general = Hint(id: 'h2', message: 'Click to select', tool: '');
+    const general = Hint(id: 'h2', message: 'Click to select');
     expect(general.isForTool('select'), true); // 空工具匹配所有。
     expect(general.isForTool('draw'), true);
   });
@@ -34,12 +34,12 @@ void main() {
   });
 
   test('HintSystem：hintsForTool（按工具过滤）', () {
-    final system = HintSystem().add(
+    final system = const HintSystem().add(
       const Hint(id: 'h1', message: 'Drag to draw', tool: 'draw'),
     ).add(
       const Hint(id: 'h2', message: 'Click to select', tool: 'select'),
     ).add(
-      const Hint(id: 'h3', message: 'Press Esc to cancel', tool: ''), // 通用。
+      const Hint(id: 'h3', message: 'Press Esc to cancel'), // 通用。
     );
     expect(system.hintsForTool('draw').length, 2); // h1 + h3（通用）。
     expect(system.hintsForTool('select').length, 2); // h2 + h3（通用）。
@@ -47,12 +47,12 @@ void main() {
   });
 
   test('HintSystem：hintsByType（按类型过滤）', () {
-    final system = HintSystem().add(
+    final system = const HintSystem().add(
       const Hint(id: 'h1', message: 'Click', type: HintType.tooltip),
     ).add(
       const Hint(id: 'h2', message: 'Ctrl+Z', type: HintType.shortcut),
     ).add(
-      const Hint(id: 'h3', message: 'Drag', type: HintType.context),
+      const Hint(id: 'h3', message: 'Drag'),
     );
     expect(system.hintsByType(HintType.tooltip).length, 1);
     expect(system.hintsByType(HintType.shortcut).length, 1);
@@ -60,7 +60,7 @@ void main() {
   });
 
   test('HintSystem：sortedByPriority（优先级排序）', () {
-    final system = HintSystem().add(
+    final system = const HintSystem().add(
       const Hint(id: 'h1', message: 'Low', priority: 1),
     ).add(
       const Hint(id: 'h2', message: 'High', priority: 10),
@@ -73,7 +73,7 @@ void main() {
   });
 
   test('HintSystem：helpPanel（带快捷键的提示）', () {
-    final system = HintSystem().add(
+    final system = const HintSystem().add(
       const Hint(id: 'h1', message: 'Undo', shortcut: 'Ctrl+Z'),
     ).add(
       const Hint(id: 'h2', message: 'Click'), // 无快捷键。
@@ -83,7 +83,7 @@ void main() {
   });
 
   test('HintSystem：search（模糊搜索）', () {
-    final system = HintSystem().add(
+    final system = const HintSystem().add(
       const Hint(id: 'h1', message: 'Press Delete to remove element'),
     ).add(
       const Hint(id: 'h2', message: 'Drag to draw'),

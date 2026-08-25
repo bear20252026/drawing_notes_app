@@ -61,7 +61,7 @@ void main() {
   });
 
   test('EncryptionScope：copyWith + 相等性', () {
-    const scope = EncryptionScope(type: EncryptionScopeType.note, objectId: 'n1', encrypted: false);
+    const scope = EncryptionScope(type: EncryptionScopeType.note, objectId: 'n1');
     final updated = scope.copyWith(encrypted: true);
     expect(scope.encrypted, false); // 原实例不变。
     expect(updated.encrypted, true);

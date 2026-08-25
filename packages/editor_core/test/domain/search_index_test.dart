@@ -40,7 +40,7 @@ void main() {
     });
 
     test('addDocument and lookup', () {
-      final doc = SearchDocument(
+      const doc = SearchDocument(
         id: 'doc1',
         type: SearchDocType.noteBlock,
         content: 'hello world',
@@ -60,13 +60,13 @@ void main() {
 
     test('addDocuments batch', () {
       final docs = [
-        SearchDocument(
+        const SearchDocument(
           id: 'doc1',
           type: SearchDocType.noteBlock,
           content: 'hello world',
           docRefId: 'note1',
         ),
-        SearchDocument(
+        const SearchDocument(
           id: 'doc2',
           type: SearchDocType.noteBlock,
           content: 'hello dart',
@@ -85,7 +85,7 @@ void main() {
     });
 
     test('removeDocument', () {
-      final doc = SearchDocument(
+      const doc = SearchDocument(
         id: 'doc1',
         type: SearchDocType.noteBlock,
         content: 'hello world',
@@ -101,19 +101,19 @@ void main() {
 
     test('queryAll (AND semantics)', () {
       index.addDocuments([
-        SearchDocument(
+        const SearchDocument(
           id: 'doc1',
           type: SearchDocType.noteBlock,
           content: 'hello world',
           docRefId: 'note1',
         ),
-        SearchDocument(
+        const SearchDocument(
           id: 'doc2',
           type: SearchDocType.noteBlock,
           content: 'hello dart',
           docRefId: 'note2',
         ),
-        SearchDocument(
+        const SearchDocument(
           id: 'doc3',
           type: SearchDocType.noteBlock,
           content: 'world dart',
@@ -127,13 +127,13 @@ void main() {
 
     test('queryAny (OR semantics)', () {
       index.addDocuments([
-        SearchDocument(
+        const SearchDocument(
           id: 'doc1',
           type: SearchDocType.noteBlock,
           content: 'hello world',
           docRefId: 'note1',
         ),
-        SearchDocument(
+        const SearchDocument(
           id: 'doc2',
           type: SearchDocType.noteBlock,
           content: 'hello dart',
@@ -146,7 +146,7 @@ void main() {
     });
 
     test('clear', () {
-      index.addDocument(SearchDocument(
+      index.addDocument(const SearchDocument(
         id: 'doc1',
         type: SearchDocType.noteBlock,
         content: 'hello',
@@ -172,7 +172,7 @@ void main() {
       engine.indexNoteBlock('note1', 'block2', 'Hello Dart');
       engine.indexNoteBlock('note2', 'block3', 'World of Dart');
 
-      final results = engine.search(SearchQuery(text: 'Hello'));
+      final results = engine.search(const SearchQuery(text: 'Hello'));
 
       expect(results.length, 2);
       expect(results[0].docRefId, 'note1');
@@ -182,7 +182,7 @@ void main() {
       engine.indexNoteItem('note1', 'item1', 'Sticky note content');
       engine.indexNoteItem('note1', 'item2', 'Another sticky');
 
-      final results = engine.search(SearchQuery(text: 'sticky'));
+      final results = engine.search(const SearchQuery(text: 'sticky'));
 
       expect(results.length, 2);
     });
@@ -191,7 +191,7 @@ void main() {
       engine.indexHandwritingOcr('note1', 'stroke1', '手写内容识别');
       engine.indexHandwritingOcr('note1', 'stroke2', '更多手写');
 
-      final results = engine.search(SearchQuery(text: '手写'));
+      final results = engine.search(const SearchQuery(text: '手写'));
 
       expect(results.length, 2);
       expect(results.every((r) => r.type == SearchDocType.handwritingOcr), true);
@@ -201,7 +201,7 @@ void main() {
       engine.indexNoteBlock('note1', 'block1', 'Note content');
       engine.indexNoteItem('note1', 'item1', 'Sticky content');
 
-      final noteResults = engine.search(SearchQuery(
+      final noteResults = engine.search(const SearchQuery(
         text: 'content',
         types: [SearchDocType.noteBlock],
       ));
@@ -213,9 +213,8 @@ void main() {
     test('search with highlights', () {
       engine.indexNoteBlock('note1', 'block1', 'Hello World Hello Dart');
 
-      final results = engine.search(SearchQuery(
+      final results = engine.search(const SearchQuery(
         text: 'Hello',
-        includeHighlights: true,
       ));
 
       expect(results.length, 1);
@@ -229,7 +228,7 @@ void main() {
       }
 
       final sw = Stopwatch()..start();
-      final results = engine.search(SearchQuery(text: 'searchable'));
+      final results = engine.search(const SearchQuery(text: 'searchable'));
       sw.stop();
 
       expect(sw.elapsedMilliseconds, lessThan(100));
@@ -243,7 +242,7 @@ void main() {
 
       engine.removeNote('note1');
 
-      final results = engine.search(SearchQuery(text: 'content'));
+      final results = engine.search(const SearchQuery(text: 'content'));
       expect(results.isEmpty, true);
     });
 
@@ -251,7 +250,7 @@ void main() {
       engine.indexNoteBlock('note1', 'block1', 'Old content');
 
       engine.rebuildIndex([
-        SearchDocument(
+        const SearchDocument(
           id: 'block:note2:block1',
           type: SearchDocType.noteBlock,
           content: 'New content',
@@ -259,10 +258,10 @@ void main() {
         ),
       ]);
 
-      final oldResults = engine.search(SearchQuery(text: 'Old'));
+      final oldResults = engine.search(const SearchQuery(text: 'Old'));
       expect(oldResults.isEmpty, true);
 
-      final newResults = engine.search(SearchQuery(text: 'New'));
+      final newResults = engine.search(const SearchQuery(text: 'New'));
       expect(newResults.length, 1);
     });
 
@@ -271,7 +270,7 @@ void main() {
       engine.indexNoteBlock('note2', 'block1', 'hello hello hello');
       engine.indexNoteBlock('note3', 'block1', 'world');
 
-      final results = engine.search(SearchQuery(text: 'hello'));
+      final results = engine.search(const SearchQuery(text: 'hello'));
 
       // note2 should have higher score (more occurrences)
       expect(results[0].docRefId, 'note2');

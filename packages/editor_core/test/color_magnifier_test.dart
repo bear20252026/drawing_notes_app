@@ -14,7 +14,7 @@ void main() {
 
   test('magnifierSize：放大镜显示尺寸（radius×2×zoom）', () {
     const service = ColorMagnifier();
-    const config = MagnifierConfig(radius: 16, zoom: 3);
+    const config = MagnifierConfig();
     final size = service.magnifierSize(config);
     expect(size.width, 96); // 16×2×3。
     expect(size.height, 96);
@@ -65,7 +65,7 @@ void main() {
 
   test('sampleRegion：采样区域（鼠标位置周围 radius）', () {
     const service = ColorMagnifier();
-    const config = MagnifierConfig(radius: 16);
+    const config = MagnifierConfig();
     final region = service.sampleRegion(config, px: 50, py: 40);
     expect(region.left, 34);
     expect(region.top, 24);

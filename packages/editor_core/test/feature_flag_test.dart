@@ -5,7 +5,7 @@ import 'package:editor_core/editor_core.dart';
 /// AFFiNE 借鉴——FeatureFlagManager 特性标志测试（纯逻辑——不搞崩）。
 void main() {
   test('FeatureFlag：默认值 + isAvailable', () {
-    const experimental = FeatureFlag(id: 'f1', name: 'Feature 1', status: FeatureStatus.experimental);
+    const experimental = FeatureFlag(id: 'f1', name: 'Feature 1');
     expect(experimental.enabled, false);
     expect(experimental.isAvailable, false); // experimental 默认不可用。
 
@@ -34,7 +34,7 @@ void main() {
   });
 
   test('FeatureFlagManager：isEnabled（stale 默认可用）', () {
-    final manager = FeatureFlagManager().add(
+    final manager = const FeatureFlagManager().add(
       const FeatureFlag(id: 'stable', name: 'S', status: FeatureStatus.stable),
     ).add(
       const FeatureFlag(id: 'beta', name: 'B', status: FeatureStatus.beta),
@@ -45,7 +45,7 @@ void main() {
   });
 
   test('FeatureFlagManager：toggle/enable/disable', () {
-    final manager = FeatureFlagManager().add(
+    final manager = const FeatureFlagManager().add(
       const FeatureFlag(id: 'f1', name: 'F1'),
     );
     final toggled = manager.toggle('f1');
@@ -57,7 +57,7 @@ void main() {
   });
 
   test('FeatureFlagManager：byStatus/byGroup', () {
-    final manager = FeatureFlagManager().add(
+    final manager = const FeatureFlagManager().add(
       const FeatureFlag(id: 'f1', name: 'F1', status: FeatureStatus.stable, group: 'core'),
     ).add(
       const FeatureFlag(id: 'f2', name: 'F2', status: FeatureStatus.beta, group: 'experimental'),
@@ -70,10 +70,10 @@ void main() {
   });
 
   test('FeatureFlagManager：enableAllBeta / disableAllExperimental', () {
-    final manager = FeatureFlagManager().add(
+    final manager = const FeatureFlagManager().add(
       const FeatureFlag(id: 'beta1', name: 'B1', status: FeatureStatus.beta),
     ).add(
-      const FeatureFlag(id: 'exp1', name: 'E1', status: FeatureStatus.experimental, enabled: true),
+      const FeatureFlag(id: 'exp1', name: 'E1', enabled: true),
     );
     final enabledBeta = manager.enableAllBeta();
     expect(enabledBeta.isEnabled('beta1'), true);
@@ -82,10 +82,10 @@ void main() {
   });
 
   test('FeatureFlagManager：enabledCount', () {
-    final manager = FeatureFlagManager().add(
+    final manager = const FeatureFlagManager().add(
       const FeatureFlag(id: 'f1', name: 'F1', enabled: true),
     ).add(
-      const FeatureFlag(id: 'f2', name: 'F2', enabled: false),
+      const FeatureFlag(id: 'f2', name: 'F2'),
     );
     expect(manager.enabledCount, 1);
   });

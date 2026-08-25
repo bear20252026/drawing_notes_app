@@ -45,7 +45,7 @@ void main() {
   });
 
   test('WorkspaceManager：switchTo 切换工作区', () {
-    final manager = WorkspaceManager().add(
+    final manager = const WorkspaceManager().add(
       const Workspace(id: 'ws1', name: 'Personal'),
     ).add(
       const Workspace(id: 'ws2', name: 'Team'),
@@ -57,7 +57,7 @@ void main() {
   });
 
   test('WorkspaceManager：addDocumentToActive / removeDocumentFromActive', () {
-    final manager = WorkspaceManager().add(
+    final manager = const WorkspaceManager().add(
       const Workspace(id: 'ws1', name: 'Personal'),
     );
     final withDoc = manager.addDocumentToActive('doc1');
@@ -67,8 +67,8 @@ void main() {
   });
 
   test('WorkspaceManager：byType 按类型过滤', () {
-    final manager = WorkspaceManager().add(
-      const Workspace(id: 'ws1', name: 'Personal', type: WorkspaceType.personal),
+    final manager = const WorkspaceManager().add(
+      const Workspace(id: 'ws1', name: 'Personal'),
     ).add(
       const Workspace(id: 'ws2', name: 'Team', type: WorkspaceType.team),
     ).add(
@@ -79,7 +79,7 @@ void main() {
   });
 
   test('WorkspaceManager：remove 自动切换活动工作区', () {
-    final manager = WorkspaceManager().add(
+    final manager = const WorkspaceManager().add(
       const Workspace(id: 'ws1', name: 'Personal'),
     ).add(
       const Workspace(id: 'ws2', name: 'Team'),

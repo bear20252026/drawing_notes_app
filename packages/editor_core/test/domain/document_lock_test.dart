@@ -88,7 +88,7 @@ void main() {
     });
 
     test('parseLockFileContent parses correctly', () {
-      final content = '''
+      const content = '''
 {
   "docId": "doc1",
   "ownerId": "other-node",
@@ -100,7 +100,7 @@ void main() {
       expect(info, isNotNull);
       expect(info!.docId, 'doc1');
       expect(info.ownerId, 'other-node');
-      expect(info.timeout, Duration(seconds: 1800));
+      expect(info.timeout, const Duration(seconds: 1800));
     });
 
     test('parseLockFileContent returns null for invalid content', () {

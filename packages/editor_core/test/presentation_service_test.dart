@@ -5,7 +5,7 @@ import 'package:editor_core/editor_core.dart';
 /// PresentationService 幻灯片播放逻辑测试（纯 Dart 可测试——不搞崩）。
 void main() {
   /// 辅助：创建带 DocumentV2 的 PageV2。
-  PageV2 _makePage(String id, int index) {
+  PageV2 makePage(String id, int index) {
     return PageV2(
       id: id,
       document: DocumentV2(id: 'doc_$id', pageCount: 1),
@@ -22,7 +22,7 @@ void main() {
     });
 
     test('单页——初始 currentPage 指向第 0 页', () {
-      final svc = PresentationService([_makePage('p0', 0)]);
+      final svc = PresentationService([makePage('p0', 0)]);
       expect(svc.currentPage!.id, 'p0');
       expect(svc.currentIndex, 0);
       expect(svc.hasNext, isFalse);
@@ -31,9 +31,9 @@ void main() {
 
     test('多页——next 递增 currentIndex', () {
       final pages = [
-        _makePage('p0', 0),
-        _makePage('p1', 1),
-        _makePage('p2', 2),
+        makePage('p0', 0),
+        makePage('p1', 1),
+        makePage('p2', 2),
       ];
       final svc = PresentationService(pages);
       expect(svc.currentIndex, 0);
@@ -53,9 +53,9 @@ void main() {
 
     test('多页——prev 递减 currentIndex', () {
       final pages = [
-        _makePage('p0', 0),
-        _makePage('p1', 1),
-        _makePage('p2', 2),
+        makePage('p0', 0),
+        makePage('p1', 1),
+        makePage('p2', 2),
       ];
       final svc = PresentationService(pages);
       svc.goTo(2);
@@ -74,9 +74,9 @@ void main() {
 
     test('goTo 跳转指定页', () {
       final pages = [
-        _makePage('p0', 0),
-        _makePage('p1', 1),
-        _makePage('p2', 2),
+        makePage('p0', 0),
+        makePage('p1', 1),
+        makePage('p2', 2),
       ];
       final svc = PresentationService(pages);
       svc.goTo(2);
@@ -85,21 +85,21 @@ void main() {
     });
 
     test('goTo 负数边界安全', () {
-      final pages = [_makePage('p0', 0)];
+      final pages = [makePage('p0', 0)];
       final svc = PresentationService(pages);
       svc.goTo(-1);
       expect(svc.currentIndex, 0); // 不变。
     });
 
     test('goTo 超出边界安全', () {
-      final pages = [_makePage('p0', 0)];
+      final pages = [makePage('p0', 0)];
       final svc = PresentationService(pages);
       svc.goTo(100);
       expect(svc.currentIndex, 0); // 不变。
     });
 
     test('play/stop 切换 isPlaying', () {
-      final svc = PresentationService([_makePage('p0', 0)]);
+      final svc = PresentationService([makePage('p0', 0)]);
       expect(svc.isPlaying, isFalse);
 
       svc.play();
@@ -111,9 +111,9 @@ void main() {
 
     test('reset 重置到第一页并停止播放', () {
       final pages = [
-        _makePage('p0', 0),
-        _makePage('p1', 1),
-        _makePage('p2', 2),
+        makePage('p0', 0),
+        makePage('p1', 1),
+        makePage('p2', 2),
       ];
       final svc = PresentationService(pages);
       svc.goTo(2);
@@ -129,8 +129,8 @@ void main() {
 
     test('hasNext/hasPrev 边界正确', () {
       final pages = [
-        _makePage('p0', 0),
-        _makePage('p1', 1),
+        makePage('p0', 0),
+        makePage('p1', 1),
       ];
       final svc = PresentationService(pages);
 
