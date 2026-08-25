@@ -162,7 +162,12 @@ GoRouter createAppRouter() {
       GoRoute(
         path: RoutePaths.passwordDisk,
         name: RouteNames.passwordDisk,
-        builder: (context, state) => const PasswordDiskPage(),
+        builder: (context, state) {
+          final redirect = state.uri.queryParameters['redirect'];
+          return PasswordDiskPage(
+            redirect: redirect,
+          );
+        },
       ),
 
       // =====================================================================

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/text_scale_helper.dart';
 
@@ -12,7 +13,9 @@ import '../../../shared/widgets/ambient_background.dart';
 import '../../../shared/widgets/glass_surface.dart';
 import '../../../core/storage/progressive_delay.dart';
 import '../../../core/storage/recovery_key_generator.dart';
+import '../../../core/security/auth_guard.dart';
 import '../../../core/security/audit_logger.dart';
+import '../../../core/router/app_router.dart';
 import '../../../l10n/app_localizations.dart';
 
 /// 密码盘管理页（U盘即钥匙，设计见 docs/PASSWORD_DISK_DESIGN.md）。
@@ -33,6 +36,7 @@ class PasswordDiskPage extends StatefulWidget {
     this.disk,
     this.onKeyUnlocked,
     this.encryption = const EncryptionService(),
+    this.redirect,
   });
 
   /// 密码盘实现（测试注入 Mock；生产默认 Real）。
@@ -44,6 +48,9 @@ class PasswordDiskPage extends StatefulWidget {
 
   /// 加密服务（测试可注入 EncryptionService.test() 加速 Argon2id）。
   final EncryptionService encryption;
+
+  /// GoRouter 重定向目标路径（解锁/创建成功后导航到此处）。
+  final String? redirect;
 
   @override
   State<PasswordDiskPage> createState() => _PasswordDiskPageState();
@@ -200,6 +207,11 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
     await _showRecoveryDialog(recovery);
     AuditLogger.log('password_disk.create_key_file');
     _snack('密码盘已创建');
+    // 创建成功后认证并导航到首页（首次创建无需 redirect）。
+    if (mounted) {
+      AuthGuard.instance.authenticate();
+      context.go(widget.redirect ?? RoutePaths.home);
+    }
   }
 
   /// 展示恢复密钥（警示必须抄写）。
@@ -356,6 +368,13 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
     widget.onKeyUnlocked?.call(resolved);
     AuditLogger.log('password_disk.unlock');
     _snack('密码盘已解锁，密钥指纹 ${_fingerprint(resolved)}');
+    // 通知 AuthGuard 认证通过，GoRouter 重定向守卫不再拦截。
+    if (mounted) {
+      AuthGuard.instance.authenticate();
+      // 导航到原目标页（GoRouter redirect 中传入的 ?redirect=）。
+      final target = widget.redirect ?? RoutePaths.home;
+      context.go(target);
+    }
   }
 
   Future<void> _recoverFromKey() async {
@@ -402,6 +421,11 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
       // #11 回调主密钥供调用方加密笔记本。
       widget.onKeyUnlocked?.call(key);
       _snack('恢复成功，主密钥指纹 ${_fingerprint(key)}');
+      // 恢复成功后认证并导航到原目标页。
+      AuthGuard.instance.authenticate();
+      if (mounted) {
+        context.go(widget.redirect ?? RoutePaths.home);
+      }
     } catch (_) {
       _snack('恢复密钥错误');
     }
@@ -417,6 +441,8 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
       _demoOutput = null;
       // 保留 _diskVerifyPath 和 _diskVerifyPassed 供用户验证落盘密文。
     });
+    // 通知 AuthGuard 锁定，GoRouter 重定向守卫将拦截后续导航。
+    AuthGuard.instance.deauthenticate();
     AuditLogger.log('password_disk.lock');
     _snack('已锁定 — 主密钥已从内存清除，需要重新解锁才能解密数据');
   }
