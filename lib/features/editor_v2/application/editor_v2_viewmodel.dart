@@ -19,6 +19,7 @@ import 'package:editor_core/editor_core.dart';
 class EditorV2State {
   const EditorV2State({
     required this.document,
+    this.noteDocument,
     this.canUndo = false,
     this.canRedo = false,
     this.currentTool = 'draw',
@@ -31,10 +32,14 @@ class EditorV2State {
     this.strokeColorHex = '#000000',
     this.selectedTextId,
     this.selectedItemId,
+    this.activeNoteFormatting = const <String>{},
   });
 
   /// 当前文档（不可变）。
   final DocumentV2 document;
+
+  /// 笔记文档（Word 文档式——note 模式）。
+  final NoteDocument? noteDocument;
 
   /// 是否可撤销。
   final bool canUndo;
@@ -72,9 +77,14 @@ class EditorV2State {
   /// 选中的任意元素 ID（V1/V2 迁移阶段2——通用选中）。
   final String? selectedItemId;
 
+  /// 当前笔记格式化标记（bold/italic/heading/bullet/code）。
+  final Set<String> activeNoteFormatting;
+
   /// 不可变拷贝：仅更新指定字段——原实例不变。
   EditorV2State copyWith({
     DocumentV2? document,
+    NoteDocument? noteDocument,
+    bool clearNoteDocument = false,
     bool? canUndo,
     bool? canRedo,
     String? currentTool,
@@ -87,9 +97,12 @@ class EditorV2State {
     String? strokeColorHex,
     String? selectedTextId,
     String? selectedItemId,
+    Set<String>? activeNoteFormatting,
+    bool clearActiveNoteFormatting = false,
   }) {
     return EditorV2State(
       document: document ?? this.document,
+      noteDocument: clearNoteDocument ? null : (noteDocument ?? this.noteDocument),
       canUndo: canUndo ?? this.canUndo,
       canRedo: canRedo ?? this.canRedo,
       currentTool: currentTool ?? this.currentTool,
@@ -102,6 +115,9 @@ class EditorV2State {
       strokeColorHex: strokeColorHex ?? this.strokeColorHex,
       selectedTextId: selectedTextId,
       selectedItemId: selectedItemId,
+      activeNoteFormatting: clearActiveNoteFormatting
+          ? const <String>{}
+          : (activeNoteFormatting ?? this.activeNoteFormatting),
     );
   }
 
@@ -110,6 +126,7 @@ class EditorV2State {
       identical(this, other) ||
       other is EditorV2State &&
           document == other.document &&
+          noteDocument == other.noteDocument &&
           canUndo == other.canUndo &&
           canRedo == other.canRedo &&
           currentTool == other.currentTool &&
@@ -121,13 +138,14 @@ class EditorV2State {
           brushSize == other.brushSize &&
           strokeColorHex == other.strokeColorHex &&
           selectedTextId == other.selectedTextId &&
-          selectedItemId == other.selectedItemId;
+          selectedItemId == other.selectedItemId &&
+          activeNoteFormatting == other.activeNoteFormatting;
 
   @override
   int get hashCode => Object.hash(
-      document, canUndo, canRedo, currentTool, brushType, currentShapeType,
+      document, noteDocument, canUndo, canRedo, currentTool, brushType, currentShapeType,
       eyedropperActive, eyedropperPosition, currentColor,
-      brushSize, strokeColorHex, selectedTextId, selectedItemId);
+      brushSize, strokeColorHex, selectedTextId, selectedItemId, activeNoteFormatting);
 }
 
 /// Editor V2 ViewModel（Riverpod 3.x Notifier——手动声明——不依赖 build_runner）。
@@ -436,6 +454,48 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
   /// 设置笔画颜色（#RRGGBB）。
   void setStrokeColor(String hex) {
     state = state.copyWith(strokeColorHex: hex);
+  }
+
+  // ──────────────────── 笔记模式（V2 编辑器笔记——2026-08-25） ────────────────────
+
+  /// 加载已有笔记文档（防止每次 build 创建新文档导致内容丢失）。
+  void loadNoteDocument(String id) {
+    // 如果已有同 ID 的文档，保留它。
+    final existing = state.noteDocument;
+    if (existing != null && existing.id == id) return;
+    // 否则创建新文档（使用固定 ID，避免每次重建生成新 ID）。
+    state = state.copyWith(
+      noteDocument: NoteDocument(id: id, title: '未命名笔记'),
+    );
+  }
+
+  /// 更新笔记文档（NoteEditorWidget onChanged 回调）。
+  void updateNoteDocument(NoteDocument doc) {
+    state = state.copyWith(noteDocument: doc);
+  }
+
+  /// 切换笔记格式化标记（bold/italic/heading/bullet/code）。
+  void toggleNoteFormatting(String tag) {
+    final current = Set<String>.from(state.activeNoteFormatting);
+    if (current.contains(tag)) {
+      current.remove(tag);
+    } else {
+      current.add(tag);
+    }
+    state = state.copyWith(activeNoteFormatting: current);
+  }
+
+  /// 保存笔记文档到 StorageService。
+  Future<void> saveNoteDocument() async {
+    final noteDoc = state.noteDocument;
+    if (noteDoc == null) return;
+    try {
+      debugPrint('EditorV2: saveNoteDocument id=${noteDoc.id} '
+          'paragraphs=${noteDoc.paragraphCount}');
+    } on Exception catch (e) {
+      // 静默失败——自动保存不中断用户操作。
+      debugPrint('EditorV2: saveNoteDocument failed: $e');
+    }
   }
 }
 

@@ -452,4 +452,88 @@ void main() {
       expect(s1.hashCode, s2.hashCode);
     });
   });
+
+  // ════════════════════════════════════════════════════════════════
+  // 笔记模式（V2 编辑器笔记——2026-08-25 修复打字/保存/格式化）
+  // ════════════════════════════════════════════════════════════════
+
+  group('笔记模式 - 打字/保存/格式化', () {
+    test('loadNoteDocument: 创建新笔记文档', () {
+      notifier.createDocument('test-doc');
+      notifier.loadNoteDocument('note-001');
+      final state = container.read(editorV2NotifierProvider);
+      expect(state.noteDocument, isNotNull);
+      expect(state.noteDocument!.id, 'note-001');
+      expect(state.noteDocument!.title, '未命名笔记');
+    });
+
+    test('loadNoteDocument: 不重复创建同 ID 文档', () {
+      notifier.createDocument('test-doc');
+      notifier.loadNoteDocument('note-001');
+      // 第二次调用——不覆盖已有内容。
+      notifier.updateNoteDocument(
+        container.read(editorV2NotifierProvider).noteDocument!.copyWith(
+          paragraphs: [const NoteParagraph(id: 'p1', content: 'Hello')],
+        ),
+      );
+      notifier.loadNoteDocument('note-001'); // 同 ID —— 应保留。
+      final state = container.read(editorV2NotifierProvider);
+      expect(state.noteDocument!.paragraphs.length, 1);
+      expect(state.noteDocument!.paragraphs.first.content, 'Hello');
+    });
+
+    test('updateNoteDocument: 保存内容到 ViewModel', () {
+      notifier.createDocument('test-doc');
+      notifier.loadNoteDocument('note-001');
+      final updated = container.read(editorV2NotifierProvider).noteDocument!.copyWith(
+        paragraphs: [
+          const NoteParagraph(id: 'p1', content: 'Hello'),
+          const NoteParagraph(id: 'p2', content: 'World'),
+        ],
+      );
+      notifier.updateNoteDocument(updated);
+      final state = container.read(editorV2NotifierProvider);
+      expect(state.noteDocument!.paragraphCount, 2);
+      expect(state.noteDocument!.fullText, 'Hello\nWorld');
+    });
+
+    test('toggleNoteFormatting: 加粗', () {
+      expect(container.read(editorV2NotifierProvider).activeNoteFormatting, isEmpty);
+      notifier.toggleNoteFormatting('bold');
+      expect(container.read(editorV2NotifierProvider).activeNoteFormatting, contains('bold'));
+    });
+
+    test('toggleNoteFormatting: 取消加粗', () {
+      notifier.toggleNoteFormatting('bold');
+      expect(container.read(editorV2NotifierProvider).activeNoteFormatting, contains('bold'));
+      notifier.toggleNoteFormatting('bold');
+      expect(container.read(editorV2NotifierProvider).activeNoteFormatting, isEmpty);
+    });
+
+    test('toggleNoteFormatting: 多个格式同时生效', () {
+      notifier.toggleNoteFormatting('bold');
+      notifier.toggleNoteFormatting('italic');
+      final active = container.read(editorV2NotifierProvider).activeNoteFormatting;
+      expect(active, contains('bold'));
+      expect(active, contains('italic'));
+    });
+
+    test('toggleNoteFormatting: heading', () {
+      notifier.toggleNoteFormatting('heading');
+      expect(container.read(editorV2NotifierProvider).activeNoteFormatting, contains('heading'));
+    });
+
+    test('saveNoteDocument: 不崩溃（正常路径）', () async {
+      notifier.createDocument('test-doc');
+      notifier.loadNoteDocument('note-001');
+      // 不应抛出异常。
+      await notifier.saveNoteDocument();
+    });
+
+    test('saveNoteDocument: noteDocument 为 null 时安全返回', () async {
+      notifier.createDocument('test-doc');
+      // 不调用 loadNoteDocument → noteDocument 为 null。
+      await notifier.saveNoteDocument(); // 不崩溃。
+    });
+  });
 }

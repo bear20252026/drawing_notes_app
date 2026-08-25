@@ -45,12 +45,26 @@ class NoteEditorWidget extends StatefulWidget {
 class _NoteEditorWidgetState extends State<NoteEditorWidget> {
   final List<TextEditingController> _controllers = [];
   late TextEditingController _titleController;
+  final FocusNode _autoFocusNode = FocusNode();
+  bool _hasAutoFocused = false;
 
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.document.title);
     _syncControllers();
+    // 自动请求焦点——确保可立即打字。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_hasAutoFocused) {
+        _hasAutoFocused = true;
+        if (_controllers.isNotEmpty) {
+          _controllers.first.selection = TextSelection.collapsed(
+            offset: _controllers.first.text.length,
+          );
+          _autoFocusNode.requestFocus();
+        }
+      }
+    });
   }
 
   @override
@@ -73,6 +87,7 @@ class _NoteEditorWidgetState extends State<NoteEditorWidget> {
 
   @override
   void dispose() {
+    _autoFocusNode.dispose();
     _titleController.dispose();
     for (final c in _controllers) {
       c.dispose();
@@ -152,7 +167,8 @@ class _NoteEditorWidgetState extends State<NoteEditorWidget> {
   Widget _buildParagraphField(int index) {
     final paragraph = widget.document.paragraphs[index];
     final controller = _controllers[index];
-    if (controller.text != paragraph.content) {
+    // 仅在外部文档更新时同步——避免覆盖用户正在输入的内容。
+    if (controller.text.isEmpty && paragraph.content.isNotEmpty) {
       controller.text = paragraph.content;
       controller.selection = TextSelection.collapsed(offset: controller.text.length);
     }
@@ -167,6 +183,7 @@ class _NoteEditorWidgetState extends State<NoteEditorWidget> {
 
     return TextField(
       controller: controller,
+      focusNode: index == 0 ? _autoFocusNode : null, // 第一段落自动聚焦。
       maxLines: null, // 多行——Word 式。
       style: style,
       decoration: InputDecoration(

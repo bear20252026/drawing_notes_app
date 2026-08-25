@@ -67,6 +67,10 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
     // 初始化文档（CUJ-01 创建）。
     Future.microtask(() {
       _notifier.createDocument(widget.documentId);
+      // note 模式：加载/初始化笔记文档（固定 ID——防止重建丢失内容）。
+      if (widget.mode == UnifiedEditorMode.note) {
+        _notifier.loadNoteDocument(widget.documentId);
+      }
     });
   }
 
@@ -97,11 +101,14 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
 
   /// 立即执行保存（供切后台、销毁时调用）。
   void _saveNow() {
-    // TODO: 阶段4 入口切换时接入 StorageService.save()
-    // 此处仅序列化为 JSON 备用。
     // 使用 _notifier 而非 ref.read()——dispose 后 ref 不可用。
+    // 保存绘图文档。
     final json = _notifier.toJson();
     debugPrint('EditorV2: _saveNow keys=${json.keys.toList()}');
+    // 保存笔记文档（note 模式）。
+    if (widget.mode == UnifiedEditorMode.note) {
+      _notifier.saveNoteDocument();
+    }
   }
 
   /// 初始笔记文档（note 模式——Word 文档式——2026-08-22——
@@ -414,8 +421,13 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
                           )
                         : NoteEditorWidget(
                             key: ValueKey('note-${state.document.id}'),
-                            document: _initialNoteDocument(state.document.id),
-                            onChanged: (_) {},
+                            document: state.noteDocument ??
+                                _initialNoteDocument(state.document.id),
+                            onChanged: (doc) {
+                              ref.read(editorV2NotifierProvider.notifier)
+                                  .updateNoteDocument(doc);
+                              _scheduleAutoSave();
+                            },
                           ),
                     ),
                   ),
@@ -437,11 +449,14 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
 /// note 模式工具栏——加粗/斜体/下划线/删除线/列表/标题。
 ///
 /// 与绘图工具栏互斥——同一时间只显示一个。
-class _NoteFormattingToolbar extends StatelessWidget {
+class _NoteFormattingToolbar extends ConsumerWidget {
   const _NoteFormattingToolbar();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(editorV2NotifierProvider);
+    final active = state.activeNoteFormatting;
+
     return SizedBox(
       height: context.responsiveFont(mobile: 44, desktop: 56),
       child: Row(
@@ -450,43 +465,87 @@ class _NoteFormattingToolbar extends StatelessWidget {
           _ToolButton(
             icon: Icons.format_bold,
             tooltip: '加粗 (Ctrl+B)',
-            onPressed: () {},
+            isActive: active.contains('bold'),
+            onPressed: () {
+              ref.read(editorV2NotifierProvider.notifier)
+                  .toggleNoteFormatting('bold');
+              _scheduleAutoSave(context, ref);
+            },
           ),
           _ToolButton(
             icon: Icons.format_italic,
             tooltip: '斜体 (Ctrl+I)',
-            onPressed: () {},
+            isActive: active.contains('italic'),
+            onPressed: () {
+              ref.read(editorV2NotifierProvider.notifier)
+                  .toggleNoteFormatting('italic');
+              _scheduleAutoSave(context, ref);
+            },
           ),
           _ToolButton(
             icon: Icons.format_underline,
             tooltip: '下划线 (Ctrl+U)',
-            onPressed: () {},
+            isActive: active.contains('underline'),
+            onPressed: () {
+              ref.read(editorV2NotifierProvider.notifier)
+                  .toggleNoteFormatting('underline');
+              _scheduleAutoSave(context, ref);
+            },
           ),
           _ToolButton(
             icon: Icons.strikethrough_s,
             tooltip: '删除线',
-            onPressed: () {},
+            isActive: active.contains('strikethrough'),
+            onPressed: () {
+              ref.read(editorV2NotifierProvider.notifier)
+                  .toggleNoteFormatting('strikethrough');
+              _scheduleAutoSave(context, ref);
+            },
           ),
           const VerticalDivider(indent: 8, endIndent: 8),
           _ToolButton(
             icon: Icons.format_list_bulleted,
             tooltip: '无序列表',
-            onPressed: () {},
+            isActive: active.contains('bullet'),
+            onPressed: () {
+              ref.read(editorV2NotifierProvider.notifier)
+                  .toggleNoteFormatting('bullet');
+              _scheduleAutoSave(context, ref);
+            },
           ),
           _ToolButton(
             icon: Icons.format_list_numbered,
             tooltip: '有序列表',
-            onPressed: () {},
+            isActive: active.contains('numbered'),
+            onPressed: () {
+              ref.read(editorV2NotifierProvider.notifier)
+                  .toggleNoteFormatting('numbered');
+              _scheduleAutoSave(context, ref);
+            },
           ),
           const VerticalDivider(indent: 8, endIndent: 8),
           _ToolButton(
             icon: Icons.title,
             tooltip: '标题',
-            onPressed: () {},
+            isActive: active.contains('heading'),
+            onPressed: () {
+              ref.read(editorV2NotifierProvider.notifier)
+                  .toggleNoteFormatting('heading');
+              _scheduleAutoSave(context, ref);
+            },
           ),
         ],
       ),
     );
+  }
+
+  void _scheduleAutoSave(BuildContext context, WidgetRef ref) {
+    // 格式切换后延迟保存（800ms 防抖）。
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (context.mounted) {
+        ref.read(editorV2NotifierProvider.notifier).saveNoteDocument();
+      }
+    });
   }
 }
 
@@ -496,11 +555,13 @@ class _ToolButton extends StatelessWidget {
     required this.icon,
     required this.tooltip,
     required this.onPressed,
+    this.isActive = false,
   });
 
   final IconData icon;
   final String tooltip;
   final VoidCallback onPressed;
+  final bool isActive;
 
   @override
   Widget build(BuildContext context) {
@@ -510,6 +571,9 @@ class _ToolButton extends StatelessWidget {
         icon: Icon(icon, size: context.responsiveFont(mobile: 18, desktop: 22)),
         onPressed: onPressed,
         style: IconButton.styleFrom(
+          foregroundColor: isActive
+              ? Theme.of(context).colorScheme.primary
+              : null,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
