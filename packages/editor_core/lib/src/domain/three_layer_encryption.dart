@@ -633,7 +633,7 @@ class ThreeLayerEncryptionService {
   /// 生成随机填充长度（16~256 字节——CSPRNG——隐藏真实大小）。
   int _randomPaddingLength() {
     final secureRandom = _createSecureRandom();
-    return 16 + (secureRandom.nextUint8() as int) % 241; // 16 + [0..240] = [16..256]。
+    return 16 + secureRandom.nextUint8() % 241; // 16 + [0..240] = [16..256]。
   }
 
   /// 构造填充字节：[random:Nbytes][length:2bytes]——长度在末尾（方便解密时直接读取）。
@@ -641,7 +641,7 @@ class ThreeLayerEncryptionService {
     final secureRandom = _createSecureRandom();
     final result = Uint8List(length + 2);
     for (var i = 0; i < length; i++) {
-      result[i] = secureRandom.nextUint8() as int;
+      result[i] = secureRandom.nextUint8();
     }
     result[length] = (length >> 8) & 0xFF;
     result[length + 1] = length & 0xFF;
@@ -653,7 +653,7 @@ class ThreeLayerEncryptionService {
     final secureRandom = _createSecureRandom();
     final nonce = Uint8List(length);
     for (var i = 0; i < length; i++) {
-      nonce[i] = secureRandom.nextUint8() as int;
+      nonce[i] = secureRandom.nextUint8();
     }
     return nonce;
   }

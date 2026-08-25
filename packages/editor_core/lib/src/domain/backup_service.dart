@@ -10,7 +10,6 @@
 // 纯 Dart——禁 Flutter/dart:io（R-02）。
 library;
 
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'crypto_utils.dart';
@@ -434,6 +433,10 @@ class BackupService {
     } else {
       data = backup.payload;
     }
+
+    // TODO: 使用 data 恢复文档内容到存储系统
+    // ignore: unused_local_variable
+    final _ = data;
 
     // 更新当前版本
     _currentVersion = backup.metadata.version;

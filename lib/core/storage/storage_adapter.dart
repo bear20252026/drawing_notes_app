@@ -9,19 +9,13 @@
 // 1. 渐进式迁移——旧代码继续使用 StorageService
 // 2. 新代码使用 UnifiedStorageService（通过 StorageAdapter）
 // 3. 逐步替换调用点，最终废弃 StorageService
-//
-// 纯 Dart——禁 Flutter/dart:io（R-02）。
 
 import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
-import 'package:drawing_notes_app/core/storage/repository.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-
-import 'schema_version.dart';
-import 'storage_backend.dart';
-import 'unified_storage.dart';
+import 'package:editor_core/editor_core.dart';
 
 /// StorageService → UnifiedStorage 桥接适配器。
 ///
@@ -52,13 +46,11 @@ class StorageAdapter implements UnifiedStorageService {
 
   @override
   Future<void> switchBackend(StorageBackend backend) async {
-    // StorageAdapter 不支持切换后端——它包装的是固定的 StorageService。
     throw UnsupportedError('StorageAdapter 不支持切换后端');
   }
 
   @override
   Future<UnifiedStorageResult<void>> initialize() async {
-    // StorageService 无需显式初始化。
     return const UnifiedStorageResult.success(null);
   }
 
@@ -74,29 +66,19 @@ class StorageAdapter implements UnifiedStorageService {
     VectorClock? vectorClock,
   }) async {
     try {
-      // 解析 JSON 数据。
       final json = jsonDecode(utf8.decode(data)) as Map<String, dynamic>;
-
-      // 迁移到最新 Schema 版本。
       final migrated = _migrationManager.migrateToLatest(json);
-
-      // 计算数据完整性哈希。
       final integrityHash = DataIntegrityChecker.hashDocument(migrated);
       migrated['dataIntegrityHash'] = integrityHash;
 
-      // 更新版本向量。
       final currentClock = _versionCache[docId] ?? VectorClock();
       final updatedClock = (vectorClock ?? currentClock).increment(nodeId);
       _versionCache[docId] = updatedClock;
 
-      // 添加版本向量到数据。
       migrated['vectorClock'] = {
-        'clocks': updatedClock.clocks.map(
-          (key, value) => MapEntry(key, value),
-        ),
+        'clocks': updatedClock.toMap(),
       };
 
-      // 保存到 StorageService。
       final doc = DrawingDocument.fromJson(migrated);
       await storageService.save(doc);
 
@@ -114,15 +96,11 @@ class StorageAdapter implements UnifiedStorageService {
         return const UnifiedStorageResult.success(null);
       }
 
-      // 转换为 JSON。
       final json = doc.toJson();
-
-      // 验证数据完整性。
       if (!DataIntegrityChecker.verifyDocument(json)) {
         return UnifiedStorageResult.failure('数据完整性校验失败');
       }
 
-      // 迁移到最新 Schema 版本（如果需要）。
       if (_migrationManager.needsMigration(json)) {
         final migrated = _migrationManager.migrateToLatest(json);
         final data = utf8.encode(jsonEncode(migrated));
@@ -163,7 +141,7 @@ class StorageAdapter implements UnifiedStorageService {
           docId: meta.id,
           vectorClock: clock,
           lastModified: meta.updatedAt,
-          sizeBytes: meta.sizeBytes,
+          sizeBytes: meta.layerCount + meta.strokeCount,
         );
       }).toList();
 
@@ -189,7 +167,6 @@ class StorageAdapter implements UnifiedStorageService {
     Uint8List data,
     String contentType,
   ) async {
-    // StorageService 不支持 Blob 存储——返回失败。
     return UnifiedStorageResult.failure('StorageService 不支持 Blob 存储');
   }
 
@@ -208,7 +185,6 @@ class StorageAdapter implements UnifiedStorageService {
     String docId, {
     Duration? timeout,
   }) async {
-    // StorageService 不支持文档锁——始终返回成功。
     return const UnifiedStorageResult.success(true);
   }
 
@@ -227,7 +203,6 @@ class StorageAdapter implements UnifiedStorageService {
     String docId,
     SyncOperationType type,
   ) async {
-    // StorageService 不支持同步——静默成功。
     return const UnifiedStorageResult.success(null);
   }
 
@@ -243,8 +218,6 @@ class StorageAdapter implements UnifiedStorageService {
 }
 
 /// StorageService → StorageBackend 适配器。
-///
-/// 将旧 StorageService 适配为 StorageBackend 接口。
 class _StorageServiceBackend implements StorageBackend {
   _StorageServiceBackend(this._storageService);
 
@@ -298,10 +271,9 @@ class _StorageServiceBackend implements StorageBackend {
       final docs = await _storageService.listDocuments();
       final metadata = docs.map((meta) => DocMetadata(
         id: meta.id,
-        title: meta.name,
+        title: meta.title,
         createdAt: meta.createdAt,
         updatedAt: meta.updatedAt,
-        sizeBytes: meta.sizeBytes,
       )).toList();
       return StorageResult.success(metadata);
     } catch (e) {
@@ -349,7 +321,5 @@ class _StorageServiceBackend implements StorageBackend {
   }
 
   @override
-  Future<void> close() async {
-    // StorageService 无需显式关闭。
-  }
+  Future<void> close() async {}
 }

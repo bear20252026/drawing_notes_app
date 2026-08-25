@@ -5,6 +5,7 @@
 // 用于替换 EnvelopeEncryptionService 和 PQHybridService 中的占位符。
 library;
 
+import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -748,4 +749,39 @@ AeadAlgorithm selectAeadAlgorithm(String platform) {
       // 未知平台——保守选择 XChaCha20（更安全的默认值）
       return AeadAlgorithm.xchacha20Poly1305;
   }
+}
+
+// ─── 通用密码工具函数 ─────────────────────────────────────────────────────────
+
+/// 计算数据的 SHA-256 哈希值（十六进制字符串）。
+String sha256Hex(List<int> data) {
+  final digest = Digest('SHA-256');
+  final hash = digest.process(Uint8List.fromList(data));
+  return hash.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+}
+
+/// 从密码派生 256 位密钥（PBKDF2-SHA256）。
+///
+/// [rounds] 为 PBKDF2 迭代轮数（默认 3 轮，轻量场景）。
+/// 返回 32 字节密钥。
+Uint8List deriveKeyFromPassword({
+  required String password,
+  int rounds = 3,
+}) {
+  final passwordBytes = Uint8List.fromList(utf8.encode(password));
+  // 使用固定 salt（生产环境应使用随机 salt 并与密文一起存储）
+  final salt = Uint8List.fromList(utf8.encode('drawing-notes-backup-v1'));
+  final pbkdf2 = PBKDF2KeyDerivator(HMac(Digest('SHA-256'), 64));
+  pbkdf2.init(Pbkdf2Parameters(salt, rounds, 32));
+  return pbkdf2.process(passwordBytes);
+}
+
+/// 生成安全随机字节。
+///
+/// [length] 要生成的字节数。
+Uint8List secureRandomBytes(int length) {
+  final rng = math.Random.secure();
+  return Uint8List.fromList(
+    List<int>.generate(length, (_) => rng.nextInt(256)),
+  );
 }

@@ -8,7 +8,6 @@
 // 纯 Dart——禁 Flutter/dart:io（R-02）。
 
 import 'dart:convert';
-import 'dart:typed_data';
 
 /// Schema 版本常量。
 class SchemaVersion {
