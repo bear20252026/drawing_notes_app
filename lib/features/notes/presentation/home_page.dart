@@ -188,17 +188,16 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   /// 打开已有画作继续编辑。
+  /// 统一架构 V2（2026-08-25 UX 复查）：所有画作统一使用 EditorV2Screen。
   Future<void> _openDrawing(DocumentMeta meta) async {
     try {
-      final doc = await _docStorage.load(meta.id);
-      if (doc == null) {
-        _showSnack(AppLocalizations.of(context)?.homeErrorDrawingNotFound ?? '画作文件不存在或已损坏');
-        return;
-      }
       if (!mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => EditorPage(document: doc, docStorage: _docStorage),
+          builder: (_) => EditorV2Screen(
+            documentId: meta.id,
+            mode: UnifiedEditorMode.whiteboard,
+          ),
         ),
       );
       _refresh();

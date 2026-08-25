@@ -194,6 +194,33 @@ abstract final class AppDesign {
         letterSpacing: -0.12,
       );
 
+  /// Lead Airy — 24px/300/1.5/0（环境页大段文字，罕见的 weight 300）
+  static TextStyle get leadAiry => const TextStyle(
+        fontFamily: 'SF Pro Text, system-ui, -apple-system, sans-serif',
+        fontSize: 24,
+        fontWeight: FontWeight.w300,
+        height: 1.5,
+        letterSpacing: 0,
+      );
+
+  /// Dense Link — 17px/400/2.41/0（页脚/商店链接列表，宽松行高）
+  static TextStyle get denseLink => const TextStyle(
+        fontFamily: 'SF Pro Text, system-ui, -apple-system, sans-serif',
+        fontSize: 17,
+        fontWeight: FontWeight.w400,
+        height: 2.41,
+        letterSpacing: 0,
+      );
+
+  /// Micro Legal — 10px/400/1.3/-0.08px（法律声明）
+  static TextStyle get microLegal => const TextStyle(
+        fontFamily: 'SF Pro Text, system-ui, -apple-system, sans-serif',
+        fontSize: 10,
+        fontWeight: FontWeight.w400,
+        height: 1.3,
+        letterSpacing: -0.08,
+      );
+
   // ─── DESIGN.md 圆角体系 ─────────────────────────────────────────
   /// None — 0px（全出血瓦片）。
   static const double roundedNone = 0;
@@ -761,4 +788,104 @@ abstract final class AppDesign {
       ),
     );
   }
+
+  // ─── Apple 组件样式（DESIGN.md 第 5 节）──────────────────────────
+
+  /// Button Primary — primary bg, pill radius, 11px × 22px padding
+  static ButtonStyle get buttonPrimary => ButtonStyle(
+        backgroundColor: WidgetStateProperty.all(primary),
+        foregroundColor: WidgetStateProperty.all(canvas),
+        padding: WidgetStateProperty.all(
+          const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
+        ),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(roundedPill),
+          ),
+        ),
+        minimumSize: WidgetStateProperty.all(const Size(44, 44)),
+      );
+
+  /// Button Secondary Pill — transparent bg, primary border, pill radius
+  static ButtonStyle get buttonSecondaryPill => ButtonStyle(
+        backgroundColor: WidgetStateProperty.all(Colors.transparent),
+        foregroundColor: WidgetStateProperty.all(primary),
+        padding: WidgetStateProperty.all(
+          const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
+        ),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(roundedPill),
+            side: const BorderSide(color: primary),
+          ),
+        ),
+        minimumSize: WidgetStateProperty.all(const Size(44, 44)),
+      );
+
+  /// Button Dark Utility — ink bg, sm radius, 8px × 15px padding
+  static ButtonStyle get buttonDarkUtility => ButtonStyle(
+        backgroundColor: WidgetStateProperty.all(ink),
+        foregroundColor: WidgetStateProperty.all(bodyOnDark),
+        padding: WidgetStateProperty.all(
+          const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+        ),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(roundedSm),
+          ),
+        ),
+        minimumSize: WidgetStateProperty.all(const Size(44, 44)),
+      );
+
+  /// Search Input — canvas bg, pill radius, 12px × 20px padding, 44px height
+  static InputBorder get searchInputBorder => OutlineInputBorder(
+        borderRadius: BorderRadius.circular(roundedPill),
+        borderSide: BorderSide(color: hairline),
+      );
+
+  /// Store Utility Card — canvas bg, 1px hairline border, lg radius, 24px padding
+  static BoxDecoration get storeUtilityCard => BoxDecoration(
+        color: canvas,
+        border: Border.all(color: hairline, width: 1),
+        borderRadius: BorderRadius.circular(roundedLg),
+      );
+
+  /// Product Shadow — rgba(0,0,0,0.22) 3px 5px 30px
+  static List<BoxShadow> get productShadowComponent => [
+        BoxShadow(
+          color: const Color(0xFF000000).withValues(alpha: 0.22),
+          offset: const Offset(0, 3),
+          blurRadius: 30,
+          spreadRadius: 0,
+        ),
+      ];
+
+  /// Soft Hairline — 1px rgba(0,0,0,0.08) border
+  static BoxBorder get softHairline => Border.all(
+        color: const Color(0xFF000000).withValues(alpha: 0.08),
+        width: 1,
+      );
+
+  /// Button Icon Circular — 44×44px, full radius
+  static ButtonStyle get buttonIconCircular => ButtonStyle(
+        minimumSize: WidgetStateProperty.all(const Size(44, 44)),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(roundedPill),
+          ),
+        ),
+      );
+
+  /// Configurator Option Chip — pill, 12×16 padding
+  static ButtonStyle get configuratorOptionChip => ButtonStyle(
+        padding: WidgetStateProperty.all(
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(roundedPill),
+          ),
+        ),
+        side: WidgetStateProperty.all(BorderSide(color: hairline)),
+      );
 }
