@@ -279,10 +279,10 @@ class StorageService implements DocumentRepository {
         final computedHash = sha256.convert(dataBytes).toString();
 
         if (computedHash != storedHash) {
-          // 数据损坏——尝试备份恢复。
+          // 数据损坏——尝试备份恢复（同样需要剥离尾部哈希）。
           if (await bak.exists()) {
             final bakBytes = await _readWithRetry(() async => await bak.readAsBytes());
-            return _codec.decode(bakBytes);
+            return _codec.decode(_stripIntegrityHash(bakBytes));
           }
           throw FormatException('数据完整性校验失败: $id');
         }
@@ -293,10 +293,10 @@ class StorageService implements DocumentRepository {
       // 兼容旧格式（无哈希）。
       return _codec.decode(rawBytes);
     } on FormatException {
-      // 正式文件损坏：尝试备份恢复。
+      // 正式文件损坏：尝试备份恢复（同样需要剥离尾部哈希）。
       if (await bak.exists()) {
         final bytes = await _readWithRetry(() async => await bak.readAsBytes());
-        return _codec.decode(bytes);
+        return _codec.decode(_stripIntegrityHash(bytes));
       }
       rethrow;
     }
@@ -335,12 +335,7 @@ class StorageService implements DocumentRepository {
         // 打开主页时 OOM（D-4 只约束 load 路径）。
         if (await entity.length() > _maxListMetaBytes) continue;
         final bytes = await entity.readAsBytes();
-        // 剥离尾部 SHA-256 哈希（_saveEncoded 写入时附加 64 字节）。
-        const hashLength = 64;
-        final dataBytes = bytes.length > hashLength
-            ? bytes.sublist(0, bytes.length - hashLength)
-            : bytes;
-        final root = jsonDecode(utf8.decode(dataBytes)) as Map<String, dynamic>;
+        final root = jsonDecode(utf8.decode(_stripIntegrityHash(bytes))) as Map<String, dynamic>;
         final doc = root['document'] as Map<String, dynamic>;
         final docId = doc['id'];
         // 链 A 修复（军工审计 2026-08-15）：列表 id 校验——恶意工程文件
@@ -396,7 +391,8 @@ class StorageService implements DocumentRepository {
     // 必须在删除主文件前读取其引用；无法读取时不进行资产回收，保证数据安全。
     DrawingDocument? document;
     try {
-      document = _codec.decode(await file.readAsBytes());
+      final rawBytes = await file.readAsBytes();
+      document = _codec.decode(_stripIntegrityHash(rawBytes));
     } catch (_) {
       // 损坏文档仍允许用户删除，但不基于不可信内容删除任何资产。
     }
@@ -533,7 +529,7 @@ class StorageService implements DocumentRepository {
     await for (final entity in dir.list()) {
       if (entity is! File || !entity.path.endsWith('.json')) continue;
       try {
-        final other = _codec.decode(await entity.readAsBytes());
+        final other = _codec.decode(_stripIntegrityHash(await entity.readAsBytes()));
         if (other.id == excludingDocumentId) continue;
         for (final item in other.imageItems) {
           final managedPath = await _managedImagePathOrNull(item.filePath);
@@ -553,6 +549,14 @@ class StorageService implements DocumentRepository {
         // 主文档已经成功删除；图片回收失败可在未来维护扫描中重试。
       }
     }
+  }
+
+  /// 剥离尾部 SHA-256 哈希（_saveEncoded 写入时附加 64 字节）。
+  static Uint8List _stripIntegrityHash(Uint8List bytes) {
+    const hashLength = 64;
+    return bytes.length > hashLength
+        ? bytes.sublist(0, bytes.length - hashLength)
+        : bytes;
   }
 
   /// 生成一个唯一的文档 ID。
