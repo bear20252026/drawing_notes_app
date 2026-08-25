@@ -395,155 +395,164 @@ class _HomePageState extends ConsumerState<HomePage> {
                 _openSearch,
           },
           child: Scaffold(
-        appBar: AppBar(
-          title: Text(
-            AppLocalizations.of(context)?.appTitle ?? '绘图笔记',
-            style: TextStyle(
-              fontSize: context.responsiveFont(mobile: 20, tablet: 24, desktop: 28),
-            ),
-          ),
-          actions: [
-            Semantics(
-              label: AppLocalizations.of(context)?.search ?? '搜索全部内容（Ctrl+F）',
-              button: true,
-              child: IconButton(
-                tooltip: AppLocalizations.of(context)?.search ?? '搜索全部内容（Ctrl+F）',
-                icon: const Icon(Icons.search_rounded),
-                // 全文搜索 V2：倒排索引 + 高亮 + 手写徽章（见 search_widget.dart）。
-                onPressed: _openSearch,
-              ),
-            ),
-            // M-06 回收站入口（专家审计 2026-08-15）：查看/恢复/永久删除
-            // 已删除文档（UX Patterns 官方模式——专用回收站界面）。
-            Semantics(
-              label: AppLocalizations.of(context)?.trash ?? '回收站（30 天内可恢复）',
-              button: true,
-              child: IconButton(
-                tooltip: AppLocalizations.of(context)?.trash ?? '回收站（30 天内可恢复）',
-                icon: const Icon(Icons.delete_outline),
-                onPressed: _showTrashDialog,
-              ),
-            ),
-            // 主题切换按钮（Riverpod 迁移：从 AppThemeController → themeModeProvider）。
-            Builder(
-              builder: (context) {
-                final mode = ref.watch(themeModeProvider);
-                return Semantics(
-                  label: AppLocalizations.of(context)?.homeSwitchTheme ?? '切换外观（系统 / 浅色 / 深色）',
-                  button: true,
-                  value: mode == ThemeMode.dark ? '深色' : '浅色',
-                  child: IconButton(
-                    tooltip: AppLocalizations.of(context)?.homeSwitchTheme ?? '切换外观（系统 / 浅色 / 深色）',
-                    icon: Icon(
-                      mode == ThemeMode.dark
-                          ? Icons.dark_mode_outlined
-                          : Icons.light_mode_outlined,
-                    ),
-                    onPressed: () => ref.read(themeModeProvider.notifier).cycle(),
+        backgroundColor: Colors.transparent,
+        body: AmbientBackground(
+          child: CustomScrollView(
+            slivers: [
+              // ─── Apple 大标题导航栏（可折叠） ──────────────────
+              SliverAppBar(
+                floating: true,
+                pinned: false,
+                expandedHeight: context.responsiveFont(mobile: 100, desktop: 120),
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+                flexibleSpace: FlexibleSpaceBar(
+                  titlePadding: EdgeInsets.only(
+                    left: context.responsivePadding().left,
+                    bottom: 16,
                   ),
-                );
-              },
-            ),
-            Semantics(
-              label: AppLocalizations.of(context)?.homeMore ?? '更多操作',
-              button: true,
-              child: PopupMenuButton<_HomeMenuItem>(
-                tooltip: AppLocalizations.of(context)?.homeMore ?? '更多操作',
-                icon: const Icon(Icons.more_horiz_rounded),
-                onSelected: _onHomeMenuSelected,
-                itemBuilder: (_) => [
-                  PopupMenuItem(
-                    value: _HomeMenuItem.passwordDisk,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.usb_rounded),
-                      title: Text(AppLocalizations.of(context)?.homePasswordDiskAndRecovery ?? 'Password Disk & Recovery'),
+                  title: Text(
+                    AppLocalizations.of(context)?.appTitle ?? '绘图笔记',
+                    style: TextStyle(
+                      fontSize: context.responsiveFont(mobile: 24, tablet: 28, desktop: 34),
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(context).colorScheme.onSurface,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ),
+                actions: [
+                  // 新建按钮（根据当前 Tab 切换动作）
+                  Semantics(
+                    label: _tabIndex == 0 ? '新建画布' : (_tabIndex == 1 ? '新建笔记本' : '快速记录'),
+                    button: true,
+                    child: IconButton(
+                      tooltip: _tabIndex == 0 ? '新建画布' : (_tabIndex == 1 ? '新建笔记本' : '快速记录'),
+                      icon: const Icon(Icons.add_circle_outline),
+                      onPressed: _tabIndex == 0
+                          ? _createDrawing
+                          : (_tabIndex == 1 ? _createNotebook : _quickRecord),
+                    ),
+                  ),
+                  Semantics(
+                    label: AppLocalizations.of(context)?.search ?? '搜索全部内容（Ctrl+F）',
+                    button: true,
+                    child: IconButton(
+                      tooltip: AppLocalizations.of(context)?.search ?? '搜索全部内容（Ctrl+F）',
+                      icon: const Icon(Icons.search_rounded),
+                      onPressed: _openSearch,
+                    ),
+                  ),
+                  Semantics(
+                    label: AppLocalizations.of(context)?.trash ?? '回收站（30 天内可恢复）',
+                    button: true,
+                    child: IconButton(
+                      tooltip: AppLocalizations.of(context)?.trash ?? '回收站（30 天内可恢复）',
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: _showTrashDialog,
+                    ),
+                  ),
+                  Builder(
+                    builder: (context) {
+                      final mode = ref.watch(themeModeProvider);
+                      return Semantics(
+                        label: AppLocalizations.of(context)?.homeSwitchTheme ?? '切换外观（系统 / 浅色 / 深色）',
+                        button: true,
+                        value: mode == ThemeMode.dark ? '深色' : '浅色',
+                        child: IconButton(
+                          tooltip: AppLocalizations.of(context)?.homeSwitchTheme ?? '切换外观（系统 / 浅色 / 深色）',
+                          icon: Icon(
+                            mode == ThemeMode.dark
+                                ? Icons.dark_mode_outlined
+                                : Icons.light_mode_outlined,
+                          ),
+                          onPressed: () => ref.read(themeModeProvider.notifier).cycle(),
+                        ),
+                      );
+                    },
+                  ),
+                  Semantics(
+                    label: AppLocalizations.of(context)?.homeMore ?? '更多操作',
+                    button: true,
+                    child: PopupMenuButton<_HomeMenuItem>(
+                      tooltip: AppLocalizations.of(context)?.homeMore ?? '更多操作',
+                      icon: const Icon(Icons.more_horiz_rounded),
+                      onSelected: _onHomeMenuSelected,
+                      itemBuilder: (_) => [
+                        PopupMenuItem(
+                          value: _HomeMenuItem.passwordDisk,
+                          child: ListTile(
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(Icons.usb_rounded),
+                            title: Text(AppLocalizations.of(context)?.homePasswordDiskAndRecovery ?? 'Password Disk & Recovery'),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
-          bottom: PreferredSize(
-            preferredSize: Size.fromHeight(context.responsiveFont(mobile: 52, desktop: 60)),
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: context.responsivePadding().horizontal / 2,
-                vertical: 8,
-              ),
-              child: GlassSurface(
-                borderRadius: BorderRadius.circular(AppDesign.controlRadius),
-                sigma: 10,
-                child: TabBar(
-                  onTap: (i) => setState(() => _tabIndex = i),
-                  labelPadding: EdgeInsets.symmetric(
-                    horizontal: context.responsiveFont(mobile: 8, desktop: 16),
+              // ─── 搜索栏（Apple 风格圆角搜索框）────────────────
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: context.responsivePadding().left,
+                    vertical: 4,
                   ),
-                  labelStyle: TextStyle(
-                    fontSize: context.responsiveFont(mobile: 12, desktop: 14),
+                  child: _AppleSearchBar(
+                    onTap: _openSearch,
                   ),
-                  unselectedLabelStyle: TextStyle(
-                    fontSize: context.responsiveFont(mobile: 12, desktop: 14),
-                  ),
-                  tabs: [
-                    Tab(
-                      icon: const Icon(Icons.dashboard_outlined, size: 20),
-                      text: AppLocalizations.of(context)?.homeInfiniteCanvas ?? '无限画布',
-                    ),
-                    Tab(
-                      icon: const Icon(Icons.menu_book, size: 20),
-                      text: AppLocalizations.of(context)?.homeNotebook ?? '笔记本',
-                    ),
-                    Tab(
-                      icon: const Icon(Icons.access_time, size: 20),
-                      text: AppLocalizations.of(context)?.homeRecent ?? '最近',
-                    ),
-                  ],
                 ),
               ),
-            ),
+              // ─── TabBar（紧凑风格）─────────────────────────────
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: context.responsivePadding().left,
+                    vertical: 4,
+                  ),
+                  child: GlassSurface(
+                    borderRadius: BorderRadius.circular(AppDesign.controlRadius),
+                    sigma: 10,
+                    child: TabBar(
+                      onTap: (i) => setState(() => _tabIndex = i),
+                      labelPadding: EdgeInsets.symmetric(
+                        horizontal: context.responsiveFont(mobile: 8, desktop: 16),
+                      ),
+                      labelStyle: TextStyle(
+                        fontSize: context.responsiveFont(mobile: 12, desktop: 14),
+                      ),
+                      unselectedLabelStyle: TextStyle(
+                        fontSize: context.responsiveFont(mobile: 12, desktop: 14),
+                      ),
+                      tabs: [
+                        Tab(
+                          icon: const Icon(Icons.dashboard_outlined, size: 20),
+                          text: AppLocalizations.of(context)?.homeInfiniteCanvas ?? '无限画布',
+                        ),
+                        Tab(
+                          icon: const Icon(Icons.menu_book, size: 20),
+                          text: AppLocalizations.of(context)?.homeNotebook ?? '笔记本',
+                        ),
+                        Tab(
+                          icon: const Icon(Icons.access_time, size: 20),
+                          text: AppLocalizations.of(context)?.homeRecent ?? '最近',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // ─── TabBarView 内容 ─────────────────────────────
+              SliverFillRemaining(
+                child: _buildBody(),
+              ),
+            ],
           ),
         ),
-        body: AmbientBackground(child: _buildBody()),
-        floatingActionButton: _tabIndex == 0
-            ? Semantics(
-                label: AppLocalizations.of(context)?.homeNewInfiniteCanvas ?? '新建无限画布',
-                button: true,
-                child: FloatingActionButton.extended(
-                  onPressed: _createDrawing,
-                  icon: const Icon(Icons.add),
-                  label: Text(
-                    AppLocalizations.of(context)?.homeNewInfiniteCanvas ?? '新建无限画布',
-                    style: TextStyle(fontSize: context.responsiveFont(mobile: 13, desktop: 15)),
-                  ),
-                ),
-              )
-            : _tabIndex == 2
-            ? Semantics(
-                label: AppLocalizations.of(context)?.homeQuickRecord ?? '快速记录',
-                button: true,
-                child: FloatingActionButton.extended(
-                  onPressed: _quickRecord,
-                  icon: const Icon(Icons.edit_note),
-                  label: Text(
-                    AppLocalizations.of(context)?.homeQuickRecord ?? '快速记录',
-                    style: TextStyle(fontSize: context.responsiveFont(mobile: 13, desktop: 15)),
-                  ),
-                ),
-              )
-            : Semantics(
-                label: AppLocalizations.of(context)?.newNotebook ?? '新建笔记本',
-                button: true,
-                child: FloatingActionButton.extended(
-                  onPressed: _createNotebook,
-                  icon: const Icon(Icons.edit_note), // #14 笔记本专用图标——区分画布
-                  label: Text(
-                    AppLocalizations.of(context)?.newNotebook ?? '新建笔记本',
-                    style: TextStyle(fontSize: context.responsiveFont(mobile: 13, desktop: 15)),
-                  ),
-                ),
-              ),
+
           ), // Scaffold
         ), // CallbackShortcuts
       ), // Focus
@@ -1039,5 +1048,59 @@ class _HomePageState extends ConsumerState<HomePage> {
       return '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
     }
     return '${t.year}-${t.month.toString().padLeft(2, '0')}-${t.day.toString().padLeft(2, '0')}';
+  }
+}
+
+/// Apple 风格搜索栏（iOS 15+ 圆角矩形搜索框）。
+///
+/// 视觉特征：
+/// - 圆角矩形（borderRadius 10）
+/// - 背景色 systemGray6（浅色 #F2F2F7 / 深色 #2C2C2E）
+/// - 放大镜图标 + 占位符文本
+/// - 点击后跳转到搜索页面
+class _AppleSearchBar extends StatelessWidget {
+  const _AppleSearchBar({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark
+        ? const Color(0xFF2C2C2E) // systemGray6 dark
+        : const Color(0xFFF2F2F7); // systemGray6 light
+    final hintColor = isDark
+        ? const Color(0xFF8E8E93) // systemGray dark
+        : const Color(0xFF8E8E8E); // systemGray light
+    final iconColor = isDark
+        ? const Color(0xFF8E8E93)
+        : const Color(0xFF8E8E8E);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 36,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Row(
+          children: [
+            Icon(Icons.search, size: 18, color: iconColor),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                AppLocalizations.of(context)?.search ?? '搜索',
+                style: TextStyle(
+                  fontSize: 15,
+                  color: hintColor,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 } 
