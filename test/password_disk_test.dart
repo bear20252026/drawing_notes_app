@@ -138,4 +138,46 @@ void main() {
     final tampered = List<int>.from(bytes)..[4] = 0x99;
     expect(PasswordDiskFile.decode(tampered), isNull, reason: '篡改应被拒绝');
   });
+
+  // ─── RealPasswordDisk 真实文件 I/O 测试 ────────────────────────
+
+  test('RealPasswordDisk: 创建密码盘 → 真实写入 key.frogkey → 读取还原', () async {
+    final disk = const RealPasswordDisk();
+    final ok = await disk.createKeyFile(tempDir.path);
+    expect(ok, isTrue, reason: 'RealPasswordDisk.createKeyFile 应成功');
+
+    final file = File('${tempDir.path}${Platform.pathSeparator}key.frogkey');
+    expect(await file.exists(), isTrue, reason: 'key.frogkey 应写入磁盘');
+
+    final key = await disk.readKey(tempDir.path);
+    expect(key, isNotNull, reason: 'RealPasswordDisk.readKey 应还原主密钥');
+    expect(key!.length, PasswordDiskFile.keyLength);
+
+    final valid = await disk.validateKeyFile(tempDir.path);
+    expect(valid, isTrue, reason: '密码盘文件应通过校验');
+  });
+
+  test('RealPasswordDisk: PIN 保护 → 真实写入 → PIN 解锁还原', () async {
+    final disk = const RealPasswordDisk();
+    final ok = await disk.createKeyFileWithPin(tempDir.path, pin: '123456');
+    expect(ok, isTrue, reason: 'RealPasswordDisk.createKeyFileWithPin 应成功');
+
+    final file = File('${tempDir.path}${Platform.pathSeparator}key.frogkey');
+    expect(await file.exists(), isTrue);
+
+    // 正确 PIN 解锁。
+    final key = await disk.readKeyWithPin(tempDir.path, pin: '123456');
+    expect(key, isNotNull, reason: '正确 PIN 应解锁主密钥');
+    expect(key!.length, PasswordDiskFile.keyLength);
+
+    // 错误 PIN 应返回 null。
+    final wrongKey = await disk.readKeyWithPin(tempDir.path, pin: '999999');
+    expect(wrongKey, isNull, reason: '错误 PIN 应返回 null');
+
+    // v1 无 PIN 盘应返回 null。
+    final plainDisk = MockPasswordDisk(baseDir: tempDir.path);
+    await plainDisk.createKeyFile(tempDir.path);
+    final v1Key = await disk.readKeyWithPin(tempDir.path, pin: '123456');
+    expect(v1Key, isNull, reason: 'v1 无 PIN 盘不应被 readKeyWithPin 识别');
+  });
 }
