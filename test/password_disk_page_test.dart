@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/storage/password_disk.dart';
 import 'package:drawing_notes_app/features/notes/presentation/password_disk_page.dart';
 import 'package:material_ui/material_ui.dart';
@@ -33,7 +34,10 @@ void main() {
   testWidgets('密码盘页面：可构建且状态卡/按钮齐全', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: PasswordDiskPage(disk: MockPasswordDisk(baseDir: diskDir.path)),
+        home: PasswordDiskPage(
+          disk: MockPasswordDisk(baseDir: diskDir.path),
+          encryption: EncryptionService.test(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -49,16 +53,17 @@ void main() {
   testWidgets('密码盘页面：创建密码盘按钮可点击不崩溃', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: PasswordDiskPage(disk: MockPasswordDisk(baseDir: diskDir.path)),
+        home: PasswordDiskPage(
+          disk: MockPasswordDisk(baseDir: diskDir.path),
+          encryption: EncryptionService.test(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('创建密码盘（生成密钥 + 恢复密钥）'));
-    // 创建流程含 PBKDF2 信封（耗时），多次 pump 等待异步完成。
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 200));
-    await tester.pump(const Duration(seconds: 1));
+    // EncryptionService.test() 使用 1MiB 参数，pumpAndSettle 即可等待完成。
+    await tester.pumpAndSettle();
 
     // Mock 无系统目录选择器，pickDirectory 直接返回 mock 目录，
     // 创建后应弹出"我已抄写"恢复密钥对话框或直接成功，不应崩溃。
@@ -75,7 +80,10 @@ void main() {
   testWidgets('密码盘页面：解锁按钮可点击不崩溃（未插入盘则提示）', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: PasswordDiskPage(disk: MockPasswordDisk(baseDir: diskDir.path)),
+        home: PasswordDiskPage(
+          disk: MockPasswordDisk(baseDir: diskDir.path),
+          encryption: EncryptionService.test(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -98,23 +106,27 @@ void main() {
       MaterialApp(
         home: PasswordDiskPage(
           disk: MockPasswordDisk(baseDir: diskDir.path),
+          encryption: EncryptionService.test(),
           onKeyUnlocked: (key) => capturedKey = key,
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    // 1. 创建密码盘
-    await tester.tap(find.text('创建密码盘（生成密钥 + 恢复密钥）'));
-    await tester.pump();
-    // 处理 PIN 保护询问对话框（选择"不启用"以简化测试）。
-    final noPinBtn = find.text('不启用');
-    if (noPinBtn.evaluate().isNotEmpty) {
-      await tester.tap(noPinBtn);
+    // 1. 创建密码盘 — 用 runAsync 让真实异步（Argon2id）完成。
+    await tester.runAsync(() async {
+      await tester.tap(find.text('创建密码盘（生成密钥 + 恢复密钥）'));
       await tester.pump();
-    }
-    await tester.pump(const Duration(milliseconds: 200));
-    await tester.pump(const Duration(seconds: 1));
+      // 处理 PIN 保护询问对话框（选择"不启用"以简化测试）。
+      final noPinBtn = find.text('不启用');
+      if (noPinBtn.evaluate().isNotEmpty) {
+        await tester.tap(noPinBtn);
+        await tester.pump();
+      }
+      // 等待 Argon2id 完成（test 模式 1MiB，约 1-2 秒）。
+      await Future.delayed(const Duration(seconds: 3));
+    });
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     // 关闭恢复密钥对话框
     final okBtn = find.text('我已抄写');
@@ -145,7 +157,10 @@ void main() {
   testWidgets('密码盘页面：落盘加密验证区存在', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: PasswordDiskPage(disk: MockPasswordDisk(baseDir: diskDir.path)),
+        home: PasswordDiskPage(
+          disk: MockPasswordDisk(baseDir: diskDir.path),
+          encryption: EncryptionService.test(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -159,16 +174,18 @@ void main() {
   testWidgets('密码盘页面：创建后恢复密钥对话框含一键复制按钮', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: PasswordDiskPage(disk: MockPasswordDisk(baseDir: diskDir.path)),
+        home: PasswordDiskPage(
+          disk: MockPasswordDisk(baseDir: diskDir.path),
+          encryption: EncryptionService.test(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
 
     // 创建密码盘
     await tester.tap(find.text('创建密码盘（生成密钥 + 恢复密钥）'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 200));
-    await tester.pump(const Duration(seconds: 1));
+    // EncryptionService.test() 使用 1MiB 参数，pumpAndSettle 即可等待完成。
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
 
     // 恢复密钥对话框应含"一键复制"按钮

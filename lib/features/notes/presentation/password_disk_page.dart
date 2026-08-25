@@ -26,7 +26,12 @@ import 'package:drawing_notes_app/l10n/app_localizations.dart';
 /// - PIN 最小长度 6 位（防离线暴力破解）
 /// - Argon2id 密码哈希（t=3, m=64MiB, p=1）
 class PasswordDiskPage extends StatefulWidget {
-  const PasswordDiskPage({super.key, this.disk, this.onKeyUnlocked});
+  const PasswordDiskPage({
+    super.key,
+    this.disk,
+    this.onKeyUnlocked,
+    this.encryption = const EncryptionService(),
+  });
 
   /// 密码盘实现（测试注入 Mock；生产默认 Real）。
   final PasswordDisk? disk;
@@ -35,12 +40,15 @@ class PasswordDiskPage extends StatefulWidget {
   /// 回调方应自行管理密钥生命周期，不在页面内持久化。
   final void Function(List<int> masterKey)? onKeyUnlocked;
 
+  /// 加密服务（测试可注入 EncryptionService.test() 加速 Argon2id）。
+  final EncryptionService encryption;
+
   @override
   State<PasswordDiskPage> createState() => _PasswordDiskPageState();
 }
 
 class _PasswordDiskPageState extends State<PasswordDiskPage> {
-  static const EncryptionService _encryption = EncryptionService();
+  late final EncryptionService _encryption = widget.encryption;
   late final PasswordDisk _disk = widget.disk ?? createPasswordDisk();
 
   /// 当前读取到的主密钥（解锁后驻留内存；关闭页面即失效）。
