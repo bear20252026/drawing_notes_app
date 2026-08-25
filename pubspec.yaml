@@ -59,6 +59,10 @@ dependencies:
   # 状态管理：编译时安全/可测试（2026 官方推荐；3.0 为当前主版本，
   # StateProvider 等 legacy 已移出主 import，本代码已全量 Notifier 化）
   flutter_riverpod: ^3.0.0
+  # 系统托盘（桌面平台：Windows/macOS/Linux）
+  system_tray: ^2.0.0
+  # HTTP 请求（自动更新检查）
+  http: ^1.2.2
   riverpod: ^3.2.1
   # 向量/矩阵数学（本地化适配 2026-08-15：视口变换矩阵化，原为传递依赖）
   vector_math: ^2.4.2
@@ -133,3 +137,4 @@ flutter:
 # 可空性编译错误（官方 0.4.6 修复）；主包约束仍锁 0.4.5，用 override 强制。
 dependency_overrides:
   pdfrx_engine: 0.4.6
+  uuid: ^4.5.1
