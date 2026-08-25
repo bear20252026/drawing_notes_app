@@ -785,3 +785,323 @@ Uint8List secureRandomBytes(int length) {
     List.generate(length, (_) => math.Random.secure().nextInt(256)),
   );
 }
+
+// ──────────── AES-256-GCM-SIV（Nonce-Misuse-Resistant AEAD） ────────
+
+/// AES-256-GCM-SIV 加密（Nonce-Misuse-Resistant AEAD）。
+///
+/// 使用 HMAC-SHA256 派生合成 IV（SIV），即使 nonce 被重复使用，
+/// 也不会泄露明文内容（仅泄露是否相同）。
+/// 比标准 GCM 更安全——推荐在文件加密场景中使用。
+///
+/// [plaintext] 待加密数据。
+/// [key] 256 位密钥。
+/// [nonce] 12 字节 nonce（建议使用 secureRandomBytes(12) 生成）。
+/// [aad] 附加认证数据（可选）。
+///
+/// 返回：nonce(12) || siv(12) || ciphertext || tag(16)。
+Uint8List aes256GcmSivEncrypt({
+  required Uint8List plaintext,
+  required Uint8List key,
+  required Uint8List nonce,
+  Uint8List? aad,
+}) {
+  assert(key.length == 32, 'AES-256 密钥必须 32 字节');
+  assert(nonce.length == 12, 'GCM-SIV nonce 必须 12 字节');
+
+  // Step 1: 使用 HMAC-SHA256 从 key+nonce+plaintext 派生合成 nonce。
+  final siv = _computeSiv(key: key, nonce: nonce, plaintext: plaintext, aad: aad);
+
+  // Step 2: 使用标准 AES-GCM，但用 SIV 替代原始 nonce。
+  final cipher = GCMBlockCipher(AESEngine())
+    ..init(
+      true,
+      AEADParameters(
+        KeyParameter(key),
+        128, // tag bits
+        siv, // 合成 IV（12 字节）
+        aad ?? Uint8List(0),
+      ),
+    );
+
+  final ciphertextAndTag = cipher.process(plaintext);
+
+  // Step 3: 返回 nonce(12) || siv(12) || ciphertext || tag(16)。
+  final result = Uint8List(nonce.length + 12 + ciphertextAndTag.length);
+  result.setRange(0, nonce.length, nonce);
+  result.setRange(nonce.length, nonce.length + 12, siv);
+  result.setRange(nonce.length + 12, result.length, ciphertextAndTag);
+  return result;
+}
+
+/// AES-256-GCM-SIV 解密。
+///
+/// [data] nonce(12) || siv(12) || ciphertext || tag(16)。
+/// [key] 256 位密钥。
+/// [aad] 附加认证数据（必须与加密时相同）。
+///
+/// 返回明文。认证失败抛出 StateError。
+Uint8List aes256GcmSivDecrypt({
+  required Uint8List data,
+  required Uint8List key,
+  Uint8List? aad,
+}) {
+  assert(key.length == 32, 'AES-256 密钥必须 32 字节');
+  assert(data.length >= 40, 'GCM-SIV 数据过短：至少 40 字节（12 nonce + 12 siv + 16 tag）');
+
+  // nonce(12) || siv(12) || ciphertext || tag(16)。
+  final _nonce = data.sublist(0, 12);
+  final siv = data.sublist(12, 24);
+  final ciphertextAndTag = data.sublist(24);
+
+  // 使用存储的 SIV 作为 GCM nonce 解密。
+  final cipher = GCMBlockCipher(AESEngine())
+    ..init(
+      false,
+      AEADParameters(
+        KeyParameter(key),
+        128,
+        siv, // 使用 SIV（不是原始 nonce）作为 GCM nonce
+        aad ?? Uint8List(0),
+      ),
+    );
+
+  try {
+    return cipher.process(ciphertextAndTag);
+  } catch (e) {
+    throw StateError('AES-256-GCM-SIV 认证失败（数据被篡改或密钥错误）');
+  }
+}
+
+/// 使用 HMAC-SHA256 从 key+nonce+plaintext+aad 派生 12 字节合成 IV。
+Uint8List _computeSiv({
+  required Uint8List key,
+  required Uint8List nonce,
+  required Uint8List plaintext,
+  Uint8List? aad,
+}) {
+  final hmac = HMac(SHA256Digest(), 64);
+  hmac.init(KeyParameter(key));
+
+  // 输入：nonce || aadLen(8BE) || aad || ptLen(8BE) || plaintext。
+  final aadBytes = aad ?? Uint8List(0);
+  final input = Uint8List(
+    nonce.length + 8 + aadBytes.length + 8 + plaintext.length,
+  );
+  var offset = 0;
+
+  // nonce。
+  input.setRange(offset, offset + nonce.length, nonce);
+  offset += nonce.length;
+
+  // aad 长度（8 字节大端）。
+  _writeBigEndian64(input, offset, aadBytes.length);
+  offset += 8;
+
+  // aad。
+  input.setRange(offset, offset + aadBytes.length, aadBytes);
+  offset += aadBytes.length;
+
+  // plaintext 长度（8 字节大端）。
+  _writeBigEndian64(input, offset, plaintext.length);
+  offset += 8;
+
+  // plaintext。
+  input.setRange(offset, offset + plaintext.length, plaintext);
+
+  // HMAC-SHA256 → 取前 12 字节作为合成 IV。
+  final mac = hmac.process(input);
+  return mac.sublist(0, 12);
+}
+
+/// 写入 64 位大端整数。
+void _writeBigEndian64(Uint8List buffer, int offset, int value) {
+  buffer[offset] = (value >> 56) & 0xFF;
+  buffer[offset + 1] = (value >> 48) & 0xFF;
+  buffer[offset + 2] = (value >> 40) & 0xFF;
+  buffer[offset + 3] = (value >> 32) & 0xFF;
+  buffer[offset + 4] = (value >> 24) & 0xFF;
+  buffer[offset + 5] = (value >> 16) & 0xFF;
+  buffer[offset + 6] = (value >> 8) & 0xFF;
+  buffer[offset + 7] = value & 0xFF;
+}
+
+// ──────────── 密钥轮换（P3 #41） ────────────
+
+/// 密钥轮换元数据。
+class KeyRotationMetadata {
+  const KeyRotationMetadata({
+    required this.keyId,
+    required this.version,
+    required this.createdAt,
+    this.retiredAt,
+    this.retiredBy,
+  });
+
+  final String keyId;
+  final int version;
+  final DateTime createdAt;
+  final DateTime? retiredAt;
+  final String? retiredBy;
+
+  Map<String, dynamic> toJson() => {
+        'keyId': keyId,
+        'version': version,
+        'createdAt': createdAt.toIso8601String(),
+        if (retiredAt != null) 'retiredAt': retiredAt!.toIso8601String(),
+        if (retiredBy != null) 'retiredBy': retiredBy,
+      };
+
+  factory KeyRotationMetadata.fromJson(Map<String, dynamic> json) {
+    return KeyRotationMetadata(
+      keyId: json['keyId'] as String,
+      version: json['version'] as int,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      retiredAt: json['retiredAt'] != null
+          ? DateTime.parse(json['retiredAt'] as String)
+          : null,
+      retiredBy: json['retiredBy'] as String?,
+    );
+  }
+}
+
+/// 密钥轮换管理器。
+///
+/// 管理密钥的生命周期：创建 → 激活 → 退休 → 删除。
+/// 支持多版本密钥共存（旧密钥仍可解密历史数据）。
+class KeyRotationManager {
+  KeyRotationManager({
+    required this.storeKey,
+    required this.loadKey,
+    required this.deleteKey,
+    this.maxActiveVersions = 3,
+    this.rotationIntervalDays = 90,
+  });
+
+  /// 存储密钥回调。
+  final Future<void> Function(String keyId, List<int> data) storeKey;
+
+  /// 加载密钥回调。
+  final Future<Uint8List?> Function(String keyId) loadKey;
+
+  /// 删除密钥回调。
+  final Future<void> Function(String keyId) deleteKey;
+
+  /// 最大活跃版本数（超过时自动退休最旧版本）。
+  final int maxActiveVersions;
+
+  /// 密钥轮换间隔（天）。
+  final int rotationIntervalDays;
+
+  /// 密钥版本列表（按创建时间排序）。
+  final List<KeyRotationMetadata> _versions = [];
+
+  /// 获取当前活跃版本号。
+  int get currentVersion {
+    if (_versions.isEmpty) return 0;
+    return _versions.last.version;
+  }
+
+  /// 获取当前活跃密钥 ID。
+  String get currentKeyId => _keyIdForVersion(currentVersion);
+
+  /// 生成密钥版本 ID。
+  String _keyIdForVersion(int version) => 'dek.v$version';
+
+  /// 创建新版本密钥。
+  ///
+  /// 生成新的 256 位 DEK，标记旧版本为退休。
+  Future<String> rotateKey() async {
+    final newVersion = currentVersion + 1;
+    final newKeyId = _keyIdForVersion(newVersion);
+
+    // 生成新密钥。
+    final newKey = secureRandomBytes(32);
+    await storeKey(newKeyId, newKey);
+
+    // 标记旧版本为退休。
+    if (_versions.isNotEmpty) {
+      final oldMeta = _versions.last;
+      final retiredMeta = KeyRotationMetadata(
+        keyId: oldMeta.keyId,
+        version: oldMeta.version,
+        createdAt: oldMeta.createdAt,
+        retiredAt: DateTime.now(),
+        retiredBy: newKeyId,
+      );
+      _versions[_versions.length - 1] = retiredMeta;
+    }
+
+    // 添加新版本元数据。
+    _versions.add(KeyRotationMetadata(
+      keyId: newKeyId,
+      version: newVersion,
+      createdAt: DateTime.now(),
+    ));
+
+    // 超过最大活跃版本数——退休最旧版本。
+    final activeCount = _versions.where((v) => v.retiredAt == null).length;
+    if (activeCount > maxActiveVersions) {
+      await _retireOldest();
+    }
+
+    return newKeyId;
+  }
+
+  /// 退休最旧的活跃版本。
+  Future<void> _retireOldest() async {
+    final activeVersions = _versions.where((v) => v.retiredAt == null).toList();
+    if (activeVersions.isEmpty) return;
+
+    final oldest = activeVersions.first;
+    final idx = _versions.indexWhere((v) => v.version == oldest.version);
+    if (idx < 0) return;
+
+    _versions[idx] = KeyRotationMetadata(
+      keyId: oldest.keyId,
+      version: oldest.version,
+      createdAt: oldest.createdAt,
+      retiredAt: DateTime.now(),
+      retiredBy: 'auto-rotation',
+    );
+  }
+
+  /// 用指定版本的密钥解密。
+  ///
+  /// 如果 [version] 为 null，使用当前活跃版本。
+  Future<Uint8List?> loadVersionKey({int? version}) async {
+    final v = version ?? currentVersion;
+    if (v <= 0) return null;
+    return loadKey(_keyIdForVersion(v));
+  }
+
+  /// 检查是否需要轮换。
+  bool get needsRotation {
+    if (_versions.isEmpty) return true;
+    final latest = _versions.last.createdAt;
+    return DateTime.now().difference(latest).inDays >= rotationIntervalDays;
+  }
+
+  /// 获取所有版本元数据。
+  List<KeyRotationMetadata> get versions => List.unmodifiable(_versions);
+
+  /// 清理已退休超过指定天数的旧密钥。
+  Future<int> cleanupOldKeys({int maxAgeDays = 365}) async {
+    var cleaned = 0;
+    final now = DateTime.now();
+
+    for (var i = _versions.length - 1; i >= 0; i--) {
+      final v = _versions[i];
+      if (v.retiredAt == null) continue;
+
+      final age = now.difference(v.retiredAt!).inDays;
+      if (age > maxAgeDays) {
+        await deleteKey(v.keyId);
+        _versions.removeAt(i);
+        cleaned++;
+      }
+    }
+
+    return cleaned;
+  }
+}
