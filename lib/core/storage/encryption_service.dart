@@ -202,10 +202,12 @@ class EncryptionService {
     _requireInputSize(encryptedJson);
     final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
     final salt = base64Decode(_requireString(map, 's'));
-    _requireFixedLength('盐', salt, _saltLength);
     // 按 v 字段分派 KDF。
     final v = map['v'] is int ? map['v'] as int : 2;
     _requireKnownVersion(v);
+    // 盐长度：v≤4 旧格式 16 字节，v≥5 新格式 32 字节。
+    final expectedSaltLen = v >= 5 ? _saltLength : 16;
+    _requireFixedLength('盐', salt, expectedSaltLen);
 
     if (_isArgon2id(v)) {
       // v=5: Argon2id → HKDF-SHA256 → K1(enc)
@@ -267,7 +269,7 @@ class EncryptionService {
   /// v=5 格式（Argon2id t=3 m=64MiB p=1，军工升级 2026-08-24）。
   /// 返回 (salt, nonce2, ek) 的 JSON 串，供数据头保存。
   Future<String> wrapMasterKey(List<int> masterKey, String recoveryKey) async {
-    final salt = _randomBytes(16);
+    final salt = _randomBytes(_saltLength);
     // v=5: Argon2id → HKDF-SHA256 → K1(enc)
     final (k1, _, _) = await deriveKeyChain(password: recoveryKey, salt: salt);
     final aes = AesGcm.with256bits();
@@ -290,10 +292,12 @@ class EncryptionService {
     _requireInputSize(envelope);
     final map = jsonDecode(envelope) as Map<String, dynamic>;
     final salt = base64Decode(_requireString(map, 'salt'));
-    _requireFixedLength('盐', salt, _saltLength);
     // 按 v 字段分派 KDF：v≥5 Argon2id + HKDF，v≤4 PBKDF2（旧信封兼容）。
     final v = map['v'] is int ? map['v'] as int : 2;
     _requireKnownVersion(v);
+    // 盐长度：v≥5 新格式 32 字节，v≤4 旧格式 16 字节。
+    final expectedSaltLen = v >= 5 ? _saltLength : 16;
+    _requireFixedLength('盐', salt, expectedSaltLen);
     SecretKey kek;
     if (_isArgon2id(v)) {
       // v=5: Argon2id → HKDF-SHA256 → K1(enc)

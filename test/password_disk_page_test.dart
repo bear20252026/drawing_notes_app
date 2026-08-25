@@ -107,6 +107,12 @@ void main() {
     // 1. 创建密码盘
     await tester.tap(find.text('创建密码盘（生成密钥 + 恢复密钥）'));
     await tester.pump();
+    // 处理 PIN 保护询问对话框（选择"不启用"以简化测试）。
+    final noPinBtn = find.text('不启用');
+    if (noPinBtn.evaluate().isNotEmpty) {
+      await tester.tap(noPinBtn);
+      await tester.pump();
+    }
     await tester.pump(const Duration(milliseconds: 200));
     await tester.pump(const Duration(seconds: 1));
     expect(tester.takeException(), isNull);
@@ -145,7 +151,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('落盘加密验证'), findsOneWidget);
-    expect(find.text('加密并落盘验证'), findsOneWidget);
+    // 未解锁时按钮显示"请先解锁密码盘"（解锁后变为"加密并落盘验证"）。
+    expect(find.text('请先解锁密码盘'), findsOneWidget);
   });
 
   // ─── #12 恢复密钥一键复制按钮测试 ─────────────────────────

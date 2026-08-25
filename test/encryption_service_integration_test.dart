@@ -657,23 +657,18 @@ void main() {
       expect(ProgressiveDelay.getDelayForCount(1), 1); // 1s
       expect(ProgressiveDelay.getDelayForCount(2), 5); // 5s
       expect(ProgressiveDelay.getDelayForCount(3), 30); // 30s
-      expect(ProgressiveDelay.getDelayForCount(4), 60); // 1min
-      expect(ProgressiveDelay.getDelayForCount(5), 120); // 2min
-      expect(ProgressiveDelay.getDelayForCount(6), 180); // 3min
-      expect(ProgressiveDelay.getDelayForCount(7), 300); // 5min
-      expect(ProgressiveDelay.getDelayForCount(8), 600); // 10min
-      expect(ProgressiveDelay.getDelayForCount(9), 1080); // 18min
-      expect(ProgressiveDelay.getDelayForCount(10), 1800); // 30min
+      expect(ProgressiveDelay.getDelayForCount(4), 300); // 5min
+      expect(ProgressiveDelay.getDelayForCount(5), 3600); // 1h
       // 超出序列 → 取最大值
-      expect(ProgressiveDelay.getDelayForCount(100), 1800);
+      expect(ProgressiveDelay.getDelayForCount(100), 3600);
     });
 
     test('getDelayInfoForCount 显示格式', () {
       expect(ProgressiveDelay.getDelayInfoForCount(0), '无延迟');
       expect(ProgressiveDelay.getDelayInfoForCount(1), '1秒');
       expect(ProgressiveDelay.getDelayInfoForCount(2), '5秒');
-      expect(ProgressiveDelay.getDelayInfoForCount(4), '1分钟');
-      expect(ProgressiveDelay.getDelayInfoForCount(10), '30分钟');
+      expect(ProgressiveDelay.getDelayInfoForCount(4), '5分钟');
+      expect(ProgressiveDelay.getDelayInfoForCount(5), '1小时');
     });
 
     test('记录失败 → 失败计数递增', () async {

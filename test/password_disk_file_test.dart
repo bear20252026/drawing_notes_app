@@ -74,41 +74,41 @@ void main() {
     final key = PasswordDiskFile.generateKey();
 
     test('PIN 保护往返解密', () async {
-      final encoded = await PasswordDiskFile.encodeWithPin(key: key, pin: '1234');
-      final decoded = await PasswordDiskFile.decodeWithPin(encoded, '1234');
+      final encoded = await PasswordDiskFile.encodeWithPin(key: key, pin: '123456');
+      final decoded = await PasswordDiskFile.decodeWithPin(encoded, '123456');
       expect(decoded, key);
     });
 
     test('v2 格式版本号 0x02', () async {
-      final encoded = await PasswordDiskFile.encodeWithPin(key: key, pin: '1234');
+      final encoded = await PasswordDiskFile.encodeWithPin(key: key, pin: '123456');
       expect(encoded[4], 0x02);
     });
 
     test('PIN 错误返回 null', () async {
-      final encoded = await PasswordDiskFile.encodeWithPin(key: key, pin: '1234');
-      final decoded = await PasswordDiskFile.decodeWithPin(encoded, '9999');
+      final encoded = await PasswordDiskFile.encodeWithPin(key: key, pin: '123456');
+      final decoded = await PasswordDiskFile.decodeWithPin(encoded, '999999');
       expect(decoded, isNull);
     });
 
-    test('PIN < 4 位抛 ArgumentError', () async {
+    test('PIN < 6 位抛 ArgumentError', () async {
       expect(
-        () => PasswordDiskFile.encodeWithPin(key: key, pin: '123'),
+        () => PasswordDiskFile.encodeWithPin(key: key, pin: '12345'),
         throwsA(isA<ArgumentError>()),
       );
     });
 
     test('损坏数据返回 null', () async {
-      final encoded = await PasswordDiskFile.encodeWithPin(key: key, pin: '1234');
+      final encoded = await PasswordDiskFile.encodeWithPin(key: key, pin: '123456');
       // 破坏信封内容
       encoded[6] ^= 0xFF;
-      final decoded = await PasswordDiskFile.decodeWithPin(encoded, '1234');
+      final decoded = await PasswordDiskFile.decodeWithPin(encoded, '123456');
       expect(decoded, isNull);
     });
 
     test('非 v2 数据返回 null', () async {
       // 构造 v1 格式但长度够的数据
       final v1Data = PasswordDiskFile.encode(key);
-      final decoded = await PasswordDiskFile.decodeWithPin(v1Data, '1234');
+      final decoded = await PasswordDiskFile.decodeWithPin(v1Data, '123456');
       expect(decoded, isNull);
     });
 
@@ -127,7 +127,7 @@ void main() {
 
     test('v2 文件有效', () async {
       final key = PasswordDiskFile.generateKey();
-      final bytes = await PasswordDiskFile.encodeWithPin(key: key, pin: '1234');
+      final bytes = await PasswordDiskFile.encodeWithPin(key: key, pin: '123456');
       expect(_validate(bytes), isTrue);
     });
 

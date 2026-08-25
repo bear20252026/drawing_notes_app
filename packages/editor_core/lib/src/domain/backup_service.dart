@@ -347,7 +347,7 @@ class BackupService {
     final Uint8List payload;
     if (encrypt && password != null) {
       // 使用 AES-256-GCM 加密
-      final key = deriveKeyFromPassword(password: password, rounds: 3);
+      final key = deriveKeyFromPassword(password: password, salt: Uint8List(16), rounds: 3);
       final nonce = secureRandomBytes(12);
       final encrypted = aes256GcmEncrypt(
         plaintext: data,
@@ -414,7 +414,7 @@ class BackupService {
     Uint8List restoredPayload;
     if (password != null) {
       try {
-        final key = deriveKeyFromPassword(password: password, rounds: 3);
+        final key = deriveKeyFromPassword(password: password, salt: Uint8List(16), rounds: 3);
         final nonce = backup.payload.sublist(0, 12);
         final ciphertext = backup.payload.sublist(12);
         restoredPayload = aes256GcmDecrypt(

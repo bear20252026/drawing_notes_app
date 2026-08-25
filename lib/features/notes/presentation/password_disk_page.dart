@@ -185,6 +185,8 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
       _keyFingerprint = key != null ? _fingerprint(key) : null;
       _envelope = envelope;
     });
+    // 创建成功后通知父组件密钥已就绪。
+    if (key != null) widget.onKeyUnlocked?.call(key);
     await _showRecoveryDialog(recovery);
     AuditLogger.log('password_disk.create_key_file');
     _snack('密码盘已创建');
