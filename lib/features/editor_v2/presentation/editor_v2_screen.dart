@@ -58,6 +58,10 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
   Timer? _autoSaveTimer;
   static const _autoSaveDuration = Duration(milliseconds: 800);
 
+  /// 右侧图层/属性面板可见性（白板模式——V1 风格布局）。
+  bool _layersVisible = false;
+  bool _propertiesVisible = false;
+
   /// Notifier 引用（dispose 时 ref 不可用，提前捕获）。
   late final EditorV2Notifier _notifier;
 
@@ -289,207 +293,277 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
                 : null,
             tooltip: 'Redo',
           ),
-        ],
-      ),
-      body: Row(
-        children: [
-          // tablet/desktop：固定显示侧边栏；mobile：不显示（用 Drawer）。
-          if (!context.isMobile)
-            const SizedBox(
-              width: 240,
-              child: EditorV2Sidebar(),
+          // 右侧面板切换（白板模式——仿 V1 布局）。
+          if (widget.mode == UnifiedEditorMode.whiteboard) ...[
+            IconButton(
+              icon: Icon(_layersVisible ? Icons.layers : Icons.layers_outlined),
+              onPressed: () => setState(() => _layersVisible = !_layersVisible),
+              tooltip: '图层',
             ),
-          Expanded(
-            child: Column(
-              children: [
-                // ──── 工具栏：根据模式互斥显示（#23 修复——2026-08-24） ────
-                if (widget.mode == UnifiedEditorMode.whiteboard) ...[
-            // drawing 模式——绘图工具栏（含取色器按钮）。
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                context.responsiveScale(12),
-                context.responsiveScale(8),
-                context.responsiveScale(12),
-                context.responsiveScale(4),
-              ),
-              child: AppleGlassWidget.toolbar(
-                child: EditorV2Toolbar(
-                  currentTool: state.currentTool,
-                  brushType: state.brushType,
-                  currentShapeType: state.currentShapeType,
-                  brushSize: state.brushSize,
-                  strokeColorHex: state.strokeColorHex,
-                  onToolChanged: (tool) =>
-                      ref.read(editorV2NotifierProvider.notifier).setTool(tool),
-                  onShapeTypeChanged: (type) =>
-                      ref.read(editorV2NotifierProvider.notifier).setShapeType(type),
-                  onBrushTypeChanged: (type) =>
-                      ref.read(editorV2NotifierProvider.notifier).setBrushType(type),
-                  onBrushSizeChanged: (size) =>
-                      ref.read(editorV2NotifierProvider.notifier).setBrushSize(size),
-                  onColorChanged: (hex) =>
-                      ref.read(editorV2NotifierProvider.notifier).setStrokeColor(hex),
-                ),
-              ),
-            ),
-          ] else ...[
-            // note 模式——文字格式化工具栏（加粗/斜体/下划线/列表/标题）。
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                context.responsiveScale(12),
-                context.responsiveScale(8),
-                context.responsiveScale(12),
-                context.responsiveScale(4),
-              ),
-              child: AppleGlassWidget.toolbar(
-                child: const _NoteFormattingToolbar(),
-              ),
+            IconButton(
+              icon: Icon(_propertiesVisible
+                  ? Icons.tune
+                  : Icons.tune_outlined),
+              onPressed: () =>
+                  setState(() => _propertiesVisible = !_propertiesVisible),
+              tooltip: '属性',
             ),
           ],
-          // ──── 画布 ────
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                context.responsiveScale(12),
-                context.responsiveScale(4),
-                context.responsiveScale(12),
-                context.responsiveScale(12),
+        ],
+      ),
+      body: widget.mode == UnifiedEditorMode.whiteboard
+          // ──── 白板模式：V1 风格布局（左侧工具 + 中央画布 + 右侧属性面板） ────
+          ? _buildWhiteboardLayout(context, state)
+          // ──── 笔记模式：保持 V2 风格 ────
+          : _buildNoteLayout(context, state),
+    );
+  }
+
+  /// 白板模式布局——仿 V1 编辑器：左侧窄工具条 + 中央画布 + 右侧属性面板。
+  Widget _buildWhiteboardLayout(BuildContext context, EditorV2State state) {
+    return Row(
+      children: [
+        // ── 左侧工具条（窄面板，V1 风格） ──
+        _V2LeftToolbar(
+          currentTool: state.currentTool,
+          currentShapeType: state.currentShapeType,
+          onToolChanged: (tool) =>
+              ref.read(editorV2NotifierProvider.notifier).setTool(tool),
+          onShapeTypeChanged: (type) =>
+              ref.read(editorV2NotifierProvider.notifier).setShapeType(type),
+        ),
+        // ── 中央画布区域（含顶部工具栏 + 画布） ──
+        Expanded(
+          child: Column(
+            children: [
+              // 顶部绘图工具栏（笔刷/颜色/尺寸）。
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  context.responsiveScale(12),
+                  context.responsiveScale(8),
+                  context.responsiveScale(12),
+                  context.responsiveScale(4),
+                ),
+                child: AppleGlassWidget.toolbar(
+                  child: EditorV2Toolbar(
+                    currentTool: state.currentTool,
+                    brushType: state.brushType,
+                    currentShapeType: state.currentShapeType,
+                    brushSize: state.brushSize,
+                    strokeColorHex: state.strokeColorHex,
+                    onToolChanged: (tool) =>
+                        ref.read(editorV2NotifierProvider.notifier).setTool(tool),
+                    onShapeTypeChanged: (type) => ref
+                        .read(editorV2NotifierProvider.notifier)
+                        .setShapeType(type),
+                    onBrushTypeChanged: (type) => ref
+                        .read(editorV2NotifierProvider.notifier)
+                        .setBrushType(type),
+                    onBrushSizeChanged: (size) => ref
+                        .read(editorV2NotifierProvider.notifier)
+                        .setBrushSize(size),
+                    onColorChanged: (hex) => ref
+                        .read(editorV2NotifierProvider.notifier)
+                        .setStrokeColor(hex),
+                  ),
+                ),
               ),
-              child: AppleGlassWidget.card(
-                child: GestureDetector(
-                  onTapUp: state.currentTool == 'text'
-                      ? (details) => _showTextInput(details.localPosition)
-                      : null,
-                  // ── 笔画手势（V2 画板修复——2026-08-25） ──
-                  onPanStart: (details) {
-                    final notifier = ref.read(editorV2NotifierProvider.notifier);
-                    final pos = details.localPosition;
-                    switch (state.currentTool) {
-                      case 'draw':
-                        notifier.startStroke(pos);
-                        break;
-                      case 'eraser':
-                        notifier.eraseAt(pos.dx, pos.dy);
-                        break;
-                      case 'shape':
-                        notifier.startShapeDrag(pos);
-                        break;
-                    }
-                  },
-                  onPanUpdate: (details) {
-                    final notifier = ref.read(editorV2NotifierProvider.notifier);
-                    final pos = details.localPosition;
-                    switch (state.currentTool) {
-                      case 'draw':
-                        notifier.extendStroke(pos);
-                        break;
-                      case 'eraser':
-                        notifier.eraseAt(pos.dx, pos.dy);
-                        break;
-                      case 'shape':
-                        // 形状实时预览（暂不渲染——由 endShapeDrag 提交）。
-                        break;
-                    }
-                  },
-                  onPanEnd: (details) {
-                    final notifier = ref.read(editorV2NotifierProvider.notifier);
-                    final pos = details.localPosition;
-                    switch (state.currentTool) {
-                      case 'draw':
-                        notifier.endStroke();
-                        break;
-                      case 'shape':
-                        notifier.endShapeDrag(pos, state.currentShapeType);
-                        break;
-                    }
-                  },
-                  // P2 #30：长按画布 → 放大镜取色。
-                  onLongPressStart: (details) {
-                    final notifier = ref.read(editorV2NotifierProvider.notifier);
-                    if (!state.eyedropperActive) {
-                      notifier.activateEyedropper();
-                    }
-                    notifier.updateEyedropperPosition(details.localPosition);
-                  },
-                  onLongPressMoveUpdate: (details) async {
-                    final notifier = ref.read(editorV2NotifierProvider.notifier);
-                    notifier.updateEyedropperPosition(details.localPosition);
-                    final color = await _sampleColorAt(details.localPosition);
-                    if (color != null && mounted) {
-                      notifier.setMagnifierColor(color);
-                    }
-                  },
-                  onLongPressEnd: (details) {
-                    final notifier = ref.read(editorV2NotifierProvider.notifier);
-                    notifier.applyPickedColor(state.currentColor);
-                    // 显示取色结果 SnackBar。
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            '已取色: #${state.currentColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
-                          ),
-                          duration: const Duration(seconds: 1),
-                          backgroundColor: state.currentColor,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    }
-                  },
-                  child: RepaintBoundary(
-                    key: _canvasKey,
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      switchInCurve: Curves.easeInOut,
-                      child: widget.mode == UnifiedEditorMode.whiteboard
-                          ? InfiniteCanvasWidget(
-                              key: ValueKey('canvas-${state.document.id}'),
-                              child: Stack(
-                                children: [
-                                  CustomPaint(
-                                    painter: CanvasPainterV2(
-                                      document: state.document,
-                                    ),
-                                    size: Size.infinite,
+              // 画布（支持笔画手势 + 取色器 + 形状拖拽）。
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    context.responsiveScale(12),
+                    context.responsiveScale(4),
+                    context.responsiveScale(12),
+                    context.responsiveScale(12),
+                  ),
+                  child: AppleGlassWidget.card(
+                    child: GestureDetector(
+                      onTapUp: state.currentTool == 'text'
+                          ? (details) =>
+                              _showTextInput(details.localPosition)
+                          : null,
+                      onPanStart: (details) {
+                        final notifier =
+                            ref.read(editorV2NotifierProvider.notifier);
+                        final pos = details.localPosition;
+                        switch (state.currentTool) {
+                          case 'draw':
+                            notifier.startStroke(pos);
+                            break;
+                          case 'eraser':
+                            notifier.eraseAt(pos.dx, pos.dy);
+                            break;
+                          case 'shape':
+                            notifier.startShapeDrag(pos);
+                            break;
+                        }
+                      },
+                      onPanUpdate: (details) {
+                        final notifier =
+                            ref.read(editorV2NotifierProvider.notifier);
+                        final pos = details.localPosition;
+                        switch (state.currentTool) {
+                          case 'draw':
+                            notifier.extendStroke(pos);
+                            break;
+                          case 'eraser':
+                            notifier.eraseAt(pos.dx, pos.dy);
+                            break;
+                          case 'shape':
+                            break;
+                        }
+                      },
+                      onPanEnd: (details) {
+                        final notifier =
+                            ref.read(editorV2NotifierProvider.notifier);
+                        final pos = details.localPosition;
+                        switch (state.currentTool) {
+                          case 'draw':
+                            notifier.endStroke();
+                            break;
+                          case 'shape':
+                            notifier.endShapeDrag(
+                                pos, state.currentShapeType);
+                            break;
+                        }
+                      },
+                      onLongPressStart: (details) {
+                        final notifier =
+                            ref.read(editorV2NotifierProvider.notifier);
+                        if (!state.eyedropperActive) {
+                          notifier.activateEyedropper();
+                        }
+                      },
+                      onLongPressMoveUpdate: (details) {
+                        ref
+                            .read(editorV2NotifierProvider.notifier)
+                            .updateEyedropperPosition(
+                                details.localPosition);
+                        _pickColorFromCanvas(details.localPosition);
+                      },
+                      onLongPressEnd: (details) {
+                        final notifier =
+                            ref.read(editorV2NotifierProvider.notifier);
+                        final c = state.currentColor;
+                        notifier.deactivateEyedropper();
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                '已取色: #${c.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
+                              ),
+                              duration: const Duration(seconds: 1),
+                              backgroundColor: c,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      },
+                      child: RepaintBoundary(
+                        key: _canvasKey,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          switchInCurve: Curves.easeInOut,
+                          child: InfiniteCanvasWidget(
+                            key: ValueKey('canvas-${state.document.id}'),
+                            child: Stack(
+                              children: [
+                                CustomPaint(
+                                  painter: CanvasPainterV2(
+                                    document: state.document,
                                   ),
-                                // P2 #30：取色放大镜覆盖层。
+                                  size: Size.infinite,
+                                ),
                                 if (state.eyedropperActive)
                                   MagnifierOverlay(
-                                    cursorPosition: state.eyedropperPosition,
+                                    cursorPosition:
+                                        state.eyedropperPosition,
                                     pickedColor: _getCurrentPickedColor(
-                                      state.eyedropperPosition,
-                                    ),
+                                        state.eyedropperPosition),
                                   ),
-                                // 节点连线提示（用户需求 #10）。
                                 BindingHintsWidget(
                                   currentTool: state.currentTool,
-                                  hasShapes: state.document.layers
-                                      .any((l) => l.shapes.isNotEmpty),
+                                  hasShapes: state.document.layers.any(
+                                      (l) => l.shapes.isNotEmpty),
                                 ),
                               ],
                             ),
-                          )
-                        : NoteEditorWidget(
-                            key: ValueKey('note-${state.document.id}'),
-                            document: state.noteDocument ??
-                                _initialNoteDocument(state.document.id),
-                            onChanged: (doc) {
-                              ref.read(editorV2NotifierProvider.notifier)
-                                  .updateNoteDocument(doc);
-                              _scheduleAutoSave();
-                            },
                           ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-                ],
+        ),
+        // ── 右侧图层/属性面板（可收起，V1 风格） ──
+        if (_layersVisible || _propertiesVisible)
+          _V2RightPanel(
+            layersVisible: _layersVisible,
+            propertiesVisible: _propertiesVisible,
+            state: state,
+            onToggleLayers: () =>
+                setState(() => _layersVisible = !_layersVisible),
+            onToggleProperties: () =>
+                setState(() => _propertiesVisible = !_propertiesVisible),
+          ),
+      ],
+    );
+  }
+
+  /// 笔记模式布局——保持 V2 风格（侧边栏 + 顶部工具栏 + 笔记编辑器）。
+  Widget _buildNoteLayout(BuildContext context, EditorV2State state) {
+    return Row(
+      children: [
+        if (!context.isMobile)
+          const SizedBox(
+            width: 240,
+            child: EditorV2Sidebar(),
+          ),
+        Expanded(
+          child: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  context.responsiveScale(12),
+                  context.responsiveScale(8),
+                  context.responsiveScale(12),
+                  context.responsiveScale(4),
+                ),
+                child: AppleGlassWidget.toolbar(
+                  child: const _NoteFormattingToolbar(),
+                ),
               ),
-            ),
-        ],
-      ),
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    context.responsiveScale(12),
+                    context.responsiveScale(4),
+                    context.responsiveScale(12),
+                    context.responsiveScale(12),
+                  ),
+                  child: AppleGlassWidget.card(
+                    child: NoteEditorWidget(
+                      key: ValueKey('note-${state.document.id}'),
+                      document: state.noteDocument ??
+                          _initialNoteDocument(state.document.id),
+                      onChanged: (doc) {
+                        ref
+                            .read(editorV2NotifierProvider.notifier)
+                            .updateNoteDocument(doc);
+                        _scheduleAutoSave();
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -630,5 +704,331 @@ class _ToolButton extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// V2 左侧窄工具条（白板模式——仿 V1 布局）。
+class _V2LeftToolbar extends StatelessWidget {
+  const _V2LeftToolbar({
+    required this.currentTool,
+    required this.currentShapeType,
+    required this.onToolChanged,
+    required this.onShapeTypeChanged,
+  });
+
+  final String currentTool;
+  final String currentShapeType;
+  final ValueChanged<String> onToolChanged;
+  final ValueChanged<String> onShapeTypeChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 48,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(
+          right: BorderSide(
+            color: Theme.of(context).dividerTheme.color?.withValues(alpha: 0.12) ?? Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.12),
+          ),
+        ),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 8),
+          _LeftToolBtn(
+            icon: Icons.draw,
+            tooltip: '画笔',
+            isActive: currentTool == 'draw',
+            onTap: () => onToolChanged('draw'),
+          ),
+          _LeftToolBtn(
+            icon: Icons.auto_fix_high,
+            tooltip: '橡皮擦',
+            isActive: currentTool == 'eraser',
+            onTap: () => onToolChanged('eraser'),
+          ),
+          _LeftToolBtn(
+            icon: Icons.text_fields,
+            tooltip: '文字',
+            isActive: currentTool == 'text',
+            onTap: () => onToolChanged('text'),
+          ),
+          _LeftToolBtn(
+            icon: Icons.rectangle_outlined,
+            tooltip: '形状',
+            isActive: currentTool == 'shape',
+            onTap: () => onToolChanged('shape'),
+          ),
+          const Divider(height: 16),
+          _LeftToolBtn(
+            icon: Icons.pan_tool,
+            tooltip: '选择',
+            isActive: currentTool == 'select',
+            onTap: () => onToolChanged('select'),
+          ),
+          _LeftToolBtn(
+            icon: Icons.zoom_in,
+            tooltip: '缩放',
+            isActive: currentTool == 'zoom',
+            onTap: () => onToolChanged('zoom'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 左侧工具条中的单个按钮。
+class _LeftToolBtn extends StatelessWidget {
+  const _LeftToolBtn({
+    required this.icon,
+    required this.tooltip,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: SizedBox(
+        width: 40,
+        height: 40,
+        child: Tooltip(
+          message: tooltip,
+          child: Material(
+            color: isActive
+                ? colorScheme.primaryContainer.withValues(alpha: 0.4)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: onTap,
+              child: Icon(
+                icon,
+                size: 20,
+                color: isActive
+                    ? colorScheme.primary
+                    : colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// V2 右侧面板（图层列表 + 属性面板）。
+class _V2RightPanel extends ConsumerWidget {
+  const _V2RightPanel({
+    required this.layersVisible,
+    required this.propertiesVisible,
+    required this.state,
+    required this.onToggleLayers,
+    required this.onToggleProperties,
+  });
+
+  final bool layersVisible;
+  final bool propertiesVisible;
+  final EditorV2State state;
+  final VoidCallback onToggleLayers;
+  final VoidCallback onToggleProperties;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final children = <Widget>[];
+
+    if (layersVisible) {
+      children.add(
+        SizedBox(
+          width: 200,
+          child: Container(
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              border: Border(
+                left: BorderSide(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.12),
+                ),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Icon(Icons.layers, size: 16, color: colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Text('图层',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.onSurface)),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 16),
+                        onPressed: onToggleLayers,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: state.document.layers.length,
+                    itemBuilder: (context, index) {
+                      final layer = state.document.layers[index];
+                      return ListTile(
+                        dense: true,
+                        leading: Icon(
+                          layer.visible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                          size: 16,
+                        ),
+                        title: Text(
+                          layer.name,
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                        subtitle: Text(
+                          '${layer.shapes.length} 个形状',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (propertiesVisible) {
+      children.add(
+        SizedBox(
+          width: 220,
+          child: Container(
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              border: Border(
+                left: BorderSide(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.12),
+                ),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Icon(Icons.tune, size: 16, color: colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Text('属性',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.onSurface)),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 16),
+                        onPressed: onToggleProperties,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(12),
+                    children: [
+                      Text('笔刷大小',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: colorScheme.onSurface.withValues(alpha: 0.7))),
+                      Slider(
+                        value: state.brushSize,
+                        min: 1,
+                        max: 50,
+                        onChanged: (v) => ref
+                            .read(editorV2NotifierProvider.notifier)
+                            .setBrushSize(v),
+                      ),
+                      const SizedBox(height: 16),
+                      Text('画笔类型',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: colorScheme.onSurface.withValues(alpha: 0.7))),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: BrushType.values.map((bt) {
+                          final isActive = state.brushType == bt.name;
+                          return ChoiceChip(
+                            label: Text(bt.name,
+                                style: const TextStyle(fontSize: 11)),
+                            selected: isActive,
+                            onSelected: (_) => ref
+                                .read(editorV2NotifierProvider.notifier)
+                                .setBrushType(bt.name),
+                            visualDensity: VisualDensity.compact,
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 16),
+                      Text('形状类型',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: colorScheme.onSurface.withValues(alpha: 0.7))),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: ['rectangle', 'circle', 'line', 'arrow'].map((t) {
+                          final isActive = state.currentShapeType == t;
+                          return ChoiceChip(
+                            label: Text(t,
+                                style: const TextStyle(fontSize: 11)),
+                            selected: isActive,
+                            onSelected: (_) => ref
+                                .read(editorV2NotifierProvider.notifier)
+                                .setShapeType(t),
+                            visualDensity: VisualDensity.compact,
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Row(children: children);
   }
 }

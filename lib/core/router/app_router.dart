@@ -92,8 +92,8 @@ GoRouter createAppRouter() {
       // 不拦截 404 页
       if (location == '/404') return null;
 
-      // 如果密码盘已设置但会话未认证，重定向到密码盘页
-      if (auth.passwordDiskExists && !auth.isAuthenticated) {
+      // 需要认证时（有密码盘且未跳过加密），重定向到密码盘页
+      if (auth.requiresAuth && !auth.isAuthenticated) {
         final redirectPath = Uri.encodeComponent(location);
         return '${RoutePaths.passwordDisk}?redirect=$redirectPath';
       }
