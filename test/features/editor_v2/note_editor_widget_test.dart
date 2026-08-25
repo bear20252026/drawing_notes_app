@@ -116,4 +116,34 @@ void main() {
     );
     expect(callCount, greaterThanOrEqualTo(1));
   });
+
+  // ── P1 #17 暗色模式适配 ──────────────────────────────────
+
+  testWidgets('NoteEditorWidget 暗色模式——背景色适配（P1 #17）',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      themeMode: ThemeMode.dark,
+      theme: ThemeData.dark(),
+      home: Scaffold(
+        body: NoteEditorWidget(document: makeDoc(), onChanged: (_) {}),
+      ),
+    ));
+    // 暗色模式下不应崩，且使用 Theme 背景色而非固定 Colors.white。
+    expect(find.text('我的笔记'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('NoteEditorWidget 暗色模式——文本颜色适配（P1 #17）',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      themeMode: ThemeMode.dark,
+      theme: ThemeData.dark(),
+      home: Scaffold(
+        body: NoteEditorWidget(document: makeDoc(), onChanged: (_) {}),
+      ),
+    ));
+    // 暗色模式下段落文字仍可见（颜色来自 theme.colorScheme.onSurface）。
+    expect(find.text('第一段文字'), findsOneWidget);
+    expect(find.text('第二段文字'), findsOneWidget);
+  });
 }

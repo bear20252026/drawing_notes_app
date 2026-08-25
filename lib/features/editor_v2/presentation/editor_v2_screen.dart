@@ -142,7 +142,7 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
             constraints: BoxConstraints(maxWidth: ctx.responsiveScale(280)),
             padding: EdgeInsets.all(ctx.responsiveScale(8)),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(ctx).colorScheme.surface,
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(

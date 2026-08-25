@@ -41,9 +41,13 @@ class EditorV2Toolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final showBrushOptions = currentTool == 'draw';
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final toolbarBg = isDark ? Colors.grey[850] ?? Colors.grey[800]! : Colors.grey[200]!;
+    final iconColor = isDark ? Colors.grey[300]! : Colors.grey[700]!;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: Colors.grey[200],
+      color: toolbarBg,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -58,12 +62,16 @@ class EditorV2Toolbar extends StatelessWidget {
                   label: 'Draw',
                   isActive: currentTool == 'draw',
                   onTap: () => onToolChanged('draw'),
+                  activeColor: theme.colorScheme.primary,
+                  inactiveIconColor: iconColor,
                 ),
                 _ToolButton(
                   icon: Icons.select_all,
                   label: 'Select',
                   isActive: currentTool == 'select',
                   onTap: () => onToolChanged('select'),
+                  activeColor: theme.colorScheme.primary,
+                  inactiveIconColor: iconColor,
                 ),
                 _ToolButton(
                   icon: Icons.rectangle_outlined,
@@ -73,6 +81,8 @@ class EditorV2Toolbar extends StatelessWidget {
                     onToolChanged('shape');
                     onShapeTypeChanged('rect');
                   },
+                  activeColor: theme.colorScheme.primary,
+                  inactiveIconColor: iconColor,
                 ),
                 _ToolButton(
                   icon: Icons.circle_outlined,
@@ -82,6 +92,8 @@ class EditorV2Toolbar extends StatelessWidget {
                     onToolChanged('shape');
                     onShapeTypeChanged('ellipse');
                   },
+                  activeColor: theme.colorScheme.primary,
+                  inactiveIconColor: iconColor,
                 ),
                 _ToolButton(
                   icon: Icons.remove,
@@ -91,6 +103,8 @@ class EditorV2Toolbar extends StatelessWidget {
                     onToolChanged('shape');
                     onShapeTypeChanged('line');
                   },
+                  activeColor: theme.colorScheme.primary,
+                  inactiveIconColor: iconColor,
                 ),
                 _ToolButton(
                   icon: Icons.arrow_forward,
@@ -100,12 +114,16 @@ class EditorV2Toolbar extends StatelessWidget {
                     onToolChanged('shape');
                     onShapeTypeChanged('arrow');
                   },
+                  activeColor: theme.colorScheme.primary,
+                  inactiveIconColor: iconColor,
                 ),
                 _ToolButton(
                   icon: Icons.text_fields,
                   label: 'Text',
                   isActive: currentTool == 'text',
                   onTap: () => onToolChanged('text'),
+                  activeColor: theme.colorScheme.primary,
+                  inactiveIconColor: iconColor,
                 ),
                 _ToolButton(
                   icon: Icons.delete,
@@ -115,18 +133,24 @@ class EditorV2Toolbar extends StatelessWidget {
                     onToolChanged('erase');
                     onBrushTypeChanged('eraser');
                   },
+                  activeColor: theme.colorScheme.primary,
+                  inactiveIconColor: iconColor,
                 ),
                 _ToolButton(
                   icon: Icons.colorize,
                   label: 'Eyedropper',
                   isActive: currentTool == 'eyedropper',
                   onTap: () => onToolChanged('eyedropper'),
+                  activeColor: theme.colorScheme.primary,
+                  inactiveIconColor: iconColor,
                 ),
                 _ToolButton(
                   icon: Icons.picture_as_pdf,
                   label: 'Import PDF',
                   isActive: false,
                   onTap: onImportPdf ?? () {},
+                  activeColor: theme.colorScheme.primary,
+                  inactiveIconColor: iconColor,
                 ),
               ],
             ),
@@ -146,24 +170,32 @@ class EditorV2Toolbar extends StatelessWidget {
                     label: '钢笔',
                     isActive: brushType == 'pen',
                     onTap: () => onBrushTypeChanged('pen'),
+                    activeColor: theme.colorScheme.primary,
+                    inactiveIconColor: iconColor,
                   ),
                   _BrushChip(
                     icon: Icons.brush,
                     label: '铅笔',
                     isActive: brushType == 'pencil',
                     onTap: () => onBrushTypeChanged('pencil'),
+                    activeColor: theme.colorScheme.primary,
+                    inactiveIconColor: iconColor,
                   ),
                   _BrushChip(
                     icon: Icons.highlight,
                     label: '荧光笔',
                     isActive: brushType == 'marker',
                     onTap: () => onBrushTypeChanged('marker'),
+                    activeColor: theme.colorScheme.primary,
+                    inactiveIconColor: iconColor,
                   ),
                   _BrushChip(
                     icon: Icons.lens_blur,
                     label: '激光',
                     isActive: brushType == 'laser',
                     onTap: () => onBrushTypeChanged('laser'),
+                    activeColor: theme.colorScheme.primary,
+                    inactiveIconColor: iconColor,
                   ),
                   const SizedBox(width: 8),
                   // 粗细滑块。
@@ -176,30 +208,35 @@ class EditorV2Toolbar extends StatelessWidget {
                       divisions: 19,
                       label: brushSize.round().toString(),
                       onChanged: onBrushSizeChanged,
-                  ),
-                ),
-                Text(
-                  '${brushSize.round()}',
-                  style: TextStyle(fontSize: TextScaleHelper.scaled(context, 12)),
-                ),
-                const SizedBox(width: 8),
-                // 颜色预览圆。
-                GestureDetector(
-                  onTap: () {
-                    // TODO: 打开颜色选择器。
-                  },
-                  child: Container(
-                    width: context.responsiveFont(mobile: 20, desktop: 28),
-                    height: context.responsiveFont(mobile: 20, desktop: 28),
-                    decoration: BoxDecoration(
-                      color: _hexToColor(strokeColorHex),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.grey),
                     ),
                   ),
-                ),
-              ],
-            ),
+                  Text(
+                    '${brushSize.round()}',
+                    style: TextStyle(
+                      fontSize: TextScaleHelper.scaled(context, 12),
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // 颜色预览圆。
+                  GestureDetector(
+                    onTap: () {
+                      // TODO: 打开颜色选择器。
+                    },
+                    child: Container(
+                      width: context.responsiveFont(mobile: 20, desktop: 28),
+                      height: context.responsiveFont(mobile: 20, desktop: 28),
+                      decoration: BoxDecoration(
+                        color: _hexToColor(strokeColorHex),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isDark ? Colors.grey[600]! : Colors.grey,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ],
@@ -221,12 +258,16 @@ class _ToolButton extends StatelessWidget {
     required this.label,
     required this.isActive,
     required this.onTap,
+    this.activeColor = Colors.blue,
+    this.inactiveIconColor,
   });
 
   final IconData icon;
   final String label;
   final bool isActive;
   final VoidCallback onTap;
+  final Color activeColor;
+  final Color? inactiveIconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -239,11 +280,11 @@ class _ToolButton extends StatelessWidget {
           curve: Curves.easeInOut,
           padding: EdgeInsets.all(context.responsiveFont(mobile: 5, desktop: 7)),
           decoration: BoxDecoration(
-            color: isActive ? Colors.blue : Colors.transparent,
+            color: isActive ? activeColor : Colors.transparent,
             borderRadius: BorderRadius.circular(context.responsiveFont(mobile: 6, desktop: 10)),
             boxShadow: isActive
                 ? [BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
+                    color: activeColor.withValues(alpha: 0.15),
                     blurRadius: 2,
                     offset: const Offset(0, 1),
                   )]
@@ -251,7 +292,7 @@ class _ToolButton extends StatelessWidget {
           ),
           child: Icon(
             icon,
-            color: isActive ? Colors.white : Colors.grey[700],
+            color: isActive ? Colors.white : (inactiveIconColor ?? Colors.grey[700]),
             size: context.responsiveFont(mobile: 18, desktop: 22),
           ),
         ),
@@ -267,12 +308,16 @@ class _BrushChip extends StatelessWidget {
     required this.label,
     required this.isActive,
     required this.onTap,
+    this.activeColor = Colors.blue,
+    this.inactiveIconColor,
   });
 
   final IconData icon;
   final String label;
   final bool isActive;
   final VoidCallback onTap;
+  final Color activeColor;
+  final Color? inactiveIconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -282,17 +327,17 @@ class _BrushChip extends StatelessWidget {
         avatar: Icon(
           icon,
           size: context.responsiveFont(mobile: 12, desktop: 16),
-          color: isActive ? Colors.white : Colors.grey[700],
+          color: isActive ? Colors.white : (inactiveIconColor ?? Colors.grey[700]),
         ),
         label: Text(
           label,
           style: TextStyle(
             fontSize: TextScaleHelper.scaled(context, 11),
-            color: isActive ? Colors.white : Colors.grey[700],
+            color: isActive ? Colors.white : (inactiveIconColor ?? Colors.grey[700]),
           ),
         ),
         selected: isActive,
-        selectedColor: Colors.blue,
+        selectedColor: activeColor,
         backgroundColor: Colors.transparent,
         onSelected: (_) => onTap(),
         visualDensity: VisualDensity.compact,

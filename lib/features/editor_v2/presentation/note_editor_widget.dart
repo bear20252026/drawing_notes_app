@@ -10,6 +10,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_design.dart';
 import '../../../../core/theme/responsive.dart';
 import '../../../core/theme/text_scale_helper.dart';
 import 'package:editor_core/editor_core.dart';
@@ -103,9 +104,11 @@ class _NoteEditorWidgetState extends State<NoteEditorWidget> {
   @override
   Widget build(BuildContext context) {
     // Word 文档式页面（白纸——AFFiNE Page——居中——可读性好）。
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final padding = context.responsivePadding();
     return Container(
-      color: Colors.white,
+      color: isDark ? AppDesign.darkCanvas : Colors.white,
       child: SingleChildScrollView(
         padding: padding,
         child: Center(
@@ -120,10 +123,11 @@ class _NoteEditorWidgetState extends State<NoteEditorWidget> {
                   style: TextStyle(
                     fontSize: TextScaleHelper.scaled(context, 24) + 4, // 28 → responsive
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: theme.colorScheme.onSurface,
                   ),
                   decoration: InputDecoration(
                     hintText: '标题',
+                    hintStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(vertical: context.responsiveFont(mobile: 6, desktop: 10)),
                   ),
@@ -153,11 +157,12 @@ class _NoteEditorWidgetState extends State<NoteEditorWidget> {
       controller.selection = TextSelection.collapsed(offset: controller.text.length);
     }
 
+    final theme = Theme.of(context);
     final style = TextStyle(
       fontSize: context.responsiveFont(mobile: paragraph.isHeading ? 22 : 15, desktop: paragraph.isHeading ? 26 : 18),
       fontWeight: paragraph.isHeading ? FontWeight.bold : FontWeight.normal,
       height: 1.6,
-      color: Colors.black87,
+      color: theme.colorScheme.onSurface,
     );
 
     return TextField(
@@ -166,6 +171,7 @@ class _NoteEditorWidgetState extends State<NoteEditorWidget> {
       style: style,
       decoration: InputDecoration(
         hintText: paragraph.isHeading ? '标题' : '开始输入…',
+        hintStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
         border: InputBorder.none, // 白纸无边框。
         contentPadding: EdgeInsets.symmetric(vertical: context.responsiveFont(mobile: 6, desktop: 10)),
       ),
