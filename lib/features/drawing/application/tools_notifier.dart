@@ -1,100 +1,78 @@
-import 'package:flutter/painting.dart';
+// tools_notifier.dart — 工具状态 ChangeNotifier（P2 #22 Phase 3 拆分）。
+//
+// 从 DrawingController 提取的工具/笔刷状态管理：
+// - 当前工具类型、颜色、粗细、橡皮擦模式
+// - 仅通知工具栏等低频 UI 组件
+//
+// DrawingController 仍持有 ToolsNotifier 实例，工具变更时同步更新并转发通知。
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 
-/// 工具状态（不可变值对象，应对 Riverpod == 过滤语义）。
+/// 工具状态 ChangeNotifier。
 ///
-/// 承载画笔/橡皮擦工具的当前配置；所有变更生成新实例（不可变），
-/// provider 通知依赖 == 判断。
-class ToolsState {
-  const ToolsState({
-    this.brushType = BrushType.pen,
-    this.color = const Color(0xFF1A1A1A),
-    this.brushSize = 6.0,
-    this.eraserSize = 24.0,
-    this.eraserMode = EraserMode.stroke,
-  });
-
-  /// 当前工具类型（画笔/橡皮擦等）。
-  final BrushType brushType;
+/// 每个工具属性变更仅触发一次通知，不会导致画布局部重绘。
+class ToolsNotifier extends ChangeNotifier {
+  /// 当前工具类型。
+  BrushType _tool = BrushType.pen;
+  BrushType get tool => _tool;
+  set tool(BrushType value) {
+    if (_tool == value) return;
+    _tool = value;
+    notifyListeners();
+  }
 
   /// 当前画笔颜色。
-  final Color color;
+  Color _color = const Color(0xFF1A1A1A);
+  Color get color => _color;
+  set color(Color value) {
+    _color = value;
+    notifyListeners();
+  }
 
   /// 画笔粗细（逻辑像素）。
-  final double brushSize;
+  double _brushSize = 6.0;
+  double get brushSize => _brushSize;
+  set brushSize(double value) {
+    if (_brushSize == value) return;
+    _brushSize = value;
+    notifyListeners();
+  }
 
   /// 橡皮擦粗细（逻辑像素）。
-  final double eraserSize;
-
-  /// 橡皮擦模式（整笔擦除/像素擦除）。
-  final EraserMode eraserMode;
-
-  /// 当前工具对应的线宽。
-  double get currentSize =>
-      brushType == BrushType.eraser ? eraserSize : brushSize;
-
-  ToolsState copyWith({
-    BrushType? brushType,
-    Color? color,
-    double? brushSize,
-    double? eraserSize,
-    EraserMode? eraserMode,
-  }) => ToolsState(
-    brushType: brushType ?? this.brushType,
-    color: color ?? this.color,
-    brushSize: brushSize ?? this.brushSize,
-    eraserSize: eraserSize ?? this.eraserSize,
-    eraserMode: eraserMode ?? this.eraserMode,
-  );
-
-  @override
-  bool operator ==(Object other) =>
-      other is ToolsState &&
-      other.brushType == brushType &&
-      other.color == color &&
-      other.brushSize == brushSize &&
-      other.eraserSize == eraserSize &&
-      other.eraserMode == eraserMode;
-
-  @override
-  int get hashCode => Object.hash(brushType, color, brushSize, eraserSize, eraserMode);
-}
-
-/// 工具域 Notifier（DrawingController 域 Notifier 化）。
-///
-/// 迁移边界：DrawingController 内部 _tool/_color/_brushSize 等暂不替换
-/// （避免双状态源不一致）；本 Notifier 暴露"可见工具状态"，
-/// UI 工具栏可经 ref.watch 订阅；后续逐域替换。
-class ToolsNotifier extends Notifier<ToolsState> {
-  @override
-  ToolsState build() => const ToolsState();
-
-  void setBrushType(BrushType type) {
-    state = state.copyWith(brushType: type);
+  double _eraserSize = 24.0;
+  double get eraserSize => _eraserSize;
+  set eraserSize(double value) {
+    if (_eraserSize == value) return;
+    _eraserSize = value;
+    // 橡皮擦粗细变更不通知（画布只在使用时读取）。
   }
 
-  void setColor(Color color) {
-    state = state.copyWith(color: color);
+  /// 橡皮擦模式。
+  EraserMode _eraserMode = EraserMode.stroke;
+  EraserMode get eraserMode => _eraserMode;
+  set eraserMode(EraserMode value) {
+    if (_eraserMode == value) return;
+    _eraserMode = value;
+    notifyListeners();
   }
 
-  void setBrushSize(double size) {
-    state = state.copyWith(brushSize: size);
+  /// 画笔不透明度 (0.0–1.0)。
+  double _currentToolOpacity = 1.0;
+  double get currentToolOpacity => _currentToolOpacity;
+  set currentToolOpacity(double value) {
+    if (_currentToolOpacity == value) return;
+    _currentToolOpacity = value.clamp(0.0, 1.0);
+    notifyListeners();
   }
 
-  void setEraserSize(double size) {
-    state = state.copyWith(eraserSize: size);
-  }
-
-  void setEraserMode(EraserMode mode) {
-    state = state.copyWith(eraserMode: mode);
+  /// 是否启用激光指示器模式。
+  bool _isLaserMode = false;
+  bool get isLaserMode => _isLaserMode;
+  set isLaserMode(bool value) {
+    if (_isLaserMode == value) return;
+    _isLaserMode = value;
+    notifyListeners();
   }
 }
-
-/// 工具状态 Provider。
-final toolsProvider = NotifierProvider<ToolsNotifier, ToolsState>(
-  ToolsNotifier.new,
-);
