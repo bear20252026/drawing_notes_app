@@ -536,4 +536,84 @@ void main() {
       await notifier.saveNoteDocument(); // 不崩溃。
     });
   });
+
+  // ════════════════════════════════════════════════════════════════
+  // 画板手势（V2 画板修复——2026-08-25 修复笔画捕获）
+  // ════════════════════════════════════════════════════════════════
+
+  group('画板手势 - 笔画捕获', () {
+    test('startStroke + extendStroke + endStroke → 提交笔画', () {
+      notifier.createDocument('draw-doc');
+      notifier.startStroke(const Offset(10, 10));
+      notifier.extendStroke(const Offset(20, 20));
+      notifier.extendStroke(const Offset(30, 30));
+      notifier.endStroke();
+
+      final state = container.read(editorV2NotifierProvider);
+      expect(state.document.layers.first.strokes.length, 1);
+      expect(state.canUndo, true);
+    });
+
+    test('endStroke 空序列 → 不提交', () {
+      notifier.createDocument('draw-doc');
+      // 不调用 startStroke → 直接 endStroke。
+      notifier.endStroke();
+      expect(
+        container.read(editorV2NotifierProvider).document.layers.first.strokes.length,
+        0,
+      );
+    });
+
+    test('多次 startStroke → 多笔画', () {
+      notifier.createDocument('draw-doc');
+      notifier.startStroke(const Offset(0, 0));
+      notifier.extendStroke(const Offset(10, 10));
+      notifier.endStroke();
+
+      notifier.startStroke(const Offset(50, 50));
+      notifier.extendStroke(const Offset(60, 60));
+      notifier.endStroke();
+
+      expect(
+        container.read(editorV2NotifierProvider).document.layers.first.strokes.length,
+        2,
+      );
+    });
+
+    test('startShapeDrag + endShapeDrag → 创建形状', () {
+      notifier.createDocument('draw-doc');
+      notifier.startShapeDrag(const Offset(10, 10));
+      notifier.endShapeDrag(const Offset(110, 110), 'rect');
+      expect(
+        container.read(editorV2NotifierProvider).document.layers.first.shapes.length,
+        1,
+      );
+      expect(
+        container.read(editorV2NotifierProvider).document.layers.first.shapes.first.type,
+        'rect',
+      );
+    });
+
+    test('startShapeDrag 太小 → 不创建形状', () {
+      notifier.createDocument('draw-doc');
+      notifier.startShapeDrag(const Offset(10, 10));
+      notifier.endShapeDrag(const Offset(11, 11), 'rect'); // 1x1 → 太小
+      expect(
+        container.read(editorV2NotifierProvider).document.layers.first.shapes.length,
+        0,
+      );
+    });
+
+    test('eraser 模式 → eraseAt 被调用', () {
+      notifier.createDocument('draw-doc');
+      notifier.addStroke([const Point(0, 0), const Point(100, 100)]);
+      expect(
+        container.read(editorV2NotifierProvider).document.layers.first.strokes.length,
+        1,
+      );
+      // 擦除——不一定删除（取决于距离），但不崩溃。
+      notifier.eraseAt(5, 5);
+      expect(container.read(editorV2NotifierProvider).canUndo, true);
+    });
+  });
 }

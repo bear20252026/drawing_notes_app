@@ -353,6 +353,49 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
                   onTapUp: state.currentTool == 'text'
                       ? (details) => _showTextInput(details.localPosition)
                       : null,
+                  // ── 笔画手势（V2 画板修复——2026-08-25） ──
+                  onPanStart: (details) {
+                    final notifier = ref.read(editorV2NotifierProvider.notifier);
+                    final pos = details.localPosition;
+                    switch (state.currentTool) {
+                      case 'draw':
+                        notifier.startStroke(pos);
+                        break;
+                      case 'eraser':
+                        notifier.eraseAt(pos.dx, pos.dy);
+                        break;
+                      case 'shape':
+                        notifier.startShapeDrag(pos);
+                        break;
+                    }
+                  },
+                  onPanUpdate: (details) {
+                    final notifier = ref.read(editorV2NotifierProvider.notifier);
+                    final pos = details.localPosition;
+                    switch (state.currentTool) {
+                      case 'draw':
+                        notifier.extendStroke(pos);
+                        break;
+                      case 'eraser':
+                        notifier.eraseAt(pos.dx, pos.dy);
+                        break;
+                      case 'shape':
+                        // 形状实时预览（暂不渲染——由 endShapeDrag 提交）。
+                        break;
+                    }
+                  },
+                  onPanEnd: (details) {
+                    final notifier = ref.read(editorV2NotifierProvider.notifier);
+                    final pos = details.localPosition;
+                    switch (state.currentTool) {
+                      case 'draw':
+                        notifier.endStroke();
+                        break;
+                      case 'shape':
+                        notifier.endShapeDrag(pos, state.currentShapeType);
+                        break;
+                    }
+                  },
                   // P2 #30：长按画布 → 放大镜取色。
                   onLongPressStart: (details) {
                     final notifier = ref.read(editorV2NotifierProvider.notifier);

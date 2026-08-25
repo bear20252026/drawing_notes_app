@@ -402,6 +402,54 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     state = state.copyWith(currentShapeType: type);
   }
 
+  // ──────────────────── 流式绘画手势（V2 画板——2026-08-25 修复） ────────────────────
+
+  /// 当前正在绘制的笔画点序列（临时——endStroke 时提交到文档）。
+  List<Point> _pendingStrokePoints = [];
+
+  /// 手势开始——开始新笔画。
+  void startStroke(Offset pos) {
+    _pendingStrokePoints = [Point(pos.dx, pos.dy)];
+  }
+
+  /// 手势更新——追加点到当前笔画。
+  void extendStroke(Offset pos) {
+    _pendingStrokePoints.add(Point(pos.dx, pos.dy));
+  }
+
+  /// 手势结束——提交笔画到文档（批量 addStroke）。
+  void endStroke() {
+    if (_pendingStrokePoints.isNotEmpty) {
+      addStroke(List<Point>.from(_pendingStrokePoints));
+      _pendingStrokePoints = [];
+    }
+  }
+
+  /// 形状绘制起点（临时——endShapeDrag 时提交到文档）。
+  Point? _shapeStart;
+
+  /// 手势开始——记录形状起点。
+  void startShapeDrag(Offset pos) {
+    _shapeStart = Point(pos.dx, pos.dy);
+  }
+
+  /// 手势结束——根据起点和终点创建形状。
+  void endShapeDrag(Offset pos, String type) {
+    if (_shapeStart != null) {
+      final sx = _shapeStart!.x;
+      final sy = _shapeStart!.y;
+      final w = (pos.dx - sx).abs();
+      final h = (pos.dy - sy).abs();
+      if (w > 2 && h > 2) {
+        final x = sx < pos.dx ? sx : pos.dx;
+        final y = sy < pos.dy ? sy : pos.dy;
+        addShape(type, x, y, w, h,
+            strokeColor: state.strokeColorHex);
+      }
+      _shapeStart = null;
+    }
+  }
+
   /// 激活取色器（放大镜取色——用户需求 #7）。
   void activateEyedropper() {
     state = state.copyWith(
