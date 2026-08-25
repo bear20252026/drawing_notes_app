@@ -66,7 +66,7 @@ class _DrawingNotesAppState extends ConsumerState<DrawingNotesApp> {
 
   /// 全局热键触发：通过 GoRouter 打开快速记录页。
   void _openQuickRecord() {
-    _router?.go('/editor/new');
+    _router.go('/editor/new');
   }
 
   @override
