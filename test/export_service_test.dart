@@ -299,6 +299,51 @@ void main() {
       final xml = String.fromCharCodes(presXml);
       expect(xml, contains('sldId'));
     });
+
+    test('PPTX 包含 slideMaster 和 slideLayout（可被 PowerPoint 打开）', () async {
+      final result = await exporter.export(
+        pages: [
+          {'title': '验证 OOXML 结构', 'content': '测试 slideMaster/slideLayout'},
+        ],
+      );
+
+      final archive = ZipDecoder().decodeBytes(result);
+      final names = archive.files.map((f) => f.name).toList();
+
+      // 验证 slideMaster 和 slideLayout 文件存在
+      expect(names, contains('ppt/slideMasters/slideMaster1.xml'));
+      expect(names, contains('ppt/slideLayouts/slideLayout1.xml'));
+
+      // 验证 presentation.xml 引用了 slideMaster
+      final presXml = archive.files
+          .firstWhere((f) => f.name == 'ppt/presentation.xml')
+          .content as List<int>;
+      final presXmlStr = utf8.decode(presXml, allowMalformed: true);
+      expect(presXmlStr, contains('sldMasterIdLst'));
+
+      // 验证 presentation.xml.rels 引用了 slideMaster
+      final presRels = archive.files
+          .firstWhere((f) => f.name == 'ppt/_rels/presentation.xml.rels')
+          .content as List<int>;
+      final presRelsStr = utf8.decode(presRels, allowMalformed: true);
+      expect(presRelsStr, contains('slideMaster'));
+
+      // 验证 slide1.xml.rels 引用了 slideLayout
+      final slideRels = archive.files
+          .firstWhere((f) => f.name == 'ppt/slides/_rels/slide1.xml.rels')
+          .content as List<int>;
+      final slideRelsStr = utf8.decode(slideRels, allowMalformed: true);
+      expect(slideRelsStr, contains('slideLayout'));
+
+      // 验证 [Content_Types].xml 包含所有必要的 Override
+      final contentTypes = archive.files
+          .firstWhere((f) => f.name == '[Content_Types].xml')
+          .content as List<int>;
+      final ctStr = utf8.decode(contentTypes, allowMalformed: true);
+      expect(ctStr, contains('slideMaster'));
+      expect(ctStr, contains('slideLayout'));
+      expect(ctStr, contains('docProps'));
+    });
   });
 }
 
