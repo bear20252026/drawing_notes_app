@@ -88,222 +88,280 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(AppLocalizations.of(context)?.selectColor ?? '选择颜色'),
-      content: SizedBox(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7);
+    final textColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF1D1D1F);
+    final subTextColor = isDark ? const Color(0xFFEBEBF5) : const Color(0xFF6E6E73);
+    final dividerColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE0E0E0);
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: Container(
         width: 320,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 预设色板
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  for (final c in _presetColors)
-                    SizedBox(
-                      width: 48,
-                      height: 48,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(24),
-                        onTap: () => _apply(HSVColor.fromColor(c)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(7),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: c,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: c.computeLuminance() > 0.5
-                                    ? Colors.black26
-                                    : Colors.white24,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Title
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+              child: Text(
+                AppLocalizations.of(context)?.selectColor ?? '选择颜色',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                ),
+              ),
+            ),
+            // Content
+            Flexible(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 预设色板
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          for (final c in _presetColors)
+                            SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: GestureDetector(
+                                onTap: () => _apply(HSVColor.fromColor(c)),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(7),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: c,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: c.computeLuminance() > 0.5
+                                            ? Colors.black26
+                                            : Colors.white24,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
+                        ],
                       ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              // 二维色域框（Saturation × Value，对齐 Excalidraw ColorPicker Picker）：
-              // 横向 = 饱和度 0→1，纵向 = 明度 1→0，底色随当前色相变化。
-              SizedBox(
-                width: 300,
-                height: 170,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onPanDown: (d) => _pickSv(d.localPosition),
-                  onPanUpdate: (d) => _pickSv(d.localPosition),
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: CustomPaint(
-                          painter: _SvSquarePainter(hue: _hsv.hue),
-                        ),
-                      ),
-                      // 当前 S/V 位置指示圆点。
-                      Positioned(
-                        left: _hsv.saturation * 300 - 7,
-                        top: (1 - _hsv.value) * 170 - 7,
-                        child: Container(
-                          width: 14,
-                          height: 14,
-                          decoration: BoxDecoration(
-                            color: _selected,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: const [
-                              BoxShadow(color: Colors.black26, blurRadius: 2),
+                      const SizedBox(height: 16),
+                      // 二维色域框
+                      SizedBox(
+                        width: 300,
+                        height: 170,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onPanDown: (d) => _pickSv(d.localPosition),
+                          onPanUpdate: (d) => _pickSv(d.localPosition),
+                          child: Stack(
+                            children: [
+                              Positioned.fill(
+                                child: CustomPaint(
+                                  painter: _SvSquarePainter(hue: _hsv.hue),
+                                ),
+                              ),
+                              Positioned(
+                                left: _hsv.saturation * 300 - 7,
+                                top: (1 - _hsv.value) * 170 - 7,
+                                child: Container(
+                                  width: 14,
+                                  height: 14,
+                                  decoration: BoxDecoration(
+                                    color: _selected,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 2),
+                                    boxShadow: const [
+                                      BoxShadow(color: Colors.black26, blurRadius: 2),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              // 色相渐变条（横向彩虹，点击/拖动取色相）。
-              SizedBox(
-                height: 22,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onPanDown: (d) => _pickHue(d.localPosition),
-                  onPanUpdate: (d) => _pickHue(d.localPosition),
-                  child: Stack(
-                    children: [
-                      const Positioned.fill(
-                        child: CustomPaint(painter: _HueBarPainter()),
-                      ),
-                      // 当前色相指示。
-                      Positioned(
-                        left: _hsv.hue / 360 * 300 - 4,
-                        top: 0,
-                        child: Container(
-                          width: 8,
-                          height: 22,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: Colors.black38),
-                            borderRadius: BorderRadius.circular(3),
+                      const SizedBox(height: 12),
+                      // 色相渐变条
+                      SizedBox(
+                        height: 22,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onPanDown: (d) => _pickHue(d.localPosition),
+                          onPanUpdate: (d) => _pickHue(d.localPosition),
+                          child: Stack(
+                            children: [
+                              const Positioned.fill(
+                                child: CustomPaint(painter: _HueBarPainter()),
+                              ),
+                              Positioned(
+                                left: _hsv.hue / 360 * 300 - 4,
+                                top: 0,
+                                child: Container(
+                                  width: 8,
+                                  height: 22,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    border: Border.all(color: Colors.black38),
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              // 同色系色阶（对齐 Excalidraw ShadeList）：当前色相的明度档位。
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (var i = 0; i <= 5; i++)
-                    SizedBox(
-                      width: 48,
-                      height: 48,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(24),
-                        onTap: () => _apply(
-                          HSVColor.fromAHSV(
-                            1,
-                            _hsv.hue,
-                            _hsv.saturation,
-                            0.2 + 0.15 * i,
-                          ),
+                      const SizedBox(height: 16),
+                      // 同色系色阶
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (var i = 0; i <= 5; i++)
+                            SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: GestureDetector(
+                                onTap: () => _apply(
+                                  HSVColor.fromAHSV(
+                                    1,
+                                    _hsv.hue,
+                                    _hsv.saturation,
+                                    0.2 + 0.15 * i,
+                                  ),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(10),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: HSVColor.fromAHSV(
+                                        1,
+                                        _hsv.hue,
+                                        _hsv.saturation,
+                                        0.2 + 0.15 * i,
+                                      ).toColor(),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.black26),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      // 最近使用色
+                      if (_recentColors.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final c in _recentColors.reversed.take(12))
+                              SizedBox(
+                                width: 48,
+                                height: 48,
+                                child: GestureDetector(
+                                  onTap: () => _apply(HSVColor.fromColor(c)),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: c,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.black26),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Container(
+                      ],
+                      const SizedBox(height: 14),
+                      // 当前颜色预览
+                      Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
                             decoration: BoxDecoration(
-                              color: HSVColor.fromAHSV(
-                                1,
-                                _hsv.hue,
-                                _hsv.saturation,
-                                0.2 + 0.15 * i,
-                              ).toColor(),
+                              color: _selected,
                               shape: BoxShape.circle,
                               border: Border.all(color: Colors.black26),
                             ),
                           ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              // 最近使用色（对齐 Excalidraw CustomColorList）
-              if (_recentColors.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final c in _recentColors.reversed.take(12))
-                      SizedBox(
-                        width: 48,
-                        height: 48,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(24),
-                          onTap: () => _apply(HSVColor.fromColor(c)),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: c,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.black26),
-                              ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'RGB(${_selected.r.round()}, ${_selected.g.round()}, ${_selected.b.round()})',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: subTextColor,
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                  ],
+                    ],
+                  ),
                 ),
-              ],
-              const SizedBox(height: 14),
-              // 当前颜色预览
-              Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: _selected,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.black26),
+              ),
+            ),
+            // Divider
+            Container(height: 0.5, color: dividerColor),
+            // Actions
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF0066CC),
+                        shape: const RoundedRectangleBorder(),
+                        textStyle: const TextStyle(fontSize: 17),
+                      ),
+                      child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'RGB(${_selected.r.round()}, ${_selected.g.round()}, ${_selected.b.round()})',
-                    style: Theme.of(context).textTheme.bodySmall,
+                ),
+                Container(width: 0.5, height: 44, color: dividerColor),
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: TextButton(
+                      onPressed: () {
+                        if (!_recentColors.contains(_selected)) {
+                          _recentColors.add(_selected);
+                        }
+                        Navigator.of(context).pop(_selected);
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF0066CC),
+                        shape: const RoundedRectangleBorder(),
+                        textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                      ),
+                      child: Text(AppLocalizations.of(context)?.confirm ?? '确定'),
+                    ),
                   ),
-                ],
-              ),
-            ],
-          ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
-        ),
-        FilledButton(
-          onPressed: () {
-            if (!_recentColors.contains(_selected)) {
-              _recentColors.add(_selected);
-            }
-            Navigator.of(context).pop(_selected);
-          },
-          child: Text(AppLocalizations.of(context)?.confirm ?? '确定'),
-        ),
-      ],
     );
   }
 

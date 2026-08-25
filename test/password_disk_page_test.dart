@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/storage/password_disk.dart';
 import 'package:drawing_notes_app/features/notes/presentation/password_disk_page.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// 密码盘页面（军工级增强 UI）构建与交互回归测试。

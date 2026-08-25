@@ -163,21 +163,64 @@ extension _EditorPageEditing on _EditorPageState {
       _showSnack('本页还没有文字内容');
       return;
     }
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7);
+    final textColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF1D1D1F);
+    final dividerColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE0E0E0);
+
     showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)?.editorPagePreviewTitle(page.title) ?? '分页预览 · ${page.title}'),
-        content: SizedBox(
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: Container(
           width: 480,
           height: 560,
-          child: PaginationPreview(textItems: page.textItems),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('关闭'),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(14),
           ),
-        ],
+          child: Column(
+            children: [
+              // Title
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+                child: Text(
+                  AppLocalizations.of(context)?.editorPagePreviewTitle(page.title) ?? '分页预览 · ${page.title}',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
+                ),
+              ),
+              // Content
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: PaginationPreview(textItems: page.textItems),
+                ),
+              ),
+              // Divider
+              Container(height: 0.5, color: dividerColor),
+              // Actions
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF0066CC),
+                    shape: const RoundedRectangleBorder(),
+                    textStyle: const TextStyle(fontSize: 17),
+                  ),
+                  child: const Text('关闭'),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -284,9 +327,7 @@ extension _EditorPageEditing on _EditorPageState {
       _notifyChanged();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)?.editorImageInsertFail(e.runtimeType.toString()) ?? '插入图片失败：${e.runtimeType}')));
+        AppSnackbar.showError(context, AppLocalizations.of(context)?.editorImageInsertFail(e.runtimeType.toString()) ?? '插入图片失败：${e.runtimeType}');
       }
     }
   }
@@ -557,33 +598,39 @@ extension _EditorPageEditing on _EditorPageState {
       if (sh.id == id) current = sh.href;
     }
     final controller = TextEditingController(text: current ?? '');
-    final url = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('设置链接'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'https://…',
-            border: OutlineInputBorder(),
-            isDense: true,
+    final url = await showIosStatefulDialog<String>(
+      context,
+      title: '设置链接',
+      builder: (ctx, setState) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: CupertinoTextField(
+            controller: controller,
+            autofocus: true,
+            placeholder: 'https://…',
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF2F2F7),
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
+        );
+      },
+      actions: [
+        IosDialogAction(
+          label: '取消',
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(controller.text),
-            child: const Text('确定'),
-          ),
-        ],
-      ),
+        IosDialogAction(
+          label: '确定',
+          isDefault: true,
+          result: '__confirm__',
+        ),
+      ],
     );
-    if (url == null) return;
-    final trimmed = url.trim();
+    final actualUrl = url == '__confirm__' ? controller.text : null;
+    controller.dispose();
+    if (actualUrl == null) return;
+    final trimmed = actualUrl.trim();
     // 审计修复（2026-08-15）：保存前 scheme 白名单校验，拒绝危险链接。
     final link = trimmed.isEmpty ? null : sanitizeHref(trimmed);
     if (trimmed.isNotEmpty && link == null) {

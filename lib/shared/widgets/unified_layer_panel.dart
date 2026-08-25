@@ -13,9 +13,11 @@
 // - 可被 V1/V2 共同使用
 library;
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/text_scale_helper.dart';
+import '../../../core/ui/widgets/ios_dialog.dart';
 import '../../../l10n/app_localizations.dart';
 
 /// 统一图层面板（V1/V2 合并——2026-08-24）。
@@ -248,35 +250,41 @@ class _LayerTile extends StatelessWidget {
     return GestureDetector(
       onDoubleTap: () {
         // 双击重命名
-        showDialog(
-          context: context,
-          builder: (context) {
-            final controller = TextEditingController(text: layer.name);
-            return AlertDialog(
-              title: Text(AppLocalizations.of(context)?.unifiedLayerPanelRename ?? '重命名图层'),
-              content: TextField(
+        final controller = TextEditingController(text: layer.name);
+        showIosStatefulDialog<String>(
+          context,
+          title: AppLocalizations.of(context)?.unifiedLayerPanelRename ?? '重命名图层',
+          builder: (context, setState) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: CupertinoTextField(
                 controller: controller,
                 autofocus: true,
-                decoration: InputDecoration(
-                  hintText: AppLocalizations.of(context)?.unifiedLayerPanelRenameHint ?? '输入图层名称',
+                placeholder: AppLocalizations.of(context)?.unifiedLayerPanelRenameHint ?? '输入图层名称',
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF2F2F7),
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    onRenamed!(controller.text);
-                    Navigator.pop(context);
-                  },
-                  child: Text(AppLocalizations.of(context)?.confirm ?? '确定'),
-                ),
-              ],
             );
           },
-        );
+          actions: [
+            IosDialogAction(
+              label: AppLocalizations.of(context)?.cancel ?? '取消',
+            ),
+            IosDialogAction(
+              label: AppLocalizations.of(context)?.confirm ?? '确定',
+              isDefault: true,
+              result: 'confirm',
+            ),
+          ],
+        ).then((result) {
+          if (result == 'confirm') {
+            onRenamed!(controller.text);
+          }
+          controller.dispose();
+        });
       },
       child: Text(
         layer.name,

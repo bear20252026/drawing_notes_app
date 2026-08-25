@@ -1,6 +1,7 @@
 import 'dart:async';
 
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
@@ -14,6 +15,8 @@ import '../../../core/storage/recovery_key_generator.dart';
 import '../../../core/security/auth_guard.dart';
 import '../../../core/security/audit_logger.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/ui/widgets/ios_dialog.dart';
+import '../../../core/ui/widgets/app_snackbar.dart';
 import '../../../l10n/app_localizations.dart';
 
 /// 密码盘管理页（U盘即钥匙，设计见 docs/PASSWORD_DISK_DESIGN.md）。
@@ -165,109 +168,102 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
 
   /// 展示恢复密钥（警示必须抄写）。
   Future<void> _showRecoveryDialog(String recovery) async {
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)?.noteRecoveryKeyTitle ?? '保存您的恢复密钥（非常重要！）'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              recovery,
-              style: TextStyle(
-                fontSize: TextScaleHelper.scaled(context, 18),
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
-              ),
+    await showIosDialog<void>(
+      context,
+      title: AppLocalizations.of(context)?.noteRecoveryKeyTitle ?? '保存您的恢复密钥（非常重要！）',
+      contentWidget: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            recovery,
+            style: TextStyle(
+              fontSize: TextScaleHelper.scaled(context, 18),
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1,
             ),
-            const SizedBox(height: 12),
-            const Text(
-              '⚠️ 请抄写或截图保存到安全处。\n'
-              'U 盘丢失或损坏时，凭此密钥可恢复主密钥。\n'
-              '本应用不存储任何密钥，忘记恢复密钥将永久无法恢复！',
-              style: TextStyle(color: Colors.red),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton.icon(
-            icon: const Icon(Icons.copy),
-            label: const Text('一键复制'),
-            onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: recovery));
-              if (ctx.mounted) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('恢复密钥已复制到剪贴板')),
-                );
-              }
-            },
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(AppLocalizations.of(context)?.diskCopied ?? '我已抄写'),
+          const SizedBox(height: 12),
+          const Text(
+            '⚠️ 请抄写或截图保存到安全处。\n'
+            'U 盘丢失或损坏时，凭此密钥可恢复主密钥。\n'
+            '本应用不存储任何密钥，忘记恢复密钥将永久无法恢复！',
+            style: TextStyle(color: Color(0xFFFF3B30), fontSize: 13),
           ),
         ],
       ),
+      actions: [
+        IosDialogAction(
+          label: '一键复制',
+          result: 'copy',
+        ),
+        IosDialogAction(
+          label: AppLocalizations.of(context)?.diskCopied ?? '我已抄写',
+          isDefault: true,
+        ),
+      ],
     );
+
+    // Handle copy action
+    await Clipboard.setData(ClipboardData(text: recovery));
+    if (mounted) {
+      AppSnackbar.showSuccess(context, '恢复密钥已复制到剪贴板');
+    }
   }
 
   /// 询问是否启用 PIN 保护（D-5 UI 集成 2026-08-15）。
   Future<bool> _askPinProtection() async {
-    return await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: Text(AppLocalizations.of(context)?.diskPinProtection ?? '是否启用 PIN 保护？'),
-            content: Text(
-              AppLocalizations.of(context)?.diskPinInfo ??
-                  '启用后主密钥经 PIN 加密存储（OWASP KEK 模式），U 盘丢失也无法直接读出；解锁需输入 PIN。',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: Text(AppLocalizations.of(context)?.diskNoPin ?? '不启用'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: Text(AppLocalizations.of(context)?.diskYesPin ?? '启用'),
-              ),
-            ],
-          ),
-        ) ??
-        false;
+    final result = await showIosDialog<bool>(
+      context,
+      title: AppLocalizations.of(context)?.diskPinProtection ?? '是否启用 PIN 保护？',
+      content: AppLocalizations.of(context)?.diskPinInfo ??
+          '启用后主密钥经 PIN 加密存储（OWASP KEK 模式），U 盘丢失也无法直接读出；解锁需输入 PIN。',
+      actions: [
+        IosDialogAction(
+          label: AppLocalizations.of(context)?.diskNoPin ?? '不启用',
+          result: false,
+        ),
+        IosDialogAction(
+          label: AppLocalizations.of(context)?.diskYesPin ?? '启用',
+          result: true,
+          isDefault: true,
+        ),
+      ],
+    );
+    return result ?? false;
   }
 
   /// 输入 PIN 保护密码盘的 PIN。
   Future<String?> _promptPin() async {
     final controller = TextEditingController();
-    final pin = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)?.diskEnterPin ?? '输入密码盘 PIN'),
-        content: TextField(
-          controller: controller,
-          obscureText: true,
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: '请输入 PIN（至少 ${EncryptionService.kPinMinLength} 位）',
-            border: OutlineInputBorder(),
-          ),
-          onSubmitted: (v) => Navigator.of(ctx).pop(v),
+    final pin = await showIosDialog<String>(
+      context,
+      title: AppLocalizations.of(context)?.diskEnterPin ?? '输入密码盘 PIN',
+      contentWidget: CupertinoTextField(
+        controller: controller,
+        obscureText: true,
+        autofocus: true,
+        placeholder: '请输入 PIN（至少 ${EncryptionService.kPinMinLength} 位）',
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF2F2F7),
+          borderRadius: BorderRadius.circular(10),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(AppLocalizations.of(context)?.homeCancel ?? '取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(controller.text),
-            child: Text(AppLocalizations.of(context)?.diskConfirm ?? '确定'),
-          ),
-        ],
       ),
+      actions: [
+        IosDialogAction(
+          label: AppLocalizations.of(context)?.homeCancel ?? '取消',
+        ),
+        IosDialogAction(
+          label: AppLocalizations.of(context)?.diskConfirm ?? '确定',
+          isDefault: true,
+          result: '__confirm__',
+        ),
+      ],
     );
     controller.dispose();
-    return pin;
+    // Return the text if confirmed, null otherwise
+    return pin == '__confirm__' ? controller.text : null;
   }
 
   Future<void> _unlock() async {
@@ -306,32 +302,35 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
       return;
     }
     final controller = TextEditingController();
-    final recovery = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('输入恢复密钥'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: '24 位恢复密钥'),
+    final recovery = await showIosDialog<String>(
+      context,
+      title: '输入恢复密钥',
+      contentWidget: CupertinoTextField(
+        controller: controller,
+        autofocus: true,
+        placeholder: '24 位恢复密钥',
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF2F2F7),
+          borderRadius: BorderRadius.circular(10),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(AppLocalizations.of(context)?.homeCancel ?? '取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(controller.text),
-            child: const Text('恢复'),
-          ),
-        ],
       ),
+      actions: [
+        IosDialogAction(
+          label: AppLocalizations.of(context)?.homeCancel ?? '取消',
+        ),
+        IosDialogAction(
+          label: '恢复',
+          isDefault: true,
+          result: '__confirm__',
+        ),
+      ],
     );
     if (recovery == null || recovery.isEmpty) return;
     try {
       final key = await _encryption.unwrapMasterKey(
         _envelope!,
-        recovery.trim(),
+        controller.text.trim(),
       );
       if (!mounted) return;
       setState(() {
@@ -361,31 +360,29 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
 
   void _snack(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    AppSnackbar.showInfo(context, msg);
   }
 
   /// 跳过加密：用户选择不使用密码盘加密。
   Future<void> _skipEncryption() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('跳过加密？'),
-        content: const Text(
-          '跳过加密后，您的笔记本将以明文存储。\n'
+    final confirmed = await showIosDialog<bool>(
+      context,
+      title: '跳过加密？',
+      content: '跳过加密后，您的笔记本将以明文存储。\n'
           '任何人都可以直接打开应用查看内容。\n\n'
           '您可以在设置中随时启用加密。',
+      actions: [
+        IosDialogAction(
+          label: '返回',
+          result: false,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('返回'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('确认跳过'),
-          ),
-        ],
-      ),
+        IosDialogAction(
+          label: '确认跳过',
+          result: true,
+          isDestructive: true,
+          isDefault: true,
+        ),
+      ],
     );
     if (confirmed == true && mounted) {
       await AuthGuard.instance.skipEncryption();
@@ -401,8 +398,8 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
       curve: Curves.easeInOut,
       decoration: BoxDecoration(
         color: _masterKey == null
-            ? Theme.of(context).colorScheme.surfaceContainerHighest
-            : Theme.of(context).colorScheme.primaryContainer,
+            ? const Color(0xFFF2F2F7)
+            : const Color(0xFFE8F5E9),
         borderRadius: BorderRadius.circular(12),
       ),
       padding: const EdgeInsets.all(16),
@@ -411,10 +408,10 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             child: Icon(
-              _masterKey == null ? Icons.usb_off : Icons.usb,
+              _masterKey == null ? Icons.usb_off_rounded : Icons.usb_rounded,
               key: ValueKey('status_${_masterKey != null}'),
               size: 40,
-              color: _masterKey == null ? Colors.grey : Colors.green,
+              color: _masterKey == null ? const Color(0xFF8E8E93) : const Color(0xFF34C759),
             ),
           ),
           const SizedBox(width: 16),
@@ -424,14 +421,20 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
               children: [
                 Text(
                   _masterKey == null ? '密码盘未解锁' : '密码盘已解锁',
-                  style: Theme.of(context).textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1D1D1F),
+                  ),
                 ),
                 const SizedBox(height: 4),
                 if (_masterKey == null)
-                  Text(
+                  const Text(
                     '插入 U 盘并选择密码盘目录解锁',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF8E8E93),
+                    ),
                   )
                 else
                   _FingerprintBadge(fingerprint: _keyFingerprint ?? ''),
@@ -447,7 +450,14 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('密码盘（U盘即钥匙）')),
+      appBar: AppBar(
+        title: const Text(
+          '密码盘（U盘即钥匙）',
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body: AmbientBackground(
         child: ListView(
           padding: const EdgeInsets.all(16),
@@ -461,30 +471,68 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
             // 创建密码盘
             GlassSurface(
               padding: const EdgeInsets.all(12),
-              child: FilledButton.icon(
-                icon: const Icon(Icons.add_box_outlined),
-                label: const Text('创建密码盘（生成密钥 + 恢复密钥）'),
-                onPressed: _createKeyFile,
+              child: SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: CupertinoButton.filled(
+                  borderRadius: BorderRadius.circular(12),
+                  padding: EdgeInsets.zero,
+                  onPressed: _createKeyFile,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add_box_outlined, size: 20),
+                      SizedBox(width: 8),
+                      Text('创建密码盘（生成密钥 + 恢复密钥）', style: TextStyle(fontSize: 15)),
+                    ],
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 8),
             // 解锁
             GlassSurface(
               padding: const EdgeInsets.all(12),
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.usb),
-                label: const Text('解锁（选择 U 盘密码盘目录）'),
-                onPressed: _unlock,
+              child: SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: CupertinoButton(
+                  borderRadius: BorderRadius.circular(12),
+                  padding: EdgeInsets.zero,
+                  color: const Color(0xFFF2F2F7),
+                  onPressed: _unlock,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.usb_rounded, size: 20, color: Color(0xFF0066CC)),
+                      SizedBox(width: 8),
+                      Text('解锁（选择 U 盘密码盘目录）', style: TextStyle(fontSize: 15, color: Color(0xFF0066CC))),
+                    ],
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 8),
             // 恢复
             GlassSurface(
               padding: const EdgeInsets.all(12),
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.restore),
-                label: const Text('用恢复密钥找回主密钥（U 盘丢失）'),
-                onPressed: _recoverFromKey,
+              child: SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: CupertinoButton(
+                  borderRadius: BorderRadius.circular(12),
+                  padding: EdgeInsets.zero,
+                  color: const Color(0xFFF2F2F7),
+                  onPressed: _recoverFromKey,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.restore_rounded, size: 20, color: Color(0xFF0066CC)),
+                      SizedBox(width: 8),
+                      Text('用恢复密钥找回主密钥（U 盘丢失）', style: TextStyle(fontSize: 15, color: Color(0xFF0066CC))),
+                    ],
+                  ),
+                ),
               ),
             ),
             // 锁定按钮：仅在已解锁时显示
@@ -492,12 +540,22 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
               const SizedBox(height: 8),
               GlassSurface(
                 padding: const EdgeInsets.all(12),
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.lock_outline),
-                  label: const Text('锁定（清除内存中的主密钥）'),
-                  onPressed: _lock,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.orange,
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: CupertinoButton(
+                    borderRadius: BorderRadius.circular(12),
+                    padding: EdgeInsets.zero,
+                    color: const Color(0xFFFFF3E0),
+                    onPressed: _lock,
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.lock_outline_rounded, size: 20, color: Color(0xFFFF9500)),
+                        SizedBox(width: 8),
+                        Text('锁定（清除内存中的主密钥）', style: TextStyle(fontSize: 15, color: Color(0xFFFF9500))),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -509,23 +567,40 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     '不想使用加密？',
-                    style: Theme.of(context).textTheme.titleSmall,
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1D1D1F),
+                    ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
+                  const Text(
                     '您可以跳过加密直接使用应用。笔记本将以明文存储，'
                     '适合轻度使用场景。您随时可以在设置中启用加密。',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF8E8E93),
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.skip_next),
-                    label: const Text('跳过加密，直接使用'),
-                    onPressed: _skipEncryption,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.orange,
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: CupertinoButton(
+                      borderRadius: BorderRadius.circular(12),
+                      padding: EdgeInsets.zero,
+                      color: const Color(0xFFFFF3E0),
+                      onPressed: _skipEncryption,
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.skip_next_rounded, size: 20, color: Color(0xFFFF9500)),
+                          SizedBox(width: 8),
+                          Text('跳过加密，直接使用', style: TextStyle(fontSize: 15, color: Color(0xFFFF9500))),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -534,11 +609,14 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
             const SizedBox(height: 16),
             GlassSurface(
               padding: const EdgeInsets.all(12),
-              child: Text(
+              child: const Text(
                 '安全说明：主密钥（256 位随机）仅存于 U 盘 key.frogkey，'
                 '本应用不持久化任何密钥；无 U 盘谁也解不开。\n'
                 '安全增强：Argon2id + HKDF-SHA256',
-                style: Theme.of(context).textTheme.bodySmall,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF8E8E93),
+                ),
               ),
             ),
           ],
@@ -559,7 +637,6 @@ class _FingerprintBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -567,10 +644,10 @@ class _FingerprintBadge extends StatelessWidget {
         Container(
           width: 28,
           height: 28,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             shape: BoxShape.circle,
             gradient: LinearGradient(
-              colors: [scheme.primary, scheme.tertiary],
+              colors: [Color(0xFF0066CC), Color(0xFF5AC8FA)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -580,18 +657,19 @@ class _FingerprintBadge extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           '主密钥指纹 $fingerprint（仅存内存）',
-          style: Theme.of(context).textTheme.bodySmall,
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF8E8E93),
+          ),
         ),
-        IconButton(
-          tooltip: '复制指纹',
-          icon: const Icon(Icons.copy, size: 16),
-          visualDensity: VisualDensity.compact,
+        CupertinoButton(
+          padding: EdgeInsets.zero,
+          minSize: 0,
           onPressed: () {
             Clipboard.setData(ClipboardData(text: fingerprint));
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('指纹已复制')));
+            AppSnackbar.showSuccess(context, '指纹已复制');
           },
+          child: const Icon(Icons.copy_rounded, size: 16, color: Color(0xFF0066CC)),
         ),
       ],
     );

@@ -224,9 +224,9 @@ extension _NotebookPageImports on _NotebookViewPageState {
       await MediaCryptoService.instance.setSessionPassword(password, mediaSalt);
       if (mounted) {
         _applyState(() {});
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('已启用密码保护（页面内容加密存储）')));
+        if (mounted) {
+          AppSnackbar.showSuccess(context, '已启用密码保护（页面内容加密存储）');
+        }
       }
     } catch (e) {
       _showSnack('设置密码失败：${e.runtimeType}');
@@ -283,9 +283,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
       _sessionPassword = null;
       if (mounted) {
         _applyState(() {});
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('已启用 U盘钥匙加密（拔盘即锁）')));
+        AppSnackbar.showSuccess(context, '已启用 U盘钥匙加密（拔盘即锁）');
       }
     } catch (e) {
       _showSnack('启用 U盘钥匙加密失败：${e.runtimeType}');
@@ -294,52 +292,48 @@ extension _NotebookPageImports on _NotebookViewPageState {
 
   /// 展示恢复密钥（警示必须抄写）。
   Future<void> _showRecoveryKeyWarning(String recoveryKey) async {
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)?.noteRecoveryKeyTitle ?? '保存您的恢复密钥（非常重要！）'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              recoveryKey,
-              style: TextStyle(
-                fontSize: TextScaleHelper.scaled(context, 18),
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
-              ),
+    final l10n = AppLocalizations.of(context);
+    await showIosDialog<void>(
+      context,
+      title: l10n?.noteRecoveryKeyTitle ?? '保存您的恢复密钥（非常重要！）',
+      contentWidget: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            recoveryKey,
+            style: TextStyle(
+              fontSize: TextScaleHelper.scaled(context, 18),
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1,
             ),
-            const SizedBox(height: 12),
-            const Text(
-              '⚠️ 请抄写或截图保存到安全处。\n'
-              'U 盘丢失或损坏时，凭此密钥可恢复主密钥。\n'
-              '本应用不存储任何密钥，忘记恢复密钥将永久无法恢复。',
-              style: TextStyle(color: Colors.red),
-            ),
-          ],
-        ),
-        actions: [
-          // #12 一键复制恢复密钥到剪贴板。
-          TextButton.icon(
-            icon: const Icon(Icons.copy),
-            label: const Text('一键复制'),
-            onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: recoveryKey));
-              if (ctx.mounted) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('恢复密钥已复制到剪贴板')),
-                );
-              }
-            },
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('我已抄写'),
+          const SizedBox(height: 12),
+          const Text(
+            '⚠️ 请抄写或截图保存到安全处。\n'
+            'U 盘丢失或损坏时，凭此密钥可恢复主密钥。\n'
+            '本应用不存储任何密钥，忘记恢复密钥将永久无法恢复。',
+            style: TextStyle(color: Color(0xFFFF3B30), fontSize: 13),
           ),
         ],
       ),
+      actions: [
+        IosDialogAction(
+          label: '一键复制',
+          result: 'copy',
+        ),
+        IosDialogAction(
+          label: '我已抄写',
+          isDefault: true,
+        ),
+      ],
     );
+
+    // Handle copy action
+    await Clipboard.setData(ClipboardData(text: recoveryKey));
+    if (mounted) {
+      AppSnackbar.showSuccess(context, '恢复密钥已复制到剪贴板');
+    }
   }
 
   /// 查看并回溯页面版本历史（C1）。
@@ -374,22 +368,21 @@ extension _NotebookPageImports on _NotebookViewPageState {
       ),
     );
     if (version == null || !mounted) return;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('恢复该版本？'),
-        content: const Text('将用所选版本覆盖当前页面内容（当前内容会先存入历史）'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('恢复'),
-          ),
-        ],
-      ),
+    final ok = await showIosDialog<bool>(
+      context,
+      title: '恢复该版本？',
+      content: '将用所选版本覆盖当前页面内容（当前内容会先存入历史）',
+      actions: [
+        IosDialogAction(
+          label: '取消',
+          result: false,
+        ),
+        IosDialogAction(
+          label: '恢复',
+          isDefault: true,
+          result: true,
+        ),
+      ],
     );
     if (ok != true) return;
     _applyState(() {

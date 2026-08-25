@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -67,8 +68,9 @@ class SettingsPage extends ConsumerWidget {
                       iconColor: AppDesign.primary,
                       title: '主题模式',
                       subtitle: isDark ? '深色' : '浅色',
-                      trailing: Switch(
+                      trailing: CupertinoSwitch(
                         value: isDark,
+                        activeColor: AppDesign.appleGreen,
                         onChanged: (v) {
                           // TODO: 接入 ThemeNotifier
                         },

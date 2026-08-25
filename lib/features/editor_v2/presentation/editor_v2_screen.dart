@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:editor_core/editor_core.dart';
 
 import '../../../core/storage/storage_service.dart';
+import '../../../core/ui/widgets/app_snackbar.dart';
 
 import '../../../../core/theme/responsive.dart';
 import '../../../../core/theme/app_design.dart';
@@ -279,13 +280,7 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
   Future<void> _handleExport(String format) async {
     // TODO: 导出功能需要适配 V2 数据模型（NoteDocument/LineItem）
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('导出功能即将推出'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+      AppSnackbar.showInfo(context, '导出功能即将推出');
     }
   }
 
@@ -317,7 +312,48 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
           _documentTitle.isNotEmpty ? _documentTitle : '无标题',
           style: AppDesign.bodyStrong,
         ),
-        actions: [
+        actions: context.isMobile
+            ? [
+                // 移动端：收进单个 PopupMenuButton，避免 AppBar 溢出
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_horiz),
+                  tooltip: '更多',
+                  onSelected: (value) {
+                    switch (value) {
+                      case 'undo':
+                        if (state.canUndo) ref.read(editorV2NotifierProvider.notifier).undo();
+                        break;
+                      case 'redo':
+                        if (state.canRedo) ref.read(editorV2NotifierProvider.notifier).redo();
+                        break;
+                      case 'layers':
+                        setState(() => _layersVisible = !_layersVisible);
+                        break;
+                      case 'properties':
+                        setState(() => _propertiesVisible = !_propertiesVisible);
+                        break;
+                      case 'export_pdf':
+                      case 'export_png':
+                      case 'export_ppt':
+                        _handleExport(value);
+                        break;
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(value: 'undo', child: Text('撤销')),
+                    const PopupMenuItem(value: 'redo', child: Text('重做')),
+                    if (widget.mode == UnifiedEditorMode.whiteboard) ...[
+                      const PopupMenuItem(value: 'layers', child: Text('图层')),
+                      const PopupMenuItem(value: 'properties', child: Text('属性')),
+                    ],
+                    const PopupMenuDivider(),
+                    const PopupMenuItem(value: 'export_pdf', child: Text('导出 PDF')),
+                    const PopupMenuItem(value: 'export_png', child: Text('导出 PNG')),
+                    const PopupMenuItem(value: 'export_ppt', child: Text('导出 PPT')),
+                  ],
+                ),
+              ]
+            : [
           IconButton(
             icon: const Icon(Icons.undo),
             onPressed: state.canUndo
@@ -525,15 +561,10 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
                         final c = state.currentColor;
                         notifier.deactivateEyedropper();
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                '已取色: #${c.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
-                              ),
-                              duration: const Duration(seconds: 1),
-                              backgroundColor: c,
-                              behavior: SnackBarBehavior.floating,
-                            ),
+                          AppSnackbar.showInfo(
+                            context,
+                            '已取色: #${c.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
+                            duration: const Duration(seconds: 1),
                           );
                         }
                       },
@@ -810,7 +841,8 @@ class _V2LeftToolbar extends StatelessWidget {
           ),
         ),
       ),
-      child: Column(
+      child: SingleChildScrollView(
+        child: Column(
         children: [
           const SizedBox(height: 8),
           _LeftToolBtn(
@@ -851,6 +883,7 @@ class _V2LeftToolbar extends StatelessWidget {
             onTap: () => onToolChanged('zoom'),
           ),
         ],
+      ),
       ),
     );
   }

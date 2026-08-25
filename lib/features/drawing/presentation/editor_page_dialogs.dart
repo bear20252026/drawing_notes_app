@@ -70,59 +70,117 @@ class _CommandPaletteDialogState extends State<_CommandPaletteDialog> {
       );
     }
 
-    return AlertDialog(
-      title: const Text('命令面板'),
-      content: SizedBox(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7);
+    final textColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF1D1D1F);
+    final subTextColor = isDark ? const Color(0xFFEBEBF5) : const Color(0xFF6E6E73);
+    final dividerColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE0E0E0);
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: Container(
         width: 520,
         height: 460,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(14),
+        ),
         child: Column(
           children: [
-            TextField(
-              controller: _queryController,
-              autofocus: true,
-              textInputAction: TextInputAction.done,
-              onChanged: (_) => setState(() {}),
-              onSubmitted: (_) {
-                if (commands.isNotEmpty) {
-                  Navigator.of(context).pop(commands.first.id);
-                }
-              },
-              decoration: const InputDecoration(
-                hintText: '搜索操作、工具或导出格式…',
-                prefixIcon: Icon(Icons.search_rounded),
+            // Title
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+              child: Text(
+                '命令面板',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                ),
               ),
             ),
-            const SizedBox(height: 10),
+            // Content
             Expanded(
-              child: commands.isEmpty
-                  ? const Center(child: Text('没有可执行的匹配命令'))
-                  : ListView(
-                      children: [
-                        if (showRecent) ...[
-                          const Padding(
-                            padding: EdgeInsets.fromLTRB(8, 4, 8, 2),
-                            child: Text('最近使用'),
-                          ),
-                          commandTile(recent, recentItem: true),
-                          const Divider(),
-                        ],
-                        for (final category in EditorCommandCategory.values)
-                          if (grouped[category]?.isNotEmpty ?? false) ...[
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(8, 10, 8, 2),
-                              child: Text(
-                                category.label,
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.labelMedium,
-                              ),
-                            ),
-                            for (final command in grouped[category]!)
-                              if (!showRecent || command.id != recent.id)
-                                commandTile(command),
-                          ],
-                      ],
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    CupertinoTextField(
+                      controller: _queryController,
+                      autofocus: true,
+                      textInputAction: TextInputAction.done,
+                      onChanged: (_) => setState(() {}),
+                      onSubmitted: (_) {
+                        if (commands.isNotEmpty) {
+                          Navigator.of(context).pop(commands.first.id);
+                        }
+                      },
+                      placeholder: '搜索操作、工具或导出格式…',
+                      prefix: const Padding(
+                        padding: EdgeInsets.only(left: 8),
+                        child: Icon(CupertinoIcons.search, size: 18, color: Color(0xFF8E8E93)),
+                      ),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF3A3A3C) : Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: dividerColor),
+                      ),
                     ),
+                    const SizedBox(height: 10),
+                    Expanded(
+                      child: Material(
+                        color: Colors.transparent,
+                        child: commands.isEmpty
+                            ? Center(
+                                child: Text(
+                                  '没有可执行的匹配命令',
+                                  style: TextStyle(color: subTextColor),
+                                ),
+                              )
+                            : ListView(
+                                children: [
+                                  if (showRecent) ...[
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(8, 4, 8, 2),
+                                      child: Text(
+                                        '最近使用',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: subTextColor,
+                                        ),
+                                      ),
+                                    ),
+                                    commandTile(recent, recentItem: true),
+                                    Container(height: 0.5, color: dividerColor),
+                                  ],
+                                  for (final category in EditorCommandCategory.values)
+                                    if (grouped[category]?.isNotEmpty ?? false) ...[
+                                      Padding(
+                                        padding: const EdgeInsets.fromLTRB(8, 10, 8, 2),
+                                        child: Text(
+                                          category.label,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: subTextColor,
+                                          ),
+                                        ),
+                                      ),
+                                      for (final command in grouped[category]!)
+                                        if (!showRecent || command.id != recent.id)
+                                          commandTile(command),
+                                    ],
+                                ],
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -159,58 +217,126 @@ class _TextInputDialogState extends State<_TextInputDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('输入文字'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _controller,
-            autofocus: true,
-            maxLines: 3,
-            decoration: const InputDecoration(
-              hintText: '请输入文字内容',
-              border: OutlineInputBorder(),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7);
+    final textColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF1D1D1F);
+    final subTextColor = isDark ? const Color(0xFFEBEBF5) : const Color(0xFF6E6E73);
+    final dividerColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE0E0E0);
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: Container(
+        width: 320,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Title
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+              child: Text(
+                '输入文字',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                ),
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          // 字号调节滑块
-          Row(
-            children: [
-              const Icon(Icons.format_size, size: 18),
-              Expanded(
-                child: Slider(
-                  value: _fontSize,
-                  min: 8,
-                  max: 200,
-                  label: _fontSize.round().toString(),
-                  onChanged: (v) => setState(() => _fontSize = v),
-                ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CupertinoTextField(
+                    controller: _controller,
+                    autofocus: true,
+                    maxLines: 3,
+                    placeholder: '请输入文字内容',
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF3A3A3C) : Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: dividerColor),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // 字号调节滑块
+                  Row(
+                    children: [
+                      Icon(Icons.format_size_rounded, size: 18, color: subTextColor),
+                      Expanded(
+                        child: CupertinoSlider(
+                          value: _fontSize,
+                          min: 8,
+                          max: 200,
+                          onChanged: (v) => setState(() => _fontSize = v),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 44,
+                        child: Text(
+                          '${_fontSize.round()}',
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: subTextColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              SizedBox(
-                width: 44,
-                child: Text(
-                  '${_fontSize.round()}',
-                  textAlign: TextAlign.right,
-                  style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 16),
+            // Divider
+            Container(height: 0.5, color: dividerColor),
+            // Actions
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF0066CC),
+                        shape: const RoundedRectangleBorder(),
+                        textStyle: const TextStyle(fontSize: 17),
+                      ),
+                      child: const Text('取消'),
+                    ),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+                Container(width: 0.5, height: 44, color: dividerColor),
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(
+                        context,
+                      ).pop(_TextDialogResult(text: _controller.text, fontSize: _fontSize)),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF0066CC),
+                        shape: const RoundedRectangleBorder(),
+                        textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                      ),
+                      child: const Text('确定'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(
-            context,
-          ).pop(_TextDialogResult(text: _controller.text, fontSize: _fontSize)),
-          child: const Text('确定'),
-        ),
-      ],
     );
   }
 }

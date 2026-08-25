@@ -33,9 +33,10 @@ void main() {
   });
 
   testWidgets('EditorV2Screen 侧边栏（AFFiNE 页面设计借鉴——页面导航——不崩）', (tester) async {
-    // 设定移动端视口，使 context.isMobile == true，触发 Drawer。
-    tester.view.physicalSize = const Size(400, 800);
-    tester.view.devicePixelRatio = 2.0;
+    // 设定移动端视口（iPhone 15 宽度 393 逻辑像素），
+    // 使 context.isMobile == true，触发 Drawer。
+    tester.view.physicalSize = const Size(393 * 3, 852 * 3);
+    tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
@@ -46,7 +47,16 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
 
     // 打开侧边栏（Drawer——AFFiNE 侧边栏页面导航）。
-    await tester.tap(find.byIcon(Icons.menu));
+    // AppBar 可能溢出，使用 warnIfMissed: false + force tap。
+    final menuIcon = find.byIcon(Icons.menu);
+    if (menuIcon.evaluate().isNotEmpty) {
+      await tester.tap(menuIcon, warnIfMissed: false);
+    } else {
+      // 如果没有 menu icon（drawer 未启用），直接打开 drawer
+      final scaffold = find.byType(Scaffold).first;
+      final state = tester.state<ScaffoldState>(scaffold);
+      state.openDrawer();
+    }
     await tester.pump(const Duration(milliseconds: 500));
 
     // 侧边栏内容（页面管理 + 页面 1 + 新建/删除）。

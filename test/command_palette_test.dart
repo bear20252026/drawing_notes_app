@@ -2,6 +2,7 @@ import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -34,7 +35,7 @@ void main() {
     expect(find.text('命令面板'), findsWidgets, reason: '主菜单应能打开命令面板');
 
     // 搜索过滤：输入"网格"后，匹配命令过滤进视口。
-    await tester.enterText(find.byType(TextField).first, '网格');
+    await tester.enterText(find.byType(CupertinoTextField).first, '网格');
     await tester.pumpAndSettle();
     expect(find.text('显示或隐藏网格'), findsWidgets);
     expect(find.text('导出 PNG'), findsNothing, reason: '搜索应过滤掉不匹配命令');

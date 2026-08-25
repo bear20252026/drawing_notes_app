@@ -319,9 +319,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
 
   void _showSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    AppSnackbar.showInfo(context, message);
   }
 
   void _onNotebookMenuSelected(_NotebookMenuItem item) {
@@ -341,25 +339,22 @@ extension _NotebookPageManage on _NotebookViewPageState {
 
   /// 删除页面（二次确认）。
   Future<void> _deletePage(NotebookPage page) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('删除页面'),
-        content: Text('确定删除页面「${page.title}」吗？其中的手写与文字内容将一并删除。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-            ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('删除'),
-          ),
-        ],
-      ),
+    final ok = await showIosDialog<bool>(
+      context,
+      title: '删除页面',
+      content: '确定删除页面「${page.title}」吗？其中的手写与文字内容将一并删除。',
+      actions: [
+        IosDialogAction(
+          label: '取消',
+          result: false,
+        ),
+        IosDialogAction(
+          label: '删除',
+          isDestructive: true,
+          isDefault: true,
+          result: true,
+        ),
+      ],
     );
     if (ok != true) return;
     _applyState(() => _notebook.pages.removeWhere((p) => p.id == page.id));

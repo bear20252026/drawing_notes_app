@@ -25,6 +25,7 @@ import 'onboarding.dart';
 import '../../../shared/widgets/ambient_background.dart';
 import '../../../shared/widgets/glass_surface.dart';
 import '../../../core/ui/widgets/ios_dialog.dart';
+import '../../../core/ui/widgets/app_snackbar.dart';
 import '../../editor_v2/presentation/editor_v2_screen.dart';
 import 'package:editor_core/editor_core.dart' hide TabBar;
 import 'notebook_view_page.dart';
@@ -282,83 +283,117 @@ class _HomePageState extends ConsumerState<HomePage> {
   Future<void> _showTrashDialog() async {
     final trash = await _docStorage.listTrash();
     if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)?.trash ?? '回收站（30 天内可恢复）'),
-        content: ConstrainedBox(
-          // L-02 响应式（专家审计 2026-08-15）：maxWidth 而非固定宽度——
-          // 窄屏自适应（原 SizedBox 固定 380 在窄屏可能溢出）。
-          constraints: const BoxConstraints(maxWidth: 380),
-          child: trash.isEmpty
-              ? Text(AppLocalizations.of(context)?.homeTrashEmpty ?? '回收站为空')
-              : ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: trash.length,
-                  itemBuilder: (context, i) {
-                    final item = trash[i];
-                    final time = item.$3.toLocal().toString().substring(0, 16);
-                    return ListTile(
-                      title: Text(item.$2),
-                      subtitle: Text(
-                        AppLocalizations.of(context)?.homeDeletedAt(time) ??
-                            '删除于 $time',
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            tooltip: AppLocalizations.of(context)?.homeRecover ??
-                                '恢复',
-                            icon: const Icon(Icons.restore),
-                            onPressed: () async {
-                              final id =
-                                  await _docStorage.restoreTrash(item.$1);
-                              if (ctx.mounted) Navigator.of(ctx).pop();
-                              _refresh();
-                              if (id != null) _showSnack(AppLocalizations.of(context)?.homeRecovered(id) ?? '已恢复「$id」');
-                            },
-                          ),
-                          IconButton(
-                            tooltip: AppLocalizations.of(context)?.homeDeleteForever ??
-                                '永久删除',
-                            icon: const Icon(Icons.delete_forever),
-                            onPressed: () async {
-                              final ok = await _confirmDelete(
-                                AppLocalizations.of(context)?.homeDeleteForever ?? '永久删除',
-                                AppLocalizations.of(context)?.homeConfirmPermanentDelete(item.$2) ?? '确定永久删除「${item.$2}」吗？此操作不可恢复。',
-                              );
-                              if (ok == true) {
-                                await _docStorage
-                                    .deleteTrashPermanently(item.$1);
-                                if (ctx.mounted) Navigator.of(ctx).pop();
-                                _refresh();
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+    final l10n = AppLocalizations.of(context);
+    final result = await showIosDialog<String>(
+      context,
+      title: l10n?.trash ?? '回收站（30 天内可恢复）',
+      contentWidget: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 380, maxHeight: 280),
+        child: trash.isEmpty
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(
+                    l10n?.homeTrashEmpty ?? '回收站为空',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: Color(0xFF6E6E73),
+                    ),
+                  ),
                 ),
-        ),
-        actions: [
-          if (trash.isNotEmpty)
-            TextButton(
-              onPressed: () async {
-                await _docStorage.purgeTrash();
-                if (ctx.mounted) Navigator.of(ctx).pop();
-                _refresh();
-              },
-              child: Text(AppLocalizations.of(context)?.homeEmptyTrash ?? '清空回收站'),
-            ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(AppLocalizations.of(context)?.close ?? '关闭'),
-          ),
-        ],
+              )
+            : ListView.builder(
+                shrinkWrap: true,
+                itemCount: trash.length,
+                itemBuilder: (context, i) {
+                  final item = trash[i];
+                  final time = item.$3.toLocal().toString().substring(0, 16);
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: Color(0xFFE0E0E0), width: 0.5),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.$2,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF1D1D1F),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                l10n?.homeDeletedAt(time) ?? '删除于 $time',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF6E6E73),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: l10n?.homeRecover ?? '恢复',
+                          icon: const Icon(Icons.restore_rounded, size: 22),
+                          color: const Color(0xFF0066CC),
+                          onPressed: () async {
+                            final id = await _docStorage.restoreTrash(item.$1);
+                            if (context.mounted) Navigator.of(context).pop();
+                            _refresh();
+                            if (id != null) {
+                              _showSnack(l10n?.homeRecovered(id) ?? '已恢复「$id」');
+                            }
+                          },
+                        ),
+                        IconButton(
+                          tooltip: l10n?.homeDeleteForever ?? '永久删除',
+                          icon: const Icon(Icons.delete_forever_rounded, size: 22),
+                          color: const Color(0xFFFF3B30),
+                          onPressed: () async {
+                            final ok = await _confirmDelete(
+                              l10n?.homeDeleteForever ?? '永久删除',
+                              l10n?.homeConfirmPermanentDelete(item.$2) ?? '确定永久删除「${item.$2}」吗？此操作不可恢复。',
+                            );
+                            if (ok == true) {
+                              await _docStorage.deleteTrashPermanently(item.$1);
+                              if (context.mounted) Navigator.of(context).pop();
+                              _refresh();
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
       ),
+      actions: [
+        if (trash.isNotEmpty)
+          IosDialogAction(
+            label: l10n?.homeEmptyTrash ?? '清空回收站',
+            isDestructive: true,
+            result: 'purge',
+          ),
+        IosDialogAction(
+          label: l10n?.close ?? '关闭',
+          isDefault: true,
+        ),
+      ],
     );
+
+    // Handle purge action
+    if (result == 'purge' && mounted) {
+      await _docStorage.purgeTrash();
+      _refresh();
+    }
   }
 
   Future<bool?> _confirmDelete(String title, String content) {
@@ -384,7 +419,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   void _showSnack(String message) {
     if (!mounted) return;
     AppSnackbar.show(context, message: message);
-  }
   }
 
   /// 旧版加密格式提示（红蓝攻防 D-1 修复 2026-08-15）：
@@ -609,22 +643,23 @@ class _HomePageState extends ConsumerState<HomePage> {
     final l10n = AppLocalizations.of(context);
     // 构建索引可能涉及解密读取，先显示加载指示（不可手动关闭）。
     unawaited(
-      showDialog<void>(
-        context: context,
+      showIosDialog<void>(
+        context,
         barrierDismissible: false,
-        builder: (_) => AlertDialog(
-          content: SizedBox(
-            width: 220,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const CupertinoActivityIndicator(radius: 14),
-                const SizedBox(width: 16),
-                Expanded(child: Text(l10n?.searchHint ?? '正在建立搜索索引…')),
-              ],
-            ),
+        title: '',
+        contentWidget: SizedBox(
+          width: 220,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CupertinoActivityIndicator(radius: 14),
+              const SizedBox(width: 16),
+              Expanded(child: Text(l10n?.searchHint ?? '正在建立搜索索引…')),
+            ],
           ),
         ),
+        actions: const [],
       ),
     );
     final SearchIndex index;
@@ -677,9 +712,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           }
         }
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)?.searchNoResults ?? '未找到匹配内容')),
-        );
+        AppSnackbar.showInfo(context, AppLocalizations.of(context)?.searchNoResults ?? '未找到匹配内容');
       } else if (target.documentId != null) {
         final metas = await _docStorage.listDocuments();
         for (final meta in metas) {
@@ -689,15 +722,11 @@ class _HomePageState extends ConsumerState<HomePage> {
           }
         }
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)?.searchNoResults ?? '未找到匹配内容')),
-        );
+        AppSnackbar.showInfo(context, AppLocalizations.of(context)?.searchNoResults ?? '未找到匹配内容');
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${AppLocalizations.of(context)?.exportFailed ?? '打开失败'}: $e')),
-      );
+      AppSnackbar.showError(context, '${AppLocalizations.of(context)?.exportFailed ?? '打开失败'}: $e');
     }
   }
 

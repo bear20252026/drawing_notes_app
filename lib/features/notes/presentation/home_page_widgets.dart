@@ -156,27 +156,92 @@ class _NameDialogState extends State<_NameDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.title),
-      content: TextField(
-        controller: _controller,
-        autofocus: true,
-        decoration: const InputDecoration(
-          hintText: '请输入名称',
-          border: OutlineInputBorder(),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7);
+    final textColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF1D1D1F);
+    final dividerColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE0E0E0);
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: Container(
+        width: 270,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(14),
         ),
-        onSubmitted: (v) => Navigator.of(context).pop(v),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Title
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+              child: Text(
+                widget.title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                ),
+              ),
+            ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: CupertinoTextField(
+                controller: _controller,
+                autofocus: true,
+                placeholder: '请输入名称',
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF3A3A3C) : Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: dividerColor),
+                ),
+                onSubmitted: (v) => Navigator.of(context).pop(v),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Divider
+            Container(height: 0.5, color: dividerColor),
+            // Actions
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF0066CC),
+                        shape: const RoundedRectangleBorder(),
+                        textStyle: const TextStyle(fontSize: 17),
+                      ),
+                      child: const Text('取消'),
+                    ),
+                  ),
+                ),
+                Container(width: 0.5, height: 44, color: dividerColor),
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(_controller.text),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF0066CC),
+                        shape: const RoundedRectangleBorder(),
+                        textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                      ),
+                      child: const Text('确定'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: const Text('确定'),
-        ),
-      ],
     );
   }
 }
@@ -203,32 +268,103 @@ class _PasswordDialogState extends State<_PasswordDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.title),
-      content: TextField(
-        controller: _controller,
-        obscureText: _obscure,
-        autofocus: true,
-        decoration: InputDecoration(
-          hintText: '请输入密码',
-          border: const OutlineInputBorder(),
-          suffixIcon: IconButton(
-            icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
-            onPressed: () => setState(() => _obscure = !_obscure),
-          ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7);
+    final textColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF1D1D1F);
+    final dividerColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE0E0E0);
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: Container(
+        width: 270,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(14),
         ),
-        onSubmitted: (v) => Navigator.of(context).pop(v),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Title
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+              child: Text(
+                widget.title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                ),
+              ),
+            ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: CupertinoTextField(
+                controller: _controller,
+                obscureText: _obscure,
+                autofocus: true,
+                placeholder: '请输入密码',
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF3A3A3C) : Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: dividerColor),
+                ),
+                suffix: CupertinoButton(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minSize: 0,
+                  onPressed: () => setState(() => _obscure = !_obscure),
+                  child: Icon(
+                    _obscure ? CupertinoIcons.eye_slash : CupertinoIcons.eye,
+                    size: 18,
+                    color: const Color(0xFF8E8E93),
+                  ),
+                ),
+                onSubmitted: (v) => Navigator.of(context).pop(v),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Divider
+            Container(height: 0.5, color: dividerColor),
+            // Actions
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF0066CC),
+                        shape: const RoundedRectangleBorder(),
+                        textStyle: const TextStyle(fontSize: 17),
+                      ),
+                      child: const Text('取消'),
+                    ),
+                  ),
+                ),
+                Container(width: 0.5, height: 44, color: dividerColor),
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(_controller.text),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF0066CC),
+                        shape: const RoundedRectangleBorder(),
+                        textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                      ),
+                      child: const Text('确定'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: const Text('确定'),
-        ),
-      ],
     );
   }
 }

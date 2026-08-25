@@ -61,9 +61,7 @@ extension _EditorPagePersistence on _EditorPageState {
 
   void _showSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    AppSnackbar.showInfo(context, message);
   }
 
   /// 导出当前画布为 PDF（委托给 [EditorExporter]，含 notebook 分支）。

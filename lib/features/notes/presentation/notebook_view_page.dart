@@ -7,6 +7,7 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -16,6 +17,8 @@ import '../../drawing/domain/document.dart';
 import '../domain/notebook.dart';
 import '../infrastructure/notebook_storage.dart';
 import '../../../core/storage/password_disk.dart';
+import '../../../core/ui/widgets/ios_dialog.dart';
+import '../../../core/ui/widgets/app_snackbar.dart';
 import '../../../core/security/policy_engine.dart';
 import '../../../core/security/session_guard.dart';
 import '../../../core/storage/vfs/vault_service.dart';
@@ -112,16 +115,12 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
       _save();
       MediaCryptoService.instance.clearSessionKey();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('会话已锁定，请重新解锁')),
-        );
+        AppSnackbar.showWarning(context, '会话已锁定，请重新解锁');
       }
     },
     onReauthenticateRequired: () {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('会话已过期，请重新解锁')),
-        );
+        AppSnackbar.showWarning(context, '会话已过期，请重新解锁');
       }
     },
   );
@@ -258,9 +257,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
       // await _saveCompletion.future 永久等待（保存失败挂起）。
       completion.completeError(e);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('保存失败：${e.runtimeType}')));
+        AppSnackbar.showError(context, '保存失败：${e.runtimeType}');
       }
     } finally {
       _saving = false;

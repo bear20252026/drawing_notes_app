@@ -230,71 +230,163 @@ class _CreatePageDialogState extends State<_CreatePageDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('新建页面'),
-      content: SizedBox(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7);
+    final textColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF1D1D1F);
+    final subTextColor = isDark ? const Color(0xFFEBEBF5) : const Color(0xFF6E6E73);
+    final dividerColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE0E0E0);
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: Container(
         width: 560,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: _controller,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  labelText: '页面名称',
-                  hintText: '例如：产品评审 08-14',
-                  border: OutlineInputBorder(),
-                ),
-                onSubmitted: (_) => Navigator.of(context).pop(
-                  _NewPageRequest(title: _controller.text, template: _template),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Title
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+              child: Text(
+                '新建页面',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
                 ),
               ),
-              const SizedBox(height: 20),
-              Text('选择模板', style: Theme.of(context).textTheme.titleSmall),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final template in PageTemplate.values)
-                    ChoiceChip(
-                      label: Text(template.label),
-                      selected: _template == template,
-                      onSelected: (_) => setState(() => _template = template),
+            ),
+            // Content
+            Flexible(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CupertinoTextField(
+                        controller: _controller,
+                        autofocus: true,
+                        placeholder: '例如：产品评审 08-14',
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF3A3A3C) : Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: dividerColor),
+                        ),
+                        onSubmitted: (_) => Navigator.of(context).pop(
+                          _NewPageRequest(title: _controller.text, template: _template),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        '选择模板',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: textColor,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final template in PageTemplate.values)
+                            GestureDetector(
+                              onTap: () => setState(() => _template = template),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                curve: Curves.easeInOut,
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: _template == template
+                                      ? const Color(0xFF0066CC)
+                                      : (isDark ? const Color(0xFF3A3A3C) : const Color(0xFFE5E5EA)),
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                child: Text(
+                                  template.label,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: _template == template
+                                        ? Colors.white
+                                        : textColor,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        _template == PageTemplate.meeting
+                            ? '包含议题、决策和行动项的起始结构。'
+                            : _template == PageTemplate.cornell
+                            ? '包含线索、笔记和总结区域的起始结构。'
+                            : _template == PageTemplate.planner
+                            ? '包含重点、日程与复盘的起始结构。'
+                            : _template == PageTemplate.whiteboard
+                            ? '使用宽阔空白画布模式；当前版本仍采用固定坐标纸面。'
+                            : '纸张背景会随模板设置并保存到页面。',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: subTextColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Divider
+            Container(height: 0.5, color: dividerColor),
+            // Actions
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF0066CC),
+                        shape: const RoundedRectangleBorder(),
+                        textStyle: const TextStyle(fontSize: 17),
+                      ),
+                      child: const Text('取消'),
                     ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                _template == PageTemplate.meeting
-                    ? '包含议题、决策和行动项的起始结构。'
-                    : _template == PageTemplate.cornell
-                    ? '包含线索、笔记和总结区域的起始结构。'
-                    : _template == PageTemplate.planner
-                    ? '包含重点、日程与复盘的起始结构。'
-                    : _template == PageTemplate.whiteboard
-                    ? '使用宽阔空白画布模式；当前版本仍采用固定坐标纸面。'
-                    : '纸张背景会随模板设置并保存到页面。',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-          ),
+                  ),
+                ),
+                Container(width: 0.5, height: 44, color: dividerColor),
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(
+                        _NewPageRequest(title: _controller.text, template: _template),
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF0066CC),
+                        shape: const RoundedRectangleBorder(),
+                        textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                      ),
+                      child: const Text('创建并开始记录'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(
-            context,
-          ).pop(_NewPageRequest(title: _controller.text, template: _template)),
-          child: const Text('创建并开始记录'),
-        ),
-      ],
     );
   }
 }
@@ -320,27 +412,92 @@ class _PageNameDialogState extends State<_PageNameDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.title),
-      content: TextField(
-        controller: _controller,
-        autofocus: true,
-        decoration: const InputDecoration(
-          hintText: '请输入页面名称',
-          border: OutlineInputBorder(),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7);
+    final textColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF1D1D1F);
+    final dividerColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE0E0E0);
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: Container(
+        width: 270,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(14),
         ),
-        onSubmitted: (v) => Navigator.of(context).pop(v),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Title
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+              child: Text(
+                widget.title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                ),
+              ),
+            ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: CupertinoTextField(
+                controller: _controller,
+                autofocus: true,
+                placeholder: '请输入页面名称',
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF3A3A3C) : Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: dividerColor),
+                ),
+                onSubmitted: (v) => Navigator.of(context).pop(v),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Divider
+            Container(height: 0.5, color: dividerColor),
+            // Actions
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF0066CC),
+                        shape: const RoundedRectangleBorder(),
+                        textStyle: const TextStyle(fontSize: 17),
+                      ),
+                      child: const Text('取消'),
+                    ),
+                  ),
+                ),
+                Container(width: 0.5, height: 44, color: dividerColor),
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(_controller.text),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF0066CC),
+                        shape: const RoundedRectangleBorder(),
+                        textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                      ),
+                      child: const Text('确定'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: const Text('确定'),
-        ),
-      ],
     );
   }
 }
@@ -368,45 +525,117 @@ class _PasswordDialogState extends State<_PasswordDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.title),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (widget.hint.isNotEmpty)
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7);
+    final textColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF1D1D1F);
+    final subTextColor = isDark ? const Color(0xFFEBEBF5) : const Color(0xFF6E6E73);
+    final dividerColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE0E0E0);
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: Container(
+        width: 270,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Title
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
               child: Text(
-                widget.hint,
-                style: Theme.of(context).textTheme.bodySmall,
+                widget.title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                ),
               ),
             ),
-          TextField(
-            controller: _controller,
-            obscureText: _obscure,
-            autofocus: true,
-            decoration: InputDecoration(
-              hintText: '请输入密码',
-              border: const OutlineInputBorder(),
-              suffixIcon: IconButton(
-                icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
-                onPressed: () => setState(() => _obscure = !_obscure),
+            // Hint
+            if (widget.hint.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text(
+                  widget.hint,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: subTextColor,
+                  ),
+                ),
+              ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: CupertinoTextField(
+                controller: _controller,
+                obscureText: _obscure,
+                autofocus: true,
+                placeholder: '请输入密码',
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF3A3A3C) : Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: dividerColor),
+                ),
+                suffix: CupertinoButton(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minSize: 0,
+                  onPressed: () => setState(() => _obscure = !_obscure),
+                  child: Icon(
+                    _obscure ? CupertinoIcons.eye_slash : CupertinoIcons.eye,
+                    size: 18,
+                    color: const Color(0xFF8E8E93),
+                  ),
+                ),
+                onSubmitted: (v) => Navigator.of(context).pop(v),
               ),
             ),
-            onSubmitted: (v) => Navigator.of(context).pop(v),
-          ),
-        ],
+            const SizedBox(height: 16),
+            // Divider
+            Container(height: 0.5, color: dividerColor),
+            // Actions
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF0066CC),
+                        shape: const RoundedRectangleBorder(),
+                        textStyle: const TextStyle(fontSize: 17),
+                      ),
+                      child: const Text('取消'),
+                    ),
+                  ),
+                ),
+                Container(width: 0.5, height: 44, color: dividerColor),
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(_controller.text),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF0066CC),
+                        shape: const RoundedRectangleBorder(),
+                        textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                      ),
+                      child: const Text('确定'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: const Text('确定'),
-        ),
-      ],
     );
   }
 }

@@ -1,5 +1,8 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart' hide Dialog, Colors, TextButton, Theme;
 
+import '../../../core/ui/widgets/ios_dialog.dart';
 import 'editor_components.dart';
 import '../domain/shape_item.dart';
 import 'editor_toolbar.dart' show shapeTypeName;
@@ -137,89 +140,140 @@ class _ShapeLibraryDialogState extends State<ShapeLibraryDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7);
+    final textColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF1D1D1F);
+    final subTextColor = isDark ? const Color(0xFFEBEBF5) : const Color(0xFF6E6E73);
+    final dividerColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE0E0E0);
     final results = widget.library.search(_query);
-    return AlertDialog(
-      title: const Text('形状库（图书馆）'),
-      content: SizedBox(
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: Container(
         width: 460,
         height: 420,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(14),
+        ),
         child: Column(
           children: [
-            TextField(
-              controller: _search,
-              onChanged: (v) => setState(() => _query = v),
-              decoration: const InputDecoration(
-                hintText: '检索形状（如：矩形/椭圆/箭头）…',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-                isDense: true,
+            // Title
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+              child: Text(
+                '形状库（图书馆）',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                ),
               ),
             ),
-            const SizedBox(height: 10),
+            // Content
             Expanded(
-              child: results.isEmpty
-                  ? const Center(
-                      child: Text(
-                        '没有匹配的形状',
-                        style: TextStyle(color: Colors.grey),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    CupertinoTextField(
+                      controller: _search,
+                      onChanged: (v) => setState(() => _query = v),
+                      placeholder: '检索形状（如：矩形/椭圆/箭头）…',
+                      prefix: const Padding(
+                        padding: EdgeInsets.only(left: 8),
+                        child: Icon(CupertinoIcons.search, size: 18, color: Color(0xFF8E8E93)),
                       ),
-                    )
-                  : GridView.builder(
-                      gridDelegate:
-                          const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 110,
-                            childAspectRatio: 1.1,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                          ),
-                      itemCount: results.length,
-                      itemBuilder: (context, i) {
-                        final s = results[i];
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(6),
-                          onTap: () {
-                            widget.onInsert(s);
-                            Navigator.of(context).pop();
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            padding: const EdgeInsets.all(6),
-                            child: Column(
-                              children: [
-                                Expanded(
-                                  child: CustomPaint(
-                                    painter: ShapePainter(
-                                      shape: s,
-                                      viewScale: 1.0,
-                                    ),
-                                    child: const SizedBox.expand(),
-                                  ),
-                                ),
-                                Text(
-                                  shapeTypeName(s.shapeType),
-                                  style: Theme.of(context).textTheme.labelSmall,
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF3A3A3C) : Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: dividerColor),
+                      ),
                     ),
+                    const SizedBox(height: 10),
+                    Expanded(
+                      child: results.isEmpty
+                          ? Center(
+                              child: Text(
+                                '没有匹配的形状',
+                                style: TextStyle(color: subTextColor),
+                              ),
+                            )
+                          : GridView.builder(
+                              gridDelegate:
+                                  const SliverGridDelegateWithMaxCrossAxisExtent(
+                                    maxCrossAxisExtent: 110,
+                                    childAspectRatio: 1.1,
+                                    crossAxisSpacing: 8,
+                                    mainAxisSpacing: 8,
+                                  ),
+                              itemCount: results.length,
+                              itemBuilder: (context, i) {
+                                final s = results[i];
+                                return GestureDetector(
+                                  onTap: () {
+                                    widget.onInsert(s);
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? const Color(0xFF3A3A3C)
+                                          : const Color(0xFFE5E5EA),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    padding: const EdgeInsets.all(6),
+                                    child: Column(
+                                      children: [
+                                        Expanded(
+                                          child: CustomPaint(
+                                            painter: ShapePainter(
+                                              shape: s,
+                                              viewScale: 1.0,
+                                            ),
+                                            child: const SizedBox.expand(),
+                                          ),
+                                        ),
+                                        Text(
+                                          shapeTypeName(s.shapeType),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: subTextColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Divider
+            Container(height: 0.5, color: dividerColor),
+            // Actions
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF0066CC),
+                  shape: const RoundedRectangleBorder(),
+                  textStyle: const TextStyle(fontSize: 17),
+                ),
+                child: const Text('关闭'),
+              ),
             ),
           ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('关闭'),
-        ),
-      ],
     );
   }
 }
