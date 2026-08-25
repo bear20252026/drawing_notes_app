@@ -66,10 +66,11 @@ class _HomePageState extends ConsumerState<HomePage> {
   late final NotebookStorage _nbStorage;
   late final StorageService _docStorage;
 
-  List<Notebook> _notebooks = [];
-  List<DocumentMeta> _documents = [];
-  bool _loading = true;
-  String? _error;
+  /// 分离的数据 notifier：画板和笔记本各自独立更新，避免全量重建。
+  final ValueNotifier<List<Notebook>> _notebooks = ValueNotifier([]);
+  final ValueNotifier<List<DocumentMeta>> _documents = ValueNotifier([]);
+  final ValueNotifier<bool> _loading = ValueNotifier(true);
+  final ValueNotifier<String?> _error = ValueNotifier(null);
   int _tabIndex = 0;
 
   @override
@@ -91,25 +92,19 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Future<void> _refresh() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    _loading.value = true;
+    _error.value = null;
     try {
       final docs = await _docStorage.listDocuments();
       final nbs = await _nbStorage.listAll();
       if (!mounted) return;
-      setState(() {
-        _documents = docs;
-        _notebooks = nbs;
-        _loading = false;
-      });
+      _documents.value = docs;
+      _notebooks.value = nbs;
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = '读取列表失败：${e.runtimeType}';
-        _loading = false;
-      });
+      _error.value = '读取列表失败：${e.runtimeType}';
+    } finally {
+      _loading.value = false;
     }
   }
 
@@ -673,27 +668,32 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Widget _buildBody() {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+    return ValueListenableBuilder<bool>(
+      valueListenable: _loading,
+      builder: (context, loading, _) {
+        if (loading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (_error.value != null) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(_error.value!, style: const TextStyle(color: Colors.red)),
+                const SizedBox(height: 8),
+                OutlinedButton(onPressed: _refresh, child: Text(AppLocalizations.of(context)?.retry ?? '重试')),
+              ],
+            ),
+          );
+        }
+        return TabBarView(
           children: [
-            Text(_error!, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 8),
-            OutlinedButton(onPressed: _refresh, child: Text(AppLocalizations.of(context)?.retry ?? '重试')),
+            _buildDrawingsTab(),
+            _buildNotebooksTab(),
+            _buildTimelineTab(),
           ],
-        ),
-      );
-    }
-    return TabBarView(
-      children: [
-        _buildDrawingsTab(),
-        _buildNotebooksTab(),
-        _buildTimelineTab(),
-      ],
+        );
+      },
     );
   }
 
@@ -808,89 +808,97 @@ class _HomePageState extends ConsumerState<HomePage> {
   // ---------------- 画作 Tab ----------------
 
   Widget _buildDrawingsTab() {
-    if (_documents.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.brush_outlined, size: context.responsiveFont(mobile: 56, desktop: 72), color: Colors.grey),
-            SizedBox(height: context.responsiveFont(mobile: 8, desktop: 14)),
-            Text(
-              '还没有无限画布，点击右下角按钮新建一个吧',
-              style: TextStyle(fontSize: context.responsiveFont(mobile: 13, desktop: 15)),
-              textAlign: TextAlign.center,
+    return ValueListenableBuilder<List<DocumentMeta>>(
+      valueListenable: _documents,
+      builder: (context, documents, _) {
+        if (documents.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.brush_outlined, size: context.responsiveFont(mobile: 56, desktop: 72), color: Colors.grey),
+                SizedBox(height: context.responsiveFont(mobile: 8, desktop: 14)),
+                Text(
+                  '还没有无限画布，点击右下角按钮新建一个吧',
+                  style: TextStyle(fontSize: context.responsiveFont(mobile: 13, desktop: 15)),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-          ],
-        ),
-      );
-    }
-    final paddingH = context.responsivePadding().left;
-    return RefreshIndicator(
-      onRefresh: _refresh,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(
-          paddingH,
-          12,
-          paddingH,
-          context.responsiveFont(mobile: 80, desktop: 120),
-        ),
-        child: ResponsiveGrid(
-          mobileColumns: 2,
-          tabletColumns: 3,
-          desktopColumns: 4,
-          crossAxisSpacing: context.responsiveFont(mobile: 12, desktop: 18),
-          mainAxisSpacing: context.responsiveFont(mobile: 12, desktop: 18),
-          childAspectRatio: const ResponsiveValue<double>(
-            mobile: 0.78,
-            tablet: 0.80,
-            desktop: 0.82,
-          ).value(context),
-          children: [
-            for (var i = 0; i < _documents.length; i++)
-              _DrawingCard(
-                meta: _documents[i],
-                onTap: () => _openDrawing(_documents[i]),
-                onDelete: () => _deleteDrawing(_documents[i]),
-              ),
-          ],
-        ),
-      ),
+          );
+        }
+        final paddingH = context.responsivePadding().left;
+        return RefreshIndicator(
+          onRefresh: _refresh,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(
+              paddingH,
+              12,
+              paddingH,
+              context.responsiveFont(mobile: 80, desktop: 120),
+            ),
+            child: ResponsiveGrid(
+              mobileColumns: 2,
+              tabletColumns: 3,
+              desktopColumns: 4,
+              crossAxisSpacing: context.responsiveFont(mobile: 12, desktop: 18),
+              mainAxisSpacing: context.responsiveFont(mobile: 12, desktop: 18),
+              childAspectRatio: const ResponsiveValue<double>(
+                mobile: 0.78,
+                tablet: 0.80,
+                desktop: 0.82,
+              ).value(context),
+              children: [
+                for (var i = 0; i < documents.length; i++)
+                  _DrawingCard(
+                    meta: documents[i],
+                    onTap: () => _openDrawing(documents[i]),
+                    onDelete: () => _deleteDrawing(documents[i]),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
   // ---------------- 笔记本 Tab ----------------
 
   Widget _buildNotebooksTab() {
-    if (_notebooks.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.menu_book_outlined, size: context.responsiveFont(mobile: 56, desktop: 72), color: Colors.grey),
-            SizedBox(height: context.responsiveFont(mobile: 8, desktop: 14)),
-            Text(
-              '还没有笔记本，点击右下角按钮新建一个吧',
-              style: TextStyle(fontSize: context.responsiveFont(mobile: 13, desktop: 15)),
-              textAlign: TextAlign.center,
+    return ValueListenableBuilder<List<Notebook>>(
+      valueListenable: _notebooks,
+      builder: (context, notebooks, _) {
+        if (notebooks.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.menu_book_outlined, size: context.responsiveFont(mobile: 56, desktop: 72), color: Colors.grey),
+                SizedBox(height: context.responsiveFont(mobile: 8, desktop: 14)),
+                Text(
+                  '还没有笔记本，点击右下角按钮新建一个吧',
+                  style: TextStyle(fontSize: context.responsiveFont(mobile: 13, desktop: 15)),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-          ],
-        ),
-      );
-    }
-    final paddingH = context.responsivePadding().left;
-    return RefreshIndicator(
-      onRefresh: _refresh,
-      child: ListView.separated(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(
-          paddingH,
-          8,
-          paddingH,
-          context.responsiveFont(mobile: 80, desktop: 120),
-        ),
-        itemCount: _notebooks.length,
-        separatorBuilder: (_, _) => SizedBox(height: context.responsiveFont(mobile: 8, desktop: 12)),
+          );
+        }
+        final paddingH = context.responsivePadding().left;
+        return RefreshIndicator(
+          onRefresh: _refresh,
+          child: ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(
+              paddingH,
+              8,
+              paddingH,
+              context.responsiveFont(mobile: 80, desktop: 120),
+            ),
+            itemCount: notebooks.length,
+            separatorBuilder: (_, _) => SizedBox(height: context.responsiveFont(mobile: 8, desktop: 12)),
         itemBuilder: (context, i) {
           final nb = _notebooks[i];
           return Card(

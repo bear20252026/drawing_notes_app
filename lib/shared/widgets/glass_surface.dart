@@ -12,8 +12,8 @@ class GlassSurface extends StatelessWidget {
     super.key,
     required this.child,
     this.padding,
-    this.borderRadius = const BorderRadius.all(Radius.circular(18)),
-    this.sigma = 12,
+    this.borderRadius = const BorderRadius.all(Radius.circular(12)),
+    this.sigma = 10,
     this.enabled = true,
     this.color,
   });

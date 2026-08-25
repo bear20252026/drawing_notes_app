@@ -26,25 +26,25 @@ class DrawingNotesApp extends ConsumerStatefulWidget {
 }
 
 class _DrawingNotesAppState extends ConsumerState<DrawingNotesApp> {
-  GoRouter? _router;
+  late final GoRouter _router;
 
   @override
   void initState() {
     super.initState();
-    _initRouter();
+    // 路由立即创建，AuthGuard 在后台异步初始化。
+    // 路由 redirect 中会检查认证状态，初始化完成前不会错误拦截。
+    _router = createAppRouter();
+    _initAuth();
     // 全局热键必须在首帧后注册。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _registerGlobalHotkey();
     });
   }
 
-  Future<void> _initRouter() async {
+  Future<void> _initAuth() async {
     await AuthGuard.instance.initialize();
-    if (mounted) {
-      setState(() {
-        _router = createAppRouter();
-      });
-    }
+    // 路由守卫已在 router redirect 中通过 listener 处理状态变更，
+    // 无需 setState 重建 MaterialApp。
   }
 
   /// 注册全局热键（D6，借鉴 Notes 全局热键唤出）：
@@ -78,18 +78,6 @@ class _DrawingNotesAppState extends ConsumerState<DrawingNotesApp> {
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeProvider);
-
-    if (_router == null) {
-      return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: AppDesign.lightTheme(),
-        darkTheme: AppDesign.darkTheme(),
-        themeMode: themeMode,
-        home: const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        ),
-      );
-    }
 
     return MaterialApp.router(
       title: AppLocalizations.of(context)?.appTitle ?? '绘图笔记',

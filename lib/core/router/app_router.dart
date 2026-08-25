@@ -80,6 +80,7 @@ GoRouter createAppRouter() {
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: RoutePaths.home,
+    refreshListenable: AuthGuard.instance,  // AuthGuard 状态变更时重新评估 redirect
 
     // 全局路由守卫：认证 + 加密检查
     redirect: (BuildContext context, GoRouterState state) {

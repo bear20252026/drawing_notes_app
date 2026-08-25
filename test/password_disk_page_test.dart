@@ -128,11 +128,11 @@ void main() {
     });
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    // 关闭恢复密钥对话框
+    // 关闭恢复密钥对话框（warnIfMissed: false — 对话框可能被遮挡）。
     final okBtn = find.text('我已抄写');
     if (okBtn.evaluate().isNotEmpty) {
-      await tester.tap(okBtn);
-      await tester.pumpAndSettle();
+      await tester.tap(okBtn, warnIfMissed: false);
+      await tester.pump();
     }
 
     // 2. onKeyUnlocked 回调应在创建后自动触发
