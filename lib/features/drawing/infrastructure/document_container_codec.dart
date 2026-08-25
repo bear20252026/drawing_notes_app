@@ -20,6 +20,7 @@ library;
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui' show Color;
+import 'package:flutter/foundation.dart' show debugPrint;
 
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
