@@ -16,7 +16,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/drawing/application/search_service.dart';
 import '../../features/editor_v2/presentation/editor_v2_screen.dart';
 import '../../features/notes/domain/notebook.dart';
-import '../../features/notes/infrastructure/notebook_storage.dart';
+import '../../features/notes/infrastructure/services/notebook_storage.dart';
 import '../../features/notes/presentation/home_page.dart';
 import 'package:editor_core/editor_core.dart';
 import '../../features/notes/presentation/notebook_view_page.dart';
