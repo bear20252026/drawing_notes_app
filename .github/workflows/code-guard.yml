@@ -82,6 +82,10 @@ jobs:
         # 转正式门禁：--gate 阻断 + 聚焦安全域（secrets/danger），
         # 只拦安全 definite 问题；dead-code 存量不阻断（避免历史债阻塞
         # 合并），由 desloppify/pyscn 跟踪。SARIF 归档审计留痕。
+        # 默认 30 秒在完整历史检出的大仓库中会提前终止 grep 复核，
+        # 因此显式放宽至 120 秒，仍受 job 的 15 分钟总超时保护。
+        env:
+          SKYLOS_GREP_BUDGET: "120"
         run: |
           skylos . --gate --secrets --danger --sarif skylos.sarif --format github
 
