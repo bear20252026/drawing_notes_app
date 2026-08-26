@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_design.dart';
+import '../../../core/security/app_lock_service.dart';
 
 /// 设置页面 — Apple Inset Grouped 风格 + 大标题。
 ///
@@ -106,14 +107,21 @@ class SettingsPage extends ConsumerWidget {
                     ),
                     const _Divider(),
                     _SettingsTile(
-                      icon: Icons.key_rounded,
+                      icon: Icons.screen_lock_portrait_rounded,
                       iconColor: AppDesign.appleOrange,
-                      title: '主密码',
-                      subtitle: '更改主密码',
+                      title: '应用锁定',
+                      subtitle: _appLockSubtitle(),
                       trailing: Icon(Icons.chevron_right, size: 18),
-                      onTap: () {
-                        // TODO: 主密码修改
-                      },
+                      onTap: () => context.push('/app-lock-settings'),
+                    ),
+                    const _Divider(),
+                    _SettingsTile(
+                      icon: Icons.shield_outlined,
+                      iconColor: AppDesign.appleOrange,
+                      title: 'PM码（胁迫密码）',
+                      subtitle: '设置胁迫时显示的伪装数据',
+                      trailing: Icon(Icons.chevron_right, size: 18),
+                      onTap: () => context.push('/pm-code-setup'),
                     ),
                   ],
                 ),
@@ -183,6 +191,13 @@ class SettingsPage extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// 应用锁副标题
+  String _appLockSubtitle() {
+    final service = AppLockService.instance;
+    if (!service.initialized) return '加载中...';
+    return service.enabled ? '已启用' : '未启用';
   }
 }
 

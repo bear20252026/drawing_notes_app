@@ -17,6 +17,8 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'app_lock_service.dart';
+
 /// 认证守卫
 ///
 /// 全局单例，管理密码盘认证状态。
@@ -52,6 +54,17 @@ class AuthGuard extends ChangeNotifier {
 
   /// 是否需要认证（有密码盘且未跳过）
   bool get requiresAuth => _passwordDiskExists && !_encryptionSkipped;
+
+  // ─────────────────── 应用锁集成 ───────────────────
+
+  /// 是否需要应用锁验证（应用锁已启用且当前会话未验证）
+  bool get requiresAppLock => AppLockService.instance.requiresAuth;
+
+  /// 应用锁是否已启用
+  bool get appLockEnabled => AppLockService.instance.enabled;
+
+  /// 是否需要任何形式的认证（密码盘或应用锁）
+  bool get requiresAnyAuth => requiresAuth || requiresAppLock;
 
   /// 认证状态变更事件流
   final _authController = StreamController<bool>.broadcast();
@@ -92,11 +105,17 @@ class AuthGuard extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 初始化：检查密码盘是否已设置、是否已跳过加密
+  /// 初始化：检查密码盘是否已设置、是否已跳过加密、应用锁状态
   Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
     _encryptionSkipped = prefs.getBool(_kEncryptionSkipped) ?? false;
     _passwordDiskExists = await _checkPasswordDiskExists();
+
+    // 初始化应用锁服务
+    await AppLockService.instance.initialize();
+
+    // 监听应用锁状态变化，触发路由重新评估
+    AppLockService.instance.addListener(_onAppLockChanged);
 
     if (_encryptionSkipped) {
       // 用户已选择跳过加密，直接认证通过
@@ -105,6 +124,11 @@ class AuthGuard extends ChangeNotifier {
       // 密码盘不存在，直接通过（不需要认证）
       _authenticated = true;
     }
+    notifyListeners();
+  }
+
+  /// 应用锁状态变更回调 — 通知路由重新评估 redirect
+  void _onAppLockChanged() {
     notifyListeners();
   }
 
@@ -124,6 +148,7 @@ class AuthGuard extends ChangeNotifier {
 
   @override
   void dispose() {
+    AppLockService.instance.removeListener(_onAppLockChanged);
     _authController.close();
     super.dispose();
   }

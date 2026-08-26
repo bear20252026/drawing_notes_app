@@ -24,6 +24,10 @@ import '../../features/notes/presentation/password_disk_page.dart';
 import '../../features/notes/presentation/presentation_page.dart';
 import '../../features/notes/presentation/search_page.dart';
 import '../../features/onboarding/presentation/onboarding_page.dart';
+import '../../features/security/presentation/pm_code_setup_page.dart';
+import '../../features/security/presentation/pm_code_input_page.dart';
+import '../../features/settings/presentation/app_lock_page.dart';
+import '../../features/settings/presentation/app_lock_settings_page.dart';
 import '../../features/settings/presentation/settings_page.dart';
 import '../../features/shapes/presentation/shape_library_page.dart';
 import '../security/auth_guard.dart';
@@ -43,6 +47,10 @@ class RoutePaths {
   static const editorV2 = '/editor-v2';
   static const notebook = '/notebook';
   static const passwordDisk = '/password-disk';
+  static const appLock = '/app-lock';
+  static const appLockSettings = '/app-lock-settings';
+  static const pmCodeSetup = '/pm-code-setup';
+  static const pmCodeInput = '/pm-code-input';
   static const settings = '/settings';
   static const search = '/search';
   static const presentation = '/presentation';
@@ -59,6 +67,10 @@ class RouteNames {
   static const editorV2 = 'editor-v2';
   static const notebook = 'notebook';
   static const passwordDisk = 'password-disk';
+  static const appLock = 'app-lock';
+  static const appLockSettings = 'app-lock-settings';
+  static const pmCodeSetup = 'pm-code-setup';
+  static const pmCodeInput = 'pm-code-input';
   static const settings = 'settings';
   static const search = 'search';
   static const presentation = 'presentation';
@@ -81,13 +93,16 @@ GoRouter createAppRouter() {
     initialLocation: RoutePaths.home,
     refreshListenable: AuthGuard.instance,  // AuthGuard 状态变更时重新评估 redirect
 
-    // 全局路由守卫：认证 + 加密检查
+    // 全局路由守卫：认证 + 加密检查 + 应用锁检查
     redirect: (BuildContext context, GoRouterState state) {
       final location = state.matchedLocation;
       final auth = AuthGuard.instance;
 
       // 不拦截密码盘页本身（避免死循环）
       if (location == RoutePaths.passwordDisk) return null;
+
+      // 不拦截应用锁页本身（避免死循环）
+      if (location == RoutePaths.appLock) return null;
 
       // 不拦截 404 页
       if (location == '/404') return null;
@@ -96,6 +111,12 @@ GoRouter createAppRouter() {
       if (auth.requiresAuth && !auth.isAuthenticated) {
         final redirectPath = Uri.encodeComponent(location);
         return '${RoutePaths.passwordDisk}?redirect=$redirectPath';
+      }
+
+      // 需要应用锁验证时，重定向到应用锁页
+      // 注意：密码盘验证优先于应用锁（密码盘是更高级别的安全机制）
+      if (auth.requiresAppLock) {
+        return RoutePaths.appLock;
       }
 
       return null;
@@ -168,6 +189,42 @@ GoRouter createAppRouter() {
             redirect: redirect,
           );
         },
+      ),
+
+      // =====================================================================
+      // 应用锁页（应用级密码锁定）
+      // =====================================================================
+      GoRoute(
+        path: RoutePaths.appLock,
+        name: RouteNames.appLock,
+        builder: (context, state) => const AppLockPage(),
+      ),
+
+      // =====================================================================
+      // 应用锁设置页
+      // =====================================================================
+      GoRoute(
+        path: RoutePaths.appLockSettings,
+        name: RouteNames.appLockSettings,
+        builder: (context, state) => const AppLockSettingsPage(),
+      ),
+
+      // =====================================================================
+      // PM码（胁迫密码）设置页
+      // =====================================================================
+      GoRoute(
+        path: RoutePaths.pmCodeSetup,
+        name: RouteNames.pmCodeSetup,
+        builder: (context, state) => const PmCodeSetupPage(),
+      ),
+
+      // =====================================================================
+      // PM码（胁迫密码）输入页
+      // =====================================================================
+      GoRoute(
+        path: RoutePaths.pmCodeInput,
+        name: RouteNames.pmCodeInput,
+        builder: (context, state) => const PmCodeInputPage(),
       ),
 
       // =====================================================================
@@ -263,7 +320,7 @@ Widget _buildNotFoundPage(BuildContext context, {String? subtitle}) {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.error_outline, size: 64, color: Colors.red),
+          const Icon(Icons.error_outline, size: 64, color: Color(0xFFFF3B30)),
           const SizedBox(height: 24),
           Text(
             subtitle ?? '页面未找到',
@@ -350,7 +407,7 @@ class _NotebookViewWrapperState extends State<_NotebookViewWrapper> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const Icon(Icons.error_outline, size: 48, color: Color(0xFFFF3B30)),
                   const SizedBox(height: 16),
                   Text('无法加载笔记本: ${widget.notebookId}'),
                   const SizedBox(height: 16),
@@ -409,7 +466,7 @@ class _PresentationWrapperState extends State<_PresentationWrapper> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const Icon(Icons.error_outline, size: 48, color: Color(0xFFFF3B30)),
                   const SizedBox(height: 16),
                   Text('无法加载笔记本: ${widget.notebookId}'),
                   const SizedBox(height: 16),
