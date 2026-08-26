@@ -3,17 +3,26 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/features/drawing/application/search_service.dart';
+import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 
 /// 全文搜索页（借鉴 Joplin / nb 的全文搜索）。
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key, required this.searchService});
+  const SearchPage({
+    super.key,
+    required this.searchService,
+    this.notebookStorage,
+    this.documentStorage,
+    this.editorPageBuilder,
+  });
 
   final SearchService searchService;
+  final NotebookStorage? notebookStorage;
+  final StorageService? documentStorage;
+  final EditorPageBuilder? editorPageBuilder;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -57,12 +66,13 @@ class _SearchPageState extends State<SearchPage> {
     if (r.kind == 'drawing') {
       final meta = r.drawingMeta;
       if (meta == null) return;
-      final storage = StorageService();
+      final storage = widget.documentStorage ?? StorageService();
+      final builder = widget.editorPageBuilder;
       final doc = await storage.load(meta.id);
-      if (doc == null || !mounted) return;
+      if (doc == null || !mounted || builder == null) return;
       await Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => EditorPage(document: doc, docStorage: storage),
+          builder: (_) => builder(document: doc, documentStorage: storage),
         ),
       );
       return;
@@ -70,12 +80,16 @@ class _SearchPageState extends State<SearchPage> {
     // 笔记本命中：打开笔记本页面管理。
     final nbId = r.notebookId;
     if (nbId == null) return;
-    final nbStorage = NotebookStorage();
+    final nbStorage = widget.notebookStorage ?? NotebookStorage();
     final nb = await nbStorage.load(nbId);
     if (nb == null || !mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => NotebookViewPage(notebook: nb, storage: nbStorage),
+        builder: (_) => NotebookViewPage(
+          notebook: nb,
+          storage: nbStorage,
+          editorPageBuilder: widget.editorPageBuilder,
+        ),
       ),
     );
   }
@@ -101,7 +115,8 @@ class _SearchPageState extends State<SearchPage> {
               autofocus: true,
               onChanged: _onQueryChanged,
               decoration: InputDecoration(
-                hintText: AppLocalizations.of(context)?.searchHint ?? '搜索文字块内容 / 标题…',
+                hintText:
+                    AppLocalizations.of(context)?.searchHint ?? '搜索文字块内容 / 标题…',
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -122,12 +137,18 @@ class _SearchPageState extends State<SearchPage> {
     }
     if (_controller.text.trim().isEmpty) {
       return Center(
-        child: Text(AppLocalizations.of(context)?.searchEmptyHint ?? '输入关键词开始搜索', style: TextStyle(color: Colors.grey)),
+        child: Text(
+          AppLocalizations.of(context)?.searchEmptyHint ?? '输入关键词开始搜索',
+          style: TextStyle(color: Colors.grey),
+        ),
       );
     }
     if (_results.isEmpty) {
       return Center(
-        child: Text(AppLocalizations.of(context)?.searchNoResults ?? '未找到匹配内容', style: TextStyle(color: Colors.grey)),
+        child: Text(
+          AppLocalizations.of(context)?.searchNoResults ?? '未找到匹配内容',
+          style: TextStyle(color: Colors.grey),
+        ),
       );
     }
     return ListView.builder(

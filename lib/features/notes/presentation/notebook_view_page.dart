@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:drawing_notes_app/core/theme/app_design.dart';
+import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'dart:io';
 import 'dart:math' as math;
 
@@ -24,7 +25,6 @@ import 'package:drawing_notes_app/core/storage/recovery_key_generator.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/presentation_page.dart';
 
 part 'notebook_view_page_widgets.dart';
@@ -46,6 +46,7 @@ class NotebookViewPage extends StatefulWidget {
     required this.notebook,
     required this.storage,
     this.onChanged,
+    this.editorPageBuilder,
     this.sessionPassword,
     this.sessionMasterKey,
   });
@@ -53,6 +54,9 @@ class NotebookViewPage extends StatefulWidget {
   final Notebook notebook;
   final NotebookStorage storage;
   final VoidCallback? onChanged;
+
+  /// 编辑器页面由应用组合根注入，避免 notes 直接依赖 drawing UI。
+  final EditorPageBuilder? editorPageBuilder;
 
   /// 会话内密码（仅内存持有，不落盘）：解密密码模式笔记本后传入，
   /// 使保存时可重加密最新内容（修复"编辑后无法保存"的致命问题）。
@@ -105,16 +109,16 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
       _save();
       MediaCryptoService.instance.clearSessionKey();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('会话已锁定，请重新解锁')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('会话已锁定，请重新解锁')));
       }
     },
     onReauthenticateRequired: () {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('会话已过期，请重新解锁')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('会话已过期，请重新解锁')));
       }
     },
   );
@@ -125,9 +129,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
     _notebook = widget.notebook;
     // H-05 部分落地：后台/切出自动保存草稿（防数据丢失；_save 有
     // _saving 保护不会并发堆叠；onInactive 覆盖切后台/失去焦点场景）。
-    _lifecycleListener = AppLifecycleListener(
-      onInactive: () => _save(),
-    );
+    _lifecycleListener = AppLifecycleListener(onInactive: () => _save());
   }
 
   /// 会话密钥内存清理（红蓝攻防 D-2 修复 2026-08-15）：
@@ -373,7 +375,10 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(Icons.link_rounded),
-                  title: Text(AppLocalizations.of(context)?.noteImportPage ?? '从其他笔记本引入页面'),
+                  title: Text(
+                    AppLocalizations.of(context)?.noteImportPage ??
+                        '从其他笔记本引入页面',
+                  ),
                 ),
               ),
               PopupMenuItem(
@@ -382,7 +387,10 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(Icons.upload_file_rounded),
-                  title: Text(AppLocalizations.of(context)?.noteImportMarkdown ?? '导入 Markdown 或文本'),
+                  title: Text(
+                    AppLocalizations.of(context)?.noteImportMarkdown ??
+                        '导入 Markdown 或文本',
+                  ),
                 ),
               ),
               PopupMenuItem(
@@ -391,7 +399,10 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(Icons.picture_as_pdf_outlined),
-                  title: Text(AppLocalizations.of(context)?.noteImportPdf ?? '导入 PDF 并逐页批注'),
+                  title: Text(
+                    AppLocalizations.of(context)?.noteImportPdf ??
+                        '导入 PDF 并逐页批注',
+                  ),
                 ),
               ),
               PopupMenuItem(
@@ -414,7 +425,9 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(Icons.drive_file_move_outlined),
-                  title: Text(AppLocalizations.of(context)?.noteTidyPages ?? '批量整理页面'),
+                  title: Text(
+                    AppLocalizations.of(context)?.noteTidyPages ?? '批量整理页面',
+                  ),
                 ),
               ),
             ],
@@ -439,7 +452,9 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                 child: TextField(
                   onChanged: (v) => setState(() => _tagFilter = v.trim()),
                   decoration: InputDecoration(
-                    hintText: AppLocalizations.of(context)?.noteFilterHint ?? '筛选标签或关键词',
+                    hintText:
+                        AppLocalizations.of(context)?.noteFilterHint ??
+                        '筛选标签或关键词',
                     prefixIcon: Icon(Icons.search_rounded, size: 20),
                   ),
                 ),

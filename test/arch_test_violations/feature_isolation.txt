@@ -1,4 +1,0 @@
-Architecture violations (3):
-  [shouldNotDependOn] package:drawing_notes_app/features/notes/presentation/home_page.dart → package:drawing_notes_app/features/drawing/presentation/editor_page.dart: must not import package:drawing_notes_app/features/drawing/presentation/editor_page.dart
-  [shouldNotDependOn] package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart → package:drawing_notes_app/features/drawing/presentation/editor_page.dart: must not import package:drawing_notes_app/features/drawing/presentation/editor_page.dart
-  [shouldNotDependOn] package:drawing_notes_app/features/notes/presentation/search_page.dart → package:drawing_notes_app/features/drawing/presentation/editor_page.dart: must not import package:drawing_notes_app/features/drawing/presentation/editor_page.dart

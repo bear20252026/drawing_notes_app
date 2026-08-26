@@ -15,8 +15,9 @@ void main() {
   late DependencyGraph graph;
 
   setUpAll(() async {
-    // 测试运行于 test/ 下，'../' 即包根（pubspec.yaml 所在目录）。
-    graph = await Collector.buildGraph('../');
+    // flutter test 从包根执行；使用 '.' 限定依赖图收集范围为本仓库。
+    // 先前的 '../' 会扫到上级工作目录，导致架构测试高内存且不可复现。
+    graph = await Collector.buildGraph('.');
   });
 
   test('规则1：层方向单向——高层只允许依赖低层', () {
@@ -120,12 +121,17 @@ void main() {
     for (final e in report.entries) {
       final i = e.value.instability;
       // ignore: avoid_print
-      print('${e.key}: I=${i.toStringAsFixed(2)} Ca=${e.value.afferent} Ce=${e.value.efferent}');
+      print(
+        '${e.key}: I=${i.toStringAsFixed(2)} Ca=${e.value.afferent} Ce=${e.value.efferent}',
+      );
       if (i > worst) worst = i;
     }
     // 基线：稳定层最差 instability 不得超过 0.4（实测 domain/core 最差
     // 0.33 有余量，收紧自 0.6——2026 架构守护收紧）。
-    expect(worst, lessThanOrEqualTo(0.4),
-        reason: 'domain/core 应为稳定层（I≤0.4），实测最差 $worst');
+    expect(
+      worst,
+      lessThanOrEqualTo(0.4),
+      reason: 'domain/core 应为稳定层（I≤0.4），实测最差 $worst',
+    );
   });
 }
