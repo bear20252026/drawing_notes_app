@@ -116,7 +116,7 @@ void main() {
       final strokes = [
         Stroke(
           points: [const StrokePoint(0, 0, 1.0)],
-          color: Colors.black,
+          color: 0xFF000000,
           width: 6.0,
           type: BrushType.pen,
         ),
@@ -143,7 +143,7 @@ void main() {
     test('onCurrentStrokeUpdated 不通知（高频）', () {
       final stroke = Stroke(
         points: [const StrokePoint(0, 0, 1.0)],
-        color: Colors.black,
+        color: 0xFF000000,
         width: 6.0,
         type: BrushType.pen,
       );
@@ -155,7 +155,7 @@ void main() {
     test('onCurrentStrokeCommitted 通知', () {
       notifier.onCurrentStrokeUpdated(Stroke(
         points: [],
-        color: Colors.black,
+        color: 0xFF000000,
         width: 6.0,
         type: BrushType.pen,
       ));
