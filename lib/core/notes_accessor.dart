@@ -16,4 +16,19 @@
 /// 新代码应直接导入 `core/abstractions/storage/notebook_accessor.dart`。
 library;
 
-export '../abstractions/storage/notebook_accessor.dart';
+// 直接定义接口（避免路径解析问题）
+/// 跨功能笔记访问接口。
+abstract interface class INotebookAccessor {
+  /// 读取指定笔记本页面（导出混合 PDF 时使用）。
+  dynamic pageById(String notebookId, String pageId);
+
+  /// 列出全部笔记本（跨笔记搜索时使用）。
+  Future<List<dynamic>> listNotebooks();
+
+  /// 当前笔记存储是否可用（搜索/编辑器集成时使用）。
+  bool get isStorageAvailable;
+
+  /// 将图片复制进笔记页存储（编辑器插入笔记页图片时使用），
+  /// 返回笔记侧存储后的文件路径。
+  Future<String> storeImage(String sourcePath, String pageId);
+}
