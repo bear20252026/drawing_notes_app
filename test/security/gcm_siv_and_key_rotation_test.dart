@@ -142,7 +142,7 @@ void main() {
       expect(manager.currentVersion, 2);
     });
 
-    test('旧版本密钥标记为退休', () async {
+    test('旧版本密钥标记为退役', () async {
       await manager.rotateKey();
       await manager.rotateKey();
 
@@ -173,19 +173,19 @@ void main() {
       expect(manager.needsRotation, false);
     });
 
-    test('cleanupOldKeys 清理超龄退休密钥', () async {
+    test('cleanupOldKeys 清理超龄退役密钥', () async {
       await manager.rotateKey();
       await manager.rotateKey();
 
-      // 模拟旧密钥（手动设置 retiredAt 为 400 天前）。
-      manager.versions[0].retiredAt != null; // 退休状态已设置
+      // 验证退役状态已设置（断言替代原无操作语句）。
+      expect(manager.versions[0].retiredAt, isNotNull);
 
       final cleaned = await manager.cleanupOldKeys(maxAgeDays: 0);
-      // maxAgeDays=0 会清理所有已退休密钥。
+      // maxAgeDays=0 会清理所有已退役密钥。
       expect(cleaned, greaterThanOrEqualTo(0));
     });
 
-    test('密钥轮换后旧数据仍可用解密', () async {
+    test('密钥轮换后旧数据仍可用旧密钥解密', () async {
       // 用 v1 加密数据。
       await manager.rotateKey();
       final v1Key = (await manager.loadVersionKey(version: 1))!;

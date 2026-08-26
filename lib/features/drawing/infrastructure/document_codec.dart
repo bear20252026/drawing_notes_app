@@ -244,7 +244,7 @@ class DocumentCodec {
         strokes.add(
           Stroke(
             points: points,
-            color: Color(color.toInt()),
+            color: color.toInt(),
             width: safeWidth,
             type: BrushType.values.firstWhere(
               (type) => type.name == json['type'],

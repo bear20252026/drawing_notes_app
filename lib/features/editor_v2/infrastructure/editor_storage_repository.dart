@@ -40,7 +40,7 @@ class EditorStorageRepository implements EditorRepository {
   }
 
   @override
-  Future<void> deleteDocument(String documentId) {
-    return _storage.deleteDocument(documentId);
+  Future<void> deleteDocument(String documentId) async {
+    await _storage.delete(documentId);
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:drawing_notes_app/core/rendering/shape_binding_geometry.dart';
+import 'package:drawing_notes_app/infrastructure/rendering/shape_binding_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/domain/shape_endpoint_binding.dart';
 import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
 

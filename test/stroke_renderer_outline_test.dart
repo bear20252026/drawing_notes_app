@@ -1,12 +1,12 @@
 import 'dart:ui';
 
-import 'package:drawing_notes_app/core/rendering/stroke_renderer.dart';
+import 'package:drawing_notes_app/infrastructure/rendering/stroke_renderer.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Stroke _thickStroke() => Stroke(
   type: BrushType.pen,
-  color: const Color(0xFF1A1A1A),
+  color: 0xFF1A1A1A,
   width: 32,
   points: [
     const StrokePoint(10, 50, 0.25),
@@ -48,7 +48,7 @@ void main() {
   test('固定宽度高亮笔不读取压感，生成稳定轮廓', () {
     final marker = Stroke(
       type: BrushType.marker,
-      color: const Color(0xFFFFD54F),
+      color: 0xFFFFD54F,
       width: 24,
       points: [const StrokePoint(0, 0, 0.1), const StrokePoint(100, 0, 0.9)],
     );

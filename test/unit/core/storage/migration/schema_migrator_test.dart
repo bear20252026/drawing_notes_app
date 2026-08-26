@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:drawing_notes_app/core/storage/migration/migration.dart';
+import 'package:drawing_notes_app/infrastructure/storage/migration/migration.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

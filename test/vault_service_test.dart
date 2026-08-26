@@ -19,7 +19,7 @@ void main() {
   tearDown(() {
     try {
       tempDir.deleteSync(recursive: true);
-    } catch (_) {/* 忽略清理失败 */}
+    } on Exception catch (_) {/* 忽略清理失败 */}
   });
 
   test('VaultService：对象 CRUD——写入/读取/清单（usecase key 标识）', () async {

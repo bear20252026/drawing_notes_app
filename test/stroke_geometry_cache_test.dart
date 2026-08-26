@@ -1,7 +1,7 @@
 /// StrokeGeometryCache 单元测试（2026-08-25）
 library;
 
-import 'package:drawing_notes_app/core/rendering/stroke_geometry_cache.dart';
+import 'package:drawing_notes_app/infrastructure/rendering/stroke_geometry_cache.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 import 'package:flutter_test/flutter_test.dart';
 

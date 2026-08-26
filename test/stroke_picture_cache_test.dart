@@ -11,7 +11,7 @@ List<StrokePoint> _pts(List<(double, double)> raw) =>
 Stroke _makeStroke(List<(double, double)> raw) {
   return Stroke(
     points: _pts(raw),
-    color: const ui.Color(0xFF000000),
+    color: 0xFF000000,
     width: 3,
     type: BrushType.pen,
   );

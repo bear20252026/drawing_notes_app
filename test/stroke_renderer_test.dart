@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
-import 'package:drawing_notes_app/core/rendering/stroke_renderer.dart';
+import 'package:drawing_notes_app/infrastructure/rendering/stroke_renderer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -10,7 +10,7 @@ void main() {
   }
 
   Stroke makeStroke(List<StrokePoint> points,
-      {BrushType type = BrushType.pen, Color color = const Color(0xFF000000)}) {
+      {BrushType type = BrushType.pen, int color = 0xFF000000}) {
     return Stroke(points: points, color: color, width: 8, type: type);
   }
 

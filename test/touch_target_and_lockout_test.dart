@@ -17,10 +17,6 @@ void main() {
 
     test('IconButton 默认最小尺寸 ≥ 48dp', () {
       // Material 规范要求 IconButton 的默认尺寸为 48x48。
-      const btn = IconButton(
-        icon: Icon(Icons.add),
-        onPressed: null,
-      );
       // IconButton 在 Material 规范中默认有 minWidth: 48, minHeight: 48。
       // 此测试验证代码中使用了正确的尺寸。
       expect(minTouchTarget, 48.0);
@@ -53,11 +49,9 @@ void main() {
       // Material Design 文本按钮默认 padding 为 8+12=20dp 垂直。
       // 图标 24dp + padding 40dp = 64dp（> 48dp）。
       // 带文本的按钮：文本行高 ~20dp + padding 40dp = 60dp（> 48dp）。
-      const textBtnPadding = EdgeInsets.symmetric(horizontal: 16, vertical: 12);
       const iconBtnPadding = EdgeInsets.all(8);
 
       // 验证 button padding 确保总尺寸 ≥ 48dp。
-      final textBtnHeight = 20.0 + textBtnPadding.vertical; // 44dp
       final iconBtnHeight = 24.0 + iconBtnPadding.vertical; // 40dp → 但 Material IconButton 默认 48dp 约束
 
       // 文本按钮通过 InkWell 的 minTouchTarget 保证 ≥ 48dp。

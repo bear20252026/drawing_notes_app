@@ -19,7 +19,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
-import '../storage/vfs/encrypted_vault.dart';
+import 'package:drawing_notes_app/infrastructure/storage/vfs/encrypted_vault.dart';
 
 import 'secure_bytes.dart';
 import 'vault_key_manager.dart';

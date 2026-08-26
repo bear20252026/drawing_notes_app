@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
-import 'package:drawing_notes_app/core/rendering/shape_recognizer.dart';
+import 'package:drawing_notes_app/infrastructure/rendering/shape_recognizer.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
@@ -10,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 Stroke _stroke(List<Offset> points, {BrushType type = BrushType.pen}) => Stroke(
   type: type,
-  color: const Color(0xFF2457A5),
+  color: 0xFF2457A5,
   width: 5,
   points: [for (final point in points) StrokePoint(point.dx, point.dy, 1)],
 );
