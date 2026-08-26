@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import '../../domain/value_objects/geometry.dart';
+import '../../../../core/domain/value_objects/geometry.dart';
 
 /// Domain 值对象 ↔ dart:ui 类型转换扩展。
 ///

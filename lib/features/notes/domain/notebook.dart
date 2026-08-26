@@ -1,10 +1,11 @@
+import '../../../core/domain/value_objects/geometry.dart';
 import '../../drawing/domain/document.dart';
 import '../../drawing/domain/shape_item.dart';
 import '../../drawing/domain/text_item.dart';
-import '../../drawing/domain/value_objects/geometry.dart';
 
 export 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
 export 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
+export 'package:drawing_notes_app/core/domain/value_objects/geometry.dart';
 
 /// 页面创建模板。模板描述用户的真实记录任务，并映射为纸张与画布行为，
 /// 使“新建”不再只是先创建空白页、再手动调整多项设置。
