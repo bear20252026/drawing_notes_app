@@ -19,7 +19,7 @@ void main() {
   tearDown(() {
     try {
       tempDir.deleteSync(recursive: true);
-    } catch (_) {/* 忽略清理失败 */}
+    } on Exception {/* 忽略清理失败 */}
   });
 
   test('VFS：对象写入读取往返（明文一致）', () async {

@@ -150,12 +150,12 @@ class EncryptedVault {
     await tmp.writeAsBytes(data, flush: true);
     try {
       await tmp.rename(target.path);
-    } catch (_) {
+    } on Exception {
       // 目标已存在（并发幂等兜底）或 rename 失败——清理临时文件。
       if (await tmp.exists()) {
         try {
           await tmp.delete();
-        } catch (_) {/* 忽略清理失败 */}
+        } on Exception {/* 忽略清理失败 */}
       }
       if (await target.exists()) return; // 幂等：目标已写入成功。
       rethrow;
