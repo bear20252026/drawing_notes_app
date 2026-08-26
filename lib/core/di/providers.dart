@@ -3,6 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../theme/app_design.dart';
+import '../core/security/auth_guard.dart';
+import '../core/security/app_lock_service.dart';
+import '../features/auth/application/auth_service.dart';
+import '../features/auth/application/biometric_service.dart';
+import '../features/auth/application/session_manager.dart';
+import '../features/auth/infrastructure/auth_repository_impl.dart';
+import '../features/drawing/application/document_use_cases.dart';
+import '../features/drawing/application/stroke_use_cases.dart';
+import '../features/drawing/infrastructure/document_repository_impl.dart';
+import '../features/drawing/infrastructure/stroke_repository_impl.dart';
 
 /// Riverpod 状态管理骨架（S5/P1-a 落地，2026 官方推荐模式）。
 ///
@@ -121,4 +131,28 @@ final authServiceProvider = Provider<AuthService>((ref) {
 final sessionManagerProvider = Provider<SessionManager>((ref) {
   final repository = ref.watch(authRepositoryProvider);
   return SessionManager(repository);
+});
+
+// ─────────────────── 绘图模块 Providers ───────────────────
+
+/// 文档仓库 Provider（单例）
+final documentRepositoryProvider = Provider<DocumentRepository>((ref) {
+  return DocumentRepositoryImpl();
+});
+
+/// 笔画仓库 Provider（单例）
+final strokeRepositoryProvider = Provider<StrokeRepository>((ref) {
+  return StrokeRepositoryImpl();
+});
+
+/// 文档用例 Provider
+final documentUseCasesProvider = Provider<DocumentUseCases>((ref) {
+  final repository = ref.watch(documentRepositoryProvider);
+  return DocumentUseCases(repository);
+});
+
+/// 笔画用例 Provider
+final strokeUseCasesProvider = Provider<StrokeUseCases>((ref) {
+  final repository = ref.watch(strokeRepositoryProvider);
+  return StrokeUseCases(repository);
 });
