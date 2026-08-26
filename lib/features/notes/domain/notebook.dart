@@ -1,8 +1,7 @@
-import 'dart:ui' show Offset;
-
 import '../../drawing/domain/document.dart';
 import '../../drawing/domain/shape_item.dart';
 import '../../drawing/domain/text_item.dart';
+import '../../drawing/domain/value_objects/geometry.dart';
 
 export 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
 export 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
@@ -82,7 +81,7 @@ class PageImageItem {
   /// 元素超链接（借鉴 Excalidraw hyperlink）：点击打开链接。
   String? href;
 
-  Offset get position => Offset(x, y);
+  FOffset get position => FOffset(x, y);
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -140,7 +139,7 @@ class PageChartItem {
   int color;
   int zOrder;
 
-  Offset get position => Offset(x, y);
+  FOffset get position => FOffset(x, y);
 
   Map<String, dynamic> toJson() => {
     'id': id,
