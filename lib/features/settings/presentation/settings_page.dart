@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_design.dart';
 import '../../../core/security/app_lock_service.dart';
+import '../application/settings_notifier.dart';
+import '../domain/app_settings.dart';
 
 /// 设置页面 — Apple Inset Grouped 风格 + 大标题。
 ///
@@ -20,6 +22,8 @@ class SettingsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    // 通过 Application 层状态管理器获取当前设置
+    final settingsAsync = ref.watch(settingsNotifierProvider);
 
     return Scaffold(
       backgroundColor: isDark ? AppDesign.surfaceBlack : AppDesign.canvasParchment,
@@ -68,12 +72,27 @@ class SettingsPage extends ConsumerWidget {
                       icon: Icons.brightness_6_rounded,
                       iconColor: AppDesign.primary,
                       title: '主题模式',
-                      subtitle: isDark ? '深色' : '浅色',
+                      subtitle: settingsAsync.when(
+                        data: (s) => s.themeMode == AppThemeMode.dark
+                            ? '深色'
+                            : s.themeMode == AppThemeMode.light
+                                ? '浅色'
+                                : '跟随系统',
+                        loading: () => isDark ? '深色' : '浅色',
+                        error: (_, __) => isDark ? '深色' : '浅色',
+                      ),
                       trailing: CupertinoSwitch(
-                        value: isDark,
+                        value: settingsAsync.maybeWhen(
+                          data: (s) => s.themeMode != AppThemeMode.light,
+                          orElse: () => isDark,
+                        ),
                         activeColor: AppDesign.appleGreen,
                         onChanged: (v) {
-                          // TODO: 接入 ThemeNotifier
+                          // 通过 Application 层更新主题
+                          ref
+                              .read(settingsNotifierProvider.notifier)
+                              .setThemeMode(
+                                  v ? AppThemeMode.dark : AppThemeMode.light);
                         },
                       ),
                     ),
