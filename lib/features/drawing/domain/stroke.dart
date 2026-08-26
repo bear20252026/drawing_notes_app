@@ -134,7 +134,7 @@ class Stroke {
 
   Map<String, dynamic> toJson() => {
     'points': _encodePoints(points),
-    'color': color.toARGB32(),
+    'color': color,
     'width': width,
     'type': type.name,
     'opacity': opacity,

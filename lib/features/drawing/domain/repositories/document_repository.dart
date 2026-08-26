@@ -1,4 +1,4 @@
-import '../entities/document.dart';
+import '../document.dart';
 
 /// 文档仓库接口 — 零依赖。
 ///

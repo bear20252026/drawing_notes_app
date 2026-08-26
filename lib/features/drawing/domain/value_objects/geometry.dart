@@ -2,6 +2,7 @@
 ///
 /// 替代 dart:ui 的 Offset/Size/Rect，使 Domain 层保持零 Flutter 依赖。
 /// 在 Infrastructure 层通过扩展与 dart:ui 类型互相转换。
+library;
 
 /// 2D 浮点坐标。
 class FOffset {

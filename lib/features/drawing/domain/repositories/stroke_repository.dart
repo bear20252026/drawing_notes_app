@@ -1,4 +1,4 @@
-import '../entities/stroke.dart';
+import '../stroke.dart';
 
 /// 笔画仓库接口 — 零依赖。
 ///

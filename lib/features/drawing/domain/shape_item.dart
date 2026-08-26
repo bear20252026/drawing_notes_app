@@ -173,8 +173,8 @@ class PageShapeItem {
     'versionNonce': versionNonce,
     if (fractionalIndex != null) 'fractionalIndex': fractionalIndex,
     if (lineStart != null)
-      'lineStart': [lineStart!.dx, lineStart!.dy],
-    if (lineEnd != null) 'lineEnd': [lineEnd!.dx, lineEnd!.dy],
+      'lineStart': [lineStart!.x, lineStart!.y],
+    if (lineEnd != null) 'lineEnd': [lineEnd!.x, lineEnd!.y],
   };
 
   factory PageShapeItem.fromJson(Map<String, dynamic> json) => PageShapeItem(
@@ -211,11 +211,11 @@ class PageShapeItem {
     lineEnd: _offsetFromJson(json['lineEnd']),
   );
 
-  static FOffset? _offsetFromJson(Object? value) {
-    if (value is! List || value.length != 2) return null;
+  static FOffset _offsetFromJson(Object? value) {
+    if (value is! List || value.length != 2) return FOffset.zero;
     final dx = value[0];
     final dy = value[1];
-    if (dx is! num || dy is! num) return null;
+    if (dx is! num || dy is! num) return FOffset.zero;
     return FOffset(dx.toDouble(), dy.toDouble());
   }
 
