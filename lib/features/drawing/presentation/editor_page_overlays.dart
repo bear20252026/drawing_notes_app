@@ -891,7 +891,7 @@ extension _EditorPageOverlays on _EditorPageState {
                       // L-03 语义（专家审计 2026-08-15）：图片可读名。
                       semanticLabel: '笔记图片',
                     )
-                  : const ColoredBox(color: Colors.grey),
+                  : const ColoredBox(color: Color(0xFF8E8E93)),
             ),
             // 裁剪框 4 角手柄（对齐 Excalidraw 图片裁剪）：拖拽调整 _cropRect。
             if (cropping && _cropRect != null) ..._buildCropHandles(item),

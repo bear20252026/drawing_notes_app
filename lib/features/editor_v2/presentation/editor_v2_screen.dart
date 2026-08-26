@@ -1,9 +1,5 @@
-// editor_v2——EditorV2Screen（批次 E——2026-08-21——2026 最佳实践）。
-//
-// 最小编辑器 UI（Canvas + 工具栏）——CUJ-01/02/04/05。
-// 遵循：直接 Canvas 绘画（CustomPainter）+ RepaintBoundary。
-// 纯 Flutter UI——业务逻辑在 EditorV2ViewModel。
-library;
+﻿// editor_v2——EditorV2Screen（批�?E—�?026-08-21—�?026 最佳实践）�?//
+// 最小编辑器 UI（Canvas + 工具栏）——CUJ-01/02/04/05�?// 遵循：直�?Canvas 绘画（CustomPainter�? RepaintBoundary�?// �?Flutter UI——业务逻辑�?EditorV2ViewModel�?library;
 
 import 'dart:async';
 
@@ -13,7 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:editor_core/editor_core.dart';
 
-import '../../../core/storage/storage_service.dart';
+import '../domain/editor_repository.dart';
 import '../../../core/ui/widgets/app_snackbar.dart';
 
 import '../../../../core/theme/responsive.dart';
@@ -28,12 +24,9 @@ import 'note_editor_widget.dart';
 import 'sidebar_widget.dart';
 import 'toolbar_widget.dart';
 
-/// Editor V2 最小 Screen（CUJ-01/02/04/05）。
-///
-/// 架构（2026 最佳实践）：
-/// - ViewModel（Riverpod）——不可变状态 + 命令分发
-/// - Canvas（CustomPainter + RepaintBoundary）——直接绘画
-/// - Toolbar（工具切换）——最小 UI
+/// Editor V2 最�?Screen（CUJ-01/02/04/05）�?///
+/// 架构�?026 最佳实践）�?/// - ViewModel（Riverpod）——不可变状�?+ 命令分发
+/// - Canvas（CustomPainter + RepaintBoundary）——直接绘�?/// - Toolbar（工具切换）——最�?UI
 class EditorV2Screen extends ConsumerStatefulWidget {
   const EditorV2Screen({
     super.key,
@@ -43,9 +36,7 @@ class EditorV2Screen extends ConsumerStatefulWidget {
 
   final String documentId;
 
-  /// 统一编辑器模式（笔记/画板共用——Saber Editor 借鉴——2026-08-22——
-  /// 默认 whiteboard（无限画布——向后兼容）——note 模式（分页普通画布）。
-  final UnifiedEditorMode mode;
+  /// 统一编辑器模式（笔记/画板共用——Saber Editor 借鉴—�?026-08-22—�?  /// 默认 whiteboard（无限画布——向后兼容）——note 模式（分页普通画布）�?  final UnifiedEditorMode mode;
 
   @override
   ConsumerState<EditorV2Screen> createState() => _EditorV2ScreenState();
@@ -53,44 +44,35 @@ class EditorV2Screen extends ConsumerStatefulWidget {
 
 class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
     with WidgetsBindingObserver {
-  /// 画布 RepaintBoundary Key——用于截图取色（P2 #30）。
-  final GlobalKey _canvasKey = GlobalKey();
+  /// 画布 RepaintBoundary Key——用于截图取色（P2 #30）�?  final GlobalKey _canvasKey = GlobalKey();
 
-  /// 自动保存防抖计时器（V1/V2 迁移阶段2——2026-08-24）。
-  Timer? _autoSaveTimer;
+  /// 自动保存防抖计时器（V1/V2 迁移阶段2—�?026-08-24）�?  Timer? _autoSaveTimer;
   static const _autoSaveDuration = Duration(milliseconds: 800);
 
-  /// 右侧图层/属性面板可见性（白板模式——V1 风格布局）。
-  bool _layersVisible = false;
+  /// 右侧图层/属性面板可见性（白板模式——V1 风格布局）�?  bool _layersVisible = false;
   bool _propertiesVisible = false;
 
-  /// Notifier 引用（dispose 时 ref 不可用，提前捕获）。
-  late final EditorV2Notifier _notifier;
+  /// Notifier 引用（dispose �?ref 不可用，提前捕获）�?  late final EditorV2Notifier _notifier;
 
-  /// Apple 风格：文档标题（从 StorageService 加载，非硬编码 documentId）。
-  String _documentTitle = '';
+  /// Apple 风格：文档标题（�?StorageService 加载，非硬编�?documentId）�?  String _documentTitle = '';
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _notifier = ref.read(editorV2NotifierProvider.notifier);
-    // 初始化文档（CUJ-01 创建）。
-    Future.microtask(() async {
+    // 初始化文档（CUJ-01 创建）�?    Future.microtask(() async {
       _notifier.createDocument(widget.documentId);
-      // note 模式：加载/初始化笔记文档（固定 ID——防止重建丢失内容）。
-      if (widget.mode == UnifiedEditorMode.note) {
+      // note 模式：加�?初始化笔记文档（固定 ID——防止重建丢失内容）�?      if (widget.mode == UnifiedEditorMode.note) {
         _notifier.loadNoteDocument(widget.documentId);
       }
-      // 加载文档标题（Apple 风格：显示可读标题而非原始 ID）。
-      await _loadDocumentTitle();
+      // 加载文档标题（Apple 风格：显示可读标题而非原始 ID）�?      await _loadDocumentTitle();
     });
   }
 
-  /// 从 StorageService 加载文档标题。
-  Future<void> _loadDocumentTitle() async {
+  /// �?StorageService 加载文档标题�?  Future<void> _loadDocumentTitle() async {
     try {
-      final docs = await StorageService().listDocuments();
+      final docs = await ref.read(editorRepositoryProvider).listDocumentMeta();
       final meta = docs.where((d) => d.id == widget.documentId).firstOrNull;
       if (mounted && meta != null) {
         setState(() {
@@ -98,14 +80,12 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
         });
       }
     } catch (_) {
-      // 加载失败时静默——使用默认标题。
-    }
+      // 加载失败时静默——使用默认标题�?    }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // 切到后台时立即保存。
-    if (state == AppLifecycleState.paused) {
+    // 切到后台时立即保存�?    if (state == AppLifecycleState.paused) {
       _saveNow();
     }
   }
@@ -121,32 +101,25 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
     super.dispose();
   }
 
-  /// 安排一次防抖自动保存。
-  void _scheduleAutoSave() {
+  /// 安排一次防抖自动保存�?  void _scheduleAutoSave() {
     _autoSaveTimer?.cancel();
     _autoSaveTimer = Timer(_autoSaveDuration, _saveNow);
   }
 
-  /// 立即执行保存（供切后台、销毁时调用）。
-  void _saveNow() {
-    // 使用 _notifier 而非 ref.read()——dispose 后 ref 不可用。
-    // 保存绘图文档（白板模式）。
-    if (widget.mode != UnifiedEditorMode.note) {
+  /// 立即执行保存（供切后台、销毁时调用）�?  void _saveNow() {
+    // 使用 _notifier 而非 ref.read()——dispose �?ref 不可用�?    // 保存绘图文档（白板模式）�?    if (widget.mode != UnifiedEditorMode.note) {
       final json = _notifier.toJson();
-      StorageService().saveJson(widget.documentId, json).catchError((e, _) {
+      ref.read(editorRepositoryProvider).saveDocument(widget.documentId, json).catchError((e, _) {
         debugPrint('EditorV2: _saveNow draw error: $e');
         return '';
       });
     }
-    // 保存笔记文档（note 模式）。
-    if (widget.mode == UnifiedEditorMode.note) {
+    // 保存笔记文档（note 模式）�?    if (widget.mode == UnifiedEditorMode.note) {
       _notifier.saveNoteDocument();
     }
   }
 
-  /// 初始笔记文档（note 模式——Word 文档式——2026-08-22——
-  /// 标题 + 一个空段落（直接打字——Word 式））。
-  NoteDocument _initialNoteDocument(String documentId) {
+  /// 初始笔记文档（note 模式——Word 文档式—�?026-08-22—�?  /// 标题 + 一个空段落（直接打字——Word 式））�?  NoteDocument _initialNoteDocument(String documentId) {
     return NoteDocument(
       id: documentId,
       paragraphs: [
@@ -157,10 +130,8 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
 
   // ──────────────────── 文本输入 Overlay ────────────────────
 
-  /// 就地文本输入（画布 text 工具——修复打字崩溃——2026-08-24）。
-  ///
-  /// 使用 Overlay 就地编辑，不使用 showDialog（避免模态对话框中断画布手势）。
-  OverlayEntry? _textOverlayEntry;
+  /// 就地文本输入（画�?text 工具——修复打字崩溃—�?026-08-24）�?  ///
+  /// 使用 Overlay 就地编辑，不使用 showDialog（避免模态对话框中断画布手势）�?  OverlayEntry? _textOverlayEntry;
   final TextEditingController _textController = TextEditingController();
   final FocusNode _textFocus = FocusNode();
   Offset _textInputPosition = Offset.zero;
@@ -230,10 +201,9 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
     _textController.clear();
   }
 
-  // ──────────────────── P2 #30 取色放大镜 ────────────────────
+  // ──────────────────── P2 #30 取色放大�?────────────────────
 
-  /// 从画布截图中采样像素颜色。
-  Future<Color?> _sampleColorAt(Offset position) async {
+  /// 从画布截图中采样像素颜色�?  Future<Color?> _sampleColorAt(Offset position) async {
     try {
       final boundary = _canvasKey.currentContext?.findRenderObject()
           as RenderRepaintBoundary?;
@@ -268,24 +238,20 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
     }
   }
 
-  /// 从当前位置取色并更新放大镜。
-  Future<void> _pickColorFromCanvas(Offset position) async {
+  /// 从当前位置取色并更新放大镜�?  Future<void> _pickColorFromCanvas(Offset position) async {
     final color = await _sampleColorAt(position);
     if (color != null && mounted) {
       ref.read(editorV2NotifierProvider.notifier).setMagnifierColor(color);
     }
   }
 
-  /// Apple 风格：处理导出操作（PDF/PNG/PPT）。
-  Future<void> _handleExport(String format) async {
-    // TODO: 导出功能需要适配 V2 数据模型（NoteDocument/LineItem）
-    if (mounted) {
+  /// Apple 风格：处理导出操作（PDF/PNG/PPT）�?  Future<void> _handleExport(String format) async {
+    // TODO: 导出功能需要适配 V2 数据模型（NoteDocument/LineItem�?    if (mounted) {
       AppSnackbar.showInfo(context, '导出功能即将推出');
     }
   }
 
-  /// 获取当前位置的取色结果（用于放大镜显示）。
-  PickedColor _getCurrentPickedColor(Offset position) {
+  /// 获取当前位置的取色结果（用于放大镜显示）�?  PickedColor _getCurrentPickedColor(Offset position) {
     final state = ref.read(editorV2NotifierProvider);
     final c = state.currentColor;
     return PickedColor(
@@ -304,17 +270,16 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
     return Scaffold(
       drawer: context.isMobile ? const EditorV2Sidebar() : null,
       appBar: AppBar(
-        // Apple 风格：用户可读标题
-        backgroundColor: Colors.transparent,
+        // Apple 风格：用户可读标�?        backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(
-          _documentTitle.isNotEmpty ? _documentTitle : '无标题',
+          _documentTitle.isNotEmpty ? _documentTitle : '无标�?,
           style: AppDesign.bodyStrong,
         ),
         actions: context.isMobile
             ? [
-                // 移动端：收进单个 PopupMenuButton，避免 AppBar 溢出
+                // 移动端：收进单个 PopupMenuButton，避�?AppBar 溢出
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.more_horiz),
                   tooltip: '更多',
@@ -344,7 +309,7 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
                     const PopupMenuItem(value: 'redo', child: Text('重做')),
                     if (widget.mode == UnifiedEditorMode.whiteboard) ...[
                       const PopupMenuItem(value: 'layers', child: Text('图层')),
-                      const PopupMenuItem(value: 'properties', child: Text('属性')),
+                      const PopupMenuItem(value: 'properties', child: Text('属�?)),
                     ],
                     const PopupMenuDivider(),
                     const PopupMenuItem(value: 'export_pdf', child: Text('导出 PDF')),
@@ -368,8 +333,7 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
                 : null,
             tooltip: 'Redo',
           ),
-          // 右侧面板切换（白板模式——仿 V1 布局）。
-          if (widget.mode == UnifiedEditorMode.whiteboard) ...[
+          // 右侧面板切换（白板模式——仿 V1 布局）�?          if (widget.mode == UnifiedEditorMode.whiteboard) ...[
             IconButton(
               icon: Icon(_layersVisible ? Icons.layers : Icons.layers_outlined),
               onPressed: () => setState(() => _layersVisible = !_layersVisible),
@@ -381,11 +345,10 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
                   : Icons.tune_outlined),
               onPressed: () =>
                   setState(() => _propertiesVisible = !_propertiesVisible),
-              tooltip: '属性',
+              tooltip: '属�?,
             ),
           ],
-          // Apple 风格：导出菜单（PDF/PNG/PPT）
-          PopupMenuButton<String>(
+          // Apple 风格：导出菜单（PDF/PNG/PPT�?          PopupMenuButton<String>(
             icon: const Icon(Icons.ios_share_rounded),
             tooltip: '导出',
             onSelected: (value) => _handleExport(value),
@@ -425,18 +388,17 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
         ],
       ),
       body: widget.mode == UnifiedEditorMode.whiteboard
-          // ──── 白板模式：V1 风格布局（左侧工具 + 中央画布 + 右侧属性面板） ────
+          // ──── 白板模式：V1 风格布局（左侧工�?+ 中央画布 + 右侧属性面板） ────
           ? _buildWhiteboardLayout(context, state)
-          // ──── 笔记模式：保持 V2 风格 ────
+          // ──── 笔记模式：保�?V2 风格 ────
           : _buildNoteLayout(context, state),
     );
   }
 
-  /// 白板模式布局——仿 V1 编辑器：左侧窄工具条 + 中央画布 + 右侧属性面板。
-  Widget _buildWhiteboardLayout(BuildContext context, EditorV2State state) {
+  /// 白板模式布局——仿 V1 编辑器：左侧窄工具条 + 中央画布 + 右侧属性面板�?  Widget _buildWhiteboardLayout(BuildContext context, EditorV2State state) {
     return Row(
       children: [
-        // ── 左侧工具条（窄面板，V1 风格） ──
+        // ── 左侧工具条（窄面板，V1 风格�?──
         _V2LeftToolbar(
           currentTool: state.currentTool,
           currentShapeType: state.currentShapeType,
@@ -445,12 +407,11 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
           onShapeTypeChanged: (type) =>
               ref.read(editorV2NotifierProvider.notifier).setShapeType(type),
         ),
-        // ── 中央画布区域（含顶部工具栏 + 画布） ──
+        // ── 中央画布区域（含顶部工具�?+ 画布�?──
         Expanded(
           child: Column(
             children: [
-              // 顶部绘图工具栏（笔刷/颜色/尺寸）。
-              Padding(
+              // 顶部绘图工具栏（笔刷/颜色/尺寸）�?              Padding(
                 padding: EdgeInsets.fromLTRB(
                   context.responsiveScale(12),
                   context.responsiveScale(8),
@@ -481,8 +442,7 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
                   ),
                 ),
               ),
-              // 画布（支持笔画手势 + 取色器 + 形状拖拽）。
-              Expanded(
+              // 画布（支持笔画手�?+ 取色�?+ 形状拖拽）�?              Expanded(
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
                     context.responsiveScale(12),
@@ -563,7 +523,7 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
                         if (mounted) {
                           AppSnackbar.showInfo(
                             context,
-                            '已取色: #${c.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
+                            '已取�? #${c.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
                             duration: const Duration(seconds: 1),
                           );
                         }
@@ -607,7 +567,7 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
             ],
           ),
         ),
-        // ── 右侧图层/属性面板（可收起，V1 风格） ──
+        // ── 右侧图层/属性面板（可收起，V1 风格�?──
         if (_layersVisible || _propertiesVisible)
           _V2RightPanel(
             layersVisible: _layersVisible,
@@ -622,8 +582,7 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
     );
   }
 
-  /// 笔记模式布局——保持 V2 风格（侧边栏 + 顶部工具栏 + 笔记编辑器）。
-  Widget _buildNoteLayout(BuildContext context, EditorV2State state) {
+  /// 笔记模式布局——保�?V2 风格（侧边栏 + 顶部工具�?+ 笔记编辑器）�?  Widget _buildNoteLayout(BuildContext context, EditorV2State state) {
     return Row(
       children: [
         if (!context.isMobile)
@@ -676,12 +635,10 @@ class _EditorV2ScreenState extends ConsumerState<EditorV2Screen>
   }
 }
 
-// ──────────────────── 笔记模式文字格式化工具栏（#23） ────────────────────
+// ──────────────────── 笔记模式文字格式化工具栏�?23�?────────────────────
 
-/// note 模式工具栏——加粗/斜体/下划线/删除线/列表/标题。
-///
-/// 与绘图工具栏互斥——同一时间只显示一个。
-class _NoteFormattingToolbar extends ConsumerWidget {
+/// note 模式工具栏——加�?斜体/下划�?删除�?列表/标题�?///
+/// 与绘图工具栏互斥——同一时间只显示一个�?class _NoteFormattingToolbar extends ConsumerWidget {
   const _NoteFormattingToolbar();
 
   @override
@@ -716,7 +673,7 @@ class _NoteFormattingToolbar extends ConsumerWidget {
           ),
           _ToolButton(
             icon: Icons.format_underline,
-            tooltip: '下划线 (Ctrl+U)',
+            tooltip: '下划�?(Ctrl+U)',
             isActive: active.contains('underline'),
             onPressed: () {
               ref.read(editorV2NotifierProvider.notifier)
@@ -726,7 +683,7 @@ class _NoteFormattingToolbar extends ConsumerWidget {
           ),
           _ToolButton(
             icon: Icons.strikethrough_s,
-            tooltip: '删除线',
+            tooltip: '删除�?,
             isActive: active.contains('strikethrough'),
             onPressed: () {
               ref.read(editorV2NotifierProvider.notifier)
@@ -772,8 +729,7 @@ class _NoteFormattingToolbar extends ConsumerWidget {
   }
 
   void _scheduleAutoSave(BuildContext context, WidgetRef ref) {
-    // 格式切换后延迟保存（800ms 防抖）。
-    Future.delayed(const Duration(milliseconds: 800), () {
+    // 格式切换后延迟保存（800ms 防抖）�?    Future.delayed(const Duration(milliseconds: 800), () {
       if (context.mounted) {
         ref.read(editorV2NotifierProvider.notifier).saveNoteDocument();
       }
@@ -781,8 +737,7 @@ class _NoteFormattingToolbar extends ConsumerWidget {
   }
 }
 
-/// 工具按钮封装——统一风格。
-class _ToolButton extends StatelessWidget {
+/// 工具按钮封装——统一风格�?class _ToolButton extends StatelessWidget {
   const _ToolButton({
     required this.icon,
     required this.tooltip,
@@ -815,8 +770,7 @@ class _ToolButton extends StatelessWidget {
   }
 }
 
-/// V2 左侧窄工具条（白板模式——仿 V1 布局）。
-class _V2LeftToolbar extends StatelessWidget {
+/// V2 左侧窄工具条（白板模式——仿 V1 布局）�?class _V2LeftToolbar extends StatelessWidget {
   const _V2LeftToolbar({
     required this.currentTool,
     required this.currentShapeType,
@@ -853,7 +807,7 @@ class _V2LeftToolbar extends StatelessWidget {
           ),
           _LeftToolBtn(
             icon: Icons.auto_fix_high,
-            tooltip: '橡皮擦',
+            tooltip: '橡皮�?,
             isActive: currentTool == 'eraser',
             onTap: () => onToolChanged('eraser'),
           ),
@@ -889,8 +843,7 @@ class _V2LeftToolbar extends StatelessWidget {
   }
 }
 
-/// 左侧工具条中的单个按钮。
-class _LeftToolBtn extends StatelessWidget {
+/// 左侧工具条中的单个按钮�?class _LeftToolBtn extends StatelessWidget {
   const _LeftToolBtn({
     required this.icon,
     required this.tooltip,
@@ -936,8 +889,7 @@ class _LeftToolBtn extends StatelessWidget {
   }
 }
 
-/// V2 右侧面板（图层列表 + 属性面板）。
-class _V2RightPanel extends ConsumerWidget {
+/// V2 右侧面板（图层列�?+ 属性面板）�?class _V2RightPanel extends ConsumerWidget {
   const _V2RightPanel({
     required this.layersVisible,
     required this.propertiesVisible,
@@ -999,24 +951,47 @@ class _V2RightPanel extends ConsumerWidget {
                     itemCount: state.document.layers.length,
                     itemBuilder: (context, index) {
                       final layer = state.document.layers[index];
-                      return ListTile(
-                        dense: true,
-                        leading: Icon(
-                          layer.visible
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                          size: 16,
-                        ),
-                        title: Text(
-                          layer.name,
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                        subtitle: Text(
-                          '${layer.shapes.length} 个形状',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: colorScheme.onSurface.withValues(alpha: 0.5),
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(color: Color(0xFFE0E0E0), width: 0.5),
                           ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              layer.visible
+                                  ? Icons.visibility_rounded
+                                  : Icons.visibility_off_rounded,
+                              size: 18,
+                              color: const Color(0xFF0066CC),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    layer.name,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF1D1D1F),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${layer.shapes.length} 个形�?,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Color(0xFF8E8E93),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     },
@@ -1051,7 +1026,7 @@ class _V2RightPanel extends ConsumerWidget {
                     children: [
                       Icon(Icons.tune, size: 16, color: colorScheme.primary),
                       const SizedBox(width: 8),
-                      Text('属性',
+                      Text('属�?,
                           style: TextStyle(
                               fontWeight: FontWeight.w600,
                               color: colorScheme.onSurface)),

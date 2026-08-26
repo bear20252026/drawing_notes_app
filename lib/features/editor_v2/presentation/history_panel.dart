@@ -33,11 +33,11 @@ class HistoryPanel extends ConsumerWidget {
     final redoStack = notifier.redoStack;
     final totalCount = undoStack.length + redoStack.length;
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F2F7),
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade300),
+        border: Border.all(color: const Color(0xFFE5E5EA)),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -182,13 +182,13 @@ class _HistoryTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
         decoration: BoxDecoration(
           color: isCurrent
-              ? Colors.blue.withValues(alpha: 0.1)
+              ? const Color(0xFF0066CC).withValues(alpha: 0.1)
               : isRedo
-                  ? Colors.grey.withValues(alpha: 0.05)
+                  ? const Color(0xFF8E8E93).withValues(alpha: 0.05)
                   : null,
           borderRadius: BorderRadius.circular(6),
           border: isCurrent
-              ? Border.all(color: Colors.blue.withValues(alpha: 0.3))
+              ? Border.all(color: const Color(0xFF0066CC).withValues(alpha: 0.3))
               : null,
         ),
         child: Row(
@@ -200,9 +200,9 @@ class _HistoryTile extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isCurrent
-                    ? Colors.blue
+                    ? const Color(0xFF0066CC)
                     : isRedo
-                        ? Colors.grey.shade400
+                        ? const Color(0xFFC7C7CC)
                         : Colors.black54,
               ),
             ),
@@ -213,7 +213,7 @@ class _HistoryTile extends StatelessWidget {
                 shortName,
                 style: TextStyle(
                   fontSize: TextScaleHelper.scaled(context, 12),
-                  color: isCurrent ? Colors.blue.shade700 : Colors.black87,
+                  color: isCurrent ? const Color(0xFF0066CC) : Colors.black87,
                   fontWeight: isCurrent ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),

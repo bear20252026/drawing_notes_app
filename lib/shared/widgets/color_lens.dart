@@ -322,7 +322,7 @@ class _CheckerboardPainter extends CustomPainter {
     for (var y = 0.0; y < size.height; y += tileSize) {
       for (var x = 0.0; x < size.width; x += tileSize) {
         paint.color = ((x ~/ tileSize + y ~/ tileSize) % 2 == 0)
-            ? Colors.grey.shade300
+            ? const Color(0xFFE5E5EA)
             : Colors.white;
         canvas.drawRect(
           Rect.fromLTWH(x, y, tileSize, tileSize),

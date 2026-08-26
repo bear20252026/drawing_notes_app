@@ -6,7 +6,7 @@ import 'dart:ui' as ui;
 
 import 'package:pdfrx/pdfrx.dart';
 
-import 'local_id_generator.dart';
+import '../../core/storage/local_id_generator.dart';
 
 /// 已落盘的单个 PDF 页面底图。
 ///

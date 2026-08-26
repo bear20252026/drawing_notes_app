@@ -79,132 +79,136 @@ extension _EditorPageActions on _EditorPageState {
       return;
     }
     final input = TextEditingController();
-    var chartType = ChartType.bar;
-    final result = await showIosStatefulDialog<String>(
-      context,
-      title: '生成图表',
-      width: 380,
-      builder: (ctx, setDialogState) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // iOS-style segmented control
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFF2F2F7),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  for (final type in ChartType.values)
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setDialogState(() => chartType = type),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeInOut,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            color: chartType == type
-                                ? Colors.white
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(6),
-                            boxShadow: chartType == type
-                                ? [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 1),
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                type == ChartType.bar
-                                    ? Icons.bar_chart_rounded
-                                    : Icons.show_chart_rounded,
-                                size: 18,
-                                color: chartType == type
-                                    ? const Color(0xFF0066CC)
-                                    : const Color(0xFF8E8E93),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                type == ChartType.bar ? '柱状图' : '折线图',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
+    try {
+      var chartType = ChartType.bar;
+      final result = await showIosStatefulDialog<String>(
+        context,
+        title: '生成图表',
+        width: 380,
+        builder: (ctx, setDialogState) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // iOS-style segmented control
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF2F2F7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    for (final type in ChartType.values)
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setDialogState(() => chartType = type),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeInOut,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: chartType == type
+                                  ? Colors.white
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(6),
+                              boxShadow: chartType == type
+                                  ? [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.1),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  type == ChartType.bar
+                                      ? Icons.bar_chart_rounded
+                                      : Icons.show_chart_rounded,
+                                  size: 18,
                                   color: chartType == type
                                       ? const Color(0xFF0066CC)
                                       : const Color(0xFF8E8E93),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 4),
+                                Text(
+                                  type == ChartType.bar ? '柱状图' : '折线图',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: chartType == type
+                                        ? const Color(0xFF0066CC)
+                                        : const Color(0xFF8E8E93),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            CupertinoTextField(
-              controller: input,
-              autofocus: true,
-              maxLines: 5,
-              placeholder: AppLocalizations.of(context)?.editorPasteValues ?? '粘贴数值，用逗号/空格/换行分隔，例如：10, 25, 18, 42, 30',
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF2F2F7),
-                borderRadius: BorderRadius.circular(10),
+              const SizedBox(height: 12),
+              CupertinoTextField(
+                controller: input,
+                autofocus: true,
+                maxLines: 5,
+                placeholder: AppLocalizations.of(context)?.editorPasteValues ?? '粘贴数值，用逗号/空格/换行分隔，例如：10, 25, 18, 42, 30',
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF2F2F7),
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-          ],
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
-      ),
-      actions: [
-        IosDialogAction(
-          label: '取消',
-        ),
-        IosDialogAction(
-          label: '生成',
-          isDefault: true,
-          result: 'ok',
-        ),
-      ],
-    );
-    if (result == null) return;
-    // 解析数值（逗号/空格/换行分隔）。
-    final data = input.text
-        .split(RegExp(r'[, ]+'))
-        .where((e) => e.trim().isNotEmpty)
-        .map((e) => double.tryParse(e.trim()))
-        .whereType<double>()
-        .toList();
-    if (data.isEmpty) {
-      _showSnack('未解析到有效数值');
-      return;
-    }
-    final center = _controller.document.size.center(Offset.zero);
-    _applyState(() {
-      page.charts.add(
-        PageChartItem(
-          id: LocalIdGenerator.next('cht'),
-          chartType: chartType,
-          data: data,
-          x: center.dx - 160,
-          y: center.dy - 100,
-        ),
+        actions: [
+          IosDialogAction(
+            label: '取消',
+          ),
+          IosDialogAction(
+            label: '生成',
+            isDefault: true,
+            result: 'ok',
+          ),
+        ],
       );
-      _selectedItemId = page.charts.last.id;
-    });
-    _notifyChanged();
-    _showSnack('已生成图表（${data.length} 个数据点）');
+      if (result == null) return;
+      // 解析数值（逗号/空格/换行分隔）。
+      final data = input.text
+          .split(RegExp(r'[, ]+'))
+          .where((e) => e.trim().isNotEmpty)
+          .map((e) => double.tryParse(e.trim()))
+          .whereType<double>()
+          .toList();
+      if (data.isEmpty) {
+        _showSnack('未解析到有效数值');
+        return;
+      }
+      final center = _controller.document.size.center(Offset.zero);
+      _applyState(() {
+        page.charts.add(
+          PageChartItem(
+            id: LocalIdGenerator.next('cht'),
+            chartType: chartType,
+            data: data,
+            x: center.dx - 160,
+            y: center.dy - 100,
+          ),
+        );
+        _selectedItemId = page.charts.last.id;
+      });
+      _notifyChanged();
+      _showSnack('已生成图表（${data.length} 个数据点）');
+    } finally {
+      input.dispose();
+    }
   }
 
   /// 幻灯片演示（对齐 Excalidraw presentation）：全屏逐元素展示。

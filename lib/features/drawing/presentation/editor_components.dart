@@ -242,7 +242,7 @@ class PaginationPreview extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.white,
-            border: Border.all(color: Colors.grey.shade400),
+            border: Border.all(color: const Color(0xFFC7C7CC)),
             boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black26)],
           ),
           child: Column(

@@ -722,7 +722,7 @@ class _ShortcutHelpWidgetState extends State<ShortcutHelpWidget> {
       return Center(
         child: Text(
           '未找到匹配的快捷键',
-          style: TextStyle(fontSize: TextScaleHelper.scaled(context, 14), color: Colors.grey),
+          style: TextStyle(fontSize: TextScaleHelper.scaled(context, 14), color: const Color(0xFF8E8E93)),
         ),
       );
     }
@@ -799,11 +799,11 @@ class _ShortcutHelpWidgetState extends State<ShortcutHelpWidget> {
           ),
           decoration: BoxDecoration(
             color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey[800]
-                : Colors.grey[200],
+                ? const Color(0xFF3A3A3C)
+                : const Color(0xFFF2F2F7),
             borderRadius: BorderRadius.circular(4),
             border: Border.all(
-              color: Colors.grey[400]!,
+              color: const Color(0xFFC7C7CC),
             ),
           ),
           child: Text(
@@ -907,11 +907,11 @@ class ShortcutIndicator extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey[800]
-                : Colors.grey[200],
+                ? const Color(0xFF3A3A3C)
+                : const Color(0xFFF2F2F7),
             borderRadius: BorderRadius.circular(3),
             border: Border.all(
-              color: Colors.grey[400]!,
+              color: const Color(0xFFC7C7CC),
               width: 0.5,
             ),
           ),
@@ -935,7 +935,7 @@ class ShortcutIndicator extends StatelessWidget {
         fontSize: fontSize,
         fontFamily: 'monospace',
         fontWeight: FontWeight.w500,
-        color: Colors.grey[600],
+        color: const Color(0xFF6E6E73),
       ),
     );
   }
@@ -948,8 +948,8 @@ class ShortcutIndicator extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: Theme.of(context).brightness == Brightness.dark
-            ? Colors.grey[800]
-            : Colors.grey[100],
+            ? const Color(0xFF3A3A3C)
+            : const Color(0xFFF2F2F7),
         borderRadius: BorderRadius.circular(2),
       ),
       child: Text(
@@ -958,7 +958,7 @@ class ShortcutIndicator extends StatelessWidget {
           fontSize: fontSize - 2,
           fontFamily: 'monospace',
           fontWeight: FontWeight.bold,
-          color: Colors.grey[500],
+          color: const Color(0xFF8E8E93),
         ),
       ),
     );

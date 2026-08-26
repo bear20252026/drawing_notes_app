@@ -150,7 +150,7 @@ class _MagnifierPainter extends CustomPainter {
     // 十字准线（标记取色中心）。
     if (config.showCrosshair) {
       final crosshairPaint = Paint()
-        ..color = Colors.red
+        ..color = const Color(0xFFFF3B30)
         ..strokeWidth = 1.5
         ..style = PaintingStyle.stroke;
 
@@ -168,7 +168,7 @@ class _MagnifierPainter extends CustomPainter {
       );
       // 中心点。
       final dotPaint = Paint()
-        ..color = Colors.red
+        ..color = const Color(0xFFFF3B30)
         ..style = PaintingStyle.fill;
       canvas.drawCircle(center, 2.0, dotPaint);
     }

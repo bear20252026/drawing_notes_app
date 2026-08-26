@@ -590,15 +590,35 @@ class _BlockEditorWidgetState extends State<BlockEditorWidget> {
               return Semantics(
                 label: '${cmd.name} 命令',
                 button: true,
-                child: ListTile(
-                  dense: true,
-                  minLeadingWidth: 48,
-                  leading: Text(
-                    cmd.icon,
-                    style: TextStyle(fontSize: TextScaleHelper.scaled(context, 18)),
-                  ),
-                  title: Text(cmd.name),
+                child: GestureDetector(
                   onTap: () => _applySlashCommand(cmd, _slashMenuBlockIndex),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: Color(0xFFE0E0E0), width: 0.5),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          cmd.icon,
+                          style: TextStyle(fontSize: TextScaleHelper.scaled(context, 18)),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            cmd.name,
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w400,
+                              color: Color(0xFF1D1D1F),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               );
             },

@@ -1,22 +1,16 @@
-// editor_v2——EditorV2ViewModel（批次 E——2026-08-21——2026 最佳实践）。
-//
-// Riverpod Notifier——不可变状态 + 命令分发（通过 DocumentReducer）。
-// 遵循专家方案批次 E + 2026 最佳实践（Sheetifye/tldraw/Excalidraw 模式）。
-// 纯 Dart 逻辑——无 UI 依赖——Headless Logic（可独立单元测试）。
-// 使用 Riverpod 3.x Notifier（手动声明——不依赖 build_runner）。
-library;
+﻿// editor_v2——EditorV2ViewModel（批�?E—�?026-08-21—�?026 最佳实践）�?//
+// Riverpod Notifier——不可变状�?+ 命令分发（通过 DocumentReducer）�?// 遵循专家方案批次 E + 2026 最佳实践（Sheetifye/tldraw/Excalidraw 模式）�?// �?Dart 逻辑——无 UI 依赖——Headless Logic（可独立单元测试）�?// 使用 Riverpod 3.x Notifier（手动声明——不依赖 build_runner）�?library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:editor_core/editor_core.dart';
-import '../../../core/storage/storage_service.dart';
+import '../domain/editor_repository.dart';
+import '../infrastructure/editor_storage_repository.dart';
+import '../../../infrastructure/storage/storage_service.dart';
 
-/// Editor V2 不可变状态（Riverpod Provider 输出）。
-///
-/// 所有字段 final；修改通过 copyWith（返回新实例——原实例不变——
-/// 历史/撤销基于不可变快照——2026 最佳实践）。
-@immutable
+/// Editor V2 不可变状态（Riverpod Provider 输出）�?///
+/// 所有字�?final；修改通过 copyWith（返回新实例——原实例不变—�?/// 历史/撤销基于不可变快照—�?026 最佳实践）�?@immutable
 class EditorV2State {
   const EditorV2State({
     required this.document,
@@ -36,53 +30,37 @@ class EditorV2State {
     this.activeNoteFormatting = const <String>{},
   });
 
-  /// 当前文档（不可变）。
-  final DocumentV2 document;
+  /// 当前文档（不可变）�?  final DocumentV2 document;
 
-  /// 笔记文档（Word 文档式——note 模式）。
-  final NoteDocument? noteDocument;
+  /// 笔记文档（Word 文档式——note 模式）�?  final NoteDocument? noteDocument;
 
-  /// 是否可撤销。
-  final bool canUndo;
+  /// 是否可撤销�?  final bool canUndo;
 
-  /// 是否可重做。
-  final bool canRedo;
+  /// 是否可重做�?  final bool canRedo;
 
-  /// 当前工具（draw/select/pan/erase/text/line/rect/ellipse/arrow/eyedropper）。
-  final String currentTool;
+  /// 当前工具（draw/select/pan/erase/text/line/rect/ellipse/arrow/eyedropper）�?  final String currentTool;
 
-  /// 当前笔刷类型（pen/pencil/marker/laser/eraser——V1/V2 迁移阶段2）。
-  final String brushType;
+  /// 当前笔刷类型（pen/pencil/marker/laser/eraser——V1/V2 迁移阶段2）�?  final String brushType;
 
-  /// 当前形状类型（line/rect/ellipse/arrow）。
-  final String currentShapeType;
+  /// 当前形状类型（line/rect/ellipse/arrow）�?  final String currentShapeType;
 
-  /// 取色器是否激活。
-  final bool eyedropperActive;
+  /// 取色器是否激活�?  final bool eyedropperActive;
 
-  /// 取色器光标位置（画布坐标）。
-  final Offset eyedropperPosition;
+  /// 取色器光标位置（画布坐标）�?  final Offset eyedropperPosition;
 
-  /// 取色器实时采样颜色（P2 #30）。
-  final Color currentColor;
+  /// 取色器实时采样颜色（P2 #30）�?  final Color currentColor;
 
-  /// 当前笔刷粗细（V1/V2 迁移阶段1——2026-08-24）。
-  final double brushSize;
+  /// 当前笔刷粗细（V1/V2 迁移阶段1—�?026-08-24）�?  final double brushSize;
 
-  /// 当前笔画颜色 #RRGGBB（V1/V2 迁移阶段1——2026-08-24）。
-  final String strokeColorHex;
+  /// 当前笔画颜色 #RRGGBB（V1/V2 迁移阶段1—�?026-08-24）�?  final String strokeColorHex;
 
-  /// 选中的文字 ID（V1/V2 迁移阶段2——文字工具编辑）。
-  final String? selectedTextId;
+  /// 选中的文�?ID（V1/V2 迁移阶段2——文字工具编辑）�?  final String? selectedTextId;
 
-  /// 选中的任意元素 ID（V1/V2 迁移阶段2——通用选中）。
-  final String? selectedItemId;
+  /// 选中的任意元�?ID（V1/V2 迁移阶段2——通用选中）�?  final String? selectedItemId;
 
-  /// 当前笔记格式化标记（bold/italic/heading/bullet/code）。
-  final Set<String> activeNoteFormatting;
+  /// 当前笔记格式化标记（bold/italic/heading/bullet/code）�?  final Set<String> activeNoteFormatting;
 
-  /// 不可变拷贝：仅更新指定字段——原实例不变。
-  EditorV2State copyWith({
+  /// 不可变拷贝：仅更新指定字段——原实例不变�?  EditorV2State copyWith({
     DocumentV2? document,
     NoteDocument? noteDocument,
     bool clearNoteDocument = false,
@@ -149,14 +127,11 @@ class EditorV2State {
       brushSize, strokeColorHex, selectedTextId, selectedItemId, activeNoteFormatting);
 }
 
-/// Editor V2 ViewModel（Riverpod 3.x Notifier——手动声明——不依赖 build_runner）。
-///
-/// 遵循：
-/// - 命令模式（state + command → new state + inverse command）
-/// - 不可变状态（EditorV2State — copyWith）
-/// - Headless Logic（所有业务逻辑在此——可独立单元测试）
-/// - 依赖单向（只依赖 editor_core——不依赖 legacy）
-class EditorV2Notifier extends Notifier<EditorV2State> {
+/// Editor V2 ViewModel（Riverpod 3.x Notifier——手动声明——不依赖 build_runner）�?///
+/// 遵循�?/// - 命令模式（state + command �?new state + inverse command�?/// - 不可变状态（EditorV2State �?copyWith�?/// - Headless Logic（所有业务逻辑在此——可独立单元测试�?/// - 依赖单向（只依赖 editor_core——不依赖 legacy�?class EditorV2Notifier extends Notifier<EditorV2State> {
+  /// Domain 仓储（通过 DI 注入——不直接依赖 StorageService）
+  final EditorRepository _repository;
+  EditorV2Notifier(this._repository);
   late DocumentReducer _reducer;
 
   @override
@@ -168,14 +143,11 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
 
   // ──────────────────────────── 命令分发 ────────────────────────────
 
-  /// 撤销栈（只读——历史面板显示用——委托 DocumentReducer）。
-  List<HistoryEntry> get undoStack => _reducer.undoStack;
+  /// 撤销栈（只读——历史面板显示用——委�?DocumentReducer）�?  List<HistoryEntry> get undoStack => _reducer.undoStack;
 
-  /// 重做栈（只读——历史面板显示用——委托 DocumentReducer）。
-  List<HistoryEntry> get redoStack => _reducer.redoStack;
+  /// 重做栈（只读——历史面板显示用——委�?DocumentReducer）�?  List<HistoryEntry> get redoStack => _reducer.redoStack;
 
-  /// 执行命令（通过 DocumentReducer——不可变状态更新）。
-  void execute(DocumentCommand command) {
+  /// 执行命令（通过 DocumentReducer——不可变状态更新）�?  void execute(DocumentCommand command) {
     final newDoc = _reducer.execute(command);
     state = state.copyWith(
       document: newDoc,
@@ -184,8 +156,7 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     );
   }
 
-  /// 撤销。
-  void undo() {
+  /// 撤销�?  void undo() {
     final newDoc = _reducer.undo();
     if (newDoc != null) {
       state = state.copyWith(
@@ -196,8 +167,7 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     }
   }
 
-  /// 重做。
-  void redo() {
+  /// 重做�?  void redo() {
     final newDoc = _reducer.redo();
     if (newDoc != null) {
       state = state.copyWith(
@@ -210,8 +180,7 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
 
   // ──────────────────────────── CUJ-01 操作 ────────────────────────────
 
-  /// 创建新文档（CUJ-01 创建）。
-  void createDocument(String id, {int pageCount = 1}) {
+  /// 创建新文档（CUJ-01 创建）�?  void createDocument(String id, {int pageCount = 1}) {
     final doc = DocumentV2(id: id, pageCount: pageCount, layers: [
       const LayerV2(id: 'layer-1', name: 'Layer 1'),
     ]);
@@ -219,10 +188,8 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     state = EditorV2State(document: doc);
   }
 
-  /// 添加笔画（CUJ-01 绘制——阶段2：传递笔刷类型+透明度）。
-  void addStroke(List<Point> points, {String layerId = 'layer-1'}) {
-    // 激光笔仅视觉预览，不写入文档（V1 行为）。
-    if (state.brushType == 'laser') return;
+  /// 添加笔画（CUJ-01 绘制——阶�?：传递笔刷类�?透明度）�?  void addStroke(List<Point> points, {String layerId = 'layer-1'}) {
+    // 激光笔仅视觉预览，不写入文档（V1 行为）�?    if (state.brushType == 'laser') return;
     final opacity = state.brushType == 'marker' ? 0.5 : 1.0;
     final stroke = LineItem(
       id: 'stroke-${DateTime.now().millisecondsSinceEpoch}',
@@ -234,10 +201,8 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     execute(AddStrokeCommand(layerId: layerId, stroke: stroke));
   }
 
-  /// 添加或更新文本（V1/V2 迁移阶段2——文字工具点击/编辑）。
-  void addText(String content, double x, double y, {String layerId = 'layer-1'}) {
-    // 若已有选中文本且内容非空，更新而非新建。
-    final editingId = state.selectedTextId;
+  /// 添加或更新文本（V1/V2 迁移阶段2——文字工具点�?编辑）�?  void addText(String content, double x, double y, {String layerId = 'layer-1'}) {
+    // 若已有选中文本且内容非空，更新而非新建�?    final editingId = state.selectedTextId;
     if (editingId != null && content.isNotEmpty) {
       final doc = state.document;
       for (final layer in doc.layers) {
@@ -259,8 +224,7 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
         }
       }
     }
-    // 新建文本。
-    final text = TextItem(
+    // 新建文本�?    final text = TextItem(
       id: 'text-${DateTime.now().millisecondsSinceEpoch}',
       content: content,
       x: x,
@@ -269,25 +233,22 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     execute(CreateTextCommand(layerId: layerId, text: text));
   }
 
-  /// 选中文本元素（进入编辑模式）。
-  void selectText(String textId) {
+  /// 选中文本元素（进入编辑模式）�?  void selectText(String textId) {
     state = state.copyWith(
       selectedTextId: textId,
       selectedItemId: textId,
     );
   }
 
-  /// 取消选中。
-  void clearSelection() {
+  /// 取消选中�?  void clearSelection() {
     state = state.copyWith(
       
     );
   }
 
-  // ──────────────────── 图片（V1/V2 迁移阶段2——2026-08-24） ────────────────────
+  // ──────────────────── 图片（V1/V2 迁移阶段2—�?026-08-24�?────────────────────
 
-  /// 插入图片到画布。
-  void insertImage(String mediaId, double x, double y,
+  /// 插入图片到画布�?  void insertImage(String mediaId, double x, double y,
       {double width = 200, double height = 200, String layerId = 'layer-1'}) {
     final image = ImageItem(
       id: 'img-${DateTime.now().millisecondsSinceEpoch}',
@@ -300,10 +261,9 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     execute(InsertImageCommand(layerId: layerId, image: image));
   }
 
-  // ──────────────────── 橡皮擦（V1/V2 迁移阶段2——2026-08-24） ────────────────────
+  // ──────────────────── 橡皮擦（V1/V2 迁移阶段2—�?026-08-24�?────────────────────
 
-  /// 擦除指定位置的元素（按距离判定）。
-  void eraseAt(double x, double y, {String layerId = 'layer-1'}) {
+  /// 擦除指定位置的元素（按距离判定）�?  void eraseAt(double x, double y, {String layerId = 'layer-1'}) {
     final radius = state.brushSize;
     execute(EraseByDistanceCommand(
       layerId: layerId,
@@ -313,10 +273,9 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     ));
   }
 
-  // ──────────────────── 图层（V1/V2 迁移阶段2——2026-08-24） ────────────────────
+  // ──────────────────── 图层（V1/V2 迁移阶段2—�?026-08-24�?────────────────────
 
-  /// 新增图层。
-  void addLayer({String? name}) {
+  /// 新增图层�?  void addLayer({String? name}) {
     final doc = state.document;
     final newId = 'layer-${doc.layers.length + 1}';
     final newLayer = LayerV2(
@@ -328,8 +287,7 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     ));
   }
 
-  /// 切换图层可见性。
-  void toggleLayerVisibility(String layerId) {
+  /// 切换图层可见性�?  void toggleLayerVisibility(String layerId) {
     final doc = state.document;
     final newLayers = doc.layers.map((l) {
       if (l.id == layerId) {
@@ -340,27 +298,22 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     execute(UpdateDocumentCommand(layers: newLayers));
   }
 
-  /// 删除图层。
-  void deleteLayer(String layerId) {
+  /// 删除图层�?  void deleteLayer(String layerId) {
     final doc = state.document;
-    if (doc.layers.length <= 1) return; // 至少保留一个图层
-    final newLayers = doc.layers.where((l) => l.id != layerId).toList();
+    if (doc.layers.length <= 1) return; // 至少保留一个图�?    final newLayers = doc.layers.where((l) => l.id != layerId).toList();
     execute(UpdateDocumentCommand(layers: newLayers));
   }
 
-  // ──────────────────── 持久化（V1/V2 迁移阶段2——2026-08-24） ────────────────────
+  // ──────────────────── 持久化（V1/V2 迁移阶段2—�?026-08-24�?────────────────────
 
-  /// 序列化当前文档为 JSON Map（供 StorageService 落盘）。
-  Map<String, dynamic> toJson() => state.document.toJson();
+  /// 序列化当前文档为 JSON Map（供 StorageService 落盘）�?  Map<String, dynamic> toJson() => state.document.toJson();
 
-  /// 从 JSON Map 恢复文档状态（供 StorageService 加载）。
-  void loadFromJson(Map<String, dynamic> json) {
+  /// �?JSON Map 恢复文档状态（�?StorageService 加载）�?  void loadFromJson(Map<String, dynamic> json) {
     final doc = DocumentV2.fromJson(json);
     state = state.copyWith(document: doc);
   }
 
-  /// 添加形状（图形工具——支持描边/填充颜色——2026-08-24）。
-  void addShape(
+  /// 添加形状（图形工具——支持描�?填充颜色—�?026-08-24）�?  void addShape(
     String type,
     double x,
     double y,
@@ -389,10 +342,8 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     state = state.copyWith(currentTool: tool);
   }
 
-  /// 设置笔刷类型（V1/V2 迁移阶段2——pen/pencil/marker/laser/eraser）。
-  void setBrushType(String type) {
-    // 自动切换到绘图工具。
-    state = state.copyWith(
+  /// 设置笔刷类型（V1/V2 迁移阶段2——pen/pencil/marker/laser/eraser）�?  void setBrushType(String type) {
+    // 自动切换到绘图工具�?    state = state.copyWith(
       brushType: type,
       currentTool: 'draw',
       eyedropperActive: false,
@@ -403,39 +354,32 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     state = state.copyWith(currentShapeType: type);
   }
 
-  // ──────────────────── 流式绘画手势（V2 画板——2026-08-25 修复） ────────────────────
+  // ──────────────────── 流式绘画手势（V2 画板—�?026-08-25 修复�?────────────────────
 
-  /// 当前正在绘制的笔画点序列（临时——endStroke 时提交到文档）。
-  List<Point> _pendingStrokePoints = [];
+  /// 当前正在绘制的笔画点序列（临时——endStroke 时提交到文档）�?  List<Point> _pendingStrokePoints = [];
 
-  /// 手势开始——开始新笔画。
-  void startStroke(Offset pos) {
+  /// 手势开始——开始新笔画�?  void startStroke(Offset pos) {
     _pendingStrokePoints = [Point(pos.dx, pos.dy)];
   }
 
-  /// 手势更新——追加点到当前笔画。
-  void extendStroke(Offset pos) {
+  /// 手势更新——追加点到当前笔画�?  void extendStroke(Offset pos) {
     _pendingStrokePoints.add(Point(pos.dx, pos.dy));
   }
 
-  /// 手势结束——提交笔画到文档（批量 addStroke）。
-  void endStroke() {
+  /// 手势结束——提交笔画到文档（批�?addStroke）�?  void endStroke() {
     if (_pendingStrokePoints.isNotEmpty) {
       addStroke(List<Point>.from(_pendingStrokePoints));
       _pendingStrokePoints = [];
     }
   }
 
-  /// 形状绘制起点（临时——endShapeDrag 时提交到文档）。
-  Point? _shapeStart;
+  /// 形状绘制起点（临时——endShapeDrag 时提交到文档）�?  Point? _shapeStart;
 
-  /// 手势开始——记录形状起点。
-  void startShapeDrag(Offset pos) {
+  /// 手势开始——记录形状起点�?  void startShapeDrag(Offset pos) {
     _shapeStart = Point(pos.dx, pos.dy);
   }
 
-  /// 手势结束——根据起点和终点创建形状。
-  void endShapeDrag(Offset pos, String type) {
+  /// 手势结束——根据起点和终点创建形状�?  void endShapeDrag(Offset pos, String type) {
     if (_shapeStart != null) {
       final sx = _shapeStart!.x;
       final sy = _shapeStart!.y;
@@ -451,31 +395,26 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     }
   }
 
-  /// 激活取色器（放大镜取色——用户需求 #7）。
-  void activateEyedropper() {
+  /// 激活取色器（放大镜取色——用户需�?#7）�?  void activateEyedropper() {
     state = state.copyWith(
       currentTool: 'eyedropper',
       eyedropperActive: true,
     );
   }
 
-  /// 取消取色器。
-  void deactivateEyedropper() {
+  /// 取消取色器�?  void deactivateEyedropper() {
     state = state.copyWith(
       currentTool: 'draw',
       eyedropperActive: false,
     );
   }
 
-  /// 更新取色器光标位置。
-  void updateEyedropperPosition(Offset position) {
+  /// 更新取色器光标位置�?  void updateEyedropperPosition(Offset position) {
     state = state.copyWith(eyedropperPosition: position);
   }
 
-  /// 应用取色结果（松手后调用——设置当前画笔颜色为取到的颜色）。
-  ///
-  /// 将采样到的颜色转换为 #RRGGBB 并应用为当前画笔颜色，退出取色模式。
-  void applyPickedColor(Color color) {
+  /// 应用取色结果（松手后调用——设置当前画笔颜色为取到的颜色）�?  ///
+  /// 将采样到的颜色转换为 #RRGGBB 并应用为当前画笔颜色，退出取色模式�?  void applyPickedColor(Color color) {
     final hex = '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
     state = state.copyWith(
       currentTool: 'draw',
@@ -485,48 +424,36 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     );
   }
 
-  /// 实时更新取色放大镜颜色（P2 #30——实时采样——2026-08-24）。
-  ///
-  /// 在拖动取色器时调用，更新放大镜显示颜色。
-  /// 同时更新 currentColor 供画笔工具使用。
-  void setMagnifierColor(Color color) {
+  /// 实时更新取色放大镜颜色（P2 #30——实时采样—�?026-08-24）�?  ///
+  /// 在拖动取色器时调用，更新放大镜显示颜色�?  /// 同时更新 currentColor 供画笔工具使用�?  void setMagnifierColor(Color color) {
     state = state.copyWith(currentColor: color);
   }
 
-  // ──────────────────── 笔刷设置（V1/V2 迁移阶段1——2026-08-24） ────────────────────
+  // ──────────────────── 笔刷设置（V1/V2 迁移阶段1—�?026-08-24�?────────────────────
 
-  /// 设置笔刷粗细。
-  void setBrushSize(double size) {
+  /// 设置笔刷粗细�?  void setBrushSize(double size) {
     state = state.copyWith(brushSize: size);
   }
 
-  /// 设置笔画颜色（#RRGGBB）。
-  void setStrokeColor(String hex) {
+  /// 设置笔画颜色�?RRGGBB）�?  void setStrokeColor(String hex) {
     state = state.copyWith(strokeColorHex: hex);
   }
 
-  // ──────────────────── 笔记模式（V2 编辑器笔记——2026-08-25） ────────────────────
+  // ──────────────────── 笔记模式（V2 编辑器笔记—�?026-08-25�?────────────────────
 
-  /// 加载已有笔记文档（优先从磁盘恢复，否则创建新文档）。
-  ///
-  /// 先同步创建文档保证 noteDocument 非 null（防止 UI 空指针），
-  /// 再异步尝试从磁盘加载恢复。
-  void loadNoteDocument(String id) {
-    // 如果已有同 ID 的文档在内存中，保留它。
-    final existing = state.noteDocument;
+  /// 加载已有笔记文档（优先从磁盘恢复，否则创建新文档）�?  ///
+  /// 先同步创建文档保�?noteDocument �?null（防�?UI 空指针）�?  /// 再异步尝试从磁盘加载恢复�?  void loadNoteDocument(String id) {
+    // 如果已有�?ID 的文档在内存中，保留它�?    final existing = state.noteDocument;
     if (existing != null && existing.id == id) return;
-    // 同步创建文档（保证 noteDocument 立即可用）。
-    state = state.copyWith(
-      noteDocument: NoteDocument(id: id, title: '未命名笔记'),
+    // 同步创建文档（保�?noteDocument 立即可用）�?    state = state.copyWith(
+      noteDocument: NoteDocument(id: id, title: '未命名笔�?),
     );
-    // 异步从磁盘加载已保存的笔记（若存在则覆盖）。
-    _loadNoteFromDisk(id);
+    // 异步从磁盘加载已保存的笔记（若存在则覆盖）�?    _loadNoteFromDisk(id);
   }
 
-  /// 异步从磁盘加载笔记文档并替换内存中的文档。
-  Future<void> _loadNoteFromDisk(String id) async {
+  /// 异步从磁盘加载笔记文档并替换内存中的文档�?  Future<void> _loadNoteFromDisk(String id) async {
     try {
-      final json = await StorageService().loadJson(id);
+      final json = await _repository.loadDocument(id);
       if (json != null) {
         final doc = NoteDocument.fromJson(json);
         state = state.copyWith(noteDocument: doc);
@@ -538,13 +465,11 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     }
   }
 
-  /// 更新笔记文档（NoteEditorWidget onChanged 回调）。
-  void updateNoteDocument(NoteDocument doc) {
+  /// 更新笔记文档（NoteEditorWidget onChanged 回调）�?  void updateNoteDocument(NoteDocument doc) {
     state = state.copyWith(noteDocument: doc);
   }
 
-  /// 切换笔记格式化标记（bold/italic/heading/bullet/code）。
-  void toggleNoteFormatting(String tag) {
+  /// 切换笔记格式化标记（bold/italic/heading/bullet/code）�?  void toggleNoteFormatting(String tag) {
     final current = Set<String>.from(state.activeNoteFormatting);
     if (current.contains(tag)) {
       current.remove(tag);
@@ -554,24 +479,26 @@ class EditorV2Notifier extends Notifier<EditorV2State> {
     state = state.copyWith(activeNoteFormatting: current);
   }
 
-  /// 保存笔记文档到 StorageService。
-  Future<void> saveNoteDocument() async {
+  /// 保存笔记文档�?StorageService�?  Future<void> saveNoteDocument() async {
     final noteDoc = state.noteDocument;
     if (noteDoc == null) return;
     try {
       final json = noteDoc.toJson();
-      await StorageService().saveJson(noteDoc.id, json);
+      await _repository.saveDocument(noteDoc.id, json);
       debugPrint('EditorV2: saveNoteDocument id=${noteDoc.id} '
           'paragraphs=${noteDoc.paragraphCount} saved OK');
     } catch (e) {
-      // 静默失败——自动保存不中断用户操作。
-      debugPrint('EditorV2: saveNoteDocument failed: $e');
+      // 静默失败——自动保存不中断用户操作�?      debugPrint('EditorV2: saveNoteDocument failed: $e');
     }
   }
 }
 
-/// Riverpod Provider（手动声明——不依赖代码生成）。
-final editorV2NotifierProvider =
+/// Riverpod Provider（手动声明——不依赖代码生成）�?final editorV2NotifierProvider =
     NotifierProvider<EditorV2Notifier, EditorV2State>(
-  EditorV2Notifier.new,
+  (ref) => EditorV2Notifier(ref.read(editorRepositoryProvider)),
 );
+
+/// EditorRepository Provider（DI 入口——注入 StorageService 实现）
+final editorRepositoryProvider = Provider<EditorRepository>((ref) {
+  return EditorStorageRepository(StorageService());
+});

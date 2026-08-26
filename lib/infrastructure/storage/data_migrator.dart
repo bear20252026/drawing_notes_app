@@ -12,7 +12,7 @@ import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
 
-import 'schema_version.dart';
+import '../../core/storage/schema_version.dart';
 
 /// 迁移日志条目。
 class MigrationLogEntry {

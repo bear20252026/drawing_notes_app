@@ -51,7 +51,7 @@ class ErrorService {
             ),
           ],
         ),
-        backgroundColor: Colors.red.shade700,
+        backgroundColor: const Color(0xFFFF3B30),
         duration: duration,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

@@ -54,7 +54,7 @@ class _PresentationPageState extends State<PresentationPage> {
           borderRadius: BorderRadius.circular(8),
           child: i.filePath.isNotEmpty
               ? Image.file(File(i.filePath), fit: BoxFit.contain)
-              : const ColoredBox(color: Colors.grey),
+              : const ColoredBox(color: Color(0xFF8E8E93)),
         ),
       );
     }

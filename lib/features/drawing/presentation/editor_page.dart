@@ -38,7 +38,7 @@ import '../domain/selection.dart';
 import '../domain/stroke.dart';
 import '../../../core/notes_accessor.dart';
 import '../../../core/storage/local_id_generator.dart';
-import '../../../core/storage/storage_service.dart';
+import '../../../infrastructure/storage/storage_service.dart';
 import 'canvas_painter.dart';
 import 'encrypted_file_image.dart';
 import '../../../shared/widgets/color_picker_dialog.dart';
@@ -73,18 +73,10 @@ part 'editor_page_commands.dart';
 part 'editor_page_shortcuts.dart';
 part 'editor_page_persistence.dart';
 
-/// 编辑器页面。
-///
-/// 两种使用场景：
-/// 1. 独立画作模式：仅传 [document]（Phase 1-4，画布功能）；
-/// 2. 笔记本页面模式：传 [notebook]/[page]/[storage]/[onChanged]，
-///    在画布之上叠加文字块与图片块（Phase 5 混排）。
-///
-/// 职责：
-/// - 手势采集：笔画 / 选区 / 吸管 / 文字与图片放置
-/// - 工具面板：撤销、重做、清空、画笔/橡皮擦/吸管/选区/文字/图片
-/// - 保存回调：任何变更后调用 [onChanged]（由上级页面负责落盘）
-class EditorPage extends ConsumerStatefulWidget {
+/// 编辑器页面�?///
+/// 两种使用场景�?/// 1. 独立画作模式：仅�?[document]（Phase 1-4，画布功能）�?/// 2. 笔记本页面模式：�?[notebook]/[page]/[storage]/[onChanged]�?///    在画布之上叠加文字块与图片块（Phase 5 混排）�?///
+/// 职责�?/// - 手势采集：笔�?/ 选区 / 吸管 / 文字与图片放�?/// - 工具面板：撤销、重做、清空、画�?橡皮�?吸管/选区/文字/图片
+/// - 保存回调：任何变更后调用 [onChanged]（由上级页面负责落盘�?class EditorPage extends ConsumerStatefulWidget {
   const EditorPage({
     super.key,
     DrawingDocument? document,
@@ -96,27 +88,19 @@ class EditorPage extends ConsumerStatefulWidget {
     this.openPresentation,
   }) : _initialDocument = document;
 
-  /// 独立画作模式：初始文档（为空时创建默认空白文档）。
-  final DrawingDocument? _initialDocument;
+  /// 独立画作模式：初始文档（为空时创建默认空白文档）�?  final DrawingDocument? _initialDocument;
 
-  /// 笔记本页面模式：所属笔记本与当前页面。
-  final Notebook? notebook;
+  /// 笔记本页面模式：所属笔记本与当前页面�?  final Notebook? notebook;
   final NotebookPage? page;
 
-  /// 笔记侧存储契约（插入图片时复制图片副本用）。
-  final INotebookAccessor? storage;
+  /// 笔记侧存储契约（插入图片时复制图片副本用）�?  final INotebookAccessor? storage;
 
-  /// 独立画作存储（Phase 6 自动保存用）。
-  final StorageService? docStorage;
+  /// 独立画作存储（Phase 6 自动保存用）�?  final StorageService? docStorage;
 
-  /// 打开放映页的回调（跨 feature 页面跳转契约，S4b 接口化）：
-  /// 由笔记侧注入实现（跳转 PresentationPage），drawing 不直接依赖
-  /// notes 的 presentation UI；null 时演示功能提示不可用。
-  final Future<void> Function(BuildContext context, NotebookPage page)?
+  /// 打开放映页的回调（跨 feature 页面跳转契约，S4b 接口化）�?  /// 由笔记侧注入实现（跳�?PresentationPage），drawing 不直接依�?  /// notes �?presentation UI；null 时演示功能提示不可用�?  final Future<void> Function(BuildContext context, NotebookPage page)?
       openPresentation;
 
-  /// 内容变更回调（自动保存由上级页面实现）。
-  final VoidCallback? onChanged;
+  /// 内容变更回调（自动保存由上级页面实现）�?  final VoidCallback? onChanged;
 
   @override
   ConsumerState<EditorPage> createState() => _EditorPageState();
@@ -125,178 +109,127 @@ class EditorPage extends ConsumerStatefulWidget {
 class _EditorPageState extends ConsumerState<EditorPage> {
   late final DrawingController _controller;
 
-  /// 画布导出域（参考 Saber editor_exporter 模块化）：PNG/PDF/SVG/RTF/
-  /// TXT/PPTX/JSON 与剪贴板复制集中在独立模块，本页只负责调用。
-  late final EditorExporter _exporter;
+  /// 画布导出域（参�?Saber editor_exporter 模块化）：PNG/PDF/SVG/RTF/
+  /// TXT/PPTX/JSON 与剪贴板复制集中在独立模块，本页只负责调用�?  late final EditorExporter _exporter;
 
-  /// 编辑器 ViewModel 胶水层（R4）：工具状态 + 防抖保存调度，
-  /// editor_page 只通过它读写工具状态与触发保存（见 editor_viewmodel.dart）。
-  late final EditorViewModel _viewModel;
+  /// 编辑�?ViewModel 胶水层（R4）：工具状�?+ 防抖保存调度�?  /// editor_page 只通过它读写工具状态与触发保存（见 editor_viewmodel.dart）�?  late final EditorViewModel _viewModel;
   bool _viewportInitialized = false;
 
-  /// 吸管模式：激活时点击画布取色，取色后自动退出。
-  bool get _eyedropperActive => _viewModel.eyedropperActive;
+  /// 吸管模式：激活时点击画布取色，取色后自动退出�?  bool get _eyedropperActive => _viewModel.eyedropperActive;
 
-  /// 文字工具模式：激活时点击画布弹出文字输入框。
-  bool get _textToolActive => _viewModel.textToolActive;
+  /// 文字工具模式：激活时点击画布弹出文字输入框�?  bool get _textToolActive => _viewModel.textToolActive;
 
-  /// 选区是否已完成（完成后再拖动 = 移动选中内容，而非新建选区）。
-  bool get _selectionDone => _viewModel.selectionDone;
+  /// 选区是否已完成（完成后再拖动 = 移动选中内容，而非新建选区）�?  bool get _selectionDone => _viewModel.selectionDone;
 
-  /// 上次拖动位置（画布坐标），用于计算移动增量。
-  Offset? _lastDragCanvas;
+  /// 上次拖动位置（画布坐标），用于计算移动增量�?  Offset? _lastDragCanvas;
 
-  /// 缩放滑块当前值（1.0 = 原始大小）。
-  double _scaleValue = 1.0;
+  /// 缩放滑块当前值（1.0 = 原始大小）�?  double _scaleValue = 1.0;
 
-  /// 旋转滑块当前值（度）。
-  double _rotateDegrees = 0.0;
+  /// 旋转滑块当前值（度）�?  double _rotateDegrees = 0.0;
 
-  /// 当前选中的混排对象 id（null = 无选中），用于显示编辑/删除按钮。
-  String? _selectedItemId;
+  /// 当前选中的混排对�?id（null = 无选中），用于显示编辑/删除按钮�?  String? _selectedItemId;
 
-  /// 当前选中的文字块（null = 未选中文字块），供工具栏字号滑块使用。
-  PageTextItem? get _selectedTextItem {
+  /// 当前选中的文字块（null = 未选中文字块），供工具栏字号滑块使用�?  PageTextItem? get _selectedTextItem {
     final page = widget.page;
     final id = _selectedItemId;
     if (page == null || id == null) return null;
     return page.textItems.where((t) => t.id == id).firstOrNull;
   }
 
-  /// 全屏模式：隐藏应用框架，只保留画布。
-  bool _fullscreen = false;
+  /// 全屏模式：隐藏应用框架，只保留画布�?  bool _fullscreen = false;
 
-  /// 拖放状态跟踪（用于 UI 反馈）。
-  final DropRegionState _dropState = DropRegionState();
+  /// 拖放状态跟踪（用于 UI 反馈）�?  final DropRegionState _dropState = DropRegionState();
 
-  /// 是否正在拖放文件到画布区域。
-  bool get _isDraggingFile => _dropState.isDragging;
+  /// 是否正在拖放文件到画布区域�?  bool get _isDraggingFile => _dropState.isDragging;
 
-  /// 阅读反相仅作用于当前编辑器显示层；不修改页面颜色、资源字节、导出或保存。
-  bool _readingInverted = false;
+  /// 阅读反相仅作用于当前编辑器显示层；不修改页面颜色、资源字节、导出或保存�?  bool _readingInverted = false;
 
-  // 深色阅读反相矩阵（问题9修复）。
-  //
-  // 原 Rec.709 保亮度矩阵系数误算：白色 (255,255,255) 经其作用后变为
-  // (0,255,0) 纯绿色，即用户实测的"一片绿幕"。标准 RGB 反相矩阵保证
-  // 白色背景 → 黑色、黑色墨迹 → 白色，实现真正的深色阅读（仅显示层
-  // 反相，不修改文档数据）。
-  static const ColorFilter _readingInvertFilter = ColorFilter.matrix(<double>[
+  // 深色阅读反相矩阵（问�?修复）�?  //
+  // �?Rec.709 保亮度矩阵系数误算：白色 (255,255,255) 经其作用后变�?  // (0,255,0) 纯绿色，即用户实测的"一片绿�?。标�?RGB 反相矩阵保证
+  // 白色背景 �?黑色、黑色墨�?�?白色，实现真正的深色阅读（仅显示�?  // 反相，不修改文档数据）�?  static const ColorFilter _readingInvertFilter = ColorFilter.matrix(<double>[
     -1, 0, 0, 0, 255,
     0, -1, 0, 0, 255,
     0, 0, -1, 0, 255,
     0, 0, 0, 1, 0,
   ]);
 
-  /// 图层与详细属性默认按需展开，避免在普通屏幕上长期挤压创作区域。
-  bool _layersVisible = false;
+  /// 图层与详细属性默认按需展开，避免在普通屏幕上长期挤压创作区域�?  bool _layersVisible = false;
   bool _inspectorVisible = false;
 
-  /// 键盘快捷键监听焦点（Ctrl+Z/Ctrl+Y 撤销重做）。
-  final FocusNode _shortcutFocus = FocusNode(debugLabel: 'editor_shortcuts');
+  /// 键盘快捷键监听焦点（Ctrl+Z/Ctrl+Y 撤销重做）�?  final FocusNode _shortcutFocus = FocusNode(debugLabel: 'editor_shortcuts');
 
   /// 命令注册表（B2，借鉴 Joplin CommandService）：
-  /// 操作统一注册，快捷键面板从命令表自动生成。
-  late final CommandRegistry _commands;
+  /// 操作统一注册，快捷键面板从命令表自动生成�?  late final CommandRegistry _commands;
 
-  /// 命令面板最近一次成功执行的命令（仅保留会话内记录）。
-  String? _lastCommandId;
+  /// 命令面板最近一次成功执行的命令（仅保留会话内记录）�?  String? _lastCommandId;
 
   /// 就地编辑（点击页面直接打字）状态：
-  /// 正在编辑的文字块 id（null = 无就地编辑）。
-  String? _editingItemId;
+  /// 正在编辑的文字块 id（null = 无就地编辑）�?  String? _editingItemId;
   final TextEditingController _editController = TextEditingController();
   final FocusNode _editFocus = FocusNode();
 
-  /// 就地编辑中的临时文字块（提交时才加入页面）。
-  PageTextItem? _pendingTextItem;
+  /// 就地编辑中的临时文字块（提交时才加入页面）�?  PageTextItem? _pendingTextItem;
 
-  /// 斜杠命令菜单是否展开（D5，借鉴 Lokus 斜杠命令）。
-  bool _slashOpen = false;
+  /// 斜杠命令菜单是否展开（D5，借鉴 Lokus 斜杠命令）�?  bool _slashOpen = false;
 
-  /// 连线模式（D1）：开启后依次点选两个元素创建连接线。
-  bool get _linkMode => _viewModel.linkMode;
+  /// 连线模式（D1）：开启后依次点选两个元素创建连接线�?  bool get _linkMode => _viewModel.linkMode;
 
-  /// 当前激活的形状工具（借鉴 Excalidraw 图形工具；null = 未激活）。
-  ShapeType? _activeShapeTool;
+  /// 当前激活的形状工具（借鉴 Excalidraw 图形工具；null = 未激活）�?  ShapeType? _activeShapeTool;
 
-  /// 画布视口尺寸（小地图导航用，由布局回调更新）。
-  /// 声明在主类（extension 不能声明实例字段，拆分专用）。
-  Size? _viewportSize;
+  /// 画布视口尺寸（小地图导航用，由布局回调更新）�?  /// 声明在主类（extension 不能声明实例字段，拆分专用）�?  Size? _viewportSize;
 
-  /// 对齐参考线（拖动元素时实时显示，借鉴 Excalidraw 对齐可视化）。
-  /// 元素为 (vertical: 是否垂直线, pos: 画布坐标位置)。
-  List<({bool vertical, double pos})> _snapGuides = [];
+  /// 对齐参考线（拖动元素时实时显示，借鉴 Excalidraw 对齐可视化）�?  /// 元素�?(vertical: 是否垂直�? pos: 画布坐标位置)�?  List<({bool vertical, double pos})> _snapGuides = [];
 
   /// 文字缩放手柄的拖拽基准（落地 Excalidraw resizeElements）：
-  /// 记录手势开始时的宽度/字号，供缩放联动字号计算；null = 无进行中手势。
-  ({double width, double fontSize, double x})? _textResizeAnchor;
+  /// 记录手势开始时的宽�?字号，供缩放联动字号计算；null = 无进行中手势�?  ({double width, double fontSize, double x})? _textResizeAnchor;
 
-  /// 框选工具激活（借鉴 Excalidraw 多选：矩形框选多个混排对象）。
-  bool _marqueeActive = false;
+  /// 框选工具激活（借鉴 Excalidraw 多选：矩形框选多个混排对象）�?  bool _marqueeActive = false;
 
-  /// 框选矩形（画布坐标；null = 未在框选中）。
-  Rect? _marqueeRect;
+  /// 框选矩形（画布坐标；null = 未在框选中）�?  Rect? _marqueeRect;
 
-  /// 框选起点（画布坐标）。
-  Offset? _marqueeStart;
+  /// 框选起点（画布坐标）�?  Offset? _marqueeStart;
 
-  /// 多选元素 id 集合（框选结果，可整体拖动/删除）。
-  final Set<String> _multiSelectedIds = {};
+  /// 多选元�?id 集合（框选结果，可整体拖�?删除）�?  final Set<String> _multiSelectedIds = {};
 
-  /// 网格显示开关（借鉴 Excalidraw 画布导航）。
-  bool _gridVisible = false;
+  /// 网格显示开关（借鉴 Excalidraw 画布导航）�?  bool _gridVisible = false;
 
-  /// 网格吸附开关（拖动元素吸附到 20px 网格，借鉴 Excalidraw）。
-  bool _snapToGrid = false;
+  /// 网格吸附开关（拖动元素吸附�?20px 网格，借鉴 Excalidraw）�?  bool _snapToGrid = false;
 
-  /// 正在播放删除淡出动画的元素 id 集合（借鉴 Excalidraw 删除动画）。
-  final Set<String> _deletingIds = {};
+  /// 正在播放删除淡出动画的元�?id 集合（借鉴 Excalidraw 删除动画）�?  final Set<String> _deletingIds = {};
 
-  /// 手型工具激活（对齐 Excalidraw hand：拖动画布平移）。
-  bool _handToolActive = false;
+  /// 手型工具激活（对齐 Excalidraw hand：拖动画布平移）�?  bool _handToolActive = false;
 
   /// 上次取色时间（P-2 修复 2026-08-15）：pickColorAt 每次完整重绘文档
-  /// 到图片（极重操作），取色做 200ms 冷却节流防连续触发卡顿。
-  DateTime? _lastPickColorAt;
+  /// 到图片（极重操作），取色�?200ms 冷却节流防连续触发卡顿�?  DateTime? _lastPickColorAt;
 
-  /// 文字工具双击防抖（问题#6修复——editor_page_input 使用）。
-  DateTime? _lastTextToolTap;
+  /// 文字工具双击防抖（问�?6修复——editor_page_input 使用）�?  DateTime? _lastTextToolTap;
 
-  /// 拖动轨迹点（对齐 Excalidraw animatedTrail：拖动元素显示轨迹动画）。
-  final List<Offset> _trailPoints = [];
+  /// 拖动轨迹点（对齐 Excalidraw animatedTrail：拖动元素显示轨迹动画）�?  final List<Offset> _trailPoints = [];
 
-  /// 图片裁剪（对齐 Excalidraw 图片裁剪）：裁剪目标与裁剪矩形（画布坐标）。
-  PageImageItem? _cropItem;
+  /// 图片裁剪（对�?Excalidraw 图片裁剪）：裁剪目标与裁剪矩形（画布坐标）�?  PageImageItem? _cropItem;
   Rect? _cropRect;
 
-  /// 压感笔刷：上一采样点位置与时间（用于鼠标速度模拟压感，
-  /// 对齐 Excalidraw：速度快 -> 笔画细，速度慢 -> 笔画粗）。
-  Offset? _lastPenPos;
+  /// 压感笔刷：上一采样点位置与时间（用于鼠标速度模拟压感�?  /// 对齐 Excalidraw：速度�?-> 笔画细，速度�?-> 笔画粗）�?  Offset? _lastPenPos;
   DateTime? _lastPenTime;
 
   /// 压感解释、平滑与设备诊断。真实笔压与鼠标速度回退在同一策略中处理，
-  /// 状态栏明确展示来源，避免把模拟效果误认为硬件压感。
-  final StylusInputProcessor _stylusInput = StylusInputProcessor();
+  /// 状态栏明确展示来源，避免把模拟效果误认为硬件压感�?  final StylusInputProcessor _stylusInput = StylusInputProcessor();
   final ValueNotifier<InkPressureSample?> _inkPressureSample =
       ValueNotifier<InkPressureSample?>(null);
 
-  /// 每种书写工具独立的颜色与尺寸，跨启动持久化。
-  final BrushPresetStore _brushPresetStore = BrushPresetStore();
+  /// 每种书写工具独立的颜色与尺寸，跨启动持久化�?  final BrushPresetStore _brushPresetStore = BrushPresetStore();
   final EraserModeStore _eraserModeStore = EraserModeStore();
   EraserMode _lastEraserMode = EraserMode.stroke;
   BrushPresetBook _brushPresets = BrushPresetBook.defaults();
 
-  /// 当前选中的图片元素。
-  PageImageItem? get _selectedImageItem {
+  /// 当前选中的图片元素�?  PageImageItem? get _selectedImageItem {
     final page = widget.page;
     final id = _selectedItemId;
     if (page == null || id == null) return null;
     return page.imageItems.where((i) => i.id == id).firstOrNull;
   }
 
-  /// 确认裁剪：按裁剪矩形重新编码图片并写回文件（对齐 Excalidraw 图片裁剪）。
-  Future<void> _confirmCrop() async {
+  /// 确认裁剪：按裁剪矩形重新编码图片并写回文件（对齐 Excalidraw 图片裁剪）�?  Future<void> _confirmCrop() async {
     final img = _cropItem;
     final rect = _cropRect;
     if (img == null || rect == null || rect.width < 10 || rect.height < 10) {
@@ -306,15 +239,14 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     try {
       final file = File(img.filePath);
       if (!await file.exists()) {
-        _showSnack('原图文件不存在');
+        _showSnack('原图文件不存�?);
         return;
       }
       final bytes = await file.readAsBytes();
       final codec = await ui.instantiateImageCodec(bytes);
       final frame = await codec.getNextFrame();
       final src = frame.image;
-      // 按比例映射：裁剪矩形（画布坐标）-> 原图像素坐标。
-      final scaleX = src.width / (img.width + 1);
+      // 按比例映射：裁剪矩形（画布坐标）-> 原图像素坐标�?      final scaleX = src.width / (img.width + 1);
       final scaleY = src.height / (img.height + 1);
       final srcRect = Rect.fromLTWH(
         (rect.left - img.x).clamp(0, img.width) * scaleX,
@@ -352,32 +284,27 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         _cropRect = null;
       });
       _notifyChanged();
-      _showSnack('已裁剪图片');
+      _showSnack('已裁剪图�?);
     } catch (e) {
-      _showSnack('裁剪失败：$e');
+      _showSnack('裁剪失败�?e');
     }
   }
 
-  /// 当前工作区的形状集合：笔记页使用分页混排集合，独立绘图使用文档集合。
-  List<PageShapeItem> get _shapeItems =>
+  /// 当前工作区的形状集合：笔记页使用分页混排集合，独立绘图使用文档集合�?  List<PageShapeItem> get _shapeItems =>
       widget.page?.shapes ?? _controller.document.shapes;
 
-  /// 当前选中的形状元素。
-  PageShapeItem? get _selectedShapeItem {
+  /// 当前选中的形状元素�?  PageShapeItem? get _selectedShapeItem {
     final id = _selectedItemId;
     if (id == null) return null;
     return _shapeItems.where((shape) => shape.id == id).firstOrNull;
   }
 
-  /// 形状拖拽创建的起点和当前点（画布坐标）。
-  Offset? _shapeDraftStart;
+  /// 形状拖拽创建的起点和当前点（画布坐标）�?  Offset? _shapeDraftStart;
   Offset? _shapeDraftCurrent;
 
-  /// 形状填充模式开关（问题4）：开启后新建形状默认带填充色。
-  bool _fillShapeEnabled = false;
+  /// 形状填充模式开关（问题4）：开启后新建形状默认带填充色�?  bool _fillShapeEnabled = false;
 
-  /// 形状填充色（ARGB，默认半透明绿，与样式面板一致）。
-  final int _shapeFillColor = 0x66A5D6A7;
+  /// 形状填充色（ARGB，默认半透明绿，与样式面板一致）�?  final int _shapeFillColor = 0x66A5D6A7;
 
   PageShapeItem? get _shapeDraft {
     final start = _shapeDraftStart;
@@ -399,35 +326,28 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       strokeWidth: _controller.brushSize.clamp(1, 20).toDouble(),
       flipX: dx < 0,
       flipY: dy < 0,
-      // 线性元素预览也保存真实端点（审查发现 P1：预览与落定方向
+      // 线性元素预览也保存真实端点（审查发�?P1：预览与落定方向
       // 不一致——落定走 ShapeCreationGeometry.fromDrag 的真实端点，
-      // 而预览此前仅靠 flipX/flipY 对角线，用户会看到方向跳动）。
-      lineStart: start - Offset(left, top),
+      // 而预览此前仅�?flipX/flipY 对角线，用户会看到方向跳动）�?      lineStart: start - Offset(left, top),
       lineEnd: current - Offset(left, top),
-      // 填充模式开启时预览也带填充色，所见即所得（问题4）。
-      fillColor: _fillShapeEnabled ? _shapeFillColor : null,
+      // 填充模式开启时预览也带填充色，所见即所得（问题4）�?      fillColor: _fillShapeEnabled ? _shapeFillColor : null,
     );
   }
 
-  /// 选择形状工具：激活后点击画布放置对应形状（借鉴 Excalidraw 图形工具）。
-
-  /// 正常返回编辑器前强制写入并等待落盘，防止 800ms 防抖尚未触发就退出。
-  Future<bool> _flushBeforePop() async {
+  /// 选择形状工具：激活后点击画布放置对应形状（借鉴 Excalidraw 图形工具）�?
+  /// 正常返回编辑器前强制写入并等待落盘，防止 800ms 防抖尚未触发就退出�?  Future<bool> _flushBeforePop() async {
     await _viewModel.saveNow();
     return true;
   }
 
   @override
   void dispose() {
-    // 保存当前视图变换，重开该文档/页面时恢复到上次位置（LRU）。
-    ViewTransformCache.save(
+    // 保存当前视图变换，重开该文�?页面时恢复到上次位置（LRU）�?    ViewTransformCache.save(
       _viewCacheKey,
       _controller.viewScale,
       _controller.viewOffset,
     );
-    // 极端场景（系统直接销毁窗口）无法等待 Future；仍先启动保存并标记关闭，
-    // 使 _doAutosave 至少完成文档 JSON 写入而不再访问随后释放的渲染控制器。
-    _closingEditor = true;
+    // 极端场景（系统直接销毁窗口）无法等待 Future；仍先启动保存并标记关闭�?    // �?_doAutosave 至少完成文档 JSON 写入而不再访问随后释放的渲染控制器�?    _closingEditor = true;
     unawaited(_viewModel.saveNow());
     _viewModel.dispose();
     _shortcutFocus.dispose();
@@ -435,18 +355,14 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     _editFocus.dispose();
     _hoverPos.dispose();
     _inkPressureSample.dispose();
-    // 拖放状态清理。
-    _dropState.removeListener(_onDropStateChanged);
+    // 拖放状态清理�?    _dropState.removeListener(_onDropStateChanged);
     _dropState.dispose();
-    // _controller 生命周期由 drawingControllerProvider(ref.onDispose) 管理。
-    super.dispose();
+    // _controller 生命周期�?drawingControllerProvider(ref.onDispose) 管理�?    super.dispose();
   }
 
-  /// 首次布局时把画布适配到视口（居中显示、按比例缩放）。
-  ///
+  /// 首次布局时把画布适配到视口（居中显示、按比例缩放）�?  ///
   /// 若该文档/笔记页在 LRU 视图缓存中有记录，则恢复上次的缩放与平移
-  /// （重开笔记回到上次位置），否则首次进入时居中适配。
-  void _initViewport(Size viewportSize) {
+  /// （重开笔记回到上次位置），否则首次进入时居中适配�?  void _initViewport(Size viewportSize) {
     if (_viewportInitialized) return;
     _viewportInitialized = true;
 
@@ -464,47 +380,40 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       0.05,
       8.0,
     );
-    // 画布中心对齐视口中心：缩放/旋转以画布中心为基准点，
-    // 因此 offset = 视口中心 - 画布中心（不乘 scale）。
-    _controller.viewOffset = Offset(
+    // 画布中心对齐视口中心：缩�?旋转以画布中心为基准点，
+    // 因此 offset = 视口中心 - 画布中心（不�?scale）�?    _controller.viewOffset = Offset(
       viewportSize.width / 2 - doc.width / 2,
       viewportSize.height / 2 - doc.height / 2,
     );
   }
 
-  /// 视图缓存的键：笔记本页面按页面 id，独立画布按文档 id。
-  String get _viewCacheKey => widget.page != null
+  /// 视图缓存的键：笔记本页面按页�?id，独立画布按文档 id�?  String get _viewCacheKey => widget.page != null
       ? 'page:${widget.page!.id}'
       : 'doc:${_controller.document.id}';
 
   // ---------------- 保存 ----------------
 
   /// 自动保存执行中标记与补写标记：任意一次保存期间又发生更改时，
-  /// 当前保存结束后立即再保存最新快照，绝不因为“正在保存”而丢弃修改。
-  bool _autosaving = false;
+  /// 当前保存结束后立即再保存最新快照，绝不因为“正在保存”而丢弃修改�?  bool _autosaving = false;
   bool _autosaveQueued = false;
   bool _closingEditor = false;
   bool _allowPopAfterSave = false;
   Completer<void>? _autosaveCompletion;
 
   /// 状态刷新薄包装（供 overlays extension 使用）：
-  /// extension 不是 State 子类，不能直接调用受保护的 [setState]，
-  /// 通过本实例方法转发（行为零变化，拆分专用）。
-  String? get _linkSourceId => _viewModel.linkSourceId;
+  /// extension 不是 State 子类，不能直接调用受保护�?[setState]�?  /// 通过本实例方法转发（行为零变化，拆分专用）�?  String? get _linkSourceId => _viewModel.linkSourceId;
 
-  /// 鼠标悬停/移动时的画布坐标（状态栏显示，借鉴 Joplin StatusBar）。
-  final ValueNotifier<Offset?> _hoverPos = ValueNotifier<Offset?>(null);
+  /// 鼠标悬停/移动时的画布坐标（状态栏显示，借鉴 Joplin StatusBar）�?  final ValueNotifier<Offset?> _hoverPos = ValueNotifier<Offset?>(null);
 
   bool get _isNotebookMode => widget.page != null;
 
   @override
   void initState() {
     super.initState();
-    // 笔记本页面模式使用页面自带文档；否则独立画布。
-    final doc =
+    // 笔记本页面模式使用页面自带文档；否则独立画布�?    final doc =
         widget.page?.document ??
         widget._initialDocument ??
-        DrawingDocument(id: StorageService.newId(), title: '未命名画布');
+        DrawingDocument(id: StorageService.newId(), title: '未命名画�?);
     _controller = ref.read(drawingControllerProvider(doc));
     _exporter = EditorExporter(
       controller: _controller,
@@ -513,53 +422,37 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     );
     unawaited(_loadBrushPresets());
     unawaited(_loadEraserMode());
-    // 异步加载铅笔颗粒着色器；失败时渲染层自动回退到普通铅笔绘制。
-    unawaited(PencilShader.init());
-    // 修改文档标题显示为页面标题。
-    if (widget.page != null && doc.title == '未命名画布') {
+    // 异步加载铅笔颗粒着色器；失败时渲染层自动回退到普通铅笔绘制�?    unawaited(PencilShader.init());
+    // 修改文档标题显示为页面标题�?    if (widget.page != null && doc.title == '未命名画�?) {
       doc.title = widget.page!.title;
     }
-    // R4：实例化 ViewModel（防抖保存回调指向本页落盘逻辑）。
-    _viewModel = EditorViewModel(controller: _controller, onSave: _doAutosave);
-    // 首次进入时立即保存一次，确保新文档落盘（自动保存机制）。
-    _scheduleAutosave();
-    // 注册编辑器命令（B2：命令表驱动快捷键面板）。
-    _commands = CommandRegistry();
+    // R4：实例化 ViewModel（防抖保存回调指向本页落盘逻辑）�?    _viewModel = EditorViewModel(controller: _controller, onSave: _doAutosave);
+    // 首次进入时立即保存一次，确保新文档落盘（自动保存机制）�?    _scheduleAutosave();
+    // 注册编辑器命令（B2：命令表驱动快捷键面板）�?    _commands = CommandRegistry();
     _registerCommands();
-    // 拖放状态监听：触发重建以显示/隐藏拖放提示。
-    _dropState.addListener(_onDropStateChanged);
+    // 拖放状态监听：触发重建以显�?隐藏拖放提示�?    _dropState.addListener(_onDropStateChanged);
   }
 
-  /// 拖放状态变化回调：触发重建。
-  void _onDropStateChanged() {
+  /// 拖放状态变化回调：触发重建�?  void _onDropStateChanged() {
     if (mounted) setState(() {});
   }
 
   bool get _hasObjectSelection =>
       _selectedItemId != null || _multiSelectedIds.isNotEmpty;
 
-  /// 注册编辑器命令（借鉴 Excalidraw ActionManager）。
-  ///
-  /// 每条命令声明同一个执行器、关键词、分类与可用性谓词；工具栏、主菜单、
-  /// 快捷键和命令面板都应调用这里的 id，而不能各自复制业务逻辑。
-  void _applyState(VoidCallback fn) => setState(fn);
+  /// 注册编辑器命令（借鉴 Excalidraw ActionManager）�?  ///
+  /// 每条命令声明同一个执行器、关键词、分类与可用性谓词；工具栏、主菜单�?  /// 快捷键和命令面板都应调用这里�?id，而不能各自复制业务逻辑�?  void _applyState(VoidCallback fn) => setState(fn);
 
-  /// 剪贴板元素（复制/粘贴的元素，借鉴 Excalidraw 元素复制）。
-  /// 结构：kind + 序列化 JSON，粘贴时反序列化并偏移位置。
-  List<Map<String, dynamic>> _copiedElements = [];
+  /// 剪贴板元素（复制/粘贴的元素，借鉴 Excalidraw 元素复制）�?  /// 结构：kind + 序列�?JSON，粘贴时反序列化并偏移位置�?  List<Map<String, dynamic>> _copiedElements = [];
 
-  /// 复制的样式（颜色/字号/粗斜体/线宽，供样式刷粘贴）。
-  Map<String, dynamic>? _copiedStyle;
+  /// 复制的样式（颜色/字号/粗斜�?线宽，供样式刷粘贴）�?  Map<String, dynamic>? _copiedStyle;
 
-  /// 会话内形状库（个人收藏）。
-  late final ShapeLibrary _shapeLibrary = ShapeLibrary();
+  /// 会话内形状库（个人收藏）�?  late final ShapeLibrary _shapeLibrary = ShapeLibrary();
 
-  /// 手型工具最近一次拖动位置（供平移视口使用）。
-  Offset? _handDragLast;
+  /// 手型工具最近一次拖动位置（供平移视口使用）�?  Offset? _handDragLast;
 
   void _notifyChanged() {
-    // 页面标题跟随文档标题。
-    final page = widget.page;
+    // 页面标题跟随文档标题�?    final page = widget.page;
     if (page != null) {
       page.title = _controller.document.title;
       page.updatedAt = DateTime.now();
@@ -568,18 +461,13 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     _scheduleAutosave();
   }
 
-  /// 安排一次防抖自动保存（R4：委托 ViewModel 调度，行为不变）。
-  // ---------------- 手势处理 ----------------
+  /// 安排一次防抖自动保存（R4：委�?ViewModel 调度，行为不变）�?  // ---------------- 手势处理 ----------------
 
-  /// 当前按下且经输入仲裁器接受的指针（pointerId -> 视口坐标），用于多指缩放/旋转。
-  final Map<int, Offset> _activePointers = {};
+  /// 当前按下且经输入仲裁器接受的指针（pointerId -> 视口坐标），用于多指缩放/旋转�?  final Map<int, Offset> _activePointers = {};
 
-  /// 触控笔优先、手掌拒绝和双指视图手势的无状态决策器。
-  final EditorInputArbiter _inputArbiter = EditorInputArbiter();
+  /// 触控笔优先、手掌拒绝和双指视图手势的无状态决策器�?  final EditorInputArbiter _inputArbiter = EditorInputArbiter();
 
-  /// 保持既有 Android 单指书写体验；触控笔接触时仍自动拒绝手掌触控。
-  /// 后续由工具预设设置页暴露为用户可配置项。
-  final bool _fingerDrawingEnabled = true;
+  /// 保持既有 Android 单指书写体验；触控笔接触时仍自动拒绝手掌触控�?  /// 后续由工具预设设置页暴露为用户可配置项�?  final bool _fingerDrawingEnabled = true;
 
   bool get _isObjectEraser =>
       _controller.tool == BrushType.eraser &&
@@ -594,35 +482,25 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       !_marqueeActive;
 
   EditorInputPolicy get _inputPolicy => EditorInputPolicy(
-    // 非自由书写工具也需要获得首个指针以执行选区、手型或形状操作；
-    // 此处的 allowInk 只表示“单指事件可继续下传”，并不创建实际墨迹。
-    allowInk: true,
+    // 非自由书写工具也需要获得首个指针以执行选区、手型或形状操作�?    // 此处�?allowInk 只表示“单指事件可继续下传”，并不创建实际墨迹�?    allowInk: true,
     allowFingerDrawing: _isDirectInkMode ? _fingerDrawingEnabled : true,
   );
 
-  /// 多指手势状态：上次两指距离与角度。
-  double? _pinchDistance;
+  /// 多指手势状态：上次两指距离与角度�?  double? _pinchDistance;
   double? _pinchAngle;
 
-  /// 是否处于多指手势（缩放/旋转画布）中。
-  bool get _inPinch => _activePointers.length >= 2;
+  /// 是否处于多指手势（缩�?旋转画布）中�?  bool get _inPinch => _activePointers.length >= 2;
 
-  /// 指针落下：跟踪指针，必要时进入绘制/选区流程。
+  /// 指针落下：跟踪指针，必要时进入绘�?选区流程�?
+  // ---------------- 文字 / 图片混排（Phase 5�?----------------
 
-  // ---------------- 文字 / 图片混排（Phase 5） ----------------
-
-  /// 文字工具：点击画布后在该位置直接就地输入文字（借鉴 OneNote/Word，
-  /// 不再弹窗输入）。文字块先创建为空文本并进入编辑状态，回车/失焦提交。
-
-  /// 处理键盘动作。
-  ///
+  /// 文字工具：点击画布后在该位置直接就地输入文字（借鉴 OneNote/Word�?  /// 不再弹窗输入）。文字块先创建为空文本并进入编辑状态，回车/失焦提交�?
+  /// 处理键盘动作�?  ///
   /// 借鉴 Excalidraw ActionManager：快捷键只负责匹配和分发，真正的
   /// 可用性与副作用始终收敛在 [_commands]。这样当同一动作在菜单或
-  /// 命令面板中呈现时，不会出现“快捷键能用但按钮不可用”的分叉。
-  @override
+  /// 命令面板中呈现时，不会出现“快捷键能用但按钮不可用”的分叉�?  @override
   Widget build(BuildContext context) {
-    // 键盘快捷键（桌面标准）：Ctrl+Z 撤销、Ctrl+Y / Ctrl+Shift+Z 重做。
-    return PopScope<Object?>(
+    // 键盘快捷键（桌面标准）：Ctrl+Z 撤销、Ctrl+Y / Ctrl+Shift+Z 重做�?    return PopScope<Object?>(
       canPop: _allowPopAfterSave,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop || _allowPopAfterSave) return;
@@ -688,8 +566,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                 ),
               ),
 
-              // 画布空间与侧栏控制：将低频管理面板改为按需展开。
-              IconButton(
+              // 画布空间与侧栏控制：将低频管理面板改为按需展开�?              IconButton(
                 tooltip: _layersVisible ? '隐藏图层' : '显示图层',
                 icon: Icon(
                   _layersVisible ? Icons.layers : Icons.layers_outlined,
@@ -699,7 +576,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                     setState(() => _layersVisible = !_layersVisible),
               ),
               IconButton(
-                tooltip: _inspectorVisible ? '隐藏属性' : '显示属性',
+                tooltip: _inspectorVisible ? '隐藏属�? : '显示属�?,
                 icon: Icon(
                   _inspectorVisible ? Icons.tune : Icons.tune_outlined,
                 ),
@@ -708,14 +585,14 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                     setState(() => _inspectorVisible = !_inspectorVisible),
               ),
               IconButton(
-                tooltip: _fullscreen ? '退出全屏' : '全屏模式',
+                tooltip: _fullscreen ? '退出全�? : '全屏模式',
                 icon: Icon(
                   _fullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
                 ),
                 onPressed: () => setState(() => _fullscreen = !_fullscreen),
               ),
               IconButton(
-                tooltip: _readingInverted ? '关闭深色阅读' : '深色阅读（仅显示）',
+                tooltip: _readingInverted ? '关闭深色阅读' : '深色阅读（仅显示�?,
                 icon: Icon(
                   _readingInverted
                       ? Icons.invert_colors_on_outlined
@@ -725,183 +602,216 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                 onPressed: () =>
                     setState(() => _readingInverted = !_readingInverted),
               ),
-              // 快捷键帮助面板（借鉴 Notes 快捷键文档化）
-              IconButton(
-                tooltip: AppLocalizations.of(context)?.editorShortcutsHelp ?? '快捷键帮助',
+              // 快捷键帮助面板（借鉴 Notes 快捷键文档化�?              IconButton(
+                tooltip: AppLocalizations.of(context)?.editorShortcutsHelp ?? '快捷键帮�?,
                 icon: const Icon(Icons.help_outline),
                 onPressed: _showShortcutHelp,
               ),
-              // 右上角汉堡菜单（对齐 Excalidraw main-menu）
-              PopupMenuButton<_MainMenuItem>(
-                tooltip: AppLocalizations.of(context)?.editorMenu ?? '主菜单',
+              // 右上角汉堡菜单（对齐 Excalidraw main-menu�?              PopupMenuButton<_MainMenuItem>(
+                tooltip: AppLocalizations.of(context)?.editorMenu ?? '主菜�?,
                 icon: const Icon(Icons.menu),
                 onSelected: _onMainMenuSelected,
                 itemBuilder: (_) => [
                   PopupMenuItem(
                     value: _MainMenuItem.clearCanvas,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.delete_sweep_outlined),
-                      title: Text(AppLocalizations.of(context)?.editorClearCanvas ?? '清空画布'),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.delete_sweep_outlined, size: 20, color: Color(0xFF1D1D1F)),
+                        const SizedBox(width: 10),
+                        Text(AppLocalizations.of(context)?.editorClearCanvas ?? '清空画布'),
+                      ],
                     ),
                   ),
                   const PopupMenuDivider(),
                   PopupMenuItem(
                     value: _MainMenuItem.copyPng,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.content_copy),
-                      title: Text(AppLocalizations.of(context)?.editorCopyPng ?? '复制 PNG 到剪贴板'),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.content_copy_rounded, size: 20, color: Color(0xFF1D1D1F)),
+                        const SizedBox(width: 10),
+                        Text(AppLocalizations.of(context)?.editorCopyPng ?? '复制 PNG 到剪贴板'),
+                      ],
                     ),
                   ),
                   PopupMenuItem(
                     value: _MainMenuItem.exportPng,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.image_outlined),
-                      title: Text(AppLocalizations.of(context)?.editorExportPng ?? '导出 PNG'),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.image_outlined, size: 20, color: Color(0xFF1D1D1F)),
+                        const SizedBox(width: 10),
+                        Text(AppLocalizations.of(context)?.editorExportPng ?? '导出 PNG'),
+                      ],
                     ),
                   ),
                   const PopupMenuItem(
                     value: _MainMenuItem.exportSelectionPng,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.crop_free),
-                      title: Text('导出选区 PNG'),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.crop_free_rounded, size: 20, color: const Color(0xFF1D1D1F)),
+                        const SizedBox(width: 10),
+                        const Text('导出选区 PNG'),
+                      ],
                     ),
                   ),
                   PopupMenuItem(
                     value: _MainMenuItem.exportSvg,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.ios_share),
-                      title: Text(AppLocalizations.of(context)?.editorExportSvg ?? '导出 SVG'),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.ios_share_rounded, size: 20, color: Color(0xFF1D1D1F)),
+                        const SizedBox(width: 10),
+                        Text(AppLocalizations.of(context)?.editorExportSvg ?? '导出 SVG'),
+                      ],
                     ),
                   ),
                   PopupMenuItem(
                     value: _MainMenuItem.exportPdf,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.picture_as_pdf_outlined),
-                      title: Text(AppLocalizations.of(context)?.editorExportPdf ?? '导出 PDF'),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.picture_as_pdf_outlined, size: 20, color: Color(0xFF1D1D1F)),
+                        const SizedBox(width: 10),
+                        Text(AppLocalizations.of(context)?.editorExportPdf ?? '导出 PDF'),
+                      ],
                     ),
                   ),
                   PopupMenuItem(
                     value: _MainMenuItem.exportJson,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.data_object),
-                      title: Text(AppLocalizations.of(context)?.editorExportJson ?? '导出 JSON'),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.data_object_rounded, size: 20, color: Color(0xFF1D1D1F)),
+                        const SizedBox(width: 10),
+                        Text(AppLocalizations.of(context)?.editorExportJson ?? '导出 JSON'),
+                      ],
                     ),
                   ),
                   PopupMenuItem(
                     value: _MainMenuItem.exportPptx,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.slideshow_outlined),
-                      title: Text(AppLocalizations.of(context)?.editorExportPptx ?? '导出 PPTX'),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.slideshow_outlined, size: 20, color: Color(0xFF1D1D1F)),
+                        const SizedBox(width: 10),
+                        Text(AppLocalizations.of(context)?.editorExportPptx ?? '导出 PPTX'),
+                      ],
                     ),
                   ),
                   if (_isNotebookMode)
                     PopupMenuItem(
                       value: _MainMenuItem.exportWord,
-                      child: ListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.article_outlined),
-                        title: Text(AppLocalizations.of(context)?.editorExportWord ?? '导出 Word 兼容文档'),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.article_outlined, size: 20, color: Color(0xFF1D1D1F)),
+                          const SizedBox(width: 10),
+                          Text(AppLocalizations.of(context)?.editorExportWord ?? '导出 Word 兼容文档'),
+                        ],
                       ),
                     ),
                   const PopupMenuItem(
                     value: _MainMenuItem.exportText,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.description_outlined),
-                      title: Text('导出文本'),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.description_outlined, size: 20, color: const Color(0xFF1D1D1F)),
+                        const SizedBox(width: 10),
+                        const Text('导出文本'),
+                      ],
                     ),
                   ),
                   const PopupMenuDivider(),
                   const PopupMenuItem(
                     value: _MainMenuItem.commandPalette,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.keyboard_command_key),
-                      title: Text('命令面板'),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.keyboard_command_key_rounded, size: 20, color: const Color(0xFF1D1D1F)),
+                        const SizedBox(width: 10),
+                        const Text('命令面板'),
+                      ],
                     ),
                   ),
                   const PopupMenuItem(
                     value: _MainMenuItem.chart,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.bar_chart),
-                      title: Text('图表（粘贴数据）'),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.bar_chart_rounded, size: 20, color: const Color(0xFF1D1D1F)),
+                        const SizedBox(width: 10),
+                        const Text('图表（粘贴数据）'),
+                      ],
                     ),
                   ),
                   const PopupMenuItem(
                     value: _MainMenuItem.presentation,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.slideshow),
-                      title: Text('幻灯片演示'),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.slideshow_rounded, size: 20, color: const Color(0xFF1D1D1F)),
+                        const SizedBox(width: 10),
+                        const Text('幻灯片演�?),
+                      ],
                     ),
                   ),
                   const PopupMenuItem(
                     value: _MainMenuItem.stats,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.query_stats),
-                      title: Text('统计'),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.query_stats_rounded, size: 20, color: const Color(0xFF1D1D1F)),
+                        const SizedBox(width: 10),
+                        const Text('统计'),
+                      ],
                     ),
                   ),
                   const PopupMenuItem(
                     value: _MainMenuItem.library,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.library_books_outlined),
-                      title: Text('形状库（图书馆）'),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.library_books_outlined, size: 20, color: const Color(0xFF1D1D1F)),
+                        const SizedBox(width: 10),
+                        const Text('形状库（图书馆）'),
+                      ],
                     ),
                   ),
 
                   const PopupMenuItem(
                     value: _MainMenuItem.shortcuts,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.keyboard),
-                      title: Text('快捷键帮助'),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.keyboard_rounded, size: 20, color: const Color(0xFF1D1D1F)),
+                        const SizedBox(width: 10),
+                        const Text('快捷键帮�?),
+                      ],
                     ),
                   ),
-                  // 切换无限画布（问题8）：仅独立画布可用。
-                  if (!_isNotebookMode)
+                  // 切换无限画布（问�?）：仅独立画布可用�?                  if (!_isNotebookMode)
                     PopupMenuItem(
                       value: _MainMenuItem.toggleInfinite,
-                      child: ListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        leading: Icon(
-                          _controller.document.infinite
-                              ? Icons.all_out
-                              : Icons.crop_free,
-                        ),
-                        title: Text(
-                          _controller.document.infinite
-                              ? '切换为固定纸张'
-                              : '切换为无限画布',
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _controller.document.infinite
+                                ? Icons.all_out_rounded
+                                : Icons.crop_free_rounded,
+                            size: 20,
+                            color: const Color(0xFF1D1D1F),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            _controller.document.infinite
+                                ? '切换为固定纸�?
+                                : '切换为无限画�?,
+                          ),
+                        ],
                       ),
                     ),
                 ],
@@ -909,8 +819,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
             ],
           ),
           body: _fullscreen
-              // 全屏模式：只保留画布区域（也支持拖放导入）。
-              ? DragTarget<String>(
+              // 全屏模式：只保留画布区域（也支持拖放导入）�?              ? DragTarget<String>(
                   onWillAcceptWithDetails: (_) {
                     _dropState.setDragging(true);
                     return true;
@@ -926,24 +835,24 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                         _buildCanvasArea(),
                         if (_isDraggingFile)
                           Container(
-                            color: Colors.blue.withValues(alpha: 0.1),
+                            color: const Color(0xFF0066CC).withValues(alpha: 0.1),
                             child: Center(
                               child: Container(
                                 padding: const EdgeInsets.all(24),
                                 decoration: BoxDecoration(
-                                  color: Colors.blue.shade50,
+                                  color: const Color(0xFFE8F0FE),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: Colors.blue,
+                                    color: const Color(0xFF0066CC),
                                     width: 2,
                                   ),
                                 ),
                                 child: const Text(
-                                  '释放以导入图片',
+                                  '释放以导入图�?,
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.blue,
+                                    color: Color(0xFF0066CC),
                                   ),
                                 ),
                               ),
@@ -955,8 +864,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                 )
               : Row(
                   children: [
-                    // 左侧垂直工具条：mobile 可滚动，tablet/desktop 固定显示。
-                    if (context.isMobile)
+                    // 左侧垂直工具条：mobile 可滚动，tablet/desktop 固定显示�?                    if (context.isMobile)
                       SizedBox(
                         width: context.responsiveScale(48),
                         child: SingleChildScrollView(
@@ -1117,24 +1025,24 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                                     _buildCanvasArea(),
                                     if (_isDraggingFile)
                                       Container(
-                                        color: Colors.blue.withValues(alpha: 0.1),
+                                        color: const Color(0xFF0066CC).withValues(alpha: 0.1),
                                         child: Center(
                                           child: Container(
                                             padding: const EdgeInsets.all(24),
                                             decoration: BoxDecoration(
-                                              color: Colors.blue.shade50,
+                                              color: const Color(0xFFE8F0FE),
                                               borderRadius: BorderRadius.circular(12),
                                               border: Border.all(
-                                                color: Colors.blue,
+                                                color: const Color(0xFF0066CC),
                                                 width: 2,
                                               ),
                                             ),
                                             child: const Text(
-                                              '释放以导入图片',
+                                              '释放以导入图�?,
                                               style: TextStyle(
                                                 fontSize: 18,
                                                 fontWeight: FontWeight.bold,
-                                                color: Colors.blue,
+                                                color: const Color(0xFF0066CC),
                                               ),
                                             ),
                                           ),
@@ -1148,8 +1056,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                         ],
                       ),
                     ),
-                    // 图层与详细属性：mobile 底部抽屉，tablet 右侧窄面板，desktop 右侧宽面板。
-                    if (_layersVisible)
+                    // 图层与详细属性：mobile 底部抽屉，tablet 右侧窄面板，desktop 右侧宽面板�?                    if (_layersVisible)
                       SizedBox(
                         width: context.isMobile
                             ? double.infinity
@@ -1216,8 +1123,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                         onTextColor: _changeSelectedTextColor,
                         onTextFontSize: _setSelectedTextFontSize,
                         onCropImage: () {
-                          // 已在裁剪模式：确认裁剪；否则进入裁剪模式。
-                          if (_cropItem != null) {
+                          // 已在裁剪模式：确认裁剪；否则进入裁剪模式�?                          if (_cropItem != null) {
                             _confirmCrop();
                             return;
                           }
@@ -1232,7 +1138,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                               img.height,
                             );
                           });
-                          _showSnack('拖动图片四角调整裁剪区域，再点裁剪按钮确认');
+                          _showSnack('拖动图片四角调整裁剪区域，再点裁剪按钮确�?);
                         },
                         onCycleFont: () {
                           final t = _selectedTextItem;
@@ -1251,25 +1157,22 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       ),
                   ],
                 ),
-          // 底部状态栏（借鉴 Joplin StatusBar）：显示缩放/工具/坐标。
-          bottomNavigationBar: _buildStatusBar(),
+          // 底部状态栏（借鉴 Joplin StatusBar）：显示缩放/工具/坐标�?          bottomNavigationBar: _buildStatusBar(),
         ),
       ),
     );
   }
 
-  /// 底部状态栏：缩放比例、当前工具粗细、鼠标画布坐标。
-
+  /// 底部状态栏：缩放比例、当前工具粗细、鼠标画布坐标�?
   // ---------------------------------------------------------------------------
   // 拖放导入
   // ---------------------------------------------------------------------------
 
-  /// 处理拖放的文件路径，读取图片并添加到画布。
-  Future<void> _handleDroppedFile(String path) async {
+  /// 处理拖放的文件路径，读取图片并添加到画布�?  Future<void> _handleDroppedFile(String path) async {
     try {
       final file = File(path);
       if (!await file.exists()) {
-        _showSnack('文件不存在: $path');
+        _showSnack('文件不存�? $path');
         return;
       }
       final name = path.split(RegExp(r'[/\\]')).last;
@@ -1304,7 +1207,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       } else {
         final storage = widget.docStorage;
         if (storage == null) {
-          _showSnack('绘图文档图片存储不可用');
+          _showSnack('绘图文档图片存储不可�?);
           return;
         }
         final storedPath = await storage.storeImage(path, _controller.document.id);
@@ -1320,7 +1223,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
           _selectedItemId = _controller.document.imageItems.last.id;
         });
       }
-      _showSnack('已导入图片: $name');
+      _showSnack('已导入图�? $name');
       _notifyChanged();
     } catch (e) {
       _showSnack('导入失败: $e');

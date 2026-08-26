@@ -52,21 +52,43 @@ class _CommandPaletteDialogState extends State<_CommandPaletteDialog> {
     final showRecent = recent != null && recent.available;
 
     Widget commandTile(EditorCommand command, {bool recentItem = false}) {
-      return ListTile(
-        dense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-        leading: Icon(_commandCategoryIcon(command.category), size: 19),
-        title: Text(command.label),
-        subtitle: recentItem ? const Text('最近使用') : null,
-        trailing: command.shortcut.isEmpty
-            ? null
-            : Text(
-                command.shortcut,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+      return GestureDetector(
+        onTap: () => Navigator.of(context).pop(command.id),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: const BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: Color(0xFFE0E0E0), width: 0.5),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(_commandCategoryIcon(command.category), size: 20, color: const Color(0xFF0066CC)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      command.label,
+                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w400, color: Color(0xFF1D1D1F)),
+                    ),
+                    if (recentItem)
+                      const Text(
+                        '最近使用',
+                        style: TextStyle(fontSize: 13, color: Color(0xFF8E8E93)),
+                      ),
+                  ],
                 ),
               ),
-        onTap: () => Navigator.of(context).pop(command.id),
+              if (command.shortcut.isNotEmpty)
+                Text(
+                  command.shortcut,
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF8E8E93)),
+                ),
+            ],
+          ),
+        ),
       );
     }
 

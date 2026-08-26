@@ -56,14 +56,19 @@ class _DrawingCardState extends State<_DrawingCard> {
         scale: _hovered ? 1.012 : 1,
         duration: motion,
         curve: Curves.easeOutCubic,
-        child: Card(
+        child: Container(
           clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: widget.onTap,
-            onHover: (value) {
-              if (_hovered != value) setState(() => _hovered = value);
-            },
-            child: Column(
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFFFFF),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFE0E0E0)),
+          ),
+          child: MouseRegion(
+            onEnter: (_) => setState(() => _hovered = true),
+            onExit: (_) => setState(() => _hovered = false),
+            child: GestureDetector(
+              onTap: widget.onTap,
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
@@ -109,6 +114,7 @@ class _DrawingCardState extends State<_DrawingCard> {
               ],
             ),
           ),
+        ),
         ),
       ),
     );

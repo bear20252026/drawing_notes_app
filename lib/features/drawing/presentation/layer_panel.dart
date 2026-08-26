@@ -254,7 +254,7 @@ class _LayerItem extends StatelessWidget {
       tooltip: tip,
       icon: Icon(icon, size: 16),
       visualDensity: VisualDensity.compact,
-      disabledColor: Colors.grey,
+      disabledColor: const Color(0xFFC7C7CC),
       onPressed: enabled ? onTap : null,
     );
   }

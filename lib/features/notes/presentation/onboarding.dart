@@ -40,25 +40,13 @@ class OnboardingService {
   }
 
   /// 若首次启动，弹出引导对话框；否则什么都不做。
+  /// 2026-08-25 修复：改用 showIosDialog 保持一致性。
   Future<void> showIfFirstLaunch(BuildContext context) async {
     if (await hasSeen()) return;
     if (!context.mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (_) => const _OnboardingDialog(),
-    );
-    await markSeen();
-  }
-}
-
-/// 引导对话框内容。
-class _OnboardingDialog extends StatelessWidget {
-  const _OnboardingDialog();
-
-  @override
-  Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return IosDialog(
+    await showIosDialog<void>(
+      context,
       title: l?.onboardingTitle ?? '欢迎使用绘图笔记',
       contentWidget: SingleChildScrollView(
         child: Column(
@@ -95,6 +83,7 @@ class _OnboardingDialog extends StatelessWidget {
         ),
       ],
     );
+    await markSeen();
   }
 }
 

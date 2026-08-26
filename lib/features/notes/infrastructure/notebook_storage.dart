@@ -3,47 +3,37 @@ import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
 
-import '../../../core/storage/encryption_service.dart';
+import '../../../infrastructure/storage/encryption_service.dart';
 import '../../../core/security/media_crypto_service.dart';
-import '../../../core/storage/vfs/vault_service.dart';
+import '../../../infrastructure/storage/vfs/vault_service.dart';
 import '../domain/notebook.dart';
 import '../../../core/storage/local_id_generator.dart';
 import '../../../core/notes_accessor.dart';
 import '../../../core/storage/repository.dart';
 
-/// 笔记本本地存储服务。
-///
+/// 笔记本本地存储服务�?///
 /// 目录结构（应用文档目录下）：
 ///   `appDir/notebooks/`
-///     `notebookId.json` —— 笔记本工程文件（含全部页面、画布、文字/图片块）
+///     `notebookId.json` —�?笔记本工程文件（含全部页面、画布、文�?图片块）
 ///   `appDir/notebook_images/`
-///     `pageId_xxx.png` —— 插入页面中的图片副本
+///     `pageId_xxx.png` —�?插入页面中的图片副本
 ///
-/// 与 [StorageService] 一样：全部本地操作、无网络请求；
-/// 图片以副本方式保存进应用目录，保证离线可用且原文件删除不影响笔记。
-///
-/// 密码保护（C3/C5）：启用加密的笔记本以 AES-GCM 密文存储页面内容，
-/// 明文不落盘；打开时需输入密码解密（见 [encryptNotebook]/[decryptNotebook]）。
-///
+/// �?[StorageService] 一样：全部本地操作、无网络请求�?/// 图片以副本方式保存进应用目录，保证离线可用且原文件删除不影响笔记�?///
+/// 密码保护（C3/C5）：启用加密的笔记本�?AES-GCM 密文存储页面内容�?/// 明文不落盘；打开时需输入密码解密（见 [encryptNotebook]/[decryptNotebook]）�?///
 /// 已通过 [NotebookRepository] 接口抽象（见 repository.dart），
-/// 未来替换为云同步实现时无需改动上层逻辑。
-class NotebookStorage implements NotebookRepository, INotebookAccessor {
+/// 未来替换为云同步实现时无需改动上层逻辑�?class NotebookStorage implements NotebookRepository, INotebookAccessor {
   NotebookStorage({this.directoryProvider, this.vaultService});
 
-  /// VFS 媒体仓库（可选——解锁时注入——新媒体写 VFS 对象——双轨：
-  /// s3-encryption-gateway 双读窗口模式——旧媒体 DAN 文件兼容读）。
-  VaultService? vaultService;
+  /// VFS 媒体仓库（可选——解锁时注入——新媒体�?VFS 对象——双轨：
+  /// s3-encryption-gateway 双读窗口模式——旧媒体 DAN 文件兼容读）�?  VaultService? vaultService;
 
-  // ---- INotebookAccessor 跨功能契约适配（S4b：NotebookStorage 直接实现契约）----
+  // ---- INotebookAccessor 跨功能契约适配（S4b：NotebookStorage 直接实现契约�?---
 
   @override
   NotebookPage? pageById(String notebookId, String pageId) {
-    // M-09 修复（专家审计 2026-08-15）：实现跨页面查找（原恒 null——
-    // 克隆/跨页访问/混合 PDF 导出不可用）。
-    try {
+    // M-09 修复（专家审�?2026-08-15）：实现跨页面查找（原恒 null—�?    // 克隆/跨页访问/混合 PDF 导出不可用）�?    try {
       if (!isValidId(notebookId) || !isValidId(pageId)) return null;
-      if (_notebooksDir == null) return null; // 目录未初始化（尚未加载过）
-      final file = File(
+      if (_notebooksDir == null) return null; // 目录未初始化（尚未加载过�?      final file = File(
         '${_notebooksDir!.path}${Platform.pathSeparator}$notebookId.json',
       );
       if (!file.existsSync()) return null;
@@ -65,16 +55,14 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
   @override
   bool get isStorageAvailable => true;
 
-  /// 目录提供者：测试时可注入临时目录，生产环境使用系统文档目录。
-  final Future<Directory> Function()? directoryProvider;
+  /// 目录提供者：测试时可注入临时目录，生产环境使用系统文档目录�?  final Future<Directory> Function()? directoryProvider;
 
   static const EncryptionService _encryption = EncryptionService();
 
   Directory? _notebooksDir;
   Directory? _imagesDir;
 
-  /// 按笔记本 ID 隔离的落盘队列：同一笔记本保序，不同笔记本不共享临时文件。
-  final Map<String, Future<void>> _writeTails = <String, Future<void>>{};
+  /// 按笔记本 ID 隔离的落盘队列：同一笔记本保序，不同笔记本不共享临时文件�?  final Map<String, Future<void>> _writeTails = <String, Future<void>>{};
 
   Future<Directory> _baseDir() async {
     final provider = directoryProvider;
@@ -91,8 +79,7 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     return dir;
   }
 
-  /// 公开的图片目录提供（供编辑器粘贴图片保存用，包装私有实现）。
-  Future<Directory> ensureImagesDir() => _ensureImagesDir();
+  /// 公开的图片目录提供（供编辑器粘贴图片保存用，包装私有实现）�?  Future<Directory> ensureImagesDir() => _ensureImagesDir();
 
   Future<Directory> _ensureImagesDir() async {
     if (_imagesDir != null) return _imagesDir!;
@@ -105,34 +92,25 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     return dir;
   }
 
-  /// 校验 ID 是否安全（仅允许字母、数字、下划线）。
-  ///
-  /// 安全说明：ID 直接拼入文件路径，若允许 `../` 等字符会造成路径遍历。
-  /// 所有合法 ID 由 [newId] 生成；此校验作为防御性边界。
-  /// 链 9 修复（军工审计 2026-08-15）：允许 '-'（与 StorageService/
-  /// DocumentCodec 一致——'-' 无路径遍历风险）。
-  static bool isValidId(String id) => RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(id);
+  /// 校验 ID 是否安全（仅允许字母、数字、下划线）�?  ///
+  /// 安全说明：ID 直接拼入文件路径，若允许 `../` 等字符会造成路径遍历�?  /// 所有合�?ID �?[newId] 生成；此校验作为防御性边界�?  /// �?9 修复（军工审�?2026-08-15）：允许 '-'（与 StorageService/
+  /// DocumentCodec 一致—�?-' 无路径遍历风险）�?  static bool isValidId(String id) => RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(id);
 
-  /// H-03 部分落地（专家审计 2026-08-15）：图片源文件大小上限。
-  static const int _maxImageSourceBytes = 50 * 1024 * 1024; // 50MB
+  /// H-03 部分落地（专家审�?2026-08-15）：图片源文件大小上限�?  static const int _maxImageSourceBytes = 50 * 1024 * 1024; // 50MB
 
   Future<String> _pathFor(String id) async {
-    // C-02 修复（专家审计 2026-08-15）：assert-only 校验在 release 失效——
-    // 运行时强制校验（load/save/delete 均经此统一防护路径遍历）。
-    if (!isValidId(id)) {
+    // C-02 修复（专家审�?2026-08-15）：assert-only 校验�?release 失效—�?    // 运行时强制校验（load/save/delete 均经此统一防护路径遍历）�?    if (!isValidId(id)) {
       throw ArgumentError.value(id, 'id', '非法 ID（路径遍历防护）');
     }
     return '${(await _ensureNotebooksDir()).path}${Platform.pathSeparator}$id.json';
   }
 
-  /// 原子写入笔记本文件（不涉及加密判断；被 [save] 调用）。
-  Future<String> _writeNotebook(Notebook notebook) async {
+  /// 原子写入笔记本文件（不涉及加密判断；�?[save] 调用）�?  Future<String> _writeNotebook(Notebook notebook) async {
     if (!isValidId(notebook.id)) {
-      throw ArgumentError.value(notebook.id, 'notebook.id', '笔记本 ID 不合法');
+      throw ArgumentError.value(notebook.id, 'notebook.id', '笔记�?ID 不合�?);
     }
     await _ensureNotebooksDir();
-    // 在排队前编码快照，避免用户继续编辑时旧任务写入可变的混合状态。
-    final data = utf8.encode(
+    // 在排队前编码快照，避免用户继续编辑时旧任务写入可变的混合状态�?    final data = utf8.encode(
       const JsonEncoder.withIndent('  ').convert(notebook.toJson()),
     );
     final finalPath = await _pathFor(notebook.id);
@@ -160,8 +138,7 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
       try {
         await destination.copy('${destination.path}.bak');
       } catch (_) {
-        // 备份是恢复保障；其失败不阻塞当前写入。
-      }
+        // 备份是恢复保障；其失败不阻塞当前写入�?      }
     }
     try {
       await tmp.rename(destination.path);
@@ -172,8 +149,7 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     }
   }
 
-  /// 加载笔记本。不存在返回 null，损坏抛出异常。
-  @override
+  /// 加载笔记本。不存在返回 null，损坏抛出异常�?  @override
   Future<Notebook?> load(String id) async {
     await _ensureNotebooksDir();
     final file = File(await _pathFor(id));
@@ -193,8 +169,7 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     }
   }
 
-  /// 列出所有笔记本（按更新时间倒序）。
-  @override
+  /// 列出所有笔记本（按更新时间倒序）�?  @override
   Future<List<Notebook>> listAll() async {
     await _ensureNotebooksDir();
     final result = <Notebook>[];
@@ -208,46 +183,37 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
           ),
         );
       } catch (_) {
-        // 跳过损坏文件，不中断列表。
-        continue;
+        // 跳过损坏文件，不中断列表�?        continue;
       }
     }
     result.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return result;
   }
 
-  /// 删除笔记本（同时清理其关联图片副本）。返回是否删除成功。
-  @override
+  /// 删除笔记本（同时清理其关联图片副本）。返回是否删除成功�?  @override
   Future<bool> delete(String id) async {
     await _ensureNotebooksDir();
     final file = File(await _pathFor(id));
     if (!await file.exists()) return false;
-    // 先收集图片路径再删除文件：文件删除后无法再读取其内容。
-    final imagePaths = await _collectImagePaths(id);
+    // 先收集图片路径再删除文件：文件删除后无法再读取其内容�?    final imagePaths = await _collectImagePaths(id);
     await file.delete();
-    // 清理该笔记本所有页面引用的图片副本（尽力而为）。
-    for (final p in imagePaths) {
+    // 清理该笔记本所有页面引用的图片副本（尽力而为）�?    for (final p in imagePaths) {
       try {
-        // C-01 修复（专家审计 2026-08-15）：图片路径来自笔记 JSON（不可信
-        // 数据）——删除前验证受管目录 + 非符号链接（CVE-2026-55667 同源：
-        // 符号链接跟随可删除越界文件）。仅删除受管目录内的普通文件。
-        final managed = await _managedImagePathOrNull(p);
+        // C-01 修复（专家审�?2026-08-15）：图片路径来自笔记 JSON（不可信
+        // 数据）——删除前验证受管目录 + 非符号链接（CVE-2026-55667 同源�?        // 符号链接跟随可删除越界文件）。仅删除受管目录内的普通文件�?        final managed = await _managedImagePathOrNull(p);
         if (managed == null) continue;
         final type = await FileSystemEntity.type(managed, followLinks: false);
         if (type != FileSystemEntityType.file) continue;
         final f = File(managed);
         if (await f.exists()) await f.delete();
       } catch (_) {
-        // 单个图片删除失败忽略。
-      }
+        // 单个图片删除失败忽略�?      }
     }
     return true;
   }
 
-  /// 收集笔记本所有页面引用的图片副本路径（不修改任何文件）。
-  ///
-  /// 读取失败（文件损坏等）时返回空列表，不影响笔记本删除本身。
-  Future<List<String>> _collectImagePaths(String id) async {
+  /// 收集笔记本所有页面引用的图片副本路径（不修改任何文件）�?  ///
+  /// 读取失败（文件损坏等）时返回空列表，不影响笔记本删除本身�?  Future<List<String>> _collectImagePaths(String id) async {
     try {
       final notebook = await load(id);
       if (notebook == null) return const [];
@@ -260,9 +226,7 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     }
   }
 
-  /// C-01 修复（专家审计 2026-08-15）：验证路径位于受管图片目录内
-  /// （防笔记 JSON 携带外部路径驱动越界删除——CVE-2026-55667 同源）。
-  Future<String?> _managedImagePathOrNull(String path) async {
+  /// C-01 修复（专家审�?2026-08-15）：验证路径位于受管图片目录�?  /// （防笔记 JSON 携带外部路径驱动越界删除——CVE-2026-55667 同源）�?  Future<String?> _managedImagePathOrNull(String path) async {
     if (path.isEmpty) return null;
     try {
       final root = await _ensureImagesDir();
@@ -276,18 +240,14 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     }
   }
 
-  /// 保存页面图片副本，返回副本的绝对路径。
-  ///
-  /// [sourcePath] 为用户选择的图片原路径；[pageId] 用于文件名分组。
-  @override
+  /// 保存页面图片副本，返回副本的绝对路径�?  ///
+  /// [sourcePath] 为用户选择的图片原路径；[pageId] 用于文件名分组�?  @override
   Future<String> storeImage(String sourcePath, String pageId) async {
     if (!isValidId(pageId)) {
       throw ArgumentError('非法 pageId: $pageId');
     }
-    // 媒体 VFS 双轨（2026-08-16）：新媒体写入 VFS 对象（'vfs:' 标记——
-    // 解锁会话内 VaultService 注入——s3-encryption-gateway 双读窗口模式）；
-    // 旧媒体 DAN 文件保持兼容读。
-    final vfs = vaultService;
+    // 媒体 VFS 双轨�?026-08-16）：新媒体写�?VFS 对象�?vfs:' 标记—�?    // 解锁会话�?VaultService 注入——s3-encryption-gateway 双读窗口模式）；
+    // 旧媒�?DAN 文件保持兼容读�?    final vfs = vaultService;
     if (vfs != null && vfs.hasKey) {
       final src = File(sourcePath);
       if (!await src.exists()) {
@@ -304,14 +264,11 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     final dir = await _ensureImagesDir();
     final src = File(sourcePath);
     if (!await src.exists()) throw FileSystemException('源图片不存在', sourcePath);
-    // H-03 部分落地（专家审计 2026-08-15）：源文件大小配额（防超大图片
-    // 资产入库；完整媒体加密——每笔记 DEK + 渲染解密——评估为数据保密
-    // 重构专项，涉及渲染管线跨域改造，见 Inqrypt/heritage 分层加密模式）。
-    if (await src.length() > _maxImageSourceBytes) {
-      throw FileSystemException('图片源文件过大（超过 50MB 限制）', sourcePath);
+    // H-03 部分落地（专家审�?2026-08-15）：源文件大小配额（防超大图�?    // 资产入库；完整媒体加密——每笔记 DEK + 渲染解密——评估为数据保密
+    // 重构专项，涉及渲染管线跨域改造，�?Inqrypt/heritage 分层加密模式）�?    if (await src.length() > _maxImageSourceBytes) {
+      throw FileSystemException('图片源文件过大（超过 50MB 限制�?, sourcePath);
     }
-    // 扩展名白名单：只接受常见图片格式，防止任意文件以图片身份入库。
-    final ext = sourcePath.contains('.')
+    // 扩展名白名单：只接受常见图片格式，防止任意文件以图片身份入库�?    final ext = sourcePath.contains('.')
         ? sourcePath.split('.').last.toLowerCase()
         : '';
     const allowed = {
@@ -331,10 +288,7 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     final target = File(
       '${dir.path}${Platform.pathSeparator}${pageId}_${DateTime.now().microsecondsSinceEpoch}.$safeExt',
     );
-    // H-03 双端接入（专家审计 2026-08-15）：会话密钥已注入（加密笔记本
-    // 解锁场景）→ 加密副本（DAN 文件头标记）；否则明文写入（兼容——
-    // 未加密笔记本/未解锁）。
-    final bytes = await src.readAsBytes();
+    // H-03 双端接入（专家审�?2026-08-15）：会话密钥已注入（加密笔记�?    // 解锁场景）→ 加密副本（DAN 文件头标记）；否则明文写入（兼容—�?    // 未加密笔记本/未解锁）�?    final bytes = await src.readAsBytes();
     final stored = MediaCryptoService.instance.isActive
         ? await MediaCryptoService.instance.encryptFile(bytes)
         : bytes;
@@ -342,10 +296,7 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     return target.path;
   }
 
-  /// 旧明文媒体迁移（H-03 专家审计 2026-08-15）：解锁后批量重加密——
-  /// payload-plugins 批量加密器模式（幂等——已 DAN 密文跳过）。
-  /// 返回迁移的文件数；未解锁（会话密钥未注入）返回 0。
-  Future<int> migrateLegacyMedia() async {
+  /// 旧明文媒体迁移（H-03 专家审计 2026-08-15）：解锁后批量重加密—�?  /// payload-plugins 批量加密器模式（幂等——已 DAN 密文跳过）�?  /// 返回迁移的文件数；未解锁（会话密钥未注入）返�?0�?  Future<int> migrateLegacyMedia() async {
     final service = MediaCryptoService.instance;
     if (!service.isActive) return 0; // 未解锁——不迁移
     final dir = await _ensureImagesDir();
@@ -361,15 +312,12 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
         );
         migrated++;
       } catch (_) {
-        // 单个迁移失败忽略（后续解锁再试——幂等）。
-      }
+        // 单个迁移失败忽略（后续解锁再试——幂等）�?      }
     }
     return migrated;
   }
 
-  /// 全局媒体加密盐（H-03 方案 B 2026-08-15）：密码模式媒体加密的派生
-  /// 盐——明文持久（盐无需保密），跨会话一致（解密媒体重派生同 key）。
-  Future<List<int>> ensureMediaSalt() async {
+  /// 全局媒体加密盐（H-03 方案 B 2026-08-15）：密码模式媒体加密的派�?  /// 盐——明文持久（盐无需保密），跨会话一致（解密媒体重派生同 key）�?  Future<List<int>> ensureMediaSalt() async {
     final base = await _baseDir();
     final file = File('${base.path}${Platform.pathSeparator}media_crypto_salt');
     if (await file.exists()) {
@@ -381,12 +329,9 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     return salt;
   }
 
-  /// 启用密码保护并保存：把页面内容 AES-GCM 加密为载荷，明文不落盘。
-  Future<String> encryptAndSave(Notebook notebook, String password) async {
-    // 第一步合规（2026-08-16 专家审计最优先行动②）：加密笔记本不生成
-    // 明文 searchSummary——"废除默认明文 searchSummary"。未来 K_note
-    // 密钥层级落地后摘要可加密存储（解锁会话内搜索——安全）。
-    final payloadJson = jsonEncode({
+  /// 启用密码保护并保存：把页面内�?AES-GCM 加密为载荷，明文不落盘�?  Future<String> encryptAndSave(Notebook notebook, String password) async {
+    // 第一步合规（2026-08-16 专家审计最优先行动②）：加密笔记本不生�?    // 明文 searchSummary—�?废除默认明文 searchSummary"。未�?K_note
+    // 密钥层级落地后摘要可加密存储（解锁会话内搜索——安全）�?    final payloadJson = jsonEncode({
       'pages': notebook.pages.map((p) => p.toJson()).toList(),
     });
     notebook.encrypted = true;
@@ -395,24 +340,15 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
       plaintext: payloadJson,
       password: password,
     );
-    // 直接原子写入（toJson 中 encrypted 时 pages 序列化为空，仅存密文载荷）。
-    // 注意：不能走 save()——save 对"加密且内存有明文页面"会抛 StateError
-    // （这是编辑会话的守卫），而加密保存时内存本来就有明文页面。
-    return _writeNotebook(notebook);
+    // 直接原子写入（toJson �?encrypted �?pages 序列化为空，仅存密文载荷）�?    // 注意：不能走 save()——save �?加密且内存有明文页面"会抛 StateError
+    // （这是编辑会话的守卫），而加密保存时内存本来就有明文页面�?    return _writeNotebook(notebook);
   }
 
-  /// 用密码解密加密笔记本的页面内容（密码错误抛 [FormatException]）。
-  /// 成功后将页面填充回 [notebook.pages] 并返回 true。
-  ///
-  /// 注意：解密后**保留** [encryptedPayload]（密文仍是持久化的唯一内容源），
-  /// 否则后续保存会把 `pages: []` 写入磁盘、永久丢失全部加密内容
-  /// （评审发现 P1）。
-  Future<bool> decryptNotebook(Notebook notebook, String password) async {
+  /// 用密码解密加密笔记本的页面内容（密码错误�?[FormatException]）�?  /// 成功后将页面填充�?[notebook.pages] 并返�?true�?  ///
+  /// 注意：解密后**保留** [encryptedPayload]（密文仍是持久化的唯一内容源）�?  /// 否则后续保存会把 `pages: []` 写入磁盘、永久丢失全部加密内�?  /// （评审发�?P1）�?  Future<bool> decryptNotebook(Notebook notebook, String password) async {
     final payload = notebook.encryptedPayload;
     if (payload == null) return false;
-    // 密码模式 v4（H-06 补全）：AAD 绑定 notebook.id——v4 优先，v3 旧数据
-    // 回退（兼容期新旧并存）。
-    final clear = await _encryption.decryptWithPasswordAad(
+    // 密码模式 v4（H-06 补全）：AAD 绑定 notebook.id——v4 优先，v3 旧数�?    // 回退（兼容期新旧并存）�?    final clear = await _encryption.decryptWithPasswordAad(
       notebookId: notebook.id,
       encryptedJson: payload,
       password: password,
@@ -424,23 +360,18 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     notebook.pages
       ..clear()
       ..addAll(pages);
-    // 保留 encryptedPayload：密文仍是持久化的唯一副本；
-    // 修改加密笔记本时由调用方重新加密（见 save 的重加密逻辑）。
-    return true;
+    // 保留 encryptedPayload：密文仍是持久化的唯一副本�?    // 修改加密笔记本时由调用方重新加密（见 save 的重加密逻辑）�?    return true;
   }
 
   /// 启用 U盘钥匙（keyfile 模式）加密并保存：用主密钥加密页面内容，
-  /// 生成恢复密钥信封（U 盘丢失时凭 24 位恢复密钥找回主密钥），
-  /// 明文不落盘（零知识架构，见 docs/PASSWORD_DISK_DESIGN.md）。
-  Future<String> encryptAndSaveWithKey(
+  /// 生成恢复密钥信封（U 盘丢失时�?24 位恢复密钥找回主密钥），
+  /// 明文不落盘（零知识架构，�?docs/PASSWORD_DISK_DESIGN.md）�?  Future<String> encryptAndSaveWithKey(
     Notebook notebook,
     List<int> masterKey,
     String recoveryKey,
   ) async {
-    // 第一步合规（2026-08-16 专家审计最优先行动②）：加密笔记本不生成
-    // 明文 searchSummary——"废除默认明文 searchSummary"。未来 K_note
-    // 密钥层级落地后摘要可加密存储（解锁会话内搜索——安全）。
-    final payloadJson = jsonEncode({
+    // 第一步合规（2026-08-16 专家审计最优先行动②）：加密笔记本不生�?    // 明文 searchSummary—�?废除默认明文 searchSummary"。未�?K_note
+    // 密钥层级落地后摘要可加密存储（解锁会话内搜索——安全）�?    final payloadJson = jsonEncode({
       'pages': notebook.pages.map((p) => p.toJson()).toList(),
     });
     notebook.encrypted = true;
@@ -454,22 +385,17 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
       masterKey,
       recoveryKey,
     );
-    // 直接原子写入（toJson 中 encrypted 时 pages 序列化为空，仅存密文载荷）。
-    return _writeNotebook(notebook);
+    // 直接原子写入（toJson �?encrypted �?pages 序列化为空，仅存密文载荷）�?    return _writeNotebook(notebook);
   }
 
-  /// 用 U盘主密钥解锁 keyfile 模式加密笔记本（密钥错误抛 [FormatException]）。
-  /// 成功后将页面填充回 [notebook.pages] 并返回 true。
-  Future<bool> decryptNotebookWithKey(
+  /// �?U盘主密钥解锁 keyfile 模式加密笔记本（密钥错误�?[FormatException]）�?  /// 成功后将页面填充�?[notebook.pages] 并返�?true�?  Future<bool> decryptNotebookWithKey(
     Notebook notebook,
     List<int> masterKey,
   ) async {
     final payload = notebook.encryptedPayload;
     if (payload == null) return false;
-    // 任务#2（专家审计 2026-08-15）：v4 AAD 优先（绑定 notebook.id——
-    // 跨笔记密文交换认证失败），v3 旧数据回退（flutter_secure_storage
-    // 两步迁移模式：兼容期新旧并存，迁移后旧格式仅读）。
-    final clear = await _decryptKeyfilePayloadCompat(
+    // 任务#2（专家审�?2026-08-15）：v4 AAD 优先（绑�?notebook.id—�?    // 跨笔记密文交换认证失败），v3 旧数据回退（flutter_secure_storage
+    // 两步迁移模式：兼容期新旧并存，迁移后旧格式仅读）�?    final clear = await _decryptKeyfilePayloadCompat(
       notebook.id,
       payload,
       masterKey,
@@ -484,10 +410,9 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     return true;
   }
 
-  /// v4/v3 兼容解密（keyfile 模式，任务#2 专家审计 2026-08-15）：
-  /// v4 AAD 优先（绑定 notebook.id——跨笔记密文交换认证失败），
-  /// v3 旧数据回退（flutter_secure_storage 两步迁移：兼容期新旧并存）。
-  Future<String> _decryptKeyfilePayloadCompat(
+  /// v4/v3 兼容解密（keyfile 模式，任�?2 专家审计 2026-08-15）：
+  /// v4 AAD 优先（绑�?notebook.id——跨笔记密文交换认证失败），
+  /// v3 旧数据回退（flutter_secure_storage 两步迁移：兼容期新旧并存）�?  Future<String> _decryptKeyfilePayloadCompat(
     String notebookId,
     String payload,
     List<int> masterKey,
@@ -503,19 +428,15 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     }
   }
 
-  /// 用 U盘主密钥 + 恢复密钥重加密保存（keyfile 编辑会话保存用）。
-  ///
+  /// �?U盘主密钥 + 恢复密钥重加密保存（keyfile 编辑会话保存用）�?  ///
   /// 编辑会话中内存有明文页面；保存时用主密钥重加密最新内容，
-  /// 并重新生成恢复信封（若提供了新的恢复密钥）。
-  Future<String> saveWithKey(
+  /// 并重新生成恢复信封（若提供了新的恢复密钥）�?  Future<String> saveWithKey(
     Notebook notebook,
     List<int> masterKey, {
     String? newRecoveryKey,
   }) async {
-    // 第一步合规（2026-08-16 专家审计最优先行动②）：加密笔记本不生成
-    // 明文 searchSummary——"废除默认明文 searchSummary"。未来 K_note
-    // 密钥层级落地后摘要可加密存储（解锁会话内搜索——安全）。
-    final payloadJson = jsonEncode({
+    // 第一步合规（2026-08-16 专家审计最优先行动②）：加密笔记本不生�?    // 明文 searchSummary—�?废除默认明文 searchSummary"。未�?K_note
+    // 密钥层级落地后摘要可加密存储（解锁会话内搜索——安全）�?    final payloadJson = jsonEncode({
       'pages': notebook.pages.map((p) => p.toJson()).toList(),
     });
     notebook.encrypted = true;
@@ -534,28 +455,23 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     return _writeNotebook(notebook);
   }
 
-  /// 保存笔记本：加密笔记本不落盘明文 pages（评审发现 P1 修复）。
-  ///
-  /// - 非加密：直接原子写入；
-  /// - 加密且未修改（pages 为空、密文仍在）：保留原密文写入，避免覆盖为空；
+  /// 保存笔记本：加密笔记本不落盘明文 pages（评审发�?P1 修复）�?  ///
+  /// - 非加密：直接原子写入�?  /// - 加密且未修改（pages 为空、密文仍在）：保留原密文写入，避免覆盖为空；
   /// - 加密且内存有明文页面：需要密钥才能重加密——若无密钥则拒绝保存
   ///   （防止静默清空磁盘内容），由调用方走 [encryptAndSave] /
-  ///   [encryptAndSaveWithKey] / [saveWithKey]。
-  @override
+  ///   [encryptAndSaveWithKey] / [saveWithKey]�?  @override
   Future<String> save(Notebook notebook) async {
     if (notebook.encrypted) {
       final payload = notebook.encryptedPayload;
       if (payload != null && notebook.pages.isEmpty) {
-        // 解密后未修改：保留原密文，避免覆盖为空。
-        return _writeNotebook(notebook);
+        // 解密后未修改：保留原密文，避免覆盖为空�?        return _writeNotebook(notebook);
       }
       throw StateError(
-        '加密笔记本需要密钥才能保存，请使用 encryptAndSave / encryptAndSaveWithKey / saveWithKey',
+        '加密笔记本需要密钥才能保存，请使�?encryptAndSave / encryptAndSaveWithKey / saveWithKey',
       );
     }
     return _writeNotebook(notebook);
   }
 
-  /// 生成唯一 ID。
-  static String newId(String prefix) => LocalIdGenerator.next(prefix);
+  /// 生成唯一 ID�?  static String newId(String prefix) => LocalIdGenerator.next(prefix);
 }

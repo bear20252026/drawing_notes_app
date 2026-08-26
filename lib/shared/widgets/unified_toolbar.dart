@@ -80,7 +80,7 @@ class UnifiedToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: Colors.grey[200],
+      color: const Color(0xFFF2F2F7),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(

@@ -101,10 +101,18 @@ class SettingsPage extends ConsumerWidget {
                       icon: Icons.language_rounded,
                       iconColor: AppDesign.primary,
                       title: '语言',
-                      subtitle: '中文',
+                      subtitle: settingsAsync.when(
+                        data: (s) => s.language == AppLanguage.chinese
+                            ? '中文'
+                            : s.language == AppLanguage.english
+                                ? 'English'
+                                : '跟随系统',
+                        loading: () => '中文',
+                        error: (_, __) => '中文',
+                      ),
                       trailing: Icon(Icons.chevron_right, size: 18),
                       onTap: () {
-                        // TODO: 语言选择器
+                        // TODO: 语言选择器（可通过 SettingsNotifier.setLanguage 更新）
                       },
                     ),
                   ],

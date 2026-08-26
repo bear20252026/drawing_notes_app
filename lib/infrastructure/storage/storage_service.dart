@@ -7,8 +7,8 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../features/drawing/domain/document.dart';
 import '../../features/drawing/infrastructure/document_codec.dart';
-import 'local_id_generator.dart';
-import 'repository.dart';
+import '../../core/storage/local_id_generator.dart';
+import '../../core/storage/repository.dart';
 
 /// 本地文件存储服务：负责工程文件的保存、读取、列表、删除。
 ///

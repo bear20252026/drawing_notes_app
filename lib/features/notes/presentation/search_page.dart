@@ -136,15 +136,53 @@ class _SearchPageState extends State<SearchPage> {
       itemCount: _results.length,
       itemBuilder: (context, i) {
         final r = _results[i];
-        return ListTile(
-          leading: Icon(r.kind == 'drawing' ? Icons.brush : Icons.menu_book),
-          title: Text(r.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-          subtitle: Text(
-            r.snippet,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
+        return GestureDetector(
           onTap: () => _openResult(r),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: const BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: Color(0xFFE0E0E0), width: 0.5),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  r.kind == 'drawing' ? Icons.brush_rounded : Icons.menu_book_rounded,
+                  size: 22,
+                  color: const Color(0xFF0066CC),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        r.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF1D1D1F),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        r.snippet,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: const Color(0xFF8E8E93),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );

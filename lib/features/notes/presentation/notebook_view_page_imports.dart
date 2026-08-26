@@ -179,18 +179,52 @@ extension _NotebookPageImports on _NotebookViewPageState {
         children: [
           SimpleDialogOption(
             onPressed: () => Navigator.of(ctx).pop(EncryptionMode.password),
-            child: ListTile(
-              leading: const Icon(Icons.lock_outline),
-              title: Text(AppLocalizations.of(context)?.noteMemoryPassword ?? '记忆密码'),
-              subtitle: Text(AppLocalizations.of(context)?.noteMemoryPasswordSub ?? '设置密码，打开时输入密码解锁'),
+            child: Row(
+              children: [
+                const Icon(Icons.lock_outline_rounded, size: 22, color: Color(0xFF0066CC)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppLocalizations.of(context)?.noteMemoryPassword ?? '记忆密码',
+                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w500, color: Color(0xFF1D1D1F)),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        AppLocalizations.of(context)?.noteMemoryPasswordSub ?? '设置密码，打开时输入密码解锁',
+                        style: const TextStyle(fontSize: 14, color: Color(0xFF8E8E93)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
           SimpleDialogOption(
             onPressed: () => Navigator.of(ctx).pop(EncryptionMode.keyfile),
-            child: ListTile(
-              leading: const Icon(Icons.usb),
-              title: Text(AppLocalizations.of(context)?.noteUsbKey ?? 'U盘钥匙（密码盘）'),
-              subtitle: Text(AppLocalizations.of(context)?.noteUsbKeySub ?? 'U盘即钥匙：插入 U 盘解锁，拔盘即锁（零知识）'),
+            child: Row(
+              children: [
+                const Icon(Icons.usb_rounded, size: 22, color: Color(0xFF0066CC)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppLocalizations.of(context)?.noteUsbKey ?? 'U盘钥匙（密码盘）',
+                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w500, color: Color(0xFF1D1D1F)),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        AppLocalizations.of(context)?.noteUsbKeySub ?? 'U盘即钥匙：插入 U 盘解锁，拔盘即锁（零知识）',
+                        style: const TextStyle(fontSize: 14, color: Color(0xFF8E8E93)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -291,9 +325,10 @@ extension _NotebookPageImports on _NotebookViewPageState {
   }
 
   /// 展示恢复密钥（警示必须抄写）。
+  /// 2026-08-25 修复：仅当用户点击"一键复制"时才复制到剪贴板。
   Future<void> _showRecoveryKeyWarning(String recoveryKey) async {
     final l10n = AppLocalizations.of(context);
-    await showIosDialog<void>(
+    final result = await showIosDialog<String>(
       context,
       title: l10n?.noteRecoveryKeyTitle ?? '保存您的恢复密钥（非常重要！）',
       contentWidget: Column(
@@ -312,7 +347,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
           const Text(
             '⚠️ 请抄写或截图保存到安全处。\n'
             'U 盘丢失或损坏时，凭此密钥可恢复主密钥。\n'
-            '本应用不存储任何密钥，忘记恢复密钥将永久无法恢复。',
+            '本应用不存储任何密钥，忘记恢复密钥将永久不可恢复。',
             style: TextStyle(color: Color(0xFFFF3B30), fontSize: 13),
           ),
         ],
@@ -325,14 +360,17 @@ extension _NotebookPageImports on _NotebookViewPageState {
         IosDialogAction(
           label: '我已抄写',
           isDefault: true,
+          result: 'done',
         ),
       ],
     );
 
-    // Handle copy action
-    await Clipboard.setData(ClipboardData(text: recoveryKey));
-    if (mounted) {
-      AppSnackbar.showSuccess(context, '恢复密钥已复制到剪贴板');
+    // 仅当用户点击"一键复制"时才复制到剪贴板
+    if (result == 'copy' && mounted) {
+      await Clipboard.setData(ClipboardData(text: recoveryKey));
+      if (mounted) {
+        AppSnackbar.showSuccess(context, '恢复密钥已复制到剪贴板');
+      }
     }
   }
 
@@ -350,18 +388,21 @@ extension _NotebookPageImports on _NotebookViewPageState {
           for (var i = 0; i < page.history.length; i++)
             SimpleDialogOption(
               onPressed: () => Navigator.of(ctx).pop(page.history[i]),
-              child: ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                title: Text(
-                  '#${page.history.length - i} · ${_formatTime(page.history[i].time)}',
-                ),
-                subtitle: page.history[i].summary.isNotEmpty
-                    ? Text(
-                        page.history[i].summary,
-                        style: Theme.of(ctx).textTheme.bodySmall,
-                      )
-                    : null,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '#${page.history.length - i} · ${_formatTime(page.history[i].time)}',
+                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w500, color: Color(0xFF1D1D1F)),
+                  ),
+                  if (page.history[i].summary.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      page.history[i].summary,
+                      style: const TextStyle(fontSize: 14, color: Color(0xFF8E8E93)),
+                    ),
+                  ],
+                ],
               ),
             ),
         ],

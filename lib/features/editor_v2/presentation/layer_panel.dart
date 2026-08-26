@@ -32,7 +32,7 @@ class LayerPanel extends ConsumerWidget {
 
     if (layers.isEmpty) {
       return const Center(
-        child: Text('无图层', style: TextStyle(color: Colors.grey)),
+        child: Text('无图层', style: TextStyle(color: const Color(0xFF8E8E93))),
       );
     }
 
@@ -83,7 +83,7 @@ class _LayerTile extends ConsumerWidget {
                   layer.visible ? Icons.visibility : Icons.visibility_off,
                   size: 18,
                   color: layer.visible
-                      ? Colors.blue
+                      ? const Color(0xFF0066CC)
                       : Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 onPressed: () {
@@ -120,9 +120,9 @@ class _LayerTile extends ConsumerWidget {
                   trackHeight: 2,
                   thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
                   overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-                  activeTrackColor: Colors.blue.withValues(alpha: layer.opacity),
-                  inactiveTrackColor: Colors.grey.shade300,
-                  thumbColor: Colors.blue,
+                  activeTrackColor: const Color(0xFF0066CC).withValues(alpha: layer.opacity),
+                  inactiveTrackColor: const Color(0xFFE5E5EA),
+                  thumbColor: const Color(0xFF0066CC),
                 ),
                 child: Semantics(
                   label: '图层 ${layer.name} 不透明度',

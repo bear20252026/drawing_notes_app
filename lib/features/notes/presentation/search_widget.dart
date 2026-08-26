@@ -1,9 +1,6 @@
-// 全文搜索 UI（借鉴 Joplin / nb 全文搜索面板）。
-//
-// 基于倒排索引核心 [SearchIndex]：
-// - [SearchIndexBuilder]：从笔记本存储 + 文档存储构建索引
-//   （页面标题 + 文字块内容 + 手写字体文本作为 OCR 文本）
-// - [SearchWidget]：搜索框 + 结果列表（匹配片段高亮 + 手写徽章）+ 跳转回调
+// 全文搜索 UI（借鉴 Joplin / nb 全文搜索面板）�?//
+// 基于倒排索引核心 [SearchIndex]�?// - [SearchIndexBuilder]：从笔记本存�?+ 文档存储构建索引
+//   （页面标�?+ 文字块内�?+ 手写字体文本作为 OCR 文本�?// - [SearchWidget]：搜索框 + 结果列表（匹配片段高�?+ 手写徽章�? 跳转回调
 //
 // docId 编码约定（[SearchDocIds] / SearchTarget.parse）：
 // - 页面命中    `nb:<notebookId>|<pageId>`
@@ -15,22 +12,18 @@ import 'package:flutter/material.dart';
 
 import '../../../core/search/search_index.dart';
 import '../../../shared/widgets/inspira/stagger_list.dart';
-import '../../../core/storage/storage_service.dart';
+import '../../../infrastructure/storage/storage_service.dart';
 import '../infrastructure/notebook_storage.dart';
 import '../../../l10n/app_localizations.dart';
 
-/// 从本地存储构建 [SearchIndex]。
-///
+/// 从本地存储构�?[SearchIndex]�?///
 /// 数据面与 [SearchService] 一致（笔记本文字块 + 独立画作标题），
-/// 但走倒排索引以支持多词 AND 查询与 O(1) 词项定位。
-class SearchIndexBuilder {
+/// 但走倒排索引以支持多�?AND 查询�?O(1) 词项定位�?class SearchIndexBuilder {
   SearchIndexBuilder._();
 
-  /// 手写字体标识（与 properties_panel 字体循环一致）。
-  static const String handwritingFont = 'handwriting';
+  /// 手写字体标识（与 properties_panel 字体循环一致）�?  static const String handwritingFont = 'handwriting';
 
-  /// 构建索引：每页一个文档条目。
-  static Future<SearchIndex> build({
+  /// 构建索引：每页一个文档条目�?  static Future<SearchIndex> build({
     NotebookStorage? notebookStorage,
     StorageService? docStorage,
   }) async {
@@ -59,8 +52,7 @@ class SearchIndexBuilder {
       }
     }
 
-    // 独立画作：标题检索（正文留空）。
-    final metas = await storage.listDocuments();
+    // 独立画作：标题检索（正文留空）�?    final metas = await storage.listDocuments();
     for (final m in metas) {
       index.indexDocument(
         docId: SearchDocIds.drawing(m.id),
@@ -72,15 +64,13 @@ class SearchIndexBuilder {
   }
 }
 
-/// docId 编码工具（命名空间类，避免顶级函数污染）。
-abstract final class SearchDocIds {
+/// docId 编码工具（命名空间类，避免顶级函数污染）�?abstract final class SearchDocIds {
   static String notebook(String notebookId, String pageId) =>
       'nb:$notebookId|$pageId';
   static String drawing(String documentId) => 'drawing:$documentId';
 }
 
-/// docId 编解码（搜索结果 -> 导航目标）。
-class SearchTarget {
+/// docId 编解码（搜索结果 -> 导航目标）�?class SearchTarget {
   const SearchTarget.page(this.notebookId, this.pageId)
       : documentId = null;
   const SearchTarget.drawing(this.documentId)
@@ -91,8 +81,7 @@ class SearchTarget {
   final String? pageId;
   final String? documentId;
 
-  /// 解析 [SearchDocIds] 生成的 docId。
-  static SearchTarget? parse(String docId) {
+  /// 解析 [SearchDocIds] 生成�?docId�?  static SearchTarget? parse(String docId) {
     if (docId.startsWith('nb:') || docId.startsWith('ocr:')) {
       final body =
           docId.substring(docId.indexOf(':') + 1); // <nbId>|<pageId>
@@ -109,11 +98,9 @@ class SearchTarget {
   }
 }
 
-/// 全文搜索面板：搜索框 + 结果列表。
-///
+/// 全文搜索面板：搜索框 + 结果列表�?///
 /// 结果行显示匹配片段（命中词高亮）、手写徽章（OCR 命中）；
-/// 点击行触发 [onOpenTarget] 由宿主负责路由。
-class SearchWidget extends StatefulWidget {
+/// 点击行触�?[onOpenTarget] 由宿主负责路由�?class SearchWidget extends StatefulWidget {
   const SearchWidget({
     super.key,
     required this.index,
@@ -121,14 +108,11 @@ class SearchWidget extends StatefulWidget {
     this.autofocusField = true,
   });
 
-  /// 已构建好的搜索索引。
-  final SearchIndex index;
+  /// 已构建好的搜索索引�?  final SearchIndex index;
 
-  /// 点击结果回调（pop 前由宿主处理导航）。
-  final void Function(SearchTarget target)? onOpenTarget;
+  /// 点击结果回调（pop 前由宿主处理导航）�?  final void Function(SearchTarget target)? onOpenTarget;
 
-  /// 是否自动聚焦输入框。
-  final bool autofocusField;
+  /// 是否自动聚焦输入框�?  final bool autofocusField;
 
   @override
   State<SearchWidget> createState() => _SearchWidgetState();
@@ -174,7 +158,7 @@ class _SearchWidgetState extends State<SearchWidget> {
           onChanged: _onChanged,
           decoration: InputDecoration(
             hintText:
-                l10n?.searchHint ?? '搜索文字块内容 / 标题…',
+                l10n?.searchHint ?? '搜索文字块内�?/ 标题�?,
             prefixIcon: const Icon(Icons.search),
             suffixIcon: ValueListenableBuilder<TextEditingValue>(
               valueListenable: _controller,
@@ -206,7 +190,7 @@ class _SearchWidgetState extends State<SearchWidget> {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 32),
           child: Text(
-            l10n?.searchEmptyHint ?? '输入关键词开始搜索',
+            l10n?.searchEmptyHint ?? '输入关键词开始搜�?,
             style: TextStyle(color: Theme.of(context).hintColor),
           ),
         ),
@@ -217,43 +201,71 @@ class _SearchWidgetState extends State<SearchWidget> {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 32),
           child: Text(
-            l10n?.searchNoResults ?? '未找到匹配内容',
+            l10n?.searchNoResults ?? '未找到匹配内�?,
             style: TextStyle(color: Theme.of(context).hintColor),
           ),
         ),
       );
     }
-    // 入场 stagger 动画（Inspira UI）；系统减少动态效果时自动跳过。
-    return StaggeredListView(
+    // 入场 stagger 动画（Inspira UI）；系统减少动态效果时自动跳过�?    return StaggeredListView(
       shrinkWrap: true,
       itemCount: _results.length,
       itemBuilder: (context, i) {
         final r = _results[i];
         final isDrawing = r.noteId.startsWith('drawing:');
-        return ListTile(
-          leading: Icon(isDrawing ? Icons.brush : Icons.menu_book),
-          title: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  r.noteTitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (r.isOcrMatch) const _HandwritingBadge(),
-            ],
-          ),
-          subtitle: _HighlightedSnippet(result: r, query: query),
+        return GestureDetector(
           onTap: () => _open(r),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: const BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: Color(0xFFE0E0E0), width: 0.5),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isDrawing ? Icons.brush_rounded : Icons.menu_book_rounded,
+                  size: 22,
+                  color: const Color(0xFF0066CC),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              r.noteTitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF1D1D1F),
+                              ),
+                            ),
+                          ),
+                          if (r.isOcrMatch) const _HandwritingBadge(),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      _HighlightedSnippet(result: r, query: query),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
   }
 }
 
-/// “手写”徽章：标记 OCR 命中（Leader 需求 #5）。
-class _HandwritingBadge extends StatelessWidget {
+/// “手写”徽章：标记 OCR 命中（Leader 需�?#5）�?class _HandwritingBadge extends StatelessWidget {
   const _HandwritingBadge();
 
   @override
@@ -270,18 +282,15 @@ class _HandwritingBadge extends StatelessWidget {
         '手写',
         style: TextStyle(
           fontSize: 11,
-          color: scheme.onSecondaryContainer, // M3 配色对比度达标
-        ),
+          color: scheme.onSecondaryContainer, // M3 配色对比度达�?        ),
       ),
     );
   }
 }
 
-/// 匹配片段高亮（Leader 需求 #3）。
-///
-/// SearchIndex.matchStart 是全文绝对位置，而 matchedText 是前后各 20 字符
-/// 的片段；此处换算片段内偏移后用 [TextSpan] 分三段着色。
-class _HighlightedSnippet extends StatelessWidget {
+/// 匹配片段高亮（Leader 需�?#3）�?///
+/// SearchIndex.matchStart 是全文绝对位置，�?matchedText 是前后各 20 字符
+/// 的片段；此处换算片段内偏移后�?[TextSpan] 分三段着色�?class _HighlightedSnippet extends StatelessWidget {
   const _HighlightedSnippet({required this.result, required this.query});
 
   final SearchResult result;
@@ -293,8 +302,7 @@ class _HighlightedSnippet extends StatelessWidget {
     final snippetStart = (result.matchStart - 20).clamp(0, snippet.length);
     final offsetInSnippet = result.matchStart - snippetStart;
     final end = offsetInSnippet + result.matchLength;
-    // 防御：索引数据与结果不同步时避免 RangeError。
-    if (offsetInSnippet > snippet.length || end > snippet.length) {
+    // 防御：索引数据与结果不同步时避免 RangeError�?    if (offsetInSnippet > snippet.length || end > snippet.length) {
       return Text(snippet, maxLines: 2, overflow: TextOverflow.ellipsis);
     }
 
