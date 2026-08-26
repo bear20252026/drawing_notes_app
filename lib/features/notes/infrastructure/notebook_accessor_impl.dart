@@ -1,5 +1,4 @@
 import 'package:drawing_notes_app/core/notes_accessor.dart';
-import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 
 /// [INotebookAccessor] 的笔记侧实现（S4b 接口化落地）。
@@ -8,7 +7,7 @@ import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage
 /// （SearchService 等），drawing 只依赖 core 接口，不知本类存在。
 class NotebookAccessorImpl implements INotebookAccessor {
   NotebookAccessorImpl({NotebookStorage? storage})
-      : _storage = storage ?? NotebookStorage();
+    : _storage = storage ?? NotebookStorage();
 
   final NotebookStorage _storage;
 
@@ -16,14 +15,8 @@ class NotebookAccessorImpl implements INotebookAccessor {
   bool get isStorageAvailable => true;
 
   @override
-  Future<List<Notebook>> listNotebooks() => _storage.listAll();
-
-  @override
-  NotebookPage? pageById(String notebookId, String pageId) {
-    // 页面级读取当前由 editor_exporter 的 pageProvider 函数注入承担；
-    // 此处按 id 返回占位（跨笔记搜索不需要页面级，见 IMPROVEMENT_PLAN）。
-    return null;
-  }
+  Future<List<NotebookSearchDocument>> listSearchDocuments() =>
+      _storage.listSearchDocuments();
 
   @override
   Future<String> storeImage(String sourcePath, String pageId) =>
