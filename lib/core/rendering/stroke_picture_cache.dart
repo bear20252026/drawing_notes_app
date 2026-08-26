@@ -1,9 +1,9 @@
-import 'dart:ui' as ui;
+﻿import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import '../../features/drawing/domain/stroke.dart';
-import 'stroke_renderer.dart';
+import '../../infrastructure/rendering/stroke_renderer.dart';
 
 /// 已完成笔画集合的预渲染 Picture 缓存（借鉴 scribe_canvas
 /// `ScribePainter.cachedPicture` 的 O(1) 重绘思想，见

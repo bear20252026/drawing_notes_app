@@ -1,5 +1,3 @@
-import '../features/notes/domain/notebook.dart';
-
 /// 跨功能笔记访问接口（S4b：drawing→notes 横向依赖接口化）。
 ///
 /// 背景（docs/IMPROVEMENT_PLAN_2026-08-15.md）：
@@ -13,17 +11,9 @@ import '../features/notes/domain/notebook.dart';
 ///
 /// 已接口化：editor_exporter 的 pageProvider（函数注入）、
 /// search_service 的 notebookAccessor（本接口注入）。
-abstract interface class INotebookAccessor {
-  /// 读取指定笔记本页面（导出混合 PDF 时使用）。
-  NotebookPage? pageById(String notebookId, String pageId);
+///
+/// 注意：此文件现在仅作为向后兼容的 re-export。
+/// 新代码应直接导入 `core/abstractions/storage/notebook_accessor.dart`。
+library;
 
-  /// 列出全部笔记本（跨笔记搜索时使用）。
-  Future<List<Notebook>> listNotebooks();
-
-  /// 当前笔记存储是否可用（搜索/编辑器集成时使用）。
-  bool get isStorageAvailable;
-
-  /// 将图片复制进笔记页存储（编辑器插入笔记页图片时使用），
-  /// 返回笔记侧存储后的文件路径。
-  Future<String> storeImage(String sourcePath, String pageId);
-}
+export '../abstractions/storage/notebook_accessor.dart';

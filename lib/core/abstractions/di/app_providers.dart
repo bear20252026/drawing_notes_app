@@ -6,7 +6,7 @@
 // Re-export all providers from core/di/ for backward compatibility
 // features/ should import from this file for type references
 
-export '../../di/providers.dart' show
+export '../../../infrastructure/di/providers.dart' show
     themeProvider,
     themeModeProvider,
     darkModeProvider,

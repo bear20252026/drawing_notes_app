@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart' hide GlobalMaterialLocalizations;
+﻿import 'package:material_ui/material_ui.dart' hide GlobalMaterialLocalizations;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
@@ -7,9 +7,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/theme/app_design.dart';
-import 'core/di/providers.dart';
+import 'infrastructure/di/providers.dart';
 import 'l10n/app_localizations.dart';
-import 'core/router/app_router.dart';
+import 'infrastructure/router/app_router.dart';
 import 'core/security/auth_guard.dart';
 
 /// 应用根组件：主题 + 路由。

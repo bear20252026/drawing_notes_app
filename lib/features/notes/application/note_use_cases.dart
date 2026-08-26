@@ -1,7 +1,7 @@
 // notes — Application 层：笔记页面用例
 // 遵循 Clean Architecture：Application 层只依赖 Domain 层
 
-import '../../../core/storage/repository.dart';
+import '../../../core/abstractions/storage/notebook_repository.dart';
 import '../domain/entities/notebook.dart';
 import '../domain/value_objects/note_content.dart';
 import '../domain/value_objects/notebook_id.dart';
