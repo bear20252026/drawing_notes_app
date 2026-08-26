@@ -1,11 +1,11 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
+import 'package:drawing_notes_app/infrastructure/storage/vfs/vault_service.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/services/notebook_storage.dart';
 
 /// 媒体 VFS 双轨接入测试（专家目标架构 VFS——2026-08-16）：
 /// 新媒体写 VFS 对象（'vfs:' 标记 + 读回）+ 旧媒体兼容（未注入走现有

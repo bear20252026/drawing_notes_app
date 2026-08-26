@@ -31,7 +31,7 @@ import '../../features/settings/presentation/app_lock_settings_page.dart';
 import '../../features/settings/presentation/settings_page.dart';
 import '../../features/shapes/presentation/shape_library_page.dart';
 import '../security/auth_guard.dart';
-import '../storage/storage_service.dart';
+import '../../infrastructure/storage/storage_service.dart';
 import '../theme/text_scale_helper.dart';
 
 // ============================================================================

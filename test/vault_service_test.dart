@@ -1,10 +1,10 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
+import 'package:drawing_notes_app/infrastructure/storage/vfs/vault_service.dart';
 
 /// VFS 统一服务单测（专家目标架构 VFS 接入层——2026-08-16）：
 /// 对象 CRUD/密钥上下文（未注入拒绝）/跨会话持久化。

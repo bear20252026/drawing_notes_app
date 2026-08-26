@@ -1,12 +1,12 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
-import 'package:drawing_notes_app/core/storage/storage_service.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/services/notebook_storage.dart';
+import 'package:drawing_notes_app/infrastructure/storage/storage_service.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
