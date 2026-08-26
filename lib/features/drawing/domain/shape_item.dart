@@ -1,5 +1,6 @@
 import 'dart:math';
-import 'dart:ui';
+
+import 'value_objects/geometry.dart';
 
 import 'shape_endpoint_binding.dart';
 
@@ -81,8 +82,8 @@ class PageShapeItem {
   /// [flipX]/[flipY] 无法表达"从左往右画一条水平线"这类方向（渲染端固定
   /// 画对角线会翻转或变形）。保存相对端点后，渲染与命中按真实轨迹绘制；
   /// 旧文档缺失时回退为原"左下→右上"对角线行为。
-  Offset? lineStart;
-  Offset? lineEnd;
+  FOffset? lineStart;
+  FOffset? lineEnd;
 
   static int _newSeed() => Random.secure().nextInt(0x7FFFFFFF);
 
@@ -111,7 +112,7 @@ class PageShapeItem {
   String? groupId;
   String? href;
 
-  Offset get position => Offset(x, y);
+  FOffset get position => FOffset(x, y);
 
   /// 创建完整副本，供渲染投影、历史快照和复制粘贴使用。
   PageShapeItem copy() => PageShapeItem(
@@ -210,12 +211,12 @@ class PageShapeItem {
     lineEnd: _offsetFromJson(json['lineEnd']),
   );
 
-  static Offset? _offsetFromJson(Object? value) {
+  static FOffset? _offsetFromJson(Object? value) {
     if (value is! List || value.length != 2) return null;
     final dx = value[0];
     final dy = value[1];
     if (dx is! num || dy is! num) return null;
-    return Offset(dx.toDouble(), dy.toDouble());
+    return FOffset(dx.toDouble(), dy.toDouble());
   }
 
   static ShapeEndpointBinding? _bindingFromJson(Object? value) {

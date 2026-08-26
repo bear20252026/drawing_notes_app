@@ -1,10 +1,10 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 
 import '../application/drawing_controller.dart';
-import '../../../core/rendering/ink_layer_painter.dart';
-import '../../../core/rendering/shape_renderer.dart';
-import '../../../core/rendering/stroke_renderer.dart';
+import '../../../core/abstractions/rendering/ink_painter.dart';
+import '../../../core/abstractions/rendering/shape_renderer.dart';
+import '../../../core/abstractions/rendering/stroke_renderer.dart';
 import '../domain/document.dart';
 import '../domain/selection.dart';
 import '../domain/stroke.dart';

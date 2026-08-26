@@ -1,4 +1,4 @@
-import 'dart:ui';
+import 'value_objects/geometry.dart';
 
 /// 选区工具类型（Phase 4）。
 ///
@@ -23,7 +23,7 @@ class Selection {
 
   /// 选区多边形顶点（画布坐标）。
   /// 矩形选区为 4 个顶点；套索选区为自由点列。
-  final List<Offset> polygon;
+  final List<FOffset> polygon;
 
   /// 当前图层中被命中的笔画索引列表（升序）。
   final List<int> selectedStrokeIndices;
@@ -31,16 +31,16 @@ class Selection {
   bool get isEmpty => polygon.length < 3;
 
   /// 选区中心点（多边形包围盒中心），作为缩放/旋转的基准点。
-  Offset get center {
-    if (polygon.isEmpty) return Offset.zero;
+  FOffset get center {
+    if (polygon.isEmpty) return FOffset.zero;
     var minX = double.infinity, minY = double.infinity;
     var maxX = -double.infinity, maxY = -double.infinity;
     for (final p in polygon) {
-      if (p.dx < minX) minX = p.dx;
-      if (p.dy < minY) minY = p.dy;
-      if (p.dx > maxX) maxX = p.dx;
-      if (p.dy > maxY) maxY = p.dy;
+      if (p.x < minX) minX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y > maxY) maxY = p.y;
     }
-    return Offset((minX + maxX) / 2, (minY + maxY) / 2);
+    return FOffset((minX + maxX) / 2, (minY + maxY) / 2);
   }
 }

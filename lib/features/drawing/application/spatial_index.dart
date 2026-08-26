@@ -1,9 +1,9 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 
 import '../domain/shape_item.dart';
 import '../domain/stroke.dart';
-import '../../../core/rendering/shape_renderer.dart';
-import '../../../core/rendering/stroke_renderer.dart';
+import '../../../core/abstractions/rendering/shape_renderer.dart';
+import '../../../core/abstractions/rendering/stroke_renderer.dart';
 
 /// 空间索引：矩形分区（借鉴 Excalidraw spatial index 优化元素选择和渲染）。
 ///

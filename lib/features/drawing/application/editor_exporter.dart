@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
@@ -12,8 +12,8 @@ import '../../notes/domain/notebook.dart' show NotebookPage;
 import '../domain/stroke.dart' show BrushType, Stroke;
 import 'drawing_controller.dart';
 import '../../../core/rtf_exporter.dart';
-import '../../../core/rendering/pdf_hybrid_exporter.dart';
-import '../../../core/rendering/svg_exporter.dart';
+import '../../../core/abstractions/rendering/exporters.dart';
+import '../../../core/abstractions/rendering/exporters.dart';
 import '../../../core/utils/safe_image_decode.dart';
 
 /// 画布导出域（参考 Saber 的 editor_exporter 模块化设计）。

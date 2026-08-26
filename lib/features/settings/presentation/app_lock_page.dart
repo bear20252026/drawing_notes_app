@@ -1,11 +1,11 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/security/app_lock_service.dart';
-import '../../../core/router/app_router.dart';
+import '../../../core/abstractions/router/app_router.dart';
 
 /// 应用锁定页面 — 应用启动时的密码输入界面。
 ///

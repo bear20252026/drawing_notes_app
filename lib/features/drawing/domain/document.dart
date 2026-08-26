@@ -1,4 +1,4 @@
-import 'dart:ui' show Size;
+import 'value_objects/geometry.dart';
 
 import 'document_image_item.dart';
 import 'layer.dart';
@@ -80,7 +80,7 @@ class DrawingDocument {
   void touch() => updatedAt = DateTime.now();
 
   /// 获取画布尺寸。
-  Size get size => Size(width.toDouble(), height.toDouble());
+  FSize get size => FSize(width.toDouble(), height.toDouble());
 
   // ---- 序列化（与 storage/document_codec.dart 的 v1 格式一致）----
 

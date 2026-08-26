@@ -9,7 +9,7 @@ import '../../../l10n/app_localizations.dart';
 
 import '../../../core/theme/app_design.dart';
 import '../../../core/theme/responsive.dart';
-import '../../../core/di/providers.dart';
+import '../../../core/abstractions/di/app_providers.dart';
 import 'search_widget.dart';
 import '../../../core/search/search_index.dart';
 import '../../drawing/domain/document.dart';

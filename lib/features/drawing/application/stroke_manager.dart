@@ -1,4 +1,4 @@
-// stroke_manager.dart — 笔画生命周期管理器（从 DrawingController 提取）。
+﻿// stroke_manager.dart — 笔画生命周期管理器（从 DrawingController 提取）。
 //
 // 职责：管理笔画的创建/延伸/提交/取消，以及对象橡皮擦手势。
 // 设计：依赖 ToolManager 获取工具配置，通过回调通知上层。
@@ -7,7 +7,7 @@ import 'dart:ui' show Color, Offset;
 
 import 'tool_manager.dart';
 import '../domain/stroke.dart';
-import '../../../core/rendering/stroke_geometry_cache.dart';
+import '../../../core/abstractions/rendering/stroke_geometry_cache.dart';
 
 /// 笔画生命周期管理器。
 ///

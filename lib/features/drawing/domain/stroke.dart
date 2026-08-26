@@ -1,5 +1,6 @@
 import 'dart:math';
-import 'dart:ui';
+
+import 'value_objects/geometry.dart';
 
 /// 笔画类型（笔刷类型）
 ///
@@ -25,7 +26,7 @@ class StrokePoint {
   final double y;
   final double pressure;
 
-  Offset get offset => Offset(x, y);
+  FOffset get offset => FOffset(x, y);
 
   // ---- 序列化（供本地文件存储使用，见 storage/document_codec.dart）----
 
@@ -87,7 +88,7 @@ class Stroke {
   }
 
   final List<StrokePoint> points;
-  final Color color;
+  final int color;
 
   /// 基础线宽（画布逻辑像素），实际渲染宽度 = base * 压感系数。
   final double width;
@@ -144,7 +145,7 @@ class Stroke {
 
   factory Stroke.fromJson(Map<String, dynamic> json) => Stroke(
     points: _decodePoints(json['points']),
-    color: Color((json['color'] as num).toInt()),
+    color: (json['color'] as num).toInt(),
     width: (json['width'] as num).toDouble(),
     type: BrushType.values.firstWhere(
       (t) => t.name == json['type'],

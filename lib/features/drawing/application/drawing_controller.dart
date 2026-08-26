@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'dart:ui' show Color, Offset, Paint, FilterQuality, Rect;
@@ -19,13 +19,13 @@ import 'image_transform_service.dart';
 import 'document_transaction.dart';
 import 'eraser_mode.dart';
 import 'temporary_markers.dart';
-import '../../../core/rendering/ink_layer_painter.dart';
-import '../../../core/rendering/layer_compositor.dart';
-import '../../../core/rendering/stroke_geometry_cache.dart';
-import '../../../core/rendering/shape_recognizer.dart';
-import '../../../core/rendering/shape_binding_geometry.dart';
-import '../../../core/rendering/shape_renderer.dart';
-import '../../../core/rendering/stroke_renderer.dart';
+import '../../../core/abstractions/rendering/ink_painter.dart';
+import '../../../core/abstractions/rendering/layer_compositor.dart';
+import '../../../core/abstractions/rendering/stroke_geometry_cache.dart';
+import '../../../core/abstractions/rendering/shape_recognizer.dart';
+import '../../../core/abstractions/rendering/shape_binding_geometry.dart';
+import '../../../core/abstractions/rendering/shape_renderer.dart';
+import '../../../core/abstractions/rendering/stroke_renderer.dart';
 import 'spatial_index.dart';
 
 /// 绘图引擎控制器：UI 层与数据模型之间的唯一桥梁。

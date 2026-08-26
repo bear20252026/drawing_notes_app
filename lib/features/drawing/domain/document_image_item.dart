@@ -1,4 +1,4 @@
-import 'dart:ui';
+import 'value_objects/geometry.dart';
 
 /// 独立绘图文档中的图片元素。
 ///
@@ -34,9 +34,9 @@ class DocumentImageItem {
   /// 锁定后仍可被选择以解除锁定，但拒绝移动、缩放和删除，防止资料底图误触。
   bool locked;
 
-  Offset get position => Offset(x, y);
+  FOffset get position => FOffset(x, y);
 
-  Rect get bounds => Rect.fromLTWH(x, y, width, height);
+  FRect get bounds => FRect.fromLTWH(x, y, width, height);
 
   /// 为命令历史创建独立快照，避免编辑过程中的可变引用污染撤销状态。
   DocumentImageItem copy() => DocumentImageItem(

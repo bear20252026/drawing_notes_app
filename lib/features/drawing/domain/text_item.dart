@@ -1,4 +1,4 @@
-import 'dart:ui' show Offset;
+import 'value_objects/geometry.dart';
 
 /// 文字对齐方式。
 enum TextAlignType { left, center, right }
@@ -95,7 +95,7 @@ class PageTextItem {
   /// （旧文档），非 null 时按片段渲染 [TextRun] 各自的样式。
   List<TextRun>? runs;
 
-  Offset get position => Offset(x, y);
+  FOffset get position => FOffset(x, y);
 
   Map<String, dynamic> toJson() => {
     'id': id,

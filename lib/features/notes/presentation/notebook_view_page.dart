@@ -12,8 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../../core/rendering/ink_layer_painter.dart';
-import '../../../core/rendering/shape_renderer.dart';
+import '../../../core/abstractions/rendering/ink_painter.dart';
+import '../../../core/abstractions/rendering/shape_renderer.dart';
 import '../../drawing/domain/document.dart';
 import '../domain/notebook.dart';
 import '../infrastructure/notebook_storage.dart';
