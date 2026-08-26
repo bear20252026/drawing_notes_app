@@ -4,7 +4,7 @@ import 'package:drawing_notes_app/features/drawing/domain/document_image_item.da
 import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
 import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
-import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
+import 'package:drawing_notes_app/features/drawing/application/doc_command_context.dart';
 
 /// 撤销/重做历史条目（R5：从 drawing_controller 拆出的命令模式文件）。
 ///
@@ -38,41 +38,41 @@ abstract class DocCommand {
 /// 行为与原先的 `_restoreLayers` 完全一致，保证既有功能/测试不变，
 /// 同时让撤销栈统一为 [DocCommand] 命令。
 class SnapshotCommand extends DocCommand {
-  SnapshotCommand(this._controller, this._before, this._after);
+  SnapshotCommand(this._context, this._before, this._after);
 
-  final DrawingController _controller;
+  final DocCommandContext _context;
   final List<Layer> _before;
   final List<Layer> _after;
 
   @override
-  void undo() => _controller.restoreLayersSnapshot(_before);
+  void undo() => _context.restoreLayersSnapshot(_before);
 
   @override
-  void redo() => _controller.restoreLayersSnapshot(_after);
+  void redo() => _context.restoreLayersSnapshot(_after);
 }
 
 /// 新增笔画命令（最高频操作）：撤销 = 移除该笔画，重做 = 重新加入。
 ///
 /// 相比整层快照，只需保存笔画的图层索引与对象引用，内存开销极小。
 class AddStrokeCommand extends DocCommand {
-  AddStrokeCommand(this._controller, this._layerIndex, this._stroke);
+  AddStrokeCommand(this._context, this._layerIndex, this._stroke);
 
-  final DrawingController _controller;
+  final DocCommandContext _context;
   final int _layerIndex;
   final Stroke _stroke;
 
   @override
   void undo() {
-    _controller.document.layers[_layerIndex].strokes.remove(_stroke);
-    _controller.touchDocument();
-    _controller.afterStrokeUndoRedo(_layerIndex);
+    _context.document.layers[_layerIndex].strokes.remove(_stroke);
+    _context.touchDocument();
+    _context.afterStrokeUndoRedo(_layerIndex);
   }
 
   @override
   void redo() {
-    _controller.document.layers[_layerIndex].strokes.add(_stroke);
-    _controller.touchDocument();
-    _controller.afterStrokeUndoRedo(_layerIndex);
+    _context.document.layers[_layerIndex].strokes.add(_stroke);
+    _context.touchDocument();
+    _context.afterStrokeUndoRedo(_layerIndex);
   }
 }
 
@@ -84,12 +84,12 @@ class AddStrokeCommand extends DocCommand {
 /// 形状擦除（问题3：标准直线/图案可被橡皮擦除）同样按引用记录。
 class EraseStrokesCommand extends DocCommand {
   EraseStrokesCommand(
-    this._controller,
+    this._context,
     this._removed, {
     this.removedShapes = const [],
   });
 
-  final DrawingController _controller;
+  final DocCommandContext _context;
 
   /// 被删笔画按删除顺序记录：(图层索引, 删除前原位置, 笔画对象)。
   final List<({int layerIndex, int index, Stroke stroke})> _removed;
@@ -102,45 +102,46 @@ class EraseStrokesCommand extends DocCommand {
     // 按 (图层, 原位置) 升序插回原处；同一图层先插小索引不会影响大索引位置。
     final byLayer = <int, List<({int index, Stroke stroke})>>{};
     for (final entry in _removed) {
-      byLayer.putIfAbsent(entry.layerIndex, () => []).add(
-        (index: entry.index, stroke: entry.stroke),
-      );
+      byLayer.putIfAbsent(entry.layerIndex, () => []).add((
+        index: entry.index,
+        stroke: entry.stroke,
+      ));
     }
     for (final layerIndex in byLayer.keys) {
       final entries = byLayer[layerIndex]!
         ..sort((a, b) => a.index.compareTo(b.index));
-      final strokes = _controller.document.layers[layerIndex].strokes;
+      final strokes = _context.document.layers[layerIndex].strokes;
       for (final entry in entries) {
         strokes.insert(entry.index, entry.stroke);
       }
-      _controller.afterStrokeUndoRedo(layerIndex);
+      _context.afterStrokeUndoRedo(layerIndex);
     }
     // 恢复被擦除的标准形状（保持原顺序追加）。
     if (removedShapes.isNotEmpty) {
-      _controller.document.shapes.addAll(
+      _context.document.shapes.addAll(
         removedShapes.map((shape) => shape.copy()),
       );
     }
-    _controller.touchDocument();
+    _context.touchDocument();
   }
 
   @override
   void redo() {
     // 按引用移除即可，无需关心原位置（与擦除时行为一致）。
-    final layers = _controller.document.layers;
+    final layers = _context.document.layers;
     final changedLayers = <int>{};
     for (final entry in _removed) {
       layers[entry.layerIndex].strokes.remove(entry.stroke);
       changedLayers.add(entry.layerIndex);
     }
     for (final layerIndex in changedLayers) {
-      _controller.afterStrokeUndoRedo(layerIndex);
+      _context.afterStrokeUndoRedo(layerIndex);
     }
     // 再次移除被擦除的标准形状。
     for (final shape in removedShapes) {
-      _controller.document.shapes.remove(shape);
+      _context.document.shapes.remove(shape);
     }
-    _controller.touchDocument();
+    _context.touchDocument();
   }
 }
 
@@ -150,22 +151,22 @@ class EraseStrokesCommand extends DocCommand {
 /// 保证识别是可逆的编辑增强，而非不可恢复的数据丢失。
 class ReplaceStrokeWithShapeCommand extends DocCommand {
   ReplaceStrokeWithShapeCommand(
-    this._controller,
+    this._context,
     this._layerIndex,
     this._stroke,
     this._shape,
   );
 
-  final DrawingController _controller;
+  final DocCommandContext _context;
   final int _layerIndex;
   final Stroke _stroke;
   final PageShapeItem _shape;
 
   @override
-  void undo() => _controller.undoRecognizedShape(_layerIndex, _stroke, _shape);
+  void undo() => _context.undoRecognizedShape(_layerIndex, _stroke, _shape);
 
   @override
-  void redo() => _controller.redoRecognizedShape(_layerIndex, _stroke, _shape);
+  void redo() => _context.redoRecognizedShape(_layerIndex, _stroke, _shape);
 }
 
 /// 独立绘图文档图片的一次原子状态变更。
@@ -173,24 +174,27 @@ class ReplaceStrokeWithShapeCommand extends DocCommand {
 /// [before]/[after] 为独立副本；其中一个为 null 表示图片删除或恢复，因而
 /// 导入后编辑、删除以及撤销重做都不会依赖可变 UI 引用。
 class DocumentImageStateCommand extends DocCommand {
-  DocumentImageStateCommand(
-    this._controller, {
+  DocumentImageStateCommand({
+    required this.restoreImageState,
+
     required this.imageId,
     required DocumentImageItem? before,
     required DocumentImageItem? after,
   }) : _before = before?.copy(),
        _after = after?.copy();
 
-  final DrawingController _controller;
+  final void Function(String imageId, DocumentImageItem? snapshot)
+  restoreImageState;
+
   final String imageId;
   final DocumentImageItem? _before;
   final DocumentImageItem? _after;
 
   @override
-  void undo() => _controller.restoreDocumentImageState(imageId, _before);
+  void undo() => restoreImageState(imageId, _before);
 
   @override
-  void redo() => _controller.restoreDocumentImageState(imageId, _after);
+  void redo() => restoreImageState(imageId, _after);
 }
 
 /// 独立绘图文档中形状及其关系的一次原子变更。
@@ -199,22 +203,22 @@ class DocumentImageStateCommand extends DocCommand {
 /// 受影响箭头、锁定状态和关系降级严格纳入同一历史边界，避免撤销后出现
 /// “节点回去了但箭头仍在新位置”的不一致状态。
 class DocumentShapesSnapshotCommand extends DocCommand {
-  DocumentShapesSnapshotCommand(
-    this._controller, {
+  DocumentShapesSnapshotCommand({
+    required this.restoreShapesSnapshot,
     required List<PageShapeItem> before,
     required List<PageShapeItem> after,
   }) : _before = before.map((shape) => shape.copy()).toList(growable: false),
        _after = after.map((shape) => shape.copy()).toList(growable: false);
 
-  final DrawingController _controller;
+  final void Function(List<PageShapeItem> snapshot) restoreShapesSnapshot;
   final List<PageShapeItem> _before;
   final List<PageShapeItem> _after;
 
   @override
-  void undo() => _controller.restoreDocumentShapesSnapshot(_before);
+  void undo() => restoreShapesSnapshot(_before);
 
   @override
-  void redo() => _controller.restoreDocumentShapesSnapshot(_after);
+  void redo() => restoreShapesSnapshot(_after);
 }
 
 /// 独立绘图文档混合对象的一次完整快照。
@@ -248,8 +252,9 @@ class DocumentObjectsSnapshot {
 
 /// 混合对象变换命令：笔画、形状（含绑定箭头）与图片在同一历史边界恢复。
 class DocumentObjectsSnapshotCommand extends DocCommand {
-  DocumentObjectsSnapshotCommand(
-    this._controller, {
+  DocumentObjectsSnapshotCommand({
+    required this.restoreObjectsSnapshot,
+
     required DocumentObjectsSnapshot before,
     required DocumentObjectsSnapshot after,
   }) : _before = DocumentObjectsSnapshot(
@@ -263,13 +268,13 @@ class DocumentObjectsSnapshotCommand extends DocCommand {
          images: after.images,
        );
 
-  final DrawingController _controller;
+  final void Function(DocumentObjectsSnapshot snapshot) restoreObjectsSnapshot;
   final DocumentObjectsSnapshot _before;
   final DocumentObjectsSnapshot _after;
 
   @override
-  void undo() => _controller.restoreDocumentObjectsSnapshot(_before);
+  void undo() => restoreObjectsSnapshot(_before);
 
   @override
-  void redo() => _controller.restoreDocumentObjectsSnapshot(_after);
+  void redo() => restoreObjectsSnapshot(_after);
 }

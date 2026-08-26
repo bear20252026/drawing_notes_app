@@ -17,9 +17,7 @@ extension DrawingControllerObjectOps on DrawingController {
     const batchSize = 4;
     for (var i = 0; i < pending.length; i += batchSize) {
       final batch = pending.skip(i).take(batchSize);
-      await Future.wait([
-        for (final item in batch) _loadDocumentImage(item),
-      ]);
+      await Future.wait([for (final item in batch) _loadDocumentImage(item)]);
     }
   }
 
@@ -48,7 +46,6 @@ extension DrawingControllerObjectOps on DrawingController {
       _loadingDocumentImageIds.remove(item.id);
     }
   }
-
 
   Set<String> get selectedDocumentShapeIds =>
       Set<String>.unmodifiable(_selectedDocumentShapeIds);
@@ -95,7 +92,6 @@ extension DrawingControllerObjectOps on DrawingController {
     _selectedDocumentImageIds.clear();
     _applyNotify();
   }
-
 
   void _ensureDocumentImageTransformBefore() {
     _documentImageTransformBefore ??= selectedDocumentImage?.copy();
@@ -149,7 +145,7 @@ extension DrawingControllerObjectOps on DrawingController {
     }
     _pushCommand(
       DocumentImageStateCommand(
-        this,
+        restoreImageState: restoreDocumentImageState,
         imageId: image.id,
         before: before,
         after: image,
@@ -174,7 +170,7 @@ extension DrawingControllerObjectOps on DrawingController {
     _document.touch();
     _pushCommand(
       DocumentImageStateCommand(
-        this,
+        restoreImageState: restoreDocumentImageState,
         imageId: image.id,
         before: before,
         after: image,
@@ -194,7 +190,7 @@ extension DrawingControllerObjectOps on DrawingController {
     _document.touch();
     _pushCommand(
       DocumentImageStateCommand(
-        this,
+        restoreImageState: restoreDocumentImageState,
         imageId: image.id,
         before: before,
         after: null,
@@ -275,7 +271,6 @@ extension DrawingControllerObjectOps on DrawingController {
     _applyNotify();
   }
 
-
   List<PageShapeItem> _documentShapeSnapshot() =>
       _document.shapes.map((shape) => shape.copy()).toList(growable: false);
 
@@ -331,7 +326,7 @@ extension DrawingControllerObjectOps on DrawingController {
     }
     _pushCommand(
       DocumentShapesSnapshotCommand(
-        this,
+        restoreShapesSnapshot: restoreDocumentShapesSnapshot,
         before: before,
         after: _document.shapes,
       ),
@@ -354,7 +349,7 @@ extension DrawingControllerObjectOps on DrawingController {
     _document.touch();
     _pushCommand(
       DocumentShapesSnapshotCommand(
-        this,
+        restoreShapesSnapshot: restoreDocumentShapesSnapshot,
         before: before,
         after: _document.shapes,
       ),
@@ -397,7 +392,7 @@ extension DrawingControllerObjectOps on DrawingController {
     _document.touch();
     _pushCommand(
       DocumentShapesSnapshotCommand(
-        this,
+        restoreShapesSnapshot: restoreDocumentShapesSnapshot,
         before: before,
         after: _document.shapes,
       ),
@@ -564,7 +559,6 @@ extension DrawingControllerObjectOps on DrawingController {
     return Rect.fromLTRB(minX, minY, maxX, maxY);
   }
 
-
   DocumentObjectsSnapshot _documentObjectsSnapshot() => DocumentObjectsSnapshot(
     layers: _snapshotLayers(),
     shapes: _documentShapeSnapshot(),
@@ -703,7 +697,11 @@ extension DrawingControllerObjectOps on DrawingController {
     final after = _documentObjectsSnapshot();
     if (_sameDocumentObjectsSnapshot(before, after)) return;
     _pushCommand(
-      DocumentObjectsSnapshotCommand(this, before: before, after: after),
+      DocumentObjectsSnapshotCommand(
+        restoreObjectsSnapshot: restoreDocumentObjectsSnapshot,
+        before: before,
+        after: after,
+      ),
     );
     _applyNotify();
   }
@@ -738,7 +736,7 @@ extension DrawingControllerObjectOps on DrawingController {
     _document.touch();
     _pushCommand(
       DocumentObjectsSnapshotCommand(
-        this,
+        restoreObjectsSnapshot: restoreDocumentObjectsSnapshot,
         before: before,
         after: _documentObjectsSnapshot(),
       ),
@@ -812,7 +810,7 @@ extension DrawingControllerObjectOps on DrawingController {
     _invalidateLayer(currentLayer.id);
     _pushCommand(
       DocumentObjectsSnapshotCommand(
-        this,
+        restoreObjectsSnapshot: restoreDocumentObjectsSnapshot,
         before: before,
         after: _documentObjectsSnapshot(),
       ),
@@ -908,7 +906,12 @@ extension DrawingControllerObjectOps on DrawingController {
       final a = polygon[edge];
       final b = polygon[(edge + 1) % polygon.length];
       for (var side = 0; side < corners.length; side++) {
-        if (DrawingController._segmentsIntersect(a, b, corners[side], corners[(side + 1) % 4])) {
+        if (DrawingController._segmentsIntersect(
+          a,
+          b,
+          corners[side],
+          corners[(side + 1) % 4],
+        )) {
           return true;
         }
       }
