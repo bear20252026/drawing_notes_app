@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 
 import '../../../core/theme/app_design.dart';
@@ -8,6 +8,7 @@ import 'dart:math' as math;
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -36,10 +37,10 @@ part 'notebook_view_page_widgets.dart';
 part 'notebook_view_page_imports.dart';
 part 'notebook_view_page_manage.dart';
 
-/// 笔记本内页面管理页（Phase 5）�?///
-/// 能力�?/// - 查看笔记本所有页面（缩略�?+ 标题�?/// - 新建页面（默认空白，复用画布能力�?/// - 删除页面（二次确认）
-/// - 点击页面进入编辑器（手写 + 文字 + 图片混排�?///
-/// [onChanged] 用于通知首页刷新列表�?class NotebookViewPage extends StatefulWidget {
+/// 笔记本内页面管理页（Phase 5）�?///
+/// 能力�?/// - 查看笔记本所有页面（缩略�?+ 标题�?/// - 新建页面（默认空白，复用画布能力�?/// - 删除页面（二次确认）
+/// - 点击页面进入编辑器（手写 + 文字 + 图片混排�?///
+/// [onChanged] 用于通知首页刷新列表�?class NotebookViewPage extends StatefulWidget {
   const NotebookViewPage({
     super.key,
     required this.notebook,
@@ -55,13 +56,13 @@ part 'notebook_view_page_manage.dart';
   final VoidCallback? onChanged;
 
   /// 搜索高亮跳转：携带命中页 ID 时，进入笔记本后自动打开该页
-  /// （全文搜索「高亮跳转」链路——首�?_navigateToTarget 传入）�?  final String? initialPageId;
+  /// （全文搜索「高亮跳转」链路——首�?_navigateToTarget 传入）�?  final String? initialPageId;
 
   /// 会话内密码（仅内存持有，不落盘）：解密密码模式笔记本后传入，
-  /// 使保存时可重加密最新内容（修复"编辑后无法保�?的致命问题）�?  final String? sessionPassword;
+  /// 使保存时可重加密最新内容（修复"编辑后无法保�?的致命问题）�?  final String? sessionPassword;
 
-  /// 会话�?U盘主密钥（仅内存持有，不落盘）：解锁 keyfile 模式笔记本后
-  /// 传入，使保存时可重加密最新内容（零知识架构）�?  final List<int>? sessionMasterKey;
+  /// 会话�?U盘主密钥（仅内存持有，不落盘）：解锁 keyfile 模式笔记本后
+  /// 传入，使保存时可重加密最新内容（零知识架构）�?  final List<int>? sessionMasterKey;
 
   @override
   State<NotebookViewPage> createState() => _NotebookViewPageState();
@@ -71,37 +72,37 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   NotebookStorage? get storage => widget.storage;
   late Notebook _notebook;
 
-  /// 状态刷新薄包装（供 extension 使用）：转发受保护的 [setState]�?  void _applyState(VoidCallback fn) => setState(fn);
+  /// 状态刷新薄包装（供 extension 使用）：转发受保护的 [setState]�?  void _applyState(VoidCallback fn) => setState(fn);
   bool _saving = false;
   bool _saveQueued = false;
   Completer<void>? _saveCompletion;
 
-  /// 标签筛选关键词（A2：输入标签后只显示带该标签的页面）�?  String _tagFilter = '';
+  /// 标签筛选关键词（A2：输入标签后只显示带该标签的页面）�?  String _tagFilter = '';
 
-  /// 会话内密码（设置密码时记录；保存加密笔记本时用于重加密最新内容）�?  String? _sessionPassword;
+  /// 会话内密码（设置密码时记录；保存加密笔记本时用于重加密最新内容）�?  String? _sessionPassword;
 
-  /// 会话�?U盘主密钥（keyfile 模式解锁后记录，仅内存；保存时重加密）�?  List<int>? _sessionMasterKey;
+  /// 会话�?U盘主密钥（keyfile 模式解锁后记录，仅内存；保存时重加密）�?  List<int>? _sessionMasterKey;
 
-  /// H-05 部分落地（专家审�?2026-08-15）：生命周期监听——后�?切出�?  /// 自动保存草稿（防丢失）。完整会话锁定（清密�?+ 重解锁状态机）评�?  /// 为后续专项（涉及解锁流程重构，拆分须简化）�?  AppLifecycleListener? _lifecycleListener;
+  /// H-05 部分落地（专家审�?2026-08-15）：生命周期监听——后�?切出�?  /// 自动保存草稿（防丢失）。完整会话锁定（清密�?+ 重解锁状态机）评�?  /// 为后续专项（涉及解锁流程重构，拆分须简化）�?  AppLifecycleListener? _lifecycleListener;
 
-  /// 当前生效的会话密码（优先用本页设置过的，其次用打开时传入的）�?  String? get _effectivePassword => _sessionPassword ?? widget.sessionPassword;
+  /// 当前生效的会话密码（优先用本页设置过的，其次用打开时传入的）�?  String? get _effectivePassword => _sessionPassword ?? widget.sessionPassword;
 
-  /// 当前生效�?U盘主密钥（优先用本页设置/解锁的，其次用打开时传入的）�?  List<int>? get _effectiveMasterKey =>
+  /// 当前生效�?U盘主密钥（优先用本页设置/解锁的，其次用打开时传入的）�?  List<int>? get _effectiveMasterKey =>
       _sessionMasterKey ?? widget.sessionMasterKey;
 
-  /// 会话守卫（专家审计最优先③—�?026-08-16）：失去焦点立即锁定（保�?+
+  /// 会话守卫（专家审计最优先③—�?026-08-16）：失去焦点立即锁定（保�?+
   /// 清除媒体密钥——private_notes_light 模式）；resume 已锁定则提示重新
-  /// 解锁（文件选择器运行中豁免——防导入/导出误锁）�?  late final SessionGuard _sessionGuard = SessionGuard(
+  /// 解锁（文件选择器运行中豁免——防导入/导出误锁）�?  late final SessionGuard _sessionGuard = SessionGuard(
     onLock: () {
       _save();
       MediaCryptoService.instance.clearSessionKey();
       if (mounted) {
-        AppSnackbar.showWarning(context, '会话已锁定，请重新解�?);
+        AppSnackbar.showWarning(context, '会话已锁定，请重新解�?);
       }
     },
     onReauthenticateRequired: () {
       if (mounted) {
-        AppSnackbar.showWarning(context, '会话已过期，请重新解�?);
+        AppSnackbar.showWarning(context, '会话已过期，请重新解�?);
       }
     },
   );
@@ -110,10 +111,10 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   void initState() {
     super.initState();
     _notebook = widget.notebook;
-    // H-05 部分落地：后�?切出自动保存草稿（防数据丢失；_save �?    // _saving 保护不会并发堆叠；onInactive 覆盖切后�?失去焦点场景）�?    _lifecycleListener = AppLifecycleListener(
+    // H-05 部分落地：后�?切出自动保存草稿（防数据丢失；_save �?    // _saving 保护不会并发堆叠；onInactive 覆盖切后�?失去焦点场景）�?    _lifecycleListener = AppLifecycleListener(
       onInactive: _save,
     );
-    // 搜索高亮跳转：携带命中页 ID 时，首帧后直接打开该页�?    final jumpToPageId = widget.initialPageId;
+    // 搜索高亮跳转：携带命中页 ID 时，首帧后直接打开该页�?    final jumpToPageId = widget.initialPageId;
     if (jumpToPageId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -129,8 +130,8 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
     }
   }
 
-  /// 会话密钥内存清理（红蓝攻�?D-2 修复 2026-08-15）：
-  /// Widget 销毁时显式清零堆内存中的主密钥/密码——Dart GC 不保证立�?  /// 回收，fillRange 主动擦除可防冷启�?内存转储（frida/proc mem）提取�?  @override
+  /// 会话密钥内存清理（红蓝攻�?D-2 修复 2026-08-15）：
+  /// Widget 销毁时显式清零堆内存中的主密钥/密码——Dart GC 不保证立�?  /// 回收，fillRange 主动擦除可防冷启�?内存转储（frida/proc mem）提取�?  @override
   void dispose() {
     final key = _sessionMasterKey;
     if (key != null) {
@@ -139,14 +140,14 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
     }
     _sessionPassword = null;
     _sessionGuard.dispose();
-    // H-03 密钥清理时机：页面退出清除媒体加密会话密钥（D-2 内存清理）�?    MediaCryptoService.instance.clearSessionKey();
+    // H-03 密钥清理时机：页面退出清除媒体加密会话密钥（D-2 内存清理）�?    MediaCryptoService.instance.clearSessionKey();
     _lifecycleListener?.dispose();
     super.dispose();
   }
 
-  /// 保存笔记本到本地（每次变更后调用）�?  ///
-  /// 版本历史（C1，对�?nb"每次修改自动 commit"）：保存前为每个页面
-  /// 记录当前内容快照（最�?[NotebookPage.maxHistoryVersions] 版）�?  /// 供回溯恢复�?  Future<void> _save() async {
+  /// 保存笔记本到本地（每次变更后调用）�?  ///
+  /// 版本历史（C1，对�?nb"每次修改自动 commit"）：保存前为每个页面
+  /// 记录当前内容快照（最�?[NotebookPage.maxHistoryVersions] 版）�?  /// 供回溯恢复�?  Future<void> _save() async {
     if (_saving) {
       _saveQueued = true;
       return _saveCompletion?.future ?? Future<void>.value();
@@ -158,12 +159,12 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
       do {
         _saveQueued = false;
         _notebook.touch();
-        // 自动记录版本快照（C1 + C2 diff 摘要）�?        for (final page in _notebook.pages) {
-          if (page.cloneOf != null) continue; // 克隆页不存本地快照（内容在源�?          // 可用性修复：内容未变化时不记录快照（否则每次保存——包�?          // 新建空页面、打开未修改就返回——都会堆�?内容微调"空白快照�?          // 污染版本历史）。比较笔画数 + 文字�?+ 文本内容�?          if (_hasContentChanged(page)) {
-            // C2：相对上一版计算变�?diff 摘要（笔画数/文字数）�?            final prev = page.history.isNotEmpty ? page.history.first : null;
+        // 自动记录版本快照（C1 + C2 diff 摘要）�?        for (final page in _notebook.pages) {
+          if (page.cloneOf != null) continue; // 克隆页不存本地快照（内容在源�?          // 可用性修复：内容未变化时不记录快照（否则每次保存——包�?          // 新建空页面、打开未修改就返回——都会堆�?内容微调"空白快照�?          // 污染版本历史）。比较笔画数 + 文字�?+ 文本内容�?          if (_hasContentChanged(page)) {
+            // C2：相对上一版计算变�?diff 摘要（笔画数/文字数）�?            final prev = page.history.isNotEmpty ? page.history.first : null;
             final summary = _diffSummary(page, prev);
-            // 版本快照必须**深拷�?*（评审发�?P2）：page.document/textItems �?            // 编辑器实时修改的同一对象，若存引用则所有版本都指向当前状态，
-            // 无法回溯、diff 恒为 0、文件里重复序列化当前内容�?            page.history.insert(
+            // 版本快照必须**深拷�?*（评审发�?P2）：page.document/textItems �?            // 编辑器实时修改的同一对象，若存引用则所有版本都指向当前状态，
+            // 无法回溯、diff 恒为 0、文件里重复序列化当前内容�?            page.history.insert(
               0,
               PageVersion(
                 time: DateTime.now(),
@@ -194,8 +195,8 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
             }
           }
         }
-        // 加密笔记本：用会话密钥重加密最新内容后保存（评审发�?P1 修复 +
-        // 可用性修复：编辑后保存不再抛 StateError，内容不会丢失）�?        // 未加密：普通原子写入�?        if (_notebook.encrypted &&
+        // 加密笔记本：用会话密钥重加密最新内容后保存（评审发�?P1 修复 +
+        // 可用性修复：编辑后保存不再抛 StateError，内容不会丢失）�?        // 未加密：普通原子写入�?        if (_notebook.encrypted &&
             _notebook.encryptionMode == EncryptionMode.keyfile) {
           final mk = _effectiveMasterKey;
           if (mk != null) {
@@ -215,9 +216,9 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
       } while (_saveQueued);
       completion.complete();
     } catch (e) {
-      // M-04 修复（专家审�?2026-08-15）：异常完成 Completer——防调用�?      // await _saveCompletion.future 永久等待（保存失败挂起）�?      completion.completeError(e);
+      // M-04 修复（专家审�?2026-08-15）：异常完成 Completer——防调用�?      // await _saveCompletion.future 永久等待（保存失败挂起）�?      completion.completeError(e);
       if (mounted) {
-        AppSnackbar.showError(context, '保存失败�?{e.runtimeType}');
+        AppSnackbar.showError(context, '保存失败�?{e.runtimeType}');
       }
     } finally {
       _saving = false;
@@ -225,9 +226,9 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
     }
   }
 
-  /// 页面内容是否相比上一版本有变化�?  ///
+  /// 页面内容是否相比上一版本有变化�?  ///
   /// 版本回溯必须覆盖所有可编辑对象，不能只按笔画数与文字数量判断；
-  /// 否则图片、形状、图表或连接线变更会被静默漏存，恢复会产生混合状态�?  bool _hasContentChanged(NotebookPage page) {
+  /// 否则图片、形状、图表或连接线变更会被静默漏存，恢复会产生混合状态�?  bool _hasContentChanged(NotebookPage page) {
     final prev = page.history.isNotEmpty ? page.history.first : null;
     if (prev == null) return _pageHasContent(page);
     return _contentSignature(
@@ -272,7 +273,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
     'charts': charts.map((item) => item.toJson()).toList(),
   });
 
-  /// 计算页面相对上一版的变更 diff 摘要（C2，借鉴 GenOffice 快照 diff 思路）�?  String _diffSummary(NotebookPage page, PageVersion? prev) {
+  /// 计算页面相对上一版的变更 diff 摘要（C2，借鉴 GenOffice 快照 diff 思路）�?  String _diffSummary(NotebookPage page, PageVersion? prev) {
     if (prev == null) return '首次保存';
     final strokesNow = page.document.layers.fold<int>(
       0,
@@ -291,7 +292,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
         '${page.textItems.length - prev.textItems.length}',
       );
     }
-    // 文字内容是否被修改（数量相同但文本有变化）�?    var textChanged = false;
+    // 文字内容是否被修改（数量相同但文本有变化）�?    var textChanged = false;
     if (page.textItems.length == prev.textItems.length) {
       for (var i = 0; i < page.textItems.length; i++) {
         if (page.textItems[i].text != prev.textItems[i].text) {
@@ -314,9 +315,9 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
     return parts.isEmpty ? '内容微调' : parts.join(' · ');
   }
 
-  /// 导入 Markdown/文本文件，按段落生成文字块（C4，借鉴 nb 导入）�?
+  /// 导入 Markdown/文本文件，按段落生成文字块（C4，借鉴 nb 导入）�?
   /// 新建页面并进入编辑器。模板在创建时就决定纸张与初始结构，
-  /// 避免用户先得到空白页、再手动寻找多项设置�?
+  /// 避免用户先得到空白页、再手动寻找多项设置�?
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -336,7 +337,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
             ),
           ),
           PopupMenuButton<_NotebookMenuItem>(
-            tooltip: AppLocalizations.of(context)?.noteActions ?? '笔记本操�?,
+            tooltip: AppLocalizations.of(context)?.noteActions ?? '笔记本操�?,
             icon: const Icon(Icons.more_horiz_rounded),
             onSelected: _onNotebookMenuSelected,
             itemBuilder: (_) => [
@@ -358,7 +359,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                   children: [
                     const Icon(Icons.upload_file_rounded, size: 20, color: Color(0xFF1D1D1F)),
                     const SizedBox(width: 10),
-                    Text(AppLocalizations.of(context)?.noteImportMarkdown ?? '导入 Markdown 或文�?),
+                    Text(AppLocalizations.of(context)?.noteImportMarkdown ?? '导入 Markdown 或文�?),
                   ],
                 ),
               ),
@@ -409,7 +410,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
       body: AmbientBackground(
         child: Column(
           children: [
-            // 标签筛选（A2：按标签过滤页面�?            Padding(
+            // 标签筛选（A2：按标签过滤页面�?            Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppDesign.pagePadding,
                 8,
@@ -423,7 +424,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                 child: TextField(
                   onChanged: (v) => setState(() => _tagFilter = v.trim()),
                   decoration: InputDecoration(
-                    hintText: AppLocalizations.of(context)?.noteFilterHint ?? '筛选标签或关键�?,
+                    hintText: AppLocalizations.of(context)?.noteFilterHint ?? '筛选标签或关键�?,
                     prefixIcon: const Icon(Icons.search_rounded, size: 20),
                   ),
                 ),
@@ -437,7 +438,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   }
 
   Widget _buildPages() {
-    // 标签筛选后的页面列表（A2）�?    final pages =
+    // 标签筛选后的页面列表（A2）�?    final pages =
         (_tagFilter.isEmpty
                 ? _notebook.pages
                 : _notebook.pages

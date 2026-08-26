@@ -4,8 +4,8 @@
 // 此接口继承 core/storage 的共享 NotebookRepository，
 // 添加笔记模块特有的页面级操作
 
-import '../../../core/storage/repository.dart';
-import '../entities/notebook.dart';
+import '../../../../core/storage/repository.dart';
+import '../notebook.dart';
 
 /// 笔记仓储接口（页面级操作）—— notes 模块特有
 ///

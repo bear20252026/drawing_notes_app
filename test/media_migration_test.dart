@@ -1,10 +1,10 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/services/notebook_storage.dart';
 
 /// H-03 旧明文媒体迁移（专家审计 2026-08-15）：解锁后批量重加密——
 /// payload-plugins 批量加密器模式（幂等——已 DAN 密文跳过）。

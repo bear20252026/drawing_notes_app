@@ -1,10 +1,10 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:drawing_notes_app/features/drawing/application/search_service.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/notebook_accessor_impl.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/services/notebook_accessor_impl.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/services/notebook_storage.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
