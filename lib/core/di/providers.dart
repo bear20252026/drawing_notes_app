@@ -97,3 +97,28 @@ class AppThemeNotifier extends Notifier<ThemeMode> {
     setMode(next);
   }
 }
+
+// ─────────────────── 认证模块 Providers ───────────────────
+
+/// 认证仓库 Provider（单例）
+final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  return AuthRepositoryImpl();
+});
+
+/// 生物识别服务 Provider
+final biometricServiceProvider = Provider<BiometricService>((ref) {
+  // TODO: 集成 local_auth 后替换为 LocalAuthBiometricService
+  return const UnsupportedBiometricService();
+});
+
+/// 认证服务 Provider
+final authServiceProvider = Provider<AuthService>((ref) {
+  final repository = ref.watch(authRepositoryProvider);
+  return AuthService(repository);
+});
+
+/// 会话管理器 Provider
+final sessionManagerProvider = Provider<SessionManager>((ref) {
+  final repository = ref.watch(authRepositoryProvider);
+  return SessionManager(repository);
+});
