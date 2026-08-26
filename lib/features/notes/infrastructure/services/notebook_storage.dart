@@ -541,18 +541,19 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
   ///   （防止静默清空磁盘内容），由调用方走 [encryptAndSave] /
   ///   [encryptAndSaveWithKey] / [saveWithKey]
   @override
-  Future<String> save(Notebook notebook) async {
-    if (notebook.encrypted) {
-      final payload = notebook.encryptedPayload;
-      if (payload != null && notebook.pages.isEmpty) {
+  Future<String> save(dynamic notebook) async {
+    final nb = notebook as Notebook;
+    if (nb.encrypted) {
+      final payload = nb.encryptedPayload;
+      if (payload != null && nb.pages.isEmpty) {
         // 解密后未修改：保留原密文，避免覆盖为空
-        return _writeNotebook(notebook);
+        return _writeNotebook(nb);
       }
       throw StateError(
         '加密笔记本需要密钥才能保存，请使用 encryptAndSave / encryptAndSaveWithKey / saveWithKey',
       );
     }
-    return _writeNotebook(notebook);
+    return _writeNotebook(nb);
   }
 
   /// 生成唯一 ID
