@@ -19,7 +19,7 @@ import 'package:drawing_notes_app/features/drawing/application/color_sampling_se
 import 'package:drawing_notes_app/features/drawing/application/image_transform_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_transaction.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
-import 'package:drawing_notes_app/features/drawing/application/temporary_markers.dart';
+import 'package:drawing_notes_app/features/drawing/application/temporary_ink_session.dart';
 import 'package:drawing_notes_app/core/rendering/ink_layer_painter.dart';
 import 'package:drawing_notes_app/core/rendering/layer_compositor.dart';
 import 'package:drawing_notes_app/core/rendering/stroke_geometry_cache.dart';
@@ -46,6 +46,7 @@ part 'drawing_controller_history.dart';
 
 class DrawingController extends ChangeNotifier implements DocCommandContext {
   DrawingController(this._document) {
+    _temporaryInkSession = TemporaryInkSession(onFrameTick: tickFrame);
     _rebuildCacheMap();
   }
 
@@ -367,45 +368,25 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
   /// 激光工具的起笔时刻；收笔后据此按起笔端逐段消退。
   DateTime? _activeLaserStartedAt;
 
+  /// 临时高亮与激光尾迹的运行时生命周期管理器。
+  late final TemporaryInkSession _temporaryInkSession;
+
   /// 临时荧光笔开关。开启后笔画仅短暂显示，不写入页面数据、历史或导出。
-  bool _temporaryMarkerEnabled = false;
-  bool get temporaryMarkerEnabled => _temporaryMarkerEnabled;
+  bool get temporaryMarkerEnabled =>
+      _temporaryInkSession.temporaryMarkerEnabled;
   set temporaryMarkerEnabled(bool value) {
-    if (_temporaryMarkerEnabled == value) return;
-    _temporaryMarkerEnabled = value;
+    if (_temporaryInkSession.temporaryMarkerEnabled == value) return;
+    _temporaryInkSession.temporaryMarkerEnabled = value;
     notifyListeners();
   }
 
-  final List<TemporaryInk> _temporaryInks = <TemporaryInk>[];
-  final List<TemporaryLaserInk> _temporaryLasers = <TemporaryLaserInk>[];
-  Timer? _temporaryInkTicker;
-
   /// 尚在淡出期的临时高亮笔，供画布在矢量图层之上直接绘制。
-  List<({Stroke stroke, double opacity})> get temporaryMarkerStrokes {
-    final now = DateTime.now();
-    _pruneTemporaryInks(now);
-    return _temporaryInks
-        .map((entry) => (stroke: entry.stroke, opacity: entry.opacityAt(now)))
-        .where((entry) => entry.opacity > 0)
-        .toList(growable: false);
-  }
+  List<({Stroke stroke, double opacity})> get temporaryMarkerStrokes =>
+      _temporaryInkSession.markerStrokes;
 
   /// 激光尾迹的可见片段。首点索引随时间前移，实现从起笔端逐段消退。
   List<({Stroke stroke, int firstPointIndex, double opacity})>
-  get temporaryLaserStrokes {
-    final now = DateTime.now();
-    _pruneTemporaryInks(now);
-    return _temporaryLasers
-        .map(
-          (entry) => (
-            stroke: entry.stroke,
-            firstPointIndex: entry.firstVisiblePointAt(now),
-            opacity: entry.opacityAt(now),
-          ),
-        )
-        .where((entry) => entry.opacity > 0)
-        .toList(growable: false);
-  }
+  get temporaryLaserStrokes => _temporaryInkSession.laserStrokes;
 
   /// 是否正在绘制。
   bool get isDrawing => _activeStroke != null;
@@ -650,14 +631,14 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
       // 孤点（单击未拖动）：仍保留为单个圆点，便于"点一下"产生墨点。
     }
 
-    if (s.type == BrushType.marker && _temporaryMarkerEnabled) {
-      _addTemporaryMarker(s);
+    if (s.type == BrushType.marker && temporaryMarkerEnabled) {
+      _temporaryInkSession.addMarker(s);
       tickFrame();
       return;
     }
 
     if (s.type == BrushType.laser) {
-      _addTemporaryLaser(s, laserStartedAt ?? DateTime.now());
+      _temporaryInkSession.addLaser(s, laserStartedAt ?? DateTime.now());
       tickFrame();
       return;
     }
@@ -701,37 +682,6 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
     final region = StrokeRenderer.strokeBounds(s);
     await _invalidateLayer(currentLayer.id, region: region);
     notifyListeners();
-  }
-
-  void _addTemporaryMarker(Stroke stroke) {
-    _temporaryInks.add(TemporaryInk(stroke, DateTime.now()));
-    _ensureTemporaryInkTicker();
-  }
-
-  void _addTemporaryLaser(Stroke stroke, DateTime startedAt) {
-    _temporaryLasers.add(TemporaryLaserInk(stroke, startedAt));
-    _ensureTemporaryInkTicker();
-  }
-
-  void _ensureTemporaryInkTicker() {
-    _temporaryInkTicker ??= Timer.periodic(const Duration(milliseconds: 16), (
-      _,
-    ) {
-      final now = DateTime.now();
-      _pruneTemporaryInks(now);
-      if (_temporaryInks.isEmpty && _temporaryLasers.isEmpty) {
-        _temporaryInkTicker?.cancel();
-        _temporaryInkTicker = null;
-      }
-      tickFrame();
-    });
-  }
-
-  void _pruneTemporaryInks(DateTime now) {
-    _temporaryInks.removeWhere(
-      (entry) => now.difference(entry.startedAt) >= temporaryMarkerLifetime,
-    );
-    _temporaryLasers.removeWhere((entry) => entry.isExpiredAt(now));
   }
 
   /// 笔画命令撤销/重做后的统一处理：先同步通知（按钮/状态立即刷新），
@@ -948,10 +898,7 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
       cache.dispose();
     }
     _caches.clear();
-    _temporaryInkTicker?.cancel();
-    _temporaryInkTicker = null;
-    _temporaryInks.clear();
-    _temporaryLasers.clear();
+    _temporaryInkSession.dispose();
     for (final image in _documentImages.values) {
       image.dispose();
     }
