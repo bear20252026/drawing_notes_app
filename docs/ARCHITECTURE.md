@@ -101,13 +101,15 @@ flowchart LR
 
 `EditorToolModeState` 仅维护手型、框选与形状工具的展示层互斥状态；`EditorOverlayGroupResolver` 仅根据文字、图片和形状的 `groupId` 计算不可变的跨类型分组结果；`EditorSelectionTransformState` 仅保存选区缩放/旋转滑块值并输出相对变换增量。`EditorPage` 仍在单个状态更新周期内同步这些协作者、`EditorViewModel`、`DrawingController`、框选草稿和对象变换事务，因此新协作者不会成为第二个文档或工具状态源。
 
+`EditorToolbarActionFactory` 是纯展示层动作映射器：`EditorToolbarBrushActions`、`EditorToolbarObjectActions`、`EditorToolbarShapeActions` 和 `EditorToolbarViewportActions` 以命名分组承接页面提供的回调，工厂无副作用地输出既有 `EditorToolbarActions` 契约。`_EditorPageToolbarActions` 保留各回调的真实 `_applyState`、控制器写入、通知、偏好保存和页面方法调用；`_buildContextBar` 只监听控制器、映射显示状态并消费已装配动作。该分层避免把 40 个业务闭包混入 Widget 构建器，同时不增加任何状态源、延迟包装或 I/O 依赖。
+
 notes 领域进一步将 `PageTemplate`、`CloneRef`、`NotebookPageContent`、`PageVersion`、`NotebookPage` 和 `Notebook` 拆分为职责单一的纯 Dart 模型。`NotebookPageContent` 是一页画布、文字、图片、连接线、形状和图表的唯一活动内容根，统一提供 JSON 序列化、内容签名、深拷贝与保持活动对象身份的恢复操作；`NotebookPage` 只协调页面库元数据、历史上限及版本捕获。既有 `document` 和各混排集合访问器继续转发到同一 `content`，故 `NotebookPageEditorSession` 不会获得第二个内容源。`NotebookViewPage` 只负责保存调度、状态刷新、确认对话框和 I/O，而不再逐项复制、比较或恢复六类对象。
 
 `NotebookPageTemplateStrategy` 进一步收口新建页面的默认内容策略：它只根据 `PageTemplate`、调用方注入的时间和文本 ID 委托创建画布与结构化模板文字，并可生成标准或自定义尺寸的空文档。模板文字、坐标、字体和日期格式因此可以在纯 Dart 测试中精确验证；页面创建、文本导入、PDF 导入和克隆占位仅复用策略的文档/内容装配能力，继续各自拥有用户输入、特有载荷、保存、导航和 I/O。策略不依赖 `BuildContext`、存储、系统时钟或平台 API，故不会反向污染领域边界。
 
 图片和形状的 Riverpod 可见选择状态位于 `object_selection_notifiers.dart`，并仍只暴露不可变 id 状态；它们不拥有或修改 `DocumentObjectEditingSession` 的运行时选择，避免出现第二个写入源，同时使对象相关可见状态保持在一个文件预算内。
 
-下一阶段可评估编辑器展示层的工具栏动作装配边界，或将模板策略扩展为受版本控制的用户自定义模板库；后者必须在独立 PR 中设计存储 schema 和迁移路径。跨 feature 契约始终只暴露实际用到的数据和操作。
+下一阶段可评估将重复对象编辑命令迁移为带事务/撤销契约的应用层服务，或将模板策略扩展为受版本控制的用户自定义模板库；两者都必须在独立 PR 中先设计状态、持久化和迁移边界。跨 feature 契约始终只暴露实际用到的数据和操作。
 
 ## 5. 本地验证
 
