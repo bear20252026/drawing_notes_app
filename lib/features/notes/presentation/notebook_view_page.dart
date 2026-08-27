@@ -10,7 +10,6 @@ import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/core/rendering/ink_layer_painter.dart';
 import 'package:drawing_notes_app/core/rendering/shape_renderer.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/notes/application/notebook_page_editor_session.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';

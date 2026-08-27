@@ -103,9 +103,11 @@ flowchart LR
 
 notes 领域进一步将 `PageTemplate`、`CloneRef`、`NotebookPageContent`、`PageVersion`、`NotebookPage` 和 `Notebook` 拆分为职责单一的纯 Dart 模型。`NotebookPageContent` 是一页画布、文字、图片、连接线、形状和图表的唯一活动内容根，统一提供 JSON 序列化、内容签名、深拷贝与保持活动对象身份的恢复操作；`NotebookPage` 只协调页面库元数据、历史上限及版本捕获。既有 `document` 和各混排集合访问器继续转发到同一 `content`，故 `NotebookPageEditorSession` 不会获得第二个内容源。`NotebookViewPage` 只负责保存调度、状态刷新、确认对话框和 I/O，而不再逐项复制、比较或恢复六类对象。
 
+`NotebookPageTemplateStrategy` 进一步收口新建页面的默认内容策略：它只根据 `PageTemplate`、调用方注入的时间和文本 ID 委托创建画布与结构化模板文字，并可生成标准或自定义尺寸的空文档。模板文字、坐标、字体和日期格式因此可以在纯 Dart 测试中精确验证；页面创建、文本导入、PDF 导入和克隆占位仅复用策略的文档/内容装配能力，继续各自拥有用户输入、特有载荷、保存、导航和 I/O。策略不依赖 `BuildContext`、存储、系统时钟或平台 API，故不会反向污染领域边界。
+
 图片和形状的 Riverpod 可见选择状态位于 `object_selection_notifiers.dart`，并仍只暴露不可变 id 状态；它们不拥有或修改 `DocumentObjectEditingSession` 的运行时选择，避免出现第二个写入源，同时使对象相关可见状态保持在一个文件预算内。
 
-下一阶段可评估编辑器展示层的工具栏动作装配边界，或继续将页面模板的初始元素生成迁移为无 UI 的领域策略；跨 feature 契约始终只暴露实际用到的数据和操作。
+下一阶段可评估编辑器展示层的工具栏动作装配边界，或将模板策略扩展为受版本控制的用户自定义模板库；后者必须在独立 PR 中设计存储 schema 和迁移路径。跨 feature 契约始终只暴露实际用到的数据和操作。
 
 ## 5. 本地验证
 
