@@ -3,8 +3,9 @@ import 'dart:ui' show Color;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/features/drawing/application/editor_exporter.dart';
+import 'package:drawing_notes_app/features/drawing/application/paged_export_snapshot.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
+import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 
 void main() {
@@ -18,11 +19,11 @@ void main() {
         type: BrushType.pen,
       ),
     );
-    final page = NotebookPage(
-      id: 'p1',
+    final page = PagedExportSnapshot(
       title: '第 1 页',
-      document: doc,
       textItems: [PageTextItem(id: 't1', x: 0, y: 0, text: '你好')],
+      imageItems: const [],
+      shapes: const [],
     );
 
     final payload = buildExportPayload(doc, page: page);

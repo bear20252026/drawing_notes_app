@@ -15,6 +15,7 @@ import 'package:drawing_notes_app/features/drawing/application/command_registry.
 import 'package:drawing_notes_app/features/drawing/application/di_providers.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/features/drawing/application/editor_input_arbiter.dart';
+import 'package:drawing_notes_app/features/drawing/application/paged_export_snapshot.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode_store.dart';
 import 'package:drawing_notes_app/features/drawing/application/editor_exporter.dart';
@@ -484,7 +485,16 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     _controller = ref.read(drawingControllerProvider(doc));
     _exporter = EditorExporter(
       controller: _controller,
-      pageProvider: () => widget.page,
+      pageProvider: () {
+        final page = widget.page;
+        if (page == null) return null;
+        return PagedExportSnapshot(
+          title: page.title,
+          textItems: page.textItems,
+          imageItems: page.imageItems.map((item) => item.toJson()),
+          shapes: page.shapes.map((shape) => shape.toJson()),
+        );
+      },
       showSnack: _showSnack,
     );
     unawaited(_loadBrushPresets());

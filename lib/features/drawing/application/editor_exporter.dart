@@ -8,9 +8,11 @@ import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import 'package:drawing_notes_app/features/drawing/domain/document.dart' show DrawingDocument;
-import 'package:drawing_notes_app/features/notes/domain/notebook.dart' show NotebookPage;
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart' show BrushType, Stroke;
+import 'package:drawing_notes_app/features/drawing/domain/document.dart'
+    show DrawingDocument;
+import 'package:drawing_notes_app/features/drawing/application/paged_export_snapshot.dart';
+import 'package:drawing_notes_app/features/drawing/domain/stroke.dart'
+    show BrushType, Stroke;
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/core/rtf_exporter.dart';
 import 'package:drawing_notes_app/core/rendering/pdf_hybrid_exporter.dart';
@@ -28,10 +30,10 @@ class EditorExporter {
   });
 
   final DrawingController controller;
-  final NotebookPage? Function() pageProvider;
+  final PagedExportSnapshot? Function() pageProvider;
   final void Function(String message) showSnack;
 
-  NotebookPage? get _page => pageProvider();
+  PagedExportSnapshot? get _page => pageProvider();
 
   /// 复制 PNG 到剪贴板（对齐 Excalidraw 剪贴板复制，平台通道）。
   ///
@@ -143,7 +145,7 @@ class EditorExporter {
 
   /// 导出分页笔记为 A4 PDF：结构化文字以可检索 CJK 字体排版；同时附加
   /// 手写墨迹图层页，避免只导出文字而丢失原始书写内容。
-  Future<void> exportNotebookPdf(NotebookPage page) async {
+  Future<void> exportNotebookPdf(PagedExportSnapshot page) async {
     try {
       final fontData = await rootBundle.load(
         'assets/fonts/DroidSansFallbackFull.ttf',
@@ -216,9 +218,8 @@ class EditorExporter {
         ],
       );
       if (location == null) return;
-      await File(
-        location.path,
-      ).writeAsBytes(await document.save(), flush: true);
+      await File(location.path)
+          .writeAsBytes(await document.save(), flush: true);
       showSnack('已导出分页笔记 PDF：${location.path}');
     } catch (e) {
       showSnack('导出分页笔记 PDF 失败：$e');
@@ -251,11 +252,7 @@ class EditorExporter {
         }
       }
 
-      final svg = buildSvgDocument(
-        width: w,
-        height: h,
-        body: body.toString(),
-      );
+      final svg = buildSvgDocument(width: w, height: h, body: body.toString());
       final location = await getSaveLocation(
         suggestedName: '${doc.title}.svg',
         acceptedTypeGroups: const [
@@ -475,7 +472,7 @@ class EditorExporter {
 /// 独立静态方法便于单元测试断言净化边界。
 Map<String, dynamic> buildExportPayload(
   DrawingDocument doc, {
-  NotebookPage? page,
+  PagedExportSnapshot? page,
 }) => {
   'type': 'drawing-notes',
   'version': 1,
@@ -484,7 +481,6 @@ Map<String, dynamic> buildExportPayload(
   'height': doc.height,
   'layers': doc.layers.map((l) => l.toJson()).toList(),
   if (page != null) 'textItems': page.textItems.map((t) => t.toJson()).toList(),
-  if (page != null)
-    'imageItems': page.imageItems.map((i) => i.toJson()).toList(),
-  if (page != null) 'shapes': page.shapes.map((s) => s.toJson()).toList(),
+  if (page != null) 'imageItems': page.imageItems,
+  if (page != null) 'shapes': page.shapes,
 };

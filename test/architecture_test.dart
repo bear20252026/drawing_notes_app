@@ -47,9 +47,9 @@ void main() {
     });
   });
 
-  test('规则3a：跨笔记搜索仅依赖只读访问契约', () {
+  test('规则3a：绘图应用层仅依赖跨功能只读契约', () {
     shouldNotDependOn(
-      filesMatching('features/drawing/application/search_service.dart'),
+      filesMatching('features/drawing/application/**'),
       filesMatching('features/notes/domain/**'),
       graph,
     );
@@ -59,8 +59,8 @@ void main() {
     // domain 是最内层纯数据（check_boundaries 规则 1：core 允许依赖
     // features domain 实体），实体双向共享合规；真正禁止的是跨 feature
     // 的 infrastructure/presentation 依赖（真横向耦合）。
-    // freeze 基线：剩余 3 处 infra/presentation 横向依赖（editor_page→
-    // notebook_storage/presentation_page、editor_exporter→paged_note_rtf）
+    // freeze 基线：剩余 infrastructure/presentation 横向依赖（editor_page→
+    // notebook_storage/presentation_page）；应用层已通过只读契约脱离 notes。
     // 为接口化推进中的已知历史违规，CI 只拦新增。
     freeze('feature_isolation', () {
       shouldNotDependOn(
