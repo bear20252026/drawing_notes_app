@@ -65,6 +65,8 @@ import 'package:drawing_notes_app/features/drawing/presentation/toolbar_state_ma
 
 part 'editor_page_dialogs.dart';
 part 'editor_page_overlays.dart';
+part 'editor_page_text_overlays.dart';
+part 'editor_page_canvas_surface.dart';
 part 'editor_page_drag_ops.dart';
 part 'editor_page_input.dart';
 part 'editor_page_editing.dart';
