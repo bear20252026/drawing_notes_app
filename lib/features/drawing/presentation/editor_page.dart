@@ -52,6 +52,7 @@ import 'package:drawing_notes_app/features/drawing/presentation/editor_left_tool
 import 'package:drawing_notes_app/features/drawing/presentation/editor_overlay_group_resolver.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_overlay_item_plan.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_selection_transform_state.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_shape_resize_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_tool_mode_state.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_statusbar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar.dart';

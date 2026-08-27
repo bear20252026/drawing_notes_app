@@ -101,6 +101,8 @@ flowchart LR
 
 `EditorOverlayItemPlan` 是混排对象的只读展示计划：它在画布模式中对文字块排序，在笔记页模式中将文字、图片、形状和图表以类型化条目合并并按 `zOrder` 排序。计划不持有 `Widget`、控制器、页面状态或手势回调；`EditorPage` 只消费条目构建对应 overlay，并继续绑定编辑、选择、拖动、裁剪和缩放动作。该边界消除了按层级排序后为每个条目重复遍历多个集合的页面内分派逻辑。
 
+形状缩放的八向手柄由 `ResizeHandles` 只读渲染并以命名 `EditorShapeResizeHandle` 回调输出；`EditorShapeResizeGeometry` 只接收不可变 `EditorShapeBounds`、手柄语义和已换算的画布增量，返回经过 `20..1000` 尺寸钳制的新边界。它不依赖 `BuildContext`、控制器、领域形状实例、存储或回调。`EditorPage` 保留在既有 `_applyState` 中将输出写回 `PageShapeItem`，并保持 `onChanged` 的通知和自动保存时序，故展示几何不会成为第二状态源或绕过命令/持久化边界。
+
 `EditorToolModeState` 仅维护手型、框选与形状工具的展示层互斥状态；`EditorOverlayGroupResolver` 仅根据文字、图片和形状的 `groupId` 计算不可变的跨类型分组结果；`EditorSelectionTransformState` 仅保存选区缩放/旋转滑块值并输出相对变换增量。`EditorPage` 仍在单个状态更新周期内同步这些协作者、`EditorViewModel`、`DrawingController`、框选草稿和对象变换事务，因此新协作者不会成为第二个文档或工具状态源。
 
 `EditorToolbarActionFactory` 是纯展示层动作映射器：`EditorToolbarBrushActions`、`EditorToolbarObjectActions`、`EditorToolbarShapeActions` 和 `EditorToolbarViewportActions` 以命名分组承接页面提供的回调，工厂无副作用地输出既有 `EditorToolbarActions` 契约。`_EditorPageToolbarActions` 保留各回调的真实 `_applyState`、控制器写入、通知、偏好保存和页面方法调用；`_buildContextBar` 只监听控制器、映射显示状态并消费已装配动作。该分层避免把 40 个业务闭包混入 Widget 构建器，同时不增加任何状态源、延迟包装或 I/O 依赖。
