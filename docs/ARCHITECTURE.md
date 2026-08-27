@@ -89,7 +89,9 @@ flowchart LR
 
 绘图运行时的 `DrawingController` 目前只作为组合根和手势协调器。临时墨迹、视口、图层位图缓存、图片解码缓存、整笔橡皮擦、笔画选区、编辑历史以及图片/形状/混合对象编辑，分别由独立会话或协作者持有。其中 `DocumentObjectEditingSession` 通过 `DocumentObjectEditingHost` 取得**当前图层、笔画选区、可逆命令、缓存失效和通知**这组最小协作能力；它不反向引用控制器，也不拥有历史游标或渲染资源。这使对象选择、锁定、变换、删除和快照恢复可在无 UI 控制器的测试宿主中验证，同时保持 `DrawingController` 的既有公开 API 稳定。
 
-下一阶段应优先处理以下两项：第一，继续将图层操作及其快照命令编排从 `DrawingController` 的 history extension 收口为专门协作者；第二，评估将 `PageTemplate`、`CloneRef` 和 `PageVersion` 等笔记管理模型与可编辑页面载荷进一步分离，令跨 feature 契约始终只暴露实际用到的数据和操作。
+`LayerEditingSession` 进一步拥有图层新增、删除、可见性、排序、合并和清空的变更编排及深拷贝快照边界。它通过 `LayerEditingHost` 仅请求**当前图层索引、图层快照命令、缓存注册/释放、局部或全量刷新和通知**，而通用历史游标与命令执行仍由 `DocumentEditHistory` 和控制器宿主负责。因此图层操作可以在不实例化 UI 控制器的测试宿主中独立验证，且历史 extension 只保留兼容 API 和通用事务入口。
+
+下一阶段应优先评估将笔画选区的变换命令与命令上下文中的图层快照恢复再进一步收口，或将 `PageTemplate`、`CloneRef` 和 `PageVersion` 等笔记管理模型与可编辑页面载荷分离；跨 feature 契约始终只暴露实际用到的数据和操作。
 
 ## 5. 本地验证
 
