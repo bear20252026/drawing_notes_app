@@ -82,13 +82,8 @@ extension DrawingControllerSelectionOps on DrawingController {
     return inside;
   }
 
-  /// 清除选区。
-  void clearSelection() {
-    if (_selection.polygon.isEmpty && _selectedDocumentImageId == null) return;
-    _selectionSession.clearSelection();
-    _selectedDocumentImageId = null;
-    _applyNotify();
-  }
+  /// 清除笔画、形状和图片的统一选择状态。
+  void clearSelection() => clearDocumentObjectSelection();
 
   /// 平移选中的笔画（拖拽移动）。
   void moveSelectedStrokes(Offset delta) {

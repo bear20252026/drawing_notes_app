@@ -17,8 +17,7 @@ class ShapesState {
   /// 是否选中了任何形状。
   bool get hasSelection => selectedIds.isNotEmpty;
 
-  static const ShapesState empty =
-      ShapesState(selectedIds: {}, activeId: null);
+  static const ShapesState empty = ShapesState(selectedIds: {}, activeId: null);
 
   ShapesState copyWith({Set<String>? selectedIds, String? activeId}) =>
       ShapesState(
@@ -34,10 +33,7 @@ class ShapesState {
       other.activeId == activeId;
 
   @override
-  int get hashCode => Object.hash(
-    Object.hashAll(selectedIds),
-    activeId,
-  );
+  int get hashCode => Object.hash(Object.hashAll(selectedIds), activeId);
 }
 
 /// 形状元素域 Notifier（objects 子域 Notifier 化示范）。
@@ -49,9 +45,9 @@ class ShapesState {
 /// - 变更方法只赋 state（免 notifyListeners 样板）
 /// - 独立可测（ProviderContainer 单测）
 ///
-/// 迁移边界（审慎）：DrawingController 内部 _selectedDocumentShapeIds/
-/// _selectedDocumentShapeId 暂不替换（避免双状态源不一致），本 Notifier
-/// 暴露"形状选中可见状态"，UI 面板可经 ref.watch 订阅。
+/// 迁移边界（审慎）：运行时形状选择由 `DocumentObjectEditingSession`
+/// 单独持有，本 Notifier 仍只暴露"形状选中可见状态"，避免与编辑会话
+/// 形成第二个可写状态源；UI 面板可经 ref.watch 订阅。
 class DrawingShapesNotifier extends Notifier<ShapesState> {
   @override
   ShapesState build() => ShapesState.empty;
@@ -79,7 +75,6 @@ class DrawingShapesNotifier extends Notifier<ShapesState> {
 }
 
 /// 形状元素域 Provider（objects 子域 Notifier 化示范）。
-final shapesProvider =
-    NotifierProvider<DrawingShapesNotifier, ShapesState>(
+final shapesProvider = NotifierProvider<DrawingShapesNotifier, ShapesState>(
   DrawingShapesNotifier.new,
 );

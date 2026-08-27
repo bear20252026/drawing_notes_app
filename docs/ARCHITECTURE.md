@@ -87,7 +87,9 @@ flowchart LR
 
 项目不是完全无技术债的终态，但已不存在 drawing **presentation** 对 notes 领域聚合的直接依赖。分页编辑通过 `EditorPageSession` 收口为窄的可变会话，搜索通过只读 DTO 收口，导出通过 `PagedExportSnapshot` 收口；notes 保留其笔记本、加密、文件夹、标签、版本历史与放映导航职责。
 
-下一阶段应优先处理以下两项：第一，继续将 `DrawingController` 的会话、历史与渲染缓存协调职责拆分为更小的协作者；第二，评估将 `PageTemplate`、`CloneRef` 和 `PageVersion` 等笔记管理模型与可编辑页面载荷进一步分离，令跨 feature 契约始终只暴露实际用到的数据和操作。
+绘图运行时的 `DrawingController` 目前只作为组合根和手势协调器。临时墨迹、视口、图层位图缓存、图片解码缓存、整笔橡皮擦、笔画选区、编辑历史以及图片/形状/混合对象编辑，分别由独立会话或协作者持有。其中 `DocumentObjectEditingSession` 通过 `DocumentObjectEditingHost` 取得**当前图层、笔画选区、可逆命令、缓存失效和通知**这组最小协作能力；它不反向引用控制器，也不拥有历史游标或渲染资源。这使对象选择、锁定、变换、删除和快照恢复可在无 UI 控制器的测试宿主中验证，同时保持 `DrawingController` 的既有公开 API 稳定。
+
+下一阶段应优先处理以下两项：第一，继续将图层操作及其快照命令编排从 `DrawingController` 的 history extension 收口为专门协作者；第二，评估将 `PageTemplate`、`CloneRef` 和 `PageVersion` 等笔记管理模型与可编辑页面载荷进一步分离，令跨 feature 契约始终只暴露实际用到的数据和操作。
 
 ## 5. 本地验证
 
