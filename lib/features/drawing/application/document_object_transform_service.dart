@@ -119,3 +119,84 @@ class DocumentObjectTransformService {
     }
   }
 }
+
+/// 混合画布对象的无状态删除服务。
+///
+/// 服务只处理调用方提供集合的删除和箭头绑定降级，不持有选择、不创建快照，
+/// 也不触发缓存或 UI 刷新。事务、选择清理和撤销命令仍由
+/// `DocumentObjectEditingSession` 协调。
+class DocumentObjectDeletionService {
+  const DocumentObjectDeletionService._();
+
+  /// 删除当前选中的未锁形状、未锁图片和笔画。
+  ///
+  /// 若删除形状是箭头端点绑定目标，先冻结箭头的当前绝对端点并清除失效绑定，
+  /// 从而使未删除的箭头保持可见几何而不遗留悬挂对象 id。返回值表示是否实际
+  /// 修改了任一集合。
+  static bool deleteSelection({
+    required List<Stroke> strokes,
+    required Iterable<int> selectedStrokeIndices,
+    required List<PageShapeItem> shapes,
+    required Set<String> selectedShapeIds,
+    required List<DocumentImageItem> images,
+    required Set<String> selectedImageIds,
+  }) {
+    final deleteShapeIds = shapes
+        .where((shape) => selectedShapeIds.contains(shape.id) && !shape.locked)
+        .map((shape) => shape.id)
+        .toSet();
+    final deleteImageIds = images
+        .where((image) => selectedImageIds.contains(image.id) && !image.locked)
+        .map((image) => image.id)
+        .toSet();
+    final orderedStrokeIndices = selectedStrokeIndices.toSet().toList()..sort();
+    final hasValidStroke = orderedStrokeIndices.any(
+      (index) => index >= 0 && index < strokes.length,
+    );
+    if (deleteShapeIds.isEmpty && deleteImageIds.isEmpty && !hasValidStroke) {
+      return false;
+    }
+
+    detachBindingsForDeletedShapes(shapes, deleteShapeIds);
+    shapes.removeWhere((shape) => deleteShapeIds.contains(shape.id));
+    images.removeWhere((image) => deleteImageIds.contains(image.id));
+    for (final index in orderedStrokeIndices.reversed) {
+      if (index >= 0 && index < strokes.length) strokes.removeAt(index);
+    }
+    return true;
+  }
+
+  /// 将指向被删除形状的箭头端点降级为冻结的自由端点。
+  static void detachBindingsForDeletedShapes(
+    List<PageShapeItem> shapes,
+    Set<String> deletedShapeIds,
+  ) {
+    if (deletedShapeIds.isEmpty) return;
+    for (final arrow in shapes) {
+      if (arrow.shapeType != ShapeType.arrow ||
+          deletedShapeIds.contains(arrow.id)) {
+        continue;
+      }
+      final endpoints = ShapeBindingGeometry.resolvedArrowEndpoints(
+        arrow,
+        shapes,
+      );
+      var changed = false;
+      if (deletedShapeIds.contains(arrow.startBinding?.targetShapeId)) {
+        arrow.startBinding = null;
+        changed = true;
+      }
+      if (deletedShapeIds.contains(arrow.endBinding?.targetShapeId)) {
+        arrow.endBinding = null;
+        changed = true;
+      }
+      if (changed) {
+        ShapeBindingGeometry.applyArrowEndpoints(
+          arrow,
+          start: endpoints.start,
+          end: endpoints.end,
+        );
+      }
+    }
+  }
+}

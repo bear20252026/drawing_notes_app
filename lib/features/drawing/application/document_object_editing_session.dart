@@ -371,30 +371,10 @@ class DocumentObjectEditingSession {
     final selected = selectedDocumentShape;
     if (selected == null || selected.locked) return;
     final before = _documentShapeSnapshot();
-    for (final arrow in _document.shapes) {
-      if (arrow.shapeType != ShapeType.arrow || arrow.id == selected.id) {
-        continue;
-      }
-      final endpoints = ShapeBindingGeometry.resolvedArrowEndpoints(
-        arrow,
-        _document.shapes,
-      );
-      // Q-1 拆分（2026-08-16）：解绑判定委托 ShapeBindingGeometry.isBoundTo
-      // （纯函数）——副作用（置 null + 应用端点）保留在协调层。
-      if (ShapeBindingGeometry.isBoundTo(arrow, selected.id)) {
-        if (arrow.startBinding?.targetShapeId == selected.id) {
-          arrow.startBinding = null;
-        }
-        if (arrow.endBinding?.targetShapeId == selected.id) {
-          arrow.endBinding = null;
-        }
-        ShapeBindingGeometry.applyArrowEndpoints(
-          arrow,
-          start: endpoints.start,
-          end: endpoints.end,
-        );
-      }
-    }
+    DocumentObjectDeletionService.detachBindingsForDeletedShapes(
+      _document.shapes,
+      <String>{selected.id},
+    );
     _document.shapes.remove(selected);
     _selectedDocumentShapeId = null;
     _document.touch();
@@ -724,63 +704,15 @@ class DocumentObjectEditingSession {
   void deleteSelectedDocumentObjects() {
     if (!hasMixedDocumentObjectSelection) return;
     final before = _documentObjectsSnapshot();
-    final deleteShapeIds = _document.shapes
-        .where(
-          (shape) =>
-              _selectedDocumentShapeIds.contains(shape.id) && !shape.locked,
-        )
-        .map((shape) => shape.id)
-        .toSet();
-    final deleteImageIds = _document.imageItems
-        .where(
-          (image) =>
-              _selectedDocumentImageIds.contains(image.id) && !image.locked,
-        )
-        .map((image) => image.id)
-        .toSet();
-    final deleteStrokeIndices = _host.strokeSelection.selectedStrokeIndices
-        .toSet();
-    if (deleteShapeIds.isEmpty &&
-        deleteImageIds.isEmpty &&
-        deleteStrokeIndices.isEmpty) {
-      return;
-    }
-
-    for (final arrow in _document.shapes) {
-      if (arrow.shapeType != ShapeType.arrow ||
-          deleteShapeIds.contains(arrow.id)) {
-        continue;
-      }
-      final endpoints = ShapeBindingGeometry.resolvedArrowEndpoints(
-        arrow,
-        _document.shapes,
-      );
-      var changed = false;
-      if (deleteShapeIds.contains(arrow.startBinding?.targetShapeId)) {
-        arrow.startBinding = null;
-        changed = true;
-      }
-      if (deleteShapeIds.contains(arrow.endBinding?.targetShapeId)) {
-        arrow.endBinding = null;
-        changed = true;
-      }
-      if (changed) {
-        ShapeBindingGeometry.applyArrowEndpoints(
-          arrow,
-          start: endpoints.start,
-          end: endpoints.end,
-        );
-      }
-    }
-    _document.shapes.removeWhere((shape) => deleteShapeIds.contains(shape.id));
-    _document.imageItems.removeWhere(
-      (image) => deleteImageIds.contains(image.id),
+    final deleted = DocumentObjectDeletionService.deleteSelection(
+      strokes: _host.currentLayer.strokes,
+      selectedStrokeIndices: _host.strokeSelection.selectedStrokeIndices,
+      shapes: _document.shapes,
+      selectedShapeIds: _selectedDocumentShapeIds,
+      images: _document.imageItems,
+      selectedImageIds: _selectedDocumentImageIds,
     );
-    final strokes = _host.currentLayer.strokes;
-    final orderedStrokeIndices = deleteStrokeIndices.toList()..sort();
-    for (final index in orderedStrokeIndices.reversed) {
-      if (index >= 0 && index < strokes.length) strokes.removeAt(index);
-    }
+    if (!deleted) return;
     clearDocumentObjectSelection();
     _document.touch();
     _host.invalidateLayer(_host.currentLayer.id);
