@@ -16,7 +16,6 @@ import 'package:drawing_notes_app/features/drawing/application/document_image_ca
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_edit_history.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_object_editing_session.dart';
-import 'package:drawing_notes_app/features/drawing/application/selection_geometry_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_selection_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/stroke_selection_editing_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/color_sampling_service.dart';
@@ -56,7 +55,8 @@ class DrawingController extends ChangeNotifier
         DocCommandContext,
         DocumentObjectEditingHost,
         LayerEditingHost,
-        StrokeSelectionEditingHost {
+        StrokeSelectionEditingHost,
+        StrokeSelectionInteractionHost {
   DrawingController(this._document) {
     _temporaryInkSession = TemporaryInkSession(onFrameTick: tickFrame);
     _documentImageCache = DocumentImageCache(
@@ -71,6 +71,9 @@ class DrawingController extends ChangeNotifier
     _documentObjectEditingSession = DocumentObjectEditingSession(this);
     _layerEditingSession = LayerEditingSession(this);
     _strokeSelectionEditingSession = StrokeSelectionEditingSession(this);
+    _strokeSelectionInteractionSession = StrokeSelectionInteractionSession(
+      this,
+    );
   }
 
   final DrawingDocument _document;
@@ -134,6 +137,9 @@ class DrawingController extends ChangeNotifier
   DrawingSelectionSession get selectionSession => _selectionSession;
 
   @override
+  void requestFrame() => tickFrame();
+
+  @override
   Selection get strokeSelection => _selectionSession.selection;
 
   @override
@@ -145,29 +151,6 @@ class DrawingController extends ChangeNotifier
   @override
   void clearStrokeSelection() => _selectionSession.clearSelection();
 
-  // ---- 通用几何工具（供选区/对象选择共享，静态方法）----
-  static bool _strokeIntersectsPolygon(
-    List<StrokePoint> points,
-    List<Offset> polygon,
-  ) {
-    if (points.length < 2) return false;
-    for (var i = 1; i < points.length; i++) {
-      final a = points[i - 1].offset;
-      final b = points[i].offset;
-      for (var edge = 0; edge < polygon.length; edge++) {
-        final c = polygon[edge];
-        final d = polygon[(edge + 1) % polygon.length];
-        if (_segmentsIntersect(a, b, c, d)) return true;
-      }
-    }
-    return false;
-  }
-
-  static bool _segmentsIntersect(Offset a, Offset b, Offset c, Offset d) {
-    // Q-1 拆分（2026-08-16）：相交判定委托 SelectionGeometryService。
-    return SelectionGeometryService.segmentsIntersect(a, b, c, d);
-  }
-
   /// 图片、形状及混合对象的选择和手势中间态由独立会话持有。
   late final DocumentObjectEditingSession _documentObjectEditingSession;
 
@@ -176,6 +159,10 @@ class DrawingController extends ChangeNotifier
 
   /// 已选笔画的变换、剪贴板和快照提交由独立会话持有。
   late final StrokeSelectionEditingSession _strokeSelectionEditingSession;
+
+  /// 矩形/套索草稿完成与笔画命中由独立会话持有。
+  late final StrokeSelectionInteractionSession
+  _strokeSelectionInteractionSession;
   bool _disposed = false;
   bool get isDisposed => _disposed;
 
