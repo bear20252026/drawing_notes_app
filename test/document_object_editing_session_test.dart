@@ -6,6 +6,7 @@ import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
 import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
+import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -114,6 +115,66 @@ void main() {
     host.commands.single.redo();
     expect(host.document.imageItems[0].position, const Offset(30, 35));
     expect(host.invalidatedLayerIds, isNotEmpty);
+  });
+
+  test('恢复快照由会话清理无效选择并协调缓存、索引和通知', () {
+    final host = _ObjectEditingHost(
+      DrawingDocument(
+        id: 'restore_session',
+        title: '恢复对象编辑会话',
+        infinite: true,
+        layers: <Layer>[
+          Layer(id: 'base', name: '底层'),
+          Layer(id: 'active', name: '活动层'),
+        ],
+        shapes: <PageShapeItem>[
+          PageShapeItem(
+            id: 'shape',
+            shapeType: ShapeType.rect,
+            x: 10,
+            y: 10,
+            width: 20,
+            height: 20,
+          ),
+        ],
+        imageItems: <DocumentImageItem>[
+          DocumentImageItem(
+            id: 'image',
+            x: 40,
+            y: 10,
+            width: 20,
+            height: 20,
+            filePath: '/assets/image.png',
+          ),
+        ],
+      ),
+    );
+    host._currentLayerIndex = 1;
+    final session = DocumentObjectEditingSession(host);
+    session.selectDocumentObjectsInPolygon(const <Offset>[
+      Offset(0, 0),
+      Offset(100, 0),
+      Offset(100, 100),
+      Offset(0, 100),
+    ], selectedStrokeIndices: const <int>[]);
+    final notificationsBeforeRestore = host.changeNotifications;
+    final snapshot = DocumentObjectsSnapshot(
+      layers: <Layer>[Layer(id: 'restored', name: '恢复层')],
+      shapes: <PageShapeItem>[],
+      images: <DocumentImageItem>[],
+    );
+
+    session.restoreDocumentObjectsSnapshot(snapshot);
+
+    expect(host.currentLayerIndex, 0);
+    expect(host.document.layers.single.id, 'restored');
+    expect(session.selectedDocumentShapeIds, isEmpty);
+    expect(session.selectedDocumentImageIds, isEmpty);
+    expect(session.selectedDocumentShapeId, isNull);
+    expect(session.selectedDocumentImageId, isNull);
+    expect(host.cacheMapRebuilds, 1);
+    expect(host.fullRebuilds, 1);
+    expect(host.changeNotifications, notificationsBeforeRestore + 1);
   });
 }
 

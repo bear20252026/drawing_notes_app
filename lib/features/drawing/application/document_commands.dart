@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
 import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
@@ -248,6 +249,82 @@ class DocumentObjectsSnapshot {
   final List<Layer> layers;
   final List<PageShapeItem> shapes;
   final List<DocumentImageItem> images;
+}
+
+/// 混合对象快照的无状态构造、恢复和比较服务。
+///
+/// 该服务只处理领域对象集合，不持有编辑会话、选择、命令栈、缓存或 UI。
+/// `DocumentObjectEditingSession` 继续在恢复后修正选择、触碰文档及协调渲染副作用。
+class DocumentObjectSnapshotService {
+  const DocumentObjectSnapshotService._();
+
+  /// 以当前文档对象建立独立快照，后续原对象变化不会污染返回值。
+  static DocumentObjectsSnapshot capture(DrawingDocument document) =>
+      DocumentObjectsSnapshot(
+        layers: document.layers,
+        shapes: document.shapes,
+        images: document.imageItems,
+      );
+
+  /// 将 [snapshot] 的图层、形状与图片以深拷贝方式完整写回 [document]。
+  static void restore(
+    DrawingDocument document,
+    DocumentObjectsSnapshot snapshot,
+  ) {
+    document.layers
+      ..clear()
+      ..addAll(
+        snapshot.layers.map(
+          (layer) => Layer(
+            id: layer.id,
+            name: layer.name,
+            visible: layer.visible,
+            opacity: layer.opacity,
+            strokes: List<Stroke>.of(layer.strokes),
+          ),
+        ),
+      );
+    document.shapes
+      ..clear()
+      ..addAll(snapshot.shapes.map((shape) => shape.copy()));
+    document.imageItems
+      ..clear()
+      ..addAll(snapshot.images.map((image) => image.copy()));
+  }
+
+  /// 当恢复后的图层数缩短时，返回应收敛到的当前图层索引；无需修正则返回 null。
+  static int? correctedCurrentLayerIndex({
+    required int currentLayerIndex,
+    required int restoredLayerCount,
+  }) => currentLayerIndex >= restoredLayerCount ? restoredLayerCount - 1 : null;
+
+  /// 判断两个混合对象快照的持久化内容是否完全一致。
+  static bool isSame(DocumentObjectsSnapshot a, DocumentObjectsSnapshot b) {
+    if (a.layers.length != b.layers.length ||
+        a.shapes.length != b.shapes.length ||
+        a.images.length != b.images.length) {
+      return false;
+    }
+    for (var index = 0; index < a.layers.length; index++) {
+      if (a.layers[index].toJson().toString() !=
+          b.layers[index].toJson().toString()) {
+        return false;
+      }
+    }
+    for (var index = 0; index < a.shapes.length; index++) {
+      if (a.shapes[index].toJson().toString() !=
+          b.shapes[index].toJson().toString()) {
+        return false;
+      }
+    }
+    for (var index = 0; index < a.images.length; index++) {
+      if (a.images[index].toJson().toString() !=
+          b.images[index].toJson().toString()) {
+        return false;
+      }
+    }
+    return true;
+  }
 }
 
 /// 混合对象变换命令：笔画、形状（含绑定箭头）与图片在同一历史边界恢复。

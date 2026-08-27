@@ -87,7 +87,7 @@ flowchart LR
 
 项目不是完全无技术债的终态，但已不存在 drawing **presentation** 对 notes 领域聚合的直接依赖。分页编辑通过 `EditorPageSession` 收口为窄的可变会话，搜索通过只读 DTO 收口，导出通过 `PagedExportSnapshot` 收口；notes 保留其笔记本、加密、文件夹、标签、版本历史与放映导航职责。
 
-绘图运行时的 `DrawingController` 目前只作为组合根和手势协调器。临时墨迹、视口、图层位图缓存、图片解码缓存、整笔橡皮擦、笔画选区、编辑历史以及图片/形状/混合对象编辑，分别由独立会话或协作者持有。其中 `DocumentObjectEditingSession` 通过 `DocumentObjectEditingHost` 取得**当前图层、笔画选区、可逆命令、缓存失效和通知**这组最小协作能力；它不反向引用控制器，也不拥有历史游标或渲染资源。会话将混合选择的笔画、未锁形状、未锁图片、自由箭头端点和绑定箭头重投影，委托给无状态的 `DocumentObjectTransformService`；将锁定过滤、箭头端点解绑冻结以及形状/图片/笔画集合删除委托给 `DocumentObjectDeletionService`；将框选/套索的形状与图片命中、绑定箭头投影视图和统一选中包围盒委托给 `DocumentObjectGeometryService`。三个协作者都不持有选择状态、不创建快照、不触发缓存或 UI 刷新。因此会话仍可专注于选择写入、手势事务、撤销边界与宿主协调，而对象计算可在无 UI 控制器的测试中直接验证，同时保持 `DrawingController` 的既有公开 API 稳定。
+绘图运行时的 `DrawingController` 目前只作为组合根和手势协调器。临时墨迹、视口、图层位图缓存、图片解码缓存、整笔橡皮擦、笔画选区、编辑历史以及图片/形状/混合对象编辑，分别由独立会话或协作者持有。其中 `DocumentObjectEditingSession` 通过 `DocumentObjectEditingHost` 取得**当前图层、笔画选区、可逆命令、缓存失效和通知**这组最小协作能力；它不反向引用控制器，也不拥有历史游标或渲染资源。会话将混合选择的笔画、未锁形状、未锁图片、自由箭头端点和绑定箭头重投影，委托给无状态的 `DocumentObjectTransformService`；将锁定过滤、箭头端点解绑冻结以及形状/图片/笔画集合删除委托给 `DocumentObjectDeletionService`；将框选/套索的形状与图片命中、绑定箭头投影视图和统一选中包围盒委托给 `DocumentObjectGeometryService`；将混合对象快照的深拷贝捕获、集合恢复、内容比较和当前图层索引收敛委托给 `DocumentObjectSnapshotService`。四个协作者都不持有选择状态、命令栈、缓存或 UI。会话仍负责选择修正、手势事务、撤销命令、文档脏标记与宿主协调，使对象计算可在无 UI 控制器的测试中直接验证，同时保持 `DrawingController` 的既有公开 API 稳定。
 
 `LayerEditingSession` 进一步拥有图层新增、删除、可见性、排序、合并和清空的变更编排及深拷贝快照边界。它通过 `LayerEditingHost` 仅请求**当前图层索引、图层快照命令、缓存注册/释放、局部或全量刷新和通知**，而通用历史游标与命令执行仍由 `DocumentEditHistory` 和控制器宿主负责。因此图层操作可以在不实例化 UI 控制器的测试宿主中独立验证，且历史 extension 只保留兼容 API 和通用事务入口。
 
@@ -99,7 +99,7 @@ flowchart LR
 
 图片和形状的 Riverpod 可见选择状态位于 `object_selection_notifiers.dart`，并仍只暴露不可变 id 状态；它们不拥有或修改 `DocumentObjectEditingSession` 的运行时选择，避免出现第二个写入源，同时使对象相关可见状态保持在一个文件预算内。
 
-下一阶段应优先评估将 `DocumentObjectEditingSession` 的快照构造/恢复职责进一步收口，或将 `PageTemplate`、`CloneRef` 和 `PageVersion` 等笔记管理模型与可编辑页面载荷分离；跨 feature 契约始终只暴露实际用到的数据和操作。
+下一阶段应优先评估编辑器展示层的工具栏状态或 overlay 组装边界，或将 `PageTemplate`、`CloneRef` 和 `PageVersion` 等笔记管理模型与可编辑页面载荷分离；跨 feature 契约始终只暴露实际用到的数据和操作。
 
 ## 5. 本地验证
 
