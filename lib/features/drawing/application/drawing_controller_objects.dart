@@ -7,45 +7,8 @@ part of 'drawing_controller.dart';
 
 /// 文档对象选择/变换域（拆分自 drawing_controller.dart）。
 extension DrawingControllerObjectOps on DrawingController {
-  Future<void> _ensureDocumentImagesLoaded() async {
-    final pending = <DocumentImageItem>[
-      for (final item in _document.imageItems)
-        if (!_documentImages.containsKey(item.id)) item,
-    ];
-    // P-5 修复（专家审查 2026-08-15）：限制并发加载（每批最多 4 个）——
-    // 一次性 Future.wait 全部图片在大量图片时会造成内存峰值。
-    const batchSize = 4;
-    for (var i = 0; i < pending.length; i += batchSize) {
-      final batch = pending.skip(i).take(batchSize);
-      await Future.wait([for (final item in batch) _loadDocumentImage(item)]);
-    }
-  }
-
-  Future<void> _loadDocumentImage(DocumentImageItem item) async {
-    ui.ImmutableBuffer? buffer;
-    ui.ImageDescriptor? descriptor;
-    ui.Codec? codec;
-    try {
-      buffer = await ui.ImmutableBuffer.fromFilePath(item.filePath);
-      descriptor = await ui.ImageDescriptor.encoded(buffer);
-      codec = await descriptor.instantiateCodec();
-      final frame = await codec.getNextFrame();
-      if (_disposed) {
-        frame.image.dispose();
-        return;
-      }
-      _documentImages.remove(item.id)?.dispose();
-      _documentImages[item.id] = frame.image;
-      tickFrame();
-    } catch (_) {
-      // 图片缺失/损坏不应阻止整个工程打开；画布保持其余内容可编辑。
-    } finally {
-      codec?.dispose();
-      descriptor?.dispose();
-      buffer?.dispose();
-      _loadingDocumentImageIds.remove(item.id);
-    }
-  }
+  Future<void> _ensureDocumentImagesLoaded() =>
+      _documentImageCache.ensureLoaded(_document.imageItems);
 
   Set<String> get selectedDocumentShapeIds =>
       Set<String>.unmodifiable(_selectedDocumentShapeIds);
