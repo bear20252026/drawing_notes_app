@@ -7,6 +7,7 @@ export 'clone_ref.dart';
 export 'notebook_entity.dart';
 export 'notebook_page.dart';
 export 'notebook_page_content.dart';
+export 'notebook_page_template_strategy.dart';
 export 'page_template.dart';
 export 'page_version.dart';
 export 'package:drawing_notes_app/features/drawing/domain/page_chart_item.dart';

@@ -50,173 +50,20 @@ extension _NotebookPageManage on _NotebookViewPageState {
     final page = NotebookPage(
       id: NotebookStorage.newId('pg'),
       title: request.title.trim(),
-      document: _newDocument(template: request.template),
+      content: NotebookPageTemplateStrategy.createContent(
+        template: request.template,
+        documentId: StorageService.newId(),
+        documentTitle: '未命名页面',
+        createdAt: DateTime.now(),
+        nextTextItemId: () => NotebookStorage.newId('txt'),
+      ),
       template: request.template,
-      textItems: _templateTextItems(request.template),
     );
     _applyState(() => _notebook.pages.add(page));
     await _save();
     if (!mounted) return;
     await _openEditor(page: page, onChanged: _save);
     _applyState(() {}); // 返回后刷新
-  }
-
-  /// 生成新页面的默认画布文档。
-  ///
-  /// 必须返回真实文档（非 null）：页面保存/进入编辑器都依赖 [NotebookPage.document]，
-  /// 若为 null 会导致保存时抛空指针异常、无法跳转（曾出现过的严重缺陷）。
-  DrawingDocument _newDocument({PageTemplate template = PageTemplate.blank}) {
-    // 使用与独立画作一致的默认尺寸（A4 比例 210:297 近似）。
-    // “无限白板”不在此处承诺为真实无限画布；当前渲染器仍是固定坐标纸面。
-    return DrawingDocument(
-      id: StorageService.newId(),
-      title: '未命名页面',
-      width: 2480,
-      height: 3508,
-      paperType: template.paperType,
-    );
-  }
-
-  List<PageTextItem> _templateTextItems(PageTemplate template) {
-    final now = DateTime.now();
-    final date =
-        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    PageTextItem item(
-      String id,
-      double x,
-      double y,
-      String text, {
-      double size = 24,
-      bool bold = false,
-    }) => PageTextItem(
-      id: id,
-      x: x,
-      y: y,
-      text: text,
-      fontSize: size,
-      bold: bold,
-    );
-
-    switch (template) {
-      case PageTemplate.meeting:
-        return [
-          item(
-            NotebookStorage.newId('txt'),
-            110,
-            90,
-            '会议主题',
-            size: 38,
-            bold: true,
-          ),
-          item(
-            NotebookStorage.newId('txt'),
-            110,
-            170,
-            '日期：$date    参与者：',
-            size: 22,
-          ),
-          item(
-            NotebookStorage.newId('txt'),
-            110,
-            310,
-            '议题',
-            size: 28,
-            bold: true,
-          ),
-          item(
-            NotebookStorage.newId('txt'),
-            110,
-            1060,
-            '决策',
-            size: 28,
-            bold: true,
-          ),
-          item(
-            NotebookStorage.newId('txt'),
-            110,
-            1810,
-            '行动项（负责人 / 截止日）',
-            size: 28,
-            bold: true,
-          ),
-        ];
-      case PageTemplate.cornell:
-        return [
-          item(
-            NotebookStorage.newId('txt'),
-            110,
-            90,
-            '主题 / 课程',
-            size: 34,
-            bold: true,
-          ),
-          item(
-            NotebookStorage.newId('txt'),
-            110,
-            220,
-            '线索与问题',
-            size: 24,
-            bold: true,
-          ),
-          item(
-            NotebookStorage.newId('txt'),
-            720,
-            220,
-            '笔记',
-            size: 24,
-            bold: true,
-          ),
-          item(
-            NotebookStorage.newId('txt'),
-            110,
-            2920,
-            '总结',
-            size: 24,
-            bold: true,
-          ),
-        ];
-      case PageTemplate.planner:
-        return [
-          item(
-            NotebookStorage.newId('txt'),
-            110,
-            90,
-            '本周计划',
-            size: 38,
-            bold: true,
-          ),
-          item(
-            NotebookStorage.newId('txt'),
-            110,
-            240,
-            '最重要的三件事',
-            size: 26,
-            bold: true,
-          ),
-          item(
-            NotebookStorage.newId('txt'),
-            110,
-            1280,
-            '日程与待办',
-            size: 26,
-            bold: true,
-          ),
-          item(
-            NotebookStorage.newId('txt'),
-            110,
-            2450,
-            '复盘与下周准备',
-            size: 26,
-            bold: true,
-          ),
-        ];
-      case PageTemplate.blank:
-      case PageTemplate.lined:
-      case PageTemplate.grid:
-      case PageTemplate.dot:
-      case PageTemplate.whiteboard:
-        return const [];
-    }
   }
 
   Future<void> _toggleFavorite(NotebookPage page) async {
@@ -306,7 +153,10 @@ extension _NotebookPageManage on _NotebookViewPageState {
         NotebookPage(
           id: NotebookStorage.newId('pg'),
           title: '↪ ${srcPage.title}',
-          document: _newDocument(), // 占位，实际内容从源实时加载
+          document: NotebookPageTemplateStrategy.createDocument(
+            id: StorageService.newId(),
+            title: '未命名页面',
+          ), // 占位，实际内容从源实时加载
           cloneOf: CloneRef(notebookId: srcNb.id, pageId: srcPage.id),
         ),
       );

@@ -56,7 +56,10 @@ extension _NotebookPageImports on _NotebookViewPageState {
       final page = NotebookPage(
         id: NotebookStorage.newId('pg'),
         title: '导入·$title',
-        document: _newDocument(),
+        document: NotebookPageTemplateStrategy.createDocument(
+          id: StorageService.newId(),
+          title: '未命名页面',
+        ),
       );
       // 可用性修复：y 增量按段落行数估算（原 `40 + 段长/2` 对长段落
       // 会迅速超出画布 3508 高度，文字块落到画布外用户看不到）。
@@ -116,12 +119,11 @@ extension _NotebookPageImports on _NotebookViewPageState {
       final created = <NotebookPage>[];
       for (final pageImage in rendered) {
         final pageId = NotebookStorage.newId('pg');
-        final document = DrawingDocument(
+        final document = NotebookPageTemplateStrategy.createDocument(
           id: StorageService.newId(),
           title: '$sourceName · ${pageImage.pageNumber}',
           width: pageImage.width,
           height: pageImage.height,
-          paperType: PaperType.blank,
         );
         created.add(
           NotebookPage(
