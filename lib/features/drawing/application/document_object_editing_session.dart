@@ -9,7 +9,6 @@ import 'package:drawing_notes_app/features/drawing/domain/document_image_item.da
 import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
 import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
 import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 
 /// 文档对象编辑会话与宿主控制器之间的最小协作边界。
 ///
@@ -501,23 +500,8 @@ class DocumentObjectEditingSession {
         selectedImageIds: _selectedDocumentImageIds,
       );
 
-  DocumentObjectsSnapshot _documentObjectsSnapshot() => DocumentObjectsSnapshot(
-    layers: _layerSnapshot(),
-    shapes: _documentShapeSnapshot(),
-    images: _document.imageItems,
-  );
-
-  List<Layer> _layerSnapshot() => _document.layers
-      .map(
-        (layer) => Layer(
-          id: layer.id,
-          name: layer.name,
-          visible: layer.visible,
-          opacity: layer.opacity,
-          strokes: List<Stroke>.of(layer.strokes),
-        ),
-      )
-      .toList(growable: false);
+  DocumentObjectsSnapshot _documentObjectsSnapshot() =>
+      DocumentObjectSnapshotService.capture(_document);
 
   void _ensureDocumentObjectsTransformBefore() {
     _documentObjectsTransformBefore ??= _documentObjectsSnapshot();
@@ -584,7 +568,7 @@ class DocumentObjectEditingSession {
     _documentObjectsTransformBefore = null;
     if (before == null) return;
     final after = _documentObjectsSnapshot();
-    if (_sameDocumentObjectsSnapshot(before, after)) return;
+    if (DocumentObjectSnapshotService.isSame(before, after)) return;
     _host.pushCommand(
       DocumentObjectsSnapshotCommand(
         restoreObjectsSnapshot: restoreDocumentObjectsSnapshot,
@@ -663,27 +647,14 @@ class DocumentObjectEditingSession {
   /// 供 [DocumentObjectsSnapshotCommand] 恢复混合文档状态。此入口在恢复后统一
   /// 重建笔画缓存、修正选择 ID，并在单次通知中让关系图与图片同步刷新。
   void restoreDocumentObjectsSnapshot(DocumentObjectsSnapshot snapshot) {
-    _document.layers
-      ..clear()
-      ..addAll(
-        snapshot.layers.map(
-          (layer) => Layer(
-            id: layer.id,
-            name: layer.name,
-            visible: layer.visible,
-            opacity: layer.opacity,
-            strokes: List.of(layer.strokes),
-          ),
-        ),
-      );
-    _document.shapes
-      ..clear()
-      ..addAll(snapshot.shapes.map((shape) => shape.copy()));
-    _document.imageItems
-      ..clear()
-      ..addAll(snapshot.images.map((image) => image.copy()));
-    if (_host.currentLayerIndex >= _document.layers.length) {
-      _host.setCurrentLayerIndexForRestore(_document.layers.length - 1);
+    DocumentObjectSnapshotService.restore(_document, snapshot);
+    final correctedLayerIndex =
+        DocumentObjectSnapshotService.correctedCurrentLayerIndex(
+          currentLayerIndex: _host.currentLayerIndex,
+          restoredLayerCount: _document.layers.length,
+        );
+    if (correctedLayerIndex != null) {
+      _host.setCurrentLayerIndexForRestore(correctedLayerIndex);
     }
     _selectedDocumentShapeIds.removeWhere(
       (id) => !_document.shapes.any((shape) => shape.id == id),
@@ -703,35 +674,5 @@ class DocumentObjectEditingSession {
     _host.rebuildCacheMap();
     _host.notifyChanged();
     _host.rebuildAll();
-  }
-
-  static bool _sameDocumentObjectsSnapshot(
-    DocumentObjectsSnapshot a,
-    DocumentObjectsSnapshot b,
-  ) {
-    if (a.layers.length != b.layers.length ||
-        a.shapes.length != b.shapes.length ||
-        a.images.length != b.images.length) {
-      return false;
-    }
-    for (var index = 0; index < a.layers.length; index++) {
-      if (a.layers[index].toJson().toString() !=
-          b.layers[index].toJson().toString()) {
-        return false;
-      }
-    }
-    for (var index = 0; index < a.shapes.length; index++) {
-      if (a.shapes[index].toJson().toString() !=
-          b.shapes[index].toJson().toString()) {
-        return false;
-      }
-    }
-    for (var index = 0; index < a.images.length; index++) {
-      if (a.images[index].toJson().toString() !=
-          b.images[index].toJson().toString()) {
-        return false;
-      }
-    }
-    return true;
   }
 }
