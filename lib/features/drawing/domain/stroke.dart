@@ -27,7 +27,7 @@ class StrokePoint {
 
   Offset get offset => Offset(x, y);
 
-  // ---- 序列化（供本地文件存储使用，见 storage/document_codec.dart）----
+  // ---- 序列化（供本地文件存储使用，见 core/storage/document_codec.dart）----
 
   Map<String, dynamic> toJson() => {'x': x, 'y': y, 'p': pressure};
 

@@ -19,15 +19,12 @@ echo "=== [S4] 架构边界检查 ==="
 # （core 允许依赖 features 的 domain 实体——domain 是最内层纯数据，
 #  依赖向内原则允许；storage 编解码依赖实体属此列）。
 VIOL=$(grep -rlE "features/[a-z_]+/(application|infrastructure|presentation)/" lib/core/ 2>/dev/null || true)
-# 已知白名单（S4b 专项治理，需接口注入重构）：storage_service 依赖
-# document_codec（画布编解码）——跨功能共享存储的注入点，记录待治理。
-VIOL=$(echo "$VIOL" | grep -v "storage_service.dart" || true)
 if [ -n "$VIOL" ]; then
   echo "✗ core/ 违规依赖 features 非 domain 层:"
   echo "$VIOL"
   FAIL=1
 else
-  echo "✓ core/ 仅依赖 features domain 实体或完全独立（依赖向内合规）"
+  echo "✓ core/ 仅依赖 features domain 实体或完全独立（无白名单例外）"
 fi
 
 # 规则 2：feature 间横向 import 诊断
