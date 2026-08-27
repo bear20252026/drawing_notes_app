@@ -13,6 +13,7 @@ import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/features/drawing/application/doc_command_context.dart';
+import 'package:drawing_notes_app/features/drawing/application/document_image_cache.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
 import 'package:drawing_notes_app/features/drawing/application/selection_geometry_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/color_sampling_service.dart';
@@ -49,6 +50,10 @@ part 'drawing_controller_history.dart';
 class DrawingController extends ChangeNotifier implements DocCommandContext {
   DrawingController(this._document) {
     _temporaryInkSession = TemporaryInkSession(onFrameTick: tickFrame);
+    _documentImageCache = DocumentImageCache(
+      onImageAvailable: tickFrame,
+      isOwnerDisposed: () => _disposed,
+    );
     _renderCacheCoordinator = LayerRenderCacheCoordinator(
       document: _document,
       onRenderUpdated: _applyNotify,
@@ -61,21 +66,14 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
   @override
   DrawingDocument get document => _document;
 
-  final Map<String, ui.Image> _documentImages = <String, ui.Image>{};
-  final Set<String> _loadingDocumentImageIds = <String>{};
+  late final DocumentImageCache _documentImageCache;
 
   /// 取得文档图片的已解码位图；首次访问会异步加载并在完成后刷新画布。
   ///
   /// 解码缓存只保存运行时资源，JSON 仍只持久化离线文件路径，因此关闭重开后
   /// 仍可按需恢复且不会把大图二进制写入工程文件。
-  ui.Image? documentImage(DocumentImageItem item) {
-    final cached = _documentImages[item.id];
-    if (cached != null) return cached;
-    if (_loadingDocumentImageIds.add(item.id)) {
-      unawaited(_loadDocumentImage(item));
-    }
-    return null;
-  }
+  ui.Image? documentImage(DocumentImageItem item) =>
+      _documentImageCache.imageFor(item);
 
   /// 已销毁标记：dispose 后拒绝一切变更与通知（防止异步回调越界）。
 
@@ -809,11 +807,7 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
     _disposed = true;
     _renderCacheCoordinator.dispose();
     _temporaryInkSession.dispose();
-    for (final image in _documentImages.values) {
-      image.dispose();
-    }
-    _documentImages.clear();
-    _loadingDocumentImageIds.clear();
+    _documentImageCache.dispose();
     super.dispose();
   }
 }

@@ -84,7 +84,7 @@ extension DrawingControllerRenderOps on DrawingController {
     final images = List.of(_document.imageItems)
       ..sort((a, b) => a.zOrder.compareTo(b.zOrder));
     for (final item in images) {
-      final image = _documentImages[item.id];
+      final image = documentImage(item);
       if (image == null) continue;
       canvas.drawImageRect(
         image,
