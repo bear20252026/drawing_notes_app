@@ -180,22 +180,34 @@ extension _NotebookPageImports on _NotebookViewPageState {
     final mode = await showDialog<EncryptionMode>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: Text(AppLocalizations.of(context)?.noteEncryptionChoice ?? '选择加密方式'),
+        title: Text(
+          AppLocalizations.of(context)?.noteEncryptionChoice ?? '选择加密方式',
+        ),
         children: [
           SimpleDialogOption(
             onPressed: () => Navigator.of(ctx).pop(EncryptionMode.password),
             child: ListTile(
               leading: Icon(Icons.lock_outline),
-              title: Text(AppLocalizations.of(context)?.noteMemoryPassword ?? '记忆密码'),
-              subtitle: Text(AppLocalizations.of(context)?.noteMemoryPasswordSub ?? '设置密码，打开时输入密码解密'),
+              title: Text(
+                AppLocalizations.of(context)?.noteMemoryPassword ?? '记忆密码',
+              ),
+              subtitle: Text(
+                AppLocalizations.of(context)?.noteMemoryPasswordSub ??
+                    '设置密码，打开时输入密码解密',
+              ),
             ),
           ),
           SimpleDialogOption(
             onPressed: () => Navigator.of(ctx).pop(EncryptionMode.keyfile),
             child: ListTile(
               leading: Icon(Icons.usb),
-              title: Text(AppLocalizations.of(context)?.noteUsbKey ?? 'U盘钥匙（密码盘）'),
-              subtitle: Text(AppLocalizations.of(context)?.noteUsbKeySub ?? 'U盘即钥匙：插入 U 盘解锁，拔盘即锁（零知识）'),
+              title: Text(
+                AppLocalizations.of(context)?.noteUsbKey ?? 'U盘钥匙（密码盘）',
+              ),
+              subtitle: Text(
+                AppLocalizations.of(context)?.noteUsbKeySub ??
+                    'U盘即钥匙：插入 U 盘解锁，拔盘即锁（零知识）',
+              ),
             ),
           ),
         ],
@@ -279,8 +291,9 @@ extension _NotebookPageImports on _NotebookViewPageState {
       MediaCryptoService.instance.setNotebookKey(widget.notebook.id, masterKey);
       // 媒体 VFS 双轨（2026-08-16）：初始化 VFS 媒体仓库（K_note 上下文——
       // 新媒体对象写 VFS——旧媒体 DAN 兼容读——s3eg 双读窗口模式）。
-      VaultService.configure(await widget.storage.ensureImagesDir())
-          .setKey(masterKey);
+      VaultService.configure(
+        await widget.storage.ensureImagesDir(),
+      ).setKey(masterKey);
       // I-003 关闭全局媒体迁移（专家方案 2026-08-16——P0）：解锁后不再
       // 自动执行 migrateLegacyMedia（专家："绝不对旧媒体目录执行全局自动
       // 扫描"）——旧明文媒体保持兼容读（DAN 检测）；迁移改为显式调用
@@ -297,13 +310,15 @@ extension _NotebookPageImports on _NotebookViewPageState {
     }
   }
 
-
   /// 展示恢复密钥（警示必须抄写）。
   Future<void> _showRecoveryKeyWarning(String recoveryKey) async {
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)?.noteRecoveryKeyTitle ?? '保存您的恢复密钥（非常重要！）'),
+        title: Text(
+          AppLocalizations.of(context)?.noteRecoveryKeyTitle ??
+              '保存您的恢复密钥（非常重要！）',
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -386,65 +401,9 @@ extension _NotebookPageImports on _NotebookViewPageState {
     );
     if (ok != true) return;
     _applyState(() {
-      // 先把当前内容以深拷贝存入历史，再恢复所选完整版本。
-      page.history.insert(
-        0,
-        PageVersion(
-          time: DateTime.now(),
-          document: DrawingDocument.fromJson(page.document.toJson()),
-          textItems: page.textItems
-              .map((item) => PageTextItem.fromJson(item.toJson()))
-              .toList(),
-          imageItems: page.imageItems
-              .map((item) => PageImageItem.fromJson(item.toJson()))
-              .toList(),
-          connectors: page.connectors
-              .map((item) => PageConnector.fromJson(item.toJson()))
-              .toList(),
-          shapes: page.shapes
-              .map((item) => PageShapeItem.fromJson(item.toJson()))
-              .toList(),
-          charts: page.charts
-              .map((item) => PageChartItem.fromJson(item.toJson()))
-              .toList(),
-          summary: '恢复前自动备份',
-        ),
-      );
-      final current = page.document;
-      final restoreDoc = version.document;
-      current.layers
-        ..clear()
-        ..addAll(restoreDoc.layers);
-      current.title = restoreDoc.title;
-      page.textItems
-        ..clear()
-        ..addAll(
-          version.textItems.map((item) => PageTextItem.fromJson(item.toJson())),
-        );
-      page.imageItems
-        ..clear()
-        ..addAll(
-          version.imageItems.map(
-            (item) => PageImageItem.fromJson(item.toJson()),
-          ),
-        );
-      page.connectors
-        ..clear()
-        ..addAll(
-          version.connectors.map(
-            (item) => PageConnector.fromJson(item.toJson()),
-          ),
-        );
-      page.shapes
-        ..clear()
-        ..addAll(
-          version.shapes.map((item) => PageShapeItem.fromJson(item.toJson())),
-        );
-      page.charts
-        ..clear()
-        ..addAll(
-          version.charts.map((item) => PageChartItem.fromJson(item.toJson())),
-        );
+      // 聚合负责捕获恢复前的独立快照、裁剪历史，以及用深拷贝恢复完整载荷。
+      page.addVersion(time: DateTime.now(), summary: '恢复前自动备份');
+      page.restoreVersion(version);
       page.updatedAt = DateTime.now();
     });
     await _save();

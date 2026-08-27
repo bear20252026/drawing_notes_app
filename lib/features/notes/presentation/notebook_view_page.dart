@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
@@ -171,45 +170,13 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
         // 自动记录版本快照（C1 + C2 diff 摘要）。
         for (final page in _notebook.pages) {
           if (page.cloneOf != null) continue; // 克隆页不存本地快照（内容在源）
-          // 可用性修复：内容未变化时不记录快照（否则每次保存——包括
-          // 新建空页面、打开未修改就返回——都会堆叠"内容微调"空白快照，
-          // 污染版本历史）。比较笔画数 + 文字数 + 文本内容。
-          if (_hasContentChanged(page)) {
-            // C2：相对上一版计算变更 diff 摘要（笔画数/文字数）。
-            final prev = page.history.isNotEmpty ? page.history.first : null;
-            final summary = _diffSummary(page, prev);
-            // 版本快照必须**深拷贝**（评审发现 P2）：page.document/textItems 是
-            // 编辑器实时修改的同一对象，若存引用则所有版本都指向当前状态，
-            // 无法回溯、diff 恒为 0、文件里重复序列化当前内容。
-            page.history.insert(
-              0,
-              PageVersion(
-                time: DateTime.now(),
-                document: DrawingDocument.fromJson(page.document.toJson()),
-                textItems: page.textItems
-                    .map((t) => PageTextItem.fromJson(t.toJson()))
-                    .toList(),
-                imageItems: page.imageItems
-                    .map((item) => PageImageItem.fromJson(item.toJson()))
-                    .toList(),
-                connectors: page.connectors
-                    .map((item) => PageConnector.fromJson(item.toJson()))
-                    .toList(),
-                shapes: page.shapes
-                    .map((item) => PageShapeItem.fromJson(item.toJson()))
-                    .toList(),
-                charts: page.charts
-                    .map((item) => PageChartItem.fromJson(item.toJson()))
-                    .toList(),
-                summary: summary,
-              ),
+          // 内容未变化时不记录快照，避免打开未修改页面或新建空页造成无意义
+          // 历史记录。完整载荷的比较、深拷贝和版本上限均由页面聚合保持。
+          if (page.hasChangedSinceLatestVersion) {
+            page.addVersion(
+              time: DateTime.now(),
+              summary: page.changeSummarySinceLatestVersion,
             );
-            if (page.history.length > NotebookPage.maxHistoryVersions) {
-              page.history.removeRange(
-                NotebookPage.maxHistoryVersions,
-                page.history.length,
-              );
-            }
           }
         }
         // 加密笔记本：用会话密钥重加密最新内容后保存（评审发现 P1 修复 +
@@ -247,99 +214,6 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
       _saving = false;
       if (identical(_saveCompletion, completion)) _saveCompletion = null;
     }
-  }
-
-  /// 页面内容是否相比上一版本有变化。
-  ///
-  /// 版本回溯必须覆盖所有可编辑对象，不能只按笔画数与文字数量判断；
-  /// 否则图片、形状、图表或连接线变更会被静默漏存，恢复会产生混合状态。
-  bool _hasContentChanged(NotebookPage page) {
-    final prev = page.history.isNotEmpty ? page.history.first : null;
-    if (prev == null) return _pageHasContent(page);
-    return _contentSignature(
-          document: page.document,
-          textItems: page.textItems,
-          imageItems: page.imageItems,
-          connectors: page.connectors,
-          shapes: page.shapes,
-          charts: page.charts,
-        ) !=
-        _contentSignature(
-          document: prev.document,
-          textItems: prev.textItems,
-          imageItems: prev.imageItems,
-          connectors: prev.connectors,
-          shapes: prev.shapes,
-          charts: prev.charts,
-        );
-  }
-
-  bool _pageHasContent(NotebookPage page) =>
-      page.document.layers.any((layer) => layer.strokes.isNotEmpty) ||
-      page.textItems.isNotEmpty ||
-      page.imageItems.isNotEmpty ||
-      page.connectors.isNotEmpty ||
-      page.shapes.isNotEmpty ||
-      page.charts.isNotEmpty;
-
-  String _contentSignature({
-    required DrawingDocument document,
-    required List<PageTextItem> textItems,
-    required List<PageImageItem> imageItems,
-    required List<PageConnector> connectors,
-    required List<PageShapeItem> shapes,
-    required List<PageChartItem> charts,
-  }) => jsonEncode({
-    'document': document.toJson(),
-    'textItems': textItems.map((item) => item.toJson()).toList(),
-    'imageItems': imageItems.map((item) => item.toJson()).toList(),
-    'connectors': connectors.map((item) => item.toJson()).toList(),
-    'shapes': shapes.map((item) => item.toJson()).toList(),
-    'charts': charts.map((item) => item.toJson()).toList(),
-  });
-
-  /// 计算页面相对上一版的变更 diff 摘要（C2，借鉴 GenOffice 快照 diff 思路）。
-  String _diffSummary(NotebookPage page, PageVersion? prev) {
-    if (prev == null) return '首次保存';
-    final strokesNow = page.document.layers.fold<int>(
-      0,
-      (sum, l) => sum + l.strokes.length,
-    );
-    final strokesPrev = prev.document.layers.fold<int>(
-      0,
-      (sum, l) => sum + l.strokes.length,
-    );
-    final parts = <String>[];
-    final ds = strokesNow - strokesPrev;
-    if (ds != 0) parts.add('笔画${ds > 0 ? '+' : ''}$ds');
-    if (page.textItems.length != prev.textItems.length) {
-      parts.add(
-        '文字${page.textItems.length > prev.textItems.length ? '+' : ''}'
-        '${page.textItems.length - prev.textItems.length}',
-      );
-    }
-    // 文字内容是否被修改（数量相同但文本有变化）。
-    var textChanged = false;
-    if (page.textItems.length == prev.textItems.length) {
-      for (var i = 0; i < page.textItems.length; i++) {
-        if (page.textItems[i].text != prev.textItems[i].text) {
-          textChanged = true;
-          break;
-        }
-      }
-    }
-    if (textChanged) parts.add('文字修改');
-    final imageDiff = page.imageItems.length - prev.imageItems.length;
-    final shapeDiff = page.shapes.length - prev.shapes.length;
-    final chartDiff = page.charts.length - prev.charts.length;
-    final connectorDiff = page.connectors.length - prev.connectors.length;
-    if (imageDiff != 0) parts.add('图片${imageDiff > 0 ? '+' : ''}$imageDiff');
-    if (shapeDiff != 0) parts.add('形状${shapeDiff > 0 ? '+' : ''}$shapeDiff');
-    if (chartDiff != 0) parts.add('图表${chartDiff > 0 ? '+' : ''}$chartDiff');
-    if (connectorDiff != 0) {
-      parts.add('连线${connectorDiff > 0 ? '+' : ''}$connectorDiff');
-    }
-    return parts.isEmpty ? '内容微调' : parts.join(' · ');
   }
 
   /// 导入 Markdown/文本文件，按段落生成文字块（C4，借鉴 nb 导入）。
