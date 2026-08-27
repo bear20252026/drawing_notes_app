@@ -42,25 +42,21 @@ class DocumentObjectEditingSession {
   DocumentObjectEditingSession(this._host);
 
   final DocumentObjectEditingHost _host;
-  final Set<String> _selectedDocumentShapeIds = <String>{};
-  final Set<String> _selectedDocumentImageIds = <String>{};
-  String? _selectedDocumentImageId;
+  final _DocumentObjectSelectionState _selection =
+      _DocumentObjectSelectionState();
   DocumentImageItem? _documentImageTransformBefore;
-  String? _selectedDocumentShapeId;
   List<PageShapeItem>? _documentShapesTransformBefore;
   DocumentObjectsSnapshot? _documentObjectsTransformBefore;
 
   DrawingDocument get _document => _host.document;
 
-  Set<String> get selectedDocumentShapeIds =>
-      Set<String>.unmodifiable(_selectedDocumentShapeIds);
-  Set<String> get selectedDocumentImageIds =>
-      Set<String>.unmodifiable(_selectedDocumentImageIds);
+  Set<String> get selectedDocumentShapeIds => _selection.shapeIds;
+  Set<String> get selectedDocumentImageIds => _selection.imageIds;
 
   /// 独立画布当前选中的图片。图片选择与笔画套索分离，避免文档图片被错误
-  String? get selectedDocumentImageId => _selectedDocumentImageId;
+  String? get selectedDocumentImageId => _selection.activeImageId;
   DocumentImageItem? get selectedDocumentImage {
-    final id = _selectedDocumentImageId;
+    final id = _selection.activeImageId;
     if (id == null) return null;
     for (final item in _document.imageItems) {
       if (item.id == id) return item;
@@ -79,22 +75,13 @@ class DocumentObjectEditingSession {
         .where((item) => item.bounds.contains(canvasPoint))
         .firstOrNull;
     _host.clearStrokeSelection();
-    _selectedDocumentImageIds
-      ..clear()
-      ..addAll(hit == null ? const <String>[] : <String>[hit.id]);
-    _selectedDocumentShapeIds.clear();
-    _selectedDocumentImageId = hit?.id;
-    _selectedDocumentShapeId = null;
+    _selection.selectImage(hit?.id);
     _host.notifyChanged();
     return hit;
   }
 
   void clearDocumentImageSelection() {
-    if (_selectedDocumentImageId == null && _selectedDocumentImageIds.isEmpty) {
-      return;
-    }
-    _selectedDocumentImageId = null;
-    _selectedDocumentImageIds.clear();
+    if (!_selection.clearImages()) return;
     _host.notifyChanged();
   }
 
@@ -191,7 +178,7 @@ class DocumentObjectEditingSession {
     if (image == null || image.locked) return;
     final before = image.copy();
     _document.imageItems.remove(image);
-    _selectedDocumentImageId = null;
+    _selection.removeImage(image.id);
     _document.touch();
     _host.pushCommand(
       DocumentImageStateCommand(
@@ -209,7 +196,7 @@ class DocumentObjectEditingSession {
     final index = _document.imageItems.indexWhere((item) => item.id == imageId);
     if (snapshot == null) {
       if (index >= 0) _document.imageItems.removeAt(index);
-      if (_selectedDocumentImageId == imageId) _selectedDocumentImageId = null;
+      _selection.removeImage(imageId);
     } else if (index >= 0) {
       _document.imageItems[index].restoreFrom(snapshot);
     } else {
@@ -232,9 +219,9 @@ class DocumentObjectEditingSession {
       a.locked == b.locked;
 
   /// 独立画布当前选中的形状。形状选择与图片/笔画选择分离，避免对象 ID
-  String? get selectedDocumentShapeId => _selectedDocumentShapeId;
+  String? get selectedDocumentShapeId => _selection.activeShapeId;
   PageShapeItem? get selectedDocumentShape {
-    final id = _selectedDocumentShapeId;
+    final id = _selection.activeShapeId;
     if (id == null) return null;
     for (final shape in _document.shapes) {
       if (shape.id == id) return shape;
@@ -257,22 +244,13 @@ class DocumentObjectEditingSession {
       }
     }
     _host.clearStrokeSelection();
-    _selectedDocumentShapeIds
-      ..clear()
-      ..addAll(hit == null ? const <String>[] : <String>[hit.id]);
-    _selectedDocumentImageIds.clear();
-    _selectedDocumentShapeId = hit?.id;
-    _selectedDocumentImageId = null;
+    _selection.selectShape(hit?.id);
     _host.notifyChanged();
     return hit;
   }
 
   void clearDocumentShapeSelection() {
-    if (_selectedDocumentShapeId == null && _selectedDocumentShapeIds.isEmpty) {
-      return;
-    }
-    _selectedDocumentShapeId = null;
-    _selectedDocumentShapeIds.clear();
+    if (!_selection.clearShapes()) return;
     _host.notifyChanged();
   }
 
@@ -373,7 +351,7 @@ class DocumentObjectEditingSession {
       <String>{selected.id},
     );
     _document.shapes.remove(selected);
-    _selectedDocumentShapeId = null;
+    _selection.removeShape(selected.id);
     _document.touch();
     _host.pushCommand(
       DocumentShapesSnapshotCommand(
@@ -390,9 +368,10 @@ class DocumentObjectEditingSession {
     _document.shapes
       ..clear()
       ..addAll(snapshot.map((shape) => shape.copy()));
-    if (selectedDocumentShape == null) {
-      _selectedDocumentShapeId = null;
-    }
+    _selection.retainExisting(
+      shapeIds: _document.shapes.map((shape) => shape.id),
+      imageIds: _document.imageItems.map((image) => image.id),
+    );
     _document.touch();
     _host.notifyChanged();
   }
@@ -418,22 +397,20 @@ class DocumentObjectEditingSession {
   /// 当前独立文档中是否存在由框选/套索确定的混合对象集合。
   bool get hasMixedDocumentObjectSelection =>
       _host.strokeSelection.selectedStrokeIndices.isNotEmpty ||
-      _selectedDocumentShapeIds.isNotEmpty ||
-      _selectedDocumentImageIds.isNotEmpty;
+      _selection.hasObjectSelection;
 
   int get selectedDocumentObjectCount =>
       _host.strokeSelection.selectedStrokeIndices.length +
-      _selectedDocumentShapeIds.length +
-      _selectedDocumentImageIds.length;
+      _selection.objectSelectionCount;
 
   /// 多选中是否包含锁定的形状或图片。锁定对象保持可见选择反馈，但不会参与
   /// 移动、缩放和删除，防止资料底图或固定节点被批量误触。
   bool get mixedDocumentSelectionHasLockedObjects =>
       _document.shapes.any(
-        (shape) => _selectedDocumentShapeIds.contains(shape.id) && shape.locked,
+        (shape) => _selection.containsShape(shape.id) && shape.locked,
       ) ||
       _document.imageItems.any(
-        (image) => _selectedDocumentImageIds.contains(image.id) && image.locked,
+        (image) => _selection.containsImage(image.id) && image.locked,
       );
 
   /// 以矩形或套索多边形命中笔画、形状和图片。对象与选区相交即被选择；对
@@ -457,34 +434,19 @@ class DocumentObjectEditingSession {
         selectedStrokeIndices: selectedStrokeIndices,
       ),
     );
-    _selectedDocumentShapeIds
-      ..clear()
-      ..addAll(hitTest.shapeIds);
-    _selectedDocumentImageIds
-      ..clear()
-      ..addAll(hitTest.imageIds);
-    _selectedDocumentShapeId = hitTest.shapeIds.length == 1
-        ? hitTest.shapeIds.single
-        : null;
-    _selectedDocumentImageId = hitTest.imageIds.length == 1
-        ? hitTest.imageIds.single
-        : null;
+    _selection.selectMixed(
+      shapeIds: hitTest.shapeIds,
+      imageIds: hitTest.imageIds,
+    );
     _host.notifyChanged();
   }
 
   /// 清除笔画、形状和图片的统一选择状态。
   void clearDocumentObjectSelection() {
     final changed =
-        _host.strokeSelection.polygon.isNotEmpty ||
-        _selectedDocumentShapeIds.isNotEmpty ||
-        _selectedDocumentImageIds.isNotEmpty ||
-        _selectedDocumentShapeId != null ||
-        _selectedDocumentImageId != null;
+        _host.strokeSelection.polygon.isNotEmpty || _selection.hasAnySelection;
     _host.clearStrokeSelection();
-    _selectedDocumentShapeIds.clear();
-    _selectedDocumentImageIds.clear();
-    _selectedDocumentShapeId = null;
-    _selectedDocumentImageId = null;
+    _selection.clearAll();
     if (changed) _host.notifyChanged();
   }
 
@@ -495,9 +457,9 @@ class DocumentObjectEditingSession {
         strokes: _host.currentLayer.strokes,
         selectedStrokeIndices: _host.strokeSelection.selectedStrokeIndices,
         shapes: _document.shapes,
-        selectedShapeIds: _selectedDocumentShapeIds,
+        selectedShapeIds: _selection.shapeIds,
         images: _document.imageItems,
-        selectedImageIds: _selectedDocumentImageIds,
+        selectedImageIds: _selection.imageIds,
       );
 
   DocumentObjectsSnapshot _documentObjectsSnapshot() =>
@@ -511,9 +473,9 @@ class DocumentObjectEditingSession {
       DocumentObjectTransformService.hasTransformableSelection(
         selectedStrokeIndices: _host.strokeSelection.selectedStrokeIndices,
         shapes: _document.shapes,
-        selectedShapeIds: _selectedDocumentShapeIds,
+        selectedShapeIds: _selection.shapeIds,
         images: _document.imageItems,
-        selectedImageIds: _selectedDocumentImageIds,
+        selectedImageIds: _selection.imageIds,
       );
 
   /// 平移统一选择集合。绑定箭头在目标节点变化后统一重投影，选中的自由箭头端
@@ -551,9 +513,9 @@ class DocumentObjectEditingSession {
       strokes: _host.currentLayer.strokes,
       selectedStrokeIndices: _host.strokeSelection.selectedStrokeIndices,
       shapes: _document.shapes,
-      selectedShapeIds: _selectedDocumentShapeIds,
+      selectedShapeIds: _selection.shapeIds,
       images: _document.imageItems,
-      selectedImageIds: _selectedDocumentImageIds,
+      selectedImageIds: _selection.imageIds,
       transform: transform,
       scale: scale,
     );
@@ -590,10 +552,10 @@ class DocumentObjectEditingSession {
   /// 全部已锁时统一解锁。笔画没有锁定字段，不受此操作影响。
   void toggleSelectedDocumentObjectsLock() {
     final selectedShapes = _document.shapes
-        .where((shape) => _selectedDocumentShapeIds.contains(shape.id))
+        .where((shape) => _selection.containsShape(shape.id))
         .toList(growable: false);
     final selectedImages = _document.imageItems
-        .where((image) => _selectedDocumentImageIds.contains(image.id))
+        .where((image) => _selection.containsImage(image.id))
         .toList(growable: false);
     if (selectedShapes.isEmpty && selectedImages.isEmpty) return;
     final before = _documentObjectsSnapshot();
@@ -626,9 +588,9 @@ class DocumentObjectEditingSession {
       strokes: _host.currentLayer.strokes,
       selectedStrokeIndices: _host.strokeSelection.selectedStrokeIndices,
       shapes: _document.shapes,
-      selectedShapeIds: _selectedDocumentShapeIds,
+      selectedShapeIds: _selection.shapeIds,
       images: _document.imageItems,
-      selectedImageIds: _selectedDocumentImageIds,
+      selectedImageIds: _selection.imageIds,
     );
     if (!deleted) return;
     clearDocumentObjectSelection();
@@ -656,23 +618,123 @@ class DocumentObjectEditingSession {
     if (correctedLayerIndex != null) {
       _host.setCurrentLayerIndexForRestore(correctedLayerIndex);
     }
-    _selectedDocumentShapeIds.removeWhere(
-      (id) => !_document.shapes.any((shape) => shape.id == id),
+    _selection.retainExisting(
+      shapeIds: _document.shapes.map((shape) => shape.id),
+      imageIds: _document.imageItems.map((image) => image.id),
     );
-    _selectedDocumentImageIds.removeWhere(
-      (id) => !_document.imageItems.any((image) => image.id == id),
-    );
-    if (_selectedDocumentShapeId != null &&
-        !_selectedDocumentShapeIds.contains(_selectedDocumentShapeId)) {
-      _selectedDocumentShapeId = null;
-    }
-    if (_selectedDocumentImageId != null &&
-        !_selectedDocumentImageIds.contains(_selectedDocumentImageId)) {
-      _selectedDocumentImageId = null;
-    }
     _document.touch();
     _host.rebuildCacheMap();
     _host.notifyChanged();
     _host.rebuildAll();
+  }
+}
+
+/// 独立画布对象选择的会话级暂态。
+///
+/// 此对象只维护形状/图片的选择 id 与活动 id 之间的一致性；不持有文档、
+/// 控制器、历史、缓存或通知能力。它仅由 [DocumentObjectEditingSession] 使用，
+/// 不与 Riverpod 的只读可见选择状态构成第二个写入源。
+class _DocumentObjectSelectionState {
+  final Set<String> _shapeIds = <String>{};
+  final Set<String> _imageIds = <String>{};
+  String? _activeShapeId;
+  String? _activeImageId;
+
+  Set<String> get shapeIds => Set<String>.unmodifiable(_shapeIds);
+  Set<String> get imageIds => Set<String>.unmodifiable(_imageIds);
+  String? get activeShapeId => _activeShapeId;
+  String? get activeImageId => _activeImageId;
+
+  bool get hasObjectSelection => _shapeIds.isNotEmpty || _imageIds.isNotEmpty;
+  bool get hasAnySelection =>
+      hasObjectSelection || _activeShapeId != null || _activeImageId != null;
+  int get objectSelectionCount => _shapeIds.length + _imageIds.length;
+
+  bool containsShape(String id) => _shapeIds.contains(id);
+  bool containsImage(String id) => _imageIds.contains(id);
+
+  /// 设置单一图片选择，并清除形状选择及两种活动对象的互斥状态。
+  void selectImage(String? imageId) {
+    _imageIds
+      ..clear()
+      ..addAll(imageId == null ? const <String>[] : <String>[imageId]);
+    _shapeIds.clear();
+    _activeImageId = imageId;
+    _activeShapeId = null;
+  }
+
+  /// 设置单一形状选择，并清除图片选择及两种活动对象的互斥状态。
+  void selectShape(String? shapeId) {
+    _shapeIds
+      ..clear()
+      ..addAll(shapeId == null ? const <String>[] : <String>[shapeId]);
+    _imageIds.clear();
+    _activeShapeId = shapeId;
+    _activeImageId = null;
+  }
+
+  /// 设置多对象选择。活动 id 只在对应类型恰好选择一个对象时保留。
+  void selectMixed({
+    required Iterable<String> shapeIds,
+    required Iterable<String> imageIds,
+  }) {
+    _shapeIds
+      ..clear()
+      ..addAll(shapeIds);
+    _imageIds
+      ..clear()
+      ..addAll(imageIds);
+    _activeShapeId = _shapeIds.length == 1 ? _shapeIds.single : null;
+    _activeImageId = _imageIds.length == 1 ? _imageIds.single : null;
+  }
+
+  bool clearShapes() {
+    final changed = _shapeIds.isNotEmpty || _activeShapeId != null;
+    _shapeIds.clear();
+    _activeShapeId = null;
+    return changed;
+  }
+
+  bool clearImages() {
+    final changed = _imageIds.isNotEmpty || _activeImageId != null;
+    _imageIds.clear();
+    _activeImageId = null;
+    return changed;
+  }
+
+  bool clearAll() {
+    final changed = hasAnySelection;
+    _shapeIds.clear();
+    _imageIds.clear();
+    _activeShapeId = null;
+    _activeImageId = null;
+    return changed;
+  }
+
+  void removeShape(String id) {
+    _shapeIds.remove(id);
+    if (_activeShapeId == id) _activeShapeId = null;
+  }
+
+  void removeImage(String id) {
+    _imageIds.remove(id);
+    if (_activeImageId == id) _activeImageId = null;
+  }
+
+  /// 快照恢复后只保留仍属于文档的对象选择，并清除失效活动对象。
+  void retainExisting({
+    required Iterable<String> shapeIds,
+    required Iterable<String> imageIds,
+  }) {
+    final existingShapeIds = shapeIds.toSet();
+    final existingImageIds = imageIds.toSet();
+    _shapeIds.removeWhere((id) => !existingShapeIds.contains(id));
+    _imageIds.removeWhere((id) => !existingImageIds.contains(id));
+    if (_activeShapeId == null || !_shapeIds.contains(_activeShapeId)) {
+      _activeShapeId = null;
+    }
+    if (_activeImageId == null || !_imageIds.contains(_activeImageId)) {
+      _activeImageId = null;
+    }
   }
 }

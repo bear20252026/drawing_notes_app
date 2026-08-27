@@ -176,6 +176,131 @@ void main() {
     expect(host.fullRebuilds, 1);
     expect(host.changeNotifications, notificationsBeforeRestore + 1);
   });
+
+  test('图片和形状单点选择互斥，且选择集合只读', () {
+    final host = _ObjectEditingHost(
+      DrawingDocument(
+        id: 'exclusive_selection',
+        title: '互斥选择',
+        infinite: true,
+        shapes: <PageShapeItem>[
+          PageShapeItem(
+            id: 'shape',
+            shapeType: ShapeType.rect,
+            x: 10,
+            y: 10,
+            width: 20,
+            height: 20,
+          ),
+        ],
+        imageItems: <DocumentImageItem>[
+          DocumentImageItem(
+            id: 'image',
+            x: 60,
+            y: 10,
+            width: 20,
+            height: 20,
+            filePath: '/assets/image.png',
+          ),
+        ],
+      ),
+    );
+    final session = DocumentObjectEditingSession(host);
+
+    session.selectDocumentImageAt(const Offset(65, 15));
+    expect(session.selectedDocumentImageIds, {'image'});
+    expect(session.selectedDocumentImageId, 'image');
+    expect(session.selectedDocumentShapeIds, isEmpty);
+
+    session.selectDocumentShapeAt(const Offset(15, 15));
+    expect(session.selectedDocumentShapeIds, {'shape'});
+    expect(session.selectedDocumentShapeId, 'shape');
+    expect(session.selectedDocumentImageIds, isEmpty);
+    expect(session.selectedDocumentImageId, isNull);
+    expect(
+      () => session.selectedDocumentShapeIds.add('unexpected'),
+      throwsUnsupportedError,
+    );
+  });
+
+  test('混合单选保留活动对象，按类型清理不影响另一类选择', () {
+    final host = _ObjectEditingHost(
+      DrawingDocument(
+        id: 'mixed_selection',
+        title: '混合选择',
+        infinite: true,
+        shapes: <PageShapeItem>[
+          PageShapeItem(
+            id: 'shape',
+            shapeType: ShapeType.ellipse,
+            x: 10,
+            y: 10,
+            width: 20,
+            height: 20,
+          ),
+        ],
+        imageItems: <DocumentImageItem>[
+          DocumentImageItem(
+            id: 'image',
+            x: 50,
+            y: 10,
+            width: 20,
+            height: 20,
+            filePath: '/assets/image.png',
+          ),
+        ],
+      ),
+    );
+    final session = DocumentObjectEditingSession(host);
+
+    session.selectDocumentObjectsInPolygon(const <Offset>[
+      Offset(0, 0),
+      Offset(100, 0),
+      Offset(100, 100),
+      Offset(0, 100),
+    ], selectedStrokeIndices: const <int>[]);
+    expect(session.selectedDocumentShapeIds, {'shape'});
+    expect(session.selectedDocumentImageIds, {'image'});
+    expect(session.selectedDocumentShapeId, 'shape');
+    expect(session.selectedDocumentImageId, 'image');
+
+    session.clearDocumentImageSelection();
+    expect(session.selectedDocumentImageIds, isEmpty);
+    expect(session.selectedDocumentImageId, isNull);
+    expect(session.selectedDocumentShapeIds, {'shape'});
+    expect(session.selectedDocumentShapeId, 'shape');
+
+    session.clearDocumentShapeSelection();
+    expect(session.hasMixedDocumentObjectSelection, isFalse);
+    expect(session.selectedDocumentObjectCount, 0);
+  });
+
+  test('形状快照恢复清理已经不存在的活动形状选择', () {
+    final host = _ObjectEditingHost(
+      DrawingDocument(
+        id: 'shape_restore_selection',
+        title: '形状恢复选择',
+        infinite: true,
+        shapes: <PageShapeItem>[
+          PageShapeItem(
+            id: 'shape',
+            shapeType: ShapeType.line,
+            x: 10,
+            y: 10,
+            width: 20,
+            height: 20,
+          ),
+        ],
+      ),
+    );
+    final session = DocumentObjectEditingSession(host);
+    session.selectDocumentShapeAt(const Offset(15, 15));
+
+    session.restoreDocumentShapesSnapshot(const <PageShapeItem>[]);
+
+    expect(session.selectedDocumentShapeIds, isEmpty);
+    expect(session.selectedDocumentShapeId, isNull);
+  });
 }
 
 class _ObjectEditingHost implements DocumentObjectEditingHost {
