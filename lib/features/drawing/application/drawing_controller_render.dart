@@ -6,21 +6,12 @@ part of 'drawing_controller.dart';
 
 /// 渲染/导出域（拆分自 drawing_controller.dart）。
 extension DrawingControllerRenderOps on DrawingController {
-  Offset viewToCanvas(Offset viewPoint) {
-    final c = _canvasCenter;
-    final t = _rotatePoint(viewPoint - c - viewOffset, -viewRotation);
-    return t / viewScale + c;
-  }
-  Offset canvasToView(Offset canvasPoint) {
-    final c = _canvasCenter;
-    final t = _rotatePoint((canvasPoint - c) * viewScale, viewRotation);
-    return t + c + viewOffset;
-  }
-  static Offset _rotatePoint(Offset p, double angle) {
-    final c = math.cos(angle);
-    final s = math.sin(angle);
-    return Offset(p.dx * c - p.dy * s, p.dx * s + p.dy * c);
-  }
+  Offset viewToCanvas(Offset viewPoint) =>
+      _viewport.viewToCanvas(viewPoint, canvasCenter: _canvasCenter);
+
+  Offset canvasToView(Offset canvasPoint) =>
+      _viewport.canvasToView(canvasPoint, canvasCenter: _canvasCenter);
+
   Future<Color?> pickColorAt(Offset canvasPoint) async {
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
@@ -46,6 +37,7 @@ extension DrawingControllerRenderOps on DrawingController {
       picture.dispose();
     }
   }
+
   Rect contentBounds() {
     Rect? result;
     void include(Rect? value) {
@@ -67,6 +59,7 @@ extension DrawingControllerRenderOps on DrawingController {
     }
     return (result ?? const Rect.fromLTWH(-512, -384, 1024, 768)).inflate(24);
   }
+
   void _paintDocument(
     ui.Canvas canvas, {
     Rect? bounds,
@@ -104,6 +97,7 @@ extension DrawingControllerRenderOps on DrawingController {
       ShapeRenderer.drawDocumentShape(canvas, shapeForRendering(shape));
     }
   }
+
   PageShapeItem shapeForRendering(PageShapeItem shape) {
     if (shape.shapeType != ShapeType.arrow ||
         (shape.startBinding == null && shape.endBinding == null)) {
@@ -121,6 +115,7 @@ extension DrawingControllerRenderOps on DrawingController {
     );
     return rendered;
   }
+
   Future<Uint8List?> renderToPng({
     double scale = 1.0,
     Set<BrushType> excludedTypes = const {},

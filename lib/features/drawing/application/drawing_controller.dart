@@ -19,6 +19,7 @@ import 'package:drawing_notes_app/features/drawing/application/color_sampling_se
 import 'package:drawing_notes_app/features/drawing/application/image_transform_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/layer_render_cache_coordinator.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_transaction.dart';
+import 'package:drawing_notes_app/features/drawing/application/drawing_viewport.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
 import 'package:drawing_notes_app/features/drawing/application/temporary_ink_session.dart';
 import 'package:drawing_notes_app/core/rendering/ink_layer_painter.dart';
@@ -198,14 +199,19 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
 
   // ---------------- 视口变换 ----------------
 
+  final DrawingViewport _viewport = DrawingViewport();
+
   /// 画布缩放比例（1.0 = 实际大小）。
-  double viewScale = 1.0;
+  double get viewScale => _viewport.scale;
+  set viewScale(double value) => _viewport.scale = value;
 
   /// 画布在视口中的平移偏移（画布中心相对视口中心的位移）。
-  Offset viewOffset = Offset.zero;
+  Offset get viewOffset => _viewport.offset;
+  set viewOffset(Offset value) => _viewport.offset = value;
 
   /// 画布旋转角度（弧度，Phase 7 双指旋转用）。
-  double viewRotation = 0.0;
+  double get viewRotation => _viewport.rotation;
+  set viewRotation(double value) => _viewport.rotation = value;
 
   /// 画布文档中心（缩放/旋转的基准点）。
   Offset get _canvasCenter => _document.size.center(Offset.zero);
