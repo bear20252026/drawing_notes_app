@@ -97,9 +97,11 @@ flowchart LR
 
 编辑器展示层中，`EditorCanvasInteractionState` 专门拥有混排画布的短生命周期交互暂态：单选/多选结果、框选草稿、拖动轨迹、对齐参考线、删除淡出目标、图片裁剪目标及文字缩放锚点。`EditorPage` 仍是 Widget、控制器、页面会话和持久化通知的组合根，并在既有 `setState` 时序内调用该协作者；协作者不持有 `DrawingController`、文档、I/O、Widget 或通知回调。多选、轨迹、参考线和删除目标仅以只读视图提供给 overlay，变更必须经由显式命令完成，以避免多个 `part` 文件绕过页面的状态边界。
 
+`EditorOverlayItemPlan` 是混排对象的只读展示计划：它在画布模式中对文字块排序，在笔记页模式中将文字、图片、形状和图表以类型化条目合并并按 `zOrder` 排序。计划不持有 `Widget`、控制器、页面状态或手势回调；`EditorPage` 只消费条目构建对应 overlay，并继续绑定编辑、选择、拖动、裁剪和缩放动作。该边界消除了按层级排序后为每个条目重复遍历多个集合的页面内分派逻辑。
+
 图片和形状的 Riverpod 可见选择状态位于 `object_selection_notifiers.dart`，并仍只暴露不可变 id 状态；它们不拥有或修改 `DocumentObjectEditingSession` 的运行时选择，避免出现第二个写入源，同时使对象相关可见状态保持在一个文件预算内。
 
-下一阶段应优先评估编辑器展示层的工具栏状态或 overlay 组装边界，或将 `PageTemplate`、`CloneRef` 和 `PageVersion` 等笔记管理模型与可编辑页面载荷分离；跨 feature 契约始终只暴露实际用到的数据和操作。
+下一阶段应优先评估编辑器展示层的工具栏动作装配边界，或将 `PageTemplate`、`CloneRef` 和 `PageVersion` 等笔记管理模型与可编辑页面载荷分离；跨 feature 契约始终只暴露实际用到的数据和操作。
 
 ## 5. 本地验证
 
