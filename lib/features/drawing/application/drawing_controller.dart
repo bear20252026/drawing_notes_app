@@ -21,6 +21,7 @@ import 'package:drawing_notes_app/features/drawing/application/selection_geometr
 import 'package:drawing_notes_app/features/drawing/application/drawing_selection_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/color_sampling_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/layer_render_cache_coordinator.dart';
+import 'package:drawing_notes_app/features/drawing/application/layer_editing_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/object_eraser_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_transaction.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_viewport.dart';
@@ -51,7 +52,7 @@ part 'drawing_controller_render.dart';
 part 'drawing_controller_history.dart';
 
 class DrawingController extends ChangeNotifier
-    implements DocCommandContext, DocumentObjectEditingHost {
+    implements DocCommandContext, DocumentObjectEditingHost, LayerEditingHost {
   DrawingController(this._document) {
     _temporaryInkSession = TemporaryInkSession(onFrameTick: tickFrame);
     _documentImageCache = DocumentImageCache(
@@ -64,6 +65,7 @@ class DrawingController extends ChangeNotifier
       isOwnerDisposed: () => _disposed,
     );
     _documentObjectEditingSession = DocumentObjectEditingSession(this);
+    _layerEditingSession = LayerEditingSession(this);
   }
 
   final DrawingDocument _document;
@@ -108,6 +110,22 @@ class DrawingController extends ChangeNotifier
   }
 
   @override
+  void setCurrentLayerIndexForLayerEdit(int value) {
+    _currentLayerIndex = value;
+  }
+
+  @override
+  void pushLayerSnapshot(List<Layer> before, List<Layer> after) {
+    _pushHistory(HistoryEntry(before: before, after: after));
+  }
+
+  @override
+  void addLayerCache(Layer layer) => _addLayerCache(layer);
+
+  @override
+  void removeLayerCache(String layerId) => _removeLayerCache(layerId);
+
+  @override
   Selection get strokeSelection => _selectionSession.selection;
 
   @override
@@ -144,6 +162,9 @@ class DrawingController extends ChangeNotifier
 
   /// 图片、形状及混合对象的选择和手势中间态由独立会话持有。
   late final DocumentObjectEditingSession _documentObjectEditingSession;
+
+  /// 图层增删、排序、合并和清空的快照编排由独立会话持有。
+  late final LayerEditingSession _layerEditingSession;
   bool _disposed = false;
   bool get isDisposed => _disposed;
 
