@@ -63,6 +63,14 @@ void main() {
     );
   });
 
+  test('规则3c：连接线画笔仅依赖绘图展示快照', () {
+    shouldNotDependOn(
+      filesMatching('features/drawing/presentation/editor_components.dart'),
+      filesMatching('features/notes/domain/**'),
+      graph,
+    );
+  });
+
   test('规则3：feature 非 domain 依赖禁止（domain 实体双向共享合规）', () {
     // domain 是最内层纯数据（check_boundaries 规则 1：core 允许依赖
     // features domain 实体），实体双向共享合规；真正禁止的是跨 feature

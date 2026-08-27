@@ -110,7 +110,13 @@ extension _EditorPageOverlays on _EditorPageState {
                           Positioned.fill(
                             child: CustomPaint(
                               painter: ConnectorPainter(
-                                page: widget.page!,
+                                connectors: widget.page!.connectors,
+                                itemPositions: {
+                                  for (final text in widget.page!.textItems)
+                                    text.id: text.position,
+                                  for (final image in widget.page!.imageItems)
+                                    image.id: image.position,
+                                },
                                 controller: _controller,
                               ),
                             ),
