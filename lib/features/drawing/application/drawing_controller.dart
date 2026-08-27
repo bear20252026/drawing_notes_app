@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'dart:ui' show Color, Offset, Paint, FilterQuality, Rect;
 
@@ -19,6 +18,7 @@ import 'package:drawing_notes_app/features/drawing/application/document_edit_his
 import 'package:drawing_notes_app/features/drawing/application/document_object_editing_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/selection_geometry_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_selection_session.dart';
+import 'package:drawing_notes_app/features/drawing/application/stroke_selection_editing_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/color_sampling_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/layer_render_cache_coordinator.dart';
 import 'package:drawing_notes_app/features/drawing/application/layer_editing_session.dart';
@@ -52,7 +52,11 @@ part 'drawing_controller_render.dart';
 part 'drawing_controller_history.dart';
 
 class DrawingController extends ChangeNotifier
-    implements DocCommandContext, DocumentObjectEditingHost, LayerEditingHost {
+    implements
+        DocCommandContext,
+        DocumentObjectEditingHost,
+        LayerEditingHost,
+        StrokeSelectionEditingHost {
   DrawingController(this._document) {
     _temporaryInkSession = TemporaryInkSession(onFrameTick: tickFrame);
     _documentImageCache = DocumentImageCache(
@@ -66,6 +70,7 @@ class DrawingController extends ChangeNotifier
     );
     _documentObjectEditingSession = DocumentObjectEditingSession(this);
     _layerEditingSession = LayerEditingSession(this);
+    _strokeSelectionEditingSession = StrokeSelectionEditingSession(this);
   }
 
   final DrawingDocument _document;
@@ -126,6 +131,9 @@ class DrawingController extends ChangeNotifier
   void removeLayerCache(String layerId) => _removeLayerCache(layerId);
 
   @override
+  DrawingSelectionSession get selectionSession => _selectionSession;
+
+  @override
   Selection get strokeSelection => _selectionSession.selection;
 
   @override
@@ -165,6 +173,9 @@ class DrawingController extends ChangeNotifier
 
   /// 图层增删、排序、合并和清空的快照编排由独立会话持有。
   late final LayerEditingSession _layerEditingSession;
+
+  /// 已选笔画的变换、剪贴板和快照提交由独立会话持有。
+  late final StrokeSelectionEditingSession _strokeSelectionEditingSession;
   bool _disposed = false;
   bool get isDisposed => _disposed;
 
@@ -603,18 +614,6 @@ class DrawingController extends ChangeNotifier
     if (!_disposed) notifyListeners(); // 位图重建完成后再次通知。
   }
 
-  /// 深拷贝当前图层列表（strokes 列表也拷贝，Stroke 对象本身不可变）。
-  List<Layer> _snapshotLayers() => [
-    for (final l in _document.layers)
-      Layer(
-        id: l.id,
-        name: l.name,
-        visible: l.visible,
-        opacity: l.opacity,
-        strokes: List.of(l.strokes),
-      ),
-  ];
-
   /// 用快照列表替换当前文档图层（撤销/重做内部用）。
   void _restoreLayers(List<Layer> snapshot) {
     _document.layers
@@ -687,24 +686,14 @@ class DrawingController extends ChangeNotifier
   }
 
   /// 当前选区（多边形 + 命中笔画）。
-  Selection get _selection => _selectionSession.selection;
-  set _selection(Selection value) => _selectionSession.selection = value;
   Selection get selection => _selectionSession.selection;
-
-  /// 选区中心缓存（scale/rotate 围绕中心变换时复用）。
-  Offset? get _selectionCenterCache => _selectionSession.centerCache;
-  set _selectionCenterCache(Offset? value) =>
-      _selectionSession.centerCache = value;
-  bool get _selectionCenterDirty => _selectionSession.centerDirty;
-  set _selectionCenterDirty(bool value) =>
-      _selectionSession.centerDirty = value;
 
   /// 选区主色（对齐 Saber select.dart 的 getDominantStrokeColor）：
   /// 按笔画长度加权统计当前选中笔画的颜色，最“长”的颜色胜出，
   /// 用于"取主色/批量改色"时给出代表性颜色，避免被零星小笔画误导。
   Color? get dominantStrokeColor {
     final distribution = <int, double>{};
-    for (final index in _selection.selectedStrokeIndices) {
+    for (final index in _selectionSession.selection.selectedStrokeIndices) {
       if (index < 0 || index >= currentLayer.strokes.length) continue;
       final stroke = currentLayer.strokes[index];
       distribution.update(
@@ -722,15 +711,6 @@ class DrawingController extends ChangeNotifier
 
   /// 选区草稿（只读，供渲染层实时预览矩形/套索轮廓）。
   List<Offset> get selectionDraft => _selectionSession.draft;
-
-  /// 剪贴板：复制/粘贴选中的笔画。
-  List<Stroke>? get _clipboard => _selectionSession.clipboard;
-  set _clipboard(List<Stroke>? value) => _selectionSession.clipboard = value;
-
-  /// 变换开始前的图层快照（移动/缩放/旋转期间记录，供撤销恢复）。
-  List<Layer>? get _transformBefore => _selectionSession.transformBefore;
-  set _transformBefore(List<Layer>? value) =>
-      _selectionSession.transformBefore = value;
 
   bool get hasSelection => _selectionSession.hasSelection;
   bool get hasSelectedStrokes => _selectionSession.hasSelectedStrokes;
