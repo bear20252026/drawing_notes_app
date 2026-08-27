@@ -16,10 +16,10 @@ import 'package:drawing_notes_app/features/drawing/application/doc_command_conte
 import 'package:drawing_notes_app/features/drawing/application/document_image_cache.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_edit_history.dart';
+import 'package:drawing_notes_app/features/drawing/application/document_object_editing_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/selection_geometry_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_selection_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/color_sampling_service.dart';
-import 'package:drawing_notes_app/features/drawing/application/image_transform_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/layer_render_cache_coordinator.dart';
 import 'package:drawing_notes_app/features/drawing/application/object_eraser_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_transaction.dart';
@@ -50,7 +50,8 @@ part 'drawing_controller_selection.dart';
 part 'drawing_controller_render.dart';
 part 'drawing_controller_history.dart';
 
-class DrawingController extends ChangeNotifier implements DocCommandContext {
+class DrawingController extends ChangeNotifier
+    implements DocCommandContext, DocumentObjectEditingHost {
   DrawingController(this._document) {
     _temporaryInkSession = TemporaryInkSession(onFrameTick: tickFrame);
     _documentImageCache = DocumentImageCache(
@@ -62,6 +63,7 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
       onRenderUpdated: _applyNotify,
       isOwnerDisposed: () => _disposed,
     );
+    _documentObjectEditingSession = DocumentObjectEditingSession(this);
   }
 
   final DrawingDocument _document;
@@ -82,6 +84,40 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
 
   /// 受保护成员 notifyListeners 的转发包装（供 extension 使用）。
   void _applyNotify() => notifyListeners();
+
+  /// 对象编辑会话使用的通知、历史、选区与缓存协作入口。
+  @override
+  void notifyChanged() => _applyNotify();
+
+  @override
+  void pushCommand(DocCommand command) => _pushCommand(command);
+
+  @override
+  Future<void> invalidateLayer(String layerId, {Rect? region}) =>
+      _invalidateLayer(layerId, region: region);
+
+  @override
+  void rebuildCacheMap() => _rebuildCacheMap();
+
+  @override
+  Future<void> rebuildAll() => _rebuildAll();
+
+  @override
+  void setCurrentLayerIndexForRestore(int value) {
+    _currentLayerIndex = value;
+  }
+
+  @override
+  Selection get strokeSelection => _selectionSession.selection;
+
+  @override
+  void replaceStrokeSelection(Selection value) {
+    _selectionSession.selection = value;
+    _selectionSession.invalidateCenter();
+  }
+
+  @override
+  void clearStrokeSelection() => _selectionSession.clearSelection();
 
   // ---- 通用几何工具（供选区/对象选择共享，静态方法）----
   static bool _strokeIntersectsPolygon(
@@ -106,14 +142,8 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
     return SelectionGeometryService.segmentsIntersect(a, b, c, d);
   }
 
-  /// 选中的文档形状/图片持久 ID 集合（统一对象选择）。
-  final Set<String> _selectedDocumentShapeIds = <String>{};
-  final Set<String> _selectedDocumentImageIds = <String>{};
-  String? _selectedDocumentImageId;
-  DocumentImageItem? _documentImageTransformBefore;
-  String? _selectedDocumentShapeId;
-  List<PageShapeItem>? _documentShapesTransformBefore;
-  DocumentObjectsSnapshot? _documentObjectsTransformBefore;
+  /// 图片、形状及混合对象的选择和手势中间态由独立会话持有。
+  late final DocumentObjectEditingSession _documentObjectEditingSession;
   bool _disposed = false;
   bool get isDisposed => _disposed;
 
@@ -130,6 +160,7 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
   final ValueNotifier<int> frameTick = ValueNotifier<int>(0);
 
   /// 触发一次高频重绘（仅画布，不重建低频 UI）。
+  @override
   void tickFrame() {
     if (_disposed) return;
     frameTick.value++;
@@ -188,6 +219,7 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
 
   /// 当前图层索引（列表尾部为最上层）。
   int _currentLayerIndex = 0;
+  @override
   int get currentLayerIndex => _currentLayerIndex;
   set currentLayerIndex(int value) {
     if (value >= 0 && value < _document.layers.length) {
@@ -196,6 +228,7 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
     }
   }
 
+  @override
   Layer get currentLayer => _document.layers[_currentLayerIndex];
 
   // ---------------- 视口变换 ----------------

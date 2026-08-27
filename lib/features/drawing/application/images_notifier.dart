@@ -17,8 +17,7 @@ class ImagesState {
   /// 是否选中了任何图片。
   bool get hasSelection => selectedIds.isNotEmpty;
 
-  static const ImagesState empty =
-      ImagesState(selectedIds: {}, activeId: null);
+  static const ImagesState empty = ImagesState(selectedIds: {}, activeId: null);
 
   ImagesState copyWith({Set<String>? selectedIds, String? activeId}) =>
       ImagesState(
@@ -37,10 +36,7 @@ class ImagesState {
       other.activeId == activeId;
 
   @override
-  int get hashCode => Object.hash(
-    Object.hashAll(selectedIds),
-    activeId,
-  );
+  int get hashCode => Object.hash(Object.hashAll(selectedIds), activeId);
 }
 
 /// 图片元素域 Notifier（objects 子域 Notifier 化示范）。
@@ -52,9 +48,9 @@ class ImagesState {
 /// - 变更方法只赋 state（免 notifyListeners 样板）
 /// - 独立可测（ProviderContainer 单测）
 ///
-/// 迁移边界（审慎）：DrawingController 内部 _selectedDocumentImageIds/
-/// _selectedDocumentImageId 暂不替换（避免双状态源不一致），本 Notifier
-/// 暴露"图片选中可见状态"，UI 面板可经 ref.watch 订阅。
+/// 迁移边界（审慎）：运行时图片选择由 `DocumentObjectEditingSession`
+/// 单独持有，本 Notifier 仍只暴露"图片选中可见状态"，避免与编辑会话
+/// 形成第二个可写状态源；UI 面板可经 ref.watch 订阅。
 class DrawingImagesNotifier extends Notifier<ImagesState> {
   @override
   ImagesState build() => ImagesState.empty;
@@ -82,7 +78,6 @@ class DrawingImagesNotifier extends Notifier<ImagesState> {
 }
 
 /// 图片元素域 Provider（objects 子域 Notifier 化示范）。
-final imagesProvider =
-    NotifierProvider<DrawingImagesNotifier, ImagesState>(
+final imagesProvider = NotifierProvider<DrawingImagesNotifier, ImagesState>(
   DrawingImagesNotifier.new,
 );
