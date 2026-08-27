@@ -55,6 +55,7 @@ import 'package:drawing_notes_app/features/drawing/presentation/editor_selection
 import 'package:drawing_notes_app/features/drawing/presentation/editor_tool_mode_state.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_statusbar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar_action_factory.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_viewmodel.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/layer_panel.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/properties_panel.dart';
@@ -72,6 +73,7 @@ part 'editor_page_tools.dart';
 part 'editor_page_commands.dart';
 part 'editor_page_shortcuts.dart';
 part 'editor_page_persistence.dart';
+part 'editor_page_toolbar_actions.dart';
 
 /// 编辑器页面。
 ///
