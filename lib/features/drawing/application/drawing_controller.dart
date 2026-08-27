@@ -16,6 +16,7 @@ import 'package:drawing_notes_app/features/drawing/application/doc_command_conte
 import 'package:drawing_notes_app/features/drawing/application/document_image_cache.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
 import 'package:drawing_notes_app/features/drawing/application/selection_geometry_service.dart';
+import 'package:drawing_notes_app/features/drawing/application/drawing_selection_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/color_sampling_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/image_transform_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/layer_render_cache_coordinator.dart';
@@ -625,25 +626,28 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
 
   // ---------------- 选区与变换（Phase 4） ----------------
 
+  /// 选区工具、草稿、变换缓存和剪贴板的运行时会话。
+  final DrawingSelectionSession _selectionSession = DrawingSelectionSession();
+
   /// 当前选区工具（none = 正常绘制）。
-  SelectionTool _selectionTool = SelectionTool.none;
-  SelectionTool get selectionTool => _selectionTool;
+  SelectionTool get selectionTool => _selectionSession.tool;
   set selectionTool(SelectionTool value) {
-    _selectionTool = value;
-    _selection = const Selection();
-    _selectionCenterDirty = true;
+    _selectionSession.setTool(value);
     notifyListeners();
   }
 
   /// 当前选区（多边形 + 命中笔画）。
-  Selection _selection = const Selection();
-  Selection get selection => _selection;
+  Selection get _selection => _selectionSession.selection;
+  set _selection(Selection value) => _selectionSession.selection = value;
+  Selection get selection => _selectionSession.selection;
 
-  /// 选区中心缓存（P-1 修复 2026-08-15）：_selectedStrokeCenter 的
-  /// O(N×M) 计算缓存，选区变化时置 dirty 失效（scale/rotate 围绕中心
-  /// 变换中心不变——滑块连续拖动复用缓存免每次重算）。
-  Offset? _selectionCenterCache;
-  bool _selectionCenterDirty = true;
+  /// 选区中心缓存（scale/rotate 围绕中心变换时复用）。
+  Offset? get _selectionCenterCache => _selectionSession.centerCache;
+  set _selectionCenterCache(Offset? value) =>
+      _selectionSession.centerCache = value;
+  bool get _selectionCenterDirty => _selectionSession.centerDirty;
+  set _selectionCenterDirty(bool value) =>
+      _selectionSession.centerDirty = value;
 
   /// 选区主色（对齐 Saber select.dart 的 getDominantStrokeColor）：
   /// 按笔画长度加权统计当前选中笔画的颜色，最“长”的颜色胜出，
@@ -666,20 +670,20 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
     return Color(entry.key);
   }
 
-  /// 正在绘制选区过程中的点（未完成）。
-  final List<Offset> _selectionDraft = [];
-
   /// 选区草稿（只读，供渲染层实时预览矩形/套索轮廓）。
-  List<Offset> get selectionDraft => _selectionDraft;
+  List<Offset> get selectionDraft => _selectionSession.draft;
 
   /// 剪贴板：复制/粘贴选中的笔画。
-  List<Stroke>? _clipboard;
+  List<Stroke>? get _clipboard => _selectionSession.clipboard;
+  set _clipboard(List<Stroke>? value) => _selectionSession.clipboard = value;
 
   /// 变换开始前的图层快照（移动/缩放/旋转期间记录，供撤销恢复）。
-  List<Layer>? _transformBefore;
+  List<Layer>? get _transformBefore => _selectionSession.transformBefore;
+  set _transformBefore(List<Layer>? value) =>
+      _selectionSession.transformBefore = value;
 
-  bool get hasSelection => _selection.polygon.length >= 3;
-  bool get hasSelectedStrokes => _selection.selectedStrokeIndices.isNotEmpty;
+  bool get hasSelection => _selectionSession.hasSelection;
+  bool get hasSelectedStrokes => _selectionSession.hasSelectedStrokes;
 
   /// 开始绘制选区（工具按下时调用）。
 
