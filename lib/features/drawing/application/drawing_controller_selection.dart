@@ -7,61 +7,48 @@ part of 'drawing_controller.dart';
 /// 笔画选区/变换域（拆分自 drawing_controller.dart）。
 extension DrawingControllerSelectionOps on DrawingController {
   void beginSelection(Offset canvasPoint) {
-    _selectionDraft
-      ..clear()
-      ..add(canvasPoint);
+    _selectionSession.beginDraft(canvasPoint);
     tickFrame();
   }
 
   /// 延伸选区（拖动过程中调用）。
   void extendSelection(Offset canvasPoint) {
-    if (_selectionTool == SelectionTool.rect) {
-      // 矩形选区：只需记录起点与当前点，由绘制层实时画出矩形。
-      if (_selectionDraft.isEmpty) _selectionDraft.add(canvasPoint);
-      // 保持起点不变，追加当前点（用于渲染）。
-      _selectionDraft
-        ..removeRange(1, _selectionDraft.length)
-        ..add(canvasPoint);
-    } else {
-      // 套索选区：逐点追加，形成自由多边形。
-      _selectionDraft.add(canvasPoint);
-    }
+    _selectionSession.extendDraft(canvasPoint);
     tickFrame(); // 拖动中高频更新：只重绘画布上的选区轮廓。
   }
 
   /// 结束选区：由草稿生成正式选区，并做笔画命中检测。
   void endSelection() {
-    if (_selectionDraft.isEmpty) {
-      _selection = const Selection();
-    _selectionCenterDirty = true;
+    final draft = _selectionSession.draft;
+    if (draft.isEmpty) {
+      _selectionSession.completeDraft(const Selection());
       _applyNotify();
       return;
     }
 
     // 矩形选区：草稿为"起点+当前点"两个点，展开为 4 顶点多边形。
     // 套索选区：草稿为自由点列，至少 3 点才能构成区域。
-    if (_selectionTool == SelectionTool.rect && _selectionDraft.length >= 2) {
-      final a = _selectionDraft.first;
-      final b = _selectionDraft.last;
+    final Selection result;
+    if (_selectionSession.tool == SelectionTool.rect && draft.length >= 2) {
+      final a = draft.first;
+      final b = draft.last;
       final polygon = [a, Offset(b.dx, a.dy), b, Offset(a.dx, b.dy)];
-      _selection = Selection(
+      result = Selection(
         polygon: polygon,
         selectedStrokeIndices: _hitTestStrokes(polygon),
       );
-    } else if (_selectionTool == SelectionTool.lasso &&
-        _selectionDraft.length >= 3) {
-      final polygon = List.of(_selectionDraft);
-      _selection = Selection(
+    } else if (_selectionSession.tool == SelectionTool.lasso &&
+        draft.length >= 3) {
+      final polygon = List.of(draft);
+      result = Selection(
         polygon: polygon,
         selectedStrokeIndices: _hitTestStrokes(polygon),
       );
     } else {
       // 草稿不构成有效选区（矩形只有单点 / 套索少于 3 点）。
-      _selection = const Selection();
-    _selectionCenterDirty = true;
+      result = const Selection();
     }
-    _selectionCenterDirty = true;
-    _selectionDraft.clear();
+    _selectionSession.completeDraft(result);
     _applyNotify();
   }
 
@@ -82,7 +69,6 @@ extension DrawingControllerSelectionOps on DrawingController {
     return result;
   }
 
-
   /// 射线法判断点是否在多边形内。
   bool _pointInPolygon(Offset point, List<Offset> polygon) {
     var inside = false;
@@ -99,8 +85,7 @@ extension DrawingControllerSelectionOps on DrawingController {
   /// 清除选区。
   void clearSelection() {
     if (_selection.polygon.isEmpty && _selectedDocumentImageId == null) return;
-    _selection = const Selection();
-    _selectionCenterDirty = true;
+    _selectionSession.clearSelection();
     _selectedDocumentImageId = null;
     _applyNotify();
   }
@@ -151,8 +136,8 @@ extension DrawingControllerSelectionOps on DrawingController {
       for (final index in _selection.selectedStrokeIndices)
         currentLayer.strokes[index],
     ];
-    final center = SelectionGeometryService.centerOfStrokes(strokes) ??
-        _selection.center;
+    final center =
+        SelectionGeometryService.centerOfStrokes(strokes) ?? _selection.center;
     _selectionCenterCache = center;
     _selectionCenterDirty = false;
     return center;
