@@ -3,6 +3,7 @@ import 'dart:ui' show Offset, Rect;
 
 import 'package:drawing_notes_app/core/rendering/shape_binding_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
+import 'package:drawing_notes_app/features/drawing/application/document_object_transform_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/image_transform_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/selection_geometry_service.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
@@ -419,11 +420,8 @@ class DocumentObjectEditingSession {
     _host.notifyChanged();
   }
 
-  void _reprojectBoundArrows() {
-    for (final arrow in _document.shapes) {
-      ShapeBindingGeometry.reprojectArrow(arrow, _document.shapes);
-    }
-  }
+  void _reprojectBoundArrows() =>
+      DocumentObjectTransformService.reprojectBoundArrows(_document.shapes);
 
   static bool _sameDocumentShapes(
     List<PageShapeItem> a,
@@ -612,14 +610,12 @@ class DocumentObjectEditingSession {
   }
 
   bool get _hasTransformableMixedDocumentObject =>
-      _host.strokeSelection.selectedStrokeIndices.isNotEmpty ||
-      _document.shapes.any(
-        (shape) =>
-            _selectedDocumentShapeIds.contains(shape.id) && !shape.locked,
-      ) ||
-      _document.imageItems.any(
-        (image) =>
-            _selectedDocumentImageIds.contains(image.id) && !image.locked,
+      DocumentObjectTransformService.hasTransformableSelection(
+        selectedStrokeIndices: _host.strokeSelection.selectedStrokeIndices,
+        shapes: _document.shapes,
+        selectedShapeIds: _selectedDocumentShapeIds,
+        images: _document.imageItems,
+        selectedImageIds: _selectedDocumentImageIds,
       );
 
   /// 平移统一选择集合。绑定箭头在目标节点变化后统一重投影，选中的自由箭头端
@@ -653,79 +649,16 @@ class DocumentObjectEditingSession {
     Offset Function(Offset point) transform, {
     required double? scale,
   }) {
-    final selectedArrowEndpoints = <String, ({Offset start, Offset end})>{};
-    for (final shape in _document.shapes) {
-      if (_selectedDocumentShapeIds.contains(shape.id) &&
-          !shape.locked &&
-          shape.shapeType == ShapeType.arrow) {
-        selectedArrowEndpoints[shape.id] =
-            ShapeBindingGeometry.resolvedArrowEndpoints(
-              shape,
-              _document.shapes,
-            );
-      }
-    }
-
-    for (final index in _host.strokeSelection.selectedStrokeIndices.reversed) {
-      if (index < 0 || index >= _host.currentLayer.strokes.length) continue;
-      final old = _host.currentLayer.strokes[index];
-      _host.currentLayer.strokes[index] = Stroke(
-        points: old.points
-            .map((point) {
-              final next = transform(point.offset);
-              return StrokePoint(next.dx, next.dy, point.pressure);
-            })
-            .toList(growable: false),
-        color: old.color,
-        width: old.width,
-        type: old.type,
-        opacity: old.opacity,
-      );
-    }
-
-    for (final shape in _document.shapes) {
-      if (!_selectedDocumentShapeIds.contains(shape.id) || shape.locked) {
-        continue;
-      }
-      if (shape.shapeType == ShapeType.arrow) continue;
-      final oldBounds = ShapeBindingGeometry.rawBounds(shape);
-      final nextTopLeft = transform(oldBounds.topLeft);
-      final nextScale = scale ?? 1.0;
-      final nextWidth = (oldBounds.width * nextScale).clamp(16.0, 8192.0);
-      final nextHeight = (oldBounds.height * nextScale).clamp(16.0, 8192.0);
-      shape
-        ..x = nextTopLeft.dx
-        ..y = nextTopLeft.dy
-        ..width = nextWidth
-        ..height = nextHeight;
-    }
-
-    for (final image in _document.imageItems) {
-      if (!_selectedDocumentImageIds.contains(image.id) || image.locked) {
-        continue;
-      }
-      final nextTopLeft = transform(image.bounds.topLeft);
-      final nextScale = scale ?? 1.0;
-      image
-        ..x = nextTopLeft.dx
-        ..y = nextTopLeft.dy
-        ..width = (image.width * nextScale).clamp(32.0, 8192.0)
-        ..height = (image.height * nextScale).clamp(24.0, 8192.0);
-    }
-
-    for (final shape in _document.shapes) {
-      final endpoints = selectedArrowEndpoints[shape.id];
-      if (endpoints == null) continue;
-      final start = shape.startBinding == null
-          ? transform(endpoints.start)
-          : endpoints.start;
-      final end = shape.endBinding == null
-          ? transform(endpoints.end)
-          : endpoints.end;
-      ShapeBindingGeometry.applyArrowEndpoints(shape, start: start, end: end);
-    }
-
-    _reprojectBoundArrows();
+    DocumentObjectTransformService.transformSelection(
+      strokes: _host.currentLayer.strokes,
+      selectedStrokeIndices: _host.strokeSelection.selectedStrokeIndices,
+      shapes: _document.shapes,
+      selectedShapeIds: _selectedDocumentShapeIds,
+      images: _document.imageItems,
+      selectedImageIds: _selectedDocumentImageIds,
+      transform: transform,
+      scale: scale,
+    );
     _document.touch();
     _host.invalidateLayer(_host.currentLayer.id);
     _host.tickFrame();

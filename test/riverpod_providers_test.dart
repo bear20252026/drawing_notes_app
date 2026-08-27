@@ -6,8 +6,7 @@ import 'package:drawing_notes_app/core/di/providers.dart';
 import 'package:drawing_notes_app/features/drawing/application/di_providers.dart';
 import 'package:drawing_notes_app/features/drawing/application/history_notifier.dart';
 import 'package:drawing_notes_app/features/drawing/application/selection_notifier.dart';
-import 'package:drawing_notes_app/features/drawing/application/images_notifier.dart';
-import 'package:drawing_notes_app/features/drawing/application/shapes_notifier.dart';
+import 'package:drawing_notes_app/features/drawing/application/object_selection_notifiers.dart';
 import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
 import 'package:drawing_notes_app/features/drawing/application/viewport_notifier.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
@@ -46,11 +45,17 @@ void main() {
     final container = ProviderContainer();
     addTearDown(container.dispose);
 
-    expect(container.read(themeModeProvider), ThemeMode.system,
-        reason: '初始跟随系统');
+    expect(
+      container.read(themeModeProvider),
+      ThemeMode.system,
+      reason: '初始跟随系统',
+    );
     container.read(themeModeProvider.notifier).setMode(ThemeMode.dark);
-    expect(container.read(themeModeProvider), ThemeMode.dark,
-        reason: 'setMode 更新状态');
+    expect(
+      container.read(themeModeProvider),
+      ThemeMode.dark,
+      reason: 'setMode 更新状态',
+    );
   });
 
   test('themeModeProvider：cycle 循环切换（system→light→dark→system）', () {
@@ -81,8 +86,11 @@ void main() {
     expect(container.read(drawingDirtyProvider(doc)), isFalse);
     container.read(drawingControllerProvider(doc)).touchDocument();
     container.invalidate(drawingDirtyProvider(doc)); // 失效重建（Riverpod 标准）
-    expect(container.read(drawingDirtyProvider(doc)), isTrue,
-        reason: 'invalidate 后派生 provider 反映控制器脏标记');
+    expect(
+      container.read(drawingDirtyProvider(doc)),
+      isTrue,
+      reason: 'invalidate 后派生 provider 反映控制器脏标记',
+    );
   });
   test('B3-B4: 核心状态派生 provider（undo/redo/图层）可独立单测', () {
     final container = ProviderContainer();
@@ -95,16 +103,22 @@ void main() {
     controller.touchDocument();
     container.invalidate(drawingCanUndoProvider(doc));
     container.invalidate(drawingCurrentLayerProvider(doc));
-    expect(container.read(drawingCurrentLayerProvider(doc)), 0,
-        reason: 'touchDocument 不改图层索引，派生值稳定');
+    expect(
+      container.read(drawingCurrentLayerProvider(doc)),
+      0,
+      reason: 'touchDocument 不改图层索引，派生值稳定',
+    );
   });
   test('视口域 Notifier：首个域迁移示范（不可变 state + 方法）', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     expect(container.read(viewportProvider).scale, 1.0);
     container.read(viewportProvider.notifier).setScale(2.0);
-    expect(container.read(viewportProvider).scale, 2.0,
-        reason: 'setScale 更新不可变 state');
+    expect(
+      container.read(viewportProvider).scale,
+      2.0,
+      reason: 'setScale 更新不可变 state',
+    );
     container.read(viewportProvider.notifier).pan(10, 20);
     expect(container.read(viewportProvider).offsetX, 10);
     expect(container.read(viewportProvider).offsetY, 20);
@@ -116,13 +130,14 @@ void main() {
     addTearDown(container.dispose);
     final sel = container.read(selectionProvider);
     expect(sel.isActive, isFalse);
-    container.read(selectionProvider.notifier)
+    container
+        .read(selectionProvider.notifier)
         .beginSelection(SelectionTool.rect, const Offset(10, 10));
     expect(container.read(selectionProvider).isActive, isTrue);
-    container.read(selectionProvider.notifier)
+    container
+        .read(selectionProvider.notifier)
         .extendSelection(const Offset(100, 100));
-    expect(container.read(selectionProvider).draft.length, 2,
-        reason: '矩形=2 点');
+    expect(container.read(selectionProvider).draft.length, 2, reason: '矩形=2 点');
     container.read(selectionProvider.notifier).clearSelection();
     expect(container.read(selectionProvider).isActive, isFalse);
   });
@@ -132,10 +147,12 @@ void main() {
     final hist = container.read(historyProvider);
     expect(hist.canUndo, isFalse);
     expect(hist.canRedo, isFalse);
-    container.read(historyProvider.notifier)
+    container
+        .read(historyProvider.notifier)
         .notifyChanged(canUndo: true, canRedo: false);
     expect(container.read(historyProvider).canUndo, isTrue);
-    container.read(historyProvider.notifier)
+    container
+        .read(historyProvider.notifier)
         .afterUndo(canUndo: false, canRedo: true);
     expect(container.read(historyProvider).canRedo, isTrue);
     expect(container.read(historyProvider).canUndo, isFalse);
@@ -144,13 +161,11 @@ void main() {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     expect(container.read(shapesProvider).hasSelection, isFalse);
-    container.read(shapesProvider.notifier)
-        .select(ids: {'s1'}, activeId: 's1');
+    container.read(shapesProvider.notifier).select(ids: {'s1'}, activeId: 's1');
     expect(container.read(shapesProvider).hasSelection, isTrue);
     container.read(shapesProvider.notifier).addToSelection('s2');
     expect(container.read(shapesProvider).selectedIds, {'s1', 's2'});
-    expect(container.read(shapesProvider).activeId, 's2',
-        reason: '新选中成为活动形状');
+    expect(container.read(shapesProvider).activeId, 's2', reason: '新选中成为活动形状');
     container.read(shapesProvider.notifier).clearSelection();
     expect(container.read(shapesProvider).hasSelection, isFalse);
   });
@@ -158,13 +173,17 @@ void main() {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     expect(container.read(imagesProvider).hasSelection, isFalse);
-    container.read(imagesProvider.notifier)
+    container
+        .read(imagesProvider.notifier)
         .select(ids: {'img1'}, activeId: 'img1');
     expect(container.read(imagesProvider).hasSelection, isTrue);
     container.read(imagesProvider.notifier).addToSelection('img2');
     expect(container.read(imagesProvider).selectedIds, {'img1', 'img2'});
-    expect(container.read(imagesProvider).activeId, 'img2',
-        reason: '新选中成为活动图片');
+    expect(
+      container.read(imagesProvider).activeId,
+      'img2',
+      reason: '新选中成为活动图片',
+    );
     container.read(imagesProvider.notifier).clearSelection();
     expect(container.read(imagesProvider).hasSelection, isFalse);
   });
