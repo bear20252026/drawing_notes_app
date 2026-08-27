@@ -10,14 +10,13 @@ import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
 import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
 import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
-import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/features/drawing/application/doc_command_context.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_image_cache.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_edit_history.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_object_editing_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_selection_session.dart';
-import 'package:drawing_notes_app/features/drawing/application/stroke_selection_editing_session.dart';
+import 'package:drawing_notes_app/features/drawing/application/stroke_input_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/color_sampling_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/layer_render_cache_coordinator.dart';
 import 'package:drawing_notes_app/features/drawing/application/layer_editing_session.dart';
@@ -28,8 +27,6 @@ import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart'
 import 'package:drawing_notes_app/features/drawing/application/temporary_ink_session.dart';
 import 'package:drawing_notes_app/core/rendering/ink_layer_painter.dart';
 import 'package:drawing_notes_app/core/rendering/layer_compositor.dart';
-import 'package:drawing_notes_app/core/rendering/stroke_geometry_cache.dart';
-import 'package:drawing_notes_app/core/rendering/shape_recognizer.dart';
 import 'package:drawing_notes_app/core/rendering/shape_binding_geometry.dart';
 import 'package:drawing_notes_app/core/rendering/shape_renderer.dart';
 import 'package:drawing_notes_app/core/rendering/stroke_renderer.dart';
@@ -56,9 +53,11 @@ class DrawingController extends ChangeNotifier
         DocumentObjectEditingHost,
         LayerEditingHost,
         StrokeSelectionEditingHost,
-        StrokeSelectionInteractionHost {
+        StrokeSelectionInteractionHost,
+        StrokeInputHost {
   DrawingController(this._document) {
     _temporaryInkSession = TemporaryInkSession(onFrameTick: tickFrame);
+    _strokeInputSession = StrokeInputSession(this);
     _documentImageCache = DocumentImageCache(
       onImageAvailable: tickFrame,
       isOwnerDisposed: () => _disposed,
@@ -138,6 +137,44 @@ class DrawingController extends ChangeNotifier
 
   @override
   void requestFrame() => tickFrame();
+
+  @override
+  BrushType get strokeTool => _tool;
+
+  @override
+  Color get strokeColor => _color;
+
+  @override
+  double get strokeSize => currentSize;
+
+  @override
+  void addTemporaryMarker(Stroke stroke) =>
+      _temporaryInkSession.addMarker(stroke);
+
+  @override
+  void addTemporaryLaser(Stroke stroke, DateTime startedAt) =>
+      _temporaryInkSession.addLaser(stroke, startedAt);
+
+  @override
+  Future<void> commitRecognizedShape(Stroke stroke, PageShapeItem shape) async {
+    _document.shapes.add(shape);
+    _document.touch();
+    _pushCommand(
+      ReplaceStrokeWithShapeCommand(this, _currentLayerIndex, stroke, shape),
+    );
+    await _invalidateLayer(currentLayer.id);
+    notifyListeners();
+  }
+
+  @override
+  Future<void> commitPersistentStroke(Stroke stroke) async {
+    currentLayer.strokes.add(stroke);
+    _document.touch();
+    _pushCommand(AddStrokeCommand(this, _currentLayerIndex, stroke));
+    final region = StrokeRenderer.strokeBounds(stroke);
+    await _invalidateLayer(currentLayer.id, region: region);
+    notifyListeners();
+  }
 
   @override
   Selection get strokeSelection => _selectionSession.selection;
@@ -334,20 +371,17 @@ class DrawingController extends ChangeNotifier
 
   // ---------------- 笔画绘制 ----------------
 
+  /// 原始笔画的活动状态、采样和提交分支由独立会话持有。
+  late final StrokeInputSession _strokeInputSession;
+
   /// 当前正在绘制中的笔画（未提交到图层，仅用于实时预览）。
-  Stroke? _activeStroke;
-  Stroke? get activeStroke => _activeStroke;
-
-  /// 一笔的原始采样与实时预览几何。仅在书写期间存在。
-  StrokeGeometryCache? _activeGeometry;
-
-  /// 激光工具的起笔时刻；收笔后据此按起笔端逐段消退。
-  DateTime? _activeLaserStartedAt;
+  Stroke? get activeStroke => _strokeInputSession.activeStroke;
 
   /// 临时高亮与激光尾迹的运行时生命周期管理器。
   late final TemporaryInkSession _temporaryInkSession;
 
   /// 临时荧光笔开关。开启后笔画仅短暂显示，不写入页面数据、历史或导出。
+  @override
   bool get temporaryMarkerEnabled =>
       _temporaryInkSession.temporaryMarkerEnabled;
   set temporaryMarkerEnabled(bool value) {
@@ -365,7 +399,7 @@ class DrawingController extends ChangeNotifier
   get temporaryLaserStrokes => _temporaryInkSession.laserStrokes;
 
   /// 是否正在绘制。
-  bool get isDrawing => _activeStroke != null;
+  bool get isDrawing => _strokeInputSession.isDrawing;
 
   /// 整笔橡皮擦的运行时手势会话与形状擦除设置。
   final ObjectEraserSession _objectEraserSession = ObjectEraserSession();
@@ -439,110 +473,21 @@ class DrawingController extends ChangeNotifier
   }
 
   /// 开始一笔：创建活动笔画。
-  void startStroke(Offset canvasPoint, {double pressure = 1.0}) {
-    _activeLaserStartedAt = _tool == BrushType.laser ? DateTime.now() : null;
-    final first = StrokePoint(canvasPoint.dx, canvasPoint.dy, pressure);
-    final geometry = StrokeGeometryCache(first);
-    _activeGeometry = geometry;
-    _activeStroke = Stroke(
-      points: geometry.previewPoints,
-      color: _tool == BrushType.eraser ? const Color(0x00000000) : _color,
-      width: currentSize,
-      type: _tool,
-    );
-    tickFrame(); // 仅重绘画布（活动笔画预览），不重建低频 UI。
-  }
+  void startStroke(Offset canvasPoint, {double pressure = 1.0}) =>
+      _strokeInputSession.startStroke(canvasPoint, pressure: pressure);
 
   /// 延伸当前笔画（追加采样点）。
-  void extendStroke(Offset canvasPoint, {double pressure = 1.0}) {
-    final geometry = _activeGeometry;
-    if (_activeStroke == null || geometry == null) return;
-    geometry.append(StrokePoint(canvasPoint.dx, canvasPoint.dy, pressure));
-    tickFrame(); // 高频路径：只通知画布重绘。
-  }
+  void extendStroke(Offset canvasPoint, {double pressure = 1.0}) =>
+      _strokeInputSession.extendStroke(canvasPoint, pressure: pressure);
 
   /// 取消当前未提交笔画。
   ///
   /// 用于双指缩放或掌托策略判定为误触时的安全回退。取消动作不会修改图层、
   /// 历史栈、保存点或文档时间戳，只刷新活动笔画预览。
-  void cancelActiveStroke() {
-    if (_activeStroke == null) return;
-    _activeStroke = null;
-    _activeGeometry = null;
-    _activeLaserStartedAt = null;
-    tickFrame();
-  }
+  void cancelActiveStroke() => _strokeInputSession.cancelActiveStroke();
 
   /// 结束一笔：提交到当前图层并记录撤销历史。
-  Future<void> endStroke() async {
-    final s = _activeStroke;
-    final geometry = _activeGeometry;
-    final laserStartedAt = _activeLaserStartedAt;
-    if (s == null || geometry == null) return;
-    _activeStroke = null;
-    _activeGeometry = null;
-    _activeLaserStartedAt = null;
-
-    // 收笔从完整输入样本构建持久化点列；活动笔画始终引用同一个可变列表，
-    // 因此无需变更 Stroke 数据结构或文档格式。replacePoints 会递增几何版本，
-    // 使 StrokeRenderer 的 Path 惰性缓存失效，收笔后的首次重绘重新生成轮廓。
-    s.replacePoints(geometry.finish());
-    if (s.points.length < 2 && s.type != BrushType.eraser) {
-      // 孤点（单击未拖动）：仍保留为单个圆点，便于"点一下"产生墨点。
-    }
-
-    if (s.type == BrushType.marker && temporaryMarkerEnabled) {
-      _temporaryInkSession.addMarker(s);
-      tickFrame();
-      return;
-    }
-
-    if (s.type == BrushType.laser) {
-      _temporaryInkSession.addLaser(s, laserStartedAt ?? DateTime.now());
-      tickFrame();
-      return;
-    }
-
-    final recognized = ShapeRecognizer.recognize(s);
-    if (recognized != null) {
-      final shape = PageShapeItem(
-        id: LocalIdGenerator.next('shape'),
-        shapeType: recognized.type,
-        x: recognized.bounds.left,
-        y: recognized.bounds.top,
-        width: recognized.bounds.width,
-        height: recognized.bounds.height,
-        color: s.color.toARGB32(),
-        strokeWidth: s.width.clamp(1, 20).toDouble(),
-        flipX: recognized.flipX,
-        flipY: recognized.flipY,
-        // 线性元素保存真实端点，确保直线/箭头方向与鼠标轨迹一致
-        // （修复"从左往右画却生成反向/斜线"的问题，参考 Saber shape_pen）。
-        lineStart: recognized.lineStart,
-        lineEnd: recognized.lineEnd,
-      );
-      _document.shapes.add(shape);
-      _document.touch();
-      _pushCommand(
-        ReplaceStrokeWithShapeCommand(this, _currentLayerIndex, s, shape),
-      );
-      await _invalidateLayer(currentLayer.id);
-      notifyListeners();
-      return;
-    }
-
-    currentLayer.strokes.add(s);
-    _document.touch();
-    // 命令模式：新增笔画用零拷贝逆操作命令（撤销=移除，重做=重加）。
-    _pushCommand(AddStrokeCommand(this, _currentLayerIndex, s));
-
-    // 增量脏矩形重建：只重绘新笔画的包围盒区域（含线宽余量），
-    // 区域外旧内容保持不变，避免整层反复光栅化（性能优化）。
-    // 橡皮擦同样走区域重建——合成器会用 clipRect 限定清除范围。
-    final region = StrokeRenderer.strokeBounds(s);
-    await _invalidateLayer(currentLayer.id, region: region);
-    notifyListeners();
-  }
+  Future<void> endStroke() => _strokeInputSession.endStroke();
 
   /// 笔画命令撤销/重做后的统一处理：先同步通知（按钮/状态立即刷新），
   /// 再重建该图层位图（完成后再次通知更新画面）。

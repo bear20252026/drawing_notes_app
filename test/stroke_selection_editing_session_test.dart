@@ -1,7 +1,6 @@
 import 'dart:ui' show Color, Offset;
 
 import 'package:drawing_notes_app/features/drawing/application/drawing_selection_session.dart';
-import 'package:drawing_notes_app/features/drawing/application/stroke_selection_editing_session.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
 import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
