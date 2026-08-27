@@ -51,6 +51,47 @@ class SelectionGeometryService {
     return (abC >= 0) != (abD >= 0) && (cdA >= 0) != (cdB >= 0);
   }
 
+  /// 射线法判断 [point] 是否位于 [polygon] 内部。
+  static bool pointInPolygon(Offset point, List<Offset> polygon) {
+    var inside = false;
+    for (
+      var index = 0, previous = polygon.length - 1;
+      index < polygon.length;
+      previous = index++
+    ) {
+      final a = polygon[index];
+      final b = polygon[previous];
+      final intersects =
+          (a.dy > point.dy) != (b.dy > point.dy) &&
+          point.dx < (b.dx - a.dx) * (point.dy - a.dy) / (b.dy - a.dy) + a.dx;
+      if (intersects) inside = !inside;
+    }
+    return inside;
+  }
+
+  /// 判断一条笔画是否有采样点落在选区内，或任一线段穿越选区边界。
+  static bool strokeIntersectsPolygon(
+    List<StrokePoint> points,
+    List<Offset> polygon,
+  ) {
+    if (points.any((point) => pointInPolygon(point.offset, polygon))) {
+      return true;
+    }
+    if (points.length < 2 || polygon.length < 3) return false;
+    for (var index = 1; index < points.length; index++) {
+      final start = points[index - 1].offset;
+      final end = points[index].offset;
+      for (var edge = 0; edge < polygon.length; edge++) {
+        final boundaryStart = polygon[edge];
+        final boundaryEnd = polygon[(edge + 1) % polygon.length];
+        if (segmentsIntersect(start, end, boundaryStart, boundaryEnd)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   static double _cross(Offset o, Offset p, Offset q) =>
       (p.dx - o.dx) * (q.dy - o.dy) - (p.dy - o.dy) * (q.dx - o.dx);
 
@@ -74,12 +115,7 @@ class SelectionGeometryService {
 
   /// 旋转变换（纯计算）：点 [p] 围绕 [center] 旋转（cosA/sinA 由调用方
   /// 预先计算——避免每点重复三角函数）。
-  static Offset rotatePoint(
-    Offset p,
-    Offset center,
-    double cosA,
-    double sinA,
-  ) {
+  static Offset rotatePoint(Offset p, Offset center, double cosA, double sinA) {
     final dx = p.dx - center.dx;
     final dy = p.dy - center.dy;
     return Offset(
