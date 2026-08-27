@@ -19,6 +19,7 @@ import 'package:drawing_notes_app/features/drawing/application/selection_geometr
 import 'package:drawing_notes_app/features/drawing/application/color_sampling_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/image_transform_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/layer_render_cache_coordinator.dart';
+import 'package:drawing_notes_app/features/drawing/application/object_eraser_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_transaction.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_viewport.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
@@ -312,127 +313,46 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
   /// 是否正在绘制。
   bool get isDrawing => _activeStroke != null;
 
-  /// 对象橡皮擦手势的增量记录（对齐 excalidraw StoreDelta 只存变更）。
-  /// 记录被删笔画：(图层索引, 删除前原位置, 笔画对象)，整段擦除只生成
-  /// 一条撤销记录，且不深拷贝整层。
-  final List<({int layerIndex, int index, Stroke stroke})> _objectEraseRemoved =
-      [];
-  bool _objectEraseChanged = false;
+  /// 整笔橡皮擦的运行时手势会话与形状擦除设置。
+  final ObjectEraserSession _objectEraserSession = ObjectEraserSession();
 
   /// 被擦除的标准形状（问题3）：整笔/透明模式的擦除开关。
   ///
-  /// 用户实测反馈"标准直线无法被橡皮擦擦除"，且需要按擦除模式细分：
   /// 两个开关分别控制整笔模式（[EraserMode.stroke]）与透明模式
-  /// （[EraserMode.pixel]）是否擦除标准形状；两者都关 = 形状不可被擦除，
-  /// 只开其一 = 仅该模式可擦除，两者都开 = 两种模式均可擦除。
-  bool _eraserCanEraseShapesStroke = true;
-  bool _eraserCanEraseShapesPixel = true;
-  bool get eraserCanEraseShapesStroke => _eraserCanEraseShapesStroke;
-  bool get eraserCanEraseShapesPixel => _eraserCanEraseShapesPixel;
+  /// （[EraserMode.pixel]）是否擦除标准形状。
+  bool get eraserCanEraseShapesStroke =>
+      _objectEraserSession.canEraseShapesStroke;
+  bool get eraserCanEraseShapesPixel =>
+      _objectEraserSession.canEraseShapesPixel;
   set eraserCanEraseShapesStroke(bool value) {
-    if (_eraserCanEraseShapesStroke == value) return;
-    _eraserCanEraseShapesStroke = value;
+    if (_objectEraserSession.canEraseShapesStroke == value) return;
+    _objectEraserSession.canEraseShapesStroke = value;
     notifyListeners();
   }
 
   set eraserCanEraseShapesPixel(bool value) {
-    if (_eraserCanEraseShapesPixel == value) return;
-    _eraserCanEraseShapesPixel = value;
+    if (_objectEraserSession.canEraseShapesPixel == value) return;
+    _objectEraserSession.canEraseShapesPixel = value;
     notifyListeners();
   }
 
-  /// 当前擦除模式是否允许擦除标准形状。
-  bool get _eraserCanEraseShapes => _eraserMode == EraserMode.stroke
-      ? _eraserCanEraseShapesStroke
-      : _eraserCanEraseShapesPixel;
-
-  /// 本次手势中被擦除的标准形状（按引用记录，供增量命令还原）。
-  final List<PageShapeItem> _objectEraseShapes = [];
-
-  /// 命中测试：橡皮擦中心点是否触及标准形状（外接框膨胀橡皮擦半径）。
-  bool _eraserHitsShape(PageShapeItem shape, Offset center, double radius) {
-    final bounds = ShapeBindingGeometry.rawBounds(shape).inflate(radius);
-    if (!bounds.contains(center)) return false;
-    // 线性元素（直线/箭头）用真实端点做线段距离判定，避免大外接框误擦。
-    if (shape.shapeType == ShapeType.line ||
-        shape.shapeType == ShapeType.arrow) {
-      final start = shape.lineStart ?? Offset(0, shape.height);
-      final end = shape.lineEnd ?? Offset(shape.width, 0);
-      // 审查发现 P1：绝对坐标基准必须用形状原始外接框左上角
-      // （shape.position），而不是已膨胀 radius 的 bounds.topLeft，
-      // 否则线段整体偏移 radius 导致命中判定偏差（漏擦/误擦）。
-      final origin = Offset(shape.x, shape.y);
-      final startAbs = start + origin;
-      final endAbs = end + origin;
-      return _distanceToSegment(center, startAbs, endAbs) <= radius;
-    }
-    return true;
-  }
-
   /// 开始对象橡皮擦手势。调用方只在 [EraserMode.stroke] 下调用。
-  void beginObjectErase() {
-    _objectEraseRemoved.clear();
-    _objectEraseShapes.clear();
-    _objectEraseChanged = false;
-  }
+  void beginObjectErase() => _objectEraserSession.begin();
 
   /// 擦除以 [canvasPoint] 为中心、以橡皮擦半径命中的整条笔画。
   ///
-  /// 该模式不生成任何 [BrushType.eraser] 伪笔画，因此不会在画面上留下黑线，
-  /// 命中的线条会立即从对象模型、保存文件和后续导出中消失。
+  /// 会话负责对象命中与增量记录；控制器负责文档时间戳、受影响图层缓存
+  /// 刷新和 UI 通知，确保连续手势仍只在结束时产生一条撤销记录。
   bool eraseStrokesAt(Offset canvasPoint) {
-    final radius = _eraserSize / 2;
-    var changed = false;
-    final changedLayers = <int>[];
-    for (
-      var layerIndex = 0;
-      layerIndex < _document.layers.length;
-      layerIndex++
-    ) {
-      final layer = _document.layers[layerIndex];
-      if (!layer.visible) continue;
-      // 记录命中笔画在删除前的原位置，供增量命令精确还原。
-      final removed = <({int index, Stroke stroke})>[];
-      for (var i = 0; i < layer.strokes.length; i++) {
-        final stroke = layer.strokes[i];
-        if (_strokeHitsCircle(stroke, canvasPoint, radius)) {
-          removed.add((index: i, stroke: stroke));
-        }
-      }
-      if (removed.isEmpty) continue;
-      for (final entry in removed.reversed) {
-        layer.strokes.removeAt(entry.index);
-      }
-      _objectEraseRemoved.addAll([
-        for (final entry in removed)
-          (layerIndex: layerIndex, index: entry.index, stroke: entry.stroke),
-      ]);
-      changed = true;
-      changedLayers.add(layerIndex);
-    }
-
-    // 标准形状擦除（问题3）：开关开启时，命中标准直线/图案也一并删除，
-    // 并纳入同一条增量撤销记录。线性元素按真实端点做线段距离判定。
-    if (_eraserCanEraseShapes && _document.shapes.isNotEmpty) {
-      final hitShapes = <PageShapeItem>[];
-      for (final shape in _document.shapes) {
-        if (_eraserHitsShape(shape, canvasPoint, radius)) {
-          hitShapes.add(shape);
-        }
-      }
-      if (hitShapes.isNotEmpty) {
-        for (final shape in hitShapes) {
-          _document.shapes.remove(shape);
-        }
-        _objectEraseShapes.addAll(hitShapes);
-        changed = true;
-      }
-    }
-
-    if (!changed) return false;
-    _objectEraseChanged = true;
+    final step = _objectEraserSession.eraseAt(
+      _document,
+      canvasPoint,
+      eraserSize: _eraserSize,
+      mode: _eraserMode,
+    );
+    if (!step.changed) return false;
     _document.touch();
-    for (final layerIndex in changedLayers) {
+    for (final layerIndex in step.changedLayerIndices) {
       unawaited(_invalidateLayer(_document.layers[layerIndex].id));
     }
     notifyListeners();
@@ -441,62 +361,27 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
 
   /// 提交一个对象橡皮擦手势的统一撤销记录（增量命令，零整层拷贝）。
   void endObjectErase() {
-    if (!_objectEraseChanged) {
-      _objectEraseRemoved.clear();
-      _objectEraseShapes.clear();
-      return;
-    }
-    _objectEraseChanged = false;
+    final result = _objectEraserSession.consumeResult();
+    if (result == null) return;
     _pushCommand(
       EraseStrokesCommand(
         this,
-        List.of(_objectEraseRemoved),
-        removedShapes: List.of(_objectEraseShapes),
+        result.removedStrokes,
+        removedShapes: result.removedShapes,
       ),
     );
-    _objectEraseRemoved.clear();
-    _objectEraseShapes.clear();
     notifyListeners();
   }
 
   /// 取消对象橡皮擦手势；如已经移除对象则还原（按增量记录插回）。
   void cancelObjectErase() {
-    final changed = _objectEraseChanged;
-    if (changed &&
-        (_objectEraseRemoved.isNotEmpty || _objectEraseShapes.isNotEmpty)) {
-      EraseStrokesCommand(
-        this,
-        List.of(_objectEraseRemoved),
-        removedShapes: List.of(_objectEraseShapes),
-      ).undo();
-    }
-    _objectEraseRemoved.clear();
-    _objectEraseShapes.clear();
-    _objectEraseChanged = false;
-  }
-
-  static bool _strokeHitsCircle(Stroke stroke, Offset center, double radius) {
-    if (stroke.points.isEmpty) return false;
-    final threshold = radius + stroke.width / 2;
-    if (stroke.points.length == 1) {
-      return (stroke.points.first.offset - center).distance <= threshold;
-    }
-    for (var i = 1; i < stroke.points.length; i++) {
-      if (_distanceToSegment(
-            center,
-            stroke.points[i - 1].offset,
-            stroke.points[i].offset,
-          ) <=
-          threshold) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  static double _distanceToSegment(Offset point, Offset a, Offset b) {
-    // Q-1 拆分（2026-08-16）：点-线段距离委托 SelectionGeometryService。
-    return SelectionGeometryService.distanceToSegment(point, a, b);
+    final result = _objectEraserSession.consumeResult();
+    if (result == null) return;
+    EraseStrokesCommand(
+      this,
+      result.removedStrokes,
+      removedShapes: result.removedShapes,
+    ).undo();
   }
 
   /// 开始一笔：创建活动笔画。
