@@ -326,7 +326,7 @@ extension _EditorPageActions on _EditorPageState {
       return;
     }
     _applyState(() {
-      _multiSelectedIds.clear();
+      final pastedIds = <String>[];
       for (final entry in _copiedElements) {
         final kind = entry['kind'] as String;
         final data = entry['data'] as Map<String, dynamic>;
@@ -336,21 +336,22 @@ extension _EditorPageActions on _EditorPageState {
           t.x += dx;
           t.y += dy;
           page.textItems.add(t);
-          _multiSelectedIds.add(t.id);
+          pastedIds.add(t.id);
         } else if (kind == 'image') {
           final img = PageImageItem.fromJson(data);
           img.x += dx;
           img.y += dy;
           page.imageItems.add(img);
-          _multiSelectedIds.add(img.id);
+          pastedIds.add(img.id);
         } else if (kind == 'shape') {
           final s = PageShapeItem.fromJson(data);
           s.x += dx;
           s.y += dy;
           page.shapes.add(s);
-          _multiSelectedIds.add(s.id);
+          pastedIds.add(s.id);
         }
       }
+      _canvasInteraction.replaceMultiSelection(pastedIds);
     });
     _notifyChanged();
     _showSnack('已粘贴 ${_copiedElements.length} 个元素');

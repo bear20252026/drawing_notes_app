@@ -46,6 +46,7 @@ import 'package:drawing_notes_app/features/drawing/presentation/encrypted_file_i
 import 'package:drawing_notes_app/shared/widgets/color_picker_dialog.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_components.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_canvas_interaction_state.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_context_bar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_left_toolbar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_statusbar.dart';
@@ -124,6 +125,11 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   /// 编辑器 ViewModel 胶水层（R4）：工具状态 + 防抖保存调度，
   /// editor_page 只通过它读写工具状态与触发保存（见 editor_viewmodel.dart）。
   late final EditorViewModel _viewModel;
+
+  /// 混排对象的框选、多选、裁剪、对齐与拖动反馈暂态集中在独立协作者中。
+  final EditorCanvasInteractionState _canvasInteraction =
+      EditorCanvasInteractionState();
+
   bool _viewportInitialized = false;
 
   /// 吸管模式：激活时点击画布取色，取色后自动退出。
@@ -145,7 +151,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   double _rotateDegrees = 0.0;
 
   /// 当前选中的混排对象 id（null = 无选中），用于显示编辑/删除按钮。
-  String? _selectedItemId;
+  String? get _selectedItemId => _canvasInteraction.selectedItemId;
+  set _selectedItemId(String? value) =>
+      _canvasInteraction.selectedItemId = value;
 
   /// 当前选中的文字块（null = 未选中文字块），供工具栏字号滑块使用。
   PageTextItem? get _selectedTextItem {
@@ -228,23 +236,27 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   /// 对齐参考线（拖动元素时实时显示，借鉴 Excalidraw 对齐可视化）。
   /// 元素为 (vertical: 是否垂直线, pos: 画布坐标位置)。
-  List<({bool vertical, double pos})> _snapGuides = [];
+  List<({bool vertical, double pos})> get _snapGuides =>
+      _canvasInteraction.snapGuides;
 
   /// 文字缩放手柄的拖拽基准（落地 Excalidraw resizeElements）：
   /// 记录手势开始时的宽度/字号，供缩放联动字号计算；null = 无进行中手势。
-  ({double width, double fontSize, double x})? _textResizeAnchor;
+  ({double width, double fontSize, double x})? get _textResizeAnchor =>
+      _canvasInteraction.textResizeAnchor;
+  set _textResizeAnchor(({double width, double fontSize, double x})? value) =>
+      _canvasInteraction.textResizeAnchor = value;
 
   /// 框选工具激活（借鉴 Excalidraw 多选：矩形框选多个混排对象）。
   bool _marqueeActive = false;
 
   /// 框选矩形（画布坐标；null = 未在框选中）。
-  Rect? _marqueeRect;
+  Rect? get _marqueeRect => _canvasInteraction.marqueeRect;
 
   /// 框选起点（画布坐标）。
-  Offset? _marqueeStart;
+  Offset? get _marqueeStart => _canvasInteraction.marqueeStart;
 
   /// 多选元素 id 集合（框选结果，可整体拖动/删除）。
-  final Set<String> _multiSelectedIds = {};
+  Set<String> get _multiSelectedIds => _canvasInteraction.multiSelectedIds;
 
   /// 网格显示开关（借鉴 Excalidraw 画布导航）。
   bool _gridVisible = false;
@@ -253,7 +265,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   bool _snapToGrid = false;
 
   /// 正在播放删除淡出动画的元素 id 集合（借鉴 Excalidraw 删除动画）。
-  final Set<String> _deletingIds = {};
+  Set<String> get _deletingIds => _canvasInteraction.deletingIds;
 
   /// 手型工具激活（对齐 Excalidraw hand：拖动画布平移）。
   bool _handToolActive = false;
@@ -263,11 +275,12 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   DateTime? _lastPickColorAt;
 
   /// 拖动轨迹点（对齐 Excalidraw animatedTrail：拖动元素显示轨迹动画）。
-  final List<Offset> _trailPoints = [];
+  List<Offset> get _trailPoints => _canvasInteraction.trailPoints;
 
   /// 图片裁剪（对齐 Excalidraw 图片裁剪）：裁剪目标与裁剪矩形（画布坐标）。
-  PageImageItem? _cropItem;
-  Rect? _cropRect;
+  PageImageItem? get _cropItem => _canvasInteraction.cropItem;
+  Rect? get _cropRect => _canvasInteraction.cropRect;
+  set _cropRect(Rect? value) => _canvasInteraction.cropRect = value;
 
   /// 压感笔刷：上一采样点位置与时间（用于鼠标速度模拟压感，
   /// 对齐 Excalidraw：速度快 -> 笔画细，速度慢 -> 笔画粗）。
@@ -346,8 +359,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         img.y = rect.top;
         img.width = rect.width;
         img.height = rect.height;
-        _cropItem = null;
-        _cropRect = null;
+        _canvasInteraction.clearCrop();
       });
       _notifyChanged();
       _showSnack('已裁剪图片');
@@ -1085,15 +1097,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                           }
                           final img = _selectedImageItem;
                           if (img == null) return;
-                          setState(() {
-                            _cropItem = img;
-                            _cropRect = Rect.fromLTWH(
-                              img.x,
-                              img.y,
-                              img.width,
-                              img.height,
-                            );
-                          });
+                          setState(() => _canvasInteraction.beginCrop(img));
                           _showSnack('拖动图片四角调整裁剪区域，再点裁剪按钮确认');
                         },
                         onCycleFont: () {

@@ -79,11 +79,7 @@ extension _EditorPageInput on _EditorPageState {
 
     // 框选工具：记录框选起点（不进入绘制，借鉴 Excalidraw 多选）。
     if (_marqueeActive) {
-      _applyState(() {
-        _marqueeStart = canvasPoint;
-        _marqueeRect = Rect.fromPoints(canvasPoint, canvasPoint);
-        _multiSelectedIds.clear();
-      });
+      _applyState(() => _canvasInteraction.beginMarquee(canvasPoint));
       return;
     }
 
@@ -182,9 +178,7 @@ extension _EditorPageInput on _EditorPageState {
 
     // 框选工具：更新框选矩形（借鉴 Excalidraw 多选）。
     if (_marqueeActive && _marqueeStart != null) {
-      _applyState(() {
-        _marqueeRect = Rect.fromPoints(_marqueeStart!, canvasPoint);
-      });
+      _applyState(() => _canvasInteraction.updateMarquee(canvasPoint));
       return;
     }
 
@@ -283,28 +277,24 @@ extension _EditorPageInput on _EditorPageState {
       final page = widget.session;
       final rect = _marqueeRect!;
       if (page != null) {
-        _applyState(() {
-          _multiSelectedIds.clear();
-          for (final t in page.textItems) {
+        final selectedIds = <String>[
+          for (final text in page.textItems)
             if (rect.overlaps(
-              Rect.fromLTWH(t.x, t.y, t.fontSize * 2, t.fontSize),
-            )) {
-              _multiSelectedIds.add(t.id);
-            }
-          }
-          for (final i in page.imageItems) {
-            if (rect.overlaps(Rect.fromLTWH(i.x, i.y, i.width, i.height))) {
-              _multiSelectedIds.add(i.id);
-            }
-          }
-          for (final s in page.shapes) {
-            if (rect.overlaps(Rect.fromLTWH(s.x, s.y, s.width, s.height))) {
-              _multiSelectedIds.add(s.id);
-            }
-          }
-          _marqueeRect = null;
-          _marqueeStart = null;
-        });
+              Rect.fromLTWH(text.x, text.y, text.fontSize * 2, text.fontSize),
+            ))
+              text.id,
+          for (final image in page.imageItems)
+            if (rect.overlaps(
+              Rect.fromLTWH(image.x, image.y, image.width, image.height),
+            ))
+              image.id,
+          for (final shape in page.shapes)
+            if (rect.overlaps(
+              Rect.fromLTWH(shape.x, shape.y, shape.width, shape.height),
+            ))
+              shape.id,
+        ];
+        _applyState(() => _canvasInteraction.completeMarquee(selectedIds));
         _notifyChanged();
       } else {
         // 画布模式（问题10）：把虚线框转为多边形，交由控制器做
@@ -315,10 +305,7 @@ extension _EditorPageInput on _EditorPageState {
           rect.bottomRight,
           rect.bottomLeft,
         ]);
-        _applyState(() {
-          _marqueeRect = null;
-          _marqueeStart = null;
-        });
+        _applyState(_canvasInteraction.clearMarquee);
         _notifyChanged();
       }
       return;
@@ -396,20 +383,26 @@ extension _EditorPageInput on _EditorPageState {
           final path = Path()..addPolygon(polygon, true);
           final page = widget.session;
           if (page != null) {
-            _applyState(() {
-              for (final t in page.textItems) {
-                final c = t.position + Offset(t.fontSize, t.fontSize / 2);
-                if (path.contains(c)) _multiSelectedIds.add(t.id);
-              }
-              for (final i in page.imageItems) {
-                final c = i.position + Offset(i.width / 2, i.height / 2);
-                if (path.contains(c)) _multiSelectedIds.add(i.id);
-              }
-              for (final sh in page.shapes) {
-                final c = sh.position + Offset(sh.width / 2, sh.height / 2);
-                if (path.contains(c)) _multiSelectedIds.add(sh.id);
-              }
-            });
+            final selectedIds = <String>[
+              for (final text in page.textItems)
+                if (path.contains(
+                  text.position + Offset(text.fontSize, text.fontSize / 2),
+                ))
+                  text.id,
+              for (final image in page.imageItems)
+                if (path.contains(
+                  image.position + Offset(image.width / 2, image.height / 2),
+                ))
+                  image.id,
+              for (final shape in page.shapes)
+                if (path.contains(
+                  shape.position + Offset(shape.width / 2, shape.height / 2),
+                ))
+                  shape.id,
+            ];
+            _applyState(
+              () => _canvasInteraction.addToMultiSelection(selectedIds),
+            );
           }
         }
       }

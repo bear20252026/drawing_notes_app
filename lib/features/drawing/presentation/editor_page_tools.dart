@@ -48,7 +48,6 @@ extension _EditorPageTools on _EditorPageState {
     });
   }
 
-
   /// 框选工具开关：激活后画布上拖动矩形框选多个混排对象
   /// （借鉴 Excalidraw 多选）。
   void _toggleMarqueeTool() {
@@ -62,9 +61,9 @@ extension _EditorPageTools on _EditorPageState {
       _viewModel.setTextToolActive(false);
       _controller.selectionTool = SelectionTool.none;
       if (!_marqueeActive) {
-        _marqueeRect = null;
-        _marqueeStart = null;
-        _multiSelectedIds.clear();
+        _canvasInteraction
+          ..clearMarquee()
+          ..clearMultiSelection();
       }
     });
   }

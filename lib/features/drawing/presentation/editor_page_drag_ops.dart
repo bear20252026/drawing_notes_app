@@ -81,10 +81,12 @@ extension _EditorPageDragOps on _EditorPageState {
               _applyState(() => _controller.eraserMode = mode);
               unawaited(_eraserModeStore.save(mode));
             },
-            setEraserCanEraseShapesStroke: (value) =>
-                _applyState(() => _controller.eraserCanEraseShapesStroke = value),
-            setEraserCanEraseShapesPixel: (value) =>
-                _applyState(() => _controller.eraserCanEraseShapesPixel = value),
+            setEraserCanEraseShapesStroke: (value) => _applyState(
+              () => _controller.eraserCanEraseShapesStroke = value,
+            ),
+            setEraserCanEraseShapesPixel: (value) => _applyState(
+              () => _controller.eraserCanEraseShapesPixel = value,
+            ),
             setTemporaryMarkerEnabled: (enabled) =>
                 _applyState(() => _controller.temporaryMarkerEnabled = enabled),
             selectEyedropper: () => _applyState(() {
@@ -152,9 +154,8 @@ extension _EditorPageDragOps on _EditorPageState {
             cycleAlign: () => _applyState(() {
               final s = _selectedTextItem;
               if (s == null) return;
-              final next =
-                  TextAlignType.values[(s.align.index + 1) %
-                      TextAlignType.values.length];
+              final next = TextAlignType
+                  .values[(s.align.index + 1) % TextAlignType.values.length];
               s.align = next;
               _notifyChanged();
             }),
@@ -168,6 +169,7 @@ extension _EditorPageDragOps on _EditorPageState {
       },
     );
   }
+
   Set<String> _expandGroup(Set<String> ids) {
     final page = widget.session;
     if (page == null || ids.isEmpty) return ids;
@@ -201,12 +203,13 @@ extension _EditorPageDragOps on _EditorPageState {
     final page = widget.session;
     if (page == null) return;
     // 屏幕位移 -> 画布位移（除以缩放、反向旋转）。
-    final canvasDelta = screenDeltaToCanvas(screenDelta, _controller.viewRotation, _controller.viewScale);
+    final canvasDelta = screenDeltaToCanvas(
+      screenDelta,
+      _controller.viewRotation,
+      _controller.viewScale,
+    );
     // 动画尾迹（借鉴 Excalidraw animatedTrail）：记录最近拖动点。
-    _trailPoints.add(canvasDelta);
-    if (_trailPoints.length > 8) {
-      _trailPoints.removeAt(0);
-    }
+    _canvasInteraction.recordTrail(canvasDelta);
     // 多选：拖动任一选中元素时整体移动所有选中元素（借鉴 Excalidraw 多选）。
     final moveIds = _expandGroup(
       _multiSelectedIds.isNotEmpty ? {..._multiSelectedIds, id} : <String>{id},
@@ -408,7 +411,7 @@ extension _EditorPageDragOps on _EditorPageState {
       final guides = <({bool vertical, double pos})>[];
       if (dx != 0) guides.add((vertical: true, pos: l + dx));
       if (dy != 0) guides.add((vertical: false, pos: top + dy));
-      _snapGuides = guides;
+      _canvasInteraction.replaceSnapGuides(guides);
       for (final t in textItems) {
         if (t.id == id) {
           t.x += dx;
@@ -428,7 +431,7 @@ extension _EditorPageDragOps on _EditorPageState {
         }
       }
     } else {
-      _snapGuides = const [];
+      _canvasInteraction.clearSnapGuides();
     }
   }
 
@@ -523,7 +526,11 @@ extension _EditorPageDragOps on _EditorPageState {
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanUpdate: (d) {
-              final delta = screenDeltaToCanvas(d.delta, _controller.viewRotation, _controller.viewScale);
+              final delta = screenDeltaToCanvas(
+                d.delta,
+                _controller.viewRotation,
+                _controller.viewScale,
+              );
               _applyState(() {
                 // 按角位置调整 _cropRect 的对应边（限制在图片区域内）。
                 final img = _cropItem!;
@@ -618,5 +625,3 @@ extension _EditorPageDragOps on _EditorPageState {
 
   /// 选区操作条：完成选区后显示（复制/粘贴/删除/清除 + 缩放/旋转滑块）。
 }
-
-
