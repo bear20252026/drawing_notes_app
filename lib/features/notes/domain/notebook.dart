@@ -1,9 +1,13 @@
-import 'dart:ui' show Offset;
-
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/features/drawing/domain/page_chart_item.dart';
+import 'package:drawing_notes_app/features/drawing/domain/page_connector.dart';
+import 'package:drawing_notes_app/features/drawing/domain/page_image_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
 
+export 'package:drawing_notes_app/features/drawing/domain/page_chart_item.dart';
+export 'package:drawing_notes_app/features/drawing/domain/page_connector.dart';
+export 'package:drawing_notes_app/features/drawing/domain/page_image_item.dart';
 export 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
 export 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
 
@@ -42,138 +46,6 @@ extension PageTemplatePresentation on PageTemplate {
   };
 
   bool get isInfinite => this == PageTemplate.whiteboard;
-}
-
-/// 页面上的图片块。
-///
-/// [filePath] 指向应用文档目录下的本地图片副本（绝对路径），
-/// 插入时由存储层把所选图片复制进应用目录，保证离线可用、不丢文件。
-class PageImageItem {
-  PageImageItem({
-    required this.id,
-    required this.x,
-    required this.y,
-    required this.filePath,
-    this.width = 200,
-    this.height = 150,
-    this.zOrder = 0,
-    this.groupId,
-    this.href,
-    this.fractionalIndex,
-  });
-
-  final String id;
-  double x;
-  double y;
-  String filePath;
-  double width;
-  double height;
-
-  /// 图层顺序（借鉴 Excalidraw 图层操作）。
-  int zOrder;
-
-  /// 层级排序键（fractional indexing，参考 Excalidraw）：重排只需在相邻
-  /// 键之间生成新键，无需重排其余元素。null = 旧文档，回退按 [zOrder] 排序。
-  String? fractionalIndex;
-
-  /// 元素分组（借鉴 Excalidraw groupIds）。
-  String? groupId;
-
-  /// 元素超链接（借鉴 Excalidraw hyperlink）：点击打开链接。
-  String? href;
-
-  Offset get position => Offset(x, y);
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'x': x,
-    'y': y,
-    'filePath': filePath,
-    'width': width,
-    'height': height,
-    'zOrder': zOrder,
-    if (groupId != null) 'groupId': groupId,
-    if (href != null) 'href': href,
-    if (fractionalIndex != null) 'fractionalIndex': fractionalIndex,
-  };
-
-  factory PageImageItem.fromJson(Map<String, dynamic> json) => PageImageItem(
-    id: json['id'] as String,
-    x: (json['x'] as num).toDouble(),
-    y: (json['y'] as num).toDouble(),
-    filePath: json['filePath'] as String,
-    width: (json['width'] as num?)?.toDouble() ?? 200,
-    height: (json['height'] as num?)?.toDouble() ?? 150,
-    zOrder: (json['zOrder'] as num?)?.toInt() ?? 0,
-    groupId: json['groupId'] as String?,
-    href: json['href'] as String?,
-    fractionalIndex: json['fractionalIndex'] as String?,
-  );
-}
-
-/// 图表元素（借鉴 Excalidraw charts：粘贴数据自动生成柱状/折线图）。
-enum ChartType { bar, line }
-
-/// 页面上的图表（柱状图/折线图）。
-class PageChartItem {
-  PageChartItem({
-    required this.id,
-    required this.chartType,
-    required this.data,
-    this.labels = const [],
-    this.x = 100,
-    this.y = 100,
-    this.width = 320,
-    this.height = 200,
-    this.color = 0xFF3A6EA5,
-    this.zOrder = 0,
-  });
-
-  final String id;
-  ChartType chartType;
-  List<double> data;
-  List<String> labels;
-  double x;
-  double y;
-  double width;
-  double height;
-  int color;
-  int zOrder;
-
-  Offset get position => Offset(x, y);
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'chartType': chartType.name,
-    'data': data,
-    'labels': labels,
-    'x': x,
-    'y': y,
-    'width': width,
-    'height': height,
-    'color': color,
-    'zOrder': zOrder,
-  };
-
-  factory PageChartItem.fromJson(Map<String, dynamic> json) => PageChartItem(
-    id: json['id'] as String,
-    chartType: ChartType.values.firstWhere(
-      (c) => c.name == json['chartType'],
-      orElse: () => ChartType.bar,
-    ),
-    data: (json['data'] as List? ?? const [])
-        .map((e) => (e as num).toDouble())
-        .toList(),
-    labels: (json['labels'] as List? ?? const [])
-        .map((e) => e as String)
-        .toList(),
-    x: (json['x'] as num?)?.toDouble() ?? 100,
-    y: (json['y'] as num?)?.toDouble() ?? 100,
-    width: (json['width'] as num?)?.toDouble() ?? 320,
-    height: (json['height'] as num?)?.toDouble() ?? 200,
-    color: (json['color'] as num?)?.toInt() ?? 0xFF3A6EA5,
-    zOrder: (json['zOrder'] as num?)?.toInt() ?? 0,
-  );
 }
 
 /// 克隆引用（借鉴 Trilium 笔记克隆：一处修改多端生效，非复制粘贴）。
@@ -257,37 +129,6 @@ class PageVersion {
         .map((e) => PageChartItem.fromJson(e as Map<String, dynamic>))
         .toList(),
     summary: json['summary'] as String? ?? '',
-  );
-}
-
-/// 画布元素连接线（D1：节点关联标注，借鉴 Relatum 连线）。
-///
-/// 在 [fromItemId] 与 [toItemId] 两个混排对象（文字/图片块）之间画连线。
-class PageConnector {
-  PageConnector({
-    required this.id,
-    required this.fromItemId,
-    required this.toItemId,
-    this.color = 0xFF42A5F5,
-  });
-
-  final String id;
-  final String fromItemId;
-  final String toItemId;
-  final int color;
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'fromItemId': fromItemId,
-    'toItemId': toItemId,
-    'color': color,
-  };
-
-  factory PageConnector.fromJson(Map<String, dynamic> json) => PageConnector(
-    id: json['id'] as String,
-    fromItemId: json['fromItemId'] as String,
-    toItemId: json['toItemId'] as String,
-    color: (json['color'] as num?)?.toInt() ?? 0xFF42A5F5,
   );
 }
 

@@ -8,11 +8,13 @@ part of 'home_page.dart';
 class _DrawingCard extends StatefulWidget {
   const _DrawingCard({
     required this.meta,
+    required this.documentStorage,
     required this.onTap,
     required this.onDelete,
   });
 
   final DocumentMeta meta;
+  final StorageService documentStorage;
   final VoidCallback onTap;
   final VoidCallback onDelete;
 
@@ -33,8 +35,7 @@ class _DrawingCardState extends State<_DrawingCard> {
   Future<void> _loadThumb() async {
     // 读取缩略图文件路径（缩略图由编辑器自动保存时生成）。
     try {
-      final storage = StorageService();
-      final path = await storage.thumbnailPath(widget.meta.id);
+      final path = await widget.documentStorage.thumbnailPath(widget.meta.id);
       if (mounted && path != null) {
         setState(() => _thumbPath = path);
       }

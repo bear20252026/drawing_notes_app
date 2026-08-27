@@ -280,7 +280,7 @@ extension _EditorPageInput on _EditorPageState {
 
     // 框选工具：结算框选，把矩形内的混排对象加入多选（借鉴 Excalidraw）。
     if (_marqueeActive && _marqueeRect != null) {
-      final page = widget.page;
+      final page = widget.session;
       final rect = _marqueeRect!;
       if (page != null) {
         _applyState(() {
@@ -331,7 +331,7 @@ extension _EditorPageInput on _EditorPageState {
           _shapeDraftCurrent ?? _controller.viewToCanvas(event.localPosition);
       if (start != null) {
         final geometry = ShapeCreationGeometry.fromDrag(start, end);
-        final page = widget.page;
+        final page = widget.session;
         final snapId = page == null ? null : _findSnapTargetId(end);
         final shape = geometry.createShape(
           id: LocalIdGenerator.next('shp'),
@@ -394,7 +394,7 @@ extension _EditorPageInput on _EditorPageState {
         // 笔画、形状和图片选择，避免 UI 侧临时 ID 与历史事务脱节。
         if (_isNotebookMode && polygon.length >= 3) {
           final path = Path()..addPolygon(polygon, true);
-          final page = widget.page;
+          final page = widget.session;
           if (page != null) {
             _applyState(() {
               for (final t in page.textItems) {

@@ -15,8 +15,9 @@ void main() {
   late DependencyGraph graph;
 
   setUpAll(() async {
-    // 测试运行于 test/ 下，'../' 即包根（pubspec.yaml 所在目录）。
-    graph = await Collector.buildGraph('../');
+    // flutter test 从包根执行；使用 '.' 限定依赖图收集范围为本仓库。
+    // 先前的 '../' 会扫到上级工作目录，导致架构测试高内存且不可复现。
+    graph = await Collector.buildGraph('.');
   });
 
   test('规则1：层方向单向——高层只允许依赖低层', () {
@@ -46,12 +47,44 @@ void main() {
     });
   });
 
+  test('规则3a：绘图应用层仅依赖跨功能只读契约', () {
+    shouldNotDependOn(
+      filesMatching('features/drawing/application/**'),
+      filesMatching('features/notes/domain/**'),
+      graph,
+    );
+  });
+
+  test('规则3b：属性面板直接依赖绘图领域元素类型', () {
+    shouldNotDependOn(
+      filesMatching('features/drawing/presentation/properties_panel.dart'),
+      filesMatching('features/notes/domain/**'),
+      graph,
+    );
+  });
+
+  test('规则3c：连接线画笔仅依赖绘图展示快照', () {
+    shouldNotDependOn(
+      filesMatching('features/drawing/presentation/editor_components.dart'),
+      filesMatching('features/notes/domain/**'),
+      graph,
+    );
+  });
+
+  test('规则3d：绘图展示层不直接依赖笔记领域聚合', () {
+    shouldNotDependOn(
+      filesMatching('features/drawing/presentation/**'),
+      filesMatching('features/notes/domain/**'),
+      graph,
+    );
+  });
+
   test('规则3：feature 非 domain 依赖禁止（domain 实体双向共享合规）', () {
     // domain 是最内层纯数据（check_boundaries 规则 1：core 允许依赖
     // features domain 实体），实体双向共享合规；真正禁止的是跨 feature
     // 的 infrastructure/presentation 依赖（真横向耦合）。
-    // freeze 基线：剩余 3 处 infra/presentation 横向依赖（editor_page→
-    // notebook_storage/presentation_page、editor_exporter→paged_note_rtf）
+    // freeze 基线：剩余 infrastructure/presentation 横向依赖（editor_page→
+    // notebook_storage/presentation_page）；应用层已通过只读契约脱离 notes。
     // 为接口化推进中的已知历史违规，CI 只拦新增。
     freeze('feature_isolation', () {
       shouldNotDependOn(
@@ -120,12 +153,17 @@ void main() {
     for (final e in report.entries) {
       final i = e.value.instability;
       // ignore: avoid_print
-      print('${e.key}: I=${i.toStringAsFixed(2)} Ca=${e.value.afferent} Ce=${e.value.efferent}');
+      print(
+        '${e.key}: I=${i.toStringAsFixed(2)} Ca=${e.value.afferent} Ce=${e.value.efferent}',
+      );
       if (i > worst) worst = i;
     }
     // 基线：稳定层最差 instability 不得超过 0.4（实测 domain/core 最差
     // 0.33 有余量，收紧自 0.6——2026 架构守护收紧）。
-    expect(worst, lessThanOrEqualTo(0.4),
-        reason: 'domain/core 应为稳定层（I≤0.4），实测最差 $worst');
+    expect(
+      worst,
+      lessThanOrEqualTo(0.4),
+      reason: 'domain/core 应为稳定层（I≤0.4），实测最差 $worst',
+    );
   });
 }

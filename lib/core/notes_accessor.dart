@@ -1,29 +1,57 @@
-import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
+// 跨功能笔记访问契约。
+//
+// drawing 侧只需要两类能力：读取可搜索的摘要文本，以及把编辑器选取的图片
+// 写入笔记页资产区。它不应持有可变的笔记聚合根；具体领域实体由 notes
+// 基础设施投影为下列只读 DTO 后再跨功能传递。
 
-/// 跨功能笔记访问接口（S4b：drawing→notes 横向依赖接口化）。
-///
-/// 背景（docs/IMPROVEMENT_PLAN_2026-08-15.md）：
-/// drawing 模块的 editor_exporter/search_service 需要笔记能力（导出
-/// 混合 PDF、跨笔记搜索）。直接 import notes 具体类破坏"完全隔离"。
-///
-/// 本接口作为**跨功能契约**：
-/// - 定义 drawing 侧所需的笔记能力（访问页面/存储）；
-/// - notes 侧实现本接口并注入（构造注入，官方推荐）；
-/// - drawing 侧只依赖本接口（core 允许依赖 domain 实体，依赖向内）。
-///
-/// 已接口化：editor_exporter 的 pageProvider（函数注入）、
-/// search_service 的 notebookAccessor（本接口注入）。
-abstract interface class INotebookAccessor {
-  /// 读取指定笔记本页面（导出混合 PDF 时使用）。
-  NotebookPage? pageById(String notebookId, String pageId);
+/// 可搜索笔记本的只读索引条目。
+class NotebookSearchDocument {
+  NotebookSearchDocument({
+    required this.id,
+    required this.title,
+    required this.searchSummary,
+    required List<NotebookSearchPage> pages,
+  }) : pages = List.unmodifiable(pages);
 
-  /// 列出全部笔记本（跨笔记搜索时使用）。
-  Future<List<Notebook>> listNotebooks();
+  final String id;
+  final String title;
 
-  /// 当前笔记存储是否可用（搜索/编辑器集成时使用）。
+  /// 加密笔记本可安全保留的脱敏搜索摘要。
+  final String searchSummary;
+  final List<NotebookSearchPage> pages;
+}
+
+/// 笔记页面的只读搜索内容。
+class NotebookSearchPage {
+  NotebookSearchPage({
+    required this.id,
+    required this.title,
+    required List<String> textContents,
+  }) : textContents = List.unmodifiable(textContents);
+
+  final String id;
+  final String title;
+  final List<String> textContents;
+}
+
+/// drawing 全文搜索所需的最小只读笔记索引。
+abstract interface class INotebookSearchAccessor {
+  /// 列出可被跨笔记搜索消费的只读摘要和页面文本。
+  Future<List<NotebookSearchDocument>> listSearchDocuments();
+
+  /// 当前笔记存储是否可用。
   bool get isStorageAvailable;
+}
 
-  /// 将图片复制进笔记页存储（编辑器插入笔记页图片时使用），
-  /// 返回笔记侧存储后的文件路径。
+/// 编辑器向笔记页导入图片时所需的最小媒体写入能力。
+abstract interface class INotebookMediaStore {
+  /// 将图片复制进笔记页存储并返回笔记侧托管后的文件路径。
   Future<String> storeImage(String sourcePath, String pageId);
 }
+
+/// 保持既有装配点的组合契约。
+///
+/// notes 侧实现该接口；drawing 中不同的消费者应依赖各自更窄的父接口，
+/// 而不是依赖完整聚合根或不需要的写入能力。
+abstract interface class INotebookAccessor
+    implements INotebookSearchAccessor, INotebookMediaStore {}

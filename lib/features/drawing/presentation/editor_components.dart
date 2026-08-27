@@ -4,7 +4,10 @@ import 'dart:math' as math;
 import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
-import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
+import 'package:drawing_notes_app/features/drawing/domain/page_chart_item.dart';
+import 'package:drawing_notes_app/features/drawing/domain/page_connector.dart';
+import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
+import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
 
 /// 编辑器纯展示组件集（架构重构 R1：从 editor_page 外移的零耦合组件）。
 ///
@@ -53,9 +56,15 @@ class ShortcutRow extends StatelessWidget {
 ///
 /// 在页面混排对象（文字/图片块）之间画连线，坐标随画布视口变换。
 class ConnectorPainter extends CustomPainter {
-  const ConnectorPainter({required this.page, required this.controller});
+  ConnectorPainter({
+    required Iterable<PageConnector> connectors,
+    required Map<String, Offset> itemPositions,
+    required this.controller,
+  }) : connectors = List.unmodifiable(connectors),
+       itemPositions = Map.unmodifiable(itemPositions);
 
-  final NotebookPage page;
+  final List<PageConnector> connectors;
+  final Map<String, Offset> itemPositions;
   final DrawingController controller;
 
   @override
@@ -64,7 +73,7 @@ class ConnectorPainter extends CustomPainter {
       ..color = const Color(0x8842A5F5)
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
-    for (final c in page.connectors) {
+    for (final c in connectors) {
       final from = _itemPosition(c.fromItemId);
       final to = _itemPosition(c.toItemId);
       if (from == null || to == null) continue;
@@ -90,16 +99,8 @@ class ConnectorPainter extends CustomPainter {
     }
   }
 
-  /// 查找混排对象的位置（画布坐标），无则返回 null。
-  Offset? _itemPosition(String id) {
-    for (final t in page.textItems) {
-      if (t.id == id) return t.position;
-    }
-    for (final img in page.imageItems) {
-      if (img.id == id) return img.position;
-    }
-    return null;
-  }
+  /// 查询导出时捕获的混排对象位置（画布坐标），无则返回 null。
+  Offset? _itemPosition(String id) => itemPositions[id];
 
   @override
   bool shouldRepaint(ConnectorPainter oldDelegate) => true;

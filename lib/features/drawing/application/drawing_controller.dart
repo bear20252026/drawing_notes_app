@@ -12,6 +12,7 @@ import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
 import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
+import 'package:drawing_notes_app/features/drawing/application/doc_command_context.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
 import 'package:drawing_notes_app/features/drawing/application/selection_geometry_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/color_sampling_service.dart';
@@ -42,12 +43,15 @@ part 'drawing_controller_objects.dart';
 part 'drawing_controller_selection.dart';
 part 'drawing_controller_render.dart';
 part 'drawing_controller_history.dart';
-class DrawingController extends ChangeNotifier {
+
+class DrawingController extends ChangeNotifier implements DocCommandContext {
   DrawingController(this._document) {
     _rebuildCacheMap();
   }
 
   final DrawingDocument _document;
+
+  @override
   DrawingDocument get document => _document;
 
   final Map<String, ui.Image> _documentImages = <String, ui.Image>{};
@@ -65,7 +69,6 @@ class DrawingController extends ChangeNotifier {
     }
     return null;
   }
-
 
   /// 已销毁标记：dispose 后拒绝一切变更与通知（防止异步回调越界）。
 
@@ -208,7 +211,6 @@ class DrawingController extends ChangeNotifier {
   ///   逆：p = R(-rot) · (view - center - offset) / scale + center
 
   /// 把画布坐标转换为视图坐标。
-
 
   // ---------------- 图层渲染缓存 ----------------
 
@@ -438,10 +440,9 @@ class DrawingController extends ChangeNotifier {
   }
 
   /// 当前擦除模式是否允许擦除标准形状。
-  bool get _eraserCanEraseShapes =>
-      _eraserMode == EraserMode.stroke
-          ? _eraserCanEraseShapesStroke
-          : _eraserCanEraseShapesPixel;
+  bool get _eraserCanEraseShapes => _eraserMode == EraserMode.stroke
+      ? _eraserCanEraseShapesStroke
+      : _eraserCanEraseShapesPixel;
 
   /// 本次手势中被擦除的标准形状（按引用记录，供增量命令还原）。
   final List<PageShapeItem> _objectEraseShapes = [];
@@ -559,7 +560,8 @@ class DrawingController extends ChangeNotifier {
   /// 取消对象橡皮擦手势；如已经移除对象则还原（按增量记录插回）。
   void cancelObjectErase() {
     final changed = _objectEraseChanged;
-    if (changed && (_objectEraseRemoved.isNotEmpty || _objectEraseShapes.isNotEmpty)) {
+    if (changed &&
+        (_objectEraseRemoved.isNotEmpty || _objectEraseShapes.isNotEmpty)) {
       EraseStrokesCommand(
         this,
         List.of(_objectEraseRemoved),
@@ -739,8 +741,10 @@ class DrawingController extends ChangeNotifier {
   /// 命令类与控制器分属不同文件，无法访问私有成员
   /// （`_restoreLayers`/`_document`/`_afterStrokeUndoRedo`），
   /// 因此提供等价的公开入口，行为完全一致（R5 拆分）。
+  @override
   void restoreLayersSnapshot(List<Layer> snapshot) => _restoreLayers(snapshot);
 
+  @override
   void touchDocument() {
     _isDirty = true;
     _document.touch();
@@ -759,10 +763,12 @@ class DrawingController extends ChangeNotifier {
   /// 标记当前状态为"已保存"（自动保存成功后调用）。
   void markSaved() => _isDirty = false;
 
+  @override
   Future<void> afterStrokeUndoRedo(int layerIndex) =>
       _afterStrokeUndoRedo(layerIndex);
 
   /// 把由手绘识别转出的形状撤销回原笔画。供命令对象调用。
+  @override
   void undoRecognizedShape(int layerIndex, Stroke stroke, PageShapeItem shape) {
     _document.shapes.remove(shape);
     _document.layers[layerIndex].strokes.add(stroke);
@@ -771,6 +777,7 @@ class DrawingController extends ChangeNotifier {
   }
 
   /// 重新把原笔画替换为已识别形状。供命令对象调用。
+  @override
   void redoRecognizedShape(int layerIndex, Stroke stroke, PageShapeItem shape) {
     _document.layers[layerIndex].strokes.remove(stroke);
     _document.shapes.add(shape);

@@ -4,13 +4,14 @@ import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'package:drawing_notes_app/app/default_editor_page_builder.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/di/providers.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
 
 /// 应用根组件：主题 + 路由。
@@ -33,6 +34,10 @@ class DrawingNotesApp extends StatefulWidget {
 class _DrawingNotesAppState extends State<DrawingNotesApp> {
   late final AppThemeController _themeController;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
+  // 组合根拥有共享依赖的生命周期；页面只接收这些实例，不自行创建。
+  final StorageService _documentStorage = StorageService();
+  final NotebookStorage _notebookStorage = NotebookStorage();
 
   @override
   void initState() {
@@ -76,7 +81,10 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
     );
     nav.push(
       MaterialPageRoute(
-        builder: (_) => EditorPage(document: doc, docStorage: StorageService()),
+        builder: (_) => DefaultEditorPageBuilder.build(
+          document: doc,
+          documentStorage: _documentStorage,
+        ),
       ),
     );
   }
@@ -103,15 +111,17 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          supportedLocales: const [
-            Locale('zh'),
-            Locale('en'),
-          ],
+          supportedLocales: const [Locale('zh'), Locale('en')],
           debugShowCheckedModeBanner: false,
           themeMode: _themeController.mode,
           theme: ref.watch(themeProvider),
           darkTheme: AppDesign.darkTheme(),
-          home: HomePage(themeController: _themeController),
+          home: HomePage(
+            notebookStorage: _notebookStorage,
+            docStorage: _documentStorage,
+            themeController: _themeController,
+            editorPageBuilder: DefaultEditorPageBuilder.build,
+          ),
         ),
       ),
     );

@@ -37,30 +37,27 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
   // ---- INotebookAccessor 跨功能契约适配（S4b：NotebookStorage 直接实现契约）----
 
   @override
-  NotebookPage? pageById(String notebookId, String pageId) {
-    // M-09 修复（专家审计 2026-08-15）：实现跨页面查找（原恒 null——
-    // 克隆/跨页访问/混合 PDF 导出不可用）。
-    try {
-      if (!isValidId(notebookId) || !isValidId(pageId)) return null;
-      if (_notebooksDir == null) return null; // 目录未初始化（尚未加载过）
-      final file = File(
-        '${_notebooksDir!.path}${Platform.pathSeparator}$notebookId.json',
-      );
-      if (!file.existsSync()) return null;
-      final root =
-          jsonDecode(utf8.decode(file.readAsBytesSync())) as Map<String, dynamic>;
-      final notebook = Notebook.fromJson(root);
-      for (final page in notebook.pages) {
-        if (page.id == pageId) return page;
-      }
-      return null;
-    } catch (_) {
-      return null;
-    }
+  Future<List<NotebookSearchDocument>> listSearchDocuments() async {
+    final notebooks = await listAll();
+    return [
+      for (final notebook in notebooks)
+        NotebookSearchDocument(
+          id: notebook.id,
+          title: notebook.title,
+          searchSummary: notebook.searchSummary,
+          pages: [
+            for (final page in notebook.pages)
+              NotebookSearchPage(
+                id: page.id,
+                title: page.title,
+                textContents: [
+                  for (final textItem in page.textItems) textItem.text,
+                ],
+              ),
+          ],
+        ),
+    ];
   }
-
-  @override
-  Future<List<Notebook>> listNotebooks() => listAll();
 
   @override
   bool get isStorageAvailable => true;
@@ -294,11 +291,7 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
         throw FileSystemException('源图片不存在', sourcePath);
       }
       final id = 'media/${pageId}_${DateTime.now().microsecondsSinceEpoch}';
-      await vfs.putObject(
-        id,
-        plain: await src.readAsBytes(),
-        type: 'media',
-      );
+      await vfs.putObject(id, plain: await src.readAsBytes(), type: 'media');
       return 'vfs:$id';
     }
     final dir = await _ensureImagesDir();

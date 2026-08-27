@@ -1,2 +1,0 @@
-Architecture violations (1):
-  [shouldBeFreeOfCycles] package:drawing_notes_app/features/drawing/application/document_commands.dart: cycle: package:drawing_notes_app/features/drawing/application/document_commands.dart → package:drawing_notes_app/features/drawing/application/drawing_controller.dart

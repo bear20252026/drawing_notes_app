@@ -1,4 +1,5 @@
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/features/notes/application/notebook_page_editor_session.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
@@ -24,17 +25,16 @@ void main() {
       title: '功能测试页',
       document: doc,
     );
-    final notebook = Notebook(id: 'feature_test_nb', title: '测试本')
-      ..pages.add(page);
-    await tester.pumpWidget(MaterialApp(
-      home: EditorPage(
-        notebook: notebook,
-        page: page,
-        storage: NotebookStorage(
-          directoryProvider: () async => throw UnimplementedError(),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: EditorPage(
+          session: NotebookPageEditorSession(page),
+          storage: NotebookStorage(
+            directoryProvider: () async => throw UnimplementedError(),
+          ),
         ),
       ),
-    ));
+    );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull, reason: '编辑器页面不应有构建异常');
   }

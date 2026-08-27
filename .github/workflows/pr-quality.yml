@@ -25,4 +25,14 @@ jobs:
       - name: 全量测试
         run: flutter test
       - name: 行数门禁
-        run: python tools/code_guard.py --dir lib --force-native --json
+        # code_guard 的退出码 2 表示 500 行预警而非 1000 行超限；
+        # 保留 JSON 告警并放行，真实 error（退出码 1）仍会阻断合并。
+        shell: pwsh
+        run: |
+          python tools/code_guard.py --dir lib --force-native --json
+          $guardExit = $LASTEXITCODE
+          if ($guardExit -eq 2) {
+            Write-Host "::warning::Line-count warnings detected; no hard limit was exceeded."
+            exit 0
+          }
+          exit $guardExit

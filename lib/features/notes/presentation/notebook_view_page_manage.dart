@@ -19,6 +19,27 @@ extension _NotebookPageManage on _NotebookViewPageState {
     );
   }
 
+  Future<void> _openEditor({
+    required NotebookPage page,
+    required VoidCallback onChanged,
+  }) {
+    final builder = widget.editorPageBuilder;
+    if (builder == null) {
+      _showSnack('编辑器尚未由应用层装配');
+      return Future<void>.value();
+    }
+    return Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => builder(
+          session: NotebookPageEditorSession(page),
+          notebookAccessor: widget.storage,
+          onChanged: onChanged,
+          openPresentation: (context) => _openPresentation(context, page),
+        ),
+      ),
+    );
+  }
+
   Future<void> _createPage() async {
     final request = await showDialog<_NewPageRequest>(
       context: context,
@@ -36,17 +57,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
     _applyState(() => _notebook.pages.add(page));
     await _save();
     if (!mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => EditorPage(
-          notebook: _notebook,
-          page: page,
-          storage: widget.storage,
-          onChanged: _save,
-          openPresentation: _openPresentation,
-        ),
-      ),
-    );
+    await _openEditor(page: page, onChanged: _save);
     _applyState(() {}); // 返回后刷新
   }
 
@@ -230,16 +241,9 @@ extension _NotebookPageManage on _NotebookViewPageState {
         _showSnack('引用的源页面不存在（可能已被删除）');
         return;
       }
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => EditorPage(
-            notebook: srcNotebook,
-            page: srcPage,
-            storage: widget.storage,
-            onChanged: () => widget.storage.save(srcNotebook),
-            openPresentation: _openPresentation,
-          ),
-        ),
+      await _openEditor(
+        page: srcPage,
+        onChanged: () => widget.storage.save(srcNotebook),
       );
       _applyState(() {});
       return;
@@ -248,17 +252,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
     _applyState(() => page.lastOpenedAt = DateTime.now());
     await _save();
     if (!mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => EditorPage(
-          notebook: _notebook,
-          page: page,
-          storage: widget.storage,
-          onChanged: _save,
-          openPresentation: _openPresentation,
-        ),
-      ),
-    );
+    await _openEditor(page: page, onChanged: _save);
     _applyState(() {});
   }
 

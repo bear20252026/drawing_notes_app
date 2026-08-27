@@ -15,6 +15,8 @@ import 'package:drawing_notes_app/features/drawing/application/command_registry.
 import 'package:drawing_notes_app/features/drawing/application/di_providers.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/features/drawing/application/editor_input_arbiter.dart';
+import 'package:drawing_notes_app/core/navigation/editor_page_session.dart';
+import 'package:drawing_notes_app/features/drawing/application/paged_export_snapshot.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode_store.dart';
 import 'package:drawing_notes_app/features/drawing/application/editor_exporter.dart';
@@ -29,8 +31,12 @@ import 'package:drawing_notes_app/features/drawing/application/stylus_input.dart
 import 'package:drawing_notes_app/features/drawing/infrastructure/view_transform_cache.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
-import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
+import 'package:drawing_notes_app/features/drawing/domain/page_chart_item.dart';
+import 'package:drawing_notes_app/features/drawing/domain/page_connector.dart';
+import 'package:drawing_notes_app/features/drawing/domain/page_image_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
+import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
+import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 import 'package:drawing_notes_app/core/notes_accessor.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
@@ -66,7 +72,7 @@ part 'editor_page_persistence.dart';
 ///
 /// 两种使用场景：
 /// 1. 独立画作模式：仅传 [document]（Phase 1-4，画布功能）；
-/// 2. 笔记本页面模式：传 [notebook]/[page]/[storage]/[onChanged]，
+/// 2. 笔记本页面模式：传 [session]/[storage]/[onChanged]，
 ///    在画布之上叠加文字块与图片块（Phase 5 混排）。
 ///
 /// 职责：
@@ -77,8 +83,7 @@ class EditorPage extends ConsumerStatefulWidget {
   const EditorPage({
     super.key,
     DrawingDocument? document,
-    this.notebook,
-    this.page,
+    this.session,
     this.storage,
     this.docStorage,
     this.onChanged,
@@ -88,9 +93,8 @@ class EditorPage extends ConsumerStatefulWidget {
   /// 独立画作模式：初始文档（为空时创建默认空白文档）。
   final DrawingDocument? _initialDocument;
 
-  /// 笔记本页面模式：所属笔记本与当前页面。
-  final Notebook? notebook;
-  final NotebookPage? page;
+  /// 笔记本页面模式：由 notes 在组合边界提供的当前页面编辑会话。
+  final EditorPageSession? session;
 
   /// 笔记侧存储契约（插入图片时复制图片副本用）。
   final INotebookAccessor? storage;
@@ -101,8 +105,7 @@ class EditorPage extends ConsumerStatefulWidget {
   /// 打开放映页的回调（跨 feature 页面跳转契约，S4b 接口化）：
   /// 由笔记侧注入实现（跳转 PresentationPage），drawing 不直接依赖
   /// notes 的 presentation UI；null 时演示功能提示不可用。
-  final Future<void> Function(BuildContext context, NotebookPage page)?
-      openPresentation;
+  final Future<void> Function(BuildContext context)? openPresentation;
 
   /// 内容变更回调（自动保存由上级页面实现）。
   final VoidCallback? onChanged;
@@ -146,7 +149,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   /// 当前选中的文字块（null = 未选中文字块），供工具栏字号滑块使用。
   PageTextItem? get _selectedTextItem {
-    final page = widget.page;
+    final page = widget.session;
     final id = _selectedItemId;
     if (page == null || id == null) return null;
     return page.textItems.where((t) => t.id == id).firstOrNull;
@@ -165,10 +168,26 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   // 白色背景 → 黑色、黑色墨迹 → 白色，实现真正的深色阅读（仅显示层
   // 反相，不修改文档数据）。
   static const ColorFilter _readingInvertFilter = ColorFilter.matrix(<double>[
-    -1, 0, 0, 0, 255,
-    0, -1, 0, 0, 255,
-    0, 0, -1, 0, 255,
-    0, 0, 0, 1, 0,
+    -1,
+    0,
+    0,
+    0,
+    255,
+    0,
+    -1,
+    0,
+    0,
+    255,
+    0,
+    0,
+    -1,
+    0,
+    255,
+    0,
+    0,
+    0,
+    1,
+    0,
   ]);
 
   /// 图层与详细属性默认按需展开，避免在普通屏幕上长期挤压创作区域。
@@ -268,7 +287,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   /// 当前选中的图片元素。
   PageImageItem? get _selectedImageItem {
-    final page = widget.page;
+    final page = widget.session;
     final id = _selectedItemId;
     if (page == null || id == null) return null;
     return page.imageItems.where((i) => i.id == id).firstOrNull;
@@ -339,7 +358,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   /// 当前工作区的形状集合：笔记页使用分页混排集合，独立绘图使用文档集合。
   List<PageShapeItem> get _shapeItems =>
-      widget.page?.shapes ?? _controller.document.shapes;
+      widget.session?.shapes ?? _controller.document.shapes;
 
   /// 当前选中的形状元素。
   PageShapeItem? get _selectedShapeItem {
@@ -449,8 +468,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   }
 
   /// 视图缓存的键：笔记本页面按页面 id，独立画布按文档 id。
-  String get _viewCacheKey => widget.page != null
-      ? 'page:${widget.page!.id}'
+  String get _viewCacheKey => widget.session != null
+      ? 'page:${widget.session!.id}'
       : 'doc:${_controller.document.id}';
 
   // ---------------- 保存 ----------------
@@ -471,20 +490,29 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   /// 鼠标悬停/移动时的画布坐标（状态栏显示，借鉴 Joplin StatusBar）。
   final ValueNotifier<Offset?> _hoverPos = ValueNotifier<Offset?>(null);
 
-  bool get _isNotebookMode => widget.page != null;
+  bool get _isNotebookMode => widget.session != null;
 
   @override
   void initState() {
     super.initState();
     // 笔记本页面模式使用页面自带文档；否则独立画布。
     final doc =
-        widget.page?.document ??
+        widget.session?.document ??
         widget._initialDocument ??
         DrawingDocument(id: StorageService.newId(), title: '未命名画布');
     _controller = ref.read(drawingControllerProvider(doc));
     _exporter = EditorExporter(
       controller: _controller,
-      pageProvider: () => widget.page,
+      pageProvider: () {
+        final page = widget.session;
+        if (page == null) return null;
+        return PagedExportSnapshot(
+          title: page.title,
+          textItems: page.textItems,
+          imageItems: page.imageItems.map((item) => item.toJson()),
+          shapes: page.shapes.map((shape) => shape.toJson()),
+        );
+      },
       showSnack: _showSnack,
     );
     unawaited(_loadBrushPresets());
@@ -492,8 +520,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     // 异步加载铅笔颗粒着色器；失败时渲染层自动回退到普通铅笔绘制。
     unawaited(PencilShader.init());
     // 修改文档标题显示为页面标题。
-    if (widget.page != null && doc.title == '未命名画布') {
-      doc.title = widget.page!.title;
+    if (widget.session != null && doc.title == '未命名画布') {
+      doc.title = widget.session!.title;
     }
     // R4：实例化 ViewModel（防抖保存回调指向本页落盘逻辑）。
     _viewModel = EditorViewModel(controller: _controller, onSave: _doAutosave);
@@ -528,7 +556,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   void _notifyChanged() {
     // 页面标题跟随文档标题。
-    final page = widget.page;
+    final page = widget.session;
     if (page != null) {
       page.title = _controller.document.title;
       page.updatedAt = DateTime.now();
@@ -696,7 +724,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
               ),
               // 快捷键帮助面板（借鉴 Notes 快捷键文档化）
               IconButton(
-                tooltip: AppLocalizations.of(context)?.editorShortcutsHelp ?? '快捷键帮助',
+                tooltip:
+                    AppLocalizations.of(context)?.editorShortcutsHelp ??
+                    '快捷键帮助',
                 icon: const Icon(Icons.help_outline),
                 onPressed: _showShortcutHelp,
               ),
@@ -712,7 +742,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.delete_sweep_outlined),
-                      title: Text(AppLocalizations.of(context)?.editorClearCanvas ?? '清空画布'),
+                      title: Text(
+                        AppLocalizations.of(context)?.editorClearCanvas ??
+                            '清空画布',
+                      ),
                     ),
                   ),
                   const PopupMenuDivider(),
@@ -722,7 +755,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.content_copy),
-                      title: Text(AppLocalizations.of(context)?.editorCopyPng ?? '复制 PNG 到剪贴板'),
+                      title: Text(
+                        AppLocalizations.of(context)?.editorCopyPng ??
+                            '复制 PNG 到剪贴板',
+                      ),
                     ),
                   ),
                   PopupMenuItem(
@@ -731,7 +767,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.image_outlined),
-                      title: Text(AppLocalizations.of(context)?.editorExportPng ?? '导出 PNG'),
+                      title: Text(
+                        AppLocalizations.of(context)?.editorExportPng ??
+                            '导出 PNG',
+                      ),
                     ),
                   ),
                   PopupMenuItem(
@@ -740,7 +779,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.ios_share),
-                      title: Text(AppLocalizations.of(context)?.editorExportSvg ?? '导出 SVG'),
+                      title: Text(
+                        AppLocalizations.of(context)?.editorExportSvg ??
+                            '导出 SVG',
+                      ),
                     ),
                   ),
                   PopupMenuItem(
@@ -749,7 +791,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.picture_as_pdf_outlined),
-                      title: Text(AppLocalizations.of(context)?.editorExportPdf ?? '导出 PDF'),
+                      title: Text(
+                        AppLocalizations.of(context)?.editorExportPdf ??
+                            '导出 PDF',
+                      ),
                     ),
                   ),
                   PopupMenuItem(
@@ -758,7 +803,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.data_object),
-                      title: Text(AppLocalizations.of(context)?.editorExportJson ?? '导出 JSON'),
+                      title: Text(
+                        AppLocalizations.of(context)?.editorExportJson ??
+                            '导出 JSON',
+                      ),
                     ),
                   ),
                   PopupMenuItem(
@@ -767,7 +815,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.slideshow_outlined),
-                      title: Text(AppLocalizations.of(context)?.editorExportPptx ?? '导出 PPTX'),
+                      title: Text(
+                        AppLocalizations.of(context)?.editorExportPptx ??
+                            '导出 PPTX',
+                      ),
                     ),
                   ),
                   if (_isNotebookMode)
@@ -777,7 +828,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                         dense: true,
                         contentPadding: EdgeInsets.zero,
                         leading: Icon(Icons.article_outlined),
-                        title: Text(AppLocalizations.of(context)?.editorExportWord ?? '导出 Word 兼容文档'),
+                        title: Text(
+                          AppLocalizations.of(context)?.editorExportWord ??
+                              '导出 Word 兼容文档',
+                        ),
                       ),
                     ),
                   PopupMenuItem(
@@ -858,9 +912,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                               : Icons.crop_free,
                         ),
                         title: Text(
-                          _controller.document.infinite
-                              ? '切换为固定纸张'
-                              : '切换为无限画布',
+                          _controller.document.infinite ? '切换为固定纸张' : '切换为无限画布',
                         ),
                       ),
                     ),

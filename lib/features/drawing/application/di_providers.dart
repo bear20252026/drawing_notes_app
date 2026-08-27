@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/notes_accessor.dart';
-import '../../notes/domain/notebook.dart';
 import '../domain/document.dart';
 import 'drawing_controller.dart';
 
@@ -16,10 +15,10 @@ import 'drawing_controller.dart';
 ///   ProviderContainer 可独立单测（可测性闭环第一步）
 final drawingControllerProvider = Provider.autoDispose
     .family<DrawingController, DrawingDocument>((ref, document) {
-  final controller = DrawingController(document);
-  ref.onDispose(controller.dispose); // provider 销毁时释放控制器资源
-  return controller;
-});
+      final controller = DrawingController(document);
+      ref.onDispose(controller.dispose); // provider 销毁时释放控制器资源
+      return controller;
+    });
 
 /// 文档脏标记派生 Provider（P1-a B2 示范：状态派生走 Riverpod）。
 ///
@@ -27,20 +26,17 @@ final drawingControllerProvider = Provider.autoDispose
 /// ChangeNotifier，provider 值变化时由调用方 `ref.invalidate(...)`
 /// 失效重建（UI 层可经 ref.watch + controller 通知桥接自动刷新）。
 final drawingDirtyProvider = Provider.family<bool, DrawingDocument>(
-  (ref, document) =>
-      ref.watch(drawingControllerProvider(document)).isDirty,
+  (ref, document) => ref.watch(drawingControllerProvider(document)).isDirty,
 );
 
 /// 撤销可用状态派生 Provider（B3：history 域核心状态走 Riverpod）。
 final drawingCanUndoProvider = Provider.family<bool, DrawingDocument>(
-  (ref, document) =>
-      ref.watch(drawingControllerProvider(document)).canUndo,
+  (ref, document) => ref.watch(drawingControllerProvider(document)).canUndo,
 );
 
 /// 重做可用状态派生 Provider（B3：history 域核心状态走 Riverpod）。
 final drawingCanRedoProvider = Provider.family<bool, DrawingDocument>(
-  (ref, document) =>
-      ref.watch(drawingControllerProvider(document)).canRedo,
+  (ref, document) => ref.watch(drawingControllerProvider(document)).canRedo,
 );
 
 /// 当前图层索引派生 Provider（B4：核心状态走 Riverpod，供图层面板接线）。
@@ -61,10 +57,7 @@ class _EmptyNotebookAccessor implements INotebookAccessor {
   bool get isStorageAvailable => false;
 
   @override
-  Future<List<Notebook>> listNotebooks() async => const [];
-
-  @override
-  NotebookPage? pageById(String notebookId, String pageId) => null;
+  Future<List<NotebookSearchDocument>> listSearchDocuments() async => const [];
 
   @override
   Future<String> storeImage(String sourcePath, String pageId) async =>

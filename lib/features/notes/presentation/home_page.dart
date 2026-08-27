@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/theme/app_design.dart';
+import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/features/drawing/application/search_service.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
@@ -18,7 +19,6 @@ import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/notes/presentation/onboarding.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/password_disk_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/search_page.dart';
@@ -43,6 +43,7 @@ class HomePage extends StatefulWidget {
     this.notebookStorage,
     this.docStorage,
     this.themeController,
+    this.editorPageBuilder,
   });
 
   final NotebookStorage? notebookStorage;
@@ -50,6 +51,9 @@ class HomePage extends StatefulWidget {
 
   /// 主题控制器（深色模式切换，Phase 7）。
   final AppThemeController? themeController;
+
+  /// 编辑器页面由应用组合根注入，notes 模块不直接依赖 drawing 的 UI。
+  final EditorPageBuilder? editorPageBuilder;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -106,6 +110,31 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Widget _buildEditorPage({
+    DrawingDocument? document,
+    StorageService? documentStorage,
+  }) {
+    final builder = widget.editorPageBuilder;
+    if (builder == null) {
+      return const Scaffold(body: Center(child: Text('编辑器尚未由应用层装配')));
+    }
+    return builder(document: document, documentStorage: documentStorage);
+  }
+
+  Future<void> _openEditor({
+    DrawingDocument? document,
+    StorageService? documentStorage,
+  }) {
+    return Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => _buildEditorPage(
+          document: document,
+          documentStorage: documentStorage,
+        ),
+      ),
+    );
+  }
+
   // ---------------- 无限画布绘图 ----------------
 
   /// 新建无限画布并进入绘图工作区。
@@ -122,11 +151,7 @@ class _HomePageState extends State<HomePage> {
       infinite: true,
     );
     if (!mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => EditorPage(document: doc, docStorage: _docStorage),
-      ),
-    );
+    await _openEditor(document: doc, documentStorage: _docStorage);
     _refresh();
   }
 
@@ -139,11 +164,7 @@ class _HomePageState extends State<HomePage> {
         return;
       }
       if (!mounted) return;
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => EditorPage(document: doc, docStorage: _docStorage),
-        ),
-      );
+      await _openEditor(document: doc, documentStorage: _docStorage);
       _refresh();
     } catch (e) {
       _showSnack('打开画作失败：${e.runtimeType}');
@@ -184,6 +205,7 @@ class _HomePageState extends State<HomePage> {
             notebook: notebook,
             storage: _nbStorage,
             onChanged: _refresh,
+            editorPageBuilder: widget.editorPageBuilder,
           ),
         ),
       );
@@ -246,19 +268,24 @@ class _HomePageState extends State<HomePage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            tooltip: AppLocalizations.of(context)?.homeRecover ??
+                            tooltip:
+                                AppLocalizations.of(context)?.homeRecover ??
                                 '恢复',
                             icon: const Icon(Icons.restore),
                             onPressed: () async {
-                              final id =
-                                  await _docStorage.restoreTrash(item.$1);
+                              final id = await _docStorage.restoreTrash(
+                                item.$1,
+                              );
                               if (ctx.mounted) Navigator.of(ctx).pop();
                               _refresh();
                               if (id != null) _showSnack('已恢复「$id」');
                             },
                           ),
                           IconButton(
-                            tooltip: AppLocalizations.of(context)?.homeDeleteForever ??
+                            tooltip:
+                                AppLocalizations.of(
+                                  context,
+                                )?.homeDeleteForever ??
                                 '永久删除',
                             icon: const Icon(Icons.delete_forever),
                             onPressed: () async {
@@ -267,8 +294,9 @@ class _HomePageState extends State<HomePage> {
                                 '确定永久删除「${item.$2}」吗？此操作不可恢复。',
                               );
                               if (ok == true) {
-                                await _docStorage
-                                    .deleteTrashPermanently(item.$1);
+                                await _docStorage.deleteTrashPermanently(
+                                  item.$1,
+                                );
                                 if (ctx.mounted) Navigator.of(ctx).pop();
                                 _refresh();
                               }
@@ -288,7 +316,9 @@ class _HomePageState extends State<HomePage> {
                 if (ctx.mounted) Navigator.of(ctx).pop();
                 _refresh();
               },
-              child: Text(AppLocalizations.of(context)?.homeEmptyTrash ?? '清空回收站'),
+              child: Text(
+                AppLocalizations.of(context)?.homeEmptyTrash ?? '清空回收站',
+              ),
             ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -387,6 +417,9 @@ class _HomePageState extends State<HomePage> {
                       notebookAccessor: _nbStorage,
                       docStorage: _docStorage,
                     ),
+                    notebookStorage: _nbStorage,
+                    documentStorage: _docStorage,
+                    editorPageBuilder: widget.editorPageBuilder,
                   ),
                 ),
               ),
@@ -476,7 +509,8 @@ class _HomePageState extends State<HomePage> {
     );
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => EditorPage(document: doc, docStorage: _docStorage),
+        builder: (_) =>
+            _buildEditorPage(document: doc, documentStorage: _docStorage),
       ),
     );
   }
@@ -591,6 +625,7 @@ class _HomePageState extends State<HomePage> {
           notebook: nb,
           storage: _nbStorage,
           onChanged: _refresh,
+          editorPageBuilder: widget.editorPageBuilder,
         ),
       ),
     );
@@ -630,6 +665,7 @@ class _HomePageState extends State<HomePage> {
         itemCount: _documents.length,
         itemBuilder: (context, i) => _DrawingCard(
           meta: _documents[i],
+          documentStorage: _docStorage,
           onTap: () => _openDrawing(_documents[i]),
           onDelete: () => _deleteDrawing(_documents[i]),
         ),
@@ -756,8 +792,10 @@ class _HomePageState extends State<HomePage> {
           // H-03 密码模式媒体加密（方案 B）：解锁后全局盐派生注入
           // （媒体解密 key 与加密时一致）。
           final mediaSalt = await _nbStorage.ensureMediaSalt();
-          await MediaCryptoService.instance
-              .setSessionPassword(password, mediaSalt);
+          await MediaCryptoService.instance.setSessionPassword(
+            password,
+            mediaSalt,
+          );
         } catch (_) {
           _showSnack('密码错误或数据已损坏');
           return;
@@ -773,6 +811,7 @@ class _HomePageState extends State<HomePage> {
           onChanged: _refresh,
           sessionPassword: password,
           sessionMasterKey: masterKey,
+          editorPageBuilder: widget.editorPageBuilder,
         ),
       ),
     );

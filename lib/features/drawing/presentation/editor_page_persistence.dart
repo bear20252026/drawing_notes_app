@@ -12,7 +12,7 @@ extension _EditorPagePersistence on _EditorPageState {
   /// 执行自动保存：独立画作 → 工程文件 + 缩略图；笔记本页面 → 由上级回调落盘。
   Future<void> _doAutosave() async {
     // 笔记本页面模式：onChanged 已由 NotebookViewPage 负责保存。
-    if (widget.page != null) return;
+    if (widget.session != null) return;
     final storage = widget.docStorage;
     final doc = _controller.document;
     if (storage == null) return;

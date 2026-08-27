@@ -110,7 +110,13 @@ extension _EditorPageOverlays on _EditorPageState {
                           Positioned.fill(
                             child: CustomPaint(
                               painter: ConnectorPainter(
-                                page: widget.page!,
+                                connectors: widget.session!.connectors,
+                                itemPositions: {
+                                  for (final text in widget.session!.textItems)
+                                    text.id: text.position,
+                                  for (final image in widget.session!.imageItems)
+                                    image.id: image.position,
+                                },
                                 controller: _controller,
                               ),
                             ),
@@ -238,7 +244,7 @@ extension _EditorPageOverlays on _EditorPageState {
 
   /// 构建画布上方的混排对象（文字块/图片块）。
   List<Widget> _buildOverlayItems() {
-    final page = widget.page;
+    final page = widget.session;
     if (page == null) {
       // 画布模式（问题5）：渲染文档文字块 overlay（文字块可拖动/编辑）。
       final items = <Widget>[];
