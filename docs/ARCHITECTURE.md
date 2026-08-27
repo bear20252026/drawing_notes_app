@@ -101,9 +101,11 @@ flowchart LR
 
 `EditorToolModeState` 仅维护手型、框选与形状工具的展示层互斥状态；`EditorOverlayGroupResolver` 仅根据文字、图片和形状的 `groupId` 计算不可变的跨类型分组结果；`EditorSelectionTransformState` 仅保存选区缩放/旋转滑块值并输出相对变换增量。`EditorPage` 仍在单个状态更新周期内同步这些协作者、`EditorViewModel`、`DrawingController`、框选草稿和对象变换事务，因此新协作者不会成为第二个文档或工具状态源。
 
+notes 领域进一步将 `PageTemplate`、`CloneRef`、`NotebookPageContent`、`PageVersion`、`NotebookPage` 和 `Notebook` 拆分为职责单一的纯 Dart 模型。`NotebookPageContent` 是一页画布、文字、图片、连接线、形状和图表的唯一活动内容根，统一提供 JSON 序列化、内容签名、深拷贝与保持活动对象身份的恢复操作；`NotebookPage` 只协调页面库元数据、历史上限及版本捕获。既有 `document` 和各混排集合访问器继续转发到同一 `content`，故 `NotebookPageEditorSession` 不会获得第二个内容源。`NotebookViewPage` 只负责保存调度、状态刷新、确认对话框和 I/O，而不再逐项复制、比较或恢复六类对象。
+
 图片和形状的 Riverpod 可见选择状态位于 `object_selection_notifiers.dart`，并仍只暴露不可变 id 状态；它们不拥有或修改 `DocumentObjectEditingSession` 的运行时选择，避免出现第二个写入源，同时使对象相关可见状态保持在一个文件预算内。
 
-下一阶段可评估编辑器展示层的工具栏动作装配边界，或将 `PageTemplate`、`CloneRef` 和 `PageVersion` 等笔记管理模型与可编辑页面载荷分离；跨 feature 契约始终只暴露实际用到的数据和操作。
+下一阶段可评估编辑器展示层的工具栏动作装配边界，或继续将页面模板的初始元素生成迁移为无 UI 的领域策略；跨 feature 契约始终只暴露实际用到的数据和操作。
 
 ## 5. 本地验证
 
