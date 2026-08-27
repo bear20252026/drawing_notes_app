@@ -1,11 +1,9 @@
-import 'dart:math' as math;
 import 'dart:ui' show Offset, Rect;
 
 import 'package:drawing_notes_app/core/rendering/shape_binding_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_object_transform_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/image_transform_service.dart';
-import 'package:drawing_notes_app/features/drawing/application/selection_geometry_service.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
@@ -449,25 +447,11 @@ class DocumentObjectEditingSession {
       clearDocumentObjectSelection();
       return;
     }
-    final selectedShapeIds = <String>{};
-    for (final shape in _document.shapes) {
-      final rendered = _shapeForSelection(shape);
-      final bounds = Rect.fromLTWH(
-        rendered.x,
-        rendered.y,
-        rendered.width,
-        rendered.height,
-      );
-      if (_rectIntersectsPolygon(bounds, polygon)) {
-        selectedShapeIds.add(shape.id);
-      }
-    }
-    final selectedImageIds = <String>{};
-    for (final image in _document.imageItems) {
-      if (_rectIntersectsPolygon(image.bounds, polygon)) {
-        selectedImageIds.add(image.id);
-      }
-    }
+    final hitTest = DocumentObjectGeometryService.objectsIntersectingPolygon(
+      polygon: polygon,
+      shapes: _document.shapes,
+      images: _document.imageItems,
+    );
     _host.replaceStrokeSelection(
       Selection(
         polygon: List<Offset>.unmodifiable(polygon),
@@ -476,15 +460,15 @@ class DocumentObjectEditingSession {
     );
     _selectedDocumentShapeIds
       ..clear()
-      ..addAll(selectedShapeIds);
+      ..addAll(hitTest.shapeIds);
     _selectedDocumentImageIds
       ..clear()
-      ..addAll(selectedImageIds);
-    _selectedDocumentShapeId = selectedShapeIds.length == 1
-        ? selectedShapeIds.single
+      ..addAll(hitTest.imageIds);
+    _selectedDocumentShapeId = hitTest.shapeIds.length == 1
+        ? hitTest.shapeIds.single
         : null;
-    _selectedDocumentImageId = selectedImageIds.length == 1
-        ? selectedImageIds.single
+    _selectedDocumentImageId = hitTest.imageIds.length == 1
+        ? hitTest.imageIds.single
         : null;
     _host.notifyChanged();
   }
@@ -507,47 +491,15 @@ class DocumentObjectEditingSession {
 
   /// 统一选择集合的可见包围盒。笔画依据真实采样点计算，形状与图片依据对象
   /// bounds 计算；锁定对象也在包围盒中，保持所见即所得的选择反馈。
-  Rect? get selectedDocumentObjectsBounds {
-    var minX = double.infinity;
-    var minY = double.infinity;
-    var maxX = -double.infinity;
-    var maxY = -double.infinity;
-
-    void include(Rect rect) {
-      minX = math.min(minX, rect.left);
-      minY = math.min(minY, rect.top);
-      maxX = math.max(maxX, rect.right);
-      maxY = math.max(maxY, rect.bottom);
-    }
-
-    for (final index in _host.strokeSelection.selectedStrokeIndices) {
-      if (index < 0 || index >= _host.currentLayer.strokes.length) continue;
-      for (final point in _host.currentLayer.strokes[index].points) {
-        minX = math.min(minX, point.x);
-        minY = math.min(minY, point.y);
-        maxX = math.max(maxX, point.x);
-        maxY = math.max(maxY, point.y);
-      }
-    }
-    for (final shape in _document.shapes) {
-      if (_selectedDocumentShapeIds.contains(shape.id)) {
-        final rendered = _shapeForSelection(shape);
-        include(
-          Rect.fromLTWH(
-            rendered.x,
-            rendered.y,
-            rendered.width,
-            rendered.height,
-          ),
-        );
-      }
-    }
-    for (final image in _document.imageItems) {
-      if (_selectedDocumentImageIds.contains(image.id)) include(image.bounds);
-    }
-    if (!minX.isFinite) return null;
-    return Rect.fromLTRB(minX, minY, maxX, maxY);
-  }
+  Rect? get selectedDocumentObjectsBounds =>
+      DocumentObjectGeometryService.selectedObjectsBounds(
+        strokes: _host.currentLayer.strokes,
+        selectedStrokeIndices: _host.strokeSelection.selectedStrokeIndices,
+        shapes: _document.shapes,
+        selectedShapeIds: _selectedDocumentShapeIds,
+        images: _document.imageItems,
+        selectedImageIds: _selectedDocumentImageIds,
+      );
 
   DocumentObjectsSnapshot _documentObjectsSnapshot() => DocumentObjectsSnapshot(
     layers: _layerSnapshot(),
@@ -566,24 +518,6 @@ class DocumentObjectEditingSession {
         ),
       )
       .toList(growable: false);
-
-  PageShapeItem _shapeForSelection(PageShapeItem shape) {
-    if (shape.shapeType != ShapeType.arrow ||
-        (shape.startBinding == null && shape.endBinding == null)) {
-      return shape;
-    }
-    final rendered = shape.copy();
-    final endpoints = ShapeBindingGeometry.resolvedArrowEndpoints(
-      shape,
-      _document.shapes,
-    );
-    ShapeBindingGeometry.applyArrowEndpoints(
-      rendered,
-      start: endpoints.start,
-      end: endpoints.end,
-    );
-    return rendered;
-  }
 
   void _ensureDocumentObjectsTransformBefore() {
     _documentObjectsTransformBefore ??= _documentObjectsSnapshot();
@@ -799,52 +733,5 @@ class DocumentObjectEditingSession {
       }
     }
     return true;
-  }
-
-  static bool _pointInPolygon(Offset point, List<Offset> polygon) {
-    var inside = false;
-    for (
-      var index = 0, previous = polygon.length - 1;
-      index < polygon.length;
-      previous = index++
-    ) {
-      final currentPoint = polygon[index];
-      final previousPoint = polygon[previous];
-      final crossesRay =
-          (currentPoint.dy > point.dy) != (previousPoint.dy > point.dy) &&
-          point.dx <
-              (previousPoint.dx - currentPoint.dx) *
-                      (point.dy - currentPoint.dy) /
-                      (previousPoint.dy - currentPoint.dy) +
-                  currentPoint.dx;
-      if (crossesRay) inside = !inside;
-    }
-    return inside;
-  }
-
-  bool _rectIntersectsPolygon(Rect rect, List<Offset> polygon) {
-    final corners = <Offset>[
-      rect.topLeft,
-      rect.topRight,
-      rect.bottomRight,
-      rect.bottomLeft,
-    ];
-    if (corners.any((corner) => _pointInPolygon(corner, polygon))) return true;
-    if (polygon.any(rect.contains)) return true;
-    for (var edge = 0; edge < polygon.length; edge++) {
-      final a = polygon[edge];
-      final b = polygon[(edge + 1) % polygon.length];
-      for (var side = 0; side < corners.length; side++) {
-        if (SelectionGeometryService.segmentsIntersect(
-          a,
-          b,
-          corners[side],
-          corners[(side + 1) % 4],
-        )) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 }
