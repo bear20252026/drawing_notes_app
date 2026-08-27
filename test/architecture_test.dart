@@ -55,6 +55,14 @@ void main() {
     );
   });
 
+  test('规则3b：属性面板直接依赖绘图领域元素类型', () {
+    shouldNotDependOn(
+      filesMatching('features/drawing/presentation/properties_panel.dart'),
+      filesMatching('features/notes/domain/**'),
+      graph,
+    );
+  });
+
   test('规则3：feature 非 domain 依赖禁止（domain 实体双向共享合规）', () {
     // domain 是最内层纯数据（check_boundaries 规则 1：core 允许依赖
     // features domain 实体），实体双向共享合规；真正禁止的是跨 feature

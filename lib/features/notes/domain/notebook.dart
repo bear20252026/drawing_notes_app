@@ -1,9 +1,11 @@
 import 'dart:ui' show Offset;
 
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/features/drawing/domain/page_image_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
 
+export 'package:drawing_notes_app/features/drawing/domain/page_image_item.dart';
 export 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
 export 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
 
@@ -42,73 +44,6 @@ extension PageTemplatePresentation on PageTemplate {
   };
 
   bool get isInfinite => this == PageTemplate.whiteboard;
-}
-
-/// 页面上的图片块。
-///
-/// [filePath] 指向应用文档目录下的本地图片副本（绝对路径），
-/// 插入时由存储层把所选图片复制进应用目录，保证离线可用、不丢文件。
-class PageImageItem {
-  PageImageItem({
-    required this.id,
-    required this.x,
-    required this.y,
-    required this.filePath,
-    this.width = 200,
-    this.height = 150,
-    this.zOrder = 0,
-    this.groupId,
-    this.href,
-    this.fractionalIndex,
-  });
-
-  final String id;
-  double x;
-  double y;
-  String filePath;
-  double width;
-  double height;
-
-  /// 图层顺序（借鉴 Excalidraw 图层操作）。
-  int zOrder;
-
-  /// 层级排序键（fractional indexing，参考 Excalidraw）：重排只需在相邻
-  /// 键之间生成新键，无需重排其余元素。null = 旧文档，回退按 [zOrder] 排序。
-  String? fractionalIndex;
-
-  /// 元素分组（借鉴 Excalidraw groupIds）。
-  String? groupId;
-
-  /// 元素超链接（借鉴 Excalidraw hyperlink）：点击打开链接。
-  String? href;
-
-  Offset get position => Offset(x, y);
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'x': x,
-    'y': y,
-    'filePath': filePath,
-    'width': width,
-    'height': height,
-    'zOrder': zOrder,
-    if (groupId != null) 'groupId': groupId,
-    if (href != null) 'href': href,
-    if (fractionalIndex != null) 'fractionalIndex': fractionalIndex,
-  };
-
-  factory PageImageItem.fromJson(Map<String, dynamic> json) => PageImageItem(
-    id: json['id'] as String,
-    x: (json['x'] as num).toDouble(),
-    y: (json['y'] as num).toDouble(),
-    filePath: json['filePath'] as String,
-    width: (json['width'] as num?)?.toDouble() ?? 200,
-    height: (json['height'] as num?)?.toDouble() ?? 150,
-    zOrder: (json['zOrder'] as num?)?.toInt() ?? 0,
-    groupId: json['groupId'] as String?,
-    href: json['href'] as String?,
-    fractionalIndex: json['fractionalIndex'] as String?,
-  );
 }
 
 /// 图表元素（借鉴 Excalidraw charts：粘贴数据自动生成柱状/折线图）。
