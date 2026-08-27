@@ -17,6 +17,7 @@ import 'package:drawing_notes_app/features/drawing/application/document_commands
 import 'package:drawing_notes_app/features/drawing/application/selection_geometry_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/color_sampling_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/image_transform_service.dart';
+import 'package:drawing_notes_app/features/drawing/application/layer_render_cache_coordinator.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_transaction.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
 import 'package:drawing_notes_app/features/drawing/application/temporary_ink_session.dart';
@@ -47,7 +48,11 @@ part 'drawing_controller_history.dart';
 class DrawingController extends ChangeNotifier implements DocCommandContext {
   DrawingController(this._document) {
     _temporaryInkSession = TemporaryInkSession(onFrameTick: tickFrame);
-    _rebuildCacheMap();
+    _renderCacheCoordinator = LayerRenderCacheCoordinator(
+      document: _document,
+      onRenderUpdated: _applyNotify,
+      isOwnerDisposed: () => _disposed,
+    );
   }
 
   final DrawingDocument _document;
@@ -215,117 +220,29 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
 
   // ---------------- 图层渲染缓存 ----------------
 
-  final LayerCompositor _compositor = const LayerCompositor();
-  final Map<String, LayerRenderCache> _caches = {};
+  late final LayerRenderCacheCoordinator _renderCacheCoordinator;
 
   /// 重建缓存索引（图层增删后调用）。
   ///
   /// 注意：被移除的缓存必须释放位图，否则 ui.Image 泄漏。
-  void _rebuildCacheMap() {
-    final ids = _document.layers.map((l) => l.id).toSet();
-    final removed = <String>[];
-    _caches.removeWhere((key, _) {
-      if (ids.contains(key)) return false;
-      removed.add(key);
-      return true;
-    });
-    for (final key in removed) {
-      _caches.remove(key)?.dispose();
-    }
-    for (final layer in _document.layers) {
-      _caches.putIfAbsent(layer.id, LayerRenderCache.new);
-    }
-  }
+  void _rebuildCacheMap() => _renderCacheCoordinator.rebuildCacheMap();
+
+  /// 注册新建图层的空缓存。
+  void _addLayerCache(Layer layer) => _renderCacheCoordinator.addLayer(layer);
+
+  /// 删除图层时释放其关联位图缓存。
+  void _removeLayerCache(String layerId) =>
+      _renderCacheCoordinator.removeLayer(layerId);
 
   /// 标记图层内容/属性变化，触发异步重建缓存。
   ///
   /// [region] 非空时执行增量脏矩形重建：只重绘该区域内的笔画，
   /// 区域外内容保持不变（性能优化，避免整层反复光栅化）。
-  Future<void> _invalidateLayer(String layerId, {Rect? region}) async {
-    // 无限画布不使用固定宽高的离屏位图缓存；直接按当前可视区绘制矢量点列，
-    // 从根源避免坐标超出文档默认尺寸后被缓存裁剪。
-    if (_document.infinite) {
-      notifyListeners();
-      return;
-    }
-    final cache = _caches[layerId];
-    final layer = _document.layers.where((l) => l.id == layerId).firstOrNull;
-    if (cache == null || layer == null) return;
-    cache.dirty = true;
-    cache.dirtyRegion = region;
-    await _rebuildLayer(layer);
-    // 复查：若重建被并发跳过（_rebuilding 为 true 直接返回）或
-    // 期间又有新变更，此处确保脏状态不被遗留。
-    if (cache.dirty && !_disposed) {
-      await _rebuildLayer(layer);
-    }
-  }
-
-  /// 图层位图重建是否正在进行中（全局串行标志）。
-  ///
-  /// 用途：防止连续快速绘制时多个异步重建并发，导致竞态下
-  /// 全部重建被"防护逻辑"放弃、图层位图永远停留在旧状态
-  /// （表现为"画几笔就画不上去了/橡皮擦失效"）。
-  bool _rebuilding = false;
-
-  /// 重建单个图层的位图缓存。
-  ///
-  /// 串行化设计（修复竞态缺陷）：
-  /// - 同一时刻只允许一个重建循环运行：若已有重建在跑，本次调用
-  ///   直接返回，由进行中的循环通过复查 dirty 处理本次变更；
-  /// - 循环复查：每轮重建开始前清 dirty，完成后若期间又有新变更
-  ///   （dirty 被再次置位）则继续重建，直到位图内容为最新；
-  /// - 每一轮完成的位图都会被采纳（不再"放弃"），保证最终画面
-  ///   一定包含最新笔画/橡皮擦效果。
-  ///
-  /// 增量重建（性能优化）：若缓存携带 dirtyRegion，则只重绘该区域
-  /// （区域外旧内容保留），大幅减少反复光栅化整层的开销。
-  Future<void> _rebuildLayer(Layer layer) async {
-    final cache = _caches[layer.id];
-    if (cache == null || _disposed) return;
-    if (_rebuilding) return; // 已有重建循环在跑，由它复查 dirty。
-    _rebuilding = true;
-    try {
-      // 循环重建直到位图与当前图层内容一致。
-      while (cache.dirty && !_disposed) {
-        cache.dirty = false; // 先清标志，重建期间若有新变更会重新置位。
-        // 增量重建：只在有脏矩形且已有底图时启用（否则必须整层重建）。
-        final region = (cache.image != null && cache.dirtyRegion != null)
-            ? cache.dirtyRegion
-            : null;
-        final base = region != null ? cache.image : null; // 旧位图作为底
-        cache.dirtyRegion = null; // 本次重建消费掉脏矩形。
-        final newImage = await _compositor.rasterize(
-          layer,
-          _document.width,
-          _document.height,
-          region: region,
-          base: base,
-        );
-        if (_disposed) {
-          newImage.dispose();
-          return;
-        }
-        final old = cache.image;
-        cache.image = newImage;
-        old?.dispose();
-        notifyListeners(); // 每次位图更新后通知画布重绘。
-        // 循环条件：重建期间又新增笔画（dirty 重新置位）→ 继续重建。
-      }
-    } finally {
-      _rebuilding = false;
-    }
-  }
+  Future<void> _invalidateLayer(String layerId, {Rect? region}) =>
+      _renderCacheCoordinator.invalidateLayer(layerId, region: region);
 
   /// 为绘制提供图层位图视图列表（自底向上）。
-  List<LayerPaintView> get paintViews => [
-    for (final layer in _document.layers)
-      LayerPaintView(
-        image: _caches[layer.id]?.image,
-        visible: layer.visible,
-        opacity: layer.opacity,
-      ),
-  ];
+  List<LayerPaintView> get paintViews => _renderCacheCoordinator.paintViews;
 
   /// 将图层中的矢量墨迹直接绘制到当前 Canvas。
   ///
@@ -773,17 +690,7 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
     _rebuildAll();
   }
 
-  Future<void> _rebuildAll() async {
-    if (_disposed) return;
-    for (final layer in _document.layers) {
-      _caches[layer.id]?.dirty = true;
-    }
-    for (final layer in List.of(_document.layers)) {
-      if (_disposed) return;
-      await _rebuildLayer(layer);
-    }
-    if (!_disposed) notifyListeners();
-  }
+  Future<void> _rebuildAll() => _renderCacheCoordinator.rebuildAll();
 
   // ---------------- 撤销 / 重做（命令模式） ----------------
 
@@ -894,10 +801,7 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
   void dispose() {
     if (_disposed) return;
     _disposed = true;
-    for (final cache in _caches.values) {
-      cache.dispose();
-    }
-    _caches.clear();
+    _renderCacheCoordinator.dispose();
     _temporaryInkSession.dispose();
     for (final image in _documentImages.values) {
       image.dispose();

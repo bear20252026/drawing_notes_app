@@ -65,7 +65,7 @@ extension DrawingControllerHistoryOps on DrawingController {
     _document.layers.add(layer);
     _document.touch();
     _currentLayerIndex = _document.layers.length - 1;
-    _caches[layer.id] = LayerRenderCache();
+    _addLayerCache(layer);
     _pushHistory(HistoryEntry(before: before, after: _snapshotLayers()));
     _applyNotify();
   }
@@ -75,7 +75,7 @@ extension DrawingControllerHistoryOps on DrawingController {
     if (_document.layers.length <= 1) return; // 至少保留一个图层
     final before = _snapshotLayers();
     final removed = _document.layers.removeAt(index);
-    _caches.remove(removed.id)?.dispose();
+    _removeLayerCache(removed.id);
     _document.touch();
     if (_currentLayerIndex >= _document.layers.length) {
       _currentLayerIndex = _document.layers.length - 1;
@@ -136,7 +136,7 @@ extension DrawingControllerHistoryOps on DrawingController {
     // 笔画顺序：底层原有笔画在前，上层笔画追加在后。
     lower.strokes.addAll(upper.strokes);
     _document.layers.removeAt(index);
-    _caches.remove(upper.id)?.dispose();
+    _removeLayerCache(upper.id);
     _document.touch();
     _currentLayerIndex = index - 1;
     _pushHistory(HistoryEntry(before: before, after: _snapshotLayers()));
