@@ -6,21 +6,7 @@ part of 'drawing_controller.dart';
 
 /// 历史/图层管理域（拆分自 drawing_controller.dart）。
 extension DrawingControllerHistoryOps on DrawingController {
-  void _pushCommand(DocCommand command) {
-    _isDirty = true; // 任何命令入栈 = 文档有未保存修改（保存状态跟踪）。
-    if (_historyPosition < _history.length) {
-      _history.removeRange(_historyPosition, _history.length);
-    }
-    _history.add(command);
-    // 限制历史长度：移除最旧的条目，并校正位置指针。
-    if (_history.length > DrawingController.maxHistoryEntries) {
-      final overflow = _history.length - DrawingController.maxHistoryEntries;
-      _history.removeRange(0, overflow);
-      _historyPosition -= overflow;
-      if (_historyPosition < 0) _historyPosition = 0;
-    }
-    _historyPosition = _history.length;
-  }
+  void _pushCommand(DocCommand command) => _editHistory.push(command);
 
   /// 兼容入口：把快照条目包装为命令（低频操作使用）。
   void _pushHistory(HistoryEntry entry) {
@@ -40,15 +26,11 @@ extension DrawingControllerHistoryOps on DrawingController {
   }
 
   void undo() {
-    if (!canUndo) return;
-    _historyPosition--;
-    _history[_historyPosition].undo();
+    _editHistory.undo();
   }
 
   void redo() {
-    if (!canRedo) return;
-    _history[_historyPosition].redo();
-    _historyPosition++;
+    _editHistory.redo();
   }
 
   // ---------------- 图层操作 ----------------

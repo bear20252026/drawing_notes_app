@@ -15,6 +15,7 @@ import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/features/drawing/application/doc_command_context.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_image_cache.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
+import 'package:drawing_notes_app/features/drawing/application/document_edit_history.dart';
 import 'package:drawing_notes_app/features/drawing/application/selection_geometry_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_selection_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/color_sampling_service.dart';
@@ -503,7 +504,7 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
 
   @override
   void touchDocument() {
-    _isDirty = true;
+    _editHistory.markDirty();
     _document.touch();
   }
 
@@ -512,13 +513,10 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
   ///
   /// 任何内容变更（命令入栈/触摸文档）都会置脏；自动保存成功后调用
   /// [markSaved] 清除。可用于标题栏未保存标记与退出前提示。
-  bool _isDirty = false;
-
-  /// 是否存在未保存的修改。
-  bool get isDirty => _isDirty;
+  bool get isDirty => _editHistory.isDirty;
 
   /// 标记当前状态为"已保存"（自动保存成功后调用）。
-  void markSaved() => _isDirty = false;
+  void markSaved() => _editHistory.markSaved();
 
   @override
   Future<void> afterStrokeUndoRedo(int layerIndex) =>
@@ -588,15 +586,13 @@ class DrawingController extends ChangeNotifier implements DocCommandContext {
   /// 超出上限时丢弃最旧的记录（与主流绘图软件行为一致）。
   static const int maxHistoryEntries = 60;
 
-  /// 命令栈（替代整层快照）：
-  /// - 高频操作（新增笔画）使用零拷贝逆操作命令 [AddStrokeCommand]；
-  /// - 低频操作（图层增删/合并/选区变换等）通过 [SnapshotCommand]
-  ///   桥接原有 before/after 快照，行为完全一致。
-  final List<DocCommand> _history = [];
-  int _historyPosition = 0;
+  /// 命令栈、重做游标和保存状态由独立协作者维护。
+  late final DocumentEditHistory _editHistory = DocumentEditHistory(
+    maxEntries: maxHistoryEntries,
+  );
 
-  bool get canUndo => _historyPosition > 0;
-  bool get canRedo => _historyPosition < _history.length;
+  bool get canUndo => _editHistory.canUndo;
+  bool get canRedo => _editHistory.canRedo;
 
   /// 记录一条命令。
   ///
