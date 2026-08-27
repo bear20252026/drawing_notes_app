@@ -34,31 +34,31 @@ extension _EditorPageOverlays on _EditorPageState {
                 label: '绘图画布',
                 hint: '双击空白处插入文字；使用工具栏工具绘制',
                 child: GestureDetector(
-                onDoubleTapDown: _onCanvasDoubleTap,
-                child: Listener(
-                  behavior: HitTestBehavior.opaque,
-                  onPointerDown: (e) => _onPointerDown(e, e.localPosition),
-                  onPointerMove: (e) => _onPointerMove(e, e.localPosition),
-                  onPointerUp: (e) => _onPointerUp(e),
-                  onPointerCancel: (e) => _onPointerCancel(e),
-                  onPointerSignal: _onPointerSignal, // 滚轮缩放画布
-                  child: _readingInverted
-                      ? ColorFiltered(
-                          colorFilter: _EditorPageState._readingInvertFilter,
-                          child: RepaintBoundary(
+                  onDoubleTapDown: _onCanvasDoubleTap,
+                  child: Listener(
+                    behavior: HitTestBehavior.opaque,
+                    onPointerDown: (e) => _onPointerDown(e, e.localPosition),
+                    onPointerMove: (e) => _onPointerMove(e, e.localPosition),
+                    onPointerUp: (e) => _onPointerUp(e),
+                    onPointerCancel: (e) => _onPointerCancel(e),
+                    onPointerSignal: _onPointerSignal, // 滚轮缩放画布
+                    child: _readingInverted
+                        ? ColorFiltered(
+                            colorFilter: _EditorPageState._readingInvertFilter,
+                            child: RepaintBoundary(
+                              child: CustomPaint(
+                                painter: CanvasPainter(controller: _controller),
+                                size: Size.infinite,
+                              ),
+                            ),
+                          )
+                        : RepaintBoundary(
                             child: CustomPaint(
                               painter: CanvasPainter(controller: _controller),
                               size: Size.infinite,
                             ),
                           ),
-                        )
-                      : RepaintBoundary(
-                          child: CustomPaint(
-                            painter: CanvasPainter(controller: _controller),
-                            size: Size.infinite,
-                          ),
-                        ),
-                ),
+                  ),
                 ),
               ),
             ),
@@ -114,7 +114,8 @@ extension _EditorPageOverlays on _EditorPageState {
                                 itemPositions: {
                                   for (final text in widget.session!.textItems)
                                     text.id: text.position,
-                                  for (final image in widget.session!.imageItems)
+                                  for (final image
+                                      in widget.session!.imageItems)
                                     image.id: image.position,
                                 },
                                 controller: _controller,
@@ -245,71 +246,35 @@ extension _EditorPageOverlays on _EditorPageState {
   /// 构建画布上方的混排对象（文字块/图片块）。
   List<Widget> _buildOverlayItems() {
     final page = widget.session;
-    if (page == null) {
-      // 画布模式（问题5）：渲染文档文字块 overlay（文字块可拖动/编辑）。
-      final items = <Widget>[];
-      final pending = _pendingTextItem;
-      if (pending != null && _editingItemId == pending.id) {
-        items.add(_buildInlineEditor(pending));
-      }
-      final ordered = <({String id, int z, Object item})>[
-        for (final t in _controller.document.textItems)
-          (id: t.id, z: t.zOrder, item: t),
-      ]..sort((a, b) => a.z.compareTo(b.z));
-      for (final entry in ordered) {
-        final t = _controller.document.textItems
-            .where((x) => x.id == entry.id)
-            .firstOrNull;
-        if (t == null) continue;
-        if (entry.id == _editingItemId) {
-          items.add(_buildInlineEditor(t));
-        } else {
-          items.add(_buildTextOverlay(t));
-        }
-      }
-      return items;
-    }
-
+    final plan = page == null
+        ? EditorOverlayItemPlan.forCanvas(_controller.document.textItems)
+        : EditorOverlayItemPlan.forPage(
+            textItems: page.textItems,
+            imageItems: page.imageItems,
+            shapes: page.shapes,
+            charts: page.charts,
+          );
     final items = <Widget>[];
-    // 就地编辑中的临时文字块（尚未加入页面，优先渲染在最上层）。
+    // 就地编辑中的临时文字块尚未加入页面，始终优先渲染在最上层。
     final pending = _pendingTextItem;
     if (pending != null && _editingItemId == pending.id) {
       items.add(_buildInlineEditor(pending));
     }
-    // 按 zOrder 排序渲染混排对象（图层顺序，借鉴 Excalidraw 图层操作）。
-    final ordered = <({String id, int z, Object item})>[];
-    for (final t in page.textItems) {
-      ordered.add((id: t.id, z: t.zOrder, item: t));
-    }
-    for (final img in page.imageItems) {
-      ordered.add((id: img.id, z: img.zOrder, item: img));
-    }
-    for (final shape in page.shapes) {
-      ordered.add((id: shape.id, z: shape.zOrder, item: shape));
-    }
-    for (final chart in page.charts) {
-      ordered.add((id: chart.id, z: chart.zOrder, item: chart));
-    }
-    ordered.sort((a, b) => a.z.compareTo(b.z));
-    for (final entry in ordered) {
-      final id = entry.id;
-      if (id == _editingItemId) {
-        final t = page.textItems.where((x) => x.id == id).firstOrNull;
-        if (t != null) items.add(_buildInlineEditor(t));
-      } else {
-        final t = page.textItems.where((x) => x.id == id).firstOrNull;
-        final img = page.imageItems.where((x) => x.id == id).firstOrNull;
-        final shape = page.shapes.where((x) => x.id == id).firstOrNull;
-        final chart = page.charts.where((x) => x.id == id).firstOrNull;
-        if (t != null) {
-          items.add(_buildTextOverlay(t));
-        } else if (img != null) {
-          items.add(_buildImageOverlay(img));
-        } else if (shape != null) {
-          items.add(_buildShapeOverlay(shape));
-        } else if (chart != null) {
-          items.add(_buildChartOverlay(chart));
-        }
+    for (final entry in plan) {
+      if (entry.id == _editingItemId) {
+        final text = entry.text;
+        if (text != null) items.add(_buildInlineEditor(text));
+        continue;
+      }
+      switch (entry.kind) {
+        case EditorOverlayItemKind.text:
+          items.add(_buildTextOverlay(entry.text!));
+        case EditorOverlayItemKind.image:
+          items.add(_buildImageOverlay(entry.image!));
+        case EditorOverlayItemKind.shape:
+          items.add(_buildShapeOverlay(entry.shape!));
+        case EditorOverlayItemKind.chart:
+          items.add(_buildChartOverlay(entry.chart!));
       }
     }
     return items;
@@ -427,7 +392,11 @@ extension _EditorPageOverlays on _EditorPageState {
                               shape: shape,
                               width: w,
                               height: h,
-                              screenToCanvasDelta: (d) => screenDeltaToCanvas(d, _controller.viewRotation, _controller.viewScale),
+                              screenToCanvasDelta: (d) => screenDeltaToCanvas(
+                                d,
+                                _controller.viewRotation,
+                                _controller.viewScale,
+                              ),
                               onResize: (pos, delta, isCorner) {
                                 _applyState(() {
                                   if (isCorner) {
@@ -435,31 +404,40 @@ extension _EditorPageOverlays on _EditorPageState {
                                     final top = pos.dy == 0;
                                     if (left) {
                                       shape.x += delta.dx;
-                                      shape.width = (shape.width - delta.dx).clamp(20, 1000);
+                                      shape.width = (shape.width - delta.dx)
+                                          .clamp(20, 1000);
                                     } else {
-                                      shape.width = (shape.width + delta.dx).clamp(20, 1000);
+                                      shape.width = (shape.width + delta.dx)
+                                          .clamp(20, 1000);
                                     }
                                     if (top) {
                                       shape.y += delta.dy;
-                                      shape.height = (shape.height - delta.dy).clamp(20, 1000);
+                                      shape.height = (shape.height - delta.dy)
+                                          .clamp(20, 1000);
                                     } else {
-                                      shape.height = (shape.height + delta.dy).clamp(20, 1000);
+                                      shape.height = (shape.height + delta.dy)
+                                          .clamp(20, 1000);
                                     }
                                   } else {
-                                    final horizontal = pos.dx == 0 || pos.dx == w;
+                                    final horizontal =
+                                        pos.dx == 0 || pos.dx == w;
                                     if (horizontal) {
                                       if (pos.dx == 0) {
                                         shape.x += delta.dx;
-                                        shape.width = (shape.width - delta.dx).clamp(20, 1000);
+                                        shape.width = (shape.width - delta.dx)
+                                            .clamp(20, 1000);
                                       } else {
-                                        shape.width = (shape.width + delta.dx).clamp(20, 1000);
+                                        shape.width = (shape.width + delta.dx)
+                                            .clamp(20, 1000);
                                       }
                                     } else {
                                       if (pos.dy == 0) {
                                         shape.y += delta.dy;
-                                        shape.height = (shape.height - delta.dy).clamp(20, 1000);
+                                        shape.height = (shape.height - delta.dy)
+                                            .clamp(20, 1000);
                                       } else {
-                                        shape.height = (shape.height + delta.dy).clamp(20, 1000);
+                                        shape.height = (shape.height + delta.dy)
+                                            .clamp(20, 1000);
                                       }
                                     }
                                   }
@@ -717,8 +695,8 @@ extension _EditorPageOverlays on _EditorPageState {
                           ? Text.rich(
                               TextSpan(
                                 style: TextStyle(
-                                  fontSize: item.fontSize *
-                                      _controller.viewScale,
+                                  fontSize:
+                                      item.fontSize * _controller.viewScale,
                                   fontFamily: switch (item.fontFamily) {
                                     'serif' => 'serif',
                                     'monospace' => 'monospace',
@@ -740,8 +718,8 @@ extension _EditorPageOverlays on _EditorPageState {
                                         fontStyle: run.italic
                                             ? FontStyle.italic
                                             : FontStyle.normal,
-                                        decoration: run.underline &&
-                                                run.strikethrough
+                                        decoration:
+                                            run.underline && run.strikethrough
                                             ? TextDecoration.combine([
                                                 TextDecoration.underline,
                                                 TextDecoration.lineThrough,
@@ -772,8 +750,7 @@ extension _EditorPageOverlays on _EditorPageState {
                                 TextAlignType.right => TextAlign.right,
                               },
                               style: TextStyle(
-                                fontSize: item.fontSize *
-                                    _controller.viewScale,
+                                fontSize: item.fontSize * _controller.viewScale,
                                 // 字体族（借鉴 Excalidraw FontPicker）。
                                 fontFamily: switch (item.fontFamily) {
                                   'serif' => 'serif',
@@ -793,8 +770,7 @@ extension _EditorPageOverlays on _EditorPageState {
                                 fontStyle: item.italic
                                     ? FontStyle.italic
                                     : FontStyle.normal,
-                                decoration: item.underline &&
-                                        item.strikethrough
+                                decoration: item.underline && item.strikethrough
                                     ? TextDecoration.combine([
                                         TextDecoration.underline,
                                         TextDecoration.lineThrough,
@@ -830,16 +806,21 @@ extension _EditorPageOverlays on _EditorPageState {
                   onPanUpdate: (d) {
                     final anchor = _textResizeAnchor;
                     if (anchor == null) return;
-                    final delta = screenDeltaToCanvas(d.delta, _controller.viewRotation, _controller.viewScale);
+                    final delta = screenDeltaToCanvas(
+                      d.delta,
+                      _controller.viewRotation,
+                      _controller.viewScale,
+                    );
                     _applyState(() {
                       final newWidth = (anchor.width + delta.dx)
                           .clamp(40, 2000)
                           .toDouble();
                       // 字号随宽度等比缩放（Excalidraw measureFontSizeFromWidth
                       // 思路），最小 8pt 保证可读性。
-                      item.fontSize = (anchor.fontSize * newWidth / anchor.width)
-                          .clamp(8.0, 120.0)
-                          .toDouble();
+                      item.fontSize =
+                          (anchor.fontSize * newWidth / anchor.width)
+                              .clamp(8.0, 120.0)
+                              .toDouble();
                       item.width = newWidth;
                     });
                     _notifyChanged();
@@ -915,5 +896,4 @@ extension _EditorPageOverlays on _EditorPageState {
   /// 拖动混排对象：把屏幕位移换算为画布位移。
   /// 分组展开（借鉴 Excalidraw groupIds）：给定元素 id 集合，
   /// 返回包含同组元素的完整集合（整体移动/删除联动）。
-
 }

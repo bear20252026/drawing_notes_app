@@ -49,6 +49,7 @@ import 'package:drawing_notes_app/features/drawing/presentation/editor_component
 import 'package:drawing_notes_app/features/drawing/presentation/editor_canvas_interaction_state.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_context_bar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_left_toolbar.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_overlay_item_plan.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_statusbar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_viewmodel.dart';
