@@ -91,11 +91,11 @@ flowchart LR
 
 `LayerEditingSession` 进一步拥有图层新增、删除、可见性、排序、合并和清空的变更编排及深拷贝快照边界。它通过 `LayerEditingHost` 仅请求**当前图层索引、图层快照命令、缓存注册/释放、局部或全量刷新和通知**，而通用历史游标与命令执行仍由 `DocumentEditHistory` 和控制器宿主负责。因此图层操作可以在不实例化 UI 控制器的测试宿主中独立验证，且历史 extension 只保留兼容 API 和通用事务入口。
 
-`StrokeSelectionEditingSession` 负责已选笔画的平移、缩放、旋转、复制、粘贴、删除与连续手势的单步快照提交。它通过 `StrokeSelectionEditingHost` 只取得**当前图层、选区会话、图层快照命令、局部缓存失效和通知**，从而把低频文档编辑从控制器迁出并保持现有 UI API 稳定。
+`StrokeSelectionEditingSession` 负责已选笔画的平移、缩放、旋转、复制、粘贴、删除与连续手势的单步快照提交。`StrokeSelectionInteractionSession` 负责矩形/套索草稿的开始、延伸、完成及笔画命中编排，并通过 `StrokeSelectionInteractionHost` 区分帧级重绘与状态级通知。两个协作者与 `DrawingSelectionSession` 收口在同一个选区运行时模块中，既共享短生命周期状态，也符合应用层目录的文件数门禁；`SelectionGeometryService` 统一提供点在多边形内和笔画穿越边界判定，使笔画选区与混合对象选择共用同一命中语义。因此 `DrawingController` 的选区扩展仅保留公开 API 委托。
 
-`StrokeSelectionInteractionSession` 进一步负责矩形/套索草稿的开始、延伸、完成及笔画命中编排。它通过 `StrokeSelectionInteractionHost` 区分帧级重绘与状态级通知；`SelectionGeometryService` 统一提供点在多边形内和笔画穿越边界判定，笔画选区与混合对象选择共用同一命中语义。因此 `DrawingController` 的选区扩展现仅保留公开 API 委托，不再承担草稿完成、命中循环或几何细节。
+`StrokeInputSession` 拥有原始笔画的活动状态、压力采样、取消、收笔、临时高亮、激光尾迹和手绘形状识别分支。它通过 `StrokeInputHost` 仅请求**当前工具配置、临时墨迹接收、持久笔画/识别形状提交和帧级重绘**；控制器继续拥有文档写入、命令历史、脏区域缓存刷新与低频状态通知。这样，未提交笔画绝不会污染文档或历史，而持久化副作用仍集中于稳定的宿主边界。
 
-下一阶段应优先评估将选区状态的输入适配进一步收口为独立手势桥接，或将 `PageTemplate`、`CloneRef` 和 `PageVersion` 等笔记管理模型与可编辑页面载荷分离；跨 feature 契约始终只暴露实际用到的数据和操作。
+下一阶段应优先评估将对象橡皮擦的文档提交和命令封装进一步收口为独立宿主接口，或将 `PageTemplate`、`CloneRef` 和 `PageVersion` 等笔记管理模型与可编辑页面载荷分离；跨 feature 契约始终只暴露实际用到的数据和操作。
 
 ## 5. 本地验证
 
