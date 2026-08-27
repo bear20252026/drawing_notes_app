@@ -198,7 +198,10 @@ extension _EditorPageEditing on _EditorPageState {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)?.editorPagePreviewTitle(page.title) ?? '分页预览 · ${page.title}'),
+        title: Text(
+          AppLocalizations.of(context)?.editorPagePreviewTitle(page.title) ??
+              '分页预览 · ${page.title}',
+        ),
         content: SizedBox(
           width: 480,
           height: 560,
@@ -316,9 +319,16 @@ extension _EditorPageEditing on _EditorPageState {
       _notifyChanged();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)?.editorImageInsertFail(e.runtimeType.toString()) ?? '插入图片失败：${e.runtimeType}')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(
+                    context,
+                  )?.editorImageInsertFail(e.runtimeType.toString()) ??
+                  '插入图片失败：${e.runtimeType}',
+            ),
+          ),
+        );
       }
     }
   }
@@ -457,25 +467,23 @@ extension _EditorPageEditing on _EditorPageState {
       }
     }
 
-    String keyOf(String id) =>
-        zOf.containsKey(id)
-            ? (all.firstWhere((e) => e.id == id).key ??
-                  _zToKey(zOf[id] ?? 0))
-            : 'a0';
+    String keyOf(String id) => zOf.containsKey(id)
+        ? (all.firstWhere((e) => e.id == id).key ?? _zToKey(zOf[id] ?? 0))
+        : 'a0';
 
     _applyState(() {
       switch (mode) {
         case 0: // 置顶：在最大键之后生成新键。
-          final maxKey = all.map((e) => keyOf(e.id)).reduce(
-            (a, b) => a.compareTo(b) > 0 ? a : b,
-          );
+          final maxKey = all
+              .map((e) => keyOf(e.id))
+              .reduce((a, b) => a.compareTo(b) > 0 ? a : b);
           for (final e in selected) {
             assign(e.id, generateKeyBetween(maxKey, null));
           }
         case 1: // 置底：在最小键之前生成新键。
-          final minKey = all.map((e) => keyOf(e.id)).reduce(
-            (a, b) => a.compareTo(b) < 0 ? a : b,
-          );
+          final minKey = all
+              .map((e) => keyOf(e.id))
+              .reduce((a, b) => a.compareTo(b) < 0 ? a : b);
           for (final e in selected) {
             assign(e.id, generateKeyBetween(null, minKey));
           }
@@ -696,9 +704,8 @@ extension _EditorPageEditing on _EditorPageState {
     if (ids.isEmpty) return;
     // 删除淡出动画：先标记为删除中，180ms 后真正移除（借鉴 Excalidraw）。
     _applyState(() {
-      _deletingIds.addAll(ids);
-      _multiSelectedIds.clear();
-      _selectedItemId = null;
+      _canvasInteraction.beginDeleting(ids);
+      _canvasInteraction.clearObjectSelection();
     });
     Future.delayed(const Duration(milliseconds: 180), () {
       if (!mounted) return;
@@ -707,7 +714,7 @@ extension _EditorPageEditing on _EditorPageState {
         page.imageItems.removeWhere((i) => ids.contains(i.id));
         page.shapes.removeWhere((s) => ids.contains(s.id));
         page.charts.removeWhere((c) => ids.contains(c.id));
-        _deletingIds.removeAll(ids);
+        _canvasInteraction.finishDeleting(ids);
       });
       _notifyChanged();
     });
