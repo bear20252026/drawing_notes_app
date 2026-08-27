@@ -336,9 +336,7 @@ extension _EditorPageEditing on _EditorPageState {
   /// 连线工具（D1）：连线模式下依次点选两个元素，创建连接线。
   void _toggleLinkMode() {
     _applyState(() {
-      _handToolActive = false;
-      _marqueeActive = false;
-      _activeShapeTool = null;
+      _toolMode.clearPointerModes();
       _viewModel.setEyedropperActive(false);
       _viewModel.setTextToolActive(false);
       _controller.selectionTool = SelectionTool.none;

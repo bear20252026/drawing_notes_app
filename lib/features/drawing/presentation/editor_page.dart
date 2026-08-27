@@ -49,7 +49,10 @@ import 'package:drawing_notes_app/features/drawing/presentation/editor_component
 import 'package:drawing_notes_app/features/drawing/presentation/editor_canvas_interaction_state.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_context_bar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_left_toolbar.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_overlay_group_resolver.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_overlay_item_plan.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_selection_transform_state.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_tool_mode_state.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_statusbar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_viewmodel.dart';
@@ -145,11 +148,11 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   /// 上次拖动位置（画布坐标），用于计算移动增量。
   Offset? _lastDragCanvas;
 
-  /// 缩放滑块当前值（1.0 = 原始大小）。
-  double _scaleValue = 1.0;
-
-  /// 旋转滑块当前值（度）。
-  double _rotateDegrees = 0.0;
+  /// 选区缩放/旋转滑块的短生命周期显示值与增量换算。
+  final EditorSelectionTransformState _selectionTransform =
+      EditorSelectionTransformState();
+  double get _scaleValue => _selectionTransform.scaleValue;
+  double get _rotateDegrees => _selectionTransform.rotationDegrees;
 
   /// 当前选中的混排对象 id（null = 无选中），用于显示编辑/删除按钮。
   String? get _selectedItemId => _canvasInteraction.selectedItemId;
@@ -228,8 +231,11 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   /// 连线模式（D1）：开启后依次点选两个元素创建连接线。
   bool get _linkMode => _viewModel.linkMode;
 
-  /// 当前激活的形状工具（借鉴 Excalidraw 图形工具；null = 未激活）。
-  ShapeType? _activeShapeTool;
+  /// 手型、框选和形状工具的互斥展示状态。
+  final EditorToolModeState _toolMode = EditorToolModeState();
+  bool get _handToolActive => _toolMode.handActive;
+  bool get _marqueeActive => _toolMode.marqueeActive;
+  ShapeType? get _activeShapeTool => _toolMode.activeShape;
 
   /// 画布视口尺寸（小地图导航用，由布局回调更新）。
   /// 声明在主类（extension 不能声明实例字段，拆分专用）。
@@ -246,9 +252,6 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       _canvasInteraction.textResizeAnchor;
   set _textResizeAnchor(({double width, double fontSize, double x})? value) =>
       _canvasInteraction.textResizeAnchor = value;
-
-  /// 框选工具激活（借鉴 Excalidraw 多选：矩形框选多个混排对象）。
-  bool _marqueeActive = false;
 
   /// 框选矩形（画布坐标；null = 未在框选中）。
   Rect? get _marqueeRect => _canvasInteraction.marqueeRect;
@@ -267,9 +270,6 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   /// 正在播放删除淡出动画的元素 id 集合（借鉴 Excalidraw 删除动画）。
   Set<String> get _deletingIds => _canvasInteraction.deletingIds;
-
-  /// 手型工具激活（对齐 Excalidraw hand：拖动画布平移）。
-  bool _handToolActive = false;
 
   /// 上次取色时间（P-2 修复 2026-08-15）：pickColorAt 每次完整重绘文档
   /// 到图片（极重操作），取色做 200ms 冷却节流防连续触发卡顿。
@@ -954,17 +954,13 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       onLaser: () => _selectWritingTool(BrushType.laser),
                       onEraser: () => _selectWritingTool(BrushType.eraser),
                       onEyedropper: () => setState(() {
-                        _handToolActive = false;
-                        _activeShapeTool = null;
-                        _marqueeActive = false;
+                        _toolMode.clearPointerModes();
                         _controller.selectionTool = SelectionTool.none;
                         _viewModel.setEyedropperActive(true);
                         _viewModel.setTextToolActive(false);
                       }),
                       onRectSelect: () => setState(() {
-                        _handToolActive = false;
-                        _activeShapeTool = null;
-                        _marqueeActive = false;
+                        _toolMode.clearPointerModes();
                         _viewModel.setEyedropperActive(false);
                         _viewModel.setTextToolActive(false);
                         _viewModel.setSelectionDone(false);
@@ -972,9 +968,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       }),
                       onMarquee: _toggleMarqueeTool,
                       onText: () => setState(() {
-                        _handToolActive = false;
-                        _activeShapeTool = null;
-                        _marqueeActive = false;
+                        _toolMode.clearPointerModes();
                         _controller.selectionTool = SelectionTool.none;
                         _viewModel.setEyedropperActive(false);
                         _viewModel.setTextToolActive(true);
@@ -993,8 +987,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                             rotateDegrees: _rotateDegrees,
                             onScaleChanged: (v) {
                               _applyState(() {
-                                final factor = v / _scaleValue;
-                                _scaleValue = v;
+                                final factor = _selectionTransform.updateScale(
+                                  v,
+                                );
                                 final c = _controller;
                                 if (_isNotebookMode &&
                                     c.hasMixedDocumentObjectSelection) {
@@ -1010,9 +1005,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                             },
                             onRotateChanged: (v) {
                               _applyState(() {
-                                final delta =
-                                    (v - _rotateDegrees) * 3.14159265 / 180;
-                                _rotateDegrees = v;
+                                final delta = _selectionTransform
+                                    .updateRotationDegrees(v);
                                 _controller.rotateSelectedStrokes(delta);
                               });
                             },

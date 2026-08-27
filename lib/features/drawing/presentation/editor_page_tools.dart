@@ -7,9 +7,7 @@ part of 'editor_page.dart';
 extension _EditorPageTools on _EditorPageState {
   void _selectShapeTool(ShapeType type) {
     _applyState(() {
-      _handToolActive = false;
-      _marqueeActive = false;
-      _activeShapeTool = type;
+      _toolMode.selectShape(type);
       _viewModel.setLinkMode(false);
       _viewModel.setLinkSourceId(null);
       _viewModel.setEyedropperActive(false);
@@ -34,15 +32,13 @@ extension _EditorPageTools on _EditorPageState {
   /// 手型工具切换：激活后画布拖动 = 平移视口（对齐 Excalidraw hand）。
   void _toggleHandTool() {
     _applyState(() {
-      _handToolActive = !_handToolActive;
-      _marqueeActive = false;
-      _activeShapeTool = null;
+      final handActive = _toolMode.toggleHand();
       _viewModel.setLinkMode(false);
       _viewModel.setLinkSourceId(null);
       _viewModel.setEyedropperActive(false);
       _viewModel.setTextToolActive(false);
       _controller.selectionTool = SelectionTool.none;
-      if (!_handToolActive) {
+      if (!handActive) {
         _handDragLast = null;
       }
     });
@@ -52,15 +48,13 @@ extension _EditorPageTools on _EditorPageState {
   /// （借鉴 Excalidraw 多选）。
   void _toggleMarqueeTool() {
     _applyState(() {
-      _marqueeActive = !_marqueeActive;
-      _handToolActive = false;
-      _activeShapeTool = null;
+      final marqueeActive = _toolMode.toggleMarquee();
       _viewModel.setLinkMode(false);
       _viewModel.setLinkSourceId(null);
       _viewModel.setEyedropperActive(false);
       _viewModel.setTextToolActive(false);
       _controller.selectionTool = SelectionTool.none;
-      if (!_marqueeActive) {
+      if (!marqueeActive) {
         _canvasInteraction
           ..clearMarquee()
           ..clearMultiSelection();
@@ -105,9 +99,7 @@ extension _EditorPageTools on _EditorPageState {
 
   void _selectWritingTool(BrushType tool) {
     _applyState(() {
-      _handToolActive = false;
-      _activeShapeTool = null;
-      _marqueeActive = false;
+      _toolMode.clearPointerModes();
       _viewModel.setEyedropperActive(false);
       _viewModel.setTextToolActive(false);
       _controller.selectionTool = SelectionTool.none;

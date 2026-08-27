@@ -99,9 +99,11 @@ flowchart LR
 
 `EditorOverlayItemPlan` 是混排对象的只读展示计划：它在画布模式中对文字块排序，在笔记页模式中将文字、图片、形状和图表以类型化条目合并并按 `zOrder` 排序。计划不持有 `Widget`、控制器、页面状态或手势回调；`EditorPage` 只消费条目构建对应 overlay，并继续绑定编辑、选择、拖动、裁剪和缩放动作。该边界消除了按层级排序后为每个条目重复遍历多个集合的页面内分派逻辑。
 
+`EditorToolModeState` 仅维护手型、框选与形状工具的展示层互斥状态；`EditorOverlayGroupResolver` 仅根据文字、图片和形状的 `groupId` 计算不可变的跨类型分组结果；`EditorSelectionTransformState` 仅保存选区缩放/旋转滑块值并输出相对变换增量。`EditorPage` 仍在单个状态更新周期内同步这些协作者、`EditorViewModel`、`DrawingController`、框选草稿和对象变换事务，因此新协作者不会成为第二个文档或工具状态源。
+
 图片和形状的 Riverpod 可见选择状态位于 `object_selection_notifiers.dart`，并仍只暴露不可变 id 状态；它们不拥有或修改 `DocumentObjectEditingSession` 的运行时选择，避免出现第二个写入源，同时使对象相关可见状态保持在一个文件预算内。
 
-下一阶段应优先评估编辑器展示层的工具栏动作装配边界，或将 `PageTemplate`、`CloneRef` 和 `PageVersion` 等笔记管理模型与可编辑页面载荷分离；跨 feature 契约始终只暴露实际用到的数据和操作。
+下一阶段可评估编辑器展示层的工具栏动作装配边界，或将 `PageTemplate`、`CloneRef` 和 `PageVersion` 等笔记管理模型与可编辑页面载荷分离；跨 feature 契约始终只暴露实际用到的数据和操作。
 
 ## 5. 本地验证
 
