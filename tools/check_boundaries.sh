@@ -3,11 +3,9 @@
 # 依据 2026 官方/社区实践（docs/ARCHITECTURE_ASSESSMENT_2026-08-15.md）：
 # - 依赖方向：features/* → core|shared，禁止 feature 间横向 import
 # - core/ 不得 import features/（保持独立）
-# - 已知允许的跨功能依赖（业务真实需求，白名单）：
-#   drawing → notes：editor_exporter(NotebookPage/NotebookPdf)、
-#   search_service(NotebookStorage)、editor_page/editor_components(NotebookPage/
-#   NotebookStorage)——导出混合 PDF/跨笔记搜索/编辑器集成笔记。
-#   后续通过接口抽象（S4b）逐步消除。
+# - feature 间允许共享最内层 domain 实体；任何指向另一 feature 的
+#   application/infrastructure/presentation 导入均由 architecture_test.dart
+#   的严格断言阻断。此脚本保留可读的检索输出，便于本地快速诊断。
 # 用法：bash tools/check_boundaries.sh（CI 门禁，违规即失败）
 set -uo pipefail
 
@@ -32,17 +30,16 @@ else
   echo "✓ core/ 仅依赖 features domain 实体或完全独立（依赖向内合规）"
 fi
 
-# 规则 2：feature 间横向 import 检查（允许白名单）
-# 收集 drawing→notes 与 notes→drawing 的 import（排除白名单）
+# 规则 2：feature 间横向 import 诊断
+# 收集 drawing→notes 与 notes→drawing 的 import；严格的非 domain
+# 横向依赖拒绝由 architecture_test.dart 统一执行。
 drawing_to_notes=$(grep -rln "features/notes" lib/features/drawing/ 2>/dev/null || true)
 notes_to_drawing=$(grep -rln "features/drawing" lib/features/notes/ 2>/dev/null || true)
 
-# 白名单（业务真实依赖，文档化于 docs/ARCHITECTURE_ANALYSIS_2026-08-15.md 观察项 B）
-# 允许单向：notes → drawing（domain 实体共享，符合"domain 是内层"原则）
-# drawing → notes 属横向依赖；S4b 接口化推进中——已落地 core/notes_accessor.dart
-# 契约骨架，完整迁移（editor_exporter/search_service/editor_page 注入化）渐进进行。
+# domain 实体共享属于向内依赖；这里输出任意 drawing → notes 导入，
+# 由架构测试判定它们是否违反另一 feature 的外层隔离。
 if [ -n "$drawing_to_notes" ]; then
-  echo "⚠ drawing → notes 横向依赖（S4b 接口化推进中，非阻断，见 core/notes_accessor.dart）:"
+  echo "ℹ drawing → notes 导入（须由架构测试确认仅指向 domain）:"
   echo "$drawing_to_notes" | sed 's/^/    /'
 else
   echo "✓ drawing 无 notes 横向依赖"
@@ -62,5 +59,5 @@ if [ "$FAIL" -eq 1 ]; then
   echo "=== 边界检查失败：存在硬性违规（core/shared 依赖 features）==="
   exit 1
 fi
-echo "=== 边界检查通过（硬性规则合规；已知横向依赖已记录待治理）==="
+echo "=== 边界检查通过（core/shared 硬性规则合规；横向外层依赖由架构测试严格阻断）==="
 exit 0

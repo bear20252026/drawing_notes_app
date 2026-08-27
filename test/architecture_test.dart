@@ -80,50 +80,42 @@ void main() {
     // domain 是最内层纯数据（check_boundaries 规则 1：core 允许依赖
     // features domain 实体），实体双向共享合规；真正禁止的是跨 feature
     // 的 infrastructure/presentation 依赖（真横向耦合）。
-    // freeze 基线：剩余 infrastructure/presentation 横向依赖（editor_page→
-    // notebook_storage/presentation_page）；应用层已通过只读契约脱离 notes。
-    // 为接口化推进中的已知历史违规，CI 只拦新增。
-    freeze('feature_isolation', () {
-      shouldNotDependOn(
-        filesMatching('features/drawing/**'),
-        filesMatching('features/notes/infrastructure/**'),
-        graph,
-      );
-      shouldNotDependOn(
-        filesMatching('features/drawing/**'),
-        filesMatching('features/notes/presentation/**'),
-        graph,
-      );
-      shouldNotDependOn(
-        filesMatching('features/notes/**'),
-        filesMatching('features/drawing/infrastructure/**'),
-        graph,
-      );
-      shouldNotDependOn(
-        filesMatching('features/notes/**'),
-        filesMatching('features/drawing/presentation/**'),
-        graph,
-      );
-    });
+    // 审计确认历史横向依赖已经通过只读契约和组合边界消除，故直接阻断
+    // 任一后续 feature 对另一 feature 外层的静态依赖。
+    shouldNotDependOn(
+      filesMatching('features/drawing/**'),
+      filesMatching('features/notes/infrastructure/**'),
+      graph,
+    );
+    shouldNotDependOn(
+      filesMatching('features/drawing/**'),
+      filesMatching('features/notes/presentation/**'),
+      graph,
+    );
+    shouldNotDependOn(
+      filesMatching('features/notes/**'),
+      filesMatching('features/drawing/infrastructure/**'),
+      graph,
+    );
+    shouldNotDependOn(
+      filesMatching('features/notes/**'),
+      filesMatching('features/drawing/presentation/**'),
+      graph,
+    );
   });
 
   test('规则4：六边形方向——依赖仅指向内层（domain 最内）', () {
     // 洋葱/六边形规则（dart_arch_test defineOnion，官方 API）：
     // 内层列表在前，内层不得依赖外层；core 与 shared 为 out-of-scope
     // 共享层（任何 feature 层均可依赖，视为 SDK 同级）。
-    // freeze 基线：6 处 application→infrastructure（drawing_controller→
-    // layer_compositor/stroke_geometry_cache/shape_recognizer/shape_
-    // binding_geometry、editor_exporter→pdf_hybrid/svg_exporter，控制器
-    // 与导出器直接使用基础设施具体类），记录基线后 CI 只拦新增；
-    // 接口化解除列入专项（不破坏功能）。
-    freeze('onion_direction', () {
-      defineOnion({
-        'domain': 'features/**/domain/**',
-        'application': 'features/**/application/**',
-        'infrastructure': 'features/**/infrastructure/**',
-        'presentation': 'features/**/presentation/**',
-      }).enforceOnionRules(graph);
-    });
+    // 审计确认 application 已通过 core 协作者和窄契约使用渲染、识别、
+    // 导出能力；严格拦截任何 application → infrastructure 及其他反向依赖。
+    defineOnion({
+      'domain': 'features/**/domain/**',
+      'application': 'features/**/application/**',
+      'infrastructure': 'features/**/infrastructure/**',
+      'presentation': 'features/**/presentation/**',
+    }).enforceOnionRules(graph);
   });
 
   test('规则3b：Martin 耦合度量——domain/core 数据层稳定（instability 基线）', () {
