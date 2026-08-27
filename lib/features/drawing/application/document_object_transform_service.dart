@@ -1,6 +1,7 @@
-import 'dart:ui' show Offset;
+import 'dart:ui' show Offset, Rect;
 
 import 'package:drawing_notes_app/core/rendering/shape_binding_geometry.dart';
+import 'package:drawing_notes_app/features/drawing/application/selection_geometry_service.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
@@ -199,4 +200,151 @@ class DocumentObjectDeletionService {
       }
     }
   }
+}
+
+/// 混合画布对象的命中与边界计算结果。
+///
+/// 只暴露不可变对象 id 集合；选择状态的写入和通知仍由调用方协调。
+class DocumentObjectHitTestResult {
+  DocumentObjectHitTestResult({
+    required Set<String> shapeIds,
+    required Set<String> imageIds,
+  }) : shapeIds = Set.unmodifiable(shapeIds),
+       imageIds = Set.unmodifiable(imageIds);
+
+  final Set<String> shapeIds;
+  final Set<String> imageIds;
+}
+
+/// 混合画布对象的无状态命中与边界计算服务。
+///
+/// 该服务只读取领域对象集合，不保存选择、不变更文档，也不触发通知。绑定
+/// 箭头在计算前会投影为当前显示几何，保证框选、套索与选择框均遵循所见即
+/// 所得的规则。
+class DocumentObjectGeometryService {
+  const DocumentObjectGeometryService._();
+
+  /// 返回与 [polygon] 相交的形状和图片 id。
+  static DocumentObjectHitTestResult objectsIntersectingPolygon({
+    required List<Offset> polygon,
+    required List<PageShapeItem> shapes,
+    required List<DocumentImageItem> images,
+  }) {
+    if (polygon.length < 3) {
+      return DocumentObjectHitTestResult(shapeIds: {}, imageIds: {});
+    }
+    final shapeIds = <String>{};
+    for (final shape in shapes) {
+      final rendered = projectedShapeForSelection(shape, shapes);
+      if (rectIntersectsPolygon(_shapeBounds(rendered), polygon)) {
+        shapeIds.add(shape.id);
+      }
+    }
+    final imageIds = <String>{};
+    for (final image in images) {
+      if (rectIntersectsPolygon(image.bounds, polygon)) {
+        imageIds.add(image.id);
+      }
+    }
+    return DocumentObjectHitTestResult(shapeIds: shapeIds, imageIds: imageIds);
+  }
+
+  /// 计算笔画、形状和图片统一选择集合的可见包围盒。
+  static Rect? selectedObjectsBounds({
+    required List<Stroke> strokes,
+    required Iterable<int> selectedStrokeIndices,
+    required List<PageShapeItem> shapes,
+    required Set<String> selectedShapeIds,
+    required List<DocumentImageItem> images,
+    required Set<String> selectedImageIds,
+  }) {
+    var minX = double.infinity;
+    var minY = double.infinity;
+    var maxX = -double.infinity;
+    var maxY = -double.infinity;
+
+    void include(Rect rect) {
+      minX = minX < rect.left ? minX : rect.left;
+      minY = minY < rect.top ? minY : rect.top;
+      maxX = maxX > rect.right ? maxX : rect.right;
+      maxY = maxY > rect.bottom ? maxY : rect.bottom;
+    }
+
+    for (final index in selectedStrokeIndices) {
+      if (index < 0 || index >= strokes.length) continue;
+      for (final point in strokes[index].points) {
+        minX = minX < point.x ? minX : point.x;
+        minY = minY < point.y ? minY : point.y;
+        maxX = maxX > point.x ? maxX : point.x;
+        maxY = maxY > point.y ? maxY : point.y;
+      }
+    }
+    for (final shape in shapes) {
+      if (selectedShapeIds.contains(shape.id)) {
+        include(_shapeBounds(projectedShapeForSelection(shape, shapes)));
+      }
+    }
+    for (final image in images) {
+      if (selectedImageIds.contains(image.id)) include(image.bounds);
+    }
+    if (!minX.isFinite) return null;
+    return Rect.fromLTRB(minX, minY, maxX, maxY);
+  }
+
+  /// 为命中与选中框生成绑定箭头的当前投影视图，绝不修改原始形状。
+  static PageShapeItem projectedShapeForSelection(
+    PageShapeItem shape,
+    List<PageShapeItem> shapes,
+  ) {
+    if (shape.shapeType != ShapeType.arrow ||
+        (shape.startBinding == null && shape.endBinding == null)) {
+      return shape;
+    }
+    final rendered = shape.copy();
+    final endpoints = ShapeBindingGeometry.resolvedArrowEndpoints(
+      shape,
+      shapes,
+    );
+    ShapeBindingGeometry.applyArrowEndpoints(
+      rendered,
+      start: endpoints.start,
+      end: endpoints.end,
+    );
+    return rendered;
+  }
+
+  /// 判断 [rect] 是否与 [polygon] 发生面积、包含或边缘交集。
+  static bool rectIntersectsPolygon(Rect rect, List<Offset> polygon) {
+    if (polygon.length < 3) return false;
+    final corners = <Offset>[
+      rect.topLeft,
+      rect.topRight,
+      rect.bottomRight,
+      rect.bottomLeft,
+    ];
+    if (corners.any(
+      (corner) => SelectionGeometryService.pointInPolygon(corner, polygon),
+    )) {
+      return true;
+    }
+    if (polygon.any(rect.contains)) return true;
+    for (var edge = 0; edge < polygon.length; edge++) {
+      final start = polygon[edge];
+      final end = polygon[(edge + 1) % polygon.length];
+      for (var side = 0; side < corners.length; side++) {
+        if (SelectionGeometryService.segmentsIntersect(
+          start,
+          end,
+          corners[side],
+          corners[(side + 1) % 4],
+        )) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  static Rect _shapeBounds(PageShapeItem shape) =>
+      Rect.fromLTWH(shape.x, shape.y, shape.width, shape.height);
 }
