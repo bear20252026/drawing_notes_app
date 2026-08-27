@@ -20,7 +20,6 @@ extension _NotebookPageManage on _NotebookViewPageState {
   }
 
   Future<void> _openEditor({
-    required Notebook notebook,
     required NotebookPage page,
     required VoidCallback onChanged,
   }) {
@@ -32,11 +31,10 @@ extension _NotebookPageManage on _NotebookViewPageState {
     return Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => builder(
-          notebook: notebook,
-          page: page,
+          session: NotebookPageEditorSession(page),
           notebookAccessor: widget.storage,
           onChanged: onChanged,
-          openPresentation: _openPresentation,
+          openPresentation: (context) => _openPresentation(context, page),
         ),
       ),
     );
@@ -59,7 +57,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
     _applyState(() => _notebook.pages.add(page));
     await _save();
     if (!mounted) return;
-    await _openEditor(notebook: _notebook, page: page, onChanged: _save);
+    await _openEditor(page: page, onChanged: _save);
     _applyState(() {}); // 返回后刷新
   }
 
@@ -244,7 +242,6 @@ extension _NotebookPageManage on _NotebookViewPageState {
         return;
       }
       await _openEditor(
-        notebook: srcNotebook,
         page: srcPage,
         onChanged: () => widget.storage.save(srcNotebook),
       );
@@ -255,7 +252,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
     _applyState(() => page.lastOpenedAt = DateTime.now());
     await _save();
     if (!mounted) return;
-    await _openEditor(notebook: _notebook, page: page, onChanged: _save);
+    await _openEditor(page: page, onChanged: _save);
     _applyState(() {});
   }
 

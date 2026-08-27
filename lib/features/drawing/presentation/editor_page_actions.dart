@@ -68,7 +68,7 @@ extension _EditorPageActions on _EditorPageState {
   /// 图表生成（借鉴 Excalidraw charts）：粘贴数值（逗号/空格/换行分隔），
   /// 自动生成柱状图/折线图元素并放入画布中心。
   Future<void> _createChart() async {
-    final page = widget.page;
+    final page = widget.session;
     if (page == null) {
       _showSnack('仅笔记本页面支持图表');
       return;
@@ -108,7 +108,9 @@ extension _EditorPageActions on _EditorPageState {
                   autofocus: true,
                   maxLines: 5,
                   decoration: InputDecoration(
-                    hintText: AppLocalizations.of(context)?.editorPasteValues ?? '粘贴数值，用逗号/空格/换行分隔，例如：10, 25, 18, 42, 30',
+                    hintText:
+                        AppLocalizations.of(context)?.editorPasteValues ??
+                        '粘贴数值，用逗号/空格/换行分隔，例如：10, 25, 18, 42, 30',
                     border: OutlineInputBorder(),
                     isDense: true,
                   ),
@@ -160,7 +162,7 @@ extension _EditorPageActions on _EditorPageState {
 
   /// 幻灯片演示（对齐 Excalidraw presentation）：全屏逐元素展示。
   void _startPresentation() {
-    final page = widget.page;
+    final page = widget.session;
     if (page == null) {
       _showSnack('仅笔记本页面支持幻灯片演示');
       return;
@@ -176,12 +178,12 @@ extension _EditorPageActions on _EditorPageState {
       _showSnack('演示功能不可用');
       return;
     }
-    onOpen(context, page);
+    unawaited(onOpen(context));
   }
 
   /// 统计面板（对齐 Excalidraw Stats）：显示元素数量/类型统计。
   Future<void> _showStats() async {
-    final page = widget.page;
+    final page = widget.session;
     final doc = _controller.document;
     var strokes = 0;
     for (final layer in doc.layers) {
@@ -236,7 +238,7 @@ extension _EditorPageActions on _EditorPageState {
   /// 形状库/图书馆（对齐 Excalidraw libraries）：浏览/检索/插入形状。
   /// 个人收藏（收藏到库）保存在会话内。
   Future<void> _openShapeLibrary() async {
-    final page = widget.page;
+    final page = widget.session;
     if (page == null) {
       _showSnack('仅笔记本页面支持形状库');
       return;
@@ -287,7 +289,7 @@ extension _EditorPageActions on _EditorPageState {
 
   /// 复制选中元素（文字/图片/形状，借鉴 Excalidraw 元素复制）。
   void _copySelectedElement() {
-    final page = widget.page;
+    final page = widget.session;
     if (page == null) return;
     _copiedElements = [];
     // 多选优先，其次单选。
@@ -318,7 +320,7 @@ extension _EditorPageActions on _EditorPageState {
 
   /// 粘贴复制的元素（偏移 24px，避免与原位置重叠，借鉴 Excalidraw）。
   void _pasteCopiedElement() {
-    final page = widget.page;
+    final page = widget.session;
     if (page == null || _copiedElements.isEmpty) {
       _showSnack('请先复制元素（Ctrl+C）');
       return;
@@ -380,7 +382,7 @@ extension _EditorPageActions on _EditorPageState {
 
   /// Alt+方向键微调：选中元素按画布像素微移（对齐 Excalidraw nudge）。
   void _nudgeSelected(double dx, double dy) {
-    final page = widget.page;
+    final page = widget.session;
     if (page == null) return;
     final id = _selectedItemId;
     if (id == null) return;
@@ -409,7 +411,7 @@ extension _EditorPageActions on _EditorPageState {
 
   /// 复制选中元素样式（文字块或形状，借鉴 Excalidraw 样式刷）。
   void _copySelectedStyle() {
-    final page = widget.page;
+    final page = widget.session;
     final id = _selectedItemId;
     if (page == null || id == null) return;
     final t = page.textItems.where((x) => x.id == id).firstOrNull;
@@ -443,7 +445,7 @@ extension _EditorPageActions on _EditorPageState {
   /// 粘贴样式到选中元素（借鉴 Excalidraw 样式刷）。
   void _pasteStyleToSelected() {
     final style = _copiedStyle;
-    final page = widget.page;
+    final page = widget.session;
     final id = _selectedItemId;
     if (style == null || page == null || id == null) {
       _showSnack('请先复制样式（Ctrl+Shift+C）再粘贴');
@@ -473,7 +475,7 @@ extension _EditorPageActions on _EditorPageState {
   /// 剪贴板智能粘贴（借鉴 Excalidraw 粘贴识别）：
   /// 文本内容创建文字块，PNG 图片创建图片块，置于画布中心。
   Future<void> _pasteFromClipboard() async {
-    final page = widget.page;
+    final page = widget.session;
     if (page == null) {
       _showSnack('仅笔记本页面支持粘贴');
       return;

@@ -169,7 +169,7 @@ extension _EditorPageDragOps on _EditorPageState {
     );
   }
   Set<String> _expandGroup(Set<String> ids) {
-    final page = widget.page;
+    final page = widget.session;
     if (page == null || ids.isEmpty) return ids;
     // 收集 ids 涉及的所有 groupId。
     final groups = <String>{};
@@ -198,7 +198,7 @@ extension _EditorPageDragOps on _EditorPageState {
   }
 
   void _dragItem(String id, Offset screenDelta) {
-    final page = widget.page;
+    final page = widget.session;
     if (page == null) return;
     // 屏幕位移 -> 画布位移（除以缩放、反向旋转）。
     final canvasDelta = screenDeltaToCanvas(screenDelta, _controller.viewRotation, _controller.viewScale);
@@ -279,7 +279,7 @@ extension _EditorPageDragOps on _EditorPageState {
     // 画布模式的对象拖动由 controller 统一管理（不走 _dragItem），
     // 因此对齐吸附仅作用于分页笔记的混排对象；无限画布吸附属于
     // controller 层后续工程（记录于审查报告）。
-    final page = widget.page;
+    final page = widget.session;
     if (page == null) return;
     const snapTol = 10.0;
     final textItems = page.textItems;
@@ -435,7 +435,7 @@ extension _EditorPageDragOps on _EditorPageState {
   /// 等间距分布：把页面全部混排对象（文字/图片/形状）按水平或垂直
   /// 等间距排列（借鉴 Excalidraw 对齐/分布工具）。
   void _distributeItems(bool horizontal) {
-    final page = widget.page;
+    final page = widget.session;
     if (page == null) return;
     final items = <({double pos, double size})>[];
     // 收集所有对象的中心位置与尺寸。
@@ -589,7 +589,7 @@ extension _EditorPageDragOps on _EditorPageState {
   /// 与 [_findSnapTarget] 同逻辑但返回元素 id（供箭头绑定 boundElementId 使用）；
   /// 无命中返回 null。
   String? _findSnapTargetId(Offset canvasPoint) {
-    final page = widget.page;
+    final page = widget.session;
     if (page == null) return null;
     const snapDist = 50.0;
     String? best;

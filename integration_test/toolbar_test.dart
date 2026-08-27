@@ -1,4 +1,5 @@
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/features/notes/application/notebook_page_editor_session.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
@@ -23,17 +24,16 @@ void main() {
       title: '工具测试页',
       document: doc,
     );
-    final notebook = Notebook(id: 'tool_test_nb', title: '测试本')
-      ..pages.add(page);
-    await tester.pumpWidget(MaterialApp(
-      home: EditorPage(
-        notebook: notebook,
-        page: page,
-        storage: NotebookStorage(
-          directoryProvider: () async => throw UnimplementedError(),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: EditorPage(
+          session: NotebookPageEditorSession(page),
+          storage: NotebookStorage(
+            directoryProvider: () async => throw UnimplementedError(),
+          ),
         ),
       ),
-    ));
+    );
     await tester.pumpAndSettle();
     // 页面不应崩溃。
     expect(tester.takeException(), isNull, reason: '编辑器页面不应有构建异常');
@@ -42,10 +42,12 @@ void main() {
   /// 通过 tooltip 找到对应 IconButton 并读取 isSelected。
   bool isToolSelected(WidgetTester tester, String tooltip) {
     final btn = tester.widget<IconButton>(
-      find.ancestor(
-        of: find.byTooltip(tooltip),
-        matching: find.byType(IconButton),
-      ).first,
+      find
+          .ancestor(
+            of: find.byTooltip(tooltip),
+            matching: find.byType(IconButton),
+          )
+          .first,
     );
     return btn.isSelected ?? false;
   }
@@ -65,8 +67,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull, reason: '点击橡皮擦不应抛异常');
-    expect(isToolSelected(tester, '橡皮擦（透明擦除）'), isTrue,
-        reason: '点击后橡皮擦应进入选中态');
+    expect(isToolSelected(tester, '橡皮擦（透明擦除）'), isTrue, reason: '点击后橡皮擦应进入选中态');
     expect(isToolSelected(tester, '画笔'), isFalse);
   });
 
@@ -103,8 +104,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(isToolSelected(tester, '矩形选区'), isTrue,
-        reason: '点击后矩形选区应进入选中态');
+    expect(isToolSelected(tester, '矩形选区'), isTrue, reason: '点击后矩形选区应进入选中态');
   });
 
   testWidgets('工具栏可用：点击"文字工具"进入文字模式、可切回画笔', (tester) async {

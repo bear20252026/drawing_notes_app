@@ -2,6 +2,7 @@ import 'package:drawing_notes_app/app/default_editor_page_builder.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
+import 'package:drawing_notes_app/features/notes/application/notebook_page_editor_session.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -16,16 +17,14 @@ void main() {
   });
 
   test('笔记页面会话由应用层构建为 EditorPage', () {
-    final notebook = Notebook(id: 'notebook-1', title: '笔记本');
-    final page = NotebookPage(
+    final notebookPage = NotebookPage(
       id: 'page-1',
       title: '页面',
       document: DrawingDocument(id: 'document-1', title: '画布'),
     );
 
     final editor = DefaultEditorPageBuilder.build(
-      notebook: notebook,
-      page: page,
+      session: NotebookPageEditorSession(notebookPage),
     );
 
     expect(editor, isA<EditorPage>());

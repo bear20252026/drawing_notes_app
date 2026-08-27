@@ -7,7 +7,7 @@ part of 'editor_page.dart';
 /// 编辑器混排对象编辑域（拆分自 editor_page.dart）。
 extension _EditorPageEditing on _EditorPageState {
   void _addTextItem(Offset canvasPoint) {
-    final page = widget.page;
+    final page = widget.session;
     if (page == null) {
       // 画布模式（问题5）：文字块存入文档 textItems，不再禁用文字工具。
       _addCanvasTextItem(canvasPoint);
@@ -65,7 +65,7 @@ extension _EditorPageEditing on _EditorPageState {
   /// 双击空白处 -> 新建文字块并立即进入就地编辑；
   /// 双击已有文字块 -> 进入该文字块的编辑。
   void _onCanvasDoubleTap(TapDownDetails details) {
-    final page = widget.page;
+    final page = widget.session;
     final canvasPoint = _controller.viewToCanvas(details.localPosition);
     // 查找双击位置命中的文字块（取其编辑框）。
     if (page != null) {
@@ -97,7 +97,7 @@ extension _EditorPageEditing on _EditorPageState {
   /// 注意：编辑"已有"文字块时，[pending] 已在 [page.textItems] 中，
   /// 不能重复添加（评审发现 P1：重复项会被持久化并叠加渲染）。
   void _commitTextEditing() {
-    final page = widget.page;
+    final page = widget.session;
     final pending = _pendingTextItem;
     if (pending == null || _editingItemId == null) return;
 
@@ -139,7 +139,7 @@ extension _EditorPageEditing on _EditorPageState {
   ///
   /// 与就地编辑并存：就地编辑用于快速文字，标签用于醒目分类标注。
   Future<void> _addStickyNote() async {
-    final page = widget.page;
+    final page = widget.session;
     if (page == null) return;
 
     // 先结束可能存在的就地编辑。
@@ -170,7 +170,7 @@ extension _EditorPageEditing on _EditorPageState {
 
   /// 调节选中文字块的字号（工具栏滑块调用）。
   void _setSelectedTextFontSize(double size) {
-    final page = widget.page;
+    final page = widget.session;
     final id = _selectedItemId;
     if (page == null || id == null) return;
     final item = page.textItems.where((t) => t.id == id).firstOrNull;
@@ -186,7 +186,7 @@ extension _EditorPageEditing on _EditorPageState {
   /// 把页面文字块按 A4 页面高度（逻辑像素）分页渲染到预览对话框，
   /// 便于查看长笔记的分页效果（导出 PDF 时的版式）。
   void _showPaginationPreview() {
-    final page = widget.page;
+    final page = widget.session;
     if (page == null) {
       _showSnack('仅笔记本页面支持分页预览');
       return;
@@ -216,7 +216,7 @@ extension _EditorPageEditing on _EditorPageState {
 
   /// 修改选中文字块的颜色（复用颜色选择对话框）。
   Future<void> _changeSelectedTextColor() async {
-    final page = widget.page;
+    final page = widget.session;
     final id = _selectedItemId;
     if (page == null || id == null) return;
     final item = page.textItems.where((t) => t.id == id).firstOrNull;
@@ -236,7 +236,7 @@ extension _EditorPageEditing on _EditorPageState {
   /// 宏：批量改色（B1，借鉴 Trilium 脚本自动化）——
   /// 把页面所有文字块的颜色统一改为当前画笔颜色。
   void _macroRecolorAllText() {
-    final page = widget.page;
+    final page = widget.session;
     if (page == null) return;
     if (page.textItems.isEmpty) {
       _showSnack('本页没有文字块');
@@ -271,7 +271,7 @@ extension _EditorPageEditing on _EditorPageState {
         _controller.document.width / 2,
         _controller.document.height / 2,
       );
-      final page = widget.page;
+      final page = widget.session;
       if (page != null) {
         final storage = widget.storage;
         if (storage == null) {
@@ -341,7 +341,7 @@ extension _EditorPageEditing on _EditorPageState {
   void _onItemTap(String itemId) {
     // 元素超链接（借鉴 Excalidraw hyperlink）：有 href 的元素点击时
     // 用系统默认浏览器打开（Windows 用 start 命令）。
-    final page = widget.page;
+    final page = widget.session;
     if (page != null) {
       String? href;
       for (final t in page.textItems) {
@@ -363,7 +363,7 @@ extension _EditorPageEditing on _EditorPageState {
         _applyState(() => _viewModel.setLinkSourceId(itemId));
         _showSnack('已选择起点，再点击另一个元素完成连线');
       } else if (_linkSourceId != itemId) {
-        final page = widget.page;
+        final page = widget.session;
         if (page != null) {
           _applyState(() {
             page.connectors.add(
@@ -392,7 +392,7 @@ extension _EditorPageEditing on _EditorPageState {
   /// 不需要重排其余元素的层级号。旧文档无键时按 zOrder 相对顺序补齐一次，
   /// 序列化向后兼容。
   void _reorderSelected(int mode) {
-    final page = widget.page;
+    final page = widget.session;
     if (page == null) return;
     final ids = _expandGroup(
       _multiSelectedIds.isNotEmpty
@@ -574,7 +574,7 @@ extension _EditorPageEditing on _EditorPageState {
   /// 设置元素超链接（借鉴 Excalidraw hyperlink）：输入 URL 绑定到选中元素，
   /// 元素点击时用系统默认浏览器打开。
   Future<void> _setLink() async {
-    final page = widget.page;
+    final page = widget.session;
     final id = _selectedItemId;
     if (page == null || id == null) return;
     // 找到当前 href（若有）。
@@ -639,7 +639,7 @@ extension _EditorPageEditing on _EditorPageState {
 
   /// 分组：给选中的多个元素设置相同 groupId（借鉴 Excalidraw groupIds）。
   void _groupSelected() {
-    final page = widget.page;
+    final page = widget.session;
     if (page == null) return;
     final ids = _multiSelectedIds.isNotEmpty
         ? _multiSelectedIds
@@ -666,7 +666,7 @@ extension _EditorPageEditing on _EditorPageState {
 
   /// 取消分组：清空选中元素的 groupId。
   void _ungroupSelected() {
-    final page = widget.page;
+    final page = widget.session;
     if (page == null) return;
     final ids = _multiSelectedIds.isNotEmpty
         ? _multiSelectedIds
@@ -687,7 +687,7 @@ extension _EditorPageEditing on _EditorPageState {
   }
 
   void _deleteSelectedItem() {
-    final page = widget.page;
+    final page = widget.session;
     if (page == null) return;
     // 多选删除：删除全部选中的混排对象（文字/图片/形状，借鉴 Excalidraw 多选）。
     final ids = _multiSelectedIds.isNotEmpty
@@ -734,7 +734,7 @@ extension _EditorPageEditing on _EditorPageState {
   /// 编辑选中的文字块：双击/工具栏进入就地编辑（直接打字修改，
   /// 借鉴 OneNote/Word，替代弹窗输入）。
   void _editTextItem() {
-    final page = widget.page;
+    final page = widget.session;
     final id = _selectedItemId;
     if (page == null || id == null) return;
     final item = page.textItems.where((t) => t.id == id).firstOrNull;

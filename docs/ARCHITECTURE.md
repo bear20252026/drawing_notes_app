@@ -18,6 +18,8 @@ lib/
 ├── core/
 │   ├── navigation/editor_page_builder.dart
 │   │                                # 中立的编辑器页面构建契约
+│   ├── navigation/editor_page_session.dart
+│   │                                # 绘图编辑所需的最小分页会话契约
 │   ├── notes_accessor.dart            # drawing 使用的笔记访问契约
 │   ├── di/                            # Riverpod 共享 provider
 │   ├── rendering/                     # 绘制、缓存、几何与导出基础能力
@@ -32,7 +34,8 @@ lib/
 │   │   ├── infrastructure/            # 编解码、局部几何/缓存适配
 │   │   └── presentation/              # EditorPage、画布和编辑器组件
 │   └── notes/
-│       ├── domain/                    # 笔记本、页面与混排对象
+│       ├── domain/                    # 笔记本、页面与笔记管理元数据
+│       ├── application/               # NotebookPage 到编辑会话的适配
 │       ├── infrastructure/            # NotebookStorage 与访问器实现
 │       └── presentation/              # 首页、笔记页、搜索、放映与对话框
 ├── shared/widgets/                    # 不依赖 features 的可复用 UI
@@ -47,7 +50,7 @@ packages/
 
 `DrawingNotesApp` 是生产路径的组合根。它创建单例 `StorageService` 和 `NotebookStorage`，将它们传入 `HomePage`；页面不再在正常应用路径中各自创建新的存储实例。
 
-笔记功能不得直接 import `features/drawing/presentation/editor_page.dart`。`core/navigation/editor_page_builder.dart` 定义 `EditorPageBuilder` 契约，notes 仅依赖这个中立契约；`app/default_editor_page_builder.dart` 才负责把请求映射到具体 `EditorPage`。这种方式保留了现有的两种会话形态：独立画布使用 `document + documentStorage`，笔记页混排使用 `notebook + page + notebookAccessor + onChanged`。
+笔记功能不得直接 import `features/drawing/presentation/editor_page.dart`。`core/navigation/editor_page_builder.dart` 定义 `EditorPageBuilder` 契约，notes 仅依赖这个中立契约；`app/default_editor_page_builder.dart` 才负责把请求映射到具体 `EditorPage`。独立画布使用 `document + documentStorage`；笔记页则由 notes 内的 `NotebookPageEditorSession` 将聚合中的 `NotebookPage` 适配为 `EditorPageSession`，再传入 `session + notebookAccessor + onChanged`。因此，`EditorPage` 只知晓绘图文档、混排元素和页面更新时间，不再直接 import 或接收 notes 领域聚合；放映跳转也以无页面数据泄漏的闭包回调注入。
 
 ```mermaid
 flowchart LR
@@ -60,7 +63,10 @@ flowchart LR
   Home --> Notes[NotebookViewPage / SearchPage]
   Home --> EditorContract[EditorPageBuilder]
   Notes --> EditorContract
+  Notes --> SessionAdapter[NotebookPageEditorSession]
+  SessionAdapter --> SessionContract[EditorPageSession]
   EditorContract --> ConcreteEditor[EditorPage]
+  SessionContract --> ConcreteEditor
 ```
 
 ## 3. 层级边界
@@ -79,9 +85,9 @@ flowchart LR
 
 ## 4. 当前已知迁移边界
 
-项目不是完全无技术债的终态。drawings 对 notes 的若干 **domain** 类型仍有直接依赖，例如混排编辑、混合导出与本地搜索。它们被视为后续共享编辑模型迁移的输入，而不是允许继续扩大的 UI 依赖。
+项目不是完全无技术债的终态，但已不存在 drawing **presentation** 对 notes 领域聚合的直接依赖。分页编辑通过 `EditorPageSession` 收口为窄的可变会话，搜索通过只读 DTO 收口，导出通过 `PagedExportSnapshot` 收口；notes 保留其笔记本、加密、文件夹、标签、版本历史与放映导航职责。
 
-下一阶段应优先处理以下两项：第一，将 `DocCommand` 对 `DrawingController` 的直接回调收敛为纯状态 delta/reducer，消除当前历史记录循环；第二，将 drawings 实际需要的笔记载荷提炼为中立 DTO 或纯 Dart package 类型，使 `INotebookAccessor` 不再返回完整 notes 聚合根。
+下一阶段应优先处理以下两项：第一，继续将 `DrawingController` 的会话、历史与渲染缓存协调职责拆分为更小的协作者；第二，评估将 `PageTemplate`、`CloneRef` 和 `PageVersion` 等笔记管理模型与可编辑页面载荷进一步分离，令跨 feature 契约始终只暴露实际用到的数据和操作。
 
 ## 5. 本地验证
 

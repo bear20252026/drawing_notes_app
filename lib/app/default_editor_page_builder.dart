@@ -1,11 +1,11 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
+import 'package:drawing_notes_app/core/navigation/editor_page_session.dart';
 import 'package:drawing_notes_app/core/notes_accessor.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
-import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 
 /// 应用层的默认编辑器实现。
 ///
@@ -16,18 +16,15 @@ class DefaultEditorPageBuilder {
 
   static Widget build({
     DrawingDocument? document,
-    Notebook? notebook,
-    NotebookPage? page,
+    EditorPageSession? session,
     INotebookAccessor? notebookAccessor,
     StorageService? documentStorage,
     VoidCallback? onChanged,
-    Future<void> Function(BuildContext context, NotebookPage page)?
-    openPresentation,
+    Future<void> Function(BuildContext context)? openPresentation,
   }) {
     return EditorPage(
       document: document,
-      notebook: notebook,
-      page: page,
+      session: session,
       storage: notebookAccessor,
       docStorage: documentStorage,
       onChanged: onChanged,
