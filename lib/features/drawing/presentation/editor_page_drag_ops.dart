@@ -172,31 +172,13 @@ extension _EditorPageDragOps on _EditorPageState {
 
   Set<String> _expandGroup(Set<String> ids) {
     final page = widget.session;
-    if (page == null || ids.isEmpty) return ids;
-    // 收集 ids 涉及的所有 groupId。
-    final groups = <String>{};
-    for (final t in page.textItems) {
-      if (ids.contains(t.id) && t.groupId != null) groups.add(t.groupId!);
-    }
-    for (final i in page.imageItems) {
-      if (ids.contains(i.id) && i.groupId != null) groups.add(i.groupId!);
-    }
-    for (final sh in page.shapes) {
-      if (ids.contains(sh.id) && sh.groupId != null) groups.add(sh.groupId!);
-    }
-    if (groups.isEmpty) return ids;
-    // 展开：把同组元素全部加入。
-    final result = {...ids};
-    for (final t in page.textItems) {
-      if (t.groupId != null && groups.contains(t.groupId)) result.add(t.id);
-    }
-    for (final i in page.imageItems) {
-      if (i.groupId != null && groups.contains(i.groupId)) result.add(i.id);
-    }
-    for (final sh in page.shapes) {
-      if (sh.groupId != null && groups.contains(sh.groupId)) result.add(sh.id);
-    }
-    return result;
+    if (page == null) return Set<String>.unmodifiable(ids);
+    return EditorOverlayGroupResolver.expand(
+      selectedIds: ids,
+      textItems: page.textItems,
+      imageItems: page.imageItems,
+      shapes: page.shapes,
+    );
   }
 
   void _dragItem(String id, Offset screenDelta) {
