@@ -5,7 +5,7 @@ import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/infrastructure/document_codec.dart';
+import 'package:drawing_notes_app/core/storage/document_codec.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
 
@@ -284,9 +284,7 @@ class StorageService implements DocumentRepository {
         return await read();
       } on FileSystemException {
         if (attempt >= retries) rethrow;
-        await Future<void>.delayed(
-          Duration(milliseconds: 50 * (attempt + 1)),
-        );
+        await Future<void>.delayed(Duration(milliseconds: 50 * (attempt + 1)));
       }
     }
   }

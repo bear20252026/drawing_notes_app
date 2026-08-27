@@ -16,7 +16,7 @@ enum PaperType { blank, grid, lined, dot }
 /// 画布文档（一幅画/一页笔记的数据根）。
 ///
 /// 包含：画布物理尺寸（逻辑像素）、所有图层、元信息。
-/// 序列化结构见 storage/document_codec.dart。
+/// 序列化结构见 core/storage/document_codec.dart。
 class DrawingDocument {
   DrawingDocument({
     required this.id,
@@ -82,7 +82,7 @@ class DrawingDocument {
   /// 获取画布尺寸。
   Size get size => Size(width.toDouble(), height.toDouble());
 
-  // ---- 序列化（与 storage/document_codec.dart 的 v1 格式一致）----
+  // ---- 序列化（与 core/storage/document_codec.dart 的文件格式一致）----
 
   Map<String, dynamic> toJson() => {
     'id': id,

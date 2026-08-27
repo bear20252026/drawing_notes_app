@@ -24,7 +24,7 @@ lib/
 │   ├── di/                            # Riverpod 共享 provider
 │   ├── rendering/                     # 绘制、缓存、几何与导出基础能力
 │   ├── security/                      # 会话、策略、媒体加密
-│   ├── storage/                       # 本地文件、加密、VFS、导入等适配能力
+│   ├── storage/                       # 本地文件、文档编解码、加密、VFS、导入等适配能力
 │   ├── theme/                         # 应用主题
 │   └── utils/                         # 无业务归属的工具
 ├── features/
@@ -95,7 +95,7 @@ flowchart LR
 
 `StrokeInputSession` 拥有原始笔画的活动状态、压力采样、取消、收笔、临时高亮、激光尾迹和手绘形状识别分支。它通过 `StrokeInputHost` 仅请求**当前工具配置、临时墨迹接收、持久笔画/识别形状提交和帧级重绘**；控制器继续拥有文档写入、命令历史、脏区域缓存刷新与低频状态通知。这样，未提交笔画绝不会污染文档或历史，而持久化副作用仍集中于稳定的宿主边界。
 
-`DocCommand` 与 `DocumentEditHistory` 不依赖 `DrawingController`。命令仅通过 `DocCommandContext` 请求图层恢复、文档脏标记、笔画缓存刷新和手绘形状恢复；`DrawingController` 在外层实现该窄契约并继续拥有缓存、选择修正与通知时序。架构测试对 `features/`、`core/` 和 `shared/` 的 import 图执行严格零循环断言；同时严格阻断 drawing/notes 间指向对方 `infrastructure` 或 `presentation` 的横向导入，并以 onion 规则阻断 feature 内层反向依赖外层。上述三类已消除的历史关系均不再保留冻结基线。
+`DocCommand` 与 `DocumentEditHistory` 不依赖 `DrawingController`。命令仅通过 `DocCommandContext` 请求图层恢复、文档脏标记、笔画缓存刷新和手绘形状恢复；`DrawingController` 在外层实现该窄契约并继续拥有缓存、选择修正与通知时序。`DocumentCodec` 是离线 `.json` 工程格式的存储适配器，归属 `core/storage`；`StorageService` 因此只依赖绘图领域模型而不依赖 feature 基础设施。旧 `features/drawing/infrastructure/document_codec.dart` 仅作同类型兼容导出，既有调用不产生包装层或第二实现。架构测试对 `features/`、`core/` 和 `shared/` 的 import 图执行严格零循环断言；同时严格阻断 drawing/notes 间指向对方 `infrastructure` 或 `presentation` 的横向导入，并以 onion 规则阻断 feature 内层反向依赖外层。上述三类已消除的历史关系均不再保留冻结基线。
 
 编辑器展示层中，`EditorCanvasInteractionState` 专门拥有混排画布的短生命周期交互暂态：单选/多选结果、框选草稿、拖动轨迹、对齐参考线、删除淡出目标、图片裁剪目标及文字缩放锚点。`EditorPage` 仍是 Widget、控制器、页面会话和持久化通知的组合根，并在既有 `setState` 时序内调用该协作者；协作者不持有 `DrawingController`、文档、I/O、Widget 或通知回调。多选、轨迹、参考线和删除目标仅以只读视图提供给 overlay，变更必须经由显式命令完成，以避免多个 `part` 文件绕过页面的状态边界。`_EditorPageCanvasSurface` 仅组合画布、网格、草稿、混排容器、小地图和番茄钟；`_EditorPageTextOverlays` 仅组合就地编辑、斜杠命令、文字展示和文字缩放手柄。二者仍调用页面既有事件委托与状态更新方法，因此拆分只降低展示模块职责密度，不形成新的文档、工具或持久化状态。
 
@@ -111,7 +111,7 @@ notes 领域进一步将 `PageTemplate`、`CloneRef`、`NotebookPageContent`、`
 
 图片和形状的对象选择不再保留独立、未接线的 Riverpod 占位状态。`DocumentObjectEditingSession` 的私有选择协调器是独立画布对象选择的唯一运行时写入源；需要界面刷新时仍通过既有控制器通知与公开只读访问器消费，避免把演示性 Provider 误认为产品状态或引入第二状态源。
 
-下一阶段可评估将重复对象编辑命令迁移为带事务/撤销契约的应用层服务，或将模板策略扩展为受版本控制的用户自定义模板库；两者都必须在独立 PR 中先设计状态、持久化和迁移边界。跨 feature 契约始终只暴露实际用到的数据和操作。
+核心存储对 feature 非领域层的历史白名单已经消除：边界脚本现在对任意 `core/` → feature `application`、`infrastructure` 或 `presentation` 导入直接失败。后续可评估将重复对象编辑命令迁移为带事务/撤销契约的应用层服务，或将模板策略扩展为受版本控制的用户自定义模板库；两者都必须在独立 PR 中先设计状态、持久化和迁移边界。跨 feature 契约始终只暴露实际用到的数据和操作。
 
 ## 5. 本地验证
 
