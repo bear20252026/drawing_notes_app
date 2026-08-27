@@ -32,19 +32,16 @@ void main() {
   test('规则2：零循环依赖——lib 内 import 图无环', () {
     // 仅检查本项目 lib/（features/core/shared），排除 windows/ 等
     // 构建缓存的插件符号链接（file:/// URI，非本包代码）。
-    // freeze 基线：document_commands ↔ drawing_controller 为命令模式
-    // 双向协作（controller 公开包装方法 + 命令类持有引用）的历史违规，
-    // 记录基线后 CI 只拦新增循环；解除列入专项重构（不破坏功能）。
-    freeze('zero_cycles', () {
-      shouldBeFreeOfCycles(
-        union(
-          filesMatching('features/**'),
-          filesMatching('core/**'),
-          filesMatching('shared/**'),
-        ),
-        graph,
-      );
-    });
+    // 命令层通过 DocCommandContext 依赖窄恢复契约而非 DrawingController；
+    // 已不存在历史注释所述的命令—控制器导入环，故必须严格拦截任何循环。
+    shouldBeFreeOfCycles(
+      union(
+        filesMatching('features/**'),
+        filesMatching('core/**'),
+        filesMatching('shared/**'),
+      ),
+      graph,
+    );
   });
 
   test('规则3a：绘图应用层仅依赖跨功能只读契约', () {

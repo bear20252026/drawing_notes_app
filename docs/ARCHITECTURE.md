@@ -95,6 +95,8 @@ flowchart LR
 
 `StrokeInputSession` 拥有原始笔画的活动状态、压力采样、取消、收笔、临时高亮、激光尾迹和手绘形状识别分支。它通过 `StrokeInputHost` 仅请求**当前工具配置、临时墨迹接收、持久笔画/识别形状提交和帧级重绘**；控制器继续拥有文档写入、命令历史、脏区域缓存刷新与低频状态通知。这样，未提交笔画绝不会污染文档或历史，而持久化副作用仍集中于稳定的宿主边界。
 
+`DocCommand` 与 `DocumentEditHistory` 不依赖 `DrawingController`。命令仅通过 `DocCommandContext` 请求图层恢复、文档脏标记、笔画缓存刷新和手绘形状恢复；`DrawingController` 在外层实现该窄契约并继续拥有缓存、选择修正与通知时序。架构测试对 `features/`、`core/` 和 `shared/` 的 import 图执行严格零循环断言，不再为已消除的命令—控制器历史关系保留冻结基线。
+
 编辑器展示层中，`EditorCanvasInteractionState` 专门拥有混排画布的短生命周期交互暂态：单选/多选结果、框选草稿、拖动轨迹、对齐参考线、删除淡出目标、图片裁剪目标及文字缩放锚点。`EditorPage` 仍是 Widget、控制器、页面会话和持久化通知的组合根，并在既有 `setState` 时序内调用该协作者；协作者不持有 `DrawingController`、文档、I/O、Widget 或通知回调。多选、轨迹、参考线和删除目标仅以只读视图提供给 overlay，变更必须经由显式命令完成，以避免多个 `part` 文件绕过页面的状态边界。`_EditorPageCanvasSurface` 仅组合画布、网格、草稿、混排容器、小地图和番茄钟；`_EditorPageTextOverlays` 仅组合就地编辑、斜杠命令、文字展示和文字缩放手柄。二者仍调用页面既有事件委托与状态更新方法，因此拆分只降低展示模块职责密度，不形成新的文档、工具或持久化状态。
 
 `EditorOverlayItemPlan` 是混排对象的只读展示计划：它在画布模式中对文字块排序，在笔记页模式中将文字、图片、形状和图表以类型化条目合并并按 `zOrder` 排序。计划不持有 `Widget`、控制器、页面状态或手势回调；`EditorPage` 只消费条目构建对应 overlay，并继续绑定编辑、选择、拖动、裁剪和缩放动作。该边界消除了按层级排序后为每个条目重复遍历多个集合的页面内分派逻辑。
