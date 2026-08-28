@@ -173,9 +173,19 @@ class StorageService implements DocumentRepository {
     final name = '${docId}_${LocalIdGenerator.next('img')}$extension';
     final destination = File('${dir.path}${Platform.pathSeparator}$name');
     final temporary = File('${destination.path}.tmp');
-    await temporary.writeAsBytes(await source.readAsBytes(), flush: true);
-    await _replaceWithTemp(temporary, destination);
-    return destination.path;
+    try {
+      await temporary.writeAsBytes(await source.readAsBytes(), flush: true);
+      await _replaceWithTemp(temporary, destination);
+      return destination.path;
+    } catch (_) {
+      // 图片复制失败时不留下可被误识别为下一次写入的临时副本。
+      try {
+        if (await temporary.exists()) await temporary.delete();
+      } catch (_) {
+        // 清理失败不覆盖原始存储异常，调用方仍得到真实失败原因。
+      }
+      rethrow;
+    }
   }
 
   static String _safeImageExtension(String path) {

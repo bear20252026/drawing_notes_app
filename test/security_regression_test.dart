@@ -209,6 +209,36 @@ void main() {
     });
   });
 
+  group('M7: 图片离线副本失败路径清理', () {
+    late Directory tempDir;
+    late StorageService storage;
+
+    setUp(() async {
+      tempDir = await Directory.systemTemp.createTemp('reg_storage_image_');
+      storage = StorageService(directoryProvider: () async => tempDir);
+    });
+
+    tearDown(() async {
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    test('不存在的图片源被拒绝且不会创建媒体目录', () async {
+      final missing = '${tempDir.path}${Platform.pathSeparator}missing.jpg';
+      await expectLater(
+        storage.storeImage(missing, 'doc_image'),
+        throwsArgumentError,
+      );
+      expect(
+        Directory(
+          '${tempDir.path}${Platform.pathSeparator}document_images',
+        ).existsSync(),
+        isFalse,
+      );
+    });
+  });
+
   group('L3: 导出/取色正常路径仍工作', () {
     test('renderToPng 返回合法 PNG 且位图正确释放（正常路径）', () async {
       final c = DrawingController(makeDoc(w: 64, h: 64));
