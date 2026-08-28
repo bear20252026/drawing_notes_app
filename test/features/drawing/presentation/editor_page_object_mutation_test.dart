@@ -80,6 +80,44 @@ void main() {
     expect(charts, isEmpty);
   });
 
+  test('文字样式协作者保持字号边界并统一处理颜色', () {
+    final first = PageTextItem(
+      id: 'text-1',
+      x: 0,
+      y: 0,
+      text: '第一段',
+      fontSize: 24,
+      color: 0xFF111111,
+    );
+    final second = PageTextItem(
+      id: 'text-2',
+      x: 10,
+      y: 20,
+      text: '第二段',
+      fontSize: 36,
+      color: 0xFF222222,
+    );
+
+    EditorTextStyleMutation.setFontSize(item: first, size: 2);
+    expect(first.fontSize, 8);
+    EditorTextStyleMutation.setFontSize(item: first, size: 240);
+    expect(first.fontSize, 200);
+    EditorTextStyleMutation.setFontSize(item: first, size: 48.5);
+    expect(first.fontSize, 48.5);
+
+    EditorTextStyleMutation.setColor(item: first, color: 0xFFAABBCC);
+    expect(first.color, 0xFFAABBCC);
+
+    final recolored = EditorTextStyleMutation.recolorAll(
+      items: [first, second],
+      color: 0xFFABCDEF,
+    );
+    expect(recolored, 2);
+    expect(first.color, 0xFFABCDEF);
+    expect(second.color, 0xFFABCDEF);
+    expect(EditorTextStyleMutation.recolorAll(items: const [], color: 1), 0);
+  });
+
   test('图片构造保留分页与独立文档的默认尺寸和调用方坐标', () {
     final pageImage = EditorImageMutation.createPageImage(
       id: 'page-image',

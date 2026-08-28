@@ -172,7 +172,7 @@ extension _EditorPageEditing on _EditorPageState {
     final item = page.textItems.where((t) => t.id == id).firstOrNull;
     if (item == null) return;
     _applyState(() {
-      item.fontSize = size.clamp(8, 200);
+      EditorTextStyleMutation.setFontSize(item: item, size: size);
     });
     _notifyChanged();
   }
@@ -227,7 +227,7 @@ extension _EditorPageEditing on _EditorPageState {
     );
     if (color == null) return;
     _applyState(() {
-      item.color = color.toARGB32();
+      EditorTextStyleMutation.setColor(item: item, color: color.toARGB32());
     });
     _notifyChanged();
   }
@@ -243,9 +243,7 @@ extension _EditorPageEditing on _EditorPageState {
     }
     final target = _controller.color.toARGB32();
     _applyState(() {
-      for (final t in page.textItems) {
-        t.color = target;
-      }
+      EditorTextStyleMutation.recolorAll(items: page.textItems, color: target);
     });
     _notifyChanged();
     _showSnack('已批量改色 ${page.textItems.length} 个文字块');
