@@ -17,10 +17,23 @@ import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_editor.dart';
+import 'package:drawing_notes_app/features/notes/presentation/embedded_block_view.dart';
 
 /// 块式笔记编辑器页面。
 class NoteEditorPage extends StatefulWidget {
-  const NoteEditorPage({super.key});
+  /// 创建块式笔记编辑器页面。
+  ///
+  /// [embeddedBlockBuilder] 为可选的自定义内嵌块渲染回调，
+  /// 由组合根（app_shell）注入，用于渲染 canvas/chart 等复杂内嵌块。
+  /// 为 null 时使用内置降级渲染。
+  const NoteEditorPage({
+    super.key,
+    this.embeddedBlockBuilder,
+  });
+
+  /// 由组合根注入的自定义内嵌块渲染回调。
+  /// 返回 null 时走默认降级渲染。
+  final Widget? Function(NoteBlock block)? embeddedBlockBuilder;
 
   @override
   State<NoteEditorPage> createState() => _NoteEditorPageState();
@@ -90,6 +103,42 @@ const List<_BlockTypeOption> _blockTypeOptions = [
     label: '—',
     icon: Icons.horizontal_rule,
     tooltip: '分隔线',
+  ),
+  _BlockTypeOption(
+    type: NoteBlockType.image,
+    label: '🖼',
+    icon: Icons.image_outlined,
+    tooltip: '图片',
+  ),
+  _BlockTypeOption(
+    type: NoteBlockType.link,
+    label: '🔗',
+    icon: Icons.link,
+    tooltip: '链接',
+  ),
+  _BlockTypeOption(
+    type: NoteBlockType.table,
+    label: '⊞',
+    icon: Icons.table_chart_outlined,
+    tooltip: '表格',
+  ),
+  _BlockTypeOption(
+    type: NoteBlockType.database,
+    label: '🗄',
+    icon: Icons.storage_outlined,
+    tooltip: '数据库',
+  ),
+  _BlockTypeOption(
+    type: NoteBlockType.canvas,
+    label: '🎨',
+    icon: Icons.dashboard_customize_outlined,
+    tooltip: '内嵌画布',
+  ),
+  _BlockTypeOption(
+    type: NoteBlockType.chart,
+    label: '📊',
+    icon: Icons.bar_chart,
+    tooltip: '内嵌图表',
   ),
 ];
 
@@ -431,6 +480,14 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 16),
         child: Divider(thickness: 2),
+      );
+    }
+
+    // 内嵌块使用 EmbeddedBlockView 渲染（不进入可编辑 TextField）
+    if (EmbeddedBlockView.isEmbeddedType(block.type)) {
+      return EmbeddedBlockView(
+        block: block,
+        embeddedBuilder: widget.embeddedBlockBuilder,
       );
     }
 
