@@ -66,24 +66,15 @@ extension _EditorPageEditing on _EditorPageState {
     final page = widget.session;
     final canvasPoint = _controller.viewToCanvas(details.localPosition);
     // 查找双击位置命中的文字块（取其编辑框）。
-    if (page != null) {
-      for (final t in page.textItems) {
-        final w = t.fontSize * 2;
-        if (Rect.fromLTWH(t.x, t.y, w, t.fontSize).contains(canvasPoint)) {
-          _applyState(() => _selectedItemId = t.id);
-          _editTextItem();
-          return;
-        }
-      }
-    } else {
-      for (final t in _controller.document.textItems) {
-        final w = t.fontSize * 2;
-        if (Rect.fromLTWH(t.x, t.y, w, t.fontSize).contains(canvasPoint)) {
-          _applyState(() => _selectedItemId = t.id);
-          _editTextItem();
-          return;
-        }
-      }
+    final hitId = EditorTextMutation.hitTextId(
+      items: page?.textItems ?? _controller.document.textItems,
+      x: canvasPoint.dx,
+      y: canvasPoint.dy,
+    );
+    if (hitId != null) {
+      _applyState(() => _selectedItemId = hitId);
+      _editTextItem();
+      return;
     }
     // 空白处：新建文字并编辑（Excalidraw 同款顺滑插入，问题11：
     // 一点画面即可打字；画布/笔记两种模式均支持）。
@@ -682,7 +673,7 @@ extension _EditorPageEditing on _EditorPageState {
     final page = widget.session;
     final id = _selectedItemId;
     if (page == null || id == null) return;
-    final item = page.textItems.where((t) => t.id == id).firstOrNull;
+    final item = EditorTextMutation.findById(items: page.textItems, id: id);
     if (item == null) return;
 
     _applyState(() {

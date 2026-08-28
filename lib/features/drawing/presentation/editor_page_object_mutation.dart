@@ -101,6 +101,34 @@ class EditorLinkMutation {
 class EditorTextMutation {
   const EditorTextMutation._();
 
+  static PageTextItem? findById({
+    required Iterable<PageTextItem> items,
+    required String id,
+  }) {
+    for (final item in items) {
+      if (item.id == id) return item;
+    }
+    return null;
+  }
+
+  /// 返回双击坐标命中的第一个文字块 ID；命中框沿用编辑器现有字号规则。
+  static String? hitTextId({
+    required Iterable<PageTextItem> items,
+    required double x,
+    required double y,
+  }) {
+    for (final item in items) {
+      final width = item.fontSize * 2;
+      if (x >= item.x &&
+          x <= item.x + width &&
+          y >= item.y &&
+          y <= item.y + item.fontSize) {
+        return item.id;
+      }
+    }
+    return null;
+  }
+
   /// 创建进入就地编辑的临时文字块；提交前不加入任何页面集合。
   static PageTextItem createDraft({
     required String id,

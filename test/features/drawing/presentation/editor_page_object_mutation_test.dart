@@ -80,6 +80,38 @@ void main() {
     expect(charts, isEmpty);
   });
 
+  test('文字对象查找按 ID 返回原实例，缺失 ID 返回 null', () {
+    final item = PageTextItem(id: 'found', x: 0, y: 0, text: '文字');
+    final items = [item];
+
+    expect(EditorTextMutation.findById(items: items, id: 'found'), same(item));
+    expect(EditorTextMutation.findById(items: items, id: 'missing'), isNull);
+  });
+
+  test('文字命中按字号命中框返回首个对象，空白处返回 null', () {
+    final first = PageTextItem(
+      id: 'first',
+      x: 10,
+      y: 20,
+      text: '第一段',
+      fontSize: 30,
+    );
+    final overlapping = PageTextItem(
+      id: 'second',
+      x: 10,
+      y: 20,
+      text: '第二段',
+      fontSize: 30,
+    );
+
+    expect(
+      EditorTextMutation.hitTextId(items: [first, overlapping], x: 70, y: 50),
+      'first',
+    );
+    expect(EditorTextMutation.hitTextId(items: [first], x: 71, y: 50), isNull);
+    expect(EditorTextMutation.hitTextId(items: [first], x: 10, y: 51), isNull);
+  });
+
   test('临时文字块创建保留调用方坐标和唯一 ID，默认不带文本', () {
     final draft = EditorTextMutation.createDraft(
       id: 'draft-1',
