@@ -183,6 +183,12 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
   /// 当前聚焦的块 id。
   String? _focusedBlockId;
 
+  /// 当前正在拖拽的块 id（用于 dropline 指示）。
+  String? _draggingBlockId;
+
+  /// 当前拖拽目标插入索引（用于 dropline 渲染，null 表示无拖拽）。
+  int? _dropTargetIndex;
+
   /// id 生成计数器。
   int _idCounter = 0;
 
@@ -773,33 +779,142 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
 
   Widget _buildBlockRow(NoteBlock block, int index) {
     final isFocused = _focusedBlockId == block.id;
+    final isDraggingThis = _draggingBlockId == block.id;
+    final showDropLine = _draggingBlockId != null &&
+        _dropTargetIndex != null &&
+        _dropTargetIndex == index;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Semantics(
-        label: _semanticLabelForBlock(block),
-        focused: isFocused,
-        container: true,
-        child: Container(
-          decoration: isFocused
-              ? BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .primaryContainer
-                      .withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
-                )
-              : null,
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      child: DragTarget<String>(
+        onWillAcceptWithDetails: (details) {
+          // 不接受自身拖拽到自身位置。
+          if (details.data == block.id) return false;
+          setState(() => _dropTargetIndex = index);
+          return true;
+        },
+        onLeave: (_) {
+          if (_dropTargetIndex == index) {
+            setState(() => _dropTargetIndex = null);
+          }
+        },
+        onAcceptWithDetails: (details) {
+          _moveBlockToPosition(details.data, index);
+        },
+        builder: (context, candidateData, rejectedData) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _buildBlockPrefix(block, index),
-              Expanded(child: _buildBlockInput(block)),
+              if (showDropLine)
+                Container(
+                  height: 3,
+                  margin: const EdgeInsets.symmetric(vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              Opacity(
+                opacity: isDraggingThis ? 0.3 : 1.0,
+                child: Semantics(
+                  label: _semanticLabelForBlock(block),
+                  focused: isFocused,
+                  container: true,
+                  child: Container(
+                    decoration: isFocused
+                        ? BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .primaryContainer
+                                .withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          )
+                        : null,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildBlockHandle(block),
+                        _buildBlockPrefix(block, index),
+                        Expanded(child: _buildBlockInput(block)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
+          );
+        },
+      ),
+    );
+  }
+
+  /// 构建块拖拽手柄（grip）。
+  Widget _buildBlockHandle(NoteBlock block) {
+    return Draggable<String>(
+      data: block.id,
+      feedback: Material(
+        color: Colors.transparent,
+        child: Icon(
+          Icons.drag_handle,
+          size: 20,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      ),
+      childWhenDragging: const SizedBox(width: 24, height: 24),
+      onDragStarted: () {
+        setState(() {
+          _draggingBlockId = block.id;
+          _dropTargetIndex = null;
+        });
+      },
+      onDragEnd: (_) {
+        setState(() {
+          _draggingBlockId = null;
+          _dropTargetIndex = null;
+        });
+      },
+      child: GestureDetector(
+        onTap: () => _selectBlock(block.id),
+        child: Padding(
+          padding: const EdgeInsets.only(top: 10, right: 4),
+          child: Opacity(
+            opacity: _focusedBlockId == block.id ? 1.0 : 0.4,
+            child: Icon(
+              Icons.drag_handle,
+              size: 18,
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurfaceVariant
+                  .withValues(alpha: 0.6),
+            ),
           ),
         ),
       ),
     );
+  }
+
+  /// 将指定块移动到目标索引位置（顶层列表内）。
+  void _moveBlockToPosition(String blockId, int targetIndex) {
+    final blocks = _root.children;
+    final currentIndex = blocks.indexWhere((b) => b.id == blockId);
+    if (currentIndex < 0) return;
+    // 目标索引在源索引之后时，需减一（因为移除源后列表缩短）。
+    final adjustedTarget =
+        targetIndex > currentIndex ? targetIndex - 1 : targetIndex;
+    if (adjustedTarget < 0 || adjustedTarget >= blocks.length) return;
+    final moved = _editor.moveBlock(_root, blockId, _root.id,
+        index: adjustedTarget);
+    setState(() {
+      _root = moved;
+      _updateDirtyState();
+    });
+  }
+
+  /// 选中整块（聚焦并更新聚焦 id）。
+  void _selectBlock(String blockId) {
+    setState(() => _focusedBlockId = blockId);
+    final node = _focusNodes[blockId];
+    node?.requestFocus();
   }
 
   /// 为无障碍朗读生成块描述标签。

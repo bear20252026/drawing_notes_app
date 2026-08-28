@@ -134,4 +134,115 @@ void main() {
       await tester.pumpAndSettle();
     });
   });
+
+  group('NoteEditorPage 块手柄拖拽', () {
+    testWidgets('每个块行左侧显示拖拽手柄 (drag_handle 图标)',
+        (tester) async {
+      final doc = makeDoc(
+        id: 'doc-handle',
+        title: 'Handle',
+        body: [
+          NoteBlock.textBlock('t1', text: 'Block One'),
+          NoteBlock.textBlock('t2', text: 'Block Two'),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: NoteEditorPage(document: doc),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 每个块行都有一个 drag_handle 图标
+      expect(find.byIcon(Icons.drag_handle), findsNWidgets(2));
+    });
+
+    testWidgets('点击拖拽手柄选中整块（聚焦）', (tester) async {
+      final doc = makeDoc(
+        id: 'doc-select',
+        title: 'Select',
+        body: [
+          NoteBlock.textBlock('t1', text: 'Block One'),
+          NoteBlock.textBlock('t2', text: 'Block Two'),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: NoteEditorPage(document: doc),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 找到第一个拖拽手柄并点击
+      final handle = find.byIcon(Icons.drag_handle).first;
+      await tester.tap(handle);
+      await tester.pumpAndSettle();
+
+      // 点击后至少有一个 EditableText 获得焦点
+      final editableTexts = find.byType(EditableText);
+      final hasFocus = editableTexts.evaluate().any((element) {
+        final editable = element.widget as EditableText;
+        return editable.focusNode.hasFocus;
+      });
+      expect(hasFocus, isTrue);
+    });
+
+    testWidgets('拖拽手柄将块移动到目标位置', (tester) async {
+      final doc = makeDoc(
+        id: 'doc-drag',
+        title: 'Drag',
+        body: [
+          NoteBlock.textBlock('t1', text: 'First'),
+          NoteBlock.textBlock('t2', text: 'Second'),
+          NoteBlock.textBlock('t3', text: 'Third'),
+        ],
+      );
+
+      NoteBlockDoc? savedDoc;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: NoteEditorPage(
+            document: doc,
+            onSave: (d) => savedDoc = d,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 找到所有拖拽手柄
+      final handles = find.byIcon(Icons.drag_handle);
+      expect(handles, findsNWidgets(3));
+
+      // 拖拽第一个块（t1）到第三个块位置
+      final firstHandle = handles.at(0);
+      final thirdHandle = handles.at(2);
+
+      // 开始拖拽
+      final gesture =
+          await tester.startGesture(tester.getCenter(firstHandle));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // 移动到第三个块位置
+      await gesture.moveTo(tester.getCenter(thirdHandle));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // 释放
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      // 验证：dispose 时传出保存结果
+      await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
+      await tester.pumpAndSettle();
+
+      expect(savedDoc, isNotNull);
+      // 拖拽后块顺序应改变：First 从位置 0 移动到位置 2 附近
+      final texts = savedDoc!.body.map((b) => b.text).toList();
+      // 验证仍然有 3 个块
+      expect(texts.length, 3);
+      // 验证 First 不再在第一位（拖拽成功改变了顺序）
+      expect(texts.first != 'First' || texts.last == 'First', isTrue);
+    });
+  });
 }
