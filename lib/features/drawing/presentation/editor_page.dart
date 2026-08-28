@@ -31,7 +31,6 @@ import 'package:drawing_notes_app/features/drawing/infrastructure/view_transform
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/page_chart_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/page_connector.dart';
 import 'package:drawing_notes_app/features/drawing/domain/page_image_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
 import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
@@ -51,6 +50,7 @@ import 'package:drawing_notes_app/features/drawing/presentation/editor_left_tool
 import 'package:drawing_notes_app/features/drawing/presentation/editor_overlay_group_resolver.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page_object_mutation.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_layer_order_mutation.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_link_mutation.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_overlay_item_plan.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_image_crop_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_selection_transform_state.dart';
