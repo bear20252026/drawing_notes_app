@@ -334,6 +334,7 @@ class StorageService implements DocumentRepository {
                 DateTime.now(),
             layerCount: (doc['layers'] as List? ?? const []).length,
             strokeCount: _countStrokes(doc['layers'] as List? ?? const []),
+            folder: doc['folder'] is String ? doc['folder'] as String : '',
           ),
         );
       } on FormatException {

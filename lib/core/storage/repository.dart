@@ -32,6 +32,7 @@ class DocumentMeta {
     required this.updatedAt,
     required this.layerCount,
     required this.strokeCount,
+    this.folder = '',
   });
 
   final String id;
@@ -42,4 +43,7 @@ class DocumentMeta {
   final DateTime updatedAt;
   final int layerCount;
   final int strokeCount;
+
+  /// 所属文件夹路径（如 `工作/项目A`），空串表示根目录。向后兼容默认 ''。
+  final String folder;
 }

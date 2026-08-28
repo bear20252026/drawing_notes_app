@@ -25,6 +25,7 @@ class DrawingDocument {
     this.height = 1536,
     this.infinite = false,
     this.paperType = PaperType.blank,
+    this.folder = '',
     List<Layer>? layers,
     List<PageShapeItem>? shapes,
     List<DocumentImageItem>? imageItems,
@@ -44,6 +45,12 @@ class DrawingDocument {
 
   final String id;
   String title;
+
+  /// 所属文件夹路径（如 `工作/项目A`），空串表示根目录。
+  ///
+  /// 与笔记本页面的 [NotebookPage.folder] 共用同一套「文件目录」语义，
+  /// 让画板与笔记可以在同一个文件夹里混排。向后兼容：旧文档缺失时为 ''。
+  String folder;
 
   /// 画布宽度（逻辑像素），新建画布时可自定义（见 Phase 6 新建流程）。
   final int width;
@@ -91,6 +98,7 @@ class DrawingDocument {
     'height': height,
     'infinite': infinite,
     'paperType': paperType.name,
+    'folder': folder,
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
     'layers': layers.map((l) => l.toJson()).toList(),
@@ -112,6 +120,7 @@ class DrawingDocument {
       (p) => p.name == json['paperType'],
       orElse: () => PaperType.blank,
     ),
+    folder: json['folder'] as String? ?? '',
     layers: (json['layers'] as List? ?? const [])
         .map((e) => Layer.fromJson(e as Map<String, dynamic>))
         .toList(),

@@ -12,8 +12,8 @@ import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
+import 'package:drawing_notes_app/app/app_shell.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
-import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
 
 /// 应用根组件：主题 + 路由。
 ///
@@ -123,7 +123,7 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
           themeMode: _themeController.mode,
           theme: ref.watch(themeProvider),
           darkTheme: AppDesign.darkTheme(),
-          home: HomePage(
+          home: AppShell(
             notebookStorage: _notebookStorage,
             docStorage: _documentStorage,
             themeController: _themeController,
