@@ -97,6 +97,29 @@ class EditorLinkMutation {
   }
 }
 
+/// 就地文字提交的确定性无状态协作者；UI 状态和持久化通知仍由页面组合根负责。
+class EditorTextMutation {
+  const EditorTextMutation._();
+
+  /// 提交文字内容并确保同一文字块不会被重复加入目标集合。
+  ///
+  /// 返回 false 表示输入为空，调用方应保持原有“丢弃临时项”语义。
+  static bool commit({
+    required PageTextItem pending,
+    required String rawText,
+    required List<PageTextItem> items,
+  }) {
+    final text = rawText.trim();
+    if (text.isEmpty) return false;
+
+    pending.text = text;
+    if (!items.any((item) => item.id == pending.id)) {
+      items.add(pending);
+    }
+    return true;
+  }
+}
+
 /// 图片元素构造的无状态协作者；存储复制仍由页面组合根负责。
 class EditorImageMutation {
   const EditorImageMutation._();
