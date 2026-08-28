@@ -322,8 +322,9 @@ extension _EditorPageEditing on _EditorPageState {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              AppLocalizations.of(context)
-                      ?.editorImageInsertFail(e.runtimeType.toString()) ??
+              AppLocalizations.of(
+                    context,
+                  )?.editorImageInsertFail(e.runtimeType.toString()) ??
                   '插入图片失败：${e.runtimeType}',
             ),
           ),

@@ -1,4 +1,4 @@
-import 'package:drawing_notes_app/features/drawing/presentation/editor_link_mutation.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_page_object_mutation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
