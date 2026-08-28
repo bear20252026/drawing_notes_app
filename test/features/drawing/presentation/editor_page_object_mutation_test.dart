@@ -80,6 +80,124 @@ void main() {
     expect(charts, isEmpty);
   });
 
+  test('图片构造保留分页与独立文档的默认尺寸和调用方坐标', () {
+    final pageImage = EditorImageMutation.createPageImage(
+      id: 'page-image',
+      x: 12,
+      y: 34,
+      filePath: '/offline/page.png',
+    );
+    final documentImage = EditorImageMutation.createDocumentImage(
+      id: 'document-image',
+      x: 56,
+      y: 78,
+      filePath: '/offline/document.png',
+    );
+
+    expect(pageImage.id, 'page-image');
+    expect(pageImage.position.dx, 12);
+    expect(pageImage.position.dy, 34);
+    expect(pageImage.filePath, '/offline/page.png');
+    expect(pageImage.width, 200);
+    expect(pageImage.height, 150);
+    expect(documentImage.id, 'document-image');
+    expect(documentImage.position.dx, 56);
+    expect(documentImage.position.dy, 78);
+    expect(documentImage.filePath, '/offline/document.png');
+    expect(documentImage.width, 200);
+    expect(documentImage.height, 150);
+  });
+
+  test('超链接读写统一覆盖文字、图片和形状，缺失对象安全返回', () {
+    final text = PageTextItem(id: 'text-1', x: 0, y: 0, text: '文字');
+    final image = PageImageItem(
+      id: 'image-1',
+      filePath: '/tmp/image.png',
+      x: 0,
+      y: 0,
+    );
+    final shape = PageShapeItem(
+      id: 'shape-1',
+      shapeType: ShapeType.rect,
+      x: 0,
+      y: 0,
+      width: 40,
+      height: 40,
+    );
+    final textItems = [text];
+    final imageItems = [image];
+    final shapes = [shape];
+
+    expect(
+      EditorHyperlinkMutation.setHref(
+        id: 'text-1',
+        href: 'https://text.example',
+        textItems: textItems,
+        imageItems: imageItems,
+        shapes: shapes,
+      ),
+      isTrue,
+    );
+    expect(
+      EditorHyperlinkMutation.setHref(
+        id: 'image-1',
+        href: 'mailto:image@example.com',
+        textItems: textItems,
+        imageItems: imageItems,
+        shapes: shapes,
+      ),
+      isTrue,
+    );
+    expect(
+      EditorHyperlinkMutation.setHref(
+        id: 'shape-1',
+        href: null,
+        textItems: textItems,
+        imageItems: imageItems,
+        shapes: shapes,
+      ),
+      isTrue,
+    );
+
+    expect(
+      EditorHyperlinkMutation.hrefOf(
+        id: 'text-1',
+        textItems: textItems,
+        imageItems: imageItems,
+        shapes: shapes,
+      ),
+      'https://text.example',
+    );
+    expect(
+      EditorHyperlinkMutation.hrefOf(
+        id: 'image-1',
+        textItems: textItems,
+        imageItems: imageItems,
+        shapes: shapes,
+      ),
+      'mailto:image@example.com',
+    );
+    expect(
+      EditorHyperlinkMutation.hrefOf(
+        id: 'shape-1',
+        textItems: textItems,
+        imageItems: imageItems,
+        shapes: shapes,
+      ),
+      isNull,
+    );
+    expect(
+      EditorHyperlinkMutation.setHref(
+        id: 'missing',
+        href: 'https://missing.example',
+        textItems: textItems,
+        imageItems: imageItems,
+        shapes: shapes,
+      ),
+      isFalse,
+    );
+  });
+
   test('空 id 集合不会修改任何对象', () {
     final text = PageTextItem(id: 'text-1', x: 0, y: 0, text: '文字');
     final textItems = [text];
