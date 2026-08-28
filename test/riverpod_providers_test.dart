@@ -7,7 +7,6 @@ import 'package:drawing_notes_app/features/drawing/application/di_providers.dart
 import 'package:drawing_notes_app/features/drawing/application/drawing_notifiers.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 
 /// S5 验证：Riverpod 编译时安全 + 可测试性（ProviderContainer 独立构建）。
 void main() {

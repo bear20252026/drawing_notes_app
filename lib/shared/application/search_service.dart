@@ -26,7 +26,7 @@ class SearchResult {
 /// 跨 feature 的_应用服务_：同时搜笔记本（经 core 契约 INotebookSearchAccessor）
 /// 与画作（经 core 的 StorageService），因此放在 shared 层（feature 无关实现），
 /// 而非归属某一 feature（原误放在 drawing/application，导致 notes→drawing 应用层耦合）。
-/// 依赖方向：features/* → shared → core（纯向内，注释见架构学习报告 S4b）。
+/// 依赖方向：应用 feature → shared → core（纯向内，注释见架构学习报告 S4b）。
 ///
 /// 纯本地扫描（listAll 读取全部工程文件），无需索引文件；
 /// 规模增长后可换 SQLite 索引（见学习报告 C1 备注）。
