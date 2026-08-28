@@ -50,7 +50,6 @@ import 'package:drawing_notes_app/features/drawing/presentation/editor_canvas_in
 import 'package:drawing_notes_app/features/drawing/presentation/editor_context_bar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_left_toolbar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_overlay_group_resolver.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/editor_page_object_mutation.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_overlay_item_plan.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_image_crop_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_selection_transform_state.dart';
