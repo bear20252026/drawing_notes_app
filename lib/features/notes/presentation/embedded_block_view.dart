@@ -12,6 +12,8 @@ library;
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
+import 'package:drawing_notes_app/features/notes/presentation/image_preview_dialog.dart';
+import 'package:drawing_notes_app/features/notes/presentation/table_editor_widget.dart';
 
 /// 内嵌块视图：按块类型分发到对应的富渲染。
 ///
@@ -23,6 +25,7 @@ class EmbeddedBlockView extends StatelessWidget {
     super.key,
     required this.block,
     this.embeddedBuilder,
+    this.onBlockChanged,
   });
 
   /// 要渲染的内嵌块。
@@ -31,6 +34,10 @@ class EmbeddedBlockView extends StatelessWidget {
   /// 由组合根注入的自定义块渲染回调（可为 null）。
   /// 返回 null 时走默认降级渲染。
   final Widget? Function(NoteBlock block)? embeddedBuilder;
+
+  /// 内嵌块编辑回调（如表格编辑后写回）。
+  /// 为 null 时禁用编辑交互。
+  final ValueChanged<NoteBlock>? onBlockChanged;
 
   /// 判断是否为内嵌块类型（非文本编辑块）。
   static bool isEmbeddedType(NoteBlockType type) {
@@ -86,40 +93,77 @@ class EmbeddedBlockView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              src,
-              fit: BoxFit.cover,
-              height: 200,
-              width: double.infinity,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  height: 160,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .surfaceContainerHighest
-                      .withValues(alpha: 0.5),
-                  alignment: Alignment.center,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.broken_image_outlined,
-                        size: 48,
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '图片加载失败',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.outline,
+          // 点击图片弹出全屏预览
+          GestureDetector(
+            onTap: () => showImagePreviewDialog(
+              context,
+              src: src,
+              caption: caption.isEmpty ? null : caption,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Stack(
+                children: [
+                  Image.network(
+                    src,
+                    fit: BoxFit.cover,
+                    height: 200,
+                    width: double.infinity,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: 160,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.5),
+                        alignment: Alignment.center,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.broken_image_outlined,
+                              size: 48,
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '图片加载失败',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.outline,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  // 预览提示覆盖层
+                  Positioned(
+                    right: 8,
+                    bottom: 8,
+                    child: IgnorePointer(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.zoom_in, color: Colors.white, size: 16),
+                            SizedBox(width: 4),
+                            Text('点击预览',
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 12)),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                );
-              },
+                ],
+              ),
             ),
           ),
           if (caption.isNotEmpty) ...[
@@ -230,6 +274,15 @@ class EmbeddedBlockView extends StatelessWidget {
   // ── 表格 ───────────────────────────────────────────────────
 
   Widget _buildTable(BuildContext context) {
+    // 若有编辑回调，使用可编辑表格编辑器
+    if (onBlockChanged != null) {
+      return TableEditorWidget(
+        block: block,
+        onChanged: onBlockChanged!,
+      );
+    }
+
+    // 无编辑回调时显示只读表格
     final rows = (block.props['rows'] as int? ?? 1).clamp(1, 50);
     final cols = (block.props['cols'] as int? ?? 1).clamp(1, 10);
 

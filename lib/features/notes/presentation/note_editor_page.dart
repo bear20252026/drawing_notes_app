@@ -18,7 +18,10 @@ import 'package:flutter/services.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_editor.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/notes/domain/note_inline_span.dart';
+import 'package:drawing_notes_app/features/notes/domain/text_span_editor.dart';
 import 'package:drawing_notes_app/features/notes/presentation/embedded_block_view.dart';
+import 'package:drawing_notes_app/features/notes/presentation/block_slash_menu.dart';
 
 /// 块式笔记编辑器页面。
 ///
@@ -198,6 +201,18 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
   /// 上次保存时的 body 快照（用于 dirty 检测）。
   String _lastSavedBodySignature = '';
 
+  /// 内联富文本编辑器（纯逻辑）。
+  final TextSpanEditor _spanEditor = const TextSpanEditor();
+
+  /// 是否显示 / 菜单。
+  bool _showSlashMenu = false;
+
+  /// / 菜单锚定的块 id。
+  String? _slashMenuBlockId;
+
+  /// / 菜单的 Overlay 条目。
+  OverlayEntry? _slashMenuOverlay;
+
   @override
   void initState() {
     super.initState();
@@ -325,6 +340,8 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
       _root = _editor.updateText(_root, blockId, controller.text);
       _updateDirtyState();
     });
+    // 检测 / 菜单触发
+    _checkSlashTrigger(blockId, controller.text, controller.selection.baseOffset);
   }
 
   // ── Enter：分块 ────────────────────────────────────────────
@@ -459,6 +476,155 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
   /// 计算当前 body 的签名（用于 dirty 检测）。
   String _computeBodySignature() {
     return _root.children.map((b) => '${b.id}:${b.type.name}:${b.text}').join('|');
+  }
+
+  // ── 富文本操作 ─────────────────────────────────────────────
+
+  /// 获取聚焦块的当前 span 列表（从 props 中读取，向后兼容纯文本）。
+  List<NoteInlineSpan> _getSpansForFocusedBlock() {
+    if (_focusedBlockId == null) return [];
+    final block = _editor.findBlock(_root, _focusedBlockId!);
+    if (block == null) return [];
+    return _spansFromBlock(block);
+  }
+
+  /// 从 NoteBlock 的 props 中解析 span 列表（向后兼容纯文本）。
+  List<NoteInlineSpan> _spansFromBlock(NoteBlock block) {
+    final spansData = block.props['spans'];
+    if (spansData is List) {
+      return spansData
+          .map((e) => NoteInlineSpan(
+                text: e['text'] as String? ?? '',
+                bold: e['bold'] as bool? ?? false,
+                italic: e['italic'] as bool? ?? false,
+                underline: e['underline'] as bool? ?? false,
+                link: e['link'] as String?,
+              ))
+          .toList();
+    }
+    // 向后兼容：无 spans 属性 → 纯文本
+    return NoteInlineSpanList.fromPlainText(block.text);
+  }
+
+  /// 将 span 列表序列化为 props 可存储格式。
+  List<Map<String, dynamic>> _spansToProps(List<NoteInlineSpan> spans) {
+    return spans.map((s) => {
+      'text': s.text,
+      'bold': s.bold,
+      'italic': s.italic,
+      'underline': s.underline,
+      if (s.link != null) 'link': s.link,
+    }).toList();
+  }
+
+  /// 更新聚焦块的 span 列表。
+  void _updateSpans(String blockId, List<NoteInlineSpan> spans) {
+    final plainText = spans.plainText;
+    final props = _spansToProps(spans);
+    setState(() {
+      _root = _editor.updateText(_root, blockId, plainText);
+      _root = _editor.updateProps(_root, blockId, {'spans': props});
+      _updateDirtyState();
+    });
+  }
+
+  /// 切换粗体。
+  void _toggleBold() {
+    final spans = _getSpansForFocusedBlock();
+    if (spans.isEmpty) return;
+    final controller = _controllers[_focusedBlockId];
+    if (controller == null) return;
+    final selection = controller.selection;
+    final range = SpanRange(selection.start, selection.end);
+    final result = _spanEditor.applyBold(spans, range);
+    _updateSpans(_focusedBlockId!, result);
+  }
+
+  /// 切换斜体。
+  void _toggleItalic() {
+    final spans = _getSpansForFocusedBlock();
+    if (spans.isEmpty) return;
+    final controller = _controllers[_focusedBlockId];
+    if (controller == null) return;
+    final selection = controller.selection;
+    final range = SpanRange(selection.start, selection.end);
+    final result = _spanEditor.applyItalic(spans, range);
+    _updateSpans(_focusedBlockId!, result);
+  }
+
+  /// 切换下划线。
+  void _toggleUnderline() {
+    final spans = _getSpansForFocusedBlock();
+    if (spans.isEmpty) return;
+    final controller = _controllers[_focusedBlockId];
+    if (controller == null) return;
+    final selection = controller.selection;
+    final range = SpanRange(selection.start, selection.end);
+    final result = _spanEditor.applyUnderline(spans, range);
+    _updateSpans(_focusedBlockId!, result);
+  }
+
+  /// 插入链接（简化为对整个选区应用固定链接）。
+  void _insertLink() {
+    final spans = _getSpansForFocusedBlock();
+    if (spans.isEmpty) return;
+    final controller = _controllers[_focusedBlockId];
+    if (controller == null) return;
+    final selection = controller.selection;
+    if (selection.isCollapsed) return;
+    final range = SpanRange(selection.start, selection.end);
+    final result = _spanEditor.applyLink(spans, range, 'https://example.com');
+    _updateSpans(_focusedBlockId!, result);
+  }
+
+  // ── / 菜单 ─────────────────────────────────────────────────
+
+  /// 检测是否应显示 / 菜单（键入 / 且光标在块末或空白块）。
+  void _checkSlashTrigger(String blockId, String text, int cursorPos) {
+    if (text == '/' && cursorPos == 1) {
+      _openSlashMenu(blockId);
+    } else if (_showSlashMenu && _slashMenuBlockId != blockId) {
+      _closeSlashMenu();
+    }
+  }
+
+  /// 显示 / 菜单。
+  void _openSlashMenu(String blockId) {
+    _closeSlashMenu(); // 先清理旧菜单
+    setState(() {
+      _showSlashMenu = true;
+      _slashMenuBlockId = blockId;
+    });
+    final overlay = Overlay.of(context);
+    _slashMenuOverlay = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 100,
+        left: 20,
+        child: BlockSlashMenu(
+          onSelected: (type) => _onSlashMenuSelected(blockId, type),
+          onDismiss: _closeSlashMenu,
+        ),
+      ),
+    );
+    overlay.insert(_slashMenuOverlay!);
+  }
+
+  /// 隐藏 / 菜单。
+  void _closeSlashMenu() {
+    _slashMenuOverlay?.remove();
+    _slashMenuOverlay = null;
+    if (_showSlashMenu) {
+      setState(() {
+        _showSlashMenu = false;
+        _slashMenuBlockId = null;
+      });
+    }
+  }
+
+  /// / 菜单选中类型。
+  void _onSlashMenuSelected(String blockId, NoteBlockType type) {
+    _closeSlashMenu();
+    _changeBlockType(blockId, type);
   }
 
   /// 手动触发保存：把当前编辑状态通过 onSave 回调传出。
@@ -856,7 +1022,10 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
-          children: _blockTypeOptions.map((option) {
+          children: [
+            ..._buildRichTextButtons(),
+            const VerticalDivider(width: 8),
+            ..._blockTypeOptions.map((option) {
             final isSelected = focusedType == option.type;
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -900,7 +1069,63 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
                 ),
               ),
             );
-          }).toList(),
+          }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 构建富文本工具栏按钮（粗体/斜体/下划线/链接）。
+  List<Widget> _buildRichTextButtons() {
+    final hasFocus = _focusedBlockId != null;
+    return [
+      _toolbarIconButton(
+        icon: Icons.format_bold,
+        tooltip: '粗体',
+        onPressed: hasFocus ? () => _toggleBold() : null,
+      ),
+      _toolbarIconButton(
+        icon: Icons.format_italic,
+        tooltip: '斜体',
+        onPressed: hasFocus ? () => _toggleItalic() : null,
+      ),
+      _toolbarIconButton(
+        icon: Icons.format_underline,
+        tooltip: '下划线',
+        onPressed: hasFocus ? () => _toggleUnderline() : null,
+      ),
+      _toolbarIconButton(
+        icon: Icons.link,
+        tooltip: '链接',
+        onPressed: hasFocus ? () => _insertLink() : null,
+      ),
+    ];
+  }
+
+  /// 工具栏图标按钮的通用构造。
+  Widget _toolbarIconButton({
+    required IconData icon,
+    required String tooltip,
+    VoidCallback? onPressed,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Tooltip(
+        message: tooltip,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(6),
+          onTap: onPressed,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Icon(
+              icon,
+              size: 20,
+              color: onPressed != null
+                  ? Theme.of(context).colorScheme.onSurface
+                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
+          ),
         ),
       ),
     );

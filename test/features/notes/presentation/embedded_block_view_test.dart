@@ -309,7 +309,9 @@ void main() {
       // 初始状态：标题栏 + 1 个内容块 = 2 个 TextField
       expect(find.byType(TextField), findsNWidgets(2));
 
-      // 通过工具栏将内容块切换为 canvas 类型
+      // 通过工具栏将内容块切换为 canvas 类型（工具栏横向滚动，需先确保按钮可见）
+      await tester.ensureVisible(find.byTooltip('内嵌画布'));
+      await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('内嵌画布'));
       await tester.pumpAndSettle();
 
@@ -351,7 +353,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // 切换到 canvas 类型
+      // 切换到 canvas 类型（工具栏横向滚动，需先确保按钮可见）
+      await tester.ensureVisible(find.byTooltip('内嵌画布'));
+      await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('内嵌画布'));
       await tester.pumpAndSettle();
 
@@ -359,6 +363,122 @@ void main() {
       expect(find.text('注入的画布'), findsOneWidget);
       // 占位卡片的提示文案不应出现（工具栏按钮有"内嵌画布"文本，故不检查它）
       expect(find.text('由宿主提供 builder 以渲染完整内容'), findsNothing);
+    });
+  });
+
+  group('M6-3 EmbeddedBlockView 增强', () {
+    testWidgets('image 块点击触发预览弹窗（非空 src）', (tester) async {
+      final block = NoteBlock(
+        id: 'img_preview_test',
+        type: NoteBlockType.image,
+        props: {'src': 'https://example.com/test.png'},
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbeddedBlockView(block: block),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 初始不弹窗
+      expect(find.byType(InteractiveViewer), findsNothing);
+
+      // 点击图片触发预览
+      final imageArea = find.byType(GestureDetector);
+      expect(imageArea, findsOneWidget);
+      await tester.tap(imageArea.first);
+      await tester.pumpAndSettle();
+
+      // 应弹出预览
+      expect(find.byType(InteractiveViewer), findsOneWidget);
+    });
+
+    testWidgets('image 块空 src 点击不弹窗', (tester) async {
+      final block = NoteBlock(
+        id: 'img_empty_test',
+        type: NoteBlockType.image,
+        props: {}, // 无 src
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbeddedBlockView(block: block),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 空 src 显示占位
+      expect(find.text('图片（无来源）'), findsOneWidget);
+
+      // 不存在可点击的 GestureDetector（占位无点击）
+      // 预览弹窗不应存在
+      expect(find.byType(InteractiveViewer), findsNothing);
+    });
+
+    testWidgets('table 块有 onBlockChanged 时使用 TableEditorWidget',
+        (tester) async {
+      final block = NoteBlock(
+        id: 'table_test',
+        type: NoteBlockType.table,
+        props: {'rows': 2, 'cols': 2},
+        children: [
+          NoteBlock.textBlock('c1', text: 'A'),
+          NoteBlock.textBlock('c2', text: 'B'),
+          NoteBlock.textBlock('c3', text: 'C'),
+          NoteBlock.textBlock('c4', text: 'D'),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbeddedBlockView(
+              block: block,
+              onBlockChanged: (_) {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 应显示可编辑表格编辑器
+      expect(find.text('表格 2×2'), findsOneWidget);
+      // 应显示单元格文本
+      expect(find.text('A'), findsOneWidget);
+    });
+
+    testWidgets('table 块无 onBlockChanged 时显示只读表格', (tester) async {
+      final block = NoteBlock(
+        id: 'table_readonly',
+        type: NoteBlockType.table,
+        props: {'rows': 2, 'cols': 2},
+        children: [
+          NoteBlock.textBlock('c1', text: 'X'),
+          NoteBlock.textBlock('c2', text: 'Y'),
+          NoteBlock.textBlock('c3', text: 'Z'),
+          NoteBlock.textBlock('c4', text: 'W'),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbeddedBlockView(block: block),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 只读表格不显示"表格 N×N"标题
+      expect(find.text('表格 2×2'), findsNothing);
+      // 应显示单元格文本
+      expect(find.text('X'), findsOneWidget);
+      expect(find.text('Y'), findsOneWidget);
     });
   });
 }
