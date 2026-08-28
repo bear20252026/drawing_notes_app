@@ -51,6 +51,7 @@ import 'package:drawing_notes_app/features/drawing/presentation/editor_context_b
 import 'package:drawing_notes_app/features/drawing/presentation/editor_left_toolbar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_overlay_group_resolver.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_overlay_item_plan.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_image_crop_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_selection_transform_state.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_shape_resize_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_tool_mode_state.dart';
@@ -330,14 +331,11 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       final codec = await ui.instantiateImageCodec(bytes);
       final frame = await codec.getNextFrame();
       final src = frame.image;
-      // 按比例映射：裁剪矩形（画布坐标）-> 原图像素坐标。
-      final scaleX = src.width / (img.width + 1);
-      final scaleY = src.height / (img.height + 1);
-      final srcRect = Rect.fromLTWH(
-        (rect.left - img.x).clamp(0, img.width) * scaleX,
-        (rect.top - img.y).clamp(0, img.height) * scaleY,
-        rect.width.clamp(0, img.width) * scaleX,
-        rect.height.clamp(0, img.height) * scaleY,
+      // 裁剪矩形（画布坐标）映射为原图像素坐标；纯几何不触碰文件或状态。
+      final srcRect = EditorImageCropGeometry.sourceRectForCrop(
+        cropRect: rect,
+        imageBounds: Rect.fromLTWH(img.x, img.y, img.width, img.height),
+        sourceSize: Size(src.width.toDouble(), src.height.toDouble()),
       );
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
