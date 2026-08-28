@@ -162,6 +162,10 @@ extension _EditorPageTextOverlays on _EditorPageState {
     bool selected,
     bool linkSource,
   ) {
+    final textLayout = EditorTextPresentationStyle.layout(
+      width: item.width,
+      viewScale: _controller.viewScale,
+    );
     return Positioned(
       left: viewPos.dx,
       top: viewPos.dy,
@@ -229,103 +233,60 @@ extension _EditorPageTextOverlays on _EditorPageState {
                   // 约束宽度 + softWrap 自动换行，可拖拽右侧手柄调整。
                   Flexible(
                     child: ConstrainedBox(
-                      constraints: item.width != null
-                          ? BoxConstraints(
-                              maxWidth: item.width! * _controller.viewScale,
-                            )
-                          : const BoxConstraints(),
+                      constraints: textLayout.constraints,
                       // 富文本片段渲染（落地 Quill Delta runs，独立实现）：
                       // 有 runs 时按片段应用各自样式（加粗/斜体/下划线/颜色），
                       // 无 runs（旧文档）回退整块样式。
                       child: item.runs != null
                           ? Text.rich(
                               TextSpan(
-                                style: TextStyle(
-                                  fontSize:
-                                      item.fontSize * _controller.viewScale,
-                                  fontFamily: switch (item.fontFamily) {
-                                    'serif' => 'serif',
-                                    'monospace' => 'monospace',
-                                    'handwriting' => 'cursive',
-                                    _ => null,
-                                  },
-                                ),
+                                style:
+                                    EditorTextPresentationStyle.richBaseStyle(
+                                      fontSize: item.fontSize,
+                                      viewScale: _controller.viewScale,
+                                      fontFamily: item.fontFamily,
+                                    ),
                                 children: [
                                   for (final run in item.runs!)
                                     TextSpan(
                                       text: run.text,
-                                      style: TextStyle(
-                                        color: run.color != null
-                                            ? Color(run.color!)
-                                            : Color(item.color),
-                                        fontWeight: run.bold
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                        fontStyle: run.italic
-                                            ? FontStyle.italic
-                                            : FontStyle.normal,
-                                        decoration:
-                                            run.underline && run.strikethrough
-                                            ? TextDecoration.combine([
-                                                TextDecoration.underline,
-                                                TextDecoration.lineThrough,
-                                              ])
-                                            : (run.underline
-                                                  ? TextDecoration.underline
-                                                  : (run.strikethrough
-                                                        ? TextDecoration
-                                                              .lineThrough
-                                                        : TextDecoration.none)),
-                                      ),
+                                      style:
+                                          EditorTextPresentationStyle.richRunStyle(
+                                            fallbackColor: item.color,
+                                            color: run.color,
+                                            bold: run.bold,
+                                            italic: run.italic,
+                                            underline: run.underline,
+                                            strikethrough: run.strikethrough,
+                                          ),
                                     ),
                                 ],
                               ),
-                              softWrap: item.width != null,
-                              textAlign: switch (item.align) {
-                                TextAlignType.left => TextAlign.left,
-                                TextAlignType.center => TextAlign.center,
-                                TextAlignType.right => TextAlign.right,
-                              },
+                              softWrap: textLayout.softWrap,
+                              textAlign:
+                                  EditorTextPresentationStyle.textAlignFor(
+                                    item.align.name,
+                                  ),
                             )
                           : Text(
                               item.text,
-                              softWrap: item.width != null,
-                              textAlign: switch (item.align) {
-                                TextAlignType.left => TextAlign.left,
-                                TextAlignType.center => TextAlign.center,
-                                TextAlignType.right => TextAlign.right,
-                              },
-                              style: TextStyle(
-                                fontSize: item.fontSize * _controller.viewScale,
-                                // 字体族（借鉴 Excalidraw FontPicker）。
-                                fontFamily: switch (item.fontFamily) {
-                                  'serif' => 'serif',
-                                  'monospace' => 'monospace',
-                                  'handwriting' => 'cursive',
-                                  _ => null,
-                                },
-                                // 颜色：已勾选待办淡化；便利贴默认黄底用深色文字。
-                                color: item.isTodo && item.todoChecked
-                                    ? Color(item.color).withValues(alpha: 0.45)
-                                    : (item.isSticky && item.color == 0xFFFFF59D
-                                          ? const Color(0xFF3E2723)
-                                          : Color(item.color)),
-                                fontWeight: item.bold
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                                fontStyle: item.italic
-                                    ? FontStyle.italic
-                                    : FontStyle.normal,
-                                decoration: item.underline && item.strikethrough
-                                    ? TextDecoration.combine([
-                                        TextDecoration.underline,
-                                        TextDecoration.lineThrough,
-                                      ])
-                                    : (item.underline
-                                          ? TextDecoration.underline
-                                          : (item.strikethrough
-                                                ? TextDecoration.lineThrough
-                                                : TextDecoration.none)),
+                              softWrap: textLayout.softWrap,
+                              textAlign:
+                                  EditorTextPresentationStyle.textAlignFor(
+                                    item.align.name,
+                                  ),
+                              style: EditorTextPresentationStyle.plainTextStyle(
+                                fontSize: item.fontSize,
+                                viewScale: _controller.viewScale,
+                                color: item.color,
+                                fontFamily: item.fontFamily,
+                                isTodo: item.isTodo,
+                                todoChecked: item.todoChecked,
+                                isSticky: item.isSticky,
+                                bold: item.bold,
+                                italic: item.italic,
+                                underline: item.underline,
+                                strikethrough: item.strikethrough,
                               ),
                             ),
                     ),

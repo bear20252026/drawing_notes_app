@@ -105,6 +105,8 @@ flowchart LR
 
 图片裁剪同样分离为明确边界：`EditorImageCropGeometry` 仅以画布裁剪矩形、图片画布边界、命名四角手柄、画布增量和原图 `Size` 进行无副作用计算，输出受最小 10px 和图片范围约束的裁剪框，或保持既有 `sourceExtent / (canvasExtent + 1)` 比例的像素矩形。`_EditorPageDragOps` 继续负责屏幕到画布坐标换算和 `_cropRect` 写回；`_confirmCrop` 继续独占文件校验、图像解码/绘制/编码、对象尺寸更新、交互清理、提示和保存通知。协作者不导入 `dart:io`、`ui.Image`、Widget、控制器或领域图片对象。
 
+文字 overlay 的确定性样式规则由 `EditorTextPresentationStyle` 承接：它将字体族、字号与视图缩放、待办/便利贴颜色、粗体/斜体/下划线/删除线、对齐和可选宽度映射为不可变的 Flutter presentation 值。它只依赖原始展示输入，不持有 `PageTextItem`、`BuildContext`、编辑控制器或回调。`_EditorPageTextOverlays` 继续负责位置转换、选择/删除动画、待办写回、文字拖动、斜杠命令和宽度缩放；旧文档整块样式和富文本 runs 两条渲染路径继续由页面组合。
+
 `EditorToolModeState` 仅维护手型、框选与形状工具的展示层互斥状态；`EditorOverlayGroupResolver` 仅根据文字、图片和形状的 `groupId` 计算不可变的跨类型分组结果；`EditorSelectionTransformState` 仅保存选区缩放/旋转滑块值并输出相对变换增量。`EditorPage` 仍在单个状态更新周期内同步这些协作者、`EditorViewModel`、`DrawingController`、框选草稿和对象变换事务，因此新协作者不会成为第二个文档或工具状态源。
 
 `EditorToolbarActionFactory` 是纯展示层动作映射器：`EditorToolbarBrushActions`、`EditorToolbarObjectActions`、`EditorToolbarShapeActions` 和 `EditorToolbarViewportActions` 以命名分组承接页面提供的回调，工厂无副作用地输出既有 `EditorToolbarActions` 契约。`_EditorPageToolbarActions` 保留各回调的真实 `_applyState`、控制器写入、通知、偏好保存和页面方法调用；`_buildContextBar` 只监听控制器、映射显示状态并消费已装配动作。该分层避免把 40 个业务闭包混入 Widget 构建器，同时不增加任何状态源、延迟包装或 I/O 依赖。
