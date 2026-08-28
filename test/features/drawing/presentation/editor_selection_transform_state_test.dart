@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:drawing_notes_app/features/drawing/presentation/editor_selection_transform_state.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_interaction_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

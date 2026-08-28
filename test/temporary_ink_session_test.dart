@@ -1,7 +1,6 @@
 import 'dart:ui';
 
 import 'package:drawing_notes_app/features/drawing/application/temporary_ink_session.dart';
-import 'package:drawing_notes_app/features/drawing/application/temporary_markers.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 import 'package:flutter_test/flutter_test.dart';
 
