@@ -656,15 +656,13 @@ extension _EditorPageEditing on _EditorPageState {
     }
     final groupId = LocalIdGenerator.next('grp');
     _applyState(() {
-      for (final t in page.textItems) {
-        if (ids.contains(t.id)) t.groupId = groupId;
-      }
-      for (final i in page.imageItems) {
-        if (ids.contains(i.id)) i.groupId = groupId;
-      }
-      for (final sh in page.shapes) {
-        if (ids.contains(sh.id)) sh.groupId = groupId;
-      }
+      EditorPageObjectMutation.setGroupId(
+        ids: ids,
+        groupId: groupId,
+        textItems: page.textItems,
+        imageItems: page.imageItems,
+        shapes: page.shapes,
+      );
     });
     _notifyChanged();
     _showSnack('已分组 ${ids.length} 个元素');
@@ -678,15 +676,13 @@ extension _EditorPageEditing on _EditorPageState {
         ? _multiSelectedIds
         : <String>{?_selectedItemId};
     _applyState(() {
-      for (final t in page.textItems) {
-        if (ids.contains(t.id)) t.groupId = null;
-      }
-      for (final i in page.imageItems) {
-        if (ids.contains(i.id)) i.groupId = null;
-      }
-      for (final sh in page.shapes) {
-        if (ids.contains(sh.id)) sh.groupId = null;
-      }
+      EditorPageObjectMutation.setGroupId(
+        ids: ids,
+        groupId: null,
+        textItems: page.textItems,
+        imageItems: page.imageItems,
+        shapes: page.shapes,
+      );
     });
     _notifyChanged();
     _showSnack('已取消分组');
@@ -708,10 +704,13 @@ extension _EditorPageEditing on _EditorPageState {
     Future.delayed(const Duration(milliseconds: 180), () {
       if (!mounted) return;
       _applyState(() {
-        page.textItems.removeWhere((t) => ids.contains(t.id));
-        page.imageItems.removeWhere((i) => ids.contains(i.id));
-        page.shapes.removeWhere((s) => ids.contains(s.id));
-        page.charts.removeWhere((c) => ids.contains(c.id));
+        EditorPageObjectMutation.remove(
+          ids: ids,
+          textItems: page.textItems,
+          imageItems: page.imageItems,
+          shapes: page.shapes,
+          charts: page.charts,
+        );
         _canvasInteraction.finishDeleting(ids);
       });
       _notifyChanged();
