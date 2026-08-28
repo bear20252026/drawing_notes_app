@@ -356,72 +356,40 @@ extension _EditorPageDragOps on _EditorPageState {
   }
 
   /// 图片裁剪 4 角手柄（拖拽调整 _cropRect，画布坐标）。
-  List<Widget> _buildCropHandles(PageImageItem _) {
+  List<Widget> _buildCropHandles() {
     final rect = _cropRect!;
-    final corners = [
-      rect.topLeft,
-      rect.topRight,
-      rect.bottomLeft,
-      rect.bottomRight,
+    final handles = <({EditorImageCropHandle handle, Offset position})>[
+      (handle: EditorImageCropHandle.topLeft, position: rect.topLeft),
+      (handle: EditorImageCropHandle.topRight, position: rect.topRight),
+      (handle: EditorImageCropHandle.bottomLeft, position: rect.bottomLeft),
+      (handle: EditorImageCropHandle.bottomRight, position: rect.bottomRight),
     ];
     return [
-      for (final c in corners)
+      for (final entry in handles)
         Positioned(
-          left: _controller.canvasToView(c).dx - 5,
-          top: _controller.canvasToView(c).dy - 5,
+          left: _controller.canvasToView(entry.position).dx - 5,
+          top: _controller.canvasToView(entry.position).dy - 5,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onPanUpdate: (d) {
-              final delta = screenDeltaToCanvas(
-                d.delta,
+            onPanUpdate: (details) {
+              final canvasDelta = screenDeltaToCanvas(
+                details.delta,
                 _controller.viewRotation,
                 _controller.viewScale,
               );
-              _applyState(() {
-                // 按角位置调整 _cropRect 的对应边（限制在图片区域内）。
-                final img = _cropItem!;
-                if (c == rect.topLeft) {
-                  _cropRect = Rect.fromLTRB(
-                    (rect.left + delta.dx).clamp(img.x, rect.right - 10),
-                    (rect.top + delta.dy).clamp(img.y, rect.bottom - 10),
-                    rect.right,
-                    rect.bottom,
-                  );
-                } else if (c == rect.topRight) {
-                  _cropRect = Rect.fromLTRB(
-                    rect.left,
-                    (rect.top + delta.dy).clamp(img.y, rect.bottom - 10),
-                    (rect.right + delta.dx).clamp(
-                      rect.left + 10,
-                      img.x + img.width,
-                    ),
-                    rect.bottom,
-                  );
-                } else if (c == rect.bottomLeft) {
-                  _cropRect = Rect.fromLTRB(
-                    (rect.left + delta.dx).clamp(img.x, rect.right - 10),
-                    rect.top,
-                    rect.right,
-                    (rect.bottom + delta.dy).clamp(
-                      rect.top + 10,
-                      img.y + img.height,
-                    ),
-                  );
-                } else {
-                  _cropRect = Rect.fromLTRB(
-                    rect.left,
-                    rect.top,
-                    (rect.right + delta.dx).clamp(
-                      rect.left + 10,
-                      img.x + img.width,
-                    ),
-                    (rect.bottom + delta.dy).clamp(
-                      rect.top + 10,
-                      img.y + img.height,
-                    ),
-                  );
-                }
-              });
+              final image = _cropItem!;
+              final resized = EditorImageCropGeometry.resizeCropRect(
+                cropRect: rect,
+                imageBounds: Rect.fromLTWH(
+                  image.x,
+                  image.y,
+                  image.width,
+                  image.height,
+                ),
+                handle: entry.handle,
+                canvasDelta: canvasDelta,
+              );
+              _applyState(() => _cropRect = resized);
             },
             child: Container(
               width: 10,
