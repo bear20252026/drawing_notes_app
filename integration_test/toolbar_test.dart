@@ -4,6 +4,9 @@ import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_localizations/flutter_localizations.dart'
+    hide GlobalMaterialLocalizations;
 import 'package:flutter_test/flutter_test.dart';
 
 /// 用户视角核心回归：工具栏所有工具必须可用（画笔/橡皮擦/吸管/选区）。
@@ -25,11 +28,19 @@ void main() {
       document: doc,
     );
     await tester.pumpWidget(
-      MaterialApp(
-        home: EditorPage(
-          session: NotebookPageEditorSession(page),
-          storage: NotebookStorage(
-            directoryProvider: () async => throw UnimplementedError(),
+      ProviderScope(
+        child: MaterialApp(
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('zh'), Locale('en')],
+          home: EditorPage(
+            session: NotebookPageEditorSession(page),
+            storage: NotebookStorage(
+              directoryProvider: () async => throw UnimplementedError(),
+            ),
           ),
         ),
       ),

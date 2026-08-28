@@ -5,6 +5,9 @@ import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/layer_panel.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_localizations/flutter_localizations.dart'
+    hide GlobalMaterialLocalizations;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -26,11 +29,19 @@ void main() {
       document: doc,
     );
     await tester.pumpWidget(
-      MaterialApp(
-        home: EditorPage(
-          session: NotebookPageEditorSession(page),
-          storage: NotebookStorage(
-            directoryProvider: () async => throw UnimplementedError(),
+      ProviderScope(
+        child: MaterialApp(
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('zh'), Locale('en')],
+          home: EditorPage(
+            session: NotebookPageEditorSession(page),
+            storage: NotebookStorage(
+              directoryProvider: () async => throw UnimplementedError(),
+            ),
           ),
         ),
       ),

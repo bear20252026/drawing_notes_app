@@ -1,6 +1,7 @@
 import 'package:drawing_notes_app/app.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,7 +23,7 @@ void main() {
   });
 
   testWidgets('应用启动：首页正常渲染（画作/笔记本双 Tab）', (tester) async {
-    await tester.pumpWidget(const DrawingNotesApp());
+    await tester.pumpWidget(ProviderScope(child: const DrawingNotesApp()));
     await tester.pumpAndSettle();
 
     // 顶部标题存在。
@@ -35,7 +36,7 @@ void main() {
   });
 
   testWidgets('新建画作：输入名称后进入编辑器', (tester) async {
-    await tester.pumpWidget(const DrawingNotesApp());
+    await tester.pumpWidget(ProviderScope(child: const DrawingNotesApp()));
     await tester.pumpAndSettle();
 
     // 点击右下角"新建画作"FAB，弹出名称输入框。
@@ -56,7 +57,7 @@ void main() {
   });
 
   testWidgets('编辑器：工具栏与图层面板正常显示', (tester) async {
-    await tester.pumpWidget(const DrawingNotesApp());
+    await tester.pumpWidget(ProviderScope(child: const DrawingNotesApp()));
     await tester.pumpAndSettle();
 
     // 新建画作并输入名称（空名不会进入编辑器）。
@@ -87,7 +88,7 @@ void main() {
   testWidgets('深色模式：主题循环切换不崩溃', (tester) async {
     // 用注入的 ThemeController 避免污染真实存储。
     final theme = AppThemeController();
-    await tester.pumpWidget(DrawingNotesApp(themeController: theme));
+    await tester.pumpWidget(ProviderScope(child: DrawingNotesApp(themeController: theme)));
     await tester.pumpAndSettle();
 
     // 初始为跟随系统，按钮显示浅色图标（mode != dark）。
@@ -112,7 +113,7 @@ void main() {
   });
 
   testWidgets('切换笔记本 Tab：空态提示正常', (tester) async {
-    await tester.pumpWidget(const DrawingNotesApp());
+    await tester.pumpWidget(ProviderScope(child: const DrawingNotesApp()));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('笔记本'));
