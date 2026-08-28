@@ -284,7 +284,7 @@ extension _EditorPageEditing on _EditorPageState {
         final storedPath = await storage.storeImage(result.path, page.id);
         _applyState(() {
           page.imageItems.add(
-            PageImageItem(
+            EditorImageMutation.createPageImage(
               id: LocalIdGenerator.next('img'),
               x: center.dx,
               y: center.dy,
@@ -305,7 +305,7 @@ extension _EditorPageEditing on _EditorPageState {
         );
         _applyState(() {
           _controller.document.imageItems.add(
-            DocumentImageItem(
+            EditorImageMutation.createDocumentImage(
               id: StorageService.newId(),
               x: center.dx - 100,
               y: center.dy - 75,
@@ -351,16 +351,12 @@ extension _EditorPageEditing on _EditorPageState {
     // 用系统默认浏览器打开（Windows 用 start 命令）。
     final page = widget.session;
     if (page != null) {
-      String? href;
-      for (final t in page.textItems) {
-        if (t.id == itemId) href = t.href;
-      }
-      for (final i in page.imageItems) {
-        if (i.id == itemId) href = i.href;
-      }
-      for (final sh in page.shapes) {
-        if (sh.id == itemId) href = sh.href;
-      }
+      final href = EditorHyperlinkMutation.hrefOf(
+        id: itemId,
+        textItems: page.textItems,
+        imageItems: page.imageItems,
+        shapes: page.shapes,
+      );
       if (href != null && href.isNotEmpty) {
         _openHref(href);
         return;
@@ -535,16 +531,12 @@ extension _EditorPageEditing on _EditorPageState {
     final id = _selectedItemId;
     if (page == null || id == null) return;
     // 找到当前 href（若有）。
-    String? current;
-    for (final t in page.textItems) {
-      if (t.id == id) current = t.href;
-    }
-    for (final i in page.imageItems) {
-      if (i.id == id) current = i.href;
-    }
-    for (final sh in page.shapes) {
-      if (sh.id == id) current = sh.href;
-    }
+    final current = EditorHyperlinkMutation.hrefOf(
+      id: id,
+      textItems: page.textItems,
+      imageItems: page.imageItems,
+      shapes: page.shapes,
+    );
     final controller = TextEditingController(text: current ?? '');
     final url = await showDialog<String>(
       context: context,
@@ -580,15 +572,13 @@ extension _EditorPageEditing on _EditorPageState {
       return;
     }
     _applyState(() {
-      for (final t in page.textItems) {
-        if (t.id == id) t.href = link;
-      }
-      for (final i in page.imageItems) {
-        if (i.id == id) i.href = link;
-      }
-      for (final sh in page.shapes) {
-        if (sh.id == id) sh.href = link;
-      }
+      EditorHyperlinkMutation.setHref(
+        id: id,
+        href: link,
+        textItems: page.textItems,
+        imageItems: page.imageItems,
+        shapes: page.shapes,
+      );
     });
     _notifyChanged();
     _showSnack(link == null ? '已清除链接' : '已设置链接');
