@@ -102,9 +102,13 @@ packages/
 - **lead 集成**：接入页面文字编辑、焦点节点、overlay 生命周期与历史快照提交。
 
 ### P0-3 保存/自动保存/通知调度统一
-- **lead 定的契约**：`SaveScheduler`（防抖 + 退出兜底 + 失败重试 + 串行化）。
-- **队友写**：`SaveScheduleDecision` 纯调度判定（是否应保存/何种方式/是否合并）；`SaveFailurePolicy` 纯失败策略。
-- **lead 集成**：接页面保存、通知、生命周期；写保存序列/失败重试/页面销毁测试。
+> 现状调研：自动保存分散在 `presentation/editor_viewmodel.dart`（`EditorViewModel.scheduleAutosave()`，`autosaveDelay=800ms` 防抖 Timer + `saveNow`/flush + dispose 取消）+ `presentation/editor_page_persistence.dart`（`_doAutosave()` 用 `_autosaveQueued` 循环 + `_autosaveCompletion` Completer）+ `editor_page.dart`（`_allowPopAfterSave` 退出兜底）。notes 侧 `home_page.dart`/`notebook_view_page.dart` 另有直接 `_save()`。存在并发保存、重复通知、时序不一致风险。
+
+- **lead 定的契约**：`SaveScheduler`（单例调度）——统一 防抖(800ms) + 退出兜底(flush) + 失败重试(退避) + **串行化**（同一时刻至多一个进行中 save，期间新来请求合并为一次）+ **通知合并**（一次用户操作只发一次 onChanged/notify）。对 drawing 与 notes 统一复用。
+- **队友写（纯逻辑）**：
+  - `SaveScheduleDecision`：输入 (dirty, lastSaveAt, debounceElapsed, isExiting, saveInFlight) → 输出 (shouldSaveNow | deferred | skip) 纯判定。
+  - `SaveFailurePolicy`：输入 (failure 次数, 耗时) → 输出 (retry / backoff / giveUp) 纯策略。
+- **lead 集成**：把 `SaveScheduler` 接入 `EditorViewModel.scheduleAutosave`/`saveNow`、`editor_page_persistence._doAutosave` 与 notes `_save()`；统一通知；写保存序列/失败重试/页面销毁测试。
 
 ---
 
@@ -114,3 +118,18 @@ packages/
 2. 每项开发走 `feature branch → PR → 远程门禁（analyze/测试/架构/边界/行数/秘密/双端构建）`，不直接推 master。
 3. 只允许 lead 收口（把部件写入页面/组合根）并对该 PR 负责 review。
 4. 合并前必须跑：`dart analyze`、`flutter test --concurrency=1`、`bash tools/check_boundaries.sh`、行数门禁。
+
+---
+
+## 7. 工作区隔离与分支移交协议（重要）
+
+**现象**：队友运行在与 lead 不共享文件系统的独立工作区。队友"新增文件/改代码"不会出现在 lead 的仓库里，lead 无法直接读取或集成。因此"不 commit/push"会让产物无法交接，必须改为**分支移交**。
+
+**标准流程**：
+1. 队友把其产出的文件 commit 到远程一个独立 feature 分支（如 `feat/p0-1-import-guard`），并 push；把分支名在回报里给 lead。
+2. lead `git fetch` 该分支并 `git checkout`/`merge` 到集成分支进行 review 与集成。
+3. 队友**绝不推 master、绝不改与本模块无关的文件**、不做合并/解决冲突（留给 lead）。
+4. 若队友无法 push（权限/网络），则把新文件**完整内容粘贴**在回报消息里，由 lead 落盘。
+5. 同一分支只服务一个模块；多个模块多个分支，lead 负责整合成单一 PR。
+
+> 例外：纯新增、绝对不与已有文件冲突的叶子部件，也可走"粘贴内容"直接交接，减少分支开销；由 lead 判断。
