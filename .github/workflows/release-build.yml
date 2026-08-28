@@ -1,0 +1,104 @@
+name: Release Build (Windows + Android)
+
+# 云端打包：从 GitHub 托管的 runner 上构建发布产物，走 Actions 上传 Artifact，
+# 再由使用者下载（不在本地机器打包，保证构建环境统一、可复现）。
+# 触发方式：Workflow 页面手动 Dispatch（可分别勾选 Android / Windows）。
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_android:
+        description: '构建 Android APK (含 AAB)'
+        type: boolean
+        default: true
+      build_windows:
+        description: '构建 Windows 桌面版'
+        type: boolean
+        default: true
+
+# 最小权限（与 sbom.yml 一致）：上传 Artifact 在 contents: read 下即可工作。
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android Release Build
+    if: ${{ inputs.build_android }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.0
+          cache: true
+
+      - name: Decode release keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: echo "$KEYSTORE_B64" | base64 -d > android/app/release.jks
+
+      - name: Write key.properties
+        env:
+          SP: ${{ secrets.ANDROID_KEYSTORE_STORE_PASSWORD }}
+          KP: ${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }}
+          ALIAS: ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
+        run: |
+          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=release.jks\n' \
+            "$SP" "$KP" "$ALIAS" > android/key.properties
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Build release AppBundle (Play Store)
+        run: flutter build appbundle --release
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+
+  windows:
+    name: Windows Release Build
+    if: ${{ inputs.build_windows }}
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.0
+          cache: true
+
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Windows release
+        run: flutter build windows --release
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: build/windows/x64/runner/Release/
+          if-no-files-found: error
