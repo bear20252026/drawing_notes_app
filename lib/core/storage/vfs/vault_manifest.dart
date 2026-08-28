@@ -64,7 +64,7 @@ class VaultManifest {
       throw const FormatException('VFS 清单版本不支持');
     }
     return VaultManifest(
-      entries: (json['entries'] as List<dynamic>? ?? const [])
+      entries: (json['entries'] as List<Object?>? ?? const <Object?>[])
           .map((e) => VaultManifestEntry.fromJson(e as Map<String, dynamic>))
           .toList(),
     );

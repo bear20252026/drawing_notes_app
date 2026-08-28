@@ -18,8 +18,8 @@ void validateOrderKey(String key, {String digits = base62Digits}) {
     throw ArgumentError('invalid order key: $key');
   }
   // getIntegerPart 会校验首字符与长度。
-  getIntegerPart(key, digits);
-  final f = key.substring(getIntegerPart(key, digits).length);
+  getIntegerPart(key);
+  final f = key.substring(getIntegerPart(key).length);
   if (f.endsWith(digits[0])) {
     throw ArgumentError('invalid order key: $key');
   }
@@ -36,7 +36,7 @@ int getIntegerLength(String head) {
 }
 
 /// 提取键的整数部分。
-String getIntegerPart(String key, [String digits = base62Digits]) {
+String getIntegerPart(String key) {
   final length = getIntegerLength(key[0]);
   if (length > key.length) {
     throw ArgumentError('invalid order key: $key');
@@ -60,7 +60,8 @@ String _midpoint(String a, String? b, String digits) {
       n++;
     }
     if (n > 0) {
-      return b.substring(0, n) + _midpoint(a.substring(n), b.substring(n), digits);
+      return b.substring(0, n) +
+          _midpoint(a.substring(n), b.substring(n), digits);
     }
   }
   final digitA = a.isEmpty ? 0 : digits.indexOf(a[0]);
@@ -145,7 +146,7 @@ String generateKeyBetween(
   }
   if (a == null) {
     if (b == null) return 'a${digits[0]}';
-    final ib = getIntegerPart(b, digits);
+    final ib = getIntegerPart(b);
     final fb = b.substring(ib.length);
     if (ib == 'A${digits[0] * 26}') {
       return ib + _midpoint('', fb, digits);
@@ -156,14 +157,14 @@ String generateKeyBetween(
     return res;
   }
   if (b == null) {
-    final ia = getIntegerPart(a, digits);
+    final ia = getIntegerPart(a);
     final fa = a.substring(ia.length);
     final i = _incrementInteger(ia, digits);
     return i ?? ia + _midpoint(fa, null, digits);
   }
-  final ia = getIntegerPart(a, digits);
+  final ia = getIntegerPart(a);
   final fa = a.substring(ia.length);
-  final ib = getIntegerPart(b, digits);
+  final ib = getIntegerPart(b);
   final fb = b.substring(ib.length);
   if (ia == ib) return ia + _midpoint(fa, fb, digits);
   final i = _incrementInteger(ia, digits);

@@ -21,7 +21,6 @@ NoteBlockDoc migrateNotebookPage(
   NotebookPage page, {
   bool includeCharts = true,
   bool includeImages = true,
-  DateTime? now,
 }) {
   final blocks = <NoteBlock>[];
 

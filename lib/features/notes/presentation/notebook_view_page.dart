@@ -11,8 +11,12 @@ import 'package:material_ui/material_ui.dart';
 import 'package:drawing_notes_app/core/rendering/ink_layer_painter.dart';
 import 'package:drawing_notes_app/core/rendering/shape_renderer.dart';
 import 'package:drawing_notes_app/features/notes/application/notebook_page_editor_session.dart';
+import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
+import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
+import 'package:drawing_notes_app/features/notes/presentation/note_editor_page.dart';
 import 'package:drawing_notes_app/core/storage/password_disk.dart';
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
 import 'package:drawing_notes_app/core/security/session_guard.dart';
@@ -72,6 +76,13 @@ class NotebookViewPage extends StatefulWidget {
 class _NotebookViewPageState extends State<NotebookViewPage> {
   NotebookStorage? get storage => widget.storage;
   late Notebook _notebook;
+
+  /// M4：块文档存储门面（延迟创建，避免在 widget 构造时调用 path_provider）。
+  NoteBlockDocStore? _blockDocStore;
+
+  /// M4：获取或创建块文档存储门面。
+  NoteBlockDocStore get blockDocStore =>
+      _blockDocStore ??= NoteBlockDocStore();
 
   /// 状态刷新薄包装（供 extension 使用）：转发受保护的 [setState]。
   void _applyState(VoidCallback fn) => setState(fn);
@@ -407,6 +418,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
           onDelete: () => _deletePage(page),
           onHistory: () => _showHistory(page),
           onToggleFavorite: () => _toggleFavorite(page),
+          onOpenAsBlockDoc: () => _openBlockDocFromPage(page),
         );
       },
     );

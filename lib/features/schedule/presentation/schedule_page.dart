@@ -255,7 +255,7 @@ class _SchedulePageState extends State<SchedulePage> {
 
     return [
       for (final g in groups) ...[
-        _dayHeader(g.key, g.value.first.at),
+        _dayHeader(g.value.first.at),
         const SizedBox(height: 8),
         for (final e in g.value) ...[
           _BoardCard(entry: e, onTap: () => widget.onOpen?.call(e)),
@@ -266,7 +266,7 @@ class _SchedulePageState extends State<SchedulePage> {
     ];
   }
 
-  Widget _dayHeader(String key, DateTime at) {
+  Widget _dayHeader(DateTime at) {
     return Padding(
       padding: const EdgeInsets.only(top: 4, bottom: 2),
       child: Row(

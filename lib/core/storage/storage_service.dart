@@ -333,7 +333,9 @@ class StorageService implements DocumentRepository {
                 DateTime.tryParse(doc['updatedAt'] as String? ?? '') ??
                 DateTime.now(),
             layerCount: (doc['layers'] as List? ?? const []).length,
-            strokeCount: _countStrokes(doc['layers'] as List? ?? const []),
+            strokeCount: _countStrokes(
+              (doc['layers'] as List? ?? const []).cast<Map<String, Object?>>(),
+            ),
             folder: doc['folder'] is String ? doc['folder'] as String : '',
           ),
         );
@@ -348,8 +350,7 @@ class StorageService implements DocumentRepository {
     return metas;
   }
 
-  // ignore: avoid-dynamic — 防御性恢复路径：文件损坏时跳过而非抛错，dynamic 属合理用法。
-  int _countStrokes(List<dynamic> layers) {
+  int _countStrokes(List<Map<String, Object?>> layers) {
     var n = 0;
     for (final l in layers) {
       n += (l['strokes'] as List? ?? const []).length;

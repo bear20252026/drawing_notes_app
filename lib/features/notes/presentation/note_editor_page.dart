@@ -17,19 +17,41 @@ import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_editor.dart';
+import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/presentation/embedded_block_view.dart';
 
 /// 块式笔记编辑器页面。
+///
+/// M4 集成：支持接收 [NoteBlockDoc] 并通过 [onSave] 回调双向绑定。
+/// - 编辑过程通过 [NoteBlockEditor] 产生新的块树
+/// - [title] 在文档内，appbar 可编辑
+/// - 退出时用纯逻辑把 root 包装回 NoteBlockDoc 并回调 [onSave]
 class NoteEditorPage extends StatefulWidget {
   /// 创建块式笔记编辑器页面。
+  ///
+  /// [document] 为可选的已有文档。若提供，编辑器从其 [NoteBlockDoc.body]
+  /// 加载块树；若为 null，创建一个含单个空段落的新文档。
+  ///
+  /// [onSave] 为可选的保存回调。页面退出（pop）时，若此回调非 null，
+  /// 会把当前编辑状态包装为 [NoteBlockDoc] 传出，由调用方决定如何持久化。
+  /// 这保持页面不直接依赖存储层（infrastructure），符合分层架构。
   ///
   /// [embeddedBlockBuilder] 为可选的自定义内嵌块渲染回调，
   /// 由组合根（app_shell）注入，用于渲染 canvas/chart 等复杂内嵌块。
   /// 为 null 时使用内置降级渲染。
   const NoteEditorPage({
     super.key,
+    this.document,
+    this.onSave,
     this.embeddedBlockBuilder,
   });
+
+  /// 要编辑的文档。为 null 时创建一个新文档。
+  final NoteBlockDoc? document;
+
+  /// 保存回调。页面退出时，把编辑后的 NoteBlockDoc 传出。
+  /// 为 null 则不通知（用于纯预览/测试场景）。
+  final ValueChanged<NoteBlockDoc>? onSave;
 
   /// 由组合根注入的自定义内嵌块渲染回调。
   /// 返回 null 时走默认降级渲染。
@@ -161,14 +183,23 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
   /// id 生成计数器。
   int _idCounter = 0;
 
+  /// 文档标题控制器。
+  late TextEditingController _titleController;
+
+  /// 当前文档（跟踪保存状态）。
+  late NoteBlockDoc _doc;
+
+  /// 是否已初始化。
+  bool _initialized = false;
+
   @override
   void initState() {
     super.initState();
-    _root = _createInitialTree();
-    // 监听所有焦点节点以追踪当前聚焦块
-    for (final node in _focusNodes.values) {
-      node.addListener(_onFocusChange);
-    }
+    _doc = widget.document ?? NoteBlockDoc.empty('doc_${DateTime.now().microsecondsSinceEpoch}');
+    _titleController = TextEditingController(text: _doc.title);
+    _root = _buildRootFromDoc(_doc);
+    _initialized = true;
+
     // 初始聚焦第一块
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_root.children.isNotEmpty) {
@@ -179,6 +210,8 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
 
   @override
   void dispose() {
+    // 退出时回调 onSave（若提供），由调用方决定如何持久化。
+    _notifySave();
     for (final node in _focusNodes.values) {
       node.removeListener(_onFocusChange);
       node.dispose();
@@ -186,19 +219,45 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
     for (final c in _controllers.values) {
       c.dispose();
     }
+    _titleController.dispose();
     super.dispose();
+  }
+
+  /// 退出时把编辑后的 NoteBlockDoc 通过 onSave 回调传给调用方。
+  void _notifySave() {
+    if (!_initialized || widget.onSave == null) return;
+    final updatedDoc = _buildDocFromState();
+    widget.onSave!(updatedDoc);
+  }
+
+  // ── 文档 ↔ 状态 互转 ───────────────────────────────────────
+
+  /// 从 NoteBlockDoc 构建 root 块（title 由 _titleController 持有）。
+  NoteBlock _buildRootFromDoc(NoteBlockDoc doc) {
+    _ensureBlockResourcesForList(doc.body);
+    return NoteBlock(
+      id: 'root',
+      type: NoteBlockType.text,
+      children: List<NoteBlock>.from(doc.body),
+    );
+  }
+
+  /// 从当前状态重建 NoteBlockDoc。
+  NoteBlockDoc _buildDocFromState() {
+    return _doc.copyWith(
+      title: _titleController.text,
+      body: List<NoteBlock>.from(_root.children),
+      updatedAt: DateTime.now(),
+    );
   }
 
   // ── 初始化 ─────────────────────────────────────────────────
 
-  NoteBlock _createInitialTree() {
-    final first = NoteBlock.textBlock(_nextId(), text: '');
-    _ensureBlockResources(first);
-    return NoteBlock(
-      id: 'root',
-      type: NoteBlockType.text,
-      children: [first],
-    );
+  /// 确保块列表中每个块都有控制器和焦点节点。
+  void _ensureBlockResourcesForList(List<NoteBlock> blocks) {
+    for (final block in blocks) {
+      _ensureBlockResources(block);
+    }
   }
 
   String _nextId() => 'block_${_idCounter++}';
@@ -379,6 +438,19 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
     });
   }
 
+  /// 手动触发保存：把当前编辑状态通过 onSave 回调传出。
+  void _manualSave() {
+    if (widget.onSave == null) return;
+    final doc = _buildDocFromState();
+    widget.onSave!(doc);
+    if (mounted) {
+      setState(() => _doc = doc);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('文档已保存'), duration: Duration(seconds: 1)),
+      );
+    }
+  }
+
   // ── 构建 ───────────────────────────────────────────────────
 
   @override
@@ -386,8 +458,22 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
     final topLevelBlocks = _root.children;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('块式笔记'),
+        title: TextField(
+          controller: _titleController,
+          decoration: const InputDecoration(
+            hintText: 'Untitled',
+            border: InputBorder.none,
+          ),
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         elevation: 1,
+        actions: [
+          if (widget.onSave != null)
+            IconButton(
+              icon: const Icon(Icons.save),
+              onPressed: _manualSave,
+            ),
+        ],
       ),
       body: Column(
         children: [
@@ -412,14 +498,13 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
   }
 
   Widget _buildBlockRow(NoteBlock block, int index) {
-    final isFocused = block.id == _focusedBlockId;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildBlockPrefix(block, index),
-          Expanded(child: _buildBlockInput(block, isFocused)),
+          Expanded(child: _buildBlockInput(block)),
         ],
       ),
     );
@@ -474,7 +559,7 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
   }
 
   /// 构建块的可编辑输入区域。
-  Widget _buildBlockInput(NoteBlock block, bool isFocused) {
+  Widget _buildBlockInput(NoteBlock block) {
     // 分隔线块特殊渲染
     if (block.type == NoteBlockType.divider) {
       return const Padding(

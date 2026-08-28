@@ -41,7 +41,7 @@ class StrokePictureCache {
     if (strokes.isEmpty || size.isEmpty) return null;
     // override 场景不缓存：与 drawStroke 语义保持完全一致。
     if (colorOverride != null || opacityOverride != null) {
-      return _renderNow(strokes, size, usePressure, colorOverride, opacityOverride);
+      return _renderNow(strokes, usePressure, colorOverride, opacityOverride);
     }
 
     final fingerprint = _Fingerprint(strokes, size, usePressure);
@@ -54,7 +54,7 @@ class StrokePictureCache {
       }
     }
 
-    final picture = _renderNow(strokes, size, usePressure, null, null);
+    final picture = _renderNow(strokes, usePressure, null, null);
     if (picture != null) {
       _entries.add(_PictureEntry(fingerprint, picture));
       if (_entries.length > maxCacheCount) {
@@ -77,13 +77,11 @@ class StrokePictureCache {
 
   /// 当前指纹集合（测试辅助）。
   @visibleForTesting
-  List<String> get fingerprints => _entries
-      .map((e) => e.fingerprint.toString())
-      .toList(growable: false);
+  List<String> get fingerprints =>
+      _entries.map((e) => e.fingerprint.toString()).toList(growable: false);
 
   ui.Picture? _renderNow(
     List<Stroke> strokes,
-    ui.Size size,
     bool usePressure,
     ui.Color? colorOverride,
     double? opacityOverride,
@@ -110,11 +108,11 @@ class StrokePictureCache {
 /// （geometryRevision 变化）或尺寸/压感变化 → 指纹不等 → 重建。
 class _Fingerprint {
   _Fingerprint(List<Stroke> strokes, ui.Size size, bool usePressure)
-      : _ids = List.unmodifiable(strokes.map(identityHashCode)),
-        _revisions = List.unmodifiable(strokes.map((s) => s.geometryRevision)),
-        _width = size.width,
-        _height = size.height,
-        _usePressure = usePressure;
+    : _ids = List.unmodifiable(strokes.map(identityHashCode)),
+      _revisions = List.unmodifiable(strokes.map((s) => s.geometryRevision)),
+      _width = size.width,
+      _height = size.height,
+      _usePressure = usePressure;
 
   final List<int> _ids;
   final List<int> _revisions;

@@ -306,19 +306,18 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // 初始状态只有一个文本块（无 canvas）
-      expect(find.byType(TextField), findsOneWidget);
+      // 初始状态：标题栏 + 1 个内容块 = 2 个 TextField
+      expect(find.byType(TextField), findsNWidgets(2));
 
-      // 通过工具栏将第一个块切换为 canvas 类型
+      // 通过工具栏将内容块切换为 canvas 类型
       await tester.tap(find.byTooltip('内嵌画布'));
       await tester.pumpAndSettle();
 
-      // canvas 块不渲染 TextField
-      // 注意：初始只有一个文本块，切换后变成 canvas，所以 TextField 应为 0
-      expect(find.byType(TextField), findsNothing);
+      // canvas 块不渲染 TextField（标题栏仍然保留）
+      expect(find.byType(TextField), findsOneWidget);
       // 占位卡片显示 canvas 占位文本（工具栏按钮也有"内嵌画布"文本，
       // 故用占位卡片特有的提示文案断言）
-      expect(find.text('由宿主提供 builder 以渲染完整内容'), findsOneWidget);
+      expect(find.text('由宿主提供 builder 以渲染完整内容'), findsWidgets);
     });
 
     testWidgets('image 块渲染图片视图而非 TextField', (tester) async {
@@ -331,8 +330,9 @@ void main() {
       await tester.tap(find.byTooltip('图片'));
       await tester.pumpAndSettle();
 
-      // image 块无 src，显示占位
-      expect(find.byType(TextField), findsNothing);
+      // image 块无 src，显示占位（标题栏 TextField 仍在）
+      final textFields = find.byType(TextField);
+      expect(textFields, findsOneWidget); // 仅标题栏
       expect(find.text('图片（无来源）'), findsOneWidget);
     });
 

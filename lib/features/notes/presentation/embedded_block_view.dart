@@ -275,13 +275,9 @@ class EmbeddedBlockView extends StatelessWidget {
   // ── 数据库 ─────────────────────────────────────────────────
 
   Widget _buildDatabase(BuildContext context) {
-    final records = block.props['records'];
-    final List<dynamic> recordList;
-    if (records is List) {
-      recordList = records;
-    } else {
-      recordList = const [];
-    }
+    final Object? recordsRaw = block.props['records'];
+    final List<Object?> recordList =
+        recordsRaw is List ? recordsRaw.cast<Object?>() : const <Object?>[];
 
     // 紧凑 JSON 面片（截断显示）
     final jsonStr = recordList.toString();

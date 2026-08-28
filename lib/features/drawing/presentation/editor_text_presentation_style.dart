@@ -8,6 +8,21 @@ final class EditorTextLayout {
   final bool softWrap;
 }
 
+/// [EditorTextPresentationStyle.plainTextStyle] 的入参聚合（避免超长参数列表）。
+typedef PlainTextStyleArgs = ({
+  double fontSize,
+  double viewScale,
+  int color,
+  String? fontFamily,
+  bool isTodo,
+  bool todoChecked,
+  bool isSticky,
+  bool bold,
+  bool italic,
+  bool underline,
+  bool strikethrough,
+});
+
 /// 编辑器文字 overlay 的纯展示样式和布局映射。
 ///
 /// 该协作者不读取 [BuildContext]、页面状态、控制器或领域对象，也不产生
@@ -25,33 +40,21 @@ abstract final class EditorTextPresentationStyle {
     );
   }
 
-  static TextStyle plainTextStyle({
-    required double fontSize,
-    required double viewScale,
-    required int color,
-    required String? fontFamily,
-    required bool isTodo,
-    required bool todoChecked,
-    required bool isSticky,
-    required bool bold,
-    required bool italic,
-    required bool underline,
-    required bool strikethrough,
-  }) {
+  static TextStyle plainTextStyle(PlainTextStyleArgs args) {
     return TextStyle(
-      fontSize: fontSize * viewScale,
-      fontFamily: fontFamilyFor(fontFamily),
+      fontSize: args.fontSize * args.viewScale,
+      fontFamily: fontFamilyFor(args.fontFamily),
       color: plainTextColor(
-        color: color,
-        isTodo: isTodo,
-        todoChecked: todoChecked,
-        isSticky: isSticky,
+        color: args.color,
+        isTodo: args.isTodo,
+        todoChecked: args.todoChecked,
+        isSticky: args.isSticky,
       ),
-      fontWeight: fontWeightFor(bold),
-      fontStyle: fontStyleFor(italic),
+      fontWeight: fontWeightFor(args.bold),
+      fontStyle: fontStyleFor(args.italic),
       decoration: decorationFor(
-        underline: underline,
-        strikethrough: strikethrough,
+        underline: args.underline,
+        strikethrough: args.strikethrough,
       ),
     );
   }

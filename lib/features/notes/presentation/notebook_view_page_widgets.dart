@@ -8,6 +8,7 @@ class _PageCard extends StatelessWidget {
     required this.onDelete,
     this.onHistory,
     this.onToggleFavorite,
+    this.onOpenAsBlockDoc,
   });
 
   final NotebookPage page;
@@ -16,6 +17,9 @@ class _PageCard extends StatelessWidget {
   final VoidCallback? onHistory;
   final VoidCallback? onToggleFavorite;
 
+  /// M4：长按后以块文档方式打开。
+  final VoidCallback? onOpenAsBlockDoc;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -23,6 +27,7 @@ class _PageCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onOpenAsBlockDoc,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

@@ -21,7 +21,7 @@ void main() {
     });
 
     test('整块文字样式保留字号、字体族、颜色和装饰规则', () {
-      final style = EditorTextPresentationStyle.plainTextStyle(
+      final style = EditorTextPresentationStyle.plainTextStyle((
         fontSize: 16,
         viewScale: 1.5,
         color: 0xFF336699,
@@ -33,7 +33,7 @@ void main() {
         italic: true,
         underline: true,
         strikethrough: true,
-      );
+      ));
 
       expect(style.fontSize, 24);
       expect(style.fontFamily, 'monospace');

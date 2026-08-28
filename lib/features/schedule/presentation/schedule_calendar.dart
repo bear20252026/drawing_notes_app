@@ -37,7 +37,6 @@ class ScheduleCalendar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final scheme = Theme.of(context).colorScheme;
     final weekdayLabels = ['一', '二', '三', '四', '五', '六', '日'];
 
@@ -53,18 +52,16 @@ class ScheduleCalendar extends StatelessWidget {
             child: Text(
               label,
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    fontSize: 12,
-                  ),
+                color: scheme.onSurfaceVariant,
+                fontSize: 12,
+              ),
             ),
           ),
         ),
       for (var i = 0; i < leading; i++) const SizedBox.shrink(),
       for (var day = 1; day <= daysInMonth; day++)
         _buildDayCell(
-          context,
           date: DateTime(first.year, first.month, day),
-          isDark: isDark,
           scheme: scheme,
         ),
     ];
@@ -75,8 +72,7 @@ class ScheduleCalendar extends StatelessWidget {
         Row(
           children: [
             IconButton(
-              onPressed: () =>
-                  onMonthChanged(_addMonths(focusedMonth, -1)),
+              onPressed: () => onMonthChanged(_addMonths(focusedMonth, -1)),
               icon: const Icon(Icons.chevron_left),
               tooltip: '上个月',
             ),
@@ -85,9 +81,9 @@ class ScheduleCalendar extends StatelessWidget {
                 '${first.year} 年 ${first.month} 月',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: scheme.onSurface,
-                    ),
+                  fontWeight: FontWeight.w600,
+                  color: scheme.onSurface,
+                ),
               ),
             ),
             IconButton(
@@ -109,16 +105,14 @@ class ScheduleCalendar extends StatelessWidget {
     );
   }
 
-  Widget _buildDayCell(
-    BuildContext context, {
-    required DateTime date,
-    required bool isDark,
-    required ColorScheme scheme,
-  }) {
+  Widget _buildDayCell({required DateTime date, required ColorScheme scheme}) {
     final today = DateTime.now();
     final isToday =
-        date.year == today.year && date.month == today.month && date.day == today.day;
-    final isSelected = selectedDate != null &&
+        date.year == today.year &&
+        date.month == today.month &&
+        date.day == today.day;
+    final isSelected =
+        selectedDate != null &&
         date.year == selectedDate!.year &&
         date.month == selectedDate!.month &&
         date.day == selectedDate!.day;
@@ -138,8 +132,8 @@ class ScheduleCalendar extends StatelessWidget {
           border: isSelected
               ? null
               : (isToday
-                  ? Border.all(color: scheme.primary, width: 1.2)
-                  : null),
+                    ? Border.all(color: scheme.primary, width: 1.2)
+                    : null),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -151,9 +145,7 @@ class ScheduleCalendar extends StatelessWidget {
                 fontWeight: isSelected || isToday
                     ? FontWeight.w700
                     : FontWeight.w500,
-                color: isSelected
-                    ? scheme.onPrimary
-                    : scheme.onSurface,
+                color: isSelected ? scheme.onPrimary : scheme.onSurface,
               ),
             ),
             const SizedBox(height: 3),

@@ -5,7 +5,7 @@ part of 'notebook_view_page.dart';
 
 /// 笔记页页面管理域（拆分自 notebook_view_page.dart）。
 extension _NotebookPageManage on _NotebookViewPageState {
-  /// 打开放映页（跨 feature 跳转契约回调，S4b 接口化）：
+  /// 打开放映页（跨 feature 跳转回调，S4b 接口化）：
   /// 由本页（notes 侧）实现跳转，drawing 侧只经回调调用，不依赖本 UI。
   Future<void> _openPresentation(BuildContext context, NotebookPage page) {
     return Navigator.of(context).push(
@@ -101,6 +101,65 @@ extension _NotebookPageManage on _NotebookViewPageState {
     if (!mounted) return;
     await _openEditor(page: page, onChanged: _save);
     _applyState(() {});
+  }
+
+  /// M4：将已有 NotebookPage 打开为块文档编辑器。
+  ///
+  /// 若该页面对应的块文档已存在则直接加载；否则用 [migrateNotebookPage]
+  /// 从 NotebookPage 迁移一份 NoteBlockDoc 并缓存。
+  /// 通过 onSave 回调将编辑后的文档持久化到 NoteBlockDocStore。
+  Future<void> _openBlockDocFromPage(NotebookPage page) async {
+    final store = blockDocStore;
+    // 尝试加载已有块文档
+    var doc = await store.loadDocument(page.id);
+    if (doc == null) {
+      // 不存在则从 NotebookPage 迁移并缓存
+      doc = migrateNotebookPage(page);
+      await store.saveDocument(doc);
+    }
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => NoteEditorPage(
+          document: doc,
+          onSave: (updatedDoc) => store.saveDocument(updatedDoc),
+        ),
+      ),
+    );
+  }
+
+  /// M4：把 NotebookPage 的文本项迁移为 NoteBlockDoc。
+  @visibleForTesting
+  NoteBlockDoc migrateNotebookPage(NotebookPage page) {
+    final blocks = <NoteBlock>[];
+    // 标题作为 heading 块（level 1）
+    if (page.title.isNotEmpty) {
+      blocks.add(NoteBlock.headingBlock(
+        NoteBlockDocStore.newId(),
+        level: 1,
+        text: page.title,
+      ));
+    }
+    // textItems 映射为 text blocks
+    for (final item in page.textItems) {
+      final text = item.text.trim();
+      if (text.isEmpty) continue;
+      blocks.add(NoteBlock.textBlock(
+        NoteBlockDocStore.newId(),
+        text: text,
+      ));
+    }
+    // 若无文本内容，给一个空段落以便编辑
+    if (blocks.isEmpty) {
+      blocks.add(NoteBlock.textBlock(NoteBlockDocStore.newId(), text: ''));
+    }
+    return NoteBlockDoc(
+      id: page.id,
+      title: page.title,
+      body: blocks,
+      createdAt: page.createdAt,
+      updatedAt: DateTime.now(),
+    );
   }
 
   /// 从其他笔记本引入页面（创建克隆引用，借鉴 Trilium 笔记克隆）。
