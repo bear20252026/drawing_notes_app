@@ -18,11 +18,10 @@ extension _EditorPageEditing on _EditorPageState {
     _commitTextEditing();
     _applyState(() {
       // 创建临时文字块（尚未加入页面，提交时才加入）。
-      final item = PageTextItem(
+      final item = EditorTextMutation.createDraft(
         id: LocalIdGenerator.next('txt'),
         x: canvasPoint.dx,
         y: canvasPoint.dy,
-        text: '',
       );
       _editingItemId = item.id;
       _editController.clear();
@@ -44,11 +43,10 @@ extension _EditorPageEditing on _EditorPageState {
   void _addCanvasTextItem(Offset canvasPoint) {
     _commitTextEditing();
     _applyState(() {
-      final item = PageTextItem(
+      final item = EditorTextMutation.createDraft(
         id: LocalIdGenerator.next('txt'),
         x: canvasPoint.dx,
         y: canvasPoint.dy,
-        text: '',
       );
       _editingItemId = item.id;
       _editController.clear();
