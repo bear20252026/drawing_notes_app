@@ -345,6 +345,63 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
     return ids;
   }
 
+  // ── 块缩进 / 取消缩进（嵌套）───────────────────────────────
+
+  /// 在根树中定位某块（含子树），返回其父节点与索引；找不到返回 null。
+  ({NoteBlock parent, int index})? _locateBlock(String blockId) {
+    NoteBlock? findParent(NoteBlock node, String id) {
+      for (var i = 0; i < node.children.length; i++) {
+        if (node.children[i].id == id) return node;
+        final sub = findParent(node.children[i], id);
+        if (sub != null) return sub;
+      }
+      return null;
+    }
+
+    final parent = findParent(_root, blockId);
+    if (parent == null) return null;
+    return (parent: parent, index: parent.children.indexWhere((b) => b.id == blockId));
+  }
+
+  /// 应用经 NoteBlockEditor 变换后的新根树：确保资源、置脏、推历史。
+  void _applyRootChange(NoteBlock newRoot) {
+    setState(() {
+      _root = newRoot;
+      _ensureBlockResourcesForList(_root.children);
+      _updateDirtyState();
+    });
+    _history.push(_buildDocFromState());
+  }
+
+  /// Tab：将块移到其上一兄弟的倒数子级（形成嵌套）。首块/无上一兄弟则不动作。
+  void _indentBlock(String blockId) {
+    final loc = _locateBlock(blockId);
+    if (loc == null || loc.index == 0) return;
+    final prevSibling = loc.parent.children[loc.index - 1];
+    final newRoot = _editor.moveBlock(_root, blockId, prevSibling.id);
+    if (!identical(newRoot, _root)) {
+      _applyRootChange(newRoot);
+    }
+  }
+
+  /// Shift+Tab：将块从父级中移出，成为其原父块的下一兄弟（取消嵌套）。
+  /// 顶层块不动作。
+  void _outdentBlock(String blockId) {
+    final loc = _locateBlock(blockId);
+    if (loc == null || loc.parent.id == _root.id) return;
+    final parentLoc = _locateBlock(loc.parent.id);
+    if (parentLoc == null) return;
+    final newRoot = _editor.moveBlock(
+      _root,
+      blockId,
+      parentLoc.parent.id,
+      index: parentLoc.index + 1,
+    );
+    if (!identical(newRoot, _root)) {
+      _applyRootChange(newRoot);
+    }
+  }
+
   // ── 初始化 ─────────────────────────────────────────────────
 
   /// 确保块列表中每个块都有控制器和焦点节点。
@@ -918,9 +975,60 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
                   ),
                 ),
               ),
+              // ── 嵌套子块（缩进渲染，不可整行拖拽）────────────────
+              if (block.children.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(left: 20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (var i = 0; i < block.children.length; i++)
+                        _buildNestedBlockRow(block.children[i], i),
+                    ],
+                  ),
+                ),
             ],
           );
         },
+      ),
+    );
+  }
+
+  /// 构建嵌套子块行（缩进显示、无整行拖拽；仍是可编辑/可键盘操作的行）。
+  Widget _buildNestedBlockRow(NoteBlock block, int index) {
+    final isFocused = _focusedBlockId == block.id;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Opacity(
+        opacity: 1.0,
+        child: Semantics(
+          label: _semanticLabelForBlock(block),
+          focused: isFocused,
+          container: true,
+          child: Container(
+            decoration: isFocused
+                ? BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primaryContainer
+                        .withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  )
+                : null,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 非拖拽的缩进占位与 grip 视觉（保持对齐，但不生成拖动把手）
+                const SizedBox(width: 24, height: 24, child: Center(
+                  child: Icon(Icons.drag_handle, size: 18),
+                )),
+                _buildBlockPrefix(block, index),
+                Expanded(child: _buildBlockInput(block)),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1083,10 +1191,10 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
       return const SizedBox.shrink();
     }
 
-    // 监听键盘事件。Focus 节点与 TextField 共用同一个 focusNode，
-    // 确保 TextField 聚焦时 onKeyEvent 能收到事件。
+    // 监听键盘事件。Focus 作为祖先节点监听按键（键盘事件会从聚焦的
+    // TextField 沿焦点树向上冒泡到这里），因此无需与 TextField 共用
+    // focusNode——共用还会触发 "child into parent of itself" 焦点错误。
     return Focus(
-      focusNode: focusNode,
       onKeyEvent: (_, event) => _handleBlockKey(block.id, event),
       child: TextField(
         controller: controller,
@@ -1143,6 +1251,16 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
     if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
       if (idx >= 0 && idx < order.length - 1) {
         _focusNodes[order[idx + 1]]?.requestFocus();
+      }
+      return KeyEventResult.handled;
+    }
+
+    // ── Tab / Shift+Tab 缩进 / 取消缩进（创建/退出嵌套）──────────────
+    if (event.logicalKey == LogicalKeyboardKey.tab) {
+      if (HardwareKeyboard.instance.isShiftPressed) {
+        _outdentBlock(blockId);
+      } else {
+        _indentBlock(blockId);
       }
       return KeyEventResult.handled;
     }

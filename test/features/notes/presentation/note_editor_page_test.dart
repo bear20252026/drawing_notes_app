@@ -369,4 +369,87 @@ void main() {
       expect(editableOf('One', tester).focusNode.hasFocus, isTrue);
     });
   });
+
+  group('NoteEditorPage 块缩进与嵌套', () {
+    EditableText editableOf(String text, WidgetTester tester) {
+      return tester
+          .widgetList<EditableText>(find.byType(EditableText))
+          .firstWhere((e) => e.controller.text == text);
+    }
+
+    testWidgets('Tab 将块缩进到上一兄弟下（形成嵌套）', (tester) async {
+      NoteBlockDoc? saved;
+      final doc = makeDoc(
+        id: 'doc-indent',
+        title: 'I',
+        body: [
+          NoteBlock.textBlock('t1', text: 'One'),
+          NoteBlock.textBlock('t2', text: 'Two'),
+        ],
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: NoteEditorPage(document: doc, onSave: (d) => saved = d),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 聚焦第二个块并按 Tab 缩进
+      final second = editableOf('Two', tester);
+      await tester.showKeyboard(find.byWidget(second));
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+
+      // 触发 dispose → onSave 快照
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+
+      expect(saved, isNotNull);
+      expect(saved!.body.length, 1);
+      expect(saved!.body[0].id, 't1');
+      expect(saved!.body[0].children.single.id, 't2');
+      expect(saved!.body[0].children.single.text, 'Two');
+    });
+
+    testWidgets('Shift+Tab 将嵌套块移出父级（取消嵌套）', (tester) async {
+      NoteBlockDoc? saved;
+      final doc = makeDoc(
+        id: 'doc-outdent',
+        title: 'O',
+        body: [
+          NoteBlock(
+            id: 't1',
+            type: NoteBlockType.text,
+            text: 'One',
+            children: [NoteBlock.textBlock('t2', text: 'Two')],
+          ),
+        ],
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: NoteEditorPage(document: doc, onSave: (d) => saved = d),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final nested = editableOf('Two', tester);
+      await tester.showKeyboard(find.byWidget(nested));
+      await tester.pumpAndSettle();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+
+      expect(saved, isNotNull);
+      expect(saved!.body.length, 2);
+      expect(saved!.body[0].id, 't1');
+      expect(saved!.body[1].id, 't2');
+      expect(saved!.body[1].text, 'Two');
+    });
+  });
 }
