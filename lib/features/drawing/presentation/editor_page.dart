@@ -20,7 +20,6 @@ import 'package:drawing_notes_app/features/drawing/application/paged_export_snap
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode_store.dart';
 import 'package:drawing_notes_app/features/drawing/application/editor_exporter.dart';
-import 'package:drawing_notes_app/features/drawing/domain/fractional_index.dart';
 import 'package:drawing_notes_app/features/drawing/application/gesture_math.dart';
 import 'package:drawing_notes_app/core/rendering/pencil_shader.dart';
 import 'package:drawing_notes_app/core/rendering/shape_binding_geometry.dart';
@@ -51,6 +50,7 @@ import 'package:drawing_notes_app/features/drawing/presentation/editor_context_b
 import 'package:drawing_notes_app/features/drawing/presentation/editor_left_toolbar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_overlay_group_resolver.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page_object_mutation.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_layer_order_mutation.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_overlay_item_plan.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_image_crop_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_selection_transform_state.dart';
