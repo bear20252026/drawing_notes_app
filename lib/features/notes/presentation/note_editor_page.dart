@@ -192,12 +192,19 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
   /// 是否已初始化。
   bool _initialized = false;
 
+  /// 是否有未保存的改动。
+  bool _isDirty = false;
+
+  /// 上次保存时的 body 快照（用于 dirty 检测）。
+  String _lastSavedBodySignature = '';
+
   @override
   void initState() {
     super.initState();
     _doc = widget.document ?? NoteBlockDoc.empty('doc_${DateTime.now().microsecondsSinceEpoch}');
     _titleController = TextEditingController(text: _doc.title);
     _root = _buildRootFromDoc(_doc);
+    _lastSavedBodySignature = _computeBodySignature();
     _initialized = true;
 
     // 初始聚焦第一块
@@ -316,6 +323,7 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
     if (block.text == controller.text) return;
     setState(() {
       _root = _editor.updateText(_root, blockId, controller.text);
+      _updateDirtyState();
     });
   }
 
@@ -426,6 +434,7 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
 
     setState(() {
       _root = _editor.updateType(_root, blockId, newType);
+      _updateDirtyState();
     });
   }
 
@@ -435,7 +444,21 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
     if (block == null || block.type != NoteBlockType.todo) return;
     setState(() {
       _root = _editor.toggleTodo(_root, blockId);
+      _updateDirtyState();
     });
+  }
+
+  /// 更新未保存状态（基于 body 签名比对）。
+  void _updateDirtyState() {
+    final signature = _computeBodySignature();
+    setState(() {
+      _isDirty = signature != _lastSavedBodySignature;
+    });
+  }
+
+  /// 计算当前 body 的签名（用于 dirty 检测）。
+  String _computeBodySignature() {
+    return _root.children.map((b) => '${b.id}:${b.type.name}:${b.text}').join('|');
   }
 
   /// 手动触发保存：把当前编辑状态通过 onSave 回调传出。
@@ -444,7 +467,11 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
     final doc = _buildDocFromState();
     widget.onSave!(doc);
     if (mounted) {
-      setState(() => _doc = doc);
+      setState(() {
+        _doc = doc;
+        _lastSavedBodySignature = _computeBodySignature();
+        _isDirty = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('文档已保存'), duration: Duration(seconds: 1)),
       );
@@ -456,7 +483,13 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
   @override
   Widget build(BuildContext context) {
     final topLevelBlocks = _root.children;
-    return Scaffold(
+    return PopScope(
+      canPop: !_isDirty,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _showExitDialog();
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: TextField(
           controller: _titleController,
@@ -468,6 +501,19 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
         ),
         elevation: 1,
         actions: [
+          if (_isDirty)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Center(
+                child: Text(
+                  '未保存',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ),
+            ),
           if (widget.onSave != null)
             IconButton(
               icon: const Icon(Icons.save),
@@ -478,11 +524,73 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
       body: Column(
         children: [
           Expanded(
-            child: _buildBlockList(topLevelBlocks),
+            child: topLevelBlocks.isEmpty
+                ? _buildEmptyHint()
+                : _buildBlockList(topLevelBlocks),
           ),
           const Divider(height: 1),
           _buildToolbar(),
         ],
+      ),
+    ),
+    );
+  }
+
+  /// 退出未保存提醒对话框。
+  void _showExitDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('未保存的改动'),
+        content: const Text('文档有未保存的改动，确定要退出吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pop();
+            },
+            child: const Text('放弃'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 空文档提示（AFFiNE 风格：引导用户输入）。
+  Widget _buildEmptyHint() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.edit_note,
+              size: 48,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '键入 / 添加块',
+              style: TextStyle(
+                fontSize: 18,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '按 Enter 分块，按 Backspace 合并空块',
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -498,16 +606,51 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
   }
 
   Widget _buildBlockRow(NoteBlock block, int index) {
+    final isFocused = _focusedBlockId == block.id;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildBlockPrefix(block, index),
-          Expanded(child: _buildBlockInput(block)),
-        ],
+      child: Semantics(
+        label: _semanticLabelForBlock(block),
+        focused: isFocused,
+        container: true,
+        child: Container(
+          decoration: isFocused
+              ? BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                )
+              : null,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildBlockPrefix(block, index),
+              Expanded(child: _buildBlockInput(block)),
+            ],
+          ),
+        ),
       ),
     );
+  }
+
+  /// 为无障碍朗读生成块描述标签。
+  String _semanticLabelForBlock(NoteBlock block) {
+    final typeLabel = switch (block.type) {
+      NoteBlockType.heading => '标题${block.props['level'] ?? 1}',
+      NoteBlockType.todo => '待办事项',
+      NoteBlockType.code => '代码块',
+      NoteBlockType.quote => '引用',
+      NoteBlockType.bullet => '无序列表',
+      NoteBlockType.ordered => '有序列表',
+      NoteBlockType.divider => '分割线',
+      NoteBlockType.callout => '提示',
+      NoteBlockType.image => '图片',
+      _ => '段落',
+    };
+    return '$typeLabel: ${block.text.isEmpty ? '空' : block.text}';
   }
 
   /// 根据块类型构建前缀 widget（列表符号、复选框等）。
@@ -631,37 +774,46 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
     return KeyEventResult.ignored;
   }
 
-  /// 根据块类型返回文本样式。
+  /// 根据块类型返回文本样式（h1-h6 字级 + 主题感知）。
   TextStyle _textStyleForBlockType(NoteBlock block) {
+    final theme = Theme.of(context);
     switch (block.type) {
       case NoteBlockType.heading:
-        final level = (block.props['level'] as int? ?? 1).clamp(1, 3);
-        final sizes = {1: 24.0, 2: 20.0, 3: 18.0};
+        final level = (block.props['level'] as int? ?? 1).clamp(1, 6);
+        const sizes = {1: 28.0, 2: 24.0, 3: 20.0, 4: 18.0, 5: 16.0, 6: 14.0};
         return TextStyle(
           fontSize: sizes[level],
           fontWeight: FontWeight.bold,
+          color: theme.colorScheme.onSurface,
         );
       case NoteBlockType.code:
-        return const TextStyle(
+        return TextStyle(
           fontFamily: 'monospace',
           fontSize: 15,
-          backgroundColor: Color(0xFFF5F5F5),
+          backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          color: theme.colorScheme.onSurface,
         );
       case NoteBlockType.todo:
         final checked = block.props['checked'] as bool? ?? false;
         return TextStyle(
           fontSize: 16,
           decoration: checked ? TextDecoration.lineThrough : null,
-          color: checked ? Colors.grey : null,
+          color: checked ? theme.colorScheme.onSurface.withValues(alpha: 0.5) : theme.colorScheme.onSurface,
         );
       case NoteBlockType.quote:
-        return const TextStyle(
+        return TextStyle(
           fontSize: 16,
           fontStyle: FontStyle.italic,
-          color: Colors.grey,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+        );
+      case NoteBlockType.callout:
+        return TextStyle(
+          fontSize: 16,
+          backgroundColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+          color: theme.colorScheme.onSurface,
         );
       default:
-        return const TextStyle(fontSize: 16);
+        return TextStyle(fontSize: 16, color: theme.colorScheme.onSurface);
     }
   }
 
