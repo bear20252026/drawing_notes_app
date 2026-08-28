@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
@@ -243,6 +244,129 @@ void main() {
       expect(texts.length, 3);
       // 验证 First 不再在第一位（拖拽成功改变了顺序）
       expect(texts.first != 'First' || texts.last == 'First', isTrue);
+    });
+  });
+
+  group('NoteEditorPage 撤销重做与键盘导航', () {
+    // 找到当前文本为 [text] 的可编辑字段（内容块），避免依赖 EditableText 顺序。
+    EditableText editableOf(String text, WidgetTester tester) {
+      return tester
+          .widgetList<EditableText>(find.byType(EditableText))
+          .firstWhere((e) => e.controller.text == text);
+    }
+
+    testWidgets('Ctrl+Z 撤销文本编辑', (tester) async {
+      final doc = makeDoc(
+        id: 'doc-undo',
+        title: 'U',
+        body: [NoteBlock.textBlock('t1', text: 'Hello')],
+      );
+      await tester.pumpWidget(
+        MaterialApp(home: NoteEditorPage(document: doc)),
+      );
+      await tester.pumpAndSettle();
+
+      final block = editableOf('Hello', tester);
+      await tester.showKeyboard(find.byWidget(block));
+      await tester.enterText(find.byWidget(block), 'Changed');
+      await tester.pumpAndSettle();
+
+      // Ctrl+Z 撤销
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+
+      expect(
+        editableOf('Hello', tester).controller.text,
+        'Hello',
+      );
+    });
+
+    testWidgets('Ctrl+Shift+Z 重做文本编辑', (tester) async {
+      final doc = makeDoc(
+        id: 'doc-redo',
+        title: 'R',
+        body: [NoteBlock.textBlock('t1', text: 'Hello')],
+      );
+      await tester.pumpWidget(
+        MaterialApp(home: NoteEditorPage(document: doc)),
+      );
+      await tester.pumpAndSettle();
+
+      final block = editableOf('Hello', tester);
+      await tester.showKeyboard(find.byWidget(block));
+      await tester.enterText(find.byWidget(block), 'Changed');
+      await tester.pumpAndSettle();
+
+      // 撤销
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+
+      // 重做：Ctrl+Shift+Z
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+
+      expect(
+        editableOf('Changed', tester).controller.text,
+        'Changed',
+      );
+    });
+
+    testWidgets('向下方向键导航到下一块', (tester) async {
+      final doc = makeDoc(
+        id: 'doc-nav',
+        title: 'N',
+        body: [
+          NoteBlock.textBlock('t1', text: 'One'),
+          NoteBlock.textBlock('t2', text: 'Two'),
+        ],
+      );
+      await tester.pumpWidget(
+        MaterialApp(home: NoteEditorPage(document: doc)),
+      );
+      await tester.pumpAndSettle();
+
+      final first = editableOf('One', tester);
+      await tester.showKeyboard(find.byWidget(first));
+      await tester.pumpAndSettle();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+
+      final second = editableOf('Two', tester);
+      expect(second.focusNode.hasFocus, isTrue);
+    });
+
+    testWidgets('向上方向键导航到上一块，边界忽略', (tester) async {
+      final doc = makeDoc(
+        id: 'doc-nav2',
+        title: 'N2',
+        body: [
+          NoteBlock.textBlock('t1', text: 'One'),
+          NoteBlock.textBlock('t2', text: 'Two'),
+        ],
+      );
+      await tester.pumpWidget(
+        MaterialApp(home: NoteEditorPage(document: doc)),
+      );
+      await tester.pumpAndSettle();
+
+      final first = editableOf('One', tester);
+      await tester.showKeyboard(find.byWidget(first));
+      await tester.pumpAndSettle();
+
+      // 首块按上箭头 -> 边界忽略，焦点仍在首块
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pumpAndSettle();
+
+      expect(editableOf('One', tester).focusNode.hasFocus, isTrue);
     });
   });
 }

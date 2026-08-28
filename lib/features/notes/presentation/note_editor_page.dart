@@ -18,6 +18,7 @@ import 'package:flutter/services.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_editor.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/notes/domain/note_block_history.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_inline_span.dart';
 import 'package:drawing_notes_app/features/notes/domain/text_span_editor.dart';
 import 'package:drawing_notes_app/features/notes/presentation/embedded_block_view.dart';
@@ -189,6 +190,13 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
   /// 当前拖拽目标插入索引（用于 dropline 渲染，null 表示无拖拽）。
   int? _dropTargetIndex;
 
+  /// 撤销/重做历史。
+  final NoteBlockHistory _history = NoteBlockHistory();
+
+  /// 处于撤销/重做恢复流程时的标志，用于抑制 _syncText 的副作用，
+  /// 避免回填 controller.text 时反向污染历史史栈。
+  bool _restoring = false;
+
   /// id 生成计数器。
   int _idCounter = 0;
 
@@ -227,6 +235,9 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
     _root = _buildRootFromDoc(_doc);
     _lastSavedBodySignature = _computeBodySignature();
     _initialized = true;
+
+    // 推入初始文档到撤销历史
+    _history.push(_buildDocFromState());
 
     // 初始聚焦第一块
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -277,6 +288,61 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
       body: List<NoteBlock>.from(_root.children),
       updatedAt: DateTime.now(),
     );
+  }
+
+  /// 从历史快照恢复文档（撤销/重做）。
+  ///
+  /// 必须重建根树、标题与块资源，并回填仍存在控制器的文本，
+  /// 否则 TextField 会显示回滚前的旧文本。恢复期间通过 [_restoring]
+  /// 抑制 [_syncText] 的副作用，避免回填 controller.text 反向污染史栈。
+  void _restoreDoc(NoteBlockDoc doc) {
+    final keepIds = _collectAllDocBlockIds(doc);
+
+    // 释放快照中已不存在的块资源。
+    final stale = _controllers.keys.where((id) => !keepIds.contains(id)).toList();
+    for (final id in stale) {
+      _disposeBlockResources(id);
+    }
+
+    _restoring = true;
+    setState(() {
+      _titleController.text = doc.title;
+      _root = _buildRootFromDoc(doc);
+      // 回填仍存在控制器的文本，使其与快照一致（同步触发 onChanged，被 _restoring 拦截）。
+      void fill(NoteBlock b) {
+        _controllers[b.id]?.text = b.text;
+        for (final c in b.children) {
+          fill(c);
+        }
+      }
+      for (final b in doc.body) {
+        fill(b);
+      }
+      // 聚焦块若已不存在则清空。
+      if (_focusedBlockId != null && !keepIds.contains(_focusedBlockId)) {
+        _focusedBlockId = null;
+      }
+    });
+    _restoring = false;
+    _updateDirtyState();
+  }
+
+  /// 收集块及其子树的所有 id。
+  Set<String> _collectBlockIds(NoteBlock block) {
+    final ids = <String>{block.id};
+    for (final child in block.children) {
+      ids.addAll(_collectBlockIds(child));
+    }
+    return ids;
+  }
+
+  /// 收集文档 body 中所有块 id（含子树）。
+  Set<String> _collectAllDocBlockIds(NoteBlockDoc doc) {
+    final ids = <String>{};
+    for (final block in doc.body) {
+      ids.addAll(_collectBlockIds(block));
+    }
+    return ids;
   }
 
   // ── 初始化 ─────────────────────────────────────────────────
@@ -337,6 +403,7 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
 
   /// 同步指定块的文本到块树。
   void _syncText(String blockId) {
+    if (_restoring) return;
     final controller = _controllers[blockId];
     if (controller == null) return;
     final block = _editor.findBlock(_root, blockId);
@@ -348,6 +415,8 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
     });
     // 检测 / 菜单触发
     _checkSlashTrigger(blockId, controller.text, controller.selection.baseOffset);
+    // 推入撤销历史
+    _history.push(_buildDocFromState());
   }
 
   // ── Enter：分块 ────────────────────────────────────────────
@@ -382,6 +451,8 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
       newController?.selection = const TextSelection.collapsed(offset: 0);
       _focusNodes[newId]?.requestFocus();
     });
+    // 推入撤销历史
+    _history.push(_buildDocFromState());
   }
 
   /// 根据类型创建对应工厂的新块。
@@ -446,6 +517,8 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
           TextSelection.collapsed(offset: previousText.length);
       _focusNodes[previous.id]?.requestFocus();
     });
+    // 推入撤销历史
+    _history.push(_buildDocFromState());
   }
 
   // ── 工具栏：切换块类型 ─────────────────────────────────────
@@ -459,6 +532,8 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
       _root = _editor.updateType(_root, blockId, newType);
       _updateDirtyState();
     });
+    // 推入撤销历史
+    _history.push(_buildDocFromState());
   }
 
   /// 切换 todo 块的完成状态。
@@ -469,6 +544,8 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
       _root = _editor.toggleTodo(_root, blockId);
       _updateDirtyState();
     });
+    // 推入撤销历史
+    _history.push(_buildDocFromState());
   }
 
   /// 更新未保存状态（基于 body 签名比对）。
@@ -1006,10 +1083,11 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
       return const SizedBox.shrink();
     }
 
-    // 使用独立的 Focus 节点监听键盘事件，避免与 TextField 的 focusNode
-    // 产生"子节点成为自身父节点"的冲突。
+    // 监听键盘事件。Focus 节点与 TextField 共用同一个 focusNode，
+    // 确保 TextField 聚焦时 onKeyEvent 能收到事件。
     return Focus(
-      onKeyEvent: (node, event) => _handleBlockKey(block.id, event),
+      focusNode: focusNode,
+      onKeyEvent: (_, event) => _handleBlockKey(block.id, event),
       child: TextField(
         controller: controller,
         focusNode: focusNode,
@@ -1038,6 +1116,36 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
   /// 处理块的键盘事件（Enter 分块 / Backspace 空块合并）。
   KeyEventResult _handleBlockKey(String blockId, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    // ── 撤销 / 重做（Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y）────────────────
+    final isCtrl = HardwareKeyboard.instance.isControlPressed ||
+        HardwareKeyboard.instance.isMetaPressed;
+    if (isCtrl && (event.logicalKey == LogicalKeyboardKey.keyZ ||
+        event.logicalKey == LogicalKeyboardKey.keyY)) {
+      final isRedo = event.logicalKey == LogicalKeyboardKey.keyY ||
+          HardwareKeyboard.instance.isShiftPressed;
+      final doc = isRedo ? _history.redo() : _history.undo();
+      if (doc != null) {
+        _restoreDoc(doc);
+      }
+      return KeyEventResult.handled;
+    }
+
+    // ── 上 / 下 方向键块间导航 ───────────────────────────────────────
+    final order = List<String>.from(_root.children.map((b) => b.id));
+    final idx = order.indexOf(blockId);
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      if (idx > 0) {
+        _focusNodes[order[idx - 1]]?.requestFocus();
+      }
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      if (idx >= 0 && idx < order.length - 1) {
+        _focusNodes[order[idx + 1]]?.requestFocus();
+      }
+      return KeyEventResult.handled;
+    }
 
     if (event.logicalKey == LogicalKeyboardKey.enter) {
       _splitBlock(blockId);
