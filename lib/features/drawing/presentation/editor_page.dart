@@ -17,6 +17,7 @@ import 'package:drawing_notes_app/features/drawing/application/drawing_controlle
 import 'package:drawing_notes_app/features/drawing/application/editor_input_arbiter.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/paged_export_snapshot.dart';
+import 'package:drawing_notes_app/features/drawing/application/save_scheduler.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode_store.dart';
 import 'package:drawing_notes_app/features/drawing/application/editor_exporter.dart';
@@ -132,9 +133,12 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   /// TXT/PPTX/JSON 与剪贴板复制集中在独立模块，本页只负责调用。
   late final EditorExporter _exporter;
 
-  /// 编辑器 ViewModel 胶水层（R4）：工具状态 + 防抖保存调度，
+  /// 编辑器 ViewModel 胶水层（R4）：工具状态 + 保存调度门面，
   /// editor_page 只通过它读写工具状态与触发保存（见 editor_viewmodel.dart）。
   late final EditorViewModel _viewModel;
+
+  /// 统一保存门面（P0-3b）：防抖、串行化、退出兜底、失败重试都由它编排。
+  late final SaveScheduler _saveScheduler;
 
   /// 混排对象的框选、多选、裁剪、对齐与拖动反馈暂态集中在独立协作者中。
   final EditorCanvasInteractionState _canvasInteraction =
@@ -440,7 +444,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       _controller.viewOffset,
     );
     // 极端场景（系统直接销毁窗口）无法等待 Future；仍先启动保存并标记关闭，
-    // 使 _doAutosave 至少完成文档 JSON 写入而不再访问随后释放的渲染控制器。
+    // 使 _persistArtwork 至少完成文档 JSON 写入而不再访问随后释放的渲染控制器。
     _closingEditor = true;
     unawaited(_viewModel.saveNow());
     _viewModel.dispose();
@@ -490,13 +494,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   // ---------------- 保存 ----------------
 
-  /// 自动保存执行中标记与补写标记：任意一次保存期间又发生更改时，
-  /// 当前保存结束后立即再保存最新快照，绝不因为“正在保存”而丢弃修改。
-  bool _autosaving = false;
-  bool _autosaveQueued = false;
+  /// 关闭编辑器中：设为 true 后保存不再触碰随后可能被释放的渲染控制器。
   bool _closingEditor = false;
   bool _allowPopAfterSave = false;
-  Completer<void>? _autosaveCompletion;
 
   /// 状态刷新薄包装（供 overlays extension 使用）：
   /// extension 不是 State 子类，不能直接调用受保护的 [setState]，
@@ -539,8 +539,20 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     if (widget.session != null && doc.title == '未命名画布') {
       doc.title = widget.session!.title;
     }
-    // R4：实例化 ViewModel（防抖保存回调指向本页落盘逻辑）。
-    _viewModel = EditorViewModel(controller: _controller, onSave: _doAutosave);
+    // P0-3b：统一保存调度门面（防抖/串行化/退出兜底/失败重试）。
+    _saveScheduler = SaveScheduler(
+      save: _persistArtwork,
+      onSaved: () {
+        // 独立画布：保存成功后标记文档已保存；笔记本模式由外层页面负责标记。
+        if (widget.session == null) _controller.markSaved();
+      },
+      onError: (error, stackTrace) {
+        // 策略（重试/退避）由 SaveScheduler 统一处理，这里只落日志提醒。
+        debugPrint('自动保存失败: $error\n$stackTrace');
+      },
+    );
+    // R4：实例化 ViewModel，保存调度委托给 SaveScheduler。
+    _viewModel = EditorViewModel(controller: _controller, saveScheduler: _saveScheduler);
     // 首次进入时立即保存一次，确保新文档落盘（自动保存机制）。
     _scheduleAutosave();
     // 注册编辑器命令（B2：命令表驱动快捷键面板）。

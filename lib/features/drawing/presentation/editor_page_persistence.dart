@@ -9,46 +9,24 @@ extension _EditorPagePersistence on _EditorPageState {
     _viewModel.scheduleAutosave();
   }
 
-  /// 执行自动保存：独立画作 → 工程文件 + 缩略图；笔记本页面 → 由上级回调落盘。
-  Future<void> _doAutosave() async {
+  /// 保存当前画作：独立画布 → 工程文件 + 缩略图；笔记本页面 → 由上级回调落盘。
+  ///
+  /// 只负责“执行落盘”，失败时把异常向上抛出（交给 SaveScheduler 的重试/退避/
+  /// 放弃策略处理）；防抖、串行化（飞行中补写）、退出兜底、通知合并在
+  /// [SaveScheduler]（P0-3b）统一编排，此处不再内联“正在保存/补写”标记。
+  Future<void> _persistArtwork() async {
     // 笔记本页面模式：onChanged 已由 NotebookViewPage 负责保存。
     if (widget.session != null) return;
     final storage = widget.docStorage;
     final doc = _controller.document;
     if (storage == null) return;
-    if (_autosaving) {
-      _autosaveQueued = true;
-      return _autosaveCompletion?.future ?? Future<void>.value();
-    }
-
-    _autosaving = true;
-    final completion = Completer<void>();
-    _autosaveCompletion = completion;
-    try {
-      do {
-        _autosaveQueued = false;
-        // StorageService 在调用时立即编码不可变快照；后续笔画不会改写此版本。
-        await storage.save(doc);
-        // 文档 JSON 是数据完整性的第一优先级。关闭中控制器可能已释放，
-        // 因此只跳过可再生的缩略图，不跳过正文保存。
-        if (!_closingEditor) {
-          final png = await _controller.renderToPng(scale: 0.2);
-          if (png != null) await storage.saveThumbnail(doc.id, png);
-        }
-      } while (_autosaveQueued);
-      // 保存成功：清除未保存标记（借鉴 Saber markLastChangeAsSaved）。
-      _controller.markSaved();
-      completion.complete();
-    } catch (e, stackTrace) {
-      debugPrint('自动保存失败: $e\n$stackTrace');
-      // 将失败记录到日志但不向防抖 Timer 抛出未处理异常；后续一次内容变更
-      // 仍可重新触发保存，避免单次 I/O 故障永久阻断该文档。
-      completion.complete();
-    } finally {
-      _autosaving = false;
-      if (identical(_autosaveCompletion, completion)) {
-        _autosaveCompletion = null;
-      }
+    // StorageService 在调用时立即编码不可变快照；后续笔画不会改写此版本。
+    await storage.save(doc);
+    // 文档 JSON 是数据完整性的第一优先级。关闭中控制器可能已释放，
+    // 因此只跳过可再生的缩略图，不跳过正文保存。
+    if (!_closingEditor) {
+      final png = await _controller.renderToPng(scale: 0.2);
+      if (png != null) await storage.saveThumbnail(doc.id, png);
     }
   }
 
