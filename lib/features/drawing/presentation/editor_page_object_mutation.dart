@@ -160,6 +160,20 @@ class EditorTextStyleMutation {
 class EditorImageMutation {
   const EditorImageMutation._();
 
+  static ({double x, double y}) pageImagePosition({
+    required double centerX,
+    required double centerY,
+  }) {
+    return (x: centerX, y: centerY);
+  }
+
+  static ({double x, double y}) documentImagePosition({
+    required double centerX,
+    required double centerY,
+  }) {
+    return (x: centerX - 100, y: centerY - 75);
+  }
+
   static PageImageItem createPageImage({
     required String id,
     required double x,
