@@ -17,6 +17,7 @@ import 'package:drawing_notes_app/features/drawing/application/drawing_controlle
 import 'package:drawing_notes_app/features/drawing/application/editor_input_arbiter.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/paged_export_snapshot.dart';
+import 'package:drawing_notes_app/features/drawing/application/save_scheduler.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode_store.dart';
 import 'package:drawing_notes_app/features/drawing/application/editor_exporter.dart';
@@ -78,6 +79,8 @@ part 'editor_page_commands.dart';
 part 'editor_page_shortcuts.dart';
 part 'editor_page_persistence.dart';
 part 'editor_page_toolbar_actions.dart';
+part 'editor_page_appbar.dart';
+part 'editor_page_body.dart';
 
 /// 编辑器页面。
 ///
@@ -132,9 +135,12 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   /// TXT/PPTX/JSON 与剪贴板复制集中在独立模块，本页只负责调用。
   late final EditorExporter _exporter;
 
-  /// 编辑器 ViewModel 胶水层（R4）：工具状态 + 防抖保存调度，
+  /// 编辑器 ViewModel 胶水层（R4）：工具状态 + 保存调度门面，
   /// editor_page 只通过它读写工具状态与触发保存（见 editor_viewmodel.dart）。
   late final EditorViewModel _viewModel;
+
+  /// 统一保存门面（P0-3b）：防抖、串行化、退出兜底、失败重试都由它编排。
+  late final SaveScheduler _saveScheduler;
 
   /// 混排对象的框选、多选、裁剪、对齐与拖动反馈暂态集中在独立协作者中。
   final EditorCanvasInteractionState _canvasInteraction =
@@ -313,6 +319,15 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     return page.imageItems.where((i) => i.id == id).firstOrNull;
   }
 
+  // 顶栏开关（O1 拆分后供 editor_page_appbar.dart 的 extension 调用；
+  // 在 State 实例内封装受保护的 setState，避免扩展方法中非法访问）。
+  void _toggleLayers() => setState(() => _layersVisible = !_layersVisible);
+  void _toggleInspector() =>
+      setState(() => _inspectorVisible = !_inspectorVisible);
+  void _toggleFullscreen() => setState(() => _fullscreen = !_fullscreen);
+  void _toggleReadingInverted() =>
+      setState(() => _readingInverted = !_readingInverted);
+
   /// 确认裁剪：按裁剪矩形重新编码图片并写回文件（对齐 Excalidraw 图片裁剪）。
   Future<void> _confirmCrop() async {
     final img = _cropItem;
@@ -440,7 +455,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       _controller.viewOffset,
     );
     // 极端场景（系统直接销毁窗口）无法等待 Future；仍先启动保存并标记关闭，
-    // 使 _doAutosave 至少完成文档 JSON 写入而不再访问随后释放的渲染控制器。
+    // 使 _persistArtwork 至少完成文档 JSON 写入而不再访问随后释放的渲染控制器。
     _closingEditor = true;
     unawaited(_viewModel.saveNow());
     _viewModel.dispose();
@@ -490,13 +505,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   // ---------------- 保存 ----------------
 
-  /// 自动保存执行中标记与补写标记：任意一次保存期间又发生更改时，
-  /// 当前保存结束后立即再保存最新快照，绝不因为“正在保存”而丢弃修改。
-  bool _autosaving = false;
-  bool _autosaveQueued = false;
+  /// 关闭编辑器中：设为 true 后保存不再触碰随后可能被释放的渲染控制器。
   bool _closingEditor = false;
   bool _allowPopAfterSave = false;
-  Completer<void>? _autosaveCompletion;
 
   /// 状态刷新薄包装（供 overlays extension 使用）：
   /// extension 不是 State 子类，不能直接调用受保护的 [setState]，
@@ -539,8 +550,20 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     if (widget.session != null && doc.title == '未命名画布') {
       doc.title = widget.session!.title;
     }
-    // R4：实例化 ViewModel（防抖保存回调指向本页落盘逻辑）。
-    _viewModel = EditorViewModel(controller: _controller, onSave: _doAutosave);
+    // P0-3b：统一保存调度门面（防抖/串行化/退出兜底/失败重试）。
+    _saveScheduler = SaveScheduler(
+      save: _persistArtwork,
+      onSaved: () {
+        // 独立画布：保存成功后标记文档已保存；笔记本模式由外层页面负责标记。
+        if (widget.session == null) _controller.markSaved();
+      },
+      onError: (error, stackTrace) {
+        // 策略（重试/退避）由 SaveScheduler 统一处理，这里只落日志提醒。
+        debugPrint('自动保存失败: $error\n$stackTrace');
+      },
+    );
+    // R4：实例化 ViewModel，保存调度委托给 SaveScheduler。
+    _viewModel = EditorViewModel(controller: _controller, saveScheduler: _saveScheduler);
     // 首次进入时立即保存一次，确保新文档落盘（自动保存机制）。
     _scheduleAutosave();
     // 注册编辑器命令（B2：命令表驱动快捷键面板）。
@@ -652,468 +675,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         autofocus: true,
         onKeyEvent: _onShortcutKey,
         child: Scaffold(
-          appBar: AppBar(
-            title: ListenableBuilder(
-              listenable: _controller,
-              builder: (context, _) {
-                final isNote = _isNotebookMode;
-                return Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _controller.document.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Chip(
-                      visualDensity: VisualDensity.compact,
-                      avatar: Icon(
-                        isNote ? Icons.article_outlined : Icons.all_out,
-                        size: 16,
-                      ),
-                      label: Text(isNote ? '分页笔记' : '无限画布'),
-                    ),
-                  ],
-                );
-              },
-            ),
-            actions: [
-              ListenableBuilder(
-                listenable: _controller,
-                builder: (context, _) => IconButton(
-                  tooltip: AppLocalizations.of(context)?.editorUndo ?? '撤销',
-                  icon: const Icon(Icons.undo),
-                  onPressed: _commands.find('undo')?.available ?? false
-                      ? () => _commands.run('undo')
-                      : null,
-                ),
-              ),
-              ListenableBuilder(
-                listenable: _controller,
-                builder: (context, _) => IconButton(
-                  tooltip: AppLocalizations.of(context)?.editorRedo ?? '重做',
-                  icon: const Icon(Icons.redo),
-                  onPressed: _commands.find('redo')?.available ?? false
-                      ? () => _commands.run('redo')
-                      : null,
-                ),
-              ),
-
-              // 画布空间与侧栏控制：将低频管理面板改为按需展开。
-              IconButton(
-                tooltip: _layersVisible ? '隐藏图层' : '显示图层',
-                icon: Icon(
-                  _layersVisible ? Icons.layers : Icons.layers_outlined,
-                ),
-                isSelected: _layersVisible,
-                onPressed: () =>
-                    setState(() => _layersVisible = !_layersVisible),
-              ),
-              IconButton(
-                tooltip: _inspectorVisible ? '隐藏属性' : '显示属性',
-                icon: Icon(
-                  _inspectorVisible ? Icons.tune : Icons.tune_outlined,
-                ),
-                isSelected: _inspectorVisible,
-                onPressed: () =>
-                    setState(() => _inspectorVisible = !_inspectorVisible),
-              ),
-              IconButton(
-                tooltip: _fullscreen ? '退出全屏' : '全屏模式',
-                icon: Icon(
-                  _fullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
-                ),
-                onPressed: () => setState(() => _fullscreen = !_fullscreen),
-              ),
-              IconButton(
-                tooltip: _readingInverted ? '关闭深色阅读' : '深色阅读（仅显示）',
-                icon: Icon(
-                  _readingInverted
-                      ? Icons.invert_colors_on_outlined
-                      : Icons.invert_colors_off_outlined,
-                ),
-                isSelected: _readingInverted,
-                onPressed: () =>
-                    setState(() => _readingInverted = !_readingInverted),
-              ),
-              // 快捷键帮助面板（借鉴 Notes 快捷键文档化）
-              IconButton(
-                tooltip:
-                    AppLocalizations.of(context)?.editorShortcutsHelp ??
-                    '快捷键帮助',
-                icon: const Icon(Icons.help_outline),
-                onPressed: _showShortcutHelp,
-              ),
-              // 右上角汉堡菜单（对齐 Excalidraw main-menu）
-              PopupMenuButton<_MainMenuItem>(
-                tooltip: AppLocalizations.of(context)?.editorMenu ?? '主菜单',
-                icon: const Icon(Icons.menu),
-                onSelected: _onMainMenuSelected,
-                itemBuilder: (_) => [
-                  PopupMenuItem(
-                    value: _MainMenuItem.clearCanvas,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.delete_sweep_outlined),
-                      title: Text(
-                        AppLocalizations.of(context)?.editorClearCanvas ??
-                            '清空画布',
-                      ),
-                    ),
-                  ),
-                  const PopupMenuDivider(),
-                  PopupMenuItem(
-                    value: _MainMenuItem.copyPng,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.content_copy),
-                      title: Text(
-                        AppLocalizations.of(context)?.editorCopyPng ??
-                            '复制 PNG 到剪贴板',
-                      ),
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: _MainMenuItem.exportPng,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.image_outlined),
-                      title: Text(
-                        AppLocalizations.of(context)?.editorExportPng ??
-                            '导出 PNG',
-                      ),
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: _MainMenuItem.exportSvg,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.ios_share),
-                      title: Text(
-                        AppLocalizations.of(context)?.editorExportSvg ??
-                            '导出 SVG',
-                      ),
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: _MainMenuItem.exportPdf,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.picture_as_pdf_outlined),
-                      title: Text(
-                        AppLocalizations.of(context)?.editorExportPdf ??
-                            '导出 PDF',
-                      ),
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: _MainMenuItem.exportJson,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.data_object),
-                      title: Text(
-                        AppLocalizations.of(context)?.editorExportJson ??
-                            '导出 JSON',
-                      ),
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: _MainMenuItem.exportPptx,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.slideshow_outlined),
-                      title: Text(
-                        AppLocalizations.of(context)?.editorExportPptx ??
-                            '导出 PPTX',
-                      ),
-                    ),
-                  ),
-                  if (_isNotebookMode)
-                    PopupMenuItem(
-                      value: _MainMenuItem.exportWord,
-                      child: ListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        leading: Icon(Icons.article_outlined),
-                        title: Text(
-                          AppLocalizations.of(context)?.editorExportWord ??
-                              '导出 Word 兼容文档',
-                        ),
-                      ),
-                    ),
-                  PopupMenuItem(
-                    value: _MainMenuItem.exportText,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.description_outlined),
-                      title: Text('导出文本'),
-                    ),
-                  ),
-                  const PopupMenuDivider(),
-                  PopupMenuItem(
-                    value: _MainMenuItem.commandPalette,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.keyboard_command_key),
-                      title: Text('命令面板'),
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: _MainMenuItem.chart,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.bar_chart),
-                      title: Text('图表（粘贴数据）'),
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: _MainMenuItem.presentation,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.slideshow),
-                      title: Text('幻灯片演示'),
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: _MainMenuItem.stats,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.query_stats),
-                      title: Text('统计'),
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: _MainMenuItem.library,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.library_books_outlined),
-                      title: Text('形状库（图书馆）'),
-                    ),
-                  ),
-
-                  PopupMenuItem(
-                    value: _MainMenuItem.shortcuts,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.keyboard),
-                      title: Text('快捷键帮助'),
-                    ),
-                  ),
-                  // 切换无限画布（问题8）：仅独立画布可用。
-                  if (!_isNotebookMode)
-                    PopupMenuItem(
-                      value: _MainMenuItem.toggleInfinite,
-                      child: ListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        leading: Icon(
-                          _controller.document.infinite
-                              ? Icons.all_out
-                              : Icons.crop_free,
-                        ),
-                        title: Text(
-                          _controller.document.infinite ? '切换为固定纸张' : '切换为无限画布',
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ),
-          body: _fullscreen
-              // 全屏模式：只保留画布区域。
-              ? _buildCanvasArea()
-              : Row(
-                  children: [
-                    // 左侧垂直工具条（对齐 Excalidraw LayerUI 布局）。
-                    EditorLeftToolbar(
-                      controller: _controller,
-                      eyedropperActive: _eyedropperActive,
-                      textToolActive: _textToolActive,
-                      marqueeActive: _marqueeActive,
-                      linkMode: _linkMode,
-                      handActive: _handToolActive,
-                      onHand: _toggleHandTool,
-                      activeShape: _activeShapeTool,
-                      onBrush: () => _selectWritingTool(BrushType.pen),
-                      onPencil: () => _selectWritingTool(BrushType.pencil),
-                      onHighlighter: () => _selectWritingTool(BrushType.marker),
-                      onLaser: () => _selectWritingTool(BrushType.laser),
-                      onEraser: () => _selectWritingTool(BrushType.eraser),
-                      onEyedropper: () => setState(() {
-                        _toolMode.clearPointerModes();
-                        _controller.selectionTool = SelectionTool.none;
-                        _viewModel.setEyedropperActive(true);
-                        _viewModel.setTextToolActive(false);
-                      }),
-                      onRectSelect: () => setState(() {
-                        _toolMode.clearPointerModes();
-                        _viewModel.setEyedropperActive(false);
-                        _viewModel.setTextToolActive(false);
-                        _viewModel.setSelectionDone(false);
-                        _controller.selectionTool = SelectionTool.rect;
-                      }),
-                      onMarquee: _toggleMarqueeTool,
-                      onText: () => setState(() {
-                        _toolMode.clearPointerModes();
-                        _controller.selectionTool = SelectionTool.none;
-                        _viewModel.setEyedropperActive(false);
-                        _viewModel.setTextToolActive(true);
-                      }),
-                      onShape: _selectShapeTool,
-                      onLink: _toggleLinkMode,
-                    ),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          _buildContextBar(),
-                          SelectionBar(
-                            controller: _controller,
-                            isNotebookMode: _isNotebookMode,
-                            scaleValue: _scaleValue,
-                            rotateDegrees: _rotateDegrees,
-                            onScaleChanged: (v) {
-                              _applyState(() {
-                                final factor = _selectionTransform.updateScale(
-                                  v,
-                                );
-                                final c = _controller;
-                                if (_isNotebookMode &&
-                                    c.hasMixedDocumentObjectSelection) {
-                                  c.scaleSelectedDocumentObjects(factor);
-                                } else if (c.hasSelectedDocumentShape) {
-                                  c.scaleSelectedDocumentShape(factor);
-                                } else if (c.hasSelectedDocumentImage) {
-                                  c.scaleSelectedDocumentImage(factor);
-                                } else {
-                                  c.scaleSelectedStrokes(factor);
-                                }
-                              });
-                            },
-                            onRotateChanged: (v) {
-                              _applyState(() {
-                                final delta = _selectionTransform
-                                    .updateRotationDegrees(v);
-                                _controller.rotateSelectedStrokes(delta);
-                              });
-                            },
-                            onClearSelection: () => _applyState(() {
-                              _viewModel.setSelectionDone(false);
-                              _controller.clearDocumentObjectSelection();
-                            }),
-                            onTransformEnd: () {
-                              final c = _controller;
-                              if (_isNotebookMode &&
-                                  c.hasMixedDocumentObjectSelection) {
-                                c.endDocumentObjectsTransform();
-                              } else if (c.hasSelectedDocumentShape) {
-                                c.endDocumentShapeTransform();
-                              } else if (c.hasSelectedDocumentImage) {
-                                c.endDocumentImageTransform();
-                              }
-                              _notifyChanged();
-                            },
-                          ),
-                          Expanded(child: _buildCanvasArea()),
-                        ],
-                      ),
-                    ),
-                    // 图层与详细属性仅在用户需要时展开，画布默认保持居中和宽阔。
-                    if (_layersVisible) LayerPanel(controller: _controller),
-                    if (_inspectorVisible)
-                      PropertiesPanel(
-                        controller: _controller,
-                        selectedShape: _selectedShapeItem,
-                        selectedText: _selectedTextItem,
-                        selectedImage: _selectedImageItem,
-                        onPickColor: _showColorPicker,
-                        onBrushSizeChanged: (v) =>
-                            _updateCurrentBrushPreset(size: v),
-                        onShapeStrokeWidth: (v) {
-                          final s = _selectedShapeItem;
-                          if (s == null) return;
-                          setState(() => s.strokeWidth = v.clamp(1, 20));
-                          _notifyChanged();
-                        },
-                        onShapeOpacity: (v) {
-                          final s = _selectedShapeItem;
-                          if (s == null) return;
-                          setState(() {
-                            if (v > 0.5) {
-                              s.fillColor = s.fillColor ?? 0x66A5D6A7;
-                            } else {
-                              s.fillColor = null;
-                            }
-                          });
-                          _notifyChanged();
-                        },
-                        onShapeFill: () {
-                          final s = _selectedShapeItem;
-                          if (s == null) return;
-                          setState(() {
-                            s.fillColor = s.fillColor == null
-                                ? 0x66A5D6A7
-                                : null;
-                          });
-                          _notifyChanged();
-                        },
-                        onShapeDash: () {
-                          final s = _selectedShapeItem;
-                          if (s == null) return;
-                          setState(() => s.dash = !s.dash);
-                          _notifyChanged();
-                        },
-                        onShapeRough: () {
-                          final s = _selectedShapeItem;
-                          if (s == null) return;
-                          setState(() => s.rough = !s.rough);
-                          _notifyChanged();
-                        },
-                        onTextColor: _changeSelectedTextColor,
-                        onTextFontSize: _setSelectedTextFontSize,
-                        onCropImage: () {
-                          // 已在裁剪模式：确认裁剪；否则进入裁剪模式。
-                          if (_cropItem != null) {
-                            _confirmCrop();
-                            return;
-                          }
-                          final img = _selectedImageItem;
-                          if (img == null) return;
-                          setState(() => _canvasInteraction.beginCrop(img));
-                          _showSnack('拖动图片四角调整裁剪区域，再点裁剪按钮确认');
-                        },
-                        onCycleFont: () {
-                          final t = _selectedTextItem;
-                          if (t == null) return;
-                          setState(() {
-                            t.fontFamily = switch (t.fontFamily) {
-                              null => 'serif',
-                              'serif' => 'monospace',
-                              'monospace' => 'handwriting',
-                              _ => null,
-                            };
-                          });
-                          _notifyChanged();
-                        },
-                      ),
-                  ],
-                ),
+          appBar: _buildAppBar(),
+          body: _buildBody(),
           // 底部状态栏（借鉴 Joplin StatusBar）：显示缩放/工具/坐标。
           bottomNavigationBar: _buildStatusBar(),
         ),

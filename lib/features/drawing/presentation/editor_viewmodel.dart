@@ -1,33 +1,26 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
+import 'package:drawing_notes_app/features/drawing/application/save_scheduler.dart';
 import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
-import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
 
 /// 编辑器 ViewModel 胶水层（架构重构 R4，见 docs/ARCHITECTURE_REVISION.md）。
 ///
 /// 职责（View 只显示，ViewModel 调度，Engine/Storage 执行）：
 /// - 管理编辑器**工具状态**（吸管/文字/连线/选区完成态）；
-/// - 管理**防抖自动保存**（2s 停笔后触发 onSave，避免高频落盘）；
+/// - 把**保存调度**委托给 [SaveScheduler]（见 P0-3b：防抖/串行化/退出兜底/失败重试）；
 /// - 管理**混排对象选中/就地编辑状态**；
 /// - 不读写文件、不直接操作图层位图——这些仍由 Storage/Engine 负责。
 class EditorViewModel extends ChangeNotifier {
-  EditorViewModel({required this.controller, this.onSave});
+  EditorViewModel({required this.controller, required SaveScheduler saveScheduler})
+      : _saveScheduler = saveScheduler; // ignore: prefer_initializing_formals -- 保留公共命名参数，见 P0-3b
 
   /// 绘图引擎（状态机）。
   final DrawingController controller;
 
-  /// 自动保存回调（由上级页面落盘）。
-  final Future<void> Function()? onSave;
-
-  /// 自动保存防抖时长：停笔 800ms 后触发保存。
-  ///
-  /// 与 editor_page 原实现保持一致（R4 接入保持行为不变）；
-  /// 未来如需更省 IO 可上调，无需改动调用方。
-  static const Duration autosaveDelay = Duration(milliseconds: 800);
+  /// 统一保存门面：防抖、串行化、退出兜底、失败重试都由它编排。
+  final SaveScheduler _saveScheduler;
 
   // ---------------- 工具状态 ----------------
 
@@ -42,16 +35,6 @@ class EditorViewModel extends ChangeNotifier {
   bool get linkMode => _linkMode;
   String? get linkSourceId => _linkSourceId;
   bool get selectionDone => _selectionDone;
-
-  // ---------------- 混排对象状态 ----------------
-
-  String? _selectedItemId;
-  String? _editingItemId;
-  PageTextItem? _pendingTextItem;
-
-  String? get selectedItemId => _selectedItemId;
-  String? get editingItemId => _editingItemId;
-  PageTextItem? get pendingTextItem => _pendingTextItem;
 
   // ---------------- 细粒度状态 setter（供 editor_page 委托接入） ----------------
 
@@ -151,55 +134,19 @@ class EditorViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ---------------- 混排对象 ----------------
+  // ---------------- 保存调度（委托 SaveScheduler） ----------------
 
-  void selectItem(String id) {
-    _selectedItemId = id;
-    notifyListeners();
-  }
+  /// 停笔后 800ms 自动保存（高频手势期间不落盘；由 [SaveScheduler] 统一去抖）。
+  void scheduleAutosave() => _saveScheduler.markDirty();
 
-  void clearSelection() {
-    _selectedItemId = null;
-    notifyListeners();
-  }
-
-  void startEditing(String id, PageTextItem pending) {
-    _editingItemId = id;
-    _pendingTextItem = pending;
-    notifyListeners();
-  }
-
-  void finishEditing() {
-    _editingItemId = null;
-    _pendingTextItem = null;
-    notifyListeners();
-  }
-
-  // ---------------- 防抖自动保存 ----------------
-
-  Timer? _autosaveTimer;
-
-  /// 停笔后 2 秒自动保存（高频手势期间不落盘）。
-  void scheduleAutosave() {
-    _autosaveTimer?.cancel();
-    _autosaveTimer = Timer(autosaveDelay, () {
-      _autosaveTimer = null;
-      final save = onSave?.call();
-      if (save != null) unawaited(save);
-    });
-  }
-
-  /// 立即保存并取消未触发的防抖。调用方可 await 该 Future 再安全关闭页面。
-  Future<void> saveNow() async {
-    _autosaveTimer?.cancel();
-    _autosaveTimer = null;
-    await onSave?.call();
-  }
+  /// 立即保存并取消防抖。调用方可 await 该 Future 再安全关闭页面。
+  /// 委托给 [SaveScheduler.flush]，获得退出兜底 + 失败重试语义。
+  Future<void> saveNow() => _saveScheduler.flush();
 
   @override
   void dispose() {
-    _autosaveTimer?.cancel();
-    _autosaveTimer = null;
+    // 已在飞行中的保存链会自然收敛；这里只取消尚未触发的防抖。
+    _saveScheduler.dispose();
     super.dispose();
   }
 }

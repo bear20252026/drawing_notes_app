@@ -154,6 +154,18 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   /// 版本历史（C1，对齐 nb"每次修改自动 commit"）：保存前为每个页面
   /// 记录当前内容快照（最多 [NotebookPage.maxHistoryVersions] 版），
   /// 供回溯恢复。
+  ///
+  /// 设计说明（P0-3b）：本方法**有意不**套用
+  /// `features/drawing/application/save_scheduler.dart` 的
+  /// `SaveScheduler`。两者是语义不同的两类保存模型：
+  ///  - 编辑器 `SaveScheduler`：面向"逐笔打字/落笔"的**防抖自动保存**，
+  ///    失败时由调度器内部按退避/放弃策略自愈，对外 fire-and-forget；
+  ///  - 笔记本 `_save()`：面向"离散动作边界"的**整本重写保存**（含每页
+  ///    版本快照 + 重加密），调用方（导入/移动/删除）需要 `await` 且
+  ///    必须**感知失败**以正确回滚或提示——因此这里保留自己的
+  ///    `_saving/_saveQueued/_saveCompletion` 串行化，并把异常
+  ///    `completeError` 抛给调用方。强行套用会吞掉失败信号，导致
+  ///    "导入已成功" 的误导提示。
   Future<void> _save() async {
     if (_saving) {
       _saveQueued = true;
