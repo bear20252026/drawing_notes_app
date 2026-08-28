@@ -101,21 +101,17 @@ extension _EditorPageEditing on _EditorPageState {
     final pending = _pendingTextItem;
     if (pending == null || _editingItemId == null) return;
 
-    final text = _editController.text.trim();
-    if (text.isNotEmpty) {
+    final text = _editController.text;
+    final targetItems = page?.textItems ?? _controller.document.textItems;
+    final committed = EditorTextMutation.commit(
+      pending: pending,
+      rawText: text,
+      items: targetItems,
+    );
+    if (committed) {
       _applyState(() {
-        pending.text = text;
-        if (page != null) {
-          // 笔记本页：写入页面文字块集合。
-          if (!page.textItems.any((t) => t.id == pending.id)) {
-            page.textItems.add(pending); // 仅新文字块才加入
-          }
-        } else {
+        if (page == null) {
           // 画布模式（问题5）：写入文档 textItems。
-          final items = _controller.document.textItems;
-          if (!items.any((t) => t.id == pending.id)) {
-            items.add(pending);
-          }
           _controller.document.touch();
         }
         _selectedItemId = pending.id;

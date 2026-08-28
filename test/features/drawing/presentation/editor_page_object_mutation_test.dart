@@ -198,6 +198,37 @@ void main() {
     );
   });
 
+  test('文字提交会 trim 并去重加入，空文本不会修改对象', () {
+    final pending = PageTextItem(id: 'text-1', x: 0, y: 0, text: '旧内容');
+    final existing = [pending];
+
+    expect(
+      EditorTextMutation.commit(
+        pending: pending,
+        rawText: '  新内容  ',
+        items: existing,
+      ),
+      isTrue,
+    );
+    expect(pending.text, '新内容');
+    expect(existing, hasLength(1));
+
+    final fresh = PageTextItem(id: 'text-2', x: 10, y: 20, text: '');
+    final target = <PageTextItem>[];
+    expect(
+      EditorTextMutation.commit(pending: fresh, rawText: '新文字', items: target),
+      isTrue,
+    );
+    expect(target, [fresh]);
+
+    expect(
+      EditorTextMutation.commit(pending: fresh, rawText: '   ', items: target),
+      isFalse,
+    );
+    expect(fresh.text, '新文字');
+    expect(target, [fresh]);
+  });
+
   test('空 id 集合不会修改任何对象', () {
     final text = PageTextItem(id: 'text-1', x: 0, y: 0, text: '文字');
     final textItems = [text];
