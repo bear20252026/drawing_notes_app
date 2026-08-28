@@ -1,0 +1,78 @@
+name: 软件质量工程门禁
+
+# 商业化质量保障：提交 / PR 自动跑全部门禁，任一失败即红灯。
+# 本地等价命令：python tools/quality_gate.py
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'analysis_options.yaml'
+      - 'tools/**'
+      - '.github/workflows/quality_gate.yml'
+  pull_request:
+    branches: [master, main]
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'analysis_options.yaml'
+      - 'tools/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality Gate（分析/反模式/架构/回归）
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      # 与本机工具链对齐（dart_code_metrics 5.7.6 需匹配 Dart 版本）
+      - name: 安装 Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.0'
+          channel: 'stable'
+          cache: true
+
+      - name: 依赖
+        run: flutter pub get
+
+      # 反模式扫描门禁依赖 dart_code_metrics（全局激活，使 `metrics` 可用）
+      - name: 安装 dart_code_metrics（反模式扫描）
+        run: |
+          dart pub global activate dart_code_metrics
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+
+      - name: 静态分析（analyze）
+        run: flutter analyze --no-pub
+
+      - name: 反模式扫描门禁（metrics analyze lib）
+        run: metrics analyze lib
+
+      - name: 分层架构门禁（architecture_test）
+        run: flutter test --no-pub test/architecture_test.dart
+
+      - name: 回归测试（全量：drawing + notes + 各 feature + 架构）
+        run: flutter test --no-pub
+
+      - name: 格式化门禁（dart format）
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: 上传失败产物（测试报告/日志）
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-gate-logs
+          path: |
+            **/*.json
+            **/reports/**/*.html
+          if-no-files-found: ignore
