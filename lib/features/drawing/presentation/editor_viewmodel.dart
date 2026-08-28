@@ -4,7 +4,6 @@ import 'package:drawing_notes_app/features/drawing/application/drawing_controlle
 import 'package:drawing_notes_app/features/drawing/application/save_scheduler.dart';
 import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
-import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
 
 /// 编辑器 ViewModel 胶水层（架构重构 R4，见 docs/ARCHITECTURE_REVISION.md）。
 ///
@@ -36,16 +35,6 @@ class EditorViewModel extends ChangeNotifier {
   bool get linkMode => _linkMode;
   String? get linkSourceId => _linkSourceId;
   bool get selectionDone => _selectionDone;
-
-  // ---------------- 混排对象状态 ----------------
-
-  String? _selectedItemId;
-  String? _editingItemId;
-  PageTextItem? _pendingTextItem;
-
-  String? get selectedItemId => _selectedItemId;
-  String? get editingItemId => _editingItemId;
-  PageTextItem? get pendingTextItem => _pendingTextItem;
 
   // ---------------- 细粒度状态 setter（供 editor_page 委托接入） ----------------
 
@@ -142,30 +131,6 @@ class EditorViewModel extends ChangeNotifier {
   void clearTools() {
     _eyedropperActive = false;
     _textToolActive = false;
-    notifyListeners();
-  }
-
-  // ---------------- 混排对象 ----------------
-
-  void selectItem(String id) {
-    _selectedItemId = id;
-    notifyListeners();
-  }
-
-  void clearSelection() {
-    _selectedItemId = null;
-    notifyListeners();
-  }
-
-  void startEditing(String id, PageTextItem pending) {
-    _editingItemId = id;
-    _pendingTextItem = pending;
-    notifyListeners();
-  }
-
-  void finishEditing() {
-    _editingItemId = null;
-    _pendingTextItem = null;
     notifyListeners();
   }
 
