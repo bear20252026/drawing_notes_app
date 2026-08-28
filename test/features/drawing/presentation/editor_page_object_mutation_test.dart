@@ -80,6 +80,20 @@ void main() {
     expect(charts, isEmpty);
   });
 
+  test('临时文字块创建保留调用方坐标和唯一 ID，默认不带文本', () {
+    final draft = EditorTextMutation.createDraft(
+      id: 'draft-1',
+      x: 123.5,
+      y: 456.5,
+    );
+
+    expect(draft.id, 'draft-1');
+    expect(draft.position.dx, 123.5);
+    expect(draft.position.dy, 456.5);
+    expect(draft.text, isEmpty);
+    expect(draft.fontSize, 24);
+  });
+
   test('文字样式协作者保持字号边界并统一处理颜色', () {
     final first = PageTextItem(
       id: 'text-1',

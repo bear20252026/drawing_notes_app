@@ -101,6 +101,15 @@ class EditorLinkMutation {
 class EditorTextMutation {
   const EditorTextMutation._();
 
+  /// 创建进入就地编辑的临时文字块；提交前不加入任何页面集合。
+  static PageTextItem createDraft({
+    required String id,
+    required double x,
+    required double y,
+  }) {
+    return PageTextItem(id: id, x: x, y: y, text: '');
+  }
+
   /// 提交文字内容并确保同一文字块不会被重复加入目标集合。
   ///
   /// 返回 false 表示输入为空，调用方应保持原有“丢弃临时项”语义。
