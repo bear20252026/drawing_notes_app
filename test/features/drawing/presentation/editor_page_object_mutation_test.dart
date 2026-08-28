@@ -132,6 +132,22 @@ void main() {
     expect(EditorTextStyleMutation.recolorAll(items: const [], color: 1), 0);
   });
 
+  test('图片定位契约保留分页中心与独立文档尺寸偏移', () {
+    final pagePosition = EditorImageMutation.pageImagePosition(
+      centerX: 500,
+      centerY: 400,
+    );
+    expect(pagePosition.x, 500);
+    expect(pagePosition.y, 400);
+
+    final documentPosition = EditorImageMutation.documentImagePosition(
+      centerX: 500,
+      centerY: 400,
+    );
+    expect(documentPosition.x, 400);
+    expect(documentPosition.y, 325);
+  });
+
   test('图片构造保留分页与独立文档的默认尺寸和调用方坐标', () {
     final pageImage = EditorImageMutation.createPageImage(
       id: 'page-image',

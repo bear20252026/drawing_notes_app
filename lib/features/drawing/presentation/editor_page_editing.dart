@@ -274,12 +274,16 @@ extension _EditorPageEditing on _EditorPageState {
           return;
         }
         final storedPath = await storage.storeImage(result.path, page.id);
+        final position = EditorImageMutation.pageImagePosition(
+          centerX: center.dx,
+          centerY: center.dy,
+        );
         _applyState(() {
           page.imageItems.add(
             EditorImageMutation.createPageImage(
               id: LocalIdGenerator.next('img'),
-              x: center.dx,
-              y: center.dy,
+              x: position.x,
+              y: position.y,
               filePath: storedPath,
             ),
           );
@@ -295,12 +299,16 @@ extension _EditorPageEditing on _EditorPageState {
           result.path,
           _controller.document.id,
         );
+        final position = EditorImageMutation.documentImagePosition(
+          centerX: center.dx,
+          centerY: center.dy,
+        );
         _applyState(() {
           _controller.document.imageItems.add(
             EditorImageMutation.createDocumentImage(
               id: StorageService.newId(),
-              x: center.dx - 100,
-              y: center.dy - 75,
+              x: position.x,
+              y: position.y,
               filePath: storedPath,
             ),
           );
