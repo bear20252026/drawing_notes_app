@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:drawing_notes_app/features/drawing/presentation/editor_shape_resize_geometry.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_selection_geometry.dart';
 
 /// 形状 8 向缩放手柄（四角 + 四边中点，借鉴 Excalidraw）。
 ///

@@ -1,8 +1,9 @@
-import 'package:material_ui/material_ui.dart' hide GlobalMaterialLocalizations;
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_localizations/flutter_localizations.dart'
+    hide GlobalMaterialLocalizations;
 
 import 'package:drawing_notes_app/app/default_editor_page_builder.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
@@ -107,6 +108,12 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
           title: AppLocalizations.of(context)?.appTitle ?? '绘图笔记',
           localizationsDelegates: [
             AppLocalizations.delegate,
+            // 必须用 material_ui 的 GlobalMaterialLocalizations（而非 Flutter 的）：
+            // 本应用的 Material 组件（AppBar/Scaffold 等）来自 material_ui 包，它拥有
+            // 自己的一套 MaterialLocalizations。若注册 Flutter 版，debug 模式下
+            // material_ui 组件里的 debugCheckHasMaterialLocalizations 会断言崩溃
+            // （release 断言被裁剪所以表面正常）。故 Material 用 material_ui 的，
+            // Widgets/Cupertino 仍用 flutter_localizations 的（material_ui 不导出）。
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,

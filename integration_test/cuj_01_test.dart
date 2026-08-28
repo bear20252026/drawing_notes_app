@@ -1,5 +1,6 @@
 import 'package:drawing_notes_app/app.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,7 +18,7 @@ void main() {
   });
 
   testWidgets('CUJ-01：新建画作 → 绘制 → 返回保存 → 重开内容保留', (tester) async {
-    await tester.pumpWidget(const DrawingNotesApp());
+    await tester.pumpWidget(ProviderScope(child: const DrawingNotesApp()));
     await tester.pumpAndSettle();
 
     // 1) Create：新建画作（输入名称 → 进入编辑器）。
@@ -43,7 +44,10 @@ void main() {
     await tester.pumpAndSettle();
 
     // 3) Save：返回首页（自动保存——800ms 防抖 + 退出兜底）。
-    await tester.pageBack();
+    // 注：不能用 tester.pageBack()——它会找 Flutter 的 BackButton，而本应用
+    // 的 Material 组件来自 material_ui（自带一套 BackButton 类型）。这里按中文
+    // 返回 tooltip 定位（App 已按 zh 渲染，上面 '请输入名称' 断言已证实）。
+    await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
 
     // 4) Reopen：首页列表找到画作 → 重开 → 内容保留（编辑器标题/工具栏 +

@@ -1,4 +1,4 @@
-import 'package:drawing_notes_app/features/drawing/presentation/editor_shape_resize_geometry.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_selection_geometry.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

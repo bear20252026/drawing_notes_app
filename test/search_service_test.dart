@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:drawing_notes_app/features/drawing/application/search_service.dart';
+import 'package:drawing_notes_app/shared/application/search_service.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_accessor_impl.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
