@@ -5,6 +5,25 @@ part of 'editor_page.dart';
 /// 此扩展保留页面侧的真实业务委托；纯工厂只负责把下列具名分组透传为
 /// [EditorToolbarActions]。因此 Widget 构建、回调映射与状态变更时序分别可审阅。
 extension _EditorPageToolbarActions on _EditorPageState {
+  /// 执行一次选中文字变更并统一发出持久化/自动保存通知。
+  ///
+  /// 工具栏与快捷命令都只提供纯字段变更闭包；选中态、setState 和
+  /// [_notifyChanged] 仍由组合根拥有，避免在多个动作装配点复制时序。
+  void _mutateSelectedText(void Function(PageTextItem item) mutate) {
+    final item = _selectedTextItem;
+    if (item == null) return;
+    _applyState(() => mutate(item));
+    _notifyChanged();
+  }
+
+  /// 执行一次选中形状变更并统一发出持久化/自动保存通知。
+  void _mutateSelectedShape(void Function(PageShapeItem item) mutate) {
+    final item = _selectedShapeItem;
+    if (item == null) return;
+    _applyState(() => mutate(item));
+    _notifyChanged();
+  }
+
   EditorToolbarActions _buildToolbarActions() {
     return EditorToolbarActionFactory.build(
       brush: EditorToolbarBrushActions(
@@ -64,37 +83,21 @@ extension _EditorPageToolbarActions on _EditorPageState {
         insertImage: _insertImage,
         onSelectedFontSize: _setSelectedTextFontSize,
         changeTextColor: _changeSelectedTextColor,
-        toggleBold: () => _applyState(() {
-          final selected = _selectedTextItem;
-          if (selected == null) return;
-          selected.bold = !selected.bold;
-          _notifyChanged();
+        toggleBold: () => _mutateSelectedText((item) {
+          item.bold = !item.bold;
         }),
-        toggleItalic: () => _applyState(() {
-          final selected = _selectedTextItem;
-          if (selected == null) return;
-          selected.italic = !selected.italic;
-          _notifyChanged();
+        toggleItalic: () => _mutateSelectedText((item) {
+          item.italic = !item.italic;
         }),
-        toggleUnderline: () => _applyState(() {
-          final selected = _selectedTextItem;
-          if (selected == null) return;
-          selected.underline = !selected.underline;
-          _notifyChanged();
+        toggleUnderline: () => _mutateSelectedText((item) {
+          item.underline = !item.underline;
         }),
-        toggleStrikethrough: () => _applyState(() {
-          final selected = _selectedTextItem;
-          if (selected == null) return;
-          selected.strikethrough = !selected.strikethrough;
-          _notifyChanged();
+        toggleStrikethrough: () => _mutateSelectedText((item) {
+          item.strikethrough = !item.strikethrough;
         }),
-        cycleAlign: () => _applyState(() {
-          final selected = _selectedTextItem;
-          if (selected == null) return;
-          final next = TextAlignType
-              .values[(selected.align.index + 1) % TextAlignType.values.length];
-          selected.align = next;
-          _notifyChanged();
+        cycleAlign: () => _mutateSelectedText((item) {
+          item.align = TextAlignType
+              .values[(item.align.index + 1) % TextAlignType.values.length];
         }),
         editText: _editTextItem,
         deleteSelected: _deleteSelectedItem,
@@ -104,40 +107,24 @@ extension _EditorPageToolbarActions on _EditorPageState {
         setShapeFillEnabled: (enabled) =>
             _applyState(() => _fillShapeEnabled = enabled),
         onDistribute: _distributeItems,
-        onShapeStrokeWidth: (value) {
-          final selected = _selectedShapeItem;
-          if (selected == null) return;
-          _applyState(() => selected.strokeWidth = value.clamp(1, 20));
-          _notifyChanged();
-        },
-        onShapeOpacity: (value) {
-          final selected = _selectedShapeItem;
-          if (selected == null) return;
-          _applyState(() {
-            if (value > 0.5) {
-              selected.fillColor = selected.fillColor ?? 0x66A5D6A7;
-            } else {
-              selected.fillColor = null;
-            }
-          });
-          _notifyChanged();
-        },
-        onShapeFillColor: () {
-          final selected = _selectedShapeItem;
-          if (selected == null) return;
-          _applyState(() {
-            selected.fillColor = selected.fillColor == null ? 0x66A5D6A7 : null;
-          });
-          _notifyChanged();
-        },
+        onShapeStrokeWidth: (value) => _mutateSelectedShape((item) {
+          item.strokeWidth = value.clamp(1, 20);
+        }),
+        onShapeOpacity: (value) => _mutateSelectedShape((item) {
+          if (value > 0.5) {
+            item.fillColor = item.fillColor ?? 0x66A5D6A7;
+          } else {
+            item.fillColor = null;
+          }
+        }),
+        onShapeFillColor: () => _mutateSelectedShape((item) {
+          item.fillColor = item.fillColor == null ? 0x66A5D6A7 : null;
+        }),
         onToggleMarquee: _toggleMarqueeTool,
         onReorder: _reorderSelected,
-        onToggleDash: () {
-          final selected = _selectedShapeItem;
-          if (selected == null) return;
-          _applyState(() => selected.dash = !selected.dash);
-          _notifyChanged();
-        },
+        onToggleDash: () => _mutateSelectedShape((item) {
+          item.dash = !item.dash;
+        }),
       ),
       viewport: EditorToolbarViewportActions(
         onToggleGrid: () => _applyState(() => _gridVisible = !_gridVisible),

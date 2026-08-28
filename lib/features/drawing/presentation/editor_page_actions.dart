@@ -511,29 +511,20 @@ extension _EditorPageActions on _EditorPageState {
 
   /// 切换选中文字块的加粗状态。
   void _toggleSelectedTextBold() {
-    final item = _selectedTextItem;
-    if (item == null) return;
-    _applyState(() => item.bold = !item.bold);
-    _notifyChanged();
+    _mutateSelectedText((item) => item.bold = !item.bold);
   }
 
   /// 切换选中文字块的斜体状态。
   void _toggleSelectedTextItalic() {
-    final item = _selectedTextItem;
-    if (item == null) return;
-    _applyState(() => item.italic = !item.italic);
-    _notifyChanged();
+    _mutateSelectedText((item) => item.italic = !item.italic);
   }
 
   /// 循环切换选中文字块的对齐方式。
   void _cycleSelectedTextAlign() {
-    final item = _selectedTextItem;
-    if (item == null) return;
-    _applyState(() {
+    _mutateSelectedText((item) {
       item.align = TextAlignType
           .values[(item.align.index + 1) % TextAlignType.values.length];
     });
-    _notifyChanged();
   }
 
   /// 快捷键帮助对话框（B2：从命令注册表自动生成，借鉴 Notes 快捷键文档化）。
