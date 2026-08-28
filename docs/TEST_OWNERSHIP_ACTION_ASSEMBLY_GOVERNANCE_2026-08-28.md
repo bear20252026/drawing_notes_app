@@ -12,7 +12,7 @@
 
 ## 迁移范围
 
-首批迁移直接属于编辑器 presentation 的测试：编辑器默认构建、画布交互、输入仲裁、overlay 计划/分组、选区变换、工具模式、形状缩放、图片裁剪、文字展示样式、缩放手柄和工具栏动作工厂测试。`phase1` 至 `phase7` 综合回归、存储/安全/笔记跨域测试和历史兼容测试暂不移动，因为它们的所有权横跨多个层或 feature；这样可以避免只为路径整洁而进行无收益的大搬家。
+前批迁移直接属于编辑器 presentation 的测试：编辑器默认构建、画布交互、输入仲裁、overlay 计划/分组、选区变换、工具模式、形状缩放、图片裁剪、文字展示样式、缩放手柄和工具栏动作工厂测试。本批补齐绘图阅读展示及 notes 页面编辑会话测试，分别归属 `drawing/presentation` 和 `notes/application`。必须保持 notes 领域模型测试、存储/安全测试、`phase1` 至 `phase7` 综合回归、drawing/notes 跨域测试和历史兼容测试在根目录。这样可以推进所有权，而不是只为路径整洁进行无收益的大搬家。
 
 ## 不变量
 
@@ -27,4 +27,4 @@ Flutter 测试运行器继续递归发现 `test/**/*.dart`；所有测试的 URI
 
 ## 验收标准
 
-迁移后 `find test/features/drawing/presentation -name '*.dart'` 能完整列出本批编辑器测试，根目录不再保留这些重复所有权入口；`flutter test --concurrency=1` 仍完整执行全部测试。动作工厂测试应覆盖四组输入对象中所有 `EditorToolbarActions` 输出字段，并通过计数回调验证工厂只保存引用、不提前调用任何回调。
+迁移后 `find test/features/drawing/presentation -name '*.dart'` 能完整列出编辑器测试；notes presentation 的后续迁移也应使用 `test/features/notes/presentation/`，根目录不保留重复所有权入口。`flutter test --concurrency=1` 仍完整执行全部测试。动作工厂测试应覆盖四组输入对象中所有 `EditorToolbarActions` 输出字段，并通过计数回调验证工厂只保存引用、不提前调用任何回调。
