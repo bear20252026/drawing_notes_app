@@ -294,7 +294,6 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
       await vfs.putObject(id, plain: await src.readAsBytes(), type: 'media');
       return 'vfs:$id';
     }
-    final dir = await _ensureImagesDir();
     final src = File(sourcePath);
     if (!await src.exists()) throw FileSystemException('源图片不存在', sourcePath);
     // H-03 部分落地（专家审计 2026-08-15）：源文件大小配额（防超大图片
@@ -321,18 +320,29 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
       'tiff',
     };
     final safeExt = allowed.contains(ext) ? ext : 'png';
+    final dir = await _ensureImagesDir();
     final target = File(
       '${dir.path}${Platform.pathSeparator}${pageId}_${DateTime.now().microsecondsSinceEpoch}.$safeExt',
     );
-    // H-03 双端接入（专家审计 2026-08-15）：会话密钥已注入（加密笔记本
-    // 解锁场景）→ 加密副本（DAN 文件头标记）；否则明文写入（兼容——
-    // 未加密笔记本/未解锁）。
-    final bytes = await src.readAsBytes();
-    final stored = MediaCryptoService.instance.isActive
-        ? await MediaCryptoService.instance.encryptFile(bytes)
-        : bytes;
-    await target.writeAsBytes(stored, flush: true);
-    return target.path;
+    try {
+      // H-03 双端接入（专家审计 2026-08-15）：会话密钥已注入（加密笔记本
+      // 解锁场景）→ 加密副本（DAN 文件头标记）；否则明文写入（兼容——
+      // 未加密笔记本/未解锁）。
+      final bytes = await src.readAsBytes();
+      final stored = MediaCryptoService.instance.isActive
+          ? await MediaCryptoService.instance.encryptFile(bytes)
+          : bytes;
+      await target.writeAsBytes(stored, flush: true);
+      return target.path;
+    } catch (_) {
+      // 不让加密或写入异常留下可被清理器误认为有效媒体的半成品。
+      try {
+        if (await target.exists()) await target.delete();
+      } catch (_) {
+        // 清理失败不覆盖原始异常。
+      }
+      rethrow;
+    }
   }
 
   /// 旧明文媒体迁移（H-03 专家审计 2026-08-15）：解锁后批量重加密——
