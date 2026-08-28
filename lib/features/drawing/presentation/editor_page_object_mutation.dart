@@ -120,7 +120,34 @@ class EditorTextMutation {
   }
 }
 
-/// 图片元素构造的无状态协作者；存储复制仍由页面组合根负责。
+/// 文字样式变更的无状态协作者；对话框、通知和持久化时序仍由页面层负责。
+class EditorTextStyleMutation {
+  const EditorTextStyleMutation._();
+
+  static double clampFontSize(double size) => size.clamp(8, 200).toDouble();
+
+  static void setFontSize({required PageTextItem item, required double size}) {
+    item.fontSize = clampFontSize(size);
+  }
+
+  static void setColor({required PageTextItem item, required int color}) {
+    item.color = color;
+  }
+
+  static int recolorAll({
+    required Iterable<PageTextItem> items,
+    required int color,
+  }) {
+    var changed = 0;
+    for (final item in items) {
+      item.color = color;
+      changed++;
+    }
+    return changed;
+  }
+}
+
+/// 图片元素构造的无状态协作者；存储复制仍由页面组合根负责.
 class EditorImageMutation {
   const EditorImageMutation._();
 
