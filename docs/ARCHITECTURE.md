@@ -119,6 +119,8 @@ notes 领域进一步将 `PageTemplate`、`CloneRef`、`NotebookPageContent`、`
 
 核心存储对 feature 非领域层的历史白名单已经消除：边界脚本现在对任意 `core/` → feature `application`、`infrastructure` 或 `presentation` 导入直接失败。后续可评估将重复对象编辑命令迁移为带事务/撤销契约的应用层服务，或将模板策略扩展为受版本控制的用户自定义模板库；两者都必须在独立 PR 中先设计状态、持久化和迁移边界。跨 feature 契约始终只暴露实际用到的数据和操作。
 
+测试目录也按生产所有权渐进收口：编辑器 presentation 的纯协作者、overlay 计划、工具状态、交互和动作工厂测试归属 `test/features/drawing/presentation/`；跨 drawing/notes 的综合回归、存储安全和历史兼容测试暂留 `test/` 根目录，因为它们不属于单一 feature。Flutter 仍递归发现 `test/**/*.dart`，因此该整理不需要 CI 特殊路径配置，也不改变测试名称或断言。
+
 ## 5. 本地验证
 
 项目声明 Flutter 3.47.0。推荐的最小验证序列如下：
