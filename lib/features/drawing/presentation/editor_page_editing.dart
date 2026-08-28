@@ -409,110 +409,61 @@ extension _EditorPageEditing on _EditorPageState {
     );
     if (ids.isEmpty) return;
 
-    // 统一收集三类混排元素：文本 / 图片 / 形状。
-    final all = <({String id, String? key})>[];
-    for (final t in page.textItems) {
-      all.add((id: t.id, key: t.fractionalIndex));
-    }
-    for (final i in page.imageItems) {
-      all.add((id: i.id, key: i.fractionalIndex));
-    }
-    for (final s in page.shapes) {
-      all.add((id: s.id, key: s.fractionalIndex));
-    }
-    if (all.isEmpty) return;
+    final entries = <EditorLayerOrderEntry>[
+      for (final text in page.textItems)
+        EditorLayerOrderEntry(
+          id: text.id,
+          fractionalIndex: text.fractionalIndex,
+          zOrder: text.zOrder,
+        ),
+      for (final image in page.imageItems)
+        EditorLayerOrderEntry(
+          id: image.id,
+          fractionalIndex: image.fractionalIndex,
+          zOrder: image.zOrder,
+        ),
+      for (final shape in page.shapes)
+        EditorLayerOrderEntry(
+          id: shape.id,
+          fractionalIndex: shape.fractionalIndex,
+          zOrder: shape.zOrder,
+        ),
+    ];
+    if (entries.isEmpty) return;
 
-    // 排序：有键按键序；无键（旧文档）回退 zOrder 相对顺序。
-    // 先把 zOrder 升序作为无键元素的初始次序，再整体按 (key ?? 占位) 排。
-    final zOf = <String, int>{};
-    for (final t in page.textItems) {
-      zOf[t.id] = t.zOrder;
-    }
-    for (final i in page.imageItems) {
-      zOf[i.id] = i.zOrder;
-    }
-    for (final s in page.shapes) {
-      zOf[s.id] = s.zOrder;
-    }
-    all.sort((a, b) {
-      final ka = a.key ?? _zToKey(zOf[a.id] ?? 0);
-      final kb = b.key ?? _zToKey(zOf[b.id] ?? 0);
-      final cmp = ka.compareTo(kb);
-      return cmp != 0 ? cmp : (zOf[a.id] ?? 0).compareTo(zOf[b.id] ?? 0);
-    });
-
-    final selected = all.where((e) => ids.contains(e.id)).toList();
-    if (selected.isEmpty) return;
+    final assignments = EditorLayerOrderMutation.reorder(
+      entries: entries,
+      selectedIds: ids,
+      mode: mode,
+    );
+    if (assignments.isEmpty) return;
 
     void assign(String id, String? key) {
-      for (final t in page.textItems) {
-        if (t.id == id) {
-          t.fractionalIndex = key;
+      for (final text in page.textItems) {
+        if (text.id == id) {
+          text.fractionalIndex = key;
           return;
         }
       }
-      for (final i in page.imageItems) {
-        if (i.id == id) {
-          i.fractionalIndex = key;
+      for (final image in page.imageItems) {
+        if (image.id == id) {
+          image.fractionalIndex = key;
           return;
         }
       }
-      for (final s in page.shapes) {
-        if (s.id == id) {
-          s.fractionalIndex = key;
+      for (final shape in page.shapes) {
+        if (shape.id == id) {
+          shape.fractionalIndex = key;
           return;
         }
       }
     }
 
-    String keyOf(String id) => zOf.containsKey(id)
-        ? (all.firstWhere((e) => e.id == id).key ?? _zToKey(zOf[id] ?? 0))
-        : 'a0';
-
     _applyState(() {
-      switch (mode) {
-        case 0: // 置顶：在最大键之后生成新键。
-          final maxKey = all
-              .map((e) => keyOf(e.id))
-              .reduce((a, b) => a.compareTo(b) > 0 ? a : b);
-          for (final e in selected) {
-            assign(e.id, generateKeyBetween(maxKey, null));
-          }
-        case 1: // 置底：在最小键之前生成新键。
-          final minKey = all
-              .map((e) => keyOf(e.id))
-              .reduce((a, b) => a.compareTo(b) < 0 ? a : b);
-          for (final e in selected) {
-            assign(e.id, generateKeyBetween(null, minKey));
-          }
-        case 2: // 上移：与紧邻上方元素交换键。
-          for (final e in selected) {
-            final idx = all.indexWhere((x) => x.id == e.id);
-            if (idx <= 0) continue;
-            final prev = all[idx - 1];
-            if (selected.any((s) => s.id == prev.id)) continue;
-            final curKey = keyOf(e.id);
-            assign(prev.id, curKey);
-            assign(e.id, keyOf(prev.id));
-          }
-        default: // 下移：与紧邻下方元素交换键。
-          for (final e in selected.reversed) {
-            final idx = all.indexWhere((x) => x.id == e.id);
-            if (idx < 0 || idx >= all.length - 1) continue;
-            final next = all[idx + 1];
-            if (selected.any((s) => s.id == next.id)) continue;
-            final curKey = keyOf(e.id);
-            assign(next.id, curKey);
-            assign(e.id, keyOf(next.id));
-          }
-      }
+      assignments.forEach(assign);
     });
     _notifyChanged();
   }
-
-  /// 旧文档无 fractionalIndex 时的回退键：按 zOrder 数值生成可比较的键。
-  /// 仅用于排序占位，不写入模型（保持序列化向后兼容）。
-  static String _zToKey(int z) => 'a0.${z + 0x10000000}';
 
   /// 右键上下文菜单（借鉴 Excalidraw 菜单）：复制样式/删除/置顶/置底。
   void _showItemContextMenu(String itemId) {
