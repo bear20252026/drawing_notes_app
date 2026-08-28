@@ -373,14 +373,14 @@ extension _EditorPageEditing on _EditorPageState {
       } else if (_linkSourceId != itemId) {
         final page = widget.session;
         if (page != null) {
+          final connector = EditorLinkMutation.createConnector(
+            sourceId: _linkSourceId,
+            targetId: itemId,
+            connectorId: LocalIdGenerator.next('cn'),
+          );
+          if (connector == null) return;
           _applyState(() {
-            page.connectors.add(
-              PageConnector(
-                id: LocalIdGenerator.next('cn'),
-                fromItemId: _linkSourceId!,
-                toItemId: itemId,
-              ),
-            );
+            page.connectors.add(connector);
             _viewModel.setLinkSourceId(null);
             _viewModel.setLinkMode(false);
           });

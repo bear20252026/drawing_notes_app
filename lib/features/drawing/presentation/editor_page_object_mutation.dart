@@ -1,4 +1,5 @@
 import 'package:drawing_notes_app/features/drawing/domain/page_chart_item.dart';
+import 'package:drawing_notes_app/features/drawing/domain/page_connector.dart';
 import 'package:drawing_notes_app/features/drawing/domain/page_image_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
@@ -69,5 +70,28 @@ class EditorPageObjectMutation {
     final before = items.length;
     items.removeWhere((item) => ids.contains(idOf(item)));
     return before - items.length;
+  }
+}
+
+/// 连线端点合法性与 PageConnector 构造的无状态协作者。
+class EditorLinkMutation {
+  const EditorLinkMutation._();
+
+  /// 为两个不同的画布对象创建连接；相同端点不产生连接。
+  static PageConnector? createConnector({
+    required String? sourceId,
+    required String targetId,
+    required String connectorId,
+  }) {
+    if (sourceId == null || sourceId.isEmpty || sourceId == targetId) {
+      return null;
+    }
+    if (targetId.isEmpty || connectorId.isEmpty) return null;
+
+    return PageConnector(
+      id: connectorId,
+      fromItemId: sourceId,
+      toItemId: targetId,
+    );
   }
 }

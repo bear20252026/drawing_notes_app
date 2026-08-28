@@ -31,7 +31,6 @@ import 'package:drawing_notes_app/features/drawing/infrastructure/view_transform
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/page_chart_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/page_connector.dart';
 import 'package:drawing_notes_app/features/drawing/domain/page_image_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
 import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
