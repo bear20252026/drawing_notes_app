@@ -1,59 +1,52 @@
 // 由 Claude 团队生成 | Drawing Notes App
 // WebDAV 同步配置读写（shared_preferences 持久化）。
+//
+// 机密（WebDAV 认证密码 / E2E 同步口令）不落盘于此，而是经 SyncSecretStore
+// （OS 凭据库）存储，见 sync_secret_store.dart；此处仅持久化非机密配置
+// （baseUrl / username / syncSalt）。
 
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// WebDAV 同步配置。
+import 'sync_secret_store.dart';
+
+/// WebDAV 同步配置（仅非机密字段）。
+///
+/// 机密字段（认证密码 / 同步口令）由 [SyncSecretStore] 承载，
+/// 以保证「配置（非机密）」与「机密」分离、不混入明文存储。
 class WebDavSyncConfig {
   const WebDavSyncConfig({
     this.baseUrl = '',
     this.username = '',
-    this.password = '',
-    this.syncPassphrase,
     this.syncSalt,
   });
 
   final String baseUrl; // 集合根，如 https://dav.example.com/drawing_notes/
   final String username;
-  final String password;
 
-  /// 端到端加密口令（可能为空串/未配置）。
-  final String? syncPassphrase;
-
-  /// 派生密钥用的随机盐（base64 编码）。
+  /// 派生密钥用的随机盐（base64 编码）。非机密，可与配置一起持久化。
   final String? syncSalt;
 
   bool get isConfigured => baseUrl.trim().isNotEmpty;
 
-  /// 是否已配置端到端加密：口令与盐都具备。
-  bool get hasSyncSecret =>
-      syncPassphrase != null &&
-      syncPassphrase!.isNotEmpty &&
-      syncSalt != null &&
-      syncSalt!.isNotEmpty;
+  /// 是否已具备派生密钥所需的盐。
+  bool get hasSyncSalt => syncSalt != null && syncSalt!.isNotEmpty;
 
   WebDavSyncConfig copyWith({
     String? baseUrl,
     String? username,
-    String? password,
-    String? syncPassphrase,
     String? syncSalt,
   }) =>
       WebDavSyncConfig(
         baseUrl: baseUrl ?? this.baseUrl,
         username: username ?? this.username,
-        password: password ?? this.password,
-        syncPassphrase: syncPassphrase ?? this.syncPassphrase,
         syncSalt: syncSalt ?? this.syncSalt,
       );
 
   Map<String, Object?> toJson() => {
         'baseUrl': baseUrl,
         'username': username,
-        'password': password,
-        'syncPassphrase': syncPassphrase,
         'syncSalt': syncSalt,
       };
 
@@ -61,14 +54,22 @@ class WebDavSyncConfig {
       WebDavSyncConfig(
         baseUrl: (json['baseUrl'] as String?) ?? '',
         username: (json['username'] as String?) ?? '',
-        password: (json['password'] as String?) ?? '',
-        syncPassphrase: json['syncPassphrase'] as String?,
         syncSalt: json['syncSalt'] as String?,
       );
 }
 
-/// 配置门面（shared_preferences 持久化）。
+/// 配置门面（shared_preferences 持久化，仅非机密）。
+///
+/// [secretStore]：可选注入。用于把旧版本明文存储的机密迁移到 OS 凭据库，
+/// 并在迁移成功后剥离配置中的明文键（幂等）。生产组合根应总是注入
+/// `SecureSyncSecretStore`；测试可注入 `MemorySyncSecretStore` 或留空。
 class WebDavConfigStore {
+  /// [secretStore]：可选注入，用于把旧版本明文机密迁移到 OS 凭据库。
+  /// 生产组合根应总是注入 `SecureSyncSecretStore`；测试可留空或注入替身。
+  WebDavConfigStore([this._secretStore]);
+
+  final SyncSecretStore? _secretStore;
+
   static const _key = 'webdav_sync_config';
 
   Future<WebDavSyncConfig> load() async {
@@ -77,12 +78,42 @@ class WebDavConfigStore {
     if (raw == null) return const WebDavSyncConfig();
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
-      return WebDavSyncConfig.fromJson(
-        Map<String, Object?>.from(decoded),
-      );
+      final map = Map<String, Object?>.from(decoded);
+      final cfg = WebDavSyncConfig.fromJson(map);
+      await _migrateLegacySecrets(prefs, map);
+      return cfg;
     } catch (_) {
       return const WebDavSyncConfig();
     }
+  }
+
+  /// 旧版本把机密（password / syncPassphrase）明文存进配置 JSON。
+  ///
+  /// 若存在且注入了 secretStore，则迁移到机密存储，并重写配置（剥离明文）。
+  /// 未注入 secretStore 时不做迁移、不剥离，避免丢数据。
+  Future<void> _migrateLegacySecrets(
+    SharedPreferences prefs,
+    Map<String, Object?> map,
+  ) async {
+    if (!map.containsKey('password') && !map.containsKey('syncPassphrase')) {
+      return;
+    }
+    final store = _secretStore;
+    if (store == null) return;
+    final legacyPassword = (map['password'] as String?)?.trim() ?? '';
+    final legacyPassphrase =
+        (map['syncPassphrase'] as String?)?.trim() ?? '';
+    if (legacyPassword.isEmpty && legacyPassphrase.isEmpty) {
+      return;
+    }
+    await store.write(SyncSecrets(
+      webdavPassword: legacyPassword.isEmpty ? null : legacyPassword,
+      syncPassphrase: legacyPassphrase.isEmpty ? null : legacyPassphrase,
+    ));
+    // 迁移成功后剥离明文键，避免再次读取到。
+    map.remove('password');
+    map.remove('syncPassphrase');
+    await prefs.setString(_key, jsonEncode(map));
   }
 
   Future<void> save(WebDavSyncConfig config) async {

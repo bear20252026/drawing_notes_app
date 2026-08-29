@@ -13,13 +13,15 @@ import 'package:drawing_notes_app/core/sync/sync_service.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/file_sync_baseline_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_sync_store.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/sync_secret_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/webdav_config_store.dart';
 
 /// WebDAV 同步设置页。
 class WebDavSyncSettingsPage extends StatefulWidget {
-  const WebDavSyncSettingsPage({super.key, this.configStore});
+  const WebDavSyncSettingsPage({super.key, this.configStore, this.secretStore});
 
   final WebDavConfigStore? configStore;
+  final SyncSecretStore? secretStore;
 
   @override
   State<WebDavSyncSettingsPage> createState() => _WebDavSyncSettingsPageState();
@@ -27,6 +29,7 @@ class WebDavSyncSettingsPage extends StatefulWidget {
 
 class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
   late final WebDavConfigStore _configStore;
+  late final SyncSecretStore _secretStore;
   final _url = TextEditingController();
   final _user = TextEditingController();
   final _pass = TextEditingController();
@@ -38,18 +41,21 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
   @override
   void initState() {
     super.initState();
-    _configStore = widget.configStore ?? WebDavConfigStore();
+    _configStore = widget.configStore ??
+        WebDavConfigStore(SecureSyncSecretStore());
+    _secretStore = widget.secretStore ?? SecureSyncSecretStore();
     _loadConfig();
   }
 
   Future<void> _loadConfig() async {
     final cfg = await _configStore.load();
+    final secrets = await _secretStore.read();
     if (!mounted) return;
     setState(() {
       _url.text = cfg.baseUrl;
       _user.text = cfg.username;
-      _pass.text = cfg.password;
-      _syncSecret.text = cfg.syncPassphrase ?? '';
+      _pass.text = secrets.webdavPassword ?? '';
+      _syncSecret.text = secrets.syncPassphrase ?? '';
     });
   }
 
@@ -67,9 +73,11 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     await _configStore.save(WebDavSyncConfig(
       baseUrl: _url.text.trim(),
       username: _user.text.trim(),
-      password: _pass.text,
-      syncPassphrase: passphrase.isEmpty ? null : passphrase,
       syncSalt: saltBase64,
+    ));
+    await _secretStore.write(SyncSecrets(
+      webdavPassword: _pass.text.isEmpty ? null : _pass.text,
+      syncPassphrase: passphrase.isEmpty ? null : passphrase,
     ));
     if (!mounted) return;
     _toast(passphrase.isEmpty
@@ -91,7 +99,10 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     });
     try {
       final cfg = await _configStore.load();
-      final cipher = await _buildCipher(cfg);
+      final cipher = await _buildCipher(
+        syncSalt: cfg.syncSalt,
+        syncPassphrase: _syncSecret.text.trim(),
+      );
       final service = SyncService(
         transport: WebDavSyncClient(
           baseUrl: uri,
@@ -178,11 +189,16 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     return base;
   }
 
-  // 已配置口令 → 派生主密钥并用 AES 加密器；否则用 Noop（明文透传）。
-  Future<SyncCipher> _buildCipher(WebDavSyncConfig cfg) async {
-    if (!cfg.hasSyncSecret) return const NoopSyncCipher();
-    final salt = base64Decode(cfg.syncSalt!);
-    final key = await deriveMasterKey(cfg.syncPassphrase!, salt);
+  // 已配置口令（含盐）→ 派生主密钥并用 AES 加密器；否则用 Noop（明文透传）。
+  Future<SyncCipher> _buildCipher({
+    required String? syncSalt,
+    required String syncPassphrase,
+  }) async {
+    if (syncSalt == null || syncSalt.isEmpty || syncPassphrase.isEmpty) {
+      return const NoopSyncCipher();
+    }
+    final salt = base64Decode(syncSalt);
+    final key = await deriveMasterKey(syncPassphrase, salt);
     return AesSyncCipher(key: key);
   }
 
