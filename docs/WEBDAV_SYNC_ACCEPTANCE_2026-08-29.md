@@ -1,7 +1,7 @@
 # WebDAV 本地优先同步 验收记录
 
-> 状态：✅ 已收口（commit `8f60c4d`，叠 `a2ef16a` / `ba418a7`）
-> 门禁：`flutter analyze` 0 问题 · architecture 测试全通过 · `flutter test` **1094** 全通过
+> 状态：✅ 已收口（commit `8f60c4d`，叠 `a2ef16a` / `ba418a7`）；端到端加密已收口（commit `2252bfd`）
+> 门禁：`flutter analyze` 0 问题 · architecture 测试全通过 · `flutter test` **1124** 全通过
 
 ## 目标
 
@@ -37,6 +37,25 @@
 
 - 跳过：端到端加密、冲突副本 UI、同步进度/重试可视化（设计参考 `DOCS_/UPSTREAM_SOURCE_AUDIT_NOTES` 与 `SABER_SPECIAL_RESEARCH_REPORT`）。当前为本地优先的确定性 manifest 计划器，无队列/退避——已在架构层预留扩展点。
 - 远端覆盖策略为「updatedAt 较新者胜」的 last-write-wins，依赖本地文档 `updatedAt` 单调性。
+
+## 端到端加密（P4-A，commit `2252bfd`）
+
+> 边界：**本地优先、零服务器设计**。用户明确「不做服务器设计」——WebDAV 仅作为一台通用对象目录（Nextcloud/自建均可），不引入任何自定义服务端契约。加密、密钥派生、manifest 比对、文件名混淆全部在客户端完成。
+
+### 设计
+- `abstract SyncCipher`：`remotePath(docId)` / `encryptDocumentBytes` / `decryptDocumentBytes` / `sealManifestJson` / `openManifestJson`。
+- `NoopSyncCipher`：恒等实现，作为默认值——**既有行为与全部测试不变**。
+- `AesSyncCipher`：AES-256-GCM（`package:cryptography`），AAD 绑定 docId（文档）与 manifest 上下文（清单），`remotePath` = HMAC-SHA256(key, docId) hex（64 字符，确定性、不可逆，服务端只见不可读 blob 名）。密钥经 PBKDF2-SHA256（600k 迭代）从「同步密码 + 盐」派生（`deriveMasterKey` / `generateSalt` 顶层函数）。
+- `SyncService` 注入可选 `cipher`（默认 Noop）：上传前 `encryptDocumentBytes`→PUT `remotePath(docId)`；下载 GET `remotePath`→`decryptDocumentBytes`→写文档；deleteRemote 用 `remotePath`；manifest 上下行 `seal/openManifestJson`。
+
+### 测试（+21）
+- `sync_cipher_test.dart`：18（Noop 恒等、AES 往返/随机 nonce、AAD 绑定 docId 换位失败、错误密钥失败、manifest 密封、remotePath 确定性/敏感/不可逆、deriveMasterKey 确定性/generateSalt 随机）
+- `sync_service_test.dart` +3 E2E：上传只见密文 + sealed manifest 且可解密还原 / 跨设备同密钥下载解密 / Noop 明文
+
+### 已知边界
+- **口令变更 = 密钥变更**：既改密后，旧远端密文无法再用旧口令解密；需重建集合全量重传（登记为后续强化项）。
+- 同步密码存储于 SharedPreferences（`webdav_sync_config`），非平台安全存储；升级到 `flutter_secure_storage` 为后续安全强化项。
+- 盐一旦生成不改，保证派生 key 对既有密文稳定。
 
 ## 相关文档
 
