@@ -2,7 +2,9 @@ name: Release Build (Windows + Android)
 
 # 云端打包：从 GitHub 托管的 runner 上构建发布产物，走 Actions 上传 Artifact，
 # 再由使用者下载（不在本地机器打包，保证构建环境统一、可复现）。
-# 触发方式：Workflow 页面手动 Dispatch（可分别勾选 Android / Windows）。
+# 触发方式：
+#  - Workflow 页面手动 Dispatch（可分别勾选 Android / Windows）
+#  - 推送 tag v* 时自动构建并在 GitHub Release 挂载 Windows 安装包
 
 on:
   workflow_dispatch:
@@ -12,11 +14,14 @@ on:
         type: boolean
         default: true
       build_windows:
-        description: '构建 Windows 桌面版'
+        description: '构建 Windows 桌面版（含 setup 安装包）'
         type: boolean
         default: true
+  push:
+    tags:
+      - 'v*'
 
-# 最小权限（与 sbom.yml 一致）：上传 Artifact 在 contents: read 下即可工作。
+# 权限：Android 任务仅需读；Windows 任务需要 contents: write 以便打 tag 时创建 Release。
 permissions:
   contents: read
 
@@ -72,8 +77,10 @@ jobs:
 
   windows:
     name: Windows Release Build
-    if: ${{ inputs.build_windows }}
+    if: ${{ inputs.build_windows || startsWith(github.ref, 'refs/tags/') }}
     runs-on: windows-latest
+    permissions:
+      contents: write
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v6
@@ -96,9 +103,40 @@ jobs:
       - name: Build Windows release
         run: flutter build windows --release
 
-      - name: Upload Windows artifacts
+      - name: Install Inno Setup 6
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) { throw "ISCC.exe not found after chocolatey install" }
+
+      - name: Build Windows setup installer (Inno Setup)
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          & $iscc "tools/drawing_notes_setup.iss"
+          if (-not (Get-ChildItem "build/windows/installer/setup_*.exe" -ErrorAction SilentlyContinue)) {
+            throw "setup_*.exe not produced by ISCC"
+          }
+
+      - name: Upload Windows raw release
         uses: actions/upload-artifact@v4
         with:
           name: windows-release
           path: build/windows/x64/runner/Release/
           if-no-files-found: error
+
+      - name: Upload Windows setup installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-setup-installer
+          path: build/windows/installer/setup_*.exe
+          if-no-files-found: error
+
+      - name: Create/update GitHub Release with installer (tag push only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/windows/installer/setup_*.exe
+          draft: false
+          generate_release_notes: true

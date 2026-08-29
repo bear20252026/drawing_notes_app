@@ -88,6 +88,8 @@ M10 收口后**全库无旧深蓝/旧紫硬色**（仅保留 `app_design.dart` /
 - **安装包**：Inno Setup 6 脚本 `tools/drawing_notes_setup.iss`（可移植相对路径）→ 生成
   `build\windows\installer\setup_绘图笔记_1.1.0.exe`（16.0 MB，LZMA2 高压缩、64 位 x64、管理员权限、默认装 `C:\Program Files\绘图笔记`、开始菜单+可选桌面图标、安装后可立即启动）。
 
+**云端构建（GitHub Actions）**：`.github/workflows/release-build.yml` 的 `windows` 任务在 windows-latest runner 上自动 `flutter build windows --release` → `choco install innosetup` → `ISCC tools/drawing_notes_setup.iss` → 上传 `windows-setup-installer` artifact；推送 `v*` tag 时自动创建 GitHub Release 并挂载安装包（需 `contents: write` 权限，已按任务级配置）。
+
 > 深蓝暗色模式实机复测说明：外部直改 prefs `flutter.theme_mode` 不生效（Windows shared_preferences 插件缓存/异步回写怪癖，非代码缺陷）。已用端到端探针测试**确定性证明**完整深色链路可用：prefs=dark → `AppThemeController.mode=dark` → 真实 app 接线（`themeProvider`+`AppDesign.darkTheme()`）下 mui MaterialApp 解析 `Brightness.dark`(navy)。用户经应用内设置的主题切换（`controller.cycle()`）即正确显示深蓝。
 
 ## 7. 结构评估（lead 理解）
