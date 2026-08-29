@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
+import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
 import 'package:drawing_notes_app/core/sync/sync_planner.dart';
 import 'package:drawing_notes_app/core/sync/sync_service.dart';
 
@@ -115,12 +116,16 @@ SyncService _service(
   _MemoryDocStore store,
   _MemoryServer server, {
   _MemoryBaseline? baseline,
+  SyncCipher cipher = const NoopSyncCipher(),
 }) =>
     SyncService(
       transport: WebDavSyncClient(baseUrl: Uri.parse(_base), client: server.client()),
       documentStore: store,
       baselineStore: baseline ?? _MemoryBaseline(),
+      cipher: cipher,
     );
+
+AesSyncCipher _aes() => AesSyncCipher(key: List<int>.generate(32, (i) => i));
 
 void main() {
   group('SyncService 首次同步', () {
@@ -198,6 +203,77 @@ void main() {
       final r = await s.syncNow();
       expect(r.downloaded, 1);
       expect(store.docs.containsKey('c'), isTrue);
+    });
+  });
+
+  group('SyncService 端到端加密', () {
+    test('上传时服务端只见密文 blob + sealed manifest，本机可解密还原', () async {
+      final cipher = _aes();
+      final store = _MemoryDocStore();
+      store.docs['a'] = _Doc('a', _localDocBytes(10), 10);
+      final server = _MemoryServer();
+      final s = _service(store, server, cipher: cipher);
+
+      final r = await s.syncNow();
+      expect(r.uploaded, 1);
+
+      // 远端 manifest 是 sealed（密文 envelope），不是明文 {"entries":...}。
+      final rawManifest = utf8.decode(server.files['manifest.json']!);
+      final seal = jsonDecode(rawManifest) as Map<String, dynamic>;
+      expect(seal.containsKey('mode'), isTrue);
+      expect(seal['mode'], 'sync-manifest');
+      // 用同一 cipher 打开后能还原出合法 manifest。
+      final opened = jsonDecode(await cipher.openManifestJson(rawManifest))
+          as Map<String, dynamic>;
+      expect((opened['entries'] as Map).containsKey('a'), isTrue);
+
+      // 远端文档路径 = HMAC(docId)，非明文 'a'；内容为密文。
+      final remoteKey = cipher.remotePath('a');
+      expect(remoteKey != 'a', isTrue);
+      expect(server.files.containsKey(remoteKey), isTrue);
+      expect(server.files.containsKey('a'), isFalse);
+      // 密文可用同一 cipher 解回原文。
+      final plain = await cipher.decryptDocumentBytes(
+        Uint8List.fromList(server.files[remoteKey]!),
+        'a',
+      );
+      expect(utf8.decode(plain), jsonEncode({'updatedAt': 10}));
+    });
+
+    test('另一台同密钥设备可下载并解密回明文；二轮无变化', () async {
+      final cipher = _aes();
+      // 第一台设备上传。
+      final storeA = _MemoryDocStore();
+      storeA.docs['a'] = _Doc('a', _localDocBytes(10), 10);
+      final server = _MemoryServer();
+      await _service(storeA, server, cipher: cipher).syncNow();
+
+      // 第二台设备（空本地）用同一密钥同步 → 下载并解密。
+      final storeB = _MemoryDocStore();
+      final s = _service(storeB, server, cipher: cipher);
+      final r1 = await s.syncNow();
+      expect(r1.downloaded, 1);
+      expect(utf8.decode(storeB.docs['a']!.bytes), jsonEncode({'updatedAt': 10}));
+
+      // 第二台设备再次同步 → 无变化。
+      final r2 = await s.syncNow();
+      expect(r2.uploaded, 0);
+      expect(r2.downloaded, 0);
+    });
+
+    test('未配置 cipher（Noop）时上传/下载为明文，服务端可读 manifest', () async {
+      final store = _MemoryDocStore();
+      store.docs['a'] = _Doc('a', _localDocBytes(10), 10);
+      final server = _MemoryServer();
+      final s = _service(store, server);
+
+      final r = await s.syncNow();
+      expect(r.uploaded, 1);
+      expect(server.files.containsKey('a'), isTrue);
+      expect(server.files.containsKey('manifest.json'), isTrue);
+      final manifest = jsonDecode(utf8.decode(server.files['manifest.json']!))
+          as Map<String, dynamic>;
+      expect((manifest['entries'] as Map).containsKey('a'), isTrue);
     });
   });
 }

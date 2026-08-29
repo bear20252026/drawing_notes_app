@@ -14,6 +14,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
+import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
 import 'package:drawing_notes_app/core/sync/sync_planner.dart';
 
 /// 一个待同步文档的元数据（用于构成本地 manifest）。
@@ -76,6 +77,7 @@ class SyncService {
     required this.documentStore,
     required this.baselineStore,
     this.planner = const SyncPlanner(),
+    this.cipher = const NoopSyncCipher(),
   });
 
   /// WebDAV 传输客户端。
@@ -88,6 +90,9 @@ class SyncService {
   final SyncBaselineStore baselineStore;
 
   final SyncPlanner planner;
+
+  /// 端到端加密（默认 [NoopSyncCipher]：明文透传，保现有行为与既有测试）。
+  final SyncCipher cipher;
 
   static const String manifestPath = 'manifest.json';
 
@@ -104,7 +109,8 @@ class SyncService {
     final remoteManifest = remoteBytes == null
         ? const SyncManifest()
         : SyncManifest.fromJson(
-            jsonDecode(utf8.decode(remoteBytes)) as Map<String, dynamic>,
+            jsonDecode(await cipher.openManifestJson(utf8.decode(remoteBytes)))
+                as Map<String, dynamic>,
           );
 
     // 3. 构本地 manifest：当前文档 + 删除墓碑（基线有但当前无 → 墓碑）。
@@ -145,7 +151,9 @@ class SyncService {
     final newManifest = SyncManifest(entries: newEntries);
     await transport.putBytes(
       manifestPath,
-      utf8.encode(jsonEncode(newManifest.toJson())),
+      utf8.encode(
+        await cipher.sealManifestJson(jsonEncode(newManifest.toJson())),
+      ),
     );
     await baselineStore.save(newManifest);
 
@@ -167,17 +175,19 @@ class SyncService {
         case SyncOperationKind.upload:
           final bytes = await documentStore.readDocument(op.id);
           if (bytes != null) {
-            await transport.putBytes(op.id, bytes);
+            final wire = await cipher.encryptDocumentBytes(bytes, op.id);
+            await transport.putBytes(cipher.remotePath(op.id), wire);
           }
           break;
         case SyncOperationKind.download:
-          final bytes = await transport.getBytes(op.id);
+          final bytes = await transport.getBytes(cipher.remotePath(op.id));
           if (bytes != null) {
-            await documentStore.writeDocument(op.id, bytes);
+            final plain = await cipher.decryptDocumentBytes(bytes, op.id);
+            await documentStore.writeDocument(op.id, plain);
           }
           break;
         case SyncOperationKind.deleteRemote:
-          await transport.deleteRemaining(op.id);
+          await transport.deleteRemaining(cipher.remotePath(op.id));
           break;
       }
     }

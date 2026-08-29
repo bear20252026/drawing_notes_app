@@ -11,29 +11,50 @@ class WebDavSyncConfig {
     this.baseUrl = '',
     this.username = '',
     this.password = '',
+    this.syncPassphrase,
+    this.syncSalt,
   });
 
   final String baseUrl; // 集合根，如 https://dav.example.com/drawing_notes/
   final String username;
   final String password;
 
+  /// 端到端加密口令（可能为空串/未配置）。
+  final String? syncPassphrase;
+
+  /// 派生密钥用的随机盐（base64 编码）。
+  final String? syncSalt;
+
   bool get isConfigured => baseUrl.trim().isNotEmpty;
+
+  /// 是否已配置端到端加密：口令与盐都具备。
+  bool get hasSyncSecret =>
+      syncPassphrase != null &&
+      syncPassphrase!.isNotEmpty &&
+      syncSalt != null &&
+      syncSalt!.isNotEmpty;
 
   WebDavSyncConfig copyWith({
     String? baseUrl,
     String? username,
     String? password,
+    String? syncPassphrase,
+    String? syncSalt,
   }) =>
       WebDavSyncConfig(
         baseUrl: baseUrl ?? this.baseUrl,
         username: username ?? this.username,
         password: password ?? this.password,
+        syncPassphrase: syncPassphrase ?? this.syncPassphrase,
+        syncSalt: syncSalt ?? this.syncSalt,
       );
 
   Map<String, Object?> toJson() => {
         'baseUrl': baseUrl,
         'username': username,
         'password': password,
+        'syncPassphrase': syncPassphrase,
+        'syncSalt': syncSalt,
       };
 
   factory WebDavSyncConfig.fromJson(Map<String, Object?> json) =>
@@ -41,6 +62,8 @@ class WebDavSyncConfig {
         baseUrl: (json['baseUrl'] as String?) ?? '',
         username: (json['username'] as String?) ?? '',
         password: (json['password'] as String?) ?? '',
+        syncPassphrase: json['syncPassphrase'] as String?,
+        syncSalt: json['syncSalt'] as String?,
       );
 }
 
