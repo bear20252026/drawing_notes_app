@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/presentation/note_frame_preview.dart';
@@ -143,7 +144,7 @@ void main() {
     );
     final text = tester.widget<Text>(find.text('Google'));
     expect(text.style?.decoration, TextDecoration.underline);
-    expect(text.style?.color, Colors.blue);
+    expect(text.style?.color, AppleColor.actionBlue);
   });
 
   testWidgets('内嵌占位（画布/图表/表格/数据库）显示标签', (tester) async {

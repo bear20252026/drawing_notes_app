@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart' show listEquals, mapEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_connector.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_group.dart';
@@ -337,6 +338,7 @@ class _EdgelessPageState extends State<EdgelessPage> {
                               painter: _GroupPainter(
                                 groups: _controller.groups,
                                 framesById: _controller.framesById,
+                                chipBgColor: Theme.of(context).colorScheme.surface,
                               ),
                             ),
                           ),
@@ -412,15 +414,23 @@ class _FrameCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final border = selected
-        ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
-        : Border.all(color: Colors.black26, width: 1);
+        ? Border.all(color: AppleColor.actionBlue, width: 2)
+        : Border.all(color: Theme.of(context).colorScheme.outlineVariant, width: 1);
+    // 帧=纸面（AFFiNE note 帧）：文字墨色随纸面亮度自适应，保证深色模式下浅纸仍是深字可读。
+    final paper = _bgColor();
+    final ink = paper.computeLuminance() > 0.5
+        ? const Color(0xFF1D1D1F) // 亮纸用墨色正文
+        : Colors.white; // 暗纸用白色正文
     final body = Container(
       decoration: BoxDecoration(
         color: _bgColor(),
         border: border,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
+        borderRadius: BorderRadius.circular(AppleRadius.md),
+        boxShadow: [
+          BoxShadow(
+              color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.08),
+              blurRadius: 6,
+              offset: const Offset(0, 2)),
         ],
       ),
       clipBehavior: Clip.antiAlias,
@@ -428,7 +438,7 @@ class _FrameCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Material(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: ink.withValues(alpha: 0.08),
             child: Row(
               children: [
                 Expanded(
@@ -438,17 +448,15 @@ class _FrameCard extends StatelessWidget {
                       frame.doc.title.isNotEmpty ? frame.doc.title : '未命名',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: AppleType.captionStyle(ink)
+                          .copyWith(fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
                 // 帧背景色（AFFiNE note 帧背景预设）
                 InkWell(
                   onTap: onSetBackground,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(AppleRadius.lg),
                   child: Tooltip(
                     message: '帧背景色',
                     child: Container(
@@ -458,12 +466,13 @@ class _FrameCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: _bgColor(),
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.black26),
+                        border: Border.all(
+                            color: Theme.of(context).colorScheme.outlineVariant),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.format_color_fill,
                         size: 12,
-                        color: Colors.black54,
+                        color: ink.withValues(alpha: 0.6),
                       ),
                     ),
                   ),
@@ -496,7 +505,7 @@ class _FrameCard extends StatelessWidget {
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(2),
-              child: NoteFramePreview(doc: frame.doc, showTitle: false),
+              child: NoteFramePreview(doc: frame.doc, showTitle: false, inkColor: ink),
             ),
           ),
         ],
@@ -572,9 +581,9 @@ class _CornerHandleState extends State<_CornerHandle> {
         onPanEnd: (_) => _dragging = false,
         child: Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary,
-            borderRadius: BorderRadius.circular(3),
-            border: Border.all(color: Colors.white, width: 1.5),
+            color: AppleColor.actionBlue,
+            borderRadius: BorderRadius.circular(AppleRadius.xs),
+            border: Border.all(color: Theme.of(context).colorScheme.surface, width: 1.5),
           ),
         ),
       ),
@@ -702,11 +711,8 @@ class _ConnectorPainter extends CustomPainter {
         final tp = TextPainter(
           text: TextSpan(
             text: label,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
-            ),
+            style: AppleType.captionStyle(color)
+                .copyWith(fontWeight: FontWeight.w500),
           ),
           textDirection: TextDirection.ltr,
         )..layout(maxWidth: 200);
@@ -724,10 +730,15 @@ class _ConnectorPainter extends CustomPainter {
 /// 世界坐标群组框画师：在帧上方绘制 `affine:group` 外接框（圆角边框 + 半透明填充 + 组名角标）。
 /// 组外接矩形由成员帧矩形并集即时推导，帧移动/缩放后边框自动跟随。
 class _GroupPainter extends CustomPainter {
-  _GroupPainter({required this.groups, required this.framesById});
+  _GroupPainter({
+    required this.groups,
+    required this.framesById,
+    this.chipBgColor,
+  });
 
   final List<EdgelessGroup> groups;
   final Map<String, NoteFrame> framesById;
+  final Color? chipBgColor;
 
   static Color _colorOf(String hex) {
     final v = int.tryParse(hex.replaceFirst('#', ''), radix: 16) ?? 0x4CAF50;
@@ -787,7 +798,7 @@ class _GroupPainter extends CustomPainter {
         );
         canvas.drawRRect(
           RRect.fromRectAndRadius(chipRect, const Radius.circular(4)),
-          Paint()..color = Colors.white.withValues(alpha: 0.92),
+          Paint()..color = (chipBgColor ?? AppleColor.surfaceWhite).withValues(alpha: 0.92),
         );
         tp.paint(canvas, Offset(chipRect.left + 5, chipRect.top + 2));
       }
@@ -815,23 +826,24 @@ class _ConnectBanner extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         decoration: BoxDecoration(
-          color: const Color(0xFFBF5AF2),
-          borderRadius: BorderRadius.circular(24),
+          color: AppleColor.blockPurple,
+          borderRadius: BorderRadius.circular(AppleRadius.full),
         ),
         child: Row(
           children: [
-            const Icon(Icons.call_made, color: Colors.white, size: 18),
+            const Icon(Icons.call_made, color: AppleColor.surfaceWhite, size: 18),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 '连线模式：点击另一帧创建连接（起点 $sourceId）',
-                style: const TextStyle(color: Colors.white, fontSize: 13),
+                style: AppleType.controlStyle(AppleColor.surfaceWhite),
               ),
             ),
             IconButton(
               tooltip: '取消',
               visualDensity: VisualDensity.compact,
-              icon: const Icon(Icons.close, color: Colors.white, size: 18),
+              icon:
+                  const Icon(Icons.close, color: AppleColor.surfaceWhite, size: 18),
               onPressed: onCancel,
             ),
           ],

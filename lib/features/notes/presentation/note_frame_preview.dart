@@ -10,6 +10,7 @@
 
 import 'package:flutter/material.dart';
 
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 
@@ -24,6 +25,7 @@ class NoteFramePreview extends StatelessWidget {
     required this.doc,
     this.showTitle = false,
     this.padding = const EdgeInsets.fromLTRB(16, 12, 16, 12),
+    this.inkColor,
   });
 
   /// 要预览的块文档。
@@ -35,6 +37,10 @@ class NoteFramePreview extends StatelessWidget {
   /// 帧内边距。
   final EdgeInsets padding;
 
+  /// 纸面墨色。传入时覆盖默认的 `colorScheme.onSurface`，使深色模式下
+  /// 白纸帧内容仍为深字可读；为 null 时用主题 onSurface（默认）。
+  final Color? inkColor;
+
   @override
   Widget build(BuildContext context) {
     final title = doc.title;
@@ -43,6 +49,7 @@ class NoteFramePreview extends StatelessWidget {
       return const SizedBox.shrink();
     }
     final counter = _orderedCounter();
+    final ink = inkColor ?? Theme.of(context).colorScheme.onSurface;
     return Padding(
       padding: padding,
       child: Column(
@@ -54,10 +61,11 @@ class NoteFramePreview extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                   height: 1.3,
+                  color: ink,
                 ),
               ),
             ),
@@ -65,6 +73,7 @@ class NoteFramePreview extends StatelessWidget {
             (block) => _NoteBlockPreviewRow(
               block: block,
               orderedCounter: counter,
+              inkColor: ink,
             ),
           ),
         ],
@@ -90,15 +99,20 @@ class _NoteBlockPreviewRow extends StatelessWidget {
     required this.block,
     required this.orderedCounter,
     this.indent = 0,
+    this.inkColor,
   });
 
   final NoteBlock block;
   final int Function(NoteBlock block) orderedCounter;
   final double indent;
 
+  /// 纸面墨色（透传自宿主）；为 null 时用主题 onSurface。
+  final Color? inkColor;
+
   @override
   Widget build(BuildContext context) {
-    final baseStyle = _blockStyle(context, block);
+    final ink = inkColor ?? Theme.of(context).colorScheme.onSurface;
+    final baseStyle = _blockStyle(context, block, ink);
     final children = block.children;
     final content = _buildContent(context, baseStyle);
     final row = Padding(
@@ -118,6 +132,7 @@ class _NoteBlockPreviewRow extends StatelessWidget {
             block: child,
             orderedCounter: orderedCounter,
             indent: indent + 20,
+            inkColor: ink,
           ),
       ],
     );
@@ -148,9 +163,11 @@ class _NoteBlockPreviewRow extends StatelessWidget {
             Icon(
               checked ? Icons.check_box : Icons.check_box_outline_blank,
               size: 16,
-              color: checked ? Colors.green : Colors.grey,
+              color: checked
+                  ? AppleColor.noteGreen
+                  : baseStyle.color!.withValues(alpha: 0.6),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: AppleSpacing.xs),
             Expanded(
               child: Text(
                 block.text,
@@ -166,10 +183,11 @@ class _NoteBlockPreviewRow extends StatelessWidget {
       case NoteBlockType.code:
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          padding:
+              const EdgeInsets.symmetric(horizontal: AppleSpacing.sm, vertical: 8),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(AppleRadius.sm),
           ),
           child: Text(
             block.text.isNotEmpty ? block.text : '代码块',
@@ -184,36 +202,41 @@ class _NoteBlockPreviewRow extends StatelessWidget {
         return Container(
           width: double.infinity,
           padding: const EdgeInsets.only(left: 10),
-          decoration: const BoxDecoration(
-            border: Border(left: BorderSide(color: Colors.grey, width: 3)),
+          decoration: BoxDecoration(
+            border: Border(
+                left: BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                    width: 3)),
           ),
           child: Text(block.text, style: baseStyle.copyWith(fontStyle: FontStyle.italic)),
         );
       case NoteBlockType.callout:
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(AppleSpacing.sm),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.4),
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(AppleRadius.sm),
           ),
           child: Text(block.text, style: baseStyle),
         );
       case NoteBlockType.divider:
         return const Padding(
-          padding: EdgeInsets.symmetric(vertical: 6),
+          padding: EdgeInsets.symmetric(vertical: AppleSpacing.xs),
           child: Divider(height: 1),
         );
       case NoteBlockType.image:
         final src = block.props['src'] as String? ?? '';
         return Row(
           children: [
-            const Icon(Icons.image_outlined, color: Colors.blueGrey, size: 16),
-            const SizedBox(width: 6),
+            Icon(Icons.image_outlined,
+                color: baseStyle.color!.withValues(alpha: 0.6), size: 16),
+            const SizedBox(width: AppleSpacing.xs),
             Expanded(
               child: Text(
                 src.isNotEmpty ? src : '图片',
-                style: baseStyle.copyWith(color: Colors.blueGrey),
+                style: baseStyle
+                    .copyWith(color: baseStyle.color!.withValues(alpha: 0.6)),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -224,7 +247,7 @@ class _NoteBlockPreviewRow extends StatelessWidget {
         return Text(
           block.text.isEmpty ? (href.isEmpty ? '链接' : href) : block.text,
           style: baseStyle.copyWith(
-            color: Colors.blue,
+            color: AppleColor.actionBlue,
             decoration: TextDecoration.underline,
           ),
         );
@@ -244,22 +267,23 @@ class _NoteBlockPreviewRow extends StatelessWidget {
   }
 
   Widget _embeddedPlaceholder(
-      BuildContext _, String label, IconData icon, TextStyle baseStyle) {
+      BuildContext context, String label, IconData icon, TextStyle baseStyle) {
     return Row(
       children: [
-        Icon(icon, color: Colors.blueGrey, size: 16),
-        const SizedBox(width: 6),
-        Text(label, style: baseStyle.copyWith(color: Colors.blueGrey)),
+        Icon(icon, color: baseStyle.color!.withValues(alpha: 0.6), size: 16),
+        const SizedBox(width: AppleSpacing.xs),
+        Text(label,
+            style: baseStyle.copyWith(color: baseStyle.color!.withValues(alpha: 0.6))),
       ],
     );
   }
 
-  TextStyle _blockStyle(BuildContext context, NoteBlock block) {
+  TextStyle _blockStyle(BuildContext context, NoteBlock block, Color ink) {
     final subtle = (block.props['checked'] as bool?) ?? false;
     return TextStyle(
       fontSize: 14,
       height: 1.5,
-      color: Theme.of(context).colorScheme.onSurface,
+      color: ink,
       decoration: subtle ? TextDecoration.lineThrough : TextDecoration.none,
     );
   }

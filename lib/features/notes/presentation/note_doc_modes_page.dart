@@ -11,6 +11,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
@@ -191,12 +192,12 @@ class NoteDocModesPageState extends State<NoteDocModesPage> {
 
   Widget _buildModeBar() {
     return Material(
-      elevation: 1,
+      elevation: 0.5,
       color: Theme.of(context).colorScheme.surface,
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: AppleSpacing.md, vertical: AppleSpacing.sm),
           child: Row(
             children: [
               Expanded(
@@ -204,7 +205,7 @@ class NoteDocModesPageState extends State<NoteDocModesPage> {
                   _doc.title.isEmpty ? 'Untitled' : _doc.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium,
+                  style: AppleType.titleStyle(Theme.of(context).colorScheme.onSurface),
                 ),
               ),
               SegmentedButton<NoteDocMode>(

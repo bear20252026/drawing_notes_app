@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/sync/sync_progress.dart';
@@ -39,6 +40,9 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
   bool _syncing = false;
   SyncProgress? _progress;
   String? _lastSummary;
+
+  /// 空操作回调（用于禁用态按钮）。
+  static void _noop() {}
 
   @override
   void initState() {
@@ -220,6 +224,37 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     super.dispose();
   }
 
+  /// Apple 胶囊输入框样式：可见面用 subtleSurface 填色 + hairline 描边。
+  InputDecoration _appleDecoration({
+    required String labelText,
+    required IconData icon,
+    String? hintText,
+    String? helperText,
+  }) {
+    return InputDecoration(
+      labelText: labelText,
+      hintText: hintText,
+      helperText: helperText,
+      prefixIcon: Icon(icon),
+      filled: true,
+      fillColor: AppleColor.subtleSurface,
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: AppleSpacing.md, vertical: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppleRadius.lg),
+        borderSide: const BorderSide(color: AppleColor.hairline),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppleRadius.lg),
+        borderSide: const BorderSide(color: AppleColor.hairline),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppleRadius.lg),
+        borderSide: const BorderSide(color: AppleColor.actionBlue, width: 1.5),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -231,70 +266,73 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
             '本地优先同步：数据保存在本机，通过 WebDAV（如 Nextcloud / 自建）在工作区之间同步。',
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppleSpacing.md),
           TextField(
             controller: _url,
             keyboardType: TextInputType.url,
-            decoration: const InputDecoration(
+            decoration: _appleDecoration(
               labelText: '服务器 URL',
               hintText: 'https://dav.example.com/drawing_notes/',
-              prefixIcon: Icon(Icons.cloud_outlined),
-              border: OutlineInputBorder(),
+              icon: Icons.cloud_outlined,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppleSpacing.sm),
           TextField(
             controller: _user,
-            decoration: const InputDecoration(
+            decoration: _appleDecoration(
               labelText: '用户名',
-              prefixIcon: Icon(Icons.person_outline),
-              border: OutlineInputBorder(),
+              icon: Icons.person_outline,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppleSpacing.sm),
           TextField(
             controller: _pass,
             obscureText: true,
-            decoration: const InputDecoration(
+            decoration: _appleDecoration(
               labelText: '密码',
-              prefixIcon: Icon(Icons.lock_outline),
-              border: OutlineInputBorder(),
+              icon: Icons.lock_outline,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppleSpacing.sm),
           TextField(
             controller: _syncSecret,
             obscureText: true,
-            decoration: const InputDecoration(
+            decoration: _appleDecoration(
               labelText: '同步密码（可选，用于端到端加密）',
+              icon: Icons.vpn_key_outlined,
               helperText: '与服务器认证密码独立；云端仅保存加密后的数据',
-              prefixIcon: Icon(Icons.vpn_key_outlined),
-              border: OutlineInputBorder(),
             ),
           ),
-          const SizedBox(height: 20),
-          FilledButton.icon(
-            onPressed: _syncing ? null : _syncNow,
-            icon: _syncing
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.sync),
-            label: Text(_syncing ? '同步中…' : '立即同步'),
-          ),
+          const SizedBox(height: AppleSpacing.lg),
+          _syncing
+              ? const ApplePrimaryButton(
+                  label: '同步中…',
+                  onPressed: _noop,
+                )
+              : ApplePrimaryButton(
+                  label: '立即同步',
+                  onPressed: _syncNow,
+                ),
           if (_progress != null) ...[
-            const SizedBox(height: 12),
-            LinearProgressIndicator(
-              value: _progress!.fraction,
-              minHeight: 6,
-              borderRadius: BorderRadius.circular(3),
+            const SizedBox(height: AppleSpacing.md),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppleRadius.full),
+              child: LinearProgressIndicator(
+                value: _progress!.fraction,
+                minHeight: 6,
+                color: _progress!.phase == SyncProgressPhase.failed
+                    ? AppleColor.errorRed
+                    : AppleColor.actionBlue,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               _progress!.description,
-              style: Theme.of(context).textTheme.bodySmall,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: _progress!.phase == SyncProgressPhase.failed
+                        ? AppleColor.errorRed
+                        : null,
+                  ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -308,11 +346,19 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
               overflow: TextOverflow.ellipsis,
             ),
           ],
-          const SizedBox(height: 8),
+          const SizedBox(height: AppleSpacing.sm),
           OutlinedButton.icon(
             onPressed: _syncing ? null : _save,
             icon: const Icon(Icons.save_outlined),
             label: const Text('保存配置'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 44),
+              foregroundColor: AppleColor.actionBlue,
+              side: const BorderSide(color: AppleColor.hairline),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppleRadius.lg),
+              ),
+            ),
           ),
         ],
       ),

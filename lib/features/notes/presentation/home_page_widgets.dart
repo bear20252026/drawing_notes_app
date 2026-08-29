@@ -162,7 +162,16 @@ class _NameDialogState extends State<_NameDialog> {
         autofocus: true,
         decoration: const InputDecoration(
           hintText: '请输入名称',
-          border: OutlineInputBorder(),
+          filled: true,
+          border: OutlineInputBorder(
+            borderSide: BorderSide(color: AppleColor.hairline),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: AppleColor.hairline),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: AppleColor.actionBlue, width: 1.5),
+          ),
         ),
         onSubmitted: (v) => Navigator.of(context).pop(v),
       ),
@@ -210,7 +219,16 @@ class _PasswordDialogState extends State<_PasswordDialog> {
         autofocus: true,
         decoration: InputDecoration(
           hintText: '请输入密码',
-          border: const OutlineInputBorder(),
+          filled: true,
+          border: const OutlineInputBorder(
+            borderSide: BorderSide(color: AppleColor.hairline),
+          ),
+          enabledBorder: const OutlineInputBorder(
+            borderSide: BorderSide(color: AppleColor.hairline),
+          ),
+          focusedBorder: const OutlineInputBorder(
+            borderSide: BorderSide(color: AppleColor.actionBlue, width: 1.5),
+          ),
           suffixIcon: IconButton(
             icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
             onPressed: () => setState(() => _obscure = !_obscure),

@@ -15,6 +15,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_editor.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
@@ -810,20 +811,17 @@ class NoteEditorPageState extends State<NoteEditorPage> {
             hintText: 'Untitled',
             border: InputBorder.none,
           ),
-          style: Theme.of(context).textTheme.titleLarge,
+          style: AppleType.titleStyle(Theme.of(context).colorScheme.onSurface),
         ),
         elevation: 1,
         actions: [
           if (_isDirty)
             Padding(
-              padding: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.only(right: AppleSpacing.sm),
               child: Center(
                 child: Text(
                   '未保存',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                  style: AppleType.captionStyle(AppleColor.actionBlue),
                 ),
               ),
             ),
@@ -877,30 +875,24 @@ class NoteEditorPageState extends State<NoteEditorPage> {
   Widget _buildEmptyHint() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppleSpacing.xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               Icons.edit_note,
               size: 48,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppleSpacing.md),
             Text(
               '键入 / 添加块',
-              style: TextStyle(
-                fontSize: 18,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
+              style: AppleType.titleStyle(Theme.of(context).colorScheme.onSurface),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppleSpacing.xs),
             Text(
               '按 Enter 分块，按 Backspace 合并空块',
-              style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
-              ),
+              style: AppleType.bodyStyle(Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -1162,8 +1154,8 @@ class NoteEditorPageState extends State<NoteEditorPage> {
             width: 4,
             height: 28,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(2),
+              color: AppleColor.actionBlue.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(AppleRadius.xs),
             ),
           ),
         );
@@ -1366,8 +1358,8 @@ class NoteEditorPageState extends State<NoteEditorPage> {
   Widget _buildToolbar() {
     final focusedType = _focusedBlockType;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+      padding: const EdgeInsets.symmetric(vertical: AppleSpacing.sm, horizontal: AppleSpacing.xs),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -1381,25 +1373,21 @@ class NoteEditorPageState extends State<NoteEditorPage> {
               child: Tooltip(
                 message: option.tooltip,
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppleRadius.md),
                   onTap: _focusedBlockId != null
                       ? () => _changeBlockType(_focusedBlockId!, option.type)
                       : null,
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: AppleSpacing.sm, horizontal: AppleSpacing.sm),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? Theme.of(context)
-                              .colorScheme
-                              .primaryContainer
-                              .withValues(alpha: 0.5)
+                          ? AppleColor.actionBlue.withValues(alpha: 0.12)
                           : null,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(AppleRadius.md),
                       border: isSelected
                           ? Border.all(
-                              color:
-                                  Theme.of(context).colorScheme.primary,
+                              color: AppleColor.actionBlue,
                             )
                           : null,
                     ),
@@ -1407,10 +1395,10 @@ class NoteEditorPageState extends State<NoteEditorPage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(option.icon, size: 20),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: AppleSpacing.xxs),
                         Text(
                           option.tooltip,
-                          style: const TextStyle(fontSize: 11),
+                          style: AppleType.captionStyle(Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -1459,20 +1447,20 @@ class NoteEditorPageState extends State<NoteEditorPage> {
     VoidCallback? onPressed,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2),
+      padding: const EdgeInsets.symmetric(horizontal: AppleSpacing.xxs),
       child: Tooltip(
         message: tooltip,
         child: InkWell(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(AppleRadius.sm),
           onTap: onPressed,
           child: Padding(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(AppleSpacing.sm),
             child: Icon(
               icon,
               size: 20,
               color: onPressed != null
                   ? Theme.of(context).colorScheme.onSurface
-                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ),
