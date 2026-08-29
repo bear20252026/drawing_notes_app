@@ -23,7 +23,7 @@ DisableProgramGroupPage=yes
 DisableDirPage=auto
 ; 安装包输出目录（相对 tools/，落在 build/ 下不入仓）
 OutputDir=..\build\windows\installer
-OutputBaseFilename=setup_{#MyAppName}_{#MyAppVersion}
+OutputBaseFilename=setup_drawing_notes_{#MyAppVersion}
 SetupIconFile=..\windows\runner\resources\app_icon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2/max
