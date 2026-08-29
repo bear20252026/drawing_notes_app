@@ -118,11 +118,13 @@ extension _NotebookPageManage on _NotebookViewPageState {
       await store.saveDocument(doc);
     }
     if (!mounted) return;
+    final noteDoc = doc; // 此时 doc 已被提升为非空
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => NoteEditorPage(
-          document: doc,
+        builder: (_) => NoteDocModesPage(
+          document: noteDoc,
           onSave: (updatedDoc) => store.saveDocument(updatedDoc),
+          edgelessStore: EdgelessDocStore(),
         ),
       ),
     );

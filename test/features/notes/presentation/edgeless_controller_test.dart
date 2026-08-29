@@ -1,0 +1,119 @@
+// 由 Claude 团队生成 | Drawing Notes App
+// EdgelessController 测试：手势（平移/缩放/拖帧）+ 选中 + 帧操作。
+
+import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:drawing_notes_app/features/notes/domain/edgeless_doc.dart';
+import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/notes/presentation/edgeless_controller.dart';
+
+const _viewport = Size(800, 600);
+const _vc = Offset(400, 300); // viewport 中心
+
+EdgelessDoc _docWithOneFrame() {
+  final fdoc = NoteBlockDoc.empty('f1doc', title: '帧1');
+  final frame = NoteFrame(
+    id: 'f1',
+    x: 100,
+    y: 100,
+    w: 200,
+    h: 200,
+    doc: fdoc,
+    zIndex: 1,
+  );
+  return EdgelessDoc(id: 'e', frames: [frame], camera: EdgelessCamera.initial);
+}
+
+// 初始相机（zoom=1, pan=0,0）下：world = screen - viewportCenter。
+// 帧 f1 世界区间 (100,100)-(300,300) => 屏幕区间 (500,400)-(700,600)。屏幕中心
+// (600,500) 命中帧；(400,300)（世界 0,0）不在帧上。
+
+void main() {
+  group('平移（拖空白）', () {
+    test('单指拖空白：相机 pan 跟随焦点移动', () {
+      final c = EdgelessController(doc: _docWithOneFrame());
+      c.beginGesture(const Offset(400, 300), 1, _viewport); // 世界 0,0，非帧
+      c.updateGesture(const Offset(500, 350), 1.0, 1, _viewport);
+      expect(c.camera.zoom, 1.0);
+      expect(c.camera.panX, closeTo(-100, 1e-6));
+      expect(c.camera.panY, closeTo(-50, 1e-6));
+    });
+  });
+
+  group('缩放（双指）', () {
+    test('双指捏合：以焦点为锚缩放，锚点世界点不漂移', () {
+      final c = EdgelessController(doc: _docWithOneFrame());
+      c.beginGesture(const Offset(400, 300), 1, _viewport);
+      c.updateGesture(const Offset(400, 300), 2.0, 2, _viewport);
+      expect(c.camera.zoom, closeTo(2, 1e-6));
+      // 焦点 (400,300) 是世界 0,0；放大后其屏幕位置不变（pan 0,0）
+      expect(c.camera.panX, closeTo(0, 1e-6));
+      expect(c.camera.panY, closeTo(0, 1e-6));
+    });
+
+    test('缩放在 min/maxZoom 之间被限制', () {
+      final c = EdgelessController(doc: _docWithOneFrame(), maxZoom: 3);
+      c.beginGesture(const Offset(400, 300), 1, _viewport);
+      c.updateGesture(const Offset(400, 300), 10.0, 2, _viewport);
+      expect(c.camera.zoom, closeTo(3, 1e-6));
+    });
+  });
+
+  group('拖帧', () {
+    test('单指按在帧上拖动：移动该帧（按世界增量）', () {
+      final c = EdgelessController(doc: _docWithOneFrame());
+      // 屏幕 (600,500) → 世界 (200,200) 命中 f1
+      c.beginGesture(const Offset(600, 500), 1, _viewport);
+      c.updateGesture(const Offset(650, 520), 1.0, 1, _viewport); // 屏幕增量 (50,20)
+      final frame = c.doc.frameById('f1')!;
+      expect(frame.x, closeTo(150, 1e-6));
+      expect(frame.y, closeTo(120, 1e-6));
+    });
+
+    test('拖帧时第二指加入 → 取消拖帧改为缩放，帧不移动', () {
+      final c = EdgelessController(doc: _docWithOneFrame());
+      c.beginGesture(const Offset(600, 500), 1, _viewport);
+      c.updateGesture(const Offset(650, 520), 1.0, 1, _viewport); // 先在拖帧
+      expect(c.doc.frameById('f1')!.x, closeTo(150, 1e-6));
+      // 第二指加入
+      c.updateGesture(const Offset(650, 520), 2.0, 2, _viewport);
+      final frame = c.doc.frameById('f1')!;
+      expect(frame.x, closeTo(150, 1e-6)); // 不再移动
+      expect(c.camera.zoom, closeTo(2, 1e-6));
+    });
+  });
+
+  group('点按选中', () {
+    test('点中帧 → 选中并置顶', () {
+      final c = EdgelessController(doc: _docWithOneFrame());
+      c.tapAt(const Offset(600, 500), _viewport); // 命中 f1
+      expect(c.selectedFrameId, 'f1');
+      expect(c.doc.frameById('f1')!.zIndex, 2); // bringToFront 后
+    });
+
+    test('点空白 → 取消选中', () {
+      final c = EdgelessController(doc: _docWithOneFrame());
+      c.tapAt(const Offset(600, 500), _viewport);
+      expect(c.selectedFrameId, 'f1');
+      c.tapAt(const Offset(400, 300), _viewport); // 世界 0,0 空白
+      expect(c.selectedFrameId, isNull);
+    });
+  });
+
+  group('帧操作', () {
+    test('addFrame 增加一帧并更新 onChanged', () {
+      EdgelessDoc? latest;
+      final c = EdgelessController(doc: _docWithOneFrame(), onChanged: (d) => latest = d);
+      c.addFrame(NoteBlockDoc.empty('new'));
+      expect(c.doc.frames.length, 2);
+      expect(latest!.frames.length, 2); // onChanged 收到新 doc
+    });
+
+    test('removeFrame 移除', () {
+      final c = EdgelessController(doc: _docWithOneFrame());
+      c.removeFrame('f1');
+      expect(c.doc.frames, isEmpty);
+    });
+  });
+}

@@ -62,7 +62,7 @@ class NoteEditorPage extends StatefulWidget {
   final Widget? Function(NoteBlock block)? embeddedBlockBuilder;
 
   @override
-  State<NoteEditorPage> createState() => _NoteEditorPageState();
+  State<NoteEditorPage> createState() => NoteEditorPageState();
 }
 
 /// 工具栏块类型选项。
@@ -168,7 +168,7 @@ const List<_BlockTypeOption> _blockTypeOptions = [
   ),
 ];
 
-class _NoteEditorPageState extends State<NoteEditorPage> {
+class NoteEditorPageState extends State<NoteEditorPage> {
   /// 块树根节点（其 children 为顶层块列表）。
   late NoteBlock _root;
 
@@ -289,6 +289,11 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
       updatedAt: DateTime.now(),
     );
   }
+
+  /// 当前编辑中的文档（供宿主在切换页面/无限画布模式时读取最新内容）。
+  ///
+  /// 仅作快照读取，不会触发任何通知或副作用。
+  NoteBlockDoc get currentDoc => _buildDocFromState();
 
   /// 从历史快照恢复文档（撤销/重做）。
   ///
