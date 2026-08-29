@@ -419,8 +419,8 @@ class _FrameCard extends StatelessWidget {
     // 帧=纸面（AFFiNE note 帧）：文字墨色随纸面亮度自适应，保证深色模式下浅纸仍是深字可读。
     final paper = _bgColor();
     final ink = paper.computeLuminance() > 0.5
-        ? const Color(0xFF1D1D1F) // 亮纸用墨色正文
-        : Colors.white; // 暗纸用白色正文
+        ? AppleColor.ink // 亮纸用墨色正文
+        : AppleColor.surfaceWhite; // 暗纸用白色正文
     final body = Container(
       decoration: BoxDecoration(
         color: _bgColor(),
@@ -671,9 +671,10 @@ class _ConnectorPainter extends CustomPainter {
   final List<NoteConnector> connectors;
   final Map<String, NoteFrame> framesById;
 
-  /// CSS hex → Color；解析失败回退为品牌紫。
+  /// CSS hex → Color；解析失败回退为 Apple actionBlue。
   static Color _colorOf(String hex) {
-    final v = int.tryParse(hex.replaceFirst('#', ''), radix: 16) ?? 0x7C4DFF;
+    final v = int.tryParse(hex.replaceFirst('#', ''), radix: 16) ??
+        0x0066CC;
     return Color(0xFF000000 | v);
   }
 

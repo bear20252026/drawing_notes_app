@@ -13,8 +13,8 @@ import 'dart:ui' show Offset, Rect;
 /// 连接线锚点：帧上朝向对端的那一侧边中点。
 enum ConnectorAnchor { top, right, bottom, left }
 
-/// 默认连接线颜色（AFFiNE 品牌紫）。
-const String kDefaultConnectorColor = '#7C4DFF';
+/// 默认连接线颜色（Apple 强调色 actionBlue，随双模主题统一）。
+const String kDefaultConnectorColor = '#0066CC';
 
 /// 默认连接线宽度。
 const double kDefaultConnectorWidth = 2.0;
