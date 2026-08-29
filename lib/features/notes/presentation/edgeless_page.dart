@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/features/notes/domain/edgeless_connector.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_doc.dart';
+import 'package:drawing_notes_app/features/notes/domain/edgeless_group.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/presentation/edgeless_controller.dart';
@@ -247,6 +248,15 @@ class _EdgelessPageState extends State<EdgelessPage> {
                               },
                             ),
                           ),
+                        // 群组框层：绘制在帧上方（AFFiNE `affine:group` 外接框）
+                        Positioned.fill(
+                          child: CustomPaint(
+                            painter: _GroupPainter(
+                              groups: _controller.groups,
+                              framesById: _controller.framesById,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -609,6 +619,84 @@ class _ConnectorPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _ConnectorPainter oldDelegate) =>
       !listEquals(connectors, oldDelegate.connectors) ||
+      !mapEquals(framesById, oldDelegate.framesById);
+}
+
+/// 世界坐标群组框画师：在帧上方绘制 `affine:group` 外接框（圆角边框 + 半透明填充 + 组名角标）。
+/// 组外接矩形由成员帧矩形并集即时推导，帧移动/缩放后边框自动跟随。
+class _GroupPainter extends CustomPainter {
+  _GroupPainter({required this.groups, required this.framesById});
+
+  final List<EdgelessGroup> groups;
+  final Map<String, NoteFrame> framesById;
+
+  static Color _colorOf(String hex) {
+    final v = int.tryParse(hex.replaceFirst('#', ''), radix: 16) ?? 0x4CAF50;
+    return Color(0xFF000000 | v);
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final g in groups) {
+      final rects = <Rect>[];
+      var anyMissing = false;
+      for (final fid in g.frameIds) {
+        final f = framesById[fid];
+        if (f == null) {
+          anyMissing = true;
+          break;
+        }
+        rects.add(Rect.fromLTWH(f.x, f.y, f.w, f.h));
+      }
+      if (anyMissing || rects.isEmpty) continue;
+      final bounds = groupBoundsOf(rects)!;
+      final color = _colorOf(g.color);
+
+      // 半透明填充
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            bounds.inflate(6), const Radius.circular(10)),
+        Paint()..color = color.withValues(alpha: 0.06),
+      );
+      // 圆角边框
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            bounds.inflate(6), const Radius.circular(10)),
+        Paint()
+          ..color = color.withValues(alpha: 0.5)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5,
+      );
+
+      // 组名角标（左上）
+      final label = g.name;
+      if (label != null && label.isNotEmpty) {
+        final tp = TextPainter(
+          text: TextSpan(
+            text: label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        final chipRect =
+            Rect.fromLTWH(bounds.left + 2, bounds.top - tp.height - 2, tp.width + 10, tp.height + 4);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(chipRect, const Radius.circular(4)),
+          Paint()..color = Colors.white.withValues(alpha: 0.92),
+        );
+        tp.paint(canvas,
+            Offset(chipRect.left + 5, chipRect.top + 2));
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _GroupPainter oldDelegate) =>
+      !listEquals(groups, oldDelegate.groups) ||
       !mapEquals(framesById, oldDelegate.framesById);
 }
 

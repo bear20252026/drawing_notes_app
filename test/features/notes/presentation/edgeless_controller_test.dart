@@ -210,4 +210,44 @@ void main() {
       expect(c.connectors, isEmpty);
     });
   });
+
+  group('群组框', () {
+    EdgelessDoc twoFrames() {
+      final f2 = NoteFrame(
+        id: 'f2',
+        x: 400,
+        y: 100,
+        w: 200,
+        h: 200,
+        doc: NoteBlockDoc.empty('f2doc'),
+        zIndex: 1,
+      );
+      return EdgelessDoc(
+        id: 'e',
+        frames: [..._docWithOneFrame().frames, f2],
+        camera: EdgelessCamera.initial,
+      );
+    }
+
+    test('addGroup 创建群组并被 onChanged 捕获', () {
+      EdgelessDoc? latest;
+      final c = EdgelessController(doc: twoFrames(), onChanged: (d) => latest = d);
+      c.addGroup(['f1', 'f2'], name: '设计');
+      expect(c.groups, hasLength(1));
+      expect(c.groups.single.name, '设计');
+      expect(latest!.groups.single.contains('f1'), isTrue);
+    });
+
+    test('removeGroup / renameGroup / setGroupColor 透传', () {
+      final c = EdgelessController(doc: twoFrames());
+      c.addGroup(['f1', 'f2']);
+      final id = c.groups.single.id;
+      c.renameGroup(id, '新名');
+      expect(c.groups.single.name, '新名');
+      c.setGroupColor(id, '#FF0000');
+      expect(c.groups.single.color, '#FF0000');
+      c.removeGroup(id);
+      expect(c.groups, isEmpty);
+    });
+  });
 }

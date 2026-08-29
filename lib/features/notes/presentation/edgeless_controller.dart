@@ -15,6 +15,7 @@ import 'package:flutter/widgets.dart';
 
 import 'package:drawing_notes_app/features/notes/domain/edgeless_connector.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_doc.dart';
+import 'package:drawing_notes_app/features/notes/domain/edgeless_group.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 
 /// Edgeless 画布控制器（ChangeNotifier）。
@@ -211,6 +212,8 @@ class EdgelessController extends ChangeNotifier {
 
   List<NoteConnector> get connectors => _doc.connectors;
 
+  List<EdgelessGroup> get groups => _doc.groups;
+
   /// 帧 id → NoteFrame 的查找表（供连接线渲染定位端点）。
   Map<String, NoteFrame> get framesById =>
       {for (final f in _doc.frames) f.id: f};
@@ -269,6 +272,28 @@ class EdgelessController extends ChangeNotifier {
   /// 移除指定连接线。
   void removeConnector(String id) {
     _setDoc(_doc.removeConnector(id));
+  }
+
+  // ── 群组框 ──────────────────────────────────────────────────
+
+  /// 创建群组（≥2 个真实存在的帧）。
+  void addGroup(List<String> frameIds, {String? name}) {
+    _setDoc(_doc.addGroup(frameIds: frameIds, name: name));
+  }
+
+  /// 解散群组（不影响成员帧）。
+  void removeGroup(String id) {
+    _setDoc(_doc.removeGroup(id));
+  }
+
+  /// 重命名群组。
+  void renameGroup(String id, String name) {
+    _setDoc(_doc.renameGroup(id, name));
+  }
+
+  /// 修改群组颜色。
+  void setGroupColor(String id, String color) {
+    _setDoc(_doc.setGroupColor(id, color));
   }
 
   // ── 坐标换算 ────────────────────────────────────────────────
