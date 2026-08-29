@@ -1,6 +1,4 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:drawing_notes_app/core/theme/app_design.dart';
-
 /// Apple (HIG) 设计语言 token 与可复用部件。
 ///
 /// 参照 DESIGN.md（getdesign@apple）给出的苹果官方规范抽取：
@@ -8,8 +6,13 @@ import 'package:drawing_notes_app/core/theme/app_design.dart';
 /// - 低噪声表面层级（米白画布 / 白色表面 / 细描边胶囊），
 /// - 胶囊按钮与圆角卡片（18px），
 /// - SF 风格排版（标题 w600 + 负字距，正文 17px / 控制文本 13px）。
-/// 本类是「设计参考」，应用实际主题由 [AppDesign]（苹果色板）承载；
-/// 本类提供可直接复用的部件，供各页面统一采用。
+///
+/// 颜色策略（用户@要求保留深蓝色系）：
+/// - 明亮模式的「浅色 token」= Apple：米白画布 / 白表面 / 墨色文本。
+/// - 黑暗模式的「深色 token」= 既有深蓝（navy）：`#101521` / `#181F2E` / `#222B3D`，
+///   以便深色模式保留应用原有深蓝身份；结构风格（圆角/间距/字重/胶囊）两种模式均 Apple。
+/// 本类提供可直接复用的部件，供各页面统一采用；页面背景/表面应优先用
+/// `Theme.of(context).colorScheme` 自适应，深色模式自动落到深蓝色板。
 abstract final class AppleColor {
   /// Action Blue：主强调色。
   static const Color actionBlue = Color(0xFF0066CC);
@@ -29,12 +32,12 @@ abstract final class AppleColor {
   static const Color subtleSurface = Color(0xFFEBEBED);
   /// 细描边。
   static const Color hairline = Color(0xFFE0E0E0);
-  /// 深色画布。
-  static const Color canvansDark = Color(0xFF000000);
-  /// 深色表面。
-  static const Color surfaceDark = Color(0xFF1D1D1F);
-  /// 深色芯片底。
-  static const Color subtleSurfaceDark = Color(0xFF2C2C2E);
+  /// 深色画布（深蓝 navy —— 保留原应用身份）。
+  static const Color canvansDark = Color(0xFF101521);
+  /// 深色表面（深蓝 navy）。
+  static const Color surfaceDark = Color(0xFF181F2E);
+  /// 深色芯片底（深蓝 navy）。
+  static const Color subtleSurfaceDark = Color(0xFF222B3D);
   /// 星标橙（Apple 系统橙）。
   static const Color favourite = Color(0xFFFF9F0A);
   /// 系统绿（笔记类）。

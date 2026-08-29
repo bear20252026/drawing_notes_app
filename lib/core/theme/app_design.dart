@@ -1,30 +1,34 @@
 import 'package:material_ui/material_ui.dart';
 
-/// 应用统一设计语言 —— Apple (HIG) 风格。
+/// 应用统一设计语言。
 ///
-/// 目标：以内容优先、低噪声表面层级、克制的单一强调色（Action Blue）、
-/// 胶囊按钮与圆角卡片，构建 Apple 风格创作工作区。颜色与排版取向
-/// 参照 DESIGN.md（getdesign@apple）给出的 token；结构常量
-/// (pagePadding/cardRadius/controlRadius/quickMotion/standardMotion)
-/// 保持稳定以兼容既有调用方与测试。
+/// 目标不是模仿任何平台的专有控件，而是以内容优先、低噪声表面层级、
+/// 稳定间距和可访问触控尺寸构建克制而有质感的创作工作区。
+///
+/// 颜色策略（用户@要求保留深蓝色系）：
+///   - 明亮模式 = Apple（苹果）配色：Action Blue `#0066CC`、米白底 `#F5F5F7`、墨色 `#1D1D1F`。
+///   - 黑暗模式 = 既有深蓝（navy）配色：`#172033` / `#4568A9` / `#101521` / `#181F2E` / `#222B3D`。
+///   - 结构风格（圆角 / 间距 / 字重 / 动效 / 胶囊 / 过渡）= 统一为 Apple 风格，两种模式一致。
 abstract final class AppDesign {
-  // ---- Apple token：颜色 ----
+  // ---- 深蓝（黑暗模式）核心色板：保留 ----
+  static const Color navyInk = Color(0xFF172033);
+  static const Color navyAccent = Color(0xFF4568A9);
+  static const Color darkCanvas = Color(0xFF101521);
+  static const Color darkSurface = Color(0xFF181F2E);
+  static const Color darkSubtleSurface = Color(0xFF222B3D);
+
+  // ---- Apple（明亮模式）核心色板 ----
   static const Color ink = Color(0xFF1D1D1F); // Apple 主体墨色
   static const Color accent = Color(0xFF0066CC); // Action Blue
-  static const Color accentOnDark = Color(0xFF2997FF); // 深色下的高亮蓝
   static const Color lightCanvas = Color(0xFFF5F5F7); // 米白底 (parchment)
   static const Color lightSurface = Color(0xFFFFFFFF);
-  static const Color lightSubtleSurface = Color(0xFFEBEBED); // 输入/芯片底
-  static const Color darkCanvas = Color(0xFF000000);
-  static const Color darkSurface = Color(0xFF1D1D1F);
-  static const Color darkSubtleSurface = Color(0xFF2C2C2E);
+  static const Color lightSubtleSurface = Color(0xFFF2F2F7); // systemGray6
 
-  // ---- 结构常量（保持稳定，兼容既有测试/调用） ----
+  // ---- Apple 结构风格（两种模式一致）----
   static const double pagePadding = 20;
   static const double compactPagePadding = 12;
-  static const double cardRadius = 18; // Apple lg ≈ 18
-  static const double controlRadius = 12; // Apple md ≈ 12
-  static const double pillRadius = 9999; // 胶囊（Apple pill）
+  static const double cardRadius = 18;
+  static const double controlRadius = 12;
   static const Duration quickMotion = Duration(milliseconds: 140);
   static const Duration standardMotion = Duration(milliseconds: 200);
 
@@ -33,54 +37,10 @@ abstract final class AppDesign {
 
   static ThemeData _theme(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
-    final ColorScheme colorScheme = ColorScheme(
-      brightness: brightness,
-      // 主强调色：Action Blue
-      primary: isDark ? accentOnDark : accent,
-      onPrimary: Colors.white,
-      primaryContainer: isDark
-          ? const Color(0xFF0A2A4A)
-          : const Color(0xFFE8F1FF),
-      onPrimaryContainer: isDark
-          ? const Color(0xFFA7CDFF)
-          : const Color(0xFF002C5C),
-      // 次级（次要文字/控件）
-      secondary: isDark ? const Color(0xFFA1A1A6) : const Color(0xFF6E6E73),
-      onSecondary: isDark ? const Color(0xFF1D1D1F) : Colors.white,
-      secondaryContainer: isDark
-          ? const Color(0xFF2C2C2E)
-          : const Color(0xFFF0F0F0),
-      onSecondaryContainer:
-          isDark ? const Color(0xFFE0E0E0) : const Color(0xFF1D1D1F),
-      // 强调绿（Apple 系统绿）
-      tertiary: isDark ? const Color(0xFF30D158) : const Color(0xFF28B452),
-      onTertiary: Colors.white,
-      tertiaryContainer:
-          isDark ? const Color(0xFF1E3F2A) : const Color(0xFFE3F5E9),
-      onTertiaryContainer:
-          isDark ? const Color(0xFFB9E8C6) : const Color(0xFF0A3B1C),
-      // 错误：Apple 红
-      error: isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30),
-      onError: Colors.white,
-      errorContainer:
-          isDark ? const Color(0xFF5A1A16) : const Color(0xFFFFE5E3),
-      onErrorContainer: isDark ? const Color(0xFFFFB4AC) : const Color(0xFF6E0B05),
-      // 表面
-      surface: isDark ? darkSurface : lightSurface,
-      onSurface: isDark ? const Color(0xFFF5F5F7) : ink,
-      surfaceContainerHighest: isDark
-          ? const Color(0xFF2C2C2E)
-          : const Color(0xFFEBEBED),
-      onSurfaceVariant: isDark ? const Color(0xFF98989F) : const Color(0xFF6E6E73),
-      outline: isDark ? const Color(0xFF6E6E73) : const Color(0xFFA1A1A6),
-      outlineVariant: isDark ? const Color(0xFF3A3A3C) : const Color(0xFFE0E0E0),
-      shadow: Colors.black,
-      scrim: Colors.black,
-      inverseSurface: isDark ? const Color(0xFFF5F5F7) : const Color(0xFF1D1D1F),
-      onInverseSurface: isDark ? const Color(0xFF1D1D1F) : const Color(0xFFF5F5F7),
-      inversePrimary: isDark ? accent : accentOnDark,
-      surfaceTint: isDark ? accentOnDark : accent,
-    );
+
+    // 颜色随模式切换：明亮=Apple，黑暗=深蓝。
+    final colorScheme = isDark ? _navyScheme() : _appleLightScheme();
+
     final base = ThemeData(
       useMaterial3: true,
       brightness: brightness,
@@ -103,7 +63,7 @@ abstract final class AppDesign {
         titleTextStyle: base.textTheme.titleLarge?.copyWith(
           color: colorScheme.onSurface,
           fontWeight: FontWeight.w600,
-          letterSpacing: -0.35, // Apple SF 标题负字距
+          letterSpacing: -0.25,
         ),
       ),
       cardTheme: CardThemeData(
@@ -114,13 +74,13 @@ abstract final class AppDesign {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(cardRadius),
           side: BorderSide(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.8),
+            color: colorScheme.outlineVariant.withValues(alpha: 0.65),
           ),
         ),
         clipBehavior: Clip.antiAlias,
       ),
       dividerTheme: DividerThemeData(
-        color: colorScheme.outlineVariant.withValues(alpha: 0.9),
+        color: colorScheme.outlineVariant.withValues(alpha: 0.75),
         thickness: 1,
         space: 1,
       ),
@@ -175,14 +135,18 @@ abstract final class AppDesign {
         ),
       ),
       tabBarTheme: TabBarThemeData(
-        indicatorSize: TabBarIndicatorSize.label,
+        indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: Colors.transparent,
-        labelColor: colorScheme.onSurface,
+        labelColor: colorScheme.onPrimaryContainer,
         unselectedLabelColor: colorScheme.onSurfaceVariant,
         labelStyle: base.textTheme.labelLarge?.copyWith(
           fontWeight: FontWeight.w600,
         ),
         unselectedLabelStyle: base.textTheme.labelLarge,
+        indicator: BoxDecoration(
+          color: colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(10),
+        ),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
@@ -218,6 +182,76 @@ abstract final class AppDesign {
           TargetPlatform.iOS: ZoomPageTransitionsBuilder(),
         },
       ),
+    );
+  }
+
+  /// Apple 明亮模式 ColorScheme。
+  static ColorScheme _appleLightScheme() {
+    return const ColorScheme(
+      brightness: Brightness.light,
+      primary: Color(0xFF0066CC), // Action Blue
+      onPrimary: Colors.white,
+      primaryContainer: Color(0xFFDCE9FF),
+      onPrimaryContainer: Color(0xFF0A2540),
+      secondary: Color(0xFF6E6E73),
+      onSecondary: Colors.white,
+      secondaryContainer: Color(0xFFE9E9EB),
+      onSecondaryContainer: Color(0xFF2C2C2E),
+      tertiary: Color(0xFF30D158),
+      onTertiary: Color(0xFF0B3D1E),
+      tertiaryContainer: Color(0xFFD6F5DE),
+      onTertiaryContainer: Color(0xFF0B3D1E),
+      error: Color(0xFFFF3B30),
+      onError: Colors.white,
+      errorContainer: Color(0xFFFFDAD6),
+      onErrorContainer: Color(0xFF6B1B14),
+      surface: Color(0xFFFFFFFF),
+      onSurface: Color(0xFF1D1D1F),
+      surfaceContainerHighest: Color(0xFFEDEDEF),
+      onSurfaceVariant: Color(0xFF6E6E73),
+      outline: Color(0xFF86868B),
+      outlineVariant: Color(0xFFD2D2D7),
+      shadow: Colors.black,
+      scrim: Colors.black,
+      inverseSurface: Color(0xFF2C2C2E),
+      onInverseSurface: Color(0xFFF5F5F7),
+      inversePrimary: Color(0xFF0066CC),
+      surfaceTint: Color(0xFF0066CC),
+    );
+  }
+
+  /// 深蓝（navy）黑暗模式 ColorScheme —— 保留既有应用身份。
+  static ColorScheme _navyScheme() {
+    return const ColorScheme(
+      brightness: Brightness.dark,
+      primary: Color(0xFFB5CCFF),
+      onPrimary: Color(0xFF102244),
+      primaryContainer: Color(0xFF294579),
+      onPrimaryContainer: Color(0xFFDCE8FF),
+      secondary: Color(0xFFBFC7DC),
+      onSecondary: Color(0xFF252B3A),
+      secondaryContainer: Color(0xFF3A4355),
+      onSecondaryContainer: Color(0xFFE2E8F6),
+      tertiary: Color(0xFF93D9C4),
+      onTertiary: Color(0xFF04382E),
+      tertiaryContainer: Color(0xFF1E5145),
+      onTertiaryContainer: Color(0xFFC4F5E6),
+      error: Color(0xFFFFB4AB),
+      onError: Color(0xFF690005),
+      errorContainer: Color(0xFF93000A),
+      onErrorContainer: Color(0xFFFFDAD6),
+      surface: Color(0xFF181F2E),
+      onSurface: Color(0xFFE2E8F4),
+      surfaceContainerHighest: Color(0xFF343D50),
+      onSurfaceVariant: Color(0xFFC3CBDD),
+      outline: Color(0xFF8D97AA),
+      outlineVariant: Color(0xFF3F485B),
+      shadow: Colors.black,
+      scrim: Colors.black,
+      inverseSurface: Color(0xFFE2E8F4),
+      onInverseSurface: Color(0xFF2C3445),
+      inversePrimary: Color(0xFF4568A9),
+      surfaceTint: Color(0xFFB5CCFF),
     );
   }
 }
