@@ -64,7 +64,12 @@ void main() {
       final c = EdgelessController(doc: _docWithOneFrame());
       // 屏幕 (600,500) → 世界 (200,200) 命中 f1
       c.beginGesture(const Offset(600, 500), 1, _viewport);
-      c.updateGesture(const Offset(650, 520), 1.0, 1, _viewport); // 屏幕增量 (50,20)
+      c.updateGesture(
+        const Offset(650, 520),
+        1.0,
+        1,
+        _viewport,
+      ); // 屏幕增量 (50,20)
       final frame = c.doc.frameById('f1')!;
       expect(frame.x, closeTo(150, 1e-6));
       expect(frame.y, closeTo(120, 1e-6));
@@ -103,7 +108,10 @@ void main() {
   group('帧操作', () {
     test('addFrame 增加一帧并更新 onChanged', () {
       EdgelessDoc? latest;
-      final c = EdgelessController(doc: _docWithOneFrame(), onChanged: (d) => latest = d);
+      final c = EdgelessController(
+        doc: _docWithOneFrame(),
+        onChanged: (d) => latest = d,
+      );
       c.addFrame(NoteBlockDoc.empty('new'));
       expect(c.doc.frames.length, 2);
       expect(latest!.frames.length, 2); // onChanged 收到新 doc
@@ -117,7 +125,10 @@ void main() {
 
     test('resizeFrame 调整尺寸并触发 onChanged（含 topLeft 移动）', () {
       EdgelessDoc? latest;
-      final c = EdgelessController(doc: _docWithOneFrame(), onChanged: (d) => latest = d);
+      final c = EdgelessController(
+        doc: _docWithOneFrame(),
+        onChanged: (d) => latest = d,
+      );
       c.resizeFrame('f1', topLeft: const Offset(120, 140), w: 300, h: 220);
       final f = c.doc.frameById('f1')!;
       expect(f.x, 120);
@@ -129,7 +140,10 @@ void main() {
 
     test('setFrameBackground 设置背景色并触发 onChanged', () {
       EdgelessDoc? latest;
-      final c = EdgelessController(doc: _docWithOneFrame(), onChanged: (d) => latest = d);
+      final c = EdgelessController(
+        doc: _docWithOneFrame(),
+        onChanged: (d) => latest = d,
+      );
       c.setFrameBackground('f1', '#E3F2FD');
       expect(c.doc.frameById('f1')!.background, '#E3F2FD');
       expect(latest!.frameById('f1')!.background, '#E3F2FD');
@@ -192,7 +206,10 @@ void main() {
 
     test('addConnector / removeConnector 透传并能被 onChanged 捕获', () {
       EdgelessDoc? latest;
-      final c = EdgelessController(doc: twoFrames(), onChanged: (d) => latest = d);
+      final c = EdgelessController(
+        doc: twoFrames(),
+        onChanged: (d) => latest = d,
+      );
       c.addConnector(fromFrameId: 'f1', toFrameId: 'f2');
       expect(c.connectors, hasLength(1));
       expect(latest!.connectors, hasLength(1));
@@ -231,7 +248,10 @@ void main() {
 
     test('addGroup 创建群组并被 onChanged 捕获', () {
       EdgelessDoc? latest;
-      final c = EdgelessController(doc: twoFrames(), onChanged: (d) => latest = d);
+      final c = EdgelessController(
+        doc: twoFrames(),
+        onChanged: (d) => latest = d,
+      );
       c.addGroup(['f1', 'f2'], name: '设计');
       expect(c.groups, hasLength(1));
       expect(c.groups.single.name, '设计');
@@ -334,6 +354,61 @@ void main() {
       c.tapAt(const Offset(600, 500), _viewport);
       expect(c.isSelected('f1'), isTrue);
       expect(c.isSelected('f2'), isFalse);
+    });
+  });
+
+  group('命令面板配套 / 聚焦 / 清空', () {
+    EdgelessDoc twoFrames() {
+      final f2 = NoteFrame(
+        id: 'f2',
+        x: 400,
+        y: 100,
+        w: 200,
+        h: 200,
+        doc: NoteBlockDoc.empty('f2doc'),
+        zIndex: 1,
+      );
+      return EdgelessDoc(
+        id: 'e',
+        frames: [..._docWithOneFrame().frames, f2],
+        camera: EdgelessCamera.initial,
+      );
+    }
+
+    test('selectFrame 单选并置顶', () {
+      final c = EdgelessController(doc: twoFrames());
+      // 先把 f1 置顶（matching 场景：f1 主要帧）
+      final beforeZ = c.doc.frameById('f1')!.zIndex;
+      c.selectFrame('f2');
+      expect(c.doc.selectedFrameId, 'f2');
+      expect(c.doc.frameById('f2')!.zIndex, greaterThan(beforeZ));
+    });
+
+    test('removeSelection 删除全部选中帧', () {
+      final c = EdgelessController(doc: twoFrames());
+      c.selectFrames(['f1', 'f2']);
+      final n = c.doc.frames.length;
+      c.removeSelection();
+      expect(c.doc.frames.length, n - 2);
+      expect(c.doc.selectedFrameIds, isEmpty);
+    });
+
+    test('focusFrame 对未知帧不做任何事', () {
+      final c = EdgelessController(doc: twoFrames());
+      final before = c.doc;
+      c.focusFrame('nope');
+      expect(c.doc.selectedFrameIds, isEmpty);
+      expect(identical(c.doc, before), isTrue); // 无状态变更，同一实例
+    });
+
+    test('focusFrame 选中并置顶', () {
+      final c = EdgelessController(doc: twoFrames());
+      c.focusFrame('f1');
+      expect(c.doc.selectedFrameIds, contains('f1'));
+      expect(
+        c.doc.frameById('f1')!.zIndex,
+        greaterThan(c.doc.frameById('f2')!.zIndex),
+      );
     });
   });
 }

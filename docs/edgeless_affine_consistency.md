@@ -81,7 +81,9 @@
   - **整组移动**：组内拖任一副本整组按 delta 平移（相对布局不变）。
   - **整组缩放**：`resizeGroup` 按比例重排/缩放成员（匹配新外接矩形）。
   - `_GroupPainter` 渲染外接框（圆角边框 + 半透明填充 + 组名角标）。
-- AFFiNE edgeless 支持**画布内 search/命令面板**；画记当前未实现（后续 P3）。
+- ✅ **画布命令面板 / 画布内搜索（⌘K / Ctrl+K）已实现**：`EdgelessCommand` + `buildEdgelessCommands` +
+  `searchEdgelessCommands`（编辑/视图/选择/跳转帧）；`showEdgelessCommandPalette` 弹出搜索面板
+  （分组列表 + ↑/↓/Enter 键盘导航）。命令构建与搜索为纯函数，可独立单测。
 - AFFiNE 的 note 帧在 web 上由 `affine:frame` 元数据承载 `prop`（标题/索引），画记直接以
   `NoteBlockDoc.title` 承载，形态简化但语义等价。
 - `fittedTo` 的 padding 默认 40px，AFFiNE 的 fit 缩放策略随容器；如需逐像素一致可再调。

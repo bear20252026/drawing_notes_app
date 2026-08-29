@@ -344,6 +344,27 @@ class EdgelessController extends ChangeNotifier {
     _setDoc(_doc.selectFrames(frameIds));
   }
 
+  /// 单选并置顶某帧（聚焦用）。
+  void selectFrame(String id) {
+    _setDoc(_doc.select(id).bringToFront(id));
+  }
+
+  /// 删除当前选中的所有帧。
+  void removeSelection() {
+    if (_doc.selectedFrameIds.isEmpty) return;
+    var d = _doc;
+    for (final id in d.selectedFrameIds.toList()) {
+      d = d.removeFrame(id);
+    }
+    _setDoc(d);
+  }
+
+  /// 聚焦某帧：选中并置顶（命令面板「跳转到帧」用）。
+  void focusFrame(String id) {
+    if (_doc.frameById(id) == null) return;
+    selectFrame(id);
+  }
+
   /// 把当前选中帧（≥2）编成群组；不足则不做。
   void groupSelection({String? name}) {
     final ids = _doc.selectedFrameIds.toList();

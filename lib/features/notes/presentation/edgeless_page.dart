@@ -8,12 +8,14 @@
 
 import 'package:flutter/foundation.dart' show listEquals, mapEquals;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/features/notes/domain/edgeless_connector.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_group.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/notes/presentation/edgeless_command_palette.dart';
 import 'package:drawing_notes_app/features/notes/presentation/edgeless_controller.dart';
 import 'package:drawing_notes_app/features/notes/presentation/note_editor_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/note_frame_preview.dart';
@@ -48,7 +50,10 @@ class _EdgelessPageState extends State<EdgelessPage> {
   @override
   void initState() {
     super.initState();
-    _controller = EdgelessController(doc: widget.initialDoc, onChanged: widget.onChanged);
+    _controller = EdgelessController(
+      doc: widget.initialDoc,
+      onChanged: widget.onChanged,
+    );
     _controller.addListener(_onControllerChanged);
   }
 
@@ -77,7 +82,8 @@ class _EdgelessPageState extends State<EdgelessPage> {
 
   // ── 手势 ──────────────────────────────────────────────────
 
-  void _onTapUp(TapUpDetails d) => _controller.tapAt(d.localPosition, _viewport);
+  void _onTapUp(TapUpDetails d) =>
+      _controller.tapAt(d.localPosition, _viewport);
 
   void _onDoubleTap(TapDownDetails d) {
     final world = _controller.screenToWorld(d.localPosition, _viewport);
@@ -90,8 +96,12 @@ class _EdgelessPageState extends State<EdgelessPage> {
   void _onScaleStart(ScaleStartDetails d) =>
       _controller.beginGesture(d.localFocalPoint, d.pointerCount, _viewport);
 
-  void _onScaleUpdate(ScaleUpdateDetails d) =>
-      _controller.updateGesture(d.localFocalPoint, d.scale, d.pointerCount, _viewport);
+  void _onScaleUpdate(ScaleUpdateDetails d) => _controller.updateGesture(
+    d.localFocalPoint,
+    d.scale,
+    d.pointerCount,
+    _viewport,
+  );
 
   void _onScaleEnd(ScaleEndDetails _) => _controller.endGesture();
 
@@ -111,7 +121,9 @@ class _EdgelessPageState extends State<EdgelessPage> {
   }
 
   void _addFrame() {
-    _controller.addFrame(NoteBlockDoc.empty('new_${DateTime.now().microsecondsSinceEpoch}'));
+    _controller.addFrame(
+      NoteBlockDoc.empty('new_${DateTime.now().microsecondsSinceEpoch}'),
+    );
   }
 
   void _toggleMultiSelect() {
@@ -125,9 +137,9 @@ class _EdgelessPageState extends State<EdgelessPage> {
     }
     final sel = _controller.selectedFrameId;
     if (sel == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请先选中一个帧作为连线起点')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请先选中一个帧作为连线起点')));
       return;
     }
     _controller.beginConnect(sel);
@@ -147,152 +159,207 @@ class _EdgelessPageState extends State<EdgelessPage> {
     _controller.fitTo(rect, _viewport, padding: 48);
   }
 
+  /// 视野适配到当前所选帧集的包围盒。
+  void _fitSelection() {
+    final ids = _controller.selectedFrameIds;
+    if (ids.isEmpty) return;
+    final frames = _controller.doc.frames
+        .where((f) => ids.contains(f.id))
+        .toList();
+    if (frames.isEmpty) return;
+    var rect = frames.first.rect;
+    for (final f in frames) {
+      rect = rect.expandToInclude(f.rect);
+    }
+    _controller.fitTo(rect, _viewport, padding: 48);
+  }
+
+  /// 打开 ⌘K 命令面板。
+  void _openCommandPalette() {
+    showEdgelessCommandPalette(
+      context,
+      controller: _controller,
+      onFitContent: _fitTo,
+      onFitSelection: _fitSelection,
+    );
+  }
+
+  /// 全局键盘快捷键：Ctrl/Cmd+K 打开命令面板。
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final kb = HardwareKeyboard.instance;
+    final isCmd = kb.isMetaPressed || kb.isControlPressed;
+    if (isCmd && event.logicalKey == LogicalKeyboardKey.keyK) {
+      _openCommandPalette();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   void _zoom(double factor) {
-    _controller.zoomAt(factor, focusWorld: _controller.screenToWorld(
-      Offset(_viewport.width / 2, _viewport.height / 2),
-      _viewport,
-    ));
+    _controller.zoomAt(
+      factor,
+      focusWorld: _controller.screenToWorld(
+        Offset(_viewport.width / 2, _viewport.height / 2),
+        _viewport,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Edgeless'),
-        actions: [
-          IconButton(
-            tooltip: '新增帧',
-            icon: const Icon(Icons.note_add_outlined),
-            onPressed: _addFrame,
-          ),
-          IconButton(
-            tooltip: '适应',
-            icon: const Icon(Icons.fit_screen_outlined),
-            onPressed: _fitTo,
-          ),
-          IconButton(
-            tooltip: '缩小',
-            icon: const Icon(Icons.zoom_out),
-            onPressed: () => _zoom(1 / 1.2),
-          ),
-          IconButton(
-            tooltip: '放大',
-            icon: const Icon(Icons.zoom_in),
-            onPressed: () => _zoom(1.2),
-          ),
-          IconButton(
-            tooltip: _controller.connectMode ? '取消连线' : '连线模式',
-            isSelected: _controller.connectMode,
-            icon: const Icon(Icons.call_made),
-            onPressed: _toggleConnect,
-          ),
-          IconButton(
-            tooltip: _controller.multiSelectMode ? '退出多选' : '多选(编组)',
-            isSelected: _controller.multiSelectMode,
-            icon: const Icon(Icons.done_all),
-            onPressed: _toggleMultiSelect,
-          ),
-          IconButton(
-            tooltip: '编组',
-            icon: const Icon(Icons.group_work_outlined),
-            onPressed: _controller.selectedFrameIds.length >= 2
-                ? () => _controller.groupSelection()
-                : null,
-          ),
-        ],
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          _viewport = Size(constraints.maxWidth, constraints.maxHeight);
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapUp: _onTapUp,
-            onDoubleTapDown: _onDoubleTap,
-            onScaleStart: _onScaleStart,
-            onScaleUpdate: _onScaleUpdate,
-            onScaleEnd: _onScaleEnd,
-            child: ClipRect(
-              child: Stack(
-                children: [
-                  // 网格背景（在世界坐标系中，随相机平移/缩放）
-                  Positioned.fill(
-                    child: CustomPaint(
-                      painter: _EdgelessGridPainter(
-                        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
-                      ),
-                    ),
-                  ),
-                  // 世界内容
-                  Transform(
-                    alignment: Alignment.topLeft,
-                    transform: _cameraMatrix(_viewport),
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        // 连接线层：绘制在帧下方（AFFiNE `affine:connector`）
-                        Positioned.fill(
-                          child: CustomPaint(
-                            painter: _ConnectorPainter(
-                              connectors: _controller.connectors,
-                              framesById: _controller.framesById,
-                            ),
-                          ),
-                        ),
-                        for (final f in _controller.framesSortedByZ)
-                          Positioned(
-                            key: ValueKey('frame_${f.id}'),
-                            left: f.x,
-                            top: f.y,
-                            width: f.w,
-                            height: f.h,
-                            child: _FrameCard(
-                              frame: f,
-                              selected: _controller.isSelected(f.id),
-                              onEdit: () => _openFrameEditor(f.id, f.doc),
-                              onRemove: () => _controller.removeFrame(f.id),
-                              onConnect: () => _controller.beginConnect(f.id),
-                              onResize: (topLeft, w, h) => _controller.resizeFrame(
-                                f.id,
-                                topLeft: topLeft,
-                                w: w,
-                                h: h,
-                              ),
-                              onSetBackground: () {
-                                final idx = _kFrameBackgrounds.indexOf(f.background);
-                                final next = _kFrameBackgrounds[
-                                    (idx + 1) % _kFrameBackgrounds.length];
-                                _controller.setFrameBackground(f.id, next);
-                              },
-                            ),
-                          ),
-                        // 群组框层：绘制在帧上方（AFFiNE `affine:group` 外接框）
-                        Positioned.fill(
-                          child: CustomPaint(
-                            painter: _GroupPainter(
-                              groups: _controller.groups,
-                              framesById: _controller.framesById,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // 连线模式横幅
-                  if (_controller.connectMode)
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      right: 8,
-                      child: _ConnectBanner(
-                        sourceId: _controller.connectSourceFrameId!,
-                        onCancel: _controller.cancelConnect,
-                      ),
-                    ),
-                ],
-              ),
+    return Focus(
+      autofocus: true,
+      onKeyEvent: _handleKeyEvent,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Edgeless'),
+          actions: [
+            IconButton(
+              tooltip: '命令面板 (Ctrl+K)',
+              icon: const Icon(Icons.keyboard_command_key),
+              onPressed: _openCommandPalette,
             ),
-          );
-        },
+            IconButton(
+              tooltip: '新增帧',
+              icon: const Icon(Icons.note_add_outlined),
+              onPressed: _addFrame,
+            ),
+            IconButton(
+              tooltip: '适应',
+              icon: const Icon(Icons.fit_screen_outlined),
+              onPressed: _fitTo,
+            ),
+            IconButton(
+              tooltip: '缩小',
+              icon: const Icon(Icons.zoom_out),
+              onPressed: () => _zoom(1 / 1.2),
+            ),
+            IconButton(
+              tooltip: '放大',
+              icon: const Icon(Icons.zoom_in),
+              onPressed: () => _zoom(1.2),
+            ),
+            IconButton(
+              tooltip: _controller.connectMode ? '取消连线' : '连线模式',
+              isSelected: _controller.connectMode,
+              icon: const Icon(Icons.call_made),
+              onPressed: _toggleConnect,
+            ),
+            IconButton(
+              tooltip: _controller.multiSelectMode ? '退出多选' : '多选(编组)',
+              isSelected: _controller.multiSelectMode,
+              icon: const Icon(Icons.done_all),
+              onPressed: _toggleMultiSelect,
+            ),
+            IconButton(
+              tooltip: '编组',
+              icon: const Icon(Icons.group_work_outlined),
+              onPressed: _controller.selectedFrameIds.length >= 2
+                  ? () => _controller.groupSelection()
+                  : null,
+            ),
+          ],
+        ),
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            _viewport = Size(constraints.maxWidth, constraints.maxHeight);
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapUp: _onTapUp,
+              onDoubleTapDown: _onDoubleTap,
+              onScaleStart: _onScaleStart,
+              onScaleUpdate: _onScaleUpdate,
+              onScaleEnd: _onScaleEnd,
+              child: ClipRect(
+                child: Stack(
+                  children: [
+                    // 网格背景（在世界坐标系中，随相机平移/缩放）
+                    Positioned.fill(
+                      child: CustomPaint(
+                        painter: _EdgelessGridPainter(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outlineVariant.withValues(alpha: 0.4),
+                        ),
+                      ),
+                    ),
+                    // 世界内容
+                    Transform(
+                      alignment: Alignment.topLeft,
+                      transform: _cameraMatrix(_viewport),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // 连接线层：绘制在帧下方（AFFiNE `affine:connector`）
+                          Positioned.fill(
+                            child: CustomPaint(
+                              painter: _ConnectorPainter(
+                                connectors: _controller.connectors,
+                                framesById: _controller.framesById,
+                              ),
+                            ),
+                          ),
+                          for (final f in _controller.framesSortedByZ)
+                            Positioned(
+                              key: ValueKey('frame_${f.id}'),
+                              left: f.x,
+                              top: f.y,
+                              width: f.w,
+                              height: f.h,
+                              child: _FrameCard(
+                                frame: f,
+                                selected: _controller.isSelected(f.id),
+                                onEdit: () => _openFrameEditor(f.id, f.doc),
+                                onRemove: () => _controller.removeFrame(f.id),
+                                onConnect: () => _controller.beginConnect(f.id),
+                                onResize: (topLeft, w, h) =>
+                                    _controller.resizeFrame(
+                                      f.id,
+                                      topLeft: topLeft,
+                                      w: w,
+                                      h: h,
+                                    ),
+                                onSetBackground: () {
+                                  final idx = _kFrameBackgrounds.indexOf(
+                                    f.background,
+                                  );
+                                  final next =
+                                      _kFrameBackgrounds[(idx + 1) %
+                                          _kFrameBackgrounds.length];
+                                  _controller.setFrameBackground(f.id, next);
+                                },
+                              ),
+                            ),
+                          // 群组框层：绘制在帧上方（AFFiNE `affine:group` 外接框）
+                          Positioned.fill(
+                            child: CustomPaint(
+                              painter: _GroupPainter(
+                                groups: _controller.groups,
+                                framesById: _controller.framesById,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // 连线模式横幅
+                    if (_controller.connectMode)
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        right: 8,
+                        child: _ConnectBanner(
+                          sourceId: _controller.connectSourceFrameId!,
+                          onCancel: _controller.cancelConnect,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -371,7 +438,10 @@ class _FrameCard extends StatelessWidget {
                       frame.doc.title.isNotEmpty ? frame.doc.title : '未命名',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -390,7 +460,11 @@ class _FrameCard extends StatelessWidget {
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.black26),
                       ),
-                      child: const Icon(Icons.format_color_fill, size: 12, color: Colors.black54),
+                      child: const Icon(
+                        Icons.format_color_fill,
+                        size: 12,
+                        color: Colors.black54,
+                      ),
                     ),
                   ),
                 ),
@@ -513,7 +587,11 @@ class _CornerHandleState extends State<_CornerHandle> {
     final stl = _startTopLeft ?? Offset(widget.frame.x, widget.frame.y);
     switch (widget.corner) {
       case _Corner.topLeft:
-        widget.onResize(stl + totalDelta, sw - totalDelta.dx, sh - totalDelta.dy);
+        widget.onResize(
+          stl + totalDelta,
+          sw - totalDelta.dx,
+          sh - totalDelta.dy,
+        );
       case _Corner.topRight:
         widget.onResize(
           Offset(stl.dx, stl.dy + totalDelta.dy),
@@ -597,9 +675,13 @@ class _ConnectorPainter extends CustomPainter {
       final to = framesById[c.toFrameId];
       if (from == null || to == null) continue;
       final a = connectorAnchorPoint(
-          Rect.fromLTWH(from.x, from.y, from.w, from.h), c.fromAnchor);
+        Rect.fromLTWH(from.x, from.y, from.w, from.h),
+        c.fromAnchor,
+      );
       final b = connectorAnchorPoint(
-          Rect.fromLTWH(to.x, to.y, to.w, to.h), c.toAnchor);
+        Rect.fromLTWH(to.x, to.y, to.w, to.h),
+        c.toAnchor,
+      );
       final color = _colorOf(c.color);
 
       final line = Paint()
@@ -671,14 +753,12 @@ class _GroupPainter extends CustomPainter {
 
       // 半透明填充
       canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            bounds.inflate(6), const Radius.circular(10)),
+        RRect.fromRectAndRadius(bounds.inflate(6), const Radius.circular(10)),
         Paint()..color = color.withValues(alpha: 0.06),
       );
       // 圆角边框
       canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            bounds.inflate(6), const Radius.circular(10)),
+        RRect.fromRectAndRadius(bounds.inflate(6), const Radius.circular(10)),
         Paint()
           ..color = color.withValues(alpha: 0.5)
           ..style = PaintingStyle.stroke
@@ -699,14 +779,17 @@ class _GroupPainter extends CustomPainter {
           ),
           textDirection: TextDirection.ltr,
         )..layout();
-        final chipRect =
-            Rect.fromLTWH(bounds.left + 2, bounds.top - tp.height - 2, tp.width + 10, tp.height + 4);
+        final chipRect = Rect.fromLTWH(
+          bounds.left + 2,
+          bounds.top - tp.height - 2,
+          tp.width + 10,
+          tp.height + 4,
+        );
         canvas.drawRRect(
           RRect.fromRectAndRadius(chipRect, const Radius.circular(4)),
           Paint()..color = Colors.white.withValues(alpha: 0.92),
         );
-        tp.paint(canvas,
-            Offset(chipRect.left + 5, chipRect.top + 2));
+        tp.paint(canvas, Offset(chipRect.left + 5, chipRect.top + 2));
       }
     }
   }
