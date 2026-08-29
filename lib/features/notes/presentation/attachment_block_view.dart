@@ -9,8 +9,10 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import 'package:drawing_notes_app/core/storage/pdf_preview_renderer.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_attachment.dart';
+import 'package:drawing_notes_app/features/notes/presentation/pdf_preview.dart';
 
 /// 附件块视图。
 class AttachmentBlockView extends StatefulWidget {
@@ -18,10 +20,15 @@ class AttachmentBlockView extends StatefulWidget {
     super.key,
     required this.block,
     this.onChanged,
+    this.pdfRenderer,
   });
 
   final NoteBlock block;
   final ValueChanged<NoteBlock>? onChanged;
+
+  /// PDF 首页渲染器；null 时默认走 PDFium（生产）且仅当存在本地文件才渲染。
+  /// 测试可注入 fake 以避免依赖 pdfrx 原生库。
+  final PdfPreviewRenderer? pdfRenderer;
 
   /// 从块 props 解析 NoteAttachment；失败/缺失时返回 null（渲染空卡片）。
   static NoteAttachment? decodeAttachment(NoteBlock block) {
@@ -38,8 +45,8 @@ class AttachmentBlockView extends StatefulWidget {
 
   /// 把 NoteAttachment 编码成块 props。
   static Map<String, dynamic> encodeProps(NoteAttachment a) => {
-        'attachment': jsonEncode(a.toJson()),
-      };
+    'attachment': jsonEncode(a.toJson()),
+  };
 
   @override
   State<AttachmentBlockView> createState() => _AttachmentBlockViewState();
@@ -73,10 +80,10 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
   }
 
   IconData get _icon => switch (_attachment!.kind) {
-        AttachmentKind.pdf => Icons.picture_as_pdf_outlined,
-        AttachmentKind.bookmark => Icons.bookmark_outline,
-        AttachmentKind.file => Icons.insert_drive_file_outlined,
-      };
+    AttachmentKind.pdf => Icons.picture_as_pdf_outlined,
+    AttachmentKind.bookmark => Icons.bookmark_outline,
+    AttachmentKind.file => Icons.insert_drive_file_outlined,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +137,11 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
               if (a.description.isNotEmpty)
                 Tooltip(
                   message: a.description,
-                  child: Icon(Icons.chat_bubble_outline, size: 16, color: scheme.outline),
+                  child: Icon(
+                    Icons.chat_bubble_outline,
+                    size: 16,
+                    color: scheme.outline,
+                  ),
                 ),
               IconButton(
                 tooltip: '编辑描述',
@@ -170,33 +181,50 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
     );
   }
 
+  /// PDF 分支：本地有文件且能渲染则用 [PdfAttachmentPreview]，否则回退占位。
+  Widget _buildPdfPreview(BuildContext context, NoteAttachment a) {
+    if (a.filePath.isEmpty) {
+      return _pdfFallbackCard(context, a);
+    }
+    return PdfAttachmentPreview(
+      attachment: a,
+      renderer: widget.pdfRenderer ?? const PdfiumPreviewRenderer(),
+      onOpen: () => _open(a),
+    );
+  }
+
+  /// PDF 无本地文件时的回退卡片。
+  Widget _pdfFallbackCard(BuildContext context, NoteAttachment a) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.picture_as_pdf, size: 32, color: scheme.outline),
+          const SizedBox(height: 6),
+          const Text('PDF 内嵌预览不可用（需本地文件）', style: TextStyle(fontSize: 12)),
+          const SizedBox(height: 6),
+          OutlinedButton.icon(
+            onPressed: () => _open(a),
+            icon: const Icon(Icons.open_in_new, size: 16),
+            label: const Text('打开 PDF'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _embedPreview(BuildContext context, NoteAttachment a) {
     final scheme = Theme.of(context).colorScheme;
     switch (a.kind) {
       case AttachmentKind.pdf:
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: scheme.surface,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: scheme.outlineVariant),
-          ),
-          child: Column(
-            children: [
-              Icon(Icons.picture_as_pdf, size: 40, color: scheme.error),
-              const SizedBox(height: 6),
-              const Text('PDF 内嵌预览（P3 后续接入渲染器）',
-                  style: TextStyle(fontSize: 12)),
-              const SizedBox(height: 6),
-              OutlinedButton.icon(
-                onPressed: () => _open(a),
-                icon: const Icon(Icons.open_in_new, size: 16),
-                label: const Text('打开 PDF'),
-              ),
-            ],
-          ),
-        );
+        return _buildPdfPreview(context, a);
       case AttachmentKind.bookmark:
         return Container(
           width: double.infinity,
@@ -243,7 +271,10 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
           decoration: const InputDecoration(hintText: '附件的描述/备注'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, controller.text),
             child: const Text('确定'),
