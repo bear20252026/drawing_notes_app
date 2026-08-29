@@ -180,6 +180,16 @@ class EdgelessController extends ChangeNotifier {
     _setDoc(_doc.updateFrameDoc(id, doc));
   }
 
+  /// 调整帧尺寸（可选同时移动左上角；w/h 有最小值约束）。
+  void resizeFrame(String id, {Offset? topLeft, double? w, double? h}) {
+    _setDoc(_doc.resizeFrame(id, topLeft: topLeft, w: w, h: h));
+  }
+
+  /// 设置帧背景色（CSS 颜色字符串）。
+  void setFrameBackground(String id, String background) {
+    _setDoc(_doc.setFrameBackground(id, background));
+  }
+
   // ── 坐标换算 ────────────────────────────────────────────────
 
   Offset worldToScreen(Offset world, Size viewport) => _camera.worldToScreen(world, viewport);

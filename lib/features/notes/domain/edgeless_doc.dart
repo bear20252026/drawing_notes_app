@@ -313,12 +313,18 @@ class EdgelessDoc {
   EdgelessDoc moveFrame(String id, Offset newTopLeft) =>
       _mapFrame(id, (f) => f.copyWith(x: newTopLeft.dx, y: newTopLeft.dy));
 
-  /// 调整帧尺寸（w/h 有最小值约束 120/60）。
-  EdgelessDoc resizeFrame(String id, {double? w, double? h}) =>
+  /// 调整帧尺寸（w/h 有最小值约束 120/60）；可选同时移动左上角。
+  EdgelessDoc resizeFrame(String id, {Offset? topLeft, double? w, double? h}) =>
       _mapFrame(id, (f) => f.copyWith(
+            x: topLeft?.dx,
+            y: topLeft?.dy,
             w: w != null ? (w < kMinFrameWidth ? kMinFrameWidth : w) : null,
             h: h != null ? (h < kMinFrameHeight ? kMinFrameHeight : h) : null,
           ));
+
+  /// 设置帧背景色（CSS 颜色字符串，如 '#FFF8E1'）。
+  EdgelessDoc setFrameBackground(String id, String background) =>
+      _mapFrame(id, (f) => f.copyWith(background: background));
 
   /// 更新帧内文档。
   EdgelessDoc updateFrameDoc(String id, NoteBlockDoc doc) =>

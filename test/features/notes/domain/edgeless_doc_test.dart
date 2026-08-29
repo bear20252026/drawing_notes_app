@@ -245,6 +245,33 @@ void main() {
       expect(doc.frames.first.h, 400);
     });
 
+    test('resizeFrame 可同时移动左上角', () {
+      var doc = EdgelessDoc.empty('e1').addFrame(_doc('d1'));
+      final id = doc.frames.first.id;
+      doc = doc.resizeFrame(
+        id,
+        topLeft: const Offset(50, 60),
+        w: 300,
+        h: 200,
+      );
+      final f = doc.frameById(id)!;
+      expect(f.x, 50);
+      expect(f.y, 60);
+      expect(f.w, 300);
+      expect(f.h, 200);
+    });
+
+    test('setFrameBackground 设置背景色', () {
+      var doc = EdgelessDoc.empty('e1').addFrame(_doc('d1'));
+      final id = doc.frames.first.id;
+      expect(doc.frameById(id)!.background, '#FFFFFF');
+      doc = doc.setFrameBackground(id, '#FFF8E1');
+      expect(doc.frameById(id)!.background, '#FFF8E1');
+      // 序列化往返保留背景色
+      final back = EdgelessDoc.fromJson(doc.toJson());
+      expect(back.frameById(id)!.background, '#FFF8E1');
+    });
+
     test('updateFrameDoc', () {
       var doc = EdgelessDoc.empty('e1').addFrame(_doc('d1'));
       final id = doc.frames.first.id;

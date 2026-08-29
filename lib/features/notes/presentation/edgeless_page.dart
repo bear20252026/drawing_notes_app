@@ -42,7 +42,6 @@ class EdgelessPage extends StatefulWidget {
 class _EdgelessPageState extends State<EdgelessPage> {
   late final EdgelessController _controller;
   Size _viewport = const Size(800, 600);
-
   @override
   void initState() {
     super.initState();
@@ -201,6 +200,18 @@ class _EdgelessPageState extends State<EdgelessPage> {
                               selected: f.id == _controller.selectedFrameId,
                               onEdit: () => _openFrameEditor(f.id, f.doc),
                               onRemove: () => _controller.removeFrame(f.id),
+                              onResize: (topLeft, w, h) => _controller.resizeFrame(
+                                f.id,
+                                topLeft: topLeft,
+                                w: w,
+                                h: h,
+                              ),
+                              onSetBackground: () {
+                                final idx = _kFrameBackgrounds.indexOf(f.background);
+                                final next = _kFrameBackgrounds[
+                                    (idx + 1) % _kFrameBackgrounds.length];
+                                _controller.setFrameBackground(f.id, next);
+                              },
                             ),
                           ),
                       ],
@@ -216,6 +227,18 @@ class _EdgelessPageState extends State<EdgelessPage> {
   }
 }
 
+/// AFFiNE note 帧默认背景色预设（白 + 常用 pastel）。
+const List<String> _kFrameBackgrounds = [
+  '#FFFFFF',
+  '#FFF8E1',
+  '#E3F2FD',
+  '#E8F5E9',
+  '#FBE9E7',
+  '#F3E5F5',
+  '#FFF3E0',
+  '#E0F7FA',
+];
+
 /// 单帧卡片。
 class _FrameCard extends StatelessWidget {
   const _FrameCard({
@@ -223,12 +246,20 @@ class _FrameCard extends StatelessWidget {
     required this.selected,
     required this.onEdit,
     required this.onRemove,
+    required this.onResize,
+    required this.onSetBackground,
   });
 
   final NoteFrame frame;
   final bool selected;
   final VoidCallback onEdit;
   final VoidCallback onRemove;
+
+  /// 拖拽帧角（世界坐标）调整尺寸；[topLeft] 为 null 表示左上不动。
+  final void Function(Offset? topLeft, double w, double h) onResize;
+
+  /// 循环切换下一档帧背景色。
+  final VoidCallback onSetBackground;
 
   Color _bgColor() {
     final hex = frame.background.replaceAll('#', '');
@@ -241,7 +272,7 @@ class _FrameCard extends StatelessWidget {
     final border = selected
         ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
         : Border.all(color: Colors.black26, width: 1);
-    return Container(
+    final body = Container(
       decoration: BoxDecoration(
         color: _bgColor(),
         border: border,
@@ -266,6 +297,25 @@ class _FrameCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                // 帧背景色（AFFiNE note 帧背景预设）
+                InkWell(
+                  onTap: onSetBackground,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Tooltip(
+                    message: '帧背景色',
+                    child: Container(
+                      width: 20,
+                      height: 20,
+                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                      decoration: BoxDecoration(
+                        color: _bgColor(),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.black26),
+                      ),
+                      child: const Icon(Icons.format_color_fill, size: 12, color: Colors.black54),
                     ),
                   ),
                 ),
@@ -295,6 +345,120 @@ class _FrameCard extends StatelessWidget {
         ],
       ),
     );
+    if (!selected) return body;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        body,
+        for (final corner in _Corner.values)
+          _CornerHandle(
+            key: ValueKey(corner),
+            frame: frame,
+            corner: corner,
+            onResize: onResize,
+          ),
+      ],
+    );
+  }
+}
+
+/// 帧角手柄枚举。
+enum _Corner { topLeft, topRight, bottomLeft, bottomRight }
+
+/// 选中帧四角缩放手柄：拖拽（世界坐标）调整帧尺寸与左上角。
+class _CornerHandle extends StatefulWidget {
+  const _CornerHandle({
+    super.key,
+    required this.frame,
+    required this.corner,
+    required this.onResize,
+  });
+
+  final NoteFrame frame;
+  final _Corner corner;
+  final void Function(Offset? topLeft, double w, double h) onResize;
+
+  @override
+  State<_CornerHandle> createState() => _CornerHandleState();
+}
+
+class _CornerHandleState extends State<_CornerHandle> {
+  static const double _size = 16;
+  Offset? _startTopLeft;
+  double? _startW;
+  double? _startH;
+  Offset _acc = Offset.zero;
+  bool _dragging = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final f = widget.frame;
+    final pos = _cornerPos(widget.corner, f);
+    return Positioned(
+      left: pos.dx - _size / 2,
+      top: pos.dy - _size / 2,
+      width: _size,
+      height: _size,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onPanStart: (d) {
+          _dragging = true;
+          _startTopLeft = Offset(f.x, f.y);
+          _startW = f.w;
+          _startH = f.h;
+          _acc = Offset.zero;
+          setState(() {});
+        },
+        onPanUpdate: (d) {
+          if (_dragging) _emit(_acc + d.delta);
+        },
+        onPanEnd: (_) => _dragging = false,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary,
+            borderRadius: BorderRadius.circular(3),
+            border: Border.all(color: Colors.white, width: 1.5),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _emit(Offset totalDelta) {
+    final sw = _startW ?? widget.frame.w;
+    final sh = _startH ?? widget.frame.h;
+    final stl = _startTopLeft ?? Offset(widget.frame.x, widget.frame.y);
+    switch (widget.corner) {
+      case _Corner.topLeft:
+        widget.onResize(stl + totalDelta, sw - totalDelta.dx, sh - totalDelta.dy);
+      case _Corner.topRight:
+        widget.onResize(
+          Offset(stl.dx, stl.dy + totalDelta.dy),
+          sw + totalDelta.dx,
+          sh - totalDelta.dy,
+        );
+      case _Corner.bottomLeft:
+        widget.onResize(
+          Offset(stl.dx + totalDelta.dx, stl.dy),
+          sw - totalDelta.dx,
+          sh + totalDelta.dy,
+        );
+      case _Corner.bottomRight:
+        widget.onResize(stl, sw + totalDelta.dx, sh + totalDelta.dy);
+    }
+  }
+
+  Offset _cornerPos(_Corner corner, NoteFrame f) {
+    switch (corner) {
+      case _Corner.topLeft:
+        return Offset(f.x, f.y);
+      case _Corner.topRight:
+        return Offset(f.x + f.w, f.y);
+      case _Corner.bottomLeft:
+        return Offset(f.x, f.y + f.h);
+      case _Corner.bottomRight:
+        return Offset(f.x + f.w, f.y + f.h);
+    }
   }
 }
 

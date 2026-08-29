@@ -35,6 +35,8 @@
 | 双指捏合 | 以焦点缩放 | 以焦点缩放（`zoomedBy(focusWorld)`） | scale 手势 |
 | 单击空白 | 取消选中 | 取消选中（`select(null)`） | tap 空白 |
 | 单击帧 | 选中 + 提到最上层 | 选中 + `bringToFront` | tap 帧 |
+| 帧角拖拽 | 缩放帧（角手柄） | 缩放帧（选中帧四角 `_CornerHandle`，世界坐标，含左上角联动） | `_CornerHandle` / `controller.resizeFrame(topLeft,w,h)` |
+| 帧背景 | note 帧背景预设 | 点击帧头取色按钮循环切换 AFFiNE 背景预设（白 + pastel） | `_kFrameBackgrounds` / `controller.setFrameBackground` |
 | 双击帧 | 进入内联编辑 | 打开帧内编辑器（`NoteEditorPage`） | `_openFrameEditor` |
 | 双击空白 | 聚焦空白 | 聚焦（`select(null)`） | `onDoubleTapDown` |
 | 添加帧 | `affine:note` 创建 | `EdgelessDoc.addFrame` / 画布工具栏 | `addFrame` |
@@ -42,7 +44,8 @@
 - **级联排布**：`addFrame` 在 `at` 为空时用 `(80+n*32, 80+n*32)` 级联偏移防重叠，对应 AFFiNE 新
   note 帧的自动错位。
 - **最小尺寸**：帧缩放有 `kMinFrameWidth=120`/`kMinFrameHeight=60` 下限，与 AFFiNE 帧可缩放但
-  不过小的行为对齐。
+  不过小的行为对齐。四角手柄拖拽（选中态）同时支持改宽/高与联动左上角，命中缩放由
+  `controller.resizeFrame(id, topLeft, w, h)` 收口。
 
 ## 3. 双模切换（page ↔ edgeless）
 

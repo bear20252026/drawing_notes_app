@@ -115,5 +115,25 @@ void main() {
       c.removeFrame('f1');
       expect(c.doc.frames, isEmpty);
     });
+
+    test('resizeFrame 调整尺寸并触发 onChanged（含 topLeft 移动）', () {
+      EdgelessDoc? latest;
+      final c = EdgelessController(doc: _docWithOneFrame(), onChanged: (d) => latest = d);
+      c.resizeFrame('f1', topLeft: const Offset(120, 140), w: 300, h: 220);
+      final f = c.doc.frameById('f1')!;
+      expect(f.x, 120);
+      expect(f.y, 140);
+      expect(f.w, 300);
+      expect(f.h, 220);
+      expect(latest!.frameById('f1')!.w, 300);
+    });
+
+    test('setFrameBackground 设置背景色并触发 onChanged', () {
+      EdgelessDoc? latest;
+      final c = EdgelessController(doc: _docWithOneFrame(), onChanged: (d) => latest = d);
+      c.setFrameBackground('f1', '#E3F2FD');
+      expect(c.doc.frameById('f1')!.background, '#E3F2FD');
+      expect(latest!.frameById('f1')!.background, '#E3F2FD');
+    });
   });
 }
