@@ -4,7 +4,7 @@ name: Release Build (Windows + Android)
 # 再由使用者下载（不在本地机器打包，保证构建环境统一、可复现）。
 # 触发方式：
 #  - Workflow 页面手动 Dispatch（可分别勾选 Android / Windows）
-#  - 推送 tag v* 时自动构建并在 GitHub Release 挂载 Windows 安装包
+#  - 推送 tag v* 时自动构建并在 GitHub Release 挂载 Windows 安装包 + Android APK（2026-08-30 对齐）
 
 on:
   workflow_dispatch:
@@ -28,7 +28,8 @@ permissions:
 jobs:
   android:
     name: Android Release Build
-    if: ${{ inputs.build_android }}
+    # tag 推送时 inputs 为空（falsy），需显式包含 tag 触发（与 windows job 对齐）。
+    if: ${{ inputs.build_android || startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:

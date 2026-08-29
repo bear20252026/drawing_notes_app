@@ -2,6 +2,22 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.2.0] - 2026-08-30
+
+### 产品清晰化（M11：IA 收敛，对照 AFFiNE/Excalidraw/Saber）
+
+- **信息架构收敛**：导航 4→3（全部文档 / 画板·笔记本 / 日历）；删除纯笔记占位页、HomePage「最近」时间线 Tab（并入日历）、零引用孤页 home_dashboard_page
+- **All Docs 真实化**：快速搜索实时过滤；收藏夹持久化（FavoriteStore）；侧栏精简为真实可达项；新增排序（时间分组/更新时间/创建时间/标题）
+- **日历真实化**：新增待办/日程事件（ScheduleEventStore 持久化），新增/勾选完成/删除；月历活动点含事件
+- **块编辑器（AFFiNE 1:1）**：选中块浮动工具条（B/I/U/链接 + 复制块/删除块）；嵌套子块拖拽与跨层级移动
+- **Edgeless 工具面板**：选择/便签/画笔/橡皮/形状（矩形/椭圆），笔迹与形状随文档持久化
+- **发布**：release-build.yml Android job 对齐 tag 触发，Release 同时挂载 Windows 安装包与 Android APK
+
+### 质量
+
+- 1303 项测试全绿（较 1.1.0 +48）；dart analyze 0 问题
+- 新增 docs/M11_PRODUCT_CLARITY_PLAN_2026-08-30.md 产品收敛方案
+
 ## [1.1.0] - 2026-08-16
 
 ### 安全（专家审计闭环——P0-P2 封堵 + 军工审计链 A-H + 专家审计包）
