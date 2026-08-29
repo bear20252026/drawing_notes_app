@@ -9,6 +9,7 @@ import 'dart:ui' show Offset, Rect, Size;
 
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_connector.dart';
+import 'package:drawing_notes_app/features/notes/domain/edgeless_group.dart';
 
 /// 默认帧尺寸。
 const double kDefaultFrameWidth = 360;
@@ -231,6 +232,7 @@ class EdgelessDoc {
     required this.id,
     this.frames = const [],
     this.connectors = const [],
+    this.groups = const [],
     this.camera = EdgelessCamera.initial,
     this.selectedFrameId,
     this.nextZIndex = 1,
@@ -241,6 +243,9 @@ class EdgelessDoc {
 
   /// 画布上的连接线集合（1:1 对标 `affine:connector`）。
   final List<NoteConnector> connectors;
+
+  /// 画布上的群组框集合（1:1 对标 `affine:group`）。
+  final List<EdgelessGroup> groups;
 
   final EdgelessCamera camera;
 
@@ -297,6 +302,7 @@ class EdgelessDoc {
       id: id,
       frames: [...frames, frame],
       connectors: connectors,
+      groups: groups,
       camera: camera,
       selectedFrameId: selectedFrameId,
       nextZIndex: nextZIndex + 1,
@@ -312,6 +318,7 @@ class EdgelessDoc {
       id: this.id,
       frames: newFrames,
       connectors: _pruneConnectors(connectors, removedFrameId: id),
+      groups: _pruneGroups(groups, removedFrameId: id),
       camera: camera,
       selectedFrameId: selectedFrameId == id ? null : selectedFrameId,
       nextZIndex: nextZIndex,
@@ -319,8 +326,34 @@ class EdgelessDoc {
   }
 
   /// 移动帧左上角到 newTopLeft。
-  EdgelessDoc moveFrame(String id, Offset newTopLeft) =>
-      _mapFrame(id, (f) => f.copyWith(x: newTopLeft.dx, y: newTopLeft.dy));
+  ///
+  /// 群组一致语义：若该帧属于某群组，则拖动时整组统一平移（成员间相对布局保持不变），
+  /// 与 AFFiNE `affine:group` 一致；未分组的帧仅自身移动。
+  EdgelessDoc moveFrame(String id, Offset newTopLeft) {
+    final f = frameById(id);
+    if (f == null) return this;
+    final delta = Offset(newTopLeft.dx - f.x, newTopLeft.dy - f.y);
+    final affected = groupContainingFrame(id)?.frameIds ?? [id];
+    return _translateFrames(affected, delta);
+  }
+
+  /// 平移一组帧（所有成员统一位移 [delta]）。
+  EdgelessDoc _translateFrames(List<String> ids, Offset delta) {
+    final next = frames
+        .map((f) => ids.contains(f.id)
+            ? f.copyWith(x: f.x + delta.dx, y: f.y + delta.dy)
+            : f)
+        .toList();
+    return EdgelessDoc(
+      id: id,
+      frames: next,
+      connectors: connectors,
+      groups: groups,
+      camera: camera,
+      selectedFrameId: selectedFrameId,
+      nextZIndex: nextZIndex,
+    );
+  }
 
   /// 调整帧尺寸（w/h 有最小值约束 120/60）；可选同时移动左上角。
   EdgelessDoc resizeFrame(String id, {Offset? topLeft, double? w, double? h}) =>
@@ -362,6 +395,7 @@ class EdgelessDoc {
         id: id,
         frames: frames,
         connectors: connectors,
+        groups: groups,
         camera: camera,
         selectedFrameId: selectedFrameId,
         nextZIndex: nextZIndex,
@@ -426,6 +460,7 @@ class EdgelessDoc {
       id: id,
       frames: frames,
       connectors: [...connectors, connector],
+      groups: groups,
       camera: camera,
       selectedFrameId: selectedFrameId,
       nextZIndex: nextZIndex,
@@ -440,6 +475,114 @@ class EdgelessDoc {
       id: this.id,
       frames: frames,
       connectors: retained,
+      groups: groups,
+      camera: camera,
+      selectedFrameId: selectedFrameId,
+      nextZIndex: nextZIndex,
+    );
+  }
+
+  // ── 群组框 ──────────────────────────────────────────────────
+
+  /// 按 id 查找群组。
+  EdgelessGroup? groupById(String id) {
+    for (final g in groups) {
+      if (g.id == id) return g;
+    }
+    return null;
+  }
+
+  /// 首个包含该帧的群组；不属于任何群组返回 null。
+  EdgelessGroup? groupContainingFrame(String frameId) {
+    for (final g in groups) {
+      if (g.contains(frameId)) return g;
+    }
+    return null;
+  }
+
+  /// 指定群组的外接矩形（成员帧矩形并集）；空组或成员缺失返回 null。
+  Rect? groupBounds(String groupId) {
+    final g = groupById(groupId);
+    if (g == null || g.frameIds.isEmpty) return null;
+    final rects = <Rect>[];
+    for (final fid in g.frameIds) {
+      final f = frameById(fid);
+      if (f == null) return null;
+      rects.add(Rect.fromLTWH(f.x, f.y, f.w, f.h));
+    }
+    return groupBoundsOf(rects);
+  }
+
+  /// 创建群组：需 ≥2 个不同且真实存在的帧；否则返回同一实例。
+  EdgelessDoc addGroup({
+    required List<String> frameIds,
+    String? name,
+    String? color,
+  }) {
+    final unique = frameIds.toSet().toList();
+    if (unique.length < 2) return this;
+    if (unique.any((fid) => frameById(fid) == null)) return this;
+    // 已在组内的帧不再重复入组
+    final candidate = unique.where((fid) => groupContainingFrame(fid) == null).toList();
+    if (candidate.length < 2) return this;
+    final group = EdgelessGroup(
+      id: 'group_${groups.length + 1}',
+      frameIds: candidate,
+      name: name,
+      color: color ?? kDefaultGroupColor,
+    );
+    return EdgelessDoc(
+      id: id,
+      frames: frames,
+      connectors: connectors,
+      groups: [...groups, group],
+      camera: camera,
+      selectedFrameId: selectedFrameId,
+      nextZIndex: nextZIndex,
+    );
+  }
+
+  /// 移除群组（仅解散组，不影响成员帧）；不存在返回同一实例。
+  EdgelessDoc removeGroup(String id) {
+    final retained = groups.where((g) => g.id != id).toList();
+    if (retained.length == groups.length) return this;
+    return EdgelessDoc(
+      id: this.id,
+      frames: frames,
+      connectors: connectors,
+      groups: retained,
+      camera: camera,
+      selectedFrameId: selectedFrameId,
+      nextZIndex: nextZIndex,
+    );
+  }
+
+  /// 重命名群组；不存在返回同一实例。
+  EdgelessDoc renameGroup(String id, String? name) {
+    final g = groupById(id);
+    if (g == null) return this;
+    return EdgelessDoc(
+      id: this.id,
+      frames: frames,
+      connectors: connectors,
+      groups: groups
+          .map((x) => x.id == id ? x.copyWith(name: name, clearName: name == null) : x)
+          .toList(),
+      camera: camera,
+      selectedFrameId: selectedFrameId,
+      nextZIndex: nextZIndex,
+    );
+  }
+
+  /// 修改群组颜色；不存在返回同一实例。
+  EdgelessDoc setGroupColor(String id, String color) {
+    final g = groupById(id);
+    if (g == null) return this;
+    return EdgelessDoc(
+      id: this.id,
+      frames: frames,
+      connectors: connectors,
+      groups: groups.map((x) => x.id == id ? x.copyWith(color: color) : x).toList(),
       camera: camera,
       selectedFrameId: selectedFrameId,
       nextZIndex: nextZIndex,
@@ -458,6 +601,7 @@ class EdgelessDoc {
       id: this.id,
       frames: newFrames,
       connectors: connectors,
+      groups: groups,
       camera: camera,
       selectedFrameId: selectedFrameId,
       nextZIndex: nextZIndex,
@@ -468,6 +612,7 @@ class EdgelessDoc {
         'id': id,
         'frames': frames.map((f) => f.toJson()).toList(),
         'connectors': connectors.map((c) => c.toJson()).toList(),
+        'groups': groups.map((g) => g.toJson()).toList(),
         'camera': {
           'zoom': camera.zoom,
           'panX': camera.panX,
@@ -484,6 +629,9 @@ class EdgelessDoc {
             .toList(),
         connectors: (json['connectors'] as List? ?? const [])
             .map((e) => NoteConnector.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        groups: (json['groups'] as List? ?? const [])
+            .map((e) => EdgelessGroup.fromJson(e as Map<String, dynamic>))
             .toList(),
         camera: json['camera'] != null
             ? EdgelessCamera(
@@ -504,13 +652,15 @@ class EdgelessDoc {
           id == other.id &&
           _listEquals(frames, other.frames) &&
           _listEquals(connectors, other.connectors) &&
+          _listEquals(groups, other.groups) &&
           camera == other.camera &&
           selectedFrameId == other.selectedFrameId &&
           nextZIndex == other.nextZIndex;
 
   @override
   int get hashCode => Object.hash(id, Object.hashAll(frames),
-      Object.hashAll(connectors), camera, selectedFrameId, nextZIndex);
+      Object.hashAll(connectors), Object.hashAll(groups), camera,
+      selectedFrameId, nextZIndex);
 
   @override
   String toString() =>
@@ -533,4 +683,16 @@ List<NoteConnector> _pruneConnectors(
     connectors
         .where((c) =>
             c.fromFrameId != removedFrameId && c.toFrameId != removedFrameId)
+        .toList();
+
+/// 帧被移除后：把该帧从所有群组中剔除，剔除后为空组的群组一并解散。
+List<EdgelessGroup> _pruneGroups(
+  List<EdgelessGroup> groups, {
+  required String removedFrameId,
+}) =>
+    groups
+        .map((g) => g.contains(removedFrameId)
+            ? g.copyWith(frameIds: g.frameIds.where((x) => x != removedFrameId).toList())
+            : g)
+        .where((g) => g.frameIds.isNotEmpty)
         .toList();

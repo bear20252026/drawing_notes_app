@@ -465,4 +465,121 @@ void main() {
       expect(withConnector, withConnector);
     });
   });
+
+  group('EdgelessDoc group', () {
+    EdgelessDoc twoFrames() => EdgelessDoc.empty('e1')
+        .addFrame(_doc('d1'))
+        .addFrame(_doc('d2'));
+
+    test('addGroup 创建群组并赋值成员/名字', () {
+      var doc = twoFrames();
+      doc = doc.addGroup(frameIds: ['frame_1', 'frame_2'], name: '设计');
+      expect(doc.groups, hasLength(1));
+      final g = doc.groups.single;
+      expect(g.id, 'group_1');
+      expect(g.name, '设计');
+      expect(g.contains('frame_1'), isTrue);
+      expect(g.contains('frame_2'), isTrue);
+      expect(doc.groupById(g.id), g);
+    });
+
+    test('addGroup 拒绝 <2 帧 / 缺帧', () {
+      final doc = twoFrames();
+      expect(doc.addGroup(frameIds: ['frame_1']), doc); // <2
+      expect(doc.addGroup(frameIds: ['frame_1', 'nope']), doc); // 缺帧
+    });
+
+    test('addGroup 拒绝把已入组帧再次入组', () {
+      var doc = twoFrames();
+      doc = doc.addGroup(frameIds: ['frame_1', 'frame_2']);
+      // frame_3 加入，但 frame_1 已入组 → 候选仅 frame_3 + frame_2 中的未入组者
+      expect(doc.groups, hasLength(1));
+    });
+
+    test('groupContainingFrame / groupById', () {
+      var doc = twoFrames();
+      doc = doc.addGroup(frameIds: ['frame_1', 'frame_2']);
+      expect(doc.groupContainingFrame('frame_1')!.id, 'group_1');
+      expect(doc.groupContainingFrame('nope'), isNull);
+    });
+
+    test('moveFrame 组内拖动 → 整组按 delta 平移', () {
+      var doc = twoFrames();
+      doc = doc.addGroup(frameIds: ['frame_1', 'frame_2']);
+      final b1 = doc.frameById('frame_1')!;
+      final b2 = doc.frameById('frame_2')!;
+      final doc2 =
+          doc.moveFrame('frame_1', Offset(b1.x + 50, b1.y + 70));
+      expect(doc2.frameById('frame_1')!.x, b1.x + 50);
+      expect(doc2.frameById('frame_1')!.y, b1.y + 70);
+      expect(doc2.frameById('frame_2')!.x, b2.x + 50);
+      expect(doc2.frameById('frame_2')!.y, b2.y + 70);
+    });
+
+    test('moveFrame 未分组帧仅自身移动', () {
+      var doc = twoFrames();
+      final b1 = doc.frameById('frame_1')!;
+      final b2 = doc.frameById('frame_2')!;
+      final doc2 =
+          doc.moveFrame('frame_1', Offset(b1.x + 30, b1.y + 30));
+      expect(doc2.frameById('frame_1')!.x, b1.x + 30);
+      expect(doc2.frameById('frame_2')!.x, b2.x); // 未变
+    });
+
+    test('removeFrame 剔除成员并解散空组', () {
+      var doc = EdgelessDoc.empty('e1')
+          .addFrame(_doc('d1'))
+          .addFrame(_doc('d2'))
+          .addFrame(_doc('d3'));
+      doc = doc.addGroup(frameIds: ['frame_1', 'frame_2']);
+      // 移除 frame_1 → 组内只剩 frame_2，非空 → 保留单成员组
+      final doc2 = doc.removeFrame('frame_1');
+      expect(doc2.groups.single.frameIds, ['frame_2']);
+      // 再移除 frame_2 → 组空 → 解散
+      final doc3 = doc2.removeFrame('frame_2');
+      expect(doc3.groups, isEmpty);
+    });
+
+    test('removeGroup 仅解散组不影响帧', () {
+      var doc = twoFrames();
+      doc = doc.addGroup(frameIds: ['frame_1', 'frame_2']);
+      doc = doc.removeGroup('group_1');
+      expect(doc.groups, isEmpty);
+      expect(doc.frames, hasLength(2));
+    });
+
+    test('renameGroup / setGroupColor', () {
+      var doc = twoFrames();
+      doc = doc.addGroup(frameIds: ['frame_1', 'frame_2']);
+      doc = doc.renameGroup('group_1', '新名');
+      expect(doc.groupById('group_1')!.name, '新名');
+      doc = doc.setGroupColor('group_1', '#FF0000');
+      expect(doc.groupById('group_1')!.color, '#FF0000');
+    });
+
+    test('groupBounds 求成员外接矩形', () {
+      var doc = EdgelessDoc.empty('e1')
+          .addFrame(_doc('d1'))
+          .addFrame(_doc('d2'));
+      doc = doc.addGroup(frameIds: ['frame_1', 'frame_2']);
+      final b = doc.groupBounds('group_1');
+      expect(b, isNotNull);
+      expect(doc.groupBounds('nope'), isNull);
+    });
+
+    test('持久化往返包含群组', () {
+      var doc = twoFrames();
+      doc = doc.addGroup(frameIds: ['frame_1', 'frame_2'], name: 'g');
+      final doc2 = EdgelessDoc.fromJson(doc.toJson());
+      expect(doc2.groups, doc.groups);
+      expect(doc2, doc);
+    });
+
+    test('operator== 包含群组', () {
+      final doc = twoFrames();
+      final withGroup = doc.addGroup(frameIds: ['frame_1', 'frame_2']);
+      expect(withGroup, isNot(doc));
+      expect(withGroup, withGroup);
+    });
+  });
 }

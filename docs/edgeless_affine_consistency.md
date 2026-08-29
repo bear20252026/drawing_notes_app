@@ -15,6 +15,7 @@
 | 画布渲染 + 手势 | `EdgelessPage` | `lib/features/notes/presentation/edgeless_page.dart` |
 | 帧精确位置/尺寸 | `NoteFrame.rect`（dart:ui Rect，逻辑 px） | `edgeless_doc.dart` |
 | `affine:connector`（帧间连接线） | `NoteConnector`（from/to 帧 + 各自锚点 + color/width/label，端点由帧矩形即时推导） | `lib/features/notes/domain/edgeless_connector.dart` |
+| `affine:group`（群组框） | `EdgelessGroup`（成员帧 id 集 + 可选 name + color；组外接矩形 `groupBounds` 由成员矩形并集推导） | `lib/features/notes/domain/edgeless_group.dart` |
 
 ### 1:1 语义要点
 - **帧 = 块文档容器**：每个 `NoteFrame` 内含一个 `NoteBlockDoc`（block 序列）。AFFiNE 的
@@ -74,7 +75,10 @@
 - ✅ **连接线（note↔note 引用连线）已实现**：`NoteConnector` + `beginConnect/connectTo`（自动锚点），
   端点由帧矩形即时推导、移动/缩放自动跟随；级联删除（帧移除即清理连线）。见 §1/§2。
   仍可改进：仅直线，AFFiNE 连接线支持贝塞尔曲线/端点样式；锚点目前为帧边中点。
-- AFFiNE edgeless 支持**群组框**、**画布内 search/命令面板**；画记当前未实现（后续 P3）。
+- 🚧 **群组框（`affine:group`）领域层已实现**：`EdgelessGroup` + `addGroup/removeGroup/renameGroup/setGroupColor/groupBounds`，
+  并实现**组内拖动整组平移**的一致语义（`moveFrame` 组内任一帧 → 整组按 delta 平移）、帧移除级联剔除与空组解散。
+  表现层（多选选中集 + 群组框渲染/整组缩放）仍在后续 P3。
+- AFFiNE edgeless 支持**画布内 search/命令面板**；画记当前未实现（后续 P3）。
 - AFFiNE 的 note 帧在 web 上由 `affine:frame` 元数据承载 `prop`（标题/索引），画记直接以
   `NoteBlockDoc.title` 承载，形态简化但语义等价。
 - `fittedTo` 的 padding 默认 40px，AFFiNE 的 fit 缩放策略随容器；如需逐像素一致可再调。
