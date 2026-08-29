@@ -234,9 +234,9 @@ class EdgelessDoc {
     this.connectors = const [],
     this.groups = const [],
     this.camera = EdgelessCamera.initial,
-    this.selectedFrameId,
+    Set<String>? selectedFrameIds,
     this.nextZIndex = 1,
-  });
+  }) : selectedFrameIds = selectedFrameIds ?? const <String>{};
 
   final String id;
   final List<NoteFrame> frames;
@@ -249,8 +249,15 @@ class EdgelessDoc {
 
   final EdgelessCamera camera;
 
-  /// 当前选中帧 id（可为 null）。
-  final String? selectedFrameId;
+  /// 多选选中集（有序：保留「最近选中为 primary」）。
+  final Set<String> selectedFrameIds;
+
+  /// 主选中帧 id（选中集最后一个）；空集为 null。
+  String? get selectedFrameId =>
+      selectedFrameIds.isEmpty ? null : selectedFrameIds.last;
+
+  /// 是否选中该帧。
+  bool isSelected(String frameId) => selectedFrameIds.contains(frameId);
 
   /// 下一个待分配的 zIndex。
   final int nextZIndex;
@@ -304,7 +311,7 @@ class EdgelessDoc {
       connectors: connectors,
       groups: groups,
       camera: camera,
-      selectedFrameId: selectedFrameId,
+      selectedFrameIds: selectedFrameIds,
       nextZIndex: nextZIndex + 1,
     );
   }
@@ -320,7 +327,7 @@ class EdgelessDoc {
       connectors: _pruneConnectors(connectors, removedFrameId: id),
       groups: _pruneGroups(groups, removedFrameId: id),
       camera: camera,
-      selectedFrameId: selectedFrameId == id ? null : selectedFrameId,
+      selectedFrameIds: _withoutSelection(selectedFrameIds, id),
       nextZIndex: nextZIndex,
     );
   }
@@ -350,7 +357,7 @@ class EdgelessDoc {
       connectors: connectors,
       groups: groups,
       camera: camera,
-      selectedFrameId: selectedFrameId,
+      selectedFrameIds: selectedFrameIds,
       nextZIndex: nextZIndex,
     );
   }
@@ -390,16 +397,55 @@ class EdgelessDoc {
     return _mapFrame(id, (f) => f.copyWith(zIndex: newZ));
   }
 
-  /// 选中指定帧（null 取消选择）。
-  EdgelessDoc select(String? selectedFrameId) => EdgelessDoc(
+  /// 单选：选中 [frameId]（null 取消选择）。
+  EdgelessDoc select(String? frameId) => EdgelessDoc(
         id: id,
         frames: frames,
         connectors: connectors,
         groups: groups,
         camera: camera,
-        selectedFrameId: selectedFrameId,
+        selectedFrameIds: frameId == null ? const {} : {frameId},
         nextZIndex: nextZIndex,
       );
+
+  /// 替换整组选中。
+  EdgelessDoc selectFrames(Iterable<String> frameIds) => EdgelessDoc(
+        id: id,
+        frames: frames,
+        connectors: connectors,
+        groups: groups,
+        camera: camera,
+        selectedFrameIds: frameIds.toSet(),
+        nextZIndex: nextZIndex,
+      );
+
+  /// 追加一个帧到选中集（无序集合直接追加；有序集合保持「最后为 primary」）。
+  EdgelessDoc addToSelection(String frameId) => EdgelessDoc(
+        id: id,
+        frames: frames,
+        connectors: connectors,
+        groups: groups,
+        camera: camera,
+        selectedFrameIds: {...selectedFrameIds, frameId},
+        nextZIndex: nextZIndex,
+      );
+
+  /// 切换一个帧的选中状态（在选中集中则移除，否则追加）。
+  EdgelessDoc toggleSelection(String frameId) {
+    final next = Set<String>.of(selectedFrameIds);
+    if (!next.remove(frameId)) {
+      next.add(frameId);
+    }
+    return EdgelessDoc(
+      id: id,
+      frames: frames,
+      connectors: connectors,
+      groups: groups,
+      camera: camera,
+      selectedFrameIds: next,
+      nextZIndex: nextZIndex,
+    );
+  }
 
   /// 命中测试：返回含 [worldPoint] 的最上层帧（z 最大），无则 null。
   NoteFrame? hitTest(Offset worldPoint) {
@@ -462,7 +508,7 @@ class EdgelessDoc {
       connectors: [...connectors, connector],
       groups: groups,
       camera: camera,
-      selectedFrameId: selectedFrameId,
+      selectedFrameIds: selectedFrameIds,
       nextZIndex: nextZIndex,
     );
   }
@@ -477,7 +523,7 @@ class EdgelessDoc {
       connectors: retained,
       groups: groups,
       camera: camera,
-      selectedFrameId: selectedFrameId,
+      selectedFrameIds: selectedFrameIds,
       nextZIndex: nextZIndex,
     );
   }
@@ -537,7 +583,7 @@ class EdgelessDoc {
       connectors: connectors,
       groups: [...groups, group],
       camera: camera,
-      selectedFrameId: selectedFrameId,
+      selectedFrameIds: selectedFrameIds,
       nextZIndex: nextZIndex,
     );
   }
@@ -552,7 +598,7 @@ class EdgelessDoc {
       connectors: connectors,
       groups: retained,
       camera: camera,
-      selectedFrameId: selectedFrameId,
+      selectedFrameIds: selectedFrameIds,
       nextZIndex: nextZIndex,
     );
   }
@@ -569,7 +615,7 @@ class EdgelessDoc {
           .map((x) => x.id == id ? x.copyWith(name: name, clearName: name == null) : x)
           .toList(),
       camera: camera,
-      selectedFrameId: selectedFrameId,
+      selectedFrameIds: selectedFrameIds,
       nextZIndex: nextZIndex,
     );
   }
@@ -584,7 +630,7 @@ class EdgelessDoc {
       connectors: connectors,
       groups: groups.map((x) => x.id == id ? x.copyWith(color: color) : x).toList(),
       camera: camera,
-      selectedFrameId: selectedFrameId,
+      selectedFrameIds: selectedFrameIds,
       nextZIndex: nextZIndex,
     );
   }
@@ -603,7 +649,7 @@ class EdgelessDoc {
       connectors: connectors,
       groups: groups,
       camera: camera,
-      selectedFrameId: selectedFrameId,
+      selectedFrameIds: selectedFrameIds,
       nextZIndex: nextZIndex,
     );
   }
@@ -618,7 +664,7 @@ class EdgelessDoc {
           'panX': camera.panX,
           'panY': camera.panY,
         },
-        'selectedFrameId': selectedFrameId,
+        'selectedFrameIds': selectedFrameIds.toList(),
         'nextZIndex': nextZIndex,
       };
 
@@ -640,7 +686,10 @@ class EdgelessDoc {
                 panY: (json['camera']['panY'] as num).toDouble(),
               )
             : EdgelessCamera.initial,
-        selectedFrameId: json['selectedFrameId'] as String?,
+        selectedFrameIds: (json['selectedFrameIds'] as List?)?.cast<String>().toSet() ??
+            (json['selectedFrameId'] != null
+                ? {json['selectedFrameId'] as String}
+                : const <String>{}),
         nextZIndex: json['nextZIndex'] as int? ?? 1,
       );
 
@@ -654,13 +703,13 @@ class EdgelessDoc {
           _listEquals(connectors, other.connectors) &&
           _listEquals(groups, other.groups) &&
           camera == other.camera &&
-          selectedFrameId == other.selectedFrameId &&
+          _setEquals(selectedFrameIds, other.selectedFrameIds) &&
           nextZIndex == other.nextZIndex;
 
   @override
   int get hashCode => Object.hash(id, Object.hashAll(frames),
       Object.hashAll(connectors), Object.hashAll(groups), camera,
-      selectedFrameId, nextZIndex);
+      Object.hashAll(selectedFrameIds.toList()..sort()), nextZIndex);
 
   @override
   String toString() =>
@@ -674,6 +723,15 @@ bool _listEquals<T>(List<T> a, List<T> b) {
   }
   return true;
 }
+
+bool _setEquals(Set<String> a, Set<String> b) {
+  if (a.length != b.length) return false;
+  return a.containsAll(b);
+}
+
+/// 从选中集中剔除 [id]（帧被移除时级联清理）。
+Set<String> _withoutSelection(Set<String> selection, String id) =>
+    Set<String>.of(selection)..remove(id);
 
 /// 移除一切引用 [removedFrameId] 的连接线（级联清理，防止残留悬空引用）。
 List<NoteConnector> _pruneConnectors(

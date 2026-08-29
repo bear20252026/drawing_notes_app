@@ -582,4 +582,70 @@ void main() {
       expect(withGroup, withGroup);
     });
   });
+
+  group('EdgelessDoc 多选选中集', () {
+    EdgelessDoc twoFrames() => EdgelessDoc.empty('e1')
+        .addFrame(_doc('d1'))
+        .addFrame(_doc('d2'));
+
+    test('select 单选 → 选中集 {id}，selectedFrameId 即主选中', () {
+      final doc = twoFrames().select('frame_1');
+      expect(doc.selectedFrameIds, {'frame_1'});
+      expect(doc.selectedFrameId, 'frame_1');
+      expect(doc.isSelected('frame_1'), isTrue);
+      expect(doc.isSelected('frame_2'), isFalse);
+    });
+
+    test('select(null) 清空选择', () {
+      final doc = twoFrames().select('frame_1').select(null);
+      expect(doc.selectedFrameIds, isEmpty);
+      expect(doc.selectedFrameId, isNull);
+    });
+
+    test('addToSelection 追加 → primary 为最后添加', () {
+      var doc = twoFrames().select('frame_1');
+      doc = doc.addToSelection('frame_2');
+      expect(doc.selectedFrameIds, {'frame_1', 'frame_2'});
+      expect(doc.selectedFrameId, 'frame_2');
+      expect(doc.isSelected('frame_2'), isTrue);
+    });
+
+    test('toggleSelection 切换选中状态', () {
+      var doc = twoFrames().select('frame_1');
+      doc = doc.toggleSelection('frame_2');
+      expect(doc.selectedFrameIds, {'frame_1', 'frame_2'});
+      doc = doc.toggleSelection('frame_1');
+      expect(doc.selectedFrameIds, {'frame_2'});
+    });
+
+    test('selectFrames 替换整组选中', () {
+      final doc = twoFrames().selectFrames(['frame_2']);
+      expect(doc.selectedFrameIds, {'frame_2'});
+    });
+
+    test('removeFrame 从选中集中剔除', () {
+      var doc = EdgelessDoc.empty('e1')
+          .addFrame(_doc('d1'))
+          .addFrame(_doc('d2'))
+          .addFrame(_doc('d3'));
+      doc = doc.selectFrames(['frame_1', 'frame_2']);
+      final doc2 = doc.removeFrame('frame_1');
+      expect(doc2.selectedFrameIds, {'frame_2'});
+      expect(doc2.frameById('frame_1'), isNull);
+    });
+
+    test('持久化往返保留多选选中集', () {
+      var doc = twoFrames().selectFrames(['frame_1', 'frame_2']);
+      final doc2 = EdgelessDoc.fromJson(doc.toJson());
+      expect(doc2.selectedFrameIds, {'frame_1', 'frame_2'});
+      expect(doc2, doc);
+    });
+
+    test('operator== 考虑选中集', () {
+      final doc = twoFrames();
+      expect(doc.select('frame_1'), isNot(doc));
+      expect(doc.select('frame_1'), doc.select('frame_1'));
+      expect(doc.select('frame_1'), isNot(doc.select('frame_2')));
+    });
+  });
 }
