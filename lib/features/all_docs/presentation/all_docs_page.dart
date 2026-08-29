@@ -43,6 +43,9 @@ class _AllDocsPageState extends State<AllDocsPage> {
   // Tab 索引：0=文档，1=精选，2=标签。
   int _tabIndex = 0;
 
+  /// 首次构建时加载一次并缓存，避免每次 rebuild 重跑 loadDocs 造成闪屏。
+  late final Future<AllDocQueryResult> _future = widget.loadDocs();
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -72,7 +75,7 @@ class _AllDocsPageState extends State<AllDocsPage> {
           // 主内容区
           Expanded(
             child: FutureBuilder<AllDocQueryResult>(
-              future: widget.loadDocs(),
+              future: _future,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
