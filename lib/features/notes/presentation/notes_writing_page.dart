@@ -35,12 +35,12 @@ class NotesWritingPage extends StatelessWidget {
                   Icon(
                     Icons.edit_note_outlined,
                     size: 64,
-                    color: AppleColor.inkSubtle,
+                    color: scheme.onSurfaceVariant,
                   ),
                   const SizedBox(height: AppleSpacing.sm),
                   Text(
                     '纯笔记（待完善）',
-                    style: AppleType.bodyStyle(AppleColor.inkMuted),
+                    style: AppleType.bodyStyle(scheme.onSurfaceVariant),
                   ),
                 ],
               ),

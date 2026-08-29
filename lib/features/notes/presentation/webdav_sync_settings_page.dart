@@ -237,16 +237,16 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
       helperText: helperText,
       prefixIcon: Icon(icon),
       filled: true,
-      fillColor: AppleColor.subtleSurface,
+      fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
       contentPadding:
           const EdgeInsets.symmetric(horizontal: AppleSpacing.md, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppleRadius.lg),
-        borderSide: const BorderSide(color: AppleColor.hairline),
+        borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppleRadius.lg),
-        borderSide: const BorderSide(color: AppleColor.hairline),
+        borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppleRadius.lg),

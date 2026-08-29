@@ -160,16 +160,16 @@ class _NameDialogState extends State<_NameDialog> {
       content: TextField(
         controller: _controller,
         autofocus: true,
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           hintText: '请输入名称',
           filled: true,
           border: OutlineInputBorder(
-            borderSide: BorderSide(color: AppleColor.hairline),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
           ),
           enabledBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: AppleColor.hairline),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
           ),
-          focusedBorder: OutlineInputBorder(
+          focusedBorder: const OutlineInputBorder(
             borderSide: BorderSide(color: AppleColor.actionBlue, width: 1.5),
           ),
         ),
@@ -220,11 +220,11 @@ class _PasswordDialogState extends State<_PasswordDialog> {
         decoration: InputDecoration(
           hintText: '请输入密码',
           filled: true,
-          border: const OutlineInputBorder(
-            borderSide: BorderSide(color: AppleColor.hairline),
+          border: OutlineInputBorder(
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
           ),
-          enabledBorder: const OutlineInputBorder(
-            borderSide: BorderSide(color: AppleColor.hairline),
+          enabledBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
           ),
           focusedBorder: const OutlineInputBorder(
             borderSide: BorderSide(color: AppleColor.actionBlue, width: 1.5),

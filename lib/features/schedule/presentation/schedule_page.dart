@@ -274,9 +274,9 @@ class _SchedulePageState extends State<SchedulePage> {
           Container(
             width: 8,
             height: 8,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppDesign.accent,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
           const SizedBox(width: 8),

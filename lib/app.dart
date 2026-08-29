@@ -4,6 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'
     hide GlobalMaterialLocalizations;
+// Flutter SDK 版 GlobalMaterialLocalizations 的别名（与 material_ui 版同名不同类）。
+// 两者都要注册：material_ui 组件用 material_ui 版，flutter/material 组件
+// （如 All Docs 侧栏搜索框等）用 Flutter 版，各取各的，互不冲突。
+import 'package:flutter_localizations/flutter_localizations.dart'
+    as fl_loc show GlobalMaterialLocalizations;
 
 import 'package:drawing_notes_app/app/default_editor_page_builder.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
@@ -117,6 +122,10 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
             // （release 断言被裁剪所以表面正常）。故 Material 用 material_ui 的，
             // Widgets/Cupertino 仍用 flutter_localizations 的（material_ui 不导出）。
             GlobalMaterialLocalizations.delegate,
+            // 同时注册 Flutter SDK 版，供 flutter/material 组件
+            // （All Docs 侧栏搜索框等）解析 MaterialLocalizations，
+            // 避免 "No MaterialLocalizations found"。两者类型不同，互不冲突。
+            fl_loc.GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
