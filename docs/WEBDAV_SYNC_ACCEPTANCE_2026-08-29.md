@@ -1,7 +1,7 @@
 # WebDAV 本地优先同步 验收记录
 
-> 状态：✅ 已收口（commit `8f60c4d`，叠 `a2ef16a` / `ba418a7`）；端到端加密已收口（commit `2252bfd`）
-> 门禁：`flutter analyze` 0 问题 · architecture 测试全通过 · `flutter test` **1124** 全通过
+> 状态：✅ 已收口（commit `8f60c4d`，叠 `a2ef16a` / `ba418a7`）；端到端加密（commit `2252bfd`）；同步可观测性（commit `0c5d1ba`）
+> 门禁：`flutter analyze` 0 问题 · architecture 测试全通过 · `flutter test` **1176** 全通过
 
 ## 目标
 
@@ -56,6 +56,20 @@
 - **口令变更 = 密钥变更**：既改密后，旧远端密文无法再用旧口令解密；需重建集合全量重传（登记为后续强化项）。
 - 同步密码存储于 SharedPreferences（`webdav_sync_config`），非平台安全存储；升级到 `flutter_secure_storage` 为后续安全强化项。
 - 盐一旦生成不改，保证派生 key 对既有密文稳定。
+
+## 同步可观测性（P4-B，commit `0c5d1ba`）
+
+> 边界：**本地优先、零服务器设计**。进度/重试/冲突均为客户端可观测性，不引入任何服务端契约。
+
+### 设计
+- `sync_progress.dart`：`SyncProgressPhase` 枚举（started/connecting/planning/uploading/downloading/deleting/writingManifest/done/failed）+ immutable `SyncProgress`（`fraction`/`description`/`copyWith` + `starting`/`phase`/`complete`/`failure` 工厂）。
+- `sync_retry_policy.dart`：`SyncRetryPolicy`（`decide(SyncRetryInput)` → retry/backoff/giveUp + `delayFor` 指数退避 + `maxAttempts`）。
+- `SyncService`：注入可选 `onProgress`，`syncNow` 全阶段发射进度；`SyncResult` 增 `conflictedDocIds`——比对基线检测「本地与云端都相对基线改动」的真冲突（仅可见性提示，不改变 LWW 语义，同步语义仍由 `SyncPlanner` 决定）。
+- 设置页：`LinearProgressIndicator` + 状态文案；成功展示 `↑↓✕` 计数与冲突提示；失败走 `SyncRetryPolicy` 有界自动退避重试。
+
+### 测试（+52）
+- `sync_progress_test.dart` + `sync_retry_policy_test.dart`：49（fraction/description/工厂、重试决策/退避曲线/确定性）
+- `sync_service_test.dart` +3：onProgress 阶段序列、双边改动报冲突、单侧改动不冲突
 
 ## 相关文档
 
