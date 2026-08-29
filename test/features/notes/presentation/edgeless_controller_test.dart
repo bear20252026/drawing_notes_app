@@ -250,4 +250,76 @@ void main() {
       expect(c.groups, isEmpty);
     });
   });
+
+  group('多选 / 编组', () {
+    EdgelessDoc twoFrames() {
+      final f2 = NoteFrame(
+        id: 'f2',
+        x: 400,
+        y: 100,
+        w: 200,
+        h: 200,
+        doc: NoteBlockDoc.empty('f2doc'),
+        zIndex: 1,
+      );
+      return EdgelessDoc(
+        id: 'e',
+        frames: [..._docWithOneFrame().frames, f2],
+        camera: EdgelessCamera.initial,
+      );
+    }
+
+    test('多选模式下点帧切换选中，点空白清空', () {
+      final c = EdgelessController(doc: twoFrames());
+      c.toggleMultiSelectMode();
+      expect(c.multiSelectMode, isTrue);
+      // f1 屏幕中心 (600,500)，f2 (900,500)
+      c.tapAt(const Offset(600, 500), _viewport);
+      c.tapAt(const Offset(900, 500), _viewport);
+      expect(c.selectedFrameIds, {'f1', 'f2'});
+      c.tapAt(const Offset(600, 500), _viewport); // 再点 f1 取消
+      expect(c.selectedFrameIds, {'f2'});
+      c.tapAt(const Offset(400, 300), _viewport); // 空白清空
+      expect(c.selectedFrameIds, isEmpty);
+    });
+
+    test('非多选模式点帧为单选', () {
+      final c = EdgelessController(doc: twoFrames());
+      c.tapAt(const Offset(900, 500), _viewport);
+      expect(c.selectedFrameIds, {'f2'});
+    });
+
+    test('退出多选只保留主选中帧', () {
+      final c = EdgelessController(doc: twoFrames());
+      c.toggleMultiSelectMode();
+      c.tapAt(const Offset(600, 500), _viewport);
+      c.tapAt(const Offset(900, 500), _viewport);
+      expect(c.selectedFrameIds, {'f1', 'f2'});
+      c.toggleMultiSelectMode(); // 退出
+      expect(c.selectedFrameIds.length, 1);
+      expect(c.multiSelectMode, isFalse);
+    });
+
+    test('groupSelection 对 ≥2 选中帧编组，不足不动', () {
+      final c = EdgelessController(doc: twoFrames());
+      c.groupSelection();
+      expect(c.groups, isEmpty); // 默认无选中 → 不编组
+      c.toggleMultiSelectMode();
+      c.tapAt(const Offset(600, 500), _viewport);
+      c.tapAt(const Offset(900, 500), _viewport);
+      c.groupSelection(name: '设计');
+      expect(c.groups, hasLength(1));
+      expect(c.groups.single.name, '设计');
+      expect(c.groups.single.contains('f1'), isTrue);
+      expect(c.groups.single.contains('f2'), isTrue);
+    });
+
+    test('isSelected 反映选中集', () {
+      final c = EdgelessController(doc: twoFrames());
+      c.toggleMultiSelectMode();
+      c.tapAt(const Offset(600, 500), _viewport);
+      expect(c.isSelected('f1'), isTrue);
+      expect(c.isSelected('f2'), isFalse);
+    });
+  });
 }

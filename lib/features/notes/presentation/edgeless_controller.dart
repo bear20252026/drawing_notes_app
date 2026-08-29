@@ -41,6 +41,9 @@ class EdgelessController extends ChangeNotifier {
   Offset _dragStartTopLeft = Offset.zero;
   bool _gestureActive = false;
 
+  /// 多选模式：开启后点按帧为「切换选中」，用于框选编组。
+  bool _multiSelect = false;
+
   EdgelessDoc get doc => _doc;
   EdgelessCamera get camera => _camera;
   String? get selectedFrameId => _doc.selectedFrameId;
@@ -157,6 +160,13 @@ class EdgelessController extends ChangeNotifier {
       } else {
         connectTo(frame.id);
       }
+      return;
+    }
+    if (_multiSelect) {
+      // 多选模式：点按帧切换选中；点空白清空
+      _setDoc(frame == null
+          ? _doc.select(null)
+          : _doc.toggleSelection(frame.id));
       return;
     }
     if (frame == null) {
@@ -294,6 +304,46 @@ class EdgelessController extends ChangeNotifier {
   /// 修改群组颜色。
   void setGroupColor(String id, String color) {
     _setDoc(_doc.setGroupColor(id, color));
+  }
+
+  // ── 多选 / 选中集 ───────────────────────────────────────────
+
+  Set<String> get selectedFrameIds => _doc.selectedFrameIds;
+  String? get primarySelectedFrameId => _doc.selectedFrameId;
+
+  /// 是否处于多选模式。
+  bool get multiSelectMode => _multiSelect;
+
+  /// 切换多选模式。
+  void toggleMultiSelectMode() {
+    _multiSelect = !_multiSelect;
+    if (!_multiSelect && _doc.selectedFrameIds.length > 1) {
+      // 退出多选：只保留主选中帧，避免展示层仍高亮多个
+      _setDoc(_doc.select(_doc.selectedFrameId));
+    } else {
+      notifyListeners();
+    }
+  }
+
+  /// 某帧是否被选中（单选或多选集合内）。
+  bool isSelected(String frameId) => _doc.isSelected(frameId);
+
+  /// 切换某帧的选中状态（多选模式下使用）。
+  void toggleSelection(String frameId) {
+    if (_doc.frameById(frameId) == null) return;
+    _setDoc(_doc.toggleSelection(frameId));
+  }
+
+  /// 用整组帧替换选中集。
+  void selectFrames(Iterable<String> frameIds) {
+    _setDoc(_doc.selectFrames(frameIds));
+  }
+
+  /// 把当前选中帧（≥2）编成群组；不足则不做。
+  void groupSelection({String? name}) {
+    final ids = _doc.selectedFrameIds.toList();
+    if (ids.length < 2) return;
+    _setDoc(_doc.addGroup(frameIds: ids, name: name));
   }
 
   // ── 坐标换算 ────────────────────────────────────────────────
