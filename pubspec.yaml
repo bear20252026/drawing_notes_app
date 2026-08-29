@@ -63,6 +63,9 @@ dependencies:
   vector_math: ^2.4.2
   # 图片编解码（本地化适配 2026-08-15：PDF 导出 JPEG 压缩，原为传递依赖）
   image: ^4.3.0
+  # WebDAV 本地优先同步：HTTP 客户端 + XML（PROPFIND 多状态响应解析）。
+  http: ^1.2.2
+  xml: ^6.5.0
 
   material_ui: any
   cupertino_ui: any
