@@ -63,3 +63,10 @@ app.*.map.json
 /.desloppify/
 /.hotspottriage/
 /.repopilot/
+
+# 本地 Windows UIA/截图测试脚手架（开发机专用，不入库）
+/tools/capture_window.ps1
+/tools/crop_image.ps1
+/tools/dump_uia.ps1
+/tools/install_test.ps1
+/tools/ui_automate.ps1
