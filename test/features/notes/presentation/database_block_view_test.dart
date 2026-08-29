@@ -78,4 +78,33 @@ void main() {
     ));
     expect(find.textContaining('添加字段'), findsWidgets);
   });
+
+  testWidgets('搜索框按字段值过滤记录', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(body: DatabaseBlockView(block: buildBlock())),
+    ));
+    expect(find.text('写文档'), findsOneWidget);
+    expect(find.text('复盘'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), '复盘');
+    await tester.pumpAndSettle();
+
+    expect(find.text('写文档'), findsNothing);
+    expect(find.text('1 条记录'), findsOneWidget);
+  });
+
+  testWidgets('搜索无命中显示空态且可清空恢复', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(body: DatabaseBlockView(block: buildBlock())),
+    ));
+    await tester.enterText(find.byType(TextField), '不存在');
+    await tester.pumpAndSettle();
+    expect(find.textContaining('还没有记录'), findsOneWidget);
+    expect(find.text('0 条记录'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.clear));
+    await tester.pumpAndSettle();
+    expect(find.text('写文档'), findsOneWidget);
+    expect(find.text('2 条记录'), findsOneWidget);
+  });
 }

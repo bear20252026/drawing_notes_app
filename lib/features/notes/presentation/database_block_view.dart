@@ -56,11 +56,19 @@ class DatabaseBlockView extends StatefulWidget {
 
 class _DatabaseBlockViewState extends State<DatabaseBlockView> {
   late NoteDatabase _db;
+  final _filterController = TextEditingController();
+  String _filterQuery = '';
 
   @override
   void initState() {
     super.initState();
     _db = DatabaseBlockView.decodeDatabase(widget.block);
+  }
+
+  @override
+  void dispose() {
+    _filterController.dispose();
+    super.dispose();
   }
 
   @override
@@ -103,7 +111,7 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
               ),
             ),
             const SizedBox(width: 8),
-            DatabaseCountPill(count: _db.records.length),
+            DatabaseCountPill(count: _visible.length),
           ],
         ),
         const SizedBox(height: 4),
@@ -123,8 +131,40 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
             ),
           ],
         ),
+        const SizedBox(height: 4),
+        SizedBox(
+          height: 36,
+          child: TextField(
+            controller: _filterController,
+            decoration: InputDecoration(
+              hintText: '搜索记录',
+              prefixIcon: const Icon(Icons.search, size: 18),
+              suffixIcon: _filterQuery.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: () {
+                        _filterController.clear();
+                        setState(() => _filterQuery = '');
+                      },
+                    ),
+              isDense: true,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding:
+                  const EdgeInsets.symmetric(vertical: 0, horizontal: 8),
+            ),
+            onChanged: (v) => setState(() => _filterQuery = v),
+          ),
+        ),
       ],
     );
+  }
+
+  /// 展示记录：无筛选时按当前排序，有筛选时按字段值匹配。
+  List<NoteRecord> get _visible {
+    final q = _filterQuery.trim();
+    if (q.isEmpty) return _db.sortedRecords;
+    return _db.filterRecords(query: q);
   }
 
   Widget _buildViewTypeSwitch() {
@@ -223,7 +263,7 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final records = _db.sortedRecords;
+    final records = _visible;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
