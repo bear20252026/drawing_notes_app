@@ -6,8 +6,10 @@
 // EdgelessController（手势翻译）与 NoteFramePreview（帧内容）。
 // 只依赖 notes，不 import drawing/chart 实现层（架构规则 3）。
 
+import 'package:flutter/foundation.dart' show listEquals, mapEquals;
 import 'package:flutter/material.dart';
 
+import 'package:drawing_notes_app/features/notes/domain/edgeless_connector.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
@@ -111,6 +113,21 @@ class _EdgelessPageState extends State<EdgelessPage> {
     _controller.addFrame(NoteBlockDoc.empty('new_${DateTime.now().microsecondsSinceEpoch}'));
   }
 
+  void _toggleConnect() {
+    if (_controller.connectMode) {
+      _controller.cancelConnect();
+      return;
+    }
+    final sel = _controller.selectedFrameId;
+    if (sel == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先选中一个帧作为连线起点')),
+      );
+      return;
+    }
+    _controller.beginConnect(sel);
+  }
+
   void _fitTo() {
     final frames = _controller.doc.frames;
     if (frames.isEmpty) {
@@ -158,6 +175,12 @@ class _EdgelessPageState extends State<EdgelessPage> {
             icon: const Icon(Icons.zoom_in),
             onPressed: () => _zoom(1.2),
           ),
+          IconButton(
+            tooltip: _controller.connectMode ? '取消连线' : '连线模式',
+            isSelected: _controller.connectMode,
+            icon: const Icon(Icons.call_made),
+            onPressed: _toggleConnect,
+          ),
         ],
       ),
       body: LayoutBuilder(
@@ -188,6 +211,15 @@ class _EdgelessPageState extends State<EdgelessPage> {
                     child: Stack(
                       clipBehavior: Clip.none,
                       children: [
+                        // 连接线层：绘制在帧下方（AFFiNE `affine:connector`）
+                        Positioned.fill(
+                          child: CustomPaint(
+                            painter: _ConnectorPainter(
+                              connectors: _controller.connectors,
+                              framesById: _controller.framesById,
+                            ),
+                          ),
+                        ),
                         for (final f in _controller.framesSortedByZ)
                           Positioned(
                             key: ValueKey('frame_${f.id}'),
@@ -200,6 +232,7 @@ class _EdgelessPageState extends State<EdgelessPage> {
                               selected: f.id == _controller.selectedFrameId,
                               onEdit: () => _openFrameEditor(f.id, f.doc),
                               onRemove: () => _controller.removeFrame(f.id),
+                              onConnect: () => _controller.beginConnect(f.id),
                               onResize: (topLeft, w, h) => _controller.resizeFrame(
                                 f.id,
                                 topLeft: topLeft,
@@ -217,6 +250,17 @@ class _EdgelessPageState extends State<EdgelessPage> {
                       ],
                     ),
                   ),
+                  // 连线模式横幅
+                  if (_controller.connectMode)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      right: 8,
+                      child: _ConnectBanner(
+                        sourceId: _controller.connectSourceFrameId!,
+                        onCancel: _controller.cancelConnect,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -246,6 +290,7 @@ class _FrameCard extends StatelessWidget {
     required this.selected,
     required this.onEdit,
     required this.onRemove,
+    required this.onConnect,
     required this.onResize,
     required this.onSetBackground,
   });
@@ -260,6 +305,9 @@ class _FrameCard extends StatelessWidget {
 
   /// 循环切换下一档帧背景色。
   final VoidCallback onSetBackground;
+
+  /// 以当前帧为起点进入连线模式（仅选中态可见）。
+  final VoidCallback onConnect;
 
   Color _bgColor() {
     final hex = frame.background.replaceAll('#', '');
@@ -319,6 +367,14 @@ class _FrameCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (selected)
+                  IconButton(
+                    tooltip: '连线',
+                    visualDensity: VisualDensity.compact,
+                    iconSize: 16,
+                    icon: const Icon(Icons.call_made),
+                    onPressed: onConnect,
+                  ),
                 IconButton(
                   tooltip: '编辑内容',
                   visualDensity: VisualDensity.compact,
@@ -491,4 +547,108 @@ class _EdgelessGridPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _EdgelessGridPainter oldDelegate) =>
       oldDelegate.color != color;
+}
+
+/// 世界坐标连接线画师：在帧下方绘制 `affine:connector` 连线。
+/// 端点坐标由帧的当前矩形即时推导，帧移动/缩放后自动跟随。
+class _ConnectorPainter extends CustomPainter {
+  _ConnectorPainter({required this.connectors, required this.framesById});
+
+  final List<NoteConnector> connectors;
+  final Map<String, NoteFrame> framesById;
+
+  /// CSS hex → Color；解析失败回退为品牌紫。
+  static Color _colorOf(String hex) {
+    final v = int.tryParse(hex.replaceFirst('#', ''), radix: 16) ?? 0x7C4DFF;
+    return Color(0xFF000000 | v);
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final c in connectors) {
+      final from = framesById[c.fromFrameId];
+      final to = framesById[c.toFrameId];
+      if (from == null || to == null) continue;
+      final a = connectorAnchorPoint(
+          Rect.fromLTWH(from.x, from.y, from.w, from.h), c.fromAnchor);
+      final b = connectorAnchorPoint(
+          Rect.fromLTWH(to.x, to.y, to.w, to.h), c.toAnchor);
+      final color = _colorOf(c.color);
+
+      final line = Paint()
+        ..color = color
+        ..strokeWidth = c.width
+        ..style = PaintingStyle.stroke;
+      canvas.drawLine(a, b, line);
+
+      // 两端锚点圆点
+      final dot = Paint()..color = color;
+      canvas.drawCircle(a, c.width + 1.5, dot);
+      canvas.drawCircle(b, c.width + 1.5, dot);
+
+      // 可选标签（绘制于线段中点）
+      final label = c.label;
+      if (label != null && label.isNotEmpty) {
+        final mid = Offset((a.dx + b.dx) / 2, (a.dy + b.dy) / 2);
+        final tp = TextPainter(
+          text: TextSpan(
+            text: label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout(maxWidth: 200);
+        tp.paint(canvas, mid - Offset(tp.width / 2, tp.height / 2));
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ConnectorPainter oldDelegate) =>
+      !listEquals(connectors, oldDelegate.connectors) ||
+      !mapEquals(framesById, oldDelegate.framesById);
+}
+
+/// 连线模式顶部横幅：提示用户点击另一帧创建连接，或点空白取消。
+class _ConnectBanner extends StatelessWidget {
+  const _ConnectBanner({required this.sourceId, required this.onCancel});
+
+  final String sourceId;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFF7C4DFF),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.call_made, color: Colors.white, size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '连线模式：点击另一帧创建连接（起点 $sourceId）',
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+              ),
+            ),
+            IconButton(
+              tooltip: '取消',
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.close, color: Colors.white, size: 18),
+              onPressed: onCancel,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

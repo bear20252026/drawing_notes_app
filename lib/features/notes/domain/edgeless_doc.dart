@@ -8,6 +8,7 @@ import 'dart:math' as math;
 import 'dart:ui' show Offset, Rect, Size;
 
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/notes/domain/edgeless_connector.dart';
 
 /// 默认帧尺寸。
 const double kDefaultFrameWidth = 360;
@@ -229,6 +230,7 @@ class EdgelessDoc {
   const EdgelessDoc({
     required this.id,
     this.frames = const [],
+    this.connectors = const [],
     this.camera = EdgelessCamera.initial,
     this.selectedFrameId,
     this.nextZIndex = 1,
@@ -236,6 +238,10 @@ class EdgelessDoc {
 
   final String id;
   final List<NoteFrame> frames;
+
+  /// 画布上的连接线集合（1:1 对标 `affine:connector`）。
+  final List<NoteConnector> connectors;
+
   final EdgelessCamera camera;
 
   /// 当前选中帧 id（可为 null）。
@@ -290,19 +296,22 @@ class EdgelessDoc {
     return EdgelessDoc(
       id: id,
       frames: [...frames, frame],
+      connectors: connectors,
       camera: camera,
       selectedFrameId: selectedFrameId,
       nextZIndex: nextZIndex + 1,
     );
   }
 
-  /// 移除帧；若移除的是选中帧则清除选择；不存在则返回同一实例。
+  /// 移除帧；若移除的是选中帧则清除选择；同时级联删除所有引用该帧的连接线；
+  /// 帧不存在则返回同一实例。
   EdgelessDoc removeFrame(String id) {
     final newFrames = frames.where((f) => f.id != id).toList();
     if (newFrames.length == frames.length) return this;
     return EdgelessDoc(
       id: this.id,
       frames: newFrames,
+      connectors: _pruneConnectors(connectors, removedFrameId: id),
       camera: camera,
       selectedFrameId: selectedFrameId == id ? null : selectedFrameId,
       nextZIndex: nextZIndex,
@@ -352,6 +361,7 @@ class EdgelessDoc {
   EdgelessDoc select(String? selectedFrameId) => EdgelessDoc(
         id: id,
         frames: frames,
+        connectors: connectors,
         camera: camera,
         selectedFrameId: selectedFrameId,
         nextZIndex: nextZIndex,
@@ -368,6 +378,74 @@ class EdgelessDoc {
     return topmost;
   }
 
+  /// 按 id 查找连接线。
+  NoteConnector? connectorById(String id) {
+    for (final c in connectors) {
+      if (c.id == id) return c;
+    }
+    return null;
+  }
+
+  /// 两个帧之间是否已存在连接线（忽略方向），防止重复连线。
+  bool hasConnectorBetween(String a, String b) => connectors.any(
+      (c) => (c.fromFrameId == a && c.toFrameId == b) ||
+          (c.fromFrameId == b && c.toFrameId == a));
+
+  /// 添加连接线；自环、缺帧、与端点已存在的重复连线均会被拒绝并返回同一实例。
+  /// 未显式指定锚点时按两帧相对位置自动推荐（见 autoConnectorAnchors）。
+  EdgelessDoc addConnector({
+    required String fromFrameId,
+    required String toFrameId,
+    ConnectorAnchor? fromAnchor,
+    ConnectorAnchor? toAnchor,
+    String? color,
+    double? width,
+    String? label,
+  }) {
+    final source = frameById(fromFrameId);
+    final target = frameById(toFrameId);
+    if (source == null || target == null) return this;
+    if (fromFrameId == toFrameId) return this;
+    if (hasConnectorBetween(fromFrameId, toFrameId)) return this;
+
+    final anchors = (fromAnchor != null && toAnchor != null)
+        ? (from: fromAnchor, to: toAnchor)
+        : autoConnectorAnchors(source.rect, target.rect);
+
+    final connector = NoteConnector(
+      id: 'conn_${connectors.length + 1}',
+      fromFrameId: fromFrameId,
+      toFrameId: toFrameId,
+      fromAnchor: anchors.from,
+      toAnchor: anchors.to,
+      color: color ?? kDefaultConnectorColor,
+      width: width ?? kDefaultConnectorWidth,
+      label: label,
+    );
+    return EdgelessDoc(
+      id: id,
+      frames: frames,
+      connectors: [...connectors, connector],
+      camera: camera,
+      selectedFrameId: selectedFrameId,
+      nextZIndex: nextZIndex,
+    );
+  }
+
+  /// 移除指定连接线；不存在则返回同一实例。
+  EdgelessDoc removeConnector(String id) {
+    final retained = connectors.where((c) => c.id != id).toList();
+    if (retained.length == connectors.length) return this;
+    return EdgelessDoc(
+      id: this.id,
+      frames: frames,
+      connectors: retained,
+      camera: camera,
+      selectedFrameId: selectedFrameId,
+      nextZIndex: nextZIndex,
+    );
+  }
+
   EdgelessDoc _mapFrame(String id, NoteFrame Function(NoteFrame) transform) {
     var changed = false;
     final newFrames = frames.map((f) {
@@ -379,6 +457,7 @@ class EdgelessDoc {
     return EdgelessDoc(
       id: this.id,
       frames: newFrames,
+      connectors: connectors,
       camera: camera,
       selectedFrameId: selectedFrameId,
       nextZIndex: nextZIndex,
@@ -388,6 +467,7 @@ class EdgelessDoc {
   Map<String, dynamic> toJson() => {
         'id': id,
         'frames': frames.map((f) => f.toJson()).toList(),
+        'connectors': connectors.map((c) => c.toJson()).toList(),
         'camera': {
           'zoom': camera.zoom,
           'panX': camera.panX,
@@ -401,6 +481,9 @@ class EdgelessDoc {
         id: json['id'] as String,
         frames: (json['frames'] as List? ?? const [])
             .map((e) => NoteFrame.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        connectors: (json['connectors'] as List? ?? const [])
+            .map((e) => NoteConnector.fromJson(e as Map<String, dynamic>))
             .toList(),
         camera: json['camera'] != null
             ? EdgelessCamera(
@@ -420,13 +503,14 @@ class EdgelessDoc {
           runtimeType == other.runtimeType &&
           id == other.id &&
           _listEquals(frames, other.frames) &&
+          _listEquals(connectors, other.connectors) &&
           camera == other.camera &&
           selectedFrameId == other.selectedFrameId &&
           nextZIndex == other.nextZIndex;
 
   @override
-  int get hashCode => Object.hash(id, Object.hashAll(frames), camera,
-      selectedFrameId, nextZIndex);
+  int get hashCode => Object.hash(id, Object.hashAll(frames),
+      Object.hashAll(connectors), camera, selectedFrameId, nextZIndex);
 
   @override
   String toString() =>
@@ -440,3 +524,13 @@ bool _listEquals<T>(List<T> a, List<T> b) {
   }
   return true;
 }
+
+/// 移除一切引用 [removedFrameId] 的连接线（级联清理，防止残留悬空引用）。
+List<NoteConnector> _pruneConnectors(
+  List<NoteConnector> connectors, {
+  required String removedFrameId,
+}) =>
+    connectors
+        .where((c) =>
+            c.fromFrameId != removedFrameId && c.toFrameId != removedFrameId)
+        .toList();

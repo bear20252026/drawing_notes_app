@@ -3,6 +3,7 @@ import 'dart:ui' show Offset, Rect, Size;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/notes/domain/edgeless_connector.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_doc.dart';
 
 NoteBlockDoc _doc(String id, {String title = 'Doc'}) => NoteBlockDoc(
@@ -369,6 +370,99 @@ void main() {
       expect(doc2.selectedFrameId, 'frame_1');
       expect(doc2.nextZIndex, doc.nextZIndex);
       expect(doc2.camera, doc.camera);
+    });
+  });
+
+  group('EdgelessDoc connector', () {
+    EdgelessDoc twoFrames() => EdgelessDoc.empty('e1')
+        .addFrame(_doc('d1'))
+        .addFrame(_doc('d2'));
+
+    test('addConnector 自动推荐锚点并生成 id', () {
+      // frame_1 默认尺寸 360x400 位于左/上，frame_2 级联偏移 —— 水平占优 → (right,left)
+      var doc = twoFrames();
+      expect(doc.connectors, isEmpty);
+      doc = doc.addConnector(fromFrameId: 'frame_1', toFrameId: 'frame_2');
+      expect(doc.connectors, hasLength(1));
+      final c = doc.connectors.first;
+      expect(c.fromFrameId, 'frame_1');
+      expect(c.toFrameId, 'frame_2');
+      expect(c.id, 'conn_1');
+      expect(doc.connectorById(c.id), c);
+    });
+
+    test('addConnector 指定锚点', () {
+      var doc = twoFrames();
+      doc = doc.addConnector(
+        fromFrameId: 'frame_1',
+        toFrameId: 'frame_2',
+        fromAnchor: ConnectorAnchor.top,
+        toAnchor: ConnectorAnchor.bottom,
+        color: '#FF0000',
+        width: 4,
+      );
+      final c = doc.connectors.single;
+      expect(c.fromAnchor, ConnectorAnchor.top);
+      expect(c.toAnchor, ConnectorAnchor.bottom);
+      expect(c.color, '#FF0000');
+      expect(c.width, 4);
+    });
+
+    test('addConnector 拒绝自环 / 缺帧 / 重复', () {
+      var doc = twoFrames();
+      // 自环
+      final selfLoop =
+          doc.addConnector(fromFrameId: 'frame_1', toFrameId: 'frame_1');
+      expect(selfLoop, doc);
+      // 缺帧
+      final missing =
+          doc.addConnector(fromFrameId: 'frame_1', toFrameId: 'nope');
+      expect(missing, doc);
+      // 重复（同两端，方向互换也算重复）
+      doc = doc.addConnector(fromFrameId: 'frame_1', toFrameId: 'frame_2');
+      expect(doc.connectors, hasLength(1));
+      final dup =
+          doc.addConnector(fromFrameId: 'frame_2', toFrameId: 'frame_1');
+      expect(dup, doc);
+    });
+
+    test('removeConnector 移除指定线；不存在返回同实例', () {
+      var doc = twoFrames();
+      doc = doc.addConnector(fromFrameId: 'frame_1', toFrameId: 'frame_2');
+      final id = doc.connectors.single.id;
+      final removed = doc.removeConnector(id);
+      expect(removed.connectors, isEmpty);
+      expect(removed.removeConnector(id), removed);
+    });
+
+    test('removeFrame 级联删除引用帧的连接线', () {
+      var doc = EdgelessDoc.empty('e1')
+          .addFrame(_doc('d1'))
+          .addFrame(_doc('d2'))
+          .addFrame(_doc('d3'));
+      doc = doc.addConnector(fromFrameId: 'frame_1', toFrameId: 'frame_2');
+      doc = doc.addConnector(fromFrameId: 'frame_2', toFrameId: 'frame_3');
+      expect(doc.connectors, hasLength(2));
+      final doc2 = doc.removeFrame('frame_2');
+      expect(doc2.connectors, isEmpty);
+      // 其它帧仍在
+      expect(doc2.frames.map((f) => f.id).toList(), ['frame_1', 'frame_3']);
+    });
+
+    test('持久化往返包含连接线', () {
+      var doc = twoFrames();
+      doc = doc.addConnector(fromFrameId: 'frame_1', toFrameId: 'frame_2');
+      final doc2 = EdgelessDoc.fromJson(doc.toJson());
+      expect(doc2.connectors, doc.connectors);
+      expect(doc2, doc);
+    });
+
+    test('operator== 包含连接线', () {
+      var doc = twoFrames();
+      final withConnector =
+          doc.addConnector(fromFrameId: 'frame_1', toFrameId: 'frame_2');
+      expect(withConnector, isNot(doc));
+      expect(withConnector, withConnector);
     });
   });
 }

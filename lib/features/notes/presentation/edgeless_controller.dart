@@ -13,6 +13,7 @@
 
 import 'package:flutter/widgets.dart';
 
+import 'package:drawing_notes_app/features/notes/domain/edgeless_connector.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 
@@ -143,10 +144,20 @@ class EdgelessController extends ChangeNotifier {
 
   // ── 选中 ────────────────────────────────────────────────────
 
-  /// 点按某屏幕点：命中帧 → 选中并置顶；否则取消选中。
+  /// 点按某屏幕点：
+  ///  - 处于连线模式：命中帧 → 创建连接线；点空白 → 取消连线模式；
+  ///  - 普通模式：命中帧 → 选中并置顶；否则取消选中。
   void tapAt(Offset localFocal, Size viewport) {
     final world = _camera.screenToWorld(localFocal, viewport);
     final frame = _doc.hitTest(world);
+    if (_connectSourceFrameId != null) {
+      if (frame == null) {
+        cancelConnect();
+      } else {
+        connectTo(frame.id);
+      }
+      return;
+    }
     if (frame == null) {
       _setDoc(_doc.select(null));
     } else {
@@ -188,6 +199,76 @@ class EdgelessController extends ChangeNotifier {
   /// 设置帧背景色（CSS 颜色字符串）。
   void setFrameBackground(String id, String background) {
     _setDoc(_doc.setFrameBackground(id, background));
+  }
+
+  // ── 连接线 ──────────────────────────────────────────────────
+
+  /// 连线模式下的起点帧 id；为 null 表示未处于连线模式。
+  String? _connectSourceFrameId;
+
+  bool get connectMode => _connectSourceFrameId != null;
+  String? get connectSourceFrameId => _connectSourceFrameId;
+
+  List<NoteConnector> get connectors => _doc.connectors;
+
+  /// 帧 id → NoteFrame 的查找表（供连接线渲染定位端点）。
+  Map<String, NoteFrame> get framesById =>
+      {for (final f in _doc.frames) f.id: f};
+
+  /// 进入连线模式：选中并置顶 [sourceFrameId]，随后点按目标帧即建线。
+  void beginConnect(String sourceFrameId) {
+    if (_doc.frameById(sourceFrameId) == null) return;
+    var next = _doc.select(sourceFrameId);
+    next = next.bringToFront(sourceFrameId);
+    _setDoc(next);
+    _connectSourceFrameId = sourceFrameId;
+  }
+
+  /// 取消连线模式。
+  void cancelConnect() {
+    if (_connectSourceFrameId == null) return;
+    _connectSourceFrameId = null;
+    notifyListeners();
+  }
+
+  /// 创建起点 → [targetFrameId] 的连接线（自动选锚点）并退出连线模式。
+  /// 目标必须存在且不是起点帧；否则仅退出连线模式。
+  void connectTo(String targetFrameId) {
+    final source = _connectSourceFrameId;
+    _connectSourceFrameId = null;
+    if (source == null) return;
+    final frame = _doc.frameById(targetFrameId);
+    if (frame == null || targetFrameId == source) {
+      notifyListeners();
+      return;
+    }
+    _setDoc(_doc.addConnector(fromFrameId: source, toFrameId: targetFrameId));
+  }
+
+  /// 添加连接线（可显式指定锚点/样式；缺省锚点自动推荐）。
+  void addConnector({
+    required String fromFrameId,
+    required String toFrameId,
+    ConnectorAnchor? fromAnchor,
+    ConnectorAnchor? toAnchor,
+    String? color,
+    double? width,
+    String? label,
+  }) {
+    _setDoc(_doc.addConnector(
+      fromFrameId: fromFrameId,
+      toFrameId: toFrameId,
+      fromAnchor: fromAnchor,
+      toAnchor: toAnchor,
+      color: color,
+      width: width,
+      label: label,
+    ));
+  }
+
+  /// 移除指定连接线。
+  void removeConnector(String id) {
+    _setDoc(_doc.removeConnector(id));
   }
 
   // ── 坐标换算 ────────────────────────────────────────────────

@@ -14,6 +14,7 @@
 | 线性正文 ↔ 画布帧拆分 | `noteBlockDocToFrames` / `mergeFramesToDoc` | `lib/features/notes/domain/note_block_doc_to_frames.dart` |
 | 画布渲染 + 手势 | `EdgelessPage` | `lib/features/notes/presentation/edgeless_page.dart` |
 | 帧精确位置/尺寸 | `NoteFrame.rect`（dart:ui Rect，逻辑 px） | `edgeless_doc.dart` |
+| `affine:connector`（帧间连接线） | `NoteConnector`（from/to 帧 + 各自锚点 + color/width/label，端点由帧矩形即时推导） | `lib/features/notes/domain/edgeless_connector.dart` |
 
 ### 1:1 语义要点
 - **帧 = 块文档容器**：每个 `NoteFrame` 内含一个 `NoteBlockDoc`（block 序列）。AFFiNE 的
@@ -40,6 +41,7 @@
 | 双击帧 | 进入内联编辑 | 打开帧内编辑器（`NoteEditorPage`） | `_openFrameEditor` |
 | 双击空白 | 聚焦空白 | 聚焦（`select(null)`） | `onDoubleTapDown` |
 | 添加帧 | `affine:note` 创建 | `EdgelessDoc.addFrame` / 画布工具栏 | `addFrame` |
+| 帧间连接线 | `affine:connector`（选中块 → 连线工具 → 点目标块） | 选中帧上「连线」/ AppBar「连线模式」→ 点击目标帧建线（`beginConnect`→`connectTo`），自动推荐锚点；点空白取消 | `controller.beginConnect/connectTo/cancelConnect` + `_ConnectorPainter` |
 
 - **级联排布**：`addFrame` 在 `at` 为空时用 `(80+n*32, 80+n*32)` 级联偏移防重叠，对应 AFFiNE 新
   note 帧的自动错位。
@@ -69,8 +71,10 @@
 
 ## 5. 未 1:1 / 可改进（诚实清单）
 
-- AFFiNE edgeless 支持**连接线**（note↔note 引用连线）、**群组框**、**画布内 search/命令面板**；
-  画记当前未实现（后续 P3）。
+- ✅ **连接线（note↔note 引用连线）已实现**：`NoteConnector` + `beginConnect/connectTo`（自动锚点），
+  端点由帧矩形即时推导、移动/缩放自动跟随；级联删除（帧移除即清理连线）。见 §1/§2。
+  仍可改进：仅直线，AFFiNE 连接线支持贝塞尔曲线/端点样式；锚点目前为帧边中点。
+- AFFiNE edgeless 支持**群组框**、**画布内 search/命令面板**；画记当前未实现（后续 P3）。
 - AFFiNE 的 note 帧在 web 上由 `affine:frame` 元数据承载 `prop`（标题/索引），画记直接以
   `NoteBlockDoc.title` 承载，形态简化但语义等价。
 - `fittedTo` 的 padding 默认 40px，AFFiNE 的 fit 缩放策略随容器；如需逐像素一致可再调。

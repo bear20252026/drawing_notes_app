@@ -9,7 +9,6 @@ import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/presentation/edgeless_controller.dart';
 
 const _viewport = Size(800, 600);
-const _vc = Offset(400, 300); // viewport 中心
 
 EdgelessDoc _docWithOneFrame() {
   final fdoc = NoteBlockDoc.empty('f1doc', title: '帧1');
@@ -134,6 +133,81 @@ void main() {
       c.setFrameBackground('f1', '#E3F2FD');
       expect(c.doc.frameById('f1')!.background, '#E3F2FD');
       expect(latest!.frameById('f1')!.background, '#E3F2FD');
+    });
+  });
+
+  group('连接线', () {
+    EdgelessDoc twoFrames() {
+      final f2 = NoteFrame(
+        id: 'f2',
+        x: 400,
+        y: 100,
+        w: 200,
+        h: 200,
+        doc: NoteBlockDoc.empty('f2doc'),
+        zIndex: 1,
+      );
+      return EdgelessDoc(
+        id: 'e',
+        frames: [..._docWithOneFrame().frames, f2],
+        camera: EdgelessCamera.initial,
+      );
+    }
+
+    test('beginConnect 进入连线模式并选中起点帧', () {
+      final c = EdgelessController(doc: twoFrames());
+      c.beginConnect('f1');
+      expect(c.connectMode, isTrue);
+      expect(c.connectSourceFrameId, 'f1');
+      expect(c.selectedFrameId, 'f1');
+    });
+
+    test('点按目标帧 → 自动建线并退出连线模式', () {
+      final c = EdgelessController(doc: twoFrames());
+      c.beginConnect('f1');
+      // f2 世界 (400,100)-(600,300) → 屏幕 (800,400)-(1000,600)；中心 (900,500)
+      c.tapAt(const Offset(900, 500), _viewport);
+      expect(c.connectMode, isFalse);
+      final conn = c.connectors.single;
+      expect(conn.fromFrameId, 'f1');
+      expect(conn.toFrameId, 'f2');
+      expect(c.doc.hasConnectorBetween('f1', 'f2'), isTrue);
+    });
+
+    test('连线模式下点空白 → 取消且不建线', () {
+      final c = EdgelessController(doc: twoFrames());
+      c.beginConnect('f1');
+      c.tapAt(const Offset(400, 300), _viewport); // 世界 0,0 空白
+      expect(c.connectMode, isFalse);
+      expect(c.connectors, isEmpty);
+    });
+
+    test('连线模式下点击起点自身 → 不建自环并退出', () {
+      final c = EdgelessController(doc: twoFrames());
+      c.beginConnect('f1');
+      c.tapAt(const Offset(600, 500), _viewport); // 命中 f1 自身
+      expect(c.connectMode, isFalse);
+      expect(c.connectors, isEmpty);
+    });
+
+    test('addConnector / removeConnector 透传并能被 onChanged 捕获', () {
+      EdgelessDoc? latest;
+      final c = EdgelessController(doc: twoFrames(), onChanged: (d) => latest = d);
+      c.addConnector(fromFrameId: 'f1', toFrameId: 'f2');
+      expect(c.connectors, hasLength(1));
+      expect(latest!.connectors, hasLength(1));
+      final id = c.connectors.single.id;
+      c.removeConnector(id);
+      expect(c.connectors, isEmpty);
+      expect(latest!.connectors, isEmpty);
+    });
+
+    test('cancelConnect 退出连线模式', () {
+      final c = EdgelessController(doc: twoFrames());
+      c.beginConnect('f1');
+      c.cancelConnect();
+      expect(c.connectMode, isFalse);
+      expect(c.connectors, isEmpty);
     });
   });
 }
