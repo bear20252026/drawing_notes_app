@@ -1,5 +1,6 @@
 // M11 契约测试：AllDocsPage 搜索过滤与收藏切换接线。
 import 'package:flutter/material.dart' as f show TextField;
+import 'package:flutter/material.dart' as m;
 import 'package:flutter_localizations/flutter_localizations.dart'
     hide GlobalMaterialLocalizations;
 import 'package:flutter_localizations/flutter_localizations.dart'
@@ -87,6 +88,39 @@ void main() {
     await tester.pump();
     expect(toggled, isNotNull);
     expect(toggled!.id, 'a');
+  });
+
+  testWidgets('空态 CTA：点新建笔记（打字）触发 onNewDoc', (tester) async {
+    AllDocKind? created;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          fl_loc.GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('zh'), Locale('en')],
+        home: AllDocsPage(
+          loadDocs: () async => const AllDocQueryResult(
+            docs: [],
+            sections: [],
+          ),
+          onOpenDoc: (_) {},
+          onNewDoc: (kind) => created = kind,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    final cta = find.ancestor(
+      of: find.text('新建笔记（打字）'),
+      matching: find.byType(m.FilledButton),
+    );
+    expect(cta, findsOneWidget);
+    await tester.tap(cta);
+    await tester.pump();
+    expect(created, AllDocKind.blockdoc);
   });
 
   testWidgets('侧栏导航切换 Tab（收藏夹/标签空态可见）', (tester) async {

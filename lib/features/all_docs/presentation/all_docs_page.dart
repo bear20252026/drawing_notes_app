@@ -137,9 +137,8 @@ class _AllDocsPageState extends State<AllDocsPage> {
                 _cached = result;
                 final sections = filterSections(result.sections, _query);
                 final flatDocs = flattenSorted(sections, _sort);
-                if (result.docs.isEmpty) {
-                  return _EmptyState(theme: theme);
-                }
+                // 注意：空文档时也必须渲染工具条（否则全新安装没有任何
+                // 创建入口——M11 修复"打开后点不动"的主因）。
                 return _MainContent(
                   theme: theme,
                   tabIndex: _tabIndex,
@@ -228,6 +227,7 @@ class _MainContent extends StatelessWidget {
                     sections: sections,
                     onOpenDoc: onOpenDoc,
                     onToggleFavorite: onToggleFavorite,
+                    onNewDoc: onNewDoc,
                   ),
           ),
         ),
@@ -328,6 +328,21 @@ class _DocsToolbar extends StatelessWidget {
         0,
       ),
       items: const [
+        // 打字为主（AFFiNE Page 语义）：笔记 = 直接打字的块文档。
+        PopupMenuItem(
+          value: AllDocKind.blockdoc,
+          child: Row(
+            children: [
+              Icon(
+                Icons.edit_note_rounded,
+                size: 18,
+                color: AppleColor.noteGreen,
+              ),
+              SizedBox(width: 10),
+              Text('新建笔记（打字）'),
+            ],
+          ),
+        ),
         PopupMenuItem(
           value: AllDocKind.canvas,
           child: Row(
@@ -339,34 +354,6 @@ class _DocsToolbar extends StatelessWidget {
               ),
               SizedBox(width: 10),
               Text('新建画板'),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: AllDocKind.note,
-          child: Row(
-            children: [
-              Icon(
-                Icons.sticky_note_2_rounded,
-                size: 18,
-                color: AppleColor.noteGreen,
-              ),
-              SizedBox(width: 10),
-              Text('新建笔记'),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: AllDocKind.blockdoc,
-          child: Row(
-            children: [
-              Icon(
-                Icons.dashboard_rounded,
-                size: 18,
-                color: AppleColor.blockPurple,
-              ),
-              SizedBox(width: 10),
-              Text('新建块文档'),
             ],
           ),
         ),
@@ -486,6 +473,7 @@ class _GroupedDocList extends StatelessWidget {
     required this.sections,
     required this.onOpenDoc,
     required this.onToggleFavorite,
+    this.onNewDoc,
   });
 
   final ThemeData theme;
@@ -493,6 +481,7 @@ class _GroupedDocList extends StatelessWidget {
   final List<AllDocSection> sections;
   final void Function(AllDoc doc) onOpenDoc;
   final void Function(AllDoc doc) onToggleFavorite;
+  final void Function(AllDocKind kind)? onNewDoc;
 
   @override
   Widget build(BuildContext context) {
@@ -529,7 +518,14 @@ class _GroupedDocList extends StatelessWidget {
       return _TabEmptyState(theme: theme, text: '暂无标签', tip: '使用文件夹与收藏夹整理文档');
     }
 
-    // 文档：分组
+    // 文档：分组（或全空时的创建引导）
+    if (sections.expand((s) => s.docs).isEmpty) {
+      return _EmptyState(
+        theme: theme,
+        onNewBlockDoc: () => onNewDoc?.call(AllDocKind.blockdoc),
+        onNewCanvas: () => onNewDoc?.call(AllDocKind.canvas),
+      );
+    }
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: sections.length,
@@ -587,11 +583,17 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-/// 页面级空态。
+/// 页面级空态：含创建入口（打字笔记为主，画板为辅——AFFiNE 语义）。
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.theme});
+  const _EmptyState({
+    required this.theme,
+    this.onNewBlockDoc,
+    this.onNewCanvas,
+  });
 
   final ThemeData theme;
+  final VoidCallback? onNewBlockDoc;
+  final VoidCallback? onNewCanvas;
 
   @override
   Widget build(BuildContext context) {
@@ -600,10 +602,10 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.dashboard_outlined, size: 56, color: subtle),
+          Icon(Icons.edit_note_rounded, size: 56, color: subtle),
           const SizedBox(height: 12),
           Text(
-            '暂无文档',
+            '记下第一笔',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w500,
@@ -612,8 +614,25 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '点击右上角「新建文档」创建你的第一份文档',
+            '笔记直接打字，画板用来写写画画',
             style: TextStyle(fontSize: 12.5, color: subtle),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FilledButton.icon(
+                onPressed: onNewBlockDoc,
+                icon: const Icon(Icons.edit_note_rounded, size: 18),
+                label: const Text('新建笔记（打字）'),
+              ),
+              const SizedBox(width: 12),
+              OutlinedButton.icon(
+                onPressed: onNewCanvas,
+                icon: const Icon(Icons.crop_portrait_rounded, size: 18),
+                label: const Text('新建画板'),
+              ),
+            ],
           ),
         ],
       ),
