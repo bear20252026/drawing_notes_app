@@ -69,3 +69,17 @@ dfe9420ca135709d14a8c91e2fa8f9ab2c257b6e963cd4d6019fb058292e6c3a  android/app-re
 - `docs/RELEASE_PACKAGING_GUIDE_2026-08-14.md`（发布流程）
 - `docs/WEBDAV_SYNC_ACCEPTANCE_2026-08-29.md`（同步/加密/可观测性/冲突解析验收）
 - `dist/README.md`（产物说明与再生成命令）
+
+---
+
+## 补充：M10 Apple(HIG) 重建（commit `f3106cb`）
+
+> 本页基线为 `6145226`；M10 Apple(HIG) 化收口后再做了一次 Windows 重建与安装包生成，作为交付核对。
+
+| 步骤 | 命令 / 说明 | 结果 |
+|---|---|---|
+| Windows release 重建 | `flutter build windows --release`（94.8s） | ✅ `build\windows\x64\runner\Release\drawing_notes_app.exe` + `data\app.so`（M10 版，12MB） |
+| 安装包 | Inno Setup 6 脚本 `tools/drawing_notes_setup.iss`（可移植相对路径，仓库内可复现） | ✅ `build\windows\installer\setup_绘图笔记_1.1.0.exe`（16.0 MB，LZMA2/64 位/admin，默认 `C:\Program Files\绘图笔记`，开始菜单+桌面图标+启动） |
+| 实机启动冒烟 | 启动 runner exe 等待 → 进程存活 | ✅ 无崩溃；明亮=Apple All Docs 工作台渲染正确（见 `docs/M10_APPLE_HIG_ACCEPTANCE_2026-08-29.md`） |
+
+> 安装脚本已入仓 `tools/drawing_notes_setup.iss`，用 `ISCC.exe` 编译即可复现安装包。

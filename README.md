@@ -13,6 +13,21 @@
 
 ---
 
+## 里程碑：M0-M10（AFFiNE 1:1 + Apple HIG 双模式单风格）
+
+本项目在 Phase 1-7 画布/笔记基础上，完成 AFFiNE 1:1 功能复刻与 Apple(HIG) 视觉标准化：
+
+- **AFFiNE 块模型**：`NoteBlock`/`NoteBlockEditor` + `NoteBlockDoc`，块式富文本编辑器（Enter 分块/Backspace 合并/类型切换/斜杠菜单/块手柄拖拽/撤销重做/Markdown 双向）。
+- **Edgeless 无限画布双模**：`EdgelessDoc`+`NoteFrame`+`EdgelessCamera`，note 帧在无限画布上拖拽/缩放/pan-zoom + 页/画布模式切换。
+- **All Docs 工作台**：`all_docs/`（领域+查询+UI 三层），画布/笔记/块文档统一列表 + 分组（今天/本周/更早/从未更新）+ 工作区侧栏 + 新建/搜索。
+- **WebDAV 端到端加密同步**：本地优先，`SyncCipher`(AES)+`SyncPlanner`+重试/可观测性/冲突可见性。
+- **Apple(HIG) 双模式单风格**：一套结构风格走天下，按亮度切色板 —— 明亮=Apple（#0066CC/#F5F5F7/#1D1D1F），黑暗=深蓝（#4568A9/#181F2E，保留原设计）；token 见 `lib/core/theme/apple_design.dart`。
+- **本地化护栏**：`material_ui` 与 `flutter/material` 双方言共用，注册双 GlobalMaterialLocalizations 修复 `No MaterialLocalizations found`（回归测试锁定）。
+
+> 详细：`docs/M10_APPLE_HIG_ACCEPTANCE_2026-08-29.md` · `docs/ARCHITECTURE.md`
+
+---
+
 ## 功能概览
 
 | 阶段 | 内容 | 状态 |
@@ -58,7 +73,7 @@ flutter build apk --debug
 # 静态检查（本项目用 dart analyze，flutter analyze 的 LSP 通道与中文路径有兼容问题）
 dart analyze
 
-# 全部单元/组件测试（当前 391+ 项——覆盖 Phase 1-7 + 安全审计回归）
+# 全部单元/组件测试（当前 1255+ 项——覆盖 Phase 1-7 + 安全审计回归 + M0-M10 AFFiNE 块模型/edgeless/All Docs/WebDAV 同步）
 flutter test
 
 # 架构守护（层方向/零循环/feature 隔离/耦合度量）
