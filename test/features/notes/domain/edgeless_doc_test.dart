@@ -581,6 +581,35 @@ void main() {
       expect(withGroup, isNot(doc));
       expect(withGroup, withGroup);
     });
+
+    test('resizeGroup 按比例重排成员并匹配新外接矩形', () {
+      final f1 = NoteFrame(
+          id: 'f1', x: 0, y: 0, w: 100, h: 100, doc: _doc('d1'), zIndex: 1);
+      final f2 = NoteFrame(
+          id: 'f2', x: 200, y: 100, w: 100, h: 100, doc: _doc('d2'), zIndex: 1);
+      var doc = EdgelessDoc(id: 'e', frames: [f1, f2]);
+      doc = doc.addGroup(frameIds: ['f1', 'f2']);
+      final resized = doc.resizeGroup('group_1',
+          newBounds: const Rect.fromLTWH(0, 0, 600, 400));
+      final rf1 = resized.frameById('f1')!;
+      final rf2 = resized.frameById('f2')!;
+      expect(Rect.fromLTWH(rf1.x, rf1.y, rf1.w, rf1.h),
+          const Rect.fromLTWH(0, 0, 200, 200));
+      expect(Rect.fromLTWH(rf2.x, rf2.y, rf2.w, rf2.h),
+          const Rect.fromLTWH(400, 200, 200, 200));
+      expect(resized.groupBounds('group_1'), const Rect.fromLTWH(0, 0, 600, 400));
+    });
+
+    test('resizeGroup 非法尺寸/缺组返回同实例', () {
+      final f1 = NoteFrame(
+          id: 'f1', x: 0, y: 0, w: 100, h: 100, doc: _doc('d1'), zIndex: 1);
+      var doc = EdgelessDoc(id: 'e', frames: [f1]);
+      // 宽度为 0 非法
+      expect(doc.resizeGroup('g', newBounds: const Rect.fromLTWH(0, 0, 0, 10)),
+          doc);
+      expect(doc.resizeGroup('nope', newBounds: const Rect.fromLTWH(0, 0, 100, 100)),
+          doc);
+    });
   });
 
   group('EdgelessDoc 多选选中集', () {

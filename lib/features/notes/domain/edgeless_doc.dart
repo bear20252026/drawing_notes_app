@@ -635,6 +635,38 @@ class EdgelessDoc {
     );
   }
 
+  /// 整组缩放：把群组外接矩形缩放到 [newBounds]，成员帧按比例重排/缩放。
+  ///
+  /// 与 AFFiNE `affine:group` 一致：拖拽组手柄缩放时成员相对布局保持比例。
+  /// 无组/空组/成员缺失或 [newBounds] 尺寸非法时返回同一实例。
+  EdgelessDoc resizeGroup(String groupId, {required Rect newBounds}) {
+    if (newBounds.width <= 0 || newBounds.height <= 0) return this;
+    final g = groupById(groupId);
+    if (g == null || g.frameIds.isEmpty) return this;
+    final oldBounds = groupBounds(groupId);
+    if (oldBounds == null) return this;
+    final scaleX = newBounds.width / oldBounds.width;
+    final scaleY = newBounds.height / oldBounds.height;
+    final next = frames.map((f) {
+      if (!g.contains(f.id)) return f;
+      return f.copyWith(
+        x: newBounds.left + (f.x - oldBounds.left) * scaleX,
+        y: newBounds.top + (f.y - oldBounds.top) * scaleY,
+        w: f.w * scaleX,
+        h: f.h * scaleY,
+      );
+    }).toList();
+    return EdgelessDoc(
+      id: id,
+      frames: next,
+      connectors: connectors,
+      groups: groups,
+      camera: camera,
+      selectedFrameIds: selectedFrameIds,
+      nextZIndex: nextZIndex,
+    );
+  }
+
   EdgelessDoc _mapFrame(String id, NoteFrame Function(NoteFrame) transform) {
     var changed = false;
     final newFrames = frames.map((f) {

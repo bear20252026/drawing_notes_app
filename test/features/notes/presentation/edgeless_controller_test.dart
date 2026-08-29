@@ -249,6 +249,20 @@ void main() {
       c.removeGroup(id);
       expect(c.groups, isEmpty);
     });
+
+    test('resizeGroup 透传并按比例缩放成员', () {
+      final c = EdgelessController(doc: twoFrames());
+      c.addGroup(['f1', 'f2']);
+      final id = c.groups.single.id;
+      // f1(100,100,200,200)，f2(400,100,200,200) → 组包围盒(100,100,500,200)
+      // 缩放到 (100,100,1000,400) → scale 2x
+      c.resizeGroup(id, newBounds: const Rect.fromLTWH(100, 100, 1000, 400));
+      final f1 = c.doc.frameById('f1')!;
+      expect(f1.w, 400);
+      expect(f1.h, 400);
+      expect(f1.x, 100);
+      expect(f1.y, 100);
+    });
   });
 
   group('多选 / 编组', () {

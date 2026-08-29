@@ -75,10 +75,12 @@
 - ✅ **连接线（note↔note 引用连线）已实现**：`NoteConnector` + `beginConnect/connectTo`（自动锚点），
   端点由帧矩形即时推导、移动/缩放自动跟随；级联删除（帧移除即清理连线）。见 §1/§2。
   仍可改进：仅直线，AFFiNE 连接线支持贝塞尔曲线/端点样式；锚点目前为帧边中点。
-- 🚧 **群组框（`affine:group`）已实现到领域+渲染+组管理**：`EdgelessGroup` + `addGroup/removeGroup/renameGroup/setGroupColor/groupBounds`；
-  组内拖动整组平移的一致语义（`moveFrame` 组内任一帧 → 整组按 delta 平移，拖拽已联动）已生效；
-  `_GroupPainter` 在帧上方渲染外接框（圆角边框 + 半透明填充 + 组名角标）。
-  仍缺：多选选中集（框选/⇧点击以在 UI 创建组）、整组缩放（按比例重排成员）。
+- ✅ **群组框（`affine:group`）已完整实现**：`EdgelessGroup` + `addGroup/removeGroup/renameGroup/setGroupColor/groupBounds`；
+  - **选中集**：`selectedFrameIds`（有序 Set）为单一事实源，`selectedFrameId` 派生为主选中；`isSelected/selectFrames/addToSelection/toggleSelection`。
+  - **多选 & 编组**：多选模式（点帧切换/点空白清空）+ 「编组」按钮（选中 ≥2 帧创建群组）。
+  - **整组移动**：组内拖任一副本整组按 delta 平移（相对布局不变）。
+  - **整组缩放**：`resizeGroup` 按比例重排/缩放成员（匹配新外接矩形）。
+  - `_GroupPainter` 渲染外接框（圆角边框 + 半透明填充 + 组名角标）。
 - AFFiNE edgeless 支持**画布内 search/命令面板**；画记当前未实现（后续 P3）。
 - AFFiNE 的 note 帧在 web 上由 `affine:frame` 元数据承载 `prop`（标题/索引），画记直接以
   `NoteBlockDoc.title` 承载，形态简化但语义等价。

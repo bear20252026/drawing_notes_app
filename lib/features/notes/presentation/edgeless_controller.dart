@@ -306,6 +306,11 @@ class EdgelessController extends ChangeNotifier {
     _setDoc(_doc.setGroupColor(id, color));
   }
 
+  /// 整组缩放（成员按比例重排）。
+  void resizeGroup(String id, {required Rect newBounds}) {
+    _setDoc(_doc.resizeGroup(id, newBounds: newBounds));
+  }
+
   // ── 多选 / 选中集 ───────────────────────────────────────────
 
   Set<String> get selectedFrameIds => _doc.selectedFrameIds;
