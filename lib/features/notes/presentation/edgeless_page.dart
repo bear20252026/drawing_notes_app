@@ -114,6 +114,10 @@ class _EdgelessPageState extends State<EdgelessPage> {
     _controller.addFrame(NoteBlockDoc.empty('new_${DateTime.now().microsecondsSinceEpoch}'));
   }
 
+  void _toggleMultiSelect() {
+    _controller.toggleMultiSelectMode();
+  }
+
   void _toggleConnect() {
     if (_controller.connectMode) {
       _controller.cancelConnect();
@@ -182,6 +186,19 @@ class _EdgelessPageState extends State<EdgelessPage> {
             icon: const Icon(Icons.call_made),
             onPressed: _toggleConnect,
           ),
+          IconButton(
+            tooltip: _controller.multiSelectMode ? '退出多选' : '多选(编组)',
+            isSelected: _controller.multiSelectMode,
+            icon: const Icon(Icons.done_all),
+            onPressed: _toggleMultiSelect,
+          ),
+          IconButton(
+            tooltip: '编组',
+            icon: const Icon(Icons.group_work_outlined),
+            onPressed: _controller.selectedFrameIds.length >= 2
+                ? () => _controller.groupSelection()
+                : null,
+          ),
         ],
       ),
       body: LayoutBuilder(
@@ -230,7 +247,7 @@ class _EdgelessPageState extends State<EdgelessPage> {
                             height: f.h,
                             child: _FrameCard(
                               frame: f,
-                              selected: f.id == _controller.selectedFrameId,
+                              selected: _controller.isSelected(f.id),
                               onEdit: () => _openFrameEditor(f.id, f.doc),
                               onRemove: () => _controller.removeFrame(f.id),
                               onConnect: () => _controller.beginConnect(f.id),
