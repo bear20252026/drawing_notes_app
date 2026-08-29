@@ -14,6 +14,8 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
 import 'package:drawing_notes_app/features/notes/presentation/image_preview_dialog.dart';
 import 'package:drawing_notes_app/features/notes/presentation/table_editor_widget.dart';
+import 'package:drawing_notes_app/features/notes/presentation/database_block_view.dart';
+import 'package:drawing_notes_app/features/notes/presentation/attachment_block_view.dart';
 
 /// 内嵌块视图：按块类型分发到对应的富渲染。
 ///
@@ -46,7 +48,8 @@ class EmbeddedBlockView extends StatelessWidget {
         type == NoteBlockType.image ||
         type == NoteBlockType.link ||
         type == NoteBlockType.table ||
-        type == NoteBlockType.database;
+        type == NoteBlockType.database ||
+        type == NoteBlockType.attachment;
   }
 
   @override
@@ -64,7 +67,9 @@ class EmbeddedBlockView extends StatelessWidget {
       case NoteBlockType.table:
         return _buildTable(context);
       case NoteBlockType.database:
-        return _buildDatabase(context);
+        return DatabaseBlockView(block: block, onChanged: onBlockChanged);
+      case NoteBlockType.attachment:
+        return _buildAttachment(context);
       case NoteBlockType.canvas:
       case NoteBlockType.chart:
         return _buildPlaceholder(context);
@@ -325,81 +330,10 @@ class EmbeddedBlockView extends StatelessWidget {
     );
   }
 
-  // ── 数据库 ─────────────────────────────────────────────────
+  // ── 附件 ───────────────────────────────────────────────────
 
-  Widget _buildDatabase(BuildContext context) {
-    final Object? recordsRaw = block.props['records'];
-    final List<Object?> recordList =
-        recordsRaw is List ? recordsRaw.cast<Object?>() : const <Object?>[];
-
-    // 紧凑 JSON 面片（截断显示）
-    final jsonStr = recordList.toString();
-    final displayJson = jsonStr.length > 200
-        ? '${jsonStr.substring(0, 200)}...'
-        : jsonStr;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outlineVariant,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.table_chart_outlined,
-                  size: 18,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '数据库',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '${recordList.length} 条记录',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              displayJson,
-              style: const TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 12,
-              ),
-              maxLines: 8,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
+  Widget _buildAttachment(BuildContext _) {
+    return AttachmentBlockView(block: block, onChanged: onBlockChanged);
   }
 
   // ── 通用占位卡片（canvas / chart） ──────────────────────────

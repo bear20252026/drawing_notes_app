@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
+import 'package:drawing_notes_app/features/notes/domain/note_database.dart';
 import 'package:drawing_notes_app/features/notes/presentation/embedded_block_view.dart';
 import 'package:drawing_notes_app/features/notes/presentation/note_editor_page.dart';
 
@@ -25,6 +28,7 @@ void main() {
       expect(EmbeddedBlockView.isEmbeddedType(NoteBlockType.link), true);
       expect(EmbeddedBlockView.isEmbeddedType(NoteBlockType.table), true);
       expect(EmbeddedBlockView.isEmbeddedType(NoteBlockType.database), true);
+      expect(EmbeddedBlockView.isEmbeddedType(NoteBlockType.attachment), true);
     });
   });
 
@@ -174,16 +178,16 @@ void main() {
   });
 
   group('EmbeddedBlockView 数据库渲染', () {
-    testWidgets('渲染记录数统计和 JSON 面片', (tester) async {
+    testWidgets('渲染表视图：标题/记录数/行内容', (tester) async {
+      final db = NoteDatabase.empty(title: '数据库')
+          .addField(const NoteFieldDef(id: 'name', name: '名称', type: NoteFieldType.text))
+          .addField(const NoteFieldDef(id: 'age', name: '年龄', type: NoteFieldType.number))
+          .addRecord(const NoteRecord(id: 'r1', cells: {'name': 'Alice', 'age': 30}))
+          .addRecord(const NoteRecord(id: 'r2', cells: {'name': 'Bob', 'age': 25}));
       final block = NoteBlock(
         id: 'db1',
         type: NoteBlockType.database,
-        props: const {
-          'records': [
-            {'name': 'Alice', 'age': 30},
-            {'name': 'Bob', 'age': 25},
-          ],
-        },
+        props: {'database': jsonEncode(db.toJson())},
       );
 
       await tester.pumpWidget(
@@ -193,9 +197,11 @@ void main() {
 
       expect(find.text('数据库'), findsOneWidget);
       expect(find.text('2 条记录'), findsOneWidget);
+      expect(find.text('Alice'), findsOneWidget);
+      expect(find.text('Bob'), findsOneWidget);
     });
 
-    testWidgets('无 records 时显示 0 条记录', (tester) async {
+    testWidgets('无 database 数据时显示 0 条记录', (tester) async {
       final block = NoteBlock(
         id: 'db2',
         type: NoteBlockType.database,

@@ -1,8 +1,11 @@
 // 由 Claude 团队生成 | Drawing Notes App
 // note_block.dart 单元测试。
 
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
+import 'package:drawing_notes_app/features/notes/domain/note_attachment.dart';
 
 void main() {
   group('NoteBlock', () {
@@ -29,6 +32,22 @@ void main() {
       expect(NoteBlock.headingBlock('h', level: 5).props['level'], 5);
       expect(NoteBlock.headingBlock('h', level: 6).props['level'], 6);
       expect(NoteBlock.headingBlock('h', level: 7).props['level'], 6);
+    });
+
+    test('attachmentBlock 工厂：payload 存 attachment JSON', () {
+      final a = NoteAttachment(
+        id: 'a1',
+        name: '报告.pdf',
+        kind: AttachmentKind.pdf,
+        url: 'https://cdn.example.com/report.pdf',
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      );
+      final block = NoteBlock.attachmentBlock('x', attachment: a);
+      expect(block.type, NoteBlockType.attachment);
+      final raw = block.props['attachment'] as String;
+      final decoded = NoteAttachment.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      expect(decoded, a);
     });
 
     test('toJson / fromJson 往返一致', () {

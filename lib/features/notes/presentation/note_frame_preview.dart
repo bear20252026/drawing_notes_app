@@ -236,6 +236,8 @@ class _NoteBlockPreviewRow extends StatelessWidget {
         return _embeddedPlaceholder(context, '表格', Icons.table_chart_outlined, baseStyle);
       case NoteBlockType.database:
         return _embeddedPlaceholder(context, '数据库', Icons.dataset_outlined, baseStyle);
+      case NoteBlockType.attachment:
+        return _embeddedPlaceholder(context, '附件', Icons.attachment_outlined, baseStyle);
       case NoteBlockType.text:
         return Text(block.text, style: baseStyle, softWrap: true);
     }

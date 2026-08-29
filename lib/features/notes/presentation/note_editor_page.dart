@@ -550,6 +550,8 @@ class NoteEditorPageState extends State<NoteEditorPage> {
         return NoteBlock(id: id, type: NoteBlockType.table);
       case NoteBlockType.database:
         return NoteBlock(id: id, type: NoteBlockType.database);
+      case NoteBlockType.attachment:
+        return NoteBlock(id: id, type: NoteBlockType.attachment, text: text);
     }
   }
 
@@ -1354,6 +1356,7 @@ class NoteEditorPageState extends State<NoteEditorPage> {
       case NoteBlockType.link:
       case NoteBlockType.table:
       case NoteBlockType.database:
+      case NoteBlockType.attachment:
         return '';
     }
   }

@@ -110,6 +110,24 @@ String _blockToMarkdown(NoteBlock block, {int orderedIndex = 0}) {
 
     case NoteBlockType.database:
       return '<!-- database -->\n> [!database]\n> ${jsonEncode(block.props)}';
+
+    case NoteBlockType.attachment:
+      // 附件：有 url/filePath 时导出为链接，否则保留为注释 JSON 摘要。
+      final raw = block.props['attachment'] as String?;
+      String link = '';
+      if (raw != null) {
+        try {
+          final m = jsonDecode(raw) as Map<String, dynamic>;
+          link =
+              (m['url'] as String? ?? m['filePath'] as String? ?? '').toString();
+        } catch (_) {
+          // ignored
+        }
+      }
+      final name = block.text.isEmpty ? '附件' : block.text;
+      return link.isNotEmpty
+          ? '[$name]($link)'
+          : '<!-- attachment -->\n> [!attachment]\n> ${jsonEncode(block.props)}';
   }
 }
 

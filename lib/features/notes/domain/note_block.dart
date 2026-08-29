@@ -1,6 +1,11 @@
 // 由 Claude 团队生成 | Drawing Notes App
 // AFFiNE 风格块模型：不可变领域实体 + 纯逻辑编辑操作。
 // 无 flutter/io/controller/存储依赖；不可变输入 → 确定性输出。
+library;
+
+import 'dart:convert';
+
+import 'note_attachment.dart';
 
 /// 块类型枚举（借鉴 AFFiNE block suite，含内嵌块供后续 M2 使用）。
 enum NoteBlockType {
@@ -46,8 +51,11 @@ enum NoteBlockType {
   /// 表格块。
   table,
 
-  /// 数据库/数据视图块（预留）。
+  /// 数据库/数据视图块（payload 存 props['database']）。
   database,
+
+  /// 附件块（文件 / PDF 内嵌 / 书签卡，payload 存 props['attachment']）。
+  attachment,
 }
 
 /// 块属性映射（类型相关的轻量元数据）。
@@ -58,6 +66,8 @@ enum NoteBlockType {
 /// image → {'src': '...', 'alt': '...'}
 /// link → {'href': '...', 'title': '...'}
 /// canvas → {'document': `<DrawingDocument json>`}
+/// database → {'database': `<NoteDatabase json>`}
+/// attachment → {'attachment': `<NoteAttachment json>`}
 typedef NoteBlockProps = Map<String, dynamic>;
 
 /// AFFiNE 风格的不可变内容块。
@@ -135,6 +145,14 @@ class NoteBlock {
         id: id,
         type: NoteBlockType.image,
         props: alt != null ? {'src': src, 'alt': alt} : {'src': src},
+      );
+
+  /// 创建附件块（payload 存 props['attachment']）。
+  factory NoteBlock.attachmentBlock(String id, {required NoteAttachment attachment}) =>
+      NoteBlock(
+        id: id,
+        type: NoteBlockType.attachment,
+        props: {'attachment': jsonEncode(attachment.toJson())},
       );
 
   // ── 不可变更新 ─────────────────────────────────────────────
