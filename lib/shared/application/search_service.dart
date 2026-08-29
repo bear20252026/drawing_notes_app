@@ -34,11 +34,15 @@ class SearchService {
   SearchService({
     INotebookSearchAccessor? notebookAccessor,
     StorageService? docStorage,
+    this.blockDocAccessor,
   }) : _notebookAccessor = notebookAccessor ?? _DefaultNotebookAccessor(),
        _docStorage = docStorage ?? StorageService();
 
   final INotebookSearchAccessor _notebookAccessor;
   final StorageService _docStorage;
+
+  /// 可选：块文档检索访问器（core 契约），null 表示不检索块文档。
+  final IBlockDocSearchAccessor? blockDocAccessor;
 
   /// 搜索 [query]，忽略大小写；命中文字块内容或标题。
   Future<List<SearchResult>> search(String query) async {
@@ -116,6 +120,23 @@ class SearchService {
             title: m.title,
             snippet: '画作',
             drawingMeta: m,
+          ),
+        );
+      }
+    }
+
+    // 3) 块文档（NoteBlockDoc）：经 core 契约 IBlockDocSearchAccessor。
+    final blockAccessor = blockDocAccessor;
+    if (blockAccessor != null) {
+      final blockHits = await blockAccessor.search(query);
+      for (final h in blockHits) {
+        results.add(
+          SearchResult(
+            kind: 'blockdoc',
+            notebookId: null,
+            pageId: h.docId,
+            title: h.title.isNotEmpty ? h.title : '块文档',
+            snippet: h.snippet,
           ),
         );
       }

@@ -55,3 +55,35 @@ abstract interface class INotebookMediaStore {
 /// 而不是依赖完整聚合根或不需要的写入能力。
 abstract interface class INotebookAccessor
     implements INotebookSearchAccessor, INotebookMediaStore {}
+
+/// 块文档（NoteBlockDoc）的搜索结果命中（core 中立 DTO）。
+class BlockDocSearchHit {
+  const BlockDocSearchHit({
+    required this.docId,
+    required this.title,
+    required this.snippet,
+    this.matchedTitle = false,
+  });
+
+  /// 块文档 ID。
+  final String docId;
+
+  /// 文档标题。
+  final String title;
+
+  /// 命中片段（标题命中时为 '文档标题'）。
+  final String snippet;
+
+  /// 是否由标题命中。
+  final bool matchedTitle;
+}
+
+/// 块文档搜索访问器（core 中立契约）。
+///
+/// shared 的 SearchService 依赖该接口进行块文档全文检索，避免 shared→notes
+/// 特性层耦合；notes 侧用 `NoteBlockDocStore` + `NoteBlockDocSearchIndex`
+/// 实现（见 `features/notes/infrastructure/block_doc_search_accessor_impl.dart`）。
+abstract interface class IBlockDocSearchAccessor {
+  /// 按 [query] 检索所有块文档，返回文档级命中（可能命中多块，折一为代表）。
+  Future<List<BlockDocSearchHit>> search(String query);
+}

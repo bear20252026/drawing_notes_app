@@ -1,10 +1,15 @@
 import 'dart:io';
 
 import 'package:drawing_notes_app/shared/application/search_service.dart';
+import 'package:drawing_notes_app/core/notes_accessor.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_accessor_impl.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/block_doc_search_accessor_impl.dart';
+import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -60,5 +65,68 @@ void main() {
       docStorage: StorageService(directoryProvider: () async => tempDir),
     );
     expect(await svc.search('   '), isEmpty);
+  });
+
+  test('全文搜索：命中块文档正文', () async {
+    final store = NoteBlockDocStore(directoryProvider: () async => tempDir);
+    await store.saveDocument(
+      NoteBlockDoc(
+        id: 'docb1',
+        title: '块文档笔记',
+        body: [
+          NoteBlock.textBlock('b1', text: 'Flutter 架构学习笔记'),
+        ],
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+    );
+
+    final svc = SearchService(
+      notebookAccessor: NotebookAccessorImpl(
+        storage: NotebookStorage(directoryProvider: () async => tempDir),
+      ),
+      docStorage: StorageService(directoryProvider: () async => tempDir),
+      blockDocAccessor: BlockDocSearchAccessorImpl(store: store),
+    );
+    final results = await svc.search('flutter');
+    expect(
+      results.any(
+        (r) =>
+            r.kind == 'blockdoc' &&
+            r.title == '块文档笔记' &&
+            r.snippet.contains('Flutter'),
+      ),
+      isTrue,
+      reason: '应命中块文档正文且带摘要片段',
+    );
+  });
+
+  test('全文搜索：命中块文档标题', () async {
+    final store = NoteBlockDocStore(directoryProvider: () async => tempDir);
+    await store.saveDocument(
+      NoteBlockDoc(
+        id: 'docb2',
+        title: 'Flutter 移动开发指南',
+        body: [NoteBlock.textBlock('b0', text: '空')],
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+    );
+
+    final svc = SearchService(
+      notebookAccessor: NotebookAccessorImpl(
+        storage: NotebookStorage(directoryProvider: () async => tempDir),
+      ),
+      docStorage: StorageService(directoryProvider: () async => tempDir),
+      blockDocAccessor: BlockDocSearchAccessorImpl(store: store),
+    );
+    final results = await svc.search('flutter');
+    expect(
+      results.any(
+        (r) => r.kind == 'blockdoc' && r.title == 'Flutter 移动开发指南',
+      ),
+      isTrue,
+      reason: '应命中块文档标题',
+    );
   });
 }

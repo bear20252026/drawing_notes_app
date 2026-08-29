@@ -6,8 +6,11 @@ import 'package:drawing_notes_app/shared/application/search_service.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/edgeless_doc_store.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
+import 'package:drawing_notes_app/features/notes/presentation/note_doc_modes_page.dart';
 
 /// 全文搜索页（借鉴 Joplin / nb 的全文搜索）。
 class SearchPage extends StatefulWidget {
@@ -17,12 +20,14 @@ class SearchPage extends StatefulWidget {
     this.notebookStorage,
     this.documentStorage,
     this.editorPageBuilder,
+    this.blockDocStore,
   });
 
   final SearchService searchService;
   final NotebookStorage? notebookStorage;
   final StorageService? documentStorage;
   final EditorPageBuilder? editorPageBuilder;
+  final NoteBlockDocStore? blockDocStore;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -73,6 +78,22 @@ class _SearchPageState extends State<SearchPage> {
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => builder(document: doc, documentStorage: storage),
+        ),
+      );
+      return;
+    }
+    // 块文档命中：打开双模宿主（页面/无限画布）。
+    if (r.kind == 'blockdoc') {
+      final blockStore = widget.blockDocStore ?? NoteBlockDocStore();
+      final doc = await blockStore.loadDocument(r.pageId!);
+      if (doc == null || !mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => NoteDocModesPage(
+            document: doc,
+            onSave: (d) => blockStore.saveDocument(d),
+            edgelessStore: EdgelessDocStore(),
+          ),
         ),
       );
       return;
@@ -156,7 +177,13 @@ class _SearchPageState extends State<SearchPage> {
       itemBuilder: (context, i) {
         final r = _results[i];
         return ListTile(
-          leading: Icon(r.kind == 'drawing' ? Icons.brush : Icons.menu_book),
+          leading: Icon(
+            r.kind == 'drawing'
+                ? Icons.brush
+                : r.kind == 'blockdoc'
+                    ? Icons.hub_rounded
+                    : Icons.menu_book,
+          ),
           title: Text(r.title, maxLines: 1, overflow: TextOverflow.ellipsis),
           subtitle: Text(
             r.snippet,
