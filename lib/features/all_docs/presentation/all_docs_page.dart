@@ -1,14 +1,15 @@
 // M9-3 全部文档工作台：AllDocsPage 主页面。
 //
 // 纯展示层：
-// - 构造注入 loadDocs / onOpenDoc / onNewDoc，
-// - 内部 FutureBuilder 加载数据，
+// - 构造注入 loadDocs / onOpenDoc / onNewDoc / onToggleFavorite，
+// - 内部 FutureBuilder 加载数据并缓存，搜索与收藏切换均为本地状态重算，
 // - 左侧 AllDocsSidebar + 主内容区（工具条 / Tab / 分组文档列表）。
 // 不 import 任何存储/服务实现。
 
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
+import 'package:drawing_notes_app/features/all_docs/application/all_doc_search.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_docs_sidebar.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_doc_row.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
@@ -19,9 +20,10 @@ import 'package:drawing_notes_app/core/theme/apple_design.dart';
 /// - [loadDocs]：异步加载 [AllDocQueryResult] 的数据源。
 /// - [onOpenDoc]：点击文档行时调用。
 /// - [onNewDoc]：新建文档回调（画板/笔记/块文档）。
+/// - [onToggleFavorite]：切换收藏回调（持久化由壳层负责；UI 乐观更新）。
 ///
 /// ### 布局
-/// - 左：[AllDocsSidebar] 工作区面板
+/// - 左：[AllDocsSidebar] 工作区面板（搜索 + 导航）
 /// - 右：工具条 + Tab + 分组文档列表
 class AllDocsPage extends StatefulWidget {
   const AllDocsPage({
@@ -29,22 +31,58 @@ class AllDocsPage extends StatefulWidget {
     required this.loadDocs,
     required this.onOpenDoc,
     this.onNewDoc,
+    this.onToggleFavorite,
   });
 
   final Future<AllDocQueryResult> Function() loadDocs;
   final void Function(AllDoc doc) onOpenDoc;
   final void Function(AllDocKind kind)? onNewDoc;
+  final void Function(AllDoc doc)? onToggleFavorite;
 
   @override
   State<AllDocsPage> createState() => _AllDocsPageState();
 }
 
 class _AllDocsPageState extends State<AllDocsPage> {
-  // Tab 索引：0=文档，1=精选，2=标签。
+  // Tab 索引：0=文档，1=精选，2=标签。侧栏导航项与 Tab 一一对应。
   int _tabIndex = 0;
+
+  /// 搜索词（快速搜索框）。
+  String _query = '';
+
+  /// 已加载的结果缓存（收藏切换时在其上做乐观更新）。
+  AllDocQueryResult? _cached;
 
   /// 首次构建时加载一次并缓存，避免每次 rebuild 重跑 loadDocs 造成闪屏。
   late final Future<AllDocQueryResult> _future = widget.loadDocs();
+
+  /// 收藏切换：更新缓存中的 isFavorite（乐观 UI），并通知壳层持久化。
+  Future<void> _toggleFavorite(AllDoc doc) async {
+    final cached = _cached;
+    if (cached == null) return;
+    final newFavorite = !doc.isFavorite;
+    AllDocQueryResult next = cached;
+    next = AllDocQueryResult(
+      docs: _mapDocs(cached.docs, doc.dedupKey, newFavorite),
+      sections: [
+        for (final s in cached.sections)
+          AllDocSection(
+            group: s.group,
+            label: s.label,
+            docs: _mapDocs(s.docs, doc.dedupKey, newFavorite),
+          ),
+      ],
+    );
+    setState(() => _cached = next);
+    widget.onToggleFavorite?.call(doc);
+  }
+
+  List<AllDoc> _mapDocs(List<AllDoc> docs, String dedupKey, bool favorite) =>
+      docs
+          .map((d) => d.dedupKey == dedupKey
+              ? d.copyWith(isFavorite: favorite)
+              : d)
+          .toList(growable: false);
 
   @override
   Widget build(BuildContext context) {
@@ -59,12 +97,13 @@ class _AllDocsPageState extends State<AllDocsPage> {
         children: [
           // 左侧工作区面板
           AllDocsSidebar(
-            onSearchChanged: (_) {
-              // 搜索：lead 接入实际查询后实现。
-            },
-            onNavSelected: (_) {
-              // 导航切换：lead 接入 app_shell 后实现。
-            },
+            searchQuery: _query,
+            onSearchChanged: (q) => setState(() => _query = q),
+            selectedNavIndex: _tabIndex,
+            onNavSelected: (i) => setState(() {
+              // 侧栏前三项与 Tab 一一对应：全部文档/收藏夹/标签。
+              _tabIndex = i.clamp(0, 2);
+            }),
           ),
           // 垂直分隔线
           VerticalDivider(
@@ -88,16 +127,20 @@ class _AllDocsPageState extends State<AllDocsPage> {
                     ),
                   );
                 }
-                final result = snapshot.data;
-                if (result == null || result.docs.isEmpty) {
+                final result = _cached ?? snapshot.data;
+                if (result == null) return const SizedBox.shrink();
+                _cached = result;
+                final sections = filterSections(result.sections, _query);
+                if (result.docs.isEmpty) {
                   return _EmptyState(theme: theme);
                 }
                 return _MainContent(
                   theme: theme,
                   tabIndex: _tabIndex,
-                  sections: result.sections,
+                  sections: sections,
                   onOpenDoc: widget.onOpenDoc,
                   onNewDoc: widget.onNewDoc,
+                  onToggleFavorite: _toggleFavorite,
                   onTabChanged: (i) => setState(() => _tabIndex = i),
                 );
               },
@@ -117,6 +160,7 @@ class _MainContent extends StatelessWidget {
     required this.sections,
     required this.onOpenDoc,
     required this.onTabChanged,
+    required this.onToggleFavorite,
     this.onNewDoc,
   });
 
@@ -124,6 +168,7 @@ class _MainContent extends StatelessWidget {
   final int tabIndex;
   final List<AllDocSection> sections;
   final void Function(AllDoc doc) onOpenDoc;
+  final void Function(AllDoc doc) onToggleFavorite;
   final void Function(AllDocKind kind)? onNewDoc;
   final ValueChanged<int> onTabChanged;
 
@@ -153,6 +198,7 @@ class _MainContent extends StatelessWidget {
               tabIndex: tabIndex,
               sections: sections,
               onOpenDoc: onOpenDoc,
+              onToggleFavorite: onToggleFavorite,
             ),
           ),
         ),
@@ -166,7 +212,7 @@ class _DocsToolbar extends StatelessWidget {
   _DocsToolbar({required this.theme, this.onNewDoc});
 
   final ThemeData theme;
-  final void Function(AllDocKind kind)? onNewDoc;
+  final void Function(AllDocKind)? onNewDoc;
 
   final _newDocButtonKey = GlobalKey();
 
@@ -193,42 +239,7 @@ class _DocsToolbar extends StatelessWidget {
             ),
           ),
           Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: subtle),
-          const SizedBox(width: 12),
-          // + 按钮
-          _IconChip(icon: Icons.add_rounded, onPressed: () {}),
           const Spacer(),
-          // 视图切换（列表）
-          _IconChip(
-            icon: Icons.view_list_rounded,
-            onPressed: () {},
-            tooltip: '列表视图',
-          ),
-          const SizedBox(width: 6),
-          // 视图切换（看板）
-          _IconChip(
-            icon: Icons.view_kanban_rounded,
-            onPressed: () {},
-            tooltip: '看板视图',
-          ),
-          const SizedBox(width: 10),
-          // 「显示」按钮
-          OutlinedButton.icon(
-            onPressed: () {},
-            icon: Icon(Icons.tune_rounded, size: 16, color: subtle),
-            label: Text(
-              '显示',
-              style: TextStyle(fontSize: 12.5, color: onSurface),
-            ),
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size(0, 32),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              side: BorderSide(color: theme.dividerColor),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
           // 「新建文档 ▾」下拉
           ApplePrimaryButton(
             key: _newDocButtonKey,
@@ -296,37 +307,7 @@ class _DocsToolbar extends StatelessWidget {
   }
 }
 
-class _IconChip extends StatelessWidget {
-  const _IconChip({
-    required this.icon,
-    required this.onPressed,
-    this.tooltip,
-  });
-
-  final IconData icon;
-  final VoidCallback onPressed;
-  final String? tooltip;
-
-  @override
-  Widget build(BuildContext context) {
-    final subtle = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4);
-    return Tooltip(
-      message: tooltip ?? '',
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          width: 32,
-          height: 32,
-          alignment: Alignment.center,
-          child: Icon(icon, size: 18, color: subtle),
-        ),
-      ),
-    );
-  }
-}
-
-/// Tab 栏：文档 / 精选 / 标签。
+/// Tab 栏：文档 / 收藏夹 / 标签。
 class _DocsTabBar extends StatelessWidget {
   const _DocsTabBar({
     required this.theme,
@@ -338,7 +319,7 @@ class _DocsTabBar extends StatelessWidget {
   final int tabIndex;
   final ValueChanged<int> onTabChanged;
 
-  static const _tabs = ['文档', '精选', '标签'];
+  static const _tabs = ['文档', '收藏夹', '标签'];
 
   @override
   Widget build(BuildContext context) {
@@ -393,7 +374,7 @@ class _DocsTabBar extends StatelessWidget {
 /// 分组文档列表。
 ///
 /// - Tab 0（文档）：按 sections 渲染组头 + AllDocRow。
-/// - Tab 1（精选）：仅渲染 isFavorite 文档，不分组。
+/// - Tab 1（收藏夹）：仅渲染 isFavorite 文档，不分组。
 /// - Tab 2（标签）：空态（暂无标签维度）。
 class _GroupedDocList extends StatelessWidget {
   const _GroupedDocList({
@@ -401,24 +382,26 @@ class _GroupedDocList extends StatelessWidget {
     required this.tabIndex,
     required this.sections,
     required this.onOpenDoc,
+    required this.onToggleFavorite,
   });
 
   final ThemeData theme;
   final int tabIndex;
   final List<AllDocSection> sections;
   final void Function(AllDoc doc) onOpenDoc;
+  final void Function(AllDoc doc) onToggleFavorite;
 
   @override
   Widget build(BuildContext context) {
     if (tabIndex == 1) {
-      // 精选：仅 favorite
+      // 收藏夹：仅 favorite
       final favorites =
           sections.expand((s) => s.docs).where((d) => d.isFavorite).toList();
       if (favorites.isEmpty) {
         return _TabEmptyState(
           theme: theme,
-          text: '暂无精选文档',
-          tip: '点击文档行星标可添加到精选',
+          text: '暂无收藏文档',
+          tip: '点击文档行星标可添加到收藏夹',
         );
       }
       return ListView.separated(
@@ -429,6 +412,7 @@ class _GroupedDocList extends StatelessWidget {
         itemBuilder: (context, i) => AllDocRow(
           doc: favorites[i],
           onOpenDoc: () => onOpenDoc(favorites[i]),
+          onToggleFavorite: () => onToggleFavorite(favorites[i]),
         ),
       );
     }
@@ -438,7 +422,7 @@ class _GroupedDocList extends StatelessWidget {
       return _TabEmptyState(
         theme: theme,
         text: '暂无标签',
-        tip: '使用文件夹与精选整理文档',
+        tip: '使用文件夹与收藏夹整理文档',
       );
     }
 
@@ -459,8 +443,7 @@ class _GroupedDocList extends StatelessWidget {
                   AllDocRow(
                     doc: doc,
                     onOpenDoc: () => onOpenDoc(doc),
-                    onToggleFavorite: () {},
-                    onMenu: () {},
+                    onToggleFavorite: () => onToggleFavorite(doc),
                   ),
                   Divider(
                     height: 1,
@@ -488,28 +471,14 @@ class _SectionHeader extends StatelessWidget {
     final subtle = onSurface.withValues(alpha: 0.4);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 8, 6),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.3,
-                color: subtle,
-              ),
-            ),
-          ),
-          InkWell(
-            onTap: () {},
-            borderRadius: BorderRadius.circular(6),
-            child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Icon(Icons.add_rounded, size: 16, color: subtle),
-            ),
-          ),
-        ],
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.3,
+          color: subtle,
+        ),
       ),
     );
   }
@@ -549,7 +518,7 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-/// Tab 级空态（精选/标签）。
+/// Tab 级空态（收藏夹/标签）。
 class _TabEmptyState extends StatelessWidget {
   const _TabEmptyState({
     required this.theme,

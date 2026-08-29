@@ -36,12 +36,13 @@ void main() {
     expect(find.text('今天'), findsOneWidget);
   });
 
-  testWidgets('SchedulePage 渲染：看板区域存在', (tester) async {
+  testWidgets('SchedulePage 渲染：待办与文档动态区域存在', (tester) async {
     await _setLargeView(tester);
     await tester.pumpWidget(_wrap(const SchedulePage()));
     await tester.pump(const Duration(milliseconds: 200));
     await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.text('看板'), findsWidgets);
+    expect(find.text('待办 · 日程'), findsOneWidget);
+    expect(find.text('文档动态'), findsOneWidget);
   });
 }

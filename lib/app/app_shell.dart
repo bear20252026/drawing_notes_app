@@ -6,12 +6,12 @@ import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
+import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_docs_page.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
-import 'package:drawing_notes_app/features/notes/presentation/notes_writing_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/note_doc_modes_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
@@ -19,13 +19,14 @@ import 'package:drawing_notes_app/features/notes/domain/notebook_entity.dart';
 import 'package:drawing_notes_app/features/schedule/domain/schedule_entry.dart';
 import 'package:drawing_notes_app/features/schedule/presentation/schedule_page.dart';
 
-/// 应用导航壳：4 个顶层目的地。
+/// 应用导航壳：3 个顶层目的地（M11 IA 收敛）。
 ///
-/// 信息架构（对齐 AFFiNE 的「根枢纽 + 多分区」分层）：
-///   0. 主页      —— 首页枢纽
-///   1. 画板·笔记本 —— 当前核心（画板 / 笔记本库）【复用现有 HomePage】
-///   2. 日程·日期  —— 按日期组织 / 日程
-///   3. 纯笔记    —— 直接打字的笔记页
+/// 信息架构（对齐 AFFiNE 的「单一文档工作台入口」）：
+///   0. 全部文档  —— 唯一列表入口（画布/笔记/块文档统一聚合）
+///   1. 画板·笔记本 —— 绘画库（文件夹组织 + 时间线 + 搜索/同步/密码盘入口）
+///   2. 日历      —— 按月历浏览文档活动（按修改日期定位当天动过的文档）
+///
+/// M11 移除：纯笔记占位页（与块编辑器完全冗余）。
 ///
 /// 响应式：宽屏（>= [_railBreakpoint]）用侧边栏 [NavigationRail]，
 ///         窄屏用底部 [NavigationBar]。两端共享同一导航模型与状态。
@@ -37,6 +38,7 @@ class AppShell extends StatefulWidget {
     this.themeController,
     this.editorPageBuilder,
     this.blockDocStore,
+    this.favoriteStore,
   });
 
   final NotebookStorage? notebookStorage;
@@ -44,6 +46,7 @@ class AppShell extends StatefulWidget {
   final AppThemeController? themeController;
   final EditorPageBuilder? editorPageBuilder;
   final NoteBlockDocStore? blockDocStore;
+  final FavoriteStore? favoriteStore;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -59,13 +62,18 @@ class _AppShellState extends State<AppShell> {
   late final NoteBlockDocStore _blockDocStore =
       widget.blockDocStore ?? NoteBlockDocStore();
 
-  /// 4 个目的地。用 [IndexedStack] 承载，保持各自状态（切走再切回不丢）。
+  /// 收藏存储（All Docs 收藏夹持久化）。可注入，否则用默认实现。
+  late final FavoriteStore _favoriteStore =
+      widget.favoriteStore ?? FavoriteStore();
+
+  /// 3 个目的地。用 [IndexedStack] 承载，保持各自状态（切走再切回不丢）。
   late final List<Widget> _destinations = [
     // 0. 全部文档（AFFiNE 风格主工作台）
     AllDocsPage(
       loadDocs: _loadAllDocs,
       onOpenDoc: _openAllDoc,
       onNewDoc: _newAllDoc,
+      onToggleFavorite: _toggleFavorite,
     ),
     HomePage(
       notebookStorage: widget.notebookStorage,
@@ -73,36 +81,31 @@ class _AppShellState extends State<AppShell> {
       themeController: widget.themeController,
       editorPageBuilder: widget.editorPageBuilder,
     ),
+    // 2. 日历（M11 恢复：按日期浏览文档活动 + 待办/日程事件）
     SchedulePage(
       storage: widget.docStorage,
       loadNotebooks: () async => widget.notebookStorage?.listAll() ?? const [],
       onOpen: _openEntry,
     ),
-    const NotesWritingPage(),
   ];
 
   /// 底部导航栏（窄屏）目的地：[NavigationBar] 的 [NavigationDestination]。
   List<NavigationDestination> _barDestinations() {
     return const [
       NavigationDestination(
-        icon: Icon(Icons.home_outlined),
-        selectedIcon: Icon(Icons.home),
-        label: '主页',
-      ),
-      NavigationDestination(
         icon: Icon(Icons.dashboard_outlined),
         selectedIcon: Icon(Icons.dashboard),
+        label: '全部文档',
+      ),
+      NavigationDestination(
+        icon: Icon(Icons.brush_outlined),
+        selectedIcon: Icon(Icons.brush),
         label: '画板·笔记本',
       ),
       NavigationDestination(
         icon: Icon(Icons.calendar_today_outlined),
         selectedIcon: Icon(Icons.calendar_today),
-        label: '日程',
-      ),
-      NavigationDestination(
-        icon: Icon(Icons.edit_note_outlined),
-        selectedIcon: Icon(Icons.edit_note),
-        label: '笔记',
+        label: '日历',
       ),
     ];
   }
@@ -111,29 +114,24 @@ class _AppShellState extends State<AppShell> {
   List<NavigationRailDestination> _railDestinations() {
     return const [
       NavigationRailDestination(
-        icon: Icon(Icons.home_outlined),
-        selectedIcon: Icon(Icons.home),
-        label: Text('主页'),
-      ),
-      NavigationRailDestination(
         icon: Icon(Icons.dashboard_outlined),
         selectedIcon: Icon(Icons.dashboard),
+        label: Text('全部文档'),
+      ),
+      NavigationRailDestination(
+        icon: Icon(Icons.brush_outlined),
+        selectedIcon: Icon(Icons.brush),
         label: Text('画板·笔记本'),
       ),
       NavigationRailDestination(
         icon: Icon(Icons.calendar_today_outlined),
         selectedIcon: Icon(Icons.calendar_today),
-        label: Text('日程'),
-      ),
-      NavigationRailDestination(
-        icon: Icon(Icons.edit_note_outlined),
-        selectedIcon: Icon(Icons.edit_note),
-        label: Text('笔记'),
+        label: Text('日历'),
       ),
     ];
   }
 
-  /// 日程看板里点击某条记录 -> 跳转到对应页面。
+  /// 日历看板里点击某条记录 -> 跳转到对应页面。
   Future<void> _openEntry(ScheduleEntry entry) async {
     final nav = Navigator.of(context, rootNavigator: true);
 
@@ -155,15 +153,9 @@ class _AppShellState extends State<AppShell> {
       return;
     }
 
-    await _openNotebook(entry.notebookId ?? '');
-  }
-
-  /// 打开某个笔记本（用于日程看板 / 主页文件夹的笔记条目跳转）。
-  Future<void> _openNotebook(String notebookId) async {
     final nbStorage = widget.notebookStorage;
     if (nbStorage == null) return;
-    final nav = Navigator.of(context, rootNavigator: true);
-    final nb = await nbStorage.load(notebookId);
+    final nb = await nbStorage.load(entry.notebookId ?? '');
     if (nb == null) return;
     nav.push(
       MaterialPageRoute(
@@ -178,7 +170,8 @@ class _AppShellState extends State<AppShell> {
 
   void _onSelect(int index) => setState(() => _index = index);
 
-  /// 聚合画布 / 笔记页 / 块文档三类文档为统一的「全部文档」查询结果。
+  /// 聚合画布 / 笔记页 / 块文档三类文档为统一的「全部文档」查询结果，
+  /// 并按 FavoriteStore 回填收藏状态。
   Future<AllDocQueryResult> _loadAllDocs() async {
     final docStorage = widget.docStorage;
     final nbStorage = widget.notebookStorage;
@@ -203,12 +196,33 @@ class _AppShellState extends State<AppShell> {
         ));
       }
     }
-    return buildAllDocs(
+    final result = buildAllDocs(
       docs: docs,
       notebooks: notebooks,
       blockDocs: blockDocs,
       now: DateTime.now(),
     );
+    // 回填收藏状态（M11：收藏夹真实化）。
+    final favKeys = await _favoriteStore.loadKeys();
+    if (favKeys.isEmpty) return result;
+    AllDoc apply(AllDoc d) =>
+        d.copyWith(isFavorite: favKeys.contains(d.dedupKey));
+    return AllDocQueryResult(
+      docs: result.docs.map(apply).toList(growable: false),
+      sections: [
+        for (final s in result.sections)
+          AllDocSection(
+            group: s.group,
+            label: s.label,
+            docs: s.docs.map(apply).toList(growable: false),
+          ),
+      ],
+    );
+  }
+
+  /// 收藏切换：持久化（UI 乐观更新由 AllDocsPage 负责）。
+  Future<void> _toggleFavorite(AllDoc doc) async {
+    await _favoriteStore.toggleKey(doc.dedupKey);
   }
 
   /// 打开任意文档，按类型路由到对应编辑器。

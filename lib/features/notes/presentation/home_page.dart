@@ -409,7 +409,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3, // 画作 / 笔记本 / 时间线
+      length: 2, // 无限画布 / 笔记本（M11：「最近」时间线并入日历页）
       child: Scaffold(
         appBar: AppBar(
           title: Text(AppLocalizations.of(context)?.appTitle ?? '绘图笔记'),
@@ -488,7 +488,6 @@ class _HomePageState extends State<HomePage> {
                   tabs: const [
                     Tab(text: '无限画布'),
                     Tab(text: '笔记本'),
-                    Tab(text: '最近'),
                   ],
                 ),
               ),
@@ -502,12 +501,6 @@ class _HomePageState extends State<HomePage> {
                 icon: const Icon(Icons.add),
                 label: const Text('新建无限画布'),
               )
-            : _tabIndex == 2
-            ? FloatingActionButton.extended(
-                onPressed: _quickRecord,
-                icon: const Icon(Icons.edit_note),
-                label: const Text('快速记录'),
-              )
             : FloatingActionButton.extended(
                 onPressed: _createNotebook,
                 icon: const Icon(Icons.add),
@@ -516,23 +509,6 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
-  /// 极简快速记录入口（D7，借鉴 Memos"打开即写"）：直接新建画作并进入编辑器，
-  /// 不弹名称对话框，用默认标题就地开始记录。
-  void _quickRecord() {
-    final doc = DrawingDocument(
-      id: StorageService.newId(),
-      title: '快速记录 ${_formatTime(DateTime.now())}',
-      infinite: true,
-    );
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) =>
-            _buildEditorPage(document: doc, documentStorage: _docStorage),
-      ),
-    );
-  }
-
 }
 
 enum _HomeMenuItem { passwordDisk }
