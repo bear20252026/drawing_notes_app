@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
 import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
+import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/sync/sync_progress.dart';
 import 'package:drawing_notes_app/core/sync/sync_retry_policy.dart';
 import 'package:drawing_notes_app/core/sync/sync_service.dart';
@@ -15,6 +16,7 @@ import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_s
 import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_sync_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/sync_secret_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/webdav_config_store.dart';
+import 'package:drawing_notes_app/features/notes/presentation/conflict_resolution_dialog.dart';
 
 /// WebDAV 同步设置页。
 class WebDavSyncSettingsPage extends StatefulWidget {
@@ -112,6 +114,7 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
         documentStore: NoteBlockDocSyncStore(NoteBlockDocStore()),
         baselineStore: FileSyncBaselineStore(),
         cipher: cipher,
+        conflictHandler: _DialogConflictHandler(this),
         onProgress: (p) {
           if (mounted) setState(() => _progress = p);
         },
@@ -184,7 +187,7 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
         ? '同步完成：↑${r.uploaded} ↓${r.downloaded} ✕${r.deletedRemote}'
         : '已是最新，无需同步';
     if (r.conflictedDocIds.isNotEmpty) {
-      return '$base；另有 ${r.conflictedDocIds.length} 个文档本地与云端均有改动，已应用较新版本';
+      return '$base；另有 ${r.conflictedDocIds.length} 个文档本地与云端均有改动，已按你的选择处理';
     }
     return base;
   }
@@ -314,5 +317,25 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
         ],
       ),
     );
+  }
+}
+
+/// 冲突处理器：遇到冲突时弹窗询问用户逐条裁决；用户取消则返回空（走默认 LWW）。
+class _DialogConflictHandler implements ConflictHandler {
+  _DialogConflictHandler(this._state);
+
+  final State<WebDavSyncSettingsPage> _state;
+
+  @override
+  Future<Map<String, ConflictResolution>> resolve(
+    List<SyncConflict> conflicts,
+  ) async {
+    if (conflicts.isEmpty || !_state.mounted) return const {};
+    final result = await showDialog<Map<String, ConflictResolution>>(
+      context: _state.context,
+      barrierDismissible: false,
+      builder: (_) => ConflictResolutionDialog(conflicts: conflicts),
+    );
+    return result ?? const {};
   }
 }

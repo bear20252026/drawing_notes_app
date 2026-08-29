@@ -15,6 +15,7 @@ import 'dart:typed_data';
 
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
 import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
+import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/sync/sync_planner.dart';
 import 'package:drawing_notes_app/core/sync/sync_progress.dart';
 
@@ -86,6 +87,7 @@ class SyncService {
     required this.baselineStore,
     this.planner = const SyncPlanner(),
     this.cipher = const NoopSyncCipher(),
+    this.conflictHandler = const LwwConflictHandler(),
     this.onProgress,
   });
 
@@ -102,6 +104,9 @@ class SyncService {
 
   /// 端到端加密（默认 [NoopSyncCipher]：明文透传，保现有行为与既有测试）。
   final SyncCipher cipher;
+
+  /// 冲突裁决处理器（默认 [LwwConflictHandler]：不覆盖，保 LWW 语义）。
+  final ConflictHandler conflictHandler;
 
   /// 同步进度回调（默认为 null：不发射，保现有测试行为）。
   final SyncProgressCallback? onProgress;
@@ -147,9 +152,17 @@ class SyncService {
 
     // 4. 计划 + 冲突检测。
     _emit(SyncProgress.phase(SyncProgressPhase.planning));
-    final plan = planner.plan(localManifest, remoteManifest);
-    final conflicted =
-        _detectConflicts(currentEntries, remoteManifest, baseline);
+    final basePlan = planner.plan(localManifest, remoteManifest);
+    final conflicts =
+        detectSyncConflicts(currentEntries, remoteManifest, baseline);
+
+    // 4b. 用户裁决（如注入了 handler）→ 覆盖为有效计划。
+    final resolutions = conflicts.isEmpty
+        ? const <String, ConflictResolution>{}
+        : await conflictHandler.resolve(conflicts);
+    final plan =
+        applyConflictResolutions(basePlan, conflicts, resolutions);
+    await _preserveRemoteCopies(conflicts, resolutions);
 
     // 5. 执行。
     await _execute(plan, currentEntries, remoteManifest);
@@ -181,30 +194,28 @@ class SyncService {
       uploaded: plan.uploadCount,
       downloaded: plan.downloadCount,
       deletedRemote: plan.deleteCount,
-      conflictedDocIds: List.unmodifiable(conflicted),
+      conflictedDocIds:
+          List.unmodifiable(conflicts.map((c) => c.docId)),
     );
     _emit(SyncProgress.complete());
     return result;
   }
 
-  /// 检测「本地与云端都相对基线发生过变更」的真冲突文档（仅可见性提示）。
-  /// 同步语义仍为 LWW 较新者胜（由 [SyncPlanner] 决定）；此列表不改变任何操作。
-  List<String> _detectConflicts(
-    Map<String, SyncSnapshot> currentEntries,
-    SyncManifest remoteManifest,
-    SyncManifest baseline,
-  ) {
-    final result = <String>[];
-    for (final id in baseline.entries.keys) {
-      final base = baseline.entries[id];
-      final local = currentEntries[id];
-      final remote = remoteManifest.entries[id];
-      if (base == null || local == null || remote == null) continue;
-      if (local.updatedAt != base.updatedAt && remote.updatedAt != base.updatedAt) {
-        result.add(id);
-      }
+  /// keepBoth 裁决：把远端版本另存为本地副本（「两者皆保留」，不丢失任一侧）。
+  /// 纯函数层仅把 keepBoth 视为「本地为主版本（强制上传）」；此处补齐「保留远端副本」。
+  Future<void> _preserveRemoteCopies(
+    List<SyncConflict> conflicts,
+    Map<String, ConflictResolution> resolutions,
+  ) async {
+    for (final c in conflicts) {
+      if (resolutions[c.docId] != ConflictResolution.keepBoth) continue;
+      final remoteBytes = await transport.getBytes(cipher.remotePath(c.docId));
+      if (remoteBytes == null) continue;
+      final plain = await cipher.decryptDocumentBytes(remoteBytes, c.docId);
+      final copyId =
+          '${c.docId}~conflict~${DateTime.now().millisecondsSinceEpoch}';
+      await documentStore.writeDocument(copyId, plain);
     }
-    return List.unmodifiable(result);
   }
 
   /// 顺序执行计划中的操作。

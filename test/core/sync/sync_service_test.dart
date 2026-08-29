@@ -11,6 +11,7 @@ import 'package:http/testing.dart';
 
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
 import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
+import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/sync/sync_planner.dart';
 import 'package:drawing_notes_app/core/sync/sync_progress.dart';
 import 'package:drawing_notes_app/core/sync/sync_service.dart';
@@ -119,12 +120,14 @@ SyncService _service(
   _MemoryBaseline? baseline,
   SyncCipher cipher = const NoopSyncCipher(),
   SyncProgressCallback? onProgress,
+  ConflictHandler? conflictHandler,
 }) =>
     SyncService(
       transport: WebDavSyncClient(baseUrl: Uri.parse(_base), client: server.client()),
       documentStore: store,
       baselineStore: baseline ?? _MemoryBaseline(),
       cipher: cipher,
+      conflictHandler: conflictHandler ?? const LwwConflictHandler(),
       onProgress: onProgress,
     );
 
@@ -350,7 +353,90 @@ void main() {
       expect(r.uploaded, 1);
       expect(r.downloaded, 1);
     });
+
+    test('注入 handler：裁决反转 LWW（keepLocal 拒远端、keepRemote 拒本地）', () async {
+      final store = _MemoryDocStore();
+      store.docs['a'] = _Doc('a', _localDocBytes(20), 20); // 本地较旧 vs 远端
+      store.docs['b'] = _Doc('b', _localDocBytes(30), 30); // 本地较新 vs 远端
+      final server = _MemoryServer();
+      server.seedDoc('a', 30); // 远端较新 30
+      server.seedDoc('b', 12); // 远端较旧 12
+      server.seedManifest({'a': 30, 'b': 12});
+      final baseline = _MemoryBaseline()
+        ..value = SyncManifest(entries: {
+          'a': _snap('a', 10),
+          'b': _snap('b', 10),
+        });
+      // 反转：a 远端新但保留本地；b 本地新但保留远端。
+      final s = _service(store, server, baseline: baseline,
+          conflictHandler: _ScriptedHandler({
+            'a': ConflictResolution.keepLocal,
+            'b': ConflictResolution.keepRemote,
+          }));
+
+      final r = await s.syncNow();
+      expect(r.conflictedDocIds.toSet(), {'a', 'b'});
+      // a 被强制上传（本地 20 覆盖远端 30），b 被强制下载（远端 12 覆盖本地 30）。
+      expect(r.uploaded, 1);
+      expect(r.downloaded, 1);
+      expect((server.files['a']), isNotNull);
+      expect(
+        (jsonDecode(utf8.decode(server.files['a']!)) as Map<String, dynamic>)['updatedAt'],
+        20,
+      );
+      expect(store.docs['b']!.updatedAt, 12);
+    });
+
+    test('注入 handler：keepBoth 本地为主 + 远端另存副本（不丢任一侧）', () async {
+      final store = _MemoryDocStore();
+      store.docs['c'] = _Doc('c', _localDocBytes(25), 25);
+      final server = _MemoryServer();
+      server.seedDoc('c', 40);
+      server.seedManifest({'c': 40});
+      final baseline = _MemoryBaseline()
+        ..value = SyncManifest(entries: {'c': _snap('c', 10)});
+      final s = _service(store, server, baseline: baseline,
+          conflictHandler: _ScriptedHandler({
+            'c': ConflictResolution.keepBoth,
+          }));
+
+      final r = await s.syncNow();
+      expect(r.conflictedDocIds, contains('c'));
+      // 本地为主版本：c 被上传（更新为 25）。
+      expect(r.uploaded, 1);
+      expect(
+        (jsonDecode(utf8.decode(server.files['c']!)) as Map<String, dynamic>)['updatedAt'],
+        25,
+      );
+      // 远端版本另存为本地副本（id 含 '~conflict~'），updatedAt=40。
+      final copyKey = store.docs.keys.firstWhere((k) => k.contains('~conflict~'));
+      expect(store.docs[copyKey]!.updatedAt, 40);
+    });
+
+    test('默认 LwwConflictHandler：不覆盖（LWW 语义不变）', () async {
+      final store = _MemoryDocStore();
+      store.docs['a'] = _Doc('a', _localDocBytes(20), 20); // 本地较新
+      final server = _MemoryServer();
+      server.seedDoc('a', 12);
+      server.seedManifest({'a': 12});
+      final baseline = _MemoryBaseline()
+        ..value = SyncManifest(entries: {'a': _snap('a', 10)});
+      final s = _service(store, server, baseline: baseline);
+
+      final r = await s.syncNow();
+      expect(r.uploaded, 1);
+      expect(r.downloaded, 0);
+      expect((jsonDecode(utf8.decode(server.files['a']!)) as Map<String, dynamic>)['updatedAt'], 20);
+    });
   });
+}
+
+class _ScriptedHandler implements ConflictHandler {
+  _ScriptedHandler(this.map);
+  final Map<String, ConflictResolution> map;
+  @override
+  Future<Map<String, ConflictResolution>> resolve(
+      List<SyncConflict> conflicts) async => map;
 }
 
 SyncSnapshot _snap(String id, int updatedAt) => SyncSnapshot(
