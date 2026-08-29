@@ -815,7 +815,7 @@ class _ConnectBanner extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         decoration: BoxDecoration(
-          color: const Color(0xFF7C4DFF),
+          color: const Color(0xFFBF5AF2),
           borderRadius: BorderRadius.circular(24),
         ),
         child: Row(

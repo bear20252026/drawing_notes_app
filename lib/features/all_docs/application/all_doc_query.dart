@@ -1,0 +1,148 @@
+// 由 Claude 团队生成 | Drawing Notes App
+// AllDocQuery：把画布 / 笔记本页 / 块文档三源统一为 AllDoc 列表 + 分组。
+// 纯映射/聚合，无 IO；不可变输入 → 确定性输出。
+
+import 'package:drawing_notes_app/core/storage/repository.dart';
+import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
+import 'package:drawing_notes_app/features/notes/domain/notebook_entity.dart';
+
+/// 块文档的轻量 meta（供集成方从 NoteBlockDoc 提取）。
+class BlockDocMeta {
+  const BlockDocMeta({
+    required this.id,
+    required this.title,
+    required this.folder,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  final String id;
+  final String title;
+  final String folder;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+}
+
+/// 全部文档查询结果（统一列表 + 分组）。
+class AllDocQueryResult {
+  const AllDocQueryResult({
+    required this.docs,
+    required this.sections,
+  });
+
+  /// 全部文档（按 updatedAt desc 排序，已去重）。
+  final List<AllDoc> docs;
+
+  /// 分组后的区段（顺序 today→thisWeek→earlier→neverUpdated）。
+  final List<AllDocSection> sections;
+
+  /// 是否无任何文档。
+  bool get isEmpty => docs.isEmpty;
+}
+
+/// 把三源（画布 / 笔记本页 / 块文档）统一为 [AllDocQueryResult]。
+///
+/// - 三源 → [AllDoc]（kind 正确映射；folder 用 item.folder / page.folder）。
+/// - 去重（按 key = '$kind:$id'，先入优先）。
+/// - 排序：updatedAt desc。
+/// - 用 [groupOf](now) 分组（顺序 today→thisWeek→earlier→neverUpdated）。
+/// - [favoriteOnly] 为 true 时只保留 isFavorite==true 的文档。
+AllDocQueryResult buildAllDocs({
+  required List<DocumentMeta> docs,
+  required List<Notebook> notebooks,
+  required List<BlockDocMeta> blockDocs,
+  required DateTime now,
+  bool favoriteOnly = false,
+}) {
+  final seen = <String>{};
+  final all = <AllDoc>[];
+
+  // 1. 画布文档 → AllDoc(kind=canvas)
+  for (final d in docs) {
+    final doc = AllDoc(
+      id: d.id,
+      title: d.title,
+      kind: AllDocKind.canvas,
+      folder: d.folder,
+      createdAt: d.createdAt,
+      updatedAt: d.updatedAt,
+      drawingId: d.id,
+    );
+    if (_tryAdd(seen, doc)) all.add(doc);
+  }
+
+  // 2. 笔记本页 → AllDoc(kind=note)
+  for (final nb in notebooks) {
+    for (final page in nb.pages) {
+      final doc = AllDoc(
+        id: page.id,
+        title: page.title,
+        kind: AllDocKind.note,
+        folder: page.folder,
+        createdAt: page.createdAt,
+        updatedAt: page.updatedAt,
+        isFavorite: page.favorite,
+        notebookId: nb.id,
+        pageId: page.id,
+      );
+      if (_tryAdd(seen, doc)) all.add(doc);
+    }
+  }
+
+  // 3. 块文档 → AllDoc(kind=blockdoc)
+  for (final bd in blockDocs) {
+    final doc = AllDoc(
+      id: bd.id,
+      title: bd.title,
+      kind: AllDocKind.blockdoc,
+      folder: bd.folder,
+      createdAt: bd.createdAt,
+      updatedAt: bd.updatedAt,
+    );
+    if (_tryAdd(seen, doc)) all.add(doc);
+  }
+
+  // 4. 排序：updatedAt desc
+  all.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+
+  // 5. 收藏过滤
+  final filtered = favoriteOnly
+      ? all.where((d) => d.isFavorite).toList(growable: false)
+      : all;
+
+  // 6. 分组
+  final sections = _buildSections(filtered, now);
+
+  return AllDocQueryResult(docs: filtered, sections: sections);
+}
+
+/// 尝试按 dedupKey 添加；返回 true 表示新增，false 表示重复。
+bool _tryAdd(Set<String> seen, AllDoc doc) => seen.add(doc.dedupKey);
+
+/// 按分组构建 sections（顺序 today→thisWeek→earlier→neverUpdated）。
+List<AllDocSection> _buildSections(List<AllDoc> docs, DateTime now) {
+  final groups = <AllDocGroup, List<AllDoc>>{
+    for (final g in AllDocGroup.values) g: [],
+  };
+
+  for (final doc in docs) {
+    groups[groupOf(doc, now: now)]!.add(doc);
+  }
+
+  final sections = <AllDocSection>[];
+  final orderedGroups = List.of(AllDocGroup.values)
+    ..sort((a, b) => orderOfGroup(a).compareTo(orderOfGroup(b)));
+
+  for (final g in orderedGroups) {
+    final list = groups[g]!;
+    if (list.isNotEmpty) {
+      sections.add(AllDocSection(
+        group: g,
+        label: labelForGroup(g),
+        docs: List.unmodifiable(list),
+      ));
+    }
+  }
+
+  return sections;
+}

@@ -14,6 +14,7 @@ import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/app/app_shell.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
 
 /// 应用根组件：主题 + 路由。
 ///
@@ -39,6 +40,7 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
   // 组合根拥有共享依赖的生命周期；页面只接收这些实例，不自行创建。
   final StorageService _documentStorage = StorageService();
   final NotebookStorage _notebookStorage = NotebookStorage();
+  final NoteBlockDocStore _blockDocStore = NoteBlockDocStore();
 
   @override
   void initState() {
@@ -128,6 +130,7 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
             docStorage: _documentStorage,
             themeController: _themeController,
             editorPageBuilder: DefaultEditorPageBuilder.build,
+            blockDocStore: _blockDocStore,
           ),
         ),
       ),

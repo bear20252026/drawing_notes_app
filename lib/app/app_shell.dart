@@ -1,13 +1,21 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
+import 'package:drawing_notes_app/core/storage/repository.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
-import 'package:drawing_notes_app/features/home/presentation/home_dashboard_page.dart';
+import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
+import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
+import 'package:drawing_notes_app/features/all_docs/presentation/all_docs_page.dart';
+import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notes_writing_page.dart';
+import 'package:drawing_notes_app/features/notes/presentation/note_doc_modes_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
+import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/notes/domain/notebook_entity.dart';
 import 'package:drawing_notes_app/features/schedule/domain/schedule_entry.dart';
 import 'package:drawing_notes_app/features/schedule/presentation/schedule_page.dart';
 
@@ -28,12 +36,14 @@ class AppShell extends StatefulWidget {
     this.docStorage,
     this.themeController,
     this.editorPageBuilder,
+    this.blockDocStore,
   });
 
   final NotebookStorage? notebookStorage;
   final StorageService? docStorage;
   final AppThemeController? themeController;
   final EditorPageBuilder? editorPageBuilder;
+  final NoteBlockDocStore? blockDocStore;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -45,15 +55,17 @@ class _AppShellState extends State<AppShell> {
 
   int _index = 0;
 
+  /// 块文档存储（All Docs 聚合与打开块文档用）。可注入，否则用默认实现。
+  late final NoteBlockDocStore _blockDocStore =
+      widget.blockDocStore ?? NoteBlockDocStore();
+
   /// 4 个目的地。用 [IndexedStack] 承载，保持各自状态（切走再切回不丢）。
   late final List<Widget> _destinations = [
-    HomeDashboardPage(
-      storage: widget.docStorage,
-      loadNotebooks: () async => widget.notebookStorage?.listAll() ?? const [],
-      onOpenNotebook: _openNotebook,
-      onMoveNote: (notebookId, pageId, newFolder) =>
-          _moveNote(notebookId, pageId, newFolder),
-      editorPageBuilder: widget.editorPageBuilder,
+    // 0. 全部文档（AFFiNE 风格主工作台）
+    AllDocsPage(
+      loadDocs: _loadAllDocs,
+      onOpenDoc: _openAllDoc,
+      onNewDoc: _newAllDoc,
     ),
     HomePage(
       notebookStorage: widget.notebookStorage,
@@ -164,30 +176,133 @@ class _AppShellState extends State<AppShell> {
     );
   }
 
-  /// 把某个笔记本页移动到指定文件夹路径（主页文件夹视图「移动到」）。
-  Future<void> _moveNote(
-    String notebookId,
-    String pageId,
-    String newFolder,
-  ) async {
+  void _onSelect(int index) => setState(() => _index = index);
+
+  /// 聚合画布 / 笔记页 / 块文档三类文档为统一的「全部文档」查询结果。
+  Future<AllDocQueryResult> _loadAllDocs() async {
+    final docStorage = widget.docStorage;
     final nbStorage = widget.notebookStorage;
-    if (nbStorage == null) return;
-    final nb = await nbStorage.load(notebookId);
-    if (nb == null) return;
-    var changed = false;
-    for (final page in nb.pages) {
-      if (page.id == pageId) {
-        page.folder = newFolder;
-        changed = true;
-        break;
+    if (docStorage == null && nbStorage == null) {
+      return AllDocQueryResult(docs: const [], sections: const []);
+    }
+    final docs = await (docStorage?.listDocuments() ??
+        Future.value(const <DocumentMeta>[]));
+    final notebooks =
+        await (nbStorage?.listAll() ?? Future.value(const <Notebook>[]));
+    final blockIds = await _blockDocStore.listIds();
+    final blockDocs = <BlockDocMeta>[];
+    for (final id in blockIds) {
+      final doc = await _blockDocStore.loadDocument(id);
+      if (doc != null) {
+        blockDocs.add(BlockDocMeta(
+          id: doc.id,
+          title: doc.title,
+          folder: '',
+          createdAt: doc.createdAt,
+          updatedAt: doc.updatedAt,
+        ));
       }
     }
-    if (changed) {
-      await nbStorage.save(nb);
+    return buildAllDocs(
+      docs: docs,
+      notebooks: notebooks,
+      blockDocs: blockDocs,
+      now: DateTime.now(),
+    );
+  }
+
+  /// 打开任意文档，按类型路由到对应编辑器。
+  Future<void> _openAllDoc(AllDoc doc) async {
+    final nav = Navigator.of(context, rootNavigator: true);
+    switch (doc.kind) {
+      case AllDocKind.canvas:
+        final storage = widget.docStorage;
+        if (storage == null) return;
+        final drawing = await storage.load(doc.drawingId ?? doc.id);
+        if (drawing == null) return;
+        final builder = widget.editorPageBuilder;
+        nav.push(
+          MaterialPageRoute(
+            builder: (_) => builder != null
+                ? builder(document: drawing, documentStorage: storage)
+                : const Scaffold(body: Center(child: Text('编辑器尚未由应用层装配'))),
+          ),
+        );
+      case AllDocKind.note:
+        final nbStorage = widget.notebookStorage;
+        if (nbStorage == null) return;
+        final nb = await nbStorage.load(doc.notebookId ?? '');
+        if (nb == null) return;
+        nav.push(
+          MaterialPageRoute(
+            builder: (_) => NotebookViewPage(
+              notebook: nb,
+              storage: nbStorage,
+              editorPageBuilder: widget.editorPageBuilder,
+            ),
+          ),
+        );
+      case AllDocKind.blockdoc:
+        final bd = await _blockDocStore.loadDocument(doc.id);
+        if (bd == null) return;
+        nav.push(
+          MaterialPageRoute(
+            builder: (_) => NoteDocModesPage(
+              document: bd,
+              onSave: (d) => _blockDocStore.saveDocument(d),
+            ),
+          ),
+        );
     }
   }
 
-  void _onSelect(int index) => setState(() => _index = index);
+  /// 新建文档：按类型创建并打开。
+  Future<void> _newAllDoc(AllDocKind kind) async {
+    final nav = Navigator.of(context, rootNavigator: true);
+    switch (kind) {
+      case AllDocKind.canvas:
+        final storage = widget.docStorage;
+        if (storage == null) return;
+        final draft = DrawingDocument(id: StorageService.newId(), title: '未命名');
+        await storage.save(draft);
+        final builder = widget.editorPageBuilder;
+        nav.push(
+          MaterialPageRoute(
+            builder: (_) => builder != null
+                ? builder(document: draft, documentStorage: storage)
+                : const Scaffold(body: Center(child: Text('编辑器尚未由应用层装配'))),
+          ),
+        );
+      case AllDocKind.note:
+        final nbStorage = widget.notebookStorage;
+        if (nbStorage == null) return;
+        final nb = Notebook(
+          id: NotebookStorage.newId('notebook'),
+          title: '未命名',
+        );
+        await nbStorage.save(nb);
+        nav.push(
+          MaterialPageRoute(
+            builder: (_) => NotebookViewPage(
+              notebook: nb,
+              storage: nbStorage,
+              editorPageBuilder: widget.editorPageBuilder,
+            ),
+          ),
+        );
+      case AllDocKind.blockdoc:
+        final bd = NoteBlockDoc.empty(NoteBlockDocStore.newId());
+        await _blockDocStore.saveDocument(bd);
+        nav.push(
+          MaterialPageRoute(
+            builder: (_) => NoteDocModesPage(
+              document: bd,
+              onSave: (d) => _blockDocStore.saveDocument(d),
+            ),
+          ),
+        );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
