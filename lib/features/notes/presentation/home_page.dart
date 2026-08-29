@@ -24,6 +24,7 @@ import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/password_disk_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/search_page.dart';
+import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settings_page.dart';
 
 part 'home_page_widgets.dart';
 part 'home_page_tabs.dart';
@@ -437,6 +438,15 @@ class _HomePageState extends State<HomePage> {
               tooltip: AppLocalizations.of(context)?.trash ?? '回收站（30 天内可恢复）',
               icon: const Icon(Icons.delete_outline),
               onPressed: _showTrashDialog,
+            ),
+            IconButton(
+              tooltip: 'WebDAV 本地优先同步',
+              icon: const Icon(Icons.cloud_sync_outlined),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const WebDavSyncSettingsPage(),
+                ),
+              ),
             ),
             if (widget.themeController != null)
               IconButton(
