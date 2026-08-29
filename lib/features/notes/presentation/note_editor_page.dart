@@ -185,6 +185,18 @@ class NoteEditorPageState extends State<NoteEditorPage> {
   /// 当前聚焦的块 id。
   String? _focusedBlockId;
 
+  /// 每个块的 LayerLink（key = blockId）——浮动选区工具条锚定用。
+  final Map<String, LayerLink> _layerLinks = {};
+
+  /// 浮动选区工具条 Overlay（有非折叠文本选区时显示，AFFiNE 风格）。
+  OverlayEntry? _selectionToolbarOverlay;
+
+  /// 聚焦块是否存在非折叠文本选区。
+  bool _hasTextSelection = false;
+
+  /// 当前挂了选区监听的控制器（防止重复挂/漏摘）。
+  TextEditingController? _selectionListenerController;
+
   /// 当前正在拖拽的块 id（用于 dropline 指示）。
   String? _draggingBlockId;
 
@@ -231,7 +243,9 @@ class NoteEditorPageState extends State<NoteEditorPage> {
   @override
   void initState() {
     super.initState();
-    _doc = widget.document ?? NoteBlockDoc.empty('doc_${DateTime.now().microsecondsSinceEpoch}');
+    _doc =
+        widget.document ??
+        NoteBlockDoc.empty('doc_${DateTime.now().microsecondsSinceEpoch}');
     _titleController = TextEditingController(text: _doc.title);
     _root = _buildRootFromDoc(_doc);
     _lastSavedBodySignature = _computeBodySignature();
@@ -252,6 +266,9 @@ class NoteEditorPageState extends State<NoteEditorPage> {
   void dispose() {
     // 退出时回调 onSave（若提供），由调用方决定如何持久化。
     _notifySave();
+    _selectionToolbarOverlay?.remove();
+    _selectionToolbarOverlay = null;
+    _selectionListenerController?.removeListener(_onSelectionChanged);
     for (final node in _focusNodes.values) {
       node.removeListener(_onFocusChange);
       node.dispose();
@@ -305,7 +322,9 @@ class NoteEditorPageState extends State<NoteEditorPage> {
     final keepIds = _collectAllDocBlockIds(doc);
 
     // 释放快照中已不存在的块资源。
-    final stale = _controllers.keys.where((id) => !keepIds.contains(id)).toList();
+    final stale = _controllers.keys
+        .where((id) => !keepIds.contains(id))
+        .toList();
     for (final id in stale) {
       _disposeBlockResources(id);
     }
@@ -321,6 +340,7 @@ class NoteEditorPageState extends State<NoteEditorPage> {
           fill(c);
         }
       }
+
       for (final b in doc.body) {
         fill(b);
       }
@@ -366,7 +386,10 @@ class NoteEditorPageState extends State<NoteEditorPage> {
 
     final parent = findParent(_root, blockId);
     if (parent == null) return null;
-    return (parent: parent, index: parent.children.indexWhere((b) => b.id == blockId));
+    return (
+      parent: parent,
+      index: parent.children.indexWhere((b) => b.id == blockId),
+    );
   }
 
   /// 应用经 NoteBlockEditor 变换后的新根树：确保资源、置脏、推历史。
@@ -429,6 +452,9 @@ class NoteEditorPageState extends State<NoteEditorPage> {
       node.addListener(_onFocusChange);
       _focusNodes[block.id] = node;
     }
+    if (!_layerLinks.containsKey(block.id)) {
+      _layerLinks[block.id] = LayerLink();
+    }
     for (final child in block.children) {
       _ensureBlockResources(child);
     }
@@ -443,6 +469,7 @@ class NoteEditorPageState extends State<NoteEditorPage> {
       node.removeListener(_onFocusChange);
       node.dispose();
     }
+    _layerLinks.remove(blockId);
   }
 
   // ── 焦点追踪 ───────────────────────────────────────────────
@@ -459,7 +486,163 @@ class NoteEditorPageState extends State<NoteEditorPage> {
       setState(() {
         _focusedBlockId = focused;
       });
+      // 聚焦块切换：选区监听迁移到新控制器，浮动工具条先隐藏。
+      _selectionListenerController?.removeListener(_onSelectionChanged);
+      _selectionListenerController = focused == null
+          ? null
+          : _controllers[focused];
+      _selectionListenerController?.addListener(_onSelectionChanged);
+      _hasTextSelection = false;
+      _syncSelectionToolbar();
     }
+  }
+
+  /// 聚焦块选区变化：出现非折叠选区时唤出浮动工具条（AFFiNE 风格）。
+  void _onSelectionChanged() {
+    final controller = _focusedBlockId == null
+        ? null
+        : _controllers[_focusedBlockId];
+    final sel = controller?.selection;
+    final hasSel =
+        controller != null && sel != null && sel.isValid && !sel.isCollapsed;
+    if (hasSel != _hasTextSelection) {
+      setState(() => _hasTextSelection = hasSel);
+      _syncSelectionToolbar();
+    }
+  }
+
+  /// 同步浮动选区工具条的显示/隐藏（幂等）。
+  void _syncSelectionToolbar() {
+    final link = _focusedBlockId == null ? null : _layerLinks[_focusedBlockId];
+    final shouldShow = _hasTextSelection && link != null;
+    if (shouldShow && _selectionToolbarOverlay == null) {
+      _selectionToolbarOverlay = OverlayEntry(
+        builder: (context) => _buildSelectionToolbar(link),
+      );
+      Overlay.of(context, rootOverlay: true).insert(_selectionToolbarOverlay!);
+    } else if (!shouldShow && _selectionToolbarOverlay != null) {
+      _selectionToolbarOverlay!.remove();
+      _selectionToolbarOverlay = null;
+    }
+  }
+
+  /// 隐藏并清理浮动选区工具条。
+  void _dismissSelectionToolbar() {
+    _hasTextSelection = false;
+    _syncSelectionToolbar();
+  }
+
+  /// 复制当前聚焦块（新 id，插入其后并聚焦），AFFiNE 浮动工具条动作。
+  void _duplicateFocusedBlock() {
+    final blockId = _focusedBlockId;
+    if (blockId == null) return;
+    final block = _editor.findBlock(_root, blockId);
+    if (block == null) return;
+    final copyId = _nextId();
+    final copy = block.copyWith(id: copyId);
+    _root = _editor.insertAfter(_root, blockId, copy);
+    _ensureBlockResources(_root);
+    setState(_updateDirtyState);
+    _dismissSelectionToolbar();
+    _focusNodes[copyId]?.requestFocus();
+  }
+
+  /// 删除当前聚焦块（浮动工具条动作）。
+  void _deleteFocusedBlock() {
+    final blockId = _focusedBlockId;
+    if (blockId == null) return;
+    _dismissSelectionToolbar();
+    if (_selectionListenerController == _controllers[blockId]) {
+      _selectionListenerController?.removeListener(_onSelectionChanged);
+      _selectionListenerController = null;
+    }
+    _root = _editor.deleteBlock(_root, blockId);
+    _disposeBlockResources(blockId);
+    setState(() {
+      _focusedBlockId = null;
+      _updateDirtyState();
+    });
+  }
+
+  /// 浮动选区工具条（AFFiNE 风格深色胶囊）。
+  Widget _buildSelectionToolbar(LayerLink link) {
+    return CompositedTransformFollower(
+      link: link,
+      showWhenUnlinked: false,
+      targetAnchor: Alignment.bottomLeft,
+      followerAnchor: Alignment.topLeft,
+      offset: const Offset(28, 8),
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1D1D1F),
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _selectionToolbarIcon(Icons.format_bold, '粗体', _toggleBold),
+              _selectionToolbarIcon(Icons.format_italic, '斜体', _toggleItalic),
+              _selectionToolbarIcon(
+                Icons.format_underline,
+                '下划线',
+                _toggleUnderline,
+              ),
+              _selectionToolbarIcon(Icons.link, '链接', _insertLink),
+              _selectionToolbarDivider(),
+              _selectionToolbarIcon(
+                Icons.content_copy_rounded,
+                '复制块',
+                _duplicateFocusedBlock,
+              ),
+              _selectionToolbarIcon(
+                Icons.delete_outline_rounded,
+                '删除块',
+                _deleteFocusedBlock,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _selectionToolbarIcon(
+    IconData icon,
+    String tooltip,
+    VoidCallback onTap,
+  ) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () {
+          onTap();
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Icon(icon, size: 18, color: Colors.white),
+        ),
+      ),
+    );
+  }
+
+  Widget _selectionToolbarDivider() {
+    return Container(
+      width: 1,
+      height: 16,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      color: Colors.white.withValues(alpha: 0.3),
+    );
   }
 
   // ── 文本同步 ───────────────────────────────────────────────
@@ -477,7 +660,11 @@ class NoteEditorPageState extends State<NoteEditorPage> {
       _updateDirtyState();
     });
     // 检测 / 菜单触发
-    _checkSlashTrigger(blockId, controller.text, controller.selection.baseOffset);
+    _checkSlashTrigger(
+      blockId,
+      controller.text,
+      controller.selection.baseOffset,
+    );
     // 推入撤销历史
     _history.push(_buildDocFromState());
   }
@@ -578,8 +765,9 @@ class NoteEditorPageState extends State<NoteEditorPage> {
     // 聚焦前一块末尾
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final prevController = _controllers[previous.id];
-      prevController?.selection =
-          TextSelection.collapsed(offset: previousText.length);
+      prevController?.selection = TextSelection.collapsed(
+        offset: previousText.length,
+      );
       _focusNodes[previous.id]?.requestFocus();
     });
     // 推入撤销历史
@@ -623,7 +811,9 @@ class NoteEditorPageState extends State<NoteEditorPage> {
 
   /// 计算当前 body 的签名（用于 dirty 检测）。
   String _computeBodySignature() {
-    return _root.children.map((b) => '${b.id}:${b.type.name}:${b.text}').join('|');
+    return _root.children
+        .map((b) => '${b.id}:${b.type.name}:${b.text}')
+        .join('|');
   }
 
   // ── 富文本操作 ─────────────────────────────────────────────
@@ -641,13 +831,15 @@ class NoteEditorPageState extends State<NoteEditorPage> {
     final spansData = block.props['spans'];
     if (spansData is List) {
       return spansData
-          .map((e) => NoteInlineSpan(
-                text: e['text'] as String? ?? '',
-                bold: e['bold'] as bool? ?? false,
-                italic: e['italic'] as bool? ?? false,
-                underline: e['underline'] as bool? ?? false,
-                link: e['link'] as String?,
-              ))
+          .map(
+            (e) => NoteInlineSpan(
+              text: e['text'] as String? ?? '',
+              bold: e['bold'] as bool? ?? false,
+              italic: e['italic'] as bool? ?? false,
+              underline: e['underline'] as bool? ?? false,
+              link: e['link'] as String?,
+            ),
+          )
           .toList();
     }
     // 向后兼容：无 spans 属性 → 纯文本
@@ -656,13 +848,17 @@ class NoteEditorPageState extends State<NoteEditorPage> {
 
   /// 将 span 列表序列化为 props 可存储格式。
   List<Map<String, dynamic>> _spansToProps(List<NoteInlineSpan> spans) {
-    return spans.map((s) => {
-      'text': s.text,
-      'bold': s.bold,
-      'italic': s.italic,
-      'underline': s.underline,
-      if (s.link != null) 'link': s.link,
-    }).toList();
+    return spans
+        .map(
+          (s) => {
+            'text': s.text,
+            'bold': s.bold,
+            'italic': s.italic,
+            'underline': s.underline,
+            if (s.link != null) 'link': s.link,
+          },
+        )
+        .toList();
   }
 
   /// 更新聚焦块的 span 列表。
@@ -804,46 +1000,45 @@ class NoteEditorPageState extends State<NoteEditorPage> {
         _showExitDialog();
       },
       child: Scaffold(
-      appBar: AppBar(
-        title: TextField(
-          controller: _titleController,
-          decoration: const InputDecoration(
-            hintText: 'Untitled',
-            border: InputBorder.none,
+        appBar: AppBar(
+          title: TextField(
+            controller: _titleController,
+            decoration: const InputDecoration(
+              hintText: 'Untitled',
+              border: InputBorder.none,
+            ),
+            style: AppleType.titleStyle(
+              Theme.of(context).colorScheme.onSurface,
+            ),
           ),
-          style: AppleType.titleStyle(Theme.of(context).colorScheme.onSurface),
-        ),
-        elevation: 1,
-        actions: [
-          if (_isDirty)
-            Padding(
-              padding: const EdgeInsets.only(right: AppleSpacing.sm),
-              child: Center(
-                child: Text(
-                  '未保存',
-                  style: AppleType.captionStyle(AppleColor.actionBlue),
+          elevation: 1,
+          actions: [
+            if (_isDirty)
+              Padding(
+                padding: const EdgeInsets.only(right: AppleSpacing.sm),
+                child: Center(
+                  child: Text(
+                    '未保存',
+                    style: AppleType.captionStyle(AppleColor.actionBlue),
+                  ),
                 ),
               ),
+            if (widget.onSave != null)
+              IconButton(icon: const Icon(Icons.save), onPressed: _manualSave),
+          ],
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: topLevelBlocks.isEmpty
+                  ? _buildEmptyHint()
+                  : _buildBlockList(topLevelBlocks),
             ),
-          if (widget.onSave != null)
-            IconButton(
-              icon: const Icon(Icons.save),
-              onPressed: _manualSave,
-            ),
-        ],
+            const Divider(height: 1),
+            _buildToolbar(),
+          ],
+        ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: topLevelBlocks.isEmpty
-                ? _buildEmptyHint()
-                : _buildBlockList(topLevelBlocks),
-          ),
-          const Divider(height: 1),
-          _buildToolbar(),
-        ],
-      ),
-    ),
     );
   }
 
@@ -887,12 +1082,16 @@ class NoteEditorPageState extends State<NoteEditorPage> {
             const SizedBox(height: AppleSpacing.md),
             Text(
               '键入 / 添加块',
-              style: AppleType.titleStyle(Theme.of(context).colorScheme.onSurface),
+              style: AppleType.titleStyle(
+                Theme.of(context).colorScheme.onSurface,
+              ),
             ),
             const SizedBox(height: AppleSpacing.xs),
             Text(
               '按 Enter 分块，按 Backspace 合并空块',
-              style: AppleType.bodyStyle(Theme.of(context).colorScheme.onSurfaceVariant),
+              style: AppleType.bodyStyle(
+                Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -913,82 +1112,87 @@ class NoteEditorPageState extends State<NoteEditorPage> {
   Widget _buildBlockRow(NoteBlock block, int index) {
     final isFocused = _focusedBlockId == block.id;
     final isDraggingThis = _draggingBlockId == block.id;
-    final showDropLine = _draggingBlockId != null &&
+    final showDropLine =
+        _draggingBlockId != null &&
         _dropTargetIndex != null &&
         _dropTargetIndex == index;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: DragTarget<String>(
-        onWillAcceptWithDetails: (details) {
-          // 不接受自身拖拽到自身位置。
-          if (details.data == block.id) return false;
-          setState(() => _dropTargetIndex = index);
-          return true;
-        },
-        onLeave: (_) {
-          if (_dropTargetIndex == index) {
-            setState(() => _dropTargetIndex = null);
-          }
-        },
-        onAcceptWithDetails: (details) {
-          _moveBlockToPosition(details.data, index);
-        },
-        builder: (context, candidateData, rejectedData) {
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (showDropLine)
-                Container(
-                  height: 3,
-                  margin: const EdgeInsets.symmetric(vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary,
-                    borderRadius: BorderRadius.circular(2),
+    // LayerLink 锚点：浮动选区工具条跟随本块定位（AFFiNE 风格）。
+    return CompositedTransformTarget(
+      link: _layerLinks[block.id] ?? LayerLink(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: DragTarget<String>(
+          onWillAcceptWithDetails: (details) {
+            // 不接受自身拖拽到自身位置。
+            if (details.data == block.id) return false;
+            setState(() => _dropTargetIndex = index);
+            return true;
+          },
+          onLeave: (_) {
+            if (_dropTargetIndex == index) {
+              setState(() => _dropTargetIndex = null);
+            }
+          },
+          onAcceptWithDetails: (details) {
+            _moveBlockToPosition(details.data, index);
+          },
+          builder: (context, candidateData, rejectedData) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (showDropLine)
+                  Container(
+                    height: 3,
+                    margin: const EdgeInsets.symmetric(vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                ),
-              Opacity(
-                opacity: isDraggingThis ? 0.3 : 1.0,
-                child: Semantics(
-                  label: _semanticLabelForBlock(block),
-                  focused: isFocused,
-                  container: true,
-                  child: Container(
-                    decoration: isFocused
-                        ? BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primaryContainer
-                                .withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(6),
-                          )
-                        : null,
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildBlockHandle(block),
-                        _buildBlockPrefix(block, index),
-                        Expanded(child: _buildBlockInput(block)),
-                      ],
+                Opacity(
+                  opacity: isDraggingThis ? 0.3 : 1.0,
+                  child: Semantics(
+                    label: _semanticLabelForBlock(block),
+                    focused: isFocused,
+                    container: true,
+                    child: Container(
+                      decoration: isFocused
+                          ? BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primaryContainer
+                                  .withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            )
+                          : null,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildBlockHandle(block),
+                          _buildBlockPrefix(block, index),
+                          Expanded(child: _buildBlockInput(block)),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              // ── 嵌套子块（缩进渲染，不可整行拖拽）────────────────
-              if (block.children.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(left: 20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (var i = 0; i < block.children.length; i++)
-                        _buildNestedBlockRow(block.children[i], i),
-                    ],
+                // ── 嵌套子块（缩进渲染，不可整行拖拽）────────────────
+                if (block.children.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (var i = 0; i < block.children.length; i++)
+                          _buildNestedBlockRow(block.children[i], i),
+                      ],
+                    ),
                   ),
-                ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -996,35 +1200,39 @@ class NoteEditorPageState extends State<NoteEditorPage> {
   /// 构建嵌套子块行（缩进显示、无整行拖拽；仍是可编辑/可键盘操作的行）。
   Widget _buildNestedBlockRow(NoteBlock block, int index) {
     final isFocused = _focusedBlockId == block.id;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Opacity(
-        opacity: 1.0,
-        child: Semantics(
-          label: _semanticLabelForBlock(block),
-          focused: isFocused,
-          container: true,
-          child: Container(
-            decoration: isFocused
-                ? BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .primaryContainer
-                        .withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(6),
-                  )
-                : null,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 非拖拽的缩进占位与 grip 视觉（保持对齐，但不生成拖动把手）
-                const SizedBox(width: 24, height: 24, child: Center(
-                  child: Icon(Icons.drag_handle, size: 18),
-                )),
-                _buildBlockPrefix(block, index),
-                Expanded(child: _buildBlockInput(block)),
-              ],
+    return CompositedTransformTarget(
+      link: _layerLinks[block.id] ?? LayerLink(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Opacity(
+          opacity: 1.0,
+          child: Semantics(
+            label: _semanticLabelForBlock(block),
+            focused: isFocused,
+            container: true,
+            child: Container(
+              decoration: isFocused
+                  ? BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primaryContainer.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    )
+                  : null,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 非拖拽的缩进占位与 grip 视觉（保持对齐，但不生成拖动把手）
+                  const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: Center(child: Icon(Icons.drag_handle, size: 18)),
+                  ),
+                  _buildBlockPrefix(block, index),
+                  Expanded(child: _buildBlockInput(block)),
+                ],
+              ),
             ),
           ),
         ),
@@ -1066,10 +1274,9 @@ class NoteEditorPageState extends State<NoteEditorPage> {
             child: Icon(
               Icons.drag_handle,
               size: 18,
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurfaceVariant
-                  .withValues(alpha: 0.6),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
             ),
           ),
         ),
@@ -1083,11 +1290,16 @@ class NoteEditorPageState extends State<NoteEditorPage> {
     final currentIndex = blocks.indexWhere((b) => b.id == blockId);
     if (currentIndex < 0) return;
     // 目标索引在源索引之后时，需减一（因为移除源后列表缩短）。
-    final adjustedTarget =
-        targetIndex > currentIndex ? targetIndex - 1 : targetIndex;
+    final adjustedTarget = targetIndex > currentIndex
+        ? targetIndex - 1
+        : targetIndex;
     if (adjustedTarget < 0 || adjustedTarget >= blocks.length) return;
-    final moved = _editor.moveBlock(_root, blockId, _root.id,
-        index: adjustedTarget);
+    final moved = _editor.moveBlock(
+      _root,
+      blockId,
+      _root.id,
+      index: adjustedTarget,
+    );
     setState(() {
       _root = moved;
       _updateDirtyState();
@@ -1129,10 +1341,7 @@ class NoteEditorPageState extends State<NoteEditorPage> {
       case NoteBlockType.ordered:
         return Padding(
           padding: const EdgeInsets.only(top: 12, right: 4),
-          child: Text(
-            '${index + 1}.',
-            style: const TextStyle(fontSize: 16),
-          ),
+          child: Text('${index + 1}.', style: const TextStyle(fontSize: 16)),
         );
       case NoteBlockType.todo:
         final checked = block.props['checked'] as bool? ?? false;
@@ -1202,8 +1411,10 @@ class NoteEditorPageState extends State<NoteEditorPage> {
         decoration: InputDecoration(
           hintText: _hintTextForBlockType(block.type),
           border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 10,
+            horizontal: 4,
+          ),
           isDense: true,
         ),
         maxLines: null,
@@ -1225,11 +1436,14 @@ class NoteEditorPageState extends State<NoteEditorPage> {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
     // ── 撤销 / 重做（Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y）────────────────
-    final isCtrl = HardwareKeyboard.instance.isControlPressed ||
+    final isCtrl =
+        HardwareKeyboard.instance.isControlPressed ||
         HardwareKeyboard.instance.isMetaPressed;
-    if (isCtrl && (event.logicalKey == LogicalKeyboardKey.keyZ ||
-        event.logicalKey == LogicalKeyboardKey.keyY)) {
-      final isRedo = event.logicalKey == LogicalKeyboardKey.keyY ||
+    if (isCtrl &&
+        (event.logicalKey == LogicalKeyboardKey.keyZ ||
+            event.logicalKey == LogicalKeyboardKey.keyY)) {
+      final isRedo =
+          event.logicalKey == LogicalKeyboardKey.keyY ||
           HardwareKeyboard.instance.isShiftPressed;
       final doc = isRedo ? _history.redo() : _history.undo();
       if (doc != null) {
@@ -1296,7 +1510,9 @@ class NoteEditorPageState extends State<NoteEditorPage> {
         return TextStyle(
           fontFamily: 'monospace',
           fontSize: 15,
-          backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.5,
+          ),
           color: theme.colorScheme.onSurface,
         );
       case NoteBlockType.todo:
@@ -1304,7 +1520,9 @@ class NoteEditorPageState extends State<NoteEditorPage> {
         return TextStyle(
           fontSize: 16,
           decoration: checked ? TextDecoration.lineThrough : null,
-          color: checked ? theme.colorScheme.onSurface.withValues(alpha: 0.5) : theme.colorScheme.onSurface,
+          color: checked
+              ? theme.colorScheme.onSurface.withValues(alpha: 0.5)
+              : theme.colorScheme.onSurface,
         );
       case NoteBlockType.quote:
         return TextStyle(
@@ -1315,7 +1533,9 @@ class NoteEditorPageState extends State<NoteEditorPage> {
       case NoteBlockType.callout:
         return TextStyle(
           fontSize: 16,
-          backgroundColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+          backgroundColor: theme.colorScheme.primaryContainer.withValues(
+            alpha: 0.3,
+          ),
           color: theme.colorScheme.onSurface,
         );
       default:
@@ -1358,7 +1578,10 @@ class NoteEditorPageState extends State<NoteEditorPage> {
   Widget _buildToolbar() {
     final focusedType = _focusedBlockType;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: AppleSpacing.sm, horizontal: AppleSpacing.xs),
+      padding: const EdgeInsets.symmetric(
+        vertical: AppleSpacing.sm,
+        horizontal: AppleSpacing.xs,
+      ),
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -1367,46 +1590,48 @@ class NoteEditorPageState extends State<NoteEditorPage> {
             ..._buildRichTextButtons(),
             const VerticalDivider(width: 8),
             ..._blockTypeOptions.map((option) {
-            final isSelected = focusedType == option.type;
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: Tooltip(
-                message: option.tooltip,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(AppleRadius.md),
-                  onTap: _focusedBlockId != null
-                      ? () => _changeBlockType(_focusedBlockId!, option.type)
-                      : null,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: AppleSpacing.sm, horizontal: AppleSpacing.sm),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppleColor.actionBlue.withValues(alpha: 0.12)
-                          : null,
-                      borderRadius: BorderRadius.circular(AppleRadius.md),
-                      border: isSelected
-                          ? Border.all(
-                              color: AppleColor.actionBlue,
-                            )
-                          : null,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(option.icon, size: 20),
-                        const SizedBox(height: AppleSpacing.xxs),
-                        Text(
-                          option.tooltip,
-                          style: AppleType.captionStyle(Theme.of(context).colorScheme.onSurfaceVariant),
-                        ),
-                      ],
+              final isSelected = focusedType == option.type;
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: Tooltip(
+                  message: option.tooltip,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(AppleRadius.md),
+                    onTap: _focusedBlockId != null
+                        ? () => _changeBlockType(_focusedBlockId!, option.type)
+                        : null,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppleSpacing.sm,
+                        horizontal: AppleSpacing.sm,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppleColor.actionBlue.withValues(alpha: 0.12)
+                            : null,
+                        borderRadius: BorderRadius.circular(AppleRadius.md),
+                        border: isSelected
+                            ? Border.all(color: AppleColor.actionBlue)
+                            : null,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(option.icon, size: 20),
+                          const SizedBox(height: AppleSpacing.xxs),
+                          Text(
+                            option.tooltip,
+                            style: AppleType.captionStyle(
+                              Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            );
-          }),
+              );
+            }),
           ],
         ),
       ),

@@ -3,7 +3,6 @@
 // 注意：testWidgets 主体运行在 FakeAsync 区，不驱动真实文件 IO。
 // 因此这里注入内存版 [ScheduleEventStore] 子类（方法在 Dart 中均为虚方法），
 // 持久化语义本身由 schedule_event_store_test.dart（真实 IO，普通 test()）锁定。
-import 'package:flutter/material.dart' as m;
 import 'package:flutter_localizations/flutter_localizations.dart'
     hide GlobalMaterialLocalizations;
 import 'package:flutter_test/flutter_test.dart';
