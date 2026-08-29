@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
 import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
+import 'package:drawing_notes_app/core/sync/sync_progress.dart';
+import 'package:drawing_notes_app/core/sync/sync_retry_policy.dart';
 import 'package:drawing_notes_app/core/sync/sync_service.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/file_sync_baseline_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
@@ -30,6 +32,8 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
   final _pass = TextEditingController();
   final _syncSecret = TextEditingController();
   bool _syncing = false;
+  SyncProgress? _progress;
+  String? _lastSummary;
 
   @override
   void initState() {
@@ -80,7 +84,11 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
       _toast('请先填写合法的服务器 URL（含 http/https 与 /）');
       return;
     }
-    setState(() => _syncing = true);
+    setState(() {
+      _syncing = true;
+      _progress = SyncProgress.starting();
+      _lastSummary = null;
+    });
     try {
       final cfg = await _configStore.load();
       final cipher = await _buildCipher(cfg);
@@ -93,22 +101,81 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
         documentStore: NoteBlockDocSyncStore(NoteBlockDocStore()),
         baselineStore: FileSyncBaselineStore(),
         cipher: cipher,
+        onProgress: (p) {
+          if (mounted) setState(() => _progress = p);
+        },
       );
       try {
-        final result = await service.syncNow();
+        // 有界自动重试：派生密钥复用同一 service，失败按策略退避。
+        final retry = SyncRetryPolicy();
+        final start = DateTime.now();
+        final outcome = await _runWithRetry(service, retry, start);
         if (!mounted) return;
-        _toast(result.changed
-            ? '同步完成：↑${result.uploaded} ↓${result.downloaded} ✕${result.deletedRemote}'
-            : '已是最新，无需同步');
+        if (outcome.result != null) {
+          final summary = _summaryOf(outcome.result!);
+          setState(() {
+            _progress = SyncProgress.complete();
+            _lastSummary = summary;
+          });
+          _toast(summary);
+        } else {
+          final summary = '同步失败：${outcome.error ?? '未知错误'}';
+          setState(() {
+            _progress = SyncProgress.failure(summary);
+            _lastSummary = summary;
+          });
+          _toast(summary);
+        }
       } finally {
         service.close();
       }
     } catch (e) {
       if (!mounted) return;
-      _toast('同步失败：$e');
+      setState(() {
+        _progress = SyncProgress.failure('同步初始化失败：$e');
+        _lastSummary = '同步初始化失败：$e';
+      });
+      _toast('同步初始化失败：$e');
     } finally {
       if (mounted) setState(() => _syncing = false);
     }
+  }
+
+  // 有界重试：达到 maxAttempts 或策略判定 giveUp 则放弃；返回最后一次结果/错误。
+  Future<({SyncResult? result, Object? error})> _runWithRetry(
+    SyncService service,
+    SyncRetryPolicy retry,
+    DateTime start,
+  ) async {
+    var attempt = 0;
+    while (attempt < retry.maxAttempts) {
+      try {
+        final r = await service.syncNow();
+        return (result: r, error: null);
+      } catch (e) {
+        attempt++;
+        if (attempt >= retry.maxAttempts) return (result: null, error: e);
+        final elapsed = DateTime.now().difference(start);
+        final input = SyncRetryInput(failureCount: attempt, elapsed: elapsed);
+        final decision = retry.decide(input);
+        if (decision == SyncRetryDecision.giveUp) {
+          return (result: null, error: e);
+        }
+        final wait = retry.delayFor(attempt);
+        if (wait > Duration.zero) await Future<void>.delayed(wait);
+      }
+    }
+    return (result: null, error: '达到最大重试次数');
+  }
+
+  String _summaryOf(SyncResult r) {
+    final base = r.changed
+        ? '同步完成：↑${r.uploaded} ↓${r.downloaded} ✕${r.deletedRemote}'
+        : '已是最新，无需同步';
+    if (r.conflictedDocIds.isNotEmpty) {
+      return '$base；另有 ${r.conflictedDocIds.length} 个文档本地与云端均有改动，已应用较新版本';
+    }
+    return base;
   }
 
   // 已配置口令 → 派生主密钥并用 AES 加密器；否则用 Noop（明文透传）。
@@ -198,6 +265,30 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
                 : const Icon(Icons.sync),
             label: Text(_syncing ? '同步中…' : '立即同步'),
           ),
+          if (_progress != null) ...[
+            const SizedBox(height: 12),
+            LinearProgressIndicator(
+              value: _progress!.fraction,
+              minHeight: 6,
+              borderRadius: BorderRadius.circular(3),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _progress!.description,
+              style: Theme.of(context).textTheme.bodySmall,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+          if (_lastSummary != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              _lastSummary!,
+              style: Theme.of(context).textTheme.bodySmall,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
           const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: _syncing ? null : _save,

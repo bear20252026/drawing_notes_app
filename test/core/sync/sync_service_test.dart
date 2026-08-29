@@ -12,6 +12,7 @@ import 'package:http/testing.dart';
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
 import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
 import 'package:drawing_notes_app/core/sync/sync_planner.dart';
+import 'package:drawing_notes_app/core/sync/sync_progress.dart';
 import 'package:drawing_notes_app/core/sync/sync_service.dart';
 
 const _base = 'http://dav.example.com/sync/';
@@ -117,12 +118,14 @@ SyncService _service(
   _MemoryServer server, {
   _MemoryBaseline? baseline,
   SyncCipher cipher = const NoopSyncCipher(),
+  SyncProgressCallback? onProgress,
 }) =>
     SyncService(
       transport: WebDavSyncClient(baseUrl: Uri.parse(_base), client: server.client()),
       documentStore: store,
       baselineStore: baseline ?? _MemoryBaseline(),
       cipher: cipher,
+      onProgress: onProgress,
     );
 
 AesSyncCipher _aes() => AesSyncCipher(key: List<int>.generate(32, (i) => i));
@@ -276,4 +279,82 @@ void main() {
       expect((manifest['entries'] as Map).containsKey('a'), isTrue);
     });
   });
+
+  group('SyncService 进度与冲突可见性', () {
+    test('onProgress 按阶段发射进度（started→connecting→planning→uploading→done）', () async {
+      final store = _MemoryDocStore();
+      store.docs['a'] = _Doc('a', _localDocBytes(10), 10);
+      store.docs['b'] = _Doc('b', _localDocBytes(10), 10);
+      final server = _MemoryServer();
+      final phases = <SyncProgressPhase>[];
+      final docs = <String>[];
+      final s = _service(store, server, onProgress: (p) {
+        phases.add(p.phase);
+        if (p.currentDocId != null) docs.add(p.currentDocId!);
+      });
+
+      final r = await s.syncNow();
+      expect(r.uploaded, 2);
+      expect(phases.first, SyncProgressPhase.started);
+      expect(phases.contains(SyncProgressPhase.connecting), isTrue);
+      expect(phases.contains(SyncProgressPhase.planning), isTrue);
+      expect(phases.contains(SyncProgressPhase.uploading), isTrue);
+      expect(phases.contains(SyncProgressPhase.writingManifest), isTrue);
+      expect(phases.last, SyncProgressPhase.done);
+      // 上传的两个文档 id 都在进度中上报。
+      expect(docs, contains('a'));
+      expect(docs, contains('b'));
+    });
+
+    test('本地与云端都改动（相对基线）→ 报真冲突；仅单侧改动不报冲突', () async {
+      final store = _MemoryDocStore();
+      store.docs['a'] = _Doc('a', _localDocBytes(20), 20); // 本地改 10→20
+      store.docs['b'] = _Doc('b', _localDocBytes(12), 12); // 本地改 10→12（旧于远端）
+      final server = _MemoryServer();
+      server.seedDoc('a', 15); // 远端改 10→15
+      server.seedDoc('b', 30); // 远端改 10→30（新于本地）
+      server.seedManifest({'a': 15, 'b': 30});
+      final baseline = _MemoryBaseline()
+        ..value = SyncManifest(entries: {
+          'a': _snap('a', 10),
+          'b': _snap('b', 10),
+        });
+      final s = _service(store, server, baseline: baseline);
+
+      final r = await s.syncNow();
+      // a、b 双边都改 → 真冲突；c 未改动基线不涉及。
+      expect(r.conflictedDocIds.toSet(), {'a', 'b'});
+      // LWW：a 本地较新(20>15)上传，b 远端较新(30>12)下载。
+      expect(r.uploaded, 1);
+      expect(r.downloaded, 1);
+    });
+
+    test('仅单侧改动（另一侧未变）→ 不冲突', () async {
+      final store = _MemoryDocStore();
+      store.docs['a'] = _Doc('a', _localDocBytes(20), 20); // a 本地改
+      store.docs['c'] = _Doc('c', _localDocBytes(10), 10); // c 本地未变（基线值）
+      final server = _MemoryServer();
+      server.seedDoc('a', 10); // a 远端未变（基线值）
+      server.seedDoc('c', 15); // c 远端改
+      server.seedManifest({'a': 10, 'c': 15});
+      final baseline = _MemoryBaseline()
+        ..value = SyncManifest(entries: {
+          'a': _snap('a', 10),
+          'c': _snap('c', 10),
+        });
+      final s = _service(store, server, baseline: baseline);
+
+      final r = await s.syncNow();
+      // a：仅本地改 → 上传不冲突；c：仅远端改 → 下载不冲突。
+      expect(r.conflictedDocIds, isEmpty);
+      expect(r.uploaded, 1);
+      expect(r.downloaded, 1);
+    });
+  });
 }
+
+SyncSnapshot _snap(String id, int updatedAt) => SyncSnapshot(
+      id: id,
+      updatedAt: updatedAt,
+      size: _localDocBytes(updatedAt).length,
+    );

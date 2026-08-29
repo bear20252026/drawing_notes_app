@@ -16,6 +16,7 @@ import 'dart:typed_data';
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
 import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
 import 'package:drawing_notes_app/core/sync/sync_planner.dart';
+import 'package:drawing_notes_app/core/sync/sync_progress.dart';
 
 /// 一个待同步文档的元数据（用于构成本地 manifest）。
 class SyncDocMeta {
@@ -51,23 +52,30 @@ abstract class SyncBaselineStore {
   Future<void> save(SyncManifest manifest);
 }
 
+/// 同步进度回调（设置页用于渲染进度条/状态文案）。
+typedef SyncProgressCallback = void Function(SyncProgress progress);
+
 /// 一次同步的结果摘要。
 class SyncResult {
   const SyncResult({
     required this.uploaded,
     required this.downloaded,
     required this.deletedRemote,
+    this.conflictedDocIds = const [],
   });
 
   final int uploaded;
   final int downloaded;
   final int deletedRemote;
 
+  /// 本次同步中「本地与云端都有改动」的真冲突文档 id（LWW 由较新者胜，此列表仅为可见性）。
+  final List<String> conflictedDocIds;
+
   bool get changed => uploaded > 0 || downloaded > 0 || deletedRemote > 0;
 
   @override
   String toString() => 'SyncResult(upload=$uploaded, download=$downloaded, '
-      'deleteRemote=$deletedRemote)';
+      'deleteRemote=$deletedRemote, conflicts=${conflictedDocIds.length})';
 }
 
 /// WebDAV 本地优先同步服务。
@@ -78,6 +86,7 @@ class SyncService {
     required this.baselineStore,
     this.planner = const SyncPlanner(),
     this.cipher = const NoopSyncCipher(),
+    this.onProgress,
   });
 
   /// WebDAV 传输客户端。
@@ -94,14 +103,21 @@ class SyncService {
   /// 端到端加密（默认 [NoopSyncCipher]：明文透传，保现有行为与既有测试）。
   final SyncCipher cipher;
 
+  /// 同步进度回调（默认为 null：不发射，保现有测试行为）。
+  final SyncProgressCallback? onProgress;
+
   static const String manifestPath = 'manifest.json';
+
+  void _emit(SyncProgress p) => onProgress?.call(p);
 
   /// 执行一次完整同步。
   ///
   /// 步骤：ensureCollection → GET 远端 manifest → 构本地 manifest（含删除墓碑）
   /// → plan → 执行操作 → 回写远端 + 本地 manifest 基线。
   Future<SyncResult> syncNow() async {
+    _emit(SyncProgress.starting());
     // 1. 确保远端集合存在。
+    _emit(SyncProgress.phase(SyncProgressPhase.connecting));
     await transport.ensureCollection();
 
     // 2. 拉远端 manifest（不存在则视为空）。
@@ -129,13 +145,17 @@ class SyncService {
     final localManifest =
         SyncManifest(entries: currentEntries, deletedIds: deletedIds);
 
-    // 4. 计划。
+    // 4. 计划 + 冲突检测。
+    _emit(SyncProgress.phase(SyncProgressPhase.planning));
     final plan = planner.plan(localManifest, remoteManifest);
+    final conflicted =
+        _detectConflicts(currentEntries, remoteManifest, baseline);
 
     // 5. 执行。
     await _execute(plan, currentEntries, remoteManifest);
 
     // 6. 回写远端 manifest + 本地基线。
+    _emit(SyncProgress.phase(SyncProgressPhase.writingManifest));
     final newEntries = <String, SyncSnapshot>{
       ...remoteManifest.entries,
     };
@@ -157,11 +177,34 @@ class SyncService {
     );
     await baselineStore.save(newManifest);
 
-    return SyncResult(
+    final result = SyncResult(
       uploaded: plan.uploadCount,
       downloaded: plan.downloadCount,
       deletedRemote: plan.deleteCount,
+      conflictedDocIds: List.unmodifiable(conflicted),
     );
+    _emit(SyncProgress.complete());
+    return result;
+  }
+
+  /// 检测「本地与云端都相对基线发生过变更」的真冲突文档（仅可见性提示）。
+  /// 同步语义仍为 LWW 较新者胜（由 [SyncPlanner] 决定）；此列表不改变任何操作。
+  List<String> _detectConflicts(
+    Map<String, SyncSnapshot> currentEntries,
+    SyncManifest remoteManifest,
+    SyncManifest baseline,
+  ) {
+    final result = <String>[];
+    for (final id in baseline.entries.keys) {
+      final base = baseline.entries[id];
+      final local = currentEntries[id];
+      final remote = remoteManifest.entries[id];
+      if (base == null || local == null || remote == null) continue;
+      if (local.updatedAt != base.updatedAt && remote.updatedAt != base.updatedAt) {
+        result.add(id);
+      }
+    }
+    return List.unmodifiable(result);
   }
 
   /// 顺序执行计划中的操作。
@@ -170,9 +213,17 @@ class SyncService {
     Map<String, SyncSnapshot> currentEntries,
     SyncManifest remoteManifest,
   ) async {
+    final total = plan.operations.length;
+    var done = 0;
     for (final op in plan.operations) {
       switch (op.kind) {
         case SyncOperationKind.upload:
+          _emit(SyncProgress.phase(
+            SyncProgressPhase.uploading,
+            doneCount: done,
+            totalCount: total,
+            currentDocId: op.id,
+          ));
           final bytes = await documentStore.readDocument(op.id);
           if (bytes != null) {
             final wire = await cipher.encryptDocumentBytes(bytes, op.id);
@@ -180,6 +231,12 @@ class SyncService {
           }
           break;
         case SyncOperationKind.download:
+          _emit(SyncProgress.phase(
+            SyncProgressPhase.downloading,
+            doneCount: done,
+            totalCount: total,
+            currentDocId: op.id,
+          ));
           final bytes = await transport.getBytes(cipher.remotePath(op.id));
           if (bytes != null) {
             final plain = await cipher.decryptDocumentBytes(bytes, op.id);
@@ -187,9 +244,16 @@ class SyncService {
           }
           break;
         case SyncOperationKind.deleteRemote:
+          _emit(SyncProgress.phase(
+            SyncProgressPhase.deleting,
+            doneCount: done,
+            totalCount: total,
+            currentDocId: op.id,
+          ));
           await transport.deleteRemaining(cipher.remotePath(op.id));
           break;
       }
+      done++;
     }
   }
 
