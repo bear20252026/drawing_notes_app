@@ -11,12 +11,33 @@
 //  - 双指捏合                → 以焦点为锚缩放
 //  - 点按空白                → 取消选择；点按帧 → 选中并置顶
 
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 
 import 'package:drawing_notes_app/features/notes/domain/edgeless_connector.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_group.dart';
+import 'package:drawing_notes_app/features/notes/domain/edgeless_stroke.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+
+/// 画布工具（对标 AFFiNE EdgelessTool：select/brush/eraser/note/shape）。
+enum EdgelessTool {
+  /// 选择/平移（默认）。
+  select,
+
+  /// 画笔：单指拖动绘制笔迹。
+  brush,
+
+  /// 橡皮：点按擦除笔迹/形状。
+  eraser,
+
+  /// 便签：点按空白处创建小尺寸 note 帧。
+  sticky,
+
+  /// 形状：拖动创建矩形/椭圆。
+  shape,
+}
 
 /// Edgeless 画布控制器（ChangeNotifier）。
 class EdgelessController extends ChangeNotifier {
@@ -43,6 +64,48 @@ class EdgelessController extends ChangeNotifier {
 
   /// 多选模式：开启后点按帧为「切换选中」，用于框选编组。
   bool _multiSelect = false;
+
+  // ── 工具状态（M11：AFFiNE 工具面板）──────────────────────────
+  EdgelessTool _tool = EdgelessTool.select;
+  EdgelessShapeKind _shapeKind = EdgelessShapeKind.rect;
+  String _brushColor = '#1D1D1F';
+  double _brushWidth = 3.0;
+
+  /// 绘制中的笔迹（未提交）；null 表示非绘制中。
+  EdgelessStroke? _activeStroke;
+  Offset? _shapeOrigin;
+  int _elementCounter = 0;
+
+  EdgelessTool get tool => _tool;
+  EdgelessShapeKind get shapeKind => _shapeKind;
+  EdgelessStroke? get activeStroke => _activeStroke;
+  Offset? get shapeOrigin => _shapeOrigin;
+
+  /// 切换工具；切走时丢弃未完成的绘制。
+  void setTool(EdgelessTool tool) {
+    _tool = tool;
+    _activeStroke = null;
+    _shapeOrigin = null;
+    notifyListeners();
+  }
+
+  void setShapeKind(EdgelessShapeKind kind) {
+    _shapeKind = kind;
+    if (_tool != EdgelessTool.shape) {
+      _tool = EdgelessTool.shape;
+    }
+    notifyListeners();
+  }
+
+  void setBrushColor(String color) {
+    _brushColor = color;
+    notifyListeners();
+  }
+
+  void setBrushWidth(double width) {
+    _brushWidth = width;
+    notifyListeners();
+  }
 
   EdgelessDoc get doc => _doc;
   EdgelessCamera get camera => _camera;
@@ -93,7 +156,8 @@ class EdgelessController extends ChangeNotifier {
 
   // ── 手势入口（由 Widget 的 GestureDetector 转发）─────────────
 
-  /// 手势开始。单指落点命中帧则进入拖帧模式。
+  /// 手势开始。select 工具下单指落点命中帧则进入拖帧模式；
+  /// brush 单指开始收集笔迹点；shape 单指开始拖出形状。
   void beginGesture(Offset localFocal, int pointerCount, Size viewport) {
     _gestureStartCamera = _camera;
     _gestureStartFocal = localFocal;
@@ -101,10 +165,29 @@ class EdgelessController extends ChangeNotifier {
     _gestureActive = true;
     if (pointerCount == 1) {
       final world = _camera.screenToWorld(localFocal, viewport);
-      final frame = _doc.hitTest(world);
-      if (frame != null) {
-        _dragFrameId = frame.id;
-        _dragStartTopLeft = Offset(frame.x, frame.y);
+      switch (_tool) {
+        case EdgelessTool.brush:
+          _activeStroke = EdgelessStroke(
+            id: 'stroke_${DateTime.now().microsecondsSinceEpoch}_'
+                '${_elementCounter++}',
+            points: [world.dx, world.dy],
+            color: _brushColor,
+            width: _brushWidth,
+          );
+          notifyListeners();
+          return;
+        case EdgelessTool.shape:
+          _shapeOrigin = world;
+          notifyListeners();
+          return;
+        case EdgelessTool.select:
+        case EdgelessTool.eraser:
+        case EdgelessTool.sticky:
+          final frame = _doc.hitTest(world);
+          if (frame != null) {
+            _dragFrameId = frame.id;
+            _dragStartTopLeft = Offset(frame.x, frame.y);
+          }
       }
     }
   }
@@ -114,6 +197,24 @@ class EdgelessController extends ChangeNotifier {
     if (!_gestureActive) return;
     if (pointerCount >= 2) {
       _dragFrameId = null; // 进入缩放，取消拖帧
+      // 双指取消绘制（回到 pan/zoom），避免误画。
+      _activeStroke = null;
+      _shapeOrigin = null;
+    }
+    if (pointerCount == 1 && _activeStroke != null) {
+      final world = _camera.screenToWorld(localFocal, viewport);
+      final stroke = _activeStroke!;
+      if (stroke.pointCount == 0 ||
+          (stroke.pointAt(stroke.pointCount - 1) - world).distance >
+              2.0 / _camera.zoom) {
+        _activeStroke = stroke.copyWithAppended(world);
+        notifyListeners();
+      }
+      return;
+    }
+    if (pointerCount == 1 && _shapeOrigin != null) {
+      notifyListeners();
+      return; // 形状尺寸在手势结束时由 origin+当前点一次性生成。
     }
     if (_dragFrameId != null && pointerCount == 1) {
       // 拖帧：相机不变，按屏幕增量换算世界增量移动帧。
@@ -138,15 +239,63 @@ class EdgelessController extends ChangeNotifier {
     _notifyCamera();
   }
 
-  /// 手势结束，清空暂存。
-  void endGesture() {
+  /// 手势结束，清空暂存；提交绘制中的笔迹/形状。
+  void endGesture({Offset? lastLocalFocal, Size? viewport}) {
+    if (_activeStroke != null) {
+      final stroke = _activeStroke!;
+      if (stroke.pointCount >= 2) {
+        _setDoc(_doc.addStroke(stroke));
+      }
+      _activeStroke = null;
+    }
+    if (_shapeOrigin != null && lastLocalFocal != null && viewport != null) {
+      final world = _camera.screenToWorld(lastLocalFocal, viewport);
+      final origin = _shapeOrigin!;
+      final w = (world.dx - origin.dx).abs();
+      final h = (world.dy - origin.dy).abs();
+      if (w > 6 && h > 6) {
+        _setDoc(_doc.addShape(EdgelessShape(
+          id: 'shape_${DateTime.now().microsecondsSinceEpoch}_'
+              '${_elementCounter++}',
+          x: math.min(origin.dx, world.dx),
+          y: math.min(origin.dy, world.dy),
+          w: w,
+          h: h,
+          kind: _shapeKind,
+          color: '#330066CC',
+        )));
+      }
+      _shapeOrigin = null;
+    }
     _gestureActive = false;
     _dragFrameId = null;
     _gestureStartCamera = null;
     _gestureStartFocal = null;
+    notifyListeners();
   }
 
   // ── 选中 ────────────────────────────────────────────────────
+
+  /// 橡皮工具：点按擦除命中的笔迹/形状。
+  void eraseAt(Offset localFocal, Size viewport) {
+    final world = _camera.screenToWorld(localFocal, viewport);
+    _setDoc(_doc.eraseAt(world, tolerance: 8.0 / _camera.zoom));
+  }
+
+  /// 便签工具：点按空白处创建小尺寸 note 帧（AFFiNE sticky note 语义）。
+  void stickyAt(Offset localFocal, Size viewport) {
+    final world = _camera.screenToWorld(localFocal, viewport);
+    final sticky = NoteBlockDoc.empty(
+      'sticky_${DateTime.now().microsecondsSinceEpoch}',
+      title: '便签',
+    );
+    // 便签以点按处为中心。
+    _setDoc(_doc.addFrame(
+      sticky,
+      at: Offset(world.dx - 110, world.dy - 110),
+      size: const Size(220, 220),
+    ));
+  }
 
   /// 点按某屏幕点：
   ///  - 处于连线模式：命中帧 → 创建连接线；点空白 → 取消连线模式；

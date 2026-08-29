@@ -203,6 +203,10 @@ class NoteEditorPageState extends State<NoteEditorPage> {
   /// 当前拖拽目标插入索引（用于 dropline 渲染，null 表示无拖拽）。
   int? _dropTargetIndex;
 
+  /// 嵌套子块拖放：目标父块 id 与插入索引（M11：子块可拖拽）。
+  String? _nestedDropParentId;
+  int? _nestedDropIndex;
+
   /// 撤销/重做历史。
   final NoteBlockHistory _history = NoteBlockHistory();
 
@@ -1185,7 +1189,11 @@ class NoteEditorPageState extends State<NoteEditorPage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         for (var i = 0; i < block.children.length; i++)
-                          _buildNestedBlockRow(block.children[i], i),
+                          _buildNestedBlockRow(
+                            block.children[i],
+                            i,
+                            parentId: block.id,
+                          ),
                       ],
                     ),
                   ),
@@ -1198,43 +1206,80 @@ class NoteEditorPageState extends State<NoteEditorPage> {
   }
 
   /// 构建嵌套子块行（缩进显示、无整行拖拽；仍是可编辑/可键盘操作的行）。
-  Widget _buildNestedBlockRow(NoteBlock block, int index) {
+  Widget _buildNestedBlockRow(
+    NoteBlock block,
+    int index, {
+    required String parentId,
+  }) {
     final isFocused = _focusedBlockId == block.id;
+    final isDraggingThis = _draggingBlockId == block.id;
+    final showDropLine =
+        _draggingBlockId != null &&
+        _nestedDropParentId == parentId &&
+        _nestedDropIndex == index;
     return CompositedTransformTarget(
       link: _layerLinks[block.id] ?? LayerLink(),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Opacity(
-          opacity: 1.0,
-          child: Semantics(
-            label: _semanticLabelForBlock(block),
-            focused: isFocused,
-            container: true,
-            child: Container(
-              decoration: isFocused
-                  ? BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primaryContainer.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
-                    )
-                  : null,
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 非拖拽的缩进占位与 grip 视觉（保持对齐，但不生成拖动把手）
-                  const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: Center(child: Icon(Icons.drag_handle, size: 18)),
+        child: DragTarget<String>(
+          onWillAcceptWithDetails: (details) {
+            if (details.data == block.id) return false;
+            final parent = _editor.findBlock(_root, parentId);
+            if (parent == null) return false;
+            setState(() {
+              _nestedDropParentId = parentId;
+              _nestedDropIndex = index;
+            });
+            return true;
+          },
+          onLeave: (_) {
+            if (_nestedDropParentId == parentId && _nestedDropIndex == index) {
+              setState(() => _nestedDropIndex = null);
+            }
+          },
+          onAcceptWithDetails: (details) {
+            _moveBlockToParentPosition(details.data, parentId, index);
+          },
+          builder: (context, candidateData, rejectedData) {
+            return Opacity(
+              opacity: isDraggingThis ? 0.3 : 1.0,
+              child: Semantics(
+                label: _semanticLabelForBlock(block),
+                focused: isFocused,
+                container: true,
+                child: Container(
+                  decoration: showDropLine
+                      ? BoxDecoration(
+                          border: Border(
+                            top: BorderSide(
+                              color: Theme.of(context).colorScheme.primary,
+                              width: 2,
+                            ),
+                          ),
+                        )
+                      : (isFocused
+                            ? BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer
+                                    .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              )
+                            : null),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 真实拖拽把手：嵌套子块可拖拽（M11，AFFiNE 一致性）
+                      _buildBlockHandle(block),
+                      _buildBlockPrefix(block, index),
+                      Expanded(child: _buildBlockInput(block)),
+                    ],
                   ),
-                  _buildBlockPrefix(block, index),
-                  Expanded(child: _buildBlockInput(block)),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
@@ -1285,15 +1330,42 @@ class NoteEditorPageState extends State<NoteEditorPage> {
   }
 
   /// 将指定块移动到目标索引位置（顶层列表内）。
+  /// 将块移动到 [parentId] 下的 [targetIndex] 位置（M11：支持嵌套间与跨层移动）。
+  void _moveBlockToParentPosition(
+    String blockId,
+    String parentId,
+    int targetIndex,
+  ) {
+    final parent = _editor.findBlock(_root, parentId);
+    if (parent == null) return;
+    final siblings = parent.children;
+    final currentIndex = siblings.indexWhere((b) => b.id == blockId);
+    var adjusted = targetIndex;
+    // 同父内移动：移除源后索引前移一位。
+    if (currentIndex >= 0 && targetIndex > currentIndex) {
+      adjusted = targetIndex - 1;
+    }
+    if (adjusted < 0 || adjusted > siblings.length) return;
+    final moved = _editor.moveBlock(_root, blockId, parentId, index: adjusted);
+    if (moved == _root) return;
+    setState(() {
+      _root = moved;
+      _nestedDropParentId = null;
+      _nestedDropIndex = null;
+      _dropTargetIndex = null;
+      _updateDirtyState();
+    });
+  }
+
   void _moveBlockToPosition(String blockId, int targetIndex) {
     final blocks = _root.children;
     final currentIndex = blocks.indexWhere((b) => b.id == blockId);
-    if (currentIndex < 0) return;
-    // 目标索引在源索引之后时，需减一（因为移除源后列表缩短）。
-    final adjustedTarget = targetIndex > currentIndex
-        ? targetIndex - 1
-        : targetIndex;
-    if (adjustedTarget < 0 || adjustedTarget >= blocks.length) return;
+    var adjustedTarget = targetIndex;
+    if (currentIndex >= 0 && targetIndex > currentIndex) {
+      adjustedTarget = targetIndex - 1;
+    }
+    // 跨层移动（嵌套 → 顶层）：currentIndex == -1，索引不调整。
+    if (adjustedTarget < 0 || adjustedTarget > blocks.length) return;
     final moved = _editor.moveBlock(
       _root,
       blockId,
@@ -1302,6 +1374,8 @@ class NoteEditorPageState extends State<NoteEditorPage> {
     );
     setState(() {
       _root = moved;
+      _nestedDropParentId = null;
+      _nestedDropIndex = null;
       _updateDirtyState();
     });
   }

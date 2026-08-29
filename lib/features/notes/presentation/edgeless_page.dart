@@ -14,6 +14,7 @@ import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_connector.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_group.dart';
+import 'package:drawing_notes_app/features/notes/domain/edgeless_stroke.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/presentation/edgeless_command_palette.dart';
@@ -83,8 +84,18 @@ class _EdgelessPageState extends State<EdgelessPage> {
 
   // ── 手势 ──────────────────────────────────────────────────
 
-  void _onTapUp(TapUpDetails d) =>
-      _controller.tapAt(d.localPosition, _viewport);
+  void _onTapUp(TapUpDetails d) {
+    switch (_controller.tool) {
+      case EdgelessTool.eraser:
+        _controller.eraseAt(d.localPosition, _viewport);
+      case EdgelessTool.sticky:
+        _controller.stickyAt(d.localPosition, _viewport);
+      case EdgelessTool.select:
+      case EdgelessTool.brush:
+      case EdgelessTool.shape:
+        _controller.tapAt(d.localPosition, _viewport);
+    }
+  }
 
   void _onDoubleTap(TapDownDetails d) {
     final world = _controller.screenToWorld(d.localPosition, _viewport);
@@ -97,14 +108,20 @@ class _EdgelessPageState extends State<EdgelessPage> {
   void _onScaleStart(ScaleStartDetails d) =>
       _controller.beginGesture(d.localFocalPoint, d.pointerCount, _viewport);
 
-  void _onScaleUpdate(ScaleUpdateDetails d) => _controller.updateGesture(
-    d.localFocalPoint,
-    d.scale,
-    d.pointerCount,
-    _viewport,
-  );
+  Offset? _lastFocal;
 
-  void _onScaleEnd(ScaleEndDetails _) => _controller.endGesture();
+  void _onScaleUpdate(ScaleUpdateDetails d) {
+    _lastFocal = d.localFocalPoint;
+    _controller.updateGesture(
+      d.localFocalPoint,
+      d.scale,
+      d.pointerCount,
+      _viewport,
+    );
+  }
+
+  void _onScaleEnd(ScaleEndDetails _) =>
+      _controller.endGesture(lastLocalFocal: _lastFocal, viewport: _viewport);
 
   Future<void> _openFrameEditor(String frameId, NoteBlockDoc doc) async {
     final updated = await Navigator.of(context).push<NoteBlockDoc>(
@@ -301,6 +318,24 @@ class _EdgelessPageState extends State<EdgelessPage> {
                               ),
                             ),
                           ),
+                          // 笔迹/形状层（M11：brush / shape / eraser 工具）
+                          Positioned.fill(
+                            child: CustomPaint(
+                              painter: _ElementPainter(
+                                strokes: _controller.doc.strokes,
+                                shapes: _controller.doc.shapes,
+                                activeStroke: _controller.activeStroke,
+                                shapeOrigin: _controller.shapeOrigin,
+                                shapeKind: _controller.shapeKind,
+                                lastFocalWorld: _lastFocal == null
+                                    ? null
+                                    : _controller.screenToWorld(
+                                        _lastFocal!,
+                                        _viewport,
+                                      ),
+                              ),
+                            ),
+                          ),
                           for (final f in _controller.framesSortedByZ)
                             Positioned(
                               key: ValueKey('frame_${f.id}'),
@@ -338,12 +373,21 @@ class _EdgelessPageState extends State<EdgelessPage> {
                               painter: _GroupPainter(
                                 groups: _controller.groups,
                                 framesById: _controller.framesById,
-                                chipBgColor: Theme.of(context).colorScheme.surface,
+                                chipBgColor: Theme.of(
+                                  context,
+                                ).colorScheme.surface,
                               ),
                             ),
                           ),
                         ],
                       ),
+                    ),
+                    // AFFiNE 风格左侧工具面板（M11）
+                    const Positioned(
+                      left: 8,
+                      top: 0,
+                      bottom: 0,
+                      child: Center(child: _ToolPanel()),
                     ),
                     // 连线模式横幅
                     if (_controller.connectMode)
@@ -415,11 +459,15 @@ class _FrameCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final border = selected
         ? Border.all(color: AppleColor.actionBlue, width: 2)
-        : Border.all(color: Theme.of(context).colorScheme.outlineVariant, width: 1);
+        : Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+            width: 1,
+          );
     // 帧=纸面（AFFiNE note 帧）：文字墨色随纸面亮度自适应，保证深色模式下浅纸仍是深字可读。
     final paper = _bgColor();
     final ink = paper.computeLuminance() > 0.5
-        ? AppleColor.ink // 亮纸用墨色正文
+        ? AppleColor
+              .ink // 亮纸用墨色正文
         : AppleColor.surfaceWhite; // 暗纸用白色正文
     final body = Container(
       decoration: BoxDecoration(
@@ -428,9 +476,10 @@ class _FrameCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppleRadius.md),
         boxShadow: [
           BoxShadow(
-              color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.08),
-              blurRadius: 6,
-              offset: const Offset(0, 2)),
+            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       clipBehavior: Clip.antiAlias,
@@ -448,8 +497,9 @@ class _FrameCard extends StatelessWidget {
                       frame.doc.title.isNotEmpty ? frame.doc.title : '未命名',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppleType.captionStyle(ink)
-                          .copyWith(fontWeight: FontWeight.w600),
+                      style: AppleType.captionStyle(
+                        ink,
+                      ).copyWith(fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
@@ -467,7 +517,8 @@ class _FrameCard extends StatelessWidget {
                         color: _bgColor(),
                         shape: BoxShape.circle,
                         border: Border.all(
-                            color: Theme.of(context).colorScheme.outlineVariant),
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                        ),
                       ),
                       child: Icon(
                         Icons.format_color_fill,
@@ -505,7 +556,11 @@ class _FrameCard extends StatelessWidget {
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(2),
-              child: NoteFramePreview(doc: frame.doc, showTitle: false, inkColor: ink),
+              child: NoteFramePreview(
+                doc: frame.doc,
+                showTitle: false,
+                inkColor: ink,
+              ),
             ),
           ),
         ],
@@ -583,7 +638,10 @@ class _CornerHandleState extends State<_CornerHandle> {
           decoration: BoxDecoration(
             color: AppleColor.actionBlue,
             borderRadius: BorderRadius.circular(AppleRadius.xs),
-            border: Border.all(color: Theme.of(context).colorScheme.surface, width: 1.5),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.surface,
+              width: 1.5,
+            ),
           ),
         ),
       ),
@@ -673,8 +731,7 @@ class _ConnectorPainter extends CustomPainter {
 
   /// CSS hex → Color；解析失败回退为 Apple actionBlue。
   static Color _colorOf(String hex) {
-    final v = int.tryParse(hex.replaceFirst('#', ''), radix: 16) ??
-        0x0066CC;
+    final v = int.tryParse(hex.replaceFirst('#', ''), radix: 16) ?? 0x0066CC;
     return Color(0xFF000000 | v);
   }
 
@@ -712,8 +769,9 @@ class _ConnectorPainter extends CustomPainter {
         final tp = TextPainter(
           text: TextSpan(
             text: label,
-            style: AppleType.captionStyle(color)
-                .copyWith(fontWeight: FontWeight.w500),
+            style: AppleType.captionStyle(
+              color,
+            ).copyWith(fontWeight: FontWeight.w500),
           ),
           textDirection: TextDirection.ltr,
         )..layout(maxWidth: 200);
@@ -799,7 +857,10 @@ class _GroupPainter extends CustomPainter {
         );
         canvas.drawRRect(
           RRect.fromRectAndRadius(chipRect, const Radius.circular(4)),
-          Paint()..color = (chipBgColor ?? AppleColor.surfaceWhite).withValues(alpha: 0.92),
+          Paint()
+            ..color = (chipBgColor ?? AppleColor.surfaceWhite).withValues(
+              alpha: 0.92,
+            ),
         );
         tp.paint(canvas, Offset(chipRect.left + 5, chipRect.top + 2));
       }
@@ -832,7 +893,11 @@ class _ConnectBanner extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.call_made, color: AppleColor.surfaceWhite, size: 18),
+            const Icon(
+              Icons.call_made,
+              color: AppleColor.surfaceWhite,
+              size: 18,
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -843,8 +908,11 @@ class _ConnectBanner extends StatelessWidget {
             IconButton(
               tooltip: '取消',
               visualDensity: VisualDensity.compact,
-              icon:
-                  const Icon(Icons.close, color: AppleColor.surfaceWhite, size: 18),
+              icon: const Icon(
+                Icons.close,
+                color: AppleColor.surfaceWhite,
+                size: 18,
+              ),
               onPressed: onCancel,
             ),
           ],
@@ -852,4 +920,188 @@ class _ConnectBanner extends StatelessWidget {
       ),
     );
   }
+}
+
+/// AFFiNE 风格左侧工具面板：选择/便签/画笔/橡皮/形状。
+class _ToolPanel extends StatelessWidget {
+  const _ToolPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = context
+        .findAncestorStateOfType<_EdgelessPageState>()!
+        ._controller;
+    final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final activeBg =
+        (isDark ? const Color(0xFFB5CCFF) : const Color(0xFF0066CC)).withValues(
+          alpha: 0.18,
+        );
+
+    Widget toolButton(EdgelessTool tool, IconData icon, String tooltip) {
+      final active = controller.tool == tool;
+      return Tooltip(
+        message: tooltip,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: () => controller.setTool(tool),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: active ? activeBg : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              icon,
+              size: 20,
+              color: active ? scheme.primary : scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+      decoration: BoxDecoration(
+        color: scheme.surface.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.10),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          toolButton(EdgelessTool.select, Icons.pan_tool_outlined, '选择'),
+          const SizedBox(height: 4),
+          toolButton(EdgelessTool.sticky, Icons.sticky_note_2_outlined, '便签'),
+          const SizedBox(height: 4),
+          toolButton(EdgelessTool.brush, Icons.brush_outlined, '画笔'),
+          const SizedBox(height: 4),
+          toolButton(EdgelessTool.eraser, Icons.cleaning_services_outlined, '橡皮'),
+          const SizedBox(height: 4),
+          PopupMenuButton<EdgelessShapeKind>(
+            tooltip: '形状',
+            onSelected: (kind) => controller.setShapeKind(kind),
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: EdgelessShapeKind.rect, child: Text('矩形')),
+              PopupMenuItem(
+                value: EdgelessShapeKind.ellipse,
+                child: Text('椭圆'),
+              ),
+            ],
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: controller.tool == EdgelessTool.shape
+                    ? activeBg
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.category_outlined,
+                size: 20,
+                color: controller.tool == EdgelessTool.shape
+                    ? scheme.primary
+                    : scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 笔迹/形状绘制（世界坐标系内，随相机变换）。
+class _ElementPainter extends CustomPainter {
+  _ElementPainter({
+    required this.strokes,
+    required this.shapes,
+    this.activeStroke,
+    this.shapeOrigin,
+    this.shapeKind = EdgelessShapeKind.rect,
+    this.lastFocalWorld,
+  });
+
+  final List<EdgelessStroke> strokes;
+  final List<EdgelessShape> shapes;
+  final EdgelessStroke? activeStroke;
+  final Offset? shapeOrigin;
+  final EdgelessShapeKind shapeKind;
+  final Offset? lastFocalWorld;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final shape in shapes) {
+      final fill = _parseColor(shape.color) ?? const Color(0x330066CC);
+      final paint = Paint()..color = fill;
+      if (shape.kind == EdgelessShapeKind.ellipse) {
+        canvas.drawOval(shape.rect, paint);
+      } else {
+        final rrect = RRect.fromRectAndRadius(
+          shape.rect,
+          const Radius.circular(4),
+        );
+        canvas.drawRRect(rrect, paint);
+      }
+    }
+    for (final stroke in strokes) {
+      _paintStroke(canvas, stroke);
+    }
+    if (activeStroke != null) {
+      _paintStroke(canvas, activeStroke!);
+    }
+    if (shapeOrigin != null && lastFocalWorld != null) {
+      final rect = Rect.fromPoints(shapeOrigin!, lastFocalWorld!);
+      final paint = Paint()
+        ..color = const Color(0x330066CC)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5;
+      if (shapeKind == EdgelessShapeKind.ellipse) {
+        canvas.drawOval(rect, paint);
+      } else {
+        canvas.drawRect(rect, paint);
+      }
+    }
+  }
+
+  void _paintStroke(Canvas canvas, EdgelessStroke stroke) {
+    if (stroke.pointCount < 2) return;
+    final paint = Paint()
+      ..color = _parseColor(stroke.color) ?? const Color(0xFF1D1D1F)
+      ..strokeWidth = stroke.width
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke;
+    final path = Path()..moveTo(stroke.points[0], stroke.points[1]);
+    for (var i = 1; i < stroke.pointCount; i++) {
+      path.lineTo(stroke.points[i * 2], stroke.points[i * 2 + 1]);
+    }
+    canvas.drawPath(path, paint);
+  }
+
+  Color? _parseColor(String css) {
+    var hex = css.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    if (hex.length != 8) return null;
+    final value = int.tryParse(hex, radix: 16);
+    return value == null ? null : Color(value);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ElementPainter old) =>
+      old.strokes != strokes ||
+      old.shapes != shapes ||
+      old.activeStroke != activeStroke ||
+      old.shapeOrigin != shapeOrigin ||
+      old.lastFocalWorld != lastFocalWorld;
 }

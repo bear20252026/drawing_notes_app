@@ -10,6 +10,7 @@ import 'dart:ui' show Offset, Rect, Size;
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_connector.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_group.dart';
+import 'package:drawing_notes_app/features/notes/domain/edgeless_stroke.dart';
 
 /// 默认帧尺寸。
 const double kDefaultFrameWidth = 360;
@@ -233,6 +234,8 @@ class EdgelessDoc {
     this.frames = const [],
     this.connectors = const [],
     this.groups = const [],
+    this.strokes = const [],
+    this.shapes = const [],
     this.camera = EdgelessCamera.initial,
     Set<String>? selectedFrameIds,
     this.nextZIndex = 1,
@@ -246,6 +249,12 @@ class EdgelessDoc {
 
   /// 画布上的群组框集合（1:1 对标 `affine:group`）。
   final List<EdgelessGroup> groups;
+
+  /// 画布上的笔迹集合（M11：brush 工具，对标 AFFiNE `affine:brush`）。
+  final List<EdgelessStroke> strokes;
+
+  /// 画布上的形状集合（M11：shape 工具，对标 AFFiNE `affine:shape`）。
+  final List<EdgelessShape> shapes;
 
   final EdgelessCamera camera;
 
@@ -291,8 +300,9 @@ class EdgelessDoc {
       ? 0
       : frames.map((f) => f.zIndex).reduce((a, b) => a < b ? a : b);
 
-  /// 添加帧。默认尺寸 360x400；at 空时级联偏移 (80+n*32) 防重叠；分配 nextZIndex++。
-  EdgelessDoc addFrame(NoteBlockDoc doc, {Offset? at}) {
+  /// 添加帧。默认尺寸 360x400；[size] 非空时覆盖（便签等小尺寸元素）；
+  /// at 空时级联偏移 (80+n*32) 防重叠；分配 nextZIndex++。
+  EdgelessDoc addFrame(NoteBlockDoc doc, {Offset? at, Size? size}) {
     final n = frames.length;
     final topLeft = at ??
         Offset(kCascadeOrigin + n * kCascadeStep, kCascadeOrigin + n * kCascadeStep);
@@ -300,8 +310,8 @@ class EdgelessDoc {
       id: 'frame_$nextZIndex',
       x: topLeft.dx,
       y: topLeft.dy,
-      w: kDefaultFrameWidth,
-      h: kDefaultFrameHeight,
+      w: size?.width ?? kDefaultFrameWidth,
+      h: size?.height ?? kDefaultFrameHeight,
       doc: doc,
       zIndex: nextZIndex,
     );
@@ -311,6 +321,8 @@ class EdgelessDoc {
       connectors: connectors,
       groups: groups,
       camera: camera,
+      strokes: strokes,
+      shapes: shapes,
       selectedFrameIds: selectedFrameIds,
       nextZIndex: nextZIndex + 1,
     );
@@ -357,6 +369,8 @@ class EdgelessDoc {
       connectors: connectors,
       groups: groups,
       camera: camera,
+      strokes: strokes,
+      shapes: shapes,
       selectedFrameIds: selectedFrameIds,
       nextZIndex: nextZIndex,
     );
@@ -402,6 +416,8 @@ class EdgelessDoc {
         id: id,
         frames: frames,
         connectors: connectors,
+        strokes: strokes,
+        shapes: shapes,
         groups: groups,
         camera: camera,
         selectedFrameIds: frameId == null ? const {} : {frameId},
@@ -413,6 +429,8 @@ class EdgelessDoc {
         id: id,
         frames: frames,
         connectors: connectors,
+        strokes: strokes,
+        shapes: shapes,
         groups: groups,
         camera: camera,
         selectedFrameIds: frameIds.toSet(),
@@ -424,6 +442,8 @@ class EdgelessDoc {
         id: id,
         frames: frames,
         connectors: connectors,
+        strokes: strokes,
+        shapes: shapes,
         groups: groups,
         camera: camera,
         selectedFrameIds: {...selectedFrameIds, frameId},
@@ -508,6 +528,8 @@ class EdgelessDoc {
       connectors: [...connectors, connector],
       groups: groups,
       camera: camera,
+      strokes: strokes,
+      shapes: shapes,
       selectedFrameIds: selectedFrameIds,
       nextZIndex: nextZIndex,
     );
@@ -523,6 +545,8 @@ class EdgelessDoc {
       connectors: retained,
       groups: groups,
       camera: camera,
+      strokes: strokes,
+      shapes: shapes,
       selectedFrameIds: selectedFrameIds,
       nextZIndex: nextZIndex,
     );
@@ -583,6 +607,8 @@ class EdgelessDoc {
       connectors: connectors,
       groups: [...groups, group],
       camera: camera,
+      strokes: strokes,
+      shapes: shapes,
       selectedFrameIds: selectedFrameIds,
       nextZIndex: nextZIndex,
     );
@@ -598,6 +624,8 @@ class EdgelessDoc {
       connectors: connectors,
       groups: retained,
       camera: camera,
+      strokes: strokes,
+      shapes: shapes,
       selectedFrameIds: selectedFrameIds,
       nextZIndex: nextZIndex,
     );
@@ -615,6 +643,8 @@ class EdgelessDoc {
           .map((x) => x.id == id ? x.copyWith(name: name, clearName: name == null) : x)
           .toList(),
       camera: camera,
+      strokes: strokes,
+      shapes: shapes,
       selectedFrameIds: selectedFrameIds,
       nextZIndex: nextZIndex,
     );
@@ -630,6 +660,8 @@ class EdgelessDoc {
       connectors: connectors,
       groups: groups.map((x) => x.id == id ? x.copyWith(color: color) : x).toList(),
       camera: camera,
+      strokes: strokes,
+      shapes: shapes,
       selectedFrameIds: selectedFrameIds,
       nextZIndex: nextZIndex,
     );
@@ -662,6 +694,8 @@ class EdgelessDoc {
       connectors: connectors,
       groups: groups,
       camera: camera,
+      strokes: strokes,
+      shapes: shapes,
       selectedFrameIds: selectedFrameIds,
       nextZIndex: nextZIndex,
     );
@@ -681,16 +715,84 @@ class EdgelessDoc {
       connectors: connectors,
       groups: groups,
       camera: camera,
+      strokes: strokes,
+      shapes: shapes,
       selectedFrameIds: selectedFrameIds,
       nextZIndex: nextZIndex,
     );
   }
+
+  // ── 笔迹/形状（M11：brush / shape / eraser 工具）────────────
+
+  /// 添加笔迹。
+  EdgelessDoc addStroke(EdgelessStroke stroke) {
+    return _withStrokes([...strokes, stroke]);
+  }
+
+  /// 移除指定笔迹；不存在返回同一实例。
+  EdgelessDoc removeStroke(String id) {
+    if (!strokes.any((s) => s.id == id)) return this;
+    return _withStrokes(strokes.where((s) => s.id != id).toList());
+  }
+
+  /// 添加形状。
+  EdgelessDoc addShape(EdgelessShape shape) {
+    return _withShapes([...shapes, shape]);
+  }
+
+  /// 移除指定形状；不存在返回同一实例。
+  EdgelessDoc removeShape(String id) {
+    if (!shapes.any((e) => e.id == id)) return this;
+    return _withShapes(shapes.where((e) => e.id != id).toList());
+  }
+
+  /// 橡皮：擦除命中（容差 [tolerance]）的笔迹/形状，一次一个（最上层最后添加的优先）。
+  /// 未命中任何元素返回同一实例。
+  EdgelessDoc eraseAt(Offset worldPoint, {double tolerance = 8.0}) {
+    for (final s in strokes.reversed) {
+      if (s.hitTest(worldPoint, tolerance: tolerance)) {
+        return removeStroke(s.id);
+      }
+    }
+    for (final e in shapes.reversed) {
+      if (e.contains(worldPoint)) {
+        return removeShape(e.id);
+      }
+    }
+    return this;
+  }
+
+  EdgelessDoc _withStrokes(List<EdgelessStroke> next) => EdgelessDoc(
+        id: id,
+        frames: frames,
+        connectors: connectors,
+        groups: groups,
+        strokes: next,
+        shapes: shapes,
+        camera: camera,
+        selectedFrameIds: selectedFrameIds,
+        nextZIndex: nextZIndex,
+      );
+
+  EdgelessDoc _withShapes(List<EdgelessShape> next) => EdgelessDoc(
+        id: id,
+        frames: frames,
+        connectors: connectors,
+        groups: groups,
+        strokes: strokes,
+        shapes: next,
+        camera: camera,
+        selectedFrameIds: selectedFrameIds,
+        nextZIndex: nextZIndex,
+      );
 
   Map<String, dynamic> toJson() => {
         'id': id,
         'frames': frames.map((f) => f.toJson()).toList(),
         'connectors': connectors.map((c) => c.toJson()).toList(),
         'groups': groups.map((g) => g.toJson()).toList(),
+        'strokes': strokes.map((s) => s.toJson()).toList(),
+        'shapes': shapes.map((e) => e.toJson()).toList(),
         'camera': {
           'zoom': camera.zoom,
           'panX': camera.panX,
@@ -710,6 +812,12 @@ class EdgelessDoc {
             .toList(),
         groups: (json['groups'] as List? ?? const [])
             .map((e) => EdgelessGroup.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        strokes: (json['strokes'] as List? ?? const [])
+            .map((e) => EdgelessStroke.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        shapes: (json['shapes'] as List? ?? const [])
+            .map((e) => EdgelessShape.fromJson(e as Map<String, dynamic>))
             .toList(),
         camera: json['camera'] != null
             ? EdgelessCamera(
@@ -734,13 +842,16 @@ class EdgelessDoc {
           _listEquals(frames, other.frames) &&
           _listEquals(connectors, other.connectors) &&
           _listEquals(groups, other.groups) &&
+          _listEquals(strokes, other.strokes) &&
+          _listEquals(shapes, other.shapes) &&
           camera == other.camera &&
           _setEquals(selectedFrameIds, other.selectedFrameIds) &&
           nextZIndex == other.nextZIndex;
 
   @override
   int get hashCode => Object.hash(id, Object.hashAll(frames),
-      Object.hashAll(connectors), Object.hashAll(groups), camera,
+      Object.hashAll(connectors), Object.hashAll(groups),
+      Object.hashAll(strokes), Object.hashAll(shapes), camera,
       Object.hashAll(selectedFrameIds.toList()..sort()), nextZIndex);
 
   @override
