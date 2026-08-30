@@ -19,7 +19,9 @@ import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/presentation/edgeless_command_palette.dart';
 import 'package:drawing_notes_app/features/notes/presentation/edgeless_controller.dart';
-import 'package:drawing_notes_app/features/notes/presentation/note_editor_page.dart';
+import 'package:drawing_notes_app/features/doc/doc_controller.dart';
+import 'package:drawing_notes_app/features/doc/doc_editor.dart';
+import 'package:drawing_notes_app/features/doc/doc_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/note_frame_preview.dart';
 
 /// Edgeless 无限画布页。
@@ -124,12 +126,13 @@ class _EdgelessPageState extends State<EdgelessPage> {
       _controller.endGesture(lastLocalFocal: _lastFocal, viewport: _viewport);
 
   Future<void> _openFrameEditor(String frameId, NoteBlockDoc doc) async {
+    // M12：帧内文档改为跳转独立笔记页（DocPage），不再内嵌——
+    // 修复"在画板中输字即冻结"的内嵌编辑问题。
     final updated = await Navigator.of(context).push<NoteBlockDoc>(
       MaterialPageRoute(
-        builder: (_) => NoteEditorPage(
+        builder: (_) => DocPage(
           document: doc,
-          onSave: (d) {},
-          embeddedBlockBuilder: widget.embeddedBlockBuilder,
+          controller: DocController(onSave: (_) {}),
         ),
       ),
     );
@@ -985,7 +988,11 @@ class _ToolPanel extends StatelessWidget {
           const SizedBox(height: 4),
           toolButton(EdgelessTool.brush, Icons.brush_outlined, '画笔'),
           const SizedBox(height: 4),
-          toolButton(EdgelessTool.eraser, Icons.cleaning_services_outlined, '橡皮'),
+          toolButton(
+            EdgelessTool.eraser,
+            Icons.cleaning_services_outlined,
+            '橡皮',
+          ),
           const SizedBox(height: 4),
           PopupMenuButton<EdgelessShapeKind>(
             tooltip: '形状',

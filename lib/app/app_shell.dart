@@ -12,7 +12,8 @@ import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
-import 'package:drawing_notes_app/features/notes/presentation/note_doc_modes_page.dart';
+import 'package:drawing_notes_app/features/doc/doc_controller.dart';
+import 'package:drawing_notes_app/features/doc/doc_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_entity.dart';
@@ -220,11 +221,18 @@ class _AppShellState extends State<AppShell> {
       case AllDocKind.blockdoc:
         final bd = await _blockDocStore.loadDocument(doc.id);
         if (bd == null) return;
+        final favs = await _favoriteStore.loadKeys();
         nav.push(
           MaterialPageRoute(
-            builder: (_) => NoteDocModesPage(
+            builder: (_) => DocPage(
               document: bd,
-              onSave: (d) => _blockDocStore.saveDocument(d),
+              controller: DocController(
+                onSave: (d) => _blockDocStore.saveDocument(d),
+              ),
+              isFavorite: favs.contains(doc.id),
+              onToggleFavorite: (fav) async => fav
+                  ? _favoriteStore.addKey(doc.id)
+                  : _favoriteStore.removeKey(doc.id),
             ),
           ),
         );
@@ -270,9 +278,11 @@ class _AppShellState extends State<AppShell> {
         await _blockDocStore.saveDocument(bd);
         nav.push(
           MaterialPageRoute(
-            builder: (_) => NoteDocModesPage(
+            builder: (_) => DocPage(
               document: bd,
-              onSave: (d) => _blockDocStore.saveDocument(d),
+              controller: DocController(
+                onSave: (d) => _blockDocStore.saveDocument(d),
+              ),
             ),
           ),
         );

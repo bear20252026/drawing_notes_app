@@ -9,21 +9,19 @@ import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/shared/application/search_service.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
+import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/block_doc_search_accessor_impl.dart';
-import 'package:drawing_notes_app/core/storage/password_disk.dart';
-import 'package:drawing_notes_app/core/storage/encryption_service.dart';
-import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/notes/presentation/onboarding.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
-import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/password_disk_page.dart';
+import 'package:drawing_notes_app/features/doc/doc_controller.dart';
+import 'package:drawing_notes_app/features/doc/doc_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/search_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settings_page.dart';
 
@@ -69,7 +67,7 @@ class _HomePageState extends State<HomePage> {
   late final StorageService _docStorage;
   late final NoteBlockDocStore _blockDocStore;
 
-  List<Notebook> _notebooks = [];
+  List<NoteBlockDoc> _notes = [];
   List<DocumentMeta> _documents = [];
   bool _loading = true;
   String? _error;
@@ -101,11 +99,17 @@ class _HomePageState extends State<HomePage> {
     });
     try {
       final docs = await _docStorage.listDocuments();
-      final nbs = await _nbStorage.listAll();
+      final noteIds = await _blockDocStore.listIds();
+      final notes = <NoteBlockDoc>[];
+      for (final id in noteIds) {
+        final d = await _blockDocStore.loadDocument(id);
+        if (d != null) notes.add(d);
+      }
+      notes.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       if (!mounted) return;
       setState(() {
         _documents = docs;
-        _notebooks = nbs;
+        _notes = notes;
         _loading = false;
       });
     } catch (e) {
@@ -192,53 +196,21 @@ class _HomePageState extends State<HomePage> {
 
   // ---------------- 笔记本 ----------------
 
-  Future<void> _createNotebook() async {
-    final name = await showDialog<String>(
-      context: context,
-      builder: (ctx) => const _NameDialog(title: '新建笔记本'),
-    );
-    if (name == null || name.trim().isEmpty) return;
-
-    final notebook = Notebook(
-      id: NotebookStorage.newId('nb'),
-      title: name.trim(),
-    );
-    try {
-      await _nbStorage.save(notebook);
-      if (!mounted) return;
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => NotebookViewPage(
-            notebook: notebook,
-            storage: _nbStorage,
-            onChanged: _refresh,
-            editorPageBuilder: widget.editorPageBuilder,
+  Future<void> _createNote() async {
+    final doc = NoteBlockDoc.empty(NoteBlockDocStore.newId());
+    await _blockDocStore.saveDocument(doc);
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DocPage(
+          document: doc,
+          controller: DocController(
+            onSave: (d) => _blockDocStore.saveDocument(d),
           ),
         ),
-      );
-      _refresh();
-    } catch (e) {
-      _showSnack('新建失败：${e.runtimeType}');
-    }
-  }
-
-  Future<void> _deleteNotebook(Notebook nb) async {
-    // 策略门禁（专家审计最优先④）：删除操作白名单判定（回收站——可恢复）。
-    if (!const PolicyEngine().check('note.delete').isAllowed) {
-      _showSnack('操作被策略拒绝（note.delete）');
-      return;
-    }
-    final ok = await _confirmDelete(
-      '删除笔记本',
-      '确定删除笔记本「${nb.title}」吗？其中所有页面内容将一并删除，此操作不可恢复。',
+      ),
     );
-    if (ok != true) return;
-    try {
-      await _nbStorage.delete(nb.id);
-      await _refresh();
-    } catch (e) {
-      _showSnack('删除失败：${e.runtimeType}');
-    }
+    await _refresh();
   }
 
   // ---------------- 通用 ----------------
@@ -366,37 +338,6 @@ class _HomePageState extends State<HomePage> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  /// 旧版加密格式提示（红蓝攻防 D-1 修复 2026-08-15）：
-  /// v≤2 旧数据用 PBKDF2 10 万次迭代，弱密码可被 GPU 集群暴力破解——
-  /// 解锁成功后提示用户重新保存以升级至 60 万次新标准。
-  void _maybeWarnLegacyEncryption(Notebook nb) {
-    final payload = nb.encryptedPayload;
-    if (payload == null) return;
-    if (EncryptionService.formatVersionOf(payload) <= 2) {
-      _showSnack('检测到旧版加密格式（10 万次迭代），建议重新保存以升级至最新加密标准（60 万次）');
-    }
-  }
-
-  /// 旧格式密码笔记本自动升级（hsh verify_and_upgrade 模式，
-  /// D-1 完整修复 2026-08-15）：v≤2（PBKDF2 10 万次）解锁成功后自动用
-  /// 当前参数（encrypt 现标 v=3/60 万次）重加密保存——零停机升级弱加密，
-  /// 免用户手动操作。keyfile 模式需恢复密钥（用户抄写件）无法自动重加密，
-  /// 保持 [_maybeWarnLegacyEncryption] 提示。
-  Future<void> _upgradeLegacyPasswordEncryption(
-    Notebook nb,
-    String password,
-  ) async {
-    final payload = nb.encryptedPayload;
-    if (payload == null) return;
-    if (EncryptionService.formatVersionOf(payload) > 2) return;
-    try {
-      await _nbStorage.encryptAndSave(nb, password);
-      _showSnack('已自动升级加密至最新标准（60 万次迭代）');
-    } catch (_) {
-      _showSnack('旧版加密格式：建议手动重新保存升级');
-    }
-  }
-
   void _onHomeMenuSelected(_HomeMenuItem item) {
     switch (item) {
       case _HomeMenuItem.passwordDisk:
@@ -489,7 +430,7 @@ class _HomePageState extends State<HomePage> {
                   onTap: (i) => setState(() => _tabIndex = i),
                   tabs: const [
                     Tab(text: '无限画布'),
-                    Tab(text: '笔记本'),
+                    Tab(text: '笔记'),
                   ],
                 ),
               ),
@@ -504,9 +445,9 @@ class _HomePageState extends State<HomePage> {
                 label: const Text('新建无限画布'),
               )
             : FloatingActionButton.extended(
-                onPressed: _createNotebook,
+                onPressed: _createNote,
                 icon: const Icon(Icons.add),
-                label: const Text('新建笔记本'),
+                label: const Text('新建笔记'),
               ),
       ),
     );

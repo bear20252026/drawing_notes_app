@@ -121,10 +121,11 @@ extension _NotebookPageManage on _NotebookViewPageState {
     final noteDoc = doc; // 此时 doc 已被提升为非空
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => NoteDocModesPage(
+        builder: (_) => DocPage(
           document: noteDoc,
-          onSave: (updatedDoc) => store.saveDocument(updatedDoc),
-          edgelessStore: EdgelessDocStore(),
+          controller: DocController(
+            onSave: (updatedDoc) => store.saveDocument(updatedDoc),
+          ),
         ),
       ),
     );
@@ -136,20 +137,19 @@ extension _NotebookPageManage on _NotebookViewPageState {
     final blocks = <NoteBlock>[];
     // 标题作为 heading 块（level 1）
     if (page.title.isNotEmpty) {
-      blocks.add(NoteBlock.headingBlock(
-        NoteBlockDocStore.newId(),
-        level: 1,
-        text: page.title,
-      ));
+      blocks.add(
+        NoteBlock.headingBlock(
+          NoteBlockDocStore.newId(),
+          level: 1,
+          text: page.title,
+        ),
+      );
     }
     // textItems 映射为 text blocks
     for (final item in page.textItems) {
       final text = item.text.trim();
       if (text.isEmpty) continue;
-      blocks.add(NoteBlock.textBlock(
-        NoteBlockDocStore.newId(),
-        text: text,
-      ));
+      blocks.add(NoteBlock.textBlock(NoteBlockDocStore.newId(), text: text));
     }
     // 若无文本内容，给一个空段落以便编辑
     if (blocks.isEmpty) {

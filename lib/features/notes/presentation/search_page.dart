@@ -7,10 +7,10 @@ import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/edgeless_doc_store.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
-import 'package:drawing_notes_app/features/notes/presentation/note_doc_modes_page.dart';
+import 'package:drawing_notes_app/features/doc/doc_controller.dart';
+import 'package:drawing_notes_app/features/doc/doc_page.dart';
 
 /// 全文搜索页（借鉴 Joplin / nb 的全文搜索）。
 class SearchPage extends StatefulWidget {
@@ -89,10 +89,11 @@ class _SearchPageState extends State<SearchPage> {
       if (doc == null || !mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => NoteDocModesPage(
+          builder: (_) => DocPage(
             document: doc,
-            onSave: (d) => blockStore.saveDocument(d),
-            edgelessStore: EdgelessDocStore(),
+            controller: DocController(
+              onSave: (d) => blockStore.saveDocument(d),
+            ),
           ),
         ),
       );
@@ -181,8 +182,8 @@ class _SearchPageState extends State<SearchPage> {
             r.kind == 'drawing'
                 ? Icons.brush
                 : r.kind == 'blockdoc'
-                    ? Icons.hub_rounded
-                    : Icons.menu_book,
+                ? Icons.hub_rounded
+                : Icons.menu_book,
           ),
           title: Text(r.title, maxLines: 1, overflow: TextOverflow.ellipsis),
           subtitle: Text(

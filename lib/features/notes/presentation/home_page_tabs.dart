@@ -20,7 +20,7 @@ extension _HomePageTabs on _HomePageState {
         ),
       );
     }
-    return TabBarView(children: [_buildDrawingsTab(), _buildNotebooksTab()]);
+    return TabBarView(children: [_buildDrawingsTab(), _buildNotesTab()]);
   }
 
   // ---------------- 画作 Tab ----------------
@@ -65,17 +65,17 @@ extension _HomePageTabs on _HomePageState {
     );
   }
 
-  // ---------------- 笔记本 Tab ----------------
+  // ---------------- 笔记 Tab（M12：笔记本=笔记）----------------
 
-  Widget _buildNotebooksTab() {
-    if (_notebooks.isEmpty) {
+  Widget _buildNotesTab() {
+    if (_notes.isEmpty) {
       return const Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.menu_book_outlined, size: 64, color: Colors.grey),
+            Icon(Icons.edit_note_rounded, size: 64, color: Colors.grey),
             SizedBox(height: 12),
-            Text('还没有笔记本，点击右下角按钮新建一个吧'),
+            Text('还没有笔记，点击右下角按钮新建一个吧'),
           ],
         ),
       );
@@ -90,10 +90,10 @@ extension _HomePageTabs on _HomePageState {
           AppDesign.pagePadding,
           96,
         ),
-        itemCount: _notebooks.length,
+        itemCount: _notes.length,
         separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (context, i) {
-          final nb = _notebooks[i];
+          final doc = _notes[i];
           return Card(
             child: ListTile(
               contentPadding: const EdgeInsets.symmetric(
@@ -105,26 +105,26 @@ extension _HomePageTabs on _HomePageState {
                 foregroundColor: Theme.of(
                   context,
                 ).colorScheme.onPrimaryContainer,
-                child: const Icon(Icons.menu_book_rounded),
+                child: const Icon(Icons.edit_note_rounded),
               ),
               title: Text(
-                nb.title,
+                doc.title.isEmpty ? '未命名' : doc.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: 3),
                 child: Text(
-                  '${nb.pages.length} 页 · 更新于 ${_formatTime(nb.updatedAt)}',
+                  '${doc.body.length} 块 · 更新于 ${_formatTime(doc.updatedAt)}',
                 ),
               ),
               trailing: IconButton(
-                tooltip: '删除笔记本',
+                tooltip: '删除笔记',
                 icon: const Icon(Icons.delete_outline_rounded),
                 color: Theme.of(context).colorScheme.error,
-                onPressed: () => _deleteNotebook(nb),
+                onPressed: () => _deleteNote(doc),
               ),
-              onTap: () => _openNotebook(nb),
+              onTap: () => _openNote(doc),
             ),
           );
         },
@@ -132,81 +132,18 @@ extension _HomePageTabs on _HomePageState {
     );
   }
 
-  /// 打开笔记本：若已启用加密（C3/keyfile），先解锁后再进入。
-  Future<void> _openNotebook(Notebook nb) async {
-    var notebook = nb;
-    // 会话内密码（仅内存，不落盘）：解密后传入页面，使编辑后能重加密保存。
-    String? password;
-    // 会话内 U盘主密钥（keyfile 模式）：插盘解锁后传入页面。
-    List<int>? masterKey;
-    if (nb.encrypted) {
-      if (nb.encryptionMode == EncryptionMode.keyfile) {
-        // U盘钥匙模式：弹密码盘选择目录 → 读取主密钥 → 解锁。
-        final disk = createPasswordDisk();
-        final dir = await disk.pickDirectory();
-        if (dir == null || !mounted) return;
-        masterKey = await disk.readKey(dir);
-        if (masterKey == null) {
-          _showSnack('未找到有效的密码盘（key.frogkey）');
-          return;
-        }
-        final fresh = await _nbStorage.load(nb.id);
-        if (fresh == null) return;
-        try {
-          final ok = await _nbStorage.decryptNotebookWithKey(fresh, masterKey);
-          if (!ok) {
-            _showSnack('密码盘无法解锁该笔记本');
-            return;
-          }
-          notebook = fresh;
-          _maybeWarnLegacyEncryption(fresh);
-        } catch (_) {
-          _showSnack('密码盘无法解锁该笔记本');
-          return;
-        }
-      } else {
-        password = await showDialog<String>(
-          context: context,
-          builder: (ctx) => const _PasswordDialog(title: '输入密码'),
-        );
-        if (password == null || !mounted) return;
-        // 从存储重新加载（确保拿到密文载荷），用密码解密。
-        final fresh = await _nbStorage.load(nb.id);
-        if (fresh == null) return;
-        try {
-          final ok = await _nbStorage.decryptNotebook(fresh, password);
-          if (!ok) {
-            _showSnack('密码错误或数据已损坏');
-            return;
-          }
-          notebook = fresh;
-          await _upgradeLegacyPasswordEncryption(fresh, password);
-          // H-03 密码模式媒体加密（方案 B）：解锁后全局盐派生注入
-          // （媒体解密 key 与加密时一致）。
-          final mediaSalt = await _nbStorage.ensureMediaSalt();
-          await MediaCryptoService.instance.setSessionPassword(
-            password,
-            mediaSalt,
-          );
-        } catch (_) {
-          _showSnack('密码错误或数据已损坏');
-          return;
-        }
-      }
-    }
-    if (!mounted) return;
+  Future<void> _openNote(NoteBlockDoc doc) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => NotebookViewPage(
-          notebook: notebook,
-          storage: _nbStorage,
-          onChanged: _refresh,
-          sessionPassword: password,
-          sessionMasterKey: masterKey,
-          editorPageBuilder: widget.editorPageBuilder,
+        builder: (_) => DocPage(
+          document: doc,
+          controller: DocController(
+            onSave: (d) => _blockDocStore.saveDocument(d),
+          ),
         ),
       ),
     );
+    await _refresh();
   }
 
   String _formatTime(DateTime t) {
@@ -215,5 +152,24 @@ extension _HomePageTabs on _HomePageState {
       return '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
     }
     return '${t.year}-${t.month.toString().padLeft(2, '0')}-${t.day.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _deleteNote(NoteBlockDoc doc) async {
+    // 策略门禁（专家审计最优先④）：删除操作白名单判定（回收站——可恢复）。
+    if (!const PolicyEngine().check('note.delete').isAllowed) {
+      _showSnack('操作被策略拒绝（note.delete）');
+      return;
+    }
+    final ok = await _confirmDelete(
+      '删除笔记',
+      '确定删除笔记「${doc.title.isEmpty ? '未命名' : doc.title}」吗？此操作不可恢复。',
+    );
+    if (ok != true) return;
+    try {
+      await _blockDocStore.deleteDocument(doc.id);
+      await _refresh();
+    } catch (e) {
+      _showSnack('删除失败：${e.runtimeType}');
+    }
   }
 }

@@ -351,21 +351,7 @@ class _DocsToolbar extends StatelessWidget {
             ],
           ),
         ),
-        PopupMenuItem(
-          value: AllDocKind.note,
-          child: Row(
-            children: [
-              Icon(
-                Icons.sticky_note_2_rounded,
-                size: 18,
-                color: AppleColor.noteGreen,
-              ),
-              SizedBox(width: 10),
-              // 笔记本（画布页集合，M11.3 恢复入口——用户明确要求保留）
-              Text('新建笔记本'),
-            ],
-          ),
-        ),
+        // M12：笔记本=笔记（同一模块），不再单设「新建笔记本」入口
         PopupMenuItem(
           value: AllDocKind.canvas,
           child: Row(

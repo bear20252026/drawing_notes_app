@@ -2,6 +2,21 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.3.0] - 2026-08-30
+
+### 笔记模块重做（AFFiNE Page 1:1，与画板彻底分离）
+
+- **新模块 `lib/features/doc/`**：DocPage（白底、居中窄栏 ≤720px）+ DocHeader
+  （返回/标题/☆收藏/ⓘ信息/⋯在画板中打开/分享）+ DocOutlineRail（右缘大纲条）
+  + DocController（独立状态）——与画板零交叉引用
+- **笔记本=笔记**：新建菜单合并为「新建笔记」「新建画板」；HomePage 笔记本 Tab
+  更名「笔记」，列表为打字笔记（新建/打开/删除），点击进 DocPage
+- **退役**：note_doc_modes_page 双模容器删除；画板帧内嵌文档编辑移除——
+  帧内文档改为跳转独立笔记页（修复"画板中输字即冻结"）
+- 块编辑核心迁移至 `doc/doc_editor.dart`（含无 chrome 模式供 DocPage 宿主）
+- 加密笔记本数据保留：可经全部文档（笔记类型行）进入
+- 1301 测试全绿（+4 DocPage 契约）；dart analyze 0 问题
+
 ## [1.2.4] - 2026-08-30
 
 ### AFFiNE 1:1 对齐（用户拍板 ①②③ 全做）

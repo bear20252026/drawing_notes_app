@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
-import 'package:drawing_notes_app/features/notes/presentation/note_editor_page.dart';
+import 'package:drawing_notes_app/features/doc/doc_editor.dart';
 
 /// M4 集成测试：验证 NoteEditorPage + NoteBlockDoc 双向绑定。
 ///

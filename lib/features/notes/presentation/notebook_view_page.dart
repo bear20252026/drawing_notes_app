@@ -16,8 +16,8 @@ import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/edgeless_doc_store.dart';
-import 'package:drawing_notes_app/features/notes/presentation/note_doc_modes_page.dart';
+import 'package:drawing_notes_app/features/doc/doc_controller.dart';
+import 'package:drawing_notes_app/features/doc/doc_page.dart';
 import 'package:drawing_notes_app/core/storage/password_disk.dart';
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
 import 'package:drawing_notes_app/core/security/session_guard.dart';
@@ -82,8 +82,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   NoteBlockDocStore? _blockDocStore;
 
   /// M4：获取或创建块文档存储门面。
-  NoteBlockDocStore get blockDocStore =>
-      _blockDocStore ??= NoteBlockDocStore();
+  NoteBlockDocStore get blockDocStore => _blockDocStore ??= NoteBlockDocStore();
 
   /// 状态刷新薄包装（供 extension 使用）：转发受保护的 [setState]。
   void _applyState(VoidCallback fn) => setState(fn);

@@ -85,7 +85,9 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
-    // 编辑器已推入：出现块输入框；文档已落库（内存）。
+    // DocPage 已推入：顶栏（分享/信息/大纲）+ 正文大标题；文档已落库（内存）。
+    expect(find.byIcon(Icons.ios_share_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.info_outline_rounded), findsOneWidget);
     expect(find.byType(m.TextField), findsWidgets);
     expect(store.docs.length, 1);
   });

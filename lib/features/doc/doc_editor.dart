@@ -49,10 +49,15 @@ class NoteEditorPage extends StatefulWidget {
     this.document,
     this.onSave,
     this.embeddedBlockBuilder,
+    this.showChrome = true,
   });
 
   /// 要编辑的文档。为 null 时创建一个新文档。
   final NoteBlockDoc? document;
+
+  /// 是否渲染自带外壳（AppBar 脚手架）。
+  /// false = 仅内容（标题+块列表+工具栏），由宿主（如 DocPage）提供顶栏。
+  final bool showChrome;
 
   /// 保存回调。页面退出时，把编辑后的 NoteBlockDoc 传出。
   /// 为 null 则不通知（用于纯预览/测试场景）。
@@ -1004,6 +1009,21 @@ class NoteEditorPageState extends State<NoteEditorPage> {
   @override
   Widget build(BuildContext context) {
     final topLevelBlocks = _root.children;
+    // 无外壳模式：宿主（DocPage）提供顶栏与页面脚手架。
+    if (!widget.showChrome) {
+      return Column(
+        children: [
+          _buildTitleField(),
+          Expanded(
+            child: topLevelBlocks.isEmpty
+                ? _buildEmptyHint()
+                : _buildBlockList(topLevelBlocks),
+          ),
+          const Divider(height: 1),
+          _buildToolbar(),
+        ],
+      );
+    }
     return PopScope(
       canPop: !_isDirty,
       onPopInvokedWithResult: (didPop, result) {
