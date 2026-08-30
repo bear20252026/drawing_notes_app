@@ -1,7 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:drawing_notes_app/features/drawing/rendering/ink_layer_painter.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Stroke _stroke({

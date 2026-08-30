@@ -5,9 +5,9 @@ import 'package:drawing_notes_app/features/drawing/application/drawing_controlle
 import 'package:drawing_notes_app/features/drawing/rendering/ink_layer_painter.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/shape_renderer.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/selection.dart';
+import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 
 /// 画布渲染器：把"图层位图 + 活动笔画"绘制到屏幕上。
 ///

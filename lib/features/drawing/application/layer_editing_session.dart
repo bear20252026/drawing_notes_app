@@ -1,8 +1,8 @@
 import 'dart:ui' show Rect;
 
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/layer.dart';
 
 /// 图层编辑会话与宿主控制器之间的最小协作边界。
 ///

@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 
 /// 手绘闭合轮廓的轻量规则形状识别器。
 ///

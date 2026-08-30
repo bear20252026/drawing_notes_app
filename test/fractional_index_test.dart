@@ -1,4 +1,4 @@
-import 'package:drawing_notes_app/features/drawing/domain/fractional_index.dart';
+import 'package:drawing_notes_app/core/canvas_model/fractional_index.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/features/drawing/rendering/stroke_picture_cache.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 
 List<StrokePoint> _pts(List<(double, double)> raw) =>
     raw.map((p) => StrokePoint(p.$1, p.$2, 0.5)).toList();

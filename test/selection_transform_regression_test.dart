@@ -1,6 +1,6 @@
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/selection.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

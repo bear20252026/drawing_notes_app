@@ -3,7 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:drawing_notes_app/core/notes_accessor.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_session.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
 
 /// 由应用组合根提供的编辑器页面构建契约。
 ///

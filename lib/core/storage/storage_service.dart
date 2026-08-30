@@ -4,7 +4,7 @@ import 'dart:typed_data';
 
 import 'package:path_provider/path_provider.dart';
 
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/storage/document_codec.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';

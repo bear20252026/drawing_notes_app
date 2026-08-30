@@ -3,8 +3,8 @@ import 'dart:ui' show Rect;
 import 'package:flutter/foundation.dart';
 
 import 'package:drawing_notes_app/features/drawing/rendering/layer_compositor.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/layer.dart';
 
 /// 协调文档图层的离屏位图缓存。
 ///

@@ -2,7 +2,7 @@
 // 存量迁移：将旧 NotebookPage 转为 NoteBlockDoc（向后兼容）。
 // 纯 Dart，无 flutter/io/controller/存储依赖。
 
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_page.dart';

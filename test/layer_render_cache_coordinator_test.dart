@@ -1,6 +1,6 @@
 import 'package:drawing_notes_app/features/drawing/application/layer_render_cache_coordinator.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/layer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

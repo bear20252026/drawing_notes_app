@@ -1,5 +1,5 @@
 import 'package:drawing_notes_app/features/drawing/rendering/stroke_geometry_cache.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 StrokePoint _point(double x, {double pressure = 1}) =>

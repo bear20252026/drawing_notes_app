@@ -2,7 +2,7 @@ import 'dart:ui' show Offset;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../domain/selection.dart';
+import '../../../core/canvas_model/selection.dart';
 
 /// 绘制域的领域状态 Notifier 集合。
 ///

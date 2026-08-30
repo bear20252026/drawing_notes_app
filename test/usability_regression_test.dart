@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:flutter_test/flutter_test.dart';

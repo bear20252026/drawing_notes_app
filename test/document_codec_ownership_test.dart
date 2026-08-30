@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:drawing_notes_app/core/storage/document_codec.dart'
     as core_codec;
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/document_codec.dart'
     as legacy_codec;
 import 'package:flutter_test/flutter_test.dart';

@@ -2,10 +2,10 @@ import 'dart:ui' show Offset, Rect;
 
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_object_editing_session.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
-import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/document_image_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/layer.dart';
+import 'package:drawing_notes_app/core/canvas_model/selection.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:flutter_test/flutter_test.dart';
 

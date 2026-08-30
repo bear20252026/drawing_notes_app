@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/notes_accessor.dart';
-import '../domain/document.dart';
+import '../../../core/canvas_model/document.dart';
 import 'drawing_controller.dart';
 
 /// 绘图域 Riverpod Provider（P1-a B1/B2 落地，2026 官方推荐模式）。

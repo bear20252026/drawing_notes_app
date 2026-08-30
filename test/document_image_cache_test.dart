@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:drawing_notes_app/features/drawing/application/document_image_cache.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/document_image_item.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

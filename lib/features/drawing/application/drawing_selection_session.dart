@@ -2,10 +2,10 @@ import 'dart:math' as math;
 import 'dart:ui' show Offset;
 
 import 'package:drawing_notes_app/features/drawing/application/selection_geometry_service.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
-import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/layer.dart';
+import 'package:drawing_notes_app/core/canvas_model/selection.dart';
+import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 
 /// 绘图笔画选区的运行时会话状态。
 ///

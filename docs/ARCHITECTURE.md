@@ -49,12 +49,16 @@ app（组合根，唯一知道所有实现的地方）
 - ✅ DocEditor 拆分（focus/richtext/outline/blocks 四个 part）
 - ✅ all_docs_page / edgeless_page 拆分 widgets part
 - ✅ NoteEditorPage → DocEditor 更名
+- ✅ B 方案落地：画布引擎域整体上收 `core/canvas_model/`（document/layer/stroke/
+  selection/document_image_item/fractional_index + 此前 6 个页面对象模型）——
+  notes/domain 与 drawing 双双只依赖 core，零 feature→feature 域依赖
+- ✅ core 纯度终验：`lib/core/` 对 `features/*` 零 import（NotebookRepository
+  接口已移入 `features/notes/domain/notebook_repository.dart`）
 
 ## 4b. 剩余债务
 
 | 债务 | 位置 | 说明 |
 |---|---|---|
-| notes/domain 仍依赖 drawing/domain 的 DrawingDocument | notebook_page*.dart、page_version.dart 等 | 笔记本页=画布文档的历史设计；彻底解耦需抽象页面内容接口（专项） |
 | UI 方言双体系 | flutter/material 直引 vs material_ui | 页面壳统一用一方；`apple_design.dart` 禁止再定义与 Flutter 重名的类 |
 
 ## 5. 代码规范要点（踩坑沉淀）
@@ -76,3 +80,14 @@ app（组合根，唯一知道所有实现的地方）
 `bump pubspec + setup.iss + CHANGELOG` → commit → tag `vX.Y.Z+N` → push →
 GitHub Actions `release-build.yml`（Windows 安装包 + Android APK 自动挂 Release）→
 `gh release download` 到本机 Downloads。
+
+## 5. 镶嵌契约（2026-08-30 B 方案配套）
+
+依赖星形：`features/notes` 与 `features/drawing` 都只向下依赖 `core/canvas_model`（共享画布域），
+**feature 之间零 import**。双向镶嵌（AFFiNE 语义：Page 与 Edgeless 是同一数据的两种视图）按以下纪律：
+
+- **数据共享**：嵌入方持有的只是 core 域的数据模型（如 Edgeless 帧内嵌
+  `NoteBlockDoc`、未来笔记内嵌 `DrawingDocument` 块），不 import 对方代码。
+- **编辑入口**：实时编辑一律经路由跳转到对方独立编辑页，或经 host 注入的
+  builder 回调（现有 `embeddedBlockBuilder` 机制）——不做模块内直接内嵌实现。
+- **新增嵌入块类型**：只改嵌入方（新块类型 + 缩略渲染 + 打开路由），被嵌方零改动。

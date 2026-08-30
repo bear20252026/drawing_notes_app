@@ -1,4 +1,4 @@
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_page_content.dart';
 import 'package:drawing_notes_app/features/notes/domain/page_template.dart';

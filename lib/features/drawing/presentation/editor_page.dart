@@ -29,13 +29,13 @@ import 'package:drawing_notes_app/features/drawing/presentation/shape_library.da
 import 'package:drawing_notes_app/core/utils/safe_url.dart';
 import 'package:drawing_notes_app/features/drawing/application/stylus_input.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/view_transform_cache.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/canvas_model/page_chart_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/page_image_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
+import 'package:drawing_notes_app/core/canvas_model/selection.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:drawing_notes_app/core/notes_accessor.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';

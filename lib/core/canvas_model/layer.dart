@@ -1,4 +1,4 @@
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 
 /// 图层模型。
 ///

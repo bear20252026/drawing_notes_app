@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 
 // ---------------------------------------------------------------------------
 // 临时标记域（part 真解耦 2026-08-15）：原 drawing_controller_temporary.dart

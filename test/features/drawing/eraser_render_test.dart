@@ -12,7 +12,7 @@ import 'package:flutter/painting.dart' show Paint;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 
 void main() {
   test('BlendMode.clear 橡皮擦在隔离层内只清除墨迹，不产生黑色痕迹', () async {

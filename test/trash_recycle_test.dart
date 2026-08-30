@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
 
 /// M-06 修复（专家审计 2026-08-15）：回收站——删除移入回收站（30 天保留，
 /// Android 官方 createTrashRequest/Files by Google 模式）+ 恢复 + 过期清理。

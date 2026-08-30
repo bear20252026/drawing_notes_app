@@ -1,9 +1,9 @@
 import 'dart:ui' show Color, Rect;
 
 import 'package:drawing_notes_app/features/drawing/application/layer_editing_session.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/layer.dart';
+import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

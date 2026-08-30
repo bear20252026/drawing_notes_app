@@ -2,8 +2,8 @@ import 'dart:ui' as ui;
 
 import 'package:drawing_notes_app/features/drawing/rendering/layer_compositor.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/stroke_picture_cache.dart';
-import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import 'package:drawing_notes_app/core/canvas_model/layer.dart';
+import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Stroke _stroke({required BrushType type}) => Stroke(

@@ -1,4 +1,4 @@
-import 'package:drawing_notes_app/features/drawing/domain/fractional_index.dart';
+import 'package:drawing_notes_app/core/canvas_model/fractional_index.dart';
 
 /// 图层排序计算所需的最小不可变对象信息。
 class EditorLayerOrderEntry {

@@ -2,8 +2,8 @@ import 'dart:ui' show Color;
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 
 /// S3 实体纯净化验证：domain 实体不依赖 Widget/Context/渲染对象，

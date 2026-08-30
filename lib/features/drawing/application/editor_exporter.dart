@@ -8,10 +8,10 @@ import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import 'package:drawing_notes_app/features/drawing/domain/document.dart'
+import 'package:drawing_notes_app/core/canvas_model/document.dart'
     show DrawingDocument;
 import 'package:drawing_notes_app/features/drawing/application/paged_export_snapshot.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart'
+import 'package:drawing_notes_app/core/canvas_model/stroke.dart'
     show BrushType, Stroke;
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/core/rtf_exporter.dart';

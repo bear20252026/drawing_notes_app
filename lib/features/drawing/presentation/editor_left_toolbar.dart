@@ -3,8 +3,8 @@ import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
-import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import 'package:drawing_notes_app/core/canvas_model/selection.dart';
+import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 
 /// 左侧垂直工具条（对齐 Excalidraw LayerUI 布局）。
 ///

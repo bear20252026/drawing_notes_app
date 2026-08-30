@@ -1,5 +1,5 @@
 import 'package:drawing_notes_app/core/navigation/editor_page_session.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 
 /// 将 notes 聚合中的 [NotebookPage] 适配为 drawing 编辑器所需会话。

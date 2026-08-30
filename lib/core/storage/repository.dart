@@ -1,5 +1,4 @@
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
 
 /// 画作文档仓库抽象接口（B4，借鉴 Memos REST API 的存储解耦）。
 ///
@@ -10,14 +9,6 @@ abstract class DocumentRepository {
   Future<String> save(DrawingDocument doc);
   Future<DrawingDocument?> load(String id);
   Future<List<DocumentMeta>> listDocuments();
-  Future<bool> delete(String id);
-}
-
-/// 笔记本仓库抽象接口（B4）。
-abstract class NotebookRepository {
-  Future<String> save(Notebook notebook);
-  Future<Notebook?> load(String id);
-  Future<List<Notebook>> listAll();
   Future<bool> delete(String id);
 }
 

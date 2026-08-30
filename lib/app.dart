@@ -15,7 +15,7 @@ import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/di/providers.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'l10n/app_localizations.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/app/app_shell.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';

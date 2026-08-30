@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 
-import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/document_image_item.dart';
 
 /// 文档图片的运行时解码缓存。
 ///

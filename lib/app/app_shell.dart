@@ -8,7 +8,7 @@ import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.da
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_docs_page.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';

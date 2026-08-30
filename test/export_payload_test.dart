@@ -4,9 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/features/drawing/application/editor_exporter.dart';
 import 'package:drawing_notes_app/features/drawing/application/paged_export_snapshot.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 
 void main() {
   test('导出净化：payload 只含文档域数据，不含 UI 状态（三态分离）', () {

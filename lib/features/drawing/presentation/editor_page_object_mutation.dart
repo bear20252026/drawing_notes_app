@@ -1,5 +1,5 @@
 import 'package:drawing_notes_app/core/canvas_model/page_chart_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/document_image_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/page_connector.dart';
 import 'package:drawing_notes_app/core/canvas_model/page_image_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';

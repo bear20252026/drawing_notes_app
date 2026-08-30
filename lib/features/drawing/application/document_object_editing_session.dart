@@ -4,10 +4,10 @@ import 'package:drawing_notes_app/features/drawing/rendering/shape_binding_geome
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_object_transform_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/image_transform_service.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
-import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
+import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/document_image_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/layer.dart';
+import 'package:drawing_notes_app/core/canvas_model/selection.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 
 /// 文档对象编辑会话与宿主控制器之间的最小协作边界。

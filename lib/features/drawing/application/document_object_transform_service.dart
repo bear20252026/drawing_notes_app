@@ -2,9 +2,9 @@ import 'dart:ui' show Offset, Rect;
 
 import 'package:drawing_notes_app/features/drawing/rendering/shape_binding_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/application/selection_geometry_service.dart';
-import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/document_image_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
+import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 
 /// 混合画布对象的无状态几何变换服务。
 ///
