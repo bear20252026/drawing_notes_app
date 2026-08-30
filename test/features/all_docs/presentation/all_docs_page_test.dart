@@ -1,12 +1,9 @@
 // M11 契约测试：AllDocsPage 搜索过滤与收藏切换接线。
 import 'package:flutter/material.dart' as f show TextField;
 import 'package:flutter/material.dart' as m;
-import 'package:flutter_localizations/flutter_localizations.dart'
-    hide GlobalMaterialLocalizations;
-import 'package:flutter_localizations/flutter_localizations.dart'
-    as fl_loc show GlobalMaterialLocalizations;
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
@@ -30,7 +27,7 @@ Future<void> pumpPage(
     MaterialApp(
       localizationsDelegates: [
         GlobalMaterialLocalizations.delegate,
-        fl_loc.GlobalMaterialLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
@@ -97,7 +94,7 @@ void main() {
       MaterialApp(
         localizationsDelegates: [
           GlobalMaterialLocalizations.delegate,
-          fl_loc.GlobalMaterialLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],

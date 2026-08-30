@@ -54,12 +54,15 @@ app（组合根，唯一知道所有实现的地方）
   notes/domain 与 drawing 双双只依赖 core，零 feature→feature 域依赖
 - ✅ core 纯度终验：`lib/core/` 对 `features/*` 零 import（NotebookRepository
   接口已移入 `features/notes/domain/notebook_repository.dart`）
+- ✅ UI 方言统一：material_ui（material 完整 fork，经比对确认行为等价后退役）
+  从 pubspec 与全部 51 个文件移除，全库单一 flutter/material 方言；
+  本地化回归测试改写为锁定"单一 delegate"新契约
 
 ## 4b. 剩余债务
 
 | 债务 | 位置 | 说明 |
 |---|---|---|
-| UI 方言双体系 | flutter/material 直引 vs material_ui | 页面壳统一用一方；`apple_design.dart` 禁止再定义与 Flutter 重名的类 |
+
 
 ## 5. 代码规范要点（踩坑沉淀）
 
@@ -91,3 +94,14 @@ GitHub Actions `release-build.yml`（Windows 安装包 + Android APK 自动挂 R
 - **编辑入口**：实时编辑一律经路由跳转到对方独立编辑页，或经 host 注入的
   builder 回调（现有 `embeddedBlockBuilder` 机制）——不做模块内直接内嵌实现。
 - **新增嵌入块类型**：只改嵌入方（新块类型 + 缩略渲染 + 打开路由），被嵌方零改动。
+
+### UI 规范（2026-08-30 起）
+
+- **单一方言**：全部 UI 代码只用 `flutter/material`。禁止引入任何 material
+  fork/方言包（material_ui 已于 2026-08-30 退役——fork 导致同名不同型，
+  曾引发 MaterialApp/Theme/MaterialLocalizations/TextField/FilledButton
+  多起解析歧义与运行时崩溃）。
+- 本地化统一走 `flutter_localizations` 的 Global*Localizations，
+  禁止 hide/别名绕行。
+- 自定义组件一律 `Apple*/App*` 前缀（apple_design.dart / app_design.dart），
+  不得定义与 Flutter 重名的类。

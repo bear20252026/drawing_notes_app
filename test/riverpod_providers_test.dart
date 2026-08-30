@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart' show Brightness, ThemeMode;
+import 'package:flutter/material.dart' show Brightness, ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart'
     as fm
     show Checkbox, Material, MaterialType, TimeOfDay, showTimePicker;
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/features/schedule/domain/schedule_event.dart';

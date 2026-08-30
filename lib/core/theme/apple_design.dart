@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 /// Apple (HIG) 设计语言 token 与可复用部件。
 ///
 /// 参照 DESIGN.md（getdesign@apple）给出的苹果官方规范抽取：

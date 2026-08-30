@@ -1,9 +1,6 @@
-import 'package:flutter_localizations/flutter_localizations.dart'
-    hide GlobalMaterialLocalizations;
-import 'package:flutter_localizations/flutter_localizations.dart'
-    as fl_loc show GlobalMaterialLocalizations;
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/app/app_shell.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
@@ -23,7 +20,7 @@ void main() {
         // 与 app.dart 相同：双 GlobalMaterialLocalizations 委托（mui + Flutter）。
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
-          fl_loc.GlobalMaterialLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],

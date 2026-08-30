@@ -69,7 +69,6 @@ dependencies:
   http: ^1.2.2
   xml: ^6.5.0
 
-  material_ui: any
   cupertino_ui: any
 dev_dependencies:
   flutter_test:
