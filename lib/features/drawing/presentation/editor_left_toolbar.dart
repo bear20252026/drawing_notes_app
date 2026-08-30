@@ -168,7 +168,8 @@ class EditorLeftToolbar extends StatelessWidget {
               ),
               // 形状弹出菜单
               PopupMenuButton<ShapeType>(
-                tooltip: AppLocalizations.of(context)?.editorShapeTool ?? '形状工具',
+                tooltip:
+                    AppLocalizations.of(context)?.editorShapeTool ?? '形状工具',
                 icon: Icon(
                   activeShape != null
                       ? _shapeIcon(activeShape!)

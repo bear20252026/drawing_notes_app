@@ -134,5 +134,4 @@ extension _EditorPageShortcuts on _EditorPageState {
   }
 
   /// 右上角主菜单选择处理（对齐 Excalidraw main-menu）。
-
 }

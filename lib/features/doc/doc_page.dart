@@ -4,6 +4,8 @@
 // 版权声明见 THIRD_PARTY_NOTICES.md。本模块与画板模块（features/notes 的
 // edgeless/drawing 部分）零交叉引用：画板打开文档经由导航跳转到本模块。
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
@@ -45,10 +47,16 @@ class DocPage extends StatefulWidget {
   State<DocPage> createState() => _DocPageState();
 }
 
+/// 保存状态（AFFiNE 语义：未保存 → 保存中 → 已保存）。
+enum _SaveStatus { unsaved, saving, saved }
+
 class _DocPageState extends State<DocPage> {
   late NoteBlockDoc _doc;
   bool _favorite = false;
   bool _outlineOpen = false;
+  _SaveStatus _saveStatus = _SaveStatus.saved;
+  DateTime? _lastSavedAt;
+  Timer? _autosaveTimer;
   final GlobalKey<NoteEditorPageState> _editorKey =
       GlobalKey<NoteEditorPageState>();
 
@@ -57,6 +65,51 @@ class _DocPageState extends State<DocPage> {
     super.initState();
     _doc = widget.document;
     _favorite = widget.isFavorite;
+  }
+
+  @override
+  void dispose() {
+    _autosaveTimer?.cancel();
+    super.dispose();
+  }
+
+  /// 编辑变为脏：显示"未保存"并排定 1.2s 防抖自动保存。
+  void _onEditorDirty() {
+    _autosaveTimer?.cancel();
+    if (mounted && _saveStatus != _SaveStatus.unsaved) {
+      setState(() => _saveStatus = _SaveStatus.unsaved);
+    }
+    _autosaveTimer = Timer(const Duration(milliseconds: 1200), _saveNow);
+  }
+
+  /// 手动/自动保存入口：状态"保存中" → 编辑器快照落盘 → "已保存 + 时间"。
+  Future<void> _saveNow() async {
+    _autosaveTimer?.cancel();
+    final editor = _editorKey.currentState;
+    if (editor == null) return;
+    if (mounted) setState(() => _saveStatus = _SaveStatus.saving);
+    final doc = editor.saveNow();
+    widget.controller?.save(doc);
+    if (!mounted) return;
+    setState(() {
+      _saveStatus = _SaveStatus.saved;
+      _lastSavedAt = DateTime.now();
+    });
+  }
+
+  String _statusLabel() {
+    switch (_saveStatus) {
+      case _SaveStatus.unsaved:
+        return '未保存';
+      case _SaveStatus.saving:
+        return '保存中…';
+      case _SaveStatus.saved:
+        final t = _lastSavedAt;
+        if (t == null) return '已保存';
+        return '已保存 '
+            '${t.hour.toString().padLeft(2, '0')}:'
+            '${t.minute.toString().padLeft(2, '0')}';
+    }
   }
 
   @override
@@ -71,12 +124,17 @@ class _DocPageState extends State<DocPage> {
   }
 
   void _persist(NoteBlockDoc doc) {
-    setState(() => _doc = doc);
+    setState(() {
+      _doc = doc;
+      _saveStatus = _SaveStatus.saved;
+      _lastSavedAt = DateTime.now();
+    });
     widget.controller?.save(doc);
   }
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -85,6 +143,13 @@ class _DocPageState extends State<DocPage> {
         title: _doc.title,
         isFavorite: _favorite,
         outlineOpen: _outlineOpen,
+        statusLabel: _statusLabel(),
+        statusColor: _saveStatus == _SaveStatus.unsaved
+            ? const Color(0xFFF5A623)
+            : (_saveStatus == _SaveStatus.saving
+                  ? scheme.primary
+                  : const Color(0xFF30D158)),
+        onSavePressed: _saveNow,
         onToggleFavorite: () {
           setState(() => _favorite = !_favorite);
           widget.onToggleFavorite?.call(_favorite);
@@ -105,6 +170,7 @@ class _DocPageState extends State<DocPage> {
                   showChrome: false,
                   document: _doc,
                   onSave: _persist,
+                  onDirty: _onEditorDirty,
                 ),
               ),
             ),
@@ -188,6 +254,9 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
     required this.onToggleFavorite,
     required this.onToggleOutline,
     required this.onShowInfo,
+    required this.statusLabel,
+    required this.statusColor,
+    required this.onSavePressed,
     this.onOpenInEdgeless,
   });
 
@@ -197,6 +266,11 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onToggleFavorite;
   final VoidCallback onToggleOutline;
   final VoidCallback onShowInfo;
+
+  /// 保存状态文案（未保存 / 保存中… / 已保存 HH:mm）与主题色。
+  final String statusLabel;
+  final Color statusColor;
+  final VoidCallback onSavePressed;
   final VoidCallback? onOpenInEdgeless;
 
   @override
@@ -220,6 +294,25 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
       actions: [
+        // 保存状态（透明可见）：未保存 / 保存中… / 已保存 HH:mm
+        Padding(
+          padding: const EdgeInsets.only(right: 4),
+          child: Center(
+            child: Text(
+              statusLabel,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: statusColor,
+              ),
+            ),
+          ),
+        ),
+        IconButton(
+          tooltip: '保存',
+          icon: const Icon(Icons.save_outlined),
+          onPressed: onSavePressed,
+        ),
         IconButton(
           tooltip: isFavorite ? '取消收藏' : '收藏',
           icon: Icon(

@@ -50,6 +50,7 @@ class NoteEditorPage extends StatefulWidget {
     this.onSave,
     this.embeddedBlockBuilder,
     this.showChrome = true,
+    this.onDirty,
   });
 
   /// 要编辑的文档。为 null 时创建一个新文档。
@@ -58,6 +59,9 @@ class NoteEditorPage extends StatefulWidget {
   /// 是否渲染自带外壳（AppBar 脚手架）。
   /// false = 仅内容（标题+块列表+工具栏），由宿主（如 DocPage）提供顶栏。
   final bool showChrome;
+
+  /// 内容变为未保存（脏）时的回调——宿主据此驱动自动保存与状态显示。
+  final VoidCallback? onDirty;
 
   /// 保存回调。页面退出时，把编辑后的 NoteBlockDoc 传出。
   /// 为 null 则不通知（用于纯预览/测试场景）。
@@ -262,6 +266,7 @@ class NoteEditorPageState extends State<NoteEditorPage> {
         widget.document ??
         NoteBlockDoc.empty('doc_${DateTime.now().microsecondsSinceEpoch}');
     _titleController = TextEditingController(text: _doc.title);
+    _titleController.addListener(_onTitleEdited);
     _root = _buildRootFromDoc(_doc);
     _lastSavedBodySignature = _computeBodySignature();
     _initialized = true;
@@ -292,8 +297,35 @@ class NoteEditorPageState extends State<NoteEditorPage> {
     for (final c in _controllers.values) {
       c.dispose();
     }
+    _titleController.removeListener(_onTitleEdited);
     _titleController.dispose();
     super.dispose();
+  }
+
+  /// 提交一次编辑：压入历史栈并标记脏状态（触发宿主自动保存）。
+  void _commitHistory() {
+    _history.push(_buildDocFromState());
+    if (!_isDirty) {
+      _isDirty = true;
+      widget.onDirty?.call();
+    }
+  }
+
+  void _onTitleEdited() {
+    if (_restoring) return;
+    if (!_isDirty) {
+      _isDirty = true;
+      widget.onDirty?.call();
+    }
+  }
+
+  /// 立即保存：构建当前文档快照、清除脏标记并回调 onSave。
+  /// 返回保存的文档快照（供宿主显示"已保存"时间等）。
+  NoteBlockDoc saveNow() {
+    final doc = _buildDocFromState();
+    _isDirty = false;
+    widget.onSave?.call(doc);
+    return doc;
   }
 
   /// 退出时把编辑后的 NoteBlockDoc 通过 onSave 回调传给调用方。
@@ -415,7 +447,7 @@ class NoteEditorPageState extends State<NoteEditorPage> {
       _ensureBlockResourcesForList(_root.children);
       _updateDirtyState();
     });
-    _history.push(_buildDocFromState());
+    _commitHistory();
   }
 
   /// Tab：将块移到其上一兄弟的倒数子级（形成嵌套）。首块/无上一兄弟则不动作。
@@ -682,7 +714,7 @@ class NoteEditorPageState extends State<NoteEditorPage> {
       controller.selection.baseOffset,
     );
     // 推入撤销历史
-    _history.push(_buildDocFromState());
+    _commitHistory();
   }
 
   // ── Enter：分块 ────────────────────────────────────────────
@@ -718,7 +750,7 @@ class NoteEditorPageState extends State<NoteEditorPage> {
       _focusNodes[newId]?.requestFocus();
     });
     // 推入撤销历史
-    _history.push(_buildDocFromState());
+    _commitHistory();
   }
 
   /// 根据类型创建对应工厂的新块。
@@ -787,7 +819,7 @@ class NoteEditorPageState extends State<NoteEditorPage> {
       _focusNodes[previous.id]?.requestFocus();
     });
     // 推入撤销历史
-    _history.push(_buildDocFromState());
+    _commitHistory();
   }
 
   // ── 工具栏：切换块类型 ─────────────────────────────────────
@@ -802,7 +834,7 @@ class NoteEditorPageState extends State<NoteEditorPage> {
       _updateDirtyState();
     });
     // 推入撤销历史
-    _history.push(_buildDocFromState());
+    _commitHistory();
   }
 
   /// 切换 todo 块的完成状态。
@@ -814,7 +846,7 @@ class NoteEditorPageState extends State<NoteEditorPage> {
       _updateDirtyState();
     });
     // 推入撤销历史
-    _history.push(_buildDocFromState());
+    _commitHistory();
   }
 
   /// 更新未保存状态（基于 body 签名比对）。

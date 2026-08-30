@@ -139,6 +139,26 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   /// 统一保存门面（P0-3b）：防抖、串行化、退出兜底、失败重试都由它编排。
   late final SaveScheduler _saveScheduler;
 
+  /// 画布保存状态可视化（M12：保存中 / 已保存 + 时间）。
+  bool _canvasSaving = false;
+  DateTime? _canvasLastSavedAt;
+
+  String get _canvasStatusLabel {
+    if (_canvasSaving) return '保存中…';
+    final t = _canvasLastSavedAt;
+    if (_controller.isDirty) return '未保存';
+    if (t == null) return '已保存';
+    return '已保存 '
+        '${t.hour.toString().padLeft(2, '0')}:'
+        '${t.minute.toString().padLeft(2, '0')}';
+  }
+
+  Color get _canvasStatusColor {
+    if (_canvasSaving) return const Color(0xFF0066CC);
+    if (_controller.isDirty) return const Color(0xFFF5A623);
+    return const Color(0xFF30D158);
+  }
+
   /// 混排对象的框选、多选、裁剪、对齐与拖动反馈暂态集中在独立协作者中。
   final EditorCanvasInteractionState _canvasInteraction =
       EditorCanvasInteractionState();
@@ -560,7 +580,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       },
     );
     // R4：实例化 ViewModel，保存调度委托给 SaveScheduler。
-    _viewModel = EditorViewModel(controller: _controller, saveScheduler: _saveScheduler);
+    _viewModel = EditorViewModel(
+      controller: _controller,
+      saveScheduler: _saveScheduler,
+    );
     // 首次进入时立即保存一次，确保新文档落盘（自动保存机制）。
     _scheduleAutosave();
     // 注册编辑器命令（B2：命令表驱动快捷键面板）。

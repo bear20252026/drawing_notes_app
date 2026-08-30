@@ -6,7 +6,6 @@ import 'package:flutter/material.dart' as m;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
-import 'package:drawing_notes_app/features/doc/doc_editor.dart';
 import 'package:drawing_notes_app/features/doc/doc_outline_rail.dart';
 import 'package:drawing_notes_app/features/doc/doc_page.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';

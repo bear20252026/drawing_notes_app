@@ -112,9 +112,7 @@ class _CommandPaletteDialogState extends State<_CommandPaletteDialog> {
                               padding: const EdgeInsets.fromLTRB(8, 10, 8, 2),
                               child: Text(
                                 category.label,
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.labelMedium,
+                                style: Theme.of(context).textTheme.labelMedium,
                               ),
                             ),
                             for (final command in grouped[category]!)

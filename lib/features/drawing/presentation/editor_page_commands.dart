@@ -206,5 +206,4 @@ extension _EditorPageCommands on _EditorPageState {
         ),
       );
   }
-
 }

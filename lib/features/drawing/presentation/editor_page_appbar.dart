@@ -8,16 +8,15 @@ PopupMenuItem<_MainMenuItem> _mainMenuItem(
   _MainMenuItem value, {
   required IconData icon,
   required String label,
-}) =>
-    PopupMenuItem<_MainMenuItem>(
-      value: value,
-      child: ListTile(
-        dense: true,
-        contentPadding: EdgeInsets.zero,
-        leading: Icon(icon),
-        title: Text(label),
-      ),
-    );
+}) => PopupMenuItem<_MainMenuItem>(
+  value: value,
+  child: ListTile(
+    dense: true,
+    contentPadding: EdgeInsets.zero,
+    leading: Icon(icon),
+    title: Text(label),
+  ),
+);
 
 /// 编辑器顶栏/主菜单域（拆分自 editor_page.dart）。
 extension _EditorPageAppBar on _EditorPageState {
@@ -31,17 +30,55 @@ extension _EditorPageAppBar on _EditorPageState {
           return Row(
             children: [
               Expanded(
+                child: InkWell(
+                  onTap: _renameCanvas,
+                  borderRadius: BorderRadius.circular(6),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 4,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            _controller.document.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.edit_rounded,
+                          size: 14,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // 保存状态（未保存 / 保存中… / 已保存 HH:mm）
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
                 child: Text(
-                  _controller.document.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  _canvasStatusLabel,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: _canvasStatusColor,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
               Chip(
                 visualDensity: VisualDensity.compact,
-                avatar: Icon(isNote ? Icons.article_outlined : Icons.all_out,
-                    size: 16),
+                avatar: Icon(
+                  isNote ? Icons.article_outlined : Icons.all_out,
+                  size: 16,
+                ),
                 label: Text(isNote ? '分页笔记' : '无限画布'),
               ),
             ],
@@ -182,11 +219,7 @@ extension _EditorPageAppBar on _EditorPageState {
         icon: Icons.slideshow,
         label: '幻灯片演示',
       ),
-      _mainMenuItem(
-        _MainMenuItem.stats,
-        icon: Icons.query_stats,
-        label: '统计',
-      ),
+      _mainMenuItem(_MainMenuItem.stats, icon: Icons.query_stats, label: '统计'),
       _mainMenuItem(
         _MainMenuItem.library,
         icon: Icons.library_books_outlined,

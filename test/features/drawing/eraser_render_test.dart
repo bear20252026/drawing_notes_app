@@ -79,7 +79,7 @@ void main() {
       isNot(const ui.Color(0xFF000000)),
       reason: '擦除区域出现黑色 = clear 穿透到了纸面之下',
     );
-    expect(erased.red, greaterThan(200), reason: '擦除后应露出白色纸面');
+    expect(erased.r * 255.0, greaterThan(200), reason: '擦除后应露出白色纸面');
   });
 }
 

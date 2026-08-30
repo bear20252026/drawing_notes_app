@@ -78,8 +78,8 @@ extension _EditorPageBody on _EditorPageState {
                       },
                       onRotateChanged: (v) {
                         _applyState(() {
-                          final delta =
-                              _selectionTransform.updateRotationDegrees(v);
+                          final delta = _selectionTransform
+                              .updateRotationDegrees(v);
                           _controller.rotateSelectedStrokes(delta);
                         });
                       },
@@ -113,8 +113,7 @@ extension _EditorPageBody on _EditorPageState {
                   selectedText: _selectedTextItem,
                   selectedImage: _selectedImageItem,
                   onPickColor: _showColorPicker,
-                  onBrushSizeChanged: (v) =>
-                      _updateCurrentBrushPreset(size: v),
+                  onBrushSizeChanged: (v) => _updateCurrentBrushPreset(size: v),
                   onShapeStrokeWidth: (v) {
                     final s = _selectedShapeItem;
                     if (s == null) return;
@@ -137,8 +136,7 @@ extension _EditorPageBody on _EditorPageState {
                     final s = _selectedShapeItem;
                     if (s == null) return;
                     _applyState(() {
-                      s.fillColor =
-                          s.fillColor == null ? 0x66A5D6A7 : null;
+                      s.fillColor = s.fillColor == null ? 0x66A5D6A7 : null;
                     });
                     _notifyChanged();
                   },

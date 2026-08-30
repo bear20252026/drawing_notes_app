@@ -13,8 +13,11 @@ import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 /// - 管理**混排对象选中/就地编辑状态**；
 /// - 不读写文件、不直接操作图层位图——这些仍由 Storage/Engine 负责。
 class EditorViewModel extends ChangeNotifier {
-  EditorViewModel({required this.controller, required SaveScheduler saveScheduler})
-      : _saveScheduler = saveScheduler; // ignore: prefer_initializing_formals -- 保留公共命名参数，见 P0-3b
+  EditorViewModel({
+    required this.controller,
+    required SaveScheduler saveScheduler,
+  }) : _saveScheduler =
+           saveScheduler; // ignore: prefer_initializing_formals -- 保留公共命名参数，见 P0-3b
 
   /// 绘图引擎（状态机）。
   final DrawingController controller;

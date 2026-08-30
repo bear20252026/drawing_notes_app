@@ -71,18 +71,16 @@ class EditorToolbar extends StatelessWidget {
                 itemBuilder: (_) => [
                   CheckedPopupMenuItem(
                     checked: state.eraserCanEraseShapesStroke,
-                    value: () =>
-                        actions.setEraserCanEraseShapesStroke(
-                          !state.eraserCanEraseShapesStroke,
-                        ),
+                    value: () => actions.setEraserCanEraseShapesStroke(
+                      !state.eraserCanEraseShapesStroke,
+                    ),
                     child: const Text('整笔模式擦除标准形状'),
                   ),
                   CheckedPopupMenuItem(
                     checked: state.eraserCanEraseShapesPixel,
-                    value: () =>
-                        actions.setEraserCanEraseShapesPixel(
-                          !state.eraserCanEraseShapesPixel,
-                        ),
+                    value: () => actions.setEraserCanEraseShapesPixel(
+                      !state.eraserCanEraseShapesPixel,
+                    ),
                     child: const Text('透明模式擦除标准形状'),
                   ),
                 ],
@@ -134,7 +132,9 @@ class EditorToolbar extends StatelessWidget {
               _toolButton(
                 context,
                 icon: Icons.menu_book,
-                tooltip: AppLocalizations.of(context)?.editorPdfPreview ?? '分页预览（按 A4 分页）',
+                tooltip:
+                    AppLocalizations.of(context)?.editorPdfPreview ??
+                    '分页预览（按 A4 分页）',
                 selected: false,
                 onTap: actions.showPagination,
               ),
@@ -151,8 +151,7 @@ class EditorToolbar extends StatelessWidget {
                 tooltip: (() {
                   final l10n = AppLocalizations.of(context);
                   final name = paperTypeName(state.paperType, l10n);
-                  return l10n?.editorPaperTemplate(name) ??
-                      '纸张模板：$name（点击切换）';
+                  return l10n?.editorPaperTemplate(name) ?? '纸张模板：$name（点击切换）';
                 })(),
                 selected: false,
                 onTap: actions.cyclePaper,
@@ -184,9 +183,9 @@ class EditorToolbar extends StatelessWidget {
                 IconButton(
                   tooltip: state.shapeFillEnabled
                       ? (AppLocalizations.of(context)?.editorShapeFillOn ??
-                          '形状填充：开（新建形状默认填充）')
+                            '形状填充：开（新建形状默认填充）')
                       : (AppLocalizations.of(context)?.editorShapeFillOff ??
-                          '形状填充：关（新建形状默认填充）'),
+                            '形状填充：关（新建形状默认填充）'),
                   icon: Icon(
                     state.shapeFillEnabled
                         ? Icons.format_color_fill

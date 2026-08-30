@@ -110,13 +110,17 @@ class EditorContextBar extends StatelessWidget {
                 value: false,
                 icon: Icon(Icons.format_paint_outlined, size: 18),
                 label: Text('整笔'),
-                tooltip: AppLocalizations.of(context)?.editorEraseStroke ?? '命中笔画即删除整条线',
+                tooltip:
+                    AppLocalizations.of(context)?.editorEraseStroke ??
+                    '命中笔画即删除整条线',
               ),
               ButtonSegment(
                 value: true,
                 icon: Icon(Icons.auto_fix_high_outlined, size: 18),
                 label: Text('透明'),
-                tooltip: AppLocalizations.of(context)?.editorEraseTransparent ?? '以透明像素挖空当前图层',
+                tooltip:
+                    AppLocalizations.of(context)?.editorEraseTransparent ??
+                    '以透明像素挖空当前图层',
               ),
             ],
             selected: {state.pixelEraser},
@@ -133,13 +137,17 @@ class EditorContextBar extends StatelessWidget {
                 value: false,
                 icon: Icon(Icons.save_outlined, size: 18),
                 label: Text('保存'),
-                tooltip: AppLocalizations.of(context)?.editorHighlightNormal ?? '作为普通高亮笔写入页面，可撤销、保存和导出',
+                tooltip:
+                    AppLocalizations.of(context)?.editorHighlightNormal ??
+                    '作为普通高亮笔写入页面，可撤销、保存和导出',
               ),
               ButtonSegment(
                 value: true,
                 icon: Icon(Icons.gesture_rounded, size: 18),
                 label: Text('自动消失'),
-                tooltip: AppLocalizations.of(context)?.editorLaserTemporary ?? '仅短暂显示，约 4 秒后平滑淡出，不写入页面',
+                tooltip:
+                    AppLocalizations.of(context)?.editorLaserTemporary ??
+                    '仅短暂显示，约 4 秒后平滑淡出，不写入页面',
               ),
             ],
             selected: {state.temporaryMarkerEnabled},
@@ -191,7 +199,8 @@ class EditorContextBar extends StatelessWidget {
         _toggleButton(
           context,
           icon: Icons.format_underline,
-          tooltip: AppLocalizations.of(context)?.editorUnderline ?? '下划线 (Ctrl+U)',
+          tooltip:
+              AppLocalizations.of(context)?.editorUnderline ?? '下划线 (Ctrl+U)',
           selected: text.underline,
           onPressed: actions.toggleUnderline,
         ),

@@ -5,6 +5,12 @@ part of 'editor_page.dart';
 
 /// 编辑器自动保存/导出域（拆分自 editor_page.dart）。
 extension _EditorPagePersistence on _EditorPageState {
+  /// setState 的 lint 友好包装（extension 无法直接调用受保护成员）。
+  void notify() {
+    // ignore: invalid_use_of_protected_member
+    setState(() {});
+  }
+
   void _scheduleAutosave() {
     _viewModel.scheduleAutosave();
   }
@@ -20,6 +26,10 @@ extension _EditorPagePersistence on _EditorPageState {
     final storage = widget.docStorage;
     final doc = _controller.document;
     if (storage == null) return;
+    if (mounted) {
+      _canvasSaving = true;
+      notify();
+    }
     // StorageService 在调用时立即编码不可变快照；后续笔画不会改写此版本。
     await storage.save(doc);
     // 文档 JSON 是数据完整性的第一优先级。关闭中控制器可能已释放，
@@ -28,6 +38,45 @@ extension _EditorPagePersistence on _EditorPageState {
       final png = await _controller.renderToPng(scale: 0.2);
       if (png != null) await storage.saveThumbnail(doc.id, png);
     }
+    if (mounted && !_closingEditor) {
+      _canvasSaving = false;
+      _canvasLastSavedAt = DateTime.now();
+      notify();
+    }
+  }
+
+  /// 重命名画布：更新标题并走自动保存调度（M12 命名持久化）。
+  Future<void> _renameCanvas() async {
+    final current = _controller.document.title;
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        final controller = TextEditingController(text: current);
+        return AlertDialog(
+          title: const Text('重命名画布'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            onSubmitted: (v) => Navigator.of(ctx).pop(v),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(controller.text),
+              child: const Text('确定'),
+            ),
+          ],
+        );
+      },
+    );
+    final trimmed = name?.trim();
+    if (trimmed == null || trimmed.isEmpty || trimmed == current) return;
+    _controller.document.title = trimmed;
+    _controller.notifyChanged();
+    _scheduleAutosave();
   }
 
   /// 导出当前画布为 PNG（用户选择保存位置）。
@@ -51,9 +100,9 @@ extension _EditorPagePersistence on _EditorPageState {
   Future<void> _exportSvg() => _exporter.exportSvg();
 
   /// 导出 Word 兼容文档（委托给 [EditorExporter]）。
-  Future<void> _exportWordCompatibleRtf() => _exporter.exportWordCompatibleRtf();
+  Future<void> _exportWordCompatibleRtf() =>
+      _exporter.exportWordCompatibleRtf();
 
   /// 导出页面文字为 Markdown/TXT（委托给 [EditorExporter]）。
   Future<void> _exportText() => _exporter.exportText();
-
 }
