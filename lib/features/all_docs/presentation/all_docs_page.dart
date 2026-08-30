@@ -10,7 +10,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
-import 'package:drawing_notes_app/features/all_docs/infrastructure/tag_store.dart';
+import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_search.dart';
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_sort.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_docs_sidebar.dart';

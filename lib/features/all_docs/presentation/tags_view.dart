@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
-import 'package:drawing_notes_app/features/all_docs/infrastructure/tag_store.dart';
+import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_doc_row.dart';
 
 /// 标签视图：先列标签（带计数），点选后展示该标签下的打字笔记。

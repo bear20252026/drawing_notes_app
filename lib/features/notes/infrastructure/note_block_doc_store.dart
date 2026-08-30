@@ -60,11 +60,58 @@ class NoteBlockDocStore {
   final Map<String, Future<void>> _writeChains = {};
 
   /// 把 [op] 挂到 [id] 的写链尾；链上某步失败不影响后续步骤。
+  /// 任何写操作完成后使头信息缓存失效（P2-M5）。
   Future<T> _enqueue<T>(String id, Future<T> Function() op) {
     final prev = _writeChains[id] ?? Future<void>.value();
     final task = prev.then((_) => op());
-    _writeChains[id] = task.then((_) {}, onError: (_) {});
+    _writeChains[id] = task.then(
+      (_) => _headerCache = null,
+      onError: (_) => _headerCache = null,
+    );
     return task;
+  }
+
+  /// 文档头信息缓存（P2-M5）：列表热路径（AllDocs/反向链接面板）不再
+  /// 每次全量解析全部文档 JSON——冷路径解析一次，之后走内存。
+  List<NoteBlockDocHeader>? _headerCache;
+
+  /// 轻量文档头（不含 body 块树）。
+  /// 列出全部文档头（updatedAt 倒序；缓存命中时零 IO）。
+  Future<List<NoteBlockDocHeader>> listDocHeaders() async {
+    final cached = _headerCache;
+    if (cached != null) return cached;
+    await _ensureDir();
+    final result = <NoteBlockDocHeader>[];
+    await for (final entity in (await _ensureDir()).list()) {
+      if (entity is! File || !entity.path.endsWith('.json')) continue;
+      try {
+        final root =
+            jsonDecode(utf8.decode(await entity.readAsBytes()))
+                as Map<String, dynamic>;
+        final id = root['id'];
+        if (id is! String || !isValidId(id)) continue;
+        result.add(
+          NoteBlockDocHeader(
+            id: id,
+            title: root['title'] as String? ?? '',
+            tags: (root['tags'] as List? ?? const [])
+                .whereType<String>()
+                .toList(),
+            createdAt:
+                DateTime.tryParse(root['createdAt'] as String? ?? '') ??
+                DateTime.fromMillisecondsSinceEpoch(0),
+            updatedAt:
+                DateTime.tryParse(root['updatedAt'] as String? ?? '') ??
+                DateTime.fromMillisecondsSinceEpoch(0),
+          ),
+        );
+      } catch (_) {
+        continue; // 损坏文件跳过
+      }
+    }
+    result.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    _headerCache = result;
+    return result;
   }
 
   /// 校验 ID 是否安全（仅允许字母、数字、下划线、短横线）。
@@ -388,4 +435,21 @@ class NoteBlockDocStore {
 
   /// 生成唯一 ID（前缀可自定义，默认 'doc'）。
   static String newId([String prefix = 'doc']) => LocalIdGenerator.next(prefix);
+}
+
+/// 文档轻量头信息（P2-M5）：列表装配只取头部字段，避免构建整棵块树。
+class NoteBlockDocHeader {
+  const NoteBlockDocHeader({
+    required this.id,
+    required this.title,
+    required this.tags,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  final String id;
+  final String title;
+  final List<String> tags;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 }

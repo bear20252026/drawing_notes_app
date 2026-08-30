@@ -15,7 +15,7 @@ import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_page.dart';
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
-import 'package:drawing_notes_app/features/all_docs/infrastructure/tag_store.dart';
+import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/features/doc/presentation/trash_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
@@ -235,23 +235,18 @@ class _AppShellState extends State<AppShell> {
             Future.value(const <DocumentMeta>[]));
     final notebooks =
         await (nbStorage?.listAll() ?? Future.value(const <Notebook>[]));
-    final blockIds = await _blockDocStore.listIds();
-    final blockDocs = <BlockDocMeta>[];
-    for (final id in blockIds) {
-      final doc = await _blockDocStore.loadDocument(id);
-      if (doc != null) {
-        blockDocs.add(
-          BlockDocMeta(
-            id: doc.id,
-            title: doc.title,
-            folder: '',
-            tags: doc.tags,
-            createdAt: doc.createdAt,
-            updatedAt: doc.updatedAt,
-          ),
-        );
-      }
-    }
+    final blockHeaders = await _blockDocStore.listDocHeaders();
+    final blockDocs = <BlockDocMeta>[
+      for (final h in blockHeaders)
+        BlockDocMeta(
+          id: h.id,
+          title: h.title,
+          folder: '',
+          tags: h.tags,
+          createdAt: h.createdAt,
+          updatedAt: h.updatedAt,
+        ),
+    ];
     final result = buildAllDocs(
       docs: docs,
       notebooks: notebooks,

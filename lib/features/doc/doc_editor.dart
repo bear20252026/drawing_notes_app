@@ -12,6 +12,8 @@
 /// - 底部工具栏：切换当前聚焦块的类型
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -304,16 +306,42 @@ class DocEditorState extends State<DocEditor> {
     }
     _titleController.removeListener(_onTitleEdited);
     _titleController.dispose();
+    _historyDebounce?.cancel();
     super.dispose();
   }
 
+  /// 击键合帧定时器（P2-M6）。
+  Timer? _historyDebounce;
+
   /// 提交一次编辑：压入历史栈并标记脏状态（触发宿主自动保存）。
+  /// 结构性操作（分块/合并/删除/类型切换/插入引用）走本方法——即时入栈。
   void _commitHistory() {
+    _historyDebounce?.cancel();
     _history.push(_buildDocFromState());
     if (!_isDirty) {
       _isDirty = true;
       widget.onDirty?.call();
     }
+  }
+
+  /// P2-M6：文本击键合帧——连续输入只在停顿 500ms 后压一次史栈
+  /// （撤销粒度变为「输入 burst」而非单字符，与主流编辑器一致），
+  /// 消除每键全文档深拷贝。脏标记仍即时（自动保存不受影响）。
+  void _commitHistoryCoalesced() {
+    _historyDebounce?.cancel();
+    _historyDebounce = Timer(const Duration(milliseconds: 500), () {
+      _history.push(_buildDocFromState());
+    });
+    if (!_isDirty) {
+      _isDirty = true;
+      widget.onDirty?.call();
+    }
+  }
+
+  /// 把待提交的合帧快照立即入栈（saveNow/结构操作前调用，防丢撤销粒度）。
+  void _flushPendingHistory() {
+    _historyDebounce?.cancel();
+    _history.push(_buildDocFromState());
   }
 
   void _onTitleEdited() {
@@ -327,6 +355,8 @@ class DocEditorState extends State<DocEditor> {
   /// 立即保存：构建当前文档快照、清除脏标记并回调 onSave。
   /// 返回保存的文档快照（供宿主显示"已保存"时间等）。
   NoteBlockDoc saveNow() {
+    // P2-M6：先入栈待提交的击键合帧快照，保证撤销粒度完整。
+    _flushPendingHistory();
     final doc = _buildDocFromState();
     _isDirty = false;
     widget.onSave?.call(doc);
@@ -393,6 +423,7 @@ class DocEditorState extends State<DocEditor> {
   /// 否则 TextField 会显示回滚前的旧文本。恢复期间通过 [_restoring]
   /// 抑制 [_syncText] 的副作用，避免回填 controller.text 反向污染史栈。
   void _restoreDoc(NoteBlockDoc doc) {
+    _historyDebounce?.cancel(); // 撤销/重做恢复期间丢弃待提交击键
     final keepIds = _collectAllDocBlockIds(doc);
 
     // 释放快照中已不存在的块资源。
@@ -739,8 +770,8 @@ class DocEditorState extends State<DocEditor> {
       controller.text,
       controller.selection.baseOffset,
     );
-    // 推入撤销历史
-    _commitHistory();
+    // 推入撤销历史（P2-M6：文本击键合帧，500ms 停顿后入栈）
+    _commitHistoryCoalesced();
   }
 
   // ── Enter：分块 ────────────────────────────────────────────

@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
 
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
-import 'package:drawing_notes_app/features/all_docs/infrastructure/tag_store.dart';
+import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_export_io.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_html_export.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_pdf_adapter.dart';

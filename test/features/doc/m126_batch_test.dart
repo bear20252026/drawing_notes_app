@@ -3,7 +3,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drawing_notes_app/features/all_docs/infrastructure/tag_store.dart';
+import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_html_export.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_templates.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
