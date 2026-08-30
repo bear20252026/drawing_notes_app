@@ -185,6 +185,12 @@ class NoteEditorPageState extends State<NoteEditorPage> {
   /// 当前聚焦的块 id。
   String? _focusedBlockId;
 
+  /// 块列表滚动控制器（大纲跳转用）。
+  final ScrollController _listScroll = ScrollController();
+
+  /// 大纲面板开合（AFFiNE 桌面式右侧停靠面板）。
+  bool _outlineOpen = false;
+
   /// 每个块的 LayerLink（key = blockId）——浮动选区工具条锚定用。
   final Map<String, LayerLink> _layerLinks = {};
 
@@ -272,6 +278,7 @@ class NoteEditorPageState extends State<NoteEditorPage> {
     _notifySave();
     _selectionToolbarOverlay?.remove();
     _selectionToolbarOverlay = null;
+    _listScroll.dispose();
     _selectionListenerController?.removeListener(_onSelectionChanged);
     for (final node in _focusNodes.values) {
       node.removeListener(_onFocusChange);
@@ -1005,16 +1012,8 @@ class NoteEditorPageState extends State<NoteEditorPage> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: TextField(
-            controller: _titleController,
-            decoration: const InputDecoration(
-              hintText: 'Untitled',
-              border: InputBorder.none,
-            ),
-            style: AppleType.titleStyle(
-              Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
+          // M11：AFFiNE 式——标题不在 AppBar，而是正文第一个大标题块。
+          title: const Text(''),
           elevation: 1,
           actions: [
             if (_isDirty)
@@ -1029,17 +1028,204 @@ class NoteEditorPageState extends State<NoteEditorPage> {
               ),
             if (widget.onSave != null)
               IconButton(icon: const Icon(Icons.save), onPressed: _manualSave),
+            IconButton(
+              tooltip: '大纲',
+              icon: Icon(
+                Icons.format_list_bulleted_rounded,
+                color: _outlineOpen
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
+              ),
+              onPressed: () => setState(() => _outlineOpen = !_outlineOpen),
+            ),
           ],
         ),
-        body: Column(
+        body: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              child: topLevelBlocks.isEmpty
-                  ? _buildEmptyHint()
-                  : _buildBlockList(topLevelBlocks),
+              child: Column(
+                children: [
+                  // AFFiNE 式正文大标题（受控于 _titleController，随 onSave 持久化）
+                  _buildTitleField(),
+                  Expanded(
+                    child: topLevelBlocks.isEmpty
+                        ? _buildEmptyHint()
+                        : _buildBlockList(topLevelBlocks),
+                  ),
+                  const Divider(height: 1),
+                  _buildToolbar(),
+                ],
+              ),
+            ),
+            // 大纲停靠面板（AFFiNE Outline）
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              child: _outlineOpen
+                  ? _buildOutlineDrawer()
+                  : const SizedBox.shrink(key: ValueKey('outline-off')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// AFFiNE 式正文大标题。
+  Widget _buildTitleField() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      child: TextField(
+        controller: _titleController,
+        decoration: const InputDecoration(
+          hintText: 'Untitled',
+          border: InputBorder.none,
+        ),
+        style: AppleType.titleStyle(
+          Theme.of(context).colorScheme.onSurface,
+        ).copyWith(fontSize: 26, fontWeight: FontWeight.w700),
+        maxLines: null,
+      ),
+    );
+  }
+
+  // ── 大纲（Outline，对标 AFFiNE Outline 面板）─────────────────
+
+  /// 按文档顺序抽取所有标题块（含嵌套），供大纲面板展示。
+  List<({String id, int level, String text})> outline() {
+    final out = <({String id, int level, String text})>[];
+    void walk(NoteBlock b) {
+      if (b.type == NoteBlockType.heading) {
+        out.add((
+          id: b.id,
+          level: (b.props['level'] as int?)?.clamp(1, 6) ?? 1,
+          text: b.text,
+        ));
+      }
+      for (final c in b.children) {
+        walk(c);
+      }
+    }
+
+    for (final b in _root.children) {
+      walk(b);
+    }
+    return out;
+  }
+
+  bool _containsId(NoteBlock node, String id) {
+    if (node.id == id) return true;
+    for (final c in node.children) {
+      if (_containsId(c, id)) return true;
+    }
+    return false;
+  }
+
+  /// 大纲点击跳转：按顶层索引估算滚动位置（v1 行高估算）。
+  void scrollToBlock(String blockId) {
+    final topLevel = _root.children;
+    var index = -1;
+    for (var i = 0; i < topLevel.length; i++) {
+      if (_containsId(topLevel[i], blockId)) {
+        index = i;
+        break;
+      }
+    }
+    if (index < 0 || !_listScroll.hasClients) return;
+    const estimatedExtent = 72.0;
+    final target = (index * estimatedExtent).clamp(
+      0.0,
+      _listScroll.position.maxScrollExtent,
+    );
+    _listScroll.animateTo(
+      target,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  /// 大纲停靠面板。
+  Widget _buildOutlineDrawer() {
+    final entries = outline();
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      key: const ValueKey('outline-on'),
+      width: 264,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(
+          left: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+        ),
+      ),
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '大纲',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: '刷新',
+                    icon: const Icon(Icons.refresh, size: 20),
+                    onPressed: () => setState(() {}),
+                  ),
+                ],
+              ),
             ),
             const Divider(height: 1),
-            _buildToolbar(),
+            Expanded(
+              child: entries.isEmpty
+                  ? Center(
+                      child: Text(
+                        '暂无标题块，用 / 菜单插入「标题」后出现在这里',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: entries.length,
+                      itemBuilder: (context, i) {
+                        final e = entries[i];
+                        return InkWell(
+                          onTap: () {
+                            scrollToBlock(e.id);
+                            Navigator.of(context).pop();
+                          },
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              left: 16 + (e.level - 1) * 16.0,
+                              right: 16,
+                              top: 8,
+                              bottom: 8,
+                            ),
+                            child: Text(
+                              e.text.isEmpty ? '（空标题）' : e.text,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    fontWeight: e.level <= 2
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                  ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
           ],
         ),
       ),
@@ -1105,6 +1291,7 @@ class NoteEditorPageState extends State<NoteEditorPage> {
 
   Widget _buildBlockList(List<NoteBlock> blocks) {
     return ListView.builder(
+      controller: _listScroll,
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       itemCount: blocks.length,
       itemBuilder: (context, index) {

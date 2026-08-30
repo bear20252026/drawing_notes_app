@@ -1,11 +1,14 @@
 // M9-3 全部文档工作台：左侧工作区面板。
 //
-// M11 产品清晰化：只保留真实可达的导航项（全部文档/收藏夹/标签），
-// 移除无实现的 AFFiNE 装饰性占位（Journals/提醒/Intelligence/回收站等）。
+// M11 产品清晰化：只保留真实可达的导航项（全部文档/收藏夹/标签）。
+// M11.3：新增「文档树」（最近文档，AFFiNE 侧栏文档树语义，可折叠）。
 // 纯展示：所有数据由父 widget 注入。不 import 任何存储/服务实现。
 
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
+import 'package:drawing_notes_app/features/all_docs/presentation/all_doc_row.dart'
+    show visualForKind;
 
 /// 左侧工作区导航面板（AFFiNE 风格）。
 ///
@@ -13,7 +16,8 @@ import 'package:drawing_notes_app/core/theme/apple_design.dart';
 /// - 工作区头：头像 + 名称
 /// - 搜索框：快速过滤文档列表
 /// - 主导航：全部文档 / 收藏夹 / 标签（与右侧 Tab 一一对应）
-class AllDocsSidebar extends StatelessWidget {
+/// - 文档树：最近文档（可折叠，点击打开）
+class AllDocsSidebar extends StatefulWidget {
   const AllDocsSidebar({
     super.key,
     this.workspaceName = '画记',
@@ -21,6 +25,8 @@ class AllDocsSidebar extends StatelessWidget {
     this.onSearchChanged,
     this.selectedNavIndex = 0,
     this.onNavSelected,
+    this.recentDocs = const [],
+    this.onOpenDoc,
   });
 
   /// 工作区名称（默认「画记」）。
@@ -37,6 +43,19 @@ class AllDocsSidebar extends StatelessWidget {
 
   /// 导航选中回调。
   final ValueChanged<int>? onNavSelected;
+
+  /// 文档树：最近文档（按更新时间倒序）。
+  final List<AllDoc> recentDocs;
+
+  /// 点击文档树条目打开。
+  final void Function(AllDoc doc)? onOpenDoc;
+
+  @override
+  State<AllDocsSidebar> createState() => _AllDocsSidebarState();
+}
+
+class _AllDocsSidebarState extends State<AllDocsSidebar> {
+  bool _treeExpanded = true;
 
   static const _navItems = <_NavItem>[
     _NavItem(Icons.dashboard_rounded, '全部文档'),
@@ -61,7 +80,7 @@ class AllDocsSidebar extends StatelessWidget {
         children: [
           // 工作区头
           _WorkspaceHeader(
-            name: workspaceName,
+            name: widget.workspaceName,
             surface: surface,
             onSurface: onSurface,
           ),
@@ -72,7 +91,7 @@ class AllDocsSidebar extends StatelessWidget {
             child: SizedBox(
               height: 36,
               child: TextField(
-                onChanged: onSearchChanged,
+                onChanged: widget.onSearchChanged,
                 style: const TextStyle(fontSize: 13),
                 decoration: InputDecoration(
                   hintText: '快速搜索',
@@ -90,11 +109,15 @@ class AllDocsSidebar extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          // 主导航
+          // 主导航 + 文档树
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 8),
-              children: _buildNavGroup(context),
+              children: [
+                ..._buildNavGroup(context),
+                const SizedBox(height: 10),
+                ..._buildDocTree(context),
+              ],
             ),
           ),
         ],
@@ -109,17 +132,15 @@ class AllDocsSidebar extends StatelessWidget {
     final accent = theme.colorScheme.primary;
 
     return List.generate(_navItems.length, (i) {
-      final selected = i == selectedNavIndex;
+      final selected = i == widget.selectedNavIndex;
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 1),
         child: Material(
-          color: selected
-              ? accent.withValues(alpha: 0.10)
-              : Colors.transparent,
+          color: selected ? accent.withValues(alpha: 0.10) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           child: InkWell(
             borderRadius: BorderRadius.circular(8),
-            onTap: () => onNavSelected?.call(i),
+            onTap: () => widget.onNavSelected?.call(i),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
@@ -145,6 +166,84 @@ class AllDocsSidebar extends StatelessWidget {
         ),
       );
     });
+  }
+
+  List<Widget> _buildDocTree(BuildContext context) {
+    final theme = Theme.of(context);
+    final onSurface = theme.colorScheme.onSurface;
+    final muted = onSurface.withValues(alpha: 0.55);
+    final widgets = <Widget>[
+      InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => setState(() => _treeExpanded = !_treeExpanded),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              Icon(
+                _treeExpanded
+                    ? Icons.keyboard_arrow_down_rounded
+                    : Icons.keyboard_arrow_right_rounded,
+                size: 18,
+                color: muted,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '文档树',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: muted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ];
+    if (!_treeExpanded) return widgets;
+    for (final doc in widget.recentDocs) {
+      final visual = visualForKind(doc.kind, theme.colorScheme);
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 1),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => widget.onOpenDoc?.call(doc),
+              child: Padding(
+                padding: const EdgeInsets.only(left: 24, right: 12),
+                child: Row(
+                  children: [
+                    Icon(visual.icon, size: 16, color: visual.color),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        doc.title.isEmpty ? '未命名' : doc.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 13, color: onSurface),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+    if (widget.recentDocs.isEmpty) {
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(left: 24, top: 4, bottom: 8),
+          child: Text('暂无文档', style: TextStyle(fontSize: 12, color: muted)),
+        ),
+      );
+    }
+    return widgets;
   }
 }
 

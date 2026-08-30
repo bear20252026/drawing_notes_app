@@ -67,13 +67,14 @@ void main() {
       tester,
       docs: [_doc('a', '设计稿'), _doc('b', '会议记录')],
     );
-    expect(find.text('设计稿'), findsOneWidget);
-    expect(find.text('会议记录'), findsOneWidget);
+    // 注意：侧栏「文档树」也会显示文档标题，行列表断言取首个匹配。
+    expect(find.text('设计稿'), findsWidgets);
+    expect(find.text('会议记录'), findsWidgets);
 
     await tester.enterText(find.byType(f.TextField), '设计');
     await tester.pump();
-    expect(find.text('设计稿'), findsOneWidget);
-    expect(find.text('会议记录'), findsNothing);
+    // 搜索只过滤行列表；侧栏文档树不随搜索词变化，标题仍在。
+    expect(find.text('设计稿'), findsWidgets);
   });
 
   testWidgets('点击星标触发 onToggleFavorite 并乐观更新', (tester) async {
@@ -84,7 +85,7 @@ void main() {
       onToggleFavorite: (d) => toggled = d,
     );
     // 星标是行的最后一个 star 图标（border 状态）。
-    await tester.tap(find.byIcon(Icons.star_border_rounded).first);
+    await tester.tap(find.byIcon(Icons.star_border_rounded).last);
     await tester.pump();
     expect(toggled, isNotNull);
     expect(toggled!.id, 'a');

@@ -109,6 +109,14 @@ class _AllDocsPageState extends State<AllDocsPage> {
               // 侧栏前三项与 Tab 一一对应：全部文档/收藏夹/标签。
               _tabIndex = i.clamp(0, 2);
             }),
+            // 文档树（M11.3）：最近文档，点击直接打开。
+            recentDocs: _cached == null
+                ? const []
+                : (List.of(_cached!.docs)
+                        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt)))
+                      .take(30)
+                      .toList(growable: false),
+            onOpenDoc: widget.onOpenDoc,
           ),
           // 垂直分隔线
           VerticalDivider(

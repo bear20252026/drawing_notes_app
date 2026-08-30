@@ -29,22 +29,8 @@ class AllDocRow extends StatelessWidget {
   final VoidCallback? onMenu;
 
   /// 按 kind 返回图标与主题色。
-  _KindVisual _visualFor(AllDocKind kind, ColorScheme scheme) {
-    switch (kind) {
-      case AllDocKind.canvas:
-        return _KindVisual(
-          Icons.crop_portrait_rounded,
-          const Color(0xFF0066CC),
-        );
-      case AllDocKind.note:
-        return _KindVisual(
-          Icons.sticky_note_2_rounded,
-          const Color(0xFF30D158),
-        );
-      case AllDocKind.blockdoc:
-        return _KindVisual(Icons.dashboard_rounded, const Color(0xFFBF5AF2));
-    }
-  }
+  KindVisual visualFor(AllDocKind kind, ColorScheme scheme) =>
+      visualForKind(kind, scheme);
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +39,7 @@ class AllDocRow extends StatelessWidget {
     final onSurface = scheme.onSurface;
     final muted = onSurface.withValues(alpha: 0.55);
     final subtle = onSurface.withValues(alpha: 0.35);
-    final visual = _visualFor(doc.kind, scheme);
+    final visual = visualFor(doc.kind, scheme);
     // M11.2：显示明确日期（今天带时分，昨天/今年带月日，跨年带年份）
     // ——承接原日历「文档动态」时间线的"哪天动了哪个文档"语义。
     final timeLabel = _dateLabel(doc.updatedAt, DateTime.now());
@@ -160,8 +146,8 @@ class AllDocRow extends StatelessWidget {
   }
 }
 
-class _KindVisual {
-  const _KindVisual(this.icon, this.color);
+class KindVisual {
+  const KindVisual(this.icon, this.color);
   final IconData icon;
   final Color color;
 }
@@ -185,4 +171,16 @@ String _dateLabel(DateTime t, DateTime now) {
     return '${t.month} 月 ${t.day} 日';
   }
   return '${t.year}/${t.month}/${t.day}';
+}
+
+/// 按 kind 返回图标与主题色（顶层，供行组件与侧栏文档树共用）。
+KindVisual visualForKind(AllDocKind kind, ColorScheme scheme) {
+  switch (kind) {
+    case AllDocKind.canvas:
+      return KindVisual(Icons.crop_portrait_rounded, const Color(0xFF0066CC));
+    case AllDocKind.note:
+      return KindVisual(Icons.sticky_note_2_rounded, const Color(0xFF30D158));
+    case AllDocKind.blockdoc:
+      return KindVisual(Icons.dashboard_rounded, const Color(0xFFBF5AF2));
+  }
 }

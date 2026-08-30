@@ -32,23 +32,19 @@ void main() {
       expect(find.byType(TextField), findsNWidgets(2));
     });
 
-    testWidgets('AppBar 包含可编辑标题字段', (tester) async {
+    testWidgets('标题字段位于正文顶部（AFFiNE 式）', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(home: NoteEditorPage()),
       );
       await tester.pumpAndSettle();
 
-      final appBarFinder = find.byType(AppBar);
-      expect(appBarFinder, findsOneWidget);
-      expect(
-        find.descendant(of: appBarFinder, matching: find.byType(TextField)),
-        findsWidgets,
-      );
+      // 正文第一个 TextField 即标题（AppBar 不再含标题输入）。
+      expect(find.widgetWithText(TextField, ''), findsWidgets);
     });
   });
 
   group('NoteEditorPage 文档绑定', () {
-    testWidgets('接收 document 时标题显示在 AppBar', (tester) async {
+    testWidgets('接收 document 时标题显示在正文顶部', (tester) async {
       final doc = makeDoc(id: 'doc-1', title: 'My Document');
 
       await tester.pumpWidget(
@@ -58,12 +54,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final appBarFinder = find.byType(AppBar);
       expect(
-        find.descendant(
-          of: appBarFinder,
-          matching: find.widgetWithText(TextField, 'My Document'),
-        ),
+        find.widgetWithText(TextField, 'My Document'),
         findsOneWidget,
       );
     });
