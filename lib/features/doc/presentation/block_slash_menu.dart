@@ -41,15 +41,18 @@ List<SlashItem> filterSlashItems(List<SlashItem> items, String query) {
   final q = query.trim().toLowerCase();
   if (q.isEmpty) return items;
   return items
-      .where((item) =>
-          item.label.toLowerCase().contains(q) ||
-          (item.description?.toLowerCase().contains(q) ?? false))
+      .where(
+        (item) =>
+            item.label.toLowerCase().contains(q) ||
+            (item.description?.toLowerCase().contains(q) ?? false),
+      )
       .toList();
 }
 
 /// 按类别分组 / 菜单项（类别顺序固定，组内保持原始顺序）。
 List<MapEntry<SlashItemGroup, List<SlashItem>>> groupSlashItems(
-    List<SlashItem> items) {
+  List<SlashItem> items,
+) {
   final orderedGroups = <SlashItemGroup, List<SlashItem>>{};
   for (final group in SlashItemGroup.values) {
     orderedGroups[group] = [];
@@ -57,9 +60,7 @@ List<MapEntry<SlashItemGroup, List<SlashItem>>> groupSlashItems(
   for (final item in items) {
     orderedGroups[item.group]!.add(item);
   }
-  return orderedGroups.entries
-      .where((e) => e.value.isNotEmpty)
-      .toList();
+  return orderedGroups.entries.where((e) => e.value.isNotEmpty).toList();
 }
 
 /// / 菜单浮层组件。
@@ -81,23 +82,125 @@ class BlockSlashMenu extends StatefulWidget {
 
   /// 全部可选类型（按 AFFiNE 常用顺序，含分组）。
   static const List<SlashItem> options = [
-    SlashItem(type: NoteBlockType.text, label: '段落', icon: Icons.text_fields, group: SlashItemGroup.basic, description: '普通文本'),
-    SlashItem(type: NoteBlockType.heading, label: '标题 1', icon: Icons.title, group: SlashItemGroup.basic, description: '最大标题'),
-    SlashItem(type: NoteBlockType.heading, label: '标题 2', icon: Icons.title, group: SlashItemGroup.basic, description: '二级标题'),
-    SlashItem(type: NoteBlockType.heading, label: '标题 3', icon: Icons.title, group: SlashItemGroup.basic, description: '三级标题'),
-    SlashItem(type: NoteBlockType.todo, label: '待办事项', icon: Icons.check_box, group: SlashItemGroup.basic, description: '勾选框'),
-    SlashItem(type: NoteBlockType.bullet, label: '无序列表', icon: Icons.format_list_bulleted, group: SlashItemGroup.basic, description: '圆点列表'),
-    SlashItem(type: NoteBlockType.ordered, label: '有序列表', icon: Icons.format_list_numbered, group: SlashItemGroup.basic, description: '数字列表'),
-    SlashItem(type: NoteBlockType.quote, label: '引用', icon: Icons.format_quote, group: SlashItemGroup.quoteCode, description: '引用文本'),
-    SlashItem(type: NoteBlockType.code, label: '代码块', icon: Icons.code, group: SlashItemGroup.quoteCode, description: '等宽代码'),
-    SlashItem(type: NoteBlockType.image, label: '图片', icon: Icons.image, group: SlashItemGroup.media, description: '插入图片'),
-    SlashItem(type: NoteBlockType.link, label: '链接', icon: Icons.link, group: SlashItemGroup.media, description: '网页链接'),
-    SlashItem(type: NoteBlockType.canvas, label: '画布', icon: Icons.brush, group: SlashItemGroup.embed, description: '内嵌画布'),
-    SlashItem(type: NoteBlockType.chart, label: '图表', icon: Icons.bar_chart, group: SlashItemGroup.embed, description: '数据图表'),
-    SlashItem(type: NoteBlockType.table, label: '表格', icon: Icons.table_chart, group: SlashItemGroup.embed, description: '数据表格'),
-    SlashItem(type: NoteBlockType.database, label: '数据库', icon: Icons.grid_view, group: SlashItemGroup.embed, description: '数据库视图'),
-    SlashItem(type: NoteBlockType.divider, label: '分割线', icon: Icons.horizontal_rule, group: SlashItemGroup.other, description: '分隔线'),
-    SlashItem(type: NoteBlockType.callout, label: '提示', icon: Icons.info_outline, group: SlashItemGroup.other, description: '高亮提示'),
+    SlashItem(
+      type: NoteBlockType.text,
+      label: '段落',
+      icon: Icons.text_fields,
+      group: SlashItemGroup.basic,
+      description: '普通文本',
+    ),
+    SlashItem(
+      type: NoteBlockType.heading,
+      label: '标题 1',
+      icon: Icons.title,
+      group: SlashItemGroup.basic,
+      description: '最大标题',
+    ),
+    SlashItem(
+      type: NoteBlockType.heading,
+      label: '标题 2',
+      icon: Icons.title,
+      group: SlashItemGroup.basic,
+      description: '二级标题',
+    ),
+    SlashItem(
+      type: NoteBlockType.heading,
+      label: '标题 3',
+      icon: Icons.title,
+      group: SlashItemGroup.basic,
+      description: '三级标题',
+    ),
+    SlashItem(
+      type: NoteBlockType.todo,
+      label: '待办事项',
+      icon: Icons.check_box,
+      group: SlashItemGroup.basic,
+      description: '勾选框',
+    ),
+    SlashItem(
+      type: NoteBlockType.bullet,
+      label: '无序列表',
+      icon: Icons.format_list_bulleted,
+      group: SlashItemGroup.basic,
+      description: '圆点列表',
+    ),
+    SlashItem(
+      type: NoteBlockType.ordered,
+      label: '有序列表',
+      icon: Icons.format_list_numbered,
+      group: SlashItemGroup.basic,
+      description: '数字列表',
+    ),
+    SlashItem(
+      type: NoteBlockType.quote,
+      label: '引用',
+      icon: Icons.format_quote,
+      group: SlashItemGroup.quoteCode,
+      description: '引用文本',
+    ),
+    SlashItem(
+      type: NoteBlockType.code,
+      label: '代码块',
+      icon: Icons.code,
+      group: SlashItemGroup.quoteCode,
+      description: '等宽代码',
+    ),
+    SlashItem(
+      type: NoteBlockType.image,
+      label: '图片',
+      icon: Icons.image,
+      group: SlashItemGroup.media,
+      description: '插入图片',
+    ),
+    SlashItem(
+      type: NoteBlockType.link,
+      label: '链接',
+      icon: Icons.link,
+      group: SlashItemGroup.media,
+      description: '网页链接',
+    ),
+    SlashItem(
+      type: NoteBlockType.canvas,
+      label: '画布',
+      icon: Icons.brush,
+      group: SlashItemGroup.embed,
+      description: '内嵌画布',
+    ),
+    SlashItem(
+      type: NoteBlockType.chart,
+      label: '图表',
+      icon: Icons.bar_chart,
+      group: SlashItemGroup.embed,
+      description: '数据图表',
+    ),
+    SlashItem(
+      type: NoteBlockType.table,
+      label: '表格',
+      icon: Icons.table_chart,
+      group: SlashItemGroup.embed,
+      description: '数据表格',
+    ),
+    SlashItem(
+      type: NoteBlockType.database,
+      label: '数据库',
+      icon: Icons.grid_view,
+      group: SlashItemGroup.embed,
+      description: '数据库视图',
+    ),
+    SlashItem(
+      type: NoteBlockType.divider,
+      label: '分割线',
+      icon: Icons.horizontal_rule,
+      group: SlashItemGroup.other,
+      description: '分隔线',
+    ),
+    SlashItem(
+      type: NoteBlockType.callout,
+      label: '提示',
+      icon: Icons.info_outline,
+      group: SlashItemGroup.other,
+      description: '高亮提示',
+    ),
   ];
 
   @override
@@ -132,7 +235,10 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
 
   void _onSearchChanged() {
     setState(() {
-      _visibleItems = filterSlashItems(BlockSlashMenu.options, _searchController.text);
+      _visibleItems = filterSlashItems(
+        BlockSlashMenu.options,
+        _searchController.text,
+      );
       _selectedIndex = 0;
     });
   }
@@ -194,15 +300,19 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
           '无匹配项',
           style: TextStyle(
             fontSize: 13,
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.5),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildGroupedList(BuildContext _,
-      List<MapEntry<SlashItemGroup, List<SlashItem>>> groups) {
+  Widget _buildGroupedList(
+    BuildContext _,
+    List<MapEntry<SlashItemGroup, List<SlashItem>>> groups,
+  ) {
     // 构建扁平索引映射：每个可见项在 _visibleItems 中的位置。
     return ListView.builder(
       shrinkWrap: true,
@@ -215,7 +325,8 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
   }
 
   int _countGroupedItems(
-      List<MapEntry<SlashItemGroup, List<SlashItem>>> groups) {
+    List<MapEntry<SlashItemGroup, List<SlashItem>>> groups,
+  ) {
     // 每个组：1 个标题 + 组内项数
     var count = 0;
     for (final entry in groups) {
@@ -224,8 +335,11 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
     return count;
   }
 
-  Widget _buildGroupedItem(BuildContext context,
-      List<MapEntry<SlashItemGroup, List<SlashItem>>> groups, int flatIndex) {
+  Widget _buildGroupedItem(
+    BuildContext context,
+    List<MapEntry<SlashItemGroup, List<SlashItem>>> groups,
+    int flatIndex,
+  ) {
     var current = 0;
     for (final entry in groups) {
       // 组标题
@@ -255,7 +369,9 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.45),
             letterSpacing: 0.5,
           ),
         ),
@@ -271,7 +387,9 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         color: isSelected
-            ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3)
+            ? Theme.of(
+                context,
+              ).colorScheme.primaryContainer.withValues(alpha: 0.3)
             : null,
         child: Row(
           children: [
@@ -287,7 +405,9 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
                       item.description!,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                 ],
@@ -316,7 +436,8 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
       if (_visibleItems.isNotEmpty) {
         setState(() {
           _selectedIndex =
-              (_selectedIndex - 1 + _visibleItems.length) % _visibleItems.length;
+              (_selectedIndex - 1 + _visibleItems.length) %
+              _visibleItems.length;
         });
       }
       return KeyEventResult.handled;

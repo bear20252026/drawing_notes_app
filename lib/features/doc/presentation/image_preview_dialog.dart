@@ -24,10 +24,7 @@ Future<void> showImagePreviewDialog(
     barrierColor: Colors.black87,
     transitionDuration: const Duration(milliseconds: 200),
     pageBuilder: (context, animation, secondaryAnimation) {
-      return _ImagePreviewPage(
-        src: src,
-        caption: caption,
-      );
+      return _ImagePreviewPage(src: src, caption: caption);
     },
     transitionBuilder: (context, animation, secondaryAnimation, child) {
       return FadeTransition(
@@ -39,10 +36,7 @@ Future<void> showImagePreviewDialog(
 }
 
 class _ImagePreviewPage extends StatelessWidget {
-  const _ImagePreviewPage({
-    required this.src,
-    this.caption,
-  });
+  const _ImagePreviewPage({required this.src, this.caption});
 
   final String src;
   final String? caption;
@@ -72,13 +66,13 @@ class _ImagePreviewPage extends StatelessWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.broken_image_outlined,
-                            color: Colors.white70, size: 64),
-                        const SizedBox(height: 12),
-                        Text(
-                          '图片加载失败',
-                          style: TextStyle(color: Colors.white70),
+                        const Icon(
+                          Icons.broken_image_outlined,
+                          color: Colors.white70,
+                          size: 64,
                         ),
+                        const SizedBox(height: 12),
+                        Text('图片加载失败', style: TextStyle(color: Colors.white70)),
                       ],
                     ),
                   );
@@ -109,8 +103,10 @@ class _ImagePreviewPage extends StatelessWidget {
               bottom: 24,
               child: SafeArea(
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black54,
                     borderRadius: BorderRadius.circular(8),

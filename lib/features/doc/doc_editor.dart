@@ -1748,6 +1748,16 @@ class DocEditorState extends State<DocEditor> {
   KeyEventResult _handleBlockKey(String blockId, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
+    // M12.5（IME 兼容根修）：输入法组合期间，一切按键交还输入法——
+    // Enter 确认候选词、↑↓ 在候选列表选词、Backspace 删组合文本。
+    // 新版 Flutter 会把组合期按键派发给 onKeyEvent（旧 material_ui fork
+    // 基于旧版 Flutter 不会派发），方言统一后本处理器在组合期拦截按键，
+    // 造成中文输入"无法正常键入"。以组合区间判定，非表面过滤单一按键。
+    final composing = _controllers[blockId]?.value.composing;
+    if (composing != null && composing != TextRange.empty) {
+      return KeyEventResult.ignored;
+    }
+
     // ── 撤销 / 重做（Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y）────────────────
     final isCtrl =
         HardwareKeyboard.instance.isControlPressed ||

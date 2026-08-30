@@ -23,12 +23,16 @@ Future<void> showTextCellEditor(
       content: TextField(
         controller: controller,
         autofocus: true,
-        keyboardType:
-            numeric ? const TextInputType.numberWithOptions(decimal: true) : null,
+        keyboardType: numeric
+            ? const TextInputType.numberWithOptions(decimal: true)
+            : null,
         decoration: const InputDecoration(hintText: '输入值'),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('取消'),
+        ),
         FilledButton(
           onPressed: () => Navigator.pop(ctx, controller.text),
           child: const Text('确定'),

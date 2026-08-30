@@ -124,7 +124,14 @@ extension _NotebookPageManage on _NotebookViewPageState {
         builder: (_) => DocPage(
           document: noteDoc,
           controller: DocController(
-            onSave: (updatedDoc) => store.saveDocument(updatedDoc),
+            onSave: (updatedDoc) async {
+              await store.saveDocument(updatedDoc);
+              // M12.5 根修：回写笔记本页（title/updatedAt）——块文档副本
+              // 与源页保持同源一致，两处列表显示不再分叉。
+              page.title = updatedDoc.title;
+              page.updatedAt = updatedDoc.updatedAt;
+              await widget.storage.save(_notebook);
+            },
           ),
         ),
       ),
@@ -272,5 +279,12 @@ extension _NotebookPageManage on _NotebookViewPageState {
     if (ok != true) return;
     _applyState(() => _notebook.pages.removeWhere((p) => p.id == page.id));
     await _save();
+    // M12.5 根修：联动清理迁移副本（若曾以块文档方式打开过该页），
+    // 避免已删除页面在首页/全部文档残留为幽灵条目。
+    try {
+      await blockDocStore.deleteDocument(page.id);
+    } catch (_) {
+      // 副本不存在或清理失败不阻断页面删除主流程。
+    }
   }
 }

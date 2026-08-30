@@ -20,11 +20,7 @@ import 'package:drawing_notes_app/features/doc/presentation/database/database_ta
 
 /// 数据库块真视图。
 class DatabaseBlockView extends StatefulWidget {
-  const DatabaseBlockView({
-    super.key,
-    required this.block,
-    this.onChanged,
-  });
+  const DatabaseBlockView({super.key, required this.block, this.onChanged});
 
   /// 数据库块（props['database'] 存 NoteDatabase.toJson() 的 JSON 字符串）。
   final NoteBlock block;
@@ -47,8 +43,8 @@ class DatabaseBlockView extends StatefulWidget {
 
   /// 把 NoteDatabase 编码成块 props。
   static Map<String, dynamic> encodeProps(NoteDatabase db) => {
-        'database': jsonEncode(db.toJson()),
-      };
+    'database': jsonEncode(db.toJson()),
+  };
 
   @override
   State<DatabaseBlockView> createState() => _DatabaseBlockViewState();
@@ -149,9 +145,13 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
                       },
                     ),
               isDense: true,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              contentPadding:
-                  const EdgeInsets.symmetric(vertical: 0, horizontal: 8),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 0,
+                horizontal: 8,
+              ),
             ),
             onChanged: (v) => setState(() => _filterQuery = v),
           ),
@@ -200,22 +200,30 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
   }
 
   void _addField() {
-    _apply((d) => d.addField(NoteFieldDef(
+    _apply(
+      (d) => d.addField(
+        NoteFieldDef(
           id: 'f${d.fields.length + 1}',
           name: '字段${d.fields.length + 1}',
           type: NoteFieldType.text,
-        )));
+        ),
+      ),
+    );
   }
 
   void _addRecord() {
-    _apply((d) => d.addRecord(
-          NoteRecord(id: 'r${DateTime.now().microsecondsSinceEpoch}'),
-        ));
+    _apply(
+      (d) => d.addRecord(
+        NoteRecord(id: 'r${DateTime.now().microsecondsSinceEpoch}'),
+      ),
+    );
   }
 
-  void _removeField(NoteFieldDef field) => _apply((d) => d.removeField(field.id));
+  void _removeField(NoteFieldDef field) =>
+      _apply((d) => d.removeField(field.id));
 
-  void _removeRecord(NoteRecord record) => _apply((d) => d.removeRecord(record.id));
+  void _removeRecord(NoteRecord record) =>
+      _apply((d) => d.removeRecord(record.id));
 
   // ── 单元格编辑（转发到 database/ 工具） ─────────────────────
 
@@ -225,7 +233,8 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
       fieldName: field.name,
       initial: _db.displayValue(record, field),
       numeric: field.type == NoteFieldType.number,
-      onSave: (value) => _apply((d) => d.updateCell(record.id, field.id, value)),
+      onSave: (value) =>
+          _apply((d) => d.updateCell(record.id, field.id, value)),
     );
   }
 
@@ -238,7 +247,8 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
     showSelectPicker(
       context,
       options: field.options,
-      onPick: (value) => _apply((d) => d.updateCell(record.id, field.id, value)),
+      onPick: (value) =>
+          _apply((d) => d.updateCell(record.id, field.id, value)),
     );
   }
 
@@ -278,34 +288,38 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
           const SizedBox(height: 8),
           switch (_db.viewType) {
             DatabaseViewType.table => DatabaseTableView(
-                fields: _db.fields,
-                records: records,
-                sortFieldId: _db.sortFieldId,
-                sortAscending: _db.sortAscending,
-                displayValue: _db.displayValue,
-                onSort: (f) => _apply((d) => d.setSort(
-                    f.id, ascending: d.sortFieldId == f.id ? !d.sortAscending : true)),
-                onEditCell: _editCell,
-                onToggleCheckbox: _toggleCheckbox,
-                onPickSelect: _pickSelect,
-                onRemoveField: _removeField,
-                onRemoveRecord: _removeRecord,
+              fields: _db.fields,
+              records: records,
+              sortFieldId: _db.sortFieldId,
+              sortAscending: _db.sortAscending,
+              displayValue: _db.displayValue,
+              onSort: (f) => _apply(
+                (d) => d.setSort(
+                  f.id,
+                  ascending: d.sortFieldId == f.id ? !d.sortAscending : true,
+                ),
               ),
+              onEditCell: _editCell,
+              onToggleCheckbox: _toggleCheckbox,
+              onPickSelect: _pickSelect,
+              onRemoveField: _removeField,
+              onRemoveRecord: _removeRecord,
+            ),
             DatabaseViewType.kanban => DatabaseKanbanView(
-                fields: _db.fields,
-                records: records,
-                groupField: _selectField(),
-                titleField: _primaryTextField(),
-                displayValue: _db.displayValue,
-                onRemoveRecord: _removeRecord,
-              ),
+              fields: _db.fields,
+              records: records,
+              groupField: _selectField(),
+              titleField: _primaryTextField(),
+              displayValue: _db.displayValue,
+              onRemoveRecord: _removeRecord,
+            ),
             DatabaseViewType.list => DatabaseListView(
-                fields: _db.fields,
-                records: records,
-                titleField: _primaryTextField(),
-                displayValue: _db.displayValue,
-                onRemoveRecord: _removeRecord,
-              ),
+              fields: _db.fields,
+              records: records,
+              titleField: _primaryTextField(),
+              displayValue: _db.displayValue,
+              onRemoveRecord: _removeRecord,
+            ),
           },
         ],
       ),

@@ -78,19 +78,17 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
     // 构建新的 children（text 块列表）
     final children = <NoteBlock>[];
     for (int i = 0; i < _cellTexts.length; i++) {
-      children.add(NoteBlock.textBlock(
-        'cell_${i}_${DateTime.now().microsecondsSinceEpoch}',
-        text: _cellTexts[i],
-      ));
+      children.add(
+        NoteBlock.textBlock(
+          'cell_${i}_${DateTime.now().microsecondsSinceEpoch}',
+          text: _cellTexts[i],
+        ),
+      );
     }
 
     widget.onChanged(
       widget.block.copyWith(
-        props: {
-          ...widget.block.props,
-          'rows': _rows,
-          'cols': _cols,
-        },
+        props: {...widget.block.props, 'rows': _rows, 'cols': _cols},
         children: children,
       ),
     );
@@ -98,7 +96,12 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
 
   void _insertRow(int atRow) {
     setState(() {
-      final result = TableEditOps.insertRow(_rows, _cols, _cellTexts, atRow: atRow);
+      final result = TableEditOps.insertRow(
+        _rows,
+        _cols,
+        _cellTexts,
+        atRow: atRow,
+      );
       _rows = result.$1;
       _cellTexts = result.$2;
       // 为新行添加控制器
@@ -115,7 +118,12 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
   void _deleteRow(int atRow) {
     if (_rows <= 1) return;
     setState(() {
-      final result = TableEditOps.deleteRow(_rows, _cols, _cellTexts, atRow: atRow);
+      final result = TableEditOps.deleteRow(
+        _rows,
+        _cols,
+        _cellTexts,
+        atRow: atRow,
+      );
       _rows = result.$1;
       _cellTexts = result.$2;
     });
@@ -124,7 +132,12 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
 
   void _insertCol(int atCol) {
     setState(() {
-      final result = TableEditOps.insertCol(_rows, _cols, _cellTexts, atCol: atCol);
+      final result = TableEditOps.insertCol(
+        _rows,
+        _cols,
+        _cellTexts,
+        atCol: atCol,
+      );
       _cols = result.$1;
       _cellTexts = result.$2;
       for (int i = 0; i < _cellTexts.length; i++) {
@@ -140,7 +153,12 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
   void _deleteCol(int atCol) {
     if (_cols <= 1) return;
     setState(() {
-      final result = TableEditOps.deleteCol(_rows, _cols, _cellTexts, atCol: atCol);
+      final result = TableEditOps.deleteCol(
+        _rows,
+        _cols,
+        _cellTexts,
+        atCol: atCol,
+      );
       _cols = result.$1;
       _cellTexts = result.$2;
     });
@@ -159,9 +177,13 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
           // 工具栏
           Row(
             children: [
-              Text('表格 $_rows×$_cols',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w600, color: scheme.primary)),
+              Text(
+                '表格 $_rows×$_cols',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: scheme.primary,
+                ),
+              ),
               const Spacer(),
               // 列操作
               _ToolButton(
@@ -193,10 +215,7 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Table(
-              border: TableBorder.all(
-                color: scheme.outlineVariant,
-                width: 1,
-              ),
+              border: TableBorder.all(color: scheme.outlineVariant, width: 1),
               defaultColumnWidth: const FixedColumnWidth(100),
               children: List.generate(_rows, (rowIndex) {
                 return TableRow(
@@ -209,8 +228,10 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
                         decoration: const InputDecoration(
                           isDense: true,
                           border: OutlineInputBorder(),
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
                         ),
                         style: const TextStyle(fontSize: 13),
                         maxLines: 2,

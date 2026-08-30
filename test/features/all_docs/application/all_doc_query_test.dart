@@ -101,8 +101,9 @@ void main() {
       }
     });
 
-    test('去重：按 dedupKey（kind:id），先入优先', () {
-      // 同 id 但不同 kind → 不去重；同 kind 同 id → 去重
+    test('去重：kind 内按 dedupKey 先入优先；跨 kind 同 id 保留 blockdoc（M12.5）', () {
+      // 同 id 的 canvas + note + blockdoc：note 与 blockdoc 为同一逻辑笔记的
+      // 双标签分叉（迁移副本同 id），保留 blockdoc 行；canvas id 不同，保留。
       final result = buildAllDocs(
         docs: [mkCanvas('x1', DateTime(2026, 8, 28, 9, 0), '')],
         notebooks: [mkNotebook('nb1', 'x1', DateTime(2026, 8, 27), '')], // page id = x1
@@ -110,8 +111,12 @@ void main() {
         now: now,
       );
 
-      // 三者 kind 不同，dedupKey 不同，全部保留
-      expect(result.docs.length, 3);
+      expect(result.docs.length, 2); // canvas + blockdoc（note 行被合并）
+      expect(
+        result.docs.where((d) => d.kind == AllDocKind.blockdoc).single.id,
+        'x1',
+      );
+      expect(result.docs.where((d) => d.kind == AllDocKind.note), isEmpty);
 
       // 同 kind 同 id 重复 → 去重
       final result2 = buildAllDocs(

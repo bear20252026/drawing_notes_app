@@ -149,7 +149,9 @@ class EmbeddedBlockView extends StatelessWidget {
                     child: IgnorePointer(
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black54,
                           borderRadius: BorderRadius.circular(4),
@@ -159,9 +161,13 @@ class EmbeddedBlockView extends StatelessWidget {
                           children: [
                             Icon(Icons.zoom_in, color: Colors.white, size: 16),
                             SizedBox(width: 4),
-                            Text('点击预览',
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 12)),
+                            Text(
+                              '点击预览',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -218,13 +224,14 @@ class EmbeddedBlockView extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
           decoration: BoxDecoration(
-            color: Theme.of(context)
-                .colorScheme
-                .primaryContainer
-                .withValues(alpha: 0.3),
+            color: Theme.of(
+              context,
+            ).colorScheme.primaryContainer.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.4),
             ),
           ),
           child: Row(
@@ -281,10 +288,7 @@ class EmbeddedBlockView extends StatelessWidget {
   Widget _buildTable(BuildContext context) {
     // 若有编辑回调，使用可编辑表格编辑器
     if (onBlockChanged != null) {
-      return TableEditorWidget(
-        block: block,
-        onChanged: onBlockChanged!,
-      );
+      return TableEditorWidget(block: block, onChanged: onBlockChanged!);
     }
 
     // 无编辑回调时显示只读表格
@@ -311,8 +315,9 @@ class EmbeddedBlockView extends StatelessWidget {
             return TableRow(
               children: List.generate(cols, (colIndex) {
                 final cellIndex = rowIndex * cols + colIndex;
-                final text =
-                    cellIndex < cellTexts.length ? cellTexts[cellIndex] : '';
+                final text = cellIndex < cellTexts.length
+                    ? cellTexts[cellIndex]
+                    : '';
                 return Padding(
                   padding: const EdgeInsets.all(8),
                   child: Text(
@@ -361,7 +366,9 @@ class EmbeddedBlockView extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+          color: Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: Theme.of(context).colorScheme.outlineVariant,
@@ -370,11 +377,7 @@ class EmbeddedBlockView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 40,
-              color: Theme.of(context).colorScheme.outline,
-            ),
+            Icon(icon, size: 40, color: Theme.of(context).colorScheme.outline),
             const SizedBox(height: 8),
             Text(
               label,
@@ -389,7 +392,9 @@ class EmbeddedBlockView extends StatelessWidget {
                 caption,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.7),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outline.withValues(alpha: 0.7),
                 ),
               ),
             ],

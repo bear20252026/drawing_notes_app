@@ -33,13 +33,14 @@ class DatabaseListView extends StatelessWidget {
         alignment: Alignment.center,
         child: Text(
           '还没有记录，点击“添加记录”',
-          style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.outline),
+          style: TextStyle(
+            fontSize: 13,
+            color: Theme.of(context).colorScheme.outline,
+          ),
         ),
       );
     }
-    return Column(
-      children: [for (final r in records) _tile(context, r)],
-    );
+    return Column(children: [for (final r in records) _tile(context, r)]);
   }
 
   Widget _tile(BuildContext context, NoteRecord record) {
@@ -60,11 +61,7 @@ class DatabaseListView extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        subtitle: Text(
-          summary,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
+        subtitle: Text(summary, maxLines: 2, overflow: TextOverflow.ellipsis),
         trailing: IconButton(
           tooltip: '删除记录',
           icon: const Icon(Icons.close, size: 18),

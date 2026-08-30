@@ -65,7 +65,10 @@ class DatabaseKanbanView extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         message,
-        style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.outline),
+        style: TextStyle(
+          fontSize: 13,
+          color: Theme.of(context).colorScheme.outline,
+        ),
       ),
     );
   }
@@ -114,8 +117,7 @@ class DatabaseKanbanView extends StatelessWidget {
   Widget _card(BuildContext context, NoteRecord record) {
     final scheme = Theme.of(context).colorScheme;
     final t = titleField;
-    final title =
-        t != null ? displayValue(record, t) : '';
+    final title = t != null ? displayValue(record, t) : '';
     return Dismissible(
       key: ValueKey(record.id),
       direction: DismissDirection.endToStart,

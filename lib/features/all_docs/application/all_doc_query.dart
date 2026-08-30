@@ -25,10 +25,7 @@ class BlockDocMeta {
 
 /// 全部文档查询结果（统一列表 + 分组）。
 class AllDocQueryResult {
-  const AllDocQueryResult({
-    required this.docs,
-    required this.sections,
-  });
+  const AllDocQueryResult({required this.docs, required this.sections});
 
   /// 全部文档（按 updatedAt desc 排序，已去重）。
   final List<AllDoc> docs;
@@ -102,6 +99,21 @@ AllDocQueryResult buildAllDocs({
     if (_tryAdd(seen, doc)) all.add(doc);
   }
 
+  // 3b. 跨 kind 按 id 去重（M12.5 根修）：同一逻辑笔记可能同时存在
+  // NotebookPage（kind=note）与其迁移副本 NoteBlockDoc（kind=blockdoc，
+  // id 相同——由 _openBlockDocFromPage 以 page.id 落库）。两行并存即
+  // 用户看到的"同一笔记的两个标签"，且编辑互不回写导致内容不一致。
+  // 处理：同 id 冲突时保留 blockdoc 行（现行可编辑形态），单一入口。
+  // M12.5 合并语义：删除与 blockdoc 同 id 的 note 行（迁移分叉对中
+  // blockdoc 是现行可编辑形态），其余全部保留——与出现顺序无关。
+  final blockDocIds = {
+    for (final d in all)
+      if (d.kind == AllDocKind.blockdoc) d.id,
+  };
+  all.removeWhere(
+    (d) => d.kind == AllDocKind.note && blockDocIds.contains(d.id),
+  );
+
   // 4. 排序：updatedAt desc
   all.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
@@ -136,11 +148,13 @@ List<AllDocSection> _buildSections(List<AllDoc> docs, DateTime now) {
   for (final g in orderedGroups) {
     final list = groups[g]!;
     if (list.isNotEmpty) {
-      sections.add(AllDocSection(
-        group: g,
-        label: labelForGroup(g),
-        docs: List.unmodifiable(list),
-      ));
+      sections.add(
+        AllDocSection(
+          group: g,
+          label: labelForGroup(g),
+          docs: List.unmodifiable(list),
+        ),
+      );
     }
   }
 

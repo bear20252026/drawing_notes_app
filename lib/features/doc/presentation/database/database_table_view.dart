@@ -92,7 +92,10 @@ class DatabaseTableView extends StatelessWidget {
   Widget _sortableHeader(NoteFieldDef field) {
     final isSorted = sortFieldId == field.id;
     final arrow = isSorted
-        ? Icon(sortAscending ? Icons.arrow_upward : Icons.arrow_downward, size: 14)
+        ? Icon(
+            sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+            size: 14,
+          )
         : const Icon(Icons.arrow_upward, size: 14, color: Colors.transparent);
     return InkWell(
       onTap: () => onSort(field),
@@ -100,9 +103,11 @@ class DatabaseTableView extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Flexible(
-            child: Text(field.name,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w600)),
+            child: Text(
+              field.name,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
           const SizedBox(width: 4),
           arrow,
@@ -147,10 +152,9 @@ class DatabaseTableView extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: Theme.of(context)
-                  .colorScheme
-                  .primaryContainer
-                  .withValues(alpha: 0.3),
+              color: Theme.of(
+                context,
+              ).colorScheme.primaryContainer.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
