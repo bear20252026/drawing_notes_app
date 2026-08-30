@@ -55,6 +55,18 @@ class NoteBlockDocStore {
     return dir;
   }
 
+  /// P0-H3 写尾队列：同 id 的写操作（保存/删除/恢复）串行化，
+  /// 消除自动保存与软删除交错导致的「已删文档复活/新内容被覆盖」竞态。
+  final Map<String, Future<void>> _writeChains = {};
+
+  /// 把 [op] 挂到 [id] 的写链尾；链上某步失败不影响后续步骤。
+  Future<T> _enqueue<T>(String id, Future<T> Function() op) {
+    final prev = _writeChains[id] ?? Future<void>.value();
+    final task = prev.then((_) => op());
+    _writeChains[id] = task.then((_) {}, onError: (_) {});
+    return task;
+  }
+
   /// 校验 ID 是否安全（仅允许字母、数字、下划线、短横线）。
   static bool isValidId(String id) => RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(id);
 
@@ -69,7 +81,11 @@ class NoteBlockDocStore {
   ///
   /// 使用原子写入（先写 .tmp → 再 rename），并在覆盖前将现有文件
   /// 复制为 .bak 备份，确保写入中断时可恢复。
-  Future<void> saveDocument(NoteBlockDoc doc) async {
+  Future<void> saveDocument(NoteBlockDoc doc) =>
+      _enqueue(doc.id, () => _saveDocumentLocked(doc));
+
+  /// saveDocument 的串行化主体（调用方必须已持有该 id 的写链）。
+  Future<void> _saveDocumentLocked(NoteBlockDoc doc) async {
     if (!isValidId(doc.id)) {
       throw ArgumentError.value(doc.id, 'doc.id', '文档 ID 不合法');
     }
@@ -120,29 +136,68 @@ class NoteBlockDocStore {
 
   /// 删除指定 ID 的块文档（M12.6：软删除——移入回收站，30 天保留，
   /// 可经 [restoreDocument] 恢复；与画布 StorageService 的 M-06 策略一致）。
+  ///
+  /// P0-H3：原子化——先写 sidecar 元数据（删除时间），再把激活文件
+  /// **rename** 到回收站（同卷单次原子操作），不再有「写 trash 与删激活
+  /// 之间可被自动保存插入」的窗口；rename 失败时回退旧 envelope 流程。
   /// 返回是否实际移动了文件。
-  Future<bool> deleteDocument(String pageId) async {
-    final doc = await loadDocument(pageId);
-    if (doc == null) return false;
+  Future<bool> deleteDocument(String pageId) =>
+      _enqueue(pageId, () => _deleteDocumentLocked(pageId));
+
+  Future<bool> _deleteDocumentLocked(String pageId) async {
+    final active = File(await _pathFor(pageId));
+    if (!await active.exists()) return false;
     final trashFile = await _trashPathFor(pageId);
-    final envelope = jsonEncode({
-      'deletedAt': DateTime.now().toIso8601String(),
-      'document': doc.toJson(),
-    });
-    final tmp = File('$trashFile.tmp');
-    await tmp.writeAsString(envelope, flush: true);
-    await tmp.rename(trashFile);
-    await _removeActiveFiles(pageId);
+    final metaFile = File('$trashFile.meta.json');
+    final metaTmp = File('$trashFile.meta.tmp');
+    await metaTmp.writeAsString(
+      jsonEncode({'deletedAt': DateTime.now().toIso8601String()}),
+      flush: true,
+    );
+    await metaTmp.rename(metaFile.path);
+    try {
+      await active.rename(trashFile);
+    } on FileSystemException {
+      // 回退：读内容→写 envelope→删激活（非原子，仅 rename 不可用时）
+      final doc = await loadDocument(pageId);
+      if (doc == null) return false;
+      final tmp = File('$trashFile.tmp');
+      await tmp.writeAsString(
+        jsonEncode({
+          'deletedAt': DateTime.now().toIso8601String(),
+          'document': doc.toJson(),
+        }),
+        flush: true,
+      );
+      await tmp.rename(trashFile);
+      await _removeActiveFiles(pageId);
+      return true;
+    }
+    await _removeBak(pageId);
     return true;
   }
 
+  Future<void> _removeBak(String pageId) async {
+    try {
+      final backup = File('${await _pathFor(pageId)}.bak');
+      if (await backup.exists()) await backup.delete();
+    } catch (_) {
+      // 备份删除失败忽略
+    }
+  }
+
   /// 彻底删除（不经回收站）：删除笔记页时联动清理迁移副本使用。
-  Future<bool> purgeDocument(String pageId) async {
+  Future<bool> purgeDocument(String pageId) =>
+      _enqueue(pageId, () => _purgeDocumentLocked(pageId));
+
+  Future<bool> _purgeDocumentLocked(String pageId) async {
     await _removeActiveFiles(pageId);
     try {
       final trashFile = await _trashPathFor(pageId);
       final f = File(trashFile);
       if (await f.exists()) await f.delete();
+      final meta = File('$trashFile.meta.json');
+      if (await meta.exists()) await meta.delete();
     } catch (_) {
       // 回收站文件不存在时忽略。
     }
@@ -161,17 +216,30 @@ class NoteBlockDocStore {
     }
   }
 
-  /// 回收站条目：文档 + 删除时间。
-  ({NoteBlockDoc doc, DateTime deletedAt})? _decodeTrashEntry(String content) {
+  /// 解码回收站条目：兼容两种格式——
+  /// 旧 envelope（{deletedAt, document}）与 M12.6b 原子格式
+  /// （裸文档 json + `<id>.meta.json` sidecar；meta 缺失时用文件修改时间）。
+  ({NoteBlockDoc doc, DateTime deletedAt})? _decodeTrashEntry(
+    String content,
+    File source,
+  ) {
     try {
       final decoded = jsonDecode(content);
       if (decoded is! Map<String, dynamic>) return null;
-      final deletedAt = DateTime.tryParse(
-        decoded['deletedAt'] as String? ?? '',
-      );
       final docRaw = decoded['document'];
-      if (deletedAt == null || docRaw is! Map<String, dynamic>) return null;
-      final doc = NoteBlockDoc.fromJson(docRaw);
+      if (docRaw is Map<String, dynamic>) {
+        final deletedAt = DateTime.tryParse(
+          decoded['deletedAt'] as String? ?? '',
+        );
+        if (deletedAt == null) return null;
+        return (doc: NoteBlockDoc.fromJson(docRaw), deletedAt: deletedAt);
+      }
+      final doc = NoteBlockDoc.fromJson(decoded);
+      final meta = File('${source.path}.meta.json');
+      var deletedAt = DateTime.tryParse(
+        meta.existsSync() ? meta.readAsStringSync() : '',
+      );
+      deletedAt ??= source.lastModifiedSync();
       return (doc: doc, deletedAt: deletedAt);
     } catch (_) {
       return null;
@@ -184,8 +252,9 @@ class NoteBlockDocStore {
     final entries = <({NoteBlockDoc doc, DateTime deletedAt})>[];
     await for (final entity in dir.list()) {
       if (entity is! File || !entity.path.endsWith('.json')) continue;
+      if (entity.path.endsWith('.meta.json')) continue;
       try {
-        final entry = _decodeTrashEntry(await entity.readAsString());
+        final entry = _decodeTrashEntry(await entity.readAsString(), entity);
         if (entry != null) entries.add(entry);
       } catch (_) {
         continue; // 损坏条目跳过
@@ -196,48 +265,80 @@ class NoteBlockDocStore {
   }
 
   /// 从回收站恢复（若激活区已存在同 ID 文档则拒绝，返回 false）。
-  Future<bool> restoreDocument(String pageId) async {
+  Future<bool> restoreDocument(String pageId) =>
+      _enqueue(pageId, () => _restoreDocumentLocked(pageId));
+
+  Future<bool> _restoreDocumentLocked(String pageId) async {
     final trashFile = await _trashPathFor(pageId);
     final f = File(trashFile);
     if (!await f.exists()) return false;
-    final entry = _decodeTrashEntry(await f.readAsString());
-    if (entry == null) return false;
     final active = File(await _pathFor(pageId));
     if (await active.exists()) return false; // 同 ID 已存在，拒绝覆盖
-    await saveDocument(entry.doc);
-    await f.delete();
+    final entry = _decodeTrashEntry(await f.readAsString(), f);
+    if (entry == null) {
+      // 旧 envelope 格式：恢复内部文档对象
+      try {
+        final decoded = jsonDecode(await f.readAsString());
+        if (decoded is Map<String, dynamic> &&
+            decoded['document'] is Map<String, dynamic>) {
+          await saveDocument(
+            NoteBlockDoc.fromJson(decoded['document'] as Map<String, dynamic>),
+          );
+          await f.delete();
+          return true;
+        }
+      } catch (_) {
+        return false;
+      }
+      return false;
+    }
+    // 新原子格式：rename 回激活区
+    await f.rename(active.path);
+    final meta = File('$trashFile.meta.json');
+    if (meta.existsSync()) meta.deleteSync();
     return true;
   }
 
   /// 从回收站彻底删除单条。
-  Future<bool> purgeFromTrash(String pageId) async {
+  Future<bool> purgeFromTrash(String pageId) =>
+      _enqueue(pageId, () => _purgeFromTrashLocked(pageId));
+
+  Future<bool> _purgeFromTrashLocked(String pageId) async {
     final trashFile = await _trashPathFor(pageId);
     final f = File(trashFile);
     if (!await f.exists()) return false;
     await f.delete();
+    final meta = File('$trashFile.meta.json');
+    if (meta.existsSync()) meta.deleteSync();
     return true;
   }
 
   /// 清理过期回收站条目（默认 30 天，与画布 M-06 策略一致）。
   /// 返回清理条数。listIds 会自动触发（惰性清理）。
-  Future<int> purgeExpiredTrash({int retainDays = 30}) async {
-    final dir = await _ensureTrashDir();
-    var purged = 0;
-    final cutoff = DateTime.now().subtract(Duration(days: retainDays));
-    await for (final entity in dir.list()) {
-      if (entity is! File || !entity.path.endsWith('.json')) continue;
-      try {
-        final entry = _decodeTrashEntry(await entity.readAsString());
-        if (entry != null && entry.deletedAt.isBefore(cutoff)) {
-          await entity.delete();
-          purged++;
+  Future<int> purgeExpiredTrash({int retainDays = 30}) => _enqueue(
+    'trash:$retainDays',
+    () async {
+      final dir = await _ensureTrashDir();
+      var purged = 0;
+      final cutoff = DateTime.now().subtract(Duration(days: retainDays));
+      await for (final entity in dir.list()) {
+        if (entity is! File || !entity.path.endsWith('.json')) continue;
+        if (entity.path.endsWith('.meta.json')) continue;
+        try {
+          final entry = _decodeTrashEntry(await entity.readAsString(), entity);
+          if (entry != null && entry.deletedAt.isBefore(cutoff)) {
+            await entity.delete();
+            final meta = File('${entity.path}.meta.json');
+            if (meta.existsSync()) meta.deleteSync();
+            purged++;
+          }
+        } catch (_) {
+          continue;
         }
-      } catch (_) {
-        continue;
       }
-    }
-    return purged;
-  }
+      return purged;
+    },
+  );
 
   Directory? _trashDir;
 

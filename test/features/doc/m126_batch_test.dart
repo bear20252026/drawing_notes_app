@@ -60,6 +60,40 @@ void main() {
       expect(await store.listTrash(), isEmpty);
     });
 
+    test('写尾队列：save 与 delete 交错时按提交顺序执行（P0-H3）', () async {
+      // 不 await save：模拟自动保存 Future 在飞行中发起删除。
+      final doc1 = NoteBlockDoc(
+        id: 'race1',
+        title: '第一版',
+        createdAt: DateTime(2026, 8, 31),
+        updatedAt: DateTime(2026, 8, 31),
+      );
+      await store.saveDocument(doc1);
+      final saveFuture = store.saveDocument(
+        doc1.copyWith(title: '第二版', updatedAt: DateTime(2026, 8, 31, 1)),
+      );
+      final deleteFuture = store.deleteDocument('race1');
+      await Future.wait([saveFuture, deleteFuture]);
+
+      // 串行化保证：save 先入队先执行，delete 后入队后执行 →
+      // 激活区为空（删除生效）、回收站内容是删除前最后一版「第二版」。
+      expect(await store.loadDocument('race1'), isNull);
+      final trash = await store.listTrash();
+      expect(trash, hasLength(1));
+      expect(trash.single.doc.title, '第二版');
+
+      // 反向交错：delete 先入队、save 后入队 → 文档复活（保存语义优先）。
+      await store.restoreDocument('race1');
+      final deleteFuture2 = store.deleteDocument('race1');
+      final saveFuture2 = store.saveDocument(
+        doc1.copyWith(title: '复活版', updatedAt: DateTime(2026, 8, 31, 2)),
+      );
+      await Future.wait([deleteFuture2, saveFuture2]);
+      final restored = await store.loadDocument('race1');
+      expect(restored, isNotNull);
+      expect(restored!.title, '复活版');
+    });
+
     test('purgeExpiredTrash 清理过期条目', () async {
       final doc = NoteBlockDoc(
         id: 'old1',
