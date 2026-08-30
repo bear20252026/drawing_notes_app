@@ -64,6 +64,12 @@ app（组合根，唯一知道所有实现的地方）
   - Toggle list：NoteBlockType.toggle + 展开态持久化 props['expanded'] + 子块折叠门控
   - 导出：域层 note_block_doc_markdown.dart（唯一 Markdown 转换源）+ doc_html_export.dart + doc_export_io.dart（落盘），⋯菜单双导出
   - 模板库：doc_templates.dart（application 纯 Dart，无 material 依赖，图标由 UI 映射）+ 新建笔记模板对话框
+- ✅ M12.7 反向链接：doc_link_index.dart（application 纯 Dart，[[标题]] 双链，
+  索引不持久化——每次从文档集推导，数据即索引）+ DocEditorState.appendPageLink
+  + DocPage 反向链接面板/插入按钮
+- ✅ M12.8 PDF 导出：doc_pdf_adapter.dart（照 AFFiNE PR #14057 PdfAdapter 框架，
+  pdf 包 + 已打包离线 CJK 字体 DroidSansFallbackFull.ttf）+ 二进制落盘
+  writeExportFileBytes（doc_export_io 拆分文本/字节两条路径）
 
 ## 4b. 剩余债务
 

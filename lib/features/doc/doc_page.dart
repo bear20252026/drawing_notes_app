@@ -11,6 +11,7 @@ import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/tag_store.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_export_io.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_html_export.dart';
+import 'package:drawing_notes_app/features/doc/application/doc_pdf_adapter.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc_markdown.dart';
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_editor.dart';
@@ -179,6 +180,29 @@ class _DocPageState extends State<DocPage> {
   Future<void> _exportHtml() =>
       _export(extension: 'html', convert: noteBlockDocToHtml, label: 'HTML');
 
+  /// 导出 PDF（M12.8，AFFiNE PdfAdapter 框架对齐）：pdf 包渲染，
+  /// 离线 CJK 字体，落盘「文档/绘图笔记导出」。
+  Future<void> _exportPdf() async {
+    try {
+      final doc = _editorKey.currentState?.currentDoc ?? _doc;
+      final bytes = await noteBlockDocToPdf(doc);
+      final path = await writeExportFileBytes(
+        baseName: doc.title.isEmpty ? '未命名' : doc.title,
+        extension: 'pdf',
+        bytes: bytes,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('已导出 PDF：$path')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('导出失败：${e.runtimeType}')));
+    }
+  }
+
   void _persist(NoteBlockDoc doc) {
     setState(() {
       _doc = doc;
@@ -216,6 +240,7 @@ class _DocPageState extends State<DocPage> {
         onExportMarkdown: _exportMarkdown,
         onExportHtml: _exportHtml,
         onInsertPageLink: _insertPageLink,
+        onExportPdf: _exportPdf,
       ),
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -444,6 +469,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
     this.onExportMarkdown,
     this.onExportHtml,
     this.onInsertPageLink,
+    this.onExportPdf,
   });
 
   final String title;
@@ -467,6 +493,9 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
 
   /// 插入页面链接（M12.7 反向链接）。
   final VoidCallback? onInsertPageLink;
+
+  /// 导出 PDF（M12.8）。
+  final VoidCallback? onExportPdf;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -533,8 +562,23 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
             if (v == 'edgeless') onOpenInEdgeless?.call();
             if (v == 'exportMd') onExportMarkdown?.call();
             if (v == 'exportHtml') onExportHtml?.call();
+            if (v == 'exportPdf') onExportPdf?.call();
           },
           itemBuilder: (context) => [
+            PopupMenuItem(
+              value: 'exportPdf',
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.picture_as_pdf_rounded,
+                    size: 18,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 10),
+                  const Text('导出 PDF'),
+                ],
+              ),
+            ),
             PopupMenuItem(
               value: 'exportHtml',
               child: Row(

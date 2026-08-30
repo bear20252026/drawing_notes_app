@@ -4,6 +4,7 @@
 // 本文件只做 IO——单一职责，避免转换与落盘耦合。
 
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:path_provider/path_provider.dart';
 
@@ -23,6 +24,32 @@ Future<String> writeExportFile({
   required String extension,
   required String content,
 }) async {
+  final path = await _resolveExportPath(
+    baseName: baseName,
+    extension: extension,
+  );
+  await File(path).writeAsString(content, flush: true);
+  return path;
+}
+
+/// 二进制版导出（PDF 等格式必须走字节，避免文本编码破坏数据）。
+Future<String> writeExportFileBytes({
+  required String baseName,
+  required String extension,
+  required Uint8List bytes,
+}) async {
+  final path = await _resolveExportPath(
+    baseName: baseName,
+    extension: extension,
+  );
+  await File(path).writeAsBytes(bytes, flush: true);
+  return path;
+}
+
+Future<String> _resolveExportPath({
+  required String baseName,
+  required String extension,
+}) async {
   final docsDir = await getApplicationDocumentsDirectory();
   final dir = Directory('${docsDir.path}${Platform.pathSeparator}绘图笔记导出');
   if (!dir.existsSync()) dir.createSync(recursive: true);
@@ -32,6 +59,5 @@ Future<String> writeExportFile({
   while (File(path).existsSync()) {
     path = '${dir.path}${Platform.pathSeparator}$base (${n++}).$extension';
   }
-  await File(path).writeAsString(content, flush: true);
   return path;
 }
