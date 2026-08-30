@@ -60,12 +60,14 @@ class NoteBlockDoc {
     String? id,
     String? title,
     List<NoteBlock>? body,
+    List<String>? tags,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => NoteBlockDoc(
     id: id ?? this.id,
     title: title ?? this.title,
     body: body ?? this.body,
+    tags: tags ?? this.tags,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );

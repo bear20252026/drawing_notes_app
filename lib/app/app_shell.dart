@@ -14,6 +14,7 @@ import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_page.dart';
+import 'package:drawing_notes_app/features/all_docs/infrastructure/tag_store.dart';
 import 'package:drawing_notes_app/features/doc/presentation/trash_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
@@ -71,6 +72,40 @@ class _AppShellState extends State<AppShell> {
   late final FavoriteStore _favoriteStore =
       widget.favoriteStore ?? FavoriteStore();
 
+  /// 标签注册表（M12.6 标签系统）。
+  final TagStore _tagStore = TagStore();
+
+  /// 全量块文档读取（M12.7 反向链接索引数据源）。
+  Future<List<NoteBlockDoc>> _loadAllBlockDocs() async {
+    final ids = await _blockDocStore.listIds();
+    final docs = <NoteBlockDoc>[];
+    for (final id in ids) {
+      final d = await _blockDocStore.loadDocument(id);
+      if (d != null) docs.add(d);
+    }
+    return docs;
+  }
+
+  /// 打开指定块文档（反向链接条目点击路由）。
+  Future<void> _openBlockDocById(String id) async {
+    final doc = await _blockDocStore.loadDocument(id);
+    if (doc == null || !mounted) return;
+    await Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (_) => DocPage(
+          document: doc,
+          controller: DocController(
+            onSave: (d) => _blockDocStore.saveDocument(d),
+          ),
+          tagStore: _tagStore,
+          allDocsLoader: _loadAllBlockDocs,
+          onOpenDocById: _openBlockDocById,
+        ),
+      ),
+    );
+    _dataVersion.value++;
+  }
+
   /// 3 个目的地。用 [IndexedStack] 承载，保持各自状态（切走再切回不丢）。
   late final List<Widget> _destinations = [
     // 0. 全部文档（AFFiNE 风格主工作台）
@@ -80,6 +115,7 @@ class _AppShellState extends State<AppShell> {
       onNewDoc: _newAllDoc,
       onToggleFavorite: _toggleFavorite,
       onOpenTrash: _openTrash,
+      loadTags: _tagStore.listTags,
     ),
     HomePage(
       notebookStorage: widget.notebookStorage,
@@ -268,6 +304,9 @@ class _AppShellState extends State<AppShell> {
               onToggleFavorite: (fav) async => fav
                   ? _favoriteStore.addKey(doc.id)
                   : _favoriteStore.removeKey(doc.id),
+              tagStore: _tagStore,
+              allDocsLoader: _loadAllBlockDocs,
+              onOpenDocById: _openBlockDocById,
             ),
           ),
         );
@@ -321,6 +360,9 @@ class _AppShellState extends State<AppShell> {
               controller: DocController(
                 onSave: (d) => _blockDocStore.saveDocument(d),
               ),
+              tagStore: _tagStore,
+              allDocsLoader: _loadAllBlockDocs,
+              onOpenDocById: _openBlockDocById,
             ),
           ),
         );

@@ -21,6 +21,7 @@ import 'package:drawing_notes_app/features/notes/domain/note_block_editor.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_history.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_inline_span.dart';
+import 'package:drawing_notes_app/features/doc/application/doc_link_index.dart';
 import 'package:drawing_notes_app/features/notes/domain/text_span_editor.dart';
 import 'package:drawing_notes_app/features/doc/presentation/embedded_block_view.dart';
 import 'package:drawing_notes_app/features/doc/presentation/block_slash_menu.dart';
@@ -360,6 +361,27 @@ class DocEditorState extends State<DocEditor> {
   ///
   /// 仅作快照读取，不会触发任何通知或副作用。
   NoteBlockDoc get currentDoc => _buildDocFromState();
+
+  /// 在文档末尾追加一个页面引用块（M12.7 反向链接：[[标题]] 双链语法）。
+  /// 走完整保存链（脏标记→自动保存→撤销历史）。
+  void appendPageLink(NoteBlockDoc target) {
+    final link = NoteBlock.textBlock(_nextId(), text: formatDocLink(target));
+    if (_root.children.isEmpty) {
+      _root = NoteBlock(
+        id: _root.id,
+        type: _root.type,
+        text: _root.text,
+        props: _root.props,
+        children: [link],
+      );
+    } else {
+      final last = _root.children.last;
+      _root = _editor.insertAfter(_root, last.id, link);
+    }
+    _ensureBlockResources(link);
+    _commitHistory();
+    setState(() {});
+  }
 
   /// 从历史快照恢复文档（撤销/重做）。
   ///

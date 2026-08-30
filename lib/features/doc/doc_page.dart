@@ -31,6 +31,8 @@ class DocPage extends StatefulWidget {
     this.onToggleFavorite,
     this.onOpenInEdgeless,
     this.tagStore,
+    this.allDocsLoader,
+    this.onOpenDocById,
   });
 
   /// 要编辑的笔记文档。
@@ -50,6 +52,12 @@ class DocPage extends StatefulWidget {
 
   /// 标签注册表（M12.6 标签编辑）；null 时内部自建（全局文件）。
   final TagStore? tagStore;
+
+  /// 全量块文档读取（M12.7 反向链接索引用）；null 时隐藏反向链接面板。
+  final Future<List<NoteBlockDoc>> Function()? allDocsLoader;
+
+  /// 点击反向链接条目打开对应文档（宿主路由）。
+  final void Function(String docId)? onOpenDocById;
 
   @override
   State<DocPage> createState() => _DocPageState();
@@ -207,6 +215,7 @@ class _DocPageState extends State<DocPage> {
         onOpenInEdgeless: widget.onOpenInEdgeless,
         onExportMarkdown: _exportMarkdown,
         onExportHtml: _exportHtml,
+        onInsertPageLink: _insertPageLink,
       ),
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -247,20 +256,98 @@ class _DocPageState extends State<DocPage> {
     );
   }
 
+  /// 选择目标文档 → 在文末追加 [[标题]] 页面引用（M12.7 反向链接）。
+  Future<void> _insertPageLink() async {
+    final loader = widget.allDocsLoader;
+    if (loader == null) return;
+    final all = await loader();
+    if (!mounted) return;
+    final candidates = all.where((d) => d.id != _doc.id).toList()
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    final target = await showDialog<NoteBlockDoc>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('插入页面链接'),
+        children: [
+          for (final d in candidates.take(50))
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(ctx).pop(d),
+              child: ListTile(
+                leading: const Icon(Icons.edit_note_rounded),
+                title: Text(d.title.isEmpty ? '未命名' : d.title),
+                subtitle: Text(
+                  '更新于 '
+                  '${d.updatedAt.year}-'
+                  '${d.updatedAt.month.toString().padLeft(2, '0')}-'
+                  '${d.updatedAt.day.toString().padLeft(2, '0')}',
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+    if (target == null) return;
+    _editorKey.currentState?.appendPageLink(target);
+  }
+
+  /// 文档信息对话框（含标签编辑——M12.6 标签系统入口）。
   void _showInfoDialog(BuildContext context) {
-    final body = _doc.body;
+    final tagStore = widget.tagStore ?? TagStore();
+    final title = _doc.title.isEmpty ? '未命名' : _doc.title;
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(_doc.title.isEmpty ? '未命名' : _doc.title),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _infoRow('创建于', _fmtDate(_doc.createdAt)),
-            _infoRow('更新于', _fmtDate(_doc.updatedAt)),
-            _infoRow('块数量', '${body.length}'),
-          ],
+        title: Text(title),
+        content: SizedBox(
+          width: 360,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _infoRow('创建于', _fmtDate(_doc.createdAt)),
+              _infoRow('更新于', _fmtDate(_doc.updatedAt)),
+              _infoRow('块数量', '${_doc.body.length}'),
+              const SizedBox(height: 12),
+              const Text('标签', style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              Flexible(
+                child: FutureBuilder<List<DocTag>>(
+                  future: tagStore.listTags(),
+                  builder: (context, snap) {
+                    final allTags = snap.data ?? const <DocTag>[];
+                    final assigned = allTags
+                        .where((t) => _doc.tags.contains(t.id))
+                        .toList();
+                    final available = allTags
+                        .where((t) => !_doc.tags.contains(t.id))
+                        .toList();
+                    return SingleChildScrollView(
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final t in assigned)
+                            Chip(
+                              label: Text(t.name),
+                              onDeleted: () => _toggleDocTag(t.id),
+                            ),
+                          for (final t in available)
+                            ActionChip(
+                              label: Text('+ ${t.name}'),
+                              onPressed: () => _toggleDocTag(t.id),
+                            ),
+                          ActionChip(
+                            label: const Icon(Icons.add_rounded, size: 18),
+                            onPressed: () => _createTagInline(tagStore),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -270,6 +357,52 @@ class _DocPageState extends State<DocPage> {
         ],
       ),
     );
+  }
+
+  /// 给当前文档加/移除标签（编辑即保存）。
+  Future<void> _toggleDocTag(String tagId) async {
+    final tags = List.of(_doc.tags);
+    if (tags.contains(tagId)) {
+      tags.remove(tagId);
+    } else {
+      tags.add(tagId);
+    }
+    final updated = _doc.copyWith(tags: tags, updatedAt: DateTime.now());
+    setState(() => _doc = updated);
+    widget.controller?.save(updated);
+    if (context.mounted) Navigator.of(context).pop();
+    _showInfoDialog(context);
+  }
+
+  /// 快速新建标签（输入名称 → 默认紫色）。
+  Future<void> _createTagInline(TagStore tagStore) async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('新建标签'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: '标签名称'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(controller.text),
+            child: const Text('创建'),
+          ),
+        ],
+      ),
+    );
+    if (name == null || name.trim().isEmpty) return;
+    final tag = await tagStore.addTag(name);
+    if (tag != null && !_doc.tags.contains(tag.id)) {
+      await _toggleDocTag(tag.id);
+    }
   }
 
   Widget _infoRow(String label, String value) {
@@ -310,6 +443,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
     this.onOpenInEdgeless,
     this.onExportMarkdown,
     this.onExportHtml,
+    this.onInsertPageLink,
   });
 
   final String title;
@@ -330,6 +464,9 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
 
   /// 导出 HTML（M12.6）。
   final VoidCallback? onExportHtml;
+
+  /// 插入页面链接（M12.7 反向链接）。
+  final VoidCallback? onInsertPageLink;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -365,6 +502,11 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
               ),
             ),
           ),
+        ),
+        IconButton(
+          tooltip: '插入页面链接',
+          icon: const Icon(Icons.insert_link_rounded),
+          onPressed: onInsertPageLink,
         ),
         IconButton(
           tooltip: '保存',
