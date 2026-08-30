@@ -35,7 +35,7 @@ void main() {
   }
 
   testWidgets('非折叠选区唤出浮动工具条，折叠后消失', (tester) async {
-    await tester.pumpWidget(MaterialApp(home: NoteEditorPage(document: makeDoc())));
+    await tester.pumpWidget(MaterialApp(home: DocEditor(document: makeDoc())));
     await tester.pumpAndSettle();
 
     // 初始无浮动工具条（复制块图标不存在）。
@@ -55,7 +55,7 @@ void main() {
   });
 
   testWidgets('复制块：在当前块后插入副本并聚焦', (tester) async {
-    await tester.pumpWidget(MaterialApp(home: NoteEditorPage(document: makeDoc())));
+    await tester.pumpWidget(MaterialApp(home: DocEditor(document: makeDoc())));
     await tester.pumpAndSettle();
 
     final controller = await focusBodyField(tester);

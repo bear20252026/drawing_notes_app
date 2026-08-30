@@ -13,10 +13,10 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_database.dart';
-import 'package:drawing_notes_app/features/notes/presentation/database/database_cell_editor.dart';
-import 'package:drawing_notes_app/features/notes/presentation/database/database_kanban_view.dart';
-import 'package:drawing_notes_app/features/notes/presentation/database/database_list_view.dart';
-import 'package:drawing_notes_app/features/notes/presentation/database/database_table_view.dart';
+import 'package:drawing_notes_app/features/doc/presentation/database/database_cell_editor.dart';
+import 'package:drawing_notes_app/features/doc/presentation/database/database_kanban_view.dart';
+import 'package:drawing_notes_app/features/doc/presentation/database/database_list_view.dart';
+import 'package:drawing_notes_app/features/doc/presentation/database/database_table_view.dart';
 
 /// 数据库块真视图。
 class DatabaseBlockView extends StatefulWidget {

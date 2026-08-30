@@ -57,8 +57,8 @@ class _DocPageState extends State<DocPage> {
   _SaveStatus _saveStatus = _SaveStatus.saved;
   DateTime? _lastSavedAt;
   Timer? _autosaveTimer;
-  final GlobalKey<NoteEditorPageState> _editorKey =
-      GlobalKey<NoteEditorPageState>();
+  final GlobalKey<DocEditorState> _editorKey =
+      GlobalKey<DocEditorState>();
 
   @override
   void initState() {
@@ -165,7 +165,7 @@ class _DocPageState extends State<DocPage> {
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 720),
-                child: NoteEditorPage(
+                child: DocEditor(
                   key: _editorKey,
                   showChrome: false,
                   document: _doc,

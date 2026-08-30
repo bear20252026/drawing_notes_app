@@ -136,10 +136,16 @@ class CanvasPainter extends CustomPainter {
     // 边框；混合包围盒只属于运行时反馈，不会进入导出或持久化数据。
     final mixedBounds = controller.selectedDocumentObjectsBounds;
     if (controller.selectedDocumentObjectCount > 1 && mixedBounds != null) {
-      _paintDocumentGroupSelection(
+      _paintSelectionFrame(
         canvas,
         mixedBounds,
-        hasLockedObjects: controller.mixedDocumentSelectionHasLockedObjects,
+        controller.mixedDocumentSelectionHasLockedObjects
+            ? const Color(0xFFF59E0B)
+            : const Color(0xFF2F80ED),
+        inflate: 5,
+        strokeWidth: 1.75,
+        handleSize: 11,
+        locked: controller.mixedDocumentSelectionHasLockedObjects,
       );
     }
 
@@ -189,16 +195,31 @@ class CanvasPainter extends CustomPainter {
 
   /// 绘制独立图片对象的选择边界与四角操作提示。
   void _paintDocumentImageSelection(Canvas canvas, Rect bounds) {
-    const selectionColor = Color(0xFF2F80ED);
+    _paintSelectionFrame(canvas, bounds, const Color(0xFF2F80ED));
+  }
+
+  /// 统一的选择框绘制：外框 + 四角手柄 + 可选锁定标记。
+  ///
+  /// 此前 image/shape/group 三处各写一份近似代码（仅边距/手柄尺寸/
+  /// 锁定标记位置不同），现收敛到本方法。
+  void _paintSelectionFrame(
+    Canvas canvas,
+    Rect bounds,
+    Color color, {
+    double inflate = 2,
+    double strokeWidth = 1.5,
+    double handleSize = 10,
+    bool locked = false,
+  }) {
     final border = Paint()
-      ..color = selectionColor
+      ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    canvas.drawRect(bounds.inflate(2), border);
+      ..strokeWidth = strokeWidth;
+    canvas.drawRect(bounds.inflate(inflate), border);
 
     final handle = Paint()..color = const Color(0xFFFFFFFF);
     final handleBorder = Paint()
-      ..color = selectionColor
+      ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.25;
     for (final corner in <Offset>[
@@ -207,7 +228,11 @@ class CanvasPainter extends CustomPainter {
       bounds.bottomLeft,
       bounds.bottomRight,
     ]) {
-      final handleRect = Rect.fromCenter(center: corner, width: 10, height: 10);
+      final handleRect = Rect.fromCenter(
+        center: corner,
+        width: handleSize,
+        height: handleSize,
+      );
       canvas.drawRRect(
         RRect.fromRectAndRadius(handleRect, const Radius.circular(2)),
         handle,
@@ -216,6 +241,12 @@ class CanvasPainter extends CustomPainter {
         RRect.fromRectAndRadius(handleRect, const Radius.circular(2)),
         handleBorder,
       );
+    }
+
+    if (locked) {
+      final marker = bounds.topCenter + Offset(0, -(inflate + 7));
+      canvas.drawCircle(marker, 4, Paint()..color = color);
+      canvas.drawCircle(marker, 1.5, Paint()..color = const Color(0xFFFFFFFF));
     }
   }
 
@@ -229,80 +260,12 @@ class CanvasPainter extends CustomPainter {
     final selectionColor = locked
         ? const Color(0xFFF59E0B)
         : const Color(0xFF2F80ED);
-    final border = Paint()
-      ..color = selectionColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    canvas.drawRect(bounds.inflate(2), border);
-
-    final handle = Paint()..color = const Color(0xFFFFFFFF);
-    final handleBorder = Paint()
-      ..color = selectionColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.25;
-    for (final corner in <Offset>[
-      bounds.topLeft,
-      bounds.topRight,
-      bounds.bottomLeft,
-      bounds.bottomRight,
-    ]) {
-      final handleRect = Rect.fromCenter(center: corner, width: 10, height: 10);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(handleRect, const Radius.circular(2)),
-        handle,
-      );
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(handleRect, const Radius.circular(2)),
-        handleBorder,
-      );
-    }
+    _paintSelectionFrame(canvas, bounds, selectionColor, locked: locked);
     if (locked) {
+      // 锁定形状额外在中心加实心点，与组选择框的顶部标记区分。
       final center = bounds.center;
       canvas.drawCircle(center, 5, Paint()..color = selectionColor);
       canvas.drawCircle(center, 2, Paint()..color = const Color(0xFFFFFFFF));
-    }
-  }
-
-  /// 绘制混合对象的统一组包围盒。集合中含锁定对象时使用琥珀色，提示该对象
-  /// 会保留在位置上；未锁对象仍会参加拖动、缩放和批量删除。
-  void _paintDocumentGroupSelection(
-    Canvas canvas,
-    Rect bounds, {
-    required bool hasLockedObjects,
-  }) {
-    final color = hasLockedObjects
-        ? const Color(0xFFF59E0B)
-        : const Color(0xFF2F80ED);
-    final border = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.75;
-    canvas.drawRect(bounds.inflate(5), border);
-    final fill = Paint()..color = const Color(0xFFFFFFFF);
-    final handleBorder = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.25;
-    for (final corner in <Offset>[
-      bounds.topLeft,
-      bounds.topRight,
-      bounds.bottomLeft,
-      bounds.bottomRight,
-    ]) {
-      final handleRect = Rect.fromCenter(center: corner, width: 11, height: 11);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(handleRect, const Radius.circular(2)),
-        fill,
-      );
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(handleRect, const Radius.circular(2)),
-        handleBorder,
-      );
-    }
-    if (hasLockedObjects) {
-      final marker = bounds.topCenter + const Offset(0, -12);
-      canvas.drawCircle(marker, 4, Paint()..color = color);
-      canvas.drawCircle(marker, 1.5, Paint()..color = const Color(0xFFFFFFFF));
     }
   }
 

@@ -12,10 +12,10 @@ library;
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
-import 'package:drawing_notes_app/features/notes/presentation/image_preview_dialog.dart';
-import 'package:drawing_notes_app/features/notes/presentation/table_editor_widget.dart';
-import 'package:drawing_notes_app/features/notes/presentation/database_block_view.dart';
-import 'package:drawing_notes_app/features/notes/presentation/attachment_block_view.dart';
+import 'package:drawing_notes_app/features/doc/presentation/image_preview_dialog.dart';
+import 'package:drawing_notes_app/features/doc/presentation/table_editor_widget.dart';
+import 'package:drawing_notes_app/features/doc/presentation/database_block_view.dart';
+import 'package:drawing_notes_app/features/doc/presentation/attachment_block_view.dart';
 
 /// 内嵌块视图：按块类型分发到对应的富渲染。
 ///

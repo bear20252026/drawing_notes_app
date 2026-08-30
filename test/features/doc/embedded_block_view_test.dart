@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_database.dart';
-import 'package:drawing_notes_app/features/notes/presentation/embedded_block_view.dart';
+import 'package:drawing_notes_app/features/doc/presentation/embedded_block_view.dart';
 import 'package:drawing_notes_app/features/doc/doc_editor.dart';
 
 void main() {
@@ -301,11 +301,11 @@ void main() {
     });
   });
 
-  group('NoteEditorPage 集成内嵌块', () {
+  group('DocEditor 集成内嵌块', () {
     testWidgets('canvas 块渲染 EmbeddedBlockView 而非 TextField', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: NoteEditorPage(
+          home: DocEditor(
             embeddedBlockBuilder: (b) => null, // 无害 builder
           ),
         ),
@@ -330,7 +330,7 @@ void main() {
 
     testWidgets('image 块渲染图片视图而非 TextField', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(home: NoteEditorPage()),
+        const MaterialApp(home: DocEditor()),
       );
       await tester.pumpAndSettle();
 
@@ -347,7 +347,7 @@ void main() {
     testWidgets('embeddedBlockBuilder 参数传递给 EmbeddedBlockView', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: NoteEditorPage(
+          home: DocEditor(
             embeddedBlockBuilder: (b) {
               if (b.type == NoteBlockType.canvas) {
                 return const Text('注入的画布');

@@ -7,7 +7,7 @@ import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/doc/doc_editor.dart';
 
-/// M4 集成测试：验证 NoteEditorPage + NoteBlockDoc 双向绑定。
+/// M4 集成测试：验证 DocEditor + NoteBlockDoc 双向绑定。
 ///
 /// 覆盖场景：
 /// - 打开文档 → 显示块列表
@@ -29,7 +29,7 @@ void main() {
         updatedAt: now,
       );
 
-  group('M4 NoteEditorPage 文档绑定（widget）', () {
+  group('M4 DocEditor 文档绑定（widget）', () {
     testWidgets('加载文档后显示所有块', (tester) async {
       final doc = makeDoc(
         id: 'test-doc-1',
@@ -43,7 +43,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: NoteEditorPage(document: doc),
+          home: DocEditor(document: doc),
         ),
       );
       await tester.pumpAndSettle();
@@ -55,7 +55,7 @@ void main() {
 
     testWidgets('新建文档（无 document 参数）创建空段落', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(home: NoteEditorPage()),
+        const MaterialApp(home: DocEditor()),
       );
       await tester.pumpAndSettle();
 
@@ -78,7 +78,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: NoteEditorPage(document: doc),
+          home: DocEditor(document: doc),
         ),
       );
       await tester.pumpAndSettle();
@@ -100,7 +100,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: NoteEditorPage(
+          home: DocEditor(
             document: doc,
             onSave: (d) => savedDoc = d,
           ),

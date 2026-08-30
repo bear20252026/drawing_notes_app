@@ -16,8 +16,9 @@ class EditorViewModel extends ChangeNotifier {
   EditorViewModel({
     required this.controller,
     required SaveScheduler saveScheduler,
-  }) : _saveScheduler =
-           saveScheduler; // ignore: prefer_initializing_formals -- 保留公共命名参数，见 P0-3b
+  })
+  // ignore: prefer_initializing_formals -- 保留公共命名参数，见 P0-3b
+  : _saveScheduler = saveScheduler;
 
   /// 绘图引擎（状态机）。
   final DrawingController controller;

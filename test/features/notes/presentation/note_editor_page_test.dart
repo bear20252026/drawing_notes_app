@@ -21,10 +21,10 @@ void main() {
         updatedAt: now,
       );
 
-  group('NoteEditorPage 渲染', () {
+  group('DocEditor 渲染', () {
     testWidgets('初始渲染包含一个可编辑的文本块', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(home: NoteEditorPage()),
+        const MaterialApp(home: DocEditor()),
       );
       await tester.pumpAndSettle();
 
@@ -34,7 +34,7 @@ void main() {
 
     testWidgets('标题字段位于正文顶部（AFFiNE 式）', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(home: NoteEditorPage()),
+        const MaterialApp(home: DocEditor()),
       );
       await tester.pumpAndSettle();
 
@@ -43,13 +43,13 @@ void main() {
     });
   });
 
-  group('NoteEditorPage 文档绑定', () {
+  group('DocEditor 文档绑定', () {
     testWidgets('接收 document 时标题显示在正文顶部', (tester) async {
       final doc = makeDoc(id: 'doc-1', title: 'My Document');
 
       await tester.pumpWidget(
         MaterialApp(
-          home: NoteEditorPage(document: doc),
+          home: DocEditor(document: doc),
         ),
       );
       await tester.pumpAndSettle();
@@ -72,7 +72,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: NoteEditorPage(document: doc),
+          home: DocEditor(document: doc),
         ),
       );
       await tester.pumpAndSettle();
@@ -82,7 +82,7 @@ void main() {
     });
   });
 
-  group('NoteEditorPage onSave 回调', () {
+  group('DocEditor onSave 回调', () {
     testWidgets('dispose 时若提供 onSave 则传出 NoteBlockDoc',
         (tester) async {
       NoteBlockDoc? savedDoc;
@@ -94,7 +94,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: NoteEditorPage(
+          home: DocEditor(
             document: doc,
             onSave: (d) => savedDoc = d,
           ),
@@ -117,7 +117,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: NoteEditorPage(document: doc),
+          home: DocEditor(document: doc),
         ),
       );
       await tester.pumpAndSettle();
@@ -128,7 +128,7 @@ void main() {
     });
   });
 
-  group('NoteEditorPage 块手柄拖拽', () {
+  group('DocEditor 块手柄拖拽', () {
     testWidgets('每个块行左侧显示拖拽手柄 (drag_handle 图标)',
         (tester) async {
       final doc = makeDoc(
@@ -142,7 +142,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: NoteEditorPage(document: doc),
+          home: DocEditor(document: doc),
         ),
       );
       await tester.pumpAndSettle();
@@ -163,7 +163,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: NoteEditorPage(document: doc),
+          home: DocEditor(document: doc),
         ),
       );
       await tester.pumpAndSettle();
@@ -196,7 +196,7 @@ void main() {
       NoteBlockDoc? savedDoc;
       await tester.pumpWidget(
         MaterialApp(
-          home: NoteEditorPage(
+          home: DocEditor(
             document: doc,
             onSave: (d) => savedDoc = d,
           ),
@@ -239,7 +239,7 @@ void main() {
     });
   });
 
-  group('NoteEditorPage 撤销重做与键盘导航', () {
+  group('DocEditor 撤销重做与键盘导航', () {
     // 找到当前文本为 [text] 的可编辑字段（内容块），避免依赖 EditableText 顺序。
     EditableText editableOf(String text, WidgetTester tester) {
       return tester
@@ -254,7 +254,7 @@ void main() {
         body: [NoteBlock.textBlock('t1', text: 'Hello')],
       );
       await tester.pumpWidget(
-        MaterialApp(home: NoteEditorPage(document: doc)),
+        MaterialApp(home: DocEditor(document: doc)),
       );
       await tester.pumpAndSettle();
 
@@ -282,7 +282,7 @@ void main() {
         body: [NoteBlock.textBlock('t1', text: 'Hello')],
       );
       await tester.pumpWidget(
-        MaterialApp(home: NoteEditorPage(document: doc)),
+        MaterialApp(home: DocEditor(document: doc)),
       );
       await tester.pumpAndSettle();
 
@@ -321,7 +321,7 @@ void main() {
         ],
       );
       await tester.pumpWidget(
-        MaterialApp(home: NoteEditorPage(document: doc)),
+        MaterialApp(home: DocEditor(document: doc)),
       );
       await tester.pumpAndSettle();
 
@@ -346,7 +346,7 @@ void main() {
         ],
       );
       await tester.pumpWidget(
-        MaterialApp(home: NoteEditorPage(document: doc)),
+        MaterialApp(home: DocEditor(document: doc)),
       );
       await tester.pumpAndSettle();
 
@@ -362,7 +362,7 @@ void main() {
     });
   });
 
-  group('NoteEditorPage 块缩进与嵌套', () {
+  group('DocEditor 块缩进与嵌套', () {
     EditableText editableOf(String text, WidgetTester tester) {
       return tester
           .widgetList<EditableText>(find.byType(EditableText))
@@ -381,7 +381,7 @@ void main() {
       );
       await tester.pumpWidget(
         MaterialApp(
-          home: NoteEditorPage(document: doc, onSave: (d) => saved = d),
+          home: DocEditor(document: doc, onSave: (d) => saved = d),
         ),
       );
       await tester.pumpAndSettle();
@@ -420,7 +420,7 @@ void main() {
       );
       await tester.pumpWidget(
         MaterialApp(
-          home: NoteEditorPage(document: doc, onSave: (d) => saved = d),
+          home: DocEditor(document: doc, onSave: (d) => saved = d),
         ),
       );
       await tester.pumpAndSettle();

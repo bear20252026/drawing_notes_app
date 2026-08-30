@@ -7,7 +7,7 @@ library;
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
-import 'package:drawing_notes_app/features/notes/presentation/table_edit_ops.dart';
+import 'package:drawing_notes_app/features/doc/presentation/table_edit_ops.dart';
 
 /// 内嵌表格编辑器。
 ///

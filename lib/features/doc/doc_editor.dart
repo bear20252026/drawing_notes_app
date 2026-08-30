@@ -1,4 +1,4 @@
-/// 块式笔记编辑器页面（NoteEditorPage）。
+/// 块式笔记编辑器页面（DocEditor）。
 ///
 /// 基于 M0 的 AFFiNE 风格块模型（[NoteBlock] / [NoteBlockEditor]），
 /// 实现一个块式编辑器：每个块一个可编辑行，Enter 分块、
@@ -22,8 +22,8 @@ import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_history.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_inline_span.dart';
 import 'package:drawing_notes_app/features/notes/domain/text_span_editor.dart';
-import 'package:drawing_notes_app/features/notes/presentation/embedded_block_view.dart';
-import 'package:drawing_notes_app/features/notes/presentation/block_slash_menu.dart';
+import 'package:drawing_notes_app/features/doc/presentation/embedded_block_view.dart';
+import 'package:drawing_notes_app/features/doc/presentation/block_slash_menu.dart';
 
 /// 块式笔记编辑器页面。
 ///
@@ -31,7 +31,7 @@ import 'package:drawing_notes_app/features/notes/presentation/block_slash_menu.d
 /// - 编辑过程通过 [NoteBlockEditor] 产生新的块树
 /// - [title] 在文档内，appbar 可编辑
 /// - 退出时用纯逻辑把 root 包装回 NoteBlockDoc 并回调 [onSave]
-class NoteEditorPage extends StatefulWidget {
+class DocEditor extends StatefulWidget {
   /// 创建块式笔记编辑器页面。
   ///
   /// [document] 为可选的已有文档。若提供，编辑器从其 [NoteBlockDoc.body]
@@ -44,7 +44,7 @@ class NoteEditorPage extends StatefulWidget {
   /// [embeddedBlockBuilder] 为可选的自定义内嵌块渲染回调，
   /// 由组合根（app_shell）注入，用于渲染 canvas/chart 等复杂内嵌块。
   /// 为 null 时使用内置降级渲染。
-  const NoteEditorPage({
+  const DocEditor({
     super.key,
     this.document,
     this.onSave,
@@ -72,7 +72,7 @@ class NoteEditorPage extends StatefulWidget {
   final Widget? Function(NoteBlock block)? embeddedBlockBuilder;
 
   @override
-  State<NoteEditorPage> createState() => NoteEditorPageState();
+  State<DocEditor> createState() => DocEditorState();
 }
 
 /// 工具栏块类型选项。
@@ -178,7 +178,7 @@ const List<_BlockTypeOption> _blockTypeOptions = [
   ),
 ];
 
-class NoteEditorPageState extends State<NoteEditorPage> {
+class DocEditorState extends State<DocEditor> {
   /// 块树根节点（其 children 为顶层块列表）。
   late NoteBlock _root;
 

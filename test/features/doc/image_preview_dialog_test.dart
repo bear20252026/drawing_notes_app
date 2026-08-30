@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drawing_notes_app/features/notes/presentation/image_preview_dialog.dart';
+import 'package:drawing_notes_app/features/doc/presentation/image_preview_dialog.dart';
 
 void main() {
   group('showImagePreviewDialog', () {

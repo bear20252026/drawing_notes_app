@@ -26,7 +26,7 @@ import 'package:drawing_notes_app/features/notes/presentation/note_frame_preview
 
 /// Edgeless 无限画布页。
 ///
-/// 输入初始 [initialDoc] 与变更回调 [onChanged]；双击某帧进入 [NoteEditorPage]
+/// 输入初始 [initialDoc] 与变更回调 [onChanged]；双击某帧进入 [DocEditor]
 /// 编辑该帧内容（返回后通过 [controller.updateFrameDoc] 写回）。
 class EdgelessPage extends StatefulWidget {
   const EdgelessPage({
@@ -41,7 +41,7 @@ class EdgelessPage extends StatefulWidget {
 
   /// 内嵌块（画布/图表等）的外接定制 builder。
   ///
-  /// 透传给帧内打开 NoteEditorPage 时的内嵌块渲染。
+  /// 透传给帧内打开 DocEditor 时的内嵌块渲染。
   final Widget? Function(NoteBlock block)? embeddedBlockBuilder;
 
   @override
