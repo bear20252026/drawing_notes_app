@@ -85,6 +85,9 @@ class _AppShellState extends State<AppShell> {
       themeController: widget.themeController,
       editorPageBuilder: widget.editorPageBuilder,
       refreshSignal: _dataVersion,
+      // M12.4 统一数据源：首页笔记 Tab 与 All Docs 共用同一装配与打开路径。
+      loadDocs: _loadAllDocs,
+      onOpenDoc: _openAllDoc,
     ),
     // 2. 日历（M11.2：纯待办/日程——文档时间线并入主页，功能去重）
     const SchedulePage(),

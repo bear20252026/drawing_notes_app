@@ -94,6 +94,7 @@ extension _HomePageTabs on _HomePageState {
         separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (context, i) {
           final doc = _notes[i];
+          final isTyped = doc.kind == AllDocKind.blockdoc;
           return Card(
             child: ListTile(
               contentPadding: const EdgeInsets.symmetric(
@@ -105,7 +106,9 @@ extension _HomePageTabs on _HomePageState {
                 foregroundColor: Theme.of(
                   context,
                 ).colorScheme.onPrimaryContainer,
-                child: const Icon(Icons.edit_note_rounded),
+                child: Icon(
+                  isTyped ? Icons.edit_note_rounded : Icons.description_rounded,
+                ),
               ),
               title: Text(
                 doc.title.isEmpty ? '未命名' : doc.title,
@@ -115,16 +118,21 @@ extension _HomePageTabs on _HomePageState {
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: 3),
                 child: Text(
-                  '${doc.body.length} 块 · 更新于 ${_formatTime(doc.updatedAt)}',
+                  '${isTyped ? '打字笔记' : '笔记本页面'}'
+                  ' · 更新于 ${_formatTime(doc.updatedAt)}',
                 ),
               ),
-              trailing: IconButton(
-                tooltip: '删除笔记',
-                icon: const Icon(Icons.delete_outline_rounded),
-                color: Theme.of(context).colorScheme.error,
-                onPressed: () => _deleteNote(doc),
-              ),
-              onTap: () => _openNote(doc),
+              // 笔记本页面的删除在其所属笔记页内管理（含克隆引用语义）；
+              // 打字笔记支持此处直接删除。
+              trailing: isTyped
+                  ? IconButton(
+                      tooltip: '删除笔记',
+                      icon: const Icon(Icons.delete_outline_rounded),
+                      color: Theme.of(context).colorScheme.error,
+                      onPressed: () => _deleteNote(doc),
+                    )
+                  : null,
+              onTap: () => _openEntry(doc),
             ),
           );
         },
@@ -132,13 +140,22 @@ extension _HomePageTabs on _HomePageState {
     );
   }
 
-  Future<void> _openNote(NoteBlockDoc doc) async {
+  /// 统一打开路径（M12.4）：与 All Docs 同一回调（note→NotebookViewPage，
+  /// blockdoc→DocPage）。无宿主回调时兜底直推 DocPage（仅打字笔记）。
+  Future<void> _openEntry(AllDoc doc) async {
+    if (widget.onOpenDoc != null) {
+      widget.onOpenDoc!(doc);
+      return;
+    }
+    if (doc.kind != AllDocKind.blockdoc) return;
+    final d = await _blockDocStore.loadDocument(doc.id);
+    if (!mounted || d == null) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => DocPage(
-          document: doc,
+          document: d,
           controller: DocController(
-            onSave: (d) => _blockDocStore.saveDocument(d),
+            onSave: (updated) => _blockDocStore.saveDocument(updated),
           ),
         ),
       ),
@@ -154,7 +171,7 @@ extension _HomePageTabs on _HomePageState {
     return '${t.year}-${t.month.toString().padLeft(2, '0')}-${t.day.toString().padLeft(2, '0')}';
   }
 
-  Future<void> _deleteNote(NoteBlockDoc doc) async {
+  Future<void> _deleteNote(AllDoc doc) async {
     // 策略门禁（专家审计最优先④）：删除操作白名单判定（回收站——可恢复）。
     if (!const PolicyEngine().check('note.delete').isAllowed) {
       _showSnack('操作被策略拒绝（note.delete）');

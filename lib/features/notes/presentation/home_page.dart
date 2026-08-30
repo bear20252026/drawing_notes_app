@@ -17,6 +17,8 @@ import 'package:drawing_notes_app/features/notes/infrastructure/block_doc_search
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
+import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
+import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/features/notes/presentation/onboarding.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
@@ -49,6 +51,8 @@ class HomePage extends StatefulWidget {
     this.docStorage,
     this.themeController,
     this.editorPageBuilder,
+    this.loadDocs,
+    this.onOpenDoc,
   });
 
   final NotebookStorage? notebookStorage;
@@ -63,6 +67,15 @@ class HomePage extends StatefulWidget {
   /// 数据版本通知（shell 在文档新增/修改后自增）：触发首页刷新。
   final ValueListenable<int>? refreshSignal;
 
+  /// 统一数据源（M12.4）：与 All Docs 共用同一装配 loader（buildAllDocs 三源）。
+  /// 笔记 Tab 数据 = 装配结果中 kind∈{note, blockdoc} 的条目——
+  /// 从根本上保证两处列表一致（用户反馈的"页面列表不同步"根因即双源分裂）。
+  final Future<AllDocQueryResult> Function()? loadDocs;
+
+  /// 统一打开路径：与 All Docs 同一回调（note→NotebookViewPage，
+  /// blockdoc→DocPage），保证两处点击行为一致。
+  final void Function(AllDoc doc)? onOpenDoc;
+
   @override
   State<HomePage> createState() => _HomePageState();
 }
@@ -72,7 +85,7 @@ class _HomePageState extends State<HomePage> {
   late final StorageService _docStorage;
   late final NoteBlockDocStore _blockDocStore;
 
-  List<NoteBlockDoc> _notes = [];
+  List<AllDoc> _notes = [];
   List<DocumentMeta> _documents = [];
   bool _loading = true;
   String? _error;
@@ -115,13 +128,35 @@ class _HomePageState extends State<HomePage> {
     });
     try {
       final docs = await _docStorage.listDocuments();
-      final noteIds = await _blockDocStore.listIds();
-      final notes = <NoteBlockDoc>[];
-      for (final id in noteIds) {
-        final d = await _blockDocStore.loadDocument(id);
-        if (d != null) notes.add(d);
+      // 统一数据源（M12.4）：与 All Docs 同一装配；无 loader 时退回块文档单源。
+      List<AllDoc> notes;
+      final loader = widget.loadDocs;
+      if (loader != null) {
+        final result = await loader();
+        notes = result.docs
+            .where(
+              (d) => d.kind == AllDocKind.note || d.kind == AllDocKind.blockdoc,
+            )
+            .toList(growable: false);
+      } else {
+        final noteIds = await _blockDocStore.listIds();
+        notes = <AllDoc>[];
+        for (final id in noteIds) {
+          final d = await _blockDocStore.loadDocument(id);
+          if (d != null) {
+            notes.add(
+              AllDoc(
+                id: d.id,
+                title: d.title,
+                kind: AllDocKind.blockdoc,
+                folder: '',
+                createdAt: d.createdAt,
+                updatedAt: d.updatedAt,
+              ),
+            );
+          }
+        }
       }
-      notes.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       if (!mounted) return;
       setState(() {
         _documents = docs;
