@@ -10,10 +10,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
+import 'package:drawing_notes_app/features/all_docs/infrastructure/tag_store.dart';
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_search.dart';
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_sort.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_docs_sidebar.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_doc_row.dart';
+import 'package:drawing_notes_app/features/all_docs/presentation/tags_view.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 part 'all_docs_page_widgets.dart';
 
@@ -34,6 +36,8 @@ class AllDocsPage extends StatefulWidget {
     required this.loadDocs,
     required this.onOpenDoc,
     this.onNewDoc,
+    this.onOpenTrash,
+    this.loadTags,
     this.onToggleFavorite,
     this.refreshSignal,
   });
@@ -41,6 +45,12 @@ class AllDocsPage extends StatefulWidget {
   final Future<AllDocQueryResult> Function() loadDocs;
   final void Function(AllDoc doc) onOpenDoc;
   final void Function(AllDocKind kind)? onNewDoc;
+
+  /// 打开回收站（M12.6，经侧栏第 4 项）。
+  final VoidCallback? onOpenTrash;
+
+  /// 标签注册表读取（M12.6 标签 Tab）。
+  final Future<List<DocTag>> Function()? loadTags;
   final void Function(AllDoc doc)? onToggleFavorite;
 
   /// 数据版本通知（shell 在文档新增/修改后自增）：触发列表重载。
@@ -129,6 +139,7 @@ class _AllDocsPageState extends State<AllDocsPage> {
         children: [
           // 左侧工作区面板
           AllDocsSidebar(
+            onOpenTrash: widget.onOpenTrash,
             searchQuery: _query,
             onSearchChanged: (q) => setState(() => _query = q),
             selectedNavIndex: _tabIndex,
@@ -178,6 +189,7 @@ class _AllDocsPageState extends State<AllDocsPage> {
                   theme: theme,
                   tabIndex: _tabIndex,
                   sections: sections,
+                  allDocs: result.docs,
                   flatDocs: flatDocs,
                   sort: _sort,
                   onSortChanged: (m) => setState(() => _sort = m),
@@ -185,6 +197,7 @@ class _AllDocsPageState extends State<AllDocsPage> {
                   onNewDoc: widget.onNewDoc,
                   onToggleFavorite: _toggleFavorite,
                   onTabChanged: (i) => setState(() => _tabIndex = i),
+                  loadTags: widget.loadTags,
                 );
               },
             ),

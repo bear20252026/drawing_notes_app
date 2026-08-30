@@ -57,8 +57,10 @@ class TemporaryLaserInk {
     if (elapsed <= laserHoldDuration) return 0;
     final sweepElapsed = elapsed - laserHoldDuration;
     final progress =
-        (sweepElapsed.inMicroseconds / laserSweepDuration.inMicroseconds)
-            .clamp(0.0, 1.0);
+        (sweepElapsed.inMicroseconds / laserSweepDuration.inMicroseconds).clamp(
+          0.0,
+          1.0,
+        );
     return ((count - 1) * progress).floor().clamp(0, count - 1);
   }
 
@@ -66,7 +68,8 @@ class TemporaryLaserInk {
     final elapsed = now.difference(startedAt);
     if (elapsed <= _sweepEnd) return 1;
     final fadeProgress =
-        ((elapsed - _sweepEnd).inMicroseconds / laserFinalFadeDuration.inMicroseconds)
+        ((elapsed - _sweepEnd).inMicroseconds /
+                laserFinalFadeDuration.inMicroseconds)
             .clamp(0.0, 1.0);
     final remaining = 1 - fadeProgress;
     // 末段采用平方 ease-out，保留视觉连续性而不是闪断。

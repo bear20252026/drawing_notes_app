@@ -8,6 +8,8 @@ class _MainContent extends StatelessWidget {
     required this.theme,
     required this.tabIndex,
     required this.sections,
+    required this.allDocs,
+    required this.loadTags,
     required this.onOpenDoc,
     required this.onTabChanged,
     required this.onToggleFavorite,
@@ -19,6 +21,12 @@ class _MainContent extends StatelessWidget {
 
   final ThemeData theme;
   final int tabIndex;
+
+  /// 标签注册表读取（M12.6 标签 Tab）。
+  final Future<List<DocTag>> Function()? loadTags;
+
+  /// 全量文档（标签视图统计/过滤用）。
+  final List<AllDoc> allDocs;
   final List<AllDocSection> sections;
 
   /// 排序模式非 timeGrouped 时的扁平列表（null = 保持分组渲染）。
@@ -52,27 +60,34 @@ class _MainContent extends StatelessWidget {
           onTabChanged: onTabChanged,
         ),
         const Divider(height: 1, thickness: 1),
-        // 分组文档列表
-        Expanded(
-          child: Container(
-            color: surface,
-            child: flatDocs != null
-                ? _SortedDocList(
-                    theme: theme,
-                    docs: flatDocs!,
-                    onOpenDoc: onOpenDoc,
-                    onToggleFavorite: onToggleFavorite,
-                  )
-                : _GroupedDocList(
-                    theme: theme,
-                    tabIndex: tabIndex,
-                    sections: sections,
-                    onOpenDoc: onOpenDoc,
-                    onToggleFavorite: onToggleFavorite,
-                    onNewDoc: onNewDoc,
-                  ),
+        // 标签 Tab：独立视图（M12.6）
+        if (tabIndex == 2)
+          Expanded(
+            child: TagsView(docs: allDocs, loadTags: loadTags),
+          )
+        else
+          // 分组文档列表
+          Expanded(
+            child: Container(
+              color: surface,
+              child: flatDocs != null
+                  ? _SortedDocList(
+                      theme: theme,
+                      docs: flatDocs!,
+                      onOpenDoc: onOpenDoc,
+                      onToggleFavorite: onToggleFavorite,
+                    )
+                  : _GroupedDocList(
+                      theme: theme,
+                      tabIndex: tabIndex,
+                      sections: sections,
+                      allDocs: allDocs,
+                      onOpenDoc: onOpenDoc,
+                      onToggleFavorite: onToggleFavorite,
+                      onNewDoc: onNewDoc,
+                    ),
+            ),
           ),
-        ),
       ],
     );
   }
@@ -314,6 +329,7 @@ class _GroupedDocList extends StatelessWidget {
     required this.theme,
     required this.tabIndex,
     required this.sections,
+    required this.allDocs,
     required this.onOpenDoc,
     required this.onToggleFavorite,
     this.onNewDoc,
@@ -322,6 +338,7 @@ class _GroupedDocList extends StatelessWidget {
   final ThemeData theme;
   final int tabIndex;
   final List<AllDocSection> sections;
+  final List<AllDoc> allDocs;
   final void Function(AllDoc doc) onOpenDoc;
   final void Function(AllDoc doc) onToggleFavorite;
   final void Function(AllDocKind kind)? onNewDoc;
@@ -354,11 +371,6 @@ class _GroupedDocList extends StatelessWidget {
           onToggleFavorite: () => onToggleFavorite(favorites[i]),
         ),
       );
-    }
-
-    if (tabIndex == 2) {
-      // 标签：空态
-      return _TabEmptyState(theme: theme, text: '暂无标签', tip: '使用文件夹与收藏夹整理文档');
     }
 
     // 文档：分组（或全空时的创建引导）

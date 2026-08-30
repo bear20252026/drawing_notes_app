@@ -58,6 +58,13 @@ app（组合根，唯一知道所有实现的地方）
   从 pubspec 与全部 51 个文件移除，全库单一 flutter/material 方言；
   本地化回归测试改写为锁定"单一 delegate"新契约
 
+- ✅ M12.6（AFFiNE 对齐第二批）：
+  - 回收站：NoteBlockDocStore 软删除（trash 子目录 + 30 天惰性清理，与画布 M-06 同策略）+ TrashPage（恢复/彻底删除），侧栏第 4 项进入
+  - 标签：TagStore（all_docs/infrastructure）注册表 + NoteBlockDoc.tags/AllDoc.tags/BlockDocMeta 全链贯通 + DocPage 信息对话框编辑 + All Docs 标签 Tab 过滤
+  - Toggle list：NoteBlockType.toggle + 展开态持久化 props['expanded'] + 子块折叠门控
+  - 导出：域层 note_block_doc_markdown.dart（唯一 Markdown 转换源）+ doc_html_export.dart + doc_export_io.dart（落盘），⋯菜单双导出
+  - 模板库：doc_templates.dart（application 纯 Dart，无 material 依赖，图标由 UI 映射）+ 新建笔记模板对话框
+
 ## 4b. 剩余债务
 
 | 债务 | 位置 | 说明 |

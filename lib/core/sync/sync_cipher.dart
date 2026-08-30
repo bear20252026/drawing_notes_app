@@ -42,8 +42,10 @@ class NoopSyncCipher implements SyncCipher {
       Uint8List.fromList(plain);
 
   @override
-  Future<Uint8List> decryptDocumentBytes(Uint8List cipher, String docId) async =>
-      Uint8List.fromList(cipher);
+  Future<Uint8List> decryptDocumentBytes(
+    Uint8List cipher,
+    String docId,
+  ) async => Uint8List.fromList(cipher);
 
   @override
   Future<String> sealManifestJson(String manifestJson) async => manifestJson;
@@ -72,9 +74,8 @@ class AesSyncCipher implements SyncCipher {
   static const _nameHmacContext = 'drawing-notes|sync|name|';
 
   /// 文档 AAD：绑定 docId。
-  Uint8List _docAad(String docId) => Uint8List.fromList(
-        utf8.encode('$_docAadPrefix$docId$_docAadSuffix'),
-      );
+  Uint8List _docAad(String docId) =>
+      Uint8List.fromList(utf8.encode('$_docAadPrefix$docId$_docAadSuffix'));
 
   @override
   String remotePath(String docId) {
@@ -97,21 +98,35 @@ class AesSyncCipher implements SyncCipher {
   @override
   Future<String> sealManifestJson(String manifestJson) async {
     final bytes = utf8.encode(manifestJson);
-    final cipher = _encrypt(Uint8List.fromList(bytes), _manifestAadBytes, 'sync-manifest');
+    final cipher = _encrypt(
+      Uint8List.fromList(bytes),
+      _manifestAadBytes,
+      'sync-manifest',
+    );
     return cipher.then((c) => utf8.decode(c));
   }
 
   @override
   Future<String> openManifestJson(String sealedJson) async {
     final bytes = utf8.encode(sealedJson);
-    final plain = _decrypt(Uint8List.fromList(bytes), _manifestAadBytes, 'sync-manifest');
+    final plain = _decrypt(
+      Uint8List.fromList(bytes),
+      _manifestAadBytes,
+      'sync-manifest',
+    );
     return plain.then((p) => utf8.decode(p));
   }
 
-  static final Uint8List _manifestAadBytes = Uint8List.fromList(utf8.encode(_manifestAad));
+  static final Uint8List _manifestAadBytes = Uint8List.fromList(
+    utf8.encode(_manifestAad),
+  );
 
   /// 加密并编码为 JSON 字符串（UTF-8 字节承载）。
-  Future<Uint8List> _encrypt(Uint8List plain, Uint8List aad, String mode) async {
+  Future<Uint8List> _encrypt(
+    Uint8List plain,
+    Uint8List aad,
+    String mode,
+  ) async {
     final nonce = _randomBytes(_nonceLength);
     final box = await AesGcm.with256bits().encrypt(
       plain,
@@ -130,7 +145,11 @@ class AesSyncCipher implements SyncCipher {
   }
 
   /// 解码 JSON 字符串并解密（mode 不匹配 / AAD 不符 → 抛异常）。
-  Future<Uint8List> _decrypt(Uint8List cipher, Uint8List aad, String expectedMode) async {
+  Future<Uint8List> _decrypt(
+    Uint8List cipher,
+    Uint8List aad,
+    String expectedMode,
+  ) async {
     final map = jsonDecode(utf8.decode(cipher)) as Map<String, dynamic>;
     final mode = map['mode'];
     if (mode != expectedMode) {

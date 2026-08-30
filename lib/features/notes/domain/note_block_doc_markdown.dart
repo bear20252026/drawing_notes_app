@@ -87,6 +87,10 @@ String _blockToMarkdown(NoteBlock block, {int orderedIndex = 0}) {
     case NoteBlockType.callout:
       return '> [!NOTE]\n> ${block.text}';
 
+    case NoteBlockType.toggle:
+      // Markdown 无 toggle 语义，导出为带标记的列表项（信息不丢失）。
+      return '- ▸ ${block.text}';
+
     case NoteBlockType.image:
       final src = block.props['src'] as String? ?? '';
       final alt = block.props['alt'] as String? ?? block.text;
@@ -118,8 +122,8 @@ String _blockToMarkdown(NoteBlock block, {int orderedIndex = 0}) {
       if (raw != null) {
         try {
           final m = jsonDecode(raw) as Map<String, dynamic>;
-          link =
-              (m['url'] as String? ?? m['filePath'] as String? ?? '').toString();
+          link = (m['url'] as String? ?? m['filePath'] as String? ?? '')
+              .toString();
         } catch (_) {
           // ignored
         }
@@ -191,11 +195,13 @@ NoteBlockDoc noteBlockDocFromMarkdown(String md, {String? id}) {
     if (headingMatch != null) {
       final level = headingMatch.group(1)!.length;
       final text = headingMatch.group(2)!.trim();
-      blocks.add(NoteBlock.headingBlock(
-        'h_${i}_${_shortId()}',
-        level: level,
-        text: text,
-      ));
+      blocks.add(
+        NoteBlock.headingBlock(
+          'h_${i}_${_shortId()}',
+          level: level,
+          text: text,
+        ),
+      );
       i++;
       continue;
     }
@@ -210,11 +216,13 @@ NoteBlockDoc noteBlockDocFromMarkdown(String md, {String? id}) {
         i++;
       }
       if (i < lines.length) i++; // 跳过结束围栏
-      blocks.add(NoteBlock.codeBlock(
-        'code_${i}_${_shortId()}',
-        language: lang,
-        text: codeLines.join('\n'),
-      ));
+      blocks.add(
+        NoteBlock.codeBlock(
+          'code_${i}_${_shortId()}',
+          language: lang,
+          text: codeLines.join('\n'),
+        ),
+      );
       continue;
     }
 
@@ -225,10 +233,12 @@ NoteBlockDoc noteBlockDocFromMarkdown(String md, {String? id}) {
         quoteLines.add(lines[i].trim().substring(1).trim());
         i++;
       }
-      blocks.add(NoteBlock.quoteBlock(
-        'q_${i}_${_shortId()}',
-        text: quoteLines.join('\n'),
-      ));
+      blocks.add(
+        NoteBlock.quoteBlock(
+          'q_${i}_${_shortId()}',
+          text: quoteLines.join('\n'),
+        ),
+      );
       continue;
     }
 
@@ -237,11 +247,13 @@ NoteBlockDoc noteBlockDocFromMarkdown(String md, {String? id}) {
     if (todoMatch != null) {
       final checked = todoMatch.group(1)!.toLowerCase() == 'x';
       final text = todoMatch.group(2)!.trim();
-      blocks.add(NoteBlock.todoBlock(
-        'todo_${i}_${_shortId()}',
-        checked: checked,
-        text: text,
-      ));
+      blocks.add(
+        NoteBlock.todoBlock(
+          'todo_${i}_${_shortId()}',
+          checked: checked,
+          text: text,
+        ),
+      );
       i++;
       continue;
     }
@@ -249,10 +261,7 @@ NoteBlockDoc noteBlockDocFromMarkdown(String md, {String? id}) {
     // 无序列表
     if (RegExp(r'^[-*+]\s+(.*)').hasMatch(line.trim())) {
       final text = line.trim().replaceFirst(RegExp(r'^[-*+]\s+'), '');
-      blocks.add(NoteBlock.bulletBlock(
-        'ul_${i}_${_shortId()}',
-        text: text,
-      ));
+      blocks.add(NoteBlock.bulletBlock('ul_${i}_${_shortId()}', text: text));
       i++;
       continue;
     }
@@ -261,31 +270,29 @@ NoteBlockDoc noteBlockDocFromMarkdown(String md, {String? id}) {
     final orderedMatch = RegExp(r'^(\d+)\.\s+(.*)').firstMatch(line.trim());
     if (orderedMatch != null) {
       final text = orderedMatch.group(2)!.trim();
-      blocks.add(NoteBlock.orderedBlock(
-        'ol_${i}_${_shortId()}',
-        text: text,
-      ));
+      blocks.add(NoteBlock.orderedBlock('ol_${i}_${_shortId()}', text: text));
       i++;
       continue;
     }
 
     // 图片
-    final imgMatch = RegExp(r'^!\[([^\]]*)\]\(([^)]+)\)').firstMatch(line.trim());
+    final imgMatch = RegExp(
+      r'^!\[([^\]]*)\]\(([^)]+)\)',
+    ).firstMatch(line.trim());
     if (imgMatch != null) {
-      blocks.add(NoteBlock.imageBlock(
-        'img_${i}_${_shortId()}',
-        src: imgMatch.group(2)!,
-        alt: imgMatch.group(1)!,
-      ));
+      blocks.add(
+        NoteBlock.imageBlock(
+          'img_${i}_${_shortId()}',
+          src: imgMatch.group(2)!,
+          alt: imgMatch.group(1)!,
+        ),
+      );
       i++;
       continue;
     }
 
     // 普通段落
-    blocks.add(NoteBlock.textBlock(
-      'p_${i}_${_shortId()}',
-      text: line.trim(),
-    ));
+    blocks.add(NoteBlock.textBlock('p_${i}_${_shortId()}', text: line.trim()));
     i++;
   }
 

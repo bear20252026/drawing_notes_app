@@ -62,8 +62,7 @@ class AllDocSection {
   int get hashCode => Object.hash(group, label, Object.hashAll(docs));
 
   @override
-  String toString() =>
-      'AllDocSection($group, $label, ${docs.length} docs)';
+  String toString() => 'AllDocSection($group, $label, ${docs.length} docs)';
 }
 
 /// 统一文档条目：把画布、笔记页、块文档统一成一种视图模型。
@@ -75,6 +74,7 @@ class AllDoc {
     required this.title,
     required this.kind,
     required this.folder,
+    this.tags = const [],
     required this.createdAt,
     required this.updatedAt,
     this.description = '',
@@ -95,6 +95,9 @@ class AllDoc {
 
   /// 所属文件夹路径（空串表示根目录）。
   final String folder;
+
+  /// 标签 id 列表（M12.6，仅打字笔记支持）。
+  final List<String> tags;
 
   /// 创建时间。
   final DateTime createdAt;
@@ -168,18 +171,18 @@ class AllDoc {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        title,
-        kind,
-        folder,
-        createdAt,
-        updatedAt,
-        description,
-        isFavorite,
-        notebookId,
-        pageId,
-        drawingId,
-      );
+    id,
+    title,
+    kind,
+    folder,
+    createdAt,
+    updatedAt,
+    description,
+    isFavorite,
+    notebookId,
+    pageId,
+    drawingId,
+  );
 
   @override
   String toString() => 'AllDoc(${kind.name}:$id, $title)';
@@ -202,8 +205,7 @@ int _daysBetween(DateTime a, DateTime b) {
 /// - [AllDocGroup.today]：updatedAt 与 now 同一天。/// - [AllDocGroup.thisWeek]：updatedAt 在本周内（非今天，7 天内）。/// - [AllDocGroup.earlier]：updatedAt 在 7 天前或更早。/// - [AllDocGroup.neverUpdated]：updatedAt == createdAt 且 createdAt 早于今天///   （从未编辑过）。
 AllDocGroup groupOf(AllDoc doc, {required DateTime now}) {
   // 从未更新：创建后从未编辑过（updatedAt == createdAt 且早于今天）。
-  if (_sameDay(doc.createdAt, doc.updatedAt) &&
-      !_sameDay(doc.createdAt, now)) {
+  if (_sameDay(doc.createdAt, doc.updatedAt) && !_sameDay(doc.createdAt, now)) {
     return AllDocGroup.neverUpdated;
   }
 

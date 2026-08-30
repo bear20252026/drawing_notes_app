@@ -23,6 +23,7 @@ import 'package:drawing_notes_app/features/notes/presentation/onboarding.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 import 'package:drawing_notes_app/features/notes/presentation/password_disk_page.dart';
+import 'package:drawing_notes_app/features/doc/application/doc_templates.dart';
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/search_page.dart';
@@ -248,7 +249,33 @@ class _HomePageState extends State<HomePage> {
   // ---------------- 笔记本 ----------------
 
   Future<void> _createNote() async {
-    final doc = NoteBlockDoc.empty(NoteBlockDocStore.newId());
+    // M12.6 模板库：新建时选择模板（空白/会议纪要/每日日志/待办清单）。
+    final template = await showDialog<DocTemplate>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('选择笔记模板'),
+        children: [
+          for (final t in DocTemplate.values)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(ctx).pop(t),
+              child: ListTile(
+                leading: Icon(_templateIcon(t)),
+                title: Text(t.label),
+                subtitle: Text(t.description),
+              ),
+            ),
+        ],
+      ),
+    );
+    if (template == null || !mounted) return;
+
+    var blockId = 0;
+    final doc = NoteBlockDoc(
+      id: NoteBlockDocStore.newId(),
+      body: buildTemplateBody(template, () => 'block_${blockId++}'),
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
     await _blockDocStore.saveDocument(doc);
     if (!mounted) return;
     await Navigator.of(context).push(
@@ -262,6 +289,20 @@ class _HomePageState extends State<HomePage> {
       ),
     );
     await _refresh();
+  }
+
+  /// 模板 → 图标（application 层不依赖 material，图标在展示层映射）。
+  IconData _templateIcon(DocTemplate t) {
+    switch (t) {
+      case DocTemplate.blank:
+        return Icons.crop_square_rounded;
+      case DocTemplate.meeting:
+        return Icons.groups_rounded;
+      case DocTemplate.daily:
+        return Icons.today_rounded;
+      case DocTemplate.todoList:
+        return Icons.checklist_rounded;
+    }
   }
 
   // ---------------- 通用 ----------------

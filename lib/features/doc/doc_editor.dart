@@ -758,6 +758,8 @@ class DocEditorState extends State<DocEditor> {
     switch (type) {
       case NoteBlockType.heading:
         return NoteBlock.headingBlock(id, level: 1, text: text);
+      case NoteBlockType.toggle:
+        return NoteBlock.toggleBlock(id, text: text);
       case NoteBlockType.bullet:
         return NoteBlock.bulletBlock(id, text: text);
       case NoteBlockType.ordered:
@@ -847,6 +849,20 @@ class DocEditorState extends State<DocEditor> {
     });
     // 推入撤销历史
     _commitHistory();
+  }
+
+  /// 切换 toggle 块的展开/折叠（展开态持久化在 props，随文档保存；
+  /// 折叠不改变内容，不入撤销历史——与 AFFiNE 一致）。
+  void _toggleToggleExpanded(String blockId) {
+    final block = _editor.findBlock(_root, blockId);
+    if (block == null || block.type != NoteBlockType.toggle) return;
+    setState(() {
+      final expanded = block.props['expanded'] as bool? ?? true;
+      _root = _editor.updateProps(_root, blockId, {
+        ...block.props,
+        'expanded': !expanded,
+      });
+    });
   }
 
   /// 更新未保存状态（基于 body 签名比对）。
@@ -1421,7 +1437,10 @@ class DocEditorState extends State<DocEditor> {
                   ),
                 ),
                 // ── 嵌套子块（缩进渲染，不可整行拖拽）────────────────
-                if (block.children.isNotEmpty)
+                // toggle 块折叠时不渲染子块（AFFiNE Toggle list 语义）。
+                if (block.children.isNotEmpty &&
+                    (block.type != NoteBlockType.toggle ||
+                        (block.props['expanded'] as bool? ?? true)))
                   Padding(
                     padding: const EdgeInsets.only(left: 20),
                     child: Column(
@@ -1637,6 +1656,7 @@ class DocEditorState extends State<DocEditor> {
       NoteBlockType.ordered => '有序列表',
       NoteBlockType.divider => '分割线',
       NoteBlockType.callout => '提示',
+      NoteBlockType.toggle => '切换列表',
       NoteBlockType.image => '图片',
       _ => '段落',
     };
@@ -1683,6 +1703,21 @@ class DocEditorState extends State<DocEditor> {
         );
       case NoteBlockType.divider:
         return const SizedBox.shrink();
+      case NoteBlockType.toggle:
+        final expanded = block.props['expanded'] as bool? ?? true;
+        return Padding(
+          padding: const EdgeInsets.only(top: 6, right: 2),
+          child: GestureDetector(
+            onTap: () => _toggleToggleExpanded(block.id),
+            child: Icon(
+              expanded
+                  ? Icons.keyboard_arrow_down_rounded
+                  : Icons.keyboard_arrow_right_rounded,
+              size: 22,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        );
       default:
         return const SizedBox(width: 8);
     }
@@ -1877,6 +1912,8 @@ class DocEditorState extends State<DocEditor> {
         return '列表项';
       case NoteBlockType.todo:
         return '待办事项';
+      case NoteBlockType.toggle:
+        return '切换列表';
       case NoteBlockType.quote:
         return '引用';
       case NoteBlockType.code:

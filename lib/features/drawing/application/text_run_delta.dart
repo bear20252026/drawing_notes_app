@@ -38,10 +38,7 @@ class TextRunDeltaCodec {
       if (run.color != null) {
         attrs[kAttrColor] = _colorToHex(run.color!);
       }
-      ops.add({
-        'insert': run.text,
-        if (attrs.isNotEmpty) 'attributes': attrs,
-      });
+      ops.add({'insert': run.text, if (attrs.isNotEmpty) 'attributes': attrs});
     }
     return ops;
   }
@@ -55,16 +52,18 @@ class TextRunDeltaCodec {
       final insert = op['insert'];
       if (insert is! String || insert.isEmpty) continue;
       final attrs = (op['attributes'] as Map?) ?? const <String, dynamic>{};
-      runs.add(TextRun(
-        text: insert,
-        bold: attrs[kAttrBold] == true,
-        italic: attrs[kAttrItalic] == true,
-        underline: attrs[kAttrUnderline] == true,
-        strikethrough: attrs[kAttrStrike] == true,
-        color: attrs[kAttrColor] is String
-            ? _hexToColor(attrs[kAttrColor] as String)
-            : null,
-      ));
+      runs.add(
+        TextRun(
+          text: insert,
+          bold: attrs[kAttrBold] == true,
+          italic: attrs[kAttrItalic] == true,
+          underline: attrs[kAttrUnderline] == true,
+          strikethrough: attrs[kAttrStrike] == true,
+          color: attrs[kAttrColor] is String
+              ? _hexToColor(attrs[kAttrColor] as String)
+              : null,
+        ),
+      );
     }
     return runs;
   }

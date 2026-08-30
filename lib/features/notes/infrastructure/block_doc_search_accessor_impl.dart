@@ -16,7 +16,7 @@ import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_s
 class BlockDocSearchAccessorImpl implements IBlockDocSearchAccessor {
   /// 创建访问器，可注入 [NoteBlockDocStore]（测试用临时目录/生产用默认）。
   BlockDocSearchAccessorImpl({NoteBlockDocStore? store})
-      : _store = store ?? NoteBlockDocStore();
+    : _store = store ?? NoteBlockDocStore();
 
   final NoteBlockDocStore _store;
 

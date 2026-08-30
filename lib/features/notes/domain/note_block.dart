@@ -39,6 +39,9 @@ enum NoteBlockType {
   /// 标注块。
   callout,
 
+  /// 切换列表（M12.6，AFFiNE Toggle list：可折叠，子块受 expanded 控制）。
+  toggle,
+
   /// 内嵌画板（我们的画布能力，payload 存 props['document']）。
   canvas,
 
@@ -104,21 +107,38 @@ class NoteBlock {
   factory NoteBlock.textBlock(String id, {String text = ''}) =>
       NoteBlock(id: id, type: NoteBlockType.text, text: text);
 
-  factory NoteBlock.headingBlock(String id, {required int level, String text = ''}) =>
-      NoteBlock(
-        id: id,
-        type: NoteBlockType.heading,
-        text: text,
-        props: {'level': level.clamp(1, 6)},
-      );
+  factory NoteBlock.headingBlock(
+    String id, {
+    required int level,
+    String text = '',
+  }) => NoteBlock(
+    id: id,
+    type: NoteBlockType.heading,
+    text: text,
+    props: {'level': level.clamp(1, 6)},
+  );
 
-  factory NoteBlock.todoBlock(String id, {String text = '', bool checked = false}) =>
-      NoteBlock(
-        id: id,
-        type: NoteBlockType.todo,
-        text: text,
-        props: {'checked': checked},
-      );
+  factory NoteBlock.todoBlock(
+    String id, {
+    String text = '',
+    bool checked = false,
+  }) => NoteBlock(
+    id: id,
+    type: NoteBlockType.todo,
+    text: text,
+    props: {'checked': checked},
+  );
+
+  factory NoteBlock.toggleBlock(
+    String id, {
+    String text = '',
+    bool expanded = true,
+  }) => NoteBlock(
+    id: id,
+    type: NoteBlockType.toggle,
+    text: text,
+    props: {'expanded': expanded},
+  );
 
   factory NoteBlock.bulletBlock(String id, {String text = ''}) =>
       NoteBlock(id: id, type: NoteBlockType.bullet, text: text);
@@ -126,13 +146,16 @@ class NoteBlock {
   factory NoteBlock.orderedBlock(String id, {String text = ''}) =>
       NoteBlock(id: id, type: NoteBlockType.ordered, text: text);
 
-  factory NoteBlock.codeBlock(String id, {String text = '', String? language}) =>
-      NoteBlock(
-        id: id,
-        type: NoteBlockType.code,
-        text: text,
-        props: language != null ? {'language': language} : const {},
-      );
+  factory NoteBlock.codeBlock(
+    String id, {
+    String text = '',
+    String? language,
+  }) => NoteBlock(
+    id: id,
+    type: NoteBlockType.code,
+    text: text,
+    props: language != null ? {'language': language} : const {},
+  );
 
   factory NoteBlock.quoteBlock(String id, {String text = ''}) =>
       NoteBlock(id: id, type: NoteBlockType.quote, text: text);
@@ -148,12 +171,14 @@ class NoteBlock {
       );
 
   /// 创建附件块（payload 存 props['attachment']）。
-  factory NoteBlock.attachmentBlock(String id, {required NoteAttachment attachment}) =>
-      NoteBlock(
-        id: id,
-        type: NoteBlockType.attachment,
-        props: {'attachment': jsonEncode(attachment.toJson())},
-      );
+  factory NoteBlock.attachmentBlock(
+    String id, {
+    required NoteAttachment attachment,
+  }) => NoteBlock(
+    id: id,
+    type: NoteBlockType.attachment,
+    props: {'attachment': jsonEncode(attachment.toJson())},
+  );
 
   // ── 不可变更新 ─────────────────────────────────────────────
 
@@ -164,14 +189,13 @@ class NoteBlock {
     String? text,
     NoteBlockProps? props,
     List<NoteBlock>? children,
-  }) =>
-      NoteBlock(
-        id: id ?? this.id,
-        type: type ?? this.type,
-        text: text ?? this.text,
-        props: props ?? this.props,
-        children: children ?? this.children,
-      );
+  }) => NoteBlock(
+    id: id ?? this.id,
+    type: type ?? this.type,
+    text: text ?? this.text,
+    props: props ?? this.props,
+    children: children ?? this.children,
+  );
 
   /// 是否包含子块。
   bool get hasChildren => children.isNotEmpty;
@@ -223,7 +247,13 @@ class NoteBlock {
           _childrenEqual(children, other.children);
 
   @override
-  int get hashCode => Object.hash(id, type, text, Object.hashAll(props.entries), Object.hashAll(children));
+  int get hashCode => Object.hash(
+    id,
+    type,
+    text,
+    Object.hashAll(props.entries),
+    Object.hashAll(children),
+  );
 
   @override
   String toString() => 'NoteBlock(id: $id, type: ${type.name}, text: "$text")';

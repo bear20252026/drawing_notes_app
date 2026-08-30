@@ -129,11 +129,7 @@ class NoteBlockEditor {
   }
 
   /// 更新 [blockId] 的 props（合并方式）。
-  NoteBlock updateProps(
-    NoteBlock root,
-    String blockId,
-    NoteBlockProps props,
-  ) {
+  NoteBlock updateProps(NoteBlock root, String blockId, NoteBlockProps props) {
     return _mapNode(root, (node) {
       if (node.id != blockId) return node;
       final merged = NoteBlockProps.from(node.props)..addAll(props);
@@ -201,7 +197,8 @@ class NoteBlockEditor {
     if (target == null || !target.isTextual) return root;
     if (textOffset < 0 || textOffset > target.text.length) return root;
 
-    final newId = idGenerator?.call(blockId, textOffset) ??
+    final newId =
+        idGenerator?.call(blockId, textOffset) ??
         '${blockId}_split_$textOffset';
     final firstText = target.text.substring(0, textOffset);
     final secondText = target.text.substring(textOffset);

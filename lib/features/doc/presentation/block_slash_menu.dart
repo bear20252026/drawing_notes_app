@@ -188,6 +188,13 @@ class BlockSlashMenu extends StatefulWidget {
       description: '数据库视图',
     ),
     SlashItem(
+      type: NoteBlockType.toggle,
+      label: '切换列表',
+      icon: Icons.expand_more,
+      group: SlashItemGroup.basic,
+      description: '可折叠列表',
+    ),
+    SlashItem(
       type: NoteBlockType.divider,
       label: '分割线',
       icon: Icons.horizontal_rule,

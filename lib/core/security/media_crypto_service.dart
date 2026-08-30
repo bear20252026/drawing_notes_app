@@ -43,10 +43,7 @@ class MediaCryptoService {
       macAlgorithm: Hmac.sha256(),
       iterations: 600000,
       bits: 256,
-    ).deriveKeyFromPassword(
-      password: password,
-      nonce: salt,
-    );
+    ).deriveKeyFromPassword(password: password, nonce: salt);
     _sessionKey = List.of(await key.extractBytes());
   }
 
@@ -82,11 +79,7 @@ class MediaCryptoService {
       nonce: nonce,
       aad: _currentAad,
     );
-    return Uint8List.fromList([
-      ...nonce,
-      ...box.cipherText,
-      ...box.mac.bytes,
-    ]);
+    return Uint8List.fromList([...nonce, ...box.cipherText, ...box.mac.bytes]);
   }
 
   /// 解密媒体字节（EncryptedFileImage 渲染用）；密钥错误/损坏抛异常。
@@ -126,10 +119,7 @@ class MediaCryptoService {
 
   Uint8List get _currentAad => _notebookId == null
       ? _mediaAad
-      : Uint8List.fromList([
-          ..._mediaAad,
-          ...utf8.encode('|$_notebookId'),
-        ]);
+      : Uint8List.fromList([..._mediaAad, ...utf8.encode('|$_notebookId')]);
 
   /// 媒体密文文件头魔数（H-03 双端接入 2026-08-15）：AES 密文与随机噪声
   /// 不可区分（无法用图片魔数检测）——用应用层文件头标记密文。

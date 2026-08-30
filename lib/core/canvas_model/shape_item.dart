@@ -171,8 +171,7 @@ class PageShapeItem {
     'version': version,
     'versionNonce': versionNonce,
     if (fractionalIndex != null) 'fractionalIndex': fractionalIndex,
-    if (lineStart != null)
-      'lineStart': [lineStart!.dx, lineStart!.dy],
+    if (lineStart != null) 'lineStart': [lineStart!.dx, lineStart!.dy],
     if (lineEnd != null) 'lineEnd': [lineEnd!.dx, lineEnd!.dy],
   };
 

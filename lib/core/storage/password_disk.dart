@@ -82,10 +82,7 @@ class PasswordDiskFile {
   }
 
   /// PIN 保护 v2 解码：PIN 正确返回主密钥，错误/损坏返回 null。
-  static Future<List<int>?> decodeWithPin(
-    List<int> bytes,
-    String pin,
-  ) async {
+  static Future<List<int>?> decodeWithPin(List<int> bytes, String pin) async {
     if (bytes.length < 6 ||
         bytes[0] != _magic[0] ||
         bytes[1] != _magic[1] ||
@@ -179,7 +176,10 @@ class RealPasswordDisk implements PasswordDisk {
     final file = File('$dir${Platform.pathSeparator}key.frogkey');
     if (!await file.exists()) return null;
     try {
-      return await PasswordDiskFile.decodeWithPin(await file.readAsBytes(), pin);
+      return await PasswordDiskFile.decodeWithPin(
+        await file.readAsBytes(),
+        pin,
+      );
     } catch (_) {
       return null;
     }
@@ -279,7 +279,10 @@ class MockPasswordDisk implements PasswordDisk {
     final file = File('$dir${Platform.pathSeparator}key.frogkey');
     if (!await file.exists()) return null;
     try {
-      return await PasswordDiskFile.decodeWithPin(await file.readAsBytes(), pin);
+      return await PasswordDiskFile.decodeWithPin(
+        await file.readAsBytes(),
+        pin,
+      );
     } catch (_) {
       return null;
     }

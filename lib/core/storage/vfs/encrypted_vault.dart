@@ -19,11 +19,9 @@ import 'package:drawing_notes_app/core/storage/vfs/vault_manifest.dart';
 ///
 /// 存储布局：目录下 manifest.json + objects/ 目录（id.version 密文文件）。
 class EncryptedVault {
-  EncryptedVault({
-    required this.directory,
-    required this.key,
-  })  : assert(key.length == 32, 'VFS 密钥须为 32 字节'),
-        _aes = AesGcm.with256bits();
+  EncryptedVault({required this.directory, required this.key})
+    : assert(key.length == 32, 'VFS 密钥须为 32 字节'),
+      _aes = AesGcm.with256bits();
 
   final Directory directory;
   final List<int> key;
@@ -37,8 +35,7 @@ class EncryptedVault {
       File('${directory.path}/objects/$id.$version');
 
   /// AAD 上下文（应用|用途|对象 ID|版本——防拼接/重排/回滚）。
-  String _aad(String id, int version) =>
-      'drawing-notes|vault|$id|$version';
+  String _aad(String id, int version) => 'drawing-notes|vault|$id|$version';
 
   /// 写入对象（加密 + 清单更新 + 原子提交——版本递增；幂等：同内容
   /// 重复写无副作用——腾讯云 Git 模式）。
@@ -60,7 +57,11 @@ class EncryptedVault {
       nonce: nonce,
       aad: utf8.encode(aad),
     );
-    final cipher = Uint8List.fromList([...nonce, ...box.cipherText, ...box.mac.bytes]);
+    final cipher = Uint8List.fromList([
+      ...nonce,
+      ...box.cipherText,
+      ...box.mac.bytes,
+    ]);
 
     // 原子提交：写对象密文（.tmp → rename）→ 更新清单 → 原子写清单。
     final objectDir = Directory('${directory.path}/objects');
@@ -127,7 +128,9 @@ class EncryptedVault {
     // 目录预创建（腾讯云 Git 五细节）：id 可含 usecase 子路径
     // （'media/note-1' → objects/media/note-1.1）——写前确保父目录存在。
     await target.parent.create(recursive: true);
-    final tmp = File('${target.path}.tmp.${DateTime.now().microsecondsSinceEpoch}');
+    final tmp = File(
+      '${target.path}.tmp.${DateTime.now().microsecondsSinceEpoch}',
+    );
     await tmp.writeAsBytes(data, flush: true);
     try {
       await tmp.rename(target.path);
@@ -136,7 +139,9 @@ class EncryptedVault {
       if (await tmp.exists()) {
         try {
           await tmp.delete();
-        } catch (_) {/* 忽略清理失败 */}
+        } catch (_) {
+          /* 忽略清理失败 */
+        }
       }
       if (await target.exists()) return; // 幂等：目标已写入成功。
       rethrow;

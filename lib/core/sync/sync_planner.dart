@@ -14,7 +14,8 @@ class SyncSnapshot {
   final int updatedAt;
   final int size;
 
-  SyncSnapshot copyWith({String? id, int? updatedAt, int? size}) => SyncSnapshot(
+  SyncSnapshot copyWith({String? id, int? updatedAt, int? size}) =>
+      SyncSnapshot(
         id: id ?? this.id,
         updatedAt: updatedAt ?? this.updatedAt,
         size: size ?? this.size,
@@ -39,10 +40,7 @@ class SyncSnapshot {
 
 /// 同步清单：文档集 + 本地删除墓碑。
 class SyncManifest {
-  const SyncManifest({
-    this.entries = const {},
-    this.deletedIds = const {},
-  });
+  const SyncManifest({this.entries = const {}, this.deletedIds = const {}});
 
   /// 文档 id → 快照。
   final Map<String, SyncSnapshot> entries;
@@ -51,17 +49,17 @@ class SyncManifest {
   final Set<String> deletedIds;
 
   Map<String, dynamic> toJson() => {
-        'entries': entries.map((k, v) => MapEntry(k, _snapshotToJson(v))),
-        'deletedIds': deletedIds.toList(),
-      };
+    'entries': entries.map((k, v) => MapEntry(k, _snapshotToJson(v))),
+    'deletedIds': deletedIds.toList(),
+  };
 
   factory SyncManifest.fromJson(Map<String, dynamic> json) {
     final rawEntries = json['entries'];
     Map<String, SyncSnapshot> parsedEntries;
     if (rawEntries is Map) {
       parsedEntries = rawEntries.map(
-        (k, v) => MapEntry(
-            k as String, _snapshotFromJson(v as Map<String, dynamic>)),
+        (k, v) =>
+            MapEntry(k as String, _snapshotFromJson(v as Map<String, dynamic>)),
       );
     } else if (rawEntries is List) {
       // 兼容数组形式 [{id, updatedAt, size}, ...]
@@ -79,12 +77,13 @@ class SyncManifest {
   }
 
   static Map<String, dynamic> _snapshotToJson(SyncSnapshot s) => {
-        'id': s.id,
-        'updatedAt': s.updatedAt,
-        'size': s.size,
-      };
+    'id': s.id,
+    'updatedAt': s.updatedAt,
+    'size': s.size,
+  };
 
-  static SyncSnapshot _snapshotFromJson(Map<String, dynamic> json) => SyncSnapshot(
+  static SyncSnapshot _snapshotFromJson(Map<String, dynamic> json) =>
+      SyncSnapshot(
         id: json['id'] as String,
         updatedAt: json['updatedAt'] as int,
         size: (json['size'] as num?)?.toInt() ?? 0,
@@ -188,9 +187,12 @@ class SyncPlanner {
     downloads.sort();
 
     final ordered = <SyncOperation>[
-      for (final id in deletes) SyncOperation(kind: SyncOperationKind.deleteRemote, id: id),
-      for (final id in uploads) SyncOperation(kind: SyncOperationKind.upload, id: id),
-      for (final id in downloads) SyncOperation(kind: SyncOperationKind.download, id: id),
+      for (final id in deletes)
+        SyncOperation(kind: SyncOperationKind.deleteRemote, id: id),
+      for (final id in uploads)
+        SyncOperation(kind: SyncOperationKind.upload, id: id),
+      for (final id in downloads)
+        SyncOperation(kind: SyncOperationKind.download, id: id),
     ];
 
     return SyncPlan(operations: ordered);

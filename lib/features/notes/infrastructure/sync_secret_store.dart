@@ -10,10 +10,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 ///
 /// 仅承载机密字段；非机密配置（baseUrl/username/syncSalt）留在 WebDavSyncConfig。
 class SyncSecrets {
-  const SyncSecrets({
-    this.webdavPassword,
-    this.syncPassphrase,
-  });
+  const SyncSecrets({this.webdavPassword, this.syncPassphrase});
 
   /// WebDAV 认证密码。
   final String? webdavPassword;
@@ -36,15 +33,14 @@ class SyncSecrets {
   SyncSecrets copyWith({
     Object? webdavPassword = _unset,
     Object? syncPassphrase = _unset,
-  }) =>
-      SyncSecrets(
-        webdavPassword: identical(webdavPassword, _unset)
-            ? this.webdavPassword
-            : webdavPassword as String?,
-        syncPassphrase: identical(syncPassphrase, _unset)
-            ? this.syncPassphrase
-            : syncPassphrase as String?,
-      );
+  }) => SyncSecrets(
+    webdavPassword: identical(webdavPassword, _unset)
+        ? this.webdavPassword
+        : webdavPassword as String?,
+    syncPassphrase: identical(syncPassphrase, _unset)
+        ? this.syncPassphrase
+        : syncPassphrase as String?,
+  );
 
   /// copyWith 默认值哨兵：区分「未传参（保留原值）」与「传 null（清空）」。
   static const Object _unset = Object();
@@ -84,7 +80,7 @@ abstract class SyncSecretStore {
 /// 把机密存入 OS 凭据库（iOS Keychain / Android Keystore 等）。
 class SecureSyncSecretStore implements SyncSecretStore {
   SecureSyncSecretStore({FlutterSecureStorage? storage})
-      : _storage = storage ?? const FlutterSecureStorage();
+    : _storage = storage ?? const FlutterSecureStorage();
 
   final FlutterSecureStorage _storage;
 
@@ -106,13 +102,19 @@ class SecureSyncSecretStore implements SyncSecretStore {
     if (secrets.webdavPassword == null || secrets.webdavPassword!.isEmpty) {
       await _storage.delete(key: _keyWebdavPassword);
     } else {
-      await _storage.write(key: _keyWebdavPassword, value: secrets.webdavPassword);
+      await _storage.write(
+        key: _keyWebdavPassword,
+        value: secrets.webdavPassword,
+      );
     }
 
     if (secrets.syncPassphrase == null || secrets.syncPassphrase!.isEmpty) {
       await _storage.delete(key: _keySyncPassphrase);
     } else {
-      await _storage.write(key: _keySyncPassphrase, value: secrets.syncPassphrase);
+      await _storage.write(
+        key: _keySyncPassphrase,
+        value: secrets.syncPassphrase,
+      );
     }
   }
 
@@ -125,7 +127,8 @@ class SecureSyncSecretStore implements SyncSecretStore {
 
 /// 内存机密存储实现（供测试替身或临时会话）。
 class MemorySyncSecretStore implements SyncSecretStore {
-  MemorySyncSecretStore([SyncSecrets? initial]) : _secrets = initial ?? const SyncSecrets();
+  MemorySyncSecretStore([SyncSecrets? initial])
+    : _secrets = initial ?? const SyncSecrets();
 
   SyncSecrets _secrets;
 

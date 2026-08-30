@@ -27,10 +27,7 @@ NoteBlockDoc migrateNotebookPage(
   // 1. 文字项 → text 块
   for (var i = 0; i < page.textItems.length; i++) {
     final item = page.textItems[i];
-    blocks.add(NoteBlock.textBlock(
-      '${page.id}_text_$i',
-      text: item.text,
-    ));
+    blocks.add(NoteBlock.textBlock('${page.id}_text_$i', text: item.text));
   }
 
   // 2. 空文档兜底：至少一个空 text 块
@@ -40,22 +37,26 @@ NoteBlockDoc migrateNotebookPage(
 
   // 3. 画布内容 → canvas 块
   if (!_isDocumentEmpty(page.document)) {
-    blocks.add(NoteBlock(
-      id: '${page.id}_canvas',
-      type: NoteBlockType.canvas,
-      props: {'document': page.document.toJson()},
-    ));
+    blocks.add(
+      NoteBlock(
+        id: '${page.id}_canvas',
+        type: NoteBlockType.canvas,
+        props: {'document': page.document.toJson()},
+      ),
+    );
   }
 
   // 4. 可选：图表 → chart 块
   if (includeCharts && page.charts.isNotEmpty) {
     for (var i = 0; i < page.charts.length; i++) {
       final chart = page.charts[i];
-      blocks.add(NoteBlock(
-        id: '${page.id}_chart_$i',
-        type: NoteBlockType.chart,
-        props: {'chart': chart.toJson()},
-      ));
+      blocks.add(
+        NoteBlock(
+          id: '${page.id}_chart_$i',
+          type: NoteBlockType.chart,
+          props: {'chart': chart.toJson()},
+        ),
+      );
     }
   }
 
@@ -63,11 +64,13 @@ NoteBlockDoc migrateNotebookPage(
   if (includeImages && page.imageItems.isNotEmpty) {
     for (var i = 0; i < page.imageItems.length; i++) {
       final image = page.imageItems[i];
-      blocks.add(NoteBlock(
-        id: '${page.id}_image_$i',
-        type: NoteBlockType.image,
-        props: {'image': image.toJson()},
-      ));
+      blocks.add(
+        NoteBlock(
+          id: '${page.id}_image_$i',
+          type: NoteBlockType.image,
+          props: {'image': image.toJson()},
+        ),
+      );
     }
   }
 

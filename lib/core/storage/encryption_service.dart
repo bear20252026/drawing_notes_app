@@ -80,11 +80,7 @@ class EncryptionService {
     // 按 v 字段分派迭代次数：v≥3 用 60 万次（新数据），v≤2/无 v 用 10 万次（旧数据兼容）。
     final v = map['v'] is int ? map['v'] as int : 2;
     _requireKnownVersion(v);
-    final key = await _deriveKey(
-      password,
-      salt,
-      iterations: _iterationsFor(v),
-    );
+    final key = await _deriveKey(password, salt, iterations: _iterationsFor(v));
     return _gcmDecrypt(map, key);
   }
 

@@ -51,7 +51,10 @@ class ShapeRecognizer {
     );
     final closureDistance = (points.first.offset - points.last.offset).distance;
     if (closureDistance >
-        math.max(stroke.width * _strokeWidthClosureFactor, diagonal * _closureRatio)) {
+        math.max(
+          stroke.width * _strokeWidthClosureFactor,
+          diagonal * _closureRatio,
+        )) {
       return null;
     }
 
@@ -62,7 +65,8 @@ class ShapeRecognizer {
     // 矩形沿外接框四条边行进，路径长度接近盒周长；椭圆则显著更短。
     if (perimeterRatio >= _rectPerimeterMin &&
         perimeterRatio <= _rectPerimeterMax &&
-        _meanDistanceToBoxEdge(points, bounds) <= diagonal * _maxRectEdgeDistance &&
+        _meanDistanceToBoxEdge(points, bounds) <=
+            diagonal * _maxRectEdgeDistance &&
         _hasCornerEvidence(points, bounds)) {
       return RecognizedShape(ShapeType.rect, bounds);
     }
@@ -72,7 +76,8 @@ class ShapeRecognizer {
     // 菱形路径通常显著短于椭圆路径，因此同时收紧其外接框周长比。
     if (perimeterRatio >= _diamondPerimeterMin &&
         perimeterRatio <= _diamondPerimeterMax &&
-        _meanDistanceToDiamondEdge(points, bounds) <= diagonal * _maxDiamondEdgeDistance &&
+        _meanDistanceToDiamondEdge(points, bounds) <=
+            diagonal * _maxDiamondEdgeDistance &&
         _hasDiamondCornerEvidence(points, bounds)) {
       return RecognizedShape(ShapeType.diamond, bounds);
     }

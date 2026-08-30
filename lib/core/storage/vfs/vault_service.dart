@@ -72,8 +72,7 @@ class VaultService {
     String key, {
     required Uint8List plain,
     String type = 'blob',
-  }) =>
-      _vault.writeObject(id: key, type: type, plain: plain);
+  }) => _vault.writeObject(id: key, type: type, plain: plain);
 
   /// 读取对象（key 标识——自动解密 + AAD 验证——篡改/错上下文认证失败）。
   Future<Uint8List> getObject(String key) => _vault.readObject(key);

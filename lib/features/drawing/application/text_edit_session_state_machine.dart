@@ -86,17 +86,16 @@ class TextEditSessionSideEffects {
           other.shouldCancel == shouldCancel &&
           other.shouldSnapshot == shouldSnapshot &&
           other.shouldNotify == shouldNotify &&
-          other.shouldSuppressDuplicateCommit ==
-              shouldSuppressDuplicateCommit;
+          other.shouldSuppressDuplicateCommit == shouldSuppressDuplicateCommit;
 
   @override
   int get hashCode => Object.hash(
-        shouldCommit,
-        shouldCancel,
-        shouldSnapshot,
-        shouldNotify,
-        shouldSuppressDuplicateCommit,
-      );
+    shouldCommit,
+    shouldCancel,
+    shouldSnapshot,
+    shouldNotify,
+    shouldSuppressDuplicateCommit,
+  );
 }
 
 /// 一次状态迁移的结果：新阶段 + 副作用意图。
@@ -238,17 +237,13 @@ class TextEditSessionStateMachine {
         _phase = TextEditSessionPhase.settled;
         return const TextEditSessionTransition(
           phase: TextEditSessionPhase.settled,
-          sideEffects: TextEditSessionSideEffects(
-            shouldNotify: true,
-          ),
+          sideEffects: TextEditSessionSideEffects(shouldNotify: true),
         );
       case TextEditSessionEvent.commitFailed:
         _phase = TextEditSessionPhase.editing;
         return const TextEditSessionTransition(
           phase: TextEditSessionPhase.editing,
-          sideEffects: TextEditSessionSideEffects(
-            shouldNotify: true,
-          ),
+          sideEffects: TextEditSessionSideEffects(shouldNotify: true),
         );
       case TextEditSessionEvent.commitRequest:
         // 重复提交抑制：已在提交中，不再触发新的提交 / 通知。
@@ -279,18 +274,14 @@ class TextEditSessionStateMachine {
         _phase = TextEditSessionPhase.settled;
         return const TextEditSessionTransition(
           phase: TextEditSessionPhase.settled,
-          sideEffects: TextEditSessionSideEffects(
-            shouldNotify: true,
-          ),
+          sideEffects: TextEditSessionSideEffects(shouldNotify: true),
         );
       case TextEditSessionEvent.commitFailed:
         // 取消失败，回到编辑状态。
         _phase = TextEditSessionPhase.editing;
         return const TextEditSessionTransition(
           phase: TextEditSessionPhase.editing,
-          sideEffects: TextEditSessionSideEffects(
-            shouldNotify: true,
-          ),
+          sideEffects: TextEditSessionSideEffects(shouldNotify: true),
         );
       case TextEditSessionEvent.reset:
         _phase = TextEditSessionPhase.idle;

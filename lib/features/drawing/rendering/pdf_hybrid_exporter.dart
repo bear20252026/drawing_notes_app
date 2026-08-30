@@ -53,10 +53,7 @@ class PdfHybridExporter {
         build: (context) => pw.Stack(
           children: [
             pw.Positioned.fill(
-              child: pw.Image(
-                pw.MemoryImage(rasterBytes),
-                fit: pw.BoxFit.fill,
-              ),
+              child: pw.Image(pw.MemoryImage(rasterBytes), fit: pw.BoxFit.fill),
             ),
             // 显式尺寸：Stack 以非定位子级定尺寸，若 CustomPaint 为 0×0
             // 会让 Stack 塌缩，Positioned.fill 的图片拿到 0 约束产生 NaN。
@@ -69,8 +66,9 @@ class PdfHybridExporter {
                     offset: offset,
                   );
                   if (svgPath == null) continue;
-                  final color = PdfColor.fromInt(stroke.color.toARGB32())
-                      .flatten(background: pdfBackground);
+                  final color = PdfColor.fromInt(
+                    stroke.color.toARGB32(),
+                  ).flatten(background: pdfBackground);
                   graphics.setFillColor(color);
                   graphics.drawShape(svgPath);
                   graphics.fillPath();

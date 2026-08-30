@@ -109,39 +109,38 @@ class NoteConnector {
     double? width,
     String? label,
     bool clearLabel = false,
-  }) =>
-      NoteConnector(
-        id: id ?? this.id,
-        fromFrameId: fromFrameId ?? this.fromFrameId,
-        toFrameId: toFrameId ?? this.toFrameId,
-        fromAnchor: fromAnchor ?? this.fromAnchor,
-        toAnchor: toAnchor ?? this.toAnchor,
-        color: color ?? this.color,
-        width: width ?? this.width,
-        label: clearLabel ? null : (label ?? this.label),
-      );
+  }) => NoteConnector(
+    id: id ?? this.id,
+    fromFrameId: fromFrameId ?? this.fromFrameId,
+    toFrameId: toFrameId ?? this.toFrameId,
+    fromAnchor: fromAnchor ?? this.fromAnchor,
+    toAnchor: toAnchor ?? this.toAnchor,
+    color: color ?? this.color,
+    width: width ?? this.width,
+    label: clearLabel ? null : (label ?? this.label),
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'fromFrameId': fromFrameId,
-        'toFrameId': toFrameId,
-        'fromAnchor': fromAnchor.name,
-        'toAnchor': toAnchor.name,
-        'color': color,
-        'width': width,
-        if (label != null) 'label': label,
-      };
+    'id': id,
+    'fromFrameId': fromFrameId,
+    'toFrameId': toFrameId,
+    'fromAnchor': fromAnchor.name,
+    'toAnchor': toAnchor.name,
+    'color': color,
+    'width': width,
+    if (label != null) 'label': label,
+  };
 
   factory NoteConnector.fromJson(Map<String, dynamic> json) => NoteConnector(
-        id: json['id'] as String,
-        fromFrameId: json['fromFrameId'] as String,
-        toFrameId: json['toFrameId'] as String,
-        fromAnchor: ConnectorAnchor.values.byName(json['fromAnchor'] as String),
-        toAnchor: ConnectorAnchor.values.byName(json['toAnchor'] as String),
-        color: json['color'] as String? ?? kDefaultConnectorColor,
-        width: (json['width'] as num?)?.toDouble() ?? kDefaultConnectorWidth,
-        label: json['label'] as String?,
-      );
+    id: json['id'] as String,
+    fromFrameId: json['fromFrameId'] as String,
+    toFrameId: json['toFrameId'] as String,
+    fromAnchor: ConnectorAnchor.values.byName(json['fromAnchor'] as String),
+    toAnchor: ConnectorAnchor.values.byName(json['toAnchor'] as String),
+    color: json['color'] as String? ?? kDefaultConnectorColor,
+    width: (json['width'] as num?)?.toDouble() ?? kDefaultConnectorWidth,
+    label: json['label'] as String?,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -159,7 +158,15 @@ class NoteConnector {
 
   @override
   int get hashCode => Object.hash(
-      id, fromFrameId, toFrameId, fromAnchor, toAnchor, color, width, label);
+    id,
+    fromFrameId,
+    toFrameId,
+    fromAnchor,
+    toAnchor,
+    color,
+    width,
+    label,
+  );
 
   @override
   String toString() =>

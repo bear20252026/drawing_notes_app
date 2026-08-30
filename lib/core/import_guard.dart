@@ -60,8 +60,10 @@ class ImportGuard {
   ImportGuard._(this._lastGeneration, _GuardState state) : _state = state;
 
   /// 创建处于 idle 状态的 guard。
-  factory ImportGuard.initial() =>
-      ImportGuard._(0, _GuardState(current: null, lifecycle: ImportLifecycleState.idle));
+  factory ImportGuard.initial() => ImportGuard._(
+    0,
+    _GuardState(current: null, lifecycle: ImportLifecycleState.idle),
+  );
 
   /// 已发放的最大 generation，保证严格递增不回落。
   int _lastGeneration;
@@ -75,7 +77,10 @@ class ImportGuard {
   ImportRequestToken beginImport() {
     final nextGeneration = ++_lastGeneration;
     final token = ImportRequestToken(nextGeneration);
-    _state = _GuardState(current: token, lifecycle: ImportLifecycleState.active);
+    _state = _GuardState(
+      current: token,
+      lifecycle: ImportLifecycleState.active,
+    );
     return token;
   }
 
@@ -93,14 +98,20 @@ class ImportGuard {
   /// 取消后 guard 进入 cancelled 状态。
   bool cancel(ImportRequestToken token) {
     if (!isCurrent(token)) return false;
-    _state = _GuardState(current: null, lifecycle: ImportLifecycleState.cancelled);
+    _state = _GuardState(
+      current: null,
+      lifecycle: ImportLifecycleState.cancelled,
+    );
     return true;
   }
 
   /// 页面退出/销毁时调用，将所有进行中请求标记为 stale。
   void invalidateAll() {
     if (_state.current != null) {
-      _state = _GuardState(current: null, lifecycle: ImportLifecycleState.stale);
+      _state = _GuardState(
+        current: null,
+        lifecycle: ImportLifecycleState.stale,
+      );
     }
   }
 

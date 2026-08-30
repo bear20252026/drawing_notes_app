@@ -36,8 +36,7 @@ class ScheduleEventStore {
     final base = provider != null
         ? await provider()
         : await getApplicationDocumentsDirectory();
-    _file =
-        File('${base.path}${Platform.pathSeparator}schedule_events.json');
+    _file = File('${base.path}${Platform.pathSeparator}schedule_events.json');
     return _file!;
   }
 
@@ -64,9 +63,11 @@ class ScheduleEventStore {
   Future<void> _writeAll(List<ScheduleEvent> events) async {
     final file = await _fileRef();
     final tmp = File('${file.path}.tmp');
-    await tmp.writeAsString(jsonEncode({
-      'events': [for (final e in events) e.toJson()],
-    }));
+    await tmp.writeAsString(
+      jsonEncode({
+        'events': [for (final e in events) e.toJson()],
+      }),
+    );
     await tmp.rename(file.path);
   }
 

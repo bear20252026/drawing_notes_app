@@ -27,7 +27,11 @@ import '../../../core/canvas_model/selection.dart';
 /// 承载画布视图的缩放与平移；所有变更生成新实例（不可变），
 /// provider 通知依赖 == 判断（官方 from_change_notifier 指南）。
 class ViewportState {
-  const ViewportState({required this.scale, required this.offsetX, required this.offsetY});
+  const ViewportState({
+    required this.scale,
+    required this.offsetX,
+    required this.offsetY,
+  });
 
   /// 缩放系数（1.0 = 原始大小）。
   final double scale;
@@ -36,15 +40,12 @@ class ViewportState {
   final double offsetX;
   final double offsetY;
 
-  ViewportState copyWith({
-    double? scale,
-    double? offsetX,
-    double? offsetY,
-  }) => ViewportState(
-    scale: scale ?? this.scale,
-    offsetX: offsetX ?? this.offsetX,
-    offsetY: offsetY ?? this.offsetY,
-  );
+  ViewportState copyWith({double? scale, double? offsetX, double? offsetY}) =>
+      ViewportState(
+        scale: scale ?? this.scale,
+        offsetX: offsetX ?? this.offsetX,
+        offsetY: offsetY ?? this.offsetY,
+      );
 
   @override
   bool operator ==(Object other) =>
@@ -67,7 +68,8 @@ class ViewportState {
 /// - 独立可测（ProviderContainer 单测）
 class DrawingViewportNotifier extends Notifier<ViewportState> {
   @override
-  ViewportState build() => const ViewportState(scale: 1, offsetX: 0, offsetY: 0);
+  ViewportState build() =>
+      const ViewportState(scale: 1, offsetX: 0, offsetY: 0);
 
   /// 设置缩放（clamp 到合理范围，防无限放大缩小）。
   void setScale(double scale) {
@@ -78,7 +80,10 @@ class DrawingViewportNotifier extends Notifier<ViewportState> {
 
   /// 平移（累加偏移）。
   void pan(double dx, double dy) {
-    state = state.copyWith(offsetX: state.offsetX + dx, offsetY: state.offsetY + dy);
+    state = state.copyWith(
+      offsetX: state.offsetX + dx,
+      offsetY: state.offsetY + dy,
+    );
   }
 
   /// 重置视口。
@@ -90,8 +95,8 @@ class DrawingViewportNotifier extends Notifier<ViewportState> {
 /// 视口域 Provider（首个域 Notifier 化示范）。
 final viewportProvider =
     NotifierProvider<DrawingViewportNotifier, ViewportState>(
-  DrawingViewportNotifier.new,
-);
+      DrawingViewportNotifier.new,
+    );
 
 /// 历史状态（不可变值对象，应对 Riverpod == 过滤语义）。
 ///
@@ -107,8 +112,10 @@ class HistoryState {
   /// 是否存在可重做的历史（栈位 < 栈长度）。
   final bool canRedo;
 
-  static const HistoryState initial =
-      HistoryState(canUndo: false, canRedo: false);
+  static const HistoryState initial = HistoryState(
+    canUndo: false,
+    canRedo: false,
+  );
 
   HistoryState copyWith({bool? canUndo, bool? canRedo}) => HistoryState(
     canUndo: canUndo ?? this.canUndo,
@@ -154,8 +161,7 @@ class DrawingHistoryNotifier extends Notifier<HistoryState> {
 }
 
 /// 历史域 Provider（第三个域 Notifier 化示范）。
-final historyProvider =
-    NotifierProvider<DrawingHistoryNotifier, HistoryState>(
+final historyProvider = NotifierProvider<DrawingHistoryNotifier, HistoryState>(
   DrawingHistoryNotifier.new,
 );
 
@@ -184,9 +190,7 @@ class SelectionState {
 
   @override
   bool operator ==(Object other) =>
-      other is SelectionState &&
-      other.tool == tool &&
-      _sameDraft(other.draft);
+      other is SelectionState && other.tool == tool && _sameDraft(other.draft);
 
   @override
   int get hashCode => Object.hash(tool, Object.hashAll(draft));
@@ -248,5 +252,5 @@ class DrawingSelectionNotifier extends Notifier<SelectionState> {
 /// 选区域 Provider（第二个域 Notifier 化示范）。
 final selectionProvider =
     NotifierProvider<DrawingSelectionNotifier, SelectionState>(
-  DrawingSelectionNotifier.new,
-);
+      DrawingSelectionNotifier.new,
+    );

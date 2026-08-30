@@ -22,11 +22,13 @@ class NoteBlockDocSyncStore implements SyncDocumentStore {
     for (final id in ids) {
       final doc = await _store.loadDocument(id);
       if (doc == null) continue;
-      metas.add(SyncDocMeta(
-        id: id,
-        updatedAt: doc.updatedAt.millisecondsSinceEpoch,
-        size: utf8.encode(jsonEncode(doc.toJson())).length,
-      ));
+      metas.add(
+        SyncDocMeta(
+          id: id,
+          updatedAt: doc.updatedAt.millisecondsSinceEpoch,
+          size: utf8.encode(jsonEncode(doc.toJson())).length,
+        ),
+      );
     }
     return metas;
   }

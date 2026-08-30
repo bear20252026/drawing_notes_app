@@ -36,13 +36,13 @@ class ScheduleEvent {
 
   /// JSON 序列化。
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'dayKey': dayKey,
-        'isDone': isDone,
-        if (minuteOfDay != null) 'minuteOfDay': minuteOfDay,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'title': title,
+    'dayKey': dayKey,
+    'isDone': isDone,
+    if (minuteOfDay != null) 'minuteOfDay': minuteOfDay,
+    'createdAt': createdAt.toIso8601String(),
+  };
 
   /// JSON 反序列化；字段缺失/类型不符时返回 null（fail-open）。
   static ScheduleEvent? fromJson(Map<String, dynamic> json) {

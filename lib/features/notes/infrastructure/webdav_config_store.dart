@@ -37,18 +37,17 @@ class WebDavSyncConfig {
     String? baseUrl,
     String? username,
     String? syncSalt,
-  }) =>
-      WebDavSyncConfig(
-        baseUrl: baseUrl ?? this.baseUrl,
-        username: username ?? this.username,
-        syncSalt: syncSalt ?? this.syncSalt,
-      );
+  }) => WebDavSyncConfig(
+    baseUrl: baseUrl ?? this.baseUrl,
+    username: username ?? this.username,
+    syncSalt: syncSalt ?? this.syncSalt,
+  );
 
   Map<String, Object?> toJson() => {
-        'baseUrl': baseUrl,
-        'username': username,
-        'syncSalt': syncSalt,
-      };
+    'baseUrl': baseUrl,
+    'username': username,
+    'syncSalt': syncSalt,
+  };
 
   factory WebDavSyncConfig.fromJson(Map<String, Object?> json) =>
       WebDavSyncConfig(
@@ -101,15 +100,16 @@ class WebDavConfigStore {
     final store = _secretStore;
     if (store == null) return;
     final legacyPassword = (map['password'] as String?)?.trim() ?? '';
-    final legacyPassphrase =
-        (map['syncPassphrase'] as String?)?.trim() ?? '';
+    final legacyPassphrase = (map['syncPassphrase'] as String?)?.trim() ?? '';
     if (legacyPassword.isEmpty && legacyPassphrase.isEmpty) {
       return;
     }
-    await store.write(SyncSecrets(
-      webdavPassword: legacyPassword.isEmpty ? null : legacyPassword,
-      syncPassphrase: legacyPassphrase.isEmpty ? null : legacyPassphrase,
-    ));
+    await store.write(
+      SyncSecrets(
+        webdavPassword: legacyPassword.isEmpty ? null : legacyPassword,
+        syncPassphrase: legacyPassphrase.isEmpty ? null : legacyPassphrase,
+      ),
+    );
     // 迁移成功后剥离明文键，避免再次读取到。
     map.remove('password');
     map.remove('syncPassphrase');

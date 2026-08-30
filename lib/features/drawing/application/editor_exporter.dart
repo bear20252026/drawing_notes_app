@@ -218,8 +218,9 @@ class EditorExporter {
         ],
       );
       if (location == null) return;
-      await File(location.path)
-          .writeAsBytes(await document.save(), flush: true);
+      await File(
+        location.path,
+      ).writeAsBytes(await document.save(), flush: true);
       showSnack('已导出分页笔记 PDF：${location.path}');
     } catch (e) {
       showSnack('导出分页笔记 PDF 失败：$e');

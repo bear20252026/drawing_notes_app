@@ -129,6 +129,8 @@ void main() {
 
     await tester.tap(find.text('标签').first);
     await tester.pump();
+    // TagsView 异步加载标签（空注册表仍有一帧 spinner）。
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('暂无标签'), findsOneWidget);
   });
 }

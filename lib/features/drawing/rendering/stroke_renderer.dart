@@ -63,10 +63,7 @@ class StrokeRenderer {
   /// 测试辅助：返回缓存中已完成的轮廓（未命中返回 null），
   /// 用于验证缓存命中与失效行为。
   @visibleForTesting
-  static Path? cachedOutlineFor(
-    Stroke stroke, {
-    required bool usePressure,
-  }) {
+  static Path? cachedOutlineFor(Stroke stroke, {required bool usePressure}) {
     final entry = _outlineCache[stroke];
     if (entry == null || entry.revision != stroke.geometryRevision) return null;
     return usePressure ? entry.withPressure : entry.withoutPressure;
@@ -107,7 +104,8 @@ class StrokeRenderer {
       );
       if (shader != null) {
         paint
-          ..color = const Color(0xFFFFFFFF) // shader 自带颜色与透明度
+          ..color =
+              const Color(0xFFFFFFFF) // shader 自带颜色与透明度
           ..shader = shader
           ..maskFilter = MaskFilter.blur(
             BlurStyle.normal,

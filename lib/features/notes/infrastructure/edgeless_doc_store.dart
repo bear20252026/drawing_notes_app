@@ -56,8 +56,7 @@ class EdgelessDocStore {
   }
 
   /// 校验 ID 是否安全（仅允许字母、数字、下划线、短横线）。
-  static bool isValidId(String id) =>
-      RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(id);
+  static bool isValidId(String id) => RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(id);
 
   Future<String> _pathFor(String id) async {
     if (!isValidId(id)) {

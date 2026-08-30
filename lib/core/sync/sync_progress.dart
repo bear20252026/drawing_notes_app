@@ -102,14 +102,13 @@ class SyncProgress {
     int totalCount = 0,
     String? currentDocId,
     String? message,
-  }) =>
-      SyncProgress(
-        phase: phase,
-        doneCount: doneCount,
-        totalCount: totalCount,
-        currentDocId: currentDocId,
-        message: message,
-      );
+  }) => SyncProgress(
+    phase: phase,
+    doneCount: doneCount,
+    totalCount: totalCount,
+    currentDocId: currentDocId,
+    message: message,
+  );
 
   /// 便捷工厂：同步完成。
   factory SyncProgress.complete() =>
@@ -126,14 +125,13 @@ class SyncProgress {
     int? totalCount,
     String? currentDocId,
     String? message,
-  }) =>
-      SyncProgress(
-        phase: phase ?? this.phase,
-        doneCount: doneCount ?? this.doneCount,
-        totalCount: totalCount ?? this.totalCount,
-        currentDocId: currentDocId ?? this.currentDocId,
-        message: message ?? this.message,
-      );
+  }) => SyncProgress(
+    phase: phase ?? this.phase,
+    doneCount: doneCount ?? this.doneCount,
+    totalCount: totalCount ?? this.totalCount,
+    currentDocId: currentDocId ?? this.currentDocId,
+    message: message ?? this.message,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -147,7 +145,8 @@ class SyncProgress {
           message == other.message;
 
   @override
-  int get hashCode => Object.hash(phase, doneCount, totalCount, currentDocId, message);
+  int get hashCode =>
+      Object.hash(phase, doneCount, totalCount, currentDocId, message);
 
   @override
   String toString() =>

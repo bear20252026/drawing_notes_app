@@ -84,47 +84,46 @@ class NoteAttachment {
     String? description,
     DateTime? createdAt,
     DateTime? updatedAt,
-  }) =>
-      NoteAttachment(
-        id: id ?? this.id,
-        name: name ?? this.name,
-        kind: kind ?? this.kind,
-        mimeType: mimeType ?? this.mimeType,
-        byteSize: byteSize ?? this.byteSize,
-        filePath: filePath ?? this.filePath,
-        url: url ?? this.url,
-        description: description ?? this.description,
-        createdAt: createdAt ?? this.createdAt,
-        updatedAt: updatedAt ?? this.updatedAt,
-      );
+  }) => NoteAttachment(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    kind: kind ?? this.kind,
+    mimeType: mimeType ?? this.mimeType,
+    byteSize: byteSize ?? this.byteSize,
+    filePath: filePath ?? this.filePath,
+    url: url ?? this.url,
+    description: description ?? this.description,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
 
   /// 序列化为 JSON（DateTime → ISO8601 字符串）。
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'kind': kind.name,
-        'mimeType': mimeType,
-        'byteSize': byteSize,
-        'filePath': filePath,
-        'url': url,
-        'description': description,
-        'createdAt': createdAt.toIso8601String(),
-        'updatedAt': updatedAt.toIso8601String(),
-      };
+    'id': id,
+    'name': name,
+    'kind': kind.name,
+    'mimeType': mimeType,
+    'byteSize': byteSize,
+    'filePath': filePath,
+    'url': url,
+    'description': description,
+    'createdAt': createdAt.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(),
+  };
 
   /// 从 JSON 反序列化（ISO8601 字符串 → DateTime）。
   factory NoteAttachment.fromJson(Map<String, dynamic> json) => NoteAttachment(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        kind: AttachmentKind.values.byName(json['kind'] as String),
-        mimeType: (json['mimeType'] as String?) ?? '',
-        byteSize: (json['byteSize'] as int?) ?? 0,
-        filePath: (json['filePath'] as String?) ?? '',
-        url: (json['url'] as String?) ?? '',
-        description: (json['description'] as String?) ?? '',
-        createdAt: DateTime.parse(json['createdAt'] as String),
-        updatedAt: DateTime.parse(json['updatedAt'] as String),
-      );
+    id: json['id'] as String,
+    name: json['name'] as String,
+    kind: AttachmentKind.values.byName(json['kind'] as String),
+    mimeType: (json['mimeType'] as String?) ?? '',
+    byteSize: (json['byteSize'] as int?) ?? 0,
+    filePath: (json['filePath'] as String?) ?? '',
+    url: (json['url'] as String?) ?? '',
+    description: (json['description'] as String?) ?? '',
+    createdAt: DateTime.parse(json['createdAt'] as String),
+    updatedAt: DateTime.parse(json['updatedAt'] as String),
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -144,17 +143,17 @@ class NoteAttachment {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        name,
-        kind,
-        mimeType,
-        byteSize,
-        filePath,
-        url,
-        description,
-        createdAt,
-        updatedAt,
-      );
+    id,
+    name,
+    kind,
+    mimeType,
+    byteSize,
+    filePath,
+    url,
+    description,
+    createdAt,
+    updatedAt,
+  );
 
   @override
   String toString() =>

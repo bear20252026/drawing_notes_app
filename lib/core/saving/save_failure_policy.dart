@@ -16,10 +16,7 @@ enum SaveRetryDecision {
 
 /// 保存失败重试策略的输入参数。
 class SaveFailureInput {
-  const SaveFailureInput({
-    required this.failureCount,
-    required this.elapsed,
-  });
+  const SaveFailureInput({required this.failureCount, required this.elapsed});
 
   /// 连续失败次数（从 1 开始）。
   final int failureCount;

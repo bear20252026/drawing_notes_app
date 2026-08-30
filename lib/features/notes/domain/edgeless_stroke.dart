@@ -36,13 +36,12 @@ class EdgelessStroke {
   Offset pointAt(int i) => Offset(points[i * 2], points[i * 2 + 1]);
 
   /// 追加一个点，返回新实例（原始列表不变）。
-  EdgelessStroke copyWithAppended(Offset p) =>
-      EdgelessStroke(
-        id: id,
-        points: [...points, p.dx, p.dy],
-        color: color,
-        width: width,
-      );
+  EdgelessStroke copyWithAppended(Offset p) => EdgelessStroke(
+    id: id,
+    points: [...points, p.dx, p.dy],
+    color: color,
+    width: width,
+  );
 
   /// 命中测试：世界点 [worldPoint] 到任一线段的距离 <= [tolerance]。
   bool hitTest(Offset worldPoint, {double tolerance = 6.0}) {
@@ -65,28 +64,27 @@ class EdgelessStroke {
     final ab = b - a;
     final lenSq = ab.dx * ab.dx + ab.dy * ab.dy;
     if (lenSq == 0) return (p - a).distance;
-    final t =
-        ((p.dx - a.dx) * ab.dx + (p.dy - a.dy) * ab.dy) / lenSq;
+    final t = ((p.dx - a.dx) * ab.dx + (p.dy - a.dy) * ab.dy) / lenSq;
     final clamped = t.clamp(0.0, 1.0).toDouble();
     final proj = Offset(a.dx + ab.dx * clamped, a.dy + ab.dy * clamped);
     return (p - proj).distance;
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'points': points,
-        'color': color,
-        'width': width,
-      };
+    'id': id,
+    'points': points,
+    'color': color,
+    'width': width,
+  };
 
   factory EdgelessStroke.fromJson(Map<String, dynamic> json) => EdgelessStroke(
-        id: json['id'] as String,
-        points: (json['points'] as List? ?? const [])
-            .map((e) => (e as num).toDouble())
-            .toList(),
-        color: json['color'] as String? ?? '#1D1D1F',
-        width: (json['width'] as num?)?.toDouble() ?? 3.0,
-      );
+    id: json['id'] as String,
+    points: (json['points'] as List? ?? const [])
+        .map((e) => (e as num).toDouble())
+        .toList(),
+    color: json['color'] as String? ?? '#1D1D1F',
+    width: (json['width'] as num?)?.toDouble() ?? 3.0,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -99,8 +97,7 @@ class EdgelessStroke {
           width == width;
 
   @override
-  int get hashCode =>
-      Object.hash(id, Object.hashAll(points), color, width);
+  int get hashCode => Object.hash(id, Object.hashAll(points), color, width);
 
   @override
   String toString() =>
@@ -153,27 +150,27 @@ class EdgelessShape {
       );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'x': x,
-        'y': y,
-        'w': w,
-        'h': h,
-        'kind': kind.name,
-        'color': color,
-      };
+    'id': id,
+    'x': x,
+    'y': y,
+    'w': w,
+    'h': h,
+    'kind': kind.name,
+    'color': color,
+  };
 
   factory EdgelessShape.fromJson(Map<String, dynamic> json) => EdgelessShape(
-        id: json['id'] as String,
-        x: (json['x'] as num).toDouble(),
-        y: (json['y'] as num).toDouble(),
-        w: (json['w'] as num).toDouble(),
-        h: (json['h'] as num).toDouble(),
-        kind: EdgelessShapeKind.values.firstWhere(
-          (k) => k.name == json['kind'],
-          orElse: () => EdgelessShapeKind.rect,
-        ),
-        color: json['color'] as String? ?? '#0066CC',
-      );
+    id: json['id'] as String,
+    x: (json['x'] as num).toDouble(),
+    y: (json['y'] as num).toDouble(),
+    w: (json['w'] as num).toDouble(),
+    h: (json['h'] as num).toDouble(),
+    kind: EdgelessShapeKind.values.firstWhere(
+      (k) => k.name == json['kind'],
+      orElse: () => EdgelessShapeKind.rect,
+    ),
+    color: json['color'] as String? ?? '#0066CC',
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -189,8 +186,7 @@ class EdgelessShape {
           color == other.color;
 
   @override
-  int get hashCode =>
-      Object.hash(id, x, y, w, h, kind, color);
+  int get hashCode => Object.hash(id, x, y, w, h, kind, color);
 
   @override
   String toString() =>

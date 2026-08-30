@@ -16,10 +16,7 @@ typedef SaveTimerFactory =
     SaveTimerHandle Function(Duration delay, void Function() callback);
 
 /// 默认生产定时器工厂：用 [Timer] 实现。
-SaveTimerHandle _defaultTimerFactory(
-  Duration delay,
-  void Function() callback,
-) {
+SaveTimerHandle _defaultTimerFactory(Duration delay, void Function() callback) {
   final timer = Timer(delay, callback);
   return _TimerWrapper(timer);
 }
@@ -57,12 +54,12 @@ class SaveScheduler {
     this.debounce = const Duration(milliseconds: 800),
     SaveScheduleDecisioner decisioner = const SaveScheduleDecisioner(),
     SaveFailurePolicy failurePolicy = const SaveFailurePolicy(),
-  })  // 保留公共命名参数名；私有域通过初始化列表赋值（见下逐行 ignore）。
-      : _save = save, // ignore: prefer_initializing_formals
-        _clock = clock ?? DateTime.now,
-        _timerFactory = timerFactory ?? _defaultTimerFactory,
-        _decisioner = decisioner, // ignore: prefer_initializing_formals
-        _failurePolicy = failurePolicy; // ignore: prefer_initializing_formals
+  }) // 保留公共命名参数名；私有域通过初始化列表赋值（见下逐行 ignore）。
+  : _save = save, // ignore: prefer_initializing_formals
+       _clock = clock ?? DateTime.now,
+       _timerFactory = timerFactory ?? _defaultTimerFactory,
+       _decisioner = decisioner, // ignore: prefer_initializing_formals
+       _failurePolicy = failurePolicy; // ignore: prefer_initializing_formals
 
   /// 实际把当前文档快照落盘的函数（由集成方注入，拥有 I/O 与缩略图逻辑）。
   final Future<void> Function() _save;

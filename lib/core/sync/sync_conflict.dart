@@ -49,8 +49,9 @@ class SyncConflict {
   bool get remoteNewer => remoteUpdatedAt > localUpdatedAt;
 
   /// 建议的默认裁决：较新者胜；相等时默认保留本地。
-  ConflictResolution get suggestedResolution =>
-      remoteNewer ? ConflictResolution.keepRemote : ConflictResolution.keepLocal;
+  ConflictResolution get suggestedResolution => remoteNewer
+      ? ConflictResolution.keepRemote
+      : ConflictResolution.keepLocal;
 
   @override
   bool operator ==(Object other) =>
@@ -64,11 +65,17 @@ class SyncConflict {
           remoteSize == other.remoteSize;
 
   @override
-  int get hashCode =>
-      Object.hash(docId, localUpdatedAt, localSize, remoteUpdatedAt, remoteSize);
+  int get hashCode => Object.hash(
+    docId,
+    localUpdatedAt,
+    localSize,
+    remoteUpdatedAt,
+    remoteSize,
+  );
 
   @override
-  String toString() => 'SyncConflict(docId: $docId, local: $localUpdatedAt/'
+  String toString() =>
+      'SyncConflict(docId: $docId, local: $localUpdatedAt/'
       '$localSize, remote: $remoteUpdatedAt/$remoteSize)';
 }
 
@@ -87,14 +94,17 @@ List<SyncConflict> detectSyncConflicts(
     final local = currentEntries[id];
     final remote = remoteManifest.entries[id];
     if (base == null || local == null || remote == null) continue;
-    if (local.updatedAt != base.updatedAt && remote.updatedAt != base.updatedAt) {
-      result.add(SyncConflict(
-        docId: id,
-        localUpdatedAt: local.updatedAt,
-        localSize: local.size,
-        remoteUpdatedAt: remote.updatedAt,
-        remoteSize: remote.size,
-      ));
+    if (local.updatedAt != base.updatedAt &&
+        remote.updatedAt != base.updatedAt) {
+      result.add(
+        SyncConflict(
+          docId: id,
+          localUpdatedAt: local.updatedAt,
+          localSize: local.size,
+          remoteUpdatedAt: remote.updatedAt,
+          remoteSize: remote.size,
+        ),
+      );
     }
   }
   return List.unmodifiable(result);
@@ -159,11 +169,16 @@ SyncPlan applyConflictResolutions(
   deletes.sort();
   uploads.sort();
   downloads.sort();
-  return SyncPlan(operations: [
-    for (final id in deletes) SyncOperation(kind: SyncOperationKind.deleteRemote, id: id),
-    for (final id in uploads) SyncOperation(kind: SyncOperationKind.upload, id: id),
-    for (final id in downloads) SyncOperation(kind: SyncOperationKind.download, id: id),
-  ]);
+  return SyncPlan(
+    operations: [
+      for (final id in deletes)
+        SyncOperation(kind: SyncOperationKind.deleteRemote, id: id),
+      for (final id in uploads)
+        SyncOperation(kind: SyncOperationKind.upload, id: id),
+      for (final id in downloads)
+        SyncOperation(kind: SyncOperationKind.download, id: id),
+    ],
+  );
 }
 
 void _bucket(
@@ -198,6 +213,5 @@ class LwwConflictHandler implements ConflictHandler {
   @override
   Future<Map<String, ConflictResolution>> resolve(
     List<SyncConflict> conflicts,
-  ) async =>
-      const {};
+  ) async => const {};
 }

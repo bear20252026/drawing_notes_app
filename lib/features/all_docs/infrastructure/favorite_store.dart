@@ -30,9 +30,12 @@ class FavoriteStore {
   Future<File> _fileRef() async {
     if (_file != null) return _file!;
     final provider = directoryProvider;
-    final base =
-        provider != null ? await provider() : await getApplicationDocumentsDirectory();
-    _file = File('${base.path}${Platform.pathSeparator}all_docs_favorites.json');
+    final base = provider != null
+        ? await provider()
+        : await getApplicationDocumentsDirectory();
+    _file = File(
+      '${base.path}${Platform.pathSeparator}all_docs_favorites.json',
+    );
     return _file!;
   }
 

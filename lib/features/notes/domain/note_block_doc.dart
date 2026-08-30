@@ -17,6 +17,7 @@ class NoteBlockDoc {
     required this.id,
     this.title = '',
     List<NoteBlock>? body,
+    this.tags = const [],
     required this.createdAt,
     required this.updatedAt,
   }) : body = body ?? const [];
@@ -35,6 +36,9 @@ class NoteBlockDoc {
 
   /// 最后修改时间。
   final DateTime updatedAt;
+
+  /// 标签 id 列表（M12.6 标签系统；标签定义存 TagStore，文档只持 id）。
+  final List<String> tags;
 
   /// 生成含一个空 paragraph 的最小文档。
   factory NoteBlockDoc.empty(String id, {String title = '', DateTime? now}) {
@@ -58,14 +62,13 @@ class NoteBlockDoc {
     List<NoteBlock>? body,
     DateTime? createdAt,
     DateTime? updatedAt,
-  }) =>
-      NoteBlockDoc(
-        id: id ?? this.id,
-        title: title ?? this.title,
-        body: body ?? this.body,
-        createdAt: createdAt ?? this.createdAt,
-        updatedAt: updatedAt ?? this.updatedAt,
-      );
+  }) => NoteBlockDoc(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    body: body ?? this.body,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
 
   // ── 序列化 ─────────────────────────────────────────────────
 
@@ -73,6 +76,7 @@ class NoteBlockDoc {
     'id': id,
     'title': title,
     'body': body.map((b) => b.toJson()).toList(),
+    if (tags.isNotEmpty) 'tags': tags,
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
   };
@@ -83,6 +87,7 @@ class NoteBlockDoc {
     body: (json['body'] as List? ?? const [])
         .map((e) => NoteBlock.fromJson(e as Map<String, dynamic>))
         .toList(),
+    tags: (json['tags'] as List? ?? const []).whereType<String>().toList(),
     createdAt: json['createdAt'] != null
         ? DateTime.parse(json['createdAt'] as String)
         : DateTime.fromMillisecondsSinceEpoch(0),
@@ -103,10 +108,12 @@ class NoteBlockDoc {
           updatedAt == other.updatedAt;
 
   @override
-  int get hashCode => Object.hash(id, title, Object.hashAll(body), createdAt, updatedAt);
+  int get hashCode =>
+      Object.hash(id, title, Object.hashAll(body), createdAt, updatedAt);
 
   @override
-  String toString() => 'NoteBlockDoc(id: $id, title: "$title", blocks: ${body.length})';
+  String toString() =>
+      'NoteBlockDoc(id: $id, title: "$title", blocks: ${body.length})';
 }
 
 bool _bodyEqual(List<NoteBlock> a, List<NoteBlock> b) {

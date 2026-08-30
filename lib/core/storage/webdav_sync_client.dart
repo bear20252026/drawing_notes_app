@@ -34,7 +34,7 @@ class WebDavSyncClient {
     this.username = '',
     this.password = '',
   }) : _client = client,
-        _ownsClient = client == null;
+       _ownsClient = client == null;
 
   /// WebDAV 集合根目录 URL。
   final Uri baseUrl;
@@ -213,14 +213,19 @@ class WebDavSyncClient {
         : '$relativePath/';
 
     for (final response in responses) {
-      final href =
-          _findElementsByLocalName(response, 'href').firstOrNull?.innerText;
+      final href = _findElementsByLocalName(
+        response,
+        'href',
+      ).firstOrNull?.innerText;
       if (href == null || href.isEmpty) continue;
 
       // 解析 resourcetype：含 <collection/> 则为目录，跳过。
-      final resourceType =
-          _findElementsByLocalName(response, 'resourcetype').firstOrNull;
-      final isCollection = resourceType != null &&
+      final resourceType = _findElementsByLocalName(
+        response,
+        'resourcetype',
+      ).firstOrNull;
+      final isCollection =
+          resourceType != null &&
           _findElementsByLocalName(resourceType, 'collection').isNotEmpty;
       if (isCollection) continue;
 
@@ -235,8 +240,7 @@ class WebDavSyncClient {
   }
 
   /// 递归查找指定本地名的全部子元素（忽略命名空间前缀）。
-  List<XmlElement> _findElementsByLocalName(
-      XmlNode node, String localName) {
+  List<XmlElement> _findElementsByLocalName(XmlNode node, String localName) {
     final results = <XmlElement>[];
     for (final child in node.children) {
       if (child is XmlElement) {

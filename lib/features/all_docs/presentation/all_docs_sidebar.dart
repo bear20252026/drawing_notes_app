@@ -25,6 +25,7 @@ class AllDocsSidebar extends StatefulWidget {
     this.onSearchChanged,
     this.selectedNavIndex = 0,
     this.onNavSelected,
+    this.onOpenTrash,
     this.recentDocs = const [],
     this.onOpenDoc,
   });
@@ -44,6 +45,9 @@ class AllDocsSidebar extends StatefulWidget {
   /// 导航选中回调。
   final ValueChanged<int>? onNavSelected;
 
+  /// 打开回收站（M12.6）。
+  final VoidCallback? onOpenTrash;
+
   /// 文档树：最近文档（按更新时间倒序）。
   final List<AllDoc> recentDocs;
 
@@ -61,6 +65,7 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
     _NavItem(Icons.dashboard_rounded, '全部文档'),
     _NavItem(Icons.star_rounded, '收藏夹'),
     _NavItem(Icons.label_rounded, '标签'),
+    _NavItem(Icons.delete_outline_rounded, '回收站'),
   ];
 
   @override
@@ -140,7 +145,13 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
           borderRadius: BorderRadius.circular(8),
           child: InkWell(
             borderRadius: BorderRadius.circular(8),
-            onTap: () => widget.onNavSelected?.call(i),
+            onTap: () {
+              if (i == 3) {
+                widget.onOpenTrash?.call();
+                return;
+              }
+              widget.onNavSelected?.call(i);
+            },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(

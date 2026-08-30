@@ -16,10 +16,7 @@ enum SyncRetryDecision {
 
 /// 同步重试策略的输入参数。
 class SyncRetryInput {
-  const SyncRetryInput({
-    required this.failureCount,
-    required this.elapsed,
-  });
+  const SyncRetryInput({required this.failureCount, required this.elapsed});
 
   /// 连续失败次数（从 1 开始）。
   final int failureCount;
@@ -110,8 +107,8 @@ class SyncRetryPolicy {
     final multiplier = 1 << exp; // 2^exp
     final delayMs =
         baseDelay.inMilliseconds * multiplier > maxDelay.inMilliseconds
-            ? maxDelay.inMilliseconds
-            : baseDelay.inMilliseconds * multiplier;
+        ? maxDelay.inMilliseconds
+        : baseDelay.inMilliseconds * multiplier;
 
     return Duration(milliseconds: delayMs);
   }

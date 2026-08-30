@@ -44,14 +44,13 @@ class NoteInlineSpan {
     bool? underline,
     String? link,
     bool clearLink = false,
-  }) =>
-      NoteInlineSpan(
-        text: text ?? this.text,
-        bold: bold ?? this.bold,
-        italic: italic ?? this.italic,
-        underline: underline ?? this.underline,
-        link: clearLink ? null : (link ?? this.link),
-      );
+  }) => NoteInlineSpan(
+    text: text ?? this.text,
+    bold: bold ?? this.bold,
+    italic: italic ?? this.italic,
+    underline: underline ?? this.underline,
+    link: clearLink ? null : (link ?? this.link),
+  );
 
   /// 从纯文本创建（向后兼容）。
   factory NoteInlineSpan.plain(String text) => NoteInlineSpan(text: text);

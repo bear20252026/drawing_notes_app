@@ -151,6 +151,8 @@ class _NoteBlockPreviewRow extends StatelessWidget {
         );
       case NoteBlockType.bullet:
         return Text('•  ${block.text}', style: baseStyle);
+      case NoteBlockType.toggle:
+        return Text('▸  ${block.text}', style: baseStyle);
       case NoteBlockType.ordered:
         final n = orderedCounter(block);
         return Text('$n.  ${block.text}', style: baseStyle);

@@ -14,6 +14,7 @@ import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_page.dart';
+import 'package:drawing_notes_app/features/doc/presentation/trash_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_entity.dart';
@@ -78,6 +79,7 @@ class _AppShellState extends State<AppShell> {
       onOpenDoc: _openAllDoc,
       onNewDoc: _newAllDoc,
       onToggleFavorite: _toggleFavorite,
+      onOpenTrash: _openTrash,
     ),
     HomePage(
       notebookStorage: widget.notebookStorage,
@@ -139,6 +141,28 @@ class _AppShellState extends State<AppShell> {
 
   /// 聚合画布 / 笔记页 / 块文档三类文档为统一的「全部文档」查询结果，
   /// 并按 FavoriteStore 回填收藏状态。
+  /// 打开回收站（M12.6）：软删除的打字笔记恢复/彻底删除。
+  Future<void> _openTrash() async {
+    await Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (_) => TrashPage(
+          loadTrash: _blockDocStore.listTrash,
+          onRestore: (id) async {
+            final ok = await _blockDocStore.restoreDocument(id);
+            _dataVersion.value++;
+            return ok;
+          },
+          onPurge: (id) async {
+            final ok = await _blockDocStore.purgeFromTrash(id);
+            _dataVersion.value++;
+            return ok;
+          },
+        ),
+      ),
+    );
+    _dataVersion.value++;
+  }
+
   Future<AllDocQueryResult> _loadAllDocs() async {
     final docStorage = widget.docStorage;
     final nbStorage = widget.notebookStorage;
@@ -160,6 +184,7 @@ class _AppShellState extends State<AppShell> {
             id: doc.id,
             title: doc.title,
             folder: '',
+            tags: doc.tags,
             createdAt: doc.createdAt,
             updatedAt: doc.updatedAt,
           ),

@@ -56,8 +56,7 @@ class NoteBlockDocStore {
   }
 
   /// 校验 ID 是否安全（仅允许字母、数字、下划线、短横线）。
-  static bool isValidId(String id) =>
-      RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(id);
+  static bool isValidId(String id) => RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(id);
 
   Future<String> _pathFor(String id) async {
     if (!isValidId(id)) {
@@ -119,25 +118,154 @@ class NoteBlockDocStore {
     }
   }
 
-  /// 删除指定 ID 的块文档。返回是否实际删除了文件。
+  /// 删除指定 ID 的块文档（M12.6：软删除——移入回收站，30 天保留，
+  /// 可经 [restoreDocument] 恢复；与画布 StorageService 的 M-06 策略一致）。
+  /// 返回是否实际移动了文件。
   Future<bool> deleteDocument(String pageId) async {
-    await _ensureDir();
+    final doc = await loadDocument(pageId);
+    if (doc == null) return false;
+    final trashFile = await _trashPathFor(pageId);
+    final envelope = jsonEncode({
+      'deletedAt': DateTime.now().toIso8601String(),
+      'document': doc.toJson(),
+    });
+    final tmp = File('$trashFile.tmp');
+    await tmp.writeAsString(envelope, flush: true);
+    await tmp.rename(trashFile);
+    await _removeActiveFiles(pageId);
+    return true;
+  }
+
+  /// 彻底删除（不经回收站）：删除笔记页时联动清理迁移副本使用。
+  Future<bool> purgeDocument(String pageId) async {
+    await _removeActiveFiles(pageId);
+    try {
+      final trashFile = await _trashPathFor(pageId);
+      final f = File(trashFile);
+      if (await f.exists()) await f.delete();
+    } catch (_) {
+      // 回收站文件不存在时忽略。
+    }
+    return true;
+  }
+
+  Future<void> _removeActiveFiles(String pageId) async {
     final path = await _pathFor(pageId);
     final file = File(path);
-    if (!await file.exists()) return false;
-    await file.delete();
+    if (await file.exists()) await file.delete();
     try {
       final backup = File('$path.bak');
       if (await backup.exists()) await backup.delete();
     } catch (_) {
       // 备份删除失败忽略
     }
+  }
+
+  /// 回收站条目：文档 + 删除时间。
+  ({NoteBlockDoc doc, DateTime deletedAt})? _decodeTrashEntry(String content) {
+    try {
+      final decoded = jsonDecode(content);
+      if (decoded is! Map<String, dynamic>) return null;
+      final deletedAt = DateTime.tryParse(
+        decoded['deletedAt'] as String? ?? '',
+      );
+      final docRaw = decoded['document'];
+      if (deletedAt == null || docRaw is! Map<String, dynamic>) return null;
+      final doc = NoteBlockDoc.fromJson(docRaw);
+      return (doc: doc, deletedAt: deletedAt);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 列出回收站条目（按删除时间倒序）。
+  Future<List<({NoteBlockDoc doc, DateTime deletedAt})>> listTrash() async {
+    final dir = await _ensureTrashDir();
+    final entries = <({NoteBlockDoc doc, DateTime deletedAt})>[];
+    await for (final entity in dir.list()) {
+      if (entity is! File || !entity.path.endsWith('.json')) continue;
+      try {
+        final entry = _decodeTrashEntry(await entity.readAsString());
+        if (entry != null) entries.add(entry);
+      } catch (_) {
+        continue; // 损坏条目跳过
+      }
+    }
+    entries.sort((a, b) => b.deletedAt.compareTo(a.deletedAt));
+    return entries;
+  }
+
+  /// 从回收站恢复（若激活区已存在同 ID 文档则拒绝，返回 false）。
+  Future<bool> restoreDocument(String pageId) async {
+    final trashFile = await _trashPathFor(pageId);
+    final f = File(trashFile);
+    if (!await f.exists()) return false;
+    final entry = _decodeTrashEntry(await f.readAsString());
+    if (entry == null) return false;
+    final active = File(await _pathFor(pageId));
+    if (await active.exists()) return false; // 同 ID 已存在，拒绝覆盖
+    await saveDocument(entry.doc);
+    await f.delete();
     return true;
   }
 
-  /// 列出所有块文档 ID（不含 .json 后缀）。
+  /// 从回收站彻底删除单条。
+  Future<bool> purgeFromTrash(String pageId) async {
+    final trashFile = await _trashPathFor(pageId);
+    final f = File(trashFile);
+    if (!await f.exists()) return false;
+    await f.delete();
+    return true;
+  }
+
+  /// 清理过期回收站条目（默认 30 天，与画布 M-06 策略一致）。
+  /// 返回清理条数。listIds 会自动触发（惰性清理）。
+  Future<int> purgeExpiredTrash({int retainDays = 30}) async {
+    final dir = await _ensureTrashDir();
+    var purged = 0;
+    final cutoff = DateTime.now().subtract(Duration(days: retainDays));
+    await for (final entity in dir.list()) {
+      if (entity is! File || !entity.path.endsWith('.json')) continue;
+      try {
+        final entry = _decodeTrashEntry(await entity.readAsString());
+        if (entry != null && entry.deletedAt.isBefore(cutoff)) {
+          await entity.delete();
+          purged++;
+        }
+      } catch (_) {
+        continue;
+      }
+    }
+    return purged;
+  }
+
+  Directory? _trashDir;
+
+  Future<Directory> _ensureTrashDir() async {
+    if (_trashDir != null) return _trashDir!;
+    final base = await _baseDir();
+    final dir = Directory(
+      '${base.path}${Platform.pathSeparator}blockdocs_trash',
+    );
+    if (!await dir.exists()) await dir.create(recursive: true);
+    _trashDir = dir;
+    return dir;
+  }
+
+  Future<String> _trashPathFor(String id) async {
+    if (!isValidId(id)) {
+      throw ArgumentError.value(id, 'id', '非法 ID（路径遍历防护）');
+    }
+    return '${(await _ensureTrashDir()).path}${Platform.pathSeparator}$id.json';
+  }
+
+  /// 列出所有块文档 ID（不含 .json 后缀）。惰性清理过期回收站条目。
   Future<List<String>> listIds() async {
     await _ensureDir();
+    // M-06 同款：读列表时自动清理 30 天过期的回收站条目（失败不阻塞）。
+    try {
+      await purgeExpiredTrash();
+    } catch (_) {}
     final result = <String>[];
     await for (final entity in (await _ensureDir()).list()) {
       if (entity is! File || !entity.path.endsWith('.json')) continue;

@@ -27,22 +27,47 @@ class TextSpanEditor {
   /// 在选区上应用粗体。
   /// 若选区内全部 span 已为粗体 → 移除粗体（toggle 语义）。
   List<NoteInlineSpan> applyBold(List<NoteInlineSpan> spans, SpanRange range) {
-    return _toggleStyle(spans, range, (span) => span.bold, (span, v) => span.copyWith(bold: v));
+    return _toggleStyle(
+      spans,
+      range,
+      (span) => span.bold,
+      (span, v) => span.copyWith(bold: v),
+    );
   }
 
   /// 在选区上应用斜体。
-  List<NoteInlineSpan> applyItalic(List<NoteInlineSpan> spans, SpanRange range) {
-    return _toggleStyle(spans, range, (span) => span.italic, (span, v) => span.copyWith(italic: v));
+  List<NoteInlineSpan> applyItalic(
+    List<NoteInlineSpan> spans,
+    SpanRange range,
+  ) {
+    return _toggleStyle(
+      spans,
+      range,
+      (span) => span.italic,
+      (span, v) => span.copyWith(italic: v),
+    );
   }
 
   /// 在选区上应用下划线。
-  List<NoteInlineSpan> applyUnderline(List<NoteInlineSpan> spans, SpanRange range) {
-    return _toggleStyle(spans, range, (span) => span.underline, (span, v) => span.copyWith(underline: v));
+  List<NoteInlineSpan> applyUnderline(
+    List<NoteInlineSpan> spans,
+    SpanRange range,
+  ) {
+    return _toggleStyle(
+      spans,
+      range,
+      (span) => span.underline,
+      (span, v) => span.copyWith(underline: v),
+    );
   }
 
   /// 在选区上应用链接。
   /// 若选区已有相同链接 → 移除链接。
-  List<NoteInlineSpan> applyLink(List<NoteInlineSpan> spans, SpanRange range, String link) {
+  List<NoteInlineSpan> applyLink(
+    List<NoteInlineSpan> spans,
+    SpanRange range,
+    String link,
+  ) {
     if (range.isEmpty) return spans;
     final plainText = spans.plainText;
     final clampedStart = range.start.clamp(0, plainText.length);
@@ -68,28 +93,41 @@ class TextSpanEditor {
       }
 
       // 计算交集
-      final intersectStart = spanStart > clampedStart ? spanStart : clampedStart;
+      final intersectStart = spanStart > clampedStart
+          ? spanStart
+          : clampedStart;
       final intersectEnd = spanEnd < clampedEnd ? spanEnd : clampedEnd;
 
       // 选区前部分
       if (spanStart < intersectStart) {
-        result.add(span.copyWith(text: span.text.substring(0, intersectStart - spanStart)));
+        result.add(
+          span.copyWith(
+            text: span.text.substring(0, intersectStart - spanStart),
+          ),
+        );
       }
 
       // 交集部分：toggle 链接
-      final intersectText = span.text.substring(intersectStart - spanStart, intersectEnd - spanStart);
+      final intersectText = span.text.substring(
+        intersectStart - spanStart,
+        intersectEnd - spanStart,
+      );
       final hasSameLink = span.link == link;
-      result.add(NoteInlineSpan(
-        text: intersectText,
-        bold: span.bold,
-        italic: span.italic,
-        underline: span.underline,
-        link: hasSameLink ? null : link,
-      ));
+      result.add(
+        NoteInlineSpan(
+          text: intersectText,
+          bold: span.bold,
+          italic: span.italic,
+          underline: span.underline,
+          link: hasSameLink ? null : link,
+        ),
+      );
 
       // 选区后部分
       if (intersectEnd < spanEnd) {
-        result.add(span.copyWith(text: span.text.substring(intersectEnd - spanStart)));
+        result.add(
+          span.copyWith(text: span.text.substring(intersectEnd - spanStart)),
+        );
       }
     }
 
@@ -116,18 +154,29 @@ class TextSpanEditor {
         continue;
       }
 
-      final intersectStart = spanStart > clampedStart ? spanStart : clampedStart;
+      final intersectStart = spanStart > clampedStart
+          ? spanStart
+          : clampedStart;
       final intersectEnd = spanEnd < clampedEnd ? spanEnd : clampedEnd;
 
       if (spanStart < intersectStart) {
-        result.add(span.copyWith(text: span.text.substring(0, intersectStart - spanStart)));
+        result.add(
+          span.copyWith(
+            text: span.text.substring(0, intersectStart - spanStart),
+          ),
+        );
       }
 
-      final intersectText = span.text.substring(intersectStart - spanStart, intersectEnd - spanStart);
+      final intersectText = span.text.substring(
+        intersectStart - spanStart,
+        intersectEnd - spanStart,
+      );
       result.add(NoteInlineSpan.plain(intersectText));
 
       if (intersectEnd < spanEnd) {
-        result.add(span.copyWith(text: span.text.substring(intersectEnd - spanStart)));
+        result.add(
+          span.copyWith(text: span.text.substring(intersectEnd - spanStart)),
+        );
       }
     }
 
@@ -164,24 +213,40 @@ class TextSpanEditor {
         continue;
       }
 
-      final intersectStart = spanStart > clampedStart ? spanStart : clampedStart;
+      final intersectStart = spanStart > clampedStart
+          ? spanStart
+          : clampedStart;
       final intersectEnd = spanEnd < clampedEnd ? spanEnd : clampedEnd;
 
       if (spanStart < intersectStart) {
-        result.add(span.copyWith(text: span.text.substring(0, intersectStart - spanStart)));
+        result.add(
+          span.copyWith(
+            text: span.text.substring(0, intersectStart - spanStart),
+          ),
+        );
       }
 
-      final intersectText = span.text.substring(intersectStart - spanStart, intersectEnd - spanStart);
-      result.add(setter(NoteInlineSpan(
-        text: intersectText,
-        bold: span.bold,
-        italic: span.italic,
-        underline: span.underline,
-        link: span.link,
-      ), !allSet));
+      final intersectText = span.text.substring(
+        intersectStart - spanStart,
+        intersectEnd - spanStart,
+      );
+      result.add(
+        setter(
+          NoteInlineSpan(
+            text: intersectText,
+            bold: span.bold,
+            italic: span.italic,
+            underline: span.underline,
+            link: span.link,
+          ),
+          !allSet,
+        ),
+      );
 
       if (intersectEnd < spanEnd) {
-        result.add(span.copyWith(text: span.text.substring(intersectEnd - spanStart)));
+        result.add(
+          span.copyWith(text: span.text.substring(intersectEnd - spanStart)),
+        );
       }
     }
 
@@ -203,7 +268,9 @@ class TextSpanEditor {
       final spanEnd = offset + span.text.length;
       offset = spanEnd;
 
-      final intersectStart = spanStart > clampedStart ? spanStart : clampedStart;
+      final intersectStart = spanStart > clampedStart
+          ? spanStart
+          : clampedStart;
       final intersectEnd = spanEnd < clampedEnd ? spanEnd : clampedEnd;
 
       if (intersectStart < intersectEnd) {

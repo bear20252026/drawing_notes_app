@@ -11,12 +11,7 @@ class ColorSamplingService {
 
   /// 从 rawRgba 字节读取 [x],[y] 像素颜色（RGBA 字节序——每像素 4 字节）。
   /// 坐标越界返回 null（纯防御——调用方已 clamp，此处双保险）。
-  static Color? colorFromRgbaBytes(
-    ByteData data,
-    int width,
-    int x,
-    int y,
-  ) {
+  static Color? colorFromRgbaBytes(ByteData data, int width, int x, int y) {
     if (x < 0 || y < 0 || width <= 0 || x >= width) return null;
     final height = data.lengthInBytes ~/ (width * 4);
     if (y >= height) return null;

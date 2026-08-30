@@ -31,11 +31,8 @@ const double kCascadeStep = 32;
 ///   world  = (screen - viewportCenter) / zoom + pan
 /// 其中 pan 为"映射到视口中心的世界坐标"。
 class EdgelessCamera {
-  const EdgelessCamera({
-    this.zoom = 1.0,
-    this.panX = 0.0,
-    this.panY = 0.0,
-  }) : assert(zoom > 0, 'zoom must be positive');
+  const EdgelessCamera({this.zoom = 1.0, this.panX = 0.0, this.panY = 0.0})
+    : assert(zoom > 0, 'zoom must be positive');
 
   /// 初始相机（zoom=1, pan=0,0）。
   static const EdgelessCamera initial = EdgelessCamera();
@@ -66,11 +63,8 @@ class EdgelessCamera {
   }
 
   /// 增量平移：pan 增加 (dx, dy)。
-  EdgelessCamera translated(double dx, double dy) => EdgelessCamera(
-        zoom: zoom,
-        panX: panX + dx,
-        panY: panY + dy,
-      );
+  EdgelessCamera translated(double dx, double dy) =>
+      EdgelessCamera(zoom: zoom, panX: panX + dx, panY: panY + dy);
 
   /// 以 [focusWorld] 为锚点缩放 [factor] 倍（锚点屏幕位置不变）。
   /// 无焦点时 pan 不变（绕视口中心缩放）。
@@ -86,17 +80,28 @@ class EdgelessCamera {
   }
 
   /// 使 [worldRect] 完整可见并居中。zoom 被 clamp 到 [0.1, 10] 防退化。
-  EdgelessCamera fittedTo(Rect worldRect, Size viewport, {double padding = 40}) {
+  EdgelessCamera fittedTo(
+    Rect worldRect,
+    Size viewport, {
+    double padding = 40,
+  }) {
     final vw = viewport.width - padding * 2;
     final vh = viewport.height - padding * 2;
     if (worldRect.width <= 0 || worldRect.height <= 0) {
       return EdgelessCamera(
-          zoom: 1.0, panX: worldRect.center.dx, panY: worldRect.center.dy);
+        zoom: 1.0,
+        panX: worldRect.center.dx,
+        panY: worldRect.center.dy,
+      );
     }
     final scaleX = vw / worldRect.width;
     final scaleY = vh / worldRect.height;
     final z = math.min(scaleX, scaleY).clamp(0.1, 10.0);
-    return EdgelessCamera(zoom: z, panX: worldRect.center.dx, panY: worldRect.center.dy);
+    return EdgelessCamera(
+      zoom: z,
+      panX: worldRect.center.dx,
+      panY: worldRect.center.dy,
+    );
   }
 
   @override
@@ -170,39 +175,38 @@ class NoteFrame {
     NoteBlockDoc? doc,
     int? zIndex,
     String? background,
-  }) =>
-      NoteFrame(
-        id: id ?? this.id,
-        x: x ?? this.x,
-        y: y ?? this.y,
-        w: w ?? this.w,
-        h: h ?? this.h,
-        doc: doc ?? this.doc,
-        zIndex: zIndex ?? this.zIndex,
-        background: background ?? this.background,
-      );
+  }) => NoteFrame(
+    id: id ?? this.id,
+    x: x ?? this.x,
+    y: y ?? this.y,
+    w: w ?? this.w,
+    h: h ?? this.h,
+    doc: doc ?? this.doc,
+    zIndex: zIndex ?? this.zIndex,
+    background: background ?? this.background,
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'x': x,
-        'y': y,
-        'w': w,
-        'h': h,
-        'doc': doc.toJson(),
-        'zIndex': zIndex,
-        'background': background,
-      };
+    'id': id,
+    'x': x,
+    'y': y,
+    'w': w,
+    'h': h,
+    'doc': doc.toJson(),
+    'zIndex': zIndex,
+    'background': background,
+  };
 
   factory NoteFrame.fromJson(Map<String, dynamic> json) => NoteFrame(
-        id: json['id'] as String,
-        x: (json['x'] as num).toDouble(),
-        y: (json['y'] as num).toDouble(),
-        w: (json['w'] as num).toDouble(),
-        h: (json['h'] as num).toDouble(),
-        doc: NoteBlockDoc.fromJson(json['doc'] as Map<String, dynamic>),
-        zIndex: json['zIndex'] as int,
-        background: json['background'] as String? ?? '#FFFFFF',
-      );
+    id: json['id'] as String,
+    x: (json['x'] as num).toDouble(),
+    y: (json['y'] as num).toDouble(),
+    w: (json['w'] as num).toDouble(),
+    h: (json['h'] as num).toDouble(),
+    doc: NoteBlockDoc.fromJson(json['doc'] as Map<String, dynamic>),
+    zIndex: json['zIndex'] as int,
+    background: json['background'] as String? ?? '#FFFFFF',
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -222,7 +226,8 @@ class NoteFrame {
   int get hashCode => Object.hash(id, x, y, w, h, doc, zIndex, background);
 
   @override
-  String toString() => 'NoteFrame(id: $id, x: $x, y: $y, w: $w, h: $h, z: $zIndex)';
+  String toString() =>
+      'NoteFrame(id: $id, x: $x, y: $y, w: $w, h: $h, z: $zIndex)';
 }
 
 /// Edgeless 文档聚合根：无限画布上的多帧 + 相机 + 选择态。
@@ -304,8 +309,12 @@ class EdgelessDoc {
   /// at 空时级联偏移 (80+n*32) 防重叠；分配 nextZIndex++。
   EdgelessDoc addFrame(NoteBlockDoc doc, {Offset? at, Size? size}) {
     final n = frames.length;
-    final topLeft = at ??
-        Offset(kCascadeOrigin + n * kCascadeStep, kCascadeOrigin + n * kCascadeStep);
+    final topLeft =
+        at ??
+        Offset(
+          kCascadeOrigin + n * kCascadeStep,
+          kCascadeOrigin + n * kCascadeStep,
+        );
     final frame = NoteFrame(
       id: 'frame_$nextZIndex',
       x: topLeft.dx,
@@ -359,9 +368,11 @@ class EdgelessDoc {
   /// 平移一组帧（所有成员统一位移 [delta]）。
   EdgelessDoc _translateFrames(List<String> ids, Offset delta) {
     final next = frames
-        .map((f) => ids.contains(f.id)
-            ? f.copyWith(x: f.x + delta.dx, y: f.y + delta.dy)
-            : f)
+        .map(
+          (f) => ids.contains(f.id)
+              ? f.copyWith(x: f.x + delta.dx, y: f.y + delta.dy)
+              : f,
+        )
         .toList();
     return EdgelessDoc(
       id: id,
@@ -378,12 +389,15 @@ class EdgelessDoc {
 
   /// 调整帧尺寸（w/h 有最小值约束 120/60）；可选同时移动左上角。
   EdgelessDoc resizeFrame(String id, {Offset? topLeft, double? w, double? h}) =>
-      _mapFrame(id, (f) => f.copyWith(
-            x: topLeft?.dx,
-            y: topLeft?.dy,
-            w: w != null ? (w < kMinFrameWidth ? kMinFrameWidth : w) : null,
-            h: h != null ? (h < kMinFrameHeight ? kMinFrameHeight : h) : null,
-          ));
+      _mapFrame(
+        id,
+        (f) => f.copyWith(
+          x: topLeft?.dx,
+          y: topLeft?.dy,
+          w: w != null ? (w < kMinFrameWidth ? kMinFrameWidth : w) : null,
+          h: h != null ? (h < kMinFrameHeight ? kMinFrameHeight : h) : null,
+        ),
+      );
 
   /// 设置帧背景色（CSS 颜色字符串，如 '#FFF8E1'）。
   EdgelessDoc setFrameBackground(String id, String background) =>
@@ -413,42 +427,42 @@ class EdgelessDoc {
 
   /// 单选：选中 [frameId]（null 取消选择）。
   EdgelessDoc select(String? frameId) => EdgelessDoc(
-        id: id,
-        frames: frames,
-        connectors: connectors,
-        strokes: strokes,
-        shapes: shapes,
-        groups: groups,
-        camera: camera,
-        selectedFrameIds: frameId == null ? const {} : {frameId},
-        nextZIndex: nextZIndex,
-      );
+    id: id,
+    frames: frames,
+    connectors: connectors,
+    strokes: strokes,
+    shapes: shapes,
+    groups: groups,
+    camera: camera,
+    selectedFrameIds: frameId == null ? const {} : {frameId},
+    nextZIndex: nextZIndex,
+  );
 
   /// 替换整组选中。
   EdgelessDoc selectFrames(Iterable<String> frameIds) => EdgelessDoc(
-        id: id,
-        frames: frames,
-        connectors: connectors,
-        strokes: strokes,
-        shapes: shapes,
-        groups: groups,
-        camera: camera,
-        selectedFrameIds: frameIds.toSet(),
-        nextZIndex: nextZIndex,
-      );
+    id: id,
+    frames: frames,
+    connectors: connectors,
+    strokes: strokes,
+    shapes: shapes,
+    groups: groups,
+    camera: camera,
+    selectedFrameIds: frameIds.toSet(),
+    nextZIndex: nextZIndex,
+  );
 
   /// 追加一个帧到选中集（无序集合直接追加；有序集合保持「最后为 primary」）。
   EdgelessDoc addToSelection(String frameId) => EdgelessDoc(
-        id: id,
-        frames: frames,
-        connectors: connectors,
-        strokes: strokes,
-        shapes: shapes,
-        groups: groups,
-        camera: camera,
-        selectedFrameIds: {...selectedFrameIds, frameId},
-        nextZIndex: nextZIndex,
-      );
+    id: id,
+    frames: frames,
+    connectors: connectors,
+    strokes: strokes,
+    shapes: shapes,
+    groups: groups,
+    camera: camera,
+    selectedFrameIds: {...selectedFrameIds, frameId},
+    nextZIndex: nextZIndex,
+  );
 
   /// 切换一个帧的选中状态（在选中集中则移除，否则追加）。
   EdgelessDoc toggleSelection(String frameId) {
@@ -488,8 +502,10 @@ class EdgelessDoc {
 
   /// 两个帧之间是否已存在连接线（忽略方向），防止重复连线。
   bool hasConnectorBetween(String a, String b) => connectors.any(
-      (c) => (c.fromFrameId == a && c.toFrameId == b) ||
-          (c.fromFrameId == b && c.toFrameId == a));
+    (c) =>
+        (c.fromFrameId == a && c.toFrameId == b) ||
+        (c.fromFrameId == b && c.toFrameId == a),
+  );
 
   /// 添加连接线；自环、缺帧、与端点已存在的重复连线均会被拒绝并返回同一实例。
   /// 未显式指定锚点时按两帧相对位置自动推荐（见 autoConnectorAnchors）。
@@ -593,7 +609,9 @@ class EdgelessDoc {
     if (unique.length < 2) return this;
     if (unique.any((fid) => frameById(fid) == null)) return this;
     // 已在组内的帧不再重复入组
-    final candidate = unique.where((fid) => groupContainingFrame(fid) == null).toList();
+    final candidate = unique
+        .where((fid) => groupContainingFrame(fid) == null)
+        .toList();
     if (candidate.length < 2) return this;
     final group = EdgelessGroup(
       id: 'group_${groups.length + 1}',
@@ -640,7 +658,11 @@ class EdgelessDoc {
       frames: frames,
       connectors: connectors,
       groups: groups
-          .map((x) => x.id == id ? x.copyWith(name: name, clearName: name == null) : x)
+          .map(
+            (x) => x.id == id
+                ? x.copyWith(name: name, clearName: name == null)
+                : x,
+          )
           .toList(),
       camera: camera,
       strokes: strokes,
@@ -658,7 +680,9 @@ class EdgelessDoc {
       id: this.id,
       frames: frames,
       connectors: connectors,
-      groups: groups.map((x) => x.id == id ? x.copyWith(color: color) : x).toList(),
+      groups: groups
+          .map((x) => x.id == id ? x.copyWith(color: color) : x)
+          .toList(),
       camera: camera,
       strokes: strokes,
       shapes: shapes,
@@ -763,75 +787,72 @@ class EdgelessDoc {
   }
 
   EdgelessDoc _withStrokes(List<EdgelessStroke> next) => EdgelessDoc(
-        id: id,
-        frames: frames,
-        connectors: connectors,
-        groups: groups,
-        strokes: next,
-        shapes: shapes,
-        camera: camera,
-        selectedFrameIds: selectedFrameIds,
-        nextZIndex: nextZIndex,
-      );
+    id: id,
+    frames: frames,
+    connectors: connectors,
+    groups: groups,
+    strokes: next,
+    shapes: shapes,
+    camera: camera,
+    selectedFrameIds: selectedFrameIds,
+    nextZIndex: nextZIndex,
+  );
 
   EdgelessDoc _withShapes(List<EdgelessShape> next) => EdgelessDoc(
-        id: id,
-        frames: frames,
-        connectors: connectors,
-        groups: groups,
-        strokes: strokes,
-        shapes: next,
-        camera: camera,
-        selectedFrameIds: selectedFrameIds,
-        nextZIndex: nextZIndex,
-      );
+    id: id,
+    frames: frames,
+    connectors: connectors,
+    groups: groups,
+    strokes: strokes,
+    shapes: next,
+    camera: camera,
+    selectedFrameIds: selectedFrameIds,
+    nextZIndex: nextZIndex,
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'frames': frames.map((f) => f.toJson()).toList(),
-        'connectors': connectors.map((c) => c.toJson()).toList(),
-        'groups': groups.map((g) => g.toJson()).toList(),
-        'strokes': strokes.map((s) => s.toJson()).toList(),
-        'shapes': shapes.map((e) => e.toJson()).toList(),
-        'camera': {
-          'zoom': camera.zoom,
-          'panX': camera.panX,
-          'panY': camera.panY,
-        },
-        'selectedFrameIds': selectedFrameIds.toList(),
-        'nextZIndex': nextZIndex,
-      };
+    'id': id,
+    'frames': frames.map((f) => f.toJson()).toList(),
+    'connectors': connectors.map((c) => c.toJson()).toList(),
+    'groups': groups.map((g) => g.toJson()).toList(),
+    'strokes': strokes.map((s) => s.toJson()).toList(),
+    'shapes': shapes.map((e) => e.toJson()).toList(),
+    'camera': {'zoom': camera.zoom, 'panX': camera.panX, 'panY': camera.panY},
+    'selectedFrameIds': selectedFrameIds.toList(),
+    'nextZIndex': nextZIndex,
+  };
 
   factory EdgelessDoc.fromJson(Map<String, dynamic> json) => EdgelessDoc(
-        id: json['id'] as String,
-        frames: (json['frames'] as List? ?? const [])
-            .map((e) => NoteFrame.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        connectors: (json['connectors'] as List? ?? const [])
-            .map((e) => NoteConnector.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        groups: (json['groups'] as List? ?? const [])
-            .map((e) => EdgelessGroup.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        strokes: (json['strokes'] as List? ?? const [])
-            .map((e) => EdgelessStroke.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        shapes: (json['shapes'] as List? ?? const [])
-            .map((e) => EdgelessShape.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        camera: json['camera'] != null
-            ? EdgelessCamera(
-                zoom: (json['camera']['zoom'] as num).toDouble(),
-                panX: (json['camera']['panX'] as num).toDouble(),
-                panY: (json['camera']['panY'] as num).toDouble(),
-              )
-            : EdgelessCamera.initial,
-        selectedFrameIds: (json['selectedFrameIds'] as List?)?.cast<String>().toSet() ??
-            (json['selectedFrameId'] != null
-                ? {json['selectedFrameId'] as String}
-                : const <String>{}),
-        nextZIndex: json['nextZIndex'] as int? ?? 1,
-      );
+    id: json['id'] as String,
+    frames: (json['frames'] as List? ?? const [])
+        .map((e) => NoteFrame.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    connectors: (json['connectors'] as List? ?? const [])
+        .map((e) => NoteConnector.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    groups: (json['groups'] as List? ?? const [])
+        .map((e) => EdgelessGroup.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    strokes: (json['strokes'] as List? ?? const [])
+        .map((e) => EdgelessStroke.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    shapes: (json['shapes'] as List? ?? const [])
+        .map((e) => EdgelessShape.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    camera: json['camera'] != null
+        ? EdgelessCamera(
+            zoom: (json['camera']['zoom'] as num).toDouble(),
+            panX: (json['camera']['panX'] as num).toDouble(),
+            panY: (json['camera']['panY'] as num).toDouble(),
+          )
+        : EdgelessCamera.initial,
+    selectedFrameIds:
+        (json['selectedFrameIds'] as List?)?.cast<String>().toSet() ??
+        (json['selectedFrameId'] != null
+            ? {json['selectedFrameId'] as String}
+            : const <String>{}),
+    nextZIndex: json['nextZIndex'] as int? ?? 1,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -849,10 +870,17 @@ class EdgelessDoc {
           nextZIndex == other.nextZIndex;
 
   @override
-  int get hashCode => Object.hash(id, Object.hashAll(frames),
-      Object.hashAll(connectors), Object.hashAll(groups),
-      Object.hashAll(strokes), Object.hashAll(shapes), camera,
-      Object.hashAll(selectedFrameIds.toList()..sort()), nextZIndex);
+  int get hashCode => Object.hash(
+    id,
+    Object.hashAll(frames),
+    Object.hashAll(connectors),
+    Object.hashAll(groups),
+    Object.hashAll(strokes),
+    Object.hashAll(shapes),
+    camera,
+    Object.hashAll(selectedFrameIds.toList()..sort()),
+    nextZIndex,
+  );
 
   @override
   String toString() =>
@@ -880,20 +908,23 @@ Set<String> _withoutSelection(Set<String> selection, String id) =>
 List<NoteConnector> _pruneConnectors(
   List<NoteConnector> connectors, {
   required String removedFrameId,
-}) =>
-    connectors
-        .where((c) =>
-            c.fromFrameId != removedFrameId && c.toFrameId != removedFrameId)
-        .toList();
+}) => connectors
+    .where(
+      (c) => c.fromFrameId != removedFrameId && c.toFrameId != removedFrameId,
+    )
+    .toList();
 
 /// 帧被移除后：把该帧从所有群组中剔除，剔除后为空组的群组一并解散。
 List<EdgelessGroup> _pruneGroups(
   List<EdgelessGroup> groups, {
   required String removedFrameId,
-}) =>
-    groups
-        .map((g) => g.contains(removedFrameId)
-            ? g.copyWith(frameIds: g.frameIds.where((x) => x != removedFrameId).toList())
-            : g)
-        .where((g) => g.frameIds.isNotEmpty)
-        .toList();
+}) => groups
+    .map(
+      (g) => g.contains(removedFrameId)
+          ? g.copyWith(
+              frameIds: g.frameIds.where((x) => x != removedFrameId).toList(),
+            )
+          : g,
+    )
+    .where((g) => g.frameIds.isNotEmpty)
+    .toList();

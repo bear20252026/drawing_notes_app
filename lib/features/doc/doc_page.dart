@@ -4,14 +4,14 @@
 // 版权声明见 THIRD_PARTY_NOTICES.md。本模块与画板模块（features/notes 的
 // edgeless/drawing 部分）零交叉引用：画板打开文档经由导航跳转到本模块。
 
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 
 import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
 
-import 'package:drawing_notes_app/features/doc/application/doc_markdown_export.dart';
+import 'package:drawing_notes_app/features/all_docs/infrastructure/tag_store.dart';
+import 'package:drawing_notes_app/features/doc/application/doc_export_io.dart';
+import 'package:drawing_notes_app/features/doc/application/doc_html_export.dart';
+import 'package:drawing_notes_app/features/notes/domain/note_block_doc_markdown.dart';
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_editor.dart';
 import 'package:drawing_notes_app/features/doc/doc_outline_rail.dart';
@@ -30,6 +30,7 @@ class DocPage extends StatefulWidget {
     this.isFavorite = false,
     this.onToggleFavorite,
     this.onOpenInEdgeless,
+    this.tagStore,
   });
 
   /// 要编辑的笔记文档。
@@ -46,6 +47,9 @@ class DocPage extends StatefulWidget {
 
   /// 「在画板中打开」回调（宿主负责转换与路由）。
   final VoidCallback? onOpenInEdgeless;
+
+  /// 标签注册表（M12.6 标签编辑）；null 时内部自建（全局文件）。
+  final TagStore? tagStore;
 
   @override
   State<DocPage> createState() => _DocPageState();
@@ -132,27 +136,23 @@ class _DocPageState extends State<DocPage> {
     }
   }
 
-  /// 导出 Markdown（M12.5，AFFiNE Export 对齐）：写入系统文档目录下的
-  /// 「绘图笔记导出」子目录，Snack 提示完整路径。
-  Future<void> _exportMarkdown() async {
+  /// 通用导出：转换后经 [writeExportFile] 落盘，Snack 提示路径。
+  Future<void> _export({
+    required String extension,
+    required String Function(NoteBlockDoc doc) convert,
+    required String label,
+  }) async {
     try {
       final doc = _editorKey.currentState?.currentDoc ?? _doc;
-      final md = noteBlockDocToMarkdown(doc);
-      final docsDir = await getApplicationDocumentsDirectory();
-      final dir = Directory('${docsDir.path}$_sep绘图笔记导出');
-      if (!dir.existsSync()) dir.createSync(recursive: true);
-      final base = sanitizeFileName(doc.title.isEmpty ? '未命名' : doc.title);
-      final file = File('${dir.path}$_sep$base.md');
-      var path = file.path;
-      var n = 1;
-      while (file.existsSync()) {
-        path = '${dir.path}$_sep$base (${n++}).md';
-      }
-      await File(path).writeAsString(md, flush: true);
+      final path = await writeExportFile(
+        baseName: doc.title.isEmpty ? '未命名' : doc.title,
+        extension: extension,
+        content: convert(doc),
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('已导出 Markdown：$path')));
+      ).showSnackBar(SnackBar(content: Text('已导出 $label：$path')));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -161,7 +161,15 @@ class _DocPageState extends State<DocPage> {
     }
   }
 
-  static String get _sep => Platform.pathSeparator;
+  /// 导出 Markdown / HTML（AFFiNE Export 对齐）。
+  Future<void> _exportMarkdown() => _export(
+    extension: 'md',
+    convert: noteBlockDocToMarkdown,
+    label: 'Markdown',
+  );
+
+  Future<void> _exportHtml() =>
+      _export(extension: 'html', convert: noteBlockDocToHtml, label: 'HTML');
 
   void _persist(NoteBlockDoc doc) {
     setState(() {
@@ -198,6 +206,7 @@ class _DocPageState extends State<DocPage> {
         onShowInfo: () => _showInfoDialog(context),
         onOpenInEdgeless: widget.onOpenInEdgeless,
         onExportMarkdown: _exportMarkdown,
+        onExportHtml: _exportHtml,
       ),
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -300,6 +309,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
     required this.onSavePressed,
     this.onOpenInEdgeless,
     this.onExportMarkdown,
+    this.onExportHtml,
   });
 
   final String title;
@@ -317,6 +327,9 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
 
   /// 导出 Markdown（M12.5）。
   final VoidCallback? onExportMarkdown;
+
+  /// 导出 HTML（M12.6）。
+  final VoidCallback? onExportHtml;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -377,8 +390,23 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
           onSelected: (v) {
             if (v == 'edgeless') onOpenInEdgeless?.call();
             if (v == 'exportMd') onExportMarkdown?.call();
+            if (v == 'exportHtml') onExportHtml?.call();
           },
           itemBuilder: (context) => [
+            PopupMenuItem(
+              value: 'exportHtml',
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.code_rounded,
+                    size: 18,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 10),
+                  const Text('导出 HTML'),
+                ],
+              ),
+            ),
             PopupMenuItem(
               value: 'exportMd',
               child: Row(

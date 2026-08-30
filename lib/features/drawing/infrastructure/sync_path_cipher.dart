@@ -31,7 +31,10 @@ class SyncPathCipher {
     List<int> masterKey,
     String plainName,
   ) async {
-    final digest = await Sha256().hash([...masterKey, ...utf8.encode(plainName)]);
+    final digest = await Sha256().hash([
+      ...masterKey,
+      ...utf8.encode(plainName),
+    ]);
     final nonce = Uint8List.fromList(digest.bytes.take(12).toList());
     final padLen = 4 + (digest.bytes[12] % 13);
     return (nonce, padLen);
@@ -71,11 +74,9 @@ class SyncPathCipher {
   /// 尝试，见 [decryptPathWithCandidates]。此处仅对"明文已知"场景
   /// （如本地文件已存在、仅需校验密文一致性）提供便捷入口。
   Future<String?> decryptPath(String encryptedName, List<int> masterKey) async {
-    return decryptPathWithCandidates(
-      encryptedName,
-      masterKey,
-      const <String>[''],
-    );
+    return decryptPathWithCandidates(encryptedName, masterKey, const <String>[
+      '',
+    ]);
   }
 
   /// 从候选明文列表中解密（推荐入口）：路径加密使用确定性 nonce，
@@ -106,10 +107,7 @@ class SyncPathCipher {
       final mac = combined.sublist(combined.length - 16);
       try {
         final box = SecretBox(cipherText, nonce: nonce, mac: Mac(mac));
-        final clear = await aes.decrypt(
-          box,
-          secretKey: SecretKey(masterKey),
-        );
+        final clear = await aes.decrypt(box, secretKey: SecretKey(masterKey));
         // D-3：新格式载荷 = [真实长度, ...明文, ...随机 padding]——
         // 先按首字节长度截断；解析失败回退旧格式（无 padding 直解，
         // 旧数据明文首字节为 ASCII 字母（65-122）几乎总大于密文长度，

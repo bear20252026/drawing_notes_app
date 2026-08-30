@@ -17,8 +17,9 @@ final themeProvider = Provider<ThemeData>((ref) => AppDesign.lightTheme());
 /// 深色模式开关（Notifier 迁移示范，审计修复 2026-08-15）：
 /// 原 StateProvider 为 Riverpod 3.0 legacy API（3.0 已移出主 import），
 /// 迁为 Notifier（与 themeModeProvider 同模式）；无 UI 消费点，纯示例。
-final darkModeProvider =
-    NotifierProvider<DarkModeNotifier, bool>(DarkModeNotifier.new);
+final darkModeProvider = NotifierProvider<DarkModeNotifier, bool>(
+  DarkModeNotifier.new,
+);
 
 /// 深色模式 Notifier：维护布尔开关（供 UI 层 ref.watch 驱动）。
 class DarkModeNotifier extends Notifier<bool> {
@@ -36,8 +37,9 @@ class DarkModeNotifier extends Notifier<bool> {
 /// - [AppThemeController]（ChangeNotifier）职责迁入 [AppThemeNotifier]
 /// - build() 承载初始化（恢复本地存储），AsyncValue 免手工 loading 标记
 /// - UI 用 ref.watch(themeModeProvider) 消费，改模式调 ref.read(..notifier)
-final themeModeProvider =
-    NotifierProvider<AppThemeNotifier, ThemeMode>(AppThemeNotifier.new);
+final themeModeProvider = NotifierProvider<AppThemeNotifier, ThemeMode>(
+  AppThemeNotifier.new,
+);
 
 /// 主题模式 Notifier：维护 [ThemeMode] + shared_preferences 持久化。
 class AppThemeNotifier extends Notifier<ThemeMode> {

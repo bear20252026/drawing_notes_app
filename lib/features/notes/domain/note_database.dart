@@ -3,20 +3,10 @@
 // 纯 Dart，无 flutter/io/外部依赖；不可变输入 → 确定性输出。
 
 /// 字段类型。
-enum NoteFieldType {
-  text,
-  number,
-  select,
-  checkbox,
-  date,
-}
+enum NoteFieldType { text, number, select, checkbox, date }
 
 /// 数据库视图类型。
-enum DatabaseViewType {
-  table,
-  kanban,
-  list,
-}
+enum DatabaseViewType { table, kanban, list }
 
 /// 字段定义。
 class NoteFieldDef {
@@ -37,32 +27,31 @@ class NoteFieldDef {
     String? name,
     NoteFieldType? type,
     List<String>? options,
-  }) =>
-      NoteFieldDef(
-        id: id ?? this.id,
-        name: name ?? this.name,
-        type: type ?? this.type,
-        options: options ?? this.options,
-      );
+  }) => NoteFieldDef(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    type: type ?? this.type,
+    options: options ?? this.options,
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'type': type.name,
-        'options': List<String>.from(options),
-      };
+    'id': id,
+    'name': name,
+    'type': type.name,
+    'options': List<String>.from(options),
+  };
 
   factory NoteFieldDef.fromJson(Map<String, dynamic> json) => NoteFieldDef(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        type: NoteFieldType.values.firstWhere(
-          (e) => e.name == json['type'],
-          orElse: () => NoteFieldType.text,
-        ),
-        options: (json['options'] as List? ?? const [])
-            .map((e) => e as String)
-            .toList(),
-      );
+    id: json['id'] as String,
+    name: json['name'] as String,
+    type: NoteFieldType.values.firstWhere(
+      (e) => e.name == json['type'],
+      orElse: () => NoteFieldType.text,
+    ),
+    options: (json['options'] as List? ?? const [])
+        .map((e) => e as String)
+        .toList(),
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -84,36 +73,27 @@ class NoteFieldDef {
 
 /// 一条记录（cells: fieldId → value）。
 class NoteRecord {
-  const NoteRecord({
-    required this.id,
-    this.cells = const {},
-  });
+  const NoteRecord({required this.id, this.cells = const {}});
 
   final String id;
   final Map<String, Object?> cells;
 
   Object? cell(String fieldId) => cells[fieldId];
 
-  NoteRecord copyWith({
-    String? id,
-    Map<String, Object?>? cells,
-  }) =>
-      NoteRecord(
-        id: id ?? this.id,
-        cells: cells ?? this.cells,
-      );
+  NoteRecord copyWith({String? id, Map<String, Object?>? cells}) =>
+      NoteRecord(id: id ?? this.id, cells: cells ?? this.cells);
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'cells': Map<String, Object?>.from(cells),
-      };
+    'id': id,
+    'cells': Map<String, Object?>.from(cells),
+  };
 
   factory NoteRecord.fromJson(Map<String, dynamic> json) => NoteRecord(
-        id: json['id'] as String,
-        cells: (json['cells'] as Map? ?? const {}).map(
-          (k, v) => MapEntry(k as String, v),
-        ),
-      );
+    id: json['id'] as String,
+    cells: (json['cells'] as Map? ?? const {}).map(
+      (k, v) => MapEntry(k as String, v),
+    ),
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -160,32 +140,29 @@ class NoteDatabase {
     Object? sortFieldId = _sentinel,
     bool? sortAscending,
     String? title,
-  }) =>
-      NoteDatabase(
-        fields: fields ?? this.fields,
-        records: records ?? this.records,
-        viewType: viewType ?? this.viewType,
-        sortFieldId:
-            identical(sortFieldId, _sentinel) ? this.sortFieldId : sortFieldId as String?,
-        sortAscending: sortAscending ?? this.sortAscending,
-        title: title ?? this.title,
-      );
+  }) => NoteDatabase(
+    fields: fields ?? this.fields,
+    records: records ?? this.records,
+    viewType: viewType ?? this.viewType,
+    sortFieldId: identical(sortFieldId, _sentinel)
+        ? this.sortFieldId
+        : sortFieldId as String?,
+    sortAscending: sortAscending ?? this.sortAscending,
+    title: title ?? this.title,
+  );
 
   // ── 字段 CRUD ──────────────────────────────────────────────
 
-  NoteDatabase addField(NoteFieldDef field) => copyWith(
-        fields: [...fields, field],
-      );
+  NoteDatabase addField(NoteFieldDef field) =>
+      copyWith(fields: [...fields, field]);
 
   NoteDatabase removeField(String fieldId) {
     final newFields = fields.where((f) => f.id != fieldId).toList();
-    final newRecords = records
-        .map((r) {
-          if (!r.cells.containsKey(fieldId)) return r;
-          final newCells = Map<String, Object?>.from(r.cells)..remove(fieldId);
-          return r.copyWith(cells: newCells);
-        })
-        .toList();
+    final newRecords = records.map((r) {
+      if (!r.cells.containsKey(fieldId)) return r;
+      final newCells = Map<String, Object?>.from(r.cells)..remove(fieldId);
+      return r.copyWith(cells: newCells);
+    }).toList();
     // 若删除的是排序字段，清除排序
     final newSortFieldId = sortFieldId == fieldId ? null : sortFieldId;
     return copyWith(
@@ -202,7 +179,9 @@ class NoteDatabase {
       _mapField(fieldId, (f) => f.copyWith(options: options));
 
   NoteDatabase _mapField(
-      String fieldId, NoteFieldDef Function(NoteFieldDef) transform) {
+    String fieldId,
+    NoteFieldDef Function(NoteFieldDef) transform,
+  ) {
     var changed = false;
     final newFields = fields.map((f) {
       if (f.id != fieldId) return f;
@@ -215,9 +194,8 @@ class NoteDatabase {
 
   // ── 记录 CRUD ──────────────────────────────────────────────
 
-  NoteDatabase addRecord(NoteRecord record) => copyWith(
-        records: [...records, record],
-      );
+  NoteDatabase addRecord(NoteRecord record) =>
+      copyWith(records: [...records, record]);
 
   NoteDatabase removeRecord(String recordId) {
     final newRecords = records.where((r) => r.id != recordId).toList();
@@ -244,8 +222,7 @@ class NoteDatabase {
 
   NoteDatabase insertRecordAt(int index, NoteRecord record) {
     final clamped = index.clamp(0, records.length);
-    final newRecords = List<NoteRecord>.from(records)
-      ..insert(clamped, record);
+    final newRecords = List<NoteRecord>.from(records)..insert(clamped, record);
     return copyWith(records: newRecords);
   }
 
@@ -335,29 +312,29 @@ class NoteDatabase {
   // ── 序列化 ─────────────────────────────────────────────────
 
   Map<String, dynamic> toJson() => {
-        'title': title,
-        'viewType': viewType.name,
-        'sortFieldId': sortFieldId,
-        'sortAscending': sortAscending,
-        'fields': fields.map((f) => f.toJson()).toList(),
-        'records': records.map((r) => r.toJson()).toList(),
-      };
+    'title': title,
+    'viewType': viewType.name,
+    'sortFieldId': sortFieldId,
+    'sortAscending': sortAscending,
+    'fields': fields.map((f) => f.toJson()).toList(),
+    'records': records.map((r) => r.toJson()).toList(),
+  };
 
   factory NoteDatabase.fromJson(Map<String, dynamic> json) => NoteDatabase(
-        title: json['title'] as String? ?? '',
-        viewType: DatabaseViewType.values.firstWhere(
-          (e) => e.name == json['viewType'],
-          orElse: () => DatabaseViewType.table,
-        ),
-        sortFieldId: json['sortFieldId'] as String?,
-        sortAscending: json['sortAscending'] as bool? ?? true,
-        fields: (json['fields'] as List? ?? const [])
-            .map((e) => NoteFieldDef.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        records: (json['records'] as List? ?? const [])
-            .map((e) => NoteRecord.fromJson(e as Map<String, dynamic>))
-            .toList(),
-      );
+    title: json['title'] as String? ?? '',
+    viewType: DatabaseViewType.values.firstWhere(
+      (e) => e.name == json['viewType'],
+      orElse: () => DatabaseViewType.table,
+    ),
+    sortFieldId: json['sortFieldId'] as String?,
+    sortAscending: json['sortAscending'] as bool? ?? true,
+    fields: (json['fields'] as List? ?? const [])
+        .map((e) => NoteFieldDef.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    records: (json['records'] as List? ?? const [])
+        .map((e) => NoteRecord.fromJson(e as Map<String, dynamic>))
+        .toList(),
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -373,13 +350,13 @@ class NoteDatabase {
 
   @override
   int get hashCode => Object.hash(
-        title,
-        viewType,
-        sortFieldId,
-        sortAscending,
-        Object.hashAll(fields),
-        Object.hashAll(records),
-      );
+    title,
+    viewType,
+    sortFieldId,
+    sortAscending,
+    Object.hashAll(fields),
+    Object.hashAll(records),
+  );
 
   @override
   String toString() =>

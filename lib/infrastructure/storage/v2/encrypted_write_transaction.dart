@@ -16,7 +16,8 @@ class MigrationRequiredException implements Exception {
   final String destination;
 
   @override
-  String toString() => 'MigrationRequiredException: $destination 为 V1 明文/未知格式'
+  String toString() =>
+      'MigrationRequiredException: $destination 为 V1 明文/未知格式'
       '——拒绝自动覆盖——需显式迁移（复制-认证-校验-切换）';
 }
 
@@ -77,7 +78,9 @@ class EncryptedWriteTransaction {
           String.fromCharCodes(bytes.take(4)) == kV2Magic) {
         return const ValidV2Ciphertext();
       }
-    } catch (_) {/* 读取失败按未知处理 */}
+    } catch (_) {
+      /* 读取失败按未知处理 */
+    }
     return const LegacyOrUnknownDestination();
   }
 
@@ -125,14 +128,18 @@ class EncryptedWriteTransaction {
           } catch (e) {
             try {
               await tmp.delete();
-            } catch (_) {/* 忽略清理失败 */}
+            } catch (_) {
+              /* 忽略清理失败 */
+            }
             throw BackupFailedException(destination.path, e);
           }
         case LegacyOrUnknownDestination():
           // 拒绝自动覆盖（S-001）——不 .bak——不覆盖——返回迁移要求。
           try {
             await tmp.delete();
-          } catch (_) {/* 忽略清理失败 */}
+          } catch (_) {
+            /* 忽略清理失败 */
+          }
           throw MigrationRequiredException(destination.path);
       }
       await tmp.rename(destination.path);
@@ -146,7 +153,9 @@ class EncryptedWriteTransaction {
       if (await tmp.exists()) {
         try {
           await tmp.delete();
-        } catch (_) {/* 忽略清理失败 */}
+        } catch (_) {
+          /* 忽略清理失败 */
+        }
       }
       rethrow;
     }

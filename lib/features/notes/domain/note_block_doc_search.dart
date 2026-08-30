@@ -76,25 +76,29 @@ class NoteBlockDocSearchIndex {
   void indexDocument(NoteBlockDoc doc) {
     final fullDocText = _buildFullDocText(doc);
     // 标题作为独立伪条目，使标题命中可被搜索到。
-    _entries.add(_BlockEntry(
-      blockId: doc.id,
-      blockText: doc.title,
-      docTitle: doc.title,
-      fullDocText: fullDocText,
-      isTitle: true,
-    ));
+    _entries.add(
+      _BlockEntry(
+        blockId: doc.id,
+        blockText: doc.title,
+        docTitle: doc.title,
+        fullDocText: fullDocText,
+        isTitle: true,
+      ),
+    );
     for (final block in doc.body) {
       _indexBlock(block, doc.title, fullDocText);
     }
   }
 
   void _indexBlock(NoteBlock block, String docTitle, String fullDocText) {
-    _entries.add(_BlockEntry(
-      blockId: block.id,
-      blockText: block.text,
-      docTitle: docTitle,
-      fullDocText: fullDocText,
-    ));
+    _entries.add(
+      _BlockEntry(
+        blockId: block.id,
+        blockText: block.text,
+        docTitle: docTitle,
+        fullDocText: fullDocText,
+      ),
+    );
     for (final child in block.children) {
       _indexBlock(child, docTitle, fullDocText);
     }
@@ -132,11 +136,13 @@ class NoteBlockDocSearchIndex {
 
       final matchedTitle = entry.isTitle || titleMatchesAll;
       final snippet = _buildSnippet(entry.matchText, tokens.first);
-      hits.add(NoteBlockSearchHit(
-        blockId: entry.blockId,
-        snippet: snippet,
-        matchedTitle: matchedTitle,
-      ));
+      hits.add(
+        NoteBlockSearchHit(
+          blockId: entry.blockId,
+          snippet: snippet,
+          matchedTitle: matchedTitle,
+        ),
+      );
     }
     return hits;
   }

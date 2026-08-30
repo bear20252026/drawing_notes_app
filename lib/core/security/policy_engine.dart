@@ -57,11 +57,7 @@ class PolicyEngine {
   PolicyResult check(String operation, {String? target}) {
     final allowed = allowlistedOperations.contains(operation);
     final reason = allowed ? 'allowlisted' : 'operation_not_allowlisted';
-    AuditLogger.log(
-      'policy.$operation',
-      success: allowed,
-      detail: target,
-    );
+    AuditLogger.log('policy.$operation', success: allowed, detail: target);
     return PolicyResult(
       allowed ? PolicyDecision.allow : PolicyDecision.deny,
       reason,

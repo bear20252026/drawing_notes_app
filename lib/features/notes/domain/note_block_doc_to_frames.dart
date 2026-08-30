@@ -29,8 +29,7 @@ List<NoteFrame> noteBlockDocToFrames(
   final blocks = doc.body;
 
   // 判断是否存在顶层 heading。
-  final hasTopLevelHeading =
-      blocks.any((b) => b.type == NoteBlockType.heading);
+  final hasTopLevelHeading = blocks.any((b) => b.type == NoteBlockType.heading);
 
   // 按 heading 分组：每个 group 是一个帧的 body。
   final groups = <List<NoteBlock>>[];
@@ -82,15 +81,17 @@ List<NoteFrame> noteBlockDocToFrames(
       updatedAt: doc.updatedAt,
     );
 
-    frames.add(NoteFrame(
-      id: '${docId}_f$i',
-      x: initialRect.left,
-      y: initialRect.top + i * (initialRect.height + 64),
-      w: initialRect.width,
-      h: initialRect.height,
-      zIndex: baseZ + i,
-      doc: frameDoc,
-    ));
+    frames.add(
+      NoteFrame(
+        id: '${docId}_f$i',
+        x: initialRect.left,
+        y: initialRect.top + i * (initialRect.height + 64),
+        w: initialRect.width,
+        h: initialRect.height,
+        zIndex: baseZ + i,
+        doc: frameDoc,
+      ),
+    );
   }
 
   return frames;

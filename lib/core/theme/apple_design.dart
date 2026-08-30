@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 /// Apple (HIG) 设计语言 token 与可复用部件。
 ///
 /// 参照 DESIGN.md（getdesign@apple）给出的苹果官方规范抽取：
@@ -16,34 +17,49 @@ import 'package:flutter/material.dart';
 abstract final class AppleColor {
   /// Action Blue：主强调色。
   static const Color actionBlue = Color(0xFF0066CC);
+
   /// 深色模式下的高亮蓝（按钮/链接）。
   static const Color actionBlueOnDark = Color(0xFF2997FF);
+
   /// 主墨色（近黑）。
   static const Color ink = Color(0xFF1D1D1F);
+
   /// 次要墨色。
   static const Color inkMuted = Color(0xFF6E6E73);
+
   /// 淡墨（辅助说明）。
   static const Color inkSubtle = Color(0xFF98989F);
+
   /// 米白画布。
   static const Color parchment = Color(0xFFF5F5F7);
+
   /// 白色表面。
   static const Color surfaceWhite = Color(0xFFFFFFFF);
+
   /// 输入/芯片浅底。
   static const Color subtleSurface = Color(0xFFEBEBED);
+
   /// 细描边。
   static const Color hairline = Color(0xFFE0E0E0);
+
   /// 深色画布（深蓝 navy —— 保留原应用身份）。
   static const Color canvansDark = Color(0xFF101521);
+
   /// 深色表面（深蓝 navy）。
   static const Color surfaceDark = Color(0xFF181F2E);
+
   /// 深色芯片底（深蓝 navy）。
   static const Color subtleSurfaceDark = Color(0xFF222B3D);
+
   /// 星标橙（Apple 系统橙）。
   static const Color favourite = Color(0xFFFF9F0A);
+
   /// 系统绿（笔记类）。
   static const Color noteGreen = Color(0xFF30D158);
+
   /// 系统紫（块文档类）。
   static const Color blockPurple = Color(0xFFBF5AF2);
+
   /// 错误红（Apple 系统红）。
   static const Color errorRed = Color(0xFFFF3B30);
 }
@@ -77,40 +93,42 @@ abstract final class AppleType {
   static const double headline = 22;
 
   static TextStyle headlineStyle(Color color) => TextStyle(
-        fontSize: headline,
-        fontWeight: FontWeight.w600,
-        letterSpacing: -0.5,
-        color: color,
-      );
+    fontSize: headline,
+    fontWeight: FontWeight.w600,
+    letterSpacing: -0.5,
+    color: color,
+  );
 
   static TextStyle titleStyle(Color color) => TextStyle(
-        fontSize: title,
-        fontWeight: FontWeight.w600,
-        letterSpacing: -0.35,
-        color: color,
-      );
+    fontSize: title,
+    fontWeight: FontWeight.w600,
+    letterSpacing: -0.35,
+    color: color,
+  );
 
   static TextStyle bodyStyle(Color color) => TextStyle(
-        fontSize: body,
-        fontWeight: FontWeight.w400,
-        letterSpacing: -0.1,
-        color: color,
-      );
+    fontSize: body,
+    fontWeight: FontWeight.w400,
+    letterSpacing: -0.1,
+    color: color,
+  );
 
-  static TextStyle controlStyle(Color color, {FontWeight weight = FontWeight.w600}) =>
-      TextStyle(
-        fontSize: control,
-        fontWeight: weight,
-        letterSpacing: -0.1,
-        color: color,
-      );
+  static TextStyle controlStyle(
+    Color color, {
+    FontWeight weight = FontWeight.w600,
+  }) => TextStyle(
+    fontSize: control,
+    fontWeight: weight,
+    letterSpacing: -0.1,
+    color: color,
+  );
 
   static TextStyle captionStyle(Color color) => TextStyle(
-        fontSize: caption,
-        fontWeight: FontWeight.w500,
-        letterSpacing: 0.2,
-        color: color,
-      );
+    fontSize: caption,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 0.2,
+    color: color,
+  );
 }
 
 /// 可复用的 Apple 主操作胶囊按钮。
@@ -143,7 +161,9 @@ class ApplePrimaryButton extends StatelessWidget {
           const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         ),
         shape: WidgetStatePropertyAll(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppleRadius.full)),
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppleRadius.full),
+          ),
         ),
         textStyle: WidgetStatePropertyAll(AppleType.controlStyle(Colors.white)),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -179,7 +199,11 @@ class ApplePillSearchField extends StatelessWidget {
         hintStyle: AppleType.bodyStyle(
           onSurface.withValues(alpha: 0.4),
         ).copyWith(fontSize: 13),
-        prefixIcon: Icon(Icons.search_rounded, size: 18, color: onSurface.withValues(alpha: 0.5)),
+        prefixIcon: Icon(
+          Icons.search_rounded,
+          size: 18,
+          color: onSurface.withValues(alpha: 0.5),
+        ),
         filled: true,
         fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.6),
         isDense: true,
@@ -203,11 +227,7 @@ class ApplePillSearchField extends StatelessWidget {
 
 /// 可复用的 Apple 分区标题（分组/工具条分区）。
 class AppleSectionHeader extends StatelessWidget {
-  const AppleSectionHeader({
-    super.key,
-    required this.label,
-    this.action,
-  });
+  const AppleSectionHeader({super.key, required this.label, this.action});
 
   final String label;
   final Widget? action;
@@ -217,15 +237,15 @@ class AppleSectionHeader extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final muted = scheme.onSurface.withValues(alpha: 0.4);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppleSpacing.md, 12, AppleSpacing.xs, 6),
+      padding: const EdgeInsets.fromLTRB(
+        AppleSpacing.md,
+        12,
+        AppleSpacing.xs,
+        6,
+      ),
       child: Row(
         children: [
-          Expanded(
-            child: Text(
-              label,
-              style: AppleType.captionStyle(muted),
-            ),
-          ),
+          Expanded(child: Text(label, style: AppleType.captionStyle(muted))),
           ?action,
         ],
       ),

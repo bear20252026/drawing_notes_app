@@ -42,27 +42,28 @@ class EdgelessGroup {
     String? name,
     String? color,
     bool clearName = false,
-  }) =>
-      EdgelessGroup(
-        id: id,
-        frameIds: frameIds ?? this.frameIds,
-        name: clearName ? null : (name ?? this.name),
-        color: color ?? this.color,
-      );
+  }) => EdgelessGroup(
+    id: id,
+    frameIds: frameIds ?? this.frameIds,
+    name: clearName ? null : (name ?? this.name),
+    color: color ?? this.color,
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'frameIds': frameIds,
-        if (name != null) 'name': name,
-        'color': color,
-      };
+    'id': id,
+    'frameIds': frameIds,
+    if (name != null) 'name': name,
+    'color': color,
+  };
 
   factory EdgelessGroup.fromJson(Map<String, dynamic> json) => EdgelessGroup(
-        id: json['id'] as String,
-        frameIds: (json['frameIds'] as List? ?? const []).map((e) => e as String).toList(),
-        name: json['name'] as String?,
-        color: json['color'] as String? ?? kDefaultGroupColor,
-      );
+    id: json['id'] as String,
+    frameIds: (json['frameIds'] as List? ?? const [])
+        .map((e) => e as String)
+        .toList(),
+    name: json['name'] as String?,
+    color: json['color'] as String? ?? kDefaultGroupColor,
+  );
 
   @override
   bool operator ==(Object other) =>

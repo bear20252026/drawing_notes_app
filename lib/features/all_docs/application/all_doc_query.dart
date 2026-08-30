@@ -12,12 +12,16 @@ class BlockDocMeta {
     required this.id,
     required this.title,
     required this.folder,
+    this.tags = const [],
     required this.createdAt,
     required this.updatedAt,
   });
 
   final String id;
   final String title;
+
+  /// 标签 id 列表（M12.6）。
+  final List<String> tags;
   final String folder;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -93,6 +97,7 @@ AllDocQueryResult buildAllDocs({
       title: bd.title,
       kind: AllDocKind.blockdoc,
       folder: bd.folder,
+      tags: bd.tags,
       createdAt: bd.createdAt,
       updatedAt: bd.updatedAt,
     );

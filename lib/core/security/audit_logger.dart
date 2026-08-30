@@ -59,7 +59,10 @@ class AuditLogger {
     var prev = _genesisHash;
     for (final e in _entries) {
       if (e.prevHash != prev) return false; // 链接断裂（删除/插入中间记录）。
-      if (e.hash != _sha256(_payload(e.time, e.operation, e.success, e.detail, e.prevHash))) {
+      if (e.hash !=
+          _sha256(
+            _payload(e.time, e.operation, e.success, e.detail, e.prevHash),
+          )) {
         return false; // 哈希不符（字段被篡改）。
       }
       prev = e.hash;

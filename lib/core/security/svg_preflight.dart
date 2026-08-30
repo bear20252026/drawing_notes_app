@@ -57,15 +57,16 @@ class SvgPreflight {
       return 'SVG 含危险 URL（javascript:/data:）';
     }
     // 复杂度上限（元素数 + 文本总量——SVG 膨胀防护）。
-    final elementCount = RegExp(r'<[a-z][a-z0-9]*[\s/>]', caseSensitive: false)
-        .allMatches(lower)
-        .length;
+    final elementCount = RegExp(
+      r'<[a-z][a-z0-9]*[\s/>]',
+      caseSensitive: false,
+    ).allMatches(lower).length;
     if (elementCount > maxElements) {
       return 'SVG 元素过多（超过 $maxElements——复杂度上限）';
     }
-    final textSize = RegExp(r'>[^<>]{20,}<')
-        .allMatches(text)
-        .fold<int>(0, (sum, m) => sum + m.group(0)!.length);
+    final textSize = RegExp(
+      r'>[^<>]{20,}<',
+    ).allMatches(text).fold<int>(0, (sum, m) => sum + m.group(0)!.length);
     if (textSize > maxTextChars) {
       return 'SVG 文本量过大（膨胀防护）';
     }

@@ -25,9 +25,7 @@ class FileSyncBaselineStore implements SyncBaselineStore {
 
   Future<File> _file() async {
     final base = await _baseDir();
-    return File(
-      '${base.path}${Platform.pathSeparator}$_fileName',
-    );
+    return File('${base.path}${Platform.pathSeparator}$_fileName');
   }
 
   @override
@@ -36,9 +34,7 @@ class FileSyncBaselineStore implements SyncBaselineStore {
     if (!await file.exists()) return null;
     try {
       final raw = await file.readAsString();
-      return SyncManifest.fromJson(
-        jsonDecode(raw) as Map<String, dynamic>,
-      );
+      return SyncManifest.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     } catch (_) {
       return null; // 损坏的基线按空处理（下次全量重新同步）。
     }

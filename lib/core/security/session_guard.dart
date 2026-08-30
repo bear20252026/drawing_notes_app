@@ -10,10 +10,7 @@ import 'package:flutter/widgets.dart';
 /// 再认证回调（导航回解锁页）。安全检查集中单一服务（Flutter 安全指南
 /// "Centralize your checks"）。
 class SessionGuard {
-  SessionGuard({
-    this.onLock,
-    this.onReauthenticateRequired,
-  }) {
+  SessionGuard({this.onLock, this.onReauthenticateRequired}) {
     _listener = AppLifecycleListener(
       onInactive: onInactive,
       onResume: onResume,

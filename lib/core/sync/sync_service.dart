@@ -75,7 +75,8 @@ class SyncResult {
   bool get changed => uploaded > 0 || downloaded > 0 || deletedRemote > 0;
 
   @override
-  String toString() => 'SyncResult(upload=$uploaded, download=$downloaded, '
+  String toString() =>
+      'SyncResult(upload=$uploaded, download=$downloaded, '
       'deleteRemote=$deletedRemote, conflicts=${conflictedDocIds.length})';
 }
 
@@ -143,25 +144,30 @@ class SyncService {
     final baseline = await baselineStore.load() ?? const SyncManifest();
     final deletedIds = <String>{};
     for (final id in baseline.entries.keys) {
-      if (!currentEntries.containsKey(id) && !baseline.deletedIds.contains(id)) {
+      if (!currentEntries.containsKey(id) &&
+          !baseline.deletedIds.contains(id)) {
         deletedIds.add(id);
       }
     }
-    final localManifest =
-        SyncManifest(entries: currentEntries, deletedIds: deletedIds);
+    final localManifest = SyncManifest(
+      entries: currentEntries,
+      deletedIds: deletedIds,
+    );
 
     // 4. 计划 + 冲突检测。
     _emit(SyncProgress.phase(SyncProgressPhase.planning));
     final basePlan = planner.plan(localManifest, remoteManifest);
-    final conflicts =
-        detectSyncConflicts(currentEntries, remoteManifest, baseline);
+    final conflicts = detectSyncConflicts(
+      currentEntries,
+      remoteManifest,
+      baseline,
+    );
 
     // 4b. 用户裁决（如注入了 handler）→ 覆盖为有效计划。
     final resolutions = conflicts.isEmpty
         ? const <String, ConflictResolution>{}
         : await conflictHandler.resolve(conflicts);
-    final plan =
-        applyConflictResolutions(basePlan, conflicts, resolutions);
+    final plan = applyConflictResolutions(basePlan, conflicts, resolutions);
     await _preserveRemoteCopies(conflicts, resolutions);
 
     // 5. 执行。
@@ -169,9 +175,7 @@ class SyncService {
 
     // 6. 回写远端 manifest + 本地基线。
     _emit(SyncProgress.phase(SyncProgressPhase.writingManifest));
-    final newEntries = <String, SyncSnapshot>{
-      ...remoteManifest.entries,
-    };
+    final newEntries = <String, SyncSnapshot>{...remoteManifest.entries};
     for (final op in plan.operations) {
       if (op.kind == SyncOperationKind.deleteRemote) {
         newEntries.remove(op.id);
@@ -194,8 +198,7 @@ class SyncService {
       uploaded: plan.uploadCount,
       downloaded: plan.downloadCount,
       deletedRemote: plan.deleteCount,
-      conflictedDocIds:
-          List.unmodifiable(conflicts.map((c) => c.docId)),
+      conflictedDocIds: List.unmodifiable(conflicts.map((c) => c.docId)),
     );
     _emit(SyncProgress.complete());
     return result;
@@ -229,12 +232,14 @@ class SyncService {
     for (final op in plan.operations) {
       switch (op.kind) {
         case SyncOperationKind.upload:
-          _emit(SyncProgress.phase(
-            SyncProgressPhase.uploading,
-            doneCount: done,
-            totalCount: total,
-            currentDocId: op.id,
-          ));
+          _emit(
+            SyncProgress.phase(
+              SyncProgressPhase.uploading,
+              doneCount: done,
+              totalCount: total,
+              currentDocId: op.id,
+            ),
+          );
           final bytes = await documentStore.readDocument(op.id);
           if (bytes != null) {
             final wire = await cipher.encryptDocumentBytes(bytes, op.id);
@@ -242,12 +247,14 @@ class SyncService {
           }
           break;
         case SyncOperationKind.download:
-          _emit(SyncProgress.phase(
-            SyncProgressPhase.downloading,
-            doneCount: done,
-            totalCount: total,
-            currentDocId: op.id,
-          ));
+          _emit(
+            SyncProgress.phase(
+              SyncProgressPhase.downloading,
+              doneCount: done,
+              totalCount: total,
+              currentDocId: op.id,
+            ),
+          );
           final bytes = await transport.getBytes(cipher.remotePath(op.id));
           if (bytes != null) {
             final plain = await cipher.decryptDocumentBytes(bytes, op.id);
@@ -255,12 +262,14 @@ class SyncService {
           }
           break;
         case SyncOperationKind.deleteRemote:
-          _emit(SyncProgress.phase(
-            SyncProgressPhase.deleting,
-            doneCount: done,
-            totalCount: total,
-            currentDocId: op.id,
-          ));
+          _emit(
+            SyncProgress.phase(
+              SyncProgressPhase.deleting,
+              doneCount: done,
+              totalCount: total,
+              currentDocId: op.id,
+            ),
+          );
           await transport.deleteRemaining(cipher.remotePath(op.id));
           break;
       }

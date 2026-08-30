@@ -66,10 +66,9 @@ class NoteBlockHistory {
   bool get canRedo => _redoStack.isNotEmpty;
 
   /// 当前文档（栈顶快照，若无历史返回 null）。
-  NoteBlockDoc? get current =>
-      (_pointer >= 0 && _pointer < _undoStack.length)
-          ? _undoStack[_pointer].doc
-          : null;
+  NoteBlockDoc? get current => (_pointer >= 0 && _pointer < _undoStack.length)
+      ? _undoStack[_pointer].doc
+      : null;
 
   /// 压入新快照。
   ///
@@ -91,8 +90,11 @@ class NoteBlockHistory {
         lastEntry.editedBlockId == editedBlockId &&
         now - lastEntry.timestamp < mergeWindowMs) {
       // 合并：替换栈顶
-      _undoStack[_undoStack.length - 1] =
-          _HistoryEntry(doc, now, editedBlockId: editedBlockId);
+      _undoStack[_undoStack.length - 1] = _HistoryEntry(
+        doc,
+        now,
+        editedBlockId: editedBlockId,
+      );
       // undo 后 push 清空 redo
       _redoStack.clear();
       return;

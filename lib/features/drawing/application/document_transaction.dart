@@ -18,7 +18,7 @@ import 'package:drawing_notes_app/features/drawing/application/document_commands
 /// ```
 class DocumentTransaction extends DocCommand {
   DocumentTransaction(List<DocCommand> commands)
-      : _commands = List.unmodifiable(commands) {
+    : _commands = List.unmodifiable(commands) {
     if (commands.isEmpty) {
       throw ArgumentError('DocumentTransaction 至少需要一个子命令');
     }
