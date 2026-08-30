@@ -2,6 +2,21 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.3.3] - 2026-08-30
+
+### 架构重构（代码健康整改全清，功能零变化）
+
+- **画布引擎域上收 `core/canvas_model/`**（B 方案）：document/layer/stroke 等
+  12 个纯模型文件从 drawing/domain 迁出——笔记与画板 feature 间零依赖，
+  为"笔记嵌画布/画布嵌笔记"双向镶嵌铺平道路（镶嵌契约已入 ARCHITECTURE.md）
+- **UI 方言统一**：退役 material_ui fork（经逐文件 diff 确认行为等价），
+  51 个文件迁移至单一 flutter/material；根除同名异型导致的解析歧义与
+  本地化冲突
+- core 纯度达成：`lib/core/` 对 `features/*` 零 import
+- 死模块删除、块编辑 UI 归位 doc 模块、DocEditor 更名、选择框绘制去重、
+  大页面 part 化拆分、保存机制统一 SaveScheduler、新增 docs/ARCHITECTURE.md
+- 1298 项测试全绿；dart analyze 0 问题
+
 ## [1.3.2] - 2026-08-30
 
 ### 命名持久化 + 自动保存 + 保存状态可视化（用户反馈五项）
