@@ -6,6 +6,7 @@
 import 'package:flutter_localizations/flutter_localizations.dart'
     hide GlobalMaterialLocalizations;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/material.dart' as m show Checkbox;
 import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/features/schedule/domain/schedule_event.dart';
@@ -24,6 +25,7 @@ class _InMemoryEventStore extends ScheduleEventStore {
   Future<ScheduleEvent?> add({
     required String title,
     required String dayKey,
+    int? minuteOfDay,
   }) async {
     final trimmed = title.trim();
     if (trimmed.isEmpty) return null;
@@ -31,6 +33,7 @@ class _InMemoryEventStore extends ScheduleEventStore {
       id: 'event_${_events.length + 1}',
       title: trimmed,
       dayKey: dayKey,
+      minuteOfDay: minuteOfDay,
       createdAt: DateTime(2026, 8, 30, 9),
     );
     _events.add(event);
@@ -87,7 +90,7 @@ void main() {
       seed: [(title: '写周报', dayKey: '2026-08-30')],
     );
     expect(find.text('写周报'), findsOneWidget);
-    expect(find.byType(Checkbox), findsOneWidget);
+    expect(find.byType(m.Checkbox), findsOneWidget);
   });
 
   testWidgets('勾选切换完成态', (tester) async {
@@ -97,9 +100,9 @@ void main() {
       store: store,
       seed: [(title: '写周报', dayKey: '2026-08-30')],
     );
-    await tester.ensureVisible(find.byType(Checkbox));
+    await tester.ensureVisible(find.byType(m.Checkbox));
     await tester.pump();
-    await tester.tap(find.byType(Checkbox));
+    await tester.tap(find.byType(m.Checkbox));
     await tester.pump();
     expect(store._events.single.isDone, isTrue);
   });

@@ -71,16 +71,22 @@ class ScheduleEventStore {
   }
 
   /// 新增一条事件（标题去空白后为空则忽略）。
+  /// [minuteOfDay] 可选：当天内的时刻（0..1439），null = 全天待办。
   Future<ScheduleEvent?> add({
     required String title,
     required String dayKey,
+    int? minuteOfDay,
   }) async {
     final trimmed = title.trim();
     if (trimmed.isEmpty) return null;
+    if (minuteOfDay != null && (minuteOfDay < 0 || minuteOfDay > 1439)) {
+      return null;
+    }
     final event = ScheduleEvent(
       id: LocalIdGenerator.next('event'),
       title: trimmed,
       dayKey: dayKey,
+      minuteOfDay: minuteOfDay,
       createdAt: DateTime.now(),
     );
     final events = [...await loadAll(), event];

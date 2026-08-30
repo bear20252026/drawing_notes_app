@@ -16,7 +16,6 @@ import 'package:drawing_notes_app/features/notes/presentation/note_doc_modes_pag
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_entity.dart';
-import 'package:drawing_notes_app/features/schedule/domain/schedule_entry.dart';
 import 'package:drawing_notes_app/features/schedule/presentation/schedule_page.dart';
 
 /// 应用导航壳：3 个顶层目的地（M11 IA 收敛）。
@@ -81,12 +80,8 @@ class _AppShellState extends State<AppShell> {
       themeController: widget.themeController,
       editorPageBuilder: widget.editorPageBuilder,
     ),
-    // 2. 日历（M11 恢复：按日期浏览文档活动 + 待办/日程事件）
-    SchedulePage(
-      storage: widget.docStorage,
-      loadNotebooks: () async => widget.notebookStorage?.listAll() ?? const [],
-      onOpen: _openEntry,
-    ),
+    // 2. 日历（M11.2：纯待办/日程——文档时间线并入主页，功能去重）
+    const SchedulePage(),
   ];
 
   /// 底部导航栏（窄屏）目的地：[NavigationBar] 的 [NavigationDestination]。
@@ -129,41 +124,6 @@ class _AppShellState extends State<AppShell> {
         label: Text('日历'),
       ),
     ];
-  }
-
-  /// 日历看板里点击某条记录 -> 跳转到对应页面。
-  Future<void> _openEntry(ScheduleEntry entry) async {
-    final nav = Navigator.of(context, rootNavigator: true);
-
-    if (entry.kind == ScheduleEntryKind.drawing) {
-      final storage = widget.docStorage;
-      if (storage == null) return;
-      final doc = await storage.load(entry.id);
-      if (doc == null) return;
-      final builder = widget.editorPageBuilder;
-      nav.push(
-        MaterialPageRoute(
-          builder: (_) => builder != null
-              ? builder(document: doc, documentStorage: storage)
-              : const Scaffold(body: Center(child: Text('编辑器尚未由应用层装配'))),
-        ),
-      );
-      return;
-    }
-
-    final nbStorage = widget.notebookStorage;
-    if (nbStorage == null) return;
-    final nb = await nbStorage.load(entry.notebookId ?? '');
-    if (nb == null) return;
-    nav.push(
-      MaterialPageRoute(
-        builder: (_) => NotebookViewPage(
-          notebook: nb,
-          storage: nbStorage,
-          editorPageBuilder: widget.editorPageBuilder,
-        ),
-      ),
-    );
   }
 
   void _onSelect(int index) => setState(() => _index = index);

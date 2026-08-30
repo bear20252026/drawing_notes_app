@@ -32,7 +32,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
     await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.text('日程'), findsOneWidget);
+    expect(find.text('日历 · 待办'), findsOneWidget);
     expect(find.text('今天'), findsOneWidget);
   });
 
@@ -42,7 +42,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
     await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.text('待办 · 日程'), findsOneWidget);
-    expect(find.text('文档动态'), findsOneWidget);
+    expect(find.text('日历 · 待办'), findsOneWidget);
+    expect(find.text('全部日程'), findsOneWidget);
   });
 }

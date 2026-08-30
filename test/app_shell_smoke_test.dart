@@ -103,7 +103,7 @@ void main() {
     await tester.tap(find.text('日历').last);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('待办 · 日程'), findsOneWidget);
-    expect(find.text('文档动态'), findsOneWidget);
+    expect(find.text('日历 · 待办'), findsOneWidget);
+    expect(find.text('全部日程'), findsOneWidget);
   });
 }

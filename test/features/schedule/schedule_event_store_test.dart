@@ -13,6 +13,36 @@ void main() {
       expect(scheduleDayKey(DateTime(2026, 12, 31)), '2026-12-31');
     });
 
+    test('minuteOfDay 时刻字段：序列化往返 + 越界拒绝', () {
+      final e = ScheduleEvent(
+        id: 'e9',
+        title: '下午 2 点半开会',
+        dayKey: '2026-08-30',
+        minuteOfDay: 14 * 60 + 30,
+        createdAt: DateTime(2026, 8, 30, 9),
+      );
+      final back = ScheduleEvent.fromJson(e.toJson());
+      expect(back, e);
+      expect(back!.minuteOfDay, 870);
+      // 越界 fail-open → null
+      final bad = ScheduleEvent.fromJson({
+        'id': 'x',
+        'title': 't',
+        'dayKey': '2026-08-30',
+        'minuteOfDay': 1440,
+        'createdAt': '2026-08-30T09:00:00.000',
+      });
+      expect(bad, isNull);
+      // 全天待办（无时刻字段）→ null
+      final allday = ScheduleEvent.fromJson({
+        'id': 'y',
+        'title': 't',
+        'dayKey': '2026-08-30',
+        'createdAt': '2026-08-30T09:00:00.000',
+      });
+      expect(allday!.minuteOfDay, isNull);
+    });
+
     test('JSON 往返一致', () {
       final e = ScheduleEvent(
         id: 'event_1',
@@ -74,6 +104,21 @@ void main() {
       expect(toggled!.isDone, isTrue);
       expect((await store.loadAll()).single.isDone, isTrue);
       expect((await store.toggleDone(added.id))!.isDone, isFalse);
+    });
+
+    test('add 带时刻（minuteOfDay）', () async {
+      final added = await store.add(
+        title: '14:30 站会',
+        dayKey: '2026-08-30',
+        minuteOfDay: 870,
+      );
+      expect(added!.minuteOfDay, 870);
+      expect((await store.loadAll()).single.minuteOfDay, 870);
+      // 越界忽略
+      expect(
+        await store.add(title: 'x', dayKey: '2026-08-30', minuteOfDay: 2000),
+        isNull,
+      );
     });
 
     test('remove 删除', () async {
