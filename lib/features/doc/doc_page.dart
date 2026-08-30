@@ -74,22 +74,37 @@ class _DocPageState extends State<DocPage> {
   _SaveStatus _saveStatus = _SaveStatus.saved;
   DateTime? _lastSavedAt;
   final GlobalKey<DocEditorState> _editorKey = GlobalKey<DocEditorState>();
+
+  /// 是否有待写盘改动（P0-H2 退出 flush 判据）。
+  bool _pendingChanges = false;
+
   late final SaveScheduler _saveScheduler = SaveScheduler(
     save: () async {
       final editor = _editorKey.currentState;
       if (editor == null) return;
       final doc = editor.saveNow();
-      widget.controller?.save(doc);
       _doc = doc;
+      // P0-H1：等磁盘写完才返回——scheduler.onSaved 在此之后触发，
+      // 「已保存」状态不再早于落盘。原实现此处与 _persist 各写一次（双写）。
+      await widget.controller?.save(doc);
     },
     onSaved: () {
       if (!mounted) return;
       setState(() {
         _saveStatus = _SaveStatus.saved;
         _lastSavedAt = DateTime.now();
+        _pendingChanges = false;
       });
     },
-    onError: (e, st) => debugPrint('笔记自动保存失败: $e'),
+    onError: (e, st) {
+      // P0-H1：保存失败必须让用户知道（原仅 debugPrint）。
+      if (mounted) {
+        setState(() => _saveStatus = _SaveStatus.unsaved);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('保存失败，请重试或手动保存')));
+      }
+    },
   );
 
   @override
@@ -107,6 +122,7 @@ class _DocPageState extends State<DocPage> {
 
   /// 编辑变为脏：显示"未保存"并交由 SaveScheduler 防抖自动保存。
   void _onEditorDirty() {
+    _pendingChanges = true;
     if (mounted && _saveStatus != _SaveStatus.unsaved) {
       setState(() => _saveStatus = _SaveStatus.unsaved);
     }
@@ -204,12 +220,11 @@ class _DocPageState extends State<DocPage> {
   }
 
   void _persist(NoteBlockDoc doc) {
+    // P0-H1：仅同步快照到页面状态；「已保存」状态与落盘一律由
+    // SaveScheduler（await 写盘后的 onSaved）单一驱动，消除假已保存。
     setState(() {
       _doc = doc;
-      _saveStatus = _SaveStatus.saved;
-      _lastSavedAt = DateTime.now();
     });
-    widget.controller?.save(doc);
   }
 
   @override
@@ -217,66 +232,78 @@ class _DocPageState extends State<DocPage> {
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF1A1A1E) : Colors.white,
-      appBar: _DocHeader(
-        title: _doc.title,
-        isFavorite: _favorite,
-        outlineOpen: _outlineOpen,
-        statusLabel: _statusLabel(),
-        statusColor: _saveStatus == _SaveStatus.unsaved
-            ? const Color(0xFFF5A623)
-            : (_saveStatus == _SaveStatus.saving
-                  ? scheme.primary
-                  : const Color(0xFF30D158)),
-        onSavePressed: _saveNow,
-        onToggleFavorite: () {
-          setState(() => _favorite = !_favorite);
-          widget.onToggleFavorite?.call(_favorite);
-        },
-        onToggleOutline: () => setState(() => _outlineOpen = !_outlineOpen),
-        onShowInfo: () => _showInfoDialog(context),
-        onOpenInEdgeless: widget.onOpenInEdgeless,
-        onExportMarkdown: _exportMarkdown,
-        onExportHtml: _exportHtml,
-        onInsertPageLink: _insertPageLink,
-        onExportPdf: _exportPdf,
-      ),
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
-                child: DocEditor(
-                  key: _editorKey,
-                  showChrome: false,
-                  document: _doc,
-                  onSave: _persist,
-                  onDirty: _onEditorDirty,
+    // P0-H2：有未落盘改动时拦截返回，先 flush（saveNow 同步等待写盘）
+    // 再真正退出——消除防抖窗口内的编辑丢失。
+    return PopScope(
+      canPop: !_pendingChanges,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        await _saveScheduler.saveNow();
+        if (!mounted) return;
+        setState(() => _pendingChanges = false);
+        Navigator.of(this.context).pop();
+      },
+      child: Scaffold(
+        backgroundColor: isDark ? const Color(0xFF1A1A1E) : Colors.white,
+        appBar: _DocHeader(
+          title: _doc.title,
+          isFavorite: _favorite,
+          outlineOpen: _outlineOpen,
+          statusLabel: _statusLabel(),
+          statusColor: _saveStatus == _SaveStatus.unsaved
+              ? const Color(0xFFF5A623)
+              : (_saveStatus == _SaveStatus.saving
+                    ? scheme.primary
+                    : const Color(0xFF30D158)),
+          onSavePressed: _saveNow,
+          onToggleFavorite: () {
+            setState(() => _favorite = !_favorite);
+            widget.onToggleFavorite?.call(_favorite);
+          },
+          onToggleOutline: () => setState(() => _outlineOpen = !_outlineOpen),
+          onShowInfo: () => _showInfoDialog(context),
+          onOpenInEdgeless: widget.onOpenInEdgeless,
+          onExportMarkdown: _exportMarkdown,
+          onExportHtml: _exportHtml,
+          onInsertPageLink: _insertPageLink,
+          onExportPdf: _exportPdf,
+        ),
+        body: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: DocEditor(
+                    key: _editorKey,
+                    showChrome: false,
+                    document: _doc,
+                    onSave: _persist,
+                    onDirty: _onEditorDirty,
+                  ),
                 ),
               ),
             ),
-          ),
-          // 右缘大纲（AFFiNE Outline Rail）
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 180),
-            child: _outlineOpen
-                ? DocOutlineRail(
-                    key: const ValueKey('rail-on'),
-                    entries: [
-                      for (final e
-                          in _editorKey.currentState?.outline() ?? const [])
-                        OutlineEntry(id: e.id, level: e.level, text: e.text),
-                    ],
-                    onTapEntry: (id) =>
-                        _editorKey.currentState?.scrollToBlock(id),
-                    onClose: () => setState(() => _outlineOpen = false),
-                  )
-                : const SizedBox.shrink(key: ValueKey('rail-off')),
-          ),
-        ],
+            // 右缘大纲（AFFiNE Outline Rail）
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              child: _outlineOpen
+                  ? DocOutlineRail(
+                      key: const ValueKey('rail-on'),
+                      entries: [
+                        for (final e
+                            in _editorKey.currentState?.outline() ?? const [])
+                          OutlineEntry(id: e.id, level: e.level, text: e.text),
+                      ],
+                      onTapEntry: (id) =>
+                          _editorKey.currentState?.scrollToBlock(id),
+                      onClose: () => setState(() => _outlineOpen = false),
+                    )
+                  : const SizedBox.shrink(key: ValueKey('rail-off')),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -394,8 +421,9 @@ class _DocPageState extends State<DocPage> {
     }
     final updated = _doc.copyWith(tags: tags, updatedAt: DateTime.now());
     setState(() => _doc = updated);
-    widget.controller?.save(updated);
-    if (context.mounted) Navigator.of(context).pop();
+    await widget.controller?.save(updated);
+    if (!mounted) return;
+    Navigator.of(context).pop();
     _showInfoDialog(context);
   }
 

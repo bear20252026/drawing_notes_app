@@ -133,7 +133,7 @@ class _EdgelessPageState extends State<EdgelessPage> {
       MaterialPageRoute(
         builder: (_) => DocPage(
           document: doc,
-          controller: DocController(onSave: (_) {}),
+          controller: DocController(onSave: (_) async {}),
         ),
       ),
     );

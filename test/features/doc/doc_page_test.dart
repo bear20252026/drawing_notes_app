@@ -71,7 +71,7 @@ void main() {
   testWidgets('正文块可编辑（输入即更新内容）', (tester) async {
     await tester.pumpWidget(wrap(DocPage(
       document: makeDoc(),
-      controller: DocController(onSave: (_) {}),
+      controller: DocController(onSave: (_) async {}),
     )));
     await tester.pumpAndSettle();
 
@@ -82,14 +82,14 @@ void main() {
     expect(find.text('正文二'), findsOneWidget);
   });
 
-  test('DocController：save 转发 + dirty 标记', () {
+  test('DocController：save 转发 + dirty 标记', () async {
     NoteBlockDoc? saved;
-    final c = DocController(onSave: (d) => saved = d);
+    final c = DocController(onSave: (d) async => saved = d);
     expect(c.dirty, isFalse);
     c.markDirty();
     expect(c.dirty, isTrue);
     final doc = makeDoc();
-    c.save(doc);
+    await c.save(doc);
     expect(saved, same(doc));
     expect(c.dirty, isFalse);
   });

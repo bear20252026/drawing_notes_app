@@ -6,16 +6,19 @@ class DocController {
   DocController({required this.onSave});
 
   /// 持久化回调（通常接 NoteBlockDocStore.saveDocument）。
-  final void Function(NoteBlockDoc doc) onSave;
+  ///
+  /// P0-H1（审计 2026-08-31）：返回 Future 并在 [save] 中 await——
+  /// 原实现丢弃 Future，保存失败被静默吞掉，"已保存"状态失真。
+  final Future<void> Function(NoteBlockDoc doc) onSave;
 
   bool _dirty = false;
 
   /// 是否有未持久化的改动。
   bool get dirty => _dirty;
 
-  /// 保存文档。
-  void save(NoteBlockDoc doc) {
-    onSave(doc);
+  /// 保存文档（等待磁盘写完成后才清除脏标记）。
+  Future<void> save(NoteBlockDoc doc) async {
+    await onSave(doc);
     _dirty = false;
   }
 
