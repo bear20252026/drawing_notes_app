@@ -356,10 +356,10 @@ class DrawingController extends ChangeNotifier
           : layer.strokes
                 .where((stroke) => !excludedTypes.contains(stroke.type))
                 .toList(growable: false);
-      if (layer.opacity >= 1) {
-        InkLayerPainter.paintStrokes(canvas, bounds, strokes);
-        continue;
-      }
+      // M12 修复：橡皮擦（BlendMode.clear）必须作用于"仅本图层内容"。
+      // 此前 opacity=1 时直接在主画布上绘制，clear 会把主画布连同
+      // 纸面背景一起清穿，露出底层黑色（表现为"橡皮擦画出黑色线条"）。
+      // 统一 saveLayer 隔离后，clear 只清除本图层墨迹，露出纸面。
       canvas.saveLayer(
         bounds,
         Paint()..color = Color.fromRGBO(0, 0, 0, layer.opacity),

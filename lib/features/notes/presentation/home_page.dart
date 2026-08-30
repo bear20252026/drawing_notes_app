@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
@@ -42,6 +43,7 @@ part 'home_page_tabs.dart';
 /// 数据来源：本地文件存储（[StorageService] / [NotebookStorage]），无网络请求。
 class HomePage extends StatefulWidget {
   const HomePage({
+    this.refreshSignal,
     super.key,
     this.notebookStorage,
     this.docStorage,
@@ -57,6 +59,9 @@ class HomePage extends StatefulWidget {
 
   /// 编辑器页面由应用组合根注入，notes 模块不直接依赖 drawing 的 UI。
   final EditorPageBuilder? editorPageBuilder;
+
+  /// 数据版本通知（shell 在文档新增/修改后自增）：触发首页刷新。
+  final ValueListenable<int>? refreshSignal;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -76,12 +81,23 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    widget.refreshSignal?.addListener(_onDataVersionChanged);
     _nbStorage = widget.notebookStorage ?? NotebookStorage();
     _docStorage = widget.docStorage ?? StorageService();
     _blockDocStore = NoteBlockDocStore();
     _refresh();
     // 首次启动引导（Phase 7）：仅第一次打开时显示，可跳过。
     _showOnboarding();
+  }
+
+  void _onDataVersionChanged() {
+    if (mounted) _refresh();
+  }
+
+  @override
+  void dispose() {
+    widget.refreshSignal?.removeListener(_onDataVersionChanged);
+    super.dispose();
   }
 
   Future<void> _showOnboarding() async {

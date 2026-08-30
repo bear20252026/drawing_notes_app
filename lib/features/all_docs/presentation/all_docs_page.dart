@@ -6,6 +6,7 @@
 // - 左侧 AllDocsSidebar + 主内容区（工具条 / Tab / 分组文档列表）。
 // 不 import 任何存储/服务实现。
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
@@ -33,6 +34,7 @@ class AllDocsPage extends StatefulWidget {
     required this.onOpenDoc,
     this.onNewDoc,
     this.onToggleFavorite,
+    this.refreshSignal,
   });
 
   final Future<AllDocQueryResult> Function() loadDocs;
@@ -40,11 +42,35 @@ class AllDocsPage extends StatefulWidget {
   final void Function(AllDocKind kind)? onNewDoc;
   final void Function(AllDoc doc)? onToggleFavorite;
 
+  /// 数据版本通知（shell 在文档新增/修改后自增）：触发列表重载。
+  final ValueListenable<int>? refreshSignal;
+
   @override
   State<AllDocsPage> createState() => _AllDocsPageState();
 }
 
 class _AllDocsPageState extends State<AllDocsPage> {
+  @override
+  void initState() {
+    super.initState();
+    _future ??= widget.loadDocs();
+    widget.refreshSignal?.addListener(_onDataVersionChanged);
+  }
+
+  void _onDataVersionChanged() {
+    if (!mounted) return;
+    setState(() {
+      _cached = null;
+      _future = widget.loadDocs();
+    });
+  }
+
+  @override
+  void dispose() {
+    widget.refreshSignal?.removeListener(_onDataVersionChanged);
+    super.dispose();
+  }
+
   // Tab 索引：0=文档，1=精选，2=标签。侧栏导航项与 Tab 一一对应。
   int _tabIndex = 0;
 
@@ -57,8 +83,8 @@ class _AllDocsPageState extends State<AllDocsPage> {
   /// 已加载的结果缓存（收藏切换时在其上做乐观更新）。
   AllDocQueryResult? _cached;
 
-  /// 首次构建时加载一次并缓存，避免每次 rebuild 重跑 loadDocs 造成闪屏。
-  late final Future<AllDocQueryResult> _future = widget.loadDocs();
+  /// 当前加载任务（数据版本变化时由 [_onDataVersionChanged] 重启）。
+  Future<AllDocQueryResult>? _future;
 
   /// 收藏切换：更新缓存中的 isFavorite（乐观 UI），并通知壳层持久化。
   Future<void> _toggleFavorite(AllDoc doc) async {
@@ -127,7 +153,7 @@ class _AllDocsPageState extends State<AllDocsPage> {
           // 主内容区
           Expanded(
             child: FutureBuilder<AllDocQueryResult>(
-              future: _future,
+              future: _future!,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());

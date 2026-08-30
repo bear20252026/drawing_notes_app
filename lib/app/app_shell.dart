@@ -53,6 +53,10 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
+  /// 数据版本通知器：任何文档新增/修改（经 shell 路由的 push 返回后）自增，
+  /// 驱动首页（HomePage）与全部文档（AllDocsPage）刷新列表。
+  final ValueNotifier<int> _dataVersion = ValueNotifier(0);
+
   /// 宽屏断点：>=900 判定为桌面/平板，用侧边栏。
   static const double _railBreakpoint = 900;
 
@@ -80,6 +84,7 @@ class _AppShellState extends State<AppShell> {
       docStorage: widget.docStorage,
       themeController: widget.themeController,
       editorPageBuilder: widget.editorPageBuilder,
+      refreshSignal: _dataVersion,
     ),
     // 2. 日历（M11.2：纯待办/日程——文档时间线并入主页，功能去重）
     const SchedulePage(),
@@ -204,6 +209,7 @@ class _AppShellState extends State<AppShell> {
                 : const Scaffold(body: Center(child: Text('编辑器尚未由应用层装配'))),
           ),
         );
+        _dataVersion.value++;
       case AllDocKind.note:
         final nbStorage = widget.notebookStorage;
         if (nbStorage == null) return;
@@ -218,11 +224,12 @@ class _AppShellState extends State<AppShell> {
             ),
           ),
         );
+        _dataVersion.value++;
       case AllDocKind.blockdoc:
         final bd = await _blockDocStore.loadDocument(doc.id);
         if (bd == null) return;
         final favs = await _favoriteStore.loadKeys();
-        nav.push(
+        await nav.push(
           MaterialPageRoute(
             builder: (_) => DocPage(
               document: bd,
@@ -236,6 +243,7 @@ class _AppShellState extends State<AppShell> {
             ),
           ),
         );
+        _dataVersion.value++;
     }
   }
 
@@ -256,6 +264,7 @@ class _AppShellState extends State<AppShell> {
                 : const Scaffold(body: Center(child: Text('编辑器尚未由应用层装配'))),
           ),
         );
+        _dataVersion.value++;
       case AllDocKind.note:
         final nbStorage = widget.notebookStorage;
         if (nbStorage == null) return;
@@ -273,10 +282,11 @@ class _AppShellState extends State<AppShell> {
             ),
           ),
         );
+        _dataVersion.value++;
       case AllDocKind.blockdoc:
         final bd = NoteBlockDoc.empty(NoteBlockDocStore.newId());
         await _blockDocStore.saveDocument(bd);
-        nav.push(
+        await nav.push(
           MaterialPageRoute(
             builder: (_) => DocPage(
               document: bd,
@@ -286,6 +296,7 @@ class _AppShellState extends State<AppShell> {
             ),
           ),
         );
+        _dataVersion.value++;
     }
   }
 
