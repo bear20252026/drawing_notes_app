@@ -360,13 +360,23 @@ class NoteBlockDocStore {
     return '${(await _ensureTrashDir()).path}${Platform.pathSeparator}$id.json';
   }
 
+  DateTime? _lastTrashPurge;
+
   /// 列出所有块文档 ID（不含 .json 后缀）。惰性清理过期回收站条目。
+  ///
+  /// P1-H4（审计 2026-08-31）：清理节流为 1 小时一次——listIds 是列表
+  /// 热路径（反向链接面板/AllDocs/首页刷新都会调用），每次全盘扫描
+  /// 回收站会造成可感知卡顿。
   Future<List<String>> listIds() async {
     await _ensureDir();
-    // M-06 同款：读列表时自动清理 30 天过期的回收站条目（失败不阻塞）。
-    try {
-      await purgeExpiredTrash();
-    } catch (_) {}
+    final now = DateTime.now();
+    final last = _lastTrashPurge;
+    if (last == null || now.difference(last) > const Duration(hours: 1)) {
+      _lastTrashPurge = now;
+      try {
+        await purgeExpiredTrash();
+      } catch (_) {}
+    }
     final result = <String>[];
     await for (final entity in (await _ensureDir()).list()) {
       if (entity is! File || !entity.path.endsWith('.json')) continue;

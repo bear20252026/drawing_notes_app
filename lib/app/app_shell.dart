@@ -14,6 +14,7 @@ import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_page.dart';
+import 'package:drawing_notes_app/core/security/policy_engine.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/tag_store.dart';
 import 'package:drawing_notes_app/features/doc/presentation/trash_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
@@ -75,15 +76,28 @@ class _AppShellState extends State<AppShell> {
   /// 标签注册表（M12.6 标签系统）。
   final TagStore _tagStore = TagStore();
 
+  /// 全量块文档缓存（P1-H4）：反向链接面板每次自动保存都会重算索引，
+  /// 全库磁盘加载会造成卡顿——内存缓存，_dataVersion 自增时失效。
+  List<NoteBlockDoc>? _blockDocsCache;
+
   /// 全量块文档读取（M12.7 反向链接索引数据源）。
   Future<List<NoteBlockDoc>> _loadAllBlockDocs() async {
+    final cached = _blockDocsCache;
+    if (cached != null) return cached;
     final ids = await _blockDocStore.listIds();
     final docs = <NoteBlockDoc>[];
     for (final id in ids) {
       final d = await _blockDocStore.loadDocument(id);
       if (d != null) docs.add(d);
     }
+    _blockDocsCache = docs;
     return docs;
+  }
+
+  /// 数据版本自增 + 文档缓存失效（shell 内所有写盘后的统一出口）。
+  void _bumpDataVersion() {
+    _blockDocsCache = null;
+    _bumpDataVersion();
   }
 
   /// 打开指定块文档（反向链接条目点击路由）。
@@ -103,7 +117,7 @@ class _AppShellState extends State<AppShell> {
         ),
       ),
     );
-    _dataVersion.value++;
+    _bumpDataVersion();
   }
 
   /// 3 个目的地。用 [IndexedStack] 承载，保持各自状态（切走再切回不丢）。
@@ -184,19 +198,30 @@ class _AppShellState extends State<AppShell> {
         builder: (_) => TrashPage(
           loadTrash: _blockDocStore.listTrash,
           onRestore: (id) async {
+            // P1-M1：恢复/彻底删除补门禁（白名单 note.restore / note.purge）。
+            final restoreResult = const PolicyEngine().enforceCheck(
+              'note.restore',
+              target: id,
+            );
+            if (!restoreResult.isAllowed) return false;
             final ok = await _blockDocStore.restoreDocument(id);
-            _dataVersion.value++;
+            _bumpDataVersion();
             return ok;
           },
           onPurge: (id) async {
+            final purgeResult = const PolicyEngine().enforceCheck(
+              'note.purge',
+              target: id,
+            );
+            if (!purgeResult.isAllowed) return false;
             final ok = await _blockDocStore.purgeFromTrash(id);
-            _dataVersion.value++;
+            _bumpDataVersion();
             return ok;
           },
         ),
       ),
     );
-    _dataVersion.value++;
+    _bumpDataVersion();
   }
 
   Future<AllDocQueryResult> _loadAllDocs() async {
@@ -273,7 +298,7 @@ class _AppShellState extends State<AppShell> {
                 : const Scaffold(body: Center(child: Text('编辑器尚未由应用层装配'))),
           ),
         );
-        _dataVersion.value++;
+        _bumpDataVersion();
       case AllDocKind.note:
         final nbStorage = widget.notebookStorage;
         if (nbStorage == null) return;
@@ -288,7 +313,7 @@ class _AppShellState extends State<AppShell> {
             ),
           ),
         );
-        _dataVersion.value++;
+        _bumpDataVersion();
       case AllDocKind.blockdoc:
         final bd = await _blockDocStore.loadDocument(doc.id);
         if (bd == null) return;
@@ -310,7 +335,7 @@ class _AppShellState extends State<AppShell> {
             ),
           ),
         );
-        _dataVersion.value++;
+        _bumpDataVersion();
     }
   }
 
@@ -331,7 +356,7 @@ class _AppShellState extends State<AppShell> {
                 : const Scaffold(body: Center(child: Text('编辑器尚未由应用层装配'))),
           ),
         );
-        _dataVersion.value++;
+        _bumpDataVersion();
       case AllDocKind.note:
         final nbStorage = widget.notebookStorage;
         if (nbStorage == null) return;
@@ -349,7 +374,7 @@ class _AppShellState extends State<AppShell> {
             ),
           ),
         );
-        _dataVersion.value++;
+        _bumpDataVersion();
       case AllDocKind.blockdoc:
         final bd = NoteBlockDoc.empty(NoteBlockDocStore.newId());
         await _blockDocStore.saveDocument(bd);
@@ -366,7 +391,7 @@ class _AppShellState extends State<AppShell> {
             ),
           ),
         );
-        _dataVersion.value++;
+        _bumpDataVersion();
     }
   }
 

@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
 
+import 'package:drawing_notes_app/core/security/policy_engine.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/tag_store.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_export_io.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_html_export.dart';
@@ -186,19 +187,42 @@ class _DocPageState extends State<DocPage> {
     }
   }
 
-  /// 导出 Markdown / HTML（AFFiNE Export 对齐）。
-  Future<void> _exportMarkdown() => _export(
-    extension: 'md',
-    convert: noteBlockDocToMarkdown,
-    label: 'Markdown',
-  );
+  /// 导出门禁（P1-M1）：md/html/pdf 均需白名单放行，fail-closed。
+  bool _exportAllowed(String operation) {
+    final result = const PolicyEngine().enforceCheck(operation);
+    if (!result.isAllowed) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('操作被策略拒绝（$operation）')));
+    }
+    return result.isAllowed;
+  }
 
-  Future<void> _exportHtml() =>
-      _export(extension: 'html', convert: noteBlockDocToHtml, label: 'HTML');
+  /// 导出 Markdown / HTML / PDF（AFFiNE Export 对齐）。
+  Future<void> _exportMarkdown() {
+    if (!_exportAllowed('note.export.markdown')) return Future.value();
+    return _export(
+      extension: 'md',
+      convert: noteBlockDocToMarkdown,
+      label: 'Markdown',
+    );
+  }
 
-  /// 导出 PDF（M12.8，AFFiNE PdfAdapter 框架对齐）：pdf 包渲染，
-  /// 离线 CJK 字体，落盘「文档/绘图笔记导出」。
-  Future<void> _exportPdf() async {
+  Future<void> _exportHtml() {
+    if (!_exportAllowed('note.export.html')) return Future.value();
+    return _export(
+      extension: 'html',
+      convert: noteBlockDocToHtml,
+      label: 'HTML',
+    );
+  }
+
+  Future<void> _exportPdf() {
+    if (!_exportAllowed('note.export.pdf')) return Future.value();
+    return _exportPdfBytes();
+  }
+
+  Future<void> _exportPdfBytes() async {
     try {
       final doc = _editorKey.currentState?.currentDoc ?? _doc;
       final bytes = await noteBlockDocToPdf(doc);

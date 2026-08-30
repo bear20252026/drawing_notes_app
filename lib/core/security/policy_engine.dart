@@ -49,8 +49,13 @@ class PolicyEngine {
     'note.delete',
     // 恢复（回收站恢复——误删可撤销）。
     'note.restore',
+    // 彻底删除（回收站清除——不可恢复，单独门禁以便审计区分）。
+    'note.purge',
     // 保存（原子写入——崩溃可恢复）。
     'note.save',
+    // 文档导出（M12.6/8：md/html/pdf——敏感内容出系统需门禁）。
+    'note.export.markdown',
+    'note.export.html',
   };
 
   /// 判定操作是否允许（白名单 + 审计——deny/allow 都记录）。

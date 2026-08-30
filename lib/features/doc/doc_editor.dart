@@ -289,6 +289,10 @@ class DocEditorState extends State<DocEditor> {
     _notifySave();
     _selectionToolbarOverlay?.remove();
     _selectionToolbarOverlay = null;
+    // P1-M4（审计 2026-08-31）：slash 菜单 overlay 同样必须移除，
+    // 否则脱离 widget 树后仍挂在 Overlay 上（内存泄漏 + 幽灵浮层）。
+    _slashMenuOverlay?.remove();
+    _slashMenuOverlay = null;
     _listScroll.dispose();
     _selectionListenerController?.removeListener(_onSelectionChanged);
     for (final node in _focusNodes.values) {
