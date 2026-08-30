@@ -1,8 +1,8 @@
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
-import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar.dart';
 
 /// 工具栏 UI 标志（状态提升：State 私有字段聚合为纯数据传入映射函数）。

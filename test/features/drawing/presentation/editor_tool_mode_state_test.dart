@@ -1,4 +1,4 @@
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_interaction_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 

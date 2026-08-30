@@ -11,7 +11,7 @@ import 'package:flutter/painting.dart' show Paint;
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:drawing_notes_app/core/rendering/stroke_renderer.dart';
+import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 
 void main() {

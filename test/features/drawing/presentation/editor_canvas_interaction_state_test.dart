@@ -1,6 +1,6 @@
 import 'dart:ui' show Offset, Rect;
 
-import 'package:drawing_notes_app/features/drawing/domain/page_image_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/page_image_item.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_interaction_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 

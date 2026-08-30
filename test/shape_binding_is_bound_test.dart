@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:drawing_notes_app/core/rendering/shape_binding_geometry.dart';
-import 'package:drawing_notes_app/features/drawing/domain/shape_endpoint_binding.dart';
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
+import 'package:drawing_notes_app/features/drawing/rendering/shape_binding_geometry.dart';
+import 'package:drawing_notes_app/core/canvas_model/shape_endpoint_binding.dart';
+import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 
 /// Q-1 God Class 拆分（2026-08-16）：ShapeBindingGeometry.isBoundTo 解绑
 /// 判定纯函数单测（从 DrawingController 提取——独立可测）。

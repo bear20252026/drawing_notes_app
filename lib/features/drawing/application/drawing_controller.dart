@@ -8,7 +8,7 @@ import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
 import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 import 'package:drawing_notes_app/features/drawing/application/doc_command_context.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_image_cache.dart';
@@ -25,11 +25,11 @@ import 'package:drawing_notes_app/features/drawing/application/document_transact
 import 'package:drawing_notes_app/features/drawing/application/drawing_viewport.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
 import 'package:drawing_notes_app/features/drawing/application/temporary_ink_session.dart';
-import 'package:drawing_notes_app/core/rendering/ink_layer_painter.dart';
-import 'package:drawing_notes_app/core/rendering/layer_compositor.dart';
-import 'package:drawing_notes_app/core/rendering/shape_binding_geometry.dart';
-import 'package:drawing_notes_app/core/rendering/shape_renderer.dart';
-import 'package:drawing_notes_app/core/rendering/stroke_renderer.dart';
+import 'package:drawing_notes_app/features/drawing/rendering/ink_layer_painter.dart';
+import 'package:drawing_notes_app/features/drawing/rendering/layer_compositor.dart';
+import 'package:drawing_notes_app/features/drawing/rendering/shape_binding_geometry.dart';
+import 'package:drawing_notes_app/features/drawing/rendering/shape_renderer.dart';
+import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
 
 /// 绘图引擎控制器：UI 层与数据模型之间的唯一桥梁。
 ///

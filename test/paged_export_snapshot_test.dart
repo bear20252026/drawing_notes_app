@@ -1,5 +1,5 @@
 import 'package:drawing_notes_app/features/drawing/application/paged_export_snapshot.dart';
-import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

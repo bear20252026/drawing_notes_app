@@ -4,10 +4,10 @@ import 'dart:math' as math;
 import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
-import 'package:drawing_notes_app/features/drawing/domain/page_chart_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/page_connector.dart';
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/page_chart_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/page_connector.dart';
+import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 
 /// 编辑器纯展示组件集（架构重构 R1：从 editor_page 外移的零耦合组件）。
 ///

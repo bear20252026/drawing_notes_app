@@ -1,7 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
-import 'package:drawing_notes_app/core/rendering/layer_compositor.dart';
+import 'package:drawing_notes_app/features/drawing/rendering/layer_compositor.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 import 'package:material_ui/material_ui.dart';

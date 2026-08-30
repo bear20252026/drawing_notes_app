@@ -2,7 +2,7 @@ import 'dart:math' show cos, sin;
 
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// 用户体验增强回归测试（对应"坐标偏移/滚轮缩放/字号"三项修复）。

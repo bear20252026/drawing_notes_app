@@ -1,10 +1,10 @@
 import 'dart:ui' show Offset;
 
-import 'package:drawing_notes_app/core/rendering/shape_binding_geometry.dart';
+import 'package:drawing_notes_app/features/drawing/rendering/shape_binding_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
 import 'package:drawing_notes_app/features/drawing/application/selection_geometry_service.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 
 /// 一次对象橡皮擦手势所产生的增量变更。

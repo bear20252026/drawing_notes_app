@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/features/drawing/application/editor_exporter.dart';
 import 'package:drawing_notes_app/features/drawing/application/paged_export_snapshot.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 
 void main() {

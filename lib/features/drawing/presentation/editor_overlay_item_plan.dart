@@ -1,7 +1,7 @@
-import 'package:drawing_notes_app/features/drawing/domain/page_chart_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/page_image_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/page_chart_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/page_image_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 
 /// 编辑器叠加对象的显示类别。
 ///

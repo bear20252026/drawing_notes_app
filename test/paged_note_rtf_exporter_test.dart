@@ -1,6 +1,6 @@
 import 'package:drawing_notes_app/core/rtf_exporter.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 
 void main() {
   test('分页笔记转换为包含中文和格式的 Word 兼容 RTF', () {

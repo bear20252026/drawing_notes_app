@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 
 /// 无 UI 依赖的几何形状渲染器。
 ///

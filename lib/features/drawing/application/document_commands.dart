@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 import 'package:drawing_notes_app/features/drawing/application/doc_command_context.dart';
 

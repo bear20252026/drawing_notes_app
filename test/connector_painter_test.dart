@@ -1,6 +1,6 @@
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/features/drawing/domain/document.dart';
-import 'package:drawing_notes_app/features/drawing/domain/page_connector.dart';
+import 'package:drawing_notes_app/core/canvas_model/page_connector.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_components.dart';
 import 'package:flutter_test/flutter_test.dart';
 

@@ -15,8 +15,8 @@ import 'package:drawing_notes_app/features/drawing/domain/stroke.dart'
     show BrushType, Stroke;
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/core/rtf_exporter.dart';
-import 'package:drawing_notes_app/core/rendering/pdf_hybrid_exporter.dart';
-import 'package:drawing_notes_app/core/rendering/svg_exporter.dart';
+import 'package:drawing_notes_app/features/drawing/rendering/pdf_hybrid_exporter.dart';
+import 'package:drawing_notes_app/features/drawing/rendering/svg_exporter.dart';
 
 /// 画布导出域（参考 Saber 的 editor_exporter 模块化设计）。
 ///

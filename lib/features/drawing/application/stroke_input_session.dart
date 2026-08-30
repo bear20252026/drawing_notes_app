@@ -1,10 +1,10 @@
 import 'dart:ui' show Color, Offset;
 
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
-import 'package:drawing_notes_app/core/rendering/shape_recognizer.dart';
-import 'package:drawing_notes_app/core/rendering/stroke_geometry_cache.dart';
+import 'package:drawing_notes_app/features/drawing/rendering/shape_recognizer.dart';
+import 'package:drawing_notes_app/features/drawing/rendering/stroke_geometry_cache.dart';
 
 /// 笔画输入会话与文档宿主之间的最小协作边界。
 ///

@@ -2,8 +2,8 @@ import 'dart:ui' show Size;
 
 import 'package:drawing_notes_app/features/drawing/domain/document_image_item.dart';
 import 'package:drawing_notes_app/features/drawing/domain/layer.dart';
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 
 /// 纸张模板类型（借鉴 Relatum / GoodNotes 等笔记软件的纸张背景）。
 ///

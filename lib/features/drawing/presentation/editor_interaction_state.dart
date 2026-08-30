@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 import 'dart:ui' show Offset, Rect;
 
-import 'package:drawing_notes_app/features/drawing/domain/page_image_item.dart';
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/page_image_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 
 // ---------------------------------------------------------------------------
 // 编辑器画布交互短生命周期状态（presentation 层）。

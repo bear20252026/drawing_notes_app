@@ -1,4 +1,4 @@
-import 'package:drawing_notes_app/features/drawing/domain/text_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 
 /// 分页笔记的只读导出快照。
 ///

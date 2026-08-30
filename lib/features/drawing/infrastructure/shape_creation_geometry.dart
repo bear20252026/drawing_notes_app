@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:drawing_notes_app/features/drawing/domain/shape_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 
 /// 由一次按下—拖拽—抬起手势生成形状的几何结果。
 class ShapeCreationGeometry {
