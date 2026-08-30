@@ -2,6 +2,15 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.2.3] - 2026-08-30
+
+### 恢复 + 合规
+
+- **恢复笔记本入口**（用户明确要求保留，此前误删）：新建菜单恢复「新建笔记本」；
+  画板·笔记本页恢复笔记本 Tab 与新建 FAB
+- 新增 `THIRD_PARTY_NOTICES.md`：保留 AFFiNE/BlockSuite（MIT, (c) toeverything）
+  版权声明与致谢——笔记交互对标 AFFiNE 的合规依据
+
 ## [1.2.2] - 2026-08-30
 
 ### 功能去重 + 真日程（用户决策）

@@ -94,7 +94,7 @@ void main() {
     await pumpShell(tester);
 
     // 2 号目的地：画板·笔记本
-    await tester.tap(find.text('画板').last);
+    await tester.tap(find.text('画板·笔记本').last);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('无限画布'), findsOneWidget);

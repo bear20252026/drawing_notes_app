@@ -22,7 +22,7 @@ import 'package:drawing_notes_app/features/schedule/presentation/schedule_page.d
 ///
 /// 信息架构（对齐 AFFiNE 的「单一文档工作台入口」）：
 ///   0. 全部文档  —— 唯一列表入口（画布/笔记/块文档统一聚合）
-///   1. 画板 —— 绘画库（无限画布 + 搜索/同步/密码盘入口）
+///   1. 画板·笔记本 —— 绘画库（无限画布 + 笔记本 + 搜索/同步/密码盘入口）
 ///   2. 日历      —— 按月历浏览文档活动（按修改日期定位当天动过的文档）
 ///
 /// M11 移除：纯笔记占位页（与块编辑器完全冗余）。
@@ -95,7 +95,7 @@ class _AppShellState extends State<AppShell> {
       NavigationDestination(
         icon: Icon(Icons.brush_outlined),
         selectedIcon: Icon(Icons.brush),
-        label: '画板',
+        label: '画板·笔记本',
       ),
       NavigationDestination(
         icon: Icon(Icons.calendar_today_outlined),
@@ -116,7 +116,7 @@ class _AppShellState extends State<AppShell> {
       NavigationRailDestination(
         icon: Icon(Icons.brush_outlined),
         selectedIcon: Icon(Icons.brush),
-        label: Text('画板'),
+        label: Text('画板·笔记本'),
       ),
       NavigationRailDestination(
         icon: Icon(Icons.calendar_today_outlined),
