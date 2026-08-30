@@ -39,14 +39,22 @@ app（组合根，唯一知道所有实现的地方）
    （历史设计：笔记本页=画布文档）。收敛工作见下方"已知债务"。
 4. **core**：只放真正跨模块的基础设施（存储、安全、主题、l10n 渡口）。
 
-## 4. 已知债务（整改顺序）
+## 4. 已整改（2026-08-30 第一批）
 
-| 债务 | 位置 | 计划 |
+- ✅ 死模块 features/home 已删除
+- ✅ 块编辑 UI 迁入 `features/doc/presentation/`（notes↔doc 表示层循环消除）
+- ✅ 共享页面对象模型抽至 `core/canvas_model/`
+- ✅ 渲染器移至 `features/drawing/rendering/`
+- ✅ 保存机制统一：DocPage 复用 `core/saving/SaveScheduler`
+- ✅ DocEditor 拆分（focus/richtext/outline/blocks 四个 part）
+- ✅ all_docs_page / edgeless_page 拆分 widgets part
+- ✅ NoteEditorPage → DocEditor 更名
+
+## 4b. 剩余债务
+
+| 债务 | 位置 | 说明 |
 |---|---|---|
-| notes/domain 反向依赖 drawing/domain | notebook*.dart、page_version.dart 等 | 抽 `core/canvas_model/` 或 `features/page_canvas/domain`（大改，需专项） |
-| doc_editor.dart ~2000 行 | lib/features/doc/doc_editor.dart | 拆 part：history / selection_toolbar / block_input / restore |
-| 保存机制双轨 | doc_page.dart Timer vs drawing SaveScheduler | 抽 `application/auto_save.dart` 统一防抖/重试/状态回调 |
-| core/rendering 仅服务 drawing | core/rendering/stroke_renderer.dart 等 | 移入 `features/drawing/rendering/` |
+| notes/domain 仍依赖 drawing/domain 的 DrawingDocument | notebook_page*.dart、page_version.dart 等 | 笔记本页=画布文档的历史设计；彻底解耦需抽象页面内容接口（专项） |
 | UI 方言双体系 | flutter/material 直引 vs material_ui | 页面壳统一用一方；`apple_design.dart` 禁止再定义与 Flutter 重名的类 |
 
 ## 5. 代码规范要点（踩坑沉淀）

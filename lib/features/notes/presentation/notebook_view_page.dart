@@ -167,7 +167,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   /// 供回溯恢复。
   ///
   /// 设计说明（P0-3b）：本方法**有意不**套用
-  /// `features/drawing/application/save_scheduler.dart` 的
+  /// `core/saving/save_scheduler.dart` 的
   /// `SaveScheduler`。两者是语义不同的两类保存模型：
   ///  - 编辑器 `SaveScheduler`：面向"逐笔打字/落笔"的**防抖自动保存**，
   ///    失败时由调度器内部按退避/放弃策略自愈，对外 fire-and-forget；

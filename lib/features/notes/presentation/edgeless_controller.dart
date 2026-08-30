@@ -46,8 +46,8 @@ class EdgelessController extends ChangeNotifier {
     this.onChanged,
     this.minZoom = 0.1,
     this.maxZoom = 5.0,
-  })  : _doc = doc,
-        _camera = doc.camera;
+  }) : _doc = doc,
+       _camera = doc.camera;
 
   EdgelessDoc _doc;
   final void Function(EdgelessDoc doc)? onChanged;
@@ -138,7 +138,9 @@ class EdgelessController extends ChangeNotifier {
 
   /// fit-to-screen：使 [worldRect] 在 [viewport] 内完整可见居中。
   void fitTo(Rect worldRect, Size viewport, {double padding = 32}) {
-    _camera = _clampZoom(_camera.fittedTo(worldRect, viewport, padding: padding));
+    _camera = _clampZoom(
+      _camera.fittedTo(worldRect, viewport, padding: padding),
+    );
     _notifyCamera();
   }
 
@@ -168,7 +170,8 @@ class EdgelessController extends ChangeNotifier {
       switch (_tool) {
         case EdgelessTool.brush:
           _activeStroke = EdgelessStroke(
-            id: 'stroke_${DateTime.now().microsecondsSinceEpoch}_'
+            id:
+                'stroke_${DateTime.now().microsecondsSinceEpoch}_'
                 '${_elementCounter++}',
             points: [world.dx, world.dy],
             color: _brushColor,
@@ -193,7 +196,12 @@ class EdgelessController extends ChangeNotifier {
   }
 
   /// 手势更新。[scale] 为从手势开始起的累计相对缩放（起点 1.0）。
-  void updateGesture(Offset localFocal, double scale, int pointerCount, Size viewport) {
+  void updateGesture(
+    Offset localFocal,
+    double scale,
+    int pointerCount,
+    Size viewport,
+  ) {
     if (!_gestureActive) return;
     if (pointerCount >= 2) {
       _dragFrameId = null; // 进入缩放，取消拖帧
@@ -226,7 +234,10 @@ class EdgelessController extends ChangeNotifier {
     // 平移/缩放相机：以手势起点的焦点世界点作为固定锚，让该世界点始终落在当前焦点下。
     final startCam = _gestureStartCamera;
     final startFocal = _gestureStartFocal;
-    final anchorWorld = startCam?.screenToWorld(startFocal ?? localFocal, viewport);
+    final anchorWorld = startCam?.screenToWorld(
+      startFocal ?? localFocal,
+      viewport,
+    );
     if (anchorWorld == null) return;
     final newZoom = (startCam!.zoom * scale).clamp(minZoom, maxZoom).toDouble();
     final center = Offset(viewport.width / 2, viewport.height / 2);
@@ -254,16 +265,21 @@ class EdgelessController extends ChangeNotifier {
       final w = (world.dx - origin.dx).abs();
       final h = (world.dy - origin.dy).abs();
       if (w > 6 && h > 6) {
-        _setDoc(_doc.addShape(EdgelessShape(
-          id: 'shape_${DateTime.now().microsecondsSinceEpoch}_'
-              '${_elementCounter++}',
-          x: math.min(origin.dx, world.dx),
-          y: math.min(origin.dy, world.dy),
-          w: w,
-          h: h,
-          kind: _shapeKind,
-          color: '#330066CC',
-        )));
+        _setDoc(
+          _doc.addShape(
+            EdgelessShape(
+              id:
+                  'shape_${DateTime.now().microsecondsSinceEpoch}_'
+                  '${_elementCounter++}',
+              x: math.min(origin.dx, world.dx),
+              y: math.min(origin.dy, world.dy),
+              w: w,
+              h: h,
+              kind: _shapeKind,
+              color: '#330066CC',
+            ),
+          ),
+        );
       }
       _shapeOrigin = null;
     }
@@ -290,11 +306,13 @@ class EdgelessController extends ChangeNotifier {
       title: '便签',
     );
     // 便签以点按处为中心。
-    _setDoc(_doc.addFrame(
-      sticky,
-      at: Offset(world.dx - 110, world.dy - 110),
-      size: const Size(220, 220),
-    ));
+    _setDoc(
+      _doc.addFrame(
+        sticky,
+        at: Offset(world.dx - 110, world.dy - 110),
+        size: const Size(220, 220),
+      ),
+    );
   }
 
   /// 点按某屏幕点：
@@ -313,9 +331,9 @@ class EdgelessController extends ChangeNotifier {
     }
     if (_multiSelect) {
       // 多选模式：点按帧切换选中；点空白清空
-      _setDoc(frame == null
-          ? _doc.select(null)
-          : _doc.toggleSelection(frame.id));
+      _setDoc(
+        frame == null ? _doc.select(null) : _doc.toggleSelection(frame.id),
+      );
       return;
     }
     if (frame == null) {
@@ -374,8 +392,9 @@ class EdgelessController extends ChangeNotifier {
   List<EdgelessGroup> get groups => _doc.groups;
 
   /// 帧 id → NoteFrame 的查找表（供连接线渲染定位端点）。
-  Map<String, NoteFrame> get framesById =>
-      {for (final f in _doc.frames) f.id: f};
+  Map<String, NoteFrame> get framesById => {
+    for (final f in _doc.frames) f.id: f,
+  };
 
   /// 进入连线模式：选中并置顶 [sourceFrameId]，随后点按目标帧即建线。
   void beginConnect(String sourceFrameId) {
@@ -417,15 +436,17 @@ class EdgelessController extends ChangeNotifier {
     double? width,
     String? label,
   }) {
-    _setDoc(_doc.addConnector(
-      fromFrameId: fromFrameId,
-      toFrameId: toFrameId,
-      fromAnchor: fromAnchor,
-      toAnchor: toAnchor,
-      color: color,
-      width: width,
-      label: label,
-    ));
+    _setDoc(
+      _doc.addConnector(
+        fromFrameId: fromFrameId,
+        toFrameId: toFrameId,
+        fromAnchor: fromAnchor,
+        toAnchor: toAnchor,
+        color: color,
+        width: width,
+        label: label,
+      ),
+    );
   }
 
   /// 移除指定连接线。
@@ -523,8 +544,10 @@ class EdgelessController extends ChangeNotifier {
 
   // ── 坐标换算 ────────────────────────────────────────────────
 
-  Offset worldToScreen(Offset world, Size viewport) => _camera.worldToScreen(world, viewport);
-  Offset screenToWorld(Offset screen, Size viewport) => _camera.screenToWorld(screen, viewport);
+  Offset worldToScreen(Offset world, Size viewport) =>
+      _camera.worldToScreen(world, viewport);
+  Offset screenToWorld(Offset screen, Size viewport) =>
+      _camera.screenToWorld(screen, viewport);
 
   /// 命中测试（世界坐标）。
   NoteFrame? hitTest(Offset worldPoint) => _doc.hitTest(worldPoint);

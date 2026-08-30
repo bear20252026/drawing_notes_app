@@ -2,7 +2,7 @@
 // save_schedule_decision.dart 单元测试。
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drawing_notes_app/features/drawing/application/save_schedule_decision.dart';
+import 'package:drawing_notes_app/core/saving/save_schedule_decision.dart';
 
 void main() {
   group('SaveScheduleDecisioner', () {

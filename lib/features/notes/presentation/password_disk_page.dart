@@ -116,7 +116,10 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)?.noteRecoveryKeyTitle ?? '保存您的恢复密钥（非常重要！）'),
+        title: Text(
+          AppLocalizations.of(context)?.noteRecoveryKeyTitle ??
+              '保存您的恢复密钥（非常重要！）',
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,7 +156,9 @@ class _PasswordDiskPageState extends State<PasswordDiskPage> {
     return await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: Text(AppLocalizations.of(context)?.diskPinProtection ?? '是否启用 PIN 保护？'),
+            title: Text(
+              AppLocalizations.of(context)?.diskPinProtection ?? '是否启用 PIN 保护？',
+            ),
             content: Text(
               AppLocalizations.of(context)?.diskPinInfo ??
                   '启用后主密钥经 PIN 加密存储（OWASP KEK 模式），U 盘丢失也无法直接读出；解锁需输入 PIN。',

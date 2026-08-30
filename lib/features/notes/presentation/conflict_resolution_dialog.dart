@@ -55,10 +55,7 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),
         ),
-        FilledButton(
-          onPressed: _apply,
-          child: const Text('应用全部'),
-        ),
+        FilledButton(onPressed: _apply, child: const Text('应用全部')),
       ],
     );
   }
@@ -72,7 +69,11 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
           Text(c.docId, style: theme.textTheme.titleSmall),
           Text(
             '本地 ${_fmt(c.localUpdatedAt)} · ${c.localSize}B   |   云端 ${_fmt(c.remoteUpdatedAt)} · ${c.remoteSize}B'
-            '${c.localNewer ? '（本地较新）' : c.remoteNewer ? '（云端较新）' : '（相同）'}',
+            '${c.localNewer
+                ? '（本地较新）'
+                : c.remoteNewer
+                ? '（云端较新）'
+                : '（相同）'}',
             style: theme.textTheme.bodySmall,
           ),
           RadioGroup<ConflictResolution>(

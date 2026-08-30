@@ -17,7 +17,7 @@ import 'package:drawing_notes_app/features/drawing/application/drawing_controlle
 import 'package:drawing_notes_app/features/drawing/application/editor_input_arbiter.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/paged_export_snapshot.dart';
-import 'package:drawing_notes_app/features/drawing/application/save_scheduler.dart';
+import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode_store.dart';
 import 'package:drawing_notes_app/features/drawing/application/editor_exporter.dart';

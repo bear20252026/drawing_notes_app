@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
-import 'package:drawing_notes_app/features/drawing/application/save_scheduler.dart';
+import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
 import 'package:drawing_notes_app/features/drawing/domain/selection.dart';
 import 'package:drawing_notes_app/features/drawing/domain/stroke.dart';
 

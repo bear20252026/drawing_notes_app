@@ -172,8 +172,9 @@ class _NoteBlockPreviewRow extends StatelessWidget {
               child: Text(
                 block.text,
                 style: baseStyle.copyWith(
-                  decoration:
-                      checked ? TextDecoration.lineThrough : TextDecoration.none,
+                  decoration: checked
+                      ? TextDecoration.lineThrough
+                      : TextDecoration.none,
                 ),
                 softWrap: true,
               ),
@@ -183,8 +184,10 @@ class _NoteBlockPreviewRow extends StatelessWidget {
       case NoteBlockType.code:
         return Container(
           width: double.infinity,
-          padding:
-              const EdgeInsets.symmetric(horizontal: AppleSpacing.sm, vertical: 8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppleSpacing.sm,
+            vertical: 8,
+          ),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(AppleRadius.sm),
@@ -204,18 +207,25 @@ class _NoteBlockPreviewRow extends StatelessWidget {
           padding: const EdgeInsets.only(left: 10),
           decoration: BoxDecoration(
             border: Border(
-                left: BorderSide(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                    width: 3)),
+              left: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                width: 3,
+              ),
+            ),
           ),
-          child: Text(block.text, style: baseStyle.copyWith(fontStyle: FontStyle.italic)),
+          child: Text(
+            block.text,
+            style: baseStyle.copyWith(fontStyle: FontStyle.italic),
+          ),
         );
       case NoteBlockType.callout:
         return Container(
           width: double.infinity,
           padding: const EdgeInsets.all(AppleSpacing.sm),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.4),
+            color: Theme.of(
+              context,
+            ).colorScheme.secondaryContainer.withValues(alpha: 0.4),
             borderRadius: BorderRadius.circular(AppleRadius.sm),
           ),
           child: Text(block.text, style: baseStyle),
@@ -229,14 +239,18 @@ class _NoteBlockPreviewRow extends StatelessWidget {
         final src = block.props['src'] as String? ?? '';
         return Row(
           children: [
-            Icon(Icons.image_outlined,
-                color: baseStyle.color!.withValues(alpha: 0.6), size: 16),
+            Icon(
+              Icons.image_outlined,
+              color: baseStyle.color!.withValues(alpha: 0.6),
+              size: 16,
+            ),
             const SizedBox(width: AppleSpacing.xs),
             Expanded(
               child: Text(
                 src.isNotEmpty ? src : '图片',
-                style: baseStyle
-                    .copyWith(color: baseStyle.color!.withValues(alpha: 0.6)),
+                style: baseStyle.copyWith(
+                  color: baseStyle.color!.withValues(alpha: 0.6),
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -252,28 +266,61 @@ class _NoteBlockPreviewRow extends StatelessWidget {
           ),
         );
       case NoteBlockType.canvas:
-        return _embeddedPlaceholder(context, '画布', Icons.polyline_outlined, baseStyle);
+        return _embeddedPlaceholder(
+          context,
+          '画布',
+          Icons.polyline_outlined,
+          baseStyle,
+        );
       case NoteBlockType.chart:
-        return _embeddedPlaceholder(context, '图表', Icons.bar_chart_outlined, baseStyle);
+        return _embeddedPlaceholder(
+          context,
+          '图表',
+          Icons.bar_chart_outlined,
+          baseStyle,
+        );
       case NoteBlockType.table:
-        return _embeddedPlaceholder(context, '表格', Icons.table_chart_outlined, baseStyle);
+        return _embeddedPlaceholder(
+          context,
+          '表格',
+          Icons.table_chart_outlined,
+          baseStyle,
+        );
       case NoteBlockType.database:
-        return _embeddedPlaceholder(context, '数据库', Icons.dataset_outlined, baseStyle);
+        return _embeddedPlaceholder(
+          context,
+          '数据库',
+          Icons.dataset_outlined,
+          baseStyle,
+        );
       case NoteBlockType.attachment:
-        return _embeddedPlaceholder(context, '附件', Icons.attachment_outlined, baseStyle);
+        return _embeddedPlaceholder(
+          context,
+          '附件',
+          Icons.attachment_outlined,
+          baseStyle,
+        );
       case NoteBlockType.text:
         return Text(block.text, style: baseStyle, softWrap: true);
     }
   }
 
   Widget _embeddedPlaceholder(
-      BuildContext context, String label, IconData icon, TextStyle baseStyle) {
+    BuildContext context,
+    String label,
+    IconData icon,
+    TextStyle baseStyle,
+  ) {
     return Row(
       children: [
         Icon(icon, color: baseStyle.color!.withValues(alpha: 0.6), size: 16),
         const SizedBox(width: AppleSpacing.xs),
-        Text(label,
-            style: baseStyle.copyWith(color: baseStyle.color!.withValues(alpha: 0.6))),
+        Text(
+          label,
+          style: baseStyle.copyWith(
+            color: baseStyle.color!.withValues(alpha: 0.6),
+          ),
+        ),
       ],
     );
   }
@@ -289,11 +336,11 @@ class _NoteBlockPreviewRow extends StatelessWidget {
   }
 
   double _headingSize(int level) => switch (level) {
-        1 => 24,
-        2 => 21,
-        3 => 19,
-        4 => 17,
-        5 => 16,
-        _ => 15,
-      };
+    1 => 24,
+    2 => 21,
+    3 => 19,
+    4 => 17,
+    5 => 16,
+    _ => 15,
+  };
 }

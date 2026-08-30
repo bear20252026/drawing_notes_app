@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:drawing_notes_app/features/drawing/application/save_failure_policy.dart';
-import 'package:drawing_notes_app/features/drawing/application/save_schedule_decision.dart';
-import 'package:drawing_notes_app/features/drawing/application/save_scheduler.dart';
+import 'package:drawing_notes_app/core/saving/save_failure_policy.dart';
+import 'package:drawing_notes_app/core/saving/save_schedule_decision.dart';
+import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// 可控假时钟：测试中手动推进时间。

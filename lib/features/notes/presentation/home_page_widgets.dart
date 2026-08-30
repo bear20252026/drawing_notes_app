@@ -164,10 +164,14 @@ class _NameDialogState extends State<_NameDialog> {
           hintText: '请输入名称',
           filled: true,
           border: OutlineInputBorder(
-            borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+            borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
           ),
           enabledBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+            borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
           ),
           focusedBorder: const OutlineInputBorder(
             borderSide: BorderSide(color: AppleColor.actionBlue, width: 1.5),
@@ -221,10 +225,14 @@ class _PasswordDialogState extends State<_PasswordDialog> {
           hintText: '请输入密码',
           filled: true,
           border: OutlineInputBorder(
-            borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+            borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
           ),
           enabledBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+            borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
           ),
           focusedBorder: const OutlineInputBorder(
             borderSide: BorderSide(color: AppleColor.actionBlue, width: 1.5),

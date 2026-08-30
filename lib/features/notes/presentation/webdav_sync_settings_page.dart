@@ -47,8 +47,8 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
   @override
   void initState() {
     super.initState();
-    _configStore = widget.configStore ??
-        WebDavConfigStore(SecureSyncSecretStore());
+    _configStore =
+        widget.configStore ?? WebDavConfigStore(SecureSyncSecretStore());
     _secretStore = widget.secretStore ?? SecureSyncSecretStore();
     _loadConfig();
   }
@@ -76,19 +76,25 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
         saltBase64 = base64Encode(generateSalt());
       }
     }
-    await _configStore.save(WebDavSyncConfig(
-      baseUrl: _url.text.trim(),
-      username: _user.text.trim(),
-      syncSalt: saltBase64,
-    ));
-    await _secretStore.write(SyncSecrets(
-      webdavPassword: _pass.text.isEmpty ? null : _pass.text,
-      syncPassphrase: passphrase.isEmpty ? null : passphrase,
-    ));
+    await _configStore.save(
+      WebDavSyncConfig(
+        baseUrl: _url.text.trim(),
+        username: _user.text.trim(),
+        syncSalt: saltBase64,
+      ),
+    );
+    await _secretStore.write(
+      SyncSecrets(
+        webdavPassword: _pass.text.isEmpty ? null : _pass.text,
+        syncPassphrase: passphrase.isEmpty ? null : passphrase,
+      ),
+    );
     if (!mounted) return;
-    _toast(passphrase.isEmpty
-        ? '已保存 WebDAV 配置（未启用端到端加密）'
-        : '已保存 WebDAV 配置（已启用端到端加密）');
+    _toast(
+      passphrase.isEmpty
+          ? '已保存 WebDAV 配置（未启用端到端加密）'
+          : '已保存 WebDAV 配置（已启用端到端加密）',
+    );
   }
 
   Future<void> _syncNow() async {
@@ -238,15 +244,21 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
       prefixIcon: Icon(icon),
       filled: true,
       fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: AppleSpacing.md, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppleSpacing.md,
+        vertical: 14,
+      ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppleRadius.lg),
-        borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        borderSide: BorderSide(
+          color: Theme.of(context).colorScheme.outlineVariant,
+        ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppleRadius.lg),
-        borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        borderSide: BorderSide(
+          color: Theme.of(context).colorScheme.outlineVariant,
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppleRadius.lg),
@@ -305,14 +317,8 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
           ),
           const SizedBox(height: AppleSpacing.lg),
           _syncing
-              ? const ApplePrimaryButton(
-                  label: '同步中…',
-                  onPressed: _noop,
-                )
-              : ApplePrimaryButton(
-                  label: '立即同步',
-                  onPressed: _syncNow,
-                ),
+              ? const ApplePrimaryButton(label: '同步中…', onPressed: _noop)
+              : ApplePrimaryButton(label: '立即同步', onPressed: _syncNow),
           if (_progress != null) ...[
             const SizedBox(height: AppleSpacing.md),
             ClipRRect(
@@ -329,10 +335,10 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
             Text(
               _progress!.description,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: _progress!.phase == SyncProgressPhase.failed
-                        ? AppleColor.errorRed
-                        : null,
-                  ),
+                color: _progress!.phase == SyncProgressPhase.failed
+                    ? AppleColor.errorRed
+                    : null,
+              ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),

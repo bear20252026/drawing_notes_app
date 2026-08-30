@@ -2,7 +2,7 @@
 // save_failure_policy.dart 单元测试。
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drawing_notes_app/features/drawing/application/save_failure_policy.dart';
+import 'package:drawing_notes_app/core/saving/save_failure_policy.dart';
 
 void main() {
   group('SaveFailurePolicy', () {

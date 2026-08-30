@@ -4,9 +4,9 @@
 // 版权声明见 THIRD_PARTY_NOTICES.md。本模块与画板模块（features/notes 的
 // edgeless/drawing 部分）零交叉引用：画板打开文档经由导航跳转到本模块。
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+
+import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
 
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_editor.dart';
@@ -56,9 +56,24 @@ class _DocPageState extends State<DocPage> {
   bool _outlineOpen = false;
   _SaveStatus _saveStatus = _SaveStatus.saved;
   DateTime? _lastSavedAt;
-  Timer? _autosaveTimer;
-  final GlobalKey<DocEditorState> _editorKey =
-      GlobalKey<DocEditorState>();
+  final GlobalKey<DocEditorState> _editorKey = GlobalKey<DocEditorState>();
+  late final SaveScheduler _saveScheduler = SaveScheduler(
+    save: () async {
+      final editor = _editorKey.currentState;
+      if (editor == null) return;
+      final doc = editor.saveNow();
+      widget.controller?.save(doc);
+      _doc = doc;
+    },
+    onSaved: () {
+      if (!mounted) return;
+      setState(() {
+        _saveStatus = _SaveStatus.saved;
+        _lastSavedAt = DateTime.now();
+      });
+    },
+    onError: (e, st) => debugPrint('笔记自动保存失败: $e'),
+  );
 
   @override
   void initState() {
@@ -69,32 +84,22 @@ class _DocPageState extends State<DocPage> {
 
   @override
   void dispose() {
-    _autosaveTimer?.cancel();
+    _saveScheduler.dispose();
     super.dispose();
   }
 
-  /// 编辑变为脏：显示"未保存"并排定 1.2s 防抖自动保存。
+  /// 编辑变为脏：显示"未保存"并交由 SaveScheduler 防抖自动保存。
   void _onEditorDirty() {
-    _autosaveTimer?.cancel();
     if (mounted && _saveStatus != _SaveStatus.unsaved) {
       setState(() => _saveStatus = _SaveStatus.unsaved);
     }
-    _autosaveTimer = Timer(const Duration(milliseconds: 1200), _saveNow);
+    _saveScheduler.markDirty();
   }
 
-  /// 手动/自动保存入口：状态"保存中" → 编辑器快照落盘 → "已保存 + 时间"。
+  /// 手动保存：立即落盘（保存中 → 已保存 由调度器回调驱动）。
   Future<void> _saveNow() async {
-    _autosaveTimer?.cancel();
-    final editor = _editorKey.currentState;
-    if (editor == null) return;
     if (mounted) setState(() => _saveStatus = _SaveStatus.saving);
-    final doc = editor.saveNow();
-    widget.controller?.save(doc);
-    if (!mounted) return;
-    setState(() {
-      _saveStatus = _SaveStatus.saved;
-      _lastSavedAt = DateTime.now();
-    });
+    await _saveScheduler.saveNow();
   }
 
   String _statusLabel() {
