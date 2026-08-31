@@ -2,6 +2,12 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.4.2] - 2026-08-31
+
+- **紧急修复**：文档页退出即崩溃（app_shell `_bumpDataVersion` 无限递归，
+  v1.4.0/v1.4.1 受影响；架构审计发现，含完整生命周期回归测试）
+- 随附架构专项审计报告：docs/ARCHITECTURE_AUDIT_2026-08-31.md
+
 ## [1.4.1] - 2026-08-31
 
 - 发布流水线：所有安装包生成后自动压缩为 zip 随 Release 双轨提供
