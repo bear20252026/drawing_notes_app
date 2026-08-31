@@ -252,3 +252,47 @@ class AppleSectionHeader extends StatelessWidget {
     );
   }
 }
+
+
+/// 可复用的 Apple 确认对话框（R2-M4，架构审计 2026-08-31）。
+///
+/// 统一「取消 / 确认」双钮模式——全库 AlertDialog 样板 33 处的收敛入口。
+/// 示例：`await AppleDialog.confirm(context, title: '彻底删除', content: '…')`
+/// 确认返回 true，取消/ dismissing 返回 false；[confirmText] 传错误色文案
+/// 时自动使用 error 色（危险操作语义）。
+class AppleDialog {
+  AppleDialog._();
+
+  static Future<bool> confirm(
+    BuildContext context, {
+    required String title,
+    required String content,
+    String confirmText = '确定',
+    String cancelText = '取消',
+    bool dangerous = false,
+  }) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(cancelText),
+          ),
+          FilledButton(
+            style: dangerous
+                ? FilledButton.styleFrom(
+                    backgroundColor: Theme.of(ctx).colorScheme.error,
+                  )
+                : null,
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(confirmText),
+          ),
+        ],
+      ),
+    );
+    return ok ?? false;
+  }
+}

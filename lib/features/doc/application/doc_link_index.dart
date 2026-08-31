@@ -9,6 +9,7 @@
 // - 重命名安全：解析时按"当前标题"匹配，旧文中的 [[旧标题]] 在文档
 //   改名后自然失配（v1 语义；id 化引用留待后续版本升级）。
 
+import 'package:meta/meta.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 
@@ -38,6 +39,8 @@ List<String> extractOutLinks(NoteBlockDoc doc) {
 }
 
 /// 构建反向链接索引：目标标题 → 引用它的文档 id 列表（按 updatedAt 倒序）。
+/// （架构审计 M5：生产暂无调用方，出链面板落地时转正——保留以锁定语义。）
+@visibleForTesting
 Map<String, Set<String>> buildBacklinkIndex(List<NoteBlockDoc> docs) {
   final index = <String, Set<String>>{};
   for (final doc in docs) {
@@ -66,6 +69,8 @@ List<NoteBlockDoc> backlinksOf(
 
 /// 返回 [source] 文档的出链目标文档（按标题/id 解析，解析失败的跳过），
 /// 按 updatedAt 倒序。
+/// （架构审计 M5：生产暂无调用方，出链面板落地时转正——保留以锁定语义。）
+@visibleForTesting
 List<NoteBlockDoc> outgoingLinksOf(
   NoteBlockDoc source,
   List<NoteBlockDoc> allDocs,

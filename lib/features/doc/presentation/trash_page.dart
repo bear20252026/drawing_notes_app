@@ -6,6 +6,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 
@@ -45,30 +46,16 @@ class _TrashPageState extends State<TrashPage> {
   }
 
   Future<void> _confirmPurge(TrashEntry entry) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('彻底删除'),
-        content: Text(
-          '「${entry.doc.title.isEmpty ? '未命名' : entry.doc.title}」将被永久删除，'
-          '无法恢复。确定继续吗？',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-            ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('彻底删除'),
-          ),
-        ],
-      ),
+    // R2-M4：改用公共 AppleDialog.confirm（原样板 24 行收敛为 7 行）。
+    final ok = await AppleDialog.confirm(
+      context,
+      title: '彻底删除',
+      content: '「${entry.doc.title.isEmpty ? '未命名' : entry.doc.title}」'
+          '将被永久删除，无法恢复。确定继续吗？',
+      confirmText: '彻底删除',
+      dangerous: true,
     );
-    if (ok == true) {
+    if (ok) {
       await widget.onPurge(entry.doc.id);
       await _reload();
     }
