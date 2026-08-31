@@ -185,6 +185,7 @@ extension _HomePageTabs on _HomePageState {
     if (ok != true) return;
     try {
       await _blockDocStore.deleteDocument(doc.id);
+      widget.onDataChanged?.call();
       await _refresh();
     } catch (e) {
       _showSnack('删除失败：${e.runtimeType}');

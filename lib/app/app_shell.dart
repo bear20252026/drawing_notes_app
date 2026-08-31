@@ -104,6 +104,9 @@ class _AppShellState extends State<AppShell> {
       themeController: widget.themeController,
       editorPageBuilder: widget.editorPageBuilder,
       refreshSignal: _services.dataVersion,
+      // R2 列表同步：注入同一 store 实例 + 写后通知（新建/删除驱动 AllDocs 刷新）。
+      blockDocStore: _services.blockDocStore,
+      onDataChanged: _services.bumpDataVersion,
       // M12.4 统一数据源：首页笔记 Tab 与 All Docs 共用同一装配与打开路径。
       loadDocs: _loadAllDocs,
       onOpenDoc: _openAllDoc,

@@ -54,6 +54,8 @@ class HomePage extends StatefulWidget {
     this.editorPageBuilder,
     this.loadDocs,
     this.onOpenDoc,
+    this.blockDocStore,
+    this.onDataChanged,
   });
 
   final NotebookStorage? notebookStorage;
@@ -72,6 +74,13 @@ class HomePage extends StatefulWidget {
   /// 笔记 Tab 数据 = 装配结果中 kind∈{note, blockdoc} 的条目——
   /// 从根本上保证两处列表一致（用户反馈的"页面列表不同步"根因即双源分裂）。
   final Future<AllDocQueryResult> Function()? loadDocs;
+
+  /// 块文档存储（R2 列表同步修复）：注入 shell 同一实例——
+  /// 自建实例会导致 AllDocs 侧 listDocHeaders 缓存不失效（新笔记不显示）。
+  final NoteBlockDocStore? blockDocStore;
+
+  /// 数据变更通知（新建/删除/重命名后调用，驱动 AllDocs 刷新）。
+  final VoidCallback? onDataChanged;
 
   /// 统一打开路径：与 All Docs 同一回调（note→NotebookViewPage，
   /// blockdoc→DocPage），保证两处点击行为一致。
@@ -98,7 +107,7 @@ class _HomePageState extends State<HomePage> {
     widget.refreshSignal?.addListener(_onDataVersionChanged);
     _nbStorage = widget.notebookStorage ?? NotebookStorage();
     _docStorage = widget.docStorage ?? StorageService();
-    _blockDocStore = NoteBlockDocStore();
+    _blockDocStore = widget.blockDocStore ?? NoteBlockDocStore();
     _refresh();
     // 首次启动引导（Phase 7）：仅第一次打开时显示，可跳过。
     _showOnboarding();
@@ -277,6 +286,7 @@ class _HomePageState extends State<HomePage> {
       updatedAt: DateTime.now(),
     );
     await _blockDocStore.saveDocument(doc);
+    widget.onDataChanged?.call();
     if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(

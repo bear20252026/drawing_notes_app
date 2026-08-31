@@ -253,7 +253,6 @@ class AppleSectionHeader extends StatelessWidget {
   }
 }
 
-
 /// 可复用的 Apple 确认对话框（R2-M4，架构审计 2026-08-31）。
 ///
 /// 统一「取消 / 确认」双钮模式——全库 AlertDialog 样板 33 处的收敛入口。

@@ -50,7 +50,8 @@ class _TrashPageState extends State<TrashPage> {
     final ok = await AppleDialog.confirm(
       context,
       title: '彻底删除',
-      content: '「${entry.doc.title.isEmpty ? '未命名' : entry.doc.title}」'
+      content:
+          '「${entry.doc.title.isEmpty ? '未命名' : entry.doc.title}」'
           '将被永久删除，无法恢复。确定继续吗？',
       confirmText: '彻底删除',
       dangerous: true,
