@@ -49,6 +49,17 @@ $lines = foreach ($artifact in $artifacts) {
 }
 $lines | Set-Content -Path $manifest -Encoding utf8
 
+# 项目规范（docs/RELEASE_PIPELINE.md）：所有安装包生成后必须压缩为 zip。
+Write-Host '==> Compressing installers to ZIP'
+$zips = @()
+foreach ($artifact in $artifacts) {
+  $zipPath = [System.IO.Path]::ChangeExtension($artifact.FullName, '.zip')
+  Compress-Archive -Path $artifact.FullName -DestinationPath $zipPath -Force
+  $zips += $zipPath
+  Write-Host "    $zipPath"
+}
+
 Write-Host "==> Release ready"
 $artifacts | ForEach-Object { Write-Host "    $($_.FullName)" }
+$zips | ForEach-Object { Write-Host "    $_" }
 Write-Host "    $manifest"

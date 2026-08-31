@@ -78,12 +78,27 @@ jobs:
             build/app/outputs/bundle/release/app-release.aab
           if-no-files-found: error
 
+      # 项目规范（docs/RELEASE_PIPELINE.md）：所有安装包生成后必须压缩为 zip。
+      - name: Compress APK to ZIP
+        run: |
+          cd build/app/outputs/flutter-apk
+          zip -q drawing_notes_android_release.zip app-release.apk
+
+      - name: Upload Android ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-zip
+          path: build/app/outputs/flutter-apk/drawing_notes_android_release.zip
+          if-no-files-found: error
+
       # tag 触发时把 APK 挂载到 GitHub Release（命名 ASCII，避免非 ASCII 被剥离）。
       - name: Mount APK to GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: build/app/outputs/flutter-apk/app-release.apk
+          files: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/flutter-apk/drawing_notes_android_release.zip
           fail_on_unmatched_files: true
 
   windows:
@@ -137,6 +152,15 @@ jobs:
           path: build/windows/x64/runner/Release/
           if-no-files-found: error
 
+      # 项目规范（docs/RELEASE_PIPELINE.md）：所有安装包生成后必须压缩为 zip。
+      - name: Compress installer to ZIP
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem "build/windows/installer/setup_*.exe" | Select-Object -First 1
+          $zip = Join-Path $exe.DirectoryName "drawing_notes_windows_setup.zip"
+          Compress-Archive -Path $exe.FullName -DestinationPath $zip -Force
+          Write-Host "ZIP produced: $zip"
+
       - name: Upload Windows setup installer
         uses: actions/upload-artifact@v4
         with:
@@ -144,10 +168,19 @@ jobs:
           path: build/windows/installer/setup_*.exe
           if-no-files-found: error
 
+      - name: Upload Windows installer ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-setup-zip
+          path: build/windows/installer/drawing_notes_windows_setup.zip
+          if-no-files-found: error
+
       - name: Create/update GitHub Release with installer (tag push only)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: build/windows/installer/setup_*.exe
+          files: |
+            build/windows/installer/setup_*.exe
+            build/windows/installer/drawing_notes_windows_setup.zip
           draft: false
           generate_release_notes: true

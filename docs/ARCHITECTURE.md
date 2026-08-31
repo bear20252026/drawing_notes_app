@@ -1,5 +1,6 @@
 # 架构说明（ARCHITECTURE.md）
 
+> 发布/打包流程与规范见 [RELEASE_PIPELINE.md](RELEASE_PIPELINE.md)（铁律：所有安装包生成后必须压缩为 zip）。
 > 面向本仓库贡献者的模块地图与依赖规则。修改结构前请先读此文件。
 > 参照项目：AFFiNE / BlockSuite（MIT，© toeverything）——版权声明见 `THIRD_PARTY_NOTICES.md`。
 
