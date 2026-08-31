@@ -9,8 +9,8 @@
 // - 重命名安全：解析时按"当前标题"匹配，旧文中的 [[旧标题]] 在文档
 //   改名后自然失配（v1 语义；id 化引用留待后续版本升级）。
 
-import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 
 /// 页面引用语法：`[[标题]]`。
 final RegExp docLinkPattern = RegExp(r'\[\[([^\[\]]+)\]\]');

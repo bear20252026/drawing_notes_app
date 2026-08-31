@@ -7,7 +7,7 @@
 /// - 注入时钟（纯逻辑可测）
 library;
 
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 
 /// 历史条目：记录一次文档快照及元数据（用于合并判断）。
 class _HistoryEntry {

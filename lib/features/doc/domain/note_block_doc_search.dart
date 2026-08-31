@@ -3,8 +3,8 @@
 // 提供大小写不敏感、多 token AND 命中 + 摘要片段。
 // 纯 Dart，无 flutter/io/controller/存储依赖。
 
-import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 
 /// 单条搜索结果。
 class NoteBlockSearchHit {

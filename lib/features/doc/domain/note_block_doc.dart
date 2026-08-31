@@ -2,7 +2,7 @@
 // NoteBlockDoc 文档容器：承载一个「文档=笔记」的块模型聚合。
 // 纯 Dart，无 flutter/io/controller/存储依赖。
 
-import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
 
 /// 一个「文档=笔记」的块模型聚合根。
 ///

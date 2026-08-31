@@ -17,8 +17,8 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/app/app_shell.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
 
 /// 内存版块文档存储（FakeAsync 安全）。
 class _MemBlockDocStore extends NoteBlockDocStore {

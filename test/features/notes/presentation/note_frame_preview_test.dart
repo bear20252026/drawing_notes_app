@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/presentation/note_frame_preview.dart';
 
 NoteBlockDoc _doc(String title, List<NoteBlock> blocks) => NoteBlockDoc(

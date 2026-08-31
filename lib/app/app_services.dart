@@ -9,8 +9,8 @@ import 'package:flutter/foundation.dart';
 
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
 
 /// 应用级服务门面。
 class AppServices {

@@ -15,8 +15,8 @@ import 'package:drawing_notes_app/features/notes/domain/edgeless_connector.dart'
 import 'package:drawing_notes_app/features/notes/domain/edgeless_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_group.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_stroke.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/presentation/edgeless_command_palette.dart';
 import 'package:drawing_notes_app/features/notes/presentation/edgeless_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';

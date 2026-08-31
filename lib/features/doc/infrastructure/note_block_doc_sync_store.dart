@@ -6,8 +6,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:drawing_notes_app/core/sync/sync_service.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
 
 /// 把 [NoteBlockDocStore] 适配成同步器所需的字节级 [SyncDocumentStore]。
 class NoteBlockDocSyncStore implements SyncDocumentStore {

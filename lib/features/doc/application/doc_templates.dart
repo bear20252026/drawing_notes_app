@@ -3,7 +3,7 @@
 // 纯 Dart 构建器：返回模板化 body 块列表，供「新建笔记」选择。
 // 模板是数据（非代码生成物），后续扩充只需加枚举项 + builder 分支。
 
-import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
 
 /// 内置笔记模板。
 ///

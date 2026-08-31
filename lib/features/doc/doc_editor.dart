@@ -18,13 +18,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_editor.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_history.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_inline_span.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_editor.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_history.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_inline_span.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_link_index.dart';
-import 'package:drawing_notes_app/features/notes/domain/text_span_editor.dart';
+import 'package:drawing_notes_app/features/doc/domain/text_span_editor.dart';
 import 'package:drawing_notes_app/features/doc/presentation/embedded_block_view.dart';
 import 'package:drawing_notes_app/features/doc/presentation/block_slash_menu.dart';
 

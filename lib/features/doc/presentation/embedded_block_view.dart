@@ -11,7 +11,7 @@ library;
 
 import 'package:flutter/material.dart';
 
-import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
 import 'package:drawing_notes_app/features/doc/presentation/image_preview_dialog.dart';
 import 'package:drawing_notes_app/features/doc/presentation/table_editor_widget.dart';
 import 'package:drawing_notes_app/features/doc/presentation/database_block_view.dart';

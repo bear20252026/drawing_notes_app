@@ -1,7 +1,7 @@
 // P3-1 契约测试：NoteDatabase 数据库块领域模型（表/看板/列表视图 + 字段/记录/排序/筛选）。
 // 由 lead 先写（锁定 API 契约），队友 A 实现 lib/features/notes/domain/note_database.dart 使其通过。
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_database.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_database.dart';
 
 void main() {
   group('NoteFieldDef', () {

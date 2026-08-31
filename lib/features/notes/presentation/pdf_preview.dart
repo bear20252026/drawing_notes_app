@@ -6,7 +6,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/storage/pdf_preview_renderer.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_attachment.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_attachment.dart';
 
 /// 附件内嵌 PDF 预览（首页缩略）。
 class PdfAttachmentPreview extends StatefulWidget {

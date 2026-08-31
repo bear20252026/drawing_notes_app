@@ -6,10 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_html_export.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_templates.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc_markdown.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc_markdown.dart';
+import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
 
 Future<Directory> _tempDir() async =>
     Directory.systemTemp.createTemp('m126_test');

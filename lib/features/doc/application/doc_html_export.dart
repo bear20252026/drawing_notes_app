@@ -3,8 +3,8 @@
 // NoteBlockDoc → HTML。纯 Dart，无 IO 依赖，可单测。
 // 与 doc_markdown_export.dart 平行：同一域模型、不同渲染目标。
 
-import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 
 /// 转义 HTML 特殊字符（防注入/破版）。
 String escapeHtml(String raw) => raw

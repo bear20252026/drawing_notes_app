@@ -19,7 +19,7 @@ import 'package:drawing_notes_app/features/notes/domain/edgeless_connector.dart'
 import 'package:drawing_notes_app/features/notes/domain/edgeless_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_group.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_stroke.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 
 /// 画布工具（对标 AFFiNE EdgelessTool：select/brush/eraser/note/shape）。
 enum EdgelessTool {

@@ -6,7 +6,7 @@ import 'package:drawing_notes_app/shared/application/search_service.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
+import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';

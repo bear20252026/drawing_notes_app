@@ -17,7 +17,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 
 /// 块文档本地存储门面。
 ///

@@ -2,7 +2,7 @@
 // 内联富文本编辑纯逻辑：围绕选区应用/移除样式。
 // 纯 Dart，无 flutter/io/controller/存储依赖；不可变输入 → 确定性输出。
 
-import 'package:drawing_notes_app/features/notes/domain/note_inline_span.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_inline_span.dart';
 
 /// 选区范围（左闭右开）。
 class SpanRange {

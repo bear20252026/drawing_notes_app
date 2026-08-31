@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_link_index.dart';
 import 'package:drawing_notes_app/features/doc/doc_editor.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 
 NoteBlockDoc _doc(String id, String title, List<String> texts) {
   return NoteBlockDoc(

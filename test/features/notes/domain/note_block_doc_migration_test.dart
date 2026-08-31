@@ -10,9 +10,9 @@ import 'package:drawing_notes_app/core/canvas_model/page_chart_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/page_image_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc_migration.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc_migration.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_page.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_page_content.dart';
 

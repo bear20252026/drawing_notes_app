@@ -6,7 +6,7 @@ library;
 
 import 'package:flutter/material.dart';
 
-import 'package:drawing_notes_app/features/notes/domain/note_database.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_database.dart';
 import 'package:drawing_notes_app/features/doc/presentation/database/database_cell_editor.dart';
 
 /// 看板视图。

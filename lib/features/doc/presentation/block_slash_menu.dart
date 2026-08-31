@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
 
 /// / 菜单分组类别。
 enum SlashItemGroup {

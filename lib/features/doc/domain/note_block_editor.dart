@@ -2,7 +2,7 @@
 // AFFiNE 风格块编辑纯逻辑：对 NoteBlock 树执行不可变编辑操作。
 // 无 flutter/io/controller/存储依赖；不可变输入 → 确定性输出。
 
-import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
 
 /// 纯逻辑块编辑器。
 ///

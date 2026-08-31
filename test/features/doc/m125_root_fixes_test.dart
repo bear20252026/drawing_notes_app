@@ -10,10 +10,10 @@ import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_export_io.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc_markdown.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc_markdown.dart';
 import 'package:drawing_notes_app/features/doc/doc_editor.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 
 NoteBlockDoc _doc({String title = '测试文档', List<NoteBlock>? body}) {

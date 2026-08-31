@@ -8,8 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_outline_rail.dart';
 import 'package:drawing_notes_app/features/doc/doc_page.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 
 void main() {
   final now = DateTime(2026, 8, 30, 10);

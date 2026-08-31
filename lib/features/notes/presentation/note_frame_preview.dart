@@ -11,8 +11,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 
 /// 帧内只读块内容预览。
 ///

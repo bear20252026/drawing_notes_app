@@ -2,8 +2,8 @@
 // note_block_editor.dart 单元测试。
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_editor.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_editor.dart';
 
 void main() {
   const editor = NoteBlockEditor();

@@ -2,7 +2,7 @@
 // note_inline_span.dart 单元测试。
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_inline_span.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_inline_span.dart';
 
 void main() {
   group('NoteInlineSpan', () {

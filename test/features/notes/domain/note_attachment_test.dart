@@ -1,7 +1,7 @@
 // P3-3 契约测试：NoteAttachment 附件/PDF/书签卡领域模型。
 // 由 lead 先写（锁定 API 契约），队友 B 实现 lib/features/notes/domain/note_attachment.dart 使其通过。
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_attachment.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_attachment.dart';
 
 void main() {
   group('AttachmentKind', () {

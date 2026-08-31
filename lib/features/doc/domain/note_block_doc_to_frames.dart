@@ -6,8 +6,8 @@
 
 import 'dart:ui' show Rect;
 
-import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_doc.dart';
 
 /// 把块文档拆成 note 帧列表（1:1 初始转换）。

@@ -10,16 +10,16 @@ import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
 
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
+import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_export_io.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_link_index.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_html_export.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_pdf_adapter.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc_markdown.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc_markdown.dart';
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_editor.dart';
 import 'package:drawing_notes_app/features/doc/doc_outline_rail.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 
 /// AFFiNE 式笔记页：白底、居中窄栏、顶栏（收藏/信息/更多/分享）、右缘大纲。
 ///

@@ -3,10 +3,10 @@
 import 'dart:ui' show Rect;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_doc.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc_to_frames.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc_to_frames.dart';
 
 void main() {
   group('noteBlockDocToFrames', () {

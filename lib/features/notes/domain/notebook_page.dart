@@ -4,7 +4,7 @@ import 'package:drawing_notes_app/core/canvas_model/page_connector.dart';
 import 'package:drawing_notes_app/core/canvas_model/page_image_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
-import 'package:drawing_notes_app/features/notes/domain/clone_ref.dart';
+import 'package:drawing_notes_app/features/doc/domain/clone_ref.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_page_content.dart';
 import 'package:drawing_notes_app/features/notes/domain/page_template.dart';
 import 'package:drawing_notes_app/features/notes/domain/page_version.dart';

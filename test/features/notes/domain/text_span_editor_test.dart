@@ -2,8 +2,8 @@
 // text_span_editor.dart 单元测试。
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_inline_span.dart';
-import 'package:drawing_notes_app/features/notes/domain/text_span_editor.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_inline_span.dart';
+import 'package:drawing_notes_app/features/doc/domain/text_span_editor.dart';
 
 void main() {
   group('TextSpanEditor', () {

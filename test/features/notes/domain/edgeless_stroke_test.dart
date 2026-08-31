@@ -4,7 +4,7 @@ import 'package:flutter/widgets.dart' show Offset, Size;
 
 import 'package:drawing_notes_app/features/notes/domain/edgeless_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_stroke.dart';
-import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 
 void main() {
   group('EdgelessStroke', () {
