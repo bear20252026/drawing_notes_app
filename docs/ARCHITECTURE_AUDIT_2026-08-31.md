@@ -131,7 +131,8 @@ all_docs 10 文件/2k 行 · schedule 5 文件/1.1k 行。doc_editor.dart 2119 �
 | **R1（立即）** | Q0 递归修复 ✅ 已完成（f260ac6）                                | —     | —                 |
 | **R2**     | Q2 抽 AppServices facade + Q3 退出策略统一 + M3 loadAll() 收敛 | 各小    | 无                 |
 | **R3**     | Q1 块编辑域模型迁 doc/domain（脚本化 import 重写 + edgeless 独立模块）  | 中（半天） | R2（减少迁移后再改 shell） |
-| **R4**     | M1 doc_editor 四 part 拆分 + M4 对话框组件 + M5 死代码           | 各小    | R3（拆分后行数减半再做）     |
+| **R4**     | ~~M4 对话框组件 + M5 死代码~~ ✅ 已完成（2026-08-31：AppleDialog.confirm 抽入 apple_design + trash_page 示范替换；outgoingLinksOf/buildBacklinkIndex 标 @visibleForTesting + pubspec 补 meta；**M1 拆分顺延 R4b**——extension-on-State 方案已定，独立批次） | 各小 | R3 ✅ |
+| **R4b（顺延）** | M1 doc_editor 拆分（extension 方案） | 中 | — |
 | **R5（长期）** | M2 命名冻结与渐进迁移                                          | 持续    | R3                |
 
 R3 是唯一中等工作量项，其余均为小步快跑。每批次保持"1324+ 测试全绿 + analyze 0 问题"  
