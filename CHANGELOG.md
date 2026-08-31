@@ -2,6 +2,13 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.4.3] - 2026-08-31
+
+- **紧急修复**：正文输入不触发自动保存——用户输入的正文从未落盘
+  （v1.4.0-1.4.2 受影响；Windows 真机集成测试发现，根因为 onDirty
+  边沿通知被 _isDirty 门控短路）
+- 新增 Windows 真机集成测试：新建→输入→退出→自动保存落盘完整生命周期
+
 ## [1.4.2] - 2026-08-31
 
 - **紧急修复**：文档页退出即崩溃（app_shell `_bumpDataVersion` 无限递归，
