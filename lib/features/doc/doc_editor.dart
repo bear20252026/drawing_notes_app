@@ -313,15 +313,19 @@ class DocEditorState extends State<DocEditor> {
   /// 击键合帧定时器（P2-M6）。
   Timer? _historyDebounce;
 
+  /// 首次脏通知标志（架构审计 Q0 修复）：onDirty 只在"从未通知→通知"
+  /// 边沿触发一次。原实现用 _isDirty 作门控，但 _syncText 先经
+  /// _updateDirtyState 置 _isDirty=true，导致纯文本输入的 onDirty 被
+  /// 短路——自动保存从不启动，用户输入永不落盘。
+  bool _dirtyNotified = false;
+
   /// 提交一次编辑：压入历史栈并标记脏状态（触发宿主自动保存）。
   /// 结构性操作（分块/合并/删除/类型切换/插入引用）走本方法——即时入栈。
   void _commitHistory() {
     _historyDebounce?.cancel();
     _history.push(_buildDocFromState());
-    if (!_isDirty) {
-      _isDirty = true;
-      widget.onDirty?.call();
-    }
+    _isDirty = true;
+    _notifyDirtyOnce();
   }
 
   /// P2-M6：文本击键合帧——连续输入只在停顿 500ms 后压一次史栈
@@ -332,10 +336,15 @@ class DocEditorState extends State<DocEditor> {
     _historyDebounce = Timer(const Duration(milliseconds: 500), () {
       _history.push(_buildDocFromState());
     });
-    if (!_isDirty) {
-      _isDirty = true;
-      widget.onDirty?.call();
-    }
+    _isDirty = true;
+    _notifyDirtyOnce();
+  }
+
+  /// 边沿触发一次 onDirty（首次脏时通知宿主启动自动保存）。
+  void _notifyDirtyOnce() {
+    if (_dirtyNotified) return;
+    _dirtyNotified = true;
+    widget.onDirty?.call();
   }
 
   /// 把待提交的合帧快照立即入栈（saveNow/结构操作前调用，防丢撤销粒度）。
@@ -359,6 +368,7 @@ class DocEditorState extends State<DocEditor> {
     _flushPendingHistory();
     final doc = _buildDocFromState();
     _isDirty = false;
+    _dirtyNotified = false; // 已落盘，后续编辑重新走首次通知
     widget.onSave?.call(doc);
     return doc;
   }
@@ -928,6 +938,7 @@ class DocEditorState extends State<DocEditor> {
     setState(() {
       _isDirty = signature != _lastSavedBodySignature;
     });
+    if (_isDirty) _notifyDirtyOnce();
   }
 
   /// 计算当前 body 的签名（用于 dirty 检测）。
