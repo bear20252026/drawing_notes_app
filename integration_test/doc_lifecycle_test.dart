@@ -12,7 +12,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:drawing_notes_app/app.dart';
 import 'package:drawing_notes_app/features/doc/doc_page.dart';
-import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 const _uniqueText = 'Q0 实测内容 v142';
