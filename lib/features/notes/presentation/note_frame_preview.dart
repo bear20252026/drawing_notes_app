@@ -112,7 +112,7 @@ class _NoteBlockPreviewRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ink = inkColor ?? Theme.of(context).colorScheme.onSurface;
-    final baseStyle = _blockStyle(context, block, ink);
+    final baseStyle = _blockStyle(block, ink);
     final children = block.children;
     final content = _buildContent(context, baseStyle);
     final row = Padding(
@@ -268,17 +268,9 @@ class _NoteBlockPreviewRow extends StatelessWidget {
           ),
         );
       case NoteBlockType.canvas:
-        return _embeddedPlaceholder(
-          '画布',
-          Icons.polyline_outlined,
-          baseStyle,
-        );
+        return _embeddedPlaceholder('画布', Icons.polyline_outlined, baseStyle);
       case NoteBlockType.chart:
-        return _embeddedPlaceholder(
-          '图表',
-          Icons.bar_chart_outlined,
-          baseStyle,
-        );
+        return _embeddedPlaceholder('图表', Icons.bar_chart_outlined, baseStyle);
       case NoteBlockType.table:
         return _embeddedPlaceholder(
           '表格',
@@ -286,17 +278,9 @@ class _NoteBlockPreviewRow extends StatelessWidget {
           baseStyle,
         );
       case NoteBlockType.database:
-        return _embeddedPlaceholder(
-          '数据库',
-          Icons.dataset_outlined,
-          baseStyle,
-        );
+        return _embeddedPlaceholder('数据库', Icons.dataset_outlined, baseStyle);
       case NoteBlockType.attachment:
-        return _embeddedPlaceholder(
-          '附件',
-          Icons.attachment_outlined,
-          baseStyle,
-        );
+        return _embeddedPlaceholder('附件', Icons.attachment_outlined, baseStyle);
       case NoteBlockType.text:
         return Text(block.text, style: baseStyle, softWrap: true);
     }
@@ -321,7 +305,7 @@ class _NoteBlockPreviewRow extends StatelessWidget {
     );
   }
 
-  TextStyle _blockStyle(BuildContext context, NoteBlock block, Color ink) {
+  TextStyle _blockStyle(NoteBlock block, Color ink) {
     final subtle = (block.props['checked'] as bool?) ?? false;
     return TextStyle(
       fontSize: 14,
