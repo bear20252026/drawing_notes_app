@@ -2,7 +2,7 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [1.4.0] - 2026-08-31
 
 ### 审计整改（2026-08-31，报告 docs/CODE_AUDIT_2026-08-31.md）
 
