@@ -4,8 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/features/doc/doc_editor.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 
 void main() {
   testWidgets('DocEditor：enterText → onDirty → saveNow → onSave 含文本', (
@@ -43,6 +41,7 @@ void main() {
     final state = tester.state<DocEditorState>(find.byType(DocEditor));
     final snapshot = state.saveNow();
 
+    // ignore: avoid_print
     print(
       'DIRTY_CALLS=$dirtyCalls '
       'SAVED=${saved != null} '
