@@ -123,6 +123,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
       MaterialPageRoute(
         builder: (_) => DocPage(
           document: noteDoc,
+          blockDocStore: store,
           controller: DocController(
             onSave: (updatedDoc) async {
               await store.saveDocument(updatedDoc);

@@ -8,12 +8,13 @@ import 'dart:typed_data';
 
 import 'package:path_provider/path_provider.dart';
 
-/// 文件名安全化：去除路径非法字符。
+/// 文件名安全化：去除路径非法字符 + 尾点/尾空格（Windows 文件名禁尾点）。
 String sanitizeFileName(String raw) {
   final cleaned = raw
       .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
       .replaceAll(RegExp(r'\s+'), ' ')
-      .trim();
+      .trim()
+      .replaceAll(RegExp(r'[. ]+$'), '');
   return cleaned.isEmpty ? '未命名' : cleaned;
 }
 
@@ -52,11 +53,12 @@ Future<String> _resolveExportPath({
 }) async {
   final docsDir = await getApplicationDocumentsDirectory();
   final dir = Directory('${docsDir.path}${Platform.pathSeparator}绘图笔记导出');
-  if (!dir.existsSync()) dir.createSync(recursive: true);
+  // P3：全部异步 IO——existsSync/createSync 在 UI isolate 会造成微卡顿。
+  if (!await dir.exists()) await dir.create(recursive: true);
   final base = sanitizeFileName(baseName);
   var path = '${dir.path}${Platform.pathSeparator}$base.$extension';
   var n = 1;
-  while (File(path).existsSync()) {
+  while (await File(path).exists()) {
     path = '${dir.path}${Platform.pathSeparator}$base (${n++}).$extension';
   }
   return path;

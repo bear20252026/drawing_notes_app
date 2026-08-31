@@ -88,4 +88,4 @@ SaveScheduler 主链设计、策略门禁的删除操作。
 | **P0（本周）** | ~~H1 保存链统一 + H2 退出 flush + H3 store 写尾队列与原子软删除~~ ✅ 已完成（2026-08-31，H1/H2=5c0ece3，H3=写尾队列+rename 原子化+双格式兼容，1324 测试全绿） | 数据零丢失 |
 | **P1（下周）** | ~~H4 反向链接索引缓存化 + M1 门禁补齐 + M2 trash 校验 + M4 Overlay 泄漏~~ ✅ 已完成（2026-08-31：shell 内存缓存+_bumpDataVersion 统一失效；purgeExpiredTrash 节流 1h；白名单补 note.purge/note.export.markdown/html 并 enforceCheck 接线导出与 trash 操作；M2 已由 H3 的 _trashPathFor isValidId 校验覆盖；M4 dispose 补 slash overlay 移除。1324 测试全绿） | 性能与门禁 |
 | **P2** | M5 列表轻量化 + M6 编辑器局部重建 + M7 TagStore 解耦 + M3 PIN 策略 | 大库体验 |
-| **P3** | 低危清理 + 装配一致性 + 死路径标注 | 长期可维护 |
+| **P3** | ~~低危清理 + 装配一致性 + 死路径标注~~ ✅ 已完成（2026-08-31：L1 controller dispose；L2 文件名尾点/尾空格；L3 导出全异步 IO；L4=DocPage 增 blockDocStore 统一兜底装配（五入口全对齐，反向链接/标签能力全入口生效）；L6 确认无路径泄露（唯一 debugPrint 仅记错误类型）。**重要修复：M12.7 提交中反向链接面板 UI 实际缺失（补丁中断致写入丢失、测试未覆盖 UI 层故全绿）——本轮补齐 _BacklinksPanel+body 装配+blockDocStore 兜底路由。1324 测试全绿） | 长期可维护 |

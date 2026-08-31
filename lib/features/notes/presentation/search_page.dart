@@ -91,6 +91,7 @@ class _SearchPageState extends State<SearchPage> {
         MaterialPageRoute(
           builder: (_) => DocPage(
             document: doc,
+            blockDocStore: blockStore,
             controller: DocController(
               onSave: (d) => blockStore.saveDocument(d),
             ),

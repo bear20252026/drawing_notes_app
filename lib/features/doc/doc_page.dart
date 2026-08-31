@@ -10,7 +10,9 @@ import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
 
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_export_io.dart';
+import 'package:drawing_notes_app/features/doc/application/doc_link_index.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_html_export.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_pdf_adapter.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc_markdown.dart';
@@ -35,6 +37,7 @@ class DocPage extends StatefulWidget {
     this.tagStore,
     this.allDocsLoader,
     this.onOpenDocById,
+    this.blockDocStore,
   });
 
   /// 要编辑的笔记文档。
@@ -60,6 +63,11 @@ class DocPage extends StatefulWidget {
 
   /// 点击反向链接条目打开对应文档（宿主路由）。
   final void Function(String docId)? onOpenDocById;
+
+  /// 块文档存储（P3 装配一致性）：未显式提供 allDocsLoader/onOpenDocById
+  /// 时，用它在 DocPage 内部自建反向链接索引数据源与点击路由——
+  /// 各入口（搜索/笔记本管理/首页）无需各自接线即可获得完整能力。
+  final NoteBlockDocStore? blockDocStore;
 
   @override
   State<DocPage> createState() => _DocPageState();
@@ -299,12 +307,28 @@ class _DocPageState extends State<DocPage> {
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 720),
-                  child: DocEditor(
-                    key: _editorKey,
-                    showChrome: false,
-                    document: _doc,
-                    onSave: _persist,
-                    onDirty: _onEditorDirty,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: DocEditor(
+                          key: _editorKey,
+                          showChrome: false,
+                          document: _doc,
+                          onSave: _persist,
+                          onDirty: _onEditorDirty,
+                        ),
+                      ),
+                      // 反向链接面板（M12.7，AFFiNE Backlinks 对齐）：
+                      // 列出引用了本文档的笔记，点击跳转。
+                      if (_effectiveAllDocsFuture != null)
+                        _BacklinksPanel(
+                          currentDoc: _doc,
+                          docsFuture: _effectiveAllDocsFuture!,
+                          onOpenDocById:
+                              widget.onOpenDocById ?? _openDocByIdInternal,
+                        ),
+                    ],
                   ),
                 ),
               ),
@@ -334,10 +358,8 @@ class _DocPageState extends State<DocPage> {
 
   /// 选择目标文档 → 在文末追加 [[标题]] 页面引用（M12.7 反向链接）。
   Future<void> _insertPageLink() async {
-    final loader = widget.allDocsLoader;
-    if (loader == null) return;
-    final all = await loader();
-    if (!mounted) return;
+    final all = await _effectiveAllDocsFuture;
+    if (all == null || !mounted) return;
     final candidates = all.where((d) => d.id != _doc.id).toList()
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     final target = await showDialog<NoteBlockDoc>(
@@ -364,6 +386,40 @@ class _DocPageState extends State<DocPage> {
     );
     if (target == null) return;
     _editorKey.currentState?.appendPageLink(target);
+  }
+
+  // ── P3 装配一致性：blockDocStore 兜底生成索引数据源与点击路由 ──
+  Future<List<NoteBlockDoc>>? get _effectiveAllDocsFuture {
+    final loader = widget.allDocsLoader;
+    if (loader != null) return loader();
+    final store = widget.blockDocStore;
+    if (store == null) return null;
+    return () async {
+      final docs = <NoteBlockDoc>[];
+      for (final id in await store.listIds()) {
+        final d = await store.loadDocument(id);
+        if (d != null) docs.add(d);
+      }
+      return docs;
+    }();
+  }
+
+  void _openDocByIdInternal(String id) {
+    final store = widget.blockDocStore;
+    if (store == null) return;
+    store.loadDocument(id).then((doc) {
+      if (!mounted || doc == null) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => DocPage(
+            document: doc,
+            controller: DocController(onSave: (d) => store.saveDocument(d)),
+            blockDocStore: store,
+            tagStore: widget.tagStore,
+          ),
+        ),
+      );
+    });
   }
 
   /// 文档信息对话框（含标签编辑——M12.6 标签系统入口）。
@@ -454,31 +510,36 @@ class _DocPageState extends State<DocPage> {
   /// 快速新建标签（输入名称 → 默认紫色）。
   Future<void> _createTagInline(TagStore tagStore) async {
     final controller = TextEditingController();
-    final name = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('新建标签'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: '标签名称'),
+    // P3：对话框结束后释放 controller（审计低危 L1）。
+    try {
+      final name = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('新建标签'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(hintText: '标签名称'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(controller.text),
+              child: const Text('创建'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(controller.text),
-            child: const Text('创建'),
-          ),
-        ],
-      ),
-    );
-    if (name == null || name.trim().isEmpty) return;
-    final tag = await tagStore.addTag(name);
-    if (tag != null && !_doc.tags.contains(tag.id)) {
-      await _toggleDocTag(tag.id);
+      );
+      if (name == null || name.trim().isEmpty) return;
+      final tag = await tagStore.addTag(name);
+      if (tag != null && !_doc.tags.contains(tag.id)) {
+        await _toggleDocTag(tag.id);
+      }
+    } finally {
+      controller.dispose();
     }
   }
 
@@ -704,6 +765,117 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
           onPressed: onToggleOutline,
         ),
       ],
+    );
+  }
+}
+
+/// 反向链接面板（M12.7，AFFiNE Backlinks 对齐）：
+/// 列出引用了当前文档的笔记（[[标题]] 双链），点击跳转。
+class _BacklinksPanel extends StatefulWidget {
+  const _BacklinksPanel({
+    required this.currentDoc,
+    required this.docsFuture,
+    this.onOpenDocById,
+  });
+
+  final NoteBlockDoc currentDoc;
+  final Future<List<NoteBlockDoc>> docsFuture;
+  final void Function(String docId)? onOpenDocById;
+
+  @override
+  State<_BacklinksPanel> createState() => _BacklinksPanelState();
+}
+
+class _BacklinksPanelState extends State<_BacklinksPanel> {
+  List<NoteBlockDoc>? _backlinks;
+
+  @override
+  void initState() {
+    super.initState();
+    _reload();
+  }
+
+  @override
+  void didUpdateWidget(_BacklinksPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 当前文档变化（保存回写）时重算索引。
+    if (oldWidget.currentDoc.updatedAt != widget.currentDoc.updatedAt ||
+        oldWidget.currentDoc.id != widget.currentDoc.id) {
+      _reload();
+    }
+  }
+
+  Future<void> _reload() async {
+    final all = await widget.docsFuture;
+    if (!mounted) return;
+    setState(() => _backlinks = backlinksOf(widget.currentDoc, all));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final backlinks = _backlinks;
+    if (backlinks == null || backlinks.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.link_rounded,
+                size: 16,
+                color: scheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '反向链接 · ${backlinks.length}',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          for (final doc in backlinks)
+            InkWell(
+              onTap: () => widget.onOpenDocById?.call(doc.id),
+              borderRadius: BorderRadius.circular(6),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.edit_note_rounded,
+                      size: 16,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        doc.title.isEmpty ? '未命名' : doc.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 13, color: scheme.onSurface),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

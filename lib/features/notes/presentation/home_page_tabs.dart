@@ -154,6 +154,7 @@ extension _HomePageTabs on _HomePageState {
       MaterialPageRoute(
         builder: (_) => DocPage(
           document: d,
+          blockDocStore: _blockDocStore,
           controller: DocController(
             onSave: (updated) => _blockDocStore.saveDocument(updated),
           ),
