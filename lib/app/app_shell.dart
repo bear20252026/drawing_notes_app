@@ -387,11 +387,16 @@ class _AppShellState extends State<AppShell> {
         }
         return Scaffold(
           body: IndexedStack(index: _index, children: _destinations),
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: _index,
-            onDestinationSelected: _onSelect,
-            destinations: _barDestinations(),
-          ),
+          // AFFiNE mobile 语义：输入法弹出时隐藏底部导航（VirtualKeyboard
+          // Service 同款体验），给内容与键盘让出完整空间。
+          bottomNavigationBar:
+              MediaQuery.of(context).viewInsets.bottom > 0
+                  ? null
+                  : NavigationBar(
+                      selectedIndex: _index,
+                      onDestinationSelected: _onSelect,
+                      destinations: _barDestinations(),
+                    ),
         );
       },
     );

@@ -18,6 +18,7 @@ import 'package:drawing_notes_app/features/all_docs/presentation/all_doc_row.dar
 import 'package:drawing_notes_app/features/all_docs/presentation/tags_view.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 part 'all_docs_page_widgets.dart';
+part 'all_docs_page_mobile.dart';
 
 /// 全部文档工作台主页面。
 ///
@@ -27,9 +28,14 @@ part 'all_docs_page_widgets.dart';
 /// - [onNewDoc]：新建文档回调（画板/笔记/块文档）。
 /// - [onToggleFavorite]：切换收藏回调（持久化由壳层负责；UI 乐观更新）。
 ///
-/// ### 布局
-/// - 左：[AllDocsSidebar] 工作区面板（搜索 + 导航）
-/// - 右：工具条 + Tab + 分组文档列表
+/// ### 布局（AFFiNE 式响应式分流，2026-08-31）
+/// - 宽 ≥900：桌面双栏——左 [AllDocsSidebar] 工作区面板 + 右主内容区（原样）。
+/// - 窄 <900：移动端专属单栏视图（[AllDocsPageMobile] 扩展，见
+///   all_docs_page_mobile.dart）——AFFiNE mobile 精髓：设备级分流，
+///   移动端信息架构重新设计（顶部 header 承载侧栏功能），业务逻辑共享。
+///
+/// 布局参考：AFFiNE (MIT) packages/frontend/core/src/mobile/——
+/// 版权声明见 THIRD_PARTY_NOTICES.md。
 class AllDocsPage extends StatefulWidget {
   const AllDocsPage({
     super.key,
@@ -79,6 +85,7 @@ class _AllDocsPageState extends State<AllDocsPage> {
   @override
   void dispose() {
     widget.refreshSignal?.removeListener(_onDataVersionChanged);
+    _mobileSearchController.dispose();
     super.dispose();
   }
 
@@ -87,6 +94,19 @@ class _AllDocsPageState extends State<AllDocsPage> {
 
   /// 搜索词（快速搜索框）。
   String _query = '';
+
+  // ---- 移动端单栏视图状态（all_docs_page_mobile.dart 使用）----
+
+  /// 移动端搜索框展开开关（AFFiNE mobile：搜索收进 header 图标）。
+  bool _mobileSearchOpen = false;
+
+  /// 移动端搜索框控制器（关闭时同步清空搜索词）。
+  final TextEditingController _mobileSearchController =
+      TextEditingController();
+
+  /// extension（part 文件）可用的 setState 包装（editorSetState 先例：
+  /// setState 是 protected 成员，extension 内不可直接调用）。
+  void allDocsSetState(VoidCallback fn) => setState(fn);
 
   /// 排序模式（M11：默认时间分组；其余模式渲染扁平列表）。
   AllDocSort _sort = AllDocSort.timeGrouped;
@@ -126,84 +146,111 @@ class _AllDocsPageState extends State<AllDocsPage> {
           )
           .toList(growable: false);
 
+  /// 布局断点：与 app_shell 的 NavigationRail 断点一致（900）。
+  /// ≥900 桌面双栏；<900 移动端专属单栏视图。
+  static const double _layoutBreakpoint = 900;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final canvas = isDark ? AppleColor.canvansDark : AppleColor.parchment;
 
-    return Scaffold(
-      backgroundColor: canvas,
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // 左侧工作区面板
-          AllDocsSidebar(
-            onOpenTrash: widget.onOpenTrash,
-            searchQuery: _query,
-            onSearchChanged: (q) => setState(() => _query = q),
-            selectedNavIndex: _tabIndex,
-            onNavSelected: (i) => setState(() {
-              // 侧栏前三项与 Tab 一一对应：全部文档/收藏夹/标签。
-              _tabIndex = i.clamp(0, 2);
-            }),
-            // 文档树（M11.3）：最近文档，点击直接打开。
-            recentDocs: _cached == null
-                ? const []
-                : (List.of(_cached!.docs)
-                        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt)))
-                      .take(30)
-                      .toList(growable: false),
-            onOpenDoc: widget.onOpenDoc,
-          ),
-          // 垂直分隔线
-          VerticalDivider(
-            width: 1,
-            thickness: 1,
-            color: theme.dividerColor.withValues(alpha: 0.15),
-          ),
-          // 主内容区
-          Expanded(
-            child: FutureBuilder<AllDocQueryResult>(
-              future: _future!,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      '加载失败：${snapshot.error}',
-                      style: TextStyle(color: theme.colorScheme.error),
-                    ),
-                  );
-                }
-                final result = _cached ?? snapshot.data;
-                if (result == null) return const SizedBox.shrink();
-                _cached = result;
-                final sections = filterSections(result.sections, _query);
-                final flatDocs = flattenSorted(sections, _sort);
-                // 注意：空文档时也必须渲染工具条（否则全新安装没有任何
-                // 创建入口——M11 修复"打开后点不动"的主因）。
-                return _MainContent(
-                  theme: theme,
-                  tabIndex: _tabIndex,
-                  sections: sections,
-                  allDocs: result.docs,
-                  flatDocs: flatDocs,
-                  sort: _sort,
-                  onSortChanged: (m) => setState(() => _sort = m),
-                  onOpenDoc: widget.onOpenDoc,
-                  onNewDoc: widget.onNewDoc,
-                  onToggleFavorite: _toggleFavorite,
-                  onTabChanged: (i) => setState(() => _tabIndex = i),
-                  loadTags: widget.loadTags,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < _layoutBreakpoint;
+        return Scaffold(
+          backgroundColor: canvas,
+          // 移动端新建入口（AFFiNE mobile：底部 tab 的 create 动作按钮语义）。
+          floatingActionButton: isNarrow
+              ? FloatingActionButton(
+                  // 显式 heroTag：AppShell 的 IndexedStack 内 HomePage 也持有
+                  // 默认 tag 的 FAB（同树共存）→ 重复 hero 会抛断言。
+                  heroTag: 'allDocsNewDocFab',
+                  onPressed: () =>
+                      showMobileNewDocSheet(context, widget.onNewDoc),
+                  child: const Icon(Icons.add_rounded),
+                )
+              : null,
+          body: isNarrow
+              ? buildMobileBody(theme)
+              : buildDesktopBody(theme),
+        );
+      },
+    );
+  }
+
+  /// 桌面双栏布局（≥900，原样保留）：侧栏 + 主内容区。
+  Widget buildDesktopBody(ThemeData theme) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // 左侧工作区面板
+        AllDocsSidebar(
+          onOpenTrash: widget.onOpenTrash,
+          searchQuery: _query,
+          onSearchChanged: (q) => setState(() => _query = q),
+          selectedNavIndex: _tabIndex,
+          onNavSelected: (i) => setState(() {
+            // 侧栏前三项与 Tab 一一对应：全部文档/收藏夹/标签。
+            _tabIndex = i.clamp(0, 2);
+          }),
+          // 文档树（M11.3）：最近文档，点击直接打开。
+          recentDocs: _cached == null
+              ? const []
+              : (List.of(_cached!.docs)
+                      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt)))
+                    .take(30)
+                    .toList(growable: false),
+          onOpenDoc: widget.onOpenDoc,
+        ),
+        // 垂直分隔线
+        VerticalDivider(
+          width: 1,
+          thickness: 1,
+          color: theme.dividerColor.withValues(alpha: 0.15),
+        ),
+        // 主内容区
+        Expanded(
+          child: FutureBuilder<AllDocQueryResult>(
+            future: _future!,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    '加载失败：${snapshot.error}',
+                    style: TextStyle(color: theme.colorScheme.error),
+                  ),
                 );
-              },
-            ),
+              }
+              final result = _cached ?? snapshot.data;
+              if (result == null) return const SizedBox.shrink();
+              _cached = result;
+              final sections = filterSections(result.sections, _query);
+              final flatDocs = flattenSorted(sections, _sort);
+              // 注意：空文档时也必须渲染工具条（否则全新安装没有任何
+              // 创建入口——M11 修复"打开后点不动"的主因）。
+              return _MainContent(
+                theme: theme,
+                tabIndex: _tabIndex,
+                sections: sections,
+                allDocs: result.docs,
+                flatDocs: flatDocs,
+                sort: _sort,
+                onSortChanged: (m) => setState(() => _sort = m),
+                onOpenDoc: widget.onOpenDoc,
+                onNewDoc: widget.onNewDoc,
+                onToggleFavorite: _toggleFavorite,
+                onTabChanged: (i) => setState(() => _tabIndex = i),
+                loadTags: widget.loadTags,
+              );
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

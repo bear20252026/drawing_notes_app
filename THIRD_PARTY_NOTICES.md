@@ -11,6 +11,12 @@
   浮动格式工具条、Page/Edgeless 双模、大纲等）参照 AFFiNE/BlockSuite
   的交互与信息架构实现；数据结构命名（如 `affine:connector`、
   `affine:group`）为对标说明而保留。
+- 响应式布局（2026-08-31 追加）：移动端视图参照 AFFiNE
+  `packages/frontend/core/src/mobile/` 的信息架构——设备级分流、桌面与
+  移动端两棵独立视图树、侧栏功能拆进顶部 header（Tab/搜索/排序/更多菜单）、
+  底部导航在输入法弹出时隐藏（VirtualKeyboardService 语义）。相关实现见
+  `lib/features/all_docs/presentation/all_docs_page_mobile.dart` 与
+  `lib/app/app_shell.dart`。
 
 MIT 许可证文本（摘自 AFFiNE 仓库）：
 

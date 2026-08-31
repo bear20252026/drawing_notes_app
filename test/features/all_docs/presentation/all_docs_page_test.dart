@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_docs_page.dart';
+import 'package:drawing_notes_app/features/all_docs/presentation/all_docs_sidebar.dart';
 
 AllDoc _doc(String id, String title) => AllDoc(
       id: id,
@@ -22,6 +23,7 @@ Future<void> pumpPage(
   WidgetTester tester, {
   required List<AllDoc> docs,
   void Function(AllDoc doc)? onToggleFavorite,
+  void Function(AllDocKind kind)? onNewDoc,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -50,6 +52,7 @@ Future<void> pumpPage(
           now: DateTime(2026, 8, 2, 12),
         ),
         onOpenDoc: (_) {},
+        onNewDoc: onNewDoc,
         onToggleFavorite: onToggleFavorite,
       ),
     ),
@@ -59,19 +62,57 @@ Future<void> pumpPage(
 }
 
 void main() {
+  // 响应式分流（2026-08-31 AFFiNE 式）：默认测试面 800x600 < 900 → 移动端
+  // 单栏视图（无侧栏，header 承载搜索/Tab/菜单）；宽屏才渲染桌面双栏。
+  testWidgets('窄屏默认移动视图：无侧栏、有新建 FAB、header Tab 可切换', (tester) async {
+    await pumpPage(tester, docs: [_doc('a', '设计稿')]);
+    expect(find.byType(AllDocsSidebar), findsNothing);
+    expect(find.byType(m.FloatingActionButton), findsOneWidget);
+    // header Tab 切到收藏夹 → 空态。
+    await tester.tap(find.text('收藏夹').first);
+    await tester.pump();
+    expect(find.text('暂无收藏文档'), findsOneWidget);
+  });
+
+  testWidgets('桌面宽屏（≥900）：保留侧栏双栏布局、无 FAB', (tester) async {
+    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await pumpPage(tester, docs: [_doc('a', '设计稿')]);
+    expect(find.byType(AllDocsSidebar), findsOneWidget);
+    expect(find.byType(m.FloatingActionButton), findsNothing);
+  });
+
+  testWidgets('移动端新建 FAB：弹出底部菜单，点新建笔记触发 onNewDoc', (tester) async {
+    AllDocKind? created;
+    await pumpPage(
+      tester,
+      docs: [_doc('a', '设计稿')],
+      onNewDoc: (kind) => created = kind,
+    );
+    await tester.tap(find.byType(m.FloatingActionButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('新建笔记（打字）').last);
+    await tester.pump();
+    expect(created, AllDocKind.blockdoc);
+  });
+
   testWidgets('搜索框输入后列表按标题过滤', (tester) async {
     await pumpPage(
       tester,
       docs: [_doc('a', '设计稿'), _doc('b', '会议记录')],
     );
-    // 注意：侧栏「文档树」也会显示文档标题，行列表断言取首个匹配。
     expect(find.text('设计稿'), findsWidgets);
     expect(find.text('会议记录'), findsWidgets);
 
+    // 移动端：搜索收进 header 图标，先展开搜索框。
+    await tester.tap(find.byIcon(Icons.search_rounded));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.enterText(find.byType(f.TextField), '设计');
     await tester.pump();
-    // 搜索只过滤行列表；侧栏文档树不随搜索词变化，标题仍在。
     expect(find.text('设计稿'), findsWidgets);
+    expect(find.text('会议记录'), findsNothing);
   });
 
   testWidgets('点击星标触发 onToggleFavorite 并乐观更新', (tester) async {
@@ -121,7 +162,7 @@ void main() {
     expect(created, AllDocKind.blockdoc);
   });
 
-  testWidgets('侧栏导航切换 Tab（收藏夹/标签空态可见）', (tester) async {
+  testWidgets('导航切换 Tab（收藏夹/标签空态可见）', (tester) async {
     await pumpPage(tester, docs: [_doc('a', '设计稿')]);
     await tester.tap(find.text('收藏夹').first);
     await tester.pump();
