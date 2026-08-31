@@ -2,6 +2,14 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.4.1] - 2026-08-31
+
+- 发布流水线：所有安装包生成后自动压缩为 zip 随 Release 双轨提供
+  （Windows `drawing_notes_windows_setup.zip` / Android `drawing_notes_android_release.zip`）
+- CI Actions 运行时升级：upload-artifact v4→v7、gh-release v2→v3（Node 24，
+  消除 deprecation 警告）
+- 发布规范立档：docs/RELEASE_PIPELINE.md（版本三处同步 + 发版检查清单）
+
 ## [1.4.0] - 2026-08-31
 
 ### 审计整改（2026-08-31，报告 docs/CODE_AUDIT_2026-08-31.md）
