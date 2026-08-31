@@ -269,35 +269,30 @@ class _NoteBlockPreviewRow extends StatelessWidget {
         );
       case NoteBlockType.canvas:
         return _embeddedPlaceholder(
-          context,
           '画布',
           Icons.polyline_outlined,
           baseStyle,
         );
       case NoteBlockType.chart:
         return _embeddedPlaceholder(
-          context,
           '图表',
           Icons.bar_chart_outlined,
           baseStyle,
         );
       case NoteBlockType.table:
         return _embeddedPlaceholder(
-          context,
           '表格',
           Icons.table_chart_outlined,
           baseStyle,
         );
       case NoteBlockType.database:
         return _embeddedPlaceholder(
-          context,
           '数据库',
           Icons.dataset_outlined,
           baseStyle,
         );
       case NoteBlockType.attachment:
         return _embeddedPlaceholder(
-          context,
           '附件',
           Icons.attachment_outlined,
           baseStyle,
@@ -308,7 +303,6 @@ class _NoteBlockPreviewRow extends StatelessWidget {
   }
 
   Widget _embeddedPlaceholder(
-    BuildContext context,
     String label,
     IconData icon,
     TextStyle baseStyle,

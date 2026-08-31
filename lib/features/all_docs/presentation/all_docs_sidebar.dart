@@ -214,7 +214,7 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
     ];
     if (!_treeExpanded) return widgets;
     for (final doc in widget.recentDocs) {
-      final visual = visualForKind(doc.kind, theme.colorScheme);
+      final visual = visualForKind(doc.kind);
       widgets.add(
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 1),

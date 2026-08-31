@@ -171,7 +171,7 @@ class SyncService {
     await _preserveRemoteCopies(conflicts, resolutions);
 
     // 5. 执行。
-    await _execute(plan, currentEntries, remoteManifest);
+    await _execute(plan);
 
     // 6. 回写远端 manifest + 本地基线。
     _emit(SyncProgress.phase(SyncProgressPhase.writingManifest));
@@ -222,11 +222,7 @@ class SyncService {
   }
 
   /// 顺序执行计划中的操作。
-  Future<void> _execute(
-    SyncPlan plan,
-    Map<String, SyncSnapshot> currentEntries,
-    SyncManifest remoteManifest,
-  ) async {
+  Future<void> _execute(SyncPlan plan) async {
     final total = plan.operations.length;
     var done = 0;
     for (final op in plan.operations) {
