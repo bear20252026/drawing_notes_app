@@ -89,6 +89,34 @@ void main() {
     expect(store.docs.length, 1);
   });
 
+  testWidgets('P0 回归：退出文档页触发 _bumpDataVersion 不无限递归', (tester) async {
+    final store = _MemBlockDocStore();
+    await pumpShell(tester, blockDocStore: store);
+
+    final ctaFinder = find.ancestor(
+      of: find.text('新建笔记（打字）'),
+      matching: find.byType(m.FilledButton),
+    );
+    await tester.tap(ctaFinder.first);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(store.docs.length, 1);
+
+    // 退出文档页：push 返回后 shell 会调 _bumpDataVersion 刷新列表。
+    // 回归背景（架构审计 2026-08-31）：该方法体曾被全局替换误改为
+    // 自递归调用，任何文档退出即栈溢出崩溃。
+    final navigator = tester.state<m.NavigatorState>(
+      find.byType(m.Navigator).first,
+    );
+    navigator.pop();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // 未崩溃且回到主页，文档仍在存储中。
+    expect(find.text('新建笔记（打字）'), findsWidgets);
+    expect(store.docs.length, 1);
+  });
+
   testWidgets('目的地切换：画板 / 日历均正常渲染', (tester) async {
     await pumpShell(tester);
 

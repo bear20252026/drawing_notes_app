@@ -97,7 +97,7 @@ class _AppShellState extends State<AppShell> {
   /// 数据版本自增 + 文档缓存失效（shell 内所有写盘后的统一出口）。
   void _bumpDataVersion() {
     _blockDocsCache = null;
-    _bumpDataVersion();
+    _dataVersion.value++;
   }
 
   /// 打开指定块文档（反向链接条目点击路由）。
