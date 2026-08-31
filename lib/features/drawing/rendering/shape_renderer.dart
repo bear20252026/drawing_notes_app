@@ -21,7 +21,15 @@ class ShapeRenderer {
     canvas.save();
     canvas.translate(shape.x + shape.width / 2, shape.y + shape.height / 2);
     canvas.rotate(shape.rotation);
-    canvas.scale(shape.flipX ? -1 : 1, shape.flipY ? -1 : 1);
+    // 线性元素（直线/箭头）的 lineStart/lineEnd 已保存真实方向端点，
+    // 不能再施加 flip 镜像——否则方向被二次翻转：从右上往左下画的
+    // 箭头会渲染成左上到右下（四个对角方向全部坍缩为同一朝向）。
+    // 仅端点缺失的旧文档保留 flip 兜底表达方向。
+    final hasExplicitEndpoints =
+        shape.lineStart != null && shape.lineEnd != null;
+    if (!hasExplicitEndpoints) {
+      canvas.scale(shape.flipX ? -1 : 1, shape.flipY ? -1 : 1);
+    }
     canvas.translate(-shape.width / 2, -shape.height / 2);
     drawLocal(canvas, shape, Size(shape.width, shape.height));
     canvas.restore();

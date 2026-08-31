@@ -110,11 +110,16 @@ extension _EditorPageOverlays on _EditorPageState {
               angle: shape.rotation,
               child: Transform(
                 alignment: Alignment.center,
-                transform: Matrix4.diagonal3Values(
-                  shape.flipX ? -1 : 1,
-                  shape.flipY ? -1 : 1,
-                  1,
-                ),
+                // 线性元素已用 lineStart/lineEnd 保存真实方向端点，flip 镜像
+                // 会把方向二次翻转（与 ShapeRenderer.drawDocumentShape 同规则）；
+                // 仅端点缺失的旧文档保留 flip 兜底。
+                transform: shape.lineStart != null && shape.lineEnd != null
+                    ? Matrix4.identity()
+                    : Matrix4.diagonal3Values(
+                        shape.flipX ? -1 : 1,
+                        shape.flipY ? -1 : 1,
+                        1,
+                      ),
                 child: CustomPaint(
                   painter: ShapePainter(
                     shape: shape,

@@ -432,6 +432,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     if (start == null || current == null || tool == null) return null;
     final dx = current.dx - start.dx;
     final dy = current.dy - start.dy;
+    // 与 ShapeCreationGeometry 的点击阈值保持一致。
+    bool isClick(double dx, double dy) =>
+        dx.abs() < 4 && dy.abs() < 4;
     final left = math.min(start.dx, current.dx);
     final top = math.min(start.dy, current.dy);
     return PageShapeItem(
@@ -448,8 +451,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       // 线性元素预览也保存真实端点（审查发现 P1：预览与落定方向
       // 不一致——落定走 ShapeCreationGeometry.fromDrag 的真实端点，
       // 而预览此前仅靠 flipX/flipY 对角线，用户会看到方向跳动）。
-      lineStart: start - Offset(left, top),
-      lineEnd: current - Offset(left, top),
+      // 单击（位移小于点击阈值）时端点置空，与落定的默认对角线一致。
+      lineStart: isClick(dx, dy) ? null : start - Offset(left, top),
+      lineEnd: isClick(dx, dy) ? null : current - Offset(left, top),
       // 填充模式开启时预览也带填充色，所见即所得（问题4）。
       fillColor: _fillShapeEnabled ? _shapeFillColor : null,
     );

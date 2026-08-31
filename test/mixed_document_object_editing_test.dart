@@ -276,9 +276,11 @@ void main() {
       (shape) => shape.id == 'arrow',
     );
     expect(freedArrow.startBinding, isNull);
+    // 端点冻结值即绑定时的真实手势起点 (40,65)；旧实现的 (40,66) 是
+    // "左下角对角线兜底 + 1px 高外接框"的legacy产物，随方向单一来源化修正。
     expect(
       ShapeBindingGeometry.arrowEndpoints(freedArrow).start,
-      const Offset(40, 66),
+      const Offset(40, 65),
     );
 
     controller.undo();

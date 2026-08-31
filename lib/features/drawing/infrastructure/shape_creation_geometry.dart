@@ -4,13 +4,17 @@ import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 
 /// 由一次按下—拖拽—抬起手势生成形状的几何结果。
 class ShapeCreationGeometry {
-  const ShapeCreationGeometry({
+  /// 本次手势是否为单击（位移小于点击阈值）。
+  final bool isClick;
+
+  ShapeCreationGeometry({
     required this.x,
     required this.y,
     required this.width,
     required this.height,
     required this.flipX,
     required this.flipY,
+    this.isClick = false,
     this.lineStart,
     this.lineEnd,
   });
@@ -52,6 +56,7 @@ class ShapeCreationGeometry {
       height: height,
       flipX: !isClick && dx < 0,
       flipY: !isClick && dy < 0,
+      isClick: isClick,
       // 线性元素保存相对外接框的真实端点（含拖动方向）。
       lineStart: start - Offset(left, top),
       lineEnd: end - Offset(left, top),
@@ -65,22 +70,29 @@ class ShapeCreationGeometry {
     required double strokeWidth,
     String? boundElementId,
     int? fillColor,
-  }) => PageShapeItem(
-    id: id,
-    shapeType: shapeType,
-    x: x,
-    y: y,
-    width: width,
-    height: height,
-    color: color,
-    fillColor: fillColor,
-    strokeWidth: strokeWidth.clamp(1, 20).toDouble(),
-    flipX: flipX,
-    flipY: flipY,
-    boundElementId: boundElementId,
-    lineStart: lineStart,
-    lineEnd: lineEnd,
-  );
+  }) {
+    // 单击放置的线性元素没有拖拽方向：端点置空，交由渲染端回退为
+    // 默认对角线（与 Excalidraw 单击放置一致），避免退化为零长度线段。
+    final linearClick =
+        isClick &&
+        (shapeType == ShapeType.line || shapeType == ShapeType.arrow);
+    return PageShapeItem(
+      id: id,
+      shapeType: shapeType,
+      x: x,
+      y: y,
+      width: width,
+      height: height,
+      color: color,
+      fillColor: fillColor,
+      strokeWidth: strokeWidth.clamp(1, 20).toDouble(),
+      flipX: flipX,
+      flipY: flipY,
+      boundElementId: boundElementId,
+      lineStart: linearClick ? null : lineStart,
+      lineEnd: linearClick ? null : lineEnd,
+    );
+  }
 
   static double _min(double a, double b) => a < b ? a : b;
 }

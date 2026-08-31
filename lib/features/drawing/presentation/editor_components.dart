@@ -434,10 +434,14 @@ class ShapePainter extends CustomPainter {
         }
         drawStroke(diamond);
       case ShapeType.line:
+        // 与 ShapeRenderer.drawLocal 对齐：优先使用保存的真实端点，
+        // 旧文档无端点时回退为"左下→右上"对角线。
+        final lineStart = shape.lineStart ?? Offset(0, size.height);
+        final lineEnd = shape.lineEnd ?? Offset(size.width, 0);
         drawStroke(
           Path()
-            ..moveTo(j(Offset(0, size.height)).dx, j(Offset(0, size.height)).dy)
-            ..lineTo(j(Offset(size.width, 0)).dx, j(Offset(size.width, 0)).dy),
+            ..moveTo(j(lineStart).dx, j(lineStart).dy)
+            ..lineTo(j(lineEnd).dx, j(lineEnd).dy),
         );
       case ShapeType.arrow:
         final start = shape.lineStart ?? Offset(0, size.height);

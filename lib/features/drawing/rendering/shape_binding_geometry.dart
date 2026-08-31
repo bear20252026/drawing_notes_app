@@ -73,8 +73,17 @@ class ShapeBindingGeometry {
   }
 
   /// 当前箭头的可见全局端点，正确处理既有翻转和旋转。
+  ///
+  /// 端点真相优先级：显式 lineStart/lineEnd（applyArrowEndpoints 与
+  /// 拖拽创建写入，flip 已归零）→ 旧文档的"左下→右上"对角线 + flip 镜像。
   static ({Offset start, Offset end}) arrowEndpoints(PageShapeItem arrow) {
     assert(arrow.shapeType == ShapeType.arrow);
+    if (arrow.lineStart != null && arrow.lineEnd != null) {
+      return (
+        start: _localToGlobal(arrow, arrow.lineStart!),
+        end: _localToGlobal(arrow, arrow.lineEnd!),
+      );
+    }
     final start = _localToGlobal(arrow, Offset(0, arrow.height));
     final end = _localToGlobal(arrow, Offset(arrow.width, 0));
     return (start: start, end: end);
@@ -108,25 +117,31 @@ class ShapeBindingGeometry {
       arrow.startBinding?.targetShapeId == targetId ||
       arrow.endBinding?.targetShapeId == targetId;
 
-  /// 将箭头重写为表示指定全局端点的现有 `x/y/width/height/flip` 规范格式。
+  /// 将箭头重写为表示指定全局端点的现有 `x/y/width/height` 规范格式。
   /// 旋转在此基础上会引入语义歧义，绑定箭头第一版固定清除 rotation；这比同时
   /// 保存旋转和错误投影端点更安全，也与目前箭头创建行为一致。
+  ///
+  /// 方向统一编码在 lineStart/lineEnd（相对外接框左上角的真实端点），
+  /// flipX/flipY 归零——渲染端对带端点的线性元素不再施加 flip 镜像，
+  /// 双重表达会导致方向坍缩（见 ShapeRenderer.drawDocumentShape 注释）。
   static void applyArrowEndpoints(
     PageShapeItem arrow, {
     required Offset start,
     required Offset end,
   }) {
     assert(arrow.shapeType == ShapeType.arrow);
-    final width = math.max((end.dx - start.dx).abs(), 1.0);
-    final height = math.max((end.dy - start.dy).abs(), 1.0);
+    final left = math.min(start.dx, end.dx);
+    final top = math.min(start.dy, end.dy);
     arrow
-      ..x = math.min(start.dx, end.dx)
-      ..y = math.min(start.dy, end.dy)
-      ..width = width
-      ..height = height
-      ..flipX = end.dx < start.dx
-      ..flipY = end.dy > start.dy
-      ..rotation = 0;
+      ..x = left
+      ..y = top
+      ..width = math.max((end.dx - start.dx).abs(), 1.0)
+      ..height = math.max((end.dy - start.dy).abs(), 1.0)
+      ..flipX = false
+      ..flipY = false
+      ..rotation = 0
+      ..lineStart = start - Offset(left, top)
+      ..lineEnd = end - Offset(left, top);
   }
 
   /// 建立新箭头两端的绑定关系，并把它立即规范化为绑定后的可见端点。
