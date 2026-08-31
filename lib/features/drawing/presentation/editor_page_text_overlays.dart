@@ -142,23 +142,30 @@ extension _EditorPageTextOverlays on _EditorPageState {
     final linkSource = _linkMode && _linkSourceId == item.id;
     // 放置过渡动画：新元素淡入（借鉴 Excalidraw 克制的微交互）。
     // 删除淡出：删除中的元素透明度渐变为 0（_deletingIds 标记）。
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
-      builder: (context, opacity, child) =>
-          Opacity(opacity: opacity, child: child),
-      child: AnimatedOpacity(
-        opacity: _deletingIds.contains(item.id) ? 0 : 1,
-        duration: const Duration(milliseconds: 180),
-        child: _buildTextOverlayInner(item, viewPos, selected, linkSource),
+    // 注意：Positioned 必须是最外层（直接位于 Stack 下）——渐显动画
+    // 只能包内容体。此前动画包在 Positioned 外面，提交文字的一瞬间
+    // 触发 ParentDataWidget 崩溃，整页渲染冻结（真机「画板打字即冻结」
+    // 的根因之二）。
+    return Positioned(
+      left: viewPos.dx,
+      top: viewPos.dy,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+        builder: (context, opacity, child) =>
+            Opacity(opacity: opacity, child: child),
+        child: AnimatedOpacity(
+          opacity: _deletingIds.contains(item.id) ? 0 : 1,
+          duration: const Duration(milliseconds: 180),
+          child: _buildTextOverlayInner(item, selected, linkSource),
+        ),
       ),
     );
   }
 
   Widget _buildTextOverlayInner(
     PageTextItem item,
-    Offset viewPos,
     bool selected,
     bool linkSource,
   ) {
@@ -166,187 +173,178 @@ extension _EditorPageTextOverlays on _EditorPageState {
       width: item.width,
       viewScale: _controller.viewScale,
     );
-    return Positioned(
-      left: viewPos.dx,
-      top: viewPos.dy,
-      child: GestureDetector(
-        onTap: () => _onItemTap(item.id),
-        onDoubleTap: _editTextItem,
-        onSecondaryTapDown: (d) => _showItemContextMenu(item.id),
-        onPanUpdate: (d) => _dragItem(item.id, d.delta),
-        onPanEnd: (_) => _notifyChanged(),
-        child: Stack(
-          children: [
-            Container(
-              constraints: item.isSticky
-                  ? const BoxConstraints(minWidth: 120, minHeight: 40)
-                  : null,
-              padding: item.isSticky
-                  ? const EdgeInsets.symmetric(horizontal: 10, vertical: 6)
-                  : EdgeInsets.zero,
-              decoration: item.isSticky
-                  ? BoxDecoration(
-                      color: Color(item.color),
-                      borderRadius: BorderRadius.circular(6),
-                      border: selected || linkSource
-                          ? Border.all(
-                              color: linkSource
-                                  ? const Color(0xFFFF9800)
-                                  : const Color(0xFF42A5F5),
-                              width: 1.5,
-                            )
-                          : null,
-                    )
-                  : (selected || linkSource
-                        ? BoxDecoration(
-                            border: Border.all(
-                              color: linkSource
-                                  ? const Color(0xFFFF9800)
-                                  : const Color(0xFF42A5F5),
-                              width: 1.5,
-                            ),
+    return GestureDetector(
+      onTap: () => _onItemTap(item.id),
+      onDoubleTap: _editTextItem,
+      onSecondaryTapDown: (d) => _showItemContextMenu(item.id),
+      onPanUpdate: (d) => _dragItem(item.id, d.delta),
+      onPanEnd: (_) => _notifyChanged(),
+      child: Stack(
+        children: [
+          Container(
+            constraints: item.isSticky
+                ? const BoxConstraints(minWidth: 120, minHeight: 40)
+                : null,
+            padding: item.isSticky
+                ? const EdgeInsets.symmetric(horizontal: 10, vertical: 6)
+                : EdgeInsets.zero,
+            decoration: item.isSticky
+                ? BoxDecoration(
+                    color: Color(item.color),
+                    borderRadius: BorderRadius.circular(6),
+                    border: selected || linkSource
+                        ? Border.all(
+                            color: linkSource
+                                ? const Color(0xFFFF9800)
+                                : const Color(0xFF42A5F5),
+                            width: 1.5,
                           )
-                        : null),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 待办 checkbox（借鉴 QOwnNotes：点击切换勾选状态）
-                  if (item.isTodo)
-                    InkWell(
-                      onTap: () {
-                        _applyState(() => item.todoChecked = !item.todoChecked);
-                        _notifyChanged();
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: Icon(
-                          item.todoChecked
-                              ? Icons.check_box
-                              : Icons.check_box_outline_blank,
-                          size: item.fontSize * _controller.viewScale * 0.9,
-                          color: Color(item.color),
-                        ),
+                        : null,
+                  )
+                : (selected || linkSource
+                      ? BoxDecoration(
+                          border: Border.all(
+                            color: linkSource
+                                ? const Color(0xFFFF9800)
+                                : const Color(0xFF42A5F5),
+                            width: 1.5,
+                          ),
+                        )
+                      : null),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 待办 checkbox（借鉴 QOwnNotes：点击切换勾选状态）
+                if (item.isTodo)
+                  InkWell(
+                    onTap: () {
+                      _applyState(() => item.todoChecked = !item.todoChecked);
+                      _notifyChanged();
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Icon(
+                        item.todoChecked
+                            ? Icons.check_box
+                            : Icons.check_box_outline_blank,
+                        size: item.fontSize * _controller.viewScale * 0.9,
+                        color: Color(item.color),
                       ),
                     ),
-                  // 多行文本（对齐 Excalidraw 文本框）：width 非 null 时
-                  // 约束宽度 + softWrap 自动换行，可拖拽右侧手柄调整。
-                  Flexible(
-                    child: ConstrainedBox(
-                      constraints: textLayout.constraints,
-                      // 富文本片段渲染（落地 Quill Delta runs，独立实现）：
-                      // 有 runs 时按片段应用各自样式（加粗/斜体/下划线/颜色），
-                      // 无 runs（旧文档）回退整块样式。
-                      child: item.runs != null
-                          ? Text.rich(
-                              TextSpan(
-                                style:
-                                    EditorTextPresentationStyle.richBaseStyle(
-                                      fontSize: item.fontSize,
-                                      viewScale: _controller.viewScale,
-                                      fontFamily: item.fontFamily,
-                                    ),
-                                children: [
-                                  for (final run in item.runs!)
-                                    TextSpan(
-                                      text: run.text,
-                                      style:
-                                          EditorTextPresentationStyle.richRunStyle(
-                                            fallbackColor: item.color,
-                                            color: run.color,
-                                            bold: run.bold,
-                                            italic: run.italic,
-                                            underline: run.underline,
-                                            strikethrough: run.strikethrough,
-                                          ),
-                                    ),
-                                ],
-                              ),
-                              softWrap: textLayout.softWrap,
-                              textAlign:
-                                  EditorTextPresentationStyle.textAlignFor(
-                                    item.align.name,
-                                  ),
-                            )
-                          : Text(
-                              item.text,
-                              softWrap: textLayout.softWrap,
-                              textAlign:
-                                  EditorTextPresentationStyle.textAlignFor(
-                                    item.align.name,
-                                  ),
-                              style:
-                                  EditorTextPresentationStyle.plainTextStyle((
-                                    fontSize: item.fontSize,
-                                    viewScale: _controller.viewScale,
-                                    color: item.color,
-                                    fontFamily: item.fontFamily,
-                                    isTodo: item.isTodo,
-                                    todoChecked: item.todoChecked,
-                                    isSticky: item.isSticky,
-                                    bold: item.bold,
-                                    italic: item.italic,
-                                    underline: item.underline,
-                                    strikethrough: item.strikethrough,
-                                  )),
-                            ),
-                    ),
                   ),
-                ],
-              ),
+                // 多行文本（对齐 Excalidraw 文本框）：width 非 null 时
+                // 约束宽度 + softWrap 自动换行，可拖拽右侧手柄调整。
+                Flexible(
+                  child: ConstrainedBox(
+                    constraints: textLayout.constraints,
+                    // 富文本片段渲染（落地 Quill Delta runs，独立实现）：
+                    // 有 runs 时按片段应用各自样式（加粗/斜体/下划线/颜色），
+                    // 无 runs（旧文档）回退整块样式。
+                    child: item.runs != null
+                        ? Text.rich(
+                            TextSpan(
+                              style: EditorTextPresentationStyle.richBaseStyle(
+                                fontSize: item.fontSize,
+                                viewScale: _controller.viewScale,
+                                fontFamily: item.fontFamily,
+                              ),
+                              children: [
+                                for (final run in item.runs!)
+                                  TextSpan(
+                                    text: run.text,
+                                    style:
+                                        EditorTextPresentationStyle.richRunStyle(
+                                          fallbackColor: item.color,
+                                          color: run.color,
+                                          bold: run.bold,
+                                          italic: run.italic,
+                                          underline: run.underline,
+                                          strikethrough: run.strikethrough,
+                                        ),
+                                  ),
+                              ],
+                            ),
+                            softWrap: textLayout.softWrap,
+                            textAlign: EditorTextPresentationStyle.textAlignFor(
+                              item.align.name,
+                            ),
+                          )
+                        : Text(
+                            item.text,
+                            softWrap: textLayout.softWrap,
+                            textAlign: EditorTextPresentationStyle.textAlignFor(
+                              item.align.name,
+                            ),
+                            style: EditorTextPresentationStyle.plainTextStyle((
+                              fontSize: item.fontSize,
+                              viewScale: _controller.viewScale,
+                              color: item.color,
+                              fontFamily: item.fontFamily,
+                              isTodo: item.isTodo,
+                              todoChecked: item.todoChecked,
+                              isSticky: item.isSticky,
+                              bold: item.bold,
+                              italic: item.italic,
+                              underline: item.underline,
+                              strikethrough: item.strikethrough,
+                            )),
+                          ),
+                  ),
+                ),
+              ],
             ),
-            // 宽度拖拽手柄（落地 Excalidraw resizeElements 的文字缩放
-            // 重排版）：选中且有宽度时，右下角手柄拖拽同步调整宽度与字号
-            // （字号随宽度比例缩放，保持文字整体版式不变形）。
-            if (selected && item.width != null)
-              Positioned(
-                right: -4,
-                bottom: -4,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onPanStart: (_) {
-                    _textResizeAnchor = (
-                      width: item.width!,
-                      fontSize: item.fontSize,
-                      x: _controller.canvasToView(item.position).dx,
-                    );
-                  },
-                  onPanUpdate: (d) {
-                    final anchor = _textResizeAnchor;
-                    if (anchor == null) return;
-                    final delta = screenDeltaToCanvas(
-                      d.delta,
-                      _controller.viewRotation,
-                      _controller.viewScale,
-                    );
-                    _applyState(() {
-                      final newWidth = (anchor.width + delta.dx)
-                          .clamp(40, 2000)
-                          .toDouble();
-                      // 字号随宽度等比缩放（Excalidraw measureFontSizeFromWidth
-                      // 思路），最小 8pt 保证可读性。
-                      item.fontSize =
-                          (anchor.fontSize * newWidth / anchor.width)
-                              .clamp(8.0, 120.0)
-                              .toDouble();
-                      item.width = newWidth;
-                    });
-                    _notifyChanged();
-                  },
-                  onPanEnd: (_) => _textResizeAnchor = null,
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF42A5F5),
-                      borderRadius: BorderRadius.circular(2),
-                      border: Border.all(color: Colors.white, width: 1),
-                    ),
+          ),
+          // 宽度拖拽手柄（落地 Excalidraw resizeElements 的文字缩放
+          // 重排版）：选中且有宽度时，右下角手柄拖拽同步调整宽度与字号
+          // （字号随宽度比例缩放，保持文字整体版式不变形）。
+          if (selected && item.width != null)
+            Positioned(
+              right: -4,
+              bottom: -4,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onPanStart: (_) {
+                  _textResizeAnchor = (
+                    width: item.width!,
+                    fontSize: item.fontSize,
+                    x: _controller.canvasToView(item.position).dx,
+                  );
+                },
+                onPanUpdate: (d) {
+                  final anchor = _textResizeAnchor;
+                  if (anchor == null) return;
+                  final delta = screenDeltaToCanvas(
+                    d.delta,
+                    _controller.viewRotation,
+                    _controller.viewScale,
+                  );
+                  _applyState(() {
+                    final newWidth = (anchor.width + delta.dx)
+                        .clamp(40, 2000)
+                        .toDouble();
+                    // 字号随宽度等比缩放（Excalidraw measureFontSizeFromWidth
+                    // 思路），最小 8pt 保证可读性。
+                    item.fontSize = (anchor.fontSize * newWidth / anchor.width)
+                        .clamp(8.0, 120.0)
+                        .toDouble();
+                    item.width = newWidth;
+                  });
+                  _notifyChanged();
+                },
+                onPanEnd: (_) => _textResizeAnchor = null,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF42A5F5),
+                    borderRadius: BorderRadius.circular(2),
+                    border: Border.all(color: Colors.white, width: 1),
                   ),
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }

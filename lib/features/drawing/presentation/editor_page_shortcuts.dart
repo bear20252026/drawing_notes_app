@@ -8,6 +8,12 @@ extension _EditorPageShortcuts on _EditorPageState {
   KeyEventResult _onShortcutKey(KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
+    // 就地编辑文字时禁用所有单键快捷键（对齐 Excalidraw 的
+    // isEditingText 提前返回）：否则数字键 1-9 会被工具切换吞掉
+    // （输入法选字的数字键同理），编辑已有块时退格会触发删除选区。
+    // Ctrl 组合键等也不放行——撤销/重做由 TextField 自身处理。
+    if (_editFocus.hasFocus) return KeyEventResult.ignored;
+
     final hw = HardwareKeyboard.instance;
     final isCtrlOrMeta = hw.isControlPressed || hw.isMetaPressed;
     final isShift = hw.isShiftPressed;
