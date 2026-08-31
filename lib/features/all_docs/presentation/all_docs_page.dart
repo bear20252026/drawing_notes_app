@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
+import 'package:drawing_notes_app/core/layout/responsive.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_search.dart';
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_sort.dart';
@@ -146,10 +147,6 @@ class _AllDocsPageState extends State<AllDocsPage> {
           )
           .toList(growable: false);
 
-  /// 布局断点：与 app_shell 的 NavigationRail 断点一致（900）。
-  /// ≥900 桌面双栏；<900 移动端专属单栏视图。
-  static const double _layoutBreakpoint = 900;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -158,7 +155,7 @@ class _AllDocsPageState extends State<AllDocsPage> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < _layoutBreakpoint;
+        final isNarrow = !isDesktopWidth(constraints.maxWidth);
         return Scaffold(
           backgroundColor: canvas,
           // 移动端新建入口（AFFiNE mobile：底部 tab 的 create 动作按钮语义）。

@@ -66,6 +66,31 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
   }
 
+  testWidgets('手机尺寸（390x844）：各主页面无布局溢出', (tester) async {
+    // 门禁原因：桌面布局的顶栏/侧栏在手机上会溢出（笔记页顶栏曾在 400dp
+    // 下溢出 24px）。默认测试曲面 800x600 同样是窄屏，但不足以覆盖 390 这一档。
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await pumpShell(tester);
+
+    // 窄屏走底部导航（外层断点 <900）
+    expect(find.byType(NavigationBar), findsOneWidget);
+
+    for (final label in const ['全部文档', '画板·笔记本', '日历']) {
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text(label),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(tester.takeException(), isNull, reason: '$label 在 390dp 下布局溢出');
+    }
+  });
+
   testWidgets('空态 CTA 新建笔记（打字）→ 块编辑器打开', (tester) async {
     final store = _MemBlockDocStore();
     await pumpShell(tester, blockDocStore: store);
@@ -82,9 +107,12 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
-    // DocPage 已推入：顶栏（分享/信息/大纲）+ 正文大标题；文档已落库（内存）。
+    // DocPage 已推入：顶栏（分享/大纲/更多）+ 正文大标题；文档已落库（内存）。
+    // 注意：默认测试曲面 800x600 < 900 断点 → 走移动端顶栏，「文档信息」收在
+    // ⋯ 菜单里（不直接渲染图标），故此处断言 ⋯ 而非 info 图标。
     expect(find.byIcon(Icons.ios_share_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.info_outline_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.format_list_bulleted_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.more_horiz_rounded), findsOneWidget);
     expect(find.byType(m.TextField), findsWidgets);
     expect(store.docs.length, 1);
   });

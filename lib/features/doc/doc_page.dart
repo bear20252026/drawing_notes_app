@@ -6,6 +6,7 @@
 
 import 'package:flutter/material.dart';
 
+import 'package:drawing_notes_app/core/layout/responsive.dart';
 import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
 
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
@@ -20,6 +21,13 @@ import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_editor.dart';
 import 'package:drawing_notes_app/features/doc/doc_outline_rail.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
+
+/// 分享占位提示（桌面按钮与移动端图标共用）。
+void _showShareSnackBar(BuildContext context) {
+  ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(const SnackBar(content: Text('分享功能即将支持')));
+}
 
 /// AFFiNE 式笔记页：白底、居中窄栏、顶栏（收藏/信息/更多/分享）、右缘大纲。
 ///
@@ -292,7 +300,9 @@ class _DocPageState extends State<DocPage> {
             setState(() => _favorite = !_favorite);
             widget.onToggleFavorite?.call(_favorite);
           },
-          onToggleOutline: () => setState(() => _outlineOpen = !_outlineOpen),
+          // 桌面切换右缘停靠栏；移动端弹底部半屏面板（240 固定窄栏在手机上
+          // 会吃掉约 60% 屏宽）。
+          onToggleOutline: _onToggleOutline,
           onShowInfo: () => _showInfoDialog(context),
           onOpenInEdgeless: widget.onOpenInEdgeless,
           onExportMarkdown: _exportMarkdown,
@@ -333,17 +343,13 @@ class _DocPageState extends State<DocPage> {
                 ),
               ),
             ),
-            // 右缘大纲（AFFiNE Outline Rail）
+            // 右缘大纲（AFFiNE Outline Rail）——仅桌面形态；移动端走底部面板。
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 180),
-              child: _outlineOpen
+              child: (isDesktopLayout(context) && _outlineOpen)
                   ? DocOutlineRail(
                       key: const ValueKey('rail-on'),
-                      entries: [
-                        for (final e
-                            in _editorKey.currentState?.outline() ?? const [])
-                          OutlineEntry(id: e.id, level: e.level, text: e.text),
-                      ],
+                      entries: _outlineEntries(),
                       onTapEntry: (id) =>
                           _editorKey.currentState?.scrollToBlock(id),
                       onClose: () => setState(() => _outlineOpen = false),
@@ -354,6 +360,29 @@ class _DocPageState extends State<DocPage> {
         ),
       ),
     );
+  }
+
+  /// 从编辑器抽取大纲条目（桌面停靠栏与移动底部面板共用）。
+  List<OutlineEntry> _outlineEntries() => [
+    for (final e in _editorKey.currentState?.outline() ?? const [])
+      OutlineEntry(id: e.id, level: e.level, text: e.text),
+  ];
+
+  /// 大纲开关：桌面切换右缘停靠栏，移动端弹底部半屏面板。
+  ///
+  /// 移动端不用停靠栏的原因：240 的固定宽度在 ~400dp 手机屏上会吃掉约 60%
+  /// 屏宽，正文只剩 160dp（与「全部文档」侧栏同一个坑）。AFFiNE mobile 的
+  /// 做法是把这类面板改为 sheet 覆盖层，内容临时浮于正文之上。
+  void _onToggleOutline() {
+    if (!isDesktopLayout(context)) {
+      showDocOutlineSheet(
+        context: context,
+        entries: _outlineEntries(),
+        onTapEntry: (id) => _editorKey.currentState?.scrollToBlock(id),
+      );
+      return;
+    }
+    setState(() => _outlineOpen = !_outlineOpen);
   }
 
   /// 选择目标文档 → 在文末追加 [[标题]] 页面引用（M12.7 反向链接）。
@@ -616,6 +645,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final isNarrow = !isDesktopLayout(context);
     return AppBar(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       surfaceTintColor: Colors.transparent,
@@ -624,32 +654,63 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
         icon: const Icon(Icons.arrow_back_rounded),
         onPressed: () => Navigator.of(context).maybePop(),
       ),
-      title: Text(
-        title.isEmpty ? '未命名' : title,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-      ),
+      // 移动端（<900）：顶栏一行装不下 5 个图标 + 状态文字 + 分享按钮
+      // （400dp 实测溢出 24px）。AFFiNE mobile 的做法是"功能不消失、只换位置"：
+      // 状态文字降为标题副标题，次要动作收进 ⋯ 菜单，分享由带文字按钮改为图标。
+      title: isNarrow
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title.isEmpty ? '未命名' : title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  statusLabel,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: statusColor,
+                  ),
+                ),
+              ],
+            )
+          : Text(
+              title.isEmpty ? '未命名' : title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
       actions: [
         // 保存状态（透明可见）：未保存 / 保存中… / 已保存 HH:mm
-        Padding(
-          padding: const EdgeInsets.only(right: 4),
-          child: Center(
-            child: Text(
-              statusLabel,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: statusColor,
+        // 移动端已降为标题副标题，此处仅桌面显示。
+        if (!isNarrow)
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: Center(
+              child: Text(
+                statusLabel,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: statusColor,
+                ),
               ),
             ),
           ),
-        ),
-        IconButton(
-          tooltip: '插入页面链接',
-          icon: const Icon(Icons.insert_link_rounded),
-          onPressed: onInsertPageLink,
-        ),
+        if (!isNarrow)
+          IconButton(
+            tooltip: '插入页面链接',
+            icon: const Icon(Icons.insert_link_rounded),
+            onPressed: onInsertPageLink,
+          ),
         IconButton(
           tooltip: '保存',
           icon: const Icon(Icons.save_outlined),
@@ -663,21 +724,56 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
           ),
           onPressed: onToggleFavorite,
         ),
-        IconButton(
-          tooltip: '文档信息',
-          icon: const Icon(Icons.info_outline_rounded, size: 20),
-          onPressed: onShowInfo,
-        ),
+        if (!isNarrow)
+          IconButton(
+            tooltip: '文档信息',
+            icon: const Icon(Icons.info_outline_rounded, size: 20),
+            onPressed: onShowInfo,
+          ),
         PopupMenuButton<String>(
           tooltip: '更多',
           icon: const Icon(Icons.more_horiz_rounded),
           onSelected: (v) {
+            // 移动端把顶栏装不下的动作收进此处（功能不消失，只换位置）。
+            if (v == 'info') onShowInfo();
+            if (v == 'link') onInsertPageLink?.call();
+            if (v == 'share') _showShareSnackBar(context);
             if (v == 'edgeless') onOpenInEdgeless?.call();
             if (v == 'exportMd') onExportMarkdown?.call();
             if (v == 'exportHtml') onExportHtml?.call();
             if (v == 'exportPdf') onExportPdf?.call();
           },
           itemBuilder: (context) => [
+            if (isNarrow)
+              PopupMenuItem(
+                value: 'info',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 18,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 10),
+                    const Text('文档信息'),
+                  ],
+                ),
+              ),
+            if (isNarrow)
+              PopupMenuItem(
+                value: 'link',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.insert_link_rounded,
+                      size: 18,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 10),
+                    const Text('插入页面链接'),
+                  ],
+                ),
+              ),
             PopupMenuItem(
               value: 'exportPdf',
               child: Row(
@@ -737,25 +833,29 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
             ),
           ],
         ),
-        Padding(
-          padding: const EdgeInsets.only(right: 12, left: 4),
-          child: FilledButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('分享功能即将支持')));
-            },
-            icon: const Icon(Icons.ios_share_rounded, size: 15),
-            label: const Text('分享'),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF0066CC),
-              foregroundColor: Colors.white,
-              minimumSize: const Size(0, 34),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        if (!isNarrow)
+          Padding(
+            padding: const EdgeInsets.only(right: 12, left: 4),
+            child: FilledButton.icon(
+              onPressed: () => _showShareSnackBar(context),
+              icon: const Icon(Icons.ios_share_rounded, size: 15),
+              label: const Text('分享'),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF0066CC),
+                foregroundColor: Colors.white,
+                minimumSize: const Size(0, 34),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
             ),
           ),
-        ),
+        // 移动端：带文字的分享按钮放不下，收为图标按钮。
+        if (isNarrow)
+          IconButton(
+            tooltip: '分享',
+            icon: const Icon(Icons.ios_share_rounded),
+            onPressed: () => _showShareSnackBar(context),
+          ),
         IconButton(
           tooltip: '大纲',
           icon: Icon(

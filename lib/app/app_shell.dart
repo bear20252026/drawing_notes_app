@@ -1,6 +1,7 @@
 import 'package:drawing_notes_app/app/app_services.dart';
 import 'package:flutter/material.dart';
 
+import 'package:drawing_notes_app/core/layout/responsive.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
@@ -31,7 +32,7 @@ import 'package:drawing_notes_app/features/schedule/presentation/schedule_page.d
 ///
 /// M11 移除：纯笔记占位页（与块编辑器完全冗余）。
 ///
-/// 响应式：宽屏（>= [_railBreakpoint]）用侧边栏 [NavigationRail]，
+/// 响应式：宽屏（>= [kDesktopBreakpoint]）用侧边栏 [NavigationRail]，
 ///         窄屏用底部 [NavigationBar]。两端共享同一导航模型与状态。
 class AppShell extends StatefulWidget {
   const AppShell({
@@ -61,9 +62,6 @@ class _AppShellState extends State<AppShell> {
     blockDocStore: widget.blockDocStore,
     favoriteStore: widget.favoriteStore,
   );
-
-  /// 宽屏断点：>=900 判定为桌面/平板，用侧边栏。
-  static const double _railBreakpoint = 900;
 
   int _index = 0;
 
@@ -366,7 +364,7 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= _railBreakpoint;
+        final isWide = isDesktopWidth(constraints.maxWidth);
         if (isWide) {
           return Scaffold(
             body: Row(
