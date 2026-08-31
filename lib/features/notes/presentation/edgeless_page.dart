@@ -207,6 +207,9 @@ class _EdgelessPageState extends State<EdgelessPage> {
   }
 
   /// 全局键盘快捷键：Ctrl/Cmd+K 打开命令面板。
+  // DCM avoid-unused-parameters 行级豁免（架构审计）：node 为 Focus
+  // 回调签名必需参数但未使用；官方 lint 与 DCM 对命名/未用二规则冲突。
+  // ignore: avoid-unused-parameters
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     final kb = HardwareKeyboard.instance;
