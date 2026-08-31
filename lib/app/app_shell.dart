@@ -1,3 +1,4 @@
+import 'package:drawing_notes_app/app/app_services.dart';
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
@@ -15,7 +16,6 @@ import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_page.dart';
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
-import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/features/doc/presentation/trash_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/features/notes/domain/note_block_doc.dart';
@@ -56,68 +56,35 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  /// 数据版本通知器：任何文档新增/修改（经 shell 路由的 push 返回后）自增，
-  /// 驱动首页（HomePage）与全部文档（AllDocsPage）刷新列表。
-  final ValueNotifier<int> _dataVersion = ValueNotifier(0);
+  /// 应用级服务门面（R2-Q2）：store 实例/数据版本/全量加载缓存。
+  late final AppServices _services = AppServices(
+    blockDocStore: widget.blockDocStore,
+    favoriteStore: widget.favoriteStore,
+  );
 
   /// 宽屏断点：>=900 判定为桌面/平板，用侧边栏。
   static const double _railBreakpoint = 900;
 
   int _index = 0;
 
-  /// 块文档存储（All Docs 聚合与打开块文档用）。可注入，否则用默认实现。
-  late final NoteBlockDocStore _blockDocStore =
-      widget.blockDocStore ?? NoteBlockDocStore();
-
-  /// 收藏存储（All Docs 收藏夹持久化）。可注入，否则用默认实现。
-  late final FavoriteStore _favoriteStore =
-      widget.favoriteStore ?? FavoriteStore();
-
-  /// 标签注册表（M12.6 标签系统）。
-  final TagStore _tagStore = TagStore();
-
-  /// 全量块文档缓存（P1-H4）：反向链接面板每次自动保存都会重算索引，
-  /// 全库磁盘加载会造成卡顿——内存缓存，_dataVersion 自增时失效。
-  List<NoteBlockDoc>? _blockDocsCache;
-
-  /// 全量块文档读取（M12.7 反向链接索引数据源）。
-  Future<List<NoteBlockDoc>> _loadAllBlockDocs() async {
-    final cached = _blockDocsCache;
-    if (cached != null) return cached;
-    final ids = await _blockDocStore.listIds();
-    final docs = <NoteBlockDoc>[];
-    for (final id in ids) {
-      final d = await _blockDocStore.loadDocument(id);
-      if (d != null) docs.add(d);
-    }
-    _blockDocsCache = docs;
-    return docs;
-  }
-
-  /// 数据版本自增 + 文档缓存失效（shell 内所有写盘后的统一出口）。
-  void _bumpDataVersion() {
-    _blockDocsCache = null;
-    _dataVersion.value++;
-  }
-
   /// 打开指定块文档（反向链接条目点击路由）。
   Future<void> _openBlockDocById(String id) async {
-    final doc = await _blockDocStore.loadDocument(id);
+    final doc = await _services.blockDocStore.loadDocument(id);
     if (doc == null || !mounted) return;
     await Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
         builder: (_) => DocPage(
           document: doc,
           controller: DocController(
-            onSave: (d) => _blockDocStore.saveDocument(d),
+            onSave: (d) => _services.blockDocStore.saveDocument(d),
           ),
-          tagStore: _tagStore,
-          allDocsLoader: _loadAllBlockDocs,
+          tagStore: _services.tagStore,
+          allDocsLoader: _services.loadAllBlockDocs,
           onOpenDocById: _openBlockDocById,
         ),
       ),
     );
-    _bumpDataVersion();
+    _services.bumpDataVersion();
   }
 
   /// 3 个目的地。用 [IndexedStack] 承载，保持各自状态（切走再切回不丢）。
@@ -129,14 +96,14 @@ class _AppShellState extends State<AppShell> {
       onNewDoc: _newAllDoc,
       onToggleFavorite: _toggleFavorite,
       onOpenTrash: _openTrash,
-      loadTags: _tagStore.listTags,
+      loadTags: _services.tagStore.listTags,
     ),
     HomePage(
       notebookStorage: widget.notebookStorage,
       docStorage: widget.docStorage,
       themeController: widget.themeController,
       editorPageBuilder: widget.editorPageBuilder,
-      refreshSignal: _dataVersion,
+      refreshSignal: _services.dataVersion,
       // M12.4 统一数据源：首页笔记 Tab 与 All Docs 共用同一装配与打开路径。
       loadDocs: _loadAllDocs,
       onOpenDoc: _openAllDoc,
@@ -196,7 +163,7 @@ class _AppShellState extends State<AppShell> {
     await Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
         builder: (_) => TrashPage(
-          loadTrash: _blockDocStore.listTrash,
+          loadTrash: _services.blockDocStore.listTrash,
           onRestore: (id) async {
             // P1-M1：恢复/彻底删除补门禁（白名单 note.restore / note.purge）。
             final restoreResult = const PolicyEngine().enforceCheck(
@@ -204,8 +171,8 @@ class _AppShellState extends State<AppShell> {
               target: id,
             );
             if (!restoreResult.isAllowed) return false;
-            final ok = await _blockDocStore.restoreDocument(id);
-            _bumpDataVersion();
+            final ok = await _services.blockDocStore.restoreDocument(id);
+            _services.bumpDataVersion();
             return ok;
           },
           onPurge: (id) async {
@@ -214,14 +181,14 @@ class _AppShellState extends State<AppShell> {
               target: id,
             );
             if (!purgeResult.isAllowed) return false;
-            final ok = await _blockDocStore.purgeFromTrash(id);
-            _bumpDataVersion();
+            final ok = await _services.blockDocStore.purgeFromTrash(id);
+            _services.bumpDataVersion();
             return ok;
           },
         ),
       ),
     );
-    _bumpDataVersion();
+    _services.bumpDataVersion();
   }
 
   Future<AllDocQueryResult> _loadAllDocs() async {
@@ -235,7 +202,7 @@ class _AppShellState extends State<AppShell> {
             Future.value(const <DocumentMeta>[]));
     final notebooks =
         await (nbStorage?.listAll() ?? Future.value(const <Notebook>[]));
-    final blockHeaders = await _blockDocStore.listDocHeaders();
+    final blockHeaders = await _services.blockDocStore.listDocHeaders();
     final blockDocs = <BlockDocMeta>[
       for (final h in blockHeaders)
         BlockDocMeta(
@@ -254,7 +221,7 @@ class _AppShellState extends State<AppShell> {
       now: DateTime.now(),
     );
     // 回填收藏状态（M11：收藏夹真实化）。
-    final favKeys = await _favoriteStore.loadKeys();
+    final favKeys = await _services.favoriteStore.loadKeys();
     if (favKeys.isEmpty) return result;
     AllDoc apply(AllDoc d) =>
         d.copyWith(isFavorite: favKeys.contains(d.dedupKey));
@@ -273,7 +240,7 @@ class _AppShellState extends State<AppShell> {
 
   /// 收藏切换：持久化（UI 乐观更新由 AllDocsPage 负责）。
   Future<void> _toggleFavorite(AllDoc doc) async {
-    await _favoriteStore.toggleKey(doc.dedupKey);
+    await _services.favoriteStore.toggleKey(doc.dedupKey);
   }
 
   /// 打开任意文档，按类型路由到对应编辑器。
@@ -293,7 +260,7 @@ class _AppShellState extends State<AppShell> {
                 : const Scaffold(body: Center(child: Text('编辑器尚未由应用层装配'))),
           ),
         );
-        _bumpDataVersion();
+        _services.bumpDataVersion();
       case AllDocKind.note:
         final nbStorage = widget.notebookStorage;
         if (nbStorage == null) return;
@@ -308,29 +275,29 @@ class _AppShellState extends State<AppShell> {
             ),
           ),
         );
-        _bumpDataVersion();
+        _services.bumpDataVersion();
       case AllDocKind.blockdoc:
-        final bd = await _blockDocStore.loadDocument(doc.id);
+        final bd = await _services.blockDocStore.loadDocument(doc.id);
         if (bd == null) return;
-        final favs = await _favoriteStore.loadKeys();
+        final favs = await _services.favoriteStore.loadKeys();
         await nav.push(
           MaterialPageRoute(
             builder: (_) => DocPage(
               document: bd,
               controller: DocController(
-                onSave: (d) => _blockDocStore.saveDocument(d),
+                onSave: (d) => _services.blockDocStore.saveDocument(d),
               ),
               isFavorite: favs.contains(doc.id),
               onToggleFavorite: (fav) async => fav
-                  ? _favoriteStore.addKey(doc.id)
-                  : _favoriteStore.removeKey(doc.id),
-              tagStore: _tagStore,
-              allDocsLoader: _loadAllBlockDocs,
+                  ? _services.favoriteStore.addKey(doc.id)
+                  : _services.favoriteStore.removeKey(doc.id),
+              tagStore: _services.tagStore,
+              allDocsLoader: _services.loadAllBlockDocs,
               onOpenDocById: _openBlockDocById,
             ),
           ),
         );
-        _bumpDataVersion();
+        _services.bumpDataVersion();
     }
   }
 
@@ -351,7 +318,7 @@ class _AppShellState extends State<AppShell> {
                 : const Scaffold(body: Center(child: Text('编辑器尚未由应用层装配'))),
           ),
         );
-        _bumpDataVersion();
+        _services.bumpDataVersion();
       case AllDocKind.note:
         final nbStorage = widget.notebookStorage;
         if (nbStorage == null) return;
@@ -369,24 +336,24 @@ class _AppShellState extends State<AppShell> {
             ),
           ),
         );
-        _bumpDataVersion();
+        _services.bumpDataVersion();
       case AllDocKind.blockdoc:
         final bd = NoteBlockDoc.empty(NoteBlockDocStore.newId());
-        await _blockDocStore.saveDocument(bd);
+        await _services.blockDocStore.saveDocument(bd);
         await nav.push(
           MaterialPageRoute(
             builder: (_) => DocPage(
               document: bd,
               controller: DocController(
-                onSave: (d) => _blockDocStore.saveDocument(d),
+                onSave: (d) => _services.blockDocStore.saveDocument(d),
               ),
-              tagStore: _tagStore,
-              allDocsLoader: _loadAllBlockDocs,
+              tagStore: _services.tagStore,
+              allDocsLoader: _services.loadAllBlockDocs,
               onOpenDocById: _openBlockDocById,
             ),
           ),
         );
-        _bumpDataVersion();
+        _services.bumpDataVersion();
     }
   }
 

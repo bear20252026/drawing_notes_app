@@ -433,6 +433,17 @@ class NoteBlockDocStore {
     return result;
   }
 
+  /// 全量加载所有块文档（完整解析，含块树）。
+  /// 高频调用方（如反向链接面板）请在上层做缓存——本方法每次全量 IO。
+  Future<List<NoteBlockDoc>> loadAll() async {
+    final docs = <NoteBlockDoc>[];
+    for (final id in await listIds()) {
+      final d = await loadDocument(id);
+      if (d != null) docs.add(d);
+    }
+    return docs;
+  }
+
   /// 生成唯一 ID（前缀可自定义，默认 'doc'）。
   static String newId([String prefix = 'doc']) => LocalIdGenerator.next(prefix);
 }
