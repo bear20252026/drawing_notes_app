@@ -2,6 +2,11 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.4.6] - 2026-08-31
+
+- **应用图标更新**：Windows/Android 全平台替换为新版画笔图标
+  （Windows ICO 全尺寸 + Android 全密度 mipmap）
+
 ## [1.4.5] - 2026-08-31
 
 - **架构重构收官**（行为无变化，内部质量提升）：
