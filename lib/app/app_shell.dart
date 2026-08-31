@@ -274,6 +274,7 @@ class _AppShellState extends State<AppShell> {
             builder: (_) => NotebookViewPage(
               notebook: nb,
               storage: nbStorage,
+              blockDocStore: _services.blockDocStore,
               editorPageBuilder: widget.editorPageBuilder,
             ),
           ),
@@ -335,6 +336,7 @@ class _AppShellState extends State<AppShell> {
             builder: (_) => NotebookViewPage(
               notebook: nb,
               storage: nbStorage,
+              blockDocStore: _services.blockDocStore,
               editorPageBuilder: widget.editorPageBuilder,
             ),
           ),

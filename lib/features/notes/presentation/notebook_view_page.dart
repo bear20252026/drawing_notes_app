@@ -51,11 +51,15 @@ class NotebookViewPage extends StatefulWidget {
     required this.storage,
     this.onChanged,
     this.editorPageBuilder,
+    this.blockDocStore,
     this.sessionPassword,
     this.sessionMasterKey,
   });
 
   final Notebook notebook;
+
+  /// 块文档存储（R2 列表同步：shell 注入同一实例）。
+  final NoteBlockDocStore? blockDocStore;
   final NotebookStorage storage;
   final VoidCallback? onChanged;
 
@@ -79,10 +83,16 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   late Notebook _notebook;
 
   /// M4：块文档存储门面（延迟创建，避免在 widget 构造时调用 path_provider）。
-  NoteBlockDocStore? _blockDocStore;
+  /// R2 列表同步：优先用注入实例（shell 同一 store）——自建实例会使
+  /// shell 的 listDocHeaders 缓存不失效（新笔记在 AllDocs 不显示）。
+  NoteBlockDocStore? _injectedBlockDocStore;
 
   /// M4：获取或创建块文档存储门面。
-  NoteBlockDocStore get blockDocStore => _blockDocStore ??= NoteBlockDocStore();
+  NoteBlockDocStore get blockDocStore {
+    if (_injectedBlockDocStore != null) return _injectedBlockDocStore!;
+    return _injectedBlockDocStore ??=
+        widget.blockDocStore ?? NoteBlockDocStore();
+  }
 
   /// 状态刷新薄包装（供 extension 使用）：转发受保护的 [setState]。
   void _applyState(VoidCallback fn) => setState(fn);
