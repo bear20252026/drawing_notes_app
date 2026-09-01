@@ -10,6 +10,9 @@
 // 锁屏 UI 复用 fix/security_and_sync_fix.dart 的 [PinPadCore]
 // （iOS 锁屏同款密码盘，与笔记本解锁完全一致的单一事实来源）。
 
+import 'dart:async';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
@@ -137,21 +140,123 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
             // 拦截 Android 系统返回键：锁屏状态下不允许绕过。
             child: PopScope(
               canPop: false,
-              child: PinPadCore(
-                title: '输入密码',
-                // 开屏密码长度由设置页决定（批次②：4–12 位可选）。
-                pinLength: widget.service.pinLength,
-                onVerify: (pin) async {
-                  final ok = await widget.service.verify(pin);
-                  if (!ok) return false;
-                  await _unlockVault(pin);
-                  return true;
-                },
-                onAccepted: (_) => _unlock(),
-              ),
+              // 批次③：冷却期内用倒计时面板替代密码盘（输不进去就不展示）。
+              child: widget.service.isLockedOut
+                  ? _CooldownView(
+                      service: widget.service,
+                      onExpired: () => setState(() {}),
+                    )
+                  : PinPadCore(
+                      title: '输入密码',
+                      // 开屏密码长度由设置页决定（批次②：4–12 位可选）。
+                      pinLength: widget.service.pinLength,
+                      onVerify: (pin) async {
+                        final ok = await widget.service.verify(pin);
+                        if (!ok) return false;
+                        await _unlockVault(pin);
+                        return true;
+                      },
+                      onAccepted: (_) => _unlock(),
+                    ),
             ),
           ),
       ],
+    );
+  }
+}
+
+/// 批次③：冷却倒计时面板（视觉与 PinPadCore 锁屏一致：模糊 + 深色底）。
+/// 每秒自检；冷却结束回调父级切回密码盘。
+class _CooldownView extends StatefulWidget {
+  const _CooldownView({required this.service, required this.onExpired});
+
+  final AppLockService service;
+  final VoidCallback onExpired;
+
+  @override
+  State<_CooldownView> createState() => _CooldownViewState();
+}
+
+class _CooldownViewState extends State<_CooldownView> {
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      if (!widget.service.isLockedOut) {
+        widget.onExpired();
+      } else {
+        setState(() {}); // 刷新倒计时
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  String get _remainingText {
+    final remaining = widget.service.lockoutRemaining;
+    final minutes = remaining.inMinutes;
+    final seconds = remaining.inSeconds % 60;
+    if (minutes >= 60) {
+      final hours = remaining.inHours;
+      final mins = minutes % 60;
+      return '$hours 小时 $mins 分';
+    }
+    return '$minutes 分 $seconds 秒';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+        child: Container(
+          color: Colors.black.withValues(alpha: 0.38),
+          child: SafeArea(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.hourglass_top_rounded,
+                  color: Colors.white,
+                  size: 44,
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  '尝试次数过多',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  '请在 $_remainingText 后重试',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.82),
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '为防止暴力猜测，密码验证已暂时锁定',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.55),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

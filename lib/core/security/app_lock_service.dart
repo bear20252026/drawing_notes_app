@@ -20,6 +20,8 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:drawing_notes_app/core/security/app_lock_guard.dart';
+
 /// 应用启动锁服务。
 ///
 /// 用法（组合根装配一次，向下注入）：
@@ -28,13 +30,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// await appLock.load();          // 启动时读取已配置状态
 /// appLock.isConfigured;          // 是否已设置 PIN
 /// appLock.pinLength;             // PIN 长度（4–12，批次②自定义）
-/// await appLock.verify(pin);     // 解锁前校验
+/// await appLock.verify(pin);     // 解锁前校验（批次③：10 次失败指数冷却）
 /// await appLock.setPin(pin);     // 设置/修改 PIN（长度随 PIN 记录）
 /// await appLock.disable();       // 关闭应用锁
 /// ```
 class AppLockService extends ChangeNotifier {
-  AppLockService({Future<SharedPreferences> Function()? preferencesLoader})
-    : _preferencesLoader = preferencesLoader ?? SharedPreferences.getInstance;
+  AppLockService({
+    Future<SharedPreferences> Function()? preferencesLoader,
+    LockoutGuard? guard,
+  }) : _preferencesLoader = preferencesLoader ?? SharedPreferences.getInstance,
+       _lockoutGuard = guard;
 
   static const _kPinHashKey = 'app_lock.pin_hash';
   static const _kSaltKey = 'app_lock.salt';
@@ -47,6 +52,10 @@ class AppLockService extends ChangeNotifier {
 
   final Future<SharedPreferences> Function() _preferencesLoader;
 
+  /// 防爆破守卫（批次③）：失败计数 + 指数冷却 + 高水位时钟 + 签名记录。
+  /// load 时惰性创建默认实例（测试可注入 memoryGuard）。
+  LockoutGuard? _lockoutGuard;
+
   bool _configured = false;
   int _pinLength = defaultPinLength;
 
@@ -57,11 +66,23 @@ class AppLockService extends ChangeNotifier {
   /// maxLength 均以它为准）。
   int get pinLength => _pinLength;
 
+  /// 批次③：是否处于冷却期（尝试过多）。
+  bool get isLockedOut => _lockoutGuard?.isLockedOut ?? false;
+
+  /// 批次③：冷却剩余时长（不在冷却时为 0）。
+  Duration get lockoutRemaining => _lockoutGuard?.remaining ?? Duration.zero;
+
+  /// 批次③：当前连续失败次数。
+  int get failedAttempts => _lockoutGuard?.failureCount ?? 0;
+
   /// 启动时读取持久化状态（不读取时 [isConfigured] 恒为 false）。
   Future<void> load() async {
     final prefs = await _preferencesLoader();
     _configured = prefs.getString(_kPinHashKey) != null;
     _pinLength = prefs.getInt(_kPinLengthKey) ?? defaultPinLength;
+    // 批次③：守卫状态恢复（失败计数/冷却期/高水位线）。
+    final guard = _lockoutGuard ??= LockoutGuard();
+    await guard.load(_preferencesLoader);
     notifyListeners();
   }
 
@@ -84,21 +105,36 @@ class AppLockService extends ChangeNotifier {
   }
 
   /// 校验 PIN；未配置时恒为 false。
+  ///
+  /// 批次③：冷却期内一律拒绝（不计入失败——冷却本身就是惩罚，
+  /// 反复尝试不应延长；到期后重新开始接受尝试）。
   Future<bool> verify(String pin) async {
     if (!_configured) return false;
+    final guard = _lockoutGuard;
+    if (guard != null) {
+      // 惰性补载：未走 load() 的调用路径（如直接 verify）也保证守卫就绪。
+      if (!guard.isLoaded) await guard.load(_preferencesLoader);
+      if (guard.isLockedOut) return false;
+    }
     final prefs = await _preferencesLoader();
     final salt = prefs.getString(_kSaltKey);
     final stored = prefs.getString(_kPinHashKey);
     if (salt == null || stored == null) return false;
-    return _constantTimeEquals(_hash(pin, salt), stored);
+    final ok = _constantTimeEquals(_hash(pin, salt), stored);
+    if (guard != null) {
+      await guard.recordAttempt(ok, _preferencesLoader);
+    }
+    return ok;
   }
 
-  /// 关闭应用锁（清除持久化 PIN）。
+  /// 关闭应用锁（清除持久化 PIN 与防爆破守卫记录）。
   Future<void> disable() async {
     final prefs = await _preferencesLoader();
     await prefs.remove(_kPinHashKey);
     await prefs.remove(_kSaltKey);
     await prefs.remove(_kPinLengthKey);
+    final guard = _lockoutGuard;
+    if (guard != null) await guard.reset(_preferencesLoader);
     _configured = false;
     _pinLength = defaultPinLength;
     notifyListeners();
