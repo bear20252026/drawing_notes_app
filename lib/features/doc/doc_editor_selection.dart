@@ -141,51 +141,60 @@ extension DocEditorSelection on DocEditorState {
   }
 
   /// 浮动选区工具条（AFFiNE 风格深色胶囊）。
+  ///
+  /// 必须包 [Positioned]：Overlay 对未定位子项施加 tight 全屏约束
+  /// （overlay.dart: nonPositionedChildConstraints = BoxConstraints.tight），
+  /// 不包裹会把胶囊拉伸成覆盖全屏的黑幕。Positioned 提供松约束让
+  /// 内容按 Row 自然收窄。
   Widget _buildSelectionToolbar(LayerLink link) {
-    return CompositedTransformFollower(
-      link: link,
-      showWhenUnlinked: false,
-      targetAnchor: Alignment.bottomLeft,
-      followerAnchor: Alignment.topLeft,
-      offset: const Offset(28, 8),
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1D1D1F),
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.25),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _selectionToolbarIcon(Icons.format_bold, '粗体', _toggleBold),
-              _selectionToolbarIcon(Icons.format_italic, '斜体', _toggleItalic),
-              _selectionToolbarIcon(
-                Icons.format_underline,
-                '下划线',
-                _toggleUnderline,
-              ),
-              _selectionToolbarIcon(Icons.link, '链接', _insertLink),
-              _selectionToolbarDivider(),
-              _selectionToolbarIcon(
-                Icons.content_copy_rounded,
-                '复制块',
-                _duplicateFocusedBlock,
-              ),
-              _selectionToolbarIcon(
-                Icons.delete_outline_rounded,
-                '删除块',
-                _deleteFocusedBlock,
-              ),
-            ],
+    return Positioned(
+      left: 0,
+      top: 0,
+      child: CompositedTransformFollower(
+        link: link,
+        showWhenUnlinked: false,
+        targetAnchor: Alignment.bottomLeft,
+        followerAnchor: Alignment.topLeft,
+        offset: const Offset(28, 8),
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1D1D1F),
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.25),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _selectionToolbarIcon(Icons.format_bold, '粗体', _toggleBold),
+                _selectionToolbarIcon(Icons.format_italic, '斜体', _toggleItalic),
+                _selectionToolbarIcon(
+                  Icons.format_underline,
+                  '下划线',
+                  _toggleUnderline,
+                ),
+                _selectionToolbarIcon(Icons.link, '链接', _insertLink),
+                _selectionToolbarDivider(),
+                _selectionToolbarIcon(
+                  Icons.content_copy_rounded,
+                  '复制块',
+                  _duplicateFocusedBlock,
+                ),
+                _selectionToolbarIcon(
+                  Icons.delete_outline_rounded,
+                  '删除块',
+                  _deleteFocusedBlock,
+                ),
+              ],
+            ),
           ),
         ),
       ),
