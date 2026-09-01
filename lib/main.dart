@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'app.dart';
 import 'core/security/audit_logger.dart';
+import 'core/security/root_guard.dart';
 
 /// 单实例锁（借鉴 QOwnNotes 二次启动聚焦：
 /// Windows 桌面重复启动时检测已有实例并退出，避免多窗口混乱）。
@@ -93,6 +94,11 @@ Future<bool> _isProcessAlive(int pid) async {
 /// 仅做初始化装配，不承载业务逻辑。
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Root 守卫（用户拍板 2026-09-01）：Android 检测到 root 立即闪退，
+  // 必须在一切初始化之前执行——先于错误边界、单实例锁与 runApp。
+  if (RootGuard.detect()) {
+    RootGuard.refuseToStart();
+  }
   // L-01 错误边界（专家审计 2026-08-15）：Flutter 官方模式（FlutterError
   // .onError + PlatformDispatcher.onError）——保留 presentError 控制台输出，
   // 同时脱敏记录（仅错误类型/库名——不含敏感正文/路径/内部格式）。
