@@ -1,5 +1,5 @@
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar_contracts.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar_action_factory.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';

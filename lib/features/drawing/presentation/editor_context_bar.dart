@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar_contracts.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 

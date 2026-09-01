@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar_contracts.dart';
 
 /// 笔刷与橡皮擦相关的编辑器工具栏动作。
 class EditorToolbarBrushActions {

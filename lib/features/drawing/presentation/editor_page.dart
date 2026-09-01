@@ -54,7 +54,7 @@ import 'package:drawing_notes_app/features/drawing/presentation/editor_overlay_i
 import 'package:drawing_notes_app/features/drawing/presentation/editor_selection_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_text_presentation_style.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_statusbar.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar_contracts.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar_action_factory.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_viewmodel.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/layer_panel.dart';

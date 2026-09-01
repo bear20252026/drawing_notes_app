@@ -3,7 +3,7 @@ import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart'
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar_contracts.dart';
 
 /// 工具栏 UI 标志（状态提升：State 私有字段聚合为纯数据传入映射函数）。
 ///
