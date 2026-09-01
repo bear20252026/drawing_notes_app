@@ -34,6 +34,8 @@ import 'package:drawing_notes_app/features/schedule/infrastructure/schedule_even
 // 批次②：单文件密码输入（可变长度 4–12 位密码盘）。
 import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
     show UnlockFlow;
+// N4 批 2：画布解锁弹窗「忘记密码？」→ 重置密码盘重置流。
+import 'package:drawing_notes_app/fix/file_password_reset_flow.dart';
 
 /// 应用导航壳：4 个顶层目的地（M11 IA 收敛 + 批次⑤设置集中）。
 ///
@@ -317,6 +319,8 @@ class _AppShellState extends State<AppShell> {
         final id = doc.drawingId ?? doc.id;
         // 批次②：独立密码拦截——未解锁先输密码（与首页同口径，
         // 验证成功即入会话缓存，本会话免重复输入）。
+        // N4 批 2：「忘记密码？」→ 重置密码盘重置流；重置成功后密码
+        // 已入会话，pin 为 null 也继续尝试加载（仍锁定则 load 抛错返回）。
         if (await storage.isFilePasswordProtected(id)) {
           if (!mounted) return;
           final pin = await UnlockFlow.show(
@@ -324,8 +328,15 @@ class _AppShellState extends State<AppShell> {
             title: '该画作已加密，输入独立密码',
             flexible: true,
             onVerify: (p) => storage.verifyFilePassword(id, p),
+            footerLabel: '忘记密码？',
+            onFooter: () {
+              FilePasswordResetFlow.show(context, storage: storage, docId: id);
+            },
           );
-          if (pin == null) return;
+          if (pin == null &&
+              storage.filePasswordFor(id) == null) {
+            return; // 用户取消且会话无密码——不暴露内容
+          }
         }
         final DrawingDocument? drawing;
         try {

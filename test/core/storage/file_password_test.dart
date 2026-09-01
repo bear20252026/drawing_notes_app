@@ -1,3 +1,13 @@
+/// 批次②：单文件密码（StorageService 层）回归测试。
+///
+/// 覆盖：设密/改密/验密/移除、会话缓存语义、锁定列表占位、
+/// 缩略图抑制（隐藏缩略图——用户拍板）、删除清理。
+///
+/// 注：setFilePassword/changeFilePassword 走生产默认 600k PBKDF2，
+/// 全量套件高并发下会超出默认 30s 单测超时——放宽到 3 分钟。
+@Timeout(Duration(minutes: 3))
+library;
+
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -7,10 +17,6 @@ import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 批次②：单文件密码（StorageService 层）回归测试。
-///
-/// 覆盖：设密/改密/验密/移除、会话缓存语义、锁定列表占位、
-/// 缩略图抑制（隐藏缩略图——用户拍板）、删除清理。
 void main() {
   late Directory tempDir;
 

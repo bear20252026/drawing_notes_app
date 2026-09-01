@@ -1,3 +1,13 @@
+/// 批次①c：笔记本存储层 DNV 信封加密（Joplin 懒迁移模式）。
+///
+/// 覆盖：写路径密封（明文不落盘）、读路径解密、懒迁移、锁定 fail-closed、
+/// 页面图片三级加密封支（DAN 优先 / DNV 次之 / 明文兼容）。
+///
+/// 注：写密封走生产默认 600k PBKDF2，全量套件高并发下懒迁移用例
+/// 会超出默认 30s 单测超时——放宽到 3 分钟。
+@Timeout(Duration(minutes: 3))
+library;
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -9,10 +19,6 @@ import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 批次①c：笔记本存储层 DNV 信封加密（Joplin 懒迁移模式）。
-///
-/// 覆盖：写路径密封（明文不落盘）、读路径解密、懒迁移、锁定 fail-closed、
-/// 页面图片三级加密封支（DAN 优先 / DNV 次之 / 明文兼容）。
 void main() {
   late Directory tempDir;
 

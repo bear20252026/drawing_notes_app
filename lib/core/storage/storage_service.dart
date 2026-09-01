@@ -45,6 +45,14 @@ class StorageService implements DocumentRepository {
   // 拍板「会话内记住」）；切后台回锁/重启后自动失效（内存态，不落盘）。
   final Map<String, String> _sessionFilePasswords = <String, String>{};
 
+  // N4 批 2（v3 双保护器信封）会话密钥材料：
+  // - DEK 按文档稳定复用（写入时不换 DEK）——否则每次保存都会作废
+  //   重置盘槽位（LUKS 槽位语义要求 DEK 恒定，与 PIN 可随时换盐对偶）；
+  // - USB 槽位密文原样保留（密文包裹的是 DEK，DEK 不变则槽位永续有效）。
+  // 两者均为内存态：与文件密码同生命周期（forgetFilePassword 一并清零）。
+  final Map<String, Uint8List> _sessionDocDeks = <String, Uint8List>{};
+  final Map<String, Uint8List> _sessionFileUsbWrapped = <String, Uint8List>{};
+
   /// 该文档本会话内是否已解锁文件密码（编辑器保存走同一密封路径）。
   String? filePasswordFor(String docId) => _sessionFilePasswords[docId];
 
@@ -53,9 +61,24 @@ class StorageService implements DocumentRepository {
     _sessionFilePasswords[docId] = password;
   }
 
+  /// 缓存 v3 解锁产物（DEK + USB 槽位密文；未绑定槽位时清除旧值）。
+  void _cacheV3Material(String docId, VaultFileV3Unlock unlock) {
+    _sessionDocDeks[docId] = unlock.dek;
+    final usb = unlock.usbWrapped;
+    if (usb != null) {
+      _sessionFileUsbWrapped[docId] = usb;
+    } else {
+      _sessionFileUsbWrapped.remove(docId);
+    }
+  }
+
   /// 清除会话文件密码（移除文件密码 / 文档删除后调用）。
+  /// N4 批 2：DEK（内存清零——D-2 模式）与 USB 槽位缓存一并清除。
   void forgetFilePassword(String docId) {
     _sessionFilePasswords.remove(docId);
+    final dek = _sessionDocDeks.remove(docId);
+    if (dek != null) dek.fillRange(0, dek.length, 0);
+    _sessionFileUsbWrapped.remove(docId);
   }
 
   /// 写成功回调（首页刷新修复①）：画布保存/缩略图更新/删除落盘成功后触发，
@@ -319,16 +342,19 @@ class StorageService implements DocumentRepository {
   }
 
   /// 写入前的字节准备（批次② 三级分流）：
-  /// ① 会话有文件密码 → v2 密码信封（层级独立于开屏密码）；
+  /// ① 会话有文件密码 → v3 双保护器信封（N4 批 2：复用会话 DEK——
+  ///    重置盘槽位跨保存持续有效）；
   /// ② 无文件密码 + 有主密钥 → v1 主密钥信封（AAD 绑定文档 ID）；
   /// ③ 均无 → 明文兼容（旧数据行为）。
   Future<Uint8List> _sealDocBytes(String id, Uint8List data) async {
     final filePassword = _sessionFilePasswords[id];
     if (filePassword != null) {
-      return VaultFileCodec.encryptWithPassword(
+      return VaultFileCodec.encryptWithPasswordV3(
         data,
         filePassword,
         aadContext: 'doc:$id',
+        dek: _sessionDocDeks[id],
+        usbWrapped: _sessionFileUsbWrapped[id],
       );
     }
     final key = await _currentKey();
@@ -358,6 +384,16 @@ class StorageService implements DocumentRepository {
       final filePassword = _sessionFilePasswords[id];
       if (filePassword == null) {
         throw const VaultFilePasswordLockException();
+      }
+      if (VaultFileCodec.isV3Envelope(raw)) {
+        // N4 批 2：v3 双保护器信封——解锁并缓存 DEK/USB 槽位（续写续用）。
+        final unlock = await VaultFileCodec.unlockWithPasswordV3(
+          raw,
+          filePassword,
+          aadContext: 'doc:$id',
+        );
+        _cacheV3Material(id, unlock);
+        return unlock.plain;
       }
       return VaultFileCodec.decryptWithPassword(
         raw,
@@ -489,15 +525,25 @@ class StorageService implements DocumentRepository {
   }
 
   /// 校验文件密码；正确则缓存进会话（解锁一次本会话免重复输入）。
+  /// v3 信封同时缓存 DEK / USB 槽位（续写续用）。
   Future<bool> verifyFilePassword(String id, String password) async {
     final raw = await _readCurrentRaw(id);
     if (raw == null || !VaultFileCodec.isPasswordEnvelope(raw)) return false;
     try {
-      await VaultFileCodec.decryptWithPassword(
-        raw,
-        password,
-        aadContext: 'doc:$id',
-      );
+      if (VaultFileCodec.isV3Envelope(raw)) {
+        final unlock = await VaultFileCodec.unlockWithPasswordV3(
+          raw,
+          password,
+          aadContext: 'doc:$id',
+        );
+        _cacheV3Material(id, unlock);
+      } else {
+        await VaultFileCodec.decryptWithPassword(
+          raw,
+          password,
+          aadContext: 'doc:$id',
+        );
+      }
     } on VaultFileException {
       return false;
     }
@@ -505,11 +551,24 @@ class StorageService implements DocumentRepository {
     return true;
   }
 
-  /// 为未设密文档设置独立文件密码（v2 密码信封重封 + 删除缩略图）。
+  /// 该文档是否绑定了重置密码盘（v3 信封且含 USB 槽位；读头部不解密）。
+  Future<bool> hasFileUsbSlot(String id) async {
+    final raw = await _readCurrentRaw(id);
+    if (raw == null) return false;
+    return VaultFileCodec.hasUsbSlotV3(raw);
+  }
+
+  /// 为未设密文档设置独立文件密码（v3 双保护器信封重封 + 删除缩略图）。
   ///
   /// 前提：文档当前为明文或 v1 主密钥信封（应用锁已解锁时可读）。
   /// 已设密时抛 [StateError]（走 [changeFilePassword]）。
-  Future<void> setFilePassword(String id, String password) async {
+  /// [resetDiskKey] 非空时同时嵌入重置盘槽位（设密时插盘绑定——LUKS
+  /// 同款：U 盘钥匙不在设备上，错过本次可事后走 [bindFileUsbSlot]）。
+  Future<void> setFilePassword(
+    String id,
+    String password, {
+    List<int>? resetDiskKey,
+  }) async {
     final raw = await _readCurrentRaw(id);
     if (raw == null) {
       throw StateError('文档不存在');
@@ -526,12 +585,29 @@ class StorageService implements DocumentRepository {
     } else {
       plain = raw;
     }
+    // DEK 由会话生成并缓存（续写复用，重置盘槽位跨保存有效的前提）。
+    final dek = VaultFileCodec.generateDek();
+    final usbWrapped = resetDiskKey == null
+        ? null
+        : await VaultFileCodec.wrapUsbSlotV3(
+            usbKey: resetDiskKey,
+            dek: dek,
+            aadContext: 'doc:$id',
+          );
     cacheFilePassword(id, password);
+    _sessionDocDeks[id] = dek;
+    if (usbWrapped != null) {
+      _sessionFileUsbWrapped[id] = usbWrapped;
+    } else {
+      _sessionFileUsbWrapped.remove(id);
+    }
     try {
-      final sealed = await VaultFileCodec.encryptWithPassword(
+      final sealed = await VaultFileCodec.encryptWithPasswordV3(
         plain,
         password,
         aadContext: 'doc:$id',
+        dek: dek,
+        usbWrapped: usbWrapped,
       );
       await _writeSealedBytes(id, sealed);
     } catch (_) {
@@ -542,7 +618,10 @@ class StorageService implements DocumentRepository {
     onWrite?.call();
   }
 
-  /// 修改文件密码（验证旧密码 → v2 重封）。旧密码错误抛 [VaultFileException]。
+  /// 修改文件密码（验证旧密码 → 重封）。旧密码错误抛 [VaultFileException]。
+  ///
+  /// N4 批 2：v2 旧文件自动升级为 v3（引入 DEK，暂无重置盘槽位——可
+  /// 事后绑定）；v3 文件 DEK 与重置盘槽位原样保留（改密≠换钥匙）。
   Future<void> changeFilePassword(
     String id,
     String oldPassword,
@@ -552,17 +631,47 @@ class StorageService implements DocumentRepository {
     if (raw == null || !VaultFileCodec.isPasswordEnvelope(raw)) {
       throw StateError('该文档未设置文件密码');
     }
+    if (VaultFileCodec.isV3Envelope(raw)) {
+      final unlock = await VaultFileCodec.unlockWithPasswordV3(
+        raw,
+        oldPassword,
+        aadContext: 'doc:$id',
+      ); // 旧密码错误在此抛出——会话缓存尚未改动
+      _cacheV3Material(id, unlock);
+      cacheFilePassword(id, newPassword);
+      try {
+        final sealed = await VaultFileCodec.encryptWithPasswordV3(
+          unlock.plain,
+          newPassword,
+          aadContext: 'doc:$id',
+          dek: unlock.dek,
+          usbWrapped: unlock.usbWrapped,
+        );
+        await _writeSealedBytes(id, sealed);
+      } catch (_) {
+        cacheFilePassword(id, oldPassword); // 回滚会话缓存到仍有效的旧密码
+        rethrow;
+      }
+      await _deleteThumbnail(id);
+      onWrite?.call();
+      return;
+    }
     final plain = await VaultFileCodec.decryptWithPassword(
       raw,
       oldPassword,
       aadContext: 'doc:$id',
     );
+    // v2 → v3 升级：生成新 DEK，暂不嵌重置盘槽位（钥匙不在设备上）。
+    final dek = VaultFileCodec.generateDek();
+    _sessionDocDeks[id] = dek;
+    _sessionFileUsbWrapped.remove(id);
     cacheFilePassword(id, newPassword);
     try {
-      final sealed = await VaultFileCodec.encryptWithPassword(
-        plain,
+      final sealed = await VaultFileCodec.encryptWithPasswordV3(
+        Uint8List.fromList(plain),
         newPassword,
         aadContext: 'doc:$id',
+        dek: dek,
       );
       await _writeSealedBytes(id, sealed);
     } catch (_) {
@@ -573,6 +682,87 @@ class StorageService implements DocumentRepository {
     onWrite?.call();
   }
 
+  /// 绑定重置密码盘到已设密文档（事后绑定通道；须验证文件密码）。
+  /// 已绑定 / 非 v3 信封抛 [StateError]；密码错误抛 [VaultFileException]。
+  Future<void> bindFileUsbSlot(
+    String id,
+    String password,
+    List<int> usbKey,
+  ) async {
+    final raw = await _readCurrentRaw(id);
+    if (raw == null || !VaultFileCodec.isPasswordEnvelope(raw)) {
+      throw StateError('该文档未设置文件密码');
+    }
+    if (!VaultFileCodec.isV3Envelope(raw)) {
+      throw StateError('旧版密码文件：请先修改一次密码升级格式后再绑定');
+    }
+    if (VaultFileCodec.hasUsbSlotV3(raw)) {
+      throw StateError('该文档已绑定重置密码盘');
+    }
+    final unlock = await VaultFileCodec.unlockWithPasswordV3(
+      raw,
+      password,
+      aadContext: 'doc:$id',
+    );
+    final usbWrapped = await VaultFileCodec.wrapUsbSlotV3(
+      usbKey: usbKey,
+      dek: unlock.dek,
+      aadContext: 'doc:$id',
+    );
+    final sealed = await VaultFileCodec.encryptWithPasswordV3(
+      unlock.plain,
+      password,
+      aadContext: 'doc:$id',
+      dek: unlock.dek,
+      usbWrapped: usbWrapped,
+    );
+    _cacheV3Material(
+      id,
+      VaultFileV3Unlock(unlock.plain, unlock.dek, usbWrapped),
+    );
+    cacheFilePassword(id, password);
+    await _writeSealedBytes(id, sealed);
+    await _deleteThumbnail(id);
+    onWrite?.call();
+  }
+
+  /// 重置密码盘重置文件密码（N4 批 2：忘记密码通道）。
+  ///
+  /// USB 钥匙解出 DEK → 新盐重绕密码槽（载荷密文与重置盘槽位原样保留，
+  /// LUKS 同款）。**不需要旧密码**；成功后会话已缓存新密码（可直接打开）。
+  /// 非密码信封 / 未绑定重置盘 / 盘不匹配 → 返回 false（fail-closed）。
+  Future<bool> resetFilePasswordWithUsb(
+    String id,
+    List<int> usbKey,
+    String newPassword,
+  ) async {
+    final raw = await _readCurrentRaw(id);
+    if (raw == null || !VaultFileCodec.isV3Envelope(raw)) return false;
+    final VaultFileV3Rewrap rewrap;
+    try {
+      rewrap = await VaultFileCodec.rewrapPasswordSlotV3(
+        raw,
+        usbKey,
+        newPassword,
+        aadContext: 'doc:$id',
+      );
+    } on VaultFileException {
+      return false;
+    }
+    _sessionDocDeks[id] = rewrap.dek;
+    final usb = rewrap.usbWrapped;
+    if (usb != null) {
+      _sessionFileUsbWrapped[id] = usb;
+    } else {
+      _sessionFileUsbWrapped.remove(id);
+    }
+    cacheFilePassword(id, newPassword);
+    await _writeSealedBytes(id, rewrap.blob);
+    await _deleteThumbnail(id);
+    onWrite?.call();
+    return true;
+  }
+
   /// 移除文件密码：回封为 v1 主密钥信封（应用锁未解锁时拒绝——
   /// 明文落盘不可接受，fail-closed）。密码错误抛 [VaultFileException]。
   Future<void> removeFilePassword(String id, String password) async {
@@ -580,11 +770,22 @@ class StorageService implements DocumentRepository {
     if (raw == null || !VaultFileCodec.isPasswordEnvelope(raw)) {
       throw StateError('该文档未设置文件密码');
     }
-    final plain = await VaultFileCodec.decryptWithPassword(
-      raw,
-      password,
-      aadContext: 'doc:$id',
-    );
+    Uint8List plain;
+    if (VaultFileCodec.isV3Envelope(raw)) {
+      final unlock = await VaultFileCodec.unlockWithPasswordV3(
+        raw,
+        password,
+        aadContext: 'doc:$id',
+      );
+      _cacheV3Material(id, unlock);
+      plain = unlock.plain;
+    } else {
+      plain = await VaultFileCodec.decryptWithPassword(
+        raw,
+        password,
+        aadContext: 'doc:$id',
+      );
+    }
     final key = await _currentKey();
     if (key == null) {
       throw const VaultFileLockException();
@@ -636,6 +837,15 @@ class StorageService implements DocumentRepository {
           final filePassword = _sessionFilePasswords[fileId];
           if (filePassword == null) {
             locked = true;
+          } else if (VaultFileCodec.isV3Envelope(raw)) {
+            // N4 批 2：v3 信封——解锁并缓存 DEK/USB 槽位。
+            final unlock = await VaultFileCodec.unlockWithPasswordV3(
+              raw,
+              filePassword,
+              aadContext: 'doc:$fileId',
+            );
+            _cacheV3Material(fileId, unlock);
+            bytes = unlock.plain;
           } else {
             bytes = await VaultFileCodec.decryptWithPassword(
               raw,

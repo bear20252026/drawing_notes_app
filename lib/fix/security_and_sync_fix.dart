@@ -144,6 +144,7 @@ class PinPadCore extends StatefulWidget {
     this.onVerify,
     this.onAccepted,
     this.onEmergency,
+    this.emergencyLabel = '紧急情况',
     this.onCancel,
   });
 
@@ -165,6 +166,9 @@ class PinPadCore extends StatefulWidget {
 
   /// 「紧急情况」按钮回调；不传则不显示该按钮。
   final VoidCallback? onEmergency;
+
+  /// 「紧急情况」按钮文案（N4 批 2：文件密码解锁时复用为「忘记密码？」）。
+  final String emergencyLabel;
 
   /// 「取消」按钮回调；不传则不显示该按钮。
   final VoidCallback? onCancel;
@@ -368,7 +372,7 @@ class _PinPadCoreState extends State<PinPadCore>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          if (emergency != null) _bottomAction('紧急情况', emergency),
+          if (emergency != null) _bottomAction(widget.emergencyLabel, emergency),
           if (cancel != null) _bottomAction('取消', cancel),
         ],
       ),
@@ -496,6 +500,7 @@ class PinPadUnlockSheet extends StatelessWidget {
     this.flexibleMaxLength = 12,
     this.onVerify,
     this.onEmergency,
+    this.emergencyLabel = '紧急情况',
   });
 
   final String title;
@@ -511,7 +516,12 @@ class PinPadUnlockSheet extends StatelessWidget {
   final Future<bool> Function(String pin)? onVerify;
 
   /// 「紧急情况」按钮回调；不传时行为与取消相同（关闭并返回 null）。
+  /// N4 批 2：点击时先关闭密码盘再执行回调（忘记密码→重置流需要全屏
+  /// 文件选择器，密码盘不先关会叠在选取器上面）。
   final VoidCallback? onEmergency;
+
+  /// 「紧急情况」按钮文案。
+  final String emergencyLabel;
 
   /// 全屏打开密码盘并返回用户输入的 PIN（取消返回 null）。
   static Future<String?> show(
@@ -523,6 +533,7 @@ class PinPadUnlockSheet extends StatelessWidget {
     int flexibleMaxLength = 12,
     Future<bool> Function(String pin)? onVerify,
     VoidCallback? onEmergency,
+    String emergencyLabel = '紧急情况',
   }) {
     return showGeneralDialog<String>(
       context: context,
@@ -540,6 +551,7 @@ class PinPadUnlockSheet extends StatelessWidget {
         flexibleMaxLength: flexibleMaxLength,
         onVerify: onVerify,
         onEmergency: onEmergency,
+        emergencyLabel: emergencyLabel,
       ),
       transitionBuilder: (_, animation, _, child) => FadeTransition(
         opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
@@ -558,7 +570,14 @@ class PinPadUnlockSheet extends StatelessWidget {
       flexibleMaxLength: flexibleMaxLength,
       onVerify: onVerify,
       onAccepted: (pin) => Navigator.of(context).pop(pin),
-      onEmergency: onEmergency,
+      onEmergency: onEmergency == null
+          ? null
+          : () {
+              // 先关密码盘再执行回调（回调可能叠开文件选择器/新对话框）。
+              Navigator.of(context).pop();
+              onEmergency!();
+            },
+      emergencyLabel: emergencyLabel,
       onCancel: () => Navigator.of(context).pop(),
     );
   }
@@ -579,6 +598,8 @@ class DesktopUnlockField extends StatefulWidget {
     this.title = '输入密码',
     this.maxLength,
     this.onVerify,
+    this.footerLabel,
+    this.onFooterTap,
   });
 
   final String title;
@@ -589,11 +610,18 @@ class DesktopUnlockField extends StatefulWidget {
   /// 验证回调；为空则为收集模式（直接回传输入值）。
   final Future<bool> Function(String pin)? onVerify;
 
+  /// 左下角 footer 链接（N4 批 2：「忘记密码？」）。点击时先关闭本对话框
+  /// 再执行回调（回调可能叠开文件选择器/新对话框）。
+  final String? footerLabel;
+  final VoidCallback? onFooterTap;
+
   static Future<String?> show(
     BuildContext context, {
     String title = '输入密码',
     int? maxLength,
     Future<bool> Function(String pin)? onVerify,
+    String? footerLabel,
+    VoidCallback? onFooterTap,
   }) {
     return showDialog<String>(
       context: context,
@@ -601,6 +629,8 @@ class DesktopUnlockField extends StatefulWidget {
         title: title,
         maxLength: maxLength,
         onVerify: onVerify,
+        footerLabel: footerLabel,
+        onFooterTap: onFooterTap,
       ),
     );
   }
@@ -669,6 +699,14 @@ class _DesktopUnlockFieldState extends State<DesktopUnlockField> {
         ),
       ),
       actions: [
+        if (widget.footerLabel != null && widget.onFooterTap != null)
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              widget.onFooterTap!();
+            },
+            child: Text(widget.footerLabel!),
+          ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),
@@ -700,6 +738,8 @@ abstract final class UnlockFlow {
     int flexibleMinLength = 4,
     int flexibleMaxLength = 12,
     Future<bool> Function(String pin)? onVerify,
+    String? footerLabel,
+    VoidCallback? onFooter,
   }) {
     if (_isMobile) {
       return PinPadUnlockSheet.show(
@@ -710,6 +750,9 @@ abstract final class UnlockFlow {
         flexibleMinLength: flexibleMinLength,
         flexibleMaxLength: flexibleMaxLength,
         onVerify: onVerify,
+        // footer = 「紧急情况」槽位复用（N4 批 2：文件密码解锁挂「忘记密码？」）。
+        onEmergency: onFooter,
+        emergencyLabel: footerLabel ?? '紧急情况',
       );
     }
     return DesktopUnlockField.show(
@@ -717,6 +760,8 @@ abstract final class UnlockFlow {
       title: title,
       maxLength: flexible ? flexibleMaxLength : pinLength,
       onVerify: onVerify,
+      footerLabel: footerLabel,
+      onFooterTap: onFooter,
     );
   }
 }

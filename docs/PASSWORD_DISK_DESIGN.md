@@ -1,8 +1,8 @@
 # 重置密码盘（U 盘）设计方案
 
-> 状态：N4 批 1 已落地 · 2026-09-02（命名体系定案版）
+> 状态：N4 批 1 + 批 2 已落地 · 2026-09-02（命名体系定案版）
 > 前身：key.frogkey「解锁钥匙」+ vault_reset.frogkey「恢复钥匙」双体系（已删除）
-> 目标：一把 U 盘统一重置开屏密码与文件密码
+> 目标：一把 U 盘统一重置开屏密码与文件密码（开屏密码 ✅ 批 1 · 画布文件密码 ✅ 批 2 · 分页画布 ⬅️ 批 3）
 
 ---
 
@@ -41,7 +41,7 @@ MAGIC = 0x46 0x52 0x4F 0x47（"FROG"）  VER = 0x01
 - 钥匙 = `Random.secure()` 32 字节 CSPRNG，**不含任何主密钥副本**；
 - 主密钥被它包裹后存在设备侧：
   - 开屏密码 → 保险库槽 2（`VaultKeyService.addUsbKeySlot`）；
-  - 文件密码 → VaultFileCodec v3 信封槽（N4 批 2 实现）。
+  - 文件密码 → VaultFileCodec **v3 信封 USB 槽**（批 2 已实现，见 §5.5）。
 
 安全属性（与 LUKS/KeePass 一致）：
 - 只偷 U 盘：解不开任何东西；
@@ -83,3 +83,55 @@ MAGIC = 0x46 0x52 0x4F 0x47（"FROG"）  VER = 0x01
 
 > 保留：`encryptNotebookPayload/decryptNotebookPayload`（密码 v4 路径依赖）、
 > `MediaCryptoService.setNotebookKey`（K_note 媒体密钥注入，N2 可能复用）。
+
+## 7. 文件密码 v3 双保护器信封（N4 批 2，2026-09-02）
+
+### 7.1 落盘格式（`DNV|0x03|jsonLen(u32 BE)|JSON 槽位头|AES-GCM 载荷`）
+
+```json
+{"v":3,"slots":[
+  {"type":"pw","salt":b64,"iter":600000,"wrapped":b64},
+  {"type":"usb","wrapped":b64}
+]}
+```
+
+- 载荷由**随机 32B DEK** 加密（AAD 与 v1/v2 同串 `drawing-notes|file|v1|<context>`）；
+- 密码槽（PBKDF2 包裹 DEK）+ 可选重置盘槽（U 盘钥匙直接包裹 DEK）——
+  LUKS/BitLocker 多保护器：两把钥匙开同一把 DEK；
+- 槽位 AAD 绑定 context（`drawing-notes|file-slot|pw|v3|<ctx>` /
+  `drawing-notes|file-slot|usb|v1|<ctx>`）——槽位不可跨文件移植；
+- **DEK 按文档恒定**（会话缓存 `_sessionDocDeks`）：写入复用同一把 DEK，
+  否则每次保存都会作废重置盘槽位；冷实例验密时从密码槽解出再缓存。
+
+### 7.2 重置流程（`rewrapPasswordSlotV3`）
+
+USB 钥匙解开 DEK → 新盐重绕密码槽 → **载荷密文与 USB 槽位字节一字节不动**
+（LUKS 同款）→ 新密码生效、U 盘继续有效。不需要旧密码。
+
+### 7.3 存储层 API（StorageService）
+
+| API | 说明 |
+|-----|------|
+| `setFilePassword(id, pw, {resetDiskKey})` | v3 设密；插盘当场嵌入 USB 槽（可跳过） |
+| `changeFilePassword(id, old, new)` | v3 保留 DEK/槽位；**v2 旧文件自动升级 v3** |
+| `bindFileUsbSlot(id, pw, key)` | 事后绑定（密码管理 sheet「绑定重置密码盘」入口） |
+| `resetFilePasswordWithUsb(id, key, newPw)` | 忘记密码通道（fail-closed 返回 false） |
+| `hasFileUsbSlot(id)` | 读头部判断是否已绑定 |
+
+### 7.4 UI 接入
+
+- 首页与全部文档两处画布解锁弹窗加「忘记密码？」footer
+  （`UnlockFlow.show` 新增 `footerLabel/onFooter`；移动端复用
+  PinPadCore「紧急情况」槽位，桌面端 AlertDialog footer 链接，
+  点击均先关弹窗再回调）；
+- 重置流统一走 `FilePasswordResetFlow.show`
+  （lib/fix/file_password_reset_flow.dart）：说明 → 判定已绑定 →
+  选盘读钥匙 → 新密码两遍（≠开屏密码）→ 重置；
+- 设密时弹窗询问「绑定重置密码盘？」（可跳过，事后可绑）。
+
+### 7.5 兼容承诺
+
+- **v2 旧文件只读兼容**：`isPasswordEnvelope` 同时覆盖 v2/v3；
+  v2 走原 `decryptWithPassword` 路径，v3 走 `unlockWithPasswordV3`；
+- v2 文件用户「修改一次密码」即自动升级 v3，之后可绑定重置盘；
+- 忘记密码且从未绑定重置盘的旧 v2 文件：无法重置（弹窗明示）。

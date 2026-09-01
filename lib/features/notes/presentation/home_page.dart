@@ -32,6 +32,9 @@ import 'package:drawing_notes_app/features/notes/presentation/search_page.dart';
 // 返回时自动刷新，覆盖所有遗漏的写路径（IndexedStack 保活下 initState 不再执行）。
 import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
     show SyncFix, SyncFixRouteAware, UnlockFlow;
+// N4 批 2：忘记密码重置流 + 设密时插盘绑定重置密码盘。
+import 'package:drawing_notes_app/fix/file_password_reset_flow.dart';
+import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 
 part 'home_page_widgets.dart';
 part 'home_page_tabs.dart';
@@ -265,21 +268,35 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   }
 
   /// 加密画作解锁输入（验证通过密码已入会话缓存）。
+  ///
+  /// N4 批 2：左下角「忘记密码？」→ 重置密码盘重置流；重置成功后
+  /// 会话已缓存新密码，本方法直接返回 true（调用方可继续打开）。
   Future<bool> _promptFilePassword(DocumentMeta meta) async {
     final pin = await UnlockFlow.show(
       context,
       title: '该画作已加密，输入独立密码',
       flexible: true,
       onVerify: (p) => _docStorage.verifyFilePassword(meta.id, p),
+      footerLabel: '忘记密码？',
+      onFooter: () {
+        FilePasswordResetFlow.show(
+          context,
+          storage: _docStorage,
+          docId: meta.id,
+          docTitle: meta.title,
+        );
+      },
     );
-    return pin != null;
+    // pin 非空 = 验证通过；null 但会话已有密码 = 刚被重置流解锁。
+    return pin != null || _docStorage.filePasswordFor(meta.id) != null;
   }
 
   // ---------------- 单文件密码管理（批次②） ----------------
 
-  /// 画作密码操作 sheet：未设密 → 设置；已设密 → 修改 / 移除。
+  /// 画作密码操作 sheet：未设密 → 设置；已设密 → 修改 / 绑定重置盘 / 移除。
   Future<void> _showDrawingPasswordSheet(DocumentMeta meta) async {
     final protected = await _docStorage.isFilePasswordProtected(meta.id);
+    final usbBound = protected && await _docStorage.hasFileUsbSlot(meta.id);
     if (!mounted) return;
     await showModalBottomSheet<void>(
       context: context,
@@ -313,6 +330,16 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
                   _startChangeFilePassword(meta);
                 },
               ),
+              if (!usbBound)
+                ListTile(
+                  leading: const Icon(Icons.usb_rounded),
+                  title: const Text('绑定重置密码盘'),
+                  subtitle: const Text('绑定后忘记密码可插 U 盘免旧密码重置'),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    _startBindFileUsb(meta);
+                  },
+                ),
               ListTile(
                 leading: const Icon(Icons.no_encryption_outlined),
                 title: const Text('移除独立密码'),
@@ -354,9 +381,46 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   Future<void> _startSetFilePassword(DocumentMeta meta) async {
     final pin = await _collectNewFilePassword('设置独立密码');
     if (pin == null) return;
+    if (!mounted) return;
+    // N4 批 2：可选当场绑定重置密码盘（错过本次可事后在密码管理中绑定）。
+    List<int>? resetDiskKey;
+    final bindUsb = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('绑定重置密码盘？'),
+        content: const Text(
+          '绑定后忘记此画作的独立密码时，可插入重置密码盘（U 盘）免旧密码重置。\n\n'
+          'U 盘上只有随机钥匙文件（password_reset_disk.key），画作数据不会离开设备。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('暂不'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('插盘绑定'),
+          ),
+        ],
+      ),
+    );
+    if (bindUsb == true) {
+      if (!mounted) return;
+      final dir = await ResetDiskFile.pickDirectory();
+      if (dir != null) {
+        resetDiskKey = await ResetDiskFile.readFrom(dir);
+        if (resetDiskKey == null && mounted) {
+          _showSnack('未找到有效的重置密码盘文件（password_reset_disk.key），本次不绑定');
+        }
+      }
+    }
     try {
-      await _docStorage.setFilePassword(meta.id, pin);
-      _showSnack('已为「${meta.title}」设置独立密码');
+      await _docStorage.setFilePassword(meta.id, pin, resetDiskKey: resetDiskKey);
+      _showSnack(
+        resetDiskKey == null
+            ? '已为「${meta.title}」设置独立密码'
+            : '已为「${meta.title}」设置独立密码并绑定重置密码盘',
+      );
       await _refresh();
     } on VaultFileLockException {
       _showSnack('加密底座已锁定：请重新验证开屏密码后再设置');
@@ -383,6 +447,35 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
       _showSnack('原密码不正确或密文已损坏');
     } catch (e) {
       _showSnack('修改失败：${e.runtimeType}');
+    }
+  }
+
+  /// 事后绑定重置密码盘（N4 批 2）：验证文件密码 → 插盘 → 嵌入 USB 槽位。
+  Future<void> _startBindFileUsb(DocumentMeta meta) async {
+    final pin = await UnlockFlow.show(
+      context,
+      title: '验证独立密码以绑定重置盘',
+      flexible: true,
+      onVerify: (p) => _docStorage.verifyFilePassword(meta.id, p),
+    );
+    if (pin == null || !mounted) return;
+    final dir = await ResetDiskFile.pickDirectory();
+    if (dir == null || !mounted) return;
+    final usbKey = await ResetDiskFile.readFrom(dir);
+    if (usbKey == null) {
+      _showSnack('未找到有效的重置密码盘文件（password_reset_disk.key）');
+      return;
+    }
+    try {
+      await _docStorage.bindFileUsbSlot(meta.id, pin, usbKey);
+      _showSnack('已为「${meta.title}」绑定重置密码盘');
+      await _refresh();
+    } on StateError catch (e) {
+      _showSnack(e.message);
+    } on VaultFileException {
+      _showSnack('密码不正确或密文已损坏');
+    } catch (e) {
+      _showSnack('绑定失败：${e.runtimeType}');
     }
   }
 
