@@ -5,9 +5,8 @@ import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
+// 批次②：单文件密码需与开屏密码比对（matchesAppLockPin 静态探测）。
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
-import 'package:drawing_notes_app/core/security/vault_key_service.dart';
-import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/shared/application/search_service.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
@@ -25,13 +24,10 @@ import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/features/notes/presentation/onboarding.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
-import 'package:drawing_notes_app/features/notes/presentation/password_disk_page.dart';
-import 'package:drawing_notes_app/features/notes/presentation/app_lock_settings_page.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_templates.dart';
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/search_page.dart';
-import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settings_page.dart';
 // 首页刷新修复②（2026-09-01）：RouteAware 可见性兜底——从编辑器/笔记本页
 // 返回时自动刷新，覆盖所有遗漏的写路径（IndexedStack 保活下 initState 不再执行）。
 import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
@@ -58,21 +54,15 @@ class HomePage extends StatefulWidget {
     super.key,
     this.notebookStorage,
     this.docStorage,
-    this.themeController,
     this.editorPageBuilder,
     this.loadDocs,
     this.onOpenDoc,
     this.blockDocStore,
     this.onDataChanged,
-    this.appLockService,
-    this.vaultKeyService,
   });
 
   final NotebookStorage? notebookStorage;
   final StorageService? docStorage;
-
-  /// 主题控制器（深色模式切换，Phase 7）。
-  final AppThemeController? themeController;
 
   /// 编辑器页面由应用组合根注入，notes 模块不直接依赖 drawing 的 UI。
   final EditorPageBuilder? editorPageBuilder;
@@ -91,12 +81,6 @@ class HomePage extends StatefulWidget {
 
   /// 数据变更通知（新建/删除/重命名后调用，驱动 AllDocs 刷新）。
   final VoidCallback? onDataChanged;
-
-  /// 应用启动锁服务（组合根注入）：设置页入口依赖；未注入时隐藏「应用锁」菜单。
-  final AppLockService? appLockService;
-
-  /// 主密钥保险库（批次①b）：透传给应用锁设置页，密码与加密底座同步。
-  final VaultKeyService? vaultKeyService;
 
   /// 统一打开路径：与 All Docs 同一回调（note→NotebookViewPage，
   /// blockdoc→DocPage），保证两处点击行为一致。
@@ -627,26 +611,6 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void _onHomeMenuSelected(_HomeMenuItem item) {
-    switch (item) {
-      case _HomeMenuItem.passwordDisk:
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const PasswordDiskPage()));
-      case _HomeMenuItem.appLock:
-        final service = widget.appLockService;
-        if (service == null) return;
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => AppLockSettingsPage(
-              service: service,
-              vault: widget.vaultKeyService,
-            ),
-          ),
-        );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -683,52 +647,8 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
               icon: const Icon(Icons.delete_outline),
               onPressed: _showTrashDialog,
             ),
-            IconButton(
-              tooltip: 'WebDAV 本地优先同步',
-              icon: const Icon(Icons.cloud_sync_outlined),
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const WebDavSyncSettingsPage(),
-                ),
-              ),
-            ),
-            if (widget.themeController != null)
-              IconButton(
-                tooltip: '切换外观（系统 / 浅色 / 深色）',
-                icon: Icon(
-                  widget.themeController!.mode == ThemeMode.dark
-                      ? Icons.dark_mode_outlined
-                      : Icons.light_mode_outlined,
-                ),
-                onPressed: widget.themeController!.cycle,
-              ),
-            PopupMenuButton<_HomeMenuItem>(
-              tooltip: AppLocalizations.of(context)?.homeMore ?? '更多操作',
-              icon: const Icon(Icons.more_horiz_rounded),
-              onSelected: _onHomeMenuSelected,
-              itemBuilder: (_) => [
-                const PopupMenuItem(
-                  value: _HomeMenuItem.passwordDisk,
-                  child: ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.usb_rounded),
-                    title: Text('密码盘与恢复'),
-                  ),
-                ),
-                // 应用锁（组合根注入 service 才显示；app_shell 测试装配可不传）。
-                if (widget.appLockService != null)
-                  const PopupMenuItem(
-                    value: _HomeMenuItem.appLock,
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.lock_outline_rounded),
-                      title: Text('应用锁'),
-                    ),
-                  ),
-              ],
-            ),
+            // 批次⑤：WebDAV/外观/应用锁/密码盘入口已收编至第四界面「设置」，
+            // 顶栏只保留搜索与回收站两个文档操作。
           ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(56),
@@ -764,5 +684,3 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     );
   }
 }
-
-enum _HomeMenuItem { passwordDisk, appLock }

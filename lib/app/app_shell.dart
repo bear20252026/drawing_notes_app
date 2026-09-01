@@ -19,6 +19,8 @@ import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
+// 批次⑤：第四界面「设置」——密码体系集中管理。
+import 'package:drawing_notes_app/features/notes/presentation/settings_page.dart';
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_page.dart';
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
@@ -31,12 +33,14 @@ import 'package:drawing_notes_app/features/schedule/presentation/schedule_page.d
 import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
     show UnlockFlow;
 
-/// 应用导航壳：3 个顶层目的地（M11 IA 收敛）。
+/// 应用导航壳：4 个顶层目的地（M11 IA 收敛 + 批次⑤设置集中）。
 ///
 /// 信息架构（对齐 AFFiNE 的「单一文档工作台入口」）：
 ///   0. 全部文档  —— 唯一列表入口（画布/笔记/块文档统一聚合）
-///   1. 画板·笔记本 —— 绘画库（无限画布 + 笔记本 + 搜索/同步/密码盘入口）
+///   1. 画板·笔记本 —— 绘画库（无限画布 + 笔记本）
 ///   2. 日历      —— 按月历浏览文档活动（按修改日期定位当天动过的文档）
+///   3. 设置      —— 密码体系集中管理（批次⑤：应用锁/密码盘/单文件
+///      密码三层关系 + 外观/WebDAV；HomePage 原散落入口一并收编）
 ///
 /// M11 移除：纯笔记占位页（与块编辑器完全冗余）。
 ///
@@ -127,11 +131,8 @@ class _AppShellState extends State<AppShell> {
     HomePage(
       notebookStorage: widget.notebookStorage,
       docStorage: widget.docStorage,
-      themeController: widget.themeController,
       editorPageBuilder: widget.editorPageBuilder,
       refreshSignal: _services.dataVersion,
-      appLockService: widget.appLockService,
-      vaultKeyService: widget.vaultKeyService,
       // R2 列表同步：注入同一 store 实例 + 写后通知（新建/删除驱动 AllDocs 刷新）。
       blockDocStore: _services.blockDocStore,
       onDataChanged: _services.bumpDataVersion,
@@ -141,6 +142,12 @@ class _AppShellState extends State<AppShell> {
     ),
     // 2. 日历（M11.2：纯待办/日程——文档时间线并入主页，功能去重）
     const SchedulePage(),
+    // 3. 设置（批次⑤：密码体系集中管理——HomePage 原入口收编至此）
+    SettingsPage(
+      appLockService: widget.appLockService,
+      vaultKeyService: widget.vaultKeyService,
+      themeController: widget.themeController,
+    ),
   ];
 
   /// 底部导航栏（窄屏）目的地：[NavigationBar] 的 [NavigationDestination]。
@@ -160,6 +167,11 @@ class _AppShellState extends State<AppShell> {
         icon: Icon(Icons.calendar_today_outlined),
         selectedIcon: Icon(Icons.calendar_today),
         label: '日历',
+      ),
+      NavigationDestination(
+        icon: Icon(Icons.settings_outlined),
+        selectedIcon: Icon(Icons.settings),
+        label: '设置',
       ),
     ];
   }
@@ -181,6 +193,11 @@ class _AppShellState extends State<AppShell> {
         icon: Icon(Icons.calendar_today_outlined),
         selectedIcon: Icon(Icons.calendar_today),
         label: Text('日历'),
+      ),
+      NavigationRailDestination(
+        icon: Icon(Icons.settings_outlined),
+        selectedIcon: Icon(Icons.settings),
+        label: Text('设置'),
       ),
     ];
   }

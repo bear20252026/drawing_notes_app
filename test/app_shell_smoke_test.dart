@@ -54,9 +54,8 @@ void main() {
         home: AppShell(
           blockDocStore: blockDocStore ?? _MemBlockDocStore(),
           favoriteStore: FavoriteStore(
-            directoryProvider: () async => Directory.systemTemp.createTemp(
-              'shell_smoke',
-            ),
+            directoryProvider: () async =>
+                Directory.systemTemp.createTemp('shell_smoke'),
           ),
         ),
       ),
@@ -78,7 +77,7 @@ void main() {
     // 窄屏走底部导航（外层断点 <900）
     expect(find.byType(NavigationBar), findsOneWidget);
 
-    for (final label in const ['全部文档', '画板·笔记本', '日历']) {
+    for (final label in const ['全部文档', '画板·笔记本', '日历', '设置']) {
       await tester.tap(
         find.descendant(
           of: find.byType(NavigationBar),
@@ -160,5 +159,22 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('日历 · 待办'), findsOneWidget);
     expect(find.text('全部日程'), findsOneWidget);
+  });
+
+  testWidgets('批次⑤：4 号目的地「设置」渲染三层密码卡与集中入口', (tester) async {
+    await pumpShell(tester);
+
+    await tester.tap(find.text('设置').last);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('设置'), findsWidgets); // 导航标签 + AppBar 标题
+    expect(find.text('三层密码体系'), findsOneWidget);
+    expect(find.text('密码与安全'), findsOneWidget);
+    expect(find.text('通用'), findsOneWidget);
+    // HomePage 原散落入口已收编（应用锁入口依赖 service 注入，
+    // 此装配未注入则按设计隐藏——专项断言在 settings_page_test）。
+    expect(find.text('密码盘与恢复'), findsOneWidget);
+    expect(find.text('WebDAV 同步'), findsOneWidget);
   });
 }

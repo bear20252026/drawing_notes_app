@@ -1,0 +1,122 @@
+// 批次⑤：第四界面「设置」——密码体系集中管理测试。
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:drawing_notes_app/core/security/app_lock_service.dart';
+import 'package:drawing_notes_app/core/security/vault_key_service.dart';
+import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
+import 'package:drawing_notes_app/features/notes/presentation/app_lock_settings_page.dart';
+import 'package:drawing_notes_app/features/notes/presentation/password_disk_page.dart';
+import 'package:drawing_notes_app/features/notes/presentation/settings_page.dart';
+import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settings_page.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('SettingsPage（批次⑤：密码体系集中管理）', () {
+    testWidgets('渲染三层密码关系卡 + 两大分组', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final service = AppLockService();
+
+      await tester.pumpWidget(
+        MaterialApp(home: SettingsPage(appLockService: service)),
+      );
+
+      // 三层关系卡：标题 + 三层各一行。
+      expect(find.text('三层密码体系'), findsOneWidget);
+      expect(find.text('第 1 层 · 开屏密码'), findsOneWidget);
+      expect(find.text('第 2 层 · 笔记本密码盘'), findsOneWidget);
+      expect(find.text('第 3 层 · 单文件密码'), findsOneWidget);
+
+      // 密码与安全分组：应用锁 / 密码盘与恢复 / 单文件密码。
+      expect(find.text('应用锁'), findsOneWidget);
+      expect(find.text('密码盘与恢复'), findsOneWidget);
+      expect(find.text('单文件密码'), findsOneWidget);
+
+      // 通用分组：WebDAV（外观需要控制器注入，未注入时隐藏）。
+      expect(find.text('WebDAV 同步'), findsOneWidget);
+      expect(find.text('外观'), findsNothing);
+    });
+
+    testWidgets('应用锁入口：推入 AppLockSettingsPage（透传 vault）', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final service = AppLockService();
+      final vault = VaultKeyService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SettingsPage(appLockService: service, vaultKeyService: vault),
+        ),
+      );
+      await tester.tap(find.text('应用锁'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppLockSettingsPage), findsOneWidget);
+    });
+
+    testWidgets('密码盘入口：推入 PasswordDiskPage', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+
+      await tester.pumpWidget(
+        MaterialApp(home: SettingsPage(appLockService: AppLockService())),
+      );
+      await tester.tap(find.text('密码盘与恢复'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PasswordDiskPage), findsOneWidget);
+    });
+
+    testWidgets('WebDAV 入口：推入 WebDavSyncSettingsPage', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+
+      await tester.pumpWidget(
+        MaterialApp(home: SettingsPage(appLockService: AppLockService())),
+      );
+      // WebDAV 项在首屏折叠线以下：滚动到可见、取 ListTile 中心点击。
+      final webdavTile = find.ancestor(
+        of: find.text('WebDAV 同步'),
+        matching: find.byType(ListTile),
+      );
+      await tester.ensureVisible(webdavTile);
+      await tester.pumpAndSettle();
+      await tester.tap(webdavTile, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(WebDavSyncSettingsPage), findsOneWidget);
+    });
+
+    testWidgets('外观入口：注入控制器后显示，点击循环模式', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final controller = AppThemeController();
+
+      await tester.pumpWidget(
+        MaterialApp(home: SettingsPage(themeController: controller)),
+      );
+      expect(find.text('外观'), findsOneWidget);
+      final before = controller.mode;
+
+      await tester.tap(find.text('外观'));
+      await tester.pump();
+      expect(controller.mode, isNot(before));
+    });
+
+    testWidgets('单文件密码：帮助弹窗展示三层关系说明', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+
+      await tester.pumpWidget(
+        MaterialApp(home: SettingsPage(appLockService: AppLockService())),
+      );
+      await tester.tap(find.text('单文件密码'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('单文件密码'), findsWidgets); // 列表项 + 弹窗标题
+      expect(find.textContaining('独立于开屏密码'), findsOneWidget);
+      expect(find.text('知道了'), findsOneWidget);
+
+      await tester.tap(find.text('知道了'));
+      await tester.pumpAndSettle();
+      expect(find.text('知道了'), findsNothing);
+    });
+  });
+}
