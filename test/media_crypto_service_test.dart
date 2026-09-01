@@ -1,3 +1,7 @@
+// PBKDF2(600k) 用例在全量高并发下超默认 30s 超时，放宽到 3 分钟。
+@Timeout(Duration(minutes: 3))
+library;
+
 import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';

@@ -250,6 +250,8 @@ extension _NotebookPageManage on _NotebookViewPageState {
         _importPdf();
       case _NotebookMenuItem.security:
         _setPassword();
+      case _NotebookMenuItem.bindUsb:
+        _startBindUsb();
       case _NotebookMenuItem.organize:
         _macroMovePages();
     }

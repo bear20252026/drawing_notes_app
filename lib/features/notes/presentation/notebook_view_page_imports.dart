@@ -181,12 +181,15 @@ extension _NotebookPageImports on _NotebookViewPageState {
     await _enablePasswordEncryption();
   }
 
-  /// 密码模式加密。
+  /// 密码模式加密/改密（N4 批 3：v5 双保护器——改密=重绕密码槽）。
   Future<void> _enablePasswordEncryption() async {
+    final isChange = _notebook.encrypted;
     final password = await showDialog<String>(
       context: context,
-      builder: (ctx) =>
-          const _PasswordDialog(title: '设置密码保护', hint: '设置后页面内容将加密存储，打开需输入密码'),
+      builder: (ctx) => _PasswordDialog(
+        title: isChange ? '修改密码保护' : '设置密码保护',
+        hint: isChange ? '修改后打开需输入新密码' : '设置后页面内容将加密存储，打开需输入密码',
+      ),
     );
     if (password == null || password.isEmpty) return;
     // 批次②：≠开屏密码强制——哈希加盐不可直接比对，verify 探测
@@ -196,7 +199,22 @@ extension _NotebookPageImports on _NotebookViewPageState {
       return;
     }
     try {
-      await widget.storage.encryptAndSave(_notebook, password);
+      if (isChange) {
+        // v5 改密：旧密码解出 DEK → 重绕密码槽（payload 与重置盘槽位不动）。
+        // 旧格式信封自动升级 v5。会话密码在则直接用，否则先验证当前密码。
+        final old = _effectivePassword;
+        if (old == null || old.isEmpty) {
+          _showSnack('请重新输入密码解锁后再修改');
+          return;
+        }
+        await widget.storage.changeNotebookPassword(
+          _notebook.id,
+          old,
+          password,
+        );
+      } else {
+        await widget.storage.encryptAndSave(_notebook, password);
+      }
       // 记录会话密码：设置后本页内编辑可重加密保存（修复"无法保存"问题）。
       _sessionPassword = password;
       // H-03 密码模式媒体加密（方案 B）：全局盐派生注入（storeImage 加密
@@ -205,13 +223,80 @@ extension _NotebookPageImports on _NotebookViewPageState {
       await MediaCryptoService.instance.setSessionPassword(password, mediaSalt);
       if (mounted) {
         _applyState(() {});
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('已启用密码保护（页面内容加密存储）')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isChange ? '密码已修改' : '已启用密码保护（页面内容加密存储）',
+            ),
+          ),
+        );
       }
+      // N4 批 3：未绑定重置密码盘时询问是否当场插盘绑定（可跳过，事后
+      // 在菜单「绑定重置密码盘」中补绑）。
+      await _offerUsbBinding(password);
     } catch (e) {
-      _showSnack('设置密码失败：${e.runtimeType}');
+      _showSnack('${isChange ? '修改密码' : '设置密码'}失败：${e.runtimeType}');
     }
+  }
+
+  /// N4 批 3：设密后询问绑定重置密码盘。
+  Future<void> _offerUsbBinding(String password) async {
+    if (!mounted) return;
+    if (await widget.storage.hasNotebookUsbSlot(_notebook.id)) return;
+    if (!mounted) return;
+    final bind = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('绑定重置密码盘？'),
+        content: const Text(
+          '绑定后忘记密码时，插入 U 盘即可重置新密码。\n\n'
+          '可以稍后在菜单「绑定重置密码盘」中补绑。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('暂不'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('插盘绑定'),
+          ),
+        ],
+      ),
+    );
+    if (bind != true || !mounted) return;
+    await _bindUsbDisk(password);
+  }
+
+  /// N4 批 3：选盘读钥匙并绑定（菜单入口与设密后询问共用）。
+  Future<void> _bindUsbDisk(String password) async {
+    final dir = await ResetDiskFile.pickDirectory();
+    if (dir == null || !mounted) return;
+    final usbKey = await ResetDiskFile.readFrom(dir);
+    if (usbKey == null) {
+      _showSnack('未找到有效的重置密码盘文件（password_reset_disk.key）');
+      return;
+    }
+    try {
+      await widget.storage.bindNotebookUsbSlot(_notebook.id, password, usbKey);
+      _showSnack('已绑定重置密码盘');
+    } catch (e) {
+      _showSnack('绑定失败：${e.runtimeType}');
+    }
+  }
+
+  /// N4 批 3：菜单「绑定重置密码盘」入口（须已解锁——会话密码可用）。
+  Future<void> _startBindUsb() async {
+    if (await widget.storage.hasNotebookUsbSlot(_notebook.id)) {
+      _showSnack('已绑定重置密码盘');
+      return;
+    }
+    final pw = _effectivePassword;
+    if (pw == null || pw.isEmpty) {
+      _showSnack('请先输入密码解锁后再绑定');
+      return;
+    }
+    await _bindUsbDisk(pw);
   }
 
   /// 查看并回溯页面版本历史（C1）。

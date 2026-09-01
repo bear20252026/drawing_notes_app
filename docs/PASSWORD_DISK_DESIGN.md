@@ -1,8 +1,8 @@
 # 重置密码盘（U 盘）设计方案
 
-> 状态：N4 批 1 + 批 2 已落地 · 2026-09-02（命名体系定案版）
+> 状态：N4 批 1 + 批 2 + 批 3 已落地 · 2026-09-02（命名体系定案版）
 > 前身：key.frogkey「解锁钥匙」+ vault_reset.frogkey「恢复钥匙」双体系（已删除）
-> 目标：一把 U 盘统一重置开屏密码与文件密码（开屏密码 ✅ 批 1 · 画布文件密码 ✅ 批 2 · 分页画布 ⬅️ 批 3）
+> 目标：一把 U 盘统一重置开屏密码与文件密码（开屏密码 ✅ 批 1 · 画布文件密码 ✅ 批 2 · 分页画布 ✅ 批 3）
 
 ---
 
@@ -25,7 +25,7 @@ U 盘只实现**一种功能 = 重置密码盘**：
 | 层 | 保护对象 | 忘记密码 |
 |----|----------|----------|
 | 第 1 层 · 开屏密码 | 整个 App（+ 主密钥保险库） | 重置密码盘重设 |
-| 第 2 层 · 文件密码 | 单个文件（画布✅/分页画布✅/笔记⬅️ N2 补） | 重置密码盘重设（批 2/3 接入） |
+| 第 2 层 · 文件密码 | 单个文件（画布✅/分页画布✅/笔记⬅️ N2 补） | 重置密码盘重设（批 2/3 已接入） |
 | 重置密码盘（U 盘） | ——（不是锁，是通道） | —— |
 
 ## 3. 钥匙文件格式（password_reset_disk.key）
@@ -135,3 +135,67 @@ USB 钥匙解开 DEK → 新盐重绕密码槽 → **载荷密文与 USB 槽位�
   v2 走原 `decryptWithPassword` 路径，v3 走 `unlockWithPasswordV3`；
 - v2 文件用户「修改一次密码」即自动升级 v3，之后可绑定重置盘；
 - 忘记密码且从未绑定重置盘的旧 v2 文件：无法重置（弹窗明示）。
+
+## 8. 分页画布 v5 双保护器载荷（N4 批 3，2026-09-02）
+
+### 8.1 为什么不是 v3 信封
+
+分页画布的密码线（`EncryptionService`）是 JSON 载荷模型（v4：
+`{"mode":"password","v":4,"payload":...}`，页面内容由
+`encryptNotebookPayload/decryptNotebookPayload` 以 AAD
+`drawing-notes|notebook|<id>|payload|v4` 加密）。直接迁移到批 2 的二进制
+v3 信封改动大且破坏该模型，故在 JSON 内实现**同构的多保护器槽位**——
+批 2 的 LUKS 槽位语义在 v5 完整复现，且 payload 层零迁移（复用 v4 AAD）。
+
+### 8.2 v5 落盘格式（JSON）
+
+```json
+{"mode":"password","v":5,
+ "slots":{
+   "pw":  {"s":b64,"it":600000,"w":b64},
+   "usb": {"w":b64}                       // 可选，绑盘后才有
+ },
+ "payload": { …v4 载荷（DEK 加密后的原文即 v4 加密内容）… }}
+```
+
+- 随机 32B **DEK** 加密 payload（`VaultKeyService.aeadEncrypt`，wrapped
+  格式 = nonce(12)+cipher+tag(16)，单一事实来源）；
+- 密码槽：PBKDF2(600k) 包裹 DEK（槽 AAD `drawing-notes|nb-slot|pw|v5|nb:<id>`）；
+- 重置盘槽：U 盘钥匙直接包裹 DEK（槽 AAD `drawing-notes|nb-slot|usb|v5|nb:<id>`）
+  ——槽位不可跨笔记本移植；
+- **DEK 按笔记本恒定**：知道密码即可从密码槽重解 DEK →
+  续写/改密天然不失效已绑定的 USB 槽。
+
+### 8.3 关键操作（`NotebookStorage`）
+
+| API | 说明 |
+|-----|------|
+| `encryptAndSave(nb, pw, {usbKey})` | v5 设密；已有 v5 → 复用 DEK 与槽位组仅重生成 payload（密码不匹配抛 FormatException） |
+| `changeNotebookPassword(id, old, new, {usbKey?})` | 仅重绕密码槽，payload+USB 槽原样保留；v4 旧载荷自动升级 v5 |
+| `bindNotebookUsbSlot(id, pw, key)` | 事后绑定（须验证密码；已绑定抛 FormatException）；旧格式自动升级 |
+| `resetNotebookPasswordWithUsb(id, key, newPw)` | 忘记密码通道：USB 解 DEK → 重绕密码槽；fail-closed 返回 false |
+| `hasNotebookUsbSlot(id)` | 嗅探是否已绑盘 |
+| `verifyNotebookPassword` / `decryptNotebook` | 成功即入会话缓存 `_sessionNotebookPasswords`（`notebookPasswordFor`/`forgetNotebookPassword`，删除时清理） |
+
+兼容：v4/v3/v2 旧载荷**只读兼容**，改密/绑定时自动升级 v5。
+
+### 8.4 UI 接入（含 M12 回归修复）
+
+- **M12 回归修复**：M12 重做 home_page_tabs 时，加密分页画布的解锁路径
+  丢失（`decryptNotebook` 变为零 UI 调用方）。本轮在 app_shell `_openAllDoc`
+  note 分支与 search_page 两处**恢复完整解锁流**：加密且会话无密码 →
+  UnlockFlow（含「忘记密码？」footer）→ 会话密码注入
+  `MediaCryptoService.setSessionPassword`（媒体加密）并传给 NotebookViewPage；
+- 设密/改密（`_enablePasswordEncryption`）：改密走
+  `changeNotebookPassword`；成功后弹窗询问「绑定重置密码盘？」（可跳过）；
+- 分页画布菜单（仅已加密时显示）加「绑定重置密码盘」事后绑定入口；
+- 忘记密码走 `NotebookPasswordResetFlow.show`（与批 2 的
+  FilePasswordResetFlow 共享 `PasswordResetSteps` 公共步骤——
+  说明确认 → 选盘读钥匙 → 新密码两遍（≠开屏密码）→ 重置，防石山）。
+
+### 8.5 测试
+
+test/core/storage/notebook_encryption_v5_test.dart：10 条用例
+（EncryptionService 层 5 + NotebookStorage 层 5），覆盖 v5 往返、
+改密保留 payload/USB 槽、重置 fail-closed、事后绑定、v4 兼容、
+续写不失效 USB 槽、会话缓存生命周期。

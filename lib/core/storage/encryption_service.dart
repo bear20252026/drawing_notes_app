@@ -4,6 +4,8 @@ import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 
+import 'package:drawing_notes_app/core/security/vault_key_service.dart';
+
 /// 密码保护加密服务（C3/C5，借鉴 Joplin 端到端加密理念）。
 ///
 /// 使用 AES-GCM 256 对称加密；密钥由 PBKDF2（加盐、10 万次迭代）从密码
@@ -211,8 +213,8 @@ class EncryptionService {
     return jsonEncode(map);
   }
 
-  /// 密码模式 v4 解密：v4 AAD 优先，v3 旧数据回退（flutter_secure_storage
-  /// 两步迁移：兼容期新旧并存，旧格式仅读）。
+  /// 密码模式 v4 解密：v5 双保护器优先，v4 AAD 次之，v3/v2 旧数据回退
+  /// （flutter_secure_storage 两步迁移：兼容期新旧并存，旧格式仅读）。
   Future<String> decryptWithPasswordAad({
     required String notebookId,
     required String encryptedJson,
@@ -220,6 +222,17 @@ class EncryptionService {
   }) async {
     _requireInputSize(encryptedJson);
     final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
+    if (isDualProtectorEnvelope(encryptedJson)) {
+      final dek = await _unwrapPasswordSlotV5(
+        notebookId: notebookId,
+        map: map,
+        password: password,
+      );
+      if (dek == null) {
+        throw const FormatException('密码错误或数据已损坏');
+      }
+      return _decryptPayloadV5(notebookId: notebookId, map: map, dek: dek);
+    }
     if (map['mode'] == 'payload' && map['v'] == 4) {
       final salt = base64Decode(_requireString(map, 's'));
       _requireFixedLength('盐', salt, _saltLength);
@@ -232,6 +245,312 @@ class EncryptionService {
       );
     }
     return decrypt(encryptedJson, password);
+  }
+
+  // ==== v5 双保护器载荷（N4 批 3，2026-09-02 定案） ====
+  //
+  // 随机 32B DEK 加密 payload（沿用 v4 AAD 上下文绑定）；密码槽
+  // （PBKDF2 包裹 DEK）+ 可选重置盘槽（U 盘钥匙直接包裹 DEK）各持一把
+  // 钥匙开同一把 DEK——与 VaultFileCodec v3 同一套 LUKS 槽位语义。
+  // 重置 = 重置盘解开 DEK → 新盐重绕密码槽，payload 密文一字节不动。
+  // DEK 从密码槽可随时重解（知道密码即知 DEK）——续写/改密天然不失效
+  // 已绑定的重置盘槽位。
+
+  static const int _v5DekLength = 32;
+
+  /// 槽位 AAD：绑定用途与笔记本 ID（防槽位密文跨笔记本移植）。
+  static Uint8List _slotAadV5(String kind, String notebookId) =>
+      Uint8List.fromList(
+        utf8.encode('drawing-notes|nb-slot|$kind|v5|nb:$notebookId'),
+      );
+
+  /// 嗅探是否为 v5 双保护器载荷。
+  static bool isDualProtectorEnvelope(String encryptedJson) {
+    try {
+      final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
+      return map['mode'] == 'password' && map['v'] == 5;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 读取 v5 信封是否已绑定重置密码盘（不解密）。
+  static bool hasUsbSlotV5(String encryptedJson) {
+    if (!isDualProtectorEnvelope(encryptedJson)) return false;
+    try {
+      final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
+      final slots = map['slots'] as Map<String, dynamic>;
+      return slots['usb'] != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// v5 加密：随机 DEK 加密 payload + 密码槽包裹（可选重置盘槽）。
+  Future<String> encryptWithPasswordV5({
+    required String notebookId,
+    required String plaintext,
+    required String password,
+    List<int>? usbKey,
+  }) async {
+    final dek = VaultKeyService.randomBytes(_v5DekLength);
+    final payload = await encryptNotebookPayload(
+      notebookId: notebookId,
+      plaintext: plaintext,
+      key: dek,
+    );
+    final slots = await _wrapSlotsV5(
+      notebookId: notebookId,
+      dek: dek,
+      password: password,
+      usbKey: usbKey,
+    );
+    return jsonEncode({
+      'mode': 'password',
+      'v': 5,
+      'slots': slots,
+      'payload': jsonDecode(payload),
+    });
+  }
+
+  /// 生成 v5 槽位组：密码槽（PBKDF2 包裹 DEK）+ 可选重置盘槽。
+  static Future<Map<String, dynamic>> _wrapSlotsV5({
+    required String notebookId,
+    required List<int> dek,
+    required String password,
+    List<int>? usbKey,
+  }) async {
+    final salt = VaultKeyService.randomBytes(_saltLength);
+    final kek = await VaultKeyService.deriveKek(
+      password,
+      salt,
+      _pbkdf2IterationsCurrent,
+    );
+    final pwWrapped = await VaultKeyService.aeadEncrypt(
+      kek,
+      dek,
+      _slotAadV5('pw', notebookId),
+    );
+    String? usbWrapped;
+    if (usbKey != null) {
+      final w = await VaultKeyService.aeadEncrypt(
+        usbKey,
+        dek,
+        _slotAadV5('usb', notebookId),
+      );
+      usbWrapped = base64Encode(w);
+    }
+    return {
+      'pw': {
+        's': base64Encode(salt),
+        'it': _pbkdf2IterationsCurrent,
+        'w': base64Encode(pwWrapped),
+      },
+      if (usbWrapped != null) 'usb': {'w': usbWrapped},
+    };
+  }
+
+  /// 用密码解开密码槽取出 DEK；密码错误/信封非法返回 null。
+  static Future<List<int>?> _unwrapPasswordSlotV5({
+    required String notebookId,
+    required Map<String, dynamic> map,
+    required String password,
+  }) async {
+    try {
+      final slots = map['slots'] as Map<String, dynamic>;
+      final pw = slots['pw'] as Map<String, dynamic>;
+      final salt = base64Decode(_requireString(pw, 's'));
+      _requireFixedLength('盐', salt, _saltLength);
+      final it = pw['it'] is int ? pw['it'] as int : _pbkdf2IterationsCurrent;
+      final wrapped = base64Decode(_requireString(pw, 'w'));
+      final kek = await VaultKeyService.deriveKek(password, salt, it);
+      return await VaultKeyService.aeadDecrypt(
+        kek,
+        wrapped,
+        _slotAadV5('pw', notebookId),
+      );
+    } on FormatException {
+      rethrow; // 字段畸形（篡改）保持契约
+    } catch (_) {
+      return null; // 密码错误（AEAD 认证失败）
+    }
+  }
+
+  /// 用 DEK 解密 v5 payload（复用 v4 AAD 上下文）。
+  Future<String> _decryptPayloadV5({
+    required String notebookId,
+    required Map<String, dynamic> map,
+    required List<int> dek,
+  }) async {
+    final payload = map['payload'];
+    if (payload is! Map<String, dynamic>) {
+      throw const FormatException('v5 载荷缺失');
+    }
+    return decryptNotebookPayload(
+      notebookId: notebookId,
+      encryptedJson: jsonEncode(payload),
+      key: dek,
+    );
+  }
+
+  /// v5 改密：旧密码解出 DEK → 新盐重绕密码槽。payload 与重置盘槽
+  /// **原样保留**（LUKS 语义——改密不动数据密文）。旧密码错误抛
+  /// [FormatException]。
+  Future<String> changeNotebookPasswordV5({
+    required String notebookId,
+    required String encryptedJson,
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    _requireInputSize(encryptedJson);
+    final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
+    if (!isDualProtectorEnvelope(encryptedJson)) {
+      throw const FormatException('不是 v5 双保护器载荷');
+    }
+    final dek = await _unwrapPasswordSlotV5(
+      notebookId: notebookId,
+      map: map,
+      password: oldPassword,
+    );
+    if (dek == null) {
+      throw const FormatException('密码错误或数据已损坏');
+    }
+    final slots = await _wrapSlotsV5(
+      notebookId: notebookId,
+      dek: dek,
+      password: newPassword,
+      usbKey: null,
+    );
+    // 保留原重置盘槽位（DEK 未变——槽位仍然有效）。
+    final oldSlots = map['slots'] as Map<String, dynamic>;
+    final usb = oldSlots['usb'];
+    if (usb is Map<String, dynamic>) slots['usb'] = usb;
+    return jsonEncode({
+      'mode': 'password',
+      'v': 5,
+      'slots': slots,
+      'payload': map['payload'],
+    });
+  }
+
+  /// v5 重置盘重置：U 盘钥匙解出 DEK → 新盐重绕密码槽。payload 与密码
+  /// 槽外的其他槽位原样保留。盘不匹配/未绑定/非 v5 → null（fail-closed）。
+  Future<String?> resetNotebookPasswordWithUsbV5({
+    required String notebookId,
+    required String encryptedJson,
+    required List<int> usbKey,
+    required String newPassword,
+  }) async {
+    _requireInputSize(encryptedJson);
+    final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
+    if (!isDualProtectorEnvelope(encryptedJson)) return null;
+    List<int> dek;
+    try {
+      final slots = map['slots'] as Map<String, dynamic>;
+      final usb = slots['usb'];
+      if (usb is! Map<String, dynamic>) return null;
+      final wrapped = base64Decode(_requireString(usb, 'w'));
+      dek = await VaultKeyService.aeadDecrypt(
+        usbKey,
+        wrapped,
+        _slotAadV5('usb', notebookId),
+      );
+    } on FormatException {
+      rethrow;
+    } catch (_) {
+      return null; // 盘不匹配（AEAD 认证失败）
+    }
+    final slots = await _wrapSlotsV5(
+      notebookId: notebookId,
+      dek: dek,
+      password: newPassword,
+      usbKey: null,
+    );
+    // 保留原重置盘槽位。
+    final oldSlots = map['slots'] as Map<String, dynamic>;
+    final usb = oldSlots['usb'];
+    if (usb is Map<String, dynamic>) slots['usb'] = usb;
+    return jsonEncode({
+      'mode': 'password',
+      'v': 5,
+      'slots': slots,
+      'payload': map['payload'],
+    });
+  }
+
+  /// v5 事后绑定重置盘：用密码解出 DEK → 追加重置盘槽位。
+  /// 已绑定/密码错误/非 v5 → null 或抛 [FormatException]（密码错）。
+  Future<String> bindNotebookUsbSlotV5({
+    required String notebookId,
+    required String encryptedJson,
+    required String password,
+    required List<int> usbKey,
+  }) async {
+    _requireInputSize(encryptedJson);
+    final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
+    if (!isDualProtectorEnvelope(encryptedJson)) {
+      throw const FormatException('不是 v5 双保护器载荷');
+    }
+    if (hasUsbSlotV5(encryptedJson)) {
+      throw const FormatException('已绑定重置密码盘');
+    }
+    final dek = await _unwrapPasswordSlotV5(
+      notebookId: notebookId,
+      map: map,
+      password: password,
+    );
+    if (dek == null) {
+      throw const FormatException('密码错误或数据已损坏');
+    }
+    final w = await VaultKeyService.aeadEncrypt(
+      usbKey,
+      dek,
+      _slotAadV5('usb', notebookId),
+    );
+    final slots = map['slots'] as Map<String, dynamic>;
+    slots['usb'] = {'w': base64Encode(w)};
+    return jsonEncode({
+      'mode': 'password',
+      'v': 5,
+      'slots': slots,
+      'payload': map['payload'],
+    });
+  }
+
+  /// [encryptAndSave] 续写辅助：密码解出 DEK（错误返回 null，不抛）。
+  Future<List<int>?> unwrapPasswordSlotForRewrap({
+    required String notebookId,
+    required String encryptedJson,
+    required String password,
+  }) async {
+    _requireInputSize(encryptedJson);
+    final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
+    return _unwrapPasswordSlotV5(
+      notebookId: notebookId,
+      map: map,
+      password: password,
+    );
+  }
+
+  /// [encryptAndSave] 续写辅助：复用 DEK 与既有槽位组，仅重生成 payload
+  /// 密文（DEK 不变 → 重置盘槽位继续有效——LUKS 槽位语义）。
+  Future<String> rewrapPayloadV5({
+    required String notebookId,
+    required Map<String, dynamic> map,
+    required List<int> dek,
+    required String plaintext,
+  }) async {
+    final payload = await encryptNotebookPayload(
+      notebookId: notebookId,
+      plaintext: plaintext,
+      key: dek,
+    );
+    return jsonEncode({
+      'mode': 'password',
+      'v': 5,
+      'slots': map['slots'],
+      'payload': jsonDecode(payload),
+    });
   }
 
   /// 生成 [n] 字节随机数（盐/nonce）。

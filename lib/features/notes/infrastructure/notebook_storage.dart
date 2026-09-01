@@ -317,6 +317,7 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     // 先收集图片路径再删除文件：文件删除后无法再读取其内容。
     final imagePaths = await _collectImagePaths(id);
     await file.delete();
+    forgetNotebookPassword(id); // 会话密码随文档删除一并清理
     // 清理该笔记本所有页面引用的图片副本（尽力而为）。
     for (final p in imagePaths) {
       try {
@@ -492,23 +493,212 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
   }
 
   /// 启用密码保护并保存：把页面内容 AES-GCM 加密为载荷，明文不落盘。
-  Future<String> encryptAndSave(Notebook notebook, String password) async {
+  ///
+  /// N4 批 3：加密走 v5 双保护器载荷（随机 DEK + 密码槽 + 可选重置盘槽）；
+  /// 已是 v5 时复用信封内的 DEK 与重置盘槽位（续写不失效已绑定槽位——
+  /// LUKS 槽位语义），仅重生成 payload 密文。
+  /// [usbKey] 为重置密码盘钥匙（可选——设密/改密时当场插盘绑定）。
+  Future<String> encryptAndSave(
+    Notebook notebook,
+    String password, {
+    List<int>? usbKey,
+  }) async {
     // 第一步合规（2026-08-16 专家审计最优先行动②）：加密笔记本不生成
     // 明文 searchSummary——"废除默认明文 searchSummary"。未来 K_note
     // 密钥层级落地后摘要可加密存储（解锁会话内搜索——安全）。
     final payloadJson = jsonEncode({
       'pages': notebook.pages.map((p) => p.toJson()).toList(),
     });
+    final existing = notebook.encryptedPayload;
+    if (existing != null && EncryptionService.isDualProtectorEnvelope(existing)) {
+      // v5 续写：密码解出 DEK → 复用槽位组，仅重生成 payload。
+      final map = jsonDecode(existing) as Map<String, dynamic>;
+      final dek = await _encryption.unwrapPasswordSlotForRewrap(
+        notebookId: notebook.id,
+        encryptedJson: existing,
+        password: password,
+      );
+      if (dek == null) {
+        throw const FormatException('会话密码与当前信封不匹配');
+      }
+      final newPayload = await _encryption.rewrapPayloadV5(
+        notebookId: notebook.id,
+        map: map,
+        dek: dek,
+        plaintext: payloadJson,
+      );
+      notebook.encryptedPayload = newPayload;
+    } else {
+      notebook.encryptedPayload = await _encryption.encryptWithPasswordV5(
+        notebookId: notebook.id,
+        plaintext: payloadJson,
+        password: password,
+        usbKey: usbKey,
+      );
+    }
     notebook.encrypted = true;
-    notebook.encryptedPayload = await _encryption.encryptWithPasswordAad(
-      notebookId: notebook.id,
-      plaintext: payloadJson,
-      password: password,
-    );
+    _cacheNotebookPassword(notebook.id, password);
     // 直接原子写入（toJson 中 encrypted 时 pages 序列化为空，仅存密文载荷）。
     // 注意：不能走 save()——save 对"加密且内存有明文页面"会抛 StateError
     // （这是编辑会话的守卫），而加密保存时内存本来就有明文页面。
     return _writeNotebook(notebook);
+  }
+
+  /// 校验分页画布文件密码（正确即入会话缓存——解锁一次本会话免重复输入）。
+  Future<bool> verifyNotebookPassword(String id, String password) async {
+    final nb = await load(id);
+    if (nb == null || nb.encryptedPayload == null) return false;
+    try {
+      await _encryption.decryptWithPasswordAad(
+        notebookId: id,
+        encryptedJson: nb.encryptedPayload!,
+        password: password,
+      );
+    } on FormatException {
+      return false;
+    }
+    _cacheNotebookPassword(id, password);
+    return true;
+  }
+
+  /// 修改分页画布文件密码（N4 批 3）。
+  ///
+  /// v5 信封：仅重绕密码槽（payload 与重置盘槽位原样保留——LUKS 语义）。
+  /// v4/v3/v2 旧信封：解密后整体升级为 v5（可选顺带绑定重置盘）。
+  /// 旧密码错误抛 [FormatException]。
+  Future<void> changeNotebookPassword(
+    String id,
+    String oldPassword,
+    String newPassword, {
+    List<int>? usbKey,
+  }) async {
+    final nb = await load(id);
+    final payload = nb?.encryptedPayload;
+    if (nb == null || payload == null) {
+      throw StateError('该分页画布未设置文件密码');
+    }
+    String newPayload;
+    if (EncryptionService.isDualProtectorEnvelope(payload)) {
+      newPayload = await _encryption.changeNotebookPasswordV5(
+        notebookId: id,
+        encryptedJson: payload,
+        oldPassword: oldPassword,
+        newPassword: newPassword,
+      );
+      if (usbKey != null &&
+          !EncryptionService.hasUsbSlotV5(payload)) {
+        newPayload = await _encryption.bindNotebookUsbSlotV5(
+          notebookId: id,
+          encryptedJson: newPayload,
+          password: newPassword,
+          usbKey: usbKey,
+        );
+      }
+    } else {
+      // 旧格式升级：解密出明文 → v5 重加密（顺带完成格式升级）。
+      final clear = await _encryption.decryptWithPasswordAad(
+        notebookId: id,
+        encryptedJson: payload,
+        password: oldPassword,
+      );
+      newPayload = await _encryption.encryptWithPasswordV5(
+        notebookId: id,
+        plaintext: clear,
+        password: newPassword,
+        usbKey: usbKey,
+      );
+    }
+    nb.encryptedPayload = newPayload;
+    _cacheNotebookPassword(id, newPassword);
+    await save(nb);
+  }
+
+  /// 该分页画布是否已绑定重置密码盘（v5 且含 USB 槽位）。
+  Future<bool> hasNotebookUsbSlot(String id) async {
+    final nb = await load(id);
+    final payload = nb?.encryptedPayload;
+    if (payload == null) return false;
+    return EncryptionService.hasUsbSlotV5(payload);
+  }
+
+  /// 事后绑定重置密码盘（v5 信封；旧格式自动升级 v5）。
+  /// 密码错误抛 [FormatException]；已绑定抛 [FormatException]。
+  Future<void> bindNotebookUsbSlot(
+    String id,
+    String password,
+    List<int> usbKey,
+  ) async {
+    final nb = await load(id);
+    final payload = nb?.encryptedPayload;
+    if (nb == null || payload == null) {
+      throw StateError('该分页画布未设置文件密码');
+    }
+    String newPayload;
+    if (EncryptionService.isDualProtectorEnvelope(payload)) {
+      newPayload = await _encryption.bindNotebookUsbSlotV5(
+        notebookId: id,
+        encryptedJson: payload,
+        password: password,
+        usbKey: usbKey,
+      );
+    } else {
+      final clear = await _encryption.decryptWithPasswordAad(
+        notebookId: id,
+        encryptedJson: payload,
+        password: password,
+      );
+      newPayload = await _encryption.encryptWithPasswordV5(
+        notebookId: id,
+        plaintext: clear,
+        password: password,
+        usbKey: usbKey,
+      );
+    }
+    nb.encryptedPayload = newPayload;
+    await save(nb);
+  }
+
+  /// 用重置密码盘重置分页画布文件密码（N4 批 3）。
+  ///
+  /// 前提：v5 信封且已绑定重置密码盘。重置 = U 盘钥匙解出 DEK → 新盐
+  /// 重绕密码槽，payload 密文不动。成功后会话密码已缓存（可直接解锁）。
+  /// 返回 false = 未绑定/盘不匹配/非 v5（fail-closed）。
+  Future<bool> resetNotebookPasswordWithUsb(
+    String id,
+    List<int> usbKey,
+    String newPassword,
+  ) async {
+    final nb = await load(id);
+    final payload = nb?.encryptedPayload;
+    if (nb == null || payload == null) return false;
+    final newPayload = await _encryption.resetNotebookPasswordWithUsbV5(
+      notebookId: id,
+      encryptedJson: payload,
+      usbKey: usbKey,
+      newPassword: newPassword,
+    );
+    if (newPayload == null) return false;
+    nb.encryptedPayload = newPayload;
+    _cacheNotebookPassword(id, newPassword);
+    await save(nb);
+    return true;
+  }
+
+  // ---- 会话密码缓存（与 StorageService._sessionFilePasswords 同语义：
+  // 仅内存、解锁成功后缓存、本会话免重复输入）----
+
+  final Map<String, String> _sessionNotebookPasswords = <String, String>{};
+
+  /// 该分页画布本会话内是否已解锁文件密码。
+  String? notebookPasswordFor(String id) => _sessionNotebookPasswords[id];
+
+  void _cacheNotebookPassword(String id, String password) {
+    _sessionNotebookPasswords[id] = password;
+  }
+
+  /// 清除会话密码（移除文件密码 / 文档删除后调用）。
+  void forgetNotebookPassword(String id) {
+    _sessionNotebookPasswords.remove(id);
   }
 
   /// 用密码解密加密笔记本的页面内容（密码错误抛 [FormatException]）。
@@ -534,6 +724,8 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     notebook.pages
       ..clear()
       ..addAll(pages);
+    // 解锁成功——缓存会话密码（本会话免重复输入；重置流直接续用）。
+    _cacheNotebookPassword(notebook.id, password);
     // 保留 encryptedPayload：密文仍是持久化的唯一副本；
     // 修改加密笔记本时由调用方重新加密（见 save 的重加密逻辑）。
     return true;

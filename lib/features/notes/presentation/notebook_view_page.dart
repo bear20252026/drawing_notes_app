@@ -26,6 +26,8 @@ import 'package:drawing_notes_app/core/storage/pdf_import_service.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 // 批次②：笔记本设密 ≠开屏密码强制（verify 探测法检测同码）。
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
+// N4 批 3：重置密码盘绑定（设密后询问 + 菜单入口）。
+import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 import 'package:drawing_notes_app/features/notes/presentation/presentation_page.dart';
@@ -297,6 +299,17 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                   title: Text(_notebook.encrypted ? '修改密码保护' : '设置密码保护'),
                 ),
               ),
+              // N4 批 3：已加密时提供重置密码盘绑定入口（忘记密码可重置）。
+              if (_notebook.encrypted)
+                PopupMenuItem(
+                  value: _NotebookMenuItem.bindUsb,
+                  child: ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.usb_rounded),
+                    title: const Text('绑定重置密码盘'),
+                  ),
+                ),
               const PopupMenuDivider(),
               PopupMenuItem(
                 value: _NotebookMenuItem.organize,

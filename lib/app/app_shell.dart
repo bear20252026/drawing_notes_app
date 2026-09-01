@@ -36,6 +36,10 @@ import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
     show UnlockFlow;
 // N4 批 2：画布解锁弹窗「忘记密码？」→ 重置密码盘重置流。
 import 'package:drawing_notes_app/fix/file_password_reset_flow.dart';
+// N4 批 3：分页画布解锁弹窗「忘记密码？」→ 重置密码盘重置流。
+import 'package:drawing_notes_app/fix/notebook_password_reset_flow.dart';
+// N4 批 3：加密分页画布解锁后媒体加密注入（页面图片解密用）。
+import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 
 /// 应用导航壳：4 个顶层目的地（M11 IA 收敛 + 批次⑤设置集中）。
 ///
@@ -357,8 +361,53 @@ class _AppShellState extends State<AppShell> {
       case AllDocKind.note:
         final nbStorage = widget.notebookStorage;
         if (nbStorage == null) return;
-        final nb = await nbStorage.load(doc.notebookId ?? '');
-        if (nb == null) return;
+        final nbId = doc.notebookId ?? '';
+        final loaded = await nbStorage.load(nbId);
+        if (loaded == null) return;
+        Notebook nb = loaded;
+        // N4 批 3：加密分页画布解锁拦截（M12 回归修复——重做首页时丢失
+        // 解锁路径）+ 忘记密码重置入口。会话已有密码（本会话已解锁/重置）
+        // 则跳过弹窗直接解密。
+        if (nb.encrypted && nbStorage.notebookPasswordFor(nbId) == null) {
+          if (!mounted) return;
+          final pin = await UnlockFlow.show(
+            context,
+            title: '该分页画布已加密，输入密码',
+            flexible: true,
+            onVerify: (p) => nbStorage.verifyNotebookPassword(nbId, p),
+            footerLabel: '忘记密码？',
+            onFooter: () {
+              NotebookPasswordResetFlow.show(
+                context,
+                storage: nbStorage,
+                notebookId: nbId,
+                notebookTitle: nb.title,
+              );
+            },
+          );
+          if (pin == null && nbStorage.notebookPasswordFor(nbId) == null) {
+            return; // 用户取消且会话无密码——不暴露内容
+          }
+        }
+        // 会话密码解密页面内容（解锁/重置成功后必有；未加密为 null 跳过）。
+        final sessionPw = nbStorage.notebookPasswordFor(nbId);
+        if (sessionPw != null) {
+          final fresh = await nbStorage.load(nbId);
+          if (fresh == null) return;
+          try {
+            final ok = await nbStorage.decryptNotebook(fresh, sessionPw);
+            if (!ok) return;
+            nb = fresh;
+            // H-03 媒体加密注入（与旧解锁路径同口径——页面图片解密用）。
+            final mediaSalt = await nbStorage.ensureMediaSalt();
+            await MediaCryptoService.instance.setSessionPassword(
+              sessionPw,
+              mediaSalt,
+            );
+          } on FormatException {
+            return; // 密码失效（缓存过期/重置竞态）——fail-closed
+          }
+        }
         nav.push(
           MaterialPageRoute(
             builder: (_) => NotebookViewPage(
@@ -366,6 +415,7 @@ class _AppShellState extends State<AppShell> {
               storage: nbStorage,
               blockDocStore: _services.blockDocStore,
               editorPageBuilder: widget.editorPageBuilder,
+              sessionPassword: sessionPw,
             ),
           ),
         );

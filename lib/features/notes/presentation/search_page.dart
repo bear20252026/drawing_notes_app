@@ -6,11 +6,17 @@ import 'package:drawing_notes_app/shared/application/search_service.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
+import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_page.dart';
+// N4 批 3：加密分页画布解锁拦截（与 app_shell 同口径）。
+import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/fix/notebook_password_reset_flow.dart';
+import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
+    show UnlockFlow;
 
 /// 全文搜索页（借鉴 Joplin / nb 的全文搜索）。
 class SearchPage extends StatefulWidget {
@@ -104,14 +110,56 @@ class _SearchPageState extends State<SearchPage> {
     final nbId = r.notebookId;
     if (nbId == null) return;
     final nbStorage = widget.notebookStorage ?? NotebookStorage();
-    final nb = await nbStorage.load(nbId);
-    if (nb == null || !mounted) return;
+    final loaded = await nbStorage.load(nbId);
+    if (loaded == null || !mounted) return;
+    Notebook nb = loaded;
+    // N4 批 3：加密分页画布解锁拦截（M12 回归修复——M12 前搜索页解锁
+    // 路径存在，重做后丢失；与 app_shell 同口径）。
+    if (nb.encrypted && nbStorage.notebookPasswordFor(nbId) == null) {
+      final pin = await UnlockFlow.show(
+        context,
+        title: '该分页画布已加密，输入密码',
+        flexible: true,
+        onVerify: (p) => nbStorage.verifyNotebookPassword(nbId, p),
+        footerLabel: '忘记密码？',
+        onFooter: () {
+          NotebookPasswordResetFlow.show(
+            context,
+            storage: nbStorage,
+            notebookId: nbId,
+            notebookTitle: nb.title,
+          );
+        },
+      );
+      if (pin == null && nbStorage.notebookPasswordFor(nbId) == null) {
+        return; // 用户取消且会话无密码——不暴露内容
+      }
+    }
+    final sessionPw = nbStorage.notebookPasswordFor(nbId);
+    if (sessionPw != null) {
+      final fresh = await nbStorage.load(nbId);
+      if (fresh == null || !mounted) return;
+      try {
+        final ok = await nbStorage.decryptNotebook(fresh, sessionPw);
+        if (!ok || !mounted) return;
+        nb = fresh;
+        final mediaSalt = await nbStorage.ensureMediaSalt();
+        await MediaCryptoService.instance.setSessionPassword(
+          sessionPw,
+          mediaSalt,
+        );
+      } on FormatException {
+        return; // 密码失效——fail-closed
+      }
+    }
+    if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => NotebookViewPage(
           notebook: nb,
           storage: nbStorage,
           editorPageBuilder: widget.editorPageBuilder,
+          sessionPassword: sessionPw,
         ),
       ),
     );
