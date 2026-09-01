@@ -232,6 +232,12 @@ extension _NotebookPageImports on _NotebookViewPageState {
           const _PasswordDialog(title: '设置密码保护', hint: '设置后页面内容将加密存储，打开需输入密码'),
     );
     if (password == null || password.isEmpty) return;
+    // 批次②：≠开屏密码强制——哈希加盐不可直接比对，verify 探测
+    // （能通过开屏锁校验即同码），同码会削弱两层独立的保护边界。
+    if (await AppLockService.matchesAppLockPin(password)) {
+      _showSnack('密码不能与开屏密码相同');
+      return;
+    }
     try {
       await widget.storage.encryptAndSave(_notebook, password);
       // 记录会话密码：设置后本页内编辑可重加密保存（修复"无法保存"问题）。

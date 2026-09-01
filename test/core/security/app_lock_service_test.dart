@@ -72,5 +72,48 @@ void main() {
       expect(await service.verify('1111'), isFalse);
       expect(await service.verify('2222'), isTrue);
     });
+
+    test('批次②：setPin 记录长度，新实例 load 后 pinLength 恢复（6 位）', () async {
+      SharedPreferences.setMockInitialValues({});
+      final writer = AppLockService();
+      expect(writer.pinLength, AppLockService.defaultPinLength);
+      await writer.setPin('135790'); // 6 位
+
+      final cold = AppLockService();
+      await cold.load();
+      expect(cold.pinLength, 6);
+      expect(await cold.verify('135790'), isTrue);
+    });
+
+    test('批次②：setPin 断言 4–12 位边界', () async {
+      SharedPreferences.setMockInitialValues({});
+      final service = AppLockService();
+      expect(() => service.setPin('123'), throwsA(isA<AssertionError>()));
+      expect(
+        () => service.setPin('1234567890123'), // 13 位
+        throwsA(isA<AssertionError>()),
+      );
+    });
+
+    test('批次②：disable 后 pinLength 回到默认值', () async {
+      SharedPreferences.setMockInitialValues({});
+      final service = AppLockService();
+      await service.setPin('12345678');
+      await service.disable();
+      expect(service.pinLength, AppLockService.defaultPinLength);
+    });
+
+    test('批次②：matchesAppLockPin——同码探测（≠开屏密码强制的底层）', () async {
+      SharedPreferences.setMockInitialValues({});
+      final writer = AppLockService();
+      await writer.setPin('9527');
+
+      // 同码 → true；不同码 → false；未配置 → false。
+      expect(await AppLockService.matchesAppLockPin('9527'), isTrue);
+      expect(await AppLockService.matchesAppLockPin('9528'), isFalse);
+
+      await writer.disable();
+      expect(await AppLockService.matchesAppLockPin('9527'), isFalse);
+    });
   });
 }

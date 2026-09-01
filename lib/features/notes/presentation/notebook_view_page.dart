@@ -27,6 +27,8 @@ import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/storage/pdf_import_service.dart';
 import 'package:drawing_notes_app/core/storage/recovery_key_generator.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
+// 批次②：笔记本设密 ≠开屏密码强制（verify 探测法检测同码）。
+import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 import 'package:drawing_notes_app/features/notes/presentation/presentation_page.dart';

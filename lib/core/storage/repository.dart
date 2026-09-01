@@ -24,6 +24,7 @@ class DocumentMeta {
     required this.layerCount,
     required this.strokeCount,
     this.folder = '',
+    this.locked = false,
   });
 
   final String id;
@@ -37,4 +38,8 @@ class DocumentMeta {
 
   /// 所属文件夹路径（如 `工作/项目A`），空串表示根目录。向后兼容默认 ''。
   final String folder;
+
+  /// 是否受独立文件密码保护且本会话尚未解锁（批次②）——
+  /// 列表页显示锁形徽标与占位标题，元信息不含真实内容。
+  final bool locked;
 }

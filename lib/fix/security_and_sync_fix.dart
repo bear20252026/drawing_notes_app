@@ -123,9 +123,13 @@ mixin SyncFixRouteAware<T extends StatefulWidget> on State<T>
 ///
 /// 自带 Material 透明层，可嵌入任意上下文（对话框 / Stack 覆盖层）。
 ///
-/// 交互协议：输满 [pinLength] 位后——
+/// 固定长度模式（默认）：输满 [pinLength] 位后——
 /// - [onVerify] 为空：立即回调 [onAccepted]（收集模式，如设置新密码）；
 /// - [onVerify] 非空：异步校验，通过回调 [onAccepted]，失败整体抖动并清空。
+///
+/// 可变长度模式（批次②，[flexible] 为 true）：4–12 位任意长度，退格键 +
+/// ✓ 确认键（补位原空键位）；输满 [flexibleMaxLength] 位或按 ✓ 提交，
+/// 不足 [flexibleMinLength] 位按 ✓ 抖动提示。
 ///
 /// 底部「紧急情况 / 取消」按钮按传入回调按需显示，均未传时整行隐藏
 /// （全屏启动锁不允许退出，两个回调皆不传即可）。
@@ -134,6 +138,9 @@ class PinPadCore extends StatefulWidget {
     super.key,
     this.title = '输入密码',
     this.pinLength = 4,
+    this.flexible = false,
+    this.flexibleMinLength = 4,
+    this.flexibleMaxLength = 12,
     this.onVerify,
     this.onAccepted,
     this.onEmergency,
@@ -141,7 +148,14 @@ class PinPadCore extends StatefulWidget {
   });
 
   final String title;
+
+  /// 固定长度模式的圆点数。
   final int pinLength;
+
+  /// 可变长度模式（批次②：4–12 位自定义密码，单文件密码输入用）。
+  final bool flexible;
+  final int flexibleMinLength;
+  final int flexibleMaxLength;
 
   /// 输满后的异步校验回调；为空则输满直接回调 [onAccepted]。
   final Future<bool> Function(String pin)? onVerify;
@@ -179,11 +193,48 @@ class _PinPadCoreState extends State<PinPadCore>
     '9': 'WXYZ',
   };
 
+  bool get _isFlexible => widget.flexible;
+
+  int get _maxLength =>
+      _isFlexible ? widget.flexibleMaxLength : widget.pinLength;
+
+  /// 圆点数：固定模式 = pinLength；可变模式 =
+  /// 「至少最短长度、随输入逐位增长、封顶最大长度」。
+  int get _dotCount => _isFlexible
+      ? (_entered.length + 1).clamp(
+          widget.flexibleMinLength,
+          widget.flexibleMaxLength,
+        )
+      : widget.pinLength;
+
   void _tap(String digit) {
-    if (_entered.length >= widget.pinLength) return;
+    if (_entered.length >= _maxLength) return;
     HapticFeedback.lightImpact();
     setState(() => _entered.write(digit));
-    if (_entered.length == widget.pinLength) _submit();
+    // 固定长度：输满自动提交；可变长度：等 ✓ 确认。
+    if (!_isFlexible && _entered.length == widget.pinLength) _submit();
+  }
+
+  /// 可变长度模式：退格。
+  void _backspace() {
+    if (_entered.isEmpty) return;
+    HapticFeedback.lightImpact();
+    setState(() {
+      final text = _entered.toString();
+      _entered
+        ..clear()
+        ..write(text.substring(0, text.length - 1));
+    });
+  }
+
+  /// 可变长度模式：✓ 确认提交（不足最短长度抖动提示）。
+  Future<void> _submitFlexible() async {
+    if (_entered.length < widget.flexibleMinLength) {
+      HapticFeedback.heavyImpact();
+      await _shake.forward(from: 0);
+      return;
+    }
+    await _submit();
   }
 
   Future<void> _submit() async {
@@ -246,24 +297,51 @@ class _PinPadCoreState extends State<PinPadCore>
                         child: child,
                       );
                     },
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(widget.pinLength, (i) {
-                        final filled = i < _entered.length;
-                        return Container(
-                          width: 11,
-                          height: 11,
-                          margin: const EdgeInsets.symmetric(horizontal: 13),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: filled ? Colors.white : Colors.transparent,
-                            border: Border.all(
-                              color: Colors.white,
-                              width: filled ? 5.5 : 1.5,
+                    // FittedBox：可变长度最多 12 个圆点，窄屏自动缩放防溢出。
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 360),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: List.generate(_dotCount, (i) {
+                                final filled = i < _entered.length;
+                                return Container(
+                                  width: 11,
+                                  height: 11,
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 13,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: filled
+                                        ? Colors.white
+                                        : Colors.transparent,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: filled ? 5.5 : 1.5,
+                                    ),
+                                  ),
+                                );
+                              }),
                             ),
-                          ),
-                        );
-                      }),
+                            if (_isFlexible) ...[
+                              const SizedBox(height: 10),
+                              Text(
+                                '${_entered.length} / ${widget.flexibleMaxLength} 位'
+                                '（${widget.flexibleMinLength}–'
+                                '${widget.flexibleMaxLength} 位可选）',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                   const Spacer(flex: 2),
@@ -321,9 +399,45 @@ class _PinPadCoreState extends State<PinPadCore>
         crossAxisSpacing: 14,
         childAspectRatio: 1,
         children: [
-          for (final k in keys)
-            if (k.isEmpty) const SizedBox.shrink() else _buildKey(k),
+          for (var i = 0; i < keys.length; i++)
+            switch (keys[i]) {
+              // 左下空槽：可变长度模式 = 退格键。
+              '' when i == 9 && _isFlexible => _buildAuxKey(
+                icon: Icons.backspace_outlined,
+                onTap: _backspace,
+              ),
+              // 右下空槽：可变长度模式 = ✓ 确认键（accent 底色区分）。
+              '' when i == 11 && _isFlexible => _buildAuxKey(
+                icon: Icons.check_rounded,
+                onTap: _submitFlexible,
+                accent: true,
+              ),
+              '' => const SizedBox.shrink(),
+              final k => _buildKey(k),
+            },
         ],
+      ),
+    );
+  }
+
+  /// 可变长度模式的辅助键（退格 / ✓ 确认）。
+  /// [accent] 为 true 时用强调底色突出确认键。
+  Widget _buildAuxKey({
+    required IconData icon,
+    required VoidCallback onTap,
+    bool accent = false,
+  }) {
+    return Material(
+      color: accent
+          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.85)
+          : Colors.white.withValues(alpha: 0.14),
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        splashColor: Colors.white.withValues(alpha: 0.30),
+        highlightColor: Colors.white.withValues(alpha: 0.16),
+        child: Icon(icon, color: Colors.white, size: 26),
       ),
     );
   }
@@ -377,12 +491,20 @@ class PinPadUnlockSheet extends StatelessWidget {
     super.key,
     this.title = '输入密码',
     this.pinLength = 4,
+    this.flexible = false,
+    this.flexibleMinLength = 4,
+    this.flexibleMaxLength = 12,
     this.onVerify,
     this.onEmergency,
   });
 
   final String title;
   final int pinLength;
+
+  /// 可变长度模式（单文件密码 4–12 位）。
+  final bool flexible;
+  final int flexibleMinLength;
+  final int flexibleMaxLength;
 
   /// 传入校验回调时：输完自动校验，通过关闭并回传 PIN，失败抖动清空；
   /// 不传则输满即回传 PIN。
@@ -396,6 +518,9 @@ class PinPadUnlockSheet extends StatelessWidget {
     BuildContext context, {
     String title = '输入密码',
     int pinLength = 4,
+    bool flexible = false,
+    int flexibleMinLength = 4,
+    int flexibleMaxLength = 12,
     Future<bool> Function(String pin)? onVerify,
     VoidCallback? onEmergency,
   }) {
@@ -410,6 +535,9 @@ class PinPadUnlockSheet extends StatelessWidget {
       pageBuilder: (_, _, _) => PinPadUnlockSheet(
         title: title,
         pinLength: pinLength,
+        flexible: flexible,
+        flexibleMinLength: flexibleMinLength,
+        flexibleMaxLength: flexibleMaxLength,
         onVerify: onVerify,
         onEmergency: onEmergency,
       ),
@@ -425,6 +553,9 @@ class PinPadUnlockSheet extends StatelessWidget {
     return PinPadCore(
       title: title,
       pinLength: pinLength,
+      flexible: flexible,
+      flexibleMinLength: flexibleMinLength,
+      flexibleMaxLength: flexibleMaxLength,
       onVerify: onVerify,
       onAccepted: (pin) => Navigator.of(context).pop(pin),
       onEmergency: onEmergency,
@@ -443,9 +574,17 @@ class PinPadUnlockSheet extends StatelessWidget {
 /// 通过才关闭并回传 PIN；失败在原地显示错误并清空，对话框不关闭——
 /// 保证「错误密码不可能被上层当成已验证凭据」。
 class DesktopUnlockField extends StatefulWidget {
-  const DesktopUnlockField({super.key, this.title = '输入密码', this.onVerify});
+  const DesktopUnlockField({
+    super.key,
+    this.title = '输入密码',
+    this.maxLength,
+    this.onVerify,
+  });
 
   final String title;
+
+  /// 最大长度（可变长度密码 4–12 位时传 12，附实时计数）。
+  final int? maxLength;
 
   /// 验证回调；为空则为收集模式（直接回传输入值）。
   final Future<bool> Function(String pin)? onVerify;
@@ -453,11 +592,16 @@ class DesktopUnlockField extends StatefulWidget {
   static Future<String?> show(
     BuildContext context, {
     String title = '输入密码',
+    int? maxLength,
     Future<bool> Function(String pin)? onVerify,
   }) {
     return showDialog<String>(
       context: context,
-      builder: (_) => DesktopUnlockField(title: title, onVerify: onVerify),
+      builder: (_) => DesktopUnlockField(
+        title: title,
+        maxLength: maxLength,
+        onVerify: onVerify,
+      ),
     );
   }
 
@@ -500,6 +644,7 @@ class _DesktopUnlockFieldState extends State<DesktopUnlockField> {
 
   @override
   Widget build(BuildContext context) {
+    final maxLength = widget.maxLength;
     return AlertDialog(
       title: Text(widget.title),
       content: TextField(
@@ -508,14 +653,18 @@ class _DesktopUnlockFieldState extends State<DesktopUnlockField> {
         obscureText: true,
         autofocus: true,
         keyboardType: TextInputType.number,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          if (maxLength != null) LengthLimitingTextInputFormatter(maxLength),
+        ],
         onSubmitted: (_) => _confirm(),
-        onChanged: (_) {
-          if (_error) setState(() => _error = false);
-        },
+        onChanged: (_) => setState(() => _error = false),
         decoration: InputDecoration(
           hintText: '密码',
           errorText: _error ? '密码不正确' : null,
+          counterText: maxLength == null
+              ? null
+              : '${_controller.text.length} / $maxLength 位（4–$maxLength 位可选）',
           border: const OutlineInputBorder(),
         ),
       ),
@@ -524,7 +673,11 @@ class _DesktopUnlockFieldState extends State<DesktopUnlockField> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),
         ),
-        FilledButton(onPressed: _confirm, child: const Text('解锁')),
+        // 验证模式 = 「解锁」；收集模式（设密等）= 「确定」。
+        FilledButton(
+          onPressed: _confirm,
+          child: Text(widget.onVerify == null ? '确定' : '解锁'),
+        ),
       ],
     );
   }
@@ -543,6 +696,9 @@ abstract final class UnlockFlow {
     BuildContext context, {
     String title = '输入密码',
     int pinLength = 4,
+    bool flexible = false,
+    int flexibleMinLength = 4,
+    int flexibleMaxLength = 12,
     Future<bool> Function(String pin)? onVerify,
   }) {
     if (_isMobile) {
@@ -550,10 +706,18 @@ abstract final class UnlockFlow {
         context,
         title: title,
         pinLength: pinLength,
+        flexible: flexible,
+        flexibleMinLength: flexibleMinLength,
+        flexibleMaxLength: flexibleMaxLength,
         onVerify: onVerify,
       );
     }
-    return DesktopUnlockField.show(context, title: title, onVerify: onVerify);
+    return DesktopUnlockField.show(
+      context,
+      title: title,
+      maxLength: flexible ? flexibleMaxLength : pinLength,
+      onVerify: onVerify,
+    );
   }
 }
 

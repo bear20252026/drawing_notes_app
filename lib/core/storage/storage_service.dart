@@ -39,6 +39,25 @@ class StorageService implements DocumentRepository {
   /// （未设密码 / 保险库锁定）时保持明文兼容。由组合根注入。
   final Future<Uint8List?> Function()? keyProvider;
 
+  // ---- 单文件密码（批次②）：画作级独立密码（v2 密码信封） ----
+  //
+  // 会话级密码缓存：解锁一次后本次使用期间免重复输入（用户 2026-09-01
+  // 拍板「会话内记住」）；切后台回锁/重启后自动失效（内存态，不落盘）。
+  final Map<String, String> _sessionFilePasswords = <String, String>{};
+
+  /// 该文档本会话内是否已解锁文件密码（编辑器保存走同一密封路径）。
+  String? filePasswordFor(String docId) => _sessionFilePasswords[docId];
+
+  /// 缓存会话文件密码（verifyFilePassword 成功后调用）。
+  void cacheFilePassword(String docId, String password) {
+    _sessionFilePasswords[docId] = password;
+  }
+
+  /// 清除会话文件密码（移除文件密码 / 文档删除后调用）。
+  void forgetFilePassword(String docId) {
+    _sessionFilePasswords.remove(docId);
+  }
+
   /// 写成功回调（首页刷新修复①）：画布保存/缩略图更新/删除落盘成功后触发，
   /// 由装配层注入（AppServices.bumpDataVersion），驱动首页/AllDocs 刷新。
   void Function()? onWrite;
@@ -153,7 +172,9 @@ class StorageService implements DocumentRepository {
   /// 保存文档的缩略图（PNG 字节），供列表页快速展示。
   /// 缩略图与工程文件分离存储，损坏不影响工程文件。
   /// 批次①c：有主密钥时信封加密落盘（读取走 [thumbnailBytes]）。
+  /// 批次②：单文件密码文档不写缩略图（防首页预览泄露——用户拍板）。
   Future<String> saveThumbnail(String docId, Uint8List pngBytes) async {
+    if (_sessionFilePasswords.containsKey(docId)) return '';
     await _ensureThumbsDir();
     final file = File(_thumbPathFor(docId));
     final sealed = await _sealMediaBytes(file.path, pngBytes);
@@ -167,7 +188,9 @@ class StorageService implements DocumentRepository {
   /// 读取缩略图字节（批次①c）：密文自动解密；锁定返回 null
   /// （fail-closed——UI 显示占位图，不泄露任何像素）；明文 + 有密钥
   /// 时原样返回并尽力懒迁移为密文。不存在返回 null。
+  /// 批次②：单文件密码文档恒返回 null（缩略图已被删除，防御性兜底）。
   Future<Uint8List?> thumbnailBytes(String docId) async {
+    if (await isFilePasswordProtected(docId)) return null;
     await _ensureThumbsDir();
     final file = File(_thumbPathFor(docId));
     if (!await file.exists()) return null;
@@ -295,8 +318,19 @@ class StorageService implements DocumentRepository {
     return provider();
   }
 
-  /// 写入前的字节准备：有主密钥 → 信封加密（AAD 绑定文档 ID）。
+  /// 写入前的字节准备（批次② 三级分流）：
+  /// ① 会话有文件密码 → v2 密码信封（层级独立于开屏密码）；
+  /// ② 无文件密码 + 有主密钥 → v1 主密钥信封（AAD 绑定文档 ID）；
+  /// ③ 均无 → 明文兼容（旧数据行为）。
   Future<Uint8List> _sealDocBytes(String id, Uint8List data) async {
+    final filePassword = _sessionFilePasswords[id];
+    if (filePassword != null) {
+      return VaultFileCodec.encryptWithPassword(
+        data,
+        filePassword,
+        aadContext: 'doc:$id',
+      );
+    }
     final key = await _currentKey();
     if (key == null) return data;
     return VaultFileCodec.encrypt(data, key, aadContext: 'doc:$id');
@@ -315,11 +349,22 @@ class StorageService implements DocumentRepository {
   }
 
   /// 读取后的字节准备（读路径自动分流，Joplin 懒迁移模式）：
-  /// - 密文 + 已解锁 → 解密；
-  /// - 密文 + 锁定 → [VaultFileLockException]（fail-closed，绝不回退猜测）；
+  /// - v2 密码信封 + 会话有密码 → 解密；无密码 → [VaultFilePasswordLockException]；
+  /// - v1 主密钥信封 + 已解锁 → 解密；锁定 → [VaultFileLockException]；
   /// - 明文 + 有密钥 → 原样返回并排队懒迁移（下次写队列将明文重写为密文）；
   /// - 明文 + 无密钥 → 原样返回（旧版本兼容）。
   Future<Uint8List> _prepareDocBytes(String id, Uint8List raw) async {
+    if (VaultFileCodec.isPasswordEnvelope(raw)) {
+      final filePassword = _sessionFilePasswords[id];
+      if (filePassword == null) {
+        throw const VaultFilePasswordLockException();
+      }
+      return VaultFileCodec.decryptWithPassword(
+        raw,
+        filePassword,
+        aadContext: 'doc:$id',
+      );
+    }
     final key = await _currentKey();
     if (VaultFileCodec.isEncrypted(raw)) {
       if (key == null) throw const VaultFileLockException();
@@ -345,6 +390,12 @@ class StorageService implements DocumentRepository {
   Future<void> _saveEncoded(String id, Uint8List data) async {
     await _ensureDocumentsDir();
     final sealed = await _sealDocBytes(id, data);
+    await _writeSealedBytes(id, sealed);
+  }
+
+  /// 把已密封字节原子落盘（含 .bak 备份——与 _saveEncoded 同纪律）。
+  Future<void> _writeSealedBytes(String id, Uint8List sealed) async {
+    await _ensureDocumentsDir();
     final finalFile = File(_pathFor(id));
     final tmp = File('${finalFile.path}.${LocalIdGenerator.next('write')}.tmp');
     await tmp.writeAsBytes(sealed, flush: true);
@@ -418,6 +469,147 @@ class StorageService implements DocumentRepository {
     }
   }
 
+  // ---- 单文件密码管理 API（批次②：画作级独立密码） ----
+
+  /// 读取当前正式文件（缺失回退 .bak）；两者都不存在返回 null。
+  Future<Uint8List?> _readCurrentRaw(String id) async {
+    await _ensureDocumentsDir();
+    final file = File(_pathFor(id));
+    final bak = File('${file.path}.bak');
+    if (await file.exists()) return file.readAsBytes();
+    if (await bak.exists()) return bak.readAsBytes();
+    return null;
+  }
+
+  /// 该文档是否受独立文件密码保护（读文件头版本字节，不解密）。
+  Future<bool> isFilePasswordProtected(String id) async {
+    final raw = await _readCurrentRaw(id);
+    if (raw == null) return false;
+    return VaultFileCodec.isPasswordEnvelope(raw);
+  }
+
+  /// 校验文件密码；正确则缓存进会话（解锁一次本会话免重复输入）。
+  Future<bool> verifyFilePassword(String id, String password) async {
+    final raw = await _readCurrentRaw(id);
+    if (raw == null || !VaultFileCodec.isPasswordEnvelope(raw)) return false;
+    try {
+      await VaultFileCodec.decryptWithPassword(
+        raw,
+        password,
+        aadContext: 'doc:$id',
+      );
+    } on VaultFileException {
+      return false;
+    }
+    cacheFilePassword(id, password);
+    return true;
+  }
+
+  /// 为未设密文档设置独立文件密码（v2 密码信封重封 + 删除缩略图）。
+  ///
+  /// 前提：文档当前为明文或 v1 主密钥信封（应用锁已解锁时可读）。
+  /// 已设密时抛 [StateError]（走 [changeFilePassword]）。
+  Future<void> setFilePassword(String id, String password) async {
+    final raw = await _readCurrentRaw(id);
+    if (raw == null) {
+      throw StateError('文档不存在');
+    }
+    if (VaultFileCodec.isPasswordEnvelope(raw)) {
+      throw StateError('该文档已设置文件密码，请使用修改密码');
+    }
+    // 取明文：v1 信封需主密钥（锁定时 fail-closed）。
+    Uint8List plain;
+    if (VaultFileCodec.isEncrypted(raw)) {
+      final key = await _currentKey();
+      if (key == null) throw const VaultFileLockException();
+      plain = await VaultFileCodec.decrypt(raw, key, aadContext: 'doc:$id');
+    } else {
+      plain = raw;
+    }
+    cacheFilePassword(id, password);
+    try {
+      final sealed = await VaultFileCodec.encryptWithPassword(
+        plain,
+        password,
+        aadContext: 'doc:$id',
+      );
+      await _writeSealedBytes(id, sealed);
+    } catch (_) {
+      forgetFilePassword(id); // 密封失败不残留会话密码（防后续写回明文语义错乱）
+      rethrow;
+    }
+    await _deleteThumbnail(id);
+    onWrite?.call();
+  }
+
+  /// 修改文件密码（验证旧密码 → v2 重封）。旧密码错误抛 [VaultFileException]。
+  Future<void> changeFilePassword(
+    String id,
+    String oldPassword,
+    String newPassword,
+  ) async {
+    final raw = await _readCurrentRaw(id);
+    if (raw == null || !VaultFileCodec.isPasswordEnvelope(raw)) {
+      throw StateError('该文档未设置文件密码');
+    }
+    final plain = await VaultFileCodec.decryptWithPassword(
+      raw,
+      oldPassword,
+      aadContext: 'doc:$id',
+    );
+    cacheFilePassword(id, newPassword);
+    try {
+      final sealed = await VaultFileCodec.encryptWithPassword(
+        plain,
+        newPassword,
+        aadContext: 'doc:$id',
+      );
+      await _writeSealedBytes(id, sealed);
+    } catch (_) {
+      cacheFilePassword(id, oldPassword); // 回滚会话缓存到仍有效的旧密码
+      rethrow;
+    }
+    await _deleteThumbnail(id);
+    onWrite?.call();
+  }
+
+  /// 移除文件密码：回封为 v1 主密钥信封（应用锁未解锁时拒绝——
+  /// 明文落盘不可接受，fail-closed）。密码错误抛 [VaultFileException]。
+  Future<void> removeFilePassword(String id, String password) async {
+    final raw = await _readCurrentRaw(id);
+    if (raw == null || !VaultFileCodec.isPasswordEnvelope(raw)) {
+      throw StateError('该文档未设置文件密码');
+    }
+    final plain = await VaultFileCodec.decryptWithPassword(
+      raw,
+      password,
+      aadContext: 'doc:$id',
+    );
+    final key = await _currentKey();
+    if (key == null) {
+      throw const VaultFileLockException();
+    }
+    final sealed = await VaultFileCodec.encrypt(
+      plain,
+      key,
+      aadContext: 'doc:$id',
+    );
+    forgetFilePassword(id);
+    await _writeSealedBytes(id, sealed);
+    onWrite?.call();
+  }
+
+  /// 删除缩略图（设密/改密时调用——防首页预览泄露，用户拍板「隐藏缩略图」）。
+  Future<void> _deleteThumbnail(String id) async {
+    try {
+      await _ensureThumbsDir();
+      final thumb = File(_thumbPathFor(id));
+      if (await thumb.exists()) await thumb.delete();
+    } catch (_) {
+      // 缩略图清理失败不影响密码设置本身。
+    }
+  }
+
   /// 列出所有已保存文档（含元信息），按更新时间倒序。
   @override
   Future<List<DocumentMeta>> listDocuments() async {
@@ -437,7 +629,21 @@ class StorageService implements DocumentRepository {
         final fileName = entity.uri.pathSegments.last;
         final fileId = fileName.substring(0, fileName.length - '.json'.length);
         var bytes = raw;
-        if (VaultFileCodec.isEncrypted(raw)) {
+        var locked = false;
+        if (VaultFileCodec.isPasswordEnvelope(raw)) {
+          // 批次②：单文件密码信封——会话有密码 → 正常读元信息；
+          // 无密码 → 锁定占位（不暴露标题等任何元信息）。
+          final filePassword = _sessionFilePasswords[fileId];
+          if (filePassword == null) {
+            locked = true;
+          } else {
+            bytes = await VaultFileCodec.decryptWithPassword(
+              raw,
+              filePassword,
+              aadContext: 'doc:$fileId',
+            );
+          }
+        } else if (VaultFileCodec.isEncrypted(raw)) {
           final key = await _currentKey();
           // fail-closed：锁定状态不暴露加密文档（跳过，不中断整个列表）。
           if (key == null) continue;
@@ -449,6 +655,23 @@ class StorageService implements DocumentRepository {
         } else if (await _currentKey() != null) {
           // 懒迁移：明文文档排队重写为密文。
           if (isValidId(fileId)) _enqueueRawRewrite(fileId, raw);
+        }
+        if (locked) {
+          if (!isValidId(fileId)) continue;
+          metas.add(
+            DocumentMeta(
+              id: fileId,
+              title: '加密画作',
+              width: 0,
+              height: 0,
+              createdAt: DateTime.now(),
+              updatedAt: await _fileModifiedOrNow(entity),
+              layerCount: 0,
+              strokeCount: 0,
+              locked: true,
+            ),
+          );
+          continue;
         }
         final root = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
         final doc = root['document'] as Map<String, dynamic>;
@@ -492,6 +715,15 @@ class StorageService implements DocumentRepository {
       n += (l['strokes'] as List? ?? const []).length;
     }
     return n;
+  }
+
+  /// 文件修改时间（失败回退当前时间——锁定占位元信息排序用）。
+  static Future<DateTime> _fileModifiedOrNow(File f) async {
+    try {
+      return (await f.stat()).modified;
+    } catch (_) {
+      return DateTime.now();
+    }
   }
 
   /// 删除指定文档及其不再被任何其他文档引用的受管图片副本。
@@ -551,6 +783,7 @@ class StorageService implements DocumentRepository {
     } catch (_) {
       // 缩略图清理失败不影响文档删除与后续资产回收。
     }
+    forgetFilePassword(id); // 批次②：删除后清除会话文件密码缓存
 
     await _deleteUnreferencedManagedImages(imagePaths, excludingDocumentId: id);
     onWrite?.call();

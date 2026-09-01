@@ -139,6 +139,8 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
               canPop: false,
               child: PinPadCore(
                 title: '输入密码',
+                // 开屏密码长度由设置页决定（批次②：4–12 位可选）。
+                pinLength: widget.service.pinLength,
                 onVerify: (pin) async {
                   final ok = await widget.service.verify(pin);
                   if (!ok) return false;

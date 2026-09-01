@@ -7,6 +7,9 @@ import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
+// 批次②：AllDocs 打开画布的单文件密码拦截（与首页同口径）。
+import 'package:drawing_notes_app/core/storage/vault_file_codec.dart'
+    show VaultFilePasswordLockException;
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
@@ -24,6 +27,9 @@ import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_entity.dart';
 import 'package:drawing_notes_app/features/schedule/presentation/schedule_page.dart';
+// 批次②：单文件密码输入（可变长度 4–12 位密码盘）。
+import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
+    show UnlockFlow;
 
 /// 应用导航壳：3 个顶层目的地（M11 IA 收敛）。
 ///
@@ -275,7 +281,25 @@ class _AppShellState extends State<AppShell> {
       case AllDocKind.canvas:
         final storage = widget.docStorage;
         if (storage == null) return;
-        final drawing = await storage.load(doc.drawingId ?? doc.id);
+        final id = doc.drawingId ?? doc.id;
+        // 批次②：独立密码拦截——未解锁先输密码（与首页同口径，
+        // 验证成功即入会话缓存，本会话免重复输入）。
+        if (await storage.isFilePasswordProtected(id)) {
+          if (!mounted) return;
+          final pin = await UnlockFlow.show(
+            context,
+            title: '该画作已加密，输入独立密码',
+            flexible: true,
+            onVerify: (p) => storage.verifyFilePassword(id, p),
+          );
+          if (pin == null) return;
+        }
+        final DrawingDocument? drawing;
+        try {
+          drawing = await storage.load(id);
+        } on VaultFilePasswordLockException {
+          return; // 会话密码已被忘记（如切后台）——不暴露内容
+        }
         if (drawing == null) return;
         final builder = widget.editorPageBuilder;
         nav.push(

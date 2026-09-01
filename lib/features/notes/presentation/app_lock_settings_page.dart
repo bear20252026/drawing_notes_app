@@ -109,7 +109,7 @@ class AppLockSettingsPage extends StatelessWidget {
     );
   }
 
-  /// 两步设置新密码：设置 → 确认（一致才生效）。
+  /// 先选密码长度（4–12 位），再走两步设置：设置 → 确认（一致才生效）。
   ///
   /// [oldPinForVault] 非空表示「修改密码」流程：保险库以旧 PIN 换盐
   /// 重包裹（主密钥不变，已加密文件无需迁移）。
@@ -117,9 +117,19 @@ class AppLockSettingsPage extends StatelessWidget {
     BuildContext context, {
     String? oldPinForVault,
   }) async {
-    final pin = await UnlockFlow.show(context, title: '设置密码');
+    final length = await _pickPinLength(context);
+    if (length == null || !context.mounted) return;
+    final pin = await UnlockFlow.show(
+      context,
+      title: '设置密码',
+      pinLength: length,
+    );
     if (pin == null || !context.mounted) return;
-    final confirm = await UnlockFlow.show(context, title: '确认密码');
+    final confirm = await UnlockFlow.show(
+      context,
+      title: '确认密码',
+      pinLength: length,
+    );
     if (confirm == null || !context.mounted) return;
     if (confirm != pin) {
       if (!context.mounted) return;
@@ -182,6 +192,7 @@ class AppLockSettingsPage extends StatelessWidget {
     final pin = await UnlockFlow.show(
       context,
       title: '验证当前密码',
+      pinLength: service.pinLength,
       onVerify: (p) => service.verify(p),
     );
     if (pin == null || !context.mounted) return; // 取消（或验证失败后放弃）
@@ -197,9 +208,59 @@ class AppLockSettingsPage extends StatelessWidget {
     final oldPin = await UnlockFlow.show(
       context,
       title: '验证当前密码',
+      pinLength: service.pinLength,
       onVerify: (p) => service.verify(p),
     );
     if (oldPin == null || !context.mounted) return;
     await _startEnableFlow(context, oldPinForVault: oldPin);
+  }
+
+  /// 密码长度选择器：Slider 4–12 位，默认沿用当前长度（无则 4）。
+  Future<int?> _pickPinLength(BuildContext context) async {
+    var selected = service.pinLength;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('密码长度'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$selected 位',
+                style: Theme.of(dialogContext).textTheme.headlineSmall,
+              ),
+              Slider(
+                value: selected.toDouble(),
+                min: AppLockService.minPinLength.toDouble(),
+                max: AppLockService.maxPinLength.toDouble(),
+                divisions:
+                    AppLockService.maxPinLength - AppLockService.minPinLength,
+                label: '$selected',
+                onChanged: (v) => setDialogState(() => selected = v.round()),
+              ),
+              Text(
+                '建议 6 位以上，纯数字密码强度有限。',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(dialogContext).colorScheme.outline,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('下一步'),
+            ),
+          ],
+        ),
+      ),
+    );
+    return confirmed == true ? selected : null;
   }
 }

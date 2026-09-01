@@ -4,19 +4,23 @@ part of 'home_page.dart';
 // 密码对话框从 home_page.dart 移出为 part（沿用 editor_page 拆分先例）；
 // 行为零变化——同库 extension/类可访问私有成员，共享主文件 imports。
 
-/// 无限画布卡片：缩略图 + 标题 + 删除按钮。
+/// 无限画布卡片：缩略图 + 标题 + 密码按钮 + 删除按钮。
 class _DrawingCard extends StatefulWidget {
   const _DrawingCard({
     required this.meta,
     required this.documentStorage,
     required this.onTap,
     required this.onDelete,
+    required this.onPasswordAction,
   });
 
   final DocumentMeta meta;
   final StorageService documentStorage;
   final VoidCallback onTap;
   final VoidCallback onDelete;
+
+  /// 批次②：打开单文件密码管理 sheet（设置/修改/移除）。
+  final VoidCallback onPasswordAction;
 
   @override
   State<_DrawingCard> createState() => _DrawingCardState();
@@ -83,18 +87,39 @@ class _DrawingCardState extends State<_DrawingCard> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: _thumbBytes != null
-                      ? AnimatedOpacity(
-                          opacity: 1,
-                          duration: motion,
-                          child: Image.memory(
-                            _thumbBytes!,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, _, _) =>
-                                const _ThumbPlaceholder(),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      _thumbBytes != null
+                          ? AnimatedOpacity(
+                              opacity: 1,
+                              duration: motion,
+                              child: Image.memory(
+                                _thumbBytes!,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, _, _) =>
+                                    const _ThumbPlaceholder(),
+                              ),
+                            )
+                          : const _ThumbPlaceholder(),
+                      // 批次②：独立密码锁定徽标（缩略图已删，占位 + 锁形）。
+                      if (widget.meta.locked)
+                        const Align(
+                          alignment: Alignment.topRight,
+                          child: Padding(
+                            padding: EdgeInsets.all(8),
+                            child: Icon(
+                              Icons.lock_rounded,
+                              size: 18,
+                              color: Colors.white,
+                              shadows: [
+                                Shadow(blurRadius: 6, color: Colors.black54),
+                              ],
+                            ),
                           ),
-                        )
-                      : const _ThumbPlaceholder(),
+                        ),
+                    ],
+                  ),
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 10, 6, 8),
@@ -107,6 +132,19 @@ class _DrawingCardState extends State<_DrawingCard> {
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.titleSmall,
                         ),
+                      ),
+                      IconButton(
+                        tooltip: '独立密码',
+                        icon: Icon(
+                          widget.meta.locked
+                              ? Icons.lock_rounded
+                              : Icons.lock_outline_rounded,
+                          size: 19,
+                        ),
+                        color: widget.meta.locked
+                            ? scheme.primary
+                            : scheme.onSurfaceVariant,
+                        onPressed: widget.onPasswordAction,
                       ),
                       IconButton(
                         tooltip: '删除无限画布',

@@ -60,6 +60,7 @@ extension _HomePageTabs on _HomePageState {
           documentStorage: _docStorage,
           onTap: () => _openDrawing(_documents[i]),
           onDelete: () => _deleteDrawing(_documents[i]),
+          onPasswordAction: () => _showDrawingPasswordSheet(_documents[i]),
         ),
       ),
     );

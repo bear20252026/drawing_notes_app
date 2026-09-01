@@ -17,6 +17,9 @@ import 'package:drawing_notes_app/features/doc/infrastructure/block_doc_search_a
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
+// 批次②：单文件密码——移除密码需回封 v1 主密钥信封，锁定时 fail-closed。
+import 'package:drawing_notes_app/core/storage/vault_file_codec.dart'
+    show VaultFileException, VaultFileLockException;
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/features/notes/presentation/onboarding.dart';
@@ -32,7 +35,7 @@ import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settin
 // 首页刷新修复②（2026-09-01）：RouteAware 可见性兜底——从编辑器/笔记本页
 // 返回时自动刷新，覆盖所有遗漏的写路径（IndexedStack 保活下 initState 不再执行）。
 import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
-    show SyncFix, SyncFixRouteAware;
+    show SyncFix, SyncFixRouteAware, UnlockFlow;
 
 part 'home_page_widgets.dart';
 part 'home_page_tabs.dart';
@@ -254,8 +257,16 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   }
 
   /// 打开已有画作继续编辑。
+  ///
+  /// 批次②：受独立密码保护的画作先输密码（4–12 位可变长度密码盘，
+  /// 验证成功即缓存进会话，本会话免重复输入）。
   Future<void> _openDrawing(DocumentMeta meta) async {
     try {
+      // meta.locked 为列表占位（无会话密码）；再查一次文件头防元信息过期。
+      if (meta.locked || await _docStorage.isFilePasswordProtected(meta.id)) {
+        final unlocked = await _promptFilePassword(meta);
+        if (!unlocked) return; // 用户取消 / 放弃
+      }
       final doc = await _docStorage.load(meta.id);
       if (doc == null) {
         _showSnack('画作文件不存在或已损坏');
@@ -266,6 +277,156 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
       _refresh();
     } catch (e) {
       _showSnack('打开画作失败：${e.runtimeType}');
+    }
+  }
+
+  /// 加密画作解锁输入（验证通过密码已入会话缓存）。
+  Future<bool> _promptFilePassword(DocumentMeta meta) async {
+    final pin = await UnlockFlow.show(
+      context,
+      title: '该画作已加密，输入独立密码',
+      flexible: true,
+      onVerify: (p) => _docStorage.verifyFilePassword(meta.id, p),
+    );
+    return pin != null;
+  }
+
+  // ---------------- 单文件密码管理（批次②） ----------------
+
+  /// 画作密码操作 sheet：未设密 → 设置；已设密 → 修改 / 移除。
+  Future<void> _showDrawingPasswordSheet(DocumentMeta meta) async {
+    final protected = await _docStorage.isFilePasswordProtected(meta.id);
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.lock_outline_rounded),
+              title: Text('「${meta.title}」独立密码'),
+              subtitle: Text(protected ? '此画作受独立密码保护' : '此画作当前未设置独立密码'),
+            ),
+            const Divider(height: 1),
+            if (!protected)
+              ListTile(
+                leading: const Icon(Icons.add_moderator_outlined),
+                title: const Text('设置独立密码'),
+                subtitle: const Text('4–12 位数字，须与开屏密码不同'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _startSetFilePassword(meta);
+                },
+              )
+            else ...[
+              ListTile(
+                leading: const Icon(Icons.key_rounded),
+                title: const Text('修改独立密码'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _startChangeFilePassword(meta);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.no_encryption_outlined),
+                title: const Text('移除独立密码'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _startRemoveFilePassword(meta);
+                },
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 独立密码收集（两次一致才生效）；与开屏密码同码直接拒绝。
+  Future<String?> _collectNewFilePassword(String title) async {
+    final pin = await UnlockFlow.show(context, title: title, flexible: true);
+    if (pin == null || !mounted) return null;
+    // ≠开屏密码强制（哈希加盐不可比对，用 verify 探测）。
+    if (await AppLockService.matchesAppLockPin(pin)) {
+      _showSnack('独立密码不能与开屏密码相同');
+      return null;
+    }
+    if (!mounted) return null; // matchesAppLockPin 为异步操作，跨缺口守卫
+    final confirm = await UnlockFlow.show(
+      context,
+      title: '确认独立密码',
+      flexible: true,
+    );
+    if (confirm == null) return null;
+    if (confirm != pin) {
+      _showSnack('两次输入不一致，请重试');
+      return null;
+    }
+    return pin;
+  }
+
+  Future<void> _startSetFilePassword(DocumentMeta meta) async {
+    final pin = await _collectNewFilePassword('设置独立密码');
+    if (pin == null) return;
+    try {
+      await _docStorage.setFilePassword(meta.id, pin);
+      _showSnack('已为「${meta.title}」设置独立密码');
+      await _refresh();
+    } on VaultFileLockException {
+      _showSnack('加密底座已锁定：请重新验证开屏密码后再设置');
+    } catch (e) {
+      _showSnack('设置失败：${e.runtimeType}');
+    }
+  }
+
+  Future<void> _startChangeFilePassword(DocumentMeta meta) async {
+    final old = await UnlockFlow.show(
+      context,
+      title: '验证当前独立密码',
+      flexible: true,
+      onVerify: (p) => _docStorage.verifyFilePassword(meta.id, p),
+    );
+    if (old == null || !mounted) return;
+    final pin = await _collectNewFilePassword('设置新密码');
+    if (pin == null) return;
+    try {
+      await _docStorage.changeFilePassword(meta.id, old, pin);
+      _showSnack('已修改「${meta.title}」的独立密码');
+      await _refresh();
+    } on VaultFileException {
+      _showSnack('原密码不正确或密文已损坏');
+    } catch (e) {
+      _showSnack('修改失败：${e.runtimeType}');
+    }
+  }
+
+  Future<void> _startRemoveFilePassword(DocumentMeta meta) async {
+    final ok = await _confirmDelete(
+      '移除独立密码',
+      '移除后「${meta.title}」将回到加密底座保护（主密钥信封），不再需要独立密码。确定移除吗？',
+    );
+    if (ok != true) return;
+    if (!mounted) return; // _confirmDelete 为异步操作，跨缺口守卫
+    final pin = await UnlockFlow.show(
+      context,
+      title: '验证独立密码以移除',
+      flexible: true,
+      onVerify: (p) => _docStorage.verifyFilePassword(meta.id, p),
+    );
+    if (pin == null) return;
+    try {
+      await _docStorage.removeFilePassword(meta.id, pin);
+      _showSnack('已移除「${meta.title}」的独立密码');
+      await _refresh();
+    } on VaultFileLockException {
+      // fail-closed：绝不回明文。
+      _showSnack('加密底座已锁定，无法回封：请重新验证开屏密码后再试');
+    } on VaultFileException {
+      _showSnack('密码不正确或密文已损坏');
+    } catch (e) {
+      _showSnack('移除失败：${e.runtimeType}');
     }
   }
 
