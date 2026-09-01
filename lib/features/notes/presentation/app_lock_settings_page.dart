@@ -11,8 +11,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
-import 'package:drawing_notes_app/core/storage/password_disk.dart';
-import 'package:drawing_notes_app/core/storage/usb_reset_key_file.dart';
+import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
     show UnlockFlow;
 
@@ -25,7 +24,6 @@ class AppLockSettingsPage extends StatelessWidget {
     super.key,
     required this.service,
     this.vault,
-    this.disk,
   });
 
   final AppLockService service;
@@ -34,10 +32,6 @@ class AppLockSettingsPage extends StatelessWidget {
   /// 设置密码时同步建库、修改密码时同步重包裹；保险库已存在时
   /// 「关闭应用锁」被阻止（文件已用该密码加密，关闭将导致不可读）。
   final VaultKeyService? vault;
-
-  /// 密码盘抽象（批次④）：绑定 U 盘恢复钥匙时选取 U 盘目录；
-  /// null 时 Debug/测试用 Mock、Release 用 Real（createPasswordDisk 工厂）。
-  final PasswordDisk? disk;
 
   @override
   Widget build(BuildContext context) {
@@ -88,10 +82,10 @@ class AppLockSettingsPage extends StatelessWidget {
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: () => _startModifyFlow(context),
                     ),
-                  // 批次④：U 盘恢复钥匙（LUKS/BitLocker 多保护器模式——
-                  // 忘记密码时可用 U 盘重设，主密钥副本不出设备）。
+                  // 重置密码盘（LUKS/BitLocker 多保护器模式——
+                  // 忘记密码时可用它重设，主密钥副本不出设备）。
                   if (service.isConfigured && vault != null)
-                    _buildUsbKeyTile(context),
+                    _buildResetDiskTile(context),
                 ],
               ),
             ),
@@ -109,9 +103,9 @@ class AppLockSettingsPage extends StatelessWidget {
                   Expanded(
                     child: Text(
                       service.isConfigured
-                          ? '绑定 U 盘恢复钥匙后，忘记密码可用 U 盘重设；'
+                          ? '绑定重置密码盘后，忘记密码可用它重置；'
                                 '未绑定时忘记密码将无法找回。'
-                          : '开启应用锁后，可绑定 U 盘恢复钥匙以防忘记密码。',
+                          : '开启应用锁后，可绑定重置密码盘以防忘记密码。',
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(context).colorScheme.outline,
@@ -127,8 +121,8 @@ class AppLockSettingsPage extends StatelessWidget {
     );
   }
 
-  /// 批次④：U 盘恢复钥匙 tile（绑定状态异步查询，绑定/解除后刷新）。
-  Widget _buildUsbKeyTile(BuildContext context) {
+  /// 重置密码盘 tile（绑定状态异步查询，绑定/解除后刷新）。
+  Widget _buildResetDiskTile(BuildContext context) {
     final vault = this.vault!;
     return FutureBuilder<bool>(
       future: vault.hasUsbSlot(),
@@ -136,18 +130,18 @@ class AppLockSettingsPage extends StatelessWidget {
         final bound = snapshot.data ?? false;
         return ListTile(
           leading: const Icon(Icons.usb_rounded),
-          title: const Text('U 盘恢复钥匙'),
+          title: const Text('重置密码盘'),
           subtitle: Text(
             snapshot.hasError
                 ? '状态未知（保险库读取失败）'
                 : bound
-                ? '已绑定（忘记密码时可用 U 盘重设）'
+                ? '已绑定（忘记密码时可用它重置）'
                 : '未绑定（忘记密码将无法找回）',
           ),
           trailing: TextButton(
             onPressed: () => bound
-                ? _startUnbindUsbFlow(context, vault)
-                : _startBindUsbFlow(context, vault),
+                ? _startUnbindResetDiskFlow(context, vault)
+                : _startBindResetDiskFlow(context, vault),
             child: Text(bound ? '解除绑定' : '绑定'),
           ),
         );
@@ -155,12 +149,12 @@ class AppLockSettingsPage extends StatelessWidget {
     );
   }
 
-  /// 批次④：绑定 U 盘恢复钥匙。
+  /// 绑定重置密码盘。
   ///
   /// 链路：验证当前密码（顺带确保保险库解锁）→ 选 U 盘 → 写入
-  /// vault_reset.frogkey（随机 32B 钥匙，不含任何主密钥副本）→
+  /// password_reset_disk.key（随机 32B 钥匙，不含任何主密钥副本）→
   /// 保险库槽 2 以该钥匙包裹主密钥。
-  Future<void> _startBindUsbFlow(
+  Future<void> _startBindResetDiskFlow(
     BuildContext context,
     VaultKeyService vault,
   ) async {
@@ -182,13 +176,12 @@ class AppLockSettingsPage extends StatelessWidget {
     }
 
     // 选取 U 盘目录。
-    final disk = this.disk ?? createPasswordDisk();
-    final dir = await disk.pickDirectory();
+    final dir = await ResetDiskFile.pickDirectory();
     if (dir == null || !context.mounted) return;
 
-    // 写入恢复钥匙文件 + 建立槽 2。
+    // 写入重置钥匙文件 + 建立槽 2。
     try {
-      final externalKey = await UsbResetKeyFile.writeTo(dir);
+      final externalKey = await ResetDiskFile.writeTo(dir);
       await vault.addUsbKeySlot(externalKey: externalKey);
     } catch (e) {
       if (!context.mounted) return;
@@ -202,25 +195,25 @@ class AppLockSettingsPage extends StatelessWidget {
       const SnackBar(
         content: Text(
           '已绑定。请妥善保管 U 盘：U 盘丢失将无法重置密码，'
-          'U 盘上的 vault_reset.frogkey 文件请勿删除',
+          'U 盘上的 password_reset_disk.key 文件请勿删除',
         ),
         duration: Duration(seconds: 5),
       ),
     );
   }
 
-  /// 批次④：解除绑定（只删设备侧槽 2；U 盘上的钥匙文件须用户自行删除）。
-  Future<void> _startUnbindUsbFlow(
+  /// 解除绑定（只删设备侧槽 2；U 盘上的钥匙文件须用户自行删除）。
+  Future<void> _startUnbindResetDiskFlow(
     BuildContext context,
     VaultKeyService vault,
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('解除 U 盘恢复钥匙'),
+        title: const Text('解除重置密码盘'),
         content: const Text(
           '解除后，忘记密码将无法重置。\n\n'
-          'U 盘上的 vault_reset.frogkey 文件不会被删除，请自行删除。',
+          'U 盘上的 password_reset_disk.key 文件不会被删除，请自行删除。',
         ),
         actions: [
           TextButton(

@@ -46,8 +46,8 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
   VaultService? vaultService;
 
   /// 写成功回调（首页刷新修复①）：笔记本保存/删除落盘成功后触发，由装配层
-  /// 注入（AppServices.bumpDataVersion）。所有保存路径（save/saveWithKey/
-  /// encryptAndSave 等）均汇入 _writeNotebook 单一出口，此处通知即全覆盖。
+  /// 注入（AppServices.bumpDataVersion）。所有保存路径（save/encryptAndSave）
+  /// 均汇入 _writeNotebook 单一出口，此处通知即全覆盖。
   void Function()? onWrite;
 
   // ---- INotebookAccessor 跨功能契约适配（S4b：NotebookStorage 直接实现契约）----
@@ -539,118 +539,12 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     return true;
   }
 
-  /// 启用 U盘钥匙（keyfile 模式）加密并保存：用主密钥加密页面内容，
-  /// 生成恢复密钥信封（U 盘丢失时凭 24 位恢复密钥找回主密钥），
-  /// 明文不落盘（零知识架构，见 docs/PASSWORD_DISK_DESIGN.md）。
-  Future<String> encryptAndSaveWithKey(
-    Notebook notebook,
-    List<int> masterKey,
-    String recoveryKey,
-  ) async {
-    // 第一步合规（2026-08-16 专家审计最优先行动②）：加密笔记本不生成
-    // 明文 searchSummary——"废除默认明文 searchSummary"。未来 K_note
-    // 密钥层级落地后摘要可加密存储（解锁会话内搜索——安全）。
-    final payloadJson = jsonEncode({
-      'pages': notebook.pages.map((p) => p.toJson()).toList(),
-    });
-    notebook.encrypted = true;
-    notebook.encryptionMode = EncryptionMode.keyfile;
-    notebook.encryptedPayload = await _encryption.encryptNotebookPayload(
-      notebookId: notebook.id,
-      plaintext: payloadJson,
-      key: masterKey,
-    );
-    notebook.recoveryEnvelope = await _encryption.wrapMasterKey(
-      masterKey,
-      recoveryKey,
-    );
-    // 直接原子写入（toJson 中 encrypted 时 pages 序列化为空，仅存密文载荷）。
-    return _writeNotebook(notebook);
-  }
-
-  /// 用 U盘主密钥解锁 keyfile 模式加密笔记本（密钥错误抛 [FormatException]）。
-  /// 成功后将页面填充回 [notebook.pages] 并返回 true。
-  Future<bool> decryptNotebookWithKey(
-    Notebook notebook,
-    List<int> masterKey,
-  ) async {
-    final payload = notebook.encryptedPayload;
-    if (payload == null) return false;
-    // 任务#2（专家审计 2026-08-15）：v4 AAD 优先（绑定 notebook.id——
-    // 跨笔记密文交换认证失败），v3 旧数据回退（flutter_secure_storage
-    // 两步迁移模式：兼容期新旧并存，迁移后旧格式仅读）。
-    final clear = await _decryptKeyfilePayloadCompat(
-      notebook.id,
-      payload,
-      masterKey,
-    );
-    final map = jsonDecode(clear) as Map<String, dynamic>;
-    final pages = (map['pages'] as List? ?? const [])
-        .map((e) => NotebookPage.fromJson(e as Map<String, dynamic>))
-        .toList();
-    notebook.pages
-      ..clear()
-      ..addAll(pages);
-    return true;
-  }
-
-  /// v4/v3 兼容解密（keyfile 模式，任务#2 专家审计 2026-08-15）：
-  /// v4 AAD 优先（绑定 notebook.id——跨笔记密文交换认证失败），
-  /// v3 旧数据回退（flutter_secure_storage 两步迁移：兼容期新旧并存）。
-  Future<String> _decryptKeyfilePayloadCompat(
-    String notebookId,
-    String payload,
-    List<int> masterKey,
-  ) async {
-    try {
-      return await _encryption.decryptNotebookPayload(
-        notebookId: notebookId,
-        encryptedJson: payload,
-        key: masterKey,
-      );
-    } on FormatException {
-      return _encryption.decryptWithKey(payload, masterKey);
-    }
-  }
-
-  /// 用 U盘主密钥 + 恢复密钥重加密保存（keyfile 编辑会话保存用）。
-  ///
-  /// 编辑会话中内存有明文页面；保存时用主密钥重加密最新内容，
-  /// 并重新生成恢复信封（若提供了新的恢复密钥）。
-  Future<String> saveWithKey(
-    Notebook notebook,
-    List<int> masterKey, {
-    String? newRecoveryKey,
-  }) async {
-    // 第一步合规（2026-08-16 专家审计最优先行动②）：加密笔记本不生成
-    // 明文 searchSummary——"废除默认明文 searchSummary"。未来 K_note
-    // 密钥层级落地后摘要可加密存储（解锁会话内搜索——安全）。
-    final payloadJson = jsonEncode({
-      'pages': notebook.pages.map((p) => p.toJson()).toList(),
-    });
-    notebook.encrypted = true;
-    notebook.encryptionMode = EncryptionMode.keyfile;
-    notebook.encryptedPayload = await _encryption.encryptNotebookPayload(
-      notebookId: notebook.id,
-      plaintext: payloadJson,
-      key: masterKey,
-    );
-    if (newRecoveryKey != null) {
-      notebook.recoveryEnvelope = await _encryption.wrapMasterKey(
-        masterKey,
-        newRecoveryKey,
-      );
-    }
-    return _writeNotebook(notebook);
-  }
-
   /// 保存笔记本：加密笔记本不落盘明文 pages（评审发现 P1 修复）。
   ///
   /// - 非加密：直接原子写入；
   /// - 加密且未修改（pages 为空、密文仍在）：保留原密文写入，避免覆盖为空；
   /// - 加密且内存有明文页面：需要密钥才能重加密——若无密钥则拒绝保存
-  ///   （防止静默清空磁盘内容），由调用方走 [encryptAndSave] /
-  ///   [encryptAndSaveWithKey] / [saveWithKey]。
+  ///   （防止静默清空磁盘内容），由调用方走 [encryptAndSave]。
   @override
   Future<String> save(Notebook notebook) async {
     if (notebook.encrypted) {
@@ -660,7 +554,7 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
         return _writeNotebook(notebook);
       }
       throw StateError(
-        '加密笔记本需要密钥才能保存，请使用 encryptAndSave / encryptAndSaveWithKey / saveWithKey',
+        '加密笔记本需要会话密码才能保存，请使用 encryptAndSave',
       );
     }
     return _writeNotebook(notebook);

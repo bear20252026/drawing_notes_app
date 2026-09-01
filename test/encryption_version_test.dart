@@ -45,39 +45,4 @@ void main() {
     });
     expect(await encryption.decrypt(oldJson, 'old-pass'), '旧格式内容');
   });
-
-  test('信封 v 兼容：wrap(v=3) roundtrip + 旧信封（无 v 字段）兼容', () async {
-    final masterKey = List<int>.generate(32, (i) => i * 3);
-    final env = await encryption.wrapMasterKey(masterKey, 'RECOVER-24-ABCD-WXYZ');
-    expect((jsonDecode(env) as Map)['v'], 3, reason: '新信封必须标记 v=3');
-    expect(
-      await encryption.unwrapMasterKey(env, 'RECOVER-24-ABCD-WXYZ'),
-      masterKey,
-    );
-    // 真实旧信封（v=2 时代）：无 v 字段 + PBKDF2 10 万次加密，
-    // unwrap 按 v=2 分派 legacy 迭代，应可解开（存量信封不破坏）。
-    final salt = List<int>.generate(16, (i) => 100 + i);
-    final pbkdf2 = Pbkdf2(
-      macAlgorithm: Hmac.sha256(),
-      iterations: 100000,
-      bits: 256,
-    );
-    final kek = await pbkdf2.deriveKey(
-      secretKey: SecretKey(utf8.encode('RECOVER-24-ABCD-WXYZ')),
-      nonce: salt,
-    );
-    final aes = AesGcm.with256bits();
-    final nonce2 = List<int>.generate(12, (i) => 50 + i);
-    final box = await aes.encrypt(masterKey, secretKey: kek, nonce: nonce2);
-    final oldEnvelope = jsonEncode({
-      'salt': base64Encode(salt),
-      'n2': base64Encode(nonce2),
-      'ek': base64Encode(box.cipherText),
-      'm2': base64Encode(box.mac.bytes),
-    });
-    expect(
-      await encryption.unwrapMasterKey(oldEnvelope, 'RECOVER-24-ABCD-WXYZ'),
-      masterKey,
-    );
-  });
 }

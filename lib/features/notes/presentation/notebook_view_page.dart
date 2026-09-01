@@ -18,14 +18,11 @@ import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_sto
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_page.dart';
-import 'package:drawing_notes_app/core/storage/password_disk.dart';
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
 import 'package:drawing_notes_app/core/security/session_guard.dart';
-import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/storage/pdf_import_service.dart';
-import 'package:drawing_notes_app/core/storage/recovery_key_generator.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 // 批次②：笔记本设密 ≠开屏密码强制（verify 探测法检测同码）。
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
@@ -55,7 +52,6 @@ class NotebookViewPage extends StatefulWidget {
     this.editorPageBuilder,
     this.blockDocStore,
     this.sessionPassword,
-    this.sessionMasterKey,
   });
 
   final Notebook notebook;
@@ -71,10 +67,6 @@ class NotebookViewPage extends StatefulWidget {
   /// 会话内密码（仅内存持有，不落盘）：解密密码模式笔记本后传入，
   /// 使保存时可重加密最新内容（修复"编辑后无法保存"的致命问题）。
   final String? sessionPassword;
-
-  /// 会话内 U盘主密钥（仅内存持有，不落盘）：解锁 keyfile 模式笔记本后
-  /// 传入，使保存时可重加密最新内容（零知识架构）。
-  final List<int>? sessionMasterKey;
 
   @override
   State<NotebookViewPage> createState() => _NotebookViewPageState();
@@ -108,9 +100,6 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   /// 会话内密码（设置密码时记录；保存加密笔记本时用于重加密最新内容）。
   String? _sessionPassword;
 
-  /// 会话内 U盘主密钥（keyfile 模式解锁后记录，仅内存；保存时重加密）。
-  List<int>? _sessionMasterKey;
-
   /// H-05 部分落地（专家审计 2026-08-15）：生命周期监听——后台/切出时
   /// 自动保存草稿（防丢失）。完整会话锁定（清密钥 + 重解锁状态机）评估
   /// 为后续专项（涉及解锁流程重构，拆分须简化）。
@@ -118,10 +107,6 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
 
   /// 当前生效的会话密码（优先用本页设置过的，其次用打开时传入的）。
   String? get _effectivePassword => _sessionPassword ?? widget.sessionPassword;
-
-  /// 当前生效的 U盘主密钥（优先用本页设置/解锁的，其次用打开时传入的）。
-  List<int>? get _effectiveMasterKey =>
-      _sessionMasterKey ?? widget.sessionMasterKey;
 
   /// 会话守卫（专家审计最优先③——2026-08-16）：失去焦点立即锁定（保存 +
   /// 清除媒体密钥——private_notes_light 模式）；resume 已锁定则提示重新
@@ -159,11 +144,6 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   /// 回收，fillRange 主动擦除可防冷启动/内存转储（frida/proc mem）提取。
   @override
   void dispose() {
-    final key = _sessionMasterKey;
-    if (key != null) {
-      key.fillRange(0, key.length, 0);
-      _sessionMasterKey = null;
-    }
     _sessionPassword = null;
     _sessionGuard.dispose();
     // H-03 密钥清理时机：页面退出清除媒体加密会话密钥（D-2 内存清理）。
@@ -213,24 +193,14 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
             );
           }
         }
-        // 加密笔记本：用会话密钥重加密最新内容后保存（评审发现 P1 修复 +
+        // 加密笔记本：用会话密码重加密最新内容后保存（评审发现 P1 修复 +
         // 可用性修复：编辑后保存不再抛 StateError，内容不会丢失）。
         // 未加密：普通原子写入。
-        if (_notebook.encrypted &&
-            _notebook.encryptionMode == EncryptionMode.keyfile) {
-          final mk = _effectiveMasterKey;
-          if (mk != null) {
-            await widget.storage.saveWithKey(_notebook, mk);
-          } else {
-            await widget.storage.save(_notebook);
-          }
+        final pw = _effectivePassword;
+        if (_notebook.encrypted && pw != null) {
+          await widget.storage.encryptAndSave(_notebook, pw);
         } else {
-          final pw = _effectivePassword;
-          if (_notebook.encrypted && pw != null) {
-            await widget.storage.encryptAndSave(_notebook, pw);
-          } else {
-            await widget.storage.save(_notebook);
-          }
+          await widget.storage.save(_notebook);
         }
         widget.onChanged?.call();
       } while (_saveQueued);

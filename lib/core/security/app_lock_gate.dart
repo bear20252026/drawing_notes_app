@@ -17,8 +17,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
-import 'package:drawing_notes_app/core/storage/password_disk.dart';
-import 'package:drawing_notes_app/core/storage/usb_reset_key_file.dart';
+import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
     show PinPadCore, UnlockFlow;
 
@@ -37,7 +36,6 @@ class AppLockGate extends StatefulWidget {
     super.key,
     required this.service,
     this.vault,
-    this.disk,
     required this.child,
   });
 
@@ -49,10 +47,6 @@ class AppLockGate extends StatefulWidget {
   /// - 保险库不存在（老用户升级首解）→ initialize（自动补建加密底座）。
   final VaultKeyService? vault;
 
-  /// 密码盘抽象（批次④）：忘记密码流程用它选取 U 盘目录；
-  /// null 时 Debug/测试用 Mock、Release 用 Real（createPasswordDisk 工厂）。
-  final PasswordDisk? disk;
-
   final Widget child;
 
   @override
@@ -62,8 +56,6 @@ class AppLockGate extends StatefulWidget {
 class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   bool _initialized = false;
   bool _locked = false;
-
-  late final PasswordDisk _disk = widget.disk ?? createPasswordDisk();
 
   @override
   void initState() {
@@ -127,9 +119,9 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  /// 批次④：忘记密码流程（U 盘恢复钥匙，冷却期内同样可用）。
+  /// 忘记密码流程（重置密码盘，冷却期内同样可用）。
   ///
-  /// 链路：说明 → 选 U 盘 → 读 vault_reset.frogkey → 两步输入新 PIN →
+  /// 链路：说明 → 选 U 盘 → 读 password_reset_disk.key → 两步输入新 PIN →
   /// 保险库槽 2 解包重置槽 1 → 重设开屏 PIN 哈希 → 清防爆破记录 → 放行。
   /// 任何一步失败都保持原状态（fail-closed，重试即可）。
   Future<void> _startForgotPassword() async {
@@ -138,14 +130,14 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
       _snack('当前版本不支持密码找回');
       return;
     }
-    // 步骤 1：说明确认（诚实告知需要已绑定的 U 盘）。
+    // 步骤 1：说明确认（诚实告知需要已绑定的重置密码盘）。
     final proceed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('忘记密码'),
         content: const Text(
-          '使用之前绑定的 U 盘恢复钥匙（vault_reset.frogkey）重设密码。\n\n'
-          '未绑定 U 盘恢复钥匙时，密码无法找回。',
+          '使用之前绑定的重置密码盘（U 盘）重设密码。\n\n'
+          '未绑定重置密码盘时，密码无法找回。',
         ),
         actions: [
           TextButton(
@@ -162,14 +154,14 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     if (proceed != true || !mounted) return;
 
     // 步骤 2：选取 U 盘目录（取消即静默返回）。
-    final dir = await _disk.pickDirectory();
+    final dir = await ResetDiskFile.pickDirectory();
     if (dir == null || !mounted) return;
 
-    // 步骤 3：读取恢复钥匙（fail-closed：文件缺失/无效即止步）。
-    final externalKey = await UsbResetKeyFile.readFrom(dir);
+    // 步骤 3：读取重置钥匙（fail-closed：文件缺失/无效即止步）。
+    final externalKey = await ResetDiskFile.readFrom(dir);
     if (!mounted) return;
     if (externalKey == null) {
-      _snack('未找到有效的 U 盘恢复钥匙文件（vault_reset.frogkey）');
+      _snack('未找到有效的重置密码盘文件（password_reset_disk.key）');
       return;
     }
 
@@ -263,8 +255,8 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
                             onAccepted: (_) => _unlock(),
                           ),
                   ),
-                  // 批次④：忘记密码入口（冷却期与正常锁屏均可用——
-                  // 被锁 24 小时干等没有意义，恢复钥匙正是为此而设）。
+                  // 忘记密码入口（冷却期与正常锁屏均可用——
+                  // 被锁 24 小时干等没有意义，重置密码盘正是为此而设）。
                   Positioned(
                     left: 0,
                     right: 0,

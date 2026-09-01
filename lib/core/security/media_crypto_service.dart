@@ -35,7 +35,7 @@ class MediaCryptoService {
   void clearNotebookKey() => clearSessionKey();
 
   /// 密码模式注入（H-03 方案 B——HelloPrivacy salt.dat 模式）：PBKDF2
-  /// 派生 key 后注入（与 keyfile setSessionKey 统一——服务不感知模式）。
+  /// 派生 key 后注入（与会话密钥注入统一——服务不感知模式）。
   /// [salt] 为全局持久盐（明文无害——盐无需保密）；跨会话用同一全局
   /// 盐重派生（解密媒体 key 一致）。
   Future<void> setSessionPassword(String password, List<int> salt) async {

@@ -1,8 +1,8 @@
 part of 'notebook_view_page.dart';
 
-// 笔记页导入/加密/历史域（O1 拆分）：文本/PDF 导入、密码盘与
-// keyfile 加密、版本历史方法从 notebook_view_page.dart 移出为
-// extension；行为零变化。
+// 笔记页导入/加密/历史域（O1 拆分）：文本/PDF 导入、密码保护、
+// 版本历史方法从 notebook_view_page.dart 移出为 extension；行为零变化。
+// （keyfile「U盘钥匙」加密已随重置密码盘定案删除——2026-09-02。）
 
 /// 笔记页导入/加密/历史域（拆分自 notebook_view_page.dart）。
 extension _NotebookPageImports on _NotebookViewPageState {
@@ -176,52 +176,9 @@ extension _NotebookPageImports on _NotebookViewPageState {
     );
   }
 
-  /// 设置笔记本加密：选择"记忆密码"或"U盘钥匙（密码盘）"两种模式。
+  /// 设置笔记本密码保护（密码模式）。
   Future<void> _setPassword() async {
-    // 第一步：选择加密模式。
-    final mode = await showDialog<EncryptionMode>(
-      context: context,
-      builder: (ctx) => SimpleDialog(
-        title: Text(
-          AppLocalizations.of(context)?.noteEncryptionChoice ?? '选择加密方式',
-        ),
-        children: [
-          SimpleDialogOption(
-            onPressed: () => Navigator.of(ctx).pop(EncryptionMode.password),
-            child: ListTile(
-              leading: Icon(Icons.lock_outline),
-              title: Text(
-                AppLocalizations.of(context)?.noteMemoryPassword ?? '记忆密码',
-              ),
-              subtitle: Text(
-                AppLocalizations.of(context)?.noteMemoryPasswordSub ??
-                    '设置密码，打开时输入密码解密',
-              ),
-            ),
-          ),
-          SimpleDialogOption(
-            onPressed: () => Navigator.of(ctx).pop(EncryptionMode.keyfile),
-            child: ListTile(
-              leading: Icon(Icons.usb),
-              title: Text(
-                AppLocalizations.of(context)?.noteUsbKey ?? 'U盘钥匙（密码盘）',
-              ),
-              subtitle: Text(
-                AppLocalizations.of(context)?.noteUsbKeySub ??
-                    'U盘即钥匙：插入 U 盘解锁，拔盘即锁（零知识）',
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-    if (mode == null || !mounted) return;
-
-    if (mode == EncryptionMode.password) {
-      await _enablePasswordEncryption();
-    } else {
-      await _enableKeyfileEncryption();
-    }
+    await _enablePasswordEncryption();
   }
 
   /// 密码模式加密。
@@ -242,7 +199,6 @@ extension _NotebookPageImports on _NotebookViewPageState {
       await widget.storage.encryptAndSave(_notebook, password);
       // 记录会话密码：设置后本页内编辑可重加密保存（修复"无法保存"问题）。
       _sessionPassword = password;
-      _sessionMasterKey = null;
       // H-03 密码模式媒体加密（方案 B）：全局盐派生注入（storeImage 加密
       // 写入 + EncryptedFileImage 渲染解密用——跨会话同盐重派生 key 一致）。
       final mediaSalt = await widget.storage.ensureMediaSalt();
@@ -256,106 +212,6 @@ extension _NotebookPageImports on _NotebookViewPageState {
     } catch (e) {
       _showSnack('设置密码失败：${e.runtimeType}');
     }
-  }
-
-  /// U盘钥匙（keyfile）模式加密：选择/创建密码盘 → 读取主密钥 →
-  /// 生成并展示 24 位恢复密钥 → 加密保存。
-  Future<void> _enableKeyfileEncryption() async {
-    final disk = createPasswordDisk();
-    final dir = await disk.pickDirectory();
-    if (dir == null || !mounted) return;
-
-    // 若目录下还没有密码盘，则先创建。
-    if (!await disk.validateKeyFile(dir)) {
-      final ok = await disk.createKeyFile(dir);
-      if (!ok) {
-        _showSnack('创建密码盘失败');
-        return;
-      }
-    }
-    final masterKey = await disk.readKey(dir);
-    if (masterKey == null) {
-      _showSnack('无法读取密码盘密钥');
-      return;
-    }
-    // 生成 24 位恢复密钥并展示（U 盘丢失时找回主密钥）。
-    final recoveryKey = generateRecoveryKey();
-    await _showRecoveryKeyWarning(recoveryKey);
-    if (!mounted) return;
-
-    try {
-      await widget.storage.encryptAndSaveWithKey(
-        _notebook,
-        masterKey,
-        recoveryKey,
-      );
-      // 会话主密钥：本页内编辑可重加密保存。
-      _sessionMasterKey = masterKey;
-      // H-03 密钥注入时机（专家审计 2026-08-15）：解锁成功注入媒体加密
-      // 服务（storeImage 加密写入 + EncryptedFileImage 渲染解密用——
-      // 服务层持有、不散传）。
-      // K_note 每笔记密钥（专家审计最优先③——2026-08-16）：媒体加解密
-      // 绑定当前笔记本 ID（AAD 'media|notebookId'——防跨笔记密文交换）。
-      MediaCryptoService.instance.setNotebookKey(widget.notebook.id, masterKey);
-      // 媒体 VFS 双轨（2026-08-16）：初始化 VFS 媒体仓库（K_note 上下文——
-      // 新媒体对象写 VFS——旧媒体 DAN 兼容读——s3eg 双读窗口模式）。
-      VaultService.configure(
-        await widget.storage.ensureImagesDir(),
-      ).setKey(masterKey);
-      // I-003 关闭全局媒体迁移（专家方案 2026-08-16——P0）：解锁后不再
-      // 自动执行 migrateLegacyMedia（专家："绝不对旧媒体目录执行全局自动
-      // 扫描"）——旧明文媒体保持兼容读（DAN 检测）；迁移改为显式调用
-      // （V2 MigrationService——用户明确选择时复制-认证-校验-切换）。
-      _sessionPassword = null;
-      if (mounted) {
-        _applyState(() {});
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('已启用 U盘钥匙加密（拔盘即锁）')));
-      }
-    } catch (e) {
-      _showSnack('启用 U盘钥匙加密失败：${e.runtimeType}');
-    }
-  }
-
-  /// 展示恢复密钥（警示必须抄写）。
-  Future<void> _showRecoveryKeyWarning(String recoveryKey) async {
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          AppLocalizations.of(context)?.noteRecoveryKeyTitle ??
-              '保存您的恢复密钥（非常重要！）',
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              recoveryKey,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              '⚠️ 请抄写或截图保存到安全处。\n'
-              'U 盘丢失或损坏时，凭此密钥可恢复主密钥。\n'
-              '本应用不存储任何密钥，忘记恢复密钥将永久无法恢复！',
-              style: TextStyle(color: Colors.red),
-            ),
-          ],
-        ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('我已抄写'),
-          ),
-        ],
-      ),
-    );
   }
 
   /// 查看并回溯页面版本历史（C1）。

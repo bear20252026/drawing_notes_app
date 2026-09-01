@@ -60,7 +60,7 @@ void main() {
       expect(writes, 4, reason: '彻底删除应触发回调');
     });
 
-    test('NotebookStorage：保存（明文/密钥路径）与删除触发回调', () async {
+    test('NotebookStorage：保存（明文/加密路径）与删除触发回调', () async {
       final storage = NotebookStorage(directoryProvider: () async => tempDir);
       var writes = 0;
       storage.onWrite = () => writes++;
@@ -69,13 +69,10 @@ void main() {
       await storage.save(notebook);
       expect(writes, 1, reason: 'save 应触发回调');
 
-      // saveWithKey（keyfile 编辑会话路径）也汇入 _writeNotebook 单一出口。
+      // encryptAndSave（密码加密路径）也汇入 _writeNotebook 单一出口。
       final loaded = await storage.load('refresh_nb1');
-      await storage.saveWithKey(
-        loaded!,
-        Uint8List.fromList(List.filled(32, 7)),
-      );
-      expect(writes, 2, reason: 'saveWithKey 应触发回调');
+      await storage.encryptAndSave(loaded!, 'test-pass-123');
+      expect(writes, 2, reason: 'encryptAndSave 应触发回调');
 
       await storage.delete('refresh_nb1');
       expect(writes, 3, reason: 'delete 应触发回调');

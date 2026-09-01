@@ -34,7 +34,7 @@ class VaultUnlockException implements Exception {
 /// - U 盘钥匙槽位（批次④，LUKS/BitLocker 多保护器模式）：保险库 v2 为
 ///   双槽结构——槽 1 PIN 包裹、槽 2 U 盘钥匙文件（32B CSPRNG）包裹，
 ///   同一主密钥两把钥匙；忘 PIN 时插 U 盘免旧 PIN 重设。主密钥副本
-///   不出设备，U 盘上只有随机钥匙文件（vault_reset.frogkey）。
+///   不出设备，U 盘上只有随机钥匙文件（password_reset_disk.key）。
 /// - 单一事实来源：AEAD 加解密/随机数/KDF 全部收敛到本类 static，
 ///   文档编解码层（①b/c）与 U 盘副本共用同一实现。
 class VaultKeyService {

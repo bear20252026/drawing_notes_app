@@ -26,7 +26,6 @@ class EncryptionService {
   static const int _saltLength = 16;
   static const int _nonceLength = 12;
   static const int _macLength = 16;
-  static const int _masterKeyLength = 32;
   static const int _maxEncryptedInputBytes = 10 * 1024 * 1024; // 10MB
 
   /// 按格式版本选择 PBKDF2 迭代次数（无 v 字段视为旧格式 v=2）。
@@ -82,94 +81,6 @@ class EncryptionService {
     _requireKnownVersion(v);
     final key = await _deriveKey(password, salt, iterations: _iterationsFor(v));
     return _gcmDecrypt(map, key);
-  }
-
-  /// ---- 密码盘（U盘即钥匙）keyfile 模式 ----
-  ///
-  /// 设计见 docs/PASSWORD_DISK_DESIGN.md：
-  /// - 主密钥（32 字节）只存在 U 盘 key.frogkey，软件不持久化；
-  /// - 页面内容用主密钥 AES-256-GCM 加密；
-  /// - 恢复密钥（24 位纸备份）经 PBKDF2 派生 KEK，包裹主密钥成信封 ek，
-  ///   U 盘丢失时可解信封找回主密钥。
-
-  /// 用主密钥加密 [plainText]，返回 JSON 串（mode=keyfile）。
-  Future<String> encryptWithKey(String plainText, List<int> masterKey) async {
-    final aes = AesGcm.with256bits();
-    final nonce = _randomBytes(12);
-    final box = await aes.encrypt(
-      utf8.encode(plainText),
-      secretKey: SecretKey(masterKey),
-      nonce: nonce,
-    );
-    return jsonEncode({
-      'mode': 'keyfile',
-      'n': base64Encode(nonce),
-      'c': base64Encode(box.cipherText),
-      'm': box.mac.bytes.isNotEmpty ? base64Encode(box.mac.bytes) : '',
-    });
-  }
-
-  /// 用主密钥解密（mode=keyfile）；密钥错误抛 [FormatException]。
-  Future<String> decryptWithKey(
-    String encryptedJson,
-    List<int> masterKey,
-  ) async {
-    // H-07 修复：主密钥长度 + 输入大小预检。
-    _requireFixedLength('主密钥', masterKey, _masterKeyLength);
-    _requireInputSize(encryptedJson);
-    final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
-    if (map['mode'] != 'keyfile') {
-      throw FormatException('不是密码盘加密数据');
-    }
-    return _gcmDecrypt(map, SecretKey(masterKey));
-  }
-
-  /// 生成恢复密钥信封：恢复密钥 + 随机盐 -> PBKDF2 派生 KEK -> 加密主密钥。
-  ///
-  /// 返回 (salt, nonce2, ek) 的 JSON 串，供数据头保存。
-  Future<String> wrapMasterKey(List<int> masterKey, String recoveryKey) async {
-    final salt = _randomBytes(16);
-    final kek = await _deriveKey(recoveryKey, salt);
-    final aes = AesGcm.with256bits();
-    final nonce2 = _randomBytes(12);
-    final box = await aes.encrypt(masterKey, secretKey: kek, nonce: nonce2);
-    return jsonEncode({
-      'salt': base64Encode(salt),
-      'n2': base64Encode(nonce2),
-      'ek': base64Encode(box.cipherText),
-      'm2': box.mac.bytes.isNotEmpty ? base64Encode(box.mac.bytes) : '',
-      'v': 3, // 审计修复（2026-08-15）：PBKDF2 60 万次
-    });
-  }
-
-  /// 解恢复密钥信封：恢复密钥错误或信封损坏抛 [FormatException]。
-  Future<List<int>> unwrapMasterKey(String envelope, String recoveryKey) async {
-    // H-07 修复：输入大小预检 + 盐长度校验。
-    _requireInputSize(envelope);
-    final map = jsonDecode(envelope) as Map<String, dynamic>;
-    final salt = base64Decode(_requireString(map, 'salt'));
-    _requireFixedLength('盐', salt, _saltLength);
-    // 按 v 字段分派迭代次数：v≥3 用 60 万次，v≤2/无 v 用 10 万次（旧信封兼容）。
-    final v = map['v'] is int ? map['v'] as int : 2;
-    _requireKnownVersion(v);
-    final kek = await _deriveKey(
-      recoveryKey,
-      salt,
-      iterations: _iterationsFor(v),
-    );
-    final aes = AesGcm.with256bits();
-    final ek = base64Decode(_requireString(map, 'ek'));
-    final n2 = base64Decode(_requireString(map, 'n2'));
-    final m2 = base64Decode(_requireString(map, 'm2'));
-    // H-07 修复：信封固定字段长度校验（nonce 12 / MAC 16 / 主密钥 32）。
-    _requireFixedLength('nonce2', n2, _nonceLength);
-    _requireFixedLength('MAC2', m2, _macLength);
-    _requireFixedLength('主密钥', ek, _masterKeyLength);
-    final clear = await aes.decrypt(
-      SecretBox(ek, nonce: n2, mac: Mac(m2)),
-      secretKey: kek,
-    );
-    return clear;
   }
 
   /// AES-GCM 解密封装（共用逻辑）。

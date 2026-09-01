@@ -4,9 +4,6 @@ import 'package:drawing_notes_app/features/notes/domain/notebook_page.dart';
 enum EncryptionMode {
   /// 记忆密码派生密钥。
   password,
-
-  /// U 盘保存的随机主密钥。
-  keyfile,
 }
 
 /// 多个页面的分类与持久化聚合。
@@ -21,7 +18,6 @@ class Notebook {
     this.encrypted = false,
     this.encryptionMode = EncryptionMode.password,
     this.encryptedPayload,
-    this.recoveryEnvelope,
     this.searchSummary = '',
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -35,7 +31,6 @@ class Notebook {
   bool encrypted;
   EncryptionMode encryptionMode;
   String? encryptedPayload;
-  String? recoveryEnvelope;
   String searchSummary;
   final DateTime createdAt;
   DateTime updatedAt;
@@ -68,7 +63,6 @@ class Notebook {
     'encrypted': encrypted,
     'encryptionMode': encryptionMode.name,
     if (encryptedPayload != null) 'encryptedPayload': encryptedPayload,
-    if (recoveryEnvelope != null) 'recoveryEnvelope': recoveryEnvelope,
     if (searchSummary.isNotEmpty) 'searchSummary': searchSummary,
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
@@ -86,7 +80,6 @@ class Notebook {
       orElse: () => EncryptionMode.password,
     ),
     encryptedPayload: json['encryptedPayload'] as String?,
-    recoveryEnvelope: json['recoveryEnvelope'] as String?,
     searchSummary: json['searchSummary'] as String? ?? '',
     createdAt:
         DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),

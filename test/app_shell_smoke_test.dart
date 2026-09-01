@@ -161,7 +161,7 @@ void main() {
     expect(find.text('全部日程'), findsOneWidget);
   });
 
-  testWidgets('批次⑤：4 号目的地「设置」渲染三层密码卡与集中入口', (tester) async {
+  testWidgets('4 号目的地「设置」渲染密码体系卡与集中入口', (tester) async {
     await pumpShell(tester);
 
     await tester.tap(find.text('设置').last);
@@ -169,12 +169,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('设置'), findsWidgets); // 导航标签 + AppBar 标题
-    expect(find.text('三层密码体系'), findsOneWidget);
+    expect(find.text('密码体系'), findsOneWidget);
     expect(find.text('密码与安全'), findsOneWidget);
     expect(find.text('通用'), findsOneWidget);
     // HomePage 原散落入口已收编（应用锁入口依赖 service 注入，
     // 此装配未注入则按设计隐藏——专项断言在 settings_page_test）。
-    expect(find.text('密码盘与恢复'), findsOneWidget);
+    // key.frogkey 密码盘体系已删除（N4 批 1，2026-09-02）——入口不复存在。
+    expect(find.text('密码盘与恢复'), findsNothing);
     expect(find.text('WebDAV 同步'), findsOneWidget);
   });
 }

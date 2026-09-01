@@ -1,6 +1,6 @@
 // 批次⑤：第四界面「设置」——密码体系与通用设置的集中管理入口。
 //
-// 单一事实来源：密码类设置（应用锁/密码盘/单文件密码）与通用设置
+// 单一事实来源：密码类设置（应用锁/单文件密码）与通用设置
 // （外观/WebDAV）此前散落在 HomePage 的 AppBar 图标与「更多」菜单里，
 // 本页收编为唯一入口（HomePage 原入口随批次⑤移除，功能只搬家不删除）。
 import 'package:flutter/material.dart';
@@ -9,7 +9,6 @@ import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/features/notes/presentation/app_lock_settings_page.dart';
-import 'package:drawing_notes_app/features/notes/presentation/password_disk_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settings_page.dart';
 
 /// 设置页：密码与安全 + 通用两大分组。
@@ -52,19 +51,10 @@ class SettingsPage extends StatelessWidget {
                   ListTile(
                     leading: const Icon(Icons.lock_outline_rounded),
                     title: const Text('应用锁'),
-                    subtitle: const Text('开屏密码 · U 盘恢复钥匙'),
+                    subtitle: const Text('开屏密码 · 重置密码盘'),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => _openAppLock(context),
                   ),
-                ListTile(
-                  leading: const Icon(Icons.usb_rounded),
-                  title: const Text('密码盘与恢复'),
-                  subtitle: const Text('笔记本密码盘（U 盘钥匙文件）'),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const PasswordDiskPage()),
-                  ),
-                ),
                 ListTile(
                   leading: const Icon(Icons.enhanced_encryption_rounded),
                   title: const Text('单文件密码'),
@@ -152,11 +142,11 @@ class SettingsPage extends StatelessWidget {
   };
 }
 
-/// 三层密码关系展示卡：一眼看懂「谁保护谁」。
+/// 密码体系展示卡：一眼看懂「谁保护谁」。
 ///
-/// 链路：开屏密码 → 主密钥保险库 → 全部画作/笔记加密；
-/// U 盘恢复钥匙是开屏密码的找回通道；笔记本密码盘与单文件密码
-/// 是相互独立的两把额外锁。
+/// 两层锁 + 一把 U 盘（2026-09-02 命名体系定案）：
+/// 第 1 层开屏密码护 App；第 2 层文件密码护单个文件；
+/// 重置密码盘（U 盘）是两层「忘记密码」的统一重置通道。
 class _PasswordLayersCard extends StatelessWidget {
   const _PasswordLayersCard();
 
@@ -175,7 +165,7 @@ class _PasswordLayersCard extends StatelessWidget {
               children: [
                 Icon(Icons.layers_rounded, size: 18, color: scheme.primary),
                 const SizedBox(width: 8),
-                Text('三层密码体系', style: Theme.of(context).textTheme.titleSmall),
+                Text('密码体系', style: Theme.of(context).textTheme.titleSmall),
               ],
             ),
             const SizedBox(height: 10),
@@ -185,23 +175,25 @@ class _PasswordLayersCard extends StatelessWidget {
               title: '第 1 层 · 开屏密码',
               desc:
                   '解锁应用，同时解开主密钥保险库——保护全部画作与笔记。'
-                  '忘记时可用 U 盘恢复钥匙重设。',
-            ),
-            _divider(scheme),
-            _layer(
-              context,
-              icon: Icons.usb_rounded,
-              title: '第 2 层 · 笔记本密码盘',
-              desc:
-                  'U 盘上的钥匙文件（key.frogkey），打开密码盘加密的'
-                  '笔记本时需要。与开屏密码相互独立。',
+                  '忘记时可用重置密码盘重设。',
             ),
             _divider(scheme),
             _layer(
               context,
               icon: Icons.enhanced_encryption_rounded,
-              title: '第 3 层 · 单文件密码',
-              desc: '给特别重要的画作再加一道锁，独立于前两层。',
+              title: '第 2 层 · 文件密码',
+              desc:
+                  '给单个画作/笔记本/笔记另设的独立密码，独立于开屏密码。'
+                  '忘记时可用重置密码盘重设。',
+            ),
+            _divider(scheme),
+            _layer(
+              context,
+              icon: Icons.usb_rounded,
+              title: '重置密码盘（U 盘）',
+              desc:
+                  '插入 U 盘 → 点「忘记密码」→ 重置新密码。'
+                  '开屏密码与文件密码通用同一把盘。',
             ),
           ],
         ),
