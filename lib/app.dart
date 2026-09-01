@@ -19,6 +19,7 @@ import 'package:drawing_notes_app/fix/security_and_sync_fix.dart' show SyncFix;
 // 应用启动锁：冷启动 + 切后台回锁（2026-09-01）。
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/app_lock_gate.dart';
+import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 
 /// 应用根组件：主题 + 路由。
 ///
@@ -42,10 +43,17 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   // 组合根拥有共享依赖的生命周期；页面只接收这些实例，不自行创建。
-  final StorageService _documentStorage = StorageService();
+  // 加密底座批次①b：保险库是密钥链根，存储层经 keyProvider 拿解锁态主密钥。
+  late final StorageService _documentStorage = StorageService(
+    keyProvider: () async {
+      final vault = _vaultKeyService;
+      return vault.isUnlocked ? vault.masterKey : null;
+    },
+  );
   final NotebookStorage _notebookStorage = NotebookStorage();
   final NoteBlockDocStore _blockDocStore = NoteBlockDocStore();
   final AppLockService _appLockService = AppLockService();
+  final VaultKeyService _vaultKeyService = VaultKeyService();
 
   @override
   void initState() {
@@ -138,6 +146,7 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
           // 应用启动锁门：冷启动 + 切后台回锁；未配置 PIN 时完全透明。
           home: AppLockGate(
             service: _appLockService,
+            vault: _vaultKeyService,
             child: AppShell(
               notebookStorage: _notebookStorage,
               docStorage: _documentStorage,
@@ -145,6 +154,7 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
               editorPageBuilder: DefaultEditorPageBuilder.build,
               blockDocStore: _blockDocStore,
               appLockService: _appLockService,
+              vaultKeyService: _vaultKeyService,
             ),
           ),
         ),

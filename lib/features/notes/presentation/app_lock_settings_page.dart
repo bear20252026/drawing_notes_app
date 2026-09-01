@@ -10,6 +10,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
+import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
     show UnlockFlow;
 
@@ -18,9 +19,14 @@ import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
 /// 开关状态以 [AppLockService] 为单一事实来源（ListenableBuilder 联动）：
 /// 流程被用户取消时 service 状态不变，开关自动回弹，无需本地状态机。
 class AppLockSettingsPage extends StatelessWidget {
-  const AppLockSettingsPage({super.key, required this.service});
+  const AppLockSettingsPage({super.key, required this.service, this.vault});
 
   final AppLockService service;
+
+  /// 主密钥保险库（批次①b）：与开屏密码共用同一位密码——
+  /// 设置密码时同步建库、修改密码时同步重包裹；保险库已存在时
+  /// 「关闭应用锁」被阻止（文件已用该密码加密，关闭将导致不可读）。
+  final VaultKeyService? vault;
 
   @override
   Widget build(BuildContext context) {
@@ -104,7 +110,13 @@ class AppLockSettingsPage extends StatelessWidget {
   }
 
   /// 两步设置新密码：设置 → 确认（一致才生效）。
-  Future<void> _startEnableFlow(BuildContext context) async {
+  ///
+  /// [oldPinForVault] 非空表示「修改密码」流程：保险库以旧 PIN 换盐
+  /// 重包裹（主密钥不变，已加密文件无需迁移）。
+  Future<void> _startEnableFlow(
+    BuildContext context, {
+    String? oldPinForVault,
+  }) async {
     final pin = await UnlockFlow.show(context, title: '设置密码');
     if (pin == null || !context.mounted) return;
     final confirm = await UnlockFlow.show(context, title: '确认密码');
@@ -117,6 +129,23 @@ class AppLockSettingsPage extends StatelessWidget {
       return;
     }
     await service.setPin(pin);
+    // 批次①b：保险库与开屏密码同步生命周期。
+    final vault = this.vault;
+    if (vault != null) {
+      try {
+        if (oldPinForVault != null && await vault.isConfigured()) {
+          await vault.changePin(oldPin: oldPinForVault, newPin: pin);
+        } else if (!await vault.isConfigured()) {
+          await vault.initialize(pin);
+        }
+      } catch (_) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('文件加密同步失败，请重试或联系开发者')));
+        return;
+      }
+    }
     if (!context.mounted) return;
     ScaffoldMessenger.of(
       context,
@@ -124,7 +153,32 @@ class AppLockSettingsPage extends StatelessWidget {
   }
 
   /// 验证旧密码后关闭应用锁。
+  ///
+  /// 批次①b 起文件以开屏密码加密：保险库已存在时关闭被阻止
+  /// （fail-closed——关掉锁不能让密文变成不可管理的孤儿）。
   Future<void> _startDisableFlow(BuildContext context) async {
+    final vault = this.vault;
+    if (vault != null && await vault.isConfigured()) {
+      if (!context.mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('无法关闭应用锁'),
+          content: const Text(
+            '你的文件已使用开屏密码加密保护，关闭应用锁会导致加密文件'
+            '无法解锁读取。\n\n如需更换密码，请使用「修改密码」。',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('知道了'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    if (!context.mounted) return; // isConfigured 为异步操作，跨缺口再查一次
     final pin = await UnlockFlow.show(
       context,
       title: '验证当前密码',
@@ -132,7 +186,7 @@ class AppLockSettingsPage extends StatelessWidget {
     );
     if (pin == null || !context.mounted) return; // 取消（或验证失败后放弃）
     await service.disable();
-    if (!context.mounted) return;
+    if (!context.mounted) return; // disable 为异步操作，跨异步缺口再查一次
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('应用锁已关闭')));
@@ -146,6 +200,6 @@ class AppLockSettingsPage extends StatelessWidget {
       onVerify: (p) => service.verify(p),
     );
     if (oldPin == null || !context.mounted) return;
-    await _startEnableFlow(context);
+    await _startEnableFlow(context, oldPinForVault: oldPin);
   }
 }

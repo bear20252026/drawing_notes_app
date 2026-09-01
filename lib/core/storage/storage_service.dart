@@ -8,6 +8,7 @@ import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/storage/document_codec.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
+import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 
 /// 本地文件存储服务：负责工程文件的保存、读取、列表、删除。
 ///
@@ -22,13 +23,21 @@ import 'package:drawing_notes_app/core/storage/repository.dart';
 ///   后续若更换为数据库（sqflite）或云同步，只需替换本类实现
 ///   （已通过 [DocumentRepository] 接口抽象，见 repository.dart）。
 class StorageService implements DocumentRepository {
-  StorageService({DocumentCodec? codec, this.directoryProvider})
-    : _codec = codec ?? const DocumentCodec();
+  StorageService({
+    DocumentCodec? codec,
+    this.directoryProvider,
+    this.keyProvider,
+  }) : _codec = codec ?? const DocumentCodec();
 
   final DocumentCodec _codec;
 
   /// 目录提供者：测试时可注入临时目录，生产环境使用系统文档目录。
   final Future<Directory> Function()? directoryProvider;
+
+  /// 主密钥提供者（加密底座批次①b）：返回解锁态主密钥时，文档 JSON 以
+  /// AES-256-GCM 信封落盘（`DNV` 魔数，AAD 绑定文档 ID）；返回 null
+  /// （未设密码 / 保险库锁定）时保持明文兼容。由组合根注入。
+  final Future<Uint8List?> Function()? keyProvider;
 
   /// 写成功回调（首页刷新修复①）：画布保存/缩略图更新/删除落盘成功后触发，
   /// 由装配层注入（AppServices.bumpDataVersion），驱动首页/AllDocs 刷新。
@@ -236,11 +245,53 @@ class StorageService implements DocumentRepository {
         });
   }
 
+  Future<Uint8List?> _currentKey() async {
+    final provider = keyProvider;
+    if (provider == null) return null;
+    return provider();
+  }
+
+  /// 写入前的字节准备：有主密钥 → 信封加密（AAD 绑定文档 ID）。
+  Future<Uint8List> _sealDocBytes(String id, Uint8List data) async {
+    final key = await _currentKey();
+    if (key == null) return data;
+    return VaultFileCodec.encrypt(data, key, aadContext: 'doc:$id');
+  }
+
+  /// 读取后的字节准备（读路径自动分流，Joplin 懒迁移模式）：
+  /// - 密文 + 已解锁 → 解密；
+  /// - 密文 + 锁定 → [VaultFileLockException]（fail-closed，绝不回退猜测）；
+  /// - 明文 + 有密钥 → 原样返回并排队懒迁移（下次写队列将明文重写为密文）；
+  /// - 明文 + 无密钥 → 原样返回（旧版本兼容）。
+  Future<Uint8List> _prepareDocBytes(String id, Uint8List raw) async {
+    final key = await _currentKey();
+    if (VaultFileCodec.isEncrypted(raw)) {
+      if (key == null) throw const VaultFileLockException();
+      return VaultFileCodec.decrypt(raw, key, aadContext: 'doc:$id');
+    }
+    if (key != null) _enqueueRawRewrite(id, raw);
+    return raw;
+  }
+
+  /// 懒迁移：把明文字节经既有写尾队列重写为密文（与保存共用并发纪律）。
+  void _enqueueRawRewrite(String id, Uint8List plaintext) {
+    final previous = _writeTails[id] ?? Future<void>.value();
+    late final Future<void> operation;
+    operation = previous.catchError((_) {}).then((_) async {
+      await _saveEncoded(id, plaintext);
+    });
+    _writeTails[id] = operation;
+    operation.whenComplete(() {
+      if (identical(_writeTails[id], operation)) _writeTails.remove(id);
+    });
+  }
+
   Future<void> _saveEncoded(String id, Uint8List data) async {
     await _ensureDocumentsDir();
+    final sealed = await _sealDocBytes(id, data);
     final finalFile = File(_pathFor(id));
     final tmp = File('${finalFile.path}.${LocalIdGenerator.next('write')}.tmp');
-    await tmp.writeAsBytes(data, flush: true);
+    await tmp.writeAsBytes(sealed, flush: true);
 
     // 备份上一版：若平台不允许直接覆盖目标文件，恢复路径仍保留上一份完整数据。
     if (await finalFile.exists()) {
@@ -277,16 +328,19 @@ class StorageService implements DocumentRepository {
     final file = File(_pathFor(id));
     final bak = File('${_pathFor(id)}.bak');
     if (!await file.exists() && !await bak.exists()) return null;
+    Future<Uint8List> preparedBytes(File source) async {
+      final raw = await _readWithRetry(() async => await source.readAsBytes());
+      return _prepareDocBytes(id, raw);
+    }
+
     try {
-      final bytes = await _readWithRetry(
-        () async => await (await file.exists() ? file : bak).readAsBytes(),
+      return _codec.decode(
+        await preparedBytes(await file.exists() ? file : bak),
       );
-      return _codec.decode(bytes);
     } on FormatException {
       // 正式文件损坏：尝试备份恢复。
       if (await bak.exists()) {
-        final bytes = await _readWithRetry(() async => await bak.readAsBytes());
-        return _codec.decode(bytes);
+        return _codec.decode(await preparedBytes(bak));
       }
       rethrow;
     }
@@ -322,7 +376,24 @@ class StorageService implements DocumentRepository {
         // 限制 readAsBytes + jsonDecode，恶意超大 .json（如 90MB）会在
         // 打开主页时 OOM（D-4 只约束 load 路径）。
         if (await entity.length() > _maxListMetaBytes) continue;
-        final bytes = await entity.readAsBytes();
+        final raw = await entity.readAsBytes();
+        // 批次①b：文件名即文档 ID（save 以 doc.id 命名），AAD 绑定用。
+        final fileName = entity.uri.pathSegments.last;
+        final fileId = fileName.substring(0, fileName.length - '.json'.length);
+        var bytes = raw;
+        if (VaultFileCodec.isEncrypted(raw)) {
+          final key = await _currentKey();
+          // fail-closed：锁定状态不暴露加密文档（跳过，不中断整个列表）。
+          if (key == null) continue;
+          bytes = await VaultFileCodec.decrypt(
+            raw,
+            key,
+            aadContext: 'doc:$fileId',
+          );
+        } else if (await _currentKey() != null) {
+          // 懒迁移：明文文档排队重写为密文。
+          if (isValidId(fileId)) _enqueueRawRewrite(fileId, raw);
+        }
         final root = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
         final doc = root['document'] as Map<String, dynamic>;
         final docId = doc['id'];
@@ -381,9 +452,17 @@ class StorageService implements DocumentRepository {
     // 必须在删除主文件前读取其引用；无法读取时不进行资产回收，保证数据安全。
     DrawingDocument? document;
     try {
-      document = _codec.decode(await file.readAsBytes());
+      var raw = await file.readAsBytes();
+      if (VaultFileCodec.isEncrypted(raw)) {
+        final key = await _currentKey();
+        // 锁定/无密钥：解不开就不读——文档置 null，保守跳过资产回收。
+        if (key != null) {
+          raw = await VaultFileCodec.decrypt(raw, key, aadContext: 'doc:$id');
+        }
+      }
+      document = _codec.decode(raw);
     } catch (_) {
-      // 损坏文档仍允许用户删除，但不基于不可信内容删除任何资产。
+      // 损坏/锁定文档仍允许用户删除，但不基于不可信内容删除任何资产。
     }
 
     final imagePaths = <String>{};

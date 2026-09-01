@@ -13,6 +13,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
+import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
     show PinPadCore;
 
@@ -22,13 +23,25 @@ import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
 /// ```dart
 /// home: AppLockGate(
 ///   service: _appLockService,
+///   vault: _vaultKeyService,
 ///   child: AppShell(...),
 /// )
 /// ```
 class AppLockGate extends StatefulWidget {
-  const AppLockGate({super.key, required this.service, required this.child});
+  const AppLockGate({
+    super.key,
+    required this.service,
+    this.vault,
+    required this.child,
+  });
 
   final AppLockService service;
+
+  /// 主密钥保险库（批次①b）：PIN 校验通过的同时解锁保险库（同一位
+  /// 开屏密码派生 KEK），解锁瞬间自动完成：
+  /// - 已有保险库 → unlock（密钥入内存，文档解密可用）；
+  /// - 保险库不存在（老用户升级首解）→ initialize（自动补建加密底座）。
+  final VaultKeyService? vault;
   final Widget child;
 
   @override
@@ -94,6 +107,23 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
 
   void _unlock() => setState(() => _locked = false);
 
+  /// 解锁 / 自动补建保险库（批次①b）。保险库异常不阻塞进入 UI——
+  /// 加密文件读取仍需密钥（存储层 fail-closed），此处只影响体验。
+  Future<void> _unlockVault(String pin) async {
+    final vault = widget.vault;
+    if (vault == null) return;
+    try {
+      if (await vault.isConfigured()) {
+        if (!vault.isUnlocked) await vault.unlock(pin);
+      } else {
+        // 老用户升级：已有 PIN 但尚无保险库 → 以同一位 PIN 补建。
+        await vault.initialize(pin);
+      }
+    } catch (_) {
+      // fail-closed 兜底在存储层；此处静默避免锁死 UI。
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // 初始化完成前保持空白：避免「先闪现内容、锁屏随后才盖上」。
@@ -109,7 +139,12 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
               canPop: false,
               child: PinPadCore(
                 title: '输入密码',
-                onVerify: (pin) => widget.service.verify(pin),
+                onVerify: (pin) async {
+                  final ok = await widget.service.verify(pin);
+                  if (!ok) return false;
+                  await _unlockVault(pin);
+                  return true;
+                },
                 onAccepted: (_) => _unlock(),
               ),
             ),

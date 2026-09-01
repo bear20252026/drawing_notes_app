@@ -8,6 +8,7 @@ import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
+import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/shared/application/search_service.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
@@ -63,6 +64,7 @@ class HomePage extends StatefulWidget {
     this.blockDocStore,
     this.onDataChanged,
     this.appLockService,
+    this.vaultKeyService,
   });
 
   final NotebookStorage? notebookStorage;
@@ -91,6 +93,9 @@ class HomePage extends StatefulWidget {
 
   /// 应用启动锁服务（组合根注入）：设置页入口依赖；未注入时隐藏「应用锁」菜单。
   final AppLockService? appLockService;
+
+  /// 主密钥保险库（批次①b）：透传给应用锁设置页，密码与加密底座同步。
+  final VaultKeyService? vaultKeyService;
 
   /// 统一打开路径：与 All Docs 同一回调（note→NotebookViewPage，
   /// blockdoc→DocPage），保证两处点击行为一致。
@@ -474,7 +479,10 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
         if (service == null) return;
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => AppLockSettingsPage(service: service),
+            builder: (_) => AppLockSettingsPage(
+              service: service,
+              vault: widget.vaultKeyService,
+            ),
           ),
         );
     }

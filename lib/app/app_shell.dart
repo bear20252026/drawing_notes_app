@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/core/layout/responsive.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
+import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
@@ -45,6 +46,7 @@ class AppShell extends StatefulWidget {
     this.blockDocStore,
     this.favoriteStore,
     this.appLockService,
+    this.vaultKeyService,
   });
 
   final NotebookStorage? notebookStorage;
@@ -56,6 +58,9 @@ class AppShell extends StatefulWidget {
 
   /// 应用启动锁服务（组合根注入，透传给 HomePage 设置入口）。
   final AppLockService? appLockService;
+
+  /// 主密钥保险库（批次①b，组合根注入）：透传给 HomePage → 应用锁设置页。
+  final VaultKeyService? vaultKeyService;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -120,6 +125,7 @@ class _AppShellState extends State<AppShell> {
       editorPageBuilder: widget.editorPageBuilder,
       refreshSignal: _services.dataVersion,
       appLockService: widget.appLockService,
+      vaultKeyService: widget.vaultKeyService,
       // R2 列表同步：注入同一 store 实例 + 写后通知（新建/删除驱动 AllDocs 刷新）。
       blockDocStore: _services.blockDocStore,
       onDataChanged: _services.bumpDataVersion,
