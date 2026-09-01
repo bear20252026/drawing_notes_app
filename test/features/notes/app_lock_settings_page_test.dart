@@ -171,13 +171,29 @@ void main() {
     expect(service.isConfigured, isFalse);
   });
 
-  testWidgets('如实提示：忘记密码无法找回', (tester) async {
+  testWidgets('如实提示：未配置时引导绑定 U 盘恢复钥匙（批次④文案）', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final service = AppLockService();
 
     await tester.pumpWidget(
       MaterialApp(home: AppLockSettingsPage(service: service)),
     );
-    expect(find.text('忘记密码将无法找回（首版无找回机制），请牢记密码。'), findsOneWidget);
+    expect(find.text('开启应用锁后，可绑定 U 盘恢复钥匙以防忘记密码。'), findsOneWidget);
+    // 未配置时不展示 U 盘钥匙 tile（需要 vault + 已开启应用锁）。
+    expect(find.text('U 盘恢复钥匙'), findsNothing);
+  });
+
+  testWidgets('已配置未绑定：提示未绑定无法找回（批次④文案）', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final service = AppLockService();
+    await service.setPin('135790');
+
+    await tester.pumpWidget(
+      MaterialApp(home: AppLockSettingsPage(service: service)),
+    );
+    expect(
+      find.text('绑定 U 盘恢复钥匙后，忘记密码可用 U 盘重设；未绑定时忘记密码将无法找回。'),
+      findsOneWidget,
+    );
   });
 }

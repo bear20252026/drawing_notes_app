@@ -17,8 +17,10 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
+import 'package:drawing_notes_app/core/storage/password_disk.dart';
+import 'package:drawing_notes_app/core/storage/usb_reset_key_file.dart';
 import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
-    show PinPadCore;
+    show PinPadCore, UnlockFlow;
 
 /// 应用启动锁门组件。
 ///
@@ -35,6 +37,7 @@ class AppLockGate extends StatefulWidget {
     super.key,
     required this.service,
     this.vault,
+    this.disk,
     required this.child,
   });
 
@@ -45,6 +48,11 @@ class AppLockGate extends StatefulWidget {
   /// - 已有保险库 → unlock（密钥入内存，文档解密可用）；
   /// - 保险库不存在（老用户升级首解）→ initialize（自动补建加密底座）。
   final VaultKeyService? vault;
+
+  /// 密码盘抽象（批次④）：忘记密码流程用它选取 U 盘目录；
+  /// null 时 Debug/测试用 Mock、Release 用 Real（createPasswordDisk 工厂）。
+  final PasswordDisk? disk;
+
   final Widget child;
 
   @override
@@ -54,6 +62,8 @@ class AppLockGate extends StatefulWidget {
 class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   bool _initialized = false;
   bool _locked = false;
+
+  late final PasswordDisk _disk = widget.disk ?? createPasswordDisk();
 
   @override
   void initState() {
@@ -110,6 +120,97 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
 
   void _unlock() => setState(() => _locked = false);
 
+  void _snack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// 批次④：忘记密码流程（U 盘恢复钥匙，冷却期内同样可用）。
+  ///
+  /// 链路：说明 → 选 U 盘 → 读 vault_reset.frogkey → 两步输入新 PIN →
+  /// 保险库槽 2 解包重置槽 1 → 重设开屏 PIN 哈希 → 清防爆破记录 → 放行。
+  /// 任何一步失败都保持原状态（fail-closed，重试即可）。
+  Future<void> _startForgotPassword() async {
+    final vault = widget.vault;
+    if (vault == null) {
+      _snack('当前版本不支持密码找回');
+      return;
+    }
+    // 步骤 1：说明确认（诚实告知需要已绑定的 U 盘）。
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('忘记密码'),
+        content: const Text(
+          '使用之前绑定的 U 盘恢复钥匙（vault_reset.frogkey）重设密码。\n\n'
+          '未绑定 U 盘恢复钥匙时，密码无法找回。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('选择 U 盘'),
+          ),
+        ],
+      ),
+    );
+    if (proceed != true || !mounted) return;
+
+    // 步骤 2：选取 U 盘目录（取消即静默返回）。
+    final dir = await _disk.pickDirectory();
+    if (dir == null || !mounted) return;
+
+    // 步骤 3：读取恢复钥匙（fail-closed：文件缺失/无效即止步）。
+    final externalKey = await UsbResetKeyFile.readFrom(dir);
+    if (!mounted) return;
+    if (externalKey == null) {
+      _snack('未找到有效的 U 盘恢复钥匙文件（vault_reset.frogkey）');
+      return;
+    }
+
+    // 步骤 4：两步输入新密码（长度沿用当前设置，之后可在设置页改）。
+    final pinLength = widget.service.pinLength;
+    final newPin = await UnlockFlow.show(
+      context,
+      title: '设置新密码',
+      pinLength: pinLength,
+    );
+    if (newPin == null || !mounted) return;
+    final confirm = await UnlockFlow.show(
+      context,
+      title: '确认新密码',
+      pinLength: pinLength,
+    );
+    if (confirm == null || !mounted) return;
+    if (confirm != newPin) {
+      _snack('两次输入不一致，请重试');
+      return;
+    }
+
+    // 步骤 5：执行重置。先重置保险库（核心，失败即止保持一致性），
+    // 再重设开屏 PIN 哈希并清防爆破记录（纯偏好写入，失败概率极低；
+    // 万一失败可用 U 盘再重置一次——重置通道本身可修复不一致）。
+    try {
+      await vault.resetPinWithUsbKey(externalKey: externalKey, newPin: newPin);
+      await widget.service.setPin(newPin);
+      await widget.service.resetGuard();
+    } on VaultUnlockException catch (e) {
+      _snack(e.reason);
+      return;
+    } catch (_) {
+      _snack('重置失败，请重试');
+      return;
+    }
+    if (!mounted) return;
+    _snack('密码已重置');
+    _unlock();
+  }
+
   /// 解锁 / 自动补建保险库（批次①b）。保险库异常不阻塞进入 UI——
   /// 加密文件读取仍需密钥（存储层 fail-closed），此处只影响体验。
   Future<void> _unlockVault(String pin) async {
@@ -140,24 +241,49 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
             // 拦截 Android 系统返回键：锁屏状态下不允许绕过。
             child: PopScope(
               canPop: false,
-              // 批次③：冷却期内用倒计时面板替代密码盘（输不进去就不展示）。
-              child: widget.service.isLockedOut
-                  ? _CooldownView(
-                      service: widget.service,
-                      onExpired: () => setState(() {}),
-                    )
-                  : PinPadCore(
-                      title: '输入密码',
-                      // 开屏密码长度由设置页决定（批次②：4–12 位可选）。
-                      pinLength: widget.service.pinLength,
-                      onVerify: (pin) async {
-                        final ok = await widget.service.verify(pin);
-                        if (!ok) return false;
-                        await _unlockVault(pin);
-                        return true;
-                      },
-                      onAccepted: (_) => _unlock(),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    // 批次③：冷却期内用倒计时面板替代密码盘（输不进去就不展示）。
+                    child: widget.service.isLockedOut
+                        ? _CooldownView(
+                            service: widget.service,
+                            onExpired: () => setState(() {}),
+                          )
+                        : PinPadCore(
+                            title: '输入密码',
+                            // 开屏密码长度由设置页决定（批次②：4–12 位可选）。
+                            pinLength: widget.service.pinLength,
+                            onVerify: (pin) async {
+                              final ok = await widget.service.verify(pin);
+                              if (!ok) return false;
+                              await _unlockVault(pin);
+                              return true;
+                            },
+                            onAccepted: (_) => _unlock(),
+                          ),
+                  ),
+                  // 批次④：忘记密码入口（冷却期与正常锁屏均可用——
+                  // 被锁 24 小时干等没有意义，恢复钥匙正是为此而设）。
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 28,
+                    child: Center(
+                      child: TextButton(
+                        onPressed: _startForgotPassword,
+                        child: Text(
+                          '忘记密码？',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.75),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
                     ),
+                  ),
+                ],
+              ),
             ),
           ),
       ],

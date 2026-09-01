@@ -31,8 +31,10 @@ class VaultUnlockException implements Exception {
 /// ```
 /// - MK 32 字节 CSPRNG 生成，**永不明文落盘**——磁盘上只有被 KEK 包住
 ///   的密文副本；重装/拷走文件无 PIN 解不开（GCM tag 即校验器）。
-/// - U 盘第二副本（批次④）：MK 用外部密钥文件（U 盘）再包一层导出，
-///   仅用于重置——插入 U 盘不是解锁。
+/// - U 盘钥匙槽位（批次④，LUKS/BitLocker 多保护器模式）：保险库 v2 为
+///   双槽结构——槽 1 PIN 包裹、槽 2 U 盘钥匙文件（32B CSPRNG）包裹，
+///   同一主密钥两把钥匙；忘 PIN 时插 U 盘免旧 PIN 重设。主密钥副本
+///   不出设备，U 盘上只有随机钥匙文件（vault_reset.frogkey）。
 /// - 单一事实来源：AEAD 加解密/随机数/KDF 全部收敛到本类 static，
 ///   文档编解码层（①b/c）与 U 盘副本共用同一实现。
 class VaultKeyService {
@@ -80,6 +82,13 @@ class VaultKeyService {
 
   static const String _aad = 'drawing-notes|vault|v1';
   static const String _aadSecondCopy = 'drawing-notes|vault-copy|v1';
+
+  /// U 盘钥匙槽位（批次④）：槽 2 用 U 盘密钥文件（32B CSPRNG）直接作
+  /// AEAD 密钥包裹主密钥——LUKS/BitLocker「多保护器」模式（调研结论
+  /// 2026-09-01）：主密钥副本不出设备，U 盘上只有随机钥匙文件。
+  static const String _aadUsbSlot = 'drawing-notes|vault-usb|v1';
+  static const String _slotPin = 'pin';
+  static const String _slotUsb = 'usb';
   static const int _mkBytes = 32;
   static const int _saltBytes = 16;
 
@@ -102,30 +111,38 @@ class VaultKeyService {
   Future<bool> isConfigured() async => (await _vaultFile()).existsSync();
 
   /// 首次建立：生成主密钥并用 PIN 包裹后落盘（原子写：tmp + rename）。
+  /// 批次④：直接写 v2 槽位结构（单 PIN 槽；U 盘槽位由绑定流程追加）。
   Future<void> initialize(String pin) async {
     if (pin.isEmpty) throw ArgumentError('PIN 不能为空');
     final salt = randomBytes(_saltBytes);
     final mk = randomBytes(_mkBytes);
     final wrapped = await _wrap(pin, salt, mk);
-    await _persist(salt, wrapped);
+    await _persistSlots(
+      pinSlot: {
+        'type': _slotPin,
+        'salt': base64Encode(salt),
+        'wrapped': base64Encode(wrapped),
+      },
+    );
     _masterKey = mk;
   }
 
   /// 解锁：PIN 派生 KEK → 解包 MK。错误 PIN / 载荷篡改 → 抛
   /// [VaultUnlockException]（GCM tag 校验，fail-closed）。
+  ///
+  /// 批次④：v1（单 PIN 槽顶层字段）与 v2（slots 数组）均兼容读取；
+  /// v1 解锁成功后惰性迁移为 v2 双槽结构（等价改写，不重新 KDF）。
   Future<void> unlock(String pin) async {
-    final file = await _vaultFile();
-    if (!file.existsSync()) {
+    final doc = await _readDoc();
+    if (doc == null) {
       throw const VaultUnlockException('保险库不存在（尚未设置密码）');
     }
-    final Map<String, dynamic> doc;
-    try {
-      doc = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-    } on FormatException {
-      throw const VaultUnlockException('保险库数据损坏');
+    final (pinSlot, usbSlot) = _slotsOf(doc);
+    if (pinSlot == null) {
+      throw const VaultUnlockException('保险库缺少 PIN 槽位');
     }
-    final salt = base64Decode(doc['salt'] as String);
-    final wrapped = base64Decode(doc['wrapped'] as String);
+    final salt = base64Decode(pinSlot['salt'] as String);
+    final wrapped = base64Decode(pinSlot['wrapped'] as String);
     final kek = await deriveKek(pin, salt, iterations);
     try {
       final mk = await aeadDecrypt(kek, wrapped, _aad.codeUnits);
@@ -133,20 +150,39 @@ class VaultKeyService {
     } on SecretBoxAuthenticationError {
       throw const VaultUnlockException('PIN 错误或密钥载荷被篡改');
     }
+    // v1 → v2 惰性迁移（批次④）：首解成功后升级为槽位结构。
+    if (doc['v'] != 2) {
+      try {
+        await _persistSlots(
+          pinSlot: {
+            'type': _slotPin,
+            'salt': pinSlot['salt'],
+            'wrapped': pinSlot['wrapped'],
+          },
+          usbSlot: usbSlot,
+        );
+      } catch (_) {
+        // 迁移失败不阻塞解锁（下次成功解锁再试）；旧文件仍可读。
+      }
+    }
   }
 
   /// 修改 PIN：旧 PIN 验证通过后换盐重包裹（主密钥不变——旧密文无需迁移）。
+  /// 批次④：U 盘钥匙槽位原样保留（它包的是主密钥，与 PIN 无关）。
   Future<void> changePin({
     required String oldPin,
     required String newPin,
   }) async {
-    final file = await _vaultFile();
-    if (!file.existsSync()) {
+    final doc = await _readDoc();
+    if (doc == null) {
       throw const VaultUnlockException('保险库不存在（尚未设置密码）');
     }
-    final doc = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-    final oldSalt = base64Decode(doc['salt'] as String);
-    final oldWrapped = base64Decode(doc['wrapped'] as String);
+    final (pinSlot, usbSlot) = _slotsOf(doc);
+    if (pinSlot == null) {
+      throw const VaultUnlockException('保险库缺少 PIN 槽位');
+    }
+    final oldSalt = base64Decode(pinSlot['salt'] as String);
+    final oldWrapped = base64Decode(pinSlot['wrapped'] as String);
     final List<int> mk;
     try {
       mk = await aeadDecrypt(
@@ -159,7 +195,14 @@ class VaultKeyService {
     }
     final newSalt = randomBytes(_saltBytes);
     final newWrapped = await _wrap(newPin, newSalt, mk);
-    await _persist(newSalt, newWrapped);
+    await _persistSlots(
+      pinSlot: {
+        'type': _slotPin,
+        'salt': base64Encode(newSalt),
+        'wrapped': base64Encode(newWrapped),
+      },
+      usbSlot: usbSlot,
+    );
     _masterKey = mk;
   }
 
@@ -183,7 +226,99 @@ class VaultKeyService {
     }
   }
 
-  // ---------- U 盘第二副本（批次④接线用，此处实现核心加解密） ----------
+  // ---------- U 盘钥匙槽位（批次④，LUKS/BitLocker 多保护器模式） ----------
+  //
+  // 保险库 v2 = slots 数组：槽 1（PIN 包裹）+ 槽 2（U 盘钥匙文件包裹），
+  // 两把钥匙开同一把主密钥。安全属性（与 LUKS/KeePass 一致）：
+  // - 只偷 U 盘：解不开任何东西（主密钥副本不出设备）；
+  // - 只偷设备：还有防爆破守卫（批次③）挡着；
+  // - 设备 + U 盘都拿到：等价于本人（两件东西分放两地正是防御的全部意义）。
+
+  /// 保险库是否已绑定 U 盘恢复钥匙（槽 2 存在即视为绑定）。
+  Future<bool> hasUsbSlot() async {
+    final doc = await _readDocSafely();
+    if (doc == null) return false;
+    return _slotsOf(doc).$2 != null;
+  }
+
+  /// 绑定 U 盘恢复钥匙：用 [externalKey]（U 盘密钥文件的 32B 内容）包裹
+  /// 当前主密钥写入槽 2。要求保险库已解锁。
+  Future<void> addUsbKeySlot({required List<int> externalKey}) async {
+    final mk = _masterKey;
+    if (mk == null) {
+      throw StateError('主密钥未解锁（请先 VaultKeyService.unlock）');
+    }
+    if (externalKey.length != _mkBytes) {
+      throw ArgumentError('外部密钥须为 $_mkBytes 字节');
+    }
+    final doc = await _readDoc();
+    if (doc == null) {
+      throw const VaultUnlockException('保险库不存在（尚未设置密码）');
+    }
+    final (pinSlot, _) = _slotsOf(doc);
+    if (pinSlot == null) {
+      throw const VaultUnlockException('保险库缺少 PIN 槽位');
+    }
+    final wrapped = await aeadEncrypt(externalKey, mk, _aadUsbSlot.codeUnits);
+    await _persistSlots(
+      pinSlot: pinSlot,
+      usbSlot: {'type': _slotUsb, 'wrapped': base64Encode(wrapped)},
+    );
+  }
+
+  /// 解除绑定：删除槽 2（U 盘上的钥匙文件须用户自行删除——设备侧无法触达）。
+  Future<void> removeUsbKeySlot() async {
+    final doc = await _readDoc();
+    if (doc == null) return;
+    final (pinSlot, _) = _slotsOf(doc);
+    if (pinSlot == null) return;
+    await _persistSlots(pinSlot: pinSlot);
+  }
+
+  /// U 盘重置（忘记 PIN 通道）：[externalKey] 解开槽 2 恢复主密钥 →
+  /// 以 [newPin] 重包裹槽 1 落盘。**不需要旧 PIN**；成功后保险库处于
+  /// 已解锁态。槽 2 原样保留（U 盘继续有效）。
+  Future<void> resetPinWithUsbKey({
+    required List<int> externalKey,
+    required String newPin,
+  }) async {
+    if (newPin.isEmpty) throw ArgumentError('新 PIN 不能为空');
+    final doc = await _readDoc();
+    if (doc == null) {
+      throw const VaultUnlockException('保险库不存在（尚未设置密码）');
+    }
+    final (pinSlot, usbSlot) = _slotsOf(doc);
+    if (pinSlot == null) {
+      throw const VaultUnlockException('保险库缺少 PIN 槽位');
+    }
+    if (usbSlot == null) {
+      throw const VaultUnlockException('未绑定 U 盘恢复钥匙');
+    }
+    final List<int> mk;
+    try {
+      mk = await aeadDecrypt(
+        externalKey,
+        base64Decode(usbSlot['wrapped'] as String),
+        _aadUsbSlot.codeUnits,
+      );
+    } on SecretBoxAuthenticationError {
+      // fail-closed：钥匙不对 / 槽位被篡改，一律不暴露主密钥。
+      throw const VaultUnlockException('U 盘恢复钥匙不匹配或已损坏');
+    }
+    final newSalt = randomBytes(_saltBytes);
+    final newWrapped = await _wrap(newPin, newSalt, mk);
+    await _persistSlots(
+      pinSlot: {
+        'type': _slotPin,
+        'salt': base64Encode(newSalt),
+        'wrapped': base64Encode(newWrapped),
+      },
+      usbSlot: usbSlot,
+    );
+    _masterKey = mk;
+  }
+
+  // ---------- U 盘第二副本（批次①预留，静态数学层） ----------
 
   /// 用外部密钥（U 盘密钥文件内容派生）包裹主密钥导出第二副本。
   /// 仅用于重置通道——拿到副本 ≠ 拿到解锁态。
@@ -270,16 +405,60 @@ class VaultKeyService {
     return aeadEncrypt(kek, mk, _aad.codeUnits);
   }
 
-  /// 原子落盘：写 tmp 后 rename（与存储层写成功回调约定一致——
-  /// rename 原子语义保证断电不留半截保险库）。
-  Future<void> _persist(List<int> salt, List<int> wrapped) async {
+  /// 读取保险库 JSON（不存在返回 null；损坏抛 [VaultUnlockException]）。
+  Future<Map<String, dynamic>?> _readDoc() async {
+    final file = await _vaultFile();
+    if (!file.existsSync()) return null;
+    try {
+      return jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+    } on FormatException {
+      throw const VaultUnlockException('保险库数据损坏');
+    }
+  }
+
+  /// [hasUsbSlot] 用的静默版：损坏一律返回 null（查询不抛错）。
+  Future<Map<String, dynamic>?> _readDocSafely() async {
+    try {
+      return await _readDoc();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 归一化槽位：v2 读 slots 数组；v1（顶层 salt/wrapped）映射为单 PIN 槽。
+  /// 返回记录 `(pinSlot, usbSlot)`，可能为 null。
+  (Map<String, dynamic>?, Map<String, dynamic>?) _slotsOf(
+    Map<String, dynamic> doc,
+  ) {
+    if (doc['v'] == 2) {
+      final slots = (doc['slots'] as List? ?? const [])
+          .cast<Map<String, dynamic>>();
+      Map<String, dynamic>? pin;
+      Map<String, dynamic>? usb;
+      for (final s in slots) {
+        if (s['type'] == _slotPin) pin = s;
+        if (s['type'] == _slotUsb) usb = s;
+      }
+      return (pin, usb);
+    }
+    // v1 兼容：顶层字段即 PIN 槽。
+    if (doc['salt'] is String && doc['wrapped'] is String) {
+      return ({'salt': doc['salt'], 'wrapped': doc['wrapped']}, null);
+    }
+    return (null, null);
+  }
+
+  /// 槽位结构落盘（v2 格式，原子写：tmp + rename——断电不留半截保险库）。
+  Future<void> _persistSlots({
+    required Map<String, dynamic>? pinSlot,
+    Map<String, dynamic>? usbSlot,
+  }) async {
     final file = await _vaultFile();
     final doc = jsonEncode({
-      'v': 1,
+      'v': 2,
       'kdf': 'PBKDF2-HMAC-SHA256',
       'iter': iterations,
-      'salt': base64Encode(salt),
-      'wrapped': base64Encode(wrapped),
+      'slots': [?pinSlot, ?usbSlot],
     });
     final tmp = File('${file.path}.tmp');
     await tmp.writeAsString(doc, flush: true);

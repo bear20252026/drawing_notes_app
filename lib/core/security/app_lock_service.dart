@@ -11,7 +11,8 @@
 // 设计决策（用户 2026-09-01 拍板）：
 // - 在设置里自设 PIN（iOS 锁屏同款密码盘，批次②起长度可自定义 4–12 位）；
 // - 冷启动 + 切后台回来都要锁（AppLockGate 负责生命周期监听）；
-// - 首版无找回机制：忘记 PIN 只能卸载重装（如实提示，不做后门）。
+// - 找回机制（批次④）：绑定 U 盘恢复钥匙后忘记 PIN 可重设（LUKS/
+//   BitLocker 钥匙槽位模式，主密钥副本不出设备）；未绑定则无法找回。
 
 import 'dart:convert';
 import 'dart:math';
@@ -138,6 +139,13 @@ class AppLockService extends ChangeNotifier {
     _configured = false;
     _pinLength = defaultPinLength;
     notifyListeners();
+  }
+
+  /// 仅清除防爆破守卫记录（批次④：U 盘重置流程专用——重设 PIN 成功后
+  /// 调用；不触碰 PIN 本身，身份已由 U 盘钥匙证明）。
+  Future<void> resetGuard() async {
+    final guard = _lockoutGuard;
+    if (guard != null) await guard.reset(_preferencesLoader);
   }
 
   /// 候选密码是否与开屏密码相同（批次②：单文件密码设置时强制不同——
