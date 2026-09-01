@@ -21,10 +21,10 @@ import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
+import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 
 /// 开屏密码防爆破守卫。
 ///
@@ -227,7 +227,9 @@ class LockoutGuard {
     if (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST')) {
       return _testSecret ??= VaultKeyService.randomBytes(32);
     }
-    final dir = await getApplicationSupportDirectory();
+    // 存储收口（2026-09-02）：密钥迁入统一数据根 security/（原应用支持
+    // 目录；旧文件由 AppDataRoot 首次迁移搬入，此处只做确保存在）。
+    final dir = await AppDataRoot.defaultSecurityDir();
     final file = File('${dir.path}${Platform.pathSeparator}app_lock_guard.key');
     if (await file.exists()) {
       return base64Decode((await file.readAsString()).trim());

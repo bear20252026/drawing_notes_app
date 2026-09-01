@@ -1,8 +1,8 @@
+import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:path_provider/path_provider.dart';
 
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/storage/document_codec.dart';
@@ -85,7 +85,7 @@ class StorageService implements DocumentRepository {
     final provider = directoryProvider;
     final appDir = provider != null
         ? await provider()
-        : await getApplicationDocumentsDirectory();
+        : await AppDataRoot.defaultRootDir();
     final dir = Directory('${appDir.path}${Platform.pathSeparator}documents');
     if (!await dir.exists()) {
       await dir.create(recursive: true);
@@ -100,7 +100,7 @@ class StorageService implements DocumentRepository {
     final provider = directoryProvider;
     final appDir = provider != null
         ? await provider()
-        : await getApplicationDocumentsDirectory();
+        : await AppDataRoot.defaultRootDir();
     final dir = Directory(
       '${appDir.path}${Platform.pathSeparator}documents_trash',
     );
@@ -116,7 +116,7 @@ class StorageService implements DocumentRepository {
     final provider = directoryProvider;
     final appDir = provider != null
         ? await provider()
-        : await getApplicationDocumentsDirectory();
+        : await AppDataRoot.defaultRootDir();
     final dir = Directory('${appDir.path}${Platform.pathSeparator}thumbnails');
     if (!await dir.exists()) {
       await dir.create(recursive: true);
@@ -130,7 +130,7 @@ class StorageService implements DocumentRepository {
     final provider = directoryProvider;
     final appDir = provider != null
         ? await provider()
-        : await getApplicationDocumentsDirectory();
+        : await AppDataRoot.defaultRootDir();
     final dir = Directory(
       '${appDir.path}${Platform.pathSeparator}document_images',
     );

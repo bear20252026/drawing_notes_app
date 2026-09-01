@@ -11,10 +11,10 @@
 /// 层方向严格 domain ← infrastructure（与 FavoriteStore 同模式）。
 library;
 
+import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:path_provider/path_provider.dart';
 
 /// 单个标签定义。
 class DocTag {
@@ -72,7 +72,7 @@ class TagStore {
     final provider = directoryProvider;
     final base = provider != null
         ? await provider()
-        : await getApplicationDocumentsDirectory();
+        : await AppDataRoot.defaultRootDir();
     _file = File('${base.path}${Platform.pathSeparator}all_docs_tags.json');
     return _file!;
   }

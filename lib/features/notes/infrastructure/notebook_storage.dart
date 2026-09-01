@@ -1,8 +1,8 @@
+import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:path_provider/path_provider.dart';
 
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
@@ -147,7 +147,7 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
   Future<Directory> _baseDir() async {
     final provider = directoryProvider;
     if (provider != null) return provider();
-    return getApplicationDocumentsDirectory();
+    return AppDataRoot.defaultRootDir();
   }
 
   Future<Directory> _ensureNotebooksDir() async {

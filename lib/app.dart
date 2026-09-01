@@ -10,10 +10,14 @@ import 'package:drawing_notes_app/core/di/providers.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/app/app_shell.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
+import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
+import 'package:drawing_notes_app/core/storage/tag_store.dart';
+import 'package:drawing_notes_app/features/schedule/infrastructure/schedule_event_store.dart';
 // 首页刷新修复②：注册全局路由观察者（HomePage 的 RouteAware 兜底刷新依赖它）。
 import 'package:drawing_notes_app/fix/security_and_sync_fix.dart' show SyncFix;
 // 应用启动锁：冷启动 + 切后台回锁（2026-09-01）。
@@ -44,7 +48,12 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
 
   // 组合根拥有共享依赖的生命周期；页面只接收这些实例，不自行创建。
   // 加密底座批次①b：保险库是密钥链根，存储层经 keyProvider 拿解锁态主密钥。
+  // 存储收口（2026-09-02）：统一数据根——所有业务数据收进 Documents/绘图笔记数据/。
+  final AppDataRoot _appDataRoot = AppDataRoot();
   late final StorageService _documentStorage = StorageService(
+    // 统一根目录：存储层内部仍追加自己的子目录名（documents/thumbnails 等），
+    // 落点收拢为 绘图笔记数据/<子目录>。
+    directoryProvider: _appDataRoot.root,
     keyProvider: () async {
       final vault = _vaultKeyService;
       return vault.isUnlocked ? vault.masterKey : null;
@@ -53,19 +62,34 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
   // late final：keyProvider 闭包引用 _vaultKeyService（late 初始化器允许
   // 访问实例成员；与 _documentStorage 同模式）。
   late final NotebookStorage _notebookStorage = NotebookStorage(
+    directoryProvider: _appDataRoot.root,
     keyProvider: () async {
       final vault = _vaultKeyService;
       return vault.isUnlocked ? vault.masterKey : null;
     },
   );
   late final NoteBlockDocStore _blockDocStore = NoteBlockDocStore(
+    directoryProvider: _appDataRoot.root,
     keyProvider: () async {
       final vault = _vaultKeyService;
       return vault.isUnlocked ? vault.masterKey : null;
     },
   );
+  // 收藏/标签/日程同样收进统一根目录（组合根创建，AppShell 透传）。
+  late final FavoriteStore _favoriteStore = FavoriteStore(
+    directoryProvider: _appDataRoot.root,
+  );
+  late final TagStore _tagStore = TagStore(
+    directoryProvider: _appDataRoot.root,
+  );
+  late final ScheduleEventStore _scheduleEventStore = ScheduleEventStore(
+    directoryProvider: _appDataRoot.root,
+  );
   final AppLockService _appLockService = AppLockService();
-  final VaultKeyService _vaultKeyService = VaultKeyService();
+  // 保险库密钥文件迁入统一根目录 security/（原 AppData 支持目录）。
+  late final VaultKeyService _vaultKeyService = VaultKeyService(
+    vaultFileResolver: () => _appDataRoot.securityFile('vault.key.json'),
+  );
 
   @override
   void initState() {
@@ -168,6 +192,9 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
               themeController: _themeController,
               editorPageBuilder: DefaultEditorPageBuilder.build,
               blockDocStore: _blockDocStore,
+              favoriteStore: _favoriteStore,
+              tagStore: _tagStore,
+              scheduleEventStore: _scheduleEventStore,
               appLockService: _appLockService,
               vaultKeyService: _vaultKeyService,
             ),

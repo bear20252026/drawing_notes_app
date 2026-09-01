@@ -11,11 +11,11 @@
 /// 不 import presentation，层方向严格 domain ← infrastructure。
 library;
 
+import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:path_provider/path_provider.dart';
 
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
@@ -54,7 +54,7 @@ class NoteBlockDocStore {
   Future<Directory> _baseDir() async {
     final provider = directoryProvider;
     if (provider != null) return provider();
-    return getApplicationDocumentsDirectory();
+    return AppDataRoot.defaultRootDir();
   }
 
   Future<Directory> _ensureDir() async {

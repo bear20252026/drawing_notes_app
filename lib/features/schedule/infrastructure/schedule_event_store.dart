@@ -9,10 +9,10 @@
 /// （与 NoteBlockDocStore / FavoriteStore 同模式）。
 library;
 
+import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:path_provider/path_provider.dart';
 
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/features/schedule/domain/schedule_event.dart';
@@ -35,7 +35,7 @@ class ScheduleEventStore {
     final provider = directoryProvider;
     final base = provider != null
         ? await provider()
-        : await getApplicationDocumentsDirectory();
+        : await AppDataRoot.defaultRootDir();
     _file = File('${base.path}${Platform.pathSeparator}schedule_events.json');
     return _file!;
   }

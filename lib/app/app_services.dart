@@ -11,6 +11,7 @@ import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
+import 'package:drawing_notes_app/features/schedule/infrastructure/schedule_event_store.dart';
 
 /// 应用级服务门面。
 class AppServices {
@@ -18,9 +19,11 @@ class AppServices {
     NoteBlockDocStore? blockDocStore,
     FavoriteStore? favoriteStore,
     TagStore? tagStore,
+    ScheduleEventStore? scheduleEventStore,
   }) : blockDocStore = blockDocStore ?? NoteBlockDocStore(),
        favoriteStore = favoriteStore ?? FavoriteStore(),
-       tagStore = tagStore ?? TagStore();
+       tagStore = tagStore ?? TagStore(),
+       scheduleEventStore = scheduleEventStore ?? ScheduleEventStore();
 
   /// 块文档存储（打字笔记）。
   final NoteBlockDocStore blockDocStore;
@@ -30,6 +33,9 @@ class AppServices {
 
   /// 标签注册表。
   final TagStore tagStore;
+
+  /// 日程存储（日历页；存储收口后由组合根创建并透传）。
+  final ScheduleEventStore scheduleEventStore;
 
   /// 数据版本通知器：任何文档写盘后自增，驱动首页/AllDocs 刷新。
   final ValueNotifier<int> dataVersion = ValueNotifier(0);

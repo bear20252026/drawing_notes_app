@@ -7,6 +7,7 @@ import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
+import 'package:drawing_notes_app/core/storage/tag_store.dart';
 // 批次②：AllDocs 打开画布的单文件密码拦截（与首页同口径）。
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart'
     show VaultFilePasswordLockException;
@@ -29,6 +30,7 @@ import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_entity.dart';
 import 'package:drawing_notes_app/features/schedule/presentation/schedule_page.dart';
+import 'package:drawing_notes_app/features/schedule/infrastructure/schedule_event_store.dart';
 // 批次②：单文件密码输入（可变长度 4–12 位密码盘）。
 import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
     show UnlockFlow;
@@ -55,6 +57,8 @@ class AppShell extends StatefulWidget {
     this.editorPageBuilder,
     this.blockDocStore,
     this.favoriteStore,
+    this.tagStore,
+    this.scheduleEventStore,
     this.appLockService,
     this.vaultKeyService,
   });
@@ -65,6 +69,12 @@ class AppShell extends StatefulWidget {
   final EditorPageBuilder? editorPageBuilder;
   final NoteBlockDocStore? blockDocStore;
   final FavoriteStore? favoriteStore;
+
+  /// 标签注册表（存储收口 2026-09-02：组合根创建，透传给 AppServices）。
+  final TagStore? tagStore;
+
+  /// 日程存储（存储收口 2026-09-02：组合根创建，透传给日历页）。
+  final ScheduleEventStore? scheduleEventStore;
 
   /// 应用启动锁服务（组合根注入，透传给 HomePage 设置入口）。
   final AppLockService? appLockService;
@@ -81,6 +91,8 @@ class _AppShellState extends State<AppShell> {
   late final AppServices _services = AppServices(
     blockDocStore: widget.blockDocStore,
     favoriteStore: widget.favoriteStore,
+    tagStore: widget.tagStore,
+    scheduleEventStore: widget.scheduleEventStore,
   );
 
   @override
@@ -127,6 +139,10 @@ class _AppShellState extends State<AppShell> {
       onToggleFavorite: _toggleFavorite,
       onOpenTrash: _openTrash,
       loadTags: _services.tagStore.listTags,
+      // 首页/AllDocs 同步修复（2026-09-02）：v1.4.11 装配时漏传信号线，
+      // 导致 IndexedStack 保活下 AllDocs 永远停在首次快照——补接同一
+      // dataVersion 信号源，与 HomePage 对称。
+      refreshSignal: _services.dataVersion,
     ),
     HomePage(
       notebookStorage: widget.notebookStorage,
@@ -141,7 +157,7 @@ class _AppShellState extends State<AppShell> {
       onOpenDoc: _openAllDoc,
     ),
     // 2. 日历（M11.2：纯待办/日程——文档时间线并入主页，功能去重）
-    const SchedulePage(),
+    SchedulePage(eventStore: _services.scheduleEventStore),
     // 3. 设置（批次⑤：密码体系集中管理——HomePage 原入口收编至此）
     SettingsPage(
       appLockService: widget.appLockService,
