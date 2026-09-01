@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
+import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
@@ -121,7 +122,13 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
           username: _user.text.trim(),
           password: _pass.text,
         ),
-        documentStore: NoteBlockDocSyncStore(NoteBlockDocStore()),
+        // 批次①c：自建 store 也接共享保险库密钥——保险库解锁时同步能
+        // 读写 DNV 密文文档（锁定时 keyProvider 返回 null，fail-closed）。
+        documentStore: NoteBlockDocSyncStore(
+          NoteBlockDocStore(
+            keyProvider: () async => VaultKeyService.sharedMasterKeyOrNull,
+          ),
+        ),
         baselineStore: FileSyncBaselineStore(),
         cipher: cipher,
         conflictHandler: _DialogConflictHandler(this),

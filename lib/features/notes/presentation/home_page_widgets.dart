@@ -23,7 +23,9 @@ class _DrawingCard extends StatefulWidget {
 }
 
 class _DrawingCardState extends State<_DrawingCard> {
-  String? _thumbPath;
+  /// 缩略图字节（批次①c：缩略图可能为 DNV 密文——存储层解密后以内存
+  /// 字节渲染，不再经 Image.file 直读磁盘路径）。
+  Uint8List? _thumbBytes;
   bool _hovered = false;
 
   /// 上一次加载缩略图时对应的画布更新时间（首页刷新修复③：
@@ -46,14 +48,12 @@ class _DrawingCardState extends State<_DrawingCard> {
 
   Future<void> _loadThumb() async {
     _loadedThumbAt = widget.meta.updatedAt;
-    // 读取缩略图文件路径（缩略图由编辑器自动保存时生成）。
+    // 读取缩略图字节（批次①c：存储层 thumbnailBytes 自动解密 DNV 密文；
+    // 保险库锁定返回 null——显示占位符，不泄露缩略图内容）。
     try {
-      final path = await widget.documentStorage.thumbnailPath(widget.meta.id);
-      if (!mounted || path == null) return;
-      // 缩略图文件按 docId 固定命名、覆盖写入——ImageCache 按 path 命中
-      // 旧图，必须显式逐出后再刷新（否则保活卡片永远显示第一版图）。
-      FileImage(File(path)).evict();
-      setState(() => _thumbPath = path);
+      final bytes = await widget.documentStorage.thumbnailBytes(widget.meta.id);
+      if (!mounted) return;
+      setState(() => _thumbBytes = bytes);
     } catch (_) {
       // 缩略图缺失不影响列表展示。
     }
@@ -83,12 +83,12 @@ class _DrawingCardState extends State<_DrawingCard> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: _thumbPath != null && File(_thumbPath!).existsSync()
+                  child: _thumbBytes != null
                       ? AnimatedOpacity(
                           opacity: 1,
                           duration: motion,
-                          child: Image.file(
-                            File(_thumbPath!),
+                          child: Image.memory(
+                            _thumbBytes!,
                             fit: BoxFit.contain,
                             errorBuilder: (_, _, _) =>
                                 const _ThumbPlaceholder(),

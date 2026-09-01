@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:path_provider/path_provider.dart';
 
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_repository.dart';
@@ -28,7 +30,16 @@ import 'package:drawing_notes_app/core/notes_accessor.dart';
 /// 已通过 [NotebookRepository] 接口抽象（见 repository.dart），
 /// 未来替换为云同步实现时无需改动上层逻辑。
 class NotebookStorage implements NotebookRepository, INotebookAccessor {
-  NotebookStorage({this.directoryProvider, this.vaultService});
+  NotebookStorage({
+    this.directoryProvider,
+    this.vaultService,
+    this.keyProvider,
+  });
+
+  /// 主密钥提供者（加密底座批次①c）：返回解锁态主密钥时，笔记本工程文件
+  /// JSON 以 DNV 信封落盘（AAD 绑定 `nb:<id>`）、页面图片以 DNV 信封落盘
+  /// （AAD 绑定 `file:<basename>`）；null 时保持既有行为明文/DAN 兼容。
+  final Future<Uint8List?> Function()? keyProvider;
 
   /// VFS 媒体仓库（可选——解锁时注入——新媒体写 VFS 对象——双轨：
   /// s3-encryption-gateway 双读窗口模式——旧媒体 DAN 文件兼容读）。
@@ -77,6 +88,61 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
 
   /// 按笔记本 ID 隔离的落盘队列：同一笔记本保序，不同笔记本不共享临时文件。
   final Map<String, Future<void>> _writeTails = <String, Future<void>>{};
+
+  Future<Uint8List?> _currentKey() async {
+    final provider = keyProvider;
+    if (provider == null) return null;
+    return provider();
+  }
+
+  /// 读取后的字节准备（批次①c，与 StorageService/NoteBlockDocStore 同纪律）：
+  /// 密文+解锁 → 解密；密文+锁定 → [VaultFileLockException]；
+  /// 明文+有钥 → 原样返回并经写尾队列懒迁移（[migrate] 为 false 时仅解密，
+  /// 不排队迁移——备份回退路径用，避免用备份内容覆盖主文件）。
+  Future<Uint8List> _prepareNotebookBytes(
+    String id,
+    Uint8List raw, {
+    bool migrate = true,
+  }) async {
+    final key = await _currentKey();
+    if (VaultFileCodec.isEncrypted(raw)) {
+      if (key == null) throw const VaultFileLockException();
+      return VaultFileCodec.decrypt(raw, key, aadContext: 'nb:$id');
+    }
+    if (key != null && migrate) _enqueueRawRewrite(id, raw);
+    return raw;
+  }
+
+  /// 懒迁移：明文笔记本经写尾队列重写为 DNV 密文。
+  void _enqueueRawRewrite(String id, Uint8List plaintext) {
+    final previous = _writeTails[id] ?? Future<void>.value();
+    late final Future<void> operation;
+    operation = previous.catchError((_) {}).then((_) async {
+      final key = await _currentKey();
+      if (key == null) return;
+      final sealed = await VaultFileCodec.encrypt(
+        plaintext,
+        key,
+        aadContext: 'nb:$id',
+      );
+      final file = File(await _pathFor(id));
+      if (!await file.exists()) return; // 已被删除——不复活
+      final tmp = File('${file.path}.${LocalIdGenerator.next('write')}.tmp');
+      await tmp.writeAsBytes(sealed, flush: true);
+      try {
+        await tmp.rename(file.path);
+      } on FileSystemException {
+        if (!await file.exists()) rethrow;
+        await file.delete();
+        await tmp.rename(file.path);
+      }
+    });
+    _writeTails[id] = operation;
+    operation.catchError((_) {
+      // 迁移失败静默（下次读取再试——幂等）。
+      if (identical(_writeTails[id], operation)) _writeTails.remove(id);
+    });
+  }
 
   Future<Directory> _baseDir() async {
     final provider = directoryProvider;
@@ -141,9 +207,15 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     final id = notebook.id;
     final previous = _writeTails[id] ?? Future<void>.value();
     late final Future<void> operation;
-    operation = previous
-        .catchError((_) {})
-        .then((_) => _writeNotebookBytes(File(finalPath), data));
+    operation = previous.catchError((_) {}).then((_) async {
+      // 批次①c：保险库解锁 → DNV 信封（AAD 绑定 nb:<id>）；锁定 → 明文
+      // 兼容（既有单笔记本密码/DAN 层不受影响，读取时懒迁移）。
+      final key = await _currentKey();
+      final payload = key == null
+          ? data
+          : await VaultFileCodec.encrypt(data, key, aadContext: 'nb:$id');
+      await _writeNotebookBytes(File(finalPath), payload);
+    });
     _writeTails[id] = operation;
     try {
       await operation;
@@ -176,6 +248,9 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
   }
 
   /// 加载笔记本。不存在返回 null，损坏抛出异常。
+  ///
+  /// 批次①c：DNV 密文 → 解锁解密 / 锁定抛 [VaultFileLockException]；
+  /// 明文+解锁 → 懒迁移（备份回退路径不迁移，避免覆盖主文件）。
   @override
   Future<Notebook?> load(String id) async {
     await _ensureNotebooksDir();
@@ -184,19 +259,26 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     if (!await file.exists() && !await backup.exists()) return null;
     try {
       final bytes = await (await file.exists() ? file : backup).readAsBytes();
+      final prepared = await _prepareNotebookBytes(id, bytes);
       return Notebook.fromJson(
-        jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>,
+        jsonDecode(utf8.decode(prepared)) as Map<String, dynamic>,
       );
+    } on VaultFileLockException {
+      rethrow; // 锁定不回退备份——备份同为密文，fail-closed
     } catch (_) {
       if (!await backup.exists()) rethrow;
       final bytes = await backup.readAsBytes();
+      final prepared = await _prepareNotebookBytes(id, bytes, migrate: false);
       return Notebook.fromJson(
-        jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>,
+        jsonDecode(utf8.decode(prepared)) as Map<String, dynamic>,
       );
     }
   }
 
   /// 列出所有笔记本（按更新时间倒序）。
+  ///
+  /// 批次①c：DNV 密文 → 解锁解密（明文懒迁移）/ 锁定跳过该条目
+  /// （fail-closed，不中断列表）。
   @override
   Future<List<Notebook>> listAll() async {
     await _ensureNotebooksDir();
@@ -204,7 +286,14 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     await for (final entity in (await _ensureNotebooksDir()).list()) {
       if (entity is! File || !entity.path.endsWith('.json')) continue;
       try {
-        final bytes = await entity.readAsBytes();
+        final name = entity.uri.pathSegments.last;
+        final id = name.substring(0, name.length - '.json'.length);
+        final raw = await entity.readAsBytes();
+        if (VaultFileCodec.isEncrypted(raw)) {
+          final key = await _currentKey();
+          if (key == null) continue; // 锁定——跳过（fail-closed）
+        }
+        final bytes = await _prepareNotebookBytes(id, raw);
         result.add(
           Notebook.fromJson(
             jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>,
@@ -332,13 +421,24 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
       '${dir.path}${Platform.pathSeparator}${pageId}_${DateTime.now().microsecondsSinceEpoch}.$safeExt',
     );
     try {
-      // H-03 双端接入（专家审计 2026-08-15）：会话密钥已注入（加密笔记本
-      // 解锁场景）→ 加密副本（DAN 文件头标记）；否则明文写入（兼容——
-      // 未加密笔记本/未解锁）。
+      // H-03 双端接入（专家审计 2026-08-15）+ 批次①c 三级加密封支：
+      // ① 会话密钥已注入（加密笔记本解锁场景）→ DAN 文件头加密；
+      // ② 保险库解锁 → DNV 信封（AAD 绑定 file:<basename>）；
+      // ③ 均未解锁 → 明文写入（旧数据兼容，读取时懒迁移）。
       final bytes = await src.readAsBytes();
-      final stored = MediaCryptoService.instance.isActive
-          ? await MediaCryptoService.instance.encryptFile(bytes)
-          : bytes;
+      final Uint8List stored;
+      if (MediaCryptoService.instance.isActive) {
+        stored = await MediaCryptoService.instance.encryptFile(bytes);
+      } else {
+        final key = await _currentKey();
+        stored = key == null
+            ? bytes
+            : await VaultFileCodec.encrypt(
+                bytes,
+                key,
+                aadContext: VaultFileCodec.contextForPath(target.path),
+              );
+      }
       await target.writeAsBytes(stored, flush: true);
       return target.path;
     } catch (_) {

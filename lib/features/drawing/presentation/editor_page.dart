@@ -39,9 +39,11 @@ import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:drawing_notes_app/core/notes_accessor.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
+import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
+import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/canvas_painter.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/encrypted_file_image.dart';
 import 'package:drawing_notes_app/shared/widgets/color_picker_dialog.dart';
+import 'package:drawing_notes_app/shared/widgets/encrypted_file_image.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_components.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_context_bar.dart';
@@ -359,7 +361,11 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         _showSnack('原图文件不存在');
         return;
       }
-      final bytes = await file.readAsBytes();
+      // 批次①c：DNV 密文 → 解密后裁剪；写回时按原密文状态重新密封，
+      // 防止裁剪把明文覆盖到原密文文件上（锁定时拒绝裁剪——fail-closed）。
+      final raw = await file.readAsBytes();
+      final wasSealed = VaultFileCodec.isEncrypted(raw);
+      final bytes = wasSealed ? await VaultFileCodec.readImageBytes(file) : raw;
       final codec = await ui.instantiateImageCodec(bytes);
       final frame = await codec.getNextFrame();
       final src = frame.image;
@@ -389,7 +395,25 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         _showSnack('裁剪编码失败');
         return;
       }
-      await file.writeAsBytes(data.buffer.asUint8List(), flush: true);
+      final outBytes = data.buffer.asUint8List();
+      if (wasSealed) {
+        // 原文件是 DNV 密文：写回前重新密封（密钥锁定 → 拒绝保存）。
+        final key = VaultKeyService.sharedMasterKeyOrNull;
+        if (key == null) {
+          _showSnack('保险库已锁定，无法保存裁剪');
+          return;
+        }
+        await file.writeAsBytes(
+          await VaultFileCodec.encrypt(
+            outBytes,
+            key,
+            aadContext: VaultFileCodec.contextForPath(file.path),
+          ),
+          flush: true,
+        );
+      } else {
+        await file.writeAsBytes(outBytes, flush: true);
+      }
       setState(() {
         img.x = rect.left;
         img.y = rect.top;
@@ -433,8 +457,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     final dx = current.dx - start.dx;
     final dy = current.dy - start.dy;
     // 与 ShapeCreationGeometry 的点击阈值保持一致。
-    bool isClick(double dx, double dy) =>
-        dx.abs() < 4 && dy.abs() < 4;
+    bool isClick(double dx, double dy) => dx.abs() < 4 && dy.abs() < 4;
     final left = math.min(start.dx, current.dx);
     final top = math.min(start.dy, current.dy);
     return PageShapeItem(

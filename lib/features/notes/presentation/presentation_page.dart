@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
+import 'package:drawing_notes_app/shared/widgets/encrypted_file_image.dart';
 
 /// 幻灯片演示模式（对齐 Excalidraw presentation）。
 ///
@@ -49,8 +50,15 @@ class _PresentationPageState extends State<PresentationPage> {
       items.add(
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
+          // 批次①c：裸 Image.file 改 EncryptedFileImage——DNV/DAN 密文
+          // 解密渲染；保险库锁定/损坏显示占位色块（fail-closed）。
           child: i.filePath.isNotEmpty
-              ? Image.file(File(i.filePath), fit: BoxFit.contain)
+              ? Image(
+                  image: EncryptedFileImage(File(i.filePath)),
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) =>
+                      const ColoredBox(color: Colors.grey),
+                )
               : const ColoredBox(color: Colors.grey),
         ),
       );

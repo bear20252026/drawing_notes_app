@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 
 import 'package:drawing_notes_app/core/canvas_model/document_image_item.dart';
+import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 
 /// 文档图片的运行时解码缓存。
 ///
@@ -93,12 +95,16 @@ class DocumentImageCache {
   }
 }
 
+/// 批次①c：先经 DNV 嗅探读字节（保险库密文解密 / 锁定抛
+/// [VaultFileLockException]——由 [_decodeAndStore] 吞掉保留可编辑性），
+/// 明文/DAN 由 readImageBytes 原样返回，再走既有 descriptor 解码。
 Future<ui.Image> _decodeImageFile(String filePath) async {
   ui.ImmutableBuffer? buffer;
   ui.ImageDescriptor? descriptor;
   ui.Codec? codec;
   try {
-    buffer = await ui.ImmutableBuffer.fromFilePath(filePath);
+    final bytes = await VaultFileCodec.readImageBytes(File(filePath));
+    buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
     descriptor = await ui.ImageDescriptor.encoded(buffer);
     codec = await descriptor.instantiateCodec();
     final frame = await codec.getNextFrame();

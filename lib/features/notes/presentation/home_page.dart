@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';

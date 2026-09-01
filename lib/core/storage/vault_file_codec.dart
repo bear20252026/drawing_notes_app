@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
@@ -91,4 +92,24 @@ abstract final class VaultFileCodec {
 
   static List<int> _aadFor(String context) =>
       'drawing-notes|file|v1|$context'.codeUnits;
+
+  /// 从文件路径派生 AAD 上下文（媒体/缩略图：AAD 绑定文件名——
+  /// 文件名在写入时已含 docId/pageId 分组信息且不可被攻击者预测利用）。
+  static String contextForPath(String path) {
+    final name = path.replaceAll('\\', '/').split('/').last;
+    return 'file:$name';
+  }
+
+  /// 读取图片字节（批次①c 媒体统一入口）：DNV 信封 → 共享保险库密钥
+  /// 解密；否则原样返回（明文 / DAN 旧媒体兼容由调用方按需叠加）。
+  ///
+  /// 锁定 / 未注册共享实例 → 抛 [VaultFileLockException]（fail-closed）；
+  /// 密钥不匹配 / 载荷被篡改 → 抛 [VaultFileException]。
+  static Future<Uint8List> readImageBytes(File file) async {
+    final raw = await file.readAsBytes();
+    if (!isEncrypted(raw)) return raw;
+    final key = VaultKeyService.sharedMasterKeyOrNull;
+    if (key == null) throw const VaultFileLockException();
+    return decrypt(raw, key, aadContext: contextForPath(file.path));
+  }
 }

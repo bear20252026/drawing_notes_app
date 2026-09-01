@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
 
 /// 加密媒体图片渲染（H-03 双端接入 2026-08-15）。
@@ -57,8 +58,15 @@ class EncryptedFileImage extends ImageProvider<EncryptedFileImage> {
       return decode(buffer);
     }
     final bytes = await key.file.readAsBytes();
-    // DAN 密文 → 解密；明文（旧数据/未加密）→ 原样返回。
-    final clear = await MediaCryptoService.instance.readMediaFile(bytes);
+    // 批次①c 三级嗅探：DNV 信封（保险库主密钥）→ 解密（锁定抛
+    // [VaultFileLockException]——fail-closed）；DAN 密文 → 解密；
+    // 明文（旧数据/未加密）→ 原样返回。
+    final Uint8List clear;
+    if (VaultFileCodec.isEncrypted(bytes)) {
+      clear = await VaultFileCodec.readImageBytes(key.file);
+    } else {
+      clear = await MediaCryptoService.instance.readMediaFile(bytes);
+    }
     if (clear.isEmpty) {
       PaintingBinding.instance.imageCache.evict(key);
       throw StateError('$file 无法加载为图片');

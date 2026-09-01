@@ -4,6 +4,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path_provider/path_provider.dart';
 
 /// 解锁失败（PIN 错误 / 载荷被篡改 / 数据损坏）。
@@ -39,6 +40,29 @@ class VaultKeyService {
     Future<File> Function()? vaultFileResolver,
     this.iterations = 600000,
   }) : _vaultFileResolver = vaultFileResolver ?? _defaultVaultFile;
+
+  // ---- 共享实例（批次①c：无 context 场景的密钥访问点） ----
+  //
+  // 图片渲染（EncryptedFileImage / DocumentImageCache）深埋在绘制管线里，
+  // 拿不到组合根的实例——与 MediaCryptoService.instance 同模式，提供全局
+  // 访问点。组合根在 initState 显式 registerShared()，测试可注册隔离实例。
+  static VaultKeyService? _shared;
+
+  static VaultKeyService? get shared => _shared;
+
+  /// 注册为应用级共享实例（组合根调用；后注册覆盖前者）。
+  void registerShared() => _shared = this;
+
+  /// 共享实例的解锁态主密钥；未注册 / 未解锁返回 null（fail-closed）。
+  static Uint8List? get sharedMasterKeyOrNull {
+    final s = _shared;
+    if (s == null || !s.isUnlocked) return null;
+    return s.masterKey;
+  }
+
+  /// 仅测试注入：绕过 KDF 直接设置内存主密钥（不落盘）。
+  @visibleForTesting
+  void debugInjectMasterKey(List<int> key) => _masterKey = List<int>.of(key);
 
   /// 保险库文件（应用支持目录，与 app.lock 同目录约定）。
   static Future<File> _defaultVaultFile() async {

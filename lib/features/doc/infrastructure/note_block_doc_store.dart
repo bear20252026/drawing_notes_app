@@ -13,10 +13,12 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:path_provider/path_provider.dart';
 
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
+import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 
 /// 块文档本地存储门面。
@@ -33,10 +35,14 @@ class NoteBlockDocStore {
   ///
   /// [directoryProvider] 为可选的目录提供者回调。测试时可注入临时目录，
   /// 生产环境默认使用系统文档目录。
-  NoteBlockDocStore({this.directoryProvider});
+  NoteBlockDocStore({this.directoryProvider, this.keyProvider});
 
   /// 目录提供者：测试时可注入临时目录，生产环境使用系统文档目录。
   final Future<Directory> Function()? directoryProvider;
+
+  /// 主密钥提供者（加密底座批次①c）：返回解锁态主密钥时，块文档 JSON
+  /// 以 AES-256-GCM 信封落盘（AAD 绑定 `block:<id>`）；null 时明文兼容。
+  final Future<Uint8List?> Function()? keyProvider;
 
   /// 写成功回调（首页刷新修复①）：保存/删除/恢复/彻底删除落盘成功后触发，
   /// 由装配层注入（AppServices.bumpDataVersion）——把刷新通知下沉到存储层，
@@ -80,6 +86,70 @@ class NoteBlockDocStore {
   /// 每次全量解析全部文档 JSON——冷路径解析一次，之后走内存。
   List<NoteBlockDocHeader>? _headerCache;
 
+  Future<Uint8List?> _currentKey() async {
+    final provider = keyProvider;
+    if (provider == null) return null;
+    return provider();
+  }
+
+  /// 读取后的字节准备（批次①c，与 StorageService 同纪律）：
+  /// 密文+解锁 → 解密；密文+锁定 → [VaultFileLockException]；
+  /// 明文+有钥 → 原样返回并经写链懒迁移。
+  Future<Uint8List> _prepareDocBytes(String id, Uint8List raw) async {
+    final key = await _currentKey();
+    if (VaultFileCodec.isEncrypted(raw)) {
+      if (key == null) throw const VaultFileLockException();
+      return VaultFileCodec.decrypt(raw, key, aadContext: 'block:$id');
+    }
+    if (key != null) _enqueueRawRewrite(id, raw);
+    return raw;
+  }
+
+  /// 懒迁移：明文块文档经写链重写为密文。
+  void _enqueueRawRewrite(String id, Uint8List plaintext) {
+    _enqueue(id, () async {
+      final key = await _currentKey();
+      if (key == null) return;
+      final sealed = await VaultFileCodec.encrypt(
+        plaintext,
+        key,
+        aadContext: 'block:$id',
+      );
+      final file = File(await _pathFor(id));
+      if (!await file.exists()) return; // 已被删除——不复活
+      final tmp = File('${file.path}.${LocalIdGenerator.next('write')}.tmp');
+      await tmp.writeAsBytes(sealed, flush: true);
+      try {
+        await tmp.rename(file.path);
+      } on FileSystemException {
+        if (!await file.exists()) rethrow;
+        await file.delete();
+        await tmp.rename(file.path);
+      }
+    }).catchError((_) {
+      // 迁移失败静默（下次读取再试——幂等）。
+    });
+  }
+
+  /// 读回收站条目内容（批次①c）：激活区 rename 进来的文件可能是密文，
+  /// 解密后返回文本；锁定/损坏返回 null（调用方跳过——fail-closed）。
+  Future<String?> _readTrashContent(File f) async {
+    var raw = await f.readAsBytes();
+    if (VaultFileCodec.isEncrypted(raw)) {
+      final name = f.uri.pathSegments.last;
+      if (!name.endsWith('.json')) return null;
+      final id = name.substring(0, name.length - '.json'.length);
+      final key = await _currentKey();
+      if (key == null) return null;
+      try {
+        raw = await VaultFileCodec.decrypt(raw, key, aadContext: 'block:$id');
+      } catch (_) {
+        return null;
+      }
+    }
+    return utf8.decode(raw);
+  }
+
   /// 轻量文档头（不含 body 块树）。
   /// 列出全部文档头（updatedAt 倒序；缓存命中时零 IO）。
   Future<List<NoteBlockDocHeader>> listDocHeaders() async {
@@ -90,9 +160,22 @@ class NoteBlockDocStore {
     await for (final entity in (await _ensureDir()).list()) {
       if (entity is! File || !entity.path.endsWith('.json')) continue;
       try {
-        final root =
-            jsonDecode(utf8.decode(await entity.readAsBytes()))
-                as Map<String, dynamic>;
+        final name = entity.uri.pathSegments.last;
+        final fileId = name.substring(0, name.length - '.json'.length);
+        var bytes = await entity.readAsBytes();
+        if (VaultFileCodec.isEncrypted(bytes)) {
+          // fail-closed：锁定状态不暴露加密文档（跳过，不中断列表）。
+          final key = await _currentKey();
+          if (key == null) continue;
+          bytes = await VaultFileCodec.decrypt(
+            bytes,
+            key,
+            aadContext: 'block:$fileId',
+          );
+        } else if (isValidId(fileId) && await _currentKey() != null) {
+          _enqueueRawRewrite(fileId, bytes);
+        }
+        final root = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
         final id = root['id'];
         if (id is! String || !isValidId(id)) continue;
         result.add(
@@ -142,9 +225,14 @@ class NoteBlockDocStore {
       throw ArgumentError.value(doc.id, 'doc.id', '文档 ID 不合法');
     }
     await _ensureDir();
-    final data = utf8.encode(
+    var data = utf8.encode(
       const JsonEncoder.withIndent('  ').convert(doc.toJson()),
     );
+    // 批次①c：有主密钥 → 信封加密（AAD 绑定 block:<id>）。
+    final key = await _currentKey();
+    if (key != null) {
+      data = await VaultFileCodec.encrypt(data, key, aadContext: 'block:${doc.id}');
+    }
     final path = await _pathFor(doc.id);
     final file = File(path);
     final tmp = File('$path.${LocalIdGenerator.next('write')}.tmp');
@@ -173,16 +261,18 @@ class NoteBlockDocStore {
     final file = File(path);
     final backup = File('$path.bak');
     if (!await file.exists() && !await backup.exists()) return null;
+    Future<Uint8List> prepared(File source) async =>
+        _prepareDocBytes(pageId, await source.readAsBytes());
     try {
-      final bytes = await (await file.exists() ? file : backup).readAsBytes();
       return NoteBlockDoc.fromJson(
-        jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>,
+        jsonDecode(utf8.decode(await prepared(await file.exists() ? file : backup)))
+            as Map<String, dynamic>,
       );
     } catch (_) {
       if (!await backup.exists()) rethrow;
-      final bytes = await backup.readAsBytes();
       return NoteBlockDoc.fromJson(
-        jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>,
+        jsonDecode(utf8.decode(await prepared(backup)))
+            as Map<String, dynamic>,
       );
     }
   }
@@ -310,7 +400,7 @@ class NoteBlockDocStore {
       if (entity is! File || !entity.path.endsWith('.json')) continue;
       if (entity.path.endsWith('.meta.json')) continue;
       try {
-        final entry = _decodeTrashEntry(await entity.readAsString(), entity);
+        final entry = _decodeTrashEntry(await _readTrashContent(entity) ?? '', entity);
         if (entry != null) entries.add(entry);
       } catch (_) {
         continue; // 损坏条目跳过
@@ -330,11 +420,13 @@ class NoteBlockDocStore {
     if (!await f.exists()) return false;
     final active = File(await _pathFor(pageId));
     if (await active.exists()) return false; // 同 ID 已存在，拒绝覆盖
-    final entry = _decodeTrashEntry(await f.readAsString(), f);
+    final entry = _decodeTrashEntry(await _readTrashContent(f) ?? '', f);
     if (entry == null) {
       // 旧 envelope 格式：恢复内部文档对象
       try {
-        final decoded = jsonDecode(await f.readAsString());
+        final content = await _readTrashContent(f);
+        if (content == null) return false;
+        final decoded = jsonDecode(content);
         if (decoded is Map<String, dynamic> &&
             decoded['document'] is Map<String, dynamic>) {
           await saveDocument(
@@ -383,7 +475,10 @@ class NoteBlockDocStore {
         if (entity is! File || !entity.path.endsWith('.json')) continue;
         if (entity.path.endsWith('.meta.json')) continue;
         try {
-          final entry = _decodeTrashEntry(await entity.readAsString(), entity);
+          final entry = _decodeTrashEntry(
+            await _readTrashContent(entity) ?? '',
+            entity,
+          );
           if (entry != null && entry.deletedAt.isBefore(cutoff)) {
             await entity.delete();
             final meta = File('${entity.path}.meta.json');

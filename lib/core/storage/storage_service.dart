@@ -152,14 +152,55 @@ class StorageService implements DocumentRepository {
 
   /// 保存文档的缩略图（PNG 字节），供列表页快速展示。
   /// 缩略图与工程文件分离存储，损坏不影响工程文件。
+  /// 批次①c：有主密钥时信封加密落盘（读取走 [thumbnailBytes]）。
   Future<String> saveThumbnail(String docId, Uint8List pngBytes) async {
     await _ensureThumbsDir();
     final file = File(_thumbPathFor(docId));
+    final sealed = await _sealMediaBytes(file.path, pngBytes);
     final tmp = File('${file.path}.${LocalIdGenerator.next('thumb')}.tmp');
-    await tmp.writeAsBytes(pngBytes, flush: true);
+    await tmp.writeAsBytes(sealed, flush: true);
     await _replaceWithTemp(tmp, file);
     onWrite?.call();
     return file.path;
+  }
+
+  /// 读取缩略图字节（批次①c）：密文自动解密；锁定返回 null
+  /// （fail-closed——UI 显示占位图，不泄露任何像素）；明文 + 有密钥
+  /// 时原样返回并尽力懒迁移为密文。不存在返回 null。
+  Future<Uint8List?> thumbnailBytes(String docId) async {
+    await _ensureThumbsDir();
+    final file = File(_thumbPathFor(docId));
+    if (!await file.exists()) return null;
+    final raw = await file.readAsBytes();
+    if (!VaultFileCodec.isEncrypted(raw)) {
+      final key = await _currentKey();
+      if (key != null) {
+        // 懒迁移（尽力而为）：明文缩略图重写为密文。
+        try {
+          final sealed = await _sealMediaBytes(file.path, raw);
+          final tmp = File(
+            '${file.path}.${LocalIdGenerator.next('thumb')}.tmp',
+          );
+          await tmp.writeAsBytes(sealed, flush: true);
+          await _replaceWithTemp(tmp, file);
+        } catch (_) {
+          // 迁移失败不影响本次读取。
+        }
+      }
+      return raw;
+    }
+    final key = await _currentKey();
+    if (key == null) return null;
+    try {
+      return await VaultFileCodec.decrypt(
+        raw,
+        key,
+        aadContext: VaultFileCodec.contextForPath(file.path),
+      );
+    } catch (_) {
+      // 损坏缩略图不影响列表展示（与明文时代 errorBuilder 行为一致）。
+      return null;
+    }
   }
 
   /// 读取缩略图文件路径（不存在返回 null）。
@@ -188,7 +229,10 @@ class StorageService implements DocumentRepository {
     final destination = File('${dir.path}${Platform.pathSeparator}$name');
     final temporary = File('${destination.path}.tmp');
     try {
-      await temporary.writeAsBytes(await source.readAsBytes(), flush: true);
+      // 批次①c：有主密钥 → 信封加密副本（读取走 VaultFileCodec.readImageBytes）。
+      final raw = await source.readAsBytes();
+      final stored = await _sealMediaBytes(destination.path, raw);
+      await temporary.writeAsBytes(stored, flush: true);
       await _replaceWithTemp(temporary, destination);
       return destination.path;
     } catch (_) {
@@ -256,6 +300,18 @@ class StorageService implements DocumentRepository {
     final key = await _currentKey();
     if (key == null) return data;
     return VaultFileCodec.encrypt(data, key, aadContext: 'doc:$id');
+  }
+
+  /// 媒体字节写入前准备（批次①c：缩略图 / 受管图片）：有主密钥 →
+  /// 信封加密（AAD 绑定文件名）。
+  Future<Uint8List> _sealMediaBytes(String path, Uint8List bytes) async {
+    final key = await _currentKey();
+    if (key == null) return bytes;
+    return VaultFileCodec.encrypt(
+      bytes,
+      key,
+      aadContext: VaultFileCodec.contextForPath(path),
+    );
   }
 
   /// 读取后的字节准备（读路径自动分流，Joplin 懒迁移模式）：

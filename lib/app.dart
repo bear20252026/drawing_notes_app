@@ -50,8 +50,20 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
       return vault.isUnlocked ? vault.masterKey : null;
     },
   );
-  final NotebookStorage _notebookStorage = NotebookStorage();
-  final NoteBlockDocStore _blockDocStore = NoteBlockDocStore();
+  // late final：keyProvider 闭包引用 _vaultKeyService（late 初始化器允许
+  // 访问实例成员；与 _documentStorage 同模式）。
+  late final NotebookStorage _notebookStorage = NotebookStorage(
+    keyProvider: () async {
+      final vault = _vaultKeyService;
+      return vault.isUnlocked ? vault.masterKey : null;
+    },
+  );
+  late final NoteBlockDocStore _blockDocStore = NoteBlockDocStore(
+    keyProvider: () async {
+      final vault = _vaultKeyService;
+      return vault.isUnlocked ? vault.masterKey : null;
+    },
+  );
   final AppLockService _appLockService = AppLockService();
   final VaultKeyService _vaultKeyService = VaultKeyService();
 
@@ -59,6 +71,9 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
   void initState() {
     super.initState();
     _themeController = widget.themeController ?? AppThemeController();
+    // 批次①c：注册共享保险库实例——无 context 的底层管线（图片裁剪
+    // 写回等）经 VaultKeyService.sharedMasterKeyOrNull 取解锁态主密钥。
+    _vaultKeyService.registerShared();
     // 全局热键必须在首帧后注册：此时 MaterialApp 已 build，
     // _navigatorKey.currentState 才可用（否则热键触发导航会静默失败）。
     WidgetsBinding.instance.addPostFrameCallback((_) {
