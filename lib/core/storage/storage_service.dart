@@ -30,6 +30,10 @@ class StorageService implements DocumentRepository {
   /// 目录提供者：测试时可注入临时目录，生产环境使用系统文档目录。
   final Future<Directory> Function()? directoryProvider;
 
+  /// 写成功回调（首页刷新修复①）：画布保存/缩略图更新/删除落盘成功后触发，
+  /// 由装配层注入（AppServices.bumpDataVersion），驱动首页/AllDocs 刷新。
+  void Function()? onWrite;
+
   /// 文档存放目录（懒加载，首次调用时创建）。
   Directory? _documentsDir;
 
@@ -145,6 +149,7 @@ class StorageService implements DocumentRepository {
     final tmp = File('${file.path}.${LocalIdGenerator.next('thumb')}.tmp');
     await tmp.writeAsBytes(pngBytes, flush: true);
     await _replaceWithTemp(tmp, file);
+    onWrite?.call();
     return file.path;
   }
 
@@ -224,6 +229,10 @@ class StorageService implements DocumentRepository {
         .then((_) async {
           await _ensureDocumentsDir();
           return _pathFor(id);
+        })
+        .then((path) {
+          onWrite?.call();
+          return path;
         });
   }
 
@@ -409,6 +418,7 @@ class StorageService implements DocumentRepository {
     }
 
     await _deleteUnreferencedManagedImages(imagePaths, excludingDocumentId: id);
+    onWrite?.call();
     return true;
   }
 
@@ -423,6 +433,7 @@ class StorageService implements DocumentRepository {
     final dest = File(_pathFor(id));
     if (await dest.exists()) return null; // 原 ID 已存在——拒绝覆盖
     await src.rename(dest.path);
+    onWrite?.call();
     return id;
   }
 

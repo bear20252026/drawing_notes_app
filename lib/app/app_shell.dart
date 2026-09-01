@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/layout/responsive.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
+import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
@@ -43,6 +44,7 @@ class AppShell extends StatefulWidget {
     this.editorPageBuilder,
     this.blockDocStore,
     this.favoriteStore,
+    this.appLockService,
   });
 
   final NotebookStorage? notebookStorage;
@@ -51,6 +53,9 @@ class AppShell extends StatefulWidget {
   final EditorPageBuilder? editorPageBuilder;
   final NoteBlockDocStore? blockDocStore;
   final FavoriteStore? favoriteStore;
+
+  /// 应用启动锁服务（组合根注入，透传给 HomePage 设置入口）。
+  final AppLockService? appLockService;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -62,6 +67,18 @@ class _AppShellState extends State<AppShell> {
     blockDocStore: widget.blockDocStore,
     favoriteStore: widget.favoriteStore,
   );
+
+  @override
+  void initState() {
+    super.initState();
+    // 首页刷新修复①（2026-09-01）：写路径统一通知下沉到存储层——三个存储
+    // 的写成功回调都汇入 bumpDataVersion，覆盖笔记本内新建/画布自动保存/
+    // DocPage 保存等所有路径，不再依赖调用点逐一通知（根因即内部写路径
+    // 绕过了 shell 的 bump 调用点，首页收不到通知）。
+    widget.notebookStorage?.onWrite = _services.bumpDataVersion;
+    widget.docStorage?.onWrite = _services.bumpDataVersion;
+    _services.blockDocStore.onWrite = _services.bumpDataVersion;
+  }
 
   int _index = 0;
 
@@ -102,6 +119,7 @@ class _AppShellState extends State<AppShell> {
       themeController: widget.themeController,
       editorPageBuilder: widget.editorPageBuilder,
       refreshSignal: _services.dataVersion,
+      appLockService: widget.appLockService,
       // R2 列表同步：注入同一 store 实例 + 写后通知（新建/删除驱动 AllDocs 刷新）。
       blockDocStore: _services.blockDocStore,
       onDataChanged: _services.bumpDataVersion,
@@ -387,14 +405,13 @@ class _AppShellState extends State<AppShell> {
           body: IndexedStack(index: _index, children: _destinations),
           // AFFiNE mobile 语义：输入法弹出时隐藏底部导航（VirtualKeyboard
           // Service 同款体验），给内容与键盘让出完整空间。
-          bottomNavigationBar:
-              MediaQuery.of(context).viewInsets.bottom > 0
-                  ? null
-                  : NavigationBar(
-                      selectedIndex: _index,
-                      onDestinationSelected: _onSelect,
-                      destinations: _barDestinations(),
-                    ),
+          bottomNavigationBar: MediaQuery.of(context).viewInsets.bottom > 0
+              ? null
+              : NavigationBar(
+                  selectedIndex: _index,
+                  onDestinationSelected: _onSelect,
+                  destinations: _barDestinations(),
+                ),
         );
       },
     );

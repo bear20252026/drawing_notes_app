@@ -38,6 +38,11 @@ class NoteBlockDocStore {
   /// 目录提供者：测试时可注入临时目录，生产环境使用系统文档目录。
   final Future<Directory> Function()? directoryProvider;
 
+  /// 写成功回调（首页刷新修复①）：保存/删除/恢复/彻底删除落盘成功后触发，
+  /// 由装配层注入（AppServices.bumpDataVersion）——把刷新通知下沉到存储层，
+  /// 覆盖所有写路径（笔记本内新建、DocPage 自动保存等），不再依赖调用点逐一通知。
+  void Function()? onWrite;
+
   Directory? _dir;
 
   Future<Directory> _baseDir() async {
@@ -158,6 +163,7 @@ class NoteBlockDocStore {
       await file.delete();
       await tmp.rename(path);
     }
+    onWrite?.call();
   }
 
   /// 加载指定 ID 的块文档。不存在返回 null，损坏时尝试 .bak 恢复。
@@ -218,9 +224,11 @@ class NoteBlockDocStore {
       );
       await tmp.rename(trashFile);
       await _removeActiveFiles(pageId);
+      onWrite?.call();
       return true;
     }
     await _removeBak(pageId);
+    onWrite?.call();
     return true;
   }
 
@@ -248,6 +256,7 @@ class NoteBlockDocStore {
     } catch (_) {
       // 回收站文件不存在时忽略。
     }
+    onWrite?.call();
     return true;
   }
 
@@ -343,6 +352,7 @@ class NoteBlockDocStore {
     await f.rename(active.path);
     final meta = File('$trashFile.meta.json');
     if (meta.existsSync()) meta.deleteSync();
+    onWrite?.call();
     return true;
   }
 
@@ -357,6 +367,7 @@ class NoteBlockDocStore {
     await f.delete();
     final meta = File('$trashFile.meta.json');
     if (meta.existsSync()) meta.deleteSync();
+    onWrite?.call();
     return true;
   }
 

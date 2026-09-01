@@ -26,19 +26,34 @@ class _DrawingCardState extends State<_DrawingCard> {
   String? _thumbPath;
   bool _hovered = false;
 
+  /// 上一次加载缩略图时对应的画布更新时间（首页刷新修复③：
+  /// 按 updatedAt 缓存键比较，画布变更才重新加载）。
+  DateTime? _loadedThumbAt;
+
   @override
   void initState() {
     super.initState();
     _loadThumb();
   }
 
+  @override
+  void didUpdateWidget(_DrawingCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 首页刷新修复③（2026-09-01）：IndexedStack 保活下卡片 State 不销毁，
+    // 列表刷新带来更新的 meta 时按 updatedAt 失效缩略图，避免显示旧图。
+    if (widget.meta.updatedAt != _loadedThumbAt) _loadThumb();
+  }
+
   Future<void> _loadThumb() async {
+    _loadedThumbAt = widget.meta.updatedAt;
     // 读取缩略图文件路径（缩略图由编辑器自动保存时生成）。
     try {
       final path = await widget.documentStorage.thumbnailPath(widget.meta.id);
-      if (mounted && path != null) {
-        setState(() => _thumbPath = path);
-      }
+      if (!mounted || path == null) return;
+      // 缩略图文件按 docId 固定命名、覆盖写入——ImageCache 按 path 命中
+      // 旧图，必须显式逐出后再刷新（否则保活卡片永远显示第一版图）。
+      FileImage(File(path)).evict();
+      setState(() => _thumbPath = path);
     } catch (_) {
       // 缩略图缺失不影响列表展示。
     }

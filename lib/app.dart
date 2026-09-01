@@ -14,6 +14,11 @@ import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/app/app_shell.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
+// 首页刷新修复②：注册全局路由观察者（HomePage 的 RouteAware 兜底刷新依赖它）。
+import 'package:drawing_notes_app/fix/security_and_sync_fix.dart' show SyncFix;
+// 应用启动锁：冷启动 + 切后台回锁（2026-09-01）。
+import 'package:drawing_notes_app/core/security/app_lock_service.dart';
+import 'package:drawing_notes_app/core/security/app_lock_gate.dart';
 
 /// 应用根组件：主题 + 路由。
 ///
@@ -40,6 +45,7 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
   final StorageService _documentStorage = StorageService();
   final NotebookStorage _notebookStorage = NotebookStorage();
   final NoteBlockDocStore _blockDocStore = NoteBlockDocStore();
+  final AppLockService _appLockService = AppLockService();
 
   @override
   void initState() {
@@ -105,6 +111,7 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
       builder: (context, _) => Consumer(
         builder: (context, ref, _) => MaterialApp(
           navigatorKey: _navigatorKey,
+          navigatorObservers: [SyncFix.routeObserver],
           // L-04 国际化（专家审计 2026-08-15）：gen_l10n 本地化标题。
           title: AppLocalizations.of(context)?.appTitle ?? '绘图笔记',
           localizationsDelegates: [
@@ -128,12 +135,17 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
           themeMode: _themeController.mode,
           theme: ref.watch(themeProvider),
           darkTheme: AppDesign.darkTheme(),
-          home: AppShell(
-            notebookStorage: _notebookStorage,
-            docStorage: _documentStorage,
-            themeController: _themeController,
-            editorPageBuilder: DefaultEditorPageBuilder.build,
-            blockDocStore: _blockDocStore,
+          // 应用启动锁门：冷启动 + 切后台回锁；未配置 PIN 时完全透明。
+          home: AppLockGate(
+            service: _appLockService,
+            child: AppShell(
+              notebookStorage: _notebookStorage,
+              docStorage: _documentStorage,
+              themeController: _themeController,
+              editorPageBuilder: DefaultEditorPageBuilder.build,
+              blockDocStore: _blockDocStore,
+              appLockService: _appLockService,
+            ),
           ),
         ),
       ),

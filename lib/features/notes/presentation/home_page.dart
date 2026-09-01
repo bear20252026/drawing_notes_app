@@ -7,6 +7,7 @@ import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
+import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/shared/application/search_service.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
@@ -23,11 +24,16 @@ import 'package:drawing_notes_app/features/notes/presentation/onboarding.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 import 'package:drawing_notes_app/features/notes/presentation/password_disk_page.dart';
+import 'package:drawing_notes_app/features/notes/presentation/app_lock_settings_page.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_templates.dart';
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/search_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settings_page.dart';
+// 首页刷新修复②（2026-09-01）：RouteAware 可见性兜底——从编辑器/笔记本页
+// 返回时自动刷新，覆盖所有遗漏的写路径（IndexedStack 保活下 initState 不再执行）。
+import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
+    show SyncFix, SyncFixRouteAware;
 
 part 'home_page_widgets.dart';
 part 'home_page_tabs.dart';
@@ -56,6 +62,7 @@ class HomePage extends StatefulWidget {
     this.onOpenDoc,
     this.blockDocStore,
     this.onDataChanged,
+    this.appLockService,
   });
 
   final NotebookStorage? notebookStorage;
@@ -82,6 +89,9 @@ class HomePage extends StatefulWidget {
   /// 数据变更通知（新建/删除/重命名后调用，驱动 AllDocs 刷新）。
   final VoidCallback? onDataChanged;
 
+  /// 应用启动锁服务（组合根注入）：设置页入口依赖；未注入时隐藏「应用锁」菜单。
+  final AppLockService? appLockService;
+
   /// 统一打开路径：与 All Docs 同一回调（note→NotebookViewPage，
   /// blockdoc→DocPage），保证两处点击行为一致。
   final void Function(AllDoc doc)? onOpenDoc;
@@ -90,7 +100,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   late final NotebookStorage _nbStorage;
   late final StorageService _docStorage;
   late final NoteBlockDocStore _blockDocStore;
@@ -118,7 +128,20 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 首页刷新修复②：订阅路由可见性——从笔记本页/编辑器 didPopNext 时刷新。
+    SyncFix.routeObserver.subscribe(this, ModalRoute.of(context)! as PageRoute);
+  }
+
+  @override
+  void onPageVisibleAgain() {
+    if (mounted) _refresh();
+  }
+
+  @override
   void dispose() {
+    SyncFix.routeObserver.unsubscribe(this);
     widget.refreshSignal?.removeListener(_onDataVersionChanged);
     super.dispose();
   }
@@ -446,6 +469,14 @@ class _HomePageState extends State<HomePage> {
         Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (_) => const PasswordDiskPage()));
+      case _HomeMenuItem.appLock:
+        final service = widget.appLockService;
+        if (service == null) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => AppLockSettingsPage(service: service),
+          ),
+        );
     }
   }
 
@@ -508,8 +539,8 @@ class _HomePageState extends State<HomePage> {
               tooltip: AppLocalizations.of(context)?.homeMore ?? '更多操作',
               icon: const Icon(Icons.more_horiz_rounded),
               onSelected: _onHomeMenuSelected,
-              itemBuilder: (_) => const [
-                PopupMenuItem(
+              itemBuilder: (_) => [
+                const PopupMenuItem(
                   value: _HomeMenuItem.passwordDisk,
                   child: ListTile(
                     dense: true,
@@ -518,6 +549,17 @@ class _HomePageState extends State<HomePage> {
                     title: Text('密码盘与恢复'),
                   ),
                 ),
+                // 应用锁（组合根注入 service 才显示；app_shell 测试装配可不传）。
+                if (widget.appLockService != null)
+                  const PopupMenuItem(
+                    value: _HomeMenuItem.appLock,
+                    child: ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.lock_outline_rounded),
+                      title: Text('应用锁'),
+                    ),
+                  ),
               ],
             ),
           ],
@@ -556,4 +598,4 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-enum _HomeMenuItem { passwordDisk }
+enum _HomeMenuItem { passwordDisk, appLock }

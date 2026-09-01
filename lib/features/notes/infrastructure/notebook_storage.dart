@@ -34,6 +34,11 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
   /// s3-encryption-gateway 双读窗口模式——旧媒体 DAN 文件兼容读）。
   VaultService? vaultService;
 
+  /// 写成功回调（首页刷新修复①）：笔记本保存/删除落盘成功后触发，由装配层
+  /// 注入（AppServices.bumpDataVersion）。所有保存路径（save/saveWithKey/
+  /// encryptAndSave 等）均汇入 _writeNotebook 单一出口，此处通知即全覆盖。
+  void Function()? onWrite;
+
   // ---- INotebookAccessor 跨功能契约适配（S4b：NotebookStorage 直接实现契约）----
 
   @override
@@ -142,6 +147,7 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     _writeTails[id] = operation;
     try {
       await operation;
+      onWrite?.call();
       return finalPath;
     } finally {
       if (identical(_writeTails[id], operation)) _writeTails.remove(id);
@@ -238,6 +244,7 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
         // 单个图片删除失败忽略。
       }
     }
+    onWrite?.call();
     return true;
   }
 
