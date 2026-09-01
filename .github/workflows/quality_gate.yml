@@ -70,6 +70,29 @@ jobs:
         continue-on-error: true
         run: dart format --output=none --set-exit-if-changed lib
 
+      # 代码规模统计（informational，不阻断门禁）：每次 CI 运行都输出
+      # lib/test 的 .dart 文件数与总行数，并写入 GitHub Step Summary。
+      - name: 代码行数统计（informational）
+        run: |
+          lib_files=$(find lib -name '*.dart' | wc -l)
+          lib_lines=$(find lib -name '*.dart' -exec cat {} + | wc -l)
+          test_files=$(find test -name '*.dart' | wc -l)
+          test_lines=$(find test -name '*.dart' -exec cat {} + | wc -l)
+          total_files=$((lib_files + test_files))
+          total_lines=$((lib_lines + test_lines))
+          {
+            echo "## 代码行数统计（.dart）"
+            echo ""
+            echo "| 范围 | 文件数 | 行数 |"
+            echo "|---|---|---|"
+            echo "| lib/ 源代码 | ${lib_files} | ${lib_lines} |"
+            echo "| test/ 测试 | ${test_files} | ${test_lines} |"
+            echo "| **总计** | **${total_files}** | **${total_lines}** |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "lib/  源代码：${lib_files} 个文件，${lib_lines} 行"
+          echo "test/ 测试：${test_files} 个文件，${test_lines} 行"
+          echo "总计：${total_files} 个文件，${total_lines} 行"
+
       - name: 上传失败产物（测试报告/日志）
         if: failure()
         uses: actions/upload-artifact@v4
