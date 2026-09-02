@@ -60,7 +60,7 @@ class SearchService {
             notebookId: nb.id,
             pageId: null,
             title: nb.title,
-            snippet: '笔记本',
+            snippet: '分页画布',
           ),
         );
       }
@@ -118,7 +118,7 @@ class SearchService {
             notebookId: null,
             pageId: null,
             title: m.title,
-            snippet: '画作',
+            snippet: '画布',
             drawingMeta: m,
           ),
         );

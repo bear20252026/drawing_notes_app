@@ -16,7 +16,7 @@
   "@close": {
     "description": "Close dialog"
   },
-  "newNotebook": "New notebook",
+  "newNotebook": "New paged canvas",
   "@newNotebook": {
     "description": "Create notebook action"
   },
@@ -97,11 +97,11 @@
   "@editorShapeTool": {
     "description": "Shape tool tooltip"
   },
-  "noteActions": "Notebook actions",
+  "noteActions": "Paged canvas actions",
   "@noteActions": {
     "description": "Notebook menu tooltip"
   },
-  "noteImportPage": "Import page from another notebook",
+  "noteImportPage": "Import page from another paged canvas",
   "@noteImportPage": {
     "description": "Import page menu item"
   },

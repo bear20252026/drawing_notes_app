@@ -33,7 +33,7 @@ void _showShareSnackBar(BuildContext context) {
 ///
 /// 与画板完全分离：
 /// - 不使用环境背景 / 玻璃拟态（画板视觉）；
-/// - 不内嵌画布组件；「在画板中打开」经 [onOpenInEdgeless] 回调由宿主路由。
+/// - 不内嵌画布组件；「在画布中打开」经 [onOpenInEdgeless] 回调由宿主路由。
 class DocPage extends StatefulWidget {
   const DocPage({
     super.key,
@@ -60,7 +60,7 @@ class DocPage extends StatefulWidget {
   /// 收藏切换回调。
   final ValueChanged<bool>? onToggleFavorite;
 
-  /// 「在画板中打开」回调（宿主负责转换与路由）。
+  /// 「在画布中打开」回调（宿主负责转换与路由）。
   final VoidCallback? onOpenInEdgeless;
 
   /// 标签注册表（M12.6 标签编辑）；null 时内部自建（全局文件）。
@@ -827,7 +827,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
                     color: scheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 10),
-                  const Text('在画板中打开'),
+                  const Text('在画布中打开'),
                 ],
               ),
             ),

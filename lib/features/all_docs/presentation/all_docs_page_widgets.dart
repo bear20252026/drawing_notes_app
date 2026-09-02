@@ -196,11 +196,26 @@ class _DocsToolbar extends StatelessWidget {
                 color: AppleColor.noteGreen,
               ),
               SizedBox(width: 10),
-              Text('新建笔记（打字）'),
+              Text('新建笔记'),
             ],
           ),
         ),
-        // M12：笔记本=笔记（同一模块），不再单设「新建笔记本」入口
+        // N1 命名统一：画布两类型并列（无限画布=画布；旧笔记本=分页画布），
+        // 分页画布新建入口恢复（M12 曾移除）。
+        PopupMenuItem(
+          value: AllDocKind.note,
+          child: Row(
+            children: [
+              Icon(
+                Icons.auto_stories_rounded,
+                size: 18,
+                color: AppleColor.actionBlue,
+              ),
+              SizedBox(width: 10),
+              Text('新建分页画布'),
+            ],
+          ),
+        ),
         PopupMenuItem(
           value: AllDocKind.canvas,
           child: Row(
@@ -211,7 +226,7 @@ class _DocsToolbar extends StatelessWidget {
                 color: AppleColor.actionBlue,
               ),
               SizedBox(width: 10),
-              Text('新建画板'),
+              Text('新建画布'),
             ],
           ),
         ),
@@ -378,6 +393,7 @@ class _GroupedDocList extends StatelessWidget {
       return _EmptyState(
         theme: theme,
         onNewBlockDoc: () => onNewDoc?.call(AllDocKind.blockdoc),
+        onNewNotebook: () => onNewDoc?.call(AllDocKind.note),
         onNewCanvas: () => onNewDoc?.call(AllDocKind.canvas),
       );
     }
@@ -438,16 +454,18 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-/// 页面级空态：含创建入口（打字笔记为主，画板为辅——AFFiNE 语义）。
+/// 页面级空态：含创建入口（笔记为主，画布为辅——AFFiNE 语义）。
 class _EmptyState extends StatelessWidget {
   const _EmptyState({
     required this.theme,
     this.onNewBlockDoc,
+    this.onNewNotebook,
     this.onNewCanvas,
   });
 
   final ThemeData theme;
   final VoidCallback? onNewBlockDoc;
+  final VoidCallback? onNewNotebook;
   final VoidCallback? onNewCanvas;
 
   @override
@@ -469,23 +487,30 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '笔记直接打字，画板用来写写画画',
+            '笔记用来打字，画布用来写写画画',
             style: TextStyle(fontSize: 12.5, color: subtle),
           ),
           const SizedBox(height: 16),
-          Row(
-            mainAxisSize: MainAxisSize.min,
+          // 三入口（笔记/分页画布/画布）：Wrap 而非 Row——390dp 窄屏自适应换行。
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 12,
+            runSpacing: 10,
             children: [
               FilledButton.icon(
                 onPressed: onNewBlockDoc,
                 icon: const Icon(Icons.edit_note_rounded, size: 18),
-                label: const Text('新建笔记（打字）'),
+                label: const Text('新建笔记'),
               ),
-              const SizedBox(width: 12),
+              OutlinedButton.icon(
+                onPressed: onNewNotebook,
+                icon: const Icon(Icons.auto_stories_rounded, size: 18),
+                label: const Text('新建分页画布'),
+              ),
               OutlinedButton.icon(
                 onPressed: onNewCanvas,
                 icon: const Icon(Icons.crop_portrait_rounded, size: 18),
-                label: const Text('新建画板'),
+                label: const Text('新建画布'),
               ),
             ],
           ),

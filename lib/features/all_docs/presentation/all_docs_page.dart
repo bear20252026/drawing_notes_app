@@ -26,7 +26,7 @@ part 'all_docs_page_mobile.dart';
 /// ### 构造注入
 /// - [loadDocs]：异步加载 [AllDocQueryResult] 的数据源。
 /// - [onOpenDoc]：点击文档行时调用。
-/// - [onNewDoc]：新建文档回调（画板/笔记/块文档）。
+/// - [onNewDoc]：新建文档回调（笔记/分页画布/画布）。
 /// - [onToggleFavorite]：切换收藏回调（持久化由壳层负责；UI 乐观更新）。
 ///
 /// ### 布局（AFFiNE 式响应式分流，2026-08-31）

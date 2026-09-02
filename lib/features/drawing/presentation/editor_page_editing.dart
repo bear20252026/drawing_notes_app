@@ -173,7 +173,7 @@ extension _EditorPageEditing on _EditorPageState {
   void _showPaginationPreview() {
     final page = widget.session;
     if (page == null) {
-      _showSnack('仅笔记本页面支持分页预览');
+      _showSnack('仅分页画布页面支持分页预览');
       return;
     }
     if (page.textItems.isEmpty) {

@@ -147,7 +147,7 @@ void main() {
     final cold = storageWith(key);
     final metas = await cold.listDocuments();
     expect(metas.first.locked, isTrue);
-    expect(metas.first.title, '加密画作');
+    expect(metas.first.title, '加密画布');
     await expectLater(
       cold.load('v3_doc4'),
       throwsA(isA<VaultFilePasswordLockException>()),

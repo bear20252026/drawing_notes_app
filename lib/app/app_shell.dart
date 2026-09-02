@@ -45,7 +45,7 @@ import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 ///
 /// 信息架构（对齐 AFFiNE 的「单一文档工作台入口」）：
 ///   0. 全部文档  —— 唯一列表入口（画布/笔记/块文档统一聚合）
-///   1. 画板·笔记本 —— 绘画库（无限画布 + 笔记本）
+///   1. 画布·笔记 —— 绘画库（无限画布 + 分页画布 + 笔记）
 ///   2. 日历      —— 按月历浏览文档活动（按修改日期定位当天动过的文档）
 ///   3. 设置      —— 密码体系集中管理（批次⑤：应用锁/密码盘/单文件
 ///      密码三层关系 + 外观/WebDAV；HomePage 原散落入口一并收编）
@@ -183,7 +183,7 @@ class _AppShellState extends State<AppShell> {
       NavigationDestination(
         icon: Icon(Icons.brush_outlined),
         selectedIcon: Icon(Icons.brush),
-        label: '画板·笔记本',
+        label: '画布·笔记',
       ),
       NavigationDestination(
         icon: Icon(Icons.calendar_today_outlined),
@@ -209,7 +209,7 @@ class _AppShellState extends State<AppShell> {
       NavigationRailDestination(
         icon: Icon(Icons.brush_outlined),
         selectedIcon: Icon(Icons.brush),
-        label: Text('画板·笔记本'),
+        label: Text('画布·笔记'),
       ),
       NavigationRailDestination(
         icon: Icon(Icons.calendar_today_outlined),
@@ -329,7 +329,7 @@ class _AppShellState extends State<AppShell> {
           if (!mounted) return;
           final pin = await UnlockFlow.show(
             context,
-            title: '该画作已加密，输入独立密码',
+            title: '该画布已加密，输入独立密码',
             flexible: true,
             onVerify: (p) => storage.verifyFilePassword(id, p),
             footerLabel: '忘记密码？',

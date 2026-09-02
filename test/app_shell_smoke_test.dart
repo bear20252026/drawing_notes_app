@@ -77,7 +77,7 @@ void main() {
     // 窄屏走底部导航（外层断点 <900）
     expect(find.byType(NavigationBar), findsOneWidget);
 
-    for (final label in const ['全部文档', '画板·笔记本', '日历', '设置']) {
+    for (final label in const ['全部文档', '画布·笔记', '日历', '设置']) {
       await tester.tap(
         find.descendant(
           of: find.byType(NavigationBar),
@@ -90,16 +90,16 @@ void main() {
     }
   });
 
-  testWidgets('空态 CTA 新建笔记（打字）→ 块编辑器打开', (tester) async {
+  testWidgets('空态 CTA 新建笔记→ 块编辑器打开', (tester) async {
     final store = _MemBlockDocStore();
     await pumpShell(tester, blockDocStore: store);
 
     // 空态创建入口存在（回归：此前空文档时工具条整体不渲染，无任何入口）。
-    expect(find.text('新建笔记（打字）'), findsWidgets);
-    expect(find.text('新建画板'), findsWidgets);
+    expect(find.text('新建笔记'), findsWidgets);
+    expect(find.text('新建画布'), findsWidgets);
 
     final ctaFinder = find.ancestor(
-      of: find.text('新建笔记（打字）'),
+      of: find.text('新建笔记'),
       matching: find.byType(m.FilledButton),
     );
     await tester.tap(ctaFinder.first);
@@ -121,7 +121,7 @@ void main() {
     await pumpShell(tester, blockDocStore: store);
 
     final ctaFinder = find.ancestor(
-      of: find.text('新建笔记（打字）'),
+      of: find.text('新建笔记'),
       matching: find.byType(m.FilledButton),
     );
     await tester.tap(ctaFinder.first);
@@ -140,18 +140,18 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
 
     // 未崩溃且回到主页，文档仍在存储中。
-    expect(find.text('新建笔记（打字）'), findsWidgets);
+    expect(find.text('新建笔记'), findsWidgets);
     expect(store.docs.length, 1);
   });
 
-  testWidgets('目的地切换：画板 / 日历均正常渲染', (tester) async {
+  testWidgets('目的地切换：画布 / 日历均正常渲染', (tester) async {
     await pumpShell(tester);
 
-    // 2 号目的地：画板·笔记本
-    await tester.tap(find.text('画板·笔记本').last);
+    // 2 号目的地：画布·笔记
+    await tester.tap(find.text('画布·笔记').last);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('无限画布'), findsOneWidget);
+    expect(find.text('画布'), findsOneWidget);
 
     // 3 号目的地：日历
     await tester.tap(find.text('日历').last);

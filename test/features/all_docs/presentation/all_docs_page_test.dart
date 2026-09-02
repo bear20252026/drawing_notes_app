@@ -92,7 +92,7 @@ void main() {
     );
     await tester.tap(find.byType(m.FloatingActionButton));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('新建笔记（打字）').last);
+    await tester.tap(find.text('新建笔记').last);
     await tester.pump();
     expect(created, AllDocKind.blockdoc);
   });
@@ -129,7 +129,7 @@ void main() {
     expect(toggled!.id, 'a');
   });
 
-  testWidgets('空态 CTA：点新建笔记（打字）触发 onNewDoc', (tester) async {
+  testWidgets('空态 CTA：点新建笔记触发 onNewDoc', (tester) async {
     AllDocKind? created;
     await tester.pumpWidget(
       MaterialApp(
@@ -153,7 +153,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
     final cta = find.ancestor(
-      of: find.text('新建笔记（打字）'),
+      of: find.text('新建笔记'),
       matching: find.byType(m.FilledButton),
     );
     expect(cta, findsOneWidget);

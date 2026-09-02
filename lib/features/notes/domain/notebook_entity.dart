@@ -70,7 +70,7 @@ class Notebook {
 
   factory Notebook.fromJson(Map<String, dynamic> json) => Notebook(
     id: json['id'] as String,
-    title: json['title'] as String? ?? '未命名笔记本',
+    title: json['title'] as String? ?? '未命名分页画布',
     pages: (json['pages'] as List? ?? const [])
         .map((item) => NotebookPage.fromJson(item as Map<String, dynamic>))
         .toList(),

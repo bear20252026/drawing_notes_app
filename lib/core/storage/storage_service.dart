@@ -871,7 +871,7 @@ class StorageService implements DocumentRepository {
           metas.add(
             DocumentMeta(
               id: fileId,
-              title: '加密画作',
+              title: '加密画布',
               width: 0,
               height: 0,
               createdAt: DateTime.now(),

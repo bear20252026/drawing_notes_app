@@ -58,7 +58,7 @@ class SettingsPage extends StatelessWidget {
                 ListTile(
                   leading: const Icon(Icons.enhanced_encryption_rounded),
                   title: const Text('单文件密码'),
-                  subtitle: const Text('个别画作的第二道锁（在画作卡片设置）'),
+                  subtitle: const Text('个别画布的第二道锁（在画布卡片设置）'),
                   trailing: const Icon(Icons.help_outline_rounded),
                   onTap: () => _showFilePasswordHelp(context),
                 ),
@@ -119,11 +119,11 @@ class SettingsPage extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: const Text('单文件密码'),
         content: const Text(
-          '在首页或全部文档页，点击画作卡片上的锁形按钮，可为单个画作'
-          '设置独立密码。设置后打开该画作需要输入此密码，缩略图也会'
+          '在首页或全部文档页，点击画布卡片上的锁形按钮，可为单个画布'
+          '设置独立密码。设置后打开该画布需要输入此密码，缩略图也会'
           '隐藏为锁形占位。\n\n'
           '单文件密码独立于开屏密码——即使有人解锁了你的应用，没有'
-          '这个密码也打不开对应的画作。',
+          '这个密码也打不开对应的画布。',
         ),
         actions: [
           TextButton(
@@ -174,7 +174,7 @@ class _PasswordLayersCard extends StatelessWidget {
               icon: Icons.smartphone_rounded,
               title: '第 1 层 · 开屏密码',
               desc:
-                  '解锁应用，同时解开主密钥保险库——保护全部画作与笔记。'
+                  '解锁应用，同时解开主密钥保险库——保护全部画布与笔记。'
                   '忘记时可用重置密码盘重设。',
             ),
             _divider(scheme),
@@ -183,7 +183,7 @@ class _PasswordLayersCard extends StatelessWidget {
               icon: Icons.enhanced_encryption_rounded,
               title: '第 2 层 · 文件密码',
               desc:
-                  '给单个画作/笔记本/笔记另设的独立密码，独立于开屏密码。'
+                  '给单个画布/分页画布/笔记另设的独立密码，独立于开屏密码。'
                   '忘记时可用重置密码盘重设。',
             ),
             _divider(scheme),

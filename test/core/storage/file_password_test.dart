@@ -84,7 +84,7 @@ void main() {
     expect(metas, hasLength(1));
     expect(metas.first.locked, isTrue);
     expect(metas.first.id, 'fp_doc2');
-    expect(metas.first.title, '加密画作'); // 不暴露真实标题
+    expect(metas.first.title, '加密画布'); // 不暴露真实标题
 
     await expectLater(
       cold.load('fp_doc2'),

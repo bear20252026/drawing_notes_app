@@ -178,14 +178,14 @@ extension _NotebookPageManage on _NotebookViewPageState {
     if (!mounted) return;
     final others = notebooks.where((nb) => nb.id != _notebook.id).toList();
     if (others.isEmpty) {
-      _showSnack('暂没有其他笔记本可引入');
+      _showSnack('暂没有其他分页画布可引入');
       return;
     }
     // 第一步：选择源笔记本。
     final srcNb = await showDialog<Notebook>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('选择源笔记本'),
+        title: const Text('选择源分页画布'),
         children: [
           for (final nb in others)
             SimpleDialogOption(
@@ -197,7 +197,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
     );
     if (srcNb == null || !mounted) return;
     if (srcNb.pages.isEmpty) {
-      _showSnack('该笔记本还没有页面');
+      _showSnack('该分页画布还没有页面');
       return;
     }
     // 第二步：选择页面。

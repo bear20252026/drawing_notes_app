@@ -23,7 +23,7 @@ extension _HomePageTabs on _HomePageState {
     return TabBarView(children: [_buildDrawingsTab(), _buildNotesTab()]);
   }
 
-  // ---------------- 画作 Tab ----------------
+  // ---------------- 画布 Tab ----------------
 
   Widget _buildDrawingsTab() {
     if (_documents.isEmpty) {
@@ -33,7 +33,7 @@ extension _HomePageTabs on _HomePageState {
           children: [
             Icon(Icons.brush_outlined, size: 64, color: Colors.grey),
             SizedBox(height: 12),
-            Text('还没有无限画布，点击右下角按钮新建一个吧'),
+            Text('还没有画布，点击右下角按钮新建一个吧'),
           ],
         ),
       );
@@ -119,12 +119,12 @@ extension _HomePageTabs on _HomePageState {
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: 3),
                 child: Text(
-                  '${isTyped ? '打字笔记' : '笔记本页面'}'
+                  '${isTyped ? '笔记' : '分页画布页面'}'
                   ' · 更新于 ${_formatTime(doc.updatedAt)}',
                 ),
               ),
-              // 笔记本页面的删除在其所属笔记页内管理（含克隆引用语义）；
-              // 打字笔记支持此处直接删除。
+              // 分页画布页面的删除在其所属分页画布页内管理（含克隆引用语义）；
+              // 笔记支持此处直接删除。
               trailing: isTyped
                   ? IconButton(
                       tooltip: '删除笔记',
@@ -142,7 +142,7 @@ extension _HomePageTabs on _HomePageState {
   }
 
   /// 统一打开路径（M12.4）：与 All Docs 同一回调（note→NotebookViewPage，
-  /// blockdoc→DocPage）。无宿主回调时兜底直推 DocPage（仅打字笔记）。
+  /// blockdoc→DocPage）。无宿主回调时兜底直推 DocPage（仅笔记）。
   Future<void> _openEntry(AllDoc doc) async {
     if (widget.onOpenDoc != null) {
       widget.onOpenDoc!(doc);

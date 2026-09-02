@@ -21,7 +21,7 @@ abstract final class FilePasswordResetFlow {
     required String docId,
     String docTitle = '',
   }) async {
-    final name = docTitle.isEmpty ? '该画作' : '「$docTitle」';
+    final name = docTitle.isEmpty ? '该画布' : '「$docTitle」';
 
     // 1. 说明确认。
     final proceed = await PasswordResetSteps.confirm(
@@ -29,7 +29,7 @@ abstract final class FilePasswordResetFlow {
       title: '忘记文件密码',
       message:
           '使用重置密码盘（U 盘）重置$name的独立密码。\n\n'
-          '前提：该画作已绑定重置密码盘（设置密码或密码管理中绑定）。',
+          '前提：该画布已绑定重置密码盘（设置密码或密码管理中绑定）。',
     );
     if (!proceed || !context.mounted) return false;
 

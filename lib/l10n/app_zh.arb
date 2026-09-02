@@ -16,9 +16,9 @@
   "@close": {
     "description": "关闭对话框"
   },
-  "newNotebook": "新建笔记本",
+  "newNotebook": "新建分页画布",
   "@newNotebook": {
-    "description": "新建笔记本操作"
+    "description": "新建分页画布操作"
   },
   "delete": "删除",
   "@delete": {
@@ -70,8 +70,8 @@
   "editorExportPng": "导出 PNG",
   "editorExportSvg": "导出 SVG",
   "editorShapeTool": "形状工具",
-  "noteActions": "笔记本操作",
-  "noteImportPage": "从其他笔记本引入页面",
+  "noteActions": "分页画布操作",
+  "noteImportPage": "从其他分页画布引入页面",
   "noteImportMarkdown": "导入 Markdown 或文本",
   "noteImportPdf": "导入 PDF 并逐页批注",
   "noteTidyPages": "批量整理页面",

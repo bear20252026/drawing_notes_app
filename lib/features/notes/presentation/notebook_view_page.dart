@@ -246,7 +246,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
             ),
           ),
           PopupMenuButton<_NotebookMenuItem>(
-            tooltip: AppLocalizations.of(context)?.noteActions ?? '笔记本操作',
+            tooltip: AppLocalizations.of(context)?.noteActions ?? '分页画布操作',
             icon: const Icon(Icons.more_horiz_rounded),
             onSelected: _onNotebookMenuSelected,
             itemBuilder: (_) => [
@@ -258,7 +258,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                   leading: Icon(Icons.link_rounded),
                   title: Text(
                     AppLocalizations.of(context)?.noteImportPage ??
-                        '从其他笔记本引入页面',
+                        '从其他分页画布引入页面',
                   ),
                 ),
               ),
@@ -381,7 +381,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
           children: [
             Icon(Icons.note_add_outlined, size: 64, color: Colors.grey),
             SizedBox(height: 12),
-            Text('这个笔记本还没有页面，点击右上角新建'),
+            Text('这个分页画布还没有页面，点击右上角新建'),
           ],
         ),
       );

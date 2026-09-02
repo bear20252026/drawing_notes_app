@@ -21,7 +21,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get close => '关闭';
 
   @override
-  String get newNotebook => '新建笔记本';
+  String get newNotebook => '新建分页画布';
 
   @override
   String get delete => '删除';
@@ -80,10 +80,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get editorShapeTool => '形状工具';
 
   @override
-  String get noteActions => '笔记本操作';
+  String get noteActions => '分页画布操作';
 
   @override
-  String get noteImportPage => '从其他笔记本引入页面';
+  String get noteImportPage => '从其他分页画布引入页面';
 
   @override
   String get noteImportMarkdown => '导入 Markdown 或文本';

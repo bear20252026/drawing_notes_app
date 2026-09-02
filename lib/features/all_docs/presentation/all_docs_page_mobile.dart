@@ -367,7 +367,7 @@ class _MobileHeader extends StatelessWidget {
 }
 
 /// 移动端新建文档 bottom sheet（AFFiNE mobile create 动作语义；
-/// 选项与桌面「新建文档 ▾」一致：打字笔记为主，画板为辅）。
+/// 选项与桌面「新建文档 ▾」一致：笔记为主，画布为辅）。
 void showMobileNewDocSheet(
   BuildContext context,
   void Function(AllDocKind kind)? onNewDoc,
@@ -384,7 +384,7 @@ void showMobileNewDocSheet(
                 Icons.edit_note_rounded,
                 color: AppleColor.noteGreen,
               ),
-              title: const Text('新建笔记（打字）'),
+              title: const Text('新建笔记'),
               onTap: () {
                 Navigator.of(sheetContext).pop();
                 onNewDoc?.call(AllDocKind.blockdoc);
@@ -392,10 +392,21 @@ void showMobileNewDocSheet(
             ),
             ListTile(
               leading: const Icon(
+                Icons.auto_stories_rounded,
+                color: AppleColor.actionBlue,
+              ),
+              title: const Text('新建分页画布'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                onNewDoc?.call(AllDocKind.note);
+              },
+            ),
+            ListTile(
+              leading: const Icon(
                 Icons.crop_portrait_rounded,
                 color: AppleColor.actionBlue,
               ),
-              title: const Text('新建画板'),
+              title: const Text('新建画布'),
               onTap: () {
                 Navigator.of(sheetContext).pop();
                 onNewDoc?.call(AllDocKind.canvas);

@@ -70,7 +70,7 @@ extension _EditorPageActions on _EditorPageState {
   Future<void> _createChart() async {
     final page = widget.session;
     if (page == null) {
-      _showSnack('仅笔记本页面支持图表');
+      _showSnack('仅分页画布页面支持图表');
       return;
     }
     final input = TextEditingController();
@@ -164,7 +164,7 @@ extension _EditorPageActions on _EditorPageState {
   void _startPresentation() {
     final page = widget.session;
     if (page == null) {
-      _showSnack('仅笔记本页面支持幻灯片演示');
+      _showSnack('仅分页画布页面支持幻灯片演示');
       return;
     }
     if (page.textItems.isEmpty &&
@@ -240,7 +240,7 @@ extension _EditorPageActions on _EditorPageState {
   Future<void> _openShapeLibrary() async {
     final page = widget.session;
     if (page == null) {
-      _showSnack('仅笔记本页面支持形状库');
+      _showSnack('仅分页画布页面支持形状库');
       return;
     }
     final library = _shapeLibrary;
@@ -478,7 +478,7 @@ extension _EditorPageActions on _EditorPageState {
   Future<void> _pasteFromClipboard() async {
     final page = widget.session;
     if (page == null) {
-      _showSnack('仅笔记本页面支持粘贴');
+      _showSnack('仅分页画布页面支持粘贴');
       return;
     }
     try {

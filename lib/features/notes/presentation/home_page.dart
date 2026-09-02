@@ -22,6 +22,10 @@ import 'package:drawing_notes_app/core/storage/vault_file_codec.dart'
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/features/notes/presentation/onboarding.dart';
+// N1 命名统一：画布 tab FAB 弹两选项（新建无限画布/新建分页画布）——
+// 分页画布新建入口恢复（M12 曾移除「新建笔记本」入口）。
+import 'package:drawing_notes_app/features/notes/domain/notebook_entity.dart';
+import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_templates.dart';
@@ -39,14 +43,15 @@ import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 part 'home_page_widgets.dart';
 part 'home_page_tabs.dart';
 
-/// 首页：无限画布绘图 / 分页笔记本列表管理。
+/// 首页：画布（无限画布 / 分页画布）/ 笔记 两分栏列表管理。
 ///
-/// 两个主工作区：
+/// 三个主工作区：
 /// - 无限画布：独立图形、关系图和自由绘制作品；
-/// - 分页笔记本：带纸张模板、文字和资料混排的文档页面。
+/// - 分页画布：带纸张模板、文字和资料混排的多页文档（旧「笔记本」）；
+/// - 笔记：直接打字的块文档（旧「打字笔记」）。
 ///
 /// 能力：
-/// - 新建无限画布 / 新建笔记本
+/// - 新建画布（弹两选项：新建无限画布 / 新建分页画布）/ 新建笔记
 /// - 打开、删除（二次确认）
 /// - 展示缩略图
 ///
@@ -223,7 +228,42 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     );
   }
 
-  // ---------------- 无限画布绘图 ----------------
+  // ---------------- 画布（N1：画布 tab 收口无限画布/分页画布两类型） ----------------
+
+  /// 「新建画布」：弹两选项（新建无限画布 / 新建分页画布）——
+  /// 命名体系定案（2026-09-02）：无限画布=「画布」，旧笔记本=「分页画布」。
+  Future<void> _createCanvas() async {
+    final choice = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('新建画布'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const ListTile(
+              leading: Icon(Icons.brush_rounded),
+              title: Text('新建无限画布'),
+              subtitle: Text('自由绘制、图形与关系图'),
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const ListTile(
+              leading: Icon(Icons.auto_stories_rounded),
+              title: Text('新建分页画布'),
+              subtitle: Text('多页装订、纸张模板与图文混排'),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (choice == null || !mounted) return;
+    if (choice) {
+      await _createDrawing();
+    } else {
+      await _createNotebook();
+    }
+  }
 
   /// 新建无限画布并进入绘图工作区。
   Future<void> _createDrawing() async {
@@ -243,9 +283,31 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     _refresh();
   }
 
-  /// 打开已有画作继续编辑。
+  /// 新建分页画布并进入页面管理（旧「新建笔记本」入口恢复——N1）。
+  Future<void> _createNotebook() async {
+    final nb = Notebook(
+      id: NotebookStorage.newId('notebook'),
+      title: '未命名',
+    );
+    await _nbStorage.save(nb);
+    widget.onDataChanged?.call();
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => NotebookViewPage(
+          notebook: nb,
+          storage: _nbStorage,
+          blockDocStore: _blockDocStore,
+          editorPageBuilder: widget.editorPageBuilder,
+        ),
+      ),
+    );
+    await _refresh();
+  }
+
+  /// 打开已有画布继续编辑。
   ///
-  /// 批次②：受独立密码保护的画作先输密码（4–12 位可变长度密码盘，
+  /// 批次②：受独立密码保护的画布先输密码（4–12 位可变长度密码盘，
   /// 验证成功即缓存进会话，本会话免重复输入）。
   Future<void> _openDrawing(DocumentMeta meta) async {
     try {
@@ -256,25 +318,25 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
       }
       final doc = await _docStorage.load(meta.id);
       if (doc == null) {
-        _showSnack('画作文件不存在或已损坏');
+        _showSnack('画布文件不存在或已损坏');
         return;
       }
       if (!mounted) return;
       await _openEditor(document: doc, documentStorage: _docStorage);
       _refresh();
     } catch (e) {
-      _showSnack('打开画作失败：${e.runtimeType}');
+      _showSnack('打开画布失败：${e.runtimeType}');
     }
   }
 
-  /// 加密画作解锁输入（验证通过密码已入会话缓存）。
+  /// 加密画布解锁输入（验证通过密码已入会话缓存）。
   ///
   /// N4 批 2：左下角「忘记密码？」→ 重置密码盘重置流；重置成功后
   /// 会话已缓存新密码，本方法直接返回 true（调用方可继续打开）。
   Future<bool> _promptFilePassword(DocumentMeta meta) async {
     final pin = await UnlockFlow.show(
       context,
-      title: '该画作已加密，输入独立密码',
+      title: '该画布已加密，输入独立密码',
       flexible: true,
       onVerify: (p) => _docStorage.verifyFilePassword(meta.id, p),
       footerLabel: '忘记密码？',
@@ -293,7 +355,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
 
   // ---------------- 单文件密码管理（批次②） ----------------
 
-  /// 画作密码操作 sheet：未设密 → 设置；已设密 → 修改 / 绑定重置盘 / 移除。
+  /// 画布密码操作 sheet：未设密 → 设置；已设密 → 修改 / 绑定重置盘 / 移除。
   Future<void> _showDrawingPasswordSheet(DocumentMeta meta) async {
     final protected = await _docStorage.isFilePasswordProtected(meta.id);
     final usbBound = protected && await _docStorage.hasFileUsbSlot(meta.id);
@@ -308,7 +370,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
             ListTile(
               leading: const Icon(Icons.lock_outline_rounded),
               title: Text('「${meta.title}」独立密码'),
-              subtitle: Text(protected ? '此画作受独立密码保护' : '此画作当前未设置独立密码'),
+              subtitle: Text(protected ? '此画布受独立密码保护' : '此画布当前未设置独立密码'),
             ),
             const Divider(height: 1),
             if (!protected)
@@ -389,8 +451,8 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
       builder: (ctx) => AlertDialog(
         title: const Text('绑定重置密码盘？'),
         content: const Text(
-          '绑定后忘记此画作的独立密码时，可插入重置密码盘（U 盘）免旧密码重置。\n\n'
-          'U 盘上只有随机钥匙文件（password_reset_disk.key），画作数据不会离开设备。',
+          '绑定后忘记此画布的独立密码时，可插入重置密码盘（U 盘）免旧密码重置。\n\n'
+          'U 盘上只有随机钥匙文件（password_reset_disk.key），画布数据不会离开设备。',
         ),
         actions: [
           TextButton(
@@ -509,7 +571,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
 
   /// 删除画作（二次确认）。
   Future<void> _deleteDrawing(DocumentMeta meta) async {
-    final ok = await _confirmDelete('删除画作', '确定删除画作「${meta.title}」吗？此操作不可恢复。');
+    final ok = await _confirmDelete('删除画布', '确定删除画布「${meta.title}」吗？此操作不可恢复。');
     if (ok != true) return;
     try {
       await _docStorage.delete(meta.id);
@@ -519,7 +581,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     }
   }
 
-  // ---------------- 笔记本 ----------------
+  // ---------------- 笔记（块文档；M12：笔记本=笔记） ----------------
 
   Future<void> _createNote() async {
     // M12.6 模板库：新建时选择模板（空白/会议纪要/每日日志/待办清单）。
@@ -707,7 +769,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2, // 无限画布 / 笔记本（M11：「最近」时间线并入日历页）
+      length: 2, // 画布（无限画布/分页画布）/ 笔记（M11：「最近」时间线并入日历页）
       child: Scaffold(
         appBar: AppBar(
           title: Text(AppLocalizations.of(context)?.appTitle ?? '绘图笔记'),
@@ -753,7 +815,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
                 child: TabBar(
                   onTap: (i) => setState(() => _tabIndex = i),
                   tabs: const [
-                    Tab(text: '无限画布'),
+                    Tab(text: '画布'),
                     Tab(text: '笔记'),
                   ],
                 ),
@@ -764,9 +826,9 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
         body: AmbientBackground(child: _buildBody()),
         floatingActionButton: _tabIndex == 0
             ? FloatingActionButton.extended(
-                onPressed: _createDrawing,
+                onPressed: _createCanvas,
                 icon: const Icon(Icons.add),
-                label: const Text('新建无限画布'),
+                label: const Text('新建画布'),
               )
             : FloatingActionButton.extended(
                 onPressed: _createNote,

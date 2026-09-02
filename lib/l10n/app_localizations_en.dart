@@ -21,7 +21,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get close => 'Close';
 
   @override
-  String get newNotebook => 'New notebook';
+  String get newNotebook => 'New paged canvas';
 
   @override
   String get delete => 'Delete';
@@ -80,10 +80,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editorShapeTool => 'Shape tool';
 
   @override
-  String get noteActions => 'Notebook actions';
+  String get noteActions => 'Paged canvas actions';
 
   @override
-  String get noteImportPage => 'Import page from another notebook';
+  String get noteImportPage => 'Import page from another paged canvas';
 
   @override
   String get noteImportMarkdown => 'Import Markdown or text';

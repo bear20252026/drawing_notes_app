@@ -76,7 +76,7 @@ Widget _homePage({
 }
 
 void main() {
-  testWidgets('笔记 Tab 同源渲染：笔记本页面 + 打字笔记并列显示', (tester) async {
+  testWidgets('笔记 Tab 同源渲染：分页画布页面 + 笔记并列显示', (tester) async {
     final entries = [
       _entry(id: 'pg1', title: '旅行计划页', kind: AllDocKind.note),
       _entry(id: 'bd1', title: '读书笔记', kind: AllDocKind.blockdoc),
@@ -95,12 +95,12 @@ void main() {
     await tester.tap(find.text('笔记'));
     await tester.pumpAndSettle();
 
-    // 两种来源的条目同列表可见（修复前：笔记本页面永远不会出现在首页）。
+    // 两种来源的条目同列表可见（修复前：分页画布页面永远不会出现在首页）。
     expect(find.text('旅行计划页'), findsOneWidget);
     expect(find.text('读书笔记'), findsOneWidget);
     // 副标题标注来源类型。
-    expect(find.textContaining('笔记本页面'), findsOneWidget);
-    expect(find.textContaining('打字笔记'), findsOneWidget);
+    expect(find.textContaining('分页画布'), findsOneWidget);
+    expect(find.textContaining('笔记 · 更新于'), findsOneWidget);
   });
 
   testWidgets('点击条目走统一打开回调（与 All Docs 同路径）', (tester) async {

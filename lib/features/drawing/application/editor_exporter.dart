@@ -309,7 +309,7 @@ class EditorExporter {
   Future<void> exportText() async {
     final page = _page;
     if (page == null) {
-      showSnack('仅笔记本页面支持导出文本');
+      showSnack('仅分页画布页面支持导出文本');
       return;
     }
     if (page.textItems.isEmpty) {
