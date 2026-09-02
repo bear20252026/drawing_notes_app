@@ -38,6 +38,8 @@ import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
     show SyncFix, SyncFixRouteAware, UnlockFlow;
 // N4 批 2：忘记密码重置流 + 设密时插盘绑定重置密码盘。
 import 'package:drawing_notes_app/fix/file_password_reset_flow.dart';
+// N2：笔记（块文档）文件密码——解锁拦截与忘记密码重置流。
+import 'package:drawing_notes_app/fix/block_doc_password_reset_flow.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 
 part 'home_page_widgets.dart';
@@ -173,7 +175,14 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
         final noteIds = await _blockDocStore.listIds();
         notes = <AllDoc>[];
         for (final id in noteIds) {
-          final d = await _blockDocStore.loadDocument(id);
+          // N2：受密未解锁的笔记跳过（fail-closed；正式装配走 loadDocs
+          // ——listDocHeaders 已给锁定占位）。
+          final NoteBlockDoc? d;
+          try {
+            d = await _blockDocStore.loadDocument(id);
+          } on BlockDocLockedException {
+            continue;
+          }
           if (d != null) {
             notes.add(
               AllDoc(

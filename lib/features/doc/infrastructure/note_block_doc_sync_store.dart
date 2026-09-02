@@ -20,7 +20,13 @@ class NoteBlockDocSyncStore implements SyncDocumentStore {
     final ids = await _store.listIds();
     final metas = <SyncDocMeta>[];
     for (final id in ids) {
-      final doc = await _store.loadDocument(id);
+      // N2：受密未解锁的笔记跳过（fail-closed——同步不解锁受密内容）。
+      final NoteBlockDoc? doc;
+      try {
+        doc = await _store.loadDocument(id);
+      } on BlockDocLockedException {
+        continue;
+      }
       if (doc == null) continue;
       metas.add(
         SyncDocMeta(
@@ -35,7 +41,13 @@ class NoteBlockDocSyncStore implements SyncDocumentStore {
 
   @override
   Future<Uint8List?> readDocument(String id) async {
-    final doc = await _store.loadDocument(id);
+    // N2：受密未解锁 → null（同步器按缺失处理，不解锁受密内容）。
+    final NoteBlockDoc? doc;
+    try {
+      doc = await _store.loadDocument(id);
+    } on BlockDocLockedException {
+      return null;
+    }
     if (doc == null) return null;
     return Uint8List.fromList(utf8.encode(jsonEncode(doc.toJson())));
   }

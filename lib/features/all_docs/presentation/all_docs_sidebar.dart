@@ -238,6 +238,13 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
                         style: TextStyle(fontSize: 13, color: onSurface),
                       ),
                     ),
+                    // N2：文件密码锁标（本会话未解锁）
+                    if (doc.locked)
+                      Icon(
+                        Icons.lock_outline_rounded,
+                        size: 13,
+                        color: muted,
+                      ),
                   ],
                 ),
               ),

@@ -143,13 +143,25 @@ extension _HomePageTabs on _HomePageState {
 
   /// 统一打开路径（M12.4）：与 All Docs 同一回调（note→NotebookViewPage，
   /// blockdoc→DocPage）。无宿主回调时兜底直推 DocPage（仅笔记）。
+  ///
+  /// N2：受密未解锁的笔记先解锁（与 app_shell 同口径）。
   Future<void> _openEntry(AllDoc doc) async {
     if (widget.onOpenDoc != null) {
       widget.onOpenDoc!(doc);
       return;
     }
     if (doc.kind != AllDocKind.blockdoc) return;
-    final d = await _blockDocStore.loadDocument(doc.id);
+    if (!await _ensureUnlocked(doc.id)) return;
+    // 锁定异常折叠为 null（fail-closed）——独立方法保证空安全提升。
+    Future<NoteBlockDoc?> loadGuarded() async {
+      try {
+        return await _blockDocStore.loadDocument(doc.id);
+      } on BlockDocLockedException {
+        return null; // 会话 DEK 已被清——不暴露内容
+      }
+    }
+
+    final d = await loadGuarded();
     if (!mounted || d == null) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
@@ -163,6 +175,28 @@ extension _HomePageTabs on _HomePageState {
       ),
     );
     await _refresh();
+  }
+
+  /// N2：笔记文件密码解锁拦截。返回 false = 用户取消且会话未解锁。
+  Future<bool> _ensureUnlocked(String id) async {
+    if (!await _blockDocStore.isBlockDocPasswordProtected(id)) return true;
+    if (_blockDocStore.isBlockDocUnlocked(id)) return true;
+    if (!mounted) return false;
+    final pin = await UnlockFlow.show(
+      context,
+      title: '该笔记已加密，输入密码',
+      flexible: true,
+      onVerify: (p) => _blockDocStore.verifyBlockDocPassword(id, p),
+      footerLabel: '忘记密码？',
+      onFooter: () {
+        BlockDocPasswordResetFlow.show(
+          context,
+          store: _blockDocStore,
+          docId: id,
+        );
+      },
+    );
+    return pin != null || _blockDocStore.isBlockDocUnlocked(id);
   }
 
   String _formatTime(DateTime t) {

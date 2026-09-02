@@ -7,6 +7,7 @@ import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
@@ -15,6 +16,7 @@ import 'package:drawing_notes_app/features/doc/doc_page.dart';
 // N4 批 3：加密分页画布解锁拦截（与 app_shell 同口径）。
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/fix/notebook_password_reset_flow.dart';
+import 'package:drawing_notes_app/fix/block_doc_password_reset_flow.dart';
 import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
     show UnlockFlow;
 
@@ -91,7 +93,39 @@ class _SearchPageState extends State<SearchPage> {
     // 块文档命中：打开双模宿主（页面/无限画布）。
     if (r.kind == 'blockdoc') {
       final blockStore = widget.blockDocStore ?? NoteBlockDocStore();
-      final doc = await blockStore.loadDocument(r.pageId!);
+      // N2：受密笔记解锁拦截（搜索索引本身已排除未解锁的受密笔记，
+      // 此处兜底防「搜索后设密/切后台清 DEK」竞态）。
+      if (await blockStore.isBlockDocPasswordProtected(r.pageId!) &&
+          !blockStore.isBlockDocUnlocked(r.pageId!)) {
+        if (!mounted) return;
+        final pin = await UnlockFlow.show(
+          context,
+          title: '该笔记已加密，输入密码',
+          flexible: true,
+          onVerify: (p) => blockStore.verifyBlockDocPassword(r.pageId!, p),
+          footerLabel: '忘记密码？',
+          onFooter: () {
+            BlockDocPasswordResetFlow.show(
+              context,
+              store: blockStore,
+              docId: r.pageId!,
+            );
+          },
+        );
+        if (pin == null && !blockStore.isBlockDocUnlocked(r.pageId!)) {
+          return;
+        }
+      }
+      // 锁定异常折叠为 null（fail-closed）——独立方法保证空安全提升。
+      Future<NoteBlockDoc?> loadGuarded() async {
+        try {
+          return await blockStore.loadDocument(r.pageId!);
+        } on BlockDocLockedException {
+          return null; // 会话 DEK 已被清——不暴露内容
+        }
+      }
+
+      final doc = await loadGuarded();
       if (doc == null || !mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute(

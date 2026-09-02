@@ -9,6 +9,7 @@
 library;
 
 import 'package:drawing_notes_app/core/notes_accessor.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc_search.dart';
 import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
 
@@ -28,7 +29,13 @@ class BlockDocSearchAccessorImpl implements IBlockDocSearchAccessor {
     final ids = await _store.listIds();
     final results = <BlockDocSearchHit>[];
     for (final id in ids) {
-      final doc = await _store.loadDocument(id);
+      // N2：受密未解锁的笔记不进搜索结果（fail-closed——不泄露内容）。
+      final NoteBlockDoc? doc;
+      try {
+        doc = await _store.loadDocument(id);
+      } on BlockDocLockedException {
+        continue;
+      }
       if (doc == null) continue;
 
       final index = NoteBlockDocSearchIndex();

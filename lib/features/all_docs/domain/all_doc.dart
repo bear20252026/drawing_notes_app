@@ -82,6 +82,7 @@ class AllDoc {
     this.notebookId,
     this.pageId,
     this.drawingId,
+    this.locked = false,
   });
 
   /// 文档唯一标识。
@@ -120,6 +121,9 @@ class AllDoc {
   /// 画布文档 id（kind==canvas 时有效，通常同 [id]）。
   final String? drawingId;
 
+  /// 是否受独立文件密码保护且本会话尚未解锁（N2）——列表显示锁标。
+  final bool locked;
+
   /// 用于去重的稳定键：'$kind:$id'。
   String get dedupKey => '${kind.name}:$id';
 
@@ -136,6 +140,7 @@ class AllDoc {
     String? notebookId,
     String? pageId,
     String? drawingId,
+    bool? locked,
   }) {
     return AllDoc(
       id: id ?? this.id,
@@ -149,6 +154,7 @@ class AllDoc {
       notebookId: notebookId ?? this.notebookId,
       pageId: pageId ?? this.pageId,
       drawingId: drawingId ?? this.drawingId,
+      locked: locked ?? this.locked,
     );
   }
 
@@ -167,7 +173,8 @@ class AllDoc {
           isFavorite == other.isFavorite &&
           notebookId == other.notebookId &&
           pageId == other.pageId &&
-          drawingId == other.drawingId;
+          drawingId == other.drawingId &&
+          locked == other.locked;
 
   @override
   int get hashCode => Object.hash(
@@ -182,6 +189,7 @@ class AllDoc {
     notebookId,
     pageId,
     drawingId,
+    locked,
   );
 
   @override

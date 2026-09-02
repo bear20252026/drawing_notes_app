@@ -38,6 +38,7 @@ import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
 import 'package:drawing_notes_app/fix/file_password_reset_flow.dart';
 // N4 批 3：分页画布解锁弹窗「忘记密码？」→ 重置密码盘重置流。
 import 'package:drawing_notes_app/fix/notebook_password_reset_flow.dart';
+import 'package:drawing_notes_app/fix/block_doc_password_reset_flow.dart';
 // N4 批 3：加密分页画布解锁后媒体加密注入（页面图片解密用）。
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 
@@ -115,9 +116,27 @@ class _AppShellState extends State<AppShell> {
 
   int _index = 0;
 
+  /// N2：加载块文档——锁定异常折叠为 null（fail-closed，不暴露内容）。
+  /// 独立 helper 以保证空安全类型提升（try 内赋值的局部变量不提升）。
+  Future<NoteBlockDoc?> _loadBlockDocGuarded(
+    NoteBlockDocStore store,
+    String id,
+  ) async {
+    try {
+      return await store.loadDocument(id);
+    } on BlockDocLockedException {
+      return null; // 会话 DEK 已被清（如切后台）——不暴露内容
+    }
+  }
+
   /// 打开指定块文档（反向链接条目点击路由）。
+  ///
+  /// N2：受独立文件密码保护的笔记先解锁（与画布/分页画布同口径——
+  /// 验证成功 DEK 即入会话缓存，本会话免重复输入）。
   Future<void> _openBlockDocById(String id) async {
-    final doc = await _services.blockDocStore.loadDocument(id);
+    final store = _services.blockDocStore;
+    if (!await _ensureBlockDocUnlocked(store, id)) return;
+    final doc = await _loadBlockDocGuarded(store, id);
     if (doc == null || !mounted) return;
     await Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
@@ -133,6 +152,26 @@ class _AppShellState extends State<AppShell> {
       ),
     );
     _services.bumpDataVersion();
+  }
+
+  /// N2：笔记文件密码解锁拦截。返回 false = 用户取消且会话未解锁
+  /// （不暴露内容）。解锁成功（含重置流）/ 未受密返回 true。
+  Future<bool> _ensureBlockDocUnlocked(NoteBlockDocStore store, String id) async {
+    if (!await store.isBlockDocPasswordProtected(id)) return true;
+    if (store.isBlockDocUnlocked(id)) return true;
+    if (!mounted) return false;
+    final pin = await UnlockFlow.show(
+      context,
+      title: '该笔记已加密，输入密码',
+      flexible: true,
+      onVerify: (p) => store.verifyBlockDocPassword(id, p),
+      footerLabel: '忘记密码？',
+      onFooter: () {
+        BlockDocPasswordResetFlow.show(context, store: store, docId: id);
+      },
+    );
+    // pin 非空 = 验证通过；null 但会话已解锁 = 刚被重置流解锁。
+    return pin != null || store.isBlockDocUnlocked(id);
   }
 
   /// 3 个目的地。用 [IndexedStack] 承载，保持各自状态（切走再切回不丢）。
@@ -282,6 +321,7 @@ class _AppShellState extends State<AppShell> {
           tags: h.tags,
           createdAt: h.createdAt,
           updatedAt: h.updatedAt,
+          locked: h.locked,
         ),
     ];
     final result = buildAllDocs(
@@ -421,7 +461,10 @@ class _AppShellState extends State<AppShell> {
         );
         _services.bumpDataVersion();
       case AllDocKind.blockdoc:
-        final bd = await _services.blockDocStore.loadDocument(doc.id);
+        final store = _services.blockDocStore;
+        // N2：文件密码解锁拦截（未解锁先输密码；忘记密码 → 重置流）。
+        if (!await _ensureBlockDocUnlocked(store, doc.id)) return;
+        final bd = await _loadBlockDocGuarded(store, doc.id);
         if (bd == null) return;
         final favs = await _services.favoriteStore.loadKeys();
         await nav.push(

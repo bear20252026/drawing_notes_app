@@ -91,6 +91,11 @@ class AllDocRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
+            // N2：文件密码锁标（本会话未解锁）
+            if (doc.locked) ...[
+              Icon(Icons.lock_outline_rounded, size: 14, color: subtle),
+              const SizedBox(width: 6),
+            ],
             // 相对时间
             Text(timeLabel, style: TextStyle(fontSize: 11.5, color: subtle)),
             const SizedBox(width: 12),

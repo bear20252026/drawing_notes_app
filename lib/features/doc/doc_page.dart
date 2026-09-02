@@ -9,9 +9,13 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/core/layout/responsive.dart';
 import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
 
+import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
+import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
+import 'package:drawing_notes_app/fix/security_and_sync_fix.dart' show UnlockFlow;
+import 'package:drawing_notes_app/fix/block_doc_password_reset_flow.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_export_io.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_link_index.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_html_export.dart';
@@ -309,6 +313,9 @@ class _DocPageState extends State<DocPage> {
           onExportHtml: _exportHtml,
           onInsertPageLink: _insertPageLink,
           onExportPdf: _exportPdf,
+          onManagePassword: widget.blockDocStore == null
+              ? null
+              : _showPasswordSheet,
         ),
         body: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -426,8 +433,12 @@ class _DocPageState extends State<DocPage> {
     return () async {
       final docs = <NoteBlockDoc>[];
       for (final id in await store.listIds()) {
-        final d = await store.loadDocument(id);
-        if (d != null) docs.add(d);
+        try {
+          final d = await store.loadDocument(id);
+          if (d != null) docs.add(d);
+        } on BlockDocLockedException {
+          continue; // N2：受密未解锁的笔记不进反向链接索引（fail-closed）
+        }
       }
       return docs;
     }();
@@ -436,19 +447,299 @@ class _DocPageState extends State<DocPage> {
   void _openDocByIdInternal(String id) {
     final store = widget.blockDocStore;
     if (store == null) return;
-    store.loadDocument(id).then((doc) {
-      if (!mounted || doc == null) return;
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => DocPage(
-            document: doc,
-            controller: DocController(onSave: (d) => store.saveDocument(d)),
-            blockDocStore: store,
-            tagStore: widget.tagStore,
-          ),
+    // N2：受密未解锁的笔记点击反向链接 → 先解锁（与宿主路由同口径）。
+    store
+        .isBlockDocPasswordProtected(id)
+        .then((protected) async {
+          if (protected && !store.isBlockDocUnlocked(id)) {
+            if (!mounted) return false;
+            final pin = await UnlockFlow.show(
+              context,
+              title: '该笔记已加密，输入密码',
+              flexible: true,
+              onVerify: (p) => store.verifyBlockDocPassword(id, p),
+              footerLabel: '忘记密码？',
+              onFooter: () {
+                BlockDocPasswordResetFlow.show(
+                  context,
+                  store: store,
+                  docId: id,
+                );
+              },
+            );
+            if (pin == null && !store.isBlockDocUnlocked(id)) return false;
+          }
+          return true;
+        })
+        .then((allowed) async {
+          if (allowed != true) return null;
+          try {
+            return await store.loadDocument(id);
+          } on BlockDocLockedException {
+            return null; // 会话 DEK 已被清——不暴露内容
+          }
+        })
+        .then((doc) {
+          if (!mounted || doc == null) return;
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => DocPage(
+                document: doc,
+                controller: DocController(onSave: (d) => store.saveDocument(d)),
+                blockDocStore: store,
+                tagStore: widget.tagStore,
+              ),
+            ),
+          );
+        });
+  }
+
+  // ── N2：文件密码管理（与画布/分页画布同口径；入口在 ⋯ 菜单） ──
+
+  /// 笔记密码操作 sheet：未设密 → 设置；已设密 → 修改 / 绑定重置盘 / 移除。
+  Future<void> _showPasswordSheet() async {
+    final store = widget.blockDocStore;
+    if (store == null) return;
+    final protected = await store.isBlockDocPasswordProtected(_doc.id);
+    final usbBound = protected && await store.hasBlockDocUsbSlot(_doc.id);
+    if (!mounted) return;
+    final name = _doc.title.isEmpty ? '未命名' : _doc.title;
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.lock_outline_rounded),
+              title: Text('「$name」独立密码'),
+              subtitle: Text(
+                protected ? '此笔记受独立密码保护' : '此笔记当前未设置独立密码',
+              ),
+            ),
+            const Divider(height: 1),
+            if (!protected)
+              ListTile(
+                leading: const Icon(Icons.add_moderator_outlined),
+                title: const Text('设置独立密码'),
+                subtitle: const Text('4–12 位数字，须与开屏密码不同'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _startSetPassword();
+                },
+              )
+            else ...[
+              ListTile(
+                leading: const Icon(Icons.key_rounded),
+                title: const Text('修改独立密码'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _startChangePassword();
+                },
+              ),
+              if (!usbBound)
+                ListTile(
+                  leading: const Icon(Icons.usb_rounded),
+                  title: const Text('绑定重置密码盘'),
+                  subtitle: const Text('绑定后忘记密码可插 U 盘免旧密码重置'),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    _startBindUsb();
+                  },
+                ),
+              ListTile(
+                leading: const Icon(Icons.no_encryption_outlined),
+                title: const Text('移除独立密码'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _startRemovePassword();
+                },
+              ),
+            ],
+          ],
         ),
+      ),
+    );
+  }
+
+  /// 独立密码收集（两次一致才生效）；与开屏密码同码直接拒绝。
+  Future<String?> _collectNewPassword(String title) async {
+    final pin = await UnlockFlow.show(context, title: title, flexible: true);
+    if (pin == null || !mounted) return null;
+    // ≠开屏密码强制（哈希加盐不可比对，用 verify 探测）。
+    if (await AppLockService.matchesAppLockPin(pin)) {
+      _snack('独立密码不能与开屏密码相同');
+      return null;
+    }
+    if (!mounted) return null; // matchesAppLockPin 为异步操作，跨缺口守卫
+    final confirm = await UnlockFlow.show(
+      context,
+      title: '确认独立密码',
+      flexible: true,
+    );
+    if (confirm == null) return null;
+    if (confirm != pin) {
+      _snack('两次输入不一致，请重试');
+      return null;
+    }
+    return pin;
+  }
+
+  Future<void> _startSetPassword() async {
+    final store = widget.blockDocStore;
+    if (store == null) return;
+    final pin = await _collectNewPassword('设置独立密码');
+    if (pin == null) return;
+    if (!mounted) return;
+    // 可选当场绑定重置密码盘（错过本次可事后在密码管理中绑定）。
+    List<int>? resetDiskKey;
+    final bindUsb = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('绑定重置密码盘？'),
+        content: const Text(
+          '绑定后忘记此笔记的独立密码时，可插入重置密码盘（U 盘）免旧密码重置。\n\n'
+          'U 盘上只有随机钥匙文件（password_reset_disk.key），笔记数据不会离开设备。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('暂不'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('插盘绑定'),
+          ),
+        ],
+      ),
+    );
+    if (bindUsb == true) {
+      if (!mounted) return;
+      final dir = await ResetDiskFile.pickDirectory();
+      if (dir != null) {
+        resetDiskKey = await ResetDiskFile.readFrom(dir);
+        if (resetDiskKey == null && mounted) {
+          _snack('未找到有效的重置密码盘文件（password_reset_disk.key），本次不绑定');
+        }
+      }
+    }
+    try {
+      await store.encryptAndSave(_doc, pin, usbKey: resetDiskKey);
+      _snack(
+        resetDiskKey == null
+            ? '已为「${_doc.title.isEmpty ? '未命名' : _doc.title}」设置独立密码'
+            : '已设置独立密码并绑定重置密码盘',
       );
-    });
+    } on StateError catch (e) {
+      _snack(e.message);
+    } catch (e) {
+      _snack('设置失败：${e.runtimeType}');
+    }
+  }
+
+  Future<void> _startChangePassword() async {
+    final store = widget.blockDocStore;
+    if (store == null) return;
+    final old = await UnlockFlow.show(
+      context,
+      title: '验证当前独立密码',
+      flexible: true,
+      onVerify: (p) => store.verifyBlockDocPassword(_doc.id, p),
+    );
+    if (old == null || !mounted) return;
+    final pin = await _collectNewPassword('设置新密码');
+    if (pin == null) return;
+    try {
+      await store.changeBlockDocPassword(_doc.id, old, pin);
+      _snack('已修改「${_doc.title.isEmpty ? '未命名' : _doc.title}」的独立密码');
+    } on FormatException {
+      _snack('原密码不正确或密文已损坏');
+    } on StateError catch (e) {
+      _snack(e.message);
+    } catch (e) {
+      _snack('修改失败：${e.runtimeType}');
+    }
+  }
+
+  /// 事后绑定重置密码盘：验证文件密码 → 插盘 → 嵌入 USB 槽位。
+  Future<void> _startBindUsb() async {
+    final store = widget.blockDocStore;
+    if (store == null) return;
+    final pin = await UnlockFlow.show(
+      context,
+      title: '验证独立密码以绑定重置盘',
+      flexible: true,
+      onVerify: (p) => store.verifyBlockDocPassword(_doc.id, p),
+    );
+    if (pin == null || !mounted) return;
+    final dir = await ResetDiskFile.pickDirectory();
+    if (dir == null || !mounted) return;
+    final usbKey = await ResetDiskFile.readFrom(dir);
+    if (usbKey == null) {
+      _snack('未找到有效的重置密码盘文件（password_reset_disk.key）');
+      return;
+    }
+    try {
+      await store.bindBlockDocUsbSlot(_doc.id, pin, usbKey);
+      _snack('已绑定重置密码盘');
+    } on FormatException {
+      _snack('密码不正确或已绑定重置密码盘');
+    } on StateError catch (e) {
+      _snack(e.message);
+    } catch (e) {
+      _snack('绑定失败：${e.runtimeType}');
+    }
+  }
+
+  Future<void> _startRemovePassword() async {
+    final store = widget.blockDocStore;
+    if (store == null) return;
+    final name = _doc.title.isEmpty ? '未命名' : _doc.title;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('移除独立密码'),
+        content: Text('移除后「$name」不再需要独立密码即可打开。确定移除吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('移除'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    if (!mounted) return;
+    final pin = await UnlockFlow.show(
+      context,
+      title: '验证独立密码以移除',
+      flexible: true,
+      onVerify: (p) => store.verifyBlockDocPassword(_doc.id, p),
+    );
+    if (pin == null) return;
+    try {
+      await store.removeBlockDocPassword(_doc.id, pin);
+      _snack('已移除「$name」的独立密码');
+    } on FormatException {
+      _snack('密码不正确或密文已损坏');
+    } on StateError catch (e) {
+      _snack(e.message);
+    } catch (e) {
+      _snack('移除失败：${e.runtimeType}');
+    }
+  }
+
+  void _snack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   /// 文档信息对话框（含标签编辑——M12.6 标签系统入口）。
@@ -612,6 +903,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
     this.onExportHtml,
     this.onInsertPageLink,
     this.onExportPdf,
+    this.onManagePassword,
   });
 
   final String title;
@@ -638,6 +930,9 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
 
   /// 导出 PDF（M12.8）。
   final VoidCallback? onExportPdf;
+
+  /// 文件密码管理（N2；null 时不显示菜单项——如未注入 blockDocStore）。
+  final VoidCallback? onManagePassword;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -742,6 +1037,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
             if (v == 'exportMd') onExportMarkdown?.call();
             if (v == 'exportHtml') onExportHtml?.call();
             if (v == 'exportPdf') onExportPdf?.call();
+            if (v == 'password') onManagePassword?.call();
           },
           itemBuilder: (context) => [
             if (isNarrow)
@@ -831,6 +1127,22 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
                 ],
               ),
             ),
+            // N2：文件密码管理（独立密码与画布/分页画布同口径）。
+            if (onManagePassword != null)
+              PopupMenuItem(
+                value: 'password',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.lock_outline_rounded,
+                      size: 18,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 10),
+                    const Text('文件密码'),
+                  ],
+                ),
+              ),
           ],
         ),
         if (!isNarrow)

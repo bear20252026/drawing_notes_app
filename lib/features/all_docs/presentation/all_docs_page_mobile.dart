@@ -189,6 +189,16 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 14),
                     ),
+                    // N2：文件密码锁标（本会话未解锁）
+                    trailing: doc.locked
+                        ? Icon(
+                            Icons.lock_outline_rounded,
+                            size: 16,
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.35,
+                            ),
+                          )
+                        : null,
                     onTap: () {
                       Navigator.of(sheetContext).pop();
                       widget.onOpenDoc(doc);

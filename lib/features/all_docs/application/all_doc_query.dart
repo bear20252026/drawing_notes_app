@@ -15,6 +15,7 @@ class BlockDocMeta {
     this.tags = const [],
     required this.createdAt,
     required this.updatedAt,
+    this.locked = false,
   });
 
   final String id;
@@ -25,6 +26,9 @@ class BlockDocMeta {
   final String folder;
   final DateTime createdAt;
   final DateTime updatedAt;
+
+  /// 是否受独立文件密码保护且本会话尚未解锁（N2）。
+  final bool locked;
 }
 
 /// 全部文档查询结果（统一列表 + 分组）。
@@ -100,6 +104,7 @@ AllDocQueryResult buildAllDocs({
       tags: bd.tags,
       createdAt: bd.createdAt,
       updatedAt: bd.updatedAt,
+      locked: bd.locked,
     );
     if (_tryAdd(seen, doc)) all.add(doc);
   }

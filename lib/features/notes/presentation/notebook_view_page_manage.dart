@@ -110,8 +110,29 @@ extension _NotebookPageManage on _NotebookViewPageState {
   /// 通过 onSave 回调将编辑后的文档持久化到 NoteBlockDocStore。
   Future<void> _openBlockDocFromPage(NotebookPage page) async {
     final store = blockDocStore;
+    // N2：受密块文档副本先解锁（与 app_shell/搜索页同口径）。
+    if (await store.isBlockDocPasswordProtected(page.id) &&
+        !store.isBlockDocUnlocked(page.id)) {
+      if (!mounted) return;
+      final pin = await UnlockFlow.show(
+        context,
+        title: '该笔记已加密，输入密码',
+        flexible: true,
+        onVerify: (p) => store.verifyBlockDocPassword(page.id, p),
+        footerLabel: '忘记密码？',
+        onFooter: () {
+          BlockDocPasswordResetFlow.show(context, store: store, docId: page.id);
+        },
+      );
+      if (pin == null && !store.isBlockDocUnlocked(page.id)) return;
+    }
     // 尝试加载已有块文档
-    var doc = await store.loadDocument(page.id);
+    NoteBlockDoc? doc;
+    try {
+      doc = await store.loadDocument(page.id);
+    } on BlockDocLockedException {
+      return; // 会话 DEK 已被清——不暴露内容
+    }
     if (doc == null) {
       // 不存在则从 NotebookPage 迁移并缓存
       doc = migrateNotebookPage(page);
