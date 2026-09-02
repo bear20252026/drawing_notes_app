@@ -7,17 +7,22 @@
 /// 快速路径（decryptBlockDocPayloadWithDek 零 PBKDF2）、rewrap 续写
 /// （payload 重生成、槽位组原样保留）。
 ///
-/// 注：走生产默认 600k PBKDF2，全量套件高并发下会超出默认 30s 单测
-/// 超时——放宽到 3 分钟。
+/// 注：批B 起新槽位默认 Argon2id（64MiB t2 p2 ≈348ms）——测试注入
+/// 轻量参数（KdfParams.testLight）避免拖慢套件，槽位格式与生产一致；
+/// 高并发下仍放宽到 3 分钟。
 @Timeout(Duration(minutes: 3))
 library;
 
 import 'dart:convert';
 
+import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  // 批B：注入测试轻量 KDF（新槽位 Argon2id 8MiB≈几十 ms；生产默认
+  // 64MiB t2 p2）。槽位 JSON 格式与生产完全一致，仅参数不同。
+  KdfParams.newSlotDefault = KdfParams.testLight;
   group('EncryptionService blockdoc v5（scope=bd）', () {
     const svc = EncryptionService();
     const id = 'bd_v5_e1';

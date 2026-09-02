@@ -10,6 +10,8 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:cryptography/cryptography.dart';
 
+import 'package:drawing_notes_app/core/security/kdf_params.dart';
+
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 
 /// 同步加密器抽象：远端路径映射 + 文档字节加解密 + manifest 密封。
@@ -207,10 +209,15 @@ List<int> generateSalt({int length = 16}) {
 ///
 /// 默认 60 万次迭代（OWASP 2026 推荐）。密码/盐相同 → 同 key。
 /// N3 提速 B 方案：走 KekSessionCache（会话缓存 + isolate 后台派生）。
+/// 批B 注：同步格式跨设备互操作，KDF 与既有密文耦合，维持 PBKDF2。
 Future<List<int>> deriveMasterKey(
   String password,
   List<int> salt, {
   int iterations = 600000,
 }) {
-  return KekSessionCache.instance.deriveKek(password, salt, iterations);
+  return KekSessionCache.instance.deriveKek(
+    password,
+    salt,
+    KdfParams.pbkdf2(iterations),
+  );
 }

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 
+import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 
 /// 文件信封加密异常：密钥不匹配 / 载荷被篡改 / 版本不识别。
@@ -68,9 +69,13 @@ class VaultFileV3Rewrap {
 ///   "DNV"(3B 魔数) | 0x03 | jsonLen(u32 BE) | JSON 槽位头
 ///                  | AES-256-GCM 载荷 [nonce(12) | cipherText | tag(16)]
 ///   JSON 槽位头 = {"v":3,"slots":[
-///     {"type":"pw","salt":b64,"iter":n,"wrapped":b64},   // 密码槽：包裹 DEK
-///     {"type":"usb","wrapped":b64}?                      // 重置盘槽（可选）
+///     {"type":"pw","salt":b64, KDF字段, "wrapped":b64},   // 密码槽：包裹 DEK
+///     {"type":"usb","wrapped":b64}?                       // 重置盘槽（可选）
 ///   ]}
+///   KDF 字段（批B，LUKS2 每槽位独立 KDF 语义——槽位自描述，信封结构
+///   不变故版本字节不动）：
+///     新写入: {"kdf":"argon2id","m":65536,"t":2,"p":2}
+///     旧数据: {"iter":n}（无 kdf 字段 = PBKDF2，批B 前产物）
 /// ```
 /// 设计要点：
 /// - 明文 JSON 以 `{` 开头、PNG 以魔数开头，攻击者一眼可辨；`DNV` 头让
@@ -108,7 +113,8 @@ abstract final class VaultFileCodec {
   static const int _dekBytes = 32;
   static const int _v3SaltBytes = 16;
 
-  /// 单文件密码 PBKDF2 迭代次数（与保险库 600k 对齐——OWASP M10）。
+  /// 单文件密码 PBKDF2 迭代次数（批B 前产线值——仅用于旧 v2 头部与
+  /// 旧 v3 槽位读取兜底；新槽位走 Argon2id，见 [KdfParams.argon2idProduction]）。
   static const int filePasswordIterations = 600000;
 
   /// 嗅探字节是否为本加密信封（读路径自动分流：密文解密 / 明文兼容）。
@@ -187,7 +193,11 @@ abstract final class VaultFileCodec {
     int iterations = filePasswordIterations,
   }) async {
     final salt = VaultKeyService.randomBytes(16);
-    final key = await VaultKeyService.deriveKek(password, salt, iterations);
+    final key = await VaultKeyService.deriveKek(
+      password,
+      salt,
+      KdfParams.pbkdf2(iterations),
+    );
     final payload = await VaultKeyService.aeadEncrypt(
       Uint8List.fromList(key),
       plain,
@@ -221,7 +231,11 @@ abstract final class VaultFileCodec {
     }
     final salt = blob.sublist(4, 20);
     final iter = ByteData.sublistView(blob, 20, 24).getUint32(0);
-    final key = await VaultKeyService.deriveKek(password, salt, iter);
+    final key = await VaultKeyService.deriveKek(
+      password,
+      salt,
+      KdfParams.pbkdf2(iter),
+    );
     try {
       final plain = await VaultKeyService.aeadDecrypt(
         Uint8List.fromList(key),
@@ -260,23 +274,25 @@ abstract final class VaultFileCodec {
     );
   }
 
-  /// v3 信封加密：密码槽必建；[dek] 传入则复用（会话续写场景，配合
-  /// [usbWrapped] 保留重置盘槽位）；[usbWrapped] 为已有 USB 槽位密文
-  /// （必须包裹同一把 [dek]——传入槽位不传 DEK 直接拒绝，防静默失效）。
+  /// v3 信封加密：密码槽必建（批B：Argon2id KDF 字段自描述）；
+  /// [dek] 传入则复用（会话续写场景，配合 [usbWrapped] 保留重置盘槽位）；
+  /// [usbWrapped] 为已有 USB 槽位密文（必须包裹同一把 [dek]——传入槽位
+  /// 不传 DEK 直接拒绝，防静默失效）。
   static Future<Uint8List> encryptWithPasswordV3(
     Uint8List plain,
     String password, {
     required String aadContext,
-    int iterations = filePasswordIterations,
+    KdfParams? kdf,
     Uint8List? dek,
     Uint8List? usbWrapped,
   }) async {
+    final params = kdf ?? KdfParams.newSlotDefault;
     if (usbWrapped != null && dek == null) {
       throw ArgumentError('传入 USB 槽位必须同时传入其包裹的 DEK');
     }
     final actualDek = dek ?? generateDek();
     final salt = VaultKeyService.randomBytes(_v3SaltBytes);
-    final kek = await VaultKeyService.deriveKek(password, salt, iterations);
+    final kek = await VaultKeyService.deriveKek(password, salt, params);
     final wrapped = await VaultKeyService.aeadEncrypt(
       kek,
       actualDek,
@@ -289,7 +305,7 @@ abstract final class VaultFileCodec {
           {
             'type': _slotPw,
             'salt': base64Encode(salt),
-            'iter': iterations,
+            ...params.toSlotJson(),
             'wrapped': base64Encode(wrapped),
           },
           if (usbWrapped != null)
@@ -324,9 +340,12 @@ abstract final class VaultFileCodec {
     final (body, payload) = _parseV3(blob);
     final (pwSlot, usbSlot) = _slotsOfV3(body);
     final salt = base64Decode(pwSlot['salt'] as String);
-    final iter = pwSlot['iter'] as int;
     final wrapped = base64Decode(pwSlot['wrapped'] as String);
-    final kek = await VaultKeyService.deriveKek(password, salt, iter);
+    final kek = await VaultKeyService.deriveKek(
+      password,
+      salt,
+      _paramsOfPwSlot(pwSlot),
+    );
     List<int> dek;
     try {
       dek = await VaultKeyService.aeadDecrypt(
@@ -377,20 +396,22 @@ abstract final class VaultFileCodec {
     );
   }
 
-  /// v3 重置文件密码：USB 钥匙解出 DEK → 新盐重绕密码槽。**载荷密文与
-  /// USB 槽位字节原样保留**（LUKS 同款），旧密文无需迁移；U 盘继续有效。
+  /// v3 重置文件密码：USB 钥匙解出 DEK → 新盐重绕密码槽（批B：新槽位
+  /// Argon2id——旧 PBKDF2 槽位借此懒升级）。**载荷密文与 USB 槽位字节
+  /// 原样保留**（LUKS 同款），旧密文无需迁移；U 盘继续有效。
   static Future<VaultFileV3Rewrap> rewrapPasswordSlotV3(
     Uint8List blob,
     List<int> usbKey,
     String newPassword, {
     required String aadContext,
-    int iterations = filePasswordIterations,
+    KdfParams? kdf,
   }) async {
+    final params = kdf ?? KdfParams.newSlotDefault;
     final unlock = await unlockWithUsbKeyV3(blob, usbKey, aadContext: aadContext);
     final (parsedBody, payload) = _parseV3(blob);
     final (_, usbSlot) = _slotsOfV3(parsedBody);
     final newSalt = VaultKeyService.randomBytes(_v3SaltBytes);
-    final kek = await VaultKeyService.deriveKek(newPassword, newSalt, iterations);
+    final kek = await VaultKeyService.deriveKek(newPassword, newSalt, params);
     final newWrapped = await VaultKeyService.aeadEncrypt(
       kek,
       unlock.dek,
@@ -403,7 +424,7 @@ abstract final class VaultFileCodec {
           {
             'type': _slotPw,
             'salt': base64Encode(newSalt),
-            'iter': iterations,
+            ...params.toSlotJson(),
             'wrapped': base64Encode(newWrapped),
           },
           if (usbSlot != null)
@@ -487,12 +508,31 @@ abstract final class VaultFileCodec {
     if (pw == null) {
       throw const VaultFileException('信封缺少密码槽位');
     }
-    if (pw['salt'] is! String ||
-        pw['wrapped'] is! String ||
-        pw['iter'] is! int) {
+    if (pw['salt'] is! String || pw['wrapped'] is! String) {
       throw const VaultFileException('密码槽位字段不合法');
     }
+    // KDF 字段校验（批B）：kdf 字段缺失 = 批B 前数据，iter 必填；
+    // 存在则必须完整合法（argon2id m/t/p 或 pbkdf2 iter）。
+    if (pw['kdf'] == null && pw['iter'] is! int) {
+      throw const VaultFileException('密码槽位缺少 KDF 信息');
+    }
+    _paramsOfPwSlot(pw);
     return (pw, usb);
+  }
+
+  /// 密码槽 KDF 参数解析（槽位自描述）。字段畸形抛 [VaultFileException]
+  /// （fail-closed——由 [_slotsOfV3] 预检后调用，此处仅防越界）。
+  static KdfParams _paramsOfPwSlot(Map<String, dynamic> pwSlot) {
+    try {
+      return KdfParams.fromSlotJson(
+        pwSlot,
+        legacyDefault: KdfParams.pbkdf2(
+          pwSlot['iter'] is int ? pwSlot['iter'] as int : filePasswordIterations,
+        ),
+      );
+    } on ArgumentError {
+      throw const VaultFileException('密码槽 KDF 字段不合法');
+    }
   }
 
   static List<int> _aadFor(String context) =>

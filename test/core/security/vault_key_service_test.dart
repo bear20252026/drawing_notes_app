@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 
 void main() {
@@ -16,7 +17,8 @@ void main() {
     vaultFile = File('${tmp.path}${Platform.pathSeparator}vault.key.json');
     service = VaultKeyService(
       vaultFileResolver: () async => vaultFile,
-      iterations: 2000, // 测试提速（生产 600k 与 MediaCryptoService 对齐）
+      iterations: 2000, // 旧数据兜底（生产 600k）
+      newSlotKdf: KdfParams.testLight, // 测试提速（生产 Argon2id 64MiB t2 p2）
     );
   });
 
@@ -61,6 +63,7 @@ void main() {
       final service2 = VaultKeyService(
         vaultFileResolver: () async => vaultFile,
         iterations: 2000,
+        newSlotKdf: KdfParams.testLight,
       );
       await service2.unlock('9527');
       expect(service2.masterKey, equals(mk1));
@@ -71,14 +74,18 @@ void main() {
       final raw = await vaultFile.readAsString();
       expect(raw.contains('952700'), isFalse);
       final doc = jsonDecode(raw) as Map<String, dynamic>;
-      // 批次④：v2 槽位结构（slots 数组；初始化只有 PIN 槽）。
-      expect(doc['v'], 2);
-      expect(doc['kdf'], 'PBKDF2-HMAC-SHA256');
-      expect(doc['iter'], 2000);
+      // 批B：v3 槽位结构，KDF 在槽位内自描述（Argon2id 测试轻量档）。
+      expect(doc['v'], 3);
       final slots = (doc['slots'] as List).cast<Map<String, dynamic>>();
       expect(slots, hasLength(1));
-      expect(slots.single['type'], 'pin');
-      expect(slots.single.keys, containsAll(['salt', 'wrapped']));
+      final pin = slots.single;
+      expect(pin['type'], 'pin');
+      expect(pin['kdf'], 'argon2id');
+      expect(pin['m'], KdfParams.testLight.memoryKiB);
+      expect(pin['t'], KdfParams.testLight.timeCost);
+      expect(pin['p'], KdfParams.testLight.parallelism);
+      expect(pin.keys, containsAll(['salt', 'wrapped']));
+      expect(doc.containsKey('iter'), isFalse); // KDF 信息只在槽位内
     });
 
     test('空 PIN 拒绝', () {
@@ -360,7 +367,11 @@ void main() {
       // 手工构造 v1 保险库（老用户升级场景）。
       final salt = VaultKeyService.randomBytes(16);
       final mk = VaultKeyService.randomBytes(32);
-      final kek = await VaultKeyService.deriveKek('9527', salt, 2000);
+      final kek = await VaultKeyService.deriveKek(
+        '9527',
+        salt,
+        const KdfParams.pbkdf2(2000),
+      );
       final wrapped = await VaultKeyService.aeadEncrypt(
         kek,
         mk,
@@ -379,13 +390,16 @@ void main() {
       await service.unlock('9527');
       expect(service.masterKey, equals(mk));
 
-      // 首解后文件已升级 v2，且 PIN / 主密钥均不变。
+      // 首解后文件已升级 v3 槽位结构（KDF 等价保留为 PBKDF2），PIN /
+      // 主密钥均不变。
       final doc =
           jsonDecode(await vaultFile.readAsString()) as Map<String, dynamic>;
-      expect(doc['v'], 2);
+      expect(doc['v'], 3);
       final slots = (doc['slots'] as List).cast<Map<String, dynamic>>();
       expect(slots, hasLength(1));
       expect(slots.single['type'], 'pin');
+      expect(slots.single['kdf'], 'pbkdf2');
+      expect(slots.single['iter'], 2000); // KDF 等价改写，不重新派生
 
       service.lock();
       await service.unlock('9527');

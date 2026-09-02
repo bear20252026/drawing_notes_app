@@ -3,8 +3,8 @@
 /// 覆盖：设密/改密/验密/移除、会话缓存语义、锁定列表占位、
 /// 缩略图抑制（隐藏缩略图——用户拍板）、删除清理。
 ///
-/// 注：setFilePassword/changeFilePassword 走生产默认 600k PBKDF2，
-/// 全量套件高并发下会超出默认 30s 单测超时——放宽到 3 分钟。
+/// 注：批B 起新槽位默认 Argon2id（64MiB t2 p2）——测试注入轻量参数
+/// （KdfParams.testLight），槽位格式与生产一致；仍放宽超时到 3 分钟。
 @Timeout(Duration(minutes: 3))
 library;
 
@@ -12,12 +12,16 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  // 批B：注入测试轻量 KDF（新槽位 Argon2id 8MiB≈几十 ms；生产默认
+  // 64MiB t2 p2）。槽位 JSON 格式与生产完全一致，仅参数不同。
+  KdfParams.newSlotDefault = KdfParams.testLight;
   late Directory tempDir;
 
   setUp(() async {

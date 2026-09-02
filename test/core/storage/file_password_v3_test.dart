@@ -4,9 +4,8 @@
 /// （续写不失效 USB 槽位——LUKS 槽位语义）、v2 → v3 改密自动升级、
 /// 冷实例（重启语义）锁定占位与跨实例续写。
 ///
-/// 注：setFilePassword/changeFilePassword 等走生产默认 600k PBKDF2
-/// （无迭代注入点），全量套件高并发下会超出默认 30s 单测超时——
-/// 放宽到 3 分钟（全量跑实测单条 5–15s）。
+/// 注：批B 起新槽位默认 Argon2id（64MiB t2 p2）——测试注入轻量参数
+/// （KdfParams.testLight），槽位格式与生产一致；仍放宽超时到 3 分钟。
 @Timeout(Duration(minutes: 3))
 library;
 
@@ -14,12 +13,15 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  // 批B：注入测试轻量 KDF（新槽位派生几十 ms；生产默认 Argon2id 64MiB）。
+  KdfParams.newSlotDefault = KdfParams.testLight;
   late Directory tempDir;
 
   setUp(() async {

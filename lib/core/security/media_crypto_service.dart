@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
+import 'package:drawing_notes_app/core/security/kdf_params.dart';
 
 /// 媒体加密服务（H-03 跨域专项基础组件，专家审计 2026-08-15）。
 ///
@@ -42,11 +43,13 @@ class MediaCryptoService {
   /// 盐重派生（解密媒体 key 一致）。
   ///
   /// N3 提速 B 方案：走 KekSessionCache——同 (密码,盐) 重复解锁零重算。
+  /// 批B 注：媒体层 KDF 与既有密文耦合（全局盐持久化），维持 PBKDF2
+  /// 600k 不变（OWASP 合规）——KDF 升级需媒体重加密轮换，另行立项。
   Future<void> setSessionPassword(String password, List<int> salt) async {
     final key = await KekSessionCache.instance.deriveKek(
       password,
       salt,
-      600000,
+      const KdfParams.pbkdf2(600000),
     );
     _sessionKey = List.of(key);
   }

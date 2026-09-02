@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path_provider/path_provider.dart';
 
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
+import 'package:drawing_notes_app/core/security/kdf_params.dart';
 
 /// 解锁失败（PIN 错误 / 载荷被篡改 / 数据损坏）。
 ///
@@ -26,7 +27,8 @@ class VaultUnlockException implements Exception {
 ///
 /// 密钥链（OWASP M10 信封模式，复用 MediaCryptoService 既有层）：
 /// ```
-/// PIN --PBKDF2(60万次)--> KEK --AES-256-GCM包裹--> 主密钥 MK
+/// PIN --KDF(槽位自描述: Argon2id / 旧 PBKDF2-60万次)--> KEK
+///      --AES-256-GCM包裹--> 主密钥 MK
 ///                                                        │
 ///                              ├─ 媒体：每笔记 DEK（既有 K_note 层）
 ///                              └─ 文档/索引：全盘密文化（接入批次①b/c）
@@ -43,6 +45,7 @@ class VaultKeyService {
   VaultKeyService({
     Future<File> Function()? vaultFileResolver,
     this.iterations = 600000,
+    this.newSlotKdf = KdfParams.argon2idProduction,
   }) : _vaultFileResolver = vaultFileResolver ?? _defaultVaultFile;
 
   // ---- 共享实例（批次①c：无 context 场景的密钥访问点） ----
@@ -78,9 +81,12 @@ class VaultKeyService {
 
   Future<File> _vaultFile() => _vaultFileResolver();
 
-  /// PBKDF2 迭代次数（与 MediaCryptoService 600k 对齐——OWASP M10）。
-  /// 测试可注入小值提速。
+  /// PBKDF2 迭代次数（旧数据兜底——批B 后新槽位自带 KDF 字段，本字段
+  /// 仅用于解析无任何 KDF 信息的最早 v1/v2 文件）。测试可注入小值提速。
   final int iterations;
+
+  /// 新写入槽位的 KDF（批B：Argon2id 生产默认；测试注入轻量档）。
+  final KdfParams newSlotKdf;
 
   static const String _aad = 'drawing-notes|vault|v1';
   static const String _aadSecondCopy = 'drawing-notes|vault-copy|v1';
@@ -113,27 +119,30 @@ class VaultKeyService {
   Future<bool> isConfigured() async => (await _vaultFile()).existsSync();
 
   /// 首次建立：生成主密钥并用 PIN 包裹后落盘（原子写：tmp + rename）。
-  /// 批次④：直接写 v2 槽位结构（单 PIN 槽；U 盘槽位由绑定流程追加）。
+  /// 批次④：槽位结构（单 PIN 槽；U 盘槽位由绑定流程追加）。
+  /// 批B：PIN 槽自带 Argon2id KDF 字段（槽位 JSON 自描述）。
   Future<void> initialize(String pin) async {
     if (pin.isEmpty) throw ArgumentError('PIN 不能为空');
     final salt = randomBytes(_saltBytes);
     final mk = randomBytes(_mkBytes);
-    final wrapped = await _wrap(pin, salt, mk);
+    final wrapped = await _wrap(pin, salt, mk, newSlotKdf);
     await _persistSlots(
       pinSlot: {
         'type': _slotPin,
         'salt': base64Encode(salt),
+        ...newSlotKdf.toSlotJson(),
         'wrapped': base64Encode(wrapped),
       },
     );
     _masterKey = mk;
   }
 
-  /// 解锁：PIN 派生 KEK → 解包 MK。错误 PIN / 载荷篡改 → 抛
-  /// [VaultUnlockException]（GCM tag 校验，fail-closed）。
+  /// 解锁：PIN 按槽位声明的 KDF 派生 KEK → 解包 MK。错误 PIN / 载荷篡改
+  /// → 抛 [VaultUnlockException]（GCM tag 校验，fail-closed）。
   ///
-  /// 批次④：v1（单 PIN 槽顶层字段）与 v2（slots 数组）均兼容读取；
-  /// v1 解锁成功后惰性迁移为 v2 双槽结构（等价改写，不重新 KDF）。
+  /// 兼容链：v3 槽位自带 kdf 字段 → 按字段派生；v2/v1 旧文件无 kdf 字段
+  /// → PBKDF2（doc 级 iter 字段，缺失再回退 [iterations]）。v1 解锁成功
+  /// 后惰性迁移为槽位结构（等价改写，不重新 KDF）。
   Future<void> unlock(String pin) async {
     final doc = await _readDoc();
     if (doc == null) {
@@ -145,22 +154,19 @@ class VaultKeyService {
     }
     final salt = base64Decode(pinSlot['salt'] as String);
     final wrapped = base64Decode(pinSlot['wrapped'] as String);
-    final kek = await deriveKek(pin, salt, iterations);
+    final kek = await deriveKek(pin, salt, _paramsOfPinSlot(pinSlot, doc));
     try {
       final mk = await aeadDecrypt(kek, wrapped, _aad.codeUnits);
       _masterKey = mk;
     } on SecretBoxAuthenticationError {
       throw const VaultUnlockException('PIN 错误或密钥载荷被篡改');
     }
-    // v1 → v2 惰性迁移（批次④）：首解成功后升级为槽位结构。
-    if (doc['v'] != 2) {
+    // v1 → 槽位结构惰性迁移（批次④）：首解成功后升级（等价改写，
+    // KDF 不变——旧 KEK 派生成本不再重付）。
+    if (doc['v'] == null || doc['v'] < 2) {
       try {
         await _persistSlots(
-          pinSlot: {
-            'type': _slotPin,
-            'salt': pinSlot['salt'],
-            'wrapped': pinSlot['wrapped'],
-          },
+          pinSlot: _normalizedPinSlot(pinSlot, doc),
           usbSlot: usbSlot,
         );
       } catch (_) {
@@ -169,8 +175,9 @@ class VaultKeyService {
     }
   }
 
-  /// 修改 PIN：旧 PIN 验证通过后换盐重包裹（主密钥不变——旧密文无需迁移）。
-  /// 批次④：U 盘钥匙槽位原样保留（它包的是主密钥，与 PIN 无关）。
+  /// 修改 PIN：旧 PIN 按旧槽位 KDF 验证通过后，以 [newSlotKdf] 换盐重包裹
+  /// （主密钥不变——旧密文无需迁移；旧 PBKDF2 槽位借此懒升级 Argon2id）。
+  /// U 盘钥匙槽位原样保留（它包的是主密钥，与 PIN KDF 无关）。
   Future<void> changePin({
     required String oldPin,
     required String newPin,
@@ -188,7 +195,7 @@ class VaultKeyService {
     final List<int> mk;
     try {
       mk = await aeadDecrypt(
-        await deriveKek(oldPin, oldSalt, iterations),
+        await deriveKek(oldPin, oldSalt, _paramsOfPinSlot(pinSlot, doc)),
         oldWrapped,
         _aad.codeUnits,
       );
@@ -196,11 +203,12 @@ class VaultKeyService {
       throw const VaultUnlockException('旧 PIN 错误或密钥载荷被篡改');
     }
     final newSalt = randomBytes(_saltBytes);
-    final newWrapped = await _wrap(newPin, newSalt, mk);
+    final newWrapped = await _wrap(newPin, newSalt, mk, newSlotKdf);
     await _persistSlots(
       pinSlot: {
         'type': _slotPin,
         'salt': base64Encode(newSalt),
+        ...newSlotKdf.toSlotJson(),
         'wrapped': base64Encode(newWrapped),
       },
       usbSlot: usbSlot,
@@ -308,11 +316,12 @@ class VaultKeyService {
       throw const VaultUnlockException('U 盘恢复钥匙不匹配或已损坏');
     }
     final newSalt = randomBytes(_saltBytes);
-    final newWrapped = await _wrap(newPin, newSalt, mk);
+    final newWrapped = await _wrap(newPin, newSalt, mk, newSlotKdf);
     await _persistSlots(
       pinSlot: {
         'type': _slotPin,
         'salt': base64Encode(newSalt),
+        ...newSlotKdf.toSlotJson(),
         'wrapped': base64Encode(newWrapped),
       },
       usbSlot: usbSlot,
@@ -378,17 +387,17 @@ class VaultKeyService {
     return clear;
   }
 
-  /// PBKDF2-HMAC-SHA256 密钥派生（与 MediaCryptoService 参数对齐）。
+  /// PBKDF2-HMAC-SHA256 / Argon2id 密钥派生（按 [params] 分派，批B）。
   ///
-  /// N3 提速 B 方案：走 KekSessionCache——同 (密码,盐,迭代) 命中缓存
+  /// N3 提速 B 方案：走 KekSessionCache——同 (密码,盐,KDF 参数) 命中缓存
   /// 零重算；未命中在后台 isolate 派生（主 isolate 不阻塞）；切后台
   /// 缓存即清（AppLockGate 钩子）。
   static Future<List<int>> deriveKek(
     String pin,
     List<int> salt,
-    int iterations,
+    KdfParams params,
   ) {
-    return KekSessionCache.instance.deriveKek(pin, salt, iterations);
+    return KekSessionCache.instance.deriveKek(pin, salt, params);
   }
 
   /// CSPRNG 随机字节（盐 / 主密钥 / nonce 统一入口）。
@@ -401,9 +410,43 @@ class VaultKeyService {
 
   // ---------- 内部 ----------
 
-  Future<List<int>> _wrap(String pin, List<int> salt, List<int> mk) async {
-    final kek = await deriveKek(pin, salt, iterations);
+  Future<List<int>> _wrap(
+    String pin,
+    List<int> salt,
+    List<int> mk,
+    KdfParams params,
+  ) async {
+    final kek = await deriveKek(pin, salt, params);
     return aeadEncrypt(kek, mk, _aad.codeUnits);
+  }
+
+  /// 槽位 KDF 参数解析：槽位自带 kdf 字段优先；缺失（旧数据）→ doc 级
+  /// iter 字段 → [iterations] 兜底（最早 v1 文件无任何 KDF 信息）。
+  KdfParams _paramsOfPinSlot(
+    Map<String, dynamic> pinSlot,
+    Map<String, dynamic> doc,
+  ) {
+    return KdfParams.fromSlotJson(
+      pinSlot,
+      legacyDefault: KdfParams.pbkdf2(
+        doc['iter'] is int ? doc['iter'] as int : iterations,
+      ),
+    );
+  }
+
+  /// 旧 PIN 槽归一化（惰性迁移用）：补齐 kdf 字段（等价改写不重新 KDF），
+  /// 使 v3 文件完全自描述。
+  Map<String, dynamic> _normalizedPinSlot(
+    Map<String, dynamic> pinSlot,
+    Map<String, dynamic> doc,
+  ) {
+    if (pinSlot['kdf'] != null) return pinSlot;
+    return {
+      'type': _slotPin,
+      'salt': pinSlot['salt'],
+      ..._paramsOfPinSlot(pinSlot, doc).toSlotJson(),
+      'wrapped': pinSlot['wrapped'],
+    };
   }
 
   /// 读取保险库 JSON（不存在返回 null；损坏抛 [VaultUnlockException]）。
@@ -426,12 +469,13 @@ class VaultKeyService {
     }
   }
 
-  /// 归一化槽位：v2 读 slots 数组；v1（顶层 salt/wrapped）映射为单 PIN 槽。
+  /// 归一化槽位：v2+ 读 slots 数组；v1（顶层 salt/wrapped）映射为单 PIN 槽。
   /// 返回记录 `(pinSlot, usbSlot)`，可能为 null。
   (Map<String, dynamic>?, Map<String, dynamic>?) _slotsOf(
     Map<String, dynamic> doc,
   ) {
-    if (doc['v'] == 2) {
+    final v = doc['v'];
+    if (v is int && v >= 2) {
       final slots = (doc['slots'] as List? ?? const [])
           .cast<Map<String, dynamic>>();
       Map<String, dynamic>? pin;
@@ -449,16 +493,15 @@ class VaultKeyService {
     return (null, null);
   }
 
-  /// 槽位结构落盘（v2 格式，原子写：tmp + rename——断电不留半截保险库）。
+  /// 槽位结构落盘（v3 格式，原子写：tmp + rename——断电不留半截保险库）。
+  /// 批B：KDF 参数在槽位内自描述（顶层不再有 kdf/iter 字段）。
   Future<void> _persistSlots({
     required Map<String, dynamic>? pinSlot,
     Map<String, dynamic>? usbSlot,
   }) async {
     final file = await _vaultFile();
     final doc = jsonEncode({
-      'v': 2,
-      'kdf': 'PBKDF2-HMAC-SHA256',
-      'iter': iterations,
+      'v': 3,
       'slots': [?pinSlot, ?usbSlot],
     });
     final tmp = File('${file.path}.tmp');

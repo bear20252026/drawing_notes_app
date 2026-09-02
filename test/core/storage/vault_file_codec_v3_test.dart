@@ -1,14 +1,15 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// N4 批 2：v3 双保护器信封（随机 DEK + 密码槽 + 可选重置盘槽）测试。
 ///
-/// 测试用小迭代数（iterations 参数随 blob 持久化），避免 600k PBKDF2
-/// 拖慢套件——逻辑路径与生产一致。
+/// 测试用 Argon2id 轻量参数（kdf 参数随槽位 JSON 持久化），避免生产档
+/// 348ms 拖慢套件——逻辑路径与生产一致。
 void main() {
   const aad = 'doc:test-v3';
   const usbKey = <int>[
@@ -25,7 +26,7 @@ void main() {
   /// 建一个绑定重置盘的 v3 信封。
   Future<Uint8List> sealedWithUsb({
     String password = '654321',
-    int iterations = 1000,
+    KdfParams kdf = KdfParams.testLight,
   }) async {
     final dek = VaultFileCodec.generateDek();
     final usbWrapped = await VaultFileCodec.wrapUsbSlotV3(
@@ -37,7 +38,7 @@ void main() {
       plainOf('{"document":{"title":"v3画作"}}'),
       password,
       aadContext: aad,
-      iterations: iterations,
+      kdf: kdf,
       dek: dek,
       usbWrapped: usbWrapped,
     );
@@ -50,7 +51,7 @@ void main() {
         plain,
         '654321',
         aadContext: aad,
-        iterations: 1000,
+        kdf: KdfParams.testLight,
       );
 
       expect(VaultFileCodec.isEncrypted(blob), isTrue);
@@ -74,7 +75,7 @@ void main() {
         plainOf('secret'),
         '654321',
         aadContext: aad,
-        iterations: 1000,
+        kdf: KdfParams.testLight,
       );
       await expectLater(
         VaultFileCodec.unlockWithPasswordV3(blob, '000000', aadContext: aad),
@@ -95,7 +96,7 @@ void main() {
         plainOf('secret'),
         '654321',
         aadContext: aad,
-        iterations: 1000,
+        kdf: KdfParams.testLight,
       );
       blob[blob.length - 1] ^= 0xFF;
       await expectLater(
@@ -145,7 +146,7 @@ void main() {
         usbKey,
         '999999',
         aadContext: aad,
-        iterations: 1000,
+        kdf: KdfParams.testLight,
       );
 
       final newJsonLen =
@@ -188,7 +189,7 @@ void main() {
           wrongUsbKey,
           '999999',
           aadContext: aad,
-          iterations: 1000,
+          kdf: KdfParams.testLight,
         ),
         throwsA(isA<VaultFileException>()),
       );
@@ -205,7 +206,7 @@ void main() {
           plainOf('body'),
           '654321',
           aadContext: aad,
-          iterations: 1000,
+          kdf: KdfParams.testLight,
           usbWrapped: usbWrapped, // 缺 dek
         ),
         throwsArgumentError,
@@ -246,7 +247,7 @@ void main() {
         plainOf('body'),
         '654321',
         aadContext: aad,
-        iterations: 1000,
+        kdf: KdfParams.testLight,
       );
       await expectLater(
         VaultFileCodec.decryptWithPassword(blob, '654321', aadContext: aad),

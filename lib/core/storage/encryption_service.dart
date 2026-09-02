@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
+import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 
 /// 密码保护加密服务（C3/C5，借鉴 Joplin 端到端加密理念）。
@@ -35,7 +36,8 @@ class EncryptionService {
   static int _iterationsFor(int version) =>
       version >= 3 ? _pbkdf2IterationsCurrent : _pbkdf2IterationsLegacy;
 
-  /// 派生 32 字节密钥：PBKDF2-HMAC-SHA256(密码, 随机盐, [iterations])。
+  /// 派生 32 字节密钥：KDF 按槽位/版本声明分派（v ≤ 4 格式 = PBKDF2，
+  /// 批B 起仅存量数据；v5 双保护器槽位走 Argon2id，见 _wrapSlotsV5）。
   ///
   /// N3 提速 B 方案：走 KekSessionCache（会话缓存 + isolate 后台派生；
   /// 写路径随机新盐的条目由 LRU 上限自动淘汰，调用点零特判）。
@@ -47,7 +49,7 @@ class EncryptionService {
     final bytes = await KekSessionCache.instance.deriveKek(
       password,
       salt,
-      iterations,
+      KdfParams.pbkdf2(iterations),
     );
     return SecretKey(bytes);
   }
@@ -395,7 +397,8 @@ class EncryptionService {
     );
   }
 
-  /// 生成 v5 槽位组：密码槽（PBKDF2 包裹 DEK）+ 可选重置盘槽。
+  /// 生成 v5 槽位组：密码槽（KDF 包裹 DEK——批B 起新槽位 Argon2id，
+  /// 槽位 JSON 自描述）+ 可选重置盘槽。
   static Future<Map<String, dynamic>> _wrapSlotsV5({
     required String scope,
     required String id,
@@ -403,12 +406,9 @@ class EncryptionService {
     required String password,
     List<int>? usbKey,
   }) async {
+    final kdf = KdfParams.newSlotDefault;
     final salt = VaultKeyService.randomBytes(_saltLength);
-    final kek = await VaultKeyService.deriveKek(
-      password,
-      salt,
-      _pbkdf2IterationsCurrent,
-    );
+    final kek = await VaultKeyService.deriveKek(password, salt, kdf);
     final pwWrapped = await VaultKeyService.aeadEncrypt(
       kek,
       dek,
@@ -426,7 +426,7 @@ class EncryptionService {
     return {
       'pw': {
         's': base64Encode(salt),
-        'it': _pbkdf2IterationsCurrent,
+        ...kdf.toSlotJson(),
         'w': base64Encode(pwWrapped),
       },
       if (usbWrapped != null) 'usb': {'w': usbWrapped},
@@ -434,6 +434,7 @@ class EncryptionService {
   }
 
   /// 用密码解开密码槽取出 DEK；密码错误/信封非法返回 null。
+  /// 槽位 KDF 自描述（批B）：kdf 字段缺失 = 旧 PBKDF2 槽位（it 字段）。
   static Future<List<int>?> _unwrapPasswordSlotV5({
     required String scope,
     required String id,
@@ -445,9 +446,20 @@ class EncryptionService {
       final pw = slots['pw'] as Map<String, dynamic>;
       final salt = base64Decode(_requireString(pw, 's'));
       _requireFixedLength('盐', salt, _saltLength);
-      final it = pw['it'] is int ? pw['it'] as int : _pbkdf2IterationsCurrent;
+      final KdfParams params;
+      if (pw['kdf'] == null) {
+        // 旧 PBKDF2 槽位（it 字段；缺失按当前迭代数兜底）。
+        params = KdfParams.pbkdf2(
+          pw['it'] is int ? pw['it'] as int : _pbkdf2IterationsCurrent,
+        );
+      } else {
+        params = KdfParams.fromSlotJson(
+          pw,
+          legacyDefault: KdfParams.pbkdf2(_pbkdf2IterationsCurrent),
+        );
+      }
       final wrapped = base64Decode(_requireString(pw, 'w'));
-      final kek = await VaultKeyService.deriveKek(password, salt, it);
+      final kek = await VaultKeyService.deriveKek(password, salt, params);
       return await VaultKeyService.aeadDecrypt(
         kek,
         wrapped,

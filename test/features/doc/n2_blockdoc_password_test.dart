@@ -7,12 +7,14 @@
 /// verify/change/remove 生命周期、重置盘重置（存储层）、回收站
 /// fail-closed 与恢复往返、loadAll 跳过锁定、会话 DEK 生命周期。
 ///
-/// 注：走生产默认 600k PBKDF2——放宽单测超时到 3 分钟。
+/// 注：批B 起新槽位默认 Argon2id——测试注入轻量参数（KdfParams.testLight）
+/// 避免拖慢套件，槽位格式与生产一致；仍放宽单测超时到 3 分钟。
 @Timeout(Duration(minutes: 3))
 library;
 
 import 'dart:io';
 
+import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
@@ -20,6 +22,9 @@ import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_sto
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  // 批B：注入测试轻量 KDF（新槽位 Argon2id 8MiB≈几十 ms；生产默认
+  // 64MiB t2 p2）。槽位 JSON 格式与生产完全一致，仅参数不同。
+  KdfParams.newSlotDefault = KdfParams.testLight;
   late Directory tempDir;
 
   setUp(() async {
