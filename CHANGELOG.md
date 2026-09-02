@@ -2,6 +2,17 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.6.1] - 2026-09-02
+
+工程门禁修复版本（功能与 1.6.0 完全相同，无运行时行为变化）。
+
+- 质量门禁：移除 `_buildResetDiskTile` 未使用的 context 参数
+  （dart_code_metrics `avoid-unused-parameters`）
+- 秘密扫描：新增 PNG base64 魔数前缀白名单（测试夹具 1×1 PNG
+  高熵误报豁免）
+- 测试稳定性：懒迁移轮询 helper 容忍 Windows 文件句柄瞬态占用
+  （errno 32 重试，修复 CI 偶发红）
+
 ## [1.6.0] - 2026-09-02
 
 本版本完成**命名体系统一**与**密码体系补全/提速**。
