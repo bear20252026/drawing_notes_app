@@ -85,7 +85,7 @@ class AppLockSettingsPage extends StatelessWidget {
                   // 重置密码盘（LUKS/BitLocker 多保护器模式——
                   // 忘记密码时可用它重设，主密钥副本不出设备）。
                   if (service.isConfigured && vault != null)
-                    _buildResetDiskTile(context),
+                    _buildResetDiskTile(),
                 ],
               ),
             ),
@@ -122,7 +122,7 @@ class AppLockSettingsPage extends StatelessWidget {
   }
 
   /// 重置密码盘 tile（绑定状态异步查询，绑定/解除后刷新）。
-  Widget _buildResetDiskTile(BuildContext context) {
+  Widget _buildResetDiskTile() {
     final vault = this.vault!;
     return FutureBuilder<bool>(
       future: vault.hasUsbSlot(),
