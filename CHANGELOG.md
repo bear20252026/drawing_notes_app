@@ -2,6 +2,19 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.8.0] - 2026-09-02
+
+- **系统验证快速解锁（批D1+D2）**：设置 → 应用锁新增「系统验证快速解锁」
+  开关（默认关闭）。开启后锁屏出现「系统验证解锁」按钮——Windows 走
+  Windows Hello（人脸/指纹/PIN 由系统统一弹窗），Android 走系统
+  BiometricPrompt（指纹/人脸），验证通过直接进入应用，无需输开屏密码。
+- **口径**：快速解锁仅作用于开屏锁；文件密码绝不进入系统安全区，解锁
+  一律手动输密码（第二道锁不降级）。系统安全区只存开屏保险库主密钥
+  副本（Windows = DPAPI 绑定当前用户账户；Android = Keystore 体系）。
+- 关闭开关瞬间立即删除密钥副本，恢复纯密码模式；PIN 密码通道永远保留。
+- 工程修复：QuickUnlockService 平台门可注入（Linux CI runner 环境差异
+  两连修）。
+
 ## [1.7.0] - 2026-09-02
 
 - **Argon2id 密钥派生升级（批B）**：密码槽位从 PBKDF2-HMAC-SHA256×600k
