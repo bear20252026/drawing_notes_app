@@ -157,9 +157,17 @@ class QuickUnlockService {
     SystemAuthBackend? backend,
     SystemUnlockKeyStore? keyStore,
     Future<SharedPreferences> Function()? preferencesLoader,
+    bool Function()? platformSupported,
   }) : _backend = backend ?? LocalAuthBackend(),
        _keyStore = keyStore ?? SecureSystemUnlockKeyStore(),
-       _preferencesLoader = preferencesLoader ?? SharedPreferences.getInstance;
+       _preferencesLoader = preferencesLoader ?? SharedPreferences.getInstance,
+       _platformSupported = platformSupported ?? _defaultPlatformSupported;
+
+  /// 生产平台门：Windows / Android（其余平台不支持快速解锁）。
+  /// 抽成可注入函数：CI 的 Linux runner 上 Platform 判断恒 false，
+  /// 测试须注入 () => true 与运行 OS 解耦（沿用 KdfParams 注入先例）。
+  static bool _defaultPlatformSupported() =>
+      Platform.isWindows || Platform.isAndroid;
 
   /// 开关持久化键（与 AppLockService 键前缀同族，便于审计）。
   static const _kEnabledKey = 'app_lock.quick_unlock_enabled';
@@ -170,12 +178,13 @@ class QuickUnlockService {
   final SystemAuthBackend _backend;
   final SystemUnlockKeyStore _keyStore;
   final Future<SharedPreferences> Function() _preferencesLoader;
+  final bool Function() _platformSupported;
 
   /// 平台是否支持（Windows = Windows Hello；Android = BiometricPrompt，
-  /// 批D2 接入——指纹/人脸/系统凭据由系统弹窗决策）。
+  /// 指纹/人脸/系统凭据由系统弹窗决策）。
   Future<bool> isPlatformSupported() async {
-    if (Platform.isWindows || Platform.isAndroid) return _backend.isSupported();
-    return false;
+    if (!_platformSupported()) return false;
+    return _backend.isSupported();
   }
 
   /// 开关是否处于打开状态（持久化值，不代表副本可用）。

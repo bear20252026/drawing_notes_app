@@ -62,6 +62,8 @@ QuickUnlockService _service(
     backend: backend,
     keyStore: store,
     preferencesLoader: SharedPreferences.getInstance,
+    // CI 的 Linux runner 上真实 Platform 门恒 false——注入与 OS 解耦。
+    platformSupported: () => true,
   );
 }
 
@@ -276,6 +278,7 @@ void main() {
         backend: FakeAuthBackend(),
         keyStore: MemorySystemUnlockKeyStore(),
         preferencesLoader: SharedPreferences.getInstance,
+        platformSupported: () => true,
       );
       final vault = _tempVault();
       await service.setPin('1234');
