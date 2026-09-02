@@ -51,7 +51,7 @@ class _NotebookReaderPageState extends State<NotebookReaderPage> {
     );
   }
 
-  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+  KeyEventResult _onKeyEvent(FocusNode _, KeyEvent event) {
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
       return KeyEventResult.ignored;
     }

@@ -46,10 +46,12 @@ jobs:
       - name: 依赖
         run: flutter pub get
 
-      # 反模式扫描门禁依赖 dart_code_metrics（全局激活，使 `metrics` 可用）
+      # 反模式扫描门禁依赖 dart_code_metrics（全局激活，使 `metrics` 可用）。
+      # 锁定 5.7.6 与 ci.yml / 本机工具链一致（未锁定时 CI 拉到新版本，
+      # 规则行为漂移导致门禁结果不可复现——W3 修正 2026-09-02）。
       - name: 安装 dart_code_metrics（反模式扫描）
         run: |
-          dart pub global activate dart_code_metrics
+          dart pub global activate dart_code_metrics 5.7.6
           echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
 
       - name: 静态分析（analyze）
