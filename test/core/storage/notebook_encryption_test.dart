@@ -122,7 +122,7 @@ void main() {
     expect(reloaded?.title, '升级前旧笔记本');
   });
 
-  test('锁定状态读加密笔记本 → VaultFileLockException；列表跳过（fail-closed）', () async {
+  test('锁定状态读加密笔记本 → VaultFileLockException；列表返回占位（fail-closed 可见）', () async {
     final key = VaultKeyService.randomBytes(32);
     final writer = NotebookStorage(
       directoryProvider: () async => tempDir,
@@ -138,7 +138,12 @@ void main() {
       lockedReader.load('locked_nb'),
       throwsA(isA<VaultFileLockException>()),
     );
-    expect(await lockedReader.listAll(), isEmpty);
+    // 占位可见（不静默跳过——与 N2 块文档占位同口径），标题不泄露。
+    final list = await lockedReader.listAll();
+    expect(list, hasLength(1));
+    expect(list.single.id, 'locked_nb');
+    expect(list.single.title, '加密分页画布');
+    expect(list.single.isLockedPlaceholder, isTrue);
   });
 
   test('页面图片：保险库解锁 → DNV 密文落盘；readImageBytes 可解回', () async {

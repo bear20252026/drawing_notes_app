@@ -37,6 +37,12 @@ class Notebook {
 
   void touch() => updatedAt = DateTime.now();
 
+  /// 锁定占位条目（listAll fail-closed 可见性，与 N2 块文档占位同口径）：
+  /// 保险库锁定时 DNV 密文分页画布以占位形式出现在列表——加密、无页面、
+  /// 无可读文件密码信封（真实受密分页画布的 JSON 壳含 encryptedPayload）。
+  bool get isLockedPlaceholder =>
+      encrypted && pages.isEmpty && encryptedPayload == null;
+
   static const int searchSummaryMaxChars = 200;
 
   /// 构建标题及文字块开头组成的脱敏检索摘要。

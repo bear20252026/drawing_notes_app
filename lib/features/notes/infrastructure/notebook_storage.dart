@@ -56,8 +56,10 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
   Future<List<NotebookSearchDocument>> listSearchDocuments() async {
     final notebooks = await listAll();
     return [
+      // 锁定占位不进搜索（N2 口径：锁定内容跳过索引）。
       for (final notebook in notebooks)
-        NotebookSearchDocument(
+        if (!notebook.isLockedPlaceholder)
+          NotebookSearchDocument(
           id: notebook.id,
           title: notebook.title,
           searchSummary: notebook.searchSummary,
@@ -275,10 +277,21 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
     }
   }
 
+  /// 文件修改时间（读取失败回退当前时间——占位排序兜底）。
+  Future<DateTime> _fileMtime(File f) async {
+    try {
+      return await f.lastModified();
+    } on FileSystemException {
+      return DateTime.now();
+    }
+  }
+
   /// 列出所有笔记本（按更新时间倒序）。
   ///
-  /// 批次①c：DNV 密文 → 解锁解密（明文懒迁移）/ 锁定跳过该条目
-  /// （fail-closed，不中断列表）。
+  /// 批次①c：DNV 密文 → 解锁解密（明文懒迁移）/ 锁定 → 占位条目
+  /// （fail-closed 可见性，与 N2 块文档列表占位同口径——标题不泄露，
+  /// [Notebook.isLockedPlaceholder] 供下游识别；内容仍不可读）。
+  /// 损坏文件仍跳过（不中断列表）。
   @override
   Future<List<Notebook>> listAll() async {
     await _ensureNotebooksDir();
@@ -291,7 +304,20 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
         final raw = await entity.readAsBytes();
         if (VaultFileCodec.isEncrypted(raw)) {
           final key = await _currentKey();
-          if (key == null) continue; // 锁定——跳过（fail-closed）
+          if (key == null) {
+            // 锁定——占位（不静默跳过：条目可见，内容 fail-closed）。
+            final mtime = await _fileMtime(entity);
+            result.add(
+              Notebook(
+                id: id,
+                title: '加密分页画布',
+                encrypted: true,
+                createdAt: mtime,
+                updatedAt: mtime,
+              ),
+            );
+            continue;
+          }
         }
         final bytes = await _prepareNotebookBytes(id, raw);
         result.add(

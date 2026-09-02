@@ -197,7 +197,10 @@ extension _NotebookPageManage on _NotebookViewPageState {
   Future<void> _importPage() async {
     final notebooks = await widget.storage.listAll();
     if (!mounted) return;
-    final others = notebooks.where((nb) => nb.id != _notebook.id).toList();
+    // 锁定占位（保险库锁定的 DNV 密文分页画布）不可作为引入源。
+    final others = notebooks
+        .where((nb) => nb.id != _notebook.id && !nb.isLockedPlaceholder)
+        .toList();
     if (others.isEmpty) {
       _showSnack('暂没有其他分页画布可引入');
       return;

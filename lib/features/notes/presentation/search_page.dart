@@ -19,6 +19,8 @@ import 'package:drawing_notes_app/fix/notebook_password_reset_flow.dart';
 import 'package:drawing_notes_app/fix/block_doc_password_reset_flow.dart';
 import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
     show UnlockFlow;
+import 'package:drawing_notes_app/core/storage/vault_file_codec.dart'
+    show VaultFileLockException;
 
 /// 全文搜索页（借鉴 Joplin / nb 的全文搜索）。
 class SearchPage extends StatefulWidget {
@@ -144,12 +146,21 @@ class _SearchPageState extends State<SearchPage> {
     final nbId = r.notebookId;
     if (nbId == null) return;
     final nbStorage = widget.notebookStorage ?? NotebookStorage();
-    final loaded = await nbStorage.load(nbId);
+    // 锁定守卫（保险库中途锁定的竞态）：fail-closed 不暴露内容。
+    final Notebook? loaded;
+    try {
+      loaded = await nbStorage.load(nbId);
+    } on VaultFileLockException {
+      return; // 保险库已锁定——请先重新验证开屏密码
+    }
     if (loaded == null || !mounted) return;
     Notebook nb = loaded;
     // N4 批 3：加密分页画布解锁拦截（M12 回归修复——M12 前搜索页解锁
-    // 路径存在，重做后丢失；与 app_shell 同口径）。
-    if (nb.encrypted && nbStorage.notebookPasswordFor(nbId) == null) {
+    // 路径存在，重做后丢失；与 app_shell 同口径）。占位条目（payload 为
+    // null）不弹文件密码框——其锁定来自保险库而非文件密码。
+    if (nb.encrypted &&
+        nb.encryptedPayload != null &&
+        nbStorage.notebookPasswordFor(nbId) == null) {
       final pin = await UnlockFlow.show(
         context,
         title: '该分页画布已加密，输入密码',

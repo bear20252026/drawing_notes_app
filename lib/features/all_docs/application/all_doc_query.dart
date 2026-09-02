@@ -77,7 +77,23 @@ AllDocQueryResult buildAllDocs({
   }
 
   // 2. 笔记本页 → AllDoc(kind=note)
+  // 锁定占位（保险库锁定时的 DNV 密文分页画布）→ 单行 locked 条目
+  // （N2 口径统一：条目可见 + 锁标；无页面内容可展开）。
   for (final nb in notebooks) {
+    if (nb.isLockedPlaceholder) {
+      final doc = AllDoc(
+        id: nb.id,
+        title: nb.title,
+        kind: AllDocKind.note,
+        folder: '',
+        createdAt: nb.createdAt,
+        updatedAt: nb.updatedAt,
+        notebookId: nb.id,
+        locked: true,
+      );
+      if (_tryAdd(seen, doc)) all.add(doc);
+      continue;
+    }
     for (final page in nb.pages) {
       final doc = AllDoc(
         id: page.id,

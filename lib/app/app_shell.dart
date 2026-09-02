@@ -10,7 +10,7 @@ import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
 // 批次②：AllDocs 打开画布的单文件密码拦截（与首页同口径）。
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart'
-    show VaultFilePasswordLockException;
+    show VaultFileLockException, VaultFilePasswordLockException;
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
@@ -402,13 +402,22 @@ class _AppShellState extends State<AppShell> {
         final nbStorage = widget.notebookStorage;
         if (nbStorage == null) return;
         final nbId = doc.notebookId ?? '';
-        final loaded = await nbStorage.load(nbId);
+        // 锁定守卫（占位行点击 / 保险库锁定竞态）：fail-closed 不暴露内容。
+        final Notebook? loaded;
+        try {
+          loaded = await nbStorage.load(nbId);
+        } on VaultFileLockException {
+          return; // 保险库已锁定——请先重新验证开屏密码
+        }
         if (loaded == null) return;
         Notebook nb = loaded;
         // N4 批 3：加密分页画布解锁拦截（M12 回归修复——重做首页时丢失
         // 解锁路径）+ 忘记密码重置入口。会话已有密码（本会话已解锁/重置）
-        // 则跳过弹窗直接解密。
-        if (nb.encrypted && nbStorage.notebookPasswordFor(nbId) == null) {
+        // 则跳过弹窗直接解密。占位条目（encryptedPayload 为 null——保险库
+        // 锁定）不弹文件密码框：其锁定来自保险库而非文件密码。
+        if (nb.encrypted &&
+            nb.encryptedPayload != null &&
+            nbStorage.notebookPasswordFor(nbId) == null) {
           if (!mounted) return;
           final pin = await UnlockFlow.show(
             context,
