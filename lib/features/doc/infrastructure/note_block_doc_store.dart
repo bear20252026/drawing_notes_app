@@ -548,10 +548,14 @@ class NoteBlockDocStore {
   /// 解码回收站条目：兼容两种格式——
   /// 旧 envelope（{deletedAt, document}）与 M12.6b 原子格式
   /// （裸文档 json + `<id>.meta.json` sidecar；meta 缺失时用文件修改时间）。
-  ({NoteBlockDoc doc, DateTime deletedAt})? _decodeTrashEntry(
+  ///
+  /// U5b（审计 P1-18）：meta 读取由 existsSync/readAsStringSync/
+  /// lastModifiedSync 改为异步——打开回收站在 UI isolate 上执行，
+  /// 同步 IO 会在条目多时卡列表。
+  Future<({NoteBlockDoc doc, DateTime deletedAt})?> _decodeTrashEntry(
     String content,
     File source,
-  ) {
+  ) async {
     try {
       final decoded = jsonDecode(content);
       if (decoded is! Map<String, dynamic>) return null;
@@ -566,9 +570,9 @@ class NoteBlockDocStore {
       final doc = NoteBlockDoc.fromJson(decoded);
       final meta = File('${source.path}.meta.json');
       var deletedAt = DateTime.tryParse(
-        meta.existsSync() ? meta.readAsStringSync() : '',
+        (await meta.exists()) ? await meta.readAsString() : '',
       );
-      deletedAt ??= source.lastModifiedSync();
+      deletedAt ??= await source.lastModified();
       return (doc: doc, deletedAt: deletedAt);
     } catch (_) {
       return null;
@@ -593,9 +597,9 @@ class NoteBlockDocStore {
           if (!isValidId(id)) continue;
           final meta = File('${entity.path}.meta.json');
           var deletedAt = DateTime.tryParse(
-            meta.existsSync() ? meta.readAsStringSync() : '',
+            (await meta.exists()) ? await meta.readAsString() : '',
           );
-          deletedAt ??= entity.lastModifiedSync();
+          deletedAt ??= await entity.lastModified();
           entries.add((
             doc: NoteBlockDoc(
               id: id,
@@ -607,7 +611,7 @@ class NoteBlockDocStore {
           ));
           continue;
         }
-        final entry = _decodeTrashEntry(content, entity);
+        final entry = await _decodeTrashEntry(content, entity);
         if (entry != null) entries.add(entry);
       } catch (_) {
         continue; // 损坏条目跳过
@@ -644,7 +648,7 @@ class NoteBlockDocStore {
     } on FormatException {
       // 非文本内容（主密钥信封等）——走下方通用流程。
     }
-    final entry = _decodeTrashEntry(await _readTrashContent(f) ?? '', f);
+    final entry = await _decodeTrashEntry(await _readTrashContent(f) ?? '', f);
     if (entry == null) {
       // 旧 envelope 格式：恢复内部文档对象
       try {
@@ -699,7 +703,7 @@ class NoteBlockDocStore {
         if (entity is! File || !entity.path.endsWith('.json')) continue;
         if (entity.path.endsWith('.meta.json')) continue;
         try {
-          final entry = _decodeTrashEntry(
+          final entry = await _decodeTrashEntry(
             await _readTrashContent(entity) ?? '',
             entity,
           );

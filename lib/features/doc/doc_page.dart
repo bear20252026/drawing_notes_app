@@ -427,12 +427,20 @@ class _DocPageState extends State<DocPage> {
   }
 
   // ── P3 装配一致性：blockDocStore 兜底生成索引数据源与点击路由 ──
+  //
+  // U5b（审计 P1-19）：列表 Future 首次访问后缓存——反链面板每次保存
+  // （updatedAt 变化触发 didUpdateWidget→_reload）原先都新建 Future
+  // 全量读盘+解密所有笔记；现复用同一 Future 零 IO，仅内存重算
+  // backlinksOf。取舍：本页会话内其他文档的新增/改名不会即时反映到
+  // 反链列表（模态编辑页内不发生，宿主层列表始终走自己的加载路径）。
+  Future<List<NoteBlockDoc>>? _allDocsFutureCache;
+
   Future<List<NoteBlockDoc>>? get _effectiveAllDocsFuture {
     final loader = widget.allDocsLoader;
-    if (loader != null) return loader();
+    if (loader != null) return _allDocsFutureCache ??= loader();
     final store = widget.blockDocStore;
     if (store == null) return null;
-    return () async {
+    return _allDocsFutureCache ??= () async {
       final docs = <NoteBlockDoc>[];
       for (final id in await store.listIds()) {
         try {

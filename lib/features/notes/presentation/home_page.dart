@@ -315,12 +315,21 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   }
 
   /// 新建分页画布并进入页面管理（旧「新建笔记本」入口恢复——N1）。
+  ///
+  /// U5a（审计 P2-6）：保存失败不再裸奔——原实现 save 抛错会未捕获
+  /// 崩溃且用户无感知；现提示失败原因并停留在首页（不进入未落盘的
+  /// 编辑页，避免后续保存连环失败）。
   Future<void> _createNotebook() async {
     final nb = Notebook(
       id: NotebookStorage.newId('notebook'),
       title: '未命名',
     );
-    await _nbStorage.save(nb);
+    try {
+      await _nbStorage.save(nb);
+    } catch (_) {
+      _showSnack('新建失败：笔记本未能保存，请检查磁盘空间后重试');
+      return;
+    }
     widget.onDataChanged?.call();
     if (!mounted) return;
     await Navigator.of(context).push(
