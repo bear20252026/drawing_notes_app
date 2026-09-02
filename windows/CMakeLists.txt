@@ -32,6 +32,11 @@ set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE}")
 # Use Unicode for all projects.
 add_definitions(-DUNICODE -D_UNICODE)
 
+# local_auth_windows 2.0.2 仍使用弃用的 <experimental/coroutine> 头；
+# MSVC 14.51+（Visual Studio 18）对其硬报错 STL1011（上游 local_auth_windows
+# 尚未切换到 C++20 <coroutine>）。按 MSVC 官方提示加宏压制，上游修复后移除。
+add_definitions(-D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
+
 # Compilation settings that should be applied to most targets.
 #
 # Be cautious about adding new options here, as plugins use this function by
