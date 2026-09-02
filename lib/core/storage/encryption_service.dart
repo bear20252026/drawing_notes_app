@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 
+import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 
 /// 密码保护加密服务（C3/C5，借鉴 Joplin 端到端加密理念）。
@@ -35,20 +36,20 @@ class EncryptionService {
       version >= 3 ? _pbkdf2IterationsCurrent : _pbkdf2IterationsLegacy;
 
   /// 派生 32 字节密钥：PBKDF2-HMAC-SHA256(密码, 随机盐, [iterations])。
+  ///
+  /// N3 提速 B 方案：走 KekSessionCache（会话缓存 + isolate 后台派生；
+  /// 写路径随机新盐的条目由 LRU 上限自动淘汰，调用点零特判）。
   Future<SecretKey> _deriveKey(
     String password,
     List<int> salt, {
     int iterations = _pbkdf2IterationsCurrent,
   }) async {
-    final pbkdf2 = Pbkdf2(
-      macAlgorithm: Hmac.sha256(),
-      iterations: iterations,
-      bits: 256,
+    final bytes = await KekSessionCache.instance.deriveKek(
+      password,
+      salt,
+      iterations,
     );
-    return pbkdf2.deriveKey(
-      secretKey: SecretKey(utf8.encode(password)),
-      nonce: salt,
-    );
+    return SecretKey(bytes);
   }
 
   /// 加密 [plainText]，返回 JSON 串（含盐、nonce 与密文，base64）。

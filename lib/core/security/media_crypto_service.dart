@@ -4,6 +4,8 @@ import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 
+import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
+
 /// 媒体加密服务（H-03 跨域专项基础组件，专家审计 2026-08-15）。
 ///
 /// BusinessCrypto 层（掘金 HUKS 四层架构模式）：媒体资产（图片/PDF 副本）
@@ -38,13 +40,15 @@ class MediaCryptoService {
   /// 派生 key 后注入（与会话密钥注入统一——服务不感知模式）。
   /// [salt] 为全局持久盐（明文无害——盐无需保密）；跨会话用同一全局
   /// 盐重派生（解密媒体 key 一致）。
+  ///
+  /// N3 提速 B 方案：走 KekSessionCache——同 (密码,盐) 重复解锁零重算。
   Future<void> setSessionPassword(String password, List<int> salt) async {
-    final key = await Pbkdf2(
-      macAlgorithm: Hmac.sha256(),
-      iterations: 600000,
-      bits: 256,
-    ).deriveKeyFromPassword(password: password, nonce: salt);
-    _sessionKey = List.of(await key.extractBytes());
+    final key = await KekSessionCache.instance.deriveKek(
+      password,
+      salt,
+      600000,
+    );
+    _sessionKey = List.of(key);
   }
 
   /// 生成 16 字节全局盐（密码模式媒体加密派生用——明文无害）。

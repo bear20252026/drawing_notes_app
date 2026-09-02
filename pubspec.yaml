@@ -38,6 +38,9 @@ dependencies:
   shared_preferences: ^2.3.2
   cryptography: ^2.7.0
   crypto: ^3.0.0
+  # MIT：PBKDF2 在后台 isolate 的派生实现（N3 提速 B 方案——主 isolate
+  # 零阻塞；与 package:cryptography 逐字节一致，一致性有测试保证）。
+  pointycastle: ^3.9.1
   # OS 凭据库（Windows Credential Manager / Keychain）承载 E2E 同步口令，避免明文落盘。
   flutter_secure_storage: ^9.2.2
   pdf: ^3.11.1

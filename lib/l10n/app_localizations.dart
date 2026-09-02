@@ -125,7 +125,7 @@ abstract class AppLocalizations {
   /// Create notebook action
   ///
   /// In en, this message translates to:
-  /// **'New notebook'**
+  /// **'New paged canvas'**
   String get newNotebook;
 
   /// Delete action
@@ -239,13 +239,13 @@ abstract class AppLocalizations {
   /// Notebook menu tooltip
   ///
   /// In en, this message translates to:
-  /// **'Notebook actions'**
+  /// **'Paged canvas actions'**
   String get noteActions;
 
   /// Import page menu item
   ///
   /// In en, this message translates to:
-  /// **'Import page from another notebook'**
+  /// **'Import page from another paged canvas'**
   String get noteImportPage;
 
   /// Import text menu item

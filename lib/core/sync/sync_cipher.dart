@@ -10,6 +10,8 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:cryptography/cryptography.dart';
 
+import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
+
 /// 同步加密器抽象：远端路径映射 + 文档字节加解密 + manifest 密封。
 ///
 /// AAD 绑定 docId / manifest 上下文，使密文不可跨文档/跨用途交换。
@@ -204,19 +206,11 @@ List<int> generateSalt({int length = 16}) {
 /// 从密码派生 32 字节主密钥：PBKDF2-HMAC-SHA256。
 ///
 /// 默认 60 万次迭代（OWASP 2026 推荐）。密码/盐相同 → 同 key。
+/// N3 提速 B 方案：走 KekSessionCache（会话缓存 + isolate 后台派生）。
 Future<List<int>> deriveMasterKey(
   String password,
   List<int> salt, {
   int iterations = 600000,
-}) async {
-  final pbkdf2 = Pbkdf2(
-    macAlgorithm: Hmac.sha256(),
-    iterations: iterations,
-    bits: 256,
-  );
-  final key = await pbkdf2.deriveKey(
-    secretKey: SecretKey(utf8.encode(password)),
-    nonce: salt,
-  );
-  return key.extractBytes();
+}) {
+  return KekSessionCache.instance.deriveKek(password, salt, iterations);
 }

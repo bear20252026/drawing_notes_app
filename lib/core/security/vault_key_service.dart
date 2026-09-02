@@ -7,6 +7,8 @@ import 'package:cryptography/cryptography.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path_provider/path_provider.dart';
 
+import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
+
 /// 解锁失败（PIN 错误 / 载荷被篡改 / 数据损坏）。
 ///
 /// fail-closed 原则：任何一种失败都不暴露主密钥，调用方按"密码错误"
@@ -377,17 +379,16 @@ class VaultKeyService {
   }
 
   /// PBKDF2-HMAC-SHA256 密钥派生（与 MediaCryptoService 参数对齐）。
+  ///
+  /// N3 提速 B 方案：走 KekSessionCache——同 (密码,盐,迭代) 命中缓存
+  /// 零重算；未命中在后台 isolate 派生（主 isolate 不阻塞）；切后台
+  /// 缓存即清（AppLockGate 钩子）。
   static Future<List<int>> deriveKek(
     String pin,
     List<int> salt,
     int iterations,
-  ) async {
-    final key = await Pbkdf2(
-      macAlgorithm: Hmac.sha256(),
-      iterations: iterations,
-      bits: 256,
-    ).deriveKeyFromPassword(password: pin, nonce: salt);
-    return key.extractBytes();
+  ) {
+    return KekSessionCache.instance.deriveKek(pin, salt, iterations);
   }
 
   /// CSPRNG 随机字节（盐 / 主密钥 / nonce 统一入口）。
