@@ -309,7 +309,10 @@ extension _NotebookPageManage on _NotebookViewPageState {
     }
   }
 
-  /// 删除页面（二次确认）。
+  /// 删除页面（二次确认 + U1 撤销）。
+  ///
+  /// 页面删除为整本重写保存（无存储层回收站），撤销策略：删除后 6 秒内
+  /// 可「撤销」——原索引重插页面并重存（数据仍在内存，恢复零成本）。
   Future<void> _deletePage(NotebookPage page) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -332,6 +335,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
       ),
     );
     if (ok != true) return;
+    final index = _notebook.pages.indexOf(page);
     _applyState(() => _notebook.pages.removeWhere((p) => p.id == page.id));
     await _save();
     // M12.5 根修：联动清理迁移副本（若曾以块文档方式打开过该页），
@@ -341,5 +345,28 @@ extension _NotebookPageManage on _NotebookViewPageState {
     } catch (_) {
       // 副本不存在或清理失败不阻断页面删除主流程。
     }
+    // U1：撤销入口（重插回原位置 + 重存；副本删除失败不阻断恢复）。
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('已删除「${page.title}」'),
+          duration: const Duration(seconds: 6),
+          action: SnackBarAction(
+            label: '撤销',
+            onPressed: () async {
+              if (_notebook.pages.any((p) => p.id == page.id)) return;
+              final at = index.clamp(0, _notebook.pages.length);
+              _applyState(() => _notebook.pages.insert(at, page));
+              try {
+                await _save();
+              } catch (_) {
+                _showSnack('撤销保存失败，请重试');
+              }
+            },
+          ),
+        ),
+      );
   }
 }

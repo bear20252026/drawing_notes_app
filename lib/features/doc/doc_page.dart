@@ -203,7 +203,7 @@ class _DocPageState extends State<DocPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('导出失败：${e.runtimeType}')));
+      ).showSnackBar(SnackBar(content: Text('导出失败，请重试')));
     }
   }
 
@@ -259,7 +259,7 @@ class _DocPageState extends State<DocPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('导出失败：${e.runtimeType}')));
+      ).showSnackBar(SnackBar(content: Text('导出失败，请重试')));
     }
   }
 
@@ -634,7 +634,7 @@ class _DocPageState extends State<DocPage> {
     } on StateError catch (e) {
       _snack(e.message);
     } catch (e) {
-      _snack('设置失败：${e.runtimeType}');
+      _snack('设置失败，请重试');
     }
   }
 
@@ -658,7 +658,7 @@ class _DocPageState extends State<DocPage> {
     } on StateError catch (e) {
       _snack(e.message);
     } catch (e) {
-      _snack('修改失败：${e.runtimeType}');
+      _snack('修改失败，请重试');
     }
   }
 
@@ -688,7 +688,7 @@ class _DocPageState extends State<DocPage> {
     } on StateError catch (e) {
       _snack(e.message);
     } catch (e) {
-      _snack('绑定失败：${e.runtimeType}');
+      _snack('绑定失败，请重试');
     }
   }
 
@@ -733,7 +733,7 @@ class _DocPageState extends State<DocPage> {
     } on StateError catch (e) {
       _snack(e.message);
     } catch (e) {
-      _snack('移除失败：${e.runtimeType}');
+      _snack('移除失败，请重试');
     }
   }
 

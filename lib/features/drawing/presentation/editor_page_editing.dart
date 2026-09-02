@@ -316,7 +316,7 @@ extension _EditorPageEditing on _EditorPageState {
               AppLocalizations.of(
                     context,
                   )?.editorImageInsertFail(e.runtimeType.toString()) ??
-                  '插入图片失败：${e.runtimeType}',
+                  '插入图片失败，请重试',
             ),
           ),
         );

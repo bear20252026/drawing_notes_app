@@ -84,7 +84,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
       await _save();
       _showSnack('已导入 ${paragraphs.length} 段文字');
     } catch (e) {
-      _showSnack('导入失败：${e.runtimeType}');
+      _showSnack('导入失败，请重试');
     }
   }
 
@@ -150,7 +150,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
       await _save();
       _showSnack('已导入 PDF 共 ${created.length} 页；打开任一页面即可手写批注');
     } catch (error) {
-      _showSnack('导入 PDF 失败：${error.runtimeType}');
+      _showSnack('导入 PDF 失败，请重试');
     }
   }
 
@@ -235,7 +235,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
       // 在菜单「绑定重置密码盘」中补绑）。
       await _offerUsbBinding(password);
     } catch (e) {
-      _showSnack('${isChange ? '修改密码' : '设置密码'}失败：${e.runtimeType}');
+      _showSnack('${isChange ? '修改密码' : '设置密码'}失败，请重试');
     }
   }
 
@@ -281,7 +281,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
       await widget.storage.bindNotebookUsbSlot(_notebook.id, password, usbKey);
       _showSnack('已绑定重置密码盘');
     } catch (e) {
-      _showSnack('绑定失败：${e.runtimeType}');
+      _showSnack('绑定失败，请重试');
     }
   }
 

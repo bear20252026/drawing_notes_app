@@ -201,7 +201,7 @@ class AppLockSettingsPage extends StatelessWidget {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('绑定失败：${e.runtimeType}')));
+      ).showSnackBar(SnackBar(content: Text('绑定失败，请重试')));
       return;
     }
     if (!context.mounted) return;
@@ -248,7 +248,7 @@ class AppLockSettingsPage extends StatelessWidget {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('解除失败：${e.runtimeType}')));
+      ).showSnackBar(SnackBar(content: Text('解除失败，请重试')));
       return;
     }
     if (!context.mounted) return;
@@ -482,7 +482,7 @@ class _QuickUnlockTileState extends State<_QuickUnlockTile> {
         _snack(e.reason);
         return;
       } catch (e) {
-        _snack('开启失败：${e.runtimeType}');
+        _snack('开启失败，请重试');
         return;
       }
       _snack('已开启：锁屏可用系统验证（人脸/指纹/PIN）快速解锁');

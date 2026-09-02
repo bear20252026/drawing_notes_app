@@ -117,8 +117,12 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   String? get _effectivePassword => _sessionPassword ?? widget.sessionPassword;
 
   /// 会话守卫（专家审计最优先③——2026-08-16）：失去焦点立即锁定（保存 +
-  /// 清除媒体密钥——private_notes_light 模式）；resume 已锁定则提示重新
-  /// 解锁（文件选择器运行中豁免——防导入/导出误锁）。
+  /// 清除媒体密钥——private_notes_light 模式）；resume 已锁定则恢复会话。
+  ///
+  /// U1 修复（2026-09-02）：此前 onReauthenticateRequired 仅弹提示，
+  /// 媒体密钥清了永不恢复 → 加密笔记本图片全部 StateError（"经常
+  /// 退出"最大元凶）。恢复路径：密码仍在页内存（_sessionPassword 语义
+  /// 即本页会话内有效），用其重派生媒体密钥注入后复位锁定态。
   late final SessionGuard _sessionGuard = SessionGuard(
     onLock: () {
       _save();
@@ -130,13 +134,36 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
       }
     },
     onReauthenticateRequired: () {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('会话已过期，请重新解锁')));
-      }
+      _restoreSessionAfterReauth();
     },
   );
+
+  /// 再认证后恢复会话：重派生媒体密钥 + 复位锁定态 + 刷新 UI。
+  ///
+  /// 派生失败保持 fail-closed（密钥不注入），仅提示重新打开笔记本。
+  Future<void> _restoreSessionAfterReauth() async {
+    if (!mounted) return;
+    final pw = _effectivePassword;
+    if (_notebook.encrypted && pw != null && pw.isNotEmpty) {
+      try {
+        final mediaSalt = await widget.storage.ensureMediaSalt();
+        await MediaCryptoService.instance.setSessionPassword(pw, mediaSalt);
+      } catch (_) {
+        _sessionGuard.unlock();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('会话已过期，请重新打开该分页画布')),
+        );
+        return;
+      }
+    }
+    _sessionGuard.unlock();
+    if (!mounted) return;
+    setState(() {});
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('会话已恢复')));
+  }
 
   @override
   void initState() {
@@ -220,7 +247,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('保存失败：${e.runtimeType}')));
+        ).showSnackBar(SnackBar(content: Text('保存失败，请重试')));
       }
     } finally {
       _saving = false;

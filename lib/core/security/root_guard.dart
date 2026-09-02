@@ -4,10 +4,12 @@ import 'package:flutter/foundation.dart';
 
 import 'audit_logger.dart';
 
-/// Root 守卫（用户拍板 2026-09-01：检测到 root 拒绝启动，直接闪退）。
+/// Root 守卫（用户拍板 2026-09-01：检测到 root 拒绝启动；
+/// U1 修订 2026-09-02：拒绝方式由静默 exit(1) 改为明确提示页——
+/// 应用本体照常不运行，但用户能看到"拒绝原因"，不再表现成闪退）。
 ///
 /// 策略：Android 启动最早期（runApp 之前）扫描已知 root 特征路径，
-/// 命中即记录审计日志后 `exit(1)`——不给任何 UI，表现与应用闪退一致。
+/// 命中即记录审计日志并进入拒绝提示页——不执行任何初始化与业务装配。
 /// Windows 桌面无 root 威胁模型（管理员权限≠root），检测不生效。
 ///
 /// 诚实边界：基于文件路径的检测可被 Magisk DenyList / Shamiko 等隐藏
@@ -55,12 +57,11 @@ abstract final class RootGuard {
     return existingPaths.isNotEmpty;
   }
 
-  /// 拒绝启动：记录审计日志后立即退出进程（runApp 永不执行 → 闪退）。
+  /// 拒绝启动审计日志（U1：由调用方 runApp 拒绝提示页，不再 exit 闪退）。
   ///
   /// 审计日志仅记录事件类型，不含路径清单（不给攻击者反侦察线索）。
-  static Never refuseToStart() {
+  static void logRefusal() {
     AuditLogger.log('security.root_detected.refuse_start', success: false);
-    exit(1);
   }
 
   /// 生产探测：逐个 existsSync，单条路径异常（权限/IO）跳过不误判。

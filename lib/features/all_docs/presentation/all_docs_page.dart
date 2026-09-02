@@ -218,7 +218,7 @@ class _AllDocsPageState extends State<AllDocsPage> {
               if (snapshot.hasError) {
                 return Center(
                   child: Text(
-                    '加载失败：${snapshot.error}',
+                    '加载失败，请下拉刷新重试',
                     style: TextStyle(color: theme.colorScheme.error),
                   ),
                 );

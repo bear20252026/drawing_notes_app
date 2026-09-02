@@ -310,7 +310,7 @@ extension _HomePageTabs on _HomePageState {
       widget.onDataChanged?.call();
       await _refresh();
     } catch (e) {
-      _showSnack('删除失败：${e.runtimeType}');
+      _showSnack('删除失败，请重试');
     }
   }
 }

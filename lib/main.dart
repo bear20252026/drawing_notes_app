@@ -94,10 +94,13 @@ Future<bool> _isProcessAlive(int pid) async {
 /// 仅做初始化装配，不承载业务逻辑。
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Root 守卫（用户拍板 2026-09-01）：Android 检测到 root 立即闪退，
-  // 必须在一切初始化之前执行——先于错误边界、单实例锁与 runApp。
+  // Root 守卫（用户拍板 2026-09-01；U1 修订 2026-09-02）：Android 检测
+  // 到 root 拒绝启动——先于一切初始化执行；拒绝方式为明确提示页
+  // （不再静默 exit(1) 闪退，应用本体照常不运行）。
   if (RootGuard.detect()) {
-    RootGuard.refuseToStart();
+    RootGuard.logRefusal();
+    runApp(const RootRefusalApp());
+    return;
   }
   // L-01 错误边界（专家审计 2026-08-15）：Flutter 官方模式（FlutterError
   // .onError + PlatformDispatcher.onError）——保留 presentError 控制台输出，
@@ -119,4 +122,43 @@ Future<void> main() async {
     return;
   }
   runApp(const ProviderScope(child: DrawingNotesApp()));
+}
+
+/// Root 拒绝启动提示页（U1 2026-09-02）。
+///
+/// 应用本体不装配（不初始化存储/密钥/业务），仅告知用户拒绝原因——
+/// 安全语义与原 exit(1) 一致（数据不可达），但不再表现为无解释闪退。
+class RootRefusalApp extends StatelessWidget {
+  const RootRefusalApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.gpp_bad_rounded, size: 64, color: Colors.redAccent),
+                const SizedBox(height: 20),
+                Text(
+                  '无法在此设备上启动',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  '检测到设备已获取 ROOT 权限。为保护你的加密笔记数据，'
+                  '本应用在已破解设备上拒绝运行。',
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

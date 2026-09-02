@@ -226,7 +226,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = '读取列表失败：${e.runtimeType}';
+        _error = '读取列表失败，请重试';
         _loading = false;
       });
     }
@@ -354,7 +354,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
       await _openEditor(document: doc, documentStorage: _docStorage);
       _refresh();
     } catch (e) {
-      _showSnack('打开画布失败：${e.runtimeType}');
+      _showSnack('打开画布失败，请重试');
     }
   }
 
@@ -516,7 +516,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     } on VaultFileLockException {
       _showSnack('加密底座已锁定：请重新验证开屏密码后再设置');
     } catch (e) {
-      _showSnack('设置失败：${e.runtimeType}');
+      _showSnack('设置失败，请重试');
     }
   }
 
@@ -537,7 +537,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     } on VaultFileException {
       _showSnack('原密码不正确或密文已损坏');
     } catch (e) {
-      _showSnack('修改失败：${e.runtimeType}');
+      _showSnack('修改失败，请重试');
     }
   }
 
@@ -566,7 +566,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     } on VaultFileException {
       _showSnack('密码不正确或密文已损坏');
     } catch (e) {
-      _showSnack('绑定失败：${e.runtimeType}');
+      _showSnack('绑定失败，请重试');
     }
   }
 
@@ -594,7 +594,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     } on VaultFileException {
       _showSnack('密码不正确或密文已损坏');
     } catch (e) {
-      _showSnack('移除失败：${e.runtimeType}');
+      _showSnack('移除失败，请重试');
     }
   }
 
@@ -606,7 +606,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
       await _docStorage.delete(meta.id);
       await _refresh();
     } catch (e) {
-      _showSnack('删除失败：${e.runtimeType}');
+      _showSnack('删除失败，请重试');
     }
   }
 
