@@ -27,7 +27,8 @@ extension _AllDocsPageMobile on _AllDocsPageState {
         future: _future!,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            // U4a：首屏加载换骨架屏（与桌面同一组件）。
+            return const SkeletonList();
           }
           if (snapshot.hasError) {
             return Center(

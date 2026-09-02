@@ -19,6 +19,8 @@ import 'package:drawing_notes_app/features/all_docs/presentation/all_doc_row.dar
 import 'package:drawing_notes_app/features/all_docs/presentation/tags_view.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/shared/utils/search_debouncer.dart';
+// U4a：首屏加载骨架屏。
+import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 part 'all_docs_page_widgets.dart';
 part 'all_docs_page_mobile.dart';
 
@@ -220,7 +222,8 @@ class _AllDocsPageState extends State<AllDocsPage> {
             future: _future!,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                // U4a：首屏加载换骨架屏（行形态与列表一致）。
+                return const SkeletonList();
               }
               if (snapshot.hasError) {
                 return Center(

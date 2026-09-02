@@ -43,107 +43,140 @@ class AllDocRow extends StatelessWidget {
     // ——承接原日历「文档动态」时间线的"哪天动了哪个文档"语义。
     final timeLabel = _dateLabel(doc.updatedAt, DateTime.now());
 
-    return InkWell(
-      onTap: onOpenDoc,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // kind 图标
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: visual.color.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(8),
+    // U4a：右键 / 长按 → 上下文菜单（聚合既有功能入口：打开 + 收藏切换）。
+    void showMenuAt(Offset globalPosition) {
+      showAllDocContextMenu(
+        context,
+        position: globalPosition,
+        doc: doc,
+        onOpenDoc: onOpenDoc,
+        onToggleFavorite: onToggleFavorite,
+      );
+    }
+
+    // InkWell 不带 onLongPressStart（需位置），长按经 GestureDetector 承接。
+    return GestureDetector(
+      onLongPressStart: (details) => showMenuAt(details.globalPosition),
+      child: InkWell(
+        onTap: onOpenDoc,
+        onSecondaryTapUp: (details) => showMenuAt(details.globalPosition),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // kind 图标
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: visual.color.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Icon(visual.icon, size: 20, color: visual.color),
               ),
-              alignment: Alignment.center,
-              child: Icon(visual.icon, size: 20, color: visual.color),
-            ),
-            const SizedBox(width: 12),
-            // 主列：title + description
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    doc.title.isEmpty ? '未命名' : doc.title,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: onSurface,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (doc.description.isNotEmpty) ...[
-                    const SizedBox(height: 2),
+              const SizedBox(width: 12),
+              // 主列：title + description
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                     Text(
-                      doc.description,
-                      style: TextStyle(fontSize: 12, color: muted),
-                      maxLines: 2,
+                      doc.title.isEmpty ? '未命名' : doc.title,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: onSurface,
+                      ),
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    if (doc.description.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        doc.description,
+                        style: TextStyle(fontSize: 12, color: muted),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            // N2：文件密码锁标（本会话未解锁）
-            if (doc.locked) ...[
-              Icon(Icons.lock_outline_rounded, size: 14, color: subtle),
+              const SizedBox(width: 12),
+              // N2：文件密码锁标（本会话未解锁）
+              if (doc.locked) ...[
+                Icon(Icons.lock_outline_rounded, size: 14, color: subtle),
+                const SizedBox(width: 6),
+              ],
+              // 相对时间
+              Text(timeLabel, style: TextStyle(fontSize: 11.5, color: subtle)),
+              const SizedBox(width: 12),
+              // D 头像圆点
+              Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: visual.color.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'D',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: visual.color,
+                  ),
+                ),
+              ),
               const SizedBox(width: 6),
+              // 星标（U4a：触控目标 26→44px）。
+              InkWell(
+                onTap: onToggleFavorite,
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: Center(
+                    child: Icon(
+                      doc.isFavorite
+                          ? Icons.star_rounded
+                          : Icons.star_border_rounded,
+                      size: 18,
+                      color: doc.isFavorite ? const Color(0xFFFF9F0A) : subtle,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 2),
+              // ⋮ 菜单（U4a：触控目标 26→44px；死入口接活——onMenu 未传时
+              // 打开与右键一致的上下文菜单）。
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapUp: (details) {
+                  if (onMenu != null) {
+                    onMenu!();
+                  } else {
+                    showMenuAt(details.globalPosition);
+                  }
+                },
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: Center(
+                    child: Icon(
+                      Icons.more_horiz_rounded,
+                      size: 18,
+                      color: subtle,
+                    ),
+                  ),
+                ),
+              ),
             ],
-            // 相对时间
-            Text(timeLabel, style: TextStyle(fontSize: 11.5, color: subtle)),
-            const SizedBox(width: 12),
-            // D 头像圆点
-            Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                color: visual.color.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                'D',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: visual.color,
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            // 星标
-            InkWell(
-              onTap: onToggleFavorite,
-              borderRadius: BorderRadius.circular(12),
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Icon(
-                  doc.isFavorite
-                      ? Icons.star_rounded
-                      : Icons.star_border_rounded,
-                  size: 18,
-                  color: doc.isFavorite ? const Color(0xFFFF9F0A) : subtle,
-                ),
-              ),
-            ),
-            const SizedBox(width: 2),
-            // ⋮ 菜单
-            InkWell(
-              onTap: onMenu,
-              borderRadius: BorderRadius.circular(12),
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Icon(Icons.more_horiz_rounded, size: 18, color: subtle),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -186,5 +219,59 @@ KindVisual visualForKind(AllDocKind kind) {
       return KindVisual(Icons.sticky_note_2_rounded, const Color(0xFF30D158));
     case AllDocKind.blockdoc:
       return KindVisual(Icons.dashboard_rounded, const Color(0xFFBF5AF2));
+  }
+}
+
+/// U4a：文档行上下文菜单（桌面右键 / 触屏长按 / ⋮ 按钮共用）。
+///
+/// 只聚合**既有**功能入口（打开、收藏切换）——不新增业务动作；
+/// 菜单在触发点（[position]）弹出。
+Future<void> showAllDocContextMenu(
+  BuildContext context, {
+  required Offset position,
+  required AllDoc doc,
+  required VoidCallback onOpenDoc,
+  VoidCallback? onToggleFavorite,
+}) async {
+  final action = await showMenu<String>(
+    context: context,
+    position: RelativeRect.fromLTRB(
+      position.dx,
+      position.dy,
+      position.dx + 1,
+      position.dy + 1,
+    ),
+    items: [
+      const PopupMenuItem(
+        value: 'open',
+        child: Row(
+          children: [
+            Icon(Icons.open_in_new_rounded, size: 18),
+            SizedBox(width: 10),
+            Text('打开'),
+          ],
+        ),
+      ),
+      if (onToggleFavorite != null)
+        PopupMenuItem(
+          value: 'favorite',
+          child: Row(
+            children: [
+              Icon(
+                doc.isFavorite ? Icons.star_border_rounded : Icons.star_rounded,
+                size: 18,
+              ),
+              const SizedBox(width: 10),
+              Text(doc.isFavorite ? '取消收藏' : '添加收藏'),
+            ],
+          ),
+        ),
+    ],
+  );
+  if (!context.mounted || action == null) return;
+  if (action == 'open') {
+    onOpenDoc();
+  } else if (action == 'favorite') {
+    onToggleFavorite?.call();
   }
 }

@@ -6,7 +6,8 @@ part of 'home_page.dart';
 extension _HomePageTabs on _HomePageState {
   Widget _buildBody() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      // U4a：首屏加载换卡片网格骨架（与画布 Tab 网格同参数）。
+      return const SkeletonCardGrid();
     }
     if (_error != null) {
       return Center(

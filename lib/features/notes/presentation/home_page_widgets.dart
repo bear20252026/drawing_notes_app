@@ -63,6 +63,63 @@ class _DrawingCardState extends State<_DrawingCard> {
     }
   }
 
+  /// U4a：卡片上下文菜单（桌面右键 / 触屏长按共用）。
+  ///
+  /// 只聚合既有功能入口（打开 / 独立密码 / 删除——删除走原有
+  /// [widget.onDelete] 的二次确认链路），不新增业务动作。
+  Future<void> _showContextMenu(Offset globalPosition) async {
+    final action = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        globalPosition.dx,
+        globalPosition.dy,
+        globalPosition.dx + 1,
+        globalPosition.dy + 1,
+      ),
+      items: const [
+        PopupMenuItem(
+          value: 'open',
+          child: Row(
+            children: [
+              Icon(Icons.open_in_new_rounded, size: 18),
+              SizedBox(width: 10),
+              Text('打开'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'password',
+          child: Row(
+            children: [
+              Icon(Icons.lock_outline_rounded, size: 18),
+              SizedBox(width: 10),
+              Text('独立密码…'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete_outline_rounded, size: 18),
+              SizedBox(width: 10),
+              Text('删除'),
+            ],
+          ),
+        ),
+      ],
+    );
+    if (!mounted || action == null) return;
+    switch (action) {
+      case 'open':
+        widget.onTap();
+      case 'password':
+        widget.onPasswordAction();
+      case 'delete':
+        widget.onDelete();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -78,87 +135,95 @@ class _DrawingCardState extends State<_DrawingCard> {
         curve: Curves.easeOutCubic,
         child: Card(
           clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: widget.onTap,
-            onHover: (value) {
-              if (_hovered != value) setState(() => _hovered = value);
-            },
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      _thumbBytes != null
-                          ? AnimatedOpacity(
-                              opacity: 1,
-                              duration: motion,
-                              child: Image.memory(
-                                _thumbBytes!,
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, _, _) =>
-                                    const _ThumbPlaceholder(),
+          // U4a：InkWell 不带 onLongPressStart——长按经 GestureDetector 承接。
+          child: GestureDetector(
+            onLongPressStart: (details) =>
+                _showContextMenu(details.globalPosition),
+            child: InkWell(
+              onTap: widget.onTap,
+              onHover: (value) {
+                if (_hovered != value) setState(() => _hovered = value);
+              },
+              // U4a：桌面右键 → 上下文菜单（聚合既有功能入口）。
+              onSecondaryTapUp: (details) =>
+                  _showContextMenu(details.globalPosition),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _thumbBytes != null
+                            ? AnimatedOpacity(
+                                opacity: 1,
+                                duration: motion,
+                                child: Image.memory(
+                                  _thumbBytes!,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (_, _, _) =>
+                                      const _ThumbPlaceholder(),
+                                ),
+                              )
+                            : const _ThumbPlaceholder(),
+                        // 批次②：独立密码锁定徽标（缩略图已删，占位 + 锁形）。
+                        if (widget.meta.locked)
+                          const Align(
+                            alignment: Alignment.topRight,
+                            child: Padding(
+                              padding: EdgeInsets.all(8),
+                              child: Icon(
+                                Icons.lock_rounded,
+                                size: 18,
+                                color: Colors.white,
+                                shadows: [
+                                  Shadow(blurRadius: 6, color: Colors.black54),
+                                ],
                               ),
-                            )
-                          : const _ThumbPlaceholder(),
-                      // 批次②：独立密码锁定徽标（缩略图已删，占位 + 锁形）。
-                      if (widget.meta.locked)
-                        const Align(
-                          alignment: Alignment.topRight,
-                          child: Padding(
-                            padding: EdgeInsets.all(8),
-                            child: Icon(
-                              Icons.lock_rounded,
-                              size: 18,
-                              color: Colors.white,
-                              shadows: [
-                                Shadow(blurRadius: 6, color: Colors.black54),
-                              ],
                             ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 6, 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          widget.meta.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleSmall,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 10, 6, 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.meta.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
                         ),
-                      ),
-                      IconButton(
-                        tooltip: '独立密码',
-                        icon: Icon(
-                          widget.meta.locked
-                              ? Icons.lock_rounded
-                              : Icons.lock_outline_rounded,
-                          size: 19,
+                        IconButton(
+                          tooltip: '独立密码',
+                          icon: Icon(
+                            widget.meta.locked
+                                ? Icons.lock_rounded
+                                : Icons.lock_outline_rounded,
+                            size: 19,
+                          ),
+                          color: widget.meta.locked
+                              ? scheme.primary
+                              : scheme.onSurfaceVariant,
+                          onPressed: widget.onPasswordAction,
                         ),
-                        color: widget.meta.locked
-                            ? scheme.primary
-                            : scheme.onSurfaceVariant,
-                        onPressed: widget.onPasswordAction,
-                      ),
-                      IconButton(
-                        tooltip: '删除无限画布',
-                        icon: const Icon(
-                          Icons.delete_outline_rounded,
-                          size: 19,
+                        IconButton(
+                          tooltip: '删除无限画布',
+                          icon: const Icon(
+                            Icons.delete_outline_rounded,
+                            size: 19,
+                          ),
+                          color: scheme.error,
+                          onPressed: widget.onDelete,
                         ),
-                        color: scheme.error,
-                        onPressed: widget.onDelete,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -201,9 +266,9 @@ class _CanvasSectionHeader extends StatelessWidget {
         alignment: AlignmentDirectional.centerStart,
         child: Text(
           label,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -226,7 +291,8 @@ class _NotebookCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final locked = notebook.isLockedPlaceholder ||
+    final locked =
+        notebook.isLockedPlaceholder ||
         (notebook.encrypted && notebook.pages.isEmpty);
     return Semantics(
       button: true,

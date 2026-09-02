@@ -260,7 +260,8 @@ class _DocsTabBar extends StatelessWidget {
     final accent = theme.colorScheme.primary;
 
     return Container(
-      height: 42,
+      // U4a：42→48——Tab 点击目标达触控标准（InkWell 撑满容器高）。
+      height: 48,
       color: surface,
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
@@ -270,28 +271,31 @@ class _DocsTabBar extends StatelessWidget {
             padding: const EdgeInsets.only(right: 18),
             child: InkWell(
               onTap: () => onTabChanged(i),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Spacer(),
-                  Text(
-                    _tabs[i],
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                      color: selected ? accent : subtle,
+              child: SizedBox(
+                height: 48,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _tabs[i],
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight:
+                            selected ? FontWeight.w600 : FontWeight.w400,
+                        color: selected ? accent : subtle,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    height: 2,
-                    width: 18,
-                    decoration: BoxDecoration(
-                      color: selected ? accent : Colors.transparent,
-                      borderRadius: BorderRadius.circular(1),
+                    const SizedBox(height: 6),
+                    Container(
+                      height: 2,
+                      width: 18,
+                      decoration: BoxDecoration(
+                        color: selected ? accent : Colors.transparent,
+                        borderRadius: BorderRadius.circular(1),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           );

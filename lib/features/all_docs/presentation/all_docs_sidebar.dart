@@ -153,7 +153,8 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
               widget.onNavSelected?.call(i);
             },
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              // U4a：vertical 8→12——导航行点击目标 ≥44px。
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               child: Row(
                 children: [
                   Icon(
@@ -188,7 +189,8 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
         borderRadius: BorderRadius.circular(8),
         onTap: () => setState(() => _treeExpanded = !_treeExpanded),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          // U4a：vertical 8→12——文档树头点击目标 ≥44px。
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           child: Row(
             children: [
               Icon(
