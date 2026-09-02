@@ -168,16 +168,9 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
           title: AppLocalizations.of(context)?.appTitle ?? '绘图笔记',
           localizationsDelegates: [
             AppLocalizations.delegate,
-            // 必须用 material_ui 的 GlobalMaterialLocalizations（而非 Flutter 的）：
-            // 本应用的 Material 组件（AppBar/Scaffold 等）来自 material_ui 包，它拥有
-            // 自己的一套 MaterialLocalizations。若注册 Flutter 版，debug 模式下
-            // material_ui 组件里的 debugCheckHasMaterialLocalizations 会断言崩溃
-            // （release 断言被裁剪所以表面正常）。故 Material 用 material_ui 的，
-            // Widgets/Cupertino 仍用 flutter_localizations 的（material_ui 不导出）。
-            GlobalMaterialLocalizations.delegate,
-            // 同时注册 Flutter SDK 版，供 flutter/material 组件
-            // （All Docs 侧栏搜索框等）解析 MaterialLocalizations，
-            // 避免 "No MaterialLocalizations found"。两者类型不同，互不冲突。
+            // W3 修正（2026-09-02）：原此处注册两次 GlobalMaterialLocalizations
+            // （历史上 material_ui fork 曾需自己的 MaterialLocalizations——
+            // 该包已移除，注释一并删除）。现在统一用 flutter_localizations 版。
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
