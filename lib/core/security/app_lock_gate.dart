@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
+import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
@@ -37,6 +38,7 @@ class AppLockGate extends StatefulWidget {
     super.key,
     required this.service,
     this.vault,
+    this.quickUnlock,
     required this.child,
   });
 
@@ -48,6 +50,11 @@ class AppLockGate extends StatefulWidget {
   /// - 保险库不存在（老用户升级首解）→ initialize（自动补建加密底座）。
   final VaultKeyService? vault;
 
+  /// 系统验证快速解锁（批D1，可选注入）：就绪时锁屏出现「系统验证解锁」
+  /// 按钮——Windows Hello 通过即解锁开屏。**仅作用于开屏锁**；单文件密码
+  /// 解锁路径不经过本门，天然不受影响（用户 2026-09-02 拍板口径）。
+  final QuickUnlockService? quickUnlock;
+
   final Widget child;
 
   @override
@@ -57,6 +64,10 @@ class AppLockGate extends StatefulWidget {
 class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   bool _initialized = false;
   bool _locked = false;
+
+  /// 批D1：快速解锁是否就绪（平台支持 + 开关开 + 副本存在）。
+  /// 锁屏出现时查询一次；切后台回锁时再查（设置页可能中途改过开关）。
+  bool _quickUnlockReady = false;
 
   @override
   void initState() {
@@ -74,6 +85,18 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
       // 冷启动即锁：已配置 PIN，进门先解锁（像 iPhone 开机一样）。
       _locked = widget.service.isConfigured;
     });
+    await _refreshQuickUnlock();
+  }
+
+  /// 重新查询快速解锁就绪态（异步缺口后 mounted 自查）。
+  Future<void> _refreshQuickUnlock() async {
+    final ready = widget.quickUnlock == null
+        ? false
+        : await widget.quickUnlock!.isReady();
+    if (!mounted) return;
+    if (_quickUnlockReady != ready) {
+      setState(() => _quickUnlockReady = ready);
+    }
   }
 
   void _onServiceChanged() {
@@ -97,6 +120,9 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
         widget.service.isConfigured &&
         !_locked) {
       setState(() => _locked = true);
+      // 回锁时重查快速解锁就绪态（设置页可能中途开/关过开关）。
+      // 生命周期回调非 async：fire-and-forget（就绪态刷新失败仅影响按钮显隐）。
+      unawaited(_refreshQuickUnlock());
     }
   }
 
@@ -117,6 +143,22 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   }
 
   void _unlock() => setState(() => _locked = false);
+
+  /// 系统验证快速解锁（批D1）：Windows Hello 通过 → OS 凭据库副本注入
+  /// 保险库 → 放行。失败（取消/未通过/副本异常）只提示，锁屏原状——
+  /// PIN 通道永远可用（fail-closed）。
+  Future<void> _startQuickUnlock() async {
+    final quickUnlock = widget.quickUnlock;
+    final vault = widget.vault;
+    if (quickUnlock == null || vault == null) return;
+    final ok = await quickUnlock.authenticateAndUnlock(vault: vault);
+    if (!mounted) return;
+    if (ok) {
+      _unlock();
+    } else {
+      _snack('系统验证未通过，请输入密码解锁');
+    }
+  }
 
   void _snack(String message) {
     if (!mounted) return;
@@ -261,23 +303,47 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
                             onAccepted: (_) => _unlock(),
                           ),
                   ),
-                  // 忘记密码入口（冷却期与正常锁屏均可用——
-                  // 被锁 24 小时干等没有意义，重置密码盘正是为此而设）。
+                  // 底部入口区（批D1）：快速解锁（就绪才显示）+ 忘记密码。
+                  // 冷却期同样保留——系统验证不受防爆破冷却约束（它验的是
+                  // 系统身份而非猜测 PIN），干等 24 小时没有意义。
                   Positioned(
                     left: 0,
                     right: 0,
                     bottom: 28,
-                    child: Center(
-                      child: TextButton(
-                        onPressed: _startForgotPassword,
-                        child: Text(
-                          '忘记密码？',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.75),
-                            fontSize: 14,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_quickUnlockReady && widget.vault != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: TextButton.icon(
+                              onPressed: _startQuickUnlock,
+                              icon: Icon(
+                                Icons.fingerprint_rounded,
+                                color: Colors.white.withValues(alpha: 0.9),
+                                size: 22,
+                              ),
+                              label: Text(
+                                '系统验证解锁',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        TextButton(
+                          onPressed: _startForgotPassword,
+                          child: Text(
+                            '忘记密码？',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.75),
+                              fontSize: 14,
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ],

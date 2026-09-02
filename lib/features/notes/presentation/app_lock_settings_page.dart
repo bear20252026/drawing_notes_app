@@ -10,6 +10,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
+import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
@@ -24,6 +25,7 @@ class AppLockSettingsPage extends StatelessWidget {
     super.key,
     required this.service,
     this.vault,
+    this.quickUnlock,
   });
 
   final AppLockService service;
@@ -32,6 +34,9 @@ class AppLockSettingsPage extends StatelessWidget {
   /// 设置密码时同步建库、修改密码时同步重包裹；保险库已存在时
   /// 「关闭应用锁」被阻止（文件已用该密码加密，关闭将导致不可读）。
   final VaultKeyService? vault;
+
+  /// 系统验证快速解锁（批D1）：仅作用于开屏锁；文件密码不参与。
+  final QuickUnlockService? quickUnlock;
 
   @override
   Widget build(BuildContext context) {
@@ -86,6 +91,15 @@ class AppLockSettingsPage extends StatelessWidget {
                   // 忘记密码时可用它重设，主密钥副本不出设备）。
                   if (service.isConfigured && vault != null)
                     _buildResetDiskTile(),
+                  // 系统验证快速解锁（批D1：Windows Hello，仅开屏锁）。
+                  if (service.isConfigured &&
+                      vault != null &&
+                      quickUnlock != null)
+                    _QuickUnlockTile(
+                      quickUnlock: quickUnlock!,
+                      appLock: service,
+                      vault: vault!,
+                    ),
                 ],
               ),
             ),
@@ -396,5 +410,120 @@ class AppLockSettingsPage extends StatelessWidget {
       ),
     );
     return confirmed == true ? selected : null;
+  }
+}
+
+/// 系统验证快速解锁 tile（批D1）。
+///
+/// 状态自管理（FutureBuilder + 局部刷新）：平台不支持时整行隐藏；
+/// 开关值以 [QuickUnlockService] 持久化状态为单一事实来源。
+/// 口径（用户 2026-09-02 拍板）：**仅作用于开屏密码**——文件密码
+/// 是比开屏更高一级的主动隔离，不提供快速解锁、不入系统安全区。
+class _QuickUnlockTile extends StatefulWidget {
+  const _QuickUnlockTile({
+    required this.quickUnlock,
+    required this.appLock,
+    required this.vault,
+  });
+
+  final QuickUnlockService quickUnlock;
+  final AppLockService appLock;
+  final VaultKeyService vault;
+
+  @override
+  State<_QuickUnlockTile> createState() => _QuickUnlockTileState();
+}
+
+class _QuickUnlockTileState extends State<_QuickUnlockTile> {
+  bool? _supported;
+  bool _enabled = false;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _reload();
+  }
+
+  Future<void> _reload() async {
+    final supported = await widget.quickUnlock.isPlatformSupported();
+    final enabled = await widget.quickUnlock.isEnabled();
+    if (!mounted) return;
+    setState(() {
+      _supported = supported;
+      _enabled = enabled;
+    });
+  }
+
+  void _snack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// 开启：验证当前密码（身份门槛）→ 系统验证 → 存副本 → 持久化。
+  Future<void> _startEnable() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final pin = await UnlockFlow.show(
+        context,
+        title: '验证当前密码',
+        onVerify: (p) => widget.appLock.verify(p),
+      );
+      if (pin == null || !mounted) return;
+      try {
+        await widget.quickUnlock.enable(pin: pin, vault: widget.vault);
+      } on QuickUnlockException catch (e) {
+        _snack(e.reason);
+        return;
+      } on VaultUnlockException catch (e) {
+        _snack(e.reason);
+        return;
+      } catch (e) {
+        _snack('开启失败：${e.runtimeType}');
+        return;
+      }
+      _snack('已开启：锁屏可用系统验证（人脸/指纹/PIN）快速解锁');
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+        await _reload();
+      }
+    }
+  }
+
+  /// 关闭：副本立即删除（关=删，无残留），PIN 通道不受影响。
+  Future<void> _startDisable() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await widget.quickUnlock.disable();
+      _snack('已关闭，系统安全区中的密钥副本已删除');
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+        await _reload();
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // 平台支持性未定/不支持：整行隐藏（Android 批D2 接入前如此）。
+    if (_supported == null || _supported == false) {
+      return const SizedBox.shrink();
+    }
+    return SwitchListTile(
+      value: _enabled,
+      onChanged: _busy ? null : (_) => _enabled ? _startDisable() : _startEnable(),
+      title: const Text('系统验证快速解锁'),
+      subtitle: Text(
+        _enabled
+            ? '已开启（锁屏可用 Windows Hello 解锁开屏）'
+            : '未开启（开启后锁屏可用人脸/指纹/PIN 解锁开屏）',
+      ),
+    );
   }
 }

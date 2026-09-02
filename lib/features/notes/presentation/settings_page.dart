@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
+import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/features/notes/presentation/app_lock_settings_page.dart';
@@ -20,6 +21,7 @@ class SettingsPage extends StatelessWidget {
     super.key,
     this.appLockService,
     this.vaultKeyService,
+    this.quickUnlockService,
     this.themeController,
   });
 
@@ -28,6 +30,9 @@ class SettingsPage extends StatelessWidget {
 
   /// 主密钥保险库（U 盘恢复钥匙绑定需要；与开屏密码共用同一位密码）。
   final VaultKeyService? vaultKeyService;
+
+  /// 系统验证快速解锁（批D1；null 时快速解锁开关不出现）。
+  final QuickUnlockService? quickUnlockService;
 
   /// 外观控制器（外观入口需要；null 时隐藏外观入口）。
   final AppThemeController? themeController;
@@ -108,6 +113,7 @@ class SettingsPage extends StatelessWidget {
         builder: (_) => AppLockSettingsPage(
           service: appLockService!,
           vault: vaultKeyService,
+          quickUnlock: quickUnlockService,
         ),
       ),
     );

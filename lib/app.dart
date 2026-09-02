@@ -23,6 +23,7 @@ import 'package:drawing_notes_app/fix/security_and_sync_fix.dart' show SyncFix;
 // 应用启动锁：冷启动 + 切后台回锁（2026-09-01）。
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/app_lock_gate.dart';
+import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 
 /// 应用根组件：主题 + 路由。
@@ -90,6 +91,10 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
   late final VaultKeyService _vaultKeyService = VaultKeyService(
     vaultFileResolver: () => _appDataRoot.securityFile('vault.key.json'),
   );
+
+  // 系统验证快速解锁（批D1）：Windows Hello 快速解锁开屏（默认关闭，
+  // 设置页开启后生效）。仅作用于开屏锁；文件密码不参与。
+  late final QuickUnlockService _quickUnlockService = QuickUnlockService();
 
   @override
   void initState() {
@@ -186,6 +191,7 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
           home: AppLockGate(
             service: _appLockService,
             vault: _vaultKeyService,
+            quickUnlock: _quickUnlockService,
             child: AppShell(
               notebookStorage: _notebookStorage,
               docStorage: _documentStorage,
@@ -197,6 +203,7 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
               scheduleEventStore: _scheduleEventStore,
               appLockService: _appLockService,
               vaultKeyService: _vaultKeyService,
+              quickUnlockService: _quickUnlockService,
             ),
           ),
         ),

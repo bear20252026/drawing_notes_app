@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/core/layout/responsive.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
+import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
@@ -68,6 +69,7 @@ class AppShell extends StatefulWidget {
     this.scheduleEventStore,
     this.appLockService,
     this.vaultKeyService,
+    this.quickUnlockService,
   });
 
   final NotebookStorage? notebookStorage;
@@ -88,6 +90,9 @@ class AppShell extends StatefulWidget {
 
   /// 主密钥保险库（批次①b，组合根注入）：透传给 HomePage → 应用锁设置页。
   final VaultKeyService? vaultKeyService;
+
+  /// 系统验证快速解锁（批D1，组合根注入）：透传给设置页。
+  final QuickUnlockService? quickUnlockService;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -207,6 +212,7 @@ class _AppShellState extends State<AppShell> {
     SettingsPage(
       appLockService: widget.appLockService,
       vaultKeyService: widget.vaultKeyService,
+      quickUnlockService: widget.quickUnlockService,
       themeController: widget.themeController,
     ),
   ];

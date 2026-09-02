@@ -67,6 +67,12 @@ class VaultKeyService {
     return s.masterKey;
   }
 
+  /// 快速解锁注入口（批D1）：系统身份验证（Windows Hello）通过后，把
+  /// OS 凭据库里的主密钥副本注入本保险库（等价于 PIN 解锁成功后的内存态）。
+  /// 调用契约：调用方须先完成系统身份验证且副本来自 QuickUnlockService
+  /// （单一入口）——本方法本身不做验证，防线在系统验证环节。
+  void adoptMasterKey(List<int> key) => _masterKey = List<int>.of(key);
+
   /// 仅测试注入：绕过 KDF 直接设置内存主密钥（不落盘）。
   @visibleForTesting
   void debugInjectMasterKey(List<int> key) => _masterKey = List<int>.of(key);
