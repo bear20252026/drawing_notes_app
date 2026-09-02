@@ -31,6 +31,9 @@ import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 import 'package:drawing_notes_app/features/notes/presentation/presentation_page.dart';
+// W2：翻页阅读模式（上下滑动切页）+ 整本多页 PDF 导出。
+import 'package:drawing_notes_app/features/notes/presentation/notebook_reader_page.dart';
+import 'package:drawing_notes_app/features/notes/application/notebook_pdf_exporter.dart';
 // N2：笔记（块文档）文件密码——分页画布内打开受密块文档副本的解锁拦截。
 import 'package:drawing_notes_app/fix/security_and_sync_fix.dart' show UnlockFlow;
 import 'package:drawing_notes_app/fix/block_doc_password_reset_flow.dart';
@@ -240,6 +243,19 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
           overflow: TextOverflow.ellipsis,
         ),
         actions: [
+          // W2：翻页阅读（上下滑动逐页切换，像翻 PDF）。
+          IconButton(
+            tooltip: '翻页阅读',
+            icon: const Icon(Icons.auto_stories_rounded),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => NotebookReaderPage(
+                  notebook: _notebook,
+                  onEditPage: _openPage,
+                ),
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 4),
             child: FilledButton.icon(
@@ -287,6 +303,16 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                     AppLocalizations.of(context)?.noteImportPdf ??
                         '导入 PDF 并逐页批注',
                   ),
+                ),
+              ),
+              // W2：整本导出——每个画布页对应 PDF 一页，合成单个文件。
+              PopupMenuItem(
+                value: _NotebookMenuItem.exportWholePdf,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.picture_as_pdf_rounded),
+                  title: const Text('导出整本 PDF'),
                 ),
               ),
               PopupMenuItem(

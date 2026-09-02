@@ -272,12 +272,40 @@ extension _NotebookPageManage on _NotebookViewPageState {
         _importText();
       case _NotebookMenuItem.importPdf:
         _importPdf();
+      case _NotebookMenuItem.exportWholePdf:
+        _exportWholePdf();
       case _NotebookMenuItem.security:
         _setPassword();
       case _NotebookMenuItem.bindUsb:
         _startBindUsb();
       case _NotebookMenuItem.organize:
         _macroMovePages();
+    }
+  }
+
+  /// W2：整本导出多页 PDF——每个画布页对应 PDF 一页，合成单个文件。
+  ///
+  /// 导出前先保存（确保磁盘内容 = 界面最新内容）；文件选择器运行中
+  /// SessionGuard 有失焦豁免（既有语义），无需额外处理。
+  Future<void> _exportWholePdf() async {
+    if (_notebook.pages.isEmpty) {
+      _showSnack('这个分页画布还没有页面，先新建一页吧');
+      return;
+    }
+    try {
+      await _save();
+      final location = await getSaveLocation(
+        suggestedName: '${_notebook.title}.pdf',
+        acceptedTypeGroups: const [
+          XTypeGroup(label: 'PDF 文档', extensions: ['pdf']),
+        ],
+      );
+      if (location == null) return; // 用户取消
+      final bytes = await NotebookPdfExporter.exportNotebook(_notebook);
+      await File(location.path).writeAsBytes(bytes, flush: true);
+      _showSnack('已导出整本 ${_notebook.pages.length} 页 PDF：${location.path}');
+    } catch (e) {
+      _showSnack('导出整本 PDF 失败，请重试');
     }
   }
 

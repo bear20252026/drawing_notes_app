@@ -205,7 +205,15 @@ class _PageThumbnailPainter extends CustomPainter {
       oldDelegate.page != page || oldDelegate.page.updatedAt != page.updatedAt;
 }
 
-enum _NotebookMenuItem { importPage, importText, importPdf, security, bindUsb, organize }
+enum _NotebookMenuItem {
+  importPage,
+  importText,
+  importPdf,
+  exportWholePdf,
+  security,
+  bindUsb,
+  organize,
+}
 
 /// 新建页面请求：名称与模板必须一起提交，避免创建后再进行多处设置。
 class _NewPageRequest {

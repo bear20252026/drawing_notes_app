@@ -38,47 +38,26 @@ class PdfHybridExporter {
     required List<Stroke> vectorStrokes,
     ui.Color background = const ui.Color(0xFFFFFFFF),
     int? jpegQuality,
-  }) async {
-    final pdfBackground = PdfColor.fromInt(background.toARGB32());
-    final offset = ui.Offset(-bounds.left, -bounds.top);
-    final rasterBytes = jpegQuality == null
-        ? rasterPng
-        : _encodeJpeg(rasterPng, jpegQuality);
-
-    final doc = pw.Document();
-    doc.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat(bounds.width, bounds.height),
-        margin: pw.EdgeInsets.zero,
-        build: (context) => pw.Stack(
-          children: [
-            pw.Positioned.fill(
-              child: pw.Image(pw.MemoryImage(rasterBytes), fit: pw.BoxFit.fill),
-            ),
-            // 显式尺寸：Stack 以非定位子级定尺寸，若 CustomPaint 为 0×0
-            // 会让 Stack 塌缩，Positioned.fill 的图片拿到 0 约束产生 NaN。
-            pw.CustomPaint(
-              size: PdfPoint(bounds.width, bounds.height),
-              foregroundPainter: (PdfGraphics graphics, PdfPoint size) {
-                for (final stroke in vectorStrokes) {
-                  final svgPath = StrokeRenderer.strokeToSvgPath(
-                    stroke,
-                    offset: offset,
-                  );
-                  if (svgPath == null) continue;
-                  final color = PdfColor.fromInt(
-                    stroke.color.toARGB32(),
-                  ).flatten(background: pdfBackground);
-                  graphics.setFillColor(color);
-                  graphics.drawShape(svgPath);
-                  graphics.fillPath();
-                }
-              },
-            ),
-          ],
-        ),
+  }) => exportMultiPage(
+    pages: [
+      PdfPageInput(
+        bounds: bounds,
+        rasterPng: rasterPng,
+        vectorStrokes: vectorStrokes,
+        background: background,
+        jpegQuality: jpegQuality,
       ),
-    );
+    ],
+  );
+
+  /// 生成多页混合 PDF（W2 整本导出：每个画布页对应 PDF 一页）。
+  static Future<Uint8List> exportMultiPage({
+    required List<PdfPageInput> pages,
+  }) async {
+    final doc = pw.Document();
+    for (final page in pages) {
+      doc.addPage(page._buildPdfPage());
+    }
     return doc.save();
   }
 
@@ -91,6 +70,72 @@ class PdfHybridExporter {
     if (decoded == null) return pngBytes;
     return Uint8List.fromList(
       img.encodeJpg(decoded, quality: quality.clamp(1, 100)),
+    );
+  }
+}
+
+/// 混合 PDF 的单页输入（矢量 + 光栅混合导出的页级数据）。
+class PdfPageInput {
+  const PdfPageInput({
+    required this.bounds,
+    required this.rasterPng,
+    required this.vectorStrokes,
+    this.background = const ui.Color(0xFFFFFFFF),
+    this.jpegQuality,
+  });
+
+  /// 页面导出区域（决定 PDF 页面尺寸；topLeft 为内容坐标系原点偏移）。
+  final ui.Rect bounds;
+
+  /// 光栅层位图（背景 + 高亮/铅笔/图片/形状/文字）。
+  final Uint8List rasterPng;
+
+  /// 以矢量写入的钢笔笔画。
+  final List<Stroke> vectorStrokes;
+
+  final ui.Color background;
+
+  /// 可选 JPEG 压缩质量（1-100）；null = PNG 无损。
+  final int? jpegQuality;
+
+  pw.Page _buildPdfPage() {
+    final pdfBackground = PdfColor.fromInt(background.toARGB32());
+    final offset = ui.Offset(-bounds.left, -bounds.top);
+    final quality = jpegQuality;
+    final rasterBytes = quality == null
+        ? rasterPng
+        : PdfHybridExporter._encodeJpeg(rasterPng, quality);
+
+    return pw.Page(
+      pageFormat: PdfPageFormat(bounds.width, bounds.height),
+      margin: pw.EdgeInsets.zero,
+      build: (context) => pw.Stack(
+        children: [
+          pw.Positioned.fill(
+            child: pw.Image(pw.MemoryImage(rasterBytes), fit: pw.BoxFit.fill),
+          ),
+          // 显式尺寸：Stack 以非定位子级定尺寸，若 CustomPaint 为 0×0
+          // 会让 Stack 塌缩，Positioned.fill 的图片拿到 0 约束产生 NaN。
+          pw.CustomPaint(
+            size: PdfPoint(bounds.width, bounds.height),
+            foregroundPainter: (PdfGraphics graphics, PdfPoint size) {
+              for (final stroke in vectorStrokes) {
+                final svgPath = StrokeRenderer.strokeToSvgPath(
+                  stroke,
+                  offset: offset,
+                );
+                if (svgPath == null) continue;
+                final color = PdfColor.fromInt(
+                  stroke.color.toARGB32(),
+                ).flatten(background: pdfBackground);
+                graphics.setFillColor(color);
+                graphics.drawShape(svgPath);
+                graphics.fillPath();
+              }
+            },
+          ),
+        ],
+      ),
     );
   }
 }
