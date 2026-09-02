@@ -272,7 +272,8 @@ class _PinPadCoreState extends State<PinPadCore>
       type: MaterialType.transparency,
       child: ClipRect(
         child: BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+          // U3 P1-11：sigma 30→18——视觉差异极小，GPU 模糊开销显著降低。
+          filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
           child: Container(
             color: Colors.black.withValues(alpha: 0.38),
             child: SafeArea(

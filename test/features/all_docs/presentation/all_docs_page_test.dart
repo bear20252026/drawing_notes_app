@@ -110,7 +110,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     await tester.enterText(find.byType(f.TextField), '设计');
-    await tester.pump();
+    // U3 P1-12：搜索防抖 250ms 合帧——等待窗口过后列表才过滤。
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('设计稿'), findsWidgets);
     expect(find.text('会议记录'), findsNothing);
   });

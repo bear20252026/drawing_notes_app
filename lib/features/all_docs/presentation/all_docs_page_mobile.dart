@@ -63,7 +63,9 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                   child: TextField(
                     controller: _mobileSearchController,
                     autofocus: true,
-                    onChanged: (q) => allDocsSetState(() => _query = q),
+                    onChanged: (q) => _searchDebouncer.run(
+                      () => allDocsSetState(() => _query = q),
+                    ),
                     style: const TextStyle(fontSize: 14),
                     decoration: InputDecoration(
                       hintText: '快速搜索',
@@ -76,7 +78,10 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                               icon: const Icon(Icons.close_rounded, size: 18),
                               onPressed: () {
                                 _mobileSearchController.clear();
-                                allDocsSetState(() => _query = '');
+                                // 清空必须即时（flush 取消挂起的防抖）。
+                                _searchDebouncer.flush(
+                                  () => allDocsSetState(() => _query = ''),
+                                );
                               },
                             ),
                       filled: true,

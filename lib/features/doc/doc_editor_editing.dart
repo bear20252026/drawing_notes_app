@@ -8,6 +8,11 @@ extension DocEditorEditing on DocEditorState {
   // ── 文本同步 ───────────────────────────────────────────────
 
   /// 同步指定块的文本到块树。
+  ///
+  /// U3 P1-9：击键热路径不再整树 setState——TextField 由自身 controller
+  /// 驱动显示，模型静默同步即可；装饰性消费方（大纲/空标题提示）经
+  /// [_scheduleCosmeticRefresh] 200ms 合帧跟进，dirty 值翻转时才重建。
+  /// 结构操作（分块/合并/类型切换）仍走 editorSetState 即时重建。
   void _syncText(String blockId) {
     if (_restoring) return;
     final controller = _controllers[blockId];
@@ -15,10 +20,9 @@ extension DocEditorEditing on DocEditorState {
     final block = _editor.findBlock(_root, blockId);
     if (block == null) return;
     if (block.text == controller.text) return;
-    editorSetState(() {
-      _root = _editor.updateText(_root, blockId, controller.text);
-      _updateDirtyState();
-    });
+    _root = _editor.updateText(_root, blockId, controller.text);
+    _updateDirtyState();
+    _scheduleCosmeticRefresh();
     // 检测 / 菜单触发
     _checkSlashTrigger(
       blockId,
@@ -178,11 +182,15 @@ extension DocEditorEditing on DocEditorState {
   }
 
   /// 更新未保存状态（基于 body 签名比对）。
+  ///
+  /// U3 P1-9：仅 dirty 值翻转时 setState——签名计算每键照常执行（廉价），
+  /// 但未保存角标只在 false→true / true→false 边沿需要一次重建。
   void _updateDirtyState() {
     final signature = _computeBodySignature();
-    editorSetState(() {
-      _isDirty = signature != _lastSavedBodySignature;
-    });
+    final dirty = signature != _lastSavedBodySignature;
+    if (dirty != _isDirty) {
+      editorSetState(() => _isDirty = dirty);
+    }
     if (_isDirty) _notifyDirtyOnce();
   }
 

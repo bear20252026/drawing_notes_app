@@ -311,11 +311,27 @@ class DocEditorState extends State<DocEditor> {
     _titleController.removeListener(_onTitleEdited);
     _titleController.dispose();
     _historyDebounce?.cancel();
+    _cosmeticRefreshDebounce?.cancel();
     super.dispose();
   }
 
   /// 击键合帧定时器（P2-M6）。
   Timer? _historyDebounce;
+
+  /// U3 P1-9：外观刷新合帧定时器。
+  Timer? _cosmeticRefreshDebounce;
+
+  /// U3 P1-9：静默模型更新后的装饰性刷新。
+  ///
+  /// build 对 block.text 的依赖是装饰性的（大纲面板条目、空标题提示、
+  /// 语义标签）。纯文本击键不再整树 setState，装饰消费方改由本方法
+  /// 200ms 合帧跟进；结构操作（分块/合并/类型切换）仍即时 setState。
+  void _scheduleCosmeticRefresh() {
+    _cosmeticRefreshDebounce?.cancel();
+    _cosmeticRefreshDebounce = Timer(const Duration(milliseconds: 200), () {
+      if (mounted) setState(() {});
+    });
+  }
 
   /// part 文件（extension）用的 setState 包装——State.setState 是
   /// protected，extension 中直接调用会报 invalid_use_of_protected_member。

@@ -370,6 +370,10 @@ class _CooldownView extends StatefulWidget {
 class _CooldownViewState extends State<_CooldownView> {
   Timer? _ticker;
 
+  /// U3 P1-11：每秒跳动的 tick 计数——仅驱动内层 [_RemainingText]
+  /// 重建，父层 BackdropFilter/ClipRect/Column 静态子树不再每秒重建。
+  final ValueNotifier<int> _tick = ValueNotifier<int>(0);
+
   @override
   void initState() {
     super.initState();
@@ -378,7 +382,7 @@ class _CooldownViewState extends State<_CooldownView> {
       if (!widget.service.isLockedOut) {
         widget.onExpired();
       } else {
-        setState(() {}); // 刷新倒计时
+        _tick.value++; // 刷新倒计时（原 setState 整层重建已下沉）
       }
     });
   }
@@ -386,26 +390,16 @@ class _CooldownViewState extends State<_CooldownView> {
   @override
   void dispose() {
     _ticker?.cancel();
+    _tick.dispose();
     super.dispose();
-  }
-
-  String get _remainingText {
-    final remaining = widget.service.lockoutRemaining;
-    final minutes = remaining.inMinutes;
-    final seconds = remaining.inSeconds % 60;
-    if (minutes >= 60) {
-      final hours = remaining.inHours;
-      final mins = minutes % 60;
-      return '$hours 小时 $mins 分';
-    }
-    return '$minutes 分 $seconds 秒';
   }
 
   @override
   Widget build(BuildContext context) {
     return ClipRect(
       child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+        // U3 P1-11：sigma 30→18——视觉差异极小，GPU 模糊开销显著降低。
+        filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
         child: Container(
           color: Colors.black.withValues(alpha: 0.38),
           child: SafeArea(
@@ -427,13 +421,7 @@ class _CooldownViewState extends State<_CooldownView> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Text(
-                  '请在 $_remainingText 后重试',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.82),
-                    fontSize: 15,
-                  ),
-                ),
+                _RemainingText(service: widget.service, tick: _tick),
                 const SizedBox(height: 6),
                 Text(
                   '为防止暴力猜测，密码验证已暂时锁定',
@@ -447,6 +435,43 @@ class _CooldownViewState extends State<_CooldownView> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 冷却倒计时文本（U3 P1-11：下沉为内部小 widget）。
+///
+/// 每秒 tick 只重建这一行 Text，不再拖动整个模糊面板。
+class _RemainingText extends StatelessWidget {
+  const _RemainingText({required this.service, required this.tick});
+
+  final AppLockService service;
+  final ValueNotifier<int> tick;
+
+  String _format(Duration remaining) {
+    final minutes = remaining.inMinutes;
+    final seconds = remaining.inSeconds % 60;
+    if (minutes >= 60) {
+      final hours = remaining.inHours;
+      final mins = minutes % 60;
+      return '$hours 小时 $mins 分';
+    }
+    return '$minutes 分 $seconds 秒';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: tick,
+      builder: (context, _, _) {
+        return Text(
+          '请在 ${_format(service.lockoutRemaining)} 后重试',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.82),
+            fontSize: 15,
+          ),
+        );
+      },
     );
   }
 }

@@ -30,6 +30,8 @@ import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
+// U3 P1-12：标签筛选输入防抖（250ms 合帧）。
+import 'package:drawing_notes_app/shared/utils/search_debouncer.dart';
 import 'package:drawing_notes_app/features/notes/presentation/presentation_page.dart';
 // W2：翻页阅读模式（上下滑动切页）+ 整本多页 PDF 导出。
 import 'package:drawing_notes_app/features/notes/presentation/notebook_reader_page.dart';
@@ -105,6 +107,9 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   /// 标签筛选关键词（A2：输入标签后只显示带该标签的页面）。
   String _tagFilter = '';
 
+  /// U3 P1-12：标签筛选防抖（每键 setState 会整页重建 GridView）。
+  final SearchDebouncer _tagFilterDebouncer = SearchDebouncer();
+
   /// 会话内密码（设置密码时记录；保存加密笔记本时用于重加密最新内容）。
   String? _sessionPassword;
 
@@ -123,9 +128,12 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   /// 媒体密钥清了永不恢复 → 加密笔记本图片全部 StateError（"经常
   /// 退出"最大元凶）。恢复路径：密码仍在页内存（_sessionPassword 语义
   /// 即本页会话内有效），用其重派生媒体密钥注入后复位锁定态。
+  ///
+  /// U3 P0-7（2026-09-02）：锁定保存改走 [_saveIfChanged]——仅当页面
+  /// 内容确有未落盘变更时才整本重加密；密钥清理与提示保持原即时语义。
   late final SessionGuard _sessionGuard = SessionGuard(
     onLock: () {
-      _save();
+      _saveIfChanged();
       MediaCryptoService.instance.clearSessionKey();
       if (mounted) {
         ScaffoldMessenger.of(
@@ -171,7 +179,8 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
     _notebook = widget.notebook;
     // H-05 部分落地：后台/切出自动保存草稿（防数据丢失；_save 有
     // _saving 保护不会并发堆叠；onInactive 覆盖切后台/失去焦点场景）。
-    _lifecycleListener = AppLifecycleListener(onInactive: () => _save());
+    // U3 P0-7：改走 _saveIfChanged，无变更不再全量重加密。
+    _lifecycleListener = AppLifecycleListener(onInactive: _saveIfChanged);
   }
 
   /// 会话密钥内存清理（红蓝攻防 D-2 修复 2026-08-15）：
@@ -183,6 +192,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
     _sessionGuard.dispose();
     // H-03 密钥清理时机：页面退出清除媒体加密会话密钥（D-2 内存清理）。
     MediaCryptoService.instance.clearSessionKey();
+    _tagFilterDebouncer.dispose();
     _lifecycleListener?.dispose();
     super.dispose();
   }
@@ -253,6 +263,26 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
       _saving = false;
       if (identical(_saveCompletion, completion)) _saveCompletion = null;
     }
+  }
+
+  /// U3 P0-7：是否存在未落盘的页面内容变更。
+  ///
+  /// 页面内容快照机制（[NotebookPage.hasChangedSinceLatestVersion]）天然
+  /// 反映"上次 addVersion 之后内容是否再变过"；克隆页（cloneOf != null）
+  /// 内容在源页，本页保存不写其快照，故排除。元数据类变更（改名/加密/
+  /// 重排）本就走同步 _save 调用方路径，不经此守卫。
+  bool get _hasUnpersistedPageContent => _notebook.pages.any(
+    (p) => p.cloneOf == null && p.hasChangedSinceLatestVersion,
+  );
+
+  /// 仅当有未落盘内容变更时才保存（onLock / onInactive 热路径专用）。
+  ///
+  /// 锁门即时性不变：媒体密钥清理与提示在 onLock 内同步执行，此方法
+  /// 只是跳过"无变更 → 全量重加密 + 历史快照"的浪费；此前保存失败过的
+  /// 页面 hasChangedSinceLatestVersion 仍为 true，下轮自愈重试。
+  void _saveIfChanged() {
+    if (!_hasUnpersistedPageContent) return;
+    _save();
   }
 
   /// 导入 Markdown/文本文件，按段落生成文字块（C4，借鉴 nb 导入）。
@@ -398,7 +428,9 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                 sigma: 8,
                 padding: const EdgeInsets.all(4),
                 child: TextField(
-                  onChanged: (v) => setState(() => _tagFilter = v.trim()),
+                  // U3 P1-12：防抖 250ms，避免每键 setState 整页重建。
+                  onChanged: (v) =>
+                      _tagFilterDebouncer.run(() => setState(() => _tagFilter = v.trim())),
                   decoration: InputDecoration(
                     hintText:
                         AppLocalizations.of(context)?.noteFilterHint ??

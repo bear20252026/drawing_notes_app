@@ -18,6 +18,7 @@ import 'package:drawing_notes_app/features/all_docs/presentation/all_docs_sideba
 import 'package:drawing_notes_app/features/all_docs/presentation/all_doc_row.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/tags_view.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/shared/utils/search_debouncer.dart';
 part 'all_docs_page_widgets.dart';
 part 'all_docs_page_mobile.dart';
 
@@ -87,6 +88,7 @@ class _AllDocsPageState extends State<AllDocsPage> {
   void dispose() {
     widget.refreshSignal?.removeListener(_onDataVersionChanged);
     _mobileSearchController.dispose();
+    _searchDebouncer.dispose();
     super.dispose();
   }
 
@@ -95,6 +97,10 @@ class _AllDocsPageState extends State<AllDocsPage> {
 
   /// 搜索词（快速搜索框）。
   String _query = '';
+
+  /// U3 搜索防抖（P1-12）：输入停顿后才触发整页过滤，输入本身由
+  /// TextEditingController 驱动不经过 setState。
+  final SearchDebouncer _searchDebouncer = SearchDebouncer();
 
   // ---- 移动端单栏视图状态（all_docs_page_mobile.dart 使用）----
 
@@ -186,7 +192,8 @@ class _AllDocsPageState extends State<AllDocsPage> {
         AllDocsSidebar(
           onOpenTrash: widget.onOpenTrash,
           searchQuery: _query,
-          onSearchChanged: (q) => setState(() => _query = q),
+          onSearchChanged: (q) =>
+              _searchDebouncer.run(() => setState(() => _query = q)),
           selectedNavIndex: _tabIndex,
           onNavSelected: (i) => setState(() {
             // 侧栏前三项与 Tab 一一对应：全部文档/收藏夹/标签。
