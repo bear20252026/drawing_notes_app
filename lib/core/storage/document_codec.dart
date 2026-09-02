@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:isolate';
 import 'dart:typed_data';
 import 'dart:ui' show Color;
 
@@ -32,8 +33,16 @@ class DocumentCodec {
   static const int _version = latestVersion;
 
   /// 序列化为 JSON 字节。
-  Uint8List encode(DrawingDocument doc) {
-    final map = <String, dynamic>{
+  Uint8List encode(DrawingDocument doc) => encodeSnapshot(snapshotOf(doc));
+
+  /// 主线程快照：把可变文档一次性读成纯 Dart Map。
+  ///
+  /// U2 优化（2026-09-02，P1-10）：保存路径先在主线程取不可变快照
+  /// （保证语义与原同步 encode 相同——编辑器继续修改 doc 不影响队列中
+  /// 的本次保存），随后把纯 Map 送入 isolate 编码，主线程不再承担
+  /// jsonEncode + UTF-8 的大文档开销。
+  static Map<String, dynamic> snapshotOf(DrawingDocument doc) {
+    return <String, dynamic>{
       'version': _version,
       'document': {
         'id': doc.id,
@@ -50,9 +59,41 @@ class DocumentCodec {
         'imageItems': doc.imageItems.map((item) => item.toJson()).toList(),
       },
     };
+  }
+
+  /// 把快照 Map 编码为 JSON 字节。纯静态纯函数，可安全跑在 isolate 中。
+  static Uint8List encodeSnapshot(Map<String, dynamic> snapshot) {
     return Uint8List.fromList(
-      utf8.encode(const JsonEncoder.withIndent('  ').convert(map)),
+      utf8.encode(const JsonEncoder.withIndent('  ').convert(snapshot)),
     );
+  }
+
+  /// 异步序列化：小文档直接主线程编码（避免 isolate 往返开销），
+  /// 达到 [isolateEncodeThreshold] 笔画量的文档在 isolate 编码。
+  ///
+  /// 快照 [snapshot] 为纯 Map/List/String/num，可安全跨 isolate 传递。
+  static Future<Uint8List> encodeSnapshotAsync(Map<String, dynamic> snapshot) {
+    final doc = snapshot['document'];
+    final layers = doc is Map ? doc['layers'] : null;
+    final strokeCount = _countStrokes(layers);
+    if (strokeCount < isolateEncodeThreshold) {
+      return Future.value(encodeSnapshot(snapshot));
+    }
+    return Isolate.run(() => encodeSnapshot(snapshot));
+  }
+
+  /// isolate 编码阈值：低于该笔画量时 isolate 往返（拷贝 + spawn）
+  /// 开销大于收益，直接主线程编码。
+  static const int isolateEncodeThreshold = 2000;
+
+  static int _countStrokes(Object? layers) {
+    if (layers is! List) return 0;
+    var total = 0;
+    for (final layer in layers) {
+      final strokes = layer is Map ? layer['strokes'] : null;
+      if (strokes is List) total += strokes.length;
+    }
+    return total;
   }
 
   /// 从 JSON 字节反序列化并执行防御性恢复。

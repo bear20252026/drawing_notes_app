@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:drawing_notes_app/core/canvas_model/document_image_item.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
+import 'package:drawing_notes_app/shared/utils/image_decode_cap.dart';
 
 /// 文档图片的运行时解码缓存。
 ///
@@ -98,6 +99,10 @@ class DocumentImageCache {
 /// 批次①c：先经 DNV 嗅探读字节（保险库密文解密 / 锁定抛
 /// [VaultFileLockException]——由 [_decodeAndStore] 吞掉保留可编辑性），
 /// 明文/DAN 由 readImageBytes 原样返回，再走既有 descriptor 解码。
+///
+/// U2 降采样（2026-09-02，P1-13）：长边超过 [ImageDecodeCap.canvasMaxLongEdge]
+/// 时解码阶段直接缩图——画布可深度缩放故上限放宽到 4096，极端照片
+/// （8000px+）的解码内存仍被钳制。
 Future<ui.Image> _decodeImageFile(String filePath) async {
   ui.ImmutableBuffer? buffer;
   ui.ImageDescriptor? descriptor;
@@ -106,7 +111,15 @@ Future<ui.Image> _decodeImageFile(String filePath) async {
     final bytes = await VaultFileCodec.readImageBytes(File(filePath));
     buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
     descriptor = await ui.ImageDescriptor.encoded(buffer);
-    codec = await descriptor.instantiateCodec();
+    final target = ImageDecodeCap.targetSize(
+      descriptor.width,
+      descriptor.height,
+      ImageDecodeCap.canvasMaxLongEdge,
+    );
+    codec = await descriptor.instantiateCodec(
+      targetWidth: target.width,
+      targetHeight: target.height,
+    );
     final frame = await codec.getNextFrame();
     return frame.image;
   } finally {

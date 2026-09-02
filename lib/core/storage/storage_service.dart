@@ -1,6 +1,7 @@
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 
@@ -317,11 +318,16 @@ class StorageService implements DocumentRepository {
     }
     // 在进入异步队列前编码出不可变快照。编辑器继续修改 doc 时，队列中的
     // 某次保存仍代表其被请求时的完整版本，而不是可变对象的半成品状态。
-    final data = _codec.encode(doc);
+    // U2 优化（2026-09-02，P1-10）：主线程只构建快照 Map，jsonEncode +
+    // UTF-8 交给 isolate（大文档时），保存瞬间不再阻塞 UI。
+    final snapshot = DocumentCodec.snapshotOf(doc);
     final id = doc.id;
     final previous = _writeTails[id] ?? Future<void>.value();
     late final Future<void> operation;
-    operation = previous.catchError((_) {}).then((_) => _saveEncoded(id, data));
+    operation = previous.catchError((_) {}).then((_) async {
+      final data = await DocumentCodec.encodeSnapshotAsync(snapshot);
+      await _saveEncoded(id, data);
+    });
     _writeTails[id] = operation;
     return operation
         .whenComplete(() {
@@ -343,25 +349,42 @@ class StorageService implements DocumentRepository {
     return provider();
   }
 
+  /// isolate 加密封包的字节阈值：小于该值时主线程同步封包（isolate
+  /// 拷贝往返开销大于收益），大载荷移入 isolate 避免 UI 掉帧。
+  static const int _isolateSealThreshold = 64 * 1024;
+
   /// 写入前的字节准备（批次② 三级分流）：
   /// ① 会话有文件密码 → v3 双保护器信封（N4 批 2：复用会话 DEK——
   ///    重置盘槽位跨保存持续有效）；
   /// ② 无文件密码 + 有主密钥 → v1 主密钥信封（AAD 绑定文档 ID）；
   /// ③ 均无 → 明文兼容（旧数据行为）。
+  ///
+  /// U2 优化（2026-09-02，P1-10）：≥64KB 的载荷在 isolate 内完成
+  /// AES-GCM 封包（参数均为可跨 isolate 传递的纯数据），加密期间的
+  /// 字节处理不再占用主线程。
   Future<Uint8List> _sealDocBytes(String id, Uint8List data) async {
     final filePassword = _sessionFilePasswords[id];
     if (filePassword != null) {
-      return VaultFileCodec.encryptWithPasswordV3(
+      final dek = _sessionDocDeks[id];
+      final usbWrapped = _sessionFileUsbWrapped[id];
+      Future<Uint8List> seal() => VaultFileCodec.encryptWithPasswordV3(
         data,
         filePassword,
         aadContext: 'doc:$id',
-        dek: _sessionDocDeks[id],
-        usbWrapped: _sessionFileUsbWrapped[id],
+        dek: dek,
+        usbWrapped: usbWrapped,
       );
+      if (data.length < _isolateSealThreshold) return seal();
+      return Isolate.run(seal);
     }
     final key = await _currentKey();
     if (key == null) return data;
-    return VaultFileCodec.encrypt(data, key, aadContext: 'doc:$id');
+    if (data.length < _isolateSealThreshold) {
+      return VaultFileCodec.encrypt(data, key, aadContext: 'doc:$id');
+    }
+    return Isolate.run(
+      () => VaultFileCodec.encrypt(data, key, aadContext: 'doc:$id'),
+    );
   }
 
   /// 媒体字节写入前准备（批次①c：缩略图 / 受管图片）：有主密钥 →

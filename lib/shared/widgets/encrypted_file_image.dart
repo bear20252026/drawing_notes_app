@@ -7,6 +7,7 @@ import 'package:flutter/painting.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
+import 'package:drawing_notes_app/shared/utils/image_decode_cap.dart';
 
 /// 加密媒体图片渲染（H-03 双端接入 2026-08-15）。
 ///
@@ -44,35 +45,45 @@ class EncryptedFileImage extends ImageProvider<EncryptedFileImage> {
     ImageDecoderCallback decode,
   ) async {
     assert(key == this);
+    final clear = await _readClearBytes(key);
+    if (clear.isEmpty) {
+      PaintingBinding.instance.imageCache.evict(key);
+      throw StateError('$file 无法加载为图片');
+    }
+    final buffer = await ui.ImmutableBuffer.fromUint8List(clear);
+    // U2 降采样（P1-13）：长边超限时经 getTargetSize 让解码器直接产出
+    // 目标尺寸位图（只缩不放大），原图不再全分辨率进内存。
+    return decode(
+      buffer,
+      getTargetSize: (intrinsicWidth, intrinsicHeight) {
+        final target = ImageDecodeCap.targetSize(
+          intrinsicWidth,
+          intrinsicHeight,
+          ImageDecodeCap.defaultMaxLongEdge,
+        );
+        return ui.TargetImageSize(width: target.width, height: target.height);
+      },
+    );
+  }
+
+  /// 三通道读明文字节（U2 重构抽取，行为与原实现逐字节一致）。
+  Future<Uint8List> _readClearBytes(EncryptedFileImage key) async {
     // 媒体 VFS 双轨（2026-08-16）：'vfs:' 前缀对象（新媒体——VaultService
     // 解密明文）→ 直接渲染；否则文件路径（旧媒体——DAN 检测兼容——
     // s3-encryption-gateway 双读窗口模式）。
     final path = key.file.path;
     if (path.startsWith('vfs:')) {
       final clear = await VaultService.instance.getObject(path.substring(4));
-      if (clear.isEmpty) {
-        PaintingBinding.instance.imageCache.evict(key);
-        throw StateError('$file 无法加载为图片（VFS 对象）');
-      }
-      final buffer = await ui.ImmutableBuffer.fromUint8List(clear);
-      return decode(buffer);
+      return clear;
     }
     final bytes = await key.file.readAsBytes();
     // 批次①c 三级嗅探：DNV 信封（保险库主密钥）→ 解密（锁定抛
     // [VaultFileLockException]——fail-closed）；DAN 密文 → 解密；
     // 明文（旧数据/未加密）→ 原样返回。
-    final Uint8List clear;
     if (VaultFileCodec.isEncrypted(bytes)) {
-      clear = await VaultFileCodec.readImageBytes(key.file);
-    } else {
-      clear = await MediaCryptoService.instance.readMediaFile(bytes);
+      return VaultFileCodec.readImageBytes(key.file);
     }
-    if (clear.isEmpty) {
-      PaintingBinding.instance.imageCache.evict(key);
-      throw StateError('$file 无法加载为图片');
-    }
-    final buffer = await ui.ImmutableBuffer.fromUint8List(clear);
-    return decode(buffer);
+    return MediaCryptoService.instance.readMediaFile(bytes);
   }
 
   @override

@@ -341,13 +341,26 @@ class StrokeRenderer {
     return stroke.width * (minWidthFactor + (1 - minWidthFactor) * p);
   }
 
-  /// 计算一条笔画的保守包围盒，用于增量脏矩形重建。
+  /// 计算一条笔画的保守包围盒，用于增量脏矩形重建与视口剔除。
+  ///
+  /// U2 性能优化（2026-09-02）：包围盒随轮廓缓存条目一起缓存（按
+  /// [Stroke.geometryRevision] 校验）——剔除路径每帧对全部笔画查询包围盒，
+  /// 不缓存则 O(点数) 的遍历本身就会吃掉剔除省下的开销。
   ///
   /// 轮廓会在原始点列外扩至最多一个基础线宽半径，另加入抗锯齿和曲线过冲
   /// 余量，防止粗笔快速转向时被局部重建裁剪。
   static Rect? strokeBounds(Stroke stroke) {
     final points = stroke.points;
     if (points.isEmpty) return null;
+    var entry = _outlineCache[stroke];
+    if (entry == null || entry.revision != stroke.geometryRevision) {
+      entry = _StrokeOutlineCacheEntry(stroke.geometryRevision);
+      _outlineCache[stroke] = entry;
+    }
+    return entry.bounds ??= _computeStrokeBounds(stroke, points);
+  }
+
+  static Rect _computeStrokeBounds(Stroke stroke, List<StrokePoint> points) {
     var minX = double.infinity;
     var minY = double.infinity;
     var maxX = -double.infinity;
@@ -387,4 +400,8 @@ class _StrokeOutlineCacheEntry {
 
   Path? withPressure;
   Path? withoutPressure;
+
+  /// 保守包围盒（U2 2026-09-02）：与轮廓同版本缓存，供视口剔除与
+  /// 脏矩形计算零成本查询。
+  Rect? bounds;
 }

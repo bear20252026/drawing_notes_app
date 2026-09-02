@@ -87,8 +87,18 @@ class CanvasPainter extends CustomPainter {
 
     // 3. 独立绘图文档的图片元素。位图由控制器惰性解码并缓存；首次加载
     // 完成后会仅刷新画布，避免整个编辑器因大图解码而卡顿。
-    final images = List.of(doc.imageItems)
-      ..sort((a, b) => a.zOrder.compareTo(b.zOrder));
+    // U2 优化（2026-09-02，P1-14）：paint 每帧执行，List.of + sort 的
+    // 分配与 O(n log n) 排序纯浪费——先 O(n) 检查是否已按 zOrder 有序
+    // （新增图片走递增 zOrder，绝大多数帧已有序），仅乱序时才拷贝排序。
+    final imageItems = doc.imageItems;
+    var images = imageItems;
+    for (var i = 1; i < imageItems.length; i++) {
+      if (imageItems[i - 1].zOrder.compareTo(imageItems[i].zOrder) > 0) {
+        images = List.of(imageItems)
+          ..sort((a, b) => a.zOrder.compareTo(b.zOrder));
+        break;
+      }
+    }
     for (final item in images) {
       final image = controller.documentImage(item);
       if (image == null) continue;

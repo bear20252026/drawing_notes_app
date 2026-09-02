@@ -360,12 +360,23 @@ class DrawingController extends ChangeNotifier
       // 此前 opacity=1 时直接在主画布上绘制，clear 会把主画布连同
       // 纸面背景一起清穿，露出底层黑色（表现为"橡皮擦画出黑色线条"）。
       // 统一 saveLayer 隔离后，clear 只清除本图层墨迹，露出纸面。
-      canvas.saveLayer(
-        bounds,
-        Paint()..color = Color.fromRGBO(0, 0, 0, layer.opacity),
-      );
+      //
+      // U2 优化（2026-09-02，P1-8）：saveLayer 是每层每帧一次的全屏
+      // 离屏合成，只在确有必要（半透明层或含橡皮擦）时建立；普通不
+      // 透明纯书写层的 srcOver 直接落在主画布上，视觉完全等价。
+      final needsIsolation =
+          layer.opacity < 1 ||
+          strokes.any((stroke) => stroke.type == BrushType.eraser);
+      if (needsIsolation) {
+        canvas.saveLayer(
+          bounds,
+          Paint()..color = Color.fromRGBO(0, 0, 0, layer.opacity),
+        );
+      }
       InkLayerPainter.paintStrokes(canvas, bounds, strokes);
-      canvas.restore();
+      if (needsIsolation) {
+        canvas.restore();
+      }
     }
   }
 

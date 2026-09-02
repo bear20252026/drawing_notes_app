@@ -15,18 +15,34 @@ class InkLayerPainter {
   ///
   /// 为确保文字/普通笔画可读，所有高亮笔始终先绘制；橡皮擦则保留在
   /// 普通队列中，依序以 [BlendMode.clear] 作用于已合成的内容。
+  ///
+  /// U2 视口剔除（2026-09-02，P1-8）：包围盒与 [bounds]（调用方的裁剪
+  /// 范围）不相交的笔画直接跳过——包围盒由 StrokeRenderer 缓存，剔除
+  /// 查询为 O(1)/条。所有调用方传入的都是裁剪/页界语义，剔除恒安全。
   static void paintStrokes(
     Canvas canvas,
     Rect bounds,
     Iterable<Stroke> strokes,
   ) {
-    final plan = InkRenderPlan.fromStrokes(strokes);
+    final visible = cullStrokes(strokes, bounds);
+    final plan = InkRenderPlan.fromStrokes(visible);
     for (final strokesForColor in plan.markerGroups) {
       _paintMarkerColorGroup(canvas, bounds, strokesForColor);
     }
     for (final stroke in plan.normalStrokes) {
       StrokeRenderer.drawStroke(canvas, stroke);
     }
+  }
+
+  /// 纯函数剔除：返回包围盒与 [clip] 相交的笔画（可测试，无图形后端）。
+  static List<Stroke> cullStrokes(Iterable<Stroke> strokes, Rect clip) {
+    return strokes
+        .where((stroke) => StrokeRenderer.strokeBounds(stroke)
+            ?.overlaps(clip)
+            ??
+            // 无点笔画（空点列）不产生视觉输出，剔除安全。
+            false)
+        .toList(growable: false);
   }
 
   /// 绘制正在书写的单条笔画。
