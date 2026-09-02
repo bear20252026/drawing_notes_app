@@ -187,6 +187,101 @@ class _ThumbPlaceholder extends StatelessWidget {
   }
 }
 
+/// 画布 tab 区段标题（W1 归位：无限画布 / 分页画布两分组）。
+class _CanvasSectionHeader extends StatelessWidget {
+  const _CanvasSectionHeader(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppDesign.pagePadding, 16, 16, 0),
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 分页画布卡片（W1 归位：整本粒度——图标 + 标题 + 页数/锁态副标题）。
+/// 打开走 shell 统一解锁链路；页级管理与删除在分页画布页内进行。
+class _NotebookCard extends StatelessWidget {
+  const _NotebookCard({
+    required this.notebook,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final Notebook notebook;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final locked = notebook.isLockedPlaceholder ||
+        (notebook.encrypted && notebook.pages.isEmpty);
+    return Semantics(
+      button: true,
+      label: '打开分页画布 ${notebook.title}',
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.auto_stories_rounded,
+                      size: 22,
+                      color: scheme.primary,
+                    ),
+                    if (locked) ...[
+                      const SizedBox(width: 6),
+                      Icon(
+                        Icons.lock_rounded,
+                        size: 16,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ],
+                  ],
+                ),
+                const Spacer(),
+                Text(
+                  notebook.title.isEmpty ? '未命名' : notebook.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// 通用名称输入对话框。
 class _NameDialog extends StatefulWidget {
   const _NameDialog({required this.title});

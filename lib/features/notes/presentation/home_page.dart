@@ -47,10 +47,11 @@ part 'home_page_tabs.dart';
 
 /// 首页：画布（无限画布 / 分页画布）/ 笔记 两分栏列表管理。
 ///
-/// 三个主工作区：
-/// - 无限画布：独立图形、关系图和自由绘制作品；
-/// - 分页画布：带纸张模板、文字和资料混排的多页文档（旧「笔记本」）；
-/// - 笔记：直接打字的块文档（旧「打字笔记」）。
+/// 三个主工作区（W1 归位 2026-09-02）：
+/// - 画布 tab：「无限画布」（独立图形、关系图和自由绘制）与
+///   「分页画布」（多页装订画册，旧「笔记本」——**整本粒度**展示，
+///   不再以页粒度混入笔记 tab）；
+/// - 笔记 tab：「笔记」（直接打字的块文档）。
 ///
 /// 能力：
 /// - 新建画布（弹两选项：新建无限画布 / 新建分页画布）/ 新建笔记
@@ -66,6 +67,7 @@ class HomePage extends StatefulWidget {
     this.docStorage,
     this.editorPageBuilder,
     this.loadDocs,
+    this.loadNotebooks,
     this.onOpenDoc,
     this.blockDocStore,
     this.onDataChanged,
@@ -81,9 +83,13 @@ class HomePage extends StatefulWidget {
   final ValueListenable<int>? refreshSignal;
 
   /// 统一数据源（M12.4）：与 All Docs 共用同一装配 loader（buildAllDocs 三源）。
-  /// 笔记 Tab 数据 = 装配结果中 kind∈{note, blockdoc} 的条目——
+  /// 笔记 Tab 数据 = 装配结果中 kind==blockdoc 的条目——
   /// 从根本上保证两处列表一致（用户反馈的"页面列表不同步"根因即双源分裂）。
   final Future<AllDocQueryResult> Function()? loadDocs;
+
+  /// 分页画布整本 loader（W1 归位）：与 loadDocs 同注入先例——
+  /// 生产由 shell 注入 notebookStorage.listAll，测试注入假源保 FakeAsync 安全。
+  final Future<List<Notebook>> Function()? loadNotebooks;
 
   /// 块文档存储（R2 列表同步修复）：注入 shell 同一实例——
   /// 自建实例会导致 AllDocs 侧 listDocHeaders 缓存不失效（新笔记不显示）。
@@ -107,6 +113,10 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
 
   List<AllDoc> _notes = [];
   List<DocumentMeta> _documents = [];
+
+  /// 分页画布（整本粒度，W1 归位）：画布 tab 展示，按 updatedAt desc。
+  /// 含保险库锁定占位（isLockedPlaceholder）与文件密码受密未解锁条目。
+  List<Notebook> _notebooks = [];
   bool _loading = true;
   String? _error;
   int _tabIndex = 0;
@@ -161,15 +171,24 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     });
     try {
       final docs = await _docStorage.listDocuments();
-      // 统一数据源（M12.4）：与 All Docs 同一装配；无 loader 时退回块文档单源。
+      // W1 归位（2026-09-02）：分页画布整本列表——画布 tab 展示。
+      final List<Notebook> notebooks;
+      if (widget.loadNotebooks != null) {
+        notebooks = await widget.loadNotebooks!();
+      } else {
+        notebooks = await _nbStorage.listAll();
+      }
+      // 拷贝后排序：loader 可能返回 const/不可变列表。
+      final sortedNotebooks = notebooks.toList()
+        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      // 统一数据源（M12.4）：与 All Docs 同一装配；W1 起笔记 tab 只收
+      // blockdoc（分页画布整本已归位画布 tab，页粒度条目不再混入）。
       List<AllDoc> notes;
       final loader = widget.loadDocs;
       if (loader != null) {
         final result = await loader();
         notes = result.docs
-            .where(
-              (d) => d.kind == AllDocKind.note || d.kind == AllDocKind.blockdoc,
-            )
+            .where((d) => d.kind == AllDocKind.blockdoc)
             .toList(growable: false);
       } else {
         final noteIds = await _blockDocStore.listIds();
@@ -200,6 +219,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
       if (!mounted) return;
       setState(() {
         _documents = docs;
+        _notebooks = sortedNotebooks;
         _notes = notes;
         _loading = false;
       });

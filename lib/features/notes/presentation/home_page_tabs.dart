@@ -23,10 +23,12 @@ extension _HomePageTabs on _HomePageState {
     return TabBarView(children: [_buildDrawingsTab(), _buildNotesTab()]);
   }
 
-  // ---------------- 画布 Tab ----------------
+  // ---------------- 画布 Tab（W1 归位：无限画布 + 分页画布整本） ----------------
 
   Widget _buildDrawingsTab() {
-    if (_documents.isEmpty) {
+    final hasCanvas = _documents.isNotEmpty;
+    final hasNotebook = _notebooks.isNotEmpty;
+    if (!hasCanvas && !hasNotebook) {
       return const Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -40,30 +42,115 @@ extension _HomePageTabs on _HomePageState {
     }
     return RefreshIndicator(
       onRefresh: _refresh,
-      child: GridView.builder(
+      child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(
-          AppDesign.pagePadding,
-          12,
-          AppDesign.pagePadding,
-          96,
-        ),
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 256,
-          childAspectRatio: 0.82,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-        ),
-        itemCount: _documents.length,
-        itemBuilder: (context, i) => _DrawingCard(
-          meta: _documents[i],
-          documentStorage: _docStorage,
-          onTap: () => _openDrawing(_documents[i]),
-          onDelete: () => _deleteDrawing(_documents[i]),
-          onPasswordAction: () => _showDrawingPasswordSheet(_documents[i]),
+        slivers: [
+          if (hasCanvas) ...[
+            const SliverToBoxAdapter(child: _CanvasSectionHeader('无限画布')),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppDesign.pagePadding,
+                8,
+                AppDesign.pagePadding,
+                0,
+              ),
+              sliver: SliverGrid(
+                gridDelegate:
+                    const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 256,
+                      childAspectRatio: 0.82,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                    ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, i) => _DrawingCard(
+                    meta: _documents[i],
+                    documentStorage: _docStorage,
+                    onTap: () => _openDrawing(_documents[i]),
+                    onDelete: () => _deleteDrawing(_documents[i]),
+                    onPasswordAction: () =>
+                        _showDrawingPasswordSheet(_documents[i]),
+                  ),
+                  childCount: _documents.length,
+                ),
+              ),
+            ),
+          ],
+          if (hasNotebook) ...[
+            const SliverToBoxAdapter(
+              child: _CanvasSectionHeader('分页画布'),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppDesign.pagePadding,
+                8,
+                AppDesign.pagePadding,
+                0,
+              ),
+              sliver: SliverGrid(
+                gridDelegate:
+                    const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 256,
+                      childAspectRatio: 0.82,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                    ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, i) => _NotebookCard(
+                    notebook: _notebooks[i],
+                    subtitle: _notebookSubtitle(_notebooks[i]),
+                    onTap: () => _openNotebook(_notebooks[i]),
+                  ),
+                  childCount: _notebooks.length,
+                ),
+              ),
+            ),
+          ],
+          const SliverPadding(padding: EdgeInsets.only(bottom: 96)),
+        ],
+      ),
+    );
+  }
+
+  /// 分页画布卡片副标题：锁定（占位/文件密码未解锁）不泄露页数。
+  String _notebookSubtitle(Notebook nb) {
+    final time = _formatTime(nb.updatedAt);
+    final locked =
+        nb.isLockedPlaceholder || (nb.encrypted && nb.pages.isEmpty);
+    if (locked) return '已加密 · 更新于 $time';
+    return '${nb.pages.length} 页 · 更新于 $time';
+  }
+
+  /// 打开分页画布（整本）：统一走 shell 的 onOpenDoc（复用完整解锁链路）。
+  Future<void> _openNotebook(Notebook nb) async {
+    final doc = AllDoc(
+      id: nb.id,
+      title: nb.title,
+      kind: AllDocKind.note,
+      folder: '',
+      createdAt: nb.createdAt,
+      updatedAt: nb.updatedAt,
+      notebookId: nb.id,
+      locked: nb.isLockedPlaceholder,
+    );
+    if (widget.onOpenDoc != null) {
+      widget.onOpenDoc!(doc);
+      return;
+    }
+    // 无宿主回调时兜底直推（测试/独立装配场景；生产恒走 onOpenDoc）。
+    final loaded = await _nbStorage.load(nb.id);
+    if (loaded == null || !mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => NotebookViewPage(
+          notebook: loaded,
+          storage: _nbStorage,
+          blockDocStore: _blockDocStore,
+          editorPageBuilder: widget.editorPageBuilder,
         ),
       ),
     );
+    await _refresh();
   }
 
   // ---------------- 笔记 Tab（M12：笔记本=笔记）----------------

@@ -204,6 +204,11 @@ class _AppShellState extends State<AppShell> {
       onDataChanged: _services.bumpDataVersion,
       // M12.4 统一数据源：首页笔记 Tab 与 All Docs 共用同一装配与打开路径。
       loadDocs: _loadAllDocs,
+      // W1 归位（2026-09-02）：分页画布整本 loader——画布 tab 展示。
+      loadNotebooks: () async {
+        final storage = widget.notebookStorage;
+        return storage == null ? const <Notebook>[] : storage.listAll();
+      },
       onOpenDoc: _openAllDoc,
     ),
     // 2. 日历（M11.2：纯待办/日程——文档时间线并入主页，功能去重）
