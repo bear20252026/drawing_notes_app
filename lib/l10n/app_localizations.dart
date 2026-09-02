@@ -122,12 +122,6 @@ abstract class AppLocalizations {
   /// **'Close'**
   String get close;
 
-  /// Create notebook action
-  ///
-  /// In en, this message translates to:
-  /// **'New paged canvas'**
-  String get newNotebook;
-
   /// Delete action
   ///
   /// In en, this message translates to:
@@ -169,18 +163,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get homeCancel;
-
-  /// Theme toggle tooltip
-  ///
-  /// In en, this message translates to:
-  /// **'Switch appearance (system / light / dark)'**
-  String get homeSwitchTheme;
-
-  /// More actions tooltip
-  ///
-  /// In en, this message translates to:
-  /// **'More options'**
-  String get homeMore;
 
   /// Undo action
   ///
@@ -272,78 +254,6 @@ abstract class AppLocalizations {
   /// **'Filter by tag or keyword'**
   String get noteFilterHint;
 
-  /// Encryption choice dialog title
-  ///
-  /// In en, this message translates to:
-  /// **'Choose encryption method'**
-  String get noteEncryptionChoice;
-
-  /// Password option title
-  ///
-  /// In en, this message translates to:
-  /// **'Memory password'**
-  String get noteMemoryPassword;
-
-  /// Password option subtitle
-  ///
-  /// In en, this message translates to:
-  /// **'Set a password; enter it to decrypt when opening'**
-  String get noteMemoryPasswordSub;
-
-  /// Keyfile option title
-  ///
-  /// In en, this message translates to:
-  /// **'USB key (password disk)'**
-  String get noteUsbKey;
-
-  /// Keyfile option subtitle
-  ///
-  /// In en, this message translates to:
-  /// **'USB is the key: unlock by plugging in, lock on removal (zero knowledge)'**
-  String get noteUsbKeySub;
-
-  /// Recovery key dialog title
-  ///
-  /// In en, this message translates to:
-  /// **'Save your recovery key (very important!)'**
-  String get noteRecoveryKeyTitle;
-
-  /// Recovery key acknowledge button
-  ///
-  /// In en, this message translates to:
-  /// **'I have copied it'**
-  String get diskCopied;
-
-  /// PIN protection choice title
-  ///
-  /// In en, this message translates to:
-  /// **'Enable PIN protection?'**
-  String get diskPinProtection;
-
-  /// Do not enable PIN
-  ///
-  /// In en, this message translates to:
-  /// **'No'**
-  String get diskNoPin;
-
-  /// Enable PIN
-  ///
-  /// In en, this message translates to:
-  /// **'Enable'**
-  String get diskYesPin;
-
-  /// PIN input dialog title
-  ///
-  /// In en, this message translates to:
-  /// **'Enter password disk PIN'**
-  String get diskEnterPin;
-
-  /// Confirm button
-  ///
-  /// In en, this message translates to:
-  /// **'OK'**
-  String get diskConfirm;
-
   /// Search page title
   ///
   /// In en, this message translates to:
@@ -416,12 +326,6 @@ abstract class AppLocalizations {
   /// **'Italic (Ctrl+I)'**
   String get editorItalic;
 
-  /// PIN protection explanation
-  ///
-  /// In en, this message translates to:
-  /// **'After enabling, the master key is stored encrypted with a PIN (OWASP KEK mode); a lost USB drive cannot expose it directly. Unlocking requires entering the PIN.'**
-  String get diskPinInfo;
-
   /// Export PDF menu item
   ///
   /// In en, this message translates to:
@@ -451,12 +355,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Underline (Ctrl+U)'**
   String get editorUnderline;
-
-  /// PDF preview tooltip
-  ///
-  /// In en, this message translates to:
-  /// **'Page preview (A4 pagination)'**
-  String get editorPdfPreview;
 
   /// Paste values hint
   ///
@@ -499,48 +397,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Page preview {title}'**
   String editorPagePreviewTitle(String title);
-
-  /// Blank paper template name
-  ///
-  /// In en, this message translates to:
-  /// **'Blank'**
-  String get paperBlank;
-
-  /// Grid paper template name
-  ///
-  /// In en, this message translates to:
-  /// **'Grid'**
-  String get paperGrid;
-
-  /// Lined paper template name
-  ///
-  /// In en, this message translates to:
-  /// **'Lined'**
-  String get paperLined;
-
-  /// Dot grid paper template name
-  ///
-  /// In en, this message translates to:
-  /// **'Dot grid'**
-  String get paperDot;
-
-  /// Paper template tooltip
-  ///
-  /// In en, this message translates to:
-  /// **'Paper template: {type} (click to switch)'**
-  String editorPaperTemplate(String type);
-
-  /// Shape fill enabled tooltip
-  ///
-  /// In en, this message translates to:
-  /// **'Shape fill: on (new shapes filled by default)'**
-  String get editorShapeFillOn;
-
-  /// Shape fill disabled tooltip
-  ///
-  /// In en, this message translates to:
-  /// **'Shape fill: off (new shapes filled by default)'**
-  String get editorShapeFillOff;
 }
 
 class _AppLocalizationsDelegate

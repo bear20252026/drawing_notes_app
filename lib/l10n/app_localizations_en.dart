@@ -21,9 +21,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get close => 'Close';
 
   @override
-  String get newNotebook => 'New paged canvas';
-
-  @override
   String get delete => 'Delete';
 
   @override
@@ -45,12 +42,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeCancel => 'Cancel';
-
-  @override
-  String get homeSwitchTheme => 'Switch appearance (system / light / dark)';
-
-  @override
-  String get homeMore => 'More options';
 
   @override
   String get editorUndo => 'Undo';
@@ -98,44 +89,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noteFilterHint => 'Filter by tag or keyword';
 
   @override
-  String get noteEncryptionChoice => 'Choose encryption method';
-
-  @override
-  String get noteMemoryPassword => 'Memory password';
-
-  @override
-  String get noteMemoryPasswordSub =>
-      'Set a password; enter it to decrypt when opening';
-
-  @override
-  String get noteUsbKey => 'USB key (password disk)';
-
-  @override
-  String get noteUsbKeySub =>
-      'USB is the key: unlock by plugging in, lock on removal (zero knowledge)';
-
-  @override
-  String get noteRecoveryKeyTitle => 'Save your recovery key (very important!)';
-
-  @override
-  String get diskCopied => 'I have copied it';
-
-  @override
-  String get diskPinProtection => 'Enable PIN protection?';
-
-  @override
-  String get diskNoPin => 'No';
-
-  @override
-  String get diskYesPin => 'Enable';
-
-  @override
-  String get diskEnterPin => 'Enter password disk PIN';
-
-  @override
-  String get diskConfirm => 'OK';
-
-  @override
   String get searchTitle => 'Full-text search';
 
   @override
@@ -175,10 +128,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editorItalic => 'Italic (Ctrl+I)';
 
   @override
-  String get diskPinInfo =>
-      'After enabling, the master key is stored encrypted with a PIN (OWASP KEK mode); a lost USB drive cannot expose it directly. Unlocking requires entering the PIN.';
-
-  @override
   String get editorExportPdf => 'Export PDF';
 
   @override
@@ -192,9 +141,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get editorUnderline => 'Underline (Ctrl+U)';
-
-  @override
-  String get editorPdfPreview => 'Page preview (A4 pagination)';
 
   @override
   String get editorPasteValues =>
@@ -223,29 +169,4 @@ class AppLocalizationsEn extends AppLocalizations {
   String editorPagePreviewTitle(String title) {
     return 'Page preview $title';
   }
-
-  @override
-  String get paperBlank => 'Blank';
-
-  @override
-  String get paperGrid => 'Grid';
-
-  @override
-  String get paperLined => 'Lined';
-
-  @override
-  String get paperDot => 'Dot grid';
-
-  @override
-  String editorPaperTemplate(String type) {
-    return 'Paper template: $type (click to switch)';
-  }
-
-  @override
-  String get editorShapeFillOn =>
-      'Shape fill: on (new shapes filled by default)';
-
-  @override
-  String get editorShapeFillOff =>
-      'Shape fill: off (new shapes filled by default)';
 }

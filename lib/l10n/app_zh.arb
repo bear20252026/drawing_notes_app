@@ -16,10 +16,6 @@
   "@close": {
     "description": "关闭对话框"
   },
-  "newNotebook": "新建分页画布",
-  "@newNotebook": {
-    "description": "新建分页画布操作"
-  },
   "delete": "删除",
   "@delete": {
     "description": "删除操作"
@@ -53,14 +49,6 @@
   "@homeCancel": {
     "description": "取消操作"
   },
-  "homeSwitchTheme": "切换外观（系统 / 浅色 / 深色）",
-  "@homeSwitchTheme": {
-    "description": "主题切换提示"
-  },
-  "homeMore": "更多操作",
-  "@homeMore": {
-    "description": "更多操作提示"
-  },
   "editorUndo": "撤销",
   "editorRedo": "重做",
   "editorShortcutsHelp": "快捷键帮助",
@@ -76,18 +64,6 @@
   "noteImportPdf": "导入 PDF 并逐页批注",
   "noteTidyPages": "批量整理页面",
   "noteFilterHint": "筛选标签或关键词",
-  "noteEncryptionChoice": "选择加密方式",
-  "noteMemoryPassword": "记忆密码",
-  "noteMemoryPasswordSub": "设置密码，打开时输入密码解密",
-  "noteUsbKey": "U盘钥匙（密码盘）",
-  "noteUsbKeySub": "U盘即钥匙：插入 U 盘解锁，拔盘即锁（零知识）",
-  "noteRecoveryKeyTitle": "保存您的恢复密钥（非常重要！）",
-  "diskCopied": "我已抄写",
-  "diskPinProtection": "是否启用 PIN 保护？",
-  "diskNoPin": "不启用",
-  "diskYesPin": "启用",
-  "diskEnterPin": "输入密码盘 PIN",
-  "diskConfirm": "确定",
   "searchTitle": "全文搜索",
   "searchHint": "搜索文字块内容 / 标题…",
   "searchEmptyHint": "输入关键词开始搜索",
@@ -100,25 +76,16 @@
   "editorTextColor": "文字颜色",
   "editorBold": "加粗 (Ctrl+B)",
   "editorItalic": "斜体 (Ctrl+I)",
-  "diskPinInfo": "启用后主密钥经 PIN 加密存储（OWASP KEK 模式），U 盘丢失也无法直接读出；解锁需输入 PIN。",
   "editorExportPdf": "导出 PDF",
   "editorExportJson": "导出 JSON",
   "editorExportPptx": "导出 PPTX",
   "editorExportWord": "导出 Word 兼容文档",
   "editorUnderline": "下划线 (Ctrl+U)",
-  "editorPdfPreview": "分页预览（按 A4 分页）",
   "editorPasteValues": "粘贴数值，用逗号/空格/换行分隔，例如：10, 25, 18, 42, 30",
   "editorImageInsertFail": "插入图片失败：{error}",
   "alignLeft": "左对齐",
   "alignCenter": "居中",
   "alignRight": "右对齐",
   "editorAlignTooltip": "对齐：{name} (Ctrl+E)",
-  "editorPagePreviewTitle": "分页预览 {title}",
-  "paperBlank": "空白",
-  "paperGrid": "网格",
-  "paperLined": "横线",
-  "paperDot": "点阵",
-  "editorPaperTemplate": "纸张模板：{type}（点击切换）",
-  "editorShapeFillOn": "形状填充：开（新建形状默认填充）",
-  "editorShapeFillOff": "形状填充：关（新建形状默认填充）"
+  "editorPagePreviewTitle": "分页预览 {title}"
 }

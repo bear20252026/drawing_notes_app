@@ -16,10 +16,6 @@
   "@close": {
     "description": "Close dialog"
   },
-  "newNotebook": "New paged canvas",
-  "@newNotebook": {
-    "description": "Create notebook action"
-  },
   "delete": "Delete",
   "@delete": {
     "description": "Delete action"
@@ -52,14 +48,6 @@
   "homeCancel": "Cancel",
   "@homeCancel": {
     "description": "Cancel action"
-  },
-  "homeSwitchTheme": "Switch appearance (system / light / dark)",
-  "@homeSwitchTheme": {
-    "description": "Theme toggle tooltip"
-  },
-  "homeMore": "More options",
-  "@homeMore": {
-    "description": "More actions tooltip"
   },
   "editorUndo": "Undo",
   "@editorUndo": {
@@ -121,54 +109,6 @@
   "@noteFilterHint": {
     "description": "Page filter hint"
   },
-  "noteEncryptionChoice": "Choose encryption method",
-  "@noteEncryptionChoice": {
-    "description": "Encryption choice dialog title"
-  },
-  "noteMemoryPassword": "Memory password",
-  "@noteMemoryPassword": {
-    "description": "Password option title"
-  },
-  "noteMemoryPasswordSub": "Set a password; enter it to decrypt when opening",
-  "@noteMemoryPasswordSub": {
-    "description": "Password option subtitle"
-  },
-  "noteUsbKey": "USB key (password disk)",
-  "@noteUsbKey": {
-    "description": "Keyfile option title"
-  },
-  "noteUsbKeySub": "USB is the key: unlock by plugging in, lock on removal (zero knowledge)",
-  "@noteUsbKeySub": {
-    "description": "Keyfile option subtitle"
-  },
-  "noteRecoveryKeyTitle": "Save your recovery key (very important!)",
-  "@noteRecoveryKeyTitle": {
-    "description": "Recovery key dialog title"
-  },
-  "diskCopied": "I have copied it",
-  "@diskCopied": {
-    "description": "Recovery key acknowledge button"
-  },
-  "diskPinProtection": "Enable PIN protection?",
-  "@diskPinProtection": {
-    "description": "PIN protection choice title"
-  },
-  "diskNoPin": "No",
-  "@diskNoPin": {
-    "description": "Do not enable PIN"
-  },
-  "diskYesPin": "Enable",
-  "@diskYesPin": {
-    "description": "Enable PIN"
-  },
-  "diskEnterPin": "Enter password disk PIN",
-  "@diskEnterPin": {
-    "description": "PIN input dialog title"
-  },
-  "diskConfirm": "OK",
-  "@diskConfirm": {
-    "description": "Confirm button"
-  },
   "searchTitle": "Full-text search",
   "@searchTitle": {
     "description": "Search page title"
@@ -217,10 +157,6 @@
   "@editorItalic": {
     "description": "Italic tooltip"
   },
-  "diskPinInfo": "After enabling, the master key is stored encrypted with a PIN (OWASP KEK mode); a lost USB drive cannot expose it directly. Unlocking requires entering the PIN.",
-  "@diskPinInfo": {
-    "description": "PIN protection explanation"
-  },
   "editorExportPdf": "Export PDF",
   "@editorExportPdf": {
     "description": "Export PDF menu item"
@@ -240,10 +176,6 @@
   "editorUnderline": "Underline (Ctrl+U)",
   "@editorUnderline": {
     "description": "Underline tooltip"
-  },
-  "editorPdfPreview": "Page preview (A4 pagination)",
-  "@editorPdfPreview": {
-    "description": "PDF preview tooltip"
   },
   "editorPasteValues": "Paste values separated by commas / spaces / newlines, e.g.: 10, 25, 18, 42, 30",
   "@editorPasteValues": {
@@ -287,38 +219,5 @@
         "type": "String"
       }
     }
-  },
-  "paperBlank": "Blank",
-  "@paperBlank": {
-    "description": "Blank paper template name"
-  },
-  "paperGrid": "Grid",
-  "@paperGrid": {
-    "description": "Grid paper template name"
-  },
-  "paperLined": "Lined",
-  "@paperLined": {
-    "description": "Lined paper template name"
-  },
-  "paperDot": "Dot grid",
-  "@paperDot": {
-    "description": "Dot grid paper template name"
-  },
-  "editorPaperTemplate": "Paper template: {type} (click to switch)",
-  "@editorPaperTemplate": {
-    "description": "Paper template tooltip",
-    "placeholders": {
-      "type": {
-        "type": "String"
-      }
-    }
-  },
-  "editorShapeFillOn": "Shape fill: on (new shapes filled by default)",
-  "@editorShapeFillOn": {
-    "description": "Shape fill enabled tooltip"
-  },
-  "editorShapeFillOff": "Shape fill: off (new shapes filled by default)",
-  "@editorShapeFillOff": {
-    "description": "Shape fill disabled tooltip"
   }
 }

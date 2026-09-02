@@ -21,9 +21,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get close => '关闭';
 
   @override
-  String get newNotebook => '新建分页画布';
-
-  @override
   String get delete => '删除';
 
   @override
@@ -45,12 +42,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get homeCancel => '取消';
-
-  @override
-  String get homeSwitchTheme => '切换外观（系统 / 浅色 / 深色）';
-
-  @override
-  String get homeMore => '更多操作';
 
   @override
   String get editorUndo => '撤销';
@@ -98,42 +89,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noteFilterHint => '筛选标签或关键词';
 
   @override
-  String get noteEncryptionChoice => '选择加密方式';
-
-  @override
-  String get noteMemoryPassword => '记忆密码';
-
-  @override
-  String get noteMemoryPasswordSub => '设置密码，打开时输入密码解密';
-
-  @override
-  String get noteUsbKey => 'U盘钥匙（密码盘）';
-
-  @override
-  String get noteUsbKeySub => 'U盘即钥匙：插入 U 盘解锁，拔盘即锁（零知识）';
-
-  @override
-  String get noteRecoveryKeyTitle => '保存您的恢复密钥（非常重要！）';
-
-  @override
-  String get diskCopied => '我已抄写';
-
-  @override
-  String get diskPinProtection => '是否启用 PIN 保护？';
-
-  @override
-  String get diskNoPin => '不启用';
-
-  @override
-  String get diskYesPin => '启用';
-
-  @override
-  String get diskEnterPin => '输入密码盘 PIN';
-
-  @override
-  String get diskConfirm => '确定';
-
-  @override
   String get searchTitle => '全文搜索';
 
   @override
@@ -170,10 +125,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get editorItalic => '斜体 (Ctrl+I)';
 
   @override
-  String get diskPinInfo =>
-      '启用后主密钥经 PIN 加密存储（OWASP KEK 模式），U 盘丢失也无法直接读出；解锁需输入 PIN。';
-
-  @override
   String get editorExportPdf => '导出 PDF';
 
   @override
@@ -187,9 +138,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get editorUnderline => '下划线 (Ctrl+U)';
-
-  @override
-  String get editorPdfPreview => '分页预览（按 A4 分页）';
 
   @override
   String get editorPasteValues => '粘贴数值，用逗号/空格/换行分隔，例如：10, 25, 18, 42, 30';
@@ -217,27 +165,4 @@ class AppLocalizationsZh extends AppLocalizations {
   String editorPagePreviewTitle(String title) {
     return '分页预览 $title';
   }
-
-  @override
-  String get paperBlank => '空白';
-
-  @override
-  String get paperGrid => '网格';
-
-  @override
-  String get paperLined => '横线';
-
-  @override
-  String get paperDot => '点阵';
-
-  @override
-  String editorPaperTemplate(String type) {
-    return '纸张模板：$type（点击切换）';
-  }
-
-  @override
-  String get editorShapeFillOn => '形状填充：开（新建形状默认填充）';
-
-  @override
-  String get editorShapeFillOff => '形状填充：关（新建形状默认填充）';
 }
