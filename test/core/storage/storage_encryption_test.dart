@@ -32,7 +32,15 @@ void main() {
     // 懒迁移走异步写尾队列：轮询等待落盘（上限 ~2s，防死等）。
     final file = File(docPath(id));
     for (var i = 0; i < 200; i++) {
-      final bytes = await file.readAsBytes();
+      final Uint8List bytes;
+      try {
+        bytes = await file.readAsBytes();
+      } on FileSystemException {
+        // Windows CI 竞态：懒迁移重写正持有文件句柄（errno 32）——瞬态，
+        // 与"明文未迁移"同等对待，等下一轮重试。
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        continue;
+      }
       if (VaultFileCodec.isEncrypted(bytes)) return bytes;
       await Future<void>.delayed(const Duration(milliseconds: 10));
     }
