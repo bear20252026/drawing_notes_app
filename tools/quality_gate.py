@@ -53,6 +53,9 @@ def build_commands(full: bool) -> list[tuple[str, list[str], bool, int]]:
 
 
 def run(cmd: list[str], timeout: int) -> tuple[int, str]:
+    # Skylos SKY-D209/D212（2026-09-02）：禁止 shell=True——cmd 已是 list，
+    # 直接 exec 无 shell 解析层，语义一致且杜绝注入面（工具浮动版本
+    # 新增 taint 规则后此遗留用法开始阻塞门禁）。
     try:
         proc = subprocess.run(
             cmd,
@@ -60,7 +63,7 @@ def run(cmd: list[str], timeout: int) -> tuple[int, str]:
             capture_output=True,
             text=True,
             timeout=timeout,
-            shell=True,
+            shell=False,
             encoding="utf-8",
             errors="replace",
         )
