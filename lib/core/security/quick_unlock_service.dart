@@ -11,6 +11,8 @@
 //   保险库 MK --副本(base64)--> flutter_secure_storage
 //   Windows 底层 = DPAPI：密文绑定当前 Windows 用户账户，换用户/换机器
 //   /偷硬盘都解不开（Chrome/Edge 保存网站密码同款机制）。
+//   Android 底层 = Keystore 体系（flutter_secure_storage 默认实现，
+//   密钥材料保护在 Android Keystore/TEE 内，App 读不到密钥原文）。
 //   - 副本只在「开关打开」时存在；关闭开关立即 clear（关=删，无残留）；
 //   - 文件密码（每个文件独立的 KEK）从不进入本存储——口径天然成立；
 //   - 修改开屏密码（changePin）不换 MK，副本持续有效；
@@ -40,7 +42,7 @@ class QuickUnlockException implements Exception {
 ///
 /// 生产实现 = local_auth：Windows 走 Windows Hello（人脸/指纹/PIN 由
 /// 系统统一弹窗决策，App 不可指定单一方式——微软 API 设计如此）；
-/// Android 走 BiometricPrompt（批D2 接入）。
+/// Android 走 BiometricPrompt（指纹/人脸/系统凭据，同由系统决策）。
 abstract class SystemAuthBackend {
   /// 设备/系统是否支持本地身份验证（有硬件且系统已配置）。
   Future<bool> isSupported();
@@ -58,7 +60,8 @@ class LocalAuthBackend implements SystemAuthBackend {
   @override
   Future<bool> isSupported() async {
     // canCheckBiometrics 只代表有硬件；isDeviceSupported 覆盖
-    // 「无生物识别硬件但可走系统 PIN」的设备（Windows Hello PIN 同样算）。
+    // 「无生物识别硬件但可走系统 PIN」的设备（Windows Hello PIN /
+    // Android 系统凭据同样算）。
     try {
       if (!await _auth.isDeviceSupported()) return false;
       return await _auth.canCheckBiometrics || true;
@@ -168,10 +171,11 @@ class QuickUnlockService {
   final SystemUnlockKeyStore _keyStore;
   final Future<SharedPreferences> Function() _preferencesLoader;
 
-  /// 平台是否支持（批D1：仅 Windows；Android 批D2 接入）。
+  /// 平台是否支持（Windows = Windows Hello；Android = BiometricPrompt，
+  /// 批D2 接入——指纹/人脸/系统凭据由系统弹窗决策）。
   Future<bool> isPlatformSupported() async {
-    if (!Platform.isWindows) return false;
-    return _backend.isSupported();
+    if (Platform.isWindows || Platform.isAndroid) return _backend.isSupported();
+    return false;
   }
 
   /// 开关是否处于打开状态（持久化值，不代表副本可用）。

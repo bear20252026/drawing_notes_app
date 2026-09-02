@@ -1,5 +1,7 @@
 package gov.drawingnotes.drawing_notes_app
 
-import io.flutter.embedding.android.FlutterActivity
+// FlutterFragmentActivity：local_auth 在 Android 端走 BiometricPrompt，
+// 要求宿主 Activity 是 FragmentActivity（FlutterActivity 不满足）。
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+class MainActivity : FlutterFragmentActivity()

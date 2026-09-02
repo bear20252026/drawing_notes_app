@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 系统验证快速解锁（批D2）：BiometricPrompt 指纹/人脸/系统凭据。
+         生物特征模板只存于系统（TEE/Keystore），App 只拿到验证结果。 -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <application
         android:label="drawing_notes_app"
         android:name="${applicationName}"
