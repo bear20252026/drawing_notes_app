@@ -289,7 +289,7 @@ class _WorkspaceHeader extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: const Color(0xFF0066CC),
+              color: AppleColor.actionBlue,
               borderRadius: BorderRadius.circular(8),
             ),
             alignment: Alignment.center,

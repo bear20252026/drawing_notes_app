@@ -510,7 +510,7 @@ class _ToolPanel extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final activeBg =
-        (isDark ? const Color(0xFFB5CCFF) : const Color(0xFF0066CC)).withValues(
+        (isDark ? const Color(0xFFB5CCFF) : AppleColor.actionBlue).withValues(
           alpha: 0.18,
         );
 
@@ -622,7 +622,10 @@ class _ElementPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     for (final shape in shapes) {
-      final fill = _parseColor(shape.color) ?? const Color(0x330066CC);
+      final fill =
+          _parseColor(shape.color) ?? AppleColor.actionBlue.withValues(
+            alpha: 0.20,
+          );
       final paint = Paint()..color = fill;
       if (shape.kind == EdgelessShapeKind.ellipse) {
         canvas.drawOval(shape.rect, paint);
@@ -643,7 +646,7 @@ class _ElementPainter extends CustomPainter {
     if (shapeOrigin != null && lastFocalWorld != null) {
       final rect = Rect.fromPoints(shapeOrigin!, lastFocalWorld!);
       final paint = Paint()
-        ..color = const Color(0x330066CC)
+        ..color = AppleColor.actionBlue.withValues(alpha: 0.20)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5;
       if (shapeKind == EdgelessShapeKind.ellipse) {
@@ -657,7 +660,7 @@ class _ElementPainter extends CustomPainter {
   void _paintStroke(Canvas canvas, EdgelessStroke stroke) {
     if (stroke.pointCount < 2) return;
     final paint = Paint()
-      ..color = _parseColor(stroke.color) ?? const Color(0xFF1D1D1F)
+      ..color = _parseColor(stroke.color) ?? AppleColor.ink
       ..strokeWidth = stroke.width
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round

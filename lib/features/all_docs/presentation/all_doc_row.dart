@@ -3,6 +3,7 @@
 // 纯展示：数据全部注入，不 import 存储/服务。
 
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 
 /// 单行文档条目。
@@ -146,7 +147,7 @@ class AllDocRow extends StatelessWidget {
                           ? Icons.star_rounded
                           : Icons.star_border_rounded,
                       size: 18,
-                      color: doc.isFavorite ? const Color(0xFFFF9F0A) : subtle,
+                      color: doc.isFavorite ? AppleColor.favourite : subtle,
                     ),
                   ),
                 ),
@@ -214,11 +215,11 @@ String _dateLabel(DateTime t, DateTime now) {
 KindVisual visualForKind(AllDocKind kind) {
   switch (kind) {
     case AllDocKind.canvas:
-      return KindVisual(Icons.crop_portrait_rounded, const Color(0xFF0066CC));
+      return KindVisual(Icons.crop_portrait_rounded, AppleColor.actionBlue);
     case AllDocKind.note:
-      return KindVisual(Icons.sticky_note_2_rounded, const Color(0xFF30D158));
+      return KindVisual(Icons.sticky_note_2_rounded, AppleColor.noteGreen);
     case AllDocKind.blockdoc:
-      return KindVisual(Icons.dashboard_rounded, const Color(0xFFBF5AF2));
+      return KindVisual(Icons.dashboard_rounded, AppleColor.blockPurple);
   }
 }
 
