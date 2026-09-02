@@ -33,6 +33,10 @@ EXCLUDED_FILES = {"sbom.cdx.json", "pubspec.lock", "untranslated_messages.json",
 # 误报豁免（2026-08-16）：base62 字符集 const（fractional_index——默认
 # 参数要求 const——合法字符集常量非密钥——高熵检测误报）。
 EXCLUDED_PATHS = {"lib/core/canvas_model/fractional_index.dart"}
+# 已知安全前缀（2026-09-02）：iVBORw0KGgo = PNG 文件头（\x89PNG\r\n\x1a\n）的
+# base64 固定魔数——测试夹具的最小 1×1 PNG，内容人人皆知、非密钥，
+# 高熵检测误报（熵 4.01，阈值 4.0 擦边）。
+KNOWN_SAFE_PREFIXES = ("iVBORw0KGgo",)
 # 二进制/无关扩展名跳过。
 SKIP_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".ttf", ".ico", ".exe", ".dll", ".pdb", ".class", ".jar", ".zip", ".lock"}
 
@@ -62,6 +66,8 @@ def scan_file(path: Path, findings: list) -> None:
         # 仅检测引号内的长字符串（真实密钥/令牌通常出现在字符串字面量中——
         # 避免裸标识符/类名误报）。
         for token in re.findall(r"['\"]([0-9a-zA-Z_\-]{24,})['\"]", line):
+            if token.startswith(KNOWN_SAFE_PREFIXES):
+                continue
             if shannon_entropy(token) > 4.0:
                 findings.append((str(path), line_no, f"高熵字符串（熵 {shannon_entropy(token):.2f}）", token[:32]))
                 break  # 每行一条熵告警即可
