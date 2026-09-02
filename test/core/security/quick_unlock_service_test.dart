@@ -244,6 +244,7 @@ void main() {
         backend: FakeAuthBackend(),
         keyStore: store,
         preferencesLoader: SharedPreferences.getInstance,
+        platformSupported: () => true,
       );
 
       await tester.pumpWidget(
