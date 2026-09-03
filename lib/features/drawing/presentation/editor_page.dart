@@ -380,7 +380,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       final codec = await ui.instantiateImageCodec(bytes);
       final frame = await codec.getNextFrame();
       srcImage = frame.image;
-      final src = srcImage!;
+      final src = srcImage;
       // 裁剪矩形（画布坐标）映射为原图像素坐标；纯几何不触碰文件或状态。
       final srcRect = EditorImageCropGeometry.sourceRectForCrop(
         cropRect: rect,
@@ -400,7 +400,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         srcRect.width.round().clamp(1, 10000),
         srcRect.height.round().clamp(1, 10000),
       );
-      final out = outImage!;
+      final out = outImage;
       final data = await out.toByteData(format: ui.ImageByteFormat.png);
       if (data == null) {
         _showSnack('裁剪编码失败');
