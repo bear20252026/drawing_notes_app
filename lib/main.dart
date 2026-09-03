@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'app.dart';
 import 'core/security/audit_logger.dart';
@@ -122,6 +123,16 @@ Future<void> main() async {
   // 二次启动检测：已有实例则直接退出（桌面单实例）。
   if (!await _acquireSingleInstance()) {
     return;
+  }
+  // R2 审计（用户拍板 2026-09-03）：桌面窗口最小尺寸 360×560——
+  // 防止窗口拖得过窄触发布局溢出。尽力而为：失败不阻塞启动。
+  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+    try {
+      await windowManager.ensureInitialized();
+      await windowManager.setMinimumSize(const Size(360, 560));
+    } catch (_) {
+      AuditLogger.log('app.desktop_window_min_size', success: false);
+    }
   }
   runApp(const ProviderScope(child: DrawingNotesApp()));
 }
