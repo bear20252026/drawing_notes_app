@@ -134,44 +134,52 @@ class AllDocRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              // 星标（U4a：触控目标 26→44px）。
-              InkWell(
-                onTap: onToggleFavorite,
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: Center(
-                    child: Icon(
-                      doc.isFavorite
-                          ? Icons.star_rounded
-                          : Icons.star_border_rounded,
-                      size: 18,
-                      color: doc.isFavorite ? AppleColor.favourite : subtle,
+              // 星标（U4a：触控目标 26→44px；R6：读屏语义——状态化标签）。
+              Semantics(
+                label: doc.isFavorite ? '取消收藏' : '添加收藏',
+                button: true,
+                child: InkWell(
+                  onTap: onToggleFavorite,
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Center(
+                      child: Icon(
+                        doc.isFavorite
+                            ? Icons.star_rounded
+                            : Icons.star_border_rounded,
+                        size: 18,
+                        color: doc.isFavorite ? AppleColor.favourite : subtle,
+                      ),
                     ),
                   ),
                 ),
               ),
               const SizedBox(width: 2),
               // ⋮ 菜单（U4a：触控目标 26→44px；死入口接活——onMenu 未传时
-              // 打开与右键一致的上下文菜单）。
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTapUp: (details) {
-                  if (onMenu != null) {
-                    onMenu!();
-                  } else {
-                    showMenuAt(details.globalPosition);
-                  }
-                },
-                child: SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: Center(
-                    child: Icon(
-                      Icons.more_horiz_rounded,
-                      size: 18,
-                      color: subtle,
+              // 打开与右键一致的上下文菜单。R6：读屏语义）。
+              Semantics(
+                label: '更多操作',
+                button: true,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapUp: (details) {
+                    if (onMenu != null) {
+                      onMenu!();
+                    } else {
+                      showMenuAt(details.globalPosition);
+                    }
+                  },
+                  child: SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Center(
+                      child: Icon(
+                        Icons.more_horiz_rounded,
+                        size: 18,
+                        color: subtle,
+                      ),
                     ),
                   ),
                 ),

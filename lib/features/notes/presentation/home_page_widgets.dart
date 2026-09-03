@@ -452,6 +452,7 @@ class _PasswordDialogState extends State<_PasswordDialog> {
             borderSide: BorderSide(color: AppleColor.actionBlue, width: 1.5),
           ),
           suffixIcon: IconButton(
+            tooltip: _obscure ? '显示密码' : '隐藏密码',
             icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
             onPressed: () => setState(() => _obscure = !_obscure),
           ),

@@ -65,6 +65,22 @@ void main() {
     expect(size.height, greaterThanOrEqualTo(44));
   });
 
+  testWidgets('R6 星标/更多操作读屏语义（状态化 label + button 标志）', (tester) async {
+    final handle = tester.ensureSemantics();
+    await _pumpDesktop(tester);
+
+    final star = tester.getSemantics(find.byIcon(Icons.star_border_rounded));
+    expect(star.label, '添加收藏');
+    expect(star.flagsCollection.isButton, isTrue);
+
+    final menu = tester.getSemantics(find.byIcon(Icons.more_horiz_rounded));
+    expect(menu.label, '更多操作');
+    expect(menu.flagsCollection.isButton, isTrue);
+
+    // SemanticsHandle 未 dispos 的校验发生在 tearDown 之前，须体内显式释放。
+    handle.dispose();
+  });
+
   testWidgets('桌面右键弹出上下文菜单：点「打开」回调 onOpenDoc', (tester) async {
     AllDoc? opened;
     await _pumpDesktop(tester, onOpenDoc: (d) => opened = d);
