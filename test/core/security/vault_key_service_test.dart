@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../helpers/temp_dir_cleanup.dart';
 
 import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
@@ -24,7 +25,7 @@ void main() {
 
   tearDown(() async {
     service.lock();
-    if (await tmp.exists()) await tmp.delete(recursive: true);
+    await deleteTempDirWithRetry(tmp);
   });
 
   group('初始化与解锁', () {
@@ -144,8 +145,7 @@ void main() {
       final doc =
           jsonDecode(await vaultFile.readAsString()) as Map<String, dynamic>;
       final slots = (doc['slots'] as List).cast<Map<String, dynamic>>();
-      final pinSlot =
-          slots.singleWhere((s) => s['type'] == 'pin');
+      final pinSlot = slots.singleWhere((s) => s['type'] == 'pin');
       final wrapped = base64Decode(pinSlot['wrapped'] as String);
       wrapped[13] ^= 0xFF; // 翻转密文首字节
       pinSlot['wrapped'] = base64Encode(wrapped);

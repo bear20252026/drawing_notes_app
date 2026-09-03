@@ -18,6 +18,7 @@ import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../helpers/temp_dir_cleanup.dart';
 
 void main() {
   // 批B：注入测试轻量 KDF（新槽位派生几十 ms；生产默认 Argon2id 64MiB）。
@@ -29,9 +30,7 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tempDir.exists()) {
-      await tempDir.delete(recursive: true);
-    }
+    await deleteTempDirWithRetry(tempDir);
   });
 
   String docPath(String id) =>
@@ -62,12 +61,12 @@ void main() {
         '${temp.path}${Platform.pathSeparator}documents'
         '${Platform.pathSeparator}${d.id}.json',
       ).readAsBytes();
-  } finally {
-    // Windows 下句柄释放可能有延迟——删除失败忽略（系统临时目录自行回收）。
-    try {
-      await temp.delete(recursive: true);
-    } catch (_) {}
-  }
+    } finally {
+      // Windows 下句柄释放可能有延迟——删除失败忽略（系统临时目录自行回收）。
+      try {
+        await temp.delete(recursive: true);
+      } catch (_) {}
+    }
   }
 
   test('设密（不绑盘）：v3 信封、验密/读取/列表正常、无 USB 槽', () async {
@@ -92,8 +91,7 @@ void main() {
     expect(metas.first.title, '机密画作A');
   });
 
-  test('设密绑盘：USB 槽位嵌入；会话续写（save）不失效槽位（DEK 稳定）',
-      () async {
+  test('设密绑盘：USB 槽位嵌入；会话续写（save）不失效槽位（DEK 稳定）', () async {
     final storage = storageWith(VaultKeyService.randomBytes(32));
     await storage.save(doc('v3_doc2', '机密画作B'));
 
@@ -111,8 +109,7 @@ void main() {
     expect(VaultFileCodec.isV3Envelope(bytes), isTrue);
   });
 
-  test('重置盘重置：免旧密码换新密码；旧密码失效；错钥 fail-closed',
-      () async {
+  test('重置盘重置：免旧密码换新密码；旧密码失效；错钥 fail-closed', () async {
     final storage = storageWith(VaultKeyService.randomBytes(32));
     await storage.save(doc('v3_doc3', '机密画作C'));
     final key = diskKey();
@@ -262,8 +259,7 @@ void main() {
     expect(await cold.hasFileUsbSlot('v3_doc8'), isTrue);
   });
 
-  test('v3 会话密钥材料随 forgetFilePassword 清除（removeFilePassword 路径）',
-      () async {
+  test('v3 会话密钥材料随 forgetFilePassword 清除（removeFilePassword 路径）', () async {
     final key = VaultKeyService.randomBytes(32);
     final storage = storageWith(key);
     await storage.save(doc('v3_doc9', '机密画作I'));

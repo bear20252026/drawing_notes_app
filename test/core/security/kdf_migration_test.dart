@@ -21,6 +21,7 @@ import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../helpers/temp_dir_cleanup.dart';
 
 void main() {
   group('KdfParams 参数描述符', () {
@@ -36,14 +37,16 @@ void main() {
     });
 
     test('toSlotJson：argon2id 输出 m/t/p；pbkdf2 输出 iter', () {
-      expect(
-        KdfParams.argon2idProduction.toSlotJson(),
-        {'kdf': 'argon2id', 'm': 65536, 't': 2, 'p': 2},
-      );
-      expect(
-        const KdfParams.pbkdf2(600000).toSlotJson(),
-        {'kdf': 'pbkdf2', 'iter': 600000},
-      );
+      expect(KdfParams.argon2idProduction.toSlotJson(), {
+        'kdf': 'argon2id',
+        'm': 65536,
+        't': 2,
+        'p': 2,
+      });
+      expect(const KdfParams.pbkdf2(600000).toSlotJson(), {
+        'kdf': 'pbkdf2',
+        'iter': 600000,
+      });
     });
 
     test('fromSlotJson：两种形态往返；kdf 缺失回退 legacyDefault', () {
@@ -60,10 +63,9 @@ void main() {
       expect(b, const KdfParams.pbkdf2(600000));
 
       // 批B 前旧槽位：无 kdf 字段（可能仅有 iter）→ 调用方提供的旧参数。
-      final legacy = KdfParams.fromSlotJson(
-        {'iter': 600000},
-        legacyDefault: const KdfParams.pbkdf2(600000),
-      );
+      final legacy = KdfParams.fromSlotJson({
+        'iter': 600000,
+      }, legacyDefault: const KdfParams.pbkdf2(600000));
       expect(legacy, const KdfParams.pbkdf2(600000));
       expect(
         KdfParams.fromSlotJson(
@@ -82,38 +84,34 @@ void main() {
         {'kdf': 'argon2id', 'm': 65536, 't': 2},
       ]) {
         expect(
-          () => KdfParams.fromSlotJson(bad, legacyDefault: const KdfParams.pbkdf2(1)),
+          () => KdfParams.fromSlotJson(
+            bad,
+            legacyDefault: const KdfParams.pbkdf2(1),
+          ),
           throwsArgumentError,
           reason: '$bad 应拒绝',
         );
       }
       // pbkdf2 缺 iter。
       expect(
-        () => KdfParams.fromSlotJson(
-          {'kdf': 'pbkdf2'},
-          legacyDefault: const KdfParams.pbkdf2(1),
-        ),
+        () => KdfParams.fromSlotJson({
+          'kdf': 'pbkdf2',
+        }, legacyDefault: const KdfParams.pbkdf2(1)),
         throwsArgumentError,
       );
       // 未知算法名。
       expect(
-        () => KdfParams.fromSlotJson(
-          {'kdf': 'scrypt', 'n': 1},
-          legacyDefault: const KdfParams.pbkdf2(1),
-        ),
+        () => KdfParams.fromSlotJson({
+          'kdf': 'scrypt',
+          'n': 1,
+        }, legacyDefault: const KdfParams.pbkdf2(1)),
         throwsArgumentError,
       );
     });
 
     test('相等性：同参数相等；不同 KDF/参数不等', () {
-      expect(
-        KdfParams.argon2idProduction,
-        KdfParams.argon2idProduction,
-      );
-      expect(
-        KdfParams.argon2idProduction,
-        isNot(equals(KdfParams.testLight)),
-      );
+      expect(KdfParams.argon2idProduction, KdfParams.argon2idProduction);
+      expect(KdfParams.argon2idProduction, isNot(equals(KdfParams.testLight)));
       expect(
         const KdfParams.pbkdf2(600000),
         isNot(equals(const KdfParams.pbkdf2(100000))),
@@ -132,9 +130,7 @@ void main() {
 
     setUp(() async {
       tempDir = await Directory.systemTemp.createTemp('kdf_vault_');
-      vaultFile = File(
-        '${tempDir.path}${Platform.pathSeparator}vault.json',
-      );
+      vaultFile = File('${tempDir.path}${Platform.pathSeparator}vault.json');
       service = VaultKeyService(
         vaultFileResolver: () async => vaultFile,
         newSlotKdf: KdfParams.testLight,
@@ -143,7 +139,7 @@ void main() {
 
     tearDown(() async {
       service.lock();
-      if (await tempDir.exists()) await tempDir.delete(recursive: true);
+      await deleteTempDirWithRetry(tempDir);
     });
 
     test('v2 旧文件（PBKDF2 槽位无 kdf）解锁成功；解锁不改写文件', () async {
@@ -165,7 +161,11 @@ void main() {
         'kdf': 'PBKDF2-HMAC-SHA256',
         'iter': 2000,
         'slots': [
-          {'type': 'pin', 'salt': base64Encode(salt), 'wrapped': base64Encode(wrapped)},
+          {
+            'type': 'pin',
+            'salt': base64Encode(salt),
+            'wrapped': base64Encode(wrapped),
+          },
         ],
       });
       await vaultFile.writeAsString(legacyJson);
@@ -271,8 +271,7 @@ void main() {
         seed,
         '777888',
         aadContext: aad,
-      ))
-          .dek;
+      )).dek;
       final realUsbWrapped = await VaultKeyService.aeadEncrypt(
         usbKey,
         dek,
@@ -299,25 +298,21 @@ void main() {
       );
 
       // 载荷字节与 USB 槽字节原样（LUKS 槽位语义）。
-      final jsonLenNew =
-          ByteData.sublistView(rewrapped.blob, 4, 8).getUint32(0);
-      expect(
-        rewrapped.blob.sublist(8 + jsonLenNew),
-        payloadOld,
-      );
+      final jsonLenNew = ByteData.sublistView(
+        rewrapped.blob,
+        4,
+        8,
+      ).getUint32(0);
+      expect(rewrapped.blob.sublist(8 + jsonLenNew), payloadOld);
       expect(rewrapped.usbWrapped, realUsbWrapped);
 
       // 新槽位为 Argon2id（newSlotDefault 注入 testLight）。
-      final header = jsonDecode(
-        utf8.decode(
-          rewrapped.blob.sublist(
-            8,
-            8 + jsonLenNew,
-          ),
-        ),
-      ) as Map<String, dynamic>;
-      final pwSlot =
-          (header['slots'] as List).cast<Map<String, dynamic>>().first;
+      final header =
+          jsonDecode(utf8.decode(rewrapped.blob.sublist(8, 8 + jsonLenNew)))
+              as Map<String, dynamic>;
+      final pwSlot = (header['slots'] as List)
+          .cast<Map<String, dynamic>>()
+          .first;
       expect(pwSlot['kdf'], KdfParams.kdfArgon2id);
 
       // 新密码可解、旧密码拒绝、U 盘重置通道仍通。
@@ -326,8 +321,7 @@ void main() {
           rewrapped.blob,
           '333444',
           aadContext: aad,
-        ))
-            .plain,
+        )).plain,
         plain,
       );
       await expectLater(

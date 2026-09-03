@@ -2,6 +2,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import '../../helpers/temp_dir_cleanup.dart';
 
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 
@@ -15,22 +16,20 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tempDocs.exists()) await tempDocs.delete(recursive: true);
-    if (await tempSupport.exists()) await tempSupport.delete(recursive: true);
+    await deleteTempDirWithRetry(tempDocs);
+    await deleteTempDirWithRetry(tempSupport);
   });
 
   AppDataRoot build() => AppDataRoot(
-        documentsDirProvider: () async => tempDocs,
-        supportDirProvider: () async => tempSupport,
-      );
+    documentsDirProvider: () async => tempDocs,
+    supportDirProvider: () async => tempSupport,
+  );
 
-  Directory legacy(String name) => Directory(
-        '${tempDocs.path}${Platform.pathSeparator}$name',
-      );
+  Directory legacy(String name) =>
+      Directory('${tempDocs.path}${Platform.pathSeparator}$name');
 
-  File legacyFile(String name) => File(
-        '${tempDocs.path}${Platform.pathSeparator}$name',
-      );
+  File legacyFile(String name) =>
+      File('${tempDocs.path}${Platform.pathSeparator}$name');
 
   test('无旧数据时：root() 直接创建统一根目录', () async {
     final root = await build().root();
@@ -46,14 +45,19 @@ void main() {
   test('旧业务子目录整体迁入统一根目录', () async {
     final src = legacy('notebooks');
     await src.create(recursive: true);
-    await File('${src.path}${Platform.pathSeparator}nb_1.json')
-        .writeAsString('{}');
+    await File(
+      '${src.path}${Platform.pathSeparator}nb_1.json',
+    ).writeAsString('{}');
 
     final root = await build().root();
-    final migrated = Directory('${root.path}${Platform.pathSeparator}notebooks');
+    final migrated = Directory(
+      '${root.path}${Platform.pathSeparator}notebooks',
+    );
     expect(await migrated.exists(), isTrue);
-    expect(await File('${migrated.path}${Platform.pathSeparator}nb_1.json')
-        .exists(), isTrue);
+    expect(
+      await File('${migrated.path}${Platform.pathSeparator}nb_1.json').exists(),
+      isTrue,
+    );
     // 搬移后旧位置不再保留（move 语义）。
     expect(await src.exists(), isFalse);
   });
@@ -104,15 +108,17 @@ void main() {
     // 预置：旧目录 Documents/documents 与新根目录下的同名目录同时存在。
     final oldSrc = legacy('documents');
     await oldSrc.create(recursive: true);
-    await File('${oldSrc.path}${Platform.pathSeparator}old.json')
-        .writeAsString('old');
+    await File(
+      '${oldSrc.path}${Platform.pathSeparator}old.json',
+    ).writeAsString('old');
     final preDst = Directory(
       '${tempDocs.path}${Platform.pathSeparator}'
       '${AppDataRoot.defaultRootName}${Platform.pathSeparator}documents',
     );
     await preDst.create(recursive: true);
-    await File('${preDst.path}${Platform.pathSeparator}new.json')
-        .writeAsString('new');
+    await File(
+      '${preDst.path}${Platform.pathSeparator}new.json',
+    ).writeAsString('new');
 
     // 迁移执行：目标已存在 → 跳过，源保留在原位。
     final root = await build().root();

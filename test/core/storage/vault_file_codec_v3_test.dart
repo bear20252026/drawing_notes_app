@@ -128,12 +128,10 @@ void main() {
       );
     });
 
-    test('重绕密码槽：载荷与 USB 槽位字节不动，新密码可开旧密码失效',
-        () async {
+    test('重绕密码槽：载荷与 USB 槽位字节不动，新密码可开旧密码失效', () async {
       final blob = await sealedWithUsb();
       // 载荷起点 = 8 + jsonLen（重绕前后应逐字节一致——LUKS 同款）。
-      final jsonLen =
-          ByteData.sublistView(blob, 4, 8).getUint32(0);
+      final jsonLen = ByteData.sublistView(blob, 4, 8).getUint32(0);
       final oldPayload = blob.sublist(8 + jsonLen);
       final oldUsbWrapped = (await VaultFileCodec.unlockWithUsbKeyV3(
         blob,
@@ -149,8 +147,7 @@ void main() {
         kdf: KdfParams.testLight,
       );
 
-      final newJsonLen =
-          ByteData.sublistView(rewrap.blob, 4, 8).getUint32(0);
+      final newJsonLen = ByteData.sublistView(rewrap.blob, 4, 8).getUint32(0);
       final newPayload = rewrap.blob.sublist(8 + newJsonLen);
       expect(newPayload, equals(oldPayload)); // 载荷密文一字节不动
       expect(rewrap.usbWrapped, equals(oldUsbWrapped)); // USB 槽位原样保留

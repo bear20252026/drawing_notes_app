@@ -70,10 +70,14 @@ void main() {
       final legacy = File(
         '${tmp.path}${Platform.pathSeparator}vault_reset.frogkey',
       );
-      await legacy.writeAsBytes(
-        [0x46, 0x52, 0x4F, 0x47, 0x01, ...key],
-        flush: true,
-      );
+      await legacy.writeAsBytes([
+        0x46,
+        0x52,
+        0x4F,
+        0x47,
+        0x01,
+        ...key,
+      ], flush: true);
 
       // 无新文件、只有旧文件 → 读旧文件成功。
       expect(await ResetDiskFile.readFrom(tmp.path), equals(key));

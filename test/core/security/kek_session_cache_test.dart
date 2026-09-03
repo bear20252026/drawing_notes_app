@@ -51,40 +51,65 @@ void main() {
       }
       // 大迭代组：600k 与 100k 同实现逐字节一致（盐不同即可）。
       final salt100k = Uint8List.fromList(List.generate(16, (i) => i + 1));
-      final ref = await Pbkdf2(
-        macAlgorithm: Hmac.sha256(),
-        iterations: 100000,
-        bits: 256,
-      ).deriveKey(
-        secretKey: SecretKey(utf8.encode('big-iter-pw')),
-        nonce: salt100k,
-      );
+      final ref =
+          await Pbkdf2(
+            macAlgorithm: Hmac.sha256(),
+            iterations: 100000,
+            bits: 256,
+          ).deriveKey(
+            secretKey: SecretKey(utf8.encode('big-iter-pw')),
+            nonce: salt100k,
+          );
       expect(
-        await cache.deriveKek('big-iter-pw', salt100k, const KdfParams.pbkdf2(100000)),
+        await cache.deriveKek(
+          'big-iter-pw',
+          salt100k,
+          const KdfParams.pbkdf2(100000),
+        ),
         orderedEquals(await ref.extractBytes()),
       );
     });
 
     test('缓存命中：同输入两次派生结果一致且只存一条', () async {
       final salt = Uint8List.fromList(List.generate(16, (i) => i * 3));
-      final a = await cache.deriveKek('same-pw', salt, const KdfParams.pbkdf2(1000));
-      final b = await cache.deriveKek('same-pw', salt, const KdfParams.pbkdf2(1000));
+      final a = await cache.deriveKek(
+        'same-pw',
+        salt,
+        const KdfParams.pbkdf2(1000),
+      );
+      final b = await cache.deriveKek(
+        'same-pw',
+        salt,
+        const KdfParams.pbkdf2(1000),
+      );
       expect(a, orderedEquals(b));
       expect(cache.entryCount, 1);
       // 不同盐 → 不同条目、不同输出。
       final otherSalt = Uint8List.fromList(List.generate(16, (i) => i * 3 + 1));
-      final c = await cache.deriveKek('same-pw', otherSalt, const KdfParams.pbkdf2(1000));
+      final c = await cache.deriveKek(
+        'same-pw',
+        otherSalt,
+        const KdfParams.pbkdf2(1000),
+      );
       expect(c, isNot(orderedEquals(a)));
       expect(cache.entryCount, 2);
     });
 
     test('clear：条目清零；再派生结果不变（功能不受影响）', () async {
       final salt = Uint8List.fromList(List.generate(16, (i) => i));
-      final before = await cache.deriveKek('clear-pw', salt, const KdfParams.pbkdf2(1000));
+      final before = await cache.deriveKek(
+        'clear-pw',
+        salt,
+        const KdfParams.pbkdf2(1000),
+      );
       expect(cache.entryCount, 1);
       cache.clear();
       expect(cache.entryCount, 0);
-      final after = await cache.deriveKek('clear-pw', salt, const KdfParams.pbkdf2(1000));
+      final after = await cache.deriveKek(
+        'clear-pw',
+        salt,
+        const KdfParams.pbkdf2(1000),
+      );
       expect(after, orderedEquals(before));
     });
 
@@ -132,11 +157,7 @@ void main() {
 
     test('批B：同盐同密码不同 Argon2id 参数 → 不同条目不同输出', () async {
       final salt = Uint8List.fromList(List.generate(16, (i) => i + 33));
-      final a = await cache.deriveKek(
-        'argon2-pw',
-        salt,
-        KdfParams.testLight,
-      );
+      final a = await cache.deriveKek('argon2-pw', salt, KdfParams.testLight);
       final b = await cache.deriveKek(
         'argon2-pw',
         salt,

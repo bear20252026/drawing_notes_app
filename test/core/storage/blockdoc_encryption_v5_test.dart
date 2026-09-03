@@ -198,10 +198,7 @@ void main() {
         usbKey: usbKey,
         newPassword: 'reset-pw-1',
       ))!;
-      expect(
-        (jsonDecode(envelope) as Map)['payload']['c'],
-        oldPayloadC,
-      );
+      expect((jsonDecode(envelope) as Map)['payload']['c'], oldPayloadC);
       expect(
         await svc.decryptBlockDocPassword(
           docId: id,

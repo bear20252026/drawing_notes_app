@@ -60,8 +60,13 @@ void main() {
       final client = makeClient((request) async => http.Response('err', 500));
       expect(
         () => client.ensureCollection(),
-        throwsA(isA<WebDavSyncException>()
-            .having((e) => e.statusCode, 'statusCode', 500)),
+        throwsA(
+          isA<WebDavSyncException>().having(
+            (e) => e.statusCode,
+            'statusCode',
+            500,
+          ),
+        ),
       );
     });
   });
@@ -230,8 +235,9 @@ void main() {
         expect(request.headers['depth'], '1');
         expect(request.headers['connection'], 'close');
         return http.Response(
-            '<?xml version="1.0"?><d:multistatus xmlns:d="DAV:"></d:multistatus>',
-            207);
+          '<?xml version="1.0"?><d:multistatus xmlns:d="DAV:"></d:multistatus>',
+          207,
+        );
       });
       final leaves = await client.listLeafNames('');
       expect(leaves, isEmpty);
@@ -253,10 +259,7 @@ void main() {
         closed = true;
         return http.Response('', 200);
       });
-      final client = WebDavSyncClient(
-        baseUrl: baseUrl,
-        client: mockClient,
-      );
+      final client = WebDavSyncClient(baseUrl: baseUrl, client: mockClient);
       client.close();
       // 外部 client 不应被 close 影响（MockClient 无 close 计数，仅验证不抛异常）
       expect(closed, isFalse);

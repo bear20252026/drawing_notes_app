@@ -21,6 +21,7 @@ import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../helpers/temp_dir_cleanup.dart';
 
 void main() {
   late Directory tempDir;
@@ -30,9 +31,7 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tempDir.exists()) {
-      await tempDir.delete(recursive: true);
-    }
+    await deleteTempDirWithRetry(tempDir);
   });
 
   File nbFile(String id) => File(
@@ -71,8 +70,7 @@ void main() {
     keyProvider: key == null ? () async => null : () async => key,
   );
 
-  test('保险库锁定 → listAll 返回占位条目（不静默跳过；内容 fail-closed）',
-      () async {
+  test('保险库锁定 → listAll 返回占位条目（不静默跳过；内容 fail-closed）', () async {
     final key = VaultKeyService.randomBytes(32);
     final nb = nbWithPage('nb_locked_1', '机密画布');
     await writeDnvEncrypted(nb, key);
@@ -102,8 +100,7 @@ void main() {
     expect(real.isLockedPlaceholder, isFalse);
   });
 
-  test('混合：锁定 DNV 条目占位 + 明文壳受密条目正常列出（互不干扰）',
-      () async {
+  test('混合：锁定 DNV 条目占位 + 明文壳受密条目正常列出（互不干扰）', () async {
     final key = VaultKeyService.randomBytes(32);
     await writeDnvEncrypted(nbWithPage('nb_locked_3', 'DNV机密'), key);
 
@@ -138,8 +135,7 @@ void main() {
     expect(docs, isEmpty);
   });
 
-  test('buildAllDocs：占位 → 单行 locked note 条目；真实条目按页展开',
-      () async {
+  test('buildAllDocs：占位 → 单行 locked note 条目；真实条目按页展开', () async {
     final placeholder = Notebook(
       id: 'nb_locked_6',
       title: '加密分页画布',

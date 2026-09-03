@@ -21,6 +21,7 @@ import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../helpers/temp_dir_cleanup.dart';
 
 void main() {
   // 批B：注入测试轻量 KDF（新槽位 Argon2id 8MiB≈几十 ms；生产默认
@@ -33,18 +34,11 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tempDir.exists()) {
-      try {
-        await tempDir.delete(recursive: true);
-      } on FileSystemException {
-        // Windows 句柄延迟释放——尽力清理。
-      }
-    }
+    await deleteTempDirWithRetry(tempDir);
   });
 
-  NotebookStorage storageWith() => NotebookStorage(
-        directoryProvider: () async => tempDir,
-      );
+  NotebookStorage storageWith() =>
+      NotebookStorage(directoryProvider: () async => tempDir);
 
   Notebook nbWithPage(String id) => Notebook(id: id, title: '机密分页画布')
     ..pages.add(
@@ -176,10 +170,7 @@ void main() {
         usbKey: usbKey,
         newPassword: 'reset-pw-1',
       ))!;
-      expect(
-        (jsonDecode(envelope) as Map)['payload']['c'],
-        oldPayloadC,
-      );
+      expect((jsonDecode(envelope) as Map)['payload']['c'], oldPayloadC);
       expect(
         await svc.decryptWithPasswordAad(
           notebookId: id,
@@ -257,13 +248,12 @@ void main() {
       unlocked.title = '续写后的标题';
       await storage.encryptAndSave(unlocked, 'pass-1111');
       final reloaded = (await storage.load(id))!;
-      expect(EncryptionService.hasUsbSlotV5(reloaded.encryptedPayload!), isTrue);
       expect(
-        await storage.resetNotebookPasswordWithUsb(
-          id,
-          usbKey,
-          'reset-2222',
-        ),
+        EncryptionService.hasUsbSlotV5(reloaded.encryptedPayload!),
+        isTrue,
+      );
+      expect(
+        await storage.resetNotebookPasswordWithUsb(id, usbKey, 'reset-2222'),
         isTrue,
       );
       // 旧密码失效（decryptNotebook 契约：密码错误抛 FormatException）、
@@ -335,11 +325,7 @@ void main() {
       final usbKey = List<int>.generate(32, (i) => i + 3);
       // 错密码拒绝。
       expect(
-        () => storage.bindNotebookUsbSlot(
-          id,
-          'wrong-pass',
-          usbKey,
-        ),
+        () => storage.bindNotebookUsbSlot(id, 'wrong-pass', usbKey),
         throwsFormatException,
       );
       await storage.bindNotebookUsbSlot(id, 'bind-pass-1', usbKey);

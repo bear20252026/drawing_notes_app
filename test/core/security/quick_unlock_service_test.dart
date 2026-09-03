@@ -190,10 +190,7 @@ void main() {
     });
 
     test('开关未开（未 enable 过）：直接返回 false', () async {
-      final service = _service(
-        FakeAuthBackend(),
-        MemorySystemUnlockKeyStore(),
-      );
+      final service = _service(FakeAuthBackend(), MemorySystemUnlockKeyStore());
       final vault = _tempVault();
 
       expect(await service.authenticateAndUnlock(vault: vault), isFalse);
