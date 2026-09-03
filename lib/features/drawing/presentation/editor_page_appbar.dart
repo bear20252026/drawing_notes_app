@@ -27,7 +27,12 @@ extension _EditorPageAppBar on _EditorPageState {
   /// 宽度分级隐藏——<140px 只留标题，140~220px 加保存状态，≥220px 全显。
   /// （历史上 8 图标时 title 区为 0px 宽，内容整体不可见；0 宽容器不报
   /// 溢出，390dp 门禁测不出来——删一个图标后才第一次触发溢出报告。）
+  ///
+  /// R3 顶栏减负：<600dp 时图层/属性/全屏/深色阅读 4 个低频开关收进
+  /// 主菜单顶部成组（带状态文案），顶栏只留撤销/重做/主菜单——390dp
+  /// title 区从 22px 恢复到 ~200px，长标题可读。桌面宽屏零变化。
   AppBar _buildAppBar() {
+    final narrow = MediaQuery.sizeOf(context).width < 600;
     return AppBar(
       title: ListenableBuilder(
         listenable: _controller,
@@ -130,49 +135,82 @@ extension _EditorPageAppBar on _EditorPageState {
         ),
 
         // 画布空间与侧栏控制：将低频管理面板改为按需展开。
-        IconButton(
-          tooltip: _layersVisible ? '隐藏图层' : '显示图层',
-          icon: Icon(_layersVisible ? Icons.layers : Icons.layers_outlined),
-          isSelected: _layersVisible,
-          onPressed: _toggleLayers,
-        ),
-        IconButton(
-          tooltip: _inspectorVisible ? '隐藏属性' : '显示属性',
-          icon: Icon(_inspectorVisible ? Icons.tune : Icons.tune_outlined),
-          isSelected: _inspectorVisible,
-          onPressed: _toggleInspector,
-        ),
-        IconButton(
-          tooltip: _fullscreen ? '退出全屏' : '全屏模式',
-          icon: Icon(_fullscreen ? Icons.fullscreen_exit : Icons.fullscreen),
-          onPressed: _toggleFullscreen,
-        ),
-        IconButton(
-          tooltip: _readingInverted ? '关闭深色阅读' : '深色阅读（仅显示）',
-          icon: Icon(
-            _readingInverted
-                ? Icons.invert_colors_on_outlined
-                : Icons.invert_colors_off_outlined,
+        // R3：窄屏收进主菜单（见 _buildMainMenuItems 顶部组）。
+        if (!narrow) ...[
+          IconButton(
+            tooltip: _layersVisible ? '隐藏图层' : '显示图层',
+            icon: Icon(_layersVisible ? Icons.layers : Icons.layers_outlined),
+            isSelected: _layersVisible,
+            onPressed: _toggleLayers,
           ),
-          isSelected: _readingInverted,
-          onPressed: _toggleReadingInverted,
-        ),
+          IconButton(
+            tooltip: _inspectorVisible ? '隐藏属性' : '显示属性',
+            icon: Icon(_inspectorVisible ? Icons.tune : Icons.tune_outlined),
+            isSelected: _inspectorVisible,
+            onPressed: _toggleInspector,
+          ),
+          IconButton(
+            tooltip: _fullscreen ? '退出全屏' : '全屏模式',
+            icon: Icon(_fullscreen ? Icons.fullscreen_exit : Icons.fullscreen),
+            onPressed: _toggleFullscreen,
+          ),
+          IconButton(
+            tooltip: _readingInverted ? '关闭深色阅读' : '深色阅读（仅显示）',
+            icon: Icon(
+              _readingInverted
+                  ? Icons.invert_colors_on_outlined
+                  : Icons.invert_colors_off_outlined,
+            ),
+            isSelected: _readingInverted,
+            onPressed: _toggleReadingInverted,
+          ),
+        ],
         // U6：快捷键帮助 AppBar 图标删除（与主菜单项重复），仅保留主菜单入口。
         // 右上角汉堡菜单（对齐 Excalidraw main-menu）
         PopupMenuButton<_MainMenuItem>(
           tooltip: AppLocalizations.of(context)?.editorMenu ?? '主菜单',
           icon: const Icon(Icons.menu),
           onSelected: _onMainMenuSelected,
-          itemBuilder: (_) => _buildMainMenuItems(),
+          itemBuilder: (_) => _buildMainMenuItems(showPanelToggles: narrow),
         ),
       ],
     );
   }
 
   /// 主菜单项列表（纯数据驱动）。
-  List<PopupMenuEntry<_MainMenuItem>> _buildMainMenuItems() {
+  ///
+  /// [showPanelToggles]：窄屏（R3）时为 true——图层/属性/全屏/深色阅读
+  /// 4 个低频开关在主菜单顶部成组出现（顶栏已隐藏对应 action）。
+  List<PopupMenuEntry<_MainMenuItem>> _buildMainMenuItems({
+    bool showPanelToggles = false,
+  }) {
     final l = AppLocalizations.of(context);
     return [
+      if (showPanelToggles) ...[
+        _mainMenuItem(
+          _MainMenuItem.layers,
+          icon: _layersVisible ? Icons.layers : Icons.layers_outlined,
+          label: _layersVisible ? '隐藏图层' : '显示图层',
+        ),
+        _mainMenuItem(
+          _MainMenuItem.inspector,
+          icon: _inspectorVisible ? Icons.tune : Icons.tune_outlined,
+          label: _inspectorVisible ? '隐藏属性' : '显示属性',
+        ),
+        _mainMenuItem(
+          _MainMenuItem.fullscreen,
+          icon: _fullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
+          label: _fullscreen ? '退出全屏' : '全屏模式',
+        ),
+        _mainMenuItem(
+          _MainMenuItem.reading,
+          icon: _readingInverted
+              ? Icons.invert_colors_on_outlined
+              : Icons.invert_colors_off_outlined,
+          label: _readingInverted ? '关闭深色阅读' : '深色阅读（仅显示）',
+        ),
+        const PopupMenuDivider(),
+      ],
       _mainMenuItem(
         _MainMenuItem.clearCanvas,
         icon: Icons.delete_sweep_outlined,

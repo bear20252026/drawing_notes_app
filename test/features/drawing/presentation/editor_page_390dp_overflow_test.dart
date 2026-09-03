@@ -18,7 +18,9 @@ void main() {
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(
-      ProviderScope(child: MaterialApp(home: EditorPage(document: document))),
+      ProviderScope(
+        child: MaterialApp(home: EditorPage(document: document)),
+      ),
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
@@ -104,5 +106,28 @@ void main() {
     await tester.dragFrom(const Offset(20, 40), const Offset(200, 100));
     await tester.pump(const Duration(milliseconds: 200));
     expect(tester.takeException(), isNull, reason: '选区操作条在 390dp 下溢出');
+  });
+
+  testWidgets('390x844：R3 低频面板开关收进主菜单，顶栏只留撤销/重做/主菜单', (tester) async {
+    await pumpEditor(tester, DrawingDocument(id: 'p1', title: '窄屏减负'));
+
+    // 顶栏不再有 4 个低频 action。
+    expect(find.byTooltip('显示图层'), findsNothing);
+    expect(find.byTooltip('显示属性'), findsNothing);
+    expect(find.byTooltip('全屏模式'), findsNothing);
+    expect(find.byTooltip('深色阅读（仅显示）'), findsNothing);
+
+    // 主菜单顶部成组出现 4 个开关。
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('显示图层'), findsOneWidget);
+    expect(find.text('显示属性'), findsOneWidget);
+    expect(find.text('全屏模式'), findsOneWidget);
+    expect(find.text('深色阅读（仅显示）'), findsOneWidget);
+
+    // 点「显示图层」→ 面板打开，无溢出。
+    await tester.tap(find.text('显示图层'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull, reason: '窄屏开图层面板溢出');
   });
 }

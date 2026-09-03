@@ -242,4 +242,11 @@ enum _MainMenuItem {
   stats,
   shortcuts,
   toggleInfinite,
+
+  // R3 顶栏减负：窄屏（<600dp）下低频面板开关收进主菜单，
+  // 顶栏只留撤销/重做/主菜单，title 区还给标题文本。
+  layers,
+  inspector,
+  fullscreen,
+  reading,
 }

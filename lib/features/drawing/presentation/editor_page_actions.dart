@@ -40,6 +40,14 @@ extension _EditorPageActions on _EditorPageState {
         _showShortcutHelp();
       case _MainMenuItem.toggleInfinite:
         _toggleInfiniteCanvas();
+      case _MainMenuItem.layers:
+        _toggleLayers();
+      case _MainMenuItem.inspector:
+        _toggleInspector();
+      case _MainMenuItem.fullscreen:
+        _toggleFullscreen();
+      case _MainMenuItem.reading:
+        _toggleReadingInverted();
     }
   }
 
