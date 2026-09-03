@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart';
+
 /// KDF 参数描述符（批B Argon2id 升级，2026-09-02 用户批准）。
 ///
 /// 单一事实来源：保险库 PIN 槽 / DNV 文件信封密码槽 / v5 载荷密码槽的
@@ -15,8 +17,6 @@
 /// - Argon2id 64MiB t2 p2 ≈ 348ms（OWASP 首选、内存硬抗 GPU）；
 /// - PBKDF2-HMAC-SHA256 600k ≈ 2969ms（旧产线，OWASP 仍合规）。
 /// 两者输出均为 32B 标准 KEK，下游 AEAD 全不动。
-import 'package:meta/meta.dart';
-
 class KdfParams {
   const KdfParams.pbkdf2(this.iterations)
     : kdf = kdfPbkdf2,

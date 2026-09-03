@@ -3,16 +3,12 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
-import 'package:drawing_notes_app/core/canvas_model/page_image_item.dart';
-import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart' show Stroke;
-import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/pdf_hybrid_exporter.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
-import 'package:drawing_notes_app/features/notes/domain/notebook_page.dart';
 import 'package:drawing_notes_app/features/notes/rendering/notebook_page_canvas_painter.dart';
 
 /// 整本/多页导出的单页数据（与 [NotebookPage] 解耦的最小结构——

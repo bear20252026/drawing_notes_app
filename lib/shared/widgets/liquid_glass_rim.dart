@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/widgets.dart';
 
 import 'package:drawing_notes_app/shared/widgets/liquid_glass_shader.dart';
