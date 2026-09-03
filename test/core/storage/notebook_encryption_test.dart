@@ -19,6 +19,7 @@ import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../../helpers/temp_dir_cleanup.dart';
+import '../../helpers/wait_encrypted.dart';
 
 void main() {
   late Directory tempDir;
@@ -37,24 +38,9 @@ void main() {
 
   Notebook nb(String id, String title) => Notebook(id: id, title: title);
 
-  Future<Uint8List> waitEncrypted(String id) async {
-    // 懒迁移走异步写尾队列：轮询等待落盘（上限 ~2s，防死等）。
-    final file = File(nbPath(id));
-    for (var i = 0; i < 200; i++) {
-      final Uint8List bytes;
-      try {
-        bytes = await file.readAsBytes();
-      } on FileSystemException {
-        // Windows CI 竞态：懒迁移重写正持有文件句柄（errno 32）——瞬态，
-        // 与"明文未迁移"同等对待，等下一轮重试。
-        await Future<void>.delayed(const Duration(milliseconds: 10));
-        continue;
-      }
-      if (VaultFileCodec.isEncrypted(bytes)) return bytes;
-      await Future<void>.delayed(const Duration(milliseconds: 10));
-    }
-    fail('2 秒内明文笔记本未被迁移为密文');
-  }
+  /// 懒迁移等待统一走 [waitEncryptedFile]（2s→15s，防 CI 慢机器击穿）。
+  Future<Uint8List> waitEncrypted(String id) async =>
+      waitEncryptedFile(File(nbPath(id)), label: '明文笔记本');
 
   test('有主密钥时保存 → 磁盘为 DNV 密文，无明文标题/正文泄露；读取/列表正常', () async {
     final key = VaultKeyService.randomBytes(32);
