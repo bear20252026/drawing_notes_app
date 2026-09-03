@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -11,6 +12,7 @@ import 'package:window_manager/window_manager.dart';
 import 'app.dart';
 import 'core/security/audit_logger.dart';
 import 'core/security/root_guard.dart';
+import 'package:drawing_notes_app/shared/widgets/liquid_glass_shader.dart';
 
 /// 单实例锁（借鉴 QOwnNotes 二次启动聚焦：
 /// Windows 桌面重复启动时检测已有实例并退出，避免多窗口混乱）。
@@ -140,6 +142,8 @@ Future<void> main() async {
       AuditLogger.log('app.desktop_window_min_size', success: false);
     }
   }
+  // L3 液态玻璃着色器预加载（失败静默回落 L2——不阻塞启动，见 LiquidGlassGate）。
+  unawaited(LiquidGlassShader.init());
   runApp(const ProviderScope(child: DrawingNotesApp()));
 }
 

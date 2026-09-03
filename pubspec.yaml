@@ -110,8 +110,10 @@ flutter:
     - assets/fonts/DroidSansFallbackFull.ttf
 
   # 铅笔颗粒着色器（FragmentShader）：为铅笔笔触提供纸张石墨质感。
+  # 液态玻璃边缘罩（L3）：面板边缘折射环 + RGB 色散 + 镜面高光。
   shaders:
     - shaders/pencil.frag
+    - shaders/liquid_glass.frag
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

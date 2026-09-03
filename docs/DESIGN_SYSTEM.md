@@ -221,9 +221,9 @@ AppleMotion.playful   // ratio 0.7 —— 仅罕见时刻（onboarding、成功�
 
 | 档 | 内容 | 状态 |
 |---|---|---|
-| **L1** | 升级 `GlassSurface`：内高光 + 1px 亮边 + saturation 180 | 待做 |
-| **L2** | 加 `RoundedSuperellipseBorder`（Apple 超椭圆圆角，曲率连续）+ 弹簧动效 | 待做 |
-| **L3** | 自定义 `FragmentProgram` 做真折射 + 色散 | 待做，**必须带性能闸门**，低端机/集显自动降级 L2 |
+| **L1** | 升级 `GlassSurface`：80% 底色 + blur 12 + 1px 亮边（顶边镜面环） | ✅ 已做（saturate 180 注：BackdropFilter 无自定义采样 API，真饱和走 L3 罩染色近似，见 `glass_surface.dart` 头注） |
+| **L2** | 加 `RoundedSuperellipseBorder`（Apple 超椭圆圆角，曲率连续）+ 弹簧动效 | ✅ 已做（shape；弹簧走既有 `AppleMotion` 令牌，面板动效-side 落子组件各自接入） |
+| **L3** | 自定义 `FragmentProgram` 做真折射 + 色散 | ✅ 已做（`shaders/liquid_glass.frag`：边缘环 + RGB 分离 + 镜面高光，配方 SDF 移植），**带性能闸门**（`LiquidGlassGate`：未就绪/减弱动效/高对比/forceLevel 一律回落 L2；backdrop 真位移因平台无 API 由 blur 近似，已在代码头注诚实声明） |
 
 项目已在用 `FragmentProgram`（`pencil_shader.dart`），Flutter 3.47.0，L3 的技术路径是通的。
 
