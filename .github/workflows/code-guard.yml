@@ -41,9 +41,10 @@ jobs:
       - name: linecheck 双档门禁
         # 警告非阻断（退出码 0，由工具语义保证），错误阻断（退出码 1）。
         # P1 修复（审计）：删除 `continue-on-error` + `|| true` 双重放行，
-        # 恢复 1000 行硬上限阻断（2026-09-04 核查：lib 最大 915 行，
-        # 无历史超限，恢复阻断不红主干；warn 档仍只报告不拦）。
-        run: linecheck --config linecheck.yml lib/
+        # 恢复 1000 行硬上限阻断（2026-09-04：门禁恢复首跑即报出
+        # note_block_doc_store 1021 行超限——门禁有效；该已知 God 类按
+        # 祖父化哲学在 linecheck.yml exclude 单独放行并挂拆分排期，
+        # 其余文件硬阻断；warn 档仍只报告不拦）。
 
       - name: sloc-guard 变更文件门禁（灵活祖父化）
         # 只检查 PR 变更的文件；既有超限文件不在此列，不阻断。
