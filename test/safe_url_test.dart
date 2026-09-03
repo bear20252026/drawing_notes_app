@@ -41,4 +41,34 @@ void main() {
       expect(sanitizeHref('not a url at all!!'), isNull);
     });
   });
+
+  group('sanitizeImageSrc（P1：Image.network 远端图片门禁）', () {
+    test('仅 https 通过', () {
+      expect(
+        sanitizeImageSrc('https://cdn.example.com/a.png'),
+        'https://cdn.example.com/a.png',
+      );
+      expect(sanitizeImageSrc('http://192.168.1.1/a.png'), isNull);
+      expect(sanitizeImageSrc('http://169.254.169.254/x'), isNull);
+      expect(sanitizeImageSrc('javascript:alert(1)'), isNull);
+      expect(sanitizeImageSrc('data:image/png;base64,AAA'), isNull);
+      expect(sanitizeImageSrc('file:///etc/passwd'), isNull);
+    });
+
+    test('拒绝 userinfo/无 host/空白/超长', () {
+      expect(sanitizeImageSrc('https://u:p@h.com/a.png'), isNull);
+      expect(sanitizeImageSrc('https:///a.png'), isNull);
+      expect(sanitizeImageSrc('https://h.com/a b.png'), isNull);
+      expect(sanitizeImageSrc('https://h.com/${'a' * 4096}'), isNull);
+      expect(sanitizeImageSrc(null), isNull);
+      expect(sanitizeImageSrc(''), isNull);
+    });
+
+    test('签名 URL（% 编码）放行——不走 cmd', () {
+      expect(
+        sanitizeImageSrc('https://cdn.example.com/a%20b.png?sig=x%3D1'),
+        'https://cdn.example.com/a%20b.png?sig=x%3D1',
+      );
+    });
+  });
 }

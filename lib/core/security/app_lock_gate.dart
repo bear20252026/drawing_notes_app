@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
+import 'package:drawing_notes_app/core/security/session_secrets.dart';
 import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
@@ -113,8 +114,11 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // N3 提速 B 方案（2026-09-02 定案）：hidden 即清 KEK 会话缓存
     // （fill(0) 擦除），不做超时等待——切后台敏感派生材料零驻留。
+    // P1 联动（审计 M-05/M-09）：文件/笔记本/块文档会话口令与 DEK
+    // 同一时机一并失效（此前仅 KEK 被清，口令驻留——口径拉齐）。
     if (state == AppLifecycleState.hidden) {
       KekSessionCache.instance.clear();
+      SessionSecrets.clearAll();
     }
     // 切后台即置锁：回到前台时锁屏已在最上层（iOS 同款行为）。
     if (state == AppLifecycleState.paused &&

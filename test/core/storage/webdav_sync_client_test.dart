@@ -265,4 +265,69 @@ void main() {
       expect(closed, isFalse);
     });
   });
+
+  group('P1 安全门禁（https + 路径白名单）', () {
+    test('http 非回环：任何请求直接拒绝，不触网', () async {
+      var hit = false;
+      final client = WebDavSyncClient(
+        baseUrl: Uri.parse('http://192.168.1.10/dav/'),
+        client: MockClient((request) async {
+          hit = true;
+          return http.Response('', 200);
+        }),
+      );
+      await expectLater(client.getBytes('manifest.json'),
+          throwsA(isA<WebDavSyncException>()));
+      await expectLater(client.ensureCollection(),
+          throwsA(isA<WebDavSyncException>()));
+      expect(hit, isFalse, reason: '拒绝必须发生在请求发出之前');
+    });
+
+    test('http 回环放行（不出设备）', () async {
+      final client = WebDavSyncClient(
+        baseUrl: Uri.parse('http://127.0.0.1:8080/dav/'),
+        client: MockClient((request) async => http.Response('', 201)),
+      );
+      expect(await client.ensureCollection(), isTrue);
+    });
+
+    test('遍历/绝对 URL/反斜杠路径一律拒绝', () async {
+      var hit = false;
+      final client = WebDavSyncClient(
+        baseUrl: baseUrl,
+        client: MockClient((request) async {
+          hit = true;
+          return http.Response('', 200);
+        }),
+      );
+      for (final evil in [
+        '../../etc/passwd',
+        '..',
+        r'..\windows',
+        'https://evil.example.com/x',
+        'a/b/../../c',
+        'id|with|pipes',
+      ]) {
+        await expectLater(client.getBytes(evil),
+            throwsA(isA<WebDavSyncException>()),
+            reason: evil);
+      }
+      expect(hit, isFalse);
+    });
+
+    test('合法路径（manifest/冲突副本/子目录）放行', () async {
+      final client = makeClient((request) async {
+        if (request.method == 'PROPFIND') {
+          return http.Response(
+            '<?xml version="1.0"?><d:multistatus xmlns:d="DAV:"></d:multistatus>',
+            207,
+          );
+        }
+        return http.Response('', 404);
+      });
+      expect(await client.getBytes('manifest.json'), isNull);
+      expect(await client.getBytes('abc123~conflict~1725000000000'), isNull);
+      expect(await client.listLeafNames(''), isEmpty);
+    });
+  });
 }

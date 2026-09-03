@@ -116,13 +116,38 @@ class WebDavConfigStore {
     await prefs.setString(_key, jsonEncode(map));
   }
 
+  /// 保存前 TLS 门禁（P1 修复）：非空 baseUrl 必须 https（本地回环 http
+  /// 除外）——否则 Basic 口令与文档明文传输。非法抛 [ArgumentError]，
+  /// 设置页捕获后向用户明示（fail-closed，不落盘）。
+  static void requireHttpsBaseUrl(String baseUrl) {
+    final trimmed = baseUrl.trim();
+    if (trimmed.isEmpty) return;
+    final uri = Uri.tryParse(trimmed);
+    if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
+      throw ArgumentError('WebDAV 地址不合法');
+    }
+    final scheme = uri.scheme.toLowerCase();
+    if (scheme == 'https') return;
+    final host = uri.host.toLowerCase();
+    final loopback =
+        host == 'localhost' || host == '127.0.0.1' || host == '::1';
+    if (scheme == 'http' && loopback) return;
+    throw ArgumentError('WebDAV 仅允许 https（明文 http 会泄露口令与文档）');
+  }
+
   Future<void> save(WebDavSyncConfig config) async {
+    requireHttpsBaseUrl(config.baseUrl);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_key, jsonEncode(config.toJson()));
   }
 
+  /// 登出/重置：配置与机密一并清除（P1 修复——此前仅删配置，凭据库里的
+  /// WebDAV 密码与同步口令残留）。
   Future<void> clear() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_key);
+    try {
+      await _secretStore?.clear();
+    } catch (_) {}
   }
 }

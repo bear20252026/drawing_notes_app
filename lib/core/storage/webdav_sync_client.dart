@@ -64,6 +64,48 @@ class WebDavSyncClient {
   /// 是否已配置认证。
   bool get _hasAuth => username.isNotEmpty || password.isNotEmpty;
 
+  /// 远端路径段白名单（P1 修复：默认 NoopSyncCipher 下 `remotePath=id`，
+  /// `id="../../.."` 经 `baseUrl.resolve` 逃逸集合——遍历写/删）。
+  /// 允许路由分隔 `/`；每段仅 `[A-Za-z0-9_.~\-]`（覆盖冲突副本 `~`）。
+  static final RegExp _safeSegment = RegExp(r'^[A-Za-z0-9_.~\-]+$');
+
+  /// 是否本地回环（http 仅在此放行——不出设备，无嗅探面）。
+  static bool _isLoopback(String host) {
+    final h = host.toLowerCase();
+    return h == 'localhost' || h == '127.0.0.1' || h == '::1' || h == '[::1]';
+  }
+
+  /// 传输层 TLS 门禁（P1 修复）：非 https 一律拒绝（Basic 口令 + 文档
+  /// 明文传输），本地回环 http 除外。fail-closed：抛异常，不发起请求。
+  void _requireHttps() {
+    final scheme = baseUrl.scheme.toLowerCase();
+    if (scheme == 'https') return;
+    if (scheme == 'http' && _isLoopback(baseUrl.host)) return;
+    throw WebDavSyncException(
+      '仅允许 https WebDAV（明文 http 会泄露认证口令与文档），本地回环除外',
+    );
+  }
+
+  /// 安全解析远端路径：先过 TLS 门禁，再拒绝 `..`/反斜杠/绝对 URL/
+  /// 非法字符，最后校验解析结果仍落在集合根下（防 resolve 逃逸）。
+  Uri _resolve(String relativePath) {
+    _requireHttps();
+    for (final seg in relativePath.split('/')) {
+      if (seg.isEmpty) continue;
+      if (seg == '.' || seg == '..' || !_safeSegment.hasMatch(seg)) {
+        throw WebDavSyncException('非法远端路径：$relativePath');
+      }
+    }
+    final base = baseUrl.toString();
+    final baseDir = base.endsWith('/') ? base : '$base/';
+    final resolved = baseUrl.resolve(relativePath);
+    final target = resolved.toString();
+    if (target != base && !target.startsWith(baseDir)) {
+      throw WebDavSyncException('远端路径逃逸集合根：$relativePath');
+    }
+    return resolved;
+  }
+
   /// 生成 Basic 认证头。
   Map<String, String> get _authHeader {
     if (!_hasAuth) return {};
@@ -77,6 +119,7 @@ class WebDavSyncClient {
   /// - 405/301/409 → 已存在，返回 true。
   /// - 其他 → 抛 [WebDavSyncException]。
   Future<bool> ensureCollection() async {
+    _requireHttps();
     final client = _activeClient;
     final request = http.Request('MKCOL', baseUrl);
     request.headers.addAll(_authHeader);
@@ -104,7 +147,7 @@ class WebDavSyncClient {
   /// - 其他 → 抛 [WebDavSyncException]。
   Future<Uint8List?> getBytes(String relativePath) async {
     final client = _activeClient;
-    final url = baseUrl.resolve(relativePath);
+    final url = _resolve(relativePath);
     final response = await client.get(url, headers: _authHeader);
 
     if (response.statusCode == 200 || response.statusCode == 207) {
@@ -129,7 +172,7 @@ class WebDavSyncClient {
     bool overwrite = true,
   }) async {
     final client = _activeClient;
-    final url = baseUrl.resolve(relativePath);
+    final url = _resolve(relativePath);
     final headers = <String, String>{
       ..._authHeader,
       if (!overwrite) 'If-None-Match': '*',
@@ -151,7 +194,7 @@ class WebDavSyncClient {
   /// - 其他 → 抛 [WebDavSyncException]。
   Future<bool> deleteRemaining(String relativePath) async {
     final client = _activeClient;
-    final url = baseUrl.resolve(relativePath);
+    final url = _resolve(relativePath);
     final response = await client.delete(url, headers: _authHeader);
 
     if (response.statusCode == 204 || response.statusCode == 404) {
@@ -169,7 +212,7 @@ class WebDavSyncClient {
   /// 只收普通文件，跳过目录。失败返回空列表或抛异常。
   Future<List<String>> listLeafNames(String relativePath) async {
     final client = _activeClient;
-    final url = baseUrl.resolve(relativePath);
+    final url = _resolve(relativePath);
 
     final body = '''<?xml version="1.0" encoding="utf-8" ?>
 <d:propfind xmlns:d="DAV:">

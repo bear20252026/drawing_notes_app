@@ -27,6 +27,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# P1 修复（审计）：最小权限——checkout 需 contents:read，
+# 失败产物上传需 actions:write；其余一律不授。
+permissions:
+  contents: read
+  actions: write
+
 jobs:
   quality:
     name: Quality Gate（分析/反模式/架构/回归）

@@ -78,11 +78,17 @@ Future<bool> _acquireSingleInstance() async {
 }
 
 /// 判断进程 [pid] 是否存活（Windows: tasklist；POSIX: kill -0）。
+/// P2 修复：① pid 越界（≤0/超大）直接按不存活处理，不 spawn 子进程；
+/// ② tasklist 输出子串匹配（`2` 命中 `1232`）误判存活→改整词匹配。
 Future<bool> _isProcessAlive(int pid) async {
+  if (pid <= 0 || pid > 4194304) return false;
   try {
     if (Platform.isWindows) {
       final r = await Process.run('tasklist', ['/FI', 'PID eq $pid', '/NH']);
-      return r.stdout.toString().contains('$pid');
+      // tasklist /NH 行如 `app.exe  1232 Console ...`——按词边界匹配。
+      final found = RegExp('(^|\\s)$pid(\\s|\$)')
+          .hasMatch(r.stdout.toString().replaceAll(',', ''));
+      return found;
     }
     final r = await Process.run('kill', ['-0', '$pid']);
     return r.exitCode == 0;

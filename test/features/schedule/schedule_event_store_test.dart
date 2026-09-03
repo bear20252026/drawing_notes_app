@@ -67,6 +67,39 @@ void main() {
         isNull,
       );
     });
+
+    test('P1：毒 dayKey 隔离（永不抛异常，坏行丢弃）', () {
+      Map<String, Object?> base(String dayKey) => {
+        'id': 'e1',
+        'title': 't',
+        'dayKey': dayKey,
+        'createdAt': '2026-08-30T09:00:00.000',
+      };
+      // 格式非法 / 不存在日期 / 超长标题 / 空 id → 全部 null。
+      expect(ScheduleEvent.fromJson(base('--')), isNull);
+      expect(ScheduleEvent.fromJson(base('9999-99-99')), isNull);
+      expect(ScheduleEvent.fromJson(base('2026-02-30')), isNull);
+      expect(ScheduleEvent.fromJson(base('1-2')), isNull);
+      expect(
+        ScheduleEvent.fromJson(base('2026-08-30')
+          ..['title'] = 'x' * 501),
+        isNull,
+      );
+      expect(
+        ScheduleEvent.fromJson(base('2026-08-30')..['id'] = ''),
+        isNull,
+      );
+      // 合法通过。
+      expect(
+        ScheduleEvent.fromJson(base('2026-08-30'))!.dayKey,
+        '2026-08-30',
+      );
+      // tryParseDayKey 永不抛异常。
+      expect(tryParseDayKey('--'), isNull);
+      expect(tryParseDayKey('9999-99-99'), isNull);
+      expect(tryParseDayKey('2026-02-30'), isNull);
+      expect(tryParseDayKey('2026-08-30')?.day, 30);
+    });
   });
 
   group('ScheduleEventStore（临时目录注入）', () {

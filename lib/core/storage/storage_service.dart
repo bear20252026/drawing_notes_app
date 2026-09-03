@@ -5,6 +5,7 @@ import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/security/session_secrets.dart';
 import 'package:drawing_notes_app/core/storage/document_codec.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
@@ -24,12 +25,15 @@ part 'storage_service_file_password.dart';
 /// - 存储层与绘图引擎层解耦：UI/引擎不感知文件格式细节，
 ///   后续若更换为数据库（sqflite）或云同步，只需替换本类实现
 ///   （已通过 [DocumentRepository] 接口抽象，见 repository.dart）。
-class StorageService implements DocumentRepository {
+class StorageService implements DocumentRepository, SessionSecretsHolder {
   StorageService({
     DocumentCodec? codec,
     this.directoryProvider,
     this.keyProvider,
-  }) : _codec = codec ?? const DocumentCodec();
+  }) : _codec = codec ?? const DocumentCodec() {
+    // P1 修复 M-05：注册会话机密清理——切后台回锁时口令/DEK 一并失效。
+    SessionSecrets.register(this);
+  }
 
   final DocumentCodec _codec;
 
@@ -81,6 +85,23 @@ class StorageService implements DocumentRepository {
     final dek = _sessionDocDeks.remove(docId);
     if (dek != null) dek.fillRange(0, dek.length, 0);
     _sessionFileUsbWrapped.remove(docId);
+  }
+
+  /// P1 修复 M-05：清空全部会话机密（切后台回锁联动经 [SessionSecrets]）。
+  /// 口令 String 不可擦除（Dart 不可变）——移出 map 即不可达；DEK/USB
+  /// 字节材料逐个 fill(0)。幂等、永不抛错。
+  @override
+  void clearAllSessionSecrets() {
+    try {
+      _sessionFilePasswords.clear();
+      for (final dek in _sessionDocDeks.values) {
+        try {
+          dek.fillRange(0, dek.length, 0);
+        } catch (_) {}
+      }
+      _sessionDocDeks.clear();
+      _sessionFileUsbWrapped.clear();
+    } catch (_) {}
   }
 
   /// 写成功回调（首页刷新修复①）：画布保存/缩略图更新/删除落盘成功后触发，

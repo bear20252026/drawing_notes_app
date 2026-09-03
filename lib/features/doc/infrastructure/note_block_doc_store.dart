@@ -16,6 +16,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:drawing_notes_app/core/security/session_secrets.dart';
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
@@ -41,12 +42,15 @@ class BlockDocLockedException implements Exception {
 /// final loaded = await store.loadDocument(doc.id);
 /// await store.deleteDocument(doc.id);
 /// ```
-class NoteBlockDocStore {
+class NoteBlockDocStore implements SessionSecretsHolder {
   /// 创建块文档存储门面。
   ///
   /// [directoryProvider] 为可选的目录提供者回调。测试时可注入临时目录，
   /// 生产环境默认使用系统文档目录。
-  NoteBlockDocStore({this.directoryProvider, this.keyProvider});
+  NoteBlockDocStore({this.directoryProvider, this.keyProvider}) {
+    // P1 修复：注册会话机密清理——切后台回锁时 DEK 一并擦除失效。
+    SessionSecrets.register(this);
+  }
 
   /// 目录提供者：测试时可注入临时目录，生产环境使用系统文档目录。
   final Future<Directory> Function()? directoryProvider;
@@ -89,6 +93,23 @@ class NoteBlockDocStore {
       }
       _headerCache = null;
     }
+  }
+
+  /// P1 修复：清空全部会话 DEK（切后台回锁经 [SessionSecrets] 联动）。
+  /// 逐个字节擦除 + 头缓存失效；幂等、永不抛错。
+  @override
+  void clearAllSessionSecrets() {
+    try {
+      for (final dek in _sessionDeks.values) {
+        try {
+          for (var i = 0; i < dek.length; i++) {
+            dek[i] = 0;
+          }
+        } catch (_) {}
+      }
+      _sessionDeks.clear();
+      _headerCache = null;
+    } catch (_) {}
   }
 
   /// 读取指定笔记的落盘字节；若为 v5 文件密码信封则返回其 JSON 串，
@@ -635,8 +656,14 @@ class NoteBlockDocStore {
             utf8.decode(raw, allowMalformed: true),
           )) {
         await f.rename(active.path);
+        // P1 修复：同步 IO（existsSync/deleteSync）阻塞 UI isolate——
+        // 改异步 + try/catch（TOCTOU 下删除竞态不抛错）。
         final meta = File('$trashFile.meta.json');
-        if (meta.existsSync()) meta.deleteSync();
+        if (await meta.exists()) {
+          try {
+            await meta.delete();
+          } catch (_) {}
+        }
         onWrite?.call();
         return true;
       }
@@ -666,7 +693,11 @@ class NoteBlockDocStore {
     // 新原子格式：rename 回激活区
     await f.rename(active.path);
     final meta = File('$trashFile.meta.json');
-    if (meta.existsSync()) meta.deleteSync();
+    if (await meta.exists()) {
+      try {
+        await meta.delete();
+      } catch (_) {}
+    }
     onWrite?.call();
     return true;
   }
@@ -681,7 +712,11 @@ class NoteBlockDocStore {
     if (!await f.exists()) return false;
     await f.delete();
     final meta = File('$trashFile.meta.json');
-    if (meta.existsSync()) meta.deleteSync();
+    if (await meta.exists()) {
+      try {
+        await meta.delete();
+      } catch (_) {}
+    }
     onWrite?.call();
     return true;
   }
@@ -704,7 +739,11 @@ class NoteBlockDocStore {
             if (entry != null && entry.deletedAt.isBefore(cutoff)) {
               await entity.delete();
               final meta = File('${entity.path}.meta.json');
-              if (meta.existsSync()) meta.deleteSync();
+              if (await meta.exists()) {
+                try {
+                  await meta.delete();
+                } catch (_) {}
+              }
               purged++;
             }
           } catch (_) {

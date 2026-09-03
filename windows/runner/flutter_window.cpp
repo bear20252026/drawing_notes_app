@@ -58,41 +58,69 @@ bool FlutterWindow::OnCreate() {
           result->Error("bad_args", "missing width/height/rgba");
           return;
         }
-        const auto width = std::get<int>(it_w->second);
-        const auto height = std::get<int>(it_h->second);
-        const auto& rgba = std::get<std::vector<uint8_t>>(it_r->second);
-        if (width <= 0 || height <= 0 ||
-            rgba.size() < (size_t)(width * height * 4)) {
+        // P0 安全修复（审计 N-H4）：std::get 先验类型（防 bad_variant_access
+        // 崩溃）；尺寸用 int64 运算 + 上限，杜绝 `width*height*4` 32 位溢出
+        // 绕过长度检查导致的堆 OOB 写，以及超大 GlobalAlloc DoS。
+        if (!std::holds_alternative<int>(it_w->second) ||
+            !std::holds_alternative<int>(it_h->second) ||
+            !std::holds_alternative<std::vector<uint8_t>>(it_r->second)) {
+          result->Error("bad_args", "invalid argument types");
+          return;
+        }
+        const int64_t width = std::get<int>(it_w->second);
+        const int64_t height = std::get<int>(it_h->second);
+        const auto& rgba =
+            std::get<std::vector<uint8_t>>(it_r->second);
+        constexpr int64_t kMaxDim = 8192;
+        constexpr int64_t kMaxPixels = 16777216;  // 16M 像素 ≈ 64MB
+        if (width <= 0 || height <= 0 || width > kMaxDim ||
+            height > kMaxDim) {
+          result->Error("bad_args", "invalid dimensions");
+          return;
+        }
+        const int64_t pixels = width * height;
+        if (pixels > kMaxPixels) {
+          result->Error("bad_args", "image too large");
+          return;
+        }
+        const int64_t need = pixels * 4;
+        if (static_cast<int64_t>(rgba.size()) < need) {
           result->Error("bad_args", "invalid pixel data");
           return;
         }
         // (note)
         const int bpp = 32;
-        const int rowSize = ((width * bpp + 31) / 32) * 4;
-        const int imgSize = rowSize * height;
-        const size_t total = sizeof(BITMAPINFOHEADER) + imgSize;
+        const int64_t rowSize = ((width * bpp + 31) / 32) * 4;
+        const int64_t imgSize = rowSize * height;
+        const size_t total =
+            sizeof(BITMAPINFOHEADER) + static_cast<size_t>(imgSize);
         HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, total);
         if (!hMem) {
           result->Error("alloc_failed", "GlobalAlloc failed");
           return;
         }
         auto* dst = static_cast<uint8_t*>(GlobalLock(hMem));
+        if (!dst) {
+          GlobalFree(hMem);
+          result->Error("alloc_failed", "GlobalLock failed");
+          return;
+        }
         auto* bih = reinterpret_cast<BITMAPINFOHEADER*>(dst);
         bih->biSize = sizeof(BITMAPINFOHEADER);
-        bih->biWidth = width;
-        bih->biHeight = height;  // (note)
+        bih->biWidth = static_cast<LONG>(width);
+        bih->biHeight = static_cast<LONG>(height);  // (note)
         bih->biPlanes = 1;
         bih->biBitCount = bpp;
         bih->biCompression = BI_RGB;
-        bih->biSizeImage = imgSize;
+        bih->biSizeImage = static_cast<DWORD>(imgSize);
         auto* px = dst + sizeof(BITMAPINFOHEADER);
-        // RGBA -> BGRA
-        for (int y = 0; y < height; y++) {
-          int srcRow = (height - 1 - y) * width * 4;
-          int dstRow = y * rowSize;
-          for (int x = 0; x < width; x++) {
-            int si = srcRow + x * 4;
-            int di = dstRow + x * 4;
+        // RGBA -> BGRA（int64 下标：上限已验，si < need <= rgba.size()）。
+        for (int64_t y = 0; y < height; y++) {
+          const int64_t srcRow = (height - 1 - y) * width * 4;
+          const int64_t dstRow = y * rowSize;
+          for (int64_t x = 0; x < width; x++) {
+            const size_t si = static_cast<size_t>(srcRow + x * 4);
+            const size_t di = static_cast<size_t>(dstRow + x * 4);
             px[di + 0] = rgba[si + 2];  // B
             px[di + 1] = rgba[si + 1];  // G
             px[di + 2] = rgba[si + 0];  // R

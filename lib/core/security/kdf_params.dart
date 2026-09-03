@@ -15,6 +15,8 @@
 /// - Argon2id 64MiB t2 p2 ≈ 348ms（OWASP 首选、内存硬抗 GPU）；
 /// - PBKDF2-HMAC-SHA256 600k ≈ 2969ms（旧产线，OWASP 仍合规）。
 /// 两者输出均为 32B 标准 KEK，下游 AEAD 全不动。
+import 'package:meta/meta.dart';
+
 class KdfParams {
   const KdfParams.pbkdf2(this.iterations)
     : kdf = kdfPbkdf2,
@@ -47,14 +49,25 @@ class KdfParams {
     parallelism: 1,
   );
 
+  /// 读路径上限（P0 安全修复 N-H5：恶意分享文件 `m=1GiB/t=2^31` 触发
+  /// OOM/挂起——超限直接 fail-closed 拒绝；`iter=1` 弱槽位仍可读
+  /// （历史数据兼容），但新写入永远走 [argon2idProduction]）。
+  static const int maxMemoryKiB = 262144; // 256 MiB（生产 64 MiB 的 4 倍）
+  static const int maxTimeCost = 8; // 生产 t2 的 4 倍
+  static const int maxParallelism = 8; // 生产 p2 的 4 倍
+  static const int maxPbkdf2Iterations =
+      1200000; // 生产 600k 的 2 倍（覆盖 100k 旧产线）
+
   /// 新槽位 KDF 默认值（生产恒为 [argon2idProduction]）。
   ///
-  /// 可变量唯一目的是测试注入（[testLight] / pbkdf2 小迭代），把派生成本
-  /// 从 348ms 降到几十 ms——**生产代码禁止改写**。消费者：VaultFileCodec
-  /// v3 写路径、EncryptionService v5 槽位；保险库走 VaultKeyService
-  /// 构造参数（newSlotKdf），不读本字段。
+  /// P0 收口：对外只读；测试注入走 [@visibleForTesting] setter——生产
+  /// 代码无合法写者（grep 全仓仅两处读）。此前裸可变静态任一代码/
+  /// 测试污染即全局降级后续全部槽位。
+  static KdfParams _newSlotDefault = argon2idProduction;
+  static KdfParams get newSlotDefault => _newSlotDefault;
+  @visibleForTesting
   // ignore: avoid_renaming_method_parameters
-  static KdfParams newSlotDefault = argon2idProduction;
+  static set newSlotDefault(KdfParams v) => _newSlotDefault = v;
 
   final String kdf;
 
@@ -88,15 +101,25 @@ class KdfParams {
       final m = json['m'];
       final t = json['t'];
       final p = json['p'];
-      if (m is int && m > 0 && t is int && t > 0 && p is int && p > 0) {
+      if (m is int &&
+          m > 0 &&
+          m <= maxMemoryKiB &&
+          t is int &&
+          t > 0 &&
+          t <= maxTimeCost &&
+          p is int &&
+          p > 0 &&
+          p <= maxParallelism) {
         return KdfParams.argon2id(memoryKiB: m, timeCost: t, parallelism: p);
       }
-      throw ArgumentError('Argon2id 槽位参数畸形');
+      throw ArgumentError('Argon2id 槽位参数畸形或超限');
     }
     if (k == kdfPbkdf2) {
       final it = json['iter'];
-      if (it is int && it > 0) return KdfParams.pbkdf2(it);
-      throw ArgumentError('PBKDF2 槽位参数畸形');
+      if (it is int && it > 0 && it <= maxPbkdf2Iterations) {
+        return KdfParams.pbkdf2(it);
+      }
+      throw ArgumentError('PBKDF2 槽位参数畸形或超限');
     }
     throw ArgumentError('不支持的 KDF 类型: $k');
   }

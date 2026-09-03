@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/security/session_secrets.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
@@ -28,12 +29,16 @@ import 'package:drawing_notes_app/core/notes_accessor.dart';
 ///
 /// 已通过 [NotebookRepository] 接口抽象（见 repository.dart），
 /// 未来替换为云同步实现时无需改动上层逻辑。
-class NotebookStorage implements NotebookRepository, INotebookAccessor {
+class NotebookStorage
+    implements NotebookRepository, INotebookAccessor, SessionSecretsHolder {
   NotebookStorage({
     this.directoryProvider,
     this.vaultService,
     this.keyProvider,
-  });
+  }) {
+    // P1 修复 M-09：注册会话机密清理——切后台回锁时笔记本口令一并失效。
+    SessionSecrets.register(this);
+  }
 
   /// 主密钥提供者（加密底座批次①c）：返回解锁态主密钥时，笔记本工程文件
   /// JSON 以 DNV 信封落盘（AAD 绑定 `nb:<id>`）、页面图片以 DNV 信封落盘
@@ -724,6 +729,15 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
   /// 清除会话密码（移除文件密码 / 文档删除后调用）。
   void forgetNotebookPassword(String id) {
     _sessionNotebookPasswords.remove(id);
+  }
+
+  /// P1 修复 M-09：清空全部会话笔记本口令（切后台回锁联动）。
+  /// String 不可擦除——移出 map 即不可达；幂等、永不抛错。
+  @override
+  void clearAllSessionSecrets() {
+    try {
+      _sessionNotebookPasswords.clear();
+    } catch (_) {}
   }
 
   /// 用密码解密加密笔记本的页面内容（密码错误抛 [FormatException]）。

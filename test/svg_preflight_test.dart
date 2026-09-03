@@ -56,4 +56,46 @@ void main() {
     buffer.write('</svg>');
     expect(SvgPreflight.check(bytes(buffer.toString())), contains('元素过多'));
   });
+
+  test('预检 P0：实体编码 javascript: 拒绝（差分视角）', () {
+    final svg = bytes('''<svg xmlns="http://www.w3.org/2000/svg">
+  <image href="&#106;avascript:alert(1)"/>
+</svg>''');
+    expect(SvgPreflight.check(svg), contains('危险 URL'));
+  });
+
+  test('预检 P0：命名空间 script 标签拒绝', () {
+    final svg = bytes('''<svg xmlns="http://www.w3.org/2000/svg">
+  <svg:script>alert(1)</svg:script>
+</svg>''');
+    expect(SvgPreflight.check(svg), contains('危险标签'));
+  });
+
+  test('预检 P0：深嵌套拒绝（爆栈防护）', () {
+    final buffer = StringBuffer('<svg xmlns="http://www.w3.org/2000/svg">');
+    for (var i = 0; i < SvgPreflight.maxNestingDepth + 10; i++) {
+      buffer.write('<g>');
+    }
+    for (var i = 0; i < SvgPreflight.maxNestingDepth + 10; i++) {
+      buffer.write('</g>');
+    }
+    buffer.write('</svg>');
+    expect(SvgPreflight.check(bytes(buffer.toString())), contains('嵌套过深'));
+  });
+
+  test('预检 P0：畸形字节拒绝（差分解码防护）', () {
+    final bad = Uint8List.fromList(<int>[
+      0x3C, 0x73, 0x76, 0x67, 0x3E, // <svg>
+      0xC0, 0xBC, // 非法 overlong 序列
+      0x3C, 0x2F, 0x73, 0x76, 0x67, 0x3E, // </svg>
+    ]);
+    expect(SvgPreflight.check(bad), contains('编码异常'));
+  });
+
+  test('预检 P0：xi:include 拒绝（SSRF/外泄防护）', () {
+    final svg = bytes('''<svg xmlns="http://www.w3.org/2000/svg">
+  <xi:include href="file:///etc/passwd" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+</svg>''');
+    expect(SvgPreflight.check(svg), contains('外部包含'));
+  });
 }

@@ -206,19 +206,34 @@ class SyncService {
 
   /// keepBoth 裁决：把远端版本另存为本地副本（「两者皆保留」，不丢失任一侧）。
   /// 纯函数层仅把 keepBoth 视为「本地为主版本（强制上传）」；此处补齐「保留远端副本」。
+  /// P2 修复双问题：①旧 `copyId` 含 `~`，下游 `_pathFor` 白名单
+  /// （`^[A-Za-z0-9_-]+$`）直接抛错——keepBoth 必崩；②`c.docId` 来自
+  /// 未认证远端 manifest，消毒后才可作本地 id。单副本失败隔离，不中断整轮。
   Future<void> _preserveRemoteCopies(
     List<SyncConflict> conflicts,
     Map<String, ConflictResolution> resolutions,
   ) async {
     for (final c in conflicts) {
       if (resolutions[c.docId] != ConflictResolution.keepBoth) continue;
-      final remoteBytes = await transport.getBytes(cipher.remotePath(c.docId));
-      if (remoteBytes == null) continue;
-      final plain = await cipher.decryptDocumentBytes(remoteBytes, c.docId);
-      final copyId =
-          '${c.docId}~conflict~${DateTime.now().millisecondsSinceEpoch}';
-      await documentStore.writeDocument(copyId, plain);
+      try {
+        final remoteBytes =
+            await transport.getBytes(cipher.remotePath(c.docId));
+        if (remoteBytes == null) continue;
+        final plain = await cipher.decryptDocumentBytes(remoteBytes, c.docId);
+        await documentStore.writeDocument(_safeCopyId(c.docId), plain);
+      } catch (_) {
+        continue;
+      }
     }
+  }
+
+  /// 冲突副本 id 消毒：仅保留白名单字符（下游 `_pathFor` 同口径），
+  /// 截断 64 字，时间戳保唯一。
+  static String _safeCopyId(String docId) {
+    final clean = docId.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_');
+    final stem =
+        clean.isEmpty ? 'doc' : clean.substring(0, clean.length.clamp(0, 64));
+    return '$stem-conflict-${DateTime.now().millisecondsSinceEpoch}';
   }
 
   /// 顺序执行计划中的操作。

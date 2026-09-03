@@ -1,15 +1,15 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:00000000-0000-0000-0000-000000000000",
+  "serialNumber": "urn:uuid:14cacad2-b0c0-4707-a16f-314a873106e5",
   "version": 1,
   "metadata": {
     "component": {
       "type": "application",
       "name": "drawing_notes_app",
-      "version": "1.0.0"
+      "version": "1.9.4+36"
     },
-    "timestamp": ""
+    "timestamp": "2026-09-03T22:51:14.865594+00:00"
   },
   "components": [
     {
@@ -372,6 +372,19 @@
     },
     {
       "type": "library",
+      "name": "editor_core",
+      "version": "0.1.0",
+      "purl": "pkg:pub/editor_core@0.1.0",
+      "bom-ref": "pkg:pub/editor_core@0.1.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "name": "fake_async",
       "version": "1.3.3",
       "purl": "pkg:pub/fake_async@1.3.3",
@@ -627,6 +640,25 @@
     },
     {
       "type": "library",
+      "name": "flutter_plugin_android_lifecycle",
+      "version": "2.0.35",
+      "purl": "pkg:pub/flutter_plugin_android_lifecycle@2.0.35",
+      "bom-ref": "pkg:pub/flutter_plugin_android_lifecycle@2.0.35",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "3854fe5e3bff0b113c658f260b90c95dea17c92db0f2addeac2e343dd9969785"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "name": "flutter_riverpod",
       "version": "3.3.1",
       "purl": "pkg:pub/flutter_riverpod@3.3.1",
@@ -641,6 +673,96 @@
         {
           "alg": "SHA-256",
           "content": "4e166be88e1dbbaa34a280bdb744aeae73b7ef25fdf8db7a3bb776760a3648e2"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "flutter_secure_storage",
+      "version": "9.2.4",
+      "purl": "pkg:pub/flutter_secure_storage@9.2.4",
+      "bom-ref": "pkg:pub/flutter_secure_storage@9.2.4",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9cad52d75ebc511adfae3d447d5d13da15a55a92c9410e50f67335b6d21d16ea"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "flutter_secure_storage_linux",
+      "version": "1.2.3",
+      "purl": "pkg:pub/flutter_secure_storage_linux@1.2.3",
+      "bom-ref": "pkg:pub/flutter_secure_storage_linux@1.2.3",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "flutter_secure_storage_macos",
+      "version": "3.1.3",
+      "purl": "pkg:pub/flutter_secure_storage_macos@3.1.3",
+      "bom-ref": "pkg:pub/flutter_secure_storage_macos@3.1.3",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "6c0a2795a2d1de26ae202a0d78527d163f4acbb11cde4c75c670f3a0fc064247"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "flutter_secure_storage_platform_interface",
+      "version": "1.1.2",
+      "purl": "pkg:pub/flutter_secure_storage_platform_interface@1.1.2",
+      "bom-ref": "pkg:pub/flutter_secure_storage_platform_interface@1.1.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "flutter_secure_storage_web",
+      "version": "1.2.1",
+      "purl": "pkg:pub/flutter_secure_storage_web@1.2.1",
+      "bom-ref": "pkg:pub/flutter_secure_storage_web@1.2.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "flutter_secure_storage_windows",
+      "version": "3.1.2",
+      "purl": "pkg:pub/flutter_secure_storage_windows@3.1.2",
+      "bom-ref": "pkg:pub/flutter_secure_storage_windows@3.1.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
         }
       ]
     },
@@ -832,7 +954,7 @@
       "properties": [
         {
           "name": "dependency_type",
-          "value": "transitive"
+          "value": "direct"
         }
       ],
       "hashes": [
@@ -985,6 +1107,19 @@
     },
     {
       "type": "library",
+      "name": "js",
+      "version": "0.6.7",
+      "purl": "pkg:pub/js@0.6.7",
+      "bom-ref": "pkg:pub/js@0.6.7",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "name": "json_annotation",
       "version": "4.12.0",
       "purl": "pkg:pub/json_annotation@4.12.0",
@@ -1080,6 +1215,77 @@
     },
     {
       "type": "library",
+      "name": "local_auth",
+      "version": "3.0.2",
+      "purl": "pkg:pub/local_auth@3.0.2",
+      "bom-ref": "pkg:pub/local_auth@3.0.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "local_auth_android",
+      "version": "2.0.10",
+      "purl": "pkg:pub/local_auth_android@2.0.10",
+      "bom-ref": "pkg:pub/local_auth_android@2.0.10",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2de619ed7196c136ec4579539c0446668e794afeec1e1815786a3158a478d04b"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "local_auth_darwin",
+      "version": "2.0.4",
+      "purl": "pkg:pub/local_auth_darwin@2.0.4",
+      "bom-ref": "pkg:pub/local_auth_darwin@2.0.4",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "local_auth_platform_interface",
+      "version": "1.1.0",
+      "purl": "pkg:pub/local_auth_platform_interface@1.1.0",
+      "bom-ref": "pkg:pub/local_auth_platform_interface@1.1.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "local_auth_windows",
+      "version": "2.0.2",
+      "purl": "pkg:pub/local_auth_windows@2.0.2",
+      "bom-ref": "pkg:pub/local_auth_windows@2.0.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "name": "logging",
       "version": "1.3.0",
       "purl": "pkg:pub/logging@1.3.0",
@@ -1131,19 +1337,6 @@
     },
     {
       "type": "library",
-      "name": "material_ui",
-      "version": "1.0.0",
-      "purl": "pkg:pub/material_ui@1.0.0",
-      "bom-ref": "pkg:pub/material_ui@1.0.0",
-      "properties": [
-        {
-          "name": "dependency_type",
-          "value": "direct"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "name": "meta",
       "version": "1.19.0",
       "purl": "pkg:pub/meta@1.19.0",
@@ -1151,7 +1344,7 @@
       "properties": [
         {
           "name": "dependency_type",
-          "value": "transitive"
+          "value": "direct"
         }
       ],
       "hashes": [
@@ -1196,6 +1389,19 @@
         {
           "alg": "SHA-256",
           "content": "6e7eac89047ab8a8d26cf16127b5ed26de65209847630400f9aefd7cd5c730db"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "notebook_domain",
+      "version": "0.1.0",
+      "purl": "pkg:pub/notebook_domain@0.1.0",
+      "bom-ref": "pkg:pub/notebook_domain@0.1.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
         }
       ]
     },
@@ -1514,6 +1720,25 @@
     },
     {
       "type": "library",
+      "name": "pointycastle",
+      "version": "3.9.1",
+      "purl": "pkg:pub/pointycastle@3.9.1",
+      "bom-ref": "pkg:pub/pointycastle@3.9.1",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4be0097fcf3fd3e8449e53730c631200ebc7b88016acecab2b0da2f0149222fe"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "name": "pool",
       "version": "1.5.2",
       "purl": "pkg:pub/pool@1.5.2",
@@ -1655,6 +1880,83 @@
         {
           "alg": "SHA-256",
           "content": "5c3004a4a8dbb94bd4bf5412a4def4acdaa12e12f269737a5751369e12d1a962"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "screen_retriever",
+      "version": "0.2.2",
+      "purl": "pkg:pub/screen_retriever@0.2.2",
+      "bom-ref": "pkg:pub/screen_retriever@0.2.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "screen_retriever_linux",
+      "version": "0.2.2",
+      "purl": "pkg:pub/screen_retriever_linux@0.2.2",
+      "bom-ref": "pkg:pub/screen_retriever_linux@0.2.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7b52006a5ceae1f3d5af7f77188c3290d6e7d8ded16d99809bea84967c65c257"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "screen_retriever_macos",
+      "version": "0.2.2",
+      "purl": "pkg:pub/screen_retriever_macos@0.2.2",
+      "bom-ref": "pkg:pub/screen_retriever_macos@0.2.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "screen_retriever_platform_interface",
+      "version": "0.2.2",
+      "purl": "pkg:pub/screen_retriever_platform_interface@0.2.2",
+      "bom-ref": "pkg:pub/screen_retriever_platform_interface@0.2.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "94a5535277510a63184ca178ce12a1449bc0b38618879aa1c18bf57369c5064a"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "screen_retriever_windows",
+      "version": "0.2.2",
+      "purl": "pkg:pub/screen_retriever_windows@0.2.2",
+      "bom-ref": "pkg:pub/screen_retriever_windows@0.2.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
         }
       ]
     },
@@ -2400,6 +2702,38 @@
     },
     {
       "type": "library",
+      "name": "win32",
+      "version": "5.15.0",
+      "purl": "pkg:pub/win32@5.15.0",
+      "bom-ref": "pkg:pub/win32@5.15.0",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "transitive"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "window_manager",
+      "version": "0.5.2",
+      "purl": "pkg:pub/window_manager@0.5.2",
+      "bom-ref": "pkg:pub/window_manager@0.5.2",
+      "properties": [
+        {
+          "name": "dependency_type",
+          "value": "direct"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "05c231fd7b23d2380f14c5cc10b7b93d60d4fa4a2fb4e0f032de27e44b5560e9"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "name": "xdg_directories",
       "version": "1.1.0",
       "purl": "pkg:pub/xdg_directories@1.1.0",
@@ -2426,7 +2760,7 @@
       "properties": [
         {
           "name": "dependency_type",
-          "value": "transitive"
+          "value": "direct"
         }
       ],
       "hashes": [

@@ -8,11 +8,13 @@
 // 不做超时等待（AppLockGate 的生命周期钩子调用 [clear]）。
 //
 // 安全口径：
-// - 缓存键不含明文密码（密码先过 SHA-256 再入键）；
-// - 缓存值 = PBKDF2 派生出的 32B KEK——与会话 DEK 缓存（_sessionDeks、
+// - 缓存键 = HMAC(进程 pepper||槽位盐, 密码)——无盐 sha256(口令)已删除；
+//   clear() 擦除并轮换 pepper，残留键串永久失效（P0 修复 N39）；
+// - 缓存值 = KDF 派生出的 32B KEK——与会话 DEK 缓存（_sessionDeks、
 //   _sessionNotebookPasswords）同口径的内存驻留敏感材料，切后台即清；
+//   LRU 淘汰同样 fill(0)（P0 修复 N41）；
 // - 命中返回副本（调用方写不进缓存）；clear 后 in-flight 派生结果不回填
-//   （generation 校验，防「清后复活」）。
+//   且不交付（generation 校验 + 作废擦除，调用方按失败重试——P0 修复 N40）。
 //
 // 性能口径：
 // - 未命中 → Isolate.run 后台派生（pointycastle 实现）——主 isolate 零
@@ -24,6 +26,7 @@ library;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:isolate';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart' as crypto;
@@ -44,9 +47,26 @@ class KekSessionCache {
   /// 自动淘汰，读路径热点（开屏/文件密码/媒体/同步派生）远小于此值。
   static const int _maxEntries = 64;
 
-  /// 缓存键：`iterations|base64(salt)|base64(sha256(password))`——
-  /// 明文密码不驻留缓存键。
+  /// 缓存键：`kdfTag|base64(salt)|base64(HMAC(pepper||salt, password))`。
+  ///
+  /// P0 修复（审计 N39/N41）：旧键 `sha256(password)` 是无盐快速哈希——
+  /// 堆转储即得 GPU 可爆破的口令验证器，且绕过 Argon2/600k 成本。新键以
+  /// 进程级随机 pepper + 槽位盐做 HMAC：
+  /// - 会话内存中仍有验证器（缓存本就如此，KEK 明文本就驻留——无回归）；
+  /// - `clear()` 同时擦除并轮换 pepper——清屏后的转储/日志残留键串
+  ///   永久失效（旧 pepper 已清零，不可再验证任何口令）。
   final Map<String, Uint8List> _cache = {};
+
+  /// 进程级 HMAC pepper（32B CSPRNG）：clear 时 fill(0) 擦除并轮换。
+  /// 用 dart:math 不经 VaultKeyService，避免模块循环依赖。
+  Uint8List _pepper = _newPepper();
+
+  static Uint8List _newPepper() {
+    final r = Random.secure();
+    return Uint8List.fromList(
+      List<int>.generate(32, (_) => r.nextInt(256)),
+    );
+  }
 
   /// in-flight 去重：同键并发派生共享同一 Future。
   final Map<String, Future<Uint8List>> _inflight = {};
@@ -75,19 +95,30 @@ class KekSessionCache {
       _cache[key] = cached;
       return Uint8List.fromList(cached);
     }
-    final inflight = _inflight[key];
-    if (inflight != null) return Uint8List.fromList(await inflight);
-
     final gen = _generation;
+    final inflight = _inflight[key];
+    if (inflight != null) {
+      // 并发加入：等待共享结果；等待期间被 clear 则 fail-closed（不交付
+      // 锁后 KEK——P0 修复 N40 后半段；调用方按解锁失败处理，用户重试）。
+      final shared = await inflight;
+      _checkGen(gen);
+      return Uint8List.fromList(shared);
+    }
+
     final task = Isolate.run(() => _deriveBytesAsync(password, salt, params));
     _inflight[key] = task;
     try {
       final derived = await task;
-      if (gen == _generation) {
-        _cache[key] = derived;
-        while (_cache.length > _maxEntries) {
-          _cache.remove(_cache.keys.first); // 淘汰最旧
-        }
+      if (gen != _generation) {
+        // 派生期间被 clear：结果作废并擦除，不回填、不交付（P0 修复 N40）。
+        derived.fillRange(0, derived.length, 0);
+        throw StateError('KEK 会话已清除（锁屏后派生结果作废）');
+      }
+      _cache[key] = derived;
+      while (_cache.length > _maxEntries) {
+        // P0 修复 N41：淘汰条目同样 fill(0)（此前直接丢弃，明文驻留堆）。
+        final evicted = _cache.remove(_cache.keys.first);
+        evicted?.fillRange(0, evicted.length, 0);
       }
       return Uint8List.fromList(derived);
     } finally {
@@ -95,22 +126,32 @@ class KekSessionCache {
     }
   }
 
+  void _checkGen(int gen) {
+    if (gen != _generation) {
+      throw StateError('KEK 会话已清除（锁屏后派生结果作废）');
+    }
+  }
+
   /// 清空缓存：全部条目 fill(0) 擦除后置空（D-2 内存清理模式）。
-  /// 代际 +1——已派发未完成的 isolate 结果不再回填。
+  /// 代际 +1（在途派生作废）+ pepper 擦除并轮换（残留键串永久失效）。
   void clear() {
     for (final value in _cache.values) {
       value.fillRange(0, value.length, 0);
     }
     _cache.clear();
+    _pepper.fillRange(0, _pepper.length, 0);
+    _pepper = _newPepper();
     _generation++;
   }
 
-  static String _cacheKey(String password, List<int> salt, KdfParams params) {
-    final pwDigest = crypto.sha256.convert(utf8.encode(password)).bytes;
+  String _cacheKey(String password, List<int> salt, KdfParams params) {
+    // P0 修复 N39：pepper 化 HMAC 取代无盐 sha256(口令)。
+    final mac = crypto.Hmac(crypto.sha256, [..._pepper, ...salt]);
+    final digest = mac.convert(utf8.encode(password)).bytes;
     final kdfTag = params.kdf == KdfParams.kdfArgon2id
         ? '${params.kdf}|${params.memoryKiB}|${params.timeCost}|${params.parallelism}'
         : '${params.kdf}|${params.iterations}';
-    return '$kdfTag|${base64Encode(salt)}|${base64Encode(pwDigest)}';
+    return '$kdfTag|${base64Encode(salt)}|${base64Encode(digest)}';
   }
 }
 

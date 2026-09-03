@@ -125,6 +125,54 @@ class NoteAttachment {
     updatedAt: DateTime.parse(json['updatedAt'] as String),
   );
 
+  /// 安全解析（P2 加固）：永不抛异常——字段缺失/类型错/`kind` 未知/
+  /// 日期非法/超长/负尺寸一律返回 null（毒附件块只坏一张卡片，不坏整篇）。
+  static NoteAttachment? tryParse(Map<String, dynamic> json) {
+    try {
+      final id = json['id'];
+      final name = json['name'];
+      final kindRaw = json['kind'];
+      if (id is! String ||
+          id.isEmpty ||
+          id.length > 128 ||
+          name is! String ||
+          name.length > 256 ||
+          kindRaw is! String) {
+        return null;
+      }
+      AttachmentKind? kind;
+      for (final k in AttachmentKind.values) {
+        if (k.name == kindRaw) {
+          kind = k;
+          break;
+        }
+      }
+      if (kind == null) return null;
+      final byteSize = (json['byteSize'] as int?) ?? 0;
+      if (byteSize < 0) return null;
+      final createdAt = DateTime.tryParse(json['createdAt'] as String? ?? '');
+      final updatedAt = DateTime.tryParse(json['updatedAt'] as String? ?? '');
+      if (createdAt == null || updatedAt == null) return null;
+      final filePath = (json['filePath'] as String?) ?? '';
+      final url = (json['url'] as String?) ?? '';
+      if (filePath.length > 4096 || url.length > 4096) return null;
+      return NoteAttachment(
+        id: id,
+        name: name,
+        kind: kind,
+        mimeType: (json['mimeType'] as String?) ?? '',
+        byteSize: byteSize,
+        filePath: filePath,
+        url: url,
+        description: (json['description'] as String?) ?? '',
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

@@ -60,12 +60,17 @@ class LocalAuthBackend implements SystemAuthBackend {
 
   @override
   Future<bool> isSupported() async {
-    // canCheckBiometrics 只代表有硬件；isDeviceSupported 覆盖
-    // 「无生物识别硬件但可走系统 PIN」的设备（Windows Hello PIN /
-    // Android 系统凭据同样算）。
+    // P0 安全修复（审计 N-H1）：删除 `|| true` 恒真式；要求设备已注册
+    // 生物识别（人脸/指纹）——纯设备 PIN 回退不再计为“支持”，防止 4 位
+    // 设备 PIN 绕过高熵保险库口令。fail-closed：任何异常视为不支持。
     try {
       if (!await _auth.isDeviceSupported()) return false;
-      return await _auth.canCheckBiometrics || true;
+      try {
+        final enrolled = await _auth.getAvailableBiometrics();
+        return enrolled.isNotEmpty;
+      } catch (_) {
+        return false;
+      }
     } catch (_) {
       // 插件未注册（测试环境）/平台异常：视为不支持，快速解锁自动隐藏。
       return false;
@@ -75,7 +80,12 @@ class LocalAuthBackend implements SystemAuthBackend {
   @override
   Future<bool> authenticate(String reason) async {
     try {
-      return await _auth.authenticate(localizedReason: reason);
+      // P0 安全修复（审计 N-H1）：biometricOnly 强制生物识别，禁止回退
+      // 到设备 PIN / 系统凭据（否则保险库口令强度降级为设备 PIN 强度）。
+      return await _auth.authenticate(
+        localizedReason: reason,
+        options: const AuthenticationOptions(biometricOnly: true),
+      );
     } catch (_) {
       return false;
     }

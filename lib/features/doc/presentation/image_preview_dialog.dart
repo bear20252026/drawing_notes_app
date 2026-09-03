@@ -6,16 +6,20 @@ library;
 
 import 'package:flutter/material.dart';
 
+import 'package:drawing_notes_app/core/utils/safe_url.dart';
+
 /// 显示图片全屏预览弹窗。
 ///
 /// [src] 为图片 URL（网络图）。[caption] 可选说明文案。
-/// 若 [src] 为空则不弹出并返回 null。
+/// 若 [src] 为空或未通过 [sanitizeImageSrc]（非 https/无 host/含 userinfo/
+/// 超长）则不弹出并返回 null（不发起任何请求——fail-closed）。
 Future<void> showImagePreviewDialog(
   BuildContext context, {
   required String src,
   String? caption,
 }) async {
-  if (src.isEmpty) return;
+  final safeSrc = sanitizeImageSrc(src);
+  if (safeSrc == null) return;
 
   return showGeneralDialog<void>(
     context: context,
@@ -24,7 +28,7 @@ Future<void> showImagePreviewDialog(
     barrierColor: Colors.black87,
     transitionDuration: const Duration(milliseconds: 200),
     pageBuilder: (context, animation, secondaryAnimation) {
-      return _ImagePreviewPage(src: src, caption: caption);
+      return _ImagePreviewPage(src: safeSrc, caption: caption);
     },
     transitionBuilder: (context, animation, secondaryAnimation, child) {
       return FadeTransition(

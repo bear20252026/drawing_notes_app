@@ -268,8 +268,11 @@ class _SchedulePageState extends State<SchedulePage> {
     }
     final keys = byDay.keys.toList()..sort();
     return [
-      for (final key in keys) ...[
-        _dayHeader(_parseDayKey(key)),
+      for (final key in keys)
+        // P1 修复：毒 dayKey 坏行隔离（跳过不渲染，不崩整页——fromJson 已拦
+        // 大部分，此处兜底内存态/旧数据）。
+        if (tryParseDayKey(key) case final day?) ...[
+        _dayHeader(day),
         const SizedBox(height: 8),
         ...((byDay[key]!..sort(
               (a, b) => (a.minuteOfDay ?? -1).compareTo(b.minuteOfDay ?? -1),
@@ -394,15 +397,6 @@ class _SchedulePageState extends State<SchedulePage> {
     setState(() {
       _events = _events.where((e) => e.id != event.id).toList();
     });
-  }
-
-  DateTime _parseDayKey(String key) {
-    final parts = key.split('-');
-    return DateTime(
-      int.parse(parts[0]),
-      int.parse(parts[1]),
-      int.parse(parts[2]),
-    );
   }
 
   // ---------------- 通用小组件 ----------------

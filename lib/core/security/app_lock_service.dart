@@ -3,7 +3,9 @@
 // ============================================================================
 //
 // 应用级冷启动门 + 切后台回锁的单一事实来源：
-// - PIN 永不明文落盘：随机盐 + SHA-256 哈希后存 shared_preferences；
+// - PIN 永不明文落盘：随机盐 + Argon2id（后台 isolate，经 KekSessionCache）
+//   存 shared_preferences；v1 单次 SHA-256 旧哈希仅做兼容验证，验证通过
+//   即透明升级（P0 安全修复——4 位 PIN 离线毫秒爆破）；
 // - 校验用恒定时间比较，避免时序侧信道；
 // - 「是否已配置」是唯一持久状态，加锁/解锁的瞬时状态由 UI 层（AppLockGate）
 //   持有——存储层不感知「此刻是否锁定」。
@@ -16,12 +18,15 @@
 
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_guard.dart';
+import 'package:drawing_notes_app/core/security/kdf_params.dart';
+import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 
 /// 应用启动锁服务。
 ///
@@ -45,6 +50,12 @@ class AppLockService extends ChangeNotifier {
   static const _kPinHashKey = 'app_lock.pin_hash';
   static const _kSaltKey = 'app_lock.salt';
   static const _kPinLengthKey = 'app_lock.pin_length';
+
+  /// PIN 哈希版本：1 = 单次 SHA-256（旧，兼容验证后升级）；2 = Argon2id
+  ///（后台 isolate 派生，约 348ms，内存硬抗 GPU 离线爆破）。
+  static const _kPinKdfVersionKey = 'app_lock.pin_kdf_v';
+  static const int _kdfLegacySha256 = 1;
+  static const int _kdfArgon2id = 2;
 
   /// PIN 长度边界（批次②：自定义 4–12 位）。
   static const int minPinLength = 4;
@@ -89,17 +100,24 @@ class AppLockService extends ChangeNotifier {
 
   /// 设置（或覆盖）PIN，长度随 PIN 记录（批次②：4–12 位）。
   /// 调用方需自行保证身份（修改前先 [verify] 旧 PIN）。
+  /// 新 PIN 恒写 Argon2id v2（后台 isolate，不阻塞 UI）。
   Future<void> setPin(String pin) async {
     assert(pin.isNotEmpty, 'PIN 不能为空');
     assert(
       pin.length >= minPinLength && pin.length <= maxPinLength,
       'PIN 长度须在 $minPinLength–$maxPinLength 位之间',
     );
+    if (pin.isEmpty ||
+        pin.length < minPinLength ||
+        pin.length > maxPinLength) {
+      throw ArgumentError('PIN 长度须在 $minPinLength–$maxPinLength 位之间');
+    }
     final prefs = await _preferencesLoader();
     final salt = _newSalt();
     await prefs.setString(_kSaltKey, salt);
-    await prefs.setString(_kPinHashKey, _hash(pin, salt));
+    await prefs.setString(_kPinHashKey, await _hashV2(pin, salt));
     await prefs.setInt(_kPinLengthKey, pin.length);
+    await prefs.setInt(_kPinKdfVersionKey, _kdfArgon2id);
     _configured = true;
     _pinLength = pin.length;
     notifyListeners();
@@ -109,6 +127,7 @@ class AppLockService extends ChangeNotifier {
   ///
   /// 批次③：冷却期内一律拒绝（不计入失败——冷却本身就是惩罚，
   /// 反复尝试不应延长；到期后重新开始接受尝试）。
+  /// P0 迁移：v1（SHA-256）旧哈希验证通过即透明升级 v2（用户无感）。
   Future<bool> verify(String pin) async {
     if (!_configured) return false;
     final guard = _lockoutGuard;
@@ -121,7 +140,25 @@ class AppLockService extends ChangeNotifier {
     final salt = prefs.getString(_kSaltKey);
     final stored = prefs.getString(_kPinHashKey);
     if (salt == null || stored == null) return false;
-    final ok = _constantTimeEquals(_hash(pin, salt), stored);
+    final version =
+        prefs.getInt(_kPinKdfVersionKey) ?? _kdfLegacySha256;
+    bool ok;
+    try {
+      if (version == _kdfArgon2id) {
+        ok = _constantTimeEquals(await _hashV2(pin, salt), stored);
+      } else {
+        ok = _constantTimeEquals(_hashLegacy(pin, salt), stored);
+        if (ok) {
+          // 透明升级：旧哈希命中后换 Argon2id（失败不影响本次结果）。
+          try {
+            await prefs.setString(_kPinHashKey, await _hashV2(pin, salt));
+            await prefs.setInt(_kPinKdfVersionKey, _kdfArgon2id);
+          } catch (_) {}
+        }
+      }
+    } catch (_) {
+      return false;
+    }
     if (guard != null) {
       await guard.recordAttempt(ok, _preferencesLoader);
     }
@@ -134,6 +171,7 @@ class AppLockService extends ChangeNotifier {
     await prefs.remove(_kPinHashKey);
     await prefs.remove(_kSaltKey);
     await prefs.remove(_kPinLengthKey);
+    await prefs.remove(_kPinKdfVersionKey);
     final guard = _lockoutGuard;
     if (guard != null) await guard.reset(_preferencesLoader);
     _configured = false;
@@ -166,8 +204,30 @@ class AppLockService extends ChangeNotifier {
     return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   }
 
-  String _hash(String pin, String salt) =>
+  /// v1 旧哈希（仅兼容验证——新写入永不使用）。
+  String _hashLegacy(String pin, String salt) =>
       sha256.convert(utf8.encode('$salt:$pin')).toString();
+
+  /// v2 哈希：Argon2id 64MiB/t2/p2，经 KekSessionCache 后台 isolate 派生
+  /// （主 isolate 零阻塞）；输出 base64(32B)。盐为既有 16 字节 hex 串。
+  Future<String> _hashV2(String pin, String saltHex) async {
+    final derived = await KekSessionCache.instance.deriveKek(
+      pin,
+      _saltBytes(saltHex),
+      KdfParams.argon2idProduction,
+    );
+    return base64Encode(derived);
+  }
+
+  /// 16 字节 hex 盐 → 字节；畸形抛 FormatException（verify 侧 fail-closed）。
+  Uint8List _saltBytes(String saltHex) {
+    if (saltHex.length != 32) throw const FormatException('盐长度不合法');
+    final out = Uint8List(16);
+    for (var i = 0; i < 16; i++) {
+      out[i] = int.parse(saltHex.substring(i * 2, i * 2 + 2), radix: 16);
+    }
+    return out;
+  }
 
   /// 恒定时间字符串比较：无论是否相等耗时一致，防时序侧信道。
   static bool _constantTimeEquals(String a, String b) {

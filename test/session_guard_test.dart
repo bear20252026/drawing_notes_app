@@ -63,4 +63,31 @@ void main() {
     guard.dispose();
     expect(guard.isLocked, isFalse);
   });
+
+  test('runWithExemption：抛异常也不泄漏豁免（P0 修复）', () async {
+    var locked = false;
+    final guard = SessionGuard(onLock: () => locked = true);
+    await expectLater(
+      guard.runWithExemption(() => throw StateError('picker crashed')),
+      throwsStateError,
+    );
+    // 豁免已复位：inactive 必须锁定。
+    guard.onInactive();
+    expect(guard.isLocked, isTrue);
+    expect(locked, isTrue);
+  });
+
+  test('runWithExemption：嵌套豁免计数配对，不提前关闭', () async {
+    final guard = SessionGuard(onLock: () {});
+    await guard.runWithExemption(() async {
+      guard.setFilePickerActive(true);
+      guard.setFilePickerActive(false);
+      // 外层豁免仍有效。
+      guard.onInactive();
+      expect(guard.isLocked, isFalse);
+    });
+    // 全部退出后恢复锁定。
+    guard.onInactive();
+    expect(guard.isLocked, isTrue);
+  });
 }

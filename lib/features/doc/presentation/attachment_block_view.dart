@@ -31,12 +31,13 @@ class AttachmentBlockView extends StatefulWidget {
   final PdfPreviewRenderer? pdfRenderer;
 
   /// 从块 props 解析 NoteAttachment；失败/缺失时返回 null（渲染空卡片）。
+  /// P2 加固：经 [NoteAttachment.tryParse]（永不抛错 + 长度封顶）。
   static NoteAttachment? decodeAttachment(NoteBlock block) {
     final raw = block.props['attachment'];
-    if (raw is! String || raw.isEmpty) return null;
+    if (raw is! String || raw.isEmpty || raw.length > 65536) return null;
     try {
       final obj = jsonDecode(raw);
-      if (obj is Map<String, dynamic>) return NoteAttachment.fromJson(obj);
+      if (obj is Map<String, dynamic>) return NoteAttachment.tryParse(obj);
     } catch (_) {
       // ignore: fallback
     }

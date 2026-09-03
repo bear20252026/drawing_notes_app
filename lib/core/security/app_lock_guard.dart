@@ -23,6 +23,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 
@@ -122,7 +123,11 @@ class LockoutGuard {
         _secret != null && _constantTimeEquals(_sign(recordStr), sigStr);
     if (record == null || !sigValid) {
       // 记录存在但不合法（被篡改/损坏）→ fail-closed：立即最长冷却。
-      debugPrint('LockoutGuard: 检测到无效守卫记录，进入保护性冷却');
+      // P1 修复：debugPrint 改走 AuditLogger（生产日志脱敏）。
+      AuditLogger.log(
+        'app_lock.guard.invalid_record',
+        success: false,
+      );
       _count = lockoutThreshold;
       _highWaterMs = record?['hw'] ?? clockMs();
       _untilMs = trustedNowMs() + lockoutCap.inMilliseconds;

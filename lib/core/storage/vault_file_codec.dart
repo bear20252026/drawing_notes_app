@@ -231,6 +231,11 @@ abstract final class VaultFileCodec {
     }
     final salt = blob.sublist(4, 20);
     final iter = ByteData.sublistView(blob, 20, 24).getUint32(0);
+    // P0 修复：v2 头部 iter 无界——`1` 瞬间爆破、`0xFFFFFFFF` 挂起 isolate。
+    // 合法产线仅 100k/600k，上限取 2 倍生产值，超限 fail-closed。
+    if (iter <= 0 || iter > KdfParams.maxPbkdf2Iterations) {
+      throw const VaultFileException('信封 KDF 迭代数不合法');
+    }
     final key = await VaultKeyService.deriveKek(
       password,
       salt,
@@ -479,7 +484,11 @@ abstract final class VaultFileCodec {
       throw const VaultFileException('信封长度不合法');
     }
     final jsonLen = ByteData.sublistView(blob, 4, 8).getUint32(0);
-    if (jsonLen == 0 || _v3HeaderBytes + jsonLen >= blob.length) {
+    // P0 修复：槽位 JSON 头部 1MB 上限（合法 <1KB）——防畸形大长度
+    // 触发大内存 sublist/decode（OOM 放大）。
+    if (jsonLen == 0 ||
+        jsonLen > 1048576 ||
+        _v3HeaderBytes + jsonLen >= blob.length) {
       throw const VaultFileException('信封头部长度不合法');
     }
     Map<String, dynamic> body;
@@ -525,13 +534,17 @@ abstract final class VaultFileCodec {
   /// （fail-closed——由 [_slotsOfV3] 预检后调用，此处仅防越界）。
   static KdfParams _paramsOfPwSlot(Map<String, dynamic> pwSlot) {
     try {
+      // P0 修复：批B 前旧槽位 `iter` 同样无界——先封顶再进解析
+      //（fromSlotJson 不校验 legacyDefault 本身）。
+      final legacyIter = pwSlot['iter'] is int
+          ? pwSlot['iter'] as int
+          : filePasswordIterations;
+      if (legacyIter <= 0 || legacyIter > KdfParams.maxPbkdf2Iterations) {
+        throw const VaultFileException('密码槽 KDF 字段不合法');
+      }
       return KdfParams.fromSlotJson(
         pwSlot,
-        legacyDefault: KdfParams.pbkdf2(
-          pwSlot['iter'] is int
-              ? pwSlot['iter'] as int
-              : filePasswordIterations,
-        ),
+        legacyDefault: KdfParams.pbkdf2(legacyIter),
       );
     } on ArgumentError {
       throw const VaultFileException('密码槽 KDF 字段不合法');

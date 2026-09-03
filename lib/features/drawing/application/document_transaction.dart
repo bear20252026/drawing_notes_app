@@ -1,3 +1,4 @@
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
 
 /// 批量命令事务（借鉴 iwb_canvas_engine SceneWriteTxn 的原子提交思想，
@@ -63,8 +64,12 @@ class DocumentTransaction extends DocCommand {
         _commands[i].undo();
       } catch (_) {
         // 回滚过程异常不吞掉原始异常，仅记录继续尝试其余回滚。
-        // ignore: avoid_print
-        print('[DocumentTransaction] 回滚第 $i 个命令失败');
+        // P1 修复（审计 H-06）：裸 print 进生产日志——改走 AuditLogger。
+        AuditLogger.log(
+          'document.transaction.rollback_partial',
+          success: false,
+          detail: 'index:$i',
+        );
       }
     }
   }

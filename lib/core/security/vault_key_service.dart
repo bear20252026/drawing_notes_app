@@ -230,12 +230,15 @@ class VaultKeyService {
   }
 
   /// 销毁保险库（U 盘重置后重设密码前的清理态——文件删除 + 内存清零）。
+  /// P1 连带：`.bak` 一并删除——否则旧备份残留，新保险库主文件一旦损坏
+  /// 就会回退到旧钥匙材料（旧 PIN 才能解），造成“正确新 PIN 也打不开”。
   Future<void> wipe() async {
     lock();
     final file = await _vaultFile();
-    if (file.existsSync()) {
+    for (final path in [file.path, '${file.path}.bak']) {
       try {
-        await file.delete();
+        final f = File(path);
+        if (await f.exists()) await f.delete();
       } catch (_) {
         // 删除失败忽略（下次 initialize 覆盖写入）。
       }
@@ -428,16 +431,25 @@ class VaultKeyService {
 
   /// 槽位 KDF 参数解析：槽位自带 kdf 字段优先；缺失（旧数据）→ doc 级
   /// iter 字段 → [iterations] 兜底（最早 v1 文件无任何 KDF 信息）。
+  /// P0 修复：`doc['iter']` 无界（`1` 瞬间爆破、超大挂起）——fromSlotJson
+  /// 不校验 legacyDefault 本身，此处先封顶；畸形统一报解锁失败。
   KdfParams _paramsOfPinSlot(
     Map<String, dynamic> pinSlot,
     Map<String, dynamic> doc,
   ) {
-    return KdfParams.fromSlotJson(
-      pinSlot,
-      legacyDefault: KdfParams.pbkdf2(
-        doc['iter'] is int ? doc['iter'] as int : iterations,
-      ),
-    );
+    final legacyIter =
+        doc['iter'] is int ? doc['iter'] as int : iterations;
+    if (legacyIter <= 0 || legacyIter > KdfParams.maxPbkdf2Iterations) {
+      throw const VaultUnlockException('保险库 KDF 参数不合法');
+    }
+    try {
+      return KdfParams.fromSlotJson(
+        pinSlot,
+        legacyDefault: KdfParams.pbkdf2(legacyIter),
+      );
+    } on ArgumentError {
+      throw const VaultUnlockException('保险库 KDF 参数不合法');
+    }
   }
 
   /// 旧 PIN 槽归一化（惰性迁移用）：补齐 kdf 字段（等价改写不重新 KDF），
@@ -456,14 +468,32 @@ class VaultKeyService {
   }
 
   /// 读取保险库 JSON（不存在返回 null；损坏抛 [VaultUnlockException]）。
+  /// P1 修复：主文件缺失/损坏时回退 `.bak`（_persistSlots 每次落盘前留存——
+  /// rename 期崩溃生存；双坏才抛错）。类型错判与格式错判同视为损坏。
   Future<Map<String, dynamic>?> _readDoc() async {
     final file = await _vaultFile();
-    if (!file.existsSync()) return null;
-    try {
-      return jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-    } on FormatException {
-      throw const VaultUnlockException('保险库数据损坏');
+    final bak = File('${file.path}.bak');
+
+    Future<Map<String, dynamic>?> tryParse(File f) async {
+      try {
+        return jsonDecode(await f.readAsString()) as Map<String, dynamic>;
+      } catch (_) {
+        // FormatException（坏 JSON）与 TypeError（非对象 JSON）同归 null。
+        return null;
+      }
     }
+
+    if (!await file.exists()) {
+      if (await bak.exists()) return tryParse(bak);
+      return null;
+    }
+    final main = await tryParse(file);
+    if (main != null) return main;
+    if (await bak.exists()) {
+      final fallback = await tryParse(bak);
+      if (fallback != null) return fallback;
+    }
+    throw const VaultUnlockException('保险库数据损坏');
   }
 
   /// [hasUsbSlot] 用的静默版：损坏一律返回 null（查询不抛错）。
@@ -501,6 +531,9 @@ class VaultKeyService {
 
   /// 槽位结构落盘（v3 格式，原子写：tmp + rename——断电不留半截保险库）。
   /// 批B：KDF 参数在槽位内自描述（顶层不再有 kdf/iter 字段）。
+  /// P1 修复三件套：①随机 tmp 后缀（固定名并发互覆/symlink 劫持）；
+  /// ②落盘前留 `.bak`（rename 期崩溃 [_readDoc] 可回退——单点锁死防护）；
+  /// ③回读校验（静默坏盘不放行，失败尝试 .bak 恢复后仍抛错）。
   Future<void> _persistSlots({
     required Map<String, dynamic>? pinSlot,
     Map<String, dynamic>? usbSlot,
@@ -510,8 +543,39 @@ class VaultKeyService {
       'v': 3,
       'slots': [?pinSlot, ?usbSlot],
     });
-    final tmp = File('${file.path}.tmp');
+    final tmp = File(
+      '${file.path}.tmp.${DateTime.now().microsecondsSinceEpoch}.${_randomHex(8)}',
+    );
     await tmp.writeAsString(doc, flush: true);
-    await tmp.rename(file.path);
+    if (await file.exists()) {
+      try {
+        await file.copy('${file.path}.bak');
+      } catch (_) {}
+    }
+    try {
+      await tmp.rename(file.path);
+    } catch (_) {
+      try {
+        if (await tmp.exists()) await tmp.delete();
+      } catch (_) {}
+      rethrow;
+    }
+    try {
+      jsonDecode(await file.readAsString());
+    } catch (_) {
+      try {
+        final bak = File('${file.path}.bak');
+        if (await bak.exists()) await bak.copy(file.path);
+      } catch (_) {}
+      throw const VaultUnlockException('保险库落盘校验失败');
+    }
+  }
+
+  /// 随机 hex（tmp 后缀用）。
+  static String _randomHex(int bytes) {
+    final r = Random.secure();
+    return List<int>.generate(bytes, (_) => r.nextInt(256))
+        .map((b) => b.toRadixString(16).padLeft(2, '0'))
+        .join();
   }
 }

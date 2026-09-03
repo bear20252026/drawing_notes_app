@@ -444,9 +444,14 @@ class EncryptionService {
       final KdfParams params;
       if (pw['kdf'] == null) {
         // 旧 PBKDF2 槽位（it 字段；缺失按当前迭代数兜底）。
-        params = KdfParams.pbkdf2(
-          pw['it'] is int ? pw['it'] as int : _pbkdf2IterationsCurrent,
-        );
+        // P0 修复：`it` 无界——超限按字段畸形处理（FormatException →
+        // 调用方统一报「密码错误或数据已损坏」，不给敌手区分口径）。
+        final legacyIt =
+            pw['it'] is int ? pw['it'] as int : _pbkdf2IterationsCurrent;
+        if (legacyIt <= 0 || legacyIt > KdfParams.maxPbkdf2Iterations) {
+          throw const FormatException('密码槽 KDF 迭代数不合法');
+        }
+        params = KdfParams.pbkdf2(legacyIt);
       } else {
         params = KdfParams.fromSlotJson(
           pw,

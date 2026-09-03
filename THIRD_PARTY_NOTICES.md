@@ -44,7 +44,46 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## 其他依赖
+## 直接依赖许可表（P2 审计补齐）
 
-其余第三方依赖及其许可证见 `pubspec.yaml` 与 `pubspec.lock`
-（Flutter/Dart 生态，多为 MIT/BSD/Apache-2.0）。
+下表为 `pubspec.yaml` 直接依赖的用途与许可证（版本见 `pubspec.lock`；
+许可证 canonical 来源为各包 `pub.dev` 页面与仓库内 LICENSE 文件，
+发版前可用 `pana`/`dart pub licenses` 复核）：
+
+| 包 | 用途 | 许可证 |
+|---|---|---|
+| `meta` | 注解（`@visibleForTesting` 等） | BSD-3-Clause |
+| `flutter` / `flutter_localizations` / `intl` | 框架 / 本地化 | BSD-3-Clause |
+| `cupertino_icons` | iOS 风格图标字体 | BSD-3-Clause |
+| `path_provider` / `shared_preferences` | 目录 / 轻量 KV | BSD-3-Clause |
+| `file_selector` / `local_auth` | 文件选择 / 系统验证 | BSD-3-Clause |
+| `vector_math` | 视口矩阵数学 | BSD-3-Clause |
+| `http` | WebDAV 传输 | BSD-3-Clause |
+| `crypto` | SHA-256/HMAC | BSD-3-Clause |
+| `cryptography` | AES-256-GCM / Argon2id / PBKDF2 主实现 | Apache-2.0 |
+| `pdf` | PDF 导出 | Apache-2.0 |
+| `pointycastle` | PBKDF2 后台 isolate 实现（与 cryptography 逐字节一致） | MIT |
+| `pdfrx`（+ `pdfrx_engine`） | PDFium 本地渲染 | MIT |
+| `archive` / `image` | 压缩 / 图像编解码 | MIT |
+| `perfect_freehand` | 压感笔触轮廓 | MIT |
+| `xml` | WebDAV PROPFIND 解析 | MIT |
+| `flutter_riverpod` | 状态管理 | MIT |
+| `hotkey_manager` / `window_manager` | 全局快捷键 / 桌面窗口 | MIT |
+| `flutter_secure_storage` | OS 凭据库（DPAPI/Keychain/Keystore） | BSD-3-Clause（发版前以 pub.dev 复核） |
+| `cupertino_ui` | Apple 风格组件 | 以 pub.dev 声明为准（发版前复核） |
+
+子包 `packages/editor_core` 与 `packages/notebook_domain`：零运行时依赖，
+`publish_to: none`，不独立分发，随主包 MIT 许可。
+
+## 字体资产
+
+- `assets/fonts/DroidSansFallbackFull.ttf`（分页笔记 PDF 导出离线 CJK 字体）：
+  Droid 字体家族，Apache License 2.0（来源：Android 开源项目；随系统
+  发行物附带完整 LICENSE 副本，发版前确认 `THIRD_PARTY_NOTICES` 打包进产物）。
+
+## 合规口径
+
+- MIT/BSD 系列：保留版权声明即可——本文件 + 各包 pub.dev 溯源满足；
+- Apache-2.0：须附许可证文本并声明修改——`cryptography`/`pdf`/
+  Droid 字体未修改源码使用，发版产物附本文件即满足；
+- 新增直接依赖时同步追加本表行（CI 可用 `dart pub deps`  diff 提醒）。

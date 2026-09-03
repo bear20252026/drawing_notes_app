@@ -14,6 +14,8 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 SPEC_VERSION = "1.5"
@@ -67,10 +69,12 @@ def build_bom(app_name: str, app_version: str, packages: dict) -> dict:
             component["hashes"] = [{"alg": "SHA-256", "content": p["sha256"]}]
         components.append(component)
 
+    # P2 修复（审计）：serialNumber 每次唯一 + timestamp 落盘时刻（UTC，
+    # ISO 8601）——此前全零串与空时间戳，SBOM 无审计可追溯性。
     bom = {
         "bomFormat": BOM_FORMAT,
         "specVersion": SPEC_VERSION,
-        "serialNumber": "urn:uuid:00000000-0000-0000-0000-000000000000",
+        "serialNumber": f"urn:uuid:{uuid.uuid4()}",
         "version": 1,
         "metadata": {
             "component": {
@@ -78,7 +82,7 @@ def build_bom(app_name: str, app_version: str, packages: dict) -> dict:
                 "name": app_name,
                 "version": app_version,
             },
-            "timestamp": "",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         },
         "components": components,
     }

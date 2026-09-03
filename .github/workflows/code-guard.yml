@@ -39,15 +39,22 @@ jobs:
         run: cargo install sloc-guard --locked
 
       - name: linecheck 双档门禁
-        # 警告非阻断（退出码 0），错误阻断（退出码 1）
-        continue-on-error: true  # 历史超限文件先报告，不阻断合并
-        run: linecheck --config linecheck.yml lib/ || true
+        # 警告非阻断（退出码 0，由工具语义保证），错误阻断（退出码 1）。
+        # P1 修复（审计）：删除 `continue-on-error` + `|| true` 双重放行，
+        # 恢复 1000 行硬上限阻断（2026-09-04 核查：lib 最大 915 行，
+        # 无历史超限，恢复阻断不红主干；warn 档仍只报告不拦）。
+        run: linecheck --config linecheck.yml lib/
 
       - name: sloc-guard 变更文件门禁（灵活祖父化）
         # 只检查 PR 变更的文件；既有超限文件不在此列，不阻断。
+        # P1 修复（审计）：GitHub 上下文经 env 传递，不直接插值进 run
+        #（脚本注入面——base.sha 为 hex 低风险，但统一收口）。
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE="${{ github.event.pull_request.base.sha }}"
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            BASE="$BASE_SHA"
           else
             BASE="origin/master"
           fi
@@ -224,9 +231,13 @@ jobs:
       - name: RepoPilot git diff 证据门禁（正式）
         # 收紧为正式门禁：--fail-on-review definitely 只拦新增 definite 级
         # 问题（evidence 驱动）；历史存量问题不阻塞（diff 对比天然只算新增）。
+        # P1 修复（审计）：同上，上下文经 env 传递。
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE="${{ github.event.pull_request.base.sha }}"
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            BASE="$BASE_SHA"
           else
             BASE="HEAD~1"
           fi

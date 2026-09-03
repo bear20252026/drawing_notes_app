@@ -41,6 +41,7 @@ import 'package:drawing_notes_app/core/notes_accessor.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/canvas_painter.dart';
 import 'package:drawing_notes_app/shared/widgets/color_picker_dialog.dart';
@@ -356,6 +357,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       _showSnack('裁剪区域无效');
       return;
     }
+    // P1 修复（审计 H-05）：GPU 纹理在 finally 释放——此前异常路径
+    // （toImage/toByteData 抛错）泄漏 src/out，重复失败耗尽显存。
+    ui.Image? srcImage;
+    ui.Image? outImage;
     try {
       final file = File(img.filePath);
       if (!await file.exists()) {
@@ -369,7 +374,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       final bytes = wasSealed ? await VaultFileCodec.readImageBytes(file) : raw;
       final codec = await ui.instantiateImageCodec(bytes);
       final frame = await codec.getNextFrame();
-      final src = frame.image;
+      srcImage = frame.image;
+      final src = srcImage!;
       // 裁剪矩形（画布坐标）映射为原图像素坐标；纯几何不触碰文件或状态。
       final srcRect = EditorImageCropGeometry.sourceRectForCrop(
         cropRect: rect,
@@ -385,13 +391,12 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         Paint()..filterQuality = FilterQuality.medium,
       );
       final picture = recorder.endRecording();
-      final out = await picture.toImage(
+      outImage = await picture.toImage(
         srcRect.width.round().clamp(1, 10000),
         srcRect.height.round().clamp(1, 10000),
       );
+      final out = outImage!;
       final data = await out.toByteData(format: ui.ImageByteFormat.png);
-      src.dispose();
-      out.dispose();
       if (data == null) {
         _showSnack('裁剪编码失败');
         return;
@@ -426,6 +431,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       _showSnack('已裁剪图片');
     } catch (e) {
       _showSnack('裁剪失败：$e');
+    } finally {
+      srcImage?.dispose();
+      outImage?.dispose();
     }
   }
 
@@ -604,7 +612,13 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       },
       onError: (error, stackTrace) {
         // 策略（重试/退避）由 SaveScheduler 统一处理，这里只落日志提醒。
-        debugPrint('自动保存失败: $error\n$stackTrace');
+        // P1 修复（审计 H-04）：debugPrint 泄垒原始异常+堆栈（路径/内部
+        // 结构进 logcat）——改走 AuditLogger，仅记错误类型。
+        AuditLogger.log(
+          'editor.autosave.error',
+          success: false,
+          detail: error.runtimeType.toString(),
+        );
       },
     );
     // R4：实例化 ViewModel，保存调度委托给 SaveScheduler。

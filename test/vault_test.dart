@@ -67,9 +67,15 @@ void main() {
       type: 'note',
       plain: Uint8List.fromList('机密'.codeUnits),
     );
-    // 错误密钥（不同）——AAD/解密认证失败。
+    // 错误密钥（不同）——P1 起先撞清单 HMAC 门（StateError），删侧车后
+    // 才落到 AAD/解密认证失败（SecretBoxAuthenticationError）。
     final wrongKey = List<int>.generate(32, (i) => i + 1);
     final wrongVault = EncryptedVault(directory: tempDir, key: wrongKey);
+    expect(
+      () => wrongVault.readObject('secret'),
+      throwsA(isA<StateError>()),
+    );
+    await File('${tempDir.path}/manifest.hmac').delete();
     expect(
       () => wrongVault.readObject('secret'),
       throwsA(isA<SecretBoxAuthenticationError>()),
@@ -99,5 +105,90 @@ void main() {
         .whereType<File>()
         .where((f) => f.path.contains('.tmp'));
     expect(leftovers, isEmpty);
+  });
+
+  test('P1：id 路径穿越拒绝（../ 逃逸 objects/）', () async {
+    final vault = EncryptedVault(directory: tempDir, key: key);
+    for (final evil in [
+      '../../vault.key.json',
+      '..',
+      'a/../../b',
+      'a//b',
+      '/abs/path',
+      'a\\b',
+      '',
+    ]) {
+      await expectLater(
+        vault.writeObject(
+          id: evil,
+          type: 'media',
+          plain: Uint8List.fromList('x'.codeUnits),
+        ),
+        throwsStateError,
+        reason: evil,
+      );
+    }
+    // 子路径用例保留：media/note-1 正常写入。
+    await vault.writeObject(
+      id: 'media/note-1',
+      type: 'media',
+      plain: Uint8List.fromList('ok'.codeUnits),
+    );
+    expect(
+      String.fromCharCodes(await vault.readObject('media/note-1')),
+      'ok',
+    );
+  });
+
+  test('P1：清单 version 回滚被 HMAC 拦截', () async {
+    final vault = EncryptedVault(directory: tempDir, key: key);
+    await vault.writeObject(
+      id: 'doc',
+      type: 'note',
+      plain: Uint8List.fromList('v1'.codeUnits),
+    );
+    await vault.writeObject(
+      id: 'doc',
+      type: 'note',
+      plain: Uint8List.fromList('v2'.codeUnits),
+    );
+    // 攻击者把 manifest 改回 version 1（旧对象文件仍在）。
+    final manifestFile = File('${tempDir.path}/manifest.json');
+    final tampered = (await manifestFile.readAsString()).replaceAll(
+      '"version":2',
+      '"version":1',
+    );
+    expect(tampered, isNot(contains('"version":2')));
+    await manifestFile.writeAsString(tampered);
+    // 侧车未同步 → 读取 fail-closed。
+    expect(() => vault.readObject('doc'), throwsStateError);
+    expect(() => vault.listObjects(), throwsStateError);
+  });
+
+  test('P1：截断对象文件抛 StateError（非 RangeError 崩溃）', () async {
+    final vault = EncryptedVault(directory: tempDir, key: key);
+    await vault.writeObject(
+      id: 'tiny',
+      type: 'media',
+      plain: Uint8List.fromList('data'.codeUnits),
+    );
+    final obj = File('${tempDir.path}/objects/tiny.1');
+    await obj.writeAsBytes(Uint8List.fromList([1, 2, 3]));
+    expect(() => vault.readObject('tiny'), throwsStateError);
+  });
+
+  test('P1：非 32 字节密钥 fail-closed（release 无 assert）', () async {
+    final vault = EncryptedVault(
+      directory: tempDir,
+      key: List<int>.filled(16, 1),
+    );
+    await expectLater(
+      vault.writeObject(
+        id: 'a',
+        type: 't',
+        plain: Uint8List.fromList('x'.codeUnits),
+      ),
+      throwsStateError,
+    );
   });
 }

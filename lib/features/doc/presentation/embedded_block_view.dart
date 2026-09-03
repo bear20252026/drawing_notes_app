@@ -11,6 +11,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import 'package:drawing_notes_app/core/utils/safe_url.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
 import 'package:drawing_notes_app/features/doc/presentation/image_preview_dialog.dart';
 import 'package:drawing_notes_app/features/doc/presentation/table_editor_widget.dart';
@@ -93,6 +94,18 @@ class EmbeddedBlockView extends StatelessWidget {
       );
     }
 
+    // P1 安全修复：远端图片仅允许 https（无请求即无 SSRF/外泄——fail-closed；
+    // markdown 导入的 javascript:/http: 毒 src 在此被拦截，永不触网）。
+    final safeSrc = sanitizeImageSrc(src);
+    if (safeSrc == null) {
+      return _buildPlaceholderCard(
+        context,
+        icon: Icons.shield_outlined,
+        label: '图片来源不安全，已拦截',
+        caption: caption,
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       child: Column(
@@ -110,7 +123,7 @@ class EmbeddedBlockView extends StatelessWidget {
               child: Stack(
                 children: [
                   Image.network(
-                    src,
+                    safeSrc,
                     fit: BoxFit.cover,
                     height: 200,
                     width: double.infinity,

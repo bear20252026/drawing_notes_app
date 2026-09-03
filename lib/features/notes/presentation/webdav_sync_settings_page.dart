@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
@@ -27,8 +28,18 @@ import 'package:drawing_notes_app/features/notes/presentation/conflict_resolutio
 String humanizeWebDavSyncError(Object? e) {
   if (e == null) return '同步失败：未知错误';
   if (e is String) return '同步失败：$e';
-  debugPrint('WebDAV 同步失败原始错误：$e');
+  // P1 修复（审计 H-04）：原始异常可能含 URL/用户名/口令片段——仅记类型，
+  // 不记原文（logcat 可被其他应用读取）。
+  AuditLogger.log(
+    'webdav.sync.error',
+    success: false,
+    detail: e.runtimeType.toString(),
+  );
   if (e is WebDavSyncException) {
+    // 本地安全门禁（https/路径白名单）文案已是人话，直接透出。
+    if (e.message.contains('https') || e.message.contains('远端路径')) {
+      return '同步失败：${e.message}';
+    }
     final code = e.statusCode;
     if (code == 401 || code == 403) {
       return '同步失败：用户名或密码不对（服务器拒绝登录）';
@@ -107,13 +118,20 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
         saltBase64 = base64Encode(generateSalt());
       }
     }
-    await _configStore.save(
-      WebDavSyncConfig(
-        baseUrl: _url.text.trim(),
-        username: _user.text.trim(),
-        syncSalt: saltBase64,
-      ),
-    );
+    // P1 修复：save 内 https 门禁抛 ArgumentError——捕获后明示，不崩溃。
+    try {
+      await _configStore.save(
+        WebDavSyncConfig(
+          baseUrl: _url.text.trim(),
+          username: _user.text.trim(),
+          syncSalt: saltBase64,
+        ),
+      );
+    } on ArgumentError catch (e) {
+      if (!mounted) return;
+      _toast('保存失败：${e.message}');
+      return;
+    }
     await _secretStore.write(
       SyncSecrets(
         webdavPassword: _pass.text.isEmpty ? null : _pass.text,

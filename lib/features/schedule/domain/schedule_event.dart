@@ -44,6 +44,10 @@ class ScheduleEvent {
     'createdAt': createdAt.toIso8601String(),
   };
 
+  /// 日期键格式（P1 修复：`_parseDayKey` 在 build 内同步 `int.parse`，
+  /// 一条毒 dayKey 即红屏崩溃循环——此处格式+长度双拦截，坏行隔离丢弃）。
+  static final RegExp _dayKeyFormat = RegExp(r'^\d{4}-\d{2}-\d{2}$');
+
   /// JSON 反序列化；字段缺失/类型不符时返回 null（fail-open）。
   static ScheduleEvent? fromJson(Map<String, dynamic> json) {
     final id = json['id'];
@@ -54,6 +58,13 @@ class ScheduleEvent {
         title is! String ||
         dayKey is! String ||
         createdAt is! String) {
+      return null;
+    }
+    if (id.isEmpty ||
+        id.length > 128 ||
+        title.length > 500 ||
+        !_dayKeyFormat.hasMatch(dayKey) ||
+        tryParseDayKey(dayKey) == null) {
       return null;
     }
     final parsed = DateTime.tryParse(createdAt);
@@ -118,3 +129,23 @@ String scheduleDayKey(DateTime d) =>
     '${d.year.toString().padLeft(4, '0')}-'
     '${d.month.toString().padLeft(2, '0')}-'
     '${d.day.toString().padLeft(2, '0')}';
+
+/// 安全解析日期键：合法返回 DateTime，非法返回 null（永不抛异常——
+/// 供 UI 层在 build 内调用，坏行隔离而非崩溃）。
+DateTime? tryParseDayKey(String key) {
+  final parts = key.split('-');
+  if (parts.length != 3) return null;
+  final y = int.tryParse(parts[0]);
+  final m = int.tryParse(parts[1]);
+  final d = int.tryParse(parts[2]);
+  if (y == null || m == null || d == null) return null;
+  if (m < 1 || m > 12 || d < 1 || d > 31) return null;
+  try {
+    final dt = DateTime(y, m, d);
+    // DateTime 溢出归一（如 2 月 30 日变 3 月）——回校验拦截。
+    if (dt.year != y || dt.month != m || dt.day != d) return null;
+    return dt;
+  } catch (_) {
+    return null;
+  }
+}
