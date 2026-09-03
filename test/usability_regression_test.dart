@@ -1,3 +1,8 @@
+// 加密笔记本用例走 PBKDF2/Argon2id 派生，CI 高负载下可超 30s 默认单测
+// 超时（7b846e0 云端首跑实测）——按加密族先例放宽到 3 分钟。
+@Timeout(Duration(minutes: 3))
+library;
+
 import 'dart:io';
 
 import 'package:drawing_notes_app/core/canvas_model/document.dart';

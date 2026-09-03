@@ -1,3 +1,7 @@
+// 懒迁移真 KDF 重写，CI 高负载可超 30s 默认超时。
+@Timeout(Duration(minutes: 3))
+library;
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';

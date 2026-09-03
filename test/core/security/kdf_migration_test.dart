@@ -10,6 +10,9 @@
 /// 旧格式构造方式：全部经公开 API 生成（显式 pbkdf2 小迭代 / 可注入
 /// [KdfParams.newSlotDefault]），再从信封中剥除 `kdf` 字段还原旧形态——
 /// 不触碰任何私有 AAD/序列化细节。
+///
+/// Argon2id/PBKDF2 真派生矩阵，CI 高负载可超 30s 默认超时——放宽到 3 分钟。
+@Timeout(Duration(minutes: 3))
 library;
 
 import 'dart:convert';
