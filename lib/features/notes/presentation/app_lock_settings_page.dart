@@ -225,7 +225,8 @@ class AppLockSettingsPage extends StatelessWidget {
     final confirmed = await AppleDialog.confirm(
       context,
       title: '解除重置密码盘',
-      content: '解除后，忘记密码将无法重置。\n\n'
+      content:
+          '解除后，忘记密码将无法重置。\n\n'
           'U 盘上的 password_reset_disk.key 文件不会被删除，请自行删除。',
       confirmText: '解除绑定',
     );
@@ -505,7 +506,9 @@ class _QuickUnlockTileState extends State<_QuickUnlockTile> {
     }
     return SwitchListTile(
       value: _enabled,
-      onChanged: _busy ? null : (_) => _enabled ? _startDisable() : _startEnable(),
+      onChanged: _busy
+          ? null
+          : (_) => _enabled ? _startDisable() : _startEnable(),
       title: const Text('系统验证快速解锁'),
       subtitle: Text(
         _enabled

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/shared/application/search_service.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
@@ -255,7 +256,7 @@ class _SearchPageState extends State<SearchPage> {
       return Center(
         child: Text(
           AppLocalizations.of(context)?.searchEmptyHint ?? '输入关键词开始搜索',
-          style: TextStyle(color: Colors.grey),
+          style: TextStyle(color: AppleColor.inkSubtle),
         ),
       );
     }
@@ -263,7 +264,7 @@ class _SearchPageState extends State<SearchPage> {
       return Center(
         child: Text(
           AppLocalizations.of(context)?.searchNoResults ?? '未找到匹配内容',
-          style: TextStyle(color: Colors.grey),
+          style: TextStyle(color: AppleColor.inkSubtle),
         ),
       );
     }

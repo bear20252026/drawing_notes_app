@@ -13,7 +13,6 @@ import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'dart:convert';
 import 'dart:io';
 
-
 /// 收藏键集合持久化门面。
 class FavoriteStore {
   /// 创建收藏存储门面。

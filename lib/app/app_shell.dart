@@ -161,7 +161,10 @@ class _AppShellState extends State<AppShell> {
 
   /// N2：笔记文件密码解锁拦截。返回 false = 用户取消且会话未解锁
   /// （不暴露内容）。解锁成功（含重置流）/ 未受密返回 true。
-  Future<bool> _ensureBlockDocUnlocked(NoteBlockDocStore store, String id) async {
+  Future<bool> _ensureBlockDocUnlocked(
+    NoteBlockDocStore store,
+    String id,
+  ) async {
     if (!await store.isBlockDocPasswordProtected(id)) return true;
     if (store.isBlockDocUnlocked(id)) return true;
     if (!mounted) return false;
@@ -388,8 +391,7 @@ class _AppShellState extends State<AppShell> {
               FilePasswordResetFlow.show(context, storage: storage, docId: id);
             },
           );
-          if (pin == null &&
-              storage.filePasswordFor(id) == null) {
+          if (pin == null && storage.filePasswordFor(id) == null) {
             return; // 用户取消且会话无密码——不暴露内容
           }
         }

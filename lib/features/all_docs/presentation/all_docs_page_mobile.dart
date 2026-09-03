@@ -71,8 +71,7 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                     decoration: InputDecoration(
                       hintText: '快速搜索',
                       isDense: true,
-                      prefixIcon:
-                          const Icon(Icons.search_rounded, size: 20),
+                      prefixIcon: const Icon(Icons.search_rounded, size: 20),
                       suffixIcon: _query.isEmpty
                           ? null
                           : IconButton(
@@ -145,9 +144,9 @@ extension _AllDocsPageMobile on _AllDocsPageState {
     final docs = cached == null
         ? const <AllDoc>[]
         : (List.of(cached.docs)
-              ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt)))
-            .take(30)
-            .toList(growable: false);
+                ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt)))
+              .take(30)
+              .toList(growable: false);
     showModalBottomSheet<void>(
       context: context,
       builder: (sheetContext) {
@@ -175,8 +174,7 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                     '暂无文档',
                     style: TextStyle(
                       fontSize: 13,
-                      color:
-                          theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                     ),
                   ),
                 )

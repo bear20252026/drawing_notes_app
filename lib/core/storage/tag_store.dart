@@ -15,7 +15,6 @@ import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'dart:convert';
 import 'dart:io';
 
-
 /// 单个标签定义。
 class DocTag {
   const DocTag({

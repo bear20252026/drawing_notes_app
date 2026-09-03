@@ -3,7 +3,6 @@
 part of 'storage_service.dart';
 
 extension StorageServiceFilePassword on StorageService {
-
   // ---- 单文件密码管理 API（批次②：画作级独立密码） ----
 
   /// 读取当前正式文件（缺失回退 .bak）；两者都不存在返回 null。

@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
+
 import 'app.dart';
 import 'core/security/audit_logger.dart';
 import 'core/security/root_guard.dart';
@@ -142,7 +144,11 @@ class RootRefusalApp extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.gpp_bad_rounded, size: 64, color: Colors.redAccent),
+                const Icon(
+                  Icons.gpp_bad_rounded,
+                  size: 64,
+                  color: AppleColor.errorRed,
+                ),
                 const SizedBox(height: 20),
                 Text(
                   '无法在此设备上启动',

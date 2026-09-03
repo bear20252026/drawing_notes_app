@@ -16,7 +16,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
@@ -253,9 +252,7 @@ class NoteBlockDocStore {
         } else if (isValidId(fileId) && await _currentKey() != null) {
           // N2：v5 文件密码信封不参与主密钥懒迁移（受密文件直落盘，
           // 不做主密钥双信封——见 _saveDocumentLocked 注释）。
-          if (!EncryptionService.isDualProtectorEnvelope(
-            utf8.decode(bytes),
-          )) {
+          if (!EncryptionService.isDualProtectorEnvelope(utf8.decode(bytes))) {
             _enqueueRawRewrite(fileId, bytes);
           }
         }
@@ -441,9 +438,7 @@ class NoteBlockDocStore {
           encryptedJson: text,
           dek: dek,
         );
-        return NoteBlockDoc.fromJson(
-          jsonDecode(clear) as Map<String, dynamic>,
-        );
+        return NoteBlockDoc.fromJson(jsonDecode(clear) as Map<String, dynamic>);
       }
       return NoteBlockDoc.fromJson(jsonDecode(text) as Map<String, dynamic>);
     }
@@ -693,33 +688,31 @@ class NoteBlockDocStore {
 
   /// 清理过期回收站条目（默认 30 天，与画布 M-06 策略一致）。
   /// 返回清理条数。listIds 会自动触发（惰性清理）。
-  Future<int> purgeExpiredTrash({int retainDays = 30}) => _enqueue(
-    'trash:$retainDays',
-    () async {
-      final dir = await _ensureTrashDir();
-      var purged = 0;
-      final cutoff = DateTime.now().subtract(Duration(days: retainDays));
-      await for (final entity in dir.list()) {
-        if (entity is! File || !entity.path.endsWith('.json')) continue;
-        if (entity.path.endsWith('.meta.json')) continue;
-        try {
-          final entry = await _decodeTrashEntry(
-            await _readTrashContent(entity) ?? '',
-            entity,
-          );
-          if (entry != null && entry.deletedAt.isBefore(cutoff)) {
-            await entity.delete();
-            final meta = File('${entity.path}.meta.json');
-            if (meta.existsSync()) meta.deleteSync();
-            purged++;
+  Future<int> purgeExpiredTrash({int retainDays = 30}) =>
+      _enqueue('trash:$retainDays', () async {
+        final dir = await _ensureTrashDir();
+        var purged = 0;
+        final cutoff = DateTime.now().subtract(Duration(days: retainDays));
+        await for (final entity in dir.list()) {
+          if (entity is! File || !entity.path.endsWith('.json')) continue;
+          if (entity.path.endsWith('.meta.json')) continue;
+          try {
+            final entry = await _decodeTrashEntry(
+              await _readTrashContent(entity) ?? '',
+              entity,
+            );
+            if (entry != null && entry.deletedAt.isBefore(cutoff)) {
+              await entity.delete();
+              final meta = File('${entity.path}.meta.json');
+              if (meta.existsSync()) meta.deleteSync();
+              purged++;
+            }
+          } catch (_) {
+            continue;
           }
-        } catch (_) {
-          continue;
         }
-      }
-      return purged;
-    },
-  );
+        return purged;
+      });
 
   Directory? _trashDir;
 
@@ -868,8 +861,7 @@ class NoteBlockDocStore {
       oldPassword: oldPassword,
       newPassword: newPassword,
     );
-    if (usbKey != null &&
-        !EncryptionService.hasUsbSlotV5(newEnvelope)) {
+    if (usbKey != null && !EncryptionService.hasUsbSlotV5(newEnvelope)) {
       newEnvelope = await _encryption.bindBlockDocUsbSlotV5(
         docId: id,
         encryptedJson: newEnvelope,

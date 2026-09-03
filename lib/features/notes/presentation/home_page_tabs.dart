@@ -14,7 +14,7 @@ extension _HomePageTabs on _HomePageState {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_error!, style: const TextStyle(color: Colors.red)),
+            Text(_error!, style: const TextStyle(color: AppleColor.errorRed)),
             const SizedBox(height: 8),
             OutlinedButton(onPressed: _refresh, child: const Text('重试')),
           ],
@@ -34,7 +34,7 @@ extension _HomePageTabs on _HomePageState {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.brush_outlined, size: 64, color: Colors.grey),
+            Icon(Icons.brush_outlined, size: 64, color: AppleColor.inkSubtle),
             SizedBox(height: 12),
             Text('还没有画布，点击右下角按钮新建一个吧'),
           ],
@@ -56,13 +56,12 @@ extension _HomePageTabs on _HomePageState {
                 0,
               ),
               sliver: SliverGrid(
-                gridDelegate:
-                    const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 256,
-                      childAspectRatio: 0.82,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                    ),
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 256,
+                  childAspectRatio: 0.82,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                ),
                 delegate: SliverChildBuilderDelegate(
                   (context, i) => _DrawingCard(
                     meta: _documents[i],
@@ -78,9 +77,7 @@ extension _HomePageTabs on _HomePageState {
             ),
           ],
           if (hasNotebook) ...[
-            const SliverToBoxAdapter(
-              child: _CanvasSectionHeader('分页画布'),
-            ),
+            const SliverToBoxAdapter(child: _CanvasSectionHeader('分页画布')),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(
                 AppDesign.pagePadding,
@@ -89,13 +86,12 @@ extension _HomePageTabs on _HomePageState {
                 0,
               ),
               sliver: SliverGrid(
-                gridDelegate:
-                    const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 256,
-                      childAspectRatio: 0.82,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                    ),
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 256,
+                  childAspectRatio: 0.82,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                ),
                 delegate: SliverChildBuilderDelegate(
                   (context, i) => _NotebookCard(
                     notebook: _notebooks[i],
@@ -116,8 +112,7 @@ extension _HomePageTabs on _HomePageState {
   /// 分页画布卡片副标题：锁定（占位/文件密码未解锁）不泄露页数。
   String _notebookSubtitle(Notebook nb) {
     final time = _formatTime(nb.updatedAt);
-    final locked =
-        nb.isLockedPlaceholder || (nb.encrypted && nb.pages.isEmpty);
+    final locked = nb.isLockedPlaceholder || (nb.encrypted && nb.pages.isEmpty);
     if (locked) return '已加密 · 更新于 $time';
     return '${nb.pages.length} 页 · 更新于 $time';
   }
@@ -162,7 +157,11 @@ extension _HomePageTabs on _HomePageState {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.edit_note_rounded, size: 64, color: Colors.grey),
+            Icon(
+              Icons.edit_note_rounded,
+              size: 64,
+              color: AppleColor.inkSubtle,
+            ),
             SizedBox(height: 12),
             Text('还没有笔记，点击右下角按钮新建一个吧'),
           ],

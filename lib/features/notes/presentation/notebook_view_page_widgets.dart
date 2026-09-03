@@ -82,7 +82,7 @@ class _PageCard extends StatelessWidget {
                       size: 18,
                     ),
                     visualDensity: VisualDensity.compact,
-                    color: page.favorite ? Colors.amber.shade800 : null,
+                    color: page.favorite ? AppleColor.favourite : null,
                     onPressed: onToggleFavorite,
                   ),
                   IconButton(

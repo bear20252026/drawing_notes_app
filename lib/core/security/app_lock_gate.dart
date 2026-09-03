@@ -183,7 +183,8 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     final proceed = await AppleDialog.confirm(
       context,
       title: '忘记密码',
-      content: '使用之前绑定的重置密码盘（U 盘）重设密码。\n\n'
+      content:
+          '使用之前绑定的重置密码盘（U 盘）重设密码。\n\n'
           '未绑定重置密码盘时，密码无法找回。',
       confirmText: '选择 U 盘',
     );

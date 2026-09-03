@@ -110,8 +110,7 @@ class _AllDocsPageState extends State<AllDocsPage> {
   bool _mobileSearchOpen = false;
 
   /// 移动端搜索框控制器（关闭时同步清空搜索词）。
-  final TextEditingController _mobileSearchController =
-      TextEditingController();
+  final TextEditingController _mobileSearchController = TextEditingController();
 
   /// extension（part 文件）可用的 setState 包装（editorSetState 先例：
   /// setState 是 protected 成员，extension 内不可直接调用）。
@@ -177,9 +176,7 @@ class _AllDocsPageState extends State<AllDocsPage> {
                   child: const Icon(Icons.add_rounded),
                 )
               : null,
-          body: isNarrow
-              ? buildMobileBody(theme)
-              : buildDesktopBody(theme),
+          body: isNarrow ? buildMobileBody(theme) : buildDesktopBody(theme),
         );
       },
     );

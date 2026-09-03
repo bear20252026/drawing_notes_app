@@ -37,11 +37,12 @@ class InkLayerPainter {
   /// 纯函数剔除：返回包围盒与 [clip] 相交的笔画（可测试，无图形后端）。
   static List<Stroke> cullStrokes(Iterable<Stroke> strokes, Rect clip) {
     return strokes
-        .where((stroke) => StrokeRenderer.strokeBounds(stroke)
-            ?.overlaps(clip)
-            ??
-            // 无点笔画（空点列）不产生视觉输出，剔除安全。
-            false)
+        .where(
+          (stroke) =>
+              StrokeRenderer.strokeBounds(stroke)?.overlaps(clip) ??
+              // 无点笔画（空点列）不产生视觉输出，剔除安全。
+              false,
+        )
         .toList(growable: false);
   }
 

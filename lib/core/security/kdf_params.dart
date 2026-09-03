@@ -17,29 +17,35 @@
 /// 两者输出均为 32B 标准 KEK，下游 AEAD 全不动。
 class KdfParams {
   const KdfParams.pbkdf2(this.iterations)
-      : kdf = kdfPbkdf2,
-        memoryKiB = null,
-        timeCost = null,
-        parallelism = null;
+    : kdf = kdfPbkdf2,
+      memoryKiB = null,
+      timeCost = null,
+      parallelism = null;
 
   const KdfParams.argon2id({
     required this.memoryKiB,
     required this.timeCost,
     required this.parallelism,
-  })  : kdf = kdfArgon2id,
-        iterations = null;
+  }) : kdf = kdfArgon2id,
+       iterations = null;
 
   static const String kdfPbkdf2 = 'pbkdf2';
   static const String kdfArgon2id = 'argon2id';
 
   /// 生产默认（批A 实测定案，用户批准 2026-09-02）：强档抗 GPU，
   /// 耗时远低于 0.5s 体验线。新写入的全部密码槽使用本参数。
-  static const KdfParams argon2idProduction =
-      KdfParams.argon2id(memoryKiB: 65536, timeCost: 2, parallelism: 2);
+  static const KdfParams argon2idProduction = KdfParams.argon2id(
+    memoryKiB: 65536,
+    timeCost: 2,
+    parallelism: 2,
+  );
 
   /// 测试轻量档（**仅限测试注入**，约几十 ms——8MiB t1 p1）。
-  static const KdfParams testLight =
-      KdfParams.argon2id(memoryKiB: 8192, timeCost: 1, parallelism: 1);
+  static const KdfParams testLight = KdfParams.argon2id(
+    memoryKiB: 8192,
+    timeCost: 1,
+    parallelism: 1,
+  );
 
   /// 新槽位 KDF 默认值（生产恒为 [argon2idProduction]）。
   ///
@@ -66,12 +72,7 @@ class KdfParams {
 
   /// 槽位 JSON 序列化（仅 KDF 参数字段；盐/密文由调用方拼装）。
   Map<String, dynamic> toSlotJson() => kdf == kdfArgon2id
-      ? {
-          'kdf': kdfArgon2id,
-          'm': memoryKiB,
-          't': timeCost,
-          'p': parallelism,
-        }
+      ? {'kdf': kdfArgon2id, 'm': memoryKiB, 't': timeCost, 'p': parallelism}
       : {'kdf': kdfPbkdf2, 'iter': iterations};
 
   /// 槽位 JSON 解析。`kdf` 字段缺失 → 返回 [legacyDefault]（旧数据兼容：
@@ -110,7 +111,8 @@ class KdfParams {
       other.parallelism == parallelism;
 
   @override
-  int get hashCode => Object.hash(kdf, iterations, memoryKiB, timeCost, parallelism);
+  int get hashCode =>
+      Object.hash(kdf, iterations, memoryKiB, timeCost, parallelism);
 
   @override
   String toString() => kdf == kdfArgon2id

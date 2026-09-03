@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 
 /// 图层面板（Phase 3 验收核心）。
@@ -254,7 +255,7 @@ class _LayerItem extends StatelessWidget {
       tooltip: tip,
       icon: Icon(icon, size: 16),
       visualDensity: VisualDensity.compact,
-      disabledColor: Colors.grey,
+      disabledColor: AppleColor.inkSubtle,
       onPressed: enabled ? onTap : null,
     );
   }

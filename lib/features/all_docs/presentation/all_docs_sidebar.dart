@@ -242,11 +242,7 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
                     ),
                     // N2：文件密码锁标（本会话未解锁）
                     if (doc.locked)
-                      Icon(
-                        Icons.lock_outline_rounded,
-                        size: 13,
-                        color: muted,
-                      ),
+                      Icon(Icons.lock_outline_rounded, size: 13, color: muted),
                   ],
                 ),
               ),

@@ -373,7 +373,8 @@ class _PinPadCoreState extends State<PinPadCore>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          if (emergency != null) _bottomAction(widget.emergencyLabel, emergency),
+          if (emergency != null)
+            _bottomAction(widget.emergencyLabel, emergency),
           if (cancel != null) _bottomAction('取消', cancel),
         ],
       ),

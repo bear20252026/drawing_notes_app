@@ -1,7 +1,9 @@
 // 由 Claude 团队生成 | Drawing Notes App
 // WebDAV 本地优先同步：设置页（服务器/认证 + 立即同步 + 端到端加密）。
 
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 
@@ -19,6 +21,34 @@ import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_syn
 import 'package:drawing_notes_app/features/notes/infrastructure/sync_secret_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/webdav_config_store.dart';
 import 'package:drawing_notes_app/features/notes/presentation/conflict_resolution_dialog.dart';
+
+/// R1：把同步异常映射为人话文案——用户界面只出现可读懂的提示，
+/// 原始异常对象进调试日志（debugPrint），不再直接拼进 UI 字符串。
+String humanizeWebDavSyncError(Object? e) {
+  if (e == null) return '同步失败：未知错误';
+  if (e is String) return '同步失败：$e';
+  debugPrint('WebDAV 同步失败原始错误：$e');
+  if (e is WebDavSyncException) {
+    final code = e.statusCode;
+    if (code == 401 || code == 403) {
+      return '同步失败：用户名或密码不对（服务器拒绝登录）';
+    }
+    if (code != null && code >= 500) {
+      return '同步失败：服务器暂时不可用（HTTP $code），请稍后再试';
+    }
+    if (code == 404 || code == 409) {
+      return '同步失败：服务器目录不存在或路径被占用，请检查远端目录设置';
+    }
+    return '同步失败：服务器拒绝了这次请求（HTTP ${code ?? '未知'}）';
+  }
+  if (e is HandshakeException) {
+    return '同步失败：安全连接（HTTPS）握手失败，请检查服务器证书';
+  }
+  if (e is SocketException || e is TimeoutException) {
+    return '同步失败：连不上服务器，请检查网络或服务器地址';
+  }
+  return '同步失败：请检查网络与账号设置后重试';
+}
 
 /// WebDAV 同步设置页。
 class WebDavSyncSettingsPage extends StatefulWidget {
@@ -150,7 +180,7 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
           });
           _toast(summary);
         } else {
-          final summary = '同步失败：${outcome.error ?? '未知错误'}';
+          final summary = humanizeWebDavSyncError(outcome.error);
           setState(() {
             _progress = SyncProgress.failure(summary);
             _lastSummary = summary;
@@ -162,11 +192,12 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
       }
     } catch (e) {
       if (!mounted) return;
+      final summary = humanizeWebDavSyncError(e);
       setState(() {
-        _progress = SyncProgress.failure('同步初始化失败：$e');
-        _lastSummary = '同步初始化失败：$e';
+        _progress = SyncProgress.failure(summary);
+        _lastSummary = summary;
       });
-      _toast('同步初始化失败：$e');
+      _toast(summary);
     } finally {
       if (mounted) setState(() => _syncing = false);
     }

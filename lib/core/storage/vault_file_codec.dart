@@ -267,11 +267,7 @@ abstract final class VaultFileCodec {
     if (usbKey.length != _dekBytes) {
       throw ArgumentError('重置盘钥匙须为 $_dekBytes 字节');
     }
-    return VaultKeyService.aeadEncrypt(
-      usbKey,
-      dek,
-      _usbSlotAadFor(aadContext),
-    );
+    return VaultKeyService.aeadEncrypt(usbKey, dek, _usbSlotAadFor(aadContext));
   }
 
   /// v3 信封加密：密码槽必建（批B：Argon2id KDF 字段自描述）；
@@ -407,7 +403,11 @@ abstract final class VaultFileCodec {
     KdfParams? kdf,
   }) async {
     final params = kdf ?? KdfParams.newSlotDefault;
-    final unlock = await unlockWithUsbKeyV3(blob, usbKey, aadContext: aadContext);
+    final unlock = await unlockWithUsbKeyV3(
+      blob,
+      usbKey,
+      aadContext: aadContext,
+    );
     final (parsedBody, payload) = _parseV3(blob);
     final (_, usbSlot) = _slotsOfV3(parsedBody);
     final newSalt = VaultKeyService.randomBytes(_v3SaltBytes);
@@ -484,8 +484,9 @@ abstract final class VaultFileCodec {
     }
     Map<String, dynamic> body;
     try {
-      body = jsonDecode(utf8.decode(blob.sublist(8, 8 + jsonLen)))
-          as Map<String, dynamic>;
+      body =
+          jsonDecode(utf8.decode(blob.sublist(8, 8 + jsonLen)))
+              as Map<String, dynamic>;
     } on FormatException {
       throw const VaultFileException('信封头部 JSON 损坏');
     }
@@ -527,7 +528,9 @@ abstract final class VaultFileCodec {
       return KdfParams.fromSlotJson(
         pwSlot,
         legacyDefault: KdfParams.pbkdf2(
-          pwSlot['iter'] is int ? pwSlot['iter'] as int : filePasswordIterations,
+          pwSlot['iter'] is int
+              ? pwSlot['iter'] as int
+              : filePasswordIterations,
         ),
       );
     } on ArgumentError {

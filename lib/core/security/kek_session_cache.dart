@@ -169,11 +169,7 @@ Uint8List _pbkdf2DeriveBytes(String password, List<int> salt, int iterations) {
   final derivator = pc.PBKDF2KeyDerivator(pc.HMac(pc.SHA256Digest(), 64))
     ..init(
       // Pbkdf2Parameters 的 keyLength 单位是**字节**（32 = 256 位）。
-      pc.Pbkdf2Parameters(
-        Uint8List.fromList(salt),
-        iterations,
-        32,
-      ),
+      pc.Pbkdf2Parameters(Uint8List.fromList(salt), iterations, 32),
     );
   return derivator.process(Uint8List.fromList(utf8.encode(password)));
 }

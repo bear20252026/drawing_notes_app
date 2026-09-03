@@ -15,7 +15,8 @@ import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
-import 'package:drawing_notes_app/fix/security_and_sync_fix.dart' show UnlockFlow;
+import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
+    show UnlockFlow;
 import 'package:drawing_notes_app/fix/block_doc_password_reset_flow.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_export_io.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_link_index.dart';
@@ -525,9 +526,7 @@ class _DocPageState extends State<DocPage> {
             ListTile(
               leading: const Icon(Icons.lock_outline_rounded),
               title: Text('「$name」独立密码'),
-              subtitle: Text(
-                protected ? '此笔记受独立密码保护' : '此笔记当前未设置独立密码',
-              ),
+              subtitle: Text(protected ? '此笔记受独立密码保护' : '此笔记当前未设置独立密码'),
             ),
             const Divider(height: 1),
             if (!protected)
@@ -608,7 +607,8 @@ class _DocPageState extends State<DocPage> {
     final bindUsb = await AppleDialog.confirm(
       context,
       title: '绑定重置密码盘？',
-      content: '绑定后忘记此笔记的独立密码时，可插入重置密码盘（U 盘）免旧密码重置。\n\n'
+      content:
+          '绑定后忘记此笔记的独立密码时，可插入重置密码盘（U 盘）免旧密码重置。\n\n'
           'U 盘上只有随机钥匙文件（password_reset_disk.key），笔记数据不会离开设备。',
       confirmText: '插盘绑定',
       cancelText: '暂不',
@@ -725,7 +725,9 @@ class _DocPageState extends State<DocPage> {
 
   void _snack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   /// 文档信息对话框（含标签编辑——M12.6 标签系统入口）。
@@ -871,4 +873,3 @@ class _DocPageState extends State<DocPage> {
       '${d.hour.toString().padLeft(2, '0')}:'
       '${d.minute.toString().padLeft(2, '0')}';
 }
-

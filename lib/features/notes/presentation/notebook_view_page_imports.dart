@@ -224,11 +224,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
       if (mounted) {
         _applyState(() {});
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              isChange ? '密码已修改' : '已启用密码保护（页面内容加密存储）',
-            ),
-          ),
+          SnackBar(content: Text(isChange ? '密码已修改' : '已启用密码保护（页面内容加密存储）')),
         );
       }
       // N4 批 3：未绑定重置密码盘时询问是否当场插盘绑定（可跳过，事后
@@ -247,7 +243,8 @@ extension _NotebookPageImports on _NotebookViewPageState {
     final bind = await AppleDialog.confirm(
       context,
       title: '绑定重置密码盘？',
-      content: '绑定后忘记密码时，插入 U 盘即可重置新密码。\n\n'
+      content:
+          '绑定后忘记密码时，插入 U 盘即可重置新密码。\n\n'
           '可以稍后在菜单「绑定重置密码盘」中补绑。',
       confirmText: '插盘绑定',
       cancelText: '暂不',

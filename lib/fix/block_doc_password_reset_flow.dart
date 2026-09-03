@@ -22,9 +22,7 @@ abstract final class BlockDocPasswordResetFlow {
     required String docId,
     String docTitle = '',
   }) async {
-    final name = docTitle.isEmpty || docTitle == '加密笔记'
-        ? '该笔记'
-        : '「$docTitle」';
+    final name = docTitle.isEmpty || docTitle == '加密笔记' ? '该笔记' : '「$docTitle」';
 
     // 1. 说明确认。
     final proceed = await PasswordResetSteps.confirm(

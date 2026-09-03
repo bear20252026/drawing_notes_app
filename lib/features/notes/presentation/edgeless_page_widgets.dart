@@ -509,10 +509,8 @@ class _ToolPanel extends StatelessWidget {
         ._controller;
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final activeBg =
-        (isDark ? const Color(0xFFB5CCFF) : AppleColor.actionBlue).withValues(
-          alpha: 0.18,
-        );
+    final activeBg = (isDark ? const Color(0xFFB5CCFF) : AppleColor.actionBlue)
+        .withValues(alpha: 0.18);
 
     Widget toolButton(EdgelessTool tool, IconData icon, String tooltip) {
       final active = controller.tool == tool;
@@ -623,9 +621,8 @@ class _ElementPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     for (final shape in shapes) {
       final fill =
-          _parseColor(shape.color) ?? AppleColor.actionBlue.withValues(
-            alpha: 0.20,
-          );
+          _parseColor(shape.color) ??
+          AppleColor.actionBlue.withValues(alpha: 0.20);
       final paint = Paint()..color = fill;
       if (shape.kind == EdgelessShapeKind.ellipse) {
         canvas.drawOval(shape.rect, paint);

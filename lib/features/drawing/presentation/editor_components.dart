@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/core/canvas_model/page_chart_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/page_connector.dart';
@@ -242,7 +243,7 @@ class PaginationPreview extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.white,
-            border: Border.all(color: Colors.grey.shade400),
+            border: Border.all(color: AppleColor.hairline),
             boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black26)],
           ),
           child: Column(

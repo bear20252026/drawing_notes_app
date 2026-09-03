@@ -38,7 +38,8 @@ import 'package:drawing_notes_app/features/notes/presentation/presentation_page.
 import 'package:drawing_notes_app/features/notes/presentation/notebook_reader_page.dart';
 import 'package:drawing_notes_app/features/notes/application/notebook_pdf_exporter.dart';
 // N2：笔记（块文档）文件密码——分页画布内打开受密块文档副本的解锁拦截。
-import 'package:drawing_notes_app/fix/security_and_sync_fix.dart' show UnlockFlow;
+import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
+    show UnlockFlow;
 import 'package:drawing_notes_app/fix/block_doc_password_reset_flow.dart';
 
 part 'notebook_view_page_widgets.dart';
@@ -160,9 +161,9 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
       } catch (_) {
         _sessionGuard.unlock();
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('会话已过期，请重新打开该分页画布')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('会话已过期，请重新打开该分页画布')));
         return;
       }
     }
@@ -430,8 +431,9 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                 padding: const EdgeInsets.all(4),
                 child: TextField(
                   // U3 P1-12：防抖 250ms，避免每键 setState 整页重建。
-                  onChanged: (v) =>
-                      _tagFilterDebouncer.run(() => setState(() => _tagFilter = v.trim())),
+                  onChanged: (v) => _tagFilterDebouncer.run(
+                    () => setState(() => _tagFilter = v.trim()),
+                  ),
                   decoration: InputDecoration(
                     hintText:
                         AppLocalizations.of(context)?.noteFilterHint ??
@@ -468,7 +470,11 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.note_add_outlined, size: 64, color: Colors.grey),
+            Icon(
+              Icons.note_add_outlined,
+              size: 64,
+              color: AppleColor.inkSubtle,
+            ),
             SizedBox(height: 12),
             Text('这个分页画布还没有页面，点击右上角新建'),
           ],
@@ -477,7 +483,10 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
     }
     if (pages.isEmpty) {
       return const Center(
-        child: Text('没有匹配该标签的页面', style: TextStyle(color: Colors.grey)),
+        child: Text(
+          '没有匹配该标签的页面',
+          style: TextStyle(color: AppleColor.inkSubtle),
+        ),
       );
     }
     return GridView.builder(

@@ -62,8 +62,7 @@ class _NotebookReaderPageState extends State<NotebookReaderPage> {
       _goTo(_index + 1);
       return KeyEventResult.handled;
     }
-    if (key == LogicalKeyboardKey.arrowUp ||
-        key == LogicalKeyboardKey.pageUp) {
+    if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.pageUp) {
       _goTo(_index - 1);
       return KeyEventResult.handled;
     }

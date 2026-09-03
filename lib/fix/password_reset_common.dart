@@ -57,7 +57,11 @@ abstract final class PasswordResetSteps {
     void snack(String message) =>
         messenger?.showSnackBar(SnackBar(content: Text(message)));
 
-    final pin = await UnlockFlow.show(context, title: '设置新文件密码', flexible: true);
+    final pin = await UnlockFlow.show(
+      context,
+      title: '设置新文件密码',
+      flexible: true,
+    );
     if (pin == null || !context.mounted) return null;
     if (await AppLockService.matchesAppLockPin(pin)) {
       snack('$label不能与开屏密码相同');

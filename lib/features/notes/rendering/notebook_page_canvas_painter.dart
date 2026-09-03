@@ -77,7 +77,12 @@ class NotebookPageCanvasPainter extends CustomPainter {
       if (decoded != null) {
         canvas.drawImageRect(
           decoded,
-          Rect.fromLTWH(0, 0, decoded.width.toDouble(), decoded.height.toDouble()),
+          Rect.fromLTWH(
+            0,
+            0,
+            decoded.width.toDouble(),
+            decoded.height.toDouble(),
+          ),
           rect,
           Paint(),
         );

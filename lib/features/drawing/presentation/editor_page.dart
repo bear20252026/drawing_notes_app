@@ -10,6 +10,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/drawing/application/brush_preset_store.dart';
 import 'package:drawing_notes_app/features/drawing/application/command_registry.dart';
 import 'package:drawing_notes_app/features/drawing/application/di_providers.dart';

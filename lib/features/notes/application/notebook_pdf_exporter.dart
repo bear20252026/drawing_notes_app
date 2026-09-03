@@ -2,8 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:drawing_notes_app/core/canvas_model/stroke.dart'
-    show Stroke;
+import 'package:drawing_notes_app/core/canvas_model/stroke.dart' show Stroke;
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
@@ -46,9 +45,7 @@ class NotebookPdfExporter {
         width.round().clamp(1, 8192),
         height.round().clamp(1, 8192),
       );
-      final pngData = await rendered.toByteData(
-        format: ui.ImageByteFormat.png,
-      );
+      final pngData = await rendered.toByteData(format: ui.ImageByteFormat.png);
       if (pngData == null) continue;
 
       // 矢量层：可见图层的钢笔笔画。

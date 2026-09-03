@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
@@ -60,20 +59,20 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
       for (final notebook in notebooks)
         if (!notebook.isLockedPlaceholder)
           NotebookSearchDocument(
-          id: notebook.id,
-          title: notebook.title,
-          searchSummary: notebook.searchSummary,
-          pages: [
-            for (final page in notebook.pages)
-              NotebookSearchPage(
-                id: page.id,
-                title: page.title,
-                textContents: [
-                  for (final textItem in page.textItems) textItem.text,
-                ],
-              ),
-          ],
-        ),
+            id: notebook.id,
+            title: notebook.title,
+            searchSummary: notebook.searchSummary,
+            pages: [
+              for (final page in notebook.pages)
+                NotebookSearchPage(
+                  id: page.id,
+                  title: page.title,
+                  textContents: [
+                    for (final textItem in page.textItems) textItem.text,
+                  ],
+                ),
+            ],
+          ),
     ];
   }
 
@@ -536,7 +535,8 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
       'pages': notebook.pages.map((p) => p.toJson()).toList(),
     });
     final existing = notebook.encryptedPayload;
-    if (existing != null && EncryptionService.isDualProtectorEnvelope(existing)) {
+    if (existing != null &&
+        EncryptionService.isDualProtectorEnvelope(existing)) {
       // v5 续写：密码解出 DEK → 复用槽位组，仅重生成 payload。
       final map = jsonDecode(existing) as Map<String, dynamic>;
       final dek = await _encryption.unwrapPasswordSlotForRewrap(
@@ -611,8 +611,7 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
         oldPassword: oldPassword,
         newPassword: newPassword,
       );
-      if (usbKey != null &&
-          !EncryptionService.hasUsbSlotV5(payload)) {
+      if (usbKey != null && !EncryptionService.hasUsbSlotV5(payload)) {
         newPayload = await _encryption.bindNotebookUsbSlotV5(
           notebookId: id,
           encryptedJson: newPayload,
@@ -771,9 +770,7 @@ class NotebookStorage implements NotebookRepository, INotebookAccessor {
         // 解密后未修改：保留原密文，避免覆盖为空。
         return _writeNotebook(notebook);
       }
-      throw StateError(
-        '加密笔记本需要会话密码才能保存，请使用 encryptAndSave',
-      );
+      throw StateError('加密笔记本需要会话密码才能保存，请使用 encryptAndSave');
     }
     return _writeNotebook(notebook);
   }

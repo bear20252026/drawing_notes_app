@@ -320,10 +320,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   /// 崩溃且用户无感知；现提示失败原因并停留在首页（不进入未落盘的
   /// 编辑页，避免后续保存连环失败）。
   Future<void> _createNotebook() async {
-    final nb = Notebook(
-      id: NotebookStorage.newId('notebook'),
-      title: '未命名',
-    );
+    final nb = Notebook(id: NotebookStorage.newId('notebook'), title: '未命名');
     try {
       await _nbStorage.save(nb);
     } catch (_) {
@@ -489,7 +486,8 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     final bindUsb = await AppleDialog.confirm(
       context,
       title: '绑定重置密码盘？',
-      content: '绑定后忘记此画布的独立密码时，可插入重置密码盘（U 盘）免旧密码重置。\n\n'
+      content:
+          '绑定后忘记此画布的独立密码时，可插入重置密码盘（U 盘）免旧密码重置。\n\n'
           'U 盘上只有随机钥匙文件（password_reset_disk.key），画布数据不会离开设备。',
       confirmText: '插盘绑定',
       cancelText: '暂不',
@@ -505,7 +503,11 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
       }
     }
     try {
-      await _docStorage.setFilePassword(meta.id, pin, resetDiskKey: resetDiskKey);
+      await _docStorage.setFilePassword(
+        meta.id,
+        pin,
+        resetDiskKey: resetDiskKey,
+      );
       _showSnack(
         resetDiskKey == null
             ? '已为「${meta.title}」设置独立密码'

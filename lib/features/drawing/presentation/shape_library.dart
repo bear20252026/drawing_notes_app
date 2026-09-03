@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_components.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'editor_toolbar_contracts.dart' show shapeTypeName;
@@ -167,7 +168,7 @@ class _ShapeLibraryDialogState extends State<ShapeLibraryDialog> {
                   ? const Center(
                       child: Text(
                         '没有匹配的形状',
-                        style: TextStyle(color: Colors.grey),
+                        style: TextStyle(color: AppleColor.inkSubtle),
                       ),
                     )
                   : GridView.builder(

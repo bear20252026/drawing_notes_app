@@ -53,7 +53,8 @@ abstract class SystemAuthBackend {
 
 /// local_auth 生产实现。
 class LocalAuthBackend implements SystemAuthBackend {
-  LocalAuthBackend({LocalAuthentication? auth}) : _auth = auth ?? LocalAuthentication();
+  LocalAuthBackend({LocalAuthentication? auth})
+    : _auth = auth ?? LocalAuthentication();
 
   final LocalAuthentication _auth;
 
@@ -109,7 +110,8 @@ class SecureSystemUnlockKeyStore implements SystemUnlockKeyStore {
   Future<String?> read() => _storage.read(key: _keyMkCopy);
 
   @override
-  Future<void> write(String value) => _storage.write(key: _keyMkCopy, value: value);
+  Future<void> write(String value) =>
+      _storage.write(key: _keyMkCopy, value: value);
 
   @override
   Future<void> clear() => _storage.delete(key: _keyMkCopy);

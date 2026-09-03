@@ -4,7 +4,6 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
 
-
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/storage/document_codec.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';

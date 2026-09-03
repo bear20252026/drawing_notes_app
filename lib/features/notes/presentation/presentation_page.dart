@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/shared/widgets/encrypted_file_image.dart';
 
@@ -57,9 +58,9 @@ class _PresentationPageState extends State<PresentationPage> {
                   image: EncryptedFileImage(File(i.filePath)),
                   fit: BoxFit.contain,
                   errorBuilder: (_, _, _) =>
-                      const ColoredBox(color: Colors.grey),
+                      const ColoredBox(color: AppleColor.inkSubtle),
                 )
-              : const ColoredBox(color: Colors.grey),
+              : const ColoredBox(color: AppleColor.inkSubtle),
         ),
       );
     }

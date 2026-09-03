@@ -89,10 +89,12 @@ class ResetDiskFile {
   // ---- FROG v1 内联编解码（37 字节定长，原 PasswordDiskFile 单一来源）----
 
   /// 组装钥匙文件字节：Magic `FROG` + 版本 0x01 + 32B 钥匙。
-  static List<int> _encode(List<int> key) => const [
-    0x46, 0x52, 0x4F, 0x47, // F R O G
-    0x01, // v1
-  ] + key;
+  static List<int> _encode(List<int> key) =>
+      const [
+        0x46, 0x52, 0x4F, 0x47, // F R O G
+        0x01, // v1
+      ] +
+      key;
 
   /// 解析钥匙文件字节；格式无效返回 null。
   static List<int>? _decode(List<int> bytes) {

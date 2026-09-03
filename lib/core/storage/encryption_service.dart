@@ -269,12 +269,7 @@ class EncryptionService {
       if (dek == null) {
         throw const FormatException('密码错误或数据已损坏');
       }
-      return _decryptPayloadV5(
-        scope: 'nb',
-        id: notebookId,
-        map: map,
-        dek: dek,
-      );
+      return _decryptPayloadV5(scope: 'nb', id: notebookId, map: map, dek: dek);
     }
     if (map['mode'] == 'payload' && map['v'] == 4) {
       final salt = base64Decode(_requireString(map, 's'));
@@ -831,7 +826,12 @@ class EncryptionService {
       throw const FormatException('密码错误或数据已损坏');
     }
     try {
-      return await _decryptPayloadV5(scope: 'bd', id: docId, map: map, dek: dek);
+      return await _decryptPayloadV5(
+        scope: 'bd',
+        id: docId,
+        map: map,
+        dek: dek,
+      );
     } on FormatException {
       rethrow;
     } catch (_) {
@@ -853,7 +853,12 @@ class EncryptionService {
       throw const FormatException('不是 v5 双保护器载荷');
     }
     try {
-      return await _decryptPayloadV5(scope: 'bd', id: docId, map: map, dek: dek);
+      return await _decryptPayloadV5(
+        scope: 'bd',
+        id: docId,
+        map: map,
+        dek: dek,
+      );
     } on FormatException {
       rethrow;
     } catch (_) {
