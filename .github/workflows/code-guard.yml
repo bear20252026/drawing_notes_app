@@ -45,6 +45,7 @@ jobs:
         # note_block_doc_store 1021 行超限——门禁有效；该已知 God 类按
         # 祖父化哲学在 linecheck.yml exclude 单独放行并挂拆分排期，
         # 其余文件硬阻断；warn 档仍只报告不拦）。
+        run: linecheck --config linecheck.yml lib/
 
       - name: sloc-guard 变更文件门禁（灵活祖父化）
         # 只检查 PR 变更的文件；既有超限文件不在此列，不阻断。
