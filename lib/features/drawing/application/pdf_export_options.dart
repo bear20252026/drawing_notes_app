@@ -1,6 +1,4 @@
-import 'dart:ui' as ui;
-
-import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
+library;
 
 /// PDF 导出二级面板选项（纯 Dart，无 Widget/io 依赖，可单测锁定）。
 ///
@@ -8,7 +6,9 @@ import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 /// - 纸张：A4 / Letter / 跟随画布（默认 A4）；
 /// - 范围：当前页 / 全部页（分页画布天然多页；独立画布仅一页，面板隐藏该行）；
 /// - 质量：无损（PNG）/ 标准（JPEG 80）/ 省流量（JPEG 60）。
-library;
+import 'dart:ui' as ui;
+
+import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 
 /// 纸张档位（PDF 点：1pt = 1/72 英寸）。
 enum PdfPaper {

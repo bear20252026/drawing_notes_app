@@ -134,8 +134,9 @@ class GlassSurface extends StatelessWidget {
     }
 
     // Shape 一致的内外双裁剪（内层约束罩层/高光，外层约束模糊 bleed）。
+    // ShapeBorderClipper 构造为具名 shape 参数（无位置参数）。
     Widget clip(Widget w) => useSuperellipse
-        ? ClipPath(clipper: ShapeBorderClipper(shapeBorder), child: w)
+        ? ClipPath(clipper: ShapeBorderClipper(shape: shapeBorder), child: w)
         : ClipRRect(borderRadius: borderRadius, child: w);
 
     if (!enabled || reduceEffects) return clip(content);

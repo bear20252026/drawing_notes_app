@@ -240,7 +240,11 @@ class EditorExporter {
         return;
       }
       // 纸张适配：内容等比放入纸张并居中；跟随画布则 scale=1/offset=0。
-      final fit = fitContentOnPaper(paper, content: content);
+      // fitContentOnPaper 取 Size（contentBounds 给的是 Rect，此处显式转换）。
+      final fit = fitContentOnPaper(
+        paper,
+        content: ui.Size(content.width, content.height),
+      );
       final s = fit.scale;
       final o = fit.offset;
       final pageSize =

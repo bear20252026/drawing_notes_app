@@ -127,14 +127,18 @@ class PdfPageInput {
               child: pw.Image(pw.MemoryImage(rasterBytes), fit: pw.BoxFit.fill),
             )
           else
+            // pw.Positioned 无 width/height 具名参数——用 Container 定尺寸
+            // 再定位（pdf 4.x API 实测口径，以云 analyze 为准）。
             pw.Positioned(
               left: placement.left,
               top: placement.top,
-              width: placement.width,
-              height: placement.height,
-              child: pw.Image(
-                pw.MemoryImage(rasterBytes),
-                fit: pw.BoxFit.fill,
+              child: pw.Container(
+                width: placement.width,
+                height: placement.height,
+                child: pw.Image(
+                  pw.MemoryImage(rasterBytes),
+                  fit: pw.BoxFit.fill,
+                ),
               ),
             ),
           // 显式尺寸：Stack 以非定位子级定尺寸，若 CustomPaint 为 0×0

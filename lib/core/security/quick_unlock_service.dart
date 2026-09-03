@@ -82,9 +82,12 @@ class LocalAuthBackend implements SystemAuthBackend {
     try {
       // P0 安全修复（审计 N-H1）：biometricOnly 强制生物识别，禁止回退
       // 到设备 PIN / 系统凭据（否则保险库口令强度降级为设备 PIN 强度）。
+      // local_auth 3.0.2 API：biometricOnly 为 bool 直参（无 options 包裹）。
+      // 注意：Windows Hello 不支持该开关（平台限制），Windows 上验证失败即
+      // fail-closed（快速解锁不可用，PIN 通道永远可用）。
       return await _auth.authenticate(
         localizedReason: reason,
-        options: const AuthenticationOptions(biometricOnly: true),
+        biometricOnly: true,
       );
     } catch (_) {
       return false;
