@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:drawing_notes_app/core/theme/app_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'dart:io';
 import 'dart:math' as math;

@@ -13,6 +13,7 @@ import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
     show UnlockFlow;
 
@@ -221,27 +222,14 @@ class AppLockSettingsPage extends StatelessWidget {
     BuildContext context,
     VaultKeyService vault,
   ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('解除重置密码盘'),
-        content: const Text(
-          '解除后，忘记密码将无法重置。\n\n'
+    final confirmed = await AppleDialog.confirm(
+      context,
+      title: '解除重置密码盘',
+      content: '解除后，忘记密码将无法重置。\n\n'
           'U 盘上的 password_reset_disk.key 文件不会被删除，请自行删除。',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('解除绑定'),
-          ),
-        ],
-      ),
+      confirmText: '解除绑定',
     );
-    if (confirmed != true || !context.mounted) return;
+    if (!confirmed || !context.mounted) return;
     try {
       await vault.removeUsbKeySlot();
     } catch (e) {

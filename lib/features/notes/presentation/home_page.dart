@@ -486,25 +486,13 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     if (!mounted) return;
     // N4 批 2：可选当场绑定重置密码盘（错过本次可事后在密码管理中绑定）。
     List<int>? resetDiskKey;
-    final bindUsb = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('绑定重置密码盘？'),
-        content: const Text(
-          '绑定后忘记此画布的独立密码时，可插入重置密码盘（U 盘）免旧密码重置。\n\n'
+    final bindUsb = await AppleDialog.confirm(
+      context,
+      title: '绑定重置密码盘？',
+      content: '绑定后忘记此画布的独立密码时，可插入重置密码盘（U 盘）免旧密码重置。\n\n'
           'U 盘上只有随机钥匙文件（password_reset_disk.key），画布数据不会离开设备。',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('暂不'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('插盘绑定'),
-          ),
-        ],
-      ),
+      confirmText: '插盘绑定',
+      cancelText: '暂不',
     );
     if (bindUsb == true) {
       if (!mounted) return;
@@ -777,25 +765,13 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   }
 
   Future<bool?> _confirmDelete(String title, String content) {
-    return showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(AppLocalizations.of(context)?.homeCancel ?? '取消'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-            ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(AppLocalizations.of(context)?.delete ?? '删除'),
-          ),
-        ],
-      ),
+    return AppleDialog.confirm(
+      context,
+      title: title,
+      content: content,
+      confirmText: AppLocalizations.of(context)?.delete ?? '删除',
+      cancelText: AppLocalizations.of(context)?.homeCancel ?? '取消',
+      dangerous: true,
     );
   }
 

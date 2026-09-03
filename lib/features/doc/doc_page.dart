@@ -13,6 +13,7 @@ import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
 import 'package:drawing_notes_app/fix/security_and_sync_fix.dart' show UnlockFlow;
 import 'package:drawing_notes_app/fix/block_doc_password_reset_flow.dart';
@@ -604,25 +605,13 @@ class _DocPageState extends State<DocPage> {
     if (!mounted) return;
     // 可选当场绑定重置密码盘（错过本次可事后在密码管理中绑定）。
     List<int>? resetDiskKey;
-    final bindUsb = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('绑定重置密码盘？'),
-        content: const Text(
-          '绑定后忘记此笔记的独立密码时，可插入重置密码盘（U 盘）免旧密码重置。\n\n'
+    final bindUsb = await AppleDialog.confirm(
+      context,
+      title: '绑定重置密码盘？',
+      content: '绑定后忘记此笔记的独立密码时，可插入重置密码盘（U 盘）免旧密码重置。\n\n'
           'U 盘上只有随机钥匙文件（password_reset_disk.key），笔记数据不会离开设备。',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('暂不'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('插盘绑定'),
-          ),
-        ],
-      ),
+      confirmText: '插盘绑定',
+      cancelText: '暂不',
     );
     if (bindUsb == true) {
       if (!mounted) return;
@@ -706,25 +695,12 @@ class _DocPageState extends State<DocPage> {
     final store = widget.blockDocStore;
     if (store == null) return;
     final name = _doc.title.isEmpty ? '未命名' : _doc.title;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('移除独立密码'),
-        content: Text('移除后「$name」不再需要独立密码即可打开。确定移除吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-            ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('移除'),
-          ),
-        ],
-      ),
+    final ok = await AppleDialog.confirm(
+      context,
+      title: '移除独立密码',
+      content: '移除后「$name」不再需要独立密码即可打开。确定移除吗？',
+      confirmText: '移除',
+      dangerous: true,
     );
     if (ok != true) return;
     if (!mounted) return;

@@ -244,27 +244,15 @@ extension _NotebookPageImports on _NotebookViewPageState {
     if (!mounted) return;
     if (await widget.storage.hasNotebookUsbSlot(_notebook.id)) return;
     if (!mounted) return;
-    final bind = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('绑定重置密码盘？'),
-        content: const Text(
-          '绑定后忘记密码时，插入 U 盘即可重置新密码。\n\n'
+    final bind = await AppleDialog.confirm(
+      context,
+      title: '绑定重置密码盘？',
+      content: '绑定后忘记密码时，插入 U 盘即可重置新密码。\n\n'
           '可以稍后在菜单「绑定重置密码盘」中补绑。',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('暂不'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('插盘绑定'),
-          ),
-        ],
-      ),
+      confirmText: '插盘绑定',
+      cancelText: '暂不',
     );
-    if (bind != true || !mounted) return;
+    if (!bind || !mounted) return;
     await _bindUsbDisk(password);
   }
 
@@ -331,22 +319,11 @@ extension _NotebookPageImports on _NotebookViewPageState {
       ),
     );
     if (version == null || !mounted) return;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('恢复该版本？'),
-        content: Text('将用所选版本覆盖当前页面内容（当前内容会先存入历史）。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('恢复'),
-          ),
-        ],
-      ),
+    final ok = await AppleDialog.confirm(
+      context,
+      title: '恢复该版本？',
+      content: '将用所选版本覆盖当前页面内容（当前内容会先存入历史）。',
+      confirmText: '恢复',
     );
     if (ok != true) return;
     _applyState(() {

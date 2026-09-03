@@ -20,6 +20,7 @@ import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
     show PinPadCore, UnlockFlow;
 
@@ -179,27 +180,14 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
       return;
     }
     // 步骤 1：说明确认（诚实告知需要已绑定的重置密码盘）。
-    final proceed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('忘记密码'),
-        content: const Text(
-          '使用之前绑定的重置密码盘（U 盘）重设密码。\n\n'
+    final proceed = await AppleDialog.confirm(
+      context,
+      title: '忘记密码',
+      content: '使用之前绑定的重置密码盘（U 盘）重设密码。\n\n'
           '未绑定重置密码盘时，密码无法找回。',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('选择 U 盘'),
-          ),
-        ],
-      ),
+      confirmText: '选择 U 盘',
     );
-    if (proceed != true || !mounted) return;
+    if (!proceed || !mounted) return;
 
     // 步骤 2：选取 U 盘目录（取消即静默返回）。
     final dir = await ResetDiskFile.pickDirectory();

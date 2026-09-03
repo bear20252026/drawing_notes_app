@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/fix/security_and_sync_fix.dart';
 
 abstract final class PasswordResetSteps {
@@ -20,24 +21,12 @@ abstract final class PasswordResetSteps {
     required String message,
     String actionLabel = '使用重置密码盘',
   }) async {
-    final proceed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(actionLabel),
-          ),
-        ],
-      ),
+    return AppleDialog.confirm(
+      context,
+      title: title,
+      content: message,
+      confirmText: actionLabel,
     );
-    return proceed == true;
   }
 
   /// 步骤 2：选盘读钥匙（password_reset_disk.key，兼容旧名）。

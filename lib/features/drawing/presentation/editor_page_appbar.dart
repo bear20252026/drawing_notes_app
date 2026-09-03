@@ -21,67 +21,89 @@ PopupMenuItem<_MainMenuItem> _mainMenuItem(
 /// 编辑器顶栏/主菜单域（拆分自 editor_page.dart）。
 extension _EditorPageAppBar on _EditorPageState {
   /// 顶栏：题目 + 撤销/重做 + 画布空间/侧栏/全屏/深色/帮助 + 主菜单。
+  ///
+  /// U6 窄屏自适应：390dp 下右侧 7 个 action 会把 title 区压到 ~22px，
+  /// 固定内容（保存状态 + 类型 Chip）放不下会溢出。按 title 区实际可用
+  /// 宽度分级隐藏——<140px 只留标题，140~220px 加保存状态，≥220px 全显。
+  /// （历史上 8 图标时 title 区为 0px 宽，内容整体不可见；0 宽容器不报
+  /// 溢出，390dp 门禁测不出来——删一个图标后才第一次触发溢出报告。）
   AppBar _buildAppBar() {
     return AppBar(
       title: ListenableBuilder(
         listenable: _controller,
         builder: (context, _) {
           final isNote = _isNotebookMode;
-          return Row(
-            children: [
-              Expanded(
-                child: InkWell(
-                  onTap: _renameCanvas,
-                  borderRadius: BorderRadius.circular(6),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 4,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            _controller.document.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final w = constraints.maxWidth;
+              final showStatus = w >= 140;
+              final showChip = w >= 220;
+              return Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: _renameCanvas,
+                      borderRadius: BorderRadius.circular(6),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 4,
                         ),
-                        const SizedBox(width: 4),
-                        Icon(
-                          Icons.edit_rounded,
-                          size: 14,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                _controller.document.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            // Flexible：极窄时图标随标题一起收缩，避免二级溢出。
+                            Flexible(
+                              child: Icon(
+                                Icons.edit_rounded,
+                                size: 14,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              // 保存状态（未保存 / 保存中… / 已保存 HH:mm）
-              Padding(
-                padding: const EdgeInsets.only(right: 4),
-                child: Text(
-                  _canvasStatusLabel,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: _canvasStatusColor,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Chip(
-                visualDensity: VisualDensity.compact,
-                avatar: Icon(
-                  isNote ? Icons.article_outlined : Icons.all_out,
-                  size: 16,
-                ),
-                label: Text(isNote ? '分页笔记' : '无限画布'),
-              ),
-            ],
+                  if (showStatus) ...[
+                    const SizedBox(width: 8),
+                    // 保存状态（未保存 / 保存中… / 已保存 HH:mm）
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Text(
+                        _canvasStatusLabel,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: _canvasStatusColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (showChip) ...[
+                    const SizedBox(width: 8),
+                    Chip(
+                      visualDensity: VisualDensity.compact,
+                      avatar: Icon(
+                        isNote ? Icons.article_outlined : Icons.all_out,
+                        size: 16,
+                      ),
+                      label: Text(isNote ? '分页笔记' : '无限画布'),
+                    ),
+                  ],
+                ],
+              );
+            },
           );
         },
       ),
@@ -135,12 +157,7 @@ extension _EditorPageAppBar on _EditorPageState {
           isSelected: _readingInverted,
           onPressed: _toggleReadingInverted,
         ),
-        // 快捷键帮助面板（借鉴 Notes 快捷键文档化）
-        IconButton(
-          tooltip: AppLocalizations.of(context)?.editorShortcutsHelp ?? '快捷键帮助',
-          icon: const Icon(Icons.help_outline),
-          onPressed: _showShortcutHelp,
-        ),
+        // U6：快捷键帮助 AppBar 图标删除（与主菜单项重复），仅保留主菜单入口。
         // 右上角汉堡菜单（对齐 Excalidraw main-menu）
         PopupMenuButton<_MainMenuItem>(
           tooltip: AppLocalizations.of(context)?.editorMenu ?? '主菜单',
