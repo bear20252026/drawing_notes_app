@@ -22,6 +22,7 @@ import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode_store.dart';
 import 'package:drawing_notes_app/features/drawing/application/editor_exporter.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/pdf_export_panel.dart';
 import 'package:drawing_notes_app/features/drawing/application/gesture_math.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/pencil_shader.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/shape_binding_geometry.dart';
@@ -99,6 +100,7 @@ class EditorPage extends ConsumerStatefulWidget {
     super.key,
     DrawingDocument? document,
     this.session,
+    this.allSessionsProvider,
     this.storage,
     this.docStorage,
     this.onChanged,
@@ -110,6 +112,9 @@ class EditorPage extends ConsumerStatefulWidget {
 
   /// 笔记本页面模式：由 notes 在组合边界提供的当前页面编辑会话。
   final EditorPageSession? session;
+
+  /// 同本全部页面会话（二级面板范围=全部页用；独立画布为 null）。
+  final List<EditorPageSession> Function()? allSessionsProvider;
 
   /// 笔记侧存储契约（插入图片时复制图片副本用）。
   final INotebookAccessor? storage;
@@ -593,6 +598,14 @@ class _EditorPageState extends ConsumerState<EditorPage> {
           shapes: page.shapes.map((shape) => shape.toJson()),
         );
       },
+      // 二级面板范围=全部页：会话直转打印页数据（与整本引擎同管线；
+      // 映射收口在 EditorExporter.printDataOf，notes 导入只留 application 一处）。
+      allPagesProvider: widget.allSessionsProvider == null
+          ? null
+          : () => [
+              for (final s in widget.allSessionsProvider!.call())
+                EditorExporter.printDataOf(s),
+            ],
       showSnack: _showSnack,
     );
     unawaited(_loadBrushPresets());

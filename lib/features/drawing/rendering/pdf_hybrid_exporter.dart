@@ -38,6 +38,7 @@ class PdfHybridExporter {
     required List<Stroke> vectorStrokes,
     ui.Color background = const ui.Color(0xFFFFFFFF),
     int? jpegQuality,
+    ui.Rect? contentRect,
   }) => exportMultiPage(
     pages: [
       PdfPageInput(
@@ -46,6 +47,7 @@ class PdfHybridExporter {
         vectorStrokes: vectorStrokes,
         background: background,
         jpegQuality: jpegQuality,
+        contentRect: contentRect,
       ),
     ],
   );
@@ -65,7 +67,8 @@ class PdfHybridExporter {
   ///
   /// 用纯 Dart image 包编码（dart:ui 的 ImageByteFormat 不支持 JPEG 输出）；
   /// 解码失败时回退原字节，保证导出永不因压缩失败中断。
-  static Uint8List _encodeJpeg(Uint8List pngBytes, int quality) {
+  /// 公开供笔记本单页墨迹层复用（同压缩口径）。
+  static Uint8List encodeJpeg(Uint8List pngBytes, int quality) {
     final decoded = img.decodeImage(pngBytes);
     if (decoded == null) return pngBytes;
     return Uint8List.fromList(
@@ -82,6 +85,7 @@ class PdfPageInput {
     required this.vectorStrokes,
     this.background = const ui.Color(0xFFFFFFFF),
     this.jpegQuality,
+    this.contentRect,
   });
 
   /// 页面导出区域（决定 PDF 页面尺寸；topLeft 为内容坐标系原点偏移）。
@@ -98,22 +102,41 @@ class PdfPageInput {
   /// 可选 JPEG 压缩质量（1-100）；null = PNG 无损。
   final int? jpegQuality;
 
+  /// 内容在页面中的放置矩形（纸张模式信纸居中；null = 全页填充既有行为）。
+  ///
+  /// 二级面板纸张档位用：调用方预先把光栅渲染到该矩形尺寸、把矢量笔画
+  /// 变换到纸张坐标，引擎只负责按矩形放置（`bounds` 恒为整页尺寸）。
+  final ui.Rect? contentRect;
+
   pw.Page _buildPdfPage() {
     final pdfBackground = PdfColor.fromInt(background.toARGB32());
     final offset = ui.Offset(-bounds.left, -bounds.top);
     final quality = jpegQuality;
     final rasterBytes = quality == null
         ? rasterPng
-        : PdfHybridExporter._encodeJpeg(rasterPng, quality);
+        : PdfHybridExporter.encodeJpeg(rasterPng, quality);
+    final placement = contentRect;
 
     return pw.Page(
       pageFormat: PdfPageFormat(bounds.width, bounds.height),
       margin: pw.EdgeInsets.zero,
       build: (context) => pw.Stack(
         children: [
-          pw.Positioned.fill(
-            child: pw.Image(pw.MemoryImage(rasterBytes), fit: pw.BoxFit.fill),
-          ),
+          if (placement == null)
+            pw.Positioned.fill(
+              child: pw.Image(pw.MemoryImage(rasterBytes), fit: pw.BoxFit.fill),
+            )
+          else
+            pw.Positioned(
+              left: placement.left,
+              top: placement.top,
+              width: placement.width,
+              height: placement.height,
+              child: pw.Image(
+                pw.MemoryImage(rasterBytes),
+                fit: pw.BoxFit.fill,
+              ),
+            ),
           // 显式尺寸：Stack 以非定位子级定尺寸，若 CustomPaint 为 0×0
           // 会让 Stack 塌缩，Positioned.fill 的图片拿到 0 约束产生 NaN。
           pw.CustomPaint(

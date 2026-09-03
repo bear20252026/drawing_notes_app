@@ -17,6 +17,7 @@ class DefaultEditorPageBuilder {
   static Widget build({
     DrawingDocument? document,
     EditorPageSession? session,
+    List<EditorPageSession> Function()? allSessions,
     INotebookAccessor? notebookAccessor,
     StorageService? documentStorage,
     VoidCallback? onChanged,
@@ -25,6 +26,7 @@ class DefaultEditorPageBuilder {
     return EditorPage(
       document: document,
       session: session,
+      allSessionsProvider: allSessions,
       storage: notebookAccessor,
       docStorage: documentStorage,
       onChanged: onChanged,

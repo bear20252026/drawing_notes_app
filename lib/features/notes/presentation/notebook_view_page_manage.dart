@@ -22,16 +22,23 @@ extension _NotebookPageManage on _NotebookViewPageState {
   Future<void> _openEditor({
     required NotebookPage page,
     required VoidCallback onChanged,
+    List<NotebookPage>? allPages,
   }) {
     final builder = widget.editorPageBuilder;
     if (builder == null) {
       _showSnack('编辑器尚未由应用层装配');
       return Future<void>.value();
     }
+    // 二级面板范围=全部页：同本全部页面会话（适配器共享原页引用——
+    // 导出读到的是最新内存内容；cloneOf 分支由调用方传入源本页列）。
+    final pages = allPages ?? _notebook.pages;
     return Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => builder(
           session: NotebookPageEditorSession(page),
+          allSessions: () => [
+            for (final p in pages) NotebookPageEditorSession(p),
+          ],
           notebookAccessor: widget.storage,
           onChanged: onChanged,
           openPresentation: (context) => _openPresentation(context, page),
@@ -91,6 +98,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
       await _openEditor(
         page: srcPage,
         onChanged: () => widget.storage.save(srcNotebook),
+        allPages: srcNotebook.pages,
       );
       _applyState(() {});
       return;

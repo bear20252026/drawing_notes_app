@@ -93,8 +93,24 @@ extension _EditorPagePersistence on _EditorPageState {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  /// 导出当前画布为 PDF（委托给 [EditorExporter]，含 notebook 分支）。
-  Future<void> _exportPdf() => _exporter.exportPdf();
+  /// 导出当前画布为 PDF（M12.5 二级面板）：先弹纸张/范围/质量面板，
+  /// 确认后走 [EditorExporter.exportPdfWithOptions]（含 notebook 分支）。
+  /// 旧直导逻辑保留在 exporter.exportPdf（命令面板兼容与回退）。
+  Future<void> _exportPdf() async {
+    final sessions = widget.allSessionsProvider?.call() ?? const [];
+    final selection = await showPdfExportPanel(
+      context,
+      hasMultiplePages: widget.session != null && sessions.length > 1,
+      pageCount: sessions.length,
+    );
+    if (selection == null) return; // 用户取消
+    if (!mounted) return;
+    await _exporter.exportPdfWithOptions(
+      paper: selection.paper,
+      quality: selection.quality,
+      range: selection.range,
+    );
+  }
 
   /// 导出画布为 SVG（委托给 [EditorExporter]；片段生成见 svg_exporter.dart）。
   Future<void> _exportSvg() => _exporter.exportSvg();

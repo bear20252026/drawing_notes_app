@@ -16,6 +16,10 @@ typedef EditorPageBuilder =
     Widget Function({
       DrawingDocument? document,
       EditorPageSession? session,
+
+      /// 同本全部会话（笔记本范围=全部页用；独立画布为 null）。
+      /// 类型保持 core 契约（notes 聚合不泄漏进组合签名）。
+      List<EditorPageSession> Function()? allSessions,
       INotebookAccessor? notebookAccessor,
       StorageService? documentStorage,
       VoidCallback? onChanged,

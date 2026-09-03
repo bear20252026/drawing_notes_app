@@ -14,9 +14,12 @@ import 'package:drawing_notes_app/features/drawing/application/paged_export_snap
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart'
     show BrushType, Stroke;
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
+import 'package:drawing_notes_app/core/navigation/editor_page_session.dart';
 import 'package:drawing_notes_app/core/rtf_exporter.dart';
+import 'package:drawing_notes_app/features/drawing/application/pdf_export_options.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/pdf_hybrid_exporter.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/svg_exporter.dart';
+import 'package:drawing_notes_app/features/notes/application/notebook_pdf_exporter.dart';
 
 /// 画布导出域（参考 Saber 的 editor_exporter 模块化设计）。
 ///
@@ -27,13 +30,31 @@ class EditorExporter {
     required this.controller,
     required this.pageProvider,
     required this.showSnack,
+    this.allPagesProvider,
   });
 
   final DrawingController controller;
   final PagedExportSnapshot? Function() pageProvider;
+
+  /// 整本全部页数据源（笔记本模式由编辑器注入多会话快照；独立画布为 null）。
+  /// 类型为 notes 侧打印页数据（架构门禁允许 drawing→notes/application）。
+  final List<NotebookPrintPageData> Function()? allPagesProvider;
+
   final void Function(String message) showSnack;
 
   PagedExportSnapshot? get _page => pageProvider();
+
+  /// 会话 → 整本打印页数据（二级面板范围=全部页的组合边界映射；
+  /// notes 聚合不泄漏，drawing 侧只读 core 契约字段）。
+  static NotebookPrintPageData printDataOf(EditorPageSession s) =>
+      NotebookPrintPageData(
+        id: s.id,
+        title: s.title,
+        document: s.document,
+        textItems: s.textItems,
+        imageItems: s.imageItems,
+        shapes: s.shapes,
+      );
 
   /// 复制 PNG 到剪贴板（对齐 Excalidraw 剪贴板复制，平台通道）。
   ///
@@ -143,9 +164,141 @@ class EditorExporter {
     }
   }
 
+  /// 二级面板导出入口（M12.5）：按纸张/范围/质量三档位分发。
+  ///
+  /// - 笔记本模式：范围 当前页 → [exportNotebookPdf]；全部页 →
+  ///   [NotebookPdfExporter.exportPages]（多会话快照经 [allPagesProvider]）；
+  /// - 独立画布：单页 hybrid 导出（纸张适配 + 质量透传）。
+  Future<void> exportPdfWithOptions({
+    required PdfPaper paper,
+    required PdfQuality quality,
+    PdfRange range = PdfRange.currentPage,
+  }) async {
+    final page = _page;
+    if (page != null) {
+      if (range == PdfRange.allPages) {
+        final all = allPagesProvider?.call();
+        if (all == null || all.isEmpty) {
+          showSnack('没有可导出的页面');
+          return;
+        }
+        await _exportNotebookPages(
+          all,
+          quality: quality,
+          baseName: '${page.title}-全本',
+        );
+        return;
+      }
+      await exportNotebookPdf(page, paper: paper, quality: quality);
+      return;
+    }
+    await _exportCanvasPdf(paper: paper, quality: quality);
+  }
+
+  /// 整本多页导出（笔记本范围=全部页）：多会话快照已有墨迹光栅由引擎
+  /// 离屏管线渲染（与整本导出同一管线），此处只负责落盘与提示。
+  Future<void> _exportNotebookPages(
+    List<NotebookPrintPageData> pages, {
+    required PdfQuality quality,
+    required String baseName,
+  }) async {
+    try {
+      final bytes = await NotebookPdfExporter.exportPages(
+        pages,
+        jpegQuality: quality.jpegQuality,
+      );
+      final location = await getSaveLocation(
+        suggestedName: '$baseName.pdf',
+        acceptedTypeGroups: const [
+          XTypeGroup(label: 'PDF 文档', extensions: ['pdf']),
+        ],
+      );
+      if (location == null) return; // 用户取消
+      await File(location.path).writeAsBytes(bytes, flush: true);
+      showSnack('已导出整本 ${pages.length} 页 PDF：${location.path}');
+    } catch (e) {
+      showSnack('导出整本 PDF 失败：$e');
+    }
+  }
+
+  /// 独立画布单页导出（纸张适配 + 质量透传；跟随画布 = 既有行为零变化）。
+  Future<void> _exportCanvasPdf({
+    required PdfPaper paper,
+    required PdfQuality quality,
+  }) async {
+    try {
+      final content = controller.document.infinite
+          ? controller.contentBounds()
+          : Rect.fromLTWH(
+              0,
+              0,
+              controller.document.width.toDouble(),
+              controller.document.height.toDouble(),
+            );
+      if (content.width <= 0 || content.height <= 0) {
+        showSnack('导出失败：画布内容为空');
+        return;
+      }
+      // 纸张适配：内容等比放入纸张并居中；跟随画布则 scale=1/offset=0。
+      final fit = fitContentOnPaper(paper, content: content);
+      final s = fit.scale;
+      final o = fit.offset;
+      final pageSize =
+          paper.pageSize ?? ui.Size(content.width, content.height);
+      final vectorStrokes = <Stroke>[
+        for (final layer in controller.document.layers)
+          for (final stroke in layer.strokes)
+            if (!PdfHybridExporter.shouldRasterize(stroke)) stroke,
+      ];
+      final png = await controller.renderToPng(
+        scale: s,
+        excludedTypes: const {BrushType.pen},
+      );
+      if (png == null) {
+        showSnack('导出失败：无法渲染画布');
+        return;
+      }
+      final bytes = await PdfHybridExporter.export(
+        bounds: ui.Rect.fromLTWH(0, 0, pageSize.width, pageSize.height),
+        rasterPng: png,
+        vectorStrokes: [
+          for (final st in vectorStrokes) scaleStrokeForPaper(st, s, o),
+        ],
+        jpegQuality: quality.jpegQuality,
+        contentRect: paper == PdfPaper.canvas
+            ? null
+            : ui.Rect.fromLTWH(
+                o.dx,
+                o.dy,
+                content.width * s,
+                content.height * s,
+              ),
+      );
+      final location = await getSaveLocation(
+        suggestedName: '${controller.document.title}.pdf',
+        acceptedTypeGroups: const [
+          XTypeGroup(label: 'PDF 文档', extensions: ['pdf']),
+        ],
+      );
+      if (location == null) return; // 用户取消
+      final file = File(location.path);
+      await file.writeAsBytes(bytes, flush: true);
+      showSnack('已导出到：${location.path}');
+    } catch (e) {
+      showSnack('导出失败：$e');
+    }
+  }
+
   /// 导出分页笔记为 A4 PDF：结构化文字以可检索 CJK 字体排版；同时附加
   /// 手写墨迹图层页，避免只导出文字而丢失原始书写内容。
-  Future<void> exportNotebookPdf(PagedExportSnapshot page) async {
+  ///
+  /// 二级面板参数：[paper] 作用于文字页版式（A4/Letter；跟随画布回落 A4，
+  /// 文字重排无“画布尺寸”概念）；[quality] 作用于墨迹页光栅压缩。
+  Future<void> exportNotebookPdf(
+    PagedExportSnapshot page, {
+    PdfPaper paper = PdfPaper.a4,
+    PdfQuality quality = PdfQuality.lossless,
+  }) async {
     try {
       final fontData = await rootBundle.load(
         'assets/fonts/DroidSansFallbackFull.ttf',
@@ -162,10 +315,13 @@ class EditorExporter {
           final byY = a.y.compareTo(b.y);
           return byY == 0 ? a.x.compareTo(b.x) : byY;
         });
+      // 二级面板纸张：文字页版式跟纸张档位（跟随画布无意义，回落 A4）。
+      final textFormat =
+          paper == PdfPaper.letter ? PdfPageFormat.letter : PdfPageFormat.a4;
       final document = pw.Document(theme: theme);
       document.addPage(
         pw.MultiPage(
-          pageFormat: PdfPageFormat.a4,
+          pageFormat: textFormat,
           margin: const pw.EdgeInsets.fromLTRB(52, 56, 52, 56),
           build: (context) => [
             pw.Text(
@@ -200,12 +356,16 @@ class EditorExporter {
 
       final inkPng = await controller.renderToPng();
       if (inkPng != null) {
+        // 二级面板质量：墨迹页光栅按档位压缩（无损 = PNG 原样）。
+        final inkBytes = quality.jpegQuality == null
+            ? inkPng
+            : PdfHybridExporter.encodeJpeg(inkPng, quality.jpegQuality!);
         document.addPage(
           pw.Page(
-            pageFormat: PdfPageFormat.a4,
+            pageFormat: textFormat,
             margin: const pw.EdgeInsets.all(24),
             build: (context) => pw.Center(
-              child: pw.Image(pw.MemoryImage(inkPng), fit: pw.BoxFit.contain),
+              child: pw.Image(pw.MemoryImage(inkBytes), fit: pw.BoxFit.contain),
             ),
           ),
         );
