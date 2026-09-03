@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../shared/widgets/apple_pressable.dart';
+
 /// Apple (HIG) 设计语言 token 与可复用部件。
 ///
 /// 参照 DESIGN.md（getdesign@apple）给出的苹果官方规范抽取：
@@ -20,6 +22,11 @@ abstract final class AppleColor {
 
   /// 深色模式下的高亮蓝（按钮/链接）。
   static const Color actionBlueOnDark = Color(0xFF2997FF);
+
+  /// 焦点蓝（Focus Blue）：键盘焦点环专用，比强调蓝略亮。
+  /// DESIGN.md:8 `primary-focus: "#0071e3"`、:300「reserved for the keyboard
+  /// focus ring on buttons (`outline: 2px solid`)」、:440 button-primary-focus。
+  static const Color focusBlue = Color(0xFF0071E3);
 
   /// 主墨色（近黑）。
   static const Color ink = Color(0xFF1D1D1F);
@@ -76,11 +83,20 @@ abstract final class AppleSpacing {
 }
 
 /// Apple 圆角刻度。
+///
+/// 数值严格对齐 DESIGN.md:127-135（`rounded:` 段），**不得自创中间值**：
+/// `none 0 / xs 5 / sm 8 / md 11 / lg 18 / pill 9999 / full 9999`。
+/// 本项目未使用 none（需要直角时直接不设 borderRadius）。
 abstract final class AppleRadius {
-  static const double xs = 6;
-  static const double sm = 10;
-  static const double md = 12;
+  static const double xs = 5;
+  static const double sm = 8;
+  static const double md = 11;
   static const double lg = 18;
+
+  /// 胶囊（按钮 / 搜索框 / 芯片）—— Apple 的标志性形状。
+  static const double pill = 9999;
+
+  /// 圆形（浮动圆形控件），与 pill 同值但语义不同。
   static const double full = 9999;
 }
 
@@ -91,6 +107,11 @@ abstract final class AppleType {
   static const double control = 13;
   static const double caption = 11.5;
   static const double headline = 22;
+
+  /// 正文行高。DESIGN.md:346「Body uses 1.47」、:506「Don't tighten
+  /// line-height below 1.47 for body copy — the editorial leading is part of
+  /// the brand」。此前本项目完全缺失，走的是 Flutter 默认行高。
+  static const double bodyLineHeight = 1.47;
 
   static TextStyle headlineStyle(Color color) => TextStyle(
     fontSize: headline,
@@ -109,6 +130,7 @@ abstract final class AppleType {
   static TextStyle bodyStyle(Color color) => TextStyle(
     fontSize: body,
     fontWeight: FontWeight.w400,
+    height: bodyLineHeight,
     letterSpacing: -0.1,
     color: color,
   );
@@ -149,24 +171,30 @@ class ApplePrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return FilledButton.icon(
-      onPressed: onPressed,
-      icon: icon == null ? null : Icon(icon, size: 16),
-      label: Text(label),
-      style: ButtonStyle(
-        backgroundColor: WidgetStatePropertyAll(scheme.primary),
-        foregroundColor: const WidgetStatePropertyAll(Colors.white),
-        minimumSize: const WidgetStatePropertyAll(Size(0, 34)),
-        padding: WidgetStatePropertyAll(
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        ),
-        shape: WidgetStatePropertyAll(
-          RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppleRadius.full),
+    // ApplePressable 走「纯视觉」模式（onTap 为 null）：按压缩放交给它，
+    // 点击行为仍由内部 FilledButton 处理，避免重复触发。
+    return ApplePressable(
+      child: FilledButton.icon(
+        onPressed: onPressed,
+        icon: icon == null ? null : Icon(icon, size: 16),
+        label: Text(label),
+        style: ButtonStyle(
+          backgroundColor: WidgetStatePropertyAll(scheme.primary),
+          foregroundColor: const WidgetStatePropertyAll(Colors.white),
+          minimumSize: const WidgetStatePropertyAll(Size(0, 34)),
+          padding: WidgetStatePropertyAll(
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           ),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppleRadius.pill),
+            ),
+          ),
+          textStyle: WidgetStatePropertyAll(
+            AppleType.controlStyle(Colors.white),
+          ),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        textStyle: WidgetStatePropertyAll(AppleType.controlStyle(Colors.white)),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
     );
   }
