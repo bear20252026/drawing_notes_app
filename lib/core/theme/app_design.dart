@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'apple_design.dart';
+
 /// 应用统一设计语言。
 ///
 /// 目标不是模仿任何平台的专有控件，而是以内容优先、低噪声表面层级、
@@ -105,34 +107,43 @@ abstract final class AppDesign {
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          minimumSize: const Size(44, 44),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(controlRadius),
-          ),
-          textStyle: base.textTheme.labelLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        style:
+            FilledButton.styleFrom(
+              minimumSize: const Size(44, 44),
+              textStyle: base.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ).copyWith(
+              // C8：M3 状态层（hover 8% / focus 12% / pressed 12%），叠 onSurface
+              // 的中性半透明——不引入第二强调色。
+              // 注：styleFrom 的 overlayColor 只收单一 Color（全状态同色），
+              // 要按状态区分必须走 copyWith 的 WidgetStateProperty 重载。
+              overlayColor: AppleStateLayer.overlay(colorScheme.onSurface),
+            ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          minimumSize: const Size(44, 44),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          side: BorderSide(color: colorScheme.outlineVariant),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(controlRadius),
-          ),
-        ),
+        style:
+            OutlinedButton.styleFrom(
+              minimumSize: const Size(44, 44),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              side: BorderSide(color: colorScheme.outlineVariant),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(controlRadius),
+              ),
+            ).copyWith(
+              overlayColor: AppleStateLayer.overlay(colorScheme.onSurface),
+            ),
       ),
       iconButtonTheme: IconButtonThemeData(
-        style: IconButton.styleFrom(
-          minimumSize: const Size(44, 44),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
+        style:
+            IconButton.styleFrom(
+              minimumSize: const Size(44, 44),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ).copyWith(
+              overlayColor: AppleStateLayer.overlay(colorScheme.onSurface),
+            ),
       ),
       tabBarTheme: TabBarThemeData(
         indicatorSize: TabBarIndicatorSize.tab,

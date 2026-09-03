@@ -103,10 +103,10 @@
 | C2 | **高对比度主题** | Light / Dark / **HighContrast 三档必填**，HC 内只允许系统色 | 有对比度要求，无第三档主题 | **Windows 端补第三档**。当前 `lib/core/theme/` 只有 light/dark，属真缺口 |
 | C3 | **触控目标** | 无显式数值（实测按钮高 32/40/48） | **48×48dp** 硬指标（Accessibility Scanner 会判 FAIL） | **Android 端命中区 48，可见尺寸保持 44**（不破坏视觉）。Windows 端维持 44 |
 | C4 | **键盘焦点** | **必须 2px Accent 色焦点框**（Fluent 硬规范） | 有焦点态要求 | 已定 `AppleColor.focusBlue #0071E3`，**主题层尚未落地**（Step 1c 未完成） |
-| C5 | **窗口尺寸** | 画布类 App 建议默认 **≥1280 宽**；最小 320 | —— | 当前**只设了最小 360×560，未设默认启动尺寸** → 真缺口 |
+| ~~C5~~ | ~~**窗口尺寸**~~ | 画布类建议默认 **≥1280 宽** | —— | **已撤回（2026-09-04 复核）**：`windows/runner/main.cpp:29` 初始窗口**本来就是 1280×720**，已满足。落到误判清单 3.5.3 |
 | C6 | **系统强调色** | 允许 App 使用品牌色作为差异化（官方明确认可） | Material You 动态取色 | **保留品牌色 #0066CC，关闭动态取色**。画板的笔刷/选色语义不能被壁纸取色污染 |
 | C7 | **导航模式** | 画布类**明确禁止**左导航 NavigationView，要求 `Grid` + 浮动命令条 | 大屏须可边缘触及 → nav rail | Windows 保留侧栏（我们是文档类，非纯画布）；**Android 平板/展开态切 nav rail** |
-| C8 | **状态层** | 有 Hover/Pressed 态 | **Hover 8% / Focus 12% / Pressed 12% / Dragged 16% / Disabled 38%**（叠 On-Surface） | **采纳 M3 数值补进主题层**。当前主题层**未定义统一状态层** → 真缺口 |
+| C8 | **状态层** | 有 Hover/Pressed 态 | **Hover 8% / Focus 12% / Pressed 12% / Dragged 16% / Disabled 38%**（叠 On-Surface） | **已采纳并落地**：`AppleStateLayer`（`apple_design.dart`），主题层 filled/outlined/icon 三处按钮接入，11 条测试钉住数值 |
 | C9 | **阴影** | Rest 无 / Hover `0 2 4 rgba(0,0,0,.08)` / Flyout `0 4 12 rgba(0,0,0,.12)` / Dialog `0 8 24 rgba(0,0,0,.24)` | Elevation L1–L5；**深色模式禁用阴影改 Tonal** | 当前 11 处阴影散落无体系。收编为 **3 档**，画布区零阴影；深色模式走 Tonal |
 
 ### 3.5.3 已核实**不是**缺口的（调研中被误判，记录以免重复排查）
@@ -116,6 +116,7 @@
 | 字体回退 | "硬编码 SF Pro 在 Windows 上会回退 Arial" | **不成立**。全库主题层**零** `fontFamily` 硬编码（仅画板/文档内的**用户可选字体**是数据，非 UI），Windows 自动用 Segoe UI、Android 用 Roboto，天然正确 |
 | 存储权限合规 | "笔记类 App 申请全盘访问 = Play **CRITICAL**" | **不成立**。U 盘重置密码盘走 `file_selector`（SAF），`AndroidManifest.xml` **只有 1 个权限**（`USE_BIOMETRIC`），无存储权限 |
 | target SDK | edge-to-edge 要求 ≥35 | **已满足**：`targetSdk = flutter.targetSdkVersion`（Flutter 3.47 默认 **36**） |
+| 窗口默认尺寸 | "只设了最小 360×560，未设默认启动尺寸" | **不成立**。`windows/runner/main.cpp:29` 写死 `Win32Window::Size size(1280, 720)`，已是 Fluent 建议的画布类尺寸。`lib/main.dart` 只额外补了最小尺寸限制，两者不冲突 |
 
 ### 3.5.4 平台域硬数值（备查）
 
@@ -279,10 +280,9 @@ AppleMotion.playful   // ratio 0.7 —— 仅罕见时刻（onboarding、成功�
 | `prefers-reduced-transparency` | Flutter 无系统对应，需自建开关 |
 | 硬编码圆角 79 处 / 硬编码色值 153 处 | 待分批收编进 `apple_design.dart` |
 | DESIGN.md 其余未兑现条款 | 见 `AGENTS.md` 的缺口清单 |
-| **C1 对话框按钮顺序（36 处 `actions:`）** | 待定：走主题层统一翻转，还是保持 Apple 顺序（Windows 用户肌肉记忆相反） |
 | **C2 Windows 高对比度第三档** | 未做。需验证 Flutter 在 Windows HC 模式下的实际表现再定方案 |
-| **C5 Windows 默认启动窗口尺寸** | 未设（只有最小 360×560）。Fluent 建议画布类 ≥1280 宽 |
-| **C8 统一状态层（hover/focus/pressed）** | 未做。M3 数值已定，待落 `app_design.dart` |
 | **C9 阴影收编为 3 档** | 11 处散落，未收编 |
+| **C1 对话框按钮顺序（36 处 `actions:`）** | **待用户拍板**：Windows 端翻转（符合平台习惯）会改变现有行为，且与 Apple 视觉风格混搭，改动面大 |
+| `ApplePrimaryButton` 高度 34px | 主题层通用按钮已是 44×44，**仅这个部件 34px**（`apple_design.dart` 的 `minimumSize`）。仅 2 处使用。修它会使按钮视觉变高 10px，属 DESIGN.md 域，**待用户确认** |
 | U 盘重置密码盘在 Android 上的 SAF 可移动存储支持 | **需实测**：`file_selector` 的目录选择能否选到 U 盘（部分 ROM 限制） |
 | `dickwu/apple-design-skill` 无 LICENSE | 只引用其审查维度，不引入代码；若要引入需先补授权确认 |

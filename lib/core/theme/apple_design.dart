@@ -153,6 +153,58 @@ abstract final class AppleType {
   );
 }
 
+/// 交互状态层（平台域裁决 C8，2026-09-04）。
+///
+/// **权威**：`android/skills`（Google 官方）+ Material 3 状态层规范。
+/// `DESIGN.md` 对 hover / pressed 态没有任何规定，属**平台域**——
+/// 按 `docs/DESIGN_SYSTEM.md` 第 2 节的分权模型，该域由平台官方规范说了算。
+///
+/// **不违反「单一强调色」铁律**（DESIGN.md:491）：状态层一律叠
+/// `onSurface` 的中性半透明，不引入第二种强调色。描边状的键盘焦点环
+/// 另由 `focusBlue` 负责（那是边框，这是底色，两者叠加不冲突）。
+abstract final class AppleStateLayer {
+  /// 鼠标悬停。
+  static const double hover = 0.08;
+
+  /// 键盘焦点（底色；与 2px focusBlue 描边共存）。
+  static const double focus = 0.12;
+
+  /// 按压中。
+  static const double pressed = 0.12;
+
+  /// 拖拽中。
+  static const double dragged = 0.16;
+
+  /// 禁用态前景压低（不是叠层，是 alpha）。
+  static const double disabled = 0.38;
+
+  /// 生成按钮 / 可点组件的 `overlayColor`。
+  ///
+  /// [onSurface] 传主题的 `colorScheme.onSurface`。
+  /// 返回 `null` 表示该状态不叠色，保留组件默认行为。
+  ///
+  /// 判定顺序自「最强状态」往下：拖拽 > 按压 > 焦点 > 悬停。
+  /// 禁用态返回 null——禁用由主题统一压低前景，不叠状态色。
+  static WidgetStateProperty<Color?> overlay(Color onSurface) {
+    return WidgetStateProperty.resolveWith<Color?>((states) {
+      if (states.contains(WidgetState.disabled)) return null;
+      if (states.contains(WidgetState.dragged)) {
+        return onSurface.withValues(alpha: dragged);
+      }
+      if (states.contains(WidgetState.pressed)) {
+        return onSurface.withValues(alpha: pressed);
+      }
+      if (states.contains(WidgetState.focused)) {
+        return onSurface.withValues(alpha: focus);
+      }
+      if (states.contains(WidgetState.hovered)) {
+        return onSurface.withValues(alpha: hover);
+      }
+      return null;
+    });
+  }
+}
+
 /// 可复用的 Apple 主操作胶囊按钮。
 ///
 /// 示例：`ApplePrimaryButton(label: '新建文档', onPressed: ...)`
