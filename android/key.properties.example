@@ -3,4 +3,4 @@
 storePassword=REPLACE_WITH_KEYSTORE_PASSWORD
 keyPassword=REPLACE_WITH_KEY_PASSWORD
 keyAlias=release
-storeFile=C:\\secure\\drawing-notes-release.jks
+storeFile=app/release.jks

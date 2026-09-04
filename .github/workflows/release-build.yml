@@ -49,6 +49,7 @@ jobs:
       - name: Decode release keystore
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        # 与 key.properties 的 storeFile=app/release.jks 对齐（相对于 android/ 目录）。
         run: echo "$KEYSTORE_B64" | base64 -d > android/app/release.jks
 
       - name: Write key.properties
@@ -57,7 +58,7 @@ jobs:
           KP: ${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }}
           ALIAS: ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
         run: |
-          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=release.jks\n' \
+          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=app/release.jks\n' \
             "$SP" "$KP" "$ALIAS" > android/key.properties
 
       - name: Install dependencies
