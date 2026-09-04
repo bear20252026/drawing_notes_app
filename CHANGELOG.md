@@ -2,6 +2,28 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.9.5] - 2026-09-04
+
+- **外部审计修补（H1·高）**：Android release 构建补上 `INTERNET` 权限——
+  此前仅 debug/profile 清单有，release 包 WebDAV 同步必然
+  `SocketException`。Windows 端无影响。
+- **外部审计修补（M1）**：拆除 `lib/fix/`——843 行 `security_and_sync_fix.dart`
+  拆分迁移至 `features/security/sync_fix.dart` + `shared/widgets/`
+  （pin_pad / unlock_sheets / home_lock_button），密码重置流程四件套归位
+  `features/security/`，行为零变化（1639 测试全绿）。
+- **外部审计修补（M2 + 防误删）**：同步单操作失败隔离——单个文档上传/
+  下载失败不再中断整轮，失败项进 `SyncResult.failedDocIds`、两端不回写、
+  下轮自动重试；并修复伴生数据丢失边界：下载失败的仅远端文档不入本地
+  基线，防止下轮被误判删除墓碑而删掉远端文档（含 5 个回归测试）。
+- **外部审计修补（M4·M5·L1）**：keepBoth 冲突副本当轮入本地基线（远端
+  清单不写，避免其他设备 404 空转）；写事务 AAD 上下文统一 UTF-8 编码
+  （该类无生产调用方与解密端，零兼容成本）；README 中英文安全定位改为
+  「本地优先 + 可选 WebDAV E2E 同步」的准确表述。
+- **依赖升级**：`flutter_secure_storage` 9.2.4→11.0.0（仅用默认构造，
+  API 零破坏；⚠️ 老用户需重新配置 WebDAV 口令与快速解锁，保险库数据
+  不受影响）、`pointycastle` 3.9.1→4.0.0（PBKDF2 派生一致性有测试保证）。
+- **依赖锁定**：`pdfrx` 锁定 2.4.7——2.5.0 上游发布不完整（包内引用
+  自身不存在的符号，编译失败），待上游修复后再升。
 ## [1.9.4] - 2026-09-04
 
 - **核心操作读屏语义（审计 R6）**：文档行的收藏星标与「⋯ 更多操作」按钮

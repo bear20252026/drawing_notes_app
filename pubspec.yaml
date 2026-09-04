@@ -33,7 +33,9 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-  intl: any
+  # 跟随 flutter_localizations SDK 约束（SDK 内部依赖 intl，any 会在 SDK
+  # 升级时静默漂移）——锁到当前解析版本，SDK 升级时同步手动上调。
+  intl: 0.20.3
   path_provider: ^2.1.5
   shared_preferences: ^2.3.2
   cryptography: ^2.7.0
