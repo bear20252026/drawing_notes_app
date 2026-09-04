@@ -410,8 +410,9 @@ void main() {
         (jsonDecode(utf8.decode(server.files['c']!)) as Map<String, dynamic>)['updatedAt'],
         25,
       );
-      // 远端版本另存为本地副本（id 含 '~conflict~'），updatedAt=40。
-      final copyKey = store.docs.keys.firstWhere((k) => k.contains('~conflict~'));
+      // 远端版本另存为本地副本（id 含 '-conflict-'；旧 '~' 格式过不了
+      // 下游 _pathFor 白名单，见 _safeCopyId），updatedAt=40。
+      final copyKey = store.docs.keys.firstWhere((k) => k.contains('-conflict-'));
       expect(store.docs[copyKey]!.updatedAt, 40);
     });
 
