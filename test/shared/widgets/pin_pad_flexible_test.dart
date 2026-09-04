@@ -8,7 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:drawing_notes_app/fix/security_and_sync_fix.dart';
+import 'package:drawing_notes_app/shared/widgets/pin_pad.dart';
 
 void main() {
   Future<void> pumpPad(

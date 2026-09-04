@@ -15,9 +15,9 @@ import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
-import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
+import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
-import 'package:drawing_notes_app/fix/block_doc_password_reset_flow.dart';
+import 'package:drawing_notes_app/features/security/block_doc_password_reset_flow.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_export_io.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_link_index.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_html_export.dart';

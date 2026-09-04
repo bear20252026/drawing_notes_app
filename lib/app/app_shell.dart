@@ -33,13 +33,13 @@ import 'package:drawing_notes_app/features/notes/domain/notebook_entity.dart';
 import 'package:drawing_notes_app/features/schedule/presentation/schedule_page.dart';
 import 'package:drawing_notes_app/features/schedule/infrastructure/schedule_event_store.dart';
 // 批次②：单文件密码输入（可变长度 4–12 位密码盘）。
-import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
+import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
 // N4 批 2：画布解锁弹窗「忘记密码？」→ 重置密码盘重置流。
-import 'package:drawing_notes_app/fix/file_password_reset_flow.dart';
+import 'package:drawing_notes_app/features/security/file_password_reset_flow.dart';
 // N4 批 3：分页画布解锁弹窗「忘记密码？」→ 重置密码盘重置流。
-import 'package:drawing_notes_app/fix/notebook_password_reset_flow.dart';
-import 'package:drawing_notes_app/fix/block_doc_password_reset_flow.dart';
+import 'package:drawing_notes_app/features/security/notebook_password_reset_flow.dart';
+import 'package:drawing_notes_app/features/security/block_doc_password_reset_flow.dart';
 // N4 批 3：加密分页画布解锁后媒体加密注入（页面图片解密用）。
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 

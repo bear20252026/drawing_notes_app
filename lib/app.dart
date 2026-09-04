@@ -19,7 +19,7 @@ import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_stor
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/features/schedule/infrastructure/schedule_event_store.dart';
 // 首页刷新修复②：注册全局路由观察者（HomePage 的 RouteAware 兜底刷新依赖它）。
-import 'package:drawing_notes_app/fix/security_and_sync_fix.dart' show SyncFix;
+import 'package:drawing_notes_app/features/security/sync_fix.dart' show SyncFix;
 // 应用启动锁：冷启动 + 切后台回锁（2026-09-01）。
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/app_lock_gate.dart';

@@ -38,9 +38,9 @@ import 'package:drawing_notes_app/features/notes/presentation/presentation_page.
 import 'package:drawing_notes_app/features/notes/presentation/notebook_reader_page.dart';
 import 'package:drawing_notes_app/features/notes/application/notebook_pdf_exporter.dart';
 // N2：笔记（块文档）文件密码——分页画布内打开受密块文档副本的解锁拦截。
-import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
+import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
-import 'package:drawing_notes_app/fix/block_doc_password_reset_flow.dart';
+import 'package:drawing_notes_app/features/security/block_doc_password_reset_flow.dart';
 
 part 'notebook_view_page_widgets.dart';
 part 'notebook_view_page_imports.dart';

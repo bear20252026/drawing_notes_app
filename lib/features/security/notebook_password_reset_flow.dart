@@ -12,7 +12,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
-import 'package:drawing_notes_app/fix/password_reset_common.dart';
+import 'package:drawing_notes_app/features/security/password_reset_common.dart';
 
 abstract final class NotebookPasswordResetFlow {
   /// 运行完整重置流；返回 true = 重置成功（会话已缓存新密码）。

@@ -7,7 +7,7 @@
 //   2. 切后台回锁：监听应用生命周期，paused 即置锁，回到前台直接见锁屏；
 //   3. 关闭联动：设置页关闭应用锁后立即放行。
 //
-// 锁屏 UI 复用 fix/security_and_sync_fix.dart 的 [PinPadCore]
+// 锁屏 UI 复用 shared/widgets/pin_pad.dart 的 [PinPadCore]
 // （iOS 锁屏同款密码盘，与笔记本解锁完全一致的单一事实来源）。
 
 import 'dart:async';
@@ -22,8 +22,10 @@ import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
-import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
-    show PinPadCore, UnlockFlow;
+import 'package:drawing_notes_app/shared/widgets/pin_pad.dart'
+    show PinPadCore;
+import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
+    show UnlockFlow;
 
 /// 应用启动锁门组件。
 ///

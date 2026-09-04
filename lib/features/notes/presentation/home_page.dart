@@ -36,12 +36,14 @@ import 'package:drawing_notes_app/features/doc/doc_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/search_page.dart';
 // 首页刷新修复②（2026-09-01）：RouteAware 可见性兜底——从编辑器/笔记本页
 // 返回时自动刷新，覆盖所有遗漏的写路径（IndexedStack 保活下 initState 不再执行）。
-import 'package:drawing_notes_app/fix/security_and_sync_fix.dart'
-    show SyncFix, SyncFixRouteAware, UnlockFlow;
+import 'package:drawing_notes_app/features/security/sync_fix.dart'
+    show SyncFix, SyncFixRouteAware;
+import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
+    show UnlockFlow;
 // N4 批 2：忘记密码重置流 + 设密时插盘绑定重置密码盘。
-import 'package:drawing_notes_app/fix/file_password_reset_flow.dart';
+import 'package:drawing_notes_app/features/security/file_password_reset_flow.dart';
 // N2：笔记（块文档）文件密码——解锁拦截与忘记密码重置流。
-import 'package:drawing_notes_app/fix/block_doc_password_reset_flow.dart';
+import 'package:drawing_notes_app/features/security/block_doc_password_reset_flow.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 
 part 'home_page_widgets.dart';

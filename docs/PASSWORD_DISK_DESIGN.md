@@ -125,7 +125,7 @@ USB 钥匙解开 DEK → 新盐重绕密码槽 → **载荷密文与 USB 槽位�
   PinPadCore「紧急情况」槽位，桌面端 AlertDialog footer 链接，
   点击均先关弹窗再回调）；
 - 重置流统一走 `FilePasswordResetFlow.show`
-  （lib/fix/file_password_reset_flow.dart）：说明 → 判定已绑定 →
+  （lib/features/security/file_password_reset_flow.dart）：说明 → 判定已绑定 →
   选盘读钥匙 → 新密码两遍（≠开屏密码）→ 重置；
 - 设密时弹窗询问「绑定重置密码盘？」（可跳过，事后可绑）。
 

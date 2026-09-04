@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
-import 'package:drawing_notes_app/fix/security_and_sync_fix.dart';
+import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart';
 
 abstract final class PasswordResetSteps {
   /// 步骤 1：说明确认。返回 true = 用户同意继续。
