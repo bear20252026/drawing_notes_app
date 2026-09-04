@@ -11,6 +11,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_guard.dart';
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
+import 'package:drawing_notes_app/core/security/kdf_params.dart';
+import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 
 /// 可手动推进的假时钟（起点取真实当前时间，保证高于任何真实系统时间
@@ -29,6 +31,19 @@ class FakeClock {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  // 本文件用假时钟建模冷却时间（advance 精确跨段），要求 KDF 零真实耗时——
+  // 否则生产 Argon2id 的真实耗时爬行（单调钟取 max）会击穿假时钟推进量，
+  // 锁还“剩”着，正确 PIN 照样被拒（行为正确，测试时钟模型失效）。
+  // 轻量档 + 同 isolate 直派生；真实迁移链由 app_lock_service_test 覆盖。
+  setUp(() {
+    AppLockService.testPinKdfOverride = KdfParams.testLight;
+    KekSessionCache.bypassIsolateForTests = true;
+  });
+  tearDown(() {
+    AppLockService.testPinKdfOverride = null;
+    KekSessionCache.bypassIsolateForTests = false;
+  });
 
   // 冷却基准取 10 秒：远大于测试过程的真实时间流逝（单调钟爬行），
   // 保证「仍在冷却」的断言稳定；推进假时钟即可跨过冷却期。
