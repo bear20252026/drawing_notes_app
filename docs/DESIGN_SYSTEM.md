@@ -205,15 +205,33 @@ AppleMotion.playful   // ratio 0.7 —— 仅罕见时刻（onboarding、成功�
 ### 配方
 
 ```
-底色       80–82%（DESIGN.md:396-398 要求 80%；prototype/PICKER.md 实测 82%）
-模糊       blur 12        ← liquid-glass-react 与 PICKER.md 两处一致
-饱和度     saturate(180%) ← liquid-glass-react 与 apple-design 两处互证
+底色       regular 0.62 / clear 0.45（Apple HIG 两个变体区间）
+模糊       blur 12        ← prototype/PICKER.md:39 实测（CSS px 与 Flutter σ 同量纲）
+饱和度     saturate(140%) ← Apple HIG 1.2–1.5× 与 PICKER 实测 1.4 互证
 高光       仅 1px 边缘环，不做大面积内部渐变（否则踩「禁装饰性渐变」红线）
 ```
 
-`liquid-glass-react` 默认档：`displacementScale 25 / blur 12 / saturation 180 / aberration 2 / elasticity 0.15`；按钮档 `64 / 0.1 / 130 / 2 / 0.35`。
+> **2026-09-05 更正（两处历史错误，勿再沿用）**
+>
+> 1. **引用了错误的组件**：下面这行旧文案取自库内部组件 `GlassContainer` 的默认值，
+>    而开发者真正用的是对外导出的 `LiquidGlass`，两者默认档不同。
+> 2. **`blur 12` 是系数不是像素**：真实模糊量 = `4 + blurAmount × 32`
+>    （`index.esm.js:224`），`blurAmount = 12` 实为 **388px**。
+>    项目当前 `sigma = 12` 数值上站得住，但出处是 PICKER.md 实测值，
+>    并非来自这里。
+>
+> 旧文案（存档，勿用）：`displacementScale 25 / blur 12 / saturation 180 / aberration 2 / elasticity 0.15`。
+> 实际对外默认档（`index.esm.js:281-286`）：`displacementScale 70 / blurAmount 0.0625 / saturation 140 / aberration 2 / elasticity 0.15`，
+> 换算后真实模糊 = `4 + 0.0625 × 32` = **6px**。
+>
+> 完整推导与 Flutter 侧实现见 `docs/LIQUID_GLASS_TECHNICAL_PLAN_2026-09-05.md`。
 
-色散实现思路（供 L3 着色器参考）：三次位移分离 RGB + 一次模糊合并。
+色散实现思路（供 L3 着色器参考）：三次位移分离 RGB + 一次模糊合并
+（参考实现用**递减**的位移量：`scale`、`scale × (1 − a×0.05)`、`scale × (1 − a×0.10)`）。
+
+**机制要点（2026-09-05 补）**：参考实现**不是**整块毛玻璃。它的最终合成是
+`边缘位移+色散  over  中心原图`——中心保持背景原样不加色板，只有边缘一圈被折弯。
+观感来源在边缘折射，不在整体不透明度；这也是此前「80% 底色铺满整块」看着像灰白板的原因。
 
 **红线**：**禁止玻璃叠玻璃**（原文"legibility collapses"）。这也是那个 WebGL 移植版要用 scissor ping-pong 优化的原因——叠两层时每层都要采样背后，性能塌方。
 
@@ -221,11 +239,27 @@ AppleMotion.playful   // ratio 0.7 —— 仅罕见时刻（onboarding、成功�
 
 | 档 | 内容 | 状态 |
 |---|---|---|
-| **L1** | 升级 `GlassSurface`：80% 底色 + blur 12 + 1px 亮边（顶边镜面环） | ✅ 已做（saturate 180 注：BackdropFilter 无自定义采样 API，真饱和走 L3 罩染色近似，见 `glass_surface.dart` 头注） |
-| **L2** | 加 `RoundedSuperellipseBorder`（Apple 超椭圆圆角，曲率连续）+ 弹簧动效 | ✅ 已做（shape；弹簧走既有 `AppleMotion` 令牌，面板动效-side 落子组件各自接入） |
-| **L3** | 自定义 `FragmentProgram` 做真折射 + 色散 | ✅ 已做（`shaders/liquid_glass.frag`：边缘环 + RGB 分离 + 镜面高光，配方 SDF 移植），**带性能闸门**（`LiquidGlassGate`：未就绪/减弱动效/高对比/forceLevel 一律回落 L2；backdrop 真位移因平台无 API 由 blur 近似，已在代码头注诚实声明） |
+| **G0 兜底** | 实色板，无模糊无饱和 | ✅ 已做（减弱动效 / `enabled: false` 时自动走这条） |
+| **G1 模糊+饱和** | `ImageFilter.compose(outer: ColorFilter.matrix(saturate 1.4), inner: blur σ=12)` | ✅ **2026-09-05 新增**。此前 saturate 完全缺失——旧注称「BackdropFilter 无自定义采样 API，真饱和不可做」，该结论**已过时**：`ColorFilter` 是 `ImageFilter` 子类，可用 `compose` 合成 |
+| **G2 超椭圆** | `RoundedSuperellipseBorder`（曲率连续）+ 弹簧动效 | ✅ 已做（shape；弹簧走既有 `AppleMotion` 令牌） |
+| **G3 折射罩** | `FragmentProgram` 前景边缘罩：折射环 + RGB 分离 + 镜面高光（配方 SDF 移植） | ✅ 已做，且 **2026-09-05 起成为默认档**。此前声明为「已做」但**全仓库零调用点传 `level: l3`**，折射/色散/高光从未真正渲染过 |
 
-项目已在用 `FragmentProgram`（`pencil_shader.dart`），Flutter 3.47.0，L3 的技术路径是通的。
+> **2026-09-05 更正**：旧表 L3 一行写「backdrop 真位移因平台无 API 由 blur 近似」。
+> 该结论同样过时——Flutter 3.47 提供 `ImageFilter.shader(FragmentShader)`
+> （`painting.dart:4460`，引擎自动绑定 `sampler2D` filter input 与 `vec2` 纹理尺寸）
+> 与 `ImageFilter.compose`，真位移在 Impeller 下**可做**。
+> 未立即落地的原因是 GLSL 侧存在 y 轴翻转等需真机目视验证的不确定性，
+> 详见 `docs/LIQUID_GLASS_TECHNICAL_PLAN_2026-09-05.md` §5 G3。
+
+配方常量集中在 `LiquidGlassRecipe`（`lib/shared/widgets/liquid_glass_shader.dart`），
+**勿在调用点硬编码**；矩阵由 `liquidGlassSaturationMatrix()` 生成，回归保护见
+`test/shared/widgets/liquid_glass_recipe_test.dart`。
+
+**当前覆盖面（2026-09-05 核查）**：`GlassSurface` 仅 6 处调用
+（schedule_page 3、home_page 1、notebook_view_page 1、editor_context_bar 1）。
+清单中「顶部工具条 / 主菜单 / 弹窗 / 底部标签栏 / 滑块 / 分段控件 / 悬浮按钮」
+仍多为原生 Material 构件 —— 分段导航（home_page TabBar）已用玻璃，
+**AppBar 未用**，且因「禁止玻璃叠玻璃」红线，AppBar 接入时必须先摘掉 TabBar 自身的玻璃层。
 
 ---
 
