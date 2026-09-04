@@ -5,6 +5,8 @@
 
 part of note_block_doc_store;
 
+extension NoteBlockDocStoreTrash on NoteBlockDocStore {
+
   /// 读回收站条目内容（批次①c）：激活区 rename 进来的文件可能是密文，
   /// 解密后返回文本；锁定/损坏返回 null（调用方跳过——fail-closed）。
   Future<String?> _readTrashContent(File f) async {
@@ -30,7 +32,7 @@ part of note_block_doc_store;
       final dek = _sessionDeks[id];
       if (dek == null) return null;
       try {
-        return await _encryption.decryptBlockDocPayloadWithDek(
+        return await NoteBlockDocStore._encryption.decryptBlockDocPayloadWithDek(
           docId: id,
           encryptedJson: text,
           dek: dek,
@@ -178,7 +180,7 @@ part of note_block_doc_store;
         if (content == null) {
           final name = entity.uri.pathSegments.last;
           final id = name.substring(0, name.length - '.json'.length);
-          if (!isValidId(id)) continue;
+          if (!NoteBlockDocStore.isValidId(id)) continue;
           final meta = File('${entity.path}.meta.json');
           var deletedAt = DateTime.tryParse(
             (await meta.exists()) ? await meta.readAsString() : '',
@@ -335,8 +337,10 @@ part of note_block_doc_store;
   }
 
   Future<String> _trashPathFor(String id) async {
-    if (!isValidId(id)) {
+    if (!NoteBlockDocStore.isValidId(id)) {
       throw ArgumentError.value(id, 'id', '非法 ID（路径遍历防护）');
     }
     return '${(await _ensureTrashDir()).path}${Platform.pathSeparator}$id.json';
   }
+
+}

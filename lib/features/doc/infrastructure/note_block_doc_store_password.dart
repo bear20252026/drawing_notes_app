@@ -5,6 +5,8 @@
 
 part of note_block_doc_store;
 
+extension NoteBlockDocStorePasswords on NoteBlockDocStore {
+
   // ==== 文件密码管理 API（N2，与 NotebookStorage 同口径） ====
 
   /// 启用密码保护并保存：整份文档 JSON 作为 v5 载荷加密，明文不落盘。
@@ -24,14 +26,14 @@ part of note_block_doc_store;
     String password,
     List<int>? usbKey,
   ) async {
-    if (!isValidId(doc.id)) {
+    if (!NoteBlockDocStore.isValidId(doc.id)) {
       throw ArgumentError.value(doc.id, 'doc.id', '文档 ID 不合法');
     }
     await _ensureDir();
     final plaintext = utf8.encode(
       const JsonEncoder.withIndent('  ').convert(doc.toJson()),
     );
-    final sealed = await _encryption.encryptBlockDocPasswordV5(
+    final sealed = await NoteBlockDocStore._encryption.encryptBlockDocPasswordV5(
       docId: doc.id,
       plaintext: utf8.decode(plaintext),
       password: password,
@@ -39,7 +41,7 @@ part of note_block_doc_store;
     );
     await _writeFileAtomic(doc.id, utf8.encode(sealed));
     // 缓存会话 DEK（unwrap 一次 PBKDF2，之后续写零重派生）。
-    final dek = await _encryption.unwrapBlockDocPasswordSlotForRewrap(
+    final dek = await NoteBlockDocStore._encryption.unwrapBlockDocPasswordSlotForRewrap(
       docId: doc.id,
       encryptedJson: sealed,
       password: password,
@@ -52,7 +54,7 @@ part of note_block_doc_store;
     final envelope = await _readEnvelopeJson(id);
     if (envelope == null) return false;
     try {
-      await _encryption.decryptBlockDocPassword(
+      await NoteBlockDocStore._encryption.decryptBlockDocPassword(
         docId: id,
         encryptedJson: envelope,
         password: password,
@@ -60,7 +62,7 @@ part of note_block_doc_store;
     } on FormatException {
       return false;
     }
-    final dek = await _encryption.unwrapBlockDocPasswordSlotForRewrap(
+    final dek = await NoteBlockDocStore._encryption.unwrapBlockDocPasswordSlotForRewrap(
       docId: id,
       encryptedJson: envelope,
       password: password,
@@ -82,14 +84,14 @@ part of note_block_doc_store;
     if (envelope == null) {
       throw StateError('该笔记未设置文件密码');
     }
-    var newEnvelope = await _encryption.changeBlockDocPasswordV5(
+    var newEnvelope = await NoteBlockDocStore._encryption.changeBlockDocPasswordV5(
       docId: id,
       encryptedJson: envelope,
       oldPassword: oldPassword,
       newPassword: newPassword,
     );
     if (usbKey != null && !EncryptionService.hasUsbSlotV5(newEnvelope)) {
-      newEnvelope = await _encryption.bindBlockDocUsbSlotV5(
+      newEnvelope = await NoteBlockDocStore._encryption.bindBlockDocUsbSlotV5(
         docId: id,
         encryptedJson: newEnvelope,
         password: newPassword,
@@ -97,7 +99,7 @@ part of note_block_doc_store;
       );
     }
     await _enqueue(id, () => _writeFileAtomic(id, utf8.encode(newEnvelope)));
-    final dek = await _encryption.unwrapBlockDocPasswordSlotForRewrap(
+    final dek = await NoteBlockDocStore._encryption.unwrapBlockDocPasswordSlotForRewrap(
       docId: id,
       encryptedJson: newEnvelope,
       password: newPassword,
@@ -122,7 +124,7 @@ part of note_block_doc_store;
     if (envelope == null) {
       throw StateError('该笔记未设置文件密码');
     }
-    final newEnvelope = await _encryption.bindBlockDocUsbSlotV5(
+    final newEnvelope = await NoteBlockDocStore._encryption.bindBlockDocUsbSlotV5(
       docId: id,
       encryptedJson: envelope,
       password: password,
@@ -142,7 +144,7 @@ part of note_block_doc_store;
   ) async {
     final envelope = await _readEnvelopeJson(id);
     if (envelope == null) return false;
-    final newEnvelope = await _encryption.resetBlockDocPasswordWithUsbV5(
+    final newEnvelope = await NoteBlockDocStore._encryption.resetBlockDocPasswordWithUsbV5(
       docId: id,
       encryptedJson: envelope,
       usbKey: usbKey,
@@ -150,7 +152,7 @@ part of note_block_doc_store;
     );
     if (newEnvelope == null) return false;
     await _enqueue(id, () => _writeFileAtomic(id, utf8.encode(newEnvelope)));
-    final dek = await _encryption.unwrapBlockDocPasswordSlotForRewrap(
+    final dek = await NoteBlockDocStore._encryption.unwrapBlockDocPasswordSlotForRewrap(
       docId: id,
       encryptedJson: newEnvelope,
       password: newPassword,
@@ -167,7 +169,7 @@ part of note_block_doc_store;
     if (envelope == null) {
       throw StateError('该笔记未设置文件密码');
     }
-    final clear = await _encryption.decryptBlockDocPassword(
+    final clear = await NoteBlockDocStore._encryption.decryptBlockDocPassword(
       docId: id,
       encryptedJson: envelope,
       password: password,
@@ -181,3 +183,5 @@ part of note_block_doc_store;
     forgetBlockDocPassword(id);
     _headerCache = null;
   }
+
+}
