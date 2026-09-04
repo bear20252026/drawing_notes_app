@@ -72,6 +72,10 @@ class NoteBlockDocStore implements SessionSecretsHolder {
 
   Directory? _dir;
 
+  /// 回收站目录缓存（字段必须驻留主文件——extension 内禁止声明实例字段；
+  /// 读写经 part 扩展方法，见 note_block_doc_store_trash.dart）。
+  Directory? _trashDir;
+
   // ==== 文件密码（N2：笔记单文件接入 v5 双保护器体系） ====
   //
   // 受密文件 = v5 信封 JSON 直落盘（{"mode":"password","v":5,"slots",

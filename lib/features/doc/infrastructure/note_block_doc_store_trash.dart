@@ -323,8 +323,6 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
         return purged;
       });
 
-  Directory? _trashDir;
-
   Future<Directory> _ensureTrashDir() async {
     if (_trashDir != null) return _trashDir!;
     final base = await _baseDir();
