@@ -16,7 +16,9 @@ import 'package:drawing_notes_app/core/sync/sync_planner.dart';
 import 'package:drawing_notes_app/core/sync/sync_progress.dart';
 import 'package:drawing_notes_app/core/sync/sync_service.dart';
 
-const _base = 'http://dav.example.com/sync/';
+// P1 安全契约：传输层强制 https（WebDavSyncClient._requireHttps），
+// 同步测试统一用 https 基址（http 行为由 webdav_sync_client_test 专项覆盖）。
+const _base = 'https://dav.example.com/sync/';
 
 /// 内存 WebDAV 服务器：key = 相对路径（如 'a' / 'manifest.json'）。
 class _MemoryServer {

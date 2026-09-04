@@ -145,11 +145,13 @@ class AppLockService extends ChangeNotifier {
     final salt = prefs.getString(_kSaltKey);
     final stored = prefs.getString(_kPinHashKey);
     if (salt == null || stored == null) return false;
-    final version =
-        prefs.getInt(_kPinKdfVersionKey) ?? _kdfLegacySha256;
+    // P0 加固：版本不依赖独立 int 键（存储后端 int 编解码差异曾导致误判），
+    // 直接按哈希形值识别——64 位 hex = v1 SHA-256，其余按 v2 Argon2id 验。
+    // 版本键保留写入（诊断可观测），读取不再信任它。
+    final legacyFormat = stored.length == 64;
     bool ok;
     try {
-      if (version == _kdfArgon2id) {
+      if (!legacyFormat) {
         ok = _constantTimeEquals(await _hashV2(pin, salt), stored);
       } else {
         ok = _constantTimeEquals(_hashLegacy(pin, salt), stored);

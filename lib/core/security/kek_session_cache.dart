@@ -102,6 +102,20 @@ class KekSessionCache {
       return Uint8List.fromList(cached);
     }
     final gen = _generation;
+
+    // 测试旁路：FakeAsync 下 isolate/定时器派生永不回投——同步测试 KDF
+    //（SHA-256 链，确定性依赖 (口令,盐,参数)；与生产 KDF 同缓存键空间，
+    // 生产路径零影响）。widget 测试 setUp 置位，tearDown 复位。
+    if (bypassIsolateForTests) {
+      final testDerived = _testOnlyKdf(password, salt, params);
+      _cache[key] = testDerived;
+      while (_cache.length > _maxEntries) {
+        final evicted = _cache.remove(_cache.keys.first);
+        evicted?.fillRange(0, evicted.length, 0);
+      }
+      return Uint8List.fromList(testDerived);
+    }
+
     final inflight = _inflight[key];
     if (inflight != null) {
       // 并发加入：等待共享结果；等待期间被 clear 则 fail-closed（不交付
@@ -151,6 +165,26 @@ class KekSessionCache {
     _pepper.fillRange(0, _pepper.length, 0);
     _pepper = _newPepper();
     _generation++;
+  }
+
+  /// 测试专用 KDF（见 [bypassIsolateForTests]）：同步 SHA-256 链，
+  /// 500 轮，输出 32B；确定性依赖完整 (口令,盐,KDF参数) 三元组。
+  /// 生产禁止调用（由 flag 门控；grep 可审计唯一调用点在本文件）。
+  static Uint8List _testOnlyKdf(
+    String password,
+    List<int> salt,
+    KdfParams params,
+  ) {
+    final tag = params.kdf == KdfParams.kdfArgon2id
+        ? 'a|${params.memoryKiB}|${params.timeCost}|${params.parallelism}'
+        : 'p|${params.iterations}';
+    var h = crypto.sha256
+        .convert(utf8.encode('$tag|${base64Encode(salt)}|$password'))
+        .bytes;
+    for (var i = 0; i < 500; i++) {
+      h = crypto.sha256.convert([...h, i & 0xff]).bytes;
+    }
+    return Uint8List.fromList(h);
   }
 
   String _cacheKey(String password, List<int> salt, KdfParams params) {
