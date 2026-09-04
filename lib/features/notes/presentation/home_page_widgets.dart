@@ -240,12 +240,12 @@ class _ThumbPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return ColoredBox(
-      color: scheme.surfaceContainerHighest.withValues(alpha: 0.42),
+      color: AppleColor.panelOf(scheme),
       child: Center(
         child: Icon(
           Icons.draw_outlined,
           size: 38,
-          color: scheme.onSurfaceVariant.withValues(alpha: 0.52),
+          color: AppleColor.subtleOf(scheme),
         ),
       ),
     );

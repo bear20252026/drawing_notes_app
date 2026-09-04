@@ -81,7 +81,7 @@ class DatabaseKanbanView extends StatelessWidget {
       child: Card(
         margin: EdgeInsets.zero,
         elevation: 0,
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        color: AppleColor.panelOf(scheme),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppleRadius.md),
           side: BorderSide(color: scheme.outlineVariant),

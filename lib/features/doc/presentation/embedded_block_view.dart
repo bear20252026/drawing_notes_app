@@ -380,9 +380,7 @@ class EmbeddedBlockView extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Theme.of(
-            context,
-          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+          color: AppleColor.panelOf(Theme.of(context).colorScheme),
           borderRadius: BorderRadius.circular(AppleRadius.sm),
           border: Border.all(
             color: Theme.of(context).colorScheme.outlineVariant,

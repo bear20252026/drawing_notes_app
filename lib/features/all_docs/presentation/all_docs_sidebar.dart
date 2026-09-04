@@ -75,7 +75,7 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
     final bg = isDark ? AppleColor.canvansDark : AppleColor.parchment;
     final surface = isDark ? AppleColor.surfaceDark : AppleColor.surfaceWhite;
     final onSurface = theme.colorScheme.onSurface;
-    final muted = onSurface.withValues(alpha: 0.55);
+    final muted = AppleColor.mutedOf(theme.colorScheme);
 
     return Container(
       width: 248,
@@ -133,7 +133,7 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
   List<Widget> _buildNavGroup(BuildContext context) {
     final theme = Theme.of(context);
     final onSurface = theme.colorScheme.onSurface;
-    final muted = onSurface.withValues(alpha: 0.55);
+    final muted = AppleColor.mutedOf(theme.colorScheme);
     final accent = theme.colorScheme.primary;
 
     return List.generate(_navItems.length, (i) {
@@ -183,7 +183,7 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
   List<Widget> _buildDocTree(BuildContext context) {
     final theme = Theme.of(context);
     final onSurface = theme.colorScheme.onSurface;
-    final muted = onSurface.withValues(alpha: 0.55);
+    final muted = AppleColor.mutedOf(theme.colorScheme);
     final widgets = <Widget>[
       InkWell(
         borderRadius: BorderRadius.circular(AppleRadius.sm),

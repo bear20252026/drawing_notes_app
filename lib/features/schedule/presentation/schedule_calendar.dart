@@ -144,7 +144,7 @@ class ScheduleCalendar extends StatelessWidget {
                 fontSize: 14,
                 fontWeight: isSelected || isToday
                     ? FontWeight.w700
-                    : FontWeight.w500,
+                    : FontWeight.w400,
                 color: isSelected ? scheme.onPrimary : scheme.onSurface,
               ),
             ),

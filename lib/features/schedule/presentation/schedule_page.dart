@@ -560,7 +560,7 @@ class _HourRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final muted = scheme.onSurfaceVariant.withValues(alpha: 0.5);
+    final muted = AppleColor.mutedOf(scheme);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 1),

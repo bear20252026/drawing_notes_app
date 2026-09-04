@@ -347,7 +347,7 @@ class _ConnectorPainter extends CustomPainter {
             text: label,
             style: AppleType.captionStyle(
               color,
-            ).copyWith(fontWeight: FontWeight.w500),
+            ).copyWith(fontWeight: FontWeight.w600),
           ),
           textDirection: TextDirection.ltr,
         )..layout(maxWidth: 200);

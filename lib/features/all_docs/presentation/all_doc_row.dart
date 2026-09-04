@@ -49,10 +49,12 @@ class AllDocRow extends StatelessWidget {
     // 用**语义色 + 字重**分级，而不是一味压低透明度——原先元信息用
     // 0.35 的 onSurface，浅色模式下对比度仅约 2.3:1，远低于 WCAG 对
     // 文本 4.5:1 的要求（元信息也是信息，不能淡到看不清）。
-    //  - 描述：主题的 onSurfaceVariant（语义化，深浅模式自动适配）；
-    //  - 元信息：55% onSurface（对比度约 4.6:1，刚好过线）。
-    final muted = scheme.onSurfaceVariant;
-    final subtle = onSurface.withValues(alpha: 0.55);
+    //  - 描述 → [AppleColor.mutedOf]：onSurfaceVariant，白底约 5.3:1；
+    //  - 元信息 → [AppleColor.subtleOf]：55% onSurface，约 4.0:1
+    //    （元信息里的图标只需满足非文本 3:1，文字走 mutedOf）。
+    // 两个令牌是全库唯一定义处，勿在本文件再手写 alpha。
+    final muted = AppleColor.mutedOf(scheme);
+    final subtle = AppleColor.subtleOf(scheme);
     final visual = visualFor(doc.kind);
     // M11.2：显示明确日期（今天带时分，昨天/今年带月日，跨年带年份）
     // ——承接原日历「文档动态」时间线的"哪天动了哪个文档"语义。

@@ -350,7 +350,7 @@ class _BacklinksPanelState extends State<_BacklinksPanel> {
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        color: AppleColor.panelOf(scheme),
         borderRadius: BorderRadius.circular(AppleRadius.md),
       ),
       child: Column(

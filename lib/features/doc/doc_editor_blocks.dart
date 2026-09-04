@@ -259,9 +259,7 @@ extension DocEditorBlocks on DocEditorState {
             child: Icon(
               Icons.drag_handle,
               size: 18,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+              color: AppleColor.subtleOf(Theme.of(context).colorScheme),
             ),
           ),
         ),
@@ -550,9 +548,7 @@ extension DocEditorBlocks on DocEditorState {
         return TextStyle(
           fontFamily: 'monospace',
           fontSize: 15,
-          backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.5,
-          ),
+          backgroundColor: AppleColor.fillOf(theme.colorScheme),
           color: theme.colorScheme.onSurface,
         );
       case NoteBlockType.todo:
@@ -561,14 +557,14 @@ extension DocEditorBlocks on DocEditorState {
           fontSize: 16,
           decoration: checked ? TextDecoration.lineThrough : null,
           color: checked
-              ? theme.colorScheme.onSurface.withValues(alpha: 0.5)
+              ? AppleColor.subtleOf(theme.colorScheme)
               : theme.colorScheme.onSurface,
         );
       case NoteBlockType.quote:
         return TextStyle(
           fontSize: 16,
           fontStyle: FontStyle.italic,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+          color: theme.colorScheme.onSurface,
         );
       case NoteBlockType.callout:
         return TextStyle(

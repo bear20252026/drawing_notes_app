@@ -97,7 +97,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        color: AppleColor.panelOf(scheme),
         borderRadius: BorderRadius.circular(AppleRadius.md),
         border: Border.all(color: scheme.outlineVariant),
       ),
@@ -166,7 +166,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        color: AppleColor.panelOf(scheme),
         borderRadius: BorderRadius.circular(AppleRadius.md),
         border: Border.all(color: scheme.outlineVariant),
       ),

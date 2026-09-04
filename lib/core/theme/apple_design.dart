@@ -70,6 +70,44 @@ abstract final class AppleColor {
 
   /// 错误红（Apple 系统红）。
   static const Color errorRed = Color(0xFFFF3B30);
+
+  // ---------------------------------------------------------------------------
+  // 次级信息两级配色
+  //
+  // **历史债（2026-09-04 清理）**：同一个「次要信息」语义在全库被写成
+  // 0.4 / 0.45 / 0.5 / 0.55 / 0.6 **五种 alpha、共 20 处**，深浅模式下观感
+  // 各不相同；更糟的是对本身已带 alpha 的语义色再叠乘会造成**二次衰减**
+  // （如 dividerColor 8% 再乘 0.08 → 0.64%，分隔线实际不可见）。
+  // 现收敛为两级，调用点一律走这两个入口，不再手写 alpha。
+  // ---------------------------------------------------------------------------
+
+  /// 次级**文字**色：元信息、描述、分组标题、输入框 hint、空态副文本。
+  ///
+  /// 走 M3 语义色 `onSurfaceVariant`（浅色 #6E6E73，白底对比度约 5.3:1），
+  /// 由主题按明暗档自动适配，**不手工叠 alpha**。
+  static Color mutedOf(ColorScheme scheme) => scheme.onSurfaceVariant;
+
+  /// 次级**图标 / 装饰**色：锁标、展开箭头、文件密码标、已完成（勾选）态。
+  ///
+  /// WCAG 对非文本只要求 3:1，55% onSurface 约 4.0:1，安全且仍读作「次要」。
+  static Color subtleOf(ColorScheme scheme) =>
+      scheme.onSurface.withValues(alpha: 0.55);
+
+  /// 次级**面板**底色：分组列头、附件卡、数据库块、反向链接面板、
+  /// 画板浮层面板（左侧工具条 / 图层 / 属性 / 选中条 / 状态栏）。
+  ///
+  /// 此前这类面板写的是 `surfaceContainerHighest.withValues(alpha: 0.35)`，
+  /// 散落 5 处、深色模式下几乎不可见；改用 M3 的 `surfaceContainerLow`
+  /// 语义档（由 surfaceTint #0066CC 推得，明暗自适应），并与画板既有
+  /// 5 处用法统一。
+  static Color panelOf(ColorScheme scheme) => scheme.surfaceContainerLow;
+
+  /// **填充式底色**：填充输入框、行内代码高亮等需要「明确有块底」的场景。
+  ///
+  /// M3 规范：filled TextField 与 code highlight 都用 `surfaceContainerHighest`
+  /// 满底。此前是 `surfaceContainerHighest.withValues(alpha: 0.5 / 0.6)` 的
+  /// 二次衰减写法，深浅档观感不一致。
+  static Color fillOf(ColorScheme scheme) => scheme.surfaceContainerHighest;
 }
 
 /// Apple 间距刻度（base=8）。
@@ -148,7 +186,11 @@ abstract final class AppleType {
 
   static TextStyle captionStyle(Color color) => TextStyle(
     fontSize: caption,
-    fontWeight: FontWeight.w500,
+    // DESIGN.md:504「Don't set body copy at weight 500 — Apple's ladder is
+    // 300 / 400 / 600 / 700, with 500 deliberately absent. Body is always
+    // 400」。caption 属正文族，此前误用 500。需要强调的调用点自行
+    // copyWith(w600)（量标注、空态主文案即如此）。
+    fontWeight: FontWeight.w400,
     letterSpacing: 0.2,
     color: color,
   );
@@ -277,16 +319,16 @@ class ApplePillSearchField extends StatelessWidget {
       style: AppleType.bodyStyle(onSurface).copyWith(fontSize: 14),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: AppleType.bodyStyle(
-          onSurface.withValues(alpha: 0.4),
-        ).copyWith(fontSize: 13),
+        hintStyle: AppleType.bodyStyle(AppleColor.mutedOf(scheme)).copyWith(
+          fontSize: 13,
+        ),
         prefixIcon: Icon(
           Icons.search_rounded,
           size: 18,
-          color: onSurface.withValues(alpha: 0.5),
+          color: AppleColor.subtleOf(scheme),
         ),
         filled: true,
-        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.6),
+        fillColor: AppleColor.fillOf(scheme),
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
         border: OutlineInputBorder(
@@ -316,7 +358,7 @@ class AppleSectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final muted = scheme.onSurface.withValues(alpha: 0.4);
+    final muted = AppleColor.mutedOf(scheme);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppleSpacing.md,

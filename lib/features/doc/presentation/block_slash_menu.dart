@@ -308,9 +308,7 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
           '无匹配项',
           style: TextStyle(
             fontSize: 13,
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.5),
+            color: AppleColor.mutedOf(Theme.of(context).colorScheme),
           ),
         ),
       ),
@@ -377,9 +375,7 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.45),
+            color: AppleColor.mutedOf(Theme.of(context).colorScheme),
             letterSpacing: 0.5,
           ),
         ),
@@ -413,9 +409,7 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
                       item.description!,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.5),
+                        color: AppleColor.mutedOf(Theme.of(context).colorScheme),
                       ),
                     ),
                 ],

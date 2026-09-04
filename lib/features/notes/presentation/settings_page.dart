@@ -11,6 +11,7 @@ import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/features/notes/presentation/app_lock_settings_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settings_page.dart';
+import '../../../core/theme/apple_design.dart';
 
 /// 设置页：密码与安全 + 通用两大分组。
 ///
@@ -178,7 +179,7 @@ class _PasswordLayersCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Card(
       margin: EdgeInsets.zero,
-      color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      color: AppleColor.panelOf(scheme),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
         child: Column(

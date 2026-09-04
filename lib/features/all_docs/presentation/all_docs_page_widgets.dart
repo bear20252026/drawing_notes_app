@@ -114,7 +114,7 @@ class _DocsToolbar extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final surface = isDark ? AppleColor.surfaceDark : AppleColor.surfaceWhite;
     final onSurface = theme.colorScheme.onSurface;
-    final subtle = onSurface.withValues(alpha: 0.4);
+    final subtle = AppleColor.mutedOf(theme.colorScheme);
 
     return Container(
       height: 52,
@@ -255,8 +255,7 @@ class _DocsTabBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = theme.brightness == Brightness.dark;
     final surface = isDark ? AppleColor.surfaceDark : AppleColor.surfaceWhite;
-    final onSurface = theme.colorScheme.onSurface;
-    final subtle = onSurface.withValues(alpha: 0.45);
+    final subtle = AppleColor.mutedOf(theme.colorScheme);
     final accent = theme.colorScheme.primary;
 
     return Container(
@@ -446,8 +445,7 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final onSurface = theme.colorScheme.onSurface;
-    final subtle = onSurface.withValues(alpha: 0.4);
+    final subtle = AppleColor.mutedOf(theme.colorScheme);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 8, 6),
       child: Text(
@@ -479,7 +477,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subtle = theme.colorScheme.onSurface.withValues(alpha: 0.4);
+    final subtle = AppleColor.mutedOf(theme.colorScheme);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -490,7 +488,7 @@ class _EmptyState extends StatelessWidget {
             '记下第一笔',
             style: TextStyle(
               fontSize: 15,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
               color: theme.colorScheme.onSurface,
             ),
           ),
@@ -543,7 +541,7 @@ class _TabEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subtle = theme.colorScheme.onSurface.withValues(alpha: 0.4);
+    final subtle = AppleColor.mutedOf(theme.colorScheme);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -554,7 +552,7 @@ class _TabEmptyState extends StatelessWidget {
             text,
             style: TextStyle(
               fontSize: 14,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
               color: theme.colorScheme.onSurface,
             ),
           ),

@@ -3,7 +3,7 @@
 ; 说明：本脚本位于 tools/，路径均相对本脚本所在目录，可在仓库内直接复现打包。
 
 #define MyAppName "绘图笔记"
-#define MyAppVersion "1.9.7"
+#define MyAppVersion "1.9.8"
 #define MyAppPublisher "Drawing Notes Studio"
 #define MyAppExeName "drawing_notes_app.exe"
 ; Release 构建产物（相对 tools/）

@@ -163,7 +163,7 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                    color: AppleColor.mutedOf(theme.colorScheme),
                   ),
                 ),
               ),
@@ -174,7 +174,7 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                     '暂无文档',
                     style: TextStyle(
                       fontSize: 13,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                      color: AppleColor.mutedOf(theme.colorScheme),
                     ),
                   ),
                 )
@@ -198,9 +198,7 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                         ? Icon(
                             Icons.lock_outline_rounded,
                             size: 16,
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.35,
-                            ),
+                            color: AppleColor.subtleOf(theme.colorScheme),
                           )
                         : null,
                     onTap: () {
@@ -246,8 +244,7 @@ class _MobileHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = theme.brightness == Brightness.dark;
     final surface = isDark ? AppleColor.surfaceDark : AppleColor.surfaceWhite;
-    final onSurface = theme.colorScheme.onSurface;
-    final muted = onSurface.withValues(alpha: 0.55);
+    final muted = AppleColor.mutedOf(theme.colorScheme);
     final accent = theme.colorScheme.primary;
 
     return Container(
