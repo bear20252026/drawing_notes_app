@@ -296,7 +296,7 @@ class _CreatePageDialogState extends State<_CreatePageDialog> {
           ),
         ),
       ),
-      actions: [
+      actions: AppleDialog.actions([
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),
@@ -307,7 +307,7 @@ class _CreatePageDialogState extends State<_CreatePageDialog> {
           ).pop(_NewPageRequest(title: _controller.text, template: _template)),
           child: const Text('创建并开始记录'),
         ),
-      ],
+      ]),
     );
   }
 }
@@ -344,7 +344,7 @@ class _PageNameDialogState extends State<_PageNameDialog> {
         ),
         onSubmitted: (v) => Navigator.of(context).pop(v),
       ),
-      actions: [
+      actions: AppleDialog.actions([
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),
@@ -353,7 +353,7 @@ class _PageNameDialogState extends State<_PageNameDialog> {
           onPressed: () => Navigator.of(context).pop(_controller.text),
           child: const Text('确定'),
         ),
-      ],
+      ]),
     );
   }
 }
@@ -410,7 +410,7 @@ class _PasswordDialogState extends State<_PasswordDialog> {
           ),
         ],
       ),
-      actions: [
+      actions: AppleDialog.actions([
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),
@@ -419,7 +419,7 @@ class _PasswordDialogState extends State<_PasswordDialog> {
           onPressed: () => Navigator.of(context).pop(_controller.text),
           child: const Text('确定'),
         ),
-      ],
+      ]),
     );
   }
 }

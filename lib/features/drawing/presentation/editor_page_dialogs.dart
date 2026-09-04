@@ -197,7 +197,7 @@ class _TextInputDialogState extends State<_TextInputDialog> {
           ),
         ],
       ),
-      actions: [
+      actions: AppleDialog.actions([
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),
@@ -208,7 +208,7 @@ class _TextInputDialogState extends State<_TextInputDialog> {
           ).pop(_TextDialogResult(text: _controller.text, fontSize: _fontSize)),
           child: const Text('确定'),
         ),
-      ],
+      ]),
     );
   }
 }

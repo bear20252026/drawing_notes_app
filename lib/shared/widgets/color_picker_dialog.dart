@@ -250,7 +250,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
           ),
         ),
       ),
-      actions: [
+      actions: AppleDialog.actions([
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),
@@ -264,7 +264,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
           },
           child: const Text('确定'),
         ),
-      ],
+      ]),
     );
   }
 

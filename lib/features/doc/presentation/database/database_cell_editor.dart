@@ -29,7 +29,7 @@ Future<void> showTextCellEditor(
             : null,
         decoration: const InputDecoration(hintText: '输入值'),
       ),
-      actions: [
+      actions: AppleDialog.actions([
         TextButton(
           onPressed: () => Navigator.pop(ctx),
           child: const Text('取消'),
@@ -38,7 +38,7 @@ Future<void> showTextCellEditor(
           onPressed: () => Navigator.pop(ctx, controller.text),
           child: const Text('确定'),
         ),
-      ],
+      ]),
     ),
   );
   if (result == null) return;

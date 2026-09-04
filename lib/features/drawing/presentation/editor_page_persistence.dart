@@ -59,7 +59,7 @@ extension _EditorPagePersistence on _EditorPageState {
             autofocus: true,
             onSubmitted: (v) => Navigator.of(ctx).pop(v),
           ),
-          actions: [
+          actions: AppleDialog.actions([
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('取消'),
@@ -68,7 +68,7 @@ extension _EditorPagePersistence on _EditorPageState {
               onPressed: () => Navigator.of(ctx).pop(controller.text),
               child: const Text('确定'),
             ),
-          ],
+          ]),
         );
       },
     );

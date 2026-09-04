@@ -829,7 +829,7 @@ class _DocPageState extends State<DocPage> {
             autofocus: true,
             decoration: const InputDecoration(hintText: '标签名称'),
           ),
-          actions: [
+          actions: AppleDialog.actions([
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('取消'),
@@ -838,7 +838,7 @@ class _DocPageState extends State<DocPage> {
               onPressed: () => Navigator.of(ctx).pop(controller.text),
               child: const Text('创建'),
             ),
-          ],
+          ]),
         ),
       );
       if (name == null || name.trim().isEmpty) return;

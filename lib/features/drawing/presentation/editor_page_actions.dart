@@ -126,7 +126,7 @@ extension _EditorPageActions on _EditorPageState {
               ],
             ),
           ),
-          actions: [
+          actions: AppleDialog.actions([
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('取消'),
@@ -135,7 +135,7 @@ extension _EditorPageActions on _EditorPageState {
               onPressed: () => Navigator.of(ctx).pop('ok'),
               child: const Text('生成'),
             ),
-          ],
+          ]),
         ),
       ),
     );

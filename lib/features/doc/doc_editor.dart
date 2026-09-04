@@ -892,7 +892,7 @@ class DocEditorState extends State<DocEditor> {
       builder: (context) => AlertDialog(
         title: const Text('未保存的改动'),
         content: const Text('文档有未保存的改动，确定要退出吗？'),
-        actions: [
+        actions: AppleDialog.actions([
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('取消'),
@@ -904,7 +904,7 @@ class DocEditorState extends State<DocEditor> {
             },
             child: const Text('放弃'),
           ),
-        ],
+        ]),
       ),
     );
   }

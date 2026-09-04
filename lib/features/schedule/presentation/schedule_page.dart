@@ -353,7 +353,7 @@ class _SchedulePageState extends State<SchedulePage> {
                 ),
               ],
             ),
-            actions: [
+            actions: AppleDialog.actions([
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
                 child: const Text('取消'),
@@ -362,7 +362,7 @@ class _SchedulePageState extends State<SchedulePage> {
                 onPressed: () => Navigator.of(ctx).pop(controller.text),
                 child: const Text('添加'),
               ),
-            ],
+            ]),
           ),
         );
       },

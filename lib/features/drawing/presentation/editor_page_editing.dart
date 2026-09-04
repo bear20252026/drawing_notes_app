@@ -542,7 +542,7 @@ extension _EditorPageEditing on _EditorPageState {
             isDense: true,
           ),
         ),
-        actions: [
+        actions: AppleDialog.actions([
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('取消'),
@@ -551,7 +551,7 @@ extension _EditorPageEditing on _EditorPageState {
             onPressed: () => Navigator.of(ctx).pop(controller.text),
             child: const Text('确定'),
           ),
-        ],
+        ]),
       ),
     );
     if (url == null) return;

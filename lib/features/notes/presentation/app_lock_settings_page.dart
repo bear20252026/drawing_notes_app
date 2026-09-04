@@ -385,7 +385,7 @@ class AppLockSettingsPage extends StatelessWidget {
               ),
             ],
           ),
-          actions: [
+          actions: AppleDialog.actions([
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('取消'),
@@ -394,7 +394,7 @@ class AppLockSettingsPage extends StatelessWidget {
               onPressed: () => Navigator.of(dialogContext).pop(true),
               child: const Text('下一步'),
             ),
-          ],
+          ]),
         ),
       ),
     );

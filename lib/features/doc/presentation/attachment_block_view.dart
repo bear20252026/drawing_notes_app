@@ -272,7 +272,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
           autofocus: true,
           decoration: const InputDecoration(hintText: '附件的描述/备注'),
         ),
-        actions: [
+        actions: AppleDialog.actions([
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('取消'),
@@ -281,7 +281,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
             onPressed: () => Navigator.pop(ctx, controller.text),
             child: const Text('确定'),
           ),
-        ],
+        ]),
       ),
     );
     if (result == null) return;

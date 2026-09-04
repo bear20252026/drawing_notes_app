@@ -393,7 +393,7 @@ class _NameDialogState extends State<_NameDialog> {
         ),
         onSubmitted: (v) => Navigator.of(context).pop(v),
       ),
-      actions: [
+      actions: AppleDialog.actions([
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),
@@ -402,7 +402,7 @@ class _NameDialogState extends State<_NameDialog> {
           onPressed: () => Navigator.of(context).pop(_controller.text),
           child: const Text('确定'),
         ),
-      ],
+      ]),
     );
   }
 }
@@ -459,7 +459,7 @@ class _PasswordDialogState extends State<_PasswordDialog> {
         ),
         onSubmitted: (v) => Navigator.of(context).pop(v),
       ),
-      actions: [
+      actions: AppleDialog.actions([
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),
@@ -468,7 +468,7 @@ class _PasswordDialogState extends State<_PasswordDialog> {
           onPressed: () => Navigator.of(context).pop(_controller.text),
           child: const Text('确定'),
         ),
-      ],
+      ]),
     );
   }
 }

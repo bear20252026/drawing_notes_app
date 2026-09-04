@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 
 class ConflictResolutionDialog extends StatefulWidget {
   const ConflictResolutionDialog({super.key, required this.conflicts});
@@ -50,13 +51,13 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
           ],
         ),
       ),
-      actions: [
+      actions: AppleDialog.actions([
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),
         ),
         FilledButton(onPressed: _apply, child: const Text('应用全部')),
-      ],
+      ]),
     );
   }
 
