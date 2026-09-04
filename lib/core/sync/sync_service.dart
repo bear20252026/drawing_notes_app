@@ -234,6 +234,14 @@ class SyncService {
     for (final copy in keptCopies) {
       baselineEntries[copy.id] = copy;
     }
+    // 已知两阶段提交窗口（M3·文档化取舍）：远端 manifest 已回写、本地基线
+    // 未回写之间崩溃 → 两端 manifest 领先于本地基线。后果全部幂等无害：
+    // - 本轮已上传成功的文档：下轮按旧基线重传一次（服务端覆盖同内容）；
+    // - 本轮已下载成功的文档：本地已被 writeDocument 写入（自带文档时间戳），
+    //   下轮重新判为「仅远端」再下一次；
+    // - keepBoth 副本：下轮作为本地新增补传。
+    // 选择不引入 WAL/journal：窗口仅毫秒级且收敛代价为一次幂等重传，
+    // 复杂度收益不成比例。若未来改动基线结构，需重新评估此窗口。
     await baselineStore.save(SyncManifest(entries: baselineEntries));
 
     final result = SyncResult(
