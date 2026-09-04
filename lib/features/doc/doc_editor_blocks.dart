@@ -103,7 +103,9 @@ extension DocEditorBlocks on DocEditorState {
                                   .colorScheme
                                   .primaryContainer
                                   .withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(AppleRadius.xs),
+                              borderRadius: BorderRadius.circular(
+                                AppleRadius.xs,
+                              ),
                             )
                           : null,
                       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -203,7 +205,9 @@ extension DocEditorBlocks on DocEditorState {
                                     .colorScheme
                                     .primaryContainer
                                     .withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(AppleRadius.xs),
+                                borderRadius: BorderRadius.circular(
+                                  AppleRadius.xs,
+                                ),
                               )
                             : null),
                   padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -532,52 +536,74 @@ extension DocEditorBlocks on DocEditorState {
     return KeyEventResult.ignored;
   }
 
-  /// 根据块类型返回文本样式（h1-h6 字级 + 主题感知）。
+  /// 根据块类型返回文本样式（排版梯子 + 主题感知）。
+  ///
+  /// 三处此前违反 DESIGN.md 的地方，已按 [AppleTypeScale] 修正：
+  /// - 正文 16 → **17px**（:379「Body copy at 17px, not 16px. Apple breaks
+  ///   the SaaS convention」）
+  /// - 标题 `FontWeight.bold`（700）→ **600**（:369「Weight 600, not 700,
+  ///   for headlines」）
+  /// - 全部补上行高与字距（:362「Line-height is context-specific」）
+  ///
+  /// h1-h6 的**字号**沿用文档编辑器惯例：DESIGN.md 的展示档是营销页用的，
+  /// 40px 的 h1 放进笔记里过大。但**字重 / 行高 / 字距一律按 :362 与 :366
+  /// 的原则配**——展示档收紧、正文档 1.47、17px 及以上带负字距。
+  /// 其中 h1（28px/1.14）与 h6（14px/1.29）正好命中表里的
+  /// `{typography.lead}` 与 `{typography.caption-strong}`，其余在两者之间插值。
   TextStyle _textStyleForBlockType(NoteBlock block) {
     final theme = Theme.of(context);
+    final onSurface = theme.colorScheme.onSurface;
     switch (block.type) {
       case NoteBlockType.heading:
         final level = (block.props['level'] as int? ?? 1).clamp(1, 6);
-        const sizes = {1: 28.0, 2: 24.0, 3: 20.0, 4: 18.0, 5: 16.0, 6: 14.0};
-        return TextStyle(
-          fontSize: sizes[level],
-          fontWeight: FontWeight.bold,
-          color: theme.colorScheme.onSurface,
-        );
+        return AppleTypeScale.of(_headingSpec(level), onSurface);
       case NoteBlockType.code:
-        return TextStyle(
+        // 等宽字形比比例字形显大，且负字距会挤坏字符网格，故保留 15px 与
+        // 0 字距，只承接正文的 1.47 行高与 400 字重。
+        return AppleTypeScale.of(
+          AppleTypeScale.body,
+          onSurface,
           fontFamily: 'monospace',
-          fontSize: 15,
           backgroundColor: AppleColor.fillOf(theme.colorScheme),
-          color: theme.colorScheme.onSurface,
-        );
+        ).copyWith(fontSize: 15, letterSpacing: 0);
       case NoteBlockType.todo:
         final checked = block.props['checked'] as bool? ?? false;
-        return TextStyle(
-          fontSize: 16,
+        return AppleTypeScale.of(
+          AppleTypeScale.body,
+          checked ? AppleColor.subtleOf(theme.colorScheme) : onSurface,
           decoration: checked ? TextDecoration.lineThrough : null,
-          color: checked
-              ? AppleColor.subtleOf(theme.colorScheme)
-              : theme.colorScheme.onSurface,
         );
       case NoteBlockType.quote:
-        return TextStyle(
-          fontSize: 16,
+        return AppleTypeScale.of(
+          AppleTypeScale.body,
+          onSurface,
           fontStyle: FontStyle.italic,
-          color: theme.colorScheme.onSurface,
         );
       case NoteBlockType.callout:
-        return TextStyle(
-          fontSize: 16,
+        return AppleTypeScale.of(
+          AppleTypeScale.body,
+          onSurface,
           backgroundColor: theme.colorScheme.primaryContainer.withValues(
             alpha: 0.3,
           ),
-          color: theme.colorScheme.onSurface,
         );
       default:
-        return TextStyle(fontSize: 16, color: theme.colorScheme.onSurface);
+        return AppleTypeScale.of(AppleTypeScale.body, onSurface);
     }
   }
+
+  /// 文档标题 h1-h6 的梯子映射。
+  ///
+  /// 字号是文档编辑器惯例（DESIGN.md 未定义 h1-h6），字重 / 行高 / 字距
+  /// 按 DESIGN.md:362（展示档收紧）与 :366（17px 以上负字距）推导。
+  static AppleTypeSpec _headingSpec(int level) => switch (level) {
+    1 => const AppleTypeSpec(28, FontWeight.w600, 1.14, -0.374),
+    2 => const AppleTypeSpec(24, FontWeight.w600, 1.19, -0.374),
+    3 => const AppleTypeSpec(20, FontWeight.w600, 1.19, -0.374),
+    4 => const AppleTypeSpec(18, FontWeight.w600, 1.24, -0.374),
+    5 => const AppleTypeSpec(16, FontWeight.w600, 1.29, -0.224),
+    _ => const AppleTypeSpec(14, FontWeight.w600, 1.29, -0.224),
+  };
 
   /// 根据块类型返回占位提示文本。
   String _hintTextForBlockType(NoteBlockType type) {

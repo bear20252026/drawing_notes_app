@@ -184,7 +184,8 @@ class DatabaseTableView extends StatelessWidget {
           onTap: () => onEditCell(record, field),
           child: Text(
             displayValue(record, field),
-            style: const TextStyle(fontSize: 14),
+            // 14/400/1.43 = 梯子里的 {typography.caption}；会折行到 2 行。
+            style: AppleTypeScale.of(AppleTypeScale.caption, null),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),

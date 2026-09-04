@@ -262,8 +262,12 @@ class EmbeddedBlockView extends StatelessWidget {
                   children: [
                     Text(
                       caption.isNotEmpty ? caption : href,
+                      // DESIGN.md 没有「嵌入块链接」这一格（dense-link 的
+                      // 2.41 是页脚密集链接栈专用，不适用），故保留 15px，
+                      // 只补正文行高——它最多折 2 行，原先走 Flutter 默认。
                       style: TextStyle(
                         fontSize: 15,
+                        height: AppleType.bodyLineHeight,
                         color: Theme.of(context).colorScheme.primary,
                         decoration: TextDecoration.underline,
                       ),

@@ -142,7 +142,9 @@ class DatabaseKanbanView extends StatelessWidget {
           children: [
             Text(
               title.isEmpty ? '无标题记录' : title,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              // 14/600/1.29 正好命中梯子里的 {typography.caption-strong}。
+              // 会折行到 2 行，原先没有行高（走 Flutter 默认）。
+              style: AppleTypeScale.of(AppleTypeScale.captionStrong, null),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),

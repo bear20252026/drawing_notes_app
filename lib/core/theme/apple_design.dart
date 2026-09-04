@@ -166,13 +166,10 @@ abstract final class AppleType {
     color: color,
   );
 
-  static TextStyle bodyStyle(Color color) => TextStyle(
-    fontSize: body,
-    fontWeight: FontWeight.w400,
-    height: bodyLineHeight,
-    letterSpacing: -0.1,
-    color: color,
-  );
+  /// 正文。委托给 [AppleTypeScale.body]，保证与 DESIGN.md 的梯子单一来源
+  /// （此前字距写的是 -0.1，表上是 -0.374）。
+  static TextStyle bodyStyle(Color color) =>
+      AppleTypeScale.of(AppleTypeScale.body, color);
 
   static TextStyle controlStyle(
     Color color, {
@@ -193,6 +190,188 @@ abstract final class AppleType {
     fontWeight: FontWeight.w400,
     letterSpacing: 0.2,
     color: color,
+  );
+}
+
+/// 排版梯子中的一格（字号 / 字重 / 行高 / 字距四元组）。
+///
+/// 四者绑定成一个整体，是为了杜绝「只抄字号、不抄行高」的半吊子落地——
+/// 这正是本项目此前的问题：`AppleType.bodyStyle` 有字号和行高，字距却是
+/// 自己拍的 -0.1（表上是 -0.374）。
+class AppleTypeSpec {
+  const AppleTypeSpec(this.size, this.weight, this.height, this.tracking);
+
+  /// 字号（px）。
+  final double size;
+
+  final FontWeight weight;
+
+  /// 行高倍数。
+  final double height;
+
+  /// 字距（px）。DESIGN.md 用的是 px 而非 em，Flutter 的 letterSpacing
+  /// 同样是逻辑像素，可直接对应。
+  final double tracking;
+}
+
+/// DESIGN.md:336-350 的完整排版梯子（15 项）。
+///
+/// **权威**：DESIGN.md 的 `typography.*` 表，数值**逐格照抄**，不自行取舍
+/// 或四舍五入。`test/core/theme/apple_type_scale_test.dart` 逐格断言与原表
+/// 一致，改任何一个数都必须同步改测试与注释。
+///
+/// 两条配套原则（DESIGN.md:362-372）：
+/// - **行高按角色区分**：展示类 1.07–1.19（紧），正文 1.47，页脚密集链接
+///   栈例外地放到 2.41（:362 明确「不是 bug」）。
+/// - **标题用 600 而非 700**（:369）；17px 及以上带负字距 -0.12~-0.374（:366）。
+abstract final class AppleTypeScale {
+  const AppleTypeScale._();
+
+  /// 40px / 600 / 1.10 / 0 —— 产品磁贴顶部大标题。
+  static const AppleTypeSpec displayLg = AppleTypeSpec(
+    40,
+    FontWeight.w600,
+    1.10,
+    0,
+  );
+
+  /// 34px / 600 / 1.47 / -0.374 —— 区块标题（SF Pro Text 的展示比例）。
+  static const AppleTypeSpec displayMd = AppleTypeSpec(
+    34,
+    FontWeight.w600,
+    1.47,
+    -0.374,
+  );
+
+  /// 28px / 400 / 1.14 / 0.196 —— 产品磁贴副文案。
+  static const AppleTypeSpec lead = AppleTypeSpec(
+    28,
+    FontWeight.w400,
+    1.14,
+    0.196,
+  );
+
+  /// 24px / 300 / 1.5 / 0 —— 环境页导语段落（罕见的 300 字重）。
+  static const AppleTypeSpec leadAiry = AppleTypeSpec(
+    24,
+    FontWeight.w300,
+    1.5,
+    0,
+  );
+
+  /// 21px / 600 / 1.19 / 0.231 —— 磁贴副标语、子导航分类名。
+  static const AppleTypeSpec tagline = AppleTypeSpec(
+    21,
+    FontWeight.w600,
+    1.19,
+    0.231,
+  );
+
+  /// 17px / 600 / 1.24 / -0.374 —— 行内强调。
+  static const AppleTypeSpec bodyStrong = AppleTypeSpec(
+    17,
+    FontWeight.w600,
+    1.24,
+    -0.374,
+  );
+
+  /// 17px / 400 / 1.47 / -0.374 —— **默认段落**。
+  ///
+  /// DESIGN.md:379「Body copy at 17px, not 16px. Apple breaks the SaaS
+  /// convention」——本项目笔记正文此前用的是 16px。
+  static const AppleTypeSpec body = AppleTypeSpec(
+    17,
+    FontWeight.w400,
+    1.47,
+    -0.374,
+  );
+
+  /// 17px / 400 / 2.41 / 0 —— 页脚 / 商店的密集链接栈。
+  static const AppleTypeSpec denseLink = AppleTypeSpec(
+    17,
+    FontWeight.w400,
+    2.41,
+    0,
+  );
+
+  /// 14px / 400 / 1.43 / -0.224 —— 次级说明、按钮文字。
+  static const AppleTypeSpec caption = AppleTypeSpec(
+    14,
+    FontWeight.w400,
+    1.43,
+    -0.224,
+  );
+
+  /// 14px / 600 / 1.29 / -0.224 —— 强调型说明。
+  static const AppleTypeSpec captionStrong = AppleTypeSpec(
+    14,
+    FontWeight.w600,
+    1.29,
+    -0.224,
+  );
+
+  /// 18px / 300 / 1.0 / 0 —— 商店主 CTA（罕见的 300 字重）。
+  static const AppleTypeSpec buttonLarge = AppleTypeSpec(
+    18,
+    FontWeight.w300,
+    1.0,
+    0,
+  );
+
+  /// 14px / 400 / 1.29 / -0.224 —— 工具 / 导航按钮标签。
+  static const AppleTypeSpec buttonUtility = AppleTypeSpec(
+    14,
+    FontWeight.w400,
+    1.29,
+    -0.224,
+  );
+
+  /// 12px / 400 / 1.0 / -0.12 —— 细则、页脚正文。
+  static const AppleTypeSpec finePrint = AppleTypeSpec(
+    12,
+    FontWeight.w400,
+    1.0,
+    -0.12,
+  );
+
+  /// 10px / 400 / 1.3 / -0.08 —— 微型法律声明。
+  static const AppleTypeSpec microLegal = AppleTypeSpec(
+    10,
+    FontWeight.w400,
+    1.3,
+    -0.08,
+  );
+
+  /// 12px / 400 / 1.0 / -0.12 —— 全局导航菜单项。
+  static const AppleTypeSpec navLink = AppleTypeSpec(
+    12,
+    FontWeight.w400,
+    1.0,
+    -0.12,
+  );
+
+  /// 按梯子生成 [TextStyle]。
+  ///
+  /// [fontFamily] / [fontStyle] / [decoration] / [backgroundColor] 是笔记
+  /// 编辑器按块类型叠加的变体（等宽、斜体、删除线、块底色），不改变梯子
+  /// 本身的四元组。
+  static TextStyle of(
+    AppleTypeSpec spec,
+    Color? color, {
+    String? fontFamily,
+    FontStyle? fontStyle,
+    TextDecoration? decoration,
+    Color? backgroundColor,
+  }) => TextStyle(
+    fontSize: spec.size,
+    fontWeight: spec.weight,
+    height: spec.height,
+    letterSpacing: spec.tracking,
+    color: color,
+    fontFamily: fontFamily,
+    fontStyle: fontStyle,
+    decoration: decoration,
+    backgroundColor: backgroundColor,
   );
 }
 
@@ -319,9 +498,9 @@ class ApplePillSearchField extends StatelessWidget {
       style: AppleType.bodyStyle(onSurface).copyWith(fontSize: 14),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: AppleType.bodyStyle(AppleColor.mutedOf(scheme)).copyWith(
-          fontSize: 13,
-        ),
+        hintStyle: AppleType.bodyStyle(
+          AppleColor.mutedOf(scheme),
+        ).copyWith(fontSize: 13),
         prefixIcon: Icon(
           Icons.search_rounded,
           size: 18,
