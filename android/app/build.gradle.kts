@@ -16,7 +16,9 @@ plugins {
 
 android {
     namespace = "gov.drawingnotes.drawing_notes_app"
-    compileSdk = flutter.compileSdkVersion
+    // flutter_secure_storage v11 要求 compileSdk >= 37（AAR 元数据硬约束）。
+    // AGP 9.0.1 默认推荐上限 36 仅为软警告；SDK 37 在 GitHub Actions 运行器上可用。
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
