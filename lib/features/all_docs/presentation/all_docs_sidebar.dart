@@ -106,7 +106,7 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
                   fillColor: surface,
                   contentPadding: const EdgeInsets.symmetric(vertical: 0),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(AppleRadius.md),
                     borderSide: BorderSide.none,
                   ),
                 ),
@@ -142,9 +142,9 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
         padding: const EdgeInsets.symmetric(vertical: 1),
         child: Material(
           color: selected ? accent.withValues(alpha: 0.10) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppleRadius.sm),
           child: InkWell(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(AppleRadius.sm),
             onTap: () {
               if (i == 3) {
                 widget.onOpenTrash?.call();
@@ -186,7 +186,7 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
     final muted = onSurface.withValues(alpha: 0.55);
     final widgets = <Widget>[
       InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppleRadius.sm),
         onTap: () => setState(() => _treeExpanded = !_treeExpanded),
         child: Padding(
           // U4a：vertical 8→12——文档树头点击目标 ≥44px。
@@ -222,9 +222,9 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
           padding: const EdgeInsets.symmetric(vertical: 1),
           child: Material(
             color: Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(AppleRadius.sm),
             child: InkWell(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppleRadius.sm),
               onTap: () => widget.onOpenDoc?.call(doc),
               child: Padding(
                 padding: const EdgeInsets.only(left: 24, right: 12),
@@ -286,7 +286,7 @@ class _WorkspaceHeader extends StatelessWidget {
             height: 32,
             decoration: BoxDecoration(
               color: AppleColor.actionBlue,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppleRadius.sm),
             ),
             alignment: Alignment.center,
             child: Text(

@@ -138,7 +138,7 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
         // ApplePressable 纯视觉模式（手势交给内层 FilledButton；读屏语义
         // 由内层按钮提供，此处不再重复暴露——R6 口径）。
         ApplePressable(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppleRadius.sm),
           child: FilledButton(
             onPressed: () => Navigator.of(context).pop(
               PdfExportSelection(

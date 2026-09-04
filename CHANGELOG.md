@@ -2,6 +2,14 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.9.6] - 2026-09-04
+
+- **修正版本位（发版流程 bug）**：v1.9.5 打 tag 发版时漏同步
+  `pubspec.yaml` 与 `tools/drawing_notes_setup.iss` 两处版本位，导致
+  v1.9.5 的 Windows 安装包文件名与内嵌版本号仍是 `1.9.4`。本版按
+  「三处同步 bump」规范把 pubspec 提到 `1.9.6+37`、iss 提到 `1.9.6`
+  （v1.9.5 tag 已发布，不回溯改写，故版本位顺延一档）。
+
 ## [1.9.5] - 2026-09-04
 
 - **外部审计修补（H1·高）**：Android release 构建补上 `INTERNET` 权限——

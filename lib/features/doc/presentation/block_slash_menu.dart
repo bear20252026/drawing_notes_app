@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import '../../../core/theme/apple_design.dart';
 
 /// / 菜单分组类别。
 enum SlashItemGroup {
@@ -255,12 +256,12 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
     final groups = groupSlashItems(_visibleItems);
     return Material(
       elevation: 8,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppleRadius.sm),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 300, maxHeight: 360),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppleRadius.sm),
           border: Border.all(
             color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
           ),

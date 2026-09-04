@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/rendering/notebook_page_canvas_painter.dart';
 import 'package:drawing_notes_app/shared/widgets/encrypted_file_image.dart';
+import '../../../core/theme/apple_design.dart';
 
 /// 分页画布翻页阅读模式（W2 核心能力）。
 ///
@@ -123,7 +124,7 @@ class _NotebookReaderPageState extends State<NotebookReaderPage> {
                         ),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.55),
-                          borderRadius: BorderRadius.circular(999),
+                          borderRadius: BorderRadius.circular(AppleRadius.pill),
                         ),
                         child: Text(
                           '第 ${_index + 1} 页 / 共 ${pages.length} 页',

@@ -50,7 +50,7 @@ class _PresentationPageState extends State<PresentationPage> {
     for (final i in widget.imageItems) {
       items.add(
         ClipRRect(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppleRadius.sm),
           // 批次①c：裸 Image.file 改 EncryptedFileImage——DNV/DAN 密文
           // 解密渲染；保险库锁定/损坏显示占位色块（fail-closed）。
           child: i.filePath.isNotEmpty

@@ -9,6 +9,7 @@ import 'package:drawing_notes_app/features/schedule/infrastructure/schedule_even
 import 'package:drawing_notes_app/features/schedule/presentation/schedule_calendar.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
+import '../../../core/theme/apple_design.dart';
 
 /// 日历 —— 月历 + 待办/日程（24 小时时间轴）。
 ///
@@ -495,7 +496,7 @@ class _EventCard extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: scheme.primaryContainer.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(999),
+                      borderRadius: BorderRadius.circular(AppleRadius.pill),
                     ),
                     child: Text(
                       _fmtMinute(event.minuteOfDay),

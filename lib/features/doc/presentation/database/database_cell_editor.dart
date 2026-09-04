@@ -5,6 +5,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../../../core/theme/apple_design.dart';
 
 /// 弹出单元格文本编辑框（文本/数字/日期共用）。
 /// [numeric] 为 true 时用数字键盘并尝试转成 num。
@@ -94,7 +95,7 @@ class DatabaseCountPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
         color: scheme.primaryContainer,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppleRadius.md),
       ),
       child: Text(
         '$count 条记录',

@@ -517,14 +517,14 @@ class _ToolPanel extends StatelessWidget {
       return Tooltip(
         message: tooltip,
         child: InkWell(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppleRadius.md),
           onTap: () => controller.setTool(tool),
           child: Container(
             width: 40,
             height: 40,
             decoration: BoxDecoration(
               color: active ? activeBg : Colors.transparent,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(AppleRadius.md),
             ),
             child: Icon(
               icon,
@@ -540,7 +540,7 @@ class _ToolPanel extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
       decoration: BoxDecoration(
         color: scheme.surface.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppleRadius.md),
         border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
         boxShadow: [
           BoxShadow(
@@ -582,7 +582,7 @@ class _ToolPanel extends StatelessWidget {
                 color: controller.tool == EdgelessTool.shape
                     ? activeBg
                     : Colors.transparent,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(AppleRadius.md),
               ),
               child: Icon(
                 Icons.category_outlined,

@@ -35,7 +35,7 @@ class ShortcutRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
               color: scheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(AppleRadius.xs),
               border: Border.all(color: scheme.outlineVariant),
             ),
             child: Text(
@@ -165,7 +165,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
     final running = _timer != null;
     return Material(
       elevation: 3,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(AppleRadius.lg),
       color: const Color(0xDDFFFFFF),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

@@ -48,7 +48,7 @@ extension _EditorPageAppBar on _EditorPageState {
                   Expanded(
                     child: InkWell(
                       onTap: _renameCanvas,
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(AppleRadius.xs),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 6,

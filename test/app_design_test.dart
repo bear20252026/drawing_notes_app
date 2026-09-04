@@ -1,4 +1,5 @@
 import 'package:drawing_notes_app/core/theme/app_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -42,7 +43,14 @@ void main() {
       expect(AppDesign.standardMotion, const Duration(milliseconds: 200));
       expect(AppDesign.pagePadding, 20);
       expect(AppDesign.cardRadius, 18);
-      expect(AppDesign.controlRadius, 12);
+      // 12 → 11（AppleRadius.md）：DESIGN.md:511 明令「Don't mix radii
+      // grammars」，刻度只有 xs5/sm8/md11/lg18/pill，12 是凭空造的中间值。
+      expect(AppDesign.controlRadius, AppleRadius.md);
+    });
+
+    test('圆角令牌严格对齐 DESIGN.md:420-427 刻度', () {
+      expect(AppDesign.cardRadius, AppleRadius.lg); // 18
+      expect(AppDesign.controlRadius, AppleRadius.md); // 11
     });
   });
 }

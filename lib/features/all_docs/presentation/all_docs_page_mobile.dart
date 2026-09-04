@@ -86,7 +86,7 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                             ),
                       filled: true,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(AppleRadius.md),
                         borderSide: BorderSide.none,
                       ),
                     ),
@@ -262,7 +262,7 @@ class _MobileHeader extends StatelessWidget {
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
               child: InkWell(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppleRadius.sm),
                 onTap: () => onTabChanged(i),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
@@ -288,7 +288,7 @@ class _MobileHeader extends StatelessWidget {
                         width: 16,
                         decoration: BoxDecoration(
                           color: selected ? accent : Colors.transparent,
-                          borderRadius: BorderRadius.circular(1),
+                          borderRadius: BorderRadius.circular(AppleRadius.xs),
                         ),
                       ),
                     ],

@@ -292,7 +292,7 @@ class _DocsTabBar extends StatelessWidget {
                       width: 18,
                       decoration: BoxDecoration(
                         color: selected ? accent : Colors.transparent,
-                        borderRadius: BorderRadius.circular(1),
+                        borderRadius: BorderRadius.circular(AppleRadius.xs),
                       ),
                     ),
                   ],

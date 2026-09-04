@@ -351,7 +351,7 @@ class _BacklinksPanelState extends State<_BacklinksPanel> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppleRadius.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -379,7 +379,7 @@ class _BacklinksPanelState extends State<_BacklinksPanel> {
           for (final doc in backlinks)
             InkWell(
               onTap: () => widget.onOpenDocById?.call(doc.id),
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(AppleRadius.xs),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(

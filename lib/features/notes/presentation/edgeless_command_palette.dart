@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/presentation/edgeless_controller.dart';
+import '../../../core/theme/apple_design.dart';
 
 /// 一条可执行命令。
 class EdgelessCommand {
@@ -310,7 +311,7 @@ class _EdgelessPaletteSheetState extends State<_EdgelessPaletteSheet> {
                 hintText: '搜索命令或跳转到帧…',
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppleRadius.md),
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
@@ -405,7 +406,7 @@ class _EdgelessPaletteTile extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return Material(
       color: selected ? colorScheme.primaryContainer : Colors.transparent,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(AppleRadius.md),
       child: ListTile(
         dense: true,
         leading: Icon(

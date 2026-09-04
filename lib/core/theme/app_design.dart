@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'apple_design.dart';
+import 'apple_elevation.dart';
+import 'apple_focus.dart';
 
 /// 应用统一设计语言。
 ///
@@ -29,8 +31,14 @@ abstract final class AppDesign {
   // ---- Apple 结构风格（两种模式一致）----
   static const double pagePadding = 20;
   static const double compactPagePadding = 12;
-  static const double cardRadius = 18;
-  static const double controlRadius = 12;
+
+  /// 卡片圆角 = `AppleRadius.lg`（DESIGN.md:425「Store utility cards」18px）。
+  static const double cardRadius = AppleRadius.lg;
+
+  /// 控件圆角 = `AppleRadius.md`（DESIGN.md:424「White Pearl Button
+  /// capsules」11px）。此前写死 12——属于 DESIGN.md:511 明令禁止的
+  ///「mixing radii grammars」。
+  static const double controlRadius = AppleRadius.md;
   static const Duration quickMotion = Duration(milliseconds: 140);
   static const Duration standardMotion = Duration(milliseconds: 200);
 
@@ -51,6 +59,10 @@ abstract final class AppDesign {
       splashFactory: InkSparkle.splashFactory,
       visualDensity: VisualDensity.standard,
       materialTapTargetSize: MaterialTapTargetSize.padded,
+      // 焦点环底色：与 AppleFocus 的 2px 描边共存（底色 12% + 描边 2px）。
+      // DESIGN.md:8 `primary-focus: "#0071e3"`、:300「focus ring on buttons
+      // (`outline: 2px solid`)」。此前主题层完全没有焦点态。
+      focusColor: AppleFocus.colorFor(brightness),
     );
 
     return base.copyWith(
@@ -75,15 +87,16 @@ abstract final class AppDesign {
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(cardRadius),
-          side: BorderSide(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.65),
-          ),
+          // 发丝线（DESIGN.md:395「1px rgba(0,0,0,0.08)」）。此前用
+          // outlineVariant（≈18% 灰），卡片看起来像描边盒子而非苹果的轻分层。
+          side: BorderSide(color: AppleHairline.colorFor(brightness)),
         ),
         clipBehavior: Clip.antiAlias,
       ),
       dividerTheme: DividerThemeData(
-        color: colorScheme.outlineVariant.withValues(alpha: 0.75),
-        thickness: 1,
+        // 同一条发丝线：列表/侧栏分隔与卡片边界共用一套语言。
+        color: AppleHairline.colorFor(brightness),
+        thickness: AppleHairline.width,
         space: 1,
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -103,7 +116,12 @@ abstract final class AppDesign {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(controlRadius),
-          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+          // 2px Focus Blue（DESIGN.md:300）。此前是 1.5px primary，
+          // 与「焦点 = 2px 描边」的明文规定不符。
+          borderSide: BorderSide(
+            color: AppleFocus.colorFor(brightness),
+            width: AppleFocus.width,
+          ),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -139,7 +157,7 @@ abstract final class AppDesign {
             IconButton.styleFrom(
               minimumSize: const Size(44, 44),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(AppleRadius.md),
               ),
             ).copyWith(
               overlayColor: AppleStateLayer.overlay(colorScheme.onSurface),
@@ -156,7 +174,7 @@ abstract final class AppDesign {
         unselectedLabelStyle: base.textTheme.labelLarge,
         indicator: BoxDecoration(
           color: colorScheme.primaryContainer,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppleRadius.md),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
@@ -166,10 +184,15 @@ abstract final class AppDesign {
         contentTextStyle: base.textTheme.bodyMedium?.copyWith(
           color: colorScheme.onInverseSurface,
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppleRadius.md),
+        ),
       ),
       dialogTheme: DialogThemeData(
-        elevation: 8,
+        // 唯一那条真阴影：DESIGN.md:395 `rgba(0,0,0,0.22) 3px 5px 30px 0`。
+        // 只给模态用——卡片/按钮一律 flat（:502 明文禁止）。
+        elevation: AppleElevation.overlayLevel,
+        shadowColor: AppleElevation.overlayColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(cardRadius),
         ),
@@ -178,7 +201,7 @@ abstract final class AppDesign {
         waitDuration: const Duration(milliseconds: 450),
         decoration: BoxDecoration(
           color: colorScheme.inverseSurface,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppleRadius.sm),
         ),
         textStyle: base.textTheme.bodySmall?.copyWith(
           color: colorScheme.onInverseSurface,

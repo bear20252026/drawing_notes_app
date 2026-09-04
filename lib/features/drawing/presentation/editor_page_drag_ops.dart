@@ -396,7 +396,7 @@ extension _EditorPageDragOps on _EditorPageState {
               height: 10,
               decoration: BoxDecoration(
                 color: const Color(0xFF42A5F5),
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(AppleRadius.xs),
                 border: Border.all(color: Colors.white, width: 1),
               ),
             ),

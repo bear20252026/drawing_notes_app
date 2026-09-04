@@ -426,7 +426,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                 8,
               ),
               child: GlassSurface(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppleRadius.md),
                 sigma: 8,
                 padding: const EdgeInsets.all(4),
                 child: TextField(

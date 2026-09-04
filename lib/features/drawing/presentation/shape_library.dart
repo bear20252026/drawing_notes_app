@@ -183,7 +183,7 @@ class _ShapeLibraryDialogState extends State<ShapeLibraryDialog> {
                       itemBuilder: (context, i) {
                         final s = results[i];
                         return InkWell(
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(AppleRadius.xs),
                           onTap: () {
                             widget.onInsert(s);
                             Navigator.of(context).pop();
@@ -193,7 +193,7 @@ class _ShapeLibraryDialogState extends State<ShapeLibraryDialog> {
                               color: Theme.of(
                                 context,
                               ).colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(AppleRadius.xs),
                             ),
                             padding: const EdgeInsets.all(6),
                             child: Column(

@@ -18,6 +18,7 @@ import 'package:pdf/widgets.dart' as pw;
 
 import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
+import '../../../core/theme/apple_design.dart';
 
 /// 将块文档渲染为 PDF 字节流（A4，中文内嵌字体）。
 Future<Uint8List> noteBlockDocToPdf(NoteBlockDoc doc) async {
@@ -148,7 +149,7 @@ List<pw.Widget> _buildBlock(
             width: double.infinity,
             decoration: pw.BoxDecoration(
               color: PdfColors.amber50,
-              borderRadius: pw.BorderRadius.circular(6),
+              borderRadius: pw.BorderRadius.circular(AppleRadius.xs),
             ),
             padding: const pw.EdgeInsets.all(10),
             child: pw.Text('💡 ${block.text}'),

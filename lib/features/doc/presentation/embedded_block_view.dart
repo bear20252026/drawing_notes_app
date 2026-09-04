@@ -17,6 +17,7 @@ import 'package:drawing_notes_app/features/doc/presentation/image_preview_dialog
 import 'package:drawing_notes_app/features/doc/presentation/table_editor_widget.dart';
 import 'package:drawing_notes_app/features/doc/presentation/database_block_view.dart';
 import 'package:drawing_notes_app/features/doc/presentation/attachment_block_view.dart';
+import '../../../core/theme/apple_design.dart';
 
 /// 内嵌块视图：按块类型分发到对应的富渲染。
 ///
@@ -119,7 +120,7 @@ class EmbeddedBlockView extends StatelessWidget {
               caption: caption.isEmpty ? null : caption,
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppleRadius.sm),
               child: Stack(
                 children: [
                   Image.network(
@@ -167,7 +168,7 @@ class EmbeddedBlockView extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: Colors.black54,
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(AppleRadius.xs),
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
@@ -224,7 +225,7 @@ class EmbeddedBlockView extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
       child: InkWell(
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(AppleRadius.xs),
         onTap: () {
           // 实际项目中应使用 url_launcher；此处仅展示链接样式
           ScaffoldMessenger.of(context).showSnackBar(
@@ -240,7 +241,7 @@ class EmbeddedBlockView extends StatelessWidget {
             color: Theme.of(
               context,
             ).colorScheme.primaryContainer.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(AppleRadius.xs),
             border: Border.all(
               color: Theme.of(
                 context,
@@ -382,7 +383,7 @@ class EmbeddedBlockView extends StatelessWidget {
           color: Theme.of(
             context,
           ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppleRadius.sm),
           border: Border.all(
             color: Theme.of(context).colorScheme.outlineVariant,
           ),

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/storage/pdf_preview_renderer.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_attachment.dart';
+import '../../../core/theme/apple_design.dart';
 
 /// 附件内嵌 PDF 预览（首页缩略）。
 class PdfAttachmentPreview extends StatefulWidget {
@@ -79,7 +80,7 @@ class _PdfAttachmentPreviewState extends State<PdfAttachmentPreview> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppleRadius.sm),
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
@@ -97,7 +98,7 @@ class _PdfAttachmentPreviewState extends State<PdfAttachmentPreview> {
             )
           else if (page != null)
             ClipRRect(
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(AppleRadius.xs),
               child: SizedBox(
                 width: double.infinity,
                 height: widget.maxHeight,

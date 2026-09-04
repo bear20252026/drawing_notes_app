@@ -13,6 +13,7 @@ import 'package:drawing_notes_app/core/storage/pdf_preview_renderer.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_attachment.dart';
 import 'package:drawing_notes_app/features/notes/presentation/pdf_preview.dart';
+import '../../../core/theme/apple_design.dart';
 
 /// 附件块视图。
 class AttachmentBlockView extends StatefulWidget {
@@ -97,7 +98,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppleRadius.md),
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
@@ -109,7 +110,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: scheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppleRadius.sm),
                 ),
                 child: Icon(_icon, size: 22, color: scheme.primary),
               ),
@@ -166,7 +167,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppleRadius.md),
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: Row(
@@ -202,7 +203,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppleRadius.sm),
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
@@ -232,7 +233,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: scheme.surface,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(AppleRadius.sm),
             border: Border.all(color: scheme.outlineVariant),
           ),
           child: Column(

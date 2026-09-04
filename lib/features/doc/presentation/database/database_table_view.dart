@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/features/doc/domain/note_database.dart';
+import '../../../../core/theme/apple_design.dart';
 
 /// 表视图。
 class DatabaseTableView extends StatelessWidget {
@@ -155,7 +156,7 @@ class DatabaseTableView extends StatelessWidget {
               color: Theme.of(
                 context,
               ).colorScheme.primaryContainer.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(AppleRadius.xs),
             ),
             child: Text(
               current?.toString() ?? '未选择',

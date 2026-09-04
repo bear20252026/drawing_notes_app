@@ -129,9 +129,9 @@ class _LayerItem extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Material(
         color: selected ? scheme.primaryContainer.withValues(alpha: 0.5) : null,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppleRadius.sm),
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppleRadius.sm),
           onTap: onSelect,
           child: Padding(
             padding: const EdgeInsets.all(6),
@@ -142,7 +142,7 @@ class _LayerItem extends StatelessWidget {
                   children: [
                     // 缩略图（当前图层渲染缓存位图）
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(AppleRadius.xs),
                       child: thumbnail is ui.Image
                           ? RawImage(
                               image: thumbnail as ui.Image,

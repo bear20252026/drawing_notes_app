@@ -72,7 +72,7 @@ class AllDocRow extends StatelessWidget {
                 height: 36,
                 decoration: BoxDecoration(
                   color: visual.color.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppleRadius.sm),
                 ),
                 alignment: Alignment.center,
                 child: Icon(visual.icon, size: 20, color: visual.color),
@@ -140,7 +140,7 @@ class AllDocRow extends StatelessWidget {
                 button: true,
                 child: InkWell(
                   onTap: onToggleFavorite,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppleRadius.md),
                   child: SizedBox(
                     width: 44,
                     height: 44,

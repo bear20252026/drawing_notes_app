@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/theme/apple_focus.dart';
 import '../../core/theme/apple_motion.dart';
 
 /// Apple 系统级按压微交互：按下时 `transform: scale(0.95)`。
@@ -173,7 +174,17 @@ class _ApplePressableState extends State<ApplePressable> {
         child: result,
       );
     }
-    return result;
+
+    // 键盘焦点环：2px Focus Blue，外扩绘制不占布局。
+    // 补上此前「注释里承诺、主题层却没配」的欠账——见 apple_focus.dart。
+    // AppleFocusRing 的 Focus 节点 canRequestFocus: false，只观察不抢焦点，
+    // 因此两种模式下都不会多出一次 Tab 停靠。
+    return AppleFocusRing(
+      borderRadius:
+          widget.borderRadius?.topLeft.x ?? AppleFocusRing.defaultRadius,
+      enabled: widget.enabled,
+      child: result,
+    );
   }
 }
 

@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/utils/safe_url.dart';
+import '../../../core/theme/apple_design.dart';
 
 /// 显示图片全屏预览弹窗。
 ///
@@ -113,7 +114,7 @@ class _ImagePreviewPage extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: Colors.black54,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppleRadius.sm),
                   ),
                   child: Text(
                     caption!,

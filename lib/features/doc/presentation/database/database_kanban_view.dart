@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/features/doc/domain/note_database.dart';
 import 'package:drawing_notes_app/features/doc/presentation/database/database_cell_editor.dart';
+import '../../../../core/theme/apple_design.dart';
 
 /// 看板视图。
 class DatabaseKanbanView extends StatelessWidget {
@@ -82,7 +83,7 @@ class DatabaseKanbanView extends StatelessWidget {
         elevation: 0,
         color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppleRadius.md),
           side: BorderSide(color: scheme.outlineVariant),
         ),
         child: Padding(
@@ -133,7 +134,7 @@ class DatabaseKanbanView extends StatelessWidget {
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: scheme.surface,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppleRadius.sm),
           border: Border.all(color: scheme.outlineVariant),
         ),
         child: Column(

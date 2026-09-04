@@ -236,7 +236,7 @@ class _SearchPageState extends State<SearchPage> {
                     AppLocalizations.of(context)?.searchHint ?? '搜索文字块内容 / 标题…',
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppleRadius.sm),
                 ),
                 isDense: true,
               ),

@@ -5,6 +5,7 @@ import 'package:drawing_notes_app/core/canvas_model/page_image_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
+import '../../../core/theme/apple_design.dart';
 
 /// 右侧属性面板（对齐 Excalidraw 右侧属性栏体验）。
 ///
@@ -78,7 +79,7 @@ class PropertiesPanel extends StatelessWidget {
                   Tooltip(
                     message: '画笔颜色',
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(AppleRadius.md),
                       onTap: onPickColor,
                       child: Container(
                         width: 28,
@@ -233,7 +234,7 @@ class PropertiesPanel extends StatelessWidget {
                     Tooltip(
                       message: '文字颜色',
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(11),
+                        borderRadius: BorderRadius.circular(AppleRadius.md),
                         onTap: onTextColor,
                         child: Container(
                           width: 22,

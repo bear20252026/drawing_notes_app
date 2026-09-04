@@ -17,6 +17,7 @@ import 'package:drawing_notes_app/features/doc/presentation/database/database_ce
 import 'package:drawing_notes_app/features/doc/presentation/database/database_kanban_view.dart';
 import 'package:drawing_notes_app/features/doc/presentation/database/database_list_view.dart';
 import 'package:drawing_notes_app/features/doc/presentation/database/database_table_view.dart';
+import '../../../core/theme/apple_design.dart';
 
 /// 数据库块真视图。
 class DatabaseBlockView extends StatefulWidget {
@@ -146,7 +147,7 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
                     ),
               isDense: true,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppleRadius.sm),
               ),
               contentPadding: const EdgeInsets.symmetric(
                 vertical: 0,
@@ -278,7 +279,7 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppleRadius.md),
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(

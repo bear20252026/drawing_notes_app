@@ -181,7 +181,7 @@ extension _EditorPageCanvasSurface on _EditorPageState {
   Widget _buildMiniMap() {
     return Material(
       elevation: 4,
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(AppleRadius.xs),
       color: const Color(0xE6FFFFFF),
       // 同时监听 frameTick（高频绘制/视口变化），使小地图可实时跟手。
       child: ListenableBuilder(
@@ -196,7 +196,7 @@ extension _EditorPageCanvasSurface on _EditorPageState {
               width: _miniMapWidth,
               height: _miniMapHeight,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(AppleRadius.xs),
                 child: CustomPaint(
                   painter: MiniMapPainter(
                     controller: _controller,

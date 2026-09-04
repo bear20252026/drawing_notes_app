@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/features/drawing/presentation/editor_selection_geometry.dart';
+import '../../../core/theme/apple_design.dart';
 
 /// 形状 8 向缩放手柄（四角 + 四边中点，借鉴 Excalidraw）。
 ///
@@ -86,7 +87,7 @@ class ResizeHandles extends StatelessWidget {
           height: size,
           decoration: BoxDecoration(
             color: const Color(0xFF42A5F5),
-            borderRadius: BorderRadius.circular(2),
+            borderRadius: BorderRadius.circular(AppleRadius.xs),
             border: Border.all(color: Colors.white, width: 1),
           ),
         ),

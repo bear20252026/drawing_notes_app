@@ -87,7 +87,7 @@ extension DocEditorBlocks on DocEditorState {
                     margin: const EdgeInsets.symmetric(vertical: 2),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primary,
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(AppleRadius.xs),
                     ),
                   ),
                 Opacity(
@@ -103,7 +103,7 @@ extension DocEditorBlocks on DocEditorState {
                                   .colorScheme
                                   .primaryContainer
                                   .withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(AppleRadius.xs),
                             )
                           : null,
                       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -203,7 +203,7 @@ extension DocEditorBlocks on DocEditorState {
                                     .colorScheme
                                     .primaryContainer
                                     .withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(AppleRadius.xs),
                               )
                             : null),
                   padding: const EdgeInsets.symmetric(horizontal: 4),

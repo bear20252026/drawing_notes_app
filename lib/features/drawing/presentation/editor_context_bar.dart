@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar_contracts.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
+import '../../../core/theme/apple_design.dart';
 
 /// 编辑器上下文工具条。
 ///
@@ -301,7 +302,7 @@ class EditorContextBar extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppleRadius.lg),
         onTap: onPressed,
         child: SizedBox(
           width: 40,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/apple_design.dart';
 
 /// 颜色选择对话框（Phase 2 验收：色板 + 自由调色）。
 ///
@@ -79,7 +80,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                 children: [
                   for (final c in _presetColors)
                     InkWell(
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(AppleRadius.lg),
                       onTap: () => _apply(HSVColor.fromColor(c)),
                       child: Container(
                         width: 34,
@@ -158,7 +159,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             border: Border.all(color: Colors.black38),
-                            borderRadius: BorderRadius.circular(3),
+                            borderRadius: BorderRadius.circular(AppleRadius.xs),
                           ),
                         ),
                       ),
@@ -175,7 +176,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                 children: [
                   for (var i = 0; i <= 5; i++)
                     InkWell(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(AppleRadius.md),
                       onTap: () => _apply(
                         HSVColor.fromAHSV(
                           1,
@@ -210,7 +211,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                   children: [
                     for (final c in _recentColors.reversed.take(12))
                       InkWell(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(AppleRadius.md),
                         onTap: () => _apply(HSVColor.fromColor(c)),
                         child: Container(
                           width: 24,

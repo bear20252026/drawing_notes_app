@@ -162,7 +162,7 @@ extension DocEditorSelection on DocEditorState {
             padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
             decoration: BoxDecoration(
               color: const Color(0xFF1D1D1F),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(AppleRadius.md),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.25),
@@ -209,7 +209,7 @@ extension DocEditorSelection on DocEditorState {
     return Tooltip(
       message: tooltip,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppleRadius.sm),
         onTap: () {
           onTap();
         },

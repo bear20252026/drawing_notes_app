@@ -75,7 +75,7 @@ extension _EditorPageTextOverlays on _EditorPageState {
               left: 0,
               child: Material(
                 elevation: 4,
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(AppleRadius.xs),
                 color: Theme.of(context).colorScheme.surface,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -191,7 +191,7 @@ extension _EditorPageTextOverlays on _EditorPageState {
             decoration: item.isSticky
                 ? BoxDecoration(
                     color: Color(item.color),
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(AppleRadius.xs),
                     border: selected || linkSource
                         ? Border.all(
                             color: linkSource
@@ -338,7 +338,7 @@ extension _EditorPageTextOverlays on _EditorPageState {
                   height: 10,
                   decoration: BoxDecoration(
                     color: const Color(0xFF42A5F5),
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.circular(AppleRadius.xs),
                     border: Border.all(color: Colors.white, width: 1),
                   ),
                 ),
