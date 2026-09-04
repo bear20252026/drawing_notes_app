@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>drawing_notes_app 第二轮体验审计报告 · 2026-09-03</title>
+<style>
+  :root{
+    --bg:#fafafa; --card:#ffffff; --ink:#18181b; --sub:#52525b; --line:#e4e4e7;
+    --p0:#dc2626; --p1:#ea580c; --p2:#2563eb; --ok:#16a34a;
+    --code:#f4f4f5; --accent:#18181b;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; background:var(--bg); color:var(--ink); line-height:1.65; padding:40px 16px;}
+  .wrap{max-width:960px; margin:0 auto;}
+  header{margin-bottom:32px;}
+  h1{font-size:26px; font-weight:700; letter-spacing:-0.02em;}
+  .meta{color:var(--sub); font-size:13px; margin-top:6px;}
+  .badge{display:inline-block; padding:2px 10px; border-radius:999px; font-size:12px; font-weight:600; margin-right:6px;}
+  .b-p1{background:#ffedd5; color:var(--p1);} .b-p2{background:#dbeafe; color:var(--p2);} .b-ok{background:#dcfce7; color:var(--ok);}
+  h2{font-size:19px; font-weight:700; margin:36px 0 14px; padding-bottom:8px; border-bottom:1px solid var(--line);}
+  h2 .cnt{color:var(--sub); font-weight:400; font-size:14px; margin-left:8px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin-bottom:12px;}
+  .card h3{font-size:15px; font-weight:650; margin-bottom:4px;}
+  .card .loc{font-family:Consolas,monospace; font-size:12px; color:var(--p2); background:var(--code); padding:2px 8px; border-radius:6px; display:inline-block; margin:4px 0;}
+  .card p{font-size:13.5px; color:var(--sub); margin-top:4px;}
+  .card .fix{font-size:13px; margin-top:6px; color:var(--ink);}
+  .card .fix b{color:var(--ok);}
+  .sev{font-size:11px; font-weight:700; padding:1px 8px; border-radius:999px; vertical-align:1px;}
+  .s-high{background:#fee2e2; color:#b91c1c;} .s-mid{background:#ffedd5; color:#c2410c;} .s-low{background:#e4e4e7; color:#52525b;}
+  .stat{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px;}
+  .stat .num{font-size:28px; font-weight:750;}
+  .stat .lab{font-size:12.5px; color:var(--sub); margin-top:2px;}
+  .summary{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:20px 0;}
+  table{width:100%; border-collapse:collapse; font-size:13.5px; background:var(--card); border-radius:12px; overflow:hidden;}
+  th{background:#f4f4f5; text-align:left; padding:10px 12px; font-weight:650; font-size:12.5px; color:var(--sub);}
+  td{padding:10px 12px; border-top:1px solid var(--line); vertical-align:top;}
+  .note{background:#fefce8; border:1px solid #fde047; border-radius:12px; padding:14px 18px; font-size:13.5px; margin:20px 0;}
+  .tl{border-left:3px solid var(--line); margin:12px 0 24px 8px; padding-left:18px;}
+  .tl-item{margin-bottom:14px;}
+  .tl-item b{font-size:14px;}
+  .tl-item p{font-size:13px; color:var(--sub);}
+  footer{margin-top:40px; color:var(--sub); font-size:12px; border-top:1px solid var(--line); padding-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>drawing_notes_app 第二轮体验审计报告</h1>
+  <div class="meta">2026-09-03 · 基线 v1.9.1+33（U1–U6 全部落地、首轮审计 33 项收口后）· 全部结论基于代码证据（文件:行号）</div>
+  <div style="margin-top:10px;">
+    <span class="badge b-p1">待修 6 项</span>
+    <span class="badge b-ok">卫生面 8 项全绿</span>
+    <span class="badge b-p2">需拍板 1 项（旧方案 C）</span>
+  </div>
+</header>
+
+<div class="summary">
+  <div class="stat"><div class="num" style="color:var(--ok)">8/8</div><div class="lab">基础卫生扫描全绿（详见文末）</div></div>
+  <div class="stat"><div class="num" style="color:var(--p1)">6</div><div class="lab">本轮新发现待修项</div></div>
+  <div class="stat"><div class="num" style="color:var(--p2)">3</div><div class="lab">建议分批（R1 可直接开工）</div></div>
+</div>
+
+<div class="note">⚠️ <b>本报告只审计、未改任何代码。</b>修复需按文末分批方案经你批准后开工。</div>
+
+<h2>一、本轮新发现<span class="cnt">6 项 · 全部有代码证据</span></h2>
+
+<div class="card">
+  <h3><span class="sev s-mid">中</span> R1. WebDAV 同步错误提示仍拼裸异常 —— 首轮 P2-21 的扫尾遗漏</h3>
+  <div class="loc">webdav_sync_settings_page.dart:153「同步失败：${outcome.error}」· :166/:167/:169「同步初始化失败：$e」</div>
+  <p>首轮审计只清了 <code>runtimeType</code> / <code>snapshot.error</code> 两类模式，WebDAV 页把异常对象 <code>$e</code> 直接拼进用户可见的 toast 与摘要里，仍会出现「同步初始化失败：SocketException: …」级别的开发者腔。</p>
+  <p class="fix"><b>修法：</b>错误文案映射为人话（网络/认证/服务器三类），原文进调试日志；纯文案层，零行为变化。</p>
+</div>
+
+<div class="card">
+  <h3><span class="sev s-mid">中</span> R2. 390dp 溢出门禁只覆盖 2 处页面 —— U6 已证明此类盲区真实咬人</h3>
+  <div class="loc">test/app_shell_smoke_test.dart:71 · test/features/drawing/presentation/editor_page_390dp_overflow_test.dart:16（仅此两处）</div>
+  <p>回收站 / 搜索 / 标签 / 日程 / 设置 / 笔记编辑页（DocPage）/ 分页画布页（NotebookViewPage）共 7 个有移动布局的页面没有任何 390dp 溢出探针。U6 刚刚实测证明：0 宽容器不报溢出、既有缺陷门禁测不出来。窄屏回归防线目前是「半个筛子」。</p>
+  <p class="fix"><b>修法：</b>为 7 个页面补 390dp 探针测试（<code>takeException isNull</code> 模式照抄既有门禁）——<b>纯新增测试，零产品代码改动</b>，预计一次性找出若干隐藏溢出（找出的再逐个修）。</p>
+</div>
+
+<div class="card">
+  <h3><span class="sev s-mid">中</span> R3. Windows 桌面窗口无最小尺寸约束</h3>
+  <div class="loc">pubspec.yaml 无 window_manager 系依赖 · main.dart 仅 WidgetsFlutterBinding.ensureInitialized()（:96）</div>
+  <p>桌面窗口可被随意拖到极窄，触发与 390dp 同类的布局溢出且无任何防线；也没有最小可用尺寸保证（工具栏/侧栏挤成一团）。</p>
+  <p class="fix"><b>修法：</b>引入 <code>window_manager</code>（Windows/Android 双端兼容的成熟方案），设 <code>setMinimumSize(360×560)</code> + 窗口标题/居中初始化。<b>需新增一个依赖包，先经你同意。</b></p>
+</div>
+
+<div class="card">
+  <h3><span class="sev s-mid">中</span> R4. 390dp 下画板顶栏 title 区仅 ~22px，长标题基本不可见（U6 遗留）</h3>
+  <div class="loc">editor_page_appbar.dart（U6 修后：7 action 占满 390dp，title 区 22px；分级隐藏已消除溢出，但标题显示空间极小）</div>
+  <p>U6 修复保住了「不溢出 + 标题优先」，但根因是 7 个 action 挤满宽度。要让 390dp 下标题真正可读，需把低频 action（全屏/深色阅读/图层/属性）在窄屏收进主菜单——即首轮审计的<b>方案 C（当时未选）</b>，现在有了实测数据支撑。</p>
+  <p class="fix"><b>修法（需拍板）：</b>窄屏（&lt;600dp）时 4 个低频 action 移入主菜单分组「视图/面板」，只留撤销/重做/主菜单 3 个——标题区可从 22px 恢复到 ~200px。桌面宽屏零变化。</p>
+</div>
+
+<div class="card">
+  <h3><span class="sev s-low">低</span> R5. Material 硬编码色残留 ~20 处 / 11 文件（U4b 只收编了 3 个热点）</h3>
+  <div class="loc">home_page_tabs.dart×3 · search_page.dart×2 · presentation_page.dart×2 · notebook_view_page.dart×2 · editor_components / layer_panel / shape_library / editor_page_overlays / doc_pdf_adapter / main.dart 各 1</div>
+  <p>首轮 P2-23 的尾部残留，与主题 token 并存导致同类界面两种色源（单一事实来源原则的尾巴）。</p>
+  <p class="fix"><b>修法：</b>等值收编进 apple_design token（U4b 同款手法，已验证安全）。</p>
+</div>
+
+<div class="card">
+  <h3><span class="sev s-low">低</span> R6. 无障碍语义覆盖薄（全库仅 5 处 Semantics）</h3>
+  <div class="loc">doc_editor_blocks / home_page_widgets / editor_page_canvas_surface 共 5 处</div>
+  <p>读屏器与语义标签基本缺失。不影响你当前使用，属商业级长尾项。</p>
+  <p class="fix"><b>修法：</b>给核心操作（收藏/删除/导出/加锁）补 semanticsLabel，可分批延后。</p>
+</div>
+
+<h2>二、基础卫生扫描（8 项全绿，无需处理）</h2>
+<table>
+  <tr><th>扫描项</th><th>结果</th></tr>
+  <tr><td>withOpacity 废弃 API</td><td>✅ 0 处（全部已收编 withValues）</td></tr>
+  <tr><td>TODO / FIXME / HACK 残留</td><td>✅ 0 处</td></tr>
+  <tr><td>runtimeType / snapshot.error 裸露（WebDAV 外）</td><td>✅ 0 处</td></tr>
+  <tr><td>Timer 泄漏（doc_editor 防抖 / 番茄钟 / 墨迹 ticker / 锁屏倒计时）</td><td>✅ dispose 全部规范 cancel</td></tr>
+  <tr><td>Image.file 裸用</td><td>✅ 0 处（统一走加密图片管线，U2 已降采样）</td></tr>
+  <tr><td>390dp 探针现有 2 处</td><td>⚠️ 偏少 → R2 建议补齐</td></tr>
+  <tr><td>键盘/焦点设施（Shortcuts/Actions/FocusScope）</td><td>✅ 覆盖 19 文件，主力场景可用</td></tr>
+  <tr><td>响应式断点一致性</td><td>✅ 900dp 主断点统一，仅 editor_context_bar 用 700dp（局部紧凑态，合理）</td></tr>
+</table>
+
+<h2>三、长期挂起（状态不变）</h2>
+<table>
+  <tr><th>项</th><th>状态</th></tr>
+  <tr><td>Sentry 崩溃监控（首轮 P0-2）</td><td>等你提供 DSN，代码位已预留</td></tr>
+  <tr><td>l10n 补齐（首轮 P2-28）</td><td>你已明确不做，关闭</td></tr>
+  <tr><td>8 处保留弹窗（U6 判定标准内）</td><td>合理保留，不动</td></tr>
+</table>
+
+<h2>四、建议分批方案（待批准）</h2>
+<div class="tl">
+  <div class="tl-item"><b>批R1 · 低风险收尾（推荐先做，纯增强零删改）</b>
+    <p>① R1 WebDAV 错误文案人话化 ② R2 七页面 390dp 探针补齐（找出隐藏溢出逐个修，修法会另行报批）③ R5 硬编码色 token 收编尾巴</p></div>
+  <div class="tl-item"><b>批R2 · 桌面窗口健壮性（需同意新增依赖）</b>
+    <p>R3 引入 window_manager：最小尺寸 360×560 + 窗口初始化。依赖审查后再装。</p></div>
+  <div class="tl-item"><b>批R3 · 390dp 顶栏减负（=旧方案 C，需拍板）</b>
+    <p>R4 窄屏把 4 个低频 action 收进主菜单分组，标题区 22px → ~200px。桌面零变化。</p></div>
+  <div class="tl-item"><b>批R4 · 可延后</b>
+    <p>R6 无障碍语义补齐（商业级长尾，随时可插队）。</p></div>
+</div>
+
+<p style="font-size:13.5px;">铁律照旧：<b>全量测试 + analyze 0 + 五工作流全绿再进下一批</b>；批内不删任何功能，纯增强与修复。你批准哪几批、按什么顺序，我就开工。</p>
+
+<footer>drawing_notes_app · 第二轮体验审计 · 基线 v1.9.1+33（1573 测试全绿）· 审计方式：只读代码扫描 + U6 回归实证经验</footer>
+</div>
+</body>
+</html>

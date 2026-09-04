@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>drawing_notes_app 第三轮体验审计报告 · 2026-09-04</title>
+<style>
+  :root{
+    --bg:#fafafa; --card:#ffffff; --ink:#18181b; --sub:#52525b; --line:#e4e4e7;
+    --p0:#dc2626; --p1:#ea580c; --p2:#2563eb; --ok:#16a34a;
+    --code:#f4f4f5;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; background:var(--bg); color:var(--ink); line-height:1.65; padding:40px 16px;}
+  .wrap{max-width:980px; margin:0 auto;}
+  h1{font-size:26px; font-weight:700; letter-spacing:-0.02em;}
+  .meta{color:var(--sub); font-size:13px; margin-top:6px;}
+  .badge{display:inline-block; padding:2px 10px; border-radius:999px; font-size:12px; font-weight:600; margin-right:6px;}
+  .b-p0{background:#fee2e2; color:var(--p0);} .b-p1{background:#ffedd5; color:var(--p1);} .b-ok{background:#dcfce7; color:var(--ok);}
+  h2{font-size:19px; font-weight:700; margin:36px 0 14px; padding-bottom:8px; border-bottom:1px solid var(--line);}
+  h2 .cnt{color:var(--sub); font-weight:400; font-size:14px; margin-left:8px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin-bottom:12px;}
+  .card h3{font-size:15px; font-weight:650; margin-bottom:4px;}
+  .card .loc{font-family:Consolas,monospace; font-size:12px; color:var(--p2); background:var(--code); padding:2px 8px; border-radius:6px; display:inline-block; margin:4px 0;}
+  .card p{font-size:13.5px; color:var(--sub); margin-top:4px;}
+  .card .fix{font-size:13px; margin-top:6px;}
+  .card .fix b{color:var(--ok);}
+  .sev{font-size:11px; font-weight:700; padding:1px 8px; border-radius:999px; vertical-align:1px;}
+  .s-high{background:#fee2e2; color:#b91c1c;} .s-mid{background:#ffedd5; color:#c2410c;} .s-low{background:#e4e4e7; color:#52525b;}
+  .summary{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:20px 0;}
+  .stat{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px;}
+  .stat .num{font-size:28px; font-weight:750;}
+  .stat .lab{font-size:12.5px; color:var(--sub); margin-top:2px;}
+  table{width:100%; border-collapse:collapse; font-size:13.5px; background:var(--card); border-radius:12px; overflow:hidden; margin-top:12px;}
+  th{background:#f4f4f5; text-align:left; padding:10px 12px; font-weight:650; font-size:12.5px; color:var(--sub);}
+  td{padding:10px 12px; border-top:1px solid var(--line); vertical-align:top;}
+  .note{background:#fefce8; border:1px solid #fde047; border-radius:12px; padding:14px 18px; font-size:13.5px; margin:20px 0;}
+  footer{margin-top:40px; color:var(--sub); font-size:12px; border-top:1px solid var(--line); padding-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>drawing_notes_app 第三轮体验审计报告</h1>
+  <div class="meta">2026-09-04 · 基线 v1.9.4+36（前两轮 39 项全部收口并发版后）· 全部结论基于代码证据，高严重级已人工复核</div>
+  <div style="margin-top:10px;">
+    <span class="badge b-p0">高 8 项</span>
+    <span class="badge b-p1">中 12 项</span>
+    <span class="badge b-p1">低 10 项</span>
+    <span class="badge b-ok">卫生面 7 项全绿</span>
+  </div>
+</header>
+
+<div class="summary">
+  <div class="stat"><div class="num" style="color:var(--p0)">2</div><div class="lab">可致数据永久丢失</div></div>
+  <div class="stat"><div class="num" style="color:var(--p1)">4</div><div class="lab">触屏/键盘够不到的交互</div></div>
+  <div class="stat"><div class="num" style="color:var(--p1)">4</div><div class="lab">资源/临时文件残留</div></div>
+  <div class="stat"><div class="num" style="color:var(--ok)">7/7</div><div class="lab">卫生扫描维度全绿</div></div>
+</div>
+
+<div class="note">
+<b>本轮最需要优先处理的两个真实数据风险（已人工复核代码属实）：</b><br>
+① 日程待办：读取失败被静默成空表，而「新增」是「全量读 → 加一条 → 整文件覆写」——一旦读取失败，添加一条待办会<b>永久清空其余全部待办且无任何提示</b>。<br>
+② 画板元素菜单：分组 / 设置链接 / 置顶 / 置底 4 个动作<b>只挂在右键上</b>，触屏长按与键盘命令面板均无入口——触屏与键盘用户永久拿不到。
+</div>
+
+<h2>高严重级 <span class="cnt">8 项</span></h2>
+
+<div class="card"><h3><span class="sev s-high">高</span> 待办读取失败静默返回空表</h3>
+<div class="loc">lib/features/schedule/infrastructure/schedule_event_store.dart:57-58</div>
+<p><code>catch (_) { return const []; }</code>——文件损坏或 JSON 解码失败被吞成「没有待办」，用户打开日程发现全没了，零提示、零审计日志。</p>
+<div class="fix"><b>修法</b>：区分「文件不存在」（返回空）与「读取/解码失败」（抛异常 + AuditLogger.log('schedule.load', success:false)），页面捕获后显示「待办读取失败」并保留原 UI。</div></div>
+
+<div class="card"><h3><span class="sev s-high">高</span> 读取失败后新增会整文件覆写 → 永久清空全部待办</h3>
+<div class="loc">lib/features/schedule/infrastructure/schedule_event_store.dart:92-93</div>
+<p><code>final events = [...await loadAll(), event]; await _writeAll(events);</code>——上一条的静默空表 + 这里整文件覆写 = 添加一条待办即清空其余全部，无提示。这是本轮唯一会「用户主动操作导致数据全丢」的路径。</p>
+<div class="fix"><b>修法</b>：loadAll 失败时禁止写入并显式报错；_writeAll 加 try/catch 清理 tmp 后 rethrow。</div></div>
+
+<div class="card"><h3><span class="sev s-high">高</span> 待办增删改是无锁 read-modify-write，重入丢更新</h3>
+<div class="loc">schedule_event_store.dart:92 / 99 / 110</div>
+<p>三个方法都是「全量读 → 内存改 → 全量写」，无去重/加锁/序列号。连点两次添加，或添加与打勾并发，后写快照覆盖前一个。</p>
+<div class="fix"><b>修法</b>：照抄 note_block_doc_store.dart:134 的 <code>_enqueue</code> 按 id 串行化。</div></div>
+
+<div class="card"><h3><span class="sev s-high">高</span> 事务回滚失败只 print，画板停在半应用状态</h3>
+<div class="loc">lib/features/drawing/application/document_transaction.dart:64-68</div>
+<p>批量命令 redo 中途失败时回滚再失败 → 画布停在「部分生效」的不一致状态，用户只看到原始异常，不知道撤销栈已不可信；同时是生产代码 print 残留。</p>
+<div class="fix"><b>修法</b>：回滚失败抛 TransactionRollbackException（至少也要 AuditLogger + 提示「部分操作已回滚，请检查画布」），print 换成调试日志。</div></div>
+
+<div class="card"><h3><span class="sev s-high">高</span> 画板元素上下文菜单仅右键可达（触屏 + 键盘双盲）</h3>
+<div class="loc">editor_page_overlays.dart:102 · editor_page_text_overlays.dart:179</div>
+<p>菜单含 7 个动作，其中<b>分组 / 设置链接 / 置顶 / 置底 4 个</b>在全库无第二入口：无长按、无 ⋮ 按钮，命令注册表（editor_page_commands.dart:12-84）也未注册，Ctrl+K 命令面板无兜底。副证：弹菜单位置硬编码 <code>RelativeRect.fromLTRB(100,100,0,0)</code>，连鼠标用户都不是在指针处弹出。</p>
+<div class="fix"><b>修法</b>：补 onLongPressStart 用 details.globalPosition 定位（照抄 all_doc_row.dart:60 写法），并把 4 个动作注册进 CommandRegistry。</div></div>
+
+<div class="card"><h3><span class="sev s-high">高</span> 画布缩放/旋转/裁剪/文本框手柄通通 10×10，触屏点不中</h3>
+<div class="loc">resize_handles.dart:37,84-86 · editor_page_overlays.dart:155-157 · editor_page_drag_ops.dart:394-396 · editor_page_text_overlays.dart:336-338</div>
+<p>手指接触面约 40px，10px 命中率极低——这是画板核心操作，触屏主用设备上体验直接打折。</p>
+<div class="fix"><b>修法</b>：视觉保持 10px，用 SizedBox(44,44) + Center 扩热区（项目已有 all_doc_row.dart:137 的同类修法可复用）。</div></div>
+
+<div class="card"><h3><span class="sev s-high">高</span> 删除笔记本遗留 .bak 孤儿文件（删不干净 + 数据可恢复）</h3>
+<div class="loc">lib/features/notes/infrastructure/notebook_storage.dart:237（每次保存 copy 出 .bak）· :338-364（delete 未清理）</div>
+<p>其余三个存储删除时都清了 .bak（storage_service.dart:699-702、edgeless_doc_store.dart:128-133、note_block_doc_store.dart:502-509），唯独笔记本没有——用户「删除」后上一版完整内容仍永久躺在盘上，且 load() 在 :259-262 会优先读它。既是隐私风险也是行为不一致。</p>
+<div class="fix"><b>修法</b>：delete() 内补 <code>File('${file.path}.bak').delete()</code>（try/catch 吞异常），与另三处对齐。</div></div>
+
+<div class="card"><h3><span class="sev s-high">高</span> 保险库槽位临时文件残留，含被包装的主密钥</h3>
+<div class="loc">lib/core/security/vault_key_service.dart:513-515</div>
+<p>tmp.writeAsString(doc) → rename，无 try/catch。doc 含 slots[].salt 与 slots[].wrapped；Windows 上 rename 覆盖已存在文件会抛异常，此时 .tmp 永久留在数据目录，成为密钥材料残留面。</p>
+<div class="fix"><b>修法</b>：套用 encrypted_vault.dart:135-148 已写对的 _atomicWrite 模式——catch 内删除 tmp 后 rethrow。</div></div>
+
+<h2>中严重级 <span class="cnt">12 项</span></h2>
+
+<div class="card"><h3><span class="sev s-mid">中</span> 裁剪保存后 setState 未做 mounted 检查</h3>
+<div class="loc">editor_page.dart:418</div>
+<p>连续 await（读文件/解密/解码/写入）后直接 setState，等待期间退出页面即触发 "setState() called after dispose()"。</p>
+<div class="fix"><b>修法</b>：await 后补 <code>if (!mounted) return;</code>。</div></div>
+
+<div class="card"><h3><span class="sev s-mid">中</span> 日程页三处 await 后 setState 无 mounted 检查</h3>
+<div class="loc">schedule_page.dart:374 / 384 / 394</div>
+<p>同上有崩溃风险。</p>
+<div class="fix"><b>修法</b>：三处均补 mounted 检查。</div></div>
+
+<div class="card"><h3><span class="sev s-mid">中</span> 待办写入失败既不提示也不捕获</h3>
+<div class="loc">schedule_page.dart:368-395</div>
+<p>_showAddEventDialog/_toggleEvent/_removeEvent 全程无 try/catch，异常直接逃逸到 main.dart:119 的全局 onError（只记日志不弹提示）；且 <code>if (added == null) return;</code> 让「添加失败」表现为「什么都没发生」。</p>
+<div class="fix"><b>修法</b>：包 try/catch，失败弹 SnackBar「保存失败，待办未添加」。</div></div>
+
+<div class="card"><h3><span class="sev s-mid">中</span> 帧背景色按钮热区仅 24×20</h3>
+<div class="loc">edgeless_page_widgets.dart:86-108</div>
+<div class="fix"><b>修法</b>：外层包 SizedBox(44,44) + Center。</div></div>
+
+<div class="card"><h3><span class="sev s-mid">中</span> 属性面板取色圆点过小（28px / 22px）</h3>
+<div class="loc">properties_panel.dart:80-92 · :235-247</div>
+<div class="fix"><b>修法</b>：同法外扩至 44px。</div></div>
+
+<div class="card"><h3><span class="sev s-mid">中</span>「以块文档方式打开」只有长按一个入口</h3>
+<div class="loc">notebook_view_page_widgets.dart:30</div>
+<p>同卡片的收藏/历史/删除都有 IconButton，唯独此功能无右键也无按钮。</p>
+<div class="fix"><b>修法</b>：补 onSecondaryTapUp 或加进卡片 ⋮ 菜单。</div></div>
+
+<div class="card"><h3><span class="sev s-mid">中</span> build 内做全量拷贝 + 排序只为取 30 条</h3>
+<div class="loc">all_docs_page.dart:202-207</div>
+<p><code>(List.of(_cached!.docs)..sort(...)).take(30)</code> 位于 buildDesktopBody()，每次防抖搜索/tab 切换/setState 都重跑 O(n log n)。</p>
+<div class="fix"><b>修法</b>：提到 _cached 更新处缓存。</div></div>
+
+<div class="card"><h3><span class="sev s-mid">中</span> 首页/笔记本页/全部文档页无任何快捷键层</h3>
+<div class="loc">home_page.dart · notebook_view_page.dart · all_docs_page.dart</div>
+<p>画板有完整快捷键层（editor_page_shortcuts.dart:8-140），这三页 Shortcuts 零命中，新建/重命名/删除只能 Tab 逐个遍历。</p>
+<div class="fix"><b>修法</b>：补 CallbackShortcuts（至少 Ctrl+N 新建、F2 重命名、Delete 删除）。</div></div>
+
+<div class="card"><h3><span class="sev s-mid">中</span> 国际化缺口：5 个页面完全零 l10n</h3>
+<div class="loc">app_lock_settings_page.dart(92 行中文) · doc_page.dart(133) · app_shell.dart(92) · settings_page.dart(45) · all_docs_page_widgets/mobile(94)</div>
+<p>ARB 基建是好的（app_zh/app_en 各 50 键完全对齐、untranslated_messages.json 为空），但这批页面整页绕过 → 英文环境直接显示中文。设置页最先被撞到。</p>
+<div class="fix"><b>修法</b>：优先收编 app_lock_settings_page + settings_page。</div></div>
+
+<div class="card"><h3><span class="sev s-mid">中</span> 硬编码路径分隔符</h3>
+<div class="loc">lib/core/storage/vfs/encrypted_vault.dart:31 / 35 / 67</div>
+<p>用字面量 <code>/</code>，其余代码统一走 Platform.pathSeparator；且 :35 的 $id 可含子路径，混用易产生双写路径。</p>
+<div class="fix"><b>修法</b>：改用 package:path 的 join()。</div></div>
+
+<div class="card"><h3><span class="sev s-mid">中</span> 双设计令牌源，10 个色值重复定义</h3>
+<div class="loc">core/theme/app_design.dart:14-24 vs apple_design.dart:19-64</div>
+<p>仍有 5 个文件走旧 AppDesign（app.dart、home_page.dart、notebook_view_page.dart、schedule_page.dart、schedule_calendar.dart），改新令牌不会生效到它们，配色会静默分叉。</p>
+<div class="fix"><b>修法</b>：app_design.dart 改为 re-export apple_design 的别名，或把这 5 个文件迁完后删除。</div></div>
+
+<div class="card"><h3><span class="sev s-mid">中</span> 另两处临时文件异常路径未清理</h3>
+<div class="loc">note_block_doc_store.dart:471-476 · storage_service.dart:206-208</div>
+<p>同文件 :279-294 的 storeImage 已写对（catch 内 delete + rethrow），这两处遗漏，rename 失败即留孤儿 .tmp。</p>
+<div class="fix"><b>修法</b>：抽 _atomicWriteBytes(tmp, dest) 四处共用。</div></div>
+
+<h2>低严重级 <span class="cnt">10 项</span></h2>
+
+<div class="card"><h3><span class="sev s-low">低</span> WebDAV 配置解析失败静默降级为空配置</h3>
+<div class="loc">webdav_config_store.dart:83-85</div>
+<p>已保存的同步配置被吞掉，界面表现为配置凭空消失。</p>
+<div class="fix"><b>修法</b>：失败时提示并保留原始串便于恢复。</div></div>
+
+<div class="card"><h3><span class="sev s-low">低</span> 弹窗内 TextEditingController 创建后从不 dispose（6 处）</h3>
+<div class="loc">attachment_block_view.dart:263 · database_cell_editor.dart:18 · editor_page_actions.dart:84 · editor_page_editing.dart:531 · editor_page_persistence.dart:54 · schedule_page.dart:299</div>
+<div class="fix"><b>修法</b>：改 StatefulWidget 弹窗在 dispose 释放，或在 showDialog().then() 里 dispose。</div></div>
+
+<div class="card"><h3><span class="sev s-low">低</span> 标签返回按钮热区约 20px 高</h3>
+<div class="loc">tags_view.dart:91-100</div>
+<div class="fix"><b>修法</b>：InkWell 包 padding。</div></div>
+
+<div class="card"><h3><span class="sev s-low">低</span> PDF 预览 / 首页缩略图未降采样解码</h3>
+<div class="loc">pdf_preview.dart:104-109 · home_page_widgets.dart:161-166</div>
+<p>Image.memory 无 cacheWidth/cacheHeight，整页 PNG 全分辨率进内存。</p>
+<div class="fix"><b>修法</b>：按显示尺寸给 cacheWidth。</div></div>
+
+<div class="card"><h3><span class="sev s-low">低</span> 测试盲区（按目录核对，非按文件名猜）</h3>
+<table>
+<tr><th>目录 / 文件</th><th>体量</th><th>测试引用</th></tr>
+<tr><td>lib/features/doc/presentation/database/（cell_editor / kanban / list / table）</td><td>4 文件 545 行</td><td>0</td></tr>
+<tr><td>lib/features/notes/presentation/edgeless_page.dart</td><td>434 行</td><td>0</td></tr>
+<tr><td>lib/shared/widgets/color_picker_dialog.dart</td><td>335 行</td><td>0</td></tr>
+<tr><td>lib/features/notes/rendering/（notebook_page_canvas_painter）</td><td>146 行</td><td>0</td></tr>
+<tr><td>lib/core/navigation/ + lib/core/layout/</td><td>3 文件 75 行</td><td>0</td></tr>
+</table>
+<div class="fix"><b>修法</b>：优先给 database/ 子目录与 edgeless_page 补冒烟测试。</div></div>
+
+<h2>卫生面：7 个维度全绿 <span class="cnt">已逐项核查</span></h2>
+
+<table>
+<tr><th>维度</th><th>结论</th></tr>
+<tr><td>未释放资源（Timer / StreamSubscription / 类字段控制器）</td><td>全绿——save_scheduler、app_lock_gate、doc_editor、temporary_ink_session、editor_components、search_page、search_debouncer 均有配对 cancel/dispose</td></tr>
+<tr><td>敏感信息进日志</td><td>全绿——全库仅 4 处 debugPrint，无一含口令/密钥/明文；AuditLogger 纯内存、只记 operation</td></tr>
+<tr><td>build 内做文件 IO / 加解密 / JSON</td><td>绿——EncryptedFileImage 异步解密且已降采样，缩略图读取在 initState</td></tr>
+<tr><td>长列表未用 builder</td><td>全绿——all_docs_page_widgets 三处均用 separated/builder</td></tr>
+<tr><td>每帧重建 AnimationController / ColorTween</td><td>全绿——仅在 initState 或 late final 字段创建</td></tr>
+<tr><td>焦点顺序错乱</td><td>未发现明显错乱</td></tr>
+<tr><td>l10n ARB 基建本身</td><td>全绿——中英各 50 键完全对齐、untranslated_messages.json 为空</td></tr>
+</table>
+
+<h2>建议分批（每批独立验证 + 发版）</h2>
+<table>
+<tr><th>批次</th><th>内容</th><th>项数</th></tr>
+<tr><td><b>S1 数据安全</b></td><td>日程 store 三条（静默空表 / 覆写丢数据 / 无锁竞态）+ notebook .bak 孤儿 + 保险库 tmp + 另两处 tmp</td><td>6</td></tr>
+<tr><td><b>S2 触屏可达</b></td><td>画板元素菜单长按入口 + 4 动作进命令面板 + 4 类手柄热区 44px + 帧背景/取色圆点 + 长按唯一入口补右键</td><td>6</td></tr>
+<tr><td><b>S3 一致性与国际化</b></td><td>5 个页面收编 l10n + 双设计令牌源合并 + 路径分隔符</td><td>3</td></tr>
+<tr><td><b>S4 稳定性与体验</b></td><td>4 处 mounted 检查 + 6 处 controller dispose + 三页快捷键 + 图片降采样 + build 内排序 + WebDAV 配置提示</td><td>6</td></tr>
+<tr><td><b>S5 测试补盲</b></td><td>database/ 子目录、edgeless_page、color_picker_dialog 补冒烟测试</td><td>5 目录</td></tr>
+</table>
+
+<footer>
+第三轮审计 · 2026-09-04 · 基线 v1.9.4+36（commit 9982988）· 前两轮 39 项已全部收口并发版<br>
+方法：三路并行只读代码审查（错误处理与生命周期 / 交互可达性与性能 / 安全与国际化），高严重级结论已由主代理逐条复核代码原文<br>
+本文件不入仓（untracked），与前两轮审计报告同规
+</footer>
+
+</div>
+</body>
+</html>
