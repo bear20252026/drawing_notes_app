@@ -3,7 +3,7 @@
 /// 软删除/恢复/彻底删除/过期清理与回收站编解码，共享主库的私有成员
 /// （写链/目录/信封/DEK 缓存/onWrite），通过 part 同库访问。
 
-part of 'note_block_doc_store.dart';
+part of note_block_doc_store;
 
   /// 读回收站条目内容（批次①c）：激活区 rename 进来的文件可能是密文，
   /// 解密后返回文本；锁定/损坏返回 null（调用方跳过——fail-closed）。

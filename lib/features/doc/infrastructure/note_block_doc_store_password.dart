@@ -3,7 +3,7 @@
 /// v5 双保护器设密/验证/改密/重置盘/移除，共享主库的会话 DEK 缓存
 /// 与写链，通过 part 同库访问。
 
-part of 'note_block_doc_store.dart';
+part of note_block_doc_store;
 
   // ==== 文件密码管理 API（N2，与 NotebookStorage 同口径） ====
 
