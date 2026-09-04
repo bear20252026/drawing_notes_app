@@ -24,6 +24,11 @@ const _base = 'https://dav.example.com/sync/';
 class _MemoryServer {
   final Map<String, List<int>> files = {};
 
+  /// 故障注入：GET/PUT/DELETE 这些相对路径返回 500（验证 M2 单操作隔离与毒丸防护）。
+  final Set<String> failGet = {};
+  final Set<String> failPut = {};
+  final Set<String> failDelete = {};
+
   String _rel(Uri url) {
     final path = url.path;
     const prefix = '/sync/';
@@ -55,14 +60,17 @@ class _MemoryServer {
           case 'MKCOL':
             return http.Response('', 201);
           case 'GET':
+            if (failGet.contains(rel)) return http.Response('', 500);
             if (rel.isNotEmpty && files.containsKey(rel)) {
               return http.Response.bytes(files[rel]!, 200);
             }
             return http.Response('', 404);
           case 'PUT':
+            if (failPut.contains(rel)) return http.Response('', 500);
             if (rel.isNotEmpty) files[rel] = request.bodyBytes;
             return http.Response('', 201);
           case 'DELETE':
+            if (failDelete.contains(rel)) return http.Response('', 500);
             if (rel.isNotEmpty) files.remove(rel);
             return http.Response('', 204);
           default:
@@ -430,6 +438,135 @@ void main() {
       expect(r.uploaded, 1);
       expect(r.downloaded, 0);
       expect((jsonDecode(utf8.decode(server.files['a']!)) as Map<String, dynamic>)['updatedAt'], 20);
+    });
+  });
+
+  group('SyncService M2 单操作失败隔离', () {
+    test('单个上传失败 → 不中断整轮，其余文档照常同步，失败项进 failedDocIds',
+        () async {
+      final store = _MemoryDocStore();
+      store.docs['good1'] = _Doc('good1', _localDocBytes(11), 11);
+      store.docs['bad'] = _Doc('bad', _localDocBytes(12), 12);
+      store.docs['good2'] = _Doc('good2', _localDocBytes(13), 13);
+      final server = _MemoryServer()..failPut.add('bad');
+      final s = _service(store, server);
+
+      final r = await s.syncNow();
+
+      // 失败被隔离：good1/good2 照常上传。
+      expect(r.uploaded, 2);
+      expect(r.failedDocIds, ['bad']);
+      expect(server.files.containsKey('good1'), isTrue);
+      expect(server.files.containsKey('good2'), isTrue);
+      expect(server.files.containsKey('bad'), isFalse);
+      // 失败项不进远端 manifest（两端都不回写失败项）。
+      final remoteManifest =
+          jsonDecode(utf8.decode(server.files['manifest.json']!))
+              as Map<String, dynamic>;
+      final entries = remoteManifest['entries'] as Map;
+      expect(entries.containsKey('bad'), isFalse);
+      expect(entries.containsKey('good1'), isTrue);
+      // 下一轮（故障恢复后）重试成功。
+      server.failPut.clear();
+      final r2 = await s.syncNow();
+      expect(r2.uploaded, 1);
+      expect(r2.failedDocIds, isEmpty);
+    });
+
+    test('单个下载失败 → 不中断整轮，其余文档照常下载，失败项不进基线',
+        () async {
+      final store = _MemoryDocStore();
+      final server = _MemoryServer()
+        ..seedDoc('good', 20)
+        ..seedDoc('bad', 21)
+        ..seedManifest({'good': 20, 'bad': 21})
+        ..failGet.add('bad');
+      final s = _service(store, server);
+
+      final r = await s.syncNow();
+
+      expect(r.downloaded, 1);
+      expect(r.failedDocIds, ['bad']);
+      expect(store.docs.containsKey('good'), isTrue);
+      expect(store.docs.containsKey('bad'), isFalse);
+      // 基线只收录成功项：'bad' 下轮仍是「仅远端 → 下载」。
+      // （通过下一轮重试成功来验证，而非直接窥探 baseline 内部。）
+      server.failGet.clear();
+      final r2 = await s.syncNow();
+      expect(r2.downloaded, 1);
+      expect(r2.failedDocIds, isEmpty);
+      expect(store.docs['bad']!.updatedAt, 21);
+    });
+
+    test('毒丸防误删：仅远端文档下载失败 → 远端文档必须完好、二轮补齐', () async {
+      final store = _MemoryDocStore();
+      final server = _MemoryServer();
+      server.seedDoc('poison', 30);
+      server.seedManifest({'poison': 30});
+      server.failGet.add('poison');
+      final s = _service(store, server);
+
+      final r1 = await s.syncNow();
+      expect(r1.downloaded, 0);
+      expect(r1.failedDocIds, ['poison']);
+
+      // 关键断言：远端文档没有被当作「本地删除墓碑」而 deleteRemote。
+      expect(server.files.containsKey('poison'), isTrue);
+      final remoteManifest =
+          jsonDecode(utf8.decode(server.files['manifest.json']!))
+              as Map<String, dynamic>;
+      expect((remoteManifest['entries'] as Map).containsKey('poison'), isTrue);
+
+      // 网络恢复后二轮补齐。
+      server.failGet.clear();
+      final r2 = await s.syncNow();
+      expect(r2.downloaded, 1);
+      expect(store.docs['poison']!.updatedAt, 30);
+    });
+
+    test('本地已有文档的下载失败 → 不影响本地版本与基线收录', () async {
+      // 本地存在该文档，下载失败只跳过更新，不产生毒丸问题。
+      final store = _MemoryDocStore();
+      store.docs['d'] = _Doc('d', _localDocBytes(10), 10);
+      final server = _MemoryServer()
+        ..seedDoc('d', 20)
+        ..seedManifest({'d': 20})
+        ..failGet.add('d');
+      final s = _service(store, server);
+
+      final r = await s.syncNow();
+      expect(r.failedDocIds, ['d']);
+      // 本地版本保持 10 不被破坏。
+      expect(store.docs['d']!.updatedAt, 10);
+    });
+  });
+
+  group('SyncService M4 keepBoth 副本收敛', () {
+    test('keepBoth 副本当轮进入基线（避免下轮重传）', () async {
+      final store = _MemoryDocStore();
+      store.docs['c'] = _Doc('c', _localDocBytes(25), 25);
+      final server = _MemoryServer();
+      server.seedDoc('c', 40);
+      server.seedManifest({'c': 40});
+      final baseline = _MemoryBaseline()
+        ..value = SyncManifest(entries: {'c': _snap('c', 10)});
+      final s = _service(store, server, baseline: baseline,
+          conflictHandler: _ScriptedHandler({
+            'c': ConflictResolution.keepBoth,
+          }));
+
+      final r1 = await s.syncNow();
+      expect(r1.conflictedDocIds, contains('c'));
+      expect(r1.uploaded, 1);
+
+      // M4：副本已入基线 → 第二轮把副本当「本地新增」正常上传（不再是
+      // 原实现的「重传一次主版本路径」）；第三轮起完全稳定。
+      final r2 = await s.syncNow();
+      expect(r2.uploaded, 1);
+      expect(r2.failedDocIds, isEmpty);
+      final r3 = await s.syncNow();
+      expect(r3.changed, isFalse);
+      expect(r3.uploaded, 0);
     });
   });
 }

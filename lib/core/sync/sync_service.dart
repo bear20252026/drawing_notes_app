@@ -186,6 +186,7 @@ class SyncService {
 
     // 5. 执行（M2：单操作隔离——失败项记入 outcome，不中断整轮）。
     final executed = await _execute(plan);
+    final failedIds = executed.failedIds.toSet();
 
     // 6. 回写远端 manifest + 本地基线（只认成功项：失败操作两端都不回写，
     // 下轮按旧基线自动重试；失败明细进 SyncResult.failedDocIds）。
@@ -217,7 +218,19 @@ class SyncService {
     );
     // M4：keepBoth 副本只进本地基线（远端无此文件，进远端清单会导致
     // 其他设备下载 404 空转）；下轮它们作为本地新增正常上传。
+    // 毒丸防误删：仅远端文档下载失败时，绝不能让它随 {...newEntries} 进入
+    // 基线——否则下轮「本地无 + 基线有」会被误判为本地删除墓碑，把从未成功
+    // 下载的远端文档 deleteRemote 掉（数据丢失）。远端 manifest 保留该条目
+    // （远端文件真实存在），基线剔除后下轮它仍是「仅远端 → download」自动重试。
+    // 本地已有该文档的下载失败不受影响（墓碑推导要求本地缺失才会触发）。
     final baselineEntries = <String, SyncSnapshot>{...newEntries};
+    for (final op in plan.operations) {
+      if (op.kind == SyncOperationKind.download &&
+          failedIds.contains(op.id) &&
+          !currentEntries.containsKey(op.id)) {
+        baselineEntries.remove(op.id);
+      }
+    }
     for (final copy in keptCopies) {
       baselineEntries[copy.id] = copy;
     }
