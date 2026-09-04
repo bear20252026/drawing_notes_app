@@ -28,8 +28,3 @@ exclude:
   - "build/**"
   - ".dart_tool/**"
   - "**/.git/**"
-  # 祖父化（2026-09-04 实测 1021 行，超 1000 硬上限——恢复阻断后由门禁亲自报出）：
-  # NoteBlockDocStore 是已知 God 类（审计 L-03），拆分（TrashManager /
-  # BlockDocPasswordManager 方向）排期中；拆分落地即删除本条。门禁对其余
-  # 文件保持硬阻断。
-  - "lib/features/doc/infrastructure/note_block_doc_store.dart"
