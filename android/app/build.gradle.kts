@@ -50,6 +50,17 @@ android {
         release {
             // A production APK/AAB must never silently use the debug key.
             signingConfig = signingConfigs.getByName("release")
+            // R8 混淆 + 资源收缩（外部审计 L2）：Dart AOT 与 Java/Kotlin 插件代码
+            // 收缩减包体、增加逆向成本。Dart 代码由 AOT 编译不受 ProGuard 影响；
+            // 插件侧保留规则已随插件自带 consumer-rules 生效。若未来加入反射
+            // 敏感插件导致 release 崩溃（ClassNotFoundException），在此追加
+            // proguardFiles keep 规则，而不是全局关闭收缩。
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }
