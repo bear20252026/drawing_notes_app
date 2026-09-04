@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
+import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/tags_view.dart';
@@ -29,6 +30,14 @@ import 'package:drawing_notes_app/shared/application/search_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  // testWidgets 跑在 FakeAsync zone——Isolate KDF 永不完成，注入轻量档防挂起。
+  setUp(() {
+    AppLockService.testPinKdfOverride = KdfParams.testLight;
+  });
+  tearDown(() {
+    AppLockService.testPinKdfOverride = null;
+  });
 
   Future<void> pump390(WidgetTester tester, Widget child) async {
     tester.view.physicalSize = const Size(390, 844);

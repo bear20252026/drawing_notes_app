@@ -71,6 +71,12 @@ void main() {
   setUp(() {
     // 批B 约定：测试注入轻量 KDF（Argon2id 生产档 348ms/次不可接受）。
     KdfParams.newSlotDefault = KdfParams.testLight;
+    // P0 连带：开屏 PIN 同样走 isolate 派生，widget 组在 FakeAsync 下防挂起。
+    AppLockService.testPinKdfOverride = KdfParams.testLight;
+  });
+
+  tearDown(() {
+    AppLockService.testPinKdfOverride = null;
   });
 
   group('QuickUnlockService 开关与副本生命周期', () {

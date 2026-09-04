@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
+import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/features/notes/presentation/app_lock_settings_page.dart';
@@ -12,6 +13,14 @@ import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settin
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  // testWidgets 跑在 FakeAsync zone——Isolate KDF 永不完成，注入轻量档防挂起。
+  setUp(() {
+    AppLockService.testPinKdfOverride = KdfParams.testLight;
+  });
+  tearDown(() {
+    AppLockService.testPinKdfOverride = null;
+  });
 
   group('SettingsPage（密码体系集中管理）', () {
     testWidgets('渲染密码体系卡 + 两大分组', (tester) async {

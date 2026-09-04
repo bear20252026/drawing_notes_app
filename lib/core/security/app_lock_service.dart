@@ -56,6 +56,12 @@ class AppLockService extends ChangeNotifier {
   static const int _kdfLegacySha256 = 1;
   static const int _kdfArgon2id = 2;
 
+  /// 测试注入 KDF（FakeAsync 下 `Isolate.run` 永不完成，widget 测试用
+  /// 轻量档防挂起；纯单测走生产参数验证真实迁移链）。
+  /// 生产代码禁止赋值（无其它写者，CI 可 grep 门禁复核）。
+  @visibleForTesting
+  static KdfParams? testPinKdfOverride;
+
   /// PIN 长度边界（批次②：自定义 4–12 位）。
   static const int minPinLength = 4;
   static const int maxPinLength = 12;
@@ -209,11 +215,12 @@ class AppLockService extends ChangeNotifier {
 
   /// v2 哈希：Argon2id 64MiB/t2/p2，经 KekSessionCache 后台 isolate 派生
   /// （主 isolate 零阻塞）；输出 base64(32B)。盐为既有 16 字节 hex 串。
+  /// 测试注入档（[testPinKdfOverride]）仅改变成本参数，不改变版本语义。
   Future<String> _hashV2(String pin, String saltHex) async {
     final derived = await KekSessionCache.instance.deriveKek(
       pin,
       _saltBytes(saltHex),
-      KdfParams.argon2idProduction,
+      testPinKdfOverride ?? KdfParams.argon2idProduction,
     );
     return base64Encode(derived);
   }

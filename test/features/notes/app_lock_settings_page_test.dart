@@ -12,10 +12,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
+import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/features/notes/presentation/app_lock_settings_page.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  // testWidgets 跑在 FakeAsync zone——Isolate KDF 永不完成，注入轻量档防挂起。
+  setUp(() {
+    AppLockService.testPinKdfOverride = KdfParams.testLight;
+  });
+  tearDown(() {
+    AppLockService.testPinKdfOverride = null;
+  });
 
   /// 走过「密码长度」选择器（默认 4 位，直接下一步）。
   Future<void> confirmLength(tester) async {
