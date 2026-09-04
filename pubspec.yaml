@@ -33,22 +33,29 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-  intl: any
+  # 跟随 flutter_localizations SDK 约束（SDK 内部依赖 intl，any 会在 SDK
+  # 升级时静默漂移）——锁到当前解析版本，SDK 升级时同步手动上调。
+  intl: 0.20.3
   path_provider: ^2.1.5
   shared_preferences: ^2.3.2
   cryptography: ^2.7.0
   crypto: ^3.0.0
   # MIT：PBKDF2 在后台 isolate 的派生实现（N3 提速 B 方案——主 isolate
   # 零阻塞；与 package:cryptography 逐字节一致，一致性有测试保证）。
-  pointycastle: ^3.9.1
+  pointycastle: ^4.0.0
   # OS 凭据库（Windows Credential Manager / Keychain）承载 E2E 同步口令，避免明文落盘。
-  flutter_secure_storage: ^9.2.2
+  # v11：minSdk 24（Flutter 3.47 默认已达）；API 仅用默认构造，无破坏面。
+  # 注意：9→11 直跳使老用户的凭据条目不可用（v10 负责算法迁移），需重新配置
+  # WebDAV 口令与快速解锁；保险库数据不受影响（与 secure storage 无关）。
+  flutter_secure_storage: ^11.0.0
   # 系统本地身份验证（批D1）：Windows Hello（人脸/指纹/PIN）快速解锁开屏；
   # Android BiometricPrompt 批D2 接入。官方插件（BSD-3）。
   local_auth: ^3.0.0
   pdf: ^3.11.1
   # MIT：基于 PDFium 的跨平台本地 PDF 读取与逐页渲染，供资料批注导入使用。
-  pdfrx: ^2.4.7
+  # 锁定 2.4.7：2.5.0 上游发布不完整（包内引用自身不存在的 debugLazyLoading/
+  # pdfrxLazyLog，编译失败），待 2.5.1+ 修复后再升。
+  pdfrx: 2.4.7
   hotkey_manager: ^0.2.3
   # 与 pdfrx 的 PDFium 渲染引擎共用 image 4.x 依赖树。
   archive: ^4.0.9
