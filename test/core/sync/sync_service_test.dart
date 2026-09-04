@@ -43,11 +43,16 @@ class _MemoryServer {
     files[id] = bytes;
   }
 
-  /// 预置远端 manifest。
+  /// 预置远端 manifest。size 取真实字节长度（与 _localDocBytes 一致），
+  /// 否则 sameTsDiverged 检测无法在测试中构造「同 ts 不同 size」分支。
   void seedManifest(Map<String, int> idToUpdatedAt) {
     final entries = {
       for (final e in idToUpdatedAt.entries)
-        e.key: {'id': e.key, 'updatedAt': e.value, 'size': 0},
+        e.key: {
+          'id': e.key,
+          'updatedAt': e.value,
+          'size': utf8.encode(jsonEncode({'updatedAt': e.value})).length,
+        },
     };
     files['manifest.json'] = utf8.encode(
       jsonEncode({'entries': entries, 'deletedIds': <String>[]}),
@@ -567,6 +572,63 @@ void main() {
       final r3 = await s.syncNow();
       expect(r3.changed, isFalse);
       expect(r3.uploaded, 0);
+    });
+  });
+
+  group('SyncService M6 sameTsDiverged（同 ts 不同 size）', () {
+    test('同 updatedAt 不同 size → 报冲突；默认 LWW 保留本地', () async {
+      final store = _MemoryDocStore();
+      // 本地：updatedAt=20，size = _localDocBytes(20).length
+      store.docs['x'] = _Doc('x', _localDocBytes(20), 20);
+      final server = _MemoryServer();
+      // 远端：updatedAt=20，但 size 被篡改为 999（模拟同毫秒双端编辑 /
+      // 时钟偏移巧合导致的内容分叉）。
+      server.seedDoc('x', 20);
+      final realSize = _localDocBytes(20).length;
+      // 手动写 manifest，让 size 与本地不同。
+      final entries = {
+        'x': {'id': 'x', 'updatedAt': 20, 'size': 999},
+      };
+      server.files['manifest.json'] = utf8.encode(
+        jsonEncode({'entries': entries, 'deletedIds': <String>[]}),
+      );
+      // 基线：updatedAt=10（两端相对基线都「变过」的语义不重要，因为
+      // sameTsDiverged 不依赖基线比较）。
+      final baseline = _MemoryBaseline()
+        ..value = SyncManifest(entries: {'x': _snap('x', 10)});
+      final s = _service(store, server, baseline: baseline);
+
+      final r = await s.syncNow();
+      // M6：同 ts 不同 size 必须报冲突（旧实现会被 planner 「== → 忽略」吞掉）。
+      expect(r.conflictedDocIds, contains('x'));
+      // 默认 LwwConflictHandler 不覆盖 → 走 LWW 兜底：ts 相等时保留本地
+      // （本地上传覆盖远端，让远端收敛到本地版本）。
+      expect(r.uploaded, 1);
+      expect(r.downloaded, 0);
+      expect(
+        (jsonDecode(utf8.decode(server.files['x']!)) as Map<String, dynamic>)['updatedAt'],
+        20,
+      );
+      // 真实 size 未被 999 污染。
+      expect(server.files['x']!.length, realSize);
+    });
+
+    test('同 updatedAt 同 size → 不冲突（真·无变化）', () async {
+      final store = _MemoryDocStore();
+      store.docs['y'] = _Doc('y', _localDocBytes(20), 20);
+      final server = _MemoryServer();
+      server.seedDoc('y', 20);
+      server.seedManifest({'y': 20});
+      final baseline = _MemoryBaseline()
+        ..value = SyncManifest(entries: {'y': _snap('y', 10)});
+      final s = _service(store, server, baseline: baseline);
+
+      final r = await s.syncNow();
+      // 同 ts 同 size → 真无变化，不报冲突。
+      expect(r.conflictedDocIds, isEmpty);
+      expect(r.uploaded, 0);
+      expect(r.downloaded, 0);
+      expect(r.changed, isFalse);
     });
   });
 }
