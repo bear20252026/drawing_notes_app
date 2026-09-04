@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 
 import '../../shared/widgets/apple_pressable.dart';
@@ -339,8 +340,38 @@ class AppleSectionHeader extends StatelessWidget {
 /// 示例：`await AppleDialog.confirm(context, title: '彻底删除', content: '…')`
 /// 确认返回 true，取消/ dismissing 返回 false；[confirmText] 传错误色文案
 /// 时自动使用 error 色（危险操作语义）。
+///
+/// **平台域裁决 C1（2026-09-04）**：按钮顺序按平台走，不强制一种——
+/// - Windows / Linux：主按钮在**左**（Fluent 与 GNOME 的既有习惯）；
+/// - macOS / iOS / Android：主按钮在**右**（Apple HIG 与 M3 的习惯）。
+/// 依据是 `docs/DESIGN_SYSTEM.md` 的分权模型：按钮顺序属**平台行为域**，
+/// `DESIGN.md` 对该域表决权为零（它只管色/字/间距/圆角）。
 class AppleDialog {
   AppleDialog._();
+
+  /// Windows / Linux 把主按钮放在左边。
+  static bool get _primaryFirst {
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.windows:
+      case TargetPlatform.linux:
+        return true;
+      case TargetPlatform.macOS:
+      case TargetPlatform.iOS:
+      case TargetPlatform.android:
+      case TargetPlatform.fuchsia:
+        return false;
+    }
+  }
+
+  /// 给尚未收敛到 [confirm] 的裸 `AlertDialog` 用的平台感知按钮行。
+  ///
+  /// 调用方**恒定按「次要 → 主要」顺序传入**（与现全库 36 处
+  /// `actions: [取消, 确定]` 的写法一致），本方法负责按平台重排：
+  /// Windows / Linux 返回倒序（主按钮在左），其余平台原样返回。
+  ///
+  /// 这样迁移成本 = 把 `actions: [...]` 包一层，不必逐个审查语义。
+  static List<Widget> actions(List<Widget> secondaryToPrimary) =>
+      _primaryFirst ? secondaryToPrimary.reversed.toList() : secondaryToPrimary;
 
   static Future<bool> confirm(
     BuildContext context, {
@@ -350,26 +381,28 @@ class AppleDialog {
     String cancelText = '取消',
     bool dangerous = false,
   }) async {
+    final cancelButton = TextButton(
+      onPressed: () => Navigator.of(context).pop(false),
+      child: Text(cancelText),
+    );
+    final confirmButton = FilledButton(
+      style: dangerous
+          ? FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            )
+          : null,
+      onPressed: () => Navigator.of(context).pop(true),
+      child: Text(confirmText),
+    );
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(title),
         content: Text(content),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(cancelText),
-          ),
-          FilledButton(
-            style: dangerous
-                ? FilledButton.styleFrom(
-                    backgroundColor: Theme.of(ctx).colorScheme.error,
-                  )
-                : null,
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(confirmText),
-          ),
-        ],
+        // 代码里恒定写成「次要 → 主要」，由平台决定谁在左。
+        actions: _primaryFirst
+            ? <Widget>[confirmButton, cancelButton]
+            : <Widget>[cancelButton, confirmButton],
       ),
     );
     return ok ?? false;

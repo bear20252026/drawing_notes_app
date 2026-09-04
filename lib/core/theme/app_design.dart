@@ -196,6 +196,25 @@ abstract final class AppDesign {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(cardRadius),
         ),
+        // 对话框排版此前完全交给 M3 默认（title 22px / content 14px /
+        // 默认字距）。按 DESIGN.md 的排版梯子重排：
+        // - 标题 17px / w600 / -0.35（DESIGN.md 的 `title` 档）；
+        // - 正文 15px / w400 / 行高 1.47（:506 明令行高不得低于 1.47）。
+        //   取 15 而非 :504 的 17：17px 是**营销正文**（长文阅读）档，
+        //   对话框是短交互文案，17px 会把确认弹窗撑成半屏；1.47 的行高
+        //   规矩照办，只把字号收到 UI 尺度。
+        // - 内容用 onSurfaceVariant，与标题形成层级差（shadcn 的信息层级
+        //   做法：主信息用强色，说明性信息降一档）。
+        titleTextStyle: AppleType.titleStyle(colorScheme.onSurface),
+        contentTextStyle: AppleType.bodyStyle(
+          colorScheme.onSurfaceVariant,
+        ).copyWith(fontSize: 15),
+        actionsPadding: const EdgeInsets.fromLTRB(
+          AppleSpacing.lg,
+          0,
+          AppleSpacing.lg,
+          AppleSpacing.md,
+        ),
       ),
       tooltipTheme: TooltipThemeData(
         waitDuration: const Duration(milliseconds: 450),
