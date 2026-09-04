@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
@@ -96,7 +97,11 @@ class EncryptedWriteTransaction {
     required File destination,
     required Uint8List plain,
   }) async {
-    final aad = aadContext.codeUnits;
+    // M5（外部审计）：AAD 用 UTF-8 而非 UTF-16 codeUnits——中文/emoji
+    // 上下文下两种编码必然分叉；跨语言/同步端/迁移工具统一按 UTF-8 构造。
+    // 兼容性：本类尚无生产调用方、无存量密文、无解密端（解密端落地时
+    // 直接用 UTF-8），故无需双解回退、不做格式版本 bump。
+    final aad = utf8.encode(aadContext);
     final nonce = _randomNonce();
     final box = await _aes.encrypt(
       plain,

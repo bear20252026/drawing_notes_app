@@ -1,8 +1,10 @@
 # 绘图笔记 App（Drawing Notes）
 
 面向 **Windows 桌面 + Android** 的跨平台绘图与笔记应用，使用 **Flutter (Dart)** 开发。
-本项目依据《绘图笔记App-完整方案汇编》开发计划实施，全部为本地离线功能，
-**不涉及**云同步、账号系统、AI 功能、网络请求。
+本项目依据《绘图笔记App-完整方案汇编》开发计划实施，**本地优先**：
+默认全部功能本地离线（**不涉及**账号系统、AI 功能）；同步为**可选的、
+用户自配 WebDAV 端到端加密同步**（无官方云、不经过第三方服务器），
+不用即零网络请求。
 
 ![CI](https://img.shields.io/github/actions/workflow/status/bear20252026/drawing_notes_app/ci.yml)
 ![License](https://img.shields.io/github/license/bear20252026/drawing_notes_app)
@@ -131,6 +133,6 @@ python tools/code_guard.py --dir lib --force-native --json
 ## 开发计划约束遵守情况
 
 - ✅ 仅声明 `windows` 与 `android` 平台，无 iOS/macOS/Web 适配代码
-- ✅ 无任何网络请求、云服务 API、账号系统
+- ✅ 默认零网络请求、无云服务 API、无账号系统（同步为可选的用户自配 WebDAV 端到端加密）
 - ✅ 无 AI 功能、图层混合模式、蒙版、PSD 导出、录音、协作、内购
 - ✅ UI 层 / 绘图引擎层 / 数据存储层严格分层（见架构文档）

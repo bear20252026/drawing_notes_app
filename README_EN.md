@@ -1,7 +1,7 @@
 # Drawing Notes App
 
 A cross-platform **drawing and note-taking** application for **Windows desktop + Android**, built with **Flutter (Dart)**.
-100% local & offline — **no cloud sync, no accounts, no AI features, no network requests**.
+Local-first: fully offline by default — **no accounts, no AI features**; sync is **optional user-configured WebDAV end-to-end encrypted sync** (no vendor cloud, zero network requests unless enabled).
 
 ![CI](https://img.shields.io/github/actions/workflow/status/bear20252026/drawing_notes_app/ci.yml)
 ![License](https://img.shields.io/github/license/bear20252026/drawing_notes_app)

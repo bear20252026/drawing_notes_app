@@ -63,6 +63,7 @@ class SyncResult {
     required this.downloaded,
     required this.deletedRemote,
     this.conflictedDocIds = const [],
+    this.failedDocIds = const [],
   });
 
   final int uploaded;
@@ -72,12 +73,25 @@ class SyncResult {
   /// 本次同步中「本地与云端都有改动」的真冲突文档 id（LWW 由较新者胜，此列表仅为可见性）。
   final List<String> conflictedDocIds;
 
+  /// 本轮执行失败的操作 id（M2：单操作隔离后失败项不中断整轮，
+  /// 基线/远端清单均不回写它们，下轮自动重试；调用方可用此列表提示用户）。
+  final List<String> failedDocIds;
+
   bool get changed => uploaded > 0 || downloaded > 0 || deletedRemote > 0;
 
   @override
   String toString() =>
       'SyncResult(upload=$uploaded, download=$downloaded, '
-      'deleteRemote=$deletedRemote, conflicts=${conflictedDocIds.length})';
+      'deleteRemote=$deletedRemote, conflicts=${conflictedDocIds.length}, '
+      'failed=${failedDocIds.length})';
+}
+
+/// 单轮执行结果（M2：成功与失败的操作分离，清单回写只认成功项）。
+class _ExecuteOutcome {
+  const _ExecuteOutcome({required this.succeeded, required this.failedIds});
+
+  final List<SyncOperation> succeeded;
+  final List<String> failedIds;
 }
 
 /// WebDAV 本地优先同步服务。
@@ -168,22 +182,31 @@ class SyncService {
         ? const <String, ConflictResolution>{}
         : await conflictHandler.resolve(conflicts);
     final plan = applyConflictResolutions(basePlan, conflicts, resolutions);
-    await _preserveRemoteCopies(conflicts, resolutions);
+    final keptCopies = await _preserveRemoteCopies(conflicts, resolutions);
 
-    // 5. 执行。
-    await _execute(plan);
+    // 5. 执行（M2：单操作隔离——失败项记入 outcome，不中断整轮）。
+    final executed = await _execute(plan);
 
-    // 6. 回写远端 manifest + 本地基线。
+    // 6. 回写远端 manifest + 本地基线（只认成功项：失败操作两端都不回写，
+    // 下轮按旧基线自动重试；失败明细进 SyncResult.failedDocIds）。
     _emit(SyncProgress.phase(SyncProgressPhase.writingManifest));
     final newEntries = <String, SyncSnapshot>{...remoteManifest.entries};
-    for (final op in plan.operations) {
-      if (op.kind == SyncOperationKind.deleteRemote) {
-        newEntries.remove(op.id);
-      } else if (op.kind == SyncOperationKind.upload) {
-        final snap = currentEntries[op.id];
-        if (snap != null) newEntries[op.id] = snap;
+    var uploaded = 0;
+    var downloaded = 0;
+    var deletedRemote = 0;
+    for (final op in executed.succeeded) {
+      switch (op.kind) {
+        case SyncOperationKind.deleteRemote:
+          newEntries.remove(op.id);
+          deletedRemote++;
+        case SyncOperationKind.upload:
+          final snap = currentEntries[op.id];
+          if (snap != null) newEntries[op.id] = snap;
+          uploaded++;
+        case SyncOperationKind.download:
+          downloaded++;
+          // download：远端快照已在新清单中（远端较新），无需改动。
       }
-      // download：远端快照已在新清单中（远端较新），无需改动。
     }
     final newManifest = SyncManifest(entries: newEntries);
     await transport.putBytes(
@@ -192,13 +215,20 @@ class SyncService {
         await cipher.sealManifestJson(jsonEncode(newManifest.toJson())),
       ),
     );
-    await baselineStore.save(newManifest);
+    // M4：keepBoth 副本只进本地基线（远端无此文件，进远端清单会导致
+    // 其他设备下载 404 空转）；下轮它们作为本地新增正常上传。
+    final baselineEntries = <String, SyncSnapshot>{...newEntries};
+    for (final copy in keptCopies) {
+      baselineEntries[copy.id] = copy;
+    }
+    await baselineStore.save(SyncManifest(entries: baselineEntries));
 
     final result = SyncResult(
-      uploaded: plan.uploadCount,
-      downloaded: plan.downloadCount,
-      deletedRemote: plan.deleteCount,
+      uploaded: uploaded,
+      downloaded: downloaded,
+      deletedRemote: deletedRemote,
       conflictedDocIds: List.unmodifiable(conflicts.map((c) => c.docId)),
+      failedDocIds: List.unmodifiable(executed.failedIds),
     );
     _emit(SyncProgress.complete());
     return result;
@@ -209,10 +239,12 @@ class SyncService {
   /// P2 修复双问题：①旧 `copyId` 含 `~`，下游 `_pathFor` 白名单
   /// （`^[A-Za-z0-9_-]+$`）直接抛错——keepBoth 必崩；②`c.docId` 来自
   /// 未认证远端 manifest，消毒后才可作本地 id。单副本失败隔离，不中断整轮。
-  Future<void> _preserveRemoteCopies(
+  /// M4：返回成功创建的副本快照（调用方并入本地基线；远端清单不含它们）。
+  Future<List<SyncSnapshot>> _preserveRemoteCopies(
     List<SyncConflict> conflicts,
     Map<String, ConflictResolution> resolutions,
   ) async {
+    final copies = <SyncSnapshot>[];
     for (final c in conflicts) {
       if (resolutions[c.docId] != ConflictResolution.keepBoth) continue;
       try {
@@ -220,11 +252,20 @@ class SyncService {
             await transport.getBytes(cipher.remotePath(c.docId));
         if (remoteBytes == null) continue;
         final plain = await cipher.decryptDocumentBytes(remoteBytes, c.docId);
-        await documentStore.writeDocument(_safeCopyId(c.docId), plain);
+        final copyId = _safeCopyId(c.docId);
+        await documentStore.writeDocument(copyId, plain);
+        copies.add(
+          SyncSnapshot(
+            id: copyId,
+            updatedAt: c.remoteUpdatedAt,
+            size: plain.length,
+          ),
+        );
       } catch (_) {
         continue;
       }
     }
+    return copies;
   }
 
   /// 冲突副本 id 消毒：仅保留白名单字符（下游 `_pathFor` 同口径），
@@ -236,56 +277,70 @@ class SyncService {
     return '$stem-conflict-${DateTime.now().millisecondsSinceEpoch}';
   }
 
-  /// 顺序执行计划中的操作。
-  Future<void> _execute(SyncPlan plan) async {
+  /// 顺序执行计划中的操作（M2 毒丸防护）。
+  ///
+  /// 每个操作独立 try/catch：单个文档因网络抖动/远端 5xx/数据损坏失败时，
+  /// 只记入失败表并继续其余操作，不中断整轮；调用方按成功项回写清单，
+  /// 失败项下轮自动重试。失败有意不记 AuditLogger（审计链 1000 条封顶，
+  /// 大批量失败会挤掉安全事件；失败明细经 SyncResult.failedDocIds 上报 UI）。
+  Future<_ExecuteOutcome> _execute(SyncPlan plan) async {
     final total = plan.operations.length;
+    final succeeded = <SyncOperation>[];
+    final failedIds = <String>[];
     var done = 0;
     for (final op in plan.operations) {
-      switch (op.kind) {
-        case SyncOperationKind.upload:
-          _emit(
-            SyncProgress.phase(
-              SyncProgressPhase.uploading,
-              doneCount: done,
-              totalCount: total,
-              currentDocId: op.id,
-            ),
-          );
-          final bytes = await documentStore.readDocument(op.id);
-          if (bytes != null) {
-            final wire = await cipher.encryptDocumentBytes(bytes, op.id);
-            await transport.putBytes(cipher.remotePath(op.id), wire);
-          }
-          break;
-        case SyncOperationKind.download:
-          _emit(
-            SyncProgress.phase(
-              SyncProgressPhase.downloading,
-              doneCount: done,
-              totalCount: total,
-              currentDocId: op.id,
-            ),
-          );
-          final bytes = await transport.getBytes(cipher.remotePath(op.id));
-          if (bytes != null) {
-            final plain = await cipher.decryptDocumentBytes(bytes, op.id);
-            await documentStore.writeDocument(op.id, plain);
-          }
-          break;
-        case SyncOperationKind.deleteRemote:
-          _emit(
-            SyncProgress.phase(
-              SyncProgressPhase.deleting,
-              doneCount: done,
-              totalCount: total,
-              currentDocId: op.id,
-            ),
-          );
-          await transport.deleteRemaining(cipher.remotePath(op.id));
-          break;
+      try {
+        switch (op.kind) {
+          case SyncOperationKind.upload:
+            _emit(
+              SyncProgress.phase(
+                SyncProgressPhase.uploading,
+                doneCount: done,
+                totalCount: total,
+                currentDocId: op.id,
+              ),
+            );
+            final bytes = await documentStore.readDocument(op.id);
+            if (bytes != null) {
+              final wire = await cipher.encryptDocumentBytes(bytes, op.id);
+              await transport.putBytes(cipher.remotePath(op.id), wire);
+            }
+            break;
+          case SyncOperationKind.download:
+            _emit(
+              SyncProgress.phase(
+                SyncProgressPhase.downloading,
+                doneCount: done,
+                totalCount: total,
+                currentDocId: op.id,
+              ),
+            );
+            final bytes = await transport.getBytes(cipher.remotePath(op.id));
+            if (bytes != null) {
+              final plain = await cipher.decryptDocumentBytes(bytes, op.id);
+              await documentStore.writeDocument(op.id, plain);
+            }
+            break;
+          case SyncOperationKind.deleteRemote:
+            _emit(
+              SyncProgress.phase(
+                SyncProgressPhase.deleting,
+                doneCount: done,
+                totalCount: total,
+                currentDocId: op.id,
+              ),
+            );
+            await transport.deleteRemaining(cipher.remotePath(op.id));
+            break;
+        }
+        succeeded.add(op);
+      } catch (_) {
+        // 毒丸隔离：记失败、继续下一操作（manifest 回写跳过此项）。
+        if (!failedIds.contains(op.id)) failedIds.add(op.id);
       }
       done++;
     }
+    return _ExecuteOutcome(succeeded: succeeded, failedIds: failedIds);
   }
 
   /// 释放资源（交给上层组合根调用）。
