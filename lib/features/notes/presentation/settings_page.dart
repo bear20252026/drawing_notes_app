@@ -88,6 +88,23 @@ class SettingsPage extends StatelessWidget {
                     trailing: const Icon(Icons.sync_alt_rounded),
                     onTap: themeController!.cycle,
                   ),
+                // 高对比度（平台域裁决 C2）：Windows 用户在系统设置里开了
+                // 高对比度后，常规的 8% 发丝线会淡到看不见，这里提供
+                // 手动三态开关（跟随系统 / 强制开 / 强制关）。
+                // 注意：与「外观」同受 themeController 非空保护——设置页
+                // 允许无控制器渲染（部分测试与嵌入场景直接构造）。
+                if (themeController != null)
+                  ListTile(
+                    leading: Icon(
+                      themeController!.highContrastOverride == true
+                          ? Icons.contrast_rounded
+                          : Icons.contrast_outlined,
+                    ),
+                    title: const Text('高对比度'),
+                    subtitle: Text(themeController!.highContrastLabel),
+                    trailing: const Icon(Icons.sync_alt_rounded),
+                    onTap: () => themeController!.cycleHighContrast(),
+                  ),
                 ListTile(
                   leading: const Icon(Icons.cloud_sync_outlined),
                   title: const Text('WebDAV 同步'),

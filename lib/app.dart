@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'package:drawing_notes_app/app/default_editor_page_builder.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_contrast.dart';
 import 'package:drawing_notes_app/core/di/providers.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'l10n/app_localizations.dart';
@@ -178,8 +179,12 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
           supportedLocales: const [Locale('zh'), Locale('en')],
           debugShowCheckedModeBanner: false,
           themeMode: _themeController.mode,
-          theme: ref.watch(themeProvider),
-          darkTheme: AppDesign.darkTheme(),
+          // 高对比度档（平台域裁决 C2）：用户手动值优先，未手动设置时
+          // 跟随系统（Windows 的「高对比度」开关）。
+          theme: ref.watch(
+            themeProvider(_contrastOf(context) == AppleContrast.high),
+          ),
+          darkTheme: AppDesign.darkTheme(contrast: _contrastOf(context)),
           // 应用启动锁门：冷启动 + 切后台回锁；未配置 PIN 时完全透明。
           home: AppLockGate(
             service: _appLockService,
@@ -203,4 +208,14 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
       ),
     );
   }
+
+  /// 最终对比度档位：用户的手动覆盖值优先，否则跟随系统设置。
+  ///
+  /// 这里不能用 `MediaQuery.highContrastOf(context)`——本方法在
+  /// `MaterialApp` **之上**调用，那个位置还没有 MediaQuery 可用；
+  /// `AppleContrast.of` 直接从 [View] 读平台属性。
+  AppleContrast _contrastOf(BuildContext context) => AppleContrast.resolve(
+    override: _themeController.highContrastOverride,
+    platform: AppleContrast.of(context),
+  );
 }

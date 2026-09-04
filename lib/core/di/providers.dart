@@ -12,7 +12,16 @@ import '../theme/app_design.dart';
 /// - 可测试：ProviderContainer 可独立构建，provider 可用 override 替换
 ///
 /// 主题 provider（首个示例，验证管线打通；AppThemeController 保留兼容）。
-final themeProvider = Provider<ThemeData>((ref) => AppDesign.lightTheme());
+///
+/// 采用 family：主题取决于对比度档（常规 / 高对比，平台域裁决 C2），
+/// 与明暗模式是两个独立维度，因此按档位取不同实例。
+///
+/// 参数刻意用 `bool` 而不是 `AppleContrast` 枚举：本文件是 DI 装配层，
+/// 出向依赖每多一条，Martin instability 就往上走一档（0.33 → 0.50 会
+/// 撞上 `test/architecture_test.dart` 规则 3b 的 0.4 基线）。
+final themeProvider = Provider.family<ThemeData, bool>(
+  (ref, highContrast) => AppDesign.lightThemeFor(highContrast),
+);
 
 /// 深色模式开关（Notifier 迁移示范，审计修复 2026-08-15）：
 /// 原 StateProvider 为 Riverpod 3.0 legacy API（3.0 已移出主 import），

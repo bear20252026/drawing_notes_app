@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' show Brightness, ThemeMode;
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -14,9 +14,23 @@ void main() {
     final container = ProviderContainer();
     addTearDown(container.dispose);
 
-    final theme = container.read(themeProvider);
+    final theme = container.read(themeProvider(false));
     expect(theme, isNotNull);
     expect(theme.brightness, Brightness.light);
+  });
+
+  test('themeProvider 按对比度档返回不同配色（平台域裁决 C2）', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    final normal = container.read(themeProvider(false));
+    final high = container.read(themeProvider(true));
+
+    // 常规档：卡片边框是 8% 发丝线；高对比度档：纯黑 100% 不透明。
+    final normalShape = normal.cardTheme.shape! as RoundedRectangleBorder;
+    final highShape = high.cardTheme.shape! as RoundedRectangleBorder;
+    expect(normalShape.side.color.a, lessThan(0.2));
+    expect(highShape.side.color, Colors.black);
   });
 
   test('darkModeProvider 可读可写（单向状态流）', () {

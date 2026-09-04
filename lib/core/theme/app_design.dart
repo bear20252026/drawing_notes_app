@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'apple_contrast.dart';
 import 'apple_design.dart';
 import 'apple_elevation.dart';
 import 'apple_focus.dart';
@@ -42,14 +43,35 @@ abstract final class AppDesign {
   static const Duration quickMotion = Duration(milliseconds: 140);
   static const Duration standardMotion = Duration(milliseconds: 200);
 
-  static ThemeData lightTheme() => _theme(Brightness.light);
-  static ThemeData darkTheme() => _theme(Brightness.dark);
+  /// 明亮模式主题；[contrast] 为 [AppleContrast.high] 时走 Windows
+  /// 高对比度配色（平台域裁决 C2）。
+  static ThemeData lightTheme({
+    AppleContrast contrast = AppleContrast.normal,
+  }) => _theme(Brightness.light, contrast);
 
-  static ThemeData _theme(Brightness brightness) {
+  /// 深蓝（黑暗）模式主题；[contrast] 同上。
+  static ThemeData darkTheme({
+    AppleContrast contrast = AppleContrast.normal,
+  }) => _theme(Brightness.dark, contrast);
+
+  /// 便捷工厂：用布尔直接取明亮模式主题。
+  ///
+  /// 存在的唯一理由是**依赖方向**：DI 装配层（`core/di/providers.dart`）
+  /// 的 Martin instability 基线是 0.4，若它为了拿 [AppleContrast] 枚举
+  /// 而多一条出向 import，I 值会从 0.33 涨到 0.50 撞上
+  /// `test/architecture_test.dart` 规则 3b。用布尔传参即可不引入该依赖。
+  static ThemeData lightThemeFor(bool highContrast) =>
+      lightTheme(contrast: highContrast ? AppleContrast.high : AppleContrast.normal);
+
+  static ThemeData _theme(Brightness brightness, AppleContrast contrast) {
     final isDark = brightness == Brightness.dark;
+    final highContrast = contrast == AppleContrast.high;
 
-    // 颜色随模式切换：明亮=Apple，黑暗=深蓝。
-    final colorScheme = isDark ? _navyScheme() : _appleLightScheme();
+    // 颜色随模式切换：明亮=Apple，黑暗=深蓝；高对比度档另走一套配色
+    //（无障碍优先于风格——见 AppleContrast 的说明）。
+    final colorScheme = highContrast
+        ? (isDark ? _highContrastDarkScheme() : _highContrastLightScheme())
+        : (isDark ? _navyScheme() : _appleLightScheme());
 
     final base = ThemeData(
       useMaterial3: true,
@@ -62,7 +84,7 @@ abstract final class AppDesign {
       // 焦点环底色：与 AppleFocus 的 2px 描边共存（底色 12% + 描边 2px）。
       // DESIGN.md:8 `primary-focus: "#0071e3"`、:300「focus ring on buttons
       // (`outline: 2px solid`)」。此前主题层完全没有焦点态。
-      focusColor: AppleFocus.colorFor(brightness),
+      focusColor: AppleFocus.colorFor(brightness, highContrast: highContrast),
     );
 
     return base.copyWith(
@@ -89,13 +111,15 @@ abstract final class AppDesign {
           borderRadius: BorderRadius.circular(cardRadius),
           // 发丝线（DESIGN.md:395「1px rgba(0,0,0,0.08)」）。此前用
           // outlineVariant（≈18% 灰），卡片看起来像描边盒子而非苹果的轻分层。
-          side: BorderSide(color: AppleHairline.colorFor(brightness)),
+          side: BorderSide(
+            color: AppleHairline.colorFor(brightness, highContrast: highContrast),
+          ),
         ),
         clipBehavior: Clip.antiAlias,
       ),
       dividerTheme: DividerThemeData(
         // 同一条发丝线：列表/侧栏分隔与卡片边界共用一套语言。
-        color: AppleHairline.colorFor(brightness),
+        color: AppleHairline.colorFor(brightness, highContrast: highContrast),
         thickness: AppleHairline.width,
         space: 1,
       ),
@@ -119,7 +143,7 @@ abstract final class AppDesign {
           // 2px Focus Blue（DESIGN.md:300）。此前是 1.5px primary，
           // 与「焦点 = 2px 描边」的明文规定不符。
           borderSide: BorderSide(
-            color: AppleFocus.colorFor(brightness),
+            color: AppleFocus.colorFor(brightness, highContrast: highContrast),
             width: AppleFocus.width,
           ),
         ),
@@ -305,6 +329,86 @@ abstract final class AppDesign {
       onInverseSurface: Color(0xFF2C3445),
       inversePrimary: Color(0xFF4568A9),
       surfaceTint: Color(0xFFB5CCFF),
+    );
+  }
+
+  /// Windows 高对比度（亮）：纯白底 / 纯黑字 / 边框 100% 不透明。
+  ///
+  /// 依据 Microsoft win-dev-skills：高对比度档要求正文 ≥ 7:1、UI 组件
+  /// 边界 ≥ 3:1。本项目常规档靠 8% 发丝线表达层级，在该档位下等于
+  /// 不可见，因此边框与分割线全部推到纯黑。
+  ///
+  /// 强调色仍留在 Action Blue 色族（`#003D99`，对白 8.6:1）——
+  /// 不引入第二种强调色，守住 DESIGN.md:491 的铁律。
+  static ColorScheme _highContrastLightScheme() {
+    return const ColorScheme(
+      brightness: Brightness.light,
+      primary: Color(0xFF003D99),
+      onPrimary: Colors.white,
+      primaryContainer: Color(0xFF003D99),
+      onPrimaryContainer: Colors.white,
+      secondary: Color(0xFF1A1A1A),
+      onSecondary: Colors.white,
+      secondaryContainer: Color(0xFFE6E6E6),
+      onSecondaryContainer: Color(0xFF000000),
+      tertiary: Color(0xFF004D33),
+      onTertiary: Colors.white,
+      tertiaryContainer: Color(0xFF004D33),
+      onTertiaryContainer: Colors.white,
+      error: Color(0xFFB00020),
+      onError: Colors.white,
+      errorContainer: Color(0xFFB00020),
+      onErrorContainer: Colors.white,
+      surface: Color(0xFFFFFFFF),
+      onSurface: Color(0xFF000000),
+      surfaceContainerHighest: Color(0xFFE6E6E6),
+      onSurfaceVariant: Color(0xFF000000),
+      outline: Color(0xFF000000),
+      outlineVariant: Color(0xFF000000),
+      shadow: Colors.black,
+      scrim: Colors.black,
+      inverseSurface: Color(0xFF000000),
+      onInverseSurface: Color(0xFFFFFFFF),
+      inversePrimary: Color(0xFF99CCFF),
+      surfaceTint: Color(0xFF003D99),
+    );
+  }
+
+  /// Windows 高对比度（暗）：纯黑底 / 纯白字 / 边框 100% 不透明。
+  ///
+  /// 常规深色档是深蓝（保留应用身份），但高对比度档下可读性优先，
+  /// 因此退回纯黑——深蓝底上的白字对比度不足 7:1。
+  static ColorScheme _highContrastDarkScheme() {
+    return const ColorScheme(
+      brightness: Brightness.dark,
+      primary: Color(0xFF99CCFF),
+      onPrimary: Color(0xFF000000),
+      primaryContainer: Color(0xFF99CCFF),
+      onPrimaryContainer: Color(0xFF000000),
+      secondary: Color(0xFFFFFFFF),
+      onSecondary: Color(0xFF000000),
+      secondaryContainer: Color(0xFF1A1A1A),
+      onSecondaryContainer: Color(0xFFFFFFFF),
+      tertiary: Color(0xFF7FFFD4),
+      onTertiary: Color(0xFF000000),
+      tertiaryContainer: Color(0xFF004D33),
+      onTertiaryContainer: Color(0xFFFFFFFF),
+      error: Color(0xFFFF6B6B),
+      onError: Color(0xFF000000),
+      errorContainer: Color(0xFF93000A),
+      onErrorContainer: Color(0xFFFFFFFF),
+      surface: Color(0xFF000000),
+      onSurface: Color(0xFFFFFFFF),
+      surfaceContainerHighest: Color(0xFF1A1A1A),
+      onSurfaceVariant: Color(0xFFFFFFFF),
+      outline: Color(0xFFFFFFFF),
+      outlineVariant: Color(0xFFFFFFFF),
+      shadow: Colors.black,
+      scrim: Colors.black,
+      inverseSurface: Color(0xFFFFFFFF),
+      onInverseSurface: Color(0xFF000000),
+      inversePrimary: Color(0xFF003D99),
+      surfaceTint: Color(0xFF99CCFF),
     );
   }
 }

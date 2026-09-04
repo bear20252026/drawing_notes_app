@@ -41,8 +41,24 @@ abstract final class AppleFocus {
   /// `AppleColor.actionBlueOnDark` `#2997FF`）。
   static const Color colorOnDark = Color(0xFF2997FF);
 
-  static Color colorFor(Brightness brightness) =>
-      brightness == Brightness.dark ? colorOnDark : color;
+  /// 高对比度档（C2）：仍是同一个蓝，只是把亮度推到对比度极限——
+  /// 亮底 #003D99（对白 8.6:1）、暗底 #99CCFF（对黑 11:1）。
+  /// 不换成别的色系，守住「单一强调色」铁律。
+  static const Color colorHighContrastLight = Color(0xFF003D99);
+  static const Color colorHighContrastDark = Color(0xFF99CCFF);
+
+  /// 参数用 [highContrast] 布尔而非 `AppleContrast` 枚举：本文件位于
+  /// `apple_design.dart → apple_pressable.dart → 本文件` 的依赖链末端，
+  /// 再加出向依赖会推高上游的 Martin instability（见 AppleHairline
+  /// 同名注释里的架构门禁说明）。
+  static Color colorFor(Brightness brightness, {bool highContrast = false}) {
+    if (highContrast) {
+      return brightness == Brightness.dark
+          ? colorHighContrastDark
+          : colorHighContrastLight;
+    }
+    return brightness == Brightness.dark ? colorOnDark : color;
+  }
 }
 
 /// 用 2px 焦点环包裹任意可聚焦控件。
@@ -91,7 +107,10 @@ class _AppleFocusRingState extends State<AppleFocusRing> {
 
   @override
   Widget build(BuildContext context) {
-    final ringColor = AppleFocus.colorFor(Theme.of(context).brightness);
+    // 焦点环颜色取自主题的 focusColor（由 app_design 统一注入，已含
+    // 对比度档位），而不是自己按 brightness 现算——这样高对比度档下
+    // 无需每个调用点都传 contrast。
+    final ringColor = Theme.of(context).focusColor;
     final showRing = widget.enabled && _focused;
     final gap = AppleFocus.gap;
 
