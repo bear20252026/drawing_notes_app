@@ -58,7 +58,9 @@ jobs:
           KP: ${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }}
           ALIAS: ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
         run: |
-          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=app/release.jks\n' \
+          # Gradle 模块工作目录是 android/app/，storeFile 相对于该目录解析。
+          # keystore 写到 android/app/release.jks，故 storeFile=release.jks。
+          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=release.jks\n' \
             "$SP" "$KP" "$ALIAS" > android/key.properties
 
       - name: Install dependencies

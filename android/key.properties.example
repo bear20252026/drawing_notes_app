@@ -3,4 +3,4 @@
 storePassword=REPLACE_WITH_KEYSTORE_PASSWORD
 keyPassword=REPLACE_WITH_KEY_PASSWORD
 keyAlias=release
-storeFile=app/release.jks
+storeFile=release.jks
