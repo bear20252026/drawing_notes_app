@@ -50,10 +50,9 @@ class AppLockService extends ChangeNotifier {
   static const _kSaltKey = 'app_lock.salt';
   static const _kPinLengthKey = 'app_lock.pin_length';
 
-  /// PIN 哈希版本：1 = 单次 SHA-256（旧，兼容验证后升级）；2 = Argon2id
-  ///（后台 isolate 派生，约 348ms，内存硬抗 GPU 离线爆破）。
+  /// PIN 哈希版本键（诊断可观测；读取按哈希形值识别，不信任该键）。
+  /// 版本语义：1 = 单次 SHA-256（旧，64 位 hex），2 = Argon2id（44 位 base64）。
   static const _kPinKdfVersionKey = 'app_lock.pin_kdf_v';
-  static const int _kdfLegacySha256 = 1;
   static const int _kdfArgon2id = 2;
 
   /// 测试注入 KDF（FakeAsync 下 `Isolate.run` 永不完成，widget 测试用
