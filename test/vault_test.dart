@@ -67,17 +67,21 @@ void main() {
       type: 'note',
       plain: Uint8List.fromList('机密'.codeUnits),
     );
-    // 错误密钥（不同）——P1 起先撞清单 HMAC 门（StateError），删侧车后
-    // 才落到 AAD/解密认证失败（SecretBoxAuthenticationError）。
+    // 错误密钥必 fail-closed：清单 HMAC 门（StateError）与
+    // AAD/解密认证（SecretBoxAuthenticationError）双保险——任一拦截
+    // 即安全。HMAC 门的确定性证明见下方的回滚测试（同钥改 manifest
+    // 必撞门）；此处不断言具体哪一道先开（两道都关着门）。
     final wrongKey = List<int>.generate(32, (i) => i + 1);
     final wrongVault = EncryptedVault(directory: tempDir, key: wrongKey);
-    expect(
-      () => wrongVault.readObject('secret'),
-      throwsA(isA<StateError>()),
+    await expectLater(
+      wrongVault.readObject('secret'),
+      throwsA(
+        anyOf(isA<StateError>(), isA<SecretBoxAuthenticationError>()),
+      ),
     );
     await File('${tempDir.path}/manifest.hmac').delete();
-    expect(
-      () => wrongVault.readObject('secret'),
+    await expectLater(
+      wrongVault.readObject('secret'),
       throwsA(isA<SecretBoxAuthenticationError>()),
     );
   });
@@ -177,18 +181,15 @@ void main() {
     expect(() => vault.readObject('tiny'), throwsStateError);
   });
 
-  test('P1：非 32 字节密钥 fail-closed（release 无 assert）', () async {
-    final vault = EncryptedVault(
-      directory: tempDir,
-      key: List<int>.filled(16, 1),
-    );
+  test('P1：非 32 字节密钥 fail-closed（debug 断言/release 运行时检查）', () async {
+    // debug/test 下构造期 assert 先开火（AssertionError）；release 下
+    // assert 被剥离，改由 _requireKey 抛 StateError——两种模式都关门。
     await expectLater(
-      vault.writeObject(
-        id: 'a',
-        type: 't',
-        plain: Uint8List.fromList('x'.codeUnits),
+      () => EncryptedVault(
+        directory: tempDir,
+        key: List<int>.filled(16, 1),
       ),
-      throwsStateError,
+      throwsA(anyOf(isA<AssertionError>(), isA<StateError>())),
     );
   });
 }

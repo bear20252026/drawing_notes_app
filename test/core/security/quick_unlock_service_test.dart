@@ -19,6 +19,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drawing_notes_app/core/security/app_lock_gate.dart';
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/kdf_params.dart';
+import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 
@@ -71,12 +72,15 @@ void main() {
   setUp(() {
     // 批B 约定：测试注入轻量 KDF（Argon2id 生产档 348ms/次不可接受）。
     KdfParams.newSlotDefault = KdfParams.testLight;
-    // P0 连带：开屏 PIN 同样走 isolate 派生，widget 组在 FakeAsync 下防挂起。
+    // P0 连带：开屏 PIN 同样走 isolate 派生，widget 组在 FakeAsync 下
+    // 后台结果永不回投——同 isolate 直派生防挂起（生产路径不受影响）。
     AppLockService.testPinKdfOverride = KdfParams.testLight;
+    KekSessionCache.bypassIsolateForTests = true;
   });
 
   tearDown(() {
     AppLockService.testPinKdfOverride = null;
+    KekSessionCache.bypassIsolateForTests = false;
   });
 
   group('QuickUnlockService 开关与副本生命周期', () {

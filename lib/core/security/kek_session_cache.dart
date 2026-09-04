@@ -68,6 +68,12 @@ class KekSessionCache {
     );
   }
 
+  /// 测试旁路：为 true 时跳过 `Isolate.run`，在当前 isolate 直接派生。
+  /// testWidgets 跑在 FakeAsync zone，后台 isolate 结果永不回投导致挂起；
+  /// 纯单测与生产恒走 isolate（性能与隔离语义不变）。
+  @visibleForTesting
+  static bool bypassIsolateForTests = false;
+
   /// in-flight 去重：同键并发派生共享同一 Future。
   final Map<String, Future<Uint8List>> _inflight = {};
 
@@ -105,7 +111,10 @@ class KekSessionCache {
       return Uint8List.fromList(shared);
     }
 
-    final task = Isolate.run(() => _deriveBytesAsync(password, salt, params));
+    // 测试旁路（见字段注释）：同 Future 契约，仅换执行位置。
+    final Future<Uint8List> task = bypassIsolateForTests
+        ? _deriveBytesAsync(password, salt, params)
+        : Isolate.run(() => _deriveBytesAsync(password, salt, params));
     _inflight[key] = task;
     try {
       final derived = await task;
