@@ -3,7 +3,7 @@
 /// 软删除/恢复/彻底删除/过期清理与回收站编解码，共享主库的私有成员
 /// （写链/目录/信封/DEK 缓存/onWrite），通过 part 同库访问。
 
-part of note_block_doc_store;
+part of 'note_block_doc_store.dart';
 
 extension NoteBlockDocStoreTrash on NoteBlockDocStore {
 

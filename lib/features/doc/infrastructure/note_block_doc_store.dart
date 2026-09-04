@@ -11,8 +11,8 @@
 /// 不 import presentation，层方向严格 domain ← infrastructure。
 ///
 /// L-03 拆分：回收站域与文件密码域为本库的 part（同库共享私有成员，
-/// 行为与单文件完全一致）；part 用库名关联，不依赖相对路径解析。
-library note_block_doc_store;
+/// 行为与单文件完全一致；extension 包裹——类成员不可裸跨 part 文件）。
+library;
 
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'dart:convert';
