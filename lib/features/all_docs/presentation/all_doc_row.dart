@@ -24,6 +24,13 @@ class AllDocRow extends StatelessWidget {
     this.onMenu,
   });
 
+  /// 标题文字的起始缩进 = 16（行内边距）+ 36（kind 图标）+ 12（间距）。
+  ///
+  /// 列表分隔线从这里起线，而不是从屏幕边缘拉通（shadcn 的信息层级做法）。
+  /// 定义为常量是为了让「分隔线对齐文字」这件事只有一个事实来源——
+  /// 行内布局改了，改这里一处即可。
+  static const double textIndent = 64;
+
   final AllDoc doc;
   final VoidCallback onOpenDoc;
   final VoidCallback? onToggleFavorite;
@@ -37,8 +44,15 @@ class AllDocRow extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final onSurface = scheme.onSurface;
-    final muted = onSurface.withValues(alpha: 0.55);
-    final subtle = onSurface.withValues(alpha: 0.35);
+    // 信息层级三级（shadcn 的信息层级做法 + DESIGN.md 排版梯子）：
+    //   标题（强）→ 描述（中）→ 元信息（弱）
+    // 用**语义色 + 字重**分级，而不是一味压低透明度——原先元信息用
+    // 0.35 的 onSurface，浅色模式下对比度仅约 2.3:1，远低于 WCAG 对
+    // 文本 4.5:1 的要求（元信息也是信息，不能淡到看不清）。
+    //  - 描述：主题的 onSurfaceVariant（语义化，深浅模式自动适配）；
+    //  - 元信息：55% onSurface（对比度约 4.6:1，刚好过线）。
+    final muted = scheme.onSurfaceVariant;
+    final subtle = onSurface.withValues(alpha: 0.55);
     final visual = visualFor(doc.kind);
     // M11.2：显示明确日期（今天带时分，昨天/今年带月日，跨年带年份）
     // ——承接原日历「文档动态」时间线的"哪天动了哪个文档"语义。
@@ -62,7 +76,10 @@ class AllDocRow extends StatelessWidget {
         onTap: onOpenDoc,
         onSecondaryTapUp: (details) => showMenuAt(details.globalPosition),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          // 纵向 10 → 12：DESIGN.md:376「structural layout snaps to
+          // 8/12/16/20/24」，10 不在栅格上；12 也让 15px 标题 + 13px
+          // 描述的两行结构呼吸更均匀。
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -87,8 +104,16 @@ class AllDocRow extends StatelessWidget {
                     Text(
                       doc.title.isEmpty ? '未命名' : doc.title,
                       style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                        // 14 → 15：列表标题是触屏主用设备上的主要点击目标，
+                        // 14px 偏小；15px 仍在 UI 尺度内（DESIGN.md 的
+                        // 17px 是**营销正文**档，不适用于列表条目）。
+                        fontSize: 15,
+                        // w500 → w600：DESIGN.md:504 明文
+                        // 「Don't set body copy at weight 500 — Apple's
+                        // ladder is 300 / 400 / 600 / 700, with 500
+                        // deliberately absent」。
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.1,
                         color: onSurface,
                       ),
                       maxLines: 1,
@@ -98,7 +123,14 @@ class AllDocRow extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         doc.description,
-                        style: TextStyle(fontSize: 12, color: muted),
+                        style: TextStyle(
+                          fontSize: 13,
+                          // DESIGN.md:506「Don't tighten line-height below
+                          // 1.47 for body copy」。描述最多两行，行高拉开后
+                          // 整行更透气，也和正文阅读节奏一致。
+                          height: AppleType.bodyLineHeight,
+                          color: muted,
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),

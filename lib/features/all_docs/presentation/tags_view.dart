@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
+import 'package:drawing_notes_app/core/theme/apple_elevation.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_doc_row.dart';
 
 /// 标签视图：先列标签（带计数），点选后展示该标签下的打字笔记。
@@ -114,9 +115,9 @@ class _TagsViewState extends State<TagsView> {
                 : ListView.separated(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: docs.length,
-                    separatorBuilder: (_, _) => Divider(
-                      height: 1,
-                      color: theme.dividerColor.withValues(alpha: 0.08),
+                    separatorBuilder: (context, _) => AppleHairline.listDivider(
+                      context,
+                      indent: AllDocRow.textIndent,
                     ),
                     itemBuilder: (context, i) => AllDocRow(
                       doc: docs[i],

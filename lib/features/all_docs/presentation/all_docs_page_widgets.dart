@@ -328,8 +328,14 @@ class _SortedDocList extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: docs.length,
+      // 原先是 `theme.dividerColor.withValues(alpha: 0.08)`——而
+      // dividerColor 本身已经是 8% 发丝线，再乘一次只剩 0.64%，
+      // 等于**没有分隔线**。改用 AppleHairline，并从**文字起始处**
+      // 起线（indent = 16 padding + 36 图标 + 12 间距 = 64）：
+      // 拉通到屏幕边缘的发丝线会把每行切成格子，从文字处起只做
+      // 分组提示，层级更轻（shadcn 的信息层级做法）。
       separatorBuilder: (context, index) =>
-          Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.08)),
+          AppleHairline.listDivider(context, indent: AllDocRow.textIndent),
       itemBuilder: (context, i) => AllDocRow(
         doc: docs[i],
         onOpenDoc: () => onOpenDoc(docs[i]),
@@ -381,10 +387,8 @@ class _GroupedDocList extends StatelessWidget {
       return ListView.separated(
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: favorites.length,
-        separatorBuilder: (context, index) => Divider(
-          height: 1,
-          color: theme.dividerColor.withValues(alpha: 0.08),
-        ),
+        separatorBuilder: (context, index) =>
+            AppleHairline.listDivider(context, indent: AllDocRow.textIndent),
         itemBuilder: (context, i) => AllDocRow(
           doc: favorites[i],
           onOpenDoc: () => onOpenDoc(favorites[i]),
@@ -420,9 +424,9 @@ class _GroupedDocList extends StatelessWidget {
                     onOpenDoc: () => onOpenDoc(doc),
                     onToggleFavorite: () => onToggleFavorite(doc),
                   ),
-                  Divider(
-                    height: 1,
-                    color: theme.dividerColor.withValues(alpha: 0.08),
+                  AppleHairline.listDivider(
+                    context,
+                    indent: AllDocRow.textIndent,
                   ),
                 ],
               ),

@@ -8,6 +8,7 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/core/theme/apple_elevation.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
 import 'package:drawing_notes_app/core/layout/responsive.dart';
@@ -210,8 +211,11 @@ class _AllDocsPageState extends State<AllDocsPage> {
         // 垂直分隔线
         VerticalDivider(
           width: 1,
-          thickness: 1,
-          color: theme.dividerColor.withValues(alpha: 0.15),
+          thickness: AppleHairline.width,
+          // 原先是 `dividerColor.withValues(alpha: 0.15)`：dividerColor
+          // 本身已是 8% 发丝线，再乘 0.15 只剩约 1.2%，等于没有。
+          // 直接用发丝线本色（8%）。
+          color: AppleHairline.colorOf(context),
         ),
         // 主内容区
         Expanded(
