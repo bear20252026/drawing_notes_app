@@ -82,29 +82,50 @@ class _FrameCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                // 帧背景色（AFFiNE note 帧背景预设）
-                InkWell(
-                  onTap: onSetBackground,
-                  borderRadius: BorderRadius.circular(AppleRadius.lg),
-                  child: Tooltip(
-                    message: '帧背景色',
-                    child: Container(
-                      width: 20,
-                      height: 20,
-                      margin: const EdgeInsets.symmetric(horizontal: 2),
-                      decoration: BoxDecoration(
-                        color: _bgColor(),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.outlineVariant,
+                // 帧背景色（AFFiNE note 帧背景预设）。
+                // 热区 44×44（审计二-1）但不撑大帧头：布局占位保持 24×20，
+                // 命中区经 Stack(Clip.none) + Positioned 溢出居中（与
+                // resize_handles 的「视觉小、命中大」同法）。
+                SizedBox(
+                  width: 24,
+                  height: 20,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Positioned(
+                        left: -10,
+                        top: -12,
+                        width: 44,
+                        height: 44,
+                        child: InkWell(
+                          onTap: onSetBackground,
+                          borderRadius: BorderRadius.circular(AppleRadius.lg),
+                          child: Center(
+                            child: Tooltip(
+                              message: '帧背景色',
+                              child: Container(
+                                width: 20,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  color: _bgColor(),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.outlineVariant,
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.format_color_fill,
+                                  size: 12,
+                                  color: ink.withValues(alpha: 0.6),
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                      child: Icon(
-                        Icons.format_color_fill,
-                        size: 12,
-                        color: ink.withValues(alpha: 0.6),
-                      ),
-                    ),
+                    ],
                   ),
                 ),
                 if (selected)

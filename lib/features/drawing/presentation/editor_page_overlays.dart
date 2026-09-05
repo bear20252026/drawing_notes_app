@@ -99,7 +99,11 @@ extension _EditorPageOverlays on _EditorPageState {
         duration: const Duration(milliseconds: 180),
         child: GestureDetector(
           onTap: () => _onItemTap(shape.id),
-          onSecondaryTapDown: (d) => _showItemContextMenu(shape.id),
+          onSecondaryTapDown: (d) =>
+              _showItemContextMenu(shape.id, globalAnchor: d.globalPosition),
+          // 触屏长按 = 右键等价入口（审计二-10：触屏与键盘双盲修复）。
+          onLongPressStart: (d) =>
+              _showItemContextMenu(shape.id, globalAnchor: d.globalPosition),
           onPanUpdate: (d) => _dragItem(shape.id, d.delta),
           onPanEnd: (_) => _notifyChanged(),
           child: SizedBox(

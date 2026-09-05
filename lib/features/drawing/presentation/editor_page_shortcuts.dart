@@ -63,6 +63,14 @@ extension _EditorPageShortcuts on _EditorPageState {
           _commands.run('deleteSelection')) {
         return KeyEventResult.handled;
       }
+      // 上下文菜单键盘入口（审计二-10）：Menu 键 / Shift+F10（Windows
+      // 惯例），作用于当前选中元素；菜单出现在画布中央偏上。
+      if ((key == LogicalKeyboardKey.contextMenu ||
+              (key == LogicalKeyboardKey.f10 && isShift)) &&
+          _selectedItemId != null) {
+        _showItemContextMenu(_selectedItemId!);
+        return KeyEventResult.handled;
+      }
     }
 
     // Alt+方向键微调选中元素位置（对齐 Excalidraw nudge，1px 步进）。

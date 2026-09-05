@@ -176,7 +176,11 @@ extension _EditorPageTextOverlays on _EditorPageState {
     return GestureDetector(
       onTap: () => _onItemTap(item.id),
       onDoubleTap: _editTextItem,
-      onSecondaryTapDown: (d) => _showItemContextMenu(item.id),
+      onSecondaryTapDown: (d) =>
+          _showItemContextMenu(item.id, globalAnchor: d.globalPosition),
+      // 触屏长按 = 右键等价入口（审计二-10）。
+      onLongPressStart: (d) =>
+          _showItemContextMenu(item.id, globalAnchor: d.globalPosition),
       onPanUpdate: (d) => _dragItem(item.id, d.delta),
       onPanEnd: (_) => _notifyChanged(),
       child: Stack(

@@ -89,15 +89,20 @@ class _TagsViewState extends State<TagsView> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: Row(
               children: [
+                // 热区补足 44（审计二-1）：18px 图标 + 垂直 13px 内边距。
                 InkWell(
                   onTap: () => setState(() => _selectedTagId = null),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.arrow_back_rounded, size: 18),
-                      SizedBox(width: 4),
-                      Text('全部标签'),
-                    ],
+                  borderRadius: BorderRadius.circular(8),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 13),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.arrow_back_rounded, size: 18),
+                        SizedBox(width: 4),
+                        Text('全部标签'),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),

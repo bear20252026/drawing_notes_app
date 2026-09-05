@@ -78,16 +78,23 @@ class PropertiesPanel extends StatelessWidget {
                   // 当前颜色圆点（点击弹色板）
                   Tooltip(
                     message: '画笔颜色',
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(AppleRadius.md),
-                      onTap: onPickColor,
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: controller.color,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.black26),
+                    // 热区 44×44（审计二-1：HIG 最小触控尺寸），视觉圆点保持 28。
+                    child: SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: Center(
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(AppleRadius.md),
+                          onTap: onPickColor,
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: controller.color,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.black26),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -233,16 +240,23 @@ class PropertiesPanel extends StatelessWidget {
                   children: [
                     Tooltip(
                       message: '文字颜色',
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(AppleRadius.md),
-                        onTap: onTextColor,
-                        child: Container(
-                          width: 22,
-                          height: 22,
-                          decoration: BoxDecoration(
-                            color: Color(selectedText!.color),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.black26),
+                      // 热区 44×44（审计二-1），视觉圆点保持 22。
+                      child: SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: Center(
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(AppleRadius.md),
+                            onTap: onTextColor,
+                            child: Container(
+                              width: 22,
+                              height: 22,
+                              decoration: BoxDecoration(
+                                color: Color(selectedText!.color),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.black26),
+                              ),
+                            ),
                           ),
                         ),
                       ),

@@ -88,6 +88,9 @@ class _ApplePressableState extends State<ApplePressable> {
 
   void _add(_PressSource source) {
     if (!widget.enabled) return;
+    // 触感反馈（审计二-2）：按下即 selectionClick——禁用态在上方被拦截，
+    // 不会误触发；指针与键盘共用同一反馈（三输入同反馈原则）。
+    _haptic();
     if (_pressed.add(source) && mounted) setState(() {});
   }
 
@@ -100,6 +103,9 @@ class _ApplePressableState extends State<ApplePressable> {
     _pressed.clear();
     if (mounted) setState(() {});
   }
+
+  /// 触感反馈（审计二-2）：selectionClick——统一轻量选中确认感。
+  void _haptic() => HapticFeedback.selectionClick();
 
   @override
   Widget build(BuildContext context) {
@@ -156,6 +162,9 @@ class _ApplePressableState extends State<ApplePressable> {
             return KeyEventResult.handled;
           }
           if (event is KeyUpEvent) {
+            // 禁用态忽略键盘激活（KeyDown 已拦截，KeyUp 仍会到达——
+            // 此前会在禁用时触发 onTap，一并修复）。
+            if (!widget.enabled) return KeyEventResult.ignored;
             _remove(_PressSource.keyboard);
             widget.onTap?.call();
             return KeyEventResult.handled;
@@ -166,14 +175,14 @@ class _ApplePressableState extends State<ApplePressable> {
       );
     }
 
-    if (widget.semanticLabel != null) {
-      result = Semantics(
-        label: widget.semanticLabel,
-        button: true,
-        enabled: widget.enabled,
-        child: result,
-      );
-    }
+    // 语义树始终暴露 button 角色（审计二-3）：无 label 也要让读屏
+    // 知道这是按钮、可否用——角色与启用状态不依赖文案存在。
+    result = Semantics(
+      label: widget.semanticLabel,
+      button: true,
+      enabled: widget.enabled,
+      child: result,
+    );
 
     // 键盘焦点环：2px Focus Blue，外扩绘制不占布局。
     // 补上此前「注释里承诺、主题层却没配」的欠账——见 apple_focus.dart。

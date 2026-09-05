@@ -452,12 +452,29 @@ extension _EditorPageEditing on _EditorPageState {
     _notifyChanged();
   }
 
-  /// 右键上下文菜单（借鉴 Excalidraw 菜单）：复制样式/删除/置顶/置底。
-  void _showItemContextMenu(String itemId) {
+  /// 上下文菜单（借鉴 Excalidraw 菜单）：复制样式/删除/置顶/置底。
+  ///
+  /// 触达（审计二-10）：右键 / 触屏长按 / 键盘 Menu 键或 Shift+F10。
+  /// [globalAnchor] 非空时菜单锚定触发点（指针/长按）；键盘触发为空，
+  /// 落在画布中央偏上（不再是硬编码 100,100）。
+  void _showItemContextMenu(String itemId, {Offset? globalAnchor}) {
     _applyState(() => _selectedItemId = itemId);
+    final RelativeRect position;
+    if (globalAnchor != null) {
+      final overlay =
+          Overlay.of(context).context.findRenderObject() as RenderBox?;
+      final bounds = overlay?.semanticBounds ?? Rect.fromLTWH(0, 0, 800, 600);
+      position = RelativeRect.fromRect(
+        Rect.fromPoints(globalAnchor, globalAnchor.translate(1, 1)),
+        Offset.zero & bounds.size,
+      );
+    } else {
+      final size = MediaQuery.sizeOf(context);
+      position = RelativeRect.fromLTRB(size.width / 2, size.height / 3, 0, 0);
+    }
     showMenu<_CtxAction>(
       context: context,
-      position: const RelativeRect.fromLTRB(100, 100, 0, 0),
+      position: position,
       items: const [
         PopupMenuItem(value: _CtxAction.copyStyle, child: Text('复制样式')),
         PopupMenuItem(value: _CtxAction.group, child: Text('分组')),
