@@ -90,6 +90,8 @@ class _PdfAttachmentPreviewState extends State<PdfAttachmentPreview> {
               height: widget.maxHeight,
               child: Center(
                 child: SizedBox(
+                  // 刻意保留 spinner（审计二-6 分类裁决）：这是文档
+                  // 解析**进度**反馈而非页面布局骨架，无行结构可预告。
                   width: 22,
                   height: 22,
                   child: CircularProgressIndicator(strokeWidth: 2),

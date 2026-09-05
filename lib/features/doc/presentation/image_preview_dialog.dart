@@ -62,6 +62,8 @@ class _ImagePreviewPage extends StatelessWidget {
                 fit: BoxFit.contain,
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
+                  // 刻意保留 spinner（审计二-6 分类裁决）：图片传输
+                  // **进度**反馈（沉浸式黑底查看器），非布局骨架场景。
                   return const Center(
                     child: CircularProgressIndicator(color: Colors.white),
                   );

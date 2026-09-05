@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
+import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 
 /// 回收站条目（store.listTrash 的记录类型）。
 typedef TrashEntry = ({NoteBlockDoc doc, DateTime deletedAt});
@@ -69,7 +70,11 @@ class _TrashPageState extends State<TrashPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('回收站')),
       body: entries == null
-          ? const Center(child: CircularProgressIndicator())
+          // 审计二-6：列表加载骨架屏（形态先行）。
+          ? const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: SkeletonList(rows: 6),
+            )
           : entries.isEmpty
           ? Center(
               child: Column(

@@ -10,6 +10,7 @@ import 'package:drawing_notes_app/features/schedule/presentation/schedule_calend
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
+import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 import '../../../core/theme/apple_design.dart';
 
 /// 日历 —— 月历 + 待办/日程（24 小时时间轴）。
@@ -121,9 +122,14 @@ class _SchedulePageState extends State<SchedulePage> {
                 _buildAgendaHeader(scheme),
                 const SizedBox(height: 8),
                 if (_loading)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 48),
-                    child: Center(child: CircularProgressIndicator()),
+                  // 审计二-6：日程列表加载骨架屏（形态先行）。SkeletonList
+                  // 内含 ListView，此处位于滚动 Column 内须显式限高。
+                  const SizedBox(
+                    height: 180,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: SkeletonList(rows: 3),
+                    ),
                   )
                 else
                   ..._buildAgenda(),

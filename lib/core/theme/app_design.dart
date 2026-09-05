@@ -16,18 +16,22 @@ import 'apple_focus.dart';
 ///   - 结构风格（圆角 / 间距 / 字重 / 动效 / 胶囊 / 过渡）= 统一为 Apple 风格，两种模式一致。
 abstract final class AppDesign {
   // ---- 深蓝（黑暗模式）核心色板：保留 ----
+  // 双令牌源收编（审计四-1）：与 AppleColor 同值的常量一律改别名引用，
+  // 单一事实来源——改令牌对全部消费文件同步生效，杜绝配色静默分叉。
   static const Color navyInk = Color(0xFF172033);
   static const Color navyAccent = Color(0xFF4568A9);
-  static const Color darkCanvas = Color(0xFF101521);
-  static const Color darkSurface = Color(0xFF181F2E);
-  static const Color darkSubtleSurface = Color(0xFF222B3D);
+  static const Color darkCanvas = AppleColor.canvansDark;
+  static const Color darkSurface = AppleColor.surfaceDark;
+  static const Color darkSubtleSurface = AppleColor.subtleSurfaceDark;
 
   // ---- Apple（明亮模式）核心色板 ----
-  static const Color ink = Color(0xFF1D1D1F); // Apple 主体墨色
-  static const Color accent = Color(0xFF0066CC); // Action Blue
-  static const Color lightCanvas = Color(0xFFF5F5F7); // 米白底 (parchment)
-  static const Color lightSurface = Color(0xFFFFFFFF);
-  static const Color lightSubtleSurface = Color(0xFFF2F2F7); // systemGray6
+  static const Color ink = AppleColor.ink; // Apple 主体墨色
+  static const Color accent = AppleColor.actionBlue; // Action Blue
+  static const Color lightCanvas = AppleColor.parchment; // 米白底 (parchment)
+  static const Color lightSurface = AppleColor.surfaceWhite;
+  // 注意：与 AppleColor.subtleSurface（0xFFEBEBED）是**两个不同的灰阶**
+  //（本处为 systemGray6），刻意不合并——合并即改视觉，需实机对比另行裁决。
+  static const Color lightSubtleSurface = Color(0xFFF2F2F7);
 
   // ---- Apple 结构风格（两种模式一致）----
   static const double pagePadding = 20;
@@ -50,9 +54,8 @@ abstract final class AppDesign {
   }) => _theme(Brightness.light, contrast);
 
   /// 深蓝（黑暗）模式主题；[contrast] 同上。
-  static ThemeData darkTheme({
-    AppleContrast contrast = AppleContrast.normal,
-  }) => _theme(Brightness.dark, contrast);
+  static ThemeData darkTheme({AppleContrast contrast = AppleContrast.normal}) =>
+      _theme(Brightness.dark, contrast);
 
   /// 便捷工厂：用布尔直接取明亮模式主题。
   ///
@@ -60,8 +63,9 @@ abstract final class AppDesign {
   /// 的 Martin instability 基线是 0.4，若它为了拿 [AppleContrast] 枚举
   /// 而多一条出向 import，I 值会从 0.33 涨到 0.50 撞上
   /// `test/architecture_test.dart` 规则 3b。用布尔传参即可不引入该依赖。
-  static ThemeData lightThemeFor(bool highContrast) =>
-      lightTheme(contrast: highContrast ? AppleContrast.high : AppleContrast.normal);
+  static ThemeData lightThemeFor(bool highContrast) => lightTheme(
+    contrast: highContrast ? AppleContrast.high : AppleContrast.normal,
+  );
 
   static ThemeData _theme(Brightness brightness, AppleContrast contrast) {
     final isDark = brightness == Brightness.dark;
@@ -112,7 +116,10 @@ abstract final class AppDesign {
           // 发丝线（DESIGN.md:395「1px rgba(0,0,0,0.08)」）。此前用
           // outlineVariant（≈18% 灰），卡片看起来像描边盒子而非苹果的轻分层。
           side: BorderSide(
-            color: AppleHairline.colorFor(brightness, highContrast: highContrast),
+            color: AppleHairline.colorFor(
+              brightness,
+              highContrast: highContrast,
+            ),
           ),
         ),
         clipBehavior: Clip.antiAlias,

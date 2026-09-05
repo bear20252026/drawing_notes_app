@@ -18,6 +18,7 @@ import 'package:drawing_notes_app/features/doc/doc_page.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/features/security/notebook_password_reset_flow.dart';
 import 'package:drawing_notes_app/features/security/block_doc_password_reset_flow.dart';
+import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart'
@@ -253,7 +254,11 @@ class _SearchPageState extends State<SearchPage> {
 
   Widget _buildBody() {
     if (_searching) {
-      return Center(child: CircularProgressIndicator());
+      // 审计二-6：搜索结果列表加载骨架屏（形态先行）。
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: SkeletonList(rows: 6),
+      );
     }
     if (_controller.text.trim().isEmpty) {
       return Center(

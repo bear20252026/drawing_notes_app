@@ -2,6 +2,15 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.11.1] - 2026-09-05
+
+### 视觉统一（审计 U3 批次·第一期）
+
+- **双令牌源收编**（四-1）：`AppDesign` 中与 `AppleColor` 同值的 7 个颜色常量改为别名引用（单一事实来源，改令牌全消费文件同步生效）；`lightSubtleSurface`（systemGray6）与 `AppleColor.subtleSurface` 是刻意保留的两个灰阶，不合并；新增 `identical` 锁定测试防止回退
+- **骨架屏接入**（二-6）：标签视图 / 回收站 / 搜索结果 / 日程议程 4 处列表加载由裸 spinner 换为 `SkeletonList`（形态先行）；PDF 预览与图片查看器的 spinner 刻意保留（传输进度语义，非布局骨架）
+- **核查澄清（审计第 4 轮旧快照项）**：三-8 `withOpacity` 迁移已完成（全库 0 处，`withValues` 89 处）；二-5/四-3 弹窗语言统一已随 v1.10.2-4 dialogTheme 覆盖模式收口（现存 `AlertDialog(` 均为 GlassDialog.show 的玻璃内容层）
+- l10n 收编 5 页面（三-7，约 50+ 字符串 × 双语）单独成批，另行发版
+
 ## [1.11.0] - 2026-09-05
 
 ### 触控与反馈（审计 U2 批次）

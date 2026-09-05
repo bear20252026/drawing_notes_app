@@ -8,6 +8,7 @@ import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/core/theme/apple_elevation.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_doc_row.dart';
+import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 
 /// 标签视图：先列标签（带计数），点选后展示该标签下的打字笔记。
 class TagsView extends StatefulWidget {
@@ -44,7 +45,8 @@ class _TagsViewState extends State<TagsView> {
     final theme = Theme.of(context);
     final tags = _tags;
     if (tags == null) {
-      return const Center(child: CircularProgressIndicator());
+      // 审计二-6：列表加载用骨架屏（形态先行），与全部文档页同语言。
+      return const Center(child: SkeletonList(rows: 4));
     }
     if (tags.isEmpty) {
       return Center(
