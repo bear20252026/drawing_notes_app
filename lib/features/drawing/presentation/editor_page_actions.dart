@@ -202,7 +202,7 @@ extension _EditorPageActions on _EditorPageState {
     final shapeN = page?.shapes.length ?? 0;
     final chartN = page?.charts.length ?? 0;
     final total = textN + imgN + shapeN + chartN + strokes;
-    await showDialog<void>(
+    await GlassDialog.show<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('画布统计'),
@@ -252,7 +252,7 @@ extension _EditorPageActions on _EditorPageState {
       return;
     }
     final library = _shapeLibrary;
-    await showDialog<void>(
+    await GlassDialog.show<void>(
       context: context,
       builder: (ctx) => ShapeLibraryDialog(
         library: library,
@@ -282,7 +282,7 @@ extension _EditorPageActions on _EditorPageState {
   /// editor_page_dialogs.dart），确保搜索框 TextEditingController 在对话框
   /// 完全退出后才释放，避免关闭动画期间重建访问已释放对象。
   Future<void> _showCommandPalette() async {
-    final result = await showDialog<String>(
+    final result = await GlassDialog.show<String>(
       context: context,
       builder: (ctx) => _CommandPaletteDialog(
         registry: _commands,
@@ -537,7 +537,7 @@ extension _EditorPageActions on _EditorPageState {
 
   /// 快捷键帮助对话框（B2：从命令注册表自动生成，借鉴 Notes 快捷键文档化）。
   void _showShortcutHelp() {
-    showDialog<void>(
+    GlassDialog.show<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('快捷键'),

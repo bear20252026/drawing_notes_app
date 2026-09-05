@@ -180,7 +180,7 @@ extension _EditorPageEditing on _EditorPageState {
       _showSnack('本页还没有文字内容');
       return;
     }
-    showDialog<void>(
+    GlassDialog.show<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(

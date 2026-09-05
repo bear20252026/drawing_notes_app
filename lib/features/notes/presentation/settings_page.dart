@@ -13,6 +13,7 @@ import 'package:drawing_notes_app/features/notes/presentation/app_lock_settings_
 import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settings_page.dart';
 import '../../../core/theme/apple_design.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 
 /// 设置页：密码与安全 + 通用两大分组。
 ///
@@ -149,7 +150,7 @@ class SettingsPage extends StatelessWidget {
   }
 
   void _showFilePasswordHelp(BuildContext context) {
-    showDialog<void>(
+    GlassDialog.show<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('单文件密码'),

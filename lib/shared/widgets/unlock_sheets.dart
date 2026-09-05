@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/pin_pad.dart';
 
 /// iOS 锁屏密码盘弹出入口：以全屏对话框形态打开 [PinPadCore]，
@@ -147,7 +148,7 @@ class DesktopUnlockField extends StatefulWidget {
     String? footerLabel,
     VoidCallback? onFooterTap,
   }) {
-    return showDialog<String>(
+    return GlassDialog.show<String>(
       context: context,
       builder: (_) => DesktopUnlockField(
         title: title,
@@ -334,4 +335,3 @@ abstract final class UnlockFlow {
 //     return 'biometric-ok';
 //   }
 // ===========================================================================
-

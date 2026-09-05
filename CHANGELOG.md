@@ -2,6 +2,29 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.10.4] - 2026-09-05
+
+### 液态玻璃覆盖面：弹窗域收口（showDialog 全量迁移）
+
+剩余 20 处 `showDialog` 全部迁移到玻璃外壳，**弹窗域收口**——
+全库除 core 内部实现外不再有直连 `showDialog` 的弹窗。
+
+- **迁移 20 处**：SimpleDialog ×5（移动分组/收藏夹/版本历史等菜单式
+  选择——`SimpleDialog` 构造参数同样默认 null，dialogTheme 覆盖同效）、
+  AlertDialog ×11（文档打开、形状库、PDF 导出面板、命令面板、引导页、
+  设置页、密码重置流程等）、自定义 Dialog 类 ×5 的 build 全部返回
+  `AlertDialog`，dialogTheme 覆盖无障碍。
+- 迁移后全库 `GlassDialog.show` 共 37 处 + `GlassDialog.confirm` 12 处；
+  直连 `showDialog` 仅剩 core 的 `AppleDialog.confirm` 内部实现 1 处
+  （单一事实来源本体，本就该保留）。
+- **范围外刻意保留**：图片预览（沉浸式查看器，black87 深屏障 +
+  可点按消失，玻璃化反而破坏观感）维持原样。
+
+### 测试
+
+- 全量回归 1778 项全绿（v1.10.3 的 16 项玻璃弹窗测试覆盖
+  show/confirm 两条入口，本轮为纯调用点迁移，零新增逻辑）。
+
 ## [1.10.3] - 2026-09-05
 
 ### 液态玻璃覆盖面：内容定制弹窗接入玻璃

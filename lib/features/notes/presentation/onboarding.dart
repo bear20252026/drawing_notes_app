@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
+
 /// 首次启动引导（Phase 7）。
 ///
 /// 功能：第一次打开 App 时展示一次简单的操作提示，可跳过；
@@ -39,7 +41,7 @@ class OnboardingService {
   Future<void> showIfFirstLaunch(BuildContext context) async {
     if (await hasSeen()) return;
     if (!context.mounted) return;
-    await showDialog<void>(
+    await GlassDialog.show<void>(
       context: context,
       barrierDismissible: true,
       builder: (_) => const _OnboardingDialog(),

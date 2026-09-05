@@ -316,7 +316,7 @@ class AppLockSettingsPage extends StatelessWidget {
     final vault = this.vault;
     if (vault != null && await vault.isConfigured()) {
       if (!context.mounted) return;
-      await showDialog<void>(
+      await GlassDialog.show<void>(
         context: context,
         builder: (dialogContext) => AlertDialog(
           title: const Text('无法关闭应用锁'),

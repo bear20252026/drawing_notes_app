@@ -86,7 +86,7 @@ abstract final class PasswordResetSteps {
     String title,
     String message,
   ) {
-    return showDialog<void>(
+    return GlassDialog.show<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(title),

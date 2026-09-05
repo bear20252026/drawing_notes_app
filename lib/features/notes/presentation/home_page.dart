@@ -273,7 +273,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   /// 「新建画布」：弹两选项（新建无限画布 / 新建分页画布）——
   /// 命名体系定案（2026-09-02）：无限画布=「画布」，旧笔记本=「分页画布」。
   Future<void> _createCanvas() async {
-    final choice = await showDialog<bool>(
+    final choice = await GlassDialog.show<bool>(
       context: context,
       builder: (ctx) => SimpleDialog(
         title: const Text('新建画布'),
@@ -624,7 +624,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
 
   Future<void> _createNote() async {
     // M12.6 模板库：新建时选择模板（空白/会议纪要/每日日志/待办清单）。
-    final template = await showDialog<DocTemplate>(
+    final template = await GlassDialog.show<DocTemplate>(
       context: context,
       builder: (ctx) => SimpleDialog(
         title: const Text('选择笔记模板'),
@@ -688,7 +688,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   Future<void> _showTrashDialog() async {
     final trash = await _docStorage.listTrash();
     if (!mounted) return;
-    await showDialog<void>(
+    await GlassDialog.show<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(AppLocalizations.of(context)?.trash ?? '回收站（30 天内可恢复）'),

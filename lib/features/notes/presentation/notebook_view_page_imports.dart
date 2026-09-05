@@ -292,7 +292,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
       _showSnack('该页面暂无历史版本');
       return;
     }
-    final version = await showDialog<PageVersion>(
+    final version = await GlassDialog.show<PageVersion>(
       context: context,
       builder: (ctx) => SimpleDialog(
         title: Text('「${page.title}」版本历史'),

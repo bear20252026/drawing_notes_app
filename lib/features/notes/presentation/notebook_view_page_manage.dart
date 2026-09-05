@@ -214,7 +214,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
       return;
     }
     // 第一步：选择源笔记本。
-    final srcNb = await showDialog<Notebook>(
+    final srcNb = await GlassDialog.show<Notebook>(
       context: context,
       builder: (ctx) => SimpleDialog(
         title: const Text('选择源分页画布'),
@@ -233,7 +233,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
       return;
     }
     // 第二步：选择页面。
-    final srcPage = await showDialog<NotebookPage>(
+    final srcPage = await GlassDialog.show<NotebookPage>(
       context: context,
       builder: (ctx) => SimpleDialog(
         title: const Text('选择要引入的页面'),

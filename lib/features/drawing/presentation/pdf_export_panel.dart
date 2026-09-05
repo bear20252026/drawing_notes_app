@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/drawing/application/pdf_export_options.dart';
 import 'package:drawing_notes_app/shared/widgets/apple_pressable.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 
 /// PDF 导出二级面板的选项结果（null = 用户取消）。
 class PdfExportSelection {
@@ -31,7 +32,7 @@ Future<PdfExportSelection?> showPdfExportPanel(
   PdfPaper initialPaper = PdfPaper.a4,
   PdfQuality initialQuality = PdfQuality.standard,
 }) {
-  return showDialog<PdfExportSelection>(
+  return GlassDialog.show<PdfExportSelection>(
     context: context,
     builder: (ctx) => _PdfExportPanelDialog(
       hasMultiplePages: hasMultiplePages,
@@ -123,7 +124,10 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   _quality.hint,
-                  style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ],

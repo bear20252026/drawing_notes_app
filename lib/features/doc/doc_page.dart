@@ -403,7 +403,7 @@ class _DocPageState extends State<DocPage> {
     if (all == null || !mounted) return;
     final candidates = all.where((d) => d.id != _doc.id).toList()
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    final target = await showDialog<NoteBlockDoc>(
+    final target = await GlassDialog.show<NoteBlockDoc>(
       context: context,
       builder: (ctx) => SimpleDialog(
         title: const Text('插入页面链接'),
@@ -735,7 +735,7 @@ class _DocPageState extends State<DocPage> {
   void _showInfoDialog(BuildContext context) {
     final tagStore = widget.tagStore ?? TagStore();
     final title = _doc.title.isEmpty ? '未命名' : _doc.title;
-    showDialog<void>(
+    GlassDialog.show<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(title),
