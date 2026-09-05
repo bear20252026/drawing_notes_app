@@ -2,6 +2,25 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.14.2] - 2026-09-06
+
+### 画板内存治理（用户报告：分页画布内存占用 ~600MB、全场最高，且伴随画面冻结）
+
+- **根因**：分页画布（固定 A4 纸 2480×3508）每画一笔都 `LayerCompositor.rasterize`
+  整张全页离屏位图——一张 RGBA ≈ 35MB；增量路径还会把旧全图当底、再分配一张新全图。
+  连续绘制时多张 35MB 图在途堆积（冻结时主线程停摆、`dispose` 来不及回收）→ 内存
+  升到 600MB、弱 GPU 上反复 `toImage(2480×3508)` 卡顿冻结。无限画布走矢量路径
+  （`invalidateLayer` 直接返回），不分配这些位图，故只有分页画布重/冻结。
+- **修复**：`LayerCompositor.rasterize` 给图层位图**长边封顶到 2048**
+  （`LayerCompositor.maxBitmapLongEdge`，与 `ImageDecodeCap` 显示上限同量级）。
+  小画布（≤2048）scale=1、行为零变化；大画布（A4 分页）单张位图 35MB → ~12MB，
+  且封顶时不再持有旧全图当底（改整层重建），显著降低峰值与逐笔 toImage 开销。
+- **绘制端统一缩放**：`CanvasPainter`（画布 + 小地图）与 `drawing_controller_render`
+  `_paintDocument`（导出/取色）改用 `drawImageRect`（src=位图实际尺寸，dst=文档尺寸），
+  无需感知封顶比例。
+- 新增测试：小画布保持原尺寸（scale=1 回归护栏）、A4 大画布位图长边封顶到 2048 且
+  内存上限 16MB；render/compositor/canvas 相关测试全绿，analyze 零告警。
+
 ## [1.14.1] - 2026-09-06
 
 ### 分页画布命名修复（用户报告：分页画布永远显示「未命名」、无法命名）

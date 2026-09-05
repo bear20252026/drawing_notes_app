@@ -62,4 +62,37 @@ void main() {
       image.dispose();
     });
   });
+
+  group('图层位图长边封顶（2026-09-06 内存治理）', () {
+    test('小画布保持原尺寸（scale=1，零行为变化）', () async {
+      const compositor = LayerCompositor();
+      final layer = Layer(id: 'small', name: 'L');
+      layer.strokes.add(_stroke(type: BrushType.pen));
+
+      final image = await compositor.rasterize(layer, 100, 100);
+      expect(image.width, 100);
+      expect(image.height, 100);
+      image.dispose();
+    });
+
+    test('大画布（如 A4 2480×3508）位图长边封顶到 2048', () async {
+      const compositor = LayerCompositor();
+      final layer = Layer(id: 'a4', name: 'L');
+      layer.strokes.add(_stroke(type: BrushType.pen));
+
+      final image = await compositor.rasterize(layer, 2480, 3508);
+      // 长边 3508 → 2048；短边按同比例：2480*2048/3508 ≈ 1448。
+      expect(image.height, LayerCompositor.maxBitmapLongEdge);
+      expect(image.width, lessThan(LayerCompositor.maxBitmapLongEdge));
+      expect(image.width, closeTo(1448, 2));
+      // 内存：2048²×4 ≈ 16MB 上限，远小于原 2480×3508×4 ≈ 35MB。
+      expect(
+        image.width * image.height * 4,
+        lessThan(LayerCompositor.maxBitmapLongEdge *
+            LayerCompositor.maxBitmapLongEdge *
+            4),
+      );
+      image.dispose();
+    });
+  });
 }

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'dart:ui' show Offset, Rect;
 
@@ -15,6 +16,11 @@ import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dar
 ///
 /// 缓存失效策略：任何改变图层内容的操作（新增笔画、撤销、合并、
 /// 选区变换等）都会把对应图层的 [dirty] 置为 true，重建后清除。
+///
+/// 内存上限（2026-09-06）：大画布（如分页画布的 2480×3508 A4 纸）若按
+/// 全尺寸光栅化，一张 RGBA 位图就 ~35MB，每笔重建会让内存迅速攀升并
+/// 在弱 GPU 上反复 toImage 卡顿。故图层位图长边封顶到
+/// [LayerCompositor.maxBitmapLongEdge]，用 drawImageRect 统一缩放绘制。
 class LayerRenderCache {
   ui.Image? image;
   bool dirty = true;
@@ -31,6 +37,11 @@ class LayerRenderCache {
 
 /// 图层内容合成器：负责把某图层的笔画列表光栅化为位图。
 class LayerCompositor {
+  /// 图层位图长边上限（2026-09-06，内存治理）：与 `ImageDecodeCap`
+  /// 显示类图片 2048 同一量级。≤ 该值的文档 scale=1、行为零变化；
+  /// 更大的画布（A4 分页）按此封顶后统一缩放，单张位图内存降至 ~1/3。
+  static const int maxBitmapLongEdge = 2048;
+
   /// [pictureCache] 非 null 时启用笔画集合的 Picture 缓存
   /// （借鉴 scribe_canvas cachedPicture 的 O(1) 重绘思想）：
   /// 全量重建时命中指纹直接 drawPicture，避免逐笔画重建轮廓。
@@ -40,13 +51,17 @@ class LayerCompositor {
   /// 可选的笔画集合 Picture 缓存（null = 关闭，走原路径）。
   final StrokePictureCache? pictureCache;
 
-  /// 把 [layer] 的笔画光栅化到 [width]x[height] 的透明位图上。
+  /// 把 [layer] 的笔画光栅化到宽高封顶的透明位图上。
   ///
-  /// [width]/[height] 即画布逻辑尺寸（像素）。
+  /// [width]/[height] 即画布逻辑尺寸（像素）。返回位图的长边不超过
+  /// [maxBitmapLongEdge]（小画布保持原始尺寸）；绘制端用 drawImageRect
+  /// 把位图拉伸回文档尺寸，因此调用方无需感知封顶比例。
   /// 橡皮擦笔画使用 clear 混合模式，在同一层内实现透明擦除。
   /// [region] 非空时执行增量脏矩形重建：先绘制 [base]（旧位图，保留
   /// 区域外内容），再只在 [region] 内重绘相交笔画（性能优化）。
   /// [base] 仅增量模式使用，全量重建时传 null。
+  /// 注意：封顶生效时忽略 [region]/[base]，改为整层重建——避免把旧位图
+  /// 缩放的坐标换算复杂化；封顶后的位图足够小，整层重建开销可接受。
   Future<ui.Image> rasterize(
     Layer layer,
     int width,
@@ -54,6 +69,16 @@ class LayerCompositor {
     Rect? region,
     ui.Image? base,
   }) async {
+    final longEdge = math.max(width, height);
+    final capped = longEdge > maxBitmapLongEdge;
+    var bitmapWidth = width;
+    var bitmapHeight = height;
+    if (capped) {
+      final factor = maxBitmapLongEdge / longEdge;
+      bitmapWidth = (width * factor).round().clamp(1, maxBitmapLongEdge);
+      bitmapHeight = (height * factor).round().clamp(1, maxBitmapLongEdge);
+    }
+
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
 
@@ -62,8 +87,9 @@ class LayerCompositor {
     final hasHighlighter = layer.strokes.any(
       (stroke) => stroke.type == BrushType.marker,
     );
-    final effectiveRegion = hasHighlighter ? null : region;
-    final effectiveBase = hasHighlighter ? null : base;
+    // 封顶时忽略增量（见类注释）。
+    final effectiveRegion = capped || hasHighlighter ? null : region;
+    final effectiveBase = capped || hasHighlighter ? null : base;
 
     // saveLayer 必须覆盖整个画布（而非仅脏矩形）：
     // 1) base（旧位图）画入后，区域外内容随 restore 原样保留；
@@ -106,7 +132,7 @@ class LayerCompositor {
 
     final picture = recorder.endRecording();
     try {
-      final image = await picture.toImage(width, height);
+      final image = await picture.toImage(bitmapWidth, bitmapHeight);
       picture.dispose();
       return image;
     } catch (e) {

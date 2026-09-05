@@ -78,7 +78,24 @@ extension DrawingControllerRenderOps on DrawingController {
         final paint = Paint()
           ..color = Color.fromRGBO(0, 0, 0, view.opacity)
           ..filterQuality = FilterQuality.high;
-        canvas.drawImage(image, Offset.zero, paint);
+        // 图层位图可能按长边封顶光栅化（LayerCompositor，内存治理）：
+        // 以位图实际尺寸为 src、文档尺寸为 dst 统一缩放绘制。
+        canvas.drawImageRect(
+          image,
+          ui.Rect.fromLTWH(
+            0,
+            0,
+            image.width.toDouble(),
+            image.height.toDouble(),
+          ),
+          ui.Rect.fromLTWH(
+            0,
+            0,
+            _document.width.toDouble(),
+            _document.height.toDouble(),
+          ),
+          paint,
+        );
       }
     }
     final images = List.of(_document.imageItems)

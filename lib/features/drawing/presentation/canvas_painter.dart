@@ -82,7 +82,24 @@ class CanvasPainter extends CustomPainter {
         final paint = Paint()
           ..color = Color.fromRGBO(0, 0, 0, view.opacity)
           ..filterQuality = FilterQuality.high;
-        canvas.drawImage(image, Offset.zero, paint);
+        // 图层位图可能按长边封顶光栅化（LayerCompositor，内存治理）：
+        // 以位图实际尺寸为 src、文档尺寸为 dst 统一缩放绘制。
+        canvas.drawImageRect(
+          image,
+          Rect.fromLTWH(
+            0,
+            0,
+            image.width.toDouble(),
+            image.height.toDouble(),
+          ),
+          Rect.fromLTWH(
+            0,
+            0,
+            doc.width.toDouble(),
+            doc.height.toDouble(),
+          ),
+          paint,
+        );
       }
     }
 
@@ -412,8 +429,6 @@ class MiniMapPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final doc = controller.document;
-
     // 白纸底。
     canvas.drawRect(
       Rect.fromLTWH(0, 0, size.width, size.height),
@@ -424,11 +439,12 @@ class MiniMapPainter extends CustomPainter {
     for (final view in controller.paintViews) {
       final image = view.image;
       if (image == null || !view.visible || view.opacity <= 0) continue;
+      // src 用位图实际尺寸（可能已按长边封顶），dst 映射到小地图区域。
       final src = Rect.fromLTWH(
         0,
         0,
-        doc.width.toDouble(),
-        doc.height.toDouble(),
+        image.width.toDouble(),
+        image.height.toDouble(),
       );
       final dst = Rect.fromLTWH(0, 0, size.width, size.height);
       canvas.drawImageRect(
