@@ -22,6 +22,7 @@ import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart'
     show VaultFileLockException;
+import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
 
 /// 全文搜索页（借鉴 Joplin / nb 的全文搜索）。
 class SearchPage extends StatefulWidget {
@@ -221,7 +222,9 @@ class _SearchPageState extends State<SearchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      // 让内容延伸到顶栏之后——玻璃才有东西可模糊。
+      extendBodyBehindAppBar: true,
+      appBar: GlassAppBar(
         title: Text(AppLocalizations.of(context)?.searchTitle ?? '全文搜索'),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
@@ -269,6 +272,11 @@ class _SearchPageState extends State<SearchPage> {
       );
     }
     return ListView.builder(
+      // 可滚动 padding——见 settings_page 同名注释。顶栏还挂着搜索框，
+      // 让位高度要把 bottom 的 60 一起算进去。
+      padding: EdgeInsets.only(
+        top: GlassAppBar.bodyTopPadding(context, bottomHeight: 60),
+      ),
       itemCount: _results.length,
       itemBuilder: (context, i) {
         final r = _results[i];

@@ -16,6 +16,7 @@ import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
+import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
 
 /// 应用锁设置页。
 ///
@@ -42,11 +43,18 @@ class AppLockSettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('应用锁')),
+      extendBodyBehindAppBar: true,
+      appBar: const GlassAppBar(title: Text('应用锁')),
       body: ListenableBuilder(
         listenable: service,
         builder: (context, _) => ListView(
-          padding: const EdgeInsets.all(16),
+          // 可滚动 padding——见 settings_page 同名注释。
+          padding: EdgeInsets.fromLTRB(
+            16,
+            GlassAppBar.bodyTopPadding(context) + 16,
+            16,
+            16,
+          ),
           children: [
             Card(
               child: Padding(

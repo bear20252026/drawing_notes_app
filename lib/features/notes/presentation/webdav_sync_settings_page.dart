@@ -22,6 +22,7 @@ import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_syn
 import 'package:drawing_notes_app/features/notes/infrastructure/sync_secret_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/webdav_config_store.dart';
 import 'package:drawing_notes_app/features/notes/presentation/conflict_resolution_dialog.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
 
 /// R1：把同步异常映射为人话文案——用户界面只出现可读懂的提示，
 /// 原始异常对象进调试日志（debugPrint），不再直接拼进 UI 字符串。
@@ -326,9 +327,16 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('WebDAV 同步')),
+      extendBodyBehindAppBar: true,
+      appBar: const GlassAppBar(title: Text('WebDAV 同步')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        // 可滚动 padding——见 settings_page 同名注释。
+        padding: EdgeInsets.fromLTRB(
+          16,
+          GlassAppBar.bodyTopPadding(context) + 16,
+          16,
+          16,
+        ),
         children: [
           Text(
             '本地优先同步：数据保存在本机，通过 WebDAV（如 Nextcloud / 自建）在工作区之间同步。',

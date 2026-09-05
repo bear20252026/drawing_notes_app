@@ -12,6 +12,7 @@ import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/features/notes/presentation/app_lock_settings_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settings_page.dart';
 import '../../../core/theme/apple_design.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
 
 /// 设置页：密码与安全 + 通用两大分组。
 ///
@@ -42,9 +43,19 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final outline = Theme.of(context).colorScheme.outline;
     return Scaffold(
-      appBar: AppBar(title: const Text('设置')),
+      // 让内容延伸到顶栏之后——玻璃才有东西可模糊。
+      extendBodyBehindAppBar: true,
+      appBar: const GlassAppBar(title: Text('设置')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        // 顶部让位必须用**可滚动**的 padding：内容滚到顶栏之后才会被玻璃
+        // 模糊；若改用外层固定 Padding，内容永远进不到顶栏背后，
+        // BackdropFilter 采不到东西，玻璃会退化成一块脏兮兮的半透明板。
+        padding: EdgeInsets.fromLTRB(
+          16,
+          GlassAppBar.bodyTopPadding(context) + 12,
+          16,
+          24,
+        ),
         children: [
           const _PasswordLayersCard(),
           const SizedBox(height: 16),

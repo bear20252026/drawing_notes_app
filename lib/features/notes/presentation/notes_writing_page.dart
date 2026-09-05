@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
 
 /// 纯笔记页（导航目的地 4）：直接打字的笔记页面。
 ///
@@ -13,13 +14,17 @@ class NotesWritingPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('笔记'),
-        backgroundColor: scheme.surface,
-        foregroundColor: scheme.onSurface,
-      ),
+      // 让内容延伸到顶栏之后——玻璃才有东西可模糊。
+      extendBodyBehindAppBar: true,
+      appBar: const GlassAppBar(title: Text('笔记')),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: AppleSpacing.md),
+        // 可滚动 padding——见 settings_page 同名注释。
+        padding: EdgeInsets.fromLTRB(
+          AppleSpacing.md,
+          GlassAppBar.bodyTopPadding(context),
+          AppleSpacing.md,
+          0,
+        ),
         children: [
           const SizedBox(height: AppleSpacing.md),
           // 分组头：Apple 灰字 + 字距

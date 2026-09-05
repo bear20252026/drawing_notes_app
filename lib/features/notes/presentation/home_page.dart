@@ -27,7 +27,7 @@ import 'package:drawing_notes_app/features/notes/presentation/onboarding.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_entity.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
-import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
 // U4a：首屏加载骨架屏。
 import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_templates.dart';
@@ -48,6 +48,12 @@ import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 
 part 'home_page_widgets.dart';
 part 'home_page_tabs.dart';
+
+/// 顶栏下方分段控件的插槽高度。
+///
+/// 与 [GlassAppBar.bottom] 的 `preferredSize` 以及 body 顶部让位高度共用，
+/// 收成常量避免三处手算不一致。
+const double _kTabSlotHeight = 56;
 
 /// 首页：画布（无限画布 / 分页画布）/ 笔记 两分栏列表管理。
 ///
@@ -791,7 +797,10 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     return DefaultTabController(
       length: 2, // 画布（无限画布/分页画布）/ 笔记（M11：「最近」时间线并入日历页）
       child: Scaffold(
-        appBar: AppBar(
+        // 让内容延伸到顶栏之后——玻璃才有东西可模糊（否则背后是纯色，
+        // BackdropFilter 采不到内容，观感退化成半透明色板）。
+        extendBodyBehindAppBar: true,
+        appBar: GlassAppBar(
           title: Text(AppLocalizations.of(context)?.appTitle ?? '绘图笔记'),
           actions: [
             IconButton(
@@ -826,24 +835,33 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
             // 顶栏只保留搜索与回收站两个文档操作。
           ],
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(56),
+            preferredSize: const Size.fromHeight(_kTabSlotHeight),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: GlassSurface(
-                borderRadius: BorderRadius.circular(AppDesign.controlRadius),
-                sigma: 10,
-                child: TabBar(
-                  onTap: (i) => setState(() => _tabIndex = i),
-                  tabs: const [
-                    Tab(text: '画布'),
-                    Tab(text: '笔记'),
-                  ],
-                ),
+              // 红线：顶栏已是玻璃层，分段控件**不得再套 GlassSurface**
+              // （玻璃叠玻璃，DESIGN_SYSTEM.md:218）。分段控件直接浮在玻璃上，
+              // 这也是 Apple 的做法——控件本身不是一层新材质。
+              child: TabBar(
+                onTap: (i) => setState(() => _tabIndex = i),
+                tabs: const [
+                  Tab(text: '画布'),
+                  Tab(text: '笔记'),
+                ],
               ),
             ),
           ),
         ),
-        body: AmbientBackground(child: _buildBody()),
+        body: AmbientBackground(
+          child: Padding(
+            padding: EdgeInsets.only(
+              top: GlassAppBar.bodyTopPadding(
+                context,
+                bottomHeight: _kTabSlotHeight,
+              ),
+            ),
+            child: _buildBody(),
+          ),
+        ),
         floatingActionButton: _tabIndex == 0
             ? FloatingActionButton.extended(
                 onPressed: _createCanvas,

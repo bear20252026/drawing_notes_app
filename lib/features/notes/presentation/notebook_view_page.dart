@@ -41,6 +41,7 @@ import 'package:drawing_notes_app/features/notes/application/notebook_pdf_export
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
 import 'package:drawing_notes_app/features/security/block_doc_password_reset_flow.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
 
 part 'notebook_view_page_widgets.dart';
 part 'notebook_view_page_imports.dart';
@@ -295,7 +296,9 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      // 让内容延伸到顶栏之后——玻璃才有东西可模糊（背后是 AmbientBackground）。
+      extendBodyBehindAppBar: true,
+      appBar: GlassAppBar(
         title: Text(
           _notebook.title,
           maxLines: 1,
@@ -415,36 +418,41 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
         ],
       ),
       body: AmbientBackground(
-        child: Column(
-          children: [
-            // 标签筛选（A2：按标签过滤页面）
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppDesign.pagePadding,
-                8,
-                AppDesign.pagePadding,
-                8,
-              ),
-              child: GlassSurface(
-                borderRadius: BorderRadius.circular(AppleRadius.md),
-                sigma: 8,
-                padding: const EdgeInsets.all(4),
-                child: TextField(
-                  // U3 P1-12：防抖 250ms，避免每键 setState 整页重建。
-                  onChanged: (v) => _tagFilterDebouncer.run(
-                    () => setState(() => _tagFilter = v.trim()),
-                  ),
-                  decoration: InputDecoration(
-                    hintText:
-                        AppLocalizations.of(context)?.noteFilterHint ??
-                        '筛选标签或关键词',
-                    prefixIcon: Icon(Icons.search_rounded, size: 20),
+        child: Padding(
+          // 让位给玻璃顶栏。筛选框因此不会与顶栏重叠——否则筛选框自带的
+          // GlassSurface 会和顶栏的玻璃叠在一起（红线）。
+          padding: EdgeInsets.only(top: GlassAppBar.bodyTopPadding(context)),
+          child: Column(
+            children: [
+              // 标签筛选（A2：按标签过滤页面）
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppDesign.pagePadding,
+                  8,
+                  AppDesign.pagePadding,
+                  8,
+                ),
+                child: GlassSurface(
+                  borderRadius: BorderRadius.circular(AppleRadius.md),
+                  sigma: 8,
+                  padding: const EdgeInsets.all(4),
+                  child: TextField(
+                    // U3 P1-12：防抖 250ms，避免每键 setState 整页重建。
+                    onChanged: (v) => _tagFilterDebouncer.run(
+                      () => setState(() => _tagFilter = v.trim()),
+                    ),
+                    decoration: InputDecoration(
+                      hintText:
+                          AppLocalizations.of(context)?.noteFilterHint ??
+                          '筛选标签或关键词',
+                      prefixIcon: Icon(Icons.search_rounded, size: 20),
+                    ),
                   ),
                 ),
               ),
-            ),
-            Expanded(child: _buildPages()),
-          ],
+              Expanded(child: _buildPages()),
+            ],
+          ),
         ),
       ),
     );

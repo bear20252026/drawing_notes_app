@@ -255,11 +255,24 @@ AppleMotion.playful   // ratio 0.7 —— 仅罕见时刻（onboarding、成功�
 **勿在调用点硬编码**；矩阵由 `liquidGlassSaturationMatrix()` 生成，回归保护见
 `test/shared/widgets/liquid_glass_recipe_test.dart`。
 
-**当前覆盖面（2026-09-05 核查）**：`GlassSurface` 仅 6 处调用
-（schedule_page 3、home_page 1、notebook_view_page 1、editor_context_bar 1）。
-清单中「顶部工具条 / 主菜单 / 弹窗 / 底部标签栏 / 滑块 / 分段控件 / 悬浮按钮」
-仍多为原生 Material 构件 —— 分段导航（home_page TabBar）已用玻璃，
-**AppBar 未用**，且因「禁止玻璃叠玻璃」红线，AppBar 接入时必须先摘掉 TabBar 自身的玻璃层。
+**当前覆盖面（2026-09-05 v1.10.1 更新）**：`GlassAppBar` 已接入 **7 个页面**
+（home_page、settings_page、app_lock_settings_page、webdav_sync_settings_page、
+search_page、notes_writing_page、notebook_view_page）。
+
+接入玻璃顶栏的两个硬前提（缺一个就等于没做）：
+
+1. **Scaffold 必须 `extendBodyBehindAppBar: true`** —— 否则顶栏背后是纯色
+   Scaffold 背景，BackdropFilter 采不到内容，观感退化成半透明色板。
+2. **顶部让位要用「可滚动」的 padding**（ListView 自身的 `padding`），
+   **不能**用外层固定 `Padding` —— 外层固定 Padding 会限制视口，内容永远
+   滚不进顶栏背后，玻璃同样没有东西可模糊。
+
+**故意不接玻璃的两个页面**：翻页阅读页（沉浸式深色，玻璃干扰阅读）、
+画布编辑器（视口坐标系需单独评估）。
+
+仍为原生 Material 的：**弹窗、底部/侧边导航、滑块、分段控件独立玻璃层、FAB**。
+其中首页分段控件原本自带玻璃，接入 `GlassAppBar` 时已摘掉——因为顶栏已是玻璃层，
+再叠一层就是「玻璃叠玻璃」红线。
 
 ---
 
