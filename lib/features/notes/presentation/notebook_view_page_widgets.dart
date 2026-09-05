@@ -230,6 +230,7 @@ class _PageThumbnailPainter extends CustomPainter {
 }
 
 enum _NotebookMenuItem {
+  rename,
   importPage,
   importText,
   importPdf,

@@ -329,11 +329,23 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
 
   /// 新建分页画布并进入页面管理（旧「新建笔记本」入口恢复——N1）。
   ///
+  /// 命名修复（2026-09-06）：此前硬编码「未命名」、无命名弹窗，用户无法给
+  /// 分页画布起名（与「新建无限画布」的 [_NameDialog] 不对称）。现创建前先
+  /// 命名；取消/空名则取消创建（与 _createDrawing 同语义）。
+  ///
   /// U5a（审计 P2-6）：保存失败不再裸奔——原实现 save 抛错会未捕获
   /// 崩溃且用户无感知；现提示失败原因并停留在首页（不进入未落盘的
   /// 编辑页，避免后续保存连环失败）。
   Future<void> _createNotebook() async {
-    final nb = Notebook(id: NotebookStorage.newId('notebook'), title: '未命名');
+    final name = await GlassDialog.show<String>(
+      context: context,
+      builder: (ctx) => const _NameDialog(title: '新建分页画布'),
+    );
+    if (name == null || name.trim().isEmpty) return;
+    final nb = Notebook(
+      id: NotebookStorage.newId('notebook'),
+      title: name.trim(),
+    );
     try {
       await _nbStorage.save(nb);
     } catch (_) {

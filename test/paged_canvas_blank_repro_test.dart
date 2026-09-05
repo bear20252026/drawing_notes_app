@@ -6,14 +6,12 @@
 //   2. 非无限画布走「图层离屏位图」路径——invalidateLayer 触发异步光栅化，
 //      paintViews 中出现非空 image（否则画上去不可见 = 空白页）。
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/drawing/application/di_providers.dart';
-import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
 import 'package:drawing_notes_app/features/notes/application/notebook_page_editor_session.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';

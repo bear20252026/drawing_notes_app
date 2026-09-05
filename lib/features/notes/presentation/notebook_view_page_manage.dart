@@ -269,6 +269,21 @@ extension _NotebookPageManage on _NotebookViewPageState {
     await _save();
   }
 
+  /// 重命名分页画布（命名修复 2026-09-06：创建时即可命名；旧「未命名」
+  /// 画布用本入口补取名）。空名/未变则忽略，取名后整本落盘。
+  Future<void> _renameNotebook() async {
+    final name = await GlassDialog.show<String>(
+      context: context,
+      builder: (ctx) => _PageNameDialog(title: '重命名分页画布'),
+    );
+    final trimmed = name?.trim();
+    if (trimmed == null || trimmed.isEmpty || trimmed == _notebook.title) {
+      return;
+    }
+    _applyState(() => _notebook.title = trimmed);
+    await _save();
+  }
+
   void _showSnack(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(
@@ -278,6 +293,8 @@ extension _NotebookPageManage on _NotebookViewPageState {
 
   void _onNotebookMenuSelected(_NotebookMenuItem item) {
     switch (item) {
+      case _NotebookMenuItem.rename:
+        _renameNotebook();
       case _NotebookMenuItem.importPage:
         _importPage();
       case _NotebookMenuItem.importText:

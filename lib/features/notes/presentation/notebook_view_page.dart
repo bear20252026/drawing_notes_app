@@ -334,6 +334,17 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
             icon: const Icon(Icons.more_horiz_rounded),
             onSelected: _onNotebookMenuSelected,
             itemBuilder: (_) => [
+              // 重命名分页画布（命名修复 2026-09-06：创建时可命名 + 此处可改）。
+              PopupMenuItem(
+                value: _NotebookMenuItem.rename,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.edit_rounded),
+                  title: const Text('重命名分页画布'),
+                ),
+              ),
+              const PopupMenuDivider(),
               PopupMenuItem(
                 value: _NotebookMenuItem.importPage,
                 child: ListTile(

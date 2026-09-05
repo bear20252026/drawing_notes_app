@@ -72,6 +72,20 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
 
+    // 命名修复（2026-09-06）：新建分页画布现先弹命名对话框，填名提交
+    //（随后 save 抛错 → SnackBar；空名取消则根本不进入 save，故此处必填）。
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextField),
+      ),
+      '测试分页画布',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
     expect(
       find.text('新建失败：笔记本未能保存，请检查磁盘空间后重试'),
       findsOneWidget,
