@@ -12,7 +12,9 @@
 //
 // 设计决策（用户 2026-09-01 拍板）：
 // - 在设置里自设 PIN（iOS 锁屏同款密码盘，批次②起长度可自定义 4–12 位）；
-// - 冷启动 + 切后台回来都要锁（AppLockGate 负责生命周期监听）；
+// - 冷启动必锁；切后台回来要锁——2026-09-06 起默认 30s 宽限期
+//   （瞬时离开免重输，档位见 AppLockService.graceChoices；宽限只作用于
+//   锁屏 UI，hidden 即清密钥的加固不受宽限影响）；
 // - 找回机制（批次④）：绑定 U 盘恢复钥匙后忘记 PIN 可重设（LUKS/
 //   BitLocker 钥匙槽位模式，主密钥副本不出设备）；未绑定则无法找回。
 
@@ -50,6 +52,10 @@ class AppLockService extends ChangeNotifier {
   static const _kSaltKey = 'app_lock.salt';
   static const _kPinLengthKey = 'app_lock.pin_length';
 
+  /// 切后台回锁宽限期（U1 尾项 2026-09-06）：paused 起在宽限内回前台
+  /// 免重新输入开屏密码。持久化为秒；0 = 关闭（切后台立即锁定，旧行为）。
+  static const _kGraceSecondsKey = 'app_lock.grace_seconds';
+
   /// PIN 哈希版本键（诊断可观测；读取按哈希形值识别，不信任该键）。
   /// 版本语义：1 = 单次 SHA-256（旧，64 位 hex），2 = Argon2id（44 位 base64）。
   static const _kPinKdfVersionKey = 'app_lock.pin_kdf_v';
@@ -66,6 +72,11 @@ class AppLockService extends ChangeNotifier {
   static const int maxPinLength = 12;
   static const int defaultPinLength = 4;
 
+  /// 宽限期档位（秒）。默认 30s（用户 2026-09-06 拍板「锁屏 30s 宽限期」；
+  /// Windows 任务视图扫一眼这类瞬时离开不再弹锁屏）。
+  static const int defaultGraceSeconds = 30;
+  static const List<int> graceChoices = [0, 30, 60, 300];
+
   final Future<SharedPreferences> Function() _preferencesLoader;
 
   /// 防爆破守卫（批次③）：失败计数 + 指数冷却 + 高水位时钟 + 签名记录。
@@ -74,6 +85,7 @@ class AppLockService extends ChangeNotifier {
 
   bool _configured = false;
   int _pinLength = defaultPinLength;
+  int _graceSeconds = defaultGraceSeconds;
 
   /// 是否已设置应用锁 PIN。
   bool get isConfigured => _configured;
@@ -81,6 +93,20 @@ class AppLockService extends ChangeNotifier {
   /// 当前 PIN 长度（未配置时为默认值 4；密码盘圆点数/桌面输入框
   /// maxLength 均以它为准）。
   int get pinLength => _pinLength;
+
+  /// 切后台回锁宽限期（秒；0 = 关闭）。未配置 PIN 时无意义（不锁屏）。
+  Duration get graceDuration => Duration(seconds: _graceSeconds);
+
+  /// 设置宽限期（秒）。仅接受 [graceChoices] 档位；持久化并通知监听者。
+  Future<void> setGraceSeconds(int seconds) async {
+    if (!graceChoices.contains(seconds)) {
+      throw ArgumentError.value(seconds, 'seconds', '宽限期档位不合法');
+    }
+    final prefs = await _preferencesLoader();
+    await prefs.setInt(_kGraceSecondsKey, seconds);
+    _graceSeconds = seconds;
+    notifyListeners();
+  }
 
   /// 批次③：是否处于冷却期（尝试过多）。
   bool get isLockedOut => _lockoutGuard?.isLockedOut ?? false;
@@ -96,6 +122,11 @@ class AppLockService extends ChangeNotifier {
     final prefs = await _preferencesLoader();
     _configured = prefs.getString(_kPinHashKey) != null;
     _pinLength = prefs.getInt(_kPinLengthKey) ?? defaultPinLength;
+    // 宽限期：非档位值（损坏/旧版本缺失）回默认 30s。
+    final storedGrace = prefs.getInt(_kGraceSecondsKey);
+    _graceSeconds = graceChoices.contains(storedGrace)
+        ? storedGrace!
+        : defaultGraceSeconds;
     // 批次③：守卫状态恢复（失败计数/冷却期/高水位线）。
     final guard = _lockoutGuard ??= LockoutGuard();
     await guard.load(_preferencesLoader);

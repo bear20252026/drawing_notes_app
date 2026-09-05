@@ -209,4 +209,33 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('宽限期（U1 尾项）：默认 30 秒，可改为关闭并持久化', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final service = AppLockService();
+    await service.setPin('135790');
+
+    await tester.pumpWidget(
+      MaterialApp(home: AppLockSettingsPage(service: service)),
+    );
+    // 已配置 → tile 可见，默认 30 秒。
+    expect(find.text('切后台宽限期'), findsOneWidget);
+    expect(find.text('当前：30 秒'), findsOneWidget);
+
+    // 打开档位对话框（tile 与对话框标题同名，取列表中的第一处）。
+    await tester.tap(find.text('切后台宽限期').first);
+    await tester.pumpAndSettle();
+    expect(find.text('离开应用后在宽限期内回来，无需重新输入密码。'), findsOneWidget);
+
+    await tester.tap(find.text('关闭（切后台立即锁定）'));
+    await tester.pumpAndSettle();
+
+    expect(service.graceDuration, Duration.zero);
+    expect(find.text('当前：关闭（切后台立即锁定）'), findsOneWidget);
+
+    // 模拟冷启动：新实例恢复关闭档位。
+    final cold = AppLockService();
+    await cold.load();
+    expect(cold.graceDuration, Duration.zero);
+  });
 }

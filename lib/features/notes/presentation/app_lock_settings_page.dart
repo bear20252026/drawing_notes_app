@@ -69,8 +69,12 @@ class AppLockSettingsPage extends StatelessWidget {
                       color: Theme.of(context).colorScheme.primary,
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text('开启后，每次打开应用或切后台回来，都需要输入密码才能进入。'),
+                    Expanded(
+                      child: Text(
+                        l10n?.lockDescription ??
+                            '开启后，打开应用需要输入密码才能进入；'
+                                '切后台超过宽限期回来同样需要。',
+                      ),
                     ),
                   ],
                 ),
@@ -103,6 +107,9 @@ class AppLockSettingsPage extends StatelessWidget {
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: () => _startModifyFlow(context),
                     ),
+                  // 切后台宽限期（U1 尾项 2026-09-06）：默认 30s，可关。
+                  if (service.isConfigured)
+                    _buildGraceTile(context, service),
                   // 重置密码盘（LUKS/BitLocker 多保护器模式——
                   // 忘记密码时可用它重设，主密钥副本不出设备）。
                   if (service.isConfigured && vault != null)
@@ -153,6 +160,81 @@ class AppLockSettingsPage extends StatelessWidget {
     );
   }
 
+  /// 宽限期档位显示名（秒 → 本地化标签）。
+  static String _graceOptionLabel(AppLocalizations? l10n, int seconds) {
+    if (seconds == 0) return l10n?.lockGraceOff ?? '关闭（切后台立即锁定）';
+    if (seconds == 60) return l10n?.lockGrace1min ?? '1 分钟';
+    if (seconds == 300) return l10n?.lockGrace5min ?? '5 分钟';
+    return l10n?.lockGrace30s ?? '30 秒';
+  }
+
+  /// 切后台宽限期 tile（U1 尾项）：点击弹档位选择。
+  Widget _buildGraceTile(BuildContext context, AppLockService service) {
+    final l10n = AppLocalizations.of(context);
+    final current = service.graceDuration.inSeconds;
+    return ListTile(
+      leading: const Icon(Icons.timer_outlined),
+      title: Text(l10n?.lockGraceTitle ?? '切后台宽限期'),
+      subtitle: Text(
+        l10n?.lockGraceCurrent(_graceOptionLabel(l10n, current)) ??
+            '当前：${_graceOptionLabel(l10n, current)}',
+      ),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: () => _pickGrace(context, service),
+    );
+  }
+
+  /// 宽限期档位对话框：点选即存（service 通知 → 页面联动刷新）。
+  Future<void> _pickGrace(BuildContext context, AppLockService service) async {
+    final choice = await GlassDialog.show<int>(
+      context: context,
+      builder: (dialogContext) {
+        final l10n = AppLocalizations.of(dialogContext);
+        return AlertDialog(
+          title: Text(l10n?.lockGraceTitle ?? '切后台宽限期'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                l10n?.lockGraceHint ?? '离开应用后在宽限期内回来，无需重新输入密码。',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(dialogContext).colorScheme.outline,
+                ),
+              ),
+              const SizedBox(height: 8),
+              // RadioGroup 祖先管理组值（Radio 的 groupValue/onChanged 已弃用）。
+              RadioGroup<int>(
+                groupValue: service.graceDuration.inSeconds,
+                onChanged: (v) => Navigator.of(dialogContext).pop(v),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final seconds in AppLockService.graceChoices)
+                      ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: Radio<int>(value: seconds),
+                        title: Text(_graceOptionLabel(l10n, seconds)),
+                        onTap: () => Navigator.of(dialogContext).pop(seconds),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: AppleDialog.actions([
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(l10n?.cancel ?? '取消'),
+            ),
+          ]),
+        );
+      },
+    );
+    if (choice != null) await service.setGraceSeconds(choice);
+  }
+
   /// 重置密码盘 tile（绑定状态异步查询，绑定/解除后刷新）。
   Widget _buildResetDiskTile() {
     final vault = this.vault!;
@@ -198,7 +280,8 @@ class AppLockSettingsPage extends StatelessWidget {
     // 验证当前密码（identity gate；失败计入防爆破守卫——合理的防滥用）。
     final pin = await UnlockFlow.show(
       context,
-      title: '验证当前密码',
+      title:
+          AppLocalizations.of(context)?.lockVerifyCurrentPassword ?? '验证当前密码',
       onVerify: (p) => service.verify(p),
     );
     if (pin == null || !context.mounted) return;
@@ -206,9 +289,14 @@ class AppLockSettingsPage extends StatelessWidget {
       if (!vault.isUnlocked) await vault.unlock(pin);
     } catch (_) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('保险库解锁失败，请重试')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)?.lockVaultUnlockFailed ??
+                '保险库解锁失败，请重试',
+          ),
+        ),
+      );
       return;
     }
 
@@ -326,16 +414,25 @@ class AppLockSettingsPage extends StatelessWidget {
         }
       } catch (_) {
         if (!context.mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('文件加密同步失败，请重试或联系开发者')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)?.lockVaultSyncFailed ??
+                  '文件加密同步失败，请重试或联系开发者',
+            ),
+          ),
+        );
         return;
       }
     }
     if (!context.mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('应用锁已开启')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(context)?.lockEnabled ?? '应用锁已开启',
+        ),
+      ),
+    );
   }
 
   /// 验证旧密码后关闭应用锁。
@@ -371,23 +468,29 @@ class AppLockSettingsPage extends StatelessWidget {
     if (!context.mounted) return; // isConfigured 为异步操作，跨缺口再查一次
     final pin = await UnlockFlow.show(
       context,
-      title: '验证当前密码',
+      title:
+          AppLocalizations.of(context)?.lockVerifyCurrentPassword ?? '验证当前密码',
       pinLength: service.pinLength,
       onVerify: (p) => service.verify(p),
     );
     if (pin == null || !context.mounted) return; // 取消（或验证失败后放弃）
     await service.disable();
     if (!context.mounted) return; // disable 为异步操作，跨异步缺口再查一次
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('应用锁已关闭')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(context)?.lockDisabled ?? '应用锁已关闭',
+        ),
+      ),
+    );
   }
 
   /// 验证旧密码后走两步设置新密码。
   Future<void> _startModifyFlow(BuildContext context) async {
     final oldPin = await UnlockFlow.show(
       context,
-      title: '验证当前密码',
+      title:
+          AppLocalizations.of(context)?.lockVerifyCurrentPassword ?? '验证当前密码',
       pinLength: service.pinLength,
       onVerify: (p) => service.verify(p),
     );
@@ -499,10 +602,12 @@ class _QuickUnlockTileState extends State<_QuickUnlockTile> {
   Future<void> _startEnable() async {
     if (_busy) return;
     setState(() => _busy = true);
+    // l10n 先取：后续 snack 都在 await 之后（跨异步缺口不得再用 context）。
+    final l10n = AppLocalizations.of(context);
     try {
       final pin = await UnlockFlow.show(
         context,
-        title: '验证当前密码',
+        title: l10n?.lockVerifyCurrentPassword ?? '验证当前密码',
         onVerify: (p) => widget.appLock.verify(p),
       );
       if (pin == null || !mounted) return;
@@ -515,10 +620,10 @@ class _QuickUnlockTileState extends State<_QuickUnlockTile> {
         _snack(e.reason);
         return;
       } catch (e) {
-        _snack('开启失败，请重试');
+        _snack(l10n?.lockQuickEnableFailed ?? '开启失败，请重试');
         return;
       }
-      _snack('已开启：锁屏可用系统验证（人脸/指纹/PIN）快速解锁');
+      _snack(l10n?.lockQuickUnlockOn ?? '已开启（锁屏可用 Windows Hello 解锁开屏）');
     } finally {
       if (mounted) {
         setState(() => _busy = false);

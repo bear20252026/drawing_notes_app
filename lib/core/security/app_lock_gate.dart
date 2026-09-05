@@ -5,6 +5,9 @@
 // 包裹应用根内容（AppShell），负责三件事：
 //   1. 冷启动加锁：已配置 PIN 则进门先解锁（加载完成前短暂空白防闪内容）；
 //   2. 切后台回锁：监听应用生命周期，paused 即置锁，回到前台直接见锁屏；
+//      ——2026-09-06 起有宽限期：paused 起在 service.graceDuration 内回
+//      前台自动放行（Windows 任务视图扫一眼不再弹锁屏）；宽限判定用
+//      单调秒表（Stopwatch），系统时钟回拨绕不过；
 //   3. 关闭联动：设置页关闭应用锁后立即放行。
 //
 // 锁屏 UI 复用 shared/widgets/pin_pad.dart 的 [PinPadCore]
@@ -42,6 +45,7 @@ class AppLockGate extends StatefulWidget {
     required this.service,
     this.vault,
     this.quickUnlock,
+    this.awayDurationReader,
     required this.child,
   });
 
@@ -58,6 +62,11 @@ class AppLockGate extends StatefulWidget {
   /// 解锁路径不经过本门，天然不受影响（用户 2026-09-02 拍板口径）。
   final QuickUnlockService? quickUnlock;
 
+  /// 后台驻留时长读取器（测试注入）：默认 null → 用内部单调秒表。
+  /// 宽限判定需要「离开超过 30s」的可控场景，真实秒表无法快进。
+  @visibleForTesting
+  final Duration Function()? awayDurationReader;
+
   final Widget child;
 
   @override
@@ -67,6 +76,12 @@ class AppLockGate extends StatefulWidget {
 class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   bool _initialized = false;
   bool _locked = false;
+
+  /// 本次锁定是否由「切后台」触发（冷启动锁定不吃宽限期）。
+  bool _lockedFromBackground = false;
+
+  /// 后台驻留单调秒表：paused 起表，resumed 读数后归档。
+  Stopwatch? _awayStopwatch;
 
   /// 批D1：快速解锁是否就绪（平台支持 + 开关开 + 副本存在）。
   /// 锁屏出现时查询一次；切后台回锁时再查（设置页可能中途改过开关）。
@@ -122,13 +137,34 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
       SessionSecrets.clearAll();
     }
     // 切后台即置锁：回到前台时锁屏已在最上层（iOS 同款行为）。
+    // 宽限期（2026-09-06）：是否「真锁」由 resumed 时判定——paused 期间
+    // 无帧可渲染，setState 与 resumed 侧的放行会在回前台的同一帧合并，
+    // 宽限内用户直接看到内容、无锁屏闪现。
     if (state == AppLifecycleState.paused &&
         widget.service.isConfigured &&
         !_locked) {
-      setState(() => _locked = true);
+      setState(() {
+        _locked = true;
+        _lockedFromBackground = true;
+      });
+      _awayStopwatch = Stopwatch()..start();
       // 回锁时重查快速解锁就绪态（设置页可能中途开/关过开关）。
       // 生命周期回调非 async：fire-and-forget（就绪态刷新失败仅影响按钮显隐）。
       unawaited(_refreshQuickUnlock());
+    }
+    // 宽限判定：仅「切后台导致的锁定」有资格；每次后台只评估一次，
+    // 评估后即失去资格（超宽限的锁必须输 PIN，随后的快速再切不重置）。
+    if (state == AppLifecycleState.resumed &&
+        _locked &&
+        _lockedFromBackground) {
+      final grace = widget.service.graceDuration;
+      final away =
+          widget.awayDurationReader?.call() ?? _awayStopwatch?.elapsed;
+      _lockedFromBackground = false;
+      _awayStopwatch = null;
+      if (away != null && grace > Duration.zero && away < grace) {
+        setState(() => _locked = false);
+      }
     }
   }
 

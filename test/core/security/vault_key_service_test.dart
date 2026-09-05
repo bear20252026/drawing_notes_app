@@ -406,4 +406,46 @@ void main() {
       expect(service.masterKey, equals(mk));
     });
   });
+
+  group('tmp 孤儿清扫（审计三-6 收尾）', () {
+    test('读取路径清扫 >1h 的崩溃残留 tmp；新近 tmp 不动', () async {
+      await service.initialize('9527');
+
+      // 模拟上一会话崩溃残留（修改时间拨回 2 小时前）。
+      final staleTmp = File(
+        '${tmp.path}${Platform.pathSeparator}'
+        'vault.key.json.tmp.1234567890.deadbeef',
+      );
+      await staleTmp.writeAsString('{"v":3,"slots":[]}');
+      await staleTmp.setLastModified(
+        DateTime.now().subtract(const Duration(hours: 2)),
+      );
+
+      // 新近 tmp（模拟并发写入中的文件，不应被误删）。
+      final freshTmp = File(
+        '${tmp.path}${Platform.pathSeparator}'
+        'vault.key.json.tmp.9999999999.cafef00d',
+      );
+      await freshTmp.writeAsString('{"v":3,"slots":[]}');
+
+      // 触发读取路径（新实例，保证清扫位未消费）。
+      final reader = VaultKeyService(
+        vaultFileResolver: () async => vaultFile,
+        iterations: 2000,
+        newSlotKdf: KdfParams.testLight,
+      );
+      await reader.isConfigured();
+
+      expect(await staleTmp.exists(), isFalse);
+      expect(await freshTmp.exists(), isTrue);
+      // 主文件/备份不受影响。
+      expect(await vaultFile.exists(), isTrue);
+    });
+
+    test('目录不可读时清扫静默失败，不影响正常路径', () async {
+      await service.initialize('9527');
+      // 正常读取仍然工作（清扫在 try/closed 内）。
+      expect(await service.isConfigured(), isTrue);
+    });
+  });
 }

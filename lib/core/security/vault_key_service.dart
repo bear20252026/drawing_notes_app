@@ -85,7 +85,16 @@ class VaultKeyService {
 
   final Future<File> Function() _vaultFileResolver;
 
-  Future<File> _vaultFile() => _vaultFileResolver();
+  /// 三-6：tmp 孤儿清扫只跑一次（见 [_sweepStaleTmpFiles]）。
+  bool _tmpSwept = false;
+
+  Future<File> _vaultFile() async {
+    final file = await _vaultFileResolver();
+    // 三-6：所有读写路径的咽喉——在此触发一次性的 tmp 孤儿清扫
+    // （isConfigured 等不走 _readDoc 的路径也覆盖到）。
+    await _sweepStaleTmpFiles(file);
+    return file;
+  }
 
   /// PBKDF2 迭代次数（旧数据兜底——批B 后新槽位自带 KDF 字段，本字段
   /// 仅用于解析无任何 KDF 信息的最早 v1/v2 文件）。测试可注入小值提速。
@@ -494,6 +503,29 @@ class VaultKeyService {
       if (fallback != null) return fallback;
     }
     throw const VaultUnlockException('保险库数据损坏');
+  }
+
+  /// 三-6 收尾（审计第 4 轮）：清扫上一会话崩溃遗留的 `<vault>.tmp.*`
+  /// 孤儿（内含被包装主密钥——隐私残留）。每实例只扫一次；仅删修改时间
+  /// 早于 1 小时的 tmp，避免误删并发写入中的临时文件。
+  Future<void> _sweepStaleTmpFiles(File vaultFile) async {
+    if (_tmpSwept) return;
+    _tmpSwept = true;
+    try {
+      final prefix = '${vaultFile.uri.pathSegments.last}.tmp.';
+      await for (final entry in vaultFile.parent.list()) {
+        if (entry is! File) continue;
+        final name = entry.uri.pathSegments.last;
+        if (!name.startsWith(prefix)) continue;
+        final stat = await entry.stat();
+        if (DateTime.now().difference(stat.modified) >
+            const Duration(hours: 1)) {
+          await entry.delete();
+        }
+      }
+    } catch (_) {
+      // 清扫尽力而为：失败不影响正常读写路径。
+    }
   }
 
   /// [hasUsbSlot] 用的静默版：损坏一律返回 null（查询不抛错）。

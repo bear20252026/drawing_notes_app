@@ -91,8 +91,11 @@ void main() {
     expect(find.text('输入密码'), findsNothing);
   });
 
-  testWidgets('切后台回锁：解锁后 app 退到后台再回来必须重新解锁', (tester) async {
+  testWidgets('切后台回锁（宽限关闭）：解锁后 app 退到后台再回来必须重新解锁', (
+    tester,
+  ) async {
     final service = await _configuredService('1357');
+    await service.setGraceSeconds(0); // 关闭宽限 = 旧行为
 
     await tester.pumpWidget(
       MaterialApp(
@@ -109,6 +112,84 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
 
+    expect(find.text('输入密码'), findsOneWidget);
+  });
+
+  testWidgets('宽限期（默认 30s）：瞬时切后台回来免重新解锁', (tester) async {
+    final service = await _configuredService('1357');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockGate(service: service, child: const Text('SECRET_HOME')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _enterPin(tester, '1357');
+    expect(find.text('输入密码'), findsNothing);
+
+    // Windows 任务视图扫一眼：立即回来（真实秒表 ≈ 0s < 30s）→ 不弹锁屏。
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(find.text('输入密码'), findsNothing);
+    expect(find.text('SECRET_HOME'), findsOneWidget);
+  });
+
+  testWidgets('宽限期超时（离开 > 30s）：回来仍须重新解锁', (tester) async {
+    final service = await _configuredService('1357');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        // awayDurationReader 注入模拟「离开 31s」（真实秒表无法快进）。
+        home: AppLockGate(
+          service: service,
+          awayDurationReader: () => const Duration(seconds: 31),
+          child: const Text('SECRET_HOME'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _enterPin(tester, '1357');
+    expect(find.text('输入密码'), findsNothing);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(find.text('输入密码'), findsOneWidget);
+
+    // 超宽限锁定后：连续快切不重置资格，须输 PIN 解锁。
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(find.text('输入密码'), findsOneWidget);
+
+    await _enterPin(tester, '1357');
+    expect(find.text('输入密码'), findsNothing);
+  });
+
+  testWidgets('冷启动锁定不吃宽限期（未解锁即切后台再回来仍锁）', (tester) async {
+    final service = await _configuredService('1357');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockGate(service: service, child: const Text('SECRET_HOME')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // 冷启动：锁屏在场、尚未解锁。
+    expect(find.text('输入密码'), findsOneWidget);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    // 不是「切后台触发的锁定」→ 宽限不适用，锁屏仍在。
     expect(find.text('输入密码'), findsOneWidget);
   });
 

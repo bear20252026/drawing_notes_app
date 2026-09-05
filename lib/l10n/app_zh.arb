@@ -108,7 +108,7 @@
   "@lockTitle": {
     "description": "应用锁设置页标题与开关行"
   },
-  "lockDescription": "开启后，每次打开应用或切后台回来，都需要输入密码才能进入。",
+  "lockDescription": "开启后，打开应用需要输入密码才能进入；切后台超过宽限期回来同样需要。",
   "@lockDescription": {
     "description": "应用锁说明文案"
   },
@@ -228,6 +228,39 @@
   "lockPinLengthHint": "建议 6 位以上，纯数字密码强度有限。",
   "@lockPinLengthHint": {
     "description": "密码长度建议"
+  },
+  "lockGraceTitle": "切后台宽限期",
+  "@lockGraceTitle": {
+    "description": "切后台宽限期设置行标题"
+  },
+  "lockGraceHint": "离开应用后在宽限期内回来，无需重新输入密码。",
+  "@lockGraceHint": {
+    "description": "宽限期档位对话框说明"
+  },
+  "lockGraceOff": "关闭（切后台立即锁定）",
+  "@lockGraceOff": {
+    "description": "宽限期关闭档位"
+  },
+  "lockGrace30s": "30 秒",
+  "@lockGrace30s": {
+    "description": "宽限期 30 秒档位"
+  },
+  "lockGrace1min": "1 分钟",
+  "@lockGrace1min": {
+    "description": "宽限期 1 分钟档位"
+  },
+  "lockGrace5min": "5 分钟",
+  "@lockGrace5min": {
+    "description": "宽限期 5 分钟档位"
+  },
+  "lockGraceCurrent": "当前：{option}",
+  "@lockGraceCurrent": {
+    "description": "宽限期当前值副标题",
+    "placeholders": {
+      "option": {
+        "type": "String"
+      }
+    }
   },
   "lockQuickUnlock": "系统验证快速解锁",
   "@lockQuickUnlock": {

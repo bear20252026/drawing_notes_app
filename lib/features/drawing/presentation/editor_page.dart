@@ -164,7 +164,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   }
 
   Color get _canvasStatusColor {
-    if (_canvasSaving) return const Color(0xFF0066CC);
+    if (_canvasSaving) return AppleColor.actionBlue;
     if (_controller.isDirty) return const Color(0xFFF5A623);
     return const Color(0xFF30D158);
   }

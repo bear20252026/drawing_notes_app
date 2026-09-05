@@ -182,7 +182,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lockTitle => '应用锁';
 
   @override
-  String get lockDescription => '开启后，每次打开应用或切后台回来，都需要输入密码才能进入。';
+  String get lockDescription => '开启后，打开应用需要输入密码才能进入；切后台超过宽限期回来同样需要。';
 
   @override
   String get lockOn => '已开启';
@@ -272,6 +272,29 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get lockPinLengthHint => '建议 6 位以上，纯数字密码强度有限。';
+
+  @override
+  String get lockGraceTitle => '切后台宽限期';
+
+  @override
+  String get lockGraceHint => '离开应用后在宽限期内回来，无需重新输入密码。';
+
+  @override
+  String get lockGraceOff => '关闭（切后台立即锁定）';
+
+  @override
+  String get lockGrace30s => '30 秒';
+
+  @override
+  String get lockGrace1min => '1 分钟';
+
+  @override
+  String get lockGrace5min => '5 分钟';
+
+  @override
+  String lockGraceCurrent(String option) {
+    return '当前：$option';
+  }
 
   @override
   String get lockQuickUnlock => '系统验证快速解锁';

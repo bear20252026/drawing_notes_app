@@ -115,5 +115,45 @@ void main() {
       await writer.disable();
       expect(await AppLockService.matchesAppLockPin('9527'), isFalse);
     });
+
+    test('宽限期：默认 30s，新实例 load 恢复', () async {
+      SharedPreferences.setMockInitialValues({});
+      final writer = AppLockService();
+      await writer.setPin('1357');
+
+      // 默认值（setPin 不触碰宽限）。
+      expect(writer.graceDuration, const Duration(seconds: 30));
+
+      // 模拟冷启动：新实例恢复持久化的宽限值。
+      await writer.setGraceSeconds(60);
+      final cold = AppLockService();
+      await cold.load();
+      expect(cold.graceDuration, const Duration(minutes: 1));
+    });
+
+    test('宽限期：档位 0/30/60/300 合法，其余拒绝；0 = 关闭', () async {
+      SharedPreferences.setMockInitialValues({});
+      final service = AppLockService();
+      await service.load();
+
+      for (final seconds in AppLockService.graceChoices) {
+        await service.setGraceSeconds(seconds);
+        expect(service.graceDuration, Duration(seconds: seconds));
+      }
+      // 0 表示关闭（切后台立即锁定，即旧行为）。
+      await service.setGraceSeconds(0);
+      expect(service.graceDuration, Duration.zero);
+
+      expect(() => service.setGraceSeconds(45), throwsArgumentError);
+    });
+
+    test('宽限期：损坏/越界持久值回默认 30s', () async {
+      SharedPreferences.setMockInitialValues({
+        'app_lock.grace_seconds': 999,
+      });
+      final service = AppLockService();
+      await service.load();
+      expect(service.graceDuration, const Duration(seconds: 30));
+    });
   });
 }

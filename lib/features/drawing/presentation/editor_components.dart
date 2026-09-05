@@ -96,7 +96,7 @@ class ConnectorPainter extends CustomPainter {
           vTo.dy - arrowLen * math.sin(angle + 0.4),
         )
         ..close();
-      canvas.drawPath(arrow, Paint()..color = const Color(0xFF42A5F5));
+      canvas.drawPath(arrow, Paint()..color = AppleColor.actionBlue);
     }
   }
 
@@ -577,7 +577,7 @@ class MarqueePainter extends CustomPainter {
     canvas.drawPath(
       dashed,
       Paint()
-        ..color = const Color(0xFF42A5F5)
+        ..color = AppleColor.actionBlue
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5,
     );

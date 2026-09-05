@@ -187,7 +187,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lockDescription =>
-      'Once enabled, a password is required every time you open the app or return from the background.';
+      'Once enabled, a password is required to open the app, and to return from the background after the grace period.';
 
   @override
   String get lockOn => 'On';
@@ -281,6 +281,30 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get lockPinLengthHint =>
       '6+ digits recommended; numeric-only passwords have limited strength.';
+
+  @override
+  String get lockGraceTitle => 'Grace Period on Return';
+
+  @override
+  String get lockGraceHint =>
+      'Come back within the grace period after leaving the app and you won\'t need to re-enter your password.';
+
+  @override
+  String get lockGraceOff => 'Off (lock immediately on backgrounding)';
+
+  @override
+  String get lockGrace30s => '30 seconds';
+
+  @override
+  String get lockGrace1min => '1 minute';
+
+  @override
+  String get lockGrace5min => '5 minutes';
+
+  @override
+  String lockGraceCurrent(String option) {
+    return 'Current: $option';
+  }
 
   @override
   String get lockQuickUnlock => 'System-verified quick unlock';

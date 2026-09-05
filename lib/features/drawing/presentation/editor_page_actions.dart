@@ -83,65 +83,74 @@ extension _EditorPageActions on _EditorPageState {
     }
     final input = TextEditingController();
     var chartType = ChartType.bar;
-    final result = await GlassDialog.show<String>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('生成图表'),
-          content: SizedBox(
-            width: 380,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SegmentedButton<ChartType>(
-                  segments: const [
-                    ButtonSegment(
-                      value: ChartType.bar,
-                      label: Text('柱状图'),
-                      icon: Icon(Icons.bar_chart),
-                    ),
-                    ButtonSegment(
-                      value: ChartType.line,
-                      label: Text('折线图'),
-                      icon: Icon(Icons.show_chart),
-                    ),
-                  ],
-                  selected: {chartType},
-                  onSelectionChanged: (v) =>
-                      setDialogState(() => chartType = v.first),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: input,
-                  autofocus: true,
-                  maxLines: 5,
-                  decoration: InputDecoration(
-                    hintText:
-                        AppLocalizations.of(context)?.editorPasteValues ??
-                        '粘贴数值，用逗号/空格/换行分隔，例如：10, 25, 18, 42, 30',
-                    border: OutlineInputBorder(),
-                    isDense: true,
+    // 低-9（审计第 4 轮）：对话框返回即捕获文本并释放 controller，
+    // 此后不再触碰已 dispose 的对象。
+    String pastedText = '';
+    String? result;
+    try {
+      result = await GlassDialog.show<String>(
+        context: context,
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setDialogState) => AlertDialog(
+            title: const Text('生成图表'),
+            content: SizedBox(
+              width: 380,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SegmentedButton<ChartType>(
+                    segments: const [
+                      ButtonSegment(
+                        value: ChartType.bar,
+                        label: Text('柱状图'),
+                        icon: Icon(Icons.bar_chart),
+                      ),
+                      ButtonSegment(
+                        value: ChartType.line,
+                        label: Text('折线图'),
+                        icon: Icon(Icons.show_chart),
+                      ),
+                    ],
+                    selected: {chartType},
+                    onSelectionChanged: (v) =>
+                        setDialogState(() => chartType = v.first),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: input,
+                    autofocus: true,
+                    maxLines: 5,
+                    decoration: InputDecoration(
+                      hintText:
+                          AppLocalizations.of(context)?.editorPasteValues ??
+                          '粘贴数值，用逗号/空格/换行分隔，例如：10, 25, 18, 42, 30',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                ],
+              ),
             ),
+            actions: AppleDialog.actions([
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop('ok'),
+                child: const Text('生成'),
+              ),
+            ]),
           ),
-          actions: AppleDialog.actions([
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop('ok'),
-              child: const Text('生成'),
-            ),
-          ]),
         ),
-      ),
-    );
+      );
+      pastedText = input.text;
+    } finally {
+      input.dispose();
+    }
     if (result == null) return;
     // 解析数值（逗号/空格/换行分隔）。
-    final data = input.text
+    final data = pastedText
         .split(RegExp(r'[, ]+'))
         .where((e) => e.trim().isNotEmpty)
         .map((e) => double.tryParse(e.trim()))

@@ -9,6 +9,8 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
+
 import 'sync_secret_store.dart';
 
 /// WebDAV 同步配置（仅非机密字段）。
@@ -82,6 +84,9 @@ class WebDavConfigStore {
       await _migrateLegacySecrets(prefs, map);
       return cfg;
     } catch (_) {
+      // 低-11 修复（审计第 3/4 轮）：不再完全静默——配置解析失败降级为
+      // 空配置的同时落审计日志，同步「凭空消失」至少可诊断。
+      AuditLogger.log('webdav.config.parse_failed', success: false);
       return const WebDavSyncConfig();
     }
   }

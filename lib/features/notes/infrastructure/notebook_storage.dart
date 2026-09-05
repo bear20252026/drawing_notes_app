@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/security/session_secrets.dart';
@@ -343,10 +344,27 @@ class NotebookStorage
   Future<bool> delete(String id) async {
     await _ensureNotebooksDir();
     final file = File(await _pathFor(id));
-    if (!await file.exists()) return false;
+    final backup = File('${file.path}.bak');
+    final mainExists = await file.exists();
+    final backupExists = await backup.exists();
+    // 主文件与备份都不存在才算「无此笔记本」。仅剩 .bak（rename 期崩溃等）
+    // 时笔记本仍可从备份加载——删除必须连备份一起处理。
+    if (!mainExists && !backupExists) return false;
     // 先收集图片路径再删除文件：文件删除后无法再读取其内容。
+    // _collectImagePaths 走 load()——主文件缺失时自动读 .bak。
     final imagePaths = await _collectImagePaths(id);
-    await file.delete();
+    if (mainExists) await file.delete();
+    // 三-5 修复（审计第 4 轮）：.bak 随主文件一并删除——否则删除后旧内容
+    // 仍留在磁盘（隐私），且下次 load 会凭备份「复活」已删除的笔记本。
+    if (backupExists) {
+      try {
+        await backup.delete();
+      } catch (_) {
+        // 主文件已删、加载路径只认主文件优先，旧备份不再参与加载；
+        // 残留含旧内容（隐私），落审计日志供排查。
+        AuditLogger.log('notebook.delete.bak_left', success: false);
+      }
+    }
     forgetNotebookPassword(id); // 会话密码随文档删除一并清理
     // 清理该笔记本所有页面引用的图片副本（尽力而为）。
     for (final p in imagePaths) {

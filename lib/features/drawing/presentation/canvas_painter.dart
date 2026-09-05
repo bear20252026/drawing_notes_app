@@ -8,6 +8,7 @@ import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dar
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/canvas_model/selection.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 
 /// 画布渲染器：把"图层位图 + 活动笔画"绘制到屏幕上。
 ///
@@ -151,7 +152,7 @@ class CanvasPainter extends CustomPainter {
         mixedBounds,
         controller.mixedDocumentSelectionHasLockedObjects
             ? const Color(0xFFF59E0B)
-            : const Color(0xFF2F80ED),
+            : AppleColor.actionBlue,
         inflate: 5,
         strokeWidth: 1.75,
         handleSize: 11,
@@ -205,7 +206,7 @@ class CanvasPainter extends CustomPainter {
 
   /// 绘制独立图片对象的选择边界与四角操作提示。
   void _paintDocumentImageSelection(Canvas canvas, Rect bounds) {
-    _paintSelectionFrame(canvas, bounds, const Color(0xFF2F80ED));
+    _paintSelectionFrame(canvas, bounds, AppleColor.actionBlue);
   }
 
   /// 统一的选择框绘制：外框 + 四角手柄 + 可选锁定标记。
@@ -269,7 +270,7 @@ class CanvasPainter extends CustomPainter {
   }) {
     final selectionColor = locked
         ? const Color(0xFFF59E0B)
-        : const Color(0xFF2F80ED);
+        : AppleColor.actionBlue;
     _paintSelectionFrame(canvas, bounds, selectionColor, locked: locked);
     if (locked) {
       // 锁定形状额外在中心加实心点，与组选择框的顶部标记区分。
@@ -350,18 +351,18 @@ class CanvasPainter extends CustomPainter {
 
     if (selection.polygon.length >= 3) {
       final path = Path()..addPolygon(selection.polygon, true);
-      // 半透明遮罩
+      // 半透明遮罩（四-2 统一：选框族蓝一律品牌 Action Blue）
       canvas.drawPath(
         path,
         Paint()
-          ..color = const Color(0x2242A5F5)
+          ..color = AppleColor.actionBlue.withValues(alpha: 0.13)
           ..style = PaintingStyle.fill,
       );
       // 边界线（虚线感：用较粗 + 浅色模拟）
       canvas.drawPath(
         path,
         Paint()
-          ..color = const Color(0xFF42A5F5)
+          ..color = AppleColor.actionBlue
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5,
       );
@@ -382,7 +383,7 @@ class CanvasPainter extends CustomPainter {
       canvas.drawPath(
         path,
         Paint()
-          ..color = const Color(0x8842A5F5)
+          ..color = AppleColor.actionBlue.withValues(alpha: 0.53)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.2,
       );
@@ -463,7 +464,7 @@ class MiniMapPainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.2
-        ..color = const Color(0xFF42A5F5),
+        ..color = AppleColor.actionBlue,
     );
     canvas.drawRect(
       rectOnMap,

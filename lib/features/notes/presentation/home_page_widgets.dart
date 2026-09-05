@@ -158,11 +158,29 @@ class _DrawingCardState extends State<_DrawingCard> {
                             ? AnimatedOpacity(
                                 opacity: 1,
                                 duration: motion,
-                                child: Image.memory(
-                                  _thumbBytes!,
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (_, _, _) =>
-                                      const _ThumbPlaceholder(),
+                                // U4（审计三-10）：缩略图按显示密度解码降采样——
+                                // 存储的 PNG 是画布 scale 0.2 产物，大画布仍可达
+                                // 上千像素；卡片只需 ~300 逻辑像素，按
+                                // 布局宽 × dpr 解码省下整倍解码内存。
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final width = constraints.maxWidth;
+                                    final int? cacheWidth =
+                                        width.isFinite && width > 0
+                                        ? (width *
+                                              MediaQuery.devicePixelRatioOf(
+                                                context,
+                                              ))
+                                              .round()
+                                        : null;
+                                    return Image.memory(
+                                      _thumbBytes!,
+                                      fit: BoxFit.contain,
+                                      cacheWidth: cacheWidth,
+                                      errorBuilder: (_, _, _) =>
+                                          const _ThumbPlaceholder(),
+                                    );
+                                  },
                                 ),
                               )
                             : const _ThumbPlaceholder(),

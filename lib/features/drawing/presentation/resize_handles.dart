@@ -102,7 +102,9 @@ class ResizeHandles extends StatelessWidget {
               width: size,
               height: size,
               decoration: BoxDecoration(
-                color: const Color(0xFF42A5F5),
+                // 四-2 统一（审计第 4 轮遗留）：手柄蓝从 Material #42A5F5
+                // 归位品牌 Action Blue，与 canvas_painter 选框族一致。
+                color: AppleColor.actionBlue,
                 borderRadius: BorderRadius.circular(AppleRadius.xs),
                 border: Border.all(color: Colors.white, width: 1),
               ),

@@ -431,7 +431,7 @@ abstract class AppLocalizations {
   /// 应用锁说明文案
   ///
   /// In en, this message translates to:
-  /// **'Once enabled, a password is required every time you open the app or return from the background.'**
+  /// **'Once enabled, a password is required to open the app, and to return from the background after the grace period.'**
   String get lockDescription;
 
   /// 开关已开启状态
@@ -601,6 +601,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'6+ digits recommended; numeric-only passwords have limited strength.'**
   String get lockPinLengthHint;
+
+  /// 切后台宽限期设置行标题
+  ///
+  /// In en, this message translates to:
+  /// **'Grace Period on Return'**
+  String get lockGraceTitle;
+
+  /// 宽限期档位对话框说明
+  ///
+  /// In en, this message translates to:
+  /// **'Come back within the grace period after leaving the app and you won\'t need to re-enter your password.'**
+  String get lockGraceHint;
+
+  /// 宽限期关闭档位
+  ///
+  /// In en, this message translates to:
+  /// **'Off (lock immediately on backgrounding)'**
+  String get lockGraceOff;
+
+  /// 宽限期 30 秒档位
+  ///
+  /// In en, this message translates to:
+  /// **'30 seconds'**
+  String get lockGrace30s;
+
+  /// 宽限期 1 分钟档位
+  ///
+  /// In en, this message translates to:
+  /// **'1 minute'**
+  String get lockGrace1min;
+
+  /// 宽限期 5 分钟档位
+  ///
+  /// In en, this message translates to:
+  /// **'5 minutes'**
+  String get lockGrace5min;
+
+  /// 宽限期当前值副标题
+  ///
+  /// In en, this message translates to:
+  /// **'Current: {option}'**
+  String lockGraceCurrent(String option);
 
   /// 快速解锁开关行
   ///

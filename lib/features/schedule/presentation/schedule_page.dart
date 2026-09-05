@@ -304,76 +304,86 @@ class _SchedulePageState extends State<SchedulePage> {
 
   Future<void> _showAddEventDialog({int? preHour}) async {
     var minuteOfDay = preHour == null ? null : preHour * 60;
-    final title = await GlassDialog.show<String>(
-      context: context,
-      builder: (ctx) {
-        final controller = TextEditingController();
-        return StatefulBuilder(
-          builder: (ctx, setDialogState) => AlertDialog(
-            title: Text(
-              _selectedDate == null
-                  ? '添加待办（今天）'
-                  : '添加待办（${_dayLabel(_selectedDate!)}）',
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: controller,
-                  autofocus: true,
-                  decoration: const InputDecoration(hintText: '要做点什么？'),
-                  onSubmitted: (v) => Navigator.of(ctx).pop(v),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.schedule, size: 18),
-                      label: Text(
-                        minuteOfDay == null
-                            ? '全天（不设时间）'
-                            : _fmtMinute(minuteOfDay),
+    // 低-9（审计第 4 轮）：controller 提到对话框外创建，finally 统一释放
+    // （此前在 builder 里创建且永不 dispose）。
+    final controller = TextEditingController();
+    final String? title;
+    try {
+      title = await GlassDialog.show<String>(
+        context: context,
+        builder: (ctx) {
+          return StatefulBuilder(
+            builder: (ctx, setDialogState) => AlertDialog(
+              title: Text(
+                _selectedDate == null
+                    ? '添加待办（今天）'
+                    : '添加待办（${_dayLabel(_selectedDate!)}）',
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    decoration: const InputDecoration(hintText: '要做点什么？'),
+                    onSubmitted: (v) => Navigator.of(ctx).pop(v),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.schedule, size: 18),
+                        label: Text(
+                          minuteOfDay == null
+                              ? '全天（不设时间）'
+                              : _fmtMinute(minuteOfDay),
+                        ),
+                        onPressed: () async {
+                          final cur = minuteOfDay;
+                          final picked = await fm.showTimePicker(
+                            context: ctx,
+                            initialTime: cur == null
+                                ? const fm.TimeOfDay(hour: 9, minute: 0)
+                                : fm.TimeOfDay(
+                                    hour: cur ~/ 60,
+                                    minute: cur % 60,
+                                  ),
+                          );
+                          if (picked != null) {
+                            final newMinute = picked.hour * 60 + picked.minute;
+                            setDialogState(() => minuteOfDay = newMinute);
+                          }
+                        },
                       ),
-                      onPressed: () async {
-                        final cur = minuteOfDay;
-                        final picked = await fm.showTimePicker(
-                          context: ctx,
-                          initialTime: cur == null
-                              ? const fm.TimeOfDay(hour: 9, minute: 0)
-                              : fm.TimeOfDay(hour: cur ~/ 60, minute: cur % 60),
-                        );
-                        if (picked != null) {
-                          final newMinute = picked.hour * 60 + picked.minute;
-                          setDialogState(() => minuteOfDay = newMinute);
-                        }
-                      },
-                    ),
-                    if (minuteOfDay != null) ...[
-                      const SizedBox(width: 8),
-                      TextButton(
-                        onPressed: () =>
-                            setDialogState(() => minuteOfDay = null),
-                        child: const Text('改为全天'),
-                      ),
+                      if (minuteOfDay != null) ...[
+                        const SizedBox(width: 8),
+                        TextButton(
+                          onPressed: () =>
+                              setDialogState(() => minuteOfDay = null),
+                          child: const Text('改为全天'),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
+                ],
+              ),
+              actions: AppleDialog.actions([
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('取消'),
                 ),
-              ],
+                FilledButton(
+                  onPressed: () => Navigator.of(ctx).pop(controller.text),
+                  child: const Text('添加'),
+                ),
+              ]),
             ),
-            actions: AppleDialog.actions([
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('取消'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(controller.text),
-                child: const Text('添加'),
-              ),
-            ]),
-          ),
-        );
-      },
-    );
+          );
+        },
+      );
+    } finally {
+      controller.dispose();
+    }
     if (title == null) return;
     final day = _selectedDate ?? DateTime.now();
     // 审计三-2：写入失败要有反馈，不能表现为「什么都没发生」。
