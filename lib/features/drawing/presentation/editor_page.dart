@@ -426,6 +426,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       } else {
         await file.writeAsBytes(outBytes, flush: true);
       }
+      // 审计三-1：等待写入（含加密）期间退出页面则放弃 UI 更新，
+      // 避免 setState() called after dispose()。
+      if (!mounted) return;
       setState(() {
         img.x = rect.left;
         img.y = rect.top;

@@ -370,12 +370,23 @@ class _SchedulePageState extends State<SchedulePage> {
     );
     if (title == null) return;
     final day = _selectedDate ?? DateTime.now();
-    final added = await _eventStore.add(
-      title: title,
-      dayKey: _dayKey(day),
-      minuteOfDay: minuteOfDay,
-    );
+    // 审计三-2：写入失败要有反馈，不能表现为「什么都没发生」。
+    // try 内赋值的局部不做提升（final 声明也不行）——经 final 中转后检查。
+    ScheduleEvent? result;
+    try {
+      result = await _eventStore.add(
+        title: title,
+        dayKey: _dayKey(day),
+        minuteOfDay: minuteOfDay,
+      );
+    } catch (_) {
+      _showSnack('添加失败，请重试');
+      return;
+    }
+    final added = result;
     if (added == null) return;
+    // 等待写入期间退出页面则放弃 UI 更新（避免 after dispose）。
+    if (!mounted) return;
     setState(() {
       _events = [..._events, added];
       // 新增后自动聚焦到该日，方便看到它出现在时间轴上。
@@ -384,8 +395,16 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 
   Future<void> _toggleEvent(ScheduleEvent event) async {
-    final updated = await _eventStore.toggleDone(event.id);
+    final ScheduleEvent? result;
+    try {
+      result = await _eventStore.toggleDone(event.id);
+    } catch (_) {
+      _showSnack('操作失败，请重试');
+      return;
+    }
+    final updated = result;
     if (updated == null) return;
+    if (!mounted) return;
     setState(() {
       _events = [
         for (final e in _events)
@@ -395,10 +414,24 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 
   Future<void> _removeEvent(ScheduleEvent event) async {
-    await _eventStore.remove(event.id);
+    try {
+      await _eventStore.remove(event.id);
+    } catch (_) {
+      _showSnack('删除失败，请重试');
+      return;
+    }
+    if (!mounted) return;
     setState(() {
       _events = _events.where((e) => e.id != event.id).toList();
     });
+  }
+
+  /// 轻量反馈通道（mounted 守卫；失败类提示均给可重试语义）。
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   // ---------------- 通用小组件 ----------------

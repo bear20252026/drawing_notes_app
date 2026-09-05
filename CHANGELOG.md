@@ -2,6 +2,14 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.10.9] - 2026-09-05
+
+### 稳定性（审计 U1 止血批次）
+
+- **日程页**：三处事件操作（添加 / 勾选完成 / 删除）补 `mounted` 守卫——等待写入期间退出页面不再 `setState() called after dispose()`；写入失败补 try/catch + SnackBar 人话提示（原表现为「什么都没发生」）
+- **画布编辑器**：裁剪保存的加密写入 await 后补 `mounted` 守卫（审计三-1）
+- **核查澄清（审计第 4 轮两处「高」为旧快照误报）**：`schedule_event_store` 写链串行化（`_enqueue`）与 `document_transaction` 回滚 `AuditLogger` 化均已在 2026-09-04 `6f0074a`（P0-P2 闭环）修复，本轮复核确认无需再改
+
 ## [1.10.8] - 2026-09-05
 
 ### 体验修复（来源：docs/AUDIT_UX_ROUND4_2026-09-05.md 第 4 轮审计）
