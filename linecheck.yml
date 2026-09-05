@@ -23,16 +23,12 @@ rules:
     warn: 2000
     error: 3000
 
-  # l10n 生成代码与翻译资源（gen-l10n 自动生成 + ARB 翻译单一来源，
-  # 行数随键数线性增长，人工拆分无意义——审计 U3 l10n 收编后触发，
-  # 2026-09-05 豁免；.arb 走行数检查器的默认 400 行错误档，一并放宽）
-  - pattern: "lib/l10n/**"
-    warn: 1500
-    warn_message: "l10n 文件偏大——若为手写内容请考虑按域拆分"
-    error: 3000
-    error_message: "l10n 超过 3000 行——检查是否误提交了非生成内容"
 
 exclude:
+  # l10n 生成代码与翻译资源（gen-l10n 输出 + ARB 单一来源，行数随键数
+  # 线性增长——人工拆分无意义。2026-09-05 审计 l10n 收编后触发，豁免。
+  # 注意必须走 exclude：rules 首匹配，**/*.dart 会抢占 lib/l10n/** 规则）
+  - "lib/l10n/**"
   - "**/generated/**"
   - "build/**"
   - ".dart_tool/**"
