@@ -287,7 +287,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lockGraceHint =>
-      'Come back within the grace period after leaving the app and you won\'t need to re-enter your password.';
+      'Come back within the grace period after leaving the app and you won\'t need to re-enter your password. The grace period only skips the lock screen; passwords for encrypted files and notes will still be requested.';
 
   @override
   String get lockGraceOff => 'Off (lock immediately on backgrounding)';

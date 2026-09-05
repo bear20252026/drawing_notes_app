@@ -135,6 +135,20 @@ class EditorPage extends ConsumerStatefulWidget {
   ConsumerState<EditorPage> createState() => _EditorPageState();
 }
 
+/// 线性元素拖拽读数：长度（画布坐标 px）+ 与水平方向夹角（度）。
+/// 气泡锚定在拖拽端点的视图坐标上（审计二-6）。
+class LinearDraftReadout {
+  const LinearDraftReadout({
+    required this.viewPos,
+    required this.length,
+    required this.angleDeg,
+  });
+
+  final Offset viewPos;
+  final double length;
+  final double angleDeg;
+}
+
 class _EditorPageState extends ConsumerState<EditorPage> {
   late final DrawingController _controller;
 
@@ -165,8 +179,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   Color get _canvasStatusColor {
     if (_canvasSaving) return AppleColor.actionBlue;
-    if (_controller.isDirty) return const Color(0xFFF5A623);
-    return const Color(0xFF30D158);
+    if (_controller.isDirty) return AppleColor.favourite;
+    return AppleColor.noteGreen;
   }
 
   /// 混排对象的框选、多选、裁剪、对齐与拖动反馈暂态集中在独立协作者中。
@@ -461,6 +475,16 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   Offset? _shapeDraftStart;
   Offset? _shapeDraftCurrent;
 
+  /// 线性端点编辑手势基准：pan 开始时两端的全局画布坐标（null = 未编辑）。
+  /// 端点手柄用「基准 + 累计位移」换算目标点，避免逐帧读改中的端点漂移。
+  ({Offset start, Offset end})? _linearEndpointDragBase;
+  Offset _linearEndpointAccum = Offset.zero;
+
+  /// 线性元素拖拽读数（长度/角度小气泡，视图坐标锚点；null = 隐藏）。
+  /// 审计二-6：触屏手指遮挡落点，至少让用户「看得见」正在画的线。
+  final ValueNotifier<LinearDraftReadout?> _linearReadout =
+      ValueNotifier<LinearDraftReadout?>(null);
+
   /// 形状填充模式开关（问题4）：开启后新建形状默认带填充色。
   bool _fillShapeEnabled = false;
 
@@ -472,12 +496,30 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     final current = _shapeDraftCurrent;
     final tool = _activeShapeTool;
     if (start == null || current == null || tool == null) return null;
-    final dx = current.dx - start.dx;
-    final dy = current.dy - start.dy;
-    // 与 ShapeCreationGeometry 的点击阈值保持一致。
-    bool isClick(double dx, double dy) => dx.abs() < 4 && dy.abs() < 4;
-    final left = math.min(start.dx, current.dx);
-    final top = math.min(start.dy, current.dy);
+    // 拖拽吸附（审计二-1/二-3）：预览与提交共用同一换算，保证所见即所得。
+    // 档位互斥：网格吸附 → 20px 网格；否则线性元素做 0°/45°/90° 角度磁吸
+    // （Shift 强制吸附）+ 端点对既有形状的 8px 边框磁吸。
+    final linear = ShapeBindingGeometry.isLinearByType(tool);
+    var snapped = ShapeCreationGeometry.snappedDragPoints(
+      start,
+      current,
+      linear: linear,
+      gridSnapEnabled: _snapToGrid,
+      forceAngle: HardwareKeyboard.instance.isShiftPressed,
+    );
+    var draftStart = snapped.start;
+    var draftEnd = snapped.end;
+    if (linear && !_snapToGrid) {
+      draftStart = _snapLinearDraftEndpoint(draftStart);
+      draftEnd = _snapLinearDraftEndpoint(draftEnd);
+    }
+    final dx = draftEnd.dx - draftStart.dx;
+    final dy = draftEnd.dy - draftStart.dy;
+    // 与 ShapeCreationGeometry 的点击阈值保持一致（审计二-7：4px→8px）。
+    final isClick = dx.abs() < ShapeCreationGeometry.clickThreshold &&
+        dy.abs() < ShapeCreationGeometry.clickThreshold;
+    final left = math.min(draftStart.dx, draftEnd.dx);
+    final top = math.min(draftStart.dy, draftEnd.dy);
     return PageShapeItem(
       id: '_shape_draft',
       shapeType: tool,
@@ -493,8 +535,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       // 不一致——落定走 ShapeCreationGeometry.fromDrag 的真实端点，
       // 而预览此前仅靠 flipX/flipY 对角线，用户会看到方向跳动）。
       // 单击（位移小于点击阈值）时端点置空，与落定的默认对角线一致。
-      lineStart: isClick(dx, dy) ? null : start - Offset(left, top),
-      lineEnd: isClick(dx, dy) ? null : current - Offset(left, top),
+      lineStart: isClick ? null : draftStart - Offset(left, top),
+      lineEnd: isClick ? null : draftEnd - Offset(left, top),
       // 填充模式开启时预览也带填充色，所见即所得（问题4）。
       fillColor: _fillShapeEnabled ? _shapeFillColor : null,
     );
@@ -526,6 +568,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     _editFocus.dispose();
     _hoverPos.dispose();
     _inkPressureSample.dispose();
+    _linearReadout.dispose();
     // _controller 生命周期由 drawingControllerProvider(ref.onDispose) 管理。
     super.dispose();
   }

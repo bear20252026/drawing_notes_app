@@ -365,7 +365,7 @@
   "@lockGraceTitle": {
     "description": "切后台宽限期设置行标题"
   },
-  "lockGraceHint": "Come back within the grace period after leaving the app and you won't need to re-enter your password.",
+  "lockGraceHint": "Come back within the grace period after leaving the app and you won't need to re-enter your password. The grace period only skips the lock screen; passwords for encrypted files and notes will still be requested.",
   "@lockGraceHint": {
     "description": "宽限期档位对话框说明"
   },

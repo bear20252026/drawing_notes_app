@@ -44,6 +44,7 @@ import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
 import 'package:drawing_notes_app/features/security/block_doc_password_reset_flow.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
+import 'package:drawing_notes_app/shared/widgets/apple_sheet_fade_route.dart';
 
 part 'notebook_view_page_widgets.dart';
 part 'notebook_view_page_imports.dart';
@@ -501,8 +502,9 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 224,
         childAspectRatio: 0.74,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
+        // 审计三-6：网格间距对齐 AppleSpacing 令牌（16 = md）。
+        crossAxisSpacing: AppleSpacing.md,
+        mainAxisSpacing: AppleSpacing.md,
       ),
       itemCount: pages.length,
       itemBuilder: (context, i) {

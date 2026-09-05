@@ -611,7 +611,7 @@ abstract class AppLocalizations {
   /// 宽限期档位对话框说明
   ///
   /// In en, this message translates to:
-  /// **'Come back within the grace period after leaving the app and you won\'t need to re-enter your password.'**
+  /// **'Come back within the grace period after leaving the app and you won\'t need to re-enter your password. The grace period only skips the lock screen; passwords for encrypted files and notes will still be requested.'**
   String get lockGraceHint;
 
   /// 宽限期关闭档位

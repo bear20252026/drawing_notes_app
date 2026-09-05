@@ -32,8 +32,9 @@ extension _NotebookPageManage on _NotebookViewPageState {
     // 二级面板范围=全部页：同本全部页面会话（适配器共享原页引用——
     // 导出读到的是最新内存内容；cloneOf 分支由调用方传入源本页列）。
     final pages = allPages ?? _notebook.pages;
+    // 审计三-8：页卡 → 编辑器改 sheet + 淡入转场（替换平台默认转场）。
     return Navigator.of(context).push(
-      MaterialPageRoute(
+      AppleSheetFadeRoute(
         builder: (_) => builder(
           session: NotebookPageEditorSession(page),
           allSessions: () => [
@@ -139,7 +140,10 @@ extension _NotebookPageManage on _NotebookViewPageState {
     try {
       doc = await store.loadDocument(page.id);
     } on BlockDocLockedException {
-      return; // 会话 DEK 已被清——不暴露内容
+      // 会话 DEK 已被清——不暴露内容；但不再静默消失（审计一-3 体验缺陷，
+      // 2026-09-06）：明确告知需重新解锁，避免「点不动/用不了」的体感。
+      _showSnack('该笔记已加密且会话已锁定，请重新解锁后再打开');
+      return;
     }
     if (doc == null) {
       // 不存在则从 NotebookPage 迁移并缓存

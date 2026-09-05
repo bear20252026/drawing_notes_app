@@ -62,6 +62,19 @@ extension DrawingControllerObjectOps on DrawingController {
       _documentObjectEditingSession.endDocumentShapeTransform();
   void cancelDocumentShapeTransform() =>
       _documentObjectEditingSession.cancelDocumentShapeTransform();
+  void beginLinearEndpointEdit() =>
+      _documentObjectEditingSession.beginLinearEndpointEdit();
+  void updateSelectedLinearEndpoint({
+    required bool isStart,
+    required Offset point,
+    bool snapToGrid = false,
+  }) => _documentObjectEditingSession.updateSelectedLinearEndpoint(
+    isStart: isStart,
+    point: point,
+    snapToGrid: snapToGrid,
+  );
+  void endLinearEndpointEdit() =>
+      _documentObjectEditingSession.endLinearEndpointEdit();
   void toggleSelectedDocumentShapeLock() =>
       _documentObjectEditingSession.toggleSelectedDocumentShapeLock();
   void deleteSelectedDocumentShape() =>

@@ -34,6 +34,7 @@ import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_fab.dart';
 // U4a：首屏加载骨架屏。
 import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
+import 'package:drawing_notes_app/shared/utils/image_decode_cap.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_templates.dart';
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_page.dart';

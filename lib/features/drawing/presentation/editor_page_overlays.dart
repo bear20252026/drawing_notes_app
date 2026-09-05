@@ -9,11 +9,16 @@ part of 'editor_page.dart';
 extension _EditorPageOverlays on _EditorPageState {
   Widget _buildStatusBar() {
     // 状态栏为纯展示组件（架构重构 R3）：监听 controller + hoverPos 渲染，
-    // 不承载业务逻辑（见 editor_statusbar.dart）。
+    // 不承载业务逻辑（见 editor_statusbar.dart）。保存中/最近保存时间由
+    // 编辑器状态传入（审计三-2：保存状态芯片 + 微动效）。
     return EditorStatusBar(
       document: _controller.document,
       hoverPos: _hoverPos,
       inkPressureSample: _inkPressureSample,
+      saving: _canvasSaving,
+      lastSavedAt: _canvasLastSavedAt,
+      onZoomTo: _setScaleFromMenu,
+      onZoomFit: _fitCanvasToViewport,
     );
   }
 
@@ -91,6 +96,10 @@ extension _EditorPageOverlays on _EditorPageState {
     // 箭头/直线不随画布缩放而改变线宽视觉，其余形状按 viewScale 换算。
     final w = shape.width * _controller.viewScale;
     final h = shape.height * _controller.viewScale;
+    // 线性元素（审计二-2/二-5）：选中后只显示两端圆形拖柄，不再用外接框
+    // 缩放整条线；命中判定走点到线段距离（LinearShapePainter.hitTest），
+    // 细斜线的外接框空白不再拦截点击。
+    final linear = ShapeBindingGeometry.isLinear(shape);
     return Positioned(
       left: viewPos.dx,
       top: viewPos.dy,
@@ -124,94 +133,151 @@ extension _EditorPageOverlays on _EditorPageState {
                         shape.flipY ? -1 : 1,
                         1,
                       ),
-                child: CustomPaint(
-                  painter: ShapePainter(
-                    shape: shape,
-                    viewScale: _controller.viewScale,
-                  ),
-                  child: selected
-                      ? Stack(
-                          children: [
-                            Positioned.fill(
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: const Color(0xFF42A5F5),
-                                    width: 1.5,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            // 旋转手柄（顶部中间，拖拽旋转，借鉴 Excalidraw）。
-                            Positioned(
-                              top: -18,
-                              left: w / 2 - 5,
-                              child: GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onPanUpdate: (d) {
-                                  final center = Offset(w / 2, h / 2);
-                                  final local =
-                                      d.localPosition + Offset(w / 2, h / 2);
-                                  final angle = (local - center).direction;
-                                  _applyState(() => shape.rotation = angle);
-                                  _notifyChanged();
-                                },
-                                child: Container(
-                                  width: 10,
-                                  height: 10,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF42A5F5),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Colors.white,
-                                      width: 1,
+                child: linear
+                    ? _buildLinearShapeLayer(shape, w, h, selected)
+                    : CustomPaint(
+                        painter: ShapePainter(
+                          shape: shape,
+                          viewScale: _controller.viewScale,
+                        ),
+                        child: selected
+                            ? Stack(
+                                children: [
+                                  Positioned.fill(
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color: const Color(0xFF42A5F5),
+                                          width: 1.5,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ),
-                            ),
-                            // 8 向缩放手柄（四角 + 四边中点，借鉴 Excalidraw）。
-                            ResizeHandles(
-                              width: w,
-                              height: h,
-                              screenToCanvasDelta: (delta) =>
-                                  screenDeltaToCanvas(
-                                    delta,
-                                    _controller.viewRotation,
-                                    _controller.viewScale,
-                                  ),
-                              onResize: (handle, canvasDelta) {
-                                final resized =
-                                    EditorShapeResizeGeometry.resize(
-                                      bounds: EditorShapeBounds(
-                                        x: shape.x,
-                                        y: shape.y,
-                                        width: shape.width,
-                                        height: shape.height,
+                                  // 旋转手柄（顶部中间，拖拽旋转，借鉴 Excalidraw）。
+                                  Positioned(
+                                    top: -18,
+                                    left: w / 2 - 5,
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onPanUpdate: (d) {
+                                        final center = Offset(w / 2, h / 2);
+                                        final local =
+                                            d.localPosition +
+                                            Offset(w / 2, h / 2);
+                                        final angle = (local - center).direction;
+                                        _applyState(
+                                          () => shape.rotation = angle,
+                                        );
+                                        _notifyChanged();
+                                      },
+                                      child: Container(
+                                        width: 10,
+                                        height: 10,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFF42A5F5),
+                                          shape: BoxShape.circle,
+                                          border: Border.fromBorderSide(
+                                            BorderSide(color: Colors.white),
+                                          ),
+                                        ),
                                       ),
-                                      handle: handle,
-                                      canvasDelta: canvasDelta,
-                                    );
-                                _applyState(() {
-                                  shape
-                                    ..x = resized.x
-                                    ..y = resized.y
-                                    ..width = resized.width
-                                    ..height = resized.height;
-                                });
-                              },
-                              onChanged: _notifyChanged,
-                            ),
-                          ],
-                        )
-                      : null,
-                ),
+                                    ),
+                                  ),
+                                  // 8 向缩放手柄（四角 + 四边中点，借鉴 Excalidraw）。
+                                  ResizeHandles(
+                                    width: w,
+                                    height: h,
+                                    screenToCanvasDelta: (delta) =>
+                                        screenDeltaToCanvas(
+                                          delta,
+                                          _controller.viewRotation,
+                                          _controller.viewScale,
+                                        ),
+                                    onResize: (handle, canvasDelta) {
+                                      final resized =
+                                          EditorShapeResizeGeometry.resize(
+                                            bounds: EditorShapeBounds(
+                                              x: shape.x,
+                                              y: shape.y,
+                                              width: shape.width,
+                                              height: shape.height,
+                                            ),
+                                            handle: handle,
+                                            canvasDelta: canvasDelta,
+                                          );
+                                      _applyState(() {
+                                        shape
+                                          ..x = resized.x
+                                          ..y = resized.y
+                                          ..width = resized.width
+                                          ..height = resized.height;
+                                      });
+                                    },
+                                    onChanged: _notifyChanged,
+                                  ),
+                                ],
+                              )
+                            : null,
+                      ),
               ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  /// 线性元素渲染层：线段绘制 + 端点拖柄（选中时）。
+  ///
+  /// 注意 CustomPaint 无 child——命中测试走 [LinearShapePainter.hitTest]
+  /// 的点到线段距离，端点手柄作为兄弟节点叠加（不阻断线段本体命中）。
+  Widget _buildLinearShapeLayer(PageShapeItem shape, double w, double h,
+      bool selected) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        CustomPaint(
+          painter: LinearShapePainter(
+            shape: shape,
+            viewScale: _controller.viewScale,
+          ),
+        ),
+        if (selected) ..._buildNotebookLinearHandles(shape, w, h),
+      ],
+    );
+  }
+
+  /// 分页笔记：选中线性元素的两端拖柄（画布坐标增量 → 端点吸附更新）。
+  List<Widget> _buildNotebookLinearHandles(PageShapeItem shape, double w,
+      double h) {
+    Offset localOf(bool isStart) {
+      final local = isStart ? shape.lineStart : shape.lineEnd;
+      if (local != null) return local * _controller.viewScale;
+      return isStart ? Offset(0, h) : Offset(w, 0);
+    }
+
+    Widget handle(bool isStart) => EndpointHandle(
+      position: localOf(isStart),
+      onPanStart: () {
+        _linearEndpointDragBase = _resolvedLinearEndpointsOf(shape);
+        _linearEndpointAccum = Offset.zero;
+      },
+      onPanUpdate: (screenDelta) {
+        _linearEndpointAccum += screenDeltaToCanvas(
+          screenDelta,
+          _controller.viewRotation,
+          _controller.viewScale,
+        );
+        _dragNotebookLinearEndpoint(shape, isStart);
+      },
+      onPanEnd: () {
+        _linearEndpointDragBase = null;
+        _linearEndpointAccum = Offset.zero;
+        _linearReadout.value = null;
+        _notifyChanged();
+      },
+    );
+    return [handle(true), handle(false)];
   }
 
   /// 就地编辑框（点击页面直接打字，回车提交、失焦提交、Esc 取消）。

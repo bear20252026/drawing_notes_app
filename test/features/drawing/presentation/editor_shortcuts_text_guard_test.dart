@@ -16,8 +16,15 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   /// 进入文字工具 + 点击画布进入就地编辑。
+  ///
+  /// 审计三-1（2026-09-06）：工具条改为画布内浮动玻璃岛（短画布上岛内
+  /// 可滚动），先滚到「文字 (T)」可见再点击。
   Future<void> startInlineEditing(WidgetTester tester) async {
-    await tester.tap(find.byTooltip('文字 (T)'));
+    final textTool = find.byTooltip('文字 (T)');
+    await tester.ensureVisible(textTool);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(textTool);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tapAt(const Offset(420, 300));

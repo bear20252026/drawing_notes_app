@@ -154,6 +154,119 @@ extension _EditorPageCanvasSurface on _EditorPageState {
                   },
                 ),
               ),
+            // 独立画布：选中线性元素（直线/箭头）的端点编辑手柄（审计二-2）。
+            // 与画布 Listener 分层命中：手柄 44px 热区在上层，画布手势不受影响。
+            if (!_isNotebookMode)
+              Positioned.fill(
+                child: ListenableBuilder(
+                  listenable: Listenable.merge([
+                    _controller,
+                    _controller.frameTick,
+                  ]),
+                  builder: (context, _) {
+                    final shape = _controller.selectedDocumentShape;
+                    if (shape == null ||
+                        !ShapeBindingGeometry.isLinear(shape) ||
+                        shape.locked) {
+                      return const SizedBox.shrink();
+                    }
+                    final endpoints = shape.shapeType == ShapeType.arrow
+                        ? ShapeBindingGeometry.resolvedArrowEndpoints(
+                            shape,
+                            _controller.document.shapes,
+                          )
+                        : ShapeBindingGeometry.linearEndpoints(shape);
+                    EndpointHandle handle(bool isStart) => EndpointHandle(
+                      position: _controller.canvasToView(
+                        isStart ? endpoints.start : endpoints.end,
+                      ),
+                      onPanStart: () {
+                        _linearEndpointDragBase = endpoints;
+                        _linearEndpointAccum = Offset.zero;
+                        _controller.beginLinearEndpointEdit();
+                      },
+                      onPanUpdate: (screenDelta) {
+                        _linearEndpointAccum += screenDeltaToCanvas(
+                          screenDelta,
+                          _controller.viewRotation,
+                          _controller.viewScale,
+                        );
+                        final base = _linearEndpointDragBase;
+                        if (base == null) return;
+                        _controller.updateSelectedLinearEndpoint(
+                          isStart: isStart,
+                          point: (isStart ? base.start : base.end) +
+                              _linearEndpointAccum,
+                          snapToGrid: _snapToGrid,
+                        );
+                        final current = _controller.selectedDocumentShape;
+                        if (current != null) {
+                          _updateLinearReadoutFromShape(current, isStart);
+                        }
+                      },
+                      onPanEnd: () {
+                        _controller.endLinearEndpointEdit();
+                        _linearEndpointDragBase = null;
+                        _linearEndpointAccum = Offset.zero;
+                        _linearReadout.value = null;
+                        _notifyChanged();
+                      },
+                    );
+                    return Stack(
+                      children: [handle(true), handle(false)],
+                    );
+                  },
+                ),
+              ),
+            // 线性元素拖拽读数气泡（长度/角度，审计二-6）：触屏遮挡落点时
+            // 至少「看得见」正在画的线。浮层材质，不拦截指针。
+            Positioned.fill(
+              child: IgnorePointer(
+                child: ValueListenableBuilder<LinearDraftReadout?>(
+                  valueListenable: _linearReadout,
+                  builder: (context, readout, _) {
+                    if (readout == null) return const SizedBox.shrink();
+                    var degrees = readout.angleDeg.round();
+                    if (degrees < 0) degrees += 360;
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Positioned(
+                          left: readout.viewPos.dx + 14,
+                          top: readout.viewPos.dy - 34,
+                          child: LinearReadoutBubble(
+                            length: readout.length,
+                            angleDeg: degrees.toDouble(),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+            // 左侧浮动玻璃工具岛（审计三-1）：垂直居中、离边 12px 的浮层
+            // 材质（DESIGN_SYSTEM §5 分层规则——工具条属浮层，可用玻璃）。
+            // Align 提供松约束：ConstrainedBox 的限宽/限高才能生效——不限宽
+            // 会让玻璃板横铺整块画布、挡住画布手势；工具项多于可视高度时
+            // 在岛内滚动。岛宽 56 = 48px 按钮 + 2×4px 内边距。
+            if (!_fullscreen)
+              Positioned.fill(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: AppleSpacing.sm),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: 56,
+                        maxHeight:
+                            constraints.biggest.height - AppleSpacing.sm,
+                      ),
+                      child: _buildLeftToolbar(),
+                    ),
+                  ),
+                ),
+              ),
             // 画布小地图（借鉴 Relatum：放大后快速导航定位）。
             Positioned(right: 8, bottom: 8, child: _buildMiniMap()),
             // 番茄钟专注计时浮层（D2，借鉴 Relatum 学习工具）。

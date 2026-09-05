@@ -28,6 +28,9 @@ void main() {
     final left = node('left', 20, 20);
     final right = node('right', 300, 100);
     final connector = arrow();
+    // 审计二-4（2026-09-06）：绑定时刻端点重投影到目标外接框周界——
+    // start (110,60) → left 右边 (140,60)，锚点 (1.0, 0.5)；
+    // end (340,160) → right 底边 (340,180)，锚点 (1/3, 1.0)。
     ShapeBindingGeometry.bindArrowAtEndpoints(
       connector,
       [left, right],
@@ -77,9 +80,10 @@ void main() {
     );
     expect(movedLeft.x, 60);
     expect(movedLeft.y, 10);
+    // 锚点 (1.0, 0.5) 随移动后的 left (60,10,120,80) 重投影为右边中点。
     expect(
       ShapeBindingGeometry.arrowEndpoints(connector).start,
-      const Offset(150, 50),
+      const Offset(180, 50),
     );
     expect(controller.canUndo, isTrue);
 
@@ -94,7 +98,7 @@ void main() {
     expect(undoneLeft.y, 20);
     expect(
       ShapeBindingGeometry.arrowEndpoints(undoneArrow).start,
-      const Offset(110, 60),
+      const Offset(140, 60),
     );
 
     controller.redo();
@@ -103,7 +107,7 @@ void main() {
     );
     expect(
       ShapeBindingGeometry.arrowEndpoints(redoneArrow).start,
-      const Offset(150, 50),
+      const Offset(180, 50),
     );
   });
 
@@ -118,7 +122,7 @@ void main() {
       ShapeBindingGeometry.arrowEndpoints(
         controller.document.shapes.singleWhere((shape) => shape.id == 'arrow'),
       ).start,
-      const Offset(150, 50),
+      const Offset(180, 50),
     );
 
     controller.cancelDocumentShapeTransform();
@@ -127,7 +131,7 @@ void main() {
       ShapeBindingGeometry.arrowEndpoints(
         controller.document.shapes.singleWhere((shape) => shape.id == 'arrow'),
       ).start,
-      const Offset(110, 60),
+      const Offset(140, 60),
     );
     expect(controller.canUndo, isFalse);
   });
@@ -164,9 +168,10 @@ void main() {
     );
     expect(connector.startBinding?.targetShapeId, 'left');
     expect(connector.endBinding, isNull);
+    // 删除 right 后末端冻结为边框投影点 (340,180)。
     expect(
       ShapeBindingGeometry.arrowEndpoints(connector).end,
-      const Offset(340, 160),
+      const Offset(340, 180),
     );
 
     controller.undo();

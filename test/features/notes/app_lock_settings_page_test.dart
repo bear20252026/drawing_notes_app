@@ -225,7 +225,14 @@ void main() {
     // 打开档位对话框（tile 与对话框标题同名，取列表中的第一处）。
     await tester.tap(find.text('切后台宽限期').first);
     await tester.pumpAndSettle();
-    expect(find.text('离开应用后在宽限期内回来，无需重新输入密码。'), findsOneWidget);
+    // 审计四-1（2026-09-06）：说明文案补充加密文件口令预期。
+    expect(
+      find.text(
+        '离开应用后在宽限期内回来，无需重新输入密码。'
+        '宽限期只免锁屏，加密文件与笔记的密码仍会重新要求。',
+      ),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('关闭（切后台立即锁定）'));
     await tester.pumpAndSettle();

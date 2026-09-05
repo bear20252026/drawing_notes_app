@@ -25,18 +25,45 @@ class _PageCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Card(
       clipBehavior: Clip.antiAlias,
+      // 审计三-6（2026-09-06）：Card 零海拔保持内容层扁平，圆角对齐
+      // AppleRadius.md；纸张质感（发丝线 + 极浅双层纸影）移到缩略图区。
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppleRadius.md),
+        side: BorderSide(color: scheme.outlineVariant),
+      ),
       child: InkWell(
         onTap: onTap,
         onLongPress: onOpenAsBlockDoc,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 页面缩略图（以画布尺寸比例显示白纸 + 内容占位）
+            // 页面缩略图：白纸 + 发丝线描边 + 极浅双层纸影（审计三-6）。
             Expanded(
-              child: Container(
-                color: Colors.white,
-                padding: const EdgeInsets.all(4),
-                child: _PageThumbnail(page: page),
+              child: Padding(
+                padding: const EdgeInsets.all(AppleSpacing.xs),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(AppleRadius.sm),
+                    border: Border.all(color: scheme.outlineVariant),
+                    boxShadow: [
+                      // C9 阴影档：hover 级 0/2/4 再减淡一档的两层纸影。
+                      BoxShadow(
+                        offset: const Offset(0, 1),
+                        blurRadius: 2,
+                        color: Colors.black.withValues(alpha: 0.06),
+                      ),
+                      BoxShadow(
+                        offset: const Offset(0, 4),
+                        blurRadius: 10,
+                        color: Colors.black.withValues(alpha: 0.04),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(4),
+                  child: _PageThumbnail(page: page),
+                ),
               ),
             ),
             Padding(
@@ -47,11 +74,13 @@ class _PageCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // 排版走 17/13/11.5 梯子（审计三-6）：
+                        // 标题 17 w600，元信息 11.5。
                         Text(
                           page.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          style: AppleType.titleStyle(scheme.onSurface),
                         ),
                         // 分组徽标（A1 层级）与克隆标记（A3）
                         if (page.folder.isNotEmpty || page.cloneOf != null)
@@ -64,12 +93,7 @@ class _PageCard extends StatelessWidget {
                               ].join(' · '),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.labelSmall
-                                  ?.copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                  ),
+                              style: AppleType.captionStyle(scheme.primary),
                             ),
                           ),
                       ],
@@ -78,7 +102,7 @@ class _PageCard extends StatelessWidget {
                   IconButton(
                     tooltip: page.favorite ? '取消收藏' : '收藏页面',
                     icon: Icon(
-                      page.favorite ? Icons.star : Icons.star_border,
+                      page.favorite ? Icons.star_rounded : Icons.star_border_rounded,
                       size: 18,
                     ),
                     visualDensity: VisualDensity.compact,
@@ -87,13 +111,13 @@ class _PageCard extends StatelessWidget {
                   ),
                   IconButton(
                     tooltip: '版本历史',
-                    icon: const Icon(Icons.history, size: 18),
+                    icon: const Icon(Icons.history_rounded, size: 18),
                     visualDensity: VisualDensity.compact,
                     onPressed: onHistory,
                   ),
                   IconButton(
                     tooltip: '删除页面',
-                    icon: const Icon(Icons.delete_outline, size: 18),
+                    icon: const Icon(Icons.delete_outline_rounded, size: 18),
                     visualDensity: VisualDensity.compact,
                     color: scheme.error,
                     onPressed: onDelete,

@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
+import 'package:drawing_notes_app/features/drawing/rendering/shape_binding_geometry.dart';
 import 'package:drawing_notes_app/core/canvas_model/page_chart_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/page_connector.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 
 /// 编辑器纯展示组件集（架构重构 R1：从 editor_page 外移的零耦合组件）。
 ///
@@ -381,6 +383,12 @@ class ShapePainter extends CustomPainter {
       canvas.restore();
     }
 
+    // 显式端点是画布坐标（相对外接框），本绘制层处于 viewScale 换算后的
+    // 视图坐标——必须乘 viewScale，否则缩放≠100% 时线性元素端点错位
+    // （fallback 对角线本来就是视图坐标，无需换算）。
+    Offset endpoint(Offset? local, Offset fallback) =>
+        local != null ? local * viewScale : fallback;
+
     // 虚线样式（借鉴 Excalidraw 线样式面板）：dash 时用虚线绘制描边。
     switch (shape.shapeType) {
       case ShapeType.rect:
@@ -437,16 +445,19 @@ class ShapePainter extends CustomPainter {
       case ShapeType.line:
         // 与 ShapeRenderer.drawLocal 对齐：优先使用保存的真实端点，
         // 旧文档无端点时回退为"左下→右上"对角线。
-        final lineStart = shape.lineStart ?? Offset(0, size.height);
-        final lineEnd = shape.lineEnd ?? Offset(size.width, 0);
+        final lineStart = endpoint(
+          shape.lineStart,
+          Offset(0, size.height),
+        );
+        final lineEnd = endpoint(shape.lineEnd, Offset(size.width, 0));
         drawStroke(
           Path()
             ..moveTo(j(lineStart).dx, j(lineStart).dy)
             ..lineTo(j(lineEnd).dx, j(lineEnd).dy),
         );
       case ShapeType.arrow:
-        final start = shape.lineStart ?? Offset(0, size.height);
-        final end = shape.lineEnd ?? Offset(size.width, 0);
+        final start = endpoint(shape.lineStart, Offset(0, size.height));
+        final end = endpoint(shape.lineEnd, Offset(size.width, 0));
         // 箭头三角（指向 end 端，按末端线段方向计算）。
         const len = 14.0;
         if (shape.elbow) {
@@ -499,6 +510,63 @@ class ShapePainter extends CustomPainter {
   @override
   bool shouldRepaint(ShapePainter oldDelegate) =>
       oldDelegate.shape != shape || oldDelegate.viewScale != viewScale;
+}
+
+/// 线性元素（直线/箭头）绘制 + 线段命中测试（审计二-5，2026-09-06）。
+///
+/// 渲染复用 [ShapePainter]；命中改为「点到线段距离 ≤ 线宽/2 + 6px」，
+/// 取代外接框矩形判定——细斜线外接框的大片空白不再拦截点击，也不再
+/// 挡住叠在其后的元素。仅当 CustomPaint 无 child 时本 hitTest 才生效，
+/// 因此选中态的端点手柄必须作为兄弟节点而非 child 叠加。
+class LinearShapePainter extends ShapePainter {
+  const LinearShapePainter({required super.shape, required super.viewScale});
+
+  @override
+  bool hitTest(Offset position) {
+    // painter 不接收 size；端点坐标系 = 外接框 × viewScale（与 paint 一致）。
+    final w = shape.width * viewScale;
+    final h = shape.height * viewScale;
+    final start = shape.lineStart != null
+        ? shape.lineStart! * viewScale
+        : Offset(0, h);
+    final end = shape.lineEnd != null
+        ? shape.lineEnd! * viewScale
+        : Offset(w, 0);
+    return ShapeBindingGeometry.distanceToSegment(position, start, end) <=
+        shape.strokeWidth / 2 + ShapeBindingGeometry.linearHitSlack * viewScale;
+  }
+}
+
+/// 线性元素拖拽读数气泡（审计二-6，2026-09-06）。
+///
+/// 创建/编辑直线与箭头时显示「长度 px · 角度°」：触屏手指遮挡落点时，
+/// 用户至少「看得见」自己在画什么。浮层材质（玻璃胶囊），不拦截指针。
+class LinearReadoutBubble extends StatelessWidget {
+  const LinearReadoutBubble({
+    super.key,
+    required this.length,
+    required this.angleDeg,
+  });
+
+  /// 长度（画布坐标 px）。
+  final double length;
+
+  /// 与水平方向的夹角（度，0~360）。
+  final double angleDeg;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return GlassSurface(
+      borderRadius: BorderRadius.circular(AppleRadius.pill),
+      sigma: 8,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      child: Text(
+        '${length.round()}px · ${angleDeg.round()}°',
+        style: AppleType.captionStyle(scheme.onSurface),
+      ),
+    );
+  }
 }
 
 /// 对齐参考线绘制器（借鉴 Excalidraw 对齐可视化）。
@@ -587,9 +655,12 @@ class MarqueePainter extends CustomPainter {
   bool shouldRepaint(MarqueePainter oldDelegate) => true;
 }
 
-/// 网格绘制器（借鉴 Excalidraw 画布导航）。
+/// 网格绘制器（审计三-4 重做，2026-09-06）。
 ///
-/// 在画布上绘制 20px 网格（浅灰线），帮助对齐与布局参考。
+/// 点阵画在**画布坐标**（经 canvasToView 投影），平移缩放时纸动格子也动，
+/// 修掉旧版「纸动了格子不动」的视图坐标错位；步长固定 20px 画布单位，
+/// 与 `_snapToGrid` 拖动吸附共用同一网格（网格即吸附档位的视觉真相）。
+/// 缩放过密时步长自动翻倍，保持点阵密度可读（对齐 Excalidraw 网格分级）。
 class GridPainter extends CustomPainter {
   const GridPainter({required this.controller});
 
@@ -597,16 +668,36 @@ class GridPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    var step = 20.0;
+    while (step * controller.viewScale < 14) {
+      step *= 2;
+    }
+    // 视口四角逆变换到画布坐标，取外接矩形即点阵覆盖范围（含旋转）。
+    final corners = <Offset>[
+      controller.viewToCanvas(Offset.zero),
+      controller.viewToCanvas(Offset(size.width, 0)),
+      controller.viewToCanvas(Offset(0, size.height)),
+      controller.viewToCanvas(Offset(size.width, size.height)),
+    ];
+    var left = corners.first.dx;
+    var top = corners.first.dy;
+    var right = left;
+    var bottom = top;
+    for (final corner in corners.skip(1)) {
+      left = math.min(left, corner.dx);
+      top = math.min(top, corner.dy);
+      right = math.max(right, corner.dx);
+      bottom = math.max(bottom, corner.dy);
+    }
     final paint = Paint()
       ..color = const Color(0x1A000000)
-      ..strokeWidth = 1;
-    const step = 20.0;
-    // 视图坐标绘制网格（随画布缩放平移）。
-    for (var x = 0.0; x <= size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (var y = 0.0; y <= size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+      ..style = PaintingStyle.fill;
+    final firstX = (left / step).ceilToDouble() * step;
+    final firstY = (top / step).ceilToDouble() * step;
+    for (var x = firstX; x <= right; x += step) {
+      for (var y = firstY; y <= bottom; y += step) {
+        canvas.drawCircle(controller.canvasToView(Offset(x, y)), 1.2, paint);
+      }
     }
   }
 

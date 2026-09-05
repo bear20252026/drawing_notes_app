@@ -92,7 +92,12 @@ class PropertiesPanel extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: controller.color,
                               shape: BoxShape.circle,
-                              border: Border.all(color: Colors.black26),
+                              // v1.10.8 色板同款：outlineVariant 发丝线替代
+                              // Colors.black26 硬描边（审计三-3 补漏）。
+                              border: Border.all(
+                                color: Theme.of(context).colorScheme.outlineVariant,
+                                width: 1,
+                              ),
                             ),
                           ),
                         ),
@@ -254,7 +259,13 @@ class PropertiesPanel extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: Color(selectedText!.color),
                                 shape: BoxShape.circle,
-                                border: Border.all(color: Colors.black26),
+                                // v1.10.8 色板同款发丝线（审计三-3 补漏）。
+                                border: Border.all(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.outlineVariant,
+                                  width: 1,
+                                ),
                               ),
                             ),
                           ),

@@ -3,6 +3,74 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_selection_geometry.dart';
 import '../../../core/theme/apple_design.dart';
 
+/// 线性元素（直线/箭头）端点拖柄（审计二-2，2026-09-06）。
+///
+/// 与 [ResizeHandles] 同约定：纯渲染 + 手势经回调注入；视觉 12px 圆形、
+/// 44×44 触控热区（触屏主用）。拖拽增量以屏幕坐标回传，由宿主换算画布坐标。
+class EndpointHandle extends StatelessWidget {
+  const EndpointHandle({
+    super.key,
+    required this.position,
+    required this.onPanStart,
+    required this.onPanUpdate,
+    required this.onPanEnd,
+    this.semanticLabel = '调整线段端点',
+  });
+
+  /// 手柄中心（相对宿主 Stack 的坐标）。
+  final Offset position;
+
+  /// 手势开始（宿主捕获端点基准、建立撤销快照）。
+  final VoidCallback onPanStart;
+
+  /// 手势更新（屏幕位移增量）。
+  final ValueChanged<Offset> onPanUpdate;
+
+  /// 手势结束（结算历史命令）。
+  final VoidCallback onPanEnd;
+
+  final String semanticLabel;
+
+  /// 视觉手柄直径。
+  static const double _handleSize = 12.0;
+
+  /// 触控热区（同 [ResizeHandles] 的 44px 标准）。
+  static const double _hitSize = 44.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: position.dx - _hitSize / 2,
+      top: position.dy - _hitSize / 2,
+      child: Semantics(
+        label: semanticLabel,
+        button: true,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onPanStart: (_) => onPanStart(),
+          onPanUpdate: (details) => onPanUpdate(details.delta),
+          onPanEnd: (_) => onPanEnd(),
+          child: SizedBox(
+            width: _hitSize,
+            height: _hitSize,
+            child: Center(
+              child: Container(
+                width: _handleSize,
+                height: _handleSize,
+                decoration: BoxDecoration(
+                  color: AppleColor.actionBlue,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.5),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// 形状 8 向缩放手柄（四角 + 四边中点，借鉴 Excalidraw）。
 ///
 /// 巨型类 Widget 组合解耦（2026-08-15 阶段 1）：从 editor_page_drag_ops

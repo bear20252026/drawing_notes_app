@@ -231,14 +231,16 @@ class DocumentObjectEditingSession {
 
   bool get hasSelectedDocumentShape => selectedDocumentShape != null;
 
-  /// 命中最上层形状。使用原始 bounds 而非绘制后的抖动轮廓，避免 rough 模式
-  /// 造成不可预测的选择热区；绑定箭头同样可选择以供锁定或删除。
+  /// 命中最上层形状。封闭形状使用原始 bounds（避免 rough 模式抖动轮廓造成
+  /// 不可预测的选择热区）；线性元素（直线/箭头）改用点到线段距离判定
+  /// （≤ 线宽/2 + 6px，审计二-5：细斜线的外接框大片空白不再误选，
+  /// 也不再挡住其后的元素）。绑定箭头使用已投影端点，命中区域与显示一致。
   PageShapeItem? selectDocumentShapeAt(Offset canvasPoint) {
     final shapes = List<PageShapeItem>.of(_document.shapes)
       ..sort((a, b) => b.zOrder.compareTo(a.zOrder));
     PageShapeItem? hit;
     for (final shape in shapes) {
-      if (ShapeBindingGeometry.rawBounds(shape).contains(canvasPoint)) {
+      if (shapeHitTest(shape, canvasPoint, _document.shapes)) {
         hit = shape;
         break;
       }
@@ -247,6 +249,26 @@ class DocumentObjectEditingSession {
     _selection.selectShape(hit?.id);
     _host.notifyChanged();
     return hit;
+  }
+
+  /// 单形状命中测试：封闭形状 → 外接框包含；线性元素 → 点到线段距离。
+  static bool shapeHitTest(
+    PageShapeItem shape,
+    Offset canvasPoint,
+    Iterable<PageShapeItem> allShapes,
+  ) {
+    if (!ShapeBindingGeometry.isLinear(shape)) {
+      return ShapeBindingGeometry.rawBounds(shape).contains(canvasPoint);
+    }
+    final endpoints = shape.shapeType == ShapeType.arrow
+        ? ShapeBindingGeometry.resolvedArrowEndpoints(shape, allShapes)
+        : ShapeBindingGeometry.linearEndpoints(shape);
+    return ShapeBindingGeometry.distanceToSegment(
+          canvasPoint,
+          endpoints.start,
+          endpoints.end,
+        ) <=
+        shape.strokeWidth / 2 + ShapeBindingGeometry.linearHitSlack;
   }
 
   void clearDocumentShapeSelection() {
@@ -322,6 +344,78 @@ class DocumentObjectEditingSession {
     _documentShapesTransformBefore = null;
     if (before != null) restoreDocumentShapesSnapshot(before);
   }
+
+  // ---------------- 线性元素端点编辑（审计二-2/二-3，2026-09-06） ----------------
+
+  /// 开始一次线性端点编辑手势：快照形状集合，结束时只产生一条撤销记录。
+  void beginLinearEndpointEdit() => _ensureDocumentShapesTransformBefore();
+
+  /// 把选中线性元素（直线/箭头）的 [isStart] 端移动到画布坐标 [point]。
+  ///
+  /// 吸附规则（与创建时刻一致）：箭头端点落在可绑定形状 8px 邻域内时吸附
+  /// 到其外接框周界并（重）建立该端绑定；否则对另一端为锚做 0°/45°/90°
+  /// 角度磁吸；[snapToGrid] 时改按 20px 网格吸附。自由端拖离目标即解绑。
+  void updateSelectedLinearEndpoint({
+    required bool isStart,
+    required Offset point,
+    bool snapToGrid = false,
+  }) {
+    final shape = selectedDocumentShape;
+    if (shape == null ||
+        shape.locked ||
+        !ShapeBindingGeometry.isLinear(shape)) {
+      return;
+    }
+    _ensureDocumentShapesTransformBefore();
+    final isArrow = shape.shapeType == ShapeType.arrow;
+    final endpoints = isArrow
+        ? ShapeBindingGeometry.resolvedArrowEndpoints(shape, _document.shapes)
+        : ShapeBindingGeometry.linearEndpoints(shape);
+    final anchor = isStart ? endpoints.end : endpoints.start;
+    var target = point;
+    PageShapeItem? bound;
+    if (snapToGrid) {
+      target = ShapeBindingGeometry.snapToGrid(
+        target,
+        ShapeBindingGeometry.gridSnapStep,
+      );
+    } else if (isArrow) {
+      bound = ShapeBindingGeometry.bindableShapeNear(
+        target,
+        _document.shapes,
+        excludingId: shape.id,
+      );
+      if (bound != null) {
+        target = ShapeBindingGeometry.projectPointToBounds(
+          target,
+          ShapeBindingGeometry.rawBounds(bound),
+        );
+      }
+    }
+    if (bound == null && !snapToGrid) {
+      target = ShapeBindingGeometry.snapDragAngle(anchor, target);
+    }
+    if (isArrow) {
+      final binding = bound == null
+          ? null
+          : ShapeBindingGeometry.bindingAt(bound, target);
+      if (isStart) {
+        shape.startBinding = binding;
+      } else {
+        shape.endBinding = binding;
+      }
+    }
+    ShapeBindingGeometry.applyLinearEndpoints(
+      shape,
+      start: isStart ? target : anchor,
+      end: isStart ? anchor : target,
+    );
+    _document.touch();
+    _host.tickFrame();
+  }
+
+  /// 结算线性端点编辑手势（一条历史命令，含关系图整体状态）。
+  void endLinearEndpointEdit() => endDocumentShapeTransform();
 
   /// 切换当前形状锁定状态，并作为单一可逆对象事务记录。
   void toggleSelectedDocumentShapeLock() {

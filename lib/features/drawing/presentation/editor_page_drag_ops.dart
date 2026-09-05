@@ -435,6 +435,128 @@ extension _EditorPageDragOps on _EditorPageState {
     return best;
   }
 
+  // ---------------- 线性元素端点吸附与编辑（审计二-2/二-3，2026-09-06） ----------------
+
+  /// 线性端点对分页笔记混排对象的磁吸：端点距任一对象外接框 ≤ 8px 时，
+  /// 吸附到该框周界并返回目标 id（箭头 boundElementId 用）。
+  ///
+  /// 替代旧「按中心 50px」判定用于线性元素：大形状边缘绑得上、小形状不会被
+  /// 旁边大形状抢绑，且端点直接落在目标边上，不再留视觉缝。
+  ({String? targetId, Offset point}) _snapEndpointToPageItems(
+    Offset point, {
+    String? excludingId,
+  }) {
+    final page = widget.session;
+    if (page == null) return (targetId: null, point: point);
+    Rect? bestBounds;
+    String? bestId;
+    var bestDistance = ShapeBindingGeometry.endpointSnapTolerance;
+    void consider(String id, Rect bounds) {
+      if (id == excludingId) return;
+      final d = ShapeBindingGeometry.distanceToBounds(point, bounds);
+      if (d < bestDistance) {
+        bestDistance = d;
+        bestBounds = bounds;
+        bestId = id;
+      }
+    }
+
+    for (final t in page.textItems) {
+      consider(
+        t.id,
+        Rect.fromLTWH(t.x, t.y, t.fontSize * 2, t.fontSize),
+      );
+    }
+    for (final i in page.imageItems) {
+      consider(i.id, Rect.fromLTWH(i.x, i.y, i.width, i.height));
+    }
+    for (final s in page.shapes) {
+      consider(s.id, Rect.fromLTWH(s.x, s.y, s.width, s.height));
+    }
+    if (bestBounds == null) return (targetId: null, point: point);
+    return (
+      targetId: bestId,
+      point: ShapeBindingGeometry.projectPointToBounds(point, bestBounds!),
+    );
+  }
+
+  /// 拖拽预览的线性端点磁吸：分页笔记 → 混排对象边框；独立画布 → 可绑定形状。
+  Offset _snapLinearDraftEndpoint(Offset point) {
+    final page = widget.session;
+    if (page != null) return _snapEndpointToPageItems(point).point;
+    final target = ShapeBindingGeometry.bindableShapeNear(
+      point,
+      _controller.document.shapes,
+    );
+    return target == null
+        ? point
+        : ShapeBindingGeometry.projectPointToBounds(
+            point,
+            ShapeBindingGeometry.rawBounds(target),
+          );
+  }
+
+  /// 分页笔记：拖动选中线性元素的一个端点（画布坐标增量累计制）。
+  ///
+  /// 吸附顺序与创建一致：形状磁吸优先，未命中再做 0°/45°/90° 角度磁吸。
+  /// 箭头末端命中目标时同步维护 boundElementId（单目标语义）。
+  void _dragNotebookLinearEndpoint(PageShapeItem shape, bool isStart) {
+    final base = _linearEndpointDragBase;
+    if (base == null) return;
+    final rawTarget = (isStart ? base.start : base.end) + _linearEndpointAccum;
+    final anchor = isStart ? base.end : base.start;
+    final hit = _snapEndpointToPageItems(rawTarget, excludingId: shape.id);
+    final snapped = hit.targetId != null
+        ? hit.point
+        : ShapeCreationGeometry.snapDragAngle(anchor, rawTarget);
+    _applyState(() {
+      ShapeBindingGeometry.applyLinearEndpoints(
+        shape,
+        start: isStart ? snapped : anchor,
+        end: isStart ? anchor : snapped,
+      );
+      if (shape.shapeType == ShapeType.arrow && !isStart) {
+        shape.boundElementId = hit.targetId;
+      }
+    });
+    _updateLinearReadoutFromShape(shape, isStart);
+  }
+
+  /// 选中线性元素的当前全局端点（分页笔记用本地集合；箭头含绑定解析）。
+  ({Offset start, Offset end}) _resolvedLinearEndpointsOf(
+    PageShapeItem shape,
+  ) => shape.shapeType == ShapeType.arrow
+      ? ShapeBindingGeometry.resolvedArrowEndpoints(shape, _shapeItems)
+      : ShapeBindingGeometry.linearEndpoints(shape);
+
+  /// 由形状当前端点刷新拖拽读数气泡（[atStart] 端为气泡锚点）。
+  void _updateLinearReadoutFromShape(PageShapeItem shape, bool atStart) {
+    final e = _resolvedLinearEndpointsOf(shape);
+    final delta = e.end - e.start;
+    _linearReadout.value = LinearDraftReadout(
+      viewPos: _controller.canvasToView(atStart ? e.start : e.end),
+      length: delta.distance,
+      angleDeg: delta.direction * 180 / math.pi,
+    );
+  }
+
+  /// 形状创建拖拽中的读数气泡（取吸附后的草稿端点）。
+  void _updateLinearDraftReadout() {
+    final draft = _shapeDraft;
+    final tool = _activeShapeTool;
+    if (draft == null || !ShapeBindingGeometry.isLinearByType(tool!)) {
+      _linearReadout.value = null;
+      return;
+    }
+    final e = ShapeBindingGeometry.linearEndpoints(draft);
+    final delta = e.end - e.start;
+    _linearReadout.value = LinearDraftReadout(
+      viewPos: _controller.canvasToView(e.end),
+      length: delta.distance,
+      angleDeg: delta.direction * 180 / math.pi,
+    );
+  }
+
   // ---------------- 工具条 ----------------
 
   /// 选区操作条：完成选区后显示（复制/粘贴/删除/清除 + 缩放/旋转滑块）。

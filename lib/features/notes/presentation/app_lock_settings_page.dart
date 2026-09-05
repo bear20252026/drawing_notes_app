@@ -196,7 +196,9 @@ class AppLockSettingsPage extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                l10n?.lockGraceHint ?? '离开应用后在宽限期内回来，无需重新输入密码。',
+                l10n?.lockGraceHint ??
+                    '离开应用后在宽限期内回来，无需重新输入密码。'
+                        '宽限期只免锁屏，加密文件与笔记的密码仍会重新要求。',
                 style: TextStyle(
                   fontSize: 12,
                   color: Theme.of(dialogContext).colorScheme.outline,

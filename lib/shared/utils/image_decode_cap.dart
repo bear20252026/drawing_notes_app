@@ -32,4 +32,18 @@ class ImageDecodeCap {
       height: (height * scale).round().clamp(1, height),
     );
   }
+
+  /// 缩略图解码档位（审计四-2，2026-09-06）。
+  ///
+  /// 按布局宽 × dpr 逐像素算 cacheWidth 时，窗口连续 resize 会在图像
+  /// 缓存里留下多档位图；把目标宽取整到 256/512/1024 档（超出取
+  /// [defaultMaxLongEdge]，只升不降），相邻宽度共用同一位图。
+  static int quantizedCacheWidth(double logicalWidth, double devicePixelRatio) {
+    final target = logicalWidth * devicePixelRatio;
+    if (!target.isFinite || target <= 0) return defaultMaxLongEdge;
+    for (final tier in const [256, 512, 1024]) {
+      if (target <= tier) return tier;
+    }
+    return defaultMaxLongEdge;
+  }
 }

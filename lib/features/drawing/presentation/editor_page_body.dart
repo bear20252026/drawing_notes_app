@@ -6,51 +6,16 @@ part of 'editor_page.dart';
 
 /// 编辑器主体布局（拆分自 editor_page.dart）。
 extension _EditorPageBody on _EditorPageState {
-  /// 主体：非全屏 = 左工具条 + (上下文条 + 选择/画布) + 条件面板。
+  /// 主体：非全屏 = (上下文条 + 选择/画布) + 条件面板。
+  ///
+  /// 左工具条不再是 Row 首列，而是画布 Stack 内的浮动玻璃岛（审计三-1），
+  /// 构造见 [_buildLeftToolbar]、定位见 editor_page_canvas_surface.dart。
   Widget _buildBody() {
     return _fullscreen
         // 全屏模式：只保留画布区域。
         ? _buildCanvasArea()
         : Row(
             children: [
-              // 左侧垂直工具条（对齐 Excalidraw LayerUI 布局）。
-              EditorLeftToolbar(
-                controller: _controller,
-                eyedropperActive: _eyedropperActive,
-                textToolActive: _textToolActive,
-                marqueeActive: _marqueeActive,
-                linkMode: _linkMode,
-                handActive: _handToolActive,
-                onHand: _toggleHandTool,
-                activeShape: _activeShapeTool,
-                onBrush: () => _selectWritingTool(BrushType.pen),
-                onPencil: () => _selectWritingTool(BrushType.pencil),
-                onHighlighter: () => _selectWritingTool(BrushType.marker),
-                onLaser: () => _selectWritingTool(BrushType.laser),
-                onEraser: () => _selectWritingTool(BrushType.eraser),
-                onEyedropper: () => _applyState(() {
-                  _toolMode.clearPointerModes();
-                  _controller.selectionTool = SelectionTool.none;
-                  _viewModel.setEyedropperActive(true);
-                  _viewModel.setTextToolActive(false);
-                }),
-                onRectSelect: () => _applyState(() {
-                  _toolMode.clearPointerModes();
-                  _viewModel.setEyedropperActive(false);
-                  _viewModel.setTextToolActive(false);
-                  _viewModel.setSelectionDone(false);
-                  _controller.selectionTool = SelectionTool.rect;
-                }),
-                onMarquee: _toggleMarqueeTool,
-                onText: () => _applyState(() {
-                  _toolMode.clearPointerModes();
-                  _controller.selectionTool = SelectionTool.none;
-                  _viewModel.setEyedropperActive(false);
-                  _viewModel.setTextToolActive(true);
-                }),
-                onShape: _selectShapeTool,
-                onLink: _toggleLinkMode,
-              ),
               Expanded(
                 child: Column(
                   children: [
@@ -181,5 +146,47 @@ extension _EditorPageBody on _EditorPageState {
                 ),
             ],
           );
+  }
+
+  /// 左侧浮动玻璃工具岛的工具条本体（审计三-1：从 Row 首列移入画布浮层；
+  /// 定位与限高见 editor_page_canvas_surface.dart）。
+  Widget _buildLeftToolbar() {
+    return EditorLeftToolbar(
+      controller: _controller,
+      eyedropperActive: _eyedropperActive,
+      textToolActive: _textToolActive,
+      marqueeActive: _marqueeActive,
+      linkMode: _linkMode,
+      handActive: _handToolActive,
+      onHand: _toggleHandTool,
+      activeShape: _activeShapeTool,
+      onBrush: () => _selectWritingTool(BrushType.pen),
+      onPencil: () => _selectWritingTool(BrushType.pencil),
+      onHighlighter: () => _selectWritingTool(BrushType.marker),
+      onLaser: () => _selectWritingTool(BrushType.laser),
+      onEraser: () => _selectWritingTool(BrushType.eraser),
+      onEyedropper: () => _applyState(() {
+        _toolMode.clearPointerModes();
+        _controller.selectionTool = SelectionTool.none;
+        _viewModel.setEyedropperActive(true);
+        _viewModel.setTextToolActive(false);
+      }),
+      onRectSelect: () => _applyState(() {
+        _toolMode.clearPointerModes();
+        _viewModel.setEyedropperActive(false);
+        _viewModel.setTextToolActive(false);
+        _viewModel.setSelectionDone(false);
+        _controller.selectionTool = SelectionTool.rect;
+      }),
+      onMarquee: _toggleMarqueeTool,
+      onText: () => _applyState(() {
+        _toolMode.clearPointerModes();
+        _controller.selectionTool = SelectionTool.none;
+        _viewModel.setEyedropperActive(false);
+        _viewModel.setTextToolActive(true);
+      }),
+      onShape: _selectShapeTool,
+      onLink: _toggleLinkMode,
+    );
   }
 }

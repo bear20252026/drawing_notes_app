@@ -54,6 +54,27 @@ void main() {
     });
   });
 
+  group('ImageDecodeCap.quantizedCacheWidth（审计四-2 档位化）', () {
+    test('相邻宽度共用同一档位', () {
+      // 300 逻辑像素 × 1.25 dpr = 375 → 512 档。
+      expect(ImageDecodeCap.quantizedCacheWidth(300, 1.25), 512);
+      // 380 × 1.25 = 475 → 仍是 512 档：resize 不再堆多档位图。
+      expect(ImageDecodeCap.quantizedCacheWidth(380, 1.25), 512);
+      // 小卡 → 256 档。
+      expect(ImageDecodeCap.quantizedCacheWidth(180, 1.0), 256);
+      // 超大宽 → 封顶 2048。
+      expect(ImageDecodeCap.quantizedCacheWidth(1800, 2.0), 2048);
+    });
+
+    test('非法输入走默认上限（只升不降）', () {
+      expect(ImageDecodeCap.quantizedCacheWidth(0, 2.0), 2048);
+      expect(
+        ImageDecodeCap.quantizedCacheWidth(double.nan, 2.0),
+        2048,
+      );
+    });
+  });
+
   group('InkLayerPainter.cullStrokes（P1-8 视口剔除）', () {
     test('视口内笔画保留、视口外剔除、空点列剔除', () {
       final inside = _stroke(

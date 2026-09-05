@@ -173,6 +173,8 @@ extension _EditorPageInput on _EditorPageState {
     // 形状工具：实时更新草稿外接框，提供拖拽创建的即时视觉反馈。
     if (_activeShapeTool != null && _shapeDraftStart != null) {
       _applyState(() => _shapeDraftCurrent = canvasPoint);
+      // 线性元素拖拽读数（长度/角度小气泡，审计二-6）。
+      _updateLinearDraftReadout();
       return;
     }
 
@@ -313,30 +315,64 @@ extension _EditorPageInput on _EditorPageState {
 
     // 形状工具：按实际拖拽范围提交到笔记页或独立绘图文档。
     if (_activeShapeTool != null) {
+      final tool = _activeShapeTool!;
       final start = _shapeDraftStart;
       final end =
           _shapeDraftCurrent ?? _controller.viewToCanvas(event.localPosition);
+      _linearReadout.value = null;
       if (start != null) {
-        final geometry = ShapeCreationGeometry.fromDrag(start, end);
+        // 拖拽吸附（审计二-1/二-3）：与 _shapeDraft 预览同一换算——
+        // 网格档（20px）优先；否则线性元素做 0°/45°/90° 角度磁吸
+        // （Shift 强制）+ 端点对既有形状的 8px 边框磁吸并重投影到边框。
+        final linear = ShapeBindingGeometry.isLinearByType(tool);
+        final snapped = ShapeCreationGeometry.snappedDragPoints(
+          start,
+          end,
+          linear: linear,
+          gridSnapEnabled: _snapToGrid,
+          forceAngle: HardwareKeyboard.instance.isShiftPressed,
+        );
+        var geoStart = snapped.start;
+        var geoEnd = snapped.end;
         final page = widget.session;
-        final snapId = page == null ? null : _findSnapTargetId(end);
+        String? snapId;
+        if (linear && !_snapToGrid) {
+          if (page != null) {
+            // 分页笔记：端点磁吸到混排对象边框；箭头末端命中即绑定。
+            final startHit = _snapEndpointToPageItems(geoStart);
+            final endHit = _snapEndpointToPageItems(geoEnd);
+            geoStart = startHit.point;
+            geoEnd = endHit.point;
+            if (tool == ShapeType.arrow) snapId = endHit.targetId;
+          } else if (tool == ShapeType.line) {
+            // 独立画布直线：无绑定关系，只做边框磁吸对齐（箭头在下方
+            // bindArrowAtEndpoints 统一做近旁吸附 + 边框投影）。
+            geoStart = _snapLinearDraftEndpoint(geoStart);
+            geoEnd = _snapLinearDraftEndpoint(geoEnd);
+          }
+        } else if (page != null) {
+          // 非线性/网格档：保留既有「中心 50px」轻量组合语义（拖动跟随）。
+          snapId = _findSnapTargetId(end);
+        }
+        final geometry = ShapeCreationGeometry.fromDrag(geoStart, geoEnd);
         final shape = geometry.createShape(
           id: LocalIdGenerator.next('shp'),
-          shapeType: _activeShapeTool!,
+          shapeType: tool,
           color: _controller.color.toARGB32(),
           strokeWidth: _controller.brushSize,
           boundElementId: snapId,
           // 填充模式开启时新建形状带填充色（问题4）。
           fillColor: _fillShapeEnabled ? _shapeFillColor : null,
         );
-        // 独立画布的箭头在起终点落入既有形状时自动建立双端关系。
+        // 独立画布的箭头在起终点落入既有形状邻域时自动建立双端关系，
+        // 并把端点重投影到目标边框（消掉视觉缝）。
         // 分页笔记保持原有轻量 `boundElementId` 行为，避免改变其旧格式语义。
         if (page == null && shape.shapeType == ShapeType.arrow) {
           ShapeBindingGeometry.bindArrowAtEndpoints(
             shape,
             _controller.document.shapes,
-            start: start,
-            end: end,
+            start: geoStart,
+            end: geoEnd,
           );
         }
         _applyState(() {
@@ -429,6 +465,7 @@ extension _EditorPageInput on _EditorPageState {
         _shapeDraftStart = null;
         _shapeDraftCurrent = null;
       });
+      _linearReadout.value = null;
       return;
     }
     if (_eyedropperActive || _textToolActive) return;
@@ -479,6 +516,36 @@ extension _EditorPageInput on _EditorPageState {
     _controller.viewOffset = viewPoint - rotated - c;
     _controller.viewScale = newScale;
     _controller.tickFrame(); // 高频重绘：仅画布。
+  }
+
+  /// 状态栏缩放菜单（审计三-2）：缩放到指定倍率，保持视口中心不漂移。
+  void _setScaleFromMenu(double scale) {
+    final viewport = _viewportSize;
+    final current = _controller.viewScale;
+    if (viewport == null || current <= 0) return;
+    _zoomAt(
+      Offset(viewport.width / 2, viewport.height / 2),
+      scale / current,
+    );
+  }
+
+  /// 状态栏「适应画布」（审计三-2）：按视口适配整页并居中（与
+  /// _initViewport 首次进入同一套几何）。
+  void _fitCanvasToViewport() {
+    final viewport = _viewportSize;
+    if (viewport == null) return;
+    final doc = _controller.document;
+    final scaleW = viewport.width / doc.width;
+    final scaleH = viewport.height / doc.height;
+    _controller.viewScale = (scaleW < scaleH ? scaleW : scaleH).clamp(
+      0.05,
+      8.0,
+    );
+    _controller.viewOffset = Offset(
+      viewport.width / 2 - doc.width / 2,
+      viewport.height / 2 - doc.height / 2,
+    );
+    _controller.tickFrame();
   }
 
   /// 在画布坐标处取色并更新当前画笔颜色（P-2 修复 2026-08-15：200ms
