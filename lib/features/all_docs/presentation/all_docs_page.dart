@@ -25,6 +25,7 @@ import 'package:drawing_notes_app/shared/utils/search_debouncer.dart';
 import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 // v1.10.5：导航类控件玻璃化——FAB 换液态玻璃。
 import 'package:drawing_notes_app/shared/widgets/glass_fab.dart';
+import 'package:drawing_notes_app/shared/widgets/apple_empty_state.dart';
 part 'all_docs_page_widgets.dart';
 part 'all_docs_page_mobile.dart';
 

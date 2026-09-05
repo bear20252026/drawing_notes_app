@@ -30,15 +30,11 @@ extension _HomePageTabs on _HomePageState {
     final hasCanvas = _documents.isNotEmpty;
     final hasNotebook = _notebooks.isNotEmpty;
     if (!hasCanvas && !hasNotebook) {
-      return const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.brush_outlined, size: 64, color: AppleColor.inkSubtle),
-            SizedBox(height: 12),
-            Text('还没有画布，点击右下角按钮新建一个吧'),
-          ],
-        ),
+      // 空态统一（审计二-4）：收编到共享 AppleEmptyState。
+      return const AppleEmptyState(
+        icon: Icons.brush_outlined,
+        title: '还没有画布',
+        tip: '点击右下角按钮新建一个吧',
       );
     }
     return RefreshIndicator(
@@ -153,19 +149,11 @@ extension _HomePageTabs on _HomePageState {
 
   Widget _buildNotesTab() {
     if (_notes.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.edit_note_rounded,
-              size: 64,
-              color: AppleColor.inkSubtle,
-            ),
-            SizedBox(height: 12),
-            Text('还没有笔记，点击右下角按钮新建一个吧'),
-          ],
-        ),
+      // 空态统一（审计二-4）：收编到共享 AppleEmptyState。
+      return const AppleEmptyState(
+        icon: Icons.edit_note_rounded,
+        title: '还没有笔记',
+        tip: '点击右下角按钮新建一个吧',
       );
     }
     return RefreshIndicator(

@@ -26,6 +26,7 @@ import 'package:drawing_notes_app/features/notes/presentation/onboarding.dart';
 // 分页画布新建入口恢复（M12 曾移除「新建笔记本」入口）。
 import 'package:drawing_notes_app/features/notes/domain/notebook_entity.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
+import 'package:drawing_notes_app/shared/widgets/apple_empty_state.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';

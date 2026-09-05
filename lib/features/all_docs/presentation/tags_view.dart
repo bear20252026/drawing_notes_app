@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
+import 'package:drawing_notes_app/shared/widgets/apple_empty_state.dart';
 import 'package:drawing_notes_app/core/theme/apple_elevation.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_doc_row.dart';
 import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
@@ -49,27 +50,11 @@ class _TagsViewState extends State<TagsView> {
       return const Center(child: SkeletonList(rows: 4));
     }
     if (tags.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.label_outline_rounded,
-              size: 56,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 12),
-            const Text('暂无标签'),
-            const SizedBox(height: 4),
-            Text(
-              '打开笔记 → 文档信息 → 添加标签',
-              style: TextStyle(
-                fontSize: 12.5,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
+      // 空态统一（审计二-4）：收编到共享 AppleEmptyState。
+      return const AppleEmptyState(
+        icon: Icons.label_outline_rounded,
+        title: '暂无标签',
+        tip: '打开笔记 → 文档信息 → 添加标签',
       );
     }
     if (_selectedTagId != null) {

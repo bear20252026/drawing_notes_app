@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:drawing_notes_app/shared/widgets/apple_empty_state.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
@@ -475,27 +476,19 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
             return bTime.compareTo(aTime);
           });
     if (_notebook.pages.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.note_add_outlined,
-              size: 64,
-              color: AppleColor.inkSubtle,
-            ),
-            SizedBox(height: 12),
-            Text('这个分页画布还没有页面，点击右上角新建'),
-          ],
-        ),
+      // 空态统一（审计二-4）：收编到共享 AppleEmptyState。
+      return const AppleEmptyState(
+        icon: Icons.note_add_outlined,
+        title: '这个分页画布还没有页面',
+        tip: '点击右上角新建',
       );
     }
     if (pages.isEmpty) {
-      return const Center(
-        child: Text(
-          '没有匹配该标签的页面',
-          style: TextStyle(color: AppleColor.inkSubtle),
-        ),
+      // 空态统一（审计二-4）：收编到共享 AppleEmptyState。
+      return const AppleEmptyState(
+        icon: Icons.label_outline_rounded,
+        title: '没有匹配该标签的页面',
+        tip: '试试选择其他标签',
       );
     }
     return GridView.builder(

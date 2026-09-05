@@ -500,59 +500,33 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subtle = AppleColor.mutedOf(theme.colorScheme);
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.edit_note_rounded, size: 56, color: subtle),
-          const SizedBox(height: 12),
-          Text(
-            AppLocalizations.of(context)?.docsEmptyFirstNote ?? '记下第一笔',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurface,
-            ),
+    // 空态统一（审计二-4）：外观收编到共享 AppleEmptyState 单一来源。
+    return AppleEmptyState(
+      icon: Icons.edit_note_rounded,
+      title: AppLocalizations.of(context)?.docsEmptyFirstNote ?? '记下第一笔',
+      tip:
+          AppLocalizations.of(context)?.docsEmptyFirstNoteTip ??
+          '笔记用来打字，画布用来写写画画',
+      // 三入口（笔记/分页画布/画布）：Wrap 排布——390dp 窄屏自适应换行。
+      actions: [
+        FilledButton.icon(
+          onPressed: onNewBlockDoc,
+          icon: const Icon(Icons.edit_note_rounded, size: 18),
+          label: Text(AppLocalizations.of(context)?.docsNewNote ?? '新建笔记'),
+        ),
+        OutlinedButton.icon(
+          onPressed: onNewNotebook,
+          icon: const Icon(Icons.auto_stories_rounded, size: 18),
+          label: Text(
+            AppLocalizations.of(context)?.docsNewPagedCanvas ?? '新建分页画布',
           ),
-          const SizedBox(height: 4),
-          Text(
-            AppLocalizations.of(context)?.docsEmptyFirstNoteTip ??
-                '笔记用来打字，画布用来写写画画',
-            style: TextStyle(fontSize: 12.5, color: subtle),
-          ),
-          const SizedBox(height: 16),
-          // 三入口（笔记/分页画布/画布）：Wrap 而非 Row——390dp 窄屏自适应换行。
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 12,
-            runSpacing: 10,
-            children: [
-              FilledButton.icon(
-                onPressed: onNewBlockDoc,
-                icon: const Icon(Icons.edit_note_rounded, size: 18),
-                label: Text(
-                  AppLocalizations.of(context)?.docsNewNote ?? '新建笔记',
-                ),
-              ),
-              OutlinedButton.icon(
-                onPressed: onNewNotebook,
-                icon: const Icon(Icons.auto_stories_rounded, size: 18),
-                label: Text(
-                  AppLocalizations.of(context)?.docsNewPagedCanvas ?? '新建分页画布',
-                ),
-              ),
-              OutlinedButton.icon(
-                onPressed: onNewCanvas,
-                icon: const Icon(Icons.crop_portrait_rounded, size: 18),
-                label: Text(
-                  AppLocalizations.of(context)?.docsNewCanvas ?? '新建画布',
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        ),
+        OutlinedButton.icon(
+          onPressed: onNewCanvas,
+          icon: const Icon(Icons.crop_portrait_rounded, size: 18),
+          label: Text(AppLocalizations.of(context)?.docsNewCanvas ?? '新建画布'),
+        ),
+      ],
     );
   }
 }
@@ -571,25 +545,7 @@ class _TabEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subtle = AppleColor.mutedOf(theme.colorScheme);
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.inbox_outlined, size: 48, color: subtle),
-          const SizedBox(height: 10),
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(tip, style: TextStyle(fontSize: 12, color: subtle)),
-        ],
-      ),
-    );
+    // 空态统一（审计二-4）：收编到共享 AppleEmptyState。
+    return AppleEmptyState(icon: Icons.inbox_outlined, title: text, tip: tip);
   }
 }
