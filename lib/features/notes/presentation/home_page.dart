@@ -28,6 +28,7 @@ import 'package:drawing_notes_app/features/notes/domain/notebook_entity.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 // U4a：首屏加载骨架屏。
 import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_templates.dart';
@@ -491,7 +492,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     if (!mounted) return;
     // N4 批 2：可选当场绑定重置密码盘（错过本次可事后在密码管理中绑定）。
     List<int>? resetDiskKey;
-    final bindUsb = await AppleDialog.confirm(
+    final bindUsb = await GlassDialog.confirm(
       context,
       title: '绑定重置密码盘？',
       content:
@@ -775,7 +776,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   }
 
   Future<bool?> _confirmDelete(String title, String content) {
-    return AppleDialog.confirm(
+    return GlassDialog.confirm(
       context,
       title: title,
       content: content,

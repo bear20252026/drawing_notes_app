@@ -17,6 +17,7 @@ import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 
 /// 应用锁设置页。
 ///
@@ -230,7 +231,7 @@ class AppLockSettingsPage extends StatelessWidget {
     BuildContext context,
     VaultKeyService vault,
   ) async {
-    final confirmed = await AppleDialog.confirm(
+    final confirmed = await GlassDialog.confirm(
       context,
       title: '解除重置密码盘',
       content:

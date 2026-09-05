@@ -6,9 +6,9 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:drawing_notes_app/core/theme/apple_design.dart';
 
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 
 /// 回收站条目（store.listTrash 的记录类型）。
 typedef TrashEntry = ({NoteBlockDoc doc, DateTime deletedAt});
@@ -47,7 +47,7 @@ class _TrashPageState extends State<TrashPage> {
 
   Future<void> _confirmPurge(TrashEntry entry) async {
     // R2-M4：改用公共 AppleDialog.confirm（原样板 24 行收敛为 7 行）。
-    final ok = await AppleDialog.confirm(
+    final ok = await GlassDialog.confirm(
       context,
       title: '彻底删除',
       content:

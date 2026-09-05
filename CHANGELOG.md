@@ -2,6 +2,38 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.10.2] - 2026-09-05
+
+### 液态玻璃覆盖面：弹窗接入玻璃
+
+顶栏之后，把玻璃铺到确认弹窗——全库使用频率最高的浮层。
+
+- **新增 `GlassDialog`**（`lib/shared/widgets/glass_dialog.dart`）：玻璃材质
+  的弹窗外壳。弹窗专用配方——blur 16（Apple HIG regular 20–40 下沿与
+  clear 10–20 上沿之间，弹窗面积大需更强抹平）、基底 0.72（regular 区间
+  中位，正文对比优先于通透）、饱和沿用全库默认 1.4、圆角 28（对齐 M3）。
+- **架构：core 不反向依赖 shared**。`AppleDialog`（排布与平台按钮顺序的
+  单一事实来源）只新增一个**可选**的表面注入参数 `surface`
+  （`AppleDialogSurface` typedef），不传时行为与从前完全一致（裸
+  `AlertDialog`）；玻璃皮在 `shared/widgets/glass_dialog.dart`，经
+  `GlassDialog.confirm` / `GlassDialog.surface` 注入回 core。依赖方向
+  恒为 shared → core，符合稳定依赖原则。
+- **切换 12 处调用**（8 个文件）：应用锁门、文档页、回收站、应用锁设置、
+  首页、笔记本页导入/管理域、密码重置流程。`AppleDialog.actions(...)`
+  的裸弹窗按钮行不受影响（它们是内容定制的弹窗，另行处理）。
+- **弹窗不算玻璃叠玻璃**：模态弹窗与页面之间有 barrier（black54）隔开，
+  总纲红线针对的是内容层内直接叠加。
+- **坑（已写进代码注释）**：内部 `AlertDialog` 的 `insetPadding` 必须置零、
+  与屏幕边缘的留白由玻璃外壳接管——否则玻璃会被撑成全屏大板，中间只有
+  一小块内容。窄屏自动收窄留白，保证最小宽 280 装得下。
+
+### 测试
+
+- 新增 `glass_dialog_test.dart` 13 项：返回值语义（确认/取消/dismiss）、
+  dangerous 错误色、内部 AlertDialog 全透明、inset 外壳接管、配方常量、
+  **红线：整棵树只有一层 BackdropFilter**、平台按钮顺序（Windows 主按钮
+  在左 / Android 在右）、未注入时裸 AlertDialog 回归保护、窄屏不溢出。
+
 ## [1.10.1] - 2026-09-05
 
 ### 液态玻璃覆盖面：顶栏接入玻璃

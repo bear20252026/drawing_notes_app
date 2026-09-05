@@ -322,7 +322,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
   /// 页面删除为整本重写保存（无存储层回收站），撤销策略：删除后 6 秒内
   /// 可「撤销」——原索引重插页面并重存（数据仍在内存，恢复零成本）。
   Future<void> _deletePage(NotebookPage page) async {
-    final ok = await AppleDialog.confirm(
+    final ok = await GlassDialog.confirm(
       context,
       title: '删除页面',
       content: '确定删除页面「${page.title}」吗？其中的手写与文字内容将一并删除。',

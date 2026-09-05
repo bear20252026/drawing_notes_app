@@ -17,10 +17,12 @@ import 'package:drawing_notes_app/shared/widgets/liquid_glass_shader.dart';
 /// - [LiquidGlassLevel.l3]：+ 着色器边缘罩（折射环 + RGB 色散 + 镜面高光，
 ///   经 [LiquidGlassGate] 性能闸门，不通过自动回落 L2）。
 ///
-/// 平台诚实边界：Flutter 的 BackdropFilter 不支持自定义片元采样，
-/// backdrop 真位移不可做——位移感由 blur 12 近似，saturate(180%) 的
-/// 饱和提升由 L3 罩的高光染色近似；两者都不伪造不存在的采样。
-/// 禁止玻璃叠玻璃（legibility collapses——总纲红线）。
+/// 平台诚实边界（2026-09-05 更正，见 docs/LIQUID_GLASS_TECHNICAL_PLAN）：
+/// 旧注「BackdropFilter 不支持自定义片元采样，真位移/真饱和不可做」已过时——
+/// Flutter 3.47 提供 `ImageFilter.compose`（本类已用于 blur+saturate）与
+/// `ImageFilter.shader`（G3 真位移待落地，用 `isShaderFilterSupported` 兜底）。
+/// 当前状态：饱和已为真实现；位移仍由 blur 近似，L3 罩只做边缘折射观感，
+/// 不伪造不存在的采样。禁止玻璃叠玻璃（总纲红线）。
 class GlassSurface extends StatelessWidget {
   const GlassSurface({
     super.key,

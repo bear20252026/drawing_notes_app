@@ -242,7 +242,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
     if (!mounted) return;
     if (await widget.storage.hasNotebookUsbSlot(_notebook.id)) return;
     if (!mounted) return;
-    final bind = await AppleDialog.confirm(
+    final bind = await GlassDialog.confirm(
       context,
       title: '绑定重置密码盘？',
       content:
@@ -318,7 +318,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
       ),
     );
     if (version == null || !mounted) return;
-    final ok = await AppleDialog.confirm(
+    final ok = await GlassDialog.confirm(
       context,
       title: '恢复该版本？',
       content: '将用所选版本覆盖当前页面内容（当前内容会先存入历史）。',

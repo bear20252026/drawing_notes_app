@@ -555,6 +555,21 @@ class AppleSectionHeader extends StatelessWidget {
   }
 }
 
+/// 弹窗「材质外壳」构建器：把已排好顺序的 [actions] 套进某种表面。
+///
+/// 抽这一层是为了让 `core/` 不必反向依赖 `shared/widgets/` 的玻璃组件——
+/// 依赖方向恒为 shared → core：排布与平台按钮顺序留在 core（单一事实来源），
+/// 材质（静态视觉域之外的**材质域**）由外层注入。
+///
+/// 实现约定：外壳必须自己负责与屏幕边缘的间距（inset），因为玻璃层需要
+/// 贴合内容边界；内部 [AlertDialog] 的 `insetPadding` 应交由外壳置零。
+typedef AppleDialogSurface =
+    Widget Function({
+      required Widget? title,
+      required Widget? content,
+      required List<Widget> actions,
+    });
+
 /// 可复用的 Apple 确认对话框（R2-M4，架构审计 2026-08-31）。
 ///
 /// 统一「取消 / 确认」双钮模式——全库 AlertDialog 样板 33 处的收敛入口。
@@ -567,6 +582,11 @@ class AppleSectionHeader extends StatelessWidget {
 /// - macOS / iOS / Android：主按钮在**右**（Apple HIG 与 M3 的习惯）。
 /// 依据是 `docs/DESIGN_SYSTEM.md` 的分权模型：按钮顺序属**平台行为域**，
 /// `DESIGN.md` 对该域表决权为零（它只管色/字/间距/圆角）。
+///
+/// **表面注入（2026-09-05）**：[confirm] 只负责排版与平台按钮顺序，
+/// 材质外壳由可选的 [AppleDialogSurface] 注入。这样 core 不必反向依赖
+/// `shared/widgets/` 的玻璃组件（依赖方向恒为 shared → core），
+/// 同时保证「排布逻辑」仍是全库单一事实来源。
 class AppleDialog {
   AppleDialog._();
 
@@ -601,6 +621,9 @@ class AppleDialog {
     String confirmText = '确定',
     String cancelText = '取消',
     bool dangerous = false,
+
+    /// 材质外壳注入点；省略时用裸 `AlertDialog`（既有行为不变）。
+    AppleDialogSurface? surface,
   }) async {
     final cancelButton = TextButton(
       onPressed: () => Navigator.of(context).pop(false),
@@ -615,9 +638,10 @@ class AppleDialog {
       onPressed: () => Navigator.of(context).pop(true),
       child: Text(confirmText),
     );
+    final build = surface ?? _plainSurface;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => build(
         title: Text(title),
         content: Text(content),
         // 代码里恒定写成「次要 → 主要」，由平台决定谁在左。
@@ -627,5 +651,14 @@ class AppleDialog {
       ),
     );
     return ok ?? false;
+  }
+
+  /// 默认外壳：裸 `AlertDialog`（未注入 [surface] 时的既有外观）。
+  static Widget _plainSurface({
+    required Widget? title,
+    required Widget? content,
+    required List<Widget> actions,
+  }) {
+    return AlertDialog(title: title, content: content, actions: actions);
   }
 }

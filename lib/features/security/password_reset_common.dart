@@ -10,7 +10,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
-import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart';
 
 abstract final class PasswordResetSteps {
@@ -21,7 +21,7 @@ abstract final class PasswordResetSteps {
     required String message,
     String actionLabel = '使用重置密码盘',
   }) async {
-    return AppleDialog.confirm(
+    return GlassDialog.confirm(
       context,
       title: title,
       content: message,

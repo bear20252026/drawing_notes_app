@@ -42,6 +42,7 @@ import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
 import 'package:drawing_notes_app/features/security/block_doc_password_reset_flow.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 
 part 'notebook_view_page_widgets.dart';
 part 'notebook_view_page_imports.dart';

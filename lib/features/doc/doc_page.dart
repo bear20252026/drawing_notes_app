@@ -15,6 +15,7 @@ import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
 import 'package:drawing_notes_app/features/security/block_doc_password_reset_flow.dart';
@@ -604,7 +605,7 @@ class _DocPageState extends State<DocPage> {
     if (!mounted) return;
     // 可选当场绑定重置密码盘（错过本次可事后在密码管理中绑定）。
     List<int>? resetDiskKey;
-    final bindUsb = await AppleDialog.confirm(
+    final bindUsb = await GlassDialog.confirm(
       context,
       title: '绑定重置密码盘？',
       content:
@@ -695,7 +696,7 @@ class _DocPageState extends State<DocPage> {
     final store = widget.blockDocStore;
     if (store == null) return;
     final name = _doc.title.isEmpty ? '未命名' : _doc.title;
-    final ok = await AppleDialog.confirm(
+    final ok = await GlassDialog.confirm(
       context,
       title: '移除独立密码',
       content: '移除后「$name」不再需要独立密码即可打开。确定移除吗？',
