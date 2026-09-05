@@ -2,6 +2,28 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.10.6] - 2026-09-05
+
+### 液态玻璃覆盖面：画布编辑器顶栏（沉浸式）
+
+- **EdgelessPage 顶栏玻璃化**（edgeless_page.dart）：原生 `AppBar` →
+  `GlassAppBar`（title + 8 个操作按钮原样保留），开启
+  `extendBodyBehindAppBar: true`——画布帧卡片/连线/网格从玻璃顶栏下
+  穿过被模糊（沉浸式；画布不是滚动视图，无需让位 padding，视口直接全屏）。
+- **坐标系影响评估（已入注释与测试）**：`_viewport` 高度变为屏幕高
+  （原为屏幕高 − appBar），世界原点上移 appBar 高度、缩放焦点中心偏移
+  appBar 高度的一半（≈28px，fitTo/缩放无感）；所有坐标转换经
+  `_cameraMatrix(_viewport)` 自洽；顶栏区域手势由 AppBar 拦截，画布
+  该区域可见不可点（iOS 同款行为）。
+- **NavigationRail 决策记录（不改代码）**：宽屏侧栏维持 M3 原生——
+  完整玻璃化需 Row→Stack 布局改造 + 全部页面左侧让位（改动面大收益低），
+  保守玻璃化则 Rail 背后是纯背景色、玻璃无物可模糊。
+- **G3 真位移 shader 决策记录**：`ImageFilter.shader` 方案已验证可行，
+  y 轴翻转效果需真机目视确认后再铺开（避免不可视回归直接进主干）。
+- 测试：edgeless_page_glass_bar_test 4 项（玻璃顶栏在位 /
+  extendBodyBehindAppBar 断言 / 8 按钮保留 / 缩放回调不炸 /
+  一层 BackdropFilter 红线）。
+
 ## [1.10.5] - 2026-09-05
 
 ### 液态玻璃覆盖面：导航类控件域（底部导航条 + FAB）

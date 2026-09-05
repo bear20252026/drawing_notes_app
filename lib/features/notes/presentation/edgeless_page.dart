@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+// v1.10.6：顶栏玻璃化——画布内容沉浸式延伸到玻璃顶栏之后。
+import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_connector.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_group.dart';
@@ -237,7 +239,15 @@ class _EdgelessPageState extends State<EdgelessPage> {
       autofocus: true,
       onKeyEvent: _handleKeyEvent,
       child: Scaffold(
-        appBar: AppBar(
+        // v1.10.6：画布内容延伸到玻璃顶栏之后——帧卡片/连线/网格从顶栏
+        // 下穿过被模糊（沉浸式，与首页/设置页同一玻璃让位原则的画布版：
+        // 画布不是滚动视图，无需让位 padding，视口直接全屏）。
+        // 坐标系影响评估：_viewport 高度 = 屏幕高（原为屏幕高 - appBar），
+        // 世界原点上移 appBar 高度、缩放焦点中心偏移 appBar 高度的一半
+        // （≈28px，fitTo/缩放无感）；顶栏区域手势由 AppBar 拦截，画布
+        // 该区域可见不可点（iOS 同款行为，可接受）。
+        extendBodyBehindAppBar: true,
+        appBar: GlassAppBar(
           title: const Text('Edgeless'),
           actions: [
             IconButton(
