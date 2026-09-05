@@ -74,7 +74,6 @@ class EditorLeftToolbar extends StatelessWidget {
             children: [
               // 手型：画布导航与绘制模式显式分离，避免误触发笔画。
               _tool(
-                context,
                 Icons.pan_tool_alt_rounded,
                 '平移画布 (H)',
                 handActive,
@@ -83,7 +82,6 @@ class EditorLeftToolbar extends StatelessWidget {
               Divider(height: 12, color: scheme.outlineVariant),
               // 画笔
               _tool(
-                context,
                 Icons.edit_rounded,
                 '画笔 (P)',
                 controller.tool == BrushType.pen &&
@@ -95,7 +93,6 @@ class EditorLeftToolbar extends StatelessWidget {
               ),
               // 铅笔：与钢笔分离的独立预设，保留略深的石墨色与尺寸。
               _tool(
-                context,
                 Icons.draw_rounded,
                 '铅笔 (N)',
                 controller.tool == BrushType.pencil &&
@@ -107,7 +104,6 @@ class EditorLeftToolbar extends StatelessWidget {
               ),
               // 高亮笔：采用独立局部合成层，实际支持不叠色书写。
               _tool(
-                context,
                 Icons.highlight_rounded,
                 '高亮笔 (M)',
                 controller.tool == BrushType.marker &&
@@ -120,7 +116,6 @@ class EditorLeftToolbar extends StatelessWidget {
 
               // 激光指示器：独立的、不会写入文档的临时尾迹工具。
               _tool(
-                context,
                 Icons.gesture_rounded,
                 '激光指示器（临时尾迹）',
                 controller.tool == BrushType.laser &&
@@ -133,7 +128,6 @@ class EditorLeftToolbar extends StatelessWidget {
 
               // 橡皮擦
               _tool(
-                context,
                 Icons.auto_fix_high_rounded,
                 '橡皮擦 (E)',
                 isEraser,
@@ -141,7 +135,6 @@ class EditorLeftToolbar extends StatelessWidget {
               ),
               // 吸管
               _tool(
-                context,
                 Icons.colorize_rounded,
                 '吸管工具',
                 eyedropperActive,
@@ -149,7 +142,6 @@ class EditorLeftToolbar extends StatelessWidget {
               ),
               // 矩形选区
               _tool(
-                context,
                 Icons.crop_free_rounded,
                 '矩形选区 (R)',
                 controller.selectionTool == SelectionTool.rect,
@@ -157,7 +149,6 @@ class EditorLeftToolbar extends StatelessWidget {
               ),
               // 框选（多元素）
               _tool(
-                context,
                 Icons.select_all_rounded,
                 '框选多个元素',
                 marqueeActive,
@@ -165,7 +156,6 @@ class EditorLeftToolbar extends StatelessWidget {
               ),
               // 文字
               _tool(
-                context,
                 Icons.text_fields_rounded,
                 '文字 (T)',
                 textToolActive,
@@ -174,7 +164,7 @@ class EditorLeftToolbar extends StatelessWidget {
               // 形状弹出菜单
               _shapeMenu(context),
               // 连线
-              _tool(context, Icons.call_merge_rounded, '节点连线', linkMode, onLink),
+              _tool(Icons.call_merge_rounded, '节点连线', linkMode, onLink),
               Divider(height: 12, color: scheme.outlineVariant),
             ],
           ),
@@ -234,7 +224,6 @@ class EditorLeftToolbar extends StatelessWidget {
   );
 
   Widget _tool(
-    BuildContext context,
     IconData icon,
     String tip,
     bool selected,
