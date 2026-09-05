@@ -35,6 +35,25 @@ class EdgelessStroke {
 
   Offset pointAt(int i) => Offset(points[i * 2], points[i * 2 + 1]);
 
+  /// 轴对齐包围盒（世界坐标，含线宽半径外扩）。每次调用 O(pointCount)
+  /// 扫描——供视口剔除等逐帧一次性判断使用（审计 U4）。
+  Rect get bounds {
+    if (points.isEmpty) return Rect.zero;
+    var minX = points[0];
+    var minY = points[1];
+    var maxX = minX;
+    var maxY = minY;
+    for (var i = 2; i < points.length; i += 2) {
+      final x = points[i];
+      final y = points[i + 1];
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+    return Rect.fromLTRB(minX, minY, maxX, maxY).inflate(width / 2);
+  }
+
   /// 追加一个点，返回新实例（原始列表不变）。
   EdgelessStroke copyWithAppended(Offset p) => EdgelessStroke(
     id: id,

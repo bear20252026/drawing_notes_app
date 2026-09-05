@@ -2,6 +2,15 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.11.3] - 2026-09-05
+
+### 性能优化（审计 U4 批次）
+
+- **块文档编解码/加密 isolate 化**：`NoteBlockDocStore` 保存路径的 JSON 编码与信封加密、加载路径的 JSON 解析——超过 32K 码元阈值的大文档进 `Isolate.run`（对齐画布侧 `encodeSnapshotAsync` / `_sealDocBytes` 先例），大笔记保存/打开不再卡主线程；小文档维持主线程零往返开销。边界：v5 信封 rewrap 与解密依赖 `EncryptionService` 实例/会话缓存，留主 isolate
+- **无边画布视口剔除**：`_ElementPainter` 按世界坐标可见区（`getLocalClipBounds`，与主画布 painter 同机制）剔除视口外的形状与笔迹——`EdgelessStroke` 新增 `bounds` 包围盒（含线宽外扩）；数百元素画布平移/缩放只绘制可见部分
+- **RepaintBoundary 隔离**：无边画布连接线层/元素层各包 `RepaintBoundary`（对齐主画布 `editor_page_canvas_surface` 先例）
+- **核查澄清（审计项已达标不再动）**：搜索防抖（all_docs `SearchDebouncer` + search_page 300ms Timer）；图片降采样（解码端长边 4096/2048 封顶；磁盘存原图属数据完整性特性，保留）
+
 ## [1.11.2] - 2026-09-05
 
 ### l10n 收编（审计 U3 批次·第二期）

@@ -327,29 +327,35 @@ class _EdgelessPageState extends State<EdgelessPage> {
                         clipBehavior: Clip.none,
                         children: [
                           // 连接线层：绘制在帧下方（AFFiNE `affine:connector`）
+                          // 审计 U4：RepaintBoundary 隔离重绘边界（对齐
+                          // editor_page_canvas_surface 先例）。
                           Positioned.fill(
-                            child: CustomPaint(
-                              painter: _ConnectorPainter(
-                                connectors: _controller.connectors,
-                                framesById: _controller.framesById,
+                            child: RepaintBoundary(
+                              child: CustomPaint(
+                                painter: _ConnectorPainter(
+                                  connectors: _controller.connectors,
+                                  framesById: _controller.framesById,
+                                ),
                               ),
                             ),
                           ),
                           // 笔迹/形状层（M11：brush / shape / eraser 工具）
                           Positioned.fill(
-                            child: CustomPaint(
-                              painter: _ElementPainter(
-                                strokes: _controller.doc.strokes,
-                                shapes: _controller.doc.shapes,
-                                activeStroke: _controller.activeStroke,
-                                shapeOrigin: _controller.shapeOrigin,
-                                shapeKind: _controller.shapeKind,
-                                lastFocalWorld: _lastFocal == null
-                                    ? null
-                                    : _controller.screenToWorld(
-                                        _lastFocal!,
-                                        _viewport,
-                                      ),
+                            child: RepaintBoundary(
+                              child: CustomPaint(
+                                painter: _ElementPainter(
+                                  strokes: _controller.doc.strokes,
+                                  shapes: _controller.doc.shapes,
+                                  activeStroke: _controller.activeStroke,
+                                  shapeOrigin: _controller.shapeOrigin,
+                                  shapeKind: _controller.shapeKind,
+                                  lastFocalWorld: _lastFocal == null
+                                      ? null
+                                      : _controller.screenToWorld(
+                                          _lastFocal!,
+                                          _viewport,
+                                        ),
+                                ),
                               ),
                             ),
                           ),

@@ -640,7 +640,12 @@ class _ElementPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // 审计 U4：视口剔除——本 CustomPaint 处于相机 Transform 内，
+    // getLocalClipBounds() 即世界坐标可见区（与 canvas_painter.dart 的
+    // paintVectorLayers 同机制）。视口外元素跳过 Path 构建/光栅化。
+    final clip = canvas.getLocalClipBounds();
     for (final shape in shapes) {
+      if (!shape.rect.overlaps(clip)) continue;
       final fill =
           _parseColor(shape.color) ??
           AppleColor.actionBlue.withValues(alpha: 0.20);
@@ -656,6 +661,7 @@ class _ElementPainter extends CustomPainter {
       }
     }
     for (final stroke in strokes) {
+      if (!stroke.bounds.overlaps(clip)) continue;
       _paintStroke(canvas, stroke);
     }
     if (activeStroke != null) {

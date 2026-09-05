@@ -1,6 +1,6 @@
 // M11 契约测试：Edgeless 笔迹/形状领域模型 + EdgelessDoc 扩展。
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/widgets.dart' show Offset, Size;
+import 'package:flutter/widgets.dart' show Offset, Rect, Size;
 
 import 'package:drawing_notes_app/features/notes/domain/edgeless_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_stroke.dart';
@@ -49,6 +49,27 @@ void main() {
       );
       final back = EdgelessStroke.fromJson(s.toJson());
       expect(back, s);
+    });
+
+    test('bounds：点列包围盒 + 线宽外扩（审计 U4 视口剔除）', () {
+      final s = EdgelessStroke(
+        id: 's1',
+        points: [10, 20, 110, 60, -30, 5],
+        color: '#000000',
+        width: 6,
+      );
+      // min(-30,5) max(110,60)，线宽半径 3 外扩。
+      expect(s.bounds, const Rect.fromLTRB(-33, 2, 113, 63));
+      // 空笔迹回退零矩形（painter 侧 pointCount<2 本就跳过绘制）。
+      expect(
+        EdgelessStroke(
+          id: 's2',
+          points: const [],
+          color: '#000000',
+          width: 3,
+        ).bounds,
+        Rect.zero,
+      );
     });
   });
 

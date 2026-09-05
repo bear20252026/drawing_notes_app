@@ -17,6 +17,7 @@ library;
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:drawing_notes_app/core/security/session_secrets.dart';
@@ -25,9 +26,9 @@ import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 
-
 part 'note_block_doc_store_trash.dart';
 part 'note_block_doc_store_password.dart';
+
 /// 笔记（块文档）受独立文件密码保护且本会话未解锁（N2）。
 ///
 /// loadDocument 在锁定态抛出此异常——调用方（打开路径）应先走
@@ -221,7 +222,6 @@ class NoteBlockDocStore implements SessionSecretsHolder {
     });
   }
 
-
   /// 轻量文档头（不含 body 块树）。
   /// 列出全部文档头（updatedAt 倒序；缓存命中时零 IO）。
   Future<List<NoteBlockDocHeader>> listDocHeaders() async {
@@ -342,15 +342,59 @@ class NoteBlockDocStore implements SessionSecretsHolder {
   Future<void> saveDocument(NoteBlockDoc doc) =>
       _enqueue(doc.id, () => _saveDocumentLocked(doc));
 
+  /// isolate 编解码阈值（语义对齐 StorageService._isolateSealThreshold /
+  /// DocumentCodec.isolateEncodeThreshold）：低于阈值时 isolate 往返
+  /// （spawn + 拷贝）开销大于收益，直接主线程执行。单位为 UTF-16 码元
+  /// 粗估值——中日韩字符 UTF-8 膨胀 ~3×，此处取半阈值保守判断（宁可
+  /// 早进 isolate，不漏大文档）。
+  static const int _isolateCodecThreshold = 32 * 1024;
+
+  /// 粗估文档明文规模（不精确，仅作 isolate 阈值判断——块结构 JSON
+  /// 开销按每块 ~64 码元计入，误差远小于阈值量级）。
+  static int _estimateDocSize(NoteBlockDoc doc) {
+    var size = doc.title.length + doc.tags.length * 12;
+    for (final b in doc.body) {
+      size += b.text.length + 64;
+    }
+    return size;
+  }
+
+  /// 编码文档为 JSON 字节。纯函数，可安全跑在 isolate 中（NoteBlockDoc
+  /// 为纯数据类，可跨 isolate 传递）。
+  static Uint8List _encodeDocBytes(NoteBlockDoc doc) {
+    return Uint8List.fromList(
+      utf8.encode(const JsonEncoder.withIndent('  ').convert(doc.toJson())),
+    );
+  }
+
+  /// 解析文档 JSON。纯函数，可安全跑在 isolate 中。
+  static NoteBlockDoc _parseDocText(String text) =>
+      NoteBlockDoc.fromJson(jsonDecode(text) as Map<String, dynamic>);
+
+  /// 异步解析：小文本主线程，达阈值的文本进 isolate（审计 U4）。
+  static Future<NoteBlockDoc> _parseDocTextAsync(String text) {
+    if (text.length < _isolateCodecThreshold) {
+      return Future.value(_parseDocText(text));
+    }
+    return Isolate.run(() => _parseDocText(text));
+  }
+
+  /// 异步编码：小文档主线程，达阈值的文档进 isolate（审计 U4：序列化
+  /// 移出主 isolate，对齐画布侧 encodeSnapshotAsync 先例）。
+  static Future<Uint8List> _encodeDocBytesAsync(NoteBlockDoc doc) {
+    if (_estimateDocSize(doc) < _isolateCodecThreshold) {
+      return Future.value(_encodeDocBytes(doc));
+    }
+    return Isolate.run(() => _encodeDocBytes(doc));
+  }
+
   /// saveDocument 的串行化主体（调用方必须已持有该 id 的写链）。
   Future<void> _saveDocumentLocked(NoteBlockDoc doc) async {
     if (!isValidId(doc.id)) {
       throw ArgumentError.value(doc.id, 'doc.id', '文档 ID 不合法');
     }
     await _ensureDir();
-    final plaintext = utf8.encode(
-      const JsonEncoder.withIndent('  ').convert(doc.toJson()),
-    );
+    final plaintext = await _encodeDocBytesAsync(doc);
 
     // N2：文件密码拦截——受密文件续写必须走会话 DEK rewrap（v5 信封
     // 直落盘，仅重生成 payload 密文、槽位组原样保留——LUKS 语义）。
@@ -376,14 +420,23 @@ class NoteBlockDocStore implements SessionSecretsHolder {
     }
 
     // 批次①c：有主密钥 → 信封加密（AAD 绑定 block:<id>）。
+    // 审计 U4：大载荷加密进 isolate（对齐 StorageService._sealDocBytes
+    // 先例——VaultFileCodec.encrypt 为静态纯函数，可安全跨 isolate）。
     var data = plaintext;
     final key = await _currentKey();
     if (key != null) {
-      data = await VaultFileCodec.encrypt(
-        data,
-        key,
-        aadContext: 'block:${doc.id}',
-      );
+      if (data.length < _isolateCodecThreshold) {
+        data = await VaultFileCodec.encrypt(
+          data,
+          key,
+          aadContext: 'block:${doc.id}',
+        );
+      } else {
+        data = await Isolate.run(
+          () =>
+              VaultFileCodec.encrypt(data, key, aadContext: 'block:${doc.id}'),
+        );
+      }
     }
     await _writeFileAtomic(doc.id, data);
   }
@@ -433,9 +486,9 @@ class NoteBlockDocStore implements SessionSecretsHolder {
           encryptedJson: text,
           dek: dek,
         );
-        return NoteBlockDoc.fromJson(jsonDecode(clear) as Map<String, dynamic>);
+        return _parseDocTextAsync(clear);
       }
-      return NoteBlockDoc.fromJson(jsonDecode(text) as Map<String, dynamic>);
+      return _parseDocTextAsync(text);
     }
 
     try {
