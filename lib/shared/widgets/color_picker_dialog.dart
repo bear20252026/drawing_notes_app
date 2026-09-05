@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/theme/apple_design.dart';
 
 /// 颜色选择对话框（Phase 2 验收：色板 + 自由调色）。
@@ -62,6 +63,14 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
     });
   }
 
+  /// 颜色近似相等（HSV 往返换算有极小分量误差，不能用 == 精确比较）。
+  /// alpha 一并比较：initialColor 可能带透明度，否则选中态判定失真。
+  static bool _sameColor(Color a, Color b) =>
+      (a.r - b.r).abs() < 0.004 &&
+      (a.g - b.g).abs() < 0.004 &&
+      (a.b - b.b).abs() < 0.004 &&
+      (a.a - b.a).abs() < 0.004;
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -73,7 +82,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 预设色板
+              // 预设色板（选中态：外圈强调色描边 + 居中勾选，见 _Swatch）。
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
@@ -81,19 +90,13 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                   for (final c in _presetColors)
                     InkWell(
                       borderRadius: BorderRadius.circular(AppleRadius.lg),
-                      onTap: () => _apply(HSVColor.fromColor(c)),
-                      child: Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: c,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: c.computeLuminance() > 0.5
-                                ? Colors.black26
-                                : Colors.white24,
-                          ),
-                        ),
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        _apply(HSVColor.fromColor(c));
+                      },
+                      child: _Swatch(
+                        color: c,
+                        selected: _sameColor(c, _selected),
                       ),
                     ),
                 ],
@@ -101,9 +104,15 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
               const SizedBox(height: 16),
               // 二维色域框（Saturation × Value，对齐 Excalidraw ColorPicker Picker）：
               // 横向 = 饱和度 0→1，纵向 = 明度 1→0，底色随当前色相变化。
-              SizedBox(
+              Container(
                 width: 300,
                 height: 170,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppleRadius.sm),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onPanDown: (d) => _pickSv(d.localPosition),
@@ -111,8 +120,11 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                   child: Stack(
                     children: [
                       Positioned.fill(
-                        child: CustomPaint(
-                          painter: _SvSquarePainter(hue: _hsv.hue),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(AppleRadius.sm),
+                          child: CustomPaint(
+                            painter: _SvSquarePainter(hue: _hsv.hue),
+                          ),
                         ),
                       ),
                       // 当前 S/V 位置指示圆点。
@@ -138,8 +150,11 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
               ),
               const SizedBox(height: 12),
               // 色相渐变条（横向彩虹，点击/拖动取色相）。
+              // 视觉条 22px 居中、触控热区扩到 44px（HIG/WCAG 最小触控尺寸）；
+              // 宽度显式 300，与 _pickHue 的换算宽度一致（修复 320/300 偏差）。
               SizedBox(
-                height: 22,
+                width: 300,
+                height: 44,
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onPanDown: (d) => _pickHue(d.localPosition),
@@ -147,12 +162,18 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                   child: Stack(
                     children: [
                       Positioned.fill(
-                        child: CustomPaint(painter: const _HueBarPainter()),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 11),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(AppleRadius.xs),
+                            child: const CustomPaint(painter: _HueBarPainter()),
+                          ),
+                        ),
                       ),
                       // 当前色相指示。
                       Positioned(
                         left: _hsv.hue / 360 * 300 - 4,
-                        top: 0,
+                        top: 11,
                         child: Container(
                           width: 8,
                           height: 22,
@@ -177,14 +198,17 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                   for (var i = 0; i <= 5; i++)
                     InkWell(
                       borderRadius: BorderRadius.circular(AppleRadius.md),
-                      onTap: () => _apply(
-                        HSVColor.fromAHSV(
-                          1,
-                          _hsv.hue,
-                          _hsv.saturation,
-                          0.2 + 0.15 * i,
-                        ),
-                      ),
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        _apply(
+                          HSVColor.fromAHSV(
+                            1,
+                            _hsv.hue,
+                            _hsv.saturation,
+                            0.2 + 0.15 * i,
+                          ),
+                        );
+                      },
                       child: Container(
                         width: 28,
                         height: 28,
@@ -196,7 +220,9 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                             0.2 + 0.15 * i,
                           ).toColor(),
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.black26),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
                         ),
                       ),
                     ),
@@ -212,14 +238,21 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                     for (final c in _recentColors.reversed.take(12))
                       InkWell(
                         borderRadius: BorderRadius.circular(AppleRadius.md),
-                        onTap: () => _apply(HSVColor.fromColor(c)),
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          _apply(HSVColor.fromColor(c));
+                        },
                         child: Container(
                           width: 24,
                           height: 24,
                           decoration: BoxDecoration(
                             color: c,
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.black26),
+                            border: Border.all(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.outlineVariant,
+                            ),
                           ),
                         ),
                       ),
@@ -236,12 +269,15 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                     decoration: BoxDecoration(
                       color: _selected,
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.black26),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'RGB(${_selected.r.round()}, ${_selected.g.round()}, ${_selected.b.round()})',
+                    // r/g/b 为 0–1 的 double，需 ×255 还原为常规 RGB 读数。
+                    'RGB(${(_selected.r * 255).round()}, ${(_selected.g * 255).round()}, ${(_selected.b * 255).round()})',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -302,11 +338,13 @@ class _SvSquarePainter extends CustomPainter {
       stops: const [0.0, 0.5, 1.0],
     ).createShader(rect);
     canvas.drawRect(rect, Paint()..shader = svGradient);
-    // 覆盖：横向饱和度叠加（右侧饱和、左侧去饱和）。
+    // 覆盖：横向饱和度叠加——左侧白色（s=0 去饱和）、右侧透明（s=1 全饱和），
+    // 与 _pickSv 的取色映射（左 s=0 → 右 s=1）一致；对齐 Excalidraw
+    // S 方块「左白右饱和」方向（原方向镜像颠倒，点饱和处取到 s=0）。
     final sGradient = LinearGradient(
       begin: Alignment.centerLeft,
       end: Alignment.centerRight,
-      colors: [Colors.transparent, Colors.white],
+      colors: [Colors.white, Colors.transparent],
     ).createShader(rect);
     canvas.drawRect(rect, Paint()..shader = sGradient);
   }
@@ -333,4 +371,46 @@ class _HueBarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_HueBarPainter oldDelegate) => false;
+}
+
+/// 预设色板单元格：圆形色块 + 选中态（外圈强调色描边 + 居中勾选标记）。
+class _Swatch extends StatelessWidget {
+  const _Swatch({required this.color, required this.selected});
+
+  final Color color;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    // 浅色块给浅描边、深色块给深描边，保证任意底色上边界可辨。
+    final hairline = color.computeLuminance() > 0.5
+        ? scheme.outlineVariant
+        : scheme.outline.withValues(alpha: 0.4);
+    return Container(
+      width: 34,
+      height: 34,
+      padding: EdgeInsets.all(selected ? 2 : 0),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: selected ? Border.all(color: scheme.primary, width: 2) : null,
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(color: hairline),
+        ),
+        child: selected
+            ? Icon(
+                Icons.check_rounded,
+                size: 16,
+                color: color.computeLuminance() > 0.5
+                    ? Colors.black.withValues(alpha: 0.7)
+                    : Colors.white,
+              )
+            : null,
+      ),
+    );
+  }
 }

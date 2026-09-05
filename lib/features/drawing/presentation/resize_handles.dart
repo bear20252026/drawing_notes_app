@@ -35,7 +35,15 @@ class ResizeHandles extends StatelessWidget {
   /// 每次拖拽更新后的通知（宿主 State 通知变更/自动保存）。
   final VoidCallback onChanged;
 
+  /// 视觉手柄尺寸：保持 10px 的小巧观感，不遮挡画布内容。
   static const double _handleSize = 10.0;
+
+  /// 触控热区尺寸：视觉手柄外的隐形命中区。
+  ///
+  /// 依据 Apple HIG / WCAG 2.5.5 / Material 最小触控尺寸取 44px——
+  /// 原实现命中区等于视觉 10px，触屏主用设备上几乎点不中
+  /// （2026-09-04 第三轮审计「高」级项，本轮修复）。
+  static const double _hitSize = 44.0;
 
   @override
   Widget build(BuildContext context) {
@@ -73,22 +81,32 @@ class ResizeHandles extends StatelessWidget {
     required Offset position,
     required double size,
   }) {
+    // 命中区 44×44、视觉手柄 10×10 居中：热区中心与视觉中心保持同一点，
+    // 桌面鼠标观感零变化；外层 Stack 为 Clip.none，热区不会被裁掉。
+    // 注意：极小元素上相邻手柄热区会重叠，后声明的手柄优先命中
+    // （列表顺序 TL→BR）。如需更精细，可按元素尺寸缩放 _hitSize。
     return Positioned(
-      left: position.dx - size / 2,
-      top: position.dy - size / 2,
+      left: position.dx - _hitSize / 2,
+      top: position.dy - _hitSize / 2,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onPanUpdate: (details) {
           onResize(handle, screenToCanvasDelta(details.delta));
           onChanged();
         },
-        child: Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            color: const Color(0xFF42A5F5),
-            borderRadius: BorderRadius.circular(AppleRadius.xs),
-            border: Border.all(color: Colors.white, width: 1),
+        child: SizedBox(
+          width: _hitSize,
+          height: _hitSize,
+          child: Center(
+            child: Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                color: const Color(0xFF42A5F5),
+                borderRadius: BorderRadius.circular(AppleRadius.xs),
+                border: Border.all(color: Colors.white, width: 1),
+              ),
+            ),
           ),
         ),
       ),
