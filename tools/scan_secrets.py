@@ -33,6 +33,11 @@ EXCLUDED_FILES = {"sbom.cdx.json", "pubspec.lock", "untranslated_messages.json",
 # 误报豁免（2026-08-16）：base62 字符集 const（fractional_index——默认
 # 参数要求 const——合法字符集常量非密钥——高熵检测误报）。
 EXCLUDED_PATHS = {"lib/core/canvas_model/fractional_index.dart"}
+# 熵检测豁免（2026-09-05，审计 U4 批次发现）：l10n ARB 的 @key 元数据
+# 是生成的标识符命名空间（如 lockVerifyCurrentPassword，熵 4.08）——
+# 键名与密钥无关。仅豁免熵启发式：凭据 regex 规则仍照常扫描 ARB
+# （翻译文案里若真出现 api_key=xxx 依旧拦截）。
+ENTROPY_EXCLUDED_PATHS = {"lib/l10n/app_zh.arb", "lib/l10n/app_en.arb"}
 # 已知安全前缀（2026-09-02）：iVBORw0KGgo = PNG 文件头（\x89PNG\r\n\x1a\n）的
 # base64 固定魔数——测试夹具的最小 1×1 PNG，内容人人皆知、非密钥，
 # 高熵检测误报（熵 4.01，阈值 4.0 擦边）。
@@ -52,7 +57,7 @@ def shannon_entropy(s: str) -> float:
     return -sum((c / n) * math.log2(c / n) for c in freq.values())
 
 
-def scan_file(path: Path, findings: list) -> None:
+def scan_file(path: Path, findings: list, skip_entropy: bool = False) -> None:
     try:
         text = path.read_text(encoding="utf-8", errors="ignore")
     except OSError:
@@ -64,13 +69,14 @@ def scan_file(path: Path, findings: list) -> None:
                 findings.append((str(path), line_no, desc, line.strip()[:80]))
         # 熵检测（Gitleaks 模式——高熵字符串疑似随机令牌，阈值 4.0）：
         # 仅检测引号内的长字符串（真实密钥/令牌通常出现在字符串字面量中——
-        # 避免裸标识符/类名误报）。
-        for token in re.findall(r"['\"]([0-9a-zA-Z_\-]{24,})['\"]", line):
-            if token.startswith(KNOWN_SAFE_PREFIXES):
-                continue
-            if shannon_entropy(token) > 4.0:
-                findings.append((str(path), line_no, f"高熵字符串（熵 {shannon_entropy(token):.2f}）", token[:32]))
-                break  # 每行一条熵告警即可
+        # 避免裸标识符/类名误报）。l10n ARB 走 ENTROPY_EXCLUDED_PATHS 豁免。
+        if not skip_entropy:
+            for token in re.findall(r"['\"]([0-9a-zA-Z_\-]{24,})['\"]", line):
+                if token.startswith(KNOWN_SAFE_PREFIXES):
+                    continue
+                if shannon_entropy(token) > 4.0:
+                    findings.append((str(path), line_no, f"高熵字符串（熵 {shannon_entropy(token):.2f}）", token[:32]))
+                    break  # 每行一条熵告警即可
 
 
 def main() -> int:
@@ -93,7 +99,7 @@ def main() -> int:
             continue
         if path.suffix.lower() in SKIP_EXTENSIONS:
             continue
-        scan_file(path, findings)
+        scan_file(path, findings, skip_entropy=rel.as_posix() in ENTROPY_EXCLUDED_PATHS)
 
     if findings:
         print(f"⚠ 发现 {len(findings)} 处潜在敏感信息：")
