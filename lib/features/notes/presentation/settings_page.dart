@@ -55,7 +55,11 @@ class SettingsPage extends StatelessWidget {
           16,
           GlassAppBar.bodyTopPadding(context) + 12,
           16,
-          24,
+          // v1.10.5：底部让位（顶栏注释同一原则的镜像——可滚动 padding，
+          // 内容能滚到玻璃导航条背后被模糊；外层固定 Padding 会让玻璃
+          // 退化成脏板子）。app_shell extendBody 把条总高注入
+          // MediaQuery.padding.bottom，此处消费并保留原 24 呼吸空间。
+          MediaQuery.paddingOf(context).bottom + 24,
         ),
         children: [
           const _PasswordLayersCard(),

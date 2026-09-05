@@ -22,6 +22,8 @@ import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/shared/utils/search_debouncer.dart';
 // U4a：首屏加载骨架屏。
 import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
+// v1.10.5：导航类控件玻璃化——FAB 换液态玻璃。
+import 'package:drawing_notes_app/shared/widgets/glass_fab.dart';
 part 'all_docs_page_widgets.dart';
 part 'all_docs_page_mobile.dart';
 
@@ -168,7 +170,7 @@ class _AllDocsPageState extends State<AllDocsPage> {
           backgroundColor: canvas,
           // 移动端新建入口（AFFiNE mobile：底部 tab 的 create 动作按钮语义）。
           floatingActionButton: isNarrow
-              ? FloatingActionButton(
+              ? GlassFab(
                   // 显式 heroTag：AppShell 的 IndexedStack 内 HomePage 也持有
                   // 默认 tag 的 FAB（同树共存）→ 重复 hero 会抛断言。
                   heroTag: 'allDocsNewDocFab',

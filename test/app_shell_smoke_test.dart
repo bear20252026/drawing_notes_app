@@ -19,6 +19,9 @@ import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
+// v1.10.5：导航类控件玻璃化——底部导航条 / FAB 材质替换壳。
+import 'package:drawing_notes_app/shared/widgets/glass_fab.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_nav_bar.dart';
 
 /// 内存版块文档存储（FakeAsync 安全）。
 class _MemBlockDocStore extends NoteBlockDocStore {
@@ -177,5 +180,72 @@ void main() {
     // key.frogkey 密码盘体系已删除（N4 批 1，2026-09-02）——入口不复存在。
     expect(find.text('密码盘与恢复'), findsNothing);
     expect(find.text('WebDAV 同步'), findsOneWidget);
+  });
+
+  // ---- v1.10.5：导航类控件玻璃化（extendBody + 玻璃导航条 / 玻璃 FAB）----
+
+  testWidgets('窄屏：底部导航条为玻璃胶囊，Scaffold extendBody 开启',
+      (tester) async {
+    await pumpShell(tester);
+
+    // 玻璃胶囊在位（内部仍复用原生 NavigationBar——交互行为不变）。
+    expect(find.byType(GlassNavigationBar), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
+
+    // extendBody 断言：找到持有玻璃导航条的外层 Scaffold。
+    final shells = tester.widgetList<m.Scaffold>(find.byType(m.Scaffold));
+    final outer = shells.firstWhere(
+      (s) => s.bottomNavigationBar is GlassNavigationBar,
+    );
+    expect(
+      outer.extendBody,
+      isTrue,
+      reason: '内容必须延伸到玻璃条之后，BackdropFilter 才有东西可模糊',
+    );
+  });
+
+  testWidgets('窄屏：设置页列表消费注入的底部让位（可滚动 padding）',
+      (tester) async {
+    await pumpShell(tester);
+
+    // IndexedStack 惰性挂载：先切到设置页才在树上。
+    await tester.tap(find.text('设置').last);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // 设置页顶层 ListView 的 bottom padding = 注入值（条总高 76，
+    // 无系统手势条时）+ 原呼吸空间 24。
+    final listViews = tester.widgetList<m.ListView>(
+      find.byType(m.ListView),
+    );
+    final settingsList = listViews.firstWhere(
+      (lv) => lv.padding is m.EdgeInsets && (lv.padding as m.EdgeInsets).left == 16,
+    );
+    final padding = settingsList.padding as m.EdgeInsets;
+    expect(
+      padding.bottom,
+      GlassNavigationBar.totalHeight + 24,
+      reason: '内容须能滚到玻璃条背后被模糊（外层固定 padding 会让玻璃退化）',
+    );
+  });
+
+  testWidgets('窄屏：玻璃 FAB 在位（全部文档圆形 ↔ 首页 extended）',
+      (tester) async {
+    await pumpShell(tester);
+
+    // IndexedStack 实测行为：同屏只保留当前目的地子树（切换即卸载旧页），
+    // 因此 FAB 永远只有 1 个——按状态分别断言。
+    // index 0：全部文档移动端 GlassFab（heroTag 'allDocsNewDocFab'，
+    // 显式 tag 是 hero 冲突防护的历史保留下）。
+    var fab = tester.widgetList<GlassFab>(find.byType(GlassFab)).single;
+    expect(fab.heroTag, 'allDocsNewDocFab');
+
+    // index 1：首页 GlassFab.extended（新建画布）。
+    await tester.tap(find.text('画布·笔记').last);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    fab = tester.widgetList<GlassFab>(find.byType(GlassFab)).single;
+    expect(fab.heroTag, isNull);
+    expect(find.text('新建画布'), findsOneWidget);
   });
 }

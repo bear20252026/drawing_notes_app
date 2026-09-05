@@ -22,7 +22,10 @@ extension _AllDocsPageMobile on _AllDocsPageState {
     final isDark = theme.brightness == Brightness.dark;
     final surface = isDark ? AppleColor.surfaceDark : AppleColor.surfaceWhite;
     return SafeArea(
-      bottom: false,
+      // v1.10.5：app_shell extendBody 后，Scaffold 把玻璃导航条总高注入
+      // MediaQuery.padding.bottom；此处消费它，列表视口收窄到条上缘。
+      // （共享列表组件 _GroupedDocList/_SortedDocList 桌面移动两用，
+      // 不侵入其内部加移动端让位逻辑。）
       child: FutureBuilder<AllDocQueryResult>(
         future: _future!,
         builder: (context, snapshot) {

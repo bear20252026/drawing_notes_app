@@ -29,6 +29,8 @@ import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
+// v1.10.5：导航类控件玻璃化——FAB 换液态玻璃胶囊。
+import 'package:drawing_notes_app/shared/widgets/glass_fab.dart';
 // U4a：首屏加载骨架屏。
 import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_templates.dart';
@@ -859,17 +861,21 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
                 context,
                 bottomHeight: _kTabSlotHeight,
               ),
+              // v1.10.5：extendBody 让位——app_shell 玻璃导航条把总高注入
+              // MediaQuery.padding.bottom，网格视口收窄到胶囊条上缘；
+              // AmbientBackground 仍延伸到条后供玻璃模糊（不退化成脏板）。
+              bottom: MediaQuery.paddingOf(context).bottom,
             ),
             child: _buildBody(),
           ),
         ),
         floatingActionButton: _tabIndex == 0
-            ? FloatingActionButton.extended(
+            ? GlassFab.extended(
                 onPressed: _createCanvas,
                 icon: const Icon(Icons.add),
                 label: const Text('新建画布'),
               )
-            : FloatingActionButton.extended(
+            : GlassFab.extended(
                 onPressed: _createNote,
                 icon: const Icon(Icons.add),
                 label: const Text('新建笔记'),

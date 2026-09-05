@@ -2,6 +2,40 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.10.5] - 2026-09-05
+
+### 液态玻璃覆盖面：导航类控件域（底部导航条 + FAB）
+
+- **新增 `GlassNavigationBar`**（shared/widgets/glass_nav_bar.dart）：
+  iOS 26 liquid glass tab bar 语义的**悬浮胶囊**底部导航条——高 64 +
+  底部留边 12 + 左右留边 12，胶囊全圆（32）；内部复用原生
+  `NavigationBar`（材质四件套全透明，indicator 保留——它是选中交互态
+  非条体材质），系统手势区 / 3 键导航由组件内 `SafeArea` 消费，
+  胶囊永远悬浮于系统栏上方；再向内清零注入，防 `NavigationBar` 的
+  内部 SafeArea 二次膨胀。
+- **新增 `GlassFab`**（shared/widgets/glass_fab.dart）：`FloatingActionButton`
+  的材质替换壳——圆形 / extended 两个构造，参数与原生对齐（onPressed /
+  child / heroTag），调用点零迁移成本；FAB 材质全透明（elevation /
+  highlightElevation / hoverElevation / focusElevation 全零），ink
+  state layer 保留交互反馈。配方与玻璃弹窗同家族（sigma 16 / 基底 0.72）。
+- **app_shell 接入**：窄屏 Scaffold 开启 `extendBody: true`——内容延伸到
+  玻璃条之后，BackdropFilter 才有东西可模糊（与 settings_page 顶栏注释
+  同一原则）；输入法弹出时隐藏导航的行为不变。
+- **4 页底部让位**（各按结构消费 `MediaQuery.padding.bottom`）：
+  - 设置页：ListView bottom 改**可滚动让位**（注入值 + 24）——内容能
+    滚到玻璃条背后被模糊，外层固定 Padding 会让玻璃退化成脏板子；
+  - 首页：body 外层 Padding 加 bottom（AmbientBackground 仍延伸到条后）；
+  - 全部文档（移动端）：`SafeArea` 恢复消费 bottom——共享列表组件
+    `_GroupedDocList`/`_SortedDocList` 桌面移动两用，不侵入其内部；
+  - 日历：`SafeArea` 默认消费，自动让位（零改动）。
+- **接入点**：首页 FAB ×2（新建画布 / 新建笔记，extended）、全部文档
+  移动端 FAB（圆形，`heroTag` 保留）。
+- **范围外不动**：NavigationRail（宽屏侧边栏，后续单独评估）；滑块 ×8
+  全在面板/弹窗内部（内容层红线，禁止玻璃化）。
+- 测试：glass_fab_test 7 项 + glass_nav_bar_test 8 项 + app_shell 集成
+  3 项（extendBody 断言 / 设置页让位断言 / FAB 状态断言——顺带锁定
+  IndexedStack「同屏只保留当前目的地子树」实测行为）。
+
 ## [1.10.4] - 2026-09-05
 
 ### 液态玻璃覆盖面：弹窗域收口（showDialog 全量迁移）

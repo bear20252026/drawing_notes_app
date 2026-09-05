@@ -35,6 +35,8 @@ import 'package:drawing_notes_app/features/schedule/infrastructure/schedule_even
 // 批次②：单文件密码输入（可变长度 4–12 位密码盘）。
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
+// v1.10.5：导航类控件玻璃化——底部导航条换液态玻璃胶囊。
+import 'package:drawing_notes_app/shared/widgets/glass_nav_bar.dart';
 // N4 批 2：画布解锁弹窗「忘记密码？」→ 重置密码盘重置流。
 import 'package:drawing_notes_app/features/security/file_password_reset_flow.dart';
 // N4 批 3：分页画布解锁弹窗「忘记密码？」→ 重置密码盘重置流。
@@ -591,12 +593,16 @@ class _AppShellState extends State<AppShell> {
           );
         }
         return Scaffold(
+          // v1.10.5：内容延伸到玻璃导航条之后——玻璃才有东西可模糊
+          // （与 settings_page 顶栏注释同一原则）。各页面按可滚动让位
+          // 消费 MediaQuery.padding.bottom，见各页接入注释。
+          extendBody: true,
           body: IndexedStack(index: _index, children: _destinations),
           // AFFiNE mobile 语义：输入法弹出时隐藏底部导航（VirtualKeyboard
           // Service 同款体验），给内容与键盘让出完整空间。
           bottomNavigationBar: MediaQuery.of(context).viewInsets.bottom > 0
               ? null
-              : NavigationBar(
+              : GlassNavigationBar(
                   selectedIndex: _index,
                   onDestinationSelected: _onSelect,
                   destinations: _barDestinations(),
