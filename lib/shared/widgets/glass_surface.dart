@@ -226,16 +226,15 @@ class _GlassSurfaceState extends State<GlassSurface> {
     if (!widget.enabled || reduceEffects) return clip(content);
     return clip(
       BackdropFilter(
-        filter: _backdropFilterFor(
-          resolved: resolved,
-          reduceEffects: reduceEffects,
-        ),
+        filter: _backdropFilterFor(resolved: resolved),
         child: clip(content),
       ),
     );
   }
 
   /// backdrop 滤镜管线（G3 → G1 回落，单一事实来源）。
+  ///
+  /// 调用前提：enabled 且非 reduceEffects（外层已拦截，见 build）。
   ///
   /// - **G1**（默认）：`saturate(blur(source))`——blur 与 saturate 合成带
   ///   轻量缓存（key = sigma|saturation，缓存与构建见 [GlassSurface._g1Filter]）；
@@ -244,10 +243,7 @@ class _GlassSurfaceState extends State<GlassSurface> {
   ///   对 backdrop 做真折射位移 + RGB 色散，再经 blur 柔化、saturate 提饱和。
   ///   位移滤镜依赖实际尺寸，每次 build 新建 FragmentShader（program 共享，
   ///   rebuild 频率低：L3 罩微光动画由独立 CustomPaint 重绘，不经本 build）。
-  ui.ImageFilter _backdropFilterFor({
-    required LiquidGlassLevel resolved,
-    required bool reduceEffects,
-  }) {
+  ui.ImageFilter _backdropFilterFor({required LiquidGlassLevel resolved}) {
     final g1 = GlassSurface._g1Filter(widget.sigma, widget.saturation);
     if (resolved != LiquidGlassLevel.l3) return g1;
     final size = _measured;
