@@ -307,7 +307,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
 
   /// 新建无限画布并进入绘图工作区。
   Future<void> _createDrawing() async {
-    final name = await showDialog<String>(
+    final name = await GlassDialog.show<String>(
       context: context,
       builder: (ctx) => const _NameDialog(title: '新建无限画布'),
     );

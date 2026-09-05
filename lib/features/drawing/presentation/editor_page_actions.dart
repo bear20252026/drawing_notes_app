@@ -83,7 +83,7 @@ extension _EditorPageActions on _EditorPageState {
     }
     final input = TextEditingController();
     var chartType = ChartType.bar;
-    final result = await showDialog<String>(
+    final result = await GlassDialog.show<String>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(

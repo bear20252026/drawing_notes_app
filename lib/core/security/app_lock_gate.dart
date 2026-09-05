@@ -22,8 +22,7 @@ import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
-import 'package:drawing_notes_app/shared/widgets/pin_pad.dart'
-    show PinPadCore;
+import 'package:drawing_notes_app/shared/widgets/pin_pad.dart' show PinPadCore;
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
 

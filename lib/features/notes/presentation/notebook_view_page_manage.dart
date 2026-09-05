@@ -48,7 +48,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
   }
 
   Future<void> _createPage() async {
-    final request = await showDialog<_NewPageRequest>(
+    final request = await GlassDialog.show<_NewPageRequest>(
       context: context,
       builder: (ctx) => const _CreatePageDialog(),
     );

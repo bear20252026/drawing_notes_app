@@ -127,7 +127,7 @@ void main() {
     expect(dangerStyle, isNotNull);
   });
 
-  testWidgets('内部 AlertDialog 全透明（玻璃由外层提供，不叠色板）', (tester) async {
+  testWidgets('内部 Material 全透明（dialogTheme 覆盖，玻璃由外层提供）', (tester) async {
     await tester.pumpWidget(
       host(
         onPressed: (context) =>
@@ -135,14 +135,23 @@ void main() {
       ),
     );
     await openDialog(tester);
-    final dialog = tester.widget<AlertDialog>(find.byType(AlertDialog));
-    expect(dialog.backgroundColor, Colors.transparent);
-    expect(dialog.surfaceTintColor, Colors.transparent);
-    expect(dialog.shadowColor, Colors.transparent);
-    expect(dialog.elevation, 0);
+    // AlertDialog 构造参数为 null，透明来自外壳 dialogTheme 覆盖——
+    // 断言实际渲染的 Material，验证覆盖确实生效。
+    final material = tester.widget<Material>(
+      find
+          .descendant(
+            of: find.byType(AlertDialog),
+            matching: find.byType(Material),
+          )
+          .first,
+    );
+    expect(material.color, Colors.transparent);
+    expect(material.elevation, 0);
+    expect(material.surfaceTintColor, Colors.transparent);
+    expect(material.shadowColor, Colors.transparent);
   });
 
-  testWidgets('inset 由外壳接管：内部 AlertDialog 的 insetPadding 置零', (tester) async {
+  testWidgets('inset 由外壳接管：dialogTheme.insetPadding 置零', (tester) async {
     await tester.pumpWidget(
       host(
         onPressed: (context) =>
@@ -150,8 +159,8 @@ void main() {
       ),
     );
     await openDialog(tester);
-    final dialog = tester.widget<AlertDialog>(find.byType(AlertDialog));
-    expect(dialog.insetPadding, EdgeInsets.zero);
+    final dialogContext = tester.element(find.byType(AlertDialog));
+    expect(Theme.of(dialogContext).dialogTheme.insetPadding, EdgeInsets.zero);
     // 外壳负责与屏幕边缘的留白（M3 默认 horizontal 40 / vertical 24）。
     final shellPadding = tester
         .widget<Padding>(
@@ -281,5 +290,142 @@ void main() {
                 .padding
             as EdgeInsets;
     expect(shellPadding.horizontal, lessThanOrEqualTo(40));
+  });
+
+  group('show<T>：内容定制弹窗迁移入口', () {
+    testWidgets('包裹裸 AlertDialog（零参数改动），玻璃外壳生效', (tester) async {
+      late final Future<bool?> result;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => Center(
+                child: FilledButton(
+                  onPressed: () {
+                    result = GlassDialog.show<bool>(
+                      context: context,
+                      builder: (dialogContext) => AlertDialog(
+                        title: const Text('CUSTOM_TITLE'),
+                        content: const Text('CUSTOM_BODY'),
+                        actions: AppleDialog.actions(<Widget>[
+                          TextButton(
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(false),
+                            child: const Text('取消'),
+                          ),
+                          FilledButton(
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(true),
+                            child: const Text('确定'),
+                          ),
+                        ]),
+                      ),
+                    );
+                  },
+                  child: const Text('OPEN'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('OPEN'));
+      await settle(tester);
+      expect(find.text('CUSTOM_TITLE'), findsOneWidget);
+      // 玻璃外壳与单层滤镜红线。
+      expect(find.byType(GlassSurface), findsOneWidget);
+      expect(find.byType(BackdropFilter), findsOneWidget);
+      // dialogTheme 覆盖生效：内部 Material 透明。
+      final material = tester.widget<Material>(
+        find
+            .descendant(
+              of: find.byType(AlertDialog),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      expect(material.color, Colors.transparent);
+      // 点确认返回 true。
+      await tester.tap(find.widgetWithText(FilledButton, '确定'));
+      await settle(tester);
+      expect(await result, isTrue);
+    });
+
+    testWidgets('包裹 StatefulBuilder 形态（定时弹窗内的动态内容）', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => Center(
+                child: FilledButton(
+                  onPressed: () {
+                    GlassDialog.show<bool>(
+                      context: context,
+                      builder: (dialogContext) => StatefulBuilder(
+                        builder: (innerContext, setDialogState) => AlertDialog(
+                          title: const Text('STATEFUL_TITLE'),
+                          content: const Text('S_BODY'),
+                          actions: <Widget>[
+                            TextButton(
+                              onPressed: () => Navigator.of(innerContext).pop(),
+                              child: const Text('关闭'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                  child: const Text('OPEN'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('OPEN'));
+      await settle(tester);
+      expect(find.text('STATEFUL_TITLE'), findsOneWidget);
+      expect(find.byType(GlassSurface), findsOneWidget);
+      expect(find.byType(BackdropFilter), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('barrierDismissible=false 时点屏障不关闭', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => Center(
+                child: FilledButton(
+                  onPressed: () {
+                    GlassDialog.show<bool>(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (dialogContext) => AlertDialog(
+                        title: const Text('MODAL_TITLE'),
+                        content: const Text('c'),
+                        actions: <Widget>[
+                          TextButton(
+                            onPressed: () => Navigator.of(dialogContext).pop(),
+                            child: const Text('关闭'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: const Text('OPEN'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('OPEN'));
+      await settle(tester);
+      await tester.tapAt(const Offset(10, 10));
+      await settle(tester);
+      // 弹窗仍在。
+      expect(find.text('MODAL_TITLE'), findsOneWidget);
+    });
   });
 }

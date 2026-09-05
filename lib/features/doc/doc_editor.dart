@@ -27,6 +27,7 @@ import 'package:drawing_notes_app/features/doc/application/doc_link_index.dart';
 import 'package:drawing_notes_app/features/doc/domain/text_span_editor.dart';
 import 'package:drawing_notes_app/features/doc/presentation/embedded_block_view.dart';
 import 'package:drawing_notes_app/features/doc/presentation/block_slash_menu.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 part 'doc_editor_blocks.dart';
 part 'doc_editor_toolbar.dart';
 part 'doc_editor_editing.dart';
@@ -887,7 +888,7 @@ class DocEditorState extends State<DocEditor> {
 
   /// 退出未保存提醒对话框。
   void _showExitDialog() {
-    showDialog<void>(
+    GlassDialog.show<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('未保存的改动'),

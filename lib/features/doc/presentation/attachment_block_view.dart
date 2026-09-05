@@ -14,6 +14,7 @@ import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_attachment.dart';
 import 'package:drawing_notes_app/features/notes/presentation/pdf_preview.dart';
 import '../../../core/theme/apple_design.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 
 /// 附件块视图。
 class AttachmentBlockView extends StatefulWidget {
@@ -263,7 +264,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
     final a = _attachment;
     if (a == null) return;
     final controller = TextEditingController(text: a.description);
-    final result = await showDialog<String>(
+    final result = await GlassDialog.show<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('编辑备注'),

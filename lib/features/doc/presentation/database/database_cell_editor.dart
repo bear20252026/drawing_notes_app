@@ -6,6 +6,7 @@ library;
 
 import 'package:flutter/material.dart';
 import '../../../../core/theme/apple_design.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 
 /// 弹出单元格文本编辑框（文本/数字/日期共用）。
 /// [numeric] 为 true 时用数字键盘并尝试转成 num。
@@ -17,7 +18,7 @@ Future<void> showTextCellEditor(
   required ValueChanged<Object?> onSave,
 }) async {
   final controller = TextEditingController(text: initial);
-  final result = await showDialog<String>(
+  final result = await GlassDialog.show<String>(
     context: context,
     builder: (ctx) => AlertDialog(
       title: Text('编辑$fieldName'),

@@ -48,7 +48,7 @@ extension _EditorPagePersistence on _EditorPageState {
   /// 重命名画布：更新标题并走自动保存调度（M12 命名持久化）。
   Future<void> _renameCanvas() async {
     final current = _controller.document.title;
-    final name = await showDialog<String>(
+    final name = await GlassDialog.show<String>(
       context: context,
       builder: (ctx) {
         final controller = TextEditingController(text: current);

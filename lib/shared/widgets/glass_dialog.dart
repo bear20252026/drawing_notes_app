@@ -11,7 +11,7 @@ import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 /// `core/` 反向拿不到玻璃，因此由 [GlassDialog.surface] 作为注入点交回
 /// [AppleDialog.confirm]，全库弹窗的排布逻辑因此仍是单一事实来源。
 ///
-/// 与屏幕边缘的间距（inset）由**本外壳**负责——玻璃层必须贴合内容边界，
+/// 与屏幕边缘的留白（inset）由**本外壳**负责——玻璃层必须贴合内容边界，
 /// 若让内部 `AlertDialog` 保留默认 `insetPadding`，玻璃会被撑成全屏大板。
 ///
 /// **不算玻璃叠玻璃**：模态弹窗与下方页面之间有 barrier（black54）隔开，
@@ -61,11 +61,32 @@ class GlassDialog {
     );
   }
 
-  static Widget _buildSurface({
-    required Widget? title,
-    required Widget? content,
-    required List<Widget> actions,
+  /// 通用玻璃弹窗：内容定制弹窗（自带 title/content/actions 乃至
+  /// StatefulBuilder 的裸 `AlertDialog`）的迁移入口，调用点最小改动——
+  /// 把 `showDialog<X>(...)` 换成 `GlassDialog.show<X>(...)` 即可，
+  /// builder 内部照常返回 `AlertDialog`，无需改任何参数。
+  ///
+  /// 透明化与 inset 置零由外壳的 [Theme] 覆盖 `dialogTheme` 统一完成：
+  /// `AlertDialog` 构造参数默认全为 null，解析顺序
+  /// `显式参数 ?? dialogTheme ?? M3 默认`，故调用点未显式定制表面时
+  /// 覆盖必然生效（若调用点显式写了 backgroundColor 等参数，
+  /// 玻璃会被其色板压住——这是调用点的锅，需自行移除）。
+  static Future<T?> show<T>({
+    required BuildContext context,
+    required WidgetBuilder builder,
+    bool barrierDismissible = true,
   }) {
+    return showDialog<T>(
+      context: context,
+      barrierDismissible: barrierDismissible,
+      builder: (dialogContext) => _glassShell(builder(dialogContext)),
+    );
+  }
+
+  /// 统一外壳：留白 → 玻璃 → dialogTheme 覆盖（透明 / inset 置零 / 圆角）。
+  ///
+  /// [confirm] 与 [show] 共用此结构（单一事实来源）。
+  static Widget _glassShell(Widget dialog) {
     return LayoutBuilder(
       builder: (context, constraints) {
         // 保证 AlertDialog 的最小宽度 280 装得下：inset ≤ (可用宽 - 280) / 2。
@@ -82,21 +103,38 @@ class GlassDialog {
             borderRadius: BorderRadius.circular(kRadius),
             sigma: kSigma,
             surfaceOpacity: kSurfaceOpacity,
-            child: AlertDialog(
-              // inset 已由外层 Padding 承担，此处必须置零，
-              // 否则玻璃层尺寸 = 全屏，中间只留一小块内容。
-              insetPadding: EdgeInsets.zero,
-              backgroundColor: Colors.transparent,
-              surfaceTintColor: Colors.transparent,
-              shadowColor: Colors.transparent,
-              elevation: 0,
-              title: title,
-              content: content,
-              actions: actions,
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                dialogTheme: DialogThemeData(
+                  backgroundColor: Colors.transparent,
+                  surfaceTintColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  elevation: 0,
+                  // inset 已由外层 Padding 承担，此处必须置零，
+                  // 否则玻璃层尺寸 = 全屏，中间只留一小块内容。
+                  insetPadding: EdgeInsets.zero,
+                  // 与玻璃裁剪圆角一致（透明背景下 shape 不可见，
+                  // 只影响 Material 的 ink 裁剪语义）。
+                  shape: RoundedSuperellipseBorder(
+                    borderRadius: BorderRadius.circular(kRadius),
+                  ),
+                ),
+              ),
+              child: dialog,
             ),
           ),
         );
       },
+    );
+  }
+
+  static Widget _buildSurface({
+    required Widget? title,
+    required Widget? content,
+    required List<Widget> actions,
+  }) {
+    return _glassShell(
+      AlertDialog(title: title, content: content, actions: actions),
     );
   }
 }

@@ -22,6 +22,7 @@ import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_syn
 import 'package:drawing_notes_app/features/notes/infrastructure/sync_secret_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/webdav_config_store.dart';
 import 'package:drawing_notes_app/features/notes/presentation/conflict_resolution_dialog.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
 
 /// R1：把同步异常映射为人话文案——用户界面只出现可读懂的提示，
@@ -447,7 +448,7 @@ class _DialogConflictHandler implements ConflictHandler {
     List<SyncConflict> conflicts,
   ) async {
     if (conflicts.isEmpty || !_state.mounted) return const {};
-    final result = await showDialog<Map<String, ConflictResolution>>(
+    final result = await GlassDialog.show<Map<String, ConflictResolution>>(
       context: _state.context,
       barrierDismissible: false,
       builder: (_) => ConflictResolutionDialog(conflicts: conflicts),

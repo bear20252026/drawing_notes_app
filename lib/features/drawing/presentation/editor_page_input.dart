@@ -498,7 +498,7 @@ extension _EditorPageInput on _EditorPageState {
 
   /// 打开颜色选择对话框，应用用户选择的颜色。
   Future<void> _showColorPicker() async {
-    final color = await showDialog<Color>(
+    final color = await GlassDialog.show<Color>(
       context: context,
       builder: (_) => ColorPickerDialog(initialColor: _controller.color),
     );

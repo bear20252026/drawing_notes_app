@@ -821,7 +821,7 @@ class _DocPageState extends State<DocPage> {
     final controller = TextEditingController();
     // P3：对话框结束后释放 controller（审计低危 L1）。
     try {
-      final name = await showDialog<String>(
+      final name = await GlassDialog.show<String>(
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('新建标签'),

@@ -45,6 +45,7 @@ import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/canvas_painter.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/color_picker_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/encrypted_file_image.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';

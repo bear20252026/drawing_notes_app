@@ -161,7 +161,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
   /// 选择目标分组后，把当前标签筛选范围内的页面（或全部页面）批量移动。
   Future<void> _macroMovePages() async {
     if (_notebook.pages.isEmpty) return;
-    final folder = await showDialog<String>(
+    final folder = await GlassDialog.show<String>(
       context: context,
       builder: (ctx) => const _PageNameDialog(title: '移动到的分组名（留空=根）'),
     );
@@ -186,7 +186,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
   /// 密码模式加密/改密（N4 批 3：v5 双保护器——改密=重绕密码槽）。
   Future<void> _enablePasswordEncryption() async {
     final isChange = _notebook.encrypted;
-    final password = await showDialog<String>(
+    final password = await GlassDialog.show<String>(
       context: context,
       builder: (ctx) => _PasswordDialog(
         title: isChange ? '修改密码保护' : '设置密码保护',

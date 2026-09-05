@@ -7,6 +7,7 @@ import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/features/schedule/domain/schedule_event.dart';
 import 'package:drawing_notes_app/features/schedule/infrastructure/schedule_event_store.dart';
 import 'package:drawing_notes_app/features/schedule/presentation/schedule_calendar.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 import '../../../core/theme/apple_design.dart';
@@ -273,23 +274,23 @@ class _SchedulePageState extends State<SchedulePage> {
         // P1 修复：毒 dayKey 坏行隔离（跳过不渲染，不崩整页——fromJson 已拦
         // 大部分，此处兜底内存态/旧数据）。
         if (tryParseDayKey(key) case final day?) ...[
-        _dayHeader(day),
-        const SizedBox(height: 8),
-        ...((byDay[key]!..sort(
-              (a, b) => (a.minuteOfDay ?? -1).compareTo(b.minuteOfDay ?? -1),
-            ))
-            .map(
-              (e) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _EventCard(
-                  event: e,
-                  onToggle: () => _toggleEvent(e),
-                  onDelete: () => _removeEvent(e),
+          _dayHeader(day),
+          const SizedBox(height: 8),
+          ...((byDay[key]!..sort(
+                (a, b) => (a.minuteOfDay ?? -1).compareTo(b.minuteOfDay ?? -1),
+              ))
+              .map(
+                (e) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _EventCard(
+                    event: e,
+                    onToggle: () => _toggleEvent(e),
+                    onDelete: () => _removeEvent(e),
+                  ),
                 ),
-              ),
-            )),
-        const SizedBox(height: 8),
-      ],
+              )),
+          const SizedBox(height: 8),
+        ],
     ];
   }
 
@@ -297,7 +298,7 @@ class _SchedulePageState extends State<SchedulePage> {
 
   Future<void> _showAddEventDialog({int? preHour}) async {
     var minuteOfDay = preHour == null ? null : preHour * 60;
-    final title = await showDialog<String>(
+    final title = await GlassDialog.show<String>(
       context: context,
       builder: (ctx) {
         final controller = TextEditingController();

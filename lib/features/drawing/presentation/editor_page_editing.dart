@@ -130,7 +130,7 @@ extension _EditorPageEditing on _EditorPageState {
     // 先结束可能存在的就地编辑。
     _cancelTextEditing();
 
-    final result = await showDialog<_TextDialogResult>(
+    final result = await GlassDialog.show<_TextDialogResult>(
       context: context,
       builder: (_) => const _TextInputDialog(),
     );
@@ -210,7 +210,7 @@ extension _EditorPageEditing on _EditorPageState {
     final item = page.textItems.where((t) => t.id == id).firstOrNull;
     if (item == null) return;
 
-    final color = await showDialog<Color>(
+    final color = await GlassDialog.show<Color>(
       context: context,
       builder: (_) => ColorPickerDialog(initialColor: Color(item.color)),
     );
@@ -529,7 +529,7 @@ extension _EditorPageEditing on _EditorPageState {
       shapes: page.shapes,
     );
     final controller = TextEditingController(text: current ?? '');
-    final url = await showDialog<String>(
+    final url = await GlassDialog.show<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('设置链接'),

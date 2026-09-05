@@ -2,6 +2,36 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.10.3] - 2026-09-05
+
+### 液态玻璃覆盖面：内容定制弹窗接入玻璃
+
+confirm 之外的第二类弹窗——带输入框、色板、模板选择等定制内容的裸
+`AlertDialog`——现在也走玻璃外壳。
+
+- **新增 `GlassDialog.show<T>`**：内容定制弹窗的通用迁移入口。调用点
+  最小改动——`showDialog<X>(...)` 换成 `GlassDialog.show<X>(...)` 即可，
+  builder 内部照常返回 `AlertDialog`（乃至 StatefulBuilder），零参数改动。
+- **外壳统一结构（单一事实来源）**：`confirm` 与 `show` 共用同一外壳——
+  留白 → 玻璃 → `dialogTheme` 覆盖。透明化（backgroundColor/surfaceTint/
+  shadow/elevation）与 `insetPadding` 置零全部由 `dialogTheme` 提供：
+  `AlertDialog` 构造参数默认全为 null，解析顺序
+  `显式参数 ?? dialogTheme ?? M3 默认`，调用点未定制表面时覆盖必然生效。
+- **切换 17 个弹窗**：文本/URL/重命名输入、页码跳转、页眉页脚、
+  模板选择、收藏夹移动、密码保护（应用锁/笔记本/分区）、导入分页、
+  WebDAV 冲突裁决、颜色选择器（两个入口）、新建页面、数据库单元格。
+- 范围外（保持原样）：`SimpleDialog`、无 actions 的提示类弹窗等
+  22 处 `showDialog`——后续按需迁移。
+- **发现一处死代码**：`home_page_widgets.dart` 的 `_PasswordDialog`
+  在 home library 内无任何实例化点（密码保护弹窗实际用的是
+  notebook 版同名类）。本轮不删，待确认后处理。
+
+### 测试
+
+- `glass_dialog_test.dart` 新增 3 项（累计 16 项）：show 包裹裸
+  AlertDialog 零参数改动 + 红线单层 BackdropFilter + 返回值透传、
+  StatefulBuilder 动态内容形态、barrierDismissible=false。
+
 ## [1.10.2] - 2026-09-05
 
 ### 液态玻璃覆盖面：弹窗接入玻璃

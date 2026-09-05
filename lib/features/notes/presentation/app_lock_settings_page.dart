@@ -364,7 +364,7 @@ class AppLockSettingsPage extends StatelessWidget {
   /// 密码长度选择器：Slider 4–12 位，默认沿用当前长度（无则 4）。
   Future<int?> _pickPinLength(BuildContext context) async {
     var selected = service.pinLength;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await GlassDialog.show<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
