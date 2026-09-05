@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.10.6+47
+version: 1.10.7+48
 
 environment:
   sdk: ^3.12.2
@@ -118,9 +118,11 @@ flutter:
 
   # 铅笔颗粒着色器（FragmentShader）：为铅笔笔触提供纸张石墨质感。
   # 液态玻璃边缘罩（L3）：面板边缘折射环 + RGB 色散 + 镜面高光。
+  # 液态玻璃 backdrop 滤镜（G3）：真折射位移 + 色散（ImageFilter.shader）。
   shaders:
     - shaders/pencil.frag
     - shaders/liquid_glass.frag
+    - shaders/liquid_glass_backdrop.frag
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

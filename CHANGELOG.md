@@ -2,6 +2,32 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.10.7] - 2026-09-05
+
+### 液态玻璃 G3：backdrop 真折射位移 + 色散落地
+
+- **新增 `shaders/liquid_glass_backdrop.frag`**：backdrop 滤镜着色器——
+  圆角矩形 SDF 边缘带内对背景做径向位移采样（liquid-glass-react
+  displacementScale 70 配方）+ RGB 三通道递减位移色散（aberration 2），
+  经 `ImageFilter.shader`（Flutter 3.47）绑定为 `BackdropFilter` 的 filter。
+- **GlassSurface 管线升级**（G3 → G1 回落）：
+  - G1（默认兜底）：`saturate(blur(source))`，缓存 key = sigma|saturation；
+  - G3（L3 + `ImageFilter.isShaderFilterSupported` + 着色器就绪 + 已测得
+    实际尺寸）：`saturate(blur(displace(source)))`——真位移、真色散。
+  - 回落链完整：任一条件不满足静默回落 G1，视觉不中断。
+- **GlassSurface → StatefulWidget**：新增 `_MeasureSize`（RenderProxyBox
+  零开销层）测量实际渲染尺寸——G3 位移采样需真实尺寸（LayoutBuilder
+  约束在弹窗/FAB 等 loose 场景不可靠）。首帧 G1、次帧起 G3，切换差异
+  细微不可感。
+- **平台诚实边界收尾**：`glass_surface.dart` / `liquid_glass.frag` 头注释
+  的「backdrop 自定义采样无公开 API」过时断言全部更正。
+- **真机目视验证点（y 轴翻转）**：GLES 后端 backdrop 纹理 y 轴翻转是
+  已知差异源（技术方案 §4）——Impeller 各后端方向以真机为准：若边缘
+  折射上下反相，shader 内 uv 的 y 一行反相修正（已入 shader 注释）。
+- 测试：liquid_glass_shader_test 4 项（init 幂等 / bindBackdrop 一致性 /
+  isShaderFilterSupported 口径 / G3 分支测试环境回落不炸 + 一层
+  BackdropFilter 红线）。
+
 ## [1.10.6] - 2026-09-05
 
 ### 液态玻璃覆盖面：画布编辑器顶栏（沉浸式）

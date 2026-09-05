@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+// RenderProxyBox（尺寸测量层）在 rendering 库，material 不导出。
+import 'package:flutter/rendering.dart';
 
 import 'package:drawing_notes_app/shared/widgets/liquid_glass_rim.dart';
 import 'package:drawing_notes_app/shared/widgets/liquid_glass_shader.dart';
@@ -15,15 +18,15 @@ import 'package:drawing_notes_app/shared/widgets/liquid_glass_shader.dart';
 /// - [LiquidGlassLevel.l1]：配方视觉——基底 62% + blur 12 + saturate 1.4 + 1px 亮边；
 /// - [LiquidGlassLevel.l2]（默认）：+ 超椭圆 shape（曲率连续）；
 /// - [LiquidGlassLevel.l3]：+ 着色器边缘罩（折射环 + RGB 色散 + 镜面高光，
-///   经 [LiquidGlassGate] 性能闸门，不通过自动回落 L2）。
+///   经 [LiquidGlassGate] 性能闸门，不通过自动回落 L2）+ G3 backdrop
+///   真折射位移（`ImageFilter.shader`，仅 Impeller，不支持回落 G1 管线）。
 ///
 /// 平台诚实边界（2026-09-05 更正，见 docs/LIQUID_GLASS_TECHNICAL_PLAN）：
 /// 旧注「BackdropFilter 不支持自定义片元采样，真位移/真饱和不可做」已过时——
 /// Flutter 3.47 提供 `ImageFilter.compose`（本类已用于 blur+saturate）与
-/// `ImageFilter.shader`（G3 真位移待落地，用 `isShaderFilterSupported` 兜底）。
-/// 当前状态：饱和已为真实现；位移仍由 blur 近似，L3 罩只做边缘折射观感，
-/// 不伪造不存在的采样。禁止玻璃叠玻璃（总纲红线）。
-class GlassSurface extends StatelessWidget {
+/// `ImageFilter.shader`（G3 真位移已落地：`shaders/liquid_glass_backdrop.frag`，
+/// `isShaderFilterSupported` 兜底回落）。禁止玻璃叠玻璃（总纲红线）。
+class GlassSurface extends StatefulWidget {
   const GlassSurface({
     super.key,
     required this.child,
@@ -74,6 +77,58 @@ class GlassSurface extends StatelessWidget {
   /// `0 2px 12px rgba(0,0,0,0.4)` 阴影兜底。
   final double surfaceOpacity;
 
+  /// G1 滤镜缓存键 = (sigma, saturation)。条目数受限于实际用到的离散取值。
+  static final Map<String, ui.ImageFilter> _filterCache =
+      <String, ui.ImageFilter>{};
+
+  /// 空测试注入用：清空缓存（仅供测试，勿在业务调用）。
+  @visibleForTesting
+  static void resetFilterCacheForTest() => _filterCache.clear();
+
+  static ui.ImageFilter _g1Filter(double sigma, double saturation) {
+    final key = '${sigma.toStringAsFixed(2)}|${saturation.toStringAsFixed(2)}';
+    return _filterCache.putIfAbsent(
+      key,
+      () => _buildG1Filter(sigma, saturation),
+    );
+  }
+
+  static ui.ImageFilter _buildG1Filter(double sigma, double saturation) {
+    final blur = ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma);
+    if (saturation <= 1.0001) return blur;
+    try {
+      // result = outer(inner(source)) → 先模糊再饱和，与 CSS
+      // `backdrop-filter: blur(Npx) saturate(K%)` 从左到右的应用顺序一致。
+      return ui.ImageFilter.compose(
+        outer: ui.ColorFilter.matrix(liquidGlassSaturationMatrix(saturation)),
+        inner: blur,
+      );
+    } catch (_) {
+      // 后端不支持合成滤镜（如非 Impeller）时静默退化为纯模糊。
+      return blur;
+    }
+  }
+
+  @override
+  State<GlassSurface> createState() => _GlassSurfaceState();
+}
+
+class _GlassSurfaceState extends State<GlassSurface> {
+  /// 首帧布局后测得的实际渲染尺寸（G3 滤镜需真实尺寸采样 backdrop）。
+  ///
+  /// 首帧为 null 时用 G1 管线（blur+saturate），次帧起切 G3——切换差异
+  /// 细微（同为模糊背景），弹窗进场动画期间不可感。
+  Size? _measured;
+
+  void _onMeasured(Size size) {
+    if (_measured == size) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _measured != size) {
+        setState(() => _measured = size);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -82,7 +137,7 @@ class GlassSurface extends StatelessWidget {
     // L1 配方底色：默认 80%（DESIGN.md:396-398），可由 [surfaceOpacity]
     // 降到 Apple HIG 的 clear 变体区间（0.3–0.5）换取通透观感。
     final surfaceColor =
-        color ?? scheme.surface.withValues(alpha: surfaceOpacity);
+        widget.color ?? scheme.surface.withValues(alpha: widget.surfaceOpacity);
 
     // L1 亮边：顶边镜面高光 + 其余边 outlineVariant（1px 纯色环——
     // 总纲允许的唯一描边例外，且此处为纯色非渐变）。
@@ -96,14 +151,15 @@ class GlassSurface extends StatelessWidget {
       BoxShadow(color: Color(0x14000000), blurRadius: 20, offset: Offset(0, 8)),
     ];
 
-    final resolved = LiquidGlassGate.resolve(context, level);
+    final resolved = LiquidGlassGate.resolve(context, widget.level);
     final useSuperellipse = resolved != LiquidGlassLevel.l1 && !reduceEffects;
 
-    final padded = padding == null
-        ? child
-        : Padding(padding: padding!, child: child);
+    final padded = widget.padding == null
+        ? widget.child
+        : Padding(padding: widget.padding!, child: widget.child);
 
     // 主体装饰（L2 超椭圆 / L1 圆角矩形，共用同一 borderRadius 输入）。
+    final borderRadius = widget.borderRadius;
     final ShapeBorder shapeBorder = useSuperellipse
         ? RoundedSuperellipseBorder(
             borderRadius: borderRadius,
@@ -137,7 +193,7 @@ class GlassSurface extends StatelessWidget {
     );
 
     // L3 边缘罩（闸门已裁决；罩层不拦截手势）。
-    if (resolved == LiquidGlassLevel.l3 && rimIntensity > 0) {
+    if (resolved == LiquidGlassLevel.l3 && widget.rimIntensity > 0) {
       content = Stack(
         fit: StackFit.passthrough,
         children: [
@@ -146,7 +202,7 @@ class GlassSurface extends StatelessWidget {
             child: IgnorePointer(
               child: LiquidGlassRim(
                 radius: borderRadius.topLeft.x,
-                intensity: rimIntensity,
+                intensity: widget.rimIntensity,
                 animated: !reduceEffects,
               ),
             ),
@@ -154,6 +210,9 @@ class GlassSurface extends StatelessWidget {
         ],
       );
     }
+
+    // 实际渲染尺寸测量（G3 滤镜需要真实尺寸；零开销：RenderProxyBox 一层）。
+    content = _MeasureSize(onSize: _onMeasured, child: content);
 
     // Shape 一致的内外双裁剪（内层约束罩层/高光，外层约束模糊 bleed）。
     // ShapeBorderClipper 构造为具名 shape 参数（无位置参数）。
@@ -164,39 +223,98 @@ class GlassSurface extends StatelessWidget {
           )
         : ClipRRect(borderRadius: borderRadius, child: w);
 
-    if (!enabled || reduceEffects) return clip(content);
+    if (!widget.enabled || reduceEffects) return clip(content);
     return clip(
-      BackdropFilter(filter: _backdropFilter(), child: clip(content)),
+      BackdropFilter(
+        filter: _backdropFilterFor(
+          resolved: resolved,
+          reduceEffects: reduceEffects,
+        ),
+        child: clip(content),
+      ),
     );
   }
 
-  /// 合成后的 backdrop 滤镜：blur + saturate（带轻量缓存）。
-  ui.ImageFilter _backdropFilter() {
-    final key = '${sigma.toStringAsFixed(2)}|${saturation.toStringAsFixed(2)}';
-    return _filterCache.putIfAbsent(key, () => _buildFilter(sigma, saturation));
-  }
-
-  /// 滤镜缓存键 = (sigma, saturation)。条目数受限于实际用到的离散取值。
-  static final Map<String, ui.ImageFilter> _filterCache =
-      <String, ui.ImageFilter>{};
-
-  /// 空测试注入用：清空缓存（仅供测试，勿在业务调用）。
-  @visibleForTesting
-  static void resetFilterCacheForTest() => _filterCache.clear();
-
-  static ui.ImageFilter _buildFilter(double sigma, double saturation) {
-    final blur = ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma);
-    if (saturation <= 1.0001) return blur;
+  /// backdrop 滤镜管线（G3 → G1 回落，单一事实来源）。
+  ///
+  /// - **G1**（默认）：`saturate(blur(source))`——blur 与 saturate 合成带
+  ///   轻量缓存（key = sigma|saturation，缓存与构建见 [GlassSurface._g1Filter]）；
+  /// - **G3**（L3 + Impeller + 着色器就绪 + 已测得实际尺寸）：
+  ///   `saturate(blur(displace(source)))`——`shaders/liquid_glass_backdrop.frag`
+  ///   对 backdrop 做真折射位移 + RGB 色散，再经 blur 柔化、saturate 提饱和。
+  ///   位移滤镜依赖实际尺寸，每次 build 新建 FragmentShader（program 共享，
+  ///   rebuild 频率低：L3 罩微光动画由独立 CustomPaint 重绘，不经本 build）。
+  ui.ImageFilter _backdropFilterFor({
+    required LiquidGlassLevel resolved,
+    required bool reduceEffects,
+  }) {
+    final g1 = GlassSurface._g1Filter(widget.sigma, widget.saturation);
+    if (resolved != LiquidGlassLevel.l3) return g1;
+    final size = _measured;
+    if (size == null || size.isEmpty) return g1;
+    if (!ui.ImageFilter.isShaderFilterSupported) return g1;
+    if (!LiquidGlassShader.isBackdropReady) return g1;
     try {
-      // result = outer(inner(source)) → 先模糊再饱和，与 CSS
-      // `backdrop-filter: blur(Npx) saturate(K%)` 从左到右的应用顺序一致。
+      final displacement = LiquidGlassShader.bindBackdrop(
+        size: size,
+        radius: widget.borderRadius.topLeft.x,
+      );
+      if (displacement == null) return g1;
       return ui.ImageFilter.compose(
-        outer: ui.ColorFilter.matrix(liquidGlassSaturationMatrix(saturation)),
-        inner: blur,
+        outer: ui.ColorFilter.matrix(
+          liquidGlassSaturationMatrix(widget.saturation),
+        ),
+        inner: ui.ImageFilter.compose(
+          outer: ui.ImageFilter.blur(
+            sigmaX: widget.sigma,
+            sigmaY: widget.sigma,
+          ),
+          inner: ui.ImageFilter.shader(displacement),
+        ),
       );
     } catch (_) {
-      // 后端不支持合成滤镜（如非 Impeller）时静默退化为纯模糊。
-      return blur;
+      // 后端不支持 shader 滤镜（检测误报等边界）时静默回落 G1。
+      return g1;
+    }
+  }
+}
+
+/// 实际渲染尺寸测量（RenderProxyBox 零开销层；仅尺寸变化时经 postFrame
+/// 通知，避免 layout 期间 setState 与每帧重标 dirty）。
+class _MeasureSize extends SingleChildRenderObjectWidget {
+  const _MeasureSize({required this.onSize, super.child});
+
+  final ValueChanged<Size> onSize;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderMeasureSize(onSize);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    covariant _RenderMeasureSize renderObject,
+  ) {
+    renderObject.onSize = onSize;
+  }
+}
+
+class _RenderMeasureSize extends RenderProxyBox {
+  _RenderMeasureSize(this.onSize);
+
+  ValueChanged<Size> onSize;
+  Size? _last;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    final child = this.child;
+    if (child == null) return;
+    final size = child.size;
+    if (_last != size) {
+      _last = size;
+      // layout 期间禁止 setState——经 postFrame 在帧尾通知。
+      scheduleMicrotask(() => onSize(size));
     }
   }
 }

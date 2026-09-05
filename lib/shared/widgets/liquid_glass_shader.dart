@@ -19,9 +19,10 @@ class LiquidGlassShader {
   LiquidGlassShader._();
 
   static FragmentProgram? _program;
+  static FragmentProgram? _backdropProgram;
   static bool _initialized = false;
 
-  /// 加载 `shaders/liquid_glass.frag`。幂等；失败保持回退状态。
+  /// 加载两个着色器（前景罩 + backdrop 滤镜）。幂等；失败保持回退状态。
   static Future<void> init() async {
     if (_initialized) return;
     _initialized = true;
@@ -30,10 +31,20 @@ class LiquidGlassShader {
     } catch (_) {
       _program = null;
     }
+    try {
+      _backdropProgram = await FragmentProgram.fromAsset(
+        'shaders/liquid_glass_backdrop.frag',
+      );
+    } catch (_) {
+      _backdropProgram = null;
+    }
   }
 
-  /// 着色器是否已就绪（性能闸门第一关）。
+  /// 前景边缘罩着色器是否已就绪（性能闸门第一关）。
   static bool get isReady => _program != null;
+
+  /// G3 backdrop 滤镜（真折射位移）着色器是否已就绪。
+  static bool get isBackdropReady => _backdropProgram != null;
 
   /// 创建已绑定尺寸/圆角/时间/强度/染色/色散的片元着色器。
   ///
@@ -61,6 +72,35 @@ class LiquidGlassShader {
       ..setFloat(6, tint.g)
       ..setFloat(7, tint.b)
       ..setFloat(8, aberration);
+    return shader;
+  }
+
+  /// 创建 G3 backdrop 滤镜（真折射位移 + 色散）的片元着色器。
+  ///
+  /// uniform 布局（shaders/liquid_glass_backdrop.frag 声明顺序）：
+  /// uSize(2，索引 0-1；引擎另会填 bound texture 尺寸——此处手动 set 同值
+  /// 兜底，两者语义一致均为滤镜应用层尺寸) → uDisplacement(2) →
+  /// uAberration(3) → uRadius(4) → uBandWidth(5)。
+  /// sampler2D uInput 由引擎绑定 filter input，无需手动 setImageSampler。
+  ///
+  /// 未就绪返回 null（调用方回落 G1：blur + saturate）。
+  static FragmentShader? bindBackdrop({
+    required Size size,
+    required double radius,
+    double displacement = LiquidGlassRecipe.kDisplacement,
+    double aberration = LiquidGlassRecipe.kAberration,
+    double bandWidth = 24,
+  }) {
+    final program = _backdropProgram;
+    if (program == null) return null;
+    final shader = program.fragmentShader();
+    shader
+      ..setFloat(0, size.width)
+      ..setFloat(1, size.height)
+      ..setFloat(2, displacement)
+      ..setFloat(3, aberration)
+      ..setFloat(4, radius)
+      ..setFloat(5, bandWidth);
     return shader;
   }
 }

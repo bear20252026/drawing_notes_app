@@ -1,11 +1,12 @@
 // 液态玻璃边缘折射罩（L3，liquid-glass-react 配方移植）。
 //
 // 移植来源（MIT，tmp_design_refs/lgr）：roundedRectSDF → smoothstep 位移
-// 曲线 → RGB 三通道位移分离（aberration）。平台诚实边界：Flutter 的
-// BackdropFilter 拿不到自定义片元着色器（backdrop 采样无公开 API），
-// 故真位移只能作用于 backdrop 模糊近似；本着色器负责配方中可前台化的
-// 部分——边缘折射环 + RGB 色散分离 + 顶部镜面高光 + 微光闪烁。
-// 背景模糊仍由 GlassSurface 的 BackdropFilter(blur 12) 承担。
+// 曲线 → RGB 三通道位移分离（aberration）。
+// 平台诚实边界（2026-09-05 更正）：backdrop 自定义采样已有公开 API——
+// `ImageFilter.shader`（Flutter 3.47），真位移由 shaders/liquid_glass_backdrop.frag
+// 承担（G3）；本着色器负责配方中可前台化的部分——边缘折射环 + RGB 色散
+// 分离 + 顶部镜面高光 + 微光闪烁。背景模糊仍由 GlassSurface 的
+// BackdropFilter(blur 12) 承担。
 //
 // Flutter 引擎注入 FlutterFragCoord()（片元坐标，逻辑像素）。
 // uniform 声明顺序与 LiquidGlassShader.bind 的 setFloat 下标一一对应。
