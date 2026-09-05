@@ -13,6 +13,7 @@ import 'package:drawing_notes_app/features/notes/presentation/app_lock_settings_
 import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settings_page.dart';
 import '../../../core/theme/apple_design.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 
 /// 设置页：密码与安全 + 通用两大分组。
@@ -43,10 +44,11 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final outline = Theme.of(context).colorScheme.outline;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       // 让内容延伸到顶栏之后——玻璃才有东西可模糊。
       extendBodyBehindAppBar: true,
-      appBar: const GlassAppBar(title: Text('设置')),
+      appBar: GlassAppBar(title: Text(l10n?.settingsTitle ?? '设置')),
       body: ListView(
         // 顶部让位必须用**可滚动**的 padding：内容滚到顶栏之后才会被玻璃
         // 模糊；若改用外层固定 Padding，内容永远进不到顶栏背后，
@@ -64,7 +66,10 @@ class SettingsPage extends StatelessWidget {
         children: [
           const _PasswordLayersCard(),
           const SizedBox(height: 16),
-          _SectionHeader(title: '密码与安全', outline: outline),
+          _SectionHeader(
+            title: l10n?.settingsSectionSecurity ?? '密码与安全',
+            outline: outline,
+          ),
           Card(
             margin: EdgeInsets.zero,
             child: Column(
@@ -72,15 +77,18 @@ class SettingsPage extends StatelessWidget {
                 if (appLockService != null)
                   ListTile(
                     leading: const Icon(Icons.lock_outline_rounded),
-                    title: const Text('应用锁'),
-                    subtitle: const Text('开屏密码 · 重置密码盘'),
+                    title: Text(l10n?.settingsAppLock ?? '应用锁'),
+                    subtitle: Text(l10n?.settingsAppLockHint ?? '开屏密码 · 重置密码盘'),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => _openAppLock(context),
                   ),
                 ListTile(
                   leading: const Icon(Icons.enhanced_encryption_rounded),
-                  title: const Text('单文件密码'),
-                  subtitle: const Text('个别画布的第二道锁（在画布卡片设置）'),
+                  title: Text(l10n?.settingsStandalonePassword ?? '单文件密码'),
+                  subtitle: Text(
+                    l10n?.settingsStandalonePasswordHint ??
+                        '个别画布的第二道锁（在画布卡片设置）',
+                  ),
                   trailing: const Icon(Icons.help_outline_rounded),
                   onTap: () => _showFilePasswordHelp(context),
                 ),
@@ -88,7 +96,10 @@ class SettingsPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _SectionHeader(title: '通用', outline: outline),
+          _SectionHeader(
+            title: l10n?.settingsSectionGeneral ?? '通用',
+            outline: outline,
+          ),
           Card(
             margin: EdgeInsets.zero,
             child: Column(
@@ -100,8 +111,8 @@ class SettingsPage extends StatelessWidget {
                           ? Icons.dark_mode_rounded
                           : Icons.light_mode_rounded,
                     ),
-                    title: const Text('外观'),
-                    subtitle: Text(_themeLabel(themeController!.mode)),
+                    title: Text(l10n?.settingsAppearance ?? '外观'),
+                    subtitle: Text(_themeLabel(context, themeController!.mode)),
                     trailing: const Icon(Icons.sync_alt_rounded),
                     onTap: themeController!.cycle,
                   ),
@@ -117,15 +128,15 @@ class SettingsPage extends StatelessWidget {
                           ? Icons.contrast_rounded
                           : Icons.contrast_outlined,
                     ),
-                    title: const Text('高对比度'),
+                    title: Text(l10n?.settingsHighContrast ?? '高对比度'),
                     subtitle: Text(themeController!.highContrastLabel),
                     trailing: const Icon(Icons.sync_alt_rounded),
                     onTap: () => themeController!.cycleHighContrast(),
                   ),
                 ListTile(
                   leading: const Icon(Icons.cloud_sync_outlined),
-                  title: const Text('WebDAV 同步'),
-                  subtitle: const Text('本地优先，跨设备同步'),
+                  title: Text(l10n?.settingsWebdav ?? 'WebDAV 同步'),
+                  subtitle: Text(l10n?.settingsWebdavHint ?? '本地优先，跨设备同步'),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
@@ -156,29 +167,36 @@ class SettingsPage extends StatelessWidget {
   void _showFilePasswordHelp(BuildContext context) {
     GlassDialog.show<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('单文件密码'),
-        content: const Text(
-          '在首页或全部文档页，点击画布卡片上的锁形按钮，可为单个画布'
-          '设置独立密码。设置后打开该画布需要输入此密码，缩略图也会'
-          '隐藏为锁形占位。\n\n'
-          '单文件密码独立于开屏密码——即使有人解锁了你的应用，没有'
-          '这个密码也打不开对应的画布。',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('知道了'),
+      builder: (context) {
+        final l10n = AppLocalizations.of(context);
+        return AlertDialog(
+          title: Text(l10n?.settingsStandalonePassword ?? '单文件密码'),
+          content: Text(
+            l10n?.settingsFilePasswordHelpContent ??
+                '在首页或全部文档页，点击画布卡片上的锁形按钮，可为单个画布'
+                    '设置独立密码。设置后打开该画布需要输入此密码，缩略图也会'
+                    '隐藏为锁形占位。\n\n'
+                    '单文件密码独立于开屏密码——即使有人解锁了你的应用，没有'
+                    '这个密码也打不开对应的画布。',
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l10n?.gotIt ?? '知道了'),
+            ),
+          ],
+        );
+      },
     );
   }
 
-  String _themeLabel(ThemeMode mode) => switch (mode) {
-    ThemeMode.system => '跟随系统（点击切换为浅色）',
-    ThemeMode.light => '浅色（点击切换为深色）',
-    ThemeMode.dark => '深色（点击切换为跟随系统）',
+  String _themeLabel(BuildContext context, ThemeMode mode) => switch (mode) {
+    ThemeMode.system =>
+      AppLocalizations.of(context)?.settingsThemeSystem ?? '跟随系统（点击切换为浅色）',
+    ThemeMode.light =>
+      AppLocalizations.of(context)?.settingsThemeLight ?? '浅色（点击切换为深色）',
+    ThemeMode.dark =>
+      AppLocalizations.of(context)?.settingsThemeDark ?? '深色（点击切换为跟随系统）',
   };
 }
 
@@ -193,6 +211,7 @@ class _PasswordLayersCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Card(
       margin: EdgeInsets.zero,
       color: AppleColor.panelOf(scheme),
@@ -205,35 +224,41 @@ class _PasswordLayersCard extends StatelessWidget {
               children: [
                 Icon(Icons.layers_rounded, size: 18, color: scheme.primary),
                 const SizedBox(width: 8),
-                Text('密码体系', style: Theme.of(context).textTheme.titleSmall),
+                Text(
+                  l10n?.settingsPasswordSystem ?? '密码体系',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
               ],
             ),
             const SizedBox(height: 10),
             _layer(
               context,
               icon: Icons.smartphone_rounded,
-              title: '第 1 层 · 开屏密码',
+              title: l10n?.settingsLayer1Title ?? '第 1 层 · 开屏密码',
               desc:
+                  l10n?.settingsLayer1Desc ??
                   '解锁应用，同时解开主密钥保险库——保护全部画布与笔记。'
-                  '忘记时可用重置密码盘重设。',
+                      '忘记时可用重置密码盘重设。',
             ),
             _divider(scheme),
             _layer(
               context,
               icon: Icons.enhanced_encryption_rounded,
-              title: '第 2 层 · 文件密码',
+              title: l10n?.settingsLayer2Title ?? '第 2 层 · 文件密码',
               desc:
+                  l10n?.settingsLayer2Desc ??
                   '给单个画布/分页画布/笔记另设的独立密码，独立于开屏密码。'
-                  '忘记时可用重置密码盘重设。',
+                      '忘记时可用重置密码盘重设。',
             ),
             _divider(scheme),
             _layer(
               context,
               icon: Icons.usb_rounded,
-              title: '重置密码盘（U 盘）',
+              title: l10n?.settingsLayer3Title ?? '重置密码盘（U 盘）',
               desc:
+                  l10n?.settingsLayer3Desc ??
                   '插入 U 盘 → 点「忘记密码」→ 重置新密码。'
-                  '开屏密码与文件密码通用同一把盘。',
+                      '开屏密码与文件密码通用同一把盘。',
             ),
           ],
         ),

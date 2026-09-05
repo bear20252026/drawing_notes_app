@@ -219,5 +219,526 @@
         "type": "String"
       }
     }
-  }
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "取消对话框或操作"
+  },
+  "nextStep": "Next",
+  "@nextStep": {
+    "description": "流程下一步"
+  },
+  "gotIt": "Got it",
+  "@gotIt": {
+    "description": "确认提示"
+  },
+  "create": "Create",
+  "@create": {
+    "description": "创建操作"
+  },
+  "lockTitle": "App Lock",
+  "@lockTitle": {
+    "description": "应用锁设置页标题与开关行"
+  },
+  "lockDescription": "Once enabled, a password is required every time you open the app or return from the background.",
+  "@lockDescription": {
+    "description": "应用锁说明文案"
+  },
+  "lockOn": "On",
+  "@lockOn": {
+    "description": "开关已开启状态"
+  },
+  "lockOff": "Off",
+  "@lockOff": {
+    "description": "开关未开启状态"
+  },
+  "lockChangePassword": "Change Password",
+  "@lockChangePassword": {
+    "description": "修改应用锁密码入口"
+  },
+  "lockResetDisk": "Reset Disk",
+  "@lockResetDisk": {
+    "description": "重置密码盘入口"
+  },
+  "lockDiskStatusUnknown": "Status unknown (failed to read vault)",
+  "@lockDiskStatusUnknown": {
+    "description": "密码盘状态读取失败"
+  },
+  "lockDiskBound": "Bound (can reset a forgotten password)",
+  "@lockDiskBound": {
+    "description": "密码盘已绑定"
+  },
+  "lockDiskUnbound": "Unbound (a forgotten password cannot be recovered)",
+  "@lockDiskUnbound": {
+    "description": "密码盘未绑定"
+  },
+  "lockDiskUnbind": "Unbind",
+  "@lockDiskUnbind": {
+    "description": "解除绑定操作"
+  },
+  "lockDiskBind": "Bind",
+  "@lockDiskBind": {
+    "description": "绑定操作"
+  },
+  "lockVerifyCurrentPassword": "Verify current password",
+  "@lockVerifyCurrentPassword": {
+    "description": "验证密码流程标题"
+  },
+  "lockVaultUnlockFailed": "Failed to unlock the vault, please retry",
+  "@lockVaultUnlockFailed": {
+    "description": "保险库解锁失败"
+  },
+  "lockBindFailed": "Binding failed, please retry",
+  "@lockBindFailed": {
+    "description": "绑定失败"
+  },
+  "lockBindSuccess": "Bound. Keep the USB drive safe: without it the password cannot be reset, and do not delete password_reset_disk.key on it",
+  "@lockBindSuccess": {
+    "description": "绑定成功提示"
+  },
+  "lockUnbindTitle": "Unbind reset disk",
+  "@lockUnbindTitle": {
+    "description": "解除绑定确认框标题"
+  },
+  "lockUnbindContent": "After unbinding, a forgotten password cannot be reset.\n\nThe password_reset_disk.key file on the USB drive will not be deleted — remove it yourself.",
+  "@lockUnbindContent": {
+    "description": "解除绑定确认框正文"
+  },
+  "lockUnbindFailed": "Unbinding failed, please retry",
+  "@lockUnbindFailed": {
+    "description": "解除失败"
+  },
+  "lockUnbound": "Unbound",
+  "@lockUnbound": {
+    "description": "解除成功提示"
+  },
+  "lockSetPassword": "Set password",
+  "@lockSetPassword": {
+    "description": "设置密码流程标题"
+  },
+  "lockConfirmPassword": "Confirm password",
+  "@lockConfirmPassword": {
+    "description": "确认密码流程标题"
+  },
+  "lockMismatch": "Entries don't match, please set again",
+  "@lockMismatch": {
+    "description": "两次密码不一致"
+  },
+  "lockVaultSyncFailed": "File encryption sync failed, please retry or contact the developer",
+  "@lockVaultSyncFailed": {
+    "description": "保险库同步失败"
+  },
+  "lockEnabled": "App lock enabled",
+  "@lockEnabled": {
+    "description": "开启成功提示"
+  },
+  "lockDisabled": "App lock disabled",
+  "@lockDisabled": {
+    "description": "关闭成功提示"
+  },
+  "lockCannotDisableTitle": "Can't disable App Lock",
+  "@lockCannotDisableTitle": {
+    "description": "阻止关闭弹窗标题"
+  },
+  "lockCannotDisableContent": "Your files are encrypted with the app-lock password. Disabling App Lock would make encrypted files unreadable.\n\nTo change the password, use \"Change Password\".",
+  "@lockCannotDisableContent": {
+    "description": "阻止关闭弹窗正文"
+  },
+  "lockPinLengthTitle": "Password length",
+  "@lockPinLengthTitle": {
+    "description": "密码长度选择器标题"
+  },
+  "lockPinLengthDigits": "{count} digits",
+  "@lockPinLengthDigits": {
+    "description": "当前密码长度",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "lockPinLengthHint": "6+ digits recommended; numeric-only passwords have limited strength.",
+  "@lockPinLengthHint": {
+    "description": "密码长度建议"
+  },
+  "lockQuickUnlock": "System-verified quick unlock",
+  "@lockQuickUnlock": {
+    "description": "快速解锁开关行"
+  },
+  "lockQuickUnlockOn": "On (unlock from the lock screen with Windows Hello)",
+  "@lockQuickUnlockOn": {
+    "description": "快速解锁开启状态"
+  },
+  "lockQuickUnlockOff": "Off (enable to unlock with face, fingerprint, or PIN)",
+  "@lockQuickUnlockOff": {
+    "description": "快速解锁关闭状态"
+  },
+  "lockQuickEnableFailed": "Failed to enable, please retry",
+  "@lockQuickEnableFailed": {
+    "description": "快速解锁开启失败"
+  },
+  "lockQuickEnableDone": "Enabled: unlock from the lock screen with system verification (face, fingerprint, or PIN)",
+  "@lockQuickEnableDone": {
+    "description": "快速解锁开启成功"
+  },
+  "lockQuickDisableDone": "Disabled; the key copy in the system secure enclave has been deleted",
+  "@lockQuickDisableDone": {
+    "description": "快速解锁关闭成功"
+  },
+  "lockBindHintBound": "After binding a reset disk, a forgotten password can be reset with it; otherwise it cannot be recovered.",
+  "@lockBindHintBound": {
+    "description": "绑定状态提示"
+  },
+  "lockBindHintUnbound": "After enabling App Lock, you can bind a reset disk in case you forget the password.",
+  "@lockBindHintUnbound": {
+    "description": "未绑定状态提示"
+  },
+  "docShareComingSoon": "Sharing coming soon",
+  "@docShareComingSoon": {
+    "description": "分享占位提示"
+  },
+  "docSaveFailed": "Save failed, please retry or save manually",
+  "@docSaveFailed": {
+    "description": "保存失败"
+  },
+  "docExportedTo": "Exported {label}: {path}",
+  "@docExportedTo": {
+    "description": "导出成功提示",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "docExportFailed": "Export failed, please retry",
+  "@docExportFailed": {
+    "description": "导出失败"
+  },
+  "docPolicyDenied": "Operation denied by policy ({operation})",
+  "@docPolicyDenied": {
+    "description": "策略拒绝",
+    "placeholders": {
+      "operation": {
+        "type": "String"
+      }
+    }
+  },
+  "docInsertPageLink": "Insert page link",
+  "@docInsertPageLink": {
+    "description": "插入页面链接弹窗标题"
+  },
+  "docStandalonePasswordTitle": "Standalone password for \"{name}\"",
+  "@docStandalonePasswordTitle": {
+    "description": "独立密码区块标题",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "docSetStandalonePassword": "Set standalone password",
+  "@docSetStandalonePassword": {
+    "description": "设置独立密码入口"
+  },
+  "docSetStandalonePasswordHint": "4–12 digits, must differ from the app-lock password",
+  "@docSetStandalonePasswordHint": {
+    "description": "设置独立密码说明"
+  },
+  "docChangeStandalonePassword": "Change standalone password",
+  "@docChangeStandalonePassword": {
+    "description": "修改独立密码入口"
+  },
+  "docBindResetDisk": "Bind reset disk",
+  "@docBindResetDisk": {
+    "description": "绑定重置密码盘入口"
+  },
+  "docBindResetDiskHint": "After binding, a forgotten password can be reset with the USB drive without the old password",
+  "@docBindResetDiskHint": {
+    "description": "绑定重置密码盘说明"
+  },
+  "docRemoveStandalonePassword": "Remove standalone password",
+  "@docRemoveStandalonePassword": {
+    "description": "移除独立密码入口"
+  },
+  "docTags": "Tags",
+  "@docTags": {
+    "description": "标签区标题"
+  },
+  "docNewTag": "New tag",
+  "@docNewTag": {
+    "description": "新建标签弹窗标题"
+  },
+  "shellAllDocs": "All Documents",
+  "@shellAllDocs": {
+    "description": "导航目的地"
+  },
+  "shellCanvasNotes": "Canvas & Notes",
+  "@shellCanvasNotes": {
+    "description": "导航目的地"
+  },
+  "shellSchedule": "Calendar",
+  "@shellSchedule": {
+    "description": "导航目的地"
+  },
+  "shellSettings": "Settings",
+  "@shellSettings": {
+    "description": "导航目的地"
+  },
+  "shellEditorNotAssembled": "Editor not yet assembled by the app layer",
+  "@shellEditorNotAssembled": {
+    "description": "编辑器缺位兜底文案"
+  },
+  "settingsTitle": "Settings",
+  "@settingsTitle": {
+    "description": "设置页标题"
+  },
+  "settingsAppLock": "App Lock",
+  "@settingsAppLock": {
+    "description": "设置页应用锁入口"
+  },
+  "settingsAppLockHint": "App-lock password · Reset disk",
+  "@settingsAppLockHint": {
+    "description": "应用锁入口说明"
+  },
+  "settingsStandalonePassword": "Per-file Password",
+  "@settingsStandalonePassword": {
+    "description": "单文件密码入口"
+  },
+  "settingsStandalonePasswordHint": "A second lock for individual canvases (set on the canvas card)",
+  "@settingsStandalonePasswordHint": {
+    "description": "单文件密码说明"
+  },
+  "settingsAppearance": "Appearance",
+  "@settingsAppearance": {
+    "description": "外观入口"
+  },
+  "settingsHighContrast": "High contrast",
+  "@settingsHighContrast": {
+    "description": "高对比度入口"
+  },
+  "settingsWebdav": "WebDAV Sync",
+  "@settingsWebdav": {
+    "description": "WebDAV 入口"
+  },
+  "settingsWebdavHint": "Local-first, sync across devices",
+  "@settingsWebdavHint": {
+    "description": "WebDAV 说明"
+  },
+  "settingsPasswordSystem": "Password System",
+  "@settingsPasswordSystem": {
+    "description": "密码体系分组标题"
+  },
+  "docsSort": "Sort",
+  "@docsSort": {
+    "description": "排序菜单提示"
+  },
+  "docsSortGroupTime": "Group by time",
+  "@docsSortGroupTime": {
+    "description": "排序选项"
+  },
+  "docsSortUpdated": "By updated time",
+  "@docsSortUpdated": {
+    "description": "排序选项"
+  },
+  "docsSortCreated": "By created time",
+  "@docsSortCreated": {
+    "description": "排序选项"
+  },
+  "docsSortTitle": "By title",
+  "@docsSortTitle": {
+    "description": "排序选项"
+  },
+  "docsNewDoc": "New document",
+  "@docsNewDoc": {
+    "description": "新建入口"
+  },
+  "docsNewNote": "New note",
+  "@docsNewNote": {
+    "description": "新建入口"
+  },
+  "docsNewPagedCanvas": "New paged canvas",
+  "@docsNewPagedCanvas": {
+    "description": "新建入口"
+  },
+  "docsNewCanvas": "New canvas",
+  "@docsNewCanvas": {
+    "description": "新建入口"
+  },
+  "settingsSectionSecurity": "Passwords & Security",
+  "@settingsSectionSecurity": {
+    "description": "设置页分组标题"
+  },
+  "settingsSectionGeneral": "General",
+  "@settingsSectionGeneral": {
+    "description": "设置页分组标题"
+  },
+  "settingsFilePasswordHelpContent": "On the home page or in All Documents, tap the lock button on a canvas card to set a standalone password for that canvas. Opening it will then require this password, and the thumbnail is hidden behind a lock placeholder.\n\nThe per-file password is independent of the app-lock password — even if someone unlocks your app, they cannot open the canvas without it.",
+  "@settingsFilePasswordHelpContent": {
+    "description": "单文件密码帮助弹窗正文"
+  },
+  "settingsThemeSystem": "Follow system (tap to switch to light)",
+  "@settingsThemeSystem": {
+    "description": "外观状态标签"
+  },
+  "settingsThemeLight": "Light (tap to switch to dark)",
+  "@settingsThemeLight": {
+    "description": "外观状态标签"
+  },
+  "settingsThemeDark": "Dark (tap to follow system)",
+  "@settingsThemeDark": {
+    "description": "外观状态标签"
+  },
+  "settingsLayer1Title": "Layer 1 · App-lock password",
+  "@settingsLayer1Title": {
+    "description": "密码体系卡第 1 层"
+  },
+  "settingsLayer1Desc": "Unlocks the app and the master-key vault — protects all canvases and notes. Reset with the reset disk if forgotten.",
+  "@settingsLayer1Desc": {
+    "description": "密码体系卡第 1 层说明"
+  },
+  "settingsLayer2Title": "Layer 2 · Per-file password",
+  "@settingsLayer2Title": {
+    "description": "密码体系卡第 2 层"
+  },
+  "settingsLayer2Desc": "A standalone password for a single canvas, paged canvas, or note, independent of the app-lock password. Reset with the reset disk if forgotten.",
+  "@settingsLayer2Desc": {
+    "description": "密码体系卡第 2 层说明"
+  },
+  "settingsLayer3Title": "Reset disk (USB drive)",
+  "@settingsLayer3Title": {
+    "description": "密码体系卡第 3 层"
+  },
+  "settingsLayer3Desc": "Plug in the USB drive → tap \"Forgot password\" → set a new one. The same disk resets both the app-lock and per-file passwords.",
+  "@settingsLayer3Desc": {
+    "description": "密码体系卡第 3 层说明"
+  },
+  "docUnsaved": "Unsaved",
+  "@docUnsaved": {},
+  "docSaving": "Saving…",
+  "@docSaving": {},
+  "docSaved": "Saved",
+  "@docSaved": {},
+  "docSavedAt": "Saved {time}",
+  "@docSavedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "docUntitled": "Untitled",
+  "@docUntitled": {},
+  "docStandalonePasswordProtected": "This note is protected by a standalone password",
+  "@docStandalonePasswordProtected": {},
+  "docStandalonePasswordUnset": "This note has no standalone password yet",
+  "@docStandalonePasswordUnset": {},
+  "docCreatedAt": "Created",
+  "@docCreatedAt": {},
+  "docUpdatedAt": "Updated",
+  "@docUpdatedAt": {},
+  "docBlockCount": "Blocks",
+  "@docBlockCount": {},
+  "docTagNameHint": "Tag name",
+  "@docTagNameHint": {},
+  "docPinSameAsLock": "The standalone password must differ from the app password",
+  "@docPinSameAsLock": {},
+  "docConfirmStandalonePassword": "Confirm standalone password",
+  "@docConfirmStandalonePassword": {},
+  "docPinMismatch": "The two entries do not match. Please retry.",
+  "@docPinMismatch": {},
+  "docSetNewPassword": "Set new password",
+  "@docSetNewPassword": {},
+  "docPasswordSetFor": "Set the standalone password for \"{name}\"",
+  "@docPasswordSetFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "docPasswordSetDiskBound": "Standalone password set and reset disk bound",
+  "@docPasswordSetDiskBound": {},
+  "docSetFailed": "Failed to set the password. Please retry.",
+  "@docSetFailed": {},
+  "docVerifyCurrent": "Verify current standalone password",
+  "@docVerifyCurrent": {},
+  "docPasswordChangedFor": "Changed the standalone password for \"{name}\"",
+  "@docPasswordChangedFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "docWrongPassword": "Incorrect password or corrupted ciphertext",
+  "@docWrongPassword": {},
+  "docChangeFailed": "Failed to change the password. Please retry.",
+  "@docChangeFailed": {},
+  "docBindDiskConfirmTitle": "Bind reset disk?",
+  "@docBindDiskConfirmTitle": {},
+  "docBindDiskConfirmContent": "If you forget this note's standalone password later, insert the reset disk (USB drive) to reset it without the old password.\n\nThe disk only contains a random key file (password_reset_disk.key); note data never leaves the device.",
+  "@docBindDiskConfirmContent": {},
+  "docBindDiskConfirm": "Bind with disk",
+  "@docBindDiskConfirm": {},
+  "docNotNow": "Not now",
+  "@docNotNow": {},
+  "docDiskNotFoundNoBind": "No valid reset disk file (password_reset_disk.key) found; skipping binding.",
+  "@docDiskNotFoundNoBind": {},
+  "docDiskNotFound": "No valid reset disk file (password_reset_disk.key) found.",
+  "@docDiskNotFound": {},
+  "docVerifyToBind": "Verify the standalone password to bind the reset disk",
+  "@docVerifyToBind": {},
+  "docDiskBound": "Reset disk bound",
+  "@docDiskBound": {},
+  "docWrongOrAlreadyBound": "Incorrect password or reset disk already bound",
+  "@docWrongOrAlreadyBound": {},
+  "docBindFailed": "Failed to bind. Please retry.",
+  "@docBindFailed": {},
+  "docRemoveConfirmContent": "After removal, \"{name}\" can be opened without the standalone password. Remove it?",
+  "@docRemoveConfirmContent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "docRemove": "Remove",
+  "@docRemove": {},
+  "docVerifyToRemove": "Verify the standalone password to remove it",
+  "@docVerifyToRemove": {},
+  "docPasswordRemovedFor": "Removed the standalone password for \"{name}\"",
+  "@docPasswordRemovedFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "docPasswordWrongOrCorrupt": "Incorrect password or corrupted ciphertext",
+  "@docPasswordWrongOrCorrupt": {},
+  "docRemoveFailed": "Failed to remove the password. Please retry.",
+  "@docRemoveFailed": {},
+  "docUnlockTitle": "This note is locked. Enter its password.",
+  "@docUnlockTitle": {},
+  "docForgotPassword": "Forgot password?",
+  "@docForgotPassword": {},
+  "docsTabDocs": "Docs",
+  "@docsTabDocs": {},
+  "docsTabFavorites": "Favorites",
+  "@docsTabFavorites": {},
+  "docsEmptyNoMatch": "No matching docs",
+  "@docsEmptyNoMatch": {},
+  "docsEmptyNoMatchTip": "Try other keywords or sorting options",
+  "@docsEmptyNoMatchTip": {},
+  "docsEmptyNoFavorites": "No favorite docs yet",
+  "@docsEmptyNoFavorites": {},
+  "docsEmptyNoFavoritesTip": "Tap a doc's star to add it to favorites",
+  "@docsEmptyNoFavoritesTip": {},
+  "docsEmptyFirstNote": "Write your first note",
+  "@docsEmptyFirstNote": {},
+  "docsEmptyFirstNoteTip": "Notes are for typing; canvases are for sketching",
+  "@docsEmptyFirstNoteTip": {}
 }

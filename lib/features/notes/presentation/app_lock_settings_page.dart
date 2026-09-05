@@ -14,6 +14,7 @@ import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
@@ -43,9 +44,10 @@ class AppLockSettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: const GlassAppBar(title: Text('应用锁')),
+      appBar: GlassAppBar(title: Text(l10n?.lockTitle ?? '应用锁')),
       body: ListenableBuilder(
         listenable: service,
         builder: (context, _) => ListView(
@@ -87,13 +89,17 @@ class AppLockSettingsPage extends StatelessWidget {
                         _startDisableFlow(context);
                       }
                     },
-                    title: const Text('应用锁'),
-                    subtitle: Text(service.isConfigured ? '已开启' : '未开启'),
+                    title: Text(l10n?.lockTitle ?? '应用锁'),
+                    subtitle: Text(
+                      service.isConfigured
+                          ? (l10n?.lockOn ?? '已开启')
+                          : (l10n?.lockOff ?? '未开启'),
+                    ),
                   ),
                   if (service.isConfigured)
                     ListTile(
                       leading: const Icon(Icons.password_rounded),
-                      title: const Text('修改密码'),
+                      title: Text(l10n?.lockChangePassword ?? '修改密码'),
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: () => _startModifyFlow(context),
                     ),
@@ -127,9 +133,11 @@ class AppLockSettingsPage extends StatelessWidget {
                   Expanded(
                     child: Text(
                       service.isConfigured
-                          ? '绑定重置密码盘后，忘记密码可用它重置；'
-                                '未绑定时忘记密码将无法找回。'
-                          : '开启应用锁后，可绑定重置密码盘以防忘记密码。',
+                          ? (l10n?.lockBindHintBound ??
+                                '绑定重置密码盘后，忘记密码可用它重置；'
+                                    '未绑定时忘记密码将无法找回。')
+                          : (l10n?.lockBindHintUnbound ??
+                                '开启应用锁后，可绑定重置密码盘以防忘记密码。'),
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(context).colorScheme.outline,
@@ -152,21 +160,26 @@ class AppLockSettingsPage extends StatelessWidget {
       future: vault.hasUsbSlot(),
       builder: (context, snapshot) {
         final bound = snapshot.data ?? false;
+        final l10n = AppLocalizations.of(context);
         return ListTile(
           leading: const Icon(Icons.usb_rounded),
-          title: const Text('重置密码盘'),
+          title: Text(l10n?.lockResetDisk ?? '重置密码盘'),
           subtitle: Text(
             snapshot.hasError
-                ? '状态未知（保险库读取失败）'
+                ? (l10n?.lockDiskStatusUnknown ?? '状态未知（保险库读取失败）')
                 : bound
-                ? '已绑定（忘记密码时可用它重置）'
-                : '未绑定（忘记密码将无法找回）',
+                ? (l10n?.lockDiskBound ?? '已绑定（忘记密码时可用它重置）')
+                : (l10n?.lockDiskUnbound ?? '未绑定（忘记密码将无法找回）'),
           ),
           trailing: TextButton(
             onPressed: () => bound
                 ? _startUnbindResetDiskFlow(context, vault)
                 : _startBindResetDiskFlow(context, vault),
-            child: Text(bound ? '解除绑定' : '绑定'),
+            child: Text(
+              bound
+                  ? (l10n?.lockDiskUnbind ?? '解除绑定')
+                  : (l10n?.lockDiskBind ?? '绑定'),
+            ),
           ),
         );
       },
@@ -209,19 +222,24 @@ class AppLockSettingsPage extends StatelessWidget {
       await vault.addUsbKeySlot(externalKey: externalKey);
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('绑定失败，请重试')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)?.lockBindFailed ?? '绑定失败，请重试',
+          ),
+        ),
+      );
       return;
     }
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text(
-          '已绑定。请妥善保管 U 盘：U 盘丢失将无法重置密码，'
-          'U 盘上的 password_reset_disk.key 文件请勿删除',
+          AppLocalizations.of(context)?.lockBindSuccess ??
+              '已绑定。请妥善保管 U 盘：U 盘丢失将无法重置密码，'
+                  'U 盘上的 password_reset_disk.key 文件请勿删除',
         ),
-        duration: Duration(seconds: 5),
+        duration: const Duration(seconds: 5),
       ),
     );
   }
@@ -233,26 +251,33 @@ class AppLockSettingsPage extends StatelessWidget {
   ) async {
     final confirmed = await GlassDialog.confirm(
       context,
-      title: '解除重置密码盘',
+      title: AppLocalizations.of(context)?.lockUnbindTitle ?? '解除重置密码盘',
       content:
+          AppLocalizations.of(context)?.lockUnbindContent ??
           '解除后，忘记密码将无法重置。\n\n'
-          'U 盘上的 password_reset_disk.key 文件不会被删除，请自行删除。',
-      confirmText: '解除绑定',
+              'U 盘上的 password_reset_disk.key 文件不会被删除，请自行删除。',
+      confirmText: AppLocalizations.of(context)?.lockDiskUnbind ?? '解除绑定',
     );
     if (!confirmed || !context.mounted) return;
     try {
       await vault.removeUsbKeySlot();
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('解除失败，请重试')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)?.lockUnbindFailed ?? '解除失败，请重试',
+          ),
+        ),
+      );
       return;
     }
     if (!context.mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('已解除绑定')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)?.lockUnbound ?? '已解除绑定'),
+      ),
+    );
   }
 
   /// 先选密码长度（4–12 位），再走两步设置：设置 → 确认（一致才生效）。
@@ -265,23 +290,28 @@ class AppLockSettingsPage extends StatelessWidget {
   }) async {
     final length = await _pickPinLength(context);
     if (length == null || !context.mounted) return;
+    final l10n = AppLocalizations.of(context);
     final pin = await UnlockFlow.show(
       context,
-      title: '设置密码',
+      title: l10n?.lockSetPassword ?? '设置密码',
       pinLength: length,
     );
     if (pin == null || !context.mounted) return;
     final confirm = await UnlockFlow.show(
       context,
-      title: '确认密码',
+      title: l10n?.lockConfirmPassword ?? '确认密码',
       pinLength: length,
     );
     if (confirm == null || !context.mounted) return;
     if (confirm != pin) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('两次输入不一致，请重新设置')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)?.lockMismatch ?? '两次输入不一致，请重新设置',
+          ),
+        ),
+      );
       return;
     }
     await service.setPin(pin);
@@ -318,19 +348,23 @@ class AppLockSettingsPage extends StatelessWidget {
       if (!context.mounted) return;
       await GlassDialog.show<void>(
         context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('无法关闭应用锁'),
-          content: const Text(
-            '你的文件已使用开屏密码加密保护，关闭应用锁会导致加密文件'
-            '无法解锁读取。\n\n如需更换密码，请使用「修改密码」。',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('知道了'),
+        builder: (dialogContext) {
+          final l10n = AppLocalizations.of(dialogContext);
+          return AlertDialog(
+            title: Text(l10n?.lockCannotDisableTitle ?? '无法关闭应用锁'),
+            content: Text(
+              l10n?.lockCannotDisableContent ??
+                  '你的文件已使用开屏密码加密保护，关闭应用锁会导致加密文件'
+                      '无法解锁读取。\n\n如需更换密码，请使用「修改密码」。',
             ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(l10n?.gotIt ?? '知道了'),
+              ),
+            ],
+          );
+        },
       );
       return;
     }
@@ -364,16 +398,17 @@ class AppLockSettingsPage extends StatelessWidget {
   /// 密码长度选择器：Slider 4–12 位，默认沿用当前长度（无则 4）。
   Future<int?> _pickPinLength(BuildContext context) async {
     var selected = service.pinLength;
+    final l10n = AppLocalizations.of(context);
     final confirmed = await GlassDialog.show<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('密码长度'),
+          title: Text(l10n?.lockPinLengthTitle ?? '密码长度'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                '$selected 位',
+                l10n?.lockPinLengthDigits(selected) ?? '$selected 位',
                 style: Theme.of(dialogContext).textTheme.headlineSmall,
               ),
               Slider(
@@ -386,7 +421,7 @@ class AppLockSettingsPage extends StatelessWidget {
                 onChanged: (v) => setDialogState(() => selected = v.round()),
               ),
               Text(
-                '建议 6 位以上，纯数字密码强度有限。',
+                l10n?.lockPinLengthHint ?? '建议 6 位以上，纯数字密码强度有限。',
                 style: TextStyle(
                   fontSize: 12,
                   color: Theme.of(dialogContext).colorScheme.outline,
@@ -397,11 +432,11 @@ class AppLockSettingsPage extends StatelessWidget {
           actions: AppleDialog.actions([
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('取消'),
+              child: Text(l10n?.cancel ?? '取消'),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('下一步'),
+              child: Text(l10n?.nextStep ?? '下一步'),
             ),
           ]),
         ),
@@ -496,9 +531,10 @@ class _QuickUnlockTileState extends State<_QuickUnlockTile> {
   Future<void> _startDisable() async {
     if (_busy) return;
     setState(() => _busy = true);
+    final l10n = AppLocalizations.of(context);
     try {
       await widget.quickUnlock.disable();
-      _snack('已关闭，系统安全区中的密钥副本已删除');
+      _snack(l10n?.lockQuickDisableDone ?? '已关闭，系统安全区中的密钥副本已删除');
     } finally {
       if (mounted) {
         setState(() => _busy = false);
@@ -518,11 +554,13 @@ class _QuickUnlockTileState extends State<_QuickUnlockTile> {
       onChanged: _busy
           ? null
           : (_) => _enabled ? _startDisable() : _startEnable(),
-      title: const Text('系统验证快速解锁'),
+      title: Text(AppLocalizations.of(context)?.lockQuickUnlock ?? '系统验证快速解锁'),
       subtitle: Text(
         _enabled
-            ? '已开启（锁屏可用 Windows Hello 解锁开屏）'
-            : '未开启（开启后锁屏可用人脸/指纹/PIN 解锁开屏）',
+            ? (AppLocalizations.of(context)?.lockQuickUnlockOn ??
+                  '已开启（锁屏可用 Windows Hello 解锁开屏）')
+            : (AppLocalizations.of(context)?.lockQuickUnlockOff ??
+                  '未开启（开启后锁屏可用人脸/指纹/PIN 解锁开屏）'),
       ),
     );
   }

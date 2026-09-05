@@ -19,6 +19,7 @@ import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
 import 'package:drawing_notes_app/features/security/block_doc_password_reset_flow.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_export_io.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_link_index.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_html_export.dart';
@@ -33,9 +34,10 @@ part 'doc_page_widgets.dart';
 
 /// 分享占位提示（桌面按钮与移动端图标共用）。
 void _showShareSnackBar(BuildContext context) {
-  ScaffoldMessenger.of(
-    context,
-  ).showSnackBar(const SnackBar(content: Text('分享功能即将支持')));
+  final l10n = AppLocalizations.of(context);
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(l10n?.docShareComingSoon ?? '分享功能即将支持')),
+  );
 }
 
 /// AFFiNE 式笔记页：白底、居中窄栏、顶栏（收藏/信息/更多/分享）、右缘大纲。
@@ -126,9 +128,13 @@ class _DocPageState extends State<DocPage> {
       // P0-H1：保存失败必须让用户知道（原仅 debugPrint）。
       if (mounted) {
         setState(() => _saveStatus = _SaveStatus.unsaved);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('保存失败，请重试或手动保存')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)?.docSaveFailed ?? '保存失败，请重试或手动保存',
+            ),
+          ),
+        );
       }
     },
   );
@@ -162,17 +168,19 @@ class _DocPageState extends State<DocPage> {
   }
 
   String _statusLabel() {
+    final l10n = AppLocalizations.of(context);
     switch (_saveStatus) {
       case _SaveStatus.unsaved:
-        return '未保存';
+        return l10n?.docUnsaved ?? '未保存';
       case _SaveStatus.saving:
-        return '保存中…';
+        return l10n?.docSaving ?? '保存中…';
       case _SaveStatus.saved:
         final t = _lastSavedAt;
-        if (t == null) return '已保存';
-        return '已保存 '
+        if (t == null) return l10n?.docSaved ?? '已保存';
+        final time =
             '${t.hour.toString().padLeft(2, '0')}:'
             '${t.minute.toString().padLeft(2, '0')}';
+        return l10n?.docSavedAt(time) ?? '已保存 $time';
     }
   }
 
@@ -196,19 +204,28 @@ class _DocPageState extends State<DocPage> {
     try {
       final doc = _editorKey.currentState?.currentDoc ?? _doc;
       final path = await writeExportFile(
-        baseName: doc.title.isEmpty ? '未命名' : doc.title,
+        baseName: _docName(doc),
         extension: extension,
         content: convert(doc),
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('已导出 $label：$path')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)?.docExportedTo(label, path) ??
+                '已导出 $label：$path',
+          ),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('导出失败，请重试')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)?.docExportFailed ?? '导出失败，请重试',
+          ),
+        ),
+      );
     }
   }
 
@@ -216,9 +233,14 @@ class _DocPageState extends State<DocPage> {
   bool _exportAllowed(String operation) {
     final result = const PolicyEngine().enforceCheck(operation);
     if (!result.isAllowed) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('操作被策略拒绝（$operation）')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)?.docPolicyDenied(operation) ??
+                '操作被策略拒绝（$operation）',
+          ),
+        ),
+      );
     }
     return result.isAllowed;
   }
@@ -252,19 +274,28 @@ class _DocPageState extends State<DocPage> {
       final doc = _editorKey.currentState?.currentDoc ?? _doc;
       final bytes = await noteBlockDocToPdf(doc);
       final path = await writeExportFileBytes(
-        baseName: doc.title.isEmpty ? '未命名' : doc.title,
+        baseName: _docName(doc),
         extension: 'pdf',
         bytes: bytes,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('已导出 PDF：$path')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)?.docExportedTo('PDF', path) ??
+                '已导出 PDF：$path',
+          ),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('导出失败，请重试')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)?.docExportFailed ?? '导出失败，请重试',
+          ),
+        ),
+      );
     }
   }
 
@@ -403,19 +434,20 @@ class _DocPageState extends State<DocPage> {
     if (all == null || !mounted) return;
     final candidates = all.where((d) => d.id != _doc.id).toList()
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    final l10n = AppLocalizations.of(context);
     final target = await GlassDialog.show<NoteBlockDoc>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('插入页面链接'),
+        title: Text(l10n?.docInsertPageLink ?? '插入页面链接'),
         children: [
           for (final d in candidates.take(50))
             SimpleDialogOption(
               onPressed: () => Navigator.of(ctx).pop(d),
               child: ListTile(
                 leading: const Icon(Icons.edit_note_rounded),
-                title: Text(d.title.isEmpty ? '未命名' : d.title),
+                title: Text(_docName(d)),
                 subtitle: Text(
-                  '更新于 '
+                  '${l10n?.docUpdatedAt ?? '更新于'} '
                   '${d.updatedAt.year}-'
                   '${d.updatedAt.month.toString().padLeft(2, '0')}-'
                   '${d.updatedAt.day.toString().padLeft(2, '0')}',
@@ -466,12 +498,13 @@ class _DocPageState extends State<DocPage> {
         .then((protected) async {
           if (protected && !store.isBlockDocUnlocked(id)) {
             if (!mounted) return false;
+            final l10n = AppLocalizations.of(context);
             final pin = await UnlockFlow.show(
               context,
-              title: '该笔记已加密，输入密码',
+              title: l10n?.docUnlockTitle ?? '该笔记已加密，输入密码',
               flexible: true,
               onVerify: (p) => store.verifyBlockDocPassword(id, p),
-              footerLabel: '忘记密码？',
+              footerLabel: l10n?.docForgotPassword ?? '忘记密码？',
               onFooter: () {
                 BlockDocPasswordResetFlow.show(
                   context,
@@ -516,7 +549,8 @@ class _DocPageState extends State<DocPage> {
     final protected = await store.isBlockDocPasswordProtected(_doc.id);
     final usbBound = protected && await store.hasBlockDocUsbSlot(_doc.id);
     if (!mounted) return;
-    final name = _doc.title.isEmpty ? '未命名' : _doc.title;
+    final l10n = AppLocalizations.of(context);
+    final name = _docName(_doc);
     await showModalBottomSheet<void>(
       context: context,
       builder: (sheetContext) => SafeArea(
@@ -526,15 +560,23 @@ class _DocPageState extends State<DocPage> {
             const SizedBox(height: 8),
             ListTile(
               leading: const Icon(Icons.lock_outline_rounded),
-              title: Text('「$name」独立密码'),
-              subtitle: Text(protected ? '此笔记受独立密码保护' : '此笔记当前未设置独立密码'),
+              title: Text(
+                l10n?.docStandalonePasswordTitle(name) ?? '「$name」独立密码',
+              ),
+              subtitle: Text(
+                protected
+                    ? (l10n?.docStandalonePasswordProtected ?? '此笔记受独立密码保护')
+                    : (l10n?.docStandalonePasswordUnset ?? '此笔记当前未设置独立密码'),
+              ),
             ),
             const Divider(height: 1),
             if (!protected)
               ListTile(
                 leading: const Icon(Icons.add_moderator_outlined),
-                title: const Text('设置独立密码'),
-                subtitle: const Text('4–12 位数字，须与开屏密码不同'),
+                title: Text(l10n?.docSetStandalonePassword ?? '设置独立密码'),
+                subtitle: Text(
+                  l10n?.docSetStandalonePasswordHint ?? '4–12 位数字，须与开屏密码不同',
+                ),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
                   _startSetPassword();
@@ -543,7 +585,7 @@ class _DocPageState extends State<DocPage> {
             else ...[
               ListTile(
                 leading: const Icon(Icons.key_rounded),
-                title: const Text('修改独立密码'),
+                title: Text(l10n?.docChangeStandalonePassword ?? '修改独立密码'),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
                   _startChangePassword();
@@ -552,8 +594,10 @@ class _DocPageState extends State<DocPage> {
               if (!usbBound)
                 ListTile(
                   leading: const Icon(Icons.usb_rounded),
-                  title: const Text('绑定重置密码盘'),
-                  subtitle: const Text('绑定后忘记密码可插 U 盘免旧密码重置'),
+                  title: Text(l10n?.docBindResetDisk ?? '绑定重置密码盘'),
+                  subtitle: Text(
+                    l10n?.docBindResetDiskHint ?? '绑定后忘记密码可插 U 盘免旧密码重置',
+                  ),
                   onTap: () {
                     Navigator.of(sheetContext).pop();
                     _startBindUsb();
@@ -561,7 +605,7 @@ class _DocPageState extends State<DocPage> {
                 ),
               ListTile(
                 leading: const Icon(Icons.no_encryption_outlined),
-                title: const Text('移除独立密码'),
+                title: Text(l10n?.docRemoveStandalonePassword ?? '移除独立密码'),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
                   _startRemovePassword();
@@ -576,22 +620,23 @@ class _DocPageState extends State<DocPage> {
 
   /// 独立密码收集（两次一致才生效）；与开屏密码同码直接拒绝。
   Future<String?> _collectNewPassword(String title) async {
+    final l10n = AppLocalizations.of(context);
     final pin = await UnlockFlow.show(context, title: title, flexible: true);
     if (pin == null || !mounted) return null;
     // ≠开屏密码强制（哈希加盐不可比对，用 verify 探测）。
     if (await AppLockService.matchesAppLockPin(pin)) {
-      _snack('独立密码不能与开屏密码相同');
+      _snack(l10n?.docPinSameAsLock ?? '独立密码不能与开屏密码相同');
       return null;
     }
     if (!mounted) return null; // matchesAppLockPin 为异步操作，跨缺口守卫
     final confirm = await UnlockFlow.show(
       context,
-      title: '确认独立密码',
+      title: l10n?.docConfirmStandalonePassword ?? '确认独立密码',
       flexible: true,
     );
     if (confirm == null) return null;
     if (confirm != pin) {
-      _snack('两次输入不一致，请重试');
+      _snack(l10n?.docPinMismatch ?? '两次输入不一致，请重试');
       return null;
     }
     return pin;
@@ -600,19 +645,23 @@ class _DocPageState extends State<DocPage> {
   Future<void> _startSetPassword() async {
     final store = widget.blockDocStore;
     if (store == null) return;
-    final pin = await _collectNewPassword('设置独立密码');
+    final l10n = AppLocalizations.of(context);
+    final pin = await _collectNewPassword(
+      l10n?.docSetStandalonePassword ?? '设置独立密码',
+    );
     if (pin == null) return;
     if (!mounted) return;
     // 可选当场绑定重置密码盘（错过本次可事后在密码管理中绑定）。
     List<int>? resetDiskKey;
     final bindUsb = await GlassDialog.confirm(
       context,
-      title: '绑定重置密码盘？',
+      title: l10n?.docBindDiskConfirmTitle ?? '绑定重置密码盘？',
       content:
+          l10n?.docBindDiskConfirmContent ??
           '绑定后忘记此笔记的独立密码时，可插入重置密码盘（U 盘）免旧密码重置。\n\n'
-          'U 盘上只有随机钥匙文件（password_reset_disk.key），笔记数据不会离开设备。',
-      confirmText: '插盘绑定',
-      cancelText: '暂不',
+              'U 盘上只有随机钥匙文件（password_reset_disk.key），笔记数据不会离开设备。',
+      confirmText: l10n?.docBindDiskConfirm ?? '插盘绑定',
+      cancelText: l10n?.docNotNow ?? '暂不',
     );
     if (bindUsb == true) {
       if (!mounted) return;
@@ -620,7 +669,10 @@ class _DocPageState extends State<DocPage> {
       if (dir != null) {
         resetDiskKey = await ResetDiskFile.readFrom(dir);
         if (resetDiskKey == null && mounted) {
-          _snack('未找到有效的重置密码盘文件（password_reset_disk.key），本次不绑定');
+          _snack(
+            l10n?.docDiskNotFoundNoBind ??
+                '未找到有效的重置密码盘文件（password_reset_disk.key），本次不绑定',
+          );
         }
       }
     }
@@ -628,37 +680,42 @@ class _DocPageState extends State<DocPage> {
       await store.encryptAndSave(_doc, pin, usbKey: resetDiskKey);
       _snack(
         resetDiskKey == null
-            ? '已为「${_doc.title.isEmpty ? '未命名' : _doc.title}」设置独立密码'
-            : '已设置独立密码并绑定重置密码盘',
+            ? (l10n?.docPasswordSetFor(_docName(_doc)) ??
+                  '已为「${_doc.title.isEmpty ? '未命名' : _doc.title}」设置独立密码')
+            : (l10n?.docPasswordSetDiskBound ?? '已设置独立密码并绑定重置密码盘'),
       );
     } on StateError catch (e) {
       _snack(e.message);
     } catch (e) {
-      _snack('设置失败，请重试');
+      _snack(l10n?.docSetFailed ?? '设置失败，请重试');
     }
   }
 
   Future<void> _startChangePassword() async {
     final store = widget.blockDocStore;
     if (store == null) return;
+    final l10n = AppLocalizations.of(context);
     final old = await UnlockFlow.show(
       context,
-      title: '验证当前独立密码',
+      title: l10n?.docVerifyCurrent ?? '验证当前独立密码',
       flexible: true,
       onVerify: (p) => store.verifyBlockDocPassword(_doc.id, p),
     );
     if (old == null || !mounted) return;
-    final pin = await _collectNewPassword('设置新密码');
+    final pin = await _collectNewPassword(l10n?.docSetNewPassword ?? '设置新密码');
     if (pin == null) return;
     try {
       await store.changeBlockDocPassword(_doc.id, old, pin);
-      _snack('已修改「${_doc.title.isEmpty ? '未命名' : _doc.title}」的独立密码');
+      _snack(
+        l10n?.docPasswordChangedFor(_docName(_doc)) ??
+            '已修改「${_doc.title.isEmpty ? '未命名' : _doc.title}」的独立密码',
+      );
     } on FormatException {
-      _snack('原密码不正确或密文已损坏');
+      _snack(l10n?.docWrongPassword ?? '原密码不正确或密文已损坏');
     } on StateError catch (e) {
       _snack(e.message);
     } catch (e) {
-      _snack('修改失败，请重试');
+      _snack(l10n?.docChangeFailed ?? '修改失败，请重试');
     }
   }
 
@@ -666,9 +723,10 @@ class _DocPageState extends State<DocPage> {
   Future<void> _startBindUsb() async {
     final store = widget.blockDocStore;
     if (store == null) return;
+    final l10n = AppLocalizations.of(context);
     final pin = await UnlockFlow.show(
       context,
-      title: '验证独立密码以绑定重置盘',
+      title: l10n?.docVerifyToBind ?? '验证独立密码以绑定重置盘',
       flexible: true,
       onVerify: (p) => store.verifyBlockDocPassword(_doc.id, p),
     );
@@ -677,50 +735,53 @@ class _DocPageState extends State<DocPage> {
     if (dir == null || !mounted) return;
     final usbKey = await ResetDiskFile.readFrom(dir);
     if (usbKey == null) {
-      _snack('未找到有效的重置密码盘文件（password_reset_disk.key）');
+      _snack(l10n?.docDiskNotFound ?? '未找到有效的重置密码盘文件（password_reset_disk.key）');
       return;
     }
     try {
       await store.bindBlockDocUsbSlot(_doc.id, pin, usbKey);
-      _snack('已绑定重置密码盘');
+      _snack(l10n?.docDiskBound ?? '已绑定重置密码盘');
     } on FormatException {
-      _snack('密码不正确或已绑定重置密码盘');
+      _snack(l10n?.docWrongOrAlreadyBound ?? '密码不正确或已绑定重置密码盘');
     } on StateError catch (e) {
       _snack(e.message);
     } catch (e) {
-      _snack('绑定失败，请重试');
+      _snack(l10n?.docBindFailed ?? '绑定失败，请重试');
     }
   }
 
   Future<void> _startRemovePassword() async {
     final store = widget.blockDocStore;
     if (store == null) return;
-    final name = _doc.title.isEmpty ? '未命名' : _doc.title;
+    final l10n = AppLocalizations.of(context);
+    final name = _docName(_doc);
     final ok = await GlassDialog.confirm(
       context,
-      title: '移除独立密码',
-      content: '移除后「$name」不再需要独立密码即可打开。确定移除吗？',
-      confirmText: '移除',
+      title: l10n?.docRemoveStandalonePassword ?? '移除独立密码',
+      content:
+          l10n?.docRemoveConfirmContent(name) ??
+          '移除后「$name」不再需要独立密码即可打开。确定移除吗？',
+      confirmText: l10n?.docRemove ?? '移除',
       dangerous: true,
     );
     if (ok != true) return;
     if (!mounted) return;
     final pin = await UnlockFlow.show(
       context,
-      title: '验证独立密码以移除',
+      title: l10n?.docVerifyToRemove ?? '验证独立密码以移除',
       flexible: true,
       onVerify: (p) => store.verifyBlockDocPassword(_doc.id, p),
     );
     if (pin == null) return;
     try {
       await store.removeBlockDocPassword(_doc.id, pin);
-      _snack('已移除「$name」的独立密码');
+      _snack(l10n?.docPasswordRemovedFor(name) ?? '已移除「$name」的独立密码');
     } on FormatException {
-      _snack('密码不正确或密文已损坏');
+      _snack(l10n?.docPasswordWrongOrCorrupt ?? '密码不正确或密文已损坏');
     } on StateError catch (e) {
       _snack(e.message);
     } catch (e) {
-      _snack('移除失败，请重试');
+      _snack(l10n?.docRemoveFailed ?? '移除失败，请重试');
     }
   }
 
@@ -731,10 +792,16 @@ class _DocPageState extends State<DocPage> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  /// 文档显示名（空标题回退「未命名」，可被 l10n 覆盖）。
+  String _docName(NoteBlockDoc doc) => doc.title.isEmpty
+      ? AppLocalizations.of(context)?.docUntitled ?? '未命名'
+      : doc.title;
+
   /// 文档信息对话框（含标签编辑——M12.6 标签系统入口）。
   void _showInfoDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final tagStore = widget.tagStore ?? TagStore();
-    final title = _doc.title.isEmpty ? '未命名' : _doc.title;
+    final title = _docName(_doc);
     GlassDialog.show<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -745,11 +812,14 @@ class _DocPageState extends State<DocPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _infoRow('创建于', _fmtDate(_doc.createdAt)),
-              _infoRow('更新于', _fmtDate(_doc.updatedAt)),
-              _infoRow('块数量', '${_doc.body.length}'),
+              _infoRow(l10n?.docCreatedAt ?? '创建于', _fmtDate(_doc.createdAt)),
+              _infoRow(l10n?.docUpdatedAt ?? '更新于', _fmtDate(_doc.updatedAt)),
+              _infoRow(l10n?.docBlockCount ?? '块数量', '${_doc.body.length}'),
               const SizedBox(height: 12),
-              const Text('标签', style: TextStyle(fontWeight: FontWeight.w600)),
+              Text(
+                l10n?.docTags ?? '标签',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
               const SizedBox(height: 8),
               Flexible(
                 child: FutureBuilder<List<DocTag>>(
@@ -793,7 +863,7 @@ class _DocPageState extends State<DocPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('关闭'),
+            child: Text(l10n?.close ?? '关闭'),
           ),
         ],
       ),
@@ -818,26 +888,29 @@ class _DocPageState extends State<DocPage> {
 
   /// 快速新建标签（输入名称 → 默认紫色）。
   Future<void> _createTagInline(TagStore tagStore) async {
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController();
     // P3：对话框结束后释放 controller（审计低危 L1）。
     try {
       final name = await GlassDialog.show<String>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('新建标签'),
+          title: Text(l10n?.docNewTag ?? '新建标签'),
           content: TextField(
             controller: controller,
             autofocus: true,
-            decoration: const InputDecoration(hintText: '标签名称'),
+            decoration: InputDecoration(
+              hintText: l10n?.docTagNameHint ?? '标签名称',
+            ),
           ),
           actions: AppleDialog.actions([
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('取消'),
+              child: Text(l10n?.cancel ?? '取消'),
             ),
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(controller.text),
-              child: const Text('创建'),
+              child: Text(l10n?.create ?? '创建'),
             ),
           ]),
         ),

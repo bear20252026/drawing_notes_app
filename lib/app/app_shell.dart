@@ -44,6 +44,7 @@ import 'package:drawing_notes_app/features/security/notebook_password_reset_flow
 import 'package:drawing_notes_app/features/security/block_doc_password_reset_flow.dart';
 // N4 批 3：加密分页画布解锁后媒体加密注入（页面图片解密用）。
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 /// 应用导航壳：4 个顶层目的地（M11 IA 收敛 + 批次⑤设置集中）。
 ///
@@ -229,52 +230,54 @@ class _AppShellState extends State<AppShell> {
 
   /// 底部导航栏（窄屏）目的地：[NavigationBar] 的 [NavigationDestination]。
   List<NavigationDestination> _barDestinations() {
-    return const [
+    final l10n = AppLocalizations.of(context);
+    return [
       NavigationDestination(
         icon: Icon(Icons.dashboard_outlined),
         selectedIcon: Icon(Icons.dashboard),
-        label: '全部文档',
+        label: l10n?.shellAllDocs ?? '全部文档',
       ),
       NavigationDestination(
         icon: Icon(Icons.brush_outlined),
         selectedIcon: Icon(Icons.brush),
-        label: '画布·笔记',
+        label: l10n?.shellCanvasNotes ?? '画布·笔记',
       ),
       NavigationDestination(
         icon: Icon(Icons.calendar_today_outlined),
         selectedIcon: Icon(Icons.calendar_today),
-        label: '日历',
+        label: l10n?.shellSchedule ?? '日历',
       ),
       NavigationDestination(
         icon: Icon(Icons.settings_outlined),
         selectedIcon: Icon(Icons.settings),
-        label: '设置',
+        label: l10n?.shellSettings ?? '设置',
       ),
     ];
   }
 
   /// 侧边栏（宽屏）目的地：[NavigationRail] 的 [NavigationRailDestination]。
   List<NavigationRailDestination> _railDestinations() {
-    return const [
+    final l10n = AppLocalizations.of(context);
+    return [
       NavigationRailDestination(
         icon: Icon(Icons.dashboard_outlined),
         selectedIcon: Icon(Icons.dashboard),
-        label: Text('全部文档'),
+        label: Text(l10n?.shellAllDocs ?? '全部文档'),
       ),
       NavigationRailDestination(
         icon: Icon(Icons.brush_outlined),
         selectedIcon: Icon(Icons.brush),
-        label: Text('画布·笔记'),
+        label: Text(l10n?.shellCanvasNotes ?? '画布·笔记'),
       ),
       NavigationRailDestination(
         icon: Icon(Icons.calendar_today_outlined),
         selectedIcon: Icon(Icons.calendar_today),
-        label: Text('日历'),
+        label: Text(l10n?.shellSchedule ?? '日历'),
       ),
       NavigationRailDestination(
         icon: Icon(Icons.settings_outlined),
         selectedIcon: Icon(Icons.settings),
-        label: Text('设置'),
+        label: Text(l10n?.shellSettings ?? '设置'),
       ),
     ];
   }
@@ -409,7 +412,14 @@ class _AppShellState extends State<AppShell> {
           MaterialPageRoute(
             builder: (_) => builder != null
                 ? builder(document: drawing, documentStorage: storage)
-                : const Scaffold(body: Center(child: Text('编辑器尚未由应用层装配'))),
+                : Scaffold(
+                    body: Center(
+                      child: Text(
+                        AppLocalizations.of(context)?.shellEditorNotAssembled ??
+                            '编辑器尚未由应用层装配',
+                      ),
+                    ),
+                  ),
           ),
         );
         _services.bumpDataVersion();
@@ -526,7 +536,14 @@ class _AppShellState extends State<AppShell> {
           MaterialPageRoute(
             builder: (_) => builder != null
                 ? builder(document: draft, documentStorage: storage)
-                : const Scaffold(body: Center(child: Text('编辑器尚未由应用层装配'))),
+                : Scaffold(
+                    body: Center(
+                      child: Text(
+                        AppLocalizations.of(context)?.shellEditorNotAssembled ??
+                            '编辑器尚未由应用层装配',
+                      ),
+                    ),
+                  ),
           ),
         );
         _services.bumpDataVersion();

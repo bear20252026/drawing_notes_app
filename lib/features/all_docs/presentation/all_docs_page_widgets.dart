@@ -124,7 +124,7 @@ class _DocsToolbar extends StatelessWidget {
         children: [
           // 面包屑
           Text(
-            '全部文档',
+            AppLocalizations.of(context)?.shellAllDocs ?? '全部文档',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
@@ -135,22 +135,33 @@ class _DocsToolbar extends StatelessWidget {
           const Spacer(),
           // 排序（M11：AFFiNE 排序语义）
           PopupMenuButton<AllDocSort>(
-            tooltip: '排序',
+            tooltip: AppLocalizations.of(context)?.docsSort ?? '排序',
             onSelected: onSortChanged,
-            itemBuilder: (context) => const [
+            itemBuilder: (context) => [
               PopupMenuItem(
                 value: AllDocSort.timeGrouped,
-                child: Text('按时间分组'),
+                child: Text(
+                  AppLocalizations.of(context)?.docsSortGroupTime ?? '按时间分组',
+                ),
               ),
               PopupMenuItem(
                 value: AllDocSort.updatedAtDesc,
-                child: Text('按更新时间'),
+                child: Text(
+                  AppLocalizations.of(context)?.docsSortUpdated ?? '按更新时间',
+                ),
               ),
               PopupMenuItem(
                 value: AllDocSort.createdAtDesc,
-                child: Text('按创建时间'),
+                child: Text(
+                  AppLocalizations.of(context)?.docsSortCreated ?? '按创建时间',
+                ),
               ),
-              PopupMenuItem(value: AllDocSort.titleAsc, child: Text('按标题')),
+              PopupMenuItem(
+                value: AllDocSort.titleAsc,
+                child: Text(
+                  AppLocalizations.of(context)?.docsSortTitle ?? '按标题',
+                ),
+              ),
             ],
             child: Icon(
               Icons.sort_rounded,
@@ -162,7 +173,7 @@ class _DocsToolbar extends StatelessWidget {
           // 「新建文档 ▾」下拉
           ApplePrimaryButton(
             key: _newDocButtonKey,
-            label: '新建文档',
+            label: AppLocalizations.of(context)?.docsNewDoc ?? '新建文档',
             icon: Icons.add_rounded,
             onPressed: () => _showNewDocMenu(context),
           ),
@@ -184,7 +195,7 @@ class _DocsToolbar extends StatelessWidget {
         offset.dx + button.size.width,
         0,
       ),
-      items: const [
+      items: [
         // 打字为主（AFFiNE Page 语义）：笔记 = 直接打字的块文档。
         PopupMenuItem(
           value: AllDocKind.blockdoc,
@@ -196,7 +207,7 @@ class _DocsToolbar extends StatelessWidget {
                 color: AppleColor.noteGreen,
               ),
               SizedBox(width: 10),
-              Text('新建笔记'),
+              Text(AppLocalizations.of(context)?.docsNewNote ?? '新建笔记'),
             ],
           ),
         ),
@@ -212,7 +223,9 @@ class _DocsToolbar extends StatelessWidget {
                 color: AppleColor.actionBlue,
               ),
               SizedBox(width: 10),
-              Text('新建分页画布'),
+              Text(
+                AppLocalizations.of(context)?.docsNewPagedCanvas ?? '新建分页画布',
+              ),
             ],
           ),
         ),
@@ -226,7 +239,7 @@ class _DocsToolbar extends StatelessWidget {
                 color: AppleColor.actionBlue,
               ),
               SizedBox(width: 10),
-              Text('新建画布'),
+              Text(AppLocalizations.of(context)?.docsNewCanvas ?? '新建画布'),
             ],
           ),
         ),
@@ -249,14 +262,17 @@ class _DocsTabBar extends StatelessWidget {
   final int tabIndex;
   final ValueChanged<int> onTabChanged;
 
-  static const _tabs = ['文档', '收藏夹', '标签'];
-
   @override
   Widget build(BuildContext context) {
     final isDark = theme.brightness == Brightness.dark;
     final surface = isDark ? AppleColor.surfaceDark : AppleColor.surfaceWhite;
     final subtle = AppleColor.mutedOf(theme.colorScheme);
     final accent = theme.colorScheme.primary;
+    final tabs = [
+      AppLocalizations.of(context)?.docsTabDocs ?? '文档',
+      AppLocalizations.of(context)?.docsTabFavorites ?? '收藏夹',
+      AppLocalizations.of(context)?.docTags ?? '标签',
+    ];
 
     return Container(
       // U4a：42→48——Tab 点击目标达触控标准（InkWell 撑满容器高）。
@@ -264,7 +280,7 @@ class _DocsTabBar extends StatelessWidget {
       color: surface,
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
-        children: List.generate(_tabs.length, (i) {
+        children: List.generate(tabs.length, (i) {
           final selected = i == tabIndex;
           return Padding(
             padding: const EdgeInsets.only(right: 18),
@@ -276,7 +292,7 @@ class _DocsTabBar extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      _tabs[i],
+                      tabs[i],
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: selected
@@ -322,7 +338,12 @@ class _SortedDocList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (docs.isEmpty) {
-      return _TabEmptyState(theme: theme, text: '没有匹配的文档', tip: '试试其他关键词或排序方式');
+      return _TabEmptyState(
+        theme: theme,
+        text: AppLocalizations.of(context)?.docsEmptyNoMatch ?? '没有匹配的文档',
+        tip:
+            AppLocalizations.of(context)?.docsEmptyNoMatchTip ?? '试试其他关键词或排序方式',
+      );
     }
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -379,8 +400,10 @@ class _GroupedDocList extends StatelessWidget {
       if (favorites.isEmpty) {
         return _TabEmptyState(
           theme: theme,
-          text: '暂无收藏文档',
-          tip: '点击文档行星标可添加到收藏夹',
+          text: AppLocalizations.of(context)?.docsEmptyNoFavorites ?? '暂无收藏文档',
+          tip:
+              AppLocalizations.of(context)?.docsEmptyNoFavoritesTip ??
+              '点击文档行星标可添加到收藏夹',
         );
       }
       return ListView.separated(
@@ -485,7 +508,7 @@ class _EmptyState extends StatelessWidget {
           Icon(Icons.edit_note_rounded, size: 56, color: subtle),
           const SizedBox(height: 12),
           Text(
-            '记下第一笔',
+            AppLocalizations.of(context)?.docsEmptyFirstNote ?? '记下第一笔',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
@@ -494,7 +517,8 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '笔记用来打字，画布用来写写画画',
+            AppLocalizations.of(context)?.docsEmptyFirstNoteTip ??
+                '笔记用来打字，画布用来写写画画',
             style: TextStyle(fontSize: 12.5, color: subtle),
           ),
           const SizedBox(height: 16),
@@ -507,17 +531,23 @@ class _EmptyState extends StatelessWidget {
               FilledButton.icon(
                 onPressed: onNewBlockDoc,
                 icon: const Icon(Icons.edit_note_rounded, size: 18),
-                label: const Text('新建笔记'),
+                label: Text(
+                  AppLocalizations.of(context)?.docsNewNote ?? '新建笔记',
+                ),
               ),
               OutlinedButton.icon(
                 onPressed: onNewNotebook,
                 icon: const Icon(Icons.auto_stories_rounded, size: 18),
-                label: const Text('新建分页画布'),
+                label: Text(
+                  AppLocalizations.of(context)?.docsNewPagedCanvas ?? '新建分页画布',
+                ),
               ),
               OutlinedButton.icon(
                 onPressed: onNewCanvas,
                 icon: const Icon(Icons.crop_portrait_rounded, size: 18),
-                label: const Text('新建画布'),
+                label: Text(
+                  AppLocalizations.of(context)?.docsNewCanvas ?? '新建画布',
+                ),
               ),
             ],
           ),

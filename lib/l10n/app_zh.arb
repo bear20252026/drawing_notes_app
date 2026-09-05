@@ -87,5 +87,526 @@
   "alignCenter": "居中",
   "alignRight": "右对齐",
   "editorAlignTooltip": "对齐：{name} (Ctrl+E)",
-  "editorPagePreviewTitle": "分页预览 {title}"
+  "editorPagePreviewTitle": "分页预览 {title}",
+  "cancel": "取消",
+  "@cancel": {
+    "description": "取消对话框或操作"
+  },
+  "nextStep": "下一步",
+  "@nextStep": {
+    "description": "流程下一步"
+  },
+  "gotIt": "知道了",
+  "@gotIt": {
+    "description": "确认提示"
+  },
+  "create": "创建",
+  "@create": {
+    "description": "创建操作"
+  },
+  "lockTitle": "应用锁",
+  "@lockTitle": {
+    "description": "应用锁设置页标题与开关行"
+  },
+  "lockDescription": "开启后，每次打开应用或切后台回来，都需要输入密码才能进入。",
+  "@lockDescription": {
+    "description": "应用锁说明文案"
+  },
+  "lockOn": "已开启",
+  "@lockOn": {
+    "description": "开关已开启状态"
+  },
+  "lockOff": "未开启",
+  "@lockOff": {
+    "description": "开关未开启状态"
+  },
+  "lockChangePassword": "修改密码",
+  "@lockChangePassword": {
+    "description": "修改应用锁密码入口"
+  },
+  "lockResetDisk": "重置密码盘",
+  "@lockResetDisk": {
+    "description": "重置密码盘入口"
+  },
+  "lockDiskStatusUnknown": "状态未知（保险库读取失败）",
+  "@lockDiskStatusUnknown": {
+    "description": "密码盘状态读取失败"
+  },
+  "lockDiskBound": "已绑定（忘记密码时可用它重置）",
+  "@lockDiskBound": {
+    "description": "密码盘已绑定"
+  },
+  "lockDiskUnbound": "未绑定（忘记密码将无法找回）",
+  "@lockDiskUnbound": {
+    "description": "密码盘未绑定"
+  },
+  "lockDiskUnbind": "解除绑定",
+  "@lockDiskUnbind": {
+    "description": "解除绑定操作"
+  },
+  "lockDiskBind": "绑定",
+  "@lockDiskBind": {
+    "description": "绑定操作"
+  },
+  "lockVerifyCurrentPassword": "验证当前密码",
+  "@lockVerifyCurrentPassword": {
+    "description": "验证密码流程标题"
+  },
+  "lockVaultUnlockFailed": "保险库解锁失败，请重试",
+  "@lockVaultUnlockFailed": {
+    "description": "保险库解锁失败"
+  },
+  "lockBindFailed": "绑定失败，请重试",
+  "@lockBindFailed": {
+    "description": "绑定失败"
+  },
+  "lockBindSuccess": "已绑定。请妥善保管 U 盘：U 盘丢失将无法重置密码，U 盘上的 password_reset_disk.key 文件请勿删除",
+  "@lockBindSuccess": {
+    "description": "绑定成功提示"
+  },
+  "lockUnbindTitle": "解除重置密码盘",
+  "@lockUnbindTitle": {
+    "description": "解除绑定确认框标题"
+  },
+  "lockUnbindContent": "解除后，忘记密码将无法重置。\n\nU 盘上的 password_reset_disk.key 文件不会被删除，请自行删除。",
+  "@lockUnbindContent": {
+    "description": "解除绑定确认框正文"
+  },
+  "lockUnbindFailed": "解除失败，请重试",
+  "@lockUnbindFailed": {
+    "description": "解除失败"
+  },
+  "lockUnbound": "已解除绑定",
+  "@lockUnbound": {
+    "description": "解除成功提示"
+  },
+  "lockSetPassword": "设置密码",
+  "@lockSetPassword": {
+    "description": "设置密码流程标题"
+  },
+  "lockConfirmPassword": "确认密码",
+  "@lockConfirmPassword": {
+    "description": "确认密码流程标题"
+  },
+  "lockMismatch": "两次输入不一致，请重新设置",
+  "@lockMismatch": {
+    "description": "两次密码不一致"
+  },
+  "lockVaultSyncFailed": "文件加密同步失败，请重试或联系开发者",
+  "@lockVaultSyncFailed": {
+    "description": "保险库同步失败"
+  },
+  "lockEnabled": "应用锁已开启",
+  "@lockEnabled": {
+    "description": "开启成功提示"
+  },
+  "lockDisabled": "应用锁已关闭",
+  "@lockDisabled": {
+    "description": "关闭成功提示"
+  },
+  "lockCannotDisableTitle": "无法关闭应用锁",
+  "@lockCannotDisableTitle": {
+    "description": "阻止关闭弹窗标题"
+  },
+  "lockCannotDisableContent": "你的文件已使用开屏密码加密保护，关闭应用锁会导致加密文件无法解锁读取。\n\n如需更换密码，请使用「修改密码」。",
+  "@lockCannotDisableContent": {
+    "description": "阻止关闭弹窗正文"
+  },
+  "lockPinLengthTitle": "密码长度",
+  "@lockPinLengthTitle": {
+    "description": "密码长度选择器标题"
+  },
+  "lockPinLengthDigits": "{count} 位",
+  "@lockPinLengthDigits": {
+    "description": "当前密码长度",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "lockPinLengthHint": "建议 6 位以上，纯数字密码强度有限。",
+  "@lockPinLengthHint": {
+    "description": "密码长度建议"
+  },
+  "lockQuickUnlock": "系统验证快速解锁",
+  "@lockQuickUnlock": {
+    "description": "快速解锁开关行"
+  },
+  "lockQuickUnlockOn": "已开启（锁屏可用 Windows Hello 解锁开屏）",
+  "@lockQuickUnlockOn": {
+    "description": "快速解锁开启状态"
+  },
+  "lockQuickUnlockOff": "未开启（开启后锁屏可用人脸/指纹/PIN 解锁开屏）",
+  "@lockQuickUnlockOff": {
+    "description": "快速解锁关闭状态"
+  },
+  "lockQuickEnableFailed": "开启失败，请重试",
+  "@lockQuickEnableFailed": {
+    "description": "快速解锁开启失败"
+  },
+  "lockQuickEnableDone": "已开启：锁屏可用系统验证（人脸/指纹/PIN）快速解锁",
+  "@lockQuickEnableDone": {
+    "description": "快速解锁开启成功"
+  },
+  "lockQuickDisableDone": "已关闭，系统安全区中的密钥副本已删除",
+  "@lockQuickDisableDone": {
+    "description": "快速解锁关闭成功"
+  },
+  "lockBindHintBound": "绑定重置密码盘后，忘记密码可用它重置；未绑定时忘记密码将无法找回。",
+  "@lockBindHintBound": {
+    "description": "绑定状态提示"
+  },
+  "lockBindHintUnbound": "开启应用锁后，可绑定重置密码盘以防忘记密码。",
+  "@lockBindHintUnbound": {
+    "description": "未绑定状态提示"
+  },
+  "docShareComingSoon": "分享功能即将支持",
+  "@docShareComingSoon": {
+    "description": "分享占位提示"
+  },
+  "docSaveFailed": "保存失败，请重试或手动保存",
+  "@docSaveFailed": {
+    "description": "保存失败"
+  },
+  "docExportedTo": "已导出 {label}：{path}",
+  "@docExportedTo": {
+    "description": "导出成功提示",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "docExportFailed": "导出失败，请重试",
+  "@docExportFailed": {
+    "description": "导出失败"
+  },
+  "docPolicyDenied": "操作被策略拒绝（{operation}）",
+  "@docPolicyDenied": {
+    "description": "策略拒绝",
+    "placeholders": {
+      "operation": {
+        "type": "String"
+      }
+    }
+  },
+  "docInsertPageLink": "插入页面链接",
+  "@docInsertPageLink": {
+    "description": "插入页面链接弹窗标题"
+  },
+  "docStandalonePasswordTitle": "「{name}」独立密码",
+  "@docStandalonePasswordTitle": {
+    "description": "独立密码区块标题",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "docSetStandalonePassword": "设置独立密码",
+  "@docSetStandalonePassword": {
+    "description": "设置独立密码入口"
+  },
+  "docSetStandalonePasswordHint": "4–12 位数字，须与开屏密码不同",
+  "@docSetStandalonePasswordHint": {
+    "description": "设置独立密码说明"
+  },
+  "docChangeStandalonePassword": "修改独立密码",
+  "@docChangeStandalonePassword": {
+    "description": "修改独立密码入口"
+  },
+  "docBindResetDisk": "绑定重置密码盘",
+  "@docBindResetDisk": {
+    "description": "绑定重置密码盘入口"
+  },
+  "docBindResetDiskHint": "绑定后忘记密码可插 U 盘免旧密码重置",
+  "@docBindResetDiskHint": {
+    "description": "绑定重置密码盘说明"
+  },
+  "docRemoveStandalonePassword": "移除独立密码",
+  "@docRemoveStandalonePassword": {
+    "description": "移除独立密码入口"
+  },
+  "docTags": "标签",
+  "@docTags": {
+    "description": "标签区标题"
+  },
+  "docNewTag": "新建标签",
+  "@docNewTag": {
+    "description": "新建标签弹窗标题"
+  },
+  "shellAllDocs": "全部文档",
+  "@shellAllDocs": {
+    "description": "导航目的地"
+  },
+  "shellCanvasNotes": "画布·笔记",
+  "@shellCanvasNotes": {
+    "description": "导航目的地"
+  },
+  "shellSchedule": "日历",
+  "@shellSchedule": {
+    "description": "导航目的地"
+  },
+  "shellSettings": "设置",
+  "@shellSettings": {
+    "description": "导航目的地"
+  },
+  "shellEditorNotAssembled": "编辑器尚未由应用层装配",
+  "@shellEditorNotAssembled": {
+    "description": "编辑器缺位兜底文案"
+  },
+  "settingsTitle": "设置",
+  "@settingsTitle": {
+    "description": "设置页标题"
+  },
+  "settingsAppLock": "应用锁",
+  "@settingsAppLock": {
+    "description": "设置页应用锁入口"
+  },
+  "settingsAppLockHint": "开屏密码 · 重置密码盘",
+  "@settingsAppLockHint": {
+    "description": "应用锁入口说明"
+  },
+  "settingsStandalonePassword": "单文件密码",
+  "@settingsStandalonePassword": {
+    "description": "单文件密码入口"
+  },
+  "settingsStandalonePasswordHint": "个别画布的第二道锁（在画布卡片设置）",
+  "@settingsStandalonePasswordHint": {
+    "description": "单文件密码说明"
+  },
+  "settingsAppearance": "外观",
+  "@settingsAppearance": {
+    "description": "外观入口"
+  },
+  "settingsHighContrast": "高对比度",
+  "@settingsHighContrast": {
+    "description": "高对比度入口"
+  },
+  "settingsWebdav": "WebDAV 同步",
+  "@settingsWebdav": {
+    "description": "WebDAV 入口"
+  },
+  "settingsWebdavHint": "本地优先，跨设备同步",
+  "@settingsWebdavHint": {
+    "description": "WebDAV 说明"
+  },
+  "settingsPasswordSystem": "密码体系",
+  "@settingsPasswordSystem": {
+    "description": "密码体系分组标题"
+  },
+  "docsSort": "排序",
+  "@docsSort": {
+    "description": "排序菜单提示"
+  },
+  "docsSortGroupTime": "按时间分组",
+  "@docsSortGroupTime": {
+    "description": "排序选项"
+  },
+  "docsSortUpdated": "按更新时间",
+  "@docsSortUpdated": {
+    "description": "排序选项"
+  },
+  "docsSortCreated": "按创建时间",
+  "@docsSortCreated": {
+    "description": "排序选项"
+  },
+  "docsSortTitle": "按标题",
+  "@docsSortTitle": {
+    "description": "排序选项"
+  },
+  "docsNewDoc": "新建文档",
+  "@docsNewDoc": {
+    "description": "新建入口"
+  },
+  "docsNewNote": "新建笔记",
+  "@docsNewNote": {
+    "description": "新建入口"
+  },
+  "docsNewPagedCanvas": "新建分页画布",
+  "@docsNewPagedCanvas": {
+    "description": "新建入口"
+  },
+  "docsNewCanvas": "新建画布",
+  "@docsNewCanvas": {
+    "description": "新建入口"
+  },
+  "settingsSectionSecurity": "密码与安全",
+  "@settingsSectionSecurity": {
+    "description": "设置页分组标题"
+  },
+  "settingsSectionGeneral": "通用",
+  "@settingsSectionGeneral": {
+    "description": "设置页分组标题"
+  },
+  "settingsFilePasswordHelpContent": "在首页或全部文档页，点击画布卡片上的锁形按钮，可为单个画布设置独立密码。设置后打开该画布需要输入此密码，缩略图也会隐藏为锁形占位。\n\n单文件密码独立于开屏密码——即使有人解锁了你的应用，没有这个密码也打不开对应的画布。",
+  "@settingsFilePasswordHelpContent": {
+    "description": "单文件密码帮助弹窗正文"
+  },
+  "settingsThemeSystem": "跟随系统（点击切换为浅色）",
+  "@settingsThemeSystem": {
+    "description": "外观状态标签"
+  },
+  "settingsThemeLight": "浅色（点击切换为深色）",
+  "@settingsThemeLight": {
+    "description": "外观状态标签"
+  },
+  "settingsThemeDark": "深色（点击切换为跟随系统）",
+  "@settingsThemeDark": {
+    "description": "外观状态标签"
+  },
+  "settingsLayer1Title": "第 1 层 · 开屏密码",
+  "@settingsLayer1Title": {
+    "description": "密码体系卡第 1 层"
+  },
+  "settingsLayer1Desc": "解锁应用，同时解开主密钥保险库——保护全部画布与笔记。忘记时可用重置密码盘重设。",
+  "@settingsLayer1Desc": {
+    "description": "密码体系卡第 1 层说明"
+  },
+  "settingsLayer2Title": "第 2 层 · 文件密码",
+  "@settingsLayer2Title": {
+    "description": "密码体系卡第 2 层"
+  },
+  "settingsLayer2Desc": "给单个画布/分页画布/笔记另设的独立密码，独立于开屏密码。忘记时可用重置密码盘重设。",
+  "@settingsLayer2Desc": {
+    "description": "密码体系卡第 2 层说明"
+  },
+  "settingsLayer3Title": "重置密码盘（U 盘）",
+  "@settingsLayer3Title": {
+    "description": "密码体系卡第 3 层"
+  },
+  "settingsLayer3Desc": "插入 U 盘 → 点「忘记密码」→ 重置新密码。开屏密码与文件密码通用同一把盘。",
+  "@settingsLayer3Desc": {
+    "description": "密码体系卡第 3 层说明"
+  },
+  "docUnsaved": "未保存",
+  "@docUnsaved": {},
+  "docSaving": "保存中…",
+  "@docSaving": {},
+  "docSaved": "已保存",
+  "@docSaved": {},
+  "docSavedAt": "已保存 {time}",
+  "@docSavedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "docUntitled": "未命名",
+  "@docUntitled": {},
+  "docStandalonePasswordProtected": "此笔记受独立密码保护",
+  "@docStandalonePasswordProtected": {},
+  "docStandalonePasswordUnset": "此笔记当前未设置独立密码",
+  "@docStandalonePasswordUnset": {},
+  "docCreatedAt": "创建于",
+  "@docCreatedAt": {},
+  "docUpdatedAt": "更新于",
+  "@docUpdatedAt": {},
+  "docBlockCount": "块数量",
+  "@docBlockCount": {},
+  "docTagNameHint": "标签名称",
+  "@docTagNameHint": {},
+  "docPinSameAsLock": "独立密码不能与开屏密码相同",
+  "@docPinSameAsLock": {},
+  "docConfirmStandalonePassword": "确认独立密码",
+  "@docConfirmStandalonePassword": {},
+  "docPinMismatch": "两次输入不一致，请重试",
+  "@docPinMismatch": {},
+  "docSetNewPassword": "设置新密码",
+  "@docSetNewPassword": {},
+  "docPasswordSetFor": "已为「{name}」设置独立密码",
+  "@docPasswordSetFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "docPasswordSetDiskBound": "已设置独立密码并绑定重置密码盘",
+  "@docPasswordSetDiskBound": {},
+  "docSetFailed": "设置失败，请重试",
+  "@docSetFailed": {},
+  "docVerifyCurrent": "验证当前独立密码",
+  "@docVerifyCurrent": {},
+  "docPasswordChangedFor": "已修改「{name}」的独立密码",
+  "@docPasswordChangedFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "docWrongPassword": "原密码不正确或密文已损坏",
+  "@docWrongPassword": {},
+  "docChangeFailed": "修改失败，请重试",
+  "@docChangeFailed": {},
+  "docBindDiskConfirmTitle": "绑定重置密码盘？",
+  "@docBindDiskConfirmTitle": {},
+  "docBindDiskConfirmContent": "绑定后忘记此笔记的独立密码时，可插入重置密码盘（U 盘）免旧密码重置。\n\nU 盘上只有随机钥匙文件（password_reset_disk.key），笔记数据不会离开设备。",
+  "@docBindDiskConfirmContent": {},
+  "docBindDiskConfirm": "插盘绑定",
+  "@docBindDiskConfirm": {},
+  "docNotNow": "暂不",
+  "@docNotNow": {},
+  "docDiskNotFoundNoBind": "未找到有效的重置密码盘文件（password_reset_disk.key），本次不绑定",
+  "@docDiskNotFoundNoBind": {},
+  "docDiskNotFound": "未找到有效的重置密码盘文件（password_reset_disk.key）",
+  "@docDiskNotFound": {},
+  "docVerifyToBind": "验证独立密码以绑定重置盘",
+  "@docVerifyToBind": {},
+  "docDiskBound": "已绑定重置密码盘",
+  "@docDiskBound": {},
+  "docWrongOrAlreadyBound": "密码不正确或已绑定重置密码盘",
+  "@docWrongOrAlreadyBound": {},
+  "docBindFailed": "绑定失败，请重试",
+  "@docBindFailed": {},
+  "docRemoveConfirmContent": "移除后「{name}」不再需要独立密码即可打开。确定移除吗？",
+  "@docRemoveConfirmContent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "docRemove": "移除",
+  "@docRemove": {},
+  "docVerifyToRemove": "验证独立密码以移除",
+  "@docVerifyToRemove": {},
+  "docPasswordRemovedFor": "已移除「{name}」的独立密码",
+  "@docPasswordRemovedFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "docPasswordWrongOrCorrupt": "密码不正确或密文已损坏",
+  "@docPasswordWrongOrCorrupt": {},
+  "docRemoveFailed": "移除失败，请重试",
+  "@docRemoveFailed": {},
+  "docUnlockTitle": "该笔记已加密，输入密码",
+  "@docUnlockTitle": {},
+  "docForgotPassword": "忘记密码？",
+  "@docForgotPassword": {},
+  "docsTabDocs": "文档",
+  "@docsTabDocs": {},
+  "docsTabFavorites": "收藏夹",
+  "@docsTabFavorites": {},
+  "docsEmptyNoMatch": "没有匹配的文档",
+  "@docsEmptyNoMatch": {},
+  "docsEmptyNoMatchTip": "试试其他关键词或排序方式",
+  "@docsEmptyNoMatchTip": {},
+  "docsEmptyNoFavorites": "暂无收藏文档",
+  "@docsEmptyNoFavorites": {},
+  "docsEmptyNoFavoritesTip": "点击文档行星标可添加到收藏夹",
+  "@docsEmptyNoFavoritesTip": {},
+  "docsEmptyFirstNote": "记下第一笔",
+  "@docsEmptyFirstNote": {},
+  "docsEmptyFirstNoteTip": "笔记用来打字，画布用来写写画画",
+  "@docsEmptyFirstNoteTip": {}
 }
