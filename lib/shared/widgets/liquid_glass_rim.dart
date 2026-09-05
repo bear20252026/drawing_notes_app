@@ -43,7 +43,29 @@ class _LiquidGlassRimState extends State<LiquidGlassRim>
   late final AnimationController _time = AnimationController(
     vsync: this,
     duration: const Duration(seconds: 4),
-  )..repeat();
+  );
+
+  /// 微光闪烁的 60FPS fragment shader 动画只应在**确实需要**时开启。
+  ///
+  /// [animated] 为 false（GlassSurface 默认静态）时**绝不启动**——否则一个
+  /// `repeat()` 的 AnimationController 即便不挂 AnimatedBuilder 也会持续
+  /// 逐帧向引擎申请帧（ticker 常驻调度），玻璃表面遍布全 App + IndexedStack
+  /// 常驻，会变成几十个永续 60FPS 着色循环 → CPU/GPU 双打满、内存堆积。
+  @override
+  void initState() {
+    super.initState();
+    if (widget.animated) _time.repeat();
+  }
+
+  @override
+  void didUpdateWidget(covariant LiquidGlassRim oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.animated && !_time.isAnimating) {
+      _time.repeat();
+    } else if (!widget.animated && _time.isAnimating) {
+      _time.stop();
+    }
+  }
 
   @override
   void dispose() {

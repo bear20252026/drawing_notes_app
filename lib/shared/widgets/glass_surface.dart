@@ -203,7 +203,13 @@ class _GlassSurfaceState extends State<GlassSurface> {
               child: LiquidGlassRim(
                 radius: borderRadius.topLeft.x,
                 intensity: widget.rimIntensity,
-                animated: !reduceEffects,
+                // 边缘罩默认静态（微光闪烁改由调用方显式开启）：
+                // 玻璃表面遍布全 App（导航/顶栏/工具岛），若每处都跑一节
+                // 4s 循环的 fragment shader 动画，叠加 IndexedStack 常驻
+                // 就变成永续 60FPS 逐帧着色 → GPU/CPU 异常打满（2026-09-06
+                // 用户报告：画图软件却 CPU/GPU/内存都高）。静态折射罩保留
+                // 玻璃观感，但不逐帧申请帧。
+                animated: false,
               ),
             ),
           ),

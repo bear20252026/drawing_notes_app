@@ -2,6 +2,27 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.14.3] - 2026-09-06
+
+### 紧急修复：CPU / GPU 异常打满 + 内存堆积（用户报告：画图软件却三高，实机确认 Abnormal）
+
+- **根因**：`LiquidGlassRim`（液态玻璃 L3 边缘折射罩）的 State 里无条件执行了
+  `AnimationController(duration: 4s)..repeat()`。即便 `animated:false` 分支不挂
+  `AnimatedBuilder`，一个处于 *repeat* 状态的 Ticker 本身仍会持续逐帧向引擎申请帧。
+  而 `GlassSurface` 传 `animated: !reduceEffects`（普通机器恒为 true）、且玻璃表面
+  遍布全 App（导航条 / 顶栏 / 工具岛 / 面板），再叠加 `IndexedStack` 常驻全部标签页
+  ——于是同时存在**几十个永续 60FPS 的 fragment shader 动画**在后台跑：GPU、CPU
+  双打满、每帧着色/回读又推高内存。这与绘画操作无关，是持续的背景渲染。
+- **修复**：
+  1. `LiquidGlassRim`: 仅当 `animated` 为真时才 `_time.repeat()`（initState / didUpdateWidget
+     门控），`animated:false` 时 controller 不启动、不再逐帧申请帧；
+  2. `GlassSurface`: 边缘罩**默认静态**（`animated: false`）——保留玻璃折射罩的
+     静态观感（backdrop 模糊/折射仍生效），但停止 4s 循环闪烁这种高频率表面上的
+     永续着色。确需闪烁的地方可显式为 `LiquidGlassRim` 传 `animated: true`。
+- 验证：`flutter analyze` 零告警；玻璃表面 / 外壳 / 液态玻璃配方测试全绿。
+- 实测（用户在运行版本 1.14.2）：WorkingSet ~615MB / 私有提交 ~1.9GB、CPU/GPU 高；
+  本修复移除最主要的逐帧着色源后，重装 1.14.3 应显著回落。
+
 ## [1.14.2] - 2026-09-06
 
 ### 画板内存治理（用户报告：分页画布内存占用 ~600MB、全场最高，且伴随画面冻结）
