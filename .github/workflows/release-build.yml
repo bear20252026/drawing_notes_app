@@ -169,7 +169,8 @@ jobs:
             throw "Installer name '$($exe.Name)' != expected '$expected' (pubspec $pubVersion)"
           }
           $hash = (Get-FileHash -Algorithm SHA256 $exe.FullName).Hash.ToLowerInvariant()
-          "$hash  $($exe.Name)" | Out-File -Encoding utf8 "$exe.DirectoryName/SHA256SUMS.txt"
+          $sumsPath = Join-Path $exe.DirectoryName "SHA256SUMS.txt"
+          "$hash  $($exe.Name)" | Out-File -Encoding utf8 $sumsPath
           Write-Host "SHA256: $hash  ($($exe.Name))"
 
       - name: Upload Windows raw release
