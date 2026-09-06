@@ -28,6 +28,11 @@ extension DrawingControllerRenderOps on DrawingController {
 
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
+    // Picture.toImage 按 1:1 光栅化不做缩放（与 LayerCompositor 同一教训
+    // 2026-09-07）：必须先缩放画布，文档坐标的内容才会等比落进小探针位图；
+    // 否则只截下页面左上角、采样坐标也与内容错位，吸管在分页画布上取色
+    // 全错。
+    canvas.scale(probeScale);
     _paintDocument(canvas);
     final picture = recorder.endRecording();
     ui.Image? image;

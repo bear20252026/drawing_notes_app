@@ -82,6 +82,15 @@ class LayerCompositor {
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
 
+    // 封顶光栅化的坐标校正（2026-09-07「松手后墨迹偏移」根因）：
+    // Picture.toImage 按 1:1 把画布坐标系直接光栅化进位图、不做缩放，
+    // 超出位图的部分被裁掉。此前封顶路径缺少这步 scale，文档坐标系
+    // （如 A4 2480×3508）的笔画被 1:1 画进 1448×2048 位图（页面右下
+    // 大半被裁），显示端 drawImageRect 再拉伸 ~1.71× 铺满整页——活动
+    // 笔画预览（矢量直绘）位置正确，一提交提交进位图就整体向右下跳变，
+    // 离原点越远偏得越多。非封顶画布 factor=1，此调用为零变换无影响。
+    canvas.scale(bitmapWidth / width, bitmapHeight / height);
+
     // 同色高亮笔依赖整层离屏合成，局部重绘会把新高亮再次与旧位图
     // srcOver 叠加，破坏“不叠色”承诺。因此此类图层始终全量重建。
     final hasHighlighter = layer.strokes.any(
@@ -96,6 +105,8 @@ class LayerCompositor {
     // 2) 橡皮擦的 clear 才能作用于底图（clear 只清除 saveLayer 内合成内容）。
     // 性能收益在 CPU 端：clipRect(region) 只重绘脏矩形内的笔画。
     final fullBounds = Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble());
+    // saveLayer 边界处于缩放前的文档坐标系，经上方 scale 变换后恰好覆盖
+    // 整张位图（封顶与非封顶皆然）。
     canvas.saveLayer(fullBounds, ui.Paint());
     // 增量重建：先画旧位图作为底（全图），区域外内容保持不变。
     if (effectiveBase != null) {
