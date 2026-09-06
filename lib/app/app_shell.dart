@@ -20,6 +20,7 @@ import 'package:drawing_notes_app/features/all_docs/presentation/all_docs_page.d
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
+import 'package:drawing_notes_app/features/notes/application/notebook_title_sync.dart';
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
 // 批次⑤：第四界面「设置」——密码体系集中管理。
 import 'package:drawing_notes_app/features/notes/presentation/settings_page.dart';
@@ -146,6 +147,50 @@ class _AppShellState extends State<AppShell> {
       return await store.loadDocument(id);
     } on BlockDocLockedException {
       return null; // 会话 DEK 已被清（如切后台）——不暴露内容
+    }
+  }
+
+  /// 命名同源（2026-09-07）：块文档与分页画布页是同一逻辑文件
+  /// （doc.id == page.id）。在 DocPage 改标题后回写源页并让克隆快照
+  /// 跟随，使分页画布页卡、搜索等展示区即时一致。
+  ///
+  /// 加密分页画布跳过：此处无会话密码，NotebookStorage.save 对加密本
+  /// 抛 StateError，不能在此落盘；下次在该本内保存时由 NotebookViewPage
+  /// 的命名收敛（块文档标题优先方向）补齐。失败不阻断保存主流程。
+  Future<void> _syncBlockDocTitleToNotebookPage(
+    String docId,
+    String title,
+  ) async {
+    final storage = widget.notebookStorage;
+    if (storage == null) return;
+    try {
+      for (final nb in await storage.listAll()) {
+        if (nb.isLockedPlaceholder || nb.encrypted) continue;
+        var changed = false;
+        for (final page in nb.pages) {
+          final ref = page.cloneOf;
+          if (ref == null) {
+            if (page.id == docId && page.title != title) {
+              page
+                ..title = title
+                ..updatedAt = DateTime.now();
+              changed = true;
+            }
+            continue;
+          }
+          if (ref.pageId != docId) continue;
+          final expected = NotebookTitleSync.cloneTitleFor(title);
+          if (page.title != expected) {
+            page
+              ..title = expected
+              ..updatedAt = DateTime.now();
+            changed = true;
+          }
+        }
+        if (changed) await storage.save(nb);
+      }
+    } catch (_) {
+      // 回写失败不阻断；下次保存时收敛补齐。
     }
   }
 
@@ -516,7 +561,13 @@ class _AppShellState extends State<AppShell> {
             builder: (_) => DocPage(
               document: bd,
               controller: DocController(
-                onSave: (d) => _services.blockDocStore.saveDocument(d),
+                onSave: (d) async {
+                  await _services.blockDocStore.saveDocument(d);
+                  // 命名同源（2026-09-07）：块文档与分页画布页是同一逻辑
+                  // 文件（doc.id == page.id），改名后回写源页并让克隆快照
+                  // 跟随，使分页画布页卡/搜索等展示区即时一致。
+                  await _syncBlockDocTitleToNotebookPage(d.id, d.title);
+                },
               ),
               isFavorite: favs.contains(doc.id),
               onToggleFavorite: (fav) async => fav
@@ -584,7 +635,13 @@ class _AppShellState extends State<AppShell> {
             builder: (_) => DocPage(
               document: bd,
               controller: DocController(
-                onSave: (d) => _services.blockDocStore.saveDocument(d),
+                onSave: (d) async {
+                  await _services.blockDocStore.saveDocument(d);
+                  // 命名同源（2026-09-07）：块文档与分页画布页是同一逻辑
+                  // 文件（doc.id == page.id），改名后回写源页并让克隆快照
+                  // 跟随，使分页画布页卡/搜索等展示区即时一致。
+                  await _syncBlockDocTitleToNotebookPage(d.id, d.title);
+                },
               ),
               tagStore: _services.tagStore,
               allDocsLoader: _services.loadAllBlockDocs,

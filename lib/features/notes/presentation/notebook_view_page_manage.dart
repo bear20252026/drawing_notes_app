@@ -252,12 +252,13 @@ extension _NotebookPageManage on _NotebookViewPageState {
     );
     if (srcPage == null || !mounted) return;
 
-    // 创建克隆引用条目（不复制内容）。
+    // 创建克隆引用条目（不复制内容）。标题为源页快照，命名同源收敛
+    // （2026-09-07）会让它随后续源页改名自动跟随。
     _applyState(() {
       _notebook.pages.add(
         NotebookPage(
           id: NotebookStorage.newId('pg'),
-          title: '↪ ${srcPage.title}',
+          title: NotebookTitleSync.cloneTitleFor(srcPage.title),
           document: NotebookPageTemplateStrategy.createDocument(
             id: StorageService.newId(),
             title: '未命名页面',
@@ -282,6 +283,93 @@ extension _NotebookPageManage on _NotebookViewPageState {
     }
     _applyState(() => _notebook.title = trimmed);
     await _save();
+  }
+
+  // ---------------- 命名同源收敛（2026-09-07） ----------------
+
+  /// 保存前收敛：页卡 ↔ 块文档副本 ↔ 克隆快照三向对齐（纯内存变更，
+  /// 由随后的 storage.save/encryptAndSave 一并落盘）。
+  /// 返回「本会话改过名」的页 id 集合，供保存后回写块文档副本。
+  Future<Set<String>> _convergeNamesBeforeSave() async {
+    try {
+      final blockDocTitles = <String, String>{
+        for (final header in await blockDocStore.listDocHeaders())
+          header.id: header.title,
+      };
+      final externalSourceTitles = await _collectExternalSourceTitles();
+      return NotebookTitleSync.convergeBeforeSave(
+        notebook: _notebook,
+        blockDocTitleById: blockDocTitles,
+        pageTitlesAtOpen: _pageTitlesAtOpen,
+        externalSourceTitles: externalSourceTitles,
+      );
+    } catch (_) {
+      // 命名收敛失败不阻断保存主流程，下次保存重试。
+      return const <String>{};
+    }
+  }
+
+  /// 保存后收敛：把本会话改过名的页标题回写块文档副本（首页笔记区/
+  /// 全部文档/搜索与页卡同名）；并让其他未加密分页画布里指向本本的
+  /// 克隆快照跟随。之后刷新打开时快照，保证后续保存按新基准判断。
+  Future<void> _convergeNamesAfterSave(Set<String> renamedPageIds) async {
+    try {
+      final store = blockDocStore;
+      for (final pageId in renamedPageIds) {
+        final page = _notebook.pages
+            .where((p) => p.id == pageId && p.cloneOf == null)
+            .firstOrNull;
+        if (page == null) continue;
+        final doc = await store.loadDocument(pageId);
+        if (doc == null || doc.title == page.title) continue;
+        // NoteBlockDoc 不可变：copyWith 替换标题（与 DocEditor 同口径）。
+        await store.saveDocument(
+          doc.copyWith(title: page.title, updatedAt: DateTime.now()),
+        );
+      }
+      // 跨本克隆快照：仅当本会话确有改名才扫描（避免每次保存全盘读）。
+      if (renamedPageIds.isNotEmpty) {
+        final sourceTitles = <String, String>{
+          for (final page in _notebook.pages)
+            if (page.cloneOf == null) page.id: page.title,
+        };
+        for (final other in await widget.storage.listAll()) {
+          if (identical(other, _notebook)) continue;
+          if (other.isLockedPlaceholder || other.encrypted) continue;
+          final changed = NotebookTitleSync.followCloneSnapshots(
+            notebook: other,
+            sourceTitlesByPageId: sourceTitles,
+          );
+          if (changed) await widget.storage.save(other);
+        }
+      }
+      _pageTitlesAtOpen
+        ..clear()
+        ..addAll({for (final page in _notebook.pages) page.id: page.title});
+    } catch (_) {
+      // 收敛失败不阻断；下次保存重试。
+    }
+  }
+
+  /// 汇总跨本源页当前标题（从未加密、未锁定的本取——加密本内容不可读，
+  /// 跳过等待其自身保存时收敛）。同本源页由 convergeBeforeSave 自动派生。
+  Future<Map<String, String>> _collectExternalSourceTitles() async {
+    final titles = <String, String>{};
+    final missing = _notebook.pages
+        .map((p) => p.cloneOf?.pageId)
+        .whereType<String>()
+        .toSet();
+    if (missing.isEmpty) return titles;
+    for (final other in await widget.storage.listAll()) {
+      if (identical(other, _notebook)) continue;
+      if (other.isLockedPlaceholder || other.encrypted) continue;
+      for (final page in other.pages) {
+        if (page.cloneOf == null && missing.contains(page.id)) {
+          titles[page.id] = page.title;
+        }
+      }
+    }
+    return titles;
   }
 
   void _showSnack(String message) {

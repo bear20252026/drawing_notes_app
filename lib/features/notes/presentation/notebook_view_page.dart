@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/ink_layer_painter.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/shape_renderer.dart';
 import 'package:drawing_notes_app/features/notes/application/notebook_page_editor_session.dart';
+import 'package:drawing_notes_app/features/notes/application/notebook_title_sync.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
@@ -113,6 +114,11 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   /// 标签筛选关键词（A2：输入标签后只显示带该标签的页面）。
   String _tagFilter = '';
 
+  /// 命名同源（2026-09-07）：打开时的页标题快照（页 id → 标题）。
+  /// 用于区分「本会话内改名」（页面标题优先回写块文档副本）与
+  /// 「外部改名」（块文档标题优先回写页卡），保证双向收敛不打架。
+  final Map<String, String> _pageTitlesAtOpen = <String, String>{};
+
   /// U3 P1-12：标签筛选防抖（每键 setState 会整页重建 GridView）。
   final SearchDebouncer _tagFilterDebouncer = SearchDebouncer();
 
@@ -183,6 +189,9 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   void initState() {
     super.initState();
     _notebook = widget.notebook;
+    _pageTitlesAtOpen.addAll({
+      for (final page in _notebook.pages) page.id: page.title,
+    });
     // H-05 部分落地：后台/切出自动保存草稿（防数据丢失；_save 有
     // _saving 保护不会并发堆叠；onInactive 覆盖切后台/失去焦点场景）。
     // U3 P0-7：改走 _saveIfChanged，无变更不再全量重加密。
@@ -244,6 +253,9 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
             );
           }
         }
+        // 命名同源收敛·保存前（2026-09-07）：页卡↔块文档副本↔克隆快照
+        // 三向对齐，见 notebook_title_sync.dart。
+        final renamedPageIds = await _convergeNamesBeforeSave();
         // 加密笔记本：用会话密码重加密最新内容后保存（评审发现 P1 修复 +
         // 可用性修复：编辑后保存不再抛 StateError，内容不会丢失）。
         // 未加密：普通原子写入。
@@ -254,6 +266,9 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
           await widget.storage.save(_notebook);
         }
         widget.onChanged?.call();
+        // 命名同源收敛·保存后：本会话改名的页回写块文档副本；跨本克隆
+        // 快照跟随。写入失败不阻断（下次保存重试收敛）。
+        await _convergeNamesAfterSave(renamedPageIds);
       } while (_saveQueued);
       completion.complete();
     } catch (e) {
