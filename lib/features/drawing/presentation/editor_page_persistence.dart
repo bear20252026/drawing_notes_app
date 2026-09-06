@@ -35,7 +35,13 @@ extension _EditorPagePersistence on _EditorPageState {
     // 文档 JSON 是数据完整性的第一优先级。关闭中控制器可能已释放，
     // 因此只跳过可再生的缩略图，不跳过正文保存。
     if (!_closingEditor) {
-      final png = await _controller.renderToPng(scale: 0.2);
+      // 缩略图长边限 1024（内存治理 2026-09-07）：首页网格最多 ~256px
+      // 显示，1024 已留足余量；无限画布内容包围盒 × 0.2 仍可能达数千
+      // 像素（~48MB 瞬时分配），画画期间每 5s 自动保存都会重放一次。
+      final png = await _controller.renderToPng(
+        scale: 0.2,
+        maxLongEdge: 1024,
+      );
       if (png != null) await storage.saveThumbnail(doc.id, png);
     }
     if (mounted && !_closingEditor) {

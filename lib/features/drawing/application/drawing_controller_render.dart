@@ -156,6 +156,7 @@ extension DrawingControllerRenderOps on DrawingController {
   Future<Uint8List?> renderToPng({
     double scale = 1.0,
     Set<BrushType> excludedTypes = const {},
+    int maxLongEdge = 4096,
   }) async {
     await _ensureDocumentImagesLoaded();
     final bounds = _document.infinite
@@ -173,10 +174,13 @@ extension DrawingControllerRenderOps on DrawingController {
     // 输出尺寸钳制（内存审计 2026-09-06，"瞬间 1GB"尖峰根因）：无限画布
     // 的 bounds 来自内容包围盒——一个误触落点在很远处（如 50000,50000）
     // 就会让包围盒爆炸，scale 0.2 的缩略图也会尝试 toImage(10000,10000)
-    // （400MB），scale 1.0 的导出更是 10GB 级分配尝试。钳制：单边 ≤ 4096
-    // 且总像素 ≤ 4096²，超限同比例缩小（内容几何不变，只降输出分辨率）。
-    const maxDim = 4096;
-    const maxPixels = maxDim * maxDim;
+    // （400MB），scale 1.0 的导出更是 10GB 级分配尝试。钳制：单边 ≤ 上限
+    // 且总像素 ≤ 上限²，超限同比例缩小（内容几何不变，只降输出分辨率）。
+    // [maxLongEdge] 供调用方按用途收紧（内存治理 2026-09-07）：自动保存
+    // 缩略图只需首页网格显示，用 1024 上限后，画画期间每 5s 一次的缩略图
+    // 再光栅化从最多 ~48MB 瞬时分配降到 ~3MB。
+    final maxDim = maxLongEdge.clamp(64, 4096);
+    final maxPixels = maxDim * maxDim;
     var effectiveScale = scale;
     final longestSide = math.max(w, h);
     if (longestSide > maxDim) {

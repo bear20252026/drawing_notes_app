@@ -92,19 +92,25 @@ extension _EditorPageCanvasSurface on _EditorPageState {
                     final overlay = Stack(
                       children: [
                         // 连接线层（D1：节点关联标注，借鉴 Relatum 连线）。
+                        // IgnorePointer 必需：CustomPainter.hitTest 默认
+                        // 返回 true，这层 Positioned.fill 若参与命中会盖住
+                        // 整块画布、吞掉全部指针事件（2026-09-07 分页画布
+                        // 「白纸无法作画」根因——独立画布无此层故不受影响）。
                         if (_isNotebookMode)
                           Positioned.fill(
-                            child: CustomPaint(
-                              painter: ConnectorPainter(
-                                connectors: widget.session!.connectors,
-                                itemPositions: {
-                                  for (final text in widget.session!.textItems)
-                                    text.id: text.position,
-                                  for (final image
-                                      in widget.session!.imageItems)
-                                    image.id: image.position,
-                                },
-                                controller: _controller,
+                            child: IgnorePointer(
+                              child: CustomPaint(
+                                painter: ConnectorPainter(
+                                  connectors: widget.session!.connectors,
+                                  itemPositions: {
+                                    for (final text in widget.session!.textItems)
+                                      text.id: text.position,
+                                    for (final image
+                                        in widget.session!.imageItems)
+                                      image.id: image.position,
+                                  },
+                                  controller: _controller,
+                                ),
                               ),
                             ),
                           ),
@@ -122,12 +128,16 @@ extension _EditorPageCanvasSurface on _EditorPageState {
                             ),
                           ),
                         // 对齐参考线（拖动元素时实时显示，借鉴 Excalidraw）。
+                        // IgnorePointer：参考线是纯视觉反馈，且裸 CustomPaint
+                        // 的默认 hitTest 会吞掉拖动中的指针（同连线层教训）。
                         if (_snapGuides.isNotEmpty)
                           Positioned.fill(
-                            child: CustomPaint(
-                              painter: SnapGuidePainter(
-                                guides: _snapGuides,
-                                controller: _controller,
+                            child: IgnorePointer(
+                              child: CustomPaint(
+                                painter: SnapGuidePainter(
+                                  guides: _snapGuides,
+                                  controller: _controller,
+                                ),
                               ),
                             ),
                           ),

@@ -77,8 +77,28 @@ class CanvasPainter extends CustomPainter {
       controller.paintVectorLayers(canvas, canvas.getLocalClipBounds());
     } else {
       for (final view in controller.paintViews) {
+        if (!view.visible || view.opacity <= 0) continue;
         final image = view.image;
-        if (image == null || !view.visible || view.opacity <= 0) continue;
+        if (image == null) {
+          // 矢量回退（2026-09-07 白纸缺陷修复）：位图未就绪——打开文档
+          // 的首次光栅化进行中、全量重建窗口（旧位图已提前释放）或光栅
+          // 化失败自愈期间——直接绘制笔画，保证既有内容始终可见；位图
+          // 就绪后自动切回 O(1) 位图路径。隔离语义与 paintVectorLayers
+          // 一致：半透明层或含橡皮擦时 saveLayer，防止 clear 清穿纸面。
+          if (view.strokes.isEmpty) continue;
+          final needsIsolation =
+              view.opacity < 1 ||
+              view.strokes.any((stroke) => stroke.type == BrushType.eraser);
+          if (needsIsolation) {
+            canvas.saveLayer(
+              canvasRect,
+              Paint()..color = Color.fromRGBO(0, 0, 0, view.opacity),
+            );
+          }
+          InkLayerPainter.paintStrokes(canvas, canvasRect, view.strokes);
+          if (needsIsolation) canvas.restore();
+          continue;
+        }
         final paint = Paint()
           ..color = Color.fromRGBO(0, 0, 0, view.opacity)
           ..filterQuality = FilterQuality.high;

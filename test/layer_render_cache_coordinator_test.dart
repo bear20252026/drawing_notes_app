@@ -1,6 +1,8 @@
 import 'package:drawing_notes_app/features/drawing/application/layer_render_cache_coordinator.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/canvas_model/layer.dart';
+import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
+import 'dart:ui' show Color;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -52,6 +54,16 @@ void main() {
 
   test('后台释放图层位图后 paintViews 位图置空，可懒重建（P1 #1）', () async {
     final document = DrawingDocument(id: 'doc-a4', title: '分页');
+    // 带笔画的层才会光栅化（2026-09-07 内存治理：空层/隐藏层不再持有
+    // 位图——全透明位图纯浪费）。
+    document.layers.single.strokes.add(
+      Stroke(
+        points: const [StrokePoint(10, 10, 1), StrokePoint(60, 80, 1)],
+        color: const Color(0xFF000000),
+        width: 4,
+        type: BrushType.pen,
+      ),
+    );
     final coordinator = LayerRenderCacheCoordinator(
       document: document,
       onRenderUpdated: () {},

@@ -150,11 +150,17 @@ class LayerCompositor {
 class LayerPaintView {
   const LayerPaintView({
     required this.image,
+    required this.strokes,
     required this.visible,
     required this.opacity,
   });
 
   final ui.Image? image;
+
+  /// 图层笔画列表引用（位图未就绪时 painter 走矢量回退用，见
+  /// CanvasPainter；引用共享不拷贝，O(1)）。
+  final List<Stroke> strokes;
+
   final bool visible;
   final double opacity;
 }
