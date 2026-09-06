@@ -39,8 +39,9 @@ void main() {
     for (final entity in Directory('lib/features').listSync(recursive: true)) {
       if (entity is! File || !entity.path.endsWith('.dart')) continue;
       final normalized = entity.path.replaceAll('\\', '/');
-      final srcMatch =
-          RegExp(r'lib/features/([a-z_]+)/').firstMatch(normalized);
+      final srcMatch = RegExp(
+        r'lib/features/([a-z_]+)/',
+      ).firstMatch(normalized);
       if (srcMatch == null) continue;
       final src = srcMatch.group(1)!;
       for (final line in entity.readAsLinesSync()) {
@@ -74,7 +75,8 @@ void main() {
     expect(
       violations,
       isEmpty,
-      reason: '跨 feature 依赖棘轮被突破：\n'
+      reason:
+          '跨 feature 依赖棘轮被突破：\n'
           '${violations.join('\n')}\n\n'
           '现有 offenders：\n'
           '${offenders.entries.expand((e) => e.value).take(20).join('\n')}',

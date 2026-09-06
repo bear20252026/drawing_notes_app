@@ -52,105 +52,81 @@ void main() {
   }
 
   group('对话框按钮顺序（平台域裁决 C1）', () {
-    testWidgets(
-      'Windows：主按钮在左',
-      (tester) async {
-        await pumpDialog(tester);
-        expect(
-          tester.getCenter(find.text('删除')).dx,
-          lessThan(tester.getCenter(find.text('取消')).dx),
-        );
-      },
-      variant: TargetPlatformVariant.only(TargetPlatform.windows),
-    );
+    testWidgets('Windows：主按钮在左', (tester) async {
+      await pumpDialog(tester);
+      expect(
+        tester.getCenter(find.text('删除')).dx,
+        lessThan(tester.getCenter(find.text('取消')).dx),
+      );
+    }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
 
-    testWidgets(
-      'Linux：主按钮在左',
-      (tester) async {
-        await pumpDialog(tester);
-        expect(
-          tester.getCenter(find.text('删除')).dx,
-          lessThan(tester.getCenter(find.text('取消')).dx),
-        );
-      },
-      variant: TargetPlatformVariant.only(TargetPlatform.linux),
-    );
+    testWidgets('Linux：主按钮在左', (tester) async {
+      await pumpDialog(tester);
+      expect(
+        tester.getCenter(find.text('删除')).dx,
+        lessThan(tester.getCenter(find.text('取消')).dx),
+      );
+    }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
 
-    testWidgets(
-      'macOS：主按钮在右（Apple HIG 顺序）',
-      (tester) async {
-        await pumpDialog(tester);
-        expect(
-          tester.getCenter(find.text('删除')).dx,
-          greaterThan(tester.getCenter(find.text('取消')).dx),
-        );
-      },
-      variant: TargetPlatformVariant.only(TargetPlatform.macOS),
-    );
+    testWidgets('macOS：主按钮在右（Apple HIG 顺序）', (tester) async {
+      await pumpDialog(tester);
+      expect(
+        tester.getCenter(find.text('删除')).dx,
+        greaterThan(tester.getCenter(find.text('取消')).dx),
+      );
+    }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
 
-    testWidgets(
-      'Android：主按钮在右（M3 顺序）',
-      (tester) async {
-        await pumpDialog(tester);
-        expect(
-          tester.getCenter(find.text('删除')).dx,
-          greaterThan(tester.getCenter(find.text('取消')).dx),
-        );
-      },
-      variant: TargetPlatformVariant.only(TargetPlatform.android),
-    );
+    testWidgets('Android：主按钮在右（M3 顺序）', (tester) async {
+      await pumpDialog(tester);
+      expect(
+        tester.getCenter(find.text('删除')).dx,
+        greaterThan(tester.getCenter(find.text('取消')).dx),
+      );
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
   });
 
   group('AppleDialog.actions（裸 AlertDialog 的迁移入口）', () {
     final secondary = const Text('取消');
     final primary = const Text('确定');
 
-    testWidgets(
-      'Windows / Linux = 倒序，macOS / Android = 原序',
-      (tester) async {
-        final ordered = AppleDialog.actions(<Widget>[secondary, primary]);
-        switch (defaultTargetPlatform) {
-          case TargetPlatform.windows:
-          case TargetPlatform.linux:
-            expect(ordered.first, primary);
-          case TargetPlatform.macOS:
-          case TargetPlatform.iOS:
-          case TargetPlatform.android:
-          case TargetPlatform.fuchsia:
-            expect(ordered.first, secondary);
-        }
-      },
-      variant: TargetPlatformVariant.all(),
-    );
+    testWidgets('Windows / Linux = 倒序，macOS / Android = 原序', (tester) async {
+      final ordered = AppleDialog.actions(<Widget>[secondary, primary]);
+      switch (defaultTargetPlatform) {
+        case TargetPlatform.windows:
+        case TargetPlatform.linux:
+          expect(ordered.first, primary);
+        case TargetPlatform.macOS:
+        case TargetPlatform.iOS:
+        case TargetPlatform.android:
+        case TargetPlatform.fuchsia:
+          expect(ordered.first, secondary);
+      }
+    }, variant: TargetPlatformVariant.all());
   });
 
   group('对话框排版（DESIGN.md 排版梯子）', () {
-    testWidgets(
-      '标题 17px / w600，正文 15px / 行高 1.47',
-      (tester) async {
-        await pumpDialog(tester);
+    testWidgets('标题 17px / w600，正文 15px / 行高 1.47', (tester) async {
+      await pumpDialog(tester);
 
-        // 注意：对话框的标题/正文样式来自 DefaultTextStyle（dialogTheme
-        // 注入），不会挂在 Text.style 上，因此要把继承到的样式与
-        // 控件自带样式合并后才是最终生效值。
-        TextStyle styleOf(String text) {
-          final element = tester.element(find.text(text));
-          return DefaultTextStyle.of(element).style.merge(
-            tester.widget<Text>(find.text(text)).style,
-          );
-        }
+      // 注意：对话框的标题/正文样式来自 DefaultTextStyle（dialogTheme
+      // 注入），不会挂在 Text.style 上，因此要把继承到的样式与
+      // 控件自带样式合并后才是最终生效值。
+      TextStyle styleOf(String text) {
+        final element = tester.element(find.text(text));
+        return DefaultTextStyle.of(
+          element,
+        ).style.merge(tester.widget<Text>(find.text(text)).style);
+      }
 
-        final title = styleOf('彻底删除');
-        expect(title.fontSize, AppleType.title); // 17
-        expect(title.fontWeight, FontWeight.w600);
+      final title = styleOf('彻底删除');
+      expect(title.fontSize, AppleType.title); // 17
+      expect(title.fontWeight, FontWeight.w600);
 
-        final content = styleOf('删除后不可恢复。');
-        expect(content.fontSize, 15);
-        // DESIGN.md:506「Don't tighten line-height below 1.47 for body copy」
-        expect(content.height, AppleType.bodyLineHeight); // 1.47
-      },
-      variant: TargetPlatformVariant.only(TargetPlatform.windows),
-    );
+      final content = styleOf('删除后不可恢复。');
+      expect(content.fontSize, 15);
+      // DESIGN.md:506「Don't tighten line-height below 1.47 for body copy」
+      expect(content.height, AppleType.bodyLineHeight); // 1.47
+    }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
 
     test('对话框走 overlay 档阴影，圆角 = AppleRadius.lg', () {
       final theme = AppDesign.lightTheme();

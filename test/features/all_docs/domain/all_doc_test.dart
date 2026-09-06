@@ -80,13 +80,13 @@ void main() {
     final now = DateTime(2026, 8, 28, 12, 0); // 周四
 
     AllDoc mkDoc(DateTime created, DateTime updated) => AllDoc(
-          id: 'x',
-          title: '',
-          kind: AllDocKind.canvas,
-          folder: '',
-          createdAt: created,
-          updatedAt: updated,
-        );
+      id: 'x',
+      title: '',
+      kind: AllDocKind.canvas,
+      folder: '',
+      createdAt: created,
+      updatedAt: updated,
+    );
 
     test('today: updatedAt 与 now 同一天', () {
       final doc = mkDoc(DateTime(2026, 1, 1), DateTime(2026, 8, 28, 9, 0));
@@ -95,20 +95,32 @@ void main() {
 
     test('today takes precedence over neverUpdated if same day', () {
       // createdAt == updatedAt == now（今天新建）→ today，不是 neverUpdated
-      final doc = mkDoc(DateTime(2026, 8, 28, 10, 0), DateTime(2026, 8, 28, 10, 0));
+      final doc = mkDoc(
+        DateTime(2026, 8, 28, 10, 0),
+        DateTime(2026, 8, 28, 10, 0),
+      );
       expect(groupOf(doc, now: now), AllDocGroup.today);
     });
 
     test('thisWeek: updatedAt 在本周内（非今天）', () {
-      final doc = mkDoc(DateTime(2026, 1, 1), DateTime(2026, 8, 27, 15, 0)); // 昨天
+      final doc = mkDoc(
+        DateTime(2026, 1, 1),
+        DateTime(2026, 8, 27, 15, 0),
+      ); // 昨天
       expect(groupOf(doc, now: now), AllDocGroup.thisWeek);
 
-      final doc2 = mkDoc(DateTime(2026, 1, 1), DateTime(2026, 8, 24, 8, 0)); // 4天前
+      final doc2 = mkDoc(
+        DateTime(2026, 1, 1),
+        DateTime(2026, 8, 24, 8, 0),
+      ); // 4天前
       expect(groupOf(doc2, now: now), AllDocGroup.thisWeek);
     });
 
     test('earlier: updatedAt 在 7 天前或更早', () {
-      final doc = mkDoc(DateTime(2026, 1, 1), DateTime(2026, 8, 21, 12, 0)); // 7天前
+      final doc = mkDoc(
+        DateTime(2026, 1, 1),
+        DateTime(2026, 8, 21, 12, 0),
+      ); // 7天前
       expect(groupOf(doc, now: now), AllDocGroup.earlier);
 
       final doc2 = mkDoc(DateTime(2026, 1, 1), DateTime(2026, 6, 1));
@@ -116,13 +128,19 @@ void main() {
     });
 
     test('neverUpdated: updatedAt==createdAt 且早于今天', () {
-      final doc = mkDoc(DateTime(2026, 5, 5, 10, 0), DateTime(2026, 5, 5, 10, 0));
+      final doc = mkDoc(
+        DateTime(2026, 5, 5, 10, 0),
+        DateTime(2026, 5, 5, 10, 0),
+      );
       expect(groupOf(doc, now: now), AllDocGroup.neverUpdated);
     });
 
     test('neverUpdated requires different day from now', () {
       // 同一天创建且从未更新 → today（不是 neverUpdated）
-      final doc = mkDoc(DateTime(2026, 8, 28, 8, 0), DateTime(2026, 8, 28, 8, 0));
+      final doc = mkDoc(
+        DateTime(2026, 8, 28, 8, 0),
+        DateTime(2026, 8, 28, 8, 0),
+      );
       expect(groupOf(doc, now: now), AllDocGroup.today);
     });
 
@@ -164,14 +182,23 @@ void main() {
         updatedAt: t0,
       );
       final s1 = AllDocSection(
-          group: AllDocGroup.today, label: '今天', docs: [doc]);
+        group: AllDocGroup.today,
+        label: '今天',
+        docs: [doc],
+      );
       final s2 = AllDocSection(
-          group: AllDocGroup.today, label: '今天', docs: [doc]);
+        group: AllDocGroup.today,
+        label: '今天',
+        docs: [doc],
+      );
       expect(s1, s2);
       expect(s1.isEmpty, isFalse);
 
-      final empty =
-          AllDocSection(group: AllDocGroup.today, label: '今天', docs: []);
+      final empty = AllDocSection(
+        group: AllDocGroup.today,
+        label: '今天',
+        docs: [],
+      );
       expect(empty.isEmpty, isTrue);
     });
   });

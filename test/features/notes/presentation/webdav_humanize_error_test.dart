@@ -26,7 +26,10 @@ void main() {
 
     test('WebDavSyncException 5xx → 服务器不可用人话', () {
       final msg = humanizeWebDavSyncError(
-        WebDavSyncException('PUT failed: Internal Server Error', statusCode: 500),
+        WebDavSyncException(
+          'PUT failed: Internal Server Error',
+          statusCode: 500,
+        ),
       );
       expect(msg, contains('服务器暂时不可用'));
       expect(msg, contains('HTTP 500'));

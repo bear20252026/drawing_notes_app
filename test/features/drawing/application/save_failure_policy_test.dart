@@ -9,10 +9,7 @@ void main() {
     const policy = SaveFailurePolicy();
 
     test('failureCount=1 → retry（首次失败立即重试）', () {
-      const input = SaveFailureInput(
-        failureCount: 1,
-        elapsed: Duration.zero,
-      );
+      const input = SaveFailureInput(failureCount: 1, elapsed: Duration.zero);
       expect(policy.decide(input), SaveRetryDecision.retry);
     });
 

@@ -90,26 +90,20 @@ void main() {
       expect(AppleFocus.colorFor(Brightness.light), AppleColor.focusBlue);
     });
 
-    test(
-      'Focus Blue 与 AppleColor 保持同值（apple_focus 不得 import '
-      'apple_design，靠本断言守住单一事实来源）',
-      () {
-        expect(AppleFocus.color, AppleColor.focusBlue);
-        expect(AppleFocus.colorFor(Brightness.dark), AppleColor.actionBlueOnDark);
-      },
-    );
+    test('Focus Blue 与 AppleColor 保持同值（apple_focus 不得 import '
+        'apple_design，靠本断言守住单一事实来源）', () {
+      expect(AppleFocus.color, AppleColor.focusBlue);
+      expect(AppleFocus.colorFor(Brightness.dark), AppleColor.actionBlueOnDark);
+    });
 
     test('深色模式换更亮的一档', () {
-      expect(
-        AppleFocus.colorFor(Brightness.dark),
-        AppleColor.actionBlueOnDark,
-      );
+      expect(AppleFocus.colorFor(Brightness.dark), AppleColor.actionBlueOnDark);
     });
 
     test('输入框聚焦边框 = 2px Focus Blue（此前是 1.5px primary）', () {
       final theme = AppDesign.lightTheme();
-      final focused = theme.inputDecorationTheme.focusedBorder!
-          as OutlineInputBorder;
+      final focused =
+          theme.inputDecorationTheme.focusedBorder! as OutlineInputBorder;
       expect(focused.borderSide.width, AppleFocus.width);
       expect(focused.borderSide.color, AppleFocus.colorFor(Brightness.light));
     });

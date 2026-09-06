@@ -102,7 +102,9 @@ class _PageCard extends StatelessWidget {
                   IconButton(
                     tooltip: page.favorite ? '取消收藏' : '收藏页面',
                     icon: Icon(
-                      page.favorite ? Icons.star_rounded : Icons.star_border_rounded,
+                      page.favorite
+                          ? Icons.star_rounded
+                          : Icons.star_border_rounded,
                       size: 18,
                     ),
                     visualDensity: VisualDensity.compact,

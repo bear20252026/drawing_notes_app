@@ -122,7 +122,8 @@ void main() {
       expect(
         offenders,
         isEmpty,
-        reason: 'dividerColor 本身已是 8% 发丝线，再叠乘会淡到看不见。'
+        reason:
+            'dividerColor 本身已是 8% 发丝线，再叠乘会淡到看不见。'
             '要分隔线请直接用 AppleHairline。',
       );
     });

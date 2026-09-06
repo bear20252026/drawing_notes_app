@@ -26,10 +26,7 @@ void main() {
     );
 
     // 图层隔离（与 paintVectorLayers 修复后的结构一致）。
-    canvas.saveLayer(
-      const Offset(0, 0) & const ui.Size(200, 200),
-      Paint(),
-    );
+    canvas.saveLayer(const Offset(0, 0) & const ui.Size(200, 200), Paint());
 
     // 一条黑色墨迹（y=50 横线）。
     StrokeRenderer.drawStroke(

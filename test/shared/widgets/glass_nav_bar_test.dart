@@ -16,10 +16,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 250));
   }
 
-  Widget host({
-    int selectedIndex = 0,
-    required ValueChanged<int> onSelected,
-  }) =>
+  Widget host({int selectedIndex = 0, required ValueChanged<int> onSelected}) =>
       MaterialApp(
         home: Scaffold(
           bottomNavigationBar: GlassNavigationBar(
@@ -70,8 +67,7 @@ void main() {
     expect(selected, 2);
   });
 
-  testWidgets('内部 NavigationBar 材质全透明（玻璃壳提供基底）',
-      (tester) async {
+  testWidgets('内部 NavigationBar 材质全透明（玻璃壳提供基底）', (tester) async {
     await tester.pumpWidget(host(onSelected: (_) {}));
     await settle(tester);
     final bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
@@ -105,8 +101,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('系统手势区由内部 SafeArea 消费（胶囊整体悬浮其上）',
-      (tester) async {
+  testWidgets('系统手势区由内部 SafeArea 消费（胶囊整体悬浮其上）', (tester) async {
     // viewPadding.bottom 模拟手势条 / 3 键导航；胶囊不应与系统栏重叠。
     await tester.pumpWidget(
       MediaQuery(

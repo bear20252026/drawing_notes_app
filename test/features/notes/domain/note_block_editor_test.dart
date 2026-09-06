@@ -211,7 +211,9 @@ void main() {
       // 新块插入原块之后
       final aChildren = editor.findBlock(result, 'a')!.children;
       expect(aChildren.length, 3);
-      final newBlock = aChildren.firstWhere((c) => c.id != 'a1' && c.id != 'a2');
+      final newBlock = aChildren.firstWhere(
+        (c) => c.id != 'a1' && c.id != 'a2',
+      );
       expect(newBlock.text, 'sk1');
       expect(newBlock.type, NoteBlockType.todo);
       expect(newBlock.props['checked'], true); // 继承 props
@@ -224,7 +226,9 @@ void main() {
       expect(editor.findBlock(result, 'a1')?.text, '');
       final aChildren = editor.findBlock(result, 'a')!.children;
       expect(aChildren.length, 3);
-      final newBlock = aChildren.firstWhere((c) => c.id != 'a1' && c.id != 'a2');
+      final newBlock = aChildren.firstWhere(
+        (c) => c.id != 'a1' && c.id != 'a2',
+      );
       expect(newBlock.text, 'task1');
     });
 
@@ -235,7 +239,9 @@ void main() {
       expect(editor.findBlock(result, 'a1')?.text, 'task1');
       final aChildren = editor.findBlock(result, 'a')!.children;
       expect(aChildren.length, 3);
-      final newBlock = aChildren.firstWhere((c) => c.id != 'a1' && c.id != 'a2');
+      final newBlock = aChildren.firstWhere(
+        (c) => c.id != 'a1' && c.id != 'a2',
+      );
       expect(newBlock.text, '');
     });
 
@@ -335,7 +341,11 @@ void main() {
         children: [
           NoteBlock.textBlock('b1', text: 'hello'),
           NoteBlock.textBlock('b2'), // 空文本
-          NoteBlock.headingBlock('b3', level: 1, text: 'world'), // 不同类型，不会与 b1 合并
+          NoteBlock.headingBlock(
+            'b3',
+            level: 1,
+            text: 'world',
+          ), // 不同类型，不会与 b1 合并
           NoteBlock.textBlock('b4'), // 空文本
         ],
       );

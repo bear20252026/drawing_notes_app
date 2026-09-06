@@ -65,7 +65,14 @@ void main() {
           Layer(
             id: 'l1',
             name: 'Layer 1',
-            strokes: [Stroke(points: [], color: Color(0xFF000000), width: 2, type: BrushType.pen)],
+            strokes: [
+              Stroke(
+                points: [],
+                color: Color(0xFF000000),
+                width: 2,
+                type: BrushType.pen,
+              ),
+            ],
           ),
         ],
       );
@@ -129,7 +136,9 @@ void main() {
         content: NotebookPageContent(
           document: DrawingDocument(id: 'd6', title: ''),
           textItems: [PageTextItem(id: 't1', x: 0, y: 0, text: 'Text')],
-          imageItems: [PageImageItem(id: 'i1', x: 0, y: 0, filePath: 'test.png')],
+          imageItems: [
+            PageImageItem(id: 'i1', x: 0, y: 0, filePath: 'test.png'),
+          ],
         ),
       );
 
@@ -166,7 +175,9 @@ void main() {
         content: NotebookPageContent(
           document: DrawingDocument(id: 'd8', title: ''),
           textItems: [PageTextItem(id: 't1', x: 0, y: 0, text: 'Text')],
-          imageItems: [PageImageItem(id: 'i1', x: 0, y: 0, filePath: 'test.png')],
+          imageItems: [
+            PageImageItem(id: 'i1', x: 0, y: 0, filePath: 'test.png'),
+          ],
         ),
       );
 
@@ -182,7 +193,9 @@ void main() {
         title: 'Original',
         content: NotebookPageContent(
           document: DrawingDocument(id: 'd9', title: ''),
-          textItems: [PageTextItem(id: 't1', x: 0, y: 0, text: 'Original text')],
+          textItems: [
+            PageTextItem(id: 't1', x: 0, y: 0, text: 'Original text'),
+          ],
         ),
       );
 
@@ -201,7 +214,14 @@ void main() {
           Layer(
             id: 'l1',
             name: 'L1',
-            strokes: [Stroke(points: [], color: Color(0xFF000000), width: 2, type: BrushType.pen)],
+            strokes: [
+              Stroke(
+                points: [],
+                color: Color(0xFF000000),
+                width: 2,
+                type: BrushType.pen,
+              ),
+            ],
           ),
         ],
       );
@@ -217,7 +237,9 @@ void main() {
           charts: [
             PageChartItem(id: 'c1', chartType: ChartType.line, data: [1, 2, 3]),
           ],
-          imageItems: [PageImageItem(id: 'i1', x: 0, y: 0, filePath: 'photo.jpg')],
+          imageItems: [
+            PageImageItem(id: 'i1', x: 0, y: 0, filePath: 'photo.jpg'),
+          ],
         ),
       );
 

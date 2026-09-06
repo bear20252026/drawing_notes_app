@@ -206,7 +206,7 @@ class SyncService {
           uploaded++;
         case SyncOperationKind.download:
           downloaded++;
-          // download：远端快照已在新清单中（远端较新），无需改动。
+        // download：远端快照已在新清单中（远端较新），无需改动。
       }
     }
     final newManifest = SyncManifest(entries: newEntries);
@@ -269,8 +269,9 @@ class SyncService {
     for (final c in conflicts) {
       if (resolutions[c.docId] != ConflictResolution.keepBoth) continue;
       try {
-        final remoteBytes =
-            await transport.getBytes(cipher.remotePath(c.docId));
+        final remoteBytes = await transport.getBytes(
+          cipher.remotePath(c.docId),
+        );
         if (remoteBytes == null) continue;
         final plain = await cipher.decryptDocumentBytes(remoteBytes, c.docId);
         final copyId = _safeCopyId(c.docId);
@@ -293,8 +294,9 @@ class SyncService {
   /// 截断 64 字，时间戳保唯一。
   static String _safeCopyId(String docId) {
     final clean = docId.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_');
-    final stem =
-        clean.isEmpty ? 'doc' : clean.substring(0, clean.length.clamp(0, 64));
+    final stem = clean.isEmpty
+        ? 'doc'
+        : clean.substring(0, clean.length.clamp(0, 64));
     return '$stem-conflict-${DateTime.now().millisecondsSinceEpoch}';
   }
 

@@ -142,9 +142,7 @@ class AppLockService extends ChangeNotifier {
       pin.length >= minPinLength && pin.length <= maxPinLength,
       'PIN 长度须在 $minPinLength–$maxPinLength 位之间',
     );
-    if (pin.isEmpty ||
-        pin.length < minPinLength ||
-        pin.length > maxPinLength) {
+    if (pin.isEmpty || pin.length < minPinLength || pin.length > maxPinLength) {
       throw ArgumentError('PIN 长度须在 $minPinLength–$maxPinLength 位之间');
     }
     final prefs = await _preferencesLoader();

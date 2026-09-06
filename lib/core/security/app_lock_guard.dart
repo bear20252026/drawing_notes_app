@@ -124,10 +124,7 @@ class LockoutGuard {
     if (record == null || !sigValid) {
       // 记录存在但不合法（被篡改/损坏）→ fail-closed：立即最长冷却。
       // P1 修复：debugPrint 改走 AuditLogger（生产日志脱敏）。
-      AuditLogger.log(
-        'app_lock.guard.invalid_record',
-        success: false,
-      );
+      AuditLogger.log('app_lock.guard.invalid_record', success: false);
       _count = lockoutThreshold;
       _highWaterMs = record?['hw'] ?? clockMs();
       _untilMs = trustedNowMs() + lockoutCap.inMilliseconds;

@@ -18,10 +18,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   Stroke penStroke(ui.Offset a, ui.Offset b) => Stroke(
-    points: [
-      StrokePoint(a.dx, a.dy, 1.0),
-      StrokePoint(b.dx, b.dy, 1.0),
-    ],
+    points: [StrokePoint(a.dx, a.dy, 1.0), StrokePoint(b.dx, b.dy, 1.0)],
     color: const ui.Color(0xFF000000),
     width: 4,
     type: BrushType.pen,
@@ -39,7 +36,9 @@ void main() {
       Layer(
         id: 'layer_1',
         name: '图层 1',
-        strokes: [penStroke(const ui.Offset(10, 10), const ui.Offset(200, 120))],
+        strokes: [
+          penStroke(const ui.Offset(10, 10), const ui.Offset(200, 120)),
+        ],
       ),
     ],
   );
@@ -84,9 +83,9 @@ void main() {
   test('PdfHybridExporter.exportMultiPage 直接驱动多页构建', () async {
     // 合法 1×1 PNG（pdf 包会嗅探图片格式，假字节会导致解码失败）。
     final recorder = ui.PictureRecorder();
-    ui.Canvas(recorder).drawPaint(
-      ui.Paint()..color = const ui.Color(0xFFFFFFFF),
-    );
+    ui.Canvas(
+      recorder,
+    ).drawPaint(ui.Paint()..color = const ui.Color(0xFFFFFFFF));
     final image = await recorder.endRecording().toImage(1, 1);
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
     final png = data!.buffer.asUint8List();

@@ -10,26 +10,28 @@ import 'package:drawing_notes_app/features/doc/presentation/attachment_block_vie
 
 void main() {
   NoteBlock buildBlock(NoteAttachment a) => NoteBlock(
-        id: 'att1',
-        type: NoteBlockType.attachment,
-        props: {'attachment': jsonEncode(a.toJson())},
-      );
+    id: 'att1',
+    type: NoteBlockType.attachment,
+    props: {'attachment': jsonEncode(a.toJson())},
+  );
 
   NoteAttachment pdf() => NoteAttachment(
-        id: 'p1',
-        name: '报告.pdf',
-        kind: AttachmentKind.pdf,
-        mimeType: 'application/pdf',
-        byteSize: 2048,
-        url: 'https://cdn.example.com/report.pdf',
-        createdAt: DateTime.utc(2026, 1, 1),
-        updatedAt: DateTime.utc(2026, 1, 1),
-      );
+    id: 'p1',
+    name: '报告.pdf',
+    kind: AttachmentKind.pdf,
+    mimeType: 'application/pdf',
+    byteSize: 2048,
+    url: 'https://cdn.example.com/report.pdf',
+    createdAt: DateTime.utc(2026, 1, 1),
+    updatedAt: DateTime.utc(2026, 1, 1),
+  );
 
   testWidgets('渲染 PDF 卡片：名称 + 子标题 + 内嵌预览', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(body: AttachmentBlockView(block: buildBlock(pdf()))),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: AttachmentBlockView(block: buildBlock(pdf()))),
+      ),
+    );
     expect(find.text('报告.pdf'), findsOneWidget);
     expect(find.textContaining('PDF'), findsWidgets);
     expect(find.text('打开 PDF'), findsOneWidget);
@@ -44,9 +46,11 @@ void main() {
       createdAt: DateTime.utc(2026, 1, 1),
       updatedAt: DateTime.utc(2026, 1, 1),
     );
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(body: AttachmentBlockView(block: buildBlock(bm))),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: AttachmentBlockView(block: buildBlock(bm))),
+      ),
+    );
     expect(find.text('官网'), findsOneWidget);
     expect(find.text('https://example.com'), findsWidgets);
     expect(find.text('打开链接'), findsOneWidget);
@@ -61,21 +65,27 @@ void main() {
       createdAt: DateTime.utc(2026, 1, 1),
       updatedAt: DateTime.utc(2026, 1, 1),
     );
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(body: AttachmentBlockView(block: buildBlock(f))),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: AttachmentBlockView(block: buildBlock(f))),
+      ),
+    );
     expect(find.text('data.zip'), findsOneWidget);
     expect(find.textContaining('1 KB'), findsOneWidget);
   });
 
   testWidgets('编辑备注写回新块', (tester) async {
     NoteBlock? last;
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(body: AttachmentBlockView(
-        block: buildBlock(pdf()),
-        onChanged: (b) => last = b,
-      )),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AttachmentBlockView(
+            block: buildBlock(pdf()),
+            onChanged: (b) => last = b,
+          ),
+        ),
+      ),
+    );
     await tester.tap(find.byTooltip('编辑描述'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '季度报告');

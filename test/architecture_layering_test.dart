@@ -54,8 +54,12 @@ void main() {
         }
       }
     }
-    expect(violators, isEmpty,
-        reason: 'shared 是跨切面层，只能被 feature 依赖，不能反向依赖 feature：\n${violators.join('\n')}');
+    expect(
+      violators,
+      isEmpty,
+      reason:
+          'shared 是跨切面层，只能被 feature 依赖，不能反向依赖 feature：\n${violators.join('\n')}',
+    );
   });
 
   test('规则B：core 只允许共享 feature 的 domain 实体', () {
@@ -69,8 +73,11 @@ void main() {
         }
       }
     }
-    expect(violators, isEmpty,
-        reason: 'core 只允许共享 feature 的 domain 实体（文档化双向共享），不得依赖 feature 的 application/infrastructure/presentation：\n${violators.join('\n')}');
+    expect(
+      violators,
+      isEmpty,
+      reason:
+          'core 只允许共享 feature 的 domain 实体（文档化双向共享），不得依赖 feature 的 application/infrastructure/presentation：\n${violators.join('\n')}',
+    );
   });
-
 }

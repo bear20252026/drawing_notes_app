@@ -76,7 +76,11 @@ void main() {
     group('applyLink', () {
       test('对选区应用链接', () {
         final spans = NoteInlineSpanList.fromPlainText('Click here');
-        final result = editor.applyLink(spans, const SpanRange(0, 5), 'https://example.com');
+        final result = editor.applyLink(
+          spans,
+          const SpanRange(0, 5),
+          'https://example.com',
+        );
 
         expect(result.length, 2);
         expect(result[0].text, 'Click');
@@ -86,8 +90,14 @@ void main() {
       });
 
       test('对已有相同链接的选区移除链接', () {
-        final spans = [NoteInlineSpan(text: 'Click', link: 'https://example.com')];
-        final result = editor.applyLink(spans, const SpanRange(0, 5), 'https://example.com');
+        final spans = [
+          NoteInlineSpan(text: 'Click', link: 'https://example.com'),
+        ];
+        final result = editor.applyLink(
+          spans,
+          const SpanRange(0, 5),
+          'https://example.com',
+        );
         expect(result.first.link, isNull);
       });
 

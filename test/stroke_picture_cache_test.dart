@@ -21,7 +21,9 @@ void main() {
   group('StrokePictureCache', () {
     test('相同笔画集合命中缓存（指纹一致）', () {
       final cache = StrokePictureCache();
-      final strokes = [_makeStroke([(0.0, 0.0), (10.0, 10.0)])];
+      final strokes = [
+        _makeStroke([(0.0, 0.0), (10.0, 10.0)]),
+      ];
       const size = ui.Size(100, 100);
 
       final p1 = cache.pictureFor(strokes, size: size);
@@ -50,7 +52,9 @@ void main() {
 
     test('尺寸变化 → 指纹失效重建', () {
       final cache = StrokePictureCache();
-      final strokes = [_makeStroke([(0.0, 0.0), (10.0, 10.0)])];
+      final strokes = [
+        _makeStroke([(0.0, 0.0), (10.0, 10.0)]),
+      ];
 
       final p1 = cache.pictureFor(strokes, size: const ui.Size(100, 100));
       final p2 = cache.pictureFor(strokes, size: const ui.Size(200, 200));
@@ -62,7 +66,9 @@ void main() {
 
     test('override 场景不缓存（语义等价旧路径）', () {
       final cache = StrokePictureCache();
-      final strokes = [_makeStroke([(0.0, 0.0), (10.0, 10.0)])];
+      final strokes = [
+        _makeStroke([(0.0, 0.0), (10.0, 10.0)]),
+      ];
       const size = ui.Size(100, 100);
 
       final p1 = cache.pictureFor(
@@ -78,10 +84,9 @@ void main() {
       final cache = StrokePictureCache();
       expect(cache.pictureFor([], size: const ui.Size(100, 100)), isNull);
       expect(
-        cache.pictureFor(
-          [_makeStroke([(0.0, 0.0), (10.0, 10.0)])],
-          size: ui.Size.zero,
-        ),
+        cache.pictureFor([
+          _makeStroke([(0.0, 0.0), (10.0, 10.0)]),
+        ], size: ui.Size.zero),
         isNull,
       );
       expect(cache.cacheCount, 0);
@@ -116,7 +121,9 @@ void main() {
 
     test('invalidate 清空缓存并释放', () {
       final cache = StrokePictureCache();
-      final strokes = [_makeStroke([(0.0, 0.0), (10.0, 10.0)])];
+      final strokes = [
+        _makeStroke([(0.0, 0.0), (10.0, 10.0)]),
+      ];
       cache.pictureFor(strokes, size: const ui.Size(100, 100));
       expect(cache.cacheCount, 1);
       cache.invalidate();

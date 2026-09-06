@@ -127,10 +127,7 @@ void main() {
       );
 
       expect(snapped.dx, closeTo(snapped.dy, 0.0001));
-      expect(
-        (snapped - Offset.zero).distance,
-        closeTo(135.21, 0.01),
-      );
+      expect((snapped - Offset.zero).distance, closeTo(135.21, 0.01));
     });
   });
 

@@ -36,10 +36,7 @@ void main() {
         const SizedBox(
           width: 180,
           height: 60,
-          child: GlassSurface(
-            level: LiquidGlassLevel.l1,
-            child: Text('L1'),
-          ),
+          child: GlassSurface(level: LiquidGlassLevel.l1, child: Text('L1')),
         ),
       ),
     );

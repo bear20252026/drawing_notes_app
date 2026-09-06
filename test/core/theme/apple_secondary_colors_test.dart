@@ -19,9 +19,7 @@ Color _composite(Color fg, Color bg) {
 double _luminance(Color c) {
   double channel(double v) =>
       v <= 0.03928 ? v / 12.92 : math.pow((v + 0.055) / 1.055, 2.4).toDouble();
-  return 0.2126 * channel(c.r) +
-      0.7152 * channel(c.g) +
-      0.0722 * channel(c.b);
+  return 0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b);
 }
 
 /// WCAG 2.1 对比度（1..21）。
@@ -34,7 +32,8 @@ double _contrast(Color fg, Color bg) {
 }
 
 /// 主题令牌文件：唯一允许"定义" alpha 的地方（subtleOf 与状态层实现）。
-final String _kTokenFile = 'core${Platform.pathSeparator}theme'
+final String _kTokenFile =
+    'core${Platform.pathSeparator}theme'
     '${Platform.pathSeparator}apple_design.dart';
 
 List<File> _libDartFiles({bool includeTokenFile = false}) {
@@ -45,8 +44,11 @@ List<File> _libDartFiles({bool includeTokenFile = false}) {
       .toList();
   if (includeTokenFile) return files;
   return files
-      .where((f) => !f.path.replaceAll('/', Platform.pathSeparator)
-          .endsWith(_kTokenFile))
+      .where(
+        (f) => !f.path
+            .replaceAll('/', Platform.pathSeparator)
+            .endsWith(_kTokenFile),
+      )
       .toList();
 }
 
@@ -84,7 +86,8 @@ void main() {
         expect(
           ratio,
           greaterThanOrEqualTo(4.5),
-          reason: 'mutedOf 在 ${scheme.brightness} 档仅 ${ratio.toStringAsFixed(2)}:1',
+          reason:
+              'mutedOf 在 ${scheme.brightness} 档仅 ${ratio.toStringAsFixed(2)}:1',
         );
       }
     });
@@ -106,7 +109,8 @@ void main() {
         expect(
           ratio,
           greaterThanOrEqualTo(3.0),
-          reason: 'subtleOf 在 ${scheme.brightness} 档仅 ${ratio.toStringAsFixed(2)}:1',
+          reason:
+              'subtleOf 在 ${scheme.brightness} 档仅 ${ratio.toStringAsFixed(2)}:1',
         );
       }
     });
@@ -157,20 +161,12 @@ void main() {
         _libDartFiles(),
         'surfaceContainerHighest.withValues(',
       );
-      expect(
-        hits,
-        0,
-        reason: '发现 $hits 处；应改用 AppleColor.panelOf / fillOf',
-      );
+      expect(hits, 0, reason: '发现 $hits 处；应改用 AppleColor.panelOf / fillOf');
     });
 
     test('lib 内不得出现 FontWeight.w500（DESIGN.md:504 字重梯子缺席 500）', () {
       final hits = _countOccurrences(_libDartFiles(), 'FontWeight.w500');
-      expect(
-        hits,
-        0,
-        reason: '发现 $hits 处；正文用 w400，强调/标题用 w600',
-      );
+      expect(hits, 0, reason: '发现 $hits 处；正文用 w400，强调/标题用 w600');
     });
   });
 }

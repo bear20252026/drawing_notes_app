@@ -110,8 +110,7 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
                 ValueListenableBuilder<InkPressureSample?>(
                   valueListenable: widget.inkPressureSample,
                   builder: (context, pressure, _) {
-                    final scalePercent =
-                        (controller.viewScale * 100).round();
+                    final scalePercent = (controller.viewScale * 100).round();
                     final pressureLabel = pressure?.diagnostics;
                     return Padding(
                       padding: const EdgeInsets.symmetric(
@@ -167,10 +166,7 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
                               tooltip: _coordsVisible ? '隐藏坐标' : '显示画布坐标',
                               visualDensity: VisualDensity.compact,
                               isSelected: _coordsVisible,
-                              icon: Icon(
-                                Icons.my_location_rounded,
-                                size: 16,
-                              ),
+                              icon: Icon(Icons.my_location_rounded, size: 16),
                               onPressed: () => setState(
                                 () => _coordsVisible = !_coordsVisible,
                               ),
@@ -213,10 +209,7 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
     );
     if (AppleMotion.reduceMotionOf(context)) {
       // 减弱动效：更轻——只做交叉淡入，去掉缩放。
-      return AnimatedSwitcher(
-        duration: AppleMotion.toastIn,
-        child: row,
-      );
+      return AnimatedSwitcher(duration: AppleMotion.toastIn, child: row);
     }
     return AnimatedSwitcher(
       duration: AppleMotion.toastIn,
@@ -265,10 +258,7 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
           }
         },
         itemBuilder: (_) => const [
-          PopupMenuItem(
-            value: _ZoomChoice.z50,
-            child: Text('50%'),
-          ),
+          PopupMenuItem(value: _ZoomChoice.z50, child: Text('50%')),
           PopupMenuItem(value: _ZoomChoice.z100, child: Text('100%')),
           PopupMenuItem(value: _ZoomChoice.z200, child: Text('200%')),
           PopupMenuItem(value: _ZoomChoice.fit, child: Text('适应画布')),

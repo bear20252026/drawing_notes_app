@@ -19,18 +19,14 @@ void main() {
   }
 
   Widget host(Widget fab) => MaterialApp(
-        home: Scaffold(
-          floatingActionButton: fab,
-          body: const SizedBox.shrink(),
-        ),
-      );
+    home: Scaffold(floatingActionButton: fab, body: const SizedBox.shrink()),
+  );
 
   testWidgets('圆形：渲染 icon，onPressed 触发，无异常', (tester) async {
     var pressed = 0;
-    await tester.pumpWidget(host(GlassFab(
-      onPressed: () => pressed++,
-      child: const Icon(Icons.add),
-    )));
+    await tester.pumpWidget(
+      host(GlassFab(onPressed: () => pressed++, child: const Icon(Icons.add))),
+    );
     await settle(tester);
     expect(tester.takeException(), isNull);
     await tester.tap(find.byIcon(Icons.add));
@@ -40,11 +36,15 @@ void main() {
 
   testWidgets('extended：渲染 icon + label，onPressed 触发', (tester) async {
     var pressed = 0;
-    await tester.pumpWidget(host(GlassFab.extended(
-      onPressed: () => pressed++,
-      icon: const Icon(Icons.add),
-      label: const Text('NEW_CANVAS'),
-    )));
+    await tester.pumpWidget(
+      host(
+        GlassFab.extended(
+          onPressed: () => pressed++,
+          icon: const Icon(Icons.add),
+          label: const Text('NEW_CANVAS'),
+        ),
+      ),
+    );
     await settle(tester);
     expect(find.text('NEW_CANVAS'), findsOneWidget);
     await tester.tap(find.byIcon(Icons.add));
@@ -52,13 +52,16 @@ void main() {
     expect(pressed, 1);
   });
 
-  testWidgets('heroTag 透传到内部 FAB（hero 冲突防护依赖显式 tag）',
-      (tester) async {
-    await tester.pumpWidget(host(GlassFab(
-      onPressed: () {},
-      heroTag: 'glassFabTestTag',
-      child: const Icon(Icons.add),
-    )));
+  testWidgets('heroTag 透传到内部 FAB（hero 冲突防护依赖显式 tag）', (tester) async {
+    await tester.pumpWidget(
+      host(
+        GlassFab(
+          onPressed: () {},
+          heroTag: 'glassFabTestTag',
+          child: const Icon(Icons.add),
+        ),
+      ),
+    );
     await settle(tester);
     final fab = tester.widget<FloatingActionButton>(
       find.byType(FloatingActionButton),
@@ -66,13 +69,16 @@ void main() {
     expect(fab.heroTag, 'glassFabTestTag');
   });
 
-  testWidgets('内部 FAB 材质全透明（玻璃壳提供基底，不叠色板）',
-      (tester) async {
-    await tester.pumpWidget(host(GlassFab.extended(
-      onPressed: () {},
-      icon: const Icon(Icons.add),
-      label: const Text('X'),
-    )));
+  testWidgets('内部 FAB 材质全透明（玻璃壳提供基底，不叠色板）', (tester) async {
+    await tester.pumpWidget(
+      host(
+        GlassFab.extended(
+          onPressed: () {},
+          icon: const Icon(Icons.add),
+          label: const Text('X'),
+        ),
+      ),
+    );
     await settle(tester);
     final fab = tester.widget<FloatingActionButton>(
       find.byType(FloatingActionButton),
@@ -91,10 +97,9 @@ void main() {
   });
 
   testWidgets('红线：整棵树只允许一层 BackdropFilter', (tester) async {
-    await tester.pumpWidget(host(GlassFab(
-      onPressed: () {},
-      child: const Icon(Icons.add),
-    )));
+    await tester.pumpWidget(
+      host(GlassFab(onPressed: () {}, child: const Icon(Icons.add))),
+    );
     await settle(tester);
     expect(
       find.byType(BackdropFilter),
@@ -104,14 +109,11 @@ void main() {
   });
 
   testWidgets('GlassSurface 边界裁剪为胶囊圆角（kRadius）', (tester) async {
-    await tester.pumpWidget(host(GlassFab(
-      onPressed: () {},
-      child: const Icon(Icons.add),
-    )));
-    await settle(tester);
-    final surface = tester.widget<GlassSurface>(
-      find.byType(GlassSurface),
+    await tester.pumpWidget(
+      host(GlassFab(onPressed: () {}, child: const Icon(Icons.add))),
     );
+    await settle(tester);
+    final surface = tester.widget<GlassSurface>(find.byType(GlassSurface));
     expect(
       surface.borderRadius,
       const BorderRadius.all(Radius.circular(GlassFab.kRadius)),

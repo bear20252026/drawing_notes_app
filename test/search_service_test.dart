@@ -72,9 +72,7 @@ void main() {
       NoteBlockDoc(
         id: 'docb1',
         title: '块文档笔记',
-        body: [
-          NoteBlock.textBlock('b1', text: 'Flutter 架构学习笔记'),
-        ],
+        body: [NoteBlock.textBlock('b1', text: 'Flutter 架构学习笔记')],
         createdAt: DateTime.utc(2026, 1, 1),
         updatedAt: DateTime.utc(2026, 1, 1),
       ),
@@ -121,9 +119,7 @@ void main() {
     );
     final results = await svc.search('flutter');
     expect(
-      results.any(
-        (r) => r.kind == 'blockdoc' && r.title == 'Flutter 移动开发指南',
-      ),
+      results.any((r) => r.kind == 'blockdoc' && r.title == 'Flutter 移动开发指南'),
       isTrue,
       reason: '应命中块文档标题',
     );

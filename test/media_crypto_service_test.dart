@@ -35,8 +35,9 @@ void main() {
 
   test('媒体加密：错误密钥解密认证失败', () async {
     MediaCryptoService.instance.setSessionKey(key);
-    final enc = await MediaCryptoService.instance
-        .encryptBytes(Uint8List.fromList(utf8Encode('数据')));
+    final enc = await MediaCryptoService.instance.encryptBytes(
+      Uint8List.fromList(utf8Encode('数据')),
+    );
     MediaCryptoService.instance.setSessionKey(
       List<int>.generate(32, (i) => i + 1),
     );
@@ -60,8 +61,9 @@ void main() {
   test('密码模式：同盐往返 + 不同盐失败（方案 B）', () async {
     final salt = MediaCryptoService.generateSalt();
     await MediaCryptoService.instance.setSessionPassword('secret123', salt);
-    final enc = await MediaCryptoService.instance
-        .encryptBytes(Uint8List.fromList(utf8Encode('数据')));
+    final enc = await MediaCryptoService.instance.encryptBytes(
+      Uint8List.fromList(utf8Encode('数据')),
+    );
     // 同盐重派生（跨会话同全局盐）可解密。
     await MediaCryptoService.instance.setSessionPassword('secret123', salt);
     expect(await MediaCryptoService.instance.decryptBytes(enc), isNotEmpty);
@@ -78,8 +80,9 @@ void main() {
 
   test('每笔记 K_note：AAD 绑定笔记 ID——跨笔记密钥不能互解', () async {
     MediaCryptoService.instance.setNotebookKey('noteA', key);
-    final enc = await MediaCryptoService.instance
-        .encryptBytes(Uint8List.fromList(utf8Encode('笔记A媒体')));
+    final enc = await MediaCryptoService.instance.encryptBytes(
+      Uint8List.fromList(utf8Encode('笔记A媒体')),
+    );
     // 切换到 noteB（不同 K_note）——AAD 不同——解密认证失败。
     MediaCryptoService.instance.setNotebookKey(
       'noteB',
@@ -102,6 +105,5 @@ void main() {
   });
 }
 
-Uint8List utf8Encode(String s) => Uint8List.fromList(
-  s.codeUnits.map((c) => c & 0xFF).toList(),
-);
+Uint8List utf8Encode(String s) =>
+    Uint8List.fromList(s.codeUnits.map((c) => c & 0xFF).toList());

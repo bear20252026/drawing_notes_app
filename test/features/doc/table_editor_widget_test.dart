@@ -33,10 +33,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TableEditorWidget(
-              block: block,
-              onChanged: (_) {},
-            ),
+            body: TableEditorWidget(block: block, onChanged: (_) {}),
           ),
         ),
       );
@@ -58,10 +55,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TableEditorWidget(
-              block: block,
-              onChanged: (b) => saved = b,
-            ),
+            body: TableEditorWidget(block: block, onChanged: (b) => saved = b),
           ),
         ),
       );
@@ -85,10 +79,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TableEditorWidget(
-              block: block,
-              onChanged: (b) => saved = b,
-            ),
+            body: TableEditorWidget(block: block, onChanged: (b) => saved = b),
           ),
         ),
       );
@@ -110,10 +101,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TableEditorWidget(
-              block: block,
-              onChanged: (b) => saved = b,
-            ),
+            body: TableEditorWidget(block: block, onChanged: (b) => saved = b),
           ),
         ),
       );

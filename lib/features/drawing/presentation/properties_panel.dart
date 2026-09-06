@@ -95,7 +95,9 @@ class PropertiesPanel extends StatelessWidget {
                               // v1.10.8 色板同款：outlineVariant 发丝线替代
                               // Colors.black26 硬描边（审计三-3 补漏）。
                               border: Border.all(
-                                color: Theme.of(context).colorScheme.outlineVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outlineVariant,
                                 width: 1,
                               ),
                             ),

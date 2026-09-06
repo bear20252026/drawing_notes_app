@@ -77,9 +77,9 @@ void main() {
         // FactorTestValue` 在测试体结束后会被框架检查，与既有的
         // debugDefaultTargetPlatformOverride 禁忌同源）。
         builder: (context, page) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(textScale),
-          ),
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(textScale)),
           child: page ?? const SizedBox.shrink(),
         ),
         home: Scaffold(body: child),
@@ -219,11 +219,7 @@ void main() {
   });
 
   testWidgets('390x844 dark：日程页无溢出', (tester) async {
-    await pumpAt(
-      tester,
-      const SchedulePage(),
-      theme: AppDesign.darkTheme(),
-    );
+    await pumpAt(tester, const SchedulePage(), theme: AppDesign.darkTheme());
     expect(tester.takeException(), isNull, reason: '日程页 390dp 深色溢出');
   });
 
@@ -246,11 +242,7 @@ void main() {
       DocPage(document: makeDoc()),
       theme: AppDesign.darkTheme(),
     );
-    expect(
-      tester.takeException(),
-      isNull,
-      reason: '笔记编辑页 390dp 深色溢出',
-    );
+    expect(tester.takeException(), isNull, reason: '笔记编辑页 390dp 深色溢出');
   });
 
   testWidgets('390x844 dark：分页画布页（NotebookViewPage）无溢出', (tester) async {
@@ -265,11 +257,7 @@ void main() {
       ),
       theme: AppDesign.darkTheme(),
     );
-    expect(
-      tester.takeException(),
-      isNull,
-      reason: '分页画布页 390dp 深色溢出',
-    );
+    expect(tester.takeException(), isNull, reason: '分页画布页 390dp 深色溢出');
   });
 
   // ===================================================================
@@ -301,11 +289,7 @@ void main() {
   });
 
   testWidgets('390x844 1.5x：标签视图无溢出', (tester) async {
-    await pumpAt(
-      tester,
-      TagsView(docs: [makeAllDoc()]),
-      textScale: 1.5,
-    );
+    await pumpAt(tester, TagsView(docs: [makeAllDoc()]), textScale: 1.5);
     expect(tester.takeException(), isNull, reason: '标签视图 390dp 1.5× 溢出');
   });
 
@@ -329,11 +313,7 @@ void main() {
 
   testWidgets('390x844 1.5x：笔记编辑页（DocPage）无溢出', (tester) async {
     await pumpAt(tester, DocPage(document: makeDoc()), textScale: 1.5);
-    expect(
-      tester.takeException(),
-      isNull,
-      reason: '笔记编辑页 390dp 1.5× 溢出',
-    );
+    expect(tester.takeException(), isNull, reason: '笔记编辑页 390dp 1.5× 溢出');
   });
 
   testWidgets('390x844 1.5x：分页画布页（NotebookViewPage）无溢出', (tester) async {
@@ -348,10 +328,6 @@ void main() {
       ),
       textScale: 1.5,
     );
-    expect(
-      tester.takeException(),
-      isNull,
-      reason: '分页画布页 390dp 1.5× 溢出',
-    );
+    expect(tester.takeException(), isNull, reason: '分页画布页 390dp 1.5× 溢出');
   });
 }

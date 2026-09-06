@@ -158,8 +158,7 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
         _locked &&
         _lockedFromBackground) {
       final grace = widget.service.graceDuration;
-      final away =
-          widget.awayDurationReader?.call() ?? _awayStopwatch?.elapsed;
+      final away = widget.awayDurationReader?.call() ?? _awayStopwatch?.elapsed;
       _lockedFromBackground = false;
       _awayStopwatch = null;
       if (away != null && grace > Duration.zero && away < grace) {

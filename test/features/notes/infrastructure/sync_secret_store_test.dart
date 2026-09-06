@@ -6,7 +6,8 @@ import 'package:drawing_notes_app/features/notes/infrastructure/sync_secret_stor
 
 /// 注入式假 FlutterSecureStorage：extends 并覆写 read/write/delete 记录调用。
 class FakeSecureStorage extends FlutterSecureStorage {
-  FakeSecureStorage([Map<String, String>? initial]) : _store = Map.of(initial ?? {});
+  FakeSecureStorage([Map<String, String>? initial])
+    : _store = Map.of(initial ?? {});
 
   final Map<String, String> _store;
 
@@ -22,8 +23,7 @@ class FakeSecureStorage extends FlutterSecureStorage {
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
     WebOptions? webOptions,
-  }) async =>
-      _store[key];
+  }) async => _store[key];
 
   @override
   Future<void> write({
@@ -66,8 +66,7 @@ class FakeSecureStorage extends FlutterSecureStorage {
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
     WebOptions? webOptions,
-  }) async =>
-      Map.of(_store);
+  }) async => Map.of(_store);
 
   @override
   Future<void> deleteAll({
@@ -77,8 +76,7 @@ class FakeSecureStorage extends FlutterSecureStorage {
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
     WebOptions? webOptions,
-  }) async =>
-      _store.clear();
+  }) async => _store.clear();
 }
 
 void main() {
@@ -150,7 +148,9 @@ void main() {
 
     test('write + read 回环', () async {
       final store = MemorySyncSecretStore();
-      await store.write(const SyncSecrets(webdavPassword: 'pw', syncPassphrase: 'sp'));
+      await store.write(
+        const SyncSecrets(webdavPassword: 'pw', syncPassphrase: 'sp'),
+      );
       final s = await store.read();
       expect(s.webdavPassword, 'pw');
       expect(s.syncPassphrase, 'sp');
@@ -158,7 +158,9 @@ void main() {
 
     test('clear 归零', () async {
       final store = MemorySyncSecretStore();
-      await store.write(const SyncSecrets(webdavPassword: 'pw', syncPassphrase: 'sp'));
+      await store.write(
+        const SyncSecrets(webdavPassword: 'pw', syncPassphrase: 'sp'),
+      );
       await store.clear();
       final s = await store.read();
       expect(s.isEmpty, isTrue);
@@ -173,7 +175,9 @@ void main() {
     });
 
     test('初始值构造', () async {
-      final store = MemorySyncSecretStore(const SyncSecrets(webdavPassword: 'init'));
+      final store = MemorySyncSecretStore(
+        const SyncSecrets(webdavPassword: 'init'),
+      );
       expect((await store.read()).webdavPassword, 'init');
     });
   });
@@ -182,7 +186,9 @@ void main() {
     test('write 写入两键 / 键名正确', () async {
       final fake = FakeSecureStorage();
       final store = SecureSyncSecretStore(storage: fake);
-      await store.write(const SyncSecrets(webdavPassword: 'pw', syncPassphrase: 'sp'));
+      await store.write(
+        const SyncSecrets(webdavPassword: 'pw', syncPassphrase: 'sp'),
+      );
 
       expect(fake.writes.length, 2);
       expect(fake.writes[0]['key'], 'webdav_password');
@@ -204,7 +210,10 @@ void main() {
     });
 
     test('write 传 null → delete 对应键', () async {
-      final fake = FakeSecureStorage({'webdav_password': 'old', 'sync_passphrase': 'old'});
+      final fake = FakeSecureStorage({
+        'webdav_password': 'old',
+        'sync_passphrase': 'old',
+      });
       final store = SecureSyncSecretStore(storage: fake);
       await store.write(const SyncSecrets()); // 全 null
 
@@ -214,7 +223,9 @@ void main() {
     test('write 传空串 → delete 对应键', () async {
       final fake = FakeSecureStorage({'webdav_password': 'old'});
       final store = SecureSyncSecretStore(storage: fake);
-      await store.write(const SyncSecrets(webdavPassword: '', syncPassphrase: 'only'));
+      await store.write(
+        const SyncSecrets(webdavPassword: '', syncPassphrase: 'only'),
+      );
 
       expect(fake.deletes, contains('webdav_password'));
       expect(fake.writes.length, 1);

@@ -148,9 +148,7 @@ void main() {
     });
 
     test('宽限期：损坏/越界持久值回默认 30s', () async {
-      SharedPreferences.setMockInitialValues({
-        'app_lock.grace_seconds': 999,
-      });
+      SharedPreferences.setMockInitialValues({'app_lock.grace_seconds': 999});
       final service = AppLockService();
       await service.load();
       expect(service.graceDuration, const Duration(seconds: 30));

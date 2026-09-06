@@ -164,7 +164,8 @@ extension _EditorPageOverlays on _EditorPageState {
                                         final local =
                                             d.localPosition +
                                             Offset(w / 2, h / 2);
-                                        final angle = (local - center).direction;
+                                        final angle =
+                                            (local - center).direction;
                                         _applyState(
                                           () => shape.rotation = angle,
                                         );
@@ -231,8 +232,12 @@ extension _EditorPageOverlays on _EditorPageState {
   ///
   /// 注意 CustomPaint 无 child——命中测试走 [LinearShapePainter.hitTest]
   /// 的点到线段距离，端点手柄作为兄弟节点叠加（不阻断线段本体命中）。
-  Widget _buildLinearShapeLayer(PageShapeItem shape, double w, double h,
-      bool selected) {
+  Widget _buildLinearShapeLayer(
+    PageShapeItem shape,
+    double w,
+    double h,
+    bool selected,
+  ) {
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -248,8 +253,11 @@ extension _EditorPageOverlays on _EditorPageState {
   }
 
   /// 分页笔记：选中线性元素的两端拖柄（画布坐标增量 → 端点吸附更新）。
-  List<Widget> _buildNotebookLinearHandles(PageShapeItem shape, double w,
-      double h) {
+  List<Widget> _buildNotebookLinearHandles(
+    PageShapeItem shape,
+    double w,
+    double h,
+  ) {
     Offset localOf(bool isStart) {
       final local = isStart ? shape.lineStart : shape.lineEnd;
       if (local != null) return local * _controller.viewScale;

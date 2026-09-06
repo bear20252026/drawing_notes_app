@@ -61,6 +61,10 @@ List<String> _dartFiles(String dir) {
 List<String> _importsOf(String file) {
   return File(file)
       .readAsLinesSync()
-      .where((l) => l.trimLeft().startsWith("import '") || l.trimLeft().startsWith("export '"))
+      .where(
+        (l) =>
+            l.trimLeft().startsWith("import '") ||
+            l.trimLeft().startsWith("export '"),
+      )
       .toList();
 }

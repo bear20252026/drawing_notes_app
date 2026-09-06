@@ -11,9 +11,11 @@ void main() {
   Uint8List bytes(String s) => Uint8List.fromList(utf8.encode(s));
 
   test('预检：正常 SVG 通过', () {
-    final svg = bytes('''<svg xmlns="http://www.w3.org/2000/svg" width="100" height="50">
+    final svg = bytes(
+      '''<svg xmlns="http://www.w3.org/2000/svg" width="100" height="50">
   <rect x="10" y="10" width="80" height="30" fill="#336699"/>
-</svg>''');
+</svg>''',
+    );
     expect(SvgPreflight.check(svg), isNull);
   });
 
@@ -32,7 +34,9 @@ void main() {
   });
 
   test('预检：事件属性拒绝（onload）', () {
-    final svg = bytes('''<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"/>''');
+    final svg = bytes(
+      '''<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"/>''',
+    );
     expect(SvgPreflight.check(svg), contains('事件属性'));
   });
 

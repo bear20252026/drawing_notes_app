@@ -13,7 +13,10 @@ void main() {
       final ops = TextRunDeltaCodec.runsToDelta(runs);
       expect(ops, [
         {'insert': 'Hello'},
-        {'insert': ' World', 'attributes': {'bold': true}},
+        {
+          'insert': ' World',
+          'attributes': {'bold': true},
+        },
       ]);
     });
 
@@ -55,7 +58,10 @@ void main() {
     test('Delta ops → runs：兼容仅 insert 字符串与未知属性', () {
       final runs = TextRunDeltaCodec.deltaToRuns([
         {'insert': 'plain'},
-        {'insert': 'bold', 'attributes': {'bold': true, 'unknown': 1}},
+        {
+          'insert': 'bold',
+          'attributes': {'bold': true, 'unknown': 1},
+        },
       ]);
       expect(runs.length, 2);
       expect(runs[0].text, 'plain');
@@ -66,11 +72,16 @@ void main() {
       expect(TextRunDeltaCodec.runsToDelta([]), isEmpty);
       expect(TextRunDeltaCodec.deltaToRuns([]), isEmpty);
       expect(
-        TextRunDeltaCodec.deltaToRuns([{'insert': ''}]).length,
+        TextRunDeltaCodec.deltaToRuns([
+          {'insert': ''},
+        ]).length,
         0,
       );
       final badColor = TextRunDeltaCodec.deltaToRuns([
-        {'insert': 't', 'attributes': {'color': 'not-a-color'}},
+        {
+          'insert': 't',
+          'attributes': {'color': 'not-a-color'},
+        },
       ]);
       expect(badColor.single.color, isNull);
     });

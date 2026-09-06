@@ -193,7 +193,9 @@ class _ShapeLibraryDialogState extends State<ShapeLibraryDialog> {
                               color: Theme.of(
                                 context,
                               ).colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(AppleRadius.xs),
+                              borderRadius: BorderRadius.circular(
+                                AppleRadius.xs,
+                              ),
                             ),
                             padding: const EdgeInsets.all(6),
                             child: Column(

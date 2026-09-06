@@ -36,11 +36,26 @@ void main() {
 
     test('相等性与 hashCode', () {
       const a = SyncConflict(
-          docId: 'a', localUpdatedAt: 1, localSize: 2, remoteUpdatedAt: 3, remoteSize: 4);
+        docId: 'a',
+        localUpdatedAt: 1,
+        localSize: 2,
+        remoteUpdatedAt: 3,
+        remoteSize: 4,
+      );
       const b = SyncConflict(
-          docId: 'a', localUpdatedAt: 1, localSize: 2, remoteUpdatedAt: 3, remoteSize: 4);
+        docId: 'a',
+        localUpdatedAt: 1,
+        localSize: 2,
+        remoteUpdatedAt: 3,
+        remoteSize: 4,
+      );
       const c = SyncConflict(
-          docId: 'a', localUpdatedAt: 9, localSize: 2, remoteUpdatedAt: 3, remoteSize: 4);
+        docId: 'a',
+        localUpdatedAt: 9,
+        localSize: 2,
+        remoteUpdatedAt: 3,
+        remoteSize: 4,
+      );
       expect(a, equals(b));
       expect(a.hashCode, b.hashCode);
       expect(a, isNot(equals(c)));
@@ -104,12 +119,14 @@ void main() {
       ]);
       final conflicts = [
         const SyncConflict(
-            docId: 'a', localUpdatedAt: 1, localSize: 1, remoteUpdatedAt: 2, remoteSize: 1),
+          docId: 'a',
+          localUpdatedAt: 1,
+          localSize: 1,
+          remoteUpdatedAt: 2,
+          remoteSize: 1,
+        ),
       ];
-      expect(
-        applyConflictResolutions(plan, conflicts, const {}),
-        same(plan),
-      );
+      expect(applyConflictResolutions(plan, conflicts, const {}), same(plan));
     });
 
     test('keepLocal 把 download 反转为 upload', () {
@@ -117,8 +134,9 @@ void main() {
         SyncOperation(kind: SyncOperationKind.download, id: 'a'),
       ]);
       final conflicts = [_conflict('a')];
-      final out =
-          applyConflictResolutions(plan, conflicts, {'a': ConflictResolution.keepLocal});
+      final out = applyConflictResolutions(plan, conflicts, {
+        'a': ConflictResolution.keepLocal,
+      });
       expect(out.operations, hasLength(1));
       expect(out.operations.single.kind, SyncOperationKind.upload);
       expect(out.operations.single.id, 'a');
@@ -129,8 +147,9 @@ void main() {
         SyncOperation(kind: SyncOperationKind.upload, id: 'a'),
       ]);
       final conflicts = [_conflict('a')];
-      final out =
-          applyConflictResolutions(plan, conflicts, {'a': ConflictResolution.keepRemote});
+      final out = applyConflictResolutions(plan, conflicts, {
+        'a': ConflictResolution.keepRemote,
+      });
       expect(out.operations.single.kind, SyncOperationKind.download);
     });
 
@@ -139,8 +158,9 @@ void main() {
         SyncOperation(kind: SyncOperationKind.download, id: 'a'),
       ]);
       final conflicts = [_conflict('a')];
-      final out =
-          applyConflictResolutions(plan, conflicts, {'a': ConflictResolution.keepBoth});
+      final out = applyConflictResolutions(plan, conflicts, {
+        'a': ConflictResolution.keepBoth,
+      });
       expect(out.operations.single.kind, SyncOperationKind.upload);
     });
 
@@ -150,7 +170,9 @@ void main() {
         SyncOperation(kind: SyncOperationKind.download, id: 'b'),
       ]);
       final conflicts = [_conflict('a'), _conflict('b')];
-      final out = applyConflictResolutions(plan, conflicts, {'a': ConflictResolution.keepLocal});
+      final out = applyConflictResolutions(plan, conflicts, {
+        'a': ConflictResolution.keepLocal,
+      });
       // b 未裁决 → 保持 download；a → upload（原即 upload）。
       expect(out.operations, hasLength(2));
       final byId = {for (final op in out.operations) op.id: op.kind};
@@ -161,8 +183,9 @@ void main() {
     test('被裁决但计划无操作 → 补充强制操作', () {
       final plan = makePlan([]); // 两端相等被忽略，无操作
       final conflicts = [_conflict('a')];
-      final out =
-          applyConflictResolutions(plan, conflicts, {'a': ConflictResolution.keepRemote});
+      final out = applyConflictResolutions(plan, conflicts, {
+        'a': ConflictResolution.keepRemote,
+      });
       expect(out.operations.single.kind, SyncOperationKind.download);
     });
 
@@ -173,8 +196,9 @@ void main() {
         SyncOperation(kind: SyncOperationKind.deleteRemote, id: 'c'),
       ]);
       final conflicts = [_conflict('a'), _conflict('b')];
-      final out =
-          applyConflictResolutions(plan, conflicts, {'a': ConflictResolution.keepLocal});
+      final out = applyConflictResolutions(plan, conflicts, {
+        'a': ConflictResolution.keepLocal,
+      });
       expect(out.operations.map((op) => op.kind).toList(), [
         SyncOperationKind.deleteRemote,
         SyncOperationKind.upload,
@@ -186,9 +210,9 @@ void main() {
 }
 
 SyncConflict _conflict(String id) => SyncConflict(
-      docId: id,
-      localUpdatedAt: 20,
-      localSize: 1,
-      remoteUpdatedAt: 30,
-      remoteSize: 1,
-    );
+  docId: id,
+  localUpdatedAt: 20,
+  localSize: 1,
+  remoteUpdatedAt: 30,
+  remoteSize: 1,
+);

@@ -462,10 +462,7 @@ extension _EditorPageDragOps on _EditorPageState {
     }
 
     for (final t in page.textItems) {
-      consider(
-        t.id,
-        Rect.fromLTWH(t.x, t.y, t.fontSize * 2, t.fontSize),
-      );
+      consider(t.id, Rect.fromLTWH(t.x, t.y, t.fontSize * 2, t.fontSize));
     }
     for (final i in page.imageItems) {
       consider(i.id, Rect.fromLTWH(i.x, i.y, i.width, i.height));

@@ -55,7 +55,6 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
     }
 
-    expect(loaderCalls, 1,
-        reason: '保存触发的反链重算必须复用缓存数据源（审计 P1-19）');
+    expect(loaderCalls, 1, reason: '保存触发的反链重算必须复用缓存数据源（审计 P1-19）');
   });
 }

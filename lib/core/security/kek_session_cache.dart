@@ -63,9 +63,7 @@ class KekSessionCache {
 
   static Uint8List _newPepper() {
     final r = Random.secure();
-    return Uint8List.fromList(
-      List<int>.generate(32, (_) => r.nextInt(256)),
-    );
+    return Uint8List.fromList(List<int>.generate(32, (_) => r.nextInt(256)));
   }
 
   /// 测试旁路：为 true 时跳过 `Isolate.run`，在当前 isolate 直接派生。

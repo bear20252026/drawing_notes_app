@@ -99,7 +99,9 @@ void main() {
         contains('删除'),
       );
       expect(
-        const SyncProgress(phase: SyncProgressPhase.writingManifest).description,
+        const SyncProgress(
+          phase: SyncProgressPhase.writingManifest,
+        ).description,
         contains('清单'),
       );
     });

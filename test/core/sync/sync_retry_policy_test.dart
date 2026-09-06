@@ -7,8 +7,14 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('SyncRetryDecision', () {
     test('enum values exist', () {
-      expect(SyncRetryDecision.values,
-          containsAll([SyncRetryDecision.retry, SyncRetryDecision.backoff, SyncRetryDecision.giveUp]));
+      expect(
+        SyncRetryDecision.values,
+        containsAll([
+          SyncRetryDecision.retry,
+          SyncRetryDecision.backoff,
+          SyncRetryDecision.giveUp,
+        ]),
+      );
     });
   });
 
@@ -16,52 +22,98 @@ void main() {
     const policy = SyncRetryPolicy();
 
     test('failure 1 → retry', () {
-      expect(policy.decide(const SyncRetryInput(failureCount: 1, elapsed: Duration.zero)),
-          SyncRetryDecision.retry);
+      expect(
+        policy.decide(
+          const SyncRetryInput(failureCount: 1, elapsed: Duration.zero),
+        ),
+        SyncRetryDecision.retry,
+      );
     });
 
     test('failure 1 with elapsed time still → retry', () {
-      expect(policy.decide(const SyncRetryInput(failureCount: 1, elapsed: Duration(seconds: 10))),
-          SyncRetryDecision.retry);
+      expect(
+        policy.decide(
+          const SyncRetryInput(failureCount: 1, elapsed: Duration(seconds: 10)),
+        ),
+        SyncRetryDecision.retry,
+      );
     });
 
     test('failure 2 with short elapsed → backoff', () {
-      expect(policy.decide(const SyncRetryInput(failureCount: 2, elapsed: Duration(seconds: 3))),
-          SyncRetryDecision.backoff);
+      expect(
+        policy.decide(
+          const SyncRetryInput(failureCount: 2, elapsed: Duration(seconds: 3)),
+        ),
+        SyncRetryDecision.backoff,
+      );
     });
 
     test('failure 3 with short elapsed → backoff', () {
-      expect(policy.decide(const SyncRetryInput(failureCount: 3, elapsed: Duration(seconds: 10))),
-          SyncRetryDecision.backoff);
+      expect(
+        policy.decide(
+          const SyncRetryInput(failureCount: 3, elapsed: Duration(seconds: 10)),
+        ),
+        SyncRetryDecision.backoff,
+      );
     });
 
     test('failure 4 → giveUp (maxAttempts reached)', () {
-      expect(policy.decide(const SyncRetryInput(failureCount: 4, elapsed: Duration.zero)),
-          SyncRetryDecision.giveUp);
+      expect(
+        policy.decide(
+          const SyncRetryInput(failureCount: 4, elapsed: Duration.zero),
+        ),
+        SyncRetryDecision.giveUp,
+      );
     });
 
     test('failure 5 → giveUp', () {
-      expect(policy.decide(const SyncRetryInput(failureCount: 5, elapsed: Duration(seconds: 5))),
-          SyncRetryDecision.giveUp);
+      expect(
+        policy.decide(
+          const SyncRetryInput(failureCount: 5, elapsed: Duration(seconds: 5)),
+        ),
+        SyncRetryDecision.giveUp,
+      );
     });
 
     test('long elapsed (>=60s) → giveUp even with few attempts', () {
-      expect(policy.decide(const SyncRetryInput(failureCount: 2, elapsed: Duration(seconds: 60))),
-          SyncRetryDecision.giveUp);
-      expect(policy.decide(const SyncRetryInput(failureCount: 2, elapsed: Duration(seconds: 90))),
-          SyncRetryDecision.giveUp);
+      expect(
+        policy.decide(
+          const SyncRetryInput(failureCount: 2, elapsed: Duration(seconds: 60)),
+        ),
+        SyncRetryDecision.giveUp,
+      );
+      expect(
+        policy.decide(
+          const SyncRetryInput(failureCount: 2, elapsed: Duration(seconds: 90)),
+        ),
+        SyncRetryDecision.giveUp,
+      );
     });
 
-    test('failure 3 with elapsed past backoff window but before giveUp → giveUp', () {
-      // elapsed >= 15s (backoffWindow) but < 60s (giveUpWindow), failureCount=3 < 4
-      expect(policy.decide(const SyncRetryInput(failureCount: 3, elapsed: Duration(seconds: 20))),
-          SyncRetryDecision.giveUp);
-    });
+    test(
+      'failure 3 with elapsed past backoff window but before giveUp → giveUp',
+      () {
+        // elapsed >= 15s (backoffWindow) but < 60s (giveUpWindow), failureCount=3 < 4
+        expect(
+          policy.decide(
+            const SyncRetryInput(
+              failureCount: 3,
+              elapsed: Duration(seconds: 20),
+            ),
+          ),
+          SyncRetryDecision.giveUp,
+        );
+      },
+    );
 
     test('failure 2 at exactly backoffWindow boundary → giveUp', () {
       // elapsed == 15s is NOT < 15s, so giveUp
-      expect(policy.decide(const SyncRetryInput(failureCount: 2, elapsed: Duration(seconds: 15))),
-          SyncRetryDecision.giveUp);
+      expect(
+        policy.decide(
+          const SyncRetryInput(failureCount: 2, elapsed: Duration(seconds: 15)),
+        ),
+        SyncRetryDecision.giveUp,
+      );
     });
   });
 
@@ -97,10 +149,16 @@ void main() {
     });
 
     test('delay curve is monotonically non-decreasing', () {
-      final delays = List.generate(8, (i) => policy.delayFor(i + 1).inMilliseconds);
+      final delays = List.generate(
+        8,
+        (i) => policy.delayFor(i + 1).inMilliseconds,
+      );
       for (var i = 1; i < delays.length; i++) {
-        expect(delays[i], greaterThanOrEqualTo(delays[i - 1]),
-            reason: 'delay at attempt ${i + 1} should be >= delay at attempt $i');
+        expect(
+          delays[i],
+          greaterThanOrEqualTo(delays[i - 1]),
+          reason: 'delay at attempt ${i + 1} should be >= delay at attempt $i',
+        );
       }
     });
   });
@@ -113,10 +171,18 @@ void main() {
     test('custom maxAttempts respected', () {
       const custom = SyncRetryPolicy(maxAttempts: 6);
       expect(custom.maxAttempts, 6);
-      expect(custom.decide(const SyncRetryInput(failureCount: 4, elapsed: Duration.zero)),
-          SyncRetryDecision.backoff);
-      expect(custom.decide(const SyncRetryInput(failureCount: 6, elapsed: Duration.zero)),
-          SyncRetryDecision.giveUp);
+      expect(
+        custom.decide(
+          const SyncRetryInput(failureCount: 4, elapsed: Duration.zero),
+        ),
+        SyncRetryDecision.backoff,
+      );
+      expect(
+        custom.decide(
+          const SyncRetryInput(failureCount: 6, elapsed: Duration.zero),
+        ),
+        SyncRetryDecision.giveUp,
+      );
     });
   });
 
@@ -125,7 +191,8 @@ void main() {
 
     test('retry outcome has zero backoff and canRetry', () {
       final outcome = policy.decideOutcome(
-          const SyncRetryInput(failureCount: 1, elapsed: Duration.zero));
+        const SyncRetryInput(failureCount: 1, elapsed: Duration.zero),
+      );
       expect(outcome.decision, SyncRetryDecision.retry);
       expect(outcome.backoff, Duration.zero);
       expect(outcome.canRetry, isTrue);
@@ -133,7 +200,8 @@ void main() {
 
     test('backoff outcome has positive backoff and canRetry', () {
       final outcome = policy.decideOutcome(
-          const SyncRetryInput(failureCount: 2, elapsed: Duration(seconds: 3)));
+        const SyncRetryInput(failureCount: 2, elapsed: Duration(seconds: 3)),
+      );
       expect(outcome.decision, SyncRetryDecision.backoff);
       expect(outcome.backoff, const Duration(seconds: 1));
       expect(outcome.canRetry, isTrue);
@@ -141,7 +209,8 @@ void main() {
 
     test('giveUp outcome has null backoff and cannot retry', () {
       final outcome = policy.decideOutcome(
-          const SyncRetryInput(failureCount: 4, elapsed: Duration.zero));
+        const SyncRetryInput(failureCount: 4, elapsed: Duration.zero),
+      );
       expect(outcome.decision, SyncRetryDecision.giveUp);
       expect(outcome.backoff, isNull);
       expect(outcome.canRetry, isFalse);
@@ -152,7 +221,10 @@ void main() {
     const policy = SyncRetryPolicy();
 
     test('same input always yields same decision', () {
-      const input = SyncRetryInput(failureCount: 3, elapsed: Duration(seconds: 8));
+      const input = SyncRetryInput(
+        failureCount: 3,
+        elapsed: Duration(seconds: 8),
+      );
       final first = policy.decide(input);
       for (var i = 0; i < 10; i++) {
         expect(policy.decide(input), first);
@@ -160,7 +232,10 @@ void main() {
     });
 
     test('same input always yields same outcome', () {
-      const input = SyncRetryInput(failureCount: 2, elapsed: Duration(seconds: 5));
+      const input = SyncRetryInput(
+        failureCount: 2,
+        elapsed: Duration(seconds: 5),
+      );
       final first = policy.decideOutcome(input);
       for (var i = 0; i < 10; i++) {
         final again = policy.decideOutcome(input);
@@ -177,14 +252,26 @@ void main() {
         giveUpWindow: Duration(seconds: 45),
       );
       // failure 2, elapsed 8s < 10s → backoff
-      expect(custom.decide(const SyncRetryInput(failureCount: 2, elapsed: Duration(seconds: 8))),
-          SyncRetryDecision.backoff);
+      expect(
+        custom.decide(
+          const SyncRetryInput(failureCount: 2, elapsed: Duration(seconds: 8)),
+        ),
+        SyncRetryDecision.backoff,
+      );
       // failure 2, elapsed 12s >= 10s but < 45s → giveUp
-      expect(custom.decide(const SyncRetryInput(failureCount: 2, elapsed: Duration(seconds: 12))),
-          SyncRetryDecision.giveUp);
+      expect(
+        custom.decide(
+          const SyncRetryInput(failureCount: 2, elapsed: Duration(seconds: 12)),
+        ),
+        SyncRetryDecision.giveUp,
+      );
       // failure 2, elapsed 45s >= 45s → giveUp
-      expect(custom.decide(const SyncRetryInput(failureCount: 2, elapsed: Duration(seconds: 45))),
-          SyncRetryDecision.giveUp);
+      expect(
+        custom.decide(
+          const SyncRetryInput(failureCount: 2, elapsed: Duration(seconds: 45)),
+        ),
+        SyncRetryDecision.giveUp,
+      );
     });
 
     test('custom baseDelay and maxDelay', () {

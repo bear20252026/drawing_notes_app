@@ -21,7 +21,9 @@ void main() {
   tearDown(() {
     try {
       tempDir.deleteSync(recursive: true);
-    } catch (_) {/* 忽略清理失败 */}
+    } catch (_) {
+      /* 忽略清理失败 */
+    }
   });
 
   Future<NotebookStorage> buildStorage({VaultService? vfs}) async {

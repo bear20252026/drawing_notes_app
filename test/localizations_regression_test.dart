@@ -29,11 +29,15 @@ Widget _app() {
           body: Column(
             children: [
               // 探针：直接读取 MaterialLocalizations，证明其存在。
-              Builder(builder: (_) {
-                final l = MaterialLocalizations.of(context);
-                return Text('FL_ML=${l.backButtonTooltip}',
-                    textDirection: TextDirection.ltr);
-              }),
+              Builder(
+                builder: (_) {
+                  final l = MaterialLocalizations.of(context);
+                  return Text(
+                    'FL_ML=${l.backButtonTooltip}',
+                    textDirection: TextDirection.ltr,
+                  );
+                },
+              ),
               const TextField(decoration: InputDecoration(hintText: '快速搜索')),
             ],
           ),
@@ -44,8 +48,9 @@ Widget _app() {
 }
 
 void main() {
-  testWidgets('统一方言：TextField 找到 MaterialLocalizations（单一 delegate）',
-      (tester) async {
+  testWidgets('统一方言：TextField 找到 MaterialLocalizations（单一 delegate）', (
+    tester,
+  ) async {
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
 

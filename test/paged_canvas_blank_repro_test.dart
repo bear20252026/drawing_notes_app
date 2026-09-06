@@ -17,8 +17,7 @@ import 'package:drawing_notes_app/features/notes/application/notebook_page_edito
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 
 void main() {
-  testWidgets('分页画布：controller 直接起笔画后图层收到笔画（图层摄取链健康）',
-      (tester) async {
+  testWidgets('分页画布：controller 直接起笔画后图层收到笔画（图层摄取链健康）', (tester) async {
     // 与 NotebookPageTemplateStrategy 默认一致的固定 A4 尺寸页面。
     final page = NotebookPage(
       id: 'page-1',
@@ -58,7 +57,10 @@ void main() {
       isNotEmpty,
       reason: 'controller 直接起笔应写入当前图层：${current.id}',
     );
-    expect(page.document.layers.first.strokes, current.strokes,
-        reason: '当前图层必须是页面文档的图层');
+    expect(
+      page.document.layers.first.strokes,
+      current.strokes,
+      reason: '当前图层必须是页面文档的图层',
+    );
   });
 }

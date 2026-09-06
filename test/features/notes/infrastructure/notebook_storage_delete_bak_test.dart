@@ -42,15 +42,13 @@ void main() {
     await storage.save(nb);
     await storage.save(nb);
     expect(await mainFile('nb1').exists(), isTrue);
-    expect(await bakFile('nb1').exists(), isTrue,
-        reason: '前置条件：二次保存后应存在 .bak');
+    expect(await bakFile('nb1').exists(), isTrue, reason: '前置条件：二次保存后应存在 .bak');
 
     final ok = await storage.delete('nb1');
 
     expect(ok, isTrue);
     expect(await mainFile('nb1').exists(), isFalse);
-    expect(await bakFile('nb1').exists(), isFalse,
-        reason: '三-5：.bak 不得残留旧内容');
+    expect(await bakFile('nb1').exists(), isFalse, reason: '三-5：.bak 不得残留旧内容');
     // 删除后 load 不再凭备份复活。
     expect(await storage.load('nb1'), isNull);
   });

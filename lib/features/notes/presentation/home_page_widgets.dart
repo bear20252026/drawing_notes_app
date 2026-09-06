@@ -427,4 +427,3 @@ class _NameDialogState extends State<_NameDialog> {
     );
   }
 }
-

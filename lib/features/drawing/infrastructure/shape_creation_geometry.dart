@@ -50,8 +50,7 @@ class ShapeCreationGeometry {
   factory ShapeCreationGeometry.fromDrag(Offset start, Offset end) {
     final dx = end.dx - start.dx;
     final dy = end.dy - start.dy;
-    final isClick =
-        dx.abs() < clickThreshold && dy.abs() < clickThreshold;
+    final isClick = dx.abs() < clickThreshold && dy.abs() < clickThreshold;
     final width = isClick
         ? _defaultWidth
         : dx.abs().clamp(_minSize, _maxSize).toDouble();
@@ -111,10 +110,7 @@ class ShapeCreationGeometry {
       );
     }
     if (!linear) return (start: start, end: end);
-    return (
-      start: start,
-      end: snapDragAngle(start, end, force: forceAngle),
-    );
+    return (start: start, end: snapDragAngle(start, end, force: forceAngle));
   }
 
   PageShapeItem createShape({

@@ -445,10 +445,7 @@ class ShapePainter extends CustomPainter {
       case ShapeType.line:
         // 与 ShapeRenderer.drawLocal 对齐：优先使用保存的真实端点，
         // 旧文档无端点时回退为"左下→右上"对角线。
-        final lineStart = endpoint(
-          shape.lineStart,
-          Offset(0, size.height),
-        );
+        final lineStart = endpoint(shape.lineStart, Offset(0, size.height));
         final lineEnd = endpoint(shape.lineEnd, Offset(size.width, 0));
         drawStroke(
           Path()

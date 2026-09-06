@@ -55,8 +55,7 @@ class KdfParams {
   static const int maxMemoryKiB = 262144; // 256 MiB（生产 64 MiB 的 4 倍）
   static const int maxTimeCost = 8; // 生产 t2 的 4 倍
   static const int maxParallelism = 8; // 生产 p2 的 4 倍
-  static const int maxPbkdf2Iterations =
-      1200000; // 生产 600k 的 2 倍（覆盖 100k 旧产线）
+  static const int maxPbkdf2Iterations = 1200000; // 生产 600k 的 2 倍（覆盖 100k 旧产线）
 
   /// 新槽位 KDF 默认值（生产恒为 [argon2idProduction]）。
   ///

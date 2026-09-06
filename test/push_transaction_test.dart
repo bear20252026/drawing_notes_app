@@ -21,14 +21,18 @@ class _CountCommand extends DocCommand {
 void main() {
   group('pushTransaction 撤销栈接入', () {
     test('空列表直接忽略（不产生历史条目）', () {
-      final controller = DrawingController(DrawingDocument(id: 'txn_test', title: '事务测试'));
+      final controller = DrawingController(
+        DrawingDocument(id: 'txn_test', title: '事务测试'),
+      );
       controller.pushTransaction([]);
       expect(controller.canUndo, isFalse, reason: '空事务不应入栈');
       controller.dispose();
     });
 
     test('多命令打包为单条目：一次 undo 整体回滚', () {
-      final controller = DrawingController(DrawingDocument(id: 'txn_test', title: '事务测试'));
+      final controller = DrawingController(
+        DrawingDocument(id: 'txn_test', title: '事务测试'),
+      );
       final redo = <String>[];
       final undo = <String>[];
       controller.pushTransaction([
@@ -48,7 +52,9 @@ void main() {
     });
 
     test('事务与单命令共享同一撤销栈（顺序正确）', () {
-      final controller = DrawingController(DrawingDocument(id: 'txn_test', title: '事务测试'));
+      final controller = DrawingController(
+        DrawingDocument(id: 'txn_test', title: '事务测试'),
+      );
       final redo = <String>[];
       final undo = <String>[];
 

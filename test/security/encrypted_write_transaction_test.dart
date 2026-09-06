@@ -19,7 +19,9 @@ void main() {
   tearDown(() {
     try {
       tempDir.deleteSync(recursive: true);
-    } catch (_) {/* 忽略清理失败 */}
+    } catch (_) {
+      /* 忽略清理失败 */
+    }
   });
 
   test('S-001：V1 明文 destination 拒绝——不生成 .bak——主文件不变', () async {
@@ -31,16 +33,18 @@ void main() {
       aadContext: 'notebook|n1|payload|v2',
     );
     await expectLater(
-      txn.commit(
-        destination: dest,
-        plain: Uint8List.fromList('新内容'.codeUnits),
-      ),
+      txn.commit(destination: dest, plain: Uint8List.fromList('新内容'.codeUnits)),
       throwsA(isA<MigrationRequiredException>()),
     );
     // 主文件不变（未被覆盖）+ 无 .bak + 无 .tmp。
     expect(await dest.readAsString(), 'W1_LEGACY_PLAINTEXT_001');
     expect(await File('${dest.path}.bak').exists(), isFalse);
-    expect(tempDir.listSync().whereType<File>().where((f) => f.path.endsWith('.tmp')), isEmpty);
+    expect(
+      tempDir.listSync().whereType<File>().where(
+        (f) => f.path.endsWith('.tmp'),
+      ),
+      isEmpty,
+    );
   });
 
   test('S-002：V2 第二次写入只产生密文备份（magic 可解析——无明文）', () async {
@@ -50,11 +54,20 @@ void main() {
       aadContext: 'notebook|n2|payload|v2',
     );
     // 第一次 V2 写入 A——无 .bak。
-    await txn.commit(destination: dest, plain: Uint8List.fromList('机密-A'.codeUnits));
+    await txn.commit(
+      destination: dest,
+      plain: Uint8List.fromList('机密-A'.codeUnits),
+    );
     expect(await File('${dest.path}.bak').exists(), isFalse);
     // 第二次 V2 写入 B——.bak 出现（ValidV2——magic 可解析）。
-    await txn.commit(destination: dest, plain: Uint8List.fromList('机密-B'.codeUnits));
-    expect(await txn.destinationState(File('${dest.path}.bak')), isA<ValidV2Ciphertext>());
+    await txn.commit(
+      destination: dest,
+      plain: Uint8List.fromList('机密-B'.codeUnits),
+    );
+    expect(
+      await txn.destinationState(File('${dest.path}.bak')),
+      isA<ValidV2Ciphertext>(),
+    );
     // 主/.bak 均不含明文 A/B。
     final mainBytes = await dest.readAsBytes();
     final bakBytes = await File('${dest.path}.bak').readAsBytes();
@@ -63,7 +76,10 @@ void main() {
     expect(String.fromCharCodes(bakBytes).contains('机密-A'), isFalse);
     expect(String.fromCharCodes(bakBytes).contains('机密-B'), isFalse);
     // AAD notebookId 不匹配时解密失败（V2 密文不可被跨笔记解读）。
-    final wrongTxn = EncryptedWriteTransaction(key: key, aadContext: 'notebook|OTHER|payload|v2');
+    final wrongTxn = EncryptedWriteTransaction(
+      key: key,
+      aadContext: 'notebook|OTHER|payload|v2',
+    );
     final box = await wrongTxn.destinationState(dest);
     expect(box, isA<ValidV2Ciphertext>()); // header 可识别——但 AAD 认证失败在解密层。
   });
@@ -75,7 +91,10 @@ void main() {
       aadContext: 'notebook|n3|payload|v2',
     );
     // 第一次 V2 写入（主文件存在——第二次提交时需备份）。
-    await txn.commit(destination: dest, plain: Uint8List.fromList('旧版本'.codeUnits));
+    await txn.commit(
+      destination: dest,
+      plain: Uint8List.fromList('旧版本'.codeUnits),
+    );
     final oldBytes = await dest.readAsBytes();
     // 让 .bak 路径被目录占用——copy 失败（FileSystemException）。
     await Directory('${dest.path}.bak').create();
@@ -93,15 +112,29 @@ void main() {
       key: key,
       aadContext: 'notebook|n4|payload|v2',
     );
-    await txn.commit(destination: dest, plain: Uint8List.fromList('旧版本'.codeUnits));
+    await txn.commit(
+      destination: dest,
+      plain: Uint8List.fromList('旧版本'.codeUnits),
+    );
     final oldBytes = await dest.readAsBytes();
     // 无效密钥（长度错误——commit 抛异常）——中断——旧文件保留。
-    final badTxn = EncryptedWriteTransaction(key: const [], aadContext: 'notebook|n4|payload|v2');
+    final badTxn = EncryptedWriteTransaction(
+      key: const [],
+      aadContext: 'notebook|n4|payload|v2',
+    );
     await expectLater(
-      badTxn.commit(destination: dest, plain: Uint8List.fromList('新版本'.codeUnits)),
+      badTxn.commit(
+        destination: dest,
+        plain: Uint8List.fromList('新版本'.codeUnits),
+      ),
       throwsA(isA<ArgumentError>()),
     );
     expect(await dest.readAsBytes(), oldBytes);
-    expect(tempDir.listSync().whereType<File>().where((f) => f.path.endsWith('.tmp')), isEmpty);
+    expect(
+      tempDir.listSync().whereType<File>().where(
+        (f) => f.path.endsWith('.tmp'),
+      ),
+      isEmpty,
+    );
   });
 }

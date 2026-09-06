@@ -103,7 +103,8 @@ extension _EditorPageCanvasSurface on _EditorPageState {
                                 painter: ConnectorPainter(
                                   connectors: widget.session!.connectors,
                                   itemPositions: {
-                                    for (final text in widget.session!.textItems)
+                                    for (final text
+                                        in widget.session!.textItems)
                                       text.id: text.position,
                                     for (final image
                                         in widget.session!.imageItems)
@@ -205,7 +206,8 @@ extension _EditorPageCanvasSurface on _EditorPageState {
                         if (base == null) return;
                         _controller.updateSelectedLinearEndpoint(
                           isStart: isStart,
-                          point: (isStart ? base.start : base.end) +
+                          point:
+                              (isStart ? base.start : base.end) +
                               _linearEndpointAccum,
                           snapToGrid: _snapToGrid,
                         );
@@ -222,9 +224,7 @@ extension _EditorPageCanvasSurface on _EditorPageState {
                         _notifyChanged();
                       },
                     );
-                    return Stack(
-                      children: [handle(true), handle(false)],
-                    );
+                    return Stack(children: [handle(true), handle(false)]);
                   },
                 ),
               ),
@@ -269,8 +269,7 @@ extension _EditorPageCanvasSurface on _EditorPageState {
                     child: ConstrainedBox(
                       constraints: BoxConstraints(
                         maxWidth: 56,
-                        maxHeight:
-                            constraints.biggest.height - AppleSpacing.sm,
+                        maxHeight: constraints.biggest.height - AppleSpacing.sm,
                       ),
                       child: _buildLeftToolbar(),
                     ),

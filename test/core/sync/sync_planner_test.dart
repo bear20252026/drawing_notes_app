@@ -12,7 +12,9 @@ void main() {
       final local = SyncManifest(entries: {'a': _s('a', 1000)});
       final remote = const SyncManifest();
       final plan = planner.plan(local, remote);
-      expect(plan.operations, [const SyncOperation(kind: SyncOperationKind.upload, id: 'a')]);
+      expect(plan.operations, [
+        const SyncOperation(kind: SyncOperationKind.upload, id: 'a'),
+      ]);
       expect(plan.uploadCount, 1);
       expect(plan.downloadCount, 0);
       expect(plan.deleteCount, 0);
@@ -22,7 +24,9 @@ void main() {
       final local = const SyncManifest();
       final remote = SyncManifest(entries: {'b': _s('b', 1000)});
       final plan = planner.plan(local, remote);
-      expect(plan.operations, [const SyncOperation(kind: SyncOperationKind.download, id: 'b')]);
+      expect(plan.operations, [
+        const SyncOperation(kind: SyncOperationKind.download, id: 'b'),
+      ]);
       expect(plan.downloadCount, 1);
     });
 
@@ -30,14 +34,18 @@ void main() {
       final local = SyncManifest(entries: {'a': _s('a', 2000)});
       final remote = SyncManifest(entries: {'a': _s('a', 1000)});
       final plan = planner.plan(local, remote);
-      expect(plan.operations, [const SyncOperation(kind: SyncOperationKind.upload, id: 'a')]);
+      expect(plan.operations, [
+        const SyncOperation(kind: SyncOperationKind.upload, id: 'a'),
+      ]);
     });
 
     test('远端较新 → download', () {
       final local = SyncManifest(entries: {'a': _s('a', 1000)});
       final remote = SyncManifest(entries: {'a': _s('a', 3000)});
       final plan = planner.plan(local, remote);
-      expect(plan.operations, [const SyncOperation(kind: SyncOperationKind.download, id: 'a')]);
+      expect(plan.operations, [
+        const SyncOperation(kind: SyncOperationKind.download, id: 'a'),
+      ]);
     });
 
     test('同 updatedAt → 忽略（无操作）', () {
@@ -54,10 +62,9 @@ void main() {
         entries: {'keep': _s('keep', 1000)},
         deletedIds: const {'gone'},
       );
-      final remote = SyncManifest(entries: {
-        'keep': _s('keep', 1000),
-        'gone': _s('gone', 1000),
-      });
+      final remote = SyncManifest(
+        entries: {'keep': _s('keep', 1000), 'gone': _s('gone', 1000)},
+      );
       final plan = planner.plan(local, remote);
       expect(plan.deleteCount, 1);
       expect(plan.operations.first.kind, SyncOperationKind.deleteRemote);
@@ -86,24 +93,29 @@ void main() {
 
   group('SyncPlanner 操作顺序确定性', () {
     test('先 deleteRemote，再按 id 排序的 upload/download', () {
-      final local = SyncManifest(entries: {
-        'z_up': _s('z_up', 2000),
-        'a_up': _s('a_up', 2000),
-      }, deletedIds: const {'del1', 'del2'});
-      final remote = SyncManifest(entries: {
-        'z_up': _s('z_up', 1000),
-        'a_up': _s('a_up', 1000),
-        'del1': _s('del1', 1000),
-        'del2': _s('del2', 1000),
-        'm_down': _s('m_down', 5000),
-        'b_down': _s('b_down', 5000),
-      });
+      final local = SyncManifest(
+        entries: {'z_up': _s('z_up', 2000), 'a_up': _s('a_up', 2000)},
+        deletedIds: const {'del1', 'del2'},
+      );
+      final remote = SyncManifest(
+        entries: {
+          'z_up': _s('z_up', 1000),
+          'a_up': _s('a_up', 1000),
+          'del1': _s('del1', 1000),
+          'del2': _s('del2', 1000),
+          'm_down': _s('m_down', 5000),
+          'b_down': _s('b_down', 5000),
+        },
+      );
       final plan = planner.plan(local, remote);
       final kinds = plan.operations.map((o) => o.kind).toList();
       final ids = plan.operations.map((o) => o.id).toList();
 
       // deleteRemote 在前
-      expect(kinds.take(2), [SyncOperationKind.deleteRemote, SyncOperationKind.deleteRemote]);
+      expect(kinds.take(2), [
+        SyncOperationKind.deleteRemote,
+        SyncOperationKind.deleteRemote,
+      ]);
       // 然后 upload（按 id 排序）
       expect(ids[2], 'a_up');
       expect(ids[3], 'z_up');
@@ -120,10 +132,9 @@ void main() {
     });
 
     test('空 local + 远端有 → 全部 download', () {
-      final remote = SyncManifest(entries: {
-        'x': _s('x', 1000),
-        'y': _s('y', 1000),
-      });
+      final remote = SyncManifest(
+        entries: {'x': _s('x', 1000), 'y': _s('y', 1000)},
+      );
       final plan = planner.plan(const SyncManifest(), remote);
       expect(plan.downloadCount, 2);
       expect(plan.uploadCount, 0);

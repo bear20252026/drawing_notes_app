@@ -26,9 +26,7 @@ NotebookPage emptyPage({String id = 'p', bool clone = false}) => NotebookPage(
 
 NotebookPage pageWithText({String id = 'p', bool clone = false}) {
   final page = emptyPage(id: id, clone: clone);
-  page.textItems.add(
-    PageTextItem(id: 'text-$id', x: 0, y: 0, text: '手写批注'),
-  );
+  page.textItems.add(PageTextItem(id: 'text-$id', x: 0, y: 0, text: '手写批注'));
   return page;
 }
 
@@ -42,7 +40,10 @@ void main() {
     });
 
     test('页面均为空内容（刚打开未修改）→ 无需保存', () {
-      expect(hasUnpersistedPageContent([emptyPage(id: 'a'), emptyPage(id: 'b')]), isFalse);
+      expect(
+        hasUnpersistedPageContent([emptyPage(id: 'a'), emptyPage(id: 'b')]),
+        isFalse,
+      );
     });
 
     test('任一普通页内容有变化 → 需要保存', () {
@@ -53,7 +54,10 @@ void main() {
     });
 
     test('克隆页内容变化不计入（内容在源页，本页保存不写其快照）', () {
-      expect(hasUnpersistedPageContent([pageWithText(id: 'c', clone: true)]), isFalse);
+      expect(
+        hasUnpersistedPageContent([pageWithText(id: 'c', clone: true)]),
+        isFalse,
+      );
     });
 
     test('克隆页 + 普通页混合：普通页变化仍触发保存', () {

@@ -13,12 +13,14 @@ void main() {
   final now = DateTime(2026, 8, 28);
 
   NoteBlockDoc makeDoc() => NoteBlockDoc(
-        id: 'doc-st',
-        title: 'ST',
-        body: const [NoteBlock(id: 'b1', type: NoteBlockType.text, text: 'Hello world')],
-        createdAt: now,
-        updatedAt: now,
-      );
+    id: 'doc-st',
+    title: 'ST',
+    body: const [
+      NoteBlock(id: 'b1', type: NoteBlockType.text, text: 'Hello world'),
+    ],
+    createdAt: now,
+    updatedAt: now,
+  );
 
   Future<TextEditingController> focusBodyField(WidgetTester tester) async {
     // 找到正文块对应的 TextField（controller.text 匹配），点击聚焦。

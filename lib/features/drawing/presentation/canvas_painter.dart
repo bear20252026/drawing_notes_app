@@ -106,18 +106,8 @@ class CanvasPainter extends CustomPainter {
         // 以位图实际尺寸为 src、文档尺寸为 dst 统一缩放绘制。
         canvas.drawImageRect(
           image,
-          Rect.fromLTWH(
-            0,
-            0,
-            image.width.toDouble(),
-            image.height.toDouble(),
-          ),
-          Rect.fromLTWH(
-            0,
-            0,
-            doc.width.toDouble(),
-            doc.height.toDouble(),
-          ),
+          Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+          Rect.fromLTWH(0, 0, doc.width.toDouble(), doc.height.toDouble()),
           paint,
         );
       }

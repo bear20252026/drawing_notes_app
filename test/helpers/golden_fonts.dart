@@ -20,11 +20,9 @@ const String kGoldenCjkFamily = 'GoldenCjk';
 
 /// 加载打包的 CJK 字体；放在 `setUpAll(...)` 里只跑一次。
 Future<void> loadGoldenCjkFont() async {
-  final bytes = File('assets/fonts/DroidSansFallbackFull.ttf')
-      .readAsBytesSync()
-      .buffer
-      .asByteData();
-  final loader = FontLoader(kGoldenCjkFamily)
-    ..addFont(Future.value(bytes));
+  final bytes = File(
+    'assets/fonts/DroidSansFallbackFull.ttf',
+  ).readAsBytesSync().buffer.asByteData();
+  final loader = FontLoader(kGoldenCjkFamily)..addFont(Future.value(bytes));
   await loader.load();
 }

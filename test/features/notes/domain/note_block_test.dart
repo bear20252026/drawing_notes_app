@@ -46,7 +46,9 @@ void main() {
       final block = NoteBlock.attachmentBlock('x', attachment: a);
       expect(block.type, NoteBlockType.attachment);
       final raw = block.props['attachment'] as String;
-      final decoded = NoteAttachment.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      final decoded = NoteAttachment.fromJson(
+        jsonDecode(raw) as Map<String, dynamic>,
+      );
       expect(decoded, a);
     });
 

@@ -42,10 +42,6 @@ void main() {
     // 执行"显示或隐藏网格"（纯 setState，测试安全），面板应关闭。
     await tester.tap(find.text('显示或隐藏网格').first);
     await tester.pumpAndSettle();
-    expect(
-      find.text('命令面板'),
-      findsNothing,
-      reason: '执行命令后面板应关闭',
-    );
+    expect(find.text('命令面板'), findsNothing, reason: '执行命令后面板应关闭');
   });
 }

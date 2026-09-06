@@ -24,7 +24,11 @@ void main() {
       );
 
       const initialRect = Rect.fromLTWH(100, 200, 300, 400);
-      final frames = noteBlockDocToFrames(doc, docId: 'doc1', initialRect: initialRect);
+      final frames = noteBlockDocToFrames(
+        doc,
+        docId: 'doc1',
+        initialRect: initialRect,
+      );
 
       expect(frames.length, 1);
       expect(frames.first.doc.body.length, 3);
@@ -53,7 +57,11 @@ void main() {
       );
 
       const initialRect = Rect.fromLTWH(0, 0, 250, 350);
-      final frames = noteBlockDocToFrames(doc, docId: 'doc2', initialRect: initialRect);
+      final frames = noteBlockDocToFrames(
+        doc,
+        docId: 'doc2',
+        initialRect: initialRect,
+      );
 
       // 应拆成 3 个帧：[前导文本], [标题一, 内容一], [标题二, 内容二, 内容三]
       expect(frames.length, 3);
@@ -124,7 +132,11 @@ void main() {
       );
 
       const initialRect = Rect.fromLTWH(0, 0, 200, 300);
-      final frames = noteBlockDocToFrames(doc, docId: 'doc4', initialRect: initialRect);
+      final frames = noteBlockDocToFrames(
+        doc,
+        docId: 'doc4',
+        initialRect: initialRect,
+      );
 
       expect(frames.length, 2);
       // 第一帧含前导块
@@ -156,7 +168,12 @@ void main() {
         updatedAt: DateTime(2026, 1, 1),
       );
       const rect = Rect.fromLTWH(0, 0, 100, 100);
-      final frame = createBlankFrame(docId: 'nb', rect: rect, zIndex: 0, doc: customDoc);
+      final frame = createBlankFrame(
+        docId: 'nb',
+        rect: rect,
+        zIndex: 0,
+        doc: customDoc,
+      );
 
       expect(frame.doc.title, '自定义');
       expect(frame.doc.body.length, 1);
@@ -179,7 +196,11 @@ void main() {
       );
 
       const initialRect = Rect.fromLTWH(0, 0, 200, 300);
-      final frames = noteBlockDocToFrames(doc, docId: 'doc_rt', initialRect: initialRect);
+      final frames = noteBlockDocToFrames(
+        doc,
+        docId: 'doc_rt',
+        initialRect: initialRect,
+      );
       // 无 heading → 单帧
       expect(frames.length, 1);
 

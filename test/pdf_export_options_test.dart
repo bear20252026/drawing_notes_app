@@ -55,18 +55,12 @@ void main() {
     });
 
     test('极小内容放大钳制 ≤4', () {
-      final fit = fitContentOnPaper(
-        PdfPaper.a4,
-        content: const Size(100, 100),
-      );
+      final fit = fitContentOnPaper(PdfPaper.a4, content: const Size(100, 100));
       expect(fit.scale, 4.0);
     });
 
     test('空内容回退恒等（防除零）', () {
-      final fit = fitContentOnPaper(
-        PdfPaper.a4,
-        content: Size.zero,
-      );
+      final fit = fitContentOnPaper(PdfPaper.a4, content: Size.zero);
       expect(fit.scale, 1.0);
     });
   });
@@ -74,10 +68,7 @@ void main() {
   group('scaleStrokeForPaper 笔画变换', () {
     test('点列×scale+位移，线宽×scale，质感字段保留', () {
       final src = Stroke(
-        points: const [
-          StrokePoint(10, 20, 1.0),
-          StrokePoint(30, 40, 0.5),
-        ],
+        points: const [StrokePoint(10, 20, 1.0), StrokePoint(30, 40, 0.5)],
         color: const Color(0xFF112233),
         width: 5,
         type: BrushType.pen,

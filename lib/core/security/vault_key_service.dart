@@ -446,8 +446,7 @@ class VaultKeyService {
     Map<String, dynamic> pinSlot,
     Map<String, dynamic> doc,
   ) {
-    final legacyIter =
-        doc['iter'] is int ? doc['iter'] as int : iterations;
+    final legacyIter = doc['iter'] is int ? doc['iter'] as int : iterations;
     if (legacyIter <= 0 || legacyIter > KdfParams.maxPbkdf2Iterations) {
       throw const VaultUnlockException('保险库 KDF 参数不合法');
     }
@@ -606,8 +605,9 @@ class VaultKeyService {
   /// 随机 hex（tmp 后缀用）。
   static String _randomHex(int bytes) {
     final r = Random.secure();
-    return List<int>.generate(bytes, (_) => r.nextInt(256))
-        .map((b) => b.toRadixString(16).padLeft(2, '0'))
-        .join();
+    return List<int>.generate(
+      bytes,
+      (_) => r.nextInt(256),
+    ).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   }
 }

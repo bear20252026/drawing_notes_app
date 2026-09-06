@@ -68,10 +68,7 @@ void main() {
 
     test('非法输入走默认上限（只升不降）', () {
       expect(ImageDecodeCap.quantizedCacheWidth(0, 2.0), 2048);
-      expect(
-        ImageDecodeCap.quantizedCacheWidth(double.nan, 2.0),
-        2048,
-      );
+      expect(ImageDecodeCap.quantizedCacheWidth(double.nan, 2.0), 2048);
     });
   });
 
@@ -85,10 +82,11 @@ void main() {
       );
       final empty = _stroke(points: const []);
 
-      final visible = InkLayerPainter.cullStrokes(
-        [inside, outside, empty],
-        const Rect.fromLTWH(0, 0, 640, 480),
-      );
+      final visible = InkLayerPainter.cullStrokes([
+        inside,
+        outside,
+        empty,
+      ], const Rect.fromLTWH(0, 0, 640, 480));
 
       expect(visible, hasLength(1));
       expect(visible.single, same(inside));
@@ -98,10 +96,9 @@ void main() {
       final crossing = _stroke(
         points: const [StrokePoint(600, 100, 1), StrokePoint(700, 100, 1)],
       );
-      final visible = InkLayerPainter.cullStrokes(
-        [crossing],
-        const Rect.fromLTWH(0, 0, 640, 480),
-      );
+      final visible = InkLayerPainter.cullStrokes([
+        crossing,
+      ], const Rect.fromLTWH(0, 0, 640, 480));
       expect(visible, hasLength(1));
     });
   });
@@ -120,10 +117,7 @@ void main() {
 
     test('点列替换后（geometryRevision 递增）包围盒随之更新', () {
       final stroke = _stroke(
-        points: [
-          const StrokePoint(10, 10, 1),
-          const StrokePoint(200, 60, 1),
-        ],
+        points: [const StrokePoint(10, 10, 1), const StrokePoint(200, 60, 1)],
       );
       final before = StrokeRenderer.strokeBounds(stroke)!;
 
@@ -164,10 +158,7 @@ void main() {
 DrawingDocument _docWithStrokes(int strokeCount) {
   final strokes = List<Stroke>.generate(strokeCount, (i) {
     return Stroke(
-      points: [
-        StrokePoint(10.0 + i, 10.0, 1),
-        StrokePoint(110.0 + i, 80.0, 1),
-      ],
+      points: [StrokePoint(10.0 + i, 10.0, 1), StrokePoint(110.0 + i, 80.0, 1)],
       color: const Color(0xFF111111),
       width: 4,
       type: BrushType.pen,
@@ -179,8 +170,6 @@ DrawingDocument _docWithStrokes(int strokeCount) {
     width: 640,
     height: 480,
   );
-  doc.layers.add(
-    Layer(id: 'layer-u2', name: '图层 1', strokes: strokes),
-  );
+  doc.layers.add(Layer(id: 'layer-u2', name: '图层 1', strokes: strokes));
   return doc;
 }

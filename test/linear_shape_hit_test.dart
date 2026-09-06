@@ -8,25 +8,32 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_object_editing_session.dart';
 
-PageShapeItem _line(String id, Offset start, Offset end,
-        {double strokeWidth = 4}) =>
-    PageShapeItem(
-      id: id,
-      shapeType: ShapeType.line,
-      x: start.dx < end.dx ? start.dx : end.dx,
-      y: start.dy < end.dy ? start.dy : end.dy,
-      width: (end.dx - start.dx).abs().clamp(1, 10000),
-      height: (end.dy - start.dy).abs().clamp(1, 10000),
-      strokeWidth: strokeWidth,
-      lineStart: start - Offset(
+PageShapeItem _line(
+  String id,
+  Offset start,
+  Offset end, {
+  double strokeWidth = 4,
+}) => PageShapeItem(
+  id: id,
+  shapeType: ShapeType.line,
+  x: start.dx < end.dx ? start.dx : end.dx,
+  y: start.dy < end.dy ? start.dy : end.dy,
+  width: (end.dx - start.dx).abs().clamp(1, 10000),
+  height: (end.dy - start.dy).abs().clamp(1, 10000),
+  strokeWidth: strokeWidth,
+  lineStart:
+      start -
+      Offset(
         start.dx < end.dx ? start.dx : end.dx,
         start.dy < end.dy ? start.dy : end.dy,
       ),
-      lineEnd: end - Offset(
+  lineEnd:
+      end -
+      Offset(
         start.dx < end.dx ? start.dx : end.dx,
         start.dy < end.dy ? start.dy : end.dy,
       ),
-    );
+);
 
 void main() {
   const shapes = <PageShapeItem>[];
@@ -64,11 +71,7 @@ void main() {
     );
     // 外接框角落（0,0）距线 141px：旧判定命中、新判定不命中。
     expect(
-      DocumentObjectEditingSession.shapeHitTest(
-        line,
-        Offset.zero,
-        shapes,
-      ),
+      DocumentObjectEditingSession.shapeHitTest(line, Offset.zero, shapes),
       isFalse,
     );
   });

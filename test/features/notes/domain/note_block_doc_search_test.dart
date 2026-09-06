@@ -13,18 +13,36 @@ void main() {
         title: 'Flutter Guide',
         body: [
           NoteBlock.headingBlock('h1', level: 1, text: 'Getting Started'),
-          NoteBlock.textBlock('t1', text: 'Flutter is a UI toolkit for building natively compiled applications.'),
-          NoteBlock.textBlock('t2', text: 'Dart is the programming language used by Flutter.'),
+          NoteBlock.textBlock(
+            't1',
+            text:
+                'Flutter is a UI toolkit for building natively compiled applications.',
+          ),
+          NoteBlock.textBlock(
+            't2',
+            text: 'Dart is the programming language used by Flutter.',
+          ),
           NoteBlock(
             id: 'b1',
             type: NoteBlockType.bullet,
             text: 'Installation',
             children: [
-              NoteBlock(id: 'b1_1', type: NoteBlockType.bullet, text: 'Download the Flutter SDK'),
-              NoteBlock(id: 'b1_2', type: NoteBlockType.bullet, text: 'Set up your editor'),
+              NoteBlock(
+                id: 'b1_1',
+                type: NoteBlockType.bullet,
+                text: 'Download the Flutter SDK',
+              ),
+              NoteBlock(
+                id: 'b1_2',
+                type: NoteBlockType.bullet,
+                text: 'Set up your editor',
+              ),
             ],
           ),
-          NoteBlock.textBlock('t3', text: 'Widgets are the basic building blocks of a Flutter app.'),
+          NoteBlock.textBlock(
+            't3',
+            text: 'Widgets are the basic building blocks of a Flutter app.',
+          ),
         ],
         createdAt: now,
         updatedAt: now,

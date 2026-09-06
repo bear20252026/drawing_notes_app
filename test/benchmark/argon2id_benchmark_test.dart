@@ -25,9 +25,7 @@ import 'package:pointycastle/export.dart' as pc;
 /// kek_session_cache.dart 的 `_pbkdf2DeriveBytes` 逐字节一致）。
 Uint8List _pbkdf2DeriveBytes(String password, List<int> salt, int iterations) {
   final derivator = pc.PBKDF2KeyDerivator(pc.HMac(pc.SHA256Digest(), 64))
-    ..init(
-      pc.Pbkdf2Parameters(Uint8List.fromList(salt), iterations, 32),
-    );
+    ..init(pc.Pbkdf2Parameters(Uint8List.fromList(salt), iterations, 32));
   return derivator.process(Uint8List.fromList(password.codeUnits));
 }
 
@@ -74,59 +72,93 @@ void main() {
   });
 
   test('Argon2id 19MiB t=2 p=1（OWASP 起步参数）', () async {
-    await _time(() => _argon2idDerive(
-          password: benchPw, salt: salt,
-          memoryKiB: 19456, iterations: 2, parallelism: 1,
-        )); // 预热
-    final elapsed = await _time(() => _argon2idDerive(
-          password: benchPw, salt: salt,
-          memoryKiB: 19456, iterations: 2, parallelism: 1,
-        ));
+    await _time(
+      () => _argon2idDerive(
+        password: benchPw,
+        salt: salt,
+        memoryKiB: 19456,
+        iterations: 2,
+        parallelism: 1,
+      ),
+    ); // 预热
+    final elapsed = await _time(
+      () => _argon2idDerive(
+        password: benchPw,
+        salt: salt,
+        memoryKiB: 19456,
+        iterations: 2,
+        parallelism: 1,
+      ),
+    );
     // ignore: avoid_print
     print('Argon2id 19MiB t2 p1  : ${elapsed.inMilliseconds} ms');
   });
 
   test('Argon2id 19MiB t=3 p=1（t 上调档）', () async {
-    final elapsed = await _time(() => _argon2idDerive(
-          password: benchPw, salt: salt,
-          memoryKiB: 19456, iterations: 3, parallelism: 1,
-        ));
+    final elapsed = await _time(
+      () => _argon2idDerive(
+        password: benchPw,
+        salt: salt,
+        memoryKiB: 19456,
+        iterations: 3,
+        parallelism: 1,
+      ),
+    );
     // ignore: avoid_print
     print('Argon2id 19MiB t3 p1  : ${elapsed.inMilliseconds} ms');
   });
 
   test('Argon2id 48MiB t=1 p=1（m 上调档）', () async {
-    final elapsed = await _time(() => _argon2idDerive(
-          password: benchPw, salt: salt,
-          memoryKiB: 49152, iterations: 1, parallelism: 1,
-        ));
+    final elapsed = await _time(
+      () => _argon2idDerive(
+        password: benchPw,
+        salt: salt,
+        memoryKiB: 49152,
+        iterations: 1,
+        parallelism: 1,
+      ),
+    );
     // ignore: avoid_print
     print('Argon2id 48MiB t1 p1  : ${elapsed.inMilliseconds} ms');
   });
 
   test('Argon2id 64MiB t=2 p=2（强档，多核）', () async {
-    final elapsed = await _time(() => _argon2idDerive(
-          password: benchPw, salt: salt,
-          memoryKiB: 65536, iterations: 2, parallelism: 2,
-        ));
+    final elapsed = await _time(
+      () => _argon2idDerive(
+        password: benchPw,
+        salt: salt,
+        memoryKiB: 65536,
+        iterations: 2,
+        parallelism: 2,
+      ),
+    );
     // ignore: avoid_print
     print('Argon2id 64MiB t2 p2  : ${elapsed.inMilliseconds} ms');
   });
 
   test('确定性 + 长度断言（同输入同输出，32B）', () async {
     final a = await _argon2idDerive(
-      password: benchPw, salt: salt,
-      memoryKiB: 19456, iterations: 2, parallelism: 1,
+      password: benchPw,
+      salt: salt,
+      memoryKiB: 19456,
+      iterations: 2,
+      parallelism: 1,
     );
     final b = await _argon2idDerive(
-      password: benchPw, salt: salt,
-      memoryKiB: 19456, iterations: 2, parallelism: 1,
+      password: benchPw,
+      salt: salt,
+      memoryKiB: 19456,
+      iterations: 2,
+      parallelism: 1,
     );
     expect(a.length, 32);
     expect(b, a); // 确定性：同 (密码,盐,参数) 必须同输出——缓存键成立的前提
     final c = await _argon2idDerive(
-      password: benchPw, salt: Uint8List.fromList(List.filled(16, 9)),
-      memoryKiB: 19456, iterations: 2, parallelism: 1,
+      password: benchPw,
+      salt: Uint8List.fromList(List.filled(16, 9)),
+      memoryKiB: 19456,
+      iterations: 2,
+      parallelism: 1,
     );
     expect(c, isNot(a)); // 盐变输出必变
   });

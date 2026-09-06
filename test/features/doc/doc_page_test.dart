@@ -15,20 +15,20 @@ void main() {
   final now = DateTime(2026, 8, 30, 10);
 
   NoteBlockDoc makeDoc() => NoteBlockDoc(
-        id: 'doc-m12',
-        title: '设计笔记',
-        body: [
-          const NoteBlock(
-            id: 'h1',
-            type: NoteBlockType.heading,
-            text: '第一章',
-            props: {'level': 1},
-          ),
-          const NoteBlock(id: 'p1', type: NoteBlockType.text, text: '正文'),
-        ],
-        createdAt: now,
-        updatedAt: now,
-      );
+    id: 'doc-m12',
+    title: '设计笔记',
+    body: [
+      const NoteBlock(
+        id: 'h1',
+        type: NoteBlockType.heading,
+        text: '第一章',
+        props: {'level': 1},
+      ),
+      const NoteBlock(id: 'p1', type: NoteBlockType.text, text: '正文'),
+    ],
+    createdAt: now,
+    updatedAt: now,
+  );
 
   m.Widget wrap(m.Widget child) => m.MaterialApp(home: child);
 
@@ -37,8 +37,9 @@ void main() {
   /// 默认曲面为 800x600（<900 断点），响应式用例若不设定尺寸，
   /// 桌面/移动两条分支的命中结果会随默认尺寸变化而漂移。
   void setSurface(WidgetTester tester, {required bool desktop}) {
-    tester.view.physicalSize =
-        desktop ? const m.Size(1440, 900) : const m.Size(400, 800);
+    tester.view.physicalSize = desktop
+        ? const m.Size(1440, 900)
+        : const m.Size(400, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
   }
@@ -80,11 +81,15 @@ void main() {
 
   testWidgets('收藏切换回调', (tester) async {
     bool? fav;
-    await tester.pumpWidget(wrap(DocPage(
-      document: makeDoc(),
-      isFavorite: false,
-      onToggleFavorite: (v) => fav = v,
-    )));
+    await tester.pumpWidget(
+      wrap(
+        DocPage(
+          document: makeDoc(),
+          isFavorite: false,
+          onToggleFavorite: (v) => fav = v,
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(m.Icons.star_border_rounded));
@@ -124,10 +129,14 @@ void main() {
   });
 
   testWidgets('正文块可编辑（输入即更新内容）', (tester) async {
-    await tester.pumpWidget(wrap(DocPage(
-      document: makeDoc(),
-      controller: DocController(onSave: (_) async {}),
-    )));
+    await tester.pumpWidget(
+      wrap(
+        DocPage(
+          document: makeDoc(),
+          controller: DocController(onSave: (_) async {}),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     final bodyField = find.widgetWithText(m.TextField, '正文');

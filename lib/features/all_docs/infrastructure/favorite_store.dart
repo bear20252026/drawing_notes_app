@@ -69,11 +69,13 @@ class FavoriteStore {
   Future<void> _writeKeys(Set<String> keys) async {
     final file = await _fileRef();
     final r = Random.secure();
-    final suffix = List<int>.generate(8, (_) => r.nextInt(256))
-        .map((b) => b.toRadixString(16).padLeft(2, '0'))
-        .join();
-    final tmp =
-        File('${file.path}.tmp.${DateTime.now().microsecondsSinceEpoch}.$suffix');
+    final suffix = List<int>.generate(
+      8,
+      (_) => r.nextInt(256),
+    ).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    final tmp = File(
+      '${file.path}.tmp.${DateTime.now().microsecondsSinceEpoch}.$suffix',
+    );
     try {
       await tmp.writeAsString(
         jsonEncode({'favorites': keys.toList()..sort()}),
@@ -94,30 +96,30 @@ class FavoriteStore {
 
   /// 收藏一个文档。
   Future<void> addKey(String key) => _enqueue(() async {
-        if (!_isValidKey(key)) return;
-        final keys = await loadKeys();
-        keys.add(key);
-        await _writeKeys(keys);
-      });
+    if (!_isValidKey(key)) return;
+    final keys = await loadKeys();
+    keys.add(key);
+    await _writeKeys(keys);
+  });
 
   /// 取消收藏一个文档。
   Future<void> removeKey(String key) => _enqueue(() async {
-        final keys = await loadKeys();
-        keys.remove(key);
-        await _writeKeys(keys);
-      });
+    final keys = await loadKeys();
+    keys.remove(key);
+    await _writeKeys(keys);
+  });
 
   /// 切换收藏状态，返回切换后的新状态（true=已收藏）。
   Future<bool> toggleKey(String key) => _enqueue(() async {
-        if (!_isValidKey(key)) return false;
-        final keys = await loadKeys();
-        if (keys.contains(key)) {
-          keys.remove(key);
-          await _writeKeys(keys);
-          return false;
-        }
-        keys.add(key);
-        await _writeKeys(keys);
-        return true;
-      });
+    if (!_isValidKey(key)) return false;
+    final keys = await loadKeys();
+    if (keys.contains(key)) {
+      keys.remove(key);
+      await _writeKeys(keys);
+      return false;
+    }
+    keys.add(key);
+    await _writeKeys(keys);
+    return true;
+  });
 }

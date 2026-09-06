@@ -36,14 +36,13 @@ void main() {
     });
 
     testWidgets('菜单渲染并显示选项', (tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: BlockSlashMenu(
-            onSelected: (_) {},
-            onDismiss: () {},
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BlockSlashMenu(onSelected: (_) {}, onDismiss: () {}),
           ),
         ),
-      ));
+      );
 
       // 验证至少显示了"段落"选项
       expect(find.text('段落'), findsOneWidget);
@@ -53,14 +52,16 @@ void main() {
     testWidgets('点击选项触发 onSelected', (tester) async {
       NoteBlockType? selected;
 
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: BlockSlashMenu(
-            onSelected: (type) => selected = type,
-            onDismiss: () {},
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BlockSlashMenu(
+              onSelected: (type) => selected = type,
+              onDismiss: () {},
+            ),
           ),
         ),
-      ));
+      );
 
       await tester.tap(find.text('段落'));
       await tester.pump();
@@ -69,14 +70,13 @@ void main() {
     });
 
     testWidgets('菜单顶部显示搜索框', (tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: BlockSlashMenu(
-            onSelected: (_) {},
-            onDismiss: () {},
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BlockSlashMenu(onSelected: (_) {}, onDismiss: () {}),
           ),
         ),
-      ));
+      );
 
       // 搜索框存在
       expect(find.byType(TextField), findsOneWidget);
@@ -85,14 +85,13 @@ void main() {
     });
 
     testWidgets('搜索过滤：输入关键词后只显示匹配项', (tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: BlockSlashMenu(
-            onSelected: (_) {},
-            onDismiss: () {},
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BlockSlashMenu(onSelected: (_) {}, onDismiss: () {}),
           ),
         ),
-      ));
+      );
 
       // 输入搜索关键词
       await tester.enterText(find.byType(TextField), '标题');
@@ -108,14 +107,13 @@ void main() {
     });
 
     testWidgets('搜索无结果显示空态', (tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: BlockSlashMenu(
-            onSelected: (_) {},
-            onDismiss: () {},
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BlockSlashMenu(onSelected: (_) {}, onDismiss: () {}),
           ),
         ),
-      ));
+      );
 
       await tester.enterText(find.byType(TextField), '不存在的关键词xyz');
       await tester.pumpAndSettle();
@@ -160,8 +158,7 @@ void main() {
     });
 
     test('无结果返回空', () {
-      final result =
-          filterSlashItems(BlockSlashMenu.options, '不存在的关键词xyz123');
+      final result = filterSlashItems(BlockSlashMenu.options, '不存在的关键词xyz123');
       expect(result, isEmpty);
     });
   });
@@ -179,8 +176,9 @@ void main() {
 
     test('基础组包含预期类型', () {
       final groups = groupSlashItems(BlockSlashMenu.options);
-      final basicGroup =
-          groups.firstWhere((e) => e.key == SlashItemGroup.basic);
+      final basicGroup = groups.firstWhere(
+        (e) => e.key == SlashItemGroup.basic,
+      );
       final basicTypes = basicGroup.value.map((e) => e.type).toSet();
       expect(basicTypes.contains(NoteBlockType.text), isTrue);
       expect(basicTypes.contains(NoteBlockType.heading), isTrue);
@@ -191,8 +189,9 @@ void main() {
 
     test('引用与代码组包含预期类型', () {
       final groups = groupSlashItems(BlockSlashMenu.options);
-      final quoteCodeGroup =
-          groups.firstWhere((e) => e.key == SlashItemGroup.quoteCode);
+      final quoteCodeGroup = groups.firstWhere(
+        (e) => e.key == SlashItemGroup.quoteCode,
+      );
       final types = quoteCodeGroup.value.map((e) => e.type).toSet();
       expect(types.contains(NoteBlockType.quote), isTrue);
       expect(types.contains(NoteBlockType.code), isTrue);
@@ -200,8 +199,9 @@ void main() {
 
     test('媒体组包含预期类型', () {
       final groups = groupSlashItems(BlockSlashMenu.options);
-      final mediaGroup =
-          groups.firstWhere((e) => e.key == SlashItemGroup.media);
+      final mediaGroup = groups.firstWhere(
+        (e) => e.key == SlashItemGroup.media,
+      );
       final types = mediaGroup.value.map((e) => e.type).toSet();
       expect(types.contains(NoteBlockType.image), isTrue);
       expect(types.contains(NoteBlockType.link), isTrue);
@@ -209,8 +209,9 @@ void main() {
 
     test('嵌入组包含预期类型', () {
       final groups = groupSlashItems(BlockSlashMenu.options);
-      final embedGroup =
-          groups.firstWhere((e) => e.key == SlashItemGroup.embed);
+      final embedGroup = groups.firstWhere(
+        (e) => e.key == SlashItemGroup.embed,
+      );
       final types = embedGroup.value.map((e) => e.type).toSet();
       expect(types.contains(NoteBlockType.canvas), isTrue);
       expect(types.contains(NoteBlockType.chart), isTrue);
@@ -220,8 +221,9 @@ void main() {
 
     test('其他组包含预期类型', () {
       final groups = groupSlashItems(BlockSlashMenu.options);
-      final otherGroup =
-          groups.firstWhere((e) => e.key == SlashItemGroup.other);
+      final otherGroup = groups.firstWhere(
+        (e) => e.key == SlashItemGroup.other,
+      );
       final types = otherGroup.value.map((e) => e.type).toSet();
       expect(types.contains(NoteBlockType.divider), isTrue);
       expect(types.contains(NoteBlockType.callout), isTrue);

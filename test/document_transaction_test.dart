@@ -59,15 +59,15 @@ void main() {
     });
 
     test('空事务构造抛 ArgumentError', () {
-      expect(
-        () => DocumentTransaction([]),
-        throwsArgumentError,
-      );
+      expect(() => DocumentTransaction([]), throwsArgumentError);
     });
 
     test('子命令列表不可变（不可变快照语义）', () {
       final txn = DocumentTransaction([_RecordingCommand('a', [])]);
-      expect(() => txn.commands.add(_RecordingCommand('x', [])), throwsUnsupportedError);
+      expect(
+        () => txn.commands.add(_RecordingCommand('x', [])),
+        throwsUnsupportedError,
+      );
       expect(txn.length, 1);
     });
 

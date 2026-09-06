@@ -40,7 +40,10 @@ void main() {
         type: BrushType.pen,
       ),
     ];
-    expect(SelectionGeometryService.centerOfStrokes(strokes), const Offset(7, 9));
+    expect(
+      SelectionGeometryService.centerOfStrokes(strokes),
+      const Offset(7, 9),
+    );
   });
 
   test('变换：缩放点围绕中心', () {

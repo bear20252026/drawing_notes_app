@@ -21,35 +21,23 @@ void main() {
   group('AppleContrast.resolve（用户覆盖 vs 系统值）', () {
     test('未手动设置时跟随系统', () {
       expect(
-        AppleContrast.resolve(
-          override: null,
-          platform: AppleContrast.high,
-        ),
+        AppleContrast.resolve(override: null, platform: AppleContrast.high),
         AppleContrast.high,
       );
       expect(
-        AppleContrast.resolve(
-          override: null,
-          platform: AppleContrast.normal,
-        ),
+        AppleContrast.resolve(override: null, platform: AppleContrast.normal),
         AppleContrast.normal,
       );
     });
 
     test('手动值优先于系统值（两个方向都要压得住）', () {
       expect(
-        AppleContrast.resolve(
-          override: false,
-          platform: AppleContrast.high,
-        ),
+        AppleContrast.resolve(override: false, platform: AppleContrast.high),
         AppleContrast.normal,
         reason: '用户在没开系统高对比度的机器上想强制开启，或反之',
       );
       expect(
-        AppleContrast.resolve(
-          override: true,
-          platform: AppleContrast.normal,
-        ),
+        AppleContrast.resolve(override: true, platform: AppleContrast.normal),
         AppleContrast.high,
       );
     });

@@ -74,11 +74,13 @@ class ScheduleEventStore {
     final file = await _fileRef();
     // P2 修复：随机 tmp（固定名 symlink 劫持）+ flush + 失败清理。
     final r = Random.secure();
-    final suffix = List<int>.generate(8, (_) => r.nextInt(256))
-        .map((b) => b.toRadixString(16).padLeft(2, '0'))
-        .join();
-    final tmp =
-        File('${file.path}.tmp.${DateTime.now().microsecondsSinceEpoch}.$suffix');
+    final suffix = List<int>.generate(
+      8,
+      (_) => r.nextInt(256),
+    ).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    final tmp = File(
+      '${file.path}.tmp.${DateTime.now().microsecondsSinceEpoch}.$suffix',
+    );
     try {
       await tmp.writeAsString(
         jsonEncode({
@@ -102,40 +104,39 @@ class ScheduleEventStore {
     required String title,
     required String dayKey,
     int? minuteOfDay,
-  }) =>
-      _enqueue(() async {
-        final trimmed = title.trim();
-        if (trimmed.isEmpty || trimmed.length > 500) return null;
-        if (minuteOfDay != null && (minuteOfDay < 0 || minuteOfDay > 1439)) {
-          return null;
-        }
-        if (tryParseDayKey(dayKey) == null) return null;
-        final event = ScheduleEvent(
-          id: LocalIdGenerator.next('event'),
-          title: trimmed,
-          dayKey: dayKey,
-          minuteOfDay: minuteOfDay,
-          createdAt: DateTime.now(),
-        );
-        final events = [...await loadAll(), event];
-        await _writeAll(events);
-        return event;
-      });
+  }) => _enqueue(() async {
+    final trimmed = title.trim();
+    if (trimmed.isEmpty || trimmed.length > 500) return null;
+    if (minuteOfDay != null && (minuteOfDay < 0 || minuteOfDay > 1439)) {
+      return null;
+    }
+    if (tryParseDayKey(dayKey) == null) return null;
+    final event = ScheduleEvent(
+      id: LocalIdGenerator.next('event'),
+      title: trimmed,
+      dayKey: dayKey,
+      minuteOfDay: minuteOfDay,
+      createdAt: DateTime.now(),
+    );
+    final events = [...await loadAll(), event];
+    await _writeAll(events);
+    return event;
+  });
 
   /// 切换完成状态，返回更新后的事件；不存在时返回 null。
   Future<ScheduleEvent?> toggleDone(String id) => _enqueue(() async {
-        final events = await loadAll();
-        final index = events.indexWhere((e) => e.id == id);
-        if (index < 0) return null;
-        final updated = events[index].copyWith(isDone: !events[index].isDone);
-        final next = [...events]..[index] = updated;
-        await _writeAll(next);
-        return updated;
-      });
+    final events = await loadAll();
+    final index = events.indexWhere((e) => e.id == id);
+    if (index < 0) return null;
+    final updated = events[index].copyWith(isDone: !events[index].isDone);
+    final next = [...events]..[index] = updated;
+    await _writeAll(next);
+    return updated;
+  });
 
   /// 删除一条事件。
   Future<void> remove(String id) => _enqueue(() async {
-        final events = await loadAll();
-        await _writeAll(events.where((e) => e.id != id).toList());
-      });
+    final events = await loadAll();
+    await _writeAll(events.where((e) => e.id != id).toList());
+  });
 }

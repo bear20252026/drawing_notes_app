@@ -99,10 +99,7 @@ void main() {
 
   group('NoteBlockHistory 上限', () {
     test('超过 maxSteps 丢弃最旧', () {
-      final history = NoteBlockHistory(
-        maxSteps: 3,
-        clock: buildClock(),
-      );
+      final history = NoteBlockHistory(maxSteps: 3, clock: buildClock());
       final doc = buildTestDoc();
       // push 5 个不同文档（每次 push 标题不同）
       for (int i = 0; i < 5; i++) {
@@ -131,9 +128,9 @@ void main() {
 
       // 模拟连续打字：每次改同一块的文本，间隔 100ms < 800ms
       for (int i = 1; i <= 5; i++) {
-        history.push(doc.copyWith(
-          body: [NoteBlock.textBlock('b0', text: 'text$i')],
-        ));
+        history.push(
+          doc.copyWith(body: [NoteBlock.textBlock('b0', text: 'text$i')]),
+        );
       }
 
       // 应合并为一次历史：undo 回到初始
@@ -152,9 +149,9 @@ void main() {
 
       // 模拟打字：间隔 1000ms > 800ms 不合并
       for (int i = 1; i <= 3; i++) {
-        history.push(doc.copyWith(
-          body: [NoteBlock.textBlock('b0', text: 'text$i')],
-        ));
+        history.push(
+          doc.copyWith(body: [NoteBlock.textBlock('b0', text: 'text$i')]),
+        );
       }
 
       // 不合并：undo 应逐步回退
@@ -175,16 +172,18 @@ void main() {
       history.push(doc);
 
       // 编辑块 b0
-      history.push(doc.copyWith(
-        body: [NoteBlock.textBlock('b0', text: 'edit_b0')],
-      ));
+      history.push(
+        doc.copyWith(body: [NoteBlock.textBlock('b0', text: 'edit_b0')]),
+      );
       // 编辑块 b1（不同块）
-      history.push(doc.copyWith(
-        body: [
-          NoteBlock.textBlock('b0', text: 'initial'),
-          NoteBlock.textBlock('b1', text: 'new'),
-        ],
-      ));
+      history.push(
+        doc.copyWith(
+          body: [
+            NoteBlock.textBlock('b0', text: 'initial'),
+            NoteBlock.textBlock('b1', text: 'new'),
+          ],
+        ),
+      );
 
       // 不同块编辑不合并：undo 回到上一次
       final r1 = history.undo();
@@ -201,17 +200,19 @@ void main() {
       history.push(doc);
 
       // 添加新块（结构变化）
-      history.push(doc.copyWith(
-        body: [
-          NoteBlock.textBlock('b0', text: 'initial'),
-          NoteBlock.textBlock('b1', text: 'new'),
-        ],
-      ));
+      history.push(
+        doc.copyWith(
+          body: [
+            NoteBlock.textBlock('b0', text: 'initial'),
+            NoteBlock.textBlock('b1', text: 'new'),
+          ],
+        ),
+      );
 
       // 纯文本编辑
-      history.push(doc.copyWith(
-        body: [NoteBlock.textBlock('b0', text: 'edited')],
-      ));
+      history.push(
+        doc.copyWith(body: [NoteBlock.textBlock('b0', text: 'edited')]),
+      );
 
       // 结构变化后不能合并：undo 应回到结构变化后的状态
       final r1 = history.undo();

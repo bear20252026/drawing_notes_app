@@ -7,12 +7,12 @@ import 'package:drawing_notes_app/features/notes/domain/edgeless_connector.dart'
 import 'package:drawing_notes_app/features/notes/domain/edgeless_doc.dart';
 
 NoteBlockDoc _doc(String id, {String title = 'Doc'}) => NoteBlockDoc(
-      id: id,
-      title: title,
-      body: [NoteBlock.textBlock('b1', text: 'hello')],
-      createdAt: DateTime(2026, 8, 28),
-      updatedAt: DateTime(2026, 8, 28),
-    );
+  id: id,
+  title: title,
+  body: [NoteBlock.textBlock('b1', text: 'hello')],
+  createdAt: DateTime(2026, 8, 28),
+  updatedAt: DateTime(2026, 8, 28),
+);
 
 void main() {
   const viewport = Size(800, 600);
@@ -155,7 +155,13 @@ void main() {
 
     test('copyWith', () {
       final f = NoteFrame(
-        id: 'f1', x: 0, y: 0, w: 10, h: 10, doc: _doc('d1'), zIndex: 1,
+        id: 'f1',
+        x: 0,
+        y: 0,
+        w: 10,
+        h: 10,
+        doc: _doc('d1'),
+        zIndex: 1,
       );
       final f2 = f.copyWith(x: 99, zIndex: 5);
       expect(f2.x, 99);
@@ -207,9 +213,9 @@ void main() {
     });
 
     test('removeFrame 移除并清除选择', () {
-      var doc = EdgelessDoc.empty('e1')
-          .addFrame(_doc('d1'))
-          .addFrame(_doc('d2'));
+      var doc = EdgelessDoc.empty(
+        'e1',
+      ).addFrame(_doc('d1')).addFrame(_doc('d2'));
       final id1 = doc.frames[0].id;
       final id2 = doc.frames[1].id;
       doc = doc.select(id1);
@@ -249,12 +255,7 @@ void main() {
     test('resizeFrame 可同时移动左上角', () {
       var doc = EdgelessDoc.empty('e1').addFrame(_doc('d1'));
       final id = doc.frames.first.id;
-      doc = doc.resizeFrame(
-        id,
-        topLeft: const Offset(50, 60),
-        w: 300,
-        h: 200,
-      );
+      doc = doc.resizeFrame(id, topLeft: const Offset(50, 60), w: 300, h: 200);
       final f = doc.frameById(id)!;
       expect(f.x, 50);
       expect(f.y, 60);
@@ -321,8 +322,9 @@ void main() {
     });
 
     test('hitTest 未命中返回 null', () {
-      final doc = EdgelessDoc.empty('e1')
-          .addFrame(_doc('d1'), at: const Offset(0, 0));
+      final doc = EdgelessDoc.empty(
+        'e1',
+      ).addFrame(_doc('d1'), at: const Offset(0, 0));
       expect(doc.hitTest(const Offset(9999, 9999)), isNull);
     });
 
@@ -357,10 +359,9 @@ void main() {
     });
 
     test('toJson/fromJson 往返', () {
-      final doc = EdgelessDoc.empty('e1')
-          .addFrame(_doc('d1'))
-          .addFrame(_doc('d2'))
-          .select('frame_1');
+      final doc = EdgelessDoc.empty(
+        'e1',
+      ).addFrame(_doc('d1')).addFrame(_doc('d2')).select('frame_1');
       final json = doc.toJson();
       final doc2 = EdgelessDoc.fromJson(json);
       expect(doc2.id, doc.id);
@@ -374,9 +375,8 @@ void main() {
   });
 
   group('EdgelessDoc connector', () {
-    EdgelessDoc twoFrames() => EdgelessDoc.empty('e1')
-        .addFrame(_doc('d1'))
-        .addFrame(_doc('d2'));
+    EdgelessDoc twoFrames() =>
+        EdgelessDoc.empty('e1').addFrame(_doc('d1')).addFrame(_doc('d2'));
 
     test('addConnector 自动推荐锚点并生成 id', () {
       // frame_1 默认尺寸 360x400 位于左/上，frame_2 级联偏移 —— 水平占优 → (right,left)
@@ -411,18 +411,24 @@ void main() {
     test('addConnector 拒绝自环 / 缺帧 / 重复', () {
       var doc = twoFrames();
       // 自环
-      final selfLoop =
-          doc.addConnector(fromFrameId: 'frame_1', toFrameId: 'frame_1');
+      final selfLoop = doc.addConnector(
+        fromFrameId: 'frame_1',
+        toFrameId: 'frame_1',
+      );
       expect(selfLoop, doc);
       // 缺帧
-      final missing =
-          doc.addConnector(fromFrameId: 'frame_1', toFrameId: 'nope');
+      final missing = doc.addConnector(
+        fromFrameId: 'frame_1',
+        toFrameId: 'nope',
+      );
       expect(missing, doc);
       // 重复（同两端，方向互换也算重复）
       doc = doc.addConnector(fromFrameId: 'frame_1', toFrameId: 'frame_2');
       expect(doc.connectors, hasLength(1));
-      final dup =
-          doc.addConnector(fromFrameId: 'frame_2', toFrameId: 'frame_1');
+      final dup = doc.addConnector(
+        fromFrameId: 'frame_2',
+        toFrameId: 'frame_1',
+      );
       expect(dup, doc);
     });
 
@@ -436,10 +442,9 @@ void main() {
     });
 
     test('removeFrame 级联删除引用帧的连接线', () {
-      var doc = EdgelessDoc.empty('e1')
-          .addFrame(_doc('d1'))
-          .addFrame(_doc('d2'))
-          .addFrame(_doc('d3'));
+      var doc = EdgelessDoc.empty(
+        'e1',
+      ).addFrame(_doc('d1')).addFrame(_doc('d2')).addFrame(_doc('d3'));
       doc = doc.addConnector(fromFrameId: 'frame_1', toFrameId: 'frame_2');
       doc = doc.addConnector(fromFrameId: 'frame_2', toFrameId: 'frame_3');
       expect(doc.connectors, hasLength(2));
@@ -459,17 +464,18 @@ void main() {
 
     test('operator== 包含连接线', () {
       var doc = twoFrames();
-      final withConnector =
-          doc.addConnector(fromFrameId: 'frame_1', toFrameId: 'frame_2');
+      final withConnector = doc.addConnector(
+        fromFrameId: 'frame_1',
+        toFrameId: 'frame_2',
+      );
       expect(withConnector, isNot(doc));
       expect(withConnector, withConnector);
     });
   });
 
   group('EdgelessDoc group', () {
-    EdgelessDoc twoFrames() => EdgelessDoc.empty('e1')
-        .addFrame(_doc('d1'))
-        .addFrame(_doc('d2'));
+    EdgelessDoc twoFrames() =>
+        EdgelessDoc.empty('e1').addFrame(_doc('d1')).addFrame(_doc('d2'));
 
     test('addGroup 创建群组并赋值成员/名字', () {
       var doc = twoFrames();
@@ -508,8 +514,7 @@ void main() {
       doc = doc.addGroup(frameIds: ['frame_1', 'frame_2']);
       final b1 = doc.frameById('frame_1')!;
       final b2 = doc.frameById('frame_2')!;
-      final doc2 =
-          doc.moveFrame('frame_1', Offset(b1.x + 50, b1.y + 70));
+      final doc2 = doc.moveFrame('frame_1', Offset(b1.x + 50, b1.y + 70));
       expect(doc2.frameById('frame_1')!.x, b1.x + 50);
       expect(doc2.frameById('frame_1')!.y, b1.y + 70);
       expect(doc2.frameById('frame_2')!.x, b2.x + 50);
@@ -520,17 +525,15 @@ void main() {
       var doc = twoFrames();
       final b1 = doc.frameById('frame_1')!;
       final b2 = doc.frameById('frame_2')!;
-      final doc2 =
-          doc.moveFrame('frame_1', Offset(b1.x + 30, b1.y + 30));
+      final doc2 = doc.moveFrame('frame_1', Offset(b1.x + 30, b1.y + 30));
       expect(doc2.frameById('frame_1')!.x, b1.x + 30);
       expect(doc2.frameById('frame_2')!.x, b2.x); // 未变
     });
 
     test('removeFrame 剔除成员并解散空组', () {
-      var doc = EdgelessDoc.empty('e1')
-          .addFrame(_doc('d1'))
-          .addFrame(_doc('d2'))
-          .addFrame(_doc('d3'));
+      var doc = EdgelessDoc.empty(
+        'e1',
+      ).addFrame(_doc('d1')).addFrame(_doc('d2')).addFrame(_doc('d3'));
       doc = doc.addGroup(frameIds: ['frame_1', 'frame_2']);
       // 移除 frame_1 → 组内只剩 frame_2，非空 → 保留单成员组
       final doc2 = doc.removeFrame('frame_1');
@@ -558,9 +561,9 @@ void main() {
     });
 
     test('groupBounds 求成员外接矩形', () {
-      var doc = EdgelessDoc.empty('e1')
-          .addFrame(_doc('d1'))
-          .addFrame(_doc('d2'));
+      var doc = EdgelessDoc.empty(
+        'e1',
+      ).addFrame(_doc('d1')).addFrame(_doc('d2'));
       doc = doc.addGroup(frameIds: ['frame_1', 'frame_2']);
       final b = doc.groupBounds('group_1');
       expect(b, isNotNull);
@@ -584,38 +587,71 @@ void main() {
 
     test('resizeGroup 按比例重排成员并匹配新外接矩形', () {
       final f1 = NoteFrame(
-          id: 'f1', x: 0, y: 0, w: 100, h: 100, doc: _doc('d1'), zIndex: 1);
+        id: 'f1',
+        x: 0,
+        y: 0,
+        w: 100,
+        h: 100,
+        doc: _doc('d1'),
+        zIndex: 1,
+      );
       final f2 = NoteFrame(
-          id: 'f2', x: 200, y: 100, w: 100, h: 100, doc: _doc('d2'), zIndex: 1);
+        id: 'f2',
+        x: 200,
+        y: 100,
+        w: 100,
+        h: 100,
+        doc: _doc('d2'),
+        zIndex: 1,
+      );
       var doc = EdgelessDoc(id: 'e', frames: [f1, f2]);
       doc = doc.addGroup(frameIds: ['f1', 'f2']);
-      final resized = doc.resizeGroup('group_1',
-          newBounds: const Rect.fromLTWH(0, 0, 600, 400));
+      final resized = doc.resizeGroup(
+        'group_1',
+        newBounds: const Rect.fromLTWH(0, 0, 600, 400),
+      );
       final rf1 = resized.frameById('f1')!;
       final rf2 = resized.frameById('f2')!;
-      expect(Rect.fromLTWH(rf1.x, rf1.y, rf1.w, rf1.h),
-          const Rect.fromLTWH(0, 0, 200, 200));
-      expect(Rect.fromLTWH(rf2.x, rf2.y, rf2.w, rf2.h),
-          const Rect.fromLTWH(400, 200, 200, 200));
-      expect(resized.groupBounds('group_1'), const Rect.fromLTWH(0, 0, 600, 400));
+      expect(
+        Rect.fromLTWH(rf1.x, rf1.y, rf1.w, rf1.h),
+        const Rect.fromLTWH(0, 0, 200, 200),
+      );
+      expect(
+        Rect.fromLTWH(rf2.x, rf2.y, rf2.w, rf2.h),
+        const Rect.fromLTWH(400, 200, 200, 200),
+      );
+      expect(
+        resized.groupBounds('group_1'),
+        const Rect.fromLTWH(0, 0, 600, 400),
+      );
     });
 
     test('resizeGroup 非法尺寸/缺组返回同实例', () {
       final f1 = NoteFrame(
-          id: 'f1', x: 0, y: 0, w: 100, h: 100, doc: _doc('d1'), zIndex: 1);
+        id: 'f1',
+        x: 0,
+        y: 0,
+        w: 100,
+        h: 100,
+        doc: _doc('d1'),
+        zIndex: 1,
+      );
       var doc = EdgelessDoc(id: 'e', frames: [f1]);
       // 宽度为 0 非法
-      expect(doc.resizeGroup('g', newBounds: const Rect.fromLTWH(0, 0, 0, 10)),
-          doc);
-      expect(doc.resizeGroup('nope', newBounds: const Rect.fromLTWH(0, 0, 100, 100)),
-          doc);
+      expect(
+        doc.resizeGroup('g', newBounds: const Rect.fromLTWH(0, 0, 0, 10)),
+        doc,
+      );
+      expect(
+        doc.resizeGroup('nope', newBounds: const Rect.fromLTWH(0, 0, 100, 100)),
+        doc,
+      );
     });
   });
 
   group('EdgelessDoc 多选选中集', () {
-    EdgelessDoc twoFrames() => EdgelessDoc.empty('e1')
-        .addFrame(_doc('d1'))
-        .addFrame(_doc('d2'));
+    EdgelessDoc twoFrames() =>
+        EdgelessDoc.empty('e1').addFrame(_doc('d1')).addFrame(_doc('d2'));
 
     test('select 单选 → 选中集 {id}，selectedFrameId 即主选中', () {
       final doc = twoFrames().select('frame_1');
@@ -653,10 +689,9 @@ void main() {
     });
 
     test('removeFrame 从选中集中剔除', () {
-      var doc = EdgelessDoc.empty('e1')
-          .addFrame(_doc('d1'))
-          .addFrame(_doc('d2'))
-          .addFrame(_doc('d3'));
+      var doc = EdgelessDoc.empty(
+        'e1',
+      ).addFrame(_doc('d1')).addFrame(_doc('d2')).addFrame(_doc('d3'));
       doc = doc.selectFrames(['frame_1', 'frame_2']);
       final doc2 = doc.removeFrame('frame_1');
       expect(doc2.selectedFrameIds, {'frame_2'});

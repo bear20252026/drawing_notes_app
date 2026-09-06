@@ -9,7 +9,8 @@ import 'package:drawing_notes_app/features/drawing/application/gesture_math.dart
 void main() {
   final rng = Random(42);
 
-  Offset randPoint() => Offset(rng.nextDouble() * 2000 - 1000, rng.nextDouble() * 2000 - 1000);
+  Offset randPoint() =>
+      Offset(rng.nextDouble() * 2000 - 1000, rng.nextDouble() * 2000 - 1000);
 
   test('viewTransformMatrix 与 canvasToViewPoint 等价（100 组随机输入）', () {
     for (var i = 0; i < 100; i++) {
@@ -73,9 +74,15 @@ void main() {
 
   test('screenDeltaToCanvas 纯函数：无旋转/缩放/旋转 90°（阶段二提取）', () {
     // 无旋转 scale=1：增量不变。
-    expect(screenDeltaToCanvas(const Offset(10, 20), 0, 1), const Offset(10, 20));
+    expect(
+      screenDeltaToCanvas(const Offset(10, 20), 0, 1),
+      const Offset(10, 20),
+    );
     // scale=2：画布增量 = 屏幕增量 / scale。
-    expect(screenDeltaToCanvas(const Offset(10, 20), 0, 2), const Offset(5, 10));
+    expect(
+      screenDeltaToCanvas(const Offset(10, 20), 0, 2),
+      const Offset(5, 10),
+    );
     // 旋转 90°（viewRotation=π/2 → rot=-π/2）：dx↔dy 交换（符号按旋转方向）。
     final r90 = screenDeltaToCanvas(const Offset(10, 0), pi / 2, 1);
     expect(r90.dx, closeTo(0, 1e-6));

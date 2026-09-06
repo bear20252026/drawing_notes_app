@@ -6,7 +6,6 @@
 part of 'note_block_doc_store.dart';
 
 extension NoteBlockDocStoreTrash on NoteBlockDocStore {
-
   /// 读回收站条目内容（批次①c）：激活区 rename 进来的文件可能是密文，
   /// 解密后返回文本；锁定/损坏返回 null（调用方跳过——fail-closed）。
   Future<String?> _readTrashContent(File f) async {
@@ -32,11 +31,12 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
       final dek = _sessionDeks[id];
       if (dek == null) return null;
       try {
-        return await NoteBlockDocStore._encryption.decryptBlockDocPayloadWithDek(
-          docId: id,
-          encryptedJson: text,
-          dek: dek,
-        );
+        return await NoteBlockDocStore._encryption
+            .decryptBlockDocPayloadWithDek(
+              docId: id,
+              encryptedJson: text,
+              dek: dek,
+            );
       } catch (_) {
         return null;
       }
@@ -340,5 +340,4 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
     }
     return '${(await _ensureTrashDir()).path}${Platform.pathSeparator}$id.json';
   }
-
 }

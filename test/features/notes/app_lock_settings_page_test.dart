@@ -204,10 +204,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(home: AppLockSettingsPage(service: service)),
     );
-    expect(
-      find.text('绑定重置密码盘后，忘记密码可用它重置；未绑定时忘记密码将无法找回。'),
-      findsOneWidget,
-    );
+    expect(find.text('绑定重置密码盘后，忘记密码可用它重置；未绑定时忘记密码将无法找回。'), findsOneWidget);
   });
 
   testWidgets('宽限期（U1 尾项）：默认 30 秒，可改为关闭并持久化', (tester) async {

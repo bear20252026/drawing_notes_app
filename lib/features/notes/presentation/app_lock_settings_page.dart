@@ -108,8 +108,7 @@ class AppLockSettingsPage extends StatelessWidget {
                       onTap: () => _startModifyFlow(context),
                     ),
                   // 切后台宽限期（U1 尾项 2026-09-06）：默认 30s，可关。
-                  if (service.isConfigured)
-                    _buildGraceTile(context, service),
+                  if (service.isConfigured) _buildGraceTile(context, service),
                   // 重置密码盘（LUKS/BitLocker 多保护器模式——
                   // 忘记密码时可用它重设，主密钥副本不出设备）。
                   if (service.isConfigured && vault != null)
@@ -430,9 +429,7 @@ class AppLockSettingsPage extends StatelessWidget {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          AppLocalizations.of(context)?.lockEnabled ?? '应用锁已开启',
-        ),
+        content: Text(AppLocalizations.of(context)?.lockEnabled ?? '应用锁已开启'),
       ),
     );
   }
@@ -480,9 +477,7 @@ class AppLockSettingsPage extends StatelessWidget {
     if (!context.mounted) return; // disable 为异步操作，跨异步缺口再查一次
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          AppLocalizations.of(context)?.lockDisabled ?? '应用锁已关闭',
-        ),
+        content: Text(AppLocalizations.of(context)?.lockDisabled ?? '应用锁已关闭'),
       ),
     );
   }

@@ -40,7 +40,9 @@ void main() {
   testWidgets('就地编辑聚焦时：数字键快捷键被闸门放行，不切换工具', (tester) async {
     final document = DrawingDocument(id: 'p1', title: '探针');
     await tester.pumpWidget(
-      ProviderScope(child: MaterialApp(home: EditorPage(document: document))),
+      ProviderScope(
+        child: MaterialApp(home: EditorPage(document: document)),
+      ),
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
@@ -90,7 +92,9 @@ void main() {
   testWidgets('就地编辑聚焦时：退格删除字符而不删除选中元素', (tester) async {
     final document = DrawingDocument(id: 'p2', title: '探针');
     await tester.pumpWidget(
-      ProviderScope(child: MaterialApp(home: EditorPage(document: document))),
+      ProviderScope(
+        child: MaterialApp(home: EditorPage(document: document)),
+      ),
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
@@ -110,7 +114,9 @@ void main() {
   testWidgets('提交文字后：数字键快捷键恢复正常工作', (tester) async {
     final document = DrawingDocument(id: 'p3', title: '探针');
     await tester.pumpWidget(
-      ProviderScope(child: MaterialApp(home: EditorPage(document: document))),
+      ProviderScope(
+        child: MaterialApp(home: EditorPage(document: document)),
+      ),
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));

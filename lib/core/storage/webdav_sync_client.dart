@@ -81,9 +81,7 @@ class WebDavSyncClient {
     final scheme = baseUrl.scheme.toLowerCase();
     if (scheme == 'https') return;
     if (scheme == 'http' && _isLoopback(baseUrl.host)) return;
-    throw WebDavSyncException(
-      '仅允许 https WebDAV（明文 http 会泄露认证口令与文档），本地回环除外',
-    );
+    throw WebDavSyncException('仅允许 https WebDAV（明文 http 会泄露认证口令与文档），本地回环除外');
   }
 
   /// 安全解析远端路径：先过 TLS 门禁，再拒绝 `..`/反斜杠/绝对 URL/

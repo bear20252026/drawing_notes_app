@@ -12,20 +12,17 @@ void main() {
     required String id,
     String title = '',
     List<NoteBlock> body = const [],
-  }) =>
-      NoteBlockDoc(
-        id: id,
-        title: title,
-        body: body,
-        createdAt: now,
-        updatedAt: now,
-      );
+  }) => NoteBlockDoc(
+    id: id,
+    title: title,
+    body: body,
+    createdAt: now,
+    updatedAt: now,
+  );
 
   group('DocEditor 渲染', () {
     testWidgets('初始渲染包含一个可编辑的文本块', (tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(home: DocEditor()),
-      );
+      await tester.pumpWidget(const MaterialApp(home: DocEditor()));
       await tester.pumpAndSettle();
 
       // 标题栏 + 空段落 = 2 个 TextField
@@ -33,9 +30,7 @@ void main() {
     });
 
     testWidgets('标题字段位于正文顶部（AFFiNE 式）', (tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(home: DocEditor()),
-      );
+      await tester.pumpWidget(const MaterialApp(home: DocEditor()));
       await tester.pumpAndSettle();
 
       // 正文第一个 TextField 即标题（AppBar 不再含标题输入）。
@@ -47,17 +42,10 @@ void main() {
     testWidgets('接收 document 时标题显示在正文顶部', (tester) async {
       final doc = makeDoc(id: 'doc-1', title: 'My Document');
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: DocEditor(document: doc),
-        ),
-      );
+      await tester.pumpWidget(MaterialApp(home: DocEditor(document: doc)));
       await tester.pumpAndSettle();
 
-      expect(
-        find.widgetWithText(TextField, 'My Document'),
-        findsOneWidget,
-      );
+      expect(find.widgetWithText(TextField, 'My Document'), findsOneWidget);
     });
 
     testWidgets('接收多块文档后显示所有块', (tester) async {
@@ -70,11 +58,7 @@ void main() {
         ],
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: DocEditor(document: doc),
-        ),
-      );
+      await tester.pumpWidget(MaterialApp(home: DocEditor(document: doc)));
       await tester.pumpAndSettle();
 
       // 标题栏 + 2 个内容块 = 3 个 TextField
@@ -83,8 +67,7 @@ void main() {
   });
 
   group('DocEditor onSave 回调', () {
-    testWidgets('dispose 时若提供 onSave 则传出 NoteBlockDoc',
-        (tester) async {
+    testWidgets('dispose 时若提供 onSave 则传出 NoteBlockDoc', (tester) async {
       NoteBlockDoc? savedDoc;
       final doc = makeDoc(
         id: 'doc-save',
@@ -94,10 +77,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: DocEditor(
-            document: doc,
-            onSave: (d) => savedDoc = d,
-          ),
+          home: DocEditor(document: doc, onSave: (d) => savedDoc = d),
         ),
       );
       await tester.pumpAndSettle();
@@ -115,11 +95,7 @@ void main() {
     testWidgets('无 onSave 时 dispose 不崩溃', (tester) async {
       final doc = makeDoc(id: 'doc-nosave', title: 'No Save');
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: DocEditor(document: doc),
-        ),
-      );
+      await tester.pumpWidget(MaterialApp(home: DocEditor(document: doc)));
       await tester.pumpAndSettle();
 
       // 触发 dispose —— 不应抛异常
@@ -129,8 +105,7 @@ void main() {
   });
 
   group('DocEditor 块手柄拖拽', () {
-    testWidgets('每个块行左侧显示拖拽手柄 (drag_handle 图标)',
-        (tester) async {
+    testWidgets('每个块行左侧显示拖拽手柄 (drag_handle 图标)', (tester) async {
       final doc = makeDoc(
         id: 'doc-handle',
         title: 'Handle',
@@ -140,11 +115,7 @@ void main() {
         ],
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: DocEditor(document: doc),
-        ),
-      );
+      await tester.pumpWidget(MaterialApp(home: DocEditor(document: doc)));
       await tester.pumpAndSettle();
 
       // 每个块行都有一个 drag_handle 图标
@@ -161,11 +132,7 @@ void main() {
         ],
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: DocEditor(document: doc),
-        ),
-      );
+      await tester.pumpWidget(MaterialApp(home: DocEditor(document: doc)));
       await tester.pumpAndSettle();
 
       // 找到第一个拖拽手柄并点击
@@ -196,10 +163,7 @@ void main() {
       NoteBlockDoc? savedDoc;
       await tester.pumpWidget(
         MaterialApp(
-          home: DocEditor(
-            document: doc,
-            onSave: (d) => savedDoc = d,
-          ),
+          home: DocEditor(document: doc, onSave: (d) => savedDoc = d),
         ),
       );
       await tester.pumpAndSettle();
@@ -213,8 +177,7 @@ void main() {
       final thirdHandle = handles.at(2);
 
       // 开始拖拽
-      final gesture =
-          await tester.startGesture(tester.getCenter(firstHandle));
+      final gesture = await tester.startGesture(tester.getCenter(firstHandle));
       await tester.pump(const Duration(milliseconds: 100));
 
       // 移动到第三个块位置
@@ -253,9 +216,7 @@ void main() {
         title: 'U',
         body: [NoteBlock.textBlock('t1', text: 'Hello')],
       );
-      await tester.pumpWidget(
-        MaterialApp(home: DocEditor(document: doc)),
-      );
+      await tester.pumpWidget(MaterialApp(home: DocEditor(document: doc)));
       await tester.pumpAndSettle();
 
       final block = editableOf('Hello', tester);
@@ -271,10 +232,7 @@ void main() {
       await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
       await tester.pumpAndSettle();
 
-      expect(
-        editableOf('Hello', tester).controller.text,
-        'Hello',
-      );
+      expect(editableOf('Hello', tester).controller.text, 'Hello');
     });
 
     testWidgets('Ctrl+Shift+Z 重做文本编辑', (tester) async {
@@ -283,9 +241,7 @@ void main() {
         title: 'R',
         body: [NoteBlock.textBlock('t1', text: 'Hello')],
       );
-      await tester.pumpWidget(
-        MaterialApp(home: DocEditor(document: doc)),
-      );
+      await tester.pumpWidget(MaterialApp(home: DocEditor(document: doc)));
       await tester.pumpAndSettle();
 
       final block = editableOf('Hello', tester);
@@ -309,10 +265,7 @@ void main() {
       await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
       await tester.pumpAndSettle();
 
-      expect(
-        editableOf('Changed', tester).controller.text,
-        'Changed',
-      );
+      expect(editableOf('Changed', tester).controller.text, 'Changed');
     });
 
     testWidgets('向下方向键导航到下一块', (tester) async {
@@ -324,9 +277,7 @@ void main() {
           NoteBlock.textBlock('t2', text: 'Two'),
         ],
       );
-      await tester.pumpWidget(
-        MaterialApp(home: DocEditor(document: doc)),
-      );
+      await tester.pumpWidget(MaterialApp(home: DocEditor(document: doc)));
       await tester.pumpAndSettle();
 
       final first = editableOf('One', tester);
@@ -349,9 +300,7 @@ void main() {
           NoteBlock.textBlock('t2', text: 'Two'),
         ],
       );
-      await tester.pumpWidget(
-        MaterialApp(home: DocEditor(document: doc)),
-      );
+      await tester.pumpWidget(MaterialApp(home: DocEditor(document: doc)));
       await tester.pumpAndSettle();
 
       final first = editableOf('One', tester);

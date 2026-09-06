@@ -523,7 +523,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     final dx = draftEnd.dx - draftStart.dx;
     final dy = draftEnd.dy - draftStart.dy;
     // 与 ShapeCreationGeometry 的点击阈值保持一致（审计二-7：4px→8px）。
-    final isClick = dx.abs() < ShapeCreationGeometry.clickThreshold &&
+    final isClick =
+        dx.abs() < ShapeCreationGeometry.clickThreshold &&
         dy.abs() < ShapeCreationGeometry.clickThreshold;
     final left = math.min(draftStart.dx, draftEnd.dx);
     final top = math.min(draftStart.dy, draftEnd.dy);

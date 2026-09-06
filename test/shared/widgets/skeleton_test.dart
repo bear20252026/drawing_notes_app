@@ -7,9 +7,7 @@ import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 void main() {
   testWidgets('SkeletonList 渲染指定行数且不含 spinner', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(body: SkeletonList(rows: 3)),
-      ),
+      const MaterialApp(home: Scaffold(body: SkeletonList(rows: 3))),
     );
     await tester.pump();
 
@@ -29,9 +27,7 @@ void main() {
 
   testWidgets('SkeletonCardGrid 渲染卡片块', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(body: SkeletonCardGrid(count: 4)),
-      ),
+      const MaterialApp(home: Scaffold(body: SkeletonCardGrid(count: 4))),
     );
     await tester.pump();
     expect(find.byType(SkeletonCardGrid), findsOneWidget);

@@ -9,23 +9,31 @@ void main() {
     const rect = Rect.fromLTWH(100, 200, 300, 100);
 
     test('top 锚点为上边中点', () {
-      expect(connectorAnchorPoint(rect, ConnectorAnchor.top),
-          const Offset(250, 200));
+      expect(
+        connectorAnchorPoint(rect, ConnectorAnchor.top),
+        const Offset(250, 200),
+      );
     });
 
     test('bottom 锚点为下边中点', () {
-      expect(connectorAnchorPoint(rect, ConnectorAnchor.bottom),
-          const Offset(250, 300));
+      expect(
+        connectorAnchorPoint(rect, ConnectorAnchor.bottom),
+        const Offset(250, 300),
+      );
     });
 
     test('left 锚点为左边中点', () {
-      expect(connectorAnchorPoint(rect, ConnectorAnchor.left),
-          const Offset(100, 250));
+      expect(
+        connectorAnchorPoint(rect, ConnectorAnchor.left),
+        const Offset(100, 250),
+      );
     });
 
     test('right 锚点为右边中点', () {
-      expect(connectorAnchorPoint(rect, ConnectorAnchor.right),
-          const Offset(400, 250));
+      expect(
+        connectorAnchorPoint(rect, ConnectorAnchor.right),
+        const Offset(400, 250),
+      );
     });
   });
 

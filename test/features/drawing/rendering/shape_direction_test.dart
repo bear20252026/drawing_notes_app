@@ -11,29 +11,31 @@ void main() {
   group('ShapeCreationGeometry.fromDrag 线性元素方向', () {
     // 画布坐标系：x 向右，y 向下。
     test('左上→右下拖拽：start 在左上、end 在右下', () {
-      final shape = ShapeCreationGeometry.fromDrag(
-        const Offset(10, 20),
-        const Offset(210, 120),
-      ).createShape(
-        id: 'a',
-        shapeType: ShapeType.arrow,
-        color: 0xFF000000,
-        strokeWidth: 2,
-      );
+      final shape =
+          ShapeCreationGeometry.fromDrag(
+            const Offset(10, 20),
+            const Offset(210, 120),
+          ).createShape(
+            id: 'a',
+            shapeType: ShapeType.arrow,
+            color: 0xFF000000,
+            strokeWidth: 2,
+          );
       expect(shape.lineStart, const Offset(0, 0));
       expect(shape.lineEnd, const Offset(200, 100));
     });
 
     test('右上→左下拖拽：start 在右上、end 在左下（不被镜像）', () {
-      final shape = ShapeCreationGeometry.fromDrag(
-        const Offset(210, 20),
-        const Offset(10, 120),
-      ).createShape(
-        id: 'a',
-        shapeType: ShapeType.arrow,
-        color: 0xFF000000,
-        strokeWidth: 2,
-      );
+      final shape =
+          ShapeCreationGeometry.fromDrag(
+            const Offset(210, 20),
+            const Offset(10, 120),
+          ).createShape(
+            id: 'a',
+            shapeType: ShapeType.arrow,
+            color: 0xFF000000,
+            strokeWidth: 2,
+          );
       expect(shape.x, 10);
       expect(shape.y, 20);
       expect(shape.lineStart, const Offset(200, 0));
@@ -41,29 +43,31 @@ void main() {
     });
 
     test('左下→右上拖拽：start 在左下、end 在右上', () {
-      final shape = ShapeCreationGeometry.fromDrag(
-        const Offset(10, 120),
-        const Offset(210, 20),
-      ).createShape(
-        id: 'a',
-        shapeType: ShapeType.arrow,
-        color: 0xFF000000,
-        strokeWidth: 2,
-      );
+      final shape =
+          ShapeCreationGeometry.fromDrag(
+            const Offset(10, 120),
+            const Offset(210, 20),
+          ).createShape(
+            id: 'a',
+            shapeType: ShapeType.arrow,
+            color: 0xFF000000,
+            strokeWidth: 2,
+          );
       expect(shape.lineStart, const Offset(0, 100));
       expect(shape.lineEnd, const Offset(200, 0));
     });
 
     test('右下→左上拖拽：start 在右下、end 在左上', () {
-      final shape = ShapeCreationGeometry.fromDrag(
-        const Offset(210, 120),
-        const Offset(10, 20),
-      ).createShape(
-        id: 'a',
-        shapeType: ShapeType.arrow,
-        color: 0xFF000000,
-        strokeWidth: 2,
-      );
+      final shape =
+          ShapeCreationGeometry.fromDrag(
+            const Offset(210, 120),
+            const Offset(10, 20),
+          ).createShape(
+            id: 'a',
+            shapeType: ShapeType.arrow,
+            color: 0xFF000000,
+            strokeWidth: 2,
+          );
       expect(shape.lineStart, const Offset(200, 100));
       expect(shape.lineEnd, const Offset(0, 0));
     });
@@ -183,10 +187,16 @@ void main() {
       // 错误地落在右下角。修复后：起点(右上)有线经过，头部(左下)墨迹
       // 明显多于终点对角与起点。
       expect(ink['topRight']!, greaterThan(0), reason: '起点(右上)应有线段经过');
-      expect(ink['bottomLeft']!, greaterThan(ink['topRight']!),
-          reason: '末端(左下)应比起点有更多墨迹（箭头头部）');
-      expect(ink['bottomRight']! * 2, lessThan(ink['bottomLeft']!),
-          reason: '修复前箭头头部错误地出现在右下角');
+      expect(
+        ink['bottomLeft']!,
+        greaterThan(ink['topRight']!),
+        reason: '末端(左下)应比起点有更多墨迹（箭头头部）',
+      );
+      expect(
+        ink['bottomRight']! * 2,
+        lessThan(ink['bottomLeft']!),
+        reason: '修复前箭头头部错误地出现在右下角',
+      );
     });
 
     test('无端点旧文档回退对角线仍可渲染（向后兼容）', () async {

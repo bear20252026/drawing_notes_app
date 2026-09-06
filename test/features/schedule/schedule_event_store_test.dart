@@ -81,19 +81,12 @@ void main() {
       expect(ScheduleEvent.fromJson(base('2026-02-30')), isNull);
       expect(ScheduleEvent.fromJson(base('1-2')), isNull);
       expect(
-        ScheduleEvent.fromJson(base('2026-08-30')
-          ..['title'] = 'x' * 501),
+        ScheduleEvent.fromJson(base('2026-08-30')..['title'] = 'x' * 501),
         isNull,
       );
-      expect(
-        ScheduleEvent.fromJson(base('2026-08-30')..['id'] = ''),
-        isNull,
-      );
+      expect(ScheduleEvent.fromJson(base('2026-08-30')..['id'] = ''), isNull);
       // 合法通过。
-      expect(
-        ScheduleEvent.fromJson(base('2026-08-30'))!.dayKey,
-        '2026-08-30',
-      );
+      expect(ScheduleEvent.fromJson(base('2026-08-30'))!.dayKey, '2026-08-30');
       // tryParseDayKey 永不抛异常。
       expect(tryParseDayKey('--'), isNull);
       expect(tryParseDayKey('9999-99-99'), isNull);
@@ -169,13 +162,17 @@ void main() {
         '${tempDir.path}${Platform.pathSeparator}schedule_events.json',
       );
       await file.writeAsString('broken{{');
-      final reopened = ScheduleEventStore(directoryProvider: () async => tempDir);
+      final reopened = ScheduleEventStore(
+        directoryProvider: () async => tempDir,
+      );
       expect(await reopened.loadAll(), isEmpty);
     });
 
     test('跨实例持久化可读', () async {
       await store.add(title: 'A', dayKey: '2026-08-30');
-      final reopened = ScheduleEventStore(directoryProvider: () async => tempDir);
+      final reopened = ScheduleEventStore(
+        directoryProvider: () async => tempDir,
+      );
       expect((await reopened.loadAll()).single.title, 'A');
     });
   });

@@ -17,8 +17,7 @@ class _InMemoryEventStore extends ScheduleEventStore {
   final List<ScheduleEvent> _events = [];
 
   @override
-  Future<List<ScheduleEvent>> loadAll() async =>
-      List.unmodifiable(_events);
+  Future<List<ScheduleEvent>> loadAll() async => List.unmodifiable(_events);
 
   @override
   Future<ScheduleEvent?> add({

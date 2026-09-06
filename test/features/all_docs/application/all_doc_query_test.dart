@@ -14,7 +14,8 @@ void main() {
   // 固定 "now"：2026-08-28 12:00（周四）
   final now = DateTime(2026, 8, 28, 12, 0);
 
-  DocumentMeta mkCanvas(String id, DateTime updated, String folder) => DocumentMeta(
+  DocumentMeta mkCanvas(String id, DateTime updated, String folder) =>
+      DocumentMeta(
         id: id,
         title: 'Canvas $id',
         folder: folder,
@@ -26,8 +27,13 @@ void main() {
         updatedAt: updated,
       );
 
-  Notebook mkNotebook(String id, String pageId, DateTime updated, String folder,
-      {bool favorite = false}) {
+  Notebook mkNotebook(
+    String id,
+    String pageId,
+    DateTime updated,
+    String folder, {
+    bool favorite = false,
+  }) {
     final doc = DrawingDocument(id: 'draw_$pageId', title: 'draw');
     final content = NotebookPageContent(document: doc);
     final page = NotebookPage(
@@ -42,15 +48,18 @@ void main() {
     return Notebook(id: id, title: 'NB $id', pages: [page]);
   }
 
-  BlockDocMeta mkBlock(String id, DateTime updated, String folder,
-          {DateTime? createdAt}) =>
-      BlockDocMeta(
-        id: id,
-        title: 'Block $id',
-        folder: folder,
-        createdAt: createdAt ?? DateTime(2026, 1, 1),
-        updatedAt: updated,
-      );
+  BlockDocMeta mkBlock(
+    String id,
+    DateTime updated,
+    String folder, {
+    DateTime? createdAt,
+  }) => BlockDocMeta(
+    id: id,
+    title: 'Block $id',
+    folder: folder,
+    createdAt: createdAt ?? DateTime(2026, 1, 1),
+    updatedAt: updated,
+  );
 
   group('buildAllDocs', () {
     test('三源混合 → 统一 AllDoc 数与 kind 映射', () {
@@ -67,8 +76,14 @@ void main() {
       expect(result.docs.where((d) => d.kind == AllDocKind.blockdoc).length, 1);
 
       // folder 映射
-      expect(result.docs.firstWhere((d) => d.kind == AllDocKind.note).folder, '工作');
-      expect(result.docs.firstWhere((d) => d.kind == AllDocKind.blockdoc).folder, '笔记');
+      expect(
+        result.docs.firstWhere((d) => d.kind == AllDocKind.note).folder,
+        '工作',
+      );
+      expect(
+        result.docs.firstWhere((d) => d.kind == AllDocKind.blockdoc).folder,
+        '笔记',
+      );
 
       // note 的 notebookId / pageId
       final note = result.docs.firstWhere((d) => d.kind == AllDocKind.note);
@@ -95,9 +110,13 @@ void main() {
 
       // 严格 desc
       for (var i = 1; i < result.docs.length; i++) {
-        expect(result.docs[i - 1].updatedAt.isAfter(result.docs[i].updatedAt) ||
-            result.docs[i - 1].updatedAt.isAtSameMomentAs(result.docs[i].updatedAt),
-            isTrue);
+        expect(
+          result.docs[i - 1].updatedAt.isAfter(result.docs[i].updatedAt) ||
+              result.docs[i - 1].updatedAt.isAtSameMomentAs(
+                result.docs[i].updatedAt,
+              ),
+          isTrue,
+        );
       }
     });
 
@@ -106,7 +125,9 @@ void main() {
       // 双标签分叉（迁移副本同 id），保留 blockdoc 行；canvas id 不同，保留。
       final result = buildAllDocs(
         docs: [mkCanvas('x1', DateTime(2026, 8, 28, 9, 0), '')],
-        notebooks: [mkNotebook('nb1', 'x1', DateTime(2026, 8, 27), '')], // page id = x1
+        notebooks: [
+          mkNotebook('nb1', 'x1', DateTime(2026, 8, 27), ''),
+        ], // page id = x1
         blockDocs: [mkBlock('x1', DateTime(2026, 8, 25), '')],
         now: now,
       );
@@ -139,12 +160,14 @@ void main() {
           mkCanvas('c_today', DateTime(2026, 8, 28, 9, 0), ''),
           mkCanvas('c_earlier', DateTime(2026, 6, 1), ''),
         ],
-        notebooks: [
-          mkNotebook('nb1', 'p_week', DateTime(2026, 8, 25), ''),
-        ],
+        notebooks: [mkNotebook('nb1', 'p_week', DateTime(2026, 8, 25), '')],
         blockDocs: [
-          mkBlock('b_never', DateTime(2026, 3, 3, 10, 0), '',
-              createdAt: DateTime(2026, 3, 3, 10, 0)),
+          mkBlock(
+            'b_never',
+            DateTime(2026, 3, 3, 10, 0),
+            '',
+            createdAt: DateTime(2026, 3, 3, 10, 0),
+          ),
         ],
         now: now,
       );
@@ -179,7 +202,13 @@ void main() {
         docs: [mkCanvas('c1', DateTime(2026, 8, 28, 9, 0), '')],
         notebooks: [
           mkNotebook('nb1', 'p_fav', DateTime(2026, 8, 27), '', favorite: true),
-          mkNotebook('nb2', 'p_nofav', DateTime(2026, 8, 26), '', favorite: false),
+          mkNotebook(
+            'nb2',
+            'p_nofav',
+            DateTime(2026, 8, 26),
+            '',
+            favorite: false,
+          ),
         ],
         blockDocs: [mkBlock('b1', DateTime(2026, 8, 25), '')],
         now: now,
@@ -222,14 +251,33 @@ void main() {
     test('多 notebook 多 page 聚合正确', () {
       final doc = DrawingDocument(id: 'd', title: 'd');
       final content = NotebookPageContent(document: doc);
-      final nb = Notebook(id: 'nb', title: 'NB', pages: [
-        NotebookPage(
-            id: 'p1', title: 'P1', content: content, createdAt: DateTime(2026, 1, 1), updatedAt: DateTime(2026, 8, 27)),
-        NotebookPage(
-            id: 'p2', title: 'P2', content: content, createdAt: DateTime(2026, 1, 1), updatedAt: DateTime(2026, 8, 26)),
-        NotebookPage(
-            id: 'p3', title: 'P3', content: content, createdAt: DateTime(2026, 1, 1), updatedAt: DateTime(2026, 8, 25)),
-      ]);
+      final nb = Notebook(
+        id: 'nb',
+        title: 'NB',
+        pages: [
+          NotebookPage(
+            id: 'p1',
+            title: 'P1',
+            content: content,
+            createdAt: DateTime(2026, 1, 1),
+            updatedAt: DateTime(2026, 8, 27),
+          ),
+          NotebookPage(
+            id: 'p2',
+            title: 'P2',
+            content: content,
+            createdAt: DateTime(2026, 1, 1),
+            updatedAt: DateTime(2026, 8, 26),
+          ),
+          NotebookPage(
+            id: 'p3',
+            title: 'P3',
+            content: content,
+            createdAt: DateTime(2026, 1, 1),
+            updatedAt: DateTime(2026, 8, 25),
+          ),
+        ],
+      );
 
       final result = buildAllDocs(
         docs: [],
@@ -255,15 +303,17 @@ void main() {
       };
 
       final r1 = buildAllDocs(
-          docs: args['docs'] as List<DocumentMeta>,
-          notebooks: args['notebooks'] as List<Notebook>,
-          blockDocs: args['blockDocs'] as List<BlockDocMeta>,
-          now: args['now'] as DateTime);
+        docs: args['docs'] as List<DocumentMeta>,
+        notebooks: args['notebooks'] as List<Notebook>,
+        blockDocs: args['blockDocs'] as List<BlockDocMeta>,
+        now: args['now'] as DateTime,
+      );
       final r2 = buildAllDocs(
-          docs: args['docs'] as List<DocumentMeta>,
-          notebooks: args['notebooks'] as List<Notebook>,
-          blockDocs: args['blockDocs'] as List<BlockDocMeta>,
-          now: args['now'] as DateTime);
+        docs: args['docs'] as List<DocumentMeta>,
+        notebooks: args['notebooks'] as List<Notebook>,
+        blockDocs: args['blockDocs'] as List<BlockDocMeta>,
+        now: args['now'] as DateTime,
+      );
 
       expect(r1.docs.length, r2.docs.length);
       expect(r1.sections.length, r2.sections.length);

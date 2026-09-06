@@ -19,7 +19,9 @@ void main() {
   tearDown(() {
     try {
       tempDir.deleteSync(recursive: true);
-    } catch (_) {/* 忽略清理失败 */}
+    } catch (_) {
+      /* 忽略清理失败 */
+    }
   });
 
   test('VaultService：对象 CRUD——写入/读取/清单（usecase key 标识）', () async {
@@ -53,10 +55,7 @@ void main() {
     // 重新构造（模拟新会话——持久化介质不变）。
     final second = VaultService(directory: tempDir);
     second.setKey(key);
-    expect(
-      utf8.decode(await second.getObject('index/notes')),
-      '清单数据',
-    );
+    expect(utf8.decode(await second.getObject('index/notes')), '清单数据');
   });
 
   test('VaultService：clearKey 后拒绝（D-2 内存清零语义）', () async {
@@ -64,9 +63,6 @@ void main() {
     service.setKey(key);
     service.clearKey();
     expect(service.hasKey, isFalse);
-    expect(
-      () => service.getObject('media/x'),
-      throwsStateError,
-    );
+    expect(() => service.getObject('media/x'), throwsStateError);
   });
 }

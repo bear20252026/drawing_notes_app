@@ -27,9 +27,7 @@ void main() {
     // 未解锁——明文副本（旧数据/未加密笔记本）。
     final path = await storage.storeImage(_writeTempImage().path, 'page1');
     // 注入会话密钥（模拟解锁）→ 批量迁移。
-    MediaCryptoService.instance.setSessionKey(
-      List<int>.generate(32, (i) => i),
-    );
+    MediaCryptoService.instance.setSessionKey(List<int>.generate(32, (i) => i));
     final migrated = await storage.migrateLegacyMedia();
     expect(migrated, 1);
     // 幂等：已 DAN 密文——再次迁移 0。
@@ -62,8 +60,6 @@ File _writeTempImage() {
     '${Directory.systemTemp.path}/tmp_img_'
     '${DateTime.now().microsecondsSinceEpoch}.png',
   );
-  f.writeAsBytesSync(
-    Uint8List.fromList(List<int>.generate(64, (i) => i)),
-  );
+  f.writeAsBytesSync(Uint8List.fromList(List<int>.generate(64, (i) => i)));
   return f;
 }

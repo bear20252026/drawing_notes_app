@@ -41,7 +41,9 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: EmbeddedBlockView(block: block))),
+        MaterialApp(
+          home: Scaffold(body: EmbeddedBlockView(block: block)),
+        ),
       );
       await tester.pump();
 
@@ -57,7 +59,9 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: EmbeddedBlockView(block: block))),
+        MaterialApp(
+          home: Scaffold(body: EmbeddedBlockView(block: block)),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -74,7 +78,9 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: EmbeddedBlockView(block: block))),
+        MaterialApp(
+          home: Scaffold(body: EmbeddedBlockView(block: block)),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -91,7 +97,9 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: EmbeddedBlockView(block: block))),
+        MaterialApp(
+          home: Scaffold(body: EmbeddedBlockView(block: block)),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -108,7 +116,9 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: EmbeddedBlockView(block: block))),
+        MaterialApp(
+          home: Scaffold(body: EmbeddedBlockView(block: block)),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -123,7 +133,9 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: EmbeddedBlockView(block: block))),
+        MaterialApp(
+          home: Scaffold(body: EmbeddedBlockView(block: block)),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -148,7 +160,9 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: EmbeddedBlockView(block: block))),
+        MaterialApp(
+          home: Scaffold(body: EmbeddedBlockView(block: block)),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -168,7 +182,9 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: EmbeddedBlockView(block: block))),
+        MaterialApp(
+          home: Scaffold(body: EmbeddedBlockView(block: block)),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -180,10 +196,26 @@ void main() {
   group('EmbeddedBlockView 数据库渲染', () {
     testWidgets('渲染表视图：标题/记录数/行内容', (tester) async {
       final db = NoteDatabase.empty(title: '数据库')
-          .addField(const NoteFieldDef(id: 'name', name: '名称', type: NoteFieldType.text))
-          .addField(const NoteFieldDef(id: 'age', name: '年龄', type: NoteFieldType.number))
-          .addRecord(const NoteRecord(id: 'r1', cells: {'name': 'Alice', 'age': 30}))
-          .addRecord(const NoteRecord(id: 'r2', cells: {'name': 'Bob', 'age': 25}));
+          .addField(
+            const NoteFieldDef(
+              id: 'name',
+              name: '名称',
+              type: NoteFieldType.text,
+            ),
+          )
+          .addField(
+            const NoteFieldDef(
+              id: 'age',
+              name: '年龄',
+              type: NoteFieldType.number,
+            ),
+          )
+          .addRecord(
+            const NoteRecord(id: 'r1', cells: {'name': 'Alice', 'age': 30}),
+          )
+          .addRecord(
+            const NoteRecord(id: 'r2', cells: {'name': 'Bob', 'age': 25}),
+          );
       final block = NoteBlock(
         id: 'db1',
         type: NoteBlockType.database,
@@ -191,7 +223,9 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: EmbeddedBlockView(block: block))),
+        MaterialApp(
+          home: Scaffold(body: EmbeddedBlockView(block: block)),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -209,7 +243,9 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: EmbeddedBlockView(block: block))),
+        MaterialApp(
+          home: Scaffold(body: EmbeddedBlockView(block: block)),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -226,7 +262,9 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: EmbeddedBlockView(block: block))),
+        MaterialApp(
+          home: Scaffold(body: EmbeddedBlockView(block: block)),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -242,7 +280,9 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: EmbeddedBlockView(block: block))),
+        MaterialApp(
+          home: Scaffold(body: EmbeddedBlockView(block: block)),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -329,9 +369,7 @@ void main() {
     });
 
     testWidgets('image 块渲染图片视图而非 TextField', (tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(home: DocEditor()),
-      );
+      await tester.pumpWidget(const MaterialApp(home: DocEditor()));
       await tester.pumpAndSettle();
 
       // 切换到 image 类型
@@ -382,9 +420,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: EmbeddedBlockView(block: block),
-          ),
+          home: Scaffold(body: EmbeddedBlockView(block: block)),
         ),
       );
       await tester.pumpAndSettle();
@@ -411,9 +447,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: EmbeddedBlockView(block: block),
-          ),
+          home: Scaffold(body: EmbeddedBlockView(block: block)),
         ),
       );
       await tester.pumpAndSettle();
@@ -426,8 +460,9 @@ void main() {
       expect(find.byType(InteractiveViewer), findsNothing);
     });
 
-    testWidgets('table 块有 onBlockChanged 时使用 TableEditorWidget',
-        (tester) async {
+    testWidgets('table 块有 onBlockChanged 时使用 TableEditorWidget', (
+      tester,
+    ) async {
       final block = NoteBlock(
         id: 'table_test',
         type: NoteBlockType.table,
@@ -443,10 +478,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: EmbeddedBlockView(
-              block: block,
-              onBlockChanged: (_) {},
-            ),
+            body: EmbeddedBlockView(block: block, onBlockChanged: (_) {}),
           ),
         ),
       );
@@ -473,9 +505,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: EmbeddedBlockView(block: block),
-          ),
+          home: Scaffold(body: EmbeddedBlockView(block: block)),
         ),
       );
       await tester.pumpAndSettle();

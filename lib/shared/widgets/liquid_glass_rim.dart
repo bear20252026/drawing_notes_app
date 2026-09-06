@@ -129,10 +129,7 @@ class _RimPainter extends CustomPainter {
       aberration: aberration,
     );
     if (shader == null) return;
-    canvas.drawRect(
-      Offset.zero & size,
-      Paint()..shader = shader,
-    );
+    canvas.drawRect(Offset.zero & size, Paint()..shader = shader);
     shader.dispose();
   }
 

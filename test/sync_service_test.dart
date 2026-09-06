@@ -41,11 +41,9 @@ void main() {
     final other = await masterKey();
     final encrypted = await cipher.encryptPath('机密.json', key);
     expect(
-      await cipher.decryptPathWithCandidates(
-        encrypted,
-        other,
-        const ['机密.json'],
-      ),
+      await cipher.decryptPathWithCandidates(encrypted, other, const [
+        '机密.json',
+      ]),
       isNull,
     );
     // 篡改一个字符后同样失败。
@@ -54,11 +52,7 @@ void main() {
       encrypted[3] == 'a' ? 'b' : 'a',
     );
     expect(
-      await cipher.decryptPathWithCandidates(
-        tampered,
-        key,
-        const ['机密.json'],
-      ),
+      await cipher.decryptPathWithCandidates(tampered, key, const ['机密.json']),
       isNull,
     );
   });
@@ -78,25 +72,27 @@ void main() {
     expect(localChanges, hasLength(1));
     final remoteChanges = await stub.findRemoteChanges();
     expect(remoteChanges, hasLength(1));
-    final best = await stub.getBestFile(
-      localChanges.first,
-      preferLocal: true,
-    );
+    final best = await stub.getBestFile(localChanges.first, preferLocal: true);
     expect(best.localPath, 'local.json');
   });
 }
 
 class _StubSyncService implements SyncService {
   @override
-  Future<List<SyncFile>> findLocalChanges() async =>
-      const [SyncFile(localPath: 'local.json', remotePath: 'l.sbe')];
+  Future<List<SyncFile>> findLocalChanges() async => const [
+    SyncFile(localPath: 'local.json', remotePath: 'l.sbe'),
+  ];
 
   @override
-  Future<List<SyncFile>> findRemoteChanges() async =>
-      const [SyncFile(localPath: 'remote.json', remotePath: 'r.sbe')];
+  Future<List<SyncFile>> findRemoteChanges() async => const [
+    SyncFile(localPath: 'remote.json', remotePath: 'r.sbe'),
+  ];
 
   @override
-  Future<SyncFile> getBestFile(SyncFile file, {required bool preferLocal}) async =>
+  Future<SyncFile> getBestFile(
+    SyncFile file, {
+    required bool preferLocal,
+  }) async =>
       file.copyWith(localPath: preferLocal ? 'local.json' : 'remote.json');
 
   @override

@@ -86,7 +86,9 @@ Widget _homePage({
   return _wrap(
     HomePage(
       docStorage: _NoDocsStorage(),
-      notebookStorage: NotebookStorage(directoryProvider: _NoDocsStorage._tempDir),
+      notebookStorage: NotebookStorage(
+        directoryProvider: _NoDocsStorage._tempDir,
+      ),
       refreshSignal: refreshSignal,
       loadDocs: loadDocs,
       loadNotebooks: loadNotebooks ?? (() async => const <Notebook>[]),
@@ -96,9 +98,7 @@ Widget _homePage({
 }
 
 void main() {
-  testWidgets('笔记 Tab 只显示打字笔记：kind=note 页条目不再混入（W1 归位）', (
-    tester,
-  ) async {
+  testWidgets('笔记 Tab 只显示打字笔记：kind=note 页条目不再混入（W1 归位）', (tester) async {
     final entries = [
       _entry(id: 'pg1', title: '旅行计划页', kind: AllDocKind.note),
       _entry(id: 'bd1', title: '读书笔记', kind: AllDocKind.blockdoc),
@@ -158,7 +158,9 @@ void main() {
             _entry(id: 'bd1', title: '读书笔记', kind: AllDocKind.blockdoc),
           ];
           if (signal.value >= 1) {
-            list.add(_entry(id: 'bd2', title: '第二篇笔记', kind: AllDocKind.blockdoc));
+            list.add(
+              _entry(id: 'bd2', title: '第二篇笔记', kind: AllDocKind.blockdoc),
+            );
           }
           return AllDocQueryResult(docs: list, sections: const []);
         },
@@ -178,13 +180,12 @@ void main() {
     expect(find.text('第二篇笔记'), findsOneWidget);
   });
 
-  testWidgets('W1 归位：分页画布整本卡显示在画布 Tab，点击走统一打开回调', (
-    tester,
-  ) async {
+  testWidgets('W1 归位：分页画布整本卡显示在画布 Tab，点击走统一打开回调', (tester) async {
     final opened = <AllDoc>[];
     await tester.pumpWidget(
       _homePage(
-        loadDocs: () async => AllDocQueryResult(docs: const [], sections: const []),
+        loadDocs: () async =>
+            AllDocQueryResult(docs: const [], sections: const []),
         loadNotebooks: () async => [_notebook(id: 'nb1', title: '旅行画册')],
         onOpenDoc: opened.add,
       ),
@@ -206,7 +207,8 @@ void main() {
   testWidgets('W1 归位：加密分页画布显示锁态副标题（不泄露页数）', (tester) async {
     await tester.pumpWidget(
       _homePage(
-        loadDocs: () async => AllDocQueryResult(docs: const [], sections: const []),
+        loadDocs: () async =>
+            AllDocQueryResult(docs: const [], sections: const []),
         loadNotebooks: () async => [
           // 保险库锁定占位：encrypted + 无页面 + 无密文载荷。
           _notebook(id: 'nb1', title: '秘密画册', encrypted: true),

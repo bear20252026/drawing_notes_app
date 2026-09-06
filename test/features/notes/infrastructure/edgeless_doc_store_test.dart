@@ -49,8 +49,9 @@ void main() {
     final first = buildDoc();
     await store.saveDoc(first);
 
-    final updated = buildDoc('edg-doc-1')
-        .addFrame(NoteBlockDoc.empty('frame-c'), at: const Offset(200, 200));
+    final updated = buildDoc(
+      'edg-doc-1',
+    ).addFrame(NoteBlockDoc.empty('frame-c'), at: const Offset(200, 200));
     await store.saveDoc(updated);
 
     final loaded = await store.loadDoc('edg-doc-1');
@@ -76,9 +77,6 @@ void main() {
   });
 
   test('非法 ID 触发路径遍历防护', () async {
-    await expectLater(
-      store.saveDoc(buildDoc('../evil')),
-      throwsArgumentError,
-    );
+    await expectLater(store.saveDoc(buildDoc('../evil')), throwsArgumentError);
   });
 }

@@ -19,7 +19,9 @@ void main() {
   tearDown(() {
     try {
       tempDir.deleteSync(recursive: true);
-    } catch (_) {/* 忽略清理失败 */}
+    } catch (_) {
+      /* 忽略清理失败 */
+    }
   });
 
   test('VFS：对象写入读取往返（明文一致）', () async {
@@ -50,10 +52,7 @@ void main() {
     final entries = await vault.listObjects();
     expect(entries.first.version, 2);
     // 最新版本读取 v2；旧版本（1）仍可回溯。
-    expect(
-      String.fromCharCodes(await vault.readObject('note-a')),
-      'v2',
-    );
+    expect(String.fromCharCodes(await vault.readObject('note-a')), 'v2');
     expect(
       String.fromCharCodes(await vault.readObject('note-a', version: 1)),
       'v1',
@@ -75,9 +74,7 @@ void main() {
     final wrongVault = EncryptedVault(directory: tempDir, key: wrongKey);
     await expectLater(
       wrongVault.readObject('secret'),
-      throwsA(
-        anyOf(isA<StateError>(), isA<SecretBoxAuthenticationError>()),
-      ),
+      throwsA(anyOf(isA<StateError>(), isA<SecretBoxAuthenticationError>())),
     );
     await File('${tempDir.path}/manifest.hmac').delete();
     await expectLater(
@@ -88,10 +85,7 @@ void main() {
 
   test('VFS：对象不存在抛 StateError', () async {
     final vault = EncryptedVault(directory: tempDir, key: key);
-    expect(
-      () => vault.readObject('missing'),
-      throwsStateError,
-    );
+    expect(() => vault.readObject('missing'), throwsStateError);
   });
 
   test('VFS：原子提交——manifest 与对象文件均落盘（结构完整）', () async {
@@ -138,10 +132,7 @@ void main() {
       type: 'media',
       plain: Uint8List.fromList('ok'.codeUnits),
     );
-    expect(
-      String.fromCharCodes(await vault.readObject('media/note-1')),
-      'ok',
-    );
+    expect(String.fromCharCodes(await vault.readObject('media/note-1')), 'ok');
   });
 
   test('P1：清单 version 回滚被 HMAC 拦截', () async {
@@ -185,10 +176,7 @@ void main() {
     // debug/test 下构造期 assert 先开火（AssertionError）；release 下
     // assert 被剥离，改由 _requireKey 抛 StateError——两种模式都关门。
     await expectLater(
-      () => EncryptedVault(
-        directory: tempDir,
-        key: List<int>.filled(16, 1),
-      ),
+      () => EncryptedVault(directory: tempDir, key: List<int>.filled(16, 1)),
       throwsA(anyOf(isA<AssertionError>(), isA<StateError>())),
     );
   });

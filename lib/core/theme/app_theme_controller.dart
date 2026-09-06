@@ -101,14 +101,11 @@ class AppThemeController extends ChangeNotifier {
     notifyListeners();
     try {
       _prefs ??= await SharedPreferences.getInstance();
-      await _prefs!.setString(
-        _hcPrefsKey,
-        switch (value) {
-          null => 'system',
-          true => 'on',
-          false => 'off',
-        },
-      );
+      await _prefs!.setString(_hcPrefsKey, switch (value) {
+        null => 'system',
+        true => 'on',
+        false => 'off',
+      });
     } catch (_) {
       // 持久化失败不影响本次会话内的切换。
     }
@@ -116,13 +113,11 @@ class AppThemeController extends ChangeNotifier {
 
   /// 三态循环：跟随系统 → 强制开 → 强制关 → 跟随系统。
   void cycleHighContrast() {
-    setHighContrast(
-      switch (_highContrastOverride) {
-        null => true,
-        true => false,
-        false => null,
-      },
-    );
+    setHighContrast(switch (_highContrastOverride) {
+      null => true,
+      true => false,
+      false => null,
+    });
   }
 
   /// 设置项的当前文案。

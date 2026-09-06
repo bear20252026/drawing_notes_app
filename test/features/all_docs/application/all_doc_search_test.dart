@@ -5,14 +5,14 @@ import 'package:drawing_notes_app/features/all_docs/application/all_doc_search.d
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 
 AllDoc _doc(String id, String title, {String desc = ''}) => AllDoc(
-      id: id,
-      title: title,
-      kind: AllDocKind.blockdoc,
-      folder: '',
-      createdAt: DateTime(2026, 8, 1),
-      updatedAt: DateTime(2026, 8, 2),
-      description: desc,
-    );
+  id: id,
+  title: title,
+  kind: AllDocKind.blockdoc,
+  folder: '',
+  createdAt: DateTime(2026, 8, 1),
+  updatedAt: DateTime(2026, 8, 2),
+  description: desc,
+);
 
 void main() {
   test('空查询原样返回', () {

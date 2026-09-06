@@ -184,8 +184,7 @@ void main() {
 
   // ---- v1.10.5：导航类控件玻璃化（extendBody + 玻璃导航条 / 玻璃 FAB）----
 
-  testWidgets('窄屏：底部导航条为玻璃胶囊，Scaffold extendBody 开启',
-      (tester) async {
+  testWidgets('窄屏：底部导航条为玻璃胶囊，Scaffold extendBody 开启', (tester) async {
     await pumpShell(tester);
 
     // 玻璃胶囊在位（内部仍复用原生 NavigationBar——交互行为不变）。
@@ -204,8 +203,7 @@ void main() {
     );
   });
 
-  testWidgets('窄屏：设置页列表消费注入的底部让位（可滚动 padding）',
-      (tester) async {
+  testWidgets('窄屏：设置页列表消费注入的底部让位（可滚动 padding）', (tester) async {
     await pumpShell(tester);
 
     // IndexedStack 惰性挂载：先切到设置页才在树上。
@@ -215,11 +213,10 @@ void main() {
 
     // 设置页顶层 ListView 的 bottom padding = 注入值（条总高 76，
     // 无系统手势条时）+ 原呼吸空间 24。
-    final listViews = tester.widgetList<m.ListView>(
-      find.byType(m.ListView),
-    );
+    final listViews = tester.widgetList<m.ListView>(find.byType(m.ListView));
     final settingsList = listViews.firstWhere(
-      (lv) => lv.padding is m.EdgeInsets && (lv.padding as m.EdgeInsets).left == 16,
+      (lv) =>
+          lv.padding is m.EdgeInsets && (lv.padding as m.EdgeInsets).left == 16,
     );
     final padding = settingsList.padding as m.EdgeInsets;
     expect(
@@ -229,8 +226,7 @@ void main() {
     );
   });
 
-  testWidgets('窄屏：玻璃 FAB 在位（全部文档圆形 ↔ 首页 extended）',
-      (tester) async {
+  testWidgets('窄屏：玻璃 FAB 在位（全部文档圆形 ↔ 首页 extended）', (tester) async {
     await pumpShell(tester);
 
     // IndexedStack 实测行为：同屏只保留当前目的地子树（切换即卸载旧页），

@@ -32,8 +32,10 @@ void main() {
     final metas = await sync.listDocuments();
     expect(metas, hasLength(1));
     expect(metas.single.id, 'd1');
-    expect(metas.single.updatedAt,
-        (await store.loadDocument('d1'))!.updatedAt.millisecondsSinceEpoch);
+    expect(
+      metas.single.updatedAt,
+      (await store.loadDocument('d1'))!.updatedAt.millisecondsSinceEpoch,
+    );
     expect(metas.single.size, greaterThan(0));
   });
 

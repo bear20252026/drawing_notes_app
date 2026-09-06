@@ -17,7 +17,10 @@ import 'package:drawing_notes_app/features/drawing/application/document_image_ca
 import 'package:drawing_notes_app/features/drawing/rendering/stroke_picture_cache.dart';
 
 Stroke _stroke(int seed) => Stroke(
-  points: [StrokePoint(seed * 10, 20, 0.5), StrokePoint(seed * 10 + 60, 90, 0.9)],
+  points: [
+    StrokePoint(seed * 10, 20, 0.5),
+    StrokePoint(seed * 10 + 60, 90, 0.9),
+  ],
   color: const ui.Color(0xFF000000),
   width: 6,
   type: BrushType.pen,
@@ -43,10 +46,10 @@ void main() {
       final cache = StrokePictureCache(maxCacheCount: 4);
       // 反复提交不同的笔画集合 → 指纹各异 → 触发多次重建与淘汰。
       for (var i = 0; i < 40; i++) {
-        cache.pictureFor(
-          [_stroke(i), _stroke(i + 1)],
-          size: const ui.Size(800, 600),
-        );
+        cache.pictureFor([
+          _stroke(i),
+          _stroke(i + 1),
+        ], size: const ui.Size(800, 600));
       }
       expect(cache.cacheCount, 4, reason: '缓存条数必须被 LRU 上限约束');
 
@@ -55,8 +58,7 @@ void main() {
     });
   });
 
-  testWidgets('DocumentImageCache：超字节预算按最久未用淘汰（P0 #2）',
-      (tester) async {
+  testWidgets('DocumentImageCache：超字节预算按最久未用淘汰（P0 #2）', (tester) async {
     late DocumentImageCache cache;
     // 4×4 RGBA = 64 字节；预算 64 → 只容 1 张，超过即淘汰最久未用。
     cache = DocumentImageCache(

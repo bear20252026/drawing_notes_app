@@ -409,7 +409,9 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
                       item.description!,
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppleColor.mutedOf(Theme.of(context).colorScheme),
+                        color: AppleColor.mutedOf(
+                          Theme.of(context).colorScheme,
+                        ),
                       ),
                     ),
                 ],

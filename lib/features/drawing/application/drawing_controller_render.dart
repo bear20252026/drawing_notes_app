@@ -22,10 +22,7 @@ extension DrawingControllerRenderOps on DrawingController {
     final docH = _document.height.toDouble();
     final probeScale = docW <= 0 || docH <= 0
         ? 1.0
-        : math.min(
-            1.0,
-            maxProbeLongEdge / math.max(docW, docH),
-          );
+        : math.min(1.0, maxProbeLongEdge / math.max(docW, docH));
     final probeW = math.max(1, (docW * probeScale).round());
     final probeH = math.max(1, (docH * probeScale).round());
 
@@ -36,21 +33,12 @@ extension DrawingControllerRenderOps on DrawingController {
     ui.Image? image;
     try {
       image = await picture.toImage(probeW, probeH);
-      final x = (canvasPoint.dx * probeScale)
-          .round()
-          .clamp(0, probeW - 1);
-      final y = (canvasPoint.dy * probeScale)
-          .round()
-          .clamp(0, probeH - 1);
+      final x = (canvasPoint.dx * probeScale).round().clamp(0, probeW - 1);
+      final y = (canvasPoint.dy * probeScale).round().clamp(0, probeH - 1);
       final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
       if (bytes == null) return null;
       // Q-1 拆分（2026-08-16）：取色纯计算委托 ColorSamplingService。
-      return ColorSamplingService.colorFromRgbaBytes(
-        bytes,
-        probeW,
-        x,
-        y,
-      );
+      return ColorSamplingService.colorFromRgbaBytes(bytes, probeW, x, y);
     } finally {
       // 无论成功/失败都释放位图，避免泄漏。
       image?.dispose();

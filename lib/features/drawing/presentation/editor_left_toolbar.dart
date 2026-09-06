@@ -73,12 +73,7 @@ class EditorLeftToolbar extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               // 手型：画布导航与绘制模式显式分离，避免误触发笔画。
-              _tool(
-                Icons.pan_tool_alt_rounded,
-                '平移画布 (H)',
-                handActive,
-                onHand,
-              ),
+              _tool(Icons.pan_tool_alt_rounded, '平移画布 (H)', handActive, onHand),
               Divider(height: 12, color: scheme.outlineVariant),
               // 画笔
               _tool(
@@ -127,12 +122,7 @@ class EditorLeftToolbar extends StatelessWidget {
               ),
 
               // 橡皮擦
-              _tool(
-                Icons.auto_fix_high_rounded,
-                '橡皮擦 (E)',
-                isEraser,
-                onEraser,
-              ),
+              _tool(Icons.auto_fix_high_rounded, '橡皮擦 (E)', isEraser, onEraser),
               // 吸管
               _tool(
                 Icons.colorize_rounded,
@@ -217,18 +207,10 @@ class EditorLeftToolbar extends StatelessWidget {
     ShapeType.line => Icons.remove_rounded,
   };
 
-  Widget _toolIcon(IconData icon, bool selected) => Icon(
-    icon,
-    size: 20,
-    color: selected ? Colors.white : null,
-  );
+  Widget _toolIcon(IconData icon, bool selected) =>
+      Icon(icon, size: 20, color: selected ? Colors.white : null);
 
-  Widget _tool(
-    IconData icon,
-    String tip,
-    bool selected,
-    VoidCallback onTap,
-  ) {
+  Widget _tool(IconData icon, String tip, bool selected, VoidCallback onTap) {
     if (!selected) {
       return Tooltip(
         message: tip,
@@ -242,10 +224,7 @@ class EditorLeftToolbar extends StatelessWidget {
           color: AppleColor.actionBlue,
           borderRadius: BorderRadius.circular(AppleRadius.sm),
         ),
-        child: IconButton(
-          icon: _toolIcon(icon, true),
-          onPressed: onTap,
-        ),
+        child: IconButton(icon: _toolIcon(icon, true), onPressed: onTap),
       ),
     );
   }

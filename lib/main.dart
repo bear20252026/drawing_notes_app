@@ -88,8 +88,9 @@ Future<bool> _isProcessAlive(int pid) async {
     if (Platform.isWindows) {
       final r = await Process.run('tasklist', ['/FI', 'PID eq $pid', '/NH']);
       // tasklist /NH 行如 `app.exe  1232 Console ...`——按词边界匹配。
-      final found = RegExp('(^|\\s)$pid(\\s|\$)')
-          .hasMatch(r.stdout.toString().replaceAll(',', ''));
+      final found = RegExp(
+        '(^|\\s)$pid(\\s|\$)',
+      ).hasMatch(r.stdout.toString().replaceAll(',', ''));
       return found;
     }
     final r = await Process.run('kill', ['-0', '$pid']);

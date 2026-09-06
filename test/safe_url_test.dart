@@ -7,8 +7,15 @@ void main() {
     test('合法 http/https 链接原样返回（含 & 查询参数不误杀）', () {
       expect(sanitizeHref('https://example.com'), 'https://example.com');
       expect(sanitizeHref('http://a.b/c?x=1&y=2'), 'http://a.b/c?x=1&y=2');
-      expect(sanitizeHref('  https://a.com  '), 'https://a.com', reason: 'trim');
-      expect(sanitizeHref('mailto:test@example.com'), 'mailto:test@example.com');
+      expect(
+        sanitizeHref('  https://a.com  '),
+        'https://a.com',
+        reason: 'trim',
+      );
+      expect(
+        sanitizeHref('mailto:test@example.com'),
+        'mailto:test@example.com',
+      );
     });
 
     test('拒绝危险 scheme（javascript:/file:/data:）', () {

@@ -65,8 +65,10 @@ void main() {
     });
 
     test('单成员即其矩形', () {
-      expect(groupBoundsOf([const Rect.fromLTWH(10, 20, 30, 40)]),
-          const Rect.fromLTWH(10, 20, 30, 40));
+      expect(
+        groupBoundsOf([const Rect.fromLTWH(10, 20, 30, 40)]),
+        const Rect.fromLTWH(10, 20, 30, 40),
+      );
     });
   });
 }

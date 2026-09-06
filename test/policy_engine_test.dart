@@ -40,7 +40,13 @@ void main() {
     engine.check('note.import.pdf');
     engine.check('system.exec');
     final snap = AuditLogger.snapshot();
-    expect(snap.any((e) => e.contains('policy.note.import.pdf') && e.contains('OK')), isTrue);
-    expect(snap.any((e) => e.contains('policy.system.exec') && e.contains('FAIL')), isTrue);
+    expect(
+      snap.any((e) => e.contains('policy.note.import.pdf') && e.contains('OK')),
+      isTrue,
+    );
+    expect(
+      snap.any((e) => e.contains('policy.system.exec') && e.contains('FAIL')),
+      isTrue,
+    );
   });
 }

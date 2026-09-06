@@ -121,7 +121,9 @@ void main() {
       final doc = NoteBlockDoc(
         id: 'doc',
         title: '',
-        body: [NoteBlock.codeBlock('c1', language: 'dart', text: 'print("hi")')],
+        body: [
+          NoteBlock.codeBlock('c1', language: 'dart', text: 'print("hi")'),
+        ],
         createdAt: DateTime(2026, 8, 28),
         updatedAt: DateTime(2026, 8, 28),
       );
@@ -147,11 +149,13 @@ void main() {
       final doc = NoteBlockDoc(
         id: 'doc',
         title: '',
-        body: [NoteBlock(
-          id: 'co1',
-          type: NoteBlockType.callout,
-          text: 'Important note',
-        )],
+        body: [
+          NoteBlock(
+            id: 'co1',
+            type: NoteBlockType.callout,
+            text: 'Important note',
+          ),
+        ],
         createdAt: DateTime(2026, 8, 28),
         updatedAt: DateTime(2026, 8, 28),
       );
@@ -164,8 +168,13 @@ void main() {
       final doc = NoteBlockDoc(
         id: 'doc',
         title: '',
-        body: [NoteBlock.imageBlock('img1',
-            src: 'https://example.com/img.png', alt: 'My Image')],
+        body: [
+          NoteBlock.imageBlock(
+            'img1',
+            src: 'https://example.com/img.png',
+            alt: 'My Image',
+          ),
+        ],
         createdAt: DateTime(2026, 8, 28),
         updatedAt: DateTime(2026, 8, 28),
       );
@@ -177,12 +186,14 @@ void main() {
       final doc = NoteBlockDoc(
         id: 'doc',
         title: '',
-        body: [NoteBlock(
-          id: 'link1',
-          type: NoteBlockType.link,
-          text: 'Click here',
-          props: {'href': 'https://example.com', 'title': 'Example'},
-        )],
+        body: [
+          NoteBlock(
+            id: 'link1',
+            type: NoteBlockType.link,
+            text: 'Click here',
+            props: {'href': 'https://example.com', 'title': 'Example'},
+          ),
+        ],
         createdAt: DateTime(2026, 8, 28),
         updatedAt: DateTime(2026, 8, 28),
       );
@@ -220,11 +231,13 @@ void main() {
       final doc = NoteBlockDoc(
         id: 'doc',
         title: '',
-        body: [NoteBlock(
-          id: 'cv1',
-          type: NoteBlockType.canvas,
-          props: {'width': 300, 'height': 200},
-        )],
+        body: [
+          NoteBlock(
+            id: 'cv1',
+            type: NoteBlockType.canvas,
+            props: {'width': 300, 'height': 200},
+          ),
+        ],
         createdAt: DateTime(2026, 8, 28),
         updatedAt: DateTime(2026, 8, 28),
       );
@@ -333,8 +346,9 @@ void main() {
       // 标题应保留
       expect(restored.title, 'Round Trip');
       // 文本块应保序
-      final textBlocks =
-          restored.body.where((b) => b.type == NoteBlockType.text).toList();
+      final textBlocks = restored.body
+          .where((b) => b.type == NoteBlockType.text)
+          .toList();
       expect(textBlocks.length, 3);
       expect(textBlocks[0].text, 'Line 1');
       expect(textBlocks[1].text, 'Line 2');

@@ -523,10 +523,7 @@ extension _EditorPageInput on _EditorPageState {
     final viewport = _viewportSize;
     final current = _controller.viewScale;
     if (viewport == null || current <= 0) return;
-    _zoomAt(
-      Offset(viewport.width / 2, viewport.height / 2),
-      scale / current,
-    );
+    _zoomAt(Offset(viewport.width / 2, viewport.height / 2), scale / current);
   }
 
   /// 状态栏「适应画布」（审计三-2）：按视口适配整页并居中（与

@@ -276,10 +276,14 @@ void main() {
           return http.Response('', 200);
         }),
       );
-      await expectLater(client.getBytes('manifest.json'),
-          throwsA(isA<WebDavSyncException>()));
-      await expectLater(client.ensureCollection(),
-          throwsA(isA<WebDavSyncException>()));
+      await expectLater(
+        client.getBytes('manifest.json'),
+        throwsA(isA<WebDavSyncException>()),
+      );
+      await expectLater(
+        client.ensureCollection(),
+        throwsA(isA<WebDavSyncException>()),
+      );
       expect(hit, isFalse, reason: '拒绝必须发生在请求发出之前');
     });
 
@@ -308,9 +312,11 @@ void main() {
         'a/b/../../c',
         'id|with|pipes',
       ]) {
-        await expectLater(client.getBytes(evil),
-            throwsA(isA<WebDavSyncException>()),
-            reason: evil);
+        await expectLater(
+          client.getBytes(evil),
+          throwsA(isA<WebDavSyncException>()),
+          reason: evil,
+        );
       }
       expect(hit, isFalse);
     });

@@ -11,13 +11,13 @@ import 'package:drawing_notes_app/features/all_docs/presentation/all_docs_page.d
 import 'package:drawing_notes_app/features/all_docs/presentation/all_docs_sidebar.dart';
 
 AllDoc _doc(String id, String title) => AllDoc(
-      id: id,
-      title: title,
-      kind: AllDocKind.blockdoc,
-      folder: '',
-      createdAt: DateTime(2026, 8, 1, 10),
-      updatedAt: DateTime(2026, 8, 2, 10),
-    );
+  id: id,
+  title: title,
+  kind: AllDocKind.blockdoc,
+  folder: '',
+  createdAt: DateTime(2026, 8, 1, 10),
+  updatedAt: DateTime(2026, 8, 2, 10),
+);
 
 Future<void> pumpPage(
   WidgetTester tester, {
@@ -98,10 +98,7 @@ void main() {
   });
 
   testWidgets('搜索框输入后列表按标题过滤', (tester) async {
-    await pumpPage(
-      tester,
-      docs: [_doc('a', '设计稿'), _doc('b', '会议记录')],
-    );
+    await pumpPage(tester, docs: [_doc('a', '设计稿'), _doc('b', '会议记录')]);
     expect(find.text('设计稿'), findsWidgets);
     expect(find.text('会议记录'), findsWidgets);
 
@@ -142,10 +139,7 @@ void main() {
         ],
         supportedLocales: const [Locale('zh'), Locale('en')],
         home: AllDocsPage(
-          loadDocs: () async => const AllDocQueryResult(
-            docs: [],
-            sections: [],
-          ),
+          loadDocs: () async => const AllDocQueryResult(docs: [], sections: []),
           onOpenDoc: (_) {},
           onNewDoc: (kind) => created = kind,
         ),

@@ -77,9 +77,7 @@ class EditorExporter {
         codec = await ui.instantiateImageCodec(png);
         final frame = await codec.getNextFrame();
         image = frame.image;
-        final data = await image.toByteData(
-          format: ui.ImageByteFormat.rawRgba,
-        );
+        final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
         if (data == null) {
           showSnack('复制失败：像素解码失败');
           return;
@@ -258,8 +256,7 @@ class EditorExporter {
       );
       final s = fit.scale;
       final o = fit.offset;
-      final pageSize =
-          paper.pageSize ?? ui.Size(content.width, content.height);
+      final pageSize = paper.pageSize ?? ui.Size(content.width, content.height);
       final vectorStrokes = <Stroke>[
         for (final layer in controller.document.layers)
           for (final stroke in layer.strokes)
@@ -331,8 +328,9 @@ class EditorExporter {
           return byY == 0 ? a.x.compareTo(b.x) : byY;
         });
       // 二级面板纸张：文字页版式跟纸张档位（跟随画布无意义，回落 A4）。
-      final textFormat =
-          paper == PdfPaper.letter ? PdfPageFormat.letter : PdfPageFormat.a4;
+      final textFormat = paper == PdfPaper.letter
+          ? PdfPageFormat.letter
+          : PdfPageFormat.a4;
       final document = pw.Document(theme: theme);
       document.addPage(
         pw.MultiPage(

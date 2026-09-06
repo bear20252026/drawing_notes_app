@@ -91,9 +91,7 @@ void main() {
     expect(find.text('输入密码'), findsNothing);
   });
 
-  testWidgets('切后台回锁（宽限关闭）：解锁后 app 退到后台再回来必须重新解锁', (
-    tester,
-  ) async {
+  testWidgets('切后台回锁（宽限关闭）：解锁后 app 退到后台再回来必须重新解锁', (tester) async {
     final service = await _configuredService('1357');
     await service.setGraceSeconds(0); // 关闭宽限 = 旧行为
 

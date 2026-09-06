@@ -226,8 +226,9 @@ class EncryptedVault {
 
   static String _randomHex(int bytes) {
     final rng = Random.secure();
-    return List<int>.generate(bytes, (_) => rng.nextInt(256))
-        .map((b) => b.toRadixString(16).padLeft(2, '0'))
-        .join();
+    return List<int>.generate(
+      bytes,
+      (_) => rng.nextInt(256),
+    ).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   }
 }

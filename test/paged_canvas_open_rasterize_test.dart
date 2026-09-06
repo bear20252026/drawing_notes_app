@@ -28,9 +28,7 @@ Stroke _stroke(double dx) => Stroke(
 );
 
 void main() {
-  testWidgets('打开已含笔画的分页画布：图层位图应被光栅化（否则白纸）', (
-    tester,
-  ) async {
+  testWidgets('打开已含笔画的分页画布：图层位图应被光栅化（否则白纸）', (tester) async {
     final doc = DrawingDocument(
       id: 'doc-existing',
       title: '画布',
@@ -38,9 +36,9 @@ void main() {
       height: 3508,
     );
     // 预置笔画 = 模拟从磁盘加载的既有内容。
-    doc.layers.first.strokes.addAll(
-      [for (var i = 0; i < 3; i++) _stroke(200.0 + i * 50)],
-    );
+    doc.layers.first.strokes.addAll([
+      for (var i = 0; i < 3; i++) _stroke(200.0 + i * 50),
+    ]);
     final page = NotebookPage(id: 'page-x', title: '既有页', document: doc);
     await tester.pumpWidget(
       ProviderScope(
@@ -59,14 +57,13 @@ void main() {
     expect(
       controller.paintViews.where((v) => v.image != null).length,
       greaterThan(0),
-      reason: '打开既有内容页面应光栅化出图层位图；image==null 时 painter '
+      reason:
+          '打开既有内容页面应光栅化出图层位图；image==null 时 painter '
           '跳过该层 = 用户看到白纸',
     );
   });
 
-  testWidgets('无限画布不产生离屏位图（矢量路径不受 rebuildAll 影响）', (
-    tester,
-  ) async {
+  testWidgets('无限画布不产生离屏位图（矢量路径不受 rebuildAll 影响）', (tester) async {
     final doc = DrawingDocument(
       id: 'doc-infinite',
       title: '画板',

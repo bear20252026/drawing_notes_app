@@ -41,55 +41,56 @@ void main() {
     }
   });
 
-  NoteBlockDocStore storageWith() => NoteBlockDocStore(
-        directoryProvider: () async => tempDir,
-      );
+  NoteBlockDocStore storageWith() =>
+      NoteBlockDocStore(directoryProvider: () async => tempDir);
 
   NoteBlockDoc docWith(
     String id, {
     String title = '机密笔记',
     List<String> tags = const ['tag-1'],
-  }) =>
-      NoteBlockDoc(
-        id: id,
-        title: title,
-        body: [
-          NoteBlock.textBlock('${id}_b1', text: '绝密正文第一行'),
-          NoteBlock.textBlock('${id}_b2', text: '第二行'),
-        ],
-        tags: tags,
-        createdAt: DateTime.fromMillisecondsSinceEpoch(1000),
-        updatedAt: DateTime.fromMillisecondsSinceEpoch(2000),
-      );
+  }) => NoteBlockDoc(
+    id: id,
+    title: title,
+    body: [
+      NoteBlock.textBlock('${id}_b1', text: '绝密正文第一行'),
+      NoteBlock.textBlock('${id}_b2', text: '第二行'),
+    ],
+    tags: tags,
+    createdAt: DateTime.fromMillisecondsSinceEpoch(1000),
+    updatedAt: DateTime.fromMillisecondsSinceEpoch(2000),
+  );
 
   group('NoteBlockDocStore 文件密码（N2）', () {
     const id = 'bd_n2_s1';
 
-    test('encryptAndSave → 锁定态抛 BlockDocLockedException → verify 解锁往返', () async {
-      final store = storageWith();
-      final usbKey = List<int>.generate(32, (i) => i ^ 0x5A);
-      await store.encryptAndSave(docWith(id), 'pass-1111', usbKey: usbKey);
-      expect(await store.isBlockDocPasswordProtected(id), isTrue);
-      expect(store.isBlockDocUnlocked(id), isTrue); // 设密即入会话
+    test(
+      'encryptAndSave → 锁定态抛 BlockDocLockedException → verify 解锁往返',
+      () async {
+        final store = storageWith();
+        final usbKey = List<int>.generate(32, (i) => i ^ 0x5A);
+        await store.encryptAndSave(docWith(id), 'pass-1111', usbKey: usbKey);
+        expect(await store.isBlockDocPasswordProtected(id), isTrue);
+        expect(store.isBlockDocUnlocked(id), isTrue); // 设密即入会话
 
-      // 新实例（模拟重启）：会话丢失 → 锁定。
-      final cold = storageWith();
-      expect(cold.isBlockDocUnlocked(id), isFalse);
-      await expectLater(
-        cold.loadDocument(id),
-        throwsA(isA<BlockDocLockedException>()),
-      );
+        // 新实例（模拟重启）：会话丢失 → 锁定。
+        final cold = storageWith();
+        expect(cold.isBlockDocUnlocked(id), isFalse);
+        await expectLater(
+          cold.loadDocument(id),
+          throwsA(isA<BlockDocLockedException>()),
+        );
 
-      // 解锁（verify 成功即入会话）→ 完整往返。
-      expect(await cold.verifyBlockDocPassword(id, 'pass-1111'), isTrue);
-      final doc = (await cold.loadDocument(id))!;
-      expect(doc.title, '机密笔记');
-      expect(doc.tags, ['tag-1']);
-      expect(doc.body[0].text, '绝密正文第一行');
-      expect(doc.body[1].text, '第二行');
-      // 错密码拒绝。
-      expect(await cold.verifyBlockDocPassword(id, 'wrong'), isFalse);
-    });
+        // 解锁（verify 成功即入会话）→ 完整往返。
+        expect(await cold.verifyBlockDocPassword(id, 'pass-1111'), isTrue);
+        final doc = (await cold.loadDocument(id))!;
+        expect(doc.title, '机密笔记');
+        expect(doc.tags, ['tag-1']);
+        expect(doc.body[0].text, '绝密正文第一行');
+        expect(doc.body[1].text, '第二行');
+        // 错密码拒绝。
+        expect(await cold.verifyBlockDocPassword(id, 'wrong'), isFalse);
+      },
+    );
 
     test('锁定态 saveDocument 守卫：禁止明文覆盖密文（StateError）', () async {
       final store = storageWith();
@@ -125,13 +126,16 @@ void main() {
       expect(edited.body.length, 3);
       expect(edited.body[0].text, '编辑后的正文');
       expect(edited.body[2].text, '新增行');
-      expect(EncryptionService.hasUsbSlotV5(
-        await File(
-          '${(await tempDir.resolveSymbolicLinks())}'
-          '${Platform.pathSeparator}blockdocs'
-          '${Platform.pathSeparator}$id.json',
-        ).readAsString(),
-      ), isTrue); // 续写仅重生成 payload，USB 槽原样保留
+      expect(
+        EncryptionService.hasUsbSlotV5(
+          await File(
+            '${(await tempDir.resolveSymbolicLinks())}'
+            '${Platform.pathSeparator}blockdocs'
+            '${Platform.pathSeparator}$id.json',
+          ).readAsString(),
+        ),
+        isTrue,
+      ); // 续写仅重生成 payload，USB 槽原样保留
 
       // 重置盘仍可用（DEK 未变）。
       expect(

@@ -17,11 +17,7 @@ void main() {
     for (var i = 0; i < 1200; i++) {
       final points = List.generate(
         20,
-        (j) => StrokePoint(
-          rng.nextDouble() * 800,
-          rng.nextDouble() * 600,
-          0.5,
-        ),
+        (j) => StrokePoint(rng.nextDouble() * 800, rng.nextDouble() * 600, 0.5),
       );
       document.layers.single.strokes.add(
         Stroke(

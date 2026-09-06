@@ -20,12 +20,7 @@ import 'package:drawing_notes_app/features/notes/application/notebook_page_edito
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 
 Future<DrawingController> pumpEditor(WidgetTester tester, String id) async {
-  final doc = DrawingDocument(
-    id: id,
-    title: '画布',
-    width: 2480,
-    height: 3508,
-  );
+  final doc = DrawingDocument(id: id, title: '画布', width: 2480, height: 3508);
   final page = NotebookPage(id: 'page-$id', title: '空白页', document: doc);
   await tester.pumpWidget(
     ProviderScope(
@@ -62,7 +57,8 @@ void main() {
       expect(
         controller.currentLayer.strokes.length,
         greaterThan(before),
-        reason: '${kind.name} 指针在分页画布上应能画出笔画（若失败=画布被'
+        reason:
+            '${kind.name} 指针在分页画布上应能画出笔画（若失败=画布被'
             '上层裸 CustomPaint 吞掉命中，回归「白纸无法作画」）',
       );
     });

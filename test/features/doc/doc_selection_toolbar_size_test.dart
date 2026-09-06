@@ -50,15 +50,7 @@ void main() {
     final size = tester.getSize(pillFinder);
     // 修复前：tight 全屏约束 → 800x600（测试默认表面）。
     // 修复后：Positioned 松约束 → 胶囊贴合内容（<200x80）。
-    expect(
-      size.width,
-      lessThan(200),
-      reason: '工具条宽度应贴合按钮行，而非被撑满全屏',
-    );
-    expect(
-      size.height,
-      lessThan(80),
-      reason: '工具条高度应贴合单行图标，而非被撑满全屏',
-    );
+    expect(size.width, lessThan(200), reason: '工具条宽度应贴合按钮行，而非被撑满全屏');
+    expect(size.height, lessThan(80), reason: '工具条高度应贴合单行图标，而非被撑满全屏');
   });
 }

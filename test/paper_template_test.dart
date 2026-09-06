@@ -41,10 +41,9 @@ void main() {
 
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
-    CanvasPainter(controller: controller).paint(
-      canvas,
-      const ui.Size(400, 300),
-    );
+    CanvasPainter(
+      controller: controller,
+    ).paint(canvas, const ui.Size(400, 300));
     recorder.endRecording().dispose();
   });
 }

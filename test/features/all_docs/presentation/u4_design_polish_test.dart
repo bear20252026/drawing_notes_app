@@ -8,13 +8,13 @@ import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.da
 import 'package:drawing_notes_app/features/all_docs/presentation/all_docs_page.dart';
 
 AllDoc _doc(String id, String title) => AllDoc(
-      id: id,
-      title: title,
-      kind: AllDocKind.blockdoc,
-      folder: '',
-      createdAt: DateTime(2026, 8, 1, 10),
-      updatedAt: DateTime(2026, 8, 2, 10),
-    );
+  id: id,
+  title: title,
+  kind: AllDocKind.blockdoc,
+  folder: '',
+  createdAt: DateTime(2026, 8, 1, 10),
+  updatedAt: DateTime(2026, 8, 2, 10),
+);
 
 Future<void> _pumpDesktop(
   WidgetTester tester, {
@@ -102,8 +102,7 @@ void main() {
     expect(opened?.id, 'a');
   });
 
-  testWidgets('右键菜单「添加收藏」回调 onToggleFavorite（乐观更新后为取消收藏）',
-      (tester) async {
+  testWidgets('右键菜单「添加收藏」回调 onToggleFavorite（乐观更新后为取消收藏）', (tester) async {
     AllDoc? toggled;
     await _pumpDesktop(tester, onToggleFavorite: (d) => toggled = d);
 

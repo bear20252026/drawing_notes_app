@@ -19,11 +19,13 @@ void main() {
 
   test('保存/读取回环（非机密）', () async {
     final store = WebDavConfigStore();
-    await store.save(const WebDavSyncConfig(
-      baseUrl: 'https://dav.example.com/n/',
-      username: 'user',
-      syncSalt: 'c2FsdDEyMw==',
-    ));
+    await store.save(
+      const WebDavSyncConfig(
+        baseUrl: 'https://dav.example.com/n/',
+        username: 'user',
+        syncSalt: 'c2FsdDEyMw==',
+      ),
+    );
     final cfg = await store.load();
     expect(cfg.baseUrl, 'https://dav.example.com/n/');
     expect(cfg.username, 'user');
@@ -40,9 +42,7 @@ void main() {
   });
 
   test('损坏的存储回退为空配置', () async {
-    SharedPreferences.setMockInitialValues({
-      'webdav_sync_config': '{bad json',
-    });
+    SharedPreferences.setMockInitialValues({'webdav_sync_config': '{bad json'});
     final cfg = await WebDavConfigStore().load();
     expect(cfg.isConfigured, isFalse);
   });
@@ -66,11 +66,13 @@ void main() {
   group('加密盐（syncSalt）', () {
     test('带 syncSalt 的 round-trip', () async {
       final store = WebDavConfigStore();
-      await store.save(const WebDavSyncConfig(
-        baseUrl: 'https://dav.example.com/n/',
-        username: 'user',
-        syncSalt: 'c2FsdDEyMw==',
-      ));
+      await store.save(
+        const WebDavSyncConfig(
+          baseUrl: 'https://dav.example.com/n/',
+          username: 'user',
+          syncSalt: 'c2FsdDEyMw==',
+        ),
+      );
       final cfg = await store.load();
       expect(cfg.syncSalt, 'c2FsdDEyMw==');
       expect(cfg.hasSyncSalt, isTrue);
@@ -92,10 +94,7 @@ void main() {
     });
 
     test('toJson 不含机密键', () {
-      const cfg = WebDavSyncConfig(
-        baseUrl: 'https://x/',
-        syncSalt: 'ss',
-      );
+      const cfg = WebDavSyncConfig(baseUrl: 'https://x/', syncSalt: 'ss');
       final json = cfg.toJson();
       expect(json['baseUrl'], 'https://x/');
       expect(json['syncSalt'], 'ss');
@@ -124,9 +123,7 @@ void main() {
         '{"baseUrl":"https://old/","username":"u","password":"p@ss","syncPassphrase":"legacy-pass"}';
 
     test('注入 MemorySyncSecretStore：迁移到机密存储并剥离明文键', () async {
-      SharedPreferences.setMockInitialValues({
-        'webdav_sync_config': legacyRaw,
-      });
+      SharedPreferences.setMockInitialValues({'webdav_sync_config': legacyRaw});
       final secrets = MemorySyncSecretStore();
       final store = WebDavConfigStore(secrets);
 
@@ -152,7 +149,8 @@ void main() {
 
     test('迁移空机密：不写入机密，密钥被剥离', () async {
       SharedPreferences.setMockInitialValues({
-        'webdav_sync_config': '{"baseUrl":"https://old/","username":"u","password":"","syncPassphrase":""}',
+        'webdav_sync_config':
+            '{"baseUrl":"https://old/","username":"u","password":"","syncPassphrase":""}',
       });
       final secrets = MemorySyncSecretStore();
       final store = WebDavConfigStore(secrets);
@@ -164,9 +162,7 @@ void main() {
     });
 
     test('未注入 secretStore：不迁移、不剥离（避免丢数据）', () async {
-      SharedPreferences.setMockInitialValues({
-        'webdav_sync_config': legacyRaw,
-      });
+      SharedPreferences.setMockInitialValues({'webdav_sync_config': legacyRaw});
       final store = WebDavConfigStore();
       final cfg = await store.load();
       expect(cfg.baseUrl, 'https://old/');

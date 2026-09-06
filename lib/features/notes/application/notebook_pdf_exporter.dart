@@ -52,21 +52,17 @@ class NotebookPdfExporter {
   static Future<Uint8List> exportNotebook(
     Notebook notebook, {
     int? jpegQuality,
-  }) =>
-      exportPages(
-        [
-          for (final page in notebook.pages)
-            NotebookPrintPageData(
-              id: page.id,
-              title: page.title,
-              document: page.document,
-              textItems: page.textItems,
-              imageItems: page.imageItems,
-              shapes: page.shapes,
-            ),
-        ],
-        jpegQuality: jpegQuality,
-      );
+  }) => exportPages([
+    for (final page in notebook.pages)
+      NotebookPrintPageData(
+        id: page.id,
+        title: page.title,
+        document: page.document,
+        textItems: page.textItems,
+        imageItems: page.imageItems,
+        shapes: page.shapes,
+      ),
+  ], jpegQuality: jpegQuality);
 
   /// 导出给定页数据为多页 PDF 字节（[jpegQuality] 透传 hybrid 引擎）。
   static Future<Uint8List> exportPages(
@@ -98,10 +94,7 @@ class NotebookPdfExporter {
             imageItems: page.imageItems,
             shapes: page.shapes,
           );
-          final images = await _decodePageImages(
-            page.imageItems,
-            registered: decodedImages,
-          );
+          final images = await _decodePageImages(page.imageItems);
           decodedImages.addAll(images.values);
           final painter = NotebookPageCanvasPainter(
             page: paintPage,
@@ -164,13 +157,12 @@ class NotebookPdfExporter {
   /// VFS 对象 → VaultService；DNV 信封 → 保险库解密；DAN/明文 → 媒体解密。
   /// 单图失败不阻断整本导出（该图退化为渲染器内置占位块）。
   ///
-  /// [registered] 接收全部成功解码的位图（供调用方 finally 统一 dispose）；
+  /// 返回 path → 位图映射，调用方收集 values 在 finally 统一 dispose。
   /// 解码套用 [ImageDecodeCap.canvasMaxLongEdge] 封顶——此前全分辨率解码，
   /// 高像素照片单张可达数百 MB（审计修复 2026-09-06）。Codec 用后即释放。
   static Future<Map<String, ui.Image>> _decodePageImages(
-    List<PageImageItem> items, {
-    required List<ui.Image> registered,
-  }) async {
+    List<PageImageItem> items,
+  ) async {
     final images = <String, ui.Image>{};
     for (final item in items) {
       final path = item.filePath;

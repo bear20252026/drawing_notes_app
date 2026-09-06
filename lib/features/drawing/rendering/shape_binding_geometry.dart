@@ -95,10 +95,7 @@ class ShapeBindingGeometry {
     final toRight = (bounds.right - point.dx).abs();
     final toTop = (point.dy - bounds.top).abs();
     final toBottom = (bounds.bottom - point.dy).abs();
-    final min = math.min(
-      math.min(toLeft, toRight),
-      math.min(toTop, toBottom),
-    );
+    final min = math.min(math.min(toLeft, toRight), math.min(toTop, toBottom));
     if (min == toLeft) return Offset(bounds.left, point.dy);
     if (min == toRight) return Offset(bounds.right, point.dy);
     if (min == toTop) return Offset(point.dx, bounds.top);
@@ -131,7 +128,8 @@ class ShapeBindingGeometry {
       if (shape.id == excludingId || !isBindable(shape)) continue;
       final distance = distanceToBounds(point, rawBounds(shape));
       if (distance < bestDistance ||
-          (distance == bestDistance && best != null &&
+          (distance == bestDistance &&
+              best != null &&
               shape.zOrder > best.zOrder)) {
         bestDistance = distance;
         best = shape;

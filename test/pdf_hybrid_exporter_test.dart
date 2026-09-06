@@ -44,9 +44,8 @@ void main() {
 
     // 偏移前后首点坐标应精确相差 50（轮廓首点由 perfect_freehand 生成，
     // 并非原始输入点，因此比较差值而非硬编码坐标）。
-    double firstX(String svg) => double.parse(
-      RegExp(r'^M ([-0-9.]+)').firstMatch(svg)!.group(1)!,
-    );
+    double firstX(String svg) =>
+        double.parse(RegExp(r'^M ([-0-9.]+)').firstMatch(svg)!.group(1)!);
     double firstY(String svg) => double.parse(
       RegExp(r'^M [-0-9.]+ ([-0-9.]+)').firstMatch(svg)!.group(1)!,
     );
@@ -56,10 +55,7 @@ void main() {
 
   test('shouldRasterize 判定：高亮/铅笔光栅化，钢笔矢量', () {
     expect(PdfHybridExporter.shouldRasterize(_markerStroke()), isTrue);
-    expect(
-      PdfHybridExporter.shouldRasterize(_penStroke()),
-      isFalse,
-    );
+    expect(PdfHybridExporter.shouldRasterize(_penStroke()), isFalse);
     expect(
       PdfHybridExporter.shouldRasterize(
         Stroke(
@@ -115,7 +111,10 @@ void main() {
     );
 
     expect(bytes, isNotEmpty);
-    expect(String.fromCharCodes(bytes.take(4)), '%PDF',
-        reason: 'JPEG 压缩路径同样产出合法 PDF');
+    expect(
+      String.fromCharCodes(bytes.take(4)),
+      '%PDF',
+      reason: 'JPEG 压缩路径同样产出合法 PDF',
+    );
   });
 }

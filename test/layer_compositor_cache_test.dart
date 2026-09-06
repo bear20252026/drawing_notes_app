@@ -88,9 +88,11 @@ void main() {
       // 内存：2048²×4 ≈ 16MB 上限，远小于原 2480×3508×4 ≈ 35MB。
       expect(
         image.width * image.height * 4,
-        lessThan(LayerCompositor.maxBitmapLongEdge *
-            LayerCompositor.maxBitmapLongEdge *
-            4),
+        lessThan(
+          LayerCompositor.maxBitmapLongEdge *
+              LayerCompositor.maxBitmapLongEdge *
+              4,
+        ),
       );
       image.dispose();
     });

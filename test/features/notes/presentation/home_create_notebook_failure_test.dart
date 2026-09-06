@@ -36,8 +36,7 @@ Widget _wrap(Widget child) {
 }
 
 void main() {
-  testWidgets('新建分页画布保存失败 → SnackBar 提示且不进入编辑页',
-      (tester) async {
+  testWidgets('新建分页画布保存失败 → SnackBar 提示且不进入编辑页', (tester) async {
     await tester.pumpWidget(
       _wrap(
         HomePage(

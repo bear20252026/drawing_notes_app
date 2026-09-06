@@ -20,14 +20,13 @@ void main() {
     required String id,
     String title = '',
     required List<NoteBlock> body,
-  }) =>
-      NoteBlockDoc(
-        id: id,
-        title: title,
-        body: body,
-        createdAt: now,
-        updatedAt: now,
-      );
+  }) => NoteBlockDoc(
+    id: id,
+    title: title,
+    body: body,
+    createdAt: now,
+    updatedAt: now,
+  );
 
   group('M4 DocEditor 文档绑定（widget）', () {
     testWidgets('加载文档后显示所有块', (tester) async {
@@ -41,11 +40,7 @@ void main() {
         ],
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: DocEditor(document: doc),
-        ),
-      );
+      await tester.pumpWidget(MaterialApp(home: DocEditor(document: doc)));
       await tester.pumpAndSettle();
 
       expect(find.text('My Notes'), findsOneWidget);
@@ -54,9 +49,7 @@ void main() {
     });
 
     testWidgets('新建文档（无 document 参数）创建空段落', (tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(home: DocEditor()),
-      );
+      await tester.pumpWidget(const MaterialApp(home: DocEditor()));
       await tester.pumpAndSettle();
 
       // 标题栏 + 空段落 = 2 个 TextField
@@ -76,11 +69,7 @@ void main() {
         ],
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: DocEditor(document: doc),
-        ),
-      );
+      await tester.pumpWidget(MaterialApp(home: DocEditor(document: doc)));
       await tester.pumpAndSettle();
 
       // 标题栏 TextField 仍在，但 canvas 块本身不产生 TextField
@@ -100,10 +89,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: DocEditor(
-            document: doc,
-            onSave: (d) => savedDoc = d,
-          ),
+          home: DocEditor(document: doc, onSave: (d) => savedDoc = d),
         ),
       );
       await tester.pumpAndSettle();
@@ -137,8 +123,7 @@ void main() {
     });
 
     test('saveDocument → loadDocument → 内容一致', () async {
-      final store =
-          NoteBlockDocStore(directoryProvider: () async => tempDir);
+      final store = NoteBlockDocStore(directoryProvider: () async => tempDir);
 
       final doc = makeDoc(
         id: 'io-doc',
@@ -155,16 +140,14 @@ void main() {
     });
 
     test('loadDocument 不存在返回 null', () async {
-      final store =
-          NoteBlockDocStore(directoryProvider: () async => tempDir);
+      final store = NoteBlockDocStore(directoryProvider: () async => tempDir);
 
       final loaded = await store.loadDocument('nonexistent');
       expect(loaded, isNull);
     });
 
     test('deleteDocument 删除后加载返回 null', () async {
-      final store =
-          NoteBlockDocStore(directoryProvider: () async => tempDir);
+      final store = NoteBlockDocStore(directoryProvider: () async => tempDir);
 
       final doc = makeDoc(
         id: 'delete-me',
@@ -184,8 +167,7 @@ void main() {
     });
 
     test('完整流程：保存 → 重开 → 见变更', () async {
-      final store =
-          NoteBlockDocStore(directoryProvider: () async => tempDir);
+      final store = NoteBlockDocStore(directoryProvider: () async => tempDir);
 
       // 1. 创建并保存
       final initialDoc = makeDoc(

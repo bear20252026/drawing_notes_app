@@ -11,14 +11,13 @@ import 'package:drawing_notes_app/features/notes/presentation/notebook_reader_pa
 /// W2 翻页阅读模式测试：页码指示器 + 键盘翻页 + 点击进入编辑。
 void main() {
   testWidgets('初始显示第 1 页；↓ 键翻到第 2 页', (tester) async {
-    final notebook = Notebook(id: 'nb', title: '阅读测试')..pages.addAll([
-      _page('p1'),
-      _page('p2'),
-      _page('p3'),
-    ]);
+    final notebook = Notebook(id: 'nb', title: '阅读测试')
+      ..pages.addAll([_page('p1'), _page('p2'), _page('p3')]);
 
     await tester.pumpWidget(
-      MaterialApp(home: NotebookReaderPage(notebook: notebook, onEditPage: (_) {})),
+      MaterialApp(
+        home: NotebookReaderPage(notebook: notebook, onEditPage: (_) {}),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -59,7 +58,9 @@ void main() {
       ..pages.addAll([_page('p1'), _page('p2')]);
 
     await tester.pumpWidget(
-      MaterialApp(home: NotebookReaderPage(notebook: notebook, onEditPage: (_) {})),
+      MaterialApp(
+        home: NotebookReaderPage(notebook: notebook, onEditPage: (_) {}),
+      ),
     );
     await tester.pumpAndSettle();
 

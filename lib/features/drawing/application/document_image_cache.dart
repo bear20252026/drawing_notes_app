@@ -90,7 +90,7 @@ class DocumentImageCache {
       for (final item in items)
         if (!_images.containsKey(item.id)) item,
     ];
-    for (var index = 0; index < pending.length; ) {
+    for (var index = 0; index < pending.length;) {
       if (_isInactive) return;
       final overHalfBudget = _cachedBytes > maxCacheBytes ~/ 2;
       final batchSize = overHalfBudget ? 1 : 4;

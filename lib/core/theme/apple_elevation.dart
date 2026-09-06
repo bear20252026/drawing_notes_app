@@ -86,19 +86,14 @@ abstract final class AppleHairline {
   /// 不依赖 `apple_contrast.dart`——`core/di/providers.dart` 的 Martin
   /// instability 基线是 0.4，多一条出向依赖会把它从 0.33 推到 0.50 而
   /// 撞上架构门禁（`test/architecture_test.dart` 规则 3b）。
-  static Color colorOf(
-    BuildContext context, {
-    bool highContrast = false,
-  }) => colorFor(Theme.of(context).brightness, highContrast: highContrast);
+  static Color colorOf(BuildContext context, {bool highContrast = false}) =>
+      colorFor(Theme.of(context).brightness, highContrast: highContrast);
 
   /// 取 [Brightness] 对应的发丝线颜色（不依赖 BuildContext，便于测试）。
   ///
   /// **高对比度档**（C2）：直接上纯黑 / 纯白 100% 不透明。8% 的发丝线
   /// 在低视力用户眼里等于没有——这正是 Windows 高对比度模式存在的理由。
-  static Color colorFor(
-    Brightness brightness, {
-    bool highContrast = false,
-  }) {
+  static Color colorFor(Brightness brightness, {bool highContrast = false}) {
     if (highContrast) {
       return brightness == Brightness.dark ? Colors.white : Colors.black;
     }
@@ -108,19 +103,15 @@ abstract final class AppleHairline {
   }
 
   /// 一条 [BorderSide]。
-  static BorderSide sideOf(
-    BuildContext context, {
-    bool highContrast = false,
-  }) => BorderSide(
-    color: colorOf(context, highContrast: highContrast),
-    width: width,
-  );
+  static BorderSide sideOf(BuildContext context, {bool highContrast = false}) =>
+      BorderSide(
+        color: colorOf(context, highContrast: highContrast),
+        width: width,
+      );
 
   /// 一圈 [Border]。
-  static Border borderOf(
-    BuildContext context, {
-    bool highContrast = false,
-  }) => Border.fromBorderSide(sideOf(context, highContrast: highContrast));
+  static Border borderOf(BuildContext context, {bool highContrast = false}) =>
+      Border.fromBorderSide(sideOf(context, highContrast: highContrast));
 
   /// 圆角矩形描边（卡片 / 面板常用）。
   static RoundedRectangleBorder roundedBorderOf(

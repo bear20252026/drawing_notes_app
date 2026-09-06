@@ -91,12 +91,12 @@ void main() {
     );
 
     // 点列替换（收笔/编辑）使缓存失效，下次绘制重建。
-    stroke.replacePoints([
-      ...stroke.points,
-      const StrokePoint(120, 60, 0.5),
-    ]);
+    stroke.replacePoints([...stroke.points, const StrokePoint(120, 60, 0.5)]);
     expect(StrokeRenderer.cachedOutlineFor(stroke, usePressure: true), isNull);
     StrokeRenderer.drawStroke(canvas, stroke);
-    expect(StrokeRenderer.cachedOutlineFor(stroke, usePressure: true), isNotNull);
+    expect(
+      StrokeRenderer.cachedOutlineFor(stroke, usePressure: true),
+      isNotNull,
+    );
   });
 }

@@ -23,10 +23,7 @@ void main() {
     AllDocSection(
       group: AllDocGroup.today,
       label: '今天',
-      docs: [
-        _doc('a', '设计稿', t3, t1),
-        _doc('b', '会议记录', t2, t2),
-      ],
+      docs: [_doc('a', '设计稿', t3, t1), _doc('b', '会议记录', t2, t2)],
     ),
     AllDocSection(
       group: AllDocGroup.earlier,

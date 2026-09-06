@@ -10,10 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// CI 慢机器上 2s 会被击穿（run 33786175092 —— notebook_encryption 的懒迁移
 /// 用例红），真 KDF 重写在高并发下远超 2s。但绝不能改成无限等待——真 bug
 /// 时仍要在有限时间内 fail，否则用例会挂到套件超时。
-Future<Uint8List> waitEncryptedFile(
-  File file, {
-  String label = '明文',
-}) async {
+Future<Uint8List> waitEncryptedFile(File file, {String label = '明文'}) async {
   for (var i = 0; i < 1500; i++) {
     final Uint8List bytes;
     try {
