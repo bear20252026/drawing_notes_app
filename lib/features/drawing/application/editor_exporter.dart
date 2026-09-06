@@ -68,22 +68,33 @@ class EditorExporter {
         return;
       }
       // 解码 PNG 为 RGBA 像素（供平台构造 DIB 位图）。
-      final codec = await ui.instantiateImageCodec(png);
-      final frame = await codec.getNextFrame();
-      final image = frame.image;
-      final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-      if (data == null) {
-        showSnack('复制失败：像素解码失败');
-        return;
+      // 资源生命周期（审计修复 2026-09-06）：Codec 用后必释放，Image 无论
+      // 像素解码 / 剪贴板调用 / 异常路径都在 finally 释放——此前剪贴板被
+      // 占用（windows 通道返回错误）或 toByteData 失败时泄漏全尺寸位图。
+      ui.Codec? codec;
+      ui.Image? image;
+      try {
+        codec = await ui.instantiateImageCodec(png);
+        final frame = await codec.getNextFrame();
+        image = frame.image;
+        final data = await image.toByteData(
+          format: ui.ImageByteFormat.rawRgba,
+        );
+        if (data == null) {
+          showSnack('复制失败：像素解码失败');
+          return;
+        }
+        const channel = MethodChannel('gov.drawingnotes/clipboard');
+        await channel.invokeMethod('copyPng', {
+          'width': image.width,
+          'height': image.height,
+          'rgba': data.buffer.asUint8List(),
+        });
+        showSnack('已复制 PNG 到剪贴板');
+      } finally {
+        image?.dispose();
+        codec?.dispose();
       }
-      const channel = MethodChannel('gov.drawingnotes/clipboard');
-      await channel.invokeMethod('copyPng', {
-        'width': image.width,
-        'height': image.height,
-        'rgba': data.buffer.asUint8List(),
-      });
-      image.dispose();
-      showSnack('已复制 PNG 到剪贴板');
     } catch (e) {
       showSnack('复制 PNG 需平台支持：$e');
     }

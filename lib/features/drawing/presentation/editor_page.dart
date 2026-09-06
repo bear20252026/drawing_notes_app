@@ -379,8 +379,11 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     }
     // P1 修复（审计 H-05）：GPU 纹理在 finally 释放——此前异常路径
     // （toImage/toByteData 抛错）泄漏 src/out，重复失败耗尽显存。
+    // 审计修复 2026-09-06：srcImage 解码的 Codec 也必须释放（此前每次
+    // 裁剪泄漏一个原生 Codec）。
     ui.Image? srcImage;
     ui.Image? outImage;
+    ui.Codec? srcCodec;
     try {
       final file = File(img.filePath);
       if (!await file.exists()) {
@@ -392,8 +395,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       final raw = await file.readAsBytes();
       final wasSealed = VaultFileCodec.isEncrypted(raw);
       final bytes = wasSealed ? await VaultFileCodec.readImageBytes(file) : raw;
-      final codec = await ui.instantiateImageCodec(bytes);
-      final frame = await codec.getNextFrame();
+      srcCodec = await ui.instantiateImageCodec(bytes);
+      final frame = await srcCodec.getNextFrame();
       srcImage = frame.image;
       final src = srcImage;
       // 裁剪矩形（画布坐标）映射为原图像素坐标；纯几何不触碰文件或状态。
@@ -450,6 +453,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         img.height = rect.height;
         _canvasInteraction.clearCrop();
       });
+      // 裁剪已重写磁盘文件：失效 DocumentImageCache 的旧位图，否则画布
+      // 仍把「裁剪前的全尺寸位图」拉伸进新矩形显示（审计发现 2026-09-06）。
+      _controller.invalidateDocumentImage(img.id);
       _notifyChanged();
       _showSnack('已裁剪图片');
     } catch (e) {
@@ -457,6 +463,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     } finally {
       srcImage?.dispose();
       outImage?.dispose();
+      srcCodec?.dispose();
     }
   }
 

@@ -6,7 +6,7 @@ import 'save_schedule_decision.dart';
 /// 可取消的一次性延迟定时器抽象。
 ///
 /// 生产实现包一层 [Timer]；测试可注入一个假实现，靠手动触发回调来驱动防抖逻辑，
-/// 从而无需真实等待 800ms。
+/// 从而无需真实等待自动保存间隔。
 abstract interface class SaveTimerHandle {
   void cancel();
 }
@@ -51,7 +51,7 @@ class SaveScheduler {
     this.onError,
     DateTime Function()? clock,
     SaveTimerFactory? timerFactory,
-    this.debounce = const Duration(milliseconds: 800),
+    this.debounce = autoSaveInterval,
     SaveScheduleDecisioner decisioner = const SaveScheduleDecisioner(),
     SaveFailurePolicy failurePolicy = const SaveFailurePolicy(),
   }) // 保留公共命名参数名；私有域通过初始化列表赋值（见下逐行 ignore）。
@@ -60,6 +60,11 @@ class SaveScheduler {
        _timerFactory = timerFactory ?? _defaultTimerFactory,
        _decisioner = decisioner, // ignore: prefer_initializing_formals
        _failurePolicy = failurePolicy; // ignore: prefer_initializing_formals
+
+  /// 自动保存最小间隔（2026-09-06 用户要求：改动后最多每 5 秒落盘一次；
+  /// 无修改不保存——决策器 skip 分支；手动保存/退出兜底不受此限）。
+  /// 此前 800ms 对整页重绘 + 重加密的保存模型过于激进。
+  static const Duration autoSaveInterval = Duration(seconds: 5);
 
   /// 实际把当前文档快照落盘的函数（由集成方注入，拥有 I/O 与缩略图逻辑）。
   final Future<void> Function() _save;

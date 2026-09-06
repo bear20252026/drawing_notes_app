@@ -140,7 +140,8 @@ class EditorViewModel extends ChangeNotifier {
 
   // ---------------- 保存调度（委托 SaveScheduler） ----------------
 
-  /// 停笔后 800ms 自动保存（高频手势期间不落盘；由 [SaveScheduler] 统一去抖）。
+  /// 改动后最多每 5 秒自动保存一次（[SaveScheduler.autoSaveInterval]）；
+  /// 高频手势期间不落盘，无修改时决策器直接 skip。
   void scheduleAutosave() => _saveScheduler.markDirty();
 
   /// 立即保存并取消防抖。调用方可 await 该 Future 再安全关闭页面。

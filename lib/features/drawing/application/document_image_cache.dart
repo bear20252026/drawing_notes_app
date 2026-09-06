@@ -82,16 +82,20 @@ class DocumentImageCache {
 
   /// 在渲染或导出前确保一组图片已完成加载。
   ///
-  /// 每批最多四张，避免大量高分辨率图片同时解码造成瞬时内存峰值。
+  /// 并发随剩余预算动态收缩（审计 P2-4）：预算充裕时批量 4 张并行；
+  /// 已用字节超过预算一半后改为逐张串行——极端 4096 长边单张 ~64MB，
+  /// 避免 4 张并行在淘汰介入前出现 150MB+ 的瞬时解码峰值。
   Future<void> ensureLoaded(Iterable<DocumentImageItem> items) async {
     final pending = <DocumentImageItem>[
       for (final item in items)
         if (!_images.containsKey(item.id)) item,
     ];
-    const batchSize = 4;
-    for (var index = 0; index < pending.length; index += batchSize) {
+    for (var index = 0; index < pending.length; ) {
       if (_isInactive) return;
+      final overHalfBudget = _cachedBytes > maxCacheBytes ~/ 2;
+      final batchSize = overHalfBudget ? 1 : 4;
       final batch = pending.skip(index).take(batchSize);
+      index += batchSize;
       await Future.wait(<Future<void>>[for (final item in batch) _load(item)]);
     }
   }
@@ -127,6 +131,18 @@ class DocumentImageCache {
       image?.dispose();
       _loads.remove(item.id);
     }
+  }
+
+  /// 使单个图片的缓存位图失效并释放（裁剪重写文件后调用）。
+  ///
+  /// 下一次 `imageFor` 会按需重新解码磁盘上的新内容（P0 审计修复补充：
+  /// 此前无单条失效 API，裁剪后画布仍显示裁剪前的旧全尺寸位图）。
+  void invalidate(String imageId) {
+    final removed = _images.remove(imageId);
+    if (removed == null) return;
+    _lru.remove(imageId);
+    _cachedBytes -= _sizeOf(removed);
+    removed.dispose();
   }
 
   void dispose() {

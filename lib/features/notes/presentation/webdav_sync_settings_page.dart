@@ -155,6 +155,13 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
       _toast('请先填写合法的服务器 URL（含 http/https 与 /）');
       return;
     }
+    // 安全审计修复（2026-09-06 P1-2）：未配置同步密码 = 同步层明文透传，
+    // 笔记正文会以明文落在 WebDAV 服务器（UI 曾误称「云端仅保存加密数据」）。
+    // fail-closed：拒绝同步，要求先设置同步密码。
+    if (_syncSecret.text.trim().isEmpty) {
+      _toast('未设置同步密码：为避免笔记明文上云，已阻止同步。请在下方设置同步密码后重试。');
+      return;
+    }
     setState(() {
       _syncing = true;
       _progress = SyncProgress.starting();
@@ -375,9 +382,9 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
             controller: _syncSecret,
             obscureText: true,
             decoration: _appleDecoration(
-              labelText: '同步密码（可选，用于端到端加密）',
+              labelText: '同步密码（必填，用于端到端加密）',
               icon: Icons.vpn_key_outlined,
-              helperText: '与服务器认证密码独立；云端仅保存加密后的数据',
+              helperText: '未设置同步密码时同步会被阻止（防止笔记明文上云）',
             ),
           ),
           const SizedBox(height: AppleSpacing.lg),

@@ -164,6 +164,13 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
       _awayStopwatch = null;
       if (away != null && grace > Duration.zero && away < grace) {
         setState(() => _locked = false);
+      } else {
+        // 超出宽限期（或宽限关闭）：保险库掉锁（主密钥清零）。此前 hidden
+        // 只清 KEK 缓存，主密钥整会话驻留内存——「锁定」只是 UI 门（安全
+        // 审计 P1-1，2026-09-06）。掉锁后 storage 的 keyProvider 返回 null，
+        // 加密文档读写 fail-closed；重新解锁走 PIN/快速解锁正常路径
+        // （_unlockVault 重新派生并注入主密钥）。
+        widget.vault?.lock();
       }
     }
   }

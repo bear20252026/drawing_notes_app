@@ -124,6 +124,18 @@ class _AppShellState extends State<AppShell> {
 
   int _index = 0;
 
+  /// 已实际创建的标签页（Lazy IndexedStack，2026-09-06 内存审计）：
+  /// 未访问过的页面不进入元素树（不构建、不保活）；首次访问后与
+  /// IndexedStack 同样保活（切走再切回不丢状态）。
+  final Set<int> _visited = {0};
+
+  void _onSelect(int index) {
+    setState(() {
+      _index = index;
+      _visited.add(index);
+    });
+  }
+
   /// N2：加载块文档——锁定异常折叠为 null（fail-closed，不暴露内容）。
   /// 独立 helper 以保证空安全类型提升（try 内赋值的局部变量不提升）。
   Future<NoteBlockDoc?> _loadBlockDocGuarded(
@@ -281,8 +293,6 @@ class _AppShellState extends State<AppShell> {
       ),
     ];
   }
-
-  void _onSelect(int index) => setState(() => _index = index);
 
   /// 聚合画布 / 笔记页 / 块文档三类文档为统一的「全部文档」查询结果，
   /// 并按 FavoriteStore 回填收藏状态。
@@ -603,7 +613,18 @@ class _AppShellState extends State<AppShell> {
                 ),
                 const VerticalDivider(thickness: 1, width: 1),
                 Expanded(
-                  child: IndexedStack(index: _index, children: _destinations),
+                  // Lazy IndexedStack：只实例化访问过的标签页（未访问的
+                  // 用零尺寸占位，不构建不保活）；已访问页面保持既有
+                  // IndexedStack 语义（切走再切回不丢状态）。
+                  child: IndexedStack(
+                    index: _index,
+                    children: [
+                      for (var i = 0; i < _destinations.length; i++)
+                        _visited.contains(i)
+                            ? _destinations[i]
+                            : const SizedBox.shrink(),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -614,7 +635,15 @@ class _AppShellState extends State<AppShell> {
           // （与 settings_page 顶栏注释同一原则）。各页面按可滚动让位
           // 消费 MediaQuery.padding.bottom，见各页接入注释。
           extendBody: true,
-          body: IndexedStack(index: _index, children: _destinations),
+          body: IndexedStack(
+            index: _index,
+            children: [
+              for (var i = 0; i < _destinations.length; i++)
+                _visited.contains(i)
+                    ? _destinations[i]
+                    : const SizedBox.shrink(),
+            ],
+          ),
           // AFFiNE mobile 语义：输入法弹出时隐藏底部导航（VirtualKeyboard
           // Service 同款体验），给内容与键盘让出完整空间。
           bottomNavigationBar: MediaQuery.of(context).viewInsets.bottom > 0

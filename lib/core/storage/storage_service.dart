@@ -377,7 +377,9 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
   /// ① 会话有文件密码 → v3 双保护器信封（N4 批 2：复用会话 DEK——
   ///    重置盘槽位跨保存持续有效）；
   /// ② 无文件密码 + 有主密钥 → v1 主密钥信封（AAD 绑定文档 ID）；
-  /// ③ 均无 → 明文兼容（旧数据行为）。
+  /// ③ 保险库已启用但处于锁定态 → 抛 [VaultFileLockException]
+  ///    （fail-closed，与读路径对齐；保存链按失败策略退避，解锁后自愈）；
+  /// ④ 未启用加密（无 keyProvider）→ 明文兼容（旧数据行为）。
   ///
   /// U2 优化（2026-09-02，P1-10）：≥64KB 的载荷在 isolate 内完成
   /// AES-GCM 封包（参数均为可跨 isolate 传递的纯数据），加密期间的
@@ -397,8 +399,15 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
       if (data.length < _isolateSealThreshold) return seal();
       return Isolate.run(seal);
     }
-    final key = await _currentKey();
-    if (key == null) return data;
+    final provider = keyProvider;
+    // 未启用加密（无 keyProvider）：明文落盘是产品设计（用户未设 PIN），
+    // 与读路径「明文 + 无密钥 → 原样返回」对称。
+    if (provider == null) return data;
+    final key = await provider();
+    // 安全审计修复（2026-09-06 P2-3）：keyProvider 已装配（保险库启用）
+    // 但取不到密钥 = 锁定态。此前静默明文落盘（fail-open，与读路径的
+    // fail-closed 不对齐）；现显式失败，交由 SaveScheduler 重试策略处理。
+    if (key == null) throw const VaultFileLockException();
     if (data.length < _isolateSealThreshold) {
       return VaultFileCodec.encrypt(data, key, aadContext: 'doc:$id');
     }
@@ -408,10 +417,13 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
   }
 
   /// 媒体字节写入前准备（批次①c：缩略图 / 受管图片）：有主密钥 →
-  /// 信封加密（AAD 绑定文件名）。
+  /// 信封加密（AAD 绑定文件名）。锁定态与文档同口径 fail-closed；
+  /// 未启用加密（无 keyProvider）保持明文兼容。
   Future<Uint8List> _sealMediaBytes(String path, Uint8List bytes) async {
-    final key = await _currentKey();
-    if (key == null) return bytes;
+    final provider = keyProvider;
+    if (provider == null) return bytes;
+    final key = await provider();
+    if (key == null) throw const VaultFileLockException();
     return VaultFileCodec.encrypt(
       bytes,
       key,
@@ -818,8 +830,10 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
     return image.uri.normalizePath().toFilePath();
   }
 
-  /// 删除已经不被其他绘图文档引用的受管图片。文档解码失败时跳过该文档，
-  /// 因为无法证明它是否引用了资产；这种保守策略优先保证用户数据不被误删。
+  /// 删除已经不被其他绘图文档引用的受管图片。任何文档**解码失败（含加密
+  /// 文档在锁定态）即中止整个回收**——无法证明它是否引用了资产，保守策略
+  /// 优先保证用户数据不被误删（安全审计 P2-4，2026-09-06：此前跳过失败
+  /// 文档，其引用的图片可能被误判孤儿并删除）。
   Future<void> _deleteUnreferencedManagedImages(
     Set<String> candidates, {
     required String excludingDocumentId,
@@ -829,16 +843,32 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
     final dir = await _ensureDocumentsDir();
     await for (final entity in dir.list()) {
       if (entity is! File || !entity.path.endsWith('.json')) continue;
+      final Uint8List raw;
       try {
-        final other = _codec.decode(await entity.readAsBytes());
+        raw = await entity.readAsBytes();
+      } catch (_) {
+        return; // 读取失败：无法证明引用关系，保守中止回收。
+      }
+      final fileName = entity.uri.pathSegments.last;
+      final docId = fileName.substring(0, fileName.length - '.json'.length);
+      final Uint8List plain;
+      try {
+        plain = await _prepareDocBytes(docId, raw);
+      } catch (_) {
+        // 解码/解密失败（如锁定态的密文文档）：其 imageItems 不可知，
+        // 贸然回收可能误删它引用的图片 → 保守中止本次回收。
+        return;
+      }
+      try {
+        final other = _codec.decode(plain);
         if (other.id == excludingDocumentId) continue;
         for (final item in other.imageItems) {
           final managedPath = await _managedImagePathOrNull(item.filePath);
           if (managedPath != null) referencedElsewhere.add(managedPath);
         }
       } catch (_) {
-        // 跳过无法安全解析的文档，避免将未知引用误判为孤儿资产。
-        continue;
+        // 解析失败同样中止，避免将未知引用误判为孤儿资产。
+        return;
       }
     }
 

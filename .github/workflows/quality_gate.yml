@@ -52,6 +52,11 @@ jobs:
       - name: 依赖
         run: flutter pub get
 
+      # 版本一致性门禁（2026-09-06 审计）：pubspec 为唯一版本源，
+      # 校验安装器脚本（含 VersionInfoVersion 历史残留）与 CHANGELOG 同步。
+      - name: 版本一致性校验
+        run: dart run tools/check_version_consistency.dart
+
       # 反模式扫描门禁依赖 dart_code_metrics（全局激活，使 `metrics` 可用）。
       # 锁定 5.7.6 与 ci.yml / 本机工具链一致（未锁定时 CI 拉到新版本，
       # 规则行为漂移导致门禁结果不可复现——W3 修正 2026-09-02）。

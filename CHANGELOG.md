@@ -2,6 +2,35 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.16.0] - 2026-09-06
+
+### 整体代码审计修复（资源生命周期 / 加密边界 / 保存策略 / 架构门禁 / 发布一致性）
+
+按四路只读整体审计（架构、内存、安全、工程质量）意见完成的修复批：
+
+**资源生命周期（原生泄漏清零）**
+- **整本 PDF 导出**（`notebook_pdf_exporter.dart`）：页面图片此前**全分辨率**解码且导出后从不 dispose、Codec 从不 dispose；现套用 4096 长边封顶、Codec 用后即释放、全部解码位图登记并在 finally 统一 dispose（含异常路径）。混合导出 Future 必须在 try 内 await（lint 抓到的真实提前释放 bug）。
+- **复制 PNG 到剪贴板**（`editor_exporter.dart`）：Codec 此前任何路径都不 dispose、Image 释放不在 finally（剪贴板被占用/像素解码失败即泄漏全尺寸位图）；现统一 finally 释放。
+- **图片裁剪**（`editor_page.dart`）：解码 Codec 此前从不 dispose；现入 finally。并修复审计发现的**裁剪后画布仍显示旧图**问题——裁剪重写磁盘后按 id 失效 `DocumentImageCache`（新增 `invalidate`/`invalidateDocumentImage` API），画布下次绘制重新解码新内容。
+
+**加密与安全边界**
+- **主密钥锁定断点**（`app_lock_gate.dart` + `vault_key_service.dart`）：此前切后台只清 KEK 缓存与会话口令，**主密钥整会话驻留**（`vault.lock()` 生产零调用）——「锁定」只是 UI 门。现超出宽限期（或宽限关闭）回前台时保险库掉锁（主密钥 fillRange 清零），加密文档读写 fail-closed；宽限期内不掉锁，无缝恢复不受影响。重解锁走 PIN/快速解锁既有路径。
+- **WebDAV 同步 fail-closed**：未设置同步密码时，此前同步层是 Noop 透传——**笔记正文明文上云**，而 UI 宣称「云端仅保存加密后的数据」。现未配置同步密码直接拒绝同步并提示；文案改为「必填」。
+- **写路径 fail-open → fail-closed**（`storage_service.dart`）：保险库已启用但锁定时，此前 `_sealDocBytes`/`_sealMediaBytes` 静默**明文落盘**；现抛 `VaultFileLockException`，由 SaveScheduler 退避重试、解锁后自愈。未启用加密（无 keyProvider）不受影响。
+- **图片回收误删防护**（`storage_service.dart`）：`_deleteUnreferencedManagedImages` 此前跳过解码失败的文档（含锁定态密文文档），其引用的图片可能被误判孤儿删除；现任何文档解码/解密失败即**保守中止整轮回收**。
+
+**保存策略（用户要求）**
+- **自动保存最小间隔 800ms → 5 秒**（`SaveScheduler.autoSaveInterval`）：改动后最多每 5 秒落盘一次；无修改不保存（决策器 skip）；手动保存与退出兜底（flush/saveNow）不受影响，仍是立即落盘。
+
+**导航与解码策略**
+- **Lazy IndexedStack**（`app_shell.dart`）：4 个顶层标签此前全部常驻构建；现未访问过的标签零成本占位（不构建不保活），首次访问后保持 IndexedStack 保活语义（切走再切回不丢状态）。
+- **图片解码预算并发**（`document_image_cache.dart`）：已用预算超过一半后，批量解码从 4 张并发收缩为逐张串行，避免极端大图（单张 ~64MB）在淘汰介入前出现 150MB+ 瞬时峰值。
+
+**架构与发布门禁**
+- **跨 feature 依赖棘轮门禁**（`test/architecture_boundary_ratchet_test.dart` 新增）：审计发现 52 处跨 feature import 而架构门禁只护 drawing↔notes 两个方向。现以基线快照钉死全部 10 个方向——新增越界 import 即红灯，修复后基线只紧不松。
+- **版本一致性门禁**（`tools/check_version_consistency.dart` 新增 + quality_gate 接入）：pubspec 为唯一版本源，校验安装器 MyAppVersion/VersionInfoVersion（修复了 1.1.0 历史残留）、CHANGELOG 条目、Android/Windows 平台注入。
+- **发布 workflow**：Android job 权限降为 contents:read 且不再并发写 GitHub Release（消除与 Windows job 的 Release 竞态），keystore 秘钥缺失时尽早失败；Windows job 增加版本一致性校验、integration smoke（真实启动 App 验证首页/编辑器/Tab）、安装器命名/SHA256 校验。
+
 ## [1.15.1] - 2026-09-06
 
 ### 根因修复：禁用 Impeller 渲染器（Windows/Intel 集显上 1.4GB 私有内存 + CPU/GPU 双高的真正元凶）

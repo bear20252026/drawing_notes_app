@@ -45,10 +45,10 @@ void main() {
 
     final bodyField = find.byType(m.TextField).last;
     await tester.enterText(bodyField, 'Q0 复现文本');
-    // 推进防抖（1.2s）+ 合帧（0.5s）+ 写盘余量。
+    // 推进防抖（5s，2026-09-06 起自动保存最小间隔）+ 合帧（0.5s）+ 写盘余量。
     // 注意：pumpAndSettle 在保存 Timer（无帧调度）场景会提前停止，
     // 必须用固定步长 pump 推进 fake clock 触发到期 Timer。
-    for (var i = 0; i < 16; i++) {
+    for (var i = 0; i < 22; i++) {
       await tester.pump(const Duration(milliseconds: 300));
     }
 

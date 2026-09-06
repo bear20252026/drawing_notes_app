@@ -3,7 +3,7 @@
 ; 说明：本脚本位于 tools/，路径均相对本脚本所在目录，可在仓库内直接复现打包。
 
 #define MyAppName "绘图笔记"
-#define MyAppVersion "1.15.1"
+#define MyAppVersion "1.16.0"
 #define MyAppPublisher "Drawing Notes Studio"
 #define MyAppExeName "drawing_notes_app.exe"
 ; Release 构建产物（相对 tools/）
@@ -15,7 +15,7 @@ AppId={{135D94E4-6BE7-4292-ABF0-3EC239D96A45}}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppVerName={#MyAppName} {#MyAppVersion}
-VersionInfoVersion=1.1.0
+VersionInfoVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL=https://github.com/bear20252026/drawing_notes_app
 DefaultDirName={autopf}\{#MyAppName}

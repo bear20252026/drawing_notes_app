@@ -89,6 +89,11 @@ class DrawingController extends ChangeNotifier
   ui.Image? documentImage(DocumentImageItem item) =>
       _documentImageCache.imageFor(item);
 
+  /// 使单个文档图片的缓存位图失效（裁剪重写文件后调用，画布下次绘制
+  /// 按需重新解码新内容）。
+  void invalidateDocumentImage(String imageId) =>
+      _documentImageCache.invalidate(imageId);
+
   /// 已销毁标记：dispose 后拒绝一切变更与通知（防止异步回调越界）。
 
   /// 受保护成员 notifyListeners 的转发包装（供 extension 使用）。

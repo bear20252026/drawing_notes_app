@@ -105,10 +105,12 @@ void main() {
       // 再验证 b 已被淘汰：再次取 b 应重建（新 Picture 对象）。
       final pb2 = cache.pictureFor([b], size: size);
       expect(identical(pb, pb2), isFalse, reason: 'b 已被淘汰，应重建');
-      pa?.dispose();
-      pb?.dispose();
-      pc?.dispose();
-      pb2?.dispose();
+      // 注意（P0 #3 修复后）：缓存内的 Picture 归**缓存所有**——LRU 淘汰
+      // 会自动 dispose（b 已被淘汰释放），pb2 重建后挤出的 a 同样被缓存
+      // 释放。外部不得再手动 dispose 缓存返回的 Picture（二次释放抛断言），
+      // 统一由 invalidate() 收口释放。
+      cache.invalidate();
+      expect(cache.cacheCount, 0);
     });
 
     test('invalidate 清空缓存并释放', () {
