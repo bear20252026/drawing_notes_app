@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'dart:ui' show Color, Offset, Paint, FilterQuality, Rect;
 

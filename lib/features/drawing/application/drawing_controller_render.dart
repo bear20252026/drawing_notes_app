@@ -13,21 +13,41 @@ extension DrawingControllerRenderOps on DrawingController {
       _viewport.canvasToView(canvasPoint, canvasCenter: _canvasCenter);
 
   Future<Color?> pickColorAt(Offset canvasPoint) async {
+    // 取色探针分辨率封顶（内存审计 2026-09-06）：此前每次取色都把整张
+    // 文档按原始尺寸渲染（A4 ≈ 35MB 位图 + 35MB rawRgba 副本），吸管在
+    // 画布上连续移动时 200ms 节流也架不住反复的 70MB 峰值。取色只需
+    // 颜色不需清晰度，按 1024 长边等比缩放后采样。
+    const maxProbeLongEdge = 1024.0;
+    final docW = _document.width.toDouble();
+    final docH = _document.height.toDouble();
+    final probeScale = docW <= 0 || docH <= 0
+        ? 1.0
+        : math.min(
+            1.0,
+            maxProbeLongEdge / math.max(docW, docH),
+          );
+    final probeW = math.max(1, (docW * probeScale).round());
+    final probeH = math.max(1, (docH * probeScale).round());
+
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
     _paintDocument(canvas);
     final picture = recorder.endRecording();
     ui.Image? image;
     try {
-      image = await picture.toImage(_document.width, _document.height);
-      final x = canvasPoint.dx.round().clamp(0, _document.width - 1);
-      final y = canvasPoint.dy.round().clamp(0, _document.height - 1);
+      image = await picture.toImage(probeW, probeH);
+      final x = (canvasPoint.dx * probeScale)
+          .round()
+          .clamp(0, probeW - 1);
+      final y = (canvasPoint.dy * probeScale)
+          .round()
+          .clamp(0, probeH - 1);
       final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
       if (bytes == null) return null;
       // Q-1 拆分（2026-08-16）：取色纯计算委托 ColorSamplingService。
       return ColorSamplingService.colorFromRgbaBytes(
         bytes,
-        _document.width,
+        probeW,
         x,
         y,
       );
@@ -146,9 +166,30 @@ extension DrawingControllerRenderOps on DrawingController {
             _document.width.toDouble(),
             _document.height.toDouble(),
           );
-    final w = (bounds.width * scale).round();
-    final h = (bounds.height * scale).round();
+    var w = (bounds.width * scale).round();
+    var h = (bounds.height * scale).round();
     if (w <= 0 || h <= 0) return null;
+
+    // 输出尺寸钳制（内存审计 2026-09-06，"瞬间 1GB"尖峰根因）：无限画布
+    // 的 bounds 来自内容包围盒——一个误触落点在很远处（如 50000,50000）
+    // 就会让包围盒爆炸，scale 0.2 的缩略图也会尝试 toImage(10000,10000)
+    // （400MB），scale 1.0 的导出更是 10GB 级分配尝试。钳制：单边 ≤ 4096
+    // 且总像素 ≤ 4096²，超限同比例缩小（内容几何不变，只降输出分辨率）。
+    const maxDim = 4096;
+    const maxPixels = maxDim * maxDim;
+    var effectiveScale = scale;
+    final longestSide = math.max(w, h);
+    if (longestSide > maxDim) {
+      effectiveScale = scale * (maxDim / longestSide);
+    }
+    w = (bounds.width * effectiveScale).round().clamp(1, maxDim);
+    h = (bounds.height * effectiveScale).round().clamp(1, maxDim);
+    if (w * h > maxPixels) {
+      final shrink = math.sqrt(maxPixels / (w * h));
+      w = (w * shrink).round().clamp(1, maxDim);
+      h = (h * shrink).round().clamp(1, maxDim);
+    }
+    effectiveScale = w / bounds.width;
 
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
@@ -157,7 +198,7 @@ extension DrawingControllerRenderOps on DrawingController {
       ui.Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble()),
       Paint()..color = const Color(0xFFFFFFFF),
     );
-    canvas.scale(scale);
+    canvas.scale(effectiveScale);
     canvas.translate(-bounds.left, -bounds.top);
     _paintDocument(canvas, bounds: bounds, excludedTypes: excludedTypes);
     final picture = recorder.endRecording();

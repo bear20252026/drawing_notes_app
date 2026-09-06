@@ -97,7 +97,8 @@ void main() {
       final pa = cache.pictureFor([a], size: size);
       final pb = cache.pictureFor([b], size: size);
       cache.pictureFor([a], size: size); // 命中 a（LRU 提升到末尾）
-      final pc = cache.pictureFor([c], size: size);
+      // c 的 Picture 归缓存所有（P0 #3 后由 LRU/invalidate 释放），不手动持有。
+      cache.pictureFor([c], size: size);
 
       expect(cache.cacheCount, 2, reason: '超过上限应淘汰最久未用');
       // 先验证 a 仍命中（插入 c 前 a 刚被提升，最久未用的是 b）。
