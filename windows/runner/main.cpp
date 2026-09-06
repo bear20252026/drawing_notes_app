@@ -19,6 +19,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   flutter::DartProject project(L"data");
 
+  // 禁用 Impeller 渲染器（2026-09-06 内存/性能紧急修复）。
+  //
+  // 实测（profile + VM Service，Intel Core Ultra 5 135H 集显 / OpenGLES）：
+  // Dart 堆仅 ~25MB、external ~14KB，但进程私有提交高达 ~1.9GB、CPU/GPU 双高
+  // ——占用全部落在 Impeller 的 GPU 内存行为上（OpenGLESSDF 后端 + 液态玻璃
+  // 大量离屏玻璃表面），与业务代码无关。App 侧的所有位图/缓存修复都无法触达。
+  // 回退到成熟的 Skia 渲染路径后，内存与帧调度回归正常水位。
+  // 若后续 Flutter 版本修复了 Windows/Intel 集显上的 Impeller 内存问题，
+  // 可删除下面这一行重新启用（Default = 跟随引擎默认）。
+  project.set_impeller_switch(flutter::ImpellerSwitch::Disabled);
+
   std::vector<std::string> command_line_arguments =
       GetCommandLineArguments();
 

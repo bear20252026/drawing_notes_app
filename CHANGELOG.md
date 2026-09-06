@@ -2,6 +2,27 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.15.1] - 2026-09-06
+
+### 根因修复：禁用 Impeller 渲染器（Windows/Intel 集显上 1.4GB 私有内存 + CPU/GPU 双高的真正元凶）
+
+- **定位方法**（profile 构建 + VM Service 实测）：
+  | 实例 | 工作集 | 私有提交 | Dart 堆 |
+  |---|---|---|---|
+  | Impeller 开（v1.15.0 安装版） | 1110MB | 1401MB | 25MB |
+  | **Impeller 关（同一份代码）** | **295MB** | **288MB** | ~25MB |
+- **结论**：Dart 堆只有 ~25MB、external ~14KB——此前 1GB+ 的占用与业务代码无关，
+  全部落在 **Impeller OpenGLES 后端在 Intel 集显上的 GPU 内存行为**（大量离屏
+  玻璃表面 + 画布位图放大了它）。这也解释了为什么 v1.14.x 的 App 侧修复
+  （位图封顶/LRU/泄漏修复虽真实有效）都无法让总占用回落。
+- **修复**：`windows/runner/main.cpp` 调用 embedder 的
+  `project.set_impeller_switch(flutter::ImpellerSwitch::Disabled)`，
+  渲染回退到成熟稳定的 Skia 路径。LiquidGlass L3 折射罩、铅笔颗粒着色器等
+  dart:ui FragmentProgram 在 Skia 下均正常工作。
+- 实测 Impeller 关闭后：私有内存 **1401MB → 288MB（约 1/5）**，App 正常启动运行。
+- 若后续 Flutter 版本修复 Windows/Intel 集显上的 Impeller 内存问题，删除
+  main.cpp 中标记的一行即可重新启用（`ImpellerSwitch::Default`）。
+
 ## [1.15.0] - 2026-09-06
 
 ### 内存专项（按外部专家审计意见全面落地，见 docs/MEMORY_TROUBLESHOOTING_2026-09-06.md）
