@@ -13,14 +13,25 @@ import 'package:drawing_notes_app/shared/utils/image_decode_cap.dart';
 /// 图片字节只保存在离线文件中，文档 JSON 仅持久化文件路径。本协作者负责把
 /// 路径按需解码为 [ui.Image]、复用进行中的同一加载任务、以有限并发预载导出
 /// 所需资源，并在替换或销毁时释放 GPU/Skia 图像资源。
+///
+/// 内存上限（P0 修复，2026-09-06 外部专家审计 #2）：此前的 `_images` 是
+/// 无任何淘汰的 `Map`，解码上限 4096 长边（单张极端照片可达 ~64MB），多图
+/// 笔记累积很快到几百 MB。现加入 **LRU + 字节预算**：超 [maxCacheBytes]
+/// 时按最近未用顺序淘汰并 `dispose`（近期渲染过=可见性高，近似专家建议的
+/// 「按可见性优先保活，离屏图片先 dispose」）。
 typedef DocumentImageDecoder = Future<ui.Image> Function(String filePath);
 
 class DocumentImageCache {
   DocumentImageCache({
     required this._onImageAvailable,
     required this._isOwnerDisposed,
-    this._decoder = _decodeImageFile,
-  });
+    DocumentImageDecoder? decoder,
+    this.maxCacheBytes = maxCacheBytesDefault,
+  }) : _decoder = decoder ?? _decodeImageFile;
+
+  /// 文档图片解码缓存字节预算。单张 RGBA 上限 4096²×4 ≈ 64MB，预算 96MB
+  /// 可容纳约 1.5 张超清大图或十几张常规图，超限即淘汰最久未用。
+  static const int maxCacheBytesDefault = 96 << 20; // 96 MiB
 
   final VoidCallback _onImageAvailable;
   final bool Function() _isOwnerDisposed;
@@ -28,16 +39,45 @@ class DocumentImageCache {
   final Map<String, ui.Image> _images = <String, ui.Image>{};
   final Map<String, Future<void>> _loads = <String, Future<void>>{};
 
+  /// LRU 访问序（索引 0 = 最久未用）。
+  final List<String> _lru = [];
+
+  late final int maxCacheBytes;
+  int _cachedBytes = 0;
   bool _disposed = false;
 
   bool get _isInactive => _disposed || _isOwnerDisposed();
 
+  int _sizeOf(ui.Image image) => image.width * image.height * 4;
+
   /// 返回已解码图片；首次访问会在后台启动加载并在完成后请求宿主刷新。
+  /// 命中时刷新 LRU 近序（最近渲染作为保活优先级依据）。
   ui.Image? imageFor(DocumentImageItem item) {
     final cached = _images[item.id];
-    if (cached != null) return cached;
+    if (cached != null) {
+      _touch(item.id);
+      return cached;
+    }
     unawaited(_load(item));
     return null;
+  }
+
+  void _touch(String id) {
+    _lru
+      ..remove(id)
+      ..add(id);
+  }
+
+  /// 超出字节预算时按最久未用淘汰并释放其图像资源（P0 修复）。
+  void _evictIfOverBudget() {
+    while (_cachedBytes > maxCacheBytes && _lru.isNotEmpty) {
+      final oldestId = _lru.removeAt(0);
+      final evicted = _images.remove(oldestId);
+      if (evicted != null) {
+        _cachedBytes -= _sizeOf(evicted);
+        evicted.dispose();
+      }
+    }
   }
 
   /// 在渲染或导出前确保一组图片已完成加载。
@@ -74,8 +114,12 @@ class DocumentImageCache {
       if (_isInactive) return;
       final previous = _images[item.id];
       _images[item.id] = image;
+      _touch(item.id);
+      final previousSize = previous == null ? 0 : _sizeOf(previous);
+      _cachedBytes = _cachedBytes - previousSize + _sizeOf(image);
       image = null;
       previous?.dispose();
+      _evictIfOverBudget();
       _onImageAvailable();
     } catch (_) {
       // 图片缺失或损坏时保留其余文档内容的可编辑性；下次按需访问可重试。
@@ -92,6 +136,8 @@ class DocumentImageCache {
       image.dispose();
     }
     _images.clear();
+    _lru.clear();
+    _cachedBytes = 0;
     _loads.clear();
   }
 }

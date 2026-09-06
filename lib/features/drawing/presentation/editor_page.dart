@@ -569,8 +569,24 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     _hoverPos.dispose();
     _inkPressureSample.dispose();
     _linearReadout.dispose();
+    _appLifecycle?.dispose();
     // _controller 生命周期由 drawingControllerProvider(ref.onDispose) 管理。
     super.dispose();
+  }
+
+  // ---------------- App 生命周期（后台释放位图，P1 修复 2026-09-06） ----------------
+
+  /// App 后台/最小化时释放图层离屏位图，回前台懒重建（外部专家审计 #1）。
+  AppLifecycleListener? _appLifecycle;
+
+  void _releaseLayerBitmapsOnBackground() {
+    if (!mounted) return;
+    _controller.releaseLayerBitmapsForBackground();
+  }
+
+  Future<void> _rebuildLayerBitmapsOnResume() async {
+    if (!mounted) return;
+    await _controller.rebuildLayerBitmaps();
   }
 
   /// 首次布局时把画布适配到视口（居中显示、按比例缩放）。
@@ -691,6 +707,12 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     // 注册编辑器命令（B2：命令表驱动快捷键面板）。
     _commands = CommandRegistry();
     _registerCommands();
+    // App 后台/最小化时释放图层离屏位图，回前台懒重建（P1 修复）。
+    _appLifecycle = AppLifecycleListener(
+      onHide: _releaseLayerBitmapsOnBackground,
+      onPause: _releaseLayerBitmapsOnBackground,
+      onResume: () => unawaited(_rebuildLayerBitmapsOnResume()),
+    );
   }
 
   bool get _hasObjectSelection =>

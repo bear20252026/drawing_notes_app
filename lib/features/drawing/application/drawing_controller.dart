@@ -662,6 +662,15 @@ class DrawingController extends ChangeNotifier
 
   // ---------------- 生命周期 ----------------
 
+  /// App 后台/最小化时释放所有图层离屏位图（P1 修复 2026-09-06 外部专家
+  /// 审计 #1）。只释放位图、保留缓存索引，返回前台懒重建，显著降低空载常驻。
+  void releaseLayerBitmapsForBackground() {
+    _renderCacheCoordinator.releaseForBackground();
+  }
+
+  /// 回前台后重建图层位图（懒重建：仅在必要时重光栅化）。
+  Future<void> rebuildLayerBitmaps() => _renderCacheCoordinator.rebuildAll();
+
   /// 释放所有位图资源（页面销毁时必须调用）。
   @override
   void dispose() {

@@ -49,4 +49,38 @@ void main() {
     await coordinator.invalidateLayer(document.layers.single.id);
     expect(refreshes, 1);
   });
+
+  test('后台释放图层位图后 paintViews 位图置空，可懒重建（P1 #1）', () async {
+    final document = DrawingDocument(id: 'doc-a4', title: '分页');
+    final coordinator = LayerRenderCacheCoordinator(
+      document: document,
+      onRenderUpdated: () {},
+      isOwnerDisposed: () => false,
+    );
+    addTearDown(coordinator.dispose);
+    // 触发一次位图生成（非无限画布 → 真实光栅化到 paintViews.image）。
+    await coordinator.invalidateLayer(document.layers.single.id);
+    expect(
+      coordinator.paintViews.single.image,
+      isNotNull,
+      reason: '绘画后图层位图应已生成',
+    );
+
+    // App 后台：释放所有位图（image 置空、标脏），保留缓存索引。
+    coordinator.releaseForBackground();
+    expect(
+      coordinator.paintViews.single.image,
+      isNull,
+      reason: '后台释放后图层位图应置空，空载不再常驻大图',
+    );
+    expect(coordinator.paintViews, hasLength(1), reason: '缓存索引保留');
+
+    // 回前台：懒重建，位图重新生成。
+    await coordinator.rebuildAll();
+    expect(
+      coordinator.paintViews.single.image,
+      isNotNull,
+      reason: '回前台重建后位图应重新生成',
+    );
+  });
 }

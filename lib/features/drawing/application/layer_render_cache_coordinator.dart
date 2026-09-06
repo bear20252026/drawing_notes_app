@@ -107,6 +107,20 @@ class LayerRenderCacheCoordinator {
     _notifyIfActive();
   }
 
+  /// 释放所有图层离屏位图（App 后台/最小化时调用，P1 修复 2026-09-06 外部
+  /// 专家审计 #1）。
+  ///
+  /// 只释放位图资源并标记脏，**保留缓存索引**；返回前台后下一次重建按当前
+  /// 笔画重新光栅化（懒重建）。这能显著降低空载/切后台时的常驻内存——
+  /// 巨大画布（如 A4 分页）的图层位图只在真正绘画时占用。
+  void releaseForBackground() {
+    if (_isInactive) return;
+    for (final cache in _caches.values) {
+      cache.dispose();
+      cache.dirty = true;
+    }
+  }
+
   Future<void> _rebuildLayer(Layer layer) async {
     final cache = _caches[layer.id];
     if (cache == null || _isInactive || _rebuilding) return;

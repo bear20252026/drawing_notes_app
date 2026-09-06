@@ -58,7 +58,10 @@ class StrokePictureCache {
     if (picture != null) {
       _entries.add(_PictureEntry(fingerprint, picture));
       if (_entries.length > maxCacheCount) {
-        _entries.removeAt(0); // 淘汰最久未用
+        // 淘汰最久未用并**释放其原生 Picture**（P0 修复，2026-09-06 外部
+        // 专家审计 #3）：此前只 removeAt 不 dispose，被淘汰条目持有的
+        // Skia 原生内存泄漏，长期绘制持续累积。
+        _entries.removeAt(0).picture.dispose();
       }
     }
     return picture;

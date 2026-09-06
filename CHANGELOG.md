@@ -2,6 +2,32 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.15.0] - 2026-09-06
+
+### 内存专项（按外部专家审计意见全面落地，见 docs/MEMORY_TROUBLESHOOTING_2026-09-06.md）
+
+外部专家确认：1GB 占用 = 引擎基线 + 多处常驻策略 + 2 处真泄漏叠加。本版按审计优先级 P0→P2 逐项修复：
+
+- **P0 #3 真泄漏·StrokePictureCache 淘汰不释放原生 Picture**（`stroke_picture_cache.dart`）：
+  LRU 淘汰条目时改为 `removeAt(0).picture.dispose()`——此前只 removeAt 不 dispose，
+  被淘汰的 Skia 原生 `ui.Picture` 长期累积泄漏。
+- **P0 #2 半泄漏·文档图片缓存无 LRU**（`document_image_cache.dart`）：加入 **LRU + 字节预算**
+  （默认 96MiB）。此前 `_images` 是无淘汰的 Map、单张可解码到 ~64MB，多图笔记累积到几百 MB；
+  现超预算按最久未用淘汰并 `dispose`（近期渲染=可见性高，符合审计「按可见性优先保活」）。
+- **P1 #1 后台/最小化释放图层位图**（`layer_render_cache_coordinator` + `drawing_controller` +
+  `editor_page`）：新增 `releaseForBackground()`（置空并释放所有图层离屏位图、保留缓存索引），
+  编辑器注册 `AppLifecycleListener`（onHide/onPause 释放、onResume 懒重建）。空载/切后台时
+  不再常驻整张 A4 图层位图。
+- **P1 #4 块文档撤销历史 100→50 步**（`note_block_history.dart`）：每步持整份 NoteBlockDoc
+  深拷贝，长文档 × 100 步纯文本数据累积可观；下调到 50（文本编辑有 800ms 合并窗，仍覆盖绝大多数撤销）。
+- **P2 #5 首页缩略图常驻**：已在 v1.14.2 通过 `cacheWidth` 档位化（256/512/1024/2048）封顶每张解码
+  尺寸；更深的「离屏卡片卸载」属多文档场景的后续优化，本版不再引入风险性改动。
+- 新增回归测试：StrokePictureCache 条数有界、DocumentImageCache LRU 淘汰/按需重解码、
+  LayerRenderCache 后台释放→前台懒重建；相关模块测试全绿，analyze 零告警。
+
+> 与 v1.14.3（已发）叠加：液态玻璃边缘罩停止永续 60FPS 着色（CPU/GPU 打满根因）。本装包
+> 1.15.0 已包含该修复，一次安装到位。
+
 ## [1.14.3] - 2026-09-06
 
 ### 紧急修复：CPU / GPU 异常打满 + 内存堆积（用户报告：画图软件却三高，实机确认 Abnormal）

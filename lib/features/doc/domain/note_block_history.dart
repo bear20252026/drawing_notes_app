@@ -29,11 +29,13 @@ class _HistoryEntry {
 class NoteBlockHistory {
   /// 创建历史栈。
   ///
-  /// [maxSteps] 为撤销上限（默认 100）。
+  /// [maxSteps] 为撤销上限（默认 50——2026-09-06 外部专家审计 #4 从 100
+  /// 下调：每步持整份 NoteBlockDoc 深拷贝，长文档 × 100 步纯文本数据累积
+  /// 可观；文本编辑另有 800ms 合并窗，50 步仍覆盖绝大多数撤销场景）。
   /// [mergeWindowMs] 为同块文本编辑合并时间窗（默认 800ms）。
   /// [clock] 为时钟函数，返回当前毫秒时间戳（默认 DateTime.now）。
   NoteBlockHistory({
-    this.maxSteps = 100,
+    this.maxSteps = 50,
     this.mergeWindowMs = 800,
     int Function()? clock,
   }) : _clock = clock ?? _defaultClock;
