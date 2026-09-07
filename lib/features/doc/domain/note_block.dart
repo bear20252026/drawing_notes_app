@@ -230,8 +230,11 @@ class NoteBlock {
     ),
     text: json['text'] as String? ?? '',
     props: (json['props'] as Map<String, dynamic>?) ?? const {},
+    // B11 修复（审计 2026-09-07）：children 元素裸 `as Map` 强转——畸形
+    // 元素抛 TypeError；whereType 过滤畸形子块保住其余内容。
     children: (json['children'] as List? ?? const [])
-        .map((e) => NoteBlock.fromJson(e as Map<String, dynamic>))
+        .whereType<Map<String, dynamic>>()
+        .map(NoteBlock.fromJson)
         .toList(),
   );
 

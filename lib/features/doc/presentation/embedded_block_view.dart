@@ -170,17 +170,20 @@ class EmbeddedBlockView extends StatelessWidget {
                           color: Colors.black54,
                           borderRadius: BorderRadius.circular(AppleRadius.xs),
                         ),
-                        child: const Row(
+                        // '点击预览' 走 caption 令牌（非 const，
+                        // 故 Row 去掉 const，子项各自保持 const）。
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.zoom_in, color: Colors.white, size: 16),
-                            SizedBox(width: 4),
+                            const Icon(
+                              Icons.zoom_in,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 4),
                             Text(
                               '点击预览',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                              ),
+                              style: AppleType.captionStyle(Colors.white),
                             ),
                           ],
                         ),
@@ -195,10 +198,11 @@ class EmbeddedBlockView extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               caption,
-              style: TextStyle(
-                fontSize: 13,
+              style: AppleType.controlStyle(
+                Theme.of(context).colorScheme.outline,
+              ).copyWith(
+                fontWeight: FontWeight.w400,
                 fontStyle: FontStyle.italic,
-                color: Theme.of(context).colorScheme.outline,
               ),
             ),
           ],
@@ -263,12 +267,13 @@ class EmbeddedBlockView extends StatelessWidget {
                     Text(
                       caption.isNotEmpty ? caption : href,
                       // DESIGN.md 没有「嵌入块链接」这一格（dense-link 的
-                      // 2.41 是页脚密集链接栈专用，不适用），故保留 15px，
-                      // 只补正文行高——它最多折 2 行，原先走 Flutter 默认。
-                      style: TextStyle(
+                      // 2.41 是页脚密集链接栈专用，不适用），故保留 15px：
+                      // 以 bodyStyle 令牌为基（17/1.47/-0.374），
+                      // 仅字号覆写回 15，行高与字距承接正文梯子。
+                      style: AppleType.bodyStyle(
+                        Theme.of(context).colorScheme.primary,
+                      ).copyWith(
                         fontSize: 15,
-                        height: AppleType.bodyLineHeight,
-                        color: Theme.of(context).colorScheme.primary,
                         decoration: TextDecoration.underline,
                       ),
                       maxLines: 2,
@@ -278,9 +283,8 @@ class EmbeddedBlockView extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         href,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).colorScheme.outline,
+                        style: AppleType.captionStyle(
+                          Theme.of(context).colorScheme.outline,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -340,7 +344,9 @@ class EmbeddedBlockView extends StatelessWidget {
                   padding: const EdgeInsets.all(8),
                   child: Text(
                     text,
-                    style: const TextStyle(fontSize: 14),
+                    style: AppleType.controlStyle(
+                      Theme.of(context).colorScheme.onSurface,
+                    ).copyWith(fontWeight: FontWeight.w400),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -397,18 +403,16 @@ class EmbeddedBlockView extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               label,
-              style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(context).colorScheme.outline,
-              ),
+              style: AppleType.controlStyle(
+                Theme.of(context).colorScheme.outline,
+              ).copyWith(fontWeight: FontWeight.w400),
             ),
             if (caption != null && caption.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
                 caption,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(
+                style: AppleType.captionStyle(
+                  Theme.of(
                     context,
                   ).colorScheme.outline.withValues(alpha: 0.7),
                 ),

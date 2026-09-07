@@ -304,7 +304,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
                 dense: true,
                 contentPadding: EdgeInsets.zero,
                 title: Text(
-                  '#${page.history.length - i} · ${_formatTime(page.history[i].time)}',
+                  '#${page.history.length - i} · ${formatSmartTime(page.history[i].time)}',
                 ),
                 subtitle: page.history[i].summary.isNotEmpty
                     ? Text(
@@ -333,13 +333,5 @@ extension _NotebookPageImports on _NotebookViewPageState {
     });
     await _save();
     if (mounted) _applyState(() {});
-  }
-
-  String _formatTime(DateTime t) {
-    final now = DateTime.now();
-    if (t.year == now.year && t.month == now.month && t.day == now.day) {
-      return '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
-    }
-    return '${t.year}-${t.month.toString().padLeft(2, '0')}-${t.day.toString().padLeft(2, '0')}';
   }
 }

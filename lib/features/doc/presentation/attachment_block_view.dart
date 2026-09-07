@@ -129,7 +129,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
                     const SizedBox(height: 2),
                     Text(
                       a.displaySubtitle,
-                      style: TextStyle(fontSize: 12, color: scheme.outline),
+                      style: AppleType.captionStyle(scheme.outline),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -177,7 +177,9 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
           const SizedBox(width: 10),
           Text(
             '附件（待补充）',
-            style: TextStyle(color: scheme.outline, fontSize: 13),
+            style: AppleType.controlStyle(
+              scheme.outline,
+            ).copyWith(fontWeight: FontWeight.w400),
           ),
         ],
       ),
@@ -211,7 +213,10 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
         children: [
           Icon(Icons.picture_as_pdf, size: 32, color: scheme.outline),
           const SizedBox(height: 6),
-          const Text('PDF 内嵌预览不可用（需本地文件）', style: TextStyle(fontSize: 12)),
+          Text(
+            'PDF 内嵌预览不可用（需本地文件）',
+            style: AppleType.captionStyle(scheme.onSurface),
+          ),
           const SizedBox(height: 6),
           OutlinedButton.icon(
             onPressed: () => _open(a),
@@ -242,7 +247,9 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
             children: [
               Text(
                 a.url.isEmpty ? '（无链接）' : a.url,
-                style: TextStyle(color: scheme.primary, fontSize: 13),
+                style: AppleType.controlStyle(
+                  scheme.primary,
+                ).copyWith(fontWeight: FontWeight.w400),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -264,29 +271,43 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
     final a = _attachment;
     if (a == null) return;
     final controller = TextEditingController(text: a.description);
-    final result = await GlassDialog.show<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('编辑备注'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: '附件的描述/备注'),
-        ),
-        actions: AppleDialog.actions([
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, controller.text),
-            child: const Text('确定'),
-          ),
-        ]),
-      ),
-    );
+    // 对话框返回（pop 即完成）后退出动画仍在跑，动画期间 TextField 重建
+    // 会触碰 controller；捕获路由完全退出的时机，动画结束再释放。
+    var routeExited = Future<void>.value();
+    String? result;
+    try {
+      result = await GlassDialog.show<String>(
+        context: context,
+        builder: (ctx) {
+          routeExited = ModalRoute.of(ctx)!.completed;
+          return AlertDialog(
+            title: const Text('编辑备注'),
+            content: TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: const InputDecoration(hintText: '附件的描述/备注'),
+            ),
+            actions: AppleDialog.actions([
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, controller.text),
+                child: const Text('确定'),
+              ),
+            ]),
+          );
+        },
+      );
+      await routeExited;
+    } finally {
+      controller.dispose();
+    }
     if (result == null) return;
-    _apply((x) => x.copyWith(description: result.trim()));
+    if (!mounted) return;
+    final description = result.trim();
+    _apply((x) => x.copyWith(description: description));
   }
 
   void _open(NoteAttachment a) {

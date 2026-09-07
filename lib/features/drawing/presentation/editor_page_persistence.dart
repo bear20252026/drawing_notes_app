@@ -51,30 +51,42 @@ extension _EditorPagePersistence on _EditorPageState {
   /// 重命名画布：更新标题并走自动保存调度（M12 命名持久化）。
   Future<void> _renameCanvas() async {
     final current = _controller.document.title;
-    final name = await GlassDialog.show<String>(
-      context: context,
-      builder: (ctx) {
-        final controller = TextEditingController(text: current);
-        return AlertDialog(
-          title: const Text('重命名画布'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            onSubmitted: (v) => Navigator.of(ctx).pop(v),
-          ),
-          actions: AppleDialog.actions([
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('取消'),
+    // controller 提到 builder 外创建、finally 统一释放（builder 内创建会
+    // 随每次重建泄漏一个）。对话框返回（pop 即完成）后退出动画仍在跑，
+    // 动画期间 TextField 重建会触碰 controller；捕获路由完全退出的时机，
+    // 动画结束再释放。
+    final controller = TextEditingController(text: current);
+    var routeExited = Future<void>.value();
+    String? name;
+    try {
+      name = await GlassDialog.show<String>(
+        context: context,
+        builder: (ctx) {
+          routeExited = ModalRoute.of(ctx)!.completed;
+          return AlertDialog(
+            title: const Text('重命名画布'),
+            content: TextField(
+              controller: controller,
+              autofocus: true,
+              onSubmitted: (v) => Navigator.of(ctx).pop(v),
             ),
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(controller.text),
-              child: const Text('确定'),
-            ),
-          ]),
-        );
-      },
-    );
+            actions: AppleDialog.actions([
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(controller.text),
+                child: const Text('确定'),
+              ),
+            ]),
+          );
+        },
+      );
+      await routeExited;
+    } finally {
+      controller.dispose();
+    }
     final trimmed = name?.trim();
     if (trimmed == null || trimmed.isEmpty || trimmed == current) return;
     _controller.document.title = trimmed;
@@ -91,9 +103,7 @@ extension _EditorPagePersistence on _EditorPageState {
 
   void _showSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    AppSnack.show(context, message);
   }
 
   /// 导出当前画布为 PDF（M12.5 二级面板）：先弹纸张/范围/质量面板，

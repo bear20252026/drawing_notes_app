@@ -6,6 +6,8 @@
 
 import 'package:flutter/material.dart';
 
+import 'package:drawing_notes_app/core/theme/apple_motion.dart';
+
 import 'package:drawing_notes_app/core/layout/responsive.dart';
 import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
 
@@ -15,6 +17,8 @@ import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
+import 'package:drawing_notes_app/shared/utils/time_format.dart';
+import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
@@ -177,9 +181,7 @@ class _DocPageState extends State<DocPage> {
       case _SaveStatus.saved:
         final t = _lastSavedAt;
         if (t == null) return l10n?.docSaved ?? '已保存';
-        final time =
-            '${t.hour.toString().padLeft(2, '0')}:'
-            '${t.minute.toString().padLeft(2, '0')}';
+        final time = formatClock(t);
         return l10n?.docSavedAt(time) ?? '已保存 $time';
     }
   }
@@ -310,7 +312,6 @@ class _DocPageState extends State<DocPage> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // P0-H2：有未落盘改动时拦截返回，先 flush（saveNow 同步等待写盘）
     // 再真正退出——消除防抖窗口内的编辑丢失。
@@ -324,17 +325,17 @@ class _DocPageState extends State<DocPage> {
         Navigator.of(this.context).pop();
       },
       child: Scaffold(
-        backgroundColor: isDark ? const Color(0xFF1A1A1E) : Colors.white,
+        backgroundColor: scheme.surface,
         appBar: _DocHeader(
           title: _doc.title,
           isFavorite: _favorite,
           outlineOpen: _outlineOpen,
           statusLabel: _statusLabel(),
           statusColor: _saveStatus == _SaveStatus.unsaved
-              ? const Color(0xFFF5A623)
+              ? AppleColor.favourite
               : (_saveStatus == _SaveStatus.saving
                     ? scheme.primary
-                    : const Color(0xFF30D158)),
+                    : AppleColor.noteGreen),
           onSavePressed: _saveNow,
           onToggleFavorite: () {
             setState(() => _favorite = !_favorite);
@@ -388,7 +389,7 @@ class _DocPageState extends State<DocPage> {
             ),
             // 右缘大纲（AFFiNE Outline Rail）——仅桌面形态；移动端走底部面板。
             AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
+              duration: AppleMotion.dropdown,
               child: (isDesktopLayout(context) && _outlineOpen)
                   ? DocOutlineRail(
                       key: const ValueKey('rail-on'),
@@ -437,25 +438,29 @@ class _DocPageState extends State<DocPage> {
     final l10n = AppLocalizations.of(context);
     final target = await GlassDialog.show<NoteBlockDoc>(
       context: context,
-      builder: (ctx) => SimpleDialog(
-        title: Text(l10n?.docInsertPageLink ?? '插入页面链接'),
-        children: [
-          for (final d in candidates.take(50))
-            SimpleDialogOption(
-              onPressed: () => Navigator.of(ctx).pop(d),
-              child: ListTile(
-                leading: const Icon(Icons.edit_note_rounded),
-                title: Text(_docName(d)),
-                subtitle: Text(
-                  '${l10n?.docUpdatedAt ?? '更新于'} '
-                  '${d.updatedAt.year}-'
-                  '${d.updatedAt.month.toString().padLeft(2, '0')}-'
-                  '${d.updatedAt.day.toString().padLeft(2, '0')}',
-                ),
-              ),
+      builder: (ctx) {
+        // 键盘可达：对话框打开后首个选项直接获得焦点，↑↓/Enter 可导航。
+        Widget optionFor(NoteBlockDoc d) => SimpleDialogOption(
+          onPressed: () => Navigator.of(ctx).pop(d),
+          child: ListTile(
+            leading: const Icon(Icons.edit_note_rounded),
+            title: Text(_docName(d)),
+            subtitle: Text(
+              '${l10n?.docUpdatedAt ?? '更新于'} ${formatShortDate(d.updatedAt)}',
             ),
-        ],
-      ),
+          ),
+        );
+        return SimpleDialog(
+          title: Text(l10n?.docInsertPageLink ?? '插入页面链接'),
+          children: [
+            for (final (i, d) in candidates.take(50).indexed)
+              if (i == 0)
+                Focus(autofocus: true, child: optionFor(d))
+              else
+                optionFor(d),
+          ],
+        );
+      },
     );
     if (target == null) return;
     _editorKey.currentState?.appendPageLink(target);
@@ -787,9 +792,7 @@ class _DocPageState extends State<DocPage> {
 
   void _snack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    AppSnack.show(context, message);
   }
 
   /// 文档显示名（空标题回退「未命名」，可被 l10n 覆盖）。
@@ -862,6 +865,8 @@ class _DocPageState extends State<DocPage> {
         ),
         actions: [
           TextButton(
+            // 键盘可达：默认聚焦「关闭」，Enter 直接关（防误触他处）。
+            autofocus: true,
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text(l10n?.close ?? '关闭'),
           ),
@@ -879,9 +884,15 @@ class _DocPageState extends State<DocPage> {
       tags.add(tagId);
     }
     final updated = _doc.copyWith(tags: tags, updatedAt: DateTime.now());
-    setState(() => _doc = updated);
-    await widget.controller?.save(updated);
+    // 先落盘、成功后才更新 UI——失败时保持原标签状态，避免假保存。
+    try {
+      await widget.controller?.save(updated);
+    } catch (e) {
+      _snack('保存失败，已保持原状态');
+      return;
+    }
     if (!mounted) return;
+    setState(() => _doc = updated);
     Navigator.of(context).pop();
     _showInfoDialog(context);
   }
@@ -920,6 +931,8 @@ class _DocPageState extends State<DocPage> {
       if (tag != null && !_doc.tags.contains(tag.id)) {
         await _toggleDocTag(tag.id);
       }
+    } catch (e) {
+      _snack('创建标签失败，请重试');
     } finally {
       controller.dispose();
     }
@@ -934,16 +947,23 @@ class _DocPageState extends State<DocPage> {
         children: [
           Text(
             label,
-            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+            style: AppleType.controlStyle(
+              scheme.onSurfaceVariant,
+            ).copyWith(fontWeight: FontWeight.w400),
           ),
-          Text(value, style: const TextStyle(fontSize: 13)),
+          Text(
+            value,
+            style: AppleType.controlStyle(
+              scheme.onSurface,
+            ).copyWith(fontWeight: FontWeight.w400),
+          ),
         ],
       ),
     );
   }
 
+  // 日期部分为 yyyy/M/d（不补零）的本地展示格式，与 formatShortDate
+  // 不同，仅钟点读数复用 formatClock。
   String _fmtDate(DateTime d) =>
-      '${d.year}/${d.month}/${d.day} '
-      '${d.hour.toString().padLeft(2, '0')}:'
-      '${d.minute.toString().padLeft(2, '0')}';
+      '${d.year}/${d.month}/${d.day} ${formatClock(d)}';
 }

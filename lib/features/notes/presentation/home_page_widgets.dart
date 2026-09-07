@@ -132,7 +132,8 @@ class _DrawingCardState extends State<_DrawingCard> {
       child: AnimatedScale(
         scale: _hovered ? 1.012 : 1,
         duration: motion,
-        curve: Curves.easeOutCubic,
+        // 曲线走 AppleMotion 令牌（内置 easeOutCubic 与规范曲线不同）。
+        curve: AppleMotion.easeOut,
         child: Card(
           clipBehavior: Clip.antiAlias,
           // U4a：InkWell 不带 onLongPressStart——长按经 GestureDetector 承接。
@@ -409,7 +410,11 @@ class _NameDialogState extends State<_NameDialog> {
             ),
           ),
           focusedBorder: const OutlineInputBorder(
-            borderSide: BorderSide(color: AppleColor.actionBlue, width: 1.5),
+            // 键盘焦点环：Focus Blue + 2px 实线（DESIGN.md:300、440）。
+            borderSide: BorderSide(
+              color: AppleColor.focusBlue,
+              width: 2,
+            ),
           ),
         ),
         onSubmitted: (v) => Navigator.of(context).pop(v),

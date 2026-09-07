@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
+import 'package:drawing_notes_app/shared/utils/time_format.dart';
 
 /// 单行文档条目。
 ///
@@ -125,13 +126,14 @@ class AllDocRow extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         doc.description,
-                        style: TextStyle(
-                          fontSize: 13,
+                        style: AppleType.controlStyle(
+                          muted,
+                        ).copyWith(
+                          fontWeight: FontWeight.w400,
                           // DESIGN.md:506「Don't tighten line-height below
                           // 1.47 for body copy」。描述最多两行，行高拉开后
                           // 整行更透气，也和正文阅读节奏一致。
                           height: AppleType.bodyLineHeight,
-                          color: muted,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -147,7 +149,10 @@ class AllDocRow extends StatelessWidget {
                 const SizedBox(width: 6),
               ],
               // 相对时间
-              Text(timeLabel, style: TextStyle(fontSize: 11.5, color: subtle)),
+              Text(
+                timeLabel,
+                style: AppleType.captionStyle(subtle),
+              ),
               const SizedBox(width: 12),
               // D 头像圆点
               Container(
@@ -160,10 +165,9 @@ class AllDocRow extends StatelessWidget {
                 alignment: Alignment.center,
                 child: Text(
                   'D',
-                  style: TextStyle(
+                  style: AppleType.captionStyle(visual.color).copyWith(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: visual.color,
                   ),
                 ),
               ),
@@ -233,13 +237,13 @@ class KindVisual {
 }
 
 /// 明确日期标签：今天 → HH:mm；昨天 → 昨天；今年 → M月d日；跨年 → yyyy/M/d。
+/// 「今天」的钟点读数复用 [formatClock]；相对日（昨天）与中文月日格式
+/// 为本展示位独有语义，保留于此。
 String _dateLabel(DateTime t, DateTime now) {
   final sameDay =
       t.year == now.year && t.month == now.month && t.day == now.day;
   if (sameDay) {
-    return '今天 '
-        '${t.hour.toString().padLeft(2, '0')}:'
-        '${t.minute.toString().padLeft(2, '0')}';
+    return '今天 ${formatClock(t)}';
   }
   final yesterday = now.subtract(const Duration(days: 1));
   final isYesterday =

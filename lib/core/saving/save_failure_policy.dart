@@ -34,8 +34,11 @@ class SaveFailureInput {
 ///
 /// 默认阈值：backoffThreshold = 5s，giveUpThreshold = 30s。
 class SaveFailurePolicy {
+  /// [backoffThreshold] 的默认值（进入退避的累计耗时阈值）。
+  static const Duration defaultBackoffThreshold = Duration(seconds: 5);
+
   const SaveFailurePolicy({
-    this.backoffThreshold = const Duration(seconds: 5),
+    this.backoffThreshold = defaultBackoffThreshold,
     this.giveUpThreshold = const Duration(seconds: 30),
   });
 

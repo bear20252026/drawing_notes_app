@@ -64,4 +64,33 @@ void main() {
     expect(restored.charts.single.data, [1, 2, 3]);
     expect(restored.summary, '完整快照');
   });
+
+  test('G22：fromJson 加载侧执行 maxHistoryVersions 上限（无界历史截断）', () {
+    final page = NotebookPage(
+      id: 'page-h',
+      title: '历史',
+      document: createDocument(),
+    );
+    // 构造带 8 版历史的页面（addVersion 逐版封顶），再在 JSON 层复制成
+    // 16 条——模拟手改/旧数据携带无界历史的场景。
+    for (var i = 0; i < 20; i++) {
+      page.addVersion(time: DateTime.utc(2026, 8, 1, 0, i), summary: 'v$i');
+    }
+    final history = page.toJson()['history'] as List;
+    expect(history.length, NotebookPage.maxHistoryVersions); // 写入侧已封顶
+    final inflated = Map<String, dynamic>.from(page.toJson())
+      ..['history'] = [...history, ...history];
+
+    final restored = NotebookPage.fromJson(inflated);
+
+    // 加载侧与 addVersion 同一常量封顶，且保留头部（最近版本在前）。
+    expect(restored.history.length, NotebookPage.maxHistoryVersions);
+    expect(
+      restored.history.map((v) => v.summary).toList(),
+      history
+          .take(NotebookPage.maxHistoryVersions)
+          .map((e) => (e as Map<String, dynamic>)['summary'] as String?)
+          .toList(),
+    );
+  });
 }

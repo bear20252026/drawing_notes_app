@@ -11,6 +11,30 @@ import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dar
 class InkLayerPainter {
   const InkLayerPainter._();
 
+  // ---- cull/plan 单槽缓存（渲染性能 2026-09-07）----
+  // 活动绘制期间 paintStrokes 每帧执行：每次 cullStrokes 新建 List、
+  // InkRenderPlan.fromStrokes 新分配纯属浪费。按 (strokes 引用, 长度,
+  // 内容指纹, bounds) 缓存，输入未变则直接复用上次结果。
+  // 失效前提（调用方现状）：canvas_painter / layer_compositor 等传入
+  // 图层笔画列表的稳定引用，增删笔画必改变长度；点列替换走
+  // Stroke.replacePoints（version 递增）；整条替换（移动/缩放重建对象）
+  // 改变元素 identity——三者都进指纹。
+  static Iterable<Stroke>? _cachedStrokes;
+  static Rect _cachedBounds = Rect.zero;
+  static int _cachedFingerprint = 0;
+  static List<Stroke>? _cachedVisible;
+  static InkRenderPlan? _cachedPlan;
+
+  /// 内容指纹：元素 identity（捕获整条替换）+ version（捕获
+  /// replacePoints 点列替换）+ 长度（捕获增删）。O(n) 整数运算。
+  static int _fingerprintOf(Iterable<Stroke> strokes) {
+    var result = 0;
+    for (final stroke in strokes) {
+      result = Object.hash(result, identityHashCode(stroke), stroke.version);
+    }
+    return result;
+  }
+
   /// 绘制一个完整图层的笔画。
   ///
   /// 为确保文字/普通笔画可读，所有高亮笔始终先绘制；橡皮擦则保留在
@@ -24,8 +48,19 @@ class InkLayerPainter {
     Rect bounds,
     Iterable<Stroke> strokes,
   ) {
-    final visible = cullStrokes(strokes, bounds);
-    final plan = InkRenderPlan.fromStrokes(visible);
+    final fingerprint = _fingerprintOf(strokes);
+    if (!identical(_cachedStrokes, strokes) ||
+        _cachedBounds != bounds ||
+        _cachedFingerprint != fingerprint ||
+        _cachedVisible == null ||
+        _cachedPlan == null) {
+      _cachedVisible = cullStrokes(strokes, bounds);
+      _cachedPlan = InkRenderPlan.fromStrokes(_cachedVisible!);
+      _cachedStrokes = strokes;
+      _cachedBounds = bounds;
+      _cachedFingerprint = fingerprint;
+    }
+    final plan = _cachedPlan!;
     for (final strokesForColor in plan.markerGroups) {
       _paintMarkerColorGroup(canvas, bounds, strokesForColor);
     }

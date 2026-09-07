@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/shared/utils/time_format.dart';
 
 class ConflictResolutionDialog extends StatefulWidget {
   const ConflictResolutionDialog({super.key, required this.conflicts});
@@ -56,7 +57,11 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),
         ),
-        FilledButton(onPressed: _apply, child: const Text('应用全部')),
+        FilledButton(
+          autofocus: true,
+          onPressed: _apply,
+          child: const Text('应用全部'),
+        ),
       ]),
     );
   }
@@ -67,8 +72,15 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(c.docId, style: theme.textTheme.titleSmall),
           Text(
+            c.docId,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleSmall,
+          ),
+          Text(
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             '本地 ${_fmt(c.localUpdatedAt)} · ${c.localSize}B   |   云端 ${_fmt(c.remoteUpdatedAt)} · ${c.remoteSize}B'
             '${c.localNewer
                 ? '（本地较新）'
@@ -110,9 +122,11 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
     }
   }
 
+  // 冲突列表的紧凑读数：MM-dd + 钟点（同日冲突居多的场景下时间最关键）。
+  // 钟点复用 formatClock；月-日无对应工具格式，保留本地 two。
   static String _fmt(int epochMs) {
     final dt = DateTime.fromMillisecondsSinceEpoch(epochMs);
     String two(int n) => n.toString().padLeft(2, '0');
-    return '${two(dt.month)}-${two(dt.day)} ${two(dt.hour)}:${two(dt.minute)}';
+    return '${two(dt.month)}-${two(dt.day)} ${formatClock(dt)}';
   }
 }

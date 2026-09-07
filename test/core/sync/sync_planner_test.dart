@@ -194,6 +194,47 @@ void main() {
       expect(m.deletedIds, isEmpty);
       expect(m.entries['a']?.size, 0); // 缺失 size 默认 0
     });
+
+    test('B10：畸形条目（字段类型/结构）抛 FormatException，不裸抛 TypeError', () {
+      // updatedAt 非 int（map 形式）。
+      expect(
+        () => SyncManifest.fromJson({
+          'entries': {
+            'a': {'id': 'a', 'updatedAt': 'not-an-int'},
+          },
+        }),
+        throwsFormatException,
+      );
+      // id 非 String（数组形式）。
+      expect(
+        () => SyncManifest.fromJson({
+          'entries': [
+            {'id': 42, 'updatedAt': 1000},
+          ],
+        }),
+        throwsFormatException,
+      );
+      // 数组元素非对象。
+      expect(
+        () => SyncManifest.fromJson({
+          'entries': ['junk'],
+        }),
+        throwsFormatException,
+      );
+      // map 形式 value 非对象。
+      expect(
+        () => SyncManifest.fromJson({'entries': {'a': 'junk'}}),
+        throwsFormatException,
+      );
+    });
+
+    test('B10：deletedIds 非字符串元素被忽略（不行动无数据风险）', () {
+      final m = SyncManifest.fromJson({
+        'entries': const {},
+        'deletedIds': [123, 'ok'],
+      });
+      expect(m.deletedIds, {'ok'});
+    });
   });
 
   group('SyncOperation 值语义', () {

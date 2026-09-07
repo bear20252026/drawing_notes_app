@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_motion.dart';
+import 'package:drawing_notes_app/shared/utils/time_format.dart';
 import 'package:drawing_notes_app/features/drawing/application/di_providers.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/drawing/application/stylus_input.dart';
@@ -70,9 +71,7 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
     if (widget.saving) return '保存中…';
     final t = widget.lastSavedAt;
     if (t == null || dirty) return '未保存';
-    return '已保存 '
-        '${t.hour.toString().padLeft(2, '0')}:'
-        '${t.minute.toString().padLeft(2, '0')}';
+    return '已保存 ${formatClock(t)}';
   }
 
   Color _saveColor(ThemeData theme, bool dirty) {
@@ -127,27 +126,38 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
                             color: theme.colorScheme.primary,
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            isEraser ? '橡皮擦' : '画笔',
-                            style: theme.textTheme.bodySmall,
+                          // 各 Text 包 Flexible + ellipsis：窄屏/压感诊断
+                          // 文案变长时收缩省略，不再溢出报错。
+                          Flexible(
+                            child: Text(
+                              isEraser ? '橡皮擦' : '画笔',
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall,
+                            ),
                           ),
                           const SizedBox(width: 12),
-                          Text(
-                            '${activeSize.round()}px',
-                            style: theme.textTheme.bodySmall,
+                          Flexible(
+                            child: Text(
+                              '${activeSize.round()}px',
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall,
+                            ),
                           ),
                           if (pressureLabel != null) ...[
                             const SizedBox(width: 12),
-                            Tooltip(
-                              message: pressure!.hasHardwarePressure
-                                  ? '正在使用设备上报的真实压力范围'
-                                  : '当前设备未报告可用压感，正在使用稳定的回退策略',
-                              child: Text(
-                                pressureLabel,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: pressure.hasHardwarePressure
-                                      ? theme.colorScheme.primary
-                                      : theme.colorScheme.onSurfaceVariant,
+                            Flexible(
+                              child: Tooltip(
+                                message: pressure!.hasHardwarePressure
+                                    ? '正在使用设备上报的真实压力范围'
+                                    : '当前设备未报告可用压感，正在使用稳定的回退策略',
+                                child: Text(
+                                  pressureLabel,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: pressure.hasHardwarePressure
+                                        ? theme.colorScheme.primary
+                                        : theme.colorScheme.onSurfaceVariant,
+                                  ),
                                 ),
                               ),
                             ),
@@ -162,9 +172,15 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
                           // 画布坐标读数：仅桌面 + 默认关（审计三-2）。
                           if (_isDesktop) ...[
                             const SizedBox(width: 4),
+                            // 触控目标 ≥44×44：compact 密度下默认 ~40px，
+                            // 补 min 约束（视觉不变，仅扩大命中区）。
                             IconButton(
                               tooltip: _coordsVisible ? '隐藏坐标' : '显示画布坐标',
                               visualDensity: VisualDensity.compact,
+                              constraints: const BoxConstraints(
+                                minWidth: 44,
+                                minHeight: 44,
+                              ),
                               isSelected: _coordsVisible,
                               icon: Icon(Icons.my_location_rounded, size: 16),
                               onPressed: () => setState(
@@ -172,14 +188,17 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
                               ),
                             ),
                             if (_coordsVisible)
-                              Padding(
-                                padding: const EdgeInsets.only(left: 4),
-                                child: Text(
-                                  pos != null
-                                      ? 'x:${pos.dx.round()} y:${pos.dy.round()}'
-                                      : 'x:- y:-',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
+                              Flexible(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(left: 4),
+                                  child: Text(
+                                    pos != null
+                                        ? 'x:${pos.dx.round()} y:${pos.dy.round()}'
+                                        : 'x:- y:-',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
                                   ),
                                 ),
                               ),

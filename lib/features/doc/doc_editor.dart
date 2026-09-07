@@ -15,6 +15,8 @@ library;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
@@ -73,7 +75,8 @@ class DocEditor extends StatefulWidget {
 
   /// 保存回调。页面退出时，把编辑后的 NoteBlockDoc 传出。
   /// 为 null 则不通知（用于纯预览/测试场景）。
-  final ValueChanged<NoteBlockDoc>? onSave;
+  /// 回调可为异步（FutureOr）——手动保存路径会 await 落盘结果。
+  final FutureOr<void> Function(NoteBlockDoc doc)? onSave;
 
   /// 由组合根注入的自定义内嵌块渲染回调。
   /// 返回 null 时走默认降级渲染。
@@ -96,6 +99,14 @@ class _BlockTypeOption {
   final String label;
   final IconData icon;
   final String tooltip;
+}
+
+/// 手动保存意图（Ctrl+S / Cmd+S → [_manualSave]）。
+///
+/// 两个 [SingleActivator]（control / meta）映射到同一意图，
+/// Windows/Linux 与 macOS 键盘都能触发。
+class _SaveIntent extends Intent {
+  const _SaveIntent();
 }
 
 /// 支持的块类型工具栏列表（顺序即展示顺序）。
@@ -319,17 +330,25 @@ class DocEditorState extends State<DocEditor> {
   /// 击键合帧定时器（P2-M6）。
   Timer? _historyDebounce;
 
+  /// P2-M6：文本击键的历史压栈合帧窗口（500ms）——连续输入停顿后
+  /// 才压一次历史栈（撤销粒度＝输入 burst，非单字符）。
+  static const Duration _historyDebounceDelay = Duration(milliseconds: 500);
+
   /// U3 P1-9：外观刷新合帧定时器。
   Timer? _cosmeticRefreshDebounce;
+
+  /// U3 P1-9：装饰性刷新的合帧窗口（200ms）。
+  static const Duration _cosmeticRefreshDelay = Duration(milliseconds: 200);
 
   /// U3 P1-9：静默模型更新后的装饰性刷新。
   ///
   /// build 对 block.text 的依赖是装饰性的（大纲面板条目、空标题提示、
   /// 语义标签）。纯文本击键不再整树 setState，装饰消费方改由本方法
-  /// 200ms 合帧跟进；结构操作（分块/合并/类型切换）仍即时 setState。
+  /// 按 [_cosmeticRefreshDelay] 合帧跟进；结构操作（分块/合并/类型切换）
+  /// 仍即时 setState。
   void _scheduleCosmeticRefresh() {
     _cosmeticRefreshDebounce?.cancel();
-    _cosmeticRefreshDebounce = Timer(const Duration(milliseconds: 200), () {
+    _cosmeticRefreshDebounce = Timer(_cosmeticRefreshDelay, () {
       if (mounted) setState(() {});
     });
   }
@@ -353,12 +372,12 @@ class DocEditorState extends State<DocEditor> {
     _notifyDirtyOnce();
   }
 
-  /// P2-M6：文本击键合帧——连续输入只在停顿 500ms 后压一次史栈
-  /// （撤销粒度变为「输入 burst」而非单字符，与主流编辑器一致），
-  /// 消除每键全文档深拷贝。脏标记仍即时（自动保存不受影响）。
+  /// P2-M6：文本击键合帧——连续输入只在停顿 [_historyDebounceDelay] 后
+  /// 压一次史栈（撤销粒度变为「输入 burst」而非单字符，与主流编辑器
+  /// 一致），消除每键全文档深拷贝。脏标记仍即时（自动保存不受影响）。
   void _commitHistoryCoalesced() {
     _historyDebounce?.cancel();
-    _historyDebounce = Timer(const Duration(milliseconds: 500), () {
+    _historyDebounce = Timer(_historyDebounceDelay, () {
       _history.push(_buildDocFromState());
     });
     _isDirty = true;
@@ -622,10 +641,20 @@ class DocEditorState extends State<DocEditor> {
   }
 
   /// 手动触发保存：把当前编辑状态通过 onSave 回调传出。
-  void _manualSave() {
+  Future<void> _manualSave() async {
     if (widget.onSave == null) return;
     final doc = _buildDocFromState();
-    widget.onSave!(doc);
+    // await 落盘结果：失败不置「已保存」，成功才清脏标记。
+    try {
+      await widget.onSave!(doc);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('保存失败，请重试')),
+        );
+      }
+      return;
+    }
     if (mounted) {
       setState(() {
         _doc = doc;
@@ -644,83 +673,107 @@ class DocEditorState extends State<DocEditor> {
   Widget build(BuildContext context) {
     final topLevelBlocks = _root.children;
     // 无外壳模式：宿主（DocPage）提供顶栏与页面脚手架。
-    if (!widget.showChrome) {
-      return Column(
-        children: [
-          _buildTitleField(),
-          Expanded(
-            child: topLevelBlocks.isEmpty
-                ? _buildEmptyHint()
-                : _buildBlockList(topLevelBlocks),
-          ),
-          const Divider(height: 1),
-          _buildToolbar(),
-        ],
-      );
-    }
-    return PopScope(
-      canPop: !_isDirty,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        _showExitDialog();
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          // M11：AFFiNE 式——标题不在 AppBar，而是正文第一个大标题块。
-          title: const Text(''),
-          elevation: 1,
-          actions: [
-            if (_isDirty)
-              Padding(
-                padding: const EdgeInsets.only(right: AppleSpacing.sm),
-                child: Center(
-                  child: Text(
-                    '未保存',
-                    style: AppleType.captionStyle(AppleColor.actionBlue),
+    final Widget editor = !widget.showChrome
+        ? Column(
+            children: [
+              _buildTitleField(),
+              Expanded(
+                child: topLevelBlocks.isEmpty
+                    ? _buildEmptyHint()
+                    : _buildBlockList(topLevelBlocks),
+              ),
+              const Divider(height: 1),
+              _buildToolbar(),
+            ],
+          )
+        : PopScope(
+            canPop: !_isDirty,
+            onPopInvokedWithResult: (didPop, result) {
+              if (didPop) return;
+              _showExitDialog();
+            },
+            child: Scaffold(
+              appBar: AppBar(
+                // M11：AFFiNE 式——标题不在 AppBar，而是正文第一个大标题块。
+                title: const Text(''),
+                elevation: 1,
+                actions: [
+                  if (_isDirty)
+                    Padding(
+                      padding: const EdgeInsets.only(right: AppleSpacing.sm),
+                      child: Center(
+                        child: Text(
+                          '未保存',
+                          style: AppleType.captionStyle(AppleColor.actionBlue),
+                        ),
+                      ),
+                    ),
+                  if (widget.onSave != null)
+                    IconButton(
+                      tooltip: '保存',
+                      icon: const Icon(Icons.save),
+                      onPressed: _manualSave,
+                    ),
+                  IconButton(
+                    tooltip: '大纲',
+                    icon: Icon(
+                      Icons.format_list_bulleted_rounded,
+                      color: _outlineOpen
+                          ? Theme.of(context).colorScheme.primary
+                          : null,
+                    ),
+                    onPressed: () => setState(() => _outlineOpen = !_outlineOpen),
                   ),
-                ),
+                ],
               ),
-            if (widget.onSave != null)
-              IconButton(icon: const Icon(Icons.save), onPressed: _manualSave),
-            IconButton(
-              tooltip: '大纲',
-              icon: Icon(
-                Icons.format_list_bulleted_rounded,
-                color: _outlineOpen
-                    ? Theme.of(context).colorScheme.primary
-                    : null,
-              ),
-              onPressed: () => setState(() => _outlineOpen = !_outlineOpen),
-            ),
-          ],
-        ),
-        body: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Column(
+              body: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // AFFiNE 式正文大标题（受控于 _titleController，随 onSave 持久化）
-                  _buildTitleField(),
                   Expanded(
-                    child: topLevelBlocks.isEmpty
-                        ? _buildEmptyHint()
-                        : _buildBlockList(topLevelBlocks),
+                    child: Column(
+                      children: [
+                        // AFFiNE 式正文大标题（受控于 _titleController，随 onSave 持久化）
+                        _buildTitleField(),
+                        Expanded(
+                          child: topLevelBlocks.isEmpty
+                              ? _buildEmptyHint()
+                              : _buildBlockList(topLevelBlocks),
+                        ),
+                        const Divider(height: 1),
+                        _buildToolbar(),
+                      ],
+                    ),
                   ),
-                  const Divider(height: 1),
-                  _buildToolbar(),
+                  // 大纲停靠面板（AFFiNE Outline）
+                  AnimatedSwitcher(
+                    duration: AppleMotion.dropdown,
+                    child: _outlineOpen
+                        ? _buildOutlineDrawer()
+                        : const SizedBox.shrink(key: ValueKey('outline-off')),
+                  ),
                 ],
               ),
             ),
-            // 大纲停靠面板（AFFiNE Outline）
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
-              child: _outlineOpen
-                  ? _buildOutlineDrawer()
-                  : const SizedBox.shrink(key: ValueKey('outline-off')),
-            ),
-          ],
-        ),
+          );
+    // 键盘等价入口：Ctrl+S（Win/Linux）/ Cmd+S（macOS）手动保存，
+    // 与顶栏保存按钮、宿主 DocPage 的保存按钮同调 _manualSave()。
+    return Shortcuts(
+      shortcuts: <ShortcutActivator, Intent>{
+        const SingleActivator(LogicalKeyboardKey.keyS, control: true):
+            const _SaveIntent(),
+        const SingleActivator(LogicalKeyboardKey.keyS, meta: true):
+            const _SaveIntent(),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          _SaveIntent: CallbackAction<_SaveIntent>(
+            onInvoke: (_) {
+              _manualSave();
+              return null;
+            },
+          ),
+        },
+        child: editor,
       ),
     );
   }
@@ -793,8 +846,8 @@ class DocEditorState extends State<DocEditor> {
     );
     _listScroll.animateTo(
       target,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOutCubic,
+      duration: AppleMotion.modal,
+      curve: AppleMotion.easeOut,
     );
   }
 
@@ -895,6 +948,8 @@ class DocEditorState extends State<DocEditor> {
         content: const Text('文档有未保存的改动，确定要退出吗？'),
         actions: AppleDialog.actions([
           TextButton(
+            // 键盘可达 + 防误触：默认聚焦「取消」，Enter 不会直接丢数据。
+            autofocus: true,
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('取消'),
           ),

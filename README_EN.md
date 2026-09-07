@@ -46,7 +46,7 @@ flutter build apk --debug
 
 ```bash
 dart analyze   # zero issues (project uses dart analyze due to Chinese path LSP compatibility)
-flutter test   # 391+ tests (Phase 1-7 + security audit regressions)
+flutter test   # 1950+ tests (Phase 1-7 + security audit + full 2026-09 audit regressions)
 flutter test test/architecture_test.dart   # +5 architecture rules
 bash tools/check_boundaries.sh             # boundary checks
 python tools/code_guard.py --dir lib --force-native --json   # line-count gate

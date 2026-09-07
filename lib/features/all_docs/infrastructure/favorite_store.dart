@@ -10,6 +10,7 @@
 library;
 
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
+import 'package:drawing_notes_app/core/utils/hex_encode.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -69,10 +70,7 @@ class FavoriteStore {
   Future<void> _writeKeys(Set<String> keys) async {
     final file = await _fileRef();
     final r = Random.secure();
-    final suffix = List<int>.generate(
-      8,
-      (_) => r.nextInt(256),
-    ).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    final suffix = hexEncode(List<int>.generate(8, (_) => r.nextInt(256)));
     final tmp = File(
       '${file.path}.tmp.${DateTime.now().microsecondsSinceEpoch}.$suffix',
     );
@@ -85,7 +83,9 @@ class FavoriteStore {
     } catch (_) {
       try {
         if (await tmp.exists()) await tmp.delete();
-      } catch (_) {}
+      } catch (_) {
+        /* 幂等清理：写入失败后删 tmp 尽力而为，失败不覆盖将 rethrow 的原始错误 */
+      }
       rethrow;
     }
   }

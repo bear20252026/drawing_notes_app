@@ -15,6 +15,7 @@ import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
+import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
@@ -38,6 +39,10 @@ class AppLockSettingsPage extends StatelessWidget {
   /// 设置密码时同步建库、修改密码时同步重包裹；保险库已存在时
   /// 「关闭应用锁」被阻止（文件已用该密码加密，关闭将导致不可读）。
   final VaultKeyService? vault;
+
+  /// 绑定重置密码盘成功提示的展示时长（UI 时长）：文案较长（含 U 盘
+  /// 保管警示），默认 4s 不够读完，给 5s。
+  static const Duration bindSuccessSnackDuration = Duration(seconds: 5);
 
   /// 系统验证快速解锁（批D1）：仅作用于开屏锁；文件密码不参与。
   final QuickUnlockService? quickUnlock;
@@ -144,9 +149,8 @@ class AppLockSettingsPage extends StatelessWidget {
                                     '未绑定时忘记密码将无法找回。')
                           : (l10n?.lockBindHintUnbound ??
                                 '开启应用锁后，可绑定重置密码盘以防忘记密码。'),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.outline,
+                      style: AppleType.captionStyle(
+                        Theme.of(context).colorScheme.outline,
                       ),
                     ),
                   ),
@@ -198,9 +202,8 @@ class AppLockSettingsPage extends StatelessWidget {
                 l10n?.lockGraceHint ??
                     '离开应用后在宽限期内回来，无需重新输入密码。'
                         '宽限期只免锁屏，加密文件与笔记的密码仍会重新要求。',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(dialogContext).colorScheme.outline,
+                style: AppleType.captionStyle(
+                  Theme.of(dialogContext).colorScheme.outline,
                 ),
               ),
               const SizedBox(height: 8),
@@ -328,7 +331,7 @@ class AppLockSettingsPage extends StatelessWidget {
               '已绑定。请妥善保管 U 盘：U 盘丢失将无法重置密码，'
                   'U 盘上的 password_reset_disk.key 文件请勿删除',
         ),
-        duration: const Duration(seconds: 5),
+        duration: bindSuccessSnackDuration,
       ),
     );
   }
@@ -522,9 +525,8 @@ class AppLockSettingsPage extends StatelessWidget {
               ),
               Text(
                 l10n?.lockPinLengthHint ?? '建议 6 位以上，纯数字密码强度有限。',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(dialogContext).colorScheme.outline,
+                style: AppleType.captionStyle(
+                  Theme.of(dialogContext).colorScheme.outline,
                 ),
               ),
             ],
@@ -590,9 +592,7 @@ class _QuickUnlockTileState extends State<_QuickUnlockTile> {
 
   void _snack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    AppSnack.show(context, message);
   }
 
   /// 开启：验证当前密码（身份门槛）→ 系统验证 → 存副本 → 持久化。

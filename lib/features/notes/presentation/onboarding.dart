@@ -89,6 +89,7 @@ class _OnboardingDialog extends StatelessWidget {
       ),
       actions: [
         FilledButton(
+          autofocus: true,
           style: FilledButton.styleFrom(backgroundColor: scheme.primary),
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('开始使用'),

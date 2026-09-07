@@ -45,11 +45,10 @@ class _NotebookReaderPageState extends State<NotebookReaderPage> {
 
   void _goTo(int target) {
     if (target < 0 || target >= widget.notebook.pages.length) return;
-    _controller.animateToPage(
-      target,
-      duration: const Duration(milliseconds: 260),
-      curve: Curves.easeOutCubic,
-    );
+    // 频率闸门：_goTo 仅由键盘方向键/PageUp/PageDown/空格触发——
+    // 键盘触发的动作永不动画，直接跳页；指针路径（滑动/滚轮）由
+    // PageView 原生手势处理，不经此方法。
+    _controller.jumpToPage(target);
   }
 
   KeyEventResult _onKeyEvent(FocusNode _, KeyEvent event) {
@@ -77,10 +76,11 @@ class _NotebookReaderPageState extends State<NotebookReaderPage> {
   @override
   Widget build(BuildContext context) {
     final pages = widget.notebook.pages;
+    final surface = Theme.of(context).colorScheme.surface;
     return Scaffold(
-      backgroundColor: const Color(0xFF15171A),
+      backgroundColor: surface,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF15171A),
+        backgroundColor: surface,
         foregroundColor: Colors.white70,
         title: Text(
           '${widget.notebook.title} · 翻页阅读',
@@ -128,9 +128,9 @@ class _NotebookReaderPageState extends State<NotebookReaderPage> {
                         ),
                         child: Text(
                           '第 ${_index + 1} 页 / 共 ${pages.length} 页',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13,
+                          style: AppleType.controlStyle(
+                            Colors.white70,
+                            weight: FontWeight.w400,
                           ),
                         ),
                       ),

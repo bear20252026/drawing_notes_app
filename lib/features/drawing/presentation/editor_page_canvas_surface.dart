@@ -304,7 +304,7 @@ extension _EditorPageCanvasSurface on _EditorPageState {
     return Material(
       elevation: 4,
       borderRadius: BorderRadius.circular(AppleRadius.xs),
-      color: const Color(0xE6FFFFFF),
+      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
       // 同时监听 frameTick（高频绘制/视口变化），使小地图可实时跟手。
       child: ListenableBuilder(
         listenable: Listenable.merge([_controller, _controller.frameTick]),

@@ -30,9 +30,11 @@ class GlassDialog {
   static const double kSigma = 16;
   static const double kSurfaceOpacity = 0.72;
 
-  /// 与 M3 `AlertDialog` 的默认圆角对齐；玻璃裁剪圆角必须与之相同，
+  /// 玻璃裁剪圆角：AppleRadius.lg（18）——M3 默认 28 属平台默认值，
+  /// 本项目圆角档位以 DESIGN.md:127-135 为准（合法档位不含 28）。
+  /// 玻璃裁剪圆角必须与内部 AlertDialog 的 shape 一致，
   /// 否则内容四角会被裁掉。
-  static const double kRadius = 28;
+  static const double kRadius = 18;
 
   /// 与屏幕边缘的留白（M3 `AlertDialog` 默认 horizontal 40 / vertical 24）。
   static const double insetHorizontal = 40;

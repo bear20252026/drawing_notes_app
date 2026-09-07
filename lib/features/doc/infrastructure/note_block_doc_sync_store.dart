@@ -15,6 +15,35 @@ class NoteBlockDocSyncStore implements SyncDocumentStore {
 
   final NoteBlockDocStore _store;
 
+  /// 编码复用缓存（性能优化）：同一轮同步里 [listDocuments]（算 size）与
+  /// [readDocument]（取上传内容）会对同一文档各做一次 jsonEncode + UTF-8。
+  /// 以 id + updatedAt 校验复用同一份字节（编码一次、取 length 复用）；
+  /// LRU 容量 [_encodedCacheCapacity] 条防长期驻留。
+  final Map<String, _EncodedDocBytes> _encodedCache = {};
+
+  /// 缓存容量：块文档 JSON 通常为 KB 级，8 条上限的驻留开销可忽略。
+  static const int _encodedCacheCapacity = 8;
+
+  Uint8List _encodedBytesOf(NoteBlockDoc doc) {
+    final updatedMs = doc.updatedAt.millisecondsSinceEpoch;
+    final cached = _encodedCache[doc.id];
+    if (cached != null && cached.updatedMs == updatedMs) {
+      // LRU 提升：删后重插保持插入序为访问序。
+      _encodedCache
+        ..remove(doc.id)
+        ..[doc.id] = cached;
+      return cached.bytes;
+    }
+    final bytes = Uint8List.fromList(utf8.encode(jsonEncode(doc.toJson())));
+    _encodedCache
+      ..remove(doc.id)
+      ..[doc.id] = _EncodedDocBytes(updatedMs, bytes);
+    while (_encodedCache.length > _encodedCacheCapacity) {
+      _encodedCache.remove(_encodedCache.keys.first);
+    }
+    return bytes;
+  }
+
   @override
   Future<List<SyncDocMeta>> listDocuments() async {
     final ids = await _store.listIds();
@@ -32,7 +61,7 @@ class NoteBlockDocSyncStore implements SyncDocumentStore {
         SyncDocMeta(
           id: id,
           updatedAt: doc.updatedAt.millisecondsSinceEpoch,
-          size: utf8.encode(jsonEncode(doc.toJson())).length,
+          size: _encodedBytesOf(doc).length,
         ),
       );
     }
@@ -49,7 +78,9 @@ class NoteBlockDocSyncStore implements SyncDocumentStore {
       return null;
     }
     if (doc == null) return null;
-    return Uint8List.fromList(utf8.encode(jsonEncode(doc.toJson())));
+    // 同一轮同步内 listDocuments 已编码过且未再变化（updatedAt 校验）时
+    // 直接复用那份字节，避免重复编码。
+    return _encodedBytesOf(doc);
   }
 
   @override
@@ -58,10 +89,22 @@ class NoteBlockDocSyncStore implements SyncDocumentStore {
     final map = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
     final doc = NoteBlockDoc.fromJson(map);
     await _store.saveDocument(doc.id == id ? doc : doc.copyWith(id: id));
+    // 内容刚被远端覆盖：丢弃对应编码缓存，后续一律按新内容重编。
+    _encodedCache.remove(id);
   }
 
   @override
   Future<void> deleteDocument(String id) async {
+    _encodedCache.remove(id);
     await _store.deleteDocument(id);
   }
+}
+
+/// 编码复用缓存条目：记录编码时文档的 updatedAt（毫秒），与当前不一致
+/// 即视为已变化、重新编码。
+class _EncodedDocBytes {
+  _EncodedDocBytes(this.updatedMs, this.bytes);
+
+  final int updatedMs;
+  final Uint8List bytes;
 }

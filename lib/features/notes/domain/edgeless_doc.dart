@@ -234,7 +234,10 @@ class NoteFrame {
 ///
 /// 全部操作返回**新 EdgelessDoc**，不修改原实例。
 class EdgelessDoc {
-  const EdgelessDoc({
+  // 性能优化（framesSortedByZ 记忆化）需要非 final 的懒初始化缓存字段，
+  // 构造器因此去 const——全库无 const EdgelessDoc(...) 调用点（已核实），
+  // 非常量调用语义完全不变。
+  EdgelessDoc({
     required this.id,
     this.frames = const [],
     this.connectors = const [],
@@ -276,6 +279,14 @@ class EdgelessDoc {
   /// 下一个待分配的 zIndex。
   final int nextZIndex;
 
+  /// [framesSortedByZ] 的按实例记忆化缓存。
+  ///
+  /// [EdgelessDoc] 不可变——所有改帧入口（addFrame/removeFrame/moveFrame/
+  /// resizeFrame/_mapFrame/bringToFront/…）都返回**新实例**，新实例此字段
+  /// 为 null 即「脏」，首次访问才排序；同实例多次访问直接复用（渲染层
+  /// 每帧读取时不再 O(n log n) 重排）。等价于在全部改帧入口置脏标记。
+  List<NoteFrame>? _framesSortedByZCache;
+
   /// 空文档工厂。[initialDoc] 非空时自动 addFrame 一个。
   factory EdgelessDoc.empty(String id, {NoteBlockDoc? initialDoc}) {
     var doc = EdgelessDoc(id: id);
@@ -293,9 +304,10 @@ class EdgelessDoc {
     return null;
   }
 
-  /// 按 z 升序排列的帧。
+  /// 按 z 升序排列的帧（按实例记忆化，见 [_framesSortedByZCache]）。
   List<NoteFrame> get framesSortedByZ =>
-      [...frames]..sort((a, b) => a.zIndex.compareTo(b.zIndex));
+      _framesSortedByZCache ??= [...frames]
+        ..sort((a, b) => a.zIndex.compareTo(b.zIndex));
 
   int get _maxZ => frames.isEmpty
       ? 0

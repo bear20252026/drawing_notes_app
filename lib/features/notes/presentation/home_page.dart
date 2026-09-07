@@ -4,6 +4,7 @@ import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 // 批次②：单文件密码需与开屏密码比对（matchesAppLockPin 静态探测）。
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
@@ -35,6 +36,8 @@ import 'package:drawing_notes_app/shared/widgets/glass_fab.dart';
 // U4a：首屏加载骨架屏。
 import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 import 'package:drawing_notes_app/shared/utils/image_decode_cap.dart';
+import 'package:drawing_notes_app/shared/utils/time_format.dart';
+import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_templates.dart';
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_page.dart';
@@ -282,12 +285,16 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
       builder: (ctx) => SimpleDialog(
         title: const Text('新建画布'),
         children: [
-          SimpleDialogOption(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const ListTile(
-              leading: Icon(Icons.brush_rounded),
-              title: Text('新建无限画布'),
-              subtitle: Text('自由绘制、图形与关系图'),
+          // 键盘可达：对话框打开时焦点落在首个选项上。
+          Focus(
+            autofocus: true,
+            child: SimpleDialogOption(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const ListTile(
+                leading: Icon(Icons.brush_rounded),
+                title: Text('新建无限画布'),
+                subtitle: Text('自由绘制、图形与关系图'),
+              ),
             ),
           ),
           SimpleDialogOption(
@@ -646,12 +653,16 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
         title: const Text('选择笔记模板'),
         children: [
           for (final t in DocTemplate.values)
-            SimpleDialogOption(
-              onPressed: () => Navigator.of(ctx).pop(t),
-              child: ListTile(
-                leading: Icon(_templateIcon(t)),
-                title: Text(t.label),
-                subtitle: Text(t.description),
+            // 键盘可达：首个模板选项初始聚焦。
+            Focus(
+              autofocus: t == DocTemplate.values.first,
+              child: SimpleDialogOption(
+                onPressed: () => Navigator.of(ctx).pop(t),
+                child: ListTile(
+                  leading: Icon(_templateIcon(t)),
+                  title: Text(t.label),
+                  subtitle: Text(t.description),
+                ),
               ),
             ),
         ],
@@ -666,7 +677,12 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
-    await _blockDocStore.saveDocument(doc);
+    try {
+      await _blockDocStore.saveDocument(doc);
+    } catch (e) {
+      _showSnack('创建失败，请重试');
+      return;
+    }
     widget.onDataChanged?.call();
     if (!mounted) return;
     await Navigator.of(context).push(
@@ -702,7 +718,13 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   /// 时间）+ 恢复/永久删除/清空（UX Patterns 官方模式——Restore 主操作、
   /// 永久删除分离——操作后刷新列表）。
   Future<void> _showTrashDialog() async {
-    final trash = await _docStorage.listTrash();
+    final List<(String, String, DateTime)> trash;
+    try {
+      trash = await _docStorage.listTrash();
+    } catch (e) {
+      _showSnack('回收站加载失败，请重试');
+      return;
+    }
     if (!mounted) return;
     await GlassDialog.show<void>(
       context: context,
@@ -735,12 +757,16 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
                                 '恢复',
                             icon: const Icon(Icons.restore),
                             onPressed: () async {
-                              final id = await _docStorage.restoreTrash(
-                                item.$1,
-                              );
-                              if (ctx.mounted) Navigator.of(ctx).pop();
-                              _refresh();
-                              if (id != null) _showSnack('已恢复「$id」');
+                              try {
+                                final id = await _docStorage.restoreTrash(
+                                  item.$1,
+                                );
+                                if (ctx.mounted) Navigator.of(ctx).pop();
+                                _refresh();
+                                if (id != null) _showSnack('已恢复「$id」');
+                              } catch (e) {
+                                _showSnack('恢复失败，请重试');
+                              }
                             },
                           ),
                           IconButton(
@@ -756,11 +782,15 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
                                 '确定永久删除「${item.$2}」吗？此操作不可恢复。',
                               );
                               if (ok == true) {
-                                await _docStorage.deleteTrashPermanently(
-                                  item.$1,
-                                );
-                                if (ctx.mounted) Navigator.of(ctx).pop();
-                                _refresh();
+                                try {
+                                  await _docStorage.deleteTrashPermanently(
+                                    item.$1,
+                                  );
+                                  if (ctx.mounted) Navigator.of(ctx).pop();
+                                  _refresh();
+                                } catch (e) {
+                                  _showSnack('永久删除失败，请重试');
+                                }
                               }
                             },
                           ),
@@ -804,9 +834,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
 
   void _showSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    AppSnack.show(context, message);
   }
 
   @override

@@ -53,12 +53,15 @@ class SyncRetryOutcome {
 ///
 /// 默认阈值：[backoffWindow] = 15s，[giveUpWindow] = 60s，[maxAttempts] = 4。
 class SyncRetryPolicy {
+  /// [maxDelay] 的默认值——单次重试延迟的封顶（指数退避不再翻倍）。
+  static const Duration defaultMaxDelay = Duration(seconds: 4);
+
   const SyncRetryPolicy({
     this.backoffWindow = const Duration(seconds: 15),
     this.giveUpWindow = const Duration(minutes: 1),
     this.maxAttempts = 4,
     this.baseDelay = const Duration(seconds: 1),
-    this.maxDelay = const Duration(seconds: 4),
+    this.maxDelay = defaultMaxDelay,
   });
 
   /// 进入退避的累计耗时上限（超过即 giveUp）。

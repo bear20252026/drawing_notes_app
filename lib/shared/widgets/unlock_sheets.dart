@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/pin_pad.dart';
 
@@ -67,7 +68,8 @@ class PinPadUnlockSheet extends StatelessWidget {
       barrierDismissible: false,
       barrierColor: Colors.transparent,
       barrierLabel: '密码锁',
-      transitionDuration: const Duration(milliseconds: 260),
+      // 全屏锁屏弹层 = 模态档时长（250ms，< 300ms 硬规则）。
+      transitionDuration: AppleMotion.modal,
       pageBuilder: (_, _, _) => PinPadUnlockSheet(
         title: title,
         pinLength: pinLength,
@@ -79,7 +81,7 @@ class PinPadUnlockSheet extends StatelessWidget {
         emergencyLabel: emergencyLabel,
       ),
       transitionBuilder: (_, animation, _, child) => FadeTransition(
-        opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+        opacity: CurvedAnimation(parent: animation, curve: AppleMotion.easeOut),
         child: child,
       ),
     );

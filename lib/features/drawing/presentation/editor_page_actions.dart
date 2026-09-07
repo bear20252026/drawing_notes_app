@@ -149,6 +149,7 @@ extension _EditorPageActions on _EditorPageState {
       input.dispose();
     }
     if (result == null) return;
+    if (!mounted) return;
     // 解析数值（逗号/空格/换行分隔）。
     final data = pastedText
         .split(RegExp(r'[, ]+'))
@@ -266,6 +267,7 @@ extension _EditorPageActions on _EditorPageState {
       builder: (ctx) => ShapeLibraryDialog(
         library: library,
         onInsert: (template) {
+          if (!mounted) return;
           // 插入到画布中心（带偏移，避免与库预览重叠）。
           final center = _controller.document.size.center(Offset.zero);
           final shape = PageShapeItem.fromJson(template.toJson())
@@ -299,6 +301,7 @@ extension _EditorPageActions on _EditorPageState {
       ),
     );
     if (result == null) return;
+    if (!mounted) return;
     if (_commands.run(result)) {
       _applyState(() => _lastCommandId = result);
     }
@@ -500,6 +503,7 @@ extension _EditorPageActions on _EditorPageState {
     }
     try {
       final data = await Clipboard.getData(Clipboard.kTextPlain);
+      if (!mounted) return;
       final text = data?.text;
       if (text != null && text.trim().isNotEmpty) {
         // 文本 -> 文字块（画布中心）。
@@ -545,8 +549,8 @@ extension _EditorPageActions on _EditorPageState {
   }
 
   /// 快捷键帮助对话框（B2：从命令注册表自动生成，借鉴 Notes 快捷键文档化）。
-  void _showShortcutHelp() {
-    GlassDialog.show<void>(
+  Future<void> _showShortcutHelp() async {
+    await GlassDialog.show<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('快捷键'),

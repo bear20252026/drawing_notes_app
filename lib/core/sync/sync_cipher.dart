@@ -154,7 +154,14 @@ class AesSyncCipher implements SyncCipher {
     Uint8List aad,
     String expectedMode,
   ) async {
-    final map = jsonDecode(utf8.decode(cipher)) as Map<String, dynamic>;
+    // B9 修复（审计 2026-09-07）：解密载荷是远端/他人可控数据——裸
+    // `as Map<String, dynamic>` 强转会抛 TypeError；改类型检查抛
+    // FormatException（与本文件既有错误口径一致）。
+    final decoded = jsonDecode(utf8.decode(cipher));
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException('加密数据格式损坏（非 JSON 对象）');
+    }
+    final map = decoded;
     final mode = map['mode'];
     if (mode != expectedMode) {
       throw FormatException('加密数据 mode 不匹配（期望 $expectedMode，实际 $mode）');

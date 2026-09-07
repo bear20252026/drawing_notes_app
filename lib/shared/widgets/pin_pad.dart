@@ -7,6 +7,9 @@ import 'dart:ui' as ui show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_motion.dart';
+
 // PART 2 · PinPadUnlockSheet —— iOS 锁屏风格全屏数字密码盘
 // ===========================================================================
 
@@ -85,7 +88,8 @@ class _PinPadCoreState extends State<PinPadCore>
   final StringBuffer _entered = StringBuffer();
   late final AnimationController _shake = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 400),
+    // 抖动 = 模态档时长（250ms；原 400ms 超出令牌表）。
+    duration: AppleMotion.modal,
   );
 
   /// 数字键对应的字母标注（iOS 电话键盘布局）。
@@ -185,11 +189,7 @@ class _PinPadCoreState extends State<PinPadCore>
                   const Spacer(flex: 3),
                   Text(
                     widget.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: AppleType.titleStyle(Colors.white),
                   ),
                   const SizedBox(height: 20),
                   AnimatedBuilder(
@@ -241,9 +241,8 @@ class _PinPadCoreState extends State<PinPadCore>
                                 '${_entered.length} / ${widget.flexibleMaxLength} 位'
                                 '（${widget.flexibleMinLength}–'
                                 '${widget.flexibleMaxLength} 位可选）',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                  fontSize: 12,
+                                style: AppleType.captionStyle(
+                                  Colors.white.withValues(alpha: 0.7),
                                 ),
                               ),
                             ],
@@ -289,7 +288,7 @@ class _PinPadCoreState extends State<PinPadCore>
       onPressed: onPressed,
       style: TextButton.styleFrom(
         foregroundColor: Colors.white,
-        textStyle: const TextStyle(fontSize: 17),
+        textStyle: AppleType.bodyStyle(Colors.white),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
       ),
       child: Text(label),
@@ -377,9 +376,9 @@ class _PinPadCoreState extends State<PinPadCore>
               bottom: 10,
               child: Text(
                 letters ?? '',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.92),
-                  fontSize: 11,
+                style: AppleType.captionStyle(
+                  Colors.white.withValues(alpha: 0.92),
+                ).copyWith(
                   fontWeight: FontWeight.w600,
                   letterSpacing: 2.5,
                   height: 1,

@@ -282,7 +282,7 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
     );
   }
 
-  Widget _buildSearchField(BuildContext _) {
+  Widget _buildSearchField(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: TextField(
@@ -295,7 +295,9 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(vertical: 8),
         ),
-        style: const TextStyle(fontSize: 14),
+        style: AppleType.controlStyle(
+          Theme.of(context).colorScheme.onSurface,
+        ).copyWith(fontWeight: FontWeight.w400),
       ),
     );
   }
@@ -306,10 +308,9 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
       child: Center(
         child: Text(
           '无匹配项',
-          style: TextStyle(
-            fontSize: 13,
-            color: AppleColor.mutedOf(Theme.of(context).colorScheme),
-          ),
+          style: AppleType.controlStyle(
+            AppleColor.mutedOf(Theme.of(context).colorScheme),
+          ).copyWith(fontWeight: FontWeight.w400),
         ),
       ),
     );
@@ -372,12 +373,9 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
         alignment: Alignment.centerLeft,
         child: Text(
           group.title,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: AppleColor.mutedOf(Theme.of(context).colorScheme),
-            letterSpacing: 0.5,
-          ),
+          style: AppleType.captionStyle(
+            AppleColor.mutedOf(Theme.of(context).colorScheme),
+          ).copyWith(fontWeight: FontWeight.w600, letterSpacing: 0.5),
         ),
       ),
     );
@@ -403,15 +401,17 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item.label, style: const TextStyle(fontSize: 14)),
+                  Text(
+                    item.label,
+                    style: AppleType.controlStyle(
+                      Theme.of(context).colorScheme.onSurface,
+                    ).copyWith(fontWeight: FontWeight.w400),
+                  ),
                   if (item.description != null)
                     Text(
                       item.description!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppleColor.mutedOf(
-                          Theme.of(context).colorScheme,
-                        ),
+                      style: AppleType.captionStyle(
+                        AppleColor.mutedOf(Theme.of(context).colorScheme),
                       ),
                     ),
                 ],

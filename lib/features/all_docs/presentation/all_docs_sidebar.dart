@@ -97,10 +97,14 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
               height: 36,
               child: TextField(
                 onChanged: widget.onSearchChanged,
-                style: const TextStyle(fontSize: 13),
+                style: AppleType.controlStyle(
+                  onSurface,
+                ).copyWith(fontWeight: FontWeight.w400),
                 decoration: InputDecoration(
                   hintText: '快速搜索',
-                  hintStyle: TextStyle(color: muted, fontSize: 13),
+                  hintStyle: AppleType.controlStyle(
+                    muted,
+                  ).copyWith(fontWeight: FontWeight.w400),
                   prefixIcon: Icon(Icons.search, size: 18, color: muted),
                   filled: true,
                   fillColor: surface,
@@ -163,12 +167,16 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
                     color: selected ? accent : muted,
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    _navItems[i].label,
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                      color: selected ? accent : onSurface,
+                  Expanded(
+                    child: Text(
+                      _navItems[i].label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppleType.controlStyle(
+                        selected ? accent : onSurface,
+                      ).copyWith(
+                        fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                      ),
                     ),
                   ),
                 ],
@@ -203,11 +211,9 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
               const SizedBox(width: 8),
               Text(
                 '文档树',
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: muted,
-                ),
+                style: AppleType.captionStyle(
+                  muted,
+                ).copyWith(fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -237,7 +243,9 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
                         doc.title.isEmpty ? '未命名' : doc.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 13, color: onSurface),
+                        style: AppleType.controlStyle(
+                          onSurface,
+                        ).copyWith(fontWeight: FontWeight.w400),
                       ),
                     ),
                     // N2：文件密码锁标（本会话未解锁）
@@ -255,7 +263,7 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
       widgets.add(
         Padding(
           padding: const EdgeInsets.only(left: 24, top: 4, bottom: 8),
-          child: Text('暂无文档', style: TextStyle(fontSize: 12, color: muted)),
+          child: Text('暂无文档', style: AppleType.captionStyle(muted)),
         ),
       );
     }
@@ -291,22 +299,14 @@ class _WorkspaceHeader extends StatelessWidget {
             alignment: Alignment.center,
             child: Text(
               name.isNotEmpty ? name.characters.first : 'W',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
+              style: AppleType.controlStyle(Colors.white),
             ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               name,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: onSurface,
-              ),
+              style: AppleType.controlStyle(onSurface),
               overflow: TextOverflow.ellipsis,
             ),
           ),

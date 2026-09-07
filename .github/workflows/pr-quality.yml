@@ -5,6 +5,11 @@ on:
   pull_request:
     branches: [master]
 permissions: {}
+
+# 快速连推/重开 PR 时取消同组在跑的旧 run，节省排队时长。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   quality:
     name: Analyze + Test + Line Count

@@ -115,6 +115,8 @@ void main() {
     expect(find.text('复盘'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), '复盘');
+    // 搜索走 200ms 合帧（SearchDebouncer）：推进超过合帧窗口后再结算。
+    await tester.pump(const Duration(milliseconds: 250));
     await tester.pumpAndSettle();
 
     expect(find.text('写文档'), findsNothing);
@@ -128,10 +130,13 @@ void main() {
       ),
     );
     await tester.enterText(find.byType(TextField), '不存在');
+    // 搜索走 200ms 合帧（SearchDebouncer）：推进超过合帧窗口后再结算。
+    await tester.pump(const Duration(milliseconds: 250));
     await tester.pumpAndSettle();
     expect(find.textContaining('还没有记录'), findsOneWidget);
     expect(find.text('0 条记录'), findsOneWidget);
 
+    // 清除按钮走 flush（即时反馈），无需等待合帧窗口。
     await tester.tap(find.byIcon(Icons.clear));
     await tester.pumpAndSettle();
     expect(find.text('写文档'), findsOneWidget);

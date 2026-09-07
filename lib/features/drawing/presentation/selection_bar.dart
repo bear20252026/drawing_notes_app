@@ -181,7 +181,13 @@ class SelectionBar extends StatelessWidget {
     } else {
       text = '选区未命中内容（可拖动画布重新框选）';
     }
-    return Text(text, style: Theme.of(context).textTheme.bodySmall);
+    // 状态文案包 Flexible + ellipsis：窄屏/对象数变长时收缩省略，
+    // 不与左侧滑块挤爆行宽。
+    return Text(
+      text,
+      overflow: TextOverflow.ellipsis,
+      style: Theme.of(context).textTheme.bodySmall,
+    );
   }
 
   @override
@@ -251,7 +257,7 @@ class SelectionBar extends StatelessWidget {
                     ],
                   ),
                 ),
-                _buildStatusText(context, s),
+                Flexible(child: _buildStatusText(context, s)),
               ],
             ),
           ),

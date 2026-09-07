@@ -161,7 +161,10 @@ extension DocEditorSelection on DocEditorState {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
             decoration: BoxDecoration(
-              color: const Color(0xFF1D1D1F),
+              // 深色胶囊（0xFF1D1D1F = AppleColor.ink）。不用
+              // colorScheme.surface：浅色模式下 surface 是纯白，会把
+              // 白色图标/分隔线变成不可见——浮层恒定走深色墨。
+              color: AppleColor.ink,
               borderRadius: BorderRadius.circular(AppleRadius.md),
               boxShadow: [
                 BoxShadow(
@@ -214,7 +217,8 @@ extension DocEditorSelection on DocEditorState {
           onTap();
         },
         child: Padding(
-          padding: const EdgeInsets.all(6),
+          // U4a：6→13——18px 图标 + 13×2 = 44px 触控目标（触屏铁律 ≥44）。
+          padding: const EdgeInsets.all(13),
           child: Icon(icon, size: 18, color: Colors.white),
         ),
       ),

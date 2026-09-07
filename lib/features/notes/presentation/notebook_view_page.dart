@@ -35,6 +35,8 @@ import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 // U3 P1-12：标签筛选输入防抖（250ms 合帧）。
 import 'package:drawing_notes_app/shared/utils/search_debouncer.dart';
+import 'package:drawing_notes_app/shared/utils/time_format.dart';
+import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
 import 'package:drawing_notes_app/features/notes/presentation/presentation_page.dart';
 // W2：翻页阅读模式（上下滑动切页）+ 整本多页 PDF 导出。
 import 'package:drawing_notes_app/features/notes/presentation/notebook_reader_page.dart';
@@ -303,7 +305,13 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   /// 页面 hasChangedSinceLatestVersion 仍为 true，下轮自愈重试。
   void _saveIfChanged() {
     if (!_hasUnpersistedPageContent) return;
-    _save();
+    // _save 失败时其 Completer 会 completeError；此处丢弃 Future 须防
+    // 未捕获异步异常（保存失败的 UI 提示已在 _save 内给出）。
+    unawaited(
+      _save().catchError((Object e) {
+        // 仅吞掉异常；UI 反馈由 _save 内部负责。
+      }),
+    );
   }
 
   /// 导入 Markdown/文本文件，按段落生成文字块（C4，借鉴 nb 导入）。
@@ -357,6 +365,17 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.edit_rounded),
                   title: const Text('重命名分页画布'),
+                ),
+              ),
+              // 三输入等价入口：页卡长按「以块文档打开」的菜单可达版本
+              //（键盘/鼠标用户无长按入口，经此菜单选页走同一打开链路）。
+              PopupMenuItem(
+                value: _NotebookMenuItem.openAsBlockDoc,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.article_outlined),
+                  title: const Text('以块文档打开'),
                 ),
               ),
               const PopupMenuDivider(),

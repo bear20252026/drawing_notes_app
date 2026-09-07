@@ -107,7 +107,7 @@ extension _HomePageTabs on _HomePageState {
 
   /// 分页画布卡片副标题：锁定（占位/文件密码未解锁）不泄露页数。
   String _notebookSubtitle(Notebook nb) {
-    final time = _formatTime(nb.updatedAt);
+    final time = formatSmartTime(nb.updatedAt);
     final locked = nb.isLockedPlaceholder || (nb.encrypted && nb.pages.isEmpty);
     if (locked) return '已加密 · 更新于 $time';
     return '${nb.pages.length} 页 · 更新于 $time';
@@ -195,7 +195,7 @@ extension _HomePageTabs on _HomePageState {
                 padding: const EdgeInsets.only(top: 3),
                 child: Text(
                   '${isTyped ? '笔记' : '分页画布页面'}'
-                  ' · 更新于 ${_formatTime(doc.updatedAt)}',
+                  ' · 更新于 ${formatSmartTime(doc.updatedAt)}',
                 ),
               ),
               // 分页画布页面的删除在其所属分页画布页内管理（含克隆引用语义）；
@@ -272,14 +272,6 @@ extension _HomePageTabs on _HomePageState {
       },
     );
     return pin != null || _blockDocStore.isBlockDocUnlocked(id);
-  }
-
-  String _formatTime(DateTime t) {
-    final now = DateTime.now();
-    if (t.year == now.year && t.month == now.month && t.day == now.day) {
-      return '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
-    }
-    return '${t.year}-${t.month.toString().padLeft(2, '0')}-${t.day.toString().padLeft(2, '0')}';
   }
 
   Future<void> _deleteNote(AllDoc doc) async {

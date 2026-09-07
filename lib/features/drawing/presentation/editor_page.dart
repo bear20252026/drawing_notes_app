@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 import 'package:drawing_notes_app/features/drawing/application/brush_preset_store.dart';
 import 'package:drawing_notes_app/features/drawing/application/command_registry.dart';
 import 'package:drawing_notes_app/features/drawing/application/di_providers.dart';
@@ -45,6 +46,8 @@ import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/canvas_painter.dart';
+import 'package:drawing_notes_app/shared/utils/time_format.dart';
+import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/color_picker_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/encrypted_file_image.dart';
@@ -172,9 +175,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     final t = _canvasLastSavedAt;
     if (_controller.isDirty) return '未保存';
     if (t == null) return '已保存';
-    return '已保存 '
-        '${t.hour.toString().padLeft(2, '0')}:'
-        '${t.minute.toString().padLeft(2, '0')}';
+    return '已保存 ${formatClock(t)}';
   }
 
   Color get _canvasStatusColor {

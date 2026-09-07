@@ -18,6 +18,7 @@ import 'package:drawing_notes_app/features/doc/presentation/database/database_ka
 import 'package:drawing_notes_app/features/doc/presentation/database/database_list_view.dart';
 import 'package:drawing_notes_app/features/doc/presentation/database/database_table_view.dart';
 import '../../../core/theme/apple_design.dart';
+import '../../../shared/utils/search_debouncer.dart';
 
 /// 数据库块真视图。
 class DatabaseBlockView extends StatefulWidget {
@@ -56,6 +57,12 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
   final _filterController = TextEditingController();
   String _filterQuery = '';
 
+  /// 记录搜索合帧（性能优化：此前每键 setState + 全量过滤；复用
+  /// SearchDebouncer 的 200ms 合帧——与 AllDocs 页内搜索同款纪律）。
+  final SearchDebouncer _filterDebouncer = SearchDebouncer(
+    duration: const Duration(milliseconds: 200),
+  );
+
   @override
   void initState() {
     super.initState();
@@ -64,6 +71,7 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
 
   @override
   void dispose() {
+    _filterDebouncer.dispose();
     _filterController.dispose();
     super.dispose();
   }
@@ -139,10 +147,14 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
               suffixIcon: _filterQuery.isEmpty
                   ? null
                   : IconButton(
+                      tooltip: '清除筛选',
                       icon: const Icon(Icons.clear, size: 18),
                       onPressed: () {
                         _filterController.clear();
-                        setState(() => _filterQuery = '');
+                        // 清空需要即时反馈：取消挂起的合帧并立即生效。
+                        _filterDebouncer.flush(
+                          () => setState(() => _filterQuery = ''),
+                        );
                       },
                     ),
               isDense: true,
@@ -154,7 +166,8 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
                 horizontal: 8,
               ),
             ),
-            onChanged: (v) => setState(() => _filterQuery = v),
+            onChanged: (v) =>
+                _filterDebouncer.run(() => setState(() => _filterQuery = v)),
           ),
         ),
       ],

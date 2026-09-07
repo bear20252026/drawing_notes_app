@@ -4,6 +4,7 @@
 // 深色胶囊被拉成覆盖全屏的黑幕。修复：CompositedTransformFollower 外包 Positioned。
 import 'package:flutter/material.dart' as m;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/doc/doc_editor.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
@@ -43,14 +44,17 @@ void main() {
       (w) =>
           w is m.Container &&
           w.decoration is m.BoxDecoration &&
-          (w.decoration as m.BoxDecoration).color == const m.Color(0xFF1D1D1F),
+          // 深色胶囊 = AppleColor.ink（0xFF1D1D1F，2026-09-07 令牌化）。
+          (w.decoration as m.BoxDecoration).color == AppleColor.ink,
     );
     expect(pillFinder, findsOneWidget, reason: '深色胶囊应已出现在 overlay 中');
 
     final size = tester.getSize(pillFinder);
     // 修复前：tight 全屏约束 → 800x600（测试默认表面）。
-    // 修复后：Positioned 松约束 → 胶囊贴合内容（<200x80）。
-    expect(size.width, lessThan(200), reason: '工具条宽度应贴合按钮行，而非被撑满全屏');
+    // 修复后：Positioned 松约束 → 胶囊贴合内容。
+    // U4a 触控铁律（≥44 热区）：6 图标 44px = 264 + 分隔线 9 + 内边距 4
+    // ≈ 277，宽度上限相应放宽到 340——仍远小于 800（黑幕回归立即触发）。
+    expect(size.width, lessThan(340), reason: '工具条宽度应贴合按钮行，而非被撑满全屏');
     expect(size.height, lessThan(80), reason: '工具条高度应贴合单行图标，而非被撑满全屏');
   });
 }

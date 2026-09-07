@@ -307,10 +307,8 @@ class _NoteBlockPreviewRow extends StatelessWidget {
 
   TextStyle _blockStyle(NoteBlock block, Color ink) {
     final subtle = (block.props['checked'] as bool?) ?? false;
-    return TextStyle(
-      fontSize: 14,
+    return AppleType.controlStyle(ink, weight: FontWeight.w400).copyWith(
       height: 1.5,
-      color: ink,
       decoration: subtle ? TextDecoration.lineThrough : TextDecoration.none,
     );
   }

@@ -29,17 +29,23 @@ String? sanitizeHref(String? input) {
   return url;
 }
 
+/// 远端图片 URL 长度上限（argv/内存放大防护）。
+///
+/// 本文件为纯顶层函数库（无类宿主），故用顶层 const 而非类内
+/// static const；命名与用途同 [sanitizeImageSrc] 的校验档位。
+const int maxUrlLength = 4096;
+
 /// 远端图片来源校验（P1 安全修复——`Image.network` 直通块 `props['src']`
 /// 可致 SSRF/内网探测/IP 外泄/巨图 OOM）。
 ///
 /// 比 [sanitizeHref] 更严：只允许 https（杜绝明文 http 内网探测与凭证
 /// 泄露）；要求 host 非空；拒绝 userinfo（`user:pass@host`）；长度上限
-/// 4096（argv/内存放大防护）。`%` 在此允许（图片签名 URL 常见；且
-/// Image.network 不走 cmd，`%VAR%` 展开风险不存在）。
+/// [maxUrlLength]（argv/内存放大防护）。`%` 在此允许（图片签名 URL 常见；
+/// 且 Image.network 不走 cmd，`%VAR%` 展开风险不存在）。
 /// 不合法返回 null（调用方渲染占位图，不发起任何请求——fail-closed）。
 String? sanitizeImageSrc(String? input) {
   final url = input?.trim() ?? '';
-  if (url.isEmpty || url.length > 4096) return null;
+  if (url.isEmpty || url.length > maxUrlLength) return null;
   final uri = Uri.tryParse(url);
   if (uri == null) return null;
   if (uri.scheme.toLowerCase() != 'https') return null;

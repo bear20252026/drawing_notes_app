@@ -18,30 +18,42 @@ Future<void> showTextCellEditor(
   required ValueChanged<Object?> onSave,
 }) async {
   final controller = TextEditingController(text: initial);
-  final result = await GlassDialog.show<String>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text('编辑$fieldName'),
-      content: TextField(
-        controller: controller,
-        autofocus: true,
-        keyboardType: numeric
-            ? const TextInputType.numberWithOptions(decimal: true)
-            : null,
-        decoration: const InputDecoration(hintText: '输入值'),
-      ),
-      actions: AppleDialog.actions([
-        TextButton(
-          onPressed: () => Navigator.pop(ctx),
-          child: const Text('取消'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(ctx, controller.text),
-          child: const Text('确定'),
-        ),
-      ]),
-    ),
-  );
+  // 对话框返回（pop 即完成）后退出动画仍在跑，动画期间 TextField 重建
+  // 会触碰 controller；捕获路由完全退出的时机，动画结束再释放。
+  var routeExited = Future<void>.value();
+  String? result;
+  try {
+    result = await GlassDialog.show<String>(
+      context: context,
+      builder: (ctx) {
+        routeExited = ModalRoute.of(ctx)!.completed;
+        return AlertDialog(
+          title: Text('编辑$fieldName'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: numeric
+                ? const TextInputType.numberWithOptions(decimal: true)
+                : null,
+            decoration: const InputDecoration(hintText: '输入值'),
+          ),
+          actions: AppleDialog.actions([
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, controller.text),
+              child: const Text('确定'),
+            ),
+          ]),
+        );
+      },
+    );
+    await routeExited;
+  } finally {
+    controller.dispose();
+  }
   if (result == null) return;
 
   final raw = result.trim();
@@ -100,7 +112,7 @@ class DatabaseCountPill extends StatelessWidget {
       ),
       child: Text(
         '$count 条记录',
-        style: TextStyle(fontSize: 12, color: scheme.primary),
+        style: AppleType.captionStyle(scheme.primary),
       ),
     );
   }

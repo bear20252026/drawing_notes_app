@@ -26,6 +26,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
+import 'package:drawing_notes_app/core/utils/hex_encode.dart' as hex;
 
 /// 开屏密码防爆破守卫。
 ///
@@ -251,8 +252,8 @@ class LockoutGuard {
     return diff == 0;
   }
 
-  static String hexEncode(List<int> bytes) =>
-      bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+  // 薄委托：实现收敛至 core/utils/hex_encode.dart（保留静态入口防漏改）。
+  static String hexEncode(List<int> bytes) => hex.hexEncode(bytes);
 }
 
 /// 测试用：内存密钥的守卫构造器（不触碰真实文件系统）。

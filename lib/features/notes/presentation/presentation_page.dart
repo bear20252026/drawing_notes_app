@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+
+import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
@@ -38,9 +40,9 @@ class _PresentationPageState extends State<PresentationPage> {
         Text(
           t.text,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          // 28 无档位：titleStyle 基底 + copyWith 保留原字号。
+          style: AppleType.titleStyle(Colors.white).copyWith(
             fontSize: 28,
-            color: Colors.white,
             fontWeight: t.bold ? FontWeight.bold : FontWeight.normal,
             fontStyle: t.italic ? FontStyle.italic : FontStyle.normal,
           ),
@@ -127,7 +129,7 @@ class _PresentationPageState extends State<PresentationPage> {
               // 当前元素居中展示。
               Center(
                 child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
+                  duration: AppleMotion.modal,
                   child: KeyedSubtree(
                     key: ValueKey(_index),
                     child: Padding(
@@ -150,7 +152,10 @@ class _PresentationPageState extends State<PresentationPage> {
                 child: Center(
                   child: Text(
                     '${_index + 1} / ${elements.length} · 点击或 → 下一页，Esc 退出',
-                    style: const TextStyle(color: Colors.white38, fontSize: 13),
+                    style: AppleType.controlStyle(
+                      Colors.white38,
+                      weight: FontWeight.w400,
+                    ),
                   ),
                 ),
               ),

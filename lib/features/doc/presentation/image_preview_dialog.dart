@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/utils/safe_url.dart';
 import '../../../core/theme/apple_design.dart';
+import '../../../core/theme/apple_motion.dart';
 
 /// 显示图片全屏预览弹窗。
 ///
@@ -27,13 +28,13 @@ Future<void> showImagePreviewDialog(
     barrierDismissible: true,
     barrierLabel: '关闭',
     barrierColor: Colors.black87,
-    transitionDuration: const Duration(milliseconds: 200),
+    transitionDuration: AppleMotion.dropdown,
     pageBuilder: (context, animation, secondaryAnimation) {
       return _ImagePreviewPage(src: safeSrc, caption: caption);
     },
     transitionBuilder: (context, animation, secondaryAnimation, child) {
       return FadeTransition(
-        opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+        opacity: CurvedAnimation(parent: animation, curve: AppleMotion.easeOut),
         child: child,
       );
     },

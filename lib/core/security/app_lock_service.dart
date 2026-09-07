@@ -28,6 +28,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drawing_notes_app/core/security/app_lock_guard.dart';
 import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
+import 'package:drawing_notes_app/core/utils/hex_encode.dart';
 
 /// 应用启动锁服务。
 ///
@@ -188,7 +189,9 @@ class AppLockService extends ChangeNotifier {
           try {
             await prefs.setString(_kPinHashKey, await _hashV2(pin, salt));
             await prefs.setInt(_kPinKdfVersionKey, _kdfArgon2id);
-          } catch (_) {}
+          } catch (_) {
+            /* 尽力而为：透明升级失败不影响本次验证结果，下次登录再试 */
+          }
         }
       }
     } catch (_) {
@@ -235,8 +238,7 @@ class AppLockService extends ChangeNotifier {
   /// 16 字节加密安全随机盐（hex 编码）。
   String _newSalt() {
     final random = Random.secure();
-    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
-    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    return hexEncode(List<int>.generate(16, (_) => random.nextInt(256)));
   }
 
   /// v1 旧哈希（仅兼容验证——新写入永不使用）。

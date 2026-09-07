@@ -166,7 +166,8 @@ class _LayerItem extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    // 显隐开关（眼睛）
+                    // 显隐开关（眼睛）。触控目标 ≥44×44（HIG / 三输入
+                    // 兼容铁律）：compact 密度下默认仅 ~40px，补 min 约束。
                     IconButton(
                       tooltip: visible ? '隐藏图层' : '显示图层',
                       icon: Icon(
@@ -174,6 +175,10 @@ class _LayerItem extends StatelessWidget {
                         size: 18,
                       ),
                       visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(
+                        minWidth: 44,
+                        minHeight: 44,
+                      ),
                       onPressed: () =>
                           controller.toggleLayerVisibility(layerIndex),
                     ),
@@ -251,10 +256,13 @@ class _LayerItem extends StatelessWidget {
     bool enabled,
     VoidCallback onTap,
   ) {
+    // 触控目标 ≥44×44：compact + 16px 图标默认 ~40px，补 min 约束
+    //（视觉不变，仅扩大命中区）。
     return IconButton(
       tooltip: tip,
       icon: Icon(icon, size: 16),
       visualDensity: VisualDensity.compact,
+      constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
       disabledColor: AppleColor.inkSubtle,
       onPressed: enabled ? onTap : null,
     );

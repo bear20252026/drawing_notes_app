@@ -23,7 +23,7 @@ class AppleEmptyState extends StatelessWidget {
   /// 空态标题（一句话说清「这里是什么、为什么空」）。
   final String title;
 
-  /// 引导语（12.5，告诉用户下一步做什么；null 则不显示）。
+  /// 引导语（caption 档，告诉用户下一步做什么；null 则不显示）。
   final String? tip;
 
   /// 主行动按钮（可选；Wrap 居中排布）。
@@ -41,18 +41,14 @@ class AppleEmptyState extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             title,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: scheme.onSurface,
-            ),
+            style: AppleType.titleStyle(scheme.onSurface),
           ),
           if (tip != null) ...[
             const SizedBox(height: 4),
             Text(
               tip!,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12.5, color: subtle),
+              style: AppleType.captionStyle(subtle),
             ),
           ],
           if (actions.isNotEmpty) ...[

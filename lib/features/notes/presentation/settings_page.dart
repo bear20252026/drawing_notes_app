@@ -181,6 +181,7 @@ class SettingsPage extends StatelessWidget {
           ),
           actions: [
             TextButton(
+              autofocus: true,
               onPressed: () => Navigator.of(context).pop(),
               child: Text(l10n?.gotIt ?? '知道了'),
             ),

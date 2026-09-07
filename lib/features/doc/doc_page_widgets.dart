@@ -62,6 +62,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       leading: IconButton(
+        tooltip: '返回',
         icon: const Icon(Icons.arrow_back_rounded),
         onPressed: () => Navigator.of(context).maybePop(),
       ),
@@ -77,19 +78,14 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
                   title.isEmpty ? '未命名' : title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: AppleType.controlStyle(scheme.onSurface),
                 ),
                 const SizedBox(height: 1),
                 Text(
                   statusLabel,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: statusColor,
-                  ),
+                  style: AppleType.captionStyle(
+                    statusColor,
+                  ).copyWith(fontSize: 10, fontWeight: FontWeight.w600),
                 ),
               ],
             )
@@ -97,7 +93,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
               title.isEmpty ? '未命名' : title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: AppleType.titleStyle(scheme.onSurface),
             ),
       actions: [
         // 保存状态（透明可见）：未保存 / 保存中… / 已保存 HH:mm
@@ -108,11 +104,9 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
             child: Center(
               child: Text(
                 statusLabel,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: statusColor,
-                ),
+                style: AppleType.captionStyle(
+                  statusColor,
+                ).copyWith(fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -131,7 +125,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
           tooltip: isFavorite ? '取消收藏' : '收藏',
           icon: Icon(
             isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
-            color: isFavorite ? const Color(0xFFF5A623) : null,
+            color: isFavorite ? AppleColor.favourite : null,
           ),
           onPressed: onToggleFavorite,
         ),
@@ -269,7 +263,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
               icon: const Icon(Icons.ios_share_rounded, size: 15),
               label: const Text('分享'),
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF0066CC),
+                backgroundColor: AppleColor.actionBlue,
                 foregroundColor: Colors.white,
                 minimumSize: const Size(0, 34),
                 padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -367,11 +361,9 @@ class _BacklinksPanelState extends State<_BacklinksPanel> {
               const SizedBox(width: 6),
               Text(
                 '反向链接 · ${backlinks.length}',
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: scheme.onSurfaceVariant,
-                ),
+                style: AppleType.captionStyle(
+                  scheme.onSurfaceVariant,
+                ).copyWith(fontWeight: FontWeight.w700),
               ),
             ],
           ),

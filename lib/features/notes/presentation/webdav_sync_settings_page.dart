@@ -38,8 +38,20 @@ String humanizeWebDavSyncError(Object? e) {
     detail: e.runtimeType.toString(),
   );
   if (e is WebDavSyncException) {
-    // 本地安全门禁（https/路径白名单）文案已是人话，直接透出。
-    if (e.message.contains('https') || e.message.contains('远端路径')) {
+    // F-20 修复（审计 2026-09-07）：「远端路径」分支的 message 内嵌
+    // relativePath——docId 来自未认证远端 manifest，可被操控（注入换行/
+    // 钓鱼文案）。不再拼进用户可见文案，改静态提示；原文只进审计日志
+    // detail（该分支为固定前缀 + 路径段，无口令/凭据片段，符合 H-04 去敏口径）。
+    if (e.message.contains('远端路径')) {
+      AuditLogger.log(
+        'webdav.sync.unsafe_path',
+        success: false,
+        detail: e.message,
+      );
+      return '同步失败：同步远端文件失败，请检查服务器';
+    }
+    // 本地安全门禁（https）文案是本地静态文本，可直接透出。
+    if (e.message.contains('https')) {
       return '同步失败：${e.message}';
     }
     final code = e.statusCode;
@@ -150,16 +162,49 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
 
   Future<void> _syncNow() async {
     final rawUrl = _url.text.trim();
+    if (rawUrl.isEmpty) {
+      _toast('请先填写合法的服务器 URL（含 http/https 与 /）');
+      return;
+    }
+    // F-21 修复（审计 2026-09-07）：原预检仅 `uri.hasScheme`——明文 http
+    // URL 能过预检，直到 WebDavSyncClient 传输层门禁才失败。复用保存路径
+    // 同一 requireHttpsBaseUrl 预检（https；本地回环 http 例外）。
+    try {
+      WebDavConfigStore.requireHttpsBaseUrl(rawUrl);
+    } on ArgumentError catch (e) {
+      _toast('同步失败：${e.message}');
+      return;
+    }
     final uri = Uri.tryParse(rawUrl);
-    if (rawUrl.isEmpty || uri == null || !uri.hasScheme) {
+    if (uri == null) {
       _toast('请先填写合法的服务器 URL（含 http/https 与 /）');
       return;
     }
     // 安全审计修复（2026-09-06 P1-2）：未配置同步密码 = 同步层明文透传，
     // 笔记正文会以明文落在 WebDAV 服务器（UI 曾误称「云端仅保存加密数据」）。
     // fail-closed：拒绝同步，要求先设置同步密码。
-    if (_syncSecret.text.trim().isEmpty) {
+    final passphrase = _syncSecret.text.trim();
+    if (passphrase.isEmpty) {
       _toast('未设置同步密码：为避免笔记明文上云，已阻止同步。请在下方设置同步密码后重试。');
+      return;
+    }
+    // F-21 修复（审计 2026-09-07）：cipher 用「已保存盐 + 表单口令」构造——
+    // 表单有未保存修改时密钥会与云端数据错配（首次设置未保存时盐缺失，
+    // _buildCipher 甚至退化为 Noop 明文透传）。检测到表单与已保存配置/
+    // 机密不一致时，先提示保存再同步。
+    final cfg = await _configStore.load();
+    final secrets = await _secretStore.read();
+    final formDirty =
+        _url.text.trim() != cfg.baseUrl ||
+        _user.text.trim() != cfg.username ||
+        (_pass.text.isEmpty ? null : _pass.text) != secrets.webdavPassword ||
+        passphrase != secrets.syncPassphrase;
+    if (formDirty) {
+      _toast('表单有未保存的修改：请先点击「保存配置」再同步（避免加密密钥与云端数据错配）');
+      return;
+    }
+    if (cfg.syncSalt == null || cfg.syncSalt!.isEmpty) {
+      _toast('同步配置缺少加密盐：请重新点击「保存配置」后再同步');
       return;
     }
     setState(() {
@@ -168,10 +213,9 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
       _lastSummary = null;
     });
     try {
-      final cfg = await _configStore.load();
       final cipher = await _buildCipher(
         syncSalt: cfg.syncSalt,
-        syncPassphrase: _syncSecret.text.trim(),
+        syncPassphrase: passphrase,
       );
       final service = SyncService(
         transport: WebDavSyncClient(
@@ -327,7 +371,8 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppleRadius.lg),
-        borderSide: const BorderSide(color: AppleColor.actionBlue, width: 1.5),
+        // 键盘焦点环：Focus Blue + 2px 实线（DESIGN.md:300、440）。
+        borderSide: const BorderSide(color: AppleColor.focusBlue, width: 2),
       ),
     );
   }

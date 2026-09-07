@@ -97,11 +97,15 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
       for (final dek in _sessionDocDeks.values) {
         try {
           dek.fillRange(0, dek.length, 0);
-        } catch (_) {}
+        } catch (_) {
+          /* 幂等清理：单个 DEK 擦除失败继续下一个，清空流程永不抛错 */
+        }
       }
       _sessionDocDeks.clear();
       _sessionFileUsbWrapped.clear();
-    } catch (_) {}
+    } catch (_) {
+      /* 幂等清理：会话机密清空尽力而为（切后台回锁热路径），失败不外抛 */
+    }
   }
 
   /// 写成功回调（首页刷新修复①）：画布保存/缩略图更新/删除落盘成功后触发，
@@ -225,8 +229,19 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
     final file = File(_thumbPathFor(docId));
     final sealed = await _sealMediaBytes(file.path, pngBytes);
     final tmp = File('${file.path}.${LocalIdGenerator.next('thumb')}.tmp');
-    await tmp.writeAsBytes(sealed, flush: true);
-    await _replaceWithTemp(tmp, file);
+    // A1 修复（审计 2026-09-07）：tmp 写入/rename 失败时清理残留临时文件，
+    // 否则崩溃半写的 .tmp 会堆积在缩略图目录（favorite_store 同款纪律）。
+    try {
+      await tmp.writeAsBytes(sealed, flush: true);
+      await _replaceWithTemp(tmp, file);
+    } catch (_) {
+      try {
+        if (await tmp.exists()) await tmp.delete();
+      } catch (_) {
+        // 清理失败不覆盖原始存储异常。
+      }
+      rethrow;
+    }
     onWrite?.call();
     return file.path;
   }
@@ -363,6 +378,24 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
         });
   }
 
+  /// E-17：把 [op] 挂到 [id] 的写尾队列（与 save/_enqueueRawRewrite 共用
+  /// [_writeTails]），返回 op 的原始结果。链上某步失败不影响后续步骤。
+  Future<T> _runDocExclusive<T>(String id, Future<T> Function() op) {
+    final previous = _writeTails[id] ?? Future<void>.value();
+    final task = previous.catchError((_) {}).then((_) => op());
+    late final Future<void> chain;
+    chain = task.then(
+      (_) {
+        if (identical(_writeTails[id], chain)) _writeTails.remove(id);
+      },
+      onError: (_) {
+        if (identical(_writeTails[id], chain)) _writeTails.remove(id);
+      },
+    );
+    _writeTails[id] = chain;
+    return task;
+  }
+
   Future<Uint8List?> _currentKey() async {
     final provider = keyProvider;
     if (provider == null) return null;
@@ -487,21 +520,40 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
   }
 
   /// 把已密封字节原子落盘（含 .bak 备份——与 _saveEncoded 同纪律）。
+  ///
+  /// A2/A3 修复（审计 2026-09-07）：
+  /// - `.bak` 备份失败改为 fail-closed——复制失败时中止本次写入（正式文件
+  ///   保持完好、清理 tmp 后抛「备份写入失败」）。此前静默吞错会在 Windows
+  ///   回退路径（先删目标再 rename）下失去崩溃恢复保障：rename 期崩溃 =
+  ///   旧版无 .bak、新版未落盘，文档表现为丢失。
+  /// - tmp 写入/rename 任一失败都清理残留临时文件，防止半写 .tmp 堆积。
+  /// 失败路径顺序保证：copy bak 在 rename tmp→dest 之前，任何失败发生时
+  /// 正式文件都未被删除/覆盖。
   Future<void> _writeSealedBytes(String id, Uint8List sealed) async {
     await _ensureDocumentsDir();
     final finalFile = File(_pathFor(id));
     final tmp = File('${finalFile.path}.${LocalIdGenerator.next('write')}.tmp');
-    await tmp.writeAsBytes(sealed, flush: true);
+    try {
+      await tmp.writeAsBytes(sealed, flush: true);
 
-    // 备份上一版：若平台不允许直接覆盖目标文件，恢复路径仍保留上一份完整数据。
-    if (await finalFile.exists()) {
-      try {
-        await finalFile.copy('${finalFile.path}.bak');
-      } catch (_) {
-        // 备份失败不改变本次写入流程；目标文件仍未被提前删除。
+      // 备份上一版：若平台不允许直接覆盖目标文件，恢复路径仍保留上一份
+      // 完整数据。备份是 Windows 删除-换入回退的崩溃恢复前提——失败即中止。
+      if (await finalFile.exists()) {
+        try {
+          await finalFile.copy('${finalFile.path}.bak');
+        } catch (e) {
+          throw FileSystemException('备份写入失败：$e', finalFile.path);
+        }
       }
+      await _replaceWithTemp(tmp, finalFile);
+    } catch (_) {
+      try {
+        if (await tmp.exists()) await tmp.delete();
+      } catch (_) {
+        // 清理失败不覆盖原始存储异常。
+      }
+      rethrow;
     }
-    await _replaceWithTemp(tmp, finalFile);
   }
 
   /// 首选 rename（POSIX 原子替换）；若 Windows 拒绝覆盖已有文件，则在已经
@@ -692,8 +744,15 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
   /// 图片清理以文档中的引用清单为准，并且只会删除 [storeImage] 写入的
   /// `document_images/` 顶层文件。用户原始文件、外部路径、解码失败的文档及
   /// 仍被其他文档引用的资产全部保留，宁可留下可维护的孤儿文件也不冒误删风险。
+  ///
+  /// E-17 修复（审计 2026-09-07）：整个删除流程挂入与保存相同的 per-id
+  /// 写尾队列——此前在途保存与删除交错会让已删文档复活（rename 进回收站
+  /// 后，队列中的保存又写出正式文件）。note_block_doc_store 的 _enqueue
+  /// （trash 域）是同款已修模式。
   @override
-  Future<bool> delete(String id) async {
+  Future<bool> delete(String id) => _runDocExclusive(id, () => _deleteLocked(id));
+
+  Future<bool> _deleteLocked(String id) async {
     await _ensureDocumentsDir();
     final file = File(_pathFor(id));
     if (!await file.exists()) return false;
@@ -753,17 +812,24 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
 
   /// 恢复回收站项（M-06）：trashName 如 `doc123_1720000000000.json`——
   /// 移回 documents/ 目录。返回恢复后的文档 ID；失败（原 ID 冲突等）返回 null。
+  /// E-17 修复（审计 2026-09-07）：rename 挂入与保存/删除相同的 per-id
+  /// 写尾队列——恢复与在途保存交错会把恢复出的旧文档覆盖为新快照，
+  /// 或让同 ID 冲突判定出现 TOCTOU。
   Future<String?> restoreTrash(String trashName) async {
     final trashDir = await _ensureTrashDir();
+    await _ensureDocumentsDir();
     final src = File('${trashDir.path}${Platform.pathSeparator}$trashName');
     if (!await src.exists()) return null;
     final id = trashName.split('_').first;
     if (!isValidId(id)) return null;
-    final dest = File(_pathFor(id));
-    if (await dest.exists()) return null; // 原 ID 已存在——拒绝覆盖
-    await src.rename(dest.path);
-    onWrite?.call();
-    return id;
+    return _runDocExclusive(id, () async {
+      if (!await src.exists()) return null;
+      final dest = File(_pathFor(id));
+      if (await dest.exists()) return null; // 原 ID 已存在——拒绝覆盖
+      await src.rename(dest.path);
+      onWrite?.call();
+      return id;
+    });
   }
 
   /// 列出回收站项（M-06）：返回 (trashName, 原始 id, 删除时间)，最近在前。

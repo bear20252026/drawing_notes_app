@@ -2,6 +2,61 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.0] - 2026-09-07
+
+### 全量审计发版：110 个审计大类、367 条带证据发现，280 项修复 + 102 项提升（台账见 docs/AUDIT_FULL_2026-09-07.md）
+
+**可靠性（33 修复）**
+- 全库 15 处 await 后无 mounted 保护的 setState 补齐；4 处对话框 TextEditingController 泄漏修复（等路由退出后再 dispose）；
+  表格编辑器行列增删后 controller 索引错位/泄漏重建；11 处 fire-and-forget Future（保存失败无提示/假「已保存」/进程启动异常逃逸）收敛为 try/catch + 用户反馈；
+  日程时间选择器对话框 ctx.mounted 防护。
+- `DocEditor.onSave` 类型从 `ValueChanged` 改 `FutureOr<void> Function()`——手动保存现在真正 await 落盘，失败不再假报成功。
+
+**存储安全与数据完整性（22 修复）**
+- 6 个 store 补齐「随机后缀 tmp + 失败清理」原子写（缩略图/密封写/块文档/笔记本/edgeless/同步基线/标签）；
+  `.bak` 备份复制失败改为 fail-closed 中止写入（防真实数据丢失窗口）。
+- 远端同步 manifest / 笔记本 / edgeless 的 5 处 JSON 无防护强转改为类型检查 + FormatException（不可信数据不再 TypeError 裸抛砖化同步）；
+  块文档 body/children 畸形元素过滤；笔记本版本历史加载截断到 8 版上限。
+- 回收站 deletedAt sidecar 读写格式不匹配修复（30 天过期清理此前一直用错时间源）；标签名清洗（长度上限 + 控制字符剥离 + 重名幂等）+ TagStore 写尾队列串行化；
+  画布/笔记本 delete 与 restoreTrash 挂入 per-id 写队列（消除「已删文档被在途保存复活」竞态）；storeImage 原子化；listAll 过滤畸形 id。
+- WebDAV：远端异常消息不再透传到 UI（防不可信字符串注入）；「立即同步」补 https 预检与未保存配置拦截（杜绝口令/盐错配）。
+
+**设计规范收敛（~110 修复）**
+- 颜色：UI 层 17 处 0x 字面量收编（42A5F5→actionBlue 统一全 App 唯一强调色、F5A623/FF9800→favourite、30D158→noteGreen、深色面板→colorScheme.surface）；
+  环境渐变收编为 AppleColor.ambientDark/LightGradient 令牌。
+- 动效：14 处 Curves.easeOutCubic/easeIn 系与手写时长全部令牌化（AppleMotion.*）；键盘触发的翻页去动画（频率闸门）；PIN 抖动 400ms→250ms。
+- 焦点环：3 处输入框 focusedBorder 统一 focusBlue 2px。
+- 圆角：glass_dialog 28（非法档）→18、skeleton 6/12→5/11、手写合法值一律改 AppleRadius.* 引用。
+- 排版：77 处手写 TextStyle(fontSize:) 令牌化（controlStyle/captionStyle/titleStyle/bodyStyle 分层映射，颜色字重原样保留）。
+
+**三输入兼容与无障碍（~45 修复）**
+- 触控目标：15 组 <44px 控件扩到 44×44 热区（裁剪手柄/便签复选框/图层小图标/选区工具条/色板圆点/表格 checkbox 等），视觉尺寸不变。
+- Semantics：9 组纯图标控件补 label/button/checked/expanded 语义。
+- tooltip：6 处补齐；GlassFab 支持 tooltip 透传。
+- 对话框键盘可达：AppleDialog.confirm/GlassDialog.confirm 系统性 autofocus（危险操作焦点落安全侧），13 个具体对话框补首项/关闭钮 autofocus。
+- 新入口：笔记本页卡「以块文档打开」进 ⋮ 菜单（原仅长按）；块文档编辑器 Ctrl/Cmd+S 手动保存快捷键。
+
+**性能（10 修复）**
+- 渲染缓存：笔记本文字块 TextPainter Expando 缓存、edgeless 连线/组标签 TextPainter 缓存、edgeless 笔迹 Path 缓存、图表标签 TextPainter 预建、
+  墨迹层渲染计划单槽缓存、5 个 painter shouldRepaint 改字段比较（含视口快照）、小地图指纹重绘、framesSortedByZ 记忆化。
+- 结构：分页预览 memo；分组文档列表打平为虚拟化 ListView.builder；骨架屏 24 ticker→共享单 ticker；数据库块搜索接入 SearchDebouncer；
+  笔记本保存 JSON 编码移入 isolate（>2000 元素阈值）+ 去掉 pretty-print；同步元数据编码复用；排序短路。
+- 内存：StrokePictureCache 加 32MB 字节预算双上限。
+
+**代码质量（~49 修复）**
+- 新工具 time_format（10 调用点收敛，删除 2 个逐字节重复的 _formatTime）、hexEncode（6 处）、escapeHtml（2 处）、AppSnack（7 处）；
+  18 处空 catch 逐处标注意图（.bak 复制失败补 AuditLogger）；search_page 手写防抖改 SearchDebouncer；5 处魔法时长具名常量化；safe_url 4096 具名常量。
+
+**新增测试（70 用例，总数 1870→1952 全绿）**
+- vault_manifest（12）/plugin_registry（8）/file_sync_baseline_store（7）/local_id_generator（6）/session_secrets（6，含 DEK 清零语义）/
+  sync_fix（7）/DocumentRepository 契约（8，含路径遍历防护）/WebDAV TLS 门禁（5）/HTML 导出消毒（11）；
+  另有 Wave A 安全修复自带的 11 个回归用例。
+
+**构建与文档**
+- CI：9 个工作流补 concurrency 取消组（快速连推不再排队浪费）。
+- 文档：README/README_EN 测试计数纠正（1255+/391+→1950+）、目录名说明改写、ARCHITECTURE 移除已废弃 features/home 行、
+  新增 docs/README.md 索引（现行规范 vs 历史快照分界）、CHANGELOG 1.16.1 补测试小节。
+
 ## [1.16.4] - 2026-09-07
 
 ### 命名同源：同一文件在所有展示区同名、改名全端同步（用户需求）
@@ -121,6 +176,11 @@ A4 页（2480×3508）的笔画按文档坐标 1:1 画进 1448×2048 的封顶�
 - **取色探针降采样**（`pickColorAt`）：此前每次取色整文档原尺寸渲染
   （A4 ≈ 35MB 位图 + 35MB rawRgba 副本，吸管连续移动时反复 70MB 峰值）；
   现探针按 1024 长边等比缩放后采样坐标。
+
+### 测试
+
+- 全量回归绿；新增 `renderToPng` 尺寸钳制与探针降采样的回归断言
+  （见 `test/` 下 1.16.1 相应用例）。
 
 ## [1.16.0] - 2026-09-06
 

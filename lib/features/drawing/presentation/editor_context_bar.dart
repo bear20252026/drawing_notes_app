@@ -304,9 +304,11 @@ class EditorContextBar extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(AppleRadius.lg),
         onTap: onPressed,
+        // 热区 44×44（HIG 最小触控尺寸），视觉圆点保持 26（同
+        // properties_panel 颜色圆点写法）。
         child: SizedBox(
-          width: 40,
-          height: 40,
+          width: 44,
+          height: 44,
           child: Center(
             child: Container(
               width: 26,

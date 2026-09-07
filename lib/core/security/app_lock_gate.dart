@@ -18,12 +18,14 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 import 'package:drawing_notes_app/core/security/session_secrets.dart';
 import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
+import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/pin_pad.dart' show PinPadCore;
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
@@ -208,11 +210,10 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     }
   }
 
+  // 轻量反馈：样式/时长/行为收敛至 AppSnack（与原内联 SnackBar 一致）。
   void _snack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    AppSnack.show(context, message);
   }
 
   /// 忘记密码流程（重置密码盘，冷却期内同样可用）。
@@ -361,10 +362,8 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
                               ),
                               label: Text(
                                 '系统验证解锁',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
+                                style: AppleType.titleStyle(
+                                  Colors.white.withValues(alpha: 0.9),
                                 ),
                               ),
                             ),
@@ -373,9 +372,9 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
                           onPressed: _startForgotPassword,
                           child: Text(
                             '忘记密码？',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.75),
-                              fontSize: 14,
+                            style: AppleType.controlStyle(
+                              Colors.white.withValues(alpha: 0.75),
+                              weight: FontWeight.w400,
                             ),
                           ),
                         ),
@@ -448,12 +447,11 @@ class _CooldownViewState extends State<_CooldownView> {
                   size: 44,
                 ),
                 const SizedBox(height: 18),
-                const Text(
+                // 19 无档位：titleStyle 基底 + copyWith 保留原字号。
+                Text(
                   '尝试次数过多',
-                  style: TextStyle(
-                    color: Colors.white,
+                  style: AppleType.titleStyle(Colors.white).copyWith(
                     fontSize: 19,
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -461,9 +459,8 @@ class _CooldownViewState extends State<_CooldownView> {
                 const SizedBox(height: 6),
                 Text(
                   '为防止暴力猜测，密码验证已暂时锁定',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.55),
-                    fontSize: 12,
+                  style: AppleType.captionStyle(
+                    Colors.white.withValues(alpha: 0.55),
                   ),
                 ),
               ],
@@ -502,10 +499,7 @@ class _RemainingText extends StatelessWidget {
       builder: (context, _, _) {
         return Text(
           '请在 ${_format(service.lockoutRemaining)} 后重试',
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.82),
-            fontSize: 15,
-          ),
+          style: AppleType.bodyStyle(Colors.white.withValues(alpha: 0.82)),
         );
       },
     );

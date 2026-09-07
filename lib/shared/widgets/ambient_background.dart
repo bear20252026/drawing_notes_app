@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
+
 /// 内容工作区的低对比环境背景。
 ///
 /// 仅用于资料库与列表等导航场景，为局部玻璃控制层提供自然的明暗参照；
@@ -17,9 +19,10 @@ class AmbientBackground extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
+          // 渐变色已收编为 AppleColor 令牌（页面禁写字面量）。
           colors: isDark
-              ? const [Color(0xFF101521), Color(0xFF162034), Color(0xFF0F1420)]
-              : const [Color(0xFFF8F9FC), Color(0xFFF1F4FA), Color(0xFFF7F8FB)],
+              ? AppleColor.ambientDarkGradient
+              : AppleColor.ambientLightGradient,
           stops: const [0, 0.52, 1],
         ),
       ),

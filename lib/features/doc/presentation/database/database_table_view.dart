@@ -82,10 +82,9 @@ class DatabaseTableView extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         message,
-        style: TextStyle(
-          fontSize: 13,
-          color: Theme.of(context).colorScheme.outline,
-        ),
+        style: AppleType.controlStyle(
+          Theme.of(context).colorScheme.outline,
+        ).copyWith(fontWeight: FontWeight.w400),
       ),
     );
   }
@@ -133,16 +132,26 @@ class DatabaseTableView extends StatelessWidget {
     switch (field.type) {
       case NoteFieldType.checkbox:
         final value = record.cell(field.id) == true;
-        return InkWell(
-          onTap: () => onToggleCheckbox(record, field),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Icon(
-              value ? Icons.check_box : Icons.check_box_outline_blank,
-              size: 20,
-              color: value
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.outline,
+        // U4a：触控目标 ≥44（20px 图标居中在 44×44 热区内）；
+        // R6：读屏语义（checked 状态 + button）。
+        return Semantics(
+          label: '切换勾选',
+          checked: value,
+          button: true,
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: InkWell(
+              onTap: () => onToggleCheckbox(record, field),
+              child: Center(
+                child: Icon(
+                  value ? Icons.check_box : Icons.check_box_outline_blank,
+                  size: 20,
+                  color: value
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.outline,
+                ),
+              ),
             ),
           ),
         );
@@ -160,12 +169,11 @@ class DatabaseTableView extends StatelessWidget {
             ),
             child: Text(
               current?.toString() ?? '未选择',
-              style: TextStyle(
-                fontSize: 13,
-                color: current == null
+              style: AppleType.controlStyle(
+                current == null
                     ? Theme.of(context).colorScheme.outline
                     : Theme.of(context).colorScheme.onSurface,
-              ),
+              ).copyWith(fontWeight: FontWeight.w400),
             ),
           ),
         );
@@ -174,7 +182,9 @@ class DatabaseTableView extends StatelessWidget {
           onTap: () => onEditCell(record, field),
           child: Text(
             displayValue(record, field),
-            style: const TextStyle(fontSize: 14),
+            style: AppleType.controlStyle(
+              Theme.of(context).colorScheme.onSurface,
+            ).copyWith(fontWeight: FontWeight.w400),
             textAlign: TextAlign.right,
           ),
         );

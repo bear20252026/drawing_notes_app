@@ -191,29 +191,38 @@ class NotebookPage {
     'updatedAt': updatedAt.toIso8601String(),
   };
 
-  factory NotebookPage.fromJson(Map<String, dynamic> json) => NotebookPage(
-    id: json['id'] as String,
-    title: json['title'] as String? ?? '未命名页面',
-    content: NotebookPageContent.fromJson(json),
-    folder: json['folder'] as String? ?? '',
-    cloneOf: json['cloneOf'] != null
-        ? CloneRef.fromJson(json['cloneOf'] as Map<String, dynamic>)
-        : null,
-    tags: (json['tags'] as List? ?? const [])
-        .map((item) => item.toString())
-        .toList(),
-    history: (json['history'] as List? ?? const [])
+  factory NotebookPage.fromJson(Map<String, dynamic> json) {
+    final history = (json['history'] as List? ?? const [])
         .map((item) => PageVersion.fromJson(item as Map<String, dynamic>))
-        .toList(),
-    template: PageTemplate.values.firstWhere(
-      (candidate) => candidate.name == json['template'],
-      orElse: () => PageTemplate.blank,
-    ),
-    favorite: json['favorite'] as bool? ?? false,
-    lastOpenedAt: DateTime.tryParse(json['lastOpenedAt'] as String? ?? ''),
-    createdAt:
-        DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
-    updatedAt:
-        DateTime.tryParse(json['updatedAt'] as String? ?? '') ?? DateTime.now(),
-  );
+        .toList();
+    // G-22 修复（审计 2026-09-07）：addVersion 有 8 版上限但加载侧不截断
+    // ——手改/旧数据/异常数据可携带无界历史，随页面常驻内存。加载后与
+    // addVersion 用同一常量封顶（最近的版本在索引 0，截掉更旧的尾部）。
+    if (history.length > maxHistoryVersions) {
+      history.removeRange(maxHistoryVersions, history.length);
+    }
+    return NotebookPage(
+      id: json['id'] as String,
+      title: json['title'] as String? ?? '未命名页面',
+      content: NotebookPageContent.fromJson(json),
+      folder: json['folder'] as String? ?? '',
+      cloneOf: json['cloneOf'] != null
+          ? CloneRef.fromJson(json['cloneOf'] as Map<String, dynamic>)
+          : null,
+      tags: (json['tags'] as List? ?? const [])
+          .map((item) => item.toString())
+          .toList(),
+      history: history,
+      template: PageTemplate.values.firstWhere(
+        (candidate) => candidate.name == json['template'],
+        orElse: () => PageTemplate.blank,
+      ),
+      favorite: json['favorite'] as bool? ?? false,
+      lastOpenedAt: DateTime.tryParse(json['lastOpenedAt'] as String? ?? ''),
+      createdAt:
+          DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+      updatedAt:
+          DateTime.tryParse(json['updatedAt'] as String? ?? '') ?? DateTime.now(),
+    );
+  }
 }

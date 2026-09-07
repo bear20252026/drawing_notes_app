@@ -185,4 +185,60 @@ void main() {
       expect(await secrets.read(), isEmpty);
     });
   });
+
+  group('requireHttpsBaseUrl TLS 门禁（表驱动）', () {
+    test('放行：https / trim 后为空（清空配置场景）', () {
+      WebDavConfigStore.requireHttpsBaseUrl('https://dav.example.com/dav/');
+      WebDavConfigStore.requireHttpsBaseUrl('https://dav.example.com');
+      WebDavConfigStore.requireHttpsBaseUrl('   ');
+      WebDavConfigStore.requireHttpsBaseUrl('');
+    });
+
+    test('拒绝：明文 http（非回环）', () {
+      expect(
+        () => WebDavConfigStore.requireHttpsBaseUrl('http://dav.example.com/'),
+        throwsArgumentError,
+      );
+      expect(
+        () => WebDavConfigStore.requireHttpsBaseUrl('HTTP://DAV.EXAMPLE.COM/'),
+        throwsArgumentError,
+        reason: 'scheme 大小写不敏感，HTTP 同样算明文',
+      );
+    });
+
+    test('豁免：本地回环 http（开发/自建场景）', () {
+      WebDavConfigStore.requireHttpsBaseUrl('http://localhost:8080/dav/');
+      WebDavConfigStore.requireHttpsBaseUrl('http://127.0.0.1/dav/');
+      WebDavConfigStore.requireHttpsBaseUrl('http://[::1]:8443/dav/');
+    });
+
+    test('拒绝：无 scheme / 非 http(s) scheme / 垃圾输入', () {
+      expect(
+        () => WebDavConfigStore.requireHttpsBaseUrl('dav.example.com/dav/'),
+        throwsArgumentError,
+      );
+      expect(
+        () => WebDavConfigStore.requireHttpsBaseUrl('ftp://dav.example.com/'),
+        throwsArgumentError,
+      );
+      expect(
+        () => WebDavConfigStore.requireHttpsBaseUrl('not a url'),
+        throwsArgumentError,
+      );
+    });
+
+    test('save 前过门禁：http 地址抛 ArgumentError 且不落盘（fail-closed）', () async {
+      final store = WebDavConfigStore();
+      await expectLater(
+        store.save(const WebDavSyncConfig(
+          baseUrl: 'http://dav.example.com/',
+          username: 'user',
+        )),
+        throwsArgumentError,
+      );
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('webdav_sync_config'), isNull,
+          reason: '非法配置不得落盘');
+    });
+  });
 }

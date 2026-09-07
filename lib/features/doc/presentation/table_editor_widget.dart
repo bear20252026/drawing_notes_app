@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
 import 'package:drawing_notes_app/features/doc/presentation/table_edit_ops.dart';
+import '../../../core/theme/apple_design.dart';
 
 /// 内嵌表格编辑器。
 ///
@@ -94,6 +95,21 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
     );
   }
 
+  /// 行/列变更后按新 [_cellTexts] 重建控制器映射。
+  ///
+  /// 增删行列会使单元格索引整体移位、旧映射越界：被删/移位格子的控制器
+  /// 若不释放即泄漏，且旧索引继续对应新格子会显示错行内容。文本内容以
+  /// [_cellTexts] 为准（TextField.onChanged 已实时同步），重建不丢数据。
+  void _rebuildControllers() {
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
+    _controllers.clear();
+    for (int i = 0; i < _cellTexts.length; i++) {
+      _controllers['$i'] = TextEditingController(text: _cellTexts[i]);
+    }
+  }
+
   void _insertRow(int atRow) {
     setState(() {
       final result = TableEditOps.insertRow(
@@ -104,13 +120,7 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
       );
       _rows = result.$1;
       _cellTexts = result.$2;
-      // 为新行添加控制器
-      for (int i = 0; i < _cellTexts.length; i++) {
-        _controllers.putIfAbsent(
-          '$i',
-          () => TextEditingController(text: _cellTexts[i]),
-        );
-      }
+      _rebuildControllers();
     });
     _emitChange();
   }
@@ -126,6 +136,7 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
       );
       _rows = result.$1;
       _cellTexts = result.$2;
+      _rebuildControllers();
     });
     _emitChange();
   }
@@ -140,12 +151,7 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
       );
       _cols = result.$1;
       _cellTexts = result.$2;
-      for (int i = 0; i < _cellTexts.length; i++) {
-        _controllers.putIfAbsent(
-          '$i',
-          () => TextEditingController(text: _cellTexts[i]),
-        );
-      }
+      _rebuildControllers();
     });
     _emitChange();
   }
@@ -161,6 +167,7 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
       );
       _cols = result.$1;
       _cellTexts = result.$2;
+      _rebuildControllers();
     });
     _emitChange();
   }
@@ -233,7 +240,9 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
                             vertical: 8,
                           ),
                         ),
-                        style: const TextStyle(fontSize: 13),
+                        style: AppleType.controlStyle(
+                          scheme.onSurface,
+                        ).copyWith(fontWeight: FontWeight.w400),
                         maxLines: 2,
                         onChanged: (value) {
                           _cellTexts[cellIndex] = value;

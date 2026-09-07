@@ -12,8 +12,10 @@
 library;
 
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
+import 'package:drawing_notes_app/core/utils/hex_encode.dart';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 /// 单个标签定义。
 class DocTag {
@@ -66,6 +68,33 @@ class TagStore {
 
   File? _file;
 
+  /// 写尾队列（D-15 修复 2026-09-07）：add/rename/delete 的读-改-写
+  /// 串行化——快速连点时并发读改写会相互覆盖丢标签（favorite_store
+  /// 同款 _enqueue 模式）。
+  Future<void> _tail = Future<void>.value();
+
+  Future<T> _enqueue<T>(Future<T> Function() fn) {
+    final task = _tail.then((_) => fn());
+    _tail = task.then((_) {}, onError: (_) {});
+    return task;
+  }
+
+  /// 标签名长度上限（D-15：防无界超长名撑爆持久化文件与 UI）。
+  static const int maxTagNameLength = 128;
+
+  /// 控制字符（D-15：C0 控制字符 + DEL——不可见且会破坏 JSON 展示）。
+  static final RegExp _controlChars = RegExp(r'[\x00-\x1F\x7F]');
+
+  /// 清洗标签名：剥离控制字符 → trim → 超 128 字符截断（与 UI 输入习惯
+  /// 一致，选截断而非拒绝；清洗后为空串则调用方按无效处理）。
+  static String sanitizeTagName(String name) {
+    final cleaned = name.replaceAll(_controlChars, '').trim();
+    if (cleaned.length > maxTagNameLength) {
+      return cleaned.substring(0, maxTagNameLength);
+    }
+    return cleaned;
+  }
+
   Future<File> _fileRef() async {
     if (_file != null) return _file!;
     final provider = directoryProvider;
@@ -101,8 +130,9 @@ class TagStore {
   }
 
   /// 新增标签（同名忽略重复，返回最终标签；名称去空白后为空则返回 null）。
-  Future<DocTag?> addTag(String name, {String? color}) async {
-    final trimmed = name.trim();
+  /// D-15：入口清洗（控制字符剥离 + 128 上限截断）+ 写尾队列串行化。
+  Future<DocTag?> addTag(String name, {String? color}) => _enqueue(() async {
+    final trimmed = sanitizeTagName(name);
     if (trimmed.isEmpty) return null;
     final tags = await listTags();
     final existing = tags.where((t) => t.name == trimmed).firstOrNull;
@@ -115,13 +145,16 @@ class TagStore {
     );
     await _writeTags([...tags, tag]);
     return tag;
-  }
+  });
 
   /// 重命名标签。
-  Future<void> renameTag(String id, String newName) async {
-    final trimmed = newName.trim();
+  /// D-15：入口清洗同 addTag；目标名已被**其他**标签占用时保持不变更
+  /// （方法签名无返回值——幂等跳过，避免出现两个同名标签）。
+  Future<void> renameTag(String id, String newName) => _enqueue(() async {
+    final trimmed = sanitizeTagName(newName);
     if (trimmed.isEmpty) return;
     final tags = await listTags();
+    if (tags.any((t) => t.name == trimmed && t.id != id)) return;
     await _writeTags([
       for (final t in tags)
         if (t.id == id)
@@ -134,22 +167,45 @@ class TagStore {
         else
           t,
     ]);
-  }
+  });
 
   /// 删除标签（文档侧仅丢失该标签引用，文档本身不受影响）。
-  Future<void> deleteTag(String id) async {
+  Future<void> deleteTag(String id) => _enqueue(() async {
     final tags = await listTags();
     await _writeTags(tags.where((t) => t.id != id).toList());
-  }
+  });
 
+  /// A8 修复（2026-09-07）：固定名 `.tmp` 可被劫持且并发写互踩 → 随机后缀
+  /// tmp；rename 失败按 storage_service._replaceWithTemp 模式先删目标再
+  /// rename（Windows 覆盖拒绝回退）；任一失败清理 tmp 后 rethrow。
   Future<void> _writeTags(List<DocTag> tags) async {
     final file = await _fileRef();
-    final tmp = File('${file.path}.tmp');
-    await tmp.writeAsString(
-      jsonEncode({
-        'tags': [for (final t in tags) t.toJson()],
-      }),
+    final r = Random.secure();
+    final suffix = hexEncode(List<int>.generate(8, (_) => r.nextInt(256)));
+    final tmp = File(
+      '${file.path}.tmp.${DateTime.now().microsecondsSinceEpoch}.$suffix',
     );
-    await tmp.rename(file.path);
+    try {
+      await tmp.writeAsString(
+        jsonEncode({
+          'tags': [for (final t in tags) t.toJson()],
+        }),
+        flush: true,
+      );
+      try {
+        await tmp.rename(file.path);
+      } on FileSystemException {
+        if (!await file.exists()) rethrow;
+        await file.delete();
+        await tmp.rename(file.path);
+      }
+    } catch (_) {
+      try {
+        if (await tmp.exists()) await tmp.delete();
+      } catch (_) {
+        // 清理失败不覆盖原始存储异常。
+      }
+      rethrow;
+    }
   }
 }

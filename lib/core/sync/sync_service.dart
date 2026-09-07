@@ -142,12 +142,22 @@ class SyncService {
 
     // 2. 拉远端 manifest（不存在则视为空）。
     final remoteBytes = await transport.getBytes(manifestPath);
-    final remoteManifest = remoteBytes == null
-        ? const SyncManifest()
-        : SyncManifest.fromJson(
-            jsonDecode(await cipher.openManifestJson(utf8.decode(remoteBytes)))
-                as Map<String, dynamic>,
-          );
+    // B9 修复（审计 2026-09-07）：远端 manifest 是未认证/可被篡改数据——
+    // `jsonDecode(...) as Map` 无防护强转会抛裸 TypeError；改为类型检查后
+    // 抛 FormatException（与 sync_cipher 错误口径一致，调用方可统一处理）。
+    SyncManifest remoteManifest;
+    if (remoteBytes == null) {
+      remoteManifest = const SyncManifest();
+    } else {
+      final manifestJson = await cipher.openManifestJson(
+        utf8.decode(remoteBytes),
+      );
+      final decoded = jsonDecode(manifestJson);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('远端清单格式损坏');
+      }
+      remoteManifest = SyncManifest.fromJson(decoded);
+    }
 
     // 3. 构本地 manifest：当前文档 + 删除墓碑（基线有但当前无 → 墓碑）。
     final currentDocs = await documentStore.listDocuments();

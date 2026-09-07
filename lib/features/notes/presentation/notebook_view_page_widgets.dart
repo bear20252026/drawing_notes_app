@@ -233,6 +233,9 @@ class _PageThumbnailPainter extends CustomPainter {
 
 enum _NotebookMenuItem {
   rename,
+
+  /// 三输入等价入口：页卡长按「以块文档打开」的菜单/键盘可达版本。
+  openAsBlockDoc,
   importPage,
   importText,
   importPdf,
@@ -429,6 +432,8 @@ class _PasswordDialogState extends State<_PasswordDialog> {
               hintText: '请输入密码',
               border: const OutlineInputBorder(),
               suffixIcon: IconButton(
+                // 动态 tooltip：读屏/悬停提示随当前可见态切换。
+                tooltip: _obscure ? '显示密码' : '隐藏密码',
                 icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),

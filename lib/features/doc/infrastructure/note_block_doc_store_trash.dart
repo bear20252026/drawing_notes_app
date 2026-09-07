@@ -131,6 +131,40 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
     }
   }
 
+  /// 读取回收站条目的删除时间（C14 修复 2026-09-07）。
+  ///
+  /// 写入侧 sidecar 是 `jsonEncode({'deletedAt': iso})`，旧读取侧却对整串
+  /// `DateTime.tryParse`——JSON 串永远解析失败，删除时间实际恒回退 mtime
+  /// （30 天清理因此误判）。修复后的读取顺序：
+  /// ① jsonDecode 取 'deletedAt' 字符串再 tryParse；
+  /// ② 失败则整串 tryParse（兼容裸 ISO 串）；
+  /// ③ 仍失败（或 meta 缺失/不可读）回退文件修改时间。
+  Future<DateTime> _deletedAtOf(File source) async {
+    final meta = File('${source.path}.meta.json');
+    if (await meta.exists()) {
+      try {
+        final raw = await meta.readAsString();
+        try {
+          final decoded = jsonDecode(raw);
+          if (decoded is Map<String, dynamic>) {
+            final value = decoded['deletedAt'];
+            if (value is String) {
+              final parsed = DateTime.tryParse(value);
+              if (parsed != null) return parsed;
+            }
+          }
+        } on FormatException {
+          // 非 JSON 内容——落到整串 tryParse（裸 ISO 串兼容）。
+        }
+        final parsed = DateTime.tryParse(raw);
+        if (parsed != null) return parsed;
+      } catch (_) {
+        // meta 读取失败——回退 mtime。
+      }
+    }
+    return source.lastModified();
+  }
+
   /// 解码回收站条目：兼容两种格式——
   /// 旧 envelope（{deletedAt, document}）与 M12.6b 原子格式
   /// （裸文档 json + `<id>.meta.json` sidecar；meta 缺失时用文件修改时间）。
@@ -154,12 +188,7 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
         return (doc: NoteBlockDoc.fromJson(docRaw), deletedAt: deletedAt);
       }
       final doc = NoteBlockDoc.fromJson(decoded);
-      final meta = File('${source.path}.meta.json');
-      var deletedAt = DateTime.tryParse(
-        (await meta.exists()) ? await meta.readAsString() : '',
-      );
-      deletedAt ??= await source.lastModified();
-      return (doc: doc, deletedAt: deletedAt);
+      return (doc: doc, deletedAt: await _deletedAtOf(source));
     } catch (_) {
       return null;
     }
@@ -181,11 +210,8 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
           final name = entity.uri.pathSegments.last;
           final id = name.substring(0, name.length - '.json'.length);
           if (!NoteBlockDocStore.isValidId(id)) continue;
-          final meta = File('${entity.path}.meta.json');
-          var deletedAt = DateTime.tryParse(
-            (await meta.exists()) ? await meta.readAsString() : '',
-          );
-          deletedAt ??= await entity.lastModified();
+          // C14：锁定占位条目同走修复后的 deletedAt 读取（json sidecar）。
+          final deletedAt = await _deletedAtOf(entity);
           entries.add((
             doc: NoteBlockDoc(
               id: id,
@@ -232,7 +258,9 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
         if (await meta.exists()) {
           try {
             await meta.delete();
-          } catch (_) {}
+          } catch (_) {
+            /* 幂等清理：meta 副文件删除尽力而为（TOCTOU 竞态），不阻断恢复 */
+          }
         }
         onWrite?.call();
         return true;
@@ -266,7 +294,9 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
     if (await meta.exists()) {
       try {
         await meta.delete();
-      } catch (_) {}
+      } catch (_) {
+        /* 幂等清理：meta 副文件删除尽力而为（TOCTOU 竞态），不阻断恢复 */
+      }
     }
     onWrite?.call();
     return true;
@@ -285,7 +315,9 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
     if (await meta.exists()) {
       try {
         await meta.delete();
-      } catch (_) {}
+      } catch (_) {
+        /* 幂等清理：meta 副文件删除尽力而为（TOCTOU 竞态），主文件已删即成功 */
+      }
     }
     onWrite?.call();
     return true;
@@ -312,7 +344,9 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
               if (await meta.exists()) {
                 try {
                   await meta.delete();
-                } catch (_) {}
+                } catch (_) {
+                  /* 幂等清理：meta 副文件删除尽力而为，单条失败不中断整批清扫 */
+                }
               }
               purged++;
             }

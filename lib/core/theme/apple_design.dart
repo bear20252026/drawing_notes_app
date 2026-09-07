@@ -59,6 +59,21 @@ abstract final class AppleColor {
   /// 深色芯片底（深蓝 navy）。
   static const Color subtleSurfaceDark = Color(0xFF222B3D);
 
+  /// 环境背景渐变（深色）：内容工作区的低对比底色，
+  /// 由 `ambient_background.dart` 的页面字面量收编（令牌层允许定义字面量）。
+  static const List<Color> ambientDarkGradient = [
+    canvansDark,
+    Color(0xFF162034),
+    Color(0xFF0F1420),
+  ];
+
+  /// 环境背景渐变（浅色）。
+  static const List<Color> ambientLightGradient = [
+    Color(0xFFF8F9FC),
+    Color(0xFFF1F4FA),
+    Color(0xFFF7F8FB),
+  ];
+
   /// 星标橙（Apple 系统橙）。
   static const Color favourite = Color(0xFFFF9F0A);
 
@@ -626,10 +641,14 @@ class AppleDialog {
     AppleDialogSurface? surface,
   }) async {
     final cancelButton = TextButton(
+      // 三输入可达性：危险操作时初始焦点落在安全的「取消」上
+      //（确认按钮是破坏性一侧，不应被回车误触）。
+      autofocus: dangerous,
       onPressed: () => Navigator.of(context).pop(false),
       child: Text(cancelText),
     );
     final confirmButton = FilledButton(
+      autofocus: !dangerous,
       style: dangerous
           ? FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,

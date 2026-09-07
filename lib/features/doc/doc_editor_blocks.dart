@@ -254,16 +254,26 @@ extension DocEditorBlocks on DocEditorState {
           _dropTargetIndex = null;
         });
       },
-      child: GestureDetector(
-        onTap: () => _selectBlock(block.id),
-        child: Padding(
-          padding: const EdgeInsets.only(top: 10, right: 4),
-          child: Opacity(
-            opacity: _focusedBlockId == block.id ? 1.0 : 0.4,
-            child: Icon(
-              Icons.drag_handle,
-              size: 18,
-              color: AppleColor.subtleOf(Theme.of(context).colorScheme),
+      // U4a：触控目标 ≥44（18px 手柄图标居中在 44×44 热区内）；
+      // R6：读屏语义（拖拽排序）。
+      child: Semantics(
+        label: '拖拽排序',
+        button: true,
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _selectBlock(block.id),
+            child: Center(
+              child: Opacity(
+                opacity: _focusedBlockId == block.id ? 1.0 : 0.4,
+                child: Icon(
+                  Icons.drag_handle,
+                  size: 18,
+                  color: AppleColor.subtleOf(Theme.of(context).colorScheme),
+                ),
+              ),
             ),
           ),
         ),
@@ -362,14 +372,25 @@ extension DocEditorBlocks on DocEditorState {
         );
       case NoteBlockType.todo:
         final checked = block.props['checked'] as bool? ?? false;
-        return Padding(
-          padding: const EdgeInsets.only(top: 8, right: 4),
-          child: GestureDetector(
-            onTap: () => _toggleTodo(block.id),
-            child: Icon(
-              checked ? Icons.check_box : Icons.check_box_outline_blank,
-              size: 22,
-              color: checked ? Theme.of(context).colorScheme.primary : null,
+        // U4a：触控目标 ≥44（22px 图标居中在 44×44 热区内）；
+        // R6：读屏语义（label + checked 状态）。
+        return Semantics(
+          label: '完成',
+          button: true,
+          checked: checked,
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _toggleTodo(block.id),
+              child: Center(
+                child: Icon(
+                  checked ? Icons.check_box : Icons.check_box_outline_blank,
+                  size: 22,
+                  color: checked ? Theme.of(context).colorScheme.primary : null,
+                ),
+              ),
             ),
           ),
         );
@@ -389,16 +410,26 @@ extension DocEditorBlocks on DocEditorState {
         return const SizedBox.shrink();
       case NoteBlockType.toggle:
         final expanded = block.props['expanded'] as bool? ?? true;
-        return Padding(
-          padding: const EdgeInsets.only(top: 6, right: 2),
-          child: GestureDetector(
-            onTap: () => _toggleToggleExpanded(block.id),
-            child: Icon(
-              expanded
-                  ? Icons.keyboard_arrow_down_rounded
-                  : Icons.keyboard_arrow_right_rounded,
-              size: 22,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+        // U4a：触控目标 ≥44；R6：读屏语义（label + expanded 状态）。
+        return Semantics(
+          label: '展开/折叠',
+          button: true,
+          expanded: expanded,
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _toggleToggleExpanded(block.id),
+              child: Center(
+                child: Icon(
+                  expanded
+                      ? Icons.keyboard_arrow_down_rounded
+                      : Icons.keyboard_arrow_right_rounded,
+                  size: 22,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
             ),
           ),
         );

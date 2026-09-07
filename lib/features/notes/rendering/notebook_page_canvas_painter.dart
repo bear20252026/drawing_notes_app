@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart'
-    show TextAlignType;
+    show PageTextItem, TextAlignType;
 import 'package:drawing_notes_app/features/drawing/rendering/ink_layer_painter.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/pdf_hybrid_exporter.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/shape_renderer.dart';
@@ -34,6 +34,28 @@ class NotebookPageCanvasPainter extends CustomPainter {
 
   /// PDF 矢量通道：排除钢笔笔画（钢笔由 StrokeRenderer 转 SVG path 写入）。
   final bool excludePenStrokes;
+
+  /// 文字块 TextPainter 缓存（性能热点：paintContent 每次重绘都为每个
+  /// 文字块新建 TextPainter + TextStyle + layout，翻页/导出时逐块全量排版）。
+  ///
+  /// 键 = [PageTextItem] 对象本身（Expando identity）：条目被替换/回收时
+  /// 缓存随 GC 释放，不长期驻留（与 StrokeRenderer._outlineCache 同模式）。
+  /// PageTextItem 无几何版本号且样式字段可变，故用「文本引用 + 影响排版
+  /// 的全部样式字段」组合校验失效：文本用 identical（String 不可变，
+  /// 重新赋值必换引用），其余为标量 ==，成本远低于一次 layout。
+  /// 缓存的 TextPainter 跨 paint 复用，不 dispose 正在复用的实例。
+  static final Expando<_TextItemPainterEntry> _textPainterCache = Expando(
+    'notebookTextPainterCache',
+  );
+
+  static TextPainter _textPainterFor(PageTextItem text) {
+    var entry = _textPainterCache[text];
+    if (entry == null || !entry.matches(text)) {
+      entry = _TextItemPainterEntry(text);
+      _textPainterCache[text] = entry;
+    }
+    return entry.painter;
+  }
 
   /// 页面内容绘制入口（widget 与离屏光栅共用；size 应为页面逻辑尺寸）。
   void paintContent(ui.Canvas canvas, ui.Size size) {
@@ -107,8 +129,31 @@ class NotebookPageCanvasPainter extends CustomPainter {
 
     // 文字块：真实排版（字体样式与导出语义一致：待办勾选前缀/粗斜体/
     // 下划线/删除线/对齐；width 非 null 时按框宽换行）。
+    // TextPainter 按条目缓存（见 _textPainterCache）：重绘只复用排版结果。
     for (final text in page.textItems) {
-      final tp = TextPainter(
+      _textPainterFor(text).paint(canvas, Offset(text.x, text.y));
+    }
+  }
+
+  @override
+  void paint(ui.Canvas canvas, ui.Size size) => paintContent(canvas, size);
+
+  @override
+  bool shouldRepaint(NotebookPageCanvasPainter oldDelegate) =>
+      oldDelegate.page != page ||
+      oldDelegate.page.updatedAt != page.updatedAt ||
+      !identical(oldDelegate.images, images) ||
+      oldDelegate.excludePenStrokes != excludePenStrokes;
+}
+
+/// [NotebookPageCanvasPainter] 文字块缓存的单个条目：持有跨 paint 复用的
+/// [TextPainter]，并记录创建时的全部排版输入用于失效校验。
+///
+/// [PageTextItem] 字段可变且无版本号，任一影响排版的字段变化都必须重建
+/// （见 [matches]）；位置 x/y 不参与排版，绘制时实时取值，故不缓存。
+class _TextItemPainterEntry {
+  _TextItemPainterEntry(PageTextItem text)
+    : painter = TextPainter(
         text: TextSpan(
           text: text.isTodo
               ? '${text.todoChecked ? '☑' : '☐'} ${text.text}'
@@ -129,18 +174,45 @@ class NotebookPageCanvasPainter extends CustomPainter {
           TextAlignType.center => TextAlign.center,
           TextAlignType.right => TextAlign.right,
         },
-      )..layout(maxWidth: text.width ?? double.infinity);
-      tp.paint(canvas, Offset(text.x, text.y));
-    }
-  }
+      )..layout(maxWidth: text.width ?? double.infinity),
+      _text = text.text,
+      _fontSize = text.fontSize,
+      _color = text.color,
+      _width = text.width,
+      _bold = text.bold,
+      _italic = text.italic,
+      _underline = text.underline,
+      _strikethrough = text.strikethrough,
+      _isTodo = text.isTodo,
+      _todoChecked = text.todoChecked,
+      _align = text.align;
 
-  @override
-  void paint(ui.Canvas canvas, ui.Size size) => paintContent(canvas, size);
+  final TextPainter painter;
 
-  @override
-  bool shouldRepaint(NotebookPageCanvasPainter oldDelegate) =>
-      oldDelegate.page != page ||
-      oldDelegate.page.updatedAt != page.updatedAt ||
-      !identical(oldDelegate.images, images) ||
-      oldDelegate.excludePenStrokes != excludePenStrokes;
+  final String _text;
+  final double _fontSize;
+  final int _color;
+  final double? _width;
+  final bool _bold;
+  final bool _italic;
+  final bool _underline;
+  final bool _strikethrough;
+  final bool _isTodo;
+  final bool _todoChecked;
+  final TextAlignType _align;
+
+  /// 校验缓存条目对 [text] 是否仍然有效：文本用 identical（String 不可变，
+  /// 重新赋值必换引用——同值不同对象时误判失效是安全方向），其余标量 ==。
+  bool matches(PageTextItem text) =>
+      identical(_text, text.text) &&
+      _fontSize == text.fontSize &&
+      _color == text.color &&
+      _width == text.width &&
+      _bold == text.bold &&
+      _italic == text.italic &&
+      _underline == text.underline &&
+      _strikethrough == text.strikethrough &&
+      _isTodo == text.isTodo &&
+      _todoChecked == text.todoChecked &&
+      _align == text.align;
 }

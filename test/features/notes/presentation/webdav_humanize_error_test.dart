@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
 import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settings_page.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -63,6 +64,32 @@ void main() {
       final msg = humanizeWebDavSyncError(const FormatException('bad json'));
       expect(msg, contains('请检查网络与账号设置'));
       expect(msg, isNot(contains('bad json')));
+    });
+
+    test('F20：远端路径异常 → 静态文案，不泄露远端可控的 relativePath', () {
+      AuditLogger.clear();
+      final msg = humanizeWebDavSyncError(
+        WebDavSyncException('非法远端路径：../../etc/恶意路径'),
+      );
+      // 用户只看到静态提示。
+      expect(msg, contains('同步远端文件失败'));
+      expect(msg, isNot(contains('恶意路径')));
+      expect(msg, isNot(contains('非法远端路径')));
+      // relativePath 原文进审计日志 detail（可排查）。
+      expect(
+        AuditLogger.snapshot().any(
+          (line) => line.contains('webdav.sync.unsafe_path'),
+        ),
+        isTrue,
+      );
+    });
+
+    test('F20：本地 https 门禁文案仍直接透出（静态文本）', () {
+      final msg = humanizeWebDavSyncError(
+        WebDavSyncException('仅允许 https WebDAV（明文 http 会泄露认证口令与文档），本地回环除外'),
+      );
+      expect(msg, contains('https'));
+      expect(msg, contains('仅允许 https WebDAV'));
     });
   });
 }

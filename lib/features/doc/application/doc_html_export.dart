@@ -3,15 +3,15 @@
 // NoteBlockDoc → HTML。纯 Dart，无 IO 依赖，可单测。
 // 与 doc_markdown_export.dart 平行：同一域模型、不同渲染目标。
 
+import 'package:drawing_notes_app/core/utils/html_escape.dart' as html_escape;
 import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 
 /// 转义 HTML 特殊字符（防注入/破版）。
-String escapeHtml(String raw) => raw
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;');
+///
+/// 薄委托：实现收敛至 core/utils/html_escape.dart；保留本文件顶层
+/// 符号以维持既有 import（含测试）不破。
+String escapeHtml(String raw) => html_escape.escapeHtml(raw);
 
 /// 将块文档转换为独立 HTML 文档（含内联样式，双击可浏览）。
 String noteBlockDocToHtml(NoteBlockDoc doc) {

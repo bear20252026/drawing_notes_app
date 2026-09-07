@@ -9,6 +9,8 @@ import 'package:path_provider/path_provider.dart';
 
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 import 'package:drawing_notes_app/core/security/kdf_params.dart';
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
+import 'package:drawing_notes_app/core/utils/hex_encode.dart';
 
 /// 解锁失败（PIN 错误 / 载荷被篡改 / 数据损坏）。
 ///
@@ -581,14 +583,24 @@ class VaultKeyService {
     if (await file.exists()) {
       try {
         await file.copy('${file.path}.bak');
-      } catch (_) {}
+      } catch (e) {
+        // 尽力而为：.bak 只是后续 rename 失败时的回滚兜底，复制失败
+        // 不阻塞主写入（rename 自身仍是原子操作）；记审计一行后吞掉。
+        AuditLogger.log(
+          'vault.persist.bak_copy_failed',
+          success: false,
+          detail: '$e',
+        );
+      }
     }
     try {
       await tmp.rename(file.path);
     } catch (_) {
       try {
         if (await tmp.exists()) await tmp.delete();
-      } catch (_) {}
+      } catch (_) {
+        /* 幂等清理：改名失败后删 tmp 尽力而为，失败不覆盖将 rethrow 的原始错误 */
+      }
       rethrow;
     }
     try {
@@ -597,7 +609,9 @@ class VaultKeyService {
       try {
         final bak = File('${file.path}.bak');
         if (await bak.exists()) await bak.copy(file.path);
-      } catch (_) {}
+      } catch (_) {
+        /* 尽力而为：用 .bak 回滚也失败时保持 fail-closed——下方仍抛校验失败 */
+      }
       throw const VaultUnlockException('保险库落盘校验失败');
     }
   }
@@ -605,9 +619,6 @@ class VaultKeyService {
   /// 随机 hex（tmp 后缀用）。
   static String _randomHex(int bytes) {
     final r = Random.secure();
-    return List<int>.generate(
-      bytes,
-      (_) => r.nextInt(256),
-    ).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    return hexEncode(List<int>.generate(bytes, (_) => r.nextInt(256)));
   }
 }

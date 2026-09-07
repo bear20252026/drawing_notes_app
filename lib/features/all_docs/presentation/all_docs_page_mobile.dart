@@ -70,7 +70,9 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                     onChanged: (q) => _searchDebouncer.run(
                       () => allDocsSetState(() => _query = q),
                     ),
-                    style: const TextStyle(fontSize: 14),
+                    style: AppleType.controlStyle(
+                      theme.colorScheme.onSurface,
+                    ).copyWith(fontWeight: FontWeight.w400),
                     decoration: InputDecoration(
                       hintText: '快速搜索',
                       isDense: true,
@@ -78,6 +80,7 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                       suffixIcon: _query.isEmpty
                           ? null
                           : IconButton(
+                              tooltip: '清除搜索',
                               icon: const Icon(Icons.close_rounded, size: 18),
                               onPressed: () {
                                 _mobileSearchController.clear();
@@ -163,10 +166,8 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                 child: Text(
                   '最近文档',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppleColor.mutedOf(theme.colorScheme),
+                  style: AppleType.controlStyle(
+                    AppleColor.mutedOf(theme.colorScheme),
                   ),
                 ),
               ),
@@ -194,7 +195,9 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                       doc.title.isEmpty ? '未命名' : doc.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 14),
+                      style: AppleType.controlStyle(
+                        theme.colorScheme.onSurface,
+                      ).copyWith(fontWeight: FontWeight.w400),
                     ),
                     // N2：文件密码锁标（本会话未解锁）
                     trailing: doc.locked
@@ -274,12 +277,12 @@ class _MobileHeader extends StatelessWidget {
                     children: [
                       Text(
                         _tabs[i],
-                        style: TextStyle(
-                          fontSize: 13.5,
+                        style: AppleType.controlStyle(
+                          selected ? accent : muted,
+                        ).copyWith(
                           fontWeight: selected
                               ? FontWeight.w600
                               : FontWeight.w400,
-                          color: selected ? accent : muted,
                         ),
                       ),
                       const SizedBox(height: 3),

@@ -1,6 +1,7 @@
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
@@ -206,15 +207,17 @@ class NotebookStorage
       throw ArgumentError.value(notebook.id, 'notebook.id', '笔记本 ID 不合法');
     }
     await _ensureNotebooksDir();
-    // 在排队前编码快照，避免用户继续编辑时旧任务写入可变的混合状态。
-    final data = utf8.encode(
-      const JsonEncoder.withIndent('  ').convert(notebook.toJson()),
-    );
+    // 在排队前取不可变快照（ toJson() 产出纯 Map/List/String/num），避免
+    // 用户继续编辑时旧任务写入可变的混合状态；随后 jsonEncode + UTF-8
+    // 的大载荷开销交给 isolate（见 _encodeSnapshotAsync——DocumentCodec
+    // .encodeSnapshotAsync 同纪律），保存瞬间不再阻塞 UI。
+    final snapshot = notebook.toJson();
     final finalPath = await _pathFor(notebook.id);
     final id = notebook.id;
     final previous = _writeTails[id] ?? Future<void>.value();
     late final Future<void> operation;
     operation = previous.catchError((_) {}).then((_) async {
+      final data = await _encodeSnapshotAsync(snapshot);
       // 批次①c：保险库解锁 → DNV 信封（AAD 绑定 nb:<id>）；锁定 → 明文
       // 兼容（既有单笔记本密码/DAN 层不受影响，读取时懒迁移）。
       final key = await _currentKey();
@@ -233,24 +236,88 @@ class NotebookStorage
     }
   }
 
+  /// 把快照 Map 编码为**紧凑** JSON 字节（jsonEncode 无缩进，utf8.encode
+  /// 直接产出 Uint8List；性能优化：去掉旧 JsonEncoder.withIndent('  ')
+  /// 的主线程全量 pretty 编码——内容语义不变，仅排版空白差异）。
+  /// 纯静态纯函数，可安全跑在 isolate 中。
+  static Uint8List _encodeSnapshot(Map<String, dynamic> snapshot) =>
+      utf8.encode(jsonEncode(snapshot));
+
+  /// isolate 编码阈值：低于该元素量时 isolate 往返（拷贝 + spawn）开销
+  /// 大于收益，直接主线程编码（对齐 DocumentCodec.isolateEncodeThreshold
+  /// 的取舍，量级按笔记本的「页面内容元素」折算）。
+  static const int _isolateEncodeThreshold = 2000;
+
+  /// 异步编码：小笔记本主线程直编，达到 [_isolateEncodeThreshold] 元素量
+  /// 的笔记本移入 [Isolate.run] 编码。快照为纯数据，可安全跨 isolate 传递。
+  static Future<Uint8List> _encodeSnapshotAsync(Map<String, dynamic> snapshot) {
+    if (_countContentElements(snapshot) < _isolateEncodeThreshold) {
+      return Future.value(_encodeSnapshot(snapshot));
+    }
+    return Isolate.run(() => _encodeSnapshot(snapshot));
+  }
+
+  /// 轻量估算快照的内容元素量（笔画/文字/图片/形状/图表/连线计数），
+  /// 供 isolate 分流决策；只读 List.length，不触几何数据。
+  static int _countContentElements(Map<String, dynamic> snapshot) {
+    final pages = snapshot['pages'];
+    if (pages is! List) return 0;
+    var total = 0;
+    for (final page in pages) {
+      if (page is! Map) continue;
+      final document = page['document'];
+      if (document is Map) {
+        final layers = document['layers'];
+        if (layers is List) {
+          for (final layer in layers) {
+            final strokes = layer is Map ? layer['strokes'] : null;
+            if (strokes is List) total += strokes.length;
+          }
+        }
+      }
+      for (final key in const [
+        'textItems',
+        'imageItems',
+        'shapes',
+        'charts',
+        'connectors',
+      ]) {
+        final value = page[key];
+        if (value is List) total += value.length;
+      }
+    }
+    return total;
+  }
+
+  /// A5 修复（审计 2026-09-07）：tmp 写入/rename 失败时清理残留临时文件
+  /// （favorite_store 同款纪律）。storeImage（E-19）亦复用本出口。
   Future<void> _writeNotebookBytes(File destination, List<int> data) async {
     final tmp = File(
       '${destination.path}.${LocalIdGenerator.next('write')}.tmp',
     );
-    await tmp.writeAsBytes(data, flush: true);
-    if (await destination.exists()) {
-      try {
-        await destination.copy('${destination.path}.bak');
-      } catch (_) {
-        // 备份是恢复保障；其失败不阻塞当前写入。
-      }
-    }
     try {
-      await tmp.rename(destination.path);
-    } on FileSystemException {
-      if (!await destination.exists()) rethrow;
-      await destination.delete();
-      await tmp.rename(destination.path);
+      await tmp.writeAsBytes(data, flush: true);
+      if (await destination.exists()) {
+        try {
+          await destination.copy('${destination.path}.bak');
+        } catch (_) {
+          // 备份是恢复保障；其失败不阻塞当前写入。
+        }
+      }
+      try {
+        await tmp.rename(destination.path);
+      } on FileSystemException {
+        if (!await destination.exists()) rethrow;
+        await destination.delete();
+        await tmp.rename(destination.path);
+      }
+    } catch (_) {
+      try {
+        if (await tmp.exists()) await tmp.delete();
+      } catch (_) {
+        // 清理失败不覆盖原始存储异常。
+      }
+      rethrow;
     }
   }
 
@@ -272,13 +339,35 @@ class NotebookStorage
       );
     } on VaultFileLockException {
       rethrow; // 锁定不回退备份——备份同为密文，fail-closed
-    } catch (_) {
-      if (!await backup.exists()) rethrow;
-      final bytes = await backup.readAsBytes();
-      final prepared = await _prepareNotebookBytes(id, bytes, migrate: false);
-      return Notebook.fromJson(
-        jsonDecode(utf8.decode(prepared)) as Map<String, dynamic>,
-      );
+    } catch (e) {
+      // B12 修复（审计 2026-09-07）：主文件解析失败先试备份回退；主备均
+      // 失败（或无备份可回退）时，裸 TypeError（jsonDecode 强转/字段类型
+      // 不符）包成 FormatException——调用方按「笔记本数据损坏」统一处理，
+      // 原始异常带在消息里（Dart FormatException 无 cause 槽位）。
+      if (await backup.exists()) {
+        try {
+          final bytes = await backup.readAsBytes();
+          final prepared = await _prepareNotebookBytes(
+            id,
+            bytes,
+            migrate: false,
+          );
+          return Notebook.fromJson(
+            jsonDecode(utf8.decode(prepared)) as Map<String, dynamic>,
+          );
+        } on VaultFileLockException {
+          rethrow; // 备份锁定：保留锁定语义（fail-closed），不当损坏处理。
+        } catch (e2) {
+          if (e2 is TypeError) {
+            throw FormatException('笔记本数据损坏：$e2');
+          }
+          rethrow;
+        }
+      }
+      if (e is TypeError) {
+        throw FormatException('笔记本数据损坏：$e');
+      }
+      rethrow;
     }
   }
 
@@ -306,6 +395,10 @@ class NotebookStorage
       try {
         final name = entity.uri.pathSegments.last;
         final id = name.substring(0, name.length - '.json'.length);
+        // D16 修复（审计 2026-09-07）：文件名截出的 id 先过 isValidId——
+        // 畸形文件名（含路径遍历字符等）不进入结果（load/delete 入口
+        // 同口径防护）。
+        if (!isValidId(id)) continue;
         final raw = await entity.readAsBytes();
         if (VaultFileCodec.isEncrypted(raw)) {
           final key = await _currentKey();
@@ -339,9 +432,34 @@ class NotebookStorage
     return result;
   }
 
+  /// E-18 修复（审计 2026-09-07）：把 [op] 挂到 [id] 的写尾队列（与
+  /// save/_enqueueRawRewrite 共用 [_writeTails]——StorageService 的
+  /// _runDocExclusive 同款）。链上某步失败不影响后续步骤。
+  Future<T> _runExclusive<T>(String id, Future<T> Function() op) {
+    final previous = _writeTails[id] ?? Future<void>.value();
+    final task = previous.catchError((_) {}).then((_) => op());
+    late final Future<void> chain;
+    chain = task.then(
+      (_) {
+        if (identical(_writeTails[id], chain)) _writeTails.remove(id);
+      },
+      onError: (_) {
+        if (identical(_writeTails[id], chain)) _writeTails.remove(id);
+      },
+    );
+    _writeTails[id] = chain;
+    return task;
+  }
+
   /// 删除笔记本（同时清理其关联图片副本）。返回是否删除成功。
+  ///
+  /// E-18 修复（审计 2026-09-07）：整个删除流程挂入与保存相同的 per-id
+  /// 写尾队列——在途保存与删除交错会让已删笔记本复活（保存排队在前、
+  /// 删文件在后 → 队列中的保存在删除完成后又写出正式文件）。
   @override
-  Future<bool> delete(String id) async {
+  Future<bool> delete(String id) => _runExclusive(id, () => _deleteLocked(id));
+
+  Future<bool> _deleteLocked(String id) async {
     await _ensureNotebooksDir();
     final file = File(await _pathFor(id));
     final backup = File('${file.path}.bak');
@@ -488,7 +606,11 @@ class NotebookStorage
                 aadContext: VaultFileCodec.contextForPath(target.path),
               );
       }
-      await target.writeAsBytes(stored, flush: true);
+      // E-19 修复（审计 2026-09-07）：`target.writeAsBytes` 直写非原子——
+      // 写入中断留下半张图片（下一次读取按损坏处理但文件占位）。改走
+      // _writeNotebookBytes 的 tmp + rename + 失败清理（同 _writeNotebook
+      // 单一出口纪律；目标文件名含微秒时间戳，唯一无覆盖场景）。
+      await _writeNotebookBytes(target, stored);
       return target.path;
     } catch (_) {
       // 不让加密或写入异常留下可被清理器误认为有效媒体的半成品。
@@ -755,7 +877,9 @@ class NotebookStorage
   void clearAllSessionSecrets() {
     try {
       _sessionNotebookPasswords.clear();
-    } catch (_) {}
+    } catch (_) {
+      /* 幂等清理：会话口令清空尽力而为（切后台回锁热路径），失败不外抛 */
+    }
   }
 
   /// 用密码解密加密笔记本的页面内容（密码错误抛 [FormatException]）。

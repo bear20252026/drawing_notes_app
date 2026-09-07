@@ -153,6 +153,8 @@ class WebDavConfigStore {
     await prefs.remove(_key);
     try {
       await _secretStore?.clear();
-    } catch (_) {}
+    } catch (_) {
+      /* 尽力而为：凭据库清除失败不阻断登出（配置已删；残留凭据下次绑定覆盖） */
+    }
   }
 }

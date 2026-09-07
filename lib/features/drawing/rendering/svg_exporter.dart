@@ -1,6 +1,7 @@
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart'
     show PageTextItem;
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart' show Stroke;
+import 'package:drawing_notes_app/core/utils/html_escape.dart';
 
 /// SVG 导出纯函数（从 editor_page 拆出的导出域第一步）。
 ///
@@ -31,12 +32,8 @@ String textToSvgText(PageTextItem t) {
   final hex = (t.color & 0xFFFFFF).toRadixString(16).padLeft(6, '0');
   final bold = t.bold ? ' font-weight="bold"' : '';
   final italic = t.italic ? ' font-style="italic"' : '';
-  // XML 转义，防止特殊字符破坏 SVG。
-  final text = t.text
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;');
+  // XML 转义，防止特殊字符破坏 SVG（与 HTML 导出共用同一实体集）。
+  final text = escapeHtml(t.text);
   return '<text x="${t.x}" y="${t.y + t.fontSize}" '
       'font-size="${t.fontSize}" fill="#$hex"$bold$italic '
       'font-family="sans-serif">$text</text>\n';

@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 // RenderProxyBox（尺寸测量层）在 rendering 库，material 不导出。
 import 'package:flutter/rendering.dart';
 
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
+
 import 'package:drawing_notes_app/shared/widgets/liquid_glass_rim.dart';
 import 'package:drawing_notes_app/shared/widgets/liquid_glass_shader.dart';
 
@@ -31,7 +33,7 @@ class GlassSurface extends StatefulWidget {
     super.key,
     required this.child,
     this.padding,
-    this.borderRadius = const BorderRadius.all(Radius.circular(18)),
+    this.borderRadius = const BorderRadius.all(Radius.circular(AppleRadius.lg)),
     this.sigma = LiquidGlassRecipe.kDefaultSigma,
     this.enabled = true,
     this.color,

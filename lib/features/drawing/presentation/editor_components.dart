@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show listEquals, mapEquals;
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
@@ -55,20 +56,39 @@ class ShortcutRow extends StatelessWidget {
   }
 }
 
+/// 构造时捕获的视口变换快照（缩放/旋转/平移三元组，记录比较用）。
+///
+/// 不能在 shouldRepaint 里直接读 controller 的当前值——controller 是
+/// 同一实例、视口参数原地变更，两帧读到的永远是相等的“当前值”，检测
+/// 不到变化。快照（记录自带结构 ==）比较才能在 frameTick 高频重建
+/// painter 时既跳过无谓重绘、又保证纯平移/缩放期间叠层实时重绘
+/// （行为与「恒 true」等价）。
+({double scale, double rotation, Offset offset}) _snapshotViewportOf(
+  DrawingController controller,
+) => (
+  scale: controller.viewScale,
+  rotation: controller.viewRotation,
+  offset: controller.viewOffset,
+);
+
 /// 连接线渲染器（D1：节点关联标注，借鉴 Relatum 连线）。
 ///
 /// 在页面混排对象（文字/图片块）之间画连线，坐标随画布视口变换。
 class ConnectorPainter extends CustomPainter {
+  /// 直接持有调用方集合的引用，不再逐次 `List/Map.unmodifiable` 拷贝
+  /// （渲染性能 2026-09-07）。前提：调用方（editor_page_canvas_surface
+  /// 的 frameTick 重建）每次 build 传入新建的快照 map 与只读的
+  /// session 列表，数据不可变；本 painter 不修改它们。
   ConnectorPainter({
-    required Iterable<PageConnector> connectors,
-    required Map<String, Offset> itemPositions,
+    required this.connectors,
+    required this.itemPositions,
     required this.controller,
-  }) : connectors = List.unmodifiable(connectors),
-       itemPositions = Map.unmodifiable(itemPositions);
+  }) : _viewport = _snapshotViewportOf(controller);
 
   final List<PageConnector> connectors;
   final Map<String, Offset> itemPositions;
   final DrawingController controller;
+  final ({double scale, double rotation, Offset offset}) _viewport;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -106,7 +126,11 @@ class ConnectorPainter extends CustomPainter {
   Offset? _itemPosition(String id) => itemPositions[id];
 
   @override
-  bool shouldRepaint(ConnectorPainter oldDelegate) => true;
+  bool shouldRepaint(ConnectorPainter oldDelegate) =>
+      oldDelegate._viewport != _viewport ||
+      oldDelegate.controller != controller ||
+      !listEquals(oldDelegate.connectors, connectors) ||
+      !mapEquals(oldDelegate.itemPositions, itemPositions);
 }
 
 /// 番茄钟专注计时浮层（D2，借鉴 Relatum 学习工具）。
@@ -168,7 +192,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
     return Material(
       elevation: 3,
       borderRadius: BorderRadius.circular(AppleRadius.lg),
-      color: const Color(0xDDFFFFFF),
+      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.87),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         child: Row(
@@ -206,24 +230,43 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
 ///
 /// 把文字块按 A4 页面高度（逻辑像素）分页渲染，
 /// 每页显示页眉（标题+页码）与内容，超出页高的内容流到下一页。
-class PaginationPreview extends StatelessWidget {
+class PaginationPreview extends StatefulWidget {
   const PaginationPreview({super.key, required this.textItems});
 
   final List<PageTextItem> textItems;
 
+  @override
+  State<PaginationPreview> createState() => _PaginationPreviewState();
+}
+
+class _PaginationPreviewState extends State<PaginationPreview> {
   /// A4 页面逻辑高度（对应画布 2480x3508 的近似高度）。
   static const double _pageHeight = 800;
 
   /// 单行文字估算高度。
   static const double _lineHeight = 28;
 
+  /// 分页结果 memo（渲染性能 2026-09-07）：此前每次 build 都重跑分页
+  /// 算法。输入未变（同一 textItems 引用 + 长度一致；PageTextItem 无
+  /// revision 字段，调用方以 page.textItems 整列表传入，增删必改变
+  /// 长度）则复用上次结果。
+  List<List<PageTextItem>>? _pages;
+
   @override
-  Widget build(BuildContext context) {
+  void didUpdateWidget(PaginationPreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.textItems, widget.textItems) ||
+        oldWidget.textItems.length != widget.textItems.length) {
+      _pages = null;
+    }
+  }
+
+  List<List<PageTextItem>> _computePages() {
     // 分页：按估算行数把文字块分配到多页。
     final pages = <List<PageTextItem>>[];
     var current = <PageTextItem>[];
     var used = 60.0; // 页顶留白
-    for (final t in textItems) {
+    for (final t in widget.textItems) {
       final lines = (t.text.length / 18).ceil().clamp(1, 20);
       final h = _lineHeight * lines + 12;
       if (used + h > _pageHeight && current.isNotEmpty) {
@@ -235,6 +278,12 @@ class PaginationPreview extends StatelessWidget {
       used += h;
     }
     if (current.isNotEmpty) pages.add(current);
+    return pages;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pages = _pages ??= _computePages();
 
     return ListView.builder(
       itemCount: pages.length,
@@ -571,10 +620,12 @@ class LinearReadoutBubble extends StatelessWidget {
 /// 拖动元素接近对齐位置时，在画布上画出参考线（垂直线/水平线），
 /// 让用户直观看到"吸附到哪里"。
 class SnapGuidePainter extends CustomPainter {
-  const SnapGuidePainter({required this.guides, required this.controller});
+  SnapGuidePainter({required this.guides, required this.controller})
+    : _viewport = _snapshotViewportOf(controller);
 
   final List<({bool vertical, double pos})> guides;
   final DrawingController controller;
+  final ({double scale, double rotation, Offset offset}) _viewport;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -606,17 +657,22 @@ class SnapGuidePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(SnapGuidePainter oldDelegate) => true;
+  bool shouldRepaint(SnapGuidePainter oldDelegate) =>
+      oldDelegate._viewport != _viewport ||
+      oldDelegate.controller != controller ||
+      !listEquals(oldDelegate.guides, guides);
 }
 
 /// 框选矩形绘制器（借鉴 Excalidraw 多选可视化）。
 ///
 /// 框选时显示半透明蓝色矩形，直观呈现多选范围。
 class MarqueePainter extends CustomPainter {
-  const MarqueePainter({required this.rect, required this.controller});
+  MarqueePainter({required this.rect, required this.controller})
+    : _viewport = _snapshotViewportOf(controller);
 
   final Rect rect; // 画布坐标
   final DrawingController controller;
+  final ({double scale, double rotation, Offset offset}) _viewport;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -649,7 +705,10 @@ class MarqueePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(MarqueePainter oldDelegate) => true;
+  bool shouldRepaint(MarqueePainter oldDelegate) =>
+      oldDelegate._viewport != _viewport ||
+      oldDelegate.controller != controller ||
+      oldDelegate.rect != rect;
 }
 
 /// 网格绘制器（审计三-4 重做，2026-09-06）。
@@ -659,9 +718,11 @@ class MarqueePainter extends CustomPainter {
 /// 与 `_snapToGrid` 拖动吸附共用同一网格（网格即吸附档位的视觉真相）。
 /// 缩放过密时步长自动翻倍，保持点阵密度可读（对齐 Excalidraw 网格分级）。
 class GridPainter extends CustomPainter {
-  const GridPainter({required this.controller});
+  GridPainter({required this.controller})
+    : _viewport = _snapshotViewportOf(controller);
 
   final DrawingController controller;
+  final ({double scale, double rotation, Offset offset}) _viewport;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -699,15 +760,31 @@ class GridPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(GridPainter oldDelegate) => true;
+  bool shouldRepaint(GridPainter oldDelegate) =>
+      oldDelegate._viewport != _viewport ||
+      oldDelegate.controller != controller;
 }
 
 /// 图表渲染器（借鉴 Excalidraw charts）：柱状图/折线图。
 class ChartPainter extends CustomPainter {
-  const ChartPainter({required this.chart, required this.viewScale});
+  ChartPainter({required this.chart, required this.viewScale})
+    : _labelPainter = TextPainter(
+        text: TextSpan(
+          text: chart.data.map((v) => v.round().toString()).join(', '),
+          style: const TextStyle(fontSize: 9, color: Colors.black54),
+        ),
+        textDirection: TextDirection.ltr,
+      );
 
   final PageChartItem chart;
   final double viewScale;
+
+  /// 数值标签（渲染性能 2026-09-07）：paint 每次新建 TextPainter 拼
+  /// 标签纯浪费——标签文本只随 [chart.data] 变化，在构造时预建一次；
+  /// layout 依赖 paint 时的实际宽度，按宽度记忆化（宽度不变则复用）。
+  /// painter 实例随每次 build 重建，数据变化自然换新实例，无需手动失效。
+  final TextPainter _labelPainter;
+  double? _labelLaidOutWidth;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -759,15 +836,12 @@ class ChartPainter extends CustomPainter {
         canvas.drawCircle(Offset(px, py), 3, dot);
       }
     }
-    // 数值标签（顶部）。
-    final tp = TextPainter(
-      text: TextSpan(
-        text: data.map((v) => v.round().toString()).join(', '),
-        style: const TextStyle(fontSize: 9, color: Colors.black54),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout(maxWidth: size.width);
-    tp.paint(canvas, Offset(0, 0));
+    // 数值标签（顶部）：TextPainter 构造时预建，宽度不变时复用 layout。
+    if (_labelLaidOutWidth != size.width) {
+      _labelPainter.layout(maxWidth: size.width);
+      _labelLaidOutWidth = size.width;
+    }
+    _labelPainter.paint(canvas, Offset.zero);
   }
 
   @override
@@ -779,10 +853,12 @@ class ChartPainter extends CustomPainter {
 ///
 /// 拖动元素时绘制渐隐轨迹线：越早的点越透明，形成"尾迹"视觉引导。
 class TrailPainter extends CustomPainter {
-  TrailPainter({required this.points, required this.controller});
+  TrailPainter({required this.points, required this.controller})
+    : _viewport = _snapshotViewportOf(controller);
 
   final List<Offset> points; // 画布坐标增量序列
   final DrawingController controller;
+  final ({double scale, double rotation, Offset offset}) _viewport;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -808,5 +884,8 @@ class TrailPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(TrailPainter oldDelegate) => true;
+  bool shouldRepaint(TrailPainter oldDelegate) =>
+      oldDelegate._viewport != _viewport ||
+      oldDelegate.controller != controller ||
+      !listEquals(oldDelegate.points, points);
 }

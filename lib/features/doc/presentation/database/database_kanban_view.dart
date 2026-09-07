@@ -66,10 +66,9 @@ class DatabaseKanbanView extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         message,
-        style: TextStyle(
-          fontSize: 13,
-          color: Theme.of(context).colorScheme.outline,
-        ),
+        style: AppleType.controlStyle(
+          Theme.of(context).colorScheme.outline,
+        ).copyWith(fontWeight: FontWeight.w400),
       ),
     );
   }
@@ -155,7 +154,7 @@ class DatabaseKanbanView extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 2),
                   child: Text(
                     '${f.name}: ${displayValue(record, f)}',
-                    style: TextStyle(fontSize: 12, color: scheme.outline),
+                    style: AppleType.captionStyle(scheme.outline),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

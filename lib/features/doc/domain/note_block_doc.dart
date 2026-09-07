@@ -86,8 +86,11 @@ class NoteBlockDoc {
   factory NoteBlockDoc.fromJson(Map<String, dynamic> json) => NoteBlockDoc(
     id: json['id'] as String,
     title: json['title'] as String? ?? '',
+    // B11 修复（审计 2026-09-07）：body 数组元素裸 `as Map` 强转——畸形
+    // 元素抛 TypeError 使整个文档拒载；whereType 过滤畸形元素保住其余块。
     body: (json['body'] as List? ?? const [])
-        .map((e) => NoteBlock.fromJson(e as Map<String, dynamic>))
+        .whereType<Map<String, dynamic>>()
+        .map(NoteBlock.fromJson)
         .toList(),
     tags: (json['tags'] as List? ?? const []).whereType<String>().toList(),
     createdAt: json['createdAt'] != null

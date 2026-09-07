@@ -8,7 +8,7 @@
 
 - Flutter（Dart），单仓库单应用：`drawing_notes_app`
 - 目录：`lib/core`（跨模块基础设施）+ `lib/features/*`（业务模块）+ `lib/l10n` + `lib/app`（组合根）
-- 测试：`test/`，与 lib 结构镜像（约 1300 项，全绿基线）
+- 测试：`test/`，与 lib 结构镜像（约 1950 项，全绿基线）
 
 ## 2. 功能模块地图
 
@@ -19,7 +19,6 @@
 | `features/drawing` | 绘图引擎：DrawingDocument、图层位图、笔刷/形状/选区/对象编辑 | `application/drawing_controller.dart`、`presentation/editor_page*.dart` |
 | `features/all_docs` | 全部文档工作台：列表/搜索/收藏/排序/文档树 | `presentation/all_docs_page.dart` |
 | `features/schedule` | 日历·待办：月历 + 24 小时时间轴事件 | `presentation/schedule_page.dart` |
-| `features/home` | （已废弃，待删除确认） | — |
 
 ## 3. 依赖规则（允许的方向）
 

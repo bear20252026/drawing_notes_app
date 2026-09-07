@@ -69,6 +69,8 @@ class EdgelessDocStore {
   ///
   /// 使用原子写入（先写 .tmp → 再 rename），并在覆盖前将现有文件
   /// 复制为 .bak 备份，确保写入中断时可恢复。
+  /// A6 修复（审计 2026-09-07）：tmp 写入/rename 失败时清理残留临时文件
+  /// （favorite_store 同款纪律）。
   Future<void> saveDoc(EdgelessDoc doc) async {
     if (!isValidId(doc.id)) {
       throw ArgumentError.value(doc.id, 'doc.id', '文档 ID 不合法');
@@ -80,24 +82,36 @@ class EdgelessDocStore {
     final path = await _pathFor(doc.id);
     final file = File(path);
     final tmp = File('$path.${LocalIdGenerator.next('write')}.tmp');
-    await tmp.writeAsBytes(data, flush: true);
-    if (await file.exists()) {
-      try {
-        await file.copy('$path.bak');
-      } catch (_) {
-        // 备份失败不阻塞写入
-      }
-    }
     try {
-      await tmp.rename(path);
-    } on FileSystemException {
-      if (!await file.exists()) rethrow;
-      await file.delete();
-      await tmp.rename(path);
+      await tmp.writeAsBytes(data, flush: true);
+      if (await file.exists()) {
+        try {
+          await file.copy('$path.bak');
+        } catch (_) {
+          // 备份失败不阻塞写入
+        }
+      }
+      try {
+        await tmp.rename(path);
+      } on FileSystemException {
+        if (!await file.exists()) rethrow;
+        await file.delete();
+        await tmp.rename(path);
+      }
+    } catch (_) {
+      try {
+        if (await tmp.exists()) await tmp.delete();
+      } catch (_) {
+        // 清理失败不覆盖原始存储异常。
+      }
+      rethrow;
     }
   }
 
   /// 加载指定 ID 的 Edgeless 文档。不存在返回 null，损坏时尝试 .bak 恢复。
+  /// B13 修复（审计 2026-09-07）：主备均失败（或无备份可回退）时，裸
+  /// TypeError 包成 FormatException——调用方按「Edgeless 数据损坏」统一
+  /// 处理（与 NotebookStorage.load 同口径；原始异常带在消息里）。
   Future<EdgelessDoc?> loadDoc(String docId) async {
     await _ensureDir();
     final path = await _pathFor(docId);
@@ -109,12 +123,24 @@ class EdgelessDocStore {
       return EdgelessDoc.fromJson(
         jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>,
       );
-    } catch (_) {
-      if (!await backup.exists()) rethrow;
-      final bytes = await backup.readAsBytes();
-      return EdgelessDoc.fromJson(
-        jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>,
-      );
+    } catch (e) {
+      if (!await backup.exists()) {
+        if (e is TypeError) {
+          throw FormatException('Edgeless 数据损坏：$e');
+        }
+        rethrow;
+      }
+      try {
+        final bytes = await backup.readAsBytes();
+        return EdgelessDoc.fromJson(
+          jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>,
+        );
+      } catch (e2) {
+        if (e2 is TypeError) {
+          throw FormatException('Edgeless 数据损坏：$e2');
+        }
+        rethrow;
+      }
     }
   }
 

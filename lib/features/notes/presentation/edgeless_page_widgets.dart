@@ -326,6 +326,38 @@ class _ConnectorPainter extends CustomPainter {
   final List<NoteConnector> connectors;
   final Map<String, NoteFrame> framesById;
 
+  /// 标签 TextPainter 缓存（性能热点：帧拖拽时 framesById 每帧变化，
+  /// shouldRepaint 恒真 → 每帧为每条连线的标签重建 TextPainter + layout）。
+  ///
+  /// 方案说明：painter 实例随 build 每帧重建、paint() 跑在**新**实例上，
+  /// 实例字段缓存永不命中，故用 static Expando（键 = [NoteConnector]
+  /// 对象 identity，连接线不可变——被替换/GC 时缓存条目随之释放，
+  /// StrokeRenderer._outlineCache 同模式）。校验键 = (label 引用, color)。
+  static final Expando<_EdgelessLabelEntry> _labelCache = Expando(
+    'connectorLabelCache',
+  );
+
+  static TextPainter _labelPainterOf(NoteConnector c, Color color) {
+    var entry = _labelCache[c];
+    if (entry == null || !entry.matches(c.label, color)) {
+      entry = _EdgelessLabelEntry(
+        TextPainter(
+          text: TextSpan(
+            text: c.label,
+            style: AppleType.captionStyle(
+              color,
+            ).copyWith(fontWeight: FontWeight.w600),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout(maxWidth: 200),
+        c.label,
+        color,
+      );
+      _labelCache[c] = entry;
+    }
+    return entry.painter;
+  }
+
   /// CSS hex → Color；解析失败回退为 Apple actionBlue。
   static Color _colorOf(String hex) {
     final v = int.tryParse(hex.replaceFirst('#', ''), radix: 16) ?? 0x0066CC;
@@ -359,19 +391,11 @@ class _ConnectorPainter extends CustomPainter {
       canvas.drawCircle(a, c.width + 1.5, dot);
       canvas.drawCircle(b, c.width + 1.5, dot);
 
-      // 可选标签（绘制于线段中点）
+      // 可选标签（绘制于线段中点；TextPainter 按 (label,color) 缓存复用）
       final label = c.label;
       if (label != null && label.isNotEmpty) {
         final mid = Offset((a.dx + b.dx) / 2, (a.dy + b.dy) / 2);
-        final tp = TextPainter(
-          text: TextSpan(
-            text: label,
-            style: AppleType.captionStyle(
-              color,
-            ).copyWith(fontWeight: FontWeight.w600),
-          ),
-          textDirection: TextDirection.ltr,
-        )..layout(maxWidth: 200);
+        final tp = _labelPainterOf(c, color);
         tp.paint(canvas, mid - Offset(tp.width / 2, tp.height / 2));
       }
     }
@@ -395,6 +419,38 @@ class _GroupPainter extends CustomPainter {
   final List<EdgelessGroup> groups;
   final Map<String, NoteFrame> framesById;
   final Color? chipBgColor;
+
+  /// 组名角标 TextPainter 缓存（性能热点与 _ConnectorPainter._labelCache
+  /// 同源：帧拖拽时每帧重绘、重建 TextPainter + layout）。painter 实例随
+  /// build 重建，实例字段缓存永不命中 → static Expando（键 =
+  /// [EdgelessGroup] 对象 identity，群组不可变；被替换/GC 时条目随之
+  /// 释放）。校验键 = (name 引用, color)。
+  static final Expando<_EdgelessLabelEntry> _chipCache = Expando(
+    'groupChipCache',
+  );
+
+  static TextPainter _chipPainterOf(EdgelessGroup g, Color color) {
+    var entry = _chipCache[g];
+    if (entry == null || !entry.matches(g.name, color)) {
+      entry = _EdgelessLabelEntry(
+        TextPainter(
+          text: TextSpan(
+            text: g.name,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout(),
+        g.name,
+        color,
+      );
+      _chipCache[g] = entry;
+    }
+    return entry.painter;
+  }
 
   static Color _colorOf(String hex) {
     final v = int.tryParse(hex.replaceFirst('#', ''), radix: 16) ?? 0x4CAF50;
@@ -432,20 +488,10 @@ class _GroupPainter extends CustomPainter {
           ..strokeWidth = 1.5,
       );
 
-      // 组名角标（左上）
+      // 组名角标（左上；TextPainter 按 (name,color) 缓存复用）
       final label = g.name;
       if (label != null && label.isNotEmpty) {
-        final tp = TextPainter(
-          text: TextSpan(
-            text: label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-          textDirection: TextDirection.ltr,
-        )..layout();
+        final tp = _chipPainterOf(g, color);
         final chipRect = Rect.fromLTWH(
           bounds.left + 2,
           bounds.top - tp.height - 2,
@@ -530,27 +576,33 @@ class _ToolPanel extends StatelessWidget {
         ._controller;
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final activeBg = (isDark ? const Color(0xFFB5CCFF) : AppleColor.actionBlue)
-        .withValues(alpha: 0.18);
+    final activeBg =
+        (isDark ? AppleColor.actionBlueOnDark : AppleColor.actionBlue)
+            .withValues(alpha: 0.18);
 
     Widget toolButton(EdgelessTool tool, IconData icon, String tooltip) {
       final active = controller.tool == tool;
       return Tooltip(
         message: tooltip,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppleRadius.md),
-          onTap: () => controller.setTool(tool),
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: active ? activeBg : Colors.transparent,
-              borderRadius: BorderRadius.circular(AppleRadius.md),
-            ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: active ? scheme.primary : scheme.onSurfaceVariant,
+        // 三输入：纯图标交互补 Semantics（label 由 Tooltip 提供）。
+        child: Semantics(
+          button: true,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppleRadius.md),
+            onTap: () => controller.setTool(tool),
+            child: Container(
+              // 触控目标 ≥ 44×44（HIG/WCAG）。
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: active ? activeBg : Colors.transparent,
+                borderRadius: BorderRadius.circular(AppleRadius.md),
+              ),
+              child: Icon(
+                icon,
+                size: 20,
+                color: active ? scheme.primary : scheme.onSurfaceVariant,
+              ),
             ),
           ),
         ),
@@ -597,8 +649,9 @@ class _ToolPanel extends StatelessWidget {
               ),
             ],
             child: Container(
-              width: 40,
-              height: 40,
+              // 触控目标 ≥ 44×44（与上方 toolButton 同规则）。
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 color: controller.tool == EdgelessTool.shape
                     ? activeBg
@@ -637,6 +690,30 @@ class _ElementPainter extends CustomPainter {
   final Offset? shapeOrigin;
   final EdgelessShapeKind shapeKind;
   final Offset? lastFocalWorld;
+
+  /// 笔迹 Path 缓存（性能热点：每次 Paint 为全部可见 strokes 重建 Path，
+  /// O(总点数)）。仿 StrokeRenderer._outlineCache 的 Expando + 失效校验
+  /// 模式：键 = [EdgelessStroke] 对象 identity（不可变——copyWithAppended
+  /// 返回新实例，对象替换即天然失效；条目随 GC 释放）。EdgelessStroke 无
+  /// revision 字段，用「对象引用 + 点列长度」做失效键：点列被原地改动时
+  /// 长度变化即重建（等长度原地改值超出领域纪律，颜色/线宽变化走对象替换）。
+  static final Expando<_EdgelessStrokePathEntry> _strokePathCache = Expando(
+    'edgelessStrokePathCache',
+  );
+
+  static Path? _cachedStrokePath(EdgelessStroke stroke) {
+    if (stroke.pointCount < 2) return null;
+    var entry = _strokePathCache[stroke];
+    if (entry == null || entry.pointCount != stroke.pointCount) {
+      final path = Path()..moveTo(stroke.points[0], stroke.points[1]);
+      for (var i = 1; i < stroke.pointCount; i++) {
+        path.lineTo(stroke.points[i * 2], stroke.points[i * 2 + 1]);
+      }
+      entry = _EdgelessStrokePathEntry(stroke.pointCount, path);
+      _strokePathCache[stroke] = entry;
+    }
+    return entry.path;
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -689,11 +766,9 @@ class _ElementPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..style = PaintingStyle.stroke;
-    final path = Path()..moveTo(stroke.points[0], stroke.points[1]);
-    for (var i = 1; i < stroke.pointCount; i++) {
-      path.lineTo(stroke.points[i * 2], stroke.points[i * 2 + 1]);
-    }
-    canvas.drawPath(path, paint);
+    // Path 按「对象引用 + 点列长度」缓存（见 _strokePathCache）：重绘只
+    // 复用折线路径，不再逐点重建。
+    canvas.drawPath(_cachedStrokePath(stroke)!, paint);
   }
 
   Color? _parseColor(String css) {
@@ -711,4 +786,27 @@ class _ElementPainter extends CustomPainter {
       old.activeStroke != activeStroke ||
       old.shapeOrigin != shapeOrigin ||
       old.lastFocalWorld != lastFocalWorld;
+}
+
+/// 画布标签 TextPainter 缓存条目（_ConnectorPainter/_GroupPainter 共用）：
+/// 持有跨 paint 复用的 [TextPainter]，按 (文本引用, 颜色) 校验失效。
+/// 文本用 identical——String 不可变，重新赋值必换引用（误判失效是安全方向）。
+class _EdgelessLabelEntry {
+  _EdgelessLabelEntry(this.painter, this._text, this._color);
+
+  final TextPainter painter;
+  final String? _text;
+  final Color _color;
+
+  bool matches(String? text, Color color) =>
+      identical(_text, text) && _color == color;
+}
+
+/// 笔迹折线 Path 缓存条目（_ElementPainter 用）：记录创建时的点数，
+/// 与当前点列长度不一致即失效重建。
+class _EdgelessStrokePathEntry {
+  _EdgelessStrokePathEntry(this.pointCount, this.path);
+
+  final int pointCount;
+  final Path path;
 }

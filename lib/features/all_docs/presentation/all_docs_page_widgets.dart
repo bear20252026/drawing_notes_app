@@ -125,11 +125,7 @@ class _DocsToolbar extends StatelessWidget {
           // 面包屑
           Text(
             AppLocalizations.of(context)?.shellAllDocs ?? '全部文档',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: onSurface,
-            ),
+            style: AppleType.titleStyle(onSurface),
           ),
           Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: subtle),
           const Spacer(),
@@ -293,13 +289,12 @@ class _DocsTabBar extends StatelessWidget {
                   children: [
                     Text(
                       tabs[i],
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: selected
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                        color: selected ? accent : subtle,
-                      ),
+                      style: AppleType.controlStyle(selected ? accent : subtle)
+                          .copyWith(
+                            fontWeight: selected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                          ),
                     ),
                     const SizedBox(height: 6),
                     Container(
@@ -419,7 +414,10 @@ class _GroupedDocList extends StatelessWidget {
       );
     }
 
-    // 文档：分组（或全空时的创建引导）
+    // 文档：分组（或全空时的创建引导）。打平为 (组头, 行) 扁平模型交给
+    // ListView.builder 惰性构建（大组无虚拟化的性能热点；同文件
+    // _SortedDocList 的扁平 builder 模式）。原实现无粘性组头，视觉保持
+    // 「组头 + 行 + 行间发丝线（每行尾部）」完全一致。
     if (sections.expand((s) => s.docs).isEmpty) {
       return _EmptyState(
         theme: theme,
@@ -428,36 +426,44 @@ class _GroupedDocList extends StatelessWidget {
         onNewCanvas: () => onNewDoc?.call(AllDocKind.canvas),
       );
     }
+    final entries = <_GroupedEntry>[
+      for (final section in sections) ...[
+        _GroupedEntry.header(section.label),
+        for (final doc in section.docs) _GroupedEntry.row(doc),
+      ],
+    ];
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: sections.length,
-      itemBuilder: (context, si) {
-        final section = sections[si];
+      itemCount: entries.length,
+      itemBuilder: (context, i) {
+        final entry = entries[i];
+        if (entry.label != null) {
+          // 组头
+          return _SectionHeader(theme: theme, label: entry.label!);
+        }
+        final doc = entry.doc!;
         return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 组头
-            _SectionHeader(theme: theme, label: section.label),
-            ...section.docs.map(
-              (doc) => Column(
-                children: [
-                  AllDocRow(
-                    doc: doc,
-                    onOpenDoc: () => onOpenDoc(doc),
-                    onToggleFavorite: () => onToggleFavorite(doc),
-                  ),
-                  AppleHairline.listDivider(
-                    context,
-                    indent: AllDocRow.textIndent,
-                  ),
-                ],
-              ),
+            AllDocRow(
+              doc: doc,
+              onOpenDoc: () => onOpenDoc(doc),
+              onToggleFavorite: () => onToggleFavorite(doc),
             ),
+            AppleHairline.listDivider(context, indent: AllDocRow.textIndent),
           ],
         );
       },
     );
   }
+}
+
+/// 分组列表的扁平条目：组头（label 非 null）或文档行（doc 非 null）。
+class _GroupedEntry {
+  const _GroupedEntry.header(String this.label) : doc = null;
+  const _GroupedEntry.row(AllDoc this.doc) : label = null;
+
+  final String? label;
+  final AllDoc? doc;
 }
 
 class _SectionHeader extends StatelessWidget {
@@ -473,12 +479,9 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 14, 8, 6),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: 11.5,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.3,
-          color: subtle,
-        ),
+        style: AppleType.captionStyle(
+          subtle,
+        ).copyWith(fontWeight: FontWeight.w600, letterSpacing: 0.3),
       ),
     );
   }

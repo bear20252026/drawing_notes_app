@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
+import '../../../core/theme/apple_design.dart';
 
 /// 回收站条目（store.listTrash 的记录类型）。
 typedef TrashEntry = ({NoteBlockDoc doc, DateTime deletedAt});
@@ -90,10 +91,7 @@ class _TrashPageState extends State<TrashPage> {
                   const SizedBox(height: 4),
                   Text(
                     '删除的笔记在此保留 30 天，可随时恢复',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      color: scheme.onSurfaceVariant,
-                    ),
+                    style: AppleType.captionStyle(scheme.onSurfaceVariant),
                   ),
                 ],
               ),

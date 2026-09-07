@@ -71,6 +71,10 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
       (a.b - b.b).abs() < 0.004 &&
       (a.a - b.a).abs() < 0.004;
 
+  /// 色块的读屏标签：#RRGGBB（读屏用户需要可念出的颜色值）。
+  static String _hexLabel(Color c) =>
+      '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).toUpperCase().padLeft(6, '0')}';
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -83,20 +87,31 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 预设色板（选中态：外圈强调色描边 + 居中勾选，见 _Swatch）。
+              // 三输入：44×44 透明热区（HIG/WCAG 最小触控）+ Semantics 标签。
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
                 children: [
                   for (final c in _presetColors)
-                    InkWell(
-                      borderRadius: BorderRadius.circular(AppleRadius.lg),
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        _apply(HSVColor.fromColor(c));
-                      },
-                      child: _Swatch(
-                        color: c,
-                        selected: _sameColor(c, _selected),
+                    Semantics(
+                      button: true,
+                      label: _hexLabel(c),
+                      child: SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(AppleRadius.lg),
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            _apply(HSVColor.fromColor(c));
+                          },
+                          child: Center(
+                            child: _Swatch(
+                              color: c,
+                              selected: _sameColor(c, _selected),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                 ],
@@ -195,37 +210,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  for (var i = 0; i <= 5; i++)
-                    InkWell(
-                      borderRadius: BorderRadius.circular(AppleRadius.md),
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        _apply(
-                          HSVColor.fromAHSV(
-                            1,
-                            _hsv.hue,
-                            _hsv.saturation,
-                            0.2 + 0.15 * i,
-                          ),
-                        );
-                      },
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: HSVColor.fromAHSV(
-                            1,
-                            _hsv.hue,
-                            _hsv.saturation,
-                            0.2 + 0.15 * i,
-                          ).toColor(),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.outlineVariant,
-                          ),
-                        ),
-                      ),
-                    ),
+                  for (var i = 0; i <= 5; i++) _shadeDot(i),
                 ],
               ),
               // 最近使用色（对齐 Excalidraw CustomColorList）
@@ -236,22 +221,32 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                   runSpacing: 8,
                   children: [
                     for (final c in _recentColors.reversed.take(12))
-                      InkWell(
-                        borderRadius: BorderRadius.circular(AppleRadius.md),
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          _apply(HSVColor.fromColor(c));
-                        },
-                        child: Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            color: c,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.outlineVariant,
+                      Semantics(
+                        button: true,
+                        label: _hexLabel(c),
+                        child: SizedBox(
+                          width: 44,
+                          height: 44,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(AppleRadius.md),
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              _apply(HSVColor.fromColor(c));
+                            },
+                            child: Center(
+                              child: Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: c,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.outlineVariant,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -292,6 +287,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
           child: const Text('取消'),
         ),
         FilledButton(
+          autofocus: true,
           onPressed: () {
             if (!_recentColors.contains(_selected)) {
               _recentColors.add(_selected);
@@ -301,6 +297,45 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
           child: const Text('确定'),
         ),
       ]),
+    );
+  }
+
+  /// 同色系色阶单点（三输入：44×44 透明热区 + Semantics 颜色标签）。
+  Widget _shadeDot(int i) {
+    final shade = HSVColor.fromAHSV(
+      1,
+      _hsv.hue,
+      _hsv.saturation,
+      0.2 + 0.15 * i,
+    );
+    final color = shade.toColor();
+    return Semantics(
+      button: true,
+      label: _hexLabel(color),
+      child: SizedBox(
+        width: 44,
+        height: 44,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppleRadius.md),
+          onTap: () {
+            HapticFeedback.selectionClick();
+            _apply(shade);
+          },
+          child: Center(
+            child: Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

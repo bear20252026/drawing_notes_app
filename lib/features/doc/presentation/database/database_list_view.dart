@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/features/doc/domain/note_database.dart';
+import '../../../../core/theme/apple_design.dart';
 
 /// 列表视图。
 class DatabaseListView extends StatelessWidget {
@@ -33,10 +34,9 @@ class DatabaseListView extends StatelessWidget {
         alignment: Alignment.center,
         child: Text(
           '还没有记录，点击“添加记录”',
-          style: TextStyle(
-            fontSize: 13,
-            color: Theme.of(context).colorScheme.outline,
-          ),
+          style: AppleType.controlStyle(
+            Theme.of(context).colorScheme.outline,
+          ).copyWith(fontWeight: FontWeight.w400),
         ),
       );
     }

@@ -111,8 +111,18 @@ extension DrawingControllerRenderOps on DrawingController {
         );
       }
     }
-    final images = List.of(_document.imageItems)
-      ..sort((a, b) => a.zOrder.compareTo(b.zOrder));
+    // U2 同款短路（canvas_painter 的 isSorted 检查模式）：先 O(n) 检查
+    // 是否已按 zOrder 有序（新增图片走递增 zOrder，绝大多数调用已有序），
+    // 仅乱序时才拷贝排序，免去 List.of 分配与 O(n log n) 排序。
+    final imageItems = _document.imageItems;
+    var images = imageItems;
+    for (var i = 1; i < imageItems.length; i++) {
+      if (imageItems[i - 1].zOrder.compareTo(imageItems[i].zOrder) > 0) {
+        images = List.of(imageItems)
+          ..sort((a, b) => a.zOrder.compareTo(b.zOrder));
+        break;
+      }
+    }
     for (final item in images) {
       final image = documentImage(item);
       if (image == null) continue;

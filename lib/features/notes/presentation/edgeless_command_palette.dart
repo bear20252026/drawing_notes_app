@@ -355,10 +355,10 @@ class _EdgelessPaletteSheetState extends State<_EdgelessPaletteSheet> {
                               padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
                               child: Text(
                                 entry.key,
-                                style: TextStyle(
-                                  fontSize: 12,
+                                style: AppleType.captionStyle(
+                                  colorScheme.primary,
+                                ).copyWith(
                                   fontWeight: FontWeight.w600,
-                                  color: colorScheme.primary,
                                   letterSpacing: 0.5,
                                 ),
                               ),
@@ -418,7 +418,7 @@ class _EdgelessPaletteTile extends StatelessWidget {
             ? null
             : Text(
                 command.hint!,
-                style: TextStyle(fontSize: 11, color: colorScheme.outline),
+                style: AppleType.captionStyle(colorScheme.outline),
               ),
         trailing: !command.enabled
             ? Icon(Icons.lock_outline, size: 16, color: colorScheme.outline)

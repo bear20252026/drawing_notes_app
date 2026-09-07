@@ -35,7 +35,9 @@ class SessionSecrets {
     for (final ref in List.of(_holders)) {
       try {
         ref.target?.clearAllSessionSecrets();
-      } catch (_) {}
+      } catch (_) {
+        /* 尽力而为：单个持有者清空失败不阻断其余持有者（回锁联动热路径） */
+      }
     }
   }
 

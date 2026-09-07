@@ -77,9 +77,11 @@ extension _EditorPageOverlays on _EditorPageState {
           width: w,
           height: h,
           decoration: BoxDecoration(
-            color: const Color(0x0DFFFFFF),
+            color: Theme.of(context).colorScheme.surface.withValues(
+              alpha: 0.05,
+            ),
             border: selected
-                ? Border.all(color: const Color(0xFF42A5F5), width: 1.5)
+                ? Border.all(color: AppleColor.actionBlue, width: 1.5)
                 : null,
           ),
           child: CustomPaint(painter: ChartPainter(chart: chart, viewScale: 1)),
@@ -105,7 +107,7 @@ extension _EditorPageOverlays on _EditorPageState {
       top: viewPos.dy,
       child: AnimatedOpacity(
         opacity: _deletingIds.contains(shape.id) ? 0 : 1,
-        duration: const Duration(milliseconds: 180),
+        duration: AppleMotion.dropdown,
         child: GestureDetector(
           onTap: () => _onItemTap(shape.id),
           onSecondaryTapDown: (d) =>
@@ -147,7 +149,7 @@ extension _EditorPageOverlays on _EditorPageState {
                                     child: DecoratedBox(
                                       decoration: BoxDecoration(
                                         border: Border.all(
-                                          color: const Color(0xFF42A5F5),
+                                          color: AppleColor.actionBlue,
                                           width: 1.5,
                                         ),
                                       ),
@@ -175,7 +177,7 @@ extension _EditorPageOverlays on _EditorPageState {
                                         width: 10,
                                         height: 10,
                                         decoration: const BoxDecoration(
-                                          color: Color(0xFF42A5F5),
+                                          color: AppleColor.actionBlue,
                                           shape: BoxShape.circle,
                                           border: Border.fromBorderSide(
                                             BorderSide(color: Colors.white),
@@ -316,8 +318,8 @@ extension _EditorPageOverlays on _EditorPageState {
                   ? BoxDecoration(
                       border: Border.all(
                         color: linkSource
-                            ? const Color(0xFFFF9800)
-                            : const Color(0xFF42A5F5),
+                            ? AppleColor.favourite
+                            : AppleColor.actionBlue,
                         width: 1.5,
                       ),
                     )

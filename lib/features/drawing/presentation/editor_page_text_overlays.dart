@@ -32,16 +32,20 @@ extension _EditorPageTextOverlays on _EditorPageState {
                 filled: true,
                 fillColor: Colors.white.withValues(alpha: 0.92),
                 border: const OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF42A5F5), width: 1.5),
-                ),
-                enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(
-                    color: const Color(0xFF42A5F5).withValues(alpha: 0.7),
+                    color: AppleColor.actionBlue,
                     width: 1.5,
                   ),
                 ),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: AppleColor.actionBlue.withValues(alpha: 0.7),
+                    width: 1.5,
+                  ),
+                ),
+                // 键盘焦点环：Focus Blue 2px（DESIGN.md:300/440）。
                 focusedBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF42A5F5), width: 2),
+                  borderSide: BorderSide(color: AppleColor.focusBlue, width: 2),
                 ),
                 hintText: '输入文字…（回车结束）',
                 contentPadding: const EdgeInsets.symmetric(
@@ -151,13 +155,13 @@ extension _EditorPageTextOverlays on _EditorPageState {
       top: viewPos.dy,
       child: TweenAnimationBuilder<double>(
         tween: Tween(begin: 0, end: 1),
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
+        duration: AppleMotion.modal,
+        curve: AppleMotion.easeOut,
         builder: (context, opacity, child) =>
             Opacity(opacity: opacity, child: child),
         child: AnimatedOpacity(
           opacity: _deletingIds.contains(item.id) ? 0 : 1,
-          duration: const Duration(milliseconds: 180),
+          duration: AppleMotion.dropdown,
           child: _buildTextOverlayInner(item, selected, linkSource),
         ),
       ),
@@ -199,8 +203,8 @@ extension _EditorPageTextOverlays on _EditorPageState {
                     border: selected || linkSource
                         ? Border.all(
                             color: linkSource
-                                ? const Color(0xFFFF9800)
-                                : const Color(0xFF42A5F5),
+                                ? AppleColor.favourite
+                                : AppleColor.actionBlue,
                             width: 1.5,
                           )
                         : null,
@@ -209,8 +213,8 @@ extension _EditorPageTextOverlays on _EditorPageState {
                       ? BoxDecoration(
                           border: Border.all(
                             color: linkSource
-                                ? const Color(0xFFFF9800)
-                                : const Color(0xFF42A5F5),
+                                ? AppleColor.favourite
+                                : AppleColor.actionBlue,
                             width: 1.5,
                           ),
                         )
@@ -219,21 +223,34 @@ extension _EditorPageTextOverlays on _EditorPageState {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 待办 checkbox（借鉴 QOwnNotes：点击切换勾选状态）
+                // 待办 checkbox（借鉴 QOwnNotes：点击切换勾选状态）。
+                // 缩放后图标常 <20px——外包 44×44 热区（HIG 最小触控尺寸），
+                // 视觉图标保持原尺寸居中，并暴露勾选语义给读屏。
                 if (item.isTodo)
-                  InkWell(
-                    onTap: () {
-                      _applyState(() => item.todoChecked = !item.todoChecked);
-                      _notifyChanged();
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: Icon(
-                        item.todoChecked
-                            ? Icons.check_box
-                            : Icons.check_box_outline_blank,
-                        size: item.fontSize * _controller.viewScale * 0.9,
-                        color: Color(item.color),
+                  Semantics(
+                    checked: item.todoChecked,
+                    button: true,
+                    label: '完成',
+                    child: InkWell(
+                      onTap: () {
+                        _applyState(() => item.todoChecked = !item.todoChecked);
+                        _notifyChanged();
+                      },
+                      child: SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: Icon(
+                              item.todoChecked
+                                  ? Icons.check_box
+                                  : Icons.check_box_outline_blank,
+                              size: item.fontSize * _controller.viewScale * 0.9,
+                              color: Color(item.color),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -304,46 +321,59 @@ extension _EditorPageTextOverlays on _EditorPageState {
           // （字号随宽度比例缩放，保持文字整体版式不变形）。
           if (selected && item.width != null)
             Positioned(
-              right: -4,
-              bottom: -4,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onPanStart: (_) {
-                  _textResizeAnchor = (
-                    width: item.width!,
-                    fontSize: item.fontSize,
-                    x: _controller.canvasToView(item.position).dx,
-                  );
-                },
-                onPanUpdate: (d) {
-                  final anchor = _textResizeAnchor;
-                  if (anchor == null) return;
-                  final delta = screenDeltaToCanvas(
-                    d.delta,
-                    _controller.viewRotation,
-                    _controller.viewScale,
-                  );
-                  _applyState(() {
-                    final newWidth = (anchor.width + delta.dx)
-                        .clamp(40, 2000)
-                        .toDouble();
-                    // 字号随宽度等比缩放（Excalidraw measureFontSizeFromWidth
-                    // 思路），最小 8pt 保证可读性。
-                    item.fontSize = (anchor.fontSize * newWidth / anchor.width)
-                        .clamp(8.0, 120.0)
-                        .toDouble();
-                    item.width = newWidth;
-                  });
-                  _notifyChanged();
-                },
-                onPanEnd: (_) => _textResizeAnchor = null,
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF42A5F5),
-                    borderRadius: BorderRadius.circular(AppleRadius.xs),
-                    border: Border.all(color: Colors.white, width: 1),
+              // 44×44 命中区、10×10 视觉点居中：视觉中心相对角点内收 1px
+              // 与旧定位（right/bottom -4 + 10/2）保持一致。
+              right: -21,
+              bottom: -21,
+              child: Semantics(
+                label: '调整文字宽度',
+                button: true,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onPanStart: (_) {
+                    _textResizeAnchor = (
+                      width: item.width!,
+                      fontSize: item.fontSize,
+                      x: _controller.canvasToView(item.position).dx,
+                    );
+                  },
+                  onPanUpdate: (d) {
+                    final anchor = _textResizeAnchor;
+                    if (anchor == null) return;
+                    final delta = screenDeltaToCanvas(
+                      d.delta,
+                      _controller.viewRotation,
+                      _controller.viewScale,
+                    );
+                    _applyState(() {
+                      final newWidth = (anchor.width + delta.dx)
+                          .clamp(40, 2000)
+                          .toDouble();
+                      // 字号随宽度等比缩放（Excalidraw measureFontSizeFromWidth
+                      // 思路），最小 8pt 保证可读性。
+                      item.fontSize =
+                          (anchor.fontSize * newWidth / anchor.width)
+                              .clamp(8.0, 120.0)
+                              .toDouble();
+                      item.width = newWidth;
+                    });
+                    _notifyChanged();
+                  },
+                  onPanEnd: (_) => _textResizeAnchor = null,
+                  child: SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Center(
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: AppleColor.actionBlue,
+                          borderRadius: BorderRadius.circular(AppleRadius.xs),
+                          border: Border.all(color: Colors.white, width: 1),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),

@@ -54,6 +54,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
       builder: (ctx) => const _CreatePageDialog(),
     );
     if (request == null || request.title.trim().isEmpty) return;
+    if (!mounted) return;
 
     final page = NotebookPage(
       id: NotebookStorage.newId('pg'),
@@ -71,6 +72,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
     await _save();
     if (!mounted) return;
     await _openEditor(page: page, onChanged: _save);
+    if (!mounted) return;
     _applyState(() {}); // 返回后刷新
   }
 
@@ -172,6 +174,34 @@ extension _NotebookPageManage on _NotebookViewPageState {
     );
   }
 
+  /// 三输入等价入口：⋮ 菜单版「以块文档打开」——页卡长按（触屏）之外，
+  /// 键盘/鼠标用户经菜单选页后走同一 [_openBlockDocFromPage] 链路。
+  Future<void> _openBlockDocViaMenu() async {
+    final pages = _notebook.pages;
+    if (pages.isEmpty) {
+      _showSnack('这个分页画布还没有页面');
+      return;
+    }
+    final page = await GlassDialog.show<NotebookPage>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('选择要以块文档打开的页面'),
+        children: [
+          for (final p in pages)
+            Focus(
+              autofocus: identical(p, pages.first),
+              child: SimpleDialogOption(
+                onPressed: () => Navigator.of(ctx).pop(p),
+                child: Text(p.title),
+              ),
+            ),
+        ],
+      ),
+    );
+    if (page == null || !mounted) return;
+    await _openBlockDocFromPage(page);
+  }
+
   /// M4：把 NotebookPage 的文本项迁移为 NoteBlockDoc。
   @visibleForTesting
   NoteBlockDoc migrateNotebookPage(NotebookPage page) {
@@ -224,9 +254,12 @@ extension _NotebookPageManage on _NotebookViewPageState {
         title: const Text('选择源分页画布'),
         children: [
           for (final nb in others)
-            SimpleDialogOption(
-              onPressed: () => Navigator.of(ctx).pop(nb),
-              child: Text(nb.title),
+            Focus(
+              autofocus: identical(nb, others.first),
+              child: SimpleDialogOption(
+                onPressed: () => Navigator.of(ctx).pop(nb),
+                child: Text(nb.title),
+              ),
             ),
         ],
       ),
@@ -243,9 +276,12 @@ extension _NotebookPageManage on _NotebookViewPageState {
         title: const Text('选择要引入的页面'),
         children: [
           for (final p in srcNb.pages)
-            SimpleDialogOption(
-              onPressed: () => Navigator.of(ctx).pop(p),
-              child: Text(p.title),
+            Focus(
+              autofocus: identical(p, srcNb.pages.first),
+              child: SimpleDialogOption(
+                onPressed: () => Navigator.of(ctx).pop(p),
+                child: Text(p.title),
+              ),
             ),
         ],
       ),
@@ -281,6 +317,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
     if (trimmed == null || trimmed.isEmpty || trimmed == _notebook.title) {
       return;
     }
+    if (!mounted) return;
     _applyState(() => _notebook.title = trimmed);
     await _save();
   }
@@ -374,15 +411,15 @@ extension _NotebookPageManage on _NotebookViewPageState {
 
   void _showSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    AppSnack.show(context, message);
   }
 
   void _onNotebookMenuSelected(_NotebookMenuItem item) {
     switch (item) {
       case _NotebookMenuItem.rename:
         _renameNotebook();
+      case _NotebookMenuItem.openAsBlockDoc:
+        _openBlockDocViaMenu();
       case _NotebookMenuItem.importPage:
         _importPage();
       case _NotebookMenuItem.importText:

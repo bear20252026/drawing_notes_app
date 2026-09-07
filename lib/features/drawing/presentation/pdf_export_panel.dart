@@ -92,10 +92,7 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     '整本按画布尺寸成页（沿用整本导出行为）',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: scheme.onSurfaceVariant,
-                    ),
+                    style: AppleType.captionStyle(scheme.onSurfaceVariant),
                   ),
                 ),
               const SizedBox(height: 12),
@@ -124,10 +121,7 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   _quality.hint,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: scheme.onSurfaceVariant,
-                  ),
+                  style: AppleType.captionStyle(scheme.onSurfaceVariant),
                 ),
               ),
             ],
@@ -166,11 +160,7 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
       padding: const EdgeInsets.only(bottom: 6),
       child: Text(
         text,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: AppleColor.inkMuted,
-        ),
+        style: AppleType.controlStyle(AppleColor.inkMuted),
       ),
     );
   }

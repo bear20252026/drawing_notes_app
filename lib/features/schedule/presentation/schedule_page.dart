@@ -7,6 +7,7 @@ import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/features/schedule/domain/schedule_event.dart';
 import 'package:drawing_notes_app/features/schedule/infrastructure/schedule_event_store.dart';
 import 'package:drawing_notes_app/features/schedule/presentation/schedule_calendar.dart';
+import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
@@ -349,7 +350,7 @@ class _SchedulePageState extends State<SchedulePage> {
                                     minute: cur % 60,
                                   ),
                           );
-                          if (picked != null) {
+                          if (picked != null && ctx.mounted) {
                             final newMinute = picked.hour * 60 + picked.minute;
                             setDialogState(() => minuteOfDay = newMinute);
                           }
@@ -445,9 +446,7 @@ class _SchedulePageState extends State<SchedulePage> {
   /// 轻量反馈通道（mounted 守卫；失败类提示均给可重试语义）。
   void _showSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    AppSnack.show(context, message);
   }
 
   // ---------------- 通用小组件 ----------------

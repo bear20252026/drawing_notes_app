@@ -1,8 +1,7 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/shared/utils/search_debouncer.dart';
 import 'package:drawing_notes_app/shared/application/search_service.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
@@ -51,16 +50,15 @@ class _SearchPageState extends State<SearchPage> {
   List<SearchResult> _results = const [];
   bool _searching = false;
   // M-08 去抖（专家审计 2026-08-15）：停止输入 300ms 后才触发搜索——
-  // 防每键全盘扫描（Flutter 官方 Riverpod debounce 模式——Timer 取消
-  // 旧任务 + 延迟触发）。
-  Timer? _debounceTimer;
+  // 防每键全盘扫描。复用 SearchDebouncer（与 AllDocs/分页画布页内
+  // 搜索同一合帧工具：Timer 取消旧任务 + 延迟触发）。
+  final SearchDebouncer _debouncer = SearchDebouncer(
+    duration: const Duration(milliseconds: 300),
+  );
 
   /// M-08 去抖入口：停止输入 300ms 后触发搜索。
   void _onQueryChanged(String query) {
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
-      _search(query);
-    });
+    _debouncer.run(() => _search(query));
   }
 
   Future<void> _search(String query) async {
@@ -215,7 +213,7 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   void dispose() {
-    _debounceTimer?.cancel();
+    _debouncer.dispose();
     _controller.dispose();
     super.dispose();
   }

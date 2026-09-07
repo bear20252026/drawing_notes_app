@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/ink_layer_painter.dart';
+import 'package:drawing_notes_app/features/drawing/rendering/layer_compositor.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/shape_renderer.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
@@ -427,15 +428,36 @@ class CanvasPainter extends CustomPainter {
 /// 1. 各图层位图按 miniScale 缩放到小地图区域（白纸底）；
 /// 2. 当前视口（可见区域）矩形框，随缩放/平移实时更新。
 class MiniMapPainter extends CustomPainter {
-  const MiniMapPainter({
+  MiniMapPainter({
     required this.controller,
     required this.miniScale,
     required this.viewport,
-  });
+  }) : _viewport = (
+         scale: controller.viewScale,
+         rotation: controller.viewRotation,
+         offset: controller.viewOffset,
+       ),
+       _paintViewsFingerprint = _fingerprintOf(controller.paintViews);
 
   final DrawingController controller;
   final double miniScale;
   final Size viewport;
+
+  /// 视口变换快照与图层位图指纹（渲染性能 2026-09-07）：paintViews 的
+  /// getter 每次新建视图对象、controller 视口参数原地变更，两者都无法
+  /// 在 shouldRepaint 里读“当前值”比较——必须在构造时快照。
+  /// 位图重光栅化会产生新 ui.Image 引用 → 指纹变化 → 照常重绘；
+  /// 视口框随缩放/平移/旋转移动 → 快照不等 → 照常重绘。
+  final ({double scale, double rotation, Offset offset}) _viewport;
+  final int _paintViewsFingerprint;
+
+  static int _fingerprintOf(List<LayerPaintView> views) {
+    var result = views.length;
+    for (final view in views) {
+      result = Object.hash(result, view.image, view.visible, view.opacity);
+    }
+    return result;
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -501,5 +523,10 @@ class MiniMapPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(MiniMapPainter oldDelegate) => true;
+  bool shouldRepaint(MiniMapPainter oldDelegate) =>
+      oldDelegate.controller != controller ||
+      oldDelegate.miniScale != miniScale ||
+      oldDelegate.viewport != viewport ||
+      oldDelegate._viewport != _viewport ||
+      oldDelegate._paintViewsFingerprint != _paintViewsFingerprint;
 }

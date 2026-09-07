@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 
 /// 月历网格 —— 纯受控组件。
@@ -140,12 +141,11 @@ class ScheduleCalendar extends StatelessWidget {
           children: [
             Text(
               '${date.day}',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isSelected || isToday
+              style: AppleType.controlStyle(
+                isSelected ? scheme.onPrimary : scheme.onSurface,
+                weight: isSelected || isToday
                     ? FontWeight.w700
                     : FontWeight.w400,
-                color: isSelected ? scheme.onPrimary : scheme.onSurface,
               ),
             ),
             const SizedBox(height: 3),

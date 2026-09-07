@@ -7,6 +7,7 @@ import 'package:crypto/crypto.dart' as crypto;
 import 'package:cryptography/cryptography.dart';
 
 import 'package:drawing_notes_app/core/storage/vfs/vault_manifest.dart';
+import 'package:drawing_notes_app/core/utils/hex_encode.dart';
 
 /// VFS 加密对象仓库核心（专家目标架构 VFS——2026-08-16）。
 ///
@@ -226,9 +227,6 @@ class EncryptedVault {
 
   static String _randomHex(int bytes) {
     final rng = Random.secure();
-    return List<int>.generate(
-      bytes,
-      (_) => rng.nextInt(256),
-    ).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    return hexEncode(List<int>.generate(bytes, (_) => rng.nextInt(256)));
   }
 }

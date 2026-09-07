@@ -665,6 +665,35 @@ void main() {
       expect(r.changed, isFalse);
     });
   });
+
+  group('远端 manifest 解析防护（B9/B10）', () {
+    test('manifest 非 JSON 对象 → FormatException（不裸抛 TypeError）', () async {
+      final store = _MemoryDocStore();
+      store.docs['a'] = _Doc('a', _localDocBytes(10), 10);
+      final server = _MemoryServer();
+      // 远端可被写入任意内容（他人设备/篡改）——数组不是合法 manifest。
+      server.files['manifest.json'] = utf8.encode('[1,2,3]');
+      final s = _service(store, server);
+
+      expect(s.syncNow(), throwsFormatException);
+    });
+
+    test('manifest 条目字段类型畸形 → FormatException（fail-closed）', () async {
+      final store = _MemoryDocStore();
+      store.docs['a'] = _Doc('a', _localDocBytes(10), 10);
+      final server = _MemoryServer();
+      server.files['manifest.json'] = utf8.encode(
+        jsonEncode({
+          'entries': {
+            'a': {'id': 'a', 'updatedAt': 'not-an-int'},
+          },
+        }),
+      );
+      final s = _service(store, server);
+
+      expect(s.syncNow(), throwsFormatException);
+    });
+  });
 }
 
 class _ScriptedHandler implements ConflictHandler {

@@ -135,6 +135,7 @@ extension _EditorPageEditing on _EditorPageState {
       builder: (_) => const _TextInputDialog(),
     );
     if (result == null || result.text.trim().isEmpty) return;
+    if (!mounted) return;
 
     _applyState(() {
       page.textItems.add(
@@ -170,7 +171,7 @@ extension _EditorPageEditing on _EditorPageState {
   ///
   /// 把页面文字块按 A4 页面高度（逻辑像素）分页渲染到预览对话框，
   /// 便于查看长笔记的分页效果（导出 PDF 时的版式）。
-  void _showPaginationPreview() {
+  Future<void> _showPaginationPreview() async {
     final page = widget.session;
     if (page == null) {
       _showSnack('仅分页画布页面支持分页预览');
@@ -180,7 +181,7 @@ extension _EditorPageEditing on _EditorPageState {
       _showSnack('本页还没有文字内容');
       return;
     }
-    GlassDialog.show<void>(
+    await GlassDialog.show<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(
@@ -194,6 +195,7 @@ extension _EditorPageEditing on _EditorPageState {
         ),
         actions: [
           TextButton(
+            autofocus: true,
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('关闭'),
           ),
@@ -215,6 +217,7 @@ extension _EditorPageEditing on _EditorPageState {
       builder: (_) => ColorPickerDialog(initialColor: Color(item.color)),
     );
     if (color == null) return;
+    if (!mounted) return;
     _applyState(() {
       EditorTextStyleMutation.setColor(item: item, color: color.toARGB32());
     });
@@ -252,6 +255,7 @@ extension _EditorPageEditing on _EditorPageState {
       );
       final XFile? result = await openFile(acceptedTypeGroups: [typeGroup]);
       if (result == null || result.path.isEmpty) return;
+      if (!mounted) return;
 
       final center = Offset(
         _controller.document.width / 2,
@@ -265,6 +269,7 @@ extension _EditorPageEditing on _EditorPageState {
           return;
         }
         final storedPath = await storage.storeImage(result.path, page.id);
+        if (!mounted) return;
         final position = EditorImageMutation.pageImagePosition(
           centerX: center.dx,
           centerY: center.dy,
@@ -290,6 +295,7 @@ extension _EditorPageEditing on _EditorPageState {
           result.path,
           _controller.document.id,
         );
+        if (!mounted) return;
         final position = EditorImageMutation.documentImagePosition(
           centerX: center.dx,
           centerY: center.dy,
@@ -485,6 +491,7 @@ extension _EditorPageEditing on _EditorPageState {
         PopupMenuItem(value: _CtxAction.sendToBack, child: Text('置底')),
       ],
     ).then((action) {
+      if (!mounted) return;
       switch (action) {
         case _CtxAction.copyStyle:
           _copySelectedStyle();
@@ -508,7 +515,7 @@ extension _EditorPageEditing on _EditorPageState {
 
   /// 删除选中的混排对象。
   /// 打开超链接（Windows 用 start 命令调默认浏览器；其他平台提示）。
-  void _openHref(String href) {
+  Future<void> _openHref(String href) async {
     // 审计修复（2026-08-15，命令注入面）：scheme 白名单 + 引号包裹。
     final safe = sanitizeHref(href);
     if (safe == null) {
@@ -522,9 +529,9 @@ extension _EditorPageEditing on _EditorPageState {
         // 会被展开——改用 rundll32 url.dll,FileProtocolHandler 绕过 cmd.exe，
         // URL 原样交给 OS 协议处理器（multica PR #1202 社区批准标准修复）。
         // sanitizeHref 已拒绝 " 和 %（输入侧双保险）。
-        Process.start('rundll32', ['url.dll,FileProtocolHandler', safe]);
+        await Process.start('rundll32', ['url.dll,FileProtocolHandler', safe]);
       } else {
-        Process.start('xdg-open', [safe]);
+        await Process.start('xdg-open', [safe]);
       }
       _showSnack('已打开链接');
     } catch (e) {
@@ -546,32 +553,45 @@ extension _EditorPageEditing on _EditorPageState {
       shapes: page.shapes,
     );
     final controller = TextEditingController(text: current ?? '');
-    final url = await GlassDialog.show<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('设置链接'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'https://…',
-            border: OutlineInputBorder(),
-            isDense: true,
-          ),
-        ),
-        actions: AppleDialog.actions([
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(controller.text),
-            child: const Text('确定'),
-          ),
-        ]),
-      ),
-    );
+    // 对话框返回（pop 即完成）后退出动画仍在跑，动画期间 TextField 重建
+    // 会触碰 controller；捕获路由完全退出的时机，动画结束再释放。
+    var routeExited = Future<void>.value();
+    String? url;
+    try {
+      url = await GlassDialog.show<String>(
+        context: context,
+        builder: (ctx) {
+          routeExited = ModalRoute.of(ctx)!.completed;
+          return AlertDialog(
+            title: const Text('设置链接'),
+            content: TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'https://…',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+            actions: AppleDialog.actions([
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(controller.text),
+                child: const Text('确定'),
+              ),
+            ]),
+          );
+        },
+      );
+      await routeExited;
+    } finally {
+      controller.dispose();
+    }
     if (url == null) return;
+    if (!mounted) return;
     final trimmed = url.trim();
     // 审计修复（2026-08-15）：保存前 scheme 白名单校验，拒绝危险链接。
     final link = trimmed.isEmpty ? null : sanitizeHref(trimmed);

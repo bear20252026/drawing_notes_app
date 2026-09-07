@@ -87,11 +87,9 @@ extension _EditorPageAppBar on _EditorPageState {
                       padding: const EdgeInsets.only(right: 4),
                       child: Text(
                         _canvasStatusLabel,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: _canvasStatusColor,
-                        ),
+                        style: AppleType.captionStyle(
+                          _canvasStatusColor,
+                        ).copyWith(fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],

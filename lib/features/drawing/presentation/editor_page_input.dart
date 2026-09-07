@@ -556,6 +556,7 @@ extension _EditorPageInput on _EditorPageState {
     _lastPickColorAt = now;
     final color = await _controller.pickColorAt(canvasPoint);
     if (color == null) return;
+    if (!mounted) return;
     _updateCurrentBrushPreset(color: color);
     _applyState(() => _viewModel.setEyedropperActive(false));
   }
@@ -566,8 +567,8 @@ extension _EditorPageInput on _EditorPageState {
       context: context,
       builder: (_) => ColorPickerDialog(initialColor: _controller.color),
     );
-    if (color != null) {
-      _updateCurrentBrushPreset(color: color);
-    }
+    if (color == null) return;
+    if (!mounted) return;
+    _updateCurrentBrushPreset(color: color);
   }
 }

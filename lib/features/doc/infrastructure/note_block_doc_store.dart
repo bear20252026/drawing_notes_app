@@ -116,11 +116,15 @@ class NoteBlockDocStore implements SessionSecretsHolder {
           for (var i = 0; i < dek.length; i++) {
             dek[i] = 0;
           }
-        } catch (_) {}
+        } catch (_) {
+          /* 幂等清理：单个 DEK 字节擦除失败继续下一个，清空流程永不抛错 */
+        }
       }
       _sessionDeks.clear();
       _headerCache = null;
-    } catch (_) {}
+    } catch (_) {
+      /* 幂等清理：会话 DEK 清空尽力而为（切后台回锁热路径），失败不外抛 */
+    }
   }
 
   /// 读取指定笔记的落盘字节；若为 v5 文件密码信封则返回其 JSON 串，
@@ -442,24 +446,35 @@ class NoteBlockDocStore implements SessionSecretsHolder {
   }
 
   /// 原子写（bak 备份 + tmp + rename）——保存/设密/改密/重置/移除共用。
+  /// A4 修复（审计 2026-09-07）：tmp 写入/rename 失败时清理残留临时文件
+  /// （favorite_store 同款纪律），防止半写 .tmp 堆积。
   Future<void> _writeFileAtomic(String id, List<int> data) async {
     final path = await _pathFor(id);
     final file = File(path);
     final tmp = File('$path.${LocalIdGenerator.next('write')}.tmp');
-    await tmp.writeAsBytes(data, flush: true);
-    if (await file.exists()) {
-      try {
-        await file.copy('$path.bak');
-      } catch (_) {
-        // 备份失败不阻塞写入
-      }
-    }
     try {
-      await tmp.rename(path);
-    } on FileSystemException {
-      if (!await file.exists()) rethrow;
-      await file.delete();
-      await tmp.rename(path);
+      await tmp.writeAsBytes(data, flush: true);
+      if (await file.exists()) {
+        try {
+          await file.copy('$path.bak');
+        } catch (_) {
+          // 备份失败不阻塞写入
+        }
+      }
+      try {
+        await tmp.rename(path);
+      } on FileSystemException {
+        if (!await file.exists()) rethrow;
+        await file.delete();
+        await tmp.rename(path);
+      }
+    } catch (_) {
+      try {
+        if (await tmp.exists()) await tmp.delete();
+      } catch (_) {
+        // 清理失败不覆盖原始存储异常。
+      }
+      rethrow;
     }
     onWrite?.call();
   }
@@ -516,7 +531,9 @@ class NoteBlockDocStore implements SessionSecretsHolder {
       _lastTrashPurge = now;
       try {
         await purgeExpiredTrash();
-      } catch (_) {}
+      } catch (_) {
+        /* 尽力而为：惰性清理回收站失败不阻塞 listIds 热路径，下次调用再试 */
+      }
     }
     final result = <String>[];
     await for (final entity in (await _ensureDir()).list()) {

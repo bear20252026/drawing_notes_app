@@ -124,7 +124,7 @@ class _PdfAttachmentPreviewState extends State<PdfAttachmentPreview> {
                 const SizedBox(height: 4),
                 Text(
                   'PDF 内嵌预览不可用',
-                  style: TextStyle(fontSize: 12, color: scheme.outline),
+                  style: AppleType.captionStyle(scheme.outline),
                 ),
               ],
             ),

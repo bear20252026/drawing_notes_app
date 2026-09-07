@@ -356,7 +356,19 @@ extension _EditorPageDragOps on _EditorPageState {
   }
 
   /// 图片裁剪 4 角手柄（拖拽调整 _cropRect，画布坐标）。
+  ///
+  /// 照抄 [ResizeHandles] 的热区模式：视觉手柄保持 10×10 小巧观感，
+  /// 命中区外包 44×44（HIG / WCAG 2.5.5 最小触控尺寸，触屏主用设备），
+  /// 热区中心与视觉中心同点，桌面鼠标观感零变化。
   List<Widget> _buildCropHandles() {
+    const handleSize = 10.0;
+    const hitSize = 44.0;
+    const handleLabels = <EditorImageCropHandle, String>{
+      EditorImageCropHandle.topLeft: '调整裁剪框左上角',
+      EditorImageCropHandle.topRight: '调整裁剪框右上角',
+      EditorImageCropHandle.bottomLeft: '调整裁剪框左下角',
+      EditorImageCropHandle.bottomRight: '调整裁剪框右下角',
+    };
     final rect = _cropRect!;
     final handles = <({EditorImageCropHandle handle, Offset position})>[
       (handle: EditorImageCropHandle.topLeft, position: rect.topLeft),
@@ -367,37 +379,47 @@ extension _EditorPageDragOps on _EditorPageState {
     return [
       for (final entry in handles)
         Positioned(
-          left: _controller.canvasToView(entry.position).dx - 5,
-          top: _controller.canvasToView(entry.position).dy - 5,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onPanUpdate: (details) {
-              final canvasDelta = screenDeltaToCanvas(
-                details.delta,
-                _controller.viewRotation,
-                _controller.viewScale,
-              );
-              final image = _cropItem!;
-              final resized = EditorImageCropGeometry.resizeCropRect(
-                cropRect: rect,
-                imageBounds: Rect.fromLTWH(
-                  image.x,
-                  image.y,
-                  image.width,
-                  image.height,
+          left: _controller.canvasToView(entry.position).dx - hitSize / 2,
+          top: _controller.canvasToView(entry.position).dy - hitSize / 2,
+          child: Semantics(
+            label: handleLabels[entry.handle],
+            button: true,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onPanUpdate: (details) {
+                final canvasDelta = screenDeltaToCanvas(
+                  details.delta,
+                  _controller.viewRotation,
+                  _controller.viewScale,
+                );
+                final image = _cropItem!;
+                final resized = EditorImageCropGeometry.resizeCropRect(
+                  cropRect: rect,
+                  imageBounds: Rect.fromLTWH(
+                    image.x,
+                    image.y,
+                    image.width,
+                    image.height,
+                  ),
+                  handle: entry.handle,
+                  canvasDelta: canvasDelta,
+                );
+                _applyState(() => _cropRect = resized);
+              },
+              child: SizedBox(
+                width: hitSize,
+                height: hitSize,
+                child: Center(
+                  child: Container(
+                    width: handleSize,
+                    height: handleSize,
+                    decoration: BoxDecoration(
+                      color: AppleColor.actionBlue,
+                      borderRadius: BorderRadius.circular(AppleRadius.xs),
+                      border: Border.all(color: Colors.white, width: 1),
+                    ),
+                  ),
                 ),
-                handle: entry.handle,
-                canvasDelta: canvasDelta,
-              );
-              _applyState(() => _cropRect = resized);
-            },
-            child: Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(
-                color: const Color(0xFF42A5F5),
-                borderRadius: BorderRadius.circular(AppleRadius.xs),
-                border: Border.all(color: Colors.white, width: 1),
               ),
             ),
           ),

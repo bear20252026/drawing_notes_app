@@ -55,23 +55,33 @@ class SyncManifest {
 
   factory SyncManifest.fromJson(Map<String, dynamic> json) {
     final rawEntries = json['entries'];
-    Map<String, SyncSnapshot> parsedEntries;
+    // B10 修复（审计 2026-09-07）：远端清单不可信——原 `k as String` /
+    // `v as Map` / `e['id'] as String` 裸强转畸形数据抛 TypeError。改为
+    // 类型检查，畸形条目抛 FormatException 整轮中止（fail-closed：宁可
+    // 不同步，也不按残缺清单行动——漏看条目会误判「仅本地」而覆盖远端）。
+    final parsedEntries = <String, SyncSnapshot>{};
     if (rawEntries is Map) {
-      parsedEntries = rawEntries.map(
-        (k, v) =>
-            MapEntry(k as String, _snapshotFromJson(v as Map<String, dynamic>)),
-      );
+      for (final entry in rawEntries.entries) {
+        if (entry.key is! String || entry.value is! Map<String, dynamic>) {
+          throw const FormatException('远端清单条目格式损坏');
+        }
+        parsedEntries[entry.key as String] = _snapshotFromJson(
+          entry.value as Map<String, dynamic>,
+        );
+      }
     } else if (rawEntries is List) {
       // 兼容数组形式 [{id, updatedAt, size}, ...]
-      parsedEntries = {
-        for (final e in rawEntries)
-          (e['id'] as String): _snapshotFromJson(e as Map<String, dynamic>),
-      };
-    } else {
-      parsedEntries = {};
+      for (final e in rawEntries) {
+        if (e is! Map<String, dynamic>) {
+          throw const FormatException('远端清单条目格式损坏');
+        }
+        final snapshot = _snapshotFromJson(e);
+        parsedEntries[snapshot.id] = snapshot;
+      }
     }
+    // 墓碑列表同理用类型过滤（非字符串墓碑忽略——不行动无数据风险）。
     final parsedDeleted = (json['deletedIds'] as List? ?? const [])
-        .map((e) => e as String)
+        .whereType<String>()
         .toSet();
     return SyncManifest(entries: parsedEntries, deletedIds: parsedDeleted);
   }
@@ -82,12 +92,18 @@ class SyncManifest {
     'size': s.size,
   };
 
-  static SyncSnapshot _snapshotFromJson(Map<String, dynamic> json) =>
-      SyncSnapshot(
-        id: json['id'] as String,
-        updatedAt: json['updatedAt'] as int,
-        size: (json['size'] as num?)?.toInt() ?? 0,
-      );
+  static SyncSnapshot _snapshotFromJson(Map<String, dynamic> json) {
+    final id = json['id'];
+    final updatedAt = json['updatedAt'];
+    if (id is! String || updatedAt is! int) {
+      throw const FormatException('远端清单条目格式损坏');
+    }
+    return SyncSnapshot(
+      id: id,
+      updatedAt: updatedAt,
+      size: (json['size'] as num?)?.toInt() ?? 0,
+    );
+  }
 }
 
 /// 同步操作类型。

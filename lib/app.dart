@@ -26,6 +26,7 @@ import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/app_lock_gate.dart';
 import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
+import 'package:drawing_notes_app/shared/utils/time_format.dart';
 
 /// 应用根组件：主题 + 路由。
 ///
@@ -136,9 +137,8 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
     if (nav == null) return;
     final doc = DrawingDocument(
       id: StorageService.newId(),
-      title:
-          '快速记录 ${DateTime.now().hour.toString().padLeft(2, '0')}:'
-          '${DateTime.now().minute.toString().padLeft(2, '0')}',
+      // 单一时刻快照：避免跨午夜的时/分取自两个不同 now()。
+      title: '快速记录 ${formatClock(DateTime.now())}',
     );
     nav.push(
       MaterialPageRoute(

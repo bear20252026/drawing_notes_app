@@ -66,8 +66,9 @@ flutter build windows --debug
 flutter build apk --debug
 ```
 
-> 说明：本项目目录名为中文（`画板`），Android 构建已在
-> `android/gradle.properties` 中设置 `android.overridePathCheck=true` 放行。
+> 说明：若克隆到含中文/非 ASCII 字符的目录，Android 构建需在
+> `android/gradle.properties` 保留 `android.overridePathCheck=true` 放行；
+> 默认英文目录名（如 `drawing_notes_app`）无需该设置。
 
 ## 测试与静态检查
 
@@ -75,7 +76,7 @@ flutter build apk --debug
 # 静态检查（本项目用 dart analyze，flutter analyze 的 LSP 通道与中文路径有兼容问题）
 dart analyze
 
-# 全部单元/组件测试（当前 1255+ 项——覆盖 Phase 1-7 + 安全审计回归 + M0-M10 AFFiNE 块模型/edgeless/All Docs/WebDAV 同步）
+# 全部单元/组件测试（当前 1950+ 项——覆盖 Phase 1-7 + 安全审计回归 + M0-M10 AFFiNE 块模型/edgeless/All Docs/WebDAV 同步 + 2026-09 全量审计回归）
 flutter test
 
 # 架构守护（层方向/零循环/feature 隔离/耦合度量）

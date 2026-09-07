@@ -24,7 +24,39 @@ class StrokePictureCache {
   /// 最大缓存条数（LRU 上限，防长期驻留内存膨胀）。
   final int maxCacheCount;
 
+  /// 内存估算预算上限（字节）。
+  ///
+  /// 依据：对齐 DocumentImageCache 的 96MB 位图量级，但 [ui.Picture] 是
+  /// 矢量录制（无逐像素位图），远轻于图片——取 1/3 即 32MB。条目级仅有
+  /// 条数上限时，4 张「海量点数」笔画集合的 Picture 仍可无限膨胀，
+  /// 故加字节预算双上限。估算公式（保守上界，见 [_estimateBytes]）：
+  ///   每输入采样点 64B + 每笔画固定开销 256B。
+  /// 推导：Stroke 点列为对象点（x,y,pressure 三个 double）；
+  /// perfect_freehand 轮廓点约 2× 输入点，Skia Path 每个 verb 约
+  /// 16-32B → 保守 2×32B=64B/输入点。
+  static const int maxCacheBytes = 32 * 1024 * 1024; // 32MB
+
+  /// 每笔画固定开销（对象/绘制头 + 收尾），配合逐点系数估算条目内存。
+  static const int _perStrokeOverheadBytes = 256;
+
+  /// 每输入采样点的保守字节系数（推导见 [maxCacheBytes]）。
+  static const int _perPointBytes = 64;
+
   final List<_PictureEntry> _entries = [];
+
+  /// 当前缓存条目的估算字节总量（测试/审计）。
+  @visibleForTesting
+  int get estimatedBytes =>
+      _entries.fold(0, (sum, e) => sum + e.estimatedBytes);
+
+  /// 保守估算一批笔画录制为 Picture 的原生内存（见 [maxCacheBytes] 注释）。
+  static int _estimateBytes(List<Stroke> strokes) {
+    var total = 0;
+    for (final stroke in strokes) {
+      total += _perStrokeOverheadBytes + stroke.points.length * _perPointBytes;
+    }
+    return total;
+  }
 
   /// 用 [strokes]（已完成）录制一张预渲染 Picture 并缓存。
   ///
@@ -56,16 +88,24 @@ class StrokePictureCache {
 
     final picture = _renderNow(strokes, usePressure, null, null);
     if (picture != null) {
-      _entries.add(_PictureEntry(fingerprint, picture));
-      if (_entries.length > maxCacheCount) {
-        // 淘汰最久未用并**释放其原生 Picture**（P0 修复，2026-09-06 外部
-        // 专家审计 #3）：此前只 removeAt 不 dispose，被淘汰条目持有的
-        // Skia 原生内存泄漏，长期绘制持续累积。
+      _entries.add(
+        _PictureEntry(fingerprint, picture, _estimateBytes(strokes)),
+      );
+      // 双上限淘汰：条数超 [maxCacheCount] 或字节总量超 [maxCacheBytes]
+      // 均从最久未用端（队首）淘汰，并**释放其原生 Picture**（P0 修复，
+      // 2026-09-06 外部专家审计 #3）：此前只 removeAt 不 dispose，被淘汰
+      // 条目持有的 Skia 原生内存泄漏，长期绘制持续累积。length > 1 守卫：
+      // 刚插入的条目（队尾 MRU）至少保留到下一次插入，防止单条超预算时
+      // 返回给调用方的 Picture 立即被 dispose。
+      while (_entries.length > 1 &&
+          (_entries.length > maxCacheCount || _totalBytes() > maxCacheBytes)) {
         _entries.removeAt(0).picture.dispose();
       }
     }
     return picture;
   }
+
+  int _totalBytes() => _entries.fold(0, (sum, e) => sum + e.estimatedBytes);
 
   /// 清空缓存（回滚/失效率）。
   void invalidate() {
@@ -155,10 +195,12 @@ class _Fingerprint {
       '(${_width.toInt()}x${_height.toInt()}, pressure=$_usePressure)';
 }
 
-/// 缓存条目：指纹 + 预渲染 Picture。
+/// 缓存条目：指纹 + 预渲染 Picture + 内存估算（字节预算用，见
+/// [StrokePictureCache.maxCacheBytes]）。
 class _PictureEntry {
-  _PictureEntry(this.fingerprint, this.picture);
+  _PictureEntry(this.fingerprint, this.picture, this.estimatedBytes);
 
   final _Fingerprint fingerprint;
   final ui.Picture picture;
+  final int estimatedBytes;
 }

@@ -4,6 +4,8 @@
 
 import 'package:flutter/material.dart';
 
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
+
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/shared/widgets/apple_empty_state.dart';
@@ -79,7 +81,7 @@ class _TagsViewState extends State<TagsView> {
                 // 热区补足 44（审计二-1）：18px 图标 + 垂直 13px 内边距。
                 InkWell(
                   onTap: () => setState(() => _selectedTagId = null),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppleRadius.sm),
                   child: const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 13),
                     child: Row(
