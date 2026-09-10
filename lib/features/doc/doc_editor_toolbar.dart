@@ -25,7 +25,7 @@ extension DocEditorToolbar on DocEditorState {
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 2),
                 child: Tooltip(
-                  message: option.tooltip,
+                  message: _blockTypeTooltip(option.type) ?? option.tooltip,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(AppleRadius.md),
                     onTap: _focusedBlockId != null
@@ -75,22 +75,22 @@ extension DocEditorToolbar on DocEditorState {
     return [
       _toolbarIconButton(
         icon: Icons.format_bold,
-        tooltip: '粗体',
+        tooltip: AppLocalizations.of(context)?.mtBold ?? '粗体',
         onPressed: hasFocus ? () => _toggleBold() : null,
       ),
       _toolbarIconButton(
         icon: Icons.format_italic,
-        tooltip: '斜体',
+        tooltip: AppLocalizations.of(context)?.mtItalic ?? '斜体',
         onPressed: hasFocus ? () => _toggleItalic() : null,
       ),
       _toolbarIconButton(
         icon: Icons.format_underline,
-        tooltip: '下划线',
+        tooltip: AppLocalizations.of(context)?.mtUnderline ?? '下划线',
         onPressed: hasFocus ? () => _toggleUnderline() : null,
       ),
       _toolbarIconButton(
         icon: Icons.link,
-        tooltip: '链接',
+        tooltip: AppLocalizations.of(context)?.mtLink ?? '链接',
         onPressed: hasFocus ? () => _insertLink() : null,
       ),
     ];
@@ -130,5 +130,45 @@ extension DocEditorToolbar on DocEditorState {
     if (_focusedBlockId == null) return null;
     final block = _editor.findBlock(_root, _focusedBlockId!);
     return block?.type;
+  }
+
+  /// i18n（E1 批 4）：块类型工具条 tooltip 按 locale 解析（const 列表保持
+  /// zh 数据兜底）。
+  String? _blockTypeTooltip(NoteBlockType type) {
+    final l10n = AppLocalizations.of(context);
+    switch (type) {
+      case NoteBlockType.text:
+        return l10n?.tParagraph ?? '段落';
+      case NoteBlockType.heading:
+        return l10n?.tHeading ?? '标题';
+      case NoteBlockType.todo:
+        return l10n?.tTodo ?? '待办';
+      case NoteBlockType.quote:
+        return l10n?.tQuote ?? '引用';
+      case NoteBlockType.code:
+        return l10n?.tCode ?? '代码';
+      case NoteBlockType.divider:
+        return l10n?.tDivider ?? '分隔线';
+      case NoteBlockType.image:
+        return l10n?.tImage ?? '图片';
+      case NoteBlockType.link:
+        return l10n?.tLink ?? '链接';
+      case NoteBlockType.table:
+        return l10n?.tTable ?? '表格';
+      case NoteBlockType.database:
+        return l10n?.tDatabase ?? '数据库';
+      case NoteBlockType.canvas:
+        return l10n?.tEmbedCanvas ?? '内嵌画布';
+      case NoteBlockType.chart:
+        return l10n?.tEmbedChart ?? '内嵌图表';
+      case NoteBlockType.bullet:
+        return l10n?.tBulletList ?? '无序列表';
+      case NoteBlockType.ordered:
+        return l10n?.tOrderedList ?? '有序列表';
+      case NoteBlockType.toggle:
+      case NoteBlockType.callout:
+      case NoteBlockType.attachment:
+        return null;
+    }
   }
 }

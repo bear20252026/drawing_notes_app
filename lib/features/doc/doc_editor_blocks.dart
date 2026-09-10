@@ -21,14 +21,15 @@ extension DocEditorBlocks on DocEditorState {
             ),
             const SizedBox(height: AppleSpacing.md),
             Text(
-              '键入 / 添加块',
+              AppLocalizations.of(context)?.blkSlashHint ?? '键入 / 添加块',
               style: AppleType.titleStyle(
                 Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: AppleSpacing.xs),
             Text(
-              '按 Enter 分块，按 Backspace 合并空块',
+              AppLocalizations.of(context)?.blkEnterHint ??
+                  '按 Enter 分块，按 Backspace 合并空块',
               style: AppleType.bodyStyle(
                 Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -257,7 +258,7 @@ extension DocEditorBlocks on DocEditorState {
       // U4a：触控目标 ≥44（18px 手柄图标居中在 44×44 热区内）；
       // R6：读屏语义（拖拽排序）。
       child: Semantics(
-        label: '拖拽排序',
+        label: AppLocalizations.of(context)?.blkDragToSort ?? '拖拽排序',
         button: true,
         child: SizedBox(
           width: 44,
@@ -341,24 +342,27 @@ extension DocEditorBlocks on DocEditorState {
 
   /// 为无障碍朗读生成块描述标签。
   String _semanticLabelForBlock(NoteBlock block) {
+    final l10n = AppLocalizations.of(context);
     final typeLabel = switch (block.type) {
       NoteBlockType.heading => '标题${block.props['level'] ?? 1}',
-      NoteBlockType.todo => '待办事项',
-      NoteBlockType.code => '代码块',
-      NoteBlockType.quote => '引用',
-      NoteBlockType.bullet => '无序列表',
-      NoteBlockType.ordered => '有序列表',
-      NoteBlockType.divider => '分割线',
-      NoteBlockType.callout => '提示',
-      NoteBlockType.toggle => '切换列表',
-      NoteBlockType.image => '图片',
-      _ => '段落',
+      NoteBlockType.todo => l10n?.semTodo ?? '待办事项',
+      NoteBlockType.code => l10n?.semCode ?? '代码块',
+      NoteBlockType.quote => l10n?.semQuote ?? '引用',
+      NoteBlockType.bullet => l10n?.semBullet ?? '无序列表',
+      NoteBlockType.ordered => l10n?.semOrdered ?? '有序列表',
+      NoteBlockType.divider => l10n?.semDivider ?? '分割线',
+      NoteBlockType.callout => l10n?.semCallout ?? '提示',
+      NoteBlockType.toggle => l10n?.semToggle ?? '切换列表',
+      NoteBlockType.image => l10n?.semImage ?? '图片',
+      _ => l10n?.semParagraph ?? '段落',
     };
-    return '$typeLabel: ${block.text.isEmpty ? '空' : block.text}';
+    final empty = l10n?.semEmpty ?? '空';
+    return '$typeLabel: ${block.text.isEmpty ? empty : block.text}';
   }
 
   /// 根据块类型构建前缀 widget（列表符号、复选框等）。
   Widget _buildBlockPrefix(NoteBlock block, int index) {
+    final l10n = AppLocalizations.of(context);
     switch (block.type) {
       case NoteBlockType.bullet:
         return const Padding(
@@ -375,7 +379,7 @@ extension DocEditorBlocks on DocEditorState {
         // U4a：触控目标 ≥44（22px 图标居中在 44×44 热区内）；
         // R6：读屏语义（label + checked 状态）。
         return Semantics(
-          label: '完成',
+          label: AppLocalizations.of(context)?.textDone ?? '完成',
           button: true,
           checked: checked,
           child: SizedBox(
@@ -412,7 +416,7 @@ extension DocEditorBlocks on DocEditorState {
         final expanded = block.props['expanded'] as bool? ?? true;
         // U4a：触控目标 ≥44；R6：读屏语义（label + expanded 状态）。
         return Semantics(
-          label: '展开/折叠',
+          label: l10n?.semToggle ?? '切换列表',
           button: true,
           expanded: expanded,
           child: SizedBox(
@@ -638,23 +642,24 @@ extension DocEditorBlocks on DocEditorState {
 
   /// 根据块类型返回占位提示文本。
   String _hintTextForBlockType(NoteBlockType type) {
+    final l10n = AppLocalizations.of(context);
     switch (type) {
       case NoteBlockType.heading:
-        return '标题';
+        return l10n?.hintHeading ?? '标题';
       case NoteBlockType.bullet:
-        return '列表项';
+        return l10n?.hintListItem ?? '列表项';
       case NoteBlockType.ordered:
-        return '列表项';
+        return l10n?.hintListItem ?? '列表项';
       case NoteBlockType.todo:
-        return '待办事项';
+        return l10n?.hintTodo ?? '待办事项';
       case NoteBlockType.toggle:
-        return '切换列表';
+        return l10n?.hintToggle ?? '切换列表';
       case NoteBlockType.quote:
-        return '引用';
+        return l10n?.hintQuote ?? '引用';
       case NoteBlockType.code:
-        return '代码';
+        return l10n?.hintCode ?? '代码';
       case NoteBlockType.text:
-        return '输入内容...';
+        return l10n?.hintTypeContent ?? '输入内容...';
       case NoteBlockType.divider:
       case NoteBlockType.image:
       case NoteBlockType.callout:

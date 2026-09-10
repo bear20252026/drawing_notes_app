@@ -888,7 +888,10 @@ class _DocPageState extends State<DocPage> {
     try {
       await widget.controller?.save(updated);
     } catch (e) {
-      _snack('保存失败，已保持原状态');
+      _snack(
+        (mounted ? AppLocalizations.of(context) : null)?.docSnackSaveKept ??
+            '保存失败，已保持原状态',
+      );
       return;
     }
     if (!mounted) return;
@@ -932,7 +935,10 @@ class _DocPageState extends State<DocPage> {
         await _toggleDocTag(tag.id);
       }
     } catch (e) {
-      _snack('创建标签失败，请重试');
+      _snack(
+        (mounted ? AppLocalizations.of(context) : null)?.docSnackTagFailed ??
+            '创建标签失败，请重试',
+      );
     } finally {
       controller.dispose();
     }

@@ -5,6 +5,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/features/doc/domain/note_database.dart';
 import '../../../../core/theme/apple_design.dart';
@@ -57,13 +58,15 @@ class DatabaseListView extends StatelessWidget {
       child: ListTile(
         leading: Icon(Icons.article_outlined, color: scheme.primary),
         title: Text(
-          title.isEmpty ? '无标题记录' : title,
+          title.isEmpty
+              ? AppLocalizations.of(context)?.dbNoTitleRecord ?? '无标题记录'
+              : title,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(summary, maxLines: 2, overflow: TextOverflow.ellipsis),
         trailing: IconButton(
-          tooltip: '删除记录',
+          tooltip: AppLocalizations.of(context)?.dbDeleteRecord ?? '删除记录',
           icon: const Icon(Icons.close, size: 18),
           onPressed: () => onRemoveRecord(record),
         ),

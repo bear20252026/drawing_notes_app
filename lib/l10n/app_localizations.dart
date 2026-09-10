@@ -4375,6 +4375,702 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Inserted “{name}”'**
   String actInsertedShape(String name);
+
+  /// No description provided for @tParagraph.
+  ///
+  /// In en, this message translates to:
+  /// **'Paragraph'**
+  String get tParagraph;
+
+  /// No description provided for @tHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Heading'**
+  String get tHeading;
+
+  /// No description provided for @tBulletList.
+  ///
+  /// In en, this message translates to:
+  /// **'Bullet list'**
+  String get tBulletList;
+
+  /// No description provided for @tOrderedList.
+  ///
+  /// In en, this message translates to:
+  /// **'Numbered list'**
+  String get tOrderedList;
+
+  /// No description provided for @tTodo.
+  ///
+  /// In en, this message translates to:
+  /// **'To-do'**
+  String get tTodo;
+
+  /// No description provided for @tQuote.
+  ///
+  /// In en, this message translates to:
+  /// **'Quote'**
+  String get tQuote;
+
+  /// No description provided for @tCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Code'**
+  String get tCode;
+
+  /// No description provided for @tDivider.
+  ///
+  /// In en, this message translates to:
+  /// **'Divider'**
+  String get tDivider;
+
+  /// No description provided for @tImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get tImage;
+
+  /// No description provided for @tLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get tLink;
+
+  /// No description provided for @tTable.
+  ///
+  /// In en, this message translates to:
+  /// **'Table'**
+  String get tTable;
+
+  /// No description provided for @tDatabase.
+  ///
+  /// In en, this message translates to:
+  /// **'Database'**
+  String get tDatabase;
+
+  /// No description provided for @tEmbedCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'Embed canvas'**
+  String get tEmbedCanvas;
+
+  /// No description provided for @tEmbedChart.
+  ///
+  /// In en, this message translates to:
+  /// **'Embed chart'**
+  String get tEmbedChart;
+
+  /// No description provided for @docSaveFailedRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Save failed. Please retry'**
+  String get docSaveFailedRetry;
+
+  /// No description provided for @docSavedToast.
+  ///
+  /// In en, this message translates to:
+  /// **'Document saved'**
+  String get docSavedToast;
+
+  /// No description provided for @docToolbarSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get docToolbarSave;
+
+  /// No description provided for @docToolbarOutline.
+  ///
+  /// In en, this message translates to:
+  /// **'Outline'**
+  String get docToolbarOutline;
+
+  /// No description provided for @docToolbarRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get docToolbarRefresh;
+
+  /// No description provided for @docOutlineEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No heading blocks yet — insert a heading via the / menu to see it here'**
+  String get docOutlineEmpty;
+
+  /// No description provided for @docUnsavedChangesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsaved changes'**
+  String get docUnsavedChangesTitle;
+
+  /// No description provided for @docDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get docDiscard;
+
+  /// No description provided for @blkSlashHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type / to add a block'**
+  String get blkSlashHint;
+
+  /// No description provided for @blkEnterHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter splits blocks; Backspace merges empty ones'**
+  String get blkEnterHint;
+
+  /// No description provided for @blkDragToSort.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to sort'**
+  String get blkDragToSort;
+
+  /// No description provided for @semHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Heading {level}'**
+  String semHeading(String level);
+
+  /// No description provided for @semTodo.
+  ///
+  /// In en, this message translates to:
+  /// **'To-do'**
+  String get semTodo;
+
+  /// No description provided for @semCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Code block'**
+  String get semCode;
+
+  /// No description provided for @semQuote.
+  ///
+  /// In en, this message translates to:
+  /// **'Quote'**
+  String get semQuote;
+
+  /// No description provided for @semBullet.
+  ///
+  /// In en, this message translates to:
+  /// **'Bullet list'**
+  String get semBullet;
+
+  /// No description provided for @semOrdered.
+  ///
+  /// In en, this message translates to:
+  /// **'Numbered list'**
+  String get semOrdered;
+
+  /// No description provided for @semDivider.
+  ///
+  /// In en, this message translates to:
+  /// **'Divider'**
+  String get semDivider;
+
+  /// No description provided for @semCallout.
+  ///
+  /// In en, this message translates to:
+  /// **'Callout'**
+  String get semCallout;
+
+  /// No description provided for @semToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle list'**
+  String get semToggle;
+
+  /// No description provided for @semImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get semImage;
+
+  /// No description provided for @semParagraph.
+  ///
+  /// In en, this message translates to:
+  /// **'Paragraph'**
+  String get semParagraph;
+
+  /// No description provided for @semEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'empty'**
+  String get semEmpty;
+
+  /// No description provided for @hintHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Heading'**
+  String get hintHeading;
+
+  /// No description provided for @hintListItem.
+  ///
+  /// In en, this message translates to:
+  /// **'List item'**
+  String get hintListItem;
+
+  /// No description provided for @hintTodo.
+  ///
+  /// In en, this message translates to:
+  /// **'To-do'**
+  String get hintTodo;
+
+  /// No description provided for @hintToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle list'**
+  String get hintToggle;
+
+  /// No description provided for @hintQuote.
+  ///
+  /// In en, this message translates to:
+  /// **'Quote'**
+  String get hintQuote;
+
+  /// No description provided for @hintCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Code'**
+  String get hintCode;
+
+  /// No description provided for @hintTypeContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Type something...'**
+  String get hintTypeContent;
+
+  /// No description provided for @mtBold.
+  ///
+  /// In en, this message translates to:
+  /// **'Bold'**
+  String get mtBold;
+
+  /// No description provided for @mtItalic.
+  ///
+  /// In en, this message translates to:
+  /// **'Italic'**
+  String get mtItalic;
+
+  /// No description provided for @mtUnderline.
+  ///
+  /// In en, this message translates to:
+  /// **'Underline'**
+  String get mtUnderline;
+
+  /// No description provided for @mtLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get mtLink;
+
+  /// No description provided for @mtCopyBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy block'**
+  String get mtCopyBlock;
+
+  /// No description provided for @mtDeleteBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete block'**
+  String get mtDeleteBlock;
+
+  /// No description provided for @outlineTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Outline'**
+  String get outlineTitle;
+
+  /// No description provided for @wBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get wBack;
+
+  /// No description provided for @wInsertPageLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert page link'**
+  String get wInsertPageLink;
+
+  /// No description provided for @wSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get wSave;
+
+  /// No description provided for @wUnfavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from favorites'**
+  String get wUnfavorite;
+
+  /// No description provided for @wFavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite'**
+  String get wFavorite;
+
+  /// No description provided for @wDocInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Document info'**
+  String get wDocInfo;
+
+  /// No description provided for @wMore.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get wMore;
+
+  /// No description provided for @wOpenInCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in canvas'**
+  String get wOpenInCanvas;
+
+  /// No description provided for @wFilePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'File password'**
+  String get wFilePassword;
+
+  /// No description provided for @wShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get wShare;
+
+  /// No description provided for @docSnackSaveKept.
+  ///
+  /// In en, this message translates to:
+  /// **'Save failed; previous state kept'**
+  String get docSnackSaveKept;
+
+  /// No description provided for @docSnackTagFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create the tag. Please retry'**
+  String get docSnackTagFailed;
+
+  /// No description provided for @attUntitled.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled attachment'**
+  String get attUntitled;
+
+  /// No description provided for @attEditDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit description'**
+  String get attEditDesc;
+
+  /// No description provided for @attOpenLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Open link'**
+  String get attOpenLink;
+
+  /// No description provided for @attEditNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit note'**
+  String get attEditNote;
+
+  /// No description provided for @attDescHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment description / note'**
+  String get attDescHint;
+
+  /// No description provided for @sgBasic.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic'**
+  String get sgBasic;
+
+  /// No description provided for @sgQuoteCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Quote & code'**
+  String get sgQuoteCode;
+
+  /// No description provided for @sgMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Media'**
+  String get sgMedia;
+
+  /// No description provided for @sgEmbed.
+  ///
+  /// In en, this message translates to:
+  /// **'Embed'**
+  String get sgEmbed;
+
+  /// No description provided for @sgOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get sgOther;
+
+  /// No description provided for @slashNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No matches'**
+  String get slashNoMatch;
+
+  /// No description provided for @dbUntitled.
+  ///
+  /// In en, this message translates to:
+  /// **'Database'**
+  String get dbUntitled;
+
+  /// No description provided for @dbAddField.
+  ///
+  /// In en, this message translates to:
+  /// **'Add field'**
+  String get dbAddField;
+
+  /// No description provided for @dbAddRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Add record'**
+  String get dbAddRecord;
+
+  /// No description provided for @dbSearchRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Search records'**
+  String get dbSearchRecords;
+
+  /// No description provided for @dbClearFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear filter'**
+  String get dbClearFilter;
+
+  /// No description provided for @dbViewTable.
+  ///
+  /// In en, this message translates to:
+  /// **'Table'**
+  String get dbViewTable;
+
+  /// No description provided for @dbViewKanban.
+  ///
+  /// In en, this message translates to:
+  /// **'Kanban'**
+  String get dbViewKanban;
+
+  /// No description provided for @dbViewList.
+  ///
+  /// In en, this message translates to:
+  /// **'List'**
+  String get dbViewList;
+
+  /// No description provided for @dbCellHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a value'**
+  String get dbCellHint;
+
+  /// No description provided for @dbCellNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Not selected'**
+  String get dbCellNone;
+
+  /// No description provided for @dbRecordCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} records'**
+  String dbRecordCount(int count);
+
+  /// No description provided for @dbKanbanNeedsSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Kanban needs at least one option field; add a select field first'**
+  String get dbKanbanNeedsSelect;
+
+  /// No description provided for @dbUngrouped.
+  ///
+  /// In en, this message translates to:
+  /// **'Ungrouped'**
+  String get dbUngrouped;
+
+  /// No description provided for @dbNoTitleRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled record'**
+  String get dbNoTitleRecord;
+
+  /// No description provided for @dbNoFieldsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No fields yet — tap “Add field” to start the table'**
+  String get dbNoFieldsYet;
+
+  /// No description provided for @dbFieldActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Field actions'**
+  String get dbFieldActions;
+
+  /// No description provided for @dbDeleteField.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete field'**
+  String get dbDeleteField;
+
+  /// No description provided for @dbToggleCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle check'**
+  String get dbToggleCheck;
+
+  /// No description provided for @dbDeleteRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete record'**
+  String get dbDeleteRecord;
+
+  /// No description provided for @embUnsafeImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsafe image source blocked'**
+  String get embUnsafeImage;
+
+  /// No description provided for @embImageFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load image'**
+  String get embImageFailed;
+
+  /// No description provided for @embClickPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to preview'**
+  String get embClickPreview;
+
+  /// No description provided for @embCanvasLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Embedded canvas'**
+  String get embCanvasLabel;
+
+  /// No description provided for @embChartLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Embedded chart'**
+  String get embChartLabel;
+
+  /// No description provided for @embHostBuilderHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Host provides the builder to render full content'**
+  String get embHostBuilderHint;
+
+  /// No description provided for @tblAddColumn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add column'**
+  String get tblAddColumn;
+
+  /// No description provided for @tblDeleteColumn.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete column'**
+  String get tblDeleteColumn;
+
+  /// No description provided for @tblAddRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Add row'**
+  String get tblAddRow;
+
+  /// No description provided for @tblDeleteRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete row'**
+  String get tblDeleteRow;
+
+  /// No description provided for @trashDeleteForeverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete permanently'**
+  String get trashDeleteForeverTitle;
+
+  /// No description provided for @trashTitleBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Trash'**
+  String get trashTitleBar;
+
+  /// No description provided for @trashEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trash is empty'**
+  String get trashEmptyTitle;
+
+  /// No description provided for @trashEmptyTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted notes are kept here for 30 days and can be restored anytime'**
+  String get trashEmptyTip;
+
+  /// No description provided for @trashRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get trashRestore;
+
+  /// No description provided for @tplBlankName.
+  ///
+  /// In en, this message translates to:
+  /// **'Blank note'**
+  String get tplBlankName;
+
+  /// No description provided for @tplBlankDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Start from scratch'**
+  String get tplBlankDesc;
+
+  /// No description provided for @tplMeetingName.
+  ///
+  /// In en, this message translates to:
+  /// **'Meeting notes'**
+  String get tplMeetingName;
+
+  /// No description provided for @tplMeetingDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Topics · decisions · action items'**
+  String get tplMeetingDesc;
+
+  /// No description provided for @tplDailyName.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily journal'**
+  String get tplDailyName;
+
+  /// No description provided for @tplDailyDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Done today · planned tomorrow'**
+  String get tplDailyDesc;
+
+  /// No description provided for @tplTodoName.
+  ///
+  /// In en, this message translates to:
+  /// **'To-do list'**
+  String get tplTodoName;
+
+  /// No description provided for @tplTodoDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Prebuilt to-do blocks'**
+  String get tplTodoDesc;
 }
 
 class _AppLocalizationsDelegate

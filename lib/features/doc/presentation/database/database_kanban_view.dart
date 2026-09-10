@@ -5,6 +5,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/features/doc/domain/note_database.dart';
 import 'package:drawing_notes_app/features/doc/presentation/database/database_cell_editor.dart';
@@ -39,7 +40,11 @@ class DatabaseKanbanView extends StatelessWidget {
       return _empty(context, '还没有记录，点击“添加记录”');
     }
     if (field == null) {
-      return _empty(context, '看板需要至少一个“选项”字段，请先添加 select 字段');
+      return _empty(
+        context,
+        AppLocalizations.of(context)?.dbKanbanNeedsSelect ??
+            '看板需要至少一个“选项”字段，请先添加 select 字段',
+      );
     }
     final buckets = <String, List<NoteRecord>>{};
     for (final r in records) {
@@ -94,7 +99,9 @@ class DatabaseKanbanView extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      value.isEmpty ? '未分组' : value,
+                      value.isEmpty
+                          ? AppLocalizations.of(context)?.dbUngrouped ?? '未分组'
+                          : value,
                       style: const TextStyle(fontWeight: FontWeight.w600),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -140,7 +147,9 @@ class DatabaseKanbanView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              title.isEmpty ? '无标题记录' : title,
+              title.isEmpty
+                  ? AppLocalizations.of(context)?.dbNoTitleRecord ?? '无标题记录'
+                  : title,
               // 14/600/1.29 正好命中梯子里的 {typography.caption-strong}。
               // 会折行到 2 行，原先没有行高（走 Flutter 默认）。
               style: AppleTypeScale.of(AppleTypeScale.captionStrong, null),

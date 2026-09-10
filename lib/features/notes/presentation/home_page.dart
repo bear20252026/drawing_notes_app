@@ -727,8 +727,8 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
                 onPressed: () => Navigator.of(ctx).pop(t),
                 child: ListTile(
                   leading: Icon(_templateIcon(t)),
-                  title: Text(t.label),
-                  subtitle: Text(t.description),
+                  title: Text(_docTemplateNameOf(context, t) ?? t.label),
+                  subtitle: Text(_docTemplateDescOf(context, t)),
                 ),
               ),
             ),

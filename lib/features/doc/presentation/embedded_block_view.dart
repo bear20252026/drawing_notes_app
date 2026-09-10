@@ -10,6 +10,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/utils/safe_url.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
@@ -102,7 +103,7 @@ class EmbeddedBlockView extends StatelessWidget {
       return _buildPlaceholderCard(
         context,
         icon: Icons.shield_outlined,
-        label: '图片来源不安全，已拦截',
+        label: AppLocalizations.of(context)?.embUnsafeImage ?? '图片来源不安全，已拦截',
         caption: caption,
       );
     }
@@ -146,7 +147,8 @@ class EmbeddedBlockView extends StatelessWidget {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              '图片加载失败',
+                              AppLocalizations.of(context)?.embImageFailed ??
+                                  '图片加载失败',
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.outline,
                               ),
@@ -182,7 +184,8 @@ class EmbeddedBlockView extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '点击预览',
+                              AppLocalizations.of(context)?.embClickPreview ??
+                                  '点击预览',
                               style: AppleType.captionStyle(Colors.white),
                             ),
                           ],
@@ -374,8 +377,12 @@ class EmbeddedBlockView extends StatelessWidget {
     return _buildPlaceholderCard(
       context,
       icon: isCanvas ? Icons.dashboard_customize_outlined : Icons.bar_chart,
-      label: isCanvas ? '内嵌画布' : '内嵌图表',
-      caption: '由宿主提供 builder 以渲染完整内容',
+      label: isCanvas
+          ? AppLocalizations.of(context)?.embCanvasLabel ?? '内嵌画布'
+          : AppLocalizations.of(context)?.embChartLabel ?? '内嵌图表',
+      caption:
+          AppLocalizations.of(context)?.embHostBuilderHint ??
+          '由宿主提供 builder 以渲染完整内容',
     );
   }
 

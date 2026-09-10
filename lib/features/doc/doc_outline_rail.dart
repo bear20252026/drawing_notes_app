@@ -9,6 +9,7 @@
 // （即 AFFiNE 的 desktop/ 与 mobile/ 两棵视图树共享同一批 services 的思路）。
 // 若沿用统一的停靠窄栏，手机上 240 会吃掉约 60% 屏宽，编辑器只剩 160。
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 /// 大纲条目（由宿主从编辑器抽取）。
 class OutlineEntry {
@@ -88,7 +89,7 @@ class DocOutlinePanel extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    '大纲',
+                    AppLocalizations.of(context)?.outlineTitle ?? '大纲',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -96,7 +97,7 @@ class DocOutlinePanel extends StatelessWidget {
                 ),
                 if (showCloseButton && onClose != null)
                   IconButton(
-                    tooltip: '关闭',
+                    tooltip: AppLocalizations.of(context)?.close ?? '关闭',
                     icon: const Icon(Icons.close_rounded, size: 18),
                     onPressed: onClose,
                   ),

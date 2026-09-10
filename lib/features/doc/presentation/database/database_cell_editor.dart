@@ -5,6 +5,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import '../../../../core/theme/apple_design.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 
@@ -35,16 +36,18 @@ Future<void> showTextCellEditor(
             keyboardType: numeric
                 ? const TextInputType.numberWithOptions(decimal: true)
                 : null,
-            decoration: const InputDecoration(hintText: '输入值'),
+            decoration: InputDecoration(
+              hintText: AppLocalizations.of(context)?.dbCellHint ?? '输入值',
+            ),
           ),
           actions: AppleDialog.actions([
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('取消'),
+              child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, controller.text),
-              child: const Text('确定'),
+              child: Text(AppLocalizations.of(context)?.commonConfirm ?? '确定'),
             ),
           ]),
         );
@@ -84,7 +87,7 @@ Future<void> showSelectPicker(
           for (final o in options)
             ListTile(title: Text(o), onTap: () => Navigator.pop(ctx, o)),
           ListTile(
-            title: const Text('未选择'),
+            title: Text(AppLocalizations.of(context)?.dbCellNone ?? '未选择'),
             onTap: () => Navigator.pop(ctx, ''),
           ),
         ],
@@ -110,7 +113,10 @@ class DatabaseCountPill extends StatelessWidget {
         color: scheme.primaryContainer,
         borderRadius: BorderRadius.circular(AppleRadius.md),
       ),
-      child: Text('$count 条记录', style: AppleType.captionStyle(scheme.primary)),
+      child: Text(
+        AppLocalizations.of(context)?.dbRecordCount(count) ?? '$count 条记录',
+        style: AppleType.captionStyle(scheme.primary),
+      ),
     );
   }
 }

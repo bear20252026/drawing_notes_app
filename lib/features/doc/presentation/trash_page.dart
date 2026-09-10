@@ -6,6 +6,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
@@ -51,11 +52,12 @@ class _TrashPageState extends State<TrashPage> {
     // R2-M4：改用公共 AppleDialog.confirm（原样板 24 行收敛为 7 行）。
     final ok = await GlassDialog.confirm(
       context,
-      title: '彻底删除',
+      title: AppLocalizations.of(context)?.trashDeleteForeverTitle ?? '彻底删除',
       content:
           '「${entry.doc.title.isEmpty ? '未命名' : entry.doc.title}」'
           '将被永久删除，无法恢复。确定继续吗？',
-      confirmText: '彻底删除',
+      confirmText:
+          AppLocalizations.of(context)?.trashDeleteForeverTitle ?? '彻底删除',
       dangerous: true,
     );
     if (ok) {
@@ -69,7 +71,9 @@ class _TrashPageState extends State<TrashPage> {
     final entries = _entries;
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('回收站')),
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context)?.trashTitleBar ?? '回收站'),
+      ),
       body: entries == null
           // 审计二-6：列表加载骨架屏（形态先行）。
           ? const Padding(
@@ -87,10 +91,13 @@ class _TrashPageState extends State<TrashPage> {
                     color: scheme.onSurfaceVariant,
                   ),
                   const SizedBox(height: 12),
-                  const Text('回收站是空的'),
+                  Text(
+                    AppLocalizations.of(context)?.trashEmptyTitle ?? '回收站是空的',
+                  ),
                   const SizedBox(height: 4),
                   Text(
-                    '删除的笔记在此保留 30 天，可随时恢复',
+                    AppLocalizations.of(context)?.trashEmptyTip ??
+                        '删除的笔记在此保留 30 天，可随时恢复',
                     style: AppleType.captionStyle(scheme.onSurfaceVariant),
                   ),
                 ],
@@ -107,7 +114,9 @@ class _TrashPageState extends State<TrashPage> {
                 return ListTile(
                   leading: const Icon(Icons.edit_note_rounded),
                   title: Text(
-                    entry.doc.title.isEmpty ? '未命名' : entry.doc.title,
+                    entry.doc.title.isEmpty
+                        ? AppLocalizations.of(context)?.docUntitled ?? '未命名'
+                        : entry.doc.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -120,7 +129,8 @@ class _TrashPageState extends State<TrashPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        tooltip: '恢复',
+                        tooltip:
+                            AppLocalizations.of(context)?.trashRestore ?? '恢复',
                         icon: const Icon(Icons.restore_rounded),
                         onPressed: () async {
                           await widget.onRestore(entry.doc.id);
@@ -128,7 +138,11 @@ class _TrashPageState extends State<TrashPage> {
                         },
                       ),
                       IconButton(
-                        tooltip: '彻底删除',
+                        tooltip:
+                            AppLocalizations.of(
+                              context,
+                            )?.trashDeleteForeverTitle ??
+                            '彻底删除',
                         icon: Icon(
                           Icons.delete_forever_rounded,
                           color: scheme.error,

@@ -2371,4 +2371,361 @@ class AppLocalizationsEn extends AppLocalizations {
   String actInsertedShape(String name) {
     return 'Inserted “$name”';
   }
+
+  @override
+  String get tParagraph => 'Paragraph';
+
+  @override
+  String get tHeading => 'Heading';
+
+  @override
+  String get tBulletList => 'Bullet list';
+
+  @override
+  String get tOrderedList => 'Numbered list';
+
+  @override
+  String get tTodo => 'To-do';
+
+  @override
+  String get tQuote => 'Quote';
+
+  @override
+  String get tCode => 'Code';
+
+  @override
+  String get tDivider => 'Divider';
+
+  @override
+  String get tImage => 'Image';
+
+  @override
+  String get tLink => 'Link';
+
+  @override
+  String get tTable => 'Table';
+
+  @override
+  String get tDatabase => 'Database';
+
+  @override
+  String get tEmbedCanvas => 'Embed canvas';
+
+  @override
+  String get tEmbedChart => 'Embed chart';
+
+  @override
+  String get docSaveFailedRetry => 'Save failed. Please retry';
+
+  @override
+  String get docSavedToast => 'Document saved';
+
+  @override
+  String get docToolbarSave => 'Save';
+
+  @override
+  String get docToolbarOutline => 'Outline';
+
+  @override
+  String get docToolbarRefresh => 'Refresh';
+
+  @override
+  String get docOutlineEmpty =>
+      'No heading blocks yet — insert a heading via the / menu to see it here';
+
+  @override
+  String get docUnsavedChangesTitle => 'Unsaved changes';
+
+  @override
+  String get docDiscard => 'Discard';
+
+  @override
+  String get blkSlashHint => 'Type / to add a block';
+
+  @override
+  String get blkEnterHint => 'Enter splits blocks; Backspace merges empty ones';
+
+  @override
+  String get blkDragToSort => 'Drag to sort';
+
+  @override
+  String semHeading(String level) {
+    return 'Heading $level';
+  }
+
+  @override
+  String get semTodo => 'To-do';
+
+  @override
+  String get semCode => 'Code block';
+
+  @override
+  String get semQuote => 'Quote';
+
+  @override
+  String get semBullet => 'Bullet list';
+
+  @override
+  String get semOrdered => 'Numbered list';
+
+  @override
+  String get semDivider => 'Divider';
+
+  @override
+  String get semCallout => 'Callout';
+
+  @override
+  String get semToggle => 'Toggle list';
+
+  @override
+  String get semImage => 'Image';
+
+  @override
+  String get semParagraph => 'Paragraph';
+
+  @override
+  String get semEmpty => 'empty';
+
+  @override
+  String get hintHeading => 'Heading';
+
+  @override
+  String get hintListItem => 'List item';
+
+  @override
+  String get hintTodo => 'To-do';
+
+  @override
+  String get hintToggle => 'Toggle list';
+
+  @override
+  String get hintQuote => 'Quote';
+
+  @override
+  String get hintCode => 'Code';
+
+  @override
+  String get hintTypeContent => 'Type something...';
+
+  @override
+  String get mtBold => 'Bold';
+
+  @override
+  String get mtItalic => 'Italic';
+
+  @override
+  String get mtUnderline => 'Underline';
+
+  @override
+  String get mtLink => 'Link';
+
+  @override
+  String get mtCopyBlock => 'Copy block';
+
+  @override
+  String get mtDeleteBlock => 'Delete block';
+
+  @override
+  String get outlineTitle => 'Outline';
+
+  @override
+  String get wBack => 'Back';
+
+  @override
+  String get wInsertPageLink => 'Insert page link';
+
+  @override
+  String get wSave => 'Save';
+
+  @override
+  String get wUnfavorite => 'Remove from favorites';
+
+  @override
+  String get wFavorite => 'Favorite';
+
+  @override
+  String get wDocInfo => 'Document info';
+
+  @override
+  String get wMore => 'More';
+
+  @override
+  String get wOpenInCanvas => 'Open in canvas';
+
+  @override
+  String get wFilePassword => 'File password';
+
+  @override
+  String get wShare => 'Share';
+
+  @override
+  String get docSnackSaveKept => 'Save failed; previous state kept';
+
+  @override
+  String get docSnackTagFailed => 'Failed to create the tag. Please retry';
+
+  @override
+  String get attUntitled => 'Untitled attachment';
+
+  @override
+  String get attEditDesc => 'Edit description';
+
+  @override
+  String get attOpenLink => 'Open link';
+
+  @override
+  String get attEditNote => 'Edit note';
+
+  @override
+  String get attDescHint => 'Attachment description / note';
+
+  @override
+  String get sgBasic => 'Basic';
+
+  @override
+  String get sgQuoteCode => 'Quote & code';
+
+  @override
+  String get sgMedia => 'Media';
+
+  @override
+  String get sgEmbed => 'Embed';
+
+  @override
+  String get sgOther => 'Other';
+
+  @override
+  String get slashNoMatch => 'No matches';
+
+  @override
+  String get dbUntitled => 'Database';
+
+  @override
+  String get dbAddField => 'Add field';
+
+  @override
+  String get dbAddRecord => 'Add record';
+
+  @override
+  String get dbSearchRecords => 'Search records';
+
+  @override
+  String get dbClearFilter => 'Clear filter';
+
+  @override
+  String get dbViewTable => 'Table';
+
+  @override
+  String get dbViewKanban => 'Kanban';
+
+  @override
+  String get dbViewList => 'List';
+
+  @override
+  String get dbCellHint => 'Enter a value';
+
+  @override
+  String get dbCellNone => 'Not selected';
+
+  @override
+  String dbRecordCount(int count) {
+    return '$count records';
+  }
+
+  @override
+  String get dbKanbanNeedsSelect =>
+      'Kanban needs at least one option field; add a select field first';
+
+  @override
+  String get dbUngrouped => 'Ungrouped';
+
+  @override
+  String get dbNoTitleRecord => 'Untitled record';
+
+  @override
+  String get dbNoFieldsYet =>
+      'No fields yet — tap “Add field” to start the table';
+
+  @override
+  String get dbFieldActions => 'Field actions';
+
+  @override
+  String get dbDeleteField => 'Delete field';
+
+  @override
+  String get dbToggleCheck => 'Toggle check';
+
+  @override
+  String get dbDeleteRecord => 'Delete record';
+
+  @override
+  String get embUnsafeImage => 'Unsafe image source blocked';
+
+  @override
+  String get embImageFailed => 'Failed to load image';
+
+  @override
+  String get embClickPreview => 'Tap to preview';
+
+  @override
+  String get embCanvasLabel => 'Embedded canvas';
+
+  @override
+  String get embChartLabel => 'Embedded chart';
+
+  @override
+  String get embHostBuilderHint =>
+      'Host provides the builder to render full content';
+
+  @override
+  String get tblAddColumn => 'Add column';
+
+  @override
+  String get tblDeleteColumn => 'Delete column';
+
+  @override
+  String get tblAddRow => 'Add row';
+
+  @override
+  String get tblDeleteRow => 'Delete row';
+
+  @override
+  String get trashDeleteForeverTitle => 'Delete permanently';
+
+  @override
+  String get trashTitleBar => 'Trash';
+
+  @override
+  String get trashEmptyTitle => 'Trash is empty';
+
+  @override
+  String get trashEmptyTip =>
+      'Deleted notes are kept here for 30 days and can be restored anytime';
+
+  @override
+  String get trashRestore => 'Restore';
+
+  @override
+  String get tplBlankName => 'Blank note';
+
+  @override
+  String get tplBlankDesc => 'Start from scratch';
+
+  @override
+  String get tplMeetingName => 'Meeting notes';
+
+  @override
+  String get tplMeetingDesc => 'Topics · decisions · action items';
+
+  @override
+  String get tplDailyName => 'Daily journal';
+
+  @override
+  String get tplDailyDesc => 'Done today · planned tomorrow';
+
+  @override
+  String get tplTodoName => 'To-do list';
+
+  @override
+  String get tplTodoDesc => 'Prebuilt to-do blocks';
 }

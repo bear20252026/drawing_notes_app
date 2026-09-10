@@ -177,23 +177,35 @@ extension DocEditorSelection on DocEditorState {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _selectionToolbarIcon(Icons.format_bold, '粗体', _toggleBold),
-                _selectionToolbarIcon(Icons.format_italic, '斜体', _toggleItalic),
+                _selectionToolbarIcon(
+                  Icons.format_bold,
+                  AppLocalizations.of(context)?.mtBold ?? '粗体',
+                  _toggleBold,
+                ),
+                _selectionToolbarIcon(
+                  Icons.format_italic,
+                  AppLocalizations.of(context)?.mtItalic ?? '斜体',
+                  _toggleItalic,
+                ),
                 _selectionToolbarIcon(
                   Icons.format_underline,
-                  '下划线',
+                  AppLocalizations.of(context)?.mtUnderline ?? '下划线',
                   _toggleUnderline,
                 ),
-                _selectionToolbarIcon(Icons.link, '链接', _insertLink),
+                _selectionToolbarIcon(
+                  Icons.link,
+                  AppLocalizations.of(context)?.mtLink ?? '链接',
+                  _insertLink,
+                ),
                 _selectionToolbarDivider(),
                 _selectionToolbarIcon(
                   Icons.content_copy_rounded,
-                  '复制块',
+                  AppLocalizations.of(context)?.mtCopyBlock ?? '复制块',
                   _duplicateFocusedBlock,
                 ),
                 _selectionToolbarIcon(
                   Icons.delete_outline_rounded,
-                  '删除块',
+                  AppLocalizations.of(context)?.mtDeleteBlock ?? '删除块',
                   _deleteFocusedBlock,
                 ),
               ],

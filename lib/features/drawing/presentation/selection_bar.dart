@@ -100,7 +100,9 @@ class SelectionBar extends StatelessWidget {
   Widget _buildMixedLockButton(BuildContext context, _SelectionState s) {
     return SelectionActionButton(
       icon: s.hasLockedObjects ? Icons.lock : Icons.lock_open,
-      tooltip: s.hasLockedObjects ? '解锁选中对象' : '锁定选中对象，防止误触编辑',
+      tooltip: s.hasLockedObjects
+          ? AppLocalizations.of(context)?.selUnlock ?? '解锁选中对象'
+          : AppLocalizations.of(context)?.selLock ?? '锁定选中对象，防止误触编辑',
       onTap: controller.toggleSelectedDocumentObjectsLock,
     );
   }

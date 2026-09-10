@@ -62,7 +62,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       leading: IconButton(
-        tooltip: '返回',
+        tooltip: AppLocalizations.of(context)?.wBack ?? '返回',
         icon: const Icon(Icons.arrow_back_rounded),
         onPressed: () => Navigator.of(context).maybePop(),
       ),
@@ -112,17 +112,19 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
           ),
         if (!isNarrow)
           IconButton(
-            tooltip: '插入页面链接',
+            tooltip: AppLocalizations.of(context)?.wInsertPageLink ?? '插入页面链接',
             icon: const Icon(Icons.insert_link_rounded),
             onPressed: onInsertPageLink,
           ),
         IconButton(
-          tooltip: '保存',
+          tooltip: AppLocalizations.of(context)?.wSave ?? '保存',
           icon: const Icon(Icons.save_outlined),
           onPressed: onSavePressed,
         ),
         IconButton(
-          tooltip: isFavorite ? '取消收藏' : '收藏',
+          tooltip: isFavorite
+              ? AppLocalizations.of(context)?.wUnfavorite ?? '取消收藏'
+              : AppLocalizations.of(context)?.wFavorite ?? '收藏',
           icon: Icon(
             isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
             color: isFavorite ? AppleColor.favourite : null,
@@ -131,12 +133,12 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
         ),
         if (!isNarrow)
           IconButton(
-            tooltip: '文档信息',
+            tooltip: AppLocalizations.of(context)?.wDocInfo ?? '文档信息',
             icon: const Icon(Icons.info_outline_rounded, size: 20),
             onPressed: onShowInfo,
           ),
         PopupMenuButton<String>(
-          tooltip: '更多',
+          tooltip: AppLocalizations.of(context)?.wMore ?? '更多',
           icon: const Icon(Icons.more_horiz_rounded),
           onSelected: (v) {
             // 移动端把顶栏装不下的动作收进此处（功能不消失，只换位置）。
@@ -161,7 +163,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
                       color: scheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 10),
-                    const Text('文档信息'),
+                    Text(AppLocalizations.of(context)?.wDocInfo ?? '文档信息'),
                   ],
                 ),
               ),
@@ -176,7 +178,9 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
                       color: scheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 10),
-                    const Text('插入页面链接'),
+                    Text(
+                      AppLocalizations.of(context)?.wInsertPageLink ?? '插入页面链接',
+                    ),
                   ],
                 ),
               ),
@@ -233,7 +237,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
                     color: scheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 10),
-                  const Text('在画布中打开'),
+                  Text(AppLocalizations.of(context)?.wOpenInCanvas ?? '在画布中打开'),
                 ],
               ),
             ),
@@ -249,7 +253,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
                       color: scheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 10),
-                    const Text('文件密码'),
+                    Text(AppLocalizations.of(context)?.wFilePassword ?? '文件密码'),
                   ],
                 ),
               ),
@@ -261,7 +265,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
             child: FilledButton.icon(
               onPressed: () => _showShareSnackBar(context),
               icon: const Icon(Icons.ios_share_rounded, size: 15),
-              label: const Text('分享'),
+              label: Text(AppLocalizations.of(context)?.wShare ?? '分享'),
               style: FilledButton.styleFrom(
                 backgroundColor: AppleColor.actionBlue,
                 foregroundColor: Colors.white,
@@ -274,12 +278,12 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
         // 移动端：带文字的分享按钮放不下，收为图标按钮。
         if (isNarrow)
           IconButton(
-            tooltip: '分享',
+            tooltip: AppLocalizations.of(context)?.wShare ?? '分享',
             icon: const Icon(Icons.ios_share_rounded),
             onPressed: () => _showShareSnackBar(context),
           ),
         IconButton(
-          tooltip: '大纲',
+          tooltip: AppLocalizations.of(context)?.docToolbarOutline ?? '大纲',
           icon: Icon(
             Icons.format_list_bulleted_rounded,
             color: outlineOpen ? scheme.primary : null,
@@ -384,7 +388,9 @@ class _BacklinksPanelState extends State<_BacklinksPanel> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        doc.title.isEmpty ? '未命名' : doc.title,
+                        doc.title.isEmpty
+                            ? AppLocalizations.of(context)?.docUntitled ?? '未命名'
+                            : doc.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontSize: 13, color: scheme.onSurface),

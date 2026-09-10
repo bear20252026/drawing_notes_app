@@ -3,6 +3,7 @@
 // 仅依赖 notes 展示层与 domain 模型。
 
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
 import '../../../core/theme/apple_design.dart';
@@ -307,7 +308,7 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
       padding: const EdgeInsets.all(24),
       child: Center(
         child: Text(
-          '无匹配项',
+          AppLocalizations.of(context)?.slashNoMatch ?? '无匹配项',
           style: AppleType.controlStyle(
             AppleColor.mutedOf(Theme.of(context).colorScheme),
           ).copyWith(fontWeight: FontWeight.w400),
@@ -372,7 +373,7 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
       child: Align(
         alignment: Alignment.centerLeft,
         child: Text(
-          group.title,
+          _slashGroupTitleOf(context, group) ?? group.title,
           style: AppleType.captionStyle(
             AppleColor.mutedOf(Theme.of(context).colorScheme),
           ).copyWith(fontWeight: FontWeight.w600, letterSpacing: 0.5),
@@ -464,5 +465,22 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
 
   void _selectItem(SlashItem item) {
     widget.onSelected(item.type);
+  }
+}
+
+/// i18n（E1 批 4）：/ 菜单分组头按 locale 解析（enum 的 title 为 zh 兜底）。
+String? _slashGroupTitleOf(BuildContext context, SlashItemGroup group) {
+  final l10n = AppLocalizations.of(context);
+  switch (group) {
+    case SlashItemGroup.basic:
+      return l10n?.sgBasic ?? '基础';
+    case SlashItemGroup.quoteCode:
+      return l10n?.sgQuoteCode ?? '引用与代码';
+    case SlashItemGroup.media:
+      return l10n?.sgMedia ?? '媒体';
+    case SlashItemGroup.embed:
+      return l10n?.sgEmbed ?? '嵌入';
+    case SlashItemGroup.other:
+      return l10n?.sgOther ?? '其他';
   }
 }

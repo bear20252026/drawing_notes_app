@@ -8,6 +8,7 @@ library;
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/storage/pdf_preview_renderer.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
@@ -121,7 +122,9 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      a.name.isEmpty ? '未命名附件' : a.name,
+                      a.name.isEmpty
+                          ? AppLocalizations.of(context)?.attUntitled ?? '未命名附件'
+                          : a.name,
                       style: const TextStyle(fontWeight: FontWeight.w600),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -147,7 +150,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
                   ),
                 ),
               IconButton(
-                tooltip: '编辑描述',
+                tooltip: AppLocalizations.of(context)?.attEditDesc ?? '编辑描述',
                 icon: const Icon(Icons.edit_outlined, size: 18),
                 onPressed: () => _editDescription(),
               ),
@@ -257,7 +260,9 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
               OutlinedButton.icon(
                 onPressed: () => _open(a),
                 icon: const Icon(Icons.open_in_new, size: 16),
-                label: const Text('打开链接'),
+                label: Text(
+                  AppLocalizations.of(context)?.attOpenLink ?? '打开链接',
+                ),
               ),
             ],
           ),
@@ -281,20 +286,25 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
         builder: (ctx) {
           routeExited = ModalRoute.of(ctx)!.completed;
           return AlertDialog(
-            title: const Text('编辑备注'),
+            title: Text(AppLocalizations.of(context)?.attEditNote ?? '编辑备注'),
             content: TextField(
               controller: controller,
               autofocus: true,
-              decoration: const InputDecoration(hintText: '附件的描述/备注'),
+              decoration: InputDecoration(
+                hintText:
+                    AppLocalizations.of(context)?.attDescHint ?? '附件的描述/备注',
+              ),
             ),
             actions: AppleDialog.actions([
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('取消'),
+                child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, controller.text),
-                child: const Text('确定'),
+                child: Text(
+                  AppLocalizations.of(context)?.commonConfirm ?? '确定',
+                ),
               ),
             ]),
           );

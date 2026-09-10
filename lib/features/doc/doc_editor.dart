@@ -17,6 +17,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_motion.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
@@ -649,9 +650,13 @@ class DocEditorState extends State<DocEditor> {
       await widget.onSave!(doc);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('保存失败，请重试')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)?.docSaveFailedRetry ?? '保存失败，请重试',
+            ),
+          ),
+        );
       }
       return;
     }
@@ -662,7 +667,10 @@ class DocEditorState extends State<DocEditor> {
         _isDirty = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('文档已保存'), duration: Duration(seconds: 1)),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)?.docSavedToast ?? '文档已保存'),
+          duration: const Duration(seconds: 1),
+        ),
       );
     }
   }
@@ -703,19 +711,22 @@ class DocEditorState extends State<DocEditor> {
                       padding: const EdgeInsets.only(right: AppleSpacing.sm),
                       child: Center(
                         child: Text(
-                          '未保存',
+                          AppLocalizations.of(context)?.saveStateUnsaved ??
+                              '未保存',
                           style: AppleType.captionStyle(AppleColor.actionBlue),
                         ),
                       ),
                     ),
                   if (widget.onSave != null)
                     IconButton(
-                      tooltip: '保存',
+                      tooltip:
+                          AppLocalizations.of(context)?.docToolbarSave ?? '保存',
                       icon: const Icon(Icons.save),
                       onPressed: _manualSave,
                     ),
                   IconButton(
-                    tooltip: '大纲',
+                    tooltip:
+                        AppLocalizations.of(context)?.docToolbarOutline ?? '大纲',
                     icon: Icon(
                       Icons.format_list_bulleted_rounded,
                       color: _outlineOpen
@@ -875,14 +886,15 @@ class DocEditorState extends State<DocEditor> {
                 children: [
                   Expanded(
                     child: Text(
-                      '大纲',
+                      AppLocalizations.of(context)?.outlineTitle ?? '大纲',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
                   IconButton(
-                    tooltip: '刷新',
+                    tooltip:
+                        AppLocalizations.of(context)?.docToolbarRefresh ?? '刷新',
                     icon: const Icon(Icons.refresh, size: 20),
                     onPressed: () => setState(() {}),
                   ),
@@ -894,7 +906,8 @@ class DocEditorState extends State<DocEditor> {
               child: entries.isEmpty
                   ? Center(
                       child: Text(
-                        '暂无标题块，用 / 菜单插入「标题」后出现在这里',
+                        AppLocalizations.of(context)?.docOutlineEmpty ??
+                            '暂无标题块，用 / 菜单插入「标题」后出现在这里',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: scheme.onSurfaceVariant,
@@ -945,21 +958,23 @@ class DocEditorState extends State<DocEditor> {
     GlassDialog.show<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('未保存的改动'),
+        title: Text(
+          AppLocalizations.of(context)?.docUnsavedChangesTitle ?? '未保存的改动',
+        ),
         content: const Text('文档有未保存的改动，确定要退出吗？'),
         actions: AppleDialog.actions([
           TextButton(
             // 键盘可达 + 防误触：默认聚焦「取消」，Enter 不会直接丢数据。
             autofocus: true,
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('取消'),
+            child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
           ),
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
               Navigator.of(context).pop();
             },
-            child: const Text('放弃'),
+            child: Text(AppLocalizations.of(context)?.docDiscard ?? '放弃'),
           ),
         ]),
       ),

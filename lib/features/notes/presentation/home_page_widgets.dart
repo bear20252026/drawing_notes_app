@@ -442,3 +442,33 @@ class _NameDialogState extends State<_NameDialog> {
     );
   }
 }
+
+/// i18n（E1 批 4）：块文档模板名展示端本地化（domain 的 label 为 zh 兜底）。
+String? _docTemplateNameOf(BuildContext context, DocTemplate t) {
+  final l10n = AppLocalizations.of(context);
+  switch (t) {
+    case DocTemplate.blank:
+      return l10n?.tplBlankName ?? '空白笔记';
+    case DocTemplate.meeting:
+      return l10n?.tplMeetingName ?? '会议纪要';
+    case DocTemplate.daily:
+      return l10n?.tplDailyName ?? '每日日志';
+    case DocTemplate.todoList:
+      return l10n?.tplTodoName ?? '待办清单';
+  }
+}
+
+/// i18n（E1 批 4）：模板说明展示端本地化。
+String _docTemplateDescOf(BuildContext context, DocTemplate t) {
+  final l10n = AppLocalizations.of(context);
+  switch (t) {
+    case DocTemplate.blank:
+      return l10n?.tplBlankDesc ?? '从零开始';
+    case DocTemplate.meeting:
+      return l10n?.tplMeetingDesc ?? '议题 · 决议 · 行动项';
+    case DocTemplate.daily:
+      return l10n?.tplDailyDesc ?? '今日完成 · 明日计划';
+    case DocTemplate.todoList:
+      return l10n?.tplTodoDesc ?? '预置待办块';
+  }
+}

@@ -10,6 +10,7 @@ library;
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_database.dart';
@@ -107,7 +108,9 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
             const SizedBox(width: 2),
             Flexible(
               child: Text(
-                _db.title.isEmpty ? '数据库' : _db.title,
+                _db.title.isEmpty
+                    ? AppLocalizations.of(context)?.dbUntitled ?? '数据库'
+                    : _db.title,
                 style: text.bodyLarge?.copyWith(
                   color: scheme.primary,
                   fontWeight: FontWeight.w600,
@@ -125,12 +128,12 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
             _buildViewTypeSwitch(),
             const Spacer(),
             IconButton(
-              tooltip: '添加字段',
+              tooltip: AppLocalizations.of(context)?.dbAddField ?? '添加字段',
               icon: const Icon(Icons.playlist_add, size: 18),
               onPressed: _addField,
             ),
             IconButton(
-              tooltip: '添加记录',
+              tooltip: AppLocalizations.of(context)?.dbAddRecord ?? '添加记录',
               icon: const Icon(Icons.add, size: 20),
               onPressed: _addRecord,
             ),
@@ -142,12 +145,13 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
           child: TextField(
             controller: _filterController,
             decoration: InputDecoration(
-              hintText: '搜索记录',
+              hintText: AppLocalizations.of(context)?.dbSearchRecords ?? '搜索记录',
               prefixIcon: const Icon(Icons.search, size: 18),
               suffixIcon: _filterQuery.isEmpty
                   ? null
                   : IconButton(
-                      tooltip: '清除筛选',
+                      tooltip:
+                          AppLocalizations.of(context)?.dbClearFilter ?? '清除筛选',
                       icon: const Icon(Icons.clear, size: 18),
                       onPressed: () {
                         _filterController.clear();
@@ -188,21 +192,21 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
         visualDensity: VisualDensity.compact,
         padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 8)),
       ),
-      segments: const [
+      segments: [
         ButtonSegment(
           value: DatabaseViewType.table,
           icon: Icon(Icons.table_chart_outlined, size: 16),
-          tooltip: '表',
+          tooltip: AppLocalizations.of(context)?.dbViewTable ?? '表',
         ),
         ButtonSegment(
           value: DatabaseViewType.kanban,
           icon: Icon(Icons.view_kanban_outlined, size: 16),
-          tooltip: '看板',
+          tooltip: AppLocalizations.of(context)?.dbViewKanban ?? '看板',
         ),
         ButtonSegment(
           value: DatabaseViewType.list,
           icon: Icon(Icons.view_list_outlined, size: 16),
-          tooltip: '列表',
+          tooltip: AppLocalizations.of(context)?.dbViewList ?? '列表',
         ),
       ],
       selected: {_db.viewType},

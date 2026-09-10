@@ -5,6 +5,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/utils/safe_url.dart';
 import '../../../core/theme/apple_design.dart';
@@ -26,7 +27,7 @@ Future<void> showImagePreviewDialog(
   return showGeneralDialog<void>(
     context: context,
     barrierDismissible: true,
-    barrierLabel: '关闭',
+    barrierLabel: AppLocalizations.of(context)?.close ?? '关闭',
     barrierColor: Colors.black87,
     transitionDuration: AppleMotion.dropdown,
     pageBuilder: (context, animation, secondaryAnimation) {
@@ -80,7 +81,11 @@ class _ImagePreviewPage extends StatelessWidget {
                           size: 64,
                         ),
                         const SizedBox(height: 12),
-                        Text('图片加载失败', style: TextStyle(color: Colors.white70)),
+                        Text(
+                          AppLocalizations.of(context)?.embImageFailed ??
+                              '图片加载失败',
+                          style: const TextStyle(color: Colors.white70),
+                        ),
                       ],
                     ),
                   );

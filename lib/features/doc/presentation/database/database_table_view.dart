@@ -5,6 +5,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/features/doc/domain/note_database.dart';
 import '../../../../core/theme/apple_design.dart';
@@ -44,7 +45,10 @@ class DatabaseTableView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (fields.isEmpty) {
-      return _empty(context, '还没有字段，点击“添加字段”开始建表');
+      return _empty(
+        context,
+        AppLocalizations.of(context)?.dbNoFieldsYet ?? '还没有字段，点击“添加字段”开始建表',
+      );
     }
     if (records.isEmpty) {
       return _empty(context, '还没有记录，点击“添加记录”');
@@ -58,7 +62,7 @@ class DatabaseTableView extends StatelessWidget {
         columns: [
           for (final f in fields)
             DataColumn(
-              label: _sortableHeader(f),
+              label: _sortableHeader(context, f),
               numeric: f.type == NoteFieldType.number,
             ),
           const DataColumn(label: SizedBox(width: 28)),
@@ -68,7 +72,7 @@ class DatabaseTableView extends StatelessWidget {
             DataRow(
               cells: [
                 for (final f in fields) DataCell(_cell(context, r, f)),
-                DataCell(_deleteRowIcon(r)),
+                DataCell(_deleteRowIcon(context, r)),
               ],
             ),
         ],
@@ -89,7 +93,7 @@ class DatabaseTableView extends StatelessWidget {
     );
   }
 
-  Widget _sortableHeader(NoteFieldDef field) {
+  Widget _sortableHeader(BuildContext context, NoteFieldDef field) {
     final isSorted = sortFieldId == field.id;
     final arrow = isSorted
         ? Icon(
@@ -113,14 +117,19 @@ class DatabaseTableView extends StatelessWidget {
           arrow,
           const SizedBox(width: 8),
           PopupMenuButton<String>(
-            tooltip: '字段操作',
+            tooltip: AppLocalizations.of(context)?.dbFieldActions ?? '字段操作',
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 60),
             onSelected: (v) {
               if (v == 'remove') onRemoveField(field);
             },
             itemBuilder: (context) => [
-              const PopupMenuItem<String>(value: 'remove', child: Text('删除字段')),
+              PopupMenuItem<String>(
+                value: 'remove',
+                child: Text(
+                  AppLocalizations.of(context)?.dbDeleteField ?? '删除字段',
+                ),
+              ),
             ],
           ),
         ],
@@ -135,7 +144,7 @@ class DatabaseTableView extends StatelessWidget {
         // U4a：触控目标 ≥44（20px 图标居中在 44×44 热区内）；
         // R6：读屏语义（checked 状态 + button）。
         return Semantics(
-          label: '切换勾选',
+          label: AppLocalizations.of(context)?.dbToggleCheck ?? '切换勾选',
           checked: value,
           button: true,
           child: SizedBox(
@@ -203,9 +212,9 @@ class DatabaseTableView extends StatelessWidget {
     }
   }
 
-  Widget _deleteRowIcon(NoteRecord record) {
+  Widget _deleteRowIcon(BuildContext context, NoteRecord record) {
     return IconButton(
-      tooltip: '删除记录',
+      tooltip: AppLocalizations.of(context)?.dbDeleteRecord ?? '删除记录',
       visualDensity: VisualDensity.compact,
       icon: const Icon(Icons.close, size: 16),
       onPressed: () => onRemoveRecord(record),

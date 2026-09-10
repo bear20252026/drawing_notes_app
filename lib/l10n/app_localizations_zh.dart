@@ -2273,4 +2273,356 @@ class AppLocalizationsZh extends AppLocalizations {
   String actInsertedShape(String name) {
     return '已插入「$name」';
   }
+
+  @override
+  String get tParagraph => '段落';
+
+  @override
+  String get tHeading => '标题';
+
+  @override
+  String get tBulletList => '无序列表';
+
+  @override
+  String get tOrderedList => '有序列表';
+
+  @override
+  String get tTodo => '待办';
+
+  @override
+  String get tQuote => '引用';
+
+  @override
+  String get tCode => '代码';
+
+  @override
+  String get tDivider => '分隔线';
+
+  @override
+  String get tImage => '图片';
+
+  @override
+  String get tLink => '链接';
+
+  @override
+  String get tTable => '表格';
+
+  @override
+  String get tDatabase => '数据库';
+
+  @override
+  String get tEmbedCanvas => '内嵌画布';
+
+  @override
+  String get tEmbedChart => '内嵌图表';
+
+  @override
+  String get docSaveFailedRetry => '保存失败，请重试';
+
+  @override
+  String get docSavedToast => '文档已保存';
+
+  @override
+  String get docToolbarSave => '保存';
+
+  @override
+  String get docToolbarOutline => '大纲';
+
+  @override
+  String get docToolbarRefresh => '刷新';
+
+  @override
+  String get docOutlineEmpty => '暂无标题块，用 / 菜单插入「标题」后出现在这里';
+
+  @override
+  String get docUnsavedChangesTitle => '未保存的改动';
+
+  @override
+  String get docDiscard => '放弃';
+
+  @override
+  String get blkSlashHint => '键入 / 添加块';
+
+  @override
+  String get blkEnterHint => '按 Enter 分块，按 Backspace 合并空块';
+
+  @override
+  String get blkDragToSort => '拖拽排序';
+
+  @override
+  String semHeading(String level) {
+    return '标题$level';
+  }
+
+  @override
+  String get semTodo => '待办事项';
+
+  @override
+  String get semCode => '代码块';
+
+  @override
+  String get semQuote => '引用';
+
+  @override
+  String get semBullet => '无序列表';
+
+  @override
+  String get semOrdered => '有序列表';
+
+  @override
+  String get semDivider => '分割线';
+
+  @override
+  String get semCallout => '提示';
+
+  @override
+  String get semToggle => '切换列表';
+
+  @override
+  String get semImage => '图片';
+
+  @override
+  String get semParagraph => '段落';
+
+  @override
+  String get semEmpty => '空';
+
+  @override
+  String get hintHeading => '标题';
+
+  @override
+  String get hintListItem => '列表项';
+
+  @override
+  String get hintTodo => '待办事项';
+
+  @override
+  String get hintToggle => '切换列表';
+
+  @override
+  String get hintQuote => '引用';
+
+  @override
+  String get hintCode => '代码';
+
+  @override
+  String get hintTypeContent => '输入内容...';
+
+  @override
+  String get mtBold => '粗体';
+
+  @override
+  String get mtItalic => '斜体';
+
+  @override
+  String get mtUnderline => '下划线';
+
+  @override
+  String get mtLink => '链接';
+
+  @override
+  String get mtCopyBlock => '复制块';
+
+  @override
+  String get mtDeleteBlock => '删除块';
+
+  @override
+  String get outlineTitle => '大纲';
+
+  @override
+  String get wBack => '返回';
+
+  @override
+  String get wInsertPageLink => '插入页面链接';
+
+  @override
+  String get wSave => '保存';
+
+  @override
+  String get wUnfavorite => '取消收藏';
+
+  @override
+  String get wFavorite => '收藏';
+
+  @override
+  String get wDocInfo => '文档信息';
+
+  @override
+  String get wMore => '更多';
+
+  @override
+  String get wOpenInCanvas => '在画布中打开';
+
+  @override
+  String get wFilePassword => '文件密码';
+
+  @override
+  String get wShare => '分享';
+
+  @override
+  String get docSnackSaveKept => '保存失败，已保持原状态';
+
+  @override
+  String get docSnackTagFailed => '创建标签失败，请重试';
+
+  @override
+  String get attUntitled => '未命名附件';
+
+  @override
+  String get attEditDesc => '编辑描述';
+
+  @override
+  String get attOpenLink => '打开链接';
+
+  @override
+  String get attEditNote => '编辑备注';
+
+  @override
+  String get attDescHint => '附件的描述/备注';
+
+  @override
+  String get sgBasic => '基础';
+
+  @override
+  String get sgQuoteCode => '引用与代码';
+
+  @override
+  String get sgMedia => '媒体';
+
+  @override
+  String get sgEmbed => '嵌入';
+
+  @override
+  String get sgOther => '其他';
+
+  @override
+  String get slashNoMatch => '无匹配项';
+
+  @override
+  String get dbUntitled => '数据库';
+
+  @override
+  String get dbAddField => '添加字段';
+
+  @override
+  String get dbAddRecord => '添加记录';
+
+  @override
+  String get dbSearchRecords => '搜索记录';
+
+  @override
+  String get dbClearFilter => '清除筛选';
+
+  @override
+  String get dbViewTable => '表';
+
+  @override
+  String get dbViewKanban => '看板';
+
+  @override
+  String get dbViewList => '列表';
+
+  @override
+  String get dbCellHint => '输入值';
+
+  @override
+  String get dbCellNone => '未选择';
+
+  @override
+  String dbRecordCount(int count) {
+    return '$count 条记录';
+  }
+
+  @override
+  String get dbKanbanNeedsSelect => '看板需要至少一个“选项”字段，请先添加 select 字段';
+
+  @override
+  String get dbUngrouped => '未分组';
+
+  @override
+  String get dbNoTitleRecord => '无标题记录';
+
+  @override
+  String get dbNoFieldsYet => '还没有字段，点击“添加字段”开始建表';
+
+  @override
+  String get dbFieldActions => '字段操作';
+
+  @override
+  String get dbDeleteField => '删除字段';
+
+  @override
+  String get dbToggleCheck => '切换勾选';
+
+  @override
+  String get dbDeleteRecord => '删除记录';
+
+  @override
+  String get embUnsafeImage => '图片来源不安全，已拦截';
+
+  @override
+  String get embImageFailed => '图片加载失败';
+
+  @override
+  String get embClickPreview => '点击预览';
+
+  @override
+  String get embCanvasLabel => '内嵌画布';
+
+  @override
+  String get embChartLabel => '内嵌图表';
+
+  @override
+  String get embHostBuilderHint => '由宿主提供 builder 以渲染完整内容';
+
+  @override
+  String get tblAddColumn => '添加列';
+
+  @override
+  String get tblDeleteColumn => '删除列';
+
+  @override
+  String get tblAddRow => '添加行';
+
+  @override
+  String get tblDeleteRow => '删除行';
+
+  @override
+  String get trashDeleteForeverTitle => '彻底删除';
+
+  @override
+  String get trashTitleBar => '回收站';
+
+  @override
+  String get trashEmptyTitle => '回收站是空的';
+
+  @override
+  String get trashEmptyTip => '删除的笔记在此保留 30 天，可随时恢复';
+
+  @override
+  String get trashRestore => '恢复';
+
+  @override
+  String get tplBlankName => '空白笔记';
+
+  @override
+  String get tplBlankDesc => '从零开始';
+
+  @override
+  String get tplMeetingName => '会议纪要';
+
+  @override
+  String get tplMeetingDesc => '议题 · 决议 · 行动项';
+
+  @override
+  String get tplDailyName => '每日日志';
+
+  @override
+  String get tplDailyDesc => '今日完成 · 明日计划';
+
+  @override
+  String get tplTodoName => '待办清单';
+
+  @override
+  String get tplTodoDesc => '预置待办块';
 }

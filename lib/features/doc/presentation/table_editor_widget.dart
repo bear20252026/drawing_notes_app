@@ -5,6 +5,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
 import 'package:drawing_notes_app/features/doc/presentation/table_edit_ops.dart';
@@ -195,24 +196,24 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
               // 列操作
               _ToolButton(
                 icon: Icons.add,
-                tooltip: '添加列',
+                tooltip: AppLocalizations.of(context)?.tblAddColumn ?? '添加列',
                 onPressed: () => _insertCol(_cols - 1),
               ),
               _ToolButton(
                 icon: Icons.remove,
-                tooltip: '删除列',
+                tooltip: AppLocalizations.of(context)?.tblDeleteColumn ?? '删除列',
                 onPressed: () => _deleteCol(_cols - 1),
               ),
               const SizedBox(width: 4),
               // 行操作
               _ToolButton(
                 icon: Icons.exposure_plus_1,
-                tooltip: '添加行',
+                tooltip: AppLocalizations.of(context)?.tblAddRow ?? '添加行',
                 onPressed: () => _insertRow(_rows - 1),
               ),
               _ToolButton(
                 icon: Icons.exposure_minus_1,
-                tooltip: '删除行',
+                tooltip: AppLocalizations.of(context)?.tblDeleteRow ?? '删除行',
                 onPressed: () => _deleteRow(_rows - 1),
               ),
             ],
