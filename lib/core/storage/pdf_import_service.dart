@@ -85,7 +85,7 @@ class PdfImportService {
       );
     }
     final source = File(sourcePath);
-    if (!await source.exists()) {
+    if (!source.existsSync()) {
       throw FileSystemException('PDF 文件不存在', sourcePath);
     }
     // H-01 补全：源文件大小预检（解析前——防超大 PDF 源资源耗尽）。
@@ -95,7 +95,7 @@ class PdfImportService {
     if (!sourcePath.toLowerCase().endsWith('.pdf')) {
       throw ArgumentError.value(sourcePath, 'sourcePath', '仅支持导入 .pdf 文件');
     }
-    if (!await outputDirectory.exists()) {
+    if (!outputDirectory.existsSync()) {
       await outputDirectory.create(recursive: true);
     }
 

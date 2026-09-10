@@ -10,6 +10,8 @@ import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'helpers/temp_dir_cleanup.dart';
+
 /// 安全审计修复回归测试。
 ///
 /// 覆盖 SECURITY_AUDIT.md 中 13 项修复中可在引擎/存储层验证的部分：
@@ -114,9 +116,7 @@ void main() {
     });
 
     tearDown(() async {
-      if (await tempDir.exists()) {
-        await tempDir.delete(recursive: true);
-      }
+      await deleteTempDirWithRetry(tempDir);
     });
 
     test('删除文档后缩略图文件一并移除', () async {
@@ -144,9 +144,7 @@ void main() {
     });
 
     tearDown(() async {
-      if (await tempDir.exists()) {
-        await tempDir.delete(recursive: true);
-      }
+      await deleteTempDirWithRetry(tempDir);
     });
 
     test('删除笔记本时清理其页面引用的图片文件', () async {
@@ -186,9 +184,7 @@ void main() {
     });
 
     tearDown(() async {
-      if (await tempDir.exists()) {
-        await tempDir.delete(recursive: true);
-      }
+      await deleteTempDirWithRetry(tempDir);
     });
 
     test('未知扩展名回退为 png', () async {
@@ -219,9 +215,7 @@ void main() {
     });
 
     tearDown(() async {
-      if (await tempDir.exists()) {
-        await tempDir.delete(recursive: true);
-      }
+      await deleteTempDirWithRetry(tempDir);
     });
 
     test('不存在的图片源被拒绝且不会创建媒体目录', () async {

@@ -21,8 +21,11 @@ linter:
   # `// ignore_for_file: name_of_lint` syntax on the line or in the file
   # producing the lint.
   rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+    # lint 前置清零（审计 F12/C9，2026-09-10 v1.17.6）：200 处 info 整改后
+    # 启用防回退——unawaited_futures（14 处 fire-and-forget 显式化）+
+    # avoid_slow_async_io（186 处小文件元数据 I/O 转 *Sync 版）。
+    - unawaited_futures
+    - avoid_slow_async_io
 
 # dart_code_metrics (DCM)：额外质量门禁，由 `metrics analyze lib` 执行
 # （CI 与本机均使用 dart_code_metrics 5.7.6，只读 `dart_code_metrics:` 键；

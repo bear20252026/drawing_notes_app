@@ -138,7 +138,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
         ? await provider()
         : await AppDataRoot.defaultRootDir();
     final dir = Directory('${appDir.path}${Platform.pathSeparator}documents');
-    if (!await dir.exists()) {
+    if (!dir.existsSync()) {
       await dir.create(recursive: true);
     }
     _documentsDir = dir;
@@ -155,7 +155,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
     final dir = Directory(
       '${appDir.path}${Platform.pathSeparator}documents_trash',
     );
-    if (!await dir.exists()) {
+    if (!dir.existsSync()) {
       await dir.create(recursive: true);
     }
     _trashDir = dir;
@@ -169,7 +169,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
         ? await provider()
         : await AppDataRoot.defaultRootDir();
     final dir = Directory('${appDir.path}${Platform.pathSeparator}thumbnails');
-    if (!await dir.exists()) {
+    if (!dir.existsSync()) {
       await dir.create(recursive: true);
     }
     _thumbsDir = dir;
@@ -185,7 +185,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
     final dir = Directory(
       '${appDir.path}${Platform.pathSeparator}document_images',
     );
-    if (!await dir.exists()) {
+    if (!dir.existsSync()) {
       await dir.create(recursive: true);
     }
     _imagesDir = dir;
@@ -237,7 +237,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
       await _replaceWithTemp(tmp, file);
     } catch (_) {
       try {
-        if (await tmp.exists()) await tmp.delete();
+        if (tmp.existsSync()) await tmp.delete();
       } catch (_) {
         // 清理失败不覆盖原始存储异常。
       }
@@ -255,7 +255,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
     if (await isFilePasswordProtected(docId)) return null;
     await _ensureThumbsDir();
     final file = File(_thumbPathFor(docId));
-    if (!await file.exists()) return null;
+    if (!file.existsSync()) return null;
     final raw = await file.readAsBytes();
     if (!VaultFileCodec.isEncrypted(raw)) {
       final key = await _currentKey();
@@ -292,7 +292,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
   Future<String?> thumbnailPath(String docId) async {
     await _ensureThumbsDir();
     final file = File(_thumbPathFor(docId));
-    if (!await file.exists()) return null;
+    if (!file.existsSync()) return null;
     return file.path;
   }
 
@@ -305,7 +305,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
       throw ArgumentError.value(docId, 'docId', '文档 ID 不合法');
     }
     final source = File(sourcePath);
-    if (!await source.exists()) {
+    if (!source.existsSync()) {
       throw ArgumentError.value(sourcePath, 'sourcePath', '图片文件不存在');
     }
     final extension = _safeImageExtension(source.path);
@@ -323,7 +323,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
     } catch (_) {
       // 图片复制失败时不留下可被误识别为下一次写入的临时副本。
       try {
-        if (await temporary.exists()) await temporary.delete();
+        if (temporary.existsSync()) await temporary.delete();
       } catch (_) {
         // 清理失败不覆盖原始存储异常，调用方仍得到真实失败原因。
       }
@@ -539,7 +539,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
 
       // 备份上一版：若平台不允许直接覆盖目标文件，恢复路径仍保留上一份
       // 完整数据。备份是 Windows 删除-换入回退的崩溃恢复前提——失败即中止。
-      if (await finalFile.exists()) {
+      if (finalFile.existsSync()) {
         try {
           await finalFile.copy('${finalFile.path}.bak');
         } catch (e) {
@@ -549,7 +549,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
       await _replaceWithTemp(tmp, finalFile);
     } catch (_) {
       try {
-        if (await tmp.exists()) await tmp.delete();
+        if (tmp.existsSync()) await tmp.delete();
       } catch (_) {
         // 清理失败不覆盖原始存储异常。
       }
@@ -564,7 +564,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
     try {
       await tmp.rename(destination.path);
     } on FileSystemException {
-      if (!await destination.exists()) rethrow;
+      if (!destination.existsSync()) rethrow;
       await destination.delete();
       await tmp.rename(destination.path);
     }
@@ -580,19 +580,17 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
     await _ensureDocumentsDir();
     final file = File(_pathFor(id));
     final bak = File('${_pathFor(id)}.bak');
-    if (!await file.exists() && !await bak.exists()) return null;
+    if (!file.existsSync() && !bak.existsSync()) return null;
     Future<Uint8List> preparedBytes(File source) async {
       final raw = await _readWithRetry(() async => await source.readAsBytes());
       return _prepareDocBytes(id, raw);
     }
 
     try {
-      return _codec.decode(
-        await preparedBytes(await file.exists() ? file : bak),
-      );
+      return _codec.decode(await preparedBytes(file.existsSync() ? file : bak));
     } on FormatException {
       // 正式文件损坏：尝试备份恢复。
-      if (await bak.exists()) {
+      if (bak.existsSync()) {
         return _codec.decode(await preparedBytes(bak));
       }
       rethrow;
@@ -730,7 +728,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
   /// 文件修改时间（失败回退当前时间——锁定占位元信息排序用）。
   static Future<DateTime> _fileModifiedOrNow(File f) async {
     try {
-      return (await f.stat()).modified;
+      return f.statSync().modified;
     } catch (_) {
       return DateTime.now();
     }
@@ -753,7 +751,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
   Future<bool> _deleteLocked(String id) async {
     await _ensureDocumentsDir();
     final file = File(_pathFor(id));
-    if (!await file.exists()) return false;
+    if (!file.existsSync()) return false;
 
     // 必须在删除主文件前读取其引用；无法读取时不进行资产回收，保证数据安全。
     DrawingDocument? document;
@@ -787,7 +785,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
       '${id}_${DateTime.now().millisecondsSinceEpoch}.json',
     );
     final backup = File('${file.path}.bak');
-    if (await backup.exists()) {
+    if (backup.existsSync()) {
       await backup.delete();
     }
 
@@ -795,7 +793,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
     try {
       await _ensureThumbsDir();
       final thumb = File(_thumbPathFor(id));
-      if (await thumb.exists()) {
+      if (thumb.existsSync()) {
         await thumb.delete();
       }
     } catch (_) {
@@ -817,13 +815,13 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
     final trashDir = await _ensureTrashDir();
     await _ensureDocumentsDir();
     final src = File('${trashDir.path}${Platform.pathSeparator}$trashName');
-    if (!await src.exists()) return null;
+    if (!src.existsSync()) return null;
     final id = trashName.split('_').first;
     if (!isValidId(id)) return null;
     return _runDocExclusive(id, () async {
-      if (!await src.exists()) return null;
+      if (!src.existsSync()) return null;
       final dest = File(_pathFor(id));
-      if (await dest.exists()) return null; // 原 ID 已存在——拒绝覆盖
+      if (dest.existsSync()) return null; // 原 ID 已存在——拒绝覆盖
       await src.rename(dest.path);
       onWrite?.call();
       return id;
@@ -854,7 +852,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
     await for (final entity in trashDir.list()) {
       if (entity is! File) continue;
       try {
-        final stat = await entity.stat();
+        final stat = entity.statSync();
         if (now.difference(stat.modified) > retention) {
           await entity.delete();
           purged++;
@@ -875,7 +873,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
       return false;
     }
     final file = File('${trashDir.path}${Platform.pathSeparator}$trashName');
-    if (!await file.exists()) return false;
+    if (!file.existsSync()) return false;
     await file.delete();
     return true;
   }
@@ -939,7 +937,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
     for (final candidate in candidates.difference(referencedElsewhere)) {
       try {
         final image = File(candidate);
-        if (await image.exists()) await image.delete();
+        if (image.existsSync()) await image.delete();
       } on FileSystemException {
         // 主文档已经成功删除；图片回收失败可在未来维护扫描中重试。
       }

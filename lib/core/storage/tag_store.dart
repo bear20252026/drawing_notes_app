@@ -110,7 +110,7 @@ class TagStore {
   Future<List<DocTag>> listTags() async {
     try {
       final file = await _fileRef();
-      if (!await file.exists()) return const <DocTag>[];
+      if (!file.existsSync()) return const <DocTag>[];
       final decoded = jsonDecode(await file.readAsString());
       if (decoded is! Map<String, dynamic>) return const <DocTag>[];
       final list = decoded['tags'];
@@ -196,13 +196,13 @@ class TagStore {
       try {
         await tmp.rename(file.path);
       } on FileSystemException {
-        if (!await file.exists()) rethrow;
+        if (!file.existsSync()) rethrow;
         await file.delete();
         await tmp.rename(file.path);
       }
     } catch (_) {
       try {
-        if (await tmp.exists()) await tmp.delete();
+        if (tmp.existsSync()) await tmp.delete();
       } catch (_) {
         // 清理失败不覆盖原始存储异常。
       }

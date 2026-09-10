@@ -135,7 +135,7 @@ void main() {
         '${captured.path}${Platform.pathSeparator}blockdocs_trash'
         '${Platform.pathSeparator}mtime1.json.meta.json',
       );
-      expect(await meta.exists(), isTrue, reason: 'sidecar meta 应已写出');
+      expect(meta.existsSync(), isTrue, reason: 'sidecar meta 应已写出');
       await meta.writeAsString(
         jsonEncode({'deletedAt': old.toIso8601String()}),
       );

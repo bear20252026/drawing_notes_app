@@ -8,6 +8,8 @@ import 'package:drawing_notes_app/core/canvas_model/document_image_item.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'helpers/temp_dir_cleanup.dart';
+
 void main() {
   late Directory tempDir;
 
@@ -16,9 +18,9 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tempDir.exists()) {
-      await tempDir.delete(recursive: true);
-    }
+    // 保留 async exists：删除前让出一拍，待在途图片解码句柄释放
+    //（errno 32 教训，v1.17.6 lint 批回归）。带重试兜底。
+    await deleteTempDirWithRetry(tempDir);
   });
 
   test('独立文档图片会复制为离线副本，并在保存重开后完整恢复', () async {
@@ -28,7 +30,7 @@ void main() {
 
     final storedPath = await storage.storeImage(source.path, 'doc_image');
     expect(storedPath, isNot(source.path));
-    expect(await File(storedPath).exists(), isTrue);
+    expect(File(storedPath).existsSync(), isTrue);
     expect(await File(storedPath).readAsBytes(), await source.readAsBytes());
 
     final document = DrawingDocument(

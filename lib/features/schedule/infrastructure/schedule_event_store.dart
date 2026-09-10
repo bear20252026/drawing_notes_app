@@ -55,7 +55,7 @@ class ScheduleEventStore {
   Future<List<ScheduleEvent>> loadAll() async {
     try {
       final file = await _fileRef();
-      if (!await file.exists()) return const [];
+      if (!file.existsSync()) return const [];
       final raw = await file.readAsString();
       final decoded = jsonDecode(raw);
       if (decoded is! Map<String, dynamic>) return const [];
@@ -89,7 +89,7 @@ class ScheduleEventStore {
       await tmp.rename(file.path);
     } catch (_) {
       try {
-        if (await tmp.exists()) await tmp.delete();
+        if (tmp.existsSync()) await tmp.delete();
       } catch (_) {
         /* 幂等清理：写入失败后删 tmp 尽力而为，失败不覆盖将 rethrow 的原始错误 */
       }

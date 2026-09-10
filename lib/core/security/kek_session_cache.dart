@@ -143,7 +143,7 @@ class KekSessionCache {
       }
       return Uint8List.fromList(derived);
     } finally {
-      _inflight.remove(key);
+      unawaited(_inflight.remove(key));
     }
   }
 

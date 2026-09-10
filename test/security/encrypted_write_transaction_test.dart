@@ -38,7 +38,7 @@ void main() {
     );
     // 主文件不变（未被覆盖）+ 无 .bak + 无 .tmp。
     expect(await dest.readAsString(), 'W1_LEGACY_PLAINTEXT_001');
-    expect(await File('${dest.path}.bak').exists(), isFalse);
+    expect(File('${dest.path}.bak').existsSync(), isFalse);
     expect(
       tempDir.listSync().whereType<File>().where(
         (f) => f.path.endsWith('.tmp'),
@@ -58,7 +58,7 @@ void main() {
       destination: dest,
       plain: Uint8List.fromList('机密-A'.codeUnits),
     );
-    expect(await File('${dest.path}.bak').exists(), isFalse);
+    expect(File('${dest.path}.bak').existsSync(), isFalse);
     // 第二次 V2 写入 B——.bak 出现（ValidV2——magic 可解析）。
     await txn.commit(
       destination: dest,

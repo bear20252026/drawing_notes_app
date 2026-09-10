@@ -55,7 +55,7 @@ Future<bool> _acquireSingleInstance() async {
   try {
     final lockFile = await _lockFile();
     // 残留锁清理：读取 PID，若进程已不存活则删除陈旧锁。
-    if (await lockFile.exists()) {
+    if (lockFile.existsSync()) {
       final pid = int.tryParse((await lockFile.readAsString()).trim());
       if (pid != null && !await _isProcessAlive(pid)) {
         try {

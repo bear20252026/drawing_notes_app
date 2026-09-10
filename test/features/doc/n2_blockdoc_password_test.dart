@@ -32,7 +32,7 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tempDir.exists()) {
+    if (tempDir.existsSync()) {
       try {
         await tempDir.delete(recursive: true);
       } on FileSystemException {

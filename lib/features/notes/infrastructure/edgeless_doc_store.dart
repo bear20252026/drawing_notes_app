@@ -50,7 +50,7 @@ class EdgelessDocStore {
     if (_dir != null) return _dir!;
     final base = await _baseDir();
     final dir = Directory('${base.path}${Platform.pathSeparator}edgelessdocs');
-    if (!await dir.exists()) await dir.create(recursive: true);
+    if (!dir.existsSync()) await dir.create(recursive: true);
     _dir = dir;
     return dir;
   }
@@ -84,7 +84,7 @@ class EdgelessDocStore {
     final tmp = File('$path.${LocalIdGenerator.next('write')}.tmp');
     try {
       await tmp.writeAsBytes(data, flush: true);
-      if (await file.exists()) {
+      if (file.existsSync()) {
         try {
           await file.copy('$path.bak');
         } catch (_) {
@@ -94,13 +94,13 @@ class EdgelessDocStore {
       try {
         await tmp.rename(path);
       } on FileSystemException {
-        if (!await file.exists()) rethrow;
+        if (!file.existsSync()) rethrow;
         await file.delete();
         await tmp.rename(path);
       }
     } catch (_) {
       try {
-        if (await tmp.exists()) await tmp.delete();
+        if (tmp.existsSync()) await tmp.delete();
       } catch (_) {
         // 清理失败不覆盖原始存储异常。
       }
@@ -117,14 +117,14 @@ class EdgelessDocStore {
     final path = await _pathFor(docId);
     final file = File(path);
     final backup = File('$path.bak');
-    if (!await file.exists() && !await backup.exists()) return null;
+    if (!file.existsSync() && !backup.existsSync()) return null;
     try {
-      final bytes = await (await file.exists() ? file : backup).readAsBytes();
+      final bytes = await (file.existsSync() ? file : backup).readAsBytes();
       return EdgelessDoc.fromJson(
         jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>,
       );
     } catch (e) {
-      if (!await backup.exists()) {
+      if (!backup.existsSync()) {
         if (e is TypeError) {
           throw FormatException('Edgeless 数据损坏：$e');
         }
@@ -149,11 +149,11 @@ class EdgelessDocStore {
     await _ensureDir();
     final path = await _pathFor(docId);
     final file = File(path);
-    if (!await file.exists()) return false;
+    if (!file.existsSync()) return false;
     await file.delete();
     try {
       final backup = File('$path.bak');
-      if (await backup.exists()) await backup.delete();
+      if (backup.existsSync()) await backup.delete();
     } catch (_) {
       // 备份删除失败忽略
     }

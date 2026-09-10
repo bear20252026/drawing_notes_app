@@ -436,10 +436,10 @@ void main() {
       );
       await reader.isConfigured();
 
-      expect(await staleTmp.exists(), isFalse);
-      expect(await freshTmp.exists(), isTrue);
+      expect(staleTmp.existsSync(), isFalse);
+      expect(freshTmp.existsSync(), isTrue);
       // 主文件/备份不受影响。
-      expect(await vaultFile.exists(), isTrue);
+      expect(vaultFile.existsSync(), isTrue);
     });
 
     test('目录不可读时清扫静默失败，不影响正常路径', () async {

@@ -3,6 +3,7 @@
 // 原 `lib/fix/security_and_sync_fix.dart` PART 2（M1 目录迁移，行为零变化）。
 
 import 'dart:ui' as ui show ImageFilter;
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -146,7 +147,7 @@ class _PinPadCoreState extends State<PinPadCore>
   /// 可变长度模式：✓ 确认提交（不足最短长度抖动提示）。
   Future<void> _submitFlexible() async {
     if (_entered.length < widget.flexibleMinLength) {
-      HapticFeedback.heavyImpact();
+      unawaited(HapticFeedback.heavyImpact());
       await _shake.forward(from: 0);
       return;
     }
@@ -164,7 +165,7 @@ class _PinPadCoreState extends State<PinPadCore>
     if (ok) {
       widget.onAccepted?.call(pin);
     } else {
-      HapticFeedback.heavyImpact();
+      unawaited(HapticFeedback.heavyImpact());
       await _shake.forward(from: 0);
       if (mounted) setState(_entered.clear);
     }

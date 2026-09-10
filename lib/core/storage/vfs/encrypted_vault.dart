@@ -142,7 +142,7 @@ class EncryptedVault {
     }
     final targetVersion = version ?? entry.version;
     final file = _objectFile(id, targetVersion);
-    if (!await file.exists()) {
+    if (!file.existsSync()) {
       throw StateError('VFS 对象文件缺失：$id.$targetVersion');
     }
     final cipher = await file.readAsBytes();
@@ -211,7 +211,7 @@ class EncryptedVault {
     var failed = 0;
     for (final f in targets) {
       try {
-        if (await f.exists()) {
+        if (f.existsSync()) {
           await f.delete();
           removed++;
         }
@@ -242,7 +242,7 @@ class EncryptedVault {
     _requireKey();
     final manifest = await _loadManifest();
     final objectDir = Directory('${directory.path}/objects');
-    if (!await objectDir.exists()) return const <String>[];
+    if (!objectDir.existsSync()) return const <String>[];
     final orphans = <String>[];
     await for (final entity in objectDir.list(recursive: true)) {
       if (entity is! File) continue;
@@ -282,7 +282,7 @@ class EncryptedVault {
     for (final rel in orphans) {
       try {
         final f = File('${directory.path}/objects/$rel');
-        if (await f.exists()) {
+        if (f.existsSync()) {
           await f.delete();
           removed.add(rel);
         }
@@ -304,13 +304,13 @@ class EncryptedVault {
   }
 
   Future<VaultManifest> _loadManifest() async {
-    if (!await _manifestFile.exists()) {
+    if (!_manifestFile.existsSync()) {
       return VaultManifest(entries: []);
     }
     final raw = await _manifestFile.readAsString();
     // P1 修复 N-M1：有认证侧车即验签（改 version 回滚旧版在此被拦）。
     // 无侧车=历史遗留：放行本次读取，下次写入自动补签（零破坏升级）。
-    if (await _manifestMacFile.exists()) {
+    if (_manifestMacFile.existsSync()) {
       final expect = (await _manifestMacFile.readAsString()).trim();
       final actual = _manifestMac(raw);
       if (!_constantTimeEquals(actual, expect)) {
@@ -349,14 +349,14 @@ class EncryptedVault {
       await tmp.rename(target.path);
     } catch (_) {
       // 目标已存在（并发幂等兜底）或 rename 失败——清理临时文件。
-      if (await tmp.exists()) {
+      if (tmp.existsSync()) {
         try {
           await tmp.delete();
         } catch (_) {
           /* 忽略清理失败 */
         }
       }
-      if (await target.exists()) return; // 幂等：目标已写入成功。
+      if (target.existsSync()) return; // 幂等：目标已写入成功。
       rethrow;
     }
   }

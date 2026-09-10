@@ -9,6 +9,8 @@ import 'package:drawing_notes_app/core/storage/repository.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/temp_dir_cleanup.dart';
+
 void main() {
   late Directory tempDir;
 
@@ -17,9 +19,7 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tempDir.exists()) {
-      await tempDir.delete(recursive: true);
-    }
+    await deleteTempDirWithRetry(tempDir);
   });
 
   DocumentRepository makeRepo() =>

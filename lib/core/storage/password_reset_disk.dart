@@ -60,7 +60,7 @@ class ResetDiskFile {
   static Future<List<int>?> readFrom(String dir) async {
     for (final name in const [fileName, legacyFileName]) {
       final file = _fileOf(dir, name);
-      if (!await file.exists()) continue;
+      if (!file.existsSync()) continue;
       try {
         final key = _decode(await file.readAsBytes());
         if (key != null) return key;
@@ -76,7 +76,7 @@ class ResetDiskFile {
     var ok = true;
     for (final name in const [fileName, legacyFileName]) {
       final file = _fileOf(dir, name);
-      if (!await file.exists()) continue;
+      if (!file.existsSync()) continue;
       try {
         await file.delete();
       } catch (_) {

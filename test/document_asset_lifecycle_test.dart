@@ -6,6 +6,8 @@ import 'package:drawing_notes_app/core/canvas_model/document_image_item.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'helpers/temp_dir_cleanup.dart';
+
 void main() {
   late Directory tempDir;
 
@@ -16,9 +18,7 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tempDir.exists()) {
-      await tempDir.delete(recursive: true);
-    }
+    await deleteTempDirWithRetry(tempDir);
   });
 
   DrawingDocument documentWithImage(String id, String path) => DrawingDocument(
@@ -44,21 +44,21 @@ void main() {
     await storage.save(documentWithImage('asset_owner', storedPath));
     await storage.save(documentWithImage('asset_owner', storedPath));
 
-    expect(await File(storedPath).exists(), isTrue);
+    expect(File(storedPath).existsSync(), isTrue);
     expect(
-      await File(
+      File(
         '${tempDir.path}${Platform.pathSeparator}documents${Platform.pathSeparator}asset_owner.json.bak',
-      ).exists(),
+      ).existsSync(),
       isTrue,
     );
 
     expect(await storage.delete('asset_owner'), isTrue);
-    expect(await File(storedPath).exists(), isFalse);
-    expect(await source.exists(), isTrue);
+    expect(File(storedPath).existsSync(), isFalse);
+    expect(source.existsSync(), isTrue);
     expect(
-      await File(
+      File(
         '${tempDir.path}${Platform.pathSeparator}documents${Platform.pathSeparator}asset_owner.json.bak',
-      ).exists(),
+      ).existsSync(),
       isFalse,
     );
   });
@@ -72,9 +72,9 @@ void main() {
     await storage.save(documentWithImage('second_doc', storedPath));
 
     expect(await storage.delete('first_doc'), isTrue);
-    expect(await File(storedPath).exists(), isTrue);
+    expect(File(storedPath).existsSync(), isTrue);
     expect(await storage.delete('second_doc'), isTrue);
-    expect(await File(storedPath).exists(), isFalse);
+    expect(File(storedPath).existsSync(), isFalse);
   });
 
   test('删除文档绝不删除外部图片路径', () async {
@@ -86,6 +86,6 @@ void main() {
     await storage.save(documentWithImage('external_path', external.path));
 
     expect(await storage.delete('external_path'), isTrue);
-    expect(await external.exists(), isTrue);
+    expect(external.existsSync(), isTrue);
   });
 }

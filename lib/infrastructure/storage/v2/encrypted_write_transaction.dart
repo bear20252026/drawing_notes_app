@@ -72,7 +72,7 @@ class EncryptedWriteTransaction {
 
   /// 判定 destination 状态（读取 header——Missing / ValidV2 / LegacyOrUnknown）。
   Future<DestinationState> destinationState(File destination) async {
-    if (!await destination.exists()) return const MissingDestination();
+    if (!destination.existsSync()) return const MissingDestination();
     try {
       final bytes = await destination.readAsBytes();
       if (bytes.length >= 4 &&
@@ -155,7 +155,7 @@ class EncryptedWriteTransaction {
       }
     } catch (_) {
       // 中断可恢复：清理临时文件——旧主/备文件保留。
-      if (await tmp.exists()) {
+      if (tmp.existsSync()) {
         try {
           await tmp.delete();
         } catch (_) {

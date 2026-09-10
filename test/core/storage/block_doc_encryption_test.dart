@@ -121,7 +121,7 @@ void main() {
 
     // 软删除 → 回收站。
     await store.deleteDocument('cycle_b');
-    expect(await File(docPath('cycle_b')).exists(), isFalse);
+    expect(File(docPath('cycle_b')).existsSync(), isFalse);
 
     // 回收站列表可解密读出标题（密文内容经 _readTrashContent 解密）。
     final trash = await store.listTrash();

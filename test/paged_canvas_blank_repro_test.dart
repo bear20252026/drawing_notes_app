@@ -7,6 +7,7 @@
 //      paintViews 中出现非空 image（否则画上去不可见 = 空白页）。
 
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -49,7 +50,7 @@ void main() {
     // 才是「分页画布图层摄取笔画的链」本身坏了。
     controller.startStroke(const Offset(400, 300), pressure: 1.0);
     controller.extendStroke(const Offset(430, 330), pressure: 1.0);
-    controller.endStroke();
+    unawaited(controller.endStroke());
 
     final current = controller.currentLayer;
     expect(

@@ -9,7 +9,7 @@ import 'dart:io';
 Future<void> deleteTempDirWithRetry(Directory dir) async {
   for (var i = 0; i < 30; i++) {
     try {
-      if (!await dir.exists()) return;
+      if (!dir.existsSync()) return;
       await dir.delete(recursive: true);
       return;
     } on FileSystemException {

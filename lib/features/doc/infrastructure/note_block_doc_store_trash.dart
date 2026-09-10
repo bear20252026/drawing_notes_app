@@ -56,7 +56,7 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
 
   Future<bool> _deleteDocumentLocked(String pageId) async {
     final active = File(await _pathFor(pageId));
-    if (!await active.exists()) return false;
+    if (!active.existsSync()) return false;
     final trashFile = await _trashPathFor(pageId);
     final metaFile = File('$trashFile.meta.json');
     final metaTmp = File('$trashFile.meta.tmp');
@@ -93,7 +93,7 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
   Future<void> _removeBak(String pageId) async {
     try {
       final backup = File('${await _pathFor(pageId)}.bak');
-      if (await backup.exists()) await backup.delete();
+      if (backup.existsSync()) await backup.delete();
     } catch (_) {
       // 备份删除失败忽略
     }
@@ -109,9 +109,9 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
     try {
       final trashFile = await _trashPathFor(pageId);
       final f = File(trashFile);
-      if (await f.exists()) await f.delete();
+      if (f.existsSync()) await f.delete();
       final meta = File('$trashFile.meta.json');
-      if (await meta.exists()) await meta.delete();
+      if (meta.existsSync()) await meta.delete();
     } catch (_) {
       // 回收站文件不存在时忽略。
     }
@@ -122,10 +122,10 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
   Future<void> _removeActiveFiles(String pageId) async {
     final path = await _pathFor(pageId);
     final file = File(path);
-    if (await file.exists()) await file.delete();
+    if (file.existsSync()) await file.delete();
     try {
       final backup = File('$path.bak');
-      if (await backup.exists()) await backup.delete();
+      if (backup.existsSync()) await backup.delete();
     } catch (_) {
       // 备份删除失败忽略
     }
@@ -141,7 +141,7 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
   /// ③ 仍失败（或 meta 缺失/不可读）回退文件修改时间。
   Future<DateTime> _deletedAtOf(File source) async {
     final meta = File('${source.path}.meta.json');
-    if (await meta.exists()) {
+    if (meta.existsSync()) {
       try {
         final raw = await meta.readAsString();
         try {
@@ -162,7 +162,7 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
         // meta 读取失败——回退 mtime。
       }
     }
-    return source.lastModified();
+    return source.lastModifiedSync();
   }
 
   /// 解码回收站条目：兼容两种格式——
@@ -238,9 +238,9 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
   Future<bool> _restoreDocumentLocked(String pageId) async {
     final trashFile = await _trashPathFor(pageId);
     final f = File(trashFile);
-    if (!await f.exists()) return false;
+    if (!f.existsSync()) return false;
     final active = File(await _pathFor(pageId));
-    if (await active.exists()) return false; // 同 ID 已存在，拒绝覆盖
+    if (active.existsSync()) return false; // 同 ID 已存在，拒绝覆盖
     // N2：v5 文件密码信封条目——恢复是纯文件移动（rename 回激活区），
     // 不解密、不要求会话解锁；激活区内容仍受密（打开路径有解锁拦截）。
     try {
@@ -253,7 +253,7 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
         // P1 修复：同步 IO（existsSync/deleteSync）阻塞 UI isolate——
         // 改异步 + try/catch（TOCTOU 下删除竞态不抛错）。
         final meta = File('$trashFile.meta.json');
-        if (await meta.exists()) {
+        if (meta.existsSync()) {
           try {
             await meta.delete();
           } catch (_) {
@@ -289,7 +289,7 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
     // 新原子格式：rename 回激活区
     await f.rename(active.path);
     final meta = File('$trashFile.meta.json');
-    if (await meta.exists()) {
+    if (meta.existsSync()) {
       try {
         await meta.delete();
       } catch (_) {
@@ -307,10 +307,10 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
   Future<bool> _purgeFromTrashLocked(String pageId) async {
     final trashFile = await _trashPathFor(pageId);
     final f = File(trashFile);
-    if (!await f.exists()) return false;
+    if (!f.existsSync()) return false;
     await f.delete();
     final meta = File('$trashFile.meta.json');
-    if (await meta.exists()) {
+    if (meta.existsSync()) {
       try {
         await meta.delete();
       } catch (_) {
@@ -339,7 +339,7 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
             if (entry != null && entry.deletedAt.isBefore(cutoff)) {
               await entity.delete();
               final meta = File('${entity.path}.meta.json');
-              if (await meta.exists()) {
+              if (meta.existsSync()) {
                 try {
                   await meta.delete();
                 } catch (_) {
@@ -361,7 +361,7 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
     final dir = Directory(
       '${base.path}${Platform.pathSeparator}blockdocs_trash',
     );
-    if (!await dir.exists()) await dir.create(recursive: true);
+    if (!dir.existsSync()) await dir.create(recursive: true);
     _trashDir = dir;
     return dir;
   }

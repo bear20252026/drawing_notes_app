@@ -249,7 +249,7 @@ class VaultKeyService {
     for (final path in [file.path, '${file.path}.bak']) {
       try {
         final f = File(path);
-        if (await f.exists()) await f.delete();
+        if (f.existsSync()) await f.delete();
       } catch (_) {
         // 删除失败忽略（下次 initialize 覆盖写入）。
       }
@@ -493,13 +493,13 @@ class VaultKeyService {
       }
     }
 
-    if (!await file.exists()) {
-      if (await bak.exists()) return tryParse(bak);
+    if (!file.existsSync()) {
+      if (bak.existsSync()) return tryParse(bak);
       return null;
     }
     final main = await tryParse(file);
     if (main != null) return main;
-    if (await bak.exists()) {
+    if (bak.existsSync()) {
       final fallback = await tryParse(bak);
       if (fallback != null) return fallback;
     }
@@ -518,7 +518,7 @@ class VaultKeyService {
         if (entry is! File) continue;
         final name = entry.uri.pathSegments.last;
         if (!name.startsWith(prefix)) continue;
-        final stat = await entry.stat();
+        final stat = entry.statSync();
         if (DateTime.now().difference(stat.modified) >
             const Duration(hours: 1)) {
           await entry.delete();
@@ -580,7 +580,7 @@ class VaultKeyService {
       '${file.path}.tmp.${DateTime.now().microsecondsSinceEpoch}.${_randomHex(8)}',
     );
     await tmp.writeAsString(doc, flush: true);
-    if (await file.exists()) {
+    if (file.existsSync()) {
       try {
         await file.copy('${file.path}.bak');
       } catch (e) {
@@ -597,7 +597,7 @@ class VaultKeyService {
       await tmp.rename(file.path);
     } catch (_) {
       try {
-        if (await tmp.exists()) await tmp.delete();
+        if (tmp.existsSync()) await tmp.delete();
       } catch (_) {
         /* 幂等清理：改名失败后删 tmp 尽力而为，失败不覆盖将 rethrow 的原始错误 */
       }
@@ -608,7 +608,7 @@ class VaultKeyService {
     } catch (_) {
       try {
         final bak = File('${file.path}.bak');
-        if (await bak.exists()) await bak.copy(file.path);
+        if (bak.existsSync()) await bak.copy(file.path);
       } catch (_) {
         /* 尽力而为：用 .bak 回滚也失败时保持 fail-closed——下方仍抛校验失败 */
       }

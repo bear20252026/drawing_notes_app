@@ -177,6 +177,6 @@ void main() {
     await thumb.writeAsBytes(<int>[1, 2, 3], flush: true);
 
     await storage.setFilePassword('fp_doc7', '987654');
-    expect(await thumb.exists(), isFalse);
+    expect(thumb.existsSync(), isFalse);
   });
 }

@@ -133,7 +133,7 @@ class NoteBlockDocStore implements SessionSecretsHolder {
   Future<String?> _readEnvelopeJson(String id) async {
     try {
       final file = File(await _pathFor(id));
-      if (!await file.exists()) return null;
+      if (!file.existsSync()) return null;
       final raw = await file.readAsBytes();
       if (VaultFileCodec.isEncrypted(raw)) return null; // 主密钥信封——非文件密码
       final text = utf8.decode(raw);
@@ -157,7 +157,7 @@ class NoteBlockDocStore implements SessionSecretsHolder {
     if (_dir != null) return _dir!;
     final base = await _baseDir();
     final dir = Directory('${base.path}${Platform.pathSeparator}blockdocs');
-    if (!await dir.exists()) await dir.create(recursive: true);
+    if (!dir.existsSync()) await dir.create(recursive: true);
     _dir = dir;
     return dir;
   }
@@ -212,13 +212,13 @@ class NoteBlockDocStore implements SessionSecretsHolder {
         aadContext: 'block:$id',
       );
       final file = File(await _pathFor(id));
-      if (!await file.exists()) return; // 已被删除——不复活
+      if (!file.existsSync()) return; // 已被删除——不复活
       final tmp = File('${file.path}.${LocalIdGenerator.next('write')}.tmp');
       await tmp.writeAsBytes(sealed, flush: true);
       try {
         await tmp.rename(file.path);
       } on FileSystemException {
-        if (!await file.exists()) rethrow;
+        if (!file.existsSync()) rethrow;
         await file.delete();
         await tmp.rename(file.path);
       }
@@ -292,7 +292,7 @@ class NoteBlockDocStore implements SessionSecretsHolder {
               continue; // 解密失败（DEK 失效/损坏）按损坏处理
             }
           }
-          final stat = await entity.stat();
+          final stat = entity.statSync();
           result.add(
             NoteBlockDocHeader(
               id: fileId,
@@ -459,7 +459,7 @@ class NoteBlockDocStore implements SessionSecretsHolder {
     final tmp = File('$path.${LocalIdGenerator.next('write')}.tmp');
     try {
       await tmp.writeAsBytes(data, flush: true);
-      if (await file.exists()) {
+      if (file.existsSync()) {
         try {
           await file.copy('$path.bak');
         } catch (_) {
@@ -469,13 +469,13 @@ class NoteBlockDocStore implements SessionSecretsHolder {
       try {
         await tmp.rename(path);
       } on FileSystemException {
-        if (!await file.exists()) rethrow;
+        if (!file.existsSync()) rethrow;
         await file.delete();
         await tmp.rename(path);
       }
     } catch (_) {
       try {
-        if (await tmp.exists()) await tmp.delete();
+        if (tmp.existsSync()) await tmp.delete();
       } catch (_) {
         // 清理失败不覆盖原始存储异常。
       }
@@ -494,7 +494,7 @@ class NoteBlockDocStore implements SessionSecretsHolder {
     final path = await _pathFor(pageId);
     final file = File(path);
     final backup = File('$path.bak');
-    if (!await file.exists() && !await backup.exists()) return null;
+    if (!file.existsSync() && !backup.existsSync()) return null;
     Future<NoteBlockDoc> parse(File source) async {
       final raw = await _prepareDocBytes(pageId, await source.readAsBytes());
       final text = utf8.decode(raw);
@@ -512,11 +512,11 @@ class NoteBlockDocStore implements SessionSecretsHolder {
     }
 
     try {
-      return await parse(await file.exists() ? file : backup);
+      return await parse(file.existsSync() ? file : backup);
     } on BlockDocLockedException {
       rethrow; // 锁定态不做 .bak 回退（fail-closed）
     } catch (_) {
-      if (!await backup.exists()) rethrow;
+      if (!backup.existsSync()) rethrow;
       return parse(backup);
     }
   }

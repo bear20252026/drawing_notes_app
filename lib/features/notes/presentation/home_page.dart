@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
@@ -340,7 +341,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     );
     if (!mounted) return;
     await _openEditor(document: doc, documentStorage: _docStorage);
-    _refresh();
+    unawaited(_refresh());
   }
 
   /// 新建分页画布并进入页面管理（旧「新建笔记本」入口恢复——N1）。
@@ -402,7 +403,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
       }
       if (!mounted) return;
       await _openEditor(document: doc, documentStorage: _docStorage);
-      _refresh();
+      unawaited(_refresh());
     } catch (e) {
       _showSnack(_l10nSafe?.homeOpenCanvasFailed ?? '打开画布失败，请重试');
     }
@@ -826,7 +827,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
                                   item.$1,
                                 );
                                 if (ctx.mounted) Navigator.of(ctx).pop();
-                                _refresh();
+                                unawaited(_refresh());
                                 if (id != null) {
                                   _showSnack(
                                     _l10nSafe?.homeRecovered(id) ?? '已恢复「$id」',
@@ -854,7 +855,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
                                     item.$1,
                                   );
                                   if (ctx.mounted) Navigator.of(ctx).pop();
-                                  _refresh();
+                                  unawaited(_refresh());
                                 } catch (e) {
                                   _showSnack(
                                     _l10nSafe?.homeDeleteForeverFailed ??
@@ -876,7 +877,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
               onPressed: () async {
                 await _docStorage.purgeTrash();
                 if (ctx.mounted) Navigator.of(ctx).pop();
-                _refresh();
+                unawaited(_refresh());
               },
               child: Text(_l10nSafe?.homeEmptyTrash ?? '清空回收站'),
             ),

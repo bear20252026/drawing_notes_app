@@ -250,7 +250,7 @@ void main() {
 
     scheduler.dispose();
     scheduler.markDirty(); // 忽略
-    scheduler.saveNow(); // 忽略
+    unawaited(scheduler.saveNow()); // 忽略
     expect(save.calls, 1, reason: 'dispose 后不应再启动新保存');
 
     save.gate!.complete();

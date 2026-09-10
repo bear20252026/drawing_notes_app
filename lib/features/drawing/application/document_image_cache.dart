@@ -129,7 +129,7 @@ class DocumentImageCache {
       // 图片缺失或损坏时保留其余文档内容的可编辑性；下次按需访问可重试。
     } finally {
       image?.dispose();
-      _loads.remove(item.id);
+      unawaited(_loads.remove(item.id));
     }
   }
 

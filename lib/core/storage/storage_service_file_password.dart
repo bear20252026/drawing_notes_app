@@ -10,8 +10,8 @@ extension StorageServiceFilePassword on StorageService {
     await _ensureDocumentsDir();
     final file = File(_pathFor(id));
     final bak = File('${file.path}.bak');
-    if (await file.exists()) return file.readAsBytes();
-    if (await bak.exists()) return bak.readAsBytes();
+    if (file.existsSync()) return file.readAsBytes();
+    if (bak.existsSync()) return bak.readAsBytes();
     return null;
   }
 
@@ -362,7 +362,7 @@ extension StorageServiceFilePassword on StorageService {
     try {
       await _ensureThumbsDir();
       final thumb = File(_thumbPathFor(id));
-      if (await thumb.exists()) await thumb.delete();
+      if (thumb.existsSync()) await thumb.delete();
     } catch (_) {
       // 缩略图清理失败不影响密码设置本身。
     }

@@ -91,7 +91,7 @@ class AppDataRoot {
     if (cached != null) return cached;
     final docs = await _documentsDir();
     final dir = Directory('${docs.path}${Platform.pathSeparator}$rootName');
-    if (!await dir.exists()) await dir.create(recursive: true);
+    if (!dir.existsSync()) await dir.create(recursive: true);
     _rootCache = dir;
     return dir;
   }
@@ -100,7 +100,7 @@ class AppDataRoot {
   Future<Directory> securityDir() async {
     final rootDir = await root();
     final dir = Directory('${rootDir.path}${Platform.pathSeparator}security');
-    if (!await dir.exists()) await dir.create(recursive: true);
+    if (!dir.existsSync()) await dir.create(recursive: true);
     return dir;
   }
 
@@ -116,7 +116,7 @@ class AppDataRoot {
   Future<void> _migrateLegacy() async {
     final docs = await _documentsDir();
     final rootDir = Directory('${docs.path}${Platform.pathSeparator}$rootName');
-    if (!await rootDir.exists()) await rootDir.create(recursive: true);
+    if (!rootDir.existsSync()) await rootDir.create(recursive: true);
     _rootCache = rootDir;
 
     // 1) 旧业务子目录整体搬入根目录。
@@ -151,11 +151,11 @@ class AppDataRoot {
     final secDir = Directory(
       '${rootDir.path}${Platform.pathSeparator}security',
     );
-    if (!await secDir.exists()) await secDir.create(recursive: true);
+    if (!secDir.existsSync()) await secDir.create(recursive: true);
   }
 
   Future<void> _moveDir(Directory src, Directory dst) async {
-    if (!await src.exists() || await dst.exists()) return;
+    if (!src.existsSync() || dst.existsSync()) return;
     try {
       await src.rename(dst.path);
     } on FileSystemException {
@@ -176,7 +176,7 @@ class AppDataRoot {
   }
 
   Future<void> _moveFile(File src, File dst) async {
-    if (!await src.exists() || await dst.exists()) return;
+    if (!src.existsSync() || dst.existsSync()) return;
     await dst.parent.create(recursive: true);
     try {
       await src.rename(dst.path);
@@ -197,7 +197,7 @@ class AppDataRoot {
       '${Platform.pathSeparator}$defaultRootName'
       '${Platform.pathSeparator}security',
     );
-    if (!await dir.exists()) await dir.create(recursive: true);
+    if (!dir.existsSync()) await dir.create(recursive: true);
     return dir;
   }
 

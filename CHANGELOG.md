@@ -2,6 +2,27 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.6] - 2026-09-10
+
+### lint 前置清零（审计未决 F12/C9）：unawaited_futures + avoid_slow_async_io 整改 200 处并启用防回退
+
+- **avoid_slow_async_io（186 处）**：dart:io 小文件元数据操作全量转 Sync 版——
+  `await X.exists()` → `X.existsSync()`（175 处）、stat/lastModified/FileSystemEntity.type
+  （6 处）、跨行与测试文件残留（5 处）。小控制文件（密钥/清单/守卫记录）的 async
+  dart:io 每次调用有固有调度开销，Sync 版更快；载荷级 I/O（readAsBytes/writeAs 等
+  PDF/图片路径）本就不在此 lint 范围，未动。
+- **unawaited_futures（14 处）**：fire-and-forget 调用显式化——首页 `_refresh()`
+  5 处、密码盘触觉反馈 2 处、KEK 会话缓存/PDF 预览渲染/图片缓存移除/笔记本写尾
+  各 1 处、测试 2 处，全部 `unawaited(...)` 包裹（丢弃意图可见、可 grep）。
+- **await_only_futures（6 处）**：批量转换遗留的 `await File(...).existsSync()`
+  去 await。
+- **测试清理时序教训**：tearDown 里的 `await dir.exists()` 同步化会失去删除前的
+  事件循环拍，与在途图片解码句柄竞态（errno 32 稳定复现）——5 个测试的
+  「guard + delete」清理改用 `deleteTempDirWithRetry`（无 exists 调用，带重试，
+  同时保住 lint 清零）；生产代码的 existsSync 转换不受影响。
+- **启用防回退**：两条 lint 写入 analysis_options.yaml（附计量注释），
+  此后新增违规会直接挡在 flutter analyze 门禁。
+
 ## [1.17.5] - 2026-09-10
 
 ### i18n 第四批（审计未决 E1）：doc 域——488 → 375 处硬编码（arb 712 → 829 键）

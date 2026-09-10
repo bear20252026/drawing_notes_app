@@ -33,7 +33,7 @@ class FileSyncBaselineStore implements SyncBaselineStore {
   @override
   Future<SyncManifest?> load() async {
     final file = await _file();
-    if (!await file.exists()) return null;
+    if (!file.existsSync()) return null;
     try {
       final raw = await file.readAsString();
       return SyncManifest.fromJson(jsonDecode(raw) as Map<String, dynamic>);
@@ -58,7 +58,7 @@ class FileSyncBaselineStore implements SyncBaselineStore {
       await tmp.rename(file.path);
     } catch (_) {
       try {
-        if (await tmp.exists()) await tmp.delete();
+        if (tmp.existsSync()) await tmp.delete();
       } catch (_) {
         // 清理失败不覆盖原始存储异常。
       }

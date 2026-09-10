@@ -109,12 +109,12 @@ Future<String> _resolveExportPath({
   final docsDir = await getApplicationDocumentsDirectory();
   final dir = Directory('${docsDir.path}${Platform.pathSeparator}绘图笔记导出');
   // P3：全部异步 IO——existsSync/createSync 在 UI isolate 会造成微卡顿。
-  if (!await dir.exists()) await dir.create(recursive: true);
+  if (!dir.existsSync()) await dir.create(recursive: true);
   final base = sanitizeFileName(baseName);
   final ext = _sanitizeExtension(extension);
   var path = '${dir.path}${Platform.pathSeparator}$base.$ext';
   var n = 1;
-  while (await File(path).exists()) {
+  while (File(path).existsSync()) {
     path = '${dir.path}${Platform.pathSeparator}$base (${n++}).$ext';
   }
   return path;

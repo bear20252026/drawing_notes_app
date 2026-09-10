@@ -41,14 +41,14 @@ void main() {
     // 保存两次：第二次写入前会为主文件留 .bak。
     await storage.save(nb);
     await storage.save(nb);
-    expect(await mainFile('nb1').exists(), isTrue);
-    expect(await bakFile('nb1').exists(), isTrue, reason: '前置条件：二次保存后应存在 .bak');
+    expect(mainFile('nb1').existsSync(), isTrue);
+    expect(bakFile('nb1').existsSync(), isTrue, reason: '前置条件：二次保存后应存在 .bak');
 
     final ok = await storage.delete('nb1');
 
     expect(ok, isTrue);
-    expect(await mainFile('nb1').exists(), isFalse);
-    expect(await bakFile('nb1').exists(), isFalse, reason: '三-5：.bak 不得残留旧内容');
+    expect(mainFile('nb1').existsSync(), isFalse);
+    expect(bakFile('nb1').existsSync(), isFalse, reason: '三-5：.bak 不得残留旧内容');
     // 删除后 load 不再凭备份复活。
     expect(await storage.load('nb1'), isNull);
   });
@@ -60,12 +60,12 @@ void main() {
     await storage.save(nb);
     // 模拟主文件丢失、备份仍在。
     await mainFile('nb2').delete();
-    expect(await bakFile('nb2').exists(), isTrue);
+    expect(bakFile('nb2').existsSync(), isTrue);
 
     final ok = await storage.delete('nb2');
 
     expect(ok, isTrue);
-    expect(await bakFile('nb2').exists(), isFalse);
+    expect(bakFile('nb2').existsSync(), isFalse);
   });
 
   test('主文件与备份都不存在：delete 返回 false（原行为保留）', () async {

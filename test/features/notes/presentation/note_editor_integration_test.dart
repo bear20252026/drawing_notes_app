@@ -119,7 +119,7 @@ void main() {
     });
 
     tearDown(() async {
-      if (await tempDir.exists()) await tempDir.delete(recursive: true);
+      if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     });
 
     test('saveDocument → loadDocument → 内容一致', () async {

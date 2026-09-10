@@ -234,7 +234,7 @@ class LockoutGuard {
     // 目录；旧文件由 AppDataRoot 首次迁移搬入，此处只做确保存在）。
     final dir = await AppDataRoot.defaultSecurityDir();
     final file = File('${dir.path}${Platform.pathSeparator}app_lock_guard.key');
-    if (await file.exists()) {
+    if (file.existsSync()) {
       return base64Decode((await file.readAsString()).trim());
     }
     // 随机密钥单一事实来源：复用 VaultKeyService.randomBytes（CSPRNG）。

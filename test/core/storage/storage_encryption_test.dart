@@ -140,7 +140,7 @@ void main() {
     );
     await storage.save(doc('deletable', '待删除'));
     expect(await storage.delete('deletable'), isTrue);
-    expect(await File(docPath('deletable')).exists(), isFalse);
+    expect(File(docPath('deletable')).existsSync(), isFalse);
   });
 
   test('列表页懒迁移：明文旧文档在首页刷新时被批量重写为密文', () async {

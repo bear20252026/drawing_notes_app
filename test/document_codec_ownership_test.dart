@@ -46,7 +46,7 @@ void main() {
     test('StorageService 接受核心存储路径的编解码器', () async {
       final tempDir = await Directory.systemTemp.createTemp('codec_owner_');
       addTearDown(() async {
-        if (await tempDir.exists()) await tempDir.delete(recursive: true);
+        if (tempDir.existsSync()) await tempDir.delete(recursive: true);
       });
       final storage = StorageService(
         codec: const core_codec.DocumentCodec(),

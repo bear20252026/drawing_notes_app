@@ -1,4 +1,5 @@
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
@@ -134,13 +135,13 @@ class NotebookStorage
         aadContext: 'nb:$id',
       );
       final file = File(await _pathFor(id));
-      if (!await file.exists()) return; // 已被删除——不复活
+      if (!file.existsSync()) return; // 已被删除——不复活
       final tmp = File('${file.path}.${LocalIdGenerator.next('write')}.tmp');
       await tmp.writeAsBytes(sealed, flush: true);
       try {
         await tmp.rename(file.path);
       } on FileSystemException {
-        if (!await file.exists()) rethrow;
+        if (!file.existsSync()) rethrow;
         await file.delete();
         await tmp.rename(file.path);
       }
@@ -162,7 +163,7 @@ class NotebookStorage
     if (_notebooksDir != null) return _notebooksDir!;
     final base = await _baseDir();
     final dir = Directory('${base.path}${Platform.pathSeparator}notebooks');
-    if (!await dir.exists()) await dir.create(recursive: true);
+    if (!dir.existsSync()) await dir.create(recursive: true);
     _notebooksDir = dir;
     return dir;
   }
@@ -176,7 +177,7 @@ class NotebookStorage
     final dir = Directory(
       '${base.path}${Platform.pathSeparator}notebook_images',
     );
-    if (!await dir.exists()) await dir.create(recursive: true);
+    if (!dir.existsSync()) await dir.create(recursive: true);
     _imagesDir = dir;
     return dir;
   }
@@ -232,7 +233,9 @@ class NotebookStorage
       onWrite?.call();
       return finalPath;
     } finally {
-      if (identical(_writeTails[id], operation)) _writeTails.remove(id);
+      if (identical(_writeTails[id], operation)) {
+        unawaited(_writeTails.remove(id));
+      }
     }
   }
 
@@ -297,7 +300,7 @@ class NotebookStorage
     );
     try {
       await tmp.writeAsBytes(data, flush: true);
-      if (await destination.exists()) {
+      if (destination.existsSync()) {
         try {
           await destination.copy('${destination.path}.bak');
         } catch (_) {
@@ -307,13 +310,13 @@ class NotebookStorage
       try {
         await tmp.rename(destination.path);
       } on FileSystemException {
-        if (!await destination.exists()) rethrow;
+        if (!destination.existsSync()) rethrow;
         await destination.delete();
         await tmp.rename(destination.path);
       }
     } catch (_) {
       try {
-        if (await tmp.exists()) await tmp.delete();
+        if (tmp.existsSync()) await tmp.delete();
       } catch (_) {
         // 清理失败不覆盖原始存储异常。
       }
@@ -330,9 +333,9 @@ class NotebookStorage
     await _ensureNotebooksDir();
     final file = File(await _pathFor(id));
     final backup = File('${file.path}.bak');
-    if (!await file.exists() && !await backup.exists()) return null;
+    if (!file.existsSync() && !backup.existsSync()) return null;
     try {
-      final bytes = await (await file.exists() ? file : backup).readAsBytes();
+      final bytes = await (file.existsSync() ? file : backup).readAsBytes();
       final prepared = await _prepareNotebookBytes(id, bytes);
       return Notebook.fromJson(
         jsonDecode(utf8.decode(prepared)) as Map<String, dynamic>,
@@ -344,7 +347,7 @@ class NotebookStorage
       // 失败（或无备份可回退）时，裸 TypeError（jsonDecode 强转/字段类型
       // 不符）包成 FormatException——调用方按「笔记本数据损坏」统一处理，
       // 原始异常带在消息里（Dart FormatException 无 cause 槽位）。
-      if (await backup.exists()) {
+      if (backup.existsSync()) {
         try {
           final bytes = await backup.readAsBytes();
           final prepared = await _prepareNotebookBytes(
@@ -374,7 +377,7 @@ class NotebookStorage
   /// 文件修改时间（读取失败回退当前时间——占位排序兜底）。
   Future<DateTime> _fileMtime(File f) async {
     try {
-      return await f.lastModified();
+      return f.lastModifiedSync();
     } on FileSystemException {
       return DateTime.now();
     }
@@ -463,8 +466,8 @@ class NotebookStorage
     await _ensureNotebooksDir();
     final file = File(await _pathFor(id));
     final backup = File('${file.path}.bak');
-    final mainExists = await file.exists();
-    final backupExists = await backup.exists();
+    final mainExists = file.existsSync();
+    final backupExists = backup.existsSync();
     // 主文件与备份都不存在才算「无此笔记本」。仅剩 .bak（rename 期崩溃等）
     // 时笔记本仍可从备份加载——删除必须连备份一起处理。
     if (!mainExists && !backupExists) return false;
@@ -492,10 +495,10 @@ class NotebookStorage
         // 符号链接跟随可删除越界文件）。仅删除受管目录内的普通文件。
         final managed = await _managedImagePathOrNull(p);
         if (managed == null) continue;
-        final type = await FileSystemEntity.type(managed, followLinks: false);
+        final type = FileSystemEntity.typeSync(managed, followLinks: false);
         if (type != FileSystemEntityType.file) continue;
         final f = File(managed);
-        if (await f.exists()) await f.delete();
+        if (f.existsSync()) await f.delete();
       } catch (_) {
         // 单个图片删除失败忽略。
       }
@@ -550,7 +553,7 @@ class NotebookStorage
     final vfs = vaultService;
     if (vfs != null && vfs.hasKey) {
       final src = File(sourcePath);
-      if (!await src.exists()) {
+      if (!src.existsSync()) {
         throw FileSystemException('源图片不存在', sourcePath);
       }
       final id = 'media/${pageId}_${DateTime.now().microsecondsSinceEpoch}';
@@ -558,7 +561,7 @@ class NotebookStorage
       return 'vfs:$id';
     }
     final src = File(sourcePath);
-    if (!await src.exists()) throw FileSystemException('源图片不存在', sourcePath);
+    if (!src.existsSync()) throw FileSystemException('源图片不存在', sourcePath);
     // H-03 部分落地（专家审计 2026-08-15）：源文件大小配额（防超大图片
     // 资产入库；完整媒体加密——每笔记 DEK + 渲染解密——评估为数据保密
     // 重构专项，涉及渲染管线跨域改造，见 Inqrypt/heritage 分层加密模式）。
@@ -615,7 +618,7 @@ class NotebookStorage
     } catch (_) {
       // 不让加密或写入异常留下可被清理器误认为有效媒体的半成品。
       try {
-        if (await target.exists()) await target.delete();
+        if (target.existsSync()) await target.delete();
       } catch (_) {
         // 清理失败不覆盖原始异常。
       }
@@ -653,7 +656,7 @@ class NotebookStorage
   Future<List<int>> ensureMediaSalt() async {
     final base = await _baseDir();
     final file = File('${base.path}${Platform.pathSeparator}media_crypto_salt');
-    if (await file.exists()) {
+    if (file.existsSync()) {
       final bytes = await file.readAsBytes();
       if (bytes.length >= 16) return bytes.take(16).toList();
     }

@@ -83,7 +83,7 @@ class PdfiumPreviewRenderer implements PdfPreviewRenderer {
           image.dispose();
         }
       } finally {
-        document.dispose();
+        unawaited(document.dispose());
       }
     } catch (_) {
       // 任何失败（缺文件/非 PDF/原生未初始化）都回退，不影响卡片布局。

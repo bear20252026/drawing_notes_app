@@ -404,7 +404,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     ui.Codec? srcCodec;
     try {
       final file = File(img.filePath);
-      if (!await file.exists()) {
+      if (!file.existsSync()) {
         _showSnack(_l10nSafe?.cropSourceMissing ?? '原图文件不存在');
         return;
       }

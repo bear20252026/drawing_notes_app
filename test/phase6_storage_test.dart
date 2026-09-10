@@ -8,6 +8,8 @@ import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'helpers/temp_dir_cleanup.dart';
+
 /// Phase 6 验收测试：文件管理与持久化。
 ///
 /// 验收标准（来自开发计划 4.3 Phase 6）：
@@ -25,9 +27,7 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tempDir.exists()) {
-      await tempDir.delete(recursive: true);
-    }
+    await deleteTempDirWithRetry(tempDir);
   });
 
   StorageService makeStorage() =>
