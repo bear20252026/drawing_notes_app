@@ -6,6 +6,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_doc_row.dart'
     show visualForKind;
@@ -20,7 +21,7 @@ import 'package:drawing_notes_app/features/all_docs/presentation/all_doc_row.dar
 class AllDocsSidebar extends StatefulWidget {
   const AllDocsSidebar({
     super.key,
-    this.workspaceName = '画记',
+    this.workspaceName,
     this.searchQuery = '',
     this.onSearchChanged,
     this.selectedNavIndex = 0,
@@ -31,7 +32,8 @@ class AllDocsSidebar extends StatefulWidget {
   });
 
   /// 工作区名称（默认「画记」）。
-  final String workspaceName;
+  /// null 时按 locale 解析（i18n E1 批 1）。
+  final String? workspaceName;
 
   /// 当前搜索词（受控）。
   final String searchQuery;
@@ -61,12 +63,16 @@ class AllDocsSidebar extends StatefulWidget {
 class _AllDocsSidebarState extends State<AllDocsSidebar> {
   bool _treeExpanded = true;
 
-  static const _navItems = <_NavItem>[
-    _NavItem(Icons.dashboard_rounded, '全部文档'),
-    _NavItem(Icons.star_rounded, '收藏夹'),
-    _NavItem(Icons.label_rounded, '标签'),
-    _NavItem(Icons.delete_outline_rounded, '回收站'),
-  ];
+  /// i18n（E1 批 1）：导航文案按 locale 解析（原 static const 数组）。
+  List<_NavItem> _navItemsOf(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return [
+      _NavItem(Icons.dashboard_rounded, l10n?.shellAllDocs ?? '全部文档'),
+      _NavItem(Icons.star_rounded, l10n?.docsTabFavorites ?? '收藏夹'),
+      _NavItem(Icons.label_rounded, l10n?.docTags ?? '标签'),
+      _NavItem(Icons.delete_outline_rounded, l10n?.docsTrashTab ?? '回收站'),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +91,10 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
         children: [
           // 工作区头
           _WorkspaceHeader(
-            name: widget.workspaceName,
+            name:
+                widget.workspaceName ??
+                AppLocalizations.of(context)?.shellWorkspaceName ??
+                '画记',
             surface: surface,
             onSurface: onSurface,
           ),
@@ -101,7 +110,8 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
                   onSurface,
                 ).copyWith(fontWeight: FontWeight.w400),
                 decoration: InputDecoration(
-                  hintText: '快速搜索',
+                  hintText:
+                      AppLocalizations.of(context)?.docsQuickSearch ?? '快速搜索',
                   hintStyle: AppleType.controlStyle(
                     muted,
                   ).copyWith(fontWeight: FontWeight.w400),
@@ -140,7 +150,7 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
     final muted = AppleColor.mutedOf(theme.colorScheme);
     final accent = theme.colorScheme.primary;
 
-    return List.generate(_navItems.length, (i) {
+    return List.generate(_navItemsOf(context).length, (i) {
       final selected = i == widget.selectedNavIndex;
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 1),
@@ -162,14 +172,14 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
               child: Row(
                 children: [
                   Icon(
-                    _navItems[i].icon,
+                    _navItemsOf(context)[i].icon,
                     size: 18,
                     color: selected ? accent : muted,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      _navItems[i].label,
+                      _navItemsOf(context)[i].label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style:
@@ -213,7 +223,7 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
               ),
               const SizedBox(width: 8),
               Text(
-                '文档树',
+                AppLocalizations.of(context)?.docsTree ?? '文档树',
                 style: AppleType.captionStyle(
                   muted,
                 ).copyWith(fontWeight: FontWeight.w600),
@@ -243,7 +253,9 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        doc.title.isEmpty ? '未命名' : doc.title,
+                        doc.title.isEmpty
+                            ? AppLocalizations.of(context)?.docUntitled ?? '未命名'
+                            : doc.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppleType.controlStyle(
@@ -266,7 +278,10 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
       widgets.add(
         Padding(
           padding: const EdgeInsets.only(left: 24, top: 4, bottom: 8),
-          child: Text('暂无文档', style: AppleType.captionStyle(muted)),
+          child: Text(
+            AppLocalizations.of(context)?.docsNoDocs ?? '暂无文档',
+            style: AppleType.captionStyle(muted),
+          ),
         ),
       );
     }

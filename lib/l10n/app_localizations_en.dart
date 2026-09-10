@@ -668,4 +668,220 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get docsEmptyFirstNoteTip =>
       'Notes are for typing; canvases are for sketching';
+
+  @override
+  String get docsLoadFailedRetry => 'Failed to load. Pull down to retry';
+
+  @override
+  String get docsQuickSearch => 'Quick search';
+
+  @override
+  String get docsClearSearch => 'Clear search';
+
+  @override
+  String get docsRecent => 'Recent';
+
+  @override
+  String get docsNoDocs => 'No documents yet';
+
+  @override
+  String get docsMore => 'More';
+
+  @override
+  String get docsTrashTab => 'Trash';
+
+  @override
+  String get docsTree => 'Document tree';
+
+  @override
+  String get docsFavorite => 'Add to favorites';
+
+  @override
+  String get docsUnfavorite => 'Remove from favorites';
+
+  @override
+  String get docsMoreActions => 'More actions';
+
+  @override
+  String get docsGroupToday => 'Today';
+
+  @override
+  String get docsGroupThisWeek => 'This week';
+
+  @override
+  String get docsGroupEarlier => 'Earlier';
+
+  @override
+  String get docsGroupNeverUpdated => 'Never edited';
+
+  @override
+  String get open => 'Open';
+
+  @override
+  String get timeYesterday => 'Yesterday';
+
+  @override
+  String timeMonthDay(int month, int day) {
+    return '$month/$day';
+  }
+
+  @override
+  String get tagsEmpty => 'No tags yet';
+
+  @override
+  String get tagsEmptyTip => 'Open a note → Document info → Add tags';
+
+  @override
+  String get tagsAll => 'All tags';
+
+  @override
+  String get tagsNoDocs => 'No notes with this tag';
+
+  @override
+  String get commonConfirm => 'OK';
+
+  @override
+  String get commonPassword => 'Password';
+
+  @override
+  String get unlockEnterPassword => 'Enter password';
+
+  @override
+  String get unlockEmergency => 'Emergency';
+
+  @override
+  String get unlockBarrier => 'Password lock';
+
+  @override
+  String get unlockPasswordWrong => 'Incorrect password';
+
+  @override
+  String get unlock => 'Unlock';
+
+  @override
+  String get shellUnlockNoteTitle =>
+      'This note is encrypted. Enter its password';
+
+  @override
+  String get shellUnlockCanvasTitle =>
+      'This canvas is encrypted. Enter its standalone password';
+
+  @override
+  String get shellUnlockNotebookTitle =>
+      'This paged canvas is encrypted. Enter its password';
+
+  @override
+  String get resetThisNote => 'this note';
+
+  @override
+  String get resetThisCanvas => 'this canvas';
+
+  @override
+  String get resetThisNotebook => 'this paged canvas';
+
+  @override
+  String resetDocNameQuote(String name) {
+    return '“$name”';
+  }
+
+  @override
+  String get resetForgotFilePassword => 'Forgot file password';
+
+  @override
+  String get resetForgotPassword => 'Forgot password';
+
+  @override
+  String get resetImpossible => 'Cannot reset';
+
+  @override
+  String get resetStandalonePassword => 'Standalone password';
+
+  @override
+  String get resetFailed => 'Reset failed';
+
+  @override
+  String get resetDiskMismatchOrCorrupt =>
+      'The reset disk doesn\'t match or is damaged.';
+
+  @override
+  String resetDoneStandalone(String name) {
+    return 'Standalone password of $name has been reset with the reset disk';
+  }
+
+  @override
+  String resetDonePassword(String name) {
+    return 'Password of $name has been reset with the reset disk';
+  }
+
+  @override
+  String get resetUseDisk => 'Use reset disk';
+
+  @override
+  String get resetNoValidKey => 'No valid key found';
+
+  @override
+  String get resetSetNewFilePassword => 'Set a new file password';
+
+  @override
+  String resetSameAsLockScreen(String label) {
+    return '$label must differ from the screen-lock password';
+  }
+
+  @override
+  String get resetConfirmNewFilePassword => 'Confirm the new file password';
+
+  @override
+  String get resetMismatchRetry =>
+      'The two entries don\'t match. Please try again';
+
+  @override
+  String get colorPickerTitle => 'Choose a color';
+
+  @override
+  String pinDigitsCount(int entered, int min, int max) {
+    return '$entered / $max digits ($min–$max optional)';
+  }
+
+  @override
+  String get lockButtonLock => 'Lock';
+
+  @override
+  String get lockButtonUnlock => 'Unlock';
+
+  @override
+  String get shellWorkspaceName => 'NoteStudio';
+
+  @override
+  String resetIntroNote(String name) {
+    return 'Reset the standalone password of $name with the reset disk (USB drive).\n\nPrerequisite: this note has a reset disk bound (set a password, or bind one in password management).';
+  }
+
+  @override
+  String resetIntroCanvas(String name) {
+    return 'Reset the standalone password of $name with the reset disk (USB drive).\n\nPrerequisite: this canvas has a reset disk bound (set a password, or bind one in password management).';
+  }
+
+  @override
+  String resetIntroNotebook(String name) {
+    return 'Reset the password of $name with the reset disk (USB drive).\n\nPrerequisite: this paged canvas has a reset disk bound (set a password, or bind one in password management).';
+  }
+
+  @override
+  String resetNotBoundNote(String name) {
+    return '$name has no reset disk (USB drive) bound, so its password cannot be reset via the disk.\n\nYou can choose “Bind reset disk” in password management.';
+  }
+
+  @override
+  String resetNotBoundCanvas(String name) {
+    return '$name has no reset disk (USB drive) bound, so its password cannot be reset via the disk.\n\nYou can choose “Bind reset disk” in password management; passwords set in old versions (v1.5.x) must be changed once first to upgrade the format.';
+  }
+
+  @override
+  String resetNotBoundNotebook(String name) {
+    return '$name has no reset disk (USB drive) bound, so its password cannot be reset via the disk.\n\nAfter enabling password protection in Settings, choose “Bind reset disk” from the menu; passwords set in old versions must be changed once first to upgrade the format.';
+  }
+
+  @override
+  String get resetNoValidKeyBody =>
+      'No valid reset disk file (password_reset_disk.key) found at the chosen location.';
 }

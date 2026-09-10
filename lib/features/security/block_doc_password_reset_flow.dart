@@ -12,6 +12,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/security/password_reset_common.dart';
 
 abstract final class BlockDocPasswordResetFlow {
@@ -22,15 +23,21 @@ abstract final class BlockDocPasswordResetFlow {
     required String docId,
     String docTitle = '',
   }) async {
-    final name = docTitle.isEmpty || docTitle == '加密笔记' ? '该笔记' : '「$docTitle」';
+    final l10n0 = AppLocalizations.of(context);
+    // 注：与「加密笔记」比较是对旧默认标题的兜底判断（存储默认值本地化
+    // 属存储/展示分离专项，暂保持 zh 常量）。
+    final name = docTitle.isEmpty || docTitle == '加密笔记'
+        ? l10n0?.resetThisNote ?? '该笔记'
+        : l10n0?.resetDocNameQuote(docTitle) ?? '「$docTitle」';
 
     // 1. 说明确认。
     final proceed = await PasswordResetSteps.confirm(
       context,
-      title: '忘记文件密码',
+      title: l10n0?.resetForgotFilePassword ?? '忘记文件密码',
       message:
+          l10n0?.resetIntroNote(name) ??
           '使用重置密码盘（U 盘）重置$name的独立密码。\n\n'
-          '前提：该笔记已绑定重置密码盘（设置密码或密码管理中绑定）。',
+              '前提：该笔记已绑定重置密码盘（设置密码或密码管理中绑定）。',
     );
     if (!proceed || !context.mounted) return false;
 
@@ -39,9 +46,10 @@ abstract final class BlockDocPasswordResetFlow {
       if (!context.mounted) return false;
       await PasswordResetSteps.alert(
         context,
-        '无法重置',
-        '$name未绑定重置密码盘（U 盘），无法通过重置盘重置密码。\n\n'
-            '可在密码管理中选择「绑定重置密码盘」。',
+        l10n0?.resetImpossible ?? '无法重置',
+        l10n0?.resetNotBoundNote(name) ??
+            '$name未绑定重置密码盘（U 盘），无法通过重置盘重置密码。\n\n'
+                '可在密码管理中选择「绑定重置密码盘」。',
       );
       return false;
     }
@@ -54,7 +62,7 @@ abstract final class BlockDocPasswordResetFlow {
     // 4. 新密码两遍（与开屏密码同码直接拒绝——与设密口径一致）。
     final pin = await PasswordResetSteps.collectNewPassword(
       context,
-      label: '独立密码',
+      label: l10n0?.resetStandalonePassword ?? '独立密码',
     );
     if (pin == null || !context.mounted) return false;
 
@@ -62,11 +70,18 @@ abstract final class BlockDocPasswordResetFlow {
     final ok = await store.resetBlockDocPasswordWithUsb(docId, usbKey, pin);
     if (!ok) {
       if (!context.mounted) return false;
-      await PasswordResetSteps.alert(context, '重置失败', '重置密码盘不匹配或已损坏。');
+      await PasswordResetSteps.alert(
+        context,
+        l10n0?.resetFailed ?? '重置失败',
+        l10n0?.resetDiskMismatchOrCorrupt ?? '重置密码盘不匹配或已损坏。',
+      );
       return false;
     }
     if (!context.mounted) return false;
-    PasswordResetSteps.snack(context, '已用重置密码盘重置$name的独立密码');
+    PasswordResetSteps.snack(
+      context,
+      l10n0?.resetDoneStandalone(name) ?? '已用重置密码盘重置$name的独立密码',
+    );
     return true;
   }
 }

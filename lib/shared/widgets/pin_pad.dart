@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_motion.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 // PART 2 · PinPadUnlockSheet —— iOS 锁屏风格全屏数字密码盘
 // ===========================================================================
@@ -42,7 +43,10 @@ import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 class PinPadCore extends StatefulWidget {
   const PinPadCore({
     super.key,
-    this.title = '输入密码',
+
+    /// i18n（E1 批 1）：null 时按 locale 取「输入密码」（默认参数无法
+    /// 引用 l10n，运行时在使用处解析）。
+    this.title,
     this.pinLength = 4,
     this.flexible = false,
     this.flexibleMinLength = 4,
@@ -50,11 +54,11 @@ class PinPadCore extends StatefulWidget {
     this.onVerify,
     this.onAccepted,
     this.onEmergency,
-    this.emergencyLabel = '紧急情况',
+    this.emergencyLabel,
     this.onCancel,
   });
 
-  final String title;
+  final String? title;
 
   /// 固定长度模式的圆点数。
   final int pinLength;
@@ -74,7 +78,8 @@ class PinPadCore extends StatefulWidget {
   final VoidCallback? onEmergency;
 
   /// 「紧急情况」按钮文案（N4 批 2：文件密码解锁时复用为「忘记密码？」）。
-  final String emergencyLabel;
+  /// null 时按 locale 取默认（i18n E1 批 1）。
+  final String? emergencyLabel;
 
   /// 「取消」按钮回调；不传则不显示该按钮。
   final VoidCallback? onCancel;
@@ -187,7 +192,12 @@ class _PinPadCoreState extends State<PinPadCore>
               child: Column(
                 children: [
                   const Spacer(flex: 3),
-                  Text(widget.title, style: AppleType.titleStyle(Colors.white)),
+                  Text(
+                    widget.title ??
+                        AppLocalizations.of(context)?.unlockEnterPassword ??
+                        '输入密码',
+                    style: AppleType.titleStyle(Colors.white),
+                  ),
                   const SizedBox(height: 20),
                   AnimatedBuilder(
                     animation: _shake,
@@ -235,9 +245,14 @@ class _PinPadCoreState extends State<PinPadCore>
                             if (_isFlexible) ...[
                               const SizedBox(height: 10),
                               Text(
-                                '${_entered.length} / ${widget.flexibleMaxLength} 位'
-                                '（${widget.flexibleMinLength}–'
-                                '${widget.flexibleMaxLength} 位可选）',
+                                AppLocalizations.of(context)?.pinDigitsCount(
+                                      _entered.length,
+                                      widget.flexibleMinLength,
+                                      widget.flexibleMaxLength,
+                                    ) ??
+                                    '${_entered.length} / ${widget.flexibleMaxLength} 位'
+                                        '（${widget.flexibleMinLength}–'
+                                        '${widget.flexibleMaxLength} 位可选）',
                                 style: AppleType.captionStyle(
                                   Colors.white.withValues(alpha: 0.7),
                                 ),
@@ -273,8 +288,14 @@ class _PinPadCoreState extends State<PinPadCore>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           if (emergency != null)
-            _bottomAction(widget.emergencyLabel, emergency),
-          if (cancel != null) _bottomAction('取消', cancel),
+            _bottomAction(
+              widget.emergencyLabel ??
+                  AppLocalizations.of(context)?.unlockEmergency ??
+                  '紧急情况',
+              emergency,
+            ),
+          if (cancel != null)
+            _bottomAction(AppLocalizations.of(context)?.cancel ?? '取消', cancel),
         ],
       ),
     );

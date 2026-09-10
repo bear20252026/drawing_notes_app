@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/security/password_reset_common.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 abstract final class NotebookPasswordResetFlow {
   /// 运行完整重置流；返回 true = 重置成功（会话已缓存新密码）。
@@ -22,15 +23,19 @@ abstract final class NotebookPasswordResetFlow {
     required String notebookId,
     String notebookTitle = '',
   }) async {
-    final name = notebookTitle.isEmpty ? '该分页画布' : '「$notebookTitle」';
+    final l10n0 = AppLocalizations.of(context);
+    final name = notebookTitle.isEmpty
+        ? l10n0?.resetThisNotebook ?? '该分页画布'
+        : l10n0?.resetDocNameQuote(notebookTitle) ?? '「$notebookTitle」';
 
     // 1. 说明确认。
     final proceed = await PasswordResetSteps.confirm(
       context,
-      title: '忘记密码',
+      title: l10n0?.resetForgotPassword ?? '忘记密码',
       message:
+          l10n0?.resetIntroNotebook(name) ??
           '使用重置密码盘（U 盘）重置$name的密码。\n\n'
-          '前提：该分页画布已绑定重置密码盘（设置密码或密码管理中绑定）。',
+              '前提：该分页画布已绑定重置密码盘（设置密码或密码管理中绑定）。',
     );
     if (!proceed || !context.mounted) return false;
 
@@ -39,10 +44,11 @@ abstract final class NotebookPasswordResetFlow {
       if (!context.mounted) return false;
       await PasswordResetSteps.alert(
         context,
-        '无法重置',
-        '$name未绑定重置密码盘（U 盘），无法通过重置盘重置密码。\n\n'
-            '可在「设置/修改密码保护」后于菜单中选择「绑定重置密码盘」；'
-            '旧版本设置的密码需先修改一次密码升级格式。',
+        l10n0?.resetImpossible ?? '无法重置',
+        l10n0?.resetNotBoundNotebook(name) ??
+            '$name未绑定重置密码盘（U 盘），无法通过重置盘重置密码。\n\n'
+                '可在「设置/修改密码保护」后于菜单中选择「绑定重置密码盘」；'
+                '旧版本设置的密码需先修改一次密码升级格式。',
       );
       return false;
     }
@@ -55,7 +61,7 @@ abstract final class NotebookPasswordResetFlow {
     // 4. 新密码两遍（与开屏密码同码直接拒绝——与设密口径一致）。
     final pin = await PasswordResetSteps.collectNewPassword(
       context,
-      label: '密码',
+      label: l10n0?.commonPassword ?? '密码',
     );
     if (pin == null || !context.mounted) return false;
 
@@ -67,11 +73,18 @@ abstract final class NotebookPasswordResetFlow {
     );
     if (!ok) {
       if (!context.mounted) return false;
-      await PasswordResetSteps.alert(context, '重置失败', '重置密码盘不匹配或已损坏。');
+      await PasswordResetSteps.alert(
+        context,
+        l10n0?.resetFailed ?? '重置失败',
+        l10n0?.resetDiskMismatchOrCorrupt ?? '重置密码盘不匹配或已损坏。',
+      );
       return false;
     }
     if (!context.mounted) return false;
-    PasswordResetSteps.snack(context, '已用重置密码盘重置$name的密码');
+    PasswordResetSteps.snack(
+      context,
+      l10n0?.resetDonePassword(name) ?? '已用重置密码盘重置$name的密码',
+    );
     return true;
   }
 }

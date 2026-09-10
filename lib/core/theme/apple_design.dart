@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/apple_pressable.dart';
 
 /// Apple (HIG) 设计语言 token 与可复用部件。
@@ -633,19 +634,23 @@ class AppleDialog {
     BuildContext context, {
     required String title,
     required String content,
-    String confirmText = '确定',
-    String cancelText = '取消',
+
+    /// i18n（E1 批 1）：默认参数无法引用 l10n，改为可空 + 此处运行时
+    /// 解析——全库 15+ 依赖默认值的调用点一处收敛。
+    String? confirmText,
+    String? cancelText,
     bool dangerous = false,
 
     /// 材质外壳注入点；省略时用裸 `AlertDialog`（既有行为不变）。
     AppleDialogSurface? surface,
   }) async {
+    final l10n = AppLocalizations.of(context);
     final cancelButton = TextButton(
       // 三输入可达性：危险操作时初始焦点落在安全的「取消」上
       //（确认按钮是破坏性一侧，不应被回车误触）。
       autofocus: dangerous,
       onPressed: () => Navigator.of(context).pop(false),
-      child: Text(cancelText),
+      child: Text(cancelText ?? l10n?.cancel ?? '取消'),
     );
     final confirmButton = FilledButton(
       autofocus: !dangerous,
@@ -655,7 +660,7 @@ class AppleDialog {
             )
           : null,
       onPressed: () => Navigator.of(context).pop(true),
-      child: Text(confirmText),
+      child: Text(confirmText ?? l10n?.commonConfirm ?? '确定'),
     );
     final build = surface ?? _plainSurface;
     final ok = await showDialog<bool>(

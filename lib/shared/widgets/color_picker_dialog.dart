@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/apple_design.dart';
+import '../../l10n/app_localizations.dart';
 
 /// 颜色选择对话框（Phase 2 验收：色板 + 自由调色）。
 ///
@@ -78,7 +79,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('选择颜色'),
+      title: Text(AppLocalizations.of(context)?.colorPickerTitle ?? '选择颜色'),
       content: SizedBox(
         width: 320,
         child: SingleChildScrollView(
@@ -282,7 +283,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
       actions: AppleDialog.actions([
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
         ),
         FilledButton(
           autofocus: true,
@@ -292,7 +293,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
             }
             Navigator.of(context).pop(_selected);
           },
-          child: const Text('确定'),
+          child: Text(AppLocalizations.of(context)?.commonConfirm ?? '确定'),
         ),
       ]),
     );

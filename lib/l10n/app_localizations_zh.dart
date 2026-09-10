@@ -635,4 +635,215 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get docsEmptyFirstNoteTip => '笔记用来打字，画布用来写写画画';
+
+  @override
+  String get docsLoadFailedRetry => '加载失败，请下拉刷新重试';
+
+  @override
+  String get docsQuickSearch => '快速搜索';
+
+  @override
+  String get docsClearSearch => '清除搜索';
+
+  @override
+  String get docsRecent => '最近文档';
+
+  @override
+  String get docsNoDocs => '暂无文档';
+
+  @override
+  String get docsMore => '更多';
+
+  @override
+  String get docsTrashTab => '回收站';
+
+  @override
+  String get docsTree => '文档树';
+
+  @override
+  String get docsFavorite => '添加收藏';
+
+  @override
+  String get docsUnfavorite => '取消收藏';
+
+  @override
+  String get docsMoreActions => '更多操作';
+
+  @override
+  String get docsGroupToday => '今天';
+
+  @override
+  String get docsGroupThisWeek => '本周';
+
+  @override
+  String get docsGroupEarlier => '更早';
+
+  @override
+  String get docsGroupNeverUpdated => '从未更新';
+
+  @override
+  String get open => '打开';
+
+  @override
+  String get timeYesterday => '昨天';
+
+  @override
+  String timeMonthDay(int month, int day) {
+    return '$month 月 $day 日';
+  }
+
+  @override
+  String get tagsEmpty => '暂无标签';
+
+  @override
+  String get tagsEmptyTip => '打开笔记 → 文档信息 → 添加标签';
+
+  @override
+  String get tagsAll => '全部标签';
+
+  @override
+  String get tagsNoDocs => '该标签下暂无笔记';
+
+  @override
+  String get commonConfirm => '确定';
+
+  @override
+  String get commonPassword => '密码';
+
+  @override
+  String get unlockEnterPassword => '输入密码';
+
+  @override
+  String get unlockEmergency => '紧急情况';
+
+  @override
+  String get unlockBarrier => '密码锁';
+
+  @override
+  String get unlockPasswordWrong => '密码不正确';
+
+  @override
+  String get unlock => '解锁';
+
+  @override
+  String get shellUnlockNoteTitle => '该笔记已加密，输入密码';
+
+  @override
+  String get shellUnlockCanvasTitle => '该画布已加密，输入独立密码';
+
+  @override
+  String get shellUnlockNotebookTitle => '该分页画布已加密，输入密码';
+
+  @override
+  String get resetThisNote => '该笔记';
+
+  @override
+  String get resetThisCanvas => '该画布';
+
+  @override
+  String get resetThisNotebook => '该分页画布';
+
+  @override
+  String resetDocNameQuote(String name) {
+    return '「$name」';
+  }
+
+  @override
+  String get resetForgotFilePassword => '忘记文件密码';
+
+  @override
+  String get resetForgotPassword => '忘记密码';
+
+  @override
+  String get resetImpossible => '无法重置';
+
+  @override
+  String get resetStandalonePassword => '独立密码';
+
+  @override
+  String get resetFailed => '重置失败';
+
+  @override
+  String get resetDiskMismatchOrCorrupt => '重置密码盘不匹配或已损坏。';
+
+  @override
+  String resetDoneStandalone(String name) {
+    return '已用重置密码盘重置$name的独立密码';
+  }
+
+  @override
+  String resetDonePassword(String name) {
+    return '已用重置密码盘重置$name的密码';
+  }
+
+  @override
+  String get resetUseDisk => '使用重置密码盘';
+
+  @override
+  String get resetNoValidKey => '未找到有效钥匙';
+
+  @override
+  String get resetSetNewFilePassword => '设置新文件密码';
+
+  @override
+  String resetSameAsLockScreen(String label) {
+    return '$label不能与开屏密码相同';
+  }
+
+  @override
+  String get resetConfirmNewFilePassword => '确认新文件密码';
+
+  @override
+  String get resetMismatchRetry => '两次输入不一致，请重试';
+
+  @override
+  String get colorPickerTitle => '选择颜色';
+
+  @override
+  String pinDigitsCount(int entered, int min, int max) {
+    return '$entered / $max 位（$min–$max 位可选）';
+  }
+
+  @override
+  String get lockButtonLock => '锁定';
+
+  @override
+  String get lockButtonUnlock => '解锁';
+
+  @override
+  String get shellWorkspaceName => '画记';
+
+  @override
+  String resetIntroNote(String name) {
+    return '使用重置密码盘（U 盘）重置$name的独立密码。\n\n前提：该笔记已绑定重置密码盘（设置密码或密码管理中绑定）。';
+  }
+
+  @override
+  String resetIntroCanvas(String name) {
+    return '使用重置密码盘（U 盘）重置$name的独立密码。\n\n前提：该画布已绑定重置密码盘（设置密码或密码管理中绑定）。';
+  }
+
+  @override
+  String resetIntroNotebook(String name) {
+    return '使用重置密码盘（U 盘）重置$name的密码。\n\n前提：该分页画布已绑定重置密码盘（设置密码或密码管理中绑定）。';
+  }
+
+  @override
+  String resetNotBoundNote(String name) {
+    return '$name未绑定重置密码盘（U 盘），无法通过重置盘重置密码。\n\n可在密码管理中选择「绑定重置密码盘」。';
+  }
+
+  @override
+  String resetNotBoundCanvas(String name) {
+    return '$name未绑定重置密码盘（U 盘），无法通过重置盘重置密码。\n\n可在密码管理中选择「绑定重置密码盘」；旧版本（v1.5.x）设置的密码文件需先修改一次密码升级格式。';
+  }
+
+  @override
+  String resetNotBoundNotebook(String name) {
+    return '$name未绑定重置密码盘（U 盘），无法通过重置盘重置密码。\n\n可在「设置/修改密码保护」后于菜单中选择「绑定重置密码盘」；旧版本设置的密码需先修改一次密码升级格式。';
+  }
+
+  @override
+  String get resetNoValidKeyBody =>
+      '所选位置未找到有效的重置密码盘文件（password_reset_disk.key）。';
 }

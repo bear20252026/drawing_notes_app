@@ -230,10 +230,11 @@ class _AppShellState extends State<AppShell> {
     if (!mounted) return false;
     final pin = await UnlockFlow.show(
       context,
-      title: '该笔记已加密，输入密码',
+      title:
+          AppLocalizations.of(context)?.shellUnlockNoteTitle ?? '该笔记已加密，输入密码',
       flexible: true,
       onVerify: (p) => store.verifyBlockDocPassword(id, p),
-      footerLabel: '忘记密码？',
+      footerLabel: AppLocalizations.of(context)?.docForgotPassword ?? '忘记密码？',
       onFooter: () {
         BlockDocPasswordResetFlow.show(context, store: store, docId: id);
       },
@@ -443,10 +444,13 @@ class _AppShellState extends State<AppShell> {
           if (!mounted) return;
           final pin = await UnlockFlow.show(
             context,
-            title: '该画布已加密，输入独立密码',
+            title:
+                AppLocalizations.of(context)?.shellUnlockCanvasTitle ??
+                '该画布已加密，输入独立密码',
             flexible: true,
             onVerify: (p) => storage.verifyFilePassword(id, p),
-            footerLabel: '忘记密码？',
+            footerLabel:
+                AppLocalizations.of(context)?.docForgotPassword ?? '忘记密码？',
             onFooter: () {
               FilePasswordResetFlow.show(context, storage: storage, docId: id);
             },
@@ -501,10 +505,13 @@ class _AppShellState extends State<AppShell> {
           if (!mounted) return;
           final pin = await UnlockFlow.show(
             context,
-            title: '该分页画布已加密，输入密码',
+            title:
+                AppLocalizations.of(context)?.shellUnlockNotebookTitle ??
+                '该分页画布已加密，输入密码',
             flexible: true,
             onVerify: (p) => nbStorage.verifyNotebookPassword(nbId, p),
-            footerLabel: '忘记密码？',
+            footerLabel:
+                AppLocalizations.of(context)?.docForgotPassword ?? '忘记密码？',
             onFooter: () {
               NotebookPasswordResetFlow.show(
                 context,

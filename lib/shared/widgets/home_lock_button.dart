@@ -4,6 +4,8 @@
 
 import 'package:flutter/material.dart';
 
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
+
 class HomeLockButton extends StatelessWidget {
   const HomeLockButton({
     super.key,
@@ -19,7 +21,9 @@ class HomeLockButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      tooltip: isUnlocked ? '锁定' : '解锁',
+      tooltip: isUnlocked
+          ? AppLocalizations.of(context)?.lockButtonLock ?? '锁定'
+          : AppLocalizations.of(context)?.lockButtonUnlock ?? '解锁',
       icon: Icon(
         isUnlocked ? Icons.lock_open_rounded : Icons.lock_rounded,
         color: isUnlocked

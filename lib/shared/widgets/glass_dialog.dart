@@ -44,12 +44,15 @@ class GlassDialog {
   static AppleDialogSurface get surface => _buildSurface;
 
   /// [AppleDialog.confirm] 的玻璃版本（其余签名与语义完全一致）。
+  ///
+  /// i18n（E1 批 1）：[confirmText]/[cancelText] 改为可空透传，null 时由
+  /// [AppleDialog.confirm] 按 locale 解析默认文案。
   static Future<bool> confirm(
     BuildContext context, {
     required String title,
     required String content,
-    String confirmText = '确定',
-    String cancelText = '取消',
+    String? confirmText,
+    String? cancelText,
     bool dangerous = false,
   }) {
     return AppleDialog.confirm(

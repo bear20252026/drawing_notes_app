@@ -1285,6 +1285,378 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Notes are for typing; canvases are for sketching'**
   String get docsEmptyFirstNoteTip;
+
+  /// No description provided for @docsLoadFailedRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load. Pull down to retry'**
+  String get docsLoadFailedRetry;
+
+  /// No description provided for @docsQuickSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick search'**
+  String get docsQuickSearch;
+
+  /// No description provided for @docsClearSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get docsClearSearch;
+
+  /// No description provided for @docsRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent'**
+  String get docsRecent;
+
+  /// No description provided for @docsNoDocs.
+  ///
+  /// In en, this message translates to:
+  /// **'No documents yet'**
+  String get docsNoDocs;
+
+  /// No description provided for @docsMore.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get docsMore;
+
+  /// No description provided for @docsTrashTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Trash'**
+  String get docsTrashTab;
+
+  /// No description provided for @docsTree.
+  ///
+  /// In en, this message translates to:
+  /// **'Document tree'**
+  String get docsTree;
+
+  /// No description provided for @docsFavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to favorites'**
+  String get docsFavorite;
+
+  /// No description provided for @docsUnfavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from favorites'**
+  String get docsUnfavorite;
+
+  /// No description provided for @docsMoreActions.
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get docsMoreActions;
+
+  /// No description provided for @docsGroupToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get docsGroupToday;
+
+  /// No description provided for @docsGroupThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This week'**
+  String get docsGroupThisWeek;
+
+  /// No description provided for @docsGroupEarlier.
+  ///
+  /// In en, this message translates to:
+  /// **'Earlier'**
+  String get docsGroupEarlier;
+
+  /// No description provided for @docsGroupNeverUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Never edited'**
+  String get docsGroupNeverUpdated;
+
+  /// No description provided for @open.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get open;
+
+  /// No description provided for @timeYesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get timeYesterday;
+
+  /// No description provided for @timeMonthDay.
+  ///
+  /// In en, this message translates to:
+  /// **'{month}/{day}'**
+  String timeMonthDay(int month, int day);
+
+  /// No description provided for @tagsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No tags yet'**
+  String get tagsEmpty;
+
+  /// No description provided for @tagsEmptyTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Open a note → Document info → Add tags'**
+  String get tagsEmptyTip;
+
+  /// No description provided for @tagsAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All tags'**
+  String get tagsAll;
+
+  /// No description provided for @tagsNoDocs.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes with this tag'**
+  String get tagsNoDocs;
+
+  /// No description provided for @commonConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get commonConfirm;
+
+  /// No description provided for @commonPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get commonPassword;
+
+  /// No description provided for @unlockEnterPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter password'**
+  String get unlockEnterPassword;
+
+  /// No description provided for @unlockEmergency.
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency'**
+  String get unlockEmergency;
+
+  /// No description provided for @unlockBarrier.
+  ///
+  /// In en, this message translates to:
+  /// **'Password lock'**
+  String get unlockBarrier;
+
+  /// No description provided for @unlockPasswordWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect password'**
+  String get unlockPasswordWrong;
+
+  /// No description provided for @unlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get unlock;
+
+  /// No description provided for @shellUnlockNoteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This note is encrypted. Enter its password'**
+  String get shellUnlockNoteTitle;
+
+  /// No description provided for @shellUnlockCanvasTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This canvas is encrypted. Enter its standalone password'**
+  String get shellUnlockCanvasTitle;
+
+  /// No description provided for @shellUnlockNotebookTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This paged canvas is encrypted. Enter its password'**
+  String get shellUnlockNotebookTitle;
+
+  /// No description provided for @resetThisNote.
+  ///
+  /// In en, this message translates to:
+  /// **'this note'**
+  String get resetThisNote;
+
+  /// No description provided for @resetThisCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'this canvas'**
+  String get resetThisCanvas;
+
+  /// No description provided for @resetThisNotebook.
+  ///
+  /// In en, this message translates to:
+  /// **'this paged canvas'**
+  String get resetThisNotebook;
+
+  /// No description provided for @resetDocNameQuote.
+  ///
+  /// In en, this message translates to:
+  /// **'“{name}”'**
+  String resetDocNameQuote(String name);
+
+  /// No description provided for @resetForgotFilePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot file password'**
+  String get resetForgotFilePassword;
+
+  /// No description provided for @resetForgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password'**
+  String get resetForgotPassword;
+
+  /// No description provided for @resetImpossible.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot reset'**
+  String get resetImpossible;
+
+  /// No description provided for @resetStandalonePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Standalone password'**
+  String get resetStandalonePassword;
+
+  /// No description provided for @resetFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset failed'**
+  String get resetFailed;
+
+  /// No description provided for @resetDiskMismatchOrCorrupt.
+  ///
+  /// In en, this message translates to:
+  /// **'The reset disk doesn\'t match or is damaged.'**
+  String get resetDiskMismatchOrCorrupt;
+
+  /// No description provided for @resetDoneStandalone.
+  ///
+  /// In en, this message translates to:
+  /// **'Standalone password of {name} has been reset with the reset disk'**
+  String resetDoneStandalone(String name);
+
+  /// No description provided for @resetDonePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password of {name} has been reset with the reset disk'**
+  String resetDonePassword(String name);
+
+  /// No description provided for @resetUseDisk.
+  ///
+  /// In en, this message translates to:
+  /// **'Use reset disk'**
+  String get resetUseDisk;
+
+  /// No description provided for @resetNoValidKey.
+  ///
+  /// In en, this message translates to:
+  /// **'No valid key found'**
+  String get resetNoValidKey;
+
+  /// No description provided for @resetSetNewFilePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a new file password'**
+  String get resetSetNewFilePassword;
+
+  /// No description provided for @resetSameAsLockScreen.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} must differ from the screen-lock password'**
+  String resetSameAsLockScreen(String label);
+
+  /// No description provided for @resetConfirmNewFilePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm the new file password'**
+  String get resetConfirmNewFilePassword;
+
+  /// No description provided for @resetMismatchRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'The two entries don\'t match. Please try again'**
+  String get resetMismatchRetry;
+
+  /// No description provided for @colorPickerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a color'**
+  String get colorPickerTitle;
+
+  /// No description provided for @pinDigitsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{entered} / {max} digits ({min}–{max} optional)'**
+  String pinDigitsCount(int entered, int min, int max);
+
+  /// No description provided for @lockButtonLock.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock'**
+  String get lockButtonLock;
+
+  /// No description provided for @lockButtonUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get lockButtonUnlock;
+
+  /// No description provided for @shellWorkspaceName.
+  ///
+  /// In en, this message translates to:
+  /// **'NoteStudio'**
+  String get shellWorkspaceName;
+
+  /// No description provided for @resetIntroNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset the standalone password of {name} with the reset disk (USB drive).\n\nPrerequisite: this note has a reset disk bound (set a password, or bind one in password management).'**
+  String resetIntroNote(String name);
+
+  /// No description provided for @resetIntroCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset the standalone password of {name} with the reset disk (USB drive).\n\nPrerequisite: this canvas has a reset disk bound (set a password, or bind one in password management).'**
+  String resetIntroCanvas(String name);
+
+  /// No description provided for @resetIntroNotebook.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset the password of {name} with the reset disk (USB drive).\n\nPrerequisite: this paged canvas has a reset disk bound (set a password, or bind one in password management).'**
+  String resetIntroNotebook(String name);
+
+  /// No description provided for @resetNotBoundNote.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} has no reset disk (USB drive) bound, so its password cannot be reset via the disk.\n\nYou can choose “Bind reset disk” in password management.'**
+  String resetNotBoundNote(String name);
+
+  /// No description provided for @resetNotBoundCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} has no reset disk (USB drive) bound, so its password cannot be reset via the disk.\n\nYou can choose “Bind reset disk” in password management; passwords set in old versions (v1.5.x) must be changed once first to upgrade the format.'**
+  String resetNotBoundCanvas(String name);
+
+  /// No description provided for @resetNotBoundNotebook.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} has no reset disk (USB drive) bound, so its password cannot be reset via the disk.\n\nAfter enabling password protection in Settings, choose “Bind reset disk” from the menu; passwords set in old versions must be changed once first to upgrade the format.'**
+  String resetNotBoundNotebook(String name);
+
+  /// No description provided for @resetNoValidKeyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'No valid reset disk file (password_reset_disk.key) found at the chosen location.'**
+  String get resetNoValidKeyBody;
 }
 
 class _AppLocalizationsDelegate

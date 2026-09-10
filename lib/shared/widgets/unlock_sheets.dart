@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_motion.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/pin_pad.dart';
 
@@ -19,17 +20,18 @@ import 'package:drawing_notes_app/shared/widgets/pin_pad.dart';
 class PinPadUnlockSheet extends StatelessWidget {
   const PinPadUnlockSheet({
     super.key,
-    this.title = '输入密码',
+    this.title,
     this.pinLength = 4,
     this.flexible = false,
     this.flexibleMinLength = 4,
     this.flexibleMaxLength = 12,
     this.onVerify,
     this.onEmergency,
-    this.emergencyLabel = '紧急情况',
+    this.emergencyLabel,
   });
 
-  final String title;
+  /// null 时按 locale 解析（i18n E1 批 1）。
+  final String? title;
   final int pinLength;
 
   /// 可变长度模式（单文件密码 4–12 位）。
@@ -46,20 +48,20 @@ class PinPadUnlockSheet extends StatelessWidget {
   /// 文件选择器，密码盘不先关会叠在选取器上面）。
   final VoidCallback? onEmergency;
 
-  /// 「紧急情况」按钮文案。
-  final String emergencyLabel;
+  /// 「紧急情况」按钮文案；null 时按 locale 解析（i18n E1 批 1）。
+  final String? emergencyLabel;
 
   /// 全屏打开密码盘并返回用户输入的 PIN（取消返回 null）。
   static Future<String?> show(
     BuildContext context, {
-    String title = '输入密码',
+    String? title,
     int pinLength = 4,
     bool flexible = false,
     int flexibleMinLength = 4,
     int flexibleMaxLength = 12,
     Future<bool> Function(String pin)? onVerify,
     VoidCallback? onEmergency,
-    String emergencyLabel = '紧急情况',
+    String? emergencyLabel,
   }) {
     return showGeneralDialog<String>(
       context: context,
@@ -67,7 +69,7 @@ class PinPadUnlockSheet extends StatelessWidget {
       // 页内 BackdropFilter 才能把真实内容模糊成「锁屏壁纸」效果。
       barrierDismissible: false,
       barrierColor: Colors.transparent,
-      barrierLabel: '密码锁',
+      barrierLabel: AppLocalizations.of(context)?.unlockBarrier ?? '密码锁',
       // 全屏锁屏弹层 = 模态档时长（250ms，< 300ms 硬规则）。
       transitionDuration: AppleMotion.modal,
       pageBuilder: (_, _, _) => PinPadUnlockSheet(
@@ -122,14 +124,15 @@ class PinPadUnlockSheet extends StatelessWidget {
 class DesktopUnlockField extends StatefulWidget {
   const DesktopUnlockField({
     super.key,
-    this.title = '输入密码',
+    this.title,
     this.maxLength,
     this.onVerify,
     this.footerLabel,
     this.onFooterTap,
   });
 
-  final String title;
+  /// null 时按 locale 解析（i18n E1 批 1）。
+  final String? title;
 
   /// 最大长度（可变长度密码 4–12 位时传 12，附实时计数）。
   final int? maxLength;
@@ -144,7 +147,7 @@ class DesktopUnlockField extends StatefulWidget {
 
   static Future<String?> show(
     BuildContext context, {
-    String title = '输入密码',
+    String? title,
     int? maxLength,
     Future<bool> Function(String pin)? onVerify,
     String? footerLabel,
@@ -203,7 +206,11 @@ class _DesktopUnlockFieldState extends State<DesktopUnlockField> {
   Widget build(BuildContext context) {
     final maxLength = widget.maxLength;
     return AlertDialog(
-      title: Text(widget.title),
+      title: Text(
+        widget.title ??
+            AppLocalizations.of(context)?.unlockEnterPassword ??
+            '输入密码',
+      ),
       content: TextField(
         controller: _controller,
         focusNode: _focus,
@@ -217,11 +224,15 @@ class _DesktopUnlockFieldState extends State<DesktopUnlockField> {
         onSubmitted: (_) => _confirm(),
         onChanged: (_) => setState(() => _error = false),
         decoration: InputDecoration(
-          hintText: '密码',
-          errorText: _error ? '密码不正确' : null,
+          hintText: AppLocalizations.of(context)?.commonPassword ?? '密码',
+          errorText: _error
+              ? AppLocalizations.of(context)?.unlockPasswordWrong ?? '密码不正确'
+              : null,
           counterText: maxLength == null
               ? null
-              : '${_controller.text.length} / $maxLength 位（4–$maxLength 位可选）',
+              : AppLocalizations.of(
+                  context,
+                )?.pinDigitsCount(_controller.text.length, 4, maxLength),
           border: const OutlineInputBorder(),
         ),
       ),
@@ -236,12 +247,16 @@ class _DesktopUnlockFieldState extends State<DesktopUnlockField> {
           ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
         ),
         // 验证模式 = 「解锁」；收集模式（设密等）= 「确定」。
         FilledButton(
           onPressed: _confirm,
-          child: Text(widget.onVerify == null ? '确定' : '解锁'),
+          child: Text(
+            widget.onVerify == null
+                ? AppLocalizations.of(context)?.commonConfirm ?? '确定'
+                : AppLocalizations.of(context)?.unlock ?? '解锁',
+          ),
         ),
       ],
     );
@@ -259,7 +274,7 @@ abstract final class UnlockFlow {
 
   static Future<String?> show(
     BuildContext context, {
-    String title = '输入密码',
+    String? title,
     int pinLength = 4,
     bool flexible = false,
     int flexibleMinLength = 4,
@@ -279,7 +294,8 @@ abstract final class UnlockFlow {
         onVerify: onVerify,
         // footer = 「紧急情况」槽位复用（N4 批 2：文件密码解锁挂「忘记密码？」）。
         onEmergency: onFooter,
-        emergencyLabel: footerLabel ?? '紧急情况',
+        // null 交由 PinPadCore 按 locale 解析「紧急情况」。
+        emergencyLabel: footerLabel,
       );
     }
     return DesktopUnlockField.show(

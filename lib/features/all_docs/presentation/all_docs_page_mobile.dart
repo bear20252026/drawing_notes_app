@@ -36,7 +36,8 @@ extension _AllDocsPageMobile on _AllDocsPageState {
           if (snapshot.hasError) {
             return Center(
               child: Text(
-                '加载失败，请下拉刷新重试',
+                AppLocalizations.of(context)?.docsLoadFailedRetry ??
+                    '加载失败，请下拉刷新重试',
                 style: TextStyle(color: theme.colorScheme.error),
               ),
             );
@@ -74,13 +75,19 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                       theme.colorScheme.onSurface,
                     ).copyWith(fontWeight: FontWeight.w400),
                     decoration: InputDecoration(
-                      hintText: '快速搜索',
+                      hintText:
+                          AppLocalizations.of(context)?.docsQuickSearch ??
+                          '快速搜索',
                       isDense: true,
                       prefixIcon: const Icon(Icons.search_rounded, size: 20),
                       suffixIcon: _query.isEmpty
                           ? null
                           : IconButton(
-                              tooltip: '清除搜索',
+                              tooltip:
+                                  AppLocalizations.of(
+                                    context,
+                                  )?.docsClearSearch ??
+                                  '清除搜索',
                               icon: const Icon(Icons.close_rounded, size: 18),
                               onPressed: () {
                                 _mobileSearchController.clear();
@@ -165,7 +172,7 @@ extension _AllDocsPageMobile on _AllDocsPageState {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                 child: Text(
-                  '最近文档',
+                  AppLocalizations.of(context)?.docsRecent ?? '最近文档',
                   style: AppleType.controlStyle(
                     AppleColor.mutedOf(theme.colorScheme),
                   ),
@@ -175,7 +182,7 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                   child: Text(
-                    '暂无文档',
+                    AppLocalizations.of(context)?.docsNoDocs ?? '暂无文档',
                     style: TextStyle(
                       fontSize: 13,
                       color: AppleColor.mutedOf(theme.colorScheme),
@@ -192,7 +199,9 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                     ),
                     dense: true,
                     title: Text(
-                      doc.title.isEmpty ? '未命名' : doc.title,
+                      doc.title.isEmpty
+                          ? AppLocalizations.of(context)?.docUntitled ?? '未命名'
+                          : doc.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppleType.controlStyle(
@@ -244,7 +253,15 @@ class _MobileHeader extends StatelessWidget {
   final VoidCallback? onOpenTrash;
   final VoidCallback onOpenRecent;
 
-  static const _tabs = ['文档', '收藏夹', '标签'];
+  /// i18n（E1 批 1）：Tab 文案按 locale 解析（原 static const 数组）。
+  List<String> _tabsOf(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return [
+      l10n?.docsTabDocs ?? '文档',
+      l10n?.docsTabFavorites ?? '收藏夹',
+      l10n?.docTags ?? '标签',
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -260,7 +277,7 @@ class _MobileHeader extends StatelessWidget {
         children: [
           const SizedBox(width: 8),
           // 顶部 Tab（与桌面 _DocsTabBar 同款样式，紧凑化）。
-          ...List.generate(_tabs.length, (i) {
+          ...List.generate(_tabsOf(context).length, (i) {
             final selected = i == tabIndex;
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -276,7 +293,7 @@ class _MobileHeader extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        _tabs[i],
+                        _tabsOf(context)[i],
                         style: AppleType.controlStyle(selected ? accent : muted)
                             .copyWith(
                               fontWeight: selected
@@ -302,7 +319,7 @@ class _MobileHeader extends StatelessWidget {
           const Spacer(),
           // 搜索开合（激活态高亮）。
           IconButton(
-            tooltip: '搜索',
+            tooltip: AppLocalizations.of(context)?.search ?? '搜索',
             icon: Icon(
               Icons.search_rounded,
               size: 21,
@@ -312,23 +329,29 @@ class _MobileHeader extends StatelessWidget {
           ),
           // 排序（与桌面同 4 选项）。
           PopupMenuButton<AllDocSort>(
-            tooltip: '排序',
+            tooltip: AppLocalizations.of(context)?.docsSort ?? '排序',
             onSelected: onSortChanged,
-            itemBuilder: (context) => const [
-              PopupMenuItem(
-                value: AllDocSort.timeGrouped,
-                child: Text('按时间分组'),
-              ),
-              PopupMenuItem(
-                value: AllDocSort.updatedAtDesc,
-                child: Text('按更新时间'),
-              ),
-              PopupMenuItem(
-                value: AllDocSort.createdAtDesc,
-                child: Text('按创建时间'),
-              ),
-              PopupMenuItem(value: AllDocSort.titleAsc, child: Text('按标题')),
-            ],
+            itemBuilder: (context) {
+              final l10n = AppLocalizations.of(context);
+              return [
+                PopupMenuItem(
+                  value: AllDocSort.timeGrouped,
+                  child: Text(l10n?.docsSortGroupTime ?? '按时间分组'),
+                ),
+                PopupMenuItem(
+                  value: AllDocSort.updatedAtDesc,
+                  child: Text(l10n?.docsSortUpdated ?? '按更新时间'),
+                ),
+                PopupMenuItem(
+                  value: AllDocSort.createdAtDesc,
+                  child: Text(l10n?.docsSortCreated ?? '按创建时间'),
+                ),
+                PopupMenuItem(
+                  value: AllDocSort.titleAsc,
+                  child: Text(l10n?.docsSortTitle ?? '按标题'),
+                ),
+              ];
+            },
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Icon(
@@ -340,7 +363,7 @@ class _MobileHeader extends StatelessWidget {
           ),
           // 更多：回收站 + 最近文档（桌面侧栏功能不消失，换容器）。
           PopupMenuButton<String>(
-            tooltip: '更多',
+            tooltip: AppLocalizations.of(context)?.docsMore ?? '更多',
             onSelected: (key) {
               if (key == 'trash') {
                 onOpenTrash?.call();
@@ -349,23 +372,23 @@ class _MobileHeader extends StatelessWidget {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'recent',
                 child: Row(
                   children: [
                     Icon(Icons.history_rounded, size: 18),
                     SizedBox(width: 10),
-                    Text('最近文档'),
+                    Text(AppLocalizations.of(context)?.docsRecent ?? '最近文档'),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'trash',
                 child: Row(
                   children: [
                     Icon(Icons.delete_outline_rounded, size: 18),
                     SizedBox(width: 10),
-                    Text('回收站'),
+                    Text(AppLocalizations.of(context)?.docsTrashTab ?? '回收站'),
                   ],
                 ),
               ),
@@ -400,7 +423,7 @@ void showMobileNewDocSheet(
                 Icons.edit_note_rounded,
                 color: AppleColor.noteGreen,
               ),
-              title: const Text('新建笔记'),
+              title: Text(AppLocalizations.of(context)?.docsNewNote ?? '新建笔记'),
               onTap: () {
                 Navigator.of(sheetContext).pop();
                 onNewDoc?.call(AllDocKind.blockdoc);
@@ -411,7 +434,9 @@ void showMobileNewDocSheet(
                 Icons.auto_stories_rounded,
                 color: AppleColor.actionBlue,
               ),
-              title: const Text('新建分页画布'),
+              title: Text(
+                AppLocalizations.of(context)?.docsNewPagedCanvas ?? '新建分页画布',
+              ),
               onTap: () {
                 Navigator.of(sheetContext).pop();
                 onNewDoc?.call(AllDocKind.note);
@@ -422,7 +447,9 @@ void showMobileNewDocSheet(
                 Icons.crop_portrait_rounded,
                 color: AppleColor.actionBlue,
               ),
-              title: const Text('新建画布'),
+              title: Text(
+                AppLocalizations.of(context)?.docsNewCanvas ?? '新建画布',
+              ),
               onTap: () {
                 Navigator.of(sheetContext).pop();
                 onNewDoc?.call(AllDocKind.canvas);

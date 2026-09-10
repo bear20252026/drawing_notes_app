@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/shared/utils/time_format.dart';
 
 /// 单行文档条目。
@@ -59,7 +60,11 @@ class AllDocRow extends StatelessWidget {
     final visual = visualFor(doc.kind);
     // M11.2：显示明确日期（今天带时分，昨天/今年带月日，跨年带年份）
     // ——承接原日历「文档动态」时间线的"哪天动了哪个文档"语义。
-    final timeLabel = _dateLabel(doc.updatedAt, DateTime.now());
+    final timeLabel = _dateLabel(
+      doc.updatedAt,
+      DateTime.now(),
+      AppLocalizations.of(context),
+    );
 
     // U4a：右键 / 长按 → 上下文菜单（聚合既有功能入口：打开 + 收藏切换）。
     void showMenuAt(Offset globalPosition) {
@@ -105,7 +110,9 @@ class AllDocRow extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      doc.title.isEmpty ? '未命名' : doc.title,
+                      doc.title.isEmpty
+                          ? AppLocalizations.of(context)?.docUntitled ?? '未命名'
+                          : doc.title,
                       style: TextStyle(
                         // 14 → 15：列表标题是触屏主用设备上的主要点击目标，
                         // 14px 偏小；15px 仍在 UI 尺度内（DESIGN.md 的
@@ -168,7 +175,9 @@ class AllDocRow extends StatelessWidget {
               const SizedBox(width: 6),
               // 星标（U4a：触控目标 26→44px；R6：读屏语义——状态化标签）。
               Semantics(
-                label: doc.isFavorite ? '取消收藏' : '添加收藏',
+                label: doc.isFavorite
+                    ? AppLocalizations.of(context)?.docsUnfavorite ?? '取消收藏'
+                    : AppLocalizations.of(context)?.docsFavorite ?? '添加收藏',
                 button: true,
                 child: InkWell(
                   onTap: onToggleFavorite,
@@ -192,7 +201,7 @@ class AllDocRow extends StatelessWidget {
               // ⋮ 菜单（U4a：触控目标 26→44px；死入口接活——onMenu 未传时
               // 打开与右键一致的上下文菜单。R6：读屏语义）。
               Semantics(
-                label: '更多操作',
+                label: AppLocalizations.of(context)?.docsMoreActions ?? '更多操作',
                 button: true,
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
@@ -233,20 +242,20 @@ class KindVisual {
 /// 明确日期标签：今天 → HH:mm；昨天 → 昨天；今年 → M月d日；跨年 → yyyy/M/d。
 /// 「今天」的钟点读数复用 [formatClock]；相对日（昨天）与中文月日格式
 /// 为本展示位独有语义，保留于此。
-String _dateLabel(DateTime t, DateTime now) {
+String _dateLabel(DateTime t, DateTime now, AppLocalizations? l10n) {
   final sameDay =
       t.year == now.year && t.month == now.month && t.day == now.day;
   if (sameDay) {
-    return '今天 ${formatClock(t)}';
+    return '${l10n?.docsGroupToday ?? '今天'} ${formatClock(t)}';
   }
   final yesterday = now.subtract(const Duration(days: 1));
   final isYesterday =
       t.year == yesterday.year &&
       t.month == yesterday.month &&
       t.day == yesterday.day;
-  if (isYesterday) return '昨天';
+  if (isYesterday) return l10n?.timeYesterday ?? '昨天';
   if (t.year == now.year) {
-    return '${t.month} 月 ${t.day} 日';
+    return l10n?.timeMonthDay(t.month, t.day) ?? '${t.month} 月 ${t.day} 日';
   }
   return '${t.year}/${t.month}/${t.day}';
 }
@@ -283,13 +292,13 @@ Future<void> showAllDocContextMenu(
       position.dy + 1,
     ),
     items: [
-      const PopupMenuItem(
+      PopupMenuItem(
         value: 'open',
         child: Row(
           children: [
             Icon(Icons.open_in_new_rounded, size: 18),
             SizedBox(width: 10),
-            Text('打开'),
+            Text(AppLocalizations.of(context)?.open ?? '打开'),
           ],
         ),
       ),
@@ -303,7 +312,11 @@ Future<void> showAllDocContextMenu(
                 size: 18,
               ),
               const SizedBox(width: 10),
-              Text(doc.isFavorite ? '取消收藏' : '添加收藏'),
+              Text(
+                doc.isFavorite
+                    ? AppLocalizations.of(context)?.docsUnfavorite ?? '取消收藏'
+                    : AppLocalizations.of(context)?.docsFavorite ?? '添加收藏',
+              ),
             ],
           ),
         ),

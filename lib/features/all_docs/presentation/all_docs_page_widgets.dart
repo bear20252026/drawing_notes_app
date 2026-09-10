@@ -2,6 +2,21 @@ part of 'all_docs_page.dart';
 
 // 列表区/工具条/空态等展示组件（自 all_docs_page.dart 拆出）。
 
+/// i18n（E1 批 1）：分组标签的展示端本地化；l10n 缺席时回退 domain 默认。
+String? _groupLabelOf(BuildContext context, AllDocGroup group) {
+  final l10n = AppLocalizations.of(context);
+  switch (group) {
+    case AllDocGroup.today:
+      return l10n?.docsGroupToday ?? '今天';
+    case AllDocGroup.thisWeek:
+      return l10n?.docsGroupThisWeek ?? '本周';
+    case AllDocGroup.earlier:
+      return l10n?.docsGroupEarlier ?? '更早';
+    case AllDocGroup.neverUpdated:
+      return l10n?.docsGroupNeverUpdated ?? '从未更新';
+  }
+}
+
 /// 主内容区：工具条 + Tab + 列表。
 class _MainContent extends StatelessWidget {
   const _MainContent({
@@ -428,7 +443,11 @@ class _GroupedDocList extends StatelessWidget {
     }
     final entries = <_GroupedEntry>[
       for (final section in sections) ...[
-        _GroupedEntry.header(section.label),
+        // i18n（E1 批 1）：组头文案按 locale 解析，domain 的 labelForGroup
+        // 降级为兜底（zh 与其一致）。
+        _GroupedEntry.header(
+          _groupLabelOf(context, section.group) ?? section.label,
+        ),
         for (final doc in section.docs) _GroupedEntry.row(doc),
       ],
     ];

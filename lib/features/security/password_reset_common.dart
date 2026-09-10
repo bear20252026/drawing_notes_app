@@ -9,6 +9,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart';
@@ -19,13 +20,16 @@ abstract final class PasswordResetSteps {
     BuildContext context, {
     required String title,
     required String message,
-    String actionLabel = '使用重置密码盘',
+    String? actionLabel,
   }) async {
     return GlassDialog.confirm(
       context,
       title: title,
       content: message,
-      confirmText: actionLabel,
+      confirmText:
+          actionLabel ??
+          AppLocalizations.of(context)?.resetUseDisk ??
+          '使用重置密码盘',
     );
   }
 
@@ -37,10 +41,12 @@ abstract final class PasswordResetSteps {
     final usbKey = await ResetDiskFile.readFrom(dir);
     if (usbKey == null) {
       if (!context.mounted) return null;
+      final l10n = AppLocalizations.of(context);
       await alert(
         context,
-        '未找到有效钥匙',
-        '所选位置未找到有效的重置密码盘文件（password_reset_disk.key）。',
+        l10n?.resetNoValidKey ?? '未找到有效钥匙',
+        l10n?.resetNoValidKeyBody ??
+            '所选位置未找到有效的重置密码盘文件（password_reset_disk.key）。',
       );
       return null;
     }
@@ -57,25 +63,31 @@ abstract final class PasswordResetSteps {
     void snack(String message) =>
         messenger?.showSnackBar(SnackBar(content: Text(message)));
 
+    // i18n：消息在 await 前解析（snack 闭包不持 context，规避
+    // use_build_context_synchronously）。
+    final l10n = AppLocalizations.of(context);
+    final sameAsLockMsg =
+        l10n?.resetSameAsLockScreen(label) ?? '$label不能与开屏密码相同';
+    final mismatchMsg = l10n?.resetMismatchRetry ?? '两次输入不一致，请重试';
     final pin = await UnlockFlow.show(
       context,
-      title: '设置新文件密码',
+      title: l10n?.resetSetNewFilePassword ?? '设置新文件密码',
       flexible: true,
     );
     if (pin == null || !context.mounted) return null;
     if (await AppLockService.matchesAppLockPin(pin)) {
-      snack('$label不能与开屏密码相同');
+      snack(sameAsLockMsg);
       return null;
     }
     if (!context.mounted) return null;
     final confirmPin = await UnlockFlow.show(
       context,
-      title: '确认新文件密码',
+      title: l10n?.resetConfirmNewFilePassword ?? '确认新文件密码',
       flexible: true,
     );
     if (confirmPin == null || !context.mounted) return null;
     if (confirmPin != pin) {
-      snack('两次输入不一致，请重试');
+      snack(mismatchMsg);
       return null;
     }
     return pin;
@@ -94,7 +106,7 @@ abstract final class PasswordResetSteps {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('知道了'),
+            child: Text(AppLocalizations.of(context)?.gotIt ?? '知道了'),
           ),
         ],
       ),

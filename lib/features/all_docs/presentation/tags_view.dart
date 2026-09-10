@@ -10,6 +10,7 @@ import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/shared/widgets/apple_empty_state.dart';
 import 'package:drawing_notes_app/core/theme/apple_elevation.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_doc_row.dart';
 import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 
@@ -53,10 +54,11 @@ class _TagsViewState extends State<TagsView> {
     }
     if (tags.isEmpty) {
       // 空态统一（审计二-4）：收编到共享 AppleEmptyState。
-      return const AppleEmptyState(
+      final l10n = AppLocalizations.of(context);
+      return AppleEmptyState(
         icon: Icons.label_outline_rounded,
-        title: '暂无标签',
-        tip: '打开笔记 → 文档信息 → 添加标签',
+        title: l10n?.tagsEmpty ?? '暂无标签',
+        tip: l10n?.tagsEmptyTip ?? '打开笔记 → 文档信息 → 添加标签',
       );
     }
     if (_selectedTagId != null) {
@@ -82,14 +84,17 @@ class _TagsViewState extends State<TagsView> {
                 InkWell(
                   onTap: () => setState(() => _selectedTagId = null),
                   borderRadius: BorderRadius.circular(AppleRadius.sm),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 13),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 13,
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.arrow_back_rounded, size: 18),
                         SizedBox(width: 4),
-                        Text('全部标签'),
+                        Text(AppLocalizations.of(context)?.tagsAll ?? '全部标签'),
                       ],
                     ),
                   ),
@@ -105,7 +110,11 @@ class _TagsViewState extends State<TagsView> {
           const Divider(height: 1),
           Expanded(
             child: docs.isEmpty
-                ? const Center(child: Text('该标签下暂无笔记'))
+                ? Center(
+                    child: Text(
+                      AppLocalizations.of(context)?.tagsNoDocs ?? '该标签下暂无笔记',
+                    ),
+                  )
                 : ListView.separated(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: docs.length,

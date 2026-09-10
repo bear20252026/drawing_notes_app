@@ -2,6 +2,30 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.2] - 2026-09-10
+
+### i18n 第一批（审计未决 E1）：共享组件 / 壳层 / 全部文档 / 密码重置流
+
+- arb 198 → 259 键（zh/en 完全对称）；新增 docs 系列（搜索/排序/收藏/分组/空态）、
+  unlock 系列（密码盘/解锁弹窗）、reset 系列（重置密码盘四流全量文案）、
+  rootRefused（ROOT 拒启屏）等 61 键。
+- 默认参数治理（默认值无法引用 l10n，改为可空 + 运行时解析）：`AppleDialog.confirm`/
+  `GlassDialog.confirm` 的确定/取消（一处收敛全库 15+ 调用点）、`PinPadCore`/
+  `PinPadUnlockSheet`/`UnlockFlow`/`DesktopUnlockField` 的标题与「紧急情况」、
+  `AllDocsSidebar.workspaceName`、`PasswordResetSteps.confirm` 动作文案。
+- 全部文档页（桌面 + 移动 + 侧栏 + 行组件 + 标签视图）：加载失败/快速搜索/清除搜索/
+  最近文档/暂无文档/文档树/排序菜单/更多菜单/新建 sheet/收藏切换/上下文菜单全部接入；
+  移动端 Tab 与侧栏导航由 static const 数组改为按 locale 解析。
+- 分组标签「今天/本周/更早/从未更新」改为展示端按 `AllDocGroup` 枚举本地化
+  （domain 的 `labelForGroup` 降级为 zh 兜底）。
+- 明确日期标签（今天钟点/昨天/M月D日/跨年）线程化 l10n 参数。
+- 密码重置四流（块文档/画布/分页画布/公共步骤）：说明确认、未绑定提示、插盘失败、
+  新密码两遍（含 ≠ 开屏密码与两次不一致）、重置失败/成功提示全量接入。
+- ROOT 拒启屏补挂 l10n 代理（原裸 MaterialApp），标题与说明文案接入。
+- 刻意不动（等待存储/展示分离专项）：落盘默认标题 `'未命名'`（新建文档写入值）、
+  search_service 的 snippet 类型标签（归 notes 批随 SearchResult 消费端一起处理）、
+  `encrypted_file_image` 的 StateError（开发者面向）。
+
 ## [1.17.1] - 2026-09-10
 
 ### 审计未决项首批清偿：时区一致性、密码写队列、测试时钟收敛、CI 供应链 pin
