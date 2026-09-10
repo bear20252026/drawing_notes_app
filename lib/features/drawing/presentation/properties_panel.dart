@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/core/canvas_model/page_image_item.dart';
@@ -71,13 +72,17 @@ class PropertiesPanel extends StatelessWidget {
           return ListView(
             children: [
               // ---- 画笔属性 ----
-              const Text('画笔', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                AppLocalizations.of(context)?.propBrush ?? '画笔',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 6),
               Row(
                 children: [
                   // 当前颜色圆点（点击弹色板）
                   Tooltip(
-                    message: '画笔颜色',
+                    message:
+                        AppLocalizations.of(context)?.propBrushColor ?? '画笔颜色',
                     // 热区 44×44（审计二-1：HIG 最小触控尺寸），视觉圆点保持 28。
                     child: SizedBox(
                       width: 44,
@@ -135,7 +140,10 @@ class PropertiesPanel extends StatelessWidget {
 
               // ---- 选中图片属性（对齐 Excalidraw 图片裁剪）----
               if (selectedImage != null) ...[
-                const Text('图片', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  AppLocalizations.of(context)?.propImage ?? '图片',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
@@ -145,7 +153,9 @@ class PropertiesPanel extends StatelessWidget {
                       child: TextButton.icon(
                         onPressed: onCropImage,
                         icon: const Icon(Icons.crop, size: 16),
-                        label: const Text('裁剪图片'),
+                        label: Text(
+                          AppLocalizations.of(context)?.propCropImage ?? '裁剪图片',
+                        ),
                       ),
                     ),
                   ],
@@ -155,7 +165,10 @@ class PropertiesPanel extends StatelessWidget {
 
               // ---- 选中形状属性 ----
               if (selectedShape != null) ...[
-                const Text('形状', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  AppLocalizations.of(context)?.propShape ?? '形状',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
@@ -186,7 +199,8 @@ class PropertiesPanel extends StatelessWidget {
                 Row(
                   children: [
                     IconButton(
-                      tooltip: '填充色',
+                      tooltip:
+                          AppLocalizations.of(context)?.propFillColor ?? '填充色',
                       icon: Icon(
                         selectedShape!.fillColor != null
                             ? Icons.format_color_fill
@@ -197,7 +211,8 @@ class PropertiesPanel extends StatelessWidget {
                       onPressed: onShapeFill,
                     ),
                     IconButton(
-                      tooltip: '实线/虚线',
+                      tooltip:
+                          AppLocalizations.of(context)?.propDash ?? '实线/虚线',
                       icon: Icon(
                         selectedShape!.dash ? Icons.more_horiz : Icons.remove,
                         size: 18,
@@ -228,7 +243,10 @@ class PropertiesPanel extends StatelessWidget {
 
               // ---- 选中文字属性 ----
               if (selectedText != null) ...[
-                const Text('文字', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  AppLocalizations.of(context)?.propText ?? '文字',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
@@ -246,7 +264,8 @@ class PropertiesPanel extends StatelessWidget {
                 Row(
                   children: [
                     Tooltip(
-                      message: '文字颜色',
+                      message:
+                          AppLocalizations.of(context)?.propTextColor ?? '文字颜色',
                       // 热区 44×44（审计二-1），视觉圆点保持 22。
                       child: SizedBox(
                         width: 44,
@@ -292,10 +311,15 @@ class PropertiesPanel extends StatelessWidget {
                         onPressed: onCycleFont,
                         icon: const Icon(Icons.swap_horiz, size: 16),
                         label: Text(switch (selectedText!.fontFamily) {
-                          'serif' => '衬线字体',
-                          'monospace' => '等宽字体',
-                          'handwriting' => '手写字体',
-                          _ => '默认字体',
+                          'serif' =>
+                            AppLocalizations.of(context)?.fontSerif ?? '衬线字体',
+                          'monospace' =>
+                            AppLocalizations.of(context)?.fontMono ?? '等宽字体',
+                          'handwriting' =>
+                            AppLocalizations.of(context)?.fontHandwriting ??
+                                '手写字体',
+                          _ =>
+                            AppLocalizations.of(context)?.fontDefault ?? '默认字体',
                         }, style: Theme.of(context).textTheme.labelMedium),
                       ),
                     ),

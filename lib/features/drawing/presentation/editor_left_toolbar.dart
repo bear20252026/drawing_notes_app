@@ -126,7 +126,7 @@ class EditorLeftToolbar extends StatelessWidget {
               // 吸管
               _tool(
                 Icons.colorize_rounded,
-                '吸管工具',
+                AppLocalizations.of(context)?.toolEyedropper ?? '吸管工具',
                 eyedropperActive,
                 onEyedropper,
               ),
@@ -140,7 +140,7 @@ class EditorLeftToolbar extends StatelessWidget {
               // 框选（多元素）
               _tool(
                 Icons.select_all_rounded,
-                '框选多个元素',
+                AppLocalizations.of(context)?.toolMarquee ?? '框选多个元素',
                 marqueeActive,
                 onMarquee,
               ),
@@ -154,7 +154,12 @@ class EditorLeftToolbar extends StatelessWidget {
               // 形状弹出菜单
               _shapeMenu(context),
               // 连线
-              _tool(Icons.call_merge_rounded, '节点连线', linkMode, onLink),
+              _tool(
+                Icons.call_merge_rounded,
+                AppLocalizations.of(context)?.toolNodeLink ?? '节点连线',
+                linkMode,
+                onLink,
+              ),
               Divider(height: 12, color: scheme.outlineVariant),
             ],
           ),
@@ -180,11 +185,14 @@ class EditorLeftToolbar extends StatelessWidget {
           PopupMenuItem(
             value: s,
             child: Text(switch (s) {
-              ShapeType.rect => '矩形',
-              ShapeType.ellipse => '椭圆',
-              ShapeType.diamond => '菱形',
-              ShapeType.arrow => '箭头',
-              ShapeType.line => '直线',
+              ShapeType.rect => AppLocalizations.of(context)?.shapeRect ?? '矩形',
+              ShapeType.ellipse =>
+                AppLocalizations.of(context)?.shapeEllipse ?? '椭圆',
+              ShapeType.diamond =>
+                AppLocalizations.of(context)?.shapeDiamond ?? '菱形',
+              ShapeType.arrow =>
+                AppLocalizations.of(context)?.shapeArrow ?? '箭头',
+              ShapeType.line => AppLocalizations.of(context)?.shapeLine ?? '直线',
             }),
           ),
       ],

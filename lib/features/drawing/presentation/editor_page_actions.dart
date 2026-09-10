@@ -63,7 +63,11 @@ extension _EditorPageActions on _EditorPageState {
     });
     _controller.document.touch();
     _controller.tickFrame();
-    _showSnack(doc.infinite ? '已切换为无限画布（可无限延展）' : '已切回固定纸张');
+    _showSnack(
+      doc.infinite
+          ? AppLocalizations.of(context)?.actSwitchInfinite ?? '已切换为无限画布（可无限延展）'
+          : AppLocalizations.of(context)?.actSwitchFixed ?? '已切回固定纸张',
+    );
     _notifyChanged();
   }
 
@@ -78,7 +82,9 @@ extension _EditorPageActions on _EditorPageState {
   Future<void> _createChart() async {
     final page = widget.session;
     if (page == null) {
-      _showSnack('仅分页画布页面支持图表');
+      _showSnack(
+        AppLocalizations.of(context)?.actChartPagedOnly ?? '仅分页画布页面支持图表',
+      );
       return;
     }
     final input = TextEditingController();
@@ -92,22 +98,26 @@ extension _EditorPageActions on _EditorPageState {
         context: context,
         builder: (ctx) => StatefulBuilder(
           builder: (ctx, setDialogState) => AlertDialog(
-            title: const Text('生成图表'),
+            title: Text(AppLocalizations.of(context)?.actChartTitle ?? '生成图表'),
             content: SizedBox(
               width: 380,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   SegmentedButton<ChartType>(
-                    segments: const [
+                    segments: [
                       ButtonSegment(
                         value: ChartType.bar,
-                        label: Text('柱状图'),
+                        label: Text(
+                          AppLocalizations.of(context)?.actChartBar ?? '柱状图',
+                        ),
                         icon: Icon(Icons.bar_chart),
                       ),
                       ButtonSegment(
                         value: ChartType.line,
-                        label: Text('折线图'),
+                        label: Text(
+                          AppLocalizations.of(context)?.actChartLine ?? '折线图',
+                        ),
                         icon: Icon(Icons.show_chart),
                       ),
                     ],
@@ -134,11 +144,13 @@ extension _EditorPageActions on _EditorPageState {
             actions: AppleDialog.actions([
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('取消'),
+                child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
               ),
               FilledButton(
                 onPressed: () => Navigator.of(ctx).pop('ok'),
-                child: const Text('生成'),
+                child: Text(
+                  AppLocalizations.of(context)?.actChartGenerate ?? '生成',
+                ),
               ),
             ]),
           ),
@@ -158,7 +170,7 @@ extension _EditorPageActions on _EditorPageState {
         .whereType<double>()
         .toList();
     if (data.isEmpty) {
-      _showSnack('未解析到有效数值');
+      _showSnack(_l10nSafe?.actChartNoData ?? '未解析到有效数值');
       return;
     }
     final center = _controller.document.size.center(Offset.zero);
@@ -182,18 +194,24 @@ extension _EditorPageActions on _EditorPageState {
   void _startPresentation() {
     final page = widget.session;
     if (page == null) {
-      _showSnack('仅分页画布页面支持幻灯片演示');
+      _showSnack(
+        AppLocalizations.of(context)?.actSlidesPagedOnly ?? '仅分页画布页面支持幻灯片演示',
+      );
       return;
     }
     if (page.textItems.isEmpty &&
         page.imageItems.isEmpty &&
         page.shapes.isEmpty) {
-      _showSnack('本页还没有可演示的内容');
+      _showSnack(
+        AppLocalizations.of(context)?.actSlidesNoContent ?? '本页还没有可演示的内容',
+      );
       return;
     }
     final onOpen = widget.openPresentation;
     if (onOpen == null) {
-      _showSnack('演示功能不可用');
+      _showSnack(
+        AppLocalizations.of(context)?.actSlidesUnavailable ?? '演示功能不可用',
+      );
       return;
     }
     unawaited(onOpen(context));
@@ -215,24 +233,39 @@ extension _EditorPageActions on _EditorPageState {
     await GlassDialog.show<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('画布统计'),
+        title: Text(AppLocalizations.of(context)?.actStatsTitle ?? '画布统计'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _statRow('手写笔画', strokes),
-            _statRow('文字块', textN),
-            _statRow('图片', imgN),
-            _statRow('形状', shapeN),
-            _statRow('图表', chartN),
+            _statRow(
+              AppLocalizations.of(context)?.actStatStrokes ?? '手写笔画',
+              strokes,
+            ),
+            _statRow(
+              AppLocalizations.of(context)?.actStatTextBlocks ?? '文字块',
+              textN,
+            ),
+            _statRow(AppLocalizations.of(context)?.actStatImages ?? '图片', imgN),
+            _statRow(
+              AppLocalizations.of(context)?.actStatShapes ?? '形状',
+              shapeN,
+            ),
+            _statRow(
+              AppLocalizations.of(context)?.actStatCharts ?? '图表',
+              chartN,
+            ),
             const Divider(),
-            _statRow('合计元素', total),
+            _statRow(
+              AppLocalizations.of(context)?.actStatTotal ?? '合计元素',
+              total,
+            ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('关闭'),
+            child: Text(AppLocalizations.of(context)?.close ?? '关闭'),
           ),
         ],
       ),
@@ -258,7 +291,9 @@ extension _EditorPageActions on _EditorPageState {
   Future<void> _openShapeLibrary() async {
     final page = widget.session;
     if (page == null) {
-      _showSnack('仅分页画布页面支持形状库');
+      _showSnack(
+        AppLocalizations.of(context)?.actShapeLibPagedOnly ?? '仅分页画布页面支持形状库',
+      );
       return;
     }
     final library = _shapeLibrary;
@@ -278,7 +313,10 @@ extension _EditorPageActions on _EditorPageState {
             _selectedItemId = shape.id;
           });
           _notifyChanged();
-          _showSnack('已插入「${shapeTypeName(shape.shapeType)}」');
+          _showSnack(
+            _l10nSafe?.actInsertedShape(shapeTypeName(shape.shapeType)) ??
+                '已插入「${shapeTypeName(shape.shapeType)}」',
+          );
         },
       ),
     );
@@ -332,9 +370,12 @@ extension _EditorPageActions on _EditorPageState {
       }
     }
     if (_copiedElements.isNotEmpty) {
-      _showSnack('已复制 ${_copiedElements.length} 个元素');
+      _showSnack(
+        _l10nSafe?.actCopiedN(_copiedElements.length) ??
+            '已复制 ${_copiedElements.length} 个元素',
+      );
     } else {
-      _showSnack('请先选中要复制的元素');
+      _showSnack(AppLocalizations.of(context)?.actPickFirst ?? '请先选中要复制的元素');
     }
   }
 
@@ -374,7 +415,10 @@ extension _EditorPageActions on _EditorPageState {
       _canvasInteraction.replaceMultiSelection(pastedIds);
     });
     _notifyChanged();
-    _showSnack('已粘贴 ${_copiedElements.length} 个元素');
+    _showSnack(
+      _l10nSafe?.actPastedN(_copiedElements.length) ??
+          '已粘贴 ${_copiedElements.length} 个元素',
+    );
   }
 
   /// 快捷键：切到画笔工具。
@@ -446,7 +490,7 @@ extension _EditorPageActions on _EditorPageState {
         'underline': t.underline,
         'strikethrough': t.strikethrough,
       };
-      _showSnack('已复制文字样式');
+      _showSnack(AppLocalizations.of(context)?.actCopiedTextStyle ?? '已复制文字样式');
       return;
     }
     final s = page.shapes.where((x) => x.id == id).firstOrNull;
@@ -457,10 +501,14 @@ extension _EditorPageActions on _EditorPageState {
         'fillColor': s.fillColor,
         'strokeWidth': s.strokeWidth,
       };
-      _showSnack('已复制形状样式');
+      _showSnack(
+        AppLocalizations.of(context)?.actCopiedShapeStyle ?? '已复制形状样式',
+      );
       return;
     }
-    _showSnack('请先选中文字块或形状');
+    _showSnack(
+      AppLocalizations.of(context)?.actPickStyleSource ?? '请先选中文字块或形状',
+    );
   }
 
   /// 粘贴样式到选中元素（借鉴 Excalidraw 样式刷）。
@@ -469,7 +517,10 @@ extension _EditorPageActions on _EditorPageState {
     final page = widget.session;
     final id = _selectedItemId;
     if (style == null || page == null || id == null) {
-      _showSnack('请先复制样式（Ctrl+Shift+C）再粘贴');
+      _showSnack(
+        AppLocalizations.of(context)?.actCopyStyleFirst ??
+            '请先复制样式（Ctrl+Shift+C）再粘贴',
+      );
       return;
     }
     _applyState(() {
@@ -490,7 +541,7 @@ extension _EditorPageActions on _EditorPageState {
       }
     });
     _notifyChanged();
-    _showSnack('已粘贴样式');
+    _showSnack(AppLocalizations.of(context)?.actPastedStyle ?? '已粘贴样式');
   }
 
   /// 剪贴板智能粘贴（借鉴 Excalidraw 粘贴识别）：
@@ -498,7 +549,9 @@ extension _EditorPageActions on _EditorPageState {
   Future<void> _pasteFromClipboard() async {
     final page = widget.session;
     if (page == null) {
-      _showSnack('仅分页画布页面支持粘贴');
+      _showSnack(
+        AppLocalizations.of(context)?.actPastePagedOnly ?? '仅分页画布页面支持粘贴',
+      );
       return;
     }
     try {
@@ -524,7 +577,7 @@ extension _EditorPageActions on _EditorPageState {
       }
       // 图片：当前 Flutter 桌面端 ClipboardData 无图片字段，
       // 图片粘贴需平台通道（后续增强），此处明确提示。
-      _showSnack('剪贴板没有可粘贴的文本');
+      _showSnack(_l10nSafe?.actClipboardNoText ?? '剪贴板没有可粘贴的文本');
     } catch (e) {
       _showSnack('粘贴失败：$e');
     }
@@ -553,7 +606,7 @@ extension _EditorPageActions on _EditorPageState {
     await GlassDialog.show<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('快捷键'),
+        title: Text(AppLocalizations.of(context)?.actShortcutsTitle ?? '快捷键'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -568,7 +621,7 @@ extension _EditorPageActions on _EditorPageState {
         actions: [
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('知道了'),
+            child: Text(AppLocalizations.of(context)?.gotIt ?? '知道了'),
           ),
         ],
       ),

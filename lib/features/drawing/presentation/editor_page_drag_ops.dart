@@ -298,7 +298,9 @@ extension _EditorPageDragOps on _EditorPageState {
       items.add((pos: s.x + s.width / 2, size: s.width));
     }
     if (items.length < 3) {
-      _showSnack('至少需要 3 个元素才能分布');
+      _showSnack(
+        AppLocalizations.of(context)?.distributeNeed3 ?? '至少需要 3 个元素才能分布',
+      );
       return;
     }
     // 水平分布：按中心 X 排序，重排到首尾之间等间距。
@@ -352,7 +354,11 @@ extension _EditorPageDragOps on _EditorPageState {
     }
     _applyState(() {});
     _notifyChanged();
-    _showSnack(horizontal ? '已水平等间距分布' : '已垂直等间距分布');
+    _showSnack(
+      horizontal
+          ? _l10nSafe?.distributedH ?? '已水平等间距分布'
+          : _l10nSafe?.distributedV ?? '已垂直等间距分布',
+    );
   }
 
   /// 图片裁剪 4 角手柄（拖拽调整 _cropRect，画布坐标）。
@@ -363,11 +369,15 @@ extension _EditorPageDragOps on _EditorPageState {
   List<Widget> _buildCropHandles() {
     const handleSize = 10.0;
     const hitSize = 44.0;
-    const handleLabels = <EditorImageCropHandle, String>{
-      EditorImageCropHandle.topLeft: '调整裁剪框左上角',
-      EditorImageCropHandle.topRight: '调整裁剪框右上角',
-      EditorImageCropHandle.bottomLeft: '调整裁剪框左下角',
-      EditorImageCropHandle.bottomRight: '调整裁剪框右下角',
+    final handleLabels = <EditorImageCropHandle, String>{
+      EditorImageCropHandle.topLeft:
+          AppLocalizations.of(context)?.cropHandleTopLeft ?? '调整裁剪框左上角',
+      EditorImageCropHandle.topRight:
+          AppLocalizations.of(context)?.cropHandleTopRight ?? '调整裁剪框右上角',
+      EditorImageCropHandle.bottomLeft:
+          AppLocalizations.of(context)?.cropHandleBottomLeft ?? '调整裁剪框左下角',
+      EditorImageCropHandle.bottomRight:
+          AppLocalizations.of(context)?.cropHandleBottomRight ?? '调整裁剪框右下角',
     };
     final rect = _cropRect!;
     final handles = <({EditorImageCropHandle handle, Offset position})>[

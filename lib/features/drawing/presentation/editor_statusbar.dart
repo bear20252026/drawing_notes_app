@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_motion.dart';
@@ -70,7 +71,9 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
   String _saveLabel(bool dirty) {
     if (widget.saving) return '保存中…';
     final t = widget.lastSavedAt;
-    if (t == null || dirty) return '未保存';
+    if (t == null || dirty) {
+      return AppLocalizations.of(context)?.saveStateUnsaved ?? '未保存';
+    }
     return '已保存 ${formatClock(t)}';
   }
 
@@ -130,7 +133,13 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
                           // 文案变长时收缩省略，不再溢出报错。
                           Flexible(
                             child: Text(
-                              isEraser ? '橡皮擦' : '画笔',
+                              isEraser
+                                  ? AppLocalizations.of(
+                                          context,
+                                        )?.toolEraserName ??
+                                        '橡皮擦'
+                                  : AppLocalizations.of(context)?.hintBrush ??
+                                        '画笔',
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.bodySmall,
                             ),
@@ -148,8 +157,14 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
                             Flexible(
                               child: Tooltip(
                                 message: pressure!.hasHardwarePressure
-                                    ? '正在使用设备上报的真实压力范围'
-                                    : '当前设备未报告可用压感，正在使用稳定的回退策略',
+                                    ? AppLocalizations.of(
+                                            context,
+                                          )?.pressureReal ??
+                                          '正在使用设备上报的真实压力范围'
+                                    : AppLocalizations.of(
+                                            context,
+                                          )?.pressureFallback ??
+                                          '当前设备未报告可用压感，正在使用稳定的回退策略',
                                 child: Text(
                                   pressureLabel,
                                   overflow: TextOverflow.ellipsis,
@@ -175,7 +190,11 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
                             // 触控目标 ≥44×44：compact 密度下默认 ~40px，
                             // 补 min 约束（视觉不变，仅扩大命中区）。
                             IconButton(
-                              tooltip: _coordsVisible ? '隐藏坐标' : '显示画布坐标',
+                              tooltip: _coordsVisible
+                                  ? AppLocalizations.of(context)?.coordsHide ??
+                                        '隐藏坐标'
+                                  : AppLocalizations.of(context)?.coordsShow ??
+                                        '显示画布坐标',
                               visualDensity: VisualDensity.compact,
                               constraints: const BoxConstraints(
                                 minWidth: 44,
@@ -254,7 +273,7 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
         border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: PopupMenuButton<_ZoomChoice>(
-        tooltip: '缩放画布',
+        tooltip: AppLocalizations.of(context)?.zoomTooltip ?? '缩放画布',
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(AppleRadius.md)),
         ),
@@ -276,11 +295,14 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
               widget.onZoomFit();
           }
         },
-        itemBuilder: (_) => const [
+        itemBuilder: (_) => [
           PopupMenuItem(value: _ZoomChoice.z50, child: Text('50%')),
           PopupMenuItem(value: _ZoomChoice.z100, child: Text('100%')),
           PopupMenuItem(value: _ZoomChoice.z200, child: Text('200%')),
-          PopupMenuItem(value: _ZoomChoice.fit, child: Text('适应画布')),
+          PopupMenuItem(
+            value: _ZoomChoice.fit,
+            child: Text(AppLocalizations.of(context)?.cmdFitCanvas ?? '适应画布'),
+          ),
         ],
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

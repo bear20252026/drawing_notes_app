@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/drawing/application/pdf_export_options.dart';
@@ -78,11 +79,19 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _groupLabel('纸张'),
+              _groupLabel(AppLocalizations.of(context)?.pdfGroupPaper ?? '纸张'),
               SegmentedButton<PdfPaper>(
                 segments: [
                   for (final p in PdfPaper.values)
-                    ButtonSegment(value: p, label: Text(p.label)),
+                    ButtonSegment(
+                      value: p,
+                      label: Text(
+                        p == PdfPaper.canvas
+                            ? AppLocalizations.of(context)?.pdfPaperFollow ??
+                                  p.label
+                            : p.label,
+                      ),
+                    ),
                 ],
                 selected: {_paper},
                 onSelectionChanged: (s) => setState(() => _paper = s.first),
@@ -101,18 +110,39 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
                 SegmentedButton<PdfRange>(
                   segments: [
                     for (final r in PdfRange.values)
-                      ButtonSegment(value: r, label: Text(r.label)),
+                      ButtonSegment(
+                        value: r,
+                        label: Text(
+                          r == PdfRange.currentPage
+                              ? AppLocalizations.of(context)?.pdfRangeCurrent ??
+                                    r.label
+                              : AppLocalizations.of(context)?.pdfRangeAll ??
+                                    r.label,
+                        ),
+                      ),
                   ],
                   selected: {_range},
                   onSelectionChanged: (s) => setState(() => _range = s.first),
                 ),
                 const SizedBox(height: 12),
               ],
-              _groupLabel('质量'),
+              _groupLabel(
+                AppLocalizations.of(context)?.pdfGroupQuality ?? '质量',
+              ),
               SegmentedButton<PdfQuality>(
                 segments: [
                   for (final q in PdfQuality.values)
-                    ButtonSegment(value: q, label: Text(q.label)),
+                    ButtonSegment(
+                      value: q,
+                      label: Text(
+                        q == PdfQuality.lossless
+                            ? AppLocalizations.of(
+                                    context,
+                                  )?.pdfQualityLossless ??
+                                  q.label
+                            : q.label,
+                      ),
+                    ),
                 ],
                 selected: {_quality},
                 onSelectionChanged: (s) => setState(() => _quality = s.first),
@@ -120,7 +150,14 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
-                  _quality.hint,
+                  _quality == PdfQuality.lossless
+                      ? AppLocalizations.of(context)?.pdfQualityLosslessDesc ??
+                            _quality.hint
+                      : _quality == PdfQuality.standard
+                      ? AppLocalizations.of(context)?.pdfQualityStandardDesc ??
+                            _quality.hint
+                      : AppLocalizations.of(context)?.pdfQualitySaverDesc ??
+                            _quality.hint,
                   style: AppleType.captionStyle(scheme.onSurfaceVariant),
                 ),
               ),
@@ -131,7 +168,7 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
         ),
         // ApplePressable 纯视觉模式（手势交给内层 FilledButton；读屏语义
         // 由内层按钮提供，此处不再重复暴露——R6 口径）。
@@ -146,7 +183,12 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
               ),
             ),
             child: Text(
-              wholeBook ? '导出 ${widget.pageCount} 页' : '导出',
+              wholeBook
+                  ? AppLocalizations.of(
+                          context,
+                        )?.pdfExportNPages(widget.pageCount) ??
+                        '导出 ${widget.pageCount} 页'
+                  : AppLocalizations.of(context)?.catExport ?? '导出',
               style: const TextStyle(color: Colors.white),
             ),
           ),

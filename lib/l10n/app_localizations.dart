@@ -2995,6 +2995,1386 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Do not delete the password_reset_disk.key file on the USB drive'**
   String get lockDiskKeepNote;
+
+  /// No description provided for @cmdUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get cmdUndo;
+
+  /// No description provided for @cmdRedo.
+  ///
+  /// In en, this message translates to:
+  /// **'Redo'**
+  String get cmdRedo;
+
+  /// No description provided for @cmdCopySelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy selection'**
+  String get cmdCopySelection;
+
+  /// No description provided for @cmdPasteClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste from clipboard'**
+  String get cmdPasteClipboard;
+
+  /// No description provided for @cmdDuplicateSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate selection'**
+  String get cmdDuplicateSelection;
+
+  /// No description provided for @cmdDeleteSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete selection'**
+  String get cmdDeleteSelection;
+
+  /// No description provided for @cmdBold.
+  ///
+  /// In en, this message translates to:
+  /// **'Bold selected text'**
+  String get cmdBold;
+
+  /// No description provided for @cmdItalic.
+  ///
+  /// In en, this message translates to:
+  /// **'Italicize selected text'**
+  String get cmdItalic;
+
+  /// No description provided for @cmdUnderline.
+  ///
+  /// In en, this message translates to:
+  /// **'Underline selected text'**
+  String get cmdUnderline;
+
+  /// No description provided for @cmdStrikethrough.
+  ///
+  /// In en, this message translates to:
+  /// **'Strikethrough selected text'**
+  String get cmdStrikethrough;
+
+  /// No description provided for @cmdCycleAlign.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycle text alignment'**
+  String get cmdCycleAlign;
+
+  /// No description provided for @cmdFitCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit canvas'**
+  String get cmdFitCanvas;
+
+  /// No description provided for @cmdToggleGrid.
+  ///
+  /// In en, this message translates to:
+  /// **'Show or hide grid'**
+  String get cmdToggleGrid;
+
+  /// No description provided for @cmdToggleSnap.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle grid snap'**
+  String get cmdToggleSnap;
+
+  /// No description provided for @cmdExportWord.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Word-compatible document'**
+  String get cmdExportWord;
+
+  /// No description provided for @catEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get catEdit;
+
+  /// No description provided for @catFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Format'**
+  String get catFormat;
+
+  /// No description provided for @catInsert.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert'**
+  String get catInsert;
+
+  /// No description provided for @catArrange.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrange'**
+  String get catArrange;
+
+  /// No description provided for @catView.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get catView;
+
+  /// No description provided for @catExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get catExport;
+
+  /// No description provided for @expCopyRenderFail.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy failed: cannot render the canvas'**
+  String get expCopyRenderFail;
+
+  /// No description provided for @expCopyDecodeFail.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy failed: pixel decoding failed'**
+  String get expCopyDecodeFail;
+
+  /// No description provided for @expCopiedPng.
+  ///
+  /// In en, this message translates to:
+  /// **'PNG copied to clipboard'**
+  String get expCopiedPng;
+
+  /// No description provided for @expRenderFail.
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed: cannot render the canvas'**
+  String get expRenderFail;
+
+  /// No description provided for @expNoPages.
+  ///
+  /// In en, this message translates to:
+  /// **'No pages to export'**
+  String get expNoPages;
+
+  /// No description provided for @expEmptyCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed: the canvas is empty'**
+  String get expEmptyCanvas;
+
+  /// No description provided for @expWordPagedOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only paged notes support exporting Word-compatible documents'**
+  String get expWordPagedOnly;
+
+  /// No description provided for @expWordNoText.
+  ///
+  /// In en, this message translates to:
+  /// **'This page has no text content to export'**
+  String get expWordNoText;
+
+  /// No description provided for @expTextPagedOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only paged-canvas pages support exporting text'**
+  String get expTextPagedOnly;
+
+  /// No description provided for @expTextNoText.
+  ///
+  /// In en, this message translates to:
+  /// **'This page has no text content'**
+  String get expTextNoText;
+
+  /// No description provided for @expPptxPackFail.
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed: PPTX packaging failed'**
+  String get expPptxPackFail;
+
+  /// No description provided for @fileTypePng.
+  ///
+  /// In en, this message translates to:
+  /// **'PNG image'**
+  String get fileTypePng;
+
+  /// No description provided for @fileTypePdf.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF document'**
+  String get fileTypePdf;
+
+  /// No description provided for @fileTypeSvg.
+  ///
+  /// In en, this message translates to:
+  /// **'SVG vector image'**
+  String get fileTypeSvg;
+
+  /// No description provided for @fileTypeWord.
+  ///
+  /// In en, this message translates to:
+  /// **'Word-compatible document'**
+  String get fileTypeWord;
+
+  /// No description provided for @fileTypeMarkdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Markdown / Text'**
+  String get fileTypeMarkdown;
+
+  /// No description provided for @fileTypePptx.
+  ///
+  /// In en, this message translates to:
+  /// **'PPTX presentation'**
+  String get fileTypePptx;
+
+  /// No description provided for @fileTypeJson.
+  ///
+  /// In en, this message translates to:
+  /// **'JSON project file'**
+  String get fileTypeJson;
+
+  /// No description provided for @expWholeBookSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'whole-book'**
+  String get expWholeBookSuffix;
+
+  /// No description provided for @pdfPaperFollow.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow canvas'**
+  String get pdfPaperFollow;
+
+  /// No description provided for @pdfRangeCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current page'**
+  String get pdfRangeCurrent;
+
+  /// No description provided for @pdfRangeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All pages'**
+  String get pdfRangeAll;
+
+  /// No description provided for @pdfQualityLossless.
+  ///
+  /// In en, this message translates to:
+  /// **'Lossless'**
+  String get pdfQualityLossless;
+
+  /// No description provided for @pdfQualityLosslessDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'PNG lossless, largest size'**
+  String get pdfQualityLosslessDesc;
+
+  /// No description provided for @pdfQualityStandardDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'JPEG 80, recommended'**
+  String get pdfQualityStandardDesc;
+
+  /// No description provided for @pdfQualitySaverDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'JPEG 60, smallest size'**
+  String get pdfQualitySaverDesc;
+
+  /// No description provided for @pdfGroupPaper.
+  ///
+  /// In en, this message translates to:
+  /// **'Paper'**
+  String get pdfGroupPaper;
+
+  /// No description provided for @pdfGroupQuality.
+  ///
+  /// In en, this message translates to:
+  /// **'Quality'**
+  String get pdfGroupQuality;
+
+  /// No description provided for @pdfExportNPages.
+  ///
+  /// In en, this message translates to:
+  /// **'Export {count} pages'**
+  String pdfExportNPages(int count);
+
+  /// No description provided for @inkStylusPressure.
+  ///
+  /// In en, this message translates to:
+  /// **'Stylus pressure'**
+  String get inkStylusPressure;
+
+  /// No description provided for @inkTouchPressure.
+  ///
+  /// In en, this message translates to:
+  /// **'Touch pressure'**
+  String get inkTouchPressure;
+
+  /// No description provided for @inkMouseVelocity.
+  ///
+  /// In en, this message translates to:
+  /// **'Mouse velocity simulation'**
+  String get inkMouseVelocity;
+
+  /// No description provided for @inkConstant.
+  ///
+  /// In en, this message translates to:
+  /// **'Constant width'**
+  String get inkConstant;
+
+  /// No description provided for @pomodoroPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get pomodoroPause;
+
+  /// No description provided for @pomodoroStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get pomodoroStart;
+
+  /// No description provided for @pomodoroReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get pomodoroReset;
+
+  /// No description provided for @pomodoroFinish.
+  ///
+  /// In en, this message translates to:
+  /// **'Pomodoro finished: take a break'**
+  String get pomodoroFinish;
+
+  /// No description provided for @pageIndicator.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {index} of {total}'**
+  String pageIndicator(int index, int total);
+
+  /// No description provided for @eraserWholeStroke.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole stroke'**
+  String get eraserWholeStroke;
+
+  /// No description provided for @eraserTransparent.
+  ///
+  /// In en, this message translates to:
+  /// **'Pixels'**
+  String get eraserTransparent;
+
+  /// No description provided for @markerSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get markerSave;
+
+  /// No description provided for @markerAutoFade.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-fade'**
+  String get markerAutoFade;
+
+  /// No description provided for @tooltipSwapFill.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap fill color'**
+  String get tooltipSwapFill;
+
+  /// No description provided for @tooltipDashStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Solid / dashed'**
+  String get tooltipDashStyle;
+
+  /// No description provided for @hintEyedropper.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the canvas to pick a color'**
+  String get hintEyedropper;
+
+  /// No description provided for @hintTextTool.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the canvas to place text'**
+  String get hintTextTool;
+
+  /// No description provided for @hintConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick two elements in turn to connect'**
+  String get hintConnect;
+
+  /// No description provided for @hintPixelEraser.
+  ///
+  /// In en, this message translates to:
+  /// **'Erase transparent pixels'**
+  String get hintPixelEraser;
+
+  /// No description provided for @hintStrokeEraser.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete whole strokes'**
+  String get hintStrokeEraser;
+
+  /// No description provided for @hintTempHighlight.
+  ///
+  /// In en, this message translates to:
+  /// **'Temporary highlight: auto-fades in ~4s'**
+  String get hintTempHighlight;
+
+  /// No description provided for @hintSavedHighlight.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlighter: saved to the page'**
+  String get hintSavedHighlight;
+
+  /// No description provided for @hintLaser.
+  ///
+  /// In en, this message translates to:
+  /// **'Laser pointer: fades segment by segment after release; not saved'**
+  String get hintLaser;
+
+  /// No description provided for @hintBrush.
+  ///
+  /// In en, this message translates to:
+  /// **'Brush'**
+  String get hintBrush;
+
+  /// No description provided for @toolEyedropper.
+  ///
+  /// In en, this message translates to:
+  /// **'Eyedropper'**
+  String get toolEyedropper;
+
+  /// No description provided for @toolMarquee.
+  ///
+  /// In en, this message translates to:
+  /// **'Marquee-select elements'**
+  String get toolMarquee;
+
+  /// No description provided for @toolNodeLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Node link'**
+  String get toolNodeLink;
+
+  /// No description provided for @shapeRect.
+  ///
+  /// In en, this message translates to:
+  /// **'Rectangle'**
+  String get shapeRect;
+
+  /// No description provided for @shapeEllipse.
+  ///
+  /// In en, this message translates to:
+  /// **'Ellipse'**
+  String get shapeEllipse;
+
+  /// No description provided for @shapeDiamond.
+  ///
+  /// In en, this message translates to:
+  /// **'Diamond'**
+  String get shapeDiamond;
+
+  /// No description provided for @shapeArrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrow'**
+  String get shapeArrow;
+
+  /// No description provided for @shapeLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Line'**
+  String get shapeLine;
+
+  /// No description provided for @saveStateUnsaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsaved'**
+  String get saveStateUnsaved;
+
+  /// No description provided for @saveStateSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get saveStateSaved;
+
+  /// No description provided for @cropInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid crop area'**
+  String get cropInvalid;
+
+  /// No description provided for @cropSourceMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Source image file is missing'**
+  String get cropSourceMissing;
+
+  /// No description provided for @cropEncodeFail.
+  ///
+  /// In en, this message translates to:
+  /// **'Crop encoding failed'**
+  String get cropEncodeFail;
+
+  /// No description provided for @cropVaultLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Vault is locked; cannot save the crop'**
+  String get cropVaultLocked;
+
+  /// No description provided for @cropDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Image cropped'**
+  String get cropDone;
+
+  /// No description provided for @cropDragHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag the corners to adjust the crop area, then tap the crop button'**
+  String get cropDragHint;
+
+  /// No description provided for @cropHandleTopLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust crop top-left corner'**
+  String get cropHandleTopLeft;
+
+  /// No description provided for @cropHandleTopRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust crop top-right corner'**
+  String get cropHandleTopRight;
+
+  /// No description provided for @cropHandleBottomLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust crop bottom-left corner'**
+  String get cropHandleBottomLeft;
+
+  /// No description provided for @cropHandleBottomRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust crop bottom-right corner'**
+  String get cropHandleBottomRight;
+
+  /// No description provided for @canvasSemanticsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Drawing canvas'**
+  String get canvasSemanticsLabel;
+
+  /// No description provided for @canvasSemanticsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Double-tap blank space to insert text; draw with the toolbar tools'**
+  String get canvasSemanticsHint;
+
+  /// No description provided for @actSwitchInfinite.
+  ///
+  /// In en, this message translates to:
+  /// **'Switched to infinite canvas (unbounded)'**
+  String get actSwitchInfinite;
+
+  /// No description provided for @actSwitchFixed.
+  ///
+  /// In en, this message translates to:
+  /// **'Switched back to fixed paper'**
+  String get actSwitchFixed;
+
+  /// No description provided for @actChartPagedOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only paged-canvas pages support charts'**
+  String get actChartPagedOnly;
+
+  /// No description provided for @actChartTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate chart'**
+  String get actChartTitle;
+
+  /// No description provided for @actChartBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Bar chart'**
+  String get actChartBar;
+
+  /// No description provided for @actChartLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Line chart'**
+  String get actChartLine;
+
+  /// No description provided for @actChartGenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate'**
+  String get actChartGenerate;
+
+  /// No description provided for @actChartNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'No valid numbers parsed'**
+  String get actChartNoData;
+
+  /// No description provided for @actSlidesPagedOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only paged-canvas pages support slide presentation'**
+  String get actSlidesPagedOnly;
+
+  /// No description provided for @actSlidesNoContent.
+  ///
+  /// In en, this message translates to:
+  /// **'This page has nothing to present'**
+  String get actSlidesNoContent;
+
+  /// No description provided for @actSlidesUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Presentation unavailable'**
+  String get actSlidesUnavailable;
+
+  /// No description provided for @actStatsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Canvas statistics'**
+  String get actStatsTitle;
+
+  /// No description provided for @actStatStrokes.
+  ///
+  /// In en, this message translates to:
+  /// **'Handwritten strokes'**
+  String get actStatStrokes;
+
+  /// No description provided for @actStatTextBlocks.
+  ///
+  /// In en, this message translates to:
+  /// **'Text blocks'**
+  String get actStatTextBlocks;
+
+  /// No description provided for @actStatImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Images'**
+  String get actStatImages;
+
+  /// No description provided for @actStatShapes.
+  ///
+  /// In en, this message translates to:
+  /// **'Shapes'**
+  String get actStatShapes;
+
+  /// No description provided for @actStatCharts.
+  ///
+  /// In en, this message translates to:
+  /// **'Charts'**
+  String get actStatCharts;
+
+  /// No description provided for @actStatTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total elements'**
+  String get actStatTotal;
+
+  /// No description provided for @actShapeLibPagedOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only paged-canvas pages support the shape library'**
+  String get actShapeLibPagedOnly;
+
+  /// No description provided for @actCopiedN.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied {count} elements'**
+  String actCopiedN(int count);
+
+  /// No description provided for @actPickFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Select elements to copy first'**
+  String get actPickFirst;
+
+  /// No description provided for @actPastedN.
+  ///
+  /// In en, this message translates to:
+  /// **'Pasted {count} elements'**
+  String actPastedN(int count);
+
+  /// No description provided for @actCopiedTextStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Text style copied'**
+  String get actCopiedTextStyle;
+
+  /// No description provided for @actCopiedShapeStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shape style copied'**
+  String get actCopiedShapeStyle;
+
+  /// No description provided for @actPickStyleSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a text block or shape first'**
+  String get actPickStyleSource;
+
+  /// No description provided for @actCopyStyleFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy a style first (Ctrl+Shift+C) before pasting'**
+  String get actCopyStyleFirst;
+
+  /// No description provided for @actPastedStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Style pasted'**
+  String get actPastedStyle;
+
+  /// No description provided for @actPastePagedOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only paged-canvas pages support pasting'**
+  String get actPastePagedOnly;
+
+  /// No description provided for @actClipboardNoText.
+  ///
+  /// In en, this message translates to:
+  /// **'No pastable text in the clipboard'**
+  String get actClipboardNoText;
+
+  /// No description provided for @actShortcutsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shortcuts'**
+  String get actShortcutsTitle;
+
+  /// No description provided for @barPagedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Paged note'**
+  String get barPagedNote;
+
+  /// No description provided for @barInfiniteCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'Infinite canvas'**
+  String get barInfiniteCanvas;
+
+  /// No description provided for @barHideLayers.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide layers'**
+  String get barHideLayers;
+
+  /// No description provided for @barShowLayers.
+  ///
+  /// In en, this message translates to:
+  /// **'Show layers'**
+  String get barShowLayers;
+
+  /// No description provided for @barHideInspector.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide inspector'**
+  String get barHideInspector;
+
+  /// No description provided for @barShowInspector.
+  ///
+  /// In en, this message translates to:
+  /// **'Show inspector'**
+  String get barShowInspector;
+
+  /// No description provided for @barExitFullscreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit fullscreen'**
+  String get barExitFullscreen;
+
+  /// No description provided for @barEnterFullscreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Fullscreen'**
+  String get barEnterFullscreen;
+
+  /// No description provided for @barReadingOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off dark reading'**
+  String get barReadingOff;
+
+  /// No description provided for @barReadingOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark reading (display only)'**
+  String get barReadingOn;
+
+  /// No description provided for @menuExportText.
+  ///
+  /// In en, this message translates to:
+  /// **'Export text'**
+  String get menuExportText;
+
+  /// No description provided for @menuCommandPalette.
+  ///
+  /// In en, this message translates to:
+  /// **'Command palette'**
+  String get menuCommandPalette;
+
+  /// No description provided for @menuSlides.
+  ///
+  /// In en, this message translates to:
+  /// **'Slide presentation'**
+  String get menuSlides;
+
+  /// No description provided for @menuStats.
+  ///
+  /// In en, this message translates to:
+  /// **'Statistics'**
+  String get menuStats;
+
+  /// No description provided for @menuShortcuts.
+  ///
+  /// In en, this message translates to:
+  /// **'Shortcut help'**
+  String get menuShortcuts;
+
+  /// No description provided for @menuSwitchToFixed.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to fixed paper'**
+  String get menuSwitchToFixed;
+
+  /// No description provided for @menuSwitchToInfinite.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to infinite canvas'**
+  String get menuSwitchToInfinite;
+
+  /// No description provided for @paletteRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently used'**
+  String get paletteRecent;
+
+  /// No description provided for @paletteNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching commands'**
+  String get paletteNoMatch;
+
+  /// No description provided for @textInputTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter text'**
+  String get textInputTitle;
+
+  /// No description provided for @textInputHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter text content'**
+  String get textInputHint;
+
+  /// No description provided for @distributeNeed3.
+  ///
+  /// In en, this message translates to:
+  /// **'At least 3 elements are needed to distribute'**
+  String get distributeNeed3;
+
+  /// No description provided for @distributedH.
+  ///
+  /// In en, this message translates to:
+  /// **'Distributed horizontally'**
+  String get distributedH;
+
+  /// No description provided for @distributedV.
+  ///
+  /// In en, this message translates to:
+  /// **'Distributed vertically'**
+  String get distributedV;
+
+  /// No description provided for @edPreviewPagedOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only paged-canvas pages support paged preview'**
+  String get edPreviewPagedOnly;
+
+  /// No description provided for @edNoTextHere.
+  ///
+  /// In en, this message translates to:
+  /// **'This page has no text content yet'**
+  String get edNoTextHere;
+
+  /// No description provided for @edNoTextBlocks.
+  ///
+  /// In en, this message translates to:
+  /// **'No text blocks on this page'**
+  String get edNoTextBlocks;
+
+  /// No description provided for @edRecoloredN.
+  ///
+  /// In en, this message translates to:
+  /// **'Recolored {count} text blocks'**
+  String edRecoloredN(int count);
+
+  /// No description provided for @edImageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get edImageLabel;
+
+  /// No description provided for @edNoteImageStoreUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Note image storage unavailable'**
+  String get edNoteImageStoreUnavailable;
+
+  /// No description provided for @edDrawingImageStoreUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Drawing image storage unavailable'**
+  String get edDrawingImageStoreUnavailable;
+
+  /// No description provided for @edLinkStartPicked.
+  ///
+  /// In en, this message translates to:
+  /// **'Start picked; tap another element to finish the connector'**
+  String get edLinkStartPicked;
+
+  /// No description provided for @edLinkCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Connector created'**
+  String get edLinkCreated;
+
+  /// No description provided for @ctxCopyStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy style'**
+  String get ctxCopyStyle;
+
+  /// No description provided for @ctxGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Group'**
+  String get ctxGroup;
+
+  /// No description provided for @ctxUngroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Ungroup'**
+  String get ctxUngroup;
+
+  /// No description provided for @ctxBringToFront.
+  ///
+  /// In en, this message translates to:
+  /// **'Bring to front'**
+  String get ctxBringToFront;
+
+  /// No description provided for @ctxSendToBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Send to back'**
+  String get ctxSendToBack;
+
+  /// No description provided for @edLinkInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Link invalid or unsupported'**
+  String get edLinkInvalid;
+
+  /// No description provided for @edLinkOpened.
+  ///
+  /// In en, this message translates to:
+  /// **'Link opened'**
+  String get edLinkOpened;
+
+  /// No description provided for @edLinkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set link'**
+  String get edLinkTitle;
+
+  /// No description provided for @edLinkCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Link cleared'**
+  String get edLinkCleared;
+
+  /// No description provided for @edLinkSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Link set'**
+  String get edLinkSet;
+
+  /// No description provided for @edGroupNeed2.
+  ///
+  /// In en, this message translates to:
+  /// **'Marquee/multi-select at least 2 elements before grouping'**
+  String get edGroupNeed2;
+
+  /// No description provided for @edGroupedN.
+  ///
+  /// In en, this message translates to:
+  /// **'Grouped {count} elements'**
+  String edGroupedN(int count);
+
+  /// No description provided for @edUngrouped.
+  ///
+  /// In en, this message translates to:
+  /// **'Ungrouped'**
+  String get edUngrouped;
+
+  /// No description provided for @renameCanvasTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename canvas'**
+  String get renameCanvasTitle;
+
+  /// No description provided for @textBold.
+  ///
+  /// In en, this message translates to:
+  /// **'Bold'**
+  String get textBold;
+
+  /// No description provided for @textItalic.
+  ///
+  /// In en, this message translates to:
+  /// **'Italic'**
+  String get textItalic;
+
+  /// No description provided for @textTodo.
+  ///
+  /// In en, this message translates to:
+  /// **'To-do'**
+  String get textTodo;
+
+  /// No description provided for @textCenter.
+  ///
+  /// In en, this message translates to:
+  /// **'Center'**
+  String get textCenter;
+
+  /// No description provided for @textDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get textDone;
+
+  /// No description provided for @textWidthHandle.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust text width'**
+  String get textWidthHandle;
+
+  /// No description provided for @toolEraserName.
+  ///
+  /// In en, this message translates to:
+  /// **'Eraser'**
+  String get toolEraserName;
+
+  /// No description provided for @pressureReal.
+  ///
+  /// In en, this message translates to:
+  /// **'Using the device\'s reported pressure range'**
+  String get pressureReal;
+
+  /// No description provided for @pressureFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'This device reports no usable pressure; a stable fallback is in use'**
+  String get pressureFallback;
+
+  /// No description provided for @coordsHide.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide coordinates'**
+  String get coordsHide;
+
+  /// No description provided for @coordsShow.
+  ///
+  /// In en, this message translates to:
+  /// **'Show canvas coordinates'**
+  String get coordsShow;
+
+  /// No description provided for @zoomTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom canvas'**
+  String get zoomTooltip;
+
+  /// No description provided for @layersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Layers'**
+  String get layersTitle;
+
+  /// No description provided for @layerNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New layer'**
+  String get layerNew;
+
+  /// No description provided for @layerUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get layerUp;
+
+  /// No description provided for @layerDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get layerDown;
+
+  /// No description provided for @layerMergeDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge down'**
+  String get layerMergeDown;
+
+  /// No description provided for @layerDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete layer'**
+  String get layerDelete;
+
+  /// No description provided for @propBrush.
+  ///
+  /// In en, this message translates to:
+  /// **'Brush'**
+  String get propBrush;
+
+  /// No description provided for @propBrushColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Brush color'**
+  String get propBrushColor;
+
+  /// No description provided for @propImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get propImage;
+
+  /// No description provided for @propCropImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Crop image'**
+  String get propCropImage;
+
+  /// No description provided for @propShape.
+  ///
+  /// In en, this message translates to:
+  /// **'Shape'**
+  String get propShape;
+
+  /// No description provided for @propFillColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill color'**
+  String get propFillColor;
+
+  /// No description provided for @propDash.
+  ///
+  /// In en, this message translates to:
+  /// **'Solid/dashed'**
+  String get propDash;
+
+  /// No description provided for @propText.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get propText;
+
+  /// No description provided for @propTextColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text color'**
+  String get propTextColor;
+
+  /// No description provided for @fontSerif.
+  ///
+  /// In en, this message translates to:
+  /// **'Serif'**
+  String get fontSerif;
+
+  /// No description provided for @fontMono.
+  ///
+  /// In en, this message translates to:
+  /// **'Monospace'**
+  String get fontMono;
+
+  /// No description provided for @fontHandwriting.
+  ///
+  /// In en, this message translates to:
+  /// **'Handwriting'**
+  String get fontHandwriting;
+
+  /// No description provided for @fontDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get fontDefault;
+
+  /// No description provided for @selCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy selection'**
+  String get selCopy;
+
+  /// No description provided for @selPaste.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste'**
+  String get selPaste;
+
+  /// No description provided for @selUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock selection'**
+  String get selUnlock;
+
+  /// No description provided for @selLock.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock selection against accidental edits'**
+  String get selLock;
+
+  /// No description provided for @selUnlockImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock image'**
+  String get selUnlockImage;
+
+  /// No description provided for @selLockImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock image against accidental edits'**
+  String get selLockImage;
+
+  /// No description provided for @selUnlockShape.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock shape'**
+  String get selUnlockShape;
+
+  /// No description provided for @selLockShape.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock shape against accidental edits'**
+  String get selLockShape;
+
+  /// No description provided for @selDeleteLockedKeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete unlocked objects; locked ones are kept'**
+  String get selDeleteLockedKeep;
+
+  /// No description provided for @selDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete selection'**
+  String get selDelete;
+
+  /// No description provided for @selShapeLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Shape is locked; cannot delete'**
+  String get selShapeLocked;
+
+  /// No description provided for @selImageLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Image is locked; cannot delete'**
+  String get selImageLocked;
+
+  /// No description provided for @selDeleteContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete selected content'**
+  String get selDeleteContent;
+
+  /// No description provided for @selNObjects.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} objects selected'**
+  String selNObjects(int count);
+
+  /// No description provided for @selShapeLockedEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Shape locked: unlock to edit'**
+  String get selShapeLockedEdit;
+
+  /// No description provided for @selShapeSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Shape selected: drag, scale, lock or delete'**
+  String get selShapeSelected;
+
+  /// No description provided for @selImageLockedEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Image locked: unlock to edit'**
+  String get selImageLockedEdit;
+
+  /// No description provided for @selImageSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Image selected: drag, scale, lock or delete'**
+  String get selImageSelected;
+
+  /// No description provided for @selNStrokes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} strokes selected'**
+  String selNStrokes(int count);
+
+  /// No description provided for @selClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear selection'**
+  String get selClear;
+
+  /// No description provided for @shapeLibNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching shapes'**
+  String get shapeLibNoMatch;
+
+  /// No description provided for @noteImageSemantic.
+  ///
+  /// In en, this message translates to:
+  /// **'Note image'**
+  String get noteImageSemantic;
+
+  /// No description provided for @segmentEndpointSemantic.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust segment endpoint'**
+  String get segmentEndpointSemantic;
+
+  /// No description provided for @saveStateSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving…'**
+  String get saveStateSaving;
+
+  /// No description provided for @saveStateSavedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved {time}'**
+  String saveStateSavedAt(String time);
+
+  /// No description provided for @actInsertedShape.
+  ///
+  /// In en, this message translates to:
+  /// **'Inserted “{name}”'**
+  String actInsertedShape(String name);
 }
 
 class _AppLocalizationsDelegate

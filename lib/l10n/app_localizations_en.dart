@@ -1647,4 +1647,728 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get lockDiskKeepNote =>
       'Do not delete the password_reset_disk.key file on the USB drive';
+
+  @override
+  String get cmdUndo => 'Undo';
+
+  @override
+  String get cmdRedo => 'Redo';
+
+  @override
+  String get cmdCopySelection => 'Copy selection';
+
+  @override
+  String get cmdPasteClipboard => 'Paste from clipboard';
+
+  @override
+  String get cmdDuplicateSelection => 'Duplicate selection';
+
+  @override
+  String get cmdDeleteSelection => 'Delete selection';
+
+  @override
+  String get cmdBold => 'Bold selected text';
+
+  @override
+  String get cmdItalic => 'Italicize selected text';
+
+  @override
+  String get cmdUnderline => 'Underline selected text';
+
+  @override
+  String get cmdStrikethrough => 'Strikethrough selected text';
+
+  @override
+  String get cmdCycleAlign => 'Cycle text alignment';
+
+  @override
+  String get cmdFitCanvas => 'Fit canvas';
+
+  @override
+  String get cmdToggleGrid => 'Show or hide grid';
+
+  @override
+  String get cmdToggleSnap => 'Toggle grid snap';
+
+  @override
+  String get cmdExportWord => 'Export Word-compatible document';
+
+  @override
+  String get catEdit => 'Edit';
+
+  @override
+  String get catFormat => 'Format';
+
+  @override
+  String get catInsert => 'Insert';
+
+  @override
+  String get catArrange => 'Arrange';
+
+  @override
+  String get catView => 'View';
+
+  @override
+  String get catExport => 'Export';
+
+  @override
+  String get expCopyRenderFail => 'Copy failed: cannot render the canvas';
+
+  @override
+  String get expCopyDecodeFail => 'Copy failed: pixel decoding failed';
+
+  @override
+  String get expCopiedPng => 'PNG copied to clipboard';
+
+  @override
+  String get expRenderFail => 'Export failed: cannot render the canvas';
+
+  @override
+  String get expNoPages => 'No pages to export';
+
+  @override
+  String get expEmptyCanvas => 'Export failed: the canvas is empty';
+
+  @override
+  String get expWordPagedOnly =>
+      'Only paged notes support exporting Word-compatible documents';
+
+  @override
+  String get expWordNoText => 'This page has no text content to export';
+
+  @override
+  String get expTextPagedOnly =>
+      'Only paged-canvas pages support exporting text';
+
+  @override
+  String get expTextNoText => 'This page has no text content';
+
+  @override
+  String get expPptxPackFail => 'Export failed: PPTX packaging failed';
+
+  @override
+  String get fileTypePng => 'PNG image';
+
+  @override
+  String get fileTypePdf => 'PDF document';
+
+  @override
+  String get fileTypeSvg => 'SVG vector image';
+
+  @override
+  String get fileTypeWord => 'Word-compatible document';
+
+  @override
+  String get fileTypeMarkdown => 'Markdown / Text';
+
+  @override
+  String get fileTypePptx => 'PPTX presentation';
+
+  @override
+  String get fileTypeJson => 'JSON project file';
+
+  @override
+  String get expWholeBookSuffix => 'whole-book';
+
+  @override
+  String get pdfPaperFollow => 'Follow canvas';
+
+  @override
+  String get pdfRangeCurrent => 'Current page';
+
+  @override
+  String get pdfRangeAll => 'All pages';
+
+  @override
+  String get pdfQualityLossless => 'Lossless';
+
+  @override
+  String get pdfQualityLosslessDesc => 'PNG lossless, largest size';
+
+  @override
+  String get pdfQualityStandardDesc => 'JPEG 80, recommended';
+
+  @override
+  String get pdfQualitySaverDesc => 'JPEG 60, smallest size';
+
+  @override
+  String get pdfGroupPaper => 'Paper';
+
+  @override
+  String get pdfGroupQuality => 'Quality';
+
+  @override
+  String pdfExportNPages(int count) {
+    return 'Export $count pages';
+  }
+
+  @override
+  String get inkStylusPressure => 'Stylus pressure';
+
+  @override
+  String get inkTouchPressure => 'Touch pressure';
+
+  @override
+  String get inkMouseVelocity => 'Mouse velocity simulation';
+
+  @override
+  String get inkConstant => 'Constant width';
+
+  @override
+  String get pomodoroPause => 'Pause';
+
+  @override
+  String get pomodoroStart => 'Start';
+
+  @override
+  String get pomodoroReset => 'Reset';
+
+  @override
+  String get pomodoroFinish => 'Pomodoro finished: take a break';
+
+  @override
+  String pageIndicator(int index, int total) {
+    return 'Page $index of $total';
+  }
+
+  @override
+  String get eraserWholeStroke => 'Whole stroke';
+
+  @override
+  String get eraserTransparent => 'Pixels';
+
+  @override
+  String get markerSave => 'Save';
+
+  @override
+  String get markerAutoFade => 'Auto-fade';
+
+  @override
+  String get tooltipSwapFill => 'Swap fill color';
+
+  @override
+  String get tooltipDashStyle => 'Solid / dashed';
+
+  @override
+  String get hintEyedropper => 'Tap the canvas to pick a color';
+
+  @override
+  String get hintTextTool => 'Tap the canvas to place text';
+
+  @override
+  String get hintConnect => 'Pick two elements in turn to connect';
+
+  @override
+  String get hintPixelEraser => 'Erase transparent pixels';
+
+  @override
+  String get hintStrokeEraser => 'Delete whole strokes';
+
+  @override
+  String get hintTempHighlight => 'Temporary highlight: auto-fades in ~4s';
+
+  @override
+  String get hintSavedHighlight => 'Highlighter: saved to the page';
+
+  @override
+  String get hintLaser =>
+      'Laser pointer: fades segment by segment after release; not saved';
+
+  @override
+  String get hintBrush => 'Brush';
+
+  @override
+  String get toolEyedropper => 'Eyedropper';
+
+  @override
+  String get toolMarquee => 'Marquee-select elements';
+
+  @override
+  String get toolNodeLink => 'Node link';
+
+  @override
+  String get shapeRect => 'Rectangle';
+
+  @override
+  String get shapeEllipse => 'Ellipse';
+
+  @override
+  String get shapeDiamond => 'Diamond';
+
+  @override
+  String get shapeArrow => 'Arrow';
+
+  @override
+  String get shapeLine => 'Line';
+
+  @override
+  String get saveStateUnsaved => 'Unsaved';
+
+  @override
+  String get saveStateSaved => 'Saved';
+
+  @override
+  String get cropInvalid => 'Invalid crop area';
+
+  @override
+  String get cropSourceMissing => 'Source image file is missing';
+
+  @override
+  String get cropEncodeFail => 'Crop encoding failed';
+
+  @override
+  String get cropVaultLocked => 'Vault is locked; cannot save the crop';
+
+  @override
+  String get cropDone => 'Image cropped';
+
+  @override
+  String get cropDragHint =>
+      'Drag the corners to adjust the crop area, then tap the crop button';
+
+  @override
+  String get cropHandleTopLeft => 'Adjust crop top-left corner';
+
+  @override
+  String get cropHandleTopRight => 'Adjust crop top-right corner';
+
+  @override
+  String get cropHandleBottomLeft => 'Adjust crop bottom-left corner';
+
+  @override
+  String get cropHandleBottomRight => 'Adjust crop bottom-right corner';
+
+  @override
+  String get canvasSemanticsLabel => 'Drawing canvas';
+
+  @override
+  String get canvasSemanticsHint =>
+      'Double-tap blank space to insert text; draw with the toolbar tools';
+
+  @override
+  String get actSwitchInfinite => 'Switched to infinite canvas (unbounded)';
+
+  @override
+  String get actSwitchFixed => 'Switched back to fixed paper';
+
+  @override
+  String get actChartPagedOnly => 'Only paged-canvas pages support charts';
+
+  @override
+  String get actChartTitle => 'Generate chart';
+
+  @override
+  String get actChartBar => 'Bar chart';
+
+  @override
+  String get actChartLine => 'Line chart';
+
+  @override
+  String get actChartGenerate => 'Generate';
+
+  @override
+  String get actChartNoData => 'No valid numbers parsed';
+
+  @override
+  String get actSlidesPagedOnly =>
+      'Only paged-canvas pages support slide presentation';
+
+  @override
+  String get actSlidesNoContent => 'This page has nothing to present';
+
+  @override
+  String get actSlidesUnavailable => 'Presentation unavailable';
+
+  @override
+  String get actStatsTitle => 'Canvas statistics';
+
+  @override
+  String get actStatStrokes => 'Handwritten strokes';
+
+  @override
+  String get actStatTextBlocks => 'Text blocks';
+
+  @override
+  String get actStatImages => 'Images';
+
+  @override
+  String get actStatShapes => 'Shapes';
+
+  @override
+  String get actStatCharts => 'Charts';
+
+  @override
+  String get actStatTotal => 'Total elements';
+
+  @override
+  String get actShapeLibPagedOnly =>
+      'Only paged-canvas pages support the shape library';
+
+  @override
+  String actCopiedN(int count) {
+    return 'Copied $count elements';
+  }
+
+  @override
+  String get actPickFirst => 'Select elements to copy first';
+
+  @override
+  String actPastedN(int count) {
+    return 'Pasted $count elements';
+  }
+
+  @override
+  String get actCopiedTextStyle => 'Text style copied';
+
+  @override
+  String get actCopiedShapeStyle => 'Shape style copied';
+
+  @override
+  String get actPickStyleSource => 'Select a text block or shape first';
+
+  @override
+  String get actCopyStyleFirst =>
+      'Copy a style first (Ctrl+Shift+C) before pasting';
+
+  @override
+  String get actPastedStyle => 'Style pasted';
+
+  @override
+  String get actPastePagedOnly => 'Only paged-canvas pages support pasting';
+
+  @override
+  String get actClipboardNoText => 'No pastable text in the clipboard';
+
+  @override
+  String get actShortcutsTitle => 'Shortcuts';
+
+  @override
+  String get barPagedNote => 'Paged note';
+
+  @override
+  String get barInfiniteCanvas => 'Infinite canvas';
+
+  @override
+  String get barHideLayers => 'Hide layers';
+
+  @override
+  String get barShowLayers => 'Show layers';
+
+  @override
+  String get barHideInspector => 'Hide inspector';
+
+  @override
+  String get barShowInspector => 'Show inspector';
+
+  @override
+  String get barExitFullscreen => 'Exit fullscreen';
+
+  @override
+  String get barEnterFullscreen => 'Fullscreen';
+
+  @override
+  String get barReadingOff => 'Turn off dark reading';
+
+  @override
+  String get barReadingOn => 'Dark reading (display only)';
+
+  @override
+  String get menuExportText => 'Export text';
+
+  @override
+  String get menuCommandPalette => 'Command palette';
+
+  @override
+  String get menuSlides => 'Slide presentation';
+
+  @override
+  String get menuStats => 'Statistics';
+
+  @override
+  String get menuShortcuts => 'Shortcut help';
+
+  @override
+  String get menuSwitchToFixed => 'Switch to fixed paper';
+
+  @override
+  String get menuSwitchToInfinite => 'Switch to infinite canvas';
+
+  @override
+  String get paletteRecent => 'Recently used';
+
+  @override
+  String get paletteNoMatch => 'No matching commands';
+
+  @override
+  String get textInputTitle => 'Enter text';
+
+  @override
+  String get textInputHint => 'Enter text content';
+
+  @override
+  String get distributeNeed3 => 'At least 3 elements are needed to distribute';
+
+  @override
+  String get distributedH => 'Distributed horizontally';
+
+  @override
+  String get distributedV => 'Distributed vertically';
+
+  @override
+  String get edPreviewPagedOnly =>
+      'Only paged-canvas pages support paged preview';
+
+  @override
+  String get edNoTextHere => 'This page has no text content yet';
+
+  @override
+  String get edNoTextBlocks => 'No text blocks on this page';
+
+  @override
+  String edRecoloredN(int count) {
+    return 'Recolored $count text blocks';
+  }
+
+  @override
+  String get edImageLabel => 'Image';
+
+  @override
+  String get edNoteImageStoreUnavailable => 'Note image storage unavailable';
+
+  @override
+  String get edDrawingImageStoreUnavailable =>
+      'Drawing image storage unavailable';
+
+  @override
+  String get edLinkStartPicked =>
+      'Start picked; tap another element to finish the connector';
+
+  @override
+  String get edLinkCreated => 'Connector created';
+
+  @override
+  String get ctxCopyStyle => 'Copy style';
+
+  @override
+  String get ctxGroup => 'Group';
+
+  @override
+  String get ctxUngroup => 'Ungroup';
+
+  @override
+  String get ctxBringToFront => 'Bring to front';
+
+  @override
+  String get ctxSendToBack => 'Send to back';
+
+  @override
+  String get edLinkInvalid => 'Link invalid or unsupported';
+
+  @override
+  String get edLinkOpened => 'Link opened';
+
+  @override
+  String get edLinkTitle => 'Set link';
+
+  @override
+  String get edLinkCleared => 'Link cleared';
+
+  @override
+  String get edLinkSet => 'Link set';
+
+  @override
+  String get edGroupNeed2 =>
+      'Marquee/multi-select at least 2 elements before grouping';
+
+  @override
+  String edGroupedN(int count) {
+    return 'Grouped $count elements';
+  }
+
+  @override
+  String get edUngrouped => 'Ungrouped';
+
+  @override
+  String get renameCanvasTitle => 'Rename canvas';
+
+  @override
+  String get textBold => 'Bold';
+
+  @override
+  String get textItalic => 'Italic';
+
+  @override
+  String get textTodo => 'To-do';
+
+  @override
+  String get textCenter => 'Center';
+
+  @override
+  String get textDone => 'Done';
+
+  @override
+  String get textWidthHandle => 'Adjust text width';
+
+  @override
+  String get toolEraserName => 'Eraser';
+
+  @override
+  String get pressureReal => 'Using the device\'s reported pressure range';
+
+  @override
+  String get pressureFallback =>
+      'This device reports no usable pressure; a stable fallback is in use';
+
+  @override
+  String get coordsHide => 'Hide coordinates';
+
+  @override
+  String get coordsShow => 'Show canvas coordinates';
+
+  @override
+  String get zoomTooltip => 'Zoom canvas';
+
+  @override
+  String get layersTitle => 'Layers';
+
+  @override
+  String get layerNew => 'New layer';
+
+  @override
+  String get layerUp => 'Move up';
+
+  @override
+  String get layerDown => 'Move down';
+
+  @override
+  String get layerMergeDown => 'Merge down';
+
+  @override
+  String get layerDelete => 'Delete layer';
+
+  @override
+  String get propBrush => 'Brush';
+
+  @override
+  String get propBrushColor => 'Brush color';
+
+  @override
+  String get propImage => 'Image';
+
+  @override
+  String get propCropImage => 'Crop image';
+
+  @override
+  String get propShape => 'Shape';
+
+  @override
+  String get propFillColor => 'Fill color';
+
+  @override
+  String get propDash => 'Solid/dashed';
+
+  @override
+  String get propText => 'Text';
+
+  @override
+  String get propTextColor => 'Text color';
+
+  @override
+  String get fontSerif => 'Serif';
+
+  @override
+  String get fontMono => 'Monospace';
+
+  @override
+  String get fontHandwriting => 'Handwriting';
+
+  @override
+  String get fontDefault => 'Default';
+
+  @override
+  String get selCopy => 'Copy selection';
+
+  @override
+  String get selPaste => 'Paste';
+
+  @override
+  String get selUnlock => 'Unlock selection';
+
+  @override
+  String get selLock => 'Lock selection against accidental edits';
+
+  @override
+  String get selUnlockImage => 'Unlock image';
+
+  @override
+  String get selLockImage => 'Lock image against accidental edits';
+
+  @override
+  String get selUnlockShape => 'Unlock shape';
+
+  @override
+  String get selLockShape => 'Lock shape against accidental edits';
+
+  @override
+  String get selDeleteLockedKeep =>
+      'Delete unlocked objects; locked ones are kept';
+
+  @override
+  String get selDelete => 'Delete selection';
+
+  @override
+  String get selShapeLocked => 'Shape is locked; cannot delete';
+
+  @override
+  String get selImageLocked => 'Image is locked; cannot delete';
+
+  @override
+  String get selDeleteContent => 'Delete selected content';
+
+  @override
+  String selNObjects(int count) {
+    return '$count objects selected';
+  }
+
+  @override
+  String get selShapeLockedEdit => 'Shape locked: unlock to edit';
+
+  @override
+  String get selShapeSelected => 'Shape selected: drag, scale, lock or delete';
+
+  @override
+  String get selImageLockedEdit => 'Image locked: unlock to edit';
+
+  @override
+  String get selImageSelected => 'Image selected: drag, scale, lock or delete';
+
+  @override
+  String selNStrokes(int count) {
+    return '$count strokes selected';
+  }
+
+  @override
+  String get selClear => 'Clear selection';
+
+  @override
+  String get shapeLibNoMatch => 'No matching shapes';
+
+  @override
+  String get noteImageSemantic => 'Note image';
+
+  @override
+  String get segmentEndpointSemantic => 'Adjust segment endpoint';
+
+  @override
+  String get saveStateSaving => 'Saving…';
+
+  @override
+  String saveStateSavedAt(String time) {
+    return 'Saved $time';
+  }
+
+  @override
+  String actInsertedShape(String name) {
+    return 'Inserted “$name”';
+  }
 }

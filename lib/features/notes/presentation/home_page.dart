@@ -244,8 +244,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error =
-            AppLocalizations.of(context)?.homeReadListFailed ?? '读取列表失败，请重试';
+        _error = _l10nSafe?.homeReadListFailed ?? '读取列表失败，请重试';
         _loading = false;
       });
     }
@@ -259,10 +258,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     if (builder == null) {
       return Scaffold(
         body: Center(
-          child: Text(
-            AppLocalizations.of(context)?.shellEditorNotAssembled ??
-                '编辑器尚未由应用层装配',
-          ),
+          child: Text(_l10nSafe?.shellEditorNotAssembled ?? '编辑器尚未由应用层装配'),
         ),
       );
     }
@@ -291,7 +287,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     final choice = await GlassDialog.show<bool>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: Text(AppLocalizations.of(context)?.docsNewCanvas ?? '新建画布'),
+        title: Text(_l10nSafe?.docsNewCanvas ?? '新建画布'),
         children: [
           // 键盘可达：对话框打开时焦点落在首个选项上。
           Focus(
@@ -300,13 +296,9 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
               onPressed: () => Navigator.of(ctx).pop(true),
               child: ListTile(
                 leading: const Icon(Icons.brush_rounded),
-                title: Text(
-                  AppLocalizations.of(context)?.homeNewInfiniteCanvas ??
-                      '新建无限画布',
-                ),
+                title: Text(_l10nSafe?.homeNewInfiniteCanvas ?? '新建无限画布'),
                 subtitle: Text(
-                  AppLocalizations.of(context)?.homeNewInfiniteCanvasSub ??
-                      '自由绘制、图形与关系图',
+                  _l10nSafe?.homeNewInfiniteCanvasSub ?? '自由绘制、图形与关系图',
                 ),
               ),
             ),
@@ -315,12 +307,9 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
             onPressed: () => Navigator.of(ctx).pop(false),
             child: ListTile(
               leading: const Icon(Icons.auto_stories_rounded),
-              title: Text(
-                AppLocalizations.of(context)?.docsNewPagedCanvas ?? '新建分页画布',
-              ),
+              title: Text(_l10nSafe?.docsNewPagedCanvas ?? '新建分页画布'),
               subtitle: Text(
-                AppLocalizations.of(context)?.homeNewPagedCanvasSub ??
-                    '多页装订、纸张模板与图文混排',
+                _l10nSafe?.homeNewPagedCanvasSub ?? '多页装订、纸张模板与图文混排',
               ),
             ),
           ),
@@ -339,9 +328,8 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   Future<void> _createDrawing() async {
     final name = await GlassDialog.show<String>(
       context: context,
-      builder: (ctx) => _NameDialog(
-        title: AppLocalizations.of(context)?.homeNewInfiniteCanvas ?? '新建无限画布',
-      ),
+      builder: (ctx) =>
+          _NameDialog(title: _l10nSafe?.homeNewInfiniteCanvas ?? '新建无限画布'),
     );
     if (name == null || name.trim().isEmpty) return;
 
@@ -367,9 +355,8 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   Future<void> _createNotebook() async {
     final name = await GlassDialog.show<String>(
       context: context,
-      builder: (ctx) => _NameDialog(
-        title: AppLocalizations.of(context)?.docsNewPagedCanvas ?? '新建分页画布',
-      ),
+      builder: (ctx) =>
+          _NameDialog(title: _l10nSafe?.docsNewPagedCanvas ?? '新建分页画布'),
     );
     if (name == null || name.trim().isEmpty) return;
     final nb = Notebook(
@@ -428,9 +415,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   Future<bool> _promptFilePassword(DocumentMeta meta) async {
     final pin = await UnlockFlow.show(
       context,
-      title:
-          AppLocalizations.of(context)?.canvasDeletePasswordTitle ??
-          '该画布已加密，输入独立密码',
+      title: _l10nSafe?.canvasDeletePasswordTitle ?? '该画布已加密，输入独立密码',
       flexible: true,
       onVerify: (p) => _docStorage.verifyFilePassword(meta.id, p),
       footerLabel: '忘记密码？',
@@ -464,20 +449,14 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
             ListTile(
               leading: const Icon(Icons.lock_outline_rounded),
               title: Text(
-                AppLocalizations.of(
-                      context,
-                    )?.docStandalonePasswordTitle(meta.title) ??
+                _l10nSafe?.docStandalonePasswordTitle(meta.title) ??
                     '「${meta.title}」独立密码',
               ),
               subtitle: Text(
                 protected
-                    ? AppLocalizations.of(
-                            context,
-                          )?.canvasStandalonePasswordProtected ??
+                    ? _l10nSafe?.canvasStandalonePasswordProtected ??
                           '此画布受独立密码保护'
-                    : AppLocalizations.of(
-                            context,
-                          )?.canvasStandalonePasswordUnset ??
+                    : _l10nSafe?.canvasStandalonePasswordUnset ??
                           '此画布当前未设置独立密码',
               ),
             ),
@@ -562,9 +541,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     if (!mounted) return null; // matchesAppLockPin 为异步操作，跨缺口守卫
     final confirm = await UnlockFlow.show(
       context,
-      title:
-          AppLocalizations.of(context)?.docConfirmStandalonePassword ??
-          '确认独立密码',
+      title: _l10nSafe?.docConfirmStandalonePassword ?? '确认独立密码',
       flexible: true,
     );
     if (confirm == null) return null;
@@ -577,7 +554,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
 
   Future<void> _startSetFilePassword(DocumentMeta meta) async {
     final pin = await _collectNewFilePassword(
-      AppLocalizations.of(context)?.docSetStandalonePassword ?? '设置独立密码',
+      _l10nSafe?.docSetStandalonePassword ?? '设置独立密码',
     );
     if (pin == null) return;
     if (!mounted) return;
@@ -585,14 +562,13 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     List<int>? resetDiskKey;
     final bindUsb = await GlassDialog.confirm(
       context,
-      title:
-          AppLocalizations.of(context)?.docBindDiskConfirmTitle ?? '绑定重置密码盘？',
+      title: _l10nSafe?.docBindDiskConfirmTitle ?? '绑定重置密码盘？',
       content:
-          AppLocalizations.of(context)?.canvasBindConfirmContent ??
+          _l10nSafe?.canvasBindConfirmContent ??
           '绑定后忘记此画布的独立密码时，可插入重置密码盘（U 盘）免旧密码重置。\n\n'
               'U 盘上只有随机钥匙文件（password_reset_disk.key），画布数据不会离开设备。',
-      confirmText: AppLocalizations.of(context)?.docBindDiskConfirm ?? '插盘绑定',
-      cancelText: AppLocalizations.of(context)?.docNotNow ?? '暂不',
+      confirmText: _l10nSafe?.docBindDiskConfirm ?? '插盘绑定',
+      cancelText: _l10nSafe?.docNotNow ?? '暂不',
     );
     if (bindUsb == true) {
       if (!mounted) return;
@@ -601,7 +577,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
         resetDiskKey = await ResetDiskFile.readFrom(dir);
         if (resetDiskKey == null && mounted) {
           _showSnack(
-            AppLocalizations.of(context)?.docDiskNotFoundNoBind ??
+            _l10nSafe?.docDiskNotFoundNoBind ??
                 '未找到有效的重置密码盘文件（password_reset_disk.key），本次不绑定',
           );
         }
@@ -613,13 +589,12 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
         pin,
         resetDiskKey: resetDiskKey,
       );
-      _showSnack(
-        resetDiskKey == null
-            ? _l10nSafe?.docPasswordSetFor(meta.title) ??
-                  '已为「${meta.title}」设置独立密码'
-            : _l10nSafe?.canvasPasswordSetDiskBoundFor(meta.title) ??
-                  '已为「${meta.title}」设置独立密码并绑定重置密码盘',
-      );
+      final setMsg = resetDiskKey == null
+          ? _l10nSafe?.docPasswordSetFor(meta.title) ??
+                '已为「${meta.title}」设置独立密码'
+          : _l10nSafe?.canvasPasswordSetDiskBoundFor(meta.title) ??
+                '已为「${meta.title}」设置独立密码并绑定重置密码盘';
+      _showSnack(setMsg);
       await _refresh();
     } on VaultFileLockException {
       _showSnack(_l10nSafe?.canvasVaultLockedSet ?? '加密底座已锁定：请重新验证开屏密码后再设置');
@@ -631,13 +606,13 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   Future<void> _startChangeFilePassword(DocumentMeta meta) async {
     final old = await UnlockFlow.show(
       context,
-      title: AppLocalizations.of(context)?.docVerifyCurrent ?? '验证当前独立密码',
+      title: _l10nSafe?.docVerifyCurrent ?? '验证当前独立密码',
       flexible: true,
       onVerify: (p) => _docStorage.verifyFilePassword(meta.id, p),
     );
     if (old == null || !mounted) return;
     final pin = await _collectNewFilePassword(
-      AppLocalizations.of(context)?.docSetNewPassword ?? '设置新密码',
+      _l10nSafe?.docSetNewPassword ?? '设置新密码',
     );
     if (pin == null) return;
     try {
@@ -658,7 +633,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   Future<void> _startBindFileUsb(DocumentMeta meta) async {
     final pin = await UnlockFlow.show(
       context,
-      title: AppLocalizations.of(context)?.docVerifyToBind ?? '验证独立密码以绑定重置盘',
+      title: _l10nSafe?.docVerifyToBind ?? '验证独立密码以绑定重置盘',
       flexible: true,
       onVerify: (p) => _docStorage.verifyFilePassword(meta.id, p),
     );
@@ -687,15 +662,15 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
 
   Future<void> _startRemoveFilePassword(DocumentMeta meta) async {
     final ok = await _confirmDelete(
-      AppLocalizations.of(context)?.docRemoveStandalonePassword ?? '移除独立密码',
-      AppLocalizations.of(context)?.canvasRemoveConfirmContent(meta.title) ??
+      _l10nSafe?.docRemoveStandalonePassword ?? '移除独立密码',
+      _l10nSafe?.canvasRemoveConfirmContent(meta.title) ??
           '移除后「${meta.title}」将回到加密底座保护（主密钥信封），不再需要独立密码。确定移除吗？',
     );
     if (ok != true) return;
     if (!mounted) return; // _confirmDelete 为异步操作，跨缺口守卫
     final pin = await UnlockFlow.show(
       context,
-      title: AppLocalizations.of(context)?.docVerifyToRemove ?? '验证独立密码以移除',
+      title: _l10nSafe?.docVerifyToRemove ?? '验证独立密码以移除',
       flexible: true,
       onVerify: (p) => _docStorage.verifyFilePassword(meta.id, p),
     );
@@ -722,8 +697,8 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   /// 删除画作（二次确认）。
   Future<void> _deleteDrawing(DocumentMeta meta) async {
     final ok = await _confirmDelete(
-      AppLocalizations.of(context)?.homeDeleteCanvasTitle ?? '删除画布',
-      AppLocalizations.of(context)?.homeDeleteCanvasConfirm(meta.title) ??
+      _l10nSafe?.homeDeleteCanvasTitle ?? '删除画布',
+      _l10nSafe?.homeDeleteCanvasConfirm(meta.title) ??
           '确定删除画布「${meta.title}」吗？此操作不可恢复。',
     );
     if (ok != true) return;
@@ -742,9 +717,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     final template = await GlassDialog.show<DocTemplate>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: Text(
-          AppLocalizations.of(context)?.homeSelectTemplate ?? '选择笔记模板',
-        ),
+        title: Text(_l10nSafe?.homeSelectTemplate ?? '选择笔记模板'),
         children: [
           for (final t in DocTemplate.values)
             // 键盘可达：首个模板选项初始聚焦。
@@ -823,13 +796,13 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     await GlassDialog.show<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)?.trash ?? '回收站（30 天内可恢复）'),
+        title: Text(_l10nSafe?.trash ?? '回收站（30 天内可恢复）'),
         content: ConstrainedBox(
           // L-02 响应式（专家审计 2026-08-15）：maxWidth 而非固定宽度——
           // 窄屏自适应（原 SizedBox 固定 380 在窄屏可能溢出）。
           constraints: const BoxConstraints(maxWidth: 380),
           child: trash.isEmpty
-              ? Text(AppLocalizations.of(context)?.homeTrashEmpty ?? '回收站为空')
+              ? Text(_l10nSafe?.homeTrashEmpty ?? '回收站为空')
               : ListView.builder(
                   shrinkWrap: true,
                   itemCount: trash.length,
@@ -839,16 +812,13 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
                     return ListTile(
                       title: Text(item.$2),
                       subtitle: Text(
-                        AppLocalizations.of(context)?.homeDeletedAt(time) ??
-                            '删除于 $time',
+                        _l10nSafe?.homeDeletedAt(time) ?? '删除于 $time',
                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            tooltip:
-                                AppLocalizations.of(context)?.homeRecover ??
-                                '恢复',
+                            tooltip: _l10nSafe?.homeRecover ?? '恢复',
                             icon: const Icon(Icons.restore),
                             onPressed: () async {
                               try {
@@ -870,21 +840,12 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
                             },
                           ),
                           IconButton(
-                            tooltip:
-                                AppLocalizations.of(
-                                  context,
-                                )?.homeDeleteForever ??
-                                '永久删除',
+                            tooltip: _l10nSafe?.homeDeleteForever ?? '永久删除',
                             icon: const Icon(Icons.delete_forever),
                             onPressed: () async {
                               final ok = await _confirmDelete(
-                                AppLocalizations.of(
-                                      context,
-                                    )?.homeDeleteForever ??
-                                    '永久删除',
-                                AppLocalizations.of(
-                                      context,
-                                    )?.homeDeleteForeverConfirm(item.$2) ??
+                                _l10nSafe?.homeDeleteForever ?? '永久删除',
+                                _l10nSafe?.homeDeleteForeverConfirm(item.$2) ??
                                     '确定永久删除「${item.$2}」吗？此操作不可恢复。',
                               );
                               if (ok == true) {
@@ -917,13 +878,11 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
                 if (ctx.mounted) Navigator.of(ctx).pop();
                 _refresh();
               },
-              child: Text(
-                AppLocalizations.of(context)?.homeEmptyTrash ?? '清空回收站',
-              ),
+              child: Text(_l10nSafe?.homeEmptyTrash ?? '清空回收站'),
             ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(AppLocalizations.of(context)?.close ?? '关闭'),
+            child: Text(_l10nSafe?.close ?? '关闭'),
           ),
         ],
       ),
@@ -935,16 +894,14 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
       context,
       title: title,
       content: content,
-      confirmText: AppLocalizations.of(context)?.delete ?? '删除',
-      cancelText: AppLocalizations.of(context)?.homeCancel ?? '取消',
+      confirmText: _l10nSafe?.delete ?? '删除',
+      cancelText: _l10nSafe?.homeCancel ?? '取消',
       dangerous: true,
     );
   }
 
-  /// 跨 async 间隙安全取 l10n（mounted 守卫满足 use_build_context_synchronously；
-  /// i18n E1 批 2）。
   AppLocalizations? get _l10nSafe =>
-      mounted ? AppLocalizations.of(context) : null;
+      mounted ? AppLocalizations.of(context) : null; // mounted 守卫跨 async
 
   void _showSnack(String message) {
     if (!mounted) return;
@@ -960,10 +917,10 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
         // BackdropFilter 采不到内容，观感退化成半透明色板）。
         extendBodyBehindAppBar: true,
         appBar: GlassAppBar(
-          title: Text(AppLocalizations.of(context)?.appTitle ?? '绘图笔记'),
+          title: Text(_l10nSafe?.appTitle ?? '绘图笔记'),
           actions: [
             IconButton(
-              tooltip: AppLocalizations.of(context)?.search ?? '搜索全部内容',
+              tooltip: _l10nSafe?.search ?? '搜索全部内容',
               icon: const Icon(Icons.search_rounded),
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(
@@ -986,7 +943,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
             // M-06 回收站入口（专家审计 2026-08-15）：查看/恢复/永久删除
             // 已删除文档（UX Patterns 官方模式——专用回收站界面）。
             IconButton(
-              tooltip: AppLocalizations.of(context)?.trash ?? '回收站（30 天内可恢复）',
+              tooltip: _l10nSafe?.trash ?? '回收站（30 天内可恢复）',
               icon: const Icon(Icons.delete_outline),
               onPressed: _showTrashDialog,
             ),
@@ -1003,10 +960,8 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
               child: TabBar(
                 onTap: (i) => setState(() => _tabIndex = i),
                 tabs: [
-                  Tab(
-                    text: AppLocalizations.of(context)?.homeTabCanvas ?? '画布',
-                  ),
-                  Tab(text: AppLocalizations.of(context)?.homeTabNotes ?? '笔记'),
+                  Tab(text: _l10nSafe?.homeTabCanvas ?? '画布'),
+                  Tab(text: _l10nSafe?.homeTabNotes ?? '笔记'),
                 ],
               ),
             ),
@@ -1031,16 +986,12 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
             ? GlassFab.extended(
                 onPressed: _createCanvas,
                 icon: const Icon(Icons.add),
-                label: Text(
-                  AppLocalizations.of(context)?.docsNewCanvas ?? '新建画布',
-                ),
+                label: Text(_l10nSafe?.docsNewCanvas ?? '新建画布'),
               )
             : GlassFab.extended(
                 onPressed: _createNote,
                 icon: const Icon(Icons.add),
-                label: Text(
-                  AppLocalizations.of(context)?.docsNewNote ?? '新建笔记',
-                ),
+                label: Text(_l10nSafe?.docsNewNote ?? '新建笔记'),
               ),
       ),
     );

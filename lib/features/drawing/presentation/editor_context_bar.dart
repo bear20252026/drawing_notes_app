@@ -53,7 +53,7 @@ class EditorContextBar extends StatelessWidget {
                       _buildModeHint(context),
                     ] else
                       Tooltip(
-                        message: _modeDescription,
+                        message: _modeDescription(context),
                         child: Icon(
                           _modeIcon,
                           size: 18,
@@ -110,7 +110,9 @@ class EditorContextBar extends StatelessWidget {
               ButtonSegment(
                 value: false,
                 icon: Icon(Icons.format_paint_outlined, size: 18),
-                label: Text('整笔'),
+                label: Text(
+                  AppLocalizations.of(context)?.eraserWholeStroke ?? '整笔',
+                ),
                 tooltip:
                     AppLocalizations.of(context)?.editorEraseStroke ??
                     '命中笔画即删除整条线',
@@ -118,7 +120,9 @@ class EditorContextBar extends StatelessWidget {
               ButtonSegment(
                 value: true,
                 icon: Icon(Icons.auto_fix_high_outlined, size: 18),
-                label: Text('透明'),
+                label: Text(
+                  AppLocalizations.of(context)?.eraserTransparent ?? '透明',
+                ),
                 tooltip:
                     AppLocalizations.of(context)?.editorEraseTransparent ??
                     '以透明像素挖空当前图层',
@@ -137,7 +141,7 @@ class EditorContextBar extends StatelessWidget {
               ButtonSegment(
                 value: false,
                 icon: Icon(Icons.save_outlined, size: 18),
-                label: Text('保存'),
+                label: Text(AppLocalizations.of(context)?.markerSave ?? '保存'),
                 tooltip:
                     AppLocalizations.of(context)?.editorHighlightNormal ??
                     '作为普通高亮笔写入页面，可撤销、保存和导出',
@@ -145,7 +149,9 @@ class EditorContextBar extends StatelessWidget {
               ButtonSegment(
                 value: true,
                 icon: Icon(Icons.gesture_rounded, size: 18),
-                label: Text('自动消失'),
+                label: Text(
+                  AppLocalizations.of(context)?.markerAutoFade ?? '自动消失',
+                ),
                 tooltip:
                     AppLocalizations.of(context)?.editorLaserTemporary ??
                     '仅短暂显示，约 4 秒后平滑淡出，不写入页面',
@@ -237,19 +243,19 @@ class EditorContextBar extends StatelessWidget {
           icon: shape.fillColor != null
               ? Icons.format_color_fill
               : Icons.format_color_reset,
-          tooltip: '切换填充色',
+          tooltip: AppLocalizations.of(context)?.tooltipSwapFill ?? '切换填充色',
           selected: shape.fillColor != null,
           onPressed: actions.onShapeFillColor,
         ),
         _toggleButton(
           context,
           icon: shape.dash ? Icons.more_horiz : Icons.remove,
-          tooltip: '实线 / 虚线',
+          tooltip: AppLocalizations.of(context)?.tooltipDashStyle ?? '实线 / 虚线',
           selected: shape.dash,
           onPressed: actions.onToggleDash,
         ),
         IconButton(
-          tooltip: '删除选中对象',
+          tooltip: AppLocalizations.of(context)?.selDelete ?? '删除选中对象',
           icon: const Icon(Icons.delete_outline, size: 20),
           onPressed: actions.deleteSelected,
         ),
@@ -257,19 +263,26 @@ class EditorContextBar extends StatelessWidget {
     );
   }
 
-  String get _modeDescription => state.eyedropperActive
-      ? '点击画布取色'
-      : state.textToolActive
-      ? '点击画布放置文字'
-      : state.linkMode
-      ? '依次选择两个元素建立连接'
-      : state.isEraser
-      ? (state.pixelEraser ? '透明像素擦除' : '整笔删除')
-      : state.isHighlighter
-      ? (state.temporaryMarkerEnabled ? '临时高亮：约 4 秒后自动消失' : '高亮笔：将保存到页面')
-      : state.isLaser
-      ? '激光指示器：释放后从起笔端逐段消退，不会保存'
-      : '画笔';
+  String _modeDescription(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return state.eyedropperActive
+        ? l10n?.hintEyedropper ?? '点击画布取色'
+        : state.textToolActive
+        ? l10n?.hintTextTool ?? '点击画布放置文字'
+        : state.linkMode
+        ? l10n?.hintConnect ?? '依次选择两个元素建立连接'
+        : state.isEraser
+        ? (state.pixelEraser
+              ? l10n?.hintPixelEraser ?? '透明像素擦除'
+              : l10n?.hintStrokeEraser ?? '整笔删除')
+        : state.isHighlighter
+        ? (state.temporaryMarkerEnabled
+              ? l10n?.hintTempHighlight ?? '临时高亮：约 4 秒后自动消失'
+              : l10n?.hintSavedHighlight ?? '高亮笔：将保存到页面')
+        : state.isLaser
+        ? l10n?.hintLaser ?? '激光指示器：释放后从起笔端逐段消退，不会保存'
+        : l10n?.hintBrush ?? '画笔';
+  }
 
   bool get _modeIsActive =>
       state.eyedropperActive || state.textToolActive || state.linkMode;
@@ -287,7 +300,7 @@ class EditorContextBar extends StatelessWidget {
       : Icons.brush_outlined;
 
   Widget _buildModeHint(BuildContext context) => Text(
-    _modeDescription,
+    _modeDescription(context),
     style: Theme.of(context).textTheme.labelMedium?.copyWith(
       color: _modeIsActive ? Theme.of(context).colorScheme.primary : null,
     ),

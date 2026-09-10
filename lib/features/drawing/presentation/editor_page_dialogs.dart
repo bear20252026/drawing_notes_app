@@ -57,7 +57,9 @@ class _CommandPaletteDialogState extends State<_CommandPaletteDialog> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 8),
         leading: Icon(_commandCategoryIcon(command.category), size: 19),
         title: Text(command.label),
-        subtitle: recentItem ? const Text('最近使用') : null,
+        subtitle: recentItem
+            ? Text(AppLocalizations.of(context)?.paletteRecent ?? '最近使用')
+            : null,
         trailing: command.shortcut.isEmpty
             ? null
             : Text(
@@ -71,7 +73,7 @@ class _CommandPaletteDialogState extends State<_CommandPaletteDialog> {
     }
 
     return AlertDialog(
-      title: const Text('命令面板'),
+      title: Text(AppLocalizations.of(context)?.menuCommandPalette ?? '命令面板'),
       content: SizedBox(
         width: 520,
         height: 460,
@@ -95,13 +97,21 @@ class _CommandPaletteDialogState extends State<_CommandPaletteDialog> {
             const SizedBox(height: 10),
             Expanded(
               child: commands.isEmpty
-                  ? const Center(child: Text('没有可执行的匹配命令'))
+                  ? Center(
+                      child: Text(
+                        AppLocalizations.of(context)?.paletteNoMatch ??
+                            '没有可执行的匹配命令',
+                      ),
+                    )
                   : ListView(
                       children: [
                         if (showRecent) ...[
-                          const Padding(
-                            padding: EdgeInsets.fromLTRB(8, 4, 8, 2),
-                            child: Text('最近使用'),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(8, 4, 8, 2),
+                            child: Text(
+                              AppLocalizations.of(context)?.paletteRecent ??
+                                  '最近使用',
+                            ),
                           ),
                           commandTile(recent, recentItem: true),
                           const Divider(),
@@ -111,7 +121,8 @@ class _CommandPaletteDialogState extends State<_CommandPaletteDialog> {
                             Padding(
                               padding: const EdgeInsets.fromLTRB(8, 10, 8, 2),
                               child: Text(
-                                category.label,
+                                _categoryLabelOf(context, category) ??
+                                    category.label,
                                 style: Theme.of(context).textTheme.labelMedium,
                               ),
                             ),
@@ -158,7 +169,7 @@ class _TextInputDialogState extends State<_TextInputDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('输入文字'),
+      title: Text(AppLocalizations.of(context)?.textInputTitle ?? '输入文字'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -166,9 +177,10 @@ class _TextInputDialogState extends State<_TextInputDialog> {
             controller: _controller,
             autofocus: true,
             maxLines: 3,
-            decoration: const InputDecoration(
-              hintText: '请输入文字内容',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              hintText:
+                  AppLocalizations.of(context)?.textInputHint ?? '请输入文字内容',
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 12),
@@ -200,13 +212,13 @@ class _TextInputDialogState extends State<_TextInputDialog> {
       actions: AppleDialog.actions([
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
         ),
         FilledButton(
           onPressed: () => Navigator.of(
             context,
           ).pop(_TextDialogResult(text: _controller.text, fontSize: _fontSize)),
-          child: const Text('确定'),
+          child: Text(AppLocalizations.of(context)?.commonConfirm ?? '确定'),
         ),
       ]),
     );
@@ -249,4 +261,23 @@ enum _MainMenuItem {
   inspector,
   fullscreen,
   reading,
+}
+
+/// i18n（E1 批 3）：命令分类标签按 locale 解析（E1 批 3；zh 兜底=domain）。
+String? _categoryLabelOf(BuildContext context, EditorCommandCategory category) {
+  final l10n = AppLocalizations.of(context);
+  switch (category) {
+    case EditorCommandCategory.edit:
+      return l10n?.catEdit ?? '编辑';
+    case EditorCommandCategory.format:
+      return l10n?.catFormat ?? '格式';
+    case EditorCommandCategory.insert:
+      return l10n?.catInsert ?? '插入';
+    case EditorCommandCategory.arrange:
+      return l10n?.catArrange ?? '排列';
+    case EditorCommandCategory.view:
+      return l10n?.catView ?? '视图';
+    case EditorCommandCategory.export:
+      return l10n?.catExport ?? '导出';
+  }
 }

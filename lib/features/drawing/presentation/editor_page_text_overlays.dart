@@ -85,19 +85,19 @@ extension _EditorPageTextOverlays on _EditorPageState {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _slashCommand(
-                      label: '加粗',
+                      label: AppLocalizations.of(context)?.textBold ?? '加粗',
                       onTap: () => _applySlashCommand((it) => it.bold = true),
                     ),
                     _slashCommand(
-                      label: '斜体',
+                      label: AppLocalizations.of(context)?.textItalic ?? '斜体',
                       onTap: () => _applySlashCommand((it) => it.italic = true),
                     ),
                     _slashCommand(
-                      label: '待办',
+                      label: AppLocalizations.of(context)?.textTodo ?? '待办',
                       onTap: () => _applySlashCommand((it) => it.isTodo = true),
                     ),
                     _slashCommand(
-                      label: '居中',
+                      label: AppLocalizations.of(context)?.textCenter ?? '居中',
                       onTap: () => _applySlashCommand(
                         (it) => it.align = TextAlignType.center,
                       ),
@@ -230,7 +230,7 @@ extension _EditorPageTextOverlays on _EditorPageState {
                   Semantics(
                     checked: item.todoChecked,
                     button: true,
-                    label: '完成',
+                    label: AppLocalizations.of(context)?.textDone ?? '完成',
                     child: InkWell(
                       onTap: () {
                         _applyState(() => item.todoChecked = !item.todoChecked);
@@ -326,7 +326,8 @@ extension _EditorPageTextOverlays on _EditorPageState {
               right: -21,
               bottom: -21,
               child: Semantics(
-                label: '调整文字宽度',
+                label:
+                    AppLocalizations.of(context)?.textWidthHandle ?? '调整文字宽度',
                 button: true,
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,

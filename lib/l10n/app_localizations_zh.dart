@@ -1563,4 +1563,714 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get lockDiskKeepNote => 'U 盘上的 password_reset_disk.key 文件请勿删除';
+
+  @override
+  String get cmdUndo => '撤销';
+
+  @override
+  String get cmdRedo => '重做';
+
+  @override
+  String get cmdCopySelection => '复制选中对象';
+
+  @override
+  String get cmdPasteClipboard => '从剪贴板粘贴';
+
+  @override
+  String get cmdDuplicateSelection => '复制并粘贴选中对象';
+
+  @override
+  String get cmdDeleteSelection => '删除选中对象';
+
+  @override
+  String get cmdBold => '加粗选中文字';
+
+  @override
+  String get cmdItalic => '斜体选中文字';
+
+  @override
+  String get cmdUnderline => '下划线选中文字';
+
+  @override
+  String get cmdStrikethrough => '删除线选中文字';
+
+  @override
+  String get cmdCycleAlign => '循环切换文本对齐';
+
+  @override
+  String get cmdFitCanvas => '适应画布';
+
+  @override
+  String get cmdToggleGrid => '显示或隐藏网格';
+
+  @override
+  String get cmdToggleSnap => '切换网格吸附';
+
+  @override
+  String get cmdExportWord => '导出 Word 兼容文档';
+
+  @override
+  String get catEdit => '编辑';
+
+  @override
+  String get catFormat => '格式';
+
+  @override
+  String get catInsert => '插入';
+
+  @override
+  String get catArrange => '排列';
+
+  @override
+  String get catView => '视图';
+
+  @override
+  String get catExport => '导出';
+
+  @override
+  String get expCopyRenderFail => '复制失败：无法渲染画布';
+
+  @override
+  String get expCopyDecodeFail => '复制失败：像素解码失败';
+
+  @override
+  String get expCopiedPng => '已复制 PNG 到剪贴板';
+
+  @override
+  String get expRenderFail => '导出失败：无法渲染画布';
+
+  @override
+  String get expNoPages => '没有可导出的页面';
+
+  @override
+  String get expEmptyCanvas => '导出失败：画布内容为空';
+
+  @override
+  String get expWordPagedOnly => '仅分页笔记支持导出 Word 兼容文档';
+
+  @override
+  String get expWordNoText => '本页还没有可导出的文字内容';
+
+  @override
+  String get expTextPagedOnly => '仅分页画布页面支持导出文本';
+
+  @override
+  String get expTextNoText => '本页还没有文字内容';
+
+  @override
+  String get expPptxPackFail => '导出失败：PPTX 打包失败';
+
+  @override
+  String get fileTypePng => 'PNG 图片';
+
+  @override
+  String get fileTypePdf => 'PDF 文档';
+
+  @override
+  String get fileTypeSvg => 'SVG 矢量图';
+
+  @override
+  String get fileTypeWord => 'Word 兼容文档';
+
+  @override
+  String get fileTypeMarkdown => 'Markdown / 文本';
+
+  @override
+  String get fileTypePptx => 'PPTX 演示文稿';
+
+  @override
+  String get fileTypeJson => 'JSON 工程文件';
+
+  @override
+  String get expWholeBookSuffix => '全本';
+
+  @override
+  String get pdfPaperFollow => '跟随画布';
+
+  @override
+  String get pdfRangeCurrent => '当前页';
+
+  @override
+  String get pdfRangeAll => '全部页';
+
+  @override
+  String get pdfQualityLossless => '无损';
+
+  @override
+  String get pdfQualityLosslessDesc => 'PNG 无损，体积最大';
+
+  @override
+  String get pdfQualityStandardDesc => 'JPEG 80，推荐';
+
+  @override
+  String get pdfQualitySaverDesc => 'JPEG 60，体积最小';
+
+  @override
+  String get pdfGroupPaper => '纸张';
+
+  @override
+  String get pdfGroupQuality => '质量';
+
+  @override
+  String pdfExportNPages(int count) {
+    return '导出 $count 页';
+  }
+
+  @override
+  String get inkStylusPressure => '触控笔压感';
+
+  @override
+  String get inkTouchPressure => '触摸压感';
+
+  @override
+  String get inkMouseVelocity => '鼠标速度模拟';
+
+  @override
+  String get inkConstant => '固定笔宽';
+
+  @override
+  String get pomodoroPause => '暂停';
+
+  @override
+  String get pomodoroStart => '开始';
+
+  @override
+  String get pomodoroReset => '重置';
+
+  @override
+  String get pomodoroFinish => '番茄钟结束：休息一下吧';
+
+  @override
+  String pageIndicator(int index, int total) {
+    return '第 $index 页 / 共 $total 页';
+  }
+
+  @override
+  String get eraserWholeStroke => '整笔';
+
+  @override
+  String get eraserTransparent => '透明';
+
+  @override
+  String get markerSave => '保存';
+
+  @override
+  String get markerAutoFade => '自动消失';
+
+  @override
+  String get tooltipSwapFill => '切换填充色';
+
+  @override
+  String get tooltipDashStyle => '实线 / 虚线';
+
+  @override
+  String get hintEyedropper => '点击画布取色';
+
+  @override
+  String get hintTextTool => '点击画布放置文字';
+
+  @override
+  String get hintConnect => '依次选择两个元素建立连接';
+
+  @override
+  String get hintPixelEraser => '透明像素擦除';
+
+  @override
+  String get hintStrokeEraser => '整笔删除';
+
+  @override
+  String get hintTempHighlight => '临时高亮：约 4 秒后自动消失';
+
+  @override
+  String get hintSavedHighlight => '高亮笔：将保存到页面';
+
+  @override
+  String get hintLaser => '激光指示器：释放后从起笔端逐段消退，不会保存';
+
+  @override
+  String get hintBrush => '画笔';
+
+  @override
+  String get toolEyedropper => '吸管工具';
+
+  @override
+  String get toolMarquee => '框选多个元素';
+
+  @override
+  String get toolNodeLink => '节点连线';
+
+  @override
+  String get shapeRect => '矩形';
+
+  @override
+  String get shapeEllipse => '椭圆';
+
+  @override
+  String get shapeDiamond => '菱形';
+
+  @override
+  String get shapeArrow => '箭头';
+
+  @override
+  String get shapeLine => '直线';
+
+  @override
+  String get saveStateUnsaved => '未保存';
+
+  @override
+  String get saveStateSaved => '已保存';
+
+  @override
+  String get cropInvalid => '裁剪区域无效';
+
+  @override
+  String get cropSourceMissing => '原图文件不存在';
+
+  @override
+  String get cropEncodeFail => '裁剪编码失败';
+
+  @override
+  String get cropVaultLocked => '保险库已锁定，无法保存裁剪';
+
+  @override
+  String get cropDone => '已裁剪图片';
+
+  @override
+  String get cropDragHint => '拖动图片四角调整裁剪区域，再点裁剪按钮确认';
+
+  @override
+  String get cropHandleTopLeft => '调整裁剪框左上角';
+
+  @override
+  String get cropHandleTopRight => '调整裁剪框右上角';
+
+  @override
+  String get cropHandleBottomLeft => '调整裁剪框左下角';
+
+  @override
+  String get cropHandleBottomRight => '调整裁剪框右下角';
+
+  @override
+  String get canvasSemanticsLabel => '绘图画布';
+
+  @override
+  String get canvasSemanticsHint => '双击空白处插入文字；使用工具栏工具绘制';
+
+  @override
+  String get actSwitchInfinite => '已切换为无限画布（可无限延展）';
+
+  @override
+  String get actSwitchFixed => '已切回固定纸张';
+
+  @override
+  String get actChartPagedOnly => '仅分页画布页面支持图表';
+
+  @override
+  String get actChartTitle => '生成图表';
+
+  @override
+  String get actChartBar => '柱状图';
+
+  @override
+  String get actChartLine => '折线图';
+
+  @override
+  String get actChartGenerate => '生成';
+
+  @override
+  String get actChartNoData => '未解析到有效数值';
+
+  @override
+  String get actSlidesPagedOnly => '仅分页画布页面支持幻灯片演示';
+
+  @override
+  String get actSlidesNoContent => '本页还没有可演示的内容';
+
+  @override
+  String get actSlidesUnavailable => '演示功能不可用';
+
+  @override
+  String get actStatsTitle => '画布统计';
+
+  @override
+  String get actStatStrokes => '手写笔画';
+
+  @override
+  String get actStatTextBlocks => '文字块';
+
+  @override
+  String get actStatImages => '图片';
+
+  @override
+  String get actStatShapes => '形状';
+
+  @override
+  String get actStatCharts => '图表';
+
+  @override
+  String get actStatTotal => '合计元素';
+
+  @override
+  String get actShapeLibPagedOnly => '仅分页画布页面支持形状库';
+
+  @override
+  String actCopiedN(int count) {
+    return '已复制 $count 个元素';
+  }
+
+  @override
+  String get actPickFirst => '请先选中要复制的元素';
+
+  @override
+  String actPastedN(int count) {
+    return '已粘贴 $count 个元素';
+  }
+
+  @override
+  String get actCopiedTextStyle => '已复制文字样式';
+
+  @override
+  String get actCopiedShapeStyle => '已复制形状样式';
+
+  @override
+  String get actPickStyleSource => '请先选中文字块或形状';
+
+  @override
+  String get actCopyStyleFirst => '请先复制样式（Ctrl+Shift+C）再粘贴';
+
+  @override
+  String get actPastedStyle => '已粘贴样式';
+
+  @override
+  String get actPastePagedOnly => '仅分页画布页面支持粘贴';
+
+  @override
+  String get actClipboardNoText => '剪贴板没有可粘贴的文本';
+
+  @override
+  String get actShortcutsTitle => '快捷键';
+
+  @override
+  String get barPagedNote => '分页笔记';
+
+  @override
+  String get barInfiniteCanvas => '无限画布';
+
+  @override
+  String get barHideLayers => '隐藏图层';
+
+  @override
+  String get barShowLayers => '显示图层';
+
+  @override
+  String get barHideInspector => '隐藏属性';
+
+  @override
+  String get barShowInspector => '显示属性';
+
+  @override
+  String get barExitFullscreen => '退出全屏';
+
+  @override
+  String get barEnterFullscreen => '全屏模式';
+
+  @override
+  String get barReadingOff => '关闭深色阅读';
+
+  @override
+  String get barReadingOn => '深色阅读（仅显示）';
+
+  @override
+  String get menuExportText => '导出文本';
+
+  @override
+  String get menuCommandPalette => '命令面板';
+
+  @override
+  String get menuSlides => '幻灯片演示';
+
+  @override
+  String get menuStats => '统计';
+
+  @override
+  String get menuShortcuts => '快捷键帮助';
+
+  @override
+  String get menuSwitchToFixed => '切换为固定纸张';
+
+  @override
+  String get menuSwitchToInfinite => '切换为无限画布';
+
+  @override
+  String get paletteRecent => '最近使用';
+
+  @override
+  String get paletteNoMatch => '没有可执行的匹配命令';
+
+  @override
+  String get textInputTitle => '输入文字';
+
+  @override
+  String get textInputHint => '请输入文字内容';
+
+  @override
+  String get distributeNeed3 => '至少需要 3 个元素才能分布';
+
+  @override
+  String get distributedH => '已水平等间距分布';
+
+  @override
+  String get distributedV => '已垂直等间距分布';
+
+  @override
+  String get edPreviewPagedOnly => '仅分页画布页面支持分页预览';
+
+  @override
+  String get edNoTextHere => '本页还没有文字内容';
+
+  @override
+  String get edNoTextBlocks => '本页没有文字块';
+
+  @override
+  String edRecoloredN(int count) {
+    return '已批量改色 $count 个文字块';
+  }
+
+  @override
+  String get edImageLabel => '图片';
+
+  @override
+  String get edNoteImageStoreUnavailable => '笔记页图片存储不可用';
+
+  @override
+  String get edDrawingImageStoreUnavailable => '绘图文档图片存储不可用';
+
+  @override
+  String get edLinkStartPicked => '已选择起点，再点击另一个元素完成连线';
+
+  @override
+  String get edLinkCreated => '已创建连接';
+
+  @override
+  String get ctxCopyStyle => '复制样式';
+
+  @override
+  String get ctxGroup => '分组';
+
+  @override
+  String get ctxUngroup => '取消分组';
+
+  @override
+  String get ctxBringToFront => '置顶';
+
+  @override
+  String get ctxSendToBack => '置底';
+
+  @override
+  String get edLinkInvalid => '链接无效或不受支持';
+
+  @override
+  String get edLinkOpened => '已打开链接';
+
+  @override
+  String get edLinkTitle => '设置链接';
+
+  @override
+  String get edLinkCleared => '已清除链接';
+
+  @override
+  String get edLinkSet => '已设置链接';
+
+  @override
+  String get edGroupNeed2 => '请先框选/多选至少 2 个元素再分组';
+
+  @override
+  String edGroupedN(int count) {
+    return '已分组 $count 个元素';
+  }
+
+  @override
+  String get edUngrouped => '已取消分组';
+
+  @override
+  String get renameCanvasTitle => '重命名画布';
+
+  @override
+  String get textBold => '加粗';
+
+  @override
+  String get textItalic => '斜体';
+
+  @override
+  String get textTodo => '待办';
+
+  @override
+  String get textCenter => '居中';
+
+  @override
+  String get textDone => '完成';
+
+  @override
+  String get textWidthHandle => '调整文字宽度';
+
+  @override
+  String get toolEraserName => '橡皮擦';
+
+  @override
+  String get pressureReal => '正在使用设备上报的真实压力范围';
+
+  @override
+  String get pressureFallback => '当前设备未报告可用压感，正在使用稳定的回退策略';
+
+  @override
+  String get coordsHide => '隐藏坐标';
+
+  @override
+  String get coordsShow => '显示画布坐标';
+
+  @override
+  String get zoomTooltip => '缩放画布';
+
+  @override
+  String get layersTitle => '图层';
+
+  @override
+  String get layerNew => '新建图层';
+
+  @override
+  String get layerUp => '上移';
+
+  @override
+  String get layerDown => '下移';
+
+  @override
+  String get layerMergeDown => '向下合并';
+
+  @override
+  String get layerDelete => '删除图层';
+
+  @override
+  String get propBrush => '画笔';
+
+  @override
+  String get propBrushColor => '画笔颜色';
+
+  @override
+  String get propImage => '图片';
+
+  @override
+  String get propCropImage => '裁剪图片';
+
+  @override
+  String get propShape => '形状';
+
+  @override
+  String get propFillColor => '填充色';
+
+  @override
+  String get propDash => '实线/虚线';
+
+  @override
+  String get propText => '文字';
+
+  @override
+  String get propTextColor => '文字颜色';
+
+  @override
+  String get fontSerif => '衬线字体';
+
+  @override
+  String get fontMono => '等宽字体';
+
+  @override
+  String get fontHandwriting => '手写字体';
+
+  @override
+  String get fontDefault => '默认字体';
+
+  @override
+  String get selCopy => '复制选中内容';
+
+  @override
+  String get selPaste => '粘贴';
+
+  @override
+  String get selUnlock => '解锁选中对象';
+
+  @override
+  String get selLock => '锁定选中对象，防止误触编辑';
+
+  @override
+  String get selUnlockImage => '解除图片锁定';
+
+  @override
+  String get selLockImage => '锁定图片，防止误触编辑';
+
+  @override
+  String get selUnlockShape => '解除形状锁定';
+
+  @override
+  String get selLockShape => '锁定形状，防止误触编辑';
+
+  @override
+  String get selDeleteLockedKeep => '删除未锁定对象；锁定对象会保留';
+
+  @override
+  String get selDelete => '删除选中对象';
+
+  @override
+  String get selShapeLocked => '形状已锁定，无法删除';
+
+  @override
+  String get selImageLocked => '图片已锁定，无法删除';
+
+  @override
+  String get selDeleteContent => '删除选中内容';
+
+  @override
+  String selNObjects(int count) {
+    return '已选中 $count 个对象';
+  }
+
+  @override
+  String get selShapeLockedEdit => '形状已锁定：解除锁定后可编辑';
+
+  @override
+  String get selShapeSelected => '已选中形状：可拖动、缩放、锁定或删除';
+
+  @override
+  String get selImageLockedEdit => '图片已锁定：解除锁定后可编辑';
+
+  @override
+  String get selImageSelected => '已选中图片：可拖动、缩放、锁定或删除';
+
+  @override
+  String selNStrokes(int count) {
+    return '已选中 $count 笔';
+  }
+
+  @override
+  String get selClear => '清除选区';
+
+  @override
+  String get shapeLibNoMatch => '没有匹配的形状';
+
+  @override
+  String get noteImageSemantic => '笔记图片';
+
+  @override
+  String get segmentEndpointSemantic => '调整线段端点';
+
+  @override
+  String get saveStateSaving => '保存中…';
+
+  @override
+  String saveStateSavedAt(String time) {
+    return '已保存 $time';
+  }
+
+  @override
+  String actInsertedShape(String name) {
+    return '已插入「$name」';
+  }
 }

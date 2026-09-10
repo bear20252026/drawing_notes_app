@@ -246,3 +246,20 @@ String shapeTypeName(ShapeType type) => switch (type) {
   ShapeType.arrow => '箭头',
   ShapeType.line => '直线',
 };
+
+/// i18n（E1 批 3）：形状名展示端本地化（[shapeTypeName] 仍供搜索匹配用）。
+String shapeTypeDisplayName(BuildContext context, ShapeType type) {
+  final l10n = AppLocalizations.of(context);
+  switch (type) {
+    case ShapeType.rect:
+      return l10n?.shapeRect ?? '矩形';
+    case ShapeType.ellipse:
+      return l10n?.shapeEllipse ?? '椭圆';
+    case ShapeType.diamond:
+      return l10n?.shapeDiamond ?? '菱形';
+    case ShapeType.arrow:
+      return l10n?.shapeArrow ?? '箭头';
+    case ShapeType.line:
+      return l10n?.shapeLine ?? '直线';
+  }
+}

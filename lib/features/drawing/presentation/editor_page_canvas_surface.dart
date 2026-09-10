@@ -19,8 +19,12 @@ extension _EditorPageCanvasSurface on _EditorPageState {
             // 外包 GestureDetector 识别双击（双击空白插入文字，对齐 Excalidraw）。
             Positioned.fill(
               child: Semantics(
-                label: '绘图画布',
-                hint: '双击空白处插入文字；使用工具栏工具绘制',
+                label:
+                    AppLocalizations.of(context)?.canvasSemanticsLabel ??
+                    '绘图画布',
+                hint:
+                    AppLocalizations.of(context)?.canvasSemanticsHint ??
+                    '双击空白处插入文字；使用工具栏工具绘制',
                 child: GestureDetector(
                   onDoubleTapDown: _onCanvasDoubleTap,
                   child: Listener(
@@ -290,7 +294,7 @@ extension _EditorPageCanvasSurface on _EditorPageState {
   Widget _buildPomodoro() {
     return PomodoroTimer(
       onFinished: () {
-        _showSnack('番茄钟结束：休息一下吧');
+        _showSnack(_l10nSafe?.pomodoroFinish ?? '番茄钟结束：休息一下吧');
       },
     );
   }

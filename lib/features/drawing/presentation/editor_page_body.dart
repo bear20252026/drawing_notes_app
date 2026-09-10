@@ -128,7 +128,9 @@ extension _EditorPageBody on _EditorPageState {
                     final img = _selectedImageItem;
                     if (img == null) return;
                     _applyState(() => _canvasInteraction.beginCrop(img));
-                    _showSnack('拖动图片四角调整裁剪区域，再点裁剪按钮确认');
+                    _showSnack(
+                      _l10nSafe?.cropDragHint ?? '拖动图片四角调整裁剪区域，再点裁剪按钮确认',
+                    );
                   },
                   onCycleFont: () {
                     final t = _selectedTextItem;

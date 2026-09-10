@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_components.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
-import 'editor_toolbar_contracts.dart' show shapeTypeName;
+import 'editor_toolbar_contracts.dart' show shapeTypeName, shapeTypeDisplayName;
 
 /// 图书馆/形状库（对齐 Excalidraw libraries）。
 ///
@@ -165,10 +166,11 @@ class _ShapeLibraryDialogState extends State<ShapeLibraryDialog> {
             const SizedBox(height: 10),
             Expanded(
               child: results.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text(
-                        '没有匹配的形状',
-                        style: TextStyle(color: AppleColor.inkSubtle),
+                        AppLocalizations.of(context)?.shapeLibNoMatch ??
+                            '没有匹配的形状',
+                        style: const TextStyle(color: AppleColor.inkSubtle),
                       ),
                     )
                   : GridView.builder(
@@ -210,7 +212,7 @@ class _ShapeLibraryDialogState extends State<ShapeLibraryDialog> {
                                   ),
                                 ),
                                 Text(
-                                  shapeTypeName(s.shapeType),
+                                  shapeTypeDisplayName(context, s.shapeType),
                                   style: Theme.of(context).textTheme.labelSmall,
                                 ),
                               ],
@@ -226,7 +228,7 @@ class _ShapeLibraryDialogState extends State<ShapeLibraryDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('关闭'),
+          child: Text(AppLocalizations.of(context)?.close ?? '关闭'),
         ),
       ],
     );

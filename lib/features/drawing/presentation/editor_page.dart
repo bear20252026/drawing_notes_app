@@ -153,6 +153,22 @@ class LinearDraftReadout {
 }
 
 class _EditorPageState extends ConsumerState<EditorPage> {
+  /// 跨 async 间隙安全取 l10n（mounted 守卫；i18n E1 批 3）。
+  AppLocalizations? get _l10nSafe =>
+      mounted ? AppLocalizations.of(context) : null;
+
+  /// 命令注册是否已完成（didChangeDependencies 首帧触发）。
+  bool _commandsRegistered = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_commandsRegistered) {
+      _commandsRegistered = true;
+      _registerCommands();
+    }
+  }
+
   late final DrawingController _controller;
 
   /// 画布导出域（参考 Saber editor_exporter 模块化）：PNG/PDF/SVG/RTF/
@@ -171,11 +187,12 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   DateTime? _canvasLastSavedAt;
 
   String get _canvasStatusLabel {
-    if (_canvasSaving) return '保存中…';
+    final l10n = AppLocalizations.of(context);
+    if (_canvasSaving) return l10n?.saveStateSaving ?? '保存中…';
     final t = _canvasLastSavedAt;
-    if (_controller.isDirty) return '未保存';
-    if (t == null) return '已保存';
-    return '已保存 ${formatClock(t)}';
+    if (_controller.isDirty) return l10n?.saveStateUnsaved ?? '未保存';
+    if (t == null) return l10n?.saveStateSaved ?? '已保存';
+    return l10n?.saveStateSavedAt(formatClock(t)) ?? '已保存 ${formatClock(t)}';
   }
 
   Color get _canvasStatusColor {
@@ -375,7 +392,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     final img = _cropItem;
     final rect = _cropRect;
     if (img == null || rect == null || rect.width < 10 || rect.height < 10) {
-      _showSnack('裁剪区域无效');
+      _showSnack(AppLocalizations.of(context)?.cropInvalid ?? '裁剪区域无效');
       return;
     }
     // P1 修复（审计 H-05）：GPU 纹理在 finally 释放——此前异常路径
@@ -388,7 +405,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     try {
       final file = File(img.filePath);
       if (!await file.exists()) {
-        _showSnack('原图文件不存在');
+        _showSnack(_l10nSafe?.cropSourceMissing ?? '原图文件不存在');
         return;
       }
       // 批次①c：DNV 密文 → 解密后裁剪；写回时按原密文状态重新密封，
@@ -422,7 +439,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       final out = outImage;
       final data = await out.toByteData(format: ui.ImageByteFormat.png);
       if (data == null) {
-        _showSnack('裁剪编码失败');
+        _showSnack(_l10nSafe?.cropEncodeFail ?? '裁剪编码失败');
         return;
       }
       final outBytes = data.buffer.asUint8List();
@@ -430,7 +447,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         // 原文件是 DNV 密文：写回前重新密封（密钥锁定 → 拒绝保存）。
         final key = VaultKeyService.sharedMasterKeyOrNull;
         if (key == null) {
-          _showSnack('保险库已锁定，无法保存裁剪');
+          _showSnack(_l10nSafe?.cropVaultLocked ?? '保险库已锁定，无法保存裁剪');
           return;
         }
         await file.writeAsBytes(
@@ -458,7 +475,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       // 仍把「裁剪前的全尺寸位图」拉伸进新矩形显示（审计发现 2026-09-06）。
       _controller.invalidateDocumentImage(img.id);
       _notifyChanged();
-      _showSnack('已裁剪图片');
+      _showSnack(_l10nSafe?.cropDone ?? '已裁剪图片');
     } catch (e) {
       _showSnack('裁剪失败：$e');
     } finally {
@@ -659,6 +676,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         DrawingDocument(id: StorageService.newId(), title: '未命名画布');
     _controller = ref.read(drawingControllerProvider(doc));
     _exporter = EditorExporter(
+      l10n: () => _l10nSafe,
       controller: _controller,
       pageProvider: () {
         final page = widget.session;
@@ -715,7 +733,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     _scheduleAutosave();
     // 注册编辑器命令（B2：命令表驱动快捷键面板）。
     _commands = CommandRegistry();
-    _registerCommands();
+    // i18n E1 批 3：命令标签需 l10n（AppLocalizations.of 不可在 initState
+    // 调 dependOnInheritedWidget）——注册移至 didChangeDependencies 首帧执行。
+    _commandsRegistered = false;
     // App 后台/最小化时释放图层离屏位图，回前台懒重建（P1 修复）。
     _appLifecycle = AppLifecycleListener(
       onHide: _releaseLayerBitmapsOnBackground,

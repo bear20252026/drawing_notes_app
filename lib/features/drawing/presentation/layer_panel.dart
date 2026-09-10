@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
@@ -47,10 +48,14 @@ class LayerPanel extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(12, 8, 4, 4),
                   child: Row(
                     children: [
-                      Text('图层', style: Theme.of(context).textTheme.titleSmall),
+                      Text(
+                        AppLocalizations.of(context)?.layersTitle ?? '图层',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
                       const Spacer(),
                       IconButton(
-                        tooltip: '新建图层',
+                        tooltip:
+                            AppLocalizations.of(context)?.layerNew ?? '新建图层',
                         icon: const Icon(Icons.add_box_outlined, size: 20),
                         onPressed: controller.addLayer,
                       ),
@@ -169,7 +174,11 @@ class _LayerItem extends StatelessWidget {
                     // 显隐开关（眼睛）。触控目标 ≥44×44（HIG / 三输入
                     // 兼容铁律）：compact 密度下默认仅 ~40px，补 min 约束。
                     IconButton(
-                      tooltip: visible ? '隐藏图层' : '显示图层',
+                      tooltip: visible
+                          ? AppLocalizations.of(context)?.barHideLayers ??
+                                '隐藏图层'
+                          : AppLocalizations.of(context)?.barShowLayers ??
+                                '显示图层',
                       icon: Icon(
                         visible ? Icons.visibility : Icons.visibility_off,
                         size: 18,
@@ -218,25 +227,25 @@ class _LayerItem extends StatelessWidget {
                   children: [
                     _smallIcon(
                       Icons.arrow_upward,
-                      '上移',
+                      AppLocalizations.of(context)?.layerUp ?? '上移',
                       canMoveUp,
                       () => controller.moveLayerUp(layerIndex),
                     ),
                     _smallIcon(
                       Icons.arrow_downward,
-                      '下移',
+                      AppLocalizations.of(context)?.layerDown ?? '下移',
                       canMoveDown,
                       () => controller.moveLayerDown(layerIndex),
                     ),
                     _smallIcon(
                       Icons.call_merge,
-                      '向下合并',
+                      AppLocalizations.of(context)?.layerMergeDown ?? '向下合并',
                       canMerge,
                       () => controller.mergeLayerDown(layerIndex),
                     ),
                     _smallIcon(
                       Icons.delete_outline,
-                      '删除图层',
+                      AppLocalizations.of(context)?.layerDelete ?? '删除图层',
                       controller.document.layers.length > 1,
                       () => controller.removeLayer(layerIndex),
                     ),

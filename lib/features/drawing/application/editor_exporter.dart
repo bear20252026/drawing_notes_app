@@ -11,6 +11,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:drawing_notes_app/core/canvas_model/document.dart'
     show DrawingDocument;
 import 'package:drawing_notes_app/features/drawing/application/paged_export_snapshot.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart'
     show BrushType, Stroke;
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
@@ -31,6 +32,10 @@ class EditorExporter {
     required this.pageProvider,
     required this.showSnack,
     this.allPagesProvider,
+
+    /// i18n（E1 批 3）：导出提示按 locale 解析；惰性求值（导出跨越
+    /// async 间隙，调用方以 mounted 守卫闭包传入）。
+    this.l10n,
   });
 
   final DrawingController controller;
@@ -41,6 +46,11 @@ class EditorExporter {
   final List<NotebookPrintPageData> Function()? allPagesProvider;
 
   final void Function(String message) showSnack;
+
+  /// 惰性 l10n（null 安全——未注入时全部走 zh 兜底）。
+  final AppLocalizations? Function()? l10n;
+
+  AppLocalizations? get _l => l10n?.call();
 
   PagedExportSnapshot? get _page => pageProvider();
 
@@ -64,7 +74,7 @@ class EditorExporter {
     try {
       final png = await controller.renderToPng();
       if (png == null) {
-        showSnack('复制失败：无法渲染画布');
+        showSnack(_l?.expCopyRenderFail ?? '复制失败：无法渲染画布');
         return;
       }
       // 解码 PNG 为 RGBA 像素（供平台构造 DIB 位图）。
@@ -79,7 +89,7 @@ class EditorExporter {
         image = frame.image;
         final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
         if (data == null) {
-          showSnack('复制失败：像素解码失败');
+          showSnack(_l?.expCopyDecodeFail ?? '复制失败：像素解码失败');
           return;
         }
         const channel = MethodChannel('gov.drawingnotes/clipboard');
@@ -88,7 +98,7 @@ class EditorExporter {
           'height': image.height,
           'rgba': data.buffer.asUint8List(),
         });
-        showSnack('已复制 PNG 到剪贴板');
+        showSnack(_l?.expCopiedPng ?? '已复制 PNG 到剪贴板');
       } finally {
         image?.dispose();
         codec?.dispose();
@@ -103,14 +113,17 @@ class EditorExporter {
     try {
       final png = await controller.renderToPng();
       if (png == null) {
-        showSnack('导出失败：无法渲染画布');
+        showSnack(_l?.expRenderFail ?? '导出失败：无法渲染画布');
         return;
       }
       final suggested = '${controller.document.title}.png';
       final location = await getSaveLocation(
         suggestedName: suggested,
-        acceptedTypeGroups: const [
-          XTypeGroup(label: 'PNG 图片', extensions: ['png']),
+        acceptedTypeGroups: [
+          XTypeGroup(
+            label: _l?.fileTypePng ?? 'PNG 图片',
+            extensions: const ['png'],
+          ),
         ],
       );
       if (location == null) return; // 用户取消
@@ -150,7 +163,7 @@ class EditorExporter {
         excludedTypes: const {BrushType.pen},
       );
       if (png == null) {
-        showSnack('导出失败：无法渲染画布');
+        showSnack(_l?.expRenderFail ?? '导出失败：无法渲染画布');
         return;
       }
       final bytes = await PdfHybridExporter.export(
@@ -160,8 +173,11 @@ class EditorExporter {
       );
       final location = await getSaveLocation(
         suggestedName: '${controller.document.title}.pdf',
-        acceptedTypeGroups: const [
-          XTypeGroup(label: 'PDF 文档', extensions: ['pdf']),
+        acceptedTypeGroups: [
+          XTypeGroup(
+            label: _l?.fileTypePdf ?? 'PDF 文档',
+            extensions: const ['pdf'],
+          ),
         ],
       );
       if (location == null) return; // 用户取消
@@ -188,7 +204,7 @@ class EditorExporter {
       if (range == PdfRange.allPages) {
         final all = allPagesProvider?.call();
         if (all == null || all.isEmpty) {
-          showSnack('没有可导出的页面');
+          showSnack(_l?.expNoPages ?? '没有可导出的页面');
           return;
         }
         await _exportNotebookPages(
@@ -218,8 +234,11 @@ class EditorExporter {
       );
       final location = await getSaveLocation(
         suggestedName: '$baseName.pdf',
-        acceptedTypeGroups: const [
-          XTypeGroup(label: 'PDF 文档', extensions: ['pdf']),
+        acceptedTypeGroups: [
+          XTypeGroup(
+            label: _l?.fileTypePdf ?? 'PDF 文档',
+            extensions: const ['pdf'],
+          ),
         ],
       );
       if (location == null) return; // 用户取消
@@ -245,7 +264,7 @@ class EditorExporter {
               controller.document.height.toDouble(),
             );
       if (content.width <= 0 || content.height <= 0) {
-        showSnack('导出失败：画布内容为空');
+        showSnack(_l?.expEmptyCanvas ?? '导出失败：画布内容为空');
         return;
       }
       // 纸张适配：内容等比放入纸张并居中；跟随画布则 scale=1/offset=0。
@@ -288,8 +307,11 @@ class EditorExporter {
       );
       final location = await getSaveLocation(
         suggestedName: '${controller.document.title}.pdf',
-        acceptedTypeGroups: const [
-          XTypeGroup(label: 'PDF 文档', extensions: ['pdf']),
+        acceptedTypeGroups: [
+          XTypeGroup(
+            label: _l?.fileTypePdf ?? 'PDF 文档',
+            extensions: const ['pdf'],
+          ),
         ],
       );
       if (location == null) return; // 用户取消
@@ -386,8 +408,11 @@ class EditorExporter {
 
       final location = await getSaveLocation(
         suggestedName: '${page.title}.pdf',
-        acceptedTypeGroups: const [
-          XTypeGroup(label: 'PDF 文档', extensions: ['pdf']),
+        acceptedTypeGroups: [
+          XTypeGroup(
+            label: _l?.fileTypePdf ?? 'PDF 文档',
+            extensions: const ['pdf'],
+          ),
         ],
       );
       if (location == null) return;
@@ -429,8 +454,11 @@ class EditorExporter {
       final svg = buildSvgDocument(width: w, height: h, body: body.toString());
       final location = await getSaveLocation(
         suggestedName: '${doc.title}.svg',
-        acceptedTypeGroups: const [
-          XTypeGroup(label: 'SVG 矢量图', extensions: ['svg']),
+        acceptedTypeGroups: [
+          XTypeGroup(
+            label: _l?.fileTypeSvg ?? 'SVG 矢量图',
+            extensions: const ['svg'],
+          ),
         ],
       );
       if (location == null) return; // 用户取消
@@ -449,11 +477,11 @@ class EditorExporter {
   Future<void> exportWordCompatibleRtf() async {
     final page = _page;
     if (page == null) {
-      showSnack('仅分页笔记支持导出 Word 兼容文档');
+      showSnack(_l?.expWordPagedOnly ?? '仅分页笔记支持导出 Word 兼容文档');
       return;
     }
     if (page.textItems.isEmpty) {
-      showSnack('本页还没有可导出的文字内容');
+      showSnack(_l?.expWordNoText ?? '本页还没有可导出的文字内容');
       return;
     }
     try {
@@ -463,8 +491,11 @@ class EditorExporter {
       );
       final location = await getSaveLocation(
         suggestedName: '${page.title}.rtf',
-        acceptedTypeGroups: const [
-          XTypeGroup(label: 'Word 兼容文档', extensions: ['rtf']),
+        acceptedTypeGroups: [
+          XTypeGroup(
+            label: _l?.fileTypeWord ?? 'Word 兼容文档',
+            extensions: const ['rtf'],
+          ),
         ],
       );
       if (location == null) return;
@@ -482,11 +513,11 @@ class EditorExporter {
   Future<void> exportText() async {
     final page = _page;
     if (page == null) {
-      showSnack('仅分页画布页面支持导出文本');
+      showSnack(_l?.expTextPagedOnly ?? '仅分页画布页面支持导出文本');
       return;
     }
     if (page.textItems.isEmpty) {
-      showSnack('本页还没有文字内容');
+      showSnack(_l?.expTextNoText ?? '本页还没有文字内容');
       return;
     }
 
@@ -504,8 +535,11 @@ class EditorExporter {
     try {
       final location = await getSaveLocation(
         suggestedName: '${page.title}.md',
-        acceptedTypeGroups: const [
-          XTypeGroup(label: 'Markdown / 文本', extensions: ['md', 'txt']),
+        acceptedTypeGroups: [
+          XTypeGroup(
+            label: _l?.fileTypeMarkdown ?? 'Markdown / 文本',
+            extensions: const ['md', 'txt'],
+          ),
         ],
       );
       if (location == null) return; // 用户取消
@@ -596,14 +630,17 @@ class EditorExporter {
       }
       final bytes = ZipEncoder().encode(archive);
       if (bytes.isEmpty) {
-        showSnack('导出失败：PPTX 打包失败');
+        showSnack(_l?.expPptxPackFail ?? '导出失败：PPTX 打包失败');
         return;
       }
 
       final location = await getSaveLocation(
         suggestedName: '${doc.title}.pptx',
-        acceptedTypeGroups: const [
-          XTypeGroup(label: 'PPTX 演示文稿', extensions: ['pptx']),
+        acceptedTypeGroups: [
+          XTypeGroup(
+            label: _l?.fileTypePptx ?? 'PPTX 演示文稿',
+            extensions: const ['pptx'],
+          ),
         ],
       );
       if (location == null) return; // 用户取消
@@ -622,8 +659,11 @@ class EditorExporter {
       final json = const JsonEncoder.withIndent('  ').convert(data);
       final location = await getSaveLocation(
         suggestedName: '${controller.document.title}.json',
-        acceptedTypeGroups: const [
-          XTypeGroup(label: 'JSON 工程文件', extensions: ['json']),
+        acceptedTypeGroups: [
+          XTypeGroup(
+            label: _l?.fileTypeJson ?? 'JSON 工程文件',
+            extensions: const ['json'],
+          ),
         ],
       );
       if (location == null) return; // 用户取消

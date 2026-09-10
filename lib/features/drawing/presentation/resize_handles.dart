@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
+
 import 'package:drawing_notes_app/features/drawing/presentation/editor_selection_geometry.dart';
 import '../../../core/theme/apple_design.dart';
 
@@ -14,7 +16,7 @@ class EndpointHandle extends StatelessWidget {
     required this.onPanStart,
     required this.onPanUpdate,
     required this.onPanEnd,
-    this.semanticLabel = '调整线段端点',
+    this.semanticLabel,
   });
 
   /// 手柄中心（相对宿主 Stack 的坐标）。
@@ -29,7 +31,8 @@ class EndpointHandle extends StatelessWidget {
   /// 手势结束（结算历史命令）。
   final VoidCallback onPanEnd;
 
-  final String semanticLabel;
+  /// null 时按 locale 解析（i18n E1 批 3）。
+  final String? semanticLabel;
 
   /// 视觉手柄直径。
   static const double _handleSize = 12.0;
@@ -43,7 +46,10 @@ class EndpointHandle extends StatelessWidget {
       left: position.dx - _hitSize / 2,
       top: position.dy - _hitSize / 2,
       child: Semantics(
-        label: semanticLabel,
+        label:
+            semanticLabel ??
+            AppLocalizations.of(context)?.segmentEndpointSemantic ??
+            '调整线段端点',
         button: true,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,

@@ -101,7 +101,13 @@ extension _EditorPageAppBar on _EditorPageState {
                         isNote ? Icons.article_outlined : Icons.all_out,
                         size: 16,
                       ),
-                      label: Text(isNote ? '分页笔记' : '无限画布'),
+                      label: Text(
+                        isNote
+                            ? AppLocalizations.of(context)?.barPagedNote ??
+                                  '分页笔记'
+                            : AppLocalizations.of(context)?.barInfiniteCanvas ??
+                                  '无限画布',
+                      ),
                     ),
                   ],
                 ],
@@ -136,24 +142,32 @@ extension _EditorPageAppBar on _EditorPageState {
         // R3：窄屏收进主菜单（见 _buildMainMenuItems 顶部组）。
         if (!narrow) ...[
           IconButton(
-            tooltip: _layersVisible ? '隐藏图层' : '显示图层',
+            tooltip: _layersVisible
+                ? AppLocalizations.of(context)?.barHideLayers ?? '隐藏图层'
+                : AppLocalizations.of(context)?.barShowLayers ?? '显示图层',
             icon: Icon(_layersVisible ? Icons.layers : Icons.layers_outlined),
             isSelected: _layersVisible,
             onPressed: _toggleLayers,
           ),
           IconButton(
-            tooltip: _inspectorVisible ? '隐藏属性' : '显示属性',
+            tooltip: _inspectorVisible
+                ? AppLocalizations.of(context)?.barHideInspector ?? '隐藏属性'
+                : AppLocalizations.of(context)?.barShowInspector ?? '显示属性',
             icon: Icon(_inspectorVisible ? Icons.tune : Icons.tune_outlined),
             isSelected: _inspectorVisible,
             onPressed: _toggleInspector,
           ),
           IconButton(
-            tooltip: _fullscreen ? '退出全屏' : '全屏模式',
+            tooltip: _fullscreen
+                ? AppLocalizations.of(context)?.barExitFullscreen ?? '退出全屏'
+                : AppLocalizations.of(context)?.barEnterFullscreen ?? '全屏模式',
             icon: Icon(_fullscreen ? Icons.fullscreen_exit : Icons.fullscreen),
             onPressed: _toggleFullscreen,
           ),
           IconButton(
-            tooltip: _readingInverted ? '关闭深色阅读' : '深色阅读（仅显示）',
+            tooltip: _readingInverted
+                ? AppLocalizations.of(context)?.barReadingOff ?? '关闭深色阅读'
+                : AppLocalizations.of(context)?.barReadingOn ?? '深色阅读（仅显示）',
             icon: Icon(
               _readingInverted
                   ? Icons.invert_colors_on_outlined
@@ -188,24 +202,32 @@ extension _EditorPageAppBar on _EditorPageState {
         _mainMenuItem(
           _MainMenuItem.layers,
           icon: _layersVisible ? Icons.layers : Icons.layers_outlined,
-          label: _layersVisible ? '隐藏图层' : '显示图层',
+          label: _layersVisible
+              ? AppLocalizations.of(context)?.barHideLayers ?? '隐藏图层'
+              : AppLocalizations.of(context)?.barShowLayers ?? '显示图层',
         ),
         _mainMenuItem(
           _MainMenuItem.inspector,
           icon: _inspectorVisible ? Icons.tune : Icons.tune_outlined,
-          label: _inspectorVisible ? '隐藏属性' : '显示属性',
+          label: _inspectorVisible
+              ? AppLocalizations.of(context)?.barHideInspector ?? '隐藏属性'
+              : AppLocalizations.of(context)?.barShowInspector ?? '显示属性',
         ),
         _mainMenuItem(
           _MainMenuItem.fullscreen,
           icon: _fullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
-          label: _fullscreen ? '退出全屏' : '全屏模式',
+          label: _fullscreen
+              ? AppLocalizations.of(context)?.barExitFullscreen ?? '退出全屏'
+              : AppLocalizations.of(context)?.barEnterFullscreen ?? '全屏模式',
         ),
         _mainMenuItem(
           _MainMenuItem.reading,
           icon: _readingInverted
               ? Icons.invert_colors_on_outlined
               : Icons.invert_colors_off_outlined,
-          label: _readingInverted ? '关闭深色阅读' : '深色阅读（仅显示）',
+          label: _readingInverted
+              ? AppLocalizations.of(context)?.barReadingOff ?? '关闭深色阅读'
+              : AppLocalizations.of(context)?.barReadingOn ?? '深色阅读（仅显示）',
         ),
         const PopupMenuDivider(),
       ],
@@ -254,13 +276,13 @@ extension _EditorPageAppBar on _EditorPageState {
       _mainMenuItem(
         _MainMenuItem.exportText,
         icon: Icons.description_outlined,
-        label: '导出文本',
+        label: AppLocalizations.of(context)?.menuExportText ?? '导出文本',
       ),
       const PopupMenuDivider(),
       _mainMenuItem(
         _MainMenuItem.commandPalette,
         icon: Icons.keyboard_command_key,
-        label: '命令面板',
+        label: AppLocalizations.of(context)?.menuCommandPalette ?? '命令面板',
       ),
       _mainMenuItem(
         _MainMenuItem.chart,
@@ -270,9 +292,13 @@ extension _EditorPageAppBar on _EditorPageState {
       _mainMenuItem(
         _MainMenuItem.presentation,
         icon: Icons.slideshow,
-        label: '幻灯片演示',
+        label: AppLocalizations.of(context)?.menuSlides ?? '幻灯片演示',
       ),
-      _mainMenuItem(_MainMenuItem.stats, icon: Icons.query_stats, label: '统计'),
+      _mainMenuItem(
+        _MainMenuItem.stats,
+        icon: Icons.query_stats,
+        label: AppLocalizations.of(context)?.menuStats ?? '统计',
+      ),
       _mainMenuItem(
         _MainMenuItem.library,
         icon: Icons.library_books_outlined,
@@ -281,14 +307,16 @@ extension _EditorPageAppBar on _EditorPageState {
       _mainMenuItem(
         _MainMenuItem.shortcuts,
         icon: Icons.keyboard,
-        label: '快捷键帮助',
+        label: AppLocalizations.of(context)?.menuShortcuts ?? '快捷键帮助',
       ),
       // 切换无限画布（问题8）：仅独立画布可用。
       if (!_isNotebookMode)
         _mainMenuItem(
           _MainMenuItem.toggleInfinite,
           icon: _controller.document.infinite ? Icons.all_out : Icons.crop_free,
-          label: _controller.document.infinite ? '切换为固定纸张' : '切换为无限画布',
+          label: _controller.document.infinite
+              ? AppLocalizations.of(context)?.menuSwitchToFixed ?? '切换为固定纸张'
+              : AppLocalizations.of(context)?.menuSwitchToInfinite ?? '切换为无限画布',
         ),
     ];
   }

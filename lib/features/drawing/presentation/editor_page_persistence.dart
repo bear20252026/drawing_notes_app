@@ -64,7 +64,9 @@ extension _EditorPagePersistence on _EditorPageState {
         builder: (ctx) {
           routeExited = ModalRoute.of(ctx)!.completed;
           return AlertDialog(
-            title: const Text('重命名画布'),
+            title: Text(
+              AppLocalizations.of(context)?.renameCanvasTitle ?? '重命名画布',
+            ),
             content: TextField(
               controller: controller,
               autofocus: true,
@@ -73,11 +75,13 @@ extension _EditorPagePersistence on _EditorPageState {
             actions: AppleDialog.actions([
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('取消'),
+                child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
               ),
               FilledButton(
                 onPressed: () => Navigator.of(ctx).pop(controller.text),
-                child: const Text('确定'),
+                child: Text(
+                  AppLocalizations.of(context)?.commonConfirm ?? '确定',
+                ),
               ),
             ]),
           );

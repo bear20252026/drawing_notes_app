@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/selection_action_button.dart';
@@ -75,20 +76,20 @@ class SelectionBar extends StatelessWidget {
   }
 
   /// 复制/粘贴按钮。
-  Widget _buildClipboardButtons() {
+  Widget _buildClipboardButtons(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         SelectionActionButton(
           icon: Icons.copy,
-          tooltip: '复制选中内容',
+          tooltip: AppLocalizations.of(context)?.selCopy ?? '复制选中内容',
           onTap: controller.hasSelectedStrokes
               ? controller.copySelectedStrokes
               : null,
         ),
         SelectionActionButton(
           icon: Icons.content_paste,
-          tooltip: '粘贴',
+          tooltip: AppLocalizations.of(context)?.selPaste ?? '粘贴',
           onTap: controller.pasteClipboard,
         ),
       ],
@@ -96,7 +97,7 @@ class SelectionBar extends StatelessWidget {
   }
 
   /// 混合选中时锁定/解锁整组对象的按钮。
-  Widget _buildMixedLockButton(_SelectionState s) {
+  Widget _buildMixedLockButton(BuildContext context, _SelectionState s) {
     return SelectionActionButton(
       icon: s.hasLockedObjects ? Icons.lock : Icons.lock_open,
       tooltip: s.hasLockedObjects ? '解锁选中对象' : '锁定选中对象，防止误触编辑',
@@ -105,20 +106,24 @@ class SelectionBar extends StatelessWidget {
   }
 
   /// 单一类型选中（图片/形状）的锁定/解锁按钮。
-  Widget _buildSingleLockButtons(_SelectionState s) {
+  Widget _buildSingleLockButtons(BuildContext context, _SelectionState s) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         if (s.hasImage)
           SelectionActionButton(
             icon: s.imageLocked ? Icons.lock : Icons.lock_open,
-            tooltip: s.imageLocked ? '解除图片锁定' : '锁定图片，防止误触编辑',
+            tooltip: s.imageLocked
+                ? AppLocalizations.of(context)?.selUnlockImage ?? '解除图片锁定'
+                : AppLocalizations.of(context)?.selLockImage ?? '锁定图片，防止误触编辑',
             onTap: controller.toggleSelectedDocumentImageLock,
           ),
         if (s.hasShape)
           SelectionActionButton(
             icon: s.shapeLocked ? Icons.lock : Icons.lock_open,
-            tooltip: s.shapeLocked ? '解除形状锁定' : '锁定形状，防止误触编辑',
+            tooltip: s.shapeLocked
+                ? AppLocalizations.of(context)?.selUnlockShape ?? '解除形状锁定'
+                : AppLocalizations.of(context)?.selLockShape ?? '锁定形状，防止误触编辑',
             onTap: controller.toggleSelectedDocumentShapeLock,
           ),
       ],
@@ -126,17 +131,20 @@ class SelectionBar extends StatelessWidget {
   }
 
   /// 删除按钮的 tooltip 文案。
-  String _deleteTooltip(_SelectionState s) {
+  String _deleteTooltip(BuildContext context, _SelectionState s) {
     if (s.hasMixed) {
-      return s.hasLockedObjects ? '删除未锁定对象；锁定对象会保留' : '删除选中对象';
+      return s.hasLockedObjects
+          ? AppLocalizations.of(context)?.selDeleteLockedKeep ??
+                '删除未锁定对象；锁定对象会保留'
+          : AppLocalizations.of(context)?.selDelete ?? '删除选中对象';
     }
     if (s.hasShape && s.shapeLocked) {
-      return '形状已锁定，无法删除';
+      return AppLocalizations.of(context)?.selShapeLocked ?? '形状已锁定，无法删除';
     }
     if (s.imageLocked) {
-      return '图片已锁定，无法删除';
+      return AppLocalizations.of(context)?.selImageLocked ?? '图片已锁定，无法删除';
     }
-    return '删除选中内容';
+    return AppLocalizations.of(context)?.selDeleteContent ?? '删除选中内容';
   }
 
   /// 删除按钮的动作（按类型分发；锁定对象不提供删除）。
@@ -157,10 +165,10 @@ class SelectionBar extends StatelessWidget {
   }
 
   /// 删除按钮。
-  Widget _buildDeleteButton(_SelectionState s) {
+  Widget _buildDeleteButton(BuildContext context, _SelectionState s) {
     return SelectionActionButton(
       icon: Icons.delete_outline,
-      tooltip: _deleteTooltip(s),
+      tooltip: _deleteTooltip(context, s),
       onTap: _deleteAction(s),
     );
   }
@@ -170,14 +178,27 @@ class SelectionBar extends StatelessWidget {
     final String text;
     if (s.hasMixed && controller.selectedDocumentObjectCount > 1) {
       text =
+          AppLocalizations.of(
+            context,
+          )?.selNObjects(controller.selectedDocumentObjectCount) ??
           '已选中 ${controller.selectedDocumentObjectCount} 个对象'
-          '${s.hasLockedObjects ? '（含锁定对象）' : ''}';
+              '${s.hasLockedObjects ? '（含锁定对象）' : ''}';
     } else if (s.hasShape) {
-      text = s.shapeLocked ? '形状已锁定：解除锁定后可编辑' : '已选中形状：可拖动、缩放、锁定或删除';
+      text = s.shapeLocked
+          ? AppLocalizations.of(context)?.selShapeLockedEdit ?? '形状已锁定：解除锁定后可编辑'
+          : AppLocalizations.of(context)?.selShapeSelected ??
+                '已选中形状：可拖动、缩放、锁定或删除';
     } else if (s.hasImage) {
-      text = s.imageLocked ? '图片已锁定：解除锁定后可编辑' : '已选中图片：可拖动、缩放、锁定或删除';
+      text = s.imageLocked
+          ? AppLocalizations.of(context)?.selImageLockedEdit ?? '图片已锁定：解除锁定后可编辑'
+          : AppLocalizations.of(context)?.selImageSelected ??
+                '已选中图片：可拖动、缩放、锁定或删除';
     } else if (s.hasStrokes) {
-      text = '已选中 ${controller.selection.selectedStrokeIndices.length} 笔';
+      text =
+          AppLocalizations.of(
+            context,
+          )?.selNStrokes(controller.selection.selectedStrokeIndices.length) ??
+          '已选中 ${controller.selection.selectedStrokeIndices.length} 笔';
     } else {
       text = '选区未命中内容（可拖动画布重新框选）';
     }
@@ -209,15 +230,15 @@ class SelectionBar extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             child: Row(
               children: [
-                _buildClipboardButtons(),
+                _buildClipboardButtons(context),
                 if (s.hasMixed)
-                  _buildMixedLockButton(s)
+                  _buildMixedLockButton(context, s)
                 else
-                  _buildSingleLockButtons(s),
-                _buildDeleteButton(s),
+                  _buildSingleLockButtons(context, s),
+                _buildDeleteButton(context, s),
                 SelectionActionButton(
                   icon: Icons.close,
-                  tooltip: '清除选区',
+                  tooltip: AppLocalizations.of(context)?.selClear ?? '清除选区',
                   onTap: onClearSelection,
                 ),
                 const SizedBox(width: 8),

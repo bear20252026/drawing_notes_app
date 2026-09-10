@@ -174,11 +174,13 @@ extension _EditorPageEditing on _EditorPageState {
   Future<void> _showPaginationPreview() async {
     final page = widget.session;
     if (page == null) {
-      _showSnack('仅分页画布页面支持分页预览');
+      _showSnack(
+        AppLocalizations.of(context)?.edPreviewPagedOnly ?? '仅分页画布页面支持分页预览',
+      );
       return;
     }
     if (page.textItems.isEmpty) {
-      _showSnack('本页还没有文字内容');
+      _showSnack(AppLocalizations.of(context)?.edNoTextHere ?? '本页还没有文字内容');
       return;
     }
     await GlassDialog.show<void>(
@@ -197,7 +199,7 @@ extension _EditorPageEditing on _EditorPageState {
           TextButton(
             autofocus: true,
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('关闭'),
+            child: Text(AppLocalizations.of(context)?.close ?? '关闭'),
           ),
         ],
       ),
@@ -230,7 +232,7 @@ extension _EditorPageEditing on _EditorPageState {
     final page = widget.session;
     if (page == null) return;
     if (page.textItems.isEmpty) {
-      _showSnack('本页没有文字块');
+      _showSnack(AppLocalizations.of(context)?.edNoTextBlocks ?? '本页没有文字块');
       return;
     }
     final target = _controller.color.toARGB32();
@@ -238,7 +240,10 @@ extension _EditorPageEditing on _EditorPageState {
       EditorTextStyleMutation.recolorAll(items: page.textItems, color: target);
     });
     _notifyChanged();
-    _showSnack('已批量改色 ${page.textItems.length} 个文字块');
+    _showSnack(
+      _l10nSafe?.edRecoloredN(page.textItems.length) ??
+          '已批量改色 ${page.textItems.length} 个文字块',
+    );
   }
 
   /// 图片工具：选择本地图片、复制为应用管理的离线副本后放置到画布中心。
@@ -249,9 +254,9 @@ extension _EditorPageEditing on _EditorPageState {
     try {
       // file_selector：Flutter 官方文件选择器，跨 Windows/Android 一致，
       // 且已适配 AGP 9 的 built-in Kotlin（file_picker 存在兼容问题）。
-      const typeGroup = XTypeGroup(
-        label: '图片',
-        extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'],
+      final typeGroup = XTypeGroup(
+        label: AppLocalizations.of(context)?.edImageLabel ?? '图片',
+        extensions: const ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'],
       );
       final XFile? result = await openFile(acceptedTypeGroups: [typeGroup]);
       if (result == null || result.path.isEmpty) return;
@@ -265,7 +270,7 @@ extension _EditorPageEditing on _EditorPageState {
       if (page != null) {
         final storage = widget.storage;
         if (storage == null) {
-          _showSnack('笔记页图片存储不可用');
+          _showSnack(_l10nSafe?.edNoteImageStoreUnavailable ?? '笔记页图片存储不可用');
           return;
         }
         final storedPath = await storage.storeImage(result.path, page.id);
@@ -288,7 +293,9 @@ extension _EditorPageEditing on _EditorPageState {
       } else {
         final storage = widget.docStorage;
         if (storage == null) {
-          _showSnack('绘图文档图片存储不可用');
+          _showSnack(
+            _l10nSafe?.edDrawingImageStoreUnavailable ?? '绘图文档图片存储不可用',
+          );
           return;
         }
         final storedPath = await storage.storeImage(
@@ -362,7 +369,7 @@ extension _EditorPageEditing on _EditorPageState {
     if (_linkMode) {
       if (_linkSourceId == null) {
         _applyState(() => _viewModel.setLinkSourceId(itemId));
-        _showSnack('已选择起点，再点击另一个元素完成连线');
+        _showSnack(_l10nSafe?.edLinkStartPicked ?? '已选择起点，再点击另一个元素完成连线');
       } else if (_linkSourceId != itemId) {
         final page = widget.session;
         if (page != null) {
@@ -378,7 +385,7 @@ extension _EditorPageEditing on _EditorPageState {
             _viewModel.setLinkMode(false);
           });
           _notifyChanged();
-          _showSnack('已创建连接');
+          _showSnack(_l10nSafe?.edLinkCreated ?? '已创建连接');
         }
       }
       return;
@@ -481,14 +488,32 @@ extension _EditorPageEditing on _EditorPageState {
     showMenu<_CtxAction>(
       context: context,
       position: position,
-      items: const [
-        PopupMenuItem(value: _CtxAction.copyStyle, child: Text('复制样式')),
-        PopupMenuItem(value: _CtxAction.group, child: Text('分组')),
+      items: [
+        PopupMenuItem(
+          value: _CtxAction.copyStyle,
+          child: Text(AppLocalizations.of(context)?.ctxCopyStyle ?? '复制样式'),
+        ),
+        PopupMenuItem(
+          value: _CtxAction.group,
+          child: Text(AppLocalizations.of(context)?.ctxGroup ?? '分组'),
+        ),
         PopupMenuItem(value: _CtxAction.link, child: Text('设置链接…')),
-        PopupMenuItem(value: _CtxAction.ungroup, child: Text('取消分组')),
-        PopupMenuItem(value: _CtxAction.delete, child: Text('删除')),
-        PopupMenuItem(value: _CtxAction.bringToFront, child: Text('置顶')),
-        PopupMenuItem(value: _CtxAction.sendToBack, child: Text('置底')),
+        PopupMenuItem(
+          value: _CtxAction.ungroup,
+          child: Text(AppLocalizations.of(context)?.ctxUngroup ?? '取消分组'),
+        ),
+        PopupMenuItem(
+          value: _CtxAction.delete,
+          child: Text(AppLocalizations.of(context)?.delete ?? '删除'),
+        ),
+        PopupMenuItem(
+          value: _CtxAction.bringToFront,
+          child: Text(AppLocalizations.of(context)?.ctxBringToFront ?? '置顶'),
+        ),
+        PopupMenuItem(
+          value: _CtxAction.sendToBack,
+          child: Text(AppLocalizations.of(context)?.ctxSendToBack ?? '置底'),
+        ),
       ],
     ).then((action) {
       if (!mounted) return;
@@ -519,7 +544,7 @@ extension _EditorPageEditing on _EditorPageState {
     // 审计修复（2026-08-15，命令注入面）：scheme 白名单 + 引号包裹。
     final safe = sanitizeHref(href);
     if (safe == null) {
-      _showSnack('链接无效或不受支持');
+      _showSnack(_l10nSafe?.edLinkInvalid ?? '链接无效或不受支持');
       return;
     }
     try {
@@ -533,7 +558,7 @@ extension _EditorPageEditing on _EditorPageState {
       } else {
         await Process.start('xdg-open', [safe]);
       }
-      _showSnack('已打开链接');
+      _showSnack(_l10nSafe?.edLinkOpened ?? '已打开链接');
     } catch (e) {
       _showSnack('无法打开链接：$e');
     }
@@ -563,7 +588,7 @@ extension _EditorPageEditing on _EditorPageState {
         builder: (ctx) {
           routeExited = ModalRoute.of(ctx)!.completed;
           return AlertDialog(
-            title: const Text('设置链接'),
+            title: Text(AppLocalizations.of(context)?.edLinkTitle ?? '设置链接'),
             content: TextField(
               controller: controller,
               autofocus: true,
@@ -576,11 +601,13 @@ extension _EditorPageEditing on _EditorPageState {
             actions: AppleDialog.actions([
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('取消'),
+                child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
               ),
               FilledButton(
                 onPressed: () => Navigator.of(ctx).pop(controller.text),
-                child: const Text('确定'),
+                child: Text(
+                  AppLocalizations.of(context)?.commonConfirm ?? '确定',
+                ),
               ),
             ]),
           );
@@ -609,7 +636,11 @@ extension _EditorPageEditing on _EditorPageState {
       );
     });
     _notifyChanged();
-    _showSnack(link == null ? '已清除链接' : '已设置链接');
+    _showSnack(
+      link == null
+          ? _l10nSafe?.edLinkCleared ?? '已清除链接'
+          : _l10nSafe?.edLinkSet ?? '已设置链接',
+    );
   }
 
   /// 分组：给选中的多个元素设置相同 groupId（借鉴 Excalidraw groupIds）。
@@ -620,7 +651,9 @@ extension _EditorPageEditing on _EditorPageState {
         ? _multiSelectedIds
         : <String>{?_selectedItemId};
     if (ids.length < 2) {
-      _showSnack('请先框选/多选至少 2 个元素再分组');
+      _showSnack(
+        AppLocalizations.of(context)?.edGroupNeed2 ?? '请先框选/多选至少 2 个元素再分组',
+      );
       return;
     }
     final groupId = LocalIdGenerator.next('grp');
@@ -634,7 +667,7 @@ extension _EditorPageEditing on _EditorPageState {
       );
     });
     _notifyChanged();
-    _showSnack('已分组 ${ids.length} 个元素');
+    _showSnack(_l10nSafe?.edGroupedN(ids.length) ?? '已分组 ${ids.length} 个元素');
   }
 
   /// 取消分组：清空选中元素的 groupId。
@@ -654,7 +687,7 @@ extension _EditorPageEditing on _EditorPageState {
       );
     });
     _notifyChanged();
-    _showSnack('已取消分组');
+    _showSnack(_l10nSafe?.edUngrouped ?? '已取消分组');
   }
 
   void _deleteSelectedItem() {

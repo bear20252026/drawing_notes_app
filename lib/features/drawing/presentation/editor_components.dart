@@ -11,6 +11,7 @@ import 'package:drawing_notes_app/core/canvas_model/page_chart_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/page_connector.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 
 /// 编辑器纯展示组件集（架构重构 R1：从 editor_page 外移的零耦合组件）。
@@ -208,13 +209,15 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
             ),
             const SizedBox(width: 4),
             IconButton(
-              tooltip: running ? '暂停' : '开始',
+              tooltip: running
+                  ? AppLocalizations.of(context)?.pomodoroPause ?? '暂停'
+                  : AppLocalizations.of(context)?.pomodoroStart ?? '开始',
               icon: Icon(running ? Icons.pause : Icons.play_arrow, size: 18),
               visualDensity: VisualDensity.compact,
               onPressed: _toggle,
             ),
             IconButton(
-              tooltip: '重置',
+              tooltip: AppLocalizations.of(context)?.pomodoroReset ?? '重置',
               icon: const Icon(Icons.refresh, size: 18),
               visualDensity: VisualDensity.compact,
               onPressed: _reset,
@@ -304,7 +307,10 @@ class _PaginationPreviewState extends State<PaginationPreview> {
                 children: [
                   Expanded(
                     child: Text(
-                      '第 ${i + 1} 页 / 共 ${pages.length} 页',
+                      AppLocalizations.of(
+                            context,
+                          )?.pageIndicator(i + 1, pages.length) ??
+                          '第 ${i + 1} 页 / 共 ${pages.length} 页',
                       style: Theme.of(context).textTheme.labelSmall,
                     ),
                   ),
