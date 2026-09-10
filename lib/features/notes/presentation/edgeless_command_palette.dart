@@ -355,12 +355,13 @@ class _EdgelessPaletteSheetState extends State<_EdgelessPaletteSheet> {
                               padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
                               child: Text(
                                 entry.key,
-                                style: AppleType.captionStyle(
-                                  colorScheme.primary,
-                                ).copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.5,
-                                ),
+                                style:
+                                    AppleType.captionStyle(
+                                      colorScheme.primary,
+                                    ).copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.5,
+                                    ),
                               ),
                             ),
                             for (final cmd in entry.value)

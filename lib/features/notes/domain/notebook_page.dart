@@ -4,6 +4,7 @@ import 'package:drawing_notes_app/core/canvas_model/page_connector.dart';
 import 'package:drawing_notes_app/core/canvas_model/page_image_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
+import 'package:drawing_notes_app/core/utils/time_serialization.dart';
 import 'package:drawing_notes_app/features/doc/domain/clone_ref.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_page_content.dart';
 import 'package:drawing_notes_app/features/notes/domain/page_template.dart';
@@ -186,9 +187,9 @@ class NotebookPage {
     'history': history.map((entry) => entry.toJson()).toList(),
     'template': template.name,
     'favorite': favorite,
-    if (lastOpenedAt != null) 'lastOpenedAt': lastOpenedAt!.toIso8601String(),
-    'createdAt': createdAt.toIso8601String(),
-    'updatedAt': updatedAt.toIso8601String(),
+    if (lastOpenedAt != null) 'lastOpenedAt': timeToIso(lastOpenedAt!),
+    'createdAt': timeToIso(createdAt),
+    'updatedAt': timeToIso(updatedAt),
   };
 
   factory NotebookPage.fromJson(Map<String, dynamic> json) {
@@ -218,11 +219,9 @@ class NotebookPage {
         orElse: () => PageTemplate.blank,
       ),
       favorite: json['favorite'] as bool? ?? false,
-      lastOpenedAt: DateTime.tryParse(json['lastOpenedAt'] as String? ?? ''),
-      createdAt:
-          DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
-      updatedAt:
-          DateTime.tryParse(json['updatedAt'] as String? ?? '') ?? DateTime.now(),
+      lastOpenedAt: timeFromIso(json['lastOpenedAt']),
+      createdAt: timeFromIso(json['createdAt']),
+      updatedAt: timeFromIso(json['updatedAt']),
     );
   }
 }

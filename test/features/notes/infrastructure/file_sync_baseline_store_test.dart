@@ -38,8 +38,16 @@ void main() {
     final store = makeStore();
     final manifest = sampleManifest(
       entries: {
-        'doc_a': const SyncSnapshot(id: 'doc_a', updatedAt: 1725000000000, size: 1024),
-        'doc_b': const SyncSnapshot(id: 'doc_b', updatedAt: 1725000001000, size: 2048),
+        'doc_a': const SyncSnapshot(
+          id: 'doc_a',
+          updatedAt: 1725000000000,
+          size: 1024,
+        ),
+        'doc_b': const SyncSnapshot(
+          id: 'doc_b',
+          updatedAt: 1725000001000,
+          size: 2048,
+        ),
       },
       deletedIds: {'doc_dead'},
     );
@@ -71,9 +79,11 @@ void main() {
   test('save 原子落盘：目录内无 .tmp 残留，仅一份正式文件', () async {
     final store = makeStore();
 
-    await store.save(sampleManifest(
-      entries: {'a': const SyncSnapshot(id: 'a', updatedAt: 1, size: 1)},
-    ));
+    await store.save(
+      sampleManifest(
+        entries: {'a': const SyncSnapshot(id: 'a', updatedAt: 1, size: 1)},
+      ),
+    );
 
     final leftovers = tempDir
         .listSync()
@@ -85,19 +95,25 @@ void main() {
 
   test('重复 save 覆盖旧基线：最新清单生效，仍无 tmp 残留', () async {
     final store = makeStore();
-    await store.save(sampleManifest(
-      entries: {'old': const SyncSnapshot(id: 'old', updatedAt: 1, size: 1)},
-    ));
-    await store.save(sampleManifest(
-      entries: {'new': const SyncSnapshot(id: 'new', updatedAt: 2, size: 2)},
-      deletedIds: {'old'},
-    ));
+    await store.save(
+      sampleManifest(
+        entries: {'old': const SyncSnapshot(id: 'old', updatedAt: 1, size: 1)},
+      ),
+    );
+    await store.save(
+      sampleManifest(
+        entries: {'new': const SyncSnapshot(id: 'new', updatedAt: 2, size: 2)},
+        deletedIds: {'old'},
+      ),
+    );
 
     final loaded = await makeStore().load();
     expect(loaded!.entries.keys, ['new']);
     expect(loaded.deletedIds, {'old'});
     expect(
-      tempDir.listSync().whereType<File>().where((f) => f.path.contains('.tmp')),
+      tempDir.listSync().whereType<File>().where(
+        (f) => f.path.contains('.tmp'),
+      ),
       isEmpty,
     );
   });

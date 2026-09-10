@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:cryptography/cryptography.dart';
+import 'package:meta/meta.dart';
 
 import 'package:drawing_notes_app/core/storage/vfs/vault_manifest.dart';
 import 'package:drawing_notes_app/core/utils/hex_encode.dart';
@@ -21,13 +22,22 @@ import 'package:drawing_notes_app/core/utils/hex_encode.dart';
 ///
 /// 存储布局：目录下 manifest.json + objects/ 目录（id.version 密文文件）。
 class EncryptedVault {
-  EncryptedVault({required this.directory, required this.key})
-    : assert(key.length == 32, 'VFS 密钥须为 32 字节'),
-      _aes = AesGcm.with256bits();
+  EncryptedVault({
+    required this.directory,
+    required this.key,
+    this.vacuumCommitBarrier,
+  }) : assert(key.length == 32, 'VFS 密钥须为 32 字节'),
+       _aes = AesGcm.with256bits();
 
   final Directory directory;
   final List<int> key;
   final AesGcm _aes;
+
+  /// [仅测试] 清单提交屏障：在 [vacuum] 删除任何对象文件前调用一次。
+  /// 抛错即模拟"清单更新失败"，用于验证失败安全（中止删除、保留旧版本
+  /// 可回溯）。普通调用置 null（默认）时不生效，行为与无钩子完全一致。
+  @visibleForTesting
+  final Future<void> Function()? vacuumCommitBarrier;
 
   /// 清单文件路径。
   File get _manifestFile => File('${directory.path}/manifest.json');
@@ -158,6 +168,140 @@ class EncryptedVault {
   /// 当前清单快照（对象条目集——版本/大小/AAD）。
   Future<List<VaultManifestEntry>> listObjects() async =>
       List.unmodifiable((await _loadManifest()).entries);
+
+  /// 生命周期整理（vacuum/compact）：**显式调用才触发**，绝不自动执行。
+  ///
+  /// 为每个对象保留最新的 [retention]（须 >= 1）个版本，删除更旧的
+  /// 物理对象文件（`objects/<id>.<v>`）。默认行为与旧版本回读语义完全
+  /// 不变：不调用本方法，历史版本始终可读。
+  ///
+  /// 失败安全：删除任何对象文件前，先刷新清单（内容不变——清单本就只
+  /// 记录最新版本——作为原子提交的持久化屏障）；清单加载（HMAC 校验）
+  /// 或持久化失败即中止，**不删除任何旧版本**。删除阶段为尽力而为，
+  /// 单文件失败不计入 [VaultVacuumResult.removed] 且不致命（残留文件仍
+  /// 可回溯）。
+  ///
+  /// 返回整理结果（删除数/失败数/保留版本文件数）。
+  Future<VaultVacuumResult> vacuum({int retention = 3}) async {
+    _requireKey();
+    if (retention < 1) {
+      throw ArgumentError.value(retention, 'retention', '保留版本数必须 >= 1');
+    }
+    final manifest = await _loadManifest();
+
+    // 计算待删文件：version 大于 retention 的对象，删除 1..(version-retention)。
+    final targets = <File>[];
+    for (final e in manifest.entries) {
+      if (e.version > retention) {
+        for (var v = 1; v <= e.version - retention; v++) {
+          targets.add(_objectFile(e.id, v));
+        }
+      }
+    }
+
+    // 失败安全提交屏障：先持久化清单（内容不变，刷新认证侧车），再删物理
+    // 对象。清单加载或持久化任一失败（含测试注入的真空失败）→ 中止删除。
+    final manifestText = manifest.encode();
+    await _atomicWriteText(_manifestFile, manifestText);
+    await _atomicWriteText(_manifestMacFile, _manifestMac(manifestText));
+    final barrier = vacuumCommitBarrier;
+    if (barrier != null) await barrier();
+
+    var removed = 0;
+    var failed = 0;
+    for (final f in targets) {
+      try {
+        if (await f.exists()) {
+          await f.delete();
+          removed++;
+        }
+      } catch (_) {
+        failed++; // 尽力而为——残留文件不破坏回溯。
+      }
+    }
+    final retained = manifest.entries.fold<int>(
+      0,
+      (acc, e) => acc + (e.version > retention ? retention : e.version),
+    );
+    return VaultVacuumResult(
+      removed: removed,
+      failed: failed,
+      retained: retained,
+    );
+  }
+
+  /// 扫描孤儿对象文件（**只读，不删除**——删除须显式调用 [purgeOrphans]）。
+  ///
+  /// 孤儿定义：`objects/` 下存在物理文件，但清单无对应对象条目，或版本号
+  /// 超出该对象当前记录版本（崩溃/中断残留），以及未解析的临时文件
+  /// （`.tmp.*`）。**合法的历史版本（version <= 清单当前版本）不会被判为
+  /// 孤儿**——旧版本回溯语义不受影响。
+  ///
+  /// 返回相对 `objects/` 的路径列表（已排序）。
+  Future<List<String>> scanOrphans() async {
+    _requireKey();
+    final manifest = await _loadManifest();
+    final objectDir = Directory('${directory.path}/objects');
+    if (!await objectDir.exists()) return const <String>[];
+    final orphans = <String>[];
+    await for (final entity in objectDir.list(recursive: true)) {
+      if (entity is! File) continue;
+      // 归一化分隔符（Windows 用 \，统一为 / 保证跨平台 API 稳定）。
+      final rel = entity.path
+          .substring(objectDir.path.length + 1)
+          .replaceAll('\\', '/');
+      if (rel.contains('.tmp')) {
+        orphans.add(rel); // 临时文件残留。
+        continue;
+      }
+      final parsed = _parseObjectFileName(rel);
+      if (parsed == null) {
+        orphans.add(rel); // 不合规文件名。
+        continue;
+      }
+      final entry = manifest.find(parsed.key);
+      if (entry == null || parsed.value > entry.version) {
+        orphans.add(rel);
+      }
+      // entry != null && version <= entry.version → 合法保留版本，跳过。
+    }
+    orphans.sort();
+    return List.unmodifiable(orphans);
+  }
+
+  /// 删除孤儿对象文件（**显式调用才触发**，绝不自动执行）。
+  ///
+  /// 基于 [scanOrphans] 判定，只删确属孤儿的文件，**绝不触碰**清单内任何
+  /// 对象的合法历史版本。单文件删除失败忽略（尽力而为）。
+  ///
+  /// 返回成功删除的相对路径列表。
+  Future<List<String>> purgeOrphans() async {
+    _requireKey();
+    final orphans = await scanOrphans();
+    final removed = <String>[];
+    for (final rel in orphans) {
+      try {
+        final f = File('${directory.path}/objects/$rel');
+        if (await f.exists()) {
+          await f.delete();
+          removed.add(rel);
+        }
+      } catch (_) {
+        /* 忽略单文件删除失败 */
+      }
+    }
+    return removed;
+  }
+
+  /// 解析 `objects/` 相对路径里的 `id.version`（id 可含 `/` 子路径，
+  /// 版本号为末段点之后的整数）。无法解析返回 null。
+  MapEntry<String, int>? _parseObjectFileName(String rel) {
+    final dot = rel.lastIndexOf('.');
+    if (dot <= 0 || dot == rel.length - 1) return null;
+    final ver = int.tryParse(rel.substring(dot + 1));
+    if (ver == null) return null;
+    return MapEntry(rel.substring(0, dot), ver);
+  }
 
   Future<VaultManifest> _loadManifest() async {
     if (!await _manifestFile.exists()) {

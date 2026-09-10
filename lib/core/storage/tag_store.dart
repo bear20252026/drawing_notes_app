@@ -13,6 +13,7 @@ library;
 
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'package:drawing_notes_app/core/utils/hex_encode.dart';
+import 'package:drawing_notes_app/core/utils/time_serialization.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -29,7 +30,7 @@ class DocTag {
   factory DocTag.fromJson(Map<String, dynamic> json) {
     final name = json['name'];
     final color = json['color'];
-    final createdAt = DateTime.tryParse(json['createdAt'] as String? ?? '');
+    final createdAt = timeFromIsoOrNull(json['createdAt']);
     if (name is! String ||
         name.trim().isEmpty ||
         color is! String ||
@@ -56,7 +57,7 @@ class DocTag {
     'id': id,
     'name': name,
     'color': color,
-    'createdAt': createdAt.toIso8601String(),
+    'createdAt': timeToIso(createdAt),
   };
 }
 

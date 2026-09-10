@@ -7,11 +7,7 @@ import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-NoteBlockDoc _doc(
-  String title,
-  List<NoteBlock> body, {
-  String id = 'd',
-}) =>
+NoteBlockDoc _doc(String title, List<NoteBlock> body, {String id = 'd'}) =>
     NoteBlockDoc(
       id: id,
       title: title,
@@ -62,9 +58,11 @@ void main() {
     });
 
     test('正文文本转义：引号与 & 均消毒，中文保留', () {
-      final html = noteBlockDocToHtml(_doc('转义测试', [
-        NoteBlock.textBlock('p1', text: '引用 "词" 与 & 符号 —— 中文内容'),
-      ]));
+      final html = noteBlockDocToHtml(
+        _doc('转义测试', [
+          NoteBlock.textBlock('p1', text: '引用 "词" 与 & 符号 —— 中文内容'),
+        ]),
+      );
 
       expect(html, contains('&quot;词&quot;'));
       expect(html, contains('&amp; 符号'));
@@ -80,26 +78,36 @@ void main() {
     });
 
     test('空文本段落渲染为 <p><br></p>；非空段落为普通 <p>', () {
-      final html = noteBlockDocToHtml(_doc('段落', [
-        NoteBlock.textBlock('empty', text: ''),
-        NoteBlock.textBlock('filled', text: '有内容'),
-      ]));
+      final html = noteBlockDocToHtml(
+        _doc('段落', [
+          NoteBlock.textBlock('empty', text: ''),
+          NoteBlock.textBlock('filled', text: '有内容'),
+        ]),
+      );
 
       expect(html, contains('<p><br></p>'));
       expect(html, contains('<p>有内容</p>'));
     });
 
     test('标题层级钳制到 1-6；代码块用 <pre><code> 包裹', () {
-      final html = noteBlockDocToHtml(_doc('层级', [
-        NoteBlock(id: 'h9', type: NoteBlockType.heading, text: '越界层级', props: {
-          'level': 99,
-        }),
-        NoteBlock(id: 'h0', type: NoteBlockType.heading, text: '零级', props: {
-          'level': 0,
-        }),
-        NoteBlock(id: 'hno', type: NoteBlockType.heading, text: '缺省层级'),
-        NoteBlock.codeBlock('c1', text: 'x < y'),
-      ]));
+      final html = noteBlockDocToHtml(
+        _doc('层级', [
+          NoteBlock(
+            id: 'h9',
+            type: NoteBlockType.heading,
+            text: '越界层级',
+            props: {'level': 99},
+          ),
+          NoteBlock(
+            id: 'h0',
+            type: NoteBlockType.heading,
+            text: '零级',
+            props: {'level': 0},
+          ),
+          NoteBlock(id: 'hno', type: NoteBlockType.heading, text: '缺省层级'),
+          NoteBlock.codeBlock('c1', text: 'x < y'),
+        ]),
+      );
 
       expect(html, contains('<h6>越界层级</h6>'));
       expect(html, contains('<h1>零级</h1>'));
@@ -108,16 +116,18 @@ void main() {
     });
 
     test('嵌套子块递归导出（父块之后紧跟子块）', () {
-      final html = noteBlockDocToHtml(_doc('嵌套', [
-        NoteBlock(
-          id: 'parent',
-          type: NoteBlockType.bullet,
-          text: '父项',
-          children: [
-            NoteBlock(id: 'child', type: NoteBlockType.bullet, text: '子项'),
-          ],
-        ),
-      ]));
+      final html = noteBlockDocToHtml(
+        _doc('嵌套', [
+          NoteBlock(
+            id: 'parent',
+            type: NoteBlockType.bullet,
+            text: '父项',
+            children: [
+              NoteBlock(id: 'child', type: NoteBlockType.bullet, text: '子项'),
+            ],
+          ),
+        ]),
+      );
 
       final parent = html.indexOf('<li>父项</li>');
       final child = html.indexOf('<li>子项</li>');
@@ -126,10 +136,12 @@ void main() {
     });
 
     test('待办块勾选态差异：checked 带禁用勾选框与删除线', () {
-      final html = noteBlockDocToHtml(_doc('待办', [
-        NoteBlock.todoBlock('done', text: '已完成', checked: true),
-        NoteBlock.todoBlock('open', text: '未完成', checked: false),
-      ]));
+      final html = noteBlockDocToHtml(
+        _doc('待办', [
+          NoteBlock.todoBlock('done', text: '已完成', checked: true),
+          NoteBlock.todoBlock('open', text: '未完成', checked: false),
+        ]),
+      );
 
       expect(html, contains('<input type="checkbox" disabled checked>'));
       expect(html, contains('<s>已完成</s>'));

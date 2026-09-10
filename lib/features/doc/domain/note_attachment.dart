@@ -1,6 +1,8 @@
 // 笔记附件/PDF/书签卡领域模型（P3-3）。
 // 纯 Dart，无 flutter/io 外部依赖；不可变；值类型 ==/hashCode。
 
+import 'package:drawing_notes_app/core/utils/time_serialization.dart';
+
 /// 附件类型：普通文件 / PDF / 书签。
 enum AttachmentKind { file, pdf, bookmark }
 
@@ -107,8 +109,8 @@ class NoteAttachment {
     'filePath': filePath,
     'url': url,
     'description': description,
-    'createdAt': createdAt.toIso8601String(),
-    'updatedAt': updatedAt.toIso8601String(),
+    'createdAt': timeToIso(createdAt),
+    'updatedAt': timeToIso(updatedAt),
   };
 
   /// 从 JSON 反序列化（ISO8601 字符串 → DateTime）。
@@ -121,8 +123,8 @@ class NoteAttachment {
     filePath: (json['filePath'] as String?) ?? '',
     url: (json['url'] as String?) ?? '',
     description: (json['description'] as String?) ?? '',
-    createdAt: DateTime.parse(json['createdAt'] as String),
-    updatedAt: DateTime.parse(json['updatedAt'] as String),
+    createdAt: timeFromIso(json['createdAt']),
+    updatedAt: timeFromIso(json['updatedAt']),
   );
 
   /// 安全解析（P2 加固）：永不抛异常——字段缺失/类型错/`kind` 未知/
@@ -150,8 +152,8 @@ class NoteAttachment {
       if (kind == null) return null;
       final byteSize = (json['byteSize'] as int?) ?? 0;
       if (byteSize < 0) return null;
-      final createdAt = DateTime.tryParse(json['createdAt'] as String? ?? '');
-      final updatedAt = DateTime.tryParse(json['updatedAt'] as String? ?? '');
+      final createdAt = timeFromIsoOrNull(json['createdAt']);
+      final updatedAt = timeFromIsoOrNull(json['updatedAt']);
       if (createdAt == null || updatedAt == null) return null;
       final filePath = (json['filePath'] as String?) ?? '';
       final url = (json['url'] as String?) ?? '';
@@ -186,8 +188,8 @@ class NoteAttachment {
           filePath == other.filePath &&
           url == other.url &&
           description == other.description &&
-          createdAt == other.createdAt &&
-          updatedAt == other.updatedAt;
+          createdAt.isAtSameMomentAs(other.createdAt) &&
+          updatedAt.isAtSameMomentAs(other.updatedAt);
 
   @override
   int get hashCode => Object.hash(
@@ -199,8 +201,8 @@ class NoteAttachment {
     filePath,
     url,
     description,
-    createdAt,
-    updatedAt,
+    createdAt.millisecondsSinceEpoch,
+    updatedAt.millisecondsSinceEpoch,
   );
 
   @override

@@ -2,6 +2,7 @@
 // NoteBlockDoc 文档容器：承载一个「文档=笔记」的块模型聚合。
 // 纯 Dart，无 flutter/io/controller/存储依赖。
 
+import 'package:drawing_notes_app/core/utils/time_serialization.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
 
 /// 一个「文档=笔记」的块模型聚合根。
@@ -79,8 +80,8 @@ class NoteBlockDoc {
     'title': title,
     'body': body.map((b) => b.toJson()).toList(),
     if (tags.isNotEmpty) 'tags': tags,
-    'createdAt': createdAt.toIso8601String(),
-    'updatedAt': updatedAt.toIso8601String(),
+    'createdAt': timeToIso(createdAt),
+    'updatedAt': timeToIso(updatedAt),
   };
 
   factory NoteBlockDoc.fromJson(Map<String, dynamic> json) => NoteBlockDoc(
@@ -93,12 +94,14 @@ class NoteBlockDoc {
         .map(NoteBlock.fromJson)
         .toList(),
     tags: (json['tags'] as List? ?? const []).whereType<String>().toList(),
-    createdAt: json['createdAt'] != null
-        ? DateTime.parse(json['createdAt'] as String)
-        : DateTime.fromMillisecondsSinceEpoch(0),
-    updatedAt: json['updatedAt'] != null
-        ? DateTime.parse(json['updatedAt'] as String)
-        : DateTime.fromMillisecondsSinceEpoch(0),
+    createdAt: timeFromIso(
+      json['createdAt'],
+      fallback: DateTime.fromMillisecondsSinceEpoch(0),
+    ),
+    updatedAt: timeFromIso(
+      json['updatedAt'],
+      fallback: DateTime.fromMillisecondsSinceEpoch(0),
+    ),
   );
 
   @override
@@ -109,12 +112,17 @@ class NoteBlockDoc {
           id == other.id &&
           title == other.title &&
           _bodyEqual(body, other.body) &&
-          createdAt == other.createdAt &&
-          updatedAt == other.updatedAt;
+          createdAt.isAtSameMomentAs(other.createdAt) &&
+          updatedAt.isAtSameMomentAs(other.updatedAt);
 
   @override
-  int get hashCode =>
-      Object.hash(id, title, Object.hashAll(body), createdAt, updatedAt);
+  int get hashCode => Object.hash(
+    id,
+    title,
+    Object.hashAll(body),
+    createdAt.millisecondsSinceEpoch,
+    updatedAt.millisecondsSinceEpoch,
+  );
 
   @override
   String toString() =>

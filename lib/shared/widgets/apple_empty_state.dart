@@ -39,10 +39,7 @@ class AppleEmptyState extends StatelessWidget {
         children: [
           Icon(icon, size: 56, color: subtle),
           const SizedBox(height: 12),
-          Text(
-            title,
-            style: AppleType.titleStyle(scheme.onSurface),
-          ),
+          Text(title, style: AppleType.titleStyle(scheme.onSurface)),
           if (tip != null) ...[
             const SizedBox(height: 4),
             Text(

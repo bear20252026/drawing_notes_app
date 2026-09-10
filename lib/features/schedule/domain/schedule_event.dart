@@ -1,6 +1,8 @@
 // M11 日历真实化：日程/待办事件领域模型。
 // 纯 Dart，无 flutter/io 依赖，可单测锁定。
 
+import 'package:drawing_notes_app/core/utils/time_serialization.dart';
+
 /// 日历上的一条「待办/日程」事件。
 ///
 /// 与 [ScheduleEntry]（文档活动派生条目）不同：这是用户亲手创建的
@@ -41,7 +43,7 @@ class ScheduleEvent {
     'dayKey': dayKey,
     'isDone': isDone,
     if (minuteOfDay != null) 'minuteOfDay': minuteOfDay,
-    'createdAt': createdAt.toIso8601String(),
+    'createdAt': timeToIso(createdAt),
   };
 
   /// 日期键格式（P1 修复：`_parseDayKey` 在 build 内同步 `int.parse`，
@@ -67,7 +69,7 @@ class ScheduleEvent {
         tryParseDayKey(dayKey) == null) {
       return null;
     }
-    final parsed = DateTime.tryParse(createdAt);
+    final parsed = timeFromIsoOrNull(createdAt);
     if (parsed == null) return null;
     final minuteRaw = json['minuteOfDay'];
     final minuteOfDay = minuteRaw is int ? minuteRaw : null;
@@ -113,11 +115,17 @@ class ScheduleEvent {
           dayKey == other.dayKey &&
           isDone == other.isDone &&
           minuteOfDay == other.minuteOfDay &&
-          createdAt == other.createdAt;
+          createdAt.isAtSameMomentAs(other.createdAt);
 
   @override
-  int get hashCode =>
-      Object.hash(id, title, dayKey, isDone, minuteOfDay, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    title,
+    dayKey,
+    isDone,
+    minuteOfDay,
+    createdAt.millisecondsSinceEpoch,
+  );
 
   @override
   String toString() =>

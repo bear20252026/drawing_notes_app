@@ -4,6 +4,7 @@ import 'package:drawing_notes_app/core/canvas_model/page_connector.dart';
 import 'package:drawing_notes_app/core/canvas_model/page_image_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
+import 'package:drawing_notes_app/core/utils/time_serialization.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_page_content.dart';
 
 /// 页面版本快照。
@@ -53,13 +54,13 @@ class PageVersion {
   List<PageChartItem> get charts => content.charts;
 
   Map<String, dynamic> toJson() => {
-    'time': time.toIso8601String(),
+    'time': timeToIso(time),
     ...content.toJson(),
     'summary': summary,
   };
 
   factory PageVersion.fromJson(Map<String, dynamic> json) => PageVersion(
-    time: DateTime.tryParse(json['time'] as String? ?? '') ?? DateTime.now(),
+    time: timeFromIso(json['time']),
     content: NotebookPageContent.fromJson(json),
     summary: json['summary'] as String? ?? '',
   );

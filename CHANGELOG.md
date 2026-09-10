@@ -2,6 +2,35 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.1] - 2026-09-10
+
+### 审计未决项首批清偿：时区一致性、密码写队列、测试时钟收敛、CI 供应链 pin
+
+**时区一致性（G15）**
+- 新增 `lib/core/utils/time_serialization.dart`：写侧统一 UTC（`timeToIso` 恒带 `Z` 后缀）、
+  读侧双格式兼容（`timeFromIso` 同时吃 `Z` / 带偏移 / 历史无偏移三种 ISO 串，归一为设备本地）。
+- 全部持久化模型接入：画布文档、笔记本实体/页面/版本、日程、附件、块文档、全文档索引、
+  vault 清单/标签库/存储服务/编解码——跨时区换机后 LWW（last-write-wins）比较不再被
+  无偏移本地串扭曲；存量文件不强制重写，下次保存随 UTC 串自然覆盖。
+- `timeFromIsoOrNull` 严格变体保留附件 tryParse 的 null 隔离语义。
+
+**密码操作写队列串行化（G14 / E-17）**
+- `storage_service_file_password` 六入口（设密/改密/移密/绑盘/盘解重绕）全部挂入
+  per-document 独占队列（`_runDocExclusive`）——与在途保存/删除交错时按请求顺序执行，
+  队列内重读最新落盘明文再重封，消除「密码重封以陈旧明文覆盖新保存」的竞态窗口。
+- 新增 `test/core/storage/file_password_concurrency_test.dart` 并发回归（save 与
+  set/change 交错串行、失败后旧文件仍可读、会话缓存与磁盘一致）。
+
+**测试基建（H7）**
+- 新增 `test/helpers/fake_clock.dart` 统一假时钟（毫秒推进 + Duration 推进双语义），
+  收敛 `app_lock_guard_test` / `save_scheduler_test` 两套私有实现。
+
+**CI 供应链（J5/J6）**
+- 全部第三方 action 收敛为 commit SHA pin：gitleaks-action（v3）、
+  action-gh-release（v3.0.3）、rust-toolchain（stable 分支头 + 显式 `toolchain: stable`
+  声明，防 SHA pin 后 ref 推断失效）；checkout / flutter-action / setup-python /
+  upload-artifact 此前已 pin，本次补齐后全仓 action 无浮动引用。
+
 ## [1.17.0] - 2026-09-07
 
 ### 全量审计发版：110 个审计大类、367 条带证据发现，280 项修复 + 102 项提升（台账见 docs/AUDIT_FULL_2026-09-07.md）

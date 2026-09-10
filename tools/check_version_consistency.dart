@@ -18,24 +18,26 @@ void main() {
 
   // 1. pubspec.yaml：唯一版本源（X.Y.Z+N）。
   final pubspec = File('$root/pubspec.yaml').readAsLinesSync();
-  final versionLine = pubspec
-      .firstWhere((l) => l.startsWith('version:'), orElse: () => '');
-  final match = RegExp(r'^version:\s*(\d+)\.(\d+)\.(\d+)\+(\d+)\s*$')
-      .firstMatch(versionLine);
+  final versionLine = pubspec.firstWhere(
+    (l) => l.startsWith('version:'),
+    orElse: () => '',
+  );
+  final match = RegExp(
+    r'^version:\s*(\d+)\.(\d+)\.(\d+)\+(\d+)\s*$',
+  ).firstMatch(versionLine);
   if (match == null) {
     fail('pubspec.yaml 缺少合法的 version: X.Y.Z+N 行（读到「$versionLine」）');
   }
-  final version =
-      '${match.group(1)}.${match.group(2)}.${match.group(3)}';
+  final version = '${match.group(1)}.${match.group(2)}.${match.group(3)}';
 
   // 2. tools/drawing_notes_setup.iss：MyAppVersion 与 VersionInfoVersion。
   final iss = File('$root/tools/drawing_notes_setup.iss').readAsLinesSync();
   String? issDefine;
   String? issVersionInfo;
   for (final line in iss) {
-    final define = RegExp(r'^#define\s+MyAppVersion\s+"([^"]+)"').firstMatch(
-      line,
-    );
+    final define = RegExp(
+      r'^#define\s+MyAppVersion\s+"([^"]+)"',
+    ).firstMatch(line);
     if (define != null) issDefine = define.group(1);
     final info = RegExp(r'^VersionInfoVersion=(.+)$').firstMatch(line);
     if (info != null) issVersionInfo = info.group(1)?.trim();
@@ -44,18 +46,19 @@ void main() {
     fail('setup.iss MyAppVersion="$issDefine" != pubspec $version');
   }
   // VersionInfoVersion 允许用 {#MyAppVersion} 预处理派生（编译期解析）。
-  final derived = issVersionInfo == version ||
+  final derived =
+      issVersionInfo == version ||
       issVersionInfo == '{#MyAppVersion}' ||
       issVersionInfo == '$version.0';
   if (!derived) {
-    fail('setup.iss VersionInfoVersion="$issVersionInfo" 未从 pubspec $version 派生');
+    fail(
+      'setup.iss VersionInfoVersion="$issVersionInfo" 未从 pubspec $version 派生',
+    );
   }
 
   // 3. CHANGELOG.md：顶部（非文件头说明区）存在本版本条目。
   final changelog = File('$root/CHANGELOG.md').readAsLinesSync();
-  final hasEntry = changelog.take(30).any(
-        (l) => l.startsWith('## [$version]'),
-      );
+  final hasEntry = changelog.take(30).any((l) => l.startsWith('## [$version]'));
   if (!hasEntry) {
     fail('CHANGELOG.md 前 30 行内没有 "## [$version]" 条目');
   }

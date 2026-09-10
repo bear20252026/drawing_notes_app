@@ -230,15 +230,16 @@ void main() {
     test('save 前过门禁：http 地址抛 ArgumentError 且不落盘（fail-closed）', () async {
       final store = WebDavConfigStore();
       await expectLater(
-        store.save(const WebDavSyncConfig(
-          baseUrl: 'http://dav.example.com/',
-          username: 'user',
-        )),
+        store.save(
+          const WebDavSyncConfig(
+            baseUrl: 'http://dav.example.com/',
+            username: 'user',
+          ),
+        ),
         throwsArgumentError,
       );
       final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getString('webdav_sync_config'), isNull,
-          reason: '非法配置不得落盘');
+      expect(prefs.getString('webdav_sync_config'), isNull, reason: '非法配置不得落盘');
     });
   });
 }

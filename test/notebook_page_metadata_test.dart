@@ -22,7 +22,9 @@ void main() {
 
     expect(restored.template, PageTemplate.meeting);
     expect(restored.favorite, isTrue);
-    expect(restored.lastOpenedAt, lastOpenedAt);
+    // G15 UTC 迁移（2026-09-07）：读侧归一为设备本地钟面（isUtc=false），
+    // 绝对时刻保持。Dart DateTime.== 同时比较 isUtc 旗标，故按瞬时断言。
+    expect(restored.lastOpenedAt!.toUtc(), lastOpenedAt);
     expect(restored.tags, ['项目', '周会']);
   });
 

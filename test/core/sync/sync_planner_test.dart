@@ -223,7 +223,9 @@ void main() {
       );
       // map 形式 value 非对象。
       expect(
-        () => SyncManifest.fromJson({'entries': {'a': 'junk'}}),
+        () => SyncManifest.fromJson({
+          'entries': {'a': 'junk'},
+        }),
         throwsFormatException,
       );
     });

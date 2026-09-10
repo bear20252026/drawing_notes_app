@@ -277,13 +277,12 @@ class _MobileHeader extends StatelessWidget {
                     children: [
                       Text(
                         _tabs[i],
-                        style: AppleType.controlStyle(
-                          selected ? accent : muted,
-                        ).copyWith(
-                          fontWeight: selected
-                              ? FontWeight.w600
-                              : FontWeight.w400,
-                        ),
+                        style: AppleType.controlStyle(selected ? accent : muted)
+                            .copyWith(
+                              fontWeight: selected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            ),
                       ),
                       const SizedBox(height: 3),
                       Container(

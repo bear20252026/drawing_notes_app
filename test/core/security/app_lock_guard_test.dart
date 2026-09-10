@@ -15,19 +15,7 @@ import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 
-/// 可手动推进的假时钟（起点取真实当前时间，保证高于任何真实系统时间
-/// 之外的干扰——trustedNow 取 max，假时钟必须占主导）。
-class FakeClock {
-  FakeClock(DateTime start) : ms = start.millisecondsSinceEpoch;
-  int ms;
-  DateTime call() => DateTime.fromMillisecondsSinceEpoch(ms);
-
-  /// 推进 n 毫秒并返回推进后的毫秒值。
-  int advance(int milliseconds) {
-    ms += milliseconds;
-    return ms;
-  }
-}
+import '../../helpers/fake_clock.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

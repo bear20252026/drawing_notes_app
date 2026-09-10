@@ -187,10 +187,7 @@ class _PinPadCoreState extends State<PinPadCore>
               child: Column(
                 children: [
                   const Spacer(flex: 3),
-                  Text(
-                    widget.title,
-                    style: AppleType.titleStyle(Colors.white),
-                  ),
+                  Text(widget.title, style: AppleType.titleStyle(Colors.white)),
                   const SizedBox(height: 20),
                   AnimatedBuilder(
                     animation: _shake,
@@ -376,13 +373,14 @@ class _PinPadCoreState extends State<PinPadCore>
               bottom: 10,
               child: Text(
                 letters ?? '',
-                style: AppleType.captionStyle(
-                  Colors.white.withValues(alpha: 0.92),
-                ).copyWith(
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 2.5,
-                  height: 1,
-                ),
+                style:
+                    AppleType.captionStyle(
+                      Colors.white.withValues(alpha: 0.92),
+                    ).copyWith(
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 2.5,
+                      height: 1,
+                    ),
               ),
             ),
           ],

@@ -10,6 +10,7 @@ import 'package:drawing_notes_app/core/storage/document_codec.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
+import 'package:drawing_notes_app/core/utils/time_serialization.dart';
 
 part 'storage_service_file_password.dart';
 
@@ -698,12 +699,8 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
             title: doc['title'] as String? ?? '未命名',
             width: (doc['width'] as num?)?.toInt() ?? 2048,
             height: (doc['height'] as num?)?.toInt() ?? 1536,
-            createdAt:
-                DateTime.tryParse(doc['createdAt'] as String? ?? '') ??
-                DateTime.now(),
-            updatedAt:
-                DateTime.tryParse(doc['updatedAt'] as String? ?? '') ??
-                DateTime.now(),
+            createdAt: timeFromIso(doc['createdAt']),
+            updatedAt: timeFromIso(doc['updatedAt']),
             layerCount: (doc['layers'] as List? ?? const []).length,
             strokeCount: _countStrokes(
               (doc['layers'] as List? ?? const []).cast<Map<String, Object?>>(),
@@ -750,7 +747,8 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
   /// 后，队列中的保存又写出正式文件）。note_block_doc_store 的 _enqueue
   /// （trash 域）是同款已修模式。
   @override
-  Future<bool> delete(String id) => _runDocExclusive(id, () => _deleteLocked(id));
+  Future<bool> delete(String id) =>
+      _runDocExclusive(id, () => _deleteLocked(id));
 
   Future<bool> _deleteLocked(String id) async {
     await _ensureDocumentsDir();

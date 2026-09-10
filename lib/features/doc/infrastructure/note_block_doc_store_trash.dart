@@ -61,7 +61,7 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
     final metaFile = File('$trashFile.meta.json');
     final metaTmp = File('$trashFile.meta.tmp');
     await metaTmp.writeAsString(
-      jsonEncode({'deletedAt': DateTime.now().toIso8601String()}),
+      jsonEncode({'deletedAt': timeToIso(DateTime.now())}),
       flush: true,
     );
     await metaTmp.rename(metaFile.path);
@@ -74,7 +74,7 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
       final tmp = File('$trashFile.tmp');
       await tmp.writeAsString(
         jsonEncode({
-          'deletedAt': DateTime.now().toIso8601String(),
+          'deletedAt': timeToIso(DateTime.now()),
           'document': doc.toJson(),
         }),
         flush: true,
@@ -149,14 +149,14 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
           if (decoded is Map<String, dynamic>) {
             final value = decoded['deletedAt'];
             if (value is String) {
-              final parsed = DateTime.tryParse(value);
+              final parsed = timeFromIsoOrNull(value);
               if (parsed != null) return parsed;
             }
           }
         } on FormatException {
           // 非 JSON 内容——落到整串 tryParse（裸 ISO 串兼容）。
         }
-        final parsed = DateTime.tryParse(raw);
+        final parsed = timeFromIsoOrNull(raw);
         if (parsed != null) return parsed;
       } catch (_) {
         // meta 读取失败——回退 mtime。
@@ -181,9 +181,7 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
       if (decoded is! Map<String, dynamic>) return null;
       final docRaw = decoded['document'];
       if (docRaw is Map<String, dynamic>) {
-        final deletedAt = DateTime.tryParse(
-          decoded['deletedAt'] as String? ?? '',
-        );
+        final deletedAt = timeFromIsoOrNull(decoded['deletedAt']);
         if (deletedAt == null) return null;
         return (doc: NoteBlockDoc.fromJson(docRaw), deletedAt: deletedAt);
       }

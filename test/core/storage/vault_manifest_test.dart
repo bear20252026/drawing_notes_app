@@ -24,10 +24,12 @@ VaultManifestEntry _entry({
 void main() {
   group('序列化往返', () {
     test('encode→decode 保留全部条目字段', () {
-      final manifest = VaultManifest(entries: [
-        _entry(id: 'obj_a', version: 3),
-        _entry(id: 'obj_b', version: 7, type: 'page'),
-      ]);
+      final manifest = VaultManifest(
+        entries: [
+          _entry(id: 'obj_a', version: 3),
+          _entry(id: 'obj_b', version: 7, type: 'page'),
+        ],
+      );
 
       final decoded = VaultManifest.decode(manifest.encode());
 
@@ -37,7 +39,7 @@ void main() {
       expect(a.version, 3);
       expect(a.size, 128);
       expect(a.aad, 'app|doc|obj_a|3');
-      expect(a.modified, DateTime.utc(2026, 9, 1, 12, 30));
+      expect(a.modified.toUtc(), DateTime.utc(2026, 9, 1, 12, 30));
       expect(decoded.find('obj_b')!.type, 'page');
     });
 
@@ -57,16 +59,18 @@ void main() {
       // AAD 上下文随之重绑（防拼接/重排——NIST SP 800-38D）。
       var manifest = VaultManifest(entries: [_entry(id: 'obj_a', version: 1)]);
       for (var v = 2; v <= 3; v++) {
-        final next = VaultManifest(entries: [
-          VaultManifestEntry(
-            id: 'obj_a',
-            type: 'doc',
-            version: v,
-            size: 128,
-            aad: 'app|doc|obj_a|$v',
-            modified: DateTime.utc(2026, 9, 1, 12, 30),
-          ),
-        ]);
+        final next = VaultManifest(
+          entries: [
+            VaultManifestEntry(
+              id: 'obj_a',
+              type: 'doc',
+              version: v,
+              size: 128,
+              aad: 'app|doc|obj_a|$v',
+              modified: DateTime.utc(2026, 9, 1, 12, 30),
+            ),
+          ],
+        );
         manifest = VaultManifest.decode(next.encode());
         expect(manifest.find('obj_a')!.version, v);
         expect(manifest.find('obj_a')!.aad, 'app|doc|obj_a|$v');
@@ -84,10 +88,7 @@ void main() {
   group('版本门禁', () {
     test('缺失 format 字段被拒绝（FormatException）', () {
       const raw = '{"entries":[]}';
-      expect(
-        () => VaultManifest.decode(raw),
-        throwsA(isA<FormatException>()),
-      );
+      expect(() => VaultManifest.decode(raw), throwsA(isA<FormatException>()));
     });
 
     test('未来版本（format=2）被拒绝，本版本（format=1）接受', () {

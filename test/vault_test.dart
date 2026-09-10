@@ -180,4 +180,152 @@ void main() {
       throwsA(anyOf(isA<AssertionError>(), isA<StateError>())),
     );
   });
+
+  test('VFS 生命周期：vacuum 保留新版本、删旧物理对象、旧版仍可回溯', () async {
+    final vault = EncryptedVault(directory: tempDir, key: key);
+    for (final v in ['v1', 'v2', 'v3', 'v4']) {
+      await vault.writeObject(
+        id: 'doc',
+        type: 'note',
+        plain: Uint8List.fromList(v.codeUnits),
+      );
+    }
+    expect((await vault.listObjects()).first.version, 4);
+
+    // retention=2：保留版本 3、4，删除版本 1、2。
+    final result = await vault.vacuum(retention: 2);
+    expect(result.removed, 2);
+    expect(result.failed, 0);
+    expect(result.retained, 2);
+
+    // 保留版本仍可读（4 最新、3 旧版可回溯）。
+    expect(String.fromCharCodes(await vault.readObject('doc')), 'v4');
+    expect(
+      String.fromCharCodes(await vault.readObject('doc', version: 3)),
+      'v3',
+    );
+
+    // 物理文件：v1/v2 已删，v3/v4 仍在。
+    expect(File('${tempDir.path}/objects/doc.1').existsSync(), isFalse);
+    expect(File('${tempDir.path}/objects/doc.2').existsSync(), isFalse);
+    expect(File('${tempDir.path}/objects/doc.3').existsSync(), isTrue);
+    expect(File('${tempDir.path}/objects/doc.4').existsSync(), isTrue);
+  });
+
+  test('VFS 生命周期：被删旧版本读取明确失败（StateError，非静默/回退）', () async {
+    final vault = EncryptedVault(directory: tempDir, key: key);
+    await vault.writeObject(
+      id: 'doc',
+      type: 'note',
+      plain: Uint8List.fromList('v1'.codeUnits),
+    );
+    await vault.writeObject(
+      id: 'doc',
+      type: 'note',
+      plain: Uint8List.fromList('v2'.codeUnits),
+    );
+    await vault.writeObject(
+      id: 'doc',
+      type: 'note',
+      plain: Uint8List.fromList('v3'.codeUnits),
+    );
+    await vault.vacuum(retention: 2); // 删除 v1。
+    // 被删版本读取 → 明确失败（对象文件缺失）。
+    await expectLater(vault.readObject('doc', version: 1), throwsStateError);
+    // 最新版本不受影响。
+    expect(String.fromCharCodes(await vault.readObject('doc')), 'v3');
+  });
+
+  test('VFS 生命周期：空/非法 retention 拒绝（<1 抛 ArgumentError）', () async {
+    final vault = EncryptedVault(directory: tempDir, key: key);
+    await vault.writeObject(
+      id: 'doc',
+      type: 'note',
+      plain: Uint8List.fromList('v'.codeUnits),
+    );
+    for (final bad in [0, -1, -100]) {
+      await expectLater(
+        vault.vacuum(retention: bad),
+        throwsA(isA<ArgumentError>()),
+        reason: 'retention=$bad',
+      );
+    }
+    // 拒绝时无副作用——对象文件仍在、最新版可读。
+    expect(File('${tempDir.path}/objects/doc.1').existsSync(), isTrue);
+    expect(String.fromCharCodes(await vault.readObject('doc')), 'v');
+  });
+
+  test('VFS 生命周期：清单更新失败失败安全——中止删除、旧版本保留', () async {
+    // 注入"清单提交失败"（抛错），验证不删除任何对象文件。
+    final vault = EncryptedVault(
+      directory: tempDir,
+      key: key,
+      vacuumCommitBarrier: () async {
+        throw StateError('模拟清单更新失败');
+      },
+    );
+    for (final v in ['v1', 'v2', 'v3']) {
+      await vault.writeObject(
+        id: 'doc',
+        type: 'note',
+        plain: Uint8List.fromList(v.codeUnits),
+      );
+    }
+    await expectLater(vault.vacuum(retention: 1), throwsStateError);
+    // 失败安全：v1/v2（本应被删）仍存在且可回溯。
+    expect(File('${tempDir.path}/objects/doc.1').existsSync(), isTrue);
+    expect(File('${tempDir.path}/objects/doc.2').existsSync(), isTrue);
+    expect(
+      String.fromCharCodes(await vault.readObject('doc', version: 1)),
+      'v1',
+    );
+    expect(
+      String.fromCharCodes(await vault.readObject('doc', version: 2)),
+      'v2',
+    );
+  });
+
+  test('VFS 生命周期：孤儿扫描/清理不动合法历史版本，且不自动触发', () async {
+    final vault = EncryptedVault(directory: tempDir, key: key);
+    // 写对象两次 → doc.1（合法旧版）、doc.2（最新）。
+    await vault.writeObject(
+      id: 'doc',
+      type: 'note',
+      plain: Uint8List.fromList('v1'.codeUnits),
+    );
+    await vault.writeObject(
+      id: 'doc',
+      type: 'note',
+      plain: Uint8List.fromList('v2'.codeUnits),
+    );
+
+    // 手工制造孤儿：无清单条目对象、超出版本的残留、临时文件。
+    // 子路径孤儿（media/x.1）需先建子目录。
+    await Directory('${tempDir.path}/objects').create(recursive: true);
+    await Directory('${tempDir.path}/objects/media').create(recursive: true);
+    for (final orphan in ['orphan-a.5', 'media/x.1', 'doc.9']) {
+      await File('${tempDir.path}/objects/$orphan').writeAsString('junk');
+    }
+    await File(
+      '${tempDir.path}/objects/doc.1.tmp.123.abc',
+    ).writeAsString('junk');
+
+    // 普通 writeObject 路径不触发清理（孤儿仍保留）。
+    final orphansBefore = await vault.scanOrphans();
+    expect(orphansBefore, containsAll(['orphan-a.5', 'media/x.1', 'doc.9']));
+    expect(orphansBefore, contains('doc.1.tmp.123.abc'));
+    // 合法历史版本 doc.1 不被判为孤儿。
+    expect(orphansBefore, isNot(contains('doc.1')));
+
+    // purgeOrphans 显式删除孤儿；doc.1 保留、可回溯。
+    final removed = await vault.purgeOrphans();
+    expect(removed, hasLength(orphansBefore.length));
+    expect(await vault.scanOrphans(), isEmpty);
+    expect(File('${tempDir.path}/objects/doc.1').existsSync(), isTrue);
+    expect(
+      String.fromCharCodes(await vault.readObject('doc', version: 1)),
+      'v1',
+    );
+    expect(String.fromCharCodes(await vault.readObject('doc')), 'v2');
+  });
 }

@@ -62,7 +62,22 @@ extension StorageServiceFilePassword on StorageService {
   /// 已设密时抛 [StateError]（走 [changeFilePassword]）。
   /// [resetDiskKey] 非空时同时嵌入重置盘槽位（设密时插盘绑定——LUKS
   /// 同款：U 盘钥匙不在设备上，错过本次可事后走 [bindFileUsbSlot]）。
+  ///
+  /// E-17 同步（审计 2026-09-07）：重封落盘挂入该文档的 per-document
+  /// 独占队列（[_runDocExclusive]）——与在途保存/删除交错时按请求顺序
+  /// 执行，且保证在队列中重新读取最新已落盘明文后再重封（非陈旧快照）。
   Future<void> setFilePassword(
+    String id,
+    String password, {
+    List<int>? resetDiskKey,
+  }) {
+    return _runDocExclusive(
+      id,
+      () => _setFilePasswordLocked(id, password, resetDiskKey: resetDiskKey),
+    );
+  }
+
+  Future<void> _setFilePasswordLocked(
     String id,
     String password, {
     List<int>? resetDiskKey,
@@ -120,7 +135,21 @@ extension StorageServiceFilePassword on StorageService {
   ///
   /// N4 批 2：v2 旧文件自动升级为 v3（引入 DEK，暂无重置盘槽位——可
   /// 事后绑定）；v3 文件 DEK 与重置盘槽位原样保留（改密≠换钥匙）。
+  ///
+  /// E-17 同步（审计 2026-09-07）：重封落盘挂入 per-document 独占队列，
+  /// 与在途保存/删除交错时按请求顺序执行（重新读取最新文件再重封）。
   Future<void> changeFilePassword(
+    String id,
+    String oldPassword,
+    String newPassword,
+  ) {
+    return _runDocExclusive(
+      id,
+      () => _changeFilePasswordLocked(id, oldPassword, newPassword),
+    );
+  }
+
+  Future<void> _changeFilePasswordLocked(
     String id,
     String oldPassword,
     String newPassword,
@@ -182,7 +211,17 @@ extension StorageServiceFilePassword on StorageService {
 
   /// 绑定重置密码盘到已设密文档（事后绑定通道；须验证文件密码）。
   /// 已绑定 / 非 v3 信封抛 [StateError]；密码错误抛 [VaultFileException]。
-  Future<void> bindFileUsbSlot(
+  ///
+  /// E-17 同步（审计 2026-09-07）：重封落盘挂入 per-document 独占队列
+  /// （避免与在途保存交错的陈旧读取/覆盖）。
+  Future<void> bindFileUsbSlot(String id, String password, List<int> usbKey) {
+    return _runDocExclusive(
+      id,
+      () => _bindFileUsbSlotLocked(id, password, usbKey),
+    );
+  }
+
+  Future<void> _bindFileUsbSlotLocked(
     String id,
     String password,
     List<int> usbKey,
@@ -229,7 +268,20 @@ extension StorageServiceFilePassword on StorageService {
   /// USB 钥匙解出 DEK → 新盐重绕密码槽（载荷密文与重置盘槽位原样保留，
   /// LUKS 同款）。**不需要旧密码**；成功后会话已缓存新密码（可直接打开）。
   /// 非密码信封 / 未绑定重置盘 / 盘不匹配 → 返回 false（fail-closed）。
+  ///
+  /// E-17 同步（审计 2026-09-07）：重封落盘挂入 per-document 独占队列。
   Future<bool> resetFilePasswordWithUsb(
+    String id,
+    List<int> usbKey,
+    String newPassword,
+  ) {
+    return _runDocExclusive(
+      id,
+      () => _resetFilePasswordWithUsbLocked(id, usbKey, newPassword),
+    );
+  }
+
+  Future<bool> _resetFilePasswordWithUsbLocked(
     String id,
     List<int> usbKey,
     String newPassword,
@@ -263,7 +315,14 @@ extension StorageServiceFilePassword on StorageService {
 
   /// 移除文件密码：回封为 v1 主密钥信封（应用锁未解锁时拒绝——
   /// 明文落盘不可接受，fail-closed）。密码错误抛 [VaultFileException]。
-  Future<void> removeFilePassword(String id, String password) async {
+  ///
+  /// E-17 同步（审计 2026-09-07）：回封落盘挂入 per-document 独占队列，
+  /// 避免与在途保存交错的陈旧读取/覆盖。
+  Future<void> removeFilePassword(String id, String password) {
+    return _runDocExclusive(id, () => _removeFilePasswordLocked(id, password));
+  }
+
+  Future<void> _removeFilePasswordLocked(String id, String password) async {
     final raw = await _readCurrentRaw(id);
     if (raw == null || !VaultFileCodec.isPasswordEnvelope(raw)) {
       throw StateError('该文档未设置文件密码');

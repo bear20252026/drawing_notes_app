@@ -21,10 +21,7 @@ class _AwareHomeState extends State<_AwareHome>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    SyncFix.routeObserver.subscribe(
-      this,
-      ModalRoute.of(context)! as PageRoute,
-    );
+    SyncFix.routeObserver.subscribe(this, ModalRoute.of(context)! as PageRoute);
   }
 
   @override
@@ -42,8 +39,7 @@ class _AwareHomeState extends State<_AwareHome>
 
 void main() {
   group('SyncFix.notifyDataChanged（表驱动）', () {
-    test('null 回调：不抛错、不调用（未装配 bumpDataVersion 的窗口期安全）',
-        () {
+    test('null 回调：不抛错、不调用（未装配 bumpDataVersion 的窗口期安全）', () {
       expect(() => SyncFix.notifyDataChanged(null), returnsNormally);
     });
 
@@ -94,17 +90,19 @@ void main() {
   group('SyncFixRouteAware 集成（真实路由栈）', () {
     testWidgets('被覆盖不刷新，pop 返回时刷新恰好一次', (tester) async {
       var visibleAgain = 0;
-      await tester.pumpWidget(MaterialApp(
-        navigatorObservers: [SyncFix.routeObserver],
-        home: _AwareHome(onVisibleAgain: () => visibleAgain++),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorObservers: [SyncFix.routeObserver],
+          home: _AwareHome(onVisibleAgain: () => visibleAgain++),
+        ),
+      );
 
       expect(visibleAgain, 0, reason: '首帧渲染不触发刷新');
 
       final context = tester.element(find.byType(_AwareHome));
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const Scaffold()),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => const Scaffold()));
       await tester.pumpAndSettle();
 
       expect(visibleAgain, 0, reason: 'didPushNext（被覆盖）不触发刷新');

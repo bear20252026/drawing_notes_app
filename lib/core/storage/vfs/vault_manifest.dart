@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:drawing_notes_app/core/utils/time_serialization.dart';
+
 /// VFS 加密对象清单（专家目标架构 VFS——2026-08-16）。
 ///
 /// AeroVault V3 manifest 模式：加密清单描述对象条目（id/type/version/
@@ -28,7 +30,7 @@ class VaultManifestEntry {
     'version': version,
     'size': size,
     'aad': aad,
-    'modified': modified.toIso8601String(),
+    'modified': timeToIso(modified),
   };
 
   factory VaultManifestEntry.fromJson(Map<String, dynamic> json) =>
@@ -38,9 +40,7 @@ class VaultManifestEntry {
         version: json['version'] as int,
         size: json['size'] as int,
         aad: json['aad'] as String,
-        modified:
-            DateTime.tryParse(json['modified'] as String? ?? '') ??
-            DateTime.now(),
+        modified: timeFromIso(json['modified']),
       );
 }
 
@@ -81,4 +81,27 @@ class VaultManifest {
 
   static VaultManifest decode(String text) =>
       VaultManifest.fromJson(jsonDecode(text) as Map<String, dynamic>);
+}
+
+/// 生命周期整理（vacuum/compact）结果。
+///
+/// [removed] 成功删除的旧物理对象文件数；[failed] 删除失败（尽力而为，
+/// 失败文件保留仍可回溯，不致命）的文件数；[retained] 整理后仍保留的
+/// 版本文件数（含最新与保留档内的旧版本）。
+class VaultVacuumResult {
+  const VaultVacuumResult({
+    required this.removed,
+    required this.failed,
+    required this.retained,
+  });
+
+  final int removed;
+  final int failed;
+  final int retained;
+
+  Map<String, dynamic> toJson() => {
+    'removed': removed,
+    'failed': failed,
+    'retained': retained,
+  };
 }

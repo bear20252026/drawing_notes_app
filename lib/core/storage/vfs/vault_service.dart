@@ -79,4 +79,15 @@ class VaultService {
 
   /// 对象清单（当前版本/大小/AAD 上下文）。
   Future<List<VaultManifestEntry>> listObjects() => _vault.listObjects();
+
+  /// 生命周期整理（vacuum/compact）：显式调用才压缩旧版本（保留最新
+  /// [retention] 个版本，须 >= 1）。不调用则默认保留全部历史版本可回溯。
+  Future<VaultVacuumResult> vacuum({int retention = 3}) =>
+      _vault.vacuum(retention: retention);
+
+  /// 扫描孤儿对象文件（只读，不删除）。
+  Future<List<String>> scanOrphans() => _vault.scanOrphans();
+
+  /// 删除孤儿对象文件（显式调用才触发，绝不自动执行）。
+  Future<List<String>> purgeOrphans() => _vault.purgeOrphans();
 }

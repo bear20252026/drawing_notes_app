@@ -8,6 +8,7 @@ import 'package:drawing_notes_app/core/canvas_model/document_image_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/layer.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
+import 'package:drawing_notes_app/core/utils/time_serialization.dart';
 
 /// 文档编解码器：DrawingDocument <-> JSON 字符串（工程文件格式）。
 ///
@@ -52,8 +53,8 @@ class DocumentCodec {
         'infinite': doc.infinite,
         'paperType': doc.paperType.name,
         'folder': doc.folder,
-        'createdAt': doc.createdAt.toIso8601String(),
-        'updatedAt': doc.updatedAt.toIso8601String(),
+        'createdAt': timeToIso(doc.createdAt),
+        'updatedAt': timeToIso(doc.updatedAt),
         'layers': doc.layers.map((l) => l.toJson()).toList(),
         'shapes': doc.shapes.map((shape) => shape.toJson()).toList(),
         'imageItems': doc.imageItems.map((item) => item.toJson()).toList(),
@@ -147,12 +148,8 @@ class DocumentCodec {
       layers: _restoreLayers(document['layers']),
       shapes: _restoreShapes(document['shapes']),
       imageItems: _restoreImageItems(document['imageItems']),
-      createdAt:
-          DateTime.tryParse(document['createdAt'] as String? ?? '') ??
-          DateTime.now(),
-      updatedAt:
-          DateTime.tryParse(document['updatedAt'] as String? ?? '') ??
-          DateTime.now(),
+      createdAt: timeFromIso(document['createdAt']),
+      updatedAt: timeFromIso(document['updatedAt']),
     );
   }
 

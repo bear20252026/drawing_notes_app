@@ -209,9 +209,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: [
-                  for (var i = 0; i <= 5; i++) _shadeDot(i),
-                ],
+                children: [for (var i = 0; i <= 5; i++) _shadeDot(i)],
               ),
               // 最近使用色（对齐 Excalidraw CustomColorList）
               if (_recentColors.isNotEmpty) ...[

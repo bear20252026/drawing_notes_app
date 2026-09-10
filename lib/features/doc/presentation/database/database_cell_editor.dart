@@ -110,10 +110,7 @@ class DatabaseCountPill extends StatelessWidget {
         color: scheme.primaryContainer,
         borderRadius: BorderRadius.circular(AppleRadius.md),
       ),
-      child: Text(
-        '$count 条记录',
-        style: AppleType.captionStyle(scheme.primary),
-      ),
+      child: Text('$count 条记录', style: AppleType.captionStyle(scheme.primary)),
     );
   }
 }

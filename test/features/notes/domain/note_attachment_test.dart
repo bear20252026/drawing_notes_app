@@ -113,7 +113,7 @@ void main() {
       );
       final back = NoteAttachment.fromJson(a.toJson());
       expect(back, a);
-      expect(back.createdAt, DateTime.utc(2026, 1, 2));
+      expect(back.createdAt.toUtc(), DateTime.utc(2026, 1, 2));
     });
 
     test('相等性', () {

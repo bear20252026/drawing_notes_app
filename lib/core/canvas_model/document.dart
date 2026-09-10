@@ -2,6 +2,7 @@ import 'dart:ui' show Size;
 
 import 'package:drawing_notes_app/core/canvas_model/document_image_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/layer.dart';
+import 'package:drawing_notes_app/core/utils/time_serialization.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 
@@ -99,8 +100,8 @@ class DrawingDocument {
     'infinite': infinite,
     'paperType': paperType.name,
     'folder': folder,
-    'createdAt': createdAt.toIso8601String(),
-    'updatedAt': updatedAt.toIso8601String(),
+    'createdAt': timeToIso(createdAt),
+    'updatedAt': timeToIso(updatedAt),
     'layers': layers.map((l) => l.toJson()).toList(),
     'shapes': shapes.map((shape) => shape.toJson()).toList(),
     'imageItems': imageItems.map((item) => item.toJson()).toList(),
@@ -108,34 +109,31 @@ class DrawingDocument {
       'textItems': textItems.map((item) => item.toJson()).toList(),
   };
 
-  factory DrawingDocument.fromJson(
-    Map<String, dynamic> json,
-  ) => DrawingDocument(
-    id: json['id'] as String,
-    title: json['title'] as String? ?? '未命名',
-    width: (json['width'] as num?)?.toInt() ?? 2048,
-    height: (json['height'] as num?)?.toInt() ?? 1536,
-    infinite: json['infinite'] as bool? ?? false,
-    paperType: PaperType.values.firstWhere(
-      (p) => p.name == json['paperType'],
-      orElse: () => PaperType.blank,
-    ),
-    folder: json['folder'] as String? ?? '',
-    layers: (json['layers'] as List? ?? const [])
-        .map((e) => Layer.fromJson(e as Map<String, dynamic>))
-        .toList(),
-    shapes: (json['shapes'] as List? ?? const [])
-        .map((e) => PageShapeItem.fromJson(e as Map<String, dynamic>))
-        .toList(),
-    imageItems: (json['imageItems'] as List? ?? const [])
-        .map((e) => DocumentImageItem.fromJson(e as Map<String, dynamic>))
-        .toList(),
-    textItems: (json['textItems'] as List? ?? const [])
-        .map((e) => PageTextItem.fromJson(e as Map<String, dynamic>))
-        .toList(),
-    createdAt:
-        DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
-    updatedAt:
-        DateTime.tryParse(json['updatedAt'] as String? ?? '') ?? DateTime.now(),
-  );
+  factory DrawingDocument.fromJson(Map<String, dynamic> json) =>
+      DrawingDocument(
+        id: json['id'] as String,
+        title: json['title'] as String? ?? '未命名',
+        width: (json['width'] as num?)?.toInt() ?? 2048,
+        height: (json['height'] as num?)?.toInt() ?? 1536,
+        infinite: json['infinite'] as bool? ?? false,
+        paperType: PaperType.values.firstWhere(
+          (p) => p.name == json['paperType'],
+          orElse: () => PaperType.blank,
+        ),
+        folder: json['folder'] as String? ?? '',
+        layers: (json['layers'] as List? ?? const [])
+            .map((e) => Layer.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        shapes: (json['shapes'] as List? ?? const [])
+            .map((e) => PageShapeItem.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        imageItems: (json['imageItems'] as List? ?? const [])
+            .map((e) => DocumentImageItem.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        textItems: (json['textItems'] as List? ?? const [])
+            .map((e) => PageTextItem.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        createdAt: timeFromIso(json['createdAt']),
+        updatedAt: timeFromIso(json['updatedAt']),
+      );
 }

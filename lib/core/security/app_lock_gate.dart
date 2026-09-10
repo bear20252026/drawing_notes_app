@@ -450,9 +450,9 @@ class _CooldownViewState extends State<_CooldownView> {
                 // 19 无档位：titleStyle 基底 + copyWith 保留原字号。
                 Text(
                   '尝试次数过多',
-                  style: AppleType.titleStyle(Colors.white).copyWith(
-                    fontSize: 19,
-                  ),
+                  style: AppleType.titleStyle(
+                    Colors.white,
+                  ).copyWith(fontSize: 19),
                 ),
                 const SizedBox(height: 10),
                 _RemainingText(service: widget.service, tick: _tick),

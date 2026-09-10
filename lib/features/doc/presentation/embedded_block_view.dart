@@ -198,12 +198,13 @@ class EmbeddedBlockView extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               caption,
-              style: AppleType.controlStyle(
-                Theme.of(context).colorScheme.outline,
-              ).copyWith(
-                fontWeight: FontWeight.w400,
-                fontStyle: FontStyle.italic,
-              ),
+              style:
+                  AppleType.controlStyle(
+                    Theme.of(context).colorScheme.outline,
+                  ).copyWith(
+                    fontWeight: FontWeight.w400,
+                    fontStyle: FontStyle.italic,
+                  ),
             ),
           ],
         ],
@@ -270,12 +271,13 @@ class EmbeddedBlockView extends StatelessWidget {
                       // 2.41 是页脚密集链接栈专用，不适用），故保留 15px：
                       // 以 bodyStyle 令牌为基（17/1.47/-0.374），
                       // 仅字号覆写回 15，行高与字距承接正文梯子。
-                      style: AppleType.bodyStyle(
-                        Theme.of(context).colorScheme.primary,
-                      ).copyWith(
-                        fontSize: 15,
-                        decoration: TextDecoration.underline,
-                      ),
+                      style:
+                          AppleType.bodyStyle(
+                            Theme.of(context).colorScheme.primary,
+                          ).copyWith(
+                            fontSize: 15,
+                            decoration: TextDecoration.underline,
+                          ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -412,9 +414,7 @@ class EmbeddedBlockView extends StatelessWidget {
               Text(
                 caption,
                 style: AppleType.captionStyle(
-                  Theme.of(
-                    context,
-                  ).colorScheme.outline.withValues(alpha: 0.7),
+                  Theme.of(context).colorScheme.outline.withValues(alpha: 0.7),
                 ),
               ),
             ],

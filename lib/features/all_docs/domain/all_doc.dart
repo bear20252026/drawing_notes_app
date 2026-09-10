@@ -167,8 +167,8 @@ class AllDoc {
           title == other.title &&
           kind == other.kind &&
           folder == other.folder &&
-          createdAt == other.createdAt &&
-          updatedAt == other.updatedAt &&
+          createdAt.isAtSameMomentAs(other.createdAt) &&
+          updatedAt.isAtSameMomentAs(other.updatedAt) &&
           description == other.description &&
           isFavorite == other.isFavorite &&
           notebookId == other.notebookId &&
@@ -182,8 +182,8 @@ class AllDoc {
     title,
     kind,
     folder,
-    createdAt,
-    updatedAt,
+    createdAt.millisecondsSinceEpoch,
+    updatedAt.millisecondsSinceEpoch,
     description,
     isFavorite,
     notebookId,

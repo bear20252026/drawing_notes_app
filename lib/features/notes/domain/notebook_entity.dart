@@ -1,3 +1,4 @@
+import 'package:drawing_notes_app/core/utils/time_serialization.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_page.dart';
 
 /// 笔记本加密模式。
@@ -70,8 +71,8 @@ class Notebook {
     'encryptionMode': encryptionMode.name,
     if (encryptedPayload != null) 'encryptedPayload': encryptedPayload,
     if (searchSummary.isNotEmpty) 'searchSummary': searchSummary,
-    'createdAt': createdAt.toIso8601String(),
-    'updatedAt': updatedAt.toIso8601String(),
+    'createdAt': timeToIso(createdAt),
+    'updatedAt': timeToIso(updatedAt),
   };
 
   factory Notebook.fromJson(Map<String, dynamic> json) => Notebook(
@@ -87,9 +88,7 @@ class Notebook {
     ),
     encryptedPayload: json['encryptedPayload'] as String?,
     searchSummary: json['searchSummary'] as String? ?? '',
-    createdAt:
-        DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
-    updatedAt:
-        DateTime.tryParse(json['updatedAt'] as String? ?? '') ?? DateTime.now(),
+    createdAt: timeFromIso(json['createdAt']),
+    updatedAt: timeFromIso(json['updatedAt']),
   );
 }

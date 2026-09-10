@@ -411,10 +411,7 @@ class _NameDialogState extends State<_NameDialog> {
           ),
           focusedBorder: const OutlineInputBorder(
             // 键盘焦点环：Focus Blue + 2px 实线（DESIGN.md:300、440）。
-            borderSide: BorderSide(
-              color: AppleColor.focusBlue,
-              width: 2,
-            ),
+            borderSide: BorderSide(color: AppleColor.focusBlue, width: 2),
           ),
         ),
         onSubmitted: (v) => Navigator.of(context).pop(v),

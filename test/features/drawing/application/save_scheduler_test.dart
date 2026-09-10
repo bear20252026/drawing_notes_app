@@ -5,12 +5,7 @@ import 'package:drawing_notes_app/core/saving/save_schedule_decision.dart';
 import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 可控假时钟：测试中手动推进时间。
-class _FakeClock {
-  DateTime _now = DateTime(2026, 1, 1, 8, 0, 0);
-  DateTime call() => _now;
-  void advance(Duration d) => _now = _now.add(d);
-}
+import '../../../helpers/fake_clock.dart';
 
 /// 可控假定时器：记录调度，测试中手动触发回调。
 class _TestTimer implements SaveTimerHandle {
@@ -64,7 +59,7 @@ class _SaveProbe {
 }
 
 void main() {
-  late _FakeClock clock;
+  late FakeClock clock;
   late _TimerBoard board;
   late _SaveProbe save;
   late SaveScheduler scheduler;
@@ -75,7 +70,7 @@ void main() {
     Duration debounce = const Duration(milliseconds: 800),
     SaveFailurePolicy? failurePolicy,
   }) {
-    clock = _FakeClock();
+    clock = FakeClock();
     board = _TimerBoard();
     save = _SaveProbe();
     savedEvents.clear();
@@ -131,7 +126,7 @@ void main() {
     expect(scheduler.isDirty, isFalse);
 
     // 时钟仅前进 200ms（< 800ms），再次变更。
-    clock.advance(const Duration(milliseconds: 200));
+    clock.advanceBy(const Duration(milliseconds: 200));
     scheduler.markDirty();
     board.fireLast();
     await Future<void>.delayed(Duration.zero);
@@ -140,7 +135,7 @@ void main() {
     expect(board.pending(), hasLength(1), reason: 'defer 后留一个待执行的定时器');
 
     // 时钟再前进 800ms，触发落盘。
-    clock.advance(const Duration(milliseconds: 800));
+    clock.advanceBy(const Duration(milliseconds: 800));
     board.pending().single.fire();
     await Future<void>.delayed(Duration.zero);
     expect(save.calls, 2);

@@ -60,16 +60,20 @@ void main() {
 
   test('listDocuments：返回全部元信息，按更新时间倒序', () async {
     final repo = makeRepo();
-    await repo.save(DrawingDocument(
-      id: 'older',
-      title: '较早',
-      updatedAt: DateTime(2026, 1, 1),
-    ));
-    await repo.save(DrawingDocument(
-      id: 'newer',
-      title: '较新',
-      updatedAt: DateTime(2026, 9, 1),
-    ));
+    await repo.save(
+      DrawingDocument(
+        id: 'older',
+        title: '较早',
+        updatedAt: DateTime(2026, 1, 1),
+      ),
+    );
+    await repo.save(
+      DrawingDocument(
+        id: 'newer',
+        title: '较新',
+        updatedAt: DateTime(2026, 9, 1),
+      ),
+    );
 
     final metas = await repo.listDocuments();
 

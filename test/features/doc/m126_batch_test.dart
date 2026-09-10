@@ -136,7 +136,9 @@ void main() {
         '${Platform.pathSeparator}mtime1.json.meta.json',
       );
       expect(await meta.exists(), isTrue, reason: 'sidecar meta 应已写出');
-      await meta.writeAsString(jsonEncode({'deletedAt': old.toIso8601String()}));
+      await meta.writeAsString(
+        jsonEncode({'deletedAt': old.toIso8601String()}),
+      );
       final trash = await store.listTrash();
       expect(trash, hasLength(1));
       expect(trash.single.deletedAt, old);
@@ -201,7 +203,10 @@ void main() {
       expect(await store.addTag('\u0000\u0007 \t'), isNull);
       // rename 同口径清洗。
       await store.renameTag(t1.id, ' 生\u007F活 ');
-      expect((await store.listTags()).where((t) => t.id == t1.id).single.name, '生活');
+      expect(
+        (await store.listTags()).where((t) => t.id == t1.id).single.name,
+        '生活',
+      );
     });
 
     test('D15：renameTag 拒绝改成其他标签已占用的同名', () async {
@@ -217,7 +222,10 @@ void main() {
       expect(tags.where((t) => t.id == a.id).single.name, '甲');
       // 改回自己的名字（幂等）不受影响。
       await store.renameTag(b.id, '乙');
-      expect((await store.listTags()).where((t) => t.id == b.id).single.name, '乙');
+      expect(
+        (await store.listTags()).where((t) => t.id == b.id).single.name,
+        '乙',
+      );
     });
 
     test('NoteBlockDoc.tags 序列化往返 + 旧数据兼容', () {

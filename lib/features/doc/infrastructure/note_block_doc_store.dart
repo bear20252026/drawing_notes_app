@@ -24,6 +24,7 @@ import 'package:drawing_notes_app/core/security/session_secrets.dart';
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
+import 'package:drawing_notes_app/core/utils/time_serialization.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 
 part 'note_block_doc_store_trash.dart';
@@ -276,12 +277,14 @@ class NoteBlockDocStore implements SessionSecretsHolder {
                   tags: (root['tags'] as List? ?? const [])
                       .whereType<String>()
                       .toList(),
-                  createdAt:
-                      DateTime.tryParse(root['createdAt'] as String? ?? '') ??
-                      DateTime.fromMillisecondsSinceEpoch(0),
-                  updatedAt:
-                      DateTime.tryParse(root['updatedAt'] as String? ?? '') ??
-                      DateTime.fromMillisecondsSinceEpoch(0),
+                  createdAt: timeFromIso(
+                    root['createdAt'],
+                    fallback: DateTime.fromMillisecondsSinceEpoch(0),
+                  ),
+                  updatedAt: timeFromIso(
+                    root['updatedAt'],
+                    fallback: DateTime.fromMillisecondsSinceEpoch(0),
+                  ),
                 ),
               );
               continue;
@@ -312,12 +315,14 @@ class NoteBlockDocStore implements SessionSecretsHolder {
             tags: (root['tags'] as List? ?? const [])
                 .whereType<String>()
                 .toList(),
-            createdAt:
-                DateTime.tryParse(root['createdAt'] as String? ?? '') ??
-                DateTime.fromMillisecondsSinceEpoch(0),
-            updatedAt:
-                DateTime.tryParse(root['updatedAt'] as String? ?? '') ??
-                DateTime.fromMillisecondsSinceEpoch(0),
+            createdAt: timeFromIso(
+              root['createdAt'],
+              fallback: DateTime.fromMillisecondsSinceEpoch(0),
+            ),
+            updatedAt: timeFromIso(
+              root['updatedAt'],
+              fallback: DateTime.fromMillisecondsSinceEpoch(0),
+            ),
           ),
         );
       } catch (_) {

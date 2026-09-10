@@ -172,11 +172,14 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
                       _navItems[i].label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppleType.controlStyle(
-                        selected ? accent : onSurface,
-                      ).copyWith(
-                        fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                      ),
+                      style:
+                          AppleType.controlStyle(
+                            selected ? accent : onSurface,
+                          ).copyWith(
+                            fontWeight: selected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                          ),
                     ),
                   ),
                 ],

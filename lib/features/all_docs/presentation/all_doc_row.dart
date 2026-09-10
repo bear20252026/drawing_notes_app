@@ -126,9 +126,7 @@ class AllDocRow extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         doc.description,
-                        style: AppleType.controlStyle(
-                          muted,
-                        ).copyWith(
+                        style: AppleType.controlStyle(muted).copyWith(
                           fontWeight: FontWeight.w400,
                           // DESIGN.md:506「Don't tighten line-height below
                           // 1.47 for body copy」。描述最多两行，行高拉开后
@@ -149,10 +147,7 @@ class AllDocRow extends StatelessWidget {
                 const SizedBox(width: 6),
               ],
               // 相对时间
-              Text(
-                timeLabel,
-                style: AppleType.captionStyle(subtle),
-              ),
+              Text(timeLabel, style: AppleType.captionStyle(subtle)),
               const SizedBox(width: 12),
               // D 头像圆点
               Container(
@@ -165,10 +160,9 @@ class AllDocRow extends StatelessWidget {
                 alignment: Alignment.center,
                 child: Text(
                   'D',
-                  style: AppleType.captionStyle(visual.color).copyWith(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: AppleType.captionStyle(
+                    visual.color,
+                  ).copyWith(fontSize: 10, fontWeight: FontWeight.w600),
                 ),
               ),
               const SizedBox(width: 6),

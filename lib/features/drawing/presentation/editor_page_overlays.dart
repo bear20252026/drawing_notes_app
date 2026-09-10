@@ -77,9 +77,9 @@ extension _EditorPageOverlays on _EditorPageState {
           width: w,
           height: h,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface.withValues(
-              alpha: 0.05,
-            ),
+            color: Theme.of(
+              context,
+            ).colorScheme.surface.withValues(alpha: 0.05),
             border: selected
                 ? Border.all(color: AppleColor.actionBlue, width: 1.5)
                 : null,

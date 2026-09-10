@@ -649,9 +649,9 @@ class DocEditorState extends State<DocEditor> {
       await widget.onSave!(doc);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('保存失败，请重试')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('保存失败，请重试')));
       }
       return;
     }
@@ -722,7 +722,8 @@ class DocEditorState extends State<DocEditor> {
                           ? Theme.of(context).colorScheme.primary
                           : null,
                     ),
-                    onPressed: () => setState(() => _outlineOpen = !_outlineOpen),
+                    onPressed: () =>
+                        setState(() => _outlineOpen = !_outlineOpen),
                   ),
                 ],
               ),
