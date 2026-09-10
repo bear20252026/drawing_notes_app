@@ -244,7 +244,8 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = '读取列表失败，请重试';
+        _error =
+            AppLocalizations.of(context)?.homeReadListFailed ?? '读取列表失败，请重试';
         _loading = false;
       });
     }
@@ -256,7 +257,14 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   }) {
     final builder = widget.editorPageBuilder;
     if (builder == null) {
-      return const Scaffold(body: Center(child: Text('编辑器尚未由应用层装配')));
+      return Scaffold(
+        body: Center(
+          child: Text(
+            AppLocalizations.of(context)?.shellEditorNotAssembled ??
+                '编辑器尚未由应用层装配',
+          ),
+        ),
+      );
     }
     return builder(document: document, documentStorage: documentStorage);
   }
@@ -283,26 +291,37 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     final choice = await GlassDialog.show<bool>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('新建画布'),
+        title: Text(AppLocalizations.of(context)?.docsNewCanvas ?? '新建画布'),
         children: [
           // 键盘可达：对话框打开时焦点落在首个选项上。
           Focus(
             autofocus: true,
             child: SimpleDialogOption(
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const ListTile(
-                leading: Icon(Icons.brush_rounded),
-                title: Text('新建无限画布'),
-                subtitle: Text('自由绘制、图形与关系图'),
+              child: ListTile(
+                leading: const Icon(Icons.brush_rounded),
+                title: Text(
+                  AppLocalizations.of(context)?.homeNewInfiniteCanvas ??
+                      '新建无限画布',
+                ),
+                subtitle: Text(
+                  AppLocalizations.of(context)?.homeNewInfiniteCanvasSub ??
+                      '自由绘制、图形与关系图',
+                ),
               ),
             ),
           ),
           SimpleDialogOption(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const ListTile(
-              leading: Icon(Icons.auto_stories_rounded),
-              title: Text('新建分页画布'),
-              subtitle: Text('多页装订、纸张模板与图文混排'),
+            child: ListTile(
+              leading: const Icon(Icons.auto_stories_rounded),
+              title: Text(
+                AppLocalizations.of(context)?.docsNewPagedCanvas ?? '新建分页画布',
+              ),
+              subtitle: Text(
+                AppLocalizations.of(context)?.homeNewPagedCanvasSub ??
+                    '多页装订、纸张模板与图文混排',
+              ),
             ),
           ),
         ],
@@ -320,7 +339,9 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   Future<void> _createDrawing() async {
     final name = await GlassDialog.show<String>(
       context: context,
-      builder: (ctx) => const _NameDialog(title: '新建无限画布'),
+      builder: (ctx) => _NameDialog(
+        title: AppLocalizations.of(context)?.homeNewInfiniteCanvas ?? '新建无限画布',
+      ),
     );
     if (name == null || name.trim().isEmpty) return;
 
@@ -346,7 +367,9 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   Future<void> _createNotebook() async {
     final name = await GlassDialog.show<String>(
       context: context,
-      builder: (ctx) => const _NameDialog(title: '新建分页画布'),
+      builder: (ctx) => _NameDialog(
+        title: AppLocalizations.of(context)?.docsNewPagedCanvas ?? '新建分页画布',
+      ),
     );
     if (name == null || name.trim().isEmpty) return;
     final nb = Notebook(
@@ -356,7 +379,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     try {
       await _nbStorage.save(nb);
     } catch (_) {
-      _showSnack('新建失败：笔记本未能保存，请检查磁盘空间后重试');
+      _showSnack(_l10nSafe?.homeCreateFailedFull ?? '新建失败：笔记本未能保存，请检查磁盘空间后重试');
       return;
     }
     widget.onDataChanged?.call();
@@ -387,14 +410,14 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
       }
       final doc = await _docStorage.load(meta.id);
       if (doc == null) {
-        _showSnack('画布文件不存在或已损坏');
+        _showSnack(_l10nSafe?.homeCanvasMissing ?? '画布文件不存在或已损坏');
         return;
       }
       if (!mounted) return;
       await _openEditor(document: doc, documentStorage: _docStorage);
       _refresh();
     } catch (e) {
-      _showSnack('打开画布失败，请重试');
+      _showSnack(_l10nSafe?.homeOpenCanvasFailed ?? '打开画布失败，请重试');
     }
   }
 
@@ -405,7 +428,9 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   Future<bool> _promptFilePassword(DocumentMeta meta) async {
     final pin = await UnlockFlow.show(
       context,
-      title: '该画布已加密，输入独立密码',
+      title:
+          AppLocalizations.of(context)?.canvasDeletePasswordTitle ??
+          '该画布已加密，输入独立密码',
       flexible: true,
       onVerify: (p) => _docStorage.verifyFilePassword(meta.id, p),
       footerLabel: '忘记密码？',
@@ -438,15 +463,38 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
             const SizedBox(height: 8),
             ListTile(
               leading: const Icon(Icons.lock_outline_rounded),
-              title: Text('「${meta.title}」独立密码'),
-              subtitle: Text(protected ? '此画布受独立密码保护' : '此画布当前未设置独立密码'),
+              title: Text(
+                AppLocalizations.of(
+                      context,
+                    )?.docStandalonePasswordTitle(meta.title) ??
+                    '「${meta.title}」独立密码',
+              ),
+              subtitle: Text(
+                protected
+                    ? AppLocalizations.of(
+                            context,
+                          )?.canvasStandalonePasswordProtected ??
+                          '此画布受独立密码保护'
+                    : AppLocalizations.of(
+                            context,
+                          )?.canvasStandalonePasswordUnset ??
+                          '此画布当前未设置独立密码',
+              ),
             ),
             const Divider(height: 1),
             if (!protected)
               ListTile(
                 leading: const Icon(Icons.add_moderator_outlined),
-                title: const Text('设置独立密码'),
-                subtitle: const Text('4–12 位数字，须与开屏密码不同'),
+                title: Text(
+                  AppLocalizations.of(sheetContext)?.docSetStandalonePassword ??
+                      '设置独立密码',
+                ),
+                subtitle: Text(
+                  AppLocalizations.of(
+                        sheetContext,
+                      )?.docSetStandalonePasswordHint ??
+                      '4–12 位数字，须与开屏密码不同',
+                ),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
                   _startSetFilePassword(meta);
@@ -455,7 +503,12 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
             else ...[
               ListTile(
                 leading: const Icon(Icons.key_rounded),
-                title: const Text('修改独立密码'),
+                title: Text(
+                  AppLocalizations.of(
+                        sheetContext,
+                      )?.docChangeStandalonePassword ??
+                      '修改独立密码',
+                ),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
                   _startChangeFilePassword(meta);
@@ -464,8 +517,14 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
               if (!usbBound)
                 ListTile(
                   leading: const Icon(Icons.usb_rounded),
-                  title: const Text('绑定重置密码盘'),
-                  subtitle: const Text('绑定后忘记密码可插 U 盘免旧密码重置'),
+                  title: Text(
+                    AppLocalizations.of(sheetContext)?.docBindResetDisk ??
+                        '绑定重置密码盘',
+                  ),
+                  subtitle: Text(
+                    AppLocalizations.of(sheetContext)?.docBindResetDiskHint ??
+                        '绑定后忘记密码可插 U 盘免旧密码重置',
+                  ),
                   onTap: () {
                     Navigator.of(sheetContext).pop();
                     _startBindFileUsb(meta);
@@ -473,7 +532,12 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
                 ),
               ListTile(
                 leading: const Icon(Icons.no_encryption_outlined),
-                title: const Text('移除独立密码'),
+                title: Text(
+                  AppLocalizations.of(
+                        sheetContext,
+                      )?.docRemoveStandalonePassword ??
+                      '移除独立密码',
+                ),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
                   _startRemoveFilePassword(meta);
@@ -492,37 +556,43 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     if (pin == null || !mounted) return null;
     // ≠开屏密码强制（哈希加盐不可比对，用 verify 探测）。
     if (await AppLockService.matchesAppLockPin(pin)) {
-      _showSnack('独立密码不能与开屏密码相同');
+      _showSnack(_l10nSafe?.docPinSameAsLock ?? '独立密码不能与开屏密码相同');
       return null;
     }
     if (!mounted) return null; // matchesAppLockPin 为异步操作，跨缺口守卫
     final confirm = await UnlockFlow.show(
       context,
-      title: '确认独立密码',
+      title:
+          AppLocalizations.of(context)?.docConfirmStandalonePassword ??
+          '确认独立密码',
       flexible: true,
     );
     if (confirm == null) return null;
     if (confirm != pin) {
-      _showSnack('两次输入不一致，请重试');
+      _showSnack(_l10nSafe?.docPinMismatch ?? '两次输入不一致，请重试');
       return null;
     }
     return pin;
   }
 
   Future<void> _startSetFilePassword(DocumentMeta meta) async {
-    final pin = await _collectNewFilePassword('设置独立密码');
+    final pin = await _collectNewFilePassword(
+      AppLocalizations.of(context)?.docSetStandalonePassword ?? '设置独立密码',
+    );
     if (pin == null) return;
     if (!mounted) return;
     // N4 批 2：可选当场绑定重置密码盘（错过本次可事后在密码管理中绑定）。
     List<int>? resetDiskKey;
     final bindUsb = await GlassDialog.confirm(
       context,
-      title: '绑定重置密码盘？',
+      title:
+          AppLocalizations.of(context)?.docBindDiskConfirmTitle ?? '绑定重置密码盘？',
       content:
+          AppLocalizations.of(context)?.canvasBindConfirmContent ??
           '绑定后忘记此画布的独立密码时，可插入重置密码盘（U 盘）免旧密码重置。\n\n'
-          'U 盘上只有随机钥匙文件（password_reset_disk.key），画布数据不会离开设备。',
-      confirmText: '插盘绑定',
-      cancelText: '暂不',
+              'U 盘上只有随机钥匙文件（password_reset_disk.key），画布数据不会离开设备。',
+      confirmText: AppLocalizations.of(context)?.docBindDiskConfirm ?? '插盘绑定',
+      cancelText: AppLocalizations.of(context)?.docNotNow ?? '暂不',
     );
     if (bindUsb == true) {
       if (!mounted) return;
@@ -530,7 +600,10 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
       if (dir != null) {
         resetDiskKey = await ResetDiskFile.readFrom(dir);
         if (resetDiskKey == null && mounted) {
-          _showSnack('未找到有效的重置密码盘文件（password_reset_disk.key），本次不绑定');
+          _showSnack(
+            AppLocalizations.of(context)?.docDiskNotFoundNoBind ??
+                '未找到有效的重置密码盘文件（password_reset_disk.key），本次不绑定',
+          );
         }
       }
     }
@@ -542,35 +615,42 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
       );
       _showSnack(
         resetDiskKey == null
-            ? '已为「${meta.title}」设置独立密码'
-            : '已为「${meta.title}」设置独立密码并绑定重置密码盘',
+            ? _l10nSafe?.docPasswordSetFor(meta.title) ??
+                  '已为「${meta.title}」设置独立密码'
+            : _l10nSafe?.canvasPasswordSetDiskBoundFor(meta.title) ??
+                  '已为「${meta.title}」设置独立密码并绑定重置密码盘',
       );
       await _refresh();
     } on VaultFileLockException {
-      _showSnack('加密底座已锁定：请重新验证开屏密码后再设置');
+      _showSnack(_l10nSafe?.canvasVaultLockedSet ?? '加密底座已锁定：请重新验证开屏密码后再设置');
     } catch (e) {
-      _showSnack('设置失败，请重试');
+      _showSnack(_l10nSafe?.docSetFailed ?? '设置失败，请重试');
     }
   }
 
   Future<void> _startChangeFilePassword(DocumentMeta meta) async {
     final old = await UnlockFlow.show(
       context,
-      title: '验证当前独立密码',
+      title: AppLocalizations.of(context)?.docVerifyCurrent ?? '验证当前独立密码',
       flexible: true,
       onVerify: (p) => _docStorage.verifyFilePassword(meta.id, p),
     );
     if (old == null || !mounted) return;
-    final pin = await _collectNewFilePassword('设置新密码');
+    final pin = await _collectNewFilePassword(
+      AppLocalizations.of(context)?.docSetNewPassword ?? '设置新密码',
+    );
     if (pin == null) return;
     try {
       await _docStorage.changeFilePassword(meta.id, old, pin);
-      _showSnack('已修改「${meta.title}」的独立密码');
+      _showSnack(
+        _l10nSafe?.docPasswordChangedFor(meta.title) ??
+            '已修改「${meta.title}」的独立密码',
+      );
       await _refresh();
     } on VaultFileException {
-      _showSnack('原密码不正确或密文已损坏');
+      _showSnack(_l10nSafe?.docWrongPassword ?? '原密码不正确或密文已损坏');
     } catch (e) {
-      _showSnack('修改失败，请重试');
+      _showSnack(_l10nSafe?.docChangeFailed ?? '修改失败，请重试');
     }
   }
 
@@ -578,7 +658,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   Future<void> _startBindFileUsb(DocumentMeta meta) async {
     final pin = await UnlockFlow.show(
       context,
-      title: '验证独立密码以绑定重置盘',
+      title: AppLocalizations.of(context)?.docVerifyToBind ?? '验证独立密码以绑定重置盘',
       flexible: true,
       onVerify: (p) => _docStorage.verifyFilePassword(meta.id, p),
     );
@@ -592,54 +672,66 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     }
     try {
       await _docStorage.bindFileUsbSlot(meta.id, pin, usbKey);
-      _showSnack('已为「${meta.title}」绑定重置密码盘');
+      _showSnack(
+        _l10nSafe?.canvasBoundDiskFor(meta.title) ?? '已为「${meta.title}」绑定重置密码盘',
+      );
       await _refresh();
     } on StateError catch (e) {
       _showSnack(e.message);
     } on VaultFileException {
-      _showSnack('密码不正确或密文已损坏');
+      _showSnack(_l10nSafe?.docPasswordWrongOrCorrupt ?? '密码不正确或密文已损坏');
     } catch (e) {
-      _showSnack('绑定失败，请重试');
+      _showSnack(_l10nSafe?.docBindFailed ?? '绑定失败，请重试');
     }
   }
 
   Future<void> _startRemoveFilePassword(DocumentMeta meta) async {
     final ok = await _confirmDelete(
-      '移除独立密码',
-      '移除后「${meta.title}」将回到加密底座保护（主密钥信封），不再需要独立密码。确定移除吗？',
+      AppLocalizations.of(context)?.docRemoveStandalonePassword ?? '移除独立密码',
+      AppLocalizations.of(context)?.canvasRemoveConfirmContent(meta.title) ??
+          '移除后「${meta.title}」将回到加密底座保护（主密钥信封），不再需要独立密码。确定移除吗？',
     );
     if (ok != true) return;
     if (!mounted) return; // _confirmDelete 为异步操作，跨缺口守卫
     final pin = await UnlockFlow.show(
       context,
-      title: '验证独立密码以移除',
+      title: AppLocalizations.of(context)?.docVerifyToRemove ?? '验证独立密码以移除',
       flexible: true,
       onVerify: (p) => _docStorage.verifyFilePassword(meta.id, p),
     );
     if (pin == null) return;
     try {
       await _docStorage.removeFilePassword(meta.id, pin);
-      _showSnack('已移除「${meta.title}」的独立密码');
+      _showSnack(
+        _l10nSafe?.docPasswordRemovedFor(meta.title) ??
+            '已移除「${meta.title}」的独立密码',
+      );
       await _refresh();
     } on VaultFileLockException {
       // fail-closed：绝不回明文。
-      _showSnack('加密底座已锁定，无法回封：请重新验证开屏密码后再试');
+      _showSnack(
+        _l10nSafe?.canvasVaultLockedRemove ?? '加密底座已锁定，无法回封：请重新验证开屏密码后再试',
+      );
     } on VaultFileException {
-      _showSnack('密码不正确或密文已损坏');
+      _showSnack(_l10nSafe?.docPasswordWrongOrCorrupt ?? '密码不正确或密文已损坏');
     } catch (e) {
-      _showSnack('移除失败，请重试');
+      _showSnack(_l10nSafe?.docRemoveFailed ?? '移除失败，请重试');
     }
   }
 
   /// 删除画作（二次确认）。
   Future<void> _deleteDrawing(DocumentMeta meta) async {
-    final ok = await _confirmDelete('删除画布', '确定删除画布「${meta.title}」吗？此操作不可恢复。');
+    final ok = await _confirmDelete(
+      AppLocalizations.of(context)?.homeDeleteCanvasTitle ?? '删除画布',
+      AppLocalizations.of(context)?.homeDeleteCanvasConfirm(meta.title) ??
+          '确定删除画布「${meta.title}」吗？此操作不可恢复。',
+    );
     if (ok != true) return;
     try {
       await _docStorage.delete(meta.id);
       await _refresh();
     } catch (e) {
-      _showSnack('删除失败，请重试');
+      _showSnack(_l10nSafe?.homeDeleteFailed ?? '删除失败，请重试');
     }
   }
 
@@ -650,7 +742,9 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     final template = await GlassDialog.show<DocTemplate>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('选择笔记模板'),
+        title: Text(
+          AppLocalizations.of(context)?.homeSelectTemplate ?? '选择笔记模板',
+        ),
         children: [
           for (final t in DocTemplate.values)
             // 键盘可达：首个模板选项初始聚焦。
@@ -680,7 +774,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     try {
       await _blockDocStore.saveDocument(doc);
     } catch (e) {
-      _showSnack('创建失败，请重试');
+      _showSnack(_l10nSafe?.homeCreateFailed ?? '创建失败，请重试');
       return;
     }
     widget.onDataChanged?.call();
@@ -722,7 +816,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
     try {
       trash = await _docStorage.listTrash();
     } catch (e) {
-      _showSnack('回收站加载失败，请重试');
+      _showSnack(_l10nSafe?.homeTrashLoadFailed ?? '回收站加载失败，请重试');
       return;
     }
     if (!mounted) return;
@@ -763,9 +857,15 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
                                 );
                                 if (ctx.mounted) Navigator.of(ctx).pop();
                                 _refresh();
-                                if (id != null) _showSnack('已恢复「$id」');
+                                if (id != null) {
+                                  _showSnack(
+                                    _l10nSafe?.homeRecovered(id) ?? '已恢复「$id」',
+                                  );
+                                }
                               } catch (e) {
-                                _showSnack('恢复失败，请重试');
+                                _showSnack(
+                                  _l10nSafe?.homeRestoreFailed ?? '恢复失败，请重试',
+                                );
                               }
                             },
                           ),
@@ -778,8 +878,14 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
                             icon: const Icon(Icons.delete_forever),
                             onPressed: () async {
                               final ok = await _confirmDelete(
-                                '永久删除',
-                                '确定永久删除「${item.$2}」吗？此操作不可恢复。',
+                                AppLocalizations.of(
+                                      context,
+                                    )?.homeDeleteForever ??
+                                    '永久删除',
+                                AppLocalizations.of(
+                                      context,
+                                    )?.homeDeleteForeverConfirm(item.$2) ??
+                                    '确定永久删除「${item.$2}」吗？此操作不可恢复。',
                               );
                               if (ok == true) {
                                 try {
@@ -789,7 +895,10 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
                                   if (ctx.mounted) Navigator.of(ctx).pop();
                                   _refresh();
                                 } catch (e) {
-                                  _showSnack('永久删除失败，请重试');
+                                  _showSnack(
+                                    _l10nSafe?.homeDeleteForeverFailed ??
+                                        '永久删除失败，请重试',
+                                  );
                                 }
                               }
                             },
@@ -831,6 +940,11 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
       dangerous: true,
     );
   }
+
+  /// 跨 async 间隙安全取 l10n（mounted 守卫满足 use_build_context_synchronously；
+  /// i18n E1 批 2）。
+  AppLocalizations? get _l10nSafe =>
+      mounted ? AppLocalizations.of(context) : null;
 
   void _showSnack(String message) {
     if (!mounted) return;
@@ -888,9 +1002,11 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
               // 这也是 Apple 的做法——控件本身不是一层新材质。
               child: TabBar(
                 onTap: (i) => setState(() => _tabIndex = i),
-                tabs: const [
-                  Tab(text: '画布'),
-                  Tab(text: '笔记'),
+                tabs: [
+                  Tab(
+                    text: AppLocalizations.of(context)?.homeTabCanvas ?? '画布',
+                  ),
+                  Tab(text: AppLocalizations.of(context)?.homeTabNotes ?? '笔记'),
                 ],
               ),
             ),
@@ -915,12 +1031,16 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
             ? GlassFab.extended(
                 onPressed: _createCanvas,
                 icon: const Icon(Icons.add),
-                label: const Text('新建画布'),
+                label: Text(
+                  AppLocalizations.of(context)?.docsNewCanvas ?? '新建画布',
+                ),
               )
             : GlassFab.extended(
                 onPressed: _createNote,
                 icon: const Icon(Icons.add),
-                label: const Text('新建笔记'),
+                label: Text(
+                  AppLocalizations.of(context)?.docsNewNote ?? '新建笔记',
+                ),
               ),
       ),
     );

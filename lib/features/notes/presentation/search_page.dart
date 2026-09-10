@@ -103,10 +103,11 @@ class _SearchPageState extends State<SearchPage> {
         if (!mounted) return;
         final pin = await UnlockFlow.show(
           context,
-          title: '该笔记已加密，输入密码',
+          title: AppLocalizations.of(context)?.docUnlockTitle ?? '该笔记已加密，输入密码',
           flexible: true,
           onVerify: (p) => blockStore.verifyBlockDocPassword(r.pageId!, p),
-          footerLabel: '忘记密码？',
+          footerLabel:
+              AppLocalizations.of(context)?.docForgotPassword ?? '忘记密码？',
           onFooter: () {
             BlockDocPasswordResetFlow.show(
               context,
@@ -164,10 +165,12 @@ class _SearchPageState extends State<SearchPage> {
         nbStorage.notebookPasswordFor(nbId) == null) {
       final pin = await UnlockFlow.show(
         context,
-        title: '该分页画布已加密，输入密码',
+        title:
+            AppLocalizations.of(context)?.shellUnlockNotebookTitle ??
+            '该分页画布已加密，输入密码',
         flexible: true,
         onVerify: (p) => nbStorage.verifyNotebookPassword(nbId, p),
-        footerLabel: '忘记密码？',
+        footerLabel: AppLocalizations.of(context)?.docForgotPassword ?? '忘记密码？',
         onFooter: () {
           NotebookPasswordResetFlow.show(
             context,
@@ -293,7 +296,7 @@ class _SearchPageState extends State<SearchPage> {
           ),
           title: Text(r.title, maxLines: 1, overflow: TextOverflow.ellipsis),
           subtitle: Text(
-            r.snippet,
+            _localizedSnippet(r.snippet, AppLocalizations.of(context)),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -301,5 +304,24 @@ class _SearchPageState extends State<SearchPage> {
         );
       },
     );
+  }
+}
+
+/// i18n（E1 批 2）：搜索服务的类型标签 snippet 以 zh 常量为 marker，
+/// 展示端映射为当前 locale；内容摘录 snippet 原样返回。
+String _localizedSnippet(String snippet, AppLocalizations? l10n) {
+  switch (snippet) {
+    case '分页画布':
+      return l10n?.searchKindNotebook ?? snippet;
+    case '页面标题':
+      return l10n?.searchKindPageTitle ?? snippet;
+    case '画布':
+      return l10n?.searchKindCanvas ?? snippet;
+    case '块文档':
+      return l10n?.searchKindBlockDoc ?? snippet;
+    case '文档标题':
+      return l10n?.searchKindDocTitle ?? snippet;
+    default:
+      return snippet;
   }
 }

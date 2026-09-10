@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
@@ -58,31 +59,59 @@ class _OnboardingDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return AlertDialog(
-      title: const Text('欢迎使用绘图笔记'),
-      content: const SingleChildScrollView(
+      title: Text(AppLocalizations.of(context)?.obWelcome ?? '欢迎使用绘图笔记'),
+      content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _TipRow(icon: Icons.brush, text: '画笔 / 橡皮擦 / 吸管：顶部工具条切换，拖动鼠标或手指绘画'),
-            _TipRow(icon: Icons.palette_outlined, text: '颜色与粗细：工具条右侧圆形色块与粗细滑块'),
+            _TipRow(
+              icon: Icons.brush,
+              text:
+                  AppLocalizations.of(context)?.obBrushTip ??
+                  '画笔 / 橡皮擦 / 吸管：顶部工具条切换，拖动鼠标或手指绘画',
+            ),
+            _TipRow(
+              icon: Icons.palette_outlined,
+              text:
+                  AppLocalizations.of(context)?.obColorTip ??
+                  '颜色与粗细：工具条右侧圆形色块与粗细滑块',
+            ),
             _TipRow(
               icon: Icons.layers_outlined,
-              text: '图层面板在右侧：新建、显隐、透明度、顺序、合并',
+              text:
+                  AppLocalizations.of(context)?.obLayerTip ??
+                  '图层面板在右侧：新建、显隐、透明度、顺序、合并',
             ),
             _TipRow(
               icon: Icons.crop_square,
-              text: '选区工具：框选后可移动 / 缩放 / 旋转 / 复制 / 删除',
+              text:
+                  AppLocalizations.of(context)?.obSelectTip ??
+                  '选区工具：框选后可移动 / 缩放 / 旋转 / 复制 / 删除',
             ),
             _TipRow(
               icon: Icons.text_fields,
-              text: '笔记页支持文字与图片：文字工具点击画布输入，图片按钮插入',
+              text:
+                  AppLocalizations.of(context)?.obNoteTip ??
+                  '笔记页支持文字与图片：文字工具点击画布输入，图片按钮插入',
             ),
-            _TipRow(icon: Icons.pinch, text: '双指捏合缩放画布、双指旋转画布（触屏设备）'),
-            _TipRow(icon: Icons.fullscreen, text: '右上角全屏按钮：隐藏工具栏只看画布'),
+            _TipRow(
+              icon: Icons.pinch,
+              text:
+                  AppLocalizations.of(context)?.obPinchTip ??
+                  '双指捏合缩放画布、双指旋转画布（触屏设备）',
+            ),
+            _TipRow(
+              icon: Icons.fullscreen,
+              text:
+                  AppLocalizations.of(context)?.obFullscreenTip ??
+                  '右上角全屏按钮：隐藏工具栏只看画布',
+            ),
             _TipRow(
               icon: Icons.save_outlined,
-              text: '内容自动保存，无需手动保存；可随时导出为 PNG',
+              text:
+                  AppLocalizations.of(context)?.obAutosaveTip ??
+                  '内容自动保存，无需手动保存；可随时导出为 PNG',
             ),
           ],
         ),
@@ -92,7 +121,7 @@ class _OnboardingDialog extends StatelessWidget {
           autofocus: true,
           style: FilledButton.styleFrom(backgroundColor: scheme.primary),
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('开始使用'),
+          child: Text(AppLocalizations.of(context)?.obStart ?? '开始使用'),
         ),
       ],
     );

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 import 'package:flutter/services.dart';
@@ -135,9 +136,10 @@ class _PresentationPageState extends State<PresentationPage> {
                     child: Padding(
                       padding: const EdgeInsets.all(40),
                       child: elements.isEmpty
-                          ? const Text(
-                              '没有可演示的内容',
-                              style: TextStyle(color: Colors.white54),
+                          ? Text(
+                              AppLocalizations.of(context)?.presNoContent ??
+                                  '没有可演示的内容',
+                              style: const TextStyle(color: Colors.white54),
                             )
                           : elements[_index],
                     ),
@@ -151,7 +153,10 @@ class _PresentationPageState extends State<PresentationPage> {
                 bottom: 24,
                 child: Center(
                   child: Text(
-                    '${_index + 1} / ${elements.length} · 点击或 → 下一页，Esc 退出',
+                    AppLocalizations.of(
+                          context,
+                        )?.presIndicator(_index + 1, elements.length) ??
+                        '${_index + 1} / ${elements.length} · 点击或 → 下一页，Esc 退出',
                     style: AppleType.controlStyle(
                       Colors.white38,
                       weight: FontWeight.w400,
@@ -164,7 +169,7 @@ class _PresentationPageState extends State<PresentationPage> {
                 left: 12,
                 top: 12,
                 child: IconButton(
-                  tooltip: '退出演示',
+                  tooltip: AppLocalizations.of(context)?.presExit ?? '退出演示',
                   icon: const Icon(Icons.close, color: Colors.white70),
                   onPressed: () => Navigator.of(context).pop(),
                 ),

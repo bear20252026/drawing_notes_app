@@ -26,7 +26,9 @@ extension _NotebookPageManage on _NotebookViewPageState {
   }) {
     final builder = widget.editorPageBuilder;
     if (builder == null) {
-      _showSnack('编辑器尚未由应用层装配');
+      _showSnack(
+        AppLocalizations.of(context)?.shellEditorNotAssembled ?? '编辑器尚未由应用层装配',
+      );
       return Future<void>.value();
     }
     // 二级面板范围=全部页：同本全部页面会话（适配器共享原页引用——
@@ -127,10 +129,10 @@ extension _NotebookPageManage on _NotebookViewPageState {
       if (!mounted) return;
       final pin = await UnlockFlow.show(
         context,
-        title: '该笔记已加密，输入密码',
+        title: AppLocalizations.of(context)?.docUnlockTitle ?? '该笔记已加密，输入密码',
         flexible: true,
         onVerify: (p) => store.verifyBlockDocPassword(page.id, p),
-        footerLabel: '忘记密码？',
+        footerLabel: AppLocalizations.of(context)?.docForgotPassword ?? '忘记密码？',
         onFooter: () {
           BlockDocPasswordResetFlow.show(context, store: store, docId: page.id);
         },
@@ -144,7 +146,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
     } on BlockDocLockedException {
       // 会话 DEK 已被清——不暴露内容；但不再静默消失（审计一-3 体验缺陷，
       // 2026-09-06）：明确告知需重新解锁，避免「点不动/用不了」的体感。
-      _showSnack('该笔记已加密且会话已锁定，请重新解锁后再打开');
+      _showSnack(_l10nSafe?.nbNoteEncryptedLocked ?? '该笔记已加密且会话已锁定，请重新解锁后再打开');
       return;
     }
     if (doc == null) {
@@ -179,13 +181,15 @@ extension _NotebookPageManage on _NotebookViewPageState {
   Future<void> _openBlockDocViaMenu() async {
     final pages = _notebook.pages;
     if (pages.isEmpty) {
-      _showSnack('这个分页画布还没有页面');
+      _showSnack(AppLocalizations.of(context)?.nbNoPages ?? '这个分页画布还没有页面');
       return;
     }
     final page = await GlassDialog.show<NotebookPage>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('选择要以块文档打开的页面'),
+        title: Text(
+          AppLocalizations.of(context)?.nbPickPageAsBlock ?? '选择要以块文档打开的页面',
+        ),
         children: [
           for (final p in pages)
             Focus(
@@ -244,14 +248,16 @@ extension _NotebookPageManage on _NotebookViewPageState {
         .where((nb) => nb.id != _notebook.id && !nb.isLockedPlaceholder)
         .toList();
     if (others.isEmpty) {
-      _showSnack('暂没有其他分页画布可引入');
+      _showSnack(_l10nSafe?.nbNoOtherNotebook ?? '暂没有其他分页画布可引入');
       return;
     }
     // 第一步：选择源笔记本。
     final srcNb = await GlassDialog.show<Notebook>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('选择源分页画布'),
+        title: Text(
+          AppLocalizations.of(context)?.nbPickSourceNotebook ?? '选择源分页画布',
+        ),
         children: [
           for (final nb in others)
             Focus(
@@ -266,14 +272,16 @@ extension _NotebookPageManage on _NotebookViewPageState {
     );
     if (srcNb == null || !mounted) return;
     if (srcNb.pages.isEmpty) {
-      _showSnack('该分页画布还没有页面');
+      _showSnack(_l10nSafe?.nbNoPages ?? '该分页画布还没有页面');
       return;
     }
     // 第二步：选择页面。
     final srcPage = await GlassDialog.show<NotebookPage>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('选择要引入的页面'),
+        title: Text(
+          AppLocalizations.of(context)?.nbPickImportPages ?? '选择要引入的页面',
+        ),
         children: [
           for (final p in srcNb.pages)
             Focus(
@@ -311,7 +319,9 @@ extension _NotebookPageManage on _NotebookViewPageState {
   Future<void> _renameNotebook() async {
     final name = await GlassDialog.show<String>(
       context: context,
-      builder: (ctx) => _PageNameDialog(title: '重命名分页画布'),
+      builder: (ctx) => _PageNameDialog(
+        title: AppLocalizations.of(context)?.nbRenameNotebook ?? '重命名分页画布',
+      ),
     );
     final trimmed = name?.trim();
     if (trimmed == null || trimmed.isEmpty || trimmed == _notebook.title) {
@@ -443,23 +453,31 @@ extension _NotebookPageManage on _NotebookViewPageState {
   /// SessionGuard 有失焦豁免（既有语义），无需额外处理。
   Future<void> _exportWholePdf() async {
     if (_notebook.pages.isEmpty) {
-      _showSnack('这个分页画布还没有页面，先新建一页吧');
+      _showSnack(
+        AppLocalizations.of(context)?.nbNoPagesNew ?? '这个分页画布还没有页面，先新建一页吧',
+      );
       return;
     }
     try {
       await _save();
       final location = await getSaveLocation(
         suggestedName: '${_notebook.title}.pdf',
-        acceptedTypeGroups: const [
-          XTypeGroup(label: 'PDF 文档', extensions: ['pdf']),
+        acceptedTypeGroups: [
+          XTypeGroup(
+            label: _l10nSafe?.impPdfTypeGroup ?? 'PDF 文档',
+            extensions: const ['pdf'],
+          ),
         ],
       );
       if (location == null) return; // 用户取消
       final bytes = await NotebookPdfExporter.exportNotebook(_notebook);
       await File(location.path).writeAsBytes(bytes, flush: true);
-      _showSnack('已导出整本 ${_notebook.pages.length} 页 PDF：${location.path}');
+      _showSnack(
+        _l10nSafe?.nbExportedPdf(_notebook.pages.length, location.path) ??
+            '已导出整本 ${_notebook.pages.length} 页 PDF：${location.path}',
+      );
     } catch (e) {
-      _showSnack('导出整本 PDF 失败，请重试');
+      _showSnack(_l10nSafe?.nbExportPdfFailed ?? '导出整本 PDF 失败，请重试');
     }
   }
 
@@ -470,9 +488,11 @@ extension _NotebookPageManage on _NotebookViewPageState {
   Future<void> _deletePage(NotebookPage page) async {
     final ok = await GlassDialog.confirm(
       context,
-      title: '删除页面',
-      content: '确定删除页面「${page.title}」吗？其中的手写与文字内容将一并删除。',
-      confirmText: '删除',
+      title: AppLocalizations.of(context)?.nbDeletePage ?? '删除页面',
+      content:
+          AppLocalizations.of(context)?.nbDeletePageConfirm(page.title) ??
+          '确定删除页面「${page.title}」吗？其中的手写与文字内容将一并删除。',
+      confirmText: AppLocalizations.of(context)?.delete ?? '删除',
       dangerous: true,
     );
     if (ok != true) return;
@@ -492,10 +512,12 @@ extension _NotebookPageManage on _NotebookViewPageState {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('已删除「${page.title}」'),
+          content: Text(
+            _l10nSafe?.nbPageDeleted(page.title) ?? '已删除「${page.title}」',
+          ),
           duration: const Duration(seconds: 6),
           action: SnackBarAction(
-            label: '撤销',
+            label: AppLocalizations.of(context)?.nbUndo ?? '撤销',
             onPressed: () async {
               if (_notebook.pages.any((p) => p.id == page.id)) return;
               final at = index.clamp(0, _notebook.pages.length);
@@ -503,7 +525,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
               try {
                 await _save();
               } catch (_) {
-                _showSnack('撤销保存失败，请重试');
+                _showSnack(_l10nSafe?.nbUndoSaveFailed ?? '撤销保存失败，请重试');
               }
             },
           ),

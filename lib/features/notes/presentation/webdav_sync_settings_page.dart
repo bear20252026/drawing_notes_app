@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
@@ -27,8 +28,8 @@ import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
 
 /// R1：把同步异常映射为人话文案——用户界面只出现可读懂的提示，
 /// 原始异常对象进调试日志（debugPrint），不再直接拼进 UI 字符串。
-String humanizeWebDavSyncError(Object? e) {
-  if (e == null) return '同步失败：未知错误';
+String humanizeWebDavSyncError(Object? e, {AppLocalizations? l10n}) {
+  if (e == null) return l10n?.syncFailedUnknown ?? '同步失败：未知错误';
   if (e is String) return '同步失败：$e';
   // P1 修复（审计 H-04）：原始异常可能含 URL/用户名/口令片段——仅记类型，
   // 不记原文（logcat 可被其他应用读取）。
@@ -48,7 +49,7 @@ String humanizeWebDavSyncError(Object? e) {
         success: false,
         detail: e.message,
       );
-      return '同步失败：同步远端文件失败，请检查服务器';
+      return l10n?.syncFailedRemoteFile ?? '同步失败：同步远端文件失败，请检查服务器';
     }
     // 本地安全门禁（https）文案是本地静态文本，可直接透出。
     if (e.message.contains('https')) {
@@ -56,23 +57,27 @@ String humanizeWebDavSyncError(Object? e) {
     }
     final code = e.statusCode;
     if (code == 401 || code == 403) {
-      return '同步失败：用户名或密码不对（服务器拒绝登录）';
+      return l10n?.syncFailedAuth ?? '同步失败：用户名或密码不对（服务器拒绝登录）';
     }
     if (code != null && code >= 500) {
-      return '同步失败：服务器暂时不可用（HTTP $code），请稍后再试';
+      return l10n?.syncFailedHttpUnavailable(code) ??
+          '同步失败：服务器暂时不可用（HTTP $code），请稍后再试';
     }
     if (code == 404 || code == 409) {
-      return '同步失败：服务器目录不存在或路径被占用，请检查远端目录设置';
+      return l10n?.syncFailedDirMissing ?? '同步失败：服务器目录不存在或路径被占用，请检查远端目录设置';
     }
-    return '同步失败：服务器拒绝了这次请求（HTTP ${code ?? '未知'}）';
+    return l10n?.syncFailedRejected(
+          code == null ? (l10n.syncHttpUnknown) : '$code',
+        ) ??
+        '同步失败：服务器拒绝了这次请求（HTTP ${code ?? '未知'}）';
   }
   if (e is HandshakeException) {
-    return '同步失败：安全连接（HTTPS）握手失败，请检查服务器证书';
+    return l10n?.syncFailedHttps ?? '同步失败：安全连接（HTTPS）握手失败，请检查服务器证书';
   }
   if (e is SocketException || e is TimeoutException) {
-    return '同步失败：连不上服务器，请检查网络或服务器地址';
+    return l10n?.syncFailedConnect ?? '同步失败：连不上服务器，请检查网络或服务器地址';
   }
-  return '同步失败：请检查网络与账号设置后重试';
+  return l10n?.syncFailedGeneric ?? '同步失败：请检查网络与账号设置后重试';
 }
 
 /// WebDAV 同步设置页。
@@ -200,11 +205,17 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
         (_pass.text.isEmpty ? null : _pass.text) != secrets.webdavPassword ||
         passphrase != secrets.syncPassphrase;
     if (formDirty) {
-      _toast('表单有未保存的修改：请先点击「保存配置」再同步（避免加密密钥与云端数据错配）');
+      _toast(
+        (mounted ? AppLocalizations.of(context) : null)?.webdavFormDirty ??
+            '表单有未保存的修改：请先点击「保存配置」再同步（避免加密密钥与云端数据错配）',
+      );
       return;
     }
     if (cfg.syncSalt == null || cfg.syncSalt!.isEmpty) {
-      _toast('同步配置缺少加密盐：请重新点击「保存配置」后再同步');
+      _toast(
+        (mounted ? AppLocalizations.of(context) : null)?.syncMissingSalt ??
+            '同步配置缺少加密盐：请重新点击「保存配置」后再同步',
+      );
       return;
     }
     setState(() {
@@ -251,7 +262,10 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
           });
           _toast(summary);
         } else {
-          final summary = humanizeWebDavSyncError(outcome.error);
+          final summary = humanizeWebDavSyncError(
+            outcome.error,
+            l10n: mounted ? AppLocalizations.of(context) : null,
+          );
           setState(() {
             _progress = SyncProgress.failure(summary);
             _lastSummary = summary;
@@ -263,7 +277,10 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
       }
     } catch (e) {
       if (!mounted) return;
-      final summary = humanizeWebDavSyncError(e);
+      final summary = humanizeWebDavSyncError(
+        e,
+        l10n: mounted ? AppLocalizations.of(context) : null,
+      );
       setState(() {
         _progress = SyncProgress.failure(summary);
         _lastSummary = summary;
@@ -302,11 +319,14 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
   }
 
   String _summaryOf(SyncResult r) {
+    final l10n = mounted ? AppLocalizations.of(context) : null;
     final base = r.changed
-        ? '同步完成：↑${r.uploaded} ↓${r.downloaded} ✕${r.deletedRemote}'
-        : '已是最新，无需同步';
+        ? l10n?.syncDoneSummary(r.uploaded, r.downloaded, r.deletedRemote) ??
+              '同步完成：↑${r.uploaded} ↓${r.downloaded} ✕${r.deletedRemote}'
+        : l10n?.syncUpToDate ?? '已是最新，无需同步';
     if (r.conflictedDocIds.isNotEmpty) {
-      return '$base；另有 ${r.conflictedDocIds.length} 个文档本地与云端均有改动，已按你的选择处理';
+      return l10n?.syncWithConflicts(base, r.conflictedDocIds.length) ??
+          '$base；另有 ${r.conflictedDocIds.length} 个文档本地与云端均有改动，已按你的选择处理';
     }
     return base;
   }
@@ -381,7 +401,9 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: const GlassAppBar(title: Text('WebDAV 同步')),
+      appBar: GlassAppBar(
+        title: Text(AppLocalizations.of(context)?.webdavTitle ?? 'WebDAV 同步'),
+      ),
       body: ListView(
         // 可滚动 padding——见 settings_page 同名注释。
         padding: EdgeInsets.fromLTRB(
@@ -409,7 +431,7 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
           TextField(
             controller: _user,
             decoration: _appleDecoration(
-              labelText: '用户名',
+              labelText: AppLocalizations.of(context)?.webdavUsername ?? '用户名',
               icon: Icons.person_outline,
             ),
           ),
@@ -418,7 +440,7 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
             controller: _pass,
             obscureText: true,
             decoration: _appleDecoration(
-              labelText: '密码',
+              labelText: AppLocalizations.of(context)?.commonPassword ?? '密码',
               icon: Icons.lock_outline,
             ),
           ),
@@ -427,15 +449,25 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
             controller: _syncSecret,
             obscureText: true,
             decoration: _appleDecoration(
-              labelText: '同步密码（必填，用于端到端加密）',
+              labelText:
+                  AppLocalizations.of(context)?.webdavSyncSecretLabel ??
+                  '同步密码（必填，用于端到端加密）',
               icon: Icons.vpn_key_outlined,
-              helperText: '未设置同步密码时同步会被阻止（防止笔记明文上云）',
+              helperText:
+                  AppLocalizations.of(context)?.webdavSyncSecretHelper ??
+                  '未设置同步密码时同步会被阻止（防止笔记明文上云）',
             ),
           ),
           const SizedBox(height: AppleSpacing.lg),
           _syncing
-              ? const ApplePrimaryButton(label: '同步中…', onPressed: _noop)
-              : ApplePrimaryButton(label: '立即同步', onPressed: _syncNow),
+              ? ApplePrimaryButton(
+                  label: AppLocalizations.of(context)?.webdavSyncing ?? '同步中…',
+                  onPressed: _noop,
+                )
+              : ApplePrimaryButton(
+                  label: AppLocalizations.of(context)?.webdavSyncNow ?? '立即同步',
+                  onPressed: _syncNow,
+                ),
           if (_progress != null) ...[
             const SizedBox(height: AppleSpacing.md),
             ClipRRect(
@@ -473,7 +505,7 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
           OutlinedButton.icon(
             onPressed: _syncing ? null : _save,
             icon: const Icon(Icons.save_outlined),
-            label: const Text('保存配置'),
+            label: Text(AppLocalizations.of(context)?.webdavSave ?? '保存配置'),
             style: OutlinedButton.styleFrom(
               minimumSize: const Size(double.infinity, 44),
               foregroundColor: AppleColor.actionBlue,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
 
@@ -16,7 +17,9 @@ class NotesWritingPage extends StatelessWidget {
     return Scaffold(
       // 让内容延伸到顶栏之后——玻璃才有东西可模糊。
       extendBodyBehindAppBar: true,
-      appBar: const GlassAppBar(title: Text('笔记')),
+      appBar: GlassAppBar(
+        title: Text(AppLocalizations.of(context)?.notesWritingTitle ?? '笔记'),
+      ),
       body: ListView(
         // 可滚动 padding——见 settings_page 同名注释。
         padding: EdgeInsets.fromLTRB(
@@ -28,7 +31,9 @@ class NotesWritingPage extends StatelessWidget {
         children: [
           const SizedBox(height: AppleSpacing.md),
           // 分组头：Apple 灰字 + 字距
-          const AppleSectionHeader(label: '最近'),
+          AppleSectionHeader(
+            label: AppLocalizations.of(context)?.notesRecent ?? '最近',
+          ),
           const SizedBox(height: AppleSpacing.sm),
           // 空态
           Center(

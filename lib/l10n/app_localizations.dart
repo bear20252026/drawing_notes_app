@@ -1657,6 +1657,1344 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No valid reset disk file (password_reset_disk.key) found at the chosen location.'**
   String get resetNoValidKeyBody;
+
+  /// No description provided for @homeReadListFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load the list. Please retry'**
+  String get homeReadListFailed;
+
+  /// No description provided for @homeNewInfiniteCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'New infinite canvas'**
+  String get homeNewInfiniteCanvas;
+
+  /// No description provided for @homeNewInfiniteCanvasSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Free-form drawing, shapes and diagrams'**
+  String get homeNewInfiniteCanvasSub;
+
+  /// No description provided for @homeNewPagedCanvasSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Multi-page binding, paper templates and mixed content'**
+  String get homeNewPagedCanvasSub;
+
+  /// No description provided for @homeCreateFailedFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Create failed: the notebook was not saved. Check disk space and retry'**
+  String get homeCreateFailedFull;
+
+  /// No description provided for @homeCanvasMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'The canvas file is missing or corrupted'**
+  String get homeCanvasMissing;
+
+  /// No description provided for @homeOpenCanvasFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to open the canvas. Please retry'**
+  String get homeOpenCanvasFailed;
+
+  /// No description provided for @canvasStandalonePasswordProtected.
+  ///
+  /// In en, this message translates to:
+  /// **'This canvas is protected by a standalone password'**
+  String get canvasStandalonePasswordProtected;
+
+  /// No description provided for @canvasStandalonePasswordUnset.
+  ///
+  /// In en, this message translates to:
+  /// **'This canvas has no standalone password set'**
+  String get canvasStandalonePasswordUnset;
+
+  /// No description provided for @canvasVaultLockedSet.
+  ///
+  /// In en, this message translates to:
+  /// **'The vault is locked: re-verify the screen-lock password before setting'**
+  String get canvasVaultLockedSet;
+
+  /// No description provided for @canvasVaultLockedRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'The vault is locked and cannot re-seal: re-verify the screen-lock password and retry'**
+  String get canvasVaultLockedRemove;
+
+  /// No description provided for @canvasPasswordSetDiskBoundFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Standalone password set for “{name}” with the reset disk bound'**
+  String canvasPasswordSetDiskBoundFor(String name);
+
+  /// No description provided for @homeDeleteCanvasTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete canvas'**
+  String get homeDeleteCanvasTitle;
+
+  /// No description provided for @homeDeleteCanvasConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete the canvas “{name}”? This cannot be undone.'**
+  String homeDeleteCanvasConfirm(String name);
+
+  /// No description provided for @homeDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete failed. Please retry'**
+  String get homeDeleteFailed;
+
+  /// No description provided for @homeSelectTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a note template'**
+  String get homeSelectTemplate;
+
+  /// No description provided for @homeCreateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Create failed. Please retry'**
+  String get homeCreateFailed;
+
+  /// No description provided for @homeTrashLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load the trash. Please retry'**
+  String get homeTrashLoadFailed;
+
+  /// No description provided for @homeRecovered.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored “{id}”'**
+  String homeRecovered(String id);
+
+  /// No description provided for @homeRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get homeRetry;
+
+  /// No description provided for @homeNoCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'No canvases yet'**
+  String get homeNoCanvas;
+
+  /// No description provided for @homeNoNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes yet'**
+  String get homeNoNotes;
+
+  /// No description provided for @homeEmptyTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the button in the lower-right corner to create one'**
+  String get homeEmptyTip;
+
+  /// No description provided for @homeInfiniteCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'Infinite canvases'**
+  String get homeInfiniteCanvas;
+
+  /// No description provided for @homePagedCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'Paged canvases'**
+  String get homePagedCanvas;
+
+  /// No description provided for @homeDeleteNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete note'**
+  String get homeDeleteNote;
+
+  /// No description provided for @homeStandalonePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Standalone password'**
+  String get homeStandalonePassword;
+
+  /// No description provided for @homeDeleteInfiniteCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete infinite canvas'**
+  String get homeDeleteInfiniteCanvas;
+
+  /// No description provided for @homeNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a name'**
+  String get homeNameHint;
+
+  /// No description provided for @nbSessionLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'The session is locked. Please unlock again'**
+  String get nbSessionLocked;
+
+  /// No description provided for @nbSessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'The session expired. Please reopen this paged canvas'**
+  String get nbSessionExpired;
+
+  /// No description provided for @nbSessionRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Session restored'**
+  String get nbSessionRestored;
+
+  /// No description provided for @nbSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Save failed. Please retry'**
+  String get nbSaveFailed;
+
+  /// No description provided for @nbReaderMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Page reader'**
+  String get nbReaderMode;
+
+  /// No description provided for @nbNewPage.
+  ///
+  /// In en, this message translates to:
+  /// **'New page'**
+  String get nbNewPage;
+
+  /// No description provided for @nbRenameNotebook.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename paged canvas'**
+  String get nbRenameNotebook;
+
+  /// No description provided for @nbOpenAsBlockDoc.
+  ///
+  /// In en, this message translates to:
+  /// **'Open as block document'**
+  String get nbOpenAsBlockDoc;
+
+  /// No description provided for @nbNoPages.
+  ///
+  /// In en, this message translates to:
+  /// **'This paged canvas has no pages yet'**
+  String get nbNoPages;
+
+  /// No description provided for @nbNoPagesNew.
+  ///
+  /// In en, this message translates to:
+  /// **'This paged canvas has no pages yet — create one first'**
+  String get nbNoPagesNew;
+
+  /// No description provided for @nbUntitledPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled page'**
+  String get nbUntitledPage;
+
+  /// No description provided for @nbNoteEncryptedLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'The note is encrypted and the session is locked. Unlock again before opening'**
+  String get nbNoteEncryptedLocked;
+
+  /// No description provided for @nbPickPageAsBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a page to open as a block document'**
+  String get nbPickPageAsBlock;
+
+  /// No description provided for @nbNoOtherNotebook.
+  ///
+  /// In en, this message translates to:
+  /// **'No other paged canvas to import from'**
+  String get nbNoOtherNotebook;
+
+  /// No description provided for @nbPickSourceNotebook.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a source paged canvas'**
+  String get nbPickSourceNotebook;
+
+  /// No description provided for @nbPickImportPages.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose pages to import'**
+  String get nbPickImportPages;
+
+  /// No description provided for @nbExportPdfFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to export the whole PDF. Please retry'**
+  String get nbExportPdfFailed;
+
+  /// No description provided for @nbDeletePage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete page'**
+  String get nbDeletePage;
+
+  /// No description provided for @nbUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get nbUndo;
+
+  /// No description provided for @nbUndoSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo failed to save. Please retry'**
+  String get nbUndoSaveFailed;
+
+  /// No description provided for @nbPageRef.
+  ///
+  /// In en, this message translates to:
+  /// **'🔗 Ref'**
+  String get nbPageRef;
+
+  /// No description provided for @nbUnfavoritePage.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from favorites'**
+  String get nbUnfavoritePage;
+
+  /// No description provided for @nbFavoritePage.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite this page'**
+  String get nbFavoritePage;
+
+  /// No description provided for @nbVersionHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Version history'**
+  String get nbVersionHistory;
+
+  /// No description provided for @nbVersionHistoryOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Version history of “{name}”'**
+  String nbVersionHistoryOf(String name);
+
+  /// No description provided for @nbPageNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Page name'**
+  String get nbPageNameLabel;
+
+  /// No description provided for @nbChooseTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a template'**
+  String get nbChooseTemplate;
+
+  /// No description provided for @nbCreateAndRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Create and start writing'**
+  String get nbCreateAndRecord;
+
+  /// No description provided for @nbPageNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a page name'**
+  String get nbPageNameHint;
+
+  /// No description provided for @nbPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the password'**
+  String get nbPasswordHint;
+
+  /// No description provided for @nbShowPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get nbShowPassword;
+
+  /// No description provided for @nbHidePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get nbHidePassword;
+
+  /// No description provided for @impMarkdownText.
+  ///
+  /// In en, this message translates to:
+  /// **'Markdown / Text'**
+  String get impMarkdownText;
+
+  /// No description provided for @impTextTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Text file too large (over the 20MB limit); import refused'**
+  String get impTextTooLarge;
+
+  /// No description provided for @impEmptyFile.
+  ///
+  /// In en, this message translates to:
+  /// **'The file is empty'**
+  String get impEmptyFile;
+
+  /// No description provided for @impNoText.
+  ///
+  /// In en, this message translates to:
+  /// **'No text content parsed'**
+  String get impNoText;
+
+  /// No description provided for @impImportedParagraphs.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported {count} paragraphs'**
+  String impImportedParagraphs(int count);
+
+  /// No description provided for @impFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Import failed. Please retry'**
+  String get impFailed;
+
+  /// No description provided for @impPdfTypeGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF documents'**
+  String get impPdfTypeGroup;
+
+  /// No description provided for @impPdfNoPages.
+  ///
+  /// In en, this message translates to:
+  /// **'The PDF has no importable pages'**
+  String get impPdfNoPages;
+
+  /// No description provided for @impPdfPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} · Page {page}'**
+  String impPdfPageTitle(String name, int page);
+
+  /// No description provided for @impPdfDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported {count} PDF pages; open any page to annotate'**
+  String impPdfDone(int count);
+
+  /// No description provided for @impPdfFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to import the PDF. Please retry'**
+  String get impPdfFailed;
+
+  /// No description provided for @impChangePasswordProtect.
+  ///
+  /// In en, this message translates to:
+  /// **'Change password protection'**
+  String get impChangePasswordProtect;
+
+  /// No description provided for @impSetPasswordProtect.
+  ///
+  /// In en, this message translates to:
+  /// **'Set password protection'**
+  String get impSetPasswordProtect;
+
+  /// No description provided for @impChangeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'After changing, opening requires the new password'**
+  String get impChangeHint;
+
+  /// No description provided for @impSetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Once set, page content is stored encrypted and requires the password to open'**
+  String get impSetHint;
+
+  /// No description provided for @impPasswordSameAsLock.
+  ///
+  /// In en, this message translates to:
+  /// **'The password must differ from the screen-lock password'**
+  String get impPasswordSameAsLock;
+
+  /// No description provided for @impRelockNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock with the password again before changing'**
+  String get impRelockNeeded;
+
+  /// No description provided for @impPasswordChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Password changed'**
+  String get impPasswordChanged;
+
+  /// No description provided for @impPasswordEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Password protection enabled (page content stored encrypted)'**
+  String get impPasswordEnabled;
+
+  /// No description provided for @impChangeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to change the password. Please retry'**
+  String get impChangeFailed;
+
+  /// No description provided for @impSetFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to set the password. Please retry'**
+  String get impSetFailed;
+
+  /// No description provided for @impBound.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset disk bound'**
+  String get impBound;
+
+  /// No description provided for @impBindFailed2.
+  ///
+  /// In en, this message translates to:
+  /// **'Bind failed. Please retry'**
+  String get impBindFailed2;
+
+  /// No description provided for @impUnlockFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock with the password before binding'**
+  String get impUnlockFirst;
+
+  /// No description provided for @impNoVersions.
+  ///
+  /// In en, this message translates to:
+  /// **'No version history for this page yet'**
+  String get impNoVersions;
+
+  /// No description provided for @impRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get impRestore;
+
+  /// No description provided for @syncFailedUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed: unknown error'**
+  String get syncFailedUnknown;
+
+  /// No description provided for @syncFailedRemoteFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed: failed to sync a remote file. Check the server'**
+  String get syncFailedRemoteFile;
+
+  /// No description provided for @syncFailedHttpUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed: server temporarily unavailable (HTTP {code}). Try again later'**
+  String syncFailedHttpUnavailable(int code);
+
+  /// No description provided for @syncFailedDirMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed: remote directory missing or occupied. Check the remote directory settings'**
+  String get syncFailedDirMissing;
+
+  /// No description provided for @syncFailedHttps.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed: HTTPS handshake failed. Check the server certificate'**
+  String get syncFailedHttps;
+
+  /// No description provided for @syncFailedConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed: cannot reach the server. Check the network or server address'**
+  String get syncFailedConnect;
+
+  /// No description provided for @syncFailedGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed: check the network and account settings, then retry'**
+  String get syncFailedGeneric;
+
+  /// No description provided for @syncMissingSalt.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync config lacks its salt: tap “Save config” again before syncing'**
+  String get syncMissingSalt;
+
+  /// No description provided for @syncMaxRetries.
+  ///
+  /// In en, this message translates to:
+  /// **'Max retries reached'**
+  String get syncMaxRetries;
+
+  /// No description provided for @syncUpToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Already up to date'**
+  String get syncUpToDate;
+
+  /// No description provided for @syncWithConflicts.
+  ///
+  /// In en, this message translates to:
+  /// **'{base}; {count} more documents changed both locally and remotely and were handled per your choice'**
+  String syncWithConflicts(String base, int count);
+
+  /// No description provided for @webdavTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'WebDAV Sync'**
+  String get webdavTitle;
+
+  /// No description provided for @webdavUsername.
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get webdavUsername;
+
+  /// No description provided for @webdavSyncNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync now'**
+  String get webdavSyncNow;
+
+  /// No description provided for @webdavSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save config'**
+  String get webdavSave;
+
+  /// No description provided for @cmdNewSticky.
+  ///
+  /// In en, this message translates to:
+  /// **'New sticky note'**
+  String get cmdNewSticky;
+
+  /// No description provided for @cmdGroupEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get cmdGroupEdit;
+
+  /// No description provided for @cmdCancelConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel connect'**
+  String get cmdCancelConnect;
+
+  /// No description provided for @cmdConnectMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect mode'**
+  String get cmdConnectMode;
+
+  /// No description provided for @cmdGroupSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Group selected'**
+  String get cmdGroupSelected;
+
+  /// No description provided for @cmdNeedTwoFrames.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs ≥2 frames'**
+  String get cmdNeedTwoFrames;
+
+  /// No description provided for @cmdFitContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit content'**
+  String get cmdFitContent;
+
+  /// No description provided for @cmdGroupView.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get cmdGroupView;
+
+  /// No description provided for @cmdFitSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit selection'**
+  String get cmdFitSelected;
+
+  /// No description provided for @cmdZoomIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom in'**
+  String get cmdZoomIn;
+
+  /// No description provided for @cmdZoomOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom out'**
+  String get cmdZoomOut;
+
+  /// No description provided for @cmdExitMulti.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit multi-select'**
+  String get cmdExitMulti;
+
+  /// No description provided for @cmdEnterMulti.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter multi-select'**
+  String get cmdEnterMulti;
+
+  /// No description provided for @cmdGroupSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get cmdGroupSelect;
+
+  /// No description provided for @cmdClearSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear selection'**
+  String get cmdClearSelection;
+
+  /// No description provided for @cmdFocusSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Focus selection'**
+  String get cmdFocusSelected;
+
+  /// No description provided for @cmdGroupJump.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to'**
+  String get cmdGroupJump;
+
+  /// No description provided for @cmdNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching commands'**
+  String get cmdNoMatch;
+
+  /// No description provided for @edPickSourceFrame.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a frame first as the connector start'**
+  String get edPickSourceFrame;
+
+  /// No description provided for @edNewFrame.
+  ///
+  /// In en, this message translates to:
+  /// **'Add frame'**
+  String get edNewFrame;
+
+  /// No description provided for @edFit.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit'**
+  String get edFit;
+
+  /// No description provided for @edMultiSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Multi-select (group)'**
+  String get edMultiSelect;
+
+  /// No description provided for @edGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Group'**
+  String get edGroup;
+
+  /// No description provided for @edStickyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sticky note'**
+  String get edStickyTitle;
+
+  /// No description provided for @edFrameColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Frame background color'**
+  String get edFrameColor;
+
+  /// No description provided for @edConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get edConnect;
+
+  /// No description provided for @edEditContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit content'**
+  String get edEditContent;
+
+  /// No description provided for @edDeleteFrame.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete frame'**
+  String get edDeleteFrame;
+
+  /// No description provided for @edSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get edSelect;
+
+  /// No description provided for @edSticky.
+  ///
+  /// In en, this message translates to:
+  /// **'Sticky'**
+  String get edSticky;
+
+  /// No description provided for @edBrush.
+  ///
+  /// In en, this message translates to:
+  /// **'Brush'**
+  String get edBrush;
+
+  /// No description provided for @edEraser.
+  ///
+  /// In en, this message translates to:
+  /// **'Eraser'**
+  String get edEraser;
+
+  /// No description provided for @edShape.
+  ///
+  /// In en, this message translates to:
+  /// **'Shape'**
+  String get edShape;
+
+  /// No description provided for @edRect.
+  ///
+  /// In en, this message translates to:
+  /// **'Rectangle'**
+  String get edRect;
+
+  /// No description provided for @edOval.
+  ///
+  /// In en, this message translates to:
+  /// **'Oval'**
+  String get edOval;
+
+  /// No description provided for @pfCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Code block'**
+  String get pfCode;
+
+  /// No description provided for @pfImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get pfImage;
+
+  /// No description provided for @pfLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get pfLink;
+
+  /// No description provided for @pfCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'Canvas'**
+  String get pfCanvas;
+
+  /// No description provided for @pfChart.
+  ///
+  /// In en, this message translates to:
+  /// **'Chart'**
+  String get pfChart;
+
+  /// No description provided for @pfTable.
+  ///
+  /// In en, this message translates to:
+  /// **'Table'**
+  String get pfTable;
+
+  /// No description provided for @pfDatabase.
+  ///
+  /// In en, this message translates to:
+  /// **'Database'**
+  String get pfDatabase;
+
+  /// No description provided for @pfAttachment.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment'**
+  String get pfAttachment;
+
+  /// No description provided for @readerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} · Page reader'**
+  String readerTitle(String name);
+
+  /// No description provided for @readerPageIndicator.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {index} of {total}'**
+  String readerPageIndicator(int index, int total);
+
+  /// No description provided for @notesWritingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get notesWritingTitle;
+
+  /// No description provided for @notesRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent'**
+  String get notesRecent;
+
+  /// No description provided for @obWelcome.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to Drawing Notes'**
+  String get obWelcome;
+
+  /// No description provided for @obBrushTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Brush / eraser / eyedropper: switch on the top toolbar; draw with mouse or finger'**
+  String get obBrushTip;
+
+  /// No description provided for @obColorTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Color and stroke: the color chip and thickness slider on the right of the toolbar'**
+  String get obColorTip;
+
+  /// No description provided for @obLayerTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Layers panel on the right: create, show/hide, opacity, reorder, merge'**
+  String get obLayerTip;
+
+  /// No description provided for @obSelectTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Selection tool: marquee-select to move / scale / rotate / copy / delete'**
+  String get obSelectTip;
+
+  /// No description provided for @obNoteTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Note pages support text and images: tap with the text tool; insert via the image button'**
+  String get obNoteTip;
+
+  /// No description provided for @obFullscreenTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Fullscreen button top-right: hides toolbars for a clean canvas'**
+  String get obFullscreenTip;
+
+  /// No description provided for @obStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Get started'**
+  String get obStart;
+
+  /// No description provided for @presNoContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to present'**
+  String get presNoContent;
+
+  /// No description provided for @presIndicator.
+  ///
+  /// In en, this message translates to:
+  /// **'{index} / {total} · Click or → for next, Esc to exit'**
+  String presIndicator(int index, int total);
+
+  /// No description provided for @presExit.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit presentation'**
+  String get presExit;
+
+  /// No description provided for @pdfPreviewUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Inline PDF preview unavailable'**
+  String get pdfPreviewUnavailable;
+
+  /// No description provided for @conflictApplyAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply all'**
+  String get conflictApplyAll;
+
+  /// No description provided for @conflictKeepLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep local'**
+  String get conflictKeepLocal;
+
+  /// No description provided for @conflictKeepCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep remote'**
+  String get conflictKeepCloud;
+
+  /// No description provided for @conflictKeepBoth.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep both'**
+  String get conflictKeepBoth;
+
+  /// No description provided for @searchKindNotebook.
+  ///
+  /// In en, this message translates to:
+  /// **'Paged canvas'**
+  String get searchKindNotebook;
+
+  /// No description provided for @searchKindPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Page title'**
+  String get searchKindPageTitle;
+
+  /// No description provided for @searchKindCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'Canvas'**
+  String get searchKindCanvas;
+
+  /// No description provided for @searchKindBlockDoc.
+  ///
+  /// In en, this message translates to:
+  /// **'Block document'**
+  String get searchKindBlockDoc;
+
+  /// No description provided for @searchKindDocTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Document title'**
+  String get searchKindDocTitle;
+
+  /// No description provided for @templateBlank.
+  ///
+  /// In en, this message translates to:
+  /// **'Blank note'**
+  String get templateBlank;
+
+  /// No description provided for @templateLined.
+  ///
+  /// In en, this message translates to:
+  /// **'Lined note'**
+  String get templateLined;
+
+  /// No description provided for @templateGrid.
+  ///
+  /// In en, this message translates to:
+  /// **'Grid paper'**
+  String get templateGrid;
+
+  /// No description provided for @templateDot.
+  ///
+  /// In en, this message translates to:
+  /// **'Dot-grid note'**
+  String get templateDot;
+
+  /// No description provided for @templateMeeting.
+  ///
+  /// In en, this message translates to:
+  /// **'Meeting notes'**
+  String get templateMeeting;
+
+  /// No description provided for @templateCornell.
+  ///
+  /// In en, this message translates to:
+  /// **'Cornell notes'**
+  String get templateCornell;
+
+  /// No description provided for @templatePlanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Planner page'**
+  String get templatePlanner;
+
+  /// No description provided for @templateWhiteboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Wide whiteboard'**
+  String get templateWhiteboard;
+
+  /// No description provided for @rootRefusedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot start on this device'**
+  String get rootRefusedTitle;
+
+  /// No description provided for @rootRefusedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This device has ROOT access. To protect your encrypted notes, the app refuses to run on a compromised device.'**
+  String get rootRefusedBody;
+
+  /// No description provided for @canvasBindConfirmContent.
+  ///
+  /// In en, this message translates to:
+  /// **'When you forget this canvas’s standalone password, plug in the reset disk (USB drive) to reset without the old password.\n\nThe drive holds only a random key file (password_reset_disk.key); canvas data never leaves the device.'**
+  String get canvasBindConfirmContent;
+
+  /// No description provided for @canvasRemoveConfirmContent.
+  ///
+  /// In en, this message translates to:
+  /// **'After removal, “{name}” falls back to vault protection (master-key envelope) and no longer needs a standalone password. Remove it?'**
+  String canvasRemoveConfirmContent(String name);
+
+  /// No description provided for @canvasBoundDiskFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset disk bound for “{name}”'**
+  String canvasBoundDiskFor(String name);
+
+  /// No description provided for @homeDeleteForeverConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently delete “{name}”? This cannot be undone.'**
+  String homeDeleteForeverConfirm(String name);
+
+  /// No description provided for @homeRestoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore failed. Please retry'**
+  String get homeRestoreFailed;
+
+  /// No description provided for @homeTabCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'Canvases'**
+  String get homeTabCanvas;
+
+  /// No description provided for @homeTabNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get homeTabNotes;
+
+  /// No description provided for @canvasDeletePasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This canvas is encrypted. Enter its standalone password'**
+  String get canvasDeletePasswordTitle;
+
+  /// No description provided for @homeKindNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get homeKindNote;
+
+  /// No description provided for @homeKindNotebookPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Paged-canvas page'**
+  String get homeKindNotebookPage;
+
+  /// No description provided for @homeUpdatedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {time}'**
+  String homeUpdatedAt(String time);
+
+  /// No description provided for @homeDeleteNoteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete the note “{name}”? This cannot be undone.'**
+  String homeDeleteNoteConfirm(Object name);
+
+  /// No description provided for @homeUntitledNotebookPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled'**
+  String get homeUntitledNotebookPage;
+
+  /// No description provided for @homeStandalonePasswordMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Standalone password…'**
+  String get homeStandalonePasswordMenu;
+
+  /// No description provided for @nbEmptyTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap New in the top-right corner'**
+  String get nbEmptyTip;
+
+  /// No description provided for @nbNoTagMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No pages match this tag'**
+  String get nbNoTagMatch;
+
+  /// No description provided for @nbNoTagMatchTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Try another tag'**
+  String get nbNoTagMatchTip;
+
+  /// No description provided for @impBindAskContent.
+  ///
+  /// In en, this message translates to:
+  /// **'When you forget the password, plug in the USB drive to reset a new one.\n\nYou can also bind later via “Bind reset disk” in the menu.'**
+  String get impBindAskContent;
+
+  /// No description provided for @impRestoreConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore this version?'**
+  String get impRestoreConfirmTitle;
+
+  /// No description provided for @impRestoreConfirmContent.
+  ///
+  /// In en, this message translates to:
+  /// **'The current page content will be overwritten by the chosen version (current content is saved to history first).'**
+  String get impRestoreConfirmContent;
+
+  /// No description provided for @nbPageNameExampleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Product review 08-14'**
+  String get nbPageNameExampleHint;
+
+  /// No description provided for @nbDeletePageConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete the page “{name}”? Its handwriting and text will be deleted too.'**
+  String nbDeletePageConfirm(String name);
+
+  /// No description provided for @nbPageDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted “{name}”'**
+  String nbPageDeleted(String name);
+
+  /// No description provided for @nbExportedPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported a {count}-page PDF: {path}'**
+  String nbExportedPdf(int count, String path);
+
+  /// No description provided for @cmdGotoFrame.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to “{name}”'**
+  String cmdGotoFrame(String name);
+
+  /// No description provided for @obPinchTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinch with two fingers to zoom, rotate with two fingers (touch devices)'**
+  String get obPinchTip;
+
+  /// No description provided for @obAutosaveTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Content autosaves — no manual save needed; export to PNG anytime'**
+  String get obAutosaveTip;
+
+  /// No description provided for @syncFailedAuth.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed: wrong username or password (server rejected the login)'**
+  String get syncFailedAuth;
+
+  /// No description provided for @syncFailedRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed: the server rejected this request (HTTP {code})'**
+  String syncFailedRejected(String code);
+
+  /// No description provided for @syncHttpUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'unknown'**
+  String get syncHttpUnknown;
+
+  /// No description provided for @syncDoneSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync done: ↑{up} ↓{down} ✕{del}'**
+  String syncDoneSummary(int up, int down, int del);
+
+  /// No description provided for @webdavFormDirty.
+  ///
+  /// In en, this message translates to:
+  /// **'The form has unsaved changes: tap “Save config” before syncing (avoids mismatched keys and cloud data)'**
+  String get webdavFormDirty;
+
+  /// No description provided for @webdavSyncSecretLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync password (required, for end-to-end encryption)'**
+  String get webdavSyncSecretLabel;
+
+  /// No description provided for @webdavSyncSecretHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing is blocked without a sync password (prevents plaintext notes in the cloud)'**
+  String get webdavSyncSecretHelper;
+
+  /// No description provided for @webdavSyncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing…'**
+  String get webdavSyncing;
+
+  /// No description provided for @tplDescMeeting.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting structure with topics, decisions and action items.'**
+  String get tplDescMeeting;
+
+  /// No description provided for @tplDescCornell.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting structure with cue, notes and summary areas.'**
+  String get tplDescCornell;
+
+  /// No description provided for @tplDescPlanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting structure with priorities, schedule and review.'**
+  String get tplDescPlanner;
+
+  /// No description provided for @tplDescWhiteboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Wide blank canvas mode; this version still uses a fixed coordinate paper.'**
+  String get tplDescWhiteboard;
+
+  /// No description provided for @tplDescDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'The paper background follows the template and is saved to the page.'**
+  String get tplDescDefault;
+
+  /// No description provided for @homeDeleteForeverFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanent delete failed. Please retry'**
+  String get homeDeleteForeverFailed;
+
+  /// No description provided for @impDiskNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No valid reset disk file (password_reset_disk.key) found'**
+  String get impDiskNotFound;
+
+  /// No description provided for @lockDiskKeepNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Do not delete the password_reset_disk.key file on the USB drive'**
+  String get lockDiskKeepNote;
 }
 
 class _AppLocalizationsDelegate

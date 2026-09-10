@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 
 /// 帧内只读块内容预览。
@@ -195,7 +196,9 @@ class _NoteBlockPreviewRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppleRadius.sm),
           ),
           child: Text(
-            block.text.isNotEmpty ? block.text : '代码块',
+            block.text.isNotEmpty
+                ? block.text
+                : AppLocalizations.of(context)?.pfCode ?? '代码块',
             style: baseStyle.copyWith(
               fontFamily: 'monospace',
               fontSize: 13,
@@ -249,7 +252,9 @@ class _NoteBlockPreviewRow extends StatelessWidget {
             const SizedBox(width: AppleSpacing.xs),
             Expanded(
               child: Text(
-                src.isNotEmpty ? src : '图片',
+                src.isNotEmpty
+                    ? src
+                    : AppLocalizations.of(context)?.pfImage ?? '图片',
                 style: baseStyle.copyWith(
                   color: baseStyle.color!.withValues(alpha: 0.6),
                 ),
@@ -261,26 +266,46 @@ class _NoteBlockPreviewRow extends StatelessWidget {
       case NoteBlockType.link:
         final href = block.props['href'] as String? ?? '';
         return Text(
-          block.text.isEmpty ? (href.isEmpty ? '链接' : href) : block.text,
+          block.text.isEmpty
+              ? (href.isEmpty
+                    ? AppLocalizations.of(context)?.pfLink ?? '链接'
+                    : href)
+              : block.text,
           style: baseStyle.copyWith(
             color: AppleColor.actionBlue,
             decoration: TextDecoration.underline,
           ),
         );
       case NoteBlockType.canvas:
-        return _embeddedPlaceholder('画布', Icons.polyline_outlined, baseStyle);
+        return _embeddedPlaceholder(
+          AppLocalizations.of(context)?.pfCanvas ?? '画布',
+          Icons.polyline_outlined,
+          baseStyle,
+        );
       case NoteBlockType.chart:
-        return _embeddedPlaceholder('图表', Icons.bar_chart_outlined, baseStyle);
+        return _embeddedPlaceholder(
+          AppLocalizations.of(context)?.pfChart ?? '图表',
+          Icons.bar_chart_outlined,
+          baseStyle,
+        );
       case NoteBlockType.table:
         return _embeddedPlaceholder(
-          '表格',
+          AppLocalizations.of(context)?.pfTable ?? '表格',
           Icons.table_chart_outlined,
           baseStyle,
         );
       case NoteBlockType.database:
-        return _embeddedPlaceholder('数据库', Icons.dataset_outlined, baseStyle);
+        return _embeddedPlaceholder(
+          AppLocalizations.of(context)?.pfDatabase ?? '数据库',
+          Icons.dataset_outlined,
+          baseStyle,
+        );
       case NoteBlockType.attachment:
-        return _embeddedPlaceholder('附件', Icons.attachment_outlined, baseStyle);
+        return _embeddedPlaceholder(
+          AppLocalizations.of(context)?.pfAttachment ?? '附件',
+          Icons.attachment_outlined,
+          baseStyle,
+        );
       case NoteBlockType.text:
         return Text(block.text, style: baseStyle, softWrap: true);
     }

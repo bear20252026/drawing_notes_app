@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
@@ -83,7 +84,8 @@ class _NotebookReaderPageState extends State<NotebookReaderPage> {
         backgroundColor: surface,
         foregroundColor: Colors.white70,
         title: Text(
-          '${widget.notebook.title} · 翻页阅读',
+          AppLocalizations.of(context)?.readerTitle(widget.notebook.title) ??
+              '${widget.notebook.title} · 翻页阅读',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(color: Colors.white),
@@ -93,10 +95,10 @@ class _NotebookReaderPageState extends State<NotebookReaderPage> {
         autofocus: true,
         onKeyEvent: _onKeyEvent,
         child: pages.isEmpty
-            ? const Center(
+            ? Center(
                 child: Text(
-                  '这个分页画布还没有页面',
-                  style: TextStyle(color: Colors.white38),
+                  AppLocalizations.of(context)?.nbNoPages ?? '这个分页画布还没有页面',
+                  style: const TextStyle(color: Colors.white38),
                 ),
               )
             : Stack(
@@ -127,7 +129,11 @@ class _NotebookReaderPageState extends State<NotebookReaderPage> {
                           borderRadius: BorderRadius.circular(AppleRadius.pill),
                         ),
                         child: Text(
-                          '第 ${_index + 1} 页 / 共 ${pages.length} 页',
+                          AppLocalizations.of(context)?.readerPageIndicator(
+                                _index + 1,
+                                pages.length,
+                              ) ??
+                              '第 ${_index + 1} 页 / 共 ${pages.length} 页',
                           style: AppleType.controlStyle(
                             Colors.white70,
                             weight: FontWeight.w400,

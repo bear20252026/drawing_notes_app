@@ -846,4 +846,721 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get resetNoValidKeyBody =>
       '所选位置未找到有效的重置密码盘文件（password_reset_disk.key）。';
+
+  @override
+  String get homeReadListFailed => '读取列表失败，请重试';
+
+  @override
+  String get homeNewInfiniteCanvas => '新建无限画布';
+
+  @override
+  String get homeNewInfiniteCanvasSub => '自由绘制、图形与关系图';
+
+  @override
+  String get homeNewPagedCanvasSub => '多页装订、纸张模板与图文混排';
+
+  @override
+  String get homeCreateFailedFull => '新建失败：笔记本未能保存，请检查磁盘空间后重试';
+
+  @override
+  String get homeCanvasMissing => '画布文件不存在或已损坏';
+
+  @override
+  String get homeOpenCanvasFailed => '打开画布失败，请重试';
+
+  @override
+  String get canvasStandalonePasswordProtected => '此画布受独立密码保护';
+
+  @override
+  String get canvasStandalonePasswordUnset => '此画布当前未设置独立密码';
+
+  @override
+  String get canvasVaultLockedSet => '加密底座已锁定：请重新验证开屏密码后再设置';
+
+  @override
+  String get canvasVaultLockedRemove => '加密底座已锁定，无法回封：请重新验证开屏密码后再试';
+
+  @override
+  String canvasPasswordSetDiskBoundFor(String name) {
+    return '已为「$name」设置独立密码并绑定重置密码盘';
+  }
+
+  @override
+  String get homeDeleteCanvasTitle => '删除画布';
+
+  @override
+  String homeDeleteCanvasConfirm(String name) {
+    return '确定删除画布「$name」吗？此操作不可恢复。';
+  }
+
+  @override
+  String get homeDeleteFailed => '删除失败，请重试';
+
+  @override
+  String get homeSelectTemplate => '选择笔记模板';
+
+  @override
+  String get homeCreateFailed => '创建失败，请重试';
+
+  @override
+  String get homeTrashLoadFailed => '回收站加载失败，请重试';
+
+  @override
+  String homeRecovered(String id) {
+    return '已恢复「$id」';
+  }
+
+  @override
+  String get homeRetry => '重试';
+
+  @override
+  String get homeNoCanvas => '还没有画布';
+
+  @override
+  String get homeNoNotes => '还没有笔记';
+
+  @override
+  String get homeEmptyTip => '点击右下角按钮新建一个吧';
+
+  @override
+  String get homeInfiniteCanvas => '无限画布';
+
+  @override
+  String get homePagedCanvas => '分页画布';
+
+  @override
+  String get homeDeleteNote => '删除笔记';
+
+  @override
+  String get homeStandalonePassword => '独立密码';
+
+  @override
+  String get homeDeleteInfiniteCanvas => '删除无限画布';
+
+  @override
+  String get homeNameHint => '请输入名称';
+
+  @override
+  String get nbSessionLocked => '会话已锁定，请重新解锁';
+
+  @override
+  String get nbSessionExpired => '会话已过期，请重新打开该分页画布';
+
+  @override
+  String get nbSessionRestored => '会话已恢复';
+
+  @override
+  String get nbSaveFailed => '保存失败，请重试';
+
+  @override
+  String get nbReaderMode => '翻页阅读';
+
+  @override
+  String get nbNewPage => '新建页面';
+
+  @override
+  String get nbRenameNotebook => '重命名分页画布';
+
+  @override
+  String get nbOpenAsBlockDoc => '以块文档打开';
+
+  @override
+  String get nbNoPages => '这个分页画布还没有页面';
+
+  @override
+  String get nbNoPagesNew => '这个分页画布还没有页面，先新建一页吧';
+
+  @override
+  String get nbUntitledPage => '未命名页面';
+
+  @override
+  String get nbNoteEncryptedLocked => '该笔记已加密且会话已锁定，请重新解锁后再打开';
+
+  @override
+  String get nbPickPageAsBlock => '选择要以块文档打开的页面';
+
+  @override
+  String get nbNoOtherNotebook => '暂没有其他分页画布可引入';
+
+  @override
+  String get nbPickSourceNotebook => '选择源分页画布';
+
+  @override
+  String get nbPickImportPages => '选择要引入的页面';
+
+  @override
+  String get nbExportPdfFailed => '导出整本 PDF 失败，请重试';
+
+  @override
+  String get nbDeletePage => '删除页面';
+
+  @override
+  String get nbUndo => '撤销';
+
+  @override
+  String get nbUndoSaveFailed => '撤销保存失败，请重试';
+
+  @override
+  String get nbPageRef => '🔗 引用';
+
+  @override
+  String get nbUnfavoritePage => '取消收藏';
+
+  @override
+  String get nbFavoritePage => '收藏页面';
+
+  @override
+  String get nbVersionHistory => '版本历史';
+
+  @override
+  String nbVersionHistoryOf(String name) {
+    return '「$name」版本历史';
+  }
+
+  @override
+  String get nbPageNameLabel => '页面名称';
+
+  @override
+  String get nbChooseTemplate => '选择模板';
+
+  @override
+  String get nbCreateAndRecord => '创建并开始记录';
+
+  @override
+  String get nbPageNameHint => '请输入页面名称';
+
+  @override
+  String get nbPasswordHint => '请输入密码';
+
+  @override
+  String get nbShowPassword => '显示密码';
+
+  @override
+  String get nbHidePassword => '隐藏密码';
+
+  @override
+  String get impMarkdownText => 'Markdown / 文本';
+
+  @override
+  String get impTextTooLarge => '文本文件过大（超过 20MB 限制），拒绝导入';
+
+  @override
+  String get impEmptyFile => '文件内容为空';
+
+  @override
+  String get impNoText => '未解析到文本内容';
+
+  @override
+  String impImportedParagraphs(int count) {
+    return '已导入 $count 段文字';
+  }
+
+  @override
+  String get impFailed => '导入失败，请重试';
+
+  @override
+  String get impPdfTypeGroup => 'PDF 文档';
+
+  @override
+  String get impPdfNoPages => 'PDF 没有可导入的页面';
+
+  @override
+  String impPdfPageTitle(String name, int page) {
+    return '$name · 第 $page 页';
+  }
+
+  @override
+  String impPdfDone(int count) {
+    return '已导入 PDF 共 $count 页；打开任一页面即可手写批注';
+  }
+
+  @override
+  String get impPdfFailed => '导入 PDF 失败，请重试';
+
+  @override
+  String get impChangePasswordProtect => '修改密码保护';
+
+  @override
+  String get impSetPasswordProtect => '设置密码保护';
+
+  @override
+  String get impChangeHint => '修改后打开需输入新密码';
+
+  @override
+  String get impSetHint => '设置后页面内容将加密存储，打开需输入密码';
+
+  @override
+  String get impPasswordSameAsLock => '密码不能与开屏密码相同';
+
+  @override
+  String get impRelockNeeded => '请重新输入密码解锁后再修改';
+
+  @override
+  String get impPasswordChanged => '密码已修改';
+
+  @override
+  String get impPasswordEnabled => '已启用密码保护（页面内容加密存储）';
+
+  @override
+  String get impChangeFailed => '修改密码失败，请重试';
+
+  @override
+  String get impSetFailed => '设置密码失败，请重试';
+
+  @override
+  String get impBound => '已绑定重置密码盘';
+
+  @override
+  String get impBindFailed2 => '绑定失败，请重试';
+
+  @override
+  String get impUnlockFirst => '请先输入密码解锁后再绑定';
+
+  @override
+  String get impNoVersions => '该页面暂无历史版本';
+
+  @override
+  String get impRestore => '恢复';
+
+  @override
+  String get syncFailedUnknown => '同步失败：未知错误';
+
+  @override
+  String get syncFailedRemoteFile => '同步失败：同步远端文件失败，请检查服务器';
+
+  @override
+  String syncFailedHttpUnavailable(int code) {
+    return '同步失败：服务器暂时不可用（HTTP $code），请稍后再试';
+  }
+
+  @override
+  String get syncFailedDirMissing => '同步失败：服务器目录不存在或路径被占用，请检查远端目录设置';
+
+  @override
+  String get syncFailedHttps => '同步失败：安全连接（HTTPS）握手失败，请检查服务器证书';
+
+  @override
+  String get syncFailedConnect => '同步失败：连不上服务器，请检查网络或服务器地址';
+
+  @override
+  String get syncFailedGeneric => '同步失败：请检查网络与账号设置后重试';
+
+  @override
+  String get syncMissingSalt => '同步配置缺少加密盐：请重新点击「保存配置」后再同步';
+
+  @override
+  String get syncMaxRetries => '达到最大重试次数';
+
+  @override
+  String get syncUpToDate => '已是最新，无需同步';
+
+  @override
+  String syncWithConflicts(String base, int count) {
+    return '$base；另有 $count 个文档本地与云端均有改动，已按你的选择处理';
+  }
+
+  @override
+  String get webdavTitle => 'WebDAV 同步';
+
+  @override
+  String get webdavUsername => '用户名';
+
+  @override
+  String get webdavSyncNow => '立即同步';
+
+  @override
+  String get webdavSave => '保存配置';
+
+  @override
+  String get cmdNewSticky => '新建便签';
+
+  @override
+  String get cmdGroupEdit => '编辑';
+
+  @override
+  String get cmdCancelConnect => '取消连线';
+
+  @override
+  String get cmdConnectMode => '连线模式';
+
+  @override
+  String get cmdGroupSelected => '编组所选';
+
+  @override
+  String get cmdNeedTwoFrames => '需 ≥2 帧';
+
+  @override
+  String get cmdFitContent => '适应内容';
+
+  @override
+  String get cmdGroupView => '视图';
+
+  @override
+  String get cmdFitSelected => '适应所选';
+
+  @override
+  String get cmdZoomIn => '放大';
+
+  @override
+  String get cmdZoomOut => '缩小';
+
+  @override
+  String get cmdExitMulti => '退出多选';
+
+  @override
+  String get cmdEnterMulti => '进入多选';
+
+  @override
+  String get cmdGroupSelect => '选择';
+
+  @override
+  String get cmdClearSelection => '清空所选';
+
+  @override
+  String get cmdFocusSelected => '聚焦所选';
+
+  @override
+  String get cmdGroupJump => '跳转';
+
+  @override
+  String get cmdNoMatch => '没有匹配的命令';
+
+  @override
+  String get edPickSourceFrame => '请先选中一个帧作为连线起点';
+
+  @override
+  String get edNewFrame => '新增帧';
+
+  @override
+  String get edFit => '适应';
+
+  @override
+  String get edMultiSelect => '多选(编组)';
+
+  @override
+  String get edGroup => '编组';
+
+  @override
+  String get edStickyTitle => '便签';
+
+  @override
+  String get edFrameColor => '帧背景色';
+
+  @override
+  String get edConnect => '连线';
+
+  @override
+  String get edEditContent => '编辑内容';
+
+  @override
+  String get edDeleteFrame => '删除帧';
+
+  @override
+  String get edSelect => '选择';
+
+  @override
+  String get edSticky => '便签';
+
+  @override
+  String get edBrush => '画笔';
+
+  @override
+  String get edEraser => '橡皮';
+
+  @override
+  String get edShape => '形状';
+
+  @override
+  String get edRect => '矩形';
+
+  @override
+  String get edOval => '椭圆';
+
+  @override
+  String get pfCode => '代码块';
+
+  @override
+  String get pfImage => '图片';
+
+  @override
+  String get pfLink => '链接';
+
+  @override
+  String get pfCanvas => '画布';
+
+  @override
+  String get pfChart => '图表';
+
+  @override
+  String get pfTable => '表格';
+
+  @override
+  String get pfDatabase => '数据库';
+
+  @override
+  String get pfAttachment => '附件';
+
+  @override
+  String readerTitle(String name) {
+    return '$name · 翻页阅读';
+  }
+
+  @override
+  String readerPageIndicator(int index, int total) {
+    return '第 $index 页 / 共 $total 页';
+  }
+
+  @override
+  String get notesWritingTitle => '笔记';
+
+  @override
+  String get notesRecent => '最近';
+
+  @override
+  String get obWelcome => '欢迎使用绘图笔记';
+
+  @override
+  String get obBrushTip => '画笔 / 橡皮擦 / 吸管：顶部工具条切换，拖动鼠标或手指绘画';
+
+  @override
+  String get obColorTip => '颜色与粗细：工具条右侧圆形色块与粗细滑块';
+
+  @override
+  String get obLayerTip => '图层面板在右侧：新建、显隐、透明度、顺序、合并';
+
+  @override
+  String get obSelectTip => '选区工具：框选后可移动 / 缩放 / 旋转 / 复制 / 删除';
+
+  @override
+  String get obNoteTip => '笔记页支持文字与图片：文字工具点击画布输入，图片按钮插入';
+
+  @override
+  String get obFullscreenTip => '右上角全屏按钮：隐藏工具栏只看画布';
+
+  @override
+  String get obStart => '开始使用';
+
+  @override
+  String get presNoContent => '没有可演示的内容';
+
+  @override
+  String presIndicator(int index, int total) {
+    return '$index / $total · 点击或 → 下一页，Esc 退出';
+  }
+
+  @override
+  String get presExit => '退出演示';
+
+  @override
+  String get pdfPreviewUnavailable => 'PDF 内嵌预览不可用';
+
+  @override
+  String get conflictApplyAll => '应用全部';
+
+  @override
+  String get conflictKeepLocal => '保留本地';
+
+  @override
+  String get conflictKeepCloud => '保留云端';
+
+  @override
+  String get conflictKeepBoth => '两者皆留';
+
+  @override
+  String get searchKindNotebook => '分页画布';
+
+  @override
+  String get searchKindPageTitle => '页面标题';
+
+  @override
+  String get searchKindCanvas => '画布';
+
+  @override
+  String get searchKindBlockDoc => '块文档';
+
+  @override
+  String get searchKindDocTitle => '文档标题';
+
+  @override
+  String get templateBlank => '空白笔记';
+
+  @override
+  String get templateLined => '横线笔记';
+
+  @override
+  String get templateGrid => '方格纸';
+
+  @override
+  String get templateDot => '点阵笔记';
+
+  @override
+  String get templateMeeting => '会议记录';
+
+  @override
+  String get templateCornell => '康奈尔笔记';
+
+  @override
+  String get templatePlanner => '计划页';
+
+  @override
+  String get templateWhiteboard => '宽阔白板';
+
+  @override
+  String get rootRefusedTitle => '无法在此设备上启动';
+
+  @override
+  String get rootRefusedBody => '检测到设备已获取 ROOT 权限。为保护你的加密笔记数据，本应用在已破解设备上拒绝运行。';
+
+  @override
+  String get canvasBindConfirmContent =>
+      '绑定后忘记此画布的独立密码时，可插入重置密码盘（U 盘）免旧密码重置。\n\nU 盘上只有随机钥匙文件（password_reset_disk.key），画布数据不会离开设备。';
+
+  @override
+  String canvasRemoveConfirmContent(String name) {
+    return '移除后「$name」将回到加密底座保护（主密钥信封），不再需要独立密码。确定移除吗？';
+  }
+
+  @override
+  String canvasBoundDiskFor(String name) {
+    return '已为「$name」绑定重置密码盘';
+  }
+
+  @override
+  String homeDeleteForeverConfirm(String name) {
+    return '确定永久删除「$name」吗？此操作不可恢复。';
+  }
+
+  @override
+  String get homeRestoreFailed => '恢复失败，请重试';
+
+  @override
+  String get homeTabCanvas => '画布';
+
+  @override
+  String get homeTabNotes => '笔记';
+
+  @override
+  String get canvasDeletePasswordTitle => '该画布已加密，输入独立密码';
+
+  @override
+  String get homeKindNote => '笔记';
+
+  @override
+  String get homeKindNotebookPage => '分页画布页面';
+
+  @override
+  String homeUpdatedAt(String time) {
+    return '更新于 $time';
+  }
+
+  @override
+  String homeDeleteNoteConfirm(Object name) {
+    return '确定删除笔记「$name」吗？此操作不可恢复。';
+  }
+
+  @override
+  String get homeUntitledNotebookPage => '未命名';
+
+  @override
+  String get homeStandalonePasswordMenu => '独立密码…';
+
+  @override
+  String get nbEmptyTip => '点击右上角新建';
+
+  @override
+  String get nbNoTagMatch => '没有匹配该标签的页面';
+
+  @override
+  String get nbNoTagMatchTip => '试试选择其他标签';
+
+  @override
+  String get impBindAskContent =>
+      '绑定后忘记密码时，插入 U 盘即可重置新密码。\n\n可以稍后在菜单「绑定重置密码盘」中补绑。';
+
+  @override
+  String get impRestoreConfirmTitle => '恢复该版本？';
+
+  @override
+  String get impRestoreConfirmContent => '将用所选版本覆盖当前页面内容（当前内容会先存入历史）。';
+
+  @override
+  String get nbPageNameExampleHint => '例如：产品评审 08-14';
+
+  @override
+  String nbDeletePageConfirm(String name) {
+    return '确定删除页面「$name」吗？其中的手写与文字内容将一并删除。';
+  }
+
+  @override
+  String nbPageDeleted(String name) {
+    return '已删除「$name」';
+  }
+
+  @override
+  String nbExportedPdf(int count, String path) {
+    return '已导出整本 $count 页 PDF：$path';
+  }
+
+  @override
+  String cmdGotoFrame(String name) {
+    return '跳转到「$name」';
+  }
+
+  @override
+  String get obPinchTip => '双指捏合缩放画布、双指旋转画布（触屏设备）';
+
+  @override
+  String get obAutosaveTip => '内容自动保存，无需手动保存；可随时导出为 PNG';
+
+  @override
+  String get syncFailedAuth => '同步失败：用户名或密码不对（服务器拒绝登录）';
+
+  @override
+  String syncFailedRejected(String code) {
+    return '同步失败：服务器拒绝了这次请求（HTTP $code）';
+  }
+
+  @override
+  String get syncHttpUnknown => '未知';
+
+  @override
+  String syncDoneSummary(int up, int down, int del) {
+    return '同步完成：↑$up ↓$down ✕$del';
+  }
+
+  @override
+  String get webdavFormDirty => '表单有未保存的修改：请先点击「保存配置」再同步（避免加密密钥与云端数据错配）';
+
+  @override
+  String get webdavSyncSecretLabel => '同步密码（必填，用于端到端加密）';
+
+  @override
+  String get webdavSyncSecretHelper => '未设置同步密码时同步会被阻止（防止笔记明文上云）';
+
+  @override
+  String get webdavSyncing => '同步中…';
+
+  @override
+  String get tplDescMeeting => '包含议题、决策和行动项的起始结构。';
+
+  @override
+  String get tplDescCornell => '包含线索、笔记和总结区域的起始结构。';
+
+  @override
+  String get tplDescPlanner => '包含重点、日程与复盘的起始结构。';
+
+  @override
+  String get tplDescWhiteboard => '使用宽阔空白画布模式；当前版本仍采用固定坐标纸面。';
+
+  @override
+  String get tplDescDefault => '纸张背景会随模板设置并保存到页面。';
+
+  @override
+  String get homeDeleteForeverFailed => '永久删除失败，请重试';
+
+  @override
+  String get impDiskNotFound => '未找到有效的重置密码盘文件（password_reset_disk.key）';
+
+  @override
+  String get lockDiskKeepNote => 'U 盘上的 password_reset_disk.key 文件请勿删除';
 }

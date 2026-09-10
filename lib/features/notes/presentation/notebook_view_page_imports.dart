@@ -15,12 +15,15 @@ extension _NotebookPageImports on _NotebookViewPageState {
     // 策略门禁（专家审计最优先④——2026-08-16）：默认拒绝——白名单操作
     // 才允许（deny 时提示拒绝，不执行——fail-closed）。
     if (!const PolicyEngine().check('note.import.text').isAllowed) {
-      _showSnack('操作被策略拒绝（note.import.text）');
+      _showSnack(
+        AppLocalizations.of(context)?.docPolicyDenied('note.import.text') ??
+            '操作被策略拒绝（note.import.text）',
+      );
       return;
     }
-    const typeGroup = XTypeGroup(
-      label: 'Markdown / 文本',
-      extensions: ['md', 'txt'],
+    final typeGroup = XTypeGroup(
+      label: AppLocalizations.of(context)?.impMarkdownText ?? 'Markdown / 文本',
+      extensions: const ['md', 'txt'],
     );
     // 会话守卫豁免（专家审计最优先③——2026-08-16）：文件选择器运行期间
     // 不触发锁定（防导入误锁——private_notes_light filePickerRunning 模式）。
@@ -33,12 +36,12 @@ extension _NotebookPageImports on _NotebookViewPageState {
       // 任务#3（专家审计 2026-08-15）：文本导入大小配额——防超大文件
       // 一次性 readAsString 加载（内存/卡顿）。
       if (await File(file.path).length() > _maxTextImportBytes) {
-        _showSnack('文本文件过大（超过 20MB 限制），拒绝导入');
+        _showSnack(_l10nSafe?.impTextTooLarge ?? '文本文件过大（超过 20MB 限制），拒绝导入');
         return;
       }
       final content = await File(file.path).readAsString();
       if (content.trim().isEmpty) {
-        _showSnack('文件内容为空');
+        _showSnack(_l10nSafe?.impEmptyFile ?? '文件内容为空');
         return;
       }
       // 按空行分段，每段生成一个文字块（首个段落作为标题）。
@@ -48,7 +51,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
           .where((p) => p.isNotEmpty)
           .toList();
       if (paragraphs.isEmpty) {
-        _showSnack('未解析到文本内容');
+        _showSnack(_l10nSafe?.impNoText ?? '未解析到文本内容');
         return;
       }
       final title = paragraphs.first.length > 30
@@ -83,9 +86,12 @@ extension _NotebookPageImports on _NotebookViewPageState {
       }
       _applyState(() => _notebook.pages.add(page));
       await _save();
-      _showSnack('已导入 ${paragraphs.length} 段文字');
+      _showSnack(
+        _l10nSafe?.impImportedParagraphs(paragraphs.length) ??
+            '已导入 ${paragraphs.length} 段文字',
+      );
     } catch (e) {
-      _showSnack('导入失败，请重试');
+      _showSnack(_l10nSafe?.impFailed ?? '导入失败，请重试');
     }
   }
 
@@ -94,10 +100,16 @@ extension _NotebookPageImports on _NotebookViewPageState {
   Future<void> _importPdf() async {
     // 策略门禁（专家审计最优先④）：PDF 导入白名单判定（deny 时拒绝执行）。
     if (!const PolicyEngine().check('note.import.pdf').isAllowed) {
-      _showSnack('操作被策略拒绝（note.import.pdf）');
+      _showSnack(
+        AppLocalizations.of(context)?.docPolicyDenied('note.import.pdf') ??
+            '操作被策略拒绝（note.import.pdf）',
+      );
       return;
     }
-    const typeGroup = XTypeGroup(label: 'PDF 文档', extensions: ['pdf']);
+    final typeGroup = XTypeGroup(
+      label: AppLocalizations.of(context)?.impPdfTypeGroup ?? 'PDF 文档',
+      extensions: const ['pdf'],
+    );
     // P0 修复：同上，作用域式豁免防异常泄漏。
     final selected = await _sessionGuard.runWithExemption(
       () => openFile(acceptedTypeGroups: [typeGroup]),
@@ -111,7 +123,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
         importId: importId,
       );
       if (rendered.isEmpty) {
-        _showSnack('PDF 没有可导入的页面');
+        _showSnack(_l10nSafe?.impPdfNoPages ?? 'PDF 没有可导入的页面');
         return;
       }
       final sourceName = selected.path
@@ -150,9 +162,12 @@ extension _NotebookPageImports on _NotebookViewPageState {
       if (!mounted) return;
       _applyState(() => _notebook.pages.addAll(created));
       await _save();
-      _showSnack('已导入 PDF 共 ${created.length} 页；打开任一页面即可手写批注');
+      _showSnack(
+        _l10nSafe?.impPdfDone(created.length) ??
+            '已导入 PDF 共 ${created.length} 页；打开任一页面即可手写批注',
+      );
     } catch (error) {
-      _showSnack('导入 PDF 失败，请重试');
+      _showSnack(_l10nSafe?.impPdfFailed ?? '导入 PDF 失败，请重试');
     }
   }
 
@@ -189,15 +204,20 @@ extension _NotebookPageImports on _NotebookViewPageState {
     final password = await GlassDialog.show<String>(
       context: context,
       builder: (ctx) => _PasswordDialog(
-        title: isChange ? '修改密码保护' : '设置密码保护',
-        hint: isChange ? '修改后打开需输入新密码' : '设置后页面内容将加密存储，打开需输入密码',
+        title: isChange
+            ? AppLocalizations.of(context)?.impChangePasswordProtect ?? '修改密码保护'
+            : AppLocalizations.of(context)?.impSetPasswordProtect ?? '设置密码保护',
+        hint: isChange
+            ? AppLocalizations.of(context)?.impChangeHint ?? '修改后打开需输入新密码'
+            : AppLocalizations.of(context)?.impSetHint ??
+                  '设置后页面内容将加密存储，打开需输入密码',
       ),
     );
     if (password == null || password.isEmpty) return;
     // 批次②：≠开屏密码强制——哈希加盐不可直接比对，verify 探测
     // （能通过开屏锁校验即同码），同码会削弱两层独立的保护边界。
     if (await AppLockService.matchesAppLockPin(password)) {
-      _showSnack('密码不能与开屏密码相同');
+      _showSnack(_l10nSafe?.impPasswordSameAsLock ?? '密码不能与开屏密码相同');
       return;
     }
     try {
@@ -206,7 +226,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
         // 旧格式信封自动升级 v5。会话密码在则直接用，否则先验证当前密码。
         final old = _effectivePassword;
         if (old == null || old.isEmpty) {
-          _showSnack('请重新输入密码解锁后再修改');
+          _showSnack(_l10nSafe?.impRelockNeeded ?? '请重新输入密码解锁后再修改');
           return;
         }
         await widget.storage.changeNotebookPassword(
@@ -226,14 +246,25 @@ extension _NotebookPageImports on _NotebookViewPageState {
       if (mounted) {
         _applyState(() {});
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(isChange ? '密码已修改' : '已启用密码保护（页面内容加密存储）')),
+          SnackBar(
+            content: Text(
+              isChange
+                  ? AppLocalizations.of(context)?.impPasswordChanged ?? '密码已修改'
+                  : AppLocalizations.of(context)?.impPasswordEnabled ??
+                        '已启用密码保护（页面内容加密存储）',
+            ),
+          ),
         );
       }
       // N4 批 3：未绑定重置密码盘时询问是否当场插盘绑定（可跳过，事后
       // 在菜单「绑定重置密码盘」中补绑）。
       await _offerUsbBinding(password);
     } catch (e) {
-      _showSnack('${isChange ? '修改密码' : '设置密码'}失败，请重试');
+      _showSnack(
+        isChange
+            ? _l10nSafe?.impChangeFailed ?? '修改密码失败，请重试'
+            : _l10nSafe?.impSetFailed ?? '设置密码失败，请重试',
+      );
     }
   }
 
@@ -244,12 +275,14 @@ extension _NotebookPageImports on _NotebookViewPageState {
     if (!mounted) return;
     final bind = await GlassDialog.confirm(
       context,
-      title: '绑定重置密码盘？',
+      title:
+          AppLocalizations.of(context)?.docBindDiskConfirmTitle ?? '绑定重置密码盘？',
       content:
+          AppLocalizations.of(context)?.impBindAskContent ??
           '绑定后忘记密码时，插入 U 盘即可重置新密码。\n\n'
-          '可以稍后在菜单「绑定重置密码盘」中补绑。',
-      confirmText: '插盘绑定',
-      cancelText: '暂不',
+              '可以稍后在菜单「绑定重置密码盘」中补绑。',
+      confirmText: AppLocalizations.of(context)?.docBindDiskConfirm ?? '插盘绑定',
+      cancelText: AppLocalizations.of(context)?.docNotNow ?? '暂不',
     );
     if (!bind || !mounted) return;
     await _bindUsbDisk(password);
@@ -261,26 +294,28 @@ extension _NotebookPageImports on _NotebookViewPageState {
     if (dir == null || !mounted) return;
     final usbKey = await ResetDiskFile.readFrom(dir);
     if (usbKey == null) {
-      _showSnack('未找到有效的重置密码盘文件（password_reset_disk.key）');
+      _showSnack(
+        _l10nSafe?.impDiskNotFound ?? '未找到有效的重置密码盘文件（password_reset_disk.key）',
+      );
       return;
     }
     try {
       await widget.storage.bindNotebookUsbSlot(_notebook.id, password, usbKey);
-      _showSnack('已绑定重置密码盘');
+      _showSnack(_l10nSafe?.impBound ?? '已绑定重置密码盘');
     } catch (e) {
-      _showSnack('绑定失败，请重试');
+      _showSnack(_l10nSafe?.impBindFailed2 ?? '绑定失败，请重试');
     }
   }
 
   /// N4 批 3：菜单「绑定重置密码盘」入口（须已解锁——会话密码可用）。
   Future<void> _startBindUsb() async {
     if (await widget.storage.hasNotebookUsbSlot(_notebook.id)) {
-      _showSnack('已绑定重置密码盘');
+      _showSnack(_l10nSafe?.impBound ?? '已绑定重置密码盘');
       return;
     }
     final pw = _effectivePassword;
     if (pw == null || pw.isEmpty) {
-      _showSnack('请先输入密码解锁后再绑定');
+      _showSnack(_l10nSafe?.impUnlockFirst ?? '请先输入密码解锁后再绑定');
       return;
     }
     await _bindUsbDisk(pw);
@@ -289,13 +324,16 @@ extension _NotebookPageImports on _NotebookViewPageState {
   /// 查看并回溯页面版本历史（C1）。
   Future<void> _showHistory(NotebookPage page) async {
     if (page.history.isEmpty) {
-      _showSnack('该页面暂无历史版本');
+      _showSnack(AppLocalizations.of(context)?.impNoVersions ?? '该页面暂无历史版本');
       return;
     }
     final version = await GlassDialog.show<PageVersion>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: Text('「${page.title}」版本历史'),
+        title: Text(
+          AppLocalizations.of(context)?.nbVersionHistoryOf(page.title) ??
+              '「${page.title}」版本历史',
+        ),
         children: [
           for (var i = 0; i < page.history.length; i++)
             SimpleDialogOption(
@@ -320,9 +358,11 @@ extension _NotebookPageImports on _NotebookViewPageState {
     if (version == null || !mounted) return;
     final ok = await GlassDialog.confirm(
       context,
-      title: '恢复该版本？',
-      content: '将用所选版本覆盖当前页面内容（当前内容会先存入历史）。',
-      confirmText: '恢复',
+      title: AppLocalizations.of(context)?.impRestoreConfirmTitle ?? '恢复该版本？',
+      content:
+          AppLocalizations.of(context)?.impRestoreConfirmContent ??
+          '将用所选版本覆盖当前页面内容（当前内容会先存入历史）。',
+      confirmText: AppLocalizations.of(context)?.impRestore ?? '恢复',
     );
     if (ok != true) return;
     _applyState(() {

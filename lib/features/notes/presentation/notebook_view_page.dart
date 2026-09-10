@@ -92,6 +92,11 @@ class NotebookViewPage extends StatefulWidget {
 }
 
 class _NotebookViewPageState extends State<NotebookViewPage> {
+  /// 跨 async 间隙安全取 l10n（mounted 守卫满足 use_build_context_synchronously；
+  /// i18n E1 批 2）。
+  AppLocalizations? get _l10nSafe =>
+      mounted ? AppLocalizations.of(context) : null;
+
   NotebookStorage? get storage => widget.storage;
   late Notebook _notebook;
 
@@ -150,9 +155,13 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
       _saveIfChanged();
       MediaCryptoService.instance.clearSessionKey();
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('会话已锁定，请重新解锁')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)?.nbSessionLocked ?? '会话已锁定，请重新解锁',
+            ),
+          ),
+        );
       }
     },
     onReauthenticateRequired: () {
@@ -173,18 +182,27 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
       } catch (_) {
         _sessionGuard.unlock();
         if (!mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('会话已过期，请重新打开该分页画布')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)?.nbSessionExpired ??
+                  '会话已过期，请重新打开该分页画布',
+            ),
+          ),
+        );
         return;
       }
     }
     _sessionGuard.unlock();
     if (!mounted) return;
     setState(() {});
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('会话已恢复')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(context)?.nbSessionRestored ?? '会话已恢复',
+        ),
+      ),
+    );
   }
 
   @override
@@ -278,9 +296,13 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
       // await _saveCompletion.future 永久等待（保存失败挂起）。
       completion.completeError(e);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('保存失败，请重试')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)?.nbSaveFailed ?? '保存失败，请重试',
+            ),
+          ),
+        );
       }
     } finally {
       _saving = false;
@@ -333,7 +355,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
         actions: [
           // W2：翻页阅读（上下滑动逐页切换，像翻 PDF）。
           IconButton(
-            tooltip: '翻页阅读',
+            tooltip: AppLocalizations.of(context)?.nbReaderMode ?? '翻页阅读',
             icon: const Icon(Icons.auto_stories_rounded),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
@@ -349,7 +371,7 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
             child: FilledButton.icon(
               onPressed: _createPage,
               icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('新建页面'),
+              label: Text(AppLocalizations.of(context)?.nbNewPage ?? '新建页面'),
             ),
           ),
           PopupMenuButton<_NotebookMenuItem>(
@@ -364,7 +386,9 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.edit_rounded),
-                  title: const Text('重命名分页画布'),
+                  title: Text(
+                    AppLocalizations.of(context)?.nbRenameNotebook ?? '重命名分页画布',
+                  ),
                 ),
               ),
               // 三输入等价入口：页卡长按「以块文档打开」的菜单可达版本
@@ -375,7 +399,9 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.article_outlined),
-                  title: const Text('以块文档打开'),
+                  title: Text(
+                    AppLocalizations.of(context)?.nbOpenAsBlockDoc ?? '以块文档打开',
+                  ),
                 ),
               ),
               const PopupMenuDivider(),
@@ -435,7 +461,15 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                         ? Icons.lock_rounded
                         : Icons.lock_open_rounded,
                   ),
-                  title: Text(_notebook.encrypted ? '修改密码保护' : '设置密码保护'),
+                  title: Text(
+                    _notebook.encrypted
+                        ? AppLocalizations.of(
+                                context,
+                              )?.impChangePasswordProtect ??
+                              '修改密码保护'
+                        : AppLocalizations.of(context)?.impSetPasswordProtect ??
+                              '设置密码保护',
+                  ),
                 ),
               ),
               // N4 批 3：已加密时提供重置密码盘绑定入口（忘记密码可重置）。
@@ -446,7 +480,10 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.usb_rounded),
-                    title: const Text('绑定重置密码盘'),
+                    title: Text(
+                      AppLocalizations.of(context)?.docBindResetDisk ??
+                          '绑定重置密码盘',
+                    ),
                   ),
                 ),
               const PopupMenuDivider(),
@@ -523,18 +560,20 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
           });
     if (_notebook.pages.isEmpty) {
       // 空态统一（审计二-4）：收编到共享 AppleEmptyState。
-      return const AppleEmptyState(
+      final l10n = AppLocalizations.of(context);
+      return AppleEmptyState(
         icon: Icons.note_add_outlined,
-        title: '这个分页画布还没有页面',
-        tip: '点击右上角新建',
+        title: l10n?.nbNoPages ?? '这个分页画布还没有页面',
+        tip: l10n?.nbEmptyTip ?? '点击右上角新建',
       );
     }
     if (pages.isEmpty) {
       // 空态统一（审计二-4）：收编到共享 AppleEmptyState。
-      return const AppleEmptyState(
+      final l10n = AppLocalizations.of(context);
+      return AppleEmptyState(
         icon: Icons.label_outline_rounded,
-        title: '没有匹配该标签的页面',
-        tip: '试试选择其他标签',
+        title: l10n?.nbNoTagMatch ?? '没有匹配该标签的页面',
+        tip: l10n?.nbNoTagMatchTip ?? '试试选择其他标签',
       );
     }
     return GridView.builder(

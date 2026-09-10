@@ -884,4 +884,767 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get resetNoValidKeyBody =>
       'No valid reset disk file (password_reset_disk.key) found at the chosen location.';
+
+  @override
+  String get homeReadListFailed => 'Failed to load the list. Please retry';
+
+  @override
+  String get homeNewInfiniteCanvas => 'New infinite canvas';
+
+  @override
+  String get homeNewInfiniteCanvasSub =>
+      'Free-form drawing, shapes and diagrams';
+
+  @override
+  String get homeNewPagedCanvasSub =>
+      'Multi-page binding, paper templates and mixed content';
+
+  @override
+  String get homeCreateFailedFull =>
+      'Create failed: the notebook was not saved. Check disk space and retry';
+
+  @override
+  String get homeCanvasMissing => 'The canvas file is missing or corrupted';
+
+  @override
+  String get homeOpenCanvasFailed => 'Failed to open the canvas. Please retry';
+
+  @override
+  String get canvasStandalonePasswordProtected =>
+      'This canvas is protected by a standalone password';
+
+  @override
+  String get canvasStandalonePasswordUnset =>
+      'This canvas has no standalone password set';
+
+  @override
+  String get canvasVaultLockedSet =>
+      'The vault is locked: re-verify the screen-lock password before setting';
+
+  @override
+  String get canvasVaultLockedRemove =>
+      'The vault is locked and cannot re-seal: re-verify the screen-lock password and retry';
+
+  @override
+  String canvasPasswordSetDiskBoundFor(String name) {
+    return 'Standalone password set for “$name” with the reset disk bound';
+  }
+
+  @override
+  String get homeDeleteCanvasTitle => 'Delete canvas';
+
+  @override
+  String homeDeleteCanvasConfirm(String name) {
+    return 'Delete the canvas “$name”? This cannot be undone.';
+  }
+
+  @override
+  String get homeDeleteFailed => 'Delete failed. Please retry';
+
+  @override
+  String get homeSelectTemplate => 'Choose a note template';
+
+  @override
+  String get homeCreateFailed => 'Create failed. Please retry';
+
+  @override
+  String get homeTrashLoadFailed => 'Failed to load the trash. Please retry';
+
+  @override
+  String homeRecovered(String id) {
+    return 'Restored “$id”';
+  }
+
+  @override
+  String get homeRetry => 'Retry';
+
+  @override
+  String get homeNoCanvas => 'No canvases yet';
+
+  @override
+  String get homeNoNotes => 'No notes yet';
+
+  @override
+  String get homeEmptyTip =>
+      'Tap the button in the lower-right corner to create one';
+
+  @override
+  String get homeInfiniteCanvas => 'Infinite canvases';
+
+  @override
+  String get homePagedCanvas => 'Paged canvases';
+
+  @override
+  String get homeDeleteNote => 'Delete note';
+
+  @override
+  String get homeStandalonePassword => 'Standalone password';
+
+  @override
+  String get homeDeleteInfiniteCanvas => 'Delete infinite canvas';
+
+  @override
+  String get homeNameHint => 'Enter a name';
+
+  @override
+  String get nbSessionLocked => 'The session is locked. Please unlock again';
+
+  @override
+  String get nbSessionExpired =>
+      'The session expired. Please reopen this paged canvas';
+
+  @override
+  String get nbSessionRestored => 'Session restored';
+
+  @override
+  String get nbSaveFailed => 'Save failed. Please retry';
+
+  @override
+  String get nbReaderMode => 'Page reader';
+
+  @override
+  String get nbNewPage => 'New page';
+
+  @override
+  String get nbRenameNotebook => 'Rename paged canvas';
+
+  @override
+  String get nbOpenAsBlockDoc => 'Open as block document';
+
+  @override
+  String get nbNoPages => 'This paged canvas has no pages yet';
+
+  @override
+  String get nbNoPagesNew =>
+      'This paged canvas has no pages yet — create one first';
+
+  @override
+  String get nbUntitledPage => 'Untitled page';
+
+  @override
+  String get nbNoteEncryptedLocked =>
+      'The note is encrypted and the session is locked. Unlock again before opening';
+
+  @override
+  String get nbPickPageAsBlock => 'Choose a page to open as a block document';
+
+  @override
+  String get nbNoOtherNotebook => 'No other paged canvas to import from';
+
+  @override
+  String get nbPickSourceNotebook => 'Choose a source paged canvas';
+
+  @override
+  String get nbPickImportPages => 'Choose pages to import';
+
+  @override
+  String get nbExportPdfFailed =>
+      'Failed to export the whole PDF. Please retry';
+
+  @override
+  String get nbDeletePage => 'Delete page';
+
+  @override
+  String get nbUndo => 'Undo';
+
+  @override
+  String get nbUndoSaveFailed => 'Undo failed to save. Please retry';
+
+  @override
+  String get nbPageRef => '🔗 Ref';
+
+  @override
+  String get nbUnfavoritePage => 'Remove from favorites';
+
+  @override
+  String get nbFavoritePage => 'Favorite this page';
+
+  @override
+  String get nbVersionHistory => 'Version history';
+
+  @override
+  String nbVersionHistoryOf(String name) {
+    return 'Version history of “$name”';
+  }
+
+  @override
+  String get nbPageNameLabel => 'Page name';
+
+  @override
+  String get nbChooseTemplate => 'Choose a template';
+
+  @override
+  String get nbCreateAndRecord => 'Create and start writing';
+
+  @override
+  String get nbPageNameHint => 'Enter a page name';
+
+  @override
+  String get nbPasswordHint => 'Enter the password';
+
+  @override
+  String get nbShowPassword => 'Show password';
+
+  @override
+  String get nbHidePassword => 'Hide password';
+
+  @override
+  String get impMarkdownText => 'Markdown / Text';
+
+  @override
+  String get impTextTooLarge =>
+      'Text file too large (over the 20MB limit); import refused';
+
+  @override
+  String get impEmptyFile => 'The file is empty';
+
+  @override
+  String get impNoText => 'No text content parsed';
+
+  @override
+  String impImportedParagraphs(int count) {
+    return 'Imported $count paragraphs';
+  }
+
+  @override
+  String get impFailed => 'Import failed. Please retry';
+
+  @override
+  String get impPdfTypeGroup => 'PDF documents';
+
+  @override
+  String get impPdfNoPages => 'The PDF has no importable pages';
+
+  @override
+  String impPdfPageTitle(String name, int page) {
+    return '$name · Page $page';
+  }
+
+  @override
+  String impPdfDone(int count) {
+    return 'Imported $count PDF pages; open any page to annotate';
+  }
+
+  @override
+  String get impPdfFailed => 'Failed to import the PDF. Please retry';
+
+  @override
+  String get impChangePasswordProtect => 'Change password protection';
+
+  @override
+  String get impSetPasswordProtect => 'Set password protection';
+
+  @override
+  String get impChangeHint =>
+      'After changing, opening requires the new password';
+
+  @override
+  String get impSetHint =>
+      'Once set, page content is stored encrypted and requires the password to open';
+
+  @override
+  String get impPasswordSameAsLock =>
+      'The password must differ from the screen-lock password';
+
+  @override
+  String get impRelockNeeded =>
+      'Unlock with the password again before changing';
+
+  @override
+  String get impPasswordChanged => 'Password changed';
+
+  @override
+  String get impPasswordEnabled =>
+      'Password protection enabled (page content stored encrypted)';
+
+  @override
+  String get impChangeFailed => 'Failed to change the password. Please retry';
+
+  @override
+  String get impSetFailed => 'Failed to set the password. Please retry';
+
+  @override
+  String get impBound => 'Reset disk bound';
+
+  @override
+  String get impBindFailed2 => 'Bind failed. Please retry';
+
+  @override
+  String get impUnlockFirst => 'Unlock with the password before binding';
+
+  @override
+  String get impNoVersions => 'No version history for this page yet';
+
+  @override
+  String get impRestore => 'Restore';
+
+  @override
+  String get syncFailedUnknown => 'Sync failed: unknown error';
+
+  @override
+  String get syncFailedRemoteFile =>
+      'Sync failed: failed to sync a remote file. Check the server';
+
+  @override
+  String syncFailedHttpUnavailable(int code) {
+    return 'Sync failed: server temporarily unavailable (HTTP $code). Try again later';
+  }
+
+  @override
+  String get syncFailedDirMissing =>
+      'Sync failed: remote directory missing or occupied. Check the remote directory settings';
+
+  @override
+  String get syncFailedHttps =>
+      'Sync failed: HTTPS handshake failed. Check the server certificate';
+
+  @override
+  String get syncFailedConnect =>
+      'Sync failed: cannot reach the server. Check the network or server address';
+
+  @override
+  String get syncFailedGeneric =>
+      'Sync failed: check the network and account settings, then retry';
+
+  @override
+  String get syncMissingSalt =>
+      'The sync config lacks its salt: tap “Save config” again before syncing';
+
+  @override
+  String get syncMaxRetries => 'Max retries reached';
+
+  @override
+  String get syncUpToDate => 'Already up to date';
+
+  @override
+  String syncWithConflicts(String base, int count) {
+    return '$base; $count more documents changed both locally and remotely and were handled per your choice';
+  }
+
+  @override
+  String get webdavTitle => 'WebDAV Sync';
+
+  @override
+  String get webdavUsername => 'Username';
+
+  @override
+  String get webdavSyncNow => 'Sync now';
+
+  @override
+  String get webdavSave => 'Save config';
+
+  @override
+  String get cmdNewSticky => 'New sticky note';
+
+  @override
+  String get cmdGroupEdit => 'Edit';
+
+  @override
+  String get cmdCancelConnect => 'Cancel connect';
+
+  @override
+  String get cmdConnectMode => 'Connect mode';
+
+  @override
+  String get cmdGroupSelected => 'Group selected';
+
+  @override
+  String get cmdNeedTwoFrames => 'Needs ≥2 frames';
+
+  @override
+  String get cmdFitContent => 'Fit content';
+
+  @override
+  String get cmdGroupView => 'View';
+
+  @override
+  String get cmdFitSelected => 'Fit selection';
+
+  @override
+  String get cmdZoomIn => 'Zoom in';
+
+  @override
+  String get cmdZoomOut => 'Zoom out';
+
+  @override
+  String get cmdExitMulti => 'Exit multi-select';
+
+  @override
+  String get cmdEnterMulti => 'Enter multi-select';
+
+  @override
+  String get cmdGroupSelect => 'Select';
+
+  @override
+  String get cmdClearSelection => 'Clear selection';
+
+  @override
+  String get cmdFocusSelected => 'Focus selection';
+
+  @override
+  String get cmdGroupJump => 'Go to';
+
+  @override
+  String get cmdNoMatch => 'No matching commands';
+
+  @override
+  String get edPickSourceFrame => 'Select a frame first as the connector start';
+
+  @override
+  String get edNewFrame => 'Add frame';
+
+  @override
+  String get edFit => 'Fit';
+
+  @override
+  String get edMultiSelect => 'Multi-select (group)';
+
+  @override
+  String get edGroup => 'Group';
+
+  @override
+  String get edStickyTitle => 'Sticky note';
+
+  @override
+  String get edFrameColor => 'Frame background color';
+
+  @override
+  String get edConnect => 'Connect';
+
+  @override
+  String get edEditContent => 'Edit content';
+
+  @override
+  String get edDeleteFrame => 'Delete frame';
+
+  @override
+  String get edSelect => 'Select';
+
+  @override
+  String get edSticky => 'Sticky';
+
+  @override
+  String get edBrush => 'Brush';
+
+  @override
+  String get edEraser => 'Eraser';
+
+  @override
+  String get edShape => 'Shape';
+
+  @override
+  String get edRect => 'Rectangle';
+
+  @override
+  String get edOval => 'Oval';
+
+  @override
+  String get pfCode => 'Code block';
+
+  @override
+  String get pfImage => 'Image';
+
+  @override
+  String get pfLink => 'Link';
+
+  @override
+  String get pfCanvas => 'Canvas';
+
+  @override
+  String get pfChart => 'Chart';
+
+  @override
+  String get pfTable => 'Table';
+
+  @override
+  String get pfDatabase => 'Database';
+
+  @override
+  String get pfAttachment => 'Attachment';
+
+  @override
+  String readerTitle(String name) {
+    return '$name · Page reader';
+  }
+
+  @override
+  String readerPageIndicator(int index, int total) {
+    return 'Page $index of $total';
+  }
+
+  @override
+  String get notesWritingTitle => 'Notes';
+
+  @override
+  String get notesRecent => 'Recent';
+
+  @override
+  String get obWelcome => 'Welcome to Drawing Notes';
+
+  @override
+  String get obBrushTip =>
+      'Brush / eraser / eyedropper: switch on the top toolbar; draw with mouse or finger';
+
+  @override
+  String get obColorTip =>
+      'Color and stroke: the color chip and thickness slider on the right of the toolbar';
+
+  @override
+  String get obLayerTip =>
+      'Layers panel on the right: create, show/hide, opacity, reorder, merge';
+
+  @override
+  String get obSelectTip =>
+      'Selection tool: marquee-select to move / scale / rotate / copy / delete';
+
+  @override
+  String get obNoteTip =>
+      'Note pages support text and images: tap with the text tool; insert via the image button';
+
+  @override
+  String get obFullscreenTip =>
+      'Fullscreen button top-right: hides toolbars for a clean canvas';
+
+  @override
+  String get obStart => 'Get started';
+
+  @override
+  String get presNoContent => 'Nothing to present';
+
+  @override
+  String presIndicator(int index, int total) {
+    return '$index / $total · Click or → for next, Esc to exit';
+  }
+
+  @override
+  String get presExit => 'Exit presentation';
+
+  @override
+  String get pdfPreviewUnavailable => 'Inline PDF preview unavailable';
+
+  @override
+  String get conflictApplyAll => 'Apply all';
+
+  @override
+  String get conflictKeepLocal => 'Keep local';
+
+  @override
+  String get conflictKeepCloud => 'Keep remote';
+
+  @override
+  String get conflictKeepBoth => 'Keep both';
+
+  @override
+  String get searchKindNotebook => 'Paged canvas';
+
+  @override
+  String get searchKindPageTitle => 'Page title';
+
+  @override
+  String get searchKindCanvas => 'Canvas';
+
+  @override
+  String get searchKindBlockDoc => 'Block document';
+
+  @override
+  String get searchKindDocTitle => 'Document title';
+
+  @override
+  String get templateBlank => 'Blank note';
+
+  @override
+  String get templateLined => 'Lined note';
+
+  @override
+  String get templateGrid => 'Grid paper';
+
+  @override
+  String get templateDot => 'Dot-grid note';
+
+  @override
+  String get templateMeeting => 'Meeting notes';
+
+  @override
+  String get templateCornell => 'Cornell notes';
+
+  @override
+  String get templatePlanner => 'Planner page';
+
+  @override
+  String get templateWhiteboard => 'Wide whiteboard';
+
+  @override
+  String get rootRefusedTitle => 'Cannot start on this device';
+
+  @override
+  String get rootRefusedBody =>
+      'This device has ROOT access. To protect your encrypted notes, the app refuses to run on a compromised device.';
+
+  @override
+  String get canvasBindConfirmContent =>
+      'When you forget this canvas’s standalone password, plug in the reset disk (USB drive) to reset without the old password.\n\nThe drive holds only a random key file (password_reset_disk.key); canvas data never leaves the device.';
+
+  @override
+  String canvasRemoveConfirmContent(String name) {
+    return 'After removal, “$name” falls back to vault protection (master-key envelope) and no longer needs a standalone password. Remove it?';
+  }
+
+  @override
+  String canvasBoundDiskFor(String name) {
+    return 'Reset disk bound for “$name”';
+  }
+
+  @override
+  String homeDeleteForeverConfirm(String name) {
+    return 'Permanently delete “$name”? This cannot be undone.';
+  }
+
+  @override
+  String get homeRestoreFailed => 'Restore failed. Please retry';
+
+  @override
+  String get homeTabCanvas => 'Canvases';
+
+  @override
+  String get homeTabNotes => 'Notes';
+
+  @override
+  String get canvasDeletePasswordTitle =>
+      'This canvas is encrypted. Enter its standalone password';
+
+  @override
+  String get homeKindNote => 'Note';
+
+  @override
+  String get homeKindNotebookPage => 'Paged-canvas page';
+
+  @override
+  String homeUpdatedAt(String time) {
+    return 'Updated $time';
+  }
+
+  @override
+  String homeDeleteNoteConfirm(Object name) {
+    return 'Delete the note “$name”? This cannot be undone.';
+  }
+
+  @override
+  String get homeUntitledNotebookPage => 'Untitled';
+
+  @override
+  String get homeStandalonePasswordMenu => 'Standalone password…';
+
+  @override
+  String get nbEmptyTip => 'Tap New in the top-right corner';
+
+  @override
+  String get nbNoTagMatch => 'No pages match this tag';
+
+  @override
+  String get nbNoTagMatchTip => 'Try another tag';
+
+  @override
+  String get impBindAskContent =>
+      'When you forget the password, plug in the USB drive to reset a new one.\n\nYou can also bind later via “Bind reset disk” in the menu.';
+
+  @override
+  String get impRestoreConfirmTitle => 'Restore this version?';
+
+  @override
+  String get impRestoreConfirmContent =>
+      'The current page content will be overwritten by the chosen version (current content is saved to history first).';
+
+  @override
+  String get nbPageNameExampleHint => 'e.g. Product review 08-14';
+
+  @override
+  String nbDeletePageConfirm(String name) {
+    return 'Delete the page “$name”? Its handwriting and text will be deleted too.';
+  }
+
+  @override
+  String nbPageDeleted(String name) {
+    return 'Deleted “$name”';
+  }
+
+  @override
+  String nbExportedPdf(int count, String path) {
+    return 'Exported a $count-page PDF: $path';
+  }
+
+  @override
+  String cmdGotoFrame(String name) {
+    return 'Go to “$name”';
+  }
+
+  @override
+  String get obPinchTip =>
+      'Pinch with two fingers to zoom, rotate with two fingers (touch devices)';
+
+  @override
+  String get obAutosaveTip =>
+      'Content autosaves — no manual save needed; export to PNG anytime';
+
+  @override
+  String get syncFailedAuth =>
+      'Sync failed: wrong username or password (server rejected the login)';
+
+  @override
+  String syncFailedRejected(String code) {
+    return 'Sync failed: the server rejected this request (HTTP $code)';
+  }
+
+  @override
+  String get syncHttpUnknown => 'unknown';
+
+  @override
+  String syncDoneSummary(int up, int down, int del) {
+    return 'Sync done: ↑$up ↓$down ✕$del';
+  }
+
+  @override
+  String get webdavFormDirty =>
+      'The form has unsaved changes: tap “Save config” before syncing (avoids mismatched keys and cloud data)';
+
+  @override
+  String get webdavSyncSecretLabel =>
+      'Sync password (required, for end-to-end encryption)';
+
+  @override
+  String get webdavSyncSecretHelper =>
+      'Syncing is blocked without a sync password (prevents plaintext notes in the cloud)';
+
+  @override
+  String get webdavSyncing => 'Syncing…';
+
+  @override
+  String get tplDescMeeting =>
+      'Starting structure with topics, decisions and action items.';
+
+  @override
+  String get tplDescCornell =>
+      'Starting structure with cue, notes and summary areas.';
+
+  @override
+  String get tplDescPlanner =>
+      'Starting structure with priorities, schedule and review.';
+
+  @override
+  String get tplDescWhiteboard =>
+      'Wide blank canvas mode; this version still uses a fixed coordinate paper.';
+
+  @override
+  String get tplDescDefault =>
+      'The paper background follows the template and is saved to the page.';
+
+  @override
+  String get homeDeleteForeverFailed => 'Permanent delete failed. Please retry';
+
+  @override
+  String get impDiskNotFound =>
+      'No valid reset disk file (password_reset_disk.key) found';
+
+  @override
+  String get lockDiskKeepNote =>
+      'Do not delete the password_reset_disk.key file on the USB drive';
 }

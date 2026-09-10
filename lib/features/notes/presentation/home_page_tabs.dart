@@ -16,7 +16,10 @@ extension _HomePageTabs on _HomePageState {
           children: [
             Text(_error!, style: const TextStyle(color: AppleColor.errorRed)),
             const SizedBox(height: 8),
-            OutlinedButton(onPressed: _refresh, child: const Text('重试')),
+            OutlinedButton(
+              onPressed: _refresh,
+              child: Text(AppLocalizations.of(context)?.homeRetry ?? '重试'),
+            ),
           ],
         ),
       );
@@ -31,10 +34,11 @@ extension _HomePageTabs on _HomePageState {
     final hasNotebook = _notebooks.isNotEmpty;
     if (!hasCanvas && !hasNotebook) {
       // 空态统一（审计二-4）：收编到共享 AppleEmptyState。
-      return const AppleEmptyState(
+      final l10n = AppLocalizations.of(context);
+      return AppleEmptyState(
         icon: Icons.brush_outlined,
-        title: '还没有画布',
-        tip: '点击右下角按钮新建一个吧',
+        title: l10n?.homeNoCanvas ?? '还没有画布',
+        tip: l10n?.homeEmptyTip ?? '点击右下角按钮新建一个吧',
       );
     }
     return RefreshIndicator(
@@ -43,7 +47,11 @@ extension _HomePageTabs on _HomePageState {
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           if (hasCanvas) ...[
-            const SliverToBoxAdapter(child: _CanvasSectionHeader('无限画布')),
+            SliverToBoxAdapter(
+              child: _CanvasSectionHeader(
+                AppLocalizations.of(context)?.homeInfiniteCanvas ?? '无限画布',
+              ),
+            ),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(
                 AppDesign.pagePadding,
@@ -73,7 +81,11 @@ extension _HomePageTabs on _HomePageState {
             ),
           ],
           if (hasNotebook) ...[
-            const SliverToBoxAdapter(child: _CanvasSectionHeader('分页画布')),
+            SliverToBoxAdapter(
+              child: _CanvasSectionHeader(
+                AppLocalizations.of(context)?.homePagedCanvas ?? '分页画布',
+              ),
+            ),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(
                 AppDesign.pagePadding,
@@ -150,10 +162,11 @@ extension _HomePageTabs on _HomePageState {
   Widget _buildNotesTab() {
     if (_notes.isEmpty) {
       // 空态统一（审计二-4）：收编到共享 AppleEmptyState。
-      return const AppleEmptyState(
+      final l10n = AppLocalizations.of(context);
+      return AppleEmptyState(
         icon: Icons.edit_note_rounded,
-        title: '还没有笔记',
-        tip: '点击右下角按钮新建一个吧',
+        title: l10n?.homeNoNotes ?? '还没有笔记',
+        tip: l10n?.homeEmptyTip ?? '点击右下角按钮新建一个吧',
       );
     }
     return RefreshIndicator(
@@ -187,22 +200,26 @@ extension _HomePageTabs on _HomePageState {
                 ),
               ),
               title: Text(
-                doc.title.isEmpty ? '未命名' : doc.title,
+                doc.title.isEmpty
+                    ? AppLocalizations.of(context)?.docUntitled ?? '未命名'
+                    : doc.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: 3),
                 child: Text(
-                  '${isTyped ? '笔记' : '分页画布页面'}'
-                  ' · 更新于 ${formatSmartTime(doc.updatedAt)}',
+                  '${isTyped ? AppLocalizations.of(context)?.homeKindNote ?? '笔记' : AppLocalizations.of(context)?.homeKindNotebookPage ?? '分页画布页面'}'
+                  ' · ${AppLocalizations.of(context)?.homeUpdatedAt(formatSmartTime(doc.updatedAt)) ?? '更新于 ${formatSmartTime(doc.updatedAt)}'}',
                 ),
               ),
               // 分页画布页面的删除在其所属分页画布页内管理（含克隆引用语义）；
               // 笔记支持此处直接删除。
               trailing: isTyped
                   ? IconButton(
-                      tooltip: '删除笔记',
+                      tooltip:
+                          AppLocalizations.of(context)?.homeDeleteNote ??
+                          '删除笔记',
                       icon: const Icon(Icons.delete_outline_rounded),
                       color: Theme.of(context).colorScheme.error,
                       onPressed: () => _deleteNote(doc),
@@ -259,10 +276,10 @@ extension _HomePageTabs on _HomePageState {
     if (!mounted) return false;
     final pin = await UnlockFlow.show(
       context,
-      title: '该笔记已加密，输入密码',
+      title: AppLocalizations.of(context)?.docUnlockTitle ?? '该笔记已加密，输入密码',
       flexible: true,
       onVerify: (p) => _blockDocStore.verifyBlockDocPassword(id, p),
-      footerLabel: '忘记密码？',
+      footerLabel: AppLocalizations.of(context)?.docForgotPassword ?? '忘记密码？',
       onFooter: () {
         BlockDocPasswordResetFlow.show(
           context,
@@ -277,12 +294,19 @@ extension _HomePageTabs on _HomePageState {
   Future<void> _deleteNote(AllDoc doc) async {
     // 策略门禁（专家审计最优先④）：删除操作白名单判定（回收站——可恢复）。
     if (!const PolicyEngine().check('note.delete').isAllowed) {
-      _showSnack('操作被策略拒绝（note.delete）');
+      _showSnack(
+        AppLocalizations.of(context)?.docPolicyDenied('note.delete') ??
+            '操作被策略拒绝（note.delete）',
+      );
       return;
     }
+    final title = doc.title.isEmpty
+        ? AppLocalizations.of(context)?.docUntitled ?? '未命名'
+        : doc.title;
     final ok = await _confirmDelete(
-      '删除笔记',
-      '确定删除笔记「${doc.title.isEmpty ? '未命名' : doc.title}」吗？此操作不可恢复。',
+      AppLocalizations.of(context)?.homeDeleteNote ?? '删除笔记',
+      AppLocalizations.of(context)?.homeDeleteNoteConfirm(title) ??
+          '确定删除笔记「$title」吗？此操作不可恢复。',
     );
     if (ok != true) return;
     try {
@@ -290,7 +314,7 @@ extension _HomePageTabs on _HomePageState {
       widget.onDataChanged?.call();
       await _refresh();
     } catch (e) {
-      _showSnack('删除失败，请重试');
+      _showSnack(_l10nSafe?.homeDeleteFailed ?? '删除失败，请重试');
     }
   }
 }

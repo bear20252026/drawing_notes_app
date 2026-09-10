@@ -73,7 +73,9 @@ class _FrameCard extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.only(left: 8),
                     child: Text(
-                      frame.doc.title.isNotEmpty ? frame.doc.title : '未命名',
+                      frame.doc.title.isNotEmpty
+                          ? frame.doc.title
+                          : AppLocalizations.of(context)?.docUntitled ?? '未命名',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppleType.captionStyle(
@@ -102,7 +104,9 @@ class _FrameCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(AppleRadius.lg),
                           child: Center(
                             child: Tooltip(
-                              message: '帧背景色',
+                              message:
+                                  AppLocalizations.of(context)?.edFrameColor ??
+                                  '帧背景色',
                               child: Container(
                                 width: 20,
                                 height: 20,
@@ -130,21 +134,22 @@ class _FrameCard extends StatelessWidget {
                 ),
                 if (selected)
                   IconButton(
-                    tooltip: '连线',
+                    tooltip: AppLocalizations.of(context)?.edConnect ?? '连线',
                     visualDensity: VisualDensity.compact,
                     iconSize: 16,
                     icon: const Icon(Icons.call_made),
                     onPressed: onConnect,
                   ),
                 IconButton(
-                  tooltip: '编辑内容',
+                  tooltip:
+                      AppLocalizations.of(context)?.edEditContent ?? '编辑内容',
                   visualDensity: VisualDensity.compact,
                   iconSize: 16,
                   icon: const Icon(Icons.edit_outlined),
                   onPressed: onEdit,
                 ),
                 IconButton(
-                  tooltip: '删除帧',
+                  tooltip: AppLocalizations.of(context)?.edDeleteFrame ?? '删除帧',
                   visualDensity: VisualDensity.compact,
                   iconSize: 16,
                   icon: const Icon(Icons.close),
@@ -626,26 +631,41 @@ class _ToolPanel extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          toolButton(EdgelessTool.select, Icons.pan_tool_outlined, '选择'),
+          toolButton(
+            EdgelessTool.select,
+            Icons.pan_tool_outlined,
+            AppLocalizations.of(context)?.edSelect ?? '选择',
+          ),
           const SizedBox(height: 4),
-          toolButton(EdgelessTool.sticky, Icons.sticky_note_2_outlined, '便签'),
+          toolButton(
+            EdgelessTool.sticky,
+            Icons.sticky_note_2_outlined,
+            AppLocalizations.of(context)?.edSticky ?? '便签',
+          ),
           const SizedBox(height: 4),
-          toolButton(EdgelessTool.brush, Icons.brush_outlined, '画笔'),
+          toolButton(
+            EdgelessTool.brush,
+            Icons.brush_outlined,
+            AppLocalizations.of(context)?.edBrush ?? '画笔',
+          ),
           const SizedBox(height: 4),
           toolButton(
             EdgelessTool.eraser,
             Icons.cleaning_services_outlined,
-            '橡皮',
+            AppLocalizations.of(context)?.edEraser ?? '橡皮',
           ),
           const SizedBox(height: 4),
           PopupMenuButton<EdgelessShapeKind>(
-            tooltip: '形状',
+            tooltip: AppLocalizations.of(context)?.edShape ?? '形状',
             onSelected: (kind) => controller.setShapeKind(kind),
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: EdgelessShapeKind.rect, child: Text('矩形')),
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: EdgelessShapeKind.rect,
+                child: Text(AppLocalizations.of(context)?.edRect ?? '矩形'),
+              ),
               PopupMenuItem(
                 value: EdgelessShapeKind.ellipse,
-                child: Text('椭圆'),
+                child: Text(AppLocalizations.of(context)?.edOval ?? '椭圆'),
               ),
             ],
             child: Container(

@@ -8,6 +8,7 @@
 // 实现层（架构规则 3）。命令模型、构建、搜索均为纯函数，可独立单测。
 
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
@@ -62,6 +63,7 @@ List<EdgelessCommand> buildEdgelessCommands(
   EdgelessController c, {
   VoidCallback? onFitContent,
   VoidCallback? onFitSelection,
+  AppLocalizations? l10n,
 }) {
   final frames = c.doc.frames;
   final hasSelection = c.selectedFrameIds.isNotEmpty;
@@ -73,8 +75,8 @@ List<EdgelessCommand> buildEdgelessCommands(
     // ── 编辑 ──────────────────────────────────────────────
     EdgelessCommand(
       id: 'add-note',
-      label: '新建便签',
-      group: '编辑',
+      label: l10n?.cmdNewSticky ?? '新建便签',
+      group: l10n?.cmdGroupEdit ?? '编辑',
       icon: Icons.note_add_outlined,
       keyword: 'note add 新建 便签 帧 空白',
       run: () => c.addFrame(
@@ -84,8 +86,10 @@ List<EdgelessCommand> buildEdgelessCommands(
     ),
     EdgelessCommand(
       id: 'toggle-connect',
-      label: connect ? '取消连线' : '连线模式',
-      group: '编辑',
+      label: connect
+          ? l10n?.cmdCancelConnect ?? '取消连线'
+          : l10n?.cmdConnectMode ?? '连线模式',
+      group: l10n?.cmdGroupEdit ?? '编辑',
       icon: Icons.route_outlined,
       keyword: 'connector 连线 连接 线条',
       enabled: true,
@@ -101,11 +105,11 @@ List<EdgelessCommand> buildEdgelessCommands(
     ),
     EdgelessCommand(
       id: 'group-selection',
-      label: '编组所选',
-      group: '编辑',
+      label: l10n?.cmdGroupSelected ?? '编组所选',
+      group: l10n?.cmdGroupEdit ?? '编辑',
       icon: Icons.group_work_outlined,
       keyword: 'group 编组 分组 集合',
-      hint: '需 ≥2 帧',
+      hint: l10n?.cmdNeedTwoFrames ?? '需 ≥2 帧',
       enabled: c.selectedFrameIds.length >= 2,
       run: () => c.groupSelection(),
     ),
@@ -113,8 +117,8 @@ List<EdgelessCommand> buildEdgelessCommands(
     // ── 视图 ──────────────────────────────────────────────
     EdgelessCommand(
       id: 'fit-content',
-      label: '适应内容',
-      group: '视图',
+      label: l10n?.cmdFitContent ?? '适应内容',
+      group: l10n?.cmdGroupView ?? '视图',
       icon: Icons.fit_screen,
       keyword: 'fit 适应 内容 全部',
       enabled: onFitContent != null && frames.isNotEmpty,
@@ -122,8 +126,8 @@ List<EdgelessCommand> buildEdgelessCommands(
     ),
     EdgelessCommand(
       id: 'fit-selection',
-      label: '适应所选',
-      group: '视图',
+      label: l10n?.cmdFitSelected ?? '适应所选',
+      group: l10n?.cmdGroupView ?? '视图',
       icon: Icons.center_focus_strong_outlined,
       keyword: 'fit selection 适应 所选',
       enabled: onFitSelection != null && hasSelection,
@@ -131,24 +135,26 @@ List<EdgelessCommand> buildEdgelessCommands(
     ),
     EdgelessCommand(
       id: 'zoom-in',
-      label: '放大',
-      group: '视图',
+      label: l10n?.cmdZoomIn ?? '放大',
+      group: l10n?.cmdGroupView ?? '视图',
       icon: Icons.zoom_in,
       keyword: 'zoom in 放大 拉近',
       run: () => c.zoomAt(1.2),
     ),
     EdgelessCommand(
       id: 'zoom-out',
-      label: '缩小',
-      group: '视图',
+      label: l10n?.cmdZoomOut ?? '缩小',
+      group: l10n?.cmdGroupView ?? '视图',
       icon: Icons.zoom_out,
       keyword: 'zoom out 缩小 拉远',
       run: () => c.zoomAt(1 / 1.2),
     ),
     EdgelessCommand(
       id: 'toggle-multiselect',
-      label: multiSelect ? '退出多选' : '进入多选',
-      group: '视图',
+      label: multiSelect
+          ? l10n?.cmdExitMulti ?? '退出多选'
+          : l10n?.cmdEnterMulti ?? '进入多选',
+      group: l10n?.cmdGroupView ?? '视图',
       icon: Icons.done_all,
       keyword: 'multi select 多选 框选',
       run: () => c.toggleMultiSelectMode(),
@@ -157,8 +163,8 @@ List<EdgelessCommand> buildEdgelessCommands(
     // ── 选择 ──────────────────────────────────────────────
     EdgelessCommand(
       id: 'clear-selection',
-      label: '清空所选',
-      group: '选择',
+      label: l10n?.cmdClearSelection ?? '清空所选',
+      group: l10n?.cmdGroupSelect ?? '选择',
       icon: Icons.select_all,
       keyword: 'clear selection 清空 取消 所选',
       enabled: hasSelection,
@@ -166,8 +172,8 @@ List<EdgelessCommand> buildEdgelessCommands(
     ),
     EdgelessCommand(
       id: 'focus-selection',
-      label: '聚焦所选',
-      group: '选择',
+      label: l10n?.cmdFocusSelected ?? '聚焦所选',
+      group: l10n?.cmdGroupSelect ?? '选择',
       icon: Icons.center_focus_strong_outlined,
       keyword: 'focus 聚焦 置顶 所选',
       enabled: hasSelection,
@@ -181,8 +187,10 @@ List<EdgelessCommand> buildEdgelessCommands(
     for (var i = 0; i < frames.length; i++)
       EdgelessCommand(
         id: 'goto-frame-${frames[i].id}',
-        label: '跳转到「${edgelessFrameTitle(frames[i].doc.title, i)}」',
-        group: '跳转',
+        label:
+            l10n?.cmdGotoFrame(edgelessFrameTitle(frames[i].doc.title, i)) ??
+            '跳转到「${edgelessFrameTitle(frames[i].doc.title, i)}」',
+        group: l10n?.cmdGroupJump ?? '跳转',
         icon: Icons.search_outlined,
         keyword: 'goto frame 跳转 定位',
         hint: frames[i].id,
@@ -263,6 +271,7 @@ class _EdgelessPaletteSheetState extends State<_EdgelessPaletteSheet> {
       widget.controller,
       onFitContent: widget.onFitContent,
       onFitSelection: widget.onFitSelection,
+      l10n: AppLocalizations.of(context),
     );
     _visible = _all;
   }
@@ -323,7 +332,7 @@ class _EdgelessPaletteSheetState extends State<_EdgelessPaletteSheet> {
             child: _visible.isEmpty
                 ? Center(
                     child: Text(
-                      '没有匹配的命令',
+                      AppLocalizations.of(context)?.cmdNoMatch ?? '没有匹配的命令',
                       style: TextStyle(color: colorScheme.outline),
                     ),
                   )

@@ -4,6 +4,7 @@
 // 通过 showDialog<Map<String, ConflictResolution>> 使用；取消返回 null（走默认 LWW）。
 
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
@@ -55,12 +56,12 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
       actions: AppleDialog.actions([
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
         ),
         FilledButton(
           autofocus: true,
           onPressed: _apply,
-          child: const Text('应用全部'),
+          child: Text(AppLocalizations.of(context)?.conflictApplyAll ?? '应用全部'),
         ),
       ]),
     );
@@ -100,7 +101,10 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Radio<ConflictResolution>(value: r),
-                      Text(_label(r), style: theme.textTheme.bodySmall),
+                      Text(
+                        _label(r, AppLocalizations.of(context)),
+                        style: theme.textTheme.bodySmall,
+                      ),
                     ],
                   ),
               ],
@@ -111,14 +115,14 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
     );
   }
 
-  static String _label(ConflictResolution r) {
+  static String _label(ConflictResolution r, AppLocalizations? l10n) {
     switch (r) {
       case ConflictResolution.keepLocal:
-        return '保留本地';
+        return l10n?.conflictKeepLocal ?? '保留本地';
       case ConflictResolution.keepRemote:
-        return '保留云端';
+        return l10n?.conflictKeepCloud ?? '保留云端';
       case ConflictResolution.keepBoth:
-        return '两者皆留';
+        return l10n?.conflictKeepBoth ?? '两者皆留';
     }
   }
 

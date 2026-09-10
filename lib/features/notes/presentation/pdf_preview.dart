@@ -4,6 +4,7 @@
 // 接口（组合根注入实现），widget 层不直接触原生库。
 
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/storage/pdf_preview_renderer.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_attachment.dart';
@@ -123,7 +124,8 @@ class _PdfAttachmentPreviewState extends State<PdfAttachmentPreview> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'PDF 内嵌预览不可用',
+                  AppLocalizations.of(context)?.pdfPreviewUnavailable ??
+                      'PDF 内嵌预览不可用',
                   style: AppleType.captionStyle(scheme.outline),
                 ),
               ],

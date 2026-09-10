@@ -76,14 +76,14 @@ class _DrawingCardState extends State<_DrawingCard> {
         globalPosition.dx + 1,
         globalPosition.dy + 1,
       ),
-      items: const [
+      items: [
         PopupMenuItem(
           value: 'open',
           child: Row(
             children: [
               Icon(Icons.open_in_new_rounded, size: 18),
               SizedBox(width: 10),
-              Text('打开'),
+              Text(AppLocalizations.of(context)?.open ?? '打开'),
             ],
           ),
         ),
@@ -93,7 +93,10 @@ class _DrawingCardState extends State<_DrawingCard> {
             children: [
               Icon(Icons.lock_outline_rounded, size: 18),
               SizedBox(width: 10),
-              Text('独立密码…'),
+              Text(
+                AppLocalizations.of(context)?.homeStandalonePasswordMenu ??
+                    '独立密码…',
+              ),
             ],
           ),
         ),
@@ -103,7 +106,7 @@ class _DrawingCardState extends State<_DrawingCard> {
             children: [
               Icon(Icons.delete_outline_rounded, size: 18),
               SizedBox(width: 10),
-              Text('删除'),
+              Text(AppLocalizations.of(context)?.delete ?? '删除'),
             ],
           ),
         ),
@@ -220,7 +223,11 @@ class _DrawingCardState extends State<_DrawingCard> {
                           ),
                         ),
                         IconButton(
-                          tooltip: '独立密码',
+                          tooltip:
+                              AppLocalizations.of(
+                                context,
+                              )?.homeStandalonePassword ??
+                              '独立密码',
                           icon: Icon(
                             widget.meta.locked
                                 ? Icons.lock_rounded
@@ -233,7 +240,11 @@ class _DrawingCardState extends State<_DrawingCard> {
                           onPressed: widget.onPasswordAction,
                         ),
                         IconButton(
-                          tooltip: '删除无限画布',
+                          tooltip:
+                              AppLocalizations.of(
+                                context,
+                              )?.homeDeleteInfiniteCanvas ??
+                              '删除无限画布',
                           icon: const Icon(
                             Icons.delete_outline_rounded,
                             size: 19,
@@ -347,7 +358,9 @@ class _NotebookCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  notebook.title.isEmpty ? '未命名' : notebook.title,
+                  notebook.title.isEmpty
+                      ? AppLocalizations.of(context)?.docUntitled ?? '未命名'
+                      : notebook.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleSmall,
@@ -397,7 +410,7 @@ class _NameDialogState extends State<_NameDialog> {
         controller: _controller,
         autofocus: true,
         decoration: InputDecoration(
-          hintText: '请输入名称',
+          hintText: AppLocalizations.of(context)?.homeNameHint ?? '请输入名称',
           filled: true,
           border: OutlineInputBorder(
             borderSide: BorderSide(
@@ -419,11 +432,11 @@ class _NameDialogState extends State<_NameDialog> {
       actions: AppleDialog.actions([
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: const Text('确定'),
+          child: Text(AppLocalizations.of(context)?.commonConfirm ?? '确定'),
         ),
       ]),
     );

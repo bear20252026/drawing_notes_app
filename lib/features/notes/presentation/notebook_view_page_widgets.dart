@@ -89,7 +89,9 @@ class _PageCard extends StatelessWidget {
                             child: Text(
                               [
                                 if (page.folder.isNotEmpty) '📁 ${page.folder}',
-                                if (page.cloneOf != null) '🔗 引用',
+                                if (page.cloneOf != null)
+                                  AppLocalizations.of(context)?.nbPageRef ??
+                                      '🔗 引用',
                               ].join(' · '),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -100,7 +102,11 @@ class _PageCard extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    tooltip: page.favorite ? '取消收藏' : '收藏页面',
+                    tooltip: page.favorite
+                        ? AppLocalizations.of(context)?.nbUnfavoritePage ??
+                              '取消收藏'
+                        : AppLocalizations.of(context)?.nbFavoritePage ??
+                              '收藏页面',
                     icon: Icon(
                       page.favorite
                           ? Icons.star_rounded
@@ -112,13 +118,16 @@ class _PageCard extends StatelessWidget {
                     onPressed: onToggleFavorite,
                   ),
                   IconButton(
-                    tooltip: '版本历史',
+                    tooltip:
+                        AppLocalizations.of(context)?.nbVersionHistory ??
+                        '版本历史',
                     icon: const Icon(Icons.history_rounded, size: 18),
                     visualDensity: VisualDensity.compact,
                     onPressed: onHistory,
                   ),
                   IconButton(
-                    tooltip: '删除页面',
+                    tooltip:
+                        AppLocalizations.of(context)?.nbDeletePage ?? '删除页面',
                     icon: const Icon(Icons.delete_outline_rounded, size: 18),
                     visualDensity: VisualDensity.compact,
                     color: scheme.error,
@@ -274,7 +283,7 @@ class _CreatePageDialogState extends State<_CreatePageDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('新建页面'),
+      title: Text(AppLocalizations.of(context)?.nbNewPage ?? '新建页面'),
       content: SizedBox(
         width: 560,
         child: SingleChildScrollView(
@@ -285,17 +294,23 @@ class _CreatePageDialogState extends State<_CreatePageDialog> {
               TextField(
                 controller: _controller,
                 autofocus: true,
-                decoration: const InputDecoration(
-                  labelText: '页面名称',
-                  hintText: '例如：产品评审 08-14',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText:
+                      AppLocalizations.of(context)?.nbPageNameLabel ?? '页面名称',
+                  hintText:
+                      AppLocalizations.of(context)?.nbPageNameExampleHint ??
+                      '例如：产品评审 08-14',
+                  border: const OutlineInputBorder(),
                 ),
                 onSubmitted: (_) => Navigator.of(context).pop(
                   _NewPageRequest(title: _controller.text, template: _template),
                 ),
               ),
               const SizedBox(height: 20),
-              Text('选择模板', style: Theme.of(context).textTheme.titleSmall),
+              Text(
+                AppLocalizations.of(context)?.nbChooseTemplate ?? '选择模板',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -303,7 +318,9 @@ class _CreatePageDialogState extends State<_CreatePageDialog> {
                 children: [
                   for (final template in PageTemplate.values)
                     ChoiceChip(
-                      label: Text(template.label),
+                      label: Text(
+                        _templateLabelOf(context, template) ?? template.label,
+                      ),
                       selected: _template == template,
                       onSelected: (_) => setState(() => _template = template),
                     ),
@@ -311,15 +328,7 @@ class _CreatePageDialogState extends State<_CreatePageDialog> {
               ),
               const SizedBox(height: 12),
               Text(
-                _template == PageTemplate.meeting
-                    ? '包含议题、决策和行动项的起始结构。'
-                    : _template == PageTemplate.cornell
-                    ? '包含线索、笔记和总结区域的起始结构。'
-                    : _template == PageTemplate.planner
-                    ? '包含重点、日程与复盘的起始结构。'
-                    : _template == PageTemplate.whiteboard
-                    ? '使用宽阔空白画布模式；当前版本仍采用固定坐标纸面。'
-                    : '纸张背景会随模板设置并保存到页面。',
+                _templateDescriptionOf(context, _template),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -329,13 +338,15 @@ class _CreatePageDialogState extends State<_CreatePageDialog> {
       actions: AppleDialog.actions([
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
         ),
         FilledButton(
           onPressed: () => Navigator.of(
             context,
           ).pop(_NewPageRequest(title: _controller.text, template: _template)),
-          child: const Text('创建并开始记录'),
+          child: Text(
+            AppLocalizations.of(context)?.nbCreateAndRecord ?? '创建并开始记录',
+          ),
         ),
       ]),
     );
@@ -344,9 +355,10 @@ class _CreatePageDialogState extends State<_CreatePageDialog> {
 
 /// 页面名称输入对话框。
 class _PageNameDialog extends StatefulWidget {
-  const _PageNameDialog({this.title = '新建页面'});
+  const _PageNameDialog({this.title});
 
-  final String title;
+  /// null 时按 locale 解析（i18n E1 批 2）。
+  final String? title;
 
   @override
   State<_PageNameDialog> createState() => _PageNameDialogState();
@@ -364,24 +376,26 @@ class _PageNameDialogState extends State<_PageNameDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.title),
+      title: Text(
+        widget.title ?? AppLocalizations.of(context)?.nbNewPage ?? '新建页面',
+      ),
       content: TextField(
         controller: _controller,
         autofocus: true,
-        decoration: const InputDecoration(
-          hintText: '请输入页面名称',
-          border: OutlineInputBorder(),
+        decoration: InputDecoration(
+          hintText: AppLocalizations.of(context)?.nbPageNameHint ?? '请输入页面名称',
+          border: const OutlineInputBorder(),
         ),
         onSubmitted: (v) => Navigator.of(context).pop(v),
       ),
       actions: AppleDialog.actions([
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: const Text('确定'),
+          child: Text(AppLocalizations.of(context)?.commonConfirm ?? '确定'),
         ),
       ]),
     );
@@ -429,11 +443,13 @@ class _PasswordDialogState extends State<_PasswordDialog> {
             obscureText: _obscure,
             autofocus: true,
             decoration: InputDecoration(
-              hintText: '请输入密码',
+              hintText: AppLocalizations.of(context)?.nbPasswordHint ?? '请输入密码',
               border: const OutlineInputBorder(),
               suffixIcon: IconButton(
                 // 动态 tooltip：读屏/悬停提示随当前可见态切换。
-                tooltip: _obscure ? '显示密码' : '隐藏密码',
+                tooltip: _obscure
+                    ? AppLocalizations.of(context)?.nbShowPassword ?? '显示密码'
+                    : AppLocalizations.of(context)?.nbHidePassword ?? '隐藏密码',
                 icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),
@@ -445,13 +461,53 @@ class _PasswordDialogState extends State<_PasswordDialog> {
       actions: AppleDialog.actions([
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: const Text('确定'),
+          child: Text(AppLocalizations.of(context)?.commonConfirm ?? '确定'),
         ),
       ]),
     );
+  }
+}
+
+/// i18n（E1 批 2）：模板标签展示端本地化；l10n 缺席时回退 domain 默认。
+String? _templateLabelOf(BuildContext context, PageTemplate t) {
+  final l10n = AppLocalizations.of(context);
+  switch (t) {
+    case PageTemplate.blank:
+      return l10n?.templateBlank ?? '空白笔记';
+    case PageTemplate.lined:
+      return l10n?.templateLined ?? '横线笔记';
+    case PageTemplate.grid:
+      return l10n?.templateGrid ?? '方格纸';
+    case PageTemplate.dot:
+      return l10n?.templateDot ?? '点阵笔记';
+    case PageTemplate.meeting:
+      return l10n?.templateMeeting ?? '会议记录';
+    case PageTemplate.cornell:
+      return l10n?.templateCornell ?? '康奈尔笔记';
+    case PageTemplate.planner:
+      return l10n?.templatePlanner ?? '计划页';
+    case PageTemplate.whiteboard:
+      return l10n?.templateWhiteboard ?? '宽阔白板';
+  }
+}
+
+/// i18n（E1 批 2）：模板说明按 locale 解析（原内联三目链）。
+String _templateDescriptionOf(BuildContext context, PageTemplate t) {
+  final l10n = AppLocalizations.of(context);
+  switch (t) {
+    case PageTemplate.meeting:
+      return l10n?.tplDescMeeting ?? '包含议题、决策和行动项的起始结构。';
+    case PageTemplate.cornell:
+      return l10n?.tplDescCornell ?? '包含线索、笔记和总结区域的起始结构。';
+    case PageTemplate.planner:
+      return l10n?.tplDescPlanner ?? '包含重点、日程与复盘的起始结构。';
+    case PageTemplate.whiteboard:
+      return l10n?.tplDescWhiteboard ?? '使用宽阔空白画布模式；当前版本仍采用固定坐标纸面。';
+    default:
+      return l10n?.tplDescDefault ?? '纸张背景会随模板设置并保存到页面。';
   }
 }

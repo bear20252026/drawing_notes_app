@@ -8,6 +8,7 @@
 
 import 'package:flutter/foundation.dart' show listEquals, mapEquals;
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
@@ -161,9 +162,13 @@ class _EdgelessPageState extends State<EdgelessPage> {
     }
     final sel = _controller.selectedFrameId;
     if (sel == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请先选中一个帧作为连线起点')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)?.edPickSourceFrame ?? '请先选中一个帧作为连线起点',
+          ),
+        ),
+      );
       return;
     }
     _controller.beginConnect(sel);
@@ -256,39 +261,43 @@ class _EdgelessPageState extends State<EdgelessPage> {
               onPressed: _openCommandPalette,
             ),
             IconButton(
-              tooltip: '新增帧',
+              tooltip: AppLocalizations.of(context)?.edNewFrame ?? '新增帧',
               icon: const Icon(Icons.note_add_outlined),
               onPressed: _addFrame,
             ),
             IconButton(
-              tooltip: '适应',
+              tooltip: AppLocalizations.of(context)?.edFit ?? '适应',
               icon: const Icon(Icons.fit_screen_outlined),
               onPressed: _fitTo,
             ),
             IconButton(
-              tooltip: '缩小',
+              tooltip: AppLocalizations.of(context)?.cmdZoomOut ?? '缩小',
               icon: const Icon(Icons.zoom_out),
               onPressed: () => _zoom(1 / 1.2),
             ),
             IconButton(
-              tooltip: '放大',
+              tooltip: AppLocalizations.of(context)?.cmdZoomIn ?? '放大',
               icon: const Icon(Icons.zoom_in),
               onPressed: () => _zoom(1.2),
             ),
             IconButton(
-              tooltip: _controller.connectMode ? '取消连线' : '连线模式',
+              tooltip: _controller.connectMode
+                  ? AppLocalizations.of(context)?.cmdCancelConnect ?? '取消连线'
+                  : AppLocalizations.of(context)?.cmdConnectMode ?? '连线模式',
               isSelected: _controller.connectMode,
               icon: const Icon(Icons.call_made),
               onPressed: _toggleConnect,
             ),
             IconButton(
-              tooltip: _controller.multiSelectMode ? '退出多选' : '多选(编组)',
+              tooltip: _controller.multiSelectMode
+                  ? AppLocalizations.of(context)?.cmdExitMulti ?? '退出多选'
+                  : AppLocalizations.of(context)?.edMultiSelect ?? '多选(编组)',
               isSelected: _controller.multiSelectMode,
               icon: const Icon(Icons.done_all),
               onPressed: _toggleMultiSelect,
             ),
             IconButton(
-              tooltip: '编组',
+              tooltip: AppLocalizations.of(context)?.edGroup ?? '编组',
               icon: const Icon(Icons.group_work_outlined),
               onPressed: _controller.selectedFrameIds.length >= 2
                   ? () => _controller.groupSelection()
