@@ -14,8 +14,9 @@
   PDF `pw.TextStyle`（print 排版不走 UI 梯子）。
 - 列表标题等 UI 尺度覆写保留 `copyWith(fontSize:)`，但以令牌为基
   （承接字重/字距，避免再出现裸 TextStyle）。
-- **CI flake（storage_encryption 批量懒迁移）**：`deleteTempDirWithRetry`
-  宽限 3s→~15s；测试末尾 settle 200ms，避免 Windows errno 32。
+- **CI flake（懒迁移）**：`deleteTempDirWithRetry` 宽限 3s→~15s；
+  `waitEncryptedFile` 15s→60s（全量套件高并发下真 KDF 排队，run 35501293467
+  击穿 15s）；批量用例末尾 settle 200ms，避免 Windows errno 32。
 
 ## [1.17.8] - 2026-09-20
 
