@@ -158,7 +158,9 @@ void main() {
 
     await waitEncrypted('bulk_a');
     await waitEncrypted('bulk_b');
-    // 迁移后再刷新列表仍完整（迁移不丢数据）。
+    // 迁移写尾队列在 Windows CI 可能仍短暂持有句柄；再刷一次列表并
+    // 留一个事件循环拍，避免 tearDown 与在途 rename/delete 竞态（errno 32）。
     expect(await upgraded.listDocuments(), hasLength(2));
+    await Future<void>.delayed(const Duration(milliseconds: 200));
   });
 }

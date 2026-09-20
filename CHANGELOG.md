@@ -4,7 +4,7 @@
 
 ## [1.17.9] - 2026-09-20
 
-### 审计 P2-8/9：手写 fontSize 令牌化（UI 层）
+### 审计 P2-8/9：手写 fontSize 令牌化（UI 层）+ CI 懒迁移清理竞态加固
 
 - 裸 `TextStyle(fontSize:)` 收敛到 `AppleType` / `AppleTypeScale`：
   移动端空态、文档行标题与头像字、图片预览说明、图表文字列表、
@@ -14,6 +14,8 @@
   PDF `pw.TextStyle`（print 排版不走 UI 梯子）。
 - 列表标题等 UI 尺度覆写保留 `copyWith(fontSize:)`，但以令牌为基
   （承接字重/字距，避免再出现裸 TextStyle）。
+- **CI flake（storage_encryption 批量懒迁移）**：`deleteTempDirWithRetry`
+  宽限 3s→~15s；测试末尾 settle 200ms，避免 Windows errno 32。
 
 ## [1.17.8] - 2026-09-20
 
