@@ -694,7 +694,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
         metas.add(
           DocumentMeta(
             id: docId,
-            title: doc['title'] as String? ?? '未命名',
+            title: doc['title'] as String? ?? '',
             width: (doc['width'] as num?)?.toInt() ?? 2048,
             height: (doc['height'] as num?)?.toInt() ?? 1536,
             createdAt: timeFromIso(doc['createdAt']),

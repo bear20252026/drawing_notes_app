@@ -3087,4 +3087,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get canvasSearchFieldHint => 'Search';
+
+  @override
+  String layerDefaultName(int n) {
+    return 'Layer $n';
+  }
+
+  @override
+  String get edgelessStickyTitle => 'Sticky note';
 }

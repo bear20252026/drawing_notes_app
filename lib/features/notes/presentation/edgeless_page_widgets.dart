@@ -75,7 +75,7 @@ class _FrameCard extends StatelessWidget {
                     child: Text(
                       frame.doc.title.isNotEmpty
                           ? frame.doc.title
-                          : AppLocalizations.of(context)?.docUntitled ?? '未命名',
+                          : DomainDisplayLabels.docTitle(AppLocalizations.of(context), null),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppleType.captionStyle(

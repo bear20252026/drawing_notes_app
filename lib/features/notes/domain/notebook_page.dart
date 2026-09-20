@@ -204,7 +204,7 @@ class NotebookPage {
     }
     return NotebookPage(
       id: json['id'] as String,
-      title: json['title'] as String? ?? '未命名页面',
+      title: json['title'] as String? ?? '',
       content: NotebookPageContent.fromJson(json),
       folder: json['folder'] as String? ?? '',
       cloneOf: json['cloneOf'] != null

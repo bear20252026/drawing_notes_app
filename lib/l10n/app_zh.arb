@@ -2218,5 +2218,13 @@
   "canvasKindRotateHandle": "旋转手柄",
   "@canvasKindRotateHandle": {},
   "canvasSearchFieldHint": "搜索",
-  "@canvasSearchFieldHint": {}
+  "@canvasSearchFieldHint": {},
+  "layerDefaultName": "图层 {n}",
+  "@layerDefaultName": {
+    "placeholders": {
+      "n": {"type": "int"}
+    }
+  },
+  "edgelessStickyTitle": "便签",
+  "@edgelessStickyTitle": {}
 }

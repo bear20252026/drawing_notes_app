@@ -2,6 +2,16 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.12] - 2026-09-20
+
+### E6/E1 存储展示分离 + D11 通知分域 + D12 封顶增量 + F9 结构定调
+
+- **E6/E1**：新增 `DomainDisplayLabels`——domain/codec 新建与缺省写 **空串**；历史落盘中文默认值在展示层映射 l10n；导出文件名回退 `untitled`。图层面板/各列表/回收站/导出 HTML·PDF 已接。
+- **D11**：`EdgelessController.gestureTick` 与结构 `notifyListeners` 分域；相机/活动笔迹/形状预览走高频通道。
+- **D12**：封顶画布启用增量脏矩形——`drawImageRect` 铺旧位图，文档坐标系脏矩形裁剪（marker 层仍全量）。
+- **F9**：`ARCHITECTURE.md` 明确 editor_page **O1 part 域分权** 不再合并（避免超长文件回潮）。
+- **F7**：`architecture_test` 零循环依赖保持通过；无新环则不做契约上移。
+
 ## [1.17.11] - 2026-09-20
 
 ### 审计收尾批次：E1 继续 + B11 叠加层 + F1 home_page 密码域拆分

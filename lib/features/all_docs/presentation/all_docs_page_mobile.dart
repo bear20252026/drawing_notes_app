@@ -199,7 +199,7 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                     dense: true,
                     title: Text(
                       doc.title.isEmpty
-                          ? AppLocalizations.of(context)?.docUntitled ?? '未命名'
+                          ? DomainDisplayLabels.docTitle(AppLocalizations.of(context), null)
                           : doc.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

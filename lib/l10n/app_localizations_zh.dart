@@ -2974,4 +2974,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get canvasSearchFieldHint => '搜索';
+
+  @override
+  String layerDefaultName(int n) {
+    return '图层 $n';
+  }
+
+  @override
+  String get edgelessStickyTitle => '便签';
 }

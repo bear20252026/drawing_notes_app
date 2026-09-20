@@ -1,3 +1,4 @@
+import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
 // M9-3 全部文档工作台：左侧工作区面板。
 //
 // M11 产品清晰化：只保留真实可达的导航项（全部文档/收藏夹/标签）。
@@ -254,7 +255,7 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
                     Expanded(
                       child: Text(
                         doc.title.isEmpty
-                            ? AppLocalizations.of(context)?.docUntitled ?? '未命名'
+                            ? DomainDisplayLabels.docTitle(AppLocalizations.of(context), null)
                             : doc.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

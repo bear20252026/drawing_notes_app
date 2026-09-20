@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
@@ -79,7 +80,10 @@ class LayerPanel extends StatelessWidget {
                         selected: selected,
                         opacity: layer.opacity,
                         visible: layer.visible,
-                        name: layer.name,
+                        name: DomainDisplayLabels.layerName(
+                          AppLocalizations.of(context),
+                          layer.name,
+                        ),
                         thumbnail: controller.paintViews[internalIndex].image,
                         canMoveUp: internalIndex < layers.length - 1,
                         canMoveDown: internalIndex > 0,

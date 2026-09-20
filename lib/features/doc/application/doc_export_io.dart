@@ -1,3 +1,4 @@
+import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
 // 由 Claude 团队生成 | Drawing Notes App
 // 文档导出落盘辅助（M12.5/6）：文件名安全化 + 写入系统文档目录。
 // 转换逻辑在域层（note_block_doc_markdown.dart / doc_html_export.dart），
@@ -46,7 +47,7 @@ String sanitizeFileName(String raw) {
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim()
       .replaceAll(RegExp(r'[. ]+$'), '');
-  if (cleaned.isEmpty) return '未命名';
+  if (cleaned.isEmpty) return DomainDisplayLabels.filesystemUntitled;
   if (cleaned.length > 200) cleaned = cleaned.substring(0, 200);
   final stem = cleaned.split('.').first.toLowerCase();
   if (_reservedDeviceNames.contains(stem)) cleaned = '_$cleaned';

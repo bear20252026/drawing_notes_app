@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/shared/utils/time_format.dart';
@@ -110,9 +111,7 @@ class AllDocRow extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      doc.title.isEmpty
-                          ? AppLocalizations.of(context)?.docUntitled ?? '未命名'
-                          : doc.title,
+                      DomainDisplayLabels.docTitle(AppLocalizations.of(context), doc.title),
                       // 14 → 15：列表标题是触屏主用设备上的主要点击目标，
                       // 14px 偏小；15px 仍在 UI 尺度内（DESIGN.md 的
                       // 17px 是**营销正文**档，不适用于列表条目）。

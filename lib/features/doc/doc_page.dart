@@ -33,6 +33,7 @@ import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_editor.dart';
 import 'package:drawing_notes_app/features/doc/doc_outline_rail.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
 
 part 'doc_page_widgets.dart';
 

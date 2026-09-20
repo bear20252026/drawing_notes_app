@@ -40,7 +40,7 @@ class Layer {
 
   factory Layer.fromJson(Map<String, dynamic> json) => Layer(
     id: json['id'] as String,
-    name: json['name'] as String? ?? '图层',
+    name: json['name'] as String? ?? '',
     visible: json['visible'] as bool? ?? true,
     opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
     strokes: (json['strokes'] as List? ?? const [])

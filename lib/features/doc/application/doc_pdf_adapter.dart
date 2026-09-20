@@ -1,3 +1,4 @@
+import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
 // 由 Claude 团队生成 | Drawing Notes App
 // PDF 适配器（M12.8，AFFiNE Backlinks 批：PDF Export 对齐）。
 //
@@ -34,7 +35,7 @@ Future<Uint8List> noteBlockDocToPdf(NoteBlockDoc doc) async {
   );
 
   final pdf = pw.Document(theme: theme);
-  final title = doc.title.trim().isEmpty ? '未命名' : doc.title.trim();
+  final title = DomainDisplayLabels.docTitle(null, doc.title);
 
   pdf.addPage(
     pw.MultiPage(

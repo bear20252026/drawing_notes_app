@@ -35,7 +35,8 @@ class DrawingDocument {
     DateTime? updatedAt,
   }) : layers = layers != null
            ? List.of(layers)
-           : [Layer(id: 'layer_1', name: '图层 1')],
+           // E6：新建写空名，展示层经 DomainDisplayLabels 映射本地化。
+           : [Layer(id: 'layer_1', name: '')],
        shapes = shapes != null ? List.of(shapes) : <PageShapeItem>[],
        imageItems = imageItems != null
            ? List.of(imageItems)
@@ -112,7 +113,7 @@ class DrawingDocument {
   factory DrawingDocument.fromJson(Map<String, dynamic> json) =>
       DrawingDocument(
         id: json['id'] as String,
-        title: json['title'] as String? ?? '未命名',
+        title: json['title'] as String? ?? '',
         width: (json['width'] as num?)?.toInt() ?? 2048,
         height: (json['height'] as num?)?.toInt() ?? 1536,
         infinite: json['infinite'] as bool? ?? false,

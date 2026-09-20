@@ -8,6 +8,7 @@
 // 实现层（架构规则 3）。命令模型、构建、搜索均为纯函数，可独立单测。
 
 import 'package:flutter/material.dart';
+import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 
@@ -49,10 +50,18 @@ class EdgelessCommand {
   final String keyword;
 }
 
-/// 帧的展示标题：以内部文档标题为名，无标题显示「未命名 N」。
-String edgelessFrameTitle(String title, int index) {
-  final t = title.trim();
-  return t.isEmpty ? '未命名　${index + 1}' : t;
+/// 帧的展示标题：空/历史默认标题经 [DomainDisplayLabels] 映射。
+String edgelessFrameTitle(
+  String title,
+  int index, {
+  AppLocalizations? l10n,
+}) {
+  if (DomainDisplayLabels.isUntitledPageTitle(title) ||
+      DomainDisplayLabels.isUntitledDocTitle(title)) {
+    final base = l10n?.docUntitled ?? '未命名';
+    return '$base　${index + 1}';
+  }
+  return title.trim();
 }
 
 /// 构建画布命令列表（含通用操作 + 每个帧的「跳转到帧」）。

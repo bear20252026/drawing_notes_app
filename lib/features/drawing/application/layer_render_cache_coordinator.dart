@@ -178,10 +178,10 @@ class LayerRenderCacheCoordinator {
       final base = region != null ? cache.image : null;
       cache.dirtyRegion = null;
       if (base == null) {
-        // 全量重建（封顶画布每笔都是全量）：旧位图不会作为增量底图，
-        // 在分配新位图**之前**释放——否则 toImage 期间新旧两张 ~24MB
-        // 位图并存，每笔落笔的瞬时峰值翻倍（2026-09-07 内存治理）。
-        // 重建期间 painter 走矢量回退，画面不会闪空。
+        // 全量重建：旧位图不会作为增量底图，在分配新位图**之前**释放
+        // ——否则 toImage 期间新旧两张 ~24MB 位图并存，每笔落笔的瞬时
+        // 峰值翻倍（2026-09-07 内存治理）。D12：封顶画布也可增量
+        // （compositor drawImageRect 铺底）；base==null 表示无底图。
         cache.image?.dispose();
         cache.image = null;
       }

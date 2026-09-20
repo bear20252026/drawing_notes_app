@@ -57,7 +57,7 @@ void main() {
 
     test('文件名安全化', () {
       expect(sanitizeFileName('a/b:c*d?"<>|'), isNot(contains('/')));
-      expect(sanitizeFileName('   '), '未命名');
+      expect(sanitizeFileName('   '), 'untitled');
     });
   });
 

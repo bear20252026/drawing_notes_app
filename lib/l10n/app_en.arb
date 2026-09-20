@@ -2350,5 +2350,13 @@
   "canvasKindRotateHandle": "rotation handle",
   "@canvasKindRotateHandle": {},
   "canvasSearchFieldHint": "Search",
-  "@canvasSearchFieldHint": {}
+  "@canvasSearchFieldHint": {},
+  "layerDefaultName": "Layer {n}",
+  "@layerDefaultName": {
+    "placeholders": {
+      "n": {"type": "int"}
+    }
+  },
+  "edgelessStickyTitle": "Sticky note",
+  "@edgelessStickyTitle": {}
 }

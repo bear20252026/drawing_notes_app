@@ -5671,6 +5671,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Search'**
   String get canvasSearchFieldHint;
+
+  /// No description provided for @layerDefaultName.
+  ///
+  /// In en, this message translates to:
+  /// **'Layer {n}'**
+  String layerDefaultName(int n);
+
+  /// No description provided for @edgelessStickyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sticky note'**
+  String get edgelessStickyTitle;
 }
 
 class _AppLocalizationsDelegate

@@ -1,3 +1,4 @@
+import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
 import 'dart:async';
 
 import 'dart:io';
@@ -673,7 +674,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     final doc =
         widget.session?.document ??
         widget._initialDocument ??
-        DrawingDocument(id: StorageService.newId(), title: '未命名画布');
+        DrawingDocument(id: StorageService.newId(), title: '');
     _controller = ref.read(drawingControllerProvider(doc));
     _exporter = EditorExporter(
       l10n: () => _l10nSafe,
@@ -703,7 +704,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     // 异步加载铅笔颗粒着色器；失败时渲染层自动回退到普通铅笔绘制。
     unawaited(PencilShader.init());
     // 修改文档标题显示为页面标题。
-    if (widget.session != null && doc.title == '未命名画布') {
+    if (widget.session != null && DomainDisplayLabels.isUntitledDocTitle(doc.title)) {
       doc.title = widget.session!.title;
     }
     // P0-3b：统一保存调度门面（防抖/串行化/退出兜底/失败重试）。

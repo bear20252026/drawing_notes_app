@@ -136,7 +136,7 @@ class DocumentCodec {
 
     return DrawingDocument(
       id: id,
-      title: document['title'] is String ? document['title'] as String : '未命名',
+      title: document['title'] is String ? document['title'] as String : '',
       width: _restoreCanvasDimension(document['width'], 2048),
       height: _restoreCanvasDimension(document['height'], 1536),
       infinite: document['infinite'] == true,
@@ -219,7 +219,7 @@ class DocumentCodec {
         }
       }
     }
-    return layers.isEmpty ? [Layer(id: 'layer_1', name: '图层 1')] : layers;
+    return layers.isEmpty ? [Layer(id: 'layer_1', name: '')] : layers;
   }
 
   static List<Stroke> _restoreStrokes(Object? value) {

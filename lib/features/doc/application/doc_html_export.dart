@@ -1,3 +1,4 @@
+import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
 // 由 Claude 团队生成 | Drawing Notes App
 // HTML 导出（M12.6，AFFiNE Export 对齐第二批）。
 // NoteBlockDoc → HTML。纯 Dart，无 IO 依赖，可单测。
@@ -15,7 +16,7 @@ String escapeHtml(String raw) => html_escape.escapeHtml(raw);
 
 /// 将块文档转换为独立 HTML 文档（含内联样式，双击可浏览）。
 String noteBlockDocToHtml(NoteBlockDoc doc) {
-  final title = escapeHtml(doc.title.trim().isEmpty ? '未命名' : doc.title.trim());
+  final title = escapeHtml(DomainDisplayLabels.docTitle(null, doc.title));
   final buf = StringBuffer();
   buf.writeln('<!DOCTYPE html>');
   buf.writeln('<html lang="zh-CN">');

@@ -1,3 +1,5 @@
+import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
+
 // 由 Claude 团队生成 | Drawing Notes App
 // EdgelessPage：无限画布（1:1 AFFiNE edgeless）页面。
 //
@@ -63,11 +65,15 @@ class _EdgelessPageState extends State<EdgelessPage> {
       onChanged: widget.onChanged,
     );
     _controller.addListener(_onControllerChanged);
+    // D11：高频手势/相机 tick 与结构通知分域；当前页两者都 setState，
+    // 架构上已允许后续只让画布层订阅 gestureTick。
+    _controller.gestureTick.addListener(_onControllerChanged);
   }
 
   @override
   void dispose() {
     _controller.removeListener(_onControllerChanged);
+    _controller.gestureTick.removeListener(_onControllerChanged);
     _controller.dispose();
     super.dispose();
   }

@@ -359,7 +359,7 @@ class _NotebookCard extends StatelessWidget {
                 const Spacer(),
                 Text(
                   notebook.title.isEmpty
-                      ? AppLocalizations.of(context)?.docUntitled ?? '未命名'
+                      ? DomainDisplayLabels.docTitle(AppLocalizations.of(context), null)
                       : notebook.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

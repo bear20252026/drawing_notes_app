@@ -42,6 +42,7 @@ void main() {
     test('空标题显示「未命名 N」', () {
       expect(edgelessFrameTitle('', 0), '未命名　1');
       expect(edgelessFrameTitle('   ', 2), '未命名　3');
+      expect(edgelessFrameTitle('未命名页面', 0), '未命名　1');
     });
 
     test('有标题直接用标题', () {

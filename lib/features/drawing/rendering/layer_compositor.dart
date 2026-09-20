@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
-import 'dart:ui' show Offset, Rect;
+import 'dart:ui' show Rect;
 
 import 'package:drawing_notes_app/core/canvas_model/layer.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
@@ -21,6 +21,9 @@ import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dar
 /// 全尺寸光栅化，一张 RGBA 位图就 ~35MB，每笔重建会让内存迅速攀升并
 /// 在弱 GPU 上反复 toImage 卡顿。故图层位图长边封顶到
 /// [LayerCompositor.maxBitmapLongEdge]，用 drawImageRect 统一缩放绘制。
+///
+/// D12（2026-09-20）：封顶画布启用增量脏矩形——旧位图经 drawImageRect
+/// 铺回文档逻辑坐标，脏矩形仍在文档坐标系裁剪；仅 marker 图层强制全量。
 class LayerRenderCache {
   ui.Image? image;
   bool dirty = true;
@@ -96,9 +99,10 @@ class LayerCompositor {
     final hasHighlighter = layer.strokes.any(
       (stroke) => stroke.type == BrushType.marker,
     );
-    // 封顶时忽略增量（见类注释）。
-    final effectiveRegion = capped || hasHighlighter ? null : region;
-    final effectiveBase = capped || hasHighlighter ? null : base;
+    // D12：封顶画布也走增量脏矩形（位图经 scale 已落在 bitmap 坐标系）。
+    // 旧 base 需 drawImageRect 铺回文档逻辑尺寸，避免二次缩放。
+    final effectiveRegion = hasHighlighter ? null : region;
+    final effectiveBase = hasHighlighter ? null : base;
 
     // saveLayer 必须覆盖整个画布（而非仅脏矩形）：
     // 1) base（旧位图）画入后，区域外内容随 restore 原样保留；
@@ -110,7 +114,13 @@ class LayerCompositor {
     canvas.saveLayer(fullBounds, ui.Paint());
     // 增量重建：先画旧位图作为底（全图），区域外内容保持不变。
     if (effectiveBase != null) {
-      canvas.drawImage(effectiveBase, Offset.zero, ui.Paint());
+      final src = Rect.fromLTWH(
+        0,
+        0,
+        effectiveBase.width.toDouble(),
+        effectiveBase.height.toDouble(),
+      );
+      canvas.drawImageRect(effectiveBase, src, fullBounds, ui.Paint());
     }
     // 只重绘脏矩形内的笔画（渲染裁剪）。
     final paintBounds = effectiveRegion ?? fullBounds;

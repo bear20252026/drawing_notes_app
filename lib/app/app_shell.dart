@@ -597,7 +597,7 @@ class _AppShellState extends State<AppShell> {
       case AllDocKind.canvas:
         final storage = widget.docStorage;
         if (storage == null) return;
-        final draft = DrawingDocument(id: StorageService.newId(), title: '未命名');
+        final draft = DrawingDocument(id: StorageService.newId(), title: '');
         await storage.save(draft);
         final builder = widget.editorPageBuilder;
         nav.push(
@@ -620,7 +620,7 @@ class _AppShellState extends State<AppShell> {
         if (nbStorage == null) return;
         final nb = Notebook(
           id: NotebookStorage.newId('notebook'),
-          title: '未命名',
+          title: '',
         );
         await nbStorage.save(nb);
         nav.push(

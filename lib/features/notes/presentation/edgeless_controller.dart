@@ -55,6 +55,12 @@ class EdgelessController extends ChangeNotifier {
   final double maxZoom;
   EdgelessCamera _camera;
 
+  /// D11 通知分域：高频手势/相机/活动笔迹只打此 tick。
+  ///
+  /// 结构变更（文档不可变替换、工具切换）仍走 [notifyListeners]；
+  /// 宿主可只订阅本通道刷新画布变换层，避免整页重建。
+  final ValueNotifier<int> gestureTick = ValueNotifier<int>(0);
+
   // 手势暂存
   EdgelessCamera? _gestureStartCamera;
   Offset? _gestureStartFocal;
@@ -145,7 +151,19 @@ class EdgelessController extends ChangeNotifier {
   }
 
   void _notifyCamera() {
-    notifyListeners();
+    // D11：相机属高频通道，不触发结构 notify。
+    gestureTick.value = gestureTick.value + 1;
+  }
+
+  /// 高频手势预览（活动笔迹/形状拖拽）——仅 gestureTick。
+  void _notifyGesturePreview() {
+    gestureTick.value = gestureTick.value + 1;
+  }
+
+  @override
+  void dispose() {
+    gestureTick.dispose();
+    super.dispose();
   }
 
   EdgelessCamera _clampZoom(EdgelessCamera cam) {
@@ -177,11 +195,11 @@ class EdgelessController extends ChangeNotifier {
             color: _brushColor,
             width: _brushWidth,
           );
-          notifyListeners();
+          _notifyGesturePreview();
           return;
         case EdgelessTool.shape:
           _shapeOrigin = world;
-          notifyListeners();
+          _notifyGesturePreview();
           return;
         case EdgelessTool.select:
         case EdgelessTool.eraser:
@@ -216,12 +234,12 @@ class EdgelessController extends ChangeNotifier {
           (stroke.pointAt(stroke.pointCount - 1) - world).distance >
               2.0 / _camera.zoom) {
         _activeStroke = stroke.copyWithAppended(world);
-        notifyListeners();
+        _notifyGesturePreview();
       }
       return;
     }
     if (pointerCount == 1 && _shapeOrigin != null) {
-      notifyListeners();
+      _notifyGesturePreview();
       return; // 形状尺寸在手势结束时由 origin+当前点一次性生成。
     }
     if (_dragFrameId != null && pointerCount == 1) {

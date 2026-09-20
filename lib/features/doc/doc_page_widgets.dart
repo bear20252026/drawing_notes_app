@@ -75,7 +75,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  title.isEmpty ? '未命名' : title,
+                  DomainDisplayLabels.docTitle(AppLocalizations.of(context), title),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppleType.controlStyle(scheme.onSurface),
@@ -91,7 +91,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
               ],
             )
           : Text(
-              title.isEmpty ? '未命名' : title,
+              DomainDisplayLabels.docTitle(AppLocalizations.of(context), title),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppleType.titleStyle(scheme.onSurface),
@@ -390,7 +390,7 @@ class _BacklinksPanelState extends State<_BacklinksPanel> {
                     Expanded(
                       child: Text(
                         doc.title.isEmpty
-                            ? AppLocalizations.of(context)?.docUntitled ?? '未命名'
+                            ? DomainDisplayLabels.docTitle(AppLocalizations.of(context), null)
                             : doc.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
