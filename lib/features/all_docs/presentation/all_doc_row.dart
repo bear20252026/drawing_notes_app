@@ -113,19 +113,14 @@ class AllDocRow extends StatelessWidget {
                       doc.title.isEmpty
                           ? AppLocalizations.of(context)?.docUntitled ?? '未命名'
                           : doc.title,
-                      style: TextStyle(
-                        // 14 → 15：列表标题是触屏主用设备上的主要点击目标，
-                        // 14px 偏小；15px 仍在 UI 尺度内（DESIGN.md 的
-                        // 17px 是**营销正文**档，不适用于列表条目）。
-                        fontSize: 15,
-                        // w500 → w600：DESIGN.md:504 明文
-                        // 「Don't set body copy at weight 500 — Apple's
-                        // ladder is 300 / 400 / 600 / 700, with 500
-                        // deliberately absent」。
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -0.1,
-                        color: onSurface,
-                      ),
+                      // 14 → 15：列表标题是触屏主用设备上的主要点击目标，
+                      // 14px 偏小；15px 仍在 UI 尺度内（DESIGN.md 的
+                      // 17px 是**营销正文**档，不适用于列表条目）。
+                      // 以 controlStyle 为基（无 body 1.47 行高，避免列表行被撑高）。
+                      style: AppleType.controlStyle(
+                        onSurface,
+                        weight: FontWeight.w600,
+                      ).copyWith(fontSize: 15),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -167,9 +162,10 @@ class AllDocRow extends StatelessWidget {
                 alignment: Alignment.center,
                 child: Text(
                   'D',
-                  style: AppleType.captionStyle(
+                  style: AppleTypeScale.of(
+                    AppleTypeScale.microLegal,
                     visual.color,
-                  ).copyWith(fontSize: 10, fontWeight: FontWeight.w600),
+                  ).copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
               const SizedBox(width: 6),

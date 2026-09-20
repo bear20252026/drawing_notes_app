@@ -511,12 +511,14 @@ class ApplePillSearchField extends StatelessWidget {
     return TextField(
       controller: controller,
       onChanged: onChanged,
-      style: AppleType.bodyStyle(onSurface).copyWith(fontSize: 14),
+      // 搜索框内文案：梯子 caption 14 / hint 走 control 13。
+      style: AppleTypeScale.of(AppleTypeScale.caption, onSurface),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: AppleType.bodyStyle(
+        hintStyle: AppleType.controlStyle(
           AppleColor.mutedOf(scheme),
-        ).copyWith(fontSize: 13),
+          weight: FontWeight.w400,
+        ),
         prefixIcon: Icon(
           Icons.search_rounded,
           size: 18,

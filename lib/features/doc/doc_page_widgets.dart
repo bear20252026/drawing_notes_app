@@ -83,9 +83,10 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
                 const SizedBox(height: 1),
                 Text(
                   statusLabel,
-                  style: AppleType.captionStyle(
+                  style: AppleTypeScale.of(
+                    AppleTypeScale.microLegal,
                     statusColor,
-                  ).copyWith(fontSize: 10, fontWeight: FontWeight.w600),
+                  ).copyWith(fontWeight: FontWeight.w600),
                 ),
               ],
             )

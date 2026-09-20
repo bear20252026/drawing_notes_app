@@ -361,6 +361,7 @@ class EditorExporter {
           build: (context) => [
             pw.Text(
               page.title,
+              // PDF domain 豁免：print 排版不走 Flutter AppleType 梯子。
               style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold),
             ),
             pw.SizedBox(height: 18),

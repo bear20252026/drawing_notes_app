@@ -385,10 +385,11 @@ class _PinPadCoreState extends State<PinPadCore>
           children: [
             Text(
               digit,
-              style: const TextStyle(
-                color: Colors.white,
+              // 密码盘数字键：大号触控读数，梯子无 33 档；以 headline 为基。
+              style: AppleType.headlineStyle(Colors.white).copyWith(
                 fontSize: 33,
                 fontWeight: FontWeight.w400,
+                letterSpacing: 0,
               ),
             ),
             Positioned(

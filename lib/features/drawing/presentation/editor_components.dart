@@ -322,10 +322,11 @@ class _PaginationPreviewState extends State<PaginationPreview> {
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Text(
                     t.text,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Color(t.color),
-                      fontWeight: t.bold ? FontWeight.bold : FontWeight.normal,
+                    // 文档列表条目：control 13 + 块级富文本修饰。
+                    style: AppleType.controlStyle(
+                      Color(t.color),
+                      weight: t.bold ? FontWeight.bold : FontWeight.normal,
+                    ).copyWith(
                       fontStyle: t.italic ? FontStyle.italic : FontStyle.normal,
                       decoration: t.underline
                           ? TextDecoration.underline
@@ -776,6 +777,8 @@ class ChartPainter extends CustomPainter {
     : _labelPainter = TextPainter(
         text: TextSpan(
           text: chart.data.map((v) => v.round().toString()).join(', '),
+          // canvas content layer（domain 豁免）：图表数值标签随缩放绘制，
+          // 不用 UI 排版梯子；9px 为画布内密排标注。
           style: const TextStyle(fontSize: 9, color: Colors.black54),
         ),
         textDirection: TextDirection.ltr,

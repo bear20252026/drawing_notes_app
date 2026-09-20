@@ -62,11 +62,11 @@ class NoteFramePreview extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
                 title,
-                style: TextStyle(
+                // 预览标题：headline 基底 + 20px（梯子无 20 档）。
+                style: AppleType.headlineStyle(ink).copyWith(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                   height: 1.3,
-                  color: ink,
                 ),
               ),
             ),
@@ -199,11 +199,9 @@ class _NoteBlockPreviewRow extends StatelessWidget {
             block.text.isNotEmpty
                 ? block.text
                 : AppLocalizations.of(context)?.pfCode ?? '代码块',
-            style: baseStyle.copyWith(
-              fontFamily: 'monospace',
-              fontSize: 13,
-              height: 1.4,
-            ),
+            style: AppleType.controlStyle(
+              baseStyle.color ?? Theme.of(context).colorScheme.onSurface,
+            ).copyWith(fontFamily: 'monospace', height: 1.4),
           ),
         );
       case NoteBlockType.quote:

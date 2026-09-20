@@ -2,6 +2,19 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.9] - 2026-09-20
+
+### 审计 P2-8/9：手写 fontSize 令牌化（UI 层）
+
+- 裸 `TextStyle(fontSize:)` 收敛到 `AppleType` / `AppleTypeScale`：
+  移动端空态、文档行标题与头像字、图片预览说明、图表文字列表、
+  日历星期标签、笔记预览标题/代码、演示 lead 28、密码盘数字键、
+  文档状态 microLegal、项目符号 buttonLarge 18、胶囊搜索 caption/control。
+- **domain 豁免并注释**：画布图表标签 9px、无边画布分组芯片 11px、
+  PDF `pw.TextStyle`（print 排版不走 UI 梯子）。
+- 列表标题等 UI 尺度覆写保留 `copyWith(fontSize:)`，但以令牌为基
+  （承接字重/字距，避免再出现裸 TextStyle）。
+
 ## [1.17.8] - 2026-09-20
 
 ### CI 门禁修复 + 审计 P2 落地

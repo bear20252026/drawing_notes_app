@@ -126,7 +126,10 @@ class _ImagePreviewPage extends StatelessWidget {
                   ),
                   child: Text(
                     caption!,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    style: AppleTypeScale.of(
+                      AppleTypeScale.caption,
+                      Colors.white,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),

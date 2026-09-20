@@ -183,9 +183,8 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                   child: Text(
                     AppLocalizations.of(context)?.docsNoDocs ?? '暂无文档',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppleColor.mutedOf(theme.colorScheme),
+                    style: AppleType.controlStyle(
+                      AppleColor.mutedOf(theme.colorScheme),
                     ),
                   ),
                 )

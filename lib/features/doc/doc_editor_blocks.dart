@@ -370,7 +370,11 @@ extension DocEditorBlocks on DocEditorState {
           padding: const EdgeInsets.only(top: 12, right: 4),
           child: Text(
             '•',
-            style: AppleType.titleStyle(bulletColor).copyWith(fontSize: 18),
+            // 项目符号：梯子 buttonLarge 18px。
+            style: AppleTypeScale.of(
+              AppleTypeScale.buttonLarge,
+              bulletColor,
+            ),
           ),
         );
       case NoteBlockType.ordered:

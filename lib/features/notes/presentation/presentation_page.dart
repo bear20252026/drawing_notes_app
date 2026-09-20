@@ -41,9 +41,11 @@ class _PresentationPageState extends State<PresentationPage> {
         Text(
           t.text,
           textAlign: TextAlign.center,
-          // 28 无档位：titleStyle 基底 + copyWith 保留原字号。
-          style: AppleType.titleStyle(Colors.white).copyWith(
-            fontSize: 28,
+          // 演示模式大字：梯子 lead 28px。
+          style: AppleTypeScale.of(
+            AppleTypeScale.lead,
+            Colors.white,
+          ).copyWith(
             fontWeight: t.bold ? FontWeight.bold : FontWeight.normal,
             fontStyle: t.italic ? FontStyle.italic : FontStyle.normal,
           ),

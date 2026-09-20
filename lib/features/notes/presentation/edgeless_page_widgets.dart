@@ -441,6 +441,7 @@ class _GroupPainter extends CustomPainter {
         TextPainter(
           text: TextSpan(
             text: g.name,
+            // canvas content layer（domain 豁免）：无边画布分组芯片标签。
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,

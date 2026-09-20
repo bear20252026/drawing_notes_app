@@ -43,6 +43,7 @@ Future<Uint8List> noteBlockDocToPdf(NoteBlockDoc doc) async {
       build: (context) => [
         pw.Text(
           title,
+          // PDF domain 豁免：print 排版不走 Flutter AppleType 梯子。
           style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold),
         ),
         pw.SizedBox(height: 12),

@@ -52,9 +52,9 @@ class ScheduleCalendar extends StatelessWidget {
           child: Center(
             child: Text(
               label,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-                fontSize: 12,
+              style: AppleTypeScale.of(
+                AppleTypeScale.finePrint,
+                scheme.onSurfaceVariant,
               ),
             ),
           ),
