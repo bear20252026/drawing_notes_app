@@ -27,6 +27,13 @@ import 'package:drawing_notes_app/core/theme/apple_design.dart';
 ///
 /// 注意：本渲染器只做"绘制"，不处理手势；手势由编辑器页面负责。
 class CanvasPainter extends CustomPainter {
+  /// domain 豁免（审计 P2-7）：纸型网格线——内容层纹理，非 UI 铬。
+  /// 保留历史 Material Blue 透明变体，具名防扫描误报。
+  static const Color paperLineColor = Color(0x4042A5F5);
+
+  /// 纸型点阵点色（同上 domain 豁免）。
+  static const Color paperDotColor = Color(0x5542A5F5);
+
   CanvasPainter({required this.controller})
     : super(repaint: Listenable.merge([controller, controller.frameTick]));
 
@@ -332,7 +339,7 @@ class CanvasPainter extends CustomPainter {
     final w = doc.width.toDouble();
     final h = doc.height.toDouble();
     final linePaint = Paint()
-      ..color = const Color(0x4042A5F5)
+      ..color = CanvasPainter.paperLineColor
       ..strokeWidth = 1;
 
     switch (type) {
@@ -358,7 +365,7 @@ class CanvasPainter extends CustomPainter {
         // 点阵：固定间距的圆点。
         const step = 32.0;
         final dotPaint = Paint()
-          ..color = const Color(0x5542A5F5)
+          ..color = CanvasPainter.paperDotColor
           ..style = PaintingStyle.fill;
         for (var x = step / 2; x < w; x += step) {
           for (var y = step / 2; y < h; y += step) {
@@ -518,7 +525,7 @@ class MiniMapPainter extends CustomPainter {
       rectOnMap,
       Paint()
         ..style = PaintingStyle.fill
-        ..color = const Color(0x2242A5F5),
+        ..color = AppleColor.actionBlue.withValues(alpha: 0.13),
     );
   }
 

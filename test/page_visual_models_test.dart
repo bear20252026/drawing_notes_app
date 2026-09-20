@@ -53,11 +53,19 @@ void main() {
     expect(restored.toItemId, 'image-1');
     expect(restored.color, 0xFF445566);
 
+    // 新建默认 = Action Blue；JSON 缺 color 时读侧回落历史 Material Blue。
+    expect(
+      PageConnector(id: 'n', fromItemId: 'a', toItemId: 'b').color,
+      PageConnector.kDefaultColor,
+    );
+    expect(PageConnector.kDefaultColor, 0xFF0066CC);
+
     final legacy = PageConnector.fromJson({
       'id': 'legacy-connector',
       'fromItemId': 'a',
       'toItemId': 'b',
     });
+    expect(legacy.color, PageConnector.kLegacyDefaultColor);
     expect(legacy.color, 0xFF42A5F5);
   });
 }

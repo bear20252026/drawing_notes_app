@@ -536,7 +536,8 @@ class ApplePillSearchField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppleRadius.full),
-          borderSide: BorderSide(color: scheme.primary, width: 1.2),
+          // 键盘焦点环：Focus Blue 2px（DESIGN.md:300/440；审计 P2-5）。
+          borderSide: BorderSide(color: AppleColor.focusBlue, width: 2),
         ),
       ),
     );

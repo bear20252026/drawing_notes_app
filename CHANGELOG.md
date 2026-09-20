@@ -2,6 +2,16 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.8] - 2026-09-20
+
+### CI 门禁修复 + 审计 P2 落地
+
+- **quality_gate DCM long-method**：`editor_page_canvas_surface._buildCanvasArea`（约 252 行）拆为 `_buildCanvasPainterLayer` 等短助手，过 `metrics analyze lib` 反模式门禁。
+- **P2-4 小地图键盘**：Semantics + 方向键平移视口（Shift 加速）。
+- **P2-5 搜索框焦点环**：`ApplePillSearchField` focusedBorder → Focus Blue 2px。
+- **P2-6 连接线默认色**：新建 `kDefaultColor=0xFF0066CC`；JSON 缺省仍回落 `kLegacyDefaultColor=0xFF42A5F5`。
+- **P2-7 纸型纹理具名常量**：`CanvasPainter.paperLineColor/paperDotColor`；小地图视口填充改 `actionBlue.withValues(alpha:0.13)`。
+
 ## [1.17.7] - 2026-09-18
 
 ### 增量审计闭环（AUDIT_2026-09-16/18）：三输入无障碍落地 + 设计令牌回归清理 + 门禁全绿
