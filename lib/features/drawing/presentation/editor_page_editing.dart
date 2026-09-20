@@ -594,7 +594,11 @@ extension _EditorPageEditing on _EditorPageState {
               autofocus: true,
               decoration: const InputDecoration(
                 hintText: 'https://…',
-                border: OutlineInputBorder(),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(
+                    Radius.circular(AppleRadius.xs),
+                  ),
+                ),
                 isDense: true,
               ),
             ),

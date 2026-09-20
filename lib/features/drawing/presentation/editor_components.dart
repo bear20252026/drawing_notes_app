@@ -94,7 +94,7 @@ class ConnectorPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0x8842A5F5)
+      ..color = AppleColor.actionBlue.withValues(alpha: 0.53)
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
     for (final c in connectors) {
@@ -688,8 +688,7 @@ class MarqueePainter extends CustomPainter {
     canvas.drawRect(
       viewRect,
       Paint()
-        ..color =
-            const Color(0x3342A5F5) // 半透明蓝填充
+        ..color = AppleColor.actionBlue.withValues(alpha: 0.2) // 半透明蓝填充
         ..style = PaintingStyle.fill,
     );
     // 虚线框选（问题10）：与其他白板软件一致，用虚线勾勒框选区域，
@@ -879,7 +878,7 @@ class TrailPainter extends CustomPainter {
     for (var i = 1; i < pts.length; i++) {
       final opacity = 0.05 + 0.35 * (i / pts.length); // 越新越明显
       final paint = Paint()
-        ..color = const Color(0xFF42A5F5).withValues(alpha: opacity)
+        ..color = AppleColor.actionBlue.withValues(alpha: opacity)
         ..strokeWidth = 2.5
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round;

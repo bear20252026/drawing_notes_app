@@ -365,14 +365,23 @@ extension DocEditorBlocks on DocEditorState {
     final l10n = AppLocalizations.of(context);
     switch (block.type) {
       case NoteBlockType.bullet:
-        return const Padding(
-          padding: EdgeInsets.only(top: 12, right: 4),
-          child: Text('•', style: TextStyle(fontSize: 18)),
+        final bulletColor = Theme.of(context).colorScheme.onSurface;
+        return Padding(
+          padding: const EdgeInsets.only(top: 12, right: 4),
+          child: Text(
+            '•',
+            style: AppleType.titleStyle(bulletColor).copyWith(fontSize: 18),
+          ),
         );
       case NoteBlockType.ordered:
         return Padding(
           padding: const EdgeInsets.only(top: 12, right: 4),
-          child: Text('${index + 1}.', style: const TextStyle(fontSize: 16)),
+          child: Text(
+            '${index + 1}.',
+            style: AppleType.controlStyle(
+              Theme.of(context).colorScheme.onSurface,
+            ).copyWith(fontSize: 16),
+          ),
         );
       case NoteBlockType.todo:
         final checked = block.props['checked'] as bool? ?? false;
@@ -525,6 +534,24 @@ extension DocEditorBlocks on DocEditorState {
       final doc = isRedo ? _history.redo() : _history.undo();
       if (doc != null) {
         _restoreDoc(doc);
+      }
+      return KeyEventResult.handled;
+    }
+
+    // ── Alt+↑ / Alt+↓ 块排序（B10/B13：拖拽手柄的键盘等价入口）──────
+    // 仅顶层块平移（嵌套块保持父子关系——与拖拽跨层语义分离，防误操作）。
+    if (HardwareKeyboard.instance.isAltPressed &&
+        (event.logicalKey == LogicalKeyboardKey.arrowUp ||
+            event.logicalKey == LogicalKeyboardKey.arrowDown)) {
+      final topIds = _root.children.map((b) => b.id).toList();
+      final topIdx = topIds.indexOf(blockId);
+      if (topIdx >= 0) {
+        final delta =
+            event.logicalKey == LogicalKeyboardKey.arrowUp ? -1 : 1;
+        final target = topIdx + delta;
+        if (target >= 0 && target < topIds.length) {
+          _moveBlockToPosition(blockId, target);
+        }
       }
       return KeyEventResult.handled;
     }

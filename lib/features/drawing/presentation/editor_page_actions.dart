@@ -7,37 +7,39 @@ part of 'editor_page.dart';
 /// 编辑器主菜单/杂项动作域（拆分自 editor_page.dart）。
 extension _EditorPageActions on _EditorPageState {
   void _onMainMenuSelected(_MainMenuItem item) {
+    // 同步调度器：lint unawaited_futures 只扫 async 函数体，
+    // 此处 Future 动作一律显式 unawaited（审计 2026-09-18 P1-1）。
     switch (item) {
       case _MainMenuItem.clearCanvas:
         _controller.clearAll();
       case _MainMenuItem.copyPng:
-        _copyPngToClipboard();
+        unawaited(_copyPngToClipboard());
       case _MainMenuItem.exportPng:
-        _exportPng();
+        unawaited(_exportPng());
       case _MainMenuItem.exportSvg:
-        _exportSvg();
+        unawaited(_exportSvg());
       case _MainMenuItem.exportPdf:
-        _exportPdf();
+        unawaited(_exportPdf());
       case _MainMenuItem.exportJson:
-        _exportJson();
+        unawaited(_exportJson());
       case _MainMenuItem.exportPptx:
-        _exportPptx();
+        unawaited(_exportPptx());
       case _MainMenuItem.exportText:
-        _exportText();
+        unawaited(_exportText());
       case _MainMenuItem.exportWord:
-        _exportWordCompatibleRtf();
+        unawaited(_exportWordCompatibleRtf());
       case _MainMenuItem.commandPalette:
-        _showCommandPalette();
+        unawaited(_showCommandPalette());
       case _MainMenuItem.chart:
-        _createChart();
+        unawaited(_createChart());
       case _MainMenuItem.presentation:
         _startPresentation();
       case _MainMenuItem.stats:
-        _showStats();
+        unawaited(_showStats());
       case _MainMenuItem.library:
-        _openShapeLibrary();
+        unawaited(_openShapeLibrary());
       case _MainMenuItem.shortcuts:
-        _showShortcutHelp();
+        unawaited(_showShortcutHelp());
       case _MainMenuItem.toggleInfinite:
         _toggleInfiniteCanvas();
       case _MainMenuItem.layers:
@@ -134,7 +136,11 @@ extension _EditorPageActions on _EditorPageState {
                       hintText:
                           AppLocalizations.of(context)?.editorPasteValues ??
                           '粘贴数值，用逗号/空格/换行分隔，例如：10, 25, 18, 42, 30',
-                      border: OutlineInputBorder(),
+                      border: OutlineInputBorder(
+                        borderRadius: const BorderRadius.all(
+                          Radius.circular(AppleRadius.xs),
+                        ),
+                      ),
                       isDense: true,
                     ),
                   ),

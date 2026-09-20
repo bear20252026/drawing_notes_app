@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
@@ -233,7 +234,9 @@ class _DesktopUnlockFieldState extends State<DesktopUnlockField> {
               : AppLocalizations.of(
                   context,
                 )?.pinDigitsCount(_controller.text.length, 4, maxLength),
-          border: const OutlineInputBorder(),
+          border: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(AppleRadius.xs)),
+          ),
         ),
       ),
       actions: [

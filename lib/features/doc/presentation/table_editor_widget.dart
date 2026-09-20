@@ -235,7 +235,11 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
                         controller: _controllers['$cellIndex'],
                         decoration: const InputDecoration(
                           isDense: true,
-                          border: OutlineInputBorder(),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(AppleRadius.xs),
+                            ),
+                          ),
                           contentPadding: EdgeInsets.symmetric(
                             horizontal: 8,
                             vertical: 8,

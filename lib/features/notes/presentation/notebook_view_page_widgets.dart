@@ -300,7 +300,11 @@ class _CreatePageDialogState extends State<_CreatePageDialog> {
                   hintText:
                       AppLocalizations.of(context)?.nbPageNameExampleHint ??
                       '例如：产品评审 08-14',
-                  border: const OutlineInputBorder(),
+                  border: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(
+                      Radius.circular(AppleRadius.xs),
+                    ),
+                  ),
                 ),
                 onSubmitted: (_) => Navigator.of(context).pop(
                   _NewPageRequest(title: _controller.text, template: _template),
@@ -384,7 +388,9 @@ class _PageNameDialogState extends State<_PageNameDialog> {
         autofocus: true,
         decoration: InputDecoration(
           hintText: AppLocalizations.of(context)?.nbPageNameHint ?? '请输入页面名称',
-          border: const OutlineInputBorder(),
+          border: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(AppleRadius.xs)),
+          ),
         ),
         onSubmitted: (v) => Navigator.of(context).pop(v),
       ),
@@ -444,7 +450,9 @@ class _PasswordDialogState extends State<_PasswordDialog> {
             autofocus: true,
             decoration: InputDecoration(
               hintText: AppLocalizations.of(context)?.nbPasswordHint ?? '请输入密码',
-              border: const OutlineInputBorder(),
+              border: const OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(AppleRadius.xs)),
+              ),
               suffixIcon: IconButton(
                 // 动态 tooltip：读屏/悬停提示随当前可见态切换。
                 tooltip: _obscure

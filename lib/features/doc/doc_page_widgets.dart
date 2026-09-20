@@ -393,7 +393,10 @@ class _BacklinksPanelState extends State<_BacklinksPanel> {
                             : doc.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 13, color: scheme.onSurface),
+                        style: AppleType.controlStyle(
+                          scheme.onSurface,
+                          weight: FontWeight.w400,
+                        ),
                       ),
                     ),
                   ],

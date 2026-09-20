@@ -10,7 +10,6 @@ import 'package:drawing_notes_app/features/schedule/presentation/schedule_calend
 import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
-import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 import '../../../core/theme/apple_design.dart';
 
@@ -101,22 +100,29 @@ class _SchedulePageState extends State<SchedulePage> {
               children: [
                 _buildHeader(scheme),
                 const SizedBox(height: 16),
-                GlassSurface(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
-                  ),
-                  borderRadius: const BorderRadius.all(
-                    Radius.circular(AppDesign.cardRadius),
-                  ),
-                  child: ScheduleCalendar(
-                    focusedMonth: _focusedMonth,
-                    selectedDate: _selectedDate,
-                    hasActivity: _hasActivity,
-                    onMonthChanged: (m) => setState(
-                      () => _focusedMonth = DateTime(m.year, m.month),
+                // 内容层扁平卡（DESIGN_SYSTEM：内容卡片禁用玻璃）。
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: scheme.surface,
+                    borderRadius: const BorderRadius.all(
+                      Radius.circular(AppDesign.cardRadius),
                     ),
-                    onDateTap: _onDateTap,
+                    border: Border.all(color: scheme.outlineVariant),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    child: ScheduleCalendar(
+                      focusedMonth: _focusedMonth,
+                      selectedDate: _selectedDate,
+                      hasActivity: _hasActivity,
+                      onMonthChanged: (m) => setState(
+                        () => _focusedMonth = DateTime(m.year, m.month),
+                      ),
+                      onDateTap: _onDateTap,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -479,25 +485,32 @@ class _SchedulePageState extends State<SchedulePage> {
 
   Widget _emptyState(String title, String detail) {
     final scheme = Theme.of(context).colorScheme;
-    return GlassSurface(
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
-      borderRadius: const BorderRadius.all(
-        Radius.circular(AppDesign.cardRadius),
+    // 内容层扁平面板（DESIGN_SYSTEM：内容层禁用玻璃）。
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: const BorderRadius.all(
+          Radius.circular(AppDesign.cardRadius),
+        ),
+        border: Border.all(color: scheme.outlineVariant),
       ),
-      child: Column(
-        children: [
-          Icon(Icons.inbox_outlined, size: 40, color: scheme.outline),
-          const SizedBox(height: 12),
-          Text(title, style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            detail,
-            textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+        child: Column(
+          children: [
+            Icon(Icons.inbox_outlined, size: 40, color: scheme.outline),
+            const SizedBox(height: 12),
+            Text(title, style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 4),
+            Text(
+              detail,
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -519,9 +532,13 @@ class _EventCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    return GlassSurface(
-      borderRadius: const BorderRadius.all(
-        Radius.circular(AppDesign.controlRadius),
+    // 内容层扁平卡（DESIGN_SYSTEM：每张内容卡片禁用玻璃）。
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: const BorderRadius.all(
+          Radius.circular(AppDesign.controlRadius),
+        ),
       ),
       // Checkbox（flutter/material 方言）要求（flutter 方言的）Material 祖先。
       child: fm.Material(

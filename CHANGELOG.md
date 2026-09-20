@@ -2,6 +2,22 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.7] - 2026-09-18
+
+### 增量审计闭环（AUDIT_2026-09-16/18）：三输入无障碍落地 + 设计令牌回归清理 + 门禁全绿
+
+- **B3/B10/B13 三输入（未提交工作合入）**：
+  - 色板 RGB 数字键盘取色（Enter 提交、digitsOnly、0–255 钳制、Focus Blue 2px、`Semantics` 通道标签）+ 回归测试；
+  - 裁剪模式键盘微调（方向键 1px / Shift 10px，Enter 确认，Esc 复用 `clearCrop()`）；
+  - 块文档顶层块 `Alt+↑/↓` 平移排序。
+- **设计规范回归**：
+  - 日程页月历/空态/事件卡去掉内容层玻璃（DESIGN_SYSTEM 内容层禁玻璃）；
+  - 12 处 `OutlineInputBorder` 补合法圆角 `AppleRadius.xs`（禁止默认 4）；
+  - `glass_surface` 注释与 recipe 对齐 regular 0.62。
+- **异步一致性**：主菜单与命令面板 Future 动作显式 `unawaited(...)`（同步调度器 lint 盲区）。
+- **门禁**：`flutter analyze` No issues；`flutter test` +1977 全绿。
+- 审计报告：`docs/AUDIT_2026-09-16.md`、`docs/AUDIT_2026-09-18.md`。
+
 ## [1.17.6] - 2026-09-10
 
 ### lint 前置清零（审计未决 F12/C9）：unawaited_futures + avoid_slow_async_io 整改 200 处并启用防回退

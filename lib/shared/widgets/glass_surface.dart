@@ -136,8 +136,8 @@ class _GlassSurfaceState extends State<GlassSurface> {
     final scheme = Theme.of(context).colorScheme;
     final isDark = scheme.brightness == Brightness.dark;
     final reduceEffects = MediaQuery.disableAnimationsOf(context);
-    // L1 配方底色：默认 80%（DESIGN.md:396-398），可由 [surfaceOpacity]
-    // 降到 Apple HIG 的 clear 变体区间（0.3–0.5）换取通透观感。
+    // L1 配方底色：默认 regular 0.62（LiquidGlassRecipe.kRegularOpacity，
+    // AGENTS.md §4 / DESIGN_SYSTEM），可由 [surfaceOpacity] 调到 clear 0.45。
     final surfaceColor =
         widget.color ?? scheme.surface.withValues(alpha: widget.surfaceOpacity);
 

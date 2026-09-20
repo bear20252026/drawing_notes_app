@@ -34,6 +34,26 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
   late HSVColor _hsv;
   late Color _selected;
 
+  // B3 键盘调色（审计 2026-09-07）：RGB 数字输入——键盘用户无法操作
+  // 二维色域/色相条（指针手势专属），这三格是唯一全键盘取色通道。
+  late final TextEditingController _rCtrl;
+  late final TextEditingController _gCtrl;
+  late final TextEditingController _bCtrl;
+  final _rFocus = FocusNode();
+  final _gFocus = FocusNode();
+  final _bFocus = FocusNode();
+
+  @override
+  void dispose() {
+    _rCtrl.dispose();
+    _gCtrl.dispose();
+    _bCtrl.dispose();
+    _rFocus.dispose();
+    _gFocus.dispose();
+    _bFocus.dispose();
+    super.dispose();
+  }
+
   /// 预设色板（12 种常用色）。
   static const List<Color> _presetColors = [
     Color(0xFF1A1A1A), // 黑
@@ -54,6 +74,21 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
   void initState() {
     super.initState();
     _hsv = HSVColor.fromColor(widget.initialColor);
+    _rCtrl = TextEditingController(
+      text: '${(widget.initialColor.r * 255).round()}',
+    );
+    _gCtrl = TextEditingController(
+      text: '${(widget.initialColor.g * 255).round()}',
+    );
+    _bCtrl = TextEditingController(
+      text: '${(widget.initialColor.b * 255).round()}',
+    );
+    // 失焦即提交（与 Enter 一致）。
+    for (final f in [_rFocus, _gFocus, _bFocus]) {
+      f.addListener(() {
+        if (!f.hasFocus) _submitRgb();
+      });
+    }
     _selected = widget.initialColor;
   }
 
@@ -61,7 +96,81 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
     setState(() {
       _hsv = hsv;
       _selected = hsv.toColor();
+      _syncRgbFields(_selected);
     });
+  }
+
+  /// RGB 输入框随选中色同步（焦点内的格子不打扰正在输入的用户）。
+  void _syncRgbFields(Color c) {
+    void set(TextEditingController ctrl, double channel, FocusNode focus) {
+      if (focus.hasFocus) return;
+      final v = (channel * 255).round().clamp(0, 255);
+      if (ctrl.text != '$v') ctrl.text = '$v';
+    }
+
+    set(_rCtrl, c.r, _rFocus);
+    set(_gCtrl, c.g, _gFocus);
+    set(_bCtrl, c.b, _bFocus);
+  }
+
+  /// 提交 RGB 输入（0–255；非法输入忽略保持原色）。
+  void _submitRgb() {
+    final r = int.tryParse(_rCtrl.text.trim());
+    final g = int.tryParse(_gCtrl.text.trim());
+    final b = int.tryParse(_bCtrl.text.trim());
+    if (r == null || g == null || b == null) return;
+    final c = Color.fromARGB(
+      255,
+      r.clamp(0, 255),
+      g.clamp(0, 255),
+      b.clamp(0, 255),
+    );
+    _apply(HSVColor.fromColor(c));
+  }
+
+  /// 单格 RGB 输入框（76px 宽 + 前缀标签；Enter/失焦提交）。
+  Widget _rgbField(String label, TextEditingController ctrl, FocusNode focus) {
+    // 合法圆角档位只有 0/5/8/11/18/pill——禁止 OutlineInputBorder 默认 4。
+    const radius = BorderRadius.all(Radius.circular(AppleRadius.xs));
+    return Semantics(
+      // 读屏：避免只听到单字母前缀（审计 2026-09-18 P2-1）。
+      label: '$label 通道',
+      textField: true,
+      child: SizedBox(
+        width: 76,
+        child: TextField(
+          controller: ctrl,
+          focusNode: focus,
+          keyboardType: TextInputType.number,
+          textInputAction: TextInputAction.done,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          onSubmitted: (_) => _submitRgb(),
+          style: AppleType.controlStyle(
+            Theme.of(context).colorScheme.onSurface,
+          ),
+          maxLength: 3,
+          decoration: InputDecoration(
+            isDense: true,
+            prefixText: '$label ',
+            counterText: '',
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 8,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: radius,
+              borderSide: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: radius,
+              borderSide: BorderSide(color: AppleColor.focusBlue, width: 2),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   /// 颜色近似相等（HSV 往返换算有极小分量误差，不能用 == 精确比较）。
@@ -269,10 +378,16 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    // r/g/b 为 0–1 的 double，需 ×255 还原为常规 RGB 读数。
-                    'RGB(${(_selected.r * 255).round()}, ${(_selected.g * 255).round()}, ${(_selected.b * 255).round()})',
-                    style: Theme.of(context).textTheme.bodySmall,
+                  // B3 键盘调色：RGB 数字输入（Enter 提交；0–255 钳制）。
+                  // 焦点环：Focus Blue 2px（DESIGN.md:300、440）。
+                  Row(
+                    children: [
+                      _rgbField('R', _rCtrl, _rFocus),
+                      const SizedBox(width: 6),
+                      _rgbField('G', _gCtrl, _gFocus),
+                      const SizedBox(width: 6),
+                      _rgbField('B', _bCtrl, _bFocus),
+                    ],
                   ),
                 ],
               ),

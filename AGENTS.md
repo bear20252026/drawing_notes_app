@@ -61,12 +61,12 @@
 
 ## 4. 液态玻璃（Liquid Glass）使用边界
 
-DESIGN.md:502-503 禁止**装饰性**渐变与阴影；但 :396-398、:434、:476 明确允许**浮动粘性层**用 `背景 80% + backdrop-filter blur`。
+DESIGN.md:502-503 禁止**装饰性**渐变与阴影；但 :396-398、:434、:476 明确允许**浮动粘性层**用 `背景 + backdrop-filter blur`。09-05 技术方案后底色以 `LIQUID_GLASS_TECHNICAL_PLAN` / `DESIGN_SYSTEM` 为准（regular **0.62** / clear **0.45**，saturate **1.4**），不再强制 80%。
 
 **结论（分层规则）**：
 - ✅ 可用玻璃：**浮层**——导航条、工具条、浮动粘性条、弹出面板、对话框、菜单。
 - ❌ 禁用玻璃：**内容层**——画布、长列表、每张内容卡片。内容区保持扁平。
-- 材质配方必须含 **80% 底色 + backdrop blur**；高光只做 **1px 边缘环**，不做大面积内部渐变。
+- 材质配方：**0.62 底色 + blur σ=12 + saturate 1.4 + backdrop blur**；高光只做 **1px 边缘环**，不做大面积内部渐变。
 
 现有 `lib/shared/widgets/glass_surface.dart` 的注释已写明此规则，升级液态玻璃时沿用同一条边界。
 

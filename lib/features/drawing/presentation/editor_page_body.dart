@@ -122,7 +122,7 @@ extension _EditorPageBody on _EditorPageState {
                   onCropImage: () {
                     // 已在裁剪模式：确认裁剪；否则进入裁剪模式。
                     if (_cropItem != null) {
-                      _confirmCrop();
+                      unawaited(_confirmCrop());
                       return;
                     }
                     final img = _selectedImageItem;

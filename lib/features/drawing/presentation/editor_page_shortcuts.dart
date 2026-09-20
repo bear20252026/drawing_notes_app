@@ -73,6 +73,35 @@ extension _EditorPageShortcuts on _EditorPageState {
       }
     }
 
+    // 裁剪模式键盘微调（B3：拖拽手柄的键盘等价入口）：
+    // 方向键平移裁剪框（1px，Shift=10px）；Enter 确认；Esc 退出。
+    if (_canvasInteraction.isCropping && _cropRect != null) {
+      const large = 10.0, small = 1.0;
+      final step = isShift ? large : small;
+      switch (key) {
+        case LogicalKeyboardKey.arrowLeft:
+          _nudgeCropRect(-step, 0);
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.arrowRight:
+          _nudgeCropRect(step, 0);
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.arrowUp:
+          _nudgeCropRect(0, -step);
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.arrowDown:
+          _nudgeCropRect(0, step);
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.enter:
+          unawaited(_confirmCrop());
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.escape:
+          _exitCropMode();
+          return KeyEventResult.handled;
+        default:
+          break;
+      }
+    }
+
     // Alt+方向键微调选中元素位置（对齐 Excalidraw nudge，1px 步进）。
     if (isAlt && !isCtrlOrMeta && _selectedItemId != null) {
       switch (key) {
@@ -134,11 +163,11 @@ extension _EditorPageShortcuts on _EditorPageState {
             ? KeyEventResult.handled
             : KeyEventResult.ignored;
       case LogicalKeyboardKey.keyK:
-        _showCommandPalette();
+        unawaited(_showCommandPalette());
         return KeyEventResult.handled;
       case LogicalKeyboardKey.keyP:
         if (isShift) {
-          _showCommandPalette();
+          unawaited(_showCommandPalette());
           return KeyEventResult.handled;
         }
         return KeyEventResult.ignored;
@@ -148,4 +177,24 @@ extension _EditorPageShortcuts on _EditorPageState {
   }
 
   /// 右上角主菜单选择处理（对齐 Excalidraw main-menu）。
+
+  /// B3：键盘平移裁剪框（画布坐标，钳制在裁剪对象 bounds 内）。
+  void _nudgeCropRect(double dx, double dy) {
+    final item = _canvasInteraction.cropItem;
+    final rect = _cropRect;
+    if (item == null || rect == null) return;
+    final bounds = Rect.fromLTWH(item.x, item.y, item.width, item.height);
+    var left = rect.left + dx;
+    var top = rect.top + dy;
+    left = left.clamp(bounds.left, bounds.right - rect.width);
+    top = top.clamp(bounds.top, bounds.bottom - rect.height);
+    _applyState(
+      () => _cropRect = Rect.fromLTWH(left, top, rect.width, rect.height),
+    );
+  }
+
+  /// B3：Esc 退出裁剪模式（不落盘）。
+  void _exitCropMode() {
+    _applyState(_canvasInteraction.clearCrop);
+  }
 }

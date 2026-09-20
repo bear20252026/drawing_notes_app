@@ -159,7 +159,11 @@ class _ShapeLibraryDialogState extends State<ShapeLibraryDialog> {
               decoration: const InputDecoration(
                 hintText: '检索形状（如：矩形/椭圆/箭头）…',
                 prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(
+                    Radius.circular(AppleRadius.xs),
+                  ),
+                ),
                 isDense: true,
               ),
             ),

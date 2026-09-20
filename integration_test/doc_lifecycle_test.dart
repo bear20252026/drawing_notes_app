@@ -50,12 +50,16 @@ void main() {
     await IntegrationTestWidgetsFlutterBinding.instance.runAsync(() async {
       final base = await getApplicationDocumentsDirectory();
       final dir = Directory('${base.path}${Platform.pathSeparator}blockdocs');
-      debugPrint('BEFORE-TAP blockdocs: '
-          '${dir.existsSync() ? dir.listSync().length : 0} files');
+      debugPrint(
+        'BEFORE-TAP blockdocs: '
+        '${dir.existsSync() ? dir.listSync().length : 0} files',
+      );
       if (dir.existsSync()) {
         for (final f in dir.listSync()) {
-          debugPrint('  BEFORE ${f.path} mtime='
-              '${(f as File).lastModifiedSync().toIso8601String()}');
+          debugPrint(
+            '  BEFORE ${f.path} mtime='
+            '${(f as File).lastModifiedSync().toIso8601String()}',
+          );
         }
       }
     });
@@ -76,10 +80,9 @@ void main() {
     // 注意：IndexedStack 下三个目的地常驻，必须限定 DocPage 子树定位正文框。
     final docPageFinder = find.byType(DocPage);
     expect(docPageFinder, findsOneWidget);
-    final bodyField = find.descendant(
-      of: docPageFinder,
-      matching: find.byType(TextField),
-    ).last;
+    final bodyField = find
+        .descendant(of: docPageFinder, matching: find.byType(TextField))
+        .last;
     await tester.enterText(bodyField, _uniqueText);
     // 真实时钟等防抖（1.2s）+ 写盘余量。
     await realWait(tester, const Duration(seconds: 3));
@@ -87,12 +90,16 @@ void main() {
     await IntegrationTestWidgetsFlutterBinding.instance.runAsync(() async {
       final base = await getApplicationDocumentsDirectory();
       final dir = Directory('${base.path}${Platform.pathSeparator}blockdocs');
-      debugPrint('AFTER-INPUT blockdocs: '
-          '${dir.existsSync() ? dir.listSync().length : 0} files');
+      debugPrint(
+        'AFTER-INPUT blockdocs: '
+        '${dir.existsSync() ? dir.listSync().length : 0} files',
+      );
       for (final f in dir.listSync()) {
         final c = f is File ? f.readAsStringSync() : '';
-        debugPrint('  AFTER ${f.path} len=${c.length} '
-            'hasText=${c.contains(_uniqueText)}');
+        debugPrint(
+          '  AFTER ${f.path} len=${c.length} '
+          'hasText=${c.contains(_uniqueText)}',
+        );
       }
     });
 

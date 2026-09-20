@@ -180,7 +180,11 @@ class _TextInputDialogState extends State<_TextInputDialog> {
             decoration: InputDecoration(
               hintText:
                   AppLocalizations.of(context)?.textInputHint ?? '请输入文字内容',
-              border: const OutlineInputBorder(),
+              border: const OutlineInputBorder(
+                borderRadius: BorderRadius.all(
+                  Radius.circular(AppleRadius.xs),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 12),

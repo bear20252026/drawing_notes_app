@@ -52,7 +52,10 @@ class LineGeometry {
     if (lengthSquared <= 1e-8) {
       return math.sqrt((px - x1) * (px - x1) + (py - y1) * (py - y1));
     }
-    final t = (((px - x1) * dx + (py - y1) * dy) / lengthSquared).clamp(0.0, 1.0);
+    final t = (((px - x1) * dx + (py - y1) * dy) / lengthSquared).clamp(
+      0.0,
+      1.0,
+    );
     final projX = x1 + t * dx;
     final projY = y1 + t * dy;
     return math.sqrt((px - projX) * (px - projX) + (py - projY) * (py - projY));

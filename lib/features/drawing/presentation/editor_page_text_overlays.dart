@@ -32,12 +32,18 @@ extension _EditorPageTextOverlays on _EditorPageState {
                 filled: true,
                 fillColor: Colors.white.withValues(alpha: 0.92),
                 border: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(
+                    Radius.circular(AppleRadius.xs),
+                  ),
                   borderSide: BorderSide(
                     color: AppleColor.actionBlue,
                     width: 1.5,
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
+                  borderRadius: const BorderRadius.all(
+                    Radius.circular(AppleRadius.xs),
+                  ),
                   borderSide: BorderSide(
                     color: AppleColor.actionBlue.withValues(alpha: 0.7),
                     width: 1.5,
@@ -45,6 +51,9 @@ extension _EditorPageTextOverlays on _EditorPageState {
                 ),
                 // 键盘焦点环：Focus Blue 2px（DESIGN.md:300/440）。
                 focusedBorder: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(
+                    Radius.circular(AppleRadius.xs),
+                  ),
                   borderSide: BorderSide(color: AppleColor.focusBlue, width: 2),
                 ),
                 hintText: '输入文字…（回车结束）',
