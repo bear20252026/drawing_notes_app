@@ -5149,6 +5149,528 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hue (use RGB fields for keyboard)'**
   String get colorPickerHueHint;
+
+  /// No description provided for @sgItemParagraph.
+  ///
+  /// In en, this message translates to:
+  /// **'Paragraph'**
+  String get sgItemParagraph;
+
+  /// No description provided for @sgItemParagraphDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Plain text'**
+  String get sgItemParagraphDesc;
+
+  /// No description provided for @sgItemH1.
+  ///
+  /// In en, this message translates to:
+  /// **'Heading 1'**
+  String get sgItemH1;
+
+  /// No description provided for @sgItemH1Desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Largest heading'**
+  String get sgItemH1Desc;
+
+  /// No description provided for @sgItemH2.
+  ///
+  /// In en, this message translates to:
+  /// **'Heading 2'**
+  String get sgItemH2;
+
+  /// No description provided for @sgItemH2Desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Section heading'**
+  String get sgItemH2Desc;
+
+  /// No description provided for @sgItemH3.
+  ///
+  /// In en, this message translates to:
+  /// **'Heading 3'**
+  String get sgItemH3;
+
+  /// No description provided for @sgItemH3Desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Subsection heading'**
+  String get sgItemH3Desc;
+
+  /// No description provided for @sgItemTodo.
+  ///
+  /// In en, this message translates to:
+  /// **'To-do'**
+  String get sgItemTodo;
+
+  /// No description provided for @sgItemTodoDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Checkbox'**
+  String get sgItemTodoDesc;
+
+  /// No description provided for @sgItemBullet.
+  ///
+  /// In en, this message translates to:
+  /// **'Bulleted list'**
+  String get sgItemBullet;
+
+  /// No description provided for @sgItemBulletDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Bullet points'**
+  String get sgItemBulletDesc;
+
+  /// No description provided for @sgItemOrdered.
+  ///
+  /// In en, this message translates to:
+  /// **'Numbered list'**
+  String get sgItemOrdered;
+
+  /// No description provided for @sgItemOrderedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Numbered items'**
+  String get sgItemOrderedDesc;
+
+  /// No description provided for @sgItemQuote.
+  ///
+  /// In en, this message translates to:
+  /// **'Quote'**
+  String get sgItemQuote;
+
+  /// No description provided for @sgItemQuoteDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Quoted text'**
+  String get sgItemQuoteDesc;
+
+  /// No description provided for @sgItemCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Code block'**
+  String get sgItemCode;
+
+  /// No description provided for @sgItemCodeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Monospaced code'**
+  String get sgItemCodeDesc;
+
+  /// No description provided for @sgItemImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get sgItemImage;
+
+  /// No description provided for @sgItemImageDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert image'**
+  String get sgItemImageDesc;
+
+  /// No description provided for @sgItemLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get sgItemLink;
+
+  /// No description provided for @sgItemLinkDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Web link'**
+  String get sgItemLinkDesc;
+
+  /// No description provided for @sgItemCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'Canvas'**
+  String get sgItemCanvas;
+
+  /// No description provided for @sgItemCanvasDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Embedded canvas'**
+  String get sgItemCanvasDesc;
+
+  /// No description provided for @sgItemChart.
+  ///
+  /// In en, this message translates to:
+  /// **'Chart'**
+  String get sgItemChart;
+
+  /// No description provided for @sgItemChartDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Data chart'**
+  String get sgItemChartDesc;
+
+  /// No description provided for @sgItemTable.
+  ///
+  /// In en, this message translates to:
+  /// **'Table'**
+  String get sgItemTable;
+
+  /// No description provided for @sgItemTableDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Data table'**
+  String get sgItemTableDesc;
+
+  /// No description provided for @sgItemDatabase.
+  ///
+  /// In en, this message translates to:
+  /// **'Database'**
+  String get sgItemDatabase;
+
+  /// No description provided for @sgItemDatabaseDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Database view'**
+  String get sgItemDatabaseDesc;
+
+  /// No description provided for @sgItemToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle list'**
+  String get sgItemToggle;
+
+  /// No description provided for @sgItemToggleDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapsible list'**
+  String get sgItemToggleDesc;
+
+  /// No description provided for @sgItemDivider.
+  ///
+  /// In en, this message translates to:
+  /// **'Divider'**
+  String get sgItemDivider;
+
+  /// No description provided for @sgItemDividerDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Horizontal rule'**
+  String get sgItemDividerDesc;
+
+  /// No description provided for @sgItemCallout.
+  ///
+  /// In en, this message translates to:
+  /// **'Callout'**
+  String get sgItemCallout;
+
+  /// No description provided for @sgItemCalloutDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlighted tip'**
+  String get sgItemCalloutDesc;
+
+  /// No description provided for @expExportedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported to: {path}'**
+  String expExportedTo(String path);
+
+  /// No description provided for @expExportFailErr.
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed: {error}'**
+  String expExportFailErr(String error);
+
+  /// No description provided for @expCopyPlatformFail.
+  ///
+  /// In en, this message translates to:
+  /// **'Copying PNG needs platform support: {error}'**
+  String expCopyPlatformFail(String error);
+
+  /// No description provided for @expExportAllPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported full notebook PDF ({count} pages): {path}'**
+  String expExportAllPdf(int count, String path);
+
+  /// No description provided for @expExportAllPdfFail.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to export full PDF: {error}'**
+  String expExportAllPdfFail(String error);
+
+  /// No description provided for @expRenderFailHard.
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed: cannot render canvas'**
+  String get expRenderFailHard;
+
+  /// No description provided for @expExportPagedPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported paged note PDF: {path}'**
+  String expExportPagedPdf(String path);
+
+  /// No description provided for @expExportPagedPdfFail.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to export paged note PDF: {error}'**
+  String expExportPagedPdfFail(String error);
+
+  /// No description provided for @expExportedSvgTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported SVG to: {path}'**
+  String expExportedSvgTo(String path);
+
+  /// No description provided for @expExportedWord.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported Word-compatible document: {path}'**
+  String expExportedWord(String path);
+
+  /// No description provided for @expExportWordFail.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to export Word-compatible document: {error}'**
+  String expExportWordFail(String error);
+
+  /// No description provided for @expExportedTextTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported text to: {path}'**
+  String expExportedTextTo(String path);
+
+  /// No description provided for @expExportedPptxTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported PPTX to: {path}'**
+  String expExportedPptxTo(String path);
+
+  /// No description provided for @expExportedJsonTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported JSON to: {path}'**
+  String expExportedJsonTo(String path);
+
+  /// No description provided for @lockQuickUnlockFail.
+  ///
+  /// In en, this message translates to:
+  /// **'System authentication failed. Enter your password to unlock.'**
+  String get lockQuickUnlockFail;
+
+  /// No description provided for @lockNoResetSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Password recovery is not supported in this version'**
+  String get lockNoResetSupport;
+
+  /// No description provided for @lockForgotTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password'**
+  String get lockForgotTitle;
+
+  /// No description provided for @lockForgotBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset using a previously bound reset disk (USB drive).\n\nWithout a bound reset disk, the password cannot be recovered.'**
+  String get lockForgotBody;
+
+  /// No description provided for @lockPickUsb.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose USB drive'**
+  String get lockPickUsb;
+
+  /// No description provided for @lockNoResetDisk.
+  ///
+  /// In en, this message translates to:
+  /// **'No valid reset disk file (password_reset_disk.key) found'**
+  String get lockNoResetDisk;
+
+  /// No description provided for @lockSetNewPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Set new password'**
+  String get lockSetNewPin;
+
+  /// No description provided for @lockConfirmNewPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm new password'**
+  String get lockConfirmNewPin;
+
+  /// No description provided for @lockPinMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Entries do not match. Try again.'**
+  String get lockPinMismatch;
+
+  /// No description provided for @lockResetFail.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset failed. Try again.'**
+  String get lockResetFail;
+
+  /// No description provided for @lockResetOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Password has been reset'**
+  String get lockResetOk;
+
+  /// No description provided for @lockEnterPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter password'**
+  String get lockEnterPin;
+
+  /// No description provided for @lockSystemUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock with system authentication'**
+  String get lockSystemUnlock;
+
+  /// No description provided for @lockForgotLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password?'**
+  String get lockForgotLink;
+
+  /// No description provided for @lockTooManyAttempts.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts'**
+  String get lockTooManyAttempts;
+
+  /// No description provided for @lockTemporarilyLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Password verification is temporarily locked to prevent brute-force guessing.'**
+  String get lockTemporarilyLocked;
+
+  /// No description provided for @lockRetryAfter.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again in {duration}'**
+  String lockRetryAfter(String duration);
+
+  /// No description provided for @lockDurHoursMins.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} h {mins} min'**
+  String lockDurHoursMins(int hours, int mins);
+
+  /// No description provided for @lockDurMinsSecs.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min {seconds} s'**
+  String lockDurMinsSecs(int minutes, int seconds);
+
+  /// No description provided for @webdavSyncFailRaw.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed: {error}'**
+  String webdavSyncFailRaw(String error);
+
+  /// No description provided for @webdavSyncServerBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed: server temporarily unavailable (HTTP {code}). Try again later.'**
+  String webdavSyncServerBusy(String code);
+
+  /// No description provided for @webdavSyncRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed: server rejected the request (HTTP {code})'**
+  String webdavSyncRejected(String code);
+
+  /// No description provided for @webdavSaveFail.
+  ///
+  /// In en, this message translates to:
+  /// **'Save failed: {error}'**
+  String webdavSaveFail(String error);
+
+  /// No description provided for @webdavSavedPlain.
+  ///
+  /// In en, this message translates to:
+  /// **'WebDAV config saved (end-to-end encryption off)'**
+  String get webdavSavedPlain;
+
+  /// No description provided for @webdavSavedEncrypted.
+  ///
+  /// In en, this message translates to:
+  /// **'WebDAV config saved (end-to-end encryption on)'**
+  String get webdavSavedEncrypted;
+
+  /// No description provided for @webdavBadUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid server URL first (including http/https and /)'**
+  String get webdavBadUrl;
+
+  /// No description provided for @webdavNeedSyncPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'No sync password set: sync is blocked to avoid uploading plaintext notes. Set a sync password below and retry.'**
+  String get webdavNeedSyncPassword;
+
+  /// No description provided for @webdavLocalFirstBlurb.
+  ///
+  /// In en, this message translates to:
+  /// **'Local-first sync: data stays on this device and syncs across workspaces via WebDAV (e.g. Nextcloud or self-hosted).'**
+  String get webdavLocalFirstBlurb;
+
+  /// No description provided for @webdavServerUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Server URL'**
+  String get webdavServerUrlLabel;
+
+  /// No description provided for @webdavMaxRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Max retries reached'**
+  String get webdavMaxRetry;
+
+  /// No description provided for @webdavSyncDoneStats.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync complete: ↑{uploaded} ↓{downloaded} ✕{deletedRemote}'**
+  String webdavSyncDoneStats(int uploaded, int downloaded, int deletedRemote);
+
+  /// No description provided for @homeForgotPasswordLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password?'**
+  String get homeForgotPasswordLink;
+
+  /// No description provided for @canvasItemSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Canvas object: {kind}'**
+  String canvasItemSemantics(String kind);
+
+  /// No description provided for @canvasKindChart.
+  ///
+  /// In en, this message translates to:
+  /// **'chart'**
+  String get canvasKindChart;
+
+  /// No description provided for @canvasKindShape.
+  ///
+  /// In en, this message translates to:
+  /// **'shape'**
+  String get canvasKindShape;
+
+  /// No description provided for @canvasKindRotateHandle.
+  ///
+  /// In en, this message translates to:
+  /// **'rotation handle'**
+  String get canvasKindRotateHandle;
+
+  /// No description provided for @canvasSearchFieldHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get canvasSearchFieldHint;
 }
 
 class _AppLocalizationsDelegate

@@ -25,6 +25,7 @@ import 'package:drawing_notes_app/core/security/session_secrets.dart';
 import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/pin_pad.dart' show PinPadCore;
@@ -206,7 +207,7 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     if (ok) {
       _unlock();
     } else {
-      _snack('系统验证未通过，请输入密码解锁');
+      _snack(AppLocalizations.of(context)?.lockQuickUnlockFail ?? '系统验证未通过，请输入密码解锁');
     }
   }
 
@@ -224,17 +225,18 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   Future<void> _startForgotPassword() async {
     final vault = widget.vault;
     if (vault == null) {
-      _snack('当前版本不支持密码找回');
+      _snack(AppLocalizations.of(context)?.lockNoResetSupport ?? '当前版本不支持密码找回');
       return;
     }
     // 步骤 1：说明确认（诚实告知需要已绑定的重置密码盘）。
     final proceed = await GlassDialog.confirm(
       context,
-      title: '忘记密码',
+      title: AppLocalizations.of(context)?.lockForgotTitle ?? '忘记密码',
       content:
+          AppLocalizations.of(context)?.lockForgotBody ??
           '使用之前绑定的重置密码盘（U 盘）重设密码。\n\n'
           '未绑定重置密码盘时，密码无法找回。',
-      confirmText: '选择 U 盘',
+      confirmText: AppLocalizations.of(context)?.lockPickUsb ?? '选择 U 盘',
     );
     if (!proceed || !mounted) return;
 
@@ -246,7 +248,7 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     final externalKey = await ResetDiskFile.readFrom(dir);
     if (!mounted) return;
     if (externalKey == null) {
-      _snack('未找到有效的重置密码盘文件（password_reset_disk.key）');
+      _snack(AppLocalizations.of(context)?.lockNoResetDisk ?? '未找到有效的重置密码盘文件（password_reset_disk.key）');
       return;
     }
 
@@ -254,18 +256,18 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     final pinLength = widget.service.pinLength;
     final newPin = await UnlockFlow.show(
       context,
-      title: '设置新密码',
+      title: AppLocalizations.of(context)?.lockSetNewPin ?? '设置新密码',
       pinLength: pinLength,
     );
     if (newPin == null || !mounted) return;
     final confirm = await UnlockFlow.show(
       context,
-      title: '确认新密码',
+      title: AppLocalizations.of(context)?.lockConfirmNewPin ?? '确认新密码',
       pinLength: pinLength,
     );
     if (confirm == null || !mounted) return;
     if (confirm != newPin) {
-      _snack('两次输入不一致，请重试');
+      _snack(AppLocalizations.of(context)?.lockPinMismatch ?? '两次输入不一致，请重试');
       return;
     }
 
@@ -280,11 +282,12 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
       _snack(e.reason);
       return;
     } catch (_) {
-      _snack('重置失败，请重试');
+      if (!mounted) return;
+      _snack(AppLocalizations.of(context)?.lockResetFail ?? '重置失败，请重试');
       return;
     }
     if (!mounted) return;
-    _snack('密码已重置');
+    _snack(AppLocalizations.of(context)?.lockResetOk ?? '密码已重置');
     _unlock();
   }
 
@@ -328,7 +331,7 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
                             onExpired: () => setState(() {}),
                           )
                         : PinPadCore(
-                            title: '输入密码',
+                            title: AppLocalizations.of(context)?.lockEnterPin ?? '输入密码',
                             // 开屏密码长度由设置页决定（批次②：4–12 位可选）。
                             pinLength: widget.service.pinLength,
                             onVerify: (pin) async {
@@ -361,7 +364,7 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
                                 size: 22,
                               ),
                               label: Text(
-                                '系统验证解锁',
+                                AppLocalizations.of(context)?.lockSystemUnlock ?? '系统验证解锁',
                                 style: AppleType.titleStyle(
                                   Colors.white.withValues(alpha: 0.9),
                                 ),
@@ -371,7 +374,7 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
                         TextButton(
                           onPressed: _startForgotPassword,
                           child: Text(
-                            '忘记密码？',
+                            AppLocalizations.of(context)?.lockForgotLink ?? '忘记密码？',
                             style: AppleType.controlStyle(
                               Colors.white.withValues(alpha: 0.75),
                               weight: FontWeight.w400,
@@ -449,7 +452,7 @@ class _CooldownViewState extends State<_CooldownView> {
                 const SizedBox(height: 18),
                 // 19 无档位：titleStyle 基底 + copyWith 保留原字号。
                 Text(
-                  '尝试次数过多',
+                  AppLocalizations.of(context)?.lockTooManyAttempts ?? '尝试次数过多',
                   style: AppleType.titleStyle(
                     Colors.white,
                   ).copyWith(fontSize: 19),
@@ -458,7 +461,7 @@ class _CooldownViewState extends State<_CooldownView> {
                 _RemainingText(service: widget.service, tick: _tick),
                 const SizedBox(height: 6),
                 Text(
-                  '为防止暴力猜测，密码验证已暂时锁定',
+                  AppLocalizations.of(context)?.lockTemporarilyLocked ?? '为防止暴力猜测，密码验证已暂时锁定',
                   style: AppleType.captionStyle(
                     Colors.white.withValues(alpha: 0.55),
                   ),
@@ -481,15 +484,17 @@ class _RemainingText extends StatelessWidget {
   final AppLockService service;
   final ValueNotifier<int> tick;
 
-  String _format(Duration remaining) {
+  String _format(BuildContext context, Duration remaining) {
     final minutes = remaining.inMinutes;
     final seconds = remaining.inSeconds % 60;
     if (minutes >= 60) {
       final hours = remaining.inHours;
       final mins = minutes % 60;
-      return '$hours 小时 $mins 分';
+      return AppLocalizations.of(context)?.lockDurHoursMins(hours, mins) ??
+          '$hours 小时 $mins 分';
     }
-    return '$minutes 分 $seconds 秒';
+    return AppLocalizations.of(context)?.lockDurMinsSecs(minutes, seconds) ??
+        '$minutes 分 $seconds 秒';
   }
 
   @override
@@ -498,7 +503,10 @@ class _RemainingText extends StatelessWidget {
       valueListenable: tick,
       builder: (context, _, _) {
         return Text(
-          '请在 ${_format(service.lockoutRemaining)} 后重试',
+          AppLocalizations.of(context)?.lockRetryAfter(
+                _format(context, service.lockoutRemaining),
+              ) ??
+              '请在 ${_format(context, service.lockoutRemaining)} 后重试',
           style: AppleType.bodyStyle(Colors.white.withValues(alpha: 0.82)),
         );
       },

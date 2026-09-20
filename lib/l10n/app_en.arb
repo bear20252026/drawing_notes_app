@@ -2083,5 +2083,272 @@
   "colorPickerSvHint": "Saturation and brightness (use RGB fields for keyboard)",
   "@colorPickerSvHint": {},
   "colorPickerHueHint": "Hue (use RGB fields for keyboard)",
-  "@colorPickerHueHint": {}
+  "@colorPickerHueHint": {},
+  "sgItemParagraph": "Paragraph",
+  "@sgItemParagraph": {},
+  "sgItemParagraphDesc": "Plain text",
+  "@sgItemParagraphDesc": {},
+  "sgItemH1": "Heading 1",
+  "@sgItemH1": {},
+  "sgItemH1Desc": "Largest heading",
+  "@sgItemH1Desc": {},
+  "sgItemH2": "Heading 2",
+  "@sgItemH2": {},
+  "sgItemH2Desc": "Section heading",
+  "@sgItemH2Desc": {},
+  "sgItemH3": "Heading 3",
+  "@sgItemH3": {},
+  "sgItemH3Desc": "Subsection heading",
+  "@sgItemH3Desc": {},
+  "sgItemTodo": "To-do",
+  "@sgItemTodo": {},
+  "sgItemTodoDesc": "Checkbox",
+  "@sgItemTodoDesc": {},
+  "sgItemBullet": "Bulleted list",
+  "@sgItemBullet": {},
+  "sgItemBulletDesc": "Bullet points",
+  "@sgItemBulletDesc": {},
+  "sgItemOrdered": "Numbered list",
+  "@sgItemOrdered": {},
+  "sgItemOrderedDesc": "Numbered items",
+  "@sgItemOrderedDesc": {},
+  "sgItemQuote": "Quote",
+  "@sgItemQuote": {},
+  "sgItemQuoteDesc": "Quoted text",
+  "@sgItemQuoteDesc": {},
+  "sgItemCode": "Code block",
+  "@sgItemCode": {},
+  "sgItemCodeDesc": "Monospaced code",
+  "@sgItemCodeDesc": {},
+  "sgItemImage": "Image",
+  "@sgItemImage": {},
+  "sgItemImageDesc": "Insert image",
+  "@sgItemImageDesc": {},
+  "sgItemLink": "Link",
+  "@sgItemLink": {},
+  "sgItemLinkDesc": "Web link",
+  "@sgItemLinkDesc": {},
+  "sgItemCanvas": "Canvas",
+  "@sgItemCanvas": {},
+  "sgItemCanvasDesc": "Embedded canvas",
+  "@sgItemCanvasDesc": {},
+  "sgItemChart": "Chart",
+  "@sgItemChart": {},
+  "sgItemChartDesc": "Data chart",
+  "@sgItemChartDesc": {},
+  "sgItemTable": "Table",
+  "@sgItemTable": {},
+  "sgItemTableDesc": "Data table",
+  "@sgItemTableDesc": {},
+  "sgItemDatabase": "Database",
+  "@sgItemDatabase": {},
+  "sgItemDatabaseDesc": "Database view",
+  "@sgItemDatabaseDesc": {},
+  "sgItemToggle": "Toggle list",
+  "@sgItemToggle": {},
+  "sgItemToggleDesc": "Collapsible list",
+  "@sgItemToggleDesc": {},
+  "sgItemDivider": "Divider",
+  "@sgItemDivider": {},
+  "sgItemDividerDesc": "Horizontal rule",
+  "@sgItemDividerDesc": {},
+  "sgItemCallout": "Callout",
+  "@sgItemCallout": {},
+  "sgItemCalloutDesc": "Highlighted tip",
+  "@sgItemCalloutDesc": {},
+  "expExportedTo": "Exported to: {path}",
+  "@expExportedTo": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
+  "expExportFailErr": "Export failed: {error}",
+  "@expExportFailErr": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "expCopyPlatformFail": "Copying PNG needs platform support: {error}",
+  "@expCopyPlatformFail": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "expExportAllPdf": "Exported full notebook PDF ({count} pages): {path}",
+  "@expExportAllPdf": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "path": {"type": "String"}
+    }
+  },
+  "expExportAllPdfFail": "Failed to export full PDF: {error}",
+  "@expExportAllPdfFail": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "expRenderFailHard": "Export failed: cannot render canvas",
+  "@expRenderFailHard": {},
+  "expExportPagedPdf": "Exported paged note PDF: {path}",
+  "@expExportPagedPdf": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
+  "expExportPagedPdfFail": "Failed to export paged note PDF: {error}",
+  "@expExportPagedPdfFail": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "expExportedSvgTo": "Exported SVG to: {path}",
+  "@expExportedSvgTo": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
+  "expExportedWord": "Exported Word-compatible document: {path}",
+  "@expExportedWord": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
+  "expExportWordFail": "Failed to export Word-compatible document: {error}",
+  "@expExportWordFail": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "expExportedTextTo": "Exported text to: {path}",
+  "@expExportedTextTo": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
+  "expExportedPptxTo": "Exported PPTX to: {path}",
+  "@expExportedPptxTo": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
+  "expExportedJsonTo": "Exported JSON to: {path}",
+  "@expExportedJsonTo": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
+  "lockQuickUnlockFail": "System authentication failed. Enter your password to unlock.",
+  "@lockQuickUnlockFail": {},
+  "lockNoResetSupport": "Password recovery is not supported in this version",
+  "@lockNoResetSupport": {},
+  "lockForgotTitle": "Forgot password",
+  "@lockForgotTitle": {},
+  "lockForgotBody": "Reset using a previously bound reset disk (USB drive).\n\nWithout a bound reset disk, the password cannot be recovered.",
+  "@lockForgotBody": {},
+  "lockPickUsb": "Choose USB drive",
+  "@lockPickUsb": {},
+  "lockNoResetDisk": "No valid reset disk file (password_reset_disk.key) found",
+  "@lockNoResetDisk": {},
+  "lockSetNewPin": "Set new password",
+  "@lockSetNewPin": {},
+  "lockConfirmNewPin": "Confirm new password",
+  "@lockConfirmNewPin": {},
+  "lockPinMismatch": "Entries do not match. Try again.",
+  "@lockPinMismatch": {},
+  "lockResetFail": "Reset failed. Try again.",
+  "@lockResetFail": {},
+  "lockResetOk": "Password has been reset",
+  "@lockResetOk": {},
+  "lockEnterPin": "Enter password",
+  "@lockEnterPin": {},
+  "lockSystemUnlock": "Unlock with system authentication",
+  "@lockSystemUnlock": {},
+  "lockForgotLink": "Forgot password?",
+  "@lockForgotLink": {},
+  "lockTooManyAttempts": "Too many attempts",
+  "@lockTooManyAttempts": {},
+  "lockTemporarilyLocked": "Password verification is temporarily locked to prevent brute-force guessing.",
+  "@lockTemporarilyLocked": {},
+  "lockRetryAfter": "Try again in {duration}",
+  "@lockRetryAfter": {
+    "placeholders": {
+      "duration": {"type": "String"}
+    }
+  },
+  "lockDurHoursMins": "{hours} h {mins} min",
+  "@lockDurHoursMins": {
+    "placeholders": {
+      "hours": {"type": "int"},
+      "mins": {"type": "int"}
+    }
+  },
+  "lockDurMinsSecs": "{minutes} min {seconds} s",
+  "@lockDurMinsSecs": {
+    "placeholders": {
+      "minutes": {"type": "int"},
+      "seconds": {"type": "int"}
+    }
+  },
+  "webdavSyncFailRaw": "Sync failed: {error}",
+  "@webdavSyncFailRaw": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "webdavSyncServerBusy": "Sync failed: server temporarily unavailable (HTTP {code}). Try again later.",
+  "@webdavSyncServerBusy": {
+    "placeholders": {
+      "code": {"type": "String"}
+    }
+  },
+  "webdavSyncRejected": "Sync failed: server rejected the request (HTTP {code})",
+  "@webdavSyncRejected": {
+    "placeholders": {
+      "code": {"type": "String"}
+    }
+  },
+  "webdavSaveFail": "Save failed: {error}",
+  "@webdavSaveFail": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "webdavSavedPlain": "WebDAV config saved (end-to-end encryption off)",
+  "@webdavSavedPlain": {},
+  "webdavSavedEncrypted": "WebDAV config saved (end-to-end encryption on)",
+  "@webdavSavedEncrypted": {},
+  "webdavBadUrl": "Enter a valid server URL first (including http/https and /)",
+  "@webdavBadUrl": {},
+  "webdavNeedSyncPassword": "No sync password set: sync is blocked to avoid uploading plaintext notes. Set a sync password below and retry.",
+  "@webdavNeedSyncPassword": {},
+  "webdavLocalFirstBlurb": "Local-first sync: data stays on this device and syncs across workspaces via WebDAV (e.g. Nextcloud or self-hosted).",
+  "@webdavLocalFirstBlurb": {},
+  "webdavServerUrlLabel": "Server URL",
+  "@webdavServerUrlLabel": {},
+  "webdavMaxRetry": "Max retries reached",
+  "@webdavMaxRetry": {},
+  "webdavSyncDoneStats": "Sync complete: ↑{uploaded} ↓{downloaded} ✕{deletedRemote}",
+  "@webdavSyncDoneStats": {
+    "placeholders": {
+      "uploaded": {"type": "int"},
+      "downloaded": {"type": "int"},
+      "deletedRemote": {"type": "int"}
+    }
+  },
+  "homeForgotPasswordLink": "Forgot password?",
+  "@homeForgotPasswordLink": {},
+  "canvasItemSemantics": "Canvas object: {kind}",
+  "@canvasItemSemantics": {
+    "placeholders": {
+      "kind": {"type": "String"}
+    }
+  },
+  "canvasKindChart": "chart",
+  "@canvasKindChart": {},
+  "canvasKindShape": "shape",
+  "@canvasKindShape": {},
+  "canvasKindRotateHandle": "rotation handle",
+  "@canvasKindRotateHandle": {},
+  "canvasSearchFieldHint": "Search",
+  "@canvasSearchFieldHint": {}
 }

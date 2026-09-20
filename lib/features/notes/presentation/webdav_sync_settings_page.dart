@@ -30,7 +30,7 @@ import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
 /// 原始异常对象进调试日志（debugPrint），不再直接拼进 UI 字符串。
 String humanizeWebDavSyncError(Object? e, {AppLocalizations? l10n}) {
   if (e == null) return l10n?.syncFailedUnknown ?? '同步失败：未知错误';
-  if (e is String) return '同步失败：$e';
+  if (e is String) return l10n?.webdavSyncFailRaw(e) ?? '同步失败：$e';
   // P1 修复（审计 H-04）：原始异常可能含 URL/用户名/口令片段——仅记类型，
   // 不记原文（logcat 可被其他应用读取）。
   AuditLogger.log(
@@ -53,7 +53,7 @@ String humanizeWebDavSyncError(Object? e, {AppLocalizations? l10n}) {
     }
     // 本地安全门禁（https）文案是本地静态文本，可直接透出。
     if (e.message.contains('https')) {
-      return '同步失败：${e.message}';
+      return l10n?.webdavSyncFailRaw(e.message) ?? '同步失败：${e.message}';
     }
     final code = e.statusCode;
     if (code == 401 || code == 403) {
@@ -148,7 +148,7 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
       );
     } on ArgumentError catch (e) {
       if (!mounted) return;
-      _toast('保存失败：${e.message}');
+      _toast(AppLocalizations.of(context)?.webdavSaveFail(e.message) ?? '保存失败：${e.message}');
       return;
     }
     await _secretStore.write(
@@ -160,15 +160,15 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     if (!mounted) return;
     _toast(
       passphrase.isEmpty
-          ? '已保存 WebDAV 配置（未启用端到端加密）'
-          : '已保存 WebDAV 配置（已启用端到端加密）',
+          ? (AppLocalizations.of(context)?.webdavSavedPlain ?? '已保存 WebDAV 配置（未启用端到端加密）')
+          : (AppLocalizations.of(context)?.webdavSavedEncrypted ?? '已保存 WebDAV 配置（已启用端到端加密）'),
     );
   }
 
   Future<void> _syncNow() async {
     final rawUrl = _url.text.trim();
     if (rawUrl.isEmpty) {
-      _toast('请先填写合法的服务器 URL（含 http/https 与 /）');
+      _toast(AppLocalizations.of(context)?.webdavBadUrl ?? '请先填写合法的服务器 URL（含 http/https 与 /）');
       return;
     }
     // F-21 修复（审计 2026-09-07）：原预检仅 `uri.hasScheme`——明文 http
@@ -177,12 +177,12 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     try {
       WebDavConfigStore.requireHttpsBaseUrl(rawUrl);
     } on ArgumentError catch (e) {
-      _toast('同步失败：${e.message}');
+      _toast(AppLocalizations.of(context)?.webdavSyncFailRaw(e.message) ?? '同步失败：${e.message}');
       return;
     }
     final uri = Uri.tryParse(rawUrl);
     if (uri == null) {
-      _toast('请先填写合法的服务器 URL（含 http/https 与 /）');
+      _toast(AppLocalizations.of(context)?.webdavBadUrl ?? '请先填写合法的服务器 URL（含 http/https 与 /）');
       return;
     }
     // 安全审计修复（2026-09-06 P1-2）：未配置同步密码 = 同步层明文透传，
@@ -190,7 +190,7 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     // fail-closed：拒绝同步，要求先设置同步密码。
     final passphrase = _syncSecret.text.trim();
     if (passphrase.isEmpty) {
-      _toast('未设置同步密码：为避免笔记明文上云，已阻止同步。请在下方设置同步密码后重试。');
+      _toast(AppLocalizations.of(context)?.webdavNeedSyncPassword ?? '未设置同步密码：为避免笔记明文上云，已阻止同步。请在下方设置同步密码后重试。');
       return;
     }
     // F-21 修复（审计 2026-09-07）：cipher 用「已保存盐 + 表单口令」构造——
@@ -315,7 +315,8 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
         if (wait > Duration.zero) await Future<void>.delayed(wait);
       }
     }
-    return (result: null, error: '达到最大重试次数');
+    final l10n = mounted ? AppLocalizations.of(context) : null;
+    return (result: null, error: l10n?.webdavMaxRetry ?? '达到最大重试次数');
   }
 
   String _summaryOf(SyncResult r) {
@@ -414,7 +415,7 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
         ),
         children: [
           Text(
-            '本地优先同步：数据保存在本机，通过 WebDAV（如 Nextcloud / 自建）在工作区之间同步。',
+            AppLocalizations.of(context)?.webdavLocalFirstBlurb ?? '本地优先同步：数据保存在本机，通过 WebDAV（如 Nextcloud / 自建）在工作区之间同步。',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: AppleSpacing.md),
@@ -422,7 +423,7 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
             controller: _url,
             keyboardType: TextInputType.url,
             decoration: _appleDecoration(
-              labelText: '服务器 URL',
+              labelText: AppLocalizations.of(context)?.webdavServerUrlLabel ?? '服务器 URL',
               hintText: 'https://dav.example.com/drawing_notes/',
               icon: Icons.cloud_outlined,
             ),

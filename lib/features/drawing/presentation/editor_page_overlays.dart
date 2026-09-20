@@ -69,22 +69,30 @@ extension _EditorPageOverlays on _EditorPageState {
     return Positioned(
       left: viewPos.dx,
       top: viewPos.dy,
-      child: GestureDetector(
-        onTap: () => _onItemTap(chart.id),
-        onPanUpdate: (d) => _dragItem(chart.id, d.delta),
-        onPanEnd: (_) => _notifyChanged(),
-        child: Container(
-          width: w,
-          height: h,
-          decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).colorScheme.surface.withValues(alpha: 0.05),
-            border: selected
-                ? Border.all(color: AppleColor.actionBlue, width: 1.5)
-                : null,
+      child: Semantics(
+        label:
+            AppLocalizations.of(context)?.canvasItemSemantics(
+              AppLocalizations.of(context)?.canvasKindChart ?? '图表',
+            ) ??
+            '画布对象：图表',
+        button: true,
+        child: GestureDetector(
+          onTap: () => _onItemTap(chart.id),
+          onPanUpdate: (d) => _dragItem(chart.id, d.delta),
+          onPanEnd: (_) => _notifyChanged(),
+          child: Container(
+            width: w,
+            height: h,
+            decoration: BoxDecoration(
+              color: Theme.of(
+                context,
+              ).colorScheme.surface.withValues(alpha: 0.05),
+              border: selected
+                  ? Border.all(color: AppleColor.actionBlue, width: 1.5)
+                  : null,
+            ),
+            child: CustomPaint(painter: ChartPainter(chart: chart, viewScale: 1)),
           ),
-          child: CustomPaint(painter: ChartPainter(chart: chart, viewScale: 1)),
         ),
       ),
     );
@@ -108,16 +116,23 @@ extension _EditorPageOverlays on _EditorPageState {
       child: AnimatedOpacity(
         opacity: _deletingIds.contains(shape.id) ? 0 : 1,
         duration: AppleMotion.dropdown,
-        child: GestureDetector(
-          onTap: () => _onItemTap(shape.id),
-          onSecondaryTapDown: (d) =>
-              _showItemContextMenu(shape.id, globalAnchor: d.globalPosition),
-          // 触屏长按 = 右键等价入口（审计二-10：触屏与键盘双盲修复）。
-          onLongPressStart: (d) =>
-              _showItemContextMenu(shape.id, globalAnchor: d.globalPosition),
-          onPanUpdate: (d) => _dragItem(shape.id, d.delta),
-          onPanEnd: (_) => _notifyChanged(),
-          child: SizedBox(
+        child: Semantics(
+          label:
+              AppLocalizations.of(context)?.canvasItemSemantics(
+                AppLocalizations.of(context)?.canvasKindShape ?? '形状',
+              ) ??
+              '画布对象：形状',
+          button: true,
+          child: GestureDetector(
+            onTap: () => _onItemTap(shape.id),
+            onSecondaryTapDown: (d) =>
+                _showItemContextMenu(shape.id, globalAnchor: d.globalPosition),
+            // 触屏长按 = 右键等价入口（审计二-10：触屏与键盘双盲修复）。
+            onLongPressStart: (d) =>
+                _showItemContextMenu(shape.id, globalAnchor: d.globalPosition),
+            onPanUpdate: (d) => _dragItem(shape.id, d.delta),
+            onPanEnd: (_) => _notifyChanged(),
+            child: SizedBox(
             width: w,
             height: h,
             // 旋转渲染：按 shape.rotation 旋转形状（借鉴 Excalidraw 旋转手柄）。
@@ -159,28 +174,42 @@ extension _EditorPageOverlays on _EditorPageState {
                                   Positioned(
                                     top: -18,
                                     left: w / 2 - 5,
-                                    child: GestureDetector(
-                                      behavior: HitTestBehavior.opaque,
-                                      onPanUpdate: (d) {
-                                        final center = Offset(w / 2, h / 2);
-                                        final local =
-                                            d.localPosition +
-                                            Offset(w / 2, h / 2);
-                                        final angle =
-                                            (local - center).direction;
-                                        _applyState(
-                                          () => shape.rotation = angle,
-                                        );
-                                        _notifyChanged();
-                                      },
-                                      child: Container(
-                                        width: 10,
-                                        height: 10,
-                                        decoration: const BoxDecoration(
-                                          color: AppleColor.actionBlue,
-                                          shape: BoxShape.circle,
-                                          border: Border.fromBorderSide(
-                                            BorderSide(color: Colors.white),
+                                    child: Semantics(
+                                      label:
+                                          AppLocalizations.of(
+                                                context,
+                                              )?.canvasItemSemantics(
+                                                AppLocalizations.of(
+                                                      context,
+                                                    )?.canvasKindRotateHandle ??
+                                                    '旋转手柄',
+                                              ) ??
+                                              '画布对象：旋转手柄',
+                                      child: GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onPanUpdate: (d) {
+                                          final center = Offset(w / 2, h / 2);
+                                          final local =
+                                              d.localPosition +
+                                              Offset(w / 2, h / 2);
+                                          final angle =
+                                              (local - center).direction;
+                                          _applyState(
+                                            () => shape.rotation = angle,
+                                          );
+                                          _notifyChanged();
+                                        },
+                                        child: Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: const BoxDecoration(
+                                            color: AppleColor.actionBlue,
+                                            shape: BoxShape.circle,
+                                            border: Border.fromBorderSide(
+                                              BorderSide(
+                                                color: Colors.white,
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -222,11 +251,12 @@ extension _EditorPageOverlays on _EditorPageState {
                               )
                             : null,
                       ),
+                  ),
+                ),
               ),
             ),
           ),
         ),
-      ),
     );
   }
 

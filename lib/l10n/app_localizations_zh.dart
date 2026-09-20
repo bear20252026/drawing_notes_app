@@ -2668,4 +2668,310 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get colorPickerHueHint => '色相（键盘请用下方 RGB 输入）';
+
+  @override
+  String get sgItemParagraph => '段落';
+
+  @override
+  String get sgItemParagraphDesc => '普通文本';
+
+  @override
+  String get sgItemH1 => '标题 1';
+
+  @override
+  String get sgItemH1Desc => '最大标题';
+
+  @override
+  String get sgItemH2 => '标题 2';
+
+  @override
+  String get sgItemH2Desc => '二级标题';
+
+  @override
+  String get sgItemH3 => '标题 3';
+
+  @override
+  String get sgItemH3Desc => '三级标题';
+
+  @override
+  String get sgItemTodo => '待办事项';
+
+  @override
+  String get sgItemTodoDesc => '勾选框';
+
+  @override
+  String get sgItemBullet => '无序列表';
+
+  @override
+  String get sgItemBulletDesc => '圆点列表';
+
+  @override
+  String get sgItemOrdered => '有序列表';
+
+  @override
+  String get sgItemOrderedDesc => '数字列表';
+
+  @override
+  String get sgItemQuote => '引用';
+
+  @override
+  String get sgItemQuoteDesc => '引用文本';
+
+  @override
+  String get sgItemCode => '代码块';
+
+  @override
+  String get sgItemCodeDesc => '等宽代码';
+
+  @override
+  String get sgItemImage => '图片';
+
+  @override
+  String get sgItemImageDesc => '插入图片';
+
+  @override
+  String get sgItemLink => '链接';
+
+  @override
+  String get sgItemLinkDesc => '网页链接';
+
+  @override
+  String get sgItemCanvas => '画布';
+
+  @override
+  String get sgItemCanvasDesc => '内嵌画布';
+
+  @override
+  String get sgItemChart => '图表';
+
+  @override
+  String get sgItemChartDesc => '数据图表';
+
+  @override
+  String get sgItemTable => '表格';
+
+  @override
+  String get sgItemTableDesc => '数据表格';
+
+  @override
+  String get sgItemDatabase => '数据库';
+
+  @override
+  String get sgItemDatabaseDesc => '数据库视图';
+
+  @override
+  String get sgItemToggle => '切换列表';
+
+  @override
+  String get sgItemToggleDesc => '可折叠列表';
+
+  @override
+  String get sgItemDivider => '分割线';
+
+  @override
+  String get sgItemDividerDesc => '分隔线';
+
+  @override
+  String get sgItemCallout => '提示';
+
+  @override
+  String get sgItemCalloutDesc => '高亮提示';
+
+  @override
+  String expExportedTo(String path) {
+    return '已导出到：$path';
+  }
+
+  @override
+  String expExportFailErr(String error) {
+    return '导出失败：$error';
+  }
+
+  @override
+  String expCopyPlatformFail(String error) {
+    return '复制 PNG 需平台支持：$error';
+  }
+
+  @override
+  String expExportAllPdf(int count, String path) {
+    return '已导出整本 $count 页 PDF：$path';
+  }
+
+  @override
+  String expExportAllPdfFail(String error) {
+    return '导出整本 PDF 失败：$error';
+  }
+
+  @override
+  String get expRenderFailHard => '导出失败：无法渲染画布';
+
+  @override
+  String expExportPagedPdf(String path) {
+    return '已导出分页笔记 PDF：$path';
+  }
+
+  @override
+  String expExportPagedPdfFail(String error) {
+    return '导出分页笔记 PDF 失败：$error';
+  }
+
+  @override
+  String expExportedSvgTo(String path) {
+    return '已导出 SVG 到：$path';
+  }
+
+  @override
+  String expExportedWord(String path) {
+    return '已导出 Word 兼容文档：$path';
+  }
+
+  @override
+  String expExportWordFail(String error) {
+    return '导出 Word 兼容文档失败：$error';
+  }
+
+  @override
+  String expExportedTextTo(String path) {
+    return '已导出文本到：$path';
+  }
+
+  @override
+  String expExportedPptxTo(String path) {
+    return '已导出 PPTX 到：$path';
+  }
+
+  @override
+  String expExportedJsonTo(String path) {
+    return '已导出 JSON 到：$path';
+  }
+
+  @override
+  String get lockQuickUnlockFail => '系统验证未通过，请输入密码解锁';
+
+  @override
+  String get lockNoResetSupport => '当前版本不支持密码找回';
+
+  @override
+  String get lockForgotTitle => '忘记密码';
+
+  @override
+  String get lockForgotBody => '使用之前绑定的重置密码盘（U 盘）重设密码。\n\n未绑定重置密码盘时，密码无法找回。';
+
+  @override
+  String get lockPickUsb => '选择 U 盘';
+
+  @override
+  String get lockNoResetDisk => '未找到有效的重置密码盘文件（password_reset_disk.key）';
+
+  @override
+  String get lockSetNewPin => '设置新密码';
+
+  @override
+  String get lockConfirmNewPin => '确认新密码';
+
+  @override
+  String get lockPinMismatch => '两次输入不一致，请重试';
+
+  @override
+  String get lockResetFail => '重置失败，请重试';
+
+  @override
+  String get lockResetOk => '密码已重置';
+
+  @override
+  String get lockEnterPin => '输入密码';
+
+  @override
+  String get lockSystemUnlock => '系统验证解锁';
+
+  @override
+  String get lockForgotLink => '忘记密码？';
+
+  @override
+  String get lockTooManyAttempts => '尝试次数过多';
+
+  @override
+  String get lockTemporarilyLocked => '为防止暴力猜测，密码验证已暂时锁定';
+
+  @override
+  String lockRetryAfter(String duration) {
+    return '请在 $duration 后重试';
+  }
+
+  @override
+  String lockDurHoursMins(int hours, int mins) {
+    return '$hours 小时 $mins 分';
+  }
+
+  @override
+  String lockDurMinsSecs(int minutes, int seconds) {
+    return '$minutes 分 $seconds 秒';
+  }
+
+  @override
+  String webdavSyncFailRaw(String error) {
+    return '同步失败：$error';
+  }
+
+  @override
+  String webdavSyncServerBusy(String code) {
+    return '同步失败：服务器暂时不可用（HTTP $code），请稍后再试';
+  }
+
+  @override
+  String webdavSyncRejected(String code) {
+    return '同步失败：服务器拒绝了这次请求（HTTP $code）';
+  }
+
+  @override
+  String webdavSaveFail(String error) {
+    return '保存失败：$error';
+  }
+
+  @override
+  String get webdavSavedPlain => '已保存 WebDAV 配置（未启用端到端加密）';
+
+  @override
+  String get webdavSavedEncrypted => '已保存 WebDAV 配置（已启用端到端加密）';
+
+  @override
+  String get webdavBadUrl => '请先填写合法的服务器 URL（含 http/https 与 /）';
+
+  @override
+  String get webdavNeedSyncPassword => '未设置同步密码：为避免笔记明文上云，已阻止同步。请在下方设置同步密码后重试。';
+
+  @override
+  String get webdavLocalFirstBlurb =>
+      '本地优先同步：数据保存在本机，通过 WebDAV（如 Nextcloud / 自建）在工作区之间同步。';
+
+  @override
+  String get webdavServerUrlLabel => '服务器 URL';
+
+  @override
+  String get webdavMaxRetry => '达到最大重试次数';
+
+  @override
+  String webdavSyncDoneStats(int uploaded, int downloaded, int deletedRemote) {
+    return '同步完成：↑$uploaded ↓$downloaded ✕$deletedRemote';
+  }
+
+  @override
+  String get homeForgotPasswordLink => '忘记密码？';
+
+  @override
+  String canvasItemSemantics(String kind) {
+    return '画布对象：$kind';
+  }
+
+  @override
+  String get canvasKindChart => '图表';
+
+  @override
+  String get canvasKindShape => '形状';
+
+  @override
+  String get canvasKindRotateHandle => '旋转手柄';
+
+  @override
+  String get canvasSearchFieldHint => '搜索';
 }

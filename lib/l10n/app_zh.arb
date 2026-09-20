@@ -1951,5 +1951,272 @@
   "colorPickerSvHint": "饱和度与明度（键盘请用下方 RGB 输入）",
   "@colorPickerSvHint": {},
   "colorPickerHueHint": "色相（键盘请用下方 RGB 输入）",
-  "@colorPickerHueHint": {}
+  "@colorPickerHueHint": {},
+  "sgItemParagraph": "段落",
+  "@sgItemParagraph": {},
+  "sgItemParagraphDesc": "普通文本",
+  "@sgItemParagraphDesc": {},
+  "sgItemH1": "标题 1",
+  "@sgItemH1": {},
+  "sgItemH1Desc": "最大标题",
+  "@sgItemH1Desc": {},
+  "sgItemH2": "标题 2",
+  "@sgItemH2": {},
+  "sgItemH2Desc": "二级标题",
+  "@sgItemH2Desc": {},
+  "sgItemH3": "标题 3",
+  "@sgItemH3": {},
+  "sgItemH3Desc": "三级标题",
+  "@sgItemH3Desc": {},
+  "sgItemTodo": "待办事项",
+  "@sgItemTodo": {},
+  "sgItemTodoDesc": "勾选框",
+  "@sgItemTodoDesc": {},
+  "sgItemBullet": "无序列表",
+  "@sgItemBullet": {},
+  "sgItemBulletDesc": "圆点列表",
+  "@sgItemBulletDesc": {},
+  "sgItemOrdered": "有序列表",
+  "@sgItemOrdered": {},
+  "sgItemOrderedDesc": "数字列表",
+  "@sgItemOrderedDesc": {},
+  "sgItemQuote": "引用",
+  "@sgItemQuote": {},
+  "sgItemQuoteDesc": "引用文本",
+  "@sgItemQuoteDesc": {},
+  "sgItemCode": "代码块",
+  "@sgItemCode": {},
+  "sgItemCodeDesc": "等宽代码",
+  "@sgItemCodeDesc": {},
+  "sgItemImage": "图片",
+  "@sgItemImage": {},
+  "sgItemImageDesc": "插入图片",
+  "@sgItemImageDesc": {},
+  "sgItemLink": "链接",
+  "@sgItemLink": {},
+  "sgItemLinkDesc": "网页链接",
+  "@sgItemLinkDesc": {},
+  "sgItemCanvas": "画布",
+  "@sgItemCanvas": {},
+  "sgItemCanvasDesc": "内嵌画布",
+  "@sgItemCanvasDesc": {},
+  "sgItemChart": "图表",
+  "@sgItemChart": {},
+  "sgItemChartDesc": "数据图表",
+  "@sgItemChartDesc": {},
+  "sgItemTable": "表格",
+  "@sgItemTable": {},
+  "sgItemTableDesc": "数据表格",
+  "@sgItemTableDesc": {},
+  "sgItemDatabase": "数据库",
+  "@sgItemDatabase": {},
+  "sgItemDatabaseDesc": "数据库视图",
+  "@sgItemDatabaseDesc": {},
+  "sgItemToggle": "切换列表",
+  "@sgItemToggle": {},
+  "sgItemToggleDesc": "可折叠列表",
+  "@sgItemToggleDesc": {},
+  "sgItemDivider": "分割线",
+  "@sgItemDivider": {},
+  "sgItemDividerDesc": "分隔线",
+  "@sgItemDividerDesc": {},
+  "sgItemCallout": "提示",
+  "@sgItemCallout": {},
+  "sgItemCalloutDesc": "高亮提示",
+  "@sgItemCalloutDesc": {},
+  "expExportedTo": "已导出到：{path}",
+  "@expExportedTo": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
+  "expExportFailErr": "导出失败：{error}",
+  "@expExportFailErr": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "expCopyPlatformFail": "复制 PNG 需平台支持：{error}",
+  "@expCopyPlatformFail": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "expExportAllPdf": "已导出整本 {count} 页 PDF：{path}",
+  "@expExportAllPdf": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "path": {"type": "String"}
+    }
+  },
+  "expExportAllPdfFail": "导出整本 PDF 失败：{error}",
+  "@expExportAllPdfFail": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "expRenderFailHard": "导出失败：无法渲染画布",
+  "@expRenderFailHard": {},
+  "expExportPagedPdf": "已导出分页笔记 PDF：{path}",
+  "@expExportPagedPdf": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
+  "expExportPagedPdfFail": "导出分页笔记 PDF 失败：{error}",
+  "@expExportPagedPdfFail": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "expExportedSvgTo": "已导出 SVG 到：{path}",
+  "@expExportedSvgTo": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
+  "expExportedWord": "已导出 Word 兼容文档：{path}",
+  "@expExportedWord": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
+  "expExportWordFail": "导出 Word 兼容文档失败：{error}",
+  "@expExportWordFail": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "expExportedTextTo": "已导出文本到：{path}",
+  "@expExportedTextTo": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
+  "expExportedPptxTo": "已导出 PPTX 到：{path}",
+  "@expExportedPptxTo": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
+  "expExportedJsonTo": "已导出 JSON 到：{path}",
+  "@expExportedJsonTo": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
+  "lockQuickUnlockFail": "系统验证未通过，请输入密码解锁",
+  "@lockQuickUnlockFail": {},
+  "lockNoResetSupport": "当前版本不支持密码找回",
+  "@lockNoResetSupport": {},
+  "lockForgotTitle": "忘记密码",
+  "@lockForgotTitle": {},
+  "lockForgotBody": "使用之前绑定的重置密码盘（U 盘）重设密码。\n\n未绑定重置密码盘时，密码无法找回。",
+  "@lockForgotBody": {},
+  "lockPickUsb": "选择 U 盘",
+  "@lockPickUsb": {},
+  "lockNoResetDisk": "未找到有效的重置密码盘文件（password_reset_disk.key）",
+  "@lockNoResetDisk": {},
+  "lockSetNewPin": "设置新密码",
+  "@lockSetNewPin": {},
+  "lockConfirmNewPin": "确认新密码",
+  "@lockConfirmNewPin": {},
+  "lockPinMismatch": "两次输入不一致，请重试",
+  "@lockPinMismatch": {},
+  "lockResetFail": "重置失败，请重试",
+  "@lockResetFail": {},
+  "lockResetOk": "密码已重置",
+  "@lockResetOk": {},
+  "lockEnterPin": "输入密码",
+  "@lockEnterPin": {},
+  "lockSystemUnlock": "系统验证解锁",
+  "@lockSystemUnlock": {},
+  "lockForgotLink": "忘记密码？",
+  "@lockForgotLink": {},
+  "lockTooManyAttempts": "尝试次数过多",
+  "@lockTooManyAttempts": {},
+  "lockTemporarilyLocked": "为防止暴力猜测，密码验证已暂时锁定",
+  "@lockTemporarilyLocked": {},
+  "lockRetryAfter": "请在 {duration} 后重试",
+  "@lockRetryAfter": {
+    "placeholders": {
+      "duration": {"type": "String"}
+    }
+  },
+  "lockDurHoursMins": "{hours} 小时 {mins} 分",
+  "@lockDurHoursMins": {
+    "placeholders": {
+      "hours": {"type": "int"},
+      "mins": {"type": "int"}
+    }
+  },
+  "lockDurMinsSecs": "{minutes} 分 {seconds} 秒",
+  "@lockDurMinsSecs": {
+    "placeholders": {
+      "minutes": {"type": "int"},
+      "seconds": {"type": "int"}
+    }
+  },
+  "webdavSyncFailRaw": "同步失败：{error}",
+  "@webdavSyncFailRaw": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "webdavSyncServerBusy": "同步失败：服务器暂时不可用（HTTP {code}），请稍后再试",
+  "@webdavSyncServerBusy": {
+    "placeholders": {
+      "code": {"type": "String"}
+    }
+  },
+  "webdavSyncRejected": "同步失败：服务器拒绝了这次请求（HTTP {code}）",
+  "@webdavSyncRejected": {
+    "placeholders": {
+      "code": {"type": "String"}
+    }
+  },
+  "webdavSaveFail": "保存失败：{error}",
+  "@webdavSaveFail": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "webdavSavedPlain": "已保存 WebDAV 配置（未启用端到端加密）",
+  "@webdavSavedPlain": {},
+  "webdavSavedEncrypted": "已保存 WebDAV 配置（已启用端到端加密）",
+  "@webdavSavedEncrypted": {},
+  "webdavBadUrl": "请先填写合法的服务器 URL（含 http/https 与 /）",
+  "@webdavBadUrl": {},
+  "webdavNeedSyncPassword": "未设置同步密码：为避免笔记明文上云，已阻止同步。请在下方设置同步密码后重试。",
+  "@webdavNeedSyncPassword": {},
+  "webdavLocalFirstBlurb": "本地优先同步：数据保存在本机，通过 WebDAV（如 Nextcloud / 自建）在工作区之间同步。",
+  "@webdavLocalFirstBlurb": {},
+  "webdavServerUrlLabel": "服务器 URL",
+  "@webdavServerUrlLabel": {},
+  "webdavMaxRetry": "达到最大重试次数",
+  "@webdavMaxRetry": {},
+  "webdavSyncDoneStats": "同步完成：↑{uploaded} ↓{downloaded} ✕{deletedRemote}",
+  "@webdavSyncDoneStats": {
+    "placeholders": {
+      "uploaded": {"type": "int"},
+      "downloaded": {"type": "int"},
+      "deletedRemote": {"type": "int"}
+    }
+  },
+  "homeForgotPasswordLink": "忘记密码？",
+  "@homeForgotPasswordLink": {},
+  "canvasItemSemantics": "画布对象：{kind}",
+  "@canvasItemSemantics": {
+    "placeholders": {
+      "kind": {"type": "String"}
+    }
+  },
+  "canvasKindChart": "图表",
+  "@canvasKindChart": {},
+  "canvasKindShape": "形状",
+  "@canvasKindShape": {},
+  "canvasKindRotateHandle": "旋转手柄",
+  "@canvasKindRotateHandle": {},
+  "canvasSearchFieldHint": "搜索",
+  "@canvasSearchFieldHint": {}
 }

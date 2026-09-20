@@ -104,7 +104,7 @@ class EditorExporter {
         codec?.dispose();
       }
     } catch (e) {
-      showSnack('复制 PNG 需平台支持：$e');
+      showSnack(_l?.expCopyPlatformFail(e.toString()) ?? '复制 PNG 需平台支持：$e');
     }
   }
 
@@ -129,9 +129,9 @@ class EditorExporter {
       if (location == null) return; // 用户取消
       final file = File(location.path);
       await file.writeAsBytes(png, flush: true);
-      showSnack('已导出到：${location.path}');
+      showSnack(_l?.expExportedTo(location.path) ?? '已导出到：${location.path}');
     } catch (e) {
-      showSnack('导出失败：$e');
+      showSnack(_l?.expExportFailErr(e.toString()) ?? '导出失败：$e');
     }
   }
 
@@ -183,9 +183,9 @@ class EditorExporter {
       if (location == null) return; // 用户取消
       final file = File(location.path);
       await file.writeAsBytes(bytes, flush: true);
-      showSnack('已导出到：${location.path}');
+      showSnack(_l?.expExportedTo(location.path) ?? '已导出到：${location.path}');
     } catch (e) {
-      showSnack('导出失败：$e');
+      showSnack(_l?.expExportFailErr(e.toString()) ?? '导出失败：$e');
     }
   }
 
@@ -243,9 +243,9 @@ class EditorExporter {
       );
       if (location == null) return; // 用户取消
       await File(location.path).writeAsBytes(bytes, flush: true);
-      showSnack('已导出整本 ${pages.length} 页 PDF：${location.path}');
+      showSnack(_l?.expExportAllPdf(pages.length, location.path) ?? '已导出整本 ${pages.length} 页 PDF：${location.path}');
     } catch (e) {
-      showSnack('导出整本 PDF 失败：$e');
+      showSnack(_l?.expExportAllPdfFail(e.toString()) ?? '导出整本 PDF 失败：$e');
     }
   }
 
@@ -286,7 +286,7 @@ class EditorExporter {
         excludedTypes: const {BrushType.pen},
       );
       if (png == null) {
-        showSnack('导出失败：无法渲染画布');
+        showSnack(_l?.expRenderFailHard ?? '导出失败：无法渲染画布');
         return;
       }
       final bytes = await PdfHybridExporter.export(
@@ -317,9 +317,9 @@ class EditorExporter {
       if (location == null) return; // 用户取消
       final file = File(location.path);
       await file.writeAsBytes(bytes, flush: true);
-      showSnack('已导出到：${location.path}');
+      showSnack(_l?.expExportedTo(location.path) ?? '已导出到：${location.path}');
     } catch (e) {
-      showSnack('导出失败：$e');
+      showSnack(_l?.expExportFailErr(e.toString()) ?? '导出失败：$e');
     }
   }
 
@@ -420,9 +420,9 @@ class EditorExporter {
       await File(
         location.path,
       ).writeAsBytes(await document.save(), flush: true);
-      showSnack('已导出分页笔记 PDF：${location.path}');
+      showSnack(_l?.expExportPagedPdf(location.path) ?? '已导出分页笔记 PDF：${location.path}');
     } catch (e) {
-      showSnack('导出分页笔记 PDF 失败：$e');
+      showSnack(_l?.expExportPagedPdfFail(e.toString()) ?? '导出分页笔记 PDF 失败：$e');
     }
   }
 
@@ -465,9 +465,9 @@ class EditorExporter {
       if (location == null) return; // 用户取消
       final file = File(location.path);
       await file.writeAsString(svg, flush: true);
-      showSnack('已导出 SVG 到：${location.path}');
+      showSnack(_l?.expExportedSvgTo(location.path) ?? '已导出 SVG 到：${location.path}');
     } catch (e) {
-      showSnack('导出失败：$e');
+      showSnack(_l?.expExportFailErr(e.toString()) ?? '导出失败：$e');
     }
   }
 
@@ -501,9 +501,9 @@ class EditorExporter {
       );
       if (location == null) return;
       await File(location.path).writeAsString(rtf, flush: true);
-      showSnack('已导出 Word 兼容文档：${location.path}');
+      showSnack(_l?.expExportedWord(location.path) ?? '已导出 Word 兼容文档：${location.path}');
     } catch (e) {
-      showSnack('导出 Word 兼容文档失败：$e');
+      showSnack(_l?.expExportWordFail(e.toString()) ?? '导出 Word 兼容文档失败：$e');
     }
   }
 
@@ -546,9 +546,9 @@ class EditorExporter {
       if (location == null) return; // 用户取消
       final file = File(location.path);
       await file.writeAsString(content, flush: true);
-      showSnack('已导出文本到：${location.path}');
+      showSnack(_l?.expExportedTextTo(location.path) ?? '已导出文本到：${location.path}');
     } catch (e) {
-      showSnack('导出失败：$e');
+      showSnack(_l?.expExportFailErr(e.toString()) ?? '导出失败：$e');
     }
   }
 
@@ -560,7 +560,7 @@ class EditorExporter {
     try {
       final png = await controller.renderToPng();
       if (png == null) {
-        showSnack('导出失败：无法渲染画布');
+        showSnack(_l?.expRenderFailHard ?? '导出失败：无法渲染画布');
         return;
       }
       final doc = controller.document;
@@ -647,9 +647,9 @@ class EditorExporter {
       if (location == null) return; // 用户取消
       final file = File(location.path);
       await file.writeAsBytes(bytes, flush: true);
-      showSnack('已导出 PPTX 到：${location.path}');
+      showSnack(_l?.expExportedPptxTo(location.path) ?? '已导出 PPTX 到：${location.path}');
     } catch (e) {
-      showSnack('导出失败：$e');
+      showSnack(_l?.expExportFailErr(e.toString()) ?? '导出失败：$e');
     }
   }
 
@@ -670,9 +670,9 @@ class EditorExporter {
       if (location == null) return; // 用户取消
       final file = File(location.path);
       await file.writeAsString(json, flush: true);
-      showSnack('已导出 JSON 到：${location.path}');
+      showSnack(_l?.expExportedJsonTo(location.path) ?? '已导出 JSON 到：${location.path}');
     } catch (e) {
-      showSnack('导出失败：$e');
+      showSnack(_l?.expExportFailErr(e.toString()) ?? '导出失败：$e');
     }
   }
 }

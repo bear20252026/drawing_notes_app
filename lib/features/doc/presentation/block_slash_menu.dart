@@ -384,6 +384,9 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
 
   Widget _buildItemRow(BuildContext context, SlashItem item, int globalIndex) {
     final isSelected = globalIndex == _selectedIndex;
+    final l10n = AppLocalizations.of(context);
+    final label = _slashItemLabelOf(l10n, item) ?? item.label;
+    final desc = _slashItemDescOf(l10n, item) ?? item.description;
     return InkWell(
       onTap: () => _selectItem(item),
       onHover: (_) => setState(() => _selectedIndex = globalIndex),
@@ -403,14 +406,14 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.label,
+                    label,
                     style: AppleType.controlStyle(
                       Theme.of(context).colorScheme.onSurface,
                     ).copyWith(fontWeight: FontWeight.w400),
                   ),
-                  if (item.description != null)
+                  if (desc != null)
                     Text(
-                      item.description!,
+                      desc,
                       style: AppleType.captionStyle(
                         AppleColor.mutedOf(Theme.of(context).colorScheme),
                       ),
@@ -468,7 +471,7 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
   }
 }
 
-/// i18n（E1 批 4）：/ 菜单分组头按 locale 解析（enum 的 title 为 zh 兜底）。
+/// i18n（E1）：/ 菜单分组头按 locale 解析（enum 的 title 为 zh 兜底）。
 String? _slashGroupTitleOf(BuildContext context, SlashItemGroup group) {
   final l10n = AppLocalizations.of(context);
   switch (group) {
@@ -483,4 +486,55 @@ String? _slashGroupTitleOf(BuildContext context, SlashItemGroup group) {
     case SlashItemGroup.other:
       return l10n?.sgOther ?? '其他';
   }
+}
+
+/// i18n（E1）：/ 菜单条目显示文案（const 列表中文作搜索兜底）。
+String? _slashItemLabelOf(AppLocalizations? l10n, SlashItem item) {
+  if (l10n == null) return null;
+  return switch (item.label) {
+    '段落' => l10n.sgItemParagraph,
+    '标题 1' => l10n.sgItemH1,
+    '标题 2' => l10n.sgItemH2,
+    '标题 3' => l10n.sgItemH3,
+    '待办事项' => l10n.sgItemTodo,
+    '无序列表' => l10n.sgItemBullet,
+    '有序列表' => l10n.sgItemOrdered,
+    '引用' => l10n.sgItemQuote,
+    '代码块' => l10n.sgItemCode,
+    '图片' => l10n.sgItemImage,
+    '链接' => l10n.sgItemLink,
+    '画布' => l10n.sgItemCanvas,
+    '图表' => l10n.sgItemChart,
+    '表格' => l10n.sgItemTable,
+    '数据库' => l10n.sgItemDatabase,
+    '切换列表' => l10n.sgItemToggle,
+    '分割线' => l10n.sgItemDivider,
+    '提示' => l10n.sgItemCallout,
+    _ => null,
+  };
+}
+
+String? _slashItemDescOf(AppLocalizations? l10n, SlashItem item) {
+  if (l10n == null) return null;
+  return switch (item.description) {
+    '普通文本' => l10n.sgItemParagraphDesc,
+    '最大标题' => l10n.sgItemH1Desc,
+    '二级标题' => l10n.sgItemH2Desc,
+    '三级标题' => l10n.sgItemH3Desc,
+    '勾选框' => l10n.sgItemTodoDesc,
+    '圆点列表' => l10n.sgItemBulletDesc,
+    '数字列表' => l10n.sgItemOrderedDesc,
+    '引用文本' => l10n.sgItemQuoteDesc,
+    '等宽代码' => l10n.sgItemCodeDesc,
+    '插入图片' => l10n.sgItemImageDesc,
+    '网页链接' => l10n.sgItemLinkDesc,
+    '内嵌画布' => l10n.sgItemCanvasDesc,
+    '数据图表' => l10n.sgItemChartDesc,
+    '数据表格' => l10n.sgItemTableDesc,
+    '数据库视图' => l10n.sgItemDatabaseDesc,
+    '可折叠列表' => l10n.sgItemToggleDesc,
+    '分隔线' => l10n.sgItemDividerDesc,
+    '高亮提示' => l10n.sgItemCalloutDesc,
+    _ => null,
+  };
 }

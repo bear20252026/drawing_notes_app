@@ -2772,4 +2772,319 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get colorPickerHueHint => 'Hue (use RGB fields for keyboard)';
+
+  @override
+  String get sgItemParagraph => 'Paragraph';
+
+  @override
+  String get sgItemParagraphDesc => 'Plain text';
+
+  @override
+  String get sgItemH1 => 'Heading 1';
+
+  @override
+  String get sgItemH1Desc => 'Largest heading';
+
+  @override
+  String get sgItemH2 => 'Heading 2';
+
+  @override
+  String get sgItemH2Desc => 'Section heading';
+
+  @override
+  String get sgItemH3 => 'Heading 3';
+
+  @override
+  String get sgItemH3Desc => 'Subsection heading';
+
+  @override
+  String get sgItemTodo => 'To-do';
+
+  @override
+  String get sgItemTodoDesc => 'Checkbox';
+
+  @override
+  String get sgItemBullet => 'Bulleted list';
+
+  @override
+  String get sgItemBulletDesc => 'Bullet points';
+
+  @override
+  String get sgItemOrdered => 'Numbered list';
+
+  @override
+  String get sgItemOrderedDesc => 'Numbered items';
+
+  @override
+  String get sgItemQuote => 'Quote';
+
+  @override
+  String get sgItemQuoteDesc => 'Quoted text';
+
+  @override
+  String get sgItemCode => 'Code block';
+
+  @override
+  String get sgItemCodeDesc => 'Monospaced code';
+
+  @override
+  String get sgItemImage => 'Image';
+
+  @override
+  String get sgItemImageDesc => 'Insert image';
+
+  @override
+  String get sgItemLink => 'Link';
+
+  @override
+  String get sgItemLinkDesc => 'Web link';
+
+  @override
+  String get sgItemCanvas => 'Canvas';
+
+  @override
+  String get sgItemCanvasDesc => 'Embedded canvas';
+
+  @override
+  String get sgItemChart => 'Chart';
+
+  @override
+  String get sgItemChartDesc => 'Data chart';
+
+  @override
+  String get sgItemTable => 'Table';
+
+  @override
+  String get sgItemTableDesc => 'Data table';
+
+  @override
+  String get sgItemDatabase => 'Database';
+
+  @override
+  String get sgItemDatabaseDesc => 'Database view';
+
+  @override
+  String get sgItemToggle => 'Toggle list';
+
+  @override
+  String get sgItemToggleDesc => 'Collapsible list';
+
+  @override
+  String get sgItemDivider => 'Divider';
+
+  @override
+  String get sgItemDividerDesc => 'Horizontal rule';
+
+  @override
+  String get sgItemCallout => 'Callout';
+
+  @override
+  String get sgItemCalloutDesc => 'Highlighted tip';
+
+  @override
+  String expExportedTo(String path) {
+    return 'Exported to: $path';
+  }
+
+  @override
+  String expExportFailErr(String error) {
+    return 'Export failed: $error';
+  }
+
+  @override
+  String expCopyPlatformFail(String error) {
+    return 'Copying PNG needs platform support: $error';
+  }
+
+  @override
+  String expExportAllPdf(int count, String path) {
+    return 'Exported full notebook PDF ($count pages): $path';
+  }
+
+  @override
+  String expExportAllPdfFail(String error) {
+    return 'Failed to export full PDF: $error';
+  }
+
+  @override
+  String get expRenderFailHard => 'Export failed: cannot render canvas';
+
+  @override
+  String expExportPagedPdf(String path) {
+    return 'Exported paged note PDF: $path';
+  }
+
+  @override
+  String expExportPagedPdfFail(String error) {
+    return 'Failed to export paged note PDF: $error';
+  }
+
+  @override
+  String expExportedSvgTo(String path) {
+    return 'Exported SVG to: $path';
+  }
+
+  @override
+  String expExportedWord(String path) {
+    return 'Exported Word-compatible document: $path';
+  }
+
+  @override
+  String expExportWordFail(String error) {
+    return 'Failed to export Word-compatible document: $error';
+  }
+
+  @override
+  String expExportedTextTo(String path) {
+    return 'Exported text to: $path';
+  }
+
+  @override
+  String expExportedPptxTo(String path) {
+    return 'Exported PPTX to: $path';
+  }
+
+  @override
+  String expExportedJsonTo(String path) {
+    return 'Exported JSON to: $path';
+  }
+
+  @override
+  String get lockQuickUnlockFail =>
+      'System authentication failed. Enter your password to unlock.';
+
+  @override
+  String get lockNoResetSupport =>
+      'Password recovery is not supported in this version';
+
+  @override
+  String get lockForgotTitle => 'Forgot password';
+
+  @override
+  String get lockForgotBody =>
+      'Reset using a previously bound reset disk (USB drive).\n\nWithout a bound reset disk, the password cannot be recovered.';
+
+  @override
+  String get lockPickUsb => 'Choose USB drive';
+
+  @override
+  String get lockNoResetDisk =>
+      'No valid reset disk file (password_reset_disk.key) found';
+
+  @override
+  String get lockSetNewPin => 'Set new password';
+
+  @override
+  String get lockConfirmNewPin => 'Confirm new password';
+
+  @override
+  String get lockPinMismatch => 'Entries do not match. Try again.';
+
+  @override
+  String get lockResetFail => 'Reset failed. Try again.';
+
+  @override
+  String get lockResetOk => 'Password has been reset';
+
+  @override
+  String get lockEnterPin => 'Enter password';
+
+  @override
+  String get lockSystemUnlock => 'Unlock with system authentication';
+
+  @override
+  String get lockForgotLink => 'Forgot password?';
+
+  @override
+  String get lockTooManyAttempts => 'Too many attempts';
+
+  @override
+  String get lockTemporarilyLocked =>
+      'Password verification is temporarily locked to prevent brute-force guessing.';
+
+  @override
+  String lockRetryAfter(String duration) {
+    return 'Try again in $duration';
+  }
+
+  @override
+  String lockDurHoursMins(int hours, int mins) {
+    return '$hours h $mins min';
+  }
+
+  @override
+  String lockDurMinsSecs(int minutes, int seconds) {
+    return '$minutes min $seconds s';
+  }
+
+  @override
+  String webdavSyncFailRaw(String error) {
+    return 'Sync failed: $error';
+  }
+
+  @override
+  String webdavSyncServerBusy(String code) {
+    return 'Sync failed: server temporarily unavailable (HTTP $code). Try again later.';
+  }
+
+  @override
+  String webdavSyncRejected(String code) {
+    return 'Sync failed: server rejected the request (HTTP $code)';
+  }
+
+  @override
+  String webdavSaveFail(String error) {
+    return 'Save failed: $error';
+  }
+
+  @override
+  String get webdavSavedPlain =>
+      'WebDAV config saved (end-to-end encryption off)';
+
+  @override
+  String get webdavSavedEncrypted =>
+      'WebDAV config saved (end-to-end encryption on)';
+
+  @override
+  String get webdavBadUrl =>
+      'Enter a valid server URL first (including http/https and /)';
+
+  @override
+  String get webdavNeedSyncPassword =>
+      'No sync password set: sync is blocked to avoid uploading plaintext notes. Set a sync password below and retry.';
+
+  @override
+  String get webdavLocalFirstBlurb =>
+      'Local-first sync: data stays on this device and syncs across workspaces via WebDAV (e.g. Nextcloud or self-hosted).';
+
+  @override
+  String get webdavServerUrlLabel => 'Server URL';
+
+  @override
+  String get webdavMaxRetry => 'Max retries reached';
+
+  @override
+  String webdavSyncDoneStats(int uploaded, int downloaded, int deletedRemote) {
+    return 'Sync complete: ↑$uploaded ↓$downloaded ✕$deletedRemote';
+  }
+
+  @override
+  String get homeForgotPasswordLink => 'Forgot password?';
+
+  @override
+  String canvasItemSemantics(String kind) {
+    return 'Canvas object: $kind';
+  }
+
+  @override
+  String get canvasKindChart => 'chart';
+
+  @override
+  String get canvasKindShape => 'shape';
+
+  @override
+  String get canvasKindRotateHandle => 'rotation handle';
+
+  @override
+  String get canvasSearchFieldHint => 'Search';
 }

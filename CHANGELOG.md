@@ -2,6 +2,18 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.11] - 2026-09-20
+
+### 审计收尾批次：E1 继续 + B11 叠加层 + F1 home_page 密码域拆分
+
+- **E1**：`/` 菜单项显示文案 locale 化（`sgItem*`）；导出 snack / WebDAV 设置 / 锁屏门 / 首页「忘记密码」接入 arb（`exp*` / `webdav*` / `lock*`）。
+- **B11**：画布图表/形状/旋转手柄叠加层补 `Semantics`（键盘与读屏可识别对象类型）。
+- **F1**：`home_page.dart` 单文件密码与画布删除域拆至 `home_page_password.dart` part（行为零变化）。
+- **F9 / D11 / D12 / F7**：**未在本批做大规模重构**——
+  - F9 part 合并与 D11/D12 渲染架构、F7 notes↔doc 契约上移属专项；
+  - 当前 `architecture_test` 零循环依赖**已通过**，说明 import 图无环；
+  - DCM long-method 无红。避免「拆了但不简化」的无效重构。
+
 ## [1.17.10] - 2026-09-20
 
 ### 审计「全部」批次：F3 死代码 + E1 i18n（schedule/trash 批）+ B11 Semantics 样本
