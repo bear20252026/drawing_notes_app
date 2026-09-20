@@ -7,6 +7,7 @@ import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/features/schedule/domain/schedule_event.dart';
 import 'package:drawing_notes_app/features/schedule/infrastructure/schedule_event_store.dart';
 import 'package:drawing_notes_app/features/schedule/presentation/schedule_calendar.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/ambient_background.dart';
@@ -176,7 +177,7 @@ class _SchedulePageState extends State<SchedulePage> {
         TextButton.icon(
           onPressed: _goToday,
           icon: const Icon(Icons.today, size: 18),
-          label: const Text('今天'),
+          label: Text(AppLocalizations.of(context)?.schToday ?? '今天'),
         ),
       ],
     );
@@ -188,7 +189,10 @@ class _SchedulePageState extends State<SchedulePage> {
         Icon(Icons.checklist_rounded, size: 18, color: scheme.primary),
         const SizedBox(width: 6),
         Text(
-          _selectedDate == null ? '全部日程' : '当日安排 · 24 小时',
+          _selectedDate == null
+              ? (AppLocalizations.of(context)?.schAllAgenda ?? '全部日程')
+              : (AppLocalizations.of(context)?.schDayTimeline ??
+                    '当日安排 · 24 小时'),
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
             color: scheme.onSurface,
@@ -198,10 +202,14 @@ class _SchedulePageState extends State<SchedulePage> {
         if (_selectedDate != null)
           TextButton(
             onPressed: () => setState(() => _selectedDate = null),
-            child: const Text('显示全部日期'),
+            child: Text(
+              AppLocalizations.of(context)?.schShowAllDates ?? '显示全部日期',
+            ),
           ),
         IconButton(
-          tooltip: '添加待办（日期为选中日，未选中则为今天）',
+          tooltip:
+              AppLocalizations.of(context)?.schAddEventTooltip ??
+              '添加待办（日期为选中日，未选中则为今天）',
           icon: const Icon(Icons.add_task_rounded),
           color: scheme.primary,
           onPressed: _showAddEventDialog,
@@ -367,7 +375,9 @@ class _SchedulePageState extends State<SchedulePage> {
                         TextButton(
                           onPressed: () =>
                               setDialogState(() => minuteOfDay = null),
-                          child: const Text('改为全天'),
+                          child: Text(
+                            AppLocalizations.of(context)?.schAllDay ?? '改为全天',
+                          ),
                         ),
                       ],
                     ],
@@ -377,11 +387,11 @@ class _SchedulePageState extends State<SchedulePage> {
               actions: AppleDialog.actions([
                 TextButton(
                   onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('取消'),
+                  child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.of(ctx).pop(controller.text),
-                  child: const Text('添加'),
+                  child: Text(AppLocalizations.of(context)?.schAdd ?? '添加'),
                 ),
               ]),
             ),
@@ -591,7 +601,7 @@ class _EventCard extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  tooltip: '删除',
+                  tooltip: AppLocalizations.of(context)?.delete ?? '删除',
                   icon: const Icon(Icons.delete_outline_rounded, size: 20),
                   color: scheme.onSurfaceVariant,
                   onPressed: onDelete,
@@ -675,7 +685,9 @@ class _HourRow extends StatelessWidget {
             width: 32,
             height: 30,
             child: IconButton(
-              tooltip: '在 $hour 点添加',
+              tooltip:
+                  AppLocalizations.of(context)?.schAddAtHour(hour) ??
+                  '在 $hour 点添加',
               icon: const Icon(Icons.add, size: 16),
               color: scheme.onSurfaceVariant,
               padding: EdgeInsets.zero,

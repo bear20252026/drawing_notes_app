@@ -2048,5 +2048,40 @@
   "tplTodoName": "To-do list",
   "@tplTodoName": {},
   "tplTodoDesc": "Prebuilt to-do blocks",
-  "@tplTodoDesc": {}
+  "@tplTodoDesc": {},
+  "schPrevMonth": "Previous month",
+  "@schPrevMonth": {},
+  "schNextMonth": "Next month",
+  "@schNextMonth": {},
+  "schToday": "Today",
+  "@schToday": {},
+  "schShowAllDates": "Show all dates",
+  "@schShowAllDates": {},
+  "schAddEventTooltip": "Add todo (selected day, or today if none)",
+  "@schAddEventTooltip": {},
+  "schAllDay": "All day",
+  "@schAllDay": {},
+  "schAdd": "Add",
+  "@schAdd": {},
+  "schAddAtHour": "Add at {hour}:00",
+  "@schAddAtHour": {
+    "placeholders": {
+      "hour": {"type": "int"}
+    }
+  },
+  "schMonthTitle": "{month}/{year}",
+  "@schMonthTitle": {
+    "placeholders": {
+      "year": {"type": "int"},
+      "month": {"type": "int"}
+    }
+  },
+  "schAllAgenda": "All schedules",
+  "@schAllAgenda": {},
+  "schDayTimeline": "Day plan · 24 hours",
+  "@schDayTimeline": {},
+  "colorPickerSvHint": "Saturation and brightness (use RGB fields for keyboard)",
+  "@colorPickerSvHint": {},
+  "colorPickerHueHint": "Hue (use RGB fields for keyboard)",
+  "@colorPickerHueHint": {}
 }

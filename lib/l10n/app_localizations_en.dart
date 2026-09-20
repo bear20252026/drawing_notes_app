@@ -2728,4 +2728,48 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tplTodoDesc => 'Prebuilt to-do blocks';
+
+  @override
+  String get schPrevMonth => 'Previous month';
+
+  @override
+  String get schNextMonth => 'Next month';
+
+  @override
+  String get schToday => 'Today';
+
+  @override
+  String get schShowAllDates => 'Show all dates';
+
+  @override
+  String get schAddEventTooltip => 'Add todo (selected day, or today if none)';
+
+  @override
+  String get schAllDay => 'All day';
+
+  @override
+  String get schAdd => 'Add';
+
+  @override
+  String schAddAtHour(int hour) {
+    return 'Add at $hour:00';
+  }
+
+  @override
+  String schMonthTitle(int year, int month) {
+    return '$month/$year';
+  }
+
+  @override
+  String get schAllAgenda => 'All schedules';
+
+  @override
+  String get schDayTimeline => 'Day plan · 24 hours';
+
+  @override
+  String get colorPickerSvHint =>
+      'Saturation and brightness (use RGB fields for keyboard)';
+
+  @override
+  String get colorPickerHueHint => 'Hue (use RGB fields for keyboard)';
 }

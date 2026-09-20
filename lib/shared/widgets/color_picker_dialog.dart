@@ -238,38 +238,44 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                     color: Theme.of(context).colorScheme.outlineVariant,
                   ),
                 ),
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onPanDown: (d) => _pickSv(d.localPosition),
-                  onPanUpdate: (d) => _pickSv(d.localPosition),
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(AppleRadius.sm),
-                          child: CustomPaint(
-                            painter: _SvSquarePainter(hue: _hsv.hue),
+                child: Semantics(
+                  // 三输入：指针专属二维色域需读屏标签；键盘走 RGB 三格。
+                  label:
+                      AppLocalizations.of(context)?.colorPickerSvHint ??
+                      '饱和度与明度（键盘请用下方 RGB 输入）',
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onPanDown: (d) => _pickSv(d.localPosition),
+                    onPanUpdate: (d) => _pickSv(d.localPosition),
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(AppleRadius.sm),
+                            child: CustomPaint(
+                              painter: _SvSquarePainter(hue: _hsv.hue),
+                            ),
                           ),
                         ),
-                      ),
-                      // 当前 S/V 位置指示圆点。
-                      Positioned(
-                        left: _hsv.saturation * 300 - 7,
-                        top: (1 - _hsv.value) * 170 - 7,
-                        child: Container(
-                          width: 14,
-                          height: 14,
-                          decoration: BoxDecoration(
-                            color: _selected,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: const [
-                              BoxShadow(color: Colors.black26, blurRadius: 2),
-                            ],
+                        // 当前 S/V 位置指示圆点。
+                        Positioned(
+                          left: _hsv.saturation * 300 - 7,
+                          top: (1 - _hsv.value) * 170 - 7,
+                          child: Container(
+                            width: 14,
+                            height: 14,
+                            decoration: BoxDecoration(
+                              color: _selected,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                              boxShadow: const [
+                                BoxShadow(color: Colors.black26, blurRadius: 2),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -280,36 +286,47 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
               SizedBox(
                 width: 300,
                 height: 44,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onPanDown: (d) => _pickHue(d.localPosition),
-                  onPanUpdate: (d) => _pickHue(d.localPosition),
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 11),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(AppleRadius.xs),
-                            child: const CustomPaint(painter: _HueBarPainter()),
+                child: Semantics(
+                  label:
+                      AppLocalizations.of(context)?.colorPickerHueHint ??
+                      '色相（键盘请用下方 RGB 输入）',
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onPanDown: (d) => _pickHue(d.localPosition),
+                    onPanUpdate: (d) => _pickHue(d.localPosition),
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 11),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(
+                                AppleRadius.xs,
+                              ),
+                              child: const CustomPaint(
+                                painter: _HueBarPainter(),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                      // 当前色相指示。
-                      Positioned(
-                        left: _hsv.hue / 360 * 300 - 4,
-                        top: 11,
-                        child: Container(
-                          width: 8,
-                          height: 22,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: Colors.black38),
-                            borderRadius: BorderRadius.circular(AppleRadius.xs),
+                        // 当前色相指示。
+                        Positioned(
+                          left: _hsv.hue / 360 * 300 - 4,
+                          top: 11,
+                          child: Container(
+                            width: 8,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(color: Colors.black38),
+                              borderRadius: BorderRadius.circular(
+                                AppleRadius.xs,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

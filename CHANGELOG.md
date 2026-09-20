@@ -2,6 +2,20 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.10] - 2026-09-20
+
+### 审计「全部」批次：F3 死代码 + E1 i18n（schedule/trash 批）+ B11 Semantics 样本
+
+- **F3（已授权删除）**：
+  - 删除未接入 UI 的 `HomeLockButton`（`lib/shared/widgets/home_lock_button.dart`）；
+  - 删除无引用的 `ApplePillSearchField`（`apple_design.dart`）；
+  - 删除未使用的 domain 模型 `ScheduleEntry` / `schedule_entry.dart`；
+  - 删除 3.5MB 未引用源图标 `assets/release/app_icon_source_original.png`（构建脚本用的是 `app_icon_source.png`）；
+  - **保留** `MemorySystemUnlockKeyStore`：接口实现 + 全量测试替身，非安全可删死代码。
+- **E1 本批**：日程页/月历/回收站时间文案接入 arb（`sch*` + `homeDeletedAt`）；`flutter gen-l10n` 生成 zh/en。
+- **B11 样本**：色板 S/V 方格与色相条补 `Semantics`（指针手势 + 键盘 RGB 等价入口提示）。
+- **F1/F9**：长文件清单已盘（home_page 950 / doc_page 919 等）；DCM long-method 当前无红，**大规模拆分留专项**（避免未简化重构）。
+
 ## [1.17.9] - 2026-09-20
 
 ### 审计 P2-8/9：手写 fontSize 令牌化（UI 层）+ CI 懒迁移清理竞态加固

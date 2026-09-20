@@ -490,62 +490,6 @@ class ApplePrimaryButton extends StatelessWidget {
   }
 }
 
-/// 可复用的 Apple 胶囊搜索框。
-class ApplePillSearchField extends StatelessWidget {
-  const ApplePillSearchField({
-    super.key,
-    required this.hintText,
-    required this.onChanged,
-    this.controller,
-  });
-
-  final String hintText;
-  final ValueChanged<String> onChanged;
-  final TextEditingController? controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final onSurface = scheme.onSurface;
-    return TextField(
-      controller: controller,
-      onChanged: onChanged,
-      // 搜索框内文案：梯子 caption 14 / hint 走 control 13。
-      style: AppleTypeScale.of(AppleTypeScale.caption, onSurface),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: AppleType.controlStyle(
-          AppleColor.mutedOf(scheme),
-          weight: FontWeight.w400,
-        ),
-        prefixIcon: Icon(
-          Icons.search_rounded,
-          size: 18,
-          color: AppleColor.subtleOf(scheme),
-        ),
-        filled: true,
-        fillColor: AppleColor.fillOf(scheme),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppleRadius.full),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppleRadius.full),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppleRadius.full),
-          // 键盘焦点环：Focus Blue 2px（DESIGN.md:300/440；审计 P2-5）。
-          borderSide: BorderSide(color: AppleColor.focusBlue, width: 2),
-        ),
-      ),
-    );
-  }
-}
-
 /// 可复用的 Apple 分区标题（分组/工具条分区）。
 class AppleSectionHeader extends StatelessWidget {
   const AppleSectionHeader({super.key, required this.label, this.action});

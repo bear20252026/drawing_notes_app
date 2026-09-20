@@ -121,9 +121,13 @@ class _TrashPageState extends State<TrashPage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   subtitle: Text(
-                    '删除于 '
-                    '${deleted.year}-${deleted.month.toString().padLeft(2, '0')}-'
-                    '${deleted.day.toString().padLeft(2, '0')}',
+                    AppLocalizations.of(context)?.homeDeletedAt(
+                          '${deleted.year}-${deleted.month.toString().padLeft(2, '0')}-'
+                          '${deleted.day.toString().padLeft(2, '0')}',
+                        ) ??
+                        '删除于 '
+                            '${deleted.year}-${deleted.month.toString().padLeft(2, '0')}-'
+                            '${deleted.day.toString().padLeft(2, '0')}',
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,

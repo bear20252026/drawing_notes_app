@@ -267,7 +267,8 @@ class _DesktopUnlockFieldState extends State<DesktopUnlockField> {
 }
 
 // ===========================================================================
-// PART 4 · UnlockFlow / HomeLockButton —— 首页一键解锁入口
+// PART 4 · UnlockFlow —— 平台自适应解锁入口
+// （历史 HomeLockButton 组件未接入 UI，F3 死代码清理已删除。）
 // ===========================================================================
 
 /// 平台自适应解锁入口：手机端九宫格，桌面端键盘输入。
@@ -311,18 +312,6 @@ abstract final class UnlockFlow {
     );
   }
 }
-
-/// 首页 AppBar 置顶解锁按钮：未解锁显示 🔒，解锁后显示 🔓。
-///
-/// 用法（home_page.dart AppBar.actions 中）：
-///   HomeLockButton(
-///     isUnlocked: _unlocked,
-///     onUnlockRequested: () async {
-///       final pin = await UnlockFlow.show(context);
-///       if (pin != null) setState(() => _unlocked = true);
-///     },
-///     onLockRequested: () => setState(() => _unlocked = false),
-///   )
 
 // ===========================================================================
 // PART 5（可选）· 生物识别钩子 —— 依赖 local_auth 时再启用

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 /// 月历网格 —— 纯受控组件。
 ///
@@ -75,11 +76,15 @@ class ScheduleCalendar extends StatelessWidget {
             IconButton(
               onPressed: () => onMonthChanged(_addMonths(focusedMonth, -1)),
               icon: const Icon(Icons.chevron_left),
-              tooltip: '上个月',
+              tooltip: AppLocalizations.of(context)?.schPrevMonth ?? '上个月',
             ),
             Expanded(
               child: Text(
-                '${first.year} 年 ${first.month} 月',
+                AppLocalizations.of(context)?.schMonthTitle(
+                      first.year,
+                      first.month,
+                    ) ??
+                    '${first.year} 年 ${first.month} 月',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
@@ -90,7 +95,7 @@ class ScheduleCalendar extends StatelessWidget {
             IconButton(
               onPressed: () => onMonthChanged(_addMonths(focusedMonth, 1)),
               icon: const Icon(Icons.chevron_right),
-              tooltip: '下个月',
+              tooltip: AppLocalizations.of(context)?.schNextMonth ?? '下个月',
             ),
           ],
         ),

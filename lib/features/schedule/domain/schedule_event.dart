@@ -5,8 +5,8 @@ import 'package:drawing_notes_app/core/utils/time_serialization.dart';
 
 /// 日历上的一条「待办/日程」事件。
 ///
-/// 与 [ScheduleEntry]（文档活动派生条目）不同：这是用户亲手创建的
-/// 真实数据，持久化于本地，可勾选完成、可删除。
+/// 用户亲手创建的真实数据，持久化于本地，可勾选完成、可删除。
+/// （历史上的文档活动派生条目模型已随 F3 死代码清理删除。）
 class ScheduleEvent {
   const ScheduleEvent({
     required this.id,

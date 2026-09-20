@@ -1916,5 +1916,40 @@
   "tplTodoName": "待办清单",
   "@tplTodoName": {},
   "tplTodoDesc": "预置待办块",
-  "@tplTodoDesc": {}
+  "@tplTodoDesc": {},
+  "schPrevMonth": "上个月",
+  "@schPrevMonth": {},
+  "schNextMonth": "下个月",
+  "@schNextMonth": {},
+  "schToday": "今天",
+  "@schToday": {},
+  "schShowAllDates": "显示全部日期",
+  "@schShowAllDates": {},
+  "schAddEventTooltip": "添加待办（日期为选中日，未选中则为今天）",
+  "@schAddEventTooltip": {},
+  "schAllDay": "改为全天",
+  "@schAllDay": {},
+  "schAdd": "添加",
+  "@schAdd": {},
+  "schAddAtHour": "在 {hour} 点添加",
+  "@schAddAtHour": {
+    "placeholders": {
+      "hour": {"type": "int"}
+    }
+  },
+  "schMonthTitle": "{year} 年 {month} 月",
+  "@schMonthTitle": {
+    "placeholders": {
+      "year": {"type": "int"},
+      "month": {"type": "int"}
+    }
+  },
+  "schAllAgenda": "全部日程",
+  "@schAllAgenda": {},
+  "schDayTimeline": "当日安排 · 24 小时",
+  "@schDayTimeline": {},
+  "colorPickerSvHint": "饱和度与明度（键盘请用下方 RGB 输入）",
+  "@colorPickerSvHint": {},
+  "colorPickerHueHint": "色相（键盘请用下方 RGB 输入）",
+  "@colorPickerHueHint": {}
 }

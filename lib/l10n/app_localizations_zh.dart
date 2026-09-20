@@ -2625,4 +2625,47 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get tplTodoDesc => '预置待办块';
+
+  @override
+  String get schPrevMonth => '上个月';
+
+  @override
+  String get schNextMonth => '下个月';
+
+  @override
+  String get schToday => '今天';
+
+  @override
+  String get schShowAllDates => '显示全部日期';
+
+  @override
+  String get schAddEventTooltip => '添加待办（日期为选中日，未选中则为今天）';
+
+  @override
+  String get schAllDay => '改为全天';
+
+  @override
+  String get schAdd => '添加';
+
+  @override
+  String schAddAtHour(int hour) {
+    return '在 $hour 点添加';
+  }
+
+  @override
+  String schMonthTitle(int year, int month) {
+    return '$year 年 $month 月';
+  }
+
+  @override
+  String get schAllAgenda => '全部日程';
+
+  @override
+  String get schDayTimeline => '当日安排 · 24 小时';
+
+  @override
+  String get colorPickerSvHint => '饱和度与明度（键盘请用下方 RGB 输入）';
+
+  @override
+  String get colorPickerHueHint => '色相（键盘请用下方 RGB 输入）';
 }
