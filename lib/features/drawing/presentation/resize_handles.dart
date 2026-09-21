@@ -145,12 +145,18 @@ class ResizeHandles extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         for (final entry in handles)
-          _handle(handle: entry.handle, position: entry.position, size: size),
+          _handle(
+            context: context,
+            handle: entry.handle,
+            position: entry.position,
+            size: size,
+          ),
       ],
     );
   }
 
   Widget _handle({
+    required BuildContext context,
     required EditorShapeResizeHandle handle,
     required Offset position,
     required double size,
@@ -162,25 +168,30 @@ class ResizeHandles extends StatelessWidget {
     return Positioned(
       left: position.dx - _hitSize / 2,
       top: position.dy - _hitSize / 2,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onPanUpdate: (details) {
-          onResize(handle, screenToCanvasDelta(details.delta));
-          onChanged();
-        },
-        child: SizedBox(
-          width: _hitSize,
-          height: _hitSize,
-          child: Center(
-            child: Container(
-              width: size,
-              height: size,
-              decoration: BoxDecoration(
-                // 四-2 统一（审计第 4 轮遗留）：手柄蓝从 Material #42A5F5
-                // 归位品牌 Action Blue，与 canvas_painter 选框族一致。
-                color: AppleColor.actionBlue,
-                borderRadius: BorderRadius.circular(AppleRadius.xs),
-                border: Border.all(color: Colors.white, width: 1),
+      child: Semantics(
+        label:
+            AppLocalizations.of(context)?.canvasShapeHandleSemantics ?? '形状角柄',
+        button: true,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onPanUpdate: (details) {
+            onResize(handle, screenToCanvasDelta(details.delta));
+            onChanged();
+          },
+          child: SizedBox(
+            width: _hitSize,
+            height: _hitSize,
+            child: Center(
+              child: Container(
+                width: size,
+                height: size,
+                decoration: BoxDecoration(
+                  // 四-2 统一（审计第 4 轮遗留）：手柄蓝从 Material #42A5F5
+                  // 归位品牌 Action Blue，与 canvas_painter 选框族一致。
+                  color: AppleColor.actionBlue,
+                  borderRadius: BorderRadius.circular(AppleRadius.xs),
+                  border: Border.all(color: Colors.white, width: 1),
+                ),
               ),
             ),
           ),

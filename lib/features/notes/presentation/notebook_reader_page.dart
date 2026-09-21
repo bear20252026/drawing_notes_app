@@ -167,37 +167,41 @@ class _ReaderSheet extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: GestureDetector(
-          onTap: onTap,
-          child: FittedBox(
-            key: ValueKey('reader-sheet-${page.id}'),
-            child: SizedBox(
-              width: width,
-              height: height,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: CustomPaint(
-                      painter: NotebookPageCanvasPainter(page: page),
-                    ),
-                  ),
-                  // 图片内容层（EncryptedFileImage 同一解密管线：文件/VFS/
-                  // DNV/DAN/明文五态兼容；fail-closed 失败显示空块，
-                  // painter 底层仍有占位框）。
-                  for (final image in page.imageItems)
-                    if (image.filePath.isNotEmpty)
-                      Positioned(
-                        left: image.x,
-                        top: image.y,
-                        width: image.width,
-                        height: image.height,
-                        child: Image(
-                          image: EncryptedFileImage(File(image.filePath)),
-                          fit: BoxFit.fill,
-                          errorBuilder: (_, _, _) => const SizedBox.expand(),
-                        ),
+        child: Semantics(
+          button: true,
+          label: AppLocalizations.of(context)?.nbOpenPageForEdit ?? '打开页面进行编辑',
+          child: GestureDetector(
+            onTap: onTap,
+            child: FittedBox(
+              key: ValueKey('reader-sheet-${page.id}'),
+              child: SizedBox(
+                width: width,
+                height: height,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: CustomPaint(
+                        painter: NotebookPageCanvasPainter(page: page),
                       ),
-                ],
+                    ),
+                    // 图片内容层（EncryptedFileImage 同一解密管线：文件/VFS/
+                    // DNV/DAN/明文五态兼容；fail-closed 失败显示空块，
+                    // painter 底层仍有占位框）。
+                    for (final image in page.imageItems)
+                      if (image.filePath.isNotEmpty)
+                        Positioned(
+                          left: image.x,
+                          top: image.y,
+                          width: image.width,
+                          height: image.height,
+                          child: Image(
+                            image: EncryptedFileImage(File(image.filePath)),
+                            fit: BoxFit.fill,
+                            errorBuilder: (_, _, _) => const SizedBox.expand(),
+                          ),
+                        ),
+                  ],
+                ),
               ),
             ),
           ),

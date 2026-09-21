@@ -64,21 +64,19 @@ class _EdgelessPageState extends State<EdgelessPage> {
       doc: widget.initialDoc,
       onChanged: widget.onChanged,
     );
-    _controller.addListener(_onControllerChanged);
-    // D11：高频手势/相机 tick 与结构通知分域；当前页两者都 setState，
-    // 架构上已允许后续只让画布层订阅 gestureTick。
-    _controller.gestureTick.addListener(_onControllerChanged);
+    // D11：结构通知 → 整页 setState；手势/相机只由画布层
+    // ListenableBuilder 订阅 gestureTick，避免顶栏/工具条高频重建。
+    _controller.addListener(_onStructureChanged);
   }
 
   @override
   void dispose() {
-    _controller.removeListener(_onControllerChanged);
-    _controller.gestureTick.removeListener(_onControllerChanged);
+    _controller.removeListener(_onStructureChanged);
     _controller.dispose();
     super.dispose();
   }
 
-  void _onControllerChanged() {
+  void _onStructureChanged() {
     if (mounted) setState(() {});
   }
 
@@ -314,131 +312,160 @@ class _EdgelessPageState extends State<EdgelessPage> {
         body: LayoutBuilder(
           builder: (context, constraints) {
             _viewport = Size(constraints.maxWidth, constraints.maxHeight);
-            return GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTapUp: _onTapUp,
-              onDoubleTapDown: _onDoubleTap,
-              onScaleStart: _onScaleStart,
-              onScaleUpdate: _onScaleUpdate,
-              onScaleEnd: _onScaleEnd,
-              child: ClipRect(
-                child: Stack(
-                  children: [
-                    // 网格背景（在世界坐标系中，随相机平移/缩放）
-                    Positioned.fill(
-                      child: CustomPaint(
-                        painter: _EdgelessGridPainter(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.outlineVariant.withValues(alpha: 0.4),
-                        ),
-                      ),
-                    ),
-                    // 世界内容
-                    Transform(
-                      alignment: Alignment.topLeft,
-                      transform: _cameraMatrix(_viewport),
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          // 连接线层：绘制在帧下方（AFFiNE `affine:connector`）
-                          // 审计 U4：RepaintBoundary 隔离重绘边界（对齐
-                          // editor_page_canvas_surface 先例）。
-                          Positioned.fill(
-                            child: RepaintBoundary(
-                              child: CustomPaint(
-                                painter: _ConnectorPainter(
-                                  connectors: _controller.connectors,
-                                  framesById: _controller.framesById,
-                                ),
-                              ),
-                            ),
-                          ),
-                          // 笔迹/形状层（M11：brush / shape / eraser 工具）
-                          Positioned.fill(
-                            child: RepaintBoundary(
-                              child: CustomPaint(
-                                painter: _ElementPainter(
-                                  strokes: _controller.doc.strokes,
-                                  shapes: _controller.doc.shapes,
-                                  activeStroke: _controller.activeStroke,
-                                  shapeOrigin: _controller.shapeOrigin,
-                                  shapeKind: _controller.shapeKind,
-                                  lastFocalWorld: _lastFocal == null
-                                      ? null
-                                      : _controller.screenToWorld(
-                                          _lastFocal!,
-                                          _viewport,
-                                        ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          for (final f in _controller.framesSortedByZ)
-                            Positioned(
-                              key: ValueKey('frame_${f.id}'),
-                              left: f.x,
-                              top: f.y,
-                              width: f.w,
-                              height: f.h,
-                              child: _FrameCard(
-                                frame: f,
-                                selected: _controller.isSelected(f.id),
-                                onEdit: () => _openFrameEditor(f.id, f.doc),
-                                onRemove: () => _controller.removeFrame(f.id),
-                                onConnect: () => _controller.beginConnect(f.id),
-                                onResize: (topLeft, w, h) =>
-                                    _controller.resizeFrame(
-                                      f.id,
-                                      topLeft: topLeft,
-                                      w: w,
-                                      h: h,
+            return Semantics(
+              label:
+                  AppLocalizations.of(context)?.edgelessCanvasSemantics ??
+                  '无限画布：可平移缩放，工具面板在左侧',
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapUp: _onTapUp,
+                onDoubleTapDown: _onDoubleTap,
+                onScaleStart: _onScaleStart,
+                onScaleUpdate: _onScaleUpdate,
+                onScaleEnd: _onScaleEnd,
+                child: ClipRect(
+                  child: Stack(
+                    children: [
+                      // D11：世界内容层（网格 + 相机变换）只订 gestureTick。
+                      Positioned.fill(
+                        child: ListenableBuilder(
+                          listenable: _controller.gestureTick,
+                          builder: (context, _) {
+                            return Stack(
+                              children: [
+                                Positioned.fill(
+                                  child: CustomPaint(
+                                    painter: _EdgelessGridPainter(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .outlineVariant
+                                          .withValues(alpha: 0.4),
                                     ),
-                                onSetBackground: () {
-                                  final idx = _kFrameBackgrounds.indexOf(
-                                    f.background,
-                                  );
-                                  final next =
-                                      _kFrameBackgrounds[(idx + 1) %
-                                          _kFrameBackgrounds.length];
-                                  _controller.setFrameBackground(f.id, next);
-                                },
-                              ),
-                            ),
-                          // 群组框层：绘制在帧上方（AFFiNE `affine:group` 外接框）
-                          Positioned.fill(
-                            child: CustomPaint(
-                              painter: _GroupPainter(
-                                groups: _controller.groups,
-                                framesById: _controller.framesById,
-                                chipBgColor: Theme.of(
-                                  context,
-                                ).colorScheme.surface,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // AFFiNE 风格左侧工具面板（M11）
-                    const Positioned(
-                      left: 8,
-                      top: 0,
-                      bottom: 0,
-                      child: Center(child: _ToolPanel()),
-                    ),
-                    // 连线模式横幅
-                    if (_controller.connectMode)
-                      Positioned(
-                        top: 8,
-                        left: 8,
-                        right: 8,
-                        child: _ConnectBanner(
-                          sourceId: _controller.connectSourceFrameId!,
-                          onCancel: _controller.cancelConnect,
+                                  ),
+                                ),
+                                Transform(
+                                  alignment: Alignment.topLeft,
+                                  transform: _cameraMatrix(_viewport),
+                                  child: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      // 连接线层：绘制在帧下方（AFFiNE `affine:connector`）
+                                      // 审计 U4：RepaintBoundary 隔离重绘边界（对齐
+                                      // editor_page_canvas_surface 先例）。
+                                      Positioned.fill(
+                                        child: RepaintBoundary(
+                                          child: CustomPaint(
+                                            painter: _ConnectorPainter(
+                                              connectors:
+                                                  _controller.connectors,
+                                              framesById:
+                                                  _controller.framesById,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      // 笔迹/形状层（M11：brush / shape / eraser 工具）
+                                      Positioned.fill(
+                                        child: RepaintBoundary(
+                                          child: CustomPaint(
+                                            painter: _ElementPainter(
+                                              strokes: _controller.doc.strokes,
+                                              shapes: _controller.doc.shapes,
+                                              activeStroke:
+                                                  _controller.activeStroke,
+                                              shapeOrigin:
+                                                  _controller.shapeOrigin,
+                                              shapeKind: _controller.shapeKind,
+                                              lastFocalWorld: _lastFocal == null
+                                                  ? null
+                                                  : _controller.screenToWorld(
+                                                      _lastFocal!,
+                                                      _viewport,
+                                                    ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      for (final f
+                                          in _controller.framesSortedByZ)
+                                        Positioned(
+                                          key: ValueKey('frame_${f.id}'),
+                                          left: f.x,
+                                          top: f.y,
+                                          width: f.w,
+                                          height: f.h,
+                                          child: _FrameCard(
+                                            frame: f,
+                                            selected: _controller.isSelected(
+                                              f.id,
+                                            ),
+                                            onEdit: () =>
+                                                _openFrameEditor(f.id, f.doc),
+                                            onRemove: () =>
+                                                _controller.removeFrame(f.id),
+                                            onConnect: () =>
+                                                _controller.beginConnect(f.id),
+                                            onResize: (topLeft, w, h) =>
+                                                _controller.resizeFrame(
+                                                  f.id,
+                                                  topLeft: topLeft,
+                                                  w: w,
+                                                  h: h,
+                                                ),
+                                            onSetBackground: () {
+                                              final idx = _kFrameBackgrounds
+                                                  .indexOf(f.background);
+                                              final next =
+                                                  _kFrameBackgrounds[(idx + 1) %
+                                                      _kFrameBackgrounds
+                                                          .length];
+                                              _controller.setFrameBackground(
+                                                f.id,
+                                                next,
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      // 群组框层：绘制在帧上方（AFFiNE `affine:group` 外接框）
+                                      Positioned.fill(
+                                        child: CustomPaint(
+                                          painter: _GroupPainter(
+                                            groups: _controller.groups,
+                                            framesById: _controller.framesById,
+                                            chipBgColor: Theme.of(
+                                              context,
+                                            ).colorScheme.surface,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ), // Stack（Transform.child）
+                                ), // Transform
+                              ],
+                            ); // ListenableBuilder 内层 return Stack
+                          },
                         ),
                       ),
-                  ],
+                      // AFFiNE 风格左侧工具面板（M11）——结构通知才重建
+                      const Positioned(
+                        left: 8,
+                        top: 0,
+                        bottom: 0,
+                        child: Center(child: _ToolPanel()),
+                      ),
+                      // 连线模式横幅
+                      if (_controller.connectMode)
+                        Positioned(
+                          top: 8,
+                          left: 8,
+                          right: 8,
+                          child: _ConnectBanner(
+                            sourceId: _controller.connectSourceFrameId!,
+                            onCancel: _controller.cancelConnect,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             );

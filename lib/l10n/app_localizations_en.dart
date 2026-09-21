@@ -3095,4 +3095,70 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get edgelessStickyTitle => 'Sticky note';
+
+  @override
+  String get vaultErrUnknown => 'An unknown error occurred';
+
+  @override
+  String get vaultErrLocked =>
+      'Vault is locked; encrypted files cannot be read';
+
+  @override
+  String get vaultErrFilePassword =>
+      'This file is protected by a standalone password';
+
+  @override
+  String get vaultErrNoVault => 'Vault does not exist (password not set yet)';
+
+  @override
+  String get vaultErrEmptyPin => 'PIN cannot be empty';
+
+  @override
+  String get vaultErrMissingSlot => 'Vault is missing the PIN slot';
+
+  @override
+  String get vaultErrWrongPin => 'Wrong PIN or key material was tampered';
+
+  @override
+  String get vaultErrUnlockFail => 'Vault unlock failed';
+
+  @override
+  String get vaultErrCorrupt => 'Data format is invalid or corrupted';
+
+  @override
+  String get vaultErrNotEnvelope => 'Not a valid encrypted envelope';
+
+  @override
+  String get vaultErrKeyMismatch => 'Key mismatch or ciphertext tampered';
+
+  @override
+  String get vaultErrUnsupportedVersion =>
+      'Unsupported encryption envelope version';
+
+  @override
+  String get vaultErrFileCrypto => 'Encrypted file cannot be read';
+
+  @override
+  String get edgelessCanvasSemantics =>
+      'Infinite canvas: pan and zoom; tools on the left';
+
+  @override
+  String get canvasShapeHandleSemantics => 'Shape corner handle';
+
+  @override
+  String get canvasLinearHandleSemantics => 'Line endpoint handle';
+
+  @override
+  String edgelessFrameSemantics(String title) {
+    return 'Canvas note frame: $title';
+  }
+
+  @override
+  String get presNextSlide => 'Next slide (long-press to exit)';
+
+  @override
+  String get nbOpenPageForEdit => 'Open page to edit';
+
+  @override
+  String get attPreviewImage => 'Preview image';
 }

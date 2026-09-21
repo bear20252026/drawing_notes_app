@@ -2982,4 +2982,66 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get edgelessStickyTitle => '便签';
+
+  @override
+  String get vaultErrUnknown => '发生未知错误';
+
+  @override
+  String get vaultErrLocked => '保险库已锁定，加密文件不可读';
+
+  @override
+  String get vaultErrFilePassword => '文件受独立密码保护';
+
+  @override
+  String get vaultErrNoVault => '保险库不存在（尚未设置密码）';
+
+  @override
+  String get vaultErrEmptyPin => 'PIN 不能为空';
+
+  @override
+  String get vaultErrMissingSlot => '保险库缺少 PIN 槽位';
+
+  @override
+  String get vaultErrWrongPin => 'PIN 错误或密钥载荷被篡改';
+
+  @override
+  String get vaultErrUnlockFail => '保险库解锁失败';
+
+  @override
+  String get vaultErrCorrupt => '数据格式异常或已损坏';
+
+  @override
+  String get vaultErrNotEnvelope => '不是有效的加密信封';
+
+  @override
+  String get vaultErrKeyMismatch => '密钥不匹配或密文被篡改';
+
+  @override
+  String get vaultErrUnsupportedVersion => '不支持的加密信封版本';
+
+  @override
+  String get vaultErrFileCrypto => '加密文件无法读取';
+
+  @override
+  String get edgelessCanvasSemantics => '无限画布：可平移缩放，工具面板在左侧';
+
+  @override
+  String get canvasShapeHandleSemantics => '形状角柄';
+
+  @override
+  String get canvasLinearHandleSemantics => '线段端点拖柄';
+
+  @override
+  String edgelessFrameSemantics(String title) {
+    return '画布笔记帧：$title';
+  }
+
+  @override
+  String get presNextSlide => '下一页（长按退出）';
+
+  @override
+  String get nbOpenPageForEdit => '打开页面进行编辑';
+
+  @override
+  String get attPreviewImage => '预览图片';
 }

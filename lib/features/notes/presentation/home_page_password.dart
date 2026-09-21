@@ -167,9 +167,9 @@ extension _HomePagePasswordOps on _HomePageState {
       _showSnack(setMsg);
       await _refresh();
     } on VaultFileLockException {
-      _showSnack(_l10nSafe?.canvasVaultLockedSet ?? '加密底座已锁定：请重新验证开屏密码后再设置');
+      _showSnack(describeVaultError(const VaultFileLockException(), _l10nSafe));
     } catch (e) {
-      _showSnack(_l10nSafe?.docSetFailed ?? '设置失败，请重试');
+      _showSnack(describeVaultError(e, _l10nSafe));
     }
   }
 
@@ -192,10 +192,10 @@ extension _HomePagePasswordOps on _HomePageState {
             '已修改「${meta.title}」的独立密码',
       );
       await _refresh();
-    } on VaultFileException {
-      _showSnack(_l10nSafe?.docWrongPassword ?? '原密码不正确或密文已损坏');
+    } on VaultFileException catch (e) {
+      _showSnack(describeVaultError(e, _l10nSafe));
     } catch (e) {
-      _showSnack(_l10nSafe?.docChangeFailed ?? '修改失败，请重试');
+      _showSnack(describeVaultError(e, _l10nSafe));
     }
   }
 
@@ -213,8 +213,7 @@ extension _HomePagePasswordOps on _HomePageState {
     final usbKey = await ResetDiskFile.readFrom(dir);
     if (usbKey == null) {
       _showSnack(
-        _l10nSafe?.lockNoResetDisk ??
-            '未找到有效的重置密码盘文件（password_reset_disk.key）',
+        _l10nSafe?.lockNoResetDisk ?? '未找到有效的重置密码盘文件（password_reset_disk.key）',
       );
       return;
     }
@@ -225,11 +224,11 @@ extension _HomePagePasswordOps on _HomePageState {
       );
       await _refresh();
     } on StateError catch (e) {
-      _showSnack(e.message);
-    } on VaultFileException {
-      _showSnack(_l10nSafe?.docPasswordWrongOrCorrupt ?? '密码不正确或密文已损坏');
+      _showSnack(describeVaultError(e, _l10nSafe));
+    } on VaultFileException catch (e) {
+      _showSnack(describeVaultError(e, _l10nSafe));
     } catch (e) {
-      _showSnack(_l10nSafe?.docBindFailed ?? '绑定失败，请重试');
+      _showSnack(describeVaultError(e, _l10nSafe));
     }
   }
 
@@ -260,10 +259,10 @@ extension _HomePagePasswordOps on _HomePageState {
       _showSnack(
         _l10nSafe?.canvasVaultLockedRemove ?? '加密底座已锁定，无法回封：请重新验证开屏密码后再试',
       );
-    } on VaultFileException {
-      _showSnack(_l10nSafe?.docPasswordWrongOrCorrupt ?? '密码不正确或密文已损坏');
+    } on VaultFileException catch (e) {
+      _showSnack(describeVaultError(e, _l10nSafe));
     } catch (e) {
-      _showSnack(_l10nSafe?.docRemoveFailed ?? '移除失败，请重试');
+      _showSnack(describeVaultError(e, _l10nSafe));
     }
   }
 
@@ -282,5 +281,4 @@ extension _HomePagePasswordOps on _HomePageState {
       _showSnack(_l10nSafe?.homeDeleteFailed ?? '删除失败，请重试');
     }
   }
-
 }

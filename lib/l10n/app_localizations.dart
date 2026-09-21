@@ -5683,6 +5683,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sticky note'**
   String get edgelessStickyTitle;
+
+  /// No description provided for @vaultErrUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'An unknown error occurred'**
+  String get vaultErrUnknown;
+
+  /// No description provided for @vaultErrLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Vault is locked; encrypted files cannot be read'**
+  String get vaultErrLocked;
+
+  /// No description provided for @vaultErrFilePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'This file is protected by a standalone password'**
+  String get vaultErrFilePassword;
+
+  /// No description provided for @vaultErrNoVault.
+  ///
+  /// In en, this message translates to:
+  /// **'Vault does not exist (password not set yet)'**
+  String get vaultErrNoVault;
+
+  /// No description provided for @vaultErrEmptyPin.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN cannot be empty'**
+  String get vaultErrEmptyPin;
+
+  /// No description provided for @vaultErrMissingSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Vault is missing the PIN slot'**
+  String get vaultErrMissingSlot;
+
+  /// No description provided for @vaultErrWrongPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong PIN or key material was tampered'**
+  String get vaultErrWrongPin;
+
+  /// No description provided for @vaultErrUnlockFail.
+  ///
+  /// In en, this message translates to:
+  /// **'Vault unlock failed'**
+  String get vaultErrUnlockFail;
+
+  /// No description provided for @vaultErrCorrupt.
+  ///
+  /// In en, this message translates to:
+  /// **'Data format is invalid or corrupted'**
+  String get vaultErrCorrupt;
+
+  /// No description provided for @vaultErrNotEnvelope.
+  ///
+  /// In en, this message translates to:
+  /// **'Not a valid encrypted envelope'**
+  String get vaultErrNotEnvelope;
+
+  /// No description provided for @vaultErrKeyMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Key mismatch or ciphertext tampered'**
+  String get vaultErrKeyMismatch;
+
+  /// No description provided for @vaultErrUnsupportedVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsupported encryption envelope version'**
+  String get vaultErrUnsupportedVersion;
+
+  /// No description provided for @vaultErrFileCrypto.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted file cannot be read'**
+  String get vaultErrFileCrypto;
+
+  /// No description provided for @edgelessCanvasSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Infinite canvas: pan and zoom; tools on the left'**
+  String get edgelessCanvasSemantics;
+
+  /// No description provided for @canvasShapeHandleSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Shape corner handle'**
+  String get canvasShapeHandleSemantics;
+
+  /// No description provided for @canvasLinearHandleSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Line endpoint handle'**
+  String get canvasLinearHandleSemantics;
+
+  /// No description provided for @edgelessFrameSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Canvas note frame: {title}'**
+  String edgelessFrameSemantics(String title);
+
+  /// No description provided for @presNextSlide.
+  ///
+  /// In en, this message translates to:
+  /// **'Next slide (long-press to exit)'**
+  String get presNextSlide;
+
+  /// No description provided for @nbOpenPageForEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Open page to edit'**
+  String get nbOpenPageForEdit;
+
+  /// No description provided for @attPreviewImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview image'**
+  String get attPreviewImage;
 }
 
 class _AppLocalizationsDelegate

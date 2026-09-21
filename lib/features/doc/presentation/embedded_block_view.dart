@@ -114,86 +114,90 @@ class EmbeddedBlockView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 点击图片弹出全屏预览
-          GestureDetector(
-            onTap: () => showImagePreviewDialog(
-              context,
-              src: src,
-              caption: caption.isEmpty ? null : caption,
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppleRadius.sm),
-              child: Stack(
-                children: [
-                  Image.network(
-                    safeSrc,
-                    fit: BoxFit.cover,
-                    height: 200,
-                    width: double.infinity,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 160,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest
-                            .withValues(alpha: 0.5),
-                        alignment: Alignment.center,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.broken_image_outlined,
-                              size: 48,
-                              color: Theme.of(context).colorScheme.outline,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              AppLocalizations.of(context)?.embImageFailed ??
-                                  '图片加载失败',
-                              style: TextStyle(
+          Semantics(
+            button: true,
+            label: AppLocalizations.of(context)?.attPreviewImage ?? '预览图片',
+            child: GestureDetector(
+              onTap: () => showImagePreviewDialog(
+                context,
+                src: src,
+                caption: caption.isEmpty ? null : caption,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppleRadius.sm),
+                child: Stack(
+                  children: [
+                    Image.network(
+                      safeSrc,
+                      fit: BoxFit.cover,
+                      height: 200,
+                      width: double.infinity,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 160,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest
+                              .withValues(alpha: 0.5),
+                          alignment: Alignment.center,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.broken_image_outlined,
+                                size: 48,
                                 color: Theme.of(context).colorScheme.outline,
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                  // 预览提示覆盖层
-                  Positioned(
-                    right: 8,
-                    bottom: 8,
-                    child: IgnorePointer(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(AppleRadius.xs),
-                        ),
-                        // '点击预览' 走 caption 令牌（非 const，
-                        // 故 Row 去掉 const，子项各自保持 const）。
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.zoom_in,
-                              color: Colors.white,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              AppLocalizations.of(context)?.embClickPreview ??
-                                  '点击预览',
-                              style: AppleType.captionStyle(Colors.white),
-                            ),
-                          ],
+                              const SizedBox(height: 8),
+                              Text(
+                                AppLocalizations.of(context)?.embImageFailed ??
+                                    '图片加载失败',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.outline,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                    // 预览提示覆盖层
+                    Positioned(
+                      right: 8,
+                      bottom: 8,
+                      child: IgnorePointer(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(AppleRadius.xs),
+                          ),
+                          // '点击预览' 走 caption 令牌（非 const，
+                          // 故 Row 去掉 const，子项各自保持 const）。
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.zoom_in,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                AppLocalizations.of(context)?.embClickPreview ??
+                                    '点击预览',
+                                style: AppleType.captionStyle(Colors.white),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

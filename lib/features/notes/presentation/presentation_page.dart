@@ -42,10 +42,7 @@ class _PresentationPageState extends State<PresentationPage> {
           t.text,
           textAlign: TextAlign.center,
           // 演示模式大字：梯子 lead 28px。
-          style: AppleTypeScale.of(
-            AppleTypeScale.lead,
-            Colors.white,
-          ).copyWith(
+          style: AppleTypeScale.of(AppleTypeScale.lead, Colors.white).copyWith(
             fontWeight: t.bold ? FontWeight.bold : FontWeight.normal,
             fontStyle: t.italic ? FontStyle.italic : FontStyle.normal,
           ),
@@ -124,59 +121,63 @@ class _PresentationPageState extends State<PresentationPage> {
           }
           return KeyEventResult.ignored;
         },
-        child: GestureDetector(
-          onTap: _next,
-          onLongPress: () => Navigator.of(context).pop(),
-          child: Stack(
-            children: [
-              // 当前元素居中展示。
-              Center(
-                child: AnimatedSwitcher(
-                  duration: AppleMotion.modal,
-                  child: KeyedSubtree(
-                    key: ValueKey(_index),
-                    child: Padding(
-                      padding: const EdgeInsets.all(40),
-                      child: elements.isEmpty
-                          ? Text(
-                              AppLocalizations.of(context)?.presNoContent ??
-                                  '没有可演示的内容',
-                              style: const TextStyle(color: Colors.white54),
-                            )
-                          : elements[_index],
+        child: Semantics(
+          button: true,
+          label: AppLocalizations.of(context)?.presNextSlide ?? '下一页（长按退出）',
+          child: GestureDetector(
+            onTap: _next,
+            onLongPress: () => Navigator.of(context).pop(),
+            child: Stack(
+              children: [
+                // 当前元素居中展示。
+                Center(
+                  child: AnimatedSwitcher(
+                    duration: AppleMotion.modal,
+                    child: KeyedSubtree(
+                      key: ValueKey(_index),
+                      child: Padding(
+                        padding: const EdgeInsets.all(40),
+                        child: elements.isEmpty
+                            ? Text(
+                                AppLocalizations.of(context)?.presNoContent ??
+                                    '没有可演示的内容',
+                                style: const TextStyle(color: Colors.white54),
+                              )
+                            : elements[_index],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              // 底部进度指示。
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 24,
-                child: Center(
-                  child: Text(
-                    AppLocalizations.of(
-                          context,
-                        )?.presIndicator(_index + 1, elements.length) ??
-                        '${_index + 1} / ${elements.length} · 点击或 → 下一页，Esc 退出',
-                    style: AppleType.controlStyle(
-                      Colors.white38,
-                      weight: FontWeight.w400,
+                // 底部进度指示。
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 24,
+                  child: Center(
+                    child: Text(
+                      AppLocalizations.of(
+                            context,
+                          )?.presIndicator(_index + 1, elements.length) ??
+                          '${_index + 1} / ${elements.length} · 点击或 → 下一页，Esc 退出',
+                      style: AppleType.controlStyle(
+                        Colors.white38,
+                        weight: FontWeight.w400,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              // 左上角退出按钮。
-              Positioned(
-                left: 12,
-                top: 12,
-                child: IconButton(
-                  tooltip: AppLocalizations.of(context)?.presExit ?? '退出演示',
-                  icon: const Icon(Icons.close, color: Colors.white70),
-                  onPressed: () => Navigator.of(context).pop(),
+                // 左上角退出按钮。
+                Positioned(
+                  left: 12,
+                  top: 12,
+                  child: IconButton(
+                    tooltip: AppLocalizations.of(context)?.presExit ?? '退出演示',
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

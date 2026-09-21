@@ -14,6 +14,7 @@ import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/security/vault_error_messages.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
@@ -611,10 +612,10 @@ class _QuickUnlockTileState extends State<_QuickUnlockTile> {
       try {
         await widget.quickUnlock.enable(pin: pin, vault: widget.vault);
       } on QuickUnlockException catch (e) {
-        _snack(e.reason);
+        _snack(describeVaultError(e, l10n));
         return;
       } on VaultUnlockException catch (e) {
-        _snack(e.reason);
+        _snack(describeVaultError(e, l10n));
         return;
       } catch (e) {
         _snack(l10n?.lockQuickEnableFailed ?? '开启失败，请重试');
