@@ -59,7 +59,8 @@ void main() {
             'goldens/empty_state_${themeEntry.key}_${sizeEntry.key}.png',
           ),
         );
-      }, skip: _goldenHost ? null : 'Golden baseline is Windows-rendered');
+        // 非 Windows 跳过（bool skip；原因见文件头注释）。
+      }, skip: !_goldenHost);
     }
   }
 }
