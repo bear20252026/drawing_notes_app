@@ -2402,5 +2402,9 @@
   "nbOpenPageForEdit": "Open page to edit",
   "@nbOpenPageForEdit": {},
   "attPreviewImage": "Preview image",
-  "@attPreviewImage": {}
+  "@attPreviewImage": {},
+  "rootRefusalTitle": "Cannot start on this device",
+  "@rootRefusalTitle": {},
+  "rootRefusalBody": "Root access was detected. To protect your encrypted notes, this app refuses to run on a compromised device.",
+  "@rootRefusalBody": {}
 }

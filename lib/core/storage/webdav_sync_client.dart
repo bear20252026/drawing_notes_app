@@ -7,6 +7,7 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
+import 'package:drawing_notes_app/core/utils/filename_sanitize.dart';
 
 /// WebDAV 同步异常。
 class WebDavSyncException implements Exception {
@@ -66,8 +67,8 @@ class WebDavSyncClient {
 
   /// 远端路径段白名单（P1 修复：默认 NoopSyncCipher 下 `remotePath=id`，
   /// `id="../../.."` 经 `baseUrl.resolve` 逃逸集合——遍历写/删）。
-  /// 允许路由分隔 `/`；每段仅 `[A-Za-z0-9_.~\-]`（覆盖冲突副本 `~`）。
-  static final RegExp _safeSegment = RegExp(r'^[A-Za-z0-9_.~\-]+$');
+  /// F10：规则收口到 core/utils/filename_sanitize.dart。
+  static final RegExp _safeSegment = kSafeRemotePathSegment;
 
   /// 是否本地回环（http 仅在此放行——不出设备，无嗅探面）。
   static bool _isLoopback(String host) {

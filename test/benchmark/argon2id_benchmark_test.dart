@@ -13,6 +13,7 @@
 @Timeout(Duration(minutes: 5))
 library;
 
+import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
 
@@ -56,6 +57,16 @@ Future<Duration> _time(Future<Object?> Function() task) async {
 }
 
 void main() {
+  // H8: skip heavy KDF benchmark in the default suite.
+  // Run: RUN_KDF_BENCHMARK=1 flutter test test/benchmark/argon2id_benchmark_test.dart
+  if (Platform.environment['RUN_KDF_BENCHMARK'] != '1') {
+    test(
+      'Argon2id benchmark skipped by default (H8)',
+      () {},
+      skip: 'set RUN_KDF_BENCHMARK=1 to run',
+    );
+    return;
+  }
   // 变量名避开 `password =` 赋值模式——tools/scan_secrets.py 凭据赋值
   // 规则会误报（此为公开基准密码，非任何真实凭据）。
   const benchPw = 'benchmark-password-1234';

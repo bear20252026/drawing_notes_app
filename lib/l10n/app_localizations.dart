@@ -5803,6 +5803,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Preview image'**
   String get attPreviewImage;
+
+  /// No description provided for @rootRefusalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot start on this device'**
+  String get rootRefusalTitle;
+
+  /// No description provided for @rootRefusalBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Root access was detected. To protect your encrypted notes, this app refuses to run on a compromised device.'**
+  String get rootRefusalBody;
 }
 
 class _AppLocalizationsDelegate

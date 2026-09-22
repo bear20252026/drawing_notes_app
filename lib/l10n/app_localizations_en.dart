@@ -3161,4 +3161,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get attPreviewImage => 'Preview image';
+
+  @override
+  String get rootRefusalTitle => 'Cannot start on this device';
+
+  @override
+  String get rootRefusalBody =>
+      'Root access was detected. To protect your encrypted notes, this app refuses to run on a compromised device.';
 }

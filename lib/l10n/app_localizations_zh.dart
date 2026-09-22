@@ -3044,4 +3044,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get attPreviewImage => '预览图片';
+
+  @override
+  String get rootRefusalTitle => '无法在此设备上启动';
+
+  @override
+  String get rootRefusalBody => '检测到设备已获取 ROOT 权限。为保护你的加密笔记数据，本应用在已破解设备上拒绝运行。';
 }

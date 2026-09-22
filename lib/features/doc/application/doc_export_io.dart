@@ -1,58 +1,15 @@
-import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
+import 'package:drawing_notes_app/core/utils/filename_sanitize.dart';
 // 由 Claude 团队生成 | Drawing Notes App
 // 文档导出落盘辅助（M12.5/6）：文件名安全化 + 写入系统文档目录。
-// 转换逻辑在域层（note_block_doc_markdown.dart / doc_html_export.dart），
-// 本文件只做 IO——单一职责，避免转换与落盘耦合。
+// F10：规则收口到 core/utils/filename_sanitize.dart。
+
+export 'package:drawing_notes_app/core/utils/filename_sanitize.dart'
+    show sanitizeFileName, sanitizeExportFileName;
 
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:path_provider/path_provider.dart';
-
-/// Windows 保留设备名（不区分大小写、忽略尾点尾空格）。
-const _reservedDeviceNames = {
-  'con',
-  'prn',
-  'aux',
-  'nul',
-  'com1',
-  'com2',
-  'com3',
-  'com4',
-  'com5',
-  'com6',
-  'com7',
-  'com8',
-  'com9',
-  'lpt1',
-  'lpt2',
-  'lpt3',
-  'lpt4',
-  'lpt5',
-  'lpt6',
-  'lpt7',
-  'lpt8',
-  'lpt9',
-};
-
-/// 文件名安全化：去除路径非法字符 + 尾点/尾空格（Windows 文件名禁尾点）。
-/// P2 加固：控制字符剥离 + 200 字上限（超长写失败 DoS）+ 保留设备名
-/// （CON/NUL 写失败/误操作）+ 扩展名白名单化（调用方透传 `../../exe`
-/// 即遍历/双扩展名欺骗）。
-String sanitizeFileName(String raw) {
-  var cleaned = raw
-      // ignore: control_character_in_regex
-      .replaceAll(RegExp('[\u0000-\u001f\u007f]'), '')
-      .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .trim()
-      .replaceAll(RegExp(r'[. ]+$'), '');
-  if (cleaned.isEmpty) return DomainDisplayLabels.filesystemUntitled;
-  if (cleaned.length > 200) cleaned = cleaned.substring(0, 200);
-  final stem = cleaned.split('.').first.toLowerCase();
-  if (_reservedDeviceNames.contains(stem)) cleaned = '_$cleaned';
-  return cleaned;
-}
 
 /// 导出扩展名白名单（未知格式拒绝——防调用方透传遍历/可执行扩展名）。
 const _allowedExportExtensions = {
@@ -111,7 +68,7 @@ Future<String> _resolveExportPath({
   final dir = Directory('${docsDir.path}${Platform.pathSeparator}绘图笔记导出');
   // P3：全部异步 IO——existsSync/createSync 在 UI isolate 会造成微卡顿。
   if (!dir.existsSync()) await dir.create(recursive: true);
-  final base = sanitizeFileName(baseName);
+  final base = sanitizeExportFileName(baseName);
   final ext = _sanitizeExtension(extension);
   var path = '${dir.path}${Platform.pathSeparator}$base.$ext';
   var n = 1;

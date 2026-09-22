@@ -1,5 +1,12 @@
 # 内存占用排查报告（2026-09-06）
 
+> **2026-09-21 状态核对（代码为准，本文档部分项已过时）**：
+> - #3 StrokePictureCache LRU **已修**：淘汰时 `picture.dispose()`（`stroke_picture_cache.dart`）。
+> - #2 文档图片缓存 **已修**：`DocumentImageCache` LRU + 默认 96MB 预算 + `dispose`。
+> - #1 图层后台释放 **已修**：`LayerRenderCacheCoordinator.releaseForBackground` + `AppLifecycleListener`。
+> - #4 块文档撤销 **已修**：`NoteBlockHistory.maxSteps` 默认 **50**（自 100 下调）。
+> 下列原文保留作背景，勿按「未做」重复开工。
+
 ## 结论（先看这里）
 
 **1 GB 内存不是单一代码 bug 造成的，而是「引擎基线 + 多处常驻内存策略 + 2 处真泄漏」叠加的结果。**

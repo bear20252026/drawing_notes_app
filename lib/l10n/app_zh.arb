@@ -2270,5 +2270,9 @@
   "nbOpenPageForEdit": "打开页面进行编辑",
   "@nbOpenPageForEdit": {},
   "attPreviewImage": "预览图片",
-  "@attPreviewImage": {}
+  "@attPreviewImage": {},
+  "rootRefusalTitle": "无法在此设备上启动",
+  "@rootRefusalTitle": {},
+  "rootRefusalBody": "检测到设备已获取 ROOT 权限。为保护你的加密笔记数据，本应用在已破解设备上拒绝运行。",
+  "@rootRefusalBody": {}
 }

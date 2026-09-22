@@ -12,6 +12,7 @@ import 'package:window_manager/window_manager.dart';
 import 'app.dart';
 import 'core/security/audit_logger.dart';
 import 'core/security/root_guard.dart';
+import 'l10n/app_localizations.dart';
 import 'package:drawing_notes_app/shared/widgets/liquid_glass_shader.dart';
 
 /// 单实例锁（借鉴 QOwnNotes 二次启动聚焦：
@@ -159,33 +160,41 @@ class RootRefusalApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.gpp_bad_rounded,
-                  size: 64,
-                  color: AppleColor.errorRed,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Builder(
+        builder: (context) {
+          final l10n = AppLocalizations.of(context);
+          return Scaffold(
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.gpp_bad_rounded,
+                      size: 64,
+                      color: AppleColor.errorRed,
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      l10n?.rootRefusalTitle ?? '无法在此设备上启动',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      l10n?.rootRefusalBody ??
+                          '检测到设备已获取 ROOT 权限。为保护你的加密笔记数据，'
+                              '本应用在已破解设备上拒绝运行。',
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 20),
-                Text(
-                  '无法在此设备上启动',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  '检测到设备已获取 ROOT 权限。为保护你的加密笔记数据，'
-                  '本应用在已破解设备上拒绝运行。',
-                  textAlign: TextAlign.center,
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
