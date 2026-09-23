@@ -2,6 +2,7 @@
 @Timeout(Duration(minutes: 3))
 library;
 
+import 'dart:async' show unawaited;
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -163,4 +164,38 @@ void main() {
     expect(await upgraded.listDocuments(), hasLength(2));
     await Future<void>.delayed(const Duration(milliseconds: 200));
   });
+
+  test('Windows 共享冲突：目标句柄被短暂占用时保存经退避重试自愈', () async {
+    // 根因回归（2026-09-24）：_replaceWithTemp 的 delete/rename 曾在
+    // errno 32 上裸失败，杀毒/索引器短暂持句柄即中断整次保存（本机
+    // 全量套件懒迁移偶发失败的单链根因）。40ms 的占用覆盖前两次退避
+    // （25/50ms），第 3 次（~75ms）应自愈；即使调度抖动，后续 150/250ms
+    // 两档仍有宽裕余量。
+    final key = VaultKeyService.randomBytes(32);
+    final storage = StorageService(
+      directoryProvider: () async => tempDir,
+      keyProvider: () async => key,
+    );
+    await storage.save(doc('lock_doc', '占用回归'));
+    final f = File(docPath('lock_doc'));
+
+    final RandomAccessFile handle = await f.open(mode: FileMode.append);
+    var closed = false;
+    Future<void> closeOnce() async {
+      if (closed) return;
+      closed = true;
+      await handle.close();
+    }
+
+    unawaited(
+      Future<void>.delayed(const Duration(milliseconds: 40), closeOnce),
+    );
+    try {
+      await storage.save(doc('lock_doc', '占用回归v2'));
+    } finally {
+      await closeOnce();
+    }
+    final loaded = await storage.load('lock_doc');
+    expect(loaded?.title, '占用回归v2');
+  }, skip: Platform.isWindows ? false : 'errno 32 共享冲突仅 Windows 有语义');
 }

@@ -1,3 +1,9 @@
+// 超时放宽到 5 分钟：`setUpAll` 的全仓依赖图收集在满负载全量套件下
+// 会超默认 30 秒（2026-09-24 懒迁移降噪专项，本机全量曾偶发超时，
+// 单跑秒级通过）。
+@Timeout(Duration(minutes: 5))
+library;
+
 import 'package:dart_arch_test/dart_arch_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 

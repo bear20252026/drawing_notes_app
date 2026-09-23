@@ -2,6 +2,22 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [未发布]
+
+### 懒迁移/全量套件负载 flake 降噪专项
+
+- **生产根因修复**：`StorageService._replaceWithTemp` 对 Windows 共享冲突
+  （errno 32/5：杀毒/索引器短暂持句柄、delete-pending 窗口）加有界退避
+  重试（5 次，25→100ms）——此前 delete/rename 裸失败会中断整次保存，
+  是本机全量套件懒迁移用例偶发失败的单链根因；与既有 `_readWithRetry`
+  同思路，`.bak` 先行落盘故重试不放大风险。新增 Windows-only 回归
+  （句柄占用 40ms，第 3 次退避自愈）。
+- **超时放宽**：`architecture_test` 全仓依赖图收集（setUpAll）放宽到
+  5 分钟（库级 `@Timeout`，默认 30s 满负载下曾击穿）；`file_password_v3_test`
+  真 KDF 排队 3→5 分钟（AGENTS 约定值之上的余量，仅测试）。
+- **验证**：修复前 4 轮全量 3 轮各现 1-3 例随机失败（单跑均秒级通过）；
+  修复后连续 3 轮全量 +1971 全绿。
+
 ## [1.17.13] - 2026-09-23
 
 ### 全量审计收口（问题清单见 docs/audit_full_2026-09-23.html，untracked）

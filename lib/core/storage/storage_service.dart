@@ -560,13 +560,30 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
   /// 首选 rename（POSIX 原子替换）；若 Windows 拒绝覆盖已有文件，则在已经
   /// 生成 `.bak` 的前提下删除旧目标并立即换入完整临时文件。加载逻辑会在
   /// 正式文件缺失或损坏时读取 `.bak`，因此崩溃窗口不会表现为文档消失。
+  ///
+  /// Windows 共享冲突退避（2026-09-24 懒迁移 flake 根因修复）：杀毒/
+  /// 索引器/并发读会短暂持有目标句柄——delete 抛 errno 32，甚至 delete
+  /// 返回后的 delete-pending 窗口里 rename 也会失败。与 [_readWithRetry]
+  /// 同思路做有界退避重试：`.bak` 已先行落盘，重试不放大风险；耗尽后
+  /// 按原样抛出（备份仍在，读路径可恢复）。
   Future<void> _replaceWithTemp(File tmp, File destination) async {
-    try {
-      await tmp.rename(destination.path);
-    } on FileSystemException {
-      if (!destination.existsSync()) rethrow;
-      await destination.delete();
-      await tmp.rename(destination.path);
+    for (var attempt = 1;; attempt++) {
+      try {
+        try {
+          await tmp.rename(destination.path);
+        } on FileSystemException {
+          if (!destination.existsSync()) rethrow;
+          await destination.delete();
+          await tmp.rename(destination.path);
+        }
+        return;
+      } on FileSystemException catch (e) {
+        // errno 5（拒绝访问）多为 delete-pending 句柄窗口，同属瞬态。
+        final code = e.osError?.errorCode;
+        final transient = code == 32 || code == 5;
+        if (!transient || attempt >= 5) rethrow;
+        await Future<void>.delayed(Duration(milliseconds: 25 * attempt));
+      }
     }
   }
 

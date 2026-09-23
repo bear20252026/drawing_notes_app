@@ -5,8 +5,10 @@
 /// 冷实例（重启语义）锁定占位与跨实例续写。
 ///
 /// 注：批B 起新槽位默认 Argon2id（64MiB t2 p2）——测试注入轻量参数
-/// （KdfParams.testLight），槽位格式与生产一致；仍放宽超时到 3 分钟。
-@Timeout(Duration(minutes: 3))
+/// （KdfParams.testLight），槽位格式与生产一致；放宽超时到 5 分钟
+/// （原 3 分钟，AGENTS 约定值）——满负载全量套件下多套件真 KDF 并行
+/// 排队曾把 3 分钟击穿（2026-09-24 懒迁移降噪专项，本机实测偶发）。
+@Timeout(Duration(minutes: 5))
 library;
 
 import 'dart:io';
