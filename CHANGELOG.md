@@ -2,6 +2,21 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.13] - 2026-09-23
+
+### 全量审计收口（问题清单见 docs/audit_full_2026-09-23.html，untracked）
+
+- **裁撤记录补登**：M11 第二阶段裁撤日历页（`features/schedule`）与纯笔记占位页（`notes_writing_page`）于本周期提交（c5838ca），CHANGELOG 此前未记录，特此补登。
+- **D12 续（61d72ba）**：marker 层增量脏矩形放行——区域重绘走 `InkLayerPainter` 计划（同色分组 darken 层），区域内先 `clear` 再从透明重绘与全量逐像素等价；整数对齐区域回归锁定全图零字节差异（含高亮画布落笔不再整层重建）。
+- **CI 冒烟假绿根因修复**：2026-09-06 起无头环境 0/4 失败的真因是 runner 系统 locale 为 en_US 而 App 渲染英文、断言用中文文案（非当时误诊的「首帧渲染差异」）；smoke 强制 `localeTestValue/localesTestValue=zh` 并移除 `release-build.yml` 的 `continue-on-error`。
+- **性能**：笔记本文本导入的 20MB 分段解析移入 `Isolate.run`（不再卡主 isolate 多帧）；数据库块 `jsonDecode` 补 64KB 上限（与附件块同纪律）。
+- **重建收敛**：3 处 `MediaQuery.of` → `viewInsetsOf/disableAnimationsOf/highContrastOf/sizeOf` 专属访问器。
+- **三输入/无障碍**：密码盘退格/确认键补 `Semantics(button:)`；画布图片/文字对象叠加层补语义与 button 角色；edgeless 便签框角柄与画板旋转手柄扩为 44×44 命中区（视觉不变）；表格编辑器 32px 按钮与文档分享 34px 按钮回到 44 最小触控；画板标题补「重命名」Tooltip；密码盘错误抖动接入减弱动效三信号（不位移）。
+- **设计令牌**：15 处等值颜色字面量收编（`Color(0xFFFFFFFF)`→`AppleColor.surfaceWhite`、`0xFFFF3B30`→`errorRed`）；7 处 `FontWeight.w700/bold`→`w600`（DESIGN.md:369）；非法圆角归档（4→xs、10→md、2→0、FAB/导航胶囊→pill、skeleton 裸值→令牌）。
+- **l10n**：新增 6 键（canvasKindImage/Text、frameCornerSemantics、pinBackspace/Confirm、edgelessTitle）；`'Edgeless'` 标题、`'Untitled'` 提示、命令面板 Tooltip 去硬编码；zh arb 补 39 键 `@` 元数据；`homeDeleteNoteConfirm` 占位符声明类型化。
+- **测试稳健性**：`memory_p0_regression_test` 的 DocumentImageCache 用例由固定 20ms 魔法等待改为轮询等待（上限 2s）——满负载全量跑曾两次偶发失败、单跑通过。
+- **工程卫生**：`.gitignore` 补 `/.mimosa/`、`/.workbuddy/`、`/.zcode/`、临时 codemod 脚本与 `/docs/audit_*.html` 约定；`ARCHITECTURE.md` 修复被 F9 段落截断的模块表并移除 schedule 行；`DESIGN_SYSTEM.md` 覆盖面清单移除已裁撤页；README 功能概览补块文档增强/文档互操作/工作台增强三行；4 处测试静默 catch 补理由注释；修复 `integration_test/smoke_test.dart` 的 `localeTestOverride`→`localeTestValue/localesTestValue` API 误用。
+
 ## [1.17.12] - 2026-09-20
 
 ### E6/E1 存储展示分离 + D11 通知分域 + D12 封顶增量 + F9 结构定调

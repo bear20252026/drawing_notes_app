@@ -315,7 +315,7 @@ class _EdgelessPaletteSheetState extends State<_EdgelessPaletteSheet> {
     }
 
     return SizedBox(
-      height: MediaQuery.of(context).size.height * 0.62,
+      height: MediaQuery.sizeOf(context).height * 0.62,
       child: Column(
         children: [
           Padding(

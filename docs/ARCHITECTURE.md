@@ -17,12 +17,13 @@
 | `features/doc` | **笔记**（AFFiNE Page 式打字文档）：块编辑核心、块 UI、页面壳 | `doc_page.dart`、`doc_editor.dart`、`presentation/block_*` |
 | `features/notes` | 画板·笔记本宿主：无限画布（Edgeless）、笔记本（画布页集合）、搜索、快捷键盘会话 | `presentation/edgeless_page.dart`、`home_page.dart` |
 | `features/drawing` | 绘图引擎：DrawingDocument、图层位图、笔刷/形状/选区/对象编辑 | `application/drawing_controller.dart`、`presentation/editor_page*.dart` |
+| `features/all_docs` | 全部文档工作台：列表/搜索/收藏/排序/文档树/标签/回收站 | `presentation/all_docs_page.dart` |
 
 ### editor_page part 结构（F9 说明，2026-09-20）
 
 `presentation/editor_page.dart` 按 **O1 域分权** 拆为多个 `part`（actions / persistence / editing / overlays / shortcuts …），与 `home_page_password.dart` 等拆分同一原则：**每个 part 对应一个可独立评审的行为域**，避免单文件超过 DCM/行数门禁。F9「六分文件合并」在无行为重复、门禁已绿的前提下**不再合并**——合并只会重新制造超长文件。后续新增逻辑请继续落到对应域 part，而不是回填 `editor_page.dart` 本体。
-| `features/all_docs` | 全部文档工作台：列表/搜索/收藏/排序/文档树 | `presentation/all_docs_page.dart` |
-| `features/schedule` | 日历·待办：月历 + 24 小时时间轴事件 | `presentation/schedule_page.dart` |
+
+> 2026-09-23：`features/schedule`（日历·待办）已按 M11 第二阶段裁撤（commit c5838ca），本表同步移除。
 
 ## 3. 依赖规则（允许的方向）
 

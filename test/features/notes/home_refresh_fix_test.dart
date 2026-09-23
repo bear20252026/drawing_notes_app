@@ -29,7 +29,7 @@ void main() {
   tearDown(() async {
     try {
       await tempDir.delete(recursive: true);
-    } catch (_) {}
+    } catch (_) {} // 临时目录清理尽力而为：失败交由系统临时目录回收。
   });
 
   group('修复①：存储层写成功回调（onWrite）', () {

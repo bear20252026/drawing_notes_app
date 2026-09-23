@@ -6,6 +6,7 @@ import 'package:perfect_freehand/perfect_freehand.dart' hide StrokePoint;
 
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/pencil_shader.dart';
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 
 /// 笔画渲染器：将原始输入点转为连续、填充式的压感笔触轮廓。
 ///
@@ -105,7 +106,7 @@ class StrokeRenderer {
       if (shader != null) {
         paint
           ..color =
-              const Color(0xFFFFFFFF) // shader 自带颜色与透明度
+              AppleColor.surfaceWhite // shader 自带颜色与透明度
           ..shader = shader
           ..maskFilter = MaskFilter.blur(
             BlurStyle.normal,

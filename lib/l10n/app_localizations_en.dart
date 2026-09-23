@@ -1518,7 +1518,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String homeDeleteNoteConfirm(Object name) {
+  String homeDeleteNoteConfirm(String name) {
     return 'Delete the note “$name”? This cannot be undone.';
   }
 
@@ -3041,6 +3041,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get canvasKindRotateHandle => 'rotation handle';
+
+  @override
+  String get canvasKindImage => 'image';
+
+  @override
+  String get canvasKindText => 'text';
+
+  @override
+  String get frameCornerSemantics => 'Adjust note frame corner';
+
+  @override
+  String get pinBackspace => 'Backspace';
+
+  @override
+  String get pinConfirm => 'Confirm';
+
+  @override
+  String get edgelessTitle => 'Edgeless';
 
   @override
   String get canvasSearchFieldHint => 'Search';

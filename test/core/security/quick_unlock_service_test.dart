@@ -46,7 +46,7 @@ VaultKeyService _tempVault() {
   addTearDown(() {
     try {
       dir.deleteSync(recursive: true);
-    } catch (_) {}
+    } catch (_) {} // 临时目录清理尽力而为：Windows 句柄延迟释放时交由系统临时目录回收。
   });
   return VaultKeyService(
     vaultFileResolver: () async =>

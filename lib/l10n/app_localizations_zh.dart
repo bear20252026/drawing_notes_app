@@ -1448,7 +1448,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String homeDeleteNoteConfirm(Object name) {
+  String homeDeleteNoteConfirm(String name) {
     return '确定删除笔记「$name」吗？此操作不可恢复。';
   }
 
@@ -2928,6 +2928,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get canvasKindRotateHandle => '旋转手柄';
+
+  @override
+  String get canvasKindImage => '图片';
+
+  @override
+  String get canvasKindText => '文字';
+
+  @override
+  String get frameCornerSemantics => '调整便签框角点';
+
+  @override
+  String get pinBackspace => '退格';
+
+  @override
+  String get pinConfirm => '确认';
+
+  @override
+  String get edgelessTitle => 'Edgeless';
 
   @override
   String get canvasSearchFieldHint => '搜索';

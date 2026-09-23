@@ -21,7 +21,7 @@ void main() {
   tearDown(() async {
     try {
       await tmp.delete(recursive: true);
-    } catch (_) {}
+    } catch (_) {} // 临时目录清理尽力而为：失败交由系统临时目录回收。
   });
 
   test('listDocuments 返回 id/updatedAt/size 元数据', () async {

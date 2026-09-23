@@ -796,8 +796,8 @@ class DocEditorState extends State<DocEditor> {
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
       child: TextField(
         controller: _titleController,
-        decoration: const InputDecoration(
-          hintText: 'Untitled',
+        decoration: InputDecoration(
+          hintText: AppLocalizations.of(context)?.docUntitled ?? '未命名',
           border: InputBorder.none,
         ),
         style: AppleType.titleStyle(

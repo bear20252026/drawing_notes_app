@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/widgets.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_motion.dart';
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 
 /// 液态玻璃分档（DESIGN_SYSTEM.md §5 落地分档）。
 ///
@@ -54,7 +55,7 @@ class LiquidGlassShader {
     required double radius,
     required double timeSeconds,
     double intensity = 1.0,
-    Color tint = const Color(0xFFFFFFFF),
+    Color tint = AppleColor.surfaceWhite,
     double aberration = 2.0,
   }) {
     final program = _program;

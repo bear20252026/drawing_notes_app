@@ -40,6 +40,20 @@ Future<ui.Image> _pixelImage(int width, int height) {
   return completer.future;
 }
 
+/// 轮询等待真实引擎异步完成（替代固定 20ms 魔法等待——满负载并发
+/// 跑全量套件时 20ms 不够，2026-09-23 全量跑两次均在此偶发失败）。
+/// 超时后直接返回，让随后的 expect 带原始断言信息失败。
+Future<void> _waitUntil(
+  bool Function() probe, {
+  Duration timeout = const Duration(seconds: 2),
+}) async {
+  final sw = Stopwatch()..start();
+  while (!probe()) {
+    if (sw.elapsed > timeout) return;
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+  }
+}
+
 void main() {
   group('StrokePictureCache：LRU 淘汰后条数有界（P0 #3）', () {
     test('超过 maxCacheCount 后条数不再增长（淘汰不泄漏）', () {
@@ -85,12 +99,12 @@ void main() {
     await tester.runAsync(() async {
       // 载入 a → 保留。
       cache.imageFor(a);
-      await Future<void>.delayed(const Duration(milliseconds: 20));
+      await _waitUntil(() => cache.imageFor(a) != null);
       expect(cache.imageFor(a), isNotNull, reason: 'a 应已解码');
 
       // 载入 b → a 是最久未用且总字节超预算，应被 LRU 淘汰。
       cache.imageFor(b);
-      await Future<void>.delayed(const Duration(milliseconds: 20));
+      await _waitUntil(() => cache.imageFor(b) != null);
       expect(cache.imageFor(b), isNotNull, reason: 'b 应已解码');
       expect(cache.imageFor(a), isNull, reason: 'a 应被 LRU 淘汰并释放');
     });
@@ -98,7 +112,7 @@ void main() {
     // 淘汰的 a 会再触发异步重新加载（budget 内只有它，按需重新解码）。
     await tester.runAsync(() async {
       cache.imageFor(a);
-      await Future<void>.delayed(const Duration(milliseconds: 20));
+      await _waitUntil(() => cache.imageFor(a) != null);
       expect(cache.imageFor(a), isNotNull, reason: 'a 被淘汰后按需重新解码');
     });
   });

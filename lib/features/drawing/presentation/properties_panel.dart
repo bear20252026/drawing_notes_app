@@ -74,7 +74,7 @@ class PropertiesPanel extends StatelessWidget {
               // ---- 画笔属性 ----
               Text(
                 AppLocalizations.of(context)?.propBrush ?? '画笔',
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 6),
               Row(
@@ -142,7 +142,7 @@ class PropertiesPanel extends StatelessWidget {
               if (selectedImage != null) ...[
                 Text(
                   AppLocalizations.of(context)?.propImage ?? '图片',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Row(
@@ -167,7 +167,7 @@ class PropertiesPanel extends StatelessWidget {
               if (selectedShape != null) ...[
                 Text(
                   AppLocalizations.of(context)?.propShape ?? '形状',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Row(
@@ -245,7 +245,7 @@ class PropertiesPanel extends StatelessWidget {
               if (selectedText != null) ...[
                 Text(
                   AppLocalizations.of(context)?.propText ?? '文字',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Row(

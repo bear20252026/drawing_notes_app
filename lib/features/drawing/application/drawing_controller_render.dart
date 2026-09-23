@@ -203,7 +203,7 @@ extension DrawingControllerRenderOps on DrawingController {
     // 白色纸面背景（导出图片以白纸为底）。
     canvas.drawRect(
       ui.Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble()),
-      Paint()..color = const Color(0xFFFFFFFF),
+      Paint()..color = AppleColor.surfaceWhite,
     );
     canvas.scale(effectiveScale);
     canvas.translate(-bounds.left, -bounds.top);

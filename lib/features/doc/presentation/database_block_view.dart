@@ -31,10 +31,15 @@ class DatabaseBlockView extends StatefulWidget {
   /// 编辑回调（写回新的 NoteBlock）。
   final ValueChanged<NoteBlock>? onChanged;
 
+  /// 解码长度上限，与 attachment_block_view 的 64KB 上限同一纪律：
+  /// 超限 JSON 在主 isolate 上 jsonDecode 会卡首帧，直接按损坏回退空库。
+  static const int _maxDatabaseJsonBytes = 64 * 1024;
+
   /// 从块 props 解析 NoteDatabase；失败/缺失时返回空库。
   static NoteDatabase decodeDatabase(NoteBlock block) {
     final raw = block.props['database'];
     if (raw is! String || raw.isEmpty) return NoteDatabase.empty();
+    if (raw.length > _maxDatabaseJsonBytes) return NoteDatabase.empty();
     try {
       final obj = jsonDecode(raw);
       if (obj is Map<String, dynamic>) return NoteDatabase.fromJson(obj);

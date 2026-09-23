@@ -186,17 +186,26 @@ extension _EditorPageTextOverlays on _EditorPageState {
       width: item.width,
       viewScale: _controller.viewScale,
     );
-    return GestureDetector(
-      onTap: () => _onItemTap(item.id),
-      onDoubleTap: _editTextItem,
-      onSecondaryTapDown: (d) =>
-          _showItemContextMenu(item.id, globalAnchor: d.globalPosition),
-      // 触屏长按 = 右键等价入口（审计二-10）。
-      onLongPressStart: (d) =>
-          _showItemContextMenu(item.id, globalAnchor: d.globalPosition),
-      onPanUpdate: (d) => _dragItem(item.id, d.delta),
-      onPanEnd: (_) => _notifyChanged(),
-      child: Stack(
+    return Semantics(
+      // 与形状/图表/图片覆盖层同款语义包装：文字块是可点选/可拖拽的
+      // 画布对象（内部 Text 提供内容名，此处补 button 角色）。
+      label:
+          AppLocalizations.of(context)?.canvasItemSemantics(
+                AppLocalizations.of(context)?.canvasKindText ?? '文字',
+              ) ??
+              '画布对象：文字',
+      button: true,
+      child: GestureDetector(
+        onTap: () => _onItemTap(item.id),
+        onDoubleTap: _editTextItem,
+        onSecondaryTapDown: (d) =>
+            _showItemContextMenu(item.id, globalAnchor: d.globalPosition),
+        // 触屏长按 = 右键等价入口（审计二-10）。
+        onLongPressStart: (d) =>
+            _showItemContextMenu(item.id, globalAnchor: d.globalPosition),
+        onPanUpdate: (d) => _dragItem(item.id, d.delta),
+        onPanEnd: (_) => _notifyChanged(),
+        child: Stack(
         children: [
           Container(
             constraints: item.isSticky
@@ -389,6 +398,7 @@ extension _EditorPageTextOverlays on _EditorPageState {
               ),
             ),
         ],
+        ),
       ),
     );
   }

@@ -182,7 +182,7 @@ class _PageThumbnailPainter extends CustomPainter {
     canvas.scale(scale);
 
     // 纸张边界和手写：高亮笔仍以同色不叠加合成呈现。
-    canvas.drawRect(bounds, Paint()..color = const Color(0xFFFFFFFF));
+    canvas.drawRect(bounds, Paint()..color = AppleColor.surfaceWhite);
     for (final layer in doc.layers) {
       if (!layer.visible || layer.opacity <= 0) continue;
       if (layer.opacity < 1) {

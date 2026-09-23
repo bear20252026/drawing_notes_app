@@ -286,7 +286,7 @@ extension _EditorPageActions on _EditorPageState {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label),
-          Text('$count', style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text('$count', style: const TextStyle(fontWeight: FontWeight.w600)),
         ],
       ),
     );

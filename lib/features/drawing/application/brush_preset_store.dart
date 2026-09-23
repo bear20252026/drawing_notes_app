@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 
 /// 单个书写工具的持久化预设。
 class BrushPreset {
@@ -70,7 +71,7 @@ class BrushPresetBook {
     ),
     BrushType.laser: const BrushPreset(
       tool: BrushType.laser,
-      color: Color(0xFFFF3B30),
+      color: AppleColor.errorRed,
       size: 10,
     ),
     BrushType.eraser: const BrushPreset(

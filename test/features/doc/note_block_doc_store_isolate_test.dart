@@ -18,7 +18,7 @@ void main() {
   tearDown(() async {
     try {
       await tmp.delete(recursive: true);
-    } catch (_) {}
+    } catch (_) {} // 临时目录清理尽力而为：失败交由系统临时目录回收。
   });
 
   test('大文档（超 isolate 阈值）save/load 往返一致', () async {

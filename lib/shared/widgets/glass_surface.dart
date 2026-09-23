@@ -144,8 +144,8 @@ class _GlassSurfaceState extends State<GlassSurface> {
     // L1 亮边：顶边镜面高光 + 其余边 outlineVariant（1px 纯色环——
     // 总纲允许的唯一描边例外，且此处为纯色非渐变）。
     final topColor = isDark
-        ? const Color(0xFFFFFFFF).withValues(alpha: 0.22)
-        : const Color(0xFFFFFFFF).withValues(alpha: 0.65);
+        ? AppleColor.surfaceWhite.withValues(alpha: 0.22)
+        : AppleColor.surfaceWhite.withValues(alpha: 0.65);
     final sideColor = scheme.outlineVariant.withValues(
       alpha: isDark ? 0.62 : 0.72,
     );

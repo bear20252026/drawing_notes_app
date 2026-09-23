@@ -8,6 +8,7 @@ import 'package:drawing_notes_app/features/drawing/rendering/ink_layer_painter.d
 import 'package:drawing_notes_app/features/drawing/rendering/pdf_hybrid_exporter.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/shape_renderer.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_page.dart';
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 
 /// 分页画布整页忠实渲染器（W2 翻页阅读 + 整本 PDF 导出共用）。
 ///
@@ -63,7 +64,7 @@ class NotebookPageCanvasPainter extends CustomPainter {
     final bounds = Offset.zero & size;
 
     // 白纸底（页面模式固定尺寸，非无限画布）。
-    canvas.drawRect(bounds, Paint()..color = const Color(0xFFFFFFFF));
+    canvas.drawRect(bounds, Paint()..color = AppleColor.surfaceWhite);
 
     // 手写图层：可见性 + 不透明度语义与编辑器一致。
     for (final layer in doc.layers) {

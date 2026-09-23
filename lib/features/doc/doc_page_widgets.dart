@@ -270,9 +270,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
               style: FilledButton.styleFrom(
                 backgroundColor: AppleColor.actionBlue,
                 foregroundColor: Colors.white,
-                minimumSize: const Size(0, 34),
                 padding: const EdgeInsets.symmetric(horizontal: 14),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ),
           ),

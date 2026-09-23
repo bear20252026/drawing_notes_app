@@ -19,6 +19,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 
 /// 玻璃底部导航条：[NavigationBar] 的材质替换壳。
 ///
@@ -65,7 +66,7 @@ class GlassNavigationBar extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: GlassSurface(
-          borderRadius: BorderRadius.circular(kHeight / 2),
+          borderRadius: BorderRadius.circular(AppleRadius.pill),
           sigma: kSigma,
           surfaceOpacity: kSurfaceOpacity,
           child: SizedBox(

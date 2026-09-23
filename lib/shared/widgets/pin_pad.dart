@@ -203,7 +203,12 @@ class _PinPadCoreState extends State<PinPadCore>
                   AnimatedBuilder(
                     animation: _shake,
                     builder: (context, child) {
-                      final dx = _shake.isAnimating
+                      // 减弱动效三信号：抖动属位移类（前庭刺激），按规范
+                      // 「更少更轻不是零」改为不位移——错误反馈仍由清空+
+                      // 触感/颜色承担，只去掉横向晃动本身。
+                      final shake = _shake.isAnimating &&
+                          !AppleMotion.reduceMotionOf(context);
+                      final dx = shake
                           ? 12 *
                                 (1 - _shake.value * 2) *
                                 (_shake.value < 0.5 ? 1 : -1)
@@ -332,12 +337,14 @@ class _PinPadCoreState extends State<PinPadCore>
               '' when i == 9 && _isFlexible => _buildAuxKey(
                 icon: Icons.backspace_outlined,
                 onTap: _backspace,
+                label: AppLocalizations.of(context)?.pinBackspace ?? '退格',
               ),
               // 右下空槽：可变长度模式 = ✓ 确认键（accent 底色区分）。
               '' when i == 11 && _isFlexible => _buildAuxKey(
                 icon: Icons.check_rounded,
                 onTap: _submitFlexible,
                 accent: true,
+                label: AppLocalizations.of(context)?.pinConfirm ?? '确认',
               ),
               '' => const SizedBox.shrink(),
               final k => _buildKey(k),
@@ -352,19 +359,24 @@ class _PinPadCoreState extends State<PinPadCore>
   Widget _buildAuxKey({
     required IconData icon,
     required VoidCallback onTap,
+    required String label,
     bool accent = false,
   }) {
-    return Material(
-      color: accent
-          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.85)
-          : Colors.white.withValues(alpha: 0.14),
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        splashColor: Colors.white.withValues(alpha: 0.30),
-        highlightColor: Colors.white.withValues(alpha: 0.16),
-        child: Icon(icon, color: Colors.white, size: 26),
+    return Semantics(
+      button: true,
+      label: label,
+      child: Material(
+        color: accent
+            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.85)
+            : Colors.white.withValues(alpha: 0.14),
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          splashColor: Colors.white.withValues(alpha: 0.30),
+          highlightColor: Colors.white.withValues(alpha: 0.16),
+          child: Icon(icon, color: Colors.white, size: 26),
+        ),
       ),
     );
   }

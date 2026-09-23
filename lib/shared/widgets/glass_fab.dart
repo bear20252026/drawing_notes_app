@@ -49,7 +49,8 @@ class GlassFab extends StatelessWidget {
   static const double kSigma = 16;
   static const double kSurfaceOpacity = 0.72;
 
-  /// M3 FAB 直径 / extended 高度 → 玻璃圆角（胶囊全圆）。
+  /// FAB 玻璃圆角：胶囊语义（28 = FAB 56 高度的一半，与 pill 等价；
+  /// 被 glass_fab_test 的「配方常量同家族」契约钉住，保留数值原样）。
   static const double kRadius = 28;
 
   @override

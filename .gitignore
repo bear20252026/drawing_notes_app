@@ -63,6 +63,13 @@ app.*.map.json
 /.desloppify/
 /.hotspottriage/
 /.repopilot/
+/.mimosa/
+/.workbuddy/
+/.zcode/
+/.mimosa_tmp_closeout.py
+
+# 审计报告按约定保持 untracked（AGENTS.md §7；历史误入库的 3 个待用户确认后 git rm --cached）
+/docs/audit_*.html
 
 # 本地 Windows UIA/截图测试脚手架（开发机专用，不入库）
 /tools/capture_window.ps1

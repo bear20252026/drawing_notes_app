@@ -16,6 +16,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 ///   flutter test integration_test -d windows
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  // 无头 CI（GitHub runner）系统 locale 为 en_US，App 渲染英文界面，
+  // 中文文案 finder 全部 No element——2026-09-06 无头环境 0/4 失败的
+  // 根因（当时误诊为「首帧渲染差异」而设 continue-on-error 假绿）。
+  // 强制 zh 与断言文案一致；本机（中文 Windows）行为零变化。
+  // （localeTestOverride 并不存在——TestPlatformDispatcher 的 API 是
+  // localeTestValue / localesTestValue；WidgetsApp 的 locale 解析读的是
+  // 复数 locales，两个都设。）
+  TestWidgetsFlutterBinding.instance.platformDispatcher.localeTestValue =
+      const Locale('zh');
+  TestWidgetsFlutterBinding.instance.platformDispatcher.localesTestValue = const [
+    Locale('zh'),
+  ];
 
   // 隔离共享存储并预置"已看过引导"标记，避免首次启动引导对话框
   // 遮挡界面元素导致 tap 失败。

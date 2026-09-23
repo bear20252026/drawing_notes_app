@@ -74,8 +74,8 @@ class CanvasPainter extends CustomPainter {
     );
     if (!doc.infinite) {
       canvas.drawRRect(
-        RRect.fromRectAndRadius(canvasRect, const Radius.circular(4)),
-        Paint()..color = const Color(0xFFFFFFFF),
+        RRect.fromRectAndRadius(canvasRect, const Radius.circular(AppleRadius.xs)),
+        Paint()..color = AppleColor.surfaceWhite,
       );
       _paintPaperTemplate(canvas, doc);
     }
@@ -263,7 +263,7 @@ class CanvasPainter extends CustomPainter {
       ..strokeWidth = strokeWidth;
     canvas.drawRect(bounds.inflate(inflate), border);
 
-    final handle = Paint()..color = const Color(0xFFFFFFFF);
+    final handle = Paint()..color = AppleColor.surfaceWhite;
     final handleBorder = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
@@ -280,11 +280,11 @@ class CanvasPainter extends CustomPainter {
         height: handleSize,
       );
       canvas.drawRRect(
-        RRect.fromRectAndRadius(handleRect, const Radius.circular(2)),
+        RRect.fromRectAndRadius(handleRect, Radius.zero),
         handle,
       );
       canvas.drawRRect(
-        RRect.fromRectAndRadius(handleRect, const Radius.circular(2)),
+        RRect.fromRectAndRadius(handleRect, Radius.zero),
         handleBorder,
       );
     }
@@ -292,7 +292,7 @@ class CanvasPainter extends CustomPainter {
     if (locked) {
       final marker = bounds.topCenter + Offset(0, -(inflate + 7));
       canvas.drawCircle(marker, 4, Paint()..color = color);
-      canvas.drawCircle(marker, 1.5, Paint()..color = const Color(0xFFFFFFFF));
+      canvas.drawCircle(marker, 1.5, Paint()..color = AppleColor.surfaceWhite);
     }
   }
 
@@ -311,7 +311,7 @@ class CanvasPainter extends CustomPainter {
       // 锁定形状额外在中心加实心点，与组选择框的顶部标记区分。
       final center = bounds.center;
       canvas.drawCircle(center, 5, Paint()..color = selectionColor);
-      canvas.drawCircle(center, 2, Paint()..color = const Color(0xFFFFFFFF));
+      canvas.drawCircle(center, 2, Paint()..color = AppleColor.surfaceWhite);
     }
   }
 
@@ -471,7 +471,7 @@ class MiniMapPainter extends CustomPainter {
     // 白纸底。
     canvas.drawRect(
       Rect.fromLTWH(0, 0, size.width, size.height),
-      Paint()..color = const Color(0xFFFFFFFF),
+      Paint()..color = AppleColor.surfaceWhite,
     );
 
     // 各图层缩略（只画可见层）。

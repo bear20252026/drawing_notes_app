@@ -257,10 +257,11 @@ class _EdgelessPageState extends State<EdgelessPage> {
         // 该区域可见不可点（iOS 同款行为，可接受）。
         extendBodyBehindAppBar: true,
         appBar: GlassAppBar(
-          title: const Text('Edgeless'),
+          title: Text(AppLocalizations.of(context)?.edgelessTitle ?? 'Edgeless'),
           actions: [
             IconButton(
-              tooltip: '命令面板 (Ctrl+K)',
+              tooltip:
+                  '${AppLocalizations.of(context)?.menuCommandPalette ?? '命令面板'} (Ctrl+K)',
               icon: const Icon(Icons.keyboard_command_key),
               onPressed: _openCommandPalette,
             ),

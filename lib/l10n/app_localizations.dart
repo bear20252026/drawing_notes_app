@@ -2796,7 +2796,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Delete the note “{name}”? This cannot be undone.'**
-  String homeDeleteNoteConfirm(Object name);
+  String homeDeleteNoteConfirm(String name);
 
   /// No description provided for @homeUntitledNotebookPage.
   ///
@@ -5587,6 +5587,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'rotation handle'**
   String get canvasKindRotateHandle;
+
+  /// No description provided for @canvasKindImage.
+  ///
+  /// In en, this message translates to:
+  /// **'image'**
+  String get canvasKindImage;
+
+  /// No description provided for @canvasKindText.
+  ///
+  /// In en, this message translates to:
+  /// **'text'**
+  String get canvasKindText;
+
+  /// No description provided for @frameCornerSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust note frame corner'**
+  String get frameCornerSemantics;
+
+  /// No description provided for @pinBackspace.
+  ///
+  /// In en, this message translates to:
+  /// **'Backspace'**
+  String get pinBackspace;
+
+  /// No description provided for @pinConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get pinConfirm;
+
+  /// No description provided for @edgelessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edgeless'**
+  String get edgelessTitle;
 
   /// No description provided for @canvasSearchFieldHint.
   ///

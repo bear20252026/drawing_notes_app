@@ -45,11 +45,15 @@ extension _NotebookPageImports on _NotebookViewPageState {
         return;
       }
       // 按空行分段，每段生成一个文字块（首个段落作为标题）。
-      final paragraphs = content
-          .split(RegExp(r'\n\s*\n'))
-          .map((p) => p.trim())
-          .where((p) => p.isNotEmpty)
-          .toList();
+      // 解析移入 isolate：20MB 文本的 split/trim 正则分段在主 isolate
+      // 上会卡多帧（storage_service 等存储层已同款纪律走 Isolate.run）。
+      final paragraphs = await Isolate.run(() {
+        return content
+            .split(RegExp(r'\n\s*\n'))
+            .map((p) => p.trim())
+            .where((p) => p.isNotEmpty)
+            .toList();
+      });
       if (paragraphs.isEmpty) {
         _showSnack(_l10nSafe?.impNoText ?? '未解析到文本内容');
         return;

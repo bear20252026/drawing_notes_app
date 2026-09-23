@@ -102,7 +102,7 @@ class _TagsViewState extends State<TagsView> {
                 const SizedBox(width: 12),
                 Text(
                   '# ${tagName ?? ''}',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ],
             ),

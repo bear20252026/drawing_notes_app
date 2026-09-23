@@ -46,7 +46,14 @@ extension _EditorPageAppBar on _EditorPageState {
               return Row(
                 children: [
                   Expanded(
-                    child: InkWell(
+                    // 标题即「重命名」入口：鼠标/读屏用户此前无从得知可点。
+                    // Tooltip 补提示（长按/悬停触发，不干扰单击改名）。
+                    child: Tooltip(
+                      message:
+                          AppLocalizations.of(context)?.renameCanvasTitle ??
+                          '重命名画布',
+                      triggerMode: TooltipTriggerMode.longPress,
+                      child: InkWell(
                       onTap: _renameCanvas,
                       borderRadius: BorderRadius.circular(AppleRadius.xs),
                       child: Padding(
@@ -77,6 +84,7 @@ extension _EditorPageAppBar on _EditorPageState {
                             ),
                           ],
                         ),
+                      ),
                       ),
                     ),
                   ),

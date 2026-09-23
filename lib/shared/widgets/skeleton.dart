@@ -85,7 +85,7 @@ class _SkeletonListState extends State<SkeletonList>
       separatorBuilder: (_, _) => const SizedBox(height: 14),
       itemBuilder: (_, _) => Row(
         children: [
-          _SkeletonBlock(controller: _pulse, width: 36, height: 36, radius: 8),
+          _SkeletonBlock(controller: _pulse, width: 36, height: 36, radius: AppleRadius.sm),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -108,7 +108,7 @@ class _SkeletonListState extends State<SkeletonList>
             ),
           ),
           const SizedBox(width: 12),
-          _SkeletonBlock(controller: _pulse, width: 22, height: 22, radius: 11),
+          _SkeletonBlock(controller: _pulse, width: 22, height: 22, radius: AppleRadius.md),
         ],
       ),
     );

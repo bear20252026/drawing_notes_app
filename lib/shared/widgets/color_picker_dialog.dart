@@ -59,7 +59,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
     Color(0xFF1A1A1A), // 黑
     Color(0xFF555555), // 深灰
     Color(0xFF8B8B8B), // 中灰
-    Color(0xFFFFFFFF), // 白
+    AppleColor.surfaceWhite, // 白
     Color(0xFFD32F2F), // 红
     Color(0xFFFF7043), // 橙
     Color(0xFFFBC02D), // 黄

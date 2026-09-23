@@ -171,10 +171,14 @@ extension _EditorPageOverlays on _EditorPageState {
                                     ),
                                   ),
                                   // 旋转手柄（顶部中间，拖拽旋转，借鉴 Excalidraw）。
+                                  // 命中区 44×44（对齐 resize_handles 的
+                                  // _hitSize 纪律）：视觉仍是 10×10 圆点，
+                                  // 只是扩大触控/点击热区。
                                   Positioned(
-                                    top: -18,
-                                    left: w / 2 - 5,
+                                    top: -35,
+                                    left: w / 2 - 22,
                                     child: Semantics(
+                                      button: true,
                                       label:
                                           AppLocalizations.of(
                                                 context,
@@ -185,29 +189,36 @@ extension _EditorPageOverlays on _EditorPageState {
                                                     '旋转手柄',
                                               ) ??
                                               '画布对象：旋转手柄',
-                                      child: GestureDetector(
-                                        behavior: HitTestBehavior.opaque,
-                                        onPanUpdate: (d) {
-                                          final center = Offset(w / 2, h / 2);
-                                          final local =
-                                              d.localPosition +
-                                              Offset(w / 2, h / 2);
-                                          final angle =
-                                              (local - center).direction;
-                                          _applyState(
-                                            () => shape.rotation = angle,
-                                          );
-                                          _notifyChanged();
-                                        },
-                                        child: Container(
-                                          width: 10,
-                                          height: 10,
-                                          decoration: const BoxDecoration(
-                                            color: AppleColor.actionBlue,
-                                            shape: BoxShape.circle,
-                                            border: Border.fromBorderSide(
-                                              BorderSide(
-                                                color: Colors.white,
+                                      child: SizedBox(
+                                        width: 44,
+                                        height: 44,
+                                        child: Center(
+                                          child: GestureDetector(
+                                            behavior: HitTestBehavior.opaque,
+                                            onPanUpdate: (d) {
+                                              final center =
+                                                  Offset(w / 2, h / 2);
+                                              final local =
+                                                  d.localPosition +
+                                                      Offset(w / 2, h / 2);
+                                              final angle =
+                                                  (local - center).direction;
+                                              _applyState(
+                                                () => shape.rotation = angle,
+                                              );
+                                              _notifyChanged();
+                                            },
+                                            child: Container(
+                                              width: 10,
+                                              height: 10,
+                                              decoration: const BoxDecoration(
+                                                color: AppleColor.actionBlue,
+                                                shape: BoxShape.circle,
+                                                border: Border.fromBorderSide(
+                                                  BorderSide(
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                           ),
@@ -335,11 +346,19 @@ extension _EditorPageOverlays on _EditorPageState {
     return Positioned(
       left: viewPos.dx,
       top: viewPos.dy,
-      child: GestureDetector(
-        onTap: () => _onItemTap(item.id),
-        onPanUpdate: (d) => _dragItem(item.id, d.delta),
-        onPanEnd: (_) => _notifyChanged(),
-        child: Stack(
+      child: Semantics(
+        // 与形状/图表覆盖层同款语义包装：图片是可点选/可拖拽的画布对象。
+        label:
+            AppLocalizations.of(context)?.canvasItemSemantics(
+              AppLocalizations.of(context)?.canvasKindImage ?? '图片',
+            ) ??
+            '画布对象：图片',
+        button: true,
+        child: GestureDetector(
+          onTap: () => _onItemTap(item.id),
+          onPanUpdate: (d) => _dragItem(item.id, d.delta),
+          onPanEnd: (_) => _notifyChanged(),
+          child: Stack(
           children: [
             Container(
               width: w,
@@ -368,6 +387,7 @@ extension _EditorPageOverlays on _EditorPageState {
             // 裁剪框 4 角手柄（对齐 Excalidraw 图片裁剪）：拖拽调整 _cropRect。
             if (cropping && _cropRect != null) ..._buildCropHandles(),
           ],
+          ),
         ),
       ),
     );

@@ -257,7 +257,9 @@ AppleMotion.playful   // ratio 0.7 —— 仅罕见时刻（onboarding、成功�
 
 **当前覆盖面（2026-09-05 v1.10.1 更新）**：`GlassAppBar` 已接入 **7 个页面**
 （home_page、settings_page、app_lock_settings_page、webdav_sync_settings_page、
-search_page、notes_writing_page、notebook_view_page）。
+search_page、notebook_view_page）。
+
+> 2026-09-23：notes_writing_page 已随 M11 第二阶段裁撤，从覆盖面清单移除。
 
 接入玻璃顶栏的两个硬前提（缺一个就等于没做）：
 

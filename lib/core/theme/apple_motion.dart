@@ -146,7 +146,9 @@ abstract final class AppleMotion {
   /// 减弱动效 = **更少更轻**，不是零：保留透明度与颜色过渡，
   /// 去掉位移、缩放、视差、过冲（STANDARDS.md:176）。
   static bool reduceMotionOf(BuildContext context) {
-    final mq = MediaQuery.of(context);
-    return mq.disableAnimations || mq.highContrast;
+    // 用专属访问器而非 MediaQuery.of：避免订阅整个 MediaQueryData
+    // 导致所有字段（尺寸/边距/文字缩放）变化都触发此处重建。
+    return MediaQuery.disableAnimationsOf(context) ||
+        MediaQuery.highContrastOf(context);
   }
 }

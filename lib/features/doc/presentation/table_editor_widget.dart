@@ -280,8 +280,11 @@ class _ToolButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 32,
-      height: 32,
+      // 44×44 命中区（HIG 最小触控尺寸）：外层盒此前是 32×32，会把
+      // IconButton 的主题级 44 最小命中区硬夹小。视觉尺寸仍由
+      // padding:0 + compact + icon 18 保持紧凑。
+      width: 44,
+      height: 44,
       child: IconButton(
         icon: Icon(icon, size: 18),
         tooltip: tooltip,

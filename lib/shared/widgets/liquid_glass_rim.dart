@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'package:drawing_notes_app/shared/widgets/liquid_glass_shader.dart';
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 
 /// 液态玻璃边缘折射罩（L3 前台部分）。
 ///
@@ -14,7 +15,7 @@ class LiquidGlassRim extends StatefulWidget {
     super.key,
     required this.radius,
     this.intensity = 1.0,
-    this.tint = const Color(0xFFFFFFFF),
+    this.tint = AppleColor.surfaceWhite,
     this.aberration = 2.0,
     this.animated = true,
   });

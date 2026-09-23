@@ -207,6 +207,10 @@ class _CornerHandle extends StatefulWidget {
 
 class _CornerHandleState extends State<_CornerHandle> {
   static const double _size = 16;
+
+  /// 触控热区 44×44（对齐 resize_handles 的 _hitSize 纪律）：
+  /// 视觉仍是 16×16 方点，命中区扩大到 HIG 最小触控尺寸。
+  static const double _hitSize = 44;
   Offset? _startTopLeft;
   double? _startW;
   double? _startH;
@@ -218,31 +222,40 @@ class _CornerHandleState extends State<_CornerHandle> {
     final f = widget.frame;
     final pos = _cornerPos(widget.corner, f);
     return Positioned(
-      left: pos.dx - _size / 2,
-      top: pos.dy - _size / 2,
-      width: _size,
-      height: _size,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onPanStart: (d) {
-          _dragging = true;
-          _startTopLeft = Offset(f.x, f.y);
-          _startW = f.w;
-          _startH = f.h;
-          _acc = Offset.zero;
-          setState(() {});
-        },
-        onPanUpdate: (d) {
-          if (_dragging) _emit(_acc + d.delta);
-        },
-        onPanEnd: (_) => _dragging = false,
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppleColor.actionBlue,
-            borderRadius: BorderRadius.circular(AppleRadius.xs),
-            border: Border.all(
-              color: Theme.of(context).colorScheme.surface,
-              width: 1.5,
+      left: pos.dx - _hitSize / 2,
+      top: pos.dy - _hitSize / 2,
+      width: _hitSize,
+      height: _hitSize,
+      child: Semantics(
+        label:
+            AppLocalizations.of(context)?.frameCornerSemantics ?? '调整便签框角点',
+        button: true,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onPanStart: (d) {
+            _dragging = true;
+            _startTopLeft = Offset(f.x, f.y);
+            _startW = f.w;
+            _startH = f.h;
+            _acc = Offset.zero;
+            setState(() {});
+          },
+          onPanUpdate: (d) {
+            if (_dragging) _emit(_acc + d.delta);
+          },
+          onPanEnd: (_) => _dragging = false,
+          child: Center(
+            child: Container(
+              width: _size,
+              height: _size,
+              decoration: BoxDecoration(
+                color: AppleColor.actionBlue,
+                borderRadius: BorderRadius.circular(AppleRadius.xs),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.surface,
+                  width: 1.5,
+                ),
+              ),
             ),
           ),
         ),
@@ -482,12 +495,18 @@ class _GroupPainter extends CustomPainter {
 
       // 半透明填充
       canvas.drawRRect(
-        RRect.fromRectAndRadius(bounds.inflate(6), const Radius.circular(10)),
+        RRect.fromRectAndRadius(
+          bounds.inflate(6),
+          const Radius.circular(AppleRadius.md),
+        ),
         Paint()..color = color.withValues(alpha: 0.06),
       );
       // 圆角边框
       canvas.drawRRect(
-        RRect.fromRectAndRadius(bounds.inflate(6), const Radius.circular(10)),
+        RRect.fromRectAndRadius(
+          bounds.inflate(6),
+          const Radius.circular(AppleRadius.md),
+        ),
         Paint()
           ..color = color.withValues(alpha: 0.5)
           ..style = PaintingStyle.stroke
@@ -505,7 +524,7 @@ class _GroupPainter extends CustomPainter {
           tp.height + 4,
         );
         canvas.drawRRect(
-          RRect.fromRectAndRadius(chipRect, const Radius.circular(4)),
+          RRect.fromRectAndRadius(chipRect, const Radius.circular(AppleRadius.xs)),
           Paint()
             ..color = (chipBgColor ?? AppleColor.surfaceWhite).withValues(
               alpha: 0.92,
@@ -753,7 +772,7 @@ class _ElementPainter extends CustomPainter {
       } else {
         final rrect = RRect.fromRectAndRadius(
           shape.rect,
-          const Radius.circular(4),
+          const Radius.circular(AppleRadius.xs),
         );
         canvas.drawRRect(rrect, paint);
       }
