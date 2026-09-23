@@ -27,7 +27,6 @@ import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/search_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/settings_page.dart';
-import 'package:drawing_notes_app/features/schedule/presentation/schedule_page.dart';
 import 'package:drawing_notes_app/shared/application/search_service.dart';
 
 void main() {
@@ -143,11 +142,6 @@ void main() {
     expect(tester.takeException(), isNull, reason: '标签视图 390dp 溢出');
   });
 
-  testWidgets('390x844：日程页无溢出', (tester) async {
-    await pump390(tester, const SchedulePage());
-    expect(tester.takeException(), isNull, reason: '日程页 390dp 溢出');
-  });
-
   testWidgets('390x844：设置页无溢出', (tester) async {
     SharedPreferences.setMockInitialValues({});
     await pump390(
@@ -218,11 +212,6 @@ void main() {
     expect(tester.takeException(), isNull, reason: '标签视图 390dp 深色溢出');
   });
 
-  testWidgets('390x844 dark：日程页无溢出', (tester) async {
-    await pumpAt(tester, const SchedulePage(), theme: AppDesign.darkTheme());
-    expect(tester.takeException(), isNull, reason: '日程页 390dp 深色溢出');
-  });
-
   testWidgets('390x844 dark：设置页无溢出', (tester) async {
     SharedPreferences.setMockInitialValues({});
     await pumpAt(
@@ -291,11 +280,6 @@ void main() {
   testWidgets('390x844 1.5x：标签视图无溢出', (tester) async {
     await pumpAt(tester, TagsView(docs: [makeAllDoc()]), textScale: 1.5);
     expect(tester.takeException(), isNull, reason: '标签视图 390dp 1.5× 溢出');
-  });
-
-  testWidgets('390x844 1.5x：日程页无溢出', (tester) async {
-    await pumpAt(tester, const SchedulePage(), textScale: 1.5);
-    expect(tester.takeException(), isNull, reason: '日程页 390dp 1.5× 溢出');
   });
 
   testWidgets('390x844 1.5x：设置页无溢出', (tester) async {

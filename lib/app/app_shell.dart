@@ -31,8 +31,6 @@ import 'package:drawing_notes_app/features/doc/presentation/trash_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_entity.dart';
-import 'package:drawing_notes_app/features/schedule/presentation/schedule_page.dart';
-import 'package:drawing_notes_app/features/schedule/infrastructure/schedule_event_store.dart';
 // 批次②：单文件密码输入（可变长度 4–12 位密码盘）。
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
@@ -47,16 +45,16 @@ import 'package:drawing_notes_app/features/security/block_doc_password_reset_flo
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
-/// 应用导航壳：4 个顶层目的地（M11 IA 收敛 + 批次⑤设置集中）。
+/// 应用导航壳：3 个顶层目的地（M11 IA 收敛 + 批次⑤设置集中）。
 ///
 /// 信息架构（对齐 AFFiNE 的「单一文档工作台入口」）：
 ///   0. 全部文档  —— 唯一列表入口（画布/笔记/块文档统一聚合）
 ///   1. 画布·笔记 —— 绘画库（无限画布 + 分页画布 + 笔记）
-///   2. 日历      —— 按月历浏览文档活动（按修改日期定位当天动过的文档）
-///   3. 设置      —— 密码体系集中管理（批次⑤：应用锁/密码盘/单文件
+///   2. 设置      —— 密码体系集中管理（批次⑤：应用锁/密码盘/单文件
 ///      密码三层关系 + 外观/WebDAV；HomePage 原散落入口一并收编）
 ///
-/// M11 移除：纯笔记占位页（与块编辑器完全冗余）。
+/// M11 移除：纯笔记占位页（与块编辑器完全冗余）、日历页（M11 第二阶段
+/// 2026-09-23：文档时间分组已并入首页/AllDocs，日程事件与月历页裁撤）。
 ///
 /// 响应式：宽屏（>= [kDesktopBreakpoint]）用侧边栏 [NavigationRail]，
 ///         窄屏用底部 [NavigationBar]。两端共享同一导航模型与状态。
@@ -70,7 +68,6 @@ class AppShell extends StatefulWidget {
     this.blockDocStore,
     this.favoriteStore,
     this.tagStore,
-    this.scheduleEventStore,
     this.appLockService,
     this.vaultKeyService,
     this.quickUnlockService,
@@ -85,9 +82,6 @@ class AppShell extends StatefulWidget {
 
   /// 标签注册表（存储收口 2026-09-02：组合根创建，透传给 AppServices）。
   final TagStore? tagStore;
-
-  /// 日程存储（存储收口 2026-09-02：组合根创建，透传给日历页）。
-  final ScheduleEventStore? scheduleEventStore;
 
   /// 应用启动锁服务（组合根注入，透传给 HomePage 设置入口）。
   final AppLockService? appLockService;
@@ -108,7 +102,6 @@ class _AppShellState extends State<AppShell> {
     blockDocStore: widget.blockDocStore,
     favoriteStore: widget.favoriteStore,
     tagStore: widget.tagStore,
-    scheduleEventStore: widget.scheduleEventStore,
   );
 
   @override
@@ -275,9 +268,7 @@ class _AppShellState extends State<AppShell> {
       },
       onOpenDoc: _openAllDoc,
     ),
-    // 2. 日历（M11.2：纯待办/日程——文档时间线并入主页，功能去重）
-    SchedulePage(eventStore: _services.scheduleEventStore),
-    // 3. 设置（批次⑤：密码体系集中管理——HomePage 原入口收编至此）
+    // 2. 设置（批次⑤：密码体系集中管理——HomePage 原入口收编至此）
     SettingsPage(
       appLockService: widget.appLockService,
       vaultKeyService: widget.vaultKeyService,
@@ -301,11 +292,6 @@ class _AppShellState extends State<AppShell> {
         label: l10n?.shellCanvasNotes ?? '画布·笔记',
       ),
       NavigationDestination(
-        icon: Icon(Icons.calendar_today_outlined),
-        selectedIcon: Icon(Icons.calendar_today),
-        label: l10n?.shellSchedule ?? '日历',
-      ),
-      NavigationDestination(
         icon: Icon(Icons.settings_outlined),
         selectedIcon: Icon(Icons.settings),
         label: l10n?.shellSettings ?? '设置',
@@ -326,11 +312,6 @@ class _AppShellState extends State<AppShell> {
         icon: Icon(Icons.brush_outlined),
         selectedIcon: Icon(Icons.brush),
         label: Text(l10n?.shellCanvasNotes ?? '画布·笔记'),
-      ),
-      NavigationRailDestination(
-        icon: Icon(Icons.calendar_today_outlined),
-        selectedIcon: Icon(Icons.calendar_today),
-        label: Text(l10n?.shellSchedule ?? '日历'),
       ),
       NavigationRailDestination(
         icon: Icon(Icons.settings_outlined),

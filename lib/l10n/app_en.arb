@@ -512,10 +512,6 @@
   "@shellCanvasNotes": {
     "description": "导航目的地"
   },
-  "shellSchedule": "Calendar",
-  "@shellSchedule": {
-    "description": "导航目的地"
-  },
   "shellSettings": "Settings",
   "@shellSettings": {
     "description": "导航目的地"
@@ -774,7 +770,6 @@
   "@docsEmptyFirstNote": {},
   "docsEmptyFirstNoteTip": "Notes are for typing; canvases are for sketching",
   "@docsEmptyFirstNoteTip": {},
-
   "docsLoadFailedRetry": "Failed to load. Pull down to retry",
   "@docsLoadFailedRetry": {},
   "docsQuickSearch": "Quick search",
@@ -810,7 +805,16 @@
   "timeYesterday": "Yesterday",
   "@timeYesterday": {},
   "timeMonthDay": "{month}/{day}",
-  "@timeMonthDay": {"placeholders": {"month": {"type": "int"}, "day": {"type": "int"}}},
+  "@timeMonthDay": {
+    "placeholders": {
+      "month": {
+        "type": "int"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
   "tagsEmpty": "No tags yet",
   "@tagsEmpty": {},
   "tagsEmptyTip": "Open a note → Document info → Add tags",
@@ -846,7 +850,13 @@
   "resetThisNotebook": "this paged canvas",
   "@resetThisNotebook": {},
   "resetDocNameQuote": "“{name}”",
-  "@resetDocNameQuote": {"placeholders": {"name": {"type": "String"}}},
+  "@resetDocNameQuote": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "resetForgotFilePassword": "Forgot file password",
   "@resetForgotFilePassword": {},
   "resetForgotPassword": "Forgot password",
@@ -860,9 +870,21 @@
   "resetDiskMismatchOrCorrupt": "The reset disk doesn't match or is damaged.",
   "@resetDiskMismatchOrCorrupt": {},
   "resetDoneStandalone": "Standalone password of {name} has been reset with the reset disk",
-  "@resetDoneStandalone": {"placeholders": {"name": {"type": "String"}}},
+  "@resetDoneStandalone": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "resetDonePassword": "Password of {name} has been reset with the reset disk",
-  "@resetDonePassword": {"placeholders": {"name": {"type": "String"}}},
+  "@resetDonePassword": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "resetUseDisk": "Use reset disk",
   "@resetUseDisk": {},
   "resetNoValidKey": "No valid key found",
@@ -870,7 +892,13 @@
   "resetSetNewFilePassword": "Set a new file password",
   "@resetSetNewFilePassword": {},
   "resetSameAsLockScreen": "{label} must differ from the screen-lock password",
-  "@resetSameAsLockScreen": {"placeholders": {"label": {"type": "String"}}},
+  "@resetSameAsLockScreen": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "resetConfirmNewFilePassword": "Confirm the new file password",
   "@resetConfirmNewFilePassword": {},
   "resetMismatchRetry": "The two entries don't match. Please try again",
@@ -898,17 +926,53 @@
   "shellWorkspaceName": "NoteStudio",
   "@shellWorkspaceName": {},
   "resetIntroNote": "Reset the standalone password of {name} with the reset disk (USB drive).\n\nPrerequisite: this note has a reset disk bound (set a password, or bind one in password management).",
-  "@resetIntroNote": {"placeholders": {"name": {"type": "String"}}},
+  "@resetIntroNote": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "resetIntroCanvas": "Reset the standalone password of {name} with the reset disk (USB drive).\n\nPrerequisite: this canvas has a reset disk bound (set a password, or bind one in password management).",
-  "@resetIntroCanvas": {"placeholders": {"name": {"type": "String"}}},
+  "@resetIntroCanvas": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "resetIntroNotebook": "Reset the password of {name} with the reset disk (USB drive).\n\nPrerequisite: this paged canvas has a reset disk bound (set a password, or bind one in password management).",
-  "@resetIntroNotebook": {"placeholders": {"name": {"type": "String"}}},
+  "@resetIntroNotebook": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "resetNotBoundNote": "{name} has no reset disk (USB drive) bound, so its password cannot be reset via the disk.\n\nYou can choose “Bind reset disk” in password management.",
-  "@resetNotBoundNote": {"placeholders": {"name": {"type": "String"}}},
+  "@resetNotBoundNote": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "resetNotBoundCanvas": "{name} has no reset disk (USB drive) bound, so its password cannot be reset via the disk.\n\nYou can choose “Bind reset disk” in password management; passwords set in old versions (v1.5.x) must be changed once first to upgrade the format.",
-  "@resetNotBoundCanvas": {"placeholders": {"name": {"type": "String"}}},
+  "@resetNotBoundCanvas": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "resetNotBoundNotebook": "{name} has no reset disk (USB drive) bound, so its password cannot be reset via the disk.\n\nAfter enabling password protection in Settings, choose “Bind reset disk” from the menu; passwords set in old versions must be changed once first to upgrade the format.",
-  "@resetNotBoundNotebook": {"placeholders": {"name": {"type": "String"}}},
+  "@resetNotBoundNotebook": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "resetNoValidKeyBody": "No valid reset disk file (password_reset_disk.key) found at the chosen location.",
   "@resetNoValidKeyBody": {},
   "homeReadListFailed": "Failed to load the list. Please retry",
@@ -934,11 +998,23 @@
   "canvasVaultLockedRemove": "The vault is locked and cannot re-seal: re-verify the screen-lock password and retry",
   "@canvasVaultLockedRemove": {},
   "canvasPasswordSetDiskBoundFor": "Standalone password set for “{name}” with the reset disk bound",
-  "@canvasPasswordSetDiskBoundFor": {"placeholders": {"name": {"type": "String"}}},
+  "@canvasPasswordSetDiskBoundFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "homeDeleteCanvasTitle": "Delete canvas",
   "@homeDeleteCanvasTitle": {},
   "homeDeleteCanvasConfirm": "Delete the canvas “{name}”? This cannot be undone.",
-  "@homeDeleteCanvasConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@homeDeleteCanvasConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "homeDeleteFailed": "Delete failed. Please retry",
   "@homeDeleteFailed": {},
   "homeSelectTemplate": "Choose a note template",
@@ -948,7 +1024,13 @@
   "homeTrashLoadFailed": "Failed to load the trash. Please retry",
   "@homeTrashLoadFailed": {},
   "homeRecovered": "Restored “{id}”",
-  "@homeRecovered": {"placeholders": {"id": {"type": "String"}}},
+  "@homeRecovered": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
   "homeRetry": "Retry",
   "@homeRetry": {},
   "homeNoCanvas": "No canvases yet",
@@ -1018,7 +1100,13 @@
   "nbVersionHistory": "Version history",
   "@nbVersionHistory": {},
   "nbVersionHistoryOf": "Version history of “{name}”",
-  "@nbVersionHistoryOf": {"placeholders": {"name": {"type": "String"}}},
+  "@nbVersionHistoryOf": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "nbPageNameLabel": "Page name",
   "@nbPageNameLabel": {},
   "nbChooseTemplate": "Choose a template",
@@ -1042,7 +1130,13 @@
   "impNoText": "No text content parsed",
   "@impNoText": {},
   "impImportedParagraphs": "Imported {count} paragraphs",
-  "@impImportedParagraphs": {"placeholders": {"count": {"type": "int"}}},
+  "@impImportedParagraphs": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "impFailed": "Import failed. Please retry",
   "@impFailed": {},
   "impPdfTypeGroup": "PDF documents",
@@ -1050,9 +1144,24 @@
   "impPdfNoPages": "The PDF has no importable pages",
   "@impPdfNoPages": {},
   "impPdfPageTitle": "{name} · Page {page}",
-  "@impPdfPageTitle": {"placeholders": {"name": {"type": "String"}, "page": {"type": "int"}}},
+  "@impPdfPageTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "page": {
+        "type": "int"
+      }
+    }
+  },
   "impPdfDone": "Imported {count} PDF pages; open any page to annotate",
-  "@impPdfDone": {"placeholders": {"count": {"type": "int"}}},
+  "@impPdfDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "impPdfFailed": "Failed to import the PDF. Please retry",
   "@impPdfFailed": {},
   "impChangePasswordProtect": "Change password protection",
@@ -1090,7 +1199,13 @@
   "syncFailedRemoteFile": "Sync failed: failed to sync a remote file. Check the server",
   "@syncFailedRemoteFile": {},
   "syncFailedHttpUnavailable": "Sync failed: server temporarily unavailable (HTTP {code}). Try again later",
-  "@syncFailedHttpUnavailable": {"placeholders": {"code": {"type": "int"}}},
+  "@syncFailedHttpUnavailable": {
+    "placeholders": {
+      "code": {
+        "type": "int"
+      }
+    }
+  },
   "syncFailedDirMissing": "Sync failed: remote directory missing or occupied. Check the remote directory settings",
   "@syncFailedDirMissing": {},
   "syncFailedHttps": "Sync failed: HTTPS handshake failed. Check the server certificate",
@@ -1106,7 +1221,16 @@
   "syncUpToDate": "Already up to date",
   "@syncUpToDate": {},
   "syncWithConflicts": "{base}; {count} more documents changed both locally and remotely and were handled per your choice",
-  "@syncWithConflicts": {"placeholders": {"base": {"type": "String"}, "count": {"type": "int"}}},
+  "@syncWithConflicts": {
+    "placeholders": {
+      "base": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "webdavTitle": "WebDAV Sync",
   "@webdavTitle": {},
   "webdavUsername": "Username",
@@ -1202,11 +1326,24 @@
   "pfAttachment": "Attachment",
   "@pfAttachment": {},
   "readerTitle": "{name} · Page reader",
-  "@readerTitle": {"placeholders": {"name": {"type": "String"}}},
+  "@readerTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "readerPageIndicator": "Page {index} of {total}",
-  "@readerPageIndicator": {"placeholders": {"index": {"type": "int"}, "total": {"type": "int"}}},
-  "notesWritingTitle": "Notes",
-  "@notesWritingTitle": {},
+  "@readerPageIndicator": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "notesRecent": "Recent",
   "@notesRecent": {},
   "obWelcome": "Welcome to Drawing Notes",
@@ -1228,7 +1365,16 @@
   "presNoContent": "Nothing to present",
   "@presNoContent": {},
   "presIndicator": "{index} / {total} · Click or → for next, Esc to exit",
-  "@presIndicator": {"placeholders": {"index": {"type": "int"}, "total": {"type": "int"}}},
+  "@presIndicator": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "presExit": "Exit presentation",
   "@presExit": {},
   "pdfPreviewUnavailable": "Inline PDF preview unavailable",
@@ -1274,11 +1420,29 @@
   "canvasBindConfirmContent": "When you forget this canvas’s standalone password, plug in the reset disk (USB drive) to reset without the old password.\n\nThe drive holds only a random key file (password_reset_disk.key); canvas data never leaves the device.",
   "@canvasBindConfirmContent": {},
   "canvasRemoveConfirmContent": "After removal, “{name}” falls back to vault protection (master-key envelope) and no longer needs a standalone password. Remove it?",
-  "@canvasRemoveConfirmContent": {"placeholders": {"name": {"type": "String"}}},
+  "@canvasRemoveConfirmContent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "canvasBoundDiskFor": "Reset disk bound for “{name}”",
-  "@canvasBoundDiskFor": {"placeholders": {"name": {"type": "String"}}},
+  "@canvasBoundDiskFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "homeDeleteForeverConfirm": "Permanently delete “{name}”? This cannot be undone.",
-  "@homeDeleteForeverConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@homeDeleteForeverConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "homeRestoreFailed": "Restore failed. Please retry",
   "@homeRestoreFailed": {},
   "homeTabCanvas": "Canvases",
@@ -1292,7 +1456,13 @@
   "homeKindNotebookPage": "Paged-canvas page",
   "@homeKindNotebookPage": {},
   "homeUpdatedAt": "Updated {time}",
-  "@homeUpdatedAt": {"placeholders": {"time": {"type": "String"}}},
+  "@homeUpdatedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "homeDeleteNoteConfirm": "Delete the note “{name}”? This cannot be undone.",
   "@homeDeleteNoteConfirm": {},
   "homeUntitledNotebookPage": "Untitled",
@@ -1314,13 +1484,40 @@
   "nbPageNameExampleHint": "e.g. Product review 08-14",
   "@nbPageNameExampleHint": {},
   "nbDeletePageConfirm": "Delete the page “{name}”? Its handwriting and text will be deleted too.",
-  "@nbDeletePageConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@nbDeletePageConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "nbPageDeleted": "Deleted “{name}”",
-  "@nbPageDeleted": {"placeholders": {"name": {"type": "String"}}},
+  "@nbPageDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "nbExportedPdf": "Exported a {count}-page PDF: {path}",
-  "@nbExportedPdf": {"placeholders": {"count": {"type": "int"}, "path": {"type": "String"}}},
+  "@nbExportedPdf": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "cmdGotoFrame": "Go to “{name}”",
-  "@cmdGotoFrame": {"placeholders": {"name": {"type": "String"}}},
+  "@cmdGotoFrame": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "obPinchTip": "Pinch with two fingers to zoom, rotate with two fingers (touch devices)",
   "@obPinchTip": {},
   "obAutosaveTip": "Content autosaves — no manual save needed; export to PNG anytime",
@@ -1328,11 +1525,29 @@
   "syncFailedAuth": "Sync failed: wrong username or password (server rejected the login)",
   "@syncFailedAuth": {},
   "syncFailedRejected": "Sync failed: the server rejected this request (HTTP {code})",
-  "@syncFailedRejected": {"placeholders": {"code": {"type": "String"}}},
+  "@syncFailedRejected": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "syncHttpUnknown": "unknown",
   "@syncHttpUnknown": {},
   "syncDoneSummary": "Sync done: ↑{up} ↓{down} ✕{del}",
-  "@syncDoneSummary": {"placeholders": {"up": {"type": "int"}, "down": {"type": "int"}, "del": {"type": "int"}}},
+  "@syncDoneSummary": {
+    "placeholders": {
+      "up": {
+        "type": "int"
+      },
+      "down": {
+        "type": "int"
+      },
+      "del": {
+        "type": "int"
+      }
+    }
+  },
   "webdavFormDirty": "The form has unsaved changes: tap “Save config” before syncing (avoids mismatched keys and cloud data)",
   "@webdavFormDirty": {},
   "webdavSyncSecretLabel": "Sync password (required, for end-to-end encryption)",
@@ -1456,7 +1671,13 @@
   "pdfGroupQuality": "Quality",
   "@pdfGroupQuality": {},
   "pdfExportNPages": "Export {count} pages",
-  "@pdfExportNPages": {"placeholders": {"count": {"type": "int"}}},
+  "@pdfExportNPages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inkStylusPressure": "Stylus pressure",
   "@inkStylusPressure": {},
   "inkTouchPressure": "Touch pressure",
@@ -1474,7 +1695,16 @@
   "pomodoroFinish": "Pomodoro finished: take a break",
   "@pomodoroFinish": {},
   "pageIndicator": "Page {index} of {total}",
-  "@pageIndicator": {"placeholders": {"index": {"type": "int"}, "total": {"type": "int"}}},
+  "@pageIndicator": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "eraserWholeStroke": "Whole stroke",
   "@eraserWholeStroke": {},
   "eraserTransparent": "Pixels",
@@ -1588,11 +1818,23 @@
   "actShapeLibPagedOnly": "Only paged-canvas pages support the shape library",
   "@actShapeLibPagedOnly": {},
   "actCopiedN": "Copied {count} elements",
-  "@actCopiedN": {"placeholders": {"count": {"type": "int"}}},
+  "@actCopiedN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "actPickFirst": "Select elements to copy first",
   "@actPickFirst": {},
   "actPastedN": "Pasted {count} elements",
-  "@actPastedN": {"placeholders": {"count": {"type": "int"}}},
+  "@actPastedN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "actCopiedTextStyle": "Text style copied",
   "@actCopiedTextStyle": {},
   "actCopiedShapeStyle": "Shape style copied",
@@ -1664,7 +1906,13 @@
   "edNoTextBlocks": "No text blocks on this page",
   "@edNoTextBlocks": {},
   "edRecoloredN": "Recolored {count} text blocks",
-  "@edRecoloredN": {"placeholders": {"count": {"type": "int"}}},
+  "@edRecoloredN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "edImageLabel": "Image",
   "@edImageLabel": {},
   "edNoteImageStoreUnavailable": "Note image storage unavailable",
@@ -1698,7 +1946,13 @@
   "edGroupNeed2": "Marquee/multi-select at least 2 elements before grouping",
   "@edGroupNeed2": {},
   "edGroupedN": "Grouped {count} elements",
-  "@edGroupedN": {"placeholders": {"count": {"type": "int"}}},
+  "@edGroupedN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "edUngrouped": "Ungrouped",
   "@edUngrouped": {},
   "renameCanvasTitle": "Rename canvas",
@@ -1792,7 +2046,13 @@
   "selDeleteContent": "Delete selected content",
   "@selDeleteContent": {},
   "selNObjects": "{count} objects selected",
-  "@selNObjects": {"placeholders": {"count": {"type": "int"}}},
+  "@selNObjects": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "selShapeLockedEdit": "Shape locked: unlock to edit",
   "@selShapeLockedEdit": {},
   "selShapeSelected": "Shape selected: drag, scale, lock or delete",
@@ -1802,7 +2062,13 @@
   "selImageSelected": "Image selected: drag, scale, lock or delete",
   "@selImageSelected": {},
   "selNStrokes": "{count} strokes selected",
-  "@selNStrokes": {"placeholders": {"count": {"type": "int"}}},
+  "@selNStrokes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "selClear": "Clear selection",
   "@selClear": {},
   "shapeLibNoMatch": "No matching shapes",
@@ -1814,9 +2080,21 @@
   "saveStateSaving": "Saving…",
   "@saveStateSaving": {},
   "saveStateSavedAt": "Saved {time}",
-  "@saveStateSavedAt": {"placeholders": {"time": {"type": "String"}}},
+  "@saveStateSavedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "actInsertedShape": "Inserted “{name}”",
-  "@actInsertedShape": {"placeholders": {"name": {"type": "String"}}},
+  "@actInsertedShape": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "tParagraph": "Paragraph",
   "@tParagraph": {},
   "tHeading": "Heading",
@@ -1868,7 +2146,13 @@
   "blkDragToSort": "Drag to sort",
   "@blkDragToSort": {},
   "semHeading": "Heading {level}",
-  "@semHeading": {"placeholders": {"level": {"type": "String"}}},
+  "@semHeading": {
+    "placeholders": {
+      "level": {
+        "type": "String"
+      }
+    }
+  },
   "semTodo": "To-do",
   "@semTodo": {},
   "semCode": "Code block",
@@ -1986,7 +2270,13 @@
   "dbCellNone": "Not selected",
   "@dbCellNone": {},
   "dbRecordCount": "{count} records",
-  "@dbRecordCount": {"placeholders": {"count": {"type": "int"}}},
+  "@dbRecordCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "dbKanbanNeedsSelect": "Kanban needs at least one option field; add a select field first",
   "@dbKanbanNeedsSelect": {},
   "dbUngrouped": "Ungrouped",
@@ -2049,37 +2339,6 @@
   "@tplTodoName": {},
   "tplTodoDesc": "Prebuilt to-do blocks",
   "@tplTodoDesc": {},
-  "schPrevMonth": "Previous month",
-  "@schPrevMonth": {},
-  "schNextMonth": "Next month",
-  "@schNextMonth": {},
-  "schToday": "Today",
-  "@schToday": {},
-  "schShowAllDates": "Show all dates",
-  "@schShowAllDates": {},
-  "schAddEventTooltip": "Add todo (selected day, or today if none)",
-  "@schAddEventTooltip": {},
-  "schAllDay": "All day",
-  "@schAllDay": {},
-  "schAdd": "Add",
-  "@schAdd": {},
-  "schAddAtHour": "Add at {hour}:00",
-  "@schAddAtHour": {
-    "placeholders": {
-      "hour": {"type": "int"}
-    }
-  },
-  "schMonthTitle": "{month}/{year}",
-  "@schMonthTitle": {
-    "placeholders": {
-      "year": {"type": "int"},
-      "month": {"type": "int"}
-    }
-  },
-  "schAllAgenda": "All schedules",
-  "@schAllAgenda": {},
-  "schDayTimeline": "Day plan · 24 hours",
-  "@schDayTimeline": {},
   "colorPickerSvHint": "Saturation and brightness (use RGB fields for keyboard)",
   "@colorPickerSvHint": {},
   "colorPickerHueHint": "Hue (use RGB fields for keyboard)",
@@ -2159,32 +2418,44 @@
   "expExportedTo": "Exported to: {path}",
   "@expExportedTo": {
     "placeholders": {
-      "path": {"type": "String"}
+      "path": {
+        "type": "String"
+      }
     }
   },
   "expExportFailErr": "Export failed: {error}",
   "@expExportFailErr": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "expCopyPlatformFail": "Copying PNG needs platform support: {error}",
   "@expCopyPlatformFail": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "expExportAllPdf": "Exported full notebook PDF ({count} pages): {path}",
   "@expExportAllPdf": {
     "placeholders": {
-      "count": {"type": "int"},
-      "path": {"type": "String"}
+      "count": {
+        "type": "int"
+      },
+      "path": {
+        "type": "String"
+      }
     }
   },
   "expExportAllPdfFail": "Failed to export full PDF: {error}",
   "@expExportAllPdfFail": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "expRenderFailHard": "Export failed: cannot render canvas",
@@ -2192,49 +2463,65 @@
   "expExportPagedPdf": "Exported paged note PDF: {path}",
   "@expExportPagedPdf": {
     "placeholders": {
-      "path": {"type": "String"}
+      "path": {
+        "type": "String"
+      }
     }
   },
   "expExportPagedPdfFail": "Failed to export paged note PDF: {error}",
   "@expExportPagedPdfFail": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "expExportedSvgTo": "Exported SVG to: {path}",
   "@expExportedSvgTo": {
     "placeholders": {
-      "path": {"type": "String"}
+      "path": {
+        "type": "String"
+      }
     }
   },
   "expExportedWord": "Exported Word-compatible document: {path}",
   "@expExportedWord": {
     "placeholders": {
-      "path": {"type": "String"}
+      "path": {
+        "type": "String"
+      }
     }
   },
   "expExportWordFail": "Failed to export Word-compatible document: {error}",
   "@expExportWordFail": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "expExportedTextTo": "Exported text to: {path}",
   "@expExportedTextTo": {
     "placeholders": {
-      "path": {"type": "String"}
+      "path": {
+        "type": "String"
+      }
     }
   },
   "expExportedPptxTo": "Exported PPTX to: {path}",
   "@expExportedPptxTo": {
     "placeholders": {
-      "path": {"type": "String"}
+      "path": {
+        "type": "String"
+      }
     }
   },
   "expExportedJsonTo": "Exported JSON to: {path}",
   "@expExportedJsonTo": {
     "placeholders": {
-      "path": {"type": "String"}
+      "path": {
+        "type": "String"
+      }
     }
   },
   "lockQuickUnlockFail": "System authentication failed. Enter your password to unlock.",
@@ -2272,45 +2559,63 @@
   "lockRetryAfter": "Try again in {duration}",
   "@lockRetryAfter": {
     "placeholders": {
-      "duration": {"type": "String"}
+      "duration": {
+        "type": "String"
+      }
     }
   },
   "lockDurHoursMins": "{hours} h {mins} min",
   "@lockDurHoursMins": {
     "placeholders": {
-      "hours": {"type": "int"},
-      "mins": {"type": "int"}
+      "hours": {
+        "type": "int"
+      },
+      "mins": {
+        "type": "int"
+      }
     }
   },
   "lockDurMinsSecs": "{minutes} min {seconds} s",
   "@lockDurMinsSecs": {
     "placeholders": {
-      "minutes": {"type": "int"},
-      "seconds": {"type": "int"}
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
     }
   },
   "webdavSyncFailRaw": "Sync failed: {error}",
   "@webdavSyncFailRaw": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "webdavSyncServerBusy": "Sync failed: server temporarily unavailable (HTTP {code}). Try again later.",
   "@webdavSyncServerBusy": {
     "placeholders": {
-      "code": {"type": "String"}
+      "code": {
+        "type": "String"
+      }
     }
   },
   "webdavSyncRejected": "Sync failed: server rejected the request (HTTP {code})",
   "@webdavSyncRejected": {
     "placeholders": {
-      "code": {"type": "String"}
+      "code": {
+        "type": "String"
+      }
     }
   },
   "webdavSaveFail": "Save failed: {error}",
   "@webdavSaveFail": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "webdavSavedPlain": "WebDAV config saved (end-to-end encryption off)",
@@ -2330,9 +2635,15 @@
   "webdavSyncDoneStats": "Sync complete: ↑{uploaded} ↓{downloaded} ✕{deletedRemote}",
   "@webdavSyncDoneStats": {
     "placeholders": {
-      "uploaded": {"type": "int"},
-      "downloaded": {"type": "int"},
-      "deletedRemote": {"type": "int"}
+      "uploaded": {
+        "type": "int"
+      },
+      "downloaded": {
+        "type": "int"
+      },
+      "deletedRemote": {
+        "type": "int"
+      }
     }
   },
   "homeForgotPasswordLink": "Forgot password?",
@@ -2340,7 +2651,9 @@
   "canvasItemSemantics": "Canvas object: {kind}",
   "@canvasItemSemantics": {
     "placeholders": {
-      "kind": {"type": "String"}
+      "kind": {
+        "type": "String"
+      }
     }
   },
   "canvasKindChart": "chart",
@@ -2354,7 +2667,9 @@
   "layerDefaultName": "Layer {n}",
   "@layerDefaultName": {
     "placeholders": {
-      "n": {"type": "int"}
+      "n": {
+        "type": "int"
+      }
     }
   },
   "edgelessStickyTitle": "Sticky note",
@@ -2394,7 +2709,9 @@
   "edgelessFrameSemantics": "Canvas note frame: {title}",
   "@edgelessFrameSemantics": {
     "placeholders": {
-      "title": {"type": "String"}
+      "title": {
+        "type": "String"
+      }
     }
   },
   "presNextSlide": "Next slide (long-press to exit)",

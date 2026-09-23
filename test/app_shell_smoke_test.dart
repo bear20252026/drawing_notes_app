@@ -80,7 +80,7 @@ void main() {
     // 窄屏走底部导航（外层断点 <900）
     expect(find.byType(NavigationBar), findsOneWidget);
 
-    for (final label in const ['全部文档', '画布·笔记', '日历', '设置']) {
+    for (final label in const ['全部文档', '画布·笔记', '设置']) {
       await tester.tap(
         find.descendant(
           of: find.byType(NavigationBar),
@@ -147,24 +147,17 @@ void main() {
     expect(store.docs.length, 1);
   });
 
-  testWidgets('目的地切换：画布 / 日历均正常渲染', (tester) async {
+  testWidgets('目的地切换：画布正常渲染', (tester) async {
     await pumpShell(tester);
 
-    // 2 号目的地：画布·笔记
+    // 1 号目的地：画布·笔记
     await tester.tap(find.text('画布·笔记').last);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('画布'), findsOneWidget);
-
-    // 3 号目的地：日历
-    await tester.tap(find.text('日历').last);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('日历 · 待办'), findsOneWidget);
-    expect(find.text('全部日程'), findsOneWidget);
   });
 
-  testWidgets('4 号目的地「设置」渲染密码体系卡与集中入口', (tester) async {
+  testWidgets('2 号目的地「设置」渲染密码体系卡与集中入口', (tester) async {
     await pumpShell(tester);
 
     await tester.tap(find.text('设置').last);

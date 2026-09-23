@@ -797,12 +797,6 @@ abstract class AppLocalizations {
   /// 导航目的地
   ///
   /// In en, this message translates to:
-  /// **'Calendar'**
-  String get shellSchedule;
-
-  /// 导航目的地
-  ///
-  /// In en, this message translates to:
   /// **'Settings'**
   String get shellSettings;
 
@@ -2539,12 +2533,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Page {index} of {total}'**
   String readerPageIndicator(int index, int total);
-
-  /// No description provided for @notesWritingTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Notes'**
-  String get notesWritingTitle;
 
   /// No description provided for @notesRecent.
   ///
@@ -5071,72 +5059,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Prebuilt to-do blocks'**
   String get tplTodoDesc;
-
-  /// No description provided for @schPrevMonth.
-  ///
-  /// In en, this message translates to:
-  /// **'Previous month'**
-  String get schPrevMonth;
-
-  /// No description provided for @schNextMonth.
-  ///
-  /// In en, this message translates to:
-  /// **'Next month'**
-  String get schNextMonth;
-
-  /// No description provided for @schToday.
-  ///
-  /// In en, this message translates to:
-  /// **'Today'**
-  String get schToday;
-
-  /// No description provided for @schShowAllDates.
-  ///
-  /// In en, this message translates to:
-  /// **'Show all dates'**
-  String get schShowAllDates;
-
-  /// No description provided for @schAddEventTooltip.
-  ///
-  /// In en, this message translates to:
-  /// **'Add todo (selected day, or today if none)'**
-  String get schAddEventTooltip;
-
-  /// No description provided for @schAllDay.
-  ///
-  /// In en, this message translates to:
-  /// **'All day'**
-  String get schAllDay;
-
-  /// No description provided for @schAdd.
-  ///
-  /// In en, this message translates to:
-  /// **'Add'**
-  String get schAdd;
-
-  /// No description provided for @schAddAtHour.
-  ///
-  /// In en, this message translates to:
-  /// **'Add at {hour}:00'**
-  String schAddAtHour(int hour);
-
-  /// No description provided for @schMonthTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'{month}/{year}'**
-  String schMonthTitle(int year, int month);
-
-  /// No description provided for @schAllAgenda.
-  ///
-  /// In en, this message translates to:
-  /// **'All schedules'**
-  String get schAllAgenda;
-
-  /// No description provided for @schDayTimeline.
-  ///
-  /// In en, this message translates to:
-  /// **'Day plan · 24 hours'**
-  String get schDayTimeline;
 
   /// No description provided for @colorPickerSvHint.
   ///

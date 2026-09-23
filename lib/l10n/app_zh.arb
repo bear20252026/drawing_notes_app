@@ -380,10 +380,6 @@
   "@shellCanvasNotes": {
     "description": "导航目的地"
   },
-  "shellSchedule": "日历",
-  "@shellSchedule": {
-    "description": "导航目的地"
-  },
   "shellSettings": "设置",
   "@shellSettings": {
     "description": "导航目的地"
@@ -642,7 +638,6 @@
   "@docsEmptyFirstNote": {},
   "docsEmptyFirstNoteTip": "笔记用来打字，画布用来写写画画",
   "@docsEmptyFirstNoteTip": {},
-
   "docsLoadFailedRetry": "加载失败，请下拉刷新重试",
   "@docsLoadFailedRetry": {},
   "docsQuickSearch": "快速搜索",
@@ -678,7 +673,16 @@
   "timeYesterday": "昨天",
   "@timeYesterday": {},
   "timeMonthDay": "{month} 月 {day} 日",
-  "@timeMonthDay": {"placeholders": {"month": {"type": "int"}, "day": {"type": "int"}}},
+  "@timeMonthDay": {
+    "placeholders": {
+      "month": {
+        "type": "int"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
   "tagsEmpty": "暂无标签",
   "@tagsEmpty": {},
   "tagsEmptyTip": "打开笔记 → 文档信息 → 添加标签",
@@ -714,7 +718,13 @@
   "resetThisNotebook": "该分页画布",
   "@resetThisNotebook": {},
   "resetDocNameQuote": "「{name}」",
-  "@resetDocNameQuote": {"placeholders": {"name": {"type": "String"}}},
+  "@resetDocNameQuote": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "resetForgotFilePassword": "忘记文件密码",
   "@resetForgotFilePassword": {},
   "resetForgotPassword": "忘记密码",
@@ -728,9 +738,21 @@
   "resetDiskMismatchOrCorrupt": "重置密码盘不匹配或已损坏。",
   "@resetDiskMismatchOrCorrupt": {},
   "resetDoneStandalone": "已用重置密码盘重置{name}的独立密码",
-  "@resetDoneStandalone": {"placeholders": {"name": {"type": "String"}}},
+  "@resetDoneStandalone": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "resetDonePassword": "已用重置密码盘重置{name}的密码",
-  "@resetDonePassword": {"placeholders": {"name": {"type": "String"}}},
+  "@resetDonePassword": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "resetUseDisk": "使用重置密码盘",
   "@resetUseDisk": {},
   "resetNoValidKey": "未找到有效钥匙",
@@ -738,7 +760,13 @@
   "resetSetNewFilePassword": "设置新文件密码",
   "@resetSetNewFilePassword": {},
   "resetSameAsLockScreen": "{label}不能与开屏密码相同",
-  "@resetSameAsLockScreen": {"placeholders": {"label": {"type": "String"}}},
+  "@resetSameAsLockScreen": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "resetConfirmNewFilePassword": "确认新文件密码",
   "@resetConfirmNewFilePassword": {},
   "resetMismatchRetry": "两次输入不一致，请重试",
@@ -766,17 +794,53 @@
   "shellWorkspaceName": "画记",
   "@shellWorkspaceName": {},
   "resetIntroNote": "使用重置密码盘（U 盘）重置{name}的独立密码。\n\n前提：该笔记已绑定重置密码盘（设置密码或密码管理中绑定）。",
-  "@resetIntroNote": {"placeholders": {"name": {"type": "String"}}},
+  "@resetIntroNote": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "resetIntroCanvas": "使用重置密码盘（U 盘）重置{name}的独立密码。\n\n前提：该画布已绑定重置密码盘（设置密码或密码管理中绑定）。",
-  "@resetIntroCanvas": {"placeholders": {"name": {"type": "String"}}},
+  "@resetIntroCanvas": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "resetIntroNotebook": "使用重置密码盘（U 盘）重置{name}的密码。\n\n前提：该分页画布已绑定重置密码盘（设置密码或密码管理中绑定）。",
-  "@resetIntroNotebook": {"placeholders": {"name": {"type": "String"}}},
+  "@resetIntroNotebook": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "resetNotBoundNote": "{name}未绑定重置密码盘（U 盘），无法通过重置盘重置密码。\n\n可在密码管理中选择「绑定重置密码盘」。",
-  "@resetNotBoundNote": {"placeholders": {"name": {"type": "String"}}},
+  "@resetNotBoundNote": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "resetNotBoundCanvas": "{name}未绑定重置密码盘（U 盘），无法通过重置盘重置密码。\n\n可在密码管理中选择「绑定重置密码盘」；旧版本（v1.5.x）设置的密码文件需先修改一次密码升级格式。",
-  "@resetNotBoundCanvas": {"placeholders": {"name": {"type": "String"}}},
+  "@resetNotBoundCanvas": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "resetNotBoundNotebook": "{name}未绑定重置密码盘（U 盘），无法通过重置盘重置密码。\n\n可在「设置/修改密码保护」后于菜单中选择「绑定重置密码盘」；旧版本设置的密码需先修改一次密码升级格式。",
-  "@resetNotBoundNotebook": {"placeholders": {"name": {"type": "String"}}},
+  "@resetNotBoundNotebook": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "resetNoValidKeyBody": "所选位置未找到有效的重置密码盘文件（password_reset_disk.key）。",
   "@resetNoValidKeyBody": {},
   "rootRefusedTitle": "无法在此设备上启动",
@@ -806,11 +870,23 @@
   "canvasVaultLockedRemove": "加密底座已锁定，无法回封：请重新验证开屏密码后再试",
   "@canvasVaultLockedRemove": {},
   "canvasPasswordSetDiskBoundFor": "已为「{name}」设置独立密码并绑定重置密码盘",
-  "@canvasPasswordSetDiskBoundFor": {"placeholders": {"name": {"type": "String"}}},
+  "@canvasPasswordSetDiskBoundFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "homeDeleteCanvasTitle": "删除画布",
   "@homeDeleteCanvasTitle": {},
   "homeDeleteCanvasConfirm": "确定删除画布「{name}」吗？此操作不可恢复。",
-  "@homeDeleteCanvasConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@homeDeleteCanvasConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "homeDeleteFailed": "删除失败，请重试",
   "@homeDeleteFailed": {},
   "homeSelectTemplate": "选择笔记模板",
@@ -820,7 +896,13 @@
   "homeTrashLoadFailed": "回收站加载失败，请重试",
   "@homeTrashLoadFailed": {},
   "homeRecovered": "已恢复「{id}」",
-  "@homeRecovered": {"placeholders": {"id": {"type": "String"}}},
+  "@homeRecovered": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
   "homeRetry": "重试",
   "@homeRetry": {},
   "homeNoCanvas": "还没有画布",
@@ -890,7 +972,13 @@
   "nbVersionHistory": "版本历史",
   "@nbVersionHistory": {},
   "nbVersionHistoryOf": "「{name}」版本历史",
-  "@nbVersionHistoryOf": {"placeholders": {"name": {"type": "String"}}},
+  "@nbVersionHistoryOf": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "nbPageNameLabel": "页面名称",
   "@nbPageNameLabel": {},
   "nbChooseTemplate": "选择模板",
@@ -914,7 +1002,13 @@
   "impNoText": "未解析到文本内容",
   "@impNoText": {},
   "impImportedParagraphs": "已导入 {count} 段文字",
-  "@impImportedParagraphs": {"placeholders": {"count": {"type": "int"}}},
+  "@impImportedParagraphs": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "impFailed": "导入失败，请重试",
   "@impFailed": {},
   "impPdfTypeGroup": "PDF 文档",
@@ -922,9 +1016,24 @@
   "impPdfNoPages": "PDF 没有可导入的页面",
   "@impPdfNoPages": {},
   "impPdfPageTitle": "{name} · 第 {page} 页",
-  "@impPdfPageTitle": {"placeholders": {"name": {"type": "String"}, "page": {"type": "int"}}},
+  "@impPdfPageTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "page": {
+        "type": "int"
+      }
+    }
+  },
   "impPdfDone": "已导入 PDF 共 {count} 页；打开任一页面即可手写批注",
-  "@impPdfDone": {"placeholders": {"count": {"type": "int"}}},
+  "@impPdfDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "impPdfFailed": "导入 PDF 失败，请重试",
   "@impPdfFailed": {},
   "impChangePasswordProtect": "修改密码保护",
@@ -962,7 +1071,13 @@
   "syncFailedRemoteFile": "同步失败：同步远端文件失败，请检查服务器",
   "@syncFailedRemoteFile": {},
   "syncFailedHttpUnavailable": "同步失败：服务器暂时不可用（HTTP {code}），请稍后再试",
-  "@syncFailedHttpUnavailable": {"placeholders": {"code": {"type": "int"}}},
+  "@syncFailedHttpUnavailable": {
+    "placeholders": {
+      "code": {
+        "type": "int"
+      }
+    }
+  },
   "syncFailedDirMissing": "同步失败：服务器目录不存在或路径被占用，请检查远端目录设置",
   "@syncFailedDirMissing": {},
   "syncFailedHttps": "同步失败：安全连接（HTTPS）握手失败，请检查服务器证书",
@@ -978,7 +1093,16 @@
   "syncUpToDate": "已是最新，无需同步",
   "@syncUpToDate": {},
   "syncWithConflicts": "{base}；另有 {count} 个文档本地与云端均有改动，已按你的选择处理",
-  "@syncWithConflicts": {"placeholders": {"base": {"type": "String"}, "count": {"type": "int"}}},
+  "@syncWithConflicts": {
+    "placeholders": {
+      "base": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "webdavTitle": "WebDAV 同步",
   "@webdavTitle": {},
   "webdavUsername": "用户名",
@@ -1074,11 +1198,24 @@
   "pfAttachment": "附件",
   "@pfAttachment": {},
   "readerTitle": "{name} · 翻页阅读",
-  "@readerTitle": {"placeholders": {"name": {"type": "String"}}},
+  "@readerTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "readerPageIndicator": "第 {index} 页 / 共 {total} 页",
-  "@readerPageIndicator": {"placeholders": {"index": {"type": "int"}, "total": {"type": "int"}}},
-  "notesWritingTitle": "笔记",
-  "@notesWritingTitle": {},
+  "@readerPageIndicator": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "notesRecent": "最近",
   "@notesRecent": {},
   "obWelcome": "欢迎使用绘图笔记",
@@ -1100,7 +1237,16 @@
   "presNoContent": "没有可演示的内容",
   "@presNoContent": {},
   "presIndicator": "{index} / {total} · 点击或 → 下一页，Esc 退出",
-  "@presIndicator": {"placeholders": {"index": {"type": "int"}, "total": {"type": "int"}}},
+  "@presIndicator": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "presExit": "退出演示",
   "@presExit": {},
   "pdfPreviewUnavailable": "PDF 内嵌预览不可用",
@@ -1142,11 +1288,29 @@
   "canvasBindConfirmContent": "绑定后忘记此画布的独立密码时，可插入重置密码盘（U 盘）免旧密码重置。\n\nU 盘上只有随机钥匙文件（password_reset_disk.key），画布数据不会离开设备。",
   "@canvasBindConfirmContent": {},
   "canvasRemoveConfirmContent": "移除后「{name}」将回到加密底座保护（主密钥信封），不再需要独立密码。确定移除吗？",
-  "@canvasRemoveConfirmContent": {"placeholders": {"name": {"type": "String"}}},
+  "@canvasRemoveConfirmContent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "canvasBoundDiskFor": "已为「{name}」绑定重置密码盘",
-  "@canvasBoundDiskFor": {"placeholders": {"name": {"type": "String"}}},
+  "@canvasBoundDiskFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "homeDeleteForeverConfirm": "确定永久删除「{name}」吗？此操作不可恢复。",
-  "@homeDeleteForeverConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@homeDeleteForeverConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "homeRestoreFailed": "恢复失败，请重试",
   "@homeRestoreFailed": {},
   "homeTabCanvas": "画布",
@@ -1160,7 +1324,13 @@
   "homeKindNotebookPage": "分页画布页面",
   "@homeKindNotebookPage": {},
   "homeUpdatedAt": "更新于 {time}",
-  "@homeUpdatedAt": {"placeholders": {"time": {"type": "String"}}},
+  "@homeUpdatedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "homeDeleteNoteConfirm": "确定删除笔记「{name}」吗？此操作不可恢复。",
   "@homeDeleteNoteConfirm": {},
   "homeUntitledNotebookPage": "未命名",
@@ -1182,13 +1352,40 @@
   "nbPageNameExampleHint": "例如：产品评审 08-14",
   "@nbPageNameExampleHint": {},
   "nbDeletePageConfirm": "确定删除页面「{name}」吗？其中的手写与文字内容将一并删除。",
-  "@nbDeletePageConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@nbDeletePageConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "nbPageDeleted": "已删除「{name}」",
-  "@nbPageDeleted": {"placeholders": {"name": {"type": "String"}}},
+  "@nbPageDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "nbExportedPdf": "已导出整本 {count} 页 PDF：{path}",
-  "@nbExportedPdf": {"placeholders": {"count": {"type": "int"}, "path": {"type": "String"}}},
+  "@nbExportedPdf": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "cmdGotoFrame": "跳转到「{name}」",
-  "@cmdGotoFrame": {"placeholders": {"name": {"type": "String"}}},
+  "@cmdGotoFrame": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "obPinchTip": "双指捏合缩放画布、双指旋转画布（触屏设备）",
   "@obPinchTip": {},
   "obAutosaveTip": "内容自动保存，无需手动保存；可随时导出为 PNG",
@@ -1196,11 +1393,29 @@
   "syncFailedAuth": "同步失败：用户名或密码不对（服务器拒绝登录）",
   "@syncFailedAuth": {},
   "syncFailedRejected": "同步失败：服务器拒绝了这次请求（HTTP {code}）",
-  "@syncFailedRejected": {"placeholders": {"code": {"type": "String"}}},
+  "@syncFailedRejected": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "syncHttpUnknown": "未知",
   "@syncHttpUnknown": {},
   "syncDoneSummary": "同步完成：↑{up} ↓{down} ✕{del}",
-  "@syncDoneSummary": {"placeholders": {"up": {"type": "int"}, "down": {"type": "int"}, "del": {"type": "int"}}},
+  "@syncDoneSummary": {
+    "placeholders": {
+      "up": {
+        "type": "int"
+      },
+      "down": {
+        "type": "int"
+      },
+      "del": {
+        "type": "int"
+      }
+    }
+  },
   "webdavFormDirty": "表单有未保存的修改：请先点击「保存配置」再同步（避免加密密钥与云端数据错配）",
   "@webdavFormDirty": {},
   "webdavSyncSecretLabel": "同步密码（必填，用于端到端加密）",
@@ -1324,7 +1539,13 @@
   "pdfGroupQuality": "质量",
   "@pdfGroupQuality": {},
   "pdfExportNPages": "导出 {count} 页",
-  "@pdfExportNPages": {"placeholders": {"count": {"type": "int"}}},
+  "@pdfExportNPages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inkStylusPressure": "触控笔压感",
   "@inkStylusPressure": {},
   "inkTouchPressure": "触摸压感",
@@ -1342,7 +1563,16 @@
   "pomodoroFinish": "番茄钟结束：休息一下吧",
   "@pomodoroFinish": {},
   "pageIndicator": "第 {index} 页 / 共 {total} 页",
-  "@pageIndicator": {"placeholders": {"index": {"type": "int"}, "total": {"type": "int"}}},
+  "@pageIndicator": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "eraserWholeStroke": "整笔",
   "@eraserWholeStroke": {},
   "eraserTransparent": "透明",
@@ -1456,11 +1686,23 @@
   "actShapeLibPagedOnly": "仅分页画布页面支持形状库",
   "@actShapeLibPagedOnly": {},
   "actCopiedN": "已复制 {count} 个元素",
-  "@actCopiedN": {"placeholders": {"count": {"type": "int"}}},
+  "@actCopiedN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "actPickFirst": "请先选中要复制的元素",
   "@actPickFirst": {},
   "actPastedN": "已粘贴 {count} 个元素",
-  "@actPastedN": {"placeholders": {"count": {"type": "int"}}},
+  "@actPastedN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "actCopiedTextStyle": "已复制文字样式",
   "@actCopiedTextStyle": {},
   "actCopiedShapeStyle": "已复制形状样式",
@@ -1532,7 +1774,13 @@
   "edNoTextBlocks": "本页没有文字块",
   "@edNoTextBlocks": {},
   "edRecoloredN": "已批量改色 {count} 个文字块",
-  "@edRecoloredN": {"placeholders": {"count": {"type": "int"}}},
+  "@edRecoloredN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "edImageLabel": "图片",
   "@edImageLabel": {},
   "edNoteImageStoreUnavailable": "笔记页图片存储不可用",
@@ -1566,7 +1814,13 @@
   "edGroupNeed2": "请先框选/多选至少 2 个元素再分组",
   "@edGroupNeed2": {},
   "edGroupedN": "已分组 {count} 个元素",
-  "@edGroupedN": {"placeholders": {"count": {"type": "int"}}},
+  "@edGroupedN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "edUngrouped": "已取消分组",
   "@edUngrouped": {},
   "renameCanvasTitle": "重命名画布",
@@ -1660,7 +1914,13 @@
   "selDeleteContent": "删除选中内容",
   "@selDeleteContent": {},
   "selNObjects": "已选中 {count} 个对象",
-  "@selNObjects": {"placeholders": {"count": {"type": "int"}}},
+  "@selNObjects": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "selShapeLockedEdit": "形状已锁定：解除锁定后可编辑",
   "@selShapeLockedEdit": {},
   "selShapeSelected": "已选中形状：可拖动、缩放、锁定或删除",
@@ -1670,7 +1930,13 @@
   "selImageSelected": "已选中图片：可拖动、缩放、锁定或删除",
   "@selImageSelected": {},
   "selNStrokes": "已选中 {count} 笔",
-  "@selNStrokes": {"placeholders": {"count": {"type": "int"}}},
+  "@selNStrokes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "selClear": "清除选区",
   "@selClear": {},
   "shapeLibNoMatch": "没有匹配的形状",
@@ -1682,9 +1948,21 @@
   "saveStateSaving": "保存中…",
   "@saveStateSaving": {},
   "saveStateSavedAt": "已保存 {time}",
-  "@saveStateSavedAt": {"placeholders": {"time": {"type": "String"}}},
+  "@saveStateSavedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "actInsertedShape": "已插入「{name}」",
-  "@actInsertedShape": {"placeholders": {"name": {"type": "String"}}},
+  "@actInsertedShape": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "tParagraph": "段落",
   "@tParagraph": {},
   "tHeading": "标题",
@@ -1736,7 +2014,13 @@
   "blkDragToSort": "拖拽排序",
   "@blkDragToSort": {},
   "semHeading": "标题{level}",
-  "@semHeading": {"placeholders": {"level": {"type": "String"}}},
+  "@semHeading": {
+    "placeholders": {
+      "level": {
+        "type": "String"
+      }
+    }
+  },
   "semTodo": "待办事项",
   "@semTodo": {},
   "semCode": "代码块",
@@ -1854,7 +2138,13 @@
   "dbCellNone": "未选择",
   "@dbCellNone": {},
   "dbRecordCount": "{count} 条记录",
-  "@dbRecordCount": {"placeholders": {"count": {"type": "int"}}},
+  "@dbRecordCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "dbKanbanNeedsSelect": "看板需要至少一个“选项”字段，请先添加 select 字段",
   "@dbKanbanNeedsSelect": {},
   "dbUngrouped": "未分组",
@@ -1917,37 +2207,6 @@
   "@tplTodoName": {},
   "tplTodoDesc": "预置待办块",
   "@tplTodoDesc": {},
-  "schPrevMonth": "上个月",
-  "@schPrevMonth": {},
-  "schNextMonth": "下个月",
-  "@schNextMonth": {},
-  "schToday": "今天",
-  "@schToday": {},
-  "schShowAllDates": "显示全部日期",
-  "@schShowAllDates": {},
-  "schAddEventTooltip": "添加待办（日期为选中日，未选中则为今天）",
-  "@schAddEventTooltip": {},
-  "schAllDay": "改为全天",
-  "@schAllDay": {},
-  "schAdd": "添加",
-  "@schAdd": {},
-  "schAddAtHour": "在 {hour} 点添加",
-  "@schAddAtHour": {
-    "placeholders": {
-      "hour": {"type": "int"}
-    }
-  },
-  "schMonthTitle": "{year} 年 {month} 月",
-  "@schMonthTitle": {
-    "placeholders": {
-      "year": {"type": "int"},
-      "month": {"type": "int"}
-    }
-  },
-  "schAllAgenda": "全部日程",
-  "@schAllAgenda": {},
-  "schDayTimeline": "当日安排 · 24 小时",
-  "@schDayTimeline": {},
   "colorPickerSvHint": "饱和度与明度（键盘请用下方 RGB 输入）",
   "@colorPickerSvHint": {},
   "colorPickerHueHint": "色相（键盘请用下方 RGB 输入）",
@@ -2027,32 +2286,44 @@
   "expExportedTo": "已导出到：{path}",
   "@expExportedTo": {
     "placeholders": {
-      "path": {"type": "String"}
+      "path": {
+        "type": "String"
+      }
     }
   },
   "expExportFailErr": "导出失败：{error}",
   "@expExportFailErr": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "expCopyPlatformFail": "复制 PNG 需平台支持：{error}",
   "@expCopyPlatformFail": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "expExportAllPdf": "已导出整本 {count} 页 PDF：{path}",
   "@expExportAllPdf": {
     "placeholders": {
-      "count": {"type": "int"},
-      "path": {"type": "String"}
+      "count": {
+        "type": "int"
+      },
+      "path": {
+        "type": "String"
+      }
     }
   },
   "expExportAllPdfFail": "导出整本 PDF 失败：{error}",
   "@expExportAllPdfFail": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "expRenderFailHard": "导出失败：无法渲染画布",
@@ -2060,49 +2331,65 @@
   "expExportPagedPdf": "已导出分页笔记 PDF：{path}",
   "@expExportPagedPdf": {
     "placeholders": {
-      "path": {"type": "String"}
+      "path": {
+        "type": "String"
+      }
     }
   },
   "expExportPagedPdfFail": "导出分页笔记 PDF 失败：{error}",
   "@expExportPagedPdfFail": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "expExportedSvgTo": "已导出 SVG 到：{path}",
   "@expExportedSvgTo": {
     "placeholders": {
-      "path": {"type": "String"}
+      "path": {
+        "type": "String"
+      }
     }
   },
   "expExportedWord": "已导出 Word 兼容文档：{path}",
   "@expExportedWord": {
     "placeholders": {
-      "path": {"type": "String"}
+      "path": {
+        "type": "String"
+      }
     }
   },
   "expExportWordFail": "导出 Word 兼容文档失败：{error}",
   "@expExportWordFail": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "expExportedTextTo": "已导出文本到：{path}",
   "@expExportedTextTo": {
     "placeholders": {
-      "path": {"type": "String"}
+      "path": {
+        "type": "String"
+      }
     }
   },
   "expExportedPptxTo": "已导出 PPTX 到：{path}",
   "@expExportedPptxTo": {
     "placeholders": {
-      "path": {"type": "String"}
+      "path": {
+        "type": "String"
+      }
     }
   },
   "expExportedJsonTo": "已导出 JSON 到：{path}",
   "@expExportedJsonTo": {
     "placeholders": {
-      "path": {"type": "String"}
+      "path": {
+        "type": "String"
+      }
     }
   },
   "lockQuickUnlockFail": "系统验证未通过，请输入密码解锁",
@@ -2140,45 +2427,63 @@
   "lockRetryAfter": "请在 {duration} 后重试",
   "@lockRetryAfter": {
     "placeholders": {
-      "duration": {"type": "String"}
+      "duration": {
+        "type": "String"
+      }
     }
   },
   "lockDurHoursMins": "{hours} 小时 {mins} 分",
   "@lockDurHoursMins": {
     "placeholders": {
-      "hours": {"type": "int"},
-      "mins": {"type": "int"}
+      "hours": {
+        "type": "int"
+      },
+      "mins": {
+        "type": "int"
+      }
     }
   },
   "lockDurMinsSecs": "{minutes} 分 {seconds} 秒",
   "@lockDurMinsSecs": {
     "placeholders": {
-      "minutes": {"type": "int"},
-      "seconds": {"type": "int"}
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
     }
   },
   "webdavSyncFailRaw": "同步失败：{error}",
   "@webdavSyncFailRaw": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "webdavSyncServerBusy": "同步失败：服务器暂时不可用（HTTP {code}），请稍后再试",
   "@webdavSyncServerBusy": {
     "placeholders": {
-      "code": {"type": "String"}
+      "code": {
+        "type": "String"
+      }
     }
   },
   "webdavSyncRejected": "同步失败：服务器拒绝了这次请求（HTTP {code}）",
   "@webdavSyncRejected": {
     "placeholders": {
-      "code": {"type": "String"}
+      "code": {
+        "type": "String"
+      }
     }
   },
   "webdavSaveFail": "保存失败：{error}",
   "@webdavSaveFail": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "webdavSavedPlain": "已保存 WebDAV 配置（未启用端到端加密）",
@@ -2198,9 +2503,15 @@
   "webdavSyncDoneStats": "同步完成：↑{uploaded} ↓{downloaded} ✕{deletedRemote}",
   "@webdavSyncDoneStats": {
     "placeholders": {
-      "uploaded": {"type": "int"},
-      "downloaded": {"type": "int"},
-      "deletedRemote": {"type": "int"}
+      "uploaded": {
+        "type": "int"
+      },
+      "downloaded": {
+        "type": "int"
+      },
+      "deletedRemote": {
+        "type": "int"
+      }
     }
   },
   "homeForgotPasswordLink": "忘记密码？",
@@ -2208,7 +2519,9 @@
   "canvasItemSemantics": "画布对象：{kind}",
   "@canvasItemSemantics": {
     "placeholders": {
-      "kind": {"type": "String"}
+      "kind": {
+        "type": "String"
+      }
     }
   },
   "canvasKindChart": "图表",
@@ -2222,7 +2535,9 @@
   "layerDefaultName": "图层 {n}",
   "@layerDefaultName": {
     "placeholders": {
-      "n": {"type": "int"}
+      "n": {
+        "type": "int"
+      }
     }
   },
   "edgelessStickyTitle": "便签",
@@ -2262,7 +2577,9 @@
   "edgelessFrameSemantics": "画布笔记帧：{title}",
   "@edgelessFrameSemantics": {
     "placeholders": {
-      "title": {"type": "String"}
+      "title": {
+        "type": "String"
+      }
     }
   },
   "presNextSlide": "下一页（长按退出）",

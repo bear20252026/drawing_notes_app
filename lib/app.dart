@@ -18,7 +18,6 @@ import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage
 import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
-import 'package:drawing_notes_app/features/schedule/infrastructure/schedule_event_store.dart';
 // 首页刷新修复②：注册全局路由观察者（HomePage 的 RouteAware 兜底刷新依赖它）。
 import 'package:drawing_notes_app/features/security/sync_fix.dart' show SyncFix;
 // 应用启动锁：冷启动 + 切后台回锁（2026-09-01）。
@@ -78,14 +77,11 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
       return vault.isUnlocked ? vault.masterKey : null;
     },
   );
-  // 收藏/标签/日程同样收进统一根目录（组合根创建，AppShell 透传）。
+  // 收藏/标签同样收进统一根目录（组合根创建，AppShell 透传）。
   late final FavoriteStore _favoriteStore = FavoriteStore(
     directoryProvider: _appDataRoot.root,
   );
   late final TagStore _tagStore = TagStore(
-    directoryProvider: _appDataRoot.root,
-  );
-  late final ScheduleEventStore _scheduleEventStore = ScheduleEventStore(
     directoryProvider: _appDataRoot.root,
   );
   final AppLockService _appLockService = AppLockService();
@@ -198,7 +194,6 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
               blockDocStore: _blockDocStore,
               favoriteStore: _favoriteStore,
               tagStore: _tagStore,
-              scheduleEventStore: _scheduleEventStore,
               appLockService: _appLockService,
               vaultKeyService: _vaultKeyService,
               quickUnlockService: _quickUnlockService,
