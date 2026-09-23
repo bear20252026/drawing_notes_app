@@ -6,7 +6,6 @@ import 'package:drawing_notes_app/core/canvas_model/layer.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/ink_layer_painter.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/stroke_picture_cache.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
 
 /// 图层的离屏渲染缓存。
 ///
@@ -23,7 +22,10 @@ import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dar
 /// [LayerCompositor.maxBitmapLongEdge]，用 drawImageRect 统一缩放绘制。
 ///
 /// D12（2026-09-20）：封顶画布启用增量脏矩形——旧位图经 drawImageRect
-/// 铺回文档逻辑坐标，脏矩形仍在文档坐标系裁剪；仅 marker 图层强制全量。
+/// 铺回文档逻辑坐标，脏矩形仍在文档坐标系裁剪。
+/// D12 续（2026-09-23）：marker 层增量放行——区域内「清空后按
+/// [InkLayerPainter] 计划从透明重绘」，与全量重建逐像素等价，不再强制
+/// marker 图层全量（论证见 rasterize 内注释）。
 class LayerRenderCache {
   ui.Image? image;
   bool dirty = true;
@@ -94,15 +96,12 @@ class LayerCompositor {
     // 离原点越远偏得越多。非封顶画布 factor=1，此调用为零变换无影响。
     canvas.scale(bitmapWidth / width, bitmapHeight / height);
 
-    // 同色高亮笔依赖整层离屏合成，局部重绘会把新高亮再次与旧位图
-    // srcOver 叠加，破坏“不叠色”承诺。因此此类图层始终全量重建。
+    // 同色高亮笔仍不进 Picture 缓存（Picture 按笔画直绘，无 darken
+    // 分组层，会破坏「不叠色」），全量重建走 [InkLayerPainter] 原路径。
+    // 增量区域重建已支持 marker：见下方 region 分支注释。
     final hasHighlighter = layer.strokes.any(
       (stroke) => stroke.type == BrushType.marker,
     );
-    // D12：封顶画布也走增量脏矩形（位图经 scale 已落在 bitmap 坐标系）。
-    // 旧 base 需 drawImageRect 铺回文档逻辑尺寸，避免二次缩放。
-    final effectiveRegion = hasHighlighter ? null : region;
-    final effectiveBase = hasHighlighter ? null : base;
 
     // saveLayer 必须覆盖整个画布（而非仅脏矩形）：
     // 1) base（旧位图）画入后，区域外内容随 restore 原样保留；
@@ -113,24 +112,29 @@ class LayerCompositor {
     // 整张位图（封顶与非封顶皆然）。
     canvas.saveLayer(fullBounds, ui.Paint());
     // 增量重建：先画旧位图作为底（全图），区域外内容保持不变。
-    if (effectiveBase != null) {
+    if (base != null) {
       final src = Rect.fromLTWH(
         0,
         0,
-        effectiveBase.width.toDouble(),
-        effectiveBase.height.toDouble(),
+        base.width.toDouble(),
+        base.height.toDouble(),
       );
-      canvas.drawImageRect(effectiveBase, src, fullBounds, ui.Paint());
+      canvas.drawImageRect(base, src, fullBounds, ui.Paint());
     }
     // 只重绘脏矩形内的笔画（渲染裁剪）。
-    final paintBounds = effectiveRegion ?? fullBounds;
-    if (effectiveRegion != null) {
+    final paintBounds = region ?? fullBounds;
+    if (region != null) {
       canvas.clipRect(paintBounds);
-      for (final stroke in layer.strokes) {
-        final sb = StrokeRenderer.strokeBounds(stroke);
-        if (sb == null || !sb.overlaps(paintBounds)) continue;
-        StrokeRenderer.drawStroke(canvas, stroke);
-      }
+      // 先清空脏区域，再从透明重绘所有相交笔画——区域内与全量重建
+      // 逐像素等价。清除是必须的：旧位图已烘焙旧高亮的 darken 结果，
+      // 若直接在其上按分组重绘，区域内旧高亮会被二次 darken 变深
+      // （v1.17.12 对 marker 强制全量的根因）；普通半透明笔画同理
+      // 会被叠加。清空后 repaint 即无叠加问题，且撤销/删除类脏区域
+      // 也天然无残影。
+      // ⚠️ 不得回退为逐笔画 drawStroke：marker 会以半透明 srcOver 直绘，
+      // 交叠处反复叠色。
+      canvas.drawRect(paintBounds, ui.Paint()..blendMode = ui.BlendMode.clear);
+      InkLayerPainter.paintStrokes(canvas, paintBounds, layer.strokes);
     } else {
       // 全量重建：优先走 Picture 缓存（无 marker 时），命中直接
       // drawPicture（O(1) 重绘）；未命中/未启用则逐笔画绘制原路径。
