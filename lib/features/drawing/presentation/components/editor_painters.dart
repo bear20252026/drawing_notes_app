@@ -1,6 +1,6 @@
 // 绘图展示层画笔集合（F9 自 editor_components.dart 拆出，2026-09-24）：
-// 连接线/形状/吸附线/框选/网格/图表/尾迹等 CustomPainter。使用方继续
-// import editor_components.dart（export 桶兼容）或直接本文件。
+// 连接线/形状/吸附线/框选/网格/图表/尾迹等 CustomPainter。位于 components/
+// 子目录。使用方继续 import editor_components.dart（桶兼容）或直接本文件。
 
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart' show listEquals, mapEquals;

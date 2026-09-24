@@ -2,7 +2,7 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
-## [未发布]
+## [1.17.14] - 2026-09-24
 
 ### F7 契约上移 + F9 超长文件域分权收口（授权专项，行为零变化）
 
