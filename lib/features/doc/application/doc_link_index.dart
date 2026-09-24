@@ -10,8 +10,8 @@
 //   改名后自然失配（v1 语义；id 化引用留待后续版本升级）。
 
 import 'package:meta/meta.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/core/documents/note_block.dart';
+import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 
 /// 页面引用语法：`[[标题]]`。
 final RegExp docLinkPattern = RegExp(r'\[\[([^\[\]]+)\]\]');

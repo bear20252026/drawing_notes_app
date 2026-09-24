@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_database.dart';
 import 'package:drawing_notes_app/features/doc/presentation/embedded_block_view.dart';
 import 'package:drawing_notes_app/features/doc/doc_editor.dart';

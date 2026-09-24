@@ -4,9 +4,9 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
-import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
+import 'package:drawing_notes_app/core/documents/note_block.dart';
+import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
+import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
 
 void main() {
   late Directory tmp;

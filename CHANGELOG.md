@@ -4,6 +4,24 @@
 
 ## [未发布]
 
+### F7 契约上移 + F9 超长文件域分权收口（授权专项，行为零变化）
+
+- **F7 契约上移**：块文档契约五件（`note_block_doc` / `note_block` / `note_attachment` /
+  `note_block_doc_store` 及其 trash/password part / `note_block_doc_sync_store`）由
+  `features/doc` 迁至 **`core/documents/`**（仅依赖 core 的自洽簇），全仓 143 个引用文件
+  import 同步改写；notes↔doc 最重组（29+3 处）的领域耦合就此消除，剩余为架构文档
+  认可的页面级跳转白名单。Martin 基线与架构规则 1-3 全绿。
+- **F9 拆分**（同 O1 part 域分权原则，extension 只收私有助手，public/字段/静态留本体）：
+  - `storage_service` 966→638：媒体资产/写入落盘/删除回收站三 part；
+  - `doc_editor` 983→598：历史保存/块操作/大纲对话框三 part；
+  - `doc_page` 976→287：保存导出/大纲页链/文档密码/信息标签四 part；
+  - `notebook_storage` 939→680：IO/编码落盘两 part；
+  - `edgeless_doc` 942→744：`EdgelessCamera`/`NoteFrame` 抽独立文件 + re-export 兼容；
+  - `editor_components` 899→5（export 桶）：`editor_painters`（8 painter）+
+    `editor_widgets`（4 组件）真实文件。
+  - 拆分配套小工具 `tools/split_members.py`（括号深度感知的成员级切割，配置驱动）入库备查。
+- **门禁**：`flutter analyze` No issues；架构规则测试全绿；全量套件见同批门禁记录。
+
 ### 懒迁移/全量套件负载 flake 降噪专项
 
 - **生产根因修复**：`StorageService._replaceWithTemp` 对 Windows 共享冲突

@@ -12,7 +12,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
-import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_database.dart';
 import 'package:drawing_notes_app/features/doc/presentation/database/database_cell_editor.dart';
 import 'package:drawing_notes_app/features/doc/presentation/database/database_kanban_view.dart';

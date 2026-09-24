@@ -5,8 +5,8 @@ import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
 // 与 doc_markdown_export.dart 平行：同一域模型、不同渲染目标。
 
 import 'package:drawing_notes_app/core/utils/html_escape.dart' as html_escape;
-import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/core/documents/note_block.dart';
+import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 
 /// 转义 HTML 特殊字符（防注入/破版）。
 ///

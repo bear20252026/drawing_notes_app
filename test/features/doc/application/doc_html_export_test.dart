@@ -3,8 +3,8 @@
 // 空段落 / 标题层级钳制 / 嵌套子块递归。
 
 import 'package:drawing_notes_app/features/doc/application/doc_html_export.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/core/documents/note_block.dart';
+import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 NoteBlockDoc _doc(String title, List<NoteBlock> body, {String id = 'd'}) =>

@@ -13,7 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/utils/safe_url.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/features/doc/presentation/image_preview_dialog.dart';
 import 'package:drawing_notes_app/features/doc/presentation/table_editor_widget.dart';
 import 'package:drawing_notes_app/features/doc/presentation/database_block_view.dart';

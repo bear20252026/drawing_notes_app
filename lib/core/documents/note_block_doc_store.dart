@@ -25,7 +25,7 @@ import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:drawing_notes_app/core/utils/time_serialization.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 
 part 'note_block_doc_store_trash.dart';
 part 'note_block_doc_store_password.dart';

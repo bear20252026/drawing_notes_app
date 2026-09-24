@@ -15,10 +15,10 @@ import 'package:drawing_notes_app/features/drawing/rendering/ink_layer_painter.d
 import 'package:drawing_notes_app/features/drawing/rendering/shape_renderer.dart';
 import 'package:drawing_notes_app/features/notes/application/notebook_page_editor_session.dart';
 import 'package:drawing_notes_app/features/notes/application/notebook_title_sync.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/core/documents/note_block.dart';
+import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
-import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
+import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_page.dart';

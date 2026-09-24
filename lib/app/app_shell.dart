@@ -18,7 +18,7 @@ import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_docs_page.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
-import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
+import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/notes/application/notebook_title_sync.dart';
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
@@ -29,7 +29,7 @@ import 'package:drawing_notes_app/features/doc/doc_page.dart';
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
 import 'package:drawing_notes_app/features/doc/presentation/trash_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_entity.dart';
 // 批次②：单文件密码输入（可变长度 4–12 位密码盘）。
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'

@@ -11,8 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/storage/pdf_preview_renderer.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_attachment.dart';
+import 'package:drawing_notes_app/core/documents/note_block.dart';
+import 'package:drawing_notes_app/core/documents/note_attachment.dart';
 import 'package:drawing_notes_app/features/notes/presentation/pdf_preview.dart';
 import '../../../core/theme/apple_design.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';

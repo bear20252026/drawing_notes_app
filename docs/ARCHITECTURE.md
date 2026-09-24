@@ -19,7 +19,17 @@
 | `features/drawing` | 绘图引擎：DrawingDocument、图层位图、笔刷/形状/选区/对象编辑 | `application/drawing_controller.dart`、`presentation/editor_page*.dart` |
 | `features/all_docs` | 全部文档工作台：列表/搜索/收藏/排序/文档树/标签/回收站 | `presentation/all_docs_page.dart` |
 
-### editor_page part 结构（F9 说明，2026-09-20）
+### 超长文件域分权（F9，2026-09-20 定调 / 09-24 完成收口）
+
+`presentation/editor_page.dart` 按 **O1 域分权** 拆为多个 `part`（actions / persistence / editing / overlays / shortcuts …），与 `home_page_password.dart` 等拆分同一原则：**每个 part 对应一个可独立评审的行为域**，避免单文件超过 DCM/行数门禁。F9「六分文件合并」在无行为重复、门禁已绿的前提下**不再合并**——合并只会重新制造超长文件。后续新增逻辑请继续落到对应域 part，而不是回填 `editor_page.dart` 本体。
+
+2026-09-24 F9 收口：同原则完成下一梯队 ≥900 行文件拆分（行为零变化、门禁全绿）——
+`storage_service`（media/write/trash 三 part）、`doc_editor`（history/block_ops/ui 三 part）、
+`doc_page`（save_export/link_outline/password/info 四 part）、`notebook_storage`（io/codec 两 part）、
+`edgeless_doc`（EdgelessCamera/NoteFrame 抽独立文件 + re-export 兼容）、
+`editor_components`（拆 editor_painters/editor_widgets，原文件改 export 桶）。
+拆分约定：**public API、@override、字段与静态成员留类本体**（extension 成员对库外不可见、
+不参与接口实现）；part 只收私有助手；独立公开类抽出时用 re-export 保持 import 兼容。
 
 `presentation/editor_page.dart` 按 **O1 域分权** 拆为多个 `part`（actions / persistence / editing / overlays / shortcuts …），与 `home_page_password.dart` 等拆分同一原则：**每个 part 对应一个可独立评审的行为域**，避免单文件超过 DCM/行数门禁。F9「六分文件合并」在无行为重复、门禁已绿的前提下**不再合并**——合并只会重新制造超长文件。后续新增逻辑请继续落到对应域 part，而不是回填 `editor_page.dart` 本体。
 
@@ -80,7 +90,7 @@ app（组合根，唯一知道所有实现的地方）
 
 | 债务 | 位置 | 说明 |
 |---|---|---|
-| F7 notes↔doc 契约层 | features/notes ↔ features/doc | `architecture_test` 规则 3 **当前全绿**（零环、层方向合规）。历史「互引」已通过页面级跳转白名单 + presentation 下沉收敛；若再上移契约到 core，属专项重构，须单独评估 Martin I 与行为变化，不在增量批次内做。 |
+| F7 notes↔doc 契约层 | features/notes ↔ features/doc | **2026-09-24 契约上移完成**：块文档契约五件（`note_block_doc` / `note_block` / `note_attachment` / `note_block_doc_store` / `note_block_doc_sync_store`，含 store 的 trash/password part）迁至 **`core/documents/`**，双侧 feature 改依 core 契约；Martin 基线与规则 3 全绿。剩余 notes↔doc 依赖均为 ARCHITECTURE 认可的页面级跳转（doc_page/doc_controller 等 presentation 白名单）与 edgeless 画布对 drawing 渲染器的合法复用，不再视为债务。 |
 | E1 i18n 剩量 | lib 全库 | 扫描约 **790+** 处仍含中文字面量（含 assert/技术错误/导出目录名等**刻意不译**项）。UI 展示串按域分批接 arb；domain assert 与落盘默认值按既有「刻意不动」约定保留。 |
 | B11 Semantics 普查 | 全库纯图标交互 | 已补样本（画布/角柄/演示/翻页/预览/RGB 等）。完整普查需按页面逐个过读屏，不一次堆完。 |
 

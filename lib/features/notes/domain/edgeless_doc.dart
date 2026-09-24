@@ -4,13 +4,19 @@
 // 本文件是 M8-2（note_block_doc_to_frames.dart）的契约层：
 // 双方仅通过 NoteFrame / EdgelessCamera 的公开 API 耦合。
 
-import 'dart:math' as math;
 import 'dart:ui' show Offset, Rect, Size;
 
-import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_connector.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_group.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_stroke.dart';
+// F9（2026-09-24）：Camera/Frame 抽至独立文件；re-export 保持既有
+// import 路径兼容（外部使用方零改动）。
+import 'package:drawing_notes_app/features/notes/domain/edgeless_camera.dart';
+import 'package:drawing_notes_app/features/notes/domain/note_frame.dart';
+
+export 'package:drawing_notes_app/features/notes/domain/edgeless_camera.dart';
+export 'package:drawing_notes_app/features/notes/domain/note_frame.dart';
 
 /// 默认帧尺寸。
 const double kDefaultFrameWidth = 360;
@@ -24,211 +30,7 @@ const double kMinFrameHeight = 60;
 const double kCascadeOrigin = 80;
 const double kCascadeStep = 32;
 
-/// 无限画布相机：zoom + pan，负责世界坐标 ↔ 屏幕坐标互转。
-///
-/// 坐标系约定（严格互逆）：
-///   screen = (world - pan) * zoom + viewportCenter
-///   world  = (screen - viewportCenter) / zoom + pan
-/// 其中 pan 为"映射到视口中心的世界坐标"。
-class EdgelessCamera {
-  const EdgelessCamera({this.zoom = 1.0, this.panX = 0.0, this.panY = 0.0})
-    : assert(zoom > 0, 'zoom must be positive');
 
-  /// 初始相机（zoom=1, pan=0,0）。
-  static const EdgelessCamera initial = EdgelessCamera();
-
-  /// 缩放倍率（>0）。
-  final double zoom;
-
-  /// 视口中心对应的世界坐标 X。
-  final double panX;
-
-  /// 视口中心对应的世界坐标 Y。
-  final double panY;
-
-  /// 世界坐标 → 屏幕坐标。
-  Offset worldToScreen(Offset world, Size viewport) {
-    return Offset(
-      (world.dx - panX) * zoom + viewport.width / 2,
-      (world.dy - panY) * zoom + viewport.height / 2,
-    );
-  }
-
-  /// 屏幕坐标 → 世界坐标（worldToScreen 的严格逆）。
-  Offset screenToWorld(Offset screen, Size viewport) {
-    return Offset(
-      (screen.dx - viewport.width / 2) / zoom + panX,
-      (screen.dy - viewport.height / 2) / zoom + panY,
-    );
-  }
-
-  /// 增量平移：pan 增加 (dx, dy)。
-  EdgelessCamera translated(double dx, double dy) =>
-      EdgelessCamera(zoom: zoom, panX: panX + dx, panY: panY + dy);
-
-  /// 以 [focusWorld] 为锚点缩放 [factor] 倍（锚点屏幕位置不变）。
-  /// 无焦点时 pan 不变（绕视口中心缩放）。
-  EdgelessCamera zoomedBy(double factor, {Offset? focusWorld}) {
-    if (focusWorld == null || factor == 1.0) {
-      return EdgelessCamera(zoom: zoom * factor, panX: panX, panY: panY);
-    }
-    final newZoom = zoom * factor;
-    // 锚点屏幕位置不变：(focusWorld.dx - newPanX) * newZoom = (focusWorld.dx - panX) * zoom
-    final newPanX = focusWorld.dx - (focusWorld.dx - panX) * zoom / newZoom;
-    final newPanY = focusWorld.dy - (focusWorld.dy - panY) * zoom / newZoom;
-    return EdgelessCamera(zoom: newZoom, panX: newPanX, panY: newPanY);
-  }
-
-  /// 使 [worldRect] 完整可见并居中。zoom 被 clamp 到 [0.1, 10] 防退化。
-  EdgelessCamera fittedTo(
-    Rect worldRect,
-    Size viewport, {
-    double padding = 40,
-  }) {
-    final vw = viewport.width - padding * 2;
-    final vh = viewport.height - padding * 2;
-    if (worldRect.width <= 0 || worldRect.height <= 0) {
-      return EdgelessCamera(
-        zoom: 1.0,
-        panX: worldRect.center.dx,
-        panY: worldRect.center.dy,
-      );
-    }
-    final scaleX = vw / worldRect.width;
-    final scaleY = vh / worldRect.height;
-    final z = math.min(scaleX, scaleY).clamp(0.1, 10.0);
-    return EdgelessCamera(
-      zoom: z,
-      panX: worldRect.center.dx,
-      panY: worldRect.center.dy,
-    );
-  }
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is EdgelessCamera &&
-          runtimeType == other.runtimeType &&
-          zoom == other.zoom &&
-          panX == other.panX &&
-          panY == other.panY;
-
-  @override
-  int get hashCode => Object.hash(zoom, panX, panY);
-
-  @override
-  String toString() => 'EdgelessCamera(zoom: $zoom, panX: $panX, panY: $panY)';
-}
-
-/// 无限画布上的 note 帧：承载一个 NoteBlockDoc 及其在画布上的位置/层级。
-class NoteFrame {
-  const NoteFrame({
-    required this.id,
-    required this.x,
-    required this.y,
-    required this.w,
-    required this.h,
-    required this.doc,
-    required this.zIndex,
-    this.background = '#FFFFFF',
-  });
-
-  /// 帧唯一标识。
-  final String id;
-
-  /// 画布 X 坐标。
-  final double x;
-
-  /// 画布 Y 坐标。
-  final double y;
-
-  /// 帧宽度。
-  final double w;
-
-  /// 帧高度。
-  final double h;
-
-  /// 帧内块文档。
-  final NoteBlockDoc doc;
-
-  /// 层级（越大越靠前）。
-  final int zIndex;
-
-  /// 背景色（CSS 颜色字符串）。
-  final String background;
-
-  /// 矩形区域（由 x/y/w/h 派生）。
-  Rect get rect => Rect.fromLTWH(x, y, w, h);
-
-  /// 中心点。
-  Offset get center => rect.center;
-
-  /// 是否包含世界坐标点。
-  bool contains(Offset worldPoint) => rect.contains(worldPoint);
-
-  NoteFrame copyWith({
-    String? id,
-    double? x,
-    double? y,
-    double? w,
-    double? h,
-    NoteBlockDoc? doc,
-    int? zIndex,
-    String? background,
-  }) => NoteFrame(
-    id: id ?? this.id,
-    x: x ?? this.x,
-    y: y ?? this.y,
-    w: w ?? this.w,
-    h: h ?? this.h,
-    doc: doc ?? this.doc,
-    zIndex: zIndex ?? this.zIndex,
-    background: background ?? this.background,
-  );
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'x': x,
-    'y': y,
-    'w': w,
-    'h': h,
-    'doc': doc.toJson(),
-    'zIndex': zIndex,
-    'background': background,
-  };
-
-  factory NoteFrame.fromJson(Map<String, dynamic> json) => NoteFrame(
-    id: json['id'] as String,
-    x: (json['x'] as num).toDouble(),
-    y: (json['y'] as num).toDouble(),
-    w: (json['w'] as num).toDouble(),
-    h: (json['h'] as num).toDouble(),
-    doc: NoteBlockDoc.fromJson(json['doc'] as Map<String, dynamic>),
-    zIndex: json['zIndex'] as int,
-    background: json['background'] as String? ?? '#FFFFFF',
-  );
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is NoteFrame &&
-          runtimeType == other.runtimeType &&
-          id == other.id &&
-          x == other.x &&
-          y == other.y &&
-          w == other.w &&
-          h == other.h &&
-          doc == other.doc &&
-          zIndex == other.zIndex &&
-          background == other.background;
-
-  @override
-  int get hashCode => Object.hash(id, x, y, w, h, doc, zIndex, background);
-
-  @override
-  String toString() =>
-      'NoteFrame(id: $id, x: $x, y: $y, w: $w, h: $h, z: $zIndex)';
-}
 
 /// Edgeless 文档聚合根：无限画布上的多帧 + 相机 + 选择态。
 ///

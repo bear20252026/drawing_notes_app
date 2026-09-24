@@ -11,7 +11,7 @@
 
 import 'package:flutter/material.dart';
 
-import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
+import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/security/password_reset_common.dart';
 

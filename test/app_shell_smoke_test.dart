@@ -17,8 +17,8 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/app/app_shell.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
-import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
+import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
+import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
 // v1.10.5：导航类控件玻璃化——底部导航条 / FAB 材质替换壳。
 import 'package:drawing_notes_app/shared/widgets/glass_fab.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_nav_bar.dart';

@@ -9,7 +9,7 @@
 
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/utils/time_serialization.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_entity.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_page.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_page_content.dart';

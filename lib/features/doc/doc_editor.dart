@@ -21,9 +21,9 @@ import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_editor.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_history.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_inline_span.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_link_index.dart';
@@ -31,6 +31,12 @@ import 'package:drawing_notes_app/features/doc/domain/text_span_editor.dart';
 import 'package:drawing_notes_app/features/doc/presentation/embedded_block_view.dart';
 import 'package:drawing_notes_app/features/doc/presentation/block_slash_menu.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
+
+// O1 域分权（F9，2026-09-24）：历史保存/块操作/大纲对话框三域 part。
+// 新增同域私有逻辑请落对应 part；public API、字段、静态与 build 留在本体。
+part 'doc_editor_history.dart';
+part 'doc_editor_block_ops.dart';
+part 'doc_editor_ui.dart';
 part 'doc_editor_blocks.dart';
 part 'doc_editor_toolbar.dart';
 part 'doc_editor_editing.dart';
@@ -341,19 +347,6 @@ class DocEditorState extends State<DocEditor> {
   /// U3 P1-9：装饰性刷新的合帧窗口（200ms）。
   static const Duration _cosmeticRefreshDelay = Duration(milliseconds: 200);
 
-  /// U3 P1-9：静默模型更新后的装饰性刷新。
-  ///
-  /// build 对 block.text 的依赖是装饰性的（大纲面板条目、空标题提示、
-  /// 语义标签）。纯文本击键不再整树 setState，装饰消费方改由本方法
-  /// 按 [_cosmeticRefreshDelay] 合帧跟进；结构操作（分块/合并/类型切换）
-  /// 仍即时 setState。
-  void _scheduleCosmeticRefresh() {
-    _cosmeticRefreshDebounce?.cancel();
-    _cosmeticRefreshDebounce = Timer(_cosmeticRefreshDelay, () {
-      if (mounted) setState(() {});
-    });
-  }
-
   /// part 文件（extension）用的 setState 包装——State.setState 是
   /// protected，extension 中直接调用会报 invalid_use_of_protected_member。
   void editorSetState(VoidCallback fn) => setState(fn);
@@ -363,48 +356,6 @@ class DocEditorState extends State<DocEditor> {
   /// _updateDirtyState 置 _isDirty=true，导致纯文本输入的 onDirty 被
   /// 短路——自动保存从不启动，用户输入永不落盘。
   bool _dirtyNotified = false;
-
-  /// 提交一次编辑：压入历史栈并标记脏状态（触发宿主自动保存）。
-  /// 结构性操作（分块/合并/删除/类型切换/插入引用）走本方法——即时入栈。
-  void _commitHistory() {
-    _historyDebounce?.cancel();
-    _history.push(_buildDocFromState());
-    _isDirty = true;
-    _notifyDirtyOnce();
-  }
-
-  /// P2-M6：文本击键合帧——连续输入只在停顿 [_historyDebounceDelay] 后
-  /// 压一次史栈（撤销粒度变为「输入 burst」而非单字符，与主流编辑器
-  /// 一致），消除每键全文档深拷贝。脏标记仍即时（自动保存不受影响）。
-  void _commitHistoryCoalesced() {
-    _historyDebounce?.cancel();
-    _historyDebounce = Timer(_historyDebounceDelay, () {
-      _history.push(_buildDocFromState());
-    });
-    _isDirty = true;
-    _notifyDirtyOnce();
-  }
-
-  /// 边沿触发一次 onDirty（首次脏时通知宿主启动自动保存）。
-  void _notifyDirtyOnce() {
-    if (_dirtyNotified) return;
-    _dirtyNotified = true;
-    widget.onDirty?.call();
-  }
-
-  /// 把待提交的合帧快照立即入栈（saveNow/结构操作前调用，防丢撤销粒度）。
-  void _flushPendingHistory() {
-    _historyDebounce?.cancel();
-    _history.push(_buildDocFromState());
-  }
-
-  void _onTitleEdited() {
-    if (_restoring) return;
-    if (!_isDirty) {
-      _isDirty = true;
-      widget.onDirty?.call();
-    }
-  }
 
   /// 立即保存：构建当前文档快照、清除脏标记并回调 onSave。
   /// 返回保存的文档快照（供宿主显示"已保存"时间等）。
@@ -416,34 +367,6 @@ class DocEditorState extends State<DocEditor> {
     _dirtyNotified = false; // 已落盘，后续编辑重新走首次通知
     widget.onSave?.call(doc);
     return doc;
-  }
-
-  /// 退出时把编辑后的 NoteBlockDoc 通过 onSave 回调传给调用方。
-  void _notifySave() {
-    if (!_initialized || widget.onSave == null) return;
-    final updatedDoc = _buildDocFromState();
-    widget.onSave!(updatedDoc);
-  }
-
-  // ── 文档 ↔ 状态 互转 ───────────────────────────────────────
-
-  /// 从 NoteBlockDoc 构建 root 块（title 由 _titleController 持有）。
-  NoteBlock _buildRootFromDoc(NoteBlockDoc doc) {
-    _ensureBlockResourcesForList(doc.body);
-    return NoteBlock(
-      id: 'root',
-      type: NoteBlockType.text,
-      children: List<NoteBlock>.from(doc.body),
-    );
-  }
-
-  /// 从当前状态重建 NoteBlockDoc。
-  NoteBlockDoc _buildDocFromState() {
-    return _doc.copyWith(
-      title: _titleController.text,
-      body: List<NoteBlock>.from(_root.children),
-      updatedAt: DateTime.now(),
-    );
   }
 
   /// 当前编辑中的文档（供宿主在切换页面/无限画布模式时读取最新内容）。
@@ -470,47 +393,6 @@ class DocEditorState extends State<DocEditor> {
     _ensureBlockResources(link);
     _commitHistory();
     setState(() {});
-  }
-
-  /// 从历史快照恢复文档（撤销/重做）。
-  ///
-  /// 必须重建根树、标题与块资源，并回填仍存在控制器的文本，
-  /// 否则 TextField 会显示回滚前的旧文本。恢复期间通过 [_restoring]
-  /// 抑制 [_syncText] 的副作用，避免回填 controller.text 反向污染史栈。
-  void _restoreDoc(NoteBlockDoc doc) {
-    _historyDebounce?.cancel(); // 撤销/重做恢复期间丢弃待提交击键
-    final keepIds = _collectAllDocBlockIds(doc);
-
-    // 释放快照中已不存在的块资源。
-    final stale = _controllers.keys
-        .where((id) => !keepIds.contains(id))
-        .toList();
-    for (final id in stale) {
-      _disposeBlockResources(id);
-    }
-
-    _restoring = true;
-    setState(() {
-      _titleController.text = doc.title;
-      _root = _buildRootFromDoc(doc);
-      // 回填仍存在控制器的文本，使其与快照一致（同步触发 onChanged，被 _restoring 拦截）。
-      void fill(NoteBlock b) {
-        _controllers[b.id]?.text = b.text;
-        for (final c in b.children) {
-          fill(c);
-        }
-      }
-
-      for (final b in doc.body) {
-        fill(b);
-      }
-      // 聚焦块若已不存在则清空。
-      if (_focusedBlockId != null && !keepIds.contains(_focusedBlockId)) {
-        _focusedBlockId = null;
-      }
-    });
-    _restoring = false;
-    _updateDirtyState();
   }
 
   /// 收集块及其子树的所有 id。
@@ -550,129 +432,6 @@ class DocEditorState extends State<DocEditor> {
       parent: parent,
       index: parent.children.indexWhere((b) => b.id == blockId),
     );
-  }
-
-  /// 应用经 NoteBlockEditor 变换后的新根树：确保资源、置脏、推历史。
-  void _applyRootChange(NoteBlock newRoot) {
-    setState(() {
-      _root = newRoot;
-      _ensureBlockResourcesForList(_root.children);
-      _updateDirtyState();
-    });
-    _commitHistory();
-  }
-
-  /// Tab：将块移到其上一兄弟的倒数子级（形成嵌套）。首块/无上一兄弟则不动作。
-  void _indentBlock(String blockId) {
-    final loc = _locateBlock(blockId);
-    if (loc == null || loc.index == 0) return;
-    final prevSibling = loc.parent.children[loc.index - 1];
-    final newRoot = _editor.moveBlock(_root, blockId, prevSibling.id);
-    if (!identical(newRoot, _root)) {
-      _applyRootChange(newRoot);
-    }
-  }
-
-  /// Shift+Tab：将块从父级中移出，成为其原父块的下一兄弟（取消嵌套）。
-  /// 顶层块不动作。
-  void _outdentBlock(String blockId) {
-    final loc = _locateBlock(blockId);
-    if (loc == null || loc.parent.id == _root.id) return;
-    final parentLoc = _locateBlock(loc.parent.id);
-    if (parentLoc == null) return;
-    final newRoot = _editor.moveBlock(
-      _root,
-      blockId,
-      parentLoc.parent.id,
-      index: parentLoc.index + 1,
-    );
-    if (!identical(newRoot, _root)) {
-      _applyRootChange(newRoot);
-    }
-  }
-
-  // ── / 菜单 ─────────────────────────────────────────────────
-
-  /// 检测是否应显示 / 菜单（键入 / 且光标在块末或空白块）。
-  void _checkSlashTrigger(String blockId, String text, int cursorPos) {
-    if (text == '/' && cursorPos == 1) {
-      _openSlashMenu(blockId);
-    } else if (_showSlashMenu && _slashMenuBlockId != blockId) {
-      _closeSlashMenu();
-    }
-  }
-
-  /// 显示 / 菜单。
-  void _openSlashMenu(String blockId) {
-    _closeSlashMenu(); // 先清理旧菜单
-    setState(() {
-      _showSlashMenu = true;
-      _slashMenuBlockId = blockId;
-    });
-    final overlay = Overlay.of(context);
-    _slashMenuOverlay = OverlayEntry(
-      builder: (context) => Positioned(
-        top: 100,
-        left: 20,
-        child: BlockSlashMenu(
-          onSelected: (type) => _onSlashMenuSelected(blockId, type),
-          onDismiss: _closeSlashMenu,
-        ),
-      ),
-    );
-    overlay.insert(_slashMenuOverlay!);
-  }
-
-  /// 隐藏 / 菜单。
-  void _closeSlashMenu() {
-    _slashMenuOverlay?.remove();
-    _slashMenuOverlay = null;
-    if (_showSlashMenu) {
-      setState(() {
-        _showSlashMenu = false;
-        _slashMenuBlockId = null;
-      });
-    }
-  }
-
-  /// / 菜单选中类型。
-  void _onSlashMenuSelected(String blockId, NoteBlockType type) {
-    _closeSlashMenu();
-    _changeBlockType(blockId, type);
-  }
-
-  /// 手动触发保存：把当前编辑状态通过 onSave 回调传出。
-  Future<void> _manualSave() async {
-    if (widget.onSave == null) return;
-    final doc = _buildDocFromState();
-    // await 落盘结果：失败不置「已保存」，成功才清脏标记。
-    try {
-      await widget.onSave!(doc);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)?.docSaveFailedRetry ?? '保存失败，请重试',
-            ),
-          ),
-        );
-      }
-      return;
-    }
-    if (mounted) {
-      setState(() {
-        _doc = doc;
-        _lastSavedBodySignature = _computeBodySignature();
-        _isDirty = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)?.docSavedToast ?? '文档已保存'),
-          duration: const Duration(seconds: 1),
-        ),
-      );
-    }
   }
 
   // ── 构建 ───────────────────────────────────────────────────
@@ -790,24 +549,6 @@ class DocEditorState extends State<DocEditor> {
     );
   }
 
-  /// AFFiNE 式正文大标题。
-  Widget _buildTitleField() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-      child: TextField(
-        controller: _titleController,
-        decoration: InputDecoration(
-          hintText: AppLocalizations.of(context)?.docUntitled ?? '未命名',
-          border: InputBorder.none,
-        ),
-        style: AppleType.titleStyle(
-          Theme.of(context).colorScheme.onSurface,
-        ).copyWith(fontSize: 26, fontWeight: FontWeight.w700),
-        maxLines: null,
-      ),
-    );
-  }
-
   // ── 大纲（Outline，对标 AFFiNE Outline 面板）─────────────────
 
   /// 按文档顺序抽取所有标题块（含嵌套），供大纲面板展示。
@@ -832,14 +573,6 @@ class DocEditorState extends State<DocEditor> {
     return out;
   }
 
-  bool _containsId(NoteBlock node, String id) {
-    if (node.id == id) return true;
-    for (final c in node.children) {
-      if (_containsId(c, id)) return true;
-    }
-    return false;
-  }
-
   /// 大纲点击跳转：按顶层索引估算滚动位置（v1 行高估算）。
   void scrollToBlock(String blockId) {
     final topLevel = _root.children;
@@ -860,124 +593,6 @@ class DocEditorState extends State<DocEditor> {
       target,
       duration: AppleMotion.modal,
       curve: AppleMotion.easeOut,
-    );
-  }
-
-  /// 大纲停靠面板。
-  Widget _buildOutlineDrawer() {
-    final entries = outline();
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      key: const ValueKey('outline-on'),
-      width: 264,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        border: Border(
-          left: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-        ),
-      ),
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      AppLocalizations.of(context)?.outlineTitle ?? '大纲',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip:
-                        AppLocalizations.of(context)?.docToolbarRefresh ?? '刷新',
-                    icon: const Icon(Icons.refresh, size: 20),
-                    onPressed: () => setState(() {}),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: entries.isEmpty
-                  ? Center(
-                      child: Text(
-                        AppLocalizations.of(context)?.docOutlineEmpty ??
-                            '暂无标题块，用 / 菜单插入「标题」后出现在这里',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      itemCount: entries.length,
-                      itemBuilder: (context, i) {
-                        final e = entries[i];
-                        return InkWell(
-                          onTap: () {
-                            scrollToBlock(e.id);
-                            Navigator.of(context).pop();
-                          },
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                              left: 16 + (e.level - 1) * 16.0,
-                              right: 16,
-                              top: 8,
-                              bottom: 8,
-                            ),
-                            child: Text(
-                              e.text.isEmpty ? '（空标题）' : e.text,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    fontWeight: e.level <= 2
-                                        ? FontWeight.w600
-                                        : FontWeight.w400,
-                                  ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 退出未保存提醒对话框。
-  void _showExitDialog() {
-    GlassDialog.show<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          AppLocalizations.of(context)?.docUnsavedChangesTitle ?? '未保存的改动',
-        ),
-        content: const Text('文档有未保存的改动，确定要退出吗？'),
-        actions: AppleDialog.actions([
-          TextButton(
-            // 键盘可达 + 防误触：默认聚焦「取消」，Enter 不会直接丢数据。
-            autofocus: true,
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
-            },
-            child: Text(AppLocalizations.of(context)?.docDiscard ?? '放弃'),
-          ),
-        ]),
-      ),
     );
   }
 }

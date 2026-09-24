@@ -9,9 +9,9 @@
 library;
 
 import 'package:drawing_notes_app/core/notes_accessor.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
+import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc_search.dart';
-import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
+import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
 
 /// 块文档搜索访问器。
 class BlockDocSearchAccessorImpl implements IBlockDocSearchAccessor {

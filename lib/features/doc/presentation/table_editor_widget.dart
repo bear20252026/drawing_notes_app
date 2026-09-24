@@ -7,7 +7,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
-import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
+import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/features/doc/presentation/table_edit_ops.dart';
 import '../../../core/theme/apple_design.dart';
 

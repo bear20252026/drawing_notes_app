@@ -1,0 +1,15 @@
+{
+  "path": "lib/features/notes/infrastructure/notebook_storage.dart",
+  "classDecl": "class NotebookStorage",
+  "className": "NotebookStorage",
+  "memberRegex": "(?:(?:final|late|const)\\s+)*[A-Za-z_][\\w<>, ?.]*?\\s*(_\\w+)\\s*[<({=]",
+  "parts": [
+    {"file": "notebook_storage_io.dart", "extName": "_NotebookStorageIo", "extDoc": "目录/路径/独占/删除域私有助手（拆分自 notebook_storage.dart）。",
+     "note": "// IO 域（O1 拆分自 notebook_storage.dart）：目录确保、路径、文件 mtime、\n// 独占锁、删除与受管图片收集。public API、字段与静态成员留在本体。行为零变化。",
+     "members": ["_baseDir", "_ensureNotebooksDir", "_ensureImagesDir", "_pathFor", "_fileMtime", "_runExclusive", "_deleteLocked", "_collectImagePaths", "_managedImagePathOrNull"]},
+    {"file": "notebook_storage_codec.dart", "extName": "_NotebookStorageCodec", "extDoc": "加密编码/写盘域私有助手（拆分自 notebook_storage.dart）。",
+     "note": "// 编码落盘域（O1 拆分自 notebook_storage.dart）：会话密钥、快照准备、\n// 懒迁移队列、写笔记本与字节写入。public API 与静态编码阈值留在本体。行为零变化。",
+     "members": ["_currentKey", "_prepareNotebookBytes", "_enqueueRawRewrite", "_writeNotebook", "_writeNotebookBytes"]}
+  ],
+  "hostNote": ["// O1 域分权（F9，2026-09-24）：IO/编码落盘两域私有助手 part。", "// 新增同域私有逻辑请落对应 part；public API、字段与静态成员留在本体。"]
+}

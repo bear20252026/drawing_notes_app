@@ -16,6 +16,11 @@ import 'package:drawing_notes_app/features/notes/domain/notebook_repository.dart
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/notes_accessor.dart';
 
+// O1 域分权（F9，2026-09-24）：IO/编码落盘两域私有助手 part。
+// 新增同域私有逻辑请落对应 part；public API、字段与静态成员留在本体。
+part 'notebook_storage_io.dart';
+part 'notebook_storage_codec.dart';
+
 /// 笔记本本地存储服务。
 ///
 /// 目录结构（应用文档目录下）：
@@ -98,89 +103,8 @@ class NotebookStorage
   /// 按笔记本 ID 隔离的落盘队列：同一笔记本保序，不同笔记本不共享临时文件。
   final Map<String, Future<void>> _writeTails = <String, Future<void>>{};
 
-  Future<Uint8List?> _currentKey() async {
-    final provider = keyProvider;
-    if (provider == null) return null;
-    return provider();
-  }
-
-  /// 读取后的字节准备（批次①c，与 StorageService/NoteBlockDocStore 同纪律）：
-  /// 密文+解锁 → 解密；密文+锁定 → [VaultFileLockException]；
-  /// 明文+有钥 → 原样返回并经写尾队列懒迁移（[migrate] 为 false 时仅解密，
-  /// 不排队迁移——备份回退路径用，避免用备份内容覆盖主文件）。
-  Future<Uint8List> _prepareNotebookBytes(
-    String id,
-    Uint8List raw, {
-    bool migrate = true,
-  }) async {
-    final key = await _currentKey();
-    if (VaultFileCodec.isEncrypted(raw)) {
-      if (key == null) throw const VaultFileLockException();
-      return VaultFileCodec.decrypt(raw, key, aadContext: 'nb:$id');
-    }
-    if (key != null && migrate) _enqueueRawRewrite(id, raw);
-    return raw;
-  }
-
-  /// 懒迁移：明文笔记本经写尾队列重写为 DNV 密文。
-  void _enqueueRawRewrite(String id, Uint8List plaintext) {
-    final previous = _writeTails[id] ?? Future<void>.value();
-    late final Future<void> operation;
-    operation = previous.catchError((_) {}).then((_) async {
-      final key = await _currentKey();
-      if (key == null) return;
-      final sealed = await VaultFileCodec.encrypt(
-        plaintext,
-        key,
-        aadContext: 'nb:$id',
-      );
-      final file = File(await _pathFor(id));
-      if (!file.existsSync()) return; // 已被删除——不复活
-      final tmp = File('${file.path}.${LocalIdGenerator.next('write')}.tmp');
-      await tmp.writeAsBytes(sealed, flush: true);
-      try {
-        await tmp.rename(file.path);
-      } on FileSystemException {
-        if (!file.existsSync()) rethrow;
-        await file.delete();
-        await tmp.rename(file.path);
-      }
-    });
-    _writeTails[id] = operation;
-    operation.catchError((_) {
-      // 迁移失败静默（下次读取再试——幂等）。
-      if (identical(_writeTails[id], operation)) _writeTails.remove(id);
-    });
-  }
-
-  Future<Directory> _baseDir() async {
-    final provider = directoryProvider;
-    if (provider != null) return provider();
-    return AppDataRoot.defaultRootDir();
-  }
-
-  Future<Directory> _ensureNotebooksDir() async {
-    if (_notebooksDir != null) return _notebooksDir!;
-    final base = await _baseDir();
-    final dir = Directory('${base.path}${Platform.pathSeparator}notebooks');
-    if (!dir.existsSync()) await dir.create(recursive: true);
-    _notebooksDir = dir;
-    return dir;
-  }
-
   /// 公开的图片目录提供（供编辑器粘贴图片保存用，包装私有实现）。
   Future<Directory> ensureImagesDir() => _ensureImagesDir();
-
-  Future<Directory> _ensureImagesDir() async {
-    if (_imagesDir != null) return _imagesDir!;
-    final base = await _baseDir();
-    final dir = Directory(
-      '${base.path}${Platform.pathSeparator}notebook_images',
-    );
-    if (!dir.existsSync()) await dir.create(recursive: true);
-    _imagesDir = dir;
-    return dir;
-  }
 
   /// 校验 ID 是否安全（仅允许字母、数字、下划线）。
   ///
@@ -192,52 +116,6 @@ class NotebookStorage
 
   /// H-03 部分落地（专家审计 2026-08-15）：图片源文件大小上限。
   static const int _maxImageSourceBytes = 50 * 1024 * 1024; // 50MB
-
-  Future<String> _pathFor(String id) async {
-    // C-02 修复（专家审计 2026-08-15）：assert-only 校验在 release 失效——
-    // 运行时强制校验（load/save/delete 均经此统一防护路径遍历）。
-    if (!isValidId(id)) {
-      throw ArgumentError.value(id, 'id', '非法 ID（路径遍历防护）');
-    }
-    return '${(await _ensureNotebooksDir()).path}${Platform.pathSeparator}$id.json';
-  }
-
-  /// 原子写入笔记本文件（不涉及加密判断；被 [save] 调用）。
-  Future<String> _writeNotebook(Notebook notebook) async {
-    if (!isValidId(notebook.id)) {
-      throw ArgumentError.value(notebook.id, 'notebook.id', '笔记本 ID 不合法');
-    }
-    await _ensureNotebooksDir();
-    // 在排队前取不可变快照（ toJson() 产出纯 Map/List/String/num），避免
-    // 用户继续编辑时旧任务写入可变的混合状态；随后 jsonEncode + UTF-8
-    // 的大载荷开销交给 isolate（见 _encodeSnapshotAsync——DocumentCodec
-    // .encodeSnapshotAsync 同纪律），保存瞬间不再阻塞 UI。
-    final snapshot = notebook.toJson();
-    final finalPath = await _pathFor(notebook.id);
-    final id = notebook.id;
-    final previous = _writeTails[id] ?? Future<void>.value();
-    late final Future<void> operation;
-    operation = previous.catchError((_) {}).then((_) async {
-      final data = await _encodeSnapshotAsync(snapshot);
-      // 批次①c：保险库解锁 → DNV 信封（AAD 绑定 nb:<id>）；锁定 → 明文
-      // 兼容（既有单笔记本密码/DAN 层不受影响，读取时懒迁移）。
-      final key = await _currentKey();
-      final payload = key == null
-          ? data
-          : await VaultFileCodec.encrypt(data, key, aadContext: 'nb:$id');
-      await _writeNotebookBytes(File(finalPath), payload);
-    });
-    _writeTails[id] = operation;
-    try {
-      await operation;
-      onWrite?.call();
-      return finalPath;
-    } finally {
-      if (identical(_writeTails[id], operation)) {
-        unawaited(_writeTails.remove(id));
-      }
-    }
-  }
 
   /// 把快照 Map 编码为**紧凑** JSON 字节（jsonEncode 无缩进，utf8.encode
   /// 直接产出 Uint8List；性能优化：去掉旧 JsonEncoder.withIndent('  ')
@@ -292,38 +170,6 @@ class NotebookStorage
     return total;
   }
 
-  /// A5 修复（审计 2026-09-07）：tmp 写入/rename 失败时清理残留临时文件
-  /// （favorite_store 同款纪律）。storeImage（E-19）亦复用本出口。
-  Future<void> _writeNotebookBytes(File destination, List<int> data) async {
-    final tmp = File(
-      '${destination.path}.${LocalIdGenerator.next('write')}.tmp',
-    );
-    try {
-      await tmp.writeAsBytes(data, flush: true);
-      if (destination.existsSync()) {
-        try {
-          await destination.copy('${destination.path}.bak');
-        } catch (_) {
-          // 备份是恢复保障；其失败不阻塞当前写入。
-        }
-      }
-      try {
-        await tmp.rename(destination.path);
-      } on FileSystemException {
-        if (!destination.existsSync()) rethrow;
-        await destination.delete();
-        await tmp.rename(destination.path);
-      }
-    } catch (_) {
-      try {
-        if (tmp.existsSync()) await tmp.delete();
-      } catch (_) {
-        // 清理失败不覆盖原始存储异常。
-      }
-      rethrow;
-    }
-  }
-
   /// 加载笔记本。不存在返回 null，损坏抛出异常。
   ///
   /// 批次①c：DNV 密文 → 解锁解密 / 锁定抛 [VaultFileLockException]；
@@ -371,15 +217,6 @@ class NotebookStorage
         throw FormatException('笔记本数据损坏：$e');
       }
       rethrow;
-    }
-  }
-
-  /// 文件修改时间（读取失败回退当前时间——占位排序兜底）。
-  Future<DateTime> _fileMtime(File f) async {
-    try {
-      return f.lastModifiedSync();
-    } on FileSystemException {
-      return DateTime.now();
     }
   }
 
@@ -435,25 +272,6 @@ class NotebookStorage
     return result;
   }
 
-  /// E-18 修复（审计 2026-09-07）：把 [op] 挂到 [id] 的写尾队列（与
-  /// save/_enqueueRawRewrite 共用 [_writeTails]——StorageService 的
-  /// _runDocExclusive 同款）。链上某步失败不影响后续步骤。
-  Future<T> _runExclusive<T>(String id, Future<T> Function() op) {
-    final previous = _writeTails[id] ?? Future<void>.value();
-    final task = previous.catchError((_) {}).then((_) => op());
-    late final Future<void> chain;
-    chain = task.then(
-      (_) {
-        if (identical(_writeTails[id], chain)) _writeTails.remove(id);
-      },
-      onError: (_) {
-        if (identical(_writeTails[id], chain)) _writeTails.remove(id);
-      },
-    );
-    _writeTails[id] = chain;
-    return task;
-  }
-
   /// 删除笔记本（同时清理其关联图片副本）。返回是否删除成功。
   ///
   /// E-18 修复（审计 2026-09-07）：整个删除流程挂入与保存相同的 per-id
@@ -461,83 +279,6 @@ class NotebookStorage
   /// 删文件在后 → 队列中的保存在删除完成后又写出正式文件）。
   @override
   Future<bool> delete(String id) => _runExclusive(id, () => _deleteLocked(id));
-
-  Future<bool> _deleteLocked(String id) async {
-    await _ensureNotebooksDir();
-    final file = File(await _pathFor(id));
-    final backup = File('${file.path}.bak');
-    final mainExists = file.existsSync();
-    final backupExists = backup.existsSync();
-    // 主文件与备份都不存在才算「无此笔记本」。仅剩 .bak（rename 期崩溃等）
-    // 时笔记本仍可从备份加载——删除必须连备份一起处理。
-    if (!mainExists && !backupExists) return false;
-    // 先收集图片路径再删除文件：文件删除后无法再读取其内容。
-    // _collectImagePaths 走 load()——主文件缺失时自动读 .bak。
-    final imagePaths = await _collectImagePaths(id);
-    if (mainExists) await file.delete();
-    // 三-5 修复（审计第 4 轮）：.bak 随主文件一并删除——否则删除后旧内容
-    // 仍留在磁盘（隐私），且下次 load 会凭备份「复活」已删除的笔记本。
-    if (backupExists) {
-      try {
-        await backup.delete();
-      } catch (_) {
-        // 主文件已删、加载路径只认主文件优先，旧备份不再参与加载；
-        // 残留含旧内容（隐私），落审计日志供排查。
-        AuditLogger.log('notebook.delete.bak_left', success: false);
-      }
-    }
-    forgetNotebookPassword(id); // 会话密码随文档删除一并清理
-    // 清理该笔记本所有页面引用的图片副本（尽力而为）。
-    for (final p in imagePaths) {
-      try {
-        // C-01 修复（专家审计 2026-08-15）：图片路径来自笔记 JSON（不可信
-        // 数据）——删除前验证受管目录 + 非符号链接（CVE-2026-55667 同源：
-        // 符号链接跟随可删除越界文件）。仅删除受管目录内的普通文件。
-        final managed = await _managedImagePathOrNull(p);
-        if (managed == null) continue;
-        final type = FileSystemEntity.typeSync(managed, followLinks: false);
-        if (type != FileSystemEntityType.file) continue;
-        final f = File(managed);
-        if (f.existsSync()) await f.delete();
-      } catch (_) {
-        // 单个图片删除失败忽略。
-      }
-    }
-    onWrite?.call();
-    return true;
-  }
-
-  /// 收集笔记本所有页面引用的图片副本路径（不修改任何文件）。
-  ///
-  /// 读取失败（文件损坏等）时返回空列表，不影响笔记本删除本身。
-  Future<List<String>> _collectImagePaths(String id) async {
-    try {
-      final notebook = await load(id);
-      if (notebook == null) return const [];
-      return <String>{
-        for (final page in notebook.pages)
-          for (final img in page.imageItems) img.filePath,
-      }.toList();
-    } catch (_) {
-      return const [];
-    }
-  }
-
-  /// C-01 修复（专家审计 2026-08-15）：验证路径位于受管图片目录内
-  /// （防笔记 JSON 携带外部路径驱动越界删除——CVE-2026-55667 同源）。
-  Future<String?> _managedImagePathOrNull(String path) async {
-    if (path.isEmpty) return null;
-    try {
-      final root = await _ensureImagesDir();
-      final image = File(path).absolute;
-      final parentPath = image.parent.absolute.uri.normalizePath().toFilePath();
-      final rootPath = root.absolute.uri.normalizePath().toFilePath();
-      if (parentPath != rootPath) return null;
-      return image.uri.normalizePath().toFilePath();
-    } catch (_) {
-      return null;
-    }
-  }
 
   /// 保存页面图片副本，返回副本的绝对路径。
   ///

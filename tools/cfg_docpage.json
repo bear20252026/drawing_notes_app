@@ -1,0 +1,28 @@
+{
+  "path": "lib/features/doc/doc_page.dart",
+  "classDecl": "class _DocPageState extends State<DocPage>",
+  "className": "_DocPageState",
+  "memberRegex": "(?:(?:final|late|const)\\s+)*[A-Za-z_][\\w<>, ?.]*?\\s*(_\\w+)\\s*[<({=]",
+  "rules": [
+    {"from": "package:drawing_notes_app/features/doc/domain/note_block_doc.dart", "to": "package:drawing_notes_app/core/documents/note_block_doc.dart"},
+    {"from": "package:drawing_notes_app/features/doc/domain/note_block.dart", "to": "package:drawing_notes_app/core/documents/note_block.dart"},
+    {"from": "package:drawing_notes_app/features/doc/domain/note_attachment.dart", "to": "package:drawing_notes_app/core/documents/note_attachment.dart"},
+    {"from": "package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart", "to": "package:drawing_notes_app/core/documents/note_block_doc_store.dart"},
+    {"from": "package:drawing_notes_app/features/doc/infrastructure/note_block_doc_sync_store.dart", "to": "package:drawing_notes_app/core/documents/note_block_doc_sync_store.dart"}
+  ],
+  "parts": [
+    {"file": "doc_page_save_export.dart", "extName": "_DocPageSaveExport", "extDoc": "保存/状态/导出域私有助手（拆分自 doc_page.dart）。",
+     "note": "// 保存与导出域（O1 拆分自 doc_page.dart）：脏通知、调度保存、状态标签、\n// Markdown/HTML/PDF 导出与策略门。public API 与字段留在本体。行为零变化。",
+     "members": ["_onEditorDirty", "_saveNow", "_statusLabel", "_persist", "_export", "_exportAllowed", "_exportMarkdown", "_exportHtml", "_exportPdf", "_exportPdfBytes"]},
+    {"file": "doc_page_link_outline.dart", "extName": "_DocPageLinkOutline", "extDoc": "大纲/页链/跨文档打开域私有助手（拆分自 doc_page.dart）。",
+     "note": "// 大纲与页链域（O1 拆分自 doc_page.dart）：大纲条目、开关、页链插入、\n// 跨文档打开。字段 _allDocsFutureCache 留在本体。行为零变化。",
+     "members": ["_outlineEntries", "_onToggleOutline", "_insertPageLink", "_effectiveAllDocsFuture", "_openDocByIdInternal"]},
+    {"file": "doc_page_password.dart", "extName": "_DocPagePassword", "extDoc": "文档密码四流域私有助手（拆分自 doc_page.dart）。",
+     "note": "// 文档密码域（O1 拆分自 doc_page.dart）：设密/改密/绑盘/除密四流与\n// 密码输入收集（与 home_page_password 拆分同原则）。行为零变化。",
+     "members": ["_showPasswordSheet", "_collectNewPassword", "_startSetPassword", "_startChangePassword", "_startBindUsb", "_startRemovePassword"]},
+    {"file": "doc_page_info.dart", "extName": "_DocPageInfo", "extDoc": "信息卡/标签域私有助手（拆分自 doc_page.dart）。",
+     "note": "// 信息与标签域（O1 拆分自 doc_page.dart）：信息卡、标签切换与内联\n// 建档、snack、日期格式化。行为零变化。",
+     "members": ["_snack", "_docName", "_showInfoDialog", "_toggleDocTag", "_createTagInline", "_infoRow", "_fmtDate"]}
+  ],
+  "hostNote": ["// O1 域分权（F9，2026-09-24）：保存导出/大纲页链/文档密码/信息标签四域 part。", "// 新增同域私有逻辑请落对应 part；public API、字段、静态与 build 留在本体。"]
+}

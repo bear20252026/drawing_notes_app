@@ -8,9 +8,9 @@ import 'dart:typed_data';
 
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block_doc.dart';
-import 'package:drawing_notes_app/features/doc/infrastructure/note_block_doc_store.dart';
+import 'package:drawing_notes_app/core/documents/note_block.dart';
+import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
+import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../../helpers/temp_dir_cleanup.dart';
 import '../../helpers/wait_encrypted.dart';
