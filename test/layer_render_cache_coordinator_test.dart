@@ -95,4 +95,83 @@ void main() {
       reason: '回前台重建后位图应重新生成',
     );
   });
+
+  test('空闲超时自动释放图层位图，随落笔懒重建（2026-09-24 内存优化 ③）', () async {
+    final document = DrawingDocument(id: 'doc-idle', title: '空闲释放');
+    document.layers.single.strokes.add(
+      Stroke(
+        points: const [StrokePoint(10, 10, 1), StrokePoint(60, 80, 1)],
+        color: const Color(0xFF000000),
+        width: 4,
+        type: BrushType.pen,
+      ),
+    );
+    final coordinator = LayerRenderCacheCoordinator(
+      document: document,
+      onRenderUpdated: () {},
+      isOwnerDisposed: () => false,
+      idleReleaseDelay: const Duration(milliseconds: 50),
+    );
+    addTearDown(coordinator.dispose);
+
+    await coordinator.invalidateLayer(document.layers.single.id);
+    expect(coordinator.paintViews.single.image, isNotNull, reason: '绘画后位图已生成');
+    expect(coordinator.debugIdleTimerActive, isTrue, reason: '活动后应安排空闲释放计时');
+
+    // 空闲超过延迟 → 自动释放；painter 走矢量回退，内容仍可见。
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    expect(coordinator.paintViews.single.image, isNull, reason: '空闲超时后位图应释放');
+    expect(coordinator.debugIdleTimerActive, isFalse, reason: '计时器应已触发完毕');
+
+    // 落笔失效 → 懒重建，位图重新生成，计时器重新安排。
+    await coordinator.invalidateLayer(document.layers.single.id);
+    expect(coordinator.paintViews.single.image, isNotNull, reason: '重新活动后位图懒重建');
+    expect(coordinator.debugIdleTimerActive, isTrue, reason: '重建完成应重新安排计时');
+  });
+
+  test('无限画布不安排空闲释放计时（无离屏位图可释放）', () async {
+    final document = DrawingDocument(
+      id: 'doc-inf-idle',
+      title: '无限画布空闲',
+      infinite: true,
+    );
+    final coordinator = LayerRenderCacheCoordinator(
+      document: document,
+      onRenderUpdated: () {},
+      isOwnerDisposed: () => false,
+      idleReleaseDelay: const Duration(milliseconds: 50),
+    );
+    addTearDown(coordinator.dispose);
+
+    await coordinator.invalidateLayer(document.layers.single.id);
+    expect(coordinator.debugIdleTimerActive, isFalse, reason: '无限画布无位图，无需空闲释放');
+  });
+
+  test('idleReleaseDelay 置零可整体停用空闲释放', () async {
+    final document = DrawingDocument(id: 'doc-off', title: '停用');
+    document.layers.single.strokes.add(
+      Stroke(
+        points: const [StrokePoint(10, 10, 1), StrokePoint(60, 80, 1)],
+        color: const Color(0xFF000000),
+        width: 4,
+        type: BrushType.pen,
+      ),
+    );
+    final coordinator = LayerRenderCacheCoordinator(
+      document: document,
+      onRenderUpdated: () {},
+      isOwnerDisposed: () => false,
+      idleReleaseDelay: Duration.zero,
+    );
+    addTearDown(coordinator.dispose);
+
+    await coordinator.invalidateLayer(document.layers.single.id);
+    expect(coordinator.debugIdleTimerActive, isFalse, reason: '延迟置零不应安排计时');
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    expect(
+      coordinator.paintViews.single.image,
+      isNotNull,
+      reason: '停用空闲释放后位图应常驻',
+    );
+  });
 }

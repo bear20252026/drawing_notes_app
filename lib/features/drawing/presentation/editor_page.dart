@@ -31,6 +31,7 @@ import 'package:drawing_notes_app/features/drawing/rendering/shape_binding_geome
 import 'package:drawing_notes_app/features/drawing/infrastructure/shape_creation_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/shape_library.dart';
 import 'package:drawing_notes_app/core/utils/safe_url.dart';
+import 'package:drawing_notes_app/core/utils/memory_trim.dart';
 import 'package:drawing_notes_app/features/drawing/application/stylus_input.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/view_transform_cache.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
@@ -609,6 +610,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   void _releaseLayerBitmapsOnBackground() {
     if (!mounted) return;
     _controller.releaseLayerBitmapsForBackground();
+    // 释放大块缓存后归还物理页（2026-09-24 内存优化批次 ④）：任务管理器
+    // 工作集立即回落；Windows only、失败静默，见 trimProcessWorkingSet。
+    trimProcessWorkingSet();
   }
 
   Future<void> _rebuildLayerBitmapsOnResume() async {

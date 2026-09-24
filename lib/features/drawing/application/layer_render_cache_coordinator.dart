@@ -1,4 +1,4 @@
-import 'dart:async' show unawaited;
+import 'dart:async' show Timer, unawaited;
 import 'dart:ui' show Rect;
 
 import 'package:flutter/foundation.dart';
@@ -18,6 +18,7 @@ class LayerRenderCacheCoordinator {
     required this._onRenderUpdated,
     required this._isOwnerDisposed,
     this._compositor = const LayerCompositor(),
+    this.idleReleaseDelay = idleReleaseDelayDefault,
   }) {
     rebuildCacheMap();
     // 打开已有文档的首次光栅化（2026-09-07 白纸缺陷）：CanvasPainter 对
@@ -38,6 +39,41 @@ class LayerRenderCacheCoordinator {
   final bool Function() _isOwnerDisposed;
   final LayerCompositor _compositor;
   final Map<String, LayerRenderCache> _caches = <String, LayerRenderCache>{};
+
+  /// 空闲释放位图延迟（2026-09-24 内存优化批次）：绘画/重建活动后超过该
+  /// 时长无新活动，自动 [releaseForBackground]——分页画布的图层位图
+  /// （每层最高 ~24MB）只在真正绘画时占用，空闲期走 painter 矢量回退。
+  /// 测试可注入更短延迟；设为 [Duration.zero] 可整体停用。
+  final Duration idleReleaseDelay;
+
+  /// 默认空闲释放延迟。
+  static const Duration idleReleaseDelayDefault = Duration(seconds: 30);
+
+  Timer? _idleTimer;
+
+  /// 记录一次渲染活动：重置空闲释放计时器。
+  @visibleForTesting
+  void touchActivity() {
+    _idleTimer?.cancel();
+    _idleTimer = null;
+    if (_isInactive) return;
+    if (_document.infinite) return; // 无限画布无离屏位图，无需释放。
+    if (idleReleaseDelay <= Duration.zero) return;
+    _idleTimer = Timer(idleReleaseDelay, _releaseForIdle);
+  }
+
+  void _releaseForIdle() {
+    _idleTimer = null;
+    if (_isInactive) return;
+    releaseForBackground();
+    // 空闲释放发生在前台（区别于切后台路径）：通知宿主重绘一帧，
+    // painter 切到矢量回退，GPU 侧对已释放位图的引用随帧丢弃。
+    _notifyIfActive();
+  }
+
+  /// 空闲释放计时器是否在运行（测试断言用）。
+  @visibleForTesting
+  bool get debugIdleTimerActive => _idleTimer != null;
 
   bool _disposed = false;
 
@@ -86,6 +122,7 @@ class LayerRenderCacheCoordinator {
   /// 标记图层内容或属性变化，并在非无限画布上异步重建离屏缓存。
   Future<void> invalidateLayer(String layerId, {Rect? region}) async {
     if (_isInactive) return;
+    touchActivity();
     // 无限画布不使用固定宽高的离屏位图缓存；直接绘制可见区域矢量点列。
     if (_document.infinite) {
       _notifyIfActive();
@@ -114,6 +151,7 @@ class LayerRenderCacheCoordinator {
   Future<void> rebuildAll() async {
     if (_isInactive) return;
     if (_document.infinite) return;
+    touchActivity();
     for (final layer in _document.layers) {
       _caches[layer.id]?.dirty = true;
     }
@@ -208,6 +246,7 @@ class LayerRenderCacheCoordinator {
       }
       _notifyIfActive();
     }
+    touchActivity();
   }
 
   void _notifyIfActive() {
@@ -217,6 +256,8 @@ class LayerRenderCacheCoordinator {
   void dispose() {
     if (_disposed) return;
     _disposed = true;
+    _idleTimer?.cancel();
+    _idleTimer = null;
     for (final cache in _caches.values) {
       cache.dispose();
     }

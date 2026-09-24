@@ -29,9 +29,10 @@ class DocumentImageCache {
     this.maxCacheBytes = maxCacheBytesDefault,
   }) : _decoder = decoder ?? _decodeImageFile;
 
-  /// 文档图片解码缓存字节预算。单张 RGBA 上限 4096²×4 ≈ 64MB，预算 96MB
-  /// 可容纳约 1.5 张超清大图或十几张常规图，超限即淘汰最久未用。
-  static const int maxCacheBytesDefault = 96 << 20; // 96 MiB
+  /// 文档图片解码缓存字节预算。单张 RGBA 上限 4096²×4 ≈ 64MB，预算 48MB
+  /// 可容纳约 1 张超清大图或近十张常规图，超限即淘汰最久未用
+  /// （2026-09-24 内存优化批次：96→48MiB，LRU 框架不变）。
+  static const int maxCacheBytesDefault = 48 << 20; // 48 MiB
 
   final VoidCallback _onImageAvailable;
   final bool Function() _isOwnerDisposed;

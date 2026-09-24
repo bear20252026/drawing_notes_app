@@ -2,6 +2,27 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.15] - 2026-09-24
+
+### 内存优化批次（正常使用场景常驻下调，行为无感）
+
+背景：外部确认启动 ~300MB / 绘画后 500–700MB 且稳定（无泄漏），本轮在历史
+修复（v1.14.2/1.15.x/1.16.x）基础上继续压低正常使用中的常驻占用：
+
+- **① 图片缓存预算 96→48MiB**：`DocumentImageCache.maxCacheBytesDefault`
+  下调，LRU 淘汰框架不变；多图笔记场景最多再省 ~48MB。
+- **③ 图层位图空闲自动释放**：`LayerRenderCacheCoordinator` 新增空闲计时
+  （默认 30s，活动即重置）——分页画布每层最高 ~24MB 的离屏位图在空闲期
+  自动释放，painter 走矢量回退保证内容始终可见，落笔后懒重建；无限画布
+  无位图不安排计时；`idleReleaseDelay` 置零可整体停用。与既有「切后台
+  释放」（v1.15.0 P1 #1）同机制，扩展到前台空闲场景。
+- **④ Windows 工作集归还**：新增 `core/utils/memory_trim.dart`
+  （`SetProcessWorkingSetSize(伪句柄 -1, -1, -1)`，dart:ffi）；编辑器切
+  后台/最小化释放缓存后调用，任务管理器工作集立即回落。纯观感优化，
+  非 Windows no-op、失败静默。
+- **测试**：+5（空闲释放/停用/无限画布豁免/预算锁定/FFI 烟雾）。
+- **门禁**：`flutter analyze` No issues；`--concurrency=1` 全量 1976 全绿。
+
 ## [1.17.14] - 2026-09-24
 
 ### F7 契约上移 + F9 超长文件域分权收口（授权专项，行为零变化）

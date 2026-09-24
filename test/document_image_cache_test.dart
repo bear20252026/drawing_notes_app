@@ -74,4 +74,8 @@ void main() {
 
     expect(attempts, 0);
   });
+
+  test('默认字节预算 48MiB（2026-09-24 内存优化 ①：96→48）', () {
+    expect(DocumentImageCache.maxCacheBytesDefault, 48 << 20);
+  });
 }
