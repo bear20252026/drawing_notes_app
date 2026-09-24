@@ -306,34 +306,84 @@ class _CornerHandleState extends State<_CornerHandle> {
 }
 
 /// 世界坐标网格背景画师。
-class _EdgelessGridPainter extends CustomPainter {
-  _EdgelessGridPainter({required this.color});
+class EdgelessGridPainter extends CustomPainter {
+  EdgelessGridPainter({required this.color, required this.camera});
 
   final Color color;
 
-  /// 可视世界范围（草拟的大范围，随相机缩放可见区自然变化）。
-  static const double _minX = -4000;
-  static const double _maxX = 4000;
-  static const double _minY = -4000;
-  static const double _maxY = 4000;
-  static const double _step = 64;
+  /// 当前相机：网格随世界平移/缩放滚动（对齐 Excalidraw 网格行为）。
+  final EdgelessCamera camera;
+
+  /// 基础网格步长（世界单位 64，Excalidraw 同款）。
+  static const double _baseStep = 64;
+
+  /// 屏幕最小线间距：小于该值步长翻倍（缩小视图时防密集成网）。
+  static const double _minScreenSpacing = 24;
+
+  /// 自适应步长：缩小时步长倍增，保证相邻线屏幕间距 ≥ 阈值；
+  /// 上限封顶防极端 zoom 数值下死循环。
+  @visibleForTesting
+  static double stepFor(double zoom) {
+    var step = _baseStep;
+    var guard = 0;
+    while (step * zoom < _minScreenSpacing && guard < 20) {
+      step *= 2;
+      guard++;
+    }
+    return step;
+  }
+
+  /// 可视范围内竖直网格线的屏幕 X 坐标（按世界 step 整数倍对齐，
+  /// 平移时网格随世界滚动；只画可视区 → 世界坐标无边界）。
+  @visibleForTesting
+  static List<double> verticalLineScreenXs(Size viewport, EdgelessCamera camera) {
+    final step = stepFor(camera.zoom);
+    final worldLeft =
+        camera.screenToWorld(Offset.zero, viewport).dx;
+    final worldRight =
+        camera.screenToWorld(Offset(viewport.width, 0), viewport).dx;
+    final lines = <double>[];
+    for (var x = (worldLeft / step).floorToDouble() * step;
+        x <= worldRight + step;
+        x += step) {
+      lines.add(camera.worldToScreen(Offset(x, 0), viewport).dx);
+    }
+    return lines;
+  }
+
+  /// 可视范围内水平网格线的屏幕 Y 坐标（同 [verticalLineScreenXs]）。
+  @visibleForTesting
+  static List<double> horizontalLineScreenYs(
+      Size viewport, EdgelessCamera camera) {
+    final step = stepFor(camera.zoom);
+    final worldTop = camera.screenToWorld(Offset(0, 0), viewport).dy;
+    final worldBottom =
+        camera.screenToWorld(Offset(0, viewport.height), viewport).dy;
+    final lines = <double>[];
+    for (var y = (worldTop / step).floorToDouble() * step;
+        y <= worldBottom + step;
+        y += step) {
+      lines.add(camera.worldToScreen(Offset(0, y), viewport).dy);
+    }
+    return lines;
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
       ..strokeWidth = 1;
-    for (var x = _minX; x <= _maxX; x += _step) {
-      canvas.drawLine(Offset(x, _minY), Offset(x, _maxY), paint);
+    for (final sx in verticalLineScreenXs(size, camera)) {
+      canvas.drawLine(Offset(sx, 0), Offset(sx, size.height), paint);
     }
-    for (var y = _minY; y <= _maxY; y += _step) {
-      canvas.drawLine(Offset(_minX, y), Offset(_maxX, y), paint);
+    for (final sy in horizontalLineScreenYs(size, camera)) {
+      canvas.drawLine(Offset(0, sy), Offset(size.width, sy), paint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _EdgelessGridPainter oldDelegate) =>
-      oldDelegate.color != color;
+  bool shouldRepaint(covariant EdgelessGridPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.camera != camera;
 }
 
 /// 世界坐标连接线画师：在帧下方绘制 `affine:connector` 连线。

@@ -179,17 +179,23 @@ class _EdgelessPageState extends State<EdgelessPage> {
   }
 
   void _fitTo() {
-    final frames = _controller.doc.frames;
-    if (frames.isEmpty) {
-      _controller.fitTo(const Rect.fromLTWH(0, 0, 1000, 1000), _viewport);
-      return;
+    // 适应内容 = 帧 + 帧外自由墨迹的并集包围盒（2026-09-24：旧实现只看
+    // 帧、空帧硬编码跳 1000×1000 固定区域，自由墨迹会被视野遗漏）。
+    Rect? rect;
+    for (final f in _controller.doc.frames) {
+      rect = rect?.expandToInclude(f.rect) ?? f.rect;
     }
-    // 计算所有帧的包围盒
-    var rect = frames.first.rect;
-    for (final f in frames) {
-      rect = rect.expandToInclude(f.rect);
+    for (final s in _controller.doc.strokes) {
+      final b = s.bounds;
+      if (b.isEmpty) continue;
+      rect = rect?.expandToInclude(b) ?? b;
     }
-    _controller.fitTo(rect, _viewport, padding: 48);
+    // 全空画布：回原点附近单位视野（居中显示世界原点，无硬编码大区域）。
+    _controller.fitTo(
+      rect ?? const Rect.fromLTWH(-200, -200, 400, 400),
+      _viewport,
+      padding: 48,
+    );
   }
 
   /// 视野适配到当前所选帧集的包围盒。
@@ -336,11 +342,12 @@ class _EdgelessPageState extends State<EdgelessPage> {
                               children: [
                                 Positioned.fill(
                                   child: CustomPaint(
-                                    painter: _EdgelessGridPainter(
+                                    painter: EdgelessGridPainter(
                                       color: Theme.of(context)
                                           .colorScheme
                                           .outlineVariant
                                           .withValues(alpha: 0.4),
+                                      camera: _controller.camera,
                                     ),
                                   ),
                                 ),
