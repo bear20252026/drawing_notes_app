@@ -572,9 +572,14 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   /// 选择形状工具：激活后点击画布放置对应形状（借鉴 Excalidraw 图形工具）。
 
-  /// 正常返回编辑器前强制写入并等待落盘，防止 800ms 防抖尚未触发就退出。
+  /// 正常返回编辑器前的退出兜底（v1.17.18 退出卡顿优化）：
+  /// - `_closingEditor` 提前置位：跳过缩略图渲染（1024px 离屏栅格 +
+  ///   PNG 编码是退出路径最贵的一段）。缩略图在画画期间每 5s 自动保存
+  ///   已近实时，退出时缺最后一拍的视觉差异可忽略（首页网格 ~256px）；
+  /// - `flushIfDirty`：无未落盘改动时零等待直接退出。
   Future<bool> _flushBeforePop() async {
-    await _viewModel.saveNow();
+    _closingEditor = true;
+    await _viewModel.flushIfDirty();
     return true;
   }
 
@@ -588,8 +593,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     );
     // 极端场景（系统直接销毁窗口）无法等待 Future；仍先启动保存并标记关闭，
     // 使 _persistArtwork 至少完成文档 JSON 写入而不再访问随后释放的渲染控制器。
+    // 脏检查版：干净退出（_flushBeforePop 已落盘）不重复写盘。
     _closingEditor = true;
-    unawaited(_viewModel.saveNow());
+    unawaited(_viewModel.flushIfDirty());
     _viewModel.dispose();
     _shortcutFocus.dispose();
     _editController.dispose();

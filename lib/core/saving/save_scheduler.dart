@@ -138,6 +138,22 @@ class SaveScheduler {
     return _coalescedSave();
   }
 
+  /// 退出兜底（脏检查版，v1.17.18 退出卡顿优化）：无待落盘改动时零等待
+  /// 直接返回，不触发保存；有改动（或保存链在飞行）时与 [flush] 等价。
+  ///
+  /// `_dirty` 只在 markDirty 置位、保存成功且无补写时清位——它为 false
+  /// 即「当前快照已全部落盘」，退出无需再写。退出路径请优先用本方法，
+  /// 让最常见的「已自动保存过再退出」零卡顿。
+  Future<void> flushIfDirty() {
+    if (_disposed) return Future<void>.value();
+    _cancelTimer();
+    if (!_dirty && !_saveInFlight) {
+      _exiting = true;
+      return Future<void>.value();
+    }
+    return flush();
+  }
+
   /// 释放调度器：取消尚未执行的防抖。已在飞行中的保存链会自然收敛。
   void dispose() {
     if (_disposed) return;

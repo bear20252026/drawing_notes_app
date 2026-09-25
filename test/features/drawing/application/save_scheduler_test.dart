@@ -182,6 +182,45 @@ void main() {
     expect(savedEvents, ['saved']);
   });
 
+  test('flushIfDirty() 干净退出：零等待、不触发保存（v1.17.18）', () async {
+    scheduler = build();
+    await scheduler.flushIfDirty();
+    expect(save.calls, 0, reason: '无未落盘改动不应触发保存');
+    expect(savedEvents, isEmpty);
+    expect(scheduler.isDirty, isFalse);
+  });
+
+  test('flushIfDirty() 脏退出：与 flush 等价（立即保存并等待落盘）', () async {
+    scheduler = build();
+    save.gate = Completer<void>();
+    scheduler.markDirty();
+    final flushed = scheduler.flushIfDirty();
+    await Future<void>.delayed(Duration.zero);
+    expect(save.calls, 1, reason: '有未落盘改动时应立即落盘');
+    save.gate!.complete();
+    save.gate = null;
+    await flushed;
+    expect(scheduler.isDirty, isFalse);
+    expect(savedEvents, ['saved']);
+  });
+
+  test('flushIfDirty() 保存链飞行中：等待链收敛（含合并补写）', () async {
+    scheduler = build();
+    save.gate = Completer<void>();
+    scheduler.markDirty();
+    final first = scheduler.flush();
+    await Future<void>.delayed(Duration.zero); // 让保存链启动
+    // 飞行中调用：委托 flush → 标记补写（防丢失语义）并等待同一链收敛。
+    final second = scheduler.flushIfDirty();
+    save.gate!.complete();
+    save.gate = null;
+    await second;
+    // 补写一次最新快照（此时无新变更，快照内容一致）。
+    expect(save.calls, 2);
+    expect(scheduler.isDirty, isFalse);
+    await first;
+  });
+
   test('首次失败 → 立即重试（failureCount==1 → retry）', () async {
     scheduler = build();
     save.shouldFail = true;

@@ -148,6 +148,10 @@ class EditorViewModel extends ChangeNotifier {
   /// 委托给 [SaveScheduler.flush]，获得退出兜底 + 失败重试语义。
   Future<void> saveNow() => _saveScheduler.flush();
 
+  /// 退出兜底（脏检查版）：无未落盘改动时零等待返回。
+  /// 退出路径优先用这个（v1.17.18 退出卡顿优化）。
+  Future<void> flushIfDirty() => _saveScheduler.flushIfDirty();
+
   @override
   void dispose() {
     // 已在飞行中的保存链会自然收敛；这里只取消尚未触发的防抖。
