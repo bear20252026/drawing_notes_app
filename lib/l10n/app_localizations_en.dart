@@ -3109,4 +3109,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cmdGroupFile => 'File';
+
+  @override
+  String get pdfExporting => 'Exporting PDF…';
+
+  @override
+  String get pdfExportComposing => 'Composing PDF…';
+
+  @override
+  String pdfExportRenderingPage(int done, int total) {
+    return 'Rendering page $done / $total';
+  }
+
+  @override
+  String get pdfTilePreviewTitle => 'Confirm page layout';
+
+  @override
+  String pdfTilePreviewConfirm(int count) {
+    return 'Export $count pages';
+  }
+
+  @override
+  String get pdfPageOrderLabel => 'Page order';
+
+  @override
+  String get pdfPageOrderRow => 'Rows first';
+
+  @override
+  String get pdfPageOrderColumn => 'Columns first';
+
+  @override
+  String get pdfFooterLabel => 'Footer page numbers';
+
+  @override
+  String get pdfFooterDesc =>
+      'Print \"title · n / m\" at the bottom of each page';
 }

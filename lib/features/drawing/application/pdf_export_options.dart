@@ -57,10 +57,14 @@ const int kPdfTiledMaxPages = 200;
 /// [pageSize] 为纸张 pt 尺寸，[scale] 为内容→纸张缩放系数；每页承载的
 /// 世界尺寸 = 纸张 pt ÷ scale。返回世界坐标页矩形（行优先），页与页首尾
 /// 相接不重叠；[content] 为空或参数非法时返回空表。
+///
+/// [columnMajor]（v1.17.22 页序档位）：false = 先横后纵（行优先，默认）；
+/// true = 先纵后横（列优先——纵向长内容如时间线/笔记流按书写方向排页）。
 List<ui.Rect> sliceContentIntoPages(
   ui.Rect content, {
   required ui.Size pageSize,
   required double scale,
+  bool columnMajor = false,
 }) {
   if (content.width <= 0 ||
       content.height <= 0 ||
@@ -73,15 +77,23 @@ List<ui.Rect> sliceContentIntoPages(
   final pageH = pageSize.height / scale;
   final cols = (content.width / pageW).ceil().clamp(1, 1 << 20);
   final rows = (content.height / pageH).ceil().clamp(1, 1 << 20);
+  ui.Rect tile(int r, int c) => ui.Rect.fromLTWH(
+    content.left + c * pageW,
+    content.top + r * pageH,
+    pageW,
+    pageH,
+  );
+  if (columnMajor) {
+    return [
+      for (var c = 0; c < cols; c++)
+        for (var r = 0; r < rows; r++)
+          tile(r, c),
+    ];
+  }
   return [
     for (var r = 0; r < rows; r++)
       for (var c = 0; c < cols; c++)
-        ui.Rect.fromLTWH(
-          content.left + c * pageW,
-          content.top + r * pageH,
-          pageW,
-          pageH,
-        ),
+        tile(r, c),
   ];
 }
 

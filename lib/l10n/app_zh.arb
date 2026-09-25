@@ -2612,5 +2612,40 @@
   "rootRefusalBody": "检测到设备已获取 ROOT 权限。为保护你的加密笔记数据，本应用在已破解设备上拒绝运行。",
   "@rootRefusalBody": {},
   "cmdGroupFile": "文件",
-  "@cmdGroupFile": {}
+  "@cmdGroupFile": {},
+  "pdfExporting": "正在导出 PDF…",
+  "@pdfExporting": {},
+  "pdfExportComposing": "正在合成 PDF…",
+  "@pdfExportComposing": {},
+  "pdfExportRenderingPage": "正在渲染第 {done} / {total} 页",
+  "@pdfExportRenderingPage": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "pdfTilePreviewTitle": "确认分页方式",
+  "@pdfTilePreviewTitle": {},
+  "pdfTilePreviewConfirm": "导出 {count} 页",
+  "@pdfTilePreviewConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pdfPageOrderLabel": "页序",
+  "@pdfPageOrderLabel": {},
+  "pdfPageOrderRow": "先横后纵",
+  "@pdfPageOrderRow": {},
+  "pdfPageOrderColumn": "先纵后横",
+  "@pdfPageOrderColumn": {},
+  "pdfFooterLabel": "页脚页码",
+  "@pdfFooterLabel": {},
+  "pdfFooterDesc": "每页底部标注「标题 · n / m」",
+  "@pdfFooterDesc": {}
 }

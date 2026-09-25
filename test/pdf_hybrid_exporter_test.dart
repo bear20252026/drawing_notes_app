@@ -117,4 +117,86 @@ void main() {
       reason: 'JPEG 压缩路径同样产出合法 PDF',
     );
   });
+
+  // v1.17.22 页脚（footerText）回归。
+  test('footerText 多页导出：每页带页脚仍产出合法 PDF（%PDF）', () async {
+    final document = DrawingDocument(id: 'pdf_footer', title: '页脚导出');
+    document.layers.single.strokes.add(_penStroke());
+    final controller = DrawingController(document);
+    addTearDown(controller.dispose);
+
+    final rasterPng = await controller.renderToPng();
+    expect(rasterPng, isNotNull);
+
+    final bytes = await PdfHybridExporter.exportMultiPage(
+      pages: [
+        for (var i = 1; i <= 2; i++)
+          PdfPageInput(
+            bounds: const Rect.fromLTWH(0, 0, 200, 150),
+            rasterPng: rasterPng!,
+            vectorStrokes: [_penStroke()],
+            footerText: '页脚导出 · $i / 2',
+          ),
+      ],
+    );
+
+    expect(bytes, isNotEmpty);
+    expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+  });
+
+  test('footerText + contentRect 组合：页脚与信纸放置互不干扰（%PDF）', () async {
+    final document = DrawingDocument(id: 'pdf_footer_rect', title: '组合');
+    document.layers.single.strokes.add(_markerStroke());
+    final controller = DrawingController(document);
+    addTearDown(controller.dispose);
+
+    final rasterPng = await controller.renderToPng();
+    expect(rasterPng, isNotNull);
+
+    // A4 pt 页面，内容按信纸档放置在中央矩形（contentRect 语义），页脚走
+    // build 内 Column 底部定高条——两者并存时页面仍合法。
+    final bytes = await PdfHybridExporter.exportMultiPage(
+      pages: [
+        PdfPageInput(
+          bounds: const Rect.fromLTWH(0, 0, 595, 842),
+          rasterPng: rasterPng!,
+          vectorStrokes: const [],
+          contentRect: const Rect.fromLTWH(55, 42, 485, 700),
+          footerText: '组合 · 1 / 1',
+        ),
+      ],
+    );
+
+    expect(bytes, isNotEmpty);
+    expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+  });
+
+  test('footerText=null 与非 null 页混排：null 页保持零边距既有行为', () async {
+    final document = DrawingDocument(id: 'pdf_footer_mixed', title: '混排');
+    document.layers.single.strokes.add(_penStroke());
+    final controller = DrawingController(document);
+    addTearDown(controller.dispose);
+
+    final rasterPng = await controller.renderToPng();
+    expect(rasterPng, isNotNull);
+
+    final bytes = await PdfHybridExporter.exportMultiPage(
+      pages: [
+        PdfPageInput(
+          bounds: const Rect.fromLTWH(0, 0, 200, 150),
+          rasterPng: rasterPng!,
+          vectorStrokes: const [],
+        ),
+        PdfPageInput(
+          bounds: const Rect.fromLTWH(0, 0, 200, 150),
+          rasterPng: rasterPng,
+          vectorStrokes: const [],
+          footerText: '混排 · 2 / 2',
+        ),
+      ],
+    );
+
+    expect(bytes, isNotEmpty);
+    expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+  });
 }

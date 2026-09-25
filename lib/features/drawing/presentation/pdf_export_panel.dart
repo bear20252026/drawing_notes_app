@@ -13,6 +13,8 @@ class PdfExportSelection {
     required this.range,
     required this.quality,
     this.layout = PdfLayout.single,
+    this.columnMajor = false,
+    this.footer = false,
   });
 
   final PdfPaper paper;
@@ -21,6 +23,12 @@ class PdfExportSelection {
 
   /// 独立画布布局档位（v1.17.20）：单页大图 / 按纸张分页。
   final PdfLayout layout;
+
+  /// 分页页序（v1.17.22）：false = 先横后纵（行优先）；true = 先纵后横。
+  final bool columnMajor;
+
+  /// 分页页脚（v1.17.22）：标题 · n / m（打印装订用）。
+  final bool footer;
 }
 
 /// PDF 导出二级面板（M12.5 功能向欠账——设计稿结构：纸张/范围/质量三组）。
@@ -75,6 +83,8 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
   late PdfRange _range = PdfRange.currentPage;
   late PdfQuality _quality = widget.initialQuality;
   PdfLayout _layout = PdfLayout.single;
+  bool _columnMajor = false;
+  bool _footer = false;
 
   @override
   Widget build(BuildContext context) {
@@ -158,7 +168,7 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
                   selected: {_layout},
                   onSelectionChanged: (s) => setState(() => _layout = s.first),
                 ),
-                if (_layout == PdfLayout.tiled)
+                if (_layout == PdfLayout.tiled) ...[
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
@@ -167,6 +177,51 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
                       style: AppleType.captionStyle(scheme.onSurfaceVariant),
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  // v1.17.22 页序：内容排页方向（纵向长内容选「先纵后横」）。
+                  _groupLabel(
+                    AppLocalizations.of(context)?.pdfPageOrderLabel ?? '页序',
+                  ),
+                  SegmentedButton<bool>(
+                    segments: [
+                      ButtonSegment(
+                        value: false,
+                        label: Text(
+                          AppLocalizations.of(context)?.pdfPageOrderRow ??
+                              '先横后纵',
+                        ),
+                      ),
+                      ButtonSegment(
+                        value: true,
+                        label: Text(
+                          AppLocalizations.of(context)?.pdfPageOrderColumn ??
+                              '先纵后横',
+                        ),
+                      ),
+                    ],
+                    selected: {_columnMajor},
+                    onSelectionChanged: (s) =>
+                        setState(() => _columnMajor = s.first),
+                  ),
+                  const SizedBox(height: 8),
+                  // v1.17.22 页脚：标题 · n / m（打印装订定位用）。
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    title: Text(
+                      AppLocalizations.of(context)?.pdfFooterLabel ??
+                          '页脚页码',
+                      style: AppleType.controlStyle(scheme.onSurface),
+                    ),
+                    subtitle: Text(
+                      AppLocalizations.of(context)?.pdfFooterDesc ??
+                          '每页底部标注「标题 · n / m」',
+                      style: AppleType.captionStyle(scheme.onSurfaceVariant),
+                    ),
+                    value: _footer,
+                    onChanged: (v) => setState(() => _footer = v),
+                  ),
+                ],
                 const SizedBox(height: 12),
               ],
               _groupLabel(
@@ -224,6 +279,8 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
                 range: _range,
                 quality: _quality,
                 layout: _layout,
+                columnMajor: _columnMajor,
+                footer: _footer,
               ),
             ),
             child: Text(

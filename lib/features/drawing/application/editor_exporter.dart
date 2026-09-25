@@ -195,12 +195,17 @@ class EditorExporter {
   /// - 笔记本模式：范围 当前页 → [exportNotebookPdf]；全部页 →
   ///   [NotebookPdfExporter.exportPages]（多会话快照经 [allPagesProvider]）；
   /// - 独立画布：单页 hybrid 导出（纸张适配 + 质量透传）；
-  ///   v1.17.20 布局档位 按纸张分页 → [_exportCanvasPdfTiled]。
+  ///   v1.17.20 布局档位 按纸张分页 → [_exportCanvasPdfTiled]
+  ///   （v1.17.22：页序/页脚/进度回调/切片预览确认）。
   Future<void> exportPdfWithOptions({
     required PdfPaper paper,
     required PdfQuality quality,
     PdfRange range = PdfRange.currentPage,
     PdfLayout layout = PdfLayout.single,
+    bool columnMajor = false,
+    bool footer = false,
+    void Function(int done, int total)? onProgress,
+    Future<bool> Function(List<ui.Rect> tiles)? confirmTiles,
   }) async {
     final page = _page;
     if (page != null) {
@@ -221,7 +226,14 @@ class EditorExporter {
       return;
     }
     if (layout == PdfLayout.tiled && paper != PdfPaper.canvas) {
-      await _exportCanvasPdfTiled(paper: paper, quality: quality);
+      await _exportCanvasPdfTiled(
+        paper: paper,
+        quality: quality,
+        columnMajor: columnMajor,
+        footer: footer,
+        onProgress: onProgress,
+        confirmTiles: confirmTiles,
+      );
       return;
     }
     await _exportCanvasPdf(paper: paper, quality: quality);
@@ -265,9 +277,17 @@ class EditorExporter {
   /// （toImage 极小、UI 不僵），页尺寸恒在 PDF 14400pt 规范限内（单页
   /// 大图模式超限会被部分查看器裁剪），且可直接打印装订。每页墨迹矢量
   /// 层只取与本页相交的钢笔笔画，按页原点平移到纸张坐标。
+  ///
+  /// v1.17.22：[columnMajor] 页序（先纵后横）、[footer] 页脚
+  /// （标题 · n / m）、[onProgress] 逐页进度回调、[confirmTiles] 切片
+  /// 预览确认（返回 false = 用户取消，放弃导出）。
   Future<void> _exportCanvasPdfTiled({
     required PdfPaper paper,
     required PdfQuality quality,
+    bool columnMajor = false,
+    bool footer = false,
+    void Function(int done, int total)? onProgress,
+    Future<bool> Function(List<ui.Rect> tiles)? confirmTiles,
   }) async {
     try {
       final content = controller.document.infinite
@@ -293,6 +313,7 @@ class EditorExporter {
         content,
         pageSize: paperSize,
         scale: s,
+        columnMajor: columnMajor,
       );
       if (tiles.length > kPdfTiledMaxPages) {
         showSnack(
@@ -301,13 +322,22 @@ class EditorExporter {
         );
         return;
       }
+      // 切片预览确认（v1.17.22）：导出前让用户看一眼网格切法。
+      if (confirmTiles != null) {
+        final ok = await confirmTiles(tiles);
+        if (!ok) return; // 用户取消
+      }
+      final docTitle = controller.document.title;
       final vectorStrokesAll = <Stroke>[
         for (final layer in controller.document.layers)
           for (final stroke in layer.strokes)
             if (!PdfHybridExporter.shouldRasterize(stroke)) stroke,
       ];
+      final total = tiles.length;
       final pages = <PdfPageInput>[];
-      for (final tile in tiles) {
+      for (var i = 0; i < total; i++) {
+        final tile = tiles[i];
+        onProgress?.call(i, total);
         // 光栅层：只渲染本页区域（钢笔矢量排除，同单页管线）。
         final png = await controller.renderToPng(
           scale: s,
@@ -338,9 +368,11 @@ class EditorExporter {
             rasterPng: png,
             vectorStrokes: pageStrokes,
             jpegQuality: quality.jpegQuality,
+            footerText: footer ? '$docTitle · ${i + 1} / $total' : null,
           ),
         );
       }
+      onProgress?.call(total, total);
       final bytes = await PdfHybridExporter.exportMultiPage(pages: pages);
       final location = await getSaveLocation(
         suggestedName: '${controller.document.title}.pdf',

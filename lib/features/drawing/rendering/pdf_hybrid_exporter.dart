@@ -94,6 +94,7 @@ class PdfPageInput {
     this.background = const ui.Color(0xFFFFFFFF),
     this.jpegQuality,
     this.contentRect,
+    this.footerText,
   });
 
   /// 页面导出区域（决定 PDF 页面尺寸；topLeft 为内容坐标系原点偏移）。
@@ -116,6 +117,9 @@ class PdfPageInput {
   /// 变换到纸张坐标，引擎只负责按矩形放置（`bounds` 恒为整页尺寸）。
   final ui.Rect? contentRect;
 
+  /// 页脚文本（v1.17.22，如「标题 · 3 / 12」）；null = 无页脚（既有行为）。
+  final String? footerText;
+
   pw.Page _buildPdfPage() {
     final pdfBackground = PdfColor.fromInt(background.toARGB32());
     final offset = ui.Offset(-bounds.left, -bounds.top);
@@ -123,54 +127,83 @@ class PdfPageInput {
     final rasterBytes = quality == null
         ? rasterPng
         : PdfHybridExporter.encodeJpeg(rasterPng, quality);
-    final placement = contentRect;
+    final footer = footerText;
 
     return pw.Page(
       pageFormat: PdfPageFormat(bounds.width, bounds.height),
       margin: pw.EdgeInsets.zero,
-      build: (context) => pw.Stack(
+      // 页脚（v1.17.22）：pdf 3.x 的 pw.Page 没有 footer 回调（那是
+      // MultiPage 的能力），故在 build 内用 Column 收尾——Expanded 装既有
+      // Stack（margin 为零，Stack 原点=页原点，contentRect/矢量坐标几何
+      // 语义不变），页脚占底部定高条，与光栅/矢量内容互不重叠。
+      build: (context) => pw.Column(
         children: [
-          if (placement == null)
-            pw.Positioned.fill(
-              child: pw.Image(pw.MemoryImage(rasterBytes), fit: pw.BoxFit.fill),
-            )
-          else
-            // pw.Positioned 无 width/height 具名参数——用 Container 定尺寸
-            // 再定位（pdf 4.x API 实测口径，以云 analyze 为准）。
-            pw.Positioned(
-              left: placement.left,
-              top: placement.top,
-              child: pw.Container(
-                width: placement.width,
-                height: placement.height,
-                child: pw.Image(
-                  pw.MemoryImage(rasterBytes),
-                  fit: pw.BoxFit.fill,
+          pw.Expanded(
+            child: _buildContentStack(rasterBytes, offset, pdfBackground),
+          ),
+          if (footer != null)
+            pw.Container(
+              height: 18,
+              alignment: pw.Alignment.bottomCenter,
+              padding: const pw.EdgeInsets.only(bottom: 5),
+              child: pw.Text(
+                footer,
+                style: const pw.TextStyle(
+                  fontSize: 8,
+                  color: PdfColor(0.45, 0.45, 0.45),
                 ),
               ),
             ),
-          // 显式尺寸：Stack 以非定位子级定尺寸，若 CustomPaint 为 0×0
-          // 会让 Stack 塌缩，Positioned.fill 的图片拿到 0 约束产生 NaN。
-          pw.CustomPaint(
-            size: PdfPoint(bounds.width, bounds.height),
-            foregroundPainter: (PdfGraphics graphics, PdfPoint size) {
-              for (final stroke in vectorStrokes) {
-                final svgPath = StrokeRenderer.strokeToSvgPath(
-                  stroke,
-                  offset: offset,
-                );
-                if (svgPath == null) continue;
-                final color = PdfColor.fromInt(
-                  stroke.color.toARGB32(),
-                ).flatten(background: pdfBackground);
-                graphics.setFillColor(color);
-                graphics.drawShape(svgPath);
-                graphics.fillPath();
-              }
-            },
-          ),
         ],
       ),
+    );
+  }
+
+  pw.Widget _buildContentStack(
+    Uint8List rasterBytes,
+    ui.Offset offset,
+    PdfColor pdfBackground,
+  ) {
+    final placement = contentRect;
+    return pw.Stack(
+      children: [
+        if (placement == null)
+          pw.Positioned.fill(
+            child: pw.Image(pw.MemoryImage(rasterBytes), fit: pw.BoxFit.fill),
+          )
+        else
+          // pw.Positioned 无 width/height 具名参数——用 Container 定尺寸
+          // 再定位（pdf 4.x API 实测口径，以云 analyze 为准）。
+          pw.Positioned(
+            left: placement.left,
+            top: placement.top,
+            child: pw.Container(
+              width: placement.width,
+              height: placement.height,
+              child: pw.Image(pw.MemoryImage(rasterBytes), fit: pw.BoxFit.fill),
+            ),
+          ),
+        // 显式尺寸：Stack 以非定位子级定尺寸，若 CustomPaint 为 0×0
+        // 会让 Stack 塌缩，Positioned.fill 的图片拿到 0 约束产生 NaN。
+        pw.CustomPaint(
+          size: PdfPoint(bounds.width, bounds.height),
+          foregroundPainter: (PdfGraphics graphics, PdfPoint size) {
+            for (final stroke in vectorStrokes) {
+              final svgPath = StrokeRenderer.strokeToSvgPath(
+                stroke,
+                offset: offset,
+              );
+              if (svgPath == null) continue;
+              final color = PdfColor.fromInt(
+                stroke.color.toARGB32(),
+              ).flatten(background: pdfBackground);
+              graphics.setFillColor(color);
+              graphics.drawShape(svgPath);
+              graphics.fillPath();
+            }
+          },
+        ),
+      ],
     );
   }
 }

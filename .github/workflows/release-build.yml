@@ -217,3 +217,30 @@ jobs:
             build/windows/installer/drawing_notes_windows_setup.zip
           draft: false
           generate_release_notes: true
+
+  # v1.17.22：Android 产物自动补挂 Release（收尾 job）——此前 APK/ZIP 只进
+  # artifact，需人工 gh run download + release upload 补挂（四连发均手工操作，
+  # 还踩过 422 name 冲突）。本 job 在 windows job 建好 Release 之后运行，
+  # gh release upload --clobber 幂等补挂，发版即 4/4 齐。
+  attach-android:
+    name: Attach Android assets to Release
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    needs: [android, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    timeout-minutes: 10
+    steps:
+      - name: Attach APK + ZIP to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download "$GITHUB_RUN_ID" -D dist -n android-release
+          gh run download "$GITHUB_RUN_ID" -D dist -n android-release-zip
+          apk=$(find dist -name 'app-release.apk' | head -1)
+          zipf=$(find dist -name 'drawing_notes_android_release.zip' | head -1)
+          test -n "$apk" || { echo "::error::app-release.apk not found in artifacts"; exit 1; }
+          test -n "$zipf" || { echo "::error::drawing_notes_android_release.zip not found in artifacts"; exit 1; }
+          gh release upload "$GITHUB_REF_NAME" "$apk" --clobber --repo "$GITHUB_REPOSITORY"
+          gh release upload "$GITHUB_REF_NAME" "$zipf" --clobber --repo "$GITHUB_REPOSITORY"
+          gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name'

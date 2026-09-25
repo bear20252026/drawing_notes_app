@@ -5701,6 +5701,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'File'**
   String get cmdGroupFile;
+
+  /// No description provided for @pdfExporting.
+  ///
+  /// In en, this message translates to:
+  /// **'Exporting PDF…'**
+  String get pdfExporting;
+
+  /// No description provided for @pdfExportComposing.
+  ///
+  /// In en, this message translates to:
+  /// **'Composing PDF…'**
+  String get pdfExportComposing;
+
+  /// No description provided for @pdfExportRenderingPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Rendering page {done} / {total}'**
+  String pdfExportRenderingPage(int done, int total);
+
+  /// No description provided for @pdfTilePreviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm page layout'**
+  String get pdfTilePreviewTitle;
+
+  /// No description provided for @pdfTilePreviewConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Export {count} pages'**
+  String pdfTilePreviewConfirm(int count);
+
+  /// No description provided for @pdfPageOrderLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Page order'**
+  String get pdfPageOrderLabel;
+
+  /// No description provided for @pdfPageOrderRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Rows first'**
+  String get pdfPageOrderRow;
+
+  /// No description provided for @pdfPageOrderColumn.
+  ///
+  /// In en, this message translates to:
+  /// **'Columns first'**
+  String get pdfPageOrderColumn;
+
+  /// No description provided for @pdfFooterLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Footer page numbers'**
+  String get pdfFooterLabel;
+
+  /// No description provided for @pdfFooterDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Print \"title · n / m\" at the bottom of each page'**
+  String get pdfFooterDesc;
 }
 
 class _AppLocalizationsDelegate

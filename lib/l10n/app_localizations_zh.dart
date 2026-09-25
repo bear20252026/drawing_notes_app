@@ -2991,4 +2991,38 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cmdGroupFile => '文件';
+
+  @override
+  String get pdfExporting => '正在导出 PDF…';
+
+  @override
+  String get pdfExportComposing => '正在合成 PDF…';
+
+  @override
+  String pdfExportRenderingPage(int done, int total) {
+    return '正在渲染第 $done / $total 页';
+  }
+
+  @override
+  String get pdfTilePreviewTitle => '确认分页方式';
+
+  @override
+  String pdfTilePreviewConfirm(int count) {
+    return '导出 $count 页';
+  }
+
+  @override
+  String get pdfPageOrderLabel => '页序';
+
+  @override
+  String get pdfPageOrderRow => '先横后纵';
+
+  @override
+  String get pdfPageOrderColumn => '先纵后横';
+
+  @override
+  String get pdfFooterLabel => '页脚页码';
+
+  @override
+  String get pdfFooterDesc => '每页底部标注「标题 · n / m」';
 }

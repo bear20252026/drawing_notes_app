@@ -86,5 +86,57 @@ void main() {
         isEmpty,
       );
     });
+
+    // v1.17.22 页序档位：columnMajor（先纵后横）。
+    group('columnMajor 页序', () {
+      List<Rect> slice({required bool columnMajor}) => sliceContentIntoPages(
+        const Rect.fromLTWH(10, 20, 250, 120),
+        pageSize: const Size(100, 100),
+        scale: 1,
+        columnMajor: columnMajor,
+      );
+
+      test('先纵后横：页序按列推进（纵向长内容书写方向）', () {
+        final pages = slice(columnMajor: true);
+        expect(pages, hasLength(6)); // 3 列 × 2 行，总数不变。
+        // 第 1 页 = (列0,行0)。
+        expect(pages[0].left, 10);
+        expect(pages[0].top, 20);
+        // 第 2 页 = (列0,行1)——纵向下移一页。
+        expect(pages[1].left, 10);
+        expect(pages[1].top, 120);
+        // 第 3 页 = (列1,行0)——回顶部、右移一列。
+        expect(pages[2].left, 110);
+        expect(pages[2].top, 20);
+        // 末页 = (列2,行1)。
+        expect(pages[5].left, 210);
+        expect(pages[5].top, 120);
+      });
+
+      test('与默认行优先逐页集合相同（仅顺序不同）', () {
+        final rowMajor = slice(columnMajor: false);
+        final columnMajor = slice(columnMajor: true);
+        expect(columnMajor, hasLength(rowMajor.length));
+        // 同一集合：任意页在两个序里都存在且位置一致。
+        for (final tile in rowMajor) {
+          expect(columnMajor.contains(tile), isTrue);
+        }
+      });
+
+      test('单列内容：两种页序等价', () {
+        final a = sliceContentIntoPages(
+          const Rect.fromLTWH(0, 0, 100, 250),
+          pageSize: const Size(100, 100),
+          scale: 1,
+          columnMajor: true,
+        );
+        final b = sliceContentIntoPages(
+          const Rect.fromLTWH(0, 0, 100, 250),
+          pageSize: const Size(100, 100),
+          scale: 1,
+        );
+        expect(a, b);
+      });
+    });
   });
 }

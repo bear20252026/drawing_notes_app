@@ -2,6 +2,34 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.22] - 2026-09-26
+
+### 分页导出体验闭环：页序档位 + 页脚页码 + 切片预览确认 + 逐页进度
+
+- **页序档位**：分页导出新增「先横后纵（行优先，默认）/ 先纵后横
+  （列优先）」——纵向长内容（时间线/笔记流）按书写方向排页；
+  `sliceContentIntoPages` 新增 `columnMajor` 参数，页集合不变仅顺序
+  不同（单列内容两种页序等价）。
+- **页脚页码**：分页模式可选每页底部标注「标题 · n / m」（打印装订
+  定位用）。pdf 3.x 的 `pw.Page` 无 footer 回调（MultiPage 专属），
+  实现为 build 内 Column 收尾：Expanded 装既有 Stack（margin 为零、
+  Stack 原点=页原点，contentRect/矢量坐标几何语义不变），页脚占底部
+  定高条，与光栅/矢量内容互不重叠；`footerText=null` 保持零边距
+  既有行为。
+- **切片预览确认**：分页导出前弹网格预览对话框——自适应缩放展示每页
+  覆盖的世界区域与页序号，用户确认页数后才进入逐页渲染（取消即放弃
+  导出）。`PdfTilePreviewPainter` 从 part 私有类外提为独立文件以便
+  直接单测。
+- **逐页进度模态**：分页导出期间显示不可关闭进度对话框——「正在渲染
+  第 n / m 页 → 正在合成 PDF」，`exportPdfWithOptions` 新增
+  `onProgress` 回调；单页/笔记本导出走既有路径零变化。
+- **CI 收尾**：`release-build.yml` 新增 `attach-android` job——
+  Windows job 建好 Release 后自动 `gh release upload --clobber` 幂等
+  补挂 APK/ZIP（此前四连发均手工补挂，还踩过 422 name 冲突），发版
+  即 Windows/Android 4 产物齐。
+- 附带：`.zcodeignore` 入库（同步自 .gitignore + ZCode 默认排除规则）；
+  测试 +12（页序 3、页脚 3、预览画师 6）。
+
 ## [1.17.21] - 2026-09-25
 
 ### 死代码清理：移除 AFFiNE Edgeless 无限画布模块（用户批准）

@@ -125,12 +125,114 @@ extension _EditorPagePersistence on _EditorPageState {
     );
     if (selection == null) return; // 用户取消
     if (!mounted) return;
-    await _exporter.exportPdfWithOptions(
-      paper: selection.paper,
-      quality: selection.quality,
-      range: selection.range,
-      layout: selection.layout,
+    // v1.17.22：分页导出 = 切片预览确认 + 逐页进度（模态）；单页/笔记本
+    // 走既有路径零变化。
+    final isTiled =
+        widget.session == null && selection.layout == PdfLayout.tiled;
+    if (!isTiled) {
+      await _exporter.exportPdfWithOptions(
+        paper: selection.paper,
+        quality: selection.quality,
+        range: selection.range,
+        layout: selection.layout,
+      );
+      return;
+    }
+    final navigator = Navigator.of(context, rootNavigator: true);
+    final progress = ValueNotifier<int>(0);
+    var total = 0;
+    unawaited(
+      GlassDialog.show<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => ValueListenableBuilder<int>(
+          valueListenable: progress,
+          builder: (context, done, _) => AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                ),
+                const SizedBox(height: AppleSpacing.md),
+                Text(
+                  done == 0
+                      ? (AppLocalizations.of(context)?.pdfExporting ??
+                            '正在导出 PDF…')
+                      : (done >= total && total > 0
+                            ? (AppLocalizations.of(
+                                    context,
+                                  )?.pdfExportComposing ??
+                                  '正在合成 PDF…')
+                            : (AppLocalizations.of(
+                                    context,
+                                  )?.pdfExportRenderingPage(done, total) ??
+                                  '正在渲染第 $done / $total 页')),
+                  style: AppleType.controlStyle(
+                    Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
+    try {
+      await _exporter.exportPdfWithOptions(
+        paper: selection.paper,
+        quality: selection.quality,
+        range: selection.range,
+        layout: selection.layout,
+        columnMajor: selection.columnMajor,
+        footer: selection.footer,
+        onProgress: (done, t) {
+          total = t;
+          progress.value = done;
+        },
+        confirmTiles: _confirmTileLayout,
+      );
+    } finally {
+      if (navigator.canPop()) navigator.pop();
+      progress.dispose();
+    }
+  }
+
+  /// 分页导出前切片预览（v1.17.22）：网格化展示每页覆盖的世界区域与
+  /// 页序号，用户确认后才进入逐页渲染。返回 false = 取消导出。
+  Future<bool> _confirmTileLayout(List<ui.Rect> tiles) async {
+    if (!mounted) return false;
+    final choice = await GlassDialog.show<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          AppLocalizations.of(context)?.pdfTilePreviewTitle ?? '确认分页方式',
+        ),
+        content: SizedBox(
+          width: 300,
+          height: 340,
+          child: CustomPaint(painter: PdfTilePreviewPainter(tiles: tiles)),
+        ),
+        actions: AppleDialog.actions([
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(
+              AppLocalizations.of(
+                    context,
+                  )?.pdfTilePreviewConfirm(tiles.length) ??
+                  '导出 ${tiles.length} 页',
+            ),
+          ),
+        ]),
+      ),
+    );
+    return choice ?? false;
   }
 
   /// 导出画布为 SVG（委托给 [EditorExporter]；片段生成见 svg_exporter.dart）。

@@ -2703,5 +2703,40 @@
   "rootRefusalBody": "Root access was detected. To protect your encrypted notes, this app refuses to run on a compromised device.",
   "@rootRefusalBody": {},
   "cmdGroupFile": "File",
-  "@cmdGroupFile": {}
+  "@cmdGroupFile": {},
+  "pdfExporting": "Exporting PDF…",
+  "@pdfExporting": {},
+  "pdfExportComposing": "Composing PDF…",
+  "@pdfExportComposing": {},
+  "pdfExportRenderingPage": "Rendering page {done} / {total}",
+  "@pdfExportRenderingPage": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "pdfTilePreviewTitle": "Confirm page layout",
+  "@pdfTilePreviewTitle": {},
+  "pdfTilePreviewConfirm": "Export {count} pages",
+  "@pdfTilePreviewConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pdfPageOrderLabel": "Page order",
+  "@pdfPageOrderLabel": {},
+  "pdfPageOrderRow": "Rows first",
+  "@pdfPageOrderRow": {},
+  "pdfPageOrderColumn": "Columns first",
+  "@pdfPageOrderColumn": {},
+  "pdfFooterLabel": "Footer page numbers",
+  "@pdfFooterLabel": {},
+  "pdfFooterDesc": "Print \"title · n / m\" at the bottom of each page",
+  "@pdfFooterDesc": {}
 }
