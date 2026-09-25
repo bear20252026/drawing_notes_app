@@ -5773,6 +5773,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Root access was detected. To protect your encrypted notes, this app refuses to run on a compromised device.'**
   String get rootRefusalBody;
+
+  /// No description provided for @edgelessExportPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Export PDF'**
+  String get edgelessExportPdf;
+
+  /// No description provided for @edgelessExportPdfFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to export the canvas PDF. Please retry'**
+  String get edgelessExportPdfFailed;
+
+  /// No description provided for @edgelessExportEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'The canvas is empty — add a note frame or draw some ink first'**
+  String get edgelessExportEmpty;
+
+  /// No description provided for @edgelessExportedPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported single-page PDF: {path}'**
+  String edgelessExportedPdf(String path);
+
+  /// No description provided for @cmdGroupFile.
+  ///
+  /// In en, this message translates to:
+  /// **'File'**
+  String get cmdGroupFile;
 }
 
 class _AppLocalizationsDelegate

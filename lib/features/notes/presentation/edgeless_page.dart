@@ -8,6 +8,9 @@ import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
 // EdgelessController（手势翻译）与 NoteFramePreview（帧内容）。
 // 只依赖 notes，不 import drawing/chart 实现层（架构规则 3）。
 
+import 'dart:io';
+
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart' show listEquals, mapEquals;
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
@@ -24,6 +27,7 @@ import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:drawing_notes_app/features/notes/presentation/edgeless_command_palette.dart';
 import 'package:drawing_notes_app/features/notes/presentation/edgeless_controller.dart';
+import 'package:drawing_notes_app/features/notes/presentation/edgeless_pdf_exporter.dart';
 import 'package:drawing_notes_app/features/doc/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/doc_editor.dart';
 import 'package:drawing_notes_app/features/doc/doc_page.dart';
@@ -220,7 +224,74 @@ class _EdgelessPageState extends State<EdgelessPage> {
       controller: _controller,
       onFitContent: _fitTo,
       onFitSelection: _fitSelection,
+      onExportPdf: _exportPdf,
     );
+  }
+
+  /// 整图单页 PDF 导出（v1.17.17）：所见即所得——全场景包围盒
+  /// （帧 + 帧外墨迹/形状 + 连接线）渲染为一页，页尺寸 = 包围盒。
+  ///
+  /// 保存 UX 对齐 notebook 整本导出（空内容拦截 → 保存对话框 → 写文件 →
+  /// SnackBar 回显路径）；文件选择器运行中 SessionGuard 有失焦豁免
+  /// （既有语义）。theme/locale 在首个 await 前捕获——离屏渲染树没有
+  /// MaterialApp 祖先，需显式传入以保持所见即所得。
+  Future<void> _exportPdf() async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    if (computeEdgelessSceneBounds(_controller.doc) == null) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n?.edgelessExportEmpty ?? '画布还没有内容，先添加帧或墨迹再导出',
+          ),
+        ),
+      );
+      return;
+    }
+    final theme = Theme.of(context);
+    final locale = Localizations.maybeLocaleOf(context);
+    try {
+      final location = await getSaveLocation(
+        suggestedName: 'edgeless.pdf',
+        acceptedTypeGroups: [
+          XTypeGroup(
+            label: l10n?.impPdfTypeGroup ?? 'PDF 文档',
+            extensions: const ['pdf'],
+          ),
+        ],
+      );
+      if (location == null) return; // 用户取消
+      final bytes = await EdgelessPdfExporter.export(
+        _controller.doc,
+        theme: theme,
+        locale: locale,
+      );
+      if (bytes == null) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              l10n?.edgelessExportEmpty ?? '画布还没有内容，先添加帧或墨迹再导出',
+            ),
+          ),
+        );
+        return;
+      }
+      await File(location.path).writeAsBytes(bytes, flush: true);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n?.edgelessExportedPdf(location.path) ??
+                '已导出单页 PDF：${location.path}',
+          ),
+        ),
+      );
+    } catch (_) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(l10n?.edgelessExportPdfFailed ?? '导出画布 PDF 失败，请重试'),
+        ),
+      );
+    }
   }
 
   /// 全局键盘快捷键：Ctrl/Cmd+K 打开命令面板。
@@ -313,6 +384,12 @@ class _EdgelessPageState extends State<EdgelessPage> {
               onPressed: _controller.selectedFrameIds.length >= 2
                   ? () => _controller.groupSelection()
                   : null,
+            ),
+            IconButton(
+              tooltip:
+                  AppLocalizations.of(context)?.edgelessExportPdf ?? '导出 PDF',
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              onPressed: _exportPdf,
             ),
           ],
         ),

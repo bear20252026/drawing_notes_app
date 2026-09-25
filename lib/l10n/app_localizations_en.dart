@@ -3143,4 +3143,23 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get rootRefusalBody =>
       'Root access was detected. To protect your encrypted notes, this app refuses to run on a compromised device.';
+
+  @override
+  String get edgelessExportPdf => 'Export PDF';
+
+  @override
+  String get edgelessExportPdfFailed =>
+      'Failed to export the canvas PDF. Please retry';
+
+  @override
+  String get edgelessExportEmpty =>
+      'The canvas is empty — add a note frame or draw some ink first';
+
+  @override
+  String edgelessExportedPdf(String path) {
+    return 'Exported single-page PDF: $path';
+  }
+
+  @override
+  String get cmdGroupFile => 'File';
 }

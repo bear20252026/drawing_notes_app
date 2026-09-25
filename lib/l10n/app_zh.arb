@@ -2642,5 +2642,21 @@
   "rootRefusalTitle": "无法在此设备上启动",
   "@rootRefusalTitle": {},
   "rootRefusalBody": "检测到设备已获取 ROOT 权限。为保护你的加密笔记数据，本应用在已破解设备上拒绝运行。",
-  "@rootRefusalBody": {}
+  "@rootRefusalBody": {},
+  "edgelessExportPdf": "导出 PDF",
+  "@edgelessExportPdf": {},
+  "edgelessExportPdfFailed": "导出画布 PDF 失败，请重试",
+  "@edgelessExportPdfFailed": {},
+  "edgelessExportEmpty": "画布还没有内容，先添加帧或墨迹再导出",
+  "@edgelessExportEmpty": {},
+  "edgelessExportedPdf": "已导出单页 PDF：{path}",
+  "@edgelessExportedPdf": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "cmdGroupFile": "文件",
+  "@cmdGroupFile": {}
 }

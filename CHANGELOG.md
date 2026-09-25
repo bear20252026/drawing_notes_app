@@ -2,6 +2,38 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.17] - 2026-09-25
+
+### 无限画布整图单页 PDF 导出（v1.17.16「真无限」的姊妹批次）
+
+「真无限」修复后画布上帧外自由墨迹明确可见，但没有导出路径能带走它
+（无限画布此前无任何导出入口）。本批补齐第一步能力——**整图单页导出，
+语义为所见即所得（Excalidraw 同款）**；「按帧多页导出（分页画册）」留待
+后续批次。
+
+- **导出语义**：全场景包围盒（帧 + 帧外墨迹/形状 + 连接线含端点圆点与
+  标签实测外扩）渲染为一页 PDF，页尺寸 = 包围盒世界尺寸；包围盒长边超
+  光栅预算（8192px，对齐既有管线单边 clamp）时按比例缩采样。
+- **渲染路径**（`features/notes/presentation/edgeless_pdf_exporter.dart`，
+  置于 presentation 层——widget 树离屏栅格化属展示职责，application 不
+  得反向依赖 presentation）：
+  - 帧内块内容复用 `NoteFramePreview`（与屏上 `_FrameCard` 同一 widget
+    渲染），只取纸面——帧头按钮/阴影/选中描边/群组框属 UI 铬，不进 PDF；
+  - 墨迹/形状/连接线离屏 CustomPaint 重绘（视觉规则与屏上 painter 同源，
+    剔除视口剔除/手势预览等交互态）；
+  - 离屏栅格化用独立 RenderView 私有管线（无第三方依赖），theme/locale
+    由页面在导出前捕获传入，深浅模式与语言所见即所得；
+  - PDF 合成复用 `PdfHybridExporter` 单页管线（`EdgelessStroke` 与 core
+    `Stroke` 模型不同构，v1 全光栅，页尺寸取世界尺寸保证缩放比例正确）。
+- **入口（三输入兼容）**：顶栏新增「导出 PDF」按钮（鼠标/触屏）；Ctrl+K
+  命令面板新增「文件 · 导出 PDF」命令（键盘路径）；空画布导出给出
+  「无内容」提示。保存 UX 对齐 notebook 整本导出（保存对话框 → 写文件 →
+  SnackBar 回显路径）。
+- **测试**：+11（包围盒七例：空画布 null/帧并集/帧外墨迹/形状/连接线
+  外扩/标签横向扩展/悬空线跳过；缩采样预算两例；产物契约两例：单页合法
+  PDF 且 MediaBox=包围盒、空画布返回 null）。
+- **门禁**：`flutter analyze` No issues；`flutter test` 全量全绿。
+
 ## [1.17.16] - 2026-09-24
 
 ### 无限画布「真无限」修复——消除看得见的世界边界

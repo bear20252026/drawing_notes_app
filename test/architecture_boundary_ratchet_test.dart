@@ -14,10 +14,14 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 /// 当前基线（2026-09-06 快照）：方向 → 允许的最大 import 条数。
+///
+/// notes->drawing 6→7（v1.17.17）：无限画布整图 PDF 导出复用全仓唯一
+/// PDF 引擎 `pdf_hybrid_exporter`——与 notebook_pdf_exporter 同源的
+/// 「单一事实来源」先例，非新横向耦合面。
 const Map<String, int> _baseline = {
   'notes->doc': 30,
   'notes->security': 6,
-  'notes->drawing': 6,
+  'notes->drawing': 7,
   'doc->notes': 3,
   'notes->all_docs': 2,
   'security->notes': 1,

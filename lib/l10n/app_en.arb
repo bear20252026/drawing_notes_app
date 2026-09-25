@@ -2735,5 +2735,21 @@
   "rootRefusalTitle": "Cannot start on this device",
   "@rootRefusalTitle": {},
   "rootRefusalBody": "Root access was detected. To protect your encrypted notes, this app refuses to run on a compromised device.",
-  "@rootRefusalBody": {}
+  "@rootRefusalBody": {},
+  "edgelessExportPdf": "Export PDF",
+  "@edgelessExportPdf": {},
+  "edgelessExportPdfFailed": "Failed to export the canvas PDF. Please retry",
+  "@edgelessExportPdfFailed": {},
+  "edgelessExportEmpty": "The canvas is empty — add a note frame or draw some ink first",
+  "@edgelessExportEmpty": {},
+  "edgelessExportedPdf": "Exported single-page PDF: {path}",
+  "@edgelessExportedPdf": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "cmdGroupFile": "File",
+  "@cmdGroupFile": {}
 }

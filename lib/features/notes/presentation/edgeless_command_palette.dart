@@ -66,12 +66,13 @@ String edgelessFrameTitle(
 
 /// 构建画布命令列表（含通用操作 + 每个帧的「跳转到帧」）。
 ///
-/// [onFitContent] / [onFitSelection] 由页面提供（需要 viewport 尺寸）；
-/// 传入 null 时对应「适应」命令被禁用。
+/// [onFitContent] / [onFitSelection] / [onExportPdf] 由页面提供（需要
+/// viewport 尺寸或导出上下文）；传入 null 时对应命令被禁用。
 List<EdgelessCommand> buildEdgelessCommands(
   EdgelessController c, {
   VoidCallback? onFitContent,
   VoidCallback? onFitSelection,
+  VoidCallback? onExportPdf,
   AppLocalizations? l10n,
 }) {
   final frames = c.doc.frames;
@@ -121,6 +122,17 @@ List<EdgelessCommand> buildEdgelessCommands(
       hint: l10n?.cmdNeedTwoFrames ?? '需 ≥2 帧',
       enabled: c.selectedFrameIds.length >= 2,
       run: () => c.groupSelection(),
+    ),
+
+    // ── 文件 ──────────────────────────────────────────────
+    EdgelessCommand(
+      id: 'export-pdf',
+      label: l10n?.edgelessExportPdf ?? '导出 PDF',
+      group: l10n?.cmdGroupFile ?? '文件',
+      icon: Icons.picture_as_pdf_outlined,
+      keyword: 'export pdf 导出 打印',
+      enabled: onExportPdf != null,
+      run: () => onExportPdf?.call(),
     ),
 
     // ── 视图 ──────────────────────────────────────────────
@@ -236,6 +248,7 @@ Future<void> showEdgelessCommandPalette(
   required EdgelessController controller,
   VoidCallback? onFitContent,
   VoidCallback? onFitSelection,
+  VoidCallback? onExportPdf,
 }) async {
   await showModalBottomSheet<void>(
     context: context,
@@ -246,6 +259,7 @@ Future<void> showEdgelessCommandPalette(
       controller: controller,
       onFitContent: onFitContent,
       onFitSelection: onFitSelection,
+      onExportPdf: onExportPdf,
     ),
   );
 }
@@ -256,11 +270,13 @@ class _EdgelessPaletteSheet extends StatefulWidget {
     required this.controller,
     this.onFitContent,
     this.onFitSelection,
+    this.onExportPdf,
   });
 
   final EdgelessController controller;
   final VoidCallback? onFitContent;
   final VoidCallback? onFitSelection;
+  final VoidCallback? onExportPdf;
 
   @override
   State<_EdgelessPaletteSheet> createState() => _EdgelessPaletteSheetState();
@@ -280,6 +296,7 @@ class _EdgelessPaletteSheetState extends State<_EdgelessPaletteSheet> {
       widget.controller,
       onFitContent: widget.onFitContent,
       onFitSelection: widget.onFitSelection,
+      onExportPdf: widget.onExportPdf,
       l10n: AppLocalizations.of(context),
     );
     _visible = _all;

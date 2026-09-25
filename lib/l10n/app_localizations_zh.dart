@@ -3025,4 +3025,21 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get rootRefusalBody => '检测到设备已获取 ROOT 权限。为保护你的加密笔记数据，本应用在已破解设备上拒绝运行。';
+
+  @override
+  String get edgelessExportPdf => '导出 PDF';
+
+  @override
+  String get edgelessExportPdfFailed => '导出画布 PDF 失败，请重试';
+
+  @override
+  String get edgelessExportEmpty => '画布还没有内容，先添加帧或墨迹再导出';
+
+  @override
+  String edgelessExportedPdf(String path) {
+    return '已导出单页 PDF：$path';
+  }
+
+  @override
+  String get cmdGroupFile => '文件';
 }
