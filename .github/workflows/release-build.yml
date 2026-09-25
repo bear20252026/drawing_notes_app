@@ -229,11 +229,16 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: read # gh run download 走 artifacts API 需要读 Actions
     timeout-minutes: 10
     steps:
       - name: Attach APK + ZIP to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          # v1.17.22 首跑教训：runner 上本 job 不 checkout，gh 无法从
+          # git remote 解析仓库（fatal: not a git repository）——所有 gh
+          # 调用必须显式 -R 指定仓库。
+          GH_REPO: ${{ github.repository }}
         run: |
           gh run download "$GITHUB_RUN_ID" -D dist -n android-release
           gh run download "$GITHUB_RUN_ID" -D dist -n android-release-zip
