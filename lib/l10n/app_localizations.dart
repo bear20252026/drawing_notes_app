@@ -176,12 +176,6 @@ abstract class AppLocalizations {
   /// **'Redo'**
   String get editorRedo;
 
-  /// Shortcuts help tooltip
-  ///
-  /// In en, this message translates to:
-  /// **'Keyboard shortcuts'**
-  String get editorShortcutsHelp;
-
   /// Main menu tooltip
   ///
   /// In en, this message translates to:
@@ -2372,89 +2366,17 @@ abstract class AppLocalizations {
   /// **'No matching commands'**
   String get cmdNoMatch;
 
-  /// No description provided for @edPickSourceFrame.
-  ///
-  /// In en, this message translates to:
-  /// **'Select a frame first as the connector start'**
-  String get edPickSourceFrame;
-
-  /// No description provided for @edNewFrame.
-  ///
-  /// In en, this message translates to:
-  /// **'Add frame'**
-  String get edNewFrame;
-
-  /// No description provided for @edFit.
-  ///
-  /// In en, this message translates to:
-  /// **'Fit'**
-  String get edFit;
-
-  /// No description provided for @edMultiSelect.
-  ///
-  /// In en, this message translates to:
-  /// **'Multi-select (group)'**
-  String get edMultiSelect;
-
   /// No description provided for @edGroup.
   ///
   /// In en, this message translates to:
   /// **'Group'**
   String get edGroup;
 
-  /// No description provided for @edStickyTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Sticky note'**
-  String get edStickyTitle;
-
-  /// No description provided for @edFrameColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Frame background color'**
-  String get edFrameColor;
-
   /// No description provided for @edConnect.
   ///
   /// In en, this message translates to:
   /// **'Connect'**
   String get edConnect;
-
-  /// No description provided for @edEditContent.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit content'**
-  String get edEditContent;
-
-  /// No description provided for @edDeleteFrame.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete frame'**
-  String get edDeleteFrame;
-
-  /// No description provided for @edSelect.
-  ///
-  /// In en, this message translates to:
-  /// **'Select'**
-  String get edSelect;
-
-  /// No description provided for @edSticky.
-  ///
-  /// In en, this message translates to:
-  /// **'Sticky'**
-  String get edSticky;
-
-  /// No description provided for @edBrush.
-  ///
-  /// In en, this message translates to:
-  /// **'Brush'**
-  String get edBrush;
-
-  /// No description provided for @edEraser.
-  ///
-  /// In en, this message translates to:
-  /// **'Eraser'**
-  String get edEraser;
 
   /// No description provided for @edShape.
   ///
@@ -2467,12 +2389,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Rectangle'**
   String get edRect;
-
-  /// No description provided for @edOval.
-  ///
-  /// In en, this message translates to:
-  /// **'Oval'**
-  String get edOval;
 
   /// No description provided for @pfCode.
   ///
@@ -4748,12 +4664,6 @@ abstract class AppLocalizations {
   /// **'More'**
   String get wMore;
 
-  /// No description provided for @wOpenInCanvas.
-  ///
-  /// In en, this message translates to:
-  /// **'Open in canvas'**
-  String get wOpenInCanvas;
-
   /// No description provided for @wFilePassword.
   ///
   /// In en, this message translates to:
@@ -5654,12 +5564,6 @@ abstract class AppLocalizations {
   /// **'Confirm'**
   String get pinConfirm;
 
-  /// No description provided for @edgelessTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Edgeless'**
-  String get edgelessTitle;
-
   /// No description provided for @canvasSearchFieldHint.
   ///
   /// In en, this message translates to:
@@ -5671,12 +5575,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Layer {n}'**
   String layerDefaultName(int n);
-
-  /// No description provided for @edgelessStickyTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Sticky note'**
-  String get edgelessStickyTitle;
 
   /// No description provided for @vaultErrUnknown.
   ///
@@ -5756,12 +5654,6 @@ abstract class AppLocalizations {
   /// **'Encrypted file cannot be read'**
   String get vaultErrFileCrypto;
 
-  /// No description provided for @edgelessCanvasSemantics.
-  ///
-  /// In en, this message translates to:
-  /// **'Infinite canvas: pan and zoom; tools on the left'**
-  String get edgelessCanvasSemantics;
-
   /// No description provided for @canvasShapeHandleSemantics.
   ///
   /// In en, this message translates to:
@@ -5773,12 +5665,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Line endpoint handle'**
   String get canvasLinearHandleSemantics;
-
-  /// No description provided for @edgelessFrameSemantics.
-  ///
-  /// In en, this message translates to:
-  /// **'Canvas note frame: {title}'**
-  String edgelessFrameSemantics(String title);
 
   /// No description provided for @presNextSlide.
   ///
@@ -5809,36 +5695,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Root access was detected. To protect your encrypted notes, this app refuses to run on a compromised device.'**
   String get rootRefusalBody;
-
-  /// No description provided for @edgelessExportPdf.
-  ///
-  /// In en, this message translates to:
-  /// **'Export PDF'**
-  String get edgelessExportPdf;
-
-  /// No description provided for @edgelessExporting.
-  ///
-  /// In en, this message translates to:
-  /// **'Exporting PDF…'**
-  String get edgelessExporting;
-
-  /// No description provided for @edgelessExportPdfFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to export the canvas PDF. Please retry'**
-  String get edgelessExportPdfFailed;
-
-  /// No description provided for @edgelessExportEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'The canvas is empty — add a note frame or draw some ink first'**
-  String get edgelessExportEmpty;
-
-  /// No description provided for @edgelessExportedPdf.
-  ///
-  /// In en, this message translates to:
-  /// **'Exported single-page PDF: {path}'**
-  String edgelessExportedPdf(String path);
 
   /// No description provided for @cmdGroupFile.
   ///

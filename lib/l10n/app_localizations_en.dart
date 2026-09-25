@@ -50,9 +50,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editorRedo => 'Redo';
 
   @override
-  String get editorShortcutsHelp => 'Keyboard shortcuts';
-
-  @override
   String get editorMenu => 'Main menu';
 
   @override
@@ -1285,55 +1282,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cmdNoMatch => 'No matching commands';
 
   @override
-  String get edPickSourceFrame => 'Select a frame first as the connector start';
-
-  @override
-  String get edNewFrame => 'Add frame';
-
-  @override
-  String get edFit => 'Fit';
-
-  @override
-  String get edMultiSelect => 'Multi-select (group)';
-
-  @override
   String get edGroup => 'Group';
 
   @override
-  String get edStickyTitle => 'Sticky note';
-
-  @override
-  String get edFrameColor => 'Frame background color';
-
-  @override
   String get edConnect => 'Connect';
-
-  @override
-  String get edEditContent => 'Edit content';
-
-  @override
-  String get edDeleteFrame => 'Delete frame';
-
-  @override
-  String get edSelect => 'Select';
-
-  @override
-  String get edSticky => 'Sticky';
-
-  @override
-  String get edBrush => 'Brush';
-
-  @override
-  String get edEraser => 'Eraser';
 
   @override
   String get edShape => 'Shape';
 
   @override
   String get edRect => 'Rectangle';
-
-  @override
-  String get edOval => 'Oval';
 
   @override
   String get pfCode => 'Code block';
@@ -2567,9 +2525,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wMore => 'More';
 
   @override
-  String get wOpenInCanvas => 'Open in canvas';
-
-  @override
   String get wFilePassword => 'File password';
 
   @override
@@ -3081,18 +3036,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pinConfirm => 'Confirm';
 
   @override
-  String get edgelessTitle => 'Edgeless';
-
-  @override
   String get canvasSearchFieldHint => 'Search';
 
   @override
   String layerDefaultName(int n) {
     return 'Layer $n';
   }
-
-  @override
-  String get edgelessStickyTitle => 'Sticky note';
 
   @override
   String get vaultErrUnknown => 'An unknown error occurred';
@@ -3137,19 +3086,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vaultErrFileCrypto => 'Encrypted file cannot be read';
 
   @override
-  String get edgelessCanvasSemantics =>
-      'Infinite canvas: pan and zoom; tools on the left';
-
-  @override
   String get canvasShapeHandleSemantics => 'Shape corner handle';
 
   @override
   String get canvasLinearHandleSemantics => 'Line endpoint handle';
-
-  @override
-  String edgelessFrameSemantics(String title) {
-    return 'Canvas note frame: $title';
-  }
 
   @override
   String get presNextSlide => 'Next slide (long-press to exit)';
@@ -3166,25 +3106,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get rootRefusalBody =>
       'Root access was detected. To protect your encrypted notes, this app refuses to run on a compromised device.';
-
-  @override
-  String get edgelessExportPdf => 'Export PDF';
-
-  @override
-  String get edgelessExporting => 'Exporting PDF…';
-
-  @override
-  String get edgelessExportPdfFailed =>
-      'Failed to export the canvas PDF. Please retry';
-
-  @override
-  String get edgelessExportEmpty =>
-      'The canvas is empty — add a note frame or draw some ink first';
-
-  @override
-  String edgelessExportedPdf(String path) {
-    return 'Exported single-page PDF: $path';
-  }
 
   @override
   String get cmdGroupFile => 'File';

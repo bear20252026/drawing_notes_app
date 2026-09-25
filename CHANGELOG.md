@@ -2,6 +2,31 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.21] - 2026-09-25
+
+### 死代码清理：移除 AFFiNE Edgeless 无限画布模块（用户批准）
+
+- **背景**：排查发现 EdgelessPage/AFFiNE 风格无限画布模块自 M12（笔记
+  模块重做，commit 3307994）起**无任何宿主实例化**——界面不可达的死
+  代码。用户现役「无限画布」为 drawing 侧 `DrawingDocument.infinite`
+  模式（编辑器内切换），不存在帧/散落墨迹概念，导出按内容包围盒、
+  永不遗漏内容。
+- **移除范围（27 文件，约 9000 行）**：
+  - 展示层 5：`edgeless_page`（含 widgets part）、`edgeless_command_palette`、
+    `edgeless_controller`、`edgeless_pdf_exporter`、`note_frame_preview`；
+  - 域模型 5：`edgeless_doc/camera/connector/group/stroke` + `note_frame`；
+  - 基础设施 1：`edgeless_doc_store`；
+  - doc 侧孤儿契约 1：`note_block_doc_to_frames`（仅自身测试引用）；
+  - 对应测试 13 件 + l10n 孤儿键 24 个（`edgeless*`/`ed*` 帧/便签工具族）。
+- **剪线**：`DocPage` 移除 `onOpenInEdgeless` 参数与「在画布中打开」
+  菜单项（宿主从未注入、菜单项恒禁用）；B11 语义锁测试撤销已删文件
+  条目；ARCHITECTURE.md 模块表更新。
+- **保留**：`THIRD_PARTY_NOTICES.md`（块编辑器/移动布局仍参照 AFFiNE，
+  声明继续适用）；v1.17.16-18 共享的导出引擎（PdfHybridExporter 等）
+  不受影响。
+- 语义不变式：本删除为纯死代码清理，**零运行时行为变化**（不可达代码
+  与恒禁用菜单项）。
+
 ## [1.17.20] - 2026-09-25
 
 ### 八项批次：退出/保存体验闭环 + 无限画布分页导出 + 导航玻璃收尾 + CI 根治

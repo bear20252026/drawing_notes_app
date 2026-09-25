@@ -14,7 +14,6 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
     required this.statusLabel,
     required this.statusColor,
     required this.onSavePressed,
-    this.onOpenInEdgeless,
     this.onExportMarkdown,
     this.onExportHtml,
     this.onInsertPageLink,
@@ -33,7 +32,6 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
   final String statusLabel;
   final Color statusColor;
   final VoidCallback onSavePressed;
-  final VoidCallback? onOpenInEdgeless;
 
   /// 导出 Markdown（M12.5）。
   final VoidCallback? onExportMarkdown;
@@ -146,7 +144,6 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
             if (v == 'info') onShowInfo();
             if (v == 'link') onInsertPageLink?.call();
             if (v == 'share') _showShareSnackBar(context);
-            if (v == 'edgeless') onOpenInEdgeless?.call();
             if (v == 'exportMd') onExportMarkdown?.call();
             if (v == 'exportHtml') onExportHtml?.call();
             if (v == 'exportPdf') onExportPdf?.call();
@@ -224,21 +221,6 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
                   ),
                   const SizedBox(width: 10),
                   const Text('导出 Markdown'),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              value: 'edgeless',
-              enabled: onOpenInEdgeless != null,
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.draw_outlined,
-                    size: 18,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(AppLocalizations.of(context)?.wOpenInCanvas ?? '在画布中打开'),
                 ],
               ),
             ),

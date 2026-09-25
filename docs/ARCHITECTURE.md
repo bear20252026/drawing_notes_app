@@ -15,7 +15,7 @@
 | 模块 | 职责 | 关键入口 |
 |---|---|---|
 | `features/doc` | **笔记**（AFFiNE Page 式打字文档）：块编辑核心、块 UI、页面壳 | `doc_page.dart`、`doc_editor.dart`、`presentation/block_*` |
-| `features/notes` | 画板·笔记本宿主：无限画布（Edgeless）、笔记本（画布页集合）、搜索、快捷键盘会话 | `presentation/edgeless_page.dart`、`home_page.dart` |
+| `features/notes` | 画板·笔记本宿主：笔记本（画布页集合）、搜索、快捷键盘会话。**（2026-09-25：AFFiNE Edgeless 模块已整体移除——M12 重做后无宿主不可达的死代码，用户现役无限画布为 drawing 侧 DrawingDocument.infinite 模式）** | `home_page.dart` |
 | `features/drawing` | 绘图引擎：DrawingDocument、图层位图、笔刷/形状/选区/对象编辑 | `application/drawing_controller.dart`、`presentation/editor_page*.dart` |
 | `features/all_docs` | 全部文档工作台：列表/搜索/收藏/排序/文档树/标签/回收站 | `presentation/all_docs_page.dart` |
 

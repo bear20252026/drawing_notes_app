@@ -56,7 +56,7 @@ void _showShareSnackBar(BuildContext context) {
 ///
 /// 与画板完全分离：
 /// - 不使用环境背景 / 玻璃拟态（画板视觉）；
-/// - 不内嵌画布组件；「在画布中打开」经 [onOpenInEdgeless] 回调由宿主路由。
+/// - 不内嵌画布组件。
 class DocPage extends StatefulWidget {
   const DocPage({
     super.key,
@@ -64,7 +64,6 @@ class DocPage extends StatefulWidget {
     this.controller,
     this.isFavorite = false,
     this.onToggleFavorite,
-    this.onOpenInEdgeless,
     this.tagStore,
     this.allDocsLoader,
     this.onOpenDocById,
@@ -82,9 +81,6 @@ class DocPage extends StatefulWidget {
 
   /// 收藏切换回调。
   final ValueChanged<bool>? onToggleFavorite;
-
-  /// 「在画布中打开」回调（宿主负责转换与路由）。
-  final VoidCallback? onOpenInEdgeless;
 
   /// 标签注册表（M12.6 标签编辑）；null 时内部自建（全局文件）。
   final TagStore? tagStore;
@@ -215,7 +211,6 @@ class _DocPageState extends State<DocPage> {
           // 会吃掉约 60% 屏宽）。
           onToggleOutline: _onToggleOutline,
           onShowInfo: () => _showInfoDialog(context),
-          onOpenInEdgeless: widget.onOpenInEdgeless,
           onExportMarkdown: _exportMarkdown,
           onExportHtml: _exportHtml,
           onInsertPageLink: _insertPageLink,

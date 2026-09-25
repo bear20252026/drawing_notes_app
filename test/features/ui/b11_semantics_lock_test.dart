@@ -8,9 +8,9 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('关键交互点已接 Semantics 标签（B11 增量锁）', () {
     final root = Directory('lib');
+    // v1.17.21：AFFiNE Edgeless 模块整体移除（死代码清理）——
+    // 原 edgeless_page.dart 的 edgelessCanvasSemantics 锁条目随之撤销。
     final required = <String, String>{
-      'features/notes/presentation/edgeless_page.dart':
-          'edgelessCanvasSemantics',
       'features/drawing/presentation/resize_handles.dart':
           'canvasShapeHandleSemantics',
       'features/notes/presentation/presentation_page.dart': 'presNextSlide',

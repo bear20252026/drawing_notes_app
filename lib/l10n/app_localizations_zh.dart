@@ -50,9 +50,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get editorRedo => '重做';
 
   @override
-  String get editorShortcutsHelp => '快捷键帮助';
-
-  @override
   String get editorMenu => '主菜单';
 
   @override
@@ -1223,55 +1220,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cmdNoMatch => '没有匹配的命令';
 
   @override
-  String get edPickSourceFrame => '请先选中一个帧作为连线起点';
-
-  @override
-  String get edNewFrame => '新增帧';
-
-  @override
-  String get edFit => '适应';
-
-  @override
-  String get edMultiSelect => '多选(编组)';
-
-  @override
   String get edGroup => '编组';
 
   @override
-  String get edStickyTitle => '便签';
-
-  @override
-  String get edFrameColor => '帧背景色';
-
-  @override
   String get edConnect => '连线';
-
-  @override
-  String get edEditContent => '编辑内容';
-
-  @override
-  String get edDeleteFrame => '删除帧';
-
-  @override
-  String get edSelect => '选择';
-
-  @override
-  String get edSticky => '便签';
-
-  @override
-  String get edBrush => '画笔';
-
-  @override
-  String get edEraser => '橡皮';
 
   @override
   String get edShape => '形状';
 
   @override
   String get edRect => '矩形';
-
-  @override
-  String get edOval => '椭圆';
 
   @override
   String get pfCode => '代码块';
@@ -2467,9 +2425,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get wMore => '更多';
 
   @override
-  String get wOpenInCanvas => '在画布中打开';
-
-  @override
   String get wFilePassword => '文件密码';
 
   @override
@@ -2967,18 +2922,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pinConfirm => '确认';
 
   @override
-  String get edgelessTitle => 'Edgeless';
-
-  @override
   String get canvasSearchFieldHint => '搜索';
 
   @override
   String layerDefaultName(int n) {
     return '图层 $n';
   }
-
-  @override
-  String get edgelessStickyTitle => '便签';
 
   @override
   String get vaultErrUnknown => '发生未知错误';
@@ -3020,18 +2969,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get vaultErrFileCrypto => '加密文件无法读取';
 
   @override
-  String get edgelessCanvasSemantics => '无限画布：可平移缩放，工具面板在左侧';
-
-  @override
   String get canvasShapeHandleSemantics => '形状角柄';
 
   @override
   String get canvasLinearHandleSemantics => '线段端点拖柄';
-
-  @override
-  String edgelessFrameSemantics(String title) {
-    return '画布笔记帧：$title';
-  }
 
   @override
   String get presNextSlide => '下一页（长按退出）';
@@ -3047,23 +2988,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get rootRefusalBody => '检测到设备已获取 ROOT 权限。为保护你的加密笔记数据，本应用在已破解设备上拒绝运行。';
-
-  @override
-  String get edgelessExportPdf => '导出 PDF';
-
-  @override
-  String get edgelessExporting => '正在导出 PDF…';
-
-  @override
-  String get edgelessExportPdfFailed => '导出画布 PDF 失败，请重试';
-
-  @override
-  String get edgelessExportEmpty => '画布还没有内容，先添加帧或墨迹再导出';
-
-  @override
-  String edgelessExportedPdf(String path) {
-    return '已导出单页 PDF：$path';
-  }
 
   @override
   String get cmdGroupFile => '文件';

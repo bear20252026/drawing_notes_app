@@ -57,10 +57,6 @@
   "@editorRedo": {
     "description": "Redo action"
   },
-  "editorShortcutsHelp": "Keyboard shortcuts",
-  "@editorShortcutsHelp": {
-    "description": "Shortcuts help tooltip"
-  },
   "editorMenu": "Main menu",
   "@editorMenu": {
     "description": "Main menu tooltip"
@@ -1275,40 +1271,14 @@
   "@cmdGroupJump": {},
   "cmdNoMatch": "No matching commands",
   "@cmdNoMatch": {},
-  "edPickSourceFrame": "Select a frame first as the connector start",
-  "@edPickSourceFrame": {},
-  "edNewFrame": "Add frame",
-  "@edNewFrame": {},
-  "edFit": "Fit",
-  "@edFit": {},
-  "edMultiSelect": "Multi-select (group)",
-  "@edMultiSelect": {},
   "edGroup": "Group",
   "@edGroup": {},
-  "edStickyTitle": "Sticky note",
-  "@edStickyTitle": {},
-  "edFrameColor": "Frame background color",
-  "@edFrameColor": {},
   "edConnect": "Connect",
   "@edConnect": {},
-  "edEditContent": "Edit content",
-  "@edEditContent": {},
-  "edDeleteFrame": "Delete frame",
-  "@edDeleteFrame": {},
-  "edSelect": "Select",
-  "@edSelect": {},
-  "edSticky": "Sticky",
-  "@edSticky": {},
-  "edBrush": "Brush",
-  "@edBrush": {},
-  "edEraser": "Eraser",
-  "@edEraser": {},
   "edShape": "Shape",
   "@edShape": {},
   "edRect": "Rectangle",
   "@edRect": {},
-  "edOval": "Oval",
-  "@edOval": {},
   "pfCode": "Code block",
   "@pfCode": {},
   "pfImage": "Image",
@@ -2229,8 +2199,6 @@
   "@wDocInfo": {},
   "wMore": "More",
   "@wMore": {},
-  "wOpenInCanvas": "Open in canvas",
-  "@wOpenInCanvas": {},
   "wFilePassword": "File password",
   "@wFilePassword": {},
   "wShare": "Share",
@@ -2684,8 +2652,6 @@
   "@pinBackspace": {},
   "pinConfirm": "Confirm",
   "@pinConfirm": {},
-  "edgelessTitle": "Edgeless",
-  "@edgelessTitle": {},
   "canvasSearchFieldHint": "Search",
   "@canvasSearchFieldHint": {},
   "layerDefaultName": "Layer {n}",
@@ -2696,8 +2662,6 @@
       }
     }
   },
-  "edgelessStickyTitle": "Sticky note",
-  "@edgelessStickyTitle": {},
   "vaultErrUnknown": "An unknown error occurred",
   "@vaultErrUnknown": {},
   "vaultErrLocked": "Vault is locked; encrypted files cannot be read",
@@ -2724,20 +2688,10 @@
   "@vaultErrUnsupportedVersion": {},
   "vaultErrFileCrypto": "Encrypted file cannot be read",
   "@vaultErrFileCrypto": {},
-  "edgelessCanvasSemantics": "Infinite canvas: pan and zoom; tools on the left",
-  "@edgelessCanvasSemantics": {},
   "canvasShapeHandleSemantics": "Shape corner handle",
   "@canvasShapeHandleSemantics": {},
   "canvasLinearHandleSemantics": "Line endpoint handle",
   "@canvasLinearHandleSemantics": {},
-  "edgelessFrameSemantics": "Canvas note frame: {title}",
-  "@edgelessFrameSemantics": {
-    "placeholders": {
-      "title": {
-        "type": "String"
-      }
-    }
-  },
   "presNextSlide": "Next slide (long-press to exit)",
   "@presNextSlide": {},
   "nbOpenPageForEdit": "Open page to edit",
@@ -2748,22 +2702,6 @@
   "@rootRefusalTitle": {},
   "rootRefusalBody": "Root access was detected. To protect your encrypted notes, this app refuses to run on a compromised device.",
   "@rootRefusalBody": {},
-  "edgelessExportPdf": "Export PDF",
-  "edgelessExporting": "Exporting PDF…",
-  "@edgelessExporting": {},
-  "@edgelessExportPdf": {},
-  "edgelessExportPdfFailed": "Failed to export the canvas PDF. Please retry",
-  "@edgelessExportPdfFailed": {},
-  "edgelessExportEmpty": "The canvas is empty — add a note frame or draw some ink first",
-  "@edgelessExportEmpty": {},
-  "edgelessExportedPdf": "Exported single-page PDF: {path}",
-  "@edgelessExportedPdf": {
-    "placeholders": {
-      "path": {
-        "type": "String"
-      }
-    }
-  },
   "cmdGroupFile": "File",
   "@cmdGroupFile": {}
 }
