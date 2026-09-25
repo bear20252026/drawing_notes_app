@@ -9,6 +9,8 @@ import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
+
+import 'package:drawing_notes_app/shared/widgets/glass_navigation_rail.dart';
 // 批次②：AllDocs 打开画布的单文件密码拦截（与首页同口径）。
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart'
     show VaultFileLockException, VaultFilePasswordLockException;
@@ -650,10 +652,11 @@ class _AppShellState extends State<AppShell> {
           return Scaffold(
             body: Row(
               children: [
-                NavigationRail(
+                // v1.17.20：宽屏侧栏玻璃化（导航域玻璃化收尾项）——
+                // 与窄屏 GlassNavigationBar 同配方家族，M3 indicator 保留。
+                GlassNavigationRail(
                   selectedIndex: _index,
                   onDestinationSelected: _onSelect,
-                  labelType: NavigationRailLabelType.all,
                   destinations: _railDestinations(),
                 ),
                 const VerticalDivider(thickness: 1, width: 1),

@@ -19,6 +19,7 @@ import 'package:drawing_notes_app/core/navigation/editor_page_session.dart';
 import 'package:drawing_notes_app/core/rtf_exporter.dart';
 import 'package:drawing_notes_app/features/drawing/application/pdf_export_options.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/pdf_hybrid_exporter.dart';
+import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/svg_exporter.dart';
 import 'package:drawing_notes_app/features/notes/application/notebook_pdf_exporter.dart';
 
@@ -193,11 +194,13 @@ class EditorExporter {
   ///
   /// - 笔记本模式：范围 当前页 → [exportNotebookPdf]；全部页 →
   ///   [NotebookPdfExporter.exportPages]（多会话快照经 [allPagesProvider]）；
-  /// - 独立画布：单页 hybrid 导出（纸张适配 + 质量透传）。
+  /// - 独立画布：单页 hybrid 导出（纸张适配 + 质量透传）；
+  ///   v1.17.20 布局档位 按纸张分页 → [_exportCanvasPdfTiled]。
   Future<void> exportPdfWithOptions({
     required PdfPaper paper,
     required PdfQuality quality,
     PdfRange range = PdfRange.currentPage,
+    PdfLayout layout = PdfLayout.single,
   }) async {
     final page = _page;
     if (page != null) {
@@ -215,6 +218,10 @@ class EditorExporter {
         return;
       }
       await exportNotebookPdf(page, paper: paper, quality: quality);
+      return;
+    }
+    if (layout == PdfLayout.tiled && paper != PdfPaper.canvas) {
+      await _exportCanvasPdfTiled(paper: paper, quality: quality);
       return;
     }
     await _exportCanvasPdf(paper: paper, quality: quality);
@@ -243,9 +250,116 @@ class EditorExporter {
       );
       if (location == null) return; // 用户取消
       await File(location.path).writeAsBytes(bytes, flush: true);
-      showSnack(_l?.expExportAllPdf(pages.length, location.path) ?? '已导出整本 ${pages.length} 页 PDF：${location.path}');
+      showSnack(
+        _l?.expExportAllPdf(pages.length, location.path) ??
+            '已导出整本 ${pages.length} 页 PDF：${location.path}',
+      );
     } catch (e) {
       showSnack(_l?.expExportAllPdfFail(e.toString()) ?? '导出整本 PDF 失败：$e');
+    }
+  }
+
+  /// 独立画布按纸张分页导出（v1.17.20 布局档位「按纸张分页」）。
+  ///
+  /// 内容包围盒按纸张纵横比切片成常规纸页面——每页光栅只有纸张分辨率
+  /// （toImage 极小、UI 不僵），页尺寸恒在 PDF 14400pt 规范限内（单页
+  /// 大图模式超限会被部分查看器裁剪），且可直接打印装订。每页墨迹矢量
+  /// 层只取与本页相交的钢笔笔画，按页原点平移到纸张坐标。
+  Future<void> _exportCanvasPdfTiled({
+    required PdfPaper paper,
+    required PdfQuality quality,
+  }) async {
+    try {
+      final content = controller.document.infinite
+          ? controller.contentBounds()
+          : Rect.fromLTWH(
+              0,
+              0,
+              controller.document.width.toDouble(),
+              controller.document.height.toDouble(),
+            );
+      if (content.width <= 0 || content.height <= 0) {
+        showSnack(_l?.expEmptyCanvas ?? '导出失败：画布内容为空');
+        return;
+      }
+      final paperSize = paper.pageSize!;
+      // 分页切片的缩放口径与单页一致（fitContentOnPaper 保证整幅内容
+      // 至少放得进一张纸；切片页 = 该缩放下纸张承载的世界区域）。
+      final s = fitContentOnPaper(
+        paper,
+        content: ui.Size(content.width, content.height),
+      ).scale;
+      final tiles = sliceContentIntoPages(
+        content,
+        pageSize: paperSize,
+        scale: s,
+      );
+      if (tiles.length > kPdfTiledMaxPages) {
+        showSnack(
+          _l?.expTiledTooManyPages(kPdfTiledMaxPages) ??
+              '内容过大：分页超过 $kPdfTiledMaxPages 页上限，请缩小内容后重试',
+        );
+        return;
+      }
+      final vectorStrokesAll = <Stroke>[
+        for (final layer in controller.document.layers)
+          for (final stroke in layer.strokes)
+            if (!PdfHybridExporter.shouldRasterize(stroke)) stroke,
+      ];
+      final pages = <PdfPageInput>[];
+      for (final tile in tiles) {
+        // 光栅层：只渲染本页区域（钢笔矢量排除，同单页管线）。
+        final png = await controller.renderToPng(
+          scale: s,
+          excludedTypes: const {BrushType.pen},
+          renderBounds: tile,
+        );
+        if (png == null) {
+          showSnack(_l?.expRenderFailHard ?? '导出失败：无法渲染画布');
+          return;
+        }
+        // 矢量层：与本页相交的钢笔笔画，平移到页内坐标（页边界外的
+        // 路径段由 PDF 页面自然裁剪，跨页笔画在两页各呈一段、视觉连续）。
+        final pageStrokes = <Stroke>[];
+        for (final st in vectorStrokesAll) {
+          final b = StrokeRenderer.strokeBounds(st);
+          if (b == null || !b.overlaps(tile)) continue;
+          pageStrokes.add(
+            scaleStrokeForPaper(
+              st,
+              s,
+              ui.Offset(-tile.left * s, -tile.top * s),
+            ),
+          );
+        }
+        pages.add(
+          PdfPageInput(
+            bounds: ui.Rect.fromLTWH(0, 0, paperSize.width, paperSize.height),
+            rasterPng: png,
+            vectorStrokes: pageStrokes,
+            jpegQuality: quality.jpegQuality,
+          ),
+        );
+      }
+      final bytes = await PdfHybridExporter.exportMultiPage(pages: pages);
+      final location = await getSaveLocation(
+        suggestedName: '${controller.document.title}.pdf',
+        acceptedTypeGroups: [
+          XTypeGroup(
+            label: _l?.fileTypePdf ?? 'PDF 文档',
+            extensions: const ['pdf'],
+          ),
+        ],
+      );
+      if (location == null) return; // 用户取消
+      final file = File(location.path);
+      await file.writeAsBytes(bytes, flush: true);
+      showSnack(
+        _l?.expExportTiledPdf(pages.length, location.path) ??
+            '已导出 ${pages.length} 页 PDF：${location.path}',
+      );
+    } catch (e) {
+      showSnack(_l?.expExportFailErr(e.toString()) ?? '导出失败：$e');
     }
   }
 
@@ -420,7 +534,9 @@ class EditorExporter {
       await File(
         location.path,
       ).writeAsBytes(await document.save(), flush: true);
-      showSnack(_l?.expExportPagedPdf(location.path) ?? '已导出分页笔记 PDF：${location.path}');
+      showSnack(
+        _l?.expExportPagedPdf(location.path) ?? '已导出分页笔记 PDF：${location.path}',
+      );
     } catch (e) {
       showSnack(_l?.expExportPagedPdfFail(e.toString()) ?? '导出分页笔记 PDF 失败：$e');
     }
@@ -465,7 +581,9 @@ class EditorExporter {
       if (location == null) return; // 用户取消
       final file = File(location.path);
       await file.writeAsString(svg, flush: true);
-      showSnack(_l?.expExportedSvgTo(location.path) ?? '已导出 SVG 到：${location.path}');
+      showSnack(
+        _l?.expExportedSvgTo(location.path) ?? '已导出 SVG 到：${location.path}',
+      );
     } catch (e) {
       showSnack(_l?.expExportFailErr(e.toString()) ?? '导出失败：$e');
     }
@@ -501,7 +619,9 @@ class EditorExporter {
       );
       if (location == null) return;
       await File(location.path).writeAsString(rtf, flush: true);
-      showSnack(_l?.expExportedWord(location.path) ?? '已导出 Word 兼容文档：${location.path}');
+      showSnack(
+        _l?.expExportedWord(location.path) ?? '已导出 Word 兼容文档：${location.path}',
+      );
     } catch (e) {
       showSnack(_l?.expExportWordFail(e.toString()) ?? '导出 Word 兼容文档失败：$e');
     }
@@ -546,7 +666,9 @@ class EditorExporter {
       if (location == null) return; // 用户取消
       final file = File(location.path);
       await file.writeAsString(content, flush: true);
-      showSnack(_l?.expExportedTextTo(location.path) ?? '已导出文本到：${location.path}');
+      showSnack(
+        _l?.expExportedTextTo(location.path) ?? '已导出文本到：${location.path}',
+      );
     } catch (e) {
       showSnack(_l?.expExportFailErr(e.toString()) ?? '导出失败：$e');
     }
@@ -647,7 +769,9 @@ class EditorExporter {
       if (location == null) return; // 用户取消
       final file = File(location.path);
       await file.writeAsBytes(bytes, flush: true);
-      showSnack(_l?.expExportedPptxTo(location.path) ?? '已导出 PPTX 到：${location.path}');
+      showSnack(
+        _l?.expExportedPptxTo(location.path) ?? '已导出 PPTX 到：${location.path}',
+      );
     } catch (e) {
       showSnack(_l?.expExportFailErr(e.toString()) ?? '导出失败：$e');
     }
@@ -670,7 +794,9 @@ class EditorExporter {
       if (location == null) return; // 用户取消
       final file = File(location.path);
       await file.writeAsString(json, flush: true);
-      showSnack(_l?.expExportedJsonTo(location.path) ?? '已导出 JSON 到：${location.path}');
+      showSnack(
+        _l?.expExportedJsonTo(location.path) ?? '已导出 JSON 到：${location.path}',
+      );
     } catch (e) {
       showSnack(_l?.expExportFailErr(e.toString()) ?? '导出失败：$e');
     }

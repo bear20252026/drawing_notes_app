@@ -1,0 +1,9 @@
+# 测试标签注册（v1.17.20 CI flake 根治）。
+#
+# `kdf`：真 KDF（Argon2id 64MiB / PBKDF2 600k）加密套件——CI 默认并发下
+# 多套件排队会击穿单测超时与懒迁移轮询（run 35501293467 / 36089891365
+# 两次实证，等待预算已放宽到 180s 仍属"撑大窗口"而非根治）。
+# CI 按标签拆分运行：主套件 --exclude-tags kdf，KDF 套件 --tags kdf
+# --concurrency=1 独占串行（见 .github/workflows/ci.yml）。
+tags:
+  kdf:

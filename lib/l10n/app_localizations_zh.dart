@@ -1700,6 +1700,28 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pdfQualitySaverDesc => 'JPEG 60，体积最小';
 
   @override
+  String get pdfGroupLayout => '布局';
+
+  @override
+  String get pdfLayoutSingle => '单页大图';
+
+  @override
+  String get pdfLayoutTiled => '按纸张分页';
+
+  @override
+  String get pdfLayoutTiledDesc => '按纸张切成多页常规纸，可打印，不再受超大单页裁剪影响';
+
+  @override
+  String expTiledTooManyPages(int max) {
+    return '内容过大：分页超过 $max 页上限，请缩小内容后重试';
+  }
+
+  @override
+  String expExportTiledPdf(int count, String path) {
+    return '已导出 $count 页 PDF：$path';
+  }
+
+  @override
   String get pdfGroupPaper => '纸张';
 
   @override

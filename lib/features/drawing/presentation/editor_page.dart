@@ -33,6 +33,7 @@ import 'package:drawing_notes_app/features/drawing/presentation/shape_library.da
 import 'package:drawing_notes_app/core/utils/safe_url.dart';
 import 'package:drawing_notes_app/core/utils/memory_trim.dart';
 import 'package:drawing_notes_app/features/drawing/application/stylus_input.dart';
+import 'package:drawing_notes_app/features/drawing/application/thumbnail_backfill.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/view_transform_cache.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/canvas_model/page_chart_item.dart';
@@ -187,6 +188,12 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   /// 画布保存状态可视化（M12：保存中 / 已保存 + 时间）。
   bool _canvasSaving = false;
   DateTime? _canvasLastSavedAt;
+
+  /// v1.17.20：保存状态由调度器统一驱动（覆盖手动/退出兜底保存路径）。
+  void _onSavingStateChanged() {
+    if (!mounted) return;
+    setState(() => _canvasSaving = _saveScheduler.savingState.value);
+  }
 
   String get _canvasStatusLabel {
     final l10n = AppLocalizations.of(context);
@@ -595,6 +602,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     // 使 _persistArtwork 至少完成文档 JSON 写入而不再访问随后释放的渲染控制器。
     // 脏检查版：干净退出（_flushBeforePop 已落盘）不重复写盘。
     _closingEditor = true;
+    _saveScheduler.savingState.removeListener(_onSavingStateChanged);
     unawaited(_viewModel.flushIfDirty());
     _viewModel.dispose();
     _shortcutFocus.dispose();
@@ -714,7 +722,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     // 异步加载铅笔颗粒着色器；失败时渲染层自动回退到普通铅笔绘制。
     unawaited(PencilShader.init());
     // 修改文档标题显示为页面标题。
-    if (widget.session != null && DomainDisplayLabels.isUntitledDocTitle(doc.title)) {
+    if (widget.session != null &&
+        DomainDisplayLabels.isUntitledDocTitle(doc.title)) {
       doc.title = widget.session!.title;
     }
     // P0-3b：统一保存调度门面（防抖/串行化/退出兜底/失败重试）。
@@ -740,6 +749,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       controller: _controller,
       saveScheduler: _saveScheduler,
     );
+    // v1.17.20 保存状态指示器：保存链飞行状态统一由调度器通知——
+    // 覆盖手动保存与退出兜底路径（此前只有自动保存回调内手工置位）。
+    _saveScheduler.savingState.addListener(_onSavingStateChanged);
     // 首次进入时立即保存一次，确保新文档落盘（自动保存机制）。
     _scheduleAutosave();
     // 注册编辑器命令（B2：命令表驱动快捷键面板）。

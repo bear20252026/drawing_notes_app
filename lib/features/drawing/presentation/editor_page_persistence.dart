@@ -26,10 +26,8 @@ extension _EditorPagePersistence on _EditorPageState {
     final storage = widget.docStorage;
     final doc = _controller.document;
     if (storage == null) return;
-    if (mounted) {
-      _canvasSaving = true;
-      notify();
-    }
+    // 「保存中」状态由 SaveScheduler.savingState 统一驱动（v1.17.20），
+    // 覆盖手动保存与退出兜底路径，此处不再手工置位。
     // StorageService 在调用时立即编码不可变快照；后续笔画不会改写此版本。
     await storage.save(doc);
     // 文档 JSON 是数据完整性的第一优先级。关闭中控制器可能已释放，
@@ -40,9 +38,12 @@ extension _EditorPagePersistence on _EditorPageState {
       // 像素（~48MB 瞬时分配），画画期间每 5s 自动保存都会重放一次。
       final png = await _controller.renderToPng(scale: 0.2, maxLongEdge: 1024);
       if (png != null) await storage.saveThumbnail(doc.id, png);
+    } else {
+      // v1.17.20 退出路径缩略图后台补渲：退出只等文档 JSON 落盘（快），
+      // 缩略图由后台队列按快照独立渲染，不再阻塞 pop。
+      ThumbnailBackfill.submit(doc, storage);
     }
     if (mounted && !_closingEditor) {
-      _canvasSaving = false;
       _canvasLastSavedAt = DateTime.now();
       notify();
     }
@@ -119,6 +120,8 @@ extension _EditorPagePersistence on _EditorPageState {
       context,
       hasMultiplePages: widget.session != null && sessions.length > 1,
       pageCount: sessions.length,
+      // v1.17.20：独立画布（含无限画布）才显示「布局」档位。
+      showLayout: widget.session == null,
     );
     if (selection == null) return; // 用户取消
     if (!mounted) return;
@@ -126,6 +129,7 @@ extension _EditorPagePersistence on _EditorPageState {
       paper: selection.paper,
       quality: selection.quality,
       range: selection.range,
+      layout: selection.layout,
     );
   }
 

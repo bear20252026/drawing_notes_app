@@ -1786,6 +1786,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pdfQualitySaverDesc => 'JPEG 60, smallest size';
 
   @override
+  String get pdfGroupLayout => 'Layout';
+
+  @override
+  String get pdfLayoutSingle => 'Single page';
+
+  @override
+  String get pdfLayoutTiled => 'Paper pages';
+
+  @override
+  String get pdfLayoutTiledDesc =>
+      'Slice content into regular paper pages: printable and immune to oversized-page clipping';
+
+  @override
+  String expTiledTooManyPages(int max) {
+    return 'Content too large: exceeds the $max-page limit, try smaller content';
+  }
+
+  @override
+  String expExportTiledPdf(int count, String path) {
+    return 'Exported $count-page PDF: $path';
+  }
+
+  @override
   String get pdfGroupPaper => 'Paper';
 
   @override

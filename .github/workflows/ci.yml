@@ -42,8 +42,13 @@ jobs:
       - name: Static analysis
         run: flutter analyze
 
-      - name: Unit & widget tests
-        run: flutter test
+      # v1.17.20 CI flake 根治：真 KDF（Argon2id/PBKDF2）用例按 @Tags(['kdf'])
+      # 拆出——主套件不再被 KDF 排队拖慢/击穿等待（dart_test.yaml 注册标签）。
+      - name: Unit & widget tests (exclude real-KDF suite)
+        run: flutter test --exclude-tags kdf
+
+      - name: Real-KDF encryption suite (serial, dedicated)
+        run: flutter test --tags kdf --concurrency=1
 
       - name: Install dart_code_metrics
         run: dart pub global activate dart_code_metrics 5.7.6

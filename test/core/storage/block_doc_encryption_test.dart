@@ -1,4 +1,5 @@
 // 懒迁移真 KDF 重写，CI 高负载可超 30s 默认超时（与 storage/notebook 同类）。
+@Tags(["kdf"])
 @Timeout(Duration(minutes: 3))
 library;
 

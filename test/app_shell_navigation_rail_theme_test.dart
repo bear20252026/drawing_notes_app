@@ -4,14 +4,17 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/app/app_shell.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_navigation_rail.dart';
 
-/// M11 回归：app_shell NavigationRail 底色遵循「双模式单风格」。
+/// M11 回归（v1.17.20 更新）：app_shell 宽屏侧栏为玻璃材质替换壳。
 ///
-/// 背景：交接报告 §10.1 曾记录"app_shell 最左导航栏亮色下仍为深蓝底"。
-/// 经实测（M11 探针）该问题在 master 上已不复现——material_ui
-/// NavigationRail 默认 backgroundColor = colorScheme.surface，
-/// 亮色为 Apple 白，暗色为刻意保留的深蓝。本测试锁定该行为，
-/// 防止主题改动（尤其 material_ui 方言下的组件默认值）导致退化。
+/// 历史锁定（M11）：NavigationRail 底色曾为「亮色 Apple 白 / 暗色刻意
+/// 保留深蓝 #181F2E」。v1.17.20 导航域玻璃化收尾——侧栏换装
+/// [GlassNavigationRail]（与窄屏 GlassNavigationBar 同配方家族）：
+/// NavigationRail 材质三件套全透明，底色由玻璃壳（GlassSurface）提供，
+/// M3 indicator（选中交互态）保留。本测试更新为锁定玻璃化行为：
+/// - Rail 自身 Material 不再携带不透明底色；
+/// - 玻璃壳存在且材质透明（避免玻璃叠玻璃回归）。
 void main() {
   Future<void> pumpShell(WidgetTester tester, ThemeData theme) async {
     await tester.pumpWidget(
@@ -21,7 +24,6 @@ void main() {
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: [Locale('zh'), Locale('en')],
@@ -47,15 +49,23 @@ void main() {
     addTearDown(tester.view.reset);
   }
 
-  testWidgets('亮色模式：NavigationRail 底色为 Apple 白 #FFFFFF', (tester) async {
+  testWidgets('亮色模式：Rail 材质透明（底色由玻璃壳提供），亮暗共用玻璃', (
+    tester,
+  ) async {
     useWideView(tester);
     await pumpShell(tester, AppDesign.lightTheme());
-    expect(railMaterial(tester).color, const Color(0xFFFFFFFF));
+    // 玻璃化后 Rail 自身不再提供不透明底色——透明三件套由
+    // GlassNavigationRail 显式置定。
+    expect(railMaterial(tester).color, Colors.transparent);
+    expect(find.byType(GlassNavigationRail), findsOneWidget);
   });
 
-  testWidgets('暗色模式：NavigationRail 底色为深蓝 #181F2E（刻意保留）', (tester) async {
+  testWidgets('暗色模式：同样玻璃壳承载（单风格双模式，无暗色特判底色）', (
+    tester,
+  ) async {
     useWideView(tester);
     await pumpShell(tester, AppDesign.darkTheme());
-    expect(railMaterial(tester).color, const Color(0xFF181F2E));
+    expect(railMaterial(tester).color, Colors.transparent);
+    expect(find.byType(GlassNavigationRail), findsOneWidget);
   });
 }

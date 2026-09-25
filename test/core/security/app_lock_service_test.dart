@@ -5,6 +5,7 @@
 /// 真 KDF 在 CI 默认并发下排队可超 30s 默认档（v1.17.16 CI flake 实证；
 /// 本机 --concurrency=1 全绿）。按 AGENTS 约定放宽到 3 分钟（库级注解，
 /// 须置于 `library;` 之前——标在 main 上会触发 invalid_annotation_target）。
+@Tags(["kdf"])
 @Timeout(Duration(minutes: 3))
 library;
 

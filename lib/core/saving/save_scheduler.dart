@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import 'save_failure_policy.dart';
 import 'save_schedule_decision.dart';
 
@@ -88,6 +90,11 @@ class SaveScheduler {
   bool _exiting = false;
   bool _disposed = false;
 
+  /// 保存链飞行状态（v1.17.20 保存状态指示器）：覆盖防抖自动保存、
+  /// 手动 saveNow、退出兜底 flush 全部路径——此前 UI 侧只在自己的
+  /// save 回调里置「保存中」标记，退出兜底路径永远不点亮。
+  final ValueNotifier<bool> savingState = ValueNotifier<bool>(false);
+
   bool _saveInFlight = false;
   bool _saveQueued = false;
   Future<void>? _activeDrain;
@@ -159,12 +166,15 @@ class SaveScheduler {
     if (_disposed) return;
     _disposed = true;
     _cancelTimer();
+    savingState.dispose();
   }
 
   /// 是否尚有待落盘的更改（供调用方判断是否需要保存）。
   bool get isDirty => _dirty;
 
   // ---------------- 内部编排 ----------------
+
+  void _coalescedSaveStart() => savingState.value = true;
 
   /// 立即（或作为补写）启动一个串行化保存链。若已有链在飞行，只排队补写。
   Future<void> _coalescedSave() {
@@ -176,11 +186,15 @@ class SaveScheduler {
     final completer = Completer<void>();
     _activeDrain = completer.future;
     _saveInFlight = true;
+    _coalescedSaveStart();
     // 用微任务启动，确保 _activeDrain 先就绪，避免同帧重入。
     scheduleMicrotask(() {
       _runDrain().whenComplete(() {
         _saveInFlight = false;
         _activeDrain = null;
+        // dispose 后 notifier 已释放——飞行中链自然收敛时不再触碰
+        //（dispose 语义回归测试覆盖此竞态）。
+        if (!_disposed) savingState.value = false;
         completer.complete();
       });
     });

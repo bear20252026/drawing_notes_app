@@ -31,6 +31,60 @@ enum PdfRange {
   allPages,
 }
 
+/// 独立画布布局档位（v1.17.20）：导出成一页超大页面，还是按纸张切成
+/// 常规多页（可打印、不受 PDF 14400pt 页面上限约束、每页光栅小不卡顿）。
+enum PdfLayout {
+  /// 单页大图（既有行为零变化）：页尺寸 = 内容边界/纸张适配。
+  single,
+
+  /// 按纸张分页：内容包围盒按纸张纵横比切片，每页一张常规纸。
+  tiled,
+}
+
+extension PdfLayoutLabel on PdfLayout {
+  String get label => switch (this) {
+    PdfLayout.single => '单页大图',
+    PdfLayout.tiled => '按纸张分页',
+  };
+}
+
+/// 分页导出页数上限：超过提示改用更大纸张/缩小内容（防止对超大包围盒
+/// 生成上千页的失控导出）。
+const int kPdfTiledMaxPages = 200;
+
+/// 无限画布分页切片（纯函数）：内容包围盒按纸张纵横比切成 ceil 网格页。
+///
+/// [pageSize] 为纸张 pt 尺寸，[scale] 为内容→纸张缩放系数；每页承载的
+/// 世界尺寸 = 纸张 pt ÷ scale。返回世界坐标页矩形（行优先），页与页首尾
+/// 相接不重叠；[content] 为空或参数非法时返回空表。
+List<ui.Rect> sliceContentIntoPages(
+  ui.Rect content, {
+  required ui.Size pageSize,
+  required double scale,
+}) {
+  if (content.width <= 0 ||
+      content.height <= 0 ||
+      pageSize.width <= 0 ||
+      pageSize.height <= 0 ||
+      scale <= 0) {
+    return const [];
+  }
+  final pageW = pageSize.width / scale;
+  final pageH = pageSize.height / scale;
+  final cols = (content.width / pageW).ceil().clamp(1, 1 << 20);
+  final rows = (content.height / pageH).ceil().clamp(1, 1 << 20);
+  return [
+    for (var r = 0; r < rows; r++)
+      for (var c = 0; c < cols; c++)
+        ui.Rect.fromLTWH(
+          content.left + c * pageW,
+          content.top + r * pageH,
+          pageW,
+          pageH,
+        ),
+  ];
+}
+
 /// 质量档位（光栅层 JPEG 压缩；钢笔矢量永远无损）。
 enum PdfQuality {
   /// PNG 无损（`jpegQuality: null`；含文本/形状时推荐）。

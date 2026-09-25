@@ -3266,6 +3266,42 @@ abstract class AppLocalizations {
   /// **'JPEG 60, smallest size'**
   String get pdfQualitySaverDesc;
 
+  /// No description provided for @pdfGroupLayout.
+  ///
+  /// In en, this message translates to:
+  /// **'Layout'**
+  String get pdfGroupLayout;
+
+  /// No description provided for @pdfLayoutSingle.
+  ///
+  /// In en, this message translates to:
+  /// **'Single page'**
+  String get pdfLayoutSingle;
+
+  /// No description provided for @pdfLayoutTiled.
+  ///
+  /// In en, this message translates to:
+  /// **'Paper pages'**
+  String get pdfLayoutTiled;
+
+  /// No description provided for @pdfLayoutTiledDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Slice content into regular paper pages: printable and immune to oversized-page clipping'**
+  String get pdfLayoutTiledDesc;
+
+  /// No description provided for @expTiledTooManyPages.
+  ///
+  /// In en, this message translates to:
+  /// **'Content too large: exceeds the {max}-page limit, try smaller content'**
+  String expTiledTooManyPages(int max);
+
+  /// No description provided for @expExportTiledPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported {count}-page PDF: {path}'**
+  String expExportTiledPdf(int count, String path);
+
   /// No description provided for @pdfGroupPaper.
   ///
   /// In en, this message translates to:

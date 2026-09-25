@@ -152,6 +152,10 @@ class EditorViewModel extends ChangeNotifier {
   /// 退出路径优先用这个（v1.17.18 退出卡顿优化）。
   Future<void> flushIfDirty() => _saveScheduler.flushIfDirty();
 
+  /// 保存链飞行状态（v1.17.20 保存状态指示器）：覆盖防抖/手动/退出兜底
+  /// 全部保存路径；UI 侧监听即可，无需在各自 save 回调里手工置位。
+  ValueNotifier<bool> get savingState => _saveScheduler.savingState;
+
   @override
   void dispose() {
     // 已在飞行中的保存链会自然收敛；这里只取消尚未触发的防抖。

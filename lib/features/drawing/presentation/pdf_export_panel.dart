@@ -12,11 +12,15 @@ class PdfExportSelection {
     required this.paper,
     required this.range,
     required this.quality,
+    this.layout = PdfLayout.single,
   });
 
   final PdfPaper paper;
   final PdfRange range;
   final PdfQuality quality;
+
+  /// 独立画布布局档位（v1.17.20）：单页大图 / 按纸张分页。
+  final PdfLayout layout;
 }
 
 /// PDF 导出二级面板（M12.5 功能向欠账——设计稿结构：纸张/范围/质量三组）。
@@ -24,12 +28,14 @@ class PdfExportSelection {
 /// - 纸张：A4 / Letter / 跟随画布（默认 A4；独立画布 + 笔记本当前页生效；
 ///   整本导出按画布尺寸成页，该行置灰并附注）；
 /// - 范围：当前页 / 全部页（仅分页/笔记本模式显示；独立画布隐藏）；
+/// - 布局：单页大图 / 按纸张分页（仅独立画布显示；v1.17.20）；
 /// - 质量：无损 / 标准 80 / 省流量 60（光栅层；钢笔矢量永远无损）。
 /// 按钮序遵循 [AppleDialog] 既有约定（取消左、导出右——C1 未决前不自创新序）。
 Future<PdfExportSelection?> showPdfExportPanel(
   BuildContext context, {
   required bool hasMultiplePages,
   required int pageCount,
+  bool showLayout = false,
   PdfPaper initialPaper = PdfPaper.a4,
   PdfQuality initialQuality = PdfQuality.standard,
 }) {
@@ -38,6 +44,7 @@ Future<PdfExportSelection?> showPdfExportPanel(
     builder: (ctx) => _PdfExportPanelDialog(
       hasMultiplePages: hasMultiplePages,
       pageCount: pageCount,
+      showLayout: showLayout,
       initialPaper: initialPaper,
       initialQuality: initialQuality,
     ),
@@ -48,12 +55,14 @@ class _PdfExportPanelDialog extends StatefulWidget {
   const _PdfExportPanelDialog({
     required this.hasMultiplePages,
     required this.pageCount,
+    required this.showLayout,
     required this.initialPaper,
     required this.initialQuality,
   });
 
   final bool hasMultiplePages;
   final int pageCount;
+  final bool showLayout;
   final PdfPaper initialPaper;
   final PdfQuality initialQuality;
 
@@ -65,6 +74,7 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
   late PdfPaper _paper = widget.initialPaper;
   late PdfRange _range = PdfRange.currentPage;
   late PdfQuality _quality = widget.initialQuality;
+  PdfLayout _layout = PdfLayout.single;
 
   @override
   Widget build(BuildContext context) {
@@ -126,6 +136,39 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
                 ),
                 const SizedBox(height: 12),
               ],
+              // v1.17.20 布局档位：仅独立画布（笔记本天然分页，无此问题）。
+              if (widget.showLayout) ...[
+                _groupLabel(
+                  AppLocalizations.of(context)?.pdfGroupLayout ?? '布局',
+                ),
+                SegmentedButton<PdfLayout>(
+                  segments: [
+                    for (final l in PdfLayout.values)
+                      ButtonSegment(
+                        value: l,
+                        label: Text(
+                          l == PdfLayout.single
+                              ? AppLocalizations.of(context)?.pdfLayoutSingle ??
+                                    l.label
+                              : AppLocalizations.of(context)?.pdfLayoutTiled ??
+                                    l.label,
+                        ),
+                      ),
+                  ],
+                  selected: {_layout},
+                  onSelectionChanged: (s) => setState(() => _layout = s.first),
+                ),
+                if (_layout == PdfLayout.tiled)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      AppLocalizations.of(context)?.pdfLayoutTiledDesc ??
+                          '按纸张切成多页常规纸，可打印，不再受超大单页裁剪影响',
+                      style: AppleType.captionStyle(scheme.onSurfaceVariant),
+                    ),
+                  ),
+                const SizedBox(height: 12),
+              ],
               _groupLabel(
                 AppLocalizations.of(context)?.pdfGroupQuality ?? '质量',
               ),
@@ -180,6 +223,7 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
                 paper: _paper,
                 range: _range,
                 quality: _quality,
+                layout: _layout,
               ),
             ),
             child: Text(

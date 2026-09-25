@@ -5,6 +5,7 @@
 ///
 /// 注：写密封走生产默认 600k PBKDF2，全量套件高并发下懒迁移用例
 /// 会超出默认 30s 单测超时——放宽到 3 分钟。
+@Tags(["kdf"])
 @Timeout(Duration(minutes: 3))
 library;
 

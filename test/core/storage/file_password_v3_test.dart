@@ -8,6 +8,7 @@
 /// （KdfParams.testLight），槽位格式与生产一致；放宽超时到 5 分钟
 /// （原 3 分钟，AGENTS 约定值）——满负载全量套件下多套件真 KDF 并行
 /// 排队曾把 3 分钟击穿（2026-09-24 懒迁移降噪专项，本机实测偶发）。
+@Tags(["kdf"])
 @Timeout(Duration(minutes: 5))
 library;
 

@@ -160,16 +160,22 @@ extension DrawingControllerRenderOps on DrawingController {
     double scale = 1.0,
     Set<BrushType> excludedTypes = const {},
     int maxLongEdge = 4096,
+
+    /// 渲染区域覆盖（v1.17.20 分页导出）：null = 按文档/内容包围盒；
+    /// 传子矩形时只渲染该区域（世界坐标）。
+    ui.Rect? renderBounds,
   }) async {
     await _ensureDocumentImagesLoaded();
-    final bounds = _document.infinite
-        ? contentBounds()
-        : Rect.fromLTWH(
-            0,
-            0,
-            _document.width.toDouble(),
-            _document.height.toDouble(),
-          );
+    final bounds =
+        renderBounds ??
+        (_document.infinite
+            ? contentBounds()
+            : Rect.fromLTWH(
+                0,
+                0,
+                _document.width.toDouble(),
+                _document.height.toDouble(),
+              ));
     var w = (bounds.width * scale).round();
     var h = (bounds.height * scale).round();
     if (w <= 0 || h <= 0) return null;
