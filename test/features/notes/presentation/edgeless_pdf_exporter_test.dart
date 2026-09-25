@@ -142,13 +142,29 @@ void main() {
       expect(edgelessRasterScale(Rect.zero), 1);
     });
 
-    test('长边超预算等比缩至 8192', () {
+    test('长边超预算等比缩至 4096（v1.17.18 内存/卡顿降档）', () {
       const long = Rect.fromLTWH(-100, -50, 20000, 4000);
       final scale = edgelessRasterScale(long);
-      expect(scale, closeTo(8192 / 20000, 1e-9));
+      expect(scale, closeTo(4096 / 20000, 1e-9));
       // 缩放后像素长边恰为预算上限。
-      expect(long.width * scale, closeTo(8192, 1e-6));
-      expect(long.height * scale, lessThan(8192));
+      expect(long.width * scale, closeTo(4096, 1e-6));
+      expect(long.height * scale, lessThan(4096));
+    });
+  });
+
+  group('edgelessPdfPageBounds 页尺寸归一（v1.17.18）', () {
+    test('长边在 14400pt 内保持原样（保留负原点语义不变）', () {
+      const small = Rect.fromLTWH(-100, -50, 760, 461.5);
+      expect(edgelessPdfPageBounds(small), small);
+    });
+
+    test('长边超 14400pt 等比缩至限内（防查看器裁剪）', () {
+      const huge = Rect.fromLTWH(0, 0, 20000, 8000);
+      final page = edgelessPdfPageBounds(huge);
+      expect(page.width, closeTo(14400, 1e-6));
+      expect(page.height, closeTo(14400 * 8000 / 20000, 1e-6));
+      expect(page.left, 0);
+      expect(page.top, 0);
     });
   });
 

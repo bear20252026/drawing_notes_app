@@ -2737,6 +2737,8 @@
   "rootRefusalBody": "Root access was detected. To protect your encrypted notes, this app refuses to run on a compromised device.",
   "@rootRefusalBody": {},
   "edgelessExportPdf": "Export PDF",
+  "edgelessExporting": "Exporting PDF…",
+  "@edgelessExporting": {},
   "@edgelessExportPdf": {},
   "edgelessExportPdfFailed": "Failed to export the canvas PDF. Please retry",
   "@edgelessExportPdfFailed": {},

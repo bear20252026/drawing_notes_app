@@ -34,9 +34,29 @@ import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 /// 光栅层长边预算（世界单位→像素 1:1 起，超出即等比缩）。
 ///
-/// 对齐既有管线的单边 8192 clamp（notebook_pdf_exporter / editor_exporter），
-/// 同时规避低端 GPU 纹理尺寸上限。
-const double kEdgelessPdfMaxRasterLongEdge = 8192;
+/// 整画布一页的量级远超纸面页（A4 300dpi ≈ 2480px）：8192 预算下单张
+/// 位图 8192²×4 ≈ 268MB，栅格化 + PNG 编码卡顿明显（v1.17.17 用户反馈）。
+/// 降到 4096（67MB）——PDF 观感仍远超打印精度，卡顿线性缓解。
+/// （notebook 管线单页仍是 8192——纸面页量级小，不受此约束。）
+const double kEdgelessPdfMaxRasterLongEdge = 4096;
+
+/// PDF 页尺寸长边上限（磅）：PDF 规范页面不得超过 14400pt（200 英寸），
+/// 超限页面在部分查看器（Adobe 系等）会被**裁剪显示**——表现为「导出的
+/// PDF 缺了一块内容」（v1.17.17 用户反馈）。页尺寸等比缩至限内即可：
+/// 光栅位图分辨率由光栅预算决定、不受影响，仅页面度量单位缩小，视觉
+/// 比例与内容完整度不变。
+const double kEdgelessPdfMaxPageLongEdgePt = 14400;
+
+/// 页面尺寸归一：长边超 14400pt 时等比缩至限内（返回以原点为基准的
+/// 页面矩形）；纯函数供单测。
+Rect edgelessPdfPageBounds(Rect bounds) {
+  final longEdge = math.max(bounds.width, bounds.height);
+  if (longEdge <= 0 || longEdge <= kEdgelessPdfMaxPageLongEdgePt) {
+    return bounds;
+  }
+  final scale = kEdgelessPdfMaxPageLongEdgePt / longEdge;
+  return Rect.fromLTWH(0, 0, bounds.width * scale, bounds.height * scale);
+}
 
 /// 全场景包围盒：帧 + 笔迹 + 形状 + 连接线（线段、端点圆点与标签）的并集。
 ///
@@ -123,6 +143,8 @@ class EdgelessPdfExporter {
   }) async {
     final bounds = computeEdgelessSceneBounds(doc);
     if (bounds == null) return null;
+    // 页尺寸归一（PDF 14400pt 上限）与光栅预算独立：光栅像素密度由
+    // edgelessRasterScale 决定，页尺寸只影响 PDF 度量单位。
     final image = await _rasterizeWidget(
       _buildScene(doc, bounds, theme, locale),
       bounds.size,
@@ -136,7 +158,7 @@ class EdgelessPdfExporter {
       image.dispose();
     }
     return PdfHybridExporter.export(
-      bounds: bounds,
+      bounds: edgelessPdfPageBounds(bounds),
       rasterPng: png,
       vectorStrokes: const [],
       jpegQuality: jpegQuality,

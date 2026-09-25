@@ -2644,6 +2644,8 @@
   "rootRefusalBody": "检测到设备已获取 ROOT 权限。为保护你的加密笔记数据，本应用在已破解设备上拒绝运行。",
   "@rootRefusalBody": {},
   "edgelessExportPdf": "导出 PDF",
+  "edgelessExporting": "正在导出 PDF…",
+  "@edgelessExporting": {},
   "@edgelessExportPdf": {},
   "edgelessExportPdfFailed": "导出画布 PDF 失败，请重试",
   "@edgelessExportPdfFailed": {},

@@ -3030,6 +3030,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get edgelessExportPdf => '导出 PDF';
 
   @override
+  String get edgelessExporting => '正在导出 PDF…';
+
+  @override
   String get edgelessExportPdfFailed => '导出画布 PDF 失败，请重试';
 
   @override

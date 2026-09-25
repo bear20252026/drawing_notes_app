@@ -1,3 +1,4 @@
+import 'dart:isolate';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -53,14 +54,21 @@ class PdfHybridExporter {
   );
 
   /// 生成多页混合 PDF（W2 整本导出：每个画布页对应 PDF 一页）。
+  ///
+  /// `doc.save()` 是纯 Dart CPU 密集段（大位图页上秒级），在 UI 线程执行
+  /// 会冻结交互（v1.17.17 用户反馈导出卡顿）——移入 [Isolate.run]：
+  /// PdfPageInput 全为可跨 isolate 发送类型（Uint8List / ui.Rect /
+  /// ui.Color / int?），pdf 包为纯 Dart 实现，无平台通道。
   static Future<Uint8List> exportMultiPage({
     required List<PdfPageInput> pages,
-  }) async {
-    final doc = pw.Document();
-    for (final page in pages) {
-      doc.addPage(page._buildPdfPage());
-    }
-    return doc.save();
+  }) {
+    return Isolate.run(() {
+      final doc = pw.Document();
+      for (final page in pages) {
+        doc.addPage(page._buildPdfPage());
+      }
+      return doc.save();
+    });
   }
 
   /// 将 PNG 字节转 JPEG（[quality] 1-100，越高质量越高体积越大）。

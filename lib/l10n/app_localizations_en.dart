@@ -3148,6 +3148,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get edgelessExportPdf => 'Export PDF';
 
   @override
+  String get edgelessExporting => 'Exporting PDF…';
+
+  @override
   String get edgelessExportPdfFailed =>
       'Failed to export the canvas PDF. Please retry';
 

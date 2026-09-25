@@ -8,6 +8,7 @@ import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
 // EdgelessController（手势翻译）与 NoteFramePreview（帧内容）。
 // 只依赖 notes，不 import drawing/chart 实现层（架构规则 3）。
 
+import 'dart:async' show unawaited;
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
@@ -19,6 +20,7 @@ import 'package:flutter/services.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 // v1.10.6：顶栏玻璃化——画布内容沉浸式延伸到玻璃顶栏之后。
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_connector.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/edgeless_group.dart';
@@ -261,30 +263,69 @@ class _EdgelessPageState extends State<EdgelessPage> {
         ],
       );
       if (location == null) return; // 用户取消
-      final bytes = await EdgelessPdfExporter.export(
-        _controller.doc,
-        theme: theme,
-        locale: locale,
-      );
-      if (bytes == null) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              l10n?.edgelessExportEmpty ?? '画布还没有内容，先添加帧或墨迹再导出',
+      if (!mounted) return; // 保存对话框 async gap 后守卫（lint 要求）。
+      // 导出是 CPU 密集管线（离屏栅格化 + PNG 编码 + PDF 合成，大画布
+      // 秒级）——模态进度提示防误判卡死（v1.17.17 用户反馈卡顿）；
+      // 不可点按关闭，完成/失败统一 pop（v1.17.18）。
+      final navigator = Navigator.of(context, rootNavigator: true);
+      final exporting = AppLocalizations.of(context)?.edgelessExporting ??
+          '正在导出 PDF…';
+      unawaited(
+        GlassDialog.show<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => AlertDialog(
+            content: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                ),
+                const SizedBox(width: AppleSpacing.md),
+                Flexible(child: Text(exporting)),
+              ],
             ),
-          ),
-        );
-        return;
-      }
-      await File(location.path).writeAsBytes(bytes, flush: true);
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            l10n?.edgelessExportedPdf(location.path) ??
-                '已导出单页 PDF：${location.path}',
           ),
         ),
       );
+      try {
+        final bytes = await EdgelessPdfExporter.export(
+          _controller.doc,
+          theme: theme,
+          locale: locale,
+        );
+        navigator.pop();
+        if (bytes == null) {
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(
+                l10n?.edgelessExportEmpty ?? '画布还没有内容，先添加帧或墨迹再导出',
+              ),
+            ),
+          );
+          return;
+        }
+        await File(location.path).writeAsBytes(bytes, flush: true);
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              l10n?.edgelessExportedPdf(location.path) ??
+                  '已导出单页 PDF：${location.path}',
+            ),
+          ),
+        );
+      } catch (_) {
+        navigator.pop();
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              l10n?.edgelessExportPdfFailed ?? '导出画布 PDF 失败，请重试',
+            ),
+          ),
+        );
+      }
     } catch (_) {
       messenger.showSnackBar(
         SnackBar(

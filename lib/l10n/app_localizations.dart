@@ -5780,6 +5780,12 @@ abstract class AppLocalizations {
   /// **'Export PDF'**
   String get edgelessExportPdf;
 
+  /// No description provided for @edgelessExporting.
+  ///
+  /// In en, this message translates to:
+  /// **'Exporting PDF…'**
+  String get edgelessExporting;
+
   /// No description provided for @edgelessExportPdfFailed.
   ///
   /// In en, this message translates to:
