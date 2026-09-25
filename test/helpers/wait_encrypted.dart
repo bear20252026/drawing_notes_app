@@ -6,12 +6,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// 等待懒迁移把明文重写为密文（走异步写尾队列，需轮询等落盘）。
 ///
-/// 上限 ~60s（6000 次 × 10ms）。真 KDF（PBKDF2-HMAC-SHA256 600k）在
-/// 全量套件高并发下会排队，15s 曾在 Windows CI 被击穿（run 35501293467
-/// —— block_doc 懒迁移用例「15 秒内未被迁移」）。绝不能改成无限等待——
-/// 真 bug 时仍要在有限时间内 fail，否则用例会挂到套件超时。
+/// 上限 ~180s（18000 次 × 10ms）。真 KDF（PBKDF2-HMAC-SHA256 600k /
+/// Argon2id 64MiB）在全量套件高并发下会排队：15s 曾在 Windows CI 被击穿
+/// （run 35501293467），放宽到 60s 后仍被击穿（run 36089891365——CI 默认
+/// 并发下多套件真 KDF 并行排队）。绝不能改成无限等待——真 bug 时仍要在
+/// 有限时间内 fail，否则用例会挂到套件超时。
 Future<Uint8List> waitEncryptedFile(File file, {String label = '明文'}) async {
-  for (var i = 0; i < 6000; i++) {
+  for (var i = 0; i < 18000; i++) {
     final Uint8List bytes;
     try {
       bytes = await file.readAsBytes();
@@ -24,5 +25,5 @@ Future<Uint8List> waitEncryptedFile(File file, {String label = '明文'}) async 
     if (VaultFileCodec.isEncrypted(bytes)) return bytes;
     await Future<void>.delayed(const Duration(milliseconds: 10));
   }
-  fail('60 秒内$label未被迁移为密文');
+  fail('180 秒内$label未被迁移为密文');
 }
