@@ -2,6 +2,39 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.25] - 2026-09-26
+
+### 审计批次 C（按域批量）：手势重建收敛 + l10n 批量 + 设计令牌 + 性能
+
+> 来源：`docs/audit_full_2026-09-26.html`（全量审计 44 条）批次 C。
+
+- **手势重建收敛（审计 #5）**：形状草稿/框选/拖拽/旋转/缩放手柄从
+  全页 `_applyState`（setState）改 `_controller.tickFrame()`
+  （ValueNotifier frameTick）——高频指针移动只驱动画布相关层自绘，
+  不再逐帧重建 overlay/小地图/端点层；选区栏滑块走局部
+  ListenableBuilder + 双显示 notifier。
+- **临时墨迹频率分离（审计 #6）**：激光笔/标记的 16ms 淡出走独立
+  `temporaryInkTick`，仅 CanvasPainter 监听——常态高频帧源不再驱动
+  overlay/小地图/端点层全链重建。
+- **l10n 批量收编（审计 #14/#41/#42）**：新增 23 个 arb 键（zh/en
+  双语），冲突对话框 5 处、doc 导出菜单 3 项、画布编辑器 snackbar×5、
+  PDF 域占位文案等约 20 处硬编码中文收编；`noteBlockDocToPdf` 加
+  `emptyDocLabel` 注入参数（PDF 排版域无 BuildContext，调用点传
+  l10n）；doc 工具栏可见标签走既有 `_blockTypeTooltip` 链路。
+- **设计令牌收编（审计 #11/#33/#35）**：AppleType 新增
+  `bold`(w700)/`semibold`(w600) 命名常量（DESIGN.md 字梯合法档唯一
+  入口）；doc 域 4 处裸 FontWeight.w700 与 4 处裸 TextStyle（改
+  DefaultTextStyle 继承）收编，沉浸式查看器覆盖层豁免；新增
+  `AppleMotion.skeletonPulse` 骨架脉冲令牌（1.2s，持续状态动画归类）。
+  离档间距 57 处（#34）需专项视觉验证，记待办。
+- **性能（审计 #15/#31）**：`listDocHeaders` 冷路径头提取批量搬
+  `Isolate.run`——原每文档主 isolate 解析两次（信封检查内部一次全量
+  jsonDecode + 取头一次），N 文档冷启动 2N 次全量 JSON 解析出主线程，
+  isolate 只回传头字段（body 树不跨 isolate 序列化避免搬运反噬）；
+  MarqueePainter Paint 改 static final 共享、TrailPainter 循环内
+  N 次 Paint 分配收敛为单实例复用。数据库视图虚拟化（#16）、桌面
+  侧栏懒加载（#30）、回收站 isolate 解码（#32）记待办。
+
 ## [1.17.24] - 2026-09-26
 
 ### 审计批次 B（高优）：导出对话框生命周期统一收口 + 阅读页配色修复
