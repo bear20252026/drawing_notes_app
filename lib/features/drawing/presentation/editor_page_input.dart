@@ -172,7 +172,10 @@ extension _EditorPageInput on _EditorPageState {
 
     // 形状工具：实时更新草稿外接框，提供拖拽创建的即时视觉反馈。
     if (_activeShapeTool != null && _shapeDraftStart != null) {
-      _applyState(() => _shapeDraftCurrent = canvasPoint);
+      // 高频指针移动只 tick 画布/草稿层（审计 #5）：草稿层自监听
+      // frameTick 重绘，无需重建整个 EditorPage。
+      _shapeDraftCurrent = canvasPoint;
+      _controller.tickFrame();
       // 线性元素拖拽读数（长度/角度小气泡，审计二-6）。
       _updateLinearDraftReadout();
       return;
@@ -180,7 +183,9 @@ extension _EditorPageInput on _EditorPageState {
 
     // 框选工具：更新框选矩形（借鉴 Excalidraw 多选）。
     if (_marqueeActive && _marqueeStart != null) {
-      _applyState(() => _canvasInteraction.updateMarquee(canvasPoint));
+      // 同上（审计 #5）：marquee painter 在 frameTick 驱动的 overlay 层内。
+      _canvasInteraction.updateMarquee(canvasPoint);
+      _controller.tickFrame();
       return;
     }
 

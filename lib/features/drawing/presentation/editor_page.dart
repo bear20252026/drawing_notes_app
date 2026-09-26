@@ -233,8 +233,15 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   /// 选区缩放/旋转滑块的短生命周期显示值与增量换算。
   final EditorSelectionTransformState _selectionTransform =
       EditorSelectionTransformState();
-  double get _scaleValue => _selectionTransform.scaleValue;
-  double get _rotateDegrees => _selectionTransform.rotationDegrees;
+
+  /// 滑块回显专用 notifier（审计 #5）：SelectionBar 是受控组件，
+  /// 但滑块拖动的高频回调只需重建该子树 + tick 画布，不再全页 setState。
+  final ValueNotifier<double> _selectionScaleDisplay = ValueNotifier<double>(
+    1.0,
+  );
+  final ValueNotifier<double> _selectionRotationDisplay = ValueNotifier<double>(
+    0.0,
+  );
 
   /// 当前选中的混排对象 id（null = 无选中），用于显示编辑/删除按钮。
   String? get _selectedItemId => _canvasInteraction.selectedItemId;
@@ -613,6 +620,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     _hoverPos.dispose();
     _inkPressureSample.dispose();
     _linearReadout.dispose();
+    _selectionScaleDisplay.dispose();
+    _selectionRotationDisplay.dispose();
     _appLifecycle?.dispose();
     // _controller 生命周期由 drawingControllerProvider(ref.onDispose) 管理。
     super.dispose();

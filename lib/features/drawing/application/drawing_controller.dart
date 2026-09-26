@@ -58,7 +58,13 @@ class DrawingController extends ChangeNotifier
         StrokeSelectionInteractionHost,
         StrokeInputHost {
   DrawingController(this._document) {
-    _temporaryInkSession = TemporaryInkSession(onFrameTick: tickFrame);
+    // 临时墨迹（激光/标记）淡出走独立 tick（审计 2026-09-26 #6）：16ms
+    // Timer 若驱动共享 frameTick，会逐帧全量重建 overlay items/小地图/
+    // 端点层——激光期间只有画布层需要重绘（临时墨迹仅 CanvasPainter
+    // 绘制），监听方相应收窄。
+    _temporaryInkSession = TemporaryInkSession(
+      onFrameTick: () => temporaryInkTick.value++,
+    );
     _strokeInputSession = StrokeInputSession(this);
     _documentImageCache = DocumentImageCache(
       onImageAvailable: tickFrame,
@@ -221,6 +227,10 @@ class DrawingController extends ChangeNotifier
   /// - 一次操作完成或状态切换（笔画提交、图层操作、撤销）→ 调用 [notifyListeners]，
   ///   重建低频组件。
   final ValueNotifier<int> frameTick = ValueNotifier<int>(0);
+
+  /// 临时墨迹（激光/标记）淡出专用 tick：仅 [CanvasPainter] 监听。
+  /// 见构造函数内注释（审计 #6 频率分离）。
+  final ValueNotifier<int> temporaryInkTick = ValueNotifier<int>(0);
 
   /// 触发一次高频重绘（仅画布，不重建低频 UI）。
   @override
@@ -686,6 +696,7 @@ class DrawingController extends ChangeNotifier
     _renderCacheCoordinator.dispose();
     _temporaryInkSession.dispose();
     _documentImageCache.dispose();
+    temporaryInkTick.dispose();
     super.dispose();
   }
 }

@@ -60,34 +60,50 @@ extension _EditorPageDragOps on _EditorPageState {
     final moveIds = _expandGroup(
       _multiSelectedIds.isNotEmpty ? {..._multiSelectedIds, id} : <String>{id},
     );
-    _applyState(() {
-      const grid = 20.0;
-      double snap(double v) => _snapToGrid ? (v / grid).round() * grid : v;
-      for (final t in page.textItems) {
-        if (moveIds.contains(t.id)) {
-          t.x = snap(
-            t.x + canvasDelta.dx,
-          ).clamp(0, _controller.document.width.toDouble());
-          t.y = snap(
-            t.y + canvasDelta.dy,
-          ).clamp(0, _controller.document.height.toDouble());
-        }
+    // 高频拖动只 tick（审计 #5）：overlay 层（frameTick 驱动）逐帧
+    // 重建 items 与对齐参考线 painter，不再全页 setState。
+    const grid = 20.0;
+    double snap(double v) => _snapToGrid ? (v / grid).round() * grid : v;
+    for (final t in page.textItems) {
+      if (moveIds.contains(t.id)) {
+        t.x = snap(
+          t.x + canvasDelta.dx,
+        ).clamp(0, _controller.document.width.toDouble());
+        t.y = snap(
+          t.y + canvasDelta.dy,
+        ).clamp(0, _controller.document.height.toDouble());
       }
-      for (final i in page.imageItems) {
-        if (moveIds.contains(i.id)) {
-          i.x = (i.x + canvasDelta.dx).clamp(
-            0,
-            _controller.document.width.toDouble(),
-          );
-          i.y = (i.y + canvasDelta.dy).clamp(
-            0,
-            _controller.document.height.toDouble(),
-          );
-        }
+    }
+    for (final i in page.imageItems) {
+      if (moveIds.contains(i.id)) {
+        i.x = (i.x + canvasDelta.dx).clamp(
+          0,
+          _controller.document.width.toDouble(),
+        );
+        i.y = (i.y + canvasDelta.dy).clamp(
+          0,
+          _controller.document.height.toDouble(),
+        );
       }
-      // 形状元素（借鉴 Excalidraw 图形工具）：拖动移动位置。
+    }
+    // 形状元素（借鉴 Excalidraw 图形工具）：拖动移动位置。
+    for (final s in page.shapes) {
+      if (moveIds.contains(s.id)) {
+        s.x = (s.x + canvasDelta.dx).clamp(
+          0,
+          _controller.document.width.toDouble(),
+        );
+        s.y = (s.y + canvasDelta.dy).clamp(
+          0,
+          _controller.document.height.toDouble(),
+        );
+      }
+    }
+    // 箭头绑定（借鉴 Excalidraw boundElements）：目标元素移动时，
+    // 绑定到该元素的箭头同步跟随（引用关联而非坐标快照）。
+    for (final targetId in moveIds) {
       for (final s in page.shapes) {
-        if (moveIds.contains(s.id)) {
+        if (s.boundElementId == targetId) {
           s.x = (s.x + canvasDelta.dx).clamp(
             0,
             _controller.document.width.toDouble(),
@@ -98,26 +114,11 @@ extension _EditorPageDragOps on _EditorPageState {
           );
         }
       }
-      // 箭头绑定（借鉴 Excalidraw boundElements）：目标元素移动时，
-      // 绑定到该元素的箭头同步跟随（引用关联而非坐标快照）。
-      for (final targetId in moveIds) {
-        for (final s in page.shapes) {
-          if (s.boundElementId == targetId) {
-            s.x = (s.x + canvasDelta.dx).clamp(
-              0,
-              _controller.document.width.toDouble(),
-            );
-            s.y = (s.y + canvasDelta.dy).clamp(
-              0,
-              _controller.document.height.toDouble(),
-            );
-          }
-        }
-      }
-      // 对齐吸附（借鉴 Excalidraw 对齐参考线）：拖动结束后吸附到
-      // 其他混排对象的左/中/右 或 上/中/下 边（容差 10px）。
-      _snapDragItemToAlign(id);
-    });
+    }
+    // 对齐吸附（借鉴 Excalidraw 对齐参考线）：拖动结束后吸附到
+    // 其他混排对象的左/中/右 或 上/中/下 边（容差 10px）。
+    _snapDragItemToAlign(id);
+    _controller.tickFrame();
   }
 
   /// 拖动后对齐吸附：把 [id] 元素吸附到其他元素的边/中心对齐线。

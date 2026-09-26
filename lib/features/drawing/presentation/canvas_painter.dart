@@ -35,7 +35,15 @@ class CanvasPainter extends CustomPainter {
   static const Color paperDotColor = Color(0x5542A5F5);
 
   CanvasPainter({required this.controller})
-    : super(repaint: Listenable.merge([controller, controller.frameTick]));
+    : super(
+        repaint: Listenable.merge([
+          controller,
+          controller.frameTick,
+          // 临时墨迹（激光/标记）淡出独立 tick（审计 #6）：16ms 淡出
+          // 只重绘画布层，不再逐帧驱动 overlay/小地图全量重建。
+          controller.temporaryInkTick,
+        ]),
+      );
 
   final DrawingController controller;
 
@@ -74,7 +82,10 @@ class CanvasPainter extends CustomPainter {
     );
     if (!doc.infinite) {
       canvas.drawRRect(
-        RRect.fromRectAndRadius(canvasRect, const Radius.circular(AppleRadius.xs)),
+        RRect.fromRectAndRadius(
+          canvasRect,
+          const Radius.circular(AppleRadius.xs),
+        ),
         Paint()..color = AppleColor.surfaceWhite,
       );
       _paintPaperTemplate(canvas, doc);

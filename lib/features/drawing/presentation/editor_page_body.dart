@@ -20,13 +20,19 @@ extension _EditorPageBody on _EditorPageState {
                 child: Column(
                   children: [
                     _buildContextBar(),
-                    SelectionBar(
-                      controller: _controller,
-                      isNotebookMode: _isNotebookMode,
-                      scaleValue: _scaleValue,
-                      rotateDegrees: _rotateDegrees,
-                      onScaleChanged: (v) {
-                        _applyState(() {
+                    // SelectionBar 局部 Listenable（审计 #5）：滑块拖动
+                    // 的高频回调只重建本子树并 tick 画布，不全页 setState。
+                    ListenableBuilder(
+                      listenable: Listenable.merge([
+                        _selectionScaleDisplay,
+                        _selectionRotationDisplay,
+                      ]),
+                      builder: (context, _) => SelectionBar(
+                        controller: _controller,
+                        isNotebookMode: _isNotebookMode,
+                        scaleValue: _selectionScaleDisplay.value,
+                        rotateDegrees: _selectionRotationDisplay.value,
+                        onScaleChanged: (v) {
                           final factor = _selectionTransform.updateScale(v);
                           final c = _controller;
                           if (_isNotebookMode &&
@@ -39,31 +45,35 @@ extension _EditorPageBody on _EditorPageState {
                           } else {
                             c.scaleSelectedStrokes(factor);
                           }
-                        });
-                      },
-                      onRotateChanged: (v) {
-                        _applyState(() {
+                          _selectionScaleDisplay.value =
+                              _selectionTransform.scaleValue;
+                          _controller.tickFrame();
+                        },
+                        onRotateChanged: (v) {
                           final delta = _selectionTransform
                               .updateRotationDegrees(v);
                           _controller.rotateSelectedStrokes(delta);
-                        });
-                      },
-                      onClearSelection: () => _applyState(() {
-                        _viewModel.setSelectionDone(false);
-                        _controller.clearDocumentObjectSelection();
-                      }),
-                      onTransformEnd: () {
-                        final c = _controller;
-                        if (_isNotebookMode &&
-                            c.hasMixedDocumentObjectSelection) {
-                          c.endDocumentObjectsTransform();
-                        } else if (c.hasSelectedDocumentShape) {
-                          c.endDocumentShapeTransform();
-                        } else if (c.hasSelectedDocumentImage) {
-                          c.endDocumentImageTransform();
-                        }
-                        _notifyChanged();
-                      },
+                          _selectionRotationDisplay.value =
+                              _selectionTransform.rotationDegrees;
+                          _controller.tickFrame();
+                        },
+                        onClearSelection: () => _applyState(() {
+                          _viewModel.setSelectionDone(false);
+                          _controller.clearDocumentObjectSelection();
+                        }),
+                        onTransformEnd: () {
+                          final c = _controller;
+                          if (_isNotebookMode &&
+                              c.hasMixedDocumentObjectSelection) {
+                            c.endDocumentObjectsTransform();
+                          } else if (c.hasSelectedDocumentShape) {
+                            c.endDocumentShapeTransform();
+                          } else if (c.hasSelectedDocumentImage) {
+                            c.endDocumentImageTransform();
+                          }
+                          _notifyChanged();
+                        },
+                      ),
                     ),
                     Expanded(child: _buildCanvasArea()),
                   ],

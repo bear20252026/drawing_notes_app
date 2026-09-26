@@ -93,16 +93,26 @@ extension _EditorPageCanvasSurface on _EditorPageState {
   }
 
   /// 形状草稿层：所有工作区均可见，且不拦截正在创建形状的指针。
+  ///
+  /// 自监听 frameTick（审计 #5）：拖拽创建的高频指针移动只 tick 不
+  /// setState，草稿框由本层逐帧重算 [_shapeDraft]（getter 现算）。
+  /// 出现/消失仍由起笔/收笔的 setState 驱动父级组合。
   Widget _buildCanvasShapeDraftLayer() {
-    final draft = _shapeDraft!;
     return Positioned.fill(
       child: IgnorePointer(
-        child: _readingInverted
-            ? ColorFiltered(
-                colorFilter: _EditorPageState._readingInvertFilter,
-                child: Stack(children: [_buildShapeOverlay(draft)]),
-              )
-            : Stack(children: [_buildShapeOverlay(draft)]),
+        child: ListenableBuilder(
+          listenable: _controller.frameTick,
+          builder: (context, _) {
+            final draft = _shapeDraft;
+            if (draft == null) return const SizedBox.shrink();
+            return _readingInverted
+                ? ColorFiltered(
+                    colorFilter: _EditorPageState._readingInvertFilter,
+                    child: Stack(children: [_buildShapeOverlay(draft)]),
+                  )
+                : Stack(children: [_buildShapeOverlay(draft)]);
+          },
+        ),
       ),
     );
   }
@@ -208,8 +218,7 @@ extension _EditorPageCanvasSurface on _EditorPageState {
               if (base == null) return;
               _controller.updateSelectedLinearEndpoint(
                 isStart: isStart,
-                point:
-                    (isStart ? base.start : base.end) + _linearEndpointAccum,
+                point: (isStart ? base.start : base.end) + _linearEndpointAccum,
                 snapToGrid: _snapToGrid,
               );
               final current = _controller.selectedDocumentShape;

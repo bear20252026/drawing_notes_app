@@ -91,7 +91,9 @@ extension _EditorPageOverlays on _EditorPageState {
                   ? Border.all(color: AppleColor.actionBlue, width: 1.5)
                   : null,
             ),
-            child: CustomPaint(painter: ChartPainter(chart: chart, viewScale: 1)),
+            child: CustomPaint(
+              painter: ChartPainter(chart: chart, viewScale: 1),
+            ),
           ),
         ),
       ),
@@ -133,90 +135,96 @@ extension _EditorPageOverlays on _EditorPageState {
             onPanUpdate: (d) => _dragItem(shape.id, d.delta),
             onPanEnd: (_) => _notifyChanged(),
             child: SizedBox(
-            width: w,
-            height: h,
-            // 旋转渲染：按 shape.rotation 旋转形状（借鉴 Excalidraw 旋转手柄）。
-            child: Transform.rotate(
-              angle: shape.rotation,
-              child: Transform(
-                alignment: Alignment.center,
-                // 线性元素已用 lineStart/lineEnd 保存真实方向端点，flip 镜像
-                // 会把方向二次翻转（与 ShapeRenderer.drawDocumentShape 同规则）；
-                // 仅端点缺失的旧文档保留 flip 兜底。
-                transform: shape.lineStart != null && shape.lineEnd != null
-                    ? Matrix4.identity()
-                    : Matrix4.diagonal3Values(
-                        shape.flipX ? -1 : 1,
-                        shape.flipY ? -1 : 1,
-                        1,
-                      ),
-                child: linear
-                    ? _buildLinearShapeLayer(shape, w, h, selected)
-                    : CustomPaint(
-                        painter: ShapePainter(
-                          shape: shape,
-                          viewScale: _controller.viewScale,
+              width: w,
+              height: h,
+              // 旋转渲染：按 shape.rotation 旋转形状（借鉴 Excalidraw 旋转手柄）。
+              child: Transform.rotate(
+                angle: shape.rotation,
+                child: Transform(
+                  alignment: Alignment.center,
+                  // 线性元素已用 lineStart/lineEnd 保存真实方向端点，flip 镜像
+                  // 会把方向二次翻转（与 ShapeRenderer.drawDocumentShape 同规则）；
+                  // 仅端点缺失的旧文档保留 flip 兜底。
+                  transform: shape.lineStart != null && shape.lineEnd != null
+                      ? Matrix4.identity()
+                      : Matrix4.diagonal3Values(
+                          shape.flipX ? -1 : 1,
+                          shape.flipY ? -1 : 1,
+                          1,
                         ),
-                        child: selected
-                            ? Stack(
-                                children: [
-                                  Positioned.fill(
-                                    child: DecoratedBox(
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                          color: AppleColor.actionBlue,
-                                          width: 1.5,
+                  child: linear
+                      ? _buildLinearShapeLayer(shape, w, h, selected)
+                      : CustomPaint(
+                          painter: ShapePainter(
+                            shape: shape,
+                            viewScale: _controller.viewScale,
+                          ),
+                          child: selected
+                              ? Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                            color: AppleColor.actionBlue,
+                                            width: 1.5,
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  // 旋转手柄（顶部中间，拖拽旋转，借鉴 Excalidraw）。
-                                  // 命中区 44×44（对齐 resize_handles 的
-                                  // _hitSize 纪律）：视觉仍是 10×10 圆点，
-                                  // 只是扩大触控/点击热区。
-                                  Positioned(
-                                    top: -35,
-                                    left: w / 2 - 22,
-                                    child: Semantics(
-                                      button: true,
-                                      label:
-                                          AppLocalizations.of(
-                                                context,
-                                              )?.canvasItemSemantics(
-                                                AppLocalizations.of(
-                                                      context,
-                                                    )?.canvasKindRotateHandle ??
-                                                    '旋转手柄',
-                                              ) ??
-                                              '画布对象：旋转手柄',
-                                      child: SizedBox(
-                                        width: 44,
-                                        height: 44,
-                                        child: Center(
-                                          child: GestureDetector(
-                                            behavior: HitTestBehavior.opaque,
-                                            onPanUpdate: (d) {
-                                              final center =
-                                                  Offset(w / 2, h / 2);
-                                              final local =
-                                                  d.localPosition +
-                                                      Offset(w / 2, h / 2);
-                                              final angle =
-                                                  (local - center).direction;
-                                              _applyState(
-                                                () => shape.rotation = angle,
-                                              );
-                                              _notifyChanged();
-                                            },
-                                            child: Container(
-                                              width: 10,
-                                              height: 10,
-                                              decoration: const BoxDecoration(
-                                                color: AppleColor.actionBlue,
-                                                shape: BoxShape.circle,
-                                                border: Border.fromBorderSide(
-                                                  BorderSide(
-                                                    color: Colors.white,
+                                    // 旋转手柄（顶部中间，拖拽旋转，借鉴 Excalidraw）。
+                                    // 命中区 44×44（对齐 resize_handles 的
+                                    // _hitSize 纪律）：视觉仍是 10×10 圆点，
+                                    // 只是扩大触控/点击热区。
+                                    Positioned(
+                                      top: -35,
+                                      left: w / 2 - 22,
+                                      child: Semantics(
+                                        button: true,
+                                        label:
+                                            AppLocalizations.of(
+                                              context,
+                                            )?.canvasItemSemantics(
+                                              AppLocalizations.of(
+                                                    context,
+                                                  )?.canvasKindRotateHandle ??
+                                                  '旋转手柄',
+                                            ) ??
+                                            '画布对象：旋转手柄',
+                                        child: SizedBox(
+                                          width: 44,
+                                          height: 44,
+                                          child: Center(
+                                            child: GestureDetector(
+                                              behavior: HitTestBehavior.opaque,
+                                              onPanUpdate: (d) {
+                                                final center = Offset(
+                                                  w / 2,
+                                                  h / 2,
+                                                );
+                                                final local =
+                                                    d.localPosition +
+                                                    Offset(w / 2, h / 2);
+                                                final angle =
+                                                    (local - center).direction;
+                                                // 高频旋转只 tick（审计 #5）：
+                                                // 形状 overlay 在 frameTick
+                                                // 驱动的 overlay 层内逐帧
+                                                // 跟随，不全页 setState。
+                                                shape.rotation = angle;
+                                                _controller.tickFrame();
+                                                _notifyChanged();
+                                              },
+                                              child: Container(
+                                                width: 10,
+                                                height: 10,
+                                                decoration: const BoxDecoration(
+                                                  color: AppleColor.actionBlue,
+                                                  shape: BoxShape.circle,
+                                                  border: Border.fromBorderSide(
+                                                    BorderSide(
+                                                      color: Colors.white,
+                                                    ),
                                                   ),
                                                 ),
                                               ),
@@ -225,49 +233,48 @@ extension _EditorPageOverlays on _EditorPageState {
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  // 8 向缩放手柄（四角 + 四边中点，借鉴 Excalidraw）。
-                                  ResizeHandles(
-                                    width: w,
-                                    height: h,
-                                    screenToCanvasDelta: (delta) =>
-                                        screenDeltaToCanvas(
-                                          delta,
-                                          _controller.viewRotation,
-                                          _controller.viewScale,
-                                        ),
-                                    onResize: (handle, canvasDelta) {
-                                      final resized =
-                                          EditorShapeResizeGeometry.resize(
-                                            bounds: EditorShapeBounds(
-                                              x: shape.x,
-                                              y: shape.y,
-                                              width: shape.width,
-                                              height: shape.height,
-                                            ),
-                                            handle: handle,
-                                            canvasDelta: canvasDelta,
-                                          );
-                                      _applyState(() {
+                                    // 8 向缩放手柄（四角 + 四边中点，借鉴 Excalidraw）。
+                                    ResizeHandles(
+                                      width: w,
+                                      height: h,
+                                      screenToCanvasDelta: (delta) =>
+                                          screenDeltaToCanvas(
+                                            delta,
+                                            _controller.viewRotation,
+                                            _controller.viewScale,
+                                          ),
+                                      onResize: (handle, canvasDelta) {
+                                        final resized =
+                                            EditorShapeResizeGeometry.resize(
+                                              bounds: EditorShapeBounds(
+                                                x: shape.x,
+                                                y: shape.y,
+                                                width: shape.width,
+                                                height: shape.height,
+                                              ),
+                                              handle: handle,
+                                              canvasDelta: canvasDelta,
+                                            );
+                                        // 高频缩放只 tick（审计 #5）。
                                         shape
                                           ..x = resized.x
                                           ..y = resized.y
                                           ..width = resized.width
                                           ..height = resized.height;
-                                      });
-                                    },
-                                    onChanged: _notifyChanged,
-                                  ),
-                                ],
-                              )
-                            : null,
-                      ),
-                  ),
+                                        _controller.tickFrame();
+                                      },
+                                      onChanged: _notifyChanged,
+                                    ),
+                                  ],
+                                )
+                              : null,
+                        ),
                 ),
               ),
             ),
           ),
         ),
+      ),
     );
   }
 
@@ -359,34 +366,34 @@ extension _EditorPageOverlays on _EditorPageState {
           onPanUpdate: (d) => _dragItem(item.id, d.delta),
           onPanEnd: (_) => _notifyChanged(),
           child: Stack(
-          children: [
-            Container(
-              width: w,
-              height: h,
-              decoration: selected || linkSource
-                  ? BoxDecoration(
-                      border: Border.all(
-                        color: linkSource
-                            ? AppleColor.favourite
-                            : AppleColor.actionBlue,
-                        width: 1.5,
-                      ),
-                    )
-                  : null,
-              child: item.filePath.isNotEmpty
-                  ? Image(
-                      image: EncryptedFileImage(File(item.filePath)),
-                      fit: BoxFit.contain,
-                      // L-03 语义（专家审计 2026-08-15）：图片可读名。
-                      semanticLabel:
-                          AppLocalizations.of(context)?.noteImageSemantic ??
-                          '笔记图片',
-                    )
-                  : const ColoredBox(color: AppleColor.inkSubtle),
-            ),
-            // 裁剪框 4 角手柄（对齐 Excalidraw 图片裁剪）：拖拽调整 _cropRect。
-            if (cropping && _cropRect != null) ..._buildCropHandles(),
-          ],
+            children: [
+              Container(
+                width: w,
+                height: h,
+                decoration: selected || linkSource
+                    ? BoxDecoration(
+                        border: Border.all(
+                          color: linkSource
+                              ? AppleColor.favourite
+                              : AppleColor.actionBlue,
+                          width: 1.5,
+                        ),
+                      )
+                    : null,
+                child: item.filePath.isNotEmpty
+                    ? Image(
+                        image: EncryptedFileImage(File(item.filePath)),
+                        fit: BoxFit.contain,
+                        // L-03 语义（专家审计 2026-08-15）：图片可读名。
+                        semanticLabel:
+                            AppLocalizations.of(context)?.noteImageSemantic ??
+                            '笔记图片',
+                      )
+                    : const ColoredBox(color: AppleColor.inkSubtle),
+              ),
+              // 裁剪框 4 角手柄（对齐 Excalidraw 图片裁剪）：拖拽调整 _cropRect。
+              if (cropping && _cropRect != null) ..._buildCropHandles(),
+            ],
           ),
         ),
       ),
