@@ -21,6 +21,14 @@ class DatabaseListView extends StatelessWidget {
     required this.onRemoveRecord,
   });
 
+  /// 审计 2026-09-26 #16：超过该记录数才切换「限高内部滚动 + 行级虚拟
+  /// 化」——常见量级（几十条内）保持自然高度、随文档页面滚动的既有交互
+  /// 零变化。与 [databaseTableLargeRecordThreshold] 同值（语义耦合）。
+  static const int largeRecordThreshold = 50;
+
+  /// 大数据集的视口上限（约一屏高，内部滚动）。
+  static const double maxViewportHeight = 480;
+
   final List<NoteFieldDef> fields;
   final List<NoteRecord> records;
   final NoteFieldDef? titleField;
@@ -38,6 +46,17 @@ class DatabaseListView extends StatelessWidget {
           style: AppleType.controlStyle(
             Theme.of(context).colorScheme.outline,
           ).copyWith(fontWeight: FontWeight.w400),
+        ),
+      );
+    }
+    // 大数据集：行级虚拟化（不可见行不 build/layout/paint）。
+    if (records.length > largeRecordThreshold) {
+      return SizedBox(
+        height: maxViewportHeight,
+        child: ListView.builder(
+          itemCount: records.length,
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          itemBuilder: (context, i) => _tile(context, records[i]),
         ),
       );
     }

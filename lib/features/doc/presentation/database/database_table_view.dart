@@ -27,6 +27,13 @@ class DatabaseTableView extends StatelessWidget {
     required this.onRemoveRecord,
   });
 
+  /// 审计 2026-09-26 #16：超过该记录数时限高内部滚动——与
+  /// [DatabaseListView.largeRecordThreshold] 同值（语义耦合）。
+  static const int largeRecordThreshold = 50;
+
+  /// 大数据集的视口上限（与 list 视图一致，约一屏高）。
+  static const double maxViewportHeight = 480;
+
   final List<NoteFieldDef> fields;
   final List<NoteRecord> records;
   final String? sortFieldId;
@@ -53,7 +60,7 @@ class DatabaseTableView extends StatelessWidget {
     if (records.isEmpty) {
       return _empty(context, '还没有记录，点击“添加记录”');
     }
-    return SingleChildScrollView(
+    final table = SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: DataTable(
         headingRowHeight: 44,
@@ -78,6 +85,19 @@ class DatabaseTableView extends StatelessWidget {
         ],
       ),
     );
+    // 大数据集：限高内部滚动。DataTable 一次性布局全部 DataRow（无法
+    // 行级虚拟化），限高只做视口裁剪，避免大表把文档页无限撑长；真正的
+    // 行级虚拟化在 list 视图（ListView.builder）。
+    if (records.length > largeRecordThreshold) {
+      return SizedBox(
+        height: maxViewportHeight,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: table,
+        ),
+      );
+    }
+    return table;
   }
 
   Widget _empty(BuildContext context, String message) {

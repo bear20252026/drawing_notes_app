@@ -48,12 +48,21 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500)); // 首次光栅化
-
+    // 审计 2026-09-26 #36：picture.toImage 走引擎光栅线程，真实完成时间
+    // 不可控——固定毫秒 pump 在慢机上是「虚拟时间 vs 真实异步」赛跑；
+    // 改为 runAsync 轮询（脱离 fake clock 等真实异步），确定性断言。
     final ctx = tester.element(find.byType(EditorPage));
     final controller = ProviderScope.containerOf(
       ctx,
     ).read(drawingControllerProvider(doc));
+    await tester.runAsync(() async {
+      for (var i = 0; i < 200; i++) {
+        if (controller.paintViews.any((v) => v.image != null)) return;
+        await Future<void>.delayed(const Duration(milliseconds: 25));
+      }
+    });
+    await tester.pump();
+
     expect(
       controller.paintViews.where((v) => v.image != null).length,
       greaterThan(0),
@@ -114,12 +123,24 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
-
+    // 审计 #36：同上——toImage 真实光栅线程，runAsync 轮询替代固定 pump。
     final ctx = tester.element(find.byType(EditorPage));
     final controller = ProviderScope.containerOf(
       ctx,
     ).read(drawingControllerProvider(doc));
+    await tester.runAsync(() async {
+      for (var i = 0; i < 200; i++) {
+        if (controller.paintViews
+            .where((v) => v.image != null)
+            .length ==
+            1) {
+          return;
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 25));
+      }
+    });
+    await tester.pump();
+
     expect(
       controller.paintViews.where((v) => v.image != null).length,
       1,
