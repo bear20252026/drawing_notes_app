@@ -138,5 +138,54 @@ void main() {
         expect(a, b);
       });
     });
+
+    // v1.17.23 审计修复 #27：maxPages 上限前置——超限在网格物化前拦截，
+    // 防固定输出 scale 下超大包围盒生成海量 Rect 卡主 isolate。
+    group('maxPages 上限前置', () {
+      test('rows×cols 超限 → 空表（不物化网格）', () {
+        // 内容 250×120 → 3 列 × 2 行 = 6 页；上限 5 页 → 空表。
+        final pages = sliceContentIntoPages(
+          const Rect.fromLTWH(10, 20, 250, 120),
+          pageSize: const Size(100, 100),
+          scale: 1,
+          maxPages: 5,
+        );
+        expect(pages, isEmpty);
+      });
+
+      test('恰好等于上限 → 正常返回全表', () {
+        final pages = sliceContentIntoPages(
+          const Rect.fromLTWH(10, 20, 250, 120),
+          pageSize: const Size(100, 100),
+          scale: 1,
+          maxPages: 6,
+        );
+        expect(pages, hasLength(6));
+      });
+
+      test('null 上限 = 不限制（既有行为）', () {
+        final pages = sliceContentIntoPages(
+          const Rect.fromLTWH(10, 20, 250, 120),
+          pageSize: const Size(100, 100),
+          scale: 1,
+        );
+        expect(pages, hasLength(6));
+      });
+
+      test('kPdfTiledOutputScale = 1.0（审计 #1 回归锁）：分页输出口径', () {
+        // 固定输出 scale——历史上此口径曾错用 fitContentOnPaper（保证
+        // 整幅内容放进一张纸 → 切片恒 1×1 单页，页序/页脚/进度全链路
+        // 不可达多页）。锁死常量防回潮。
+        expect(kPdfTiledOutputScale, 1.0);
+        // 生产等价输入：A4 纸 + 固定 scale，横向 2 页宽内容 → 2 页。
+        final pages = sliceContentIntoPages(
+          const Rect.fromLTWH(0, 0, 800, 700),
+          pageSize: const Size(595.28, 841.89),
+          scale: kPdfTiledOutputScale,
+        );
+        expect(pages, hasLength(2));
+        expect(pages[1].left, closeTo(595.28, 1e-6));
+      });
+    });
   });
 }

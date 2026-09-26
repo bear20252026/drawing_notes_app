@@ -12,6 +12,8 @@
 /// 不触碰任何私有 AAD/序列化细节。
 ///
 /// Argon2id/PBKDF2 真派生矩阵，CI 高负载可超 30s 默认超时——放宽到 3 分钟。
+// @Tags(['kdf'])（v1.17.23 审计修复 #7）：真 KDF 套件必须打标参与 CI 分流。
+@Tags(['kdf'])
 @Timeout(Duration(minutes: 3))
 library;
 

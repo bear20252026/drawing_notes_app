@@ -1,4 +1,6 @@
 // 真 KDF 派生（password→encrypt/decrypt），CI 高负载可超 30s 默认超时。
+// @Tags(['kdf'])（v1.17.23 审计修复 #7）：真 KDF 套件必须打标参与 CI 分流。
+@Tags(['kdf'])
 @Timeout(Duration(minutes: 3))
 library;
 

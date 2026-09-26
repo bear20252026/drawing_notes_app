@@ -4,6 +4,8 @@
 /// 一致性、缓存命中（同输入零重派生）、clear 擦除（代际防清后复活）、
 /// 不同输入不同输出、并发同键去重、LRU 上限封顶、Argon2id 分派与
 /// 跨 KDF 缓存隔离（批B）。
+// @Tags(['kdf'])（v1.17.23 审计修复 #7）：真 KDF 套件必须打标参与 CI 分流。
+@Tags(['kdf'])
 @Timeout(Duration(minutes: 3))
 library;
 

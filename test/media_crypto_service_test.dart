@@ -1,4 +1,7 @@
 // PBKDF2(600k) 用例在全量高并发下超默认 30s 超时，放宽到 3 分钟。
+// @Tags(['kdf'])（v1.17.23 审计修复 #7）：真 KDF 套件必须打标参与 CI
+// 分流（主套件 --exclude-tags kdf / KDF 套件独占串行），否则绕过隔离。
+@Tags(['kdf'])
 @Timeout(Duration(minutes: 3))
 library;
 

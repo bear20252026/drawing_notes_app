@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/pdf_hybrid_exporter.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
@@ -199,4 +200,40 @@ void main() {
     expect(bytes, isNotEmpty);
     expect(String.fromCharCodes(bytes.take(4)), '%PDF');
   });
+
+  // v1.17.23 审计修复 #2：页脚含中文标题必须挂 CJK 字体主题——pdf 包
+  // 默认 Type1 字体按 latin1 编码，码点 >255 抛 FormatException。
+  test('中文页脚 + cjkFontData：CJK 字体主题下正常产出（%PDF）', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    final fontData = await rootBundle.load(
+      'assets/fonts/DroidSansFallbackFull.ttf',
+    );
+
+    final document = DrawingDocument(id: 'pdf_footer_cjk', title: '中文标题');
+    document.layers.single.strokes.add(_penStroke());
+    final controller = DrawingController(document);
+    addTearDown(controller.dispose);
+
+    final rasterPng = await controller.renderToPng();
+    expect(rasterPng, isNotNull);
+
+    final bytes = await PdfHybridExporter.exportMultiPage(
+      pages: [
+        PdfPageInput(
+          bounds: const Rect.fromLTWH(0, 0, 200, 150),
+          rasterPng: rasterPng!,
+          vectorStrokes: const [],
+          footerText: '中文标题 · 1 / 1',
+        ),
+      ],
+      cjkFontData: fontData,
+    );
+
+    expect(bytes, isNotEmpty);
+    expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+  });
+
+  // 审计 #2 实证口径（v1.17.23）：无字体时 CJK 不抛异常，而是被画成
+  // × 占位符（pdf 包 Type1 isRuneSupported 只认 ≤0xFF）——负例断言
+  // 无稳定契约可锁，正向测试（上方）即本修复的回归锁。
 }

@@ -2,6 +2,42 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.23] - 2026-09-26
+
+### 审计批次 A（紧急）：分页导出三处功能性修复 + KDF 测试标签收口
+
+> 来源：`docs/audit_full_2026-09-26.html`（全量审计 44 条）中的 P1 项。
+
+- **分页导出恒单页修复（审计 #1，v1.17.20 引入）**：分页输出 scale 此前
+  错用 `fitContentOnPaper`——它保证整幅内容放进一张纸（`content·s ≤
+  纸宽`），代入切片公式 `cols = rows = 1`，导致「按纸张分页」自上线起
+  在生产路径恒产出 1×1 单页，v1.17.20/22 的页序/页脚 n/m/200 页上限/
+  逐页进度/切片预览全链路不可达多页。现改为固定输出 scale
+  `kPdfTiledOutputScale = 1.0`（世界 px ↔ 纸张 pt 1:1，每页光栅 = 纸张
+  分辨率，与单页档实际密度一致）——大内容真正摊开到多张常规纸。
+- **页脚上限前置（审计 #27）**：`sliceContentIntoPages` 新增 `maxPages`
+  参数，超限在切片网格物化前直接返回空表——固定输出 scale 后不再受
+  fit 口径保护，防超大包围盒生成海量 Rect 卡主 isolate；导出侧超限
+  提示语义不变。
+- **中文页脚乱码修复（审计 #2，结论经实证修正）**：`exportMultiPage` 此前
+  `pw.Document` 无字体主题，页脚落到 pdf 包默认 Type1 字体——其
+  `isRuneSupported` 只认 ≤0xFF 码点，CJK 字形被静默画成 × 占位符
+  （内容流实证：汉字变小叉、仅 ASCII 正常；不抛异常）。现新增
+  `cjkFontData` 参数，分页导出开页脚时加载 DroidSansFallbackFull
+  （与笔记本导出同一资产），CJK 字体主题在 isolate 内构建、真字形
+  嵌入，中文标题页脚恢复可读。
+- **页脚几何失真修复（审计 #8）**：页脚由 Column+Expanded 收尾改为
+  Stack 覆盖层——tight flex 会把内容 Stack 钳到 pageH−18，光栅纵向
+  压扁 ~2% 且矢量按整页坐标绘制溢出页脚带（错位最大 ~18pt）。现内容
+  子树几何与无页脚时完全一致，页脚文字叠画于底部 18pt 带（≈6.3mm，
+  打印机可打印区外；如内容侵入该带则文字叠于其上，已知取舍换几何
+  零失真）。
+- **KDF 测试标签收口（审计 #7）**：4 个真 KDF 套件
+  （media_crypto / kek_session_cache / encryption_version / kdf_migration）
+  补 `@Tags(['kdf'])`——此前绕过 v1.17.20 的 CI 分流（主套件
+  `--exclude-tags kdf` 排除不掉它们），高并发下可能复发已根治的 flake。
+- 测试 +5（maxPages 前置 3、输出 scale 回归锁 1、中文页脚 1）。
+
 ## [1.17.22] - 2026-09-26
 
 ### 分页导出体验闭环：页序档位 + 页脚页码 + 切片预览确认 + 逐页进度

@@ -281,6 +281,11 @@ class EditorExporter {
   /// v1.17.22：[columnMajor] 页序（先纵后横）、[footer] 页脚
   /// （标题 · n / m）、[onProgress] 逐页进度回调、[confirmTiles] 切片
   /// 预览确认（返回 false = 用户取消，放弃导出）。
+  ///
+  /// v1.17.23 审计修复：输出 scale 改固定 [kPdfTiledOutputScale]
+  /// （原 fitContentOnPaper 口径使切片恒为 1×1 单页）；页数上限经
+  /// [sliceContentIntoPages] 的 maxPages 前置拦截；页脚挂 CJK 字体
+  /// 主题（默认 Type1 latin1 编不了中文标题）。
   Future<void> _exportCanvasPdfTiled({
     required PdfPaper paper,
     required PdfQuality quality,
@@ -303,19 +308,21 @@ class EditorExporter {
         return;
       }
       final paperSize = paper.pageSize!;
-      // 分页切片的缩放口径与单页一致（fitContentOnPaper 保证整幅内容
-      // 至少放得进一张纸；切片页 = 该缩放下纸张承载的世界区域）。
-      final s = fitContentOnPaper(
-        paper,
-        content: ui.Size(content.width, content.height),
-      ).scale;
+      // 分页输出缩放口径：固定 1.0（世界 px ↔ 纸张 pt 1:1，每页光栅即
+      // 纸张分辨率）。绝不可用 fitContentOnPaper——它保证整幅内容放进
+      // 一张纸，代入切片公式 cols = rows = 1，v1.17.20/22 的分页因此
+      // 恒为单页（审计 2026-09-26 #1）。
+      final s = kPdfTiledOutputScale;
       final tiles = sliceContentIntoPages(
         content,
         pageSize: paperSize,
         scale: s,
         columnMajor: columnMajor,
+        // 上限前置（审计 #27）：超限在切片网格物化前拦截（返回空表）。
+        maxPages: kPdfTiledMaxPages,
       );
-      if (tiles.length > kPdfTiledMaxPages) {
+      if (tiles.isEmpty) {
+        // 空内容已在上方排除，此处空表 = 超过页数上限（maxPages 拦截）。
         showSnack(
           _l?.expTiledTooManyPages(kPdfTiledMaxPages) ??
               '内容过大：分页超过 $kPdfTiledMaxPages 页上限，请缩小内容后重试',
@@ -328,6 +335,14 @@ class EditorExporter {
         if (!ok) return; // 用户取消
       }
       final docTitle = controller.document.title;
+      // 页脚 CJK 字体（审计 #2）：pdf 包默认 Type1 字体只认 ≤0xFF 码点
+      // （isRuneSupported），CJK 字形被画成 × 占位符（实证：静默乱码、
+      // 不抛异常）——文档标题以中文为主用例，开页脚必须挂 CJK 字体
+      // 主题（与笔记本导出同一资产，按需加载，ByteData 可跨 isolate
+      // 发送、主题在 isolate 内构建）。
+      final cjkFontData = footer
+          ? await rootBundle.load('assets/fonts/DroidSansFallbackFull.ttf')
+          : null;
       final vectorStrokesAll = <Stroke>[
         for (final layer in controller.document.layers)
           for (final stroke in layer.strokes)
@@ -373,7 +388,10 @@ class EditorExporter {
         );
       }
       onProgress?.call(total, total);
-      final bytes = await PdfHybridExporter.exportMultiPage(pages: pages);
+      final bytes = await PdfHybridExporter.exportMultiPage(
+        pages: pages,
+        cjkFontData: cjkFontData,
+      );
       final location = await getSaveLocation(
         suggestedName: '${controller.document.title}.pdf',
         acceptedTypeGroups: [

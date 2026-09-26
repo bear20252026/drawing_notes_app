@@ -59,11 +59,30 @@ class PdfHybridExporter {
   /// 会冻结交互（v1.17.17 用户反馈导出卡顿）——移入 [Isolate.run]：
   /// PdfPageInput 全为可跨 isolate 发送类型（Uint8List / ui.Rect /
   /// ui.Color / int?），pdf 包为纯 Dart 实现，无平台通道。
+  ///
+  /// [cjkFontData]（v1.17.23 审计修复 #2）：页脚文本含用户文档标题
+  /// （中文为主用例），而 pdf 包默认 Type1 字体的 `isRuneSupported`
+  /// 只认 ≤0xFF 码点——CJK 字形被画成 × 占位符（实证：不抛异常、
+  /// 静默乱码）。传入 CJK 字体（与笔记本导出同一 DroidSansFallbackFull
+  /// 资产）即挂全文档字体主题，CJK 以真 TTF 字形嵌入。ByteData 可跨
+  /// isolate 发送、主题在 isolate 内构建；null = 纯 ASCII 场景零开销。
   static Future<Uint8List> exportMultiPage({
     required List<PdfPageInput> pages,
+    ByteData? cjkFontData,
   }) {
     return Isolate.run(() {
-      final doc = pw.Document();
+      pw.ThemeData? theme;
+      final fontData = cjkFontData;
+      if (fontData != null) {
+        final cjk = pw.Font.ttf(fontData);
+        theme = pw.ThemeData.withFont(
+          base: cjk,
+          bold: cjk,
+          italic: cjk,
+          boldItalic: cjk,
+        );
+      }
+      final doc = pw.Document(theme: theme);
       for (final page in pages) {
         doc.addPage(page._buildPdfPage());
       }
@@ -132,25 +151,31 @@ class PdfPageInput {
     return pw.Page(
       pageFormat: PdfPageFormat(bounds.width, bounds.height),
       margin: pw.EdgeInsets.zero,
-      // 页脚（v1.17.22）：pdf 3.x 的 pw.Page 没有 footer 回调（那是
-      // MultiPage 的能力），故在 build 内用 Column 收尾——Expanded 装既有
-      // Stack（margin 为零，Stack 原点=页原点，contentRect/矢量坐标几何
-      // 语义不变），页脚占底部定高条，与光栅/矢量内容互不重叠。
-      build: (context) => pw.Column(
+      // 页脚（v1.17.23 审计修复 #8）：Stack 覆盖层——内容子树几何与无
+      // 页脚时完全一致（光栅满铺不压扁、矢量层原点/裁剪不变），页脚
+      // 文本作为底部定位层叠画。不可用 Column+Expanded 收尾：tight
+      // flex 会把内容 Stack 钳到 pageH−18，光栅纵向压扁 ~2% 且矢量按
+      // 整页坐标绘制溢出页脚带（错位最大 ~18pt）。代价：内容底部
+      // 18pt 带（≈6.3mm，在打印机可打印区之外）如有墨迹，页脚文字
+      // 叠于其上——已知取舍，换取几何零失真。
+      build: (context) => pw.Stack(
         children: [
-          pw.Expanded(
-            child: _buildContentStack(rasterBytes, offset, pdfBackground),
-          ),
+          _buildContentStack(rasterBytes, offset, pdfBackground),
           if (footer != null)
-            pw.Container(
-              height: 18,
-              alignment: pw.Alignment.bottomCenter,
-              padding: const pw.EdgeInsets.only(bottom: 5),
-              child: pw.Text(
-                footer,
-                style: const pw.TextStyle(
-                  fontSize: 8,
-                  color: PdfColor(0.45, 0.45, 0.45),
+            pw.Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: pw.Container(
+                height: 18,
+                alignment: pw.Alignment.bottomCenter,
+                padding: const pw.EdgeInsets.only(bottom: 5),
+                child: pw.Text(
+                  footer,
+                  style: const pw.TextStyle(
+                    fontSize: 8,
+                    color: PdfColor(0.45, 0.45, 0.45),
+                  ),
                 ),
               ),
             ),

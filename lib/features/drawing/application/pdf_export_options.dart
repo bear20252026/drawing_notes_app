@@ -52,6 +52,16 @@ extension PdfLayoutLabel on PdfLayout {
 /// 生成上千页的失控导出）。
 const int kPdfTiledMaxPages = 200;
 
+/// 分页导出输出缩放口径（v1.17.23 审计修复）：固定 1.0——世界 px 与纸张
+/// pt 1:1，每页光栅 = 纸张分辨率（renderToPng 1px/pt，与单页大图档的
+/// 实际密度一致）。
+///
+/// 绝不可复用 [fitContentOnPaper]：它保证整幅内容放进一张纸
+///（`content·s ≤ 纸宽`），代入切片公式得 `cols = rows = 1`——
+/// v1.17.20/22 的分页链路因此恒产出单页（审计 2026-09-26 #1）。
+/// 分页的语义就是把大内容摊到多张常规纸上，必须用固定输出 scale。
+const double kPdfTiledOutputScale = 1.0;
+
 /// 无限画布分页切片（纯函数）：内容包围盒按纸张纵横比切成 ceil 网格页。
 ///
 /// [pageSize] 为纸张 pt 尺寸，[scale] 为内容→纸张缩放系数；每页承载的
@@ -60,11 +70,16 @@ const int kPdfTiledMaxPages = 200;
 ///
 /// [columnMajor]（v1.17.22 页序档位）：false = 先横后纵（行优先，默认）；
 /// true = 先纵后横（列优先——纵向长内容如时间线/笔记流按书写方向排页）。
+///
+/// [maxPages]（v1.17.23 审计修复 #27）：非 null 且 `rows × cols` 超限时
+/// **在物化前**直接返回空表——切片网格不物化，防超大包围盒生成海量
+/// Rect 卡主 isolate；null = 不限制。
 List<ui.Rect> sliceContentIntoPages(
   ui.Rect content, {
   required ui.Size pageSize,
   required double scale,
   bool columnMajor = false,
+  int? maxPages,
 }) {
   if (content.width <= 0 ||
       content.height <= 0 ||
@@ -77,6 +92,9 @@ List<ui.Rect> sliceContentIntoPages(
   final pageH = pageSize.height / scale;
   final cols = (content.width / pageW).ceil().clamp(1, 1 << 20);
   final rows = (content.height / pageH).ceil().clamp(1, 1 << 20);
+  if (maxPages != null && rows * cols > maxPages) {
+    return const [];
+  }
   ui.Rect tile(int r, int c) => ui.Rect.fromLTWH(
     content.left + c * pageW,
     content.top + r * pageH,
@@ -86,14 +104,12 @@ List<ui.Rect> sliceContentIntoPages(
   if (columnMajor) {
     return [
       for (var c = 0; c < cols; c++)
-        for (var r = 0; r < rows; r++)
-          tile(r, c),
+        for (var r = 0; r < rows; r++) tile(r, c),
     ];
   }
   return [
     for (var r = 0; r < rows; r++)
-      for (var c = 0; c < cols; c++)
-        tile(r, c),
+      for (var c = 0; c < cols; c++) tile(r, c),
   ];
 }
 
