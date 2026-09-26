@@ -20,7 +20,6 @@ import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
   offset: controller.viewOffset,
 );
 
-
 /// 连接线渲染器（D1：节点关联标注，借鉴 Relatum 连线）。
 ///
 /// 在页面混排对象（文字/图片块）之间画连线，坐标随画布视口变换。
@@ -82,7 +81,6 @@ class ConnectorPainter extends CustomPainter {
       !listEquals(oldDelegate.connectors, connectors) ||
       !mapEquals(oldDelegate.itemPositions, itemPositions);
 }
-
 
 /// 形状元素渲染器（借鉴 Excalidraw 图形工具）。
 ///
@@ -305,7 +303,6 @@ class ShapePainter extends CustomPainter {
       oldDelegate.shape != shape || oldDelegate.viewScale != viewScale;
 }
 
-
 /// 线性元素（直线/箭头）绘制 + 线段命中测试（审计二-5，2026-09-06）。
 ///
 /// 渲染复用 [ShapePainter]；命中改为「点到线段距离 ≤ 线宽/2 + 6px」，
@@ -330,7 +327,6 @@ class LinearShapePainter extends ShapePainter {
         shape.strokeWidth / 2 + ShapeBindingGeometry.linearHitSlack * viewScale;
   }
 }
-
 
 /// 对齐参考线绘制器（借鉴 Excalidraw 对齐可视化）。
 ///
@@ -380,13 +376,21 @@ class SnapGuidePainter extends CustomPainter {
       !listEquals(oldDelegate.guides, guides);
 }
 
-
 /// 框选矩形绘制器（借鉴 Excalidraw 多选可视化）。
 ///
 /// 框选时显示半透明蓝色矩形，直观呈现多选范围。
 class MarqueePainter extends CustomPainter {
   MarqueePainter({required this.rect, required this.controller})
     : _viewport = _snapshotViewportOf(controller);
+
+  // 审计 #31：Paint 配置恒定 → static final 共享，不再每帧分配。
+  static final Paint _fillPaint = Paint()
+    ..color = AppleColor.actionBlue.withValues(alpha: 0.2)
+    ..style = PaintingStyle.fill;
+  static final Paint _strokePaint = Paint()
+    ..color = AppleColor.actionBlue
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.5;
 
   final Rect rect; // 画布坐标
   final DrawingController controller;
@@ -397,12 +401,7 @@ class MarqueePainter extends CustomPainter {
     final topLeft = controller.canvasToView(rect.topLeft);
     final bottomRight = controller.canvasToView(rect.bottomRight);
     final viewRect = Rect.fromPoints(topLeft, bottomRight);
-    canvas.drawRect(
-      viewRect,
-      Paint()
-        ..color = AppleColor.actionBlue.withValues(alpha: 0.2) // 半透明蓝填充
-        ..style = PaintingStyle.fill,
-    );
+    canvas.drawRect(viewRect, _fillPaint); // 半透明蓝填充
     // 虚线框选（问题10）：与其他白板软件一致，用虚线勾勒框选区域，
     // 与正式选区实线区分。用 PathMetrics 手工分段，避免引入新依赖。
     final outline = Path()..addRect(viewRect);
@@ -412,13 +411,7 @@ class MarqueePainter extends CustomPainter {
         dashed.addPath(metric.extractPath(offset, offset + 8), Offset.zero);
       }
     }
-    canvas.drawPath(
-      dashed,
-      Paint()
-        ..color = AppleColor.actionBlue
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5,
-    );
+    canvas.drawPath(dashed, _strokePaint);
   }
 
   @override
@@ -427,7 +420,6 @@ class MarqueePainter extends CustomPainter {
       oldDelegate.controller != controller ||
       oldDelegate.rect != rect;
 }
-
 
 /// 网格绘制器（审计三-4 重做，2026-09-06）。
 ///
@@ -482,7 +474,6 @@ class GridPainter extends CustomPainter {
       oldDelegate._viewport != _viewport ||
       oldDelegate.controller != controller;
 }
-
 
 /// 图表渲染器（借鉴 Excalidraw charts）：柱状图/折线图。
 class ChartPainter extends CustomPainter {
@@ -570,7 +561,6 @@ class ChartPainter extends CustomPainter {
       oldDelegate.chart != chart || oldDelegate.viewScale != viewScale;
 }
 
-
 /// 拖动轨迹绘制器（借鉴 Excalidraw animatedTrail）。
 ///
 /// 拖动元素时绘制渐隐轨迹线：越早的点越透明，形成"尾迹"视觉引导。
@@ -592,13 +582,15 @@ class TrailPainter extends CustomPainter {
       acc += d;
       pts.add(acc);
     }
+    // 审计 #31：Paint 复用（配置固定、循环内仅改 color），段数从
+    // N 次 Paint 分配降为 1 次——拖动轨迹高频重绘路径上的小分配。
+    final paint = Paint()
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
     for (var i = 1; i < pts.length; i++) {
       final opacity = 0.05 + 0.35 * (i / pts.length); // 越新越明显
-      final paint = Paint()
-        ..color = AppleColor.actionBlue.withValues(alpha: opacity)
-        ..strokeWidth = 2.5
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round;
+      paint.color = AppleColor.actionBlue.withValues(alpha: opacity);
       final a = controller.canvasToView(pts[i - 1]);
       final b = controller.canvasToView(pts[i]);
       canvas.drawLine(a, b, paint);

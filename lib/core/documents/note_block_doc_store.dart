@@ -234,7 +234,16 @@ class NoteBlockDocStore implements SessionSecretsHolder {
     if (cached != null) return cached;
     await _ensureDir();
     final result = <NoteBlockDocHeader>[];
-    await for (final entity in (await _ensureDir()).list()) {
+    // 审计 #15：明文头提取批量搬 isolate。原实现每文档在主 isolate 解析
+    // 两次（isDualProtectorEnvelope 内部一次全量 jsonDecode + 取头一次），
+    // N 文档冷启动 2N 次全量解析挤在主线程；现收集字节后单次 Isolate.run
+    // 摊薄 spawn 开销，且 isolate 只回传头字段（body 树不跨 isolate
+    // 序列化，避免搬运反噬）。加密文档解密后同样并入批量（session 级
+    // 依赖留在主 isolate）。
+    final plainJobs = <String, Uint8List>{}; // fileId → 明文 JSON 字节
+    final statJobs = <String, File>{}; // fileId → 源文件（锁定兜底 stat）
+    final dir = await _ensureDir();
+    await for (final entity in dir.list()) {
       if (entity is! File || !entity.path.endsWith('.json')) continue;
       try {
         final name = entity.uri.pathSegments.last;
@@ -249,90 +258,99 @@ class NoteBlockDocStore implements SessionSecretsHolder {
             key,
             aadContext: 'block:$fileId',
           );
-        } else if (isValidId(fileId) && await _currentKey() != null) {
-          // N2：v5 文件密码信封不参与主密钥懒迁移（受密文件直落盘，
-          // 不做主密钥双信封——见 _saveDocumentLocked 注释）。
-          if (!EncryptionService.isDualProtectorEnvelope(utf8.decode(bytes))) {
-            _enqueueRawRewrite(fileId, bytes);
-          }
         }
-        final text = utf8.decode(bytes);
+        plainJobs[fileId] = bytes;
+        statJobs[fileId] = entity;
+      } catch (_) {
+        continue; // 单文件读/解密失败跳过（fail-closed 语义不变）
+      }
+    }
+    // 主密钥快照：迁移条件用（同一次列表调用期间 key 不会中途变化）。
+    final mainKey = await _currentKey();
+    final parsed = plainJobs.isEmpty
+        ? const <String, List<Object?>>{}
+        : await Isolate.run(() => _parsePlainHeaders(plainJobs));
+    for (final entry in parsed.entries) {
+      final fileId = entry.key;
+      final f =
+          entry.value; // [isEnvelope, id, title, tags, createdAt, updatedAt]
+      if (f[0] as bool) {
         // N2：文件密码信封——会话已解锁（DEK 在缓存）解密出真实头信息；
         // 未解锁给锁定占位（标题/标签不泄露，fail-closed）。
-        if (EncryptionService.isDualProtectorEnvelope(text)) {
-          if (!isValidId(fileId)) continue;
-          final dek = _sessionDeks[fileId];
-          if (dek != null) {
-            try {
-              final clear = await _encryption.decryptBlockDocPayloadWithDek(
-                docId: fileId,
-                encryptedJson: text,
-                dek: dek,
-              );
-              final root = jsonDecode(clear) as Map<String, dynamic>;
-              result.add(
-                NoteBlockDocHeader(
-                  id: root['id'] as String? ?? fileId,
-                  title: root['title'] as String? ?? '',
-                  tags: (root['tags'] as List? ?? const [])
-                      .whereType<String>()
-                      .toList(),
-                  createdAt: timeFromIso(
-                    root['createdAt'],
-                    fallback: DateTime.fromMillisecondsSinceEpoch(0),
-                  ),
-                  updatedAt: timeFromIso(
-                    root['updatedAt'],
-                    fallback: DateTime.fromMillisecondsSinceEpoch(0),
-                  ),
-                ),
-              );
-              continue;
-            } catch (_) {
-              continue; // 解密失败（DEK 失效/损坏）按损坏处理
-            }
+        if (!isValidId(fileId)) continue;
+        final dek = _sessionDeks[fileId];
+        if (dek != null) {
+          try {
+            final clear = await _encryption.decryptBlockDocPayloadWithDek(
+              docId: fileId,
+              encryptedJson: utf8.decode(plainJobs[fileId]!),
+              dek: dek,
+            );
+            final root = jsonDecode(clear) as Map<String, dynamic>;
+            result.add(_buildHeader(fallbackId: fileId, map: root));
+            continue;
+          } catch (_) {
+            continue; // 解密失败（DEK 失效/损坏）按损坏处理
           }
-          final stat = entity.statSync();
-          result.add(
-            NoteBlockDocHeader(
-              id: fileId,
-              title: '加密笔记',
-              tags: const [],
-              createdAt: stat.modified,
-              updatedAt: stat.modified,
-              locked: true,
-            ),
-          );
-          continue;
         }
-        final root = jsonDecode(text) as Map<String, dynamic>;
-        final id = root['id'];
-        if (id is! String || !isValidId(id)) continue;
+        final stat = statJobs[fileId]?.statSync();
+        final stamp = stat?.modified ?? DateTime.fromMillisecondsSinceEpoch(0);
         result.add(
           NoteBlockDocHeader(
-            id: id,
-            title: root['title'] as String? ?? '',
-            tags: (root['tags'] as List? ?? const [])
-                .whereType<String>()
-                .toList(),
-            createdAt: timeFromIso(
-              root['createdAt'],
-              fallback: DateTime.fromMillisecondsSinceEpoch(0),
-            ),
-            updatedAt: timeFromIso(
-              root['updatedAt'],
-              fallback: DateTime.fromMillisecondsSinceEpoch(0),
-            ),
+            id: fileId,
+            title: '加密笔记',
+            tags: const [],
+            createdAt: stamp,
+            updatedAt: stamp,
+            locked: true,
           ),
         );
-      } catch (_) {
-        continue; // 损坏文件跳过
+        continue;
       }
+      // N2：v5 文件密码信封不参与主密钥懒迁移（受密文件直落盘，不做
+      // 主密钥双信封——见 _saveDocumentLocked 注释）。非信封明文排队。
+      if (isValidId(fileId) && mainKey != null) {
+        _enqueueRawRewrite(fileId, plainJobs[fileId]!);
+      }
+      final id = f[1];
+      if (id is! String || !isValidId(id)) continue; // 损坏/非法 id 跳过
+      result.add(
+        _buildHeader(
+          fallbackId: fileId,
+          map: {
+            'id': id,
+            'title': f[2],
+            'tags': f[3],
+            'createdAt': f[4],
+            'updatedAt': f[5],
+          },
+        ),
+      );
     }
     result.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     _headerCache = result;
     return result;
   }
+
+  /// 头字段构造收口（isolate 批量结果 / 信封解密两条路径共用）。
+  static NoteBlockDocHeader _buildHeader({
+    required String fallbackId,
+    required Map<String, dynamic> map,
+    bool locked = false,
+  }) => NoteBlockDocHeader(
+    id: map['id'] as String? ?? fallbackId,
+    title: map['title'] as String? ?? '',
+    tags: (map['tags'] as List? ?? const []).whereType<String>().toList(),
+    createdAt: timeFromIso(
+      map['createdAt'],
+      fallback: DateTime.fromMillisecondsSinceEpoch(0),
+    ),
+    updatedAt: timeFromIso(
+      map['updatedAt'],
+      fallback: DateTime.fromMillisecondsSinceEpoch(0),
+    ),
+    locked: locked,
+  );
 
   /// 校验 ID 是否安全（仅允许字母、数字、下划线、短横线）。
   static bool isValidId(String id) => RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(id);
@@ -591,4 +609,37 @@ class NoteBlockDocHeader {
   /// 是否受独立文件密码保护且本会话尚未解锁（N2）——
   /// 列表显示锁定占位（「加密笔记」），真实标题/标签不泄露。
   final bool locked;
+}
+
+/// 未加密明文 JSON 的头字段批量提取（审计 #15——[Isolate.run] 内执行）。
+///
+/// 返回 fileId → `[isEnvelope, id, title, tags, createdAt, updatedAt]`；
+/// 解析失败/损坏 → `[false, null, null, null, null, null]`（调用侧跳过，
+/// 与原逐文件 try-continue 行为一致）。仅回传头字段，body 树不跨 isolate
+/// 序列化。依赖项 isolate 安全性：utf8/jsonDecode（dart:convert）+
+/// [EncryptionService.isDualProtectorEnvelope]（纯静态解析）。
+Map<String, List<Object?>> _parsePlainHeaders(Map<String, Uint8List> jobs) {
+  final out = <String, List<Object?>>{};
+  for (final entry in jobs.entries) {
+    final fileId = entry.key;
+    try {
+      final text = utf8.decode(entry.value);
+      if (EncryptionService.isDualProtectorEnvelope(text)) {
+        out[fileId] = [true, null, null, null, null, null];
+        continue;
+      }
+      final root = jsonDecode(text) as Map<String, dynamic>;
+      out[fileId] = [
+        false,
+        root['id'],
+        root['title'],
+        (root['tags'] as List? ?? const []).whereType<String>().toList(),
+        root['createdAt'],
+        root['updatedAt'],
+      ];
+    } catch (_) {
+      out[fileId] = const [false, null, null, null, null, null];
+    }
+  }
+  return out;
 }
