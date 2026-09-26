@@ -5,7 +5,6 @@ part of 'doc_page.dart';
 
 /// 保存/状态/导出域私有助手（拆分自 doc_page.dart）。
 extension _DocPageSaveExport on _DocPageState {
-
   /// 编辑变为脏：显示"未保存"并交由 SaveScheduler 防抖自动保存。
   void _onEditorDirty() {
     _pendingChanges = true;
@@ -15,13 +14,11 @@ extension _DocPageSaveExport on _DocPageState {
     _saveScheduler.markDirty();
   }
 
-
   /// 手动保存：立即落盘（保存中 → 已保存 由调度器回调驱动）。
   Future<void> _saveNow() async {
     if (mounted) pageSetState(() => _saveStatus = _SaveStatus.saving);
     await _saveScheduler.saveNow();
   }
-
 
   String _statusLabel() {
     final l10n = AppLocalizations.of(context);
@@ -37,7 +34,6 @@ extension _DocPageSaveExport on _DocPageState {
         return l10n?.docSavedAt(time) ?? '已保存 $time';
     }
   }
-
 
   /// 通用导出：转换后经 [writeExportFile] 落盘，Snack 提示路径。
   Future<void> _export({
@@ -73,7 +69,6 @@ extension _DocPageSaveExport on _DocPageState {
     }
   }
 
-
   /// 导出门禁（P1-M1）：md/html/pdf 均需白名单放行，fail-closed。
   bool _exportAllowed(String operation) {
     final result = const PolicyEngine().enforceCheck(operation);
@@ -90,7 +85,6 @@ extension _DocPageSaveExport on _DocPageState {
     return result.isAllowed;
   }
 
-
   /// 导出 Markdown / HTML / PDF（AFFiNE Export 对齐）。
   Future<void> _exportMarkdown() {
     if (!_exportAllowed('note.export.markdown')) return Future.value();
@@ -101,7 +95,6 @@ extension _DocPageSaveExport on _DocPageState {
     );
   }
 
-
   Future<void> _exportHtml() {
     if (!_exportAllowed('note.export.html')) return Future.value();
     return _export(
@@ -111,17 +104,19 @@ extension _DocPageSaveExport on _DocPageState {
     );
   }
 
-
   Future<void> _exportPdf() {
     if (!_exportAllowed('note.export.pdf')) return Future.value();
     return _exportPdfBytes();
   }
 
-
   Future<void> _exportPdfBytes() async {
+    final l10n = AppLocalizations.of(context);
     try {
       final doc = _editorKey.currentState?.currentDoc ?? _doc;
-      final bytes = await noteBlockDocToPdf(doc);
+      final bytes = await noteBlockDocToPdf(
+        doc,
+        emptyDocLabel: l10n?.emptyDocPlaceholder ?? '（空文档）',
+      );
       final path = await writeExportFileBytes(
         baseName: _docName(doc),
         extension: 'pdf',
@@ -147,7 +142,6 @@ extension _DocPageSaveExport on _DocPageState {
       );
     }
   }
-
 
   void _persist(NoteBlockDoc doc) {
     // P0-H1：仅同步快照到页面状态；「已保存」状态与落盘一律由

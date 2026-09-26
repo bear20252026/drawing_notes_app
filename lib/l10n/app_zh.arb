@@ -2647,5 +2647,105 @@
   "pdfFooterLabel": "页脚页码",
   "@pdfFooterLabel": {},
   "pdfFooterDesc": "每页底部标注「标题 · n / m」",
-  "@pdfFooterDesc": {}
+  "@pdfFooterDesc": {},
+  "conflictDialogTitle": "同步冲突（{count} 个文档）",
+  "@conflictDialogTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "conflictDialogBody": "这些文档在本地与云端都被修改过，无法自动决定以哪边为准。",
+  "@conflictDialogBody": {},
+  "conflictLocalMeta": "本地 {time} · {size}B",
+  "@conflictLocalMeta": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "conflictRemoteMeta": "云端 {time} · {size}B",
+  "@conflictRemoteMeta": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "conflictLocalNewer": "（本地较新）",
+  "@conflictLocalNewer": {},
+  "conflictCloudNewer": "（云端较新）",
+  "@conflictCloudNewer": {},
+  "conflictIdentical": "（相同）",
+  "@conflictIdentical": {},
+  "docMenuExportPdf": "导出 PDF",
+  "@docMenuExportPdf": {},
+  "docMenuExportHtml": "导出 HTML",
+  "@docMenuExportHtml": {},
+  "docMenuExportMarkdown": "导出 Markdown",
+  "@docMenuExportMarkdown": {},
+  "notebookExportWholePdf": "导出整本 PDF",
+  "@notebookExportWholePdf": {},
+  "refSourcePageMissing": "引用的源页面不存在（可能已被删除）",
+  "@refSourcePageMissing": {},
+  "chartGeneratedSnack": "已生成图表（{count} 个数据点）",
+  "@chartGeneratedSnack": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "copyElementsFirstSnack": "请先复制元素（Ctrl+C）",
+  "@copyElementsFirstSnack": {},
+  "pasteFailedSnack": "粘贴失败：{error}",
+  "@pasteFailedSnack": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "linkOpenFailedSnack": "无法打开链接：{error}",
+  "@linkOpenFailedSnack": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "linkSchemeUnsupportedSnack": "链接仅支持 http/https/mailto",
+  "@linkSchemeUnsupportedSnack": {},
+  "pdfEmbedPreviewUnavailable": "PDF 内嵌预览不可用",
+  "@pdfEmbedPreviewUnavailable": {},
+  "pdfEmbedPreviewUnavailableLocal": "PDF 内嵌预览不可用（需本地文件）",
+  "@pdfEmbedPreviewUnavailableLocal": {},
+  "openPdfLabel": "打开 PDF",
+  "@openPdfLabel": {},
+  "openTargetSnack": "打开：{target}",
+  "@openTargetSnack": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "openLinkSnack": "打开链接: {link}",
+  "@openLinkSnack": {
+    "placeholders": {
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "emptyDocPlaceholder": "（空文档）",
+  "@emptyDocPlaceholder": {}
 }

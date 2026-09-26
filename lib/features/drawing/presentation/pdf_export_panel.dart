@@ -91,7 +91,7 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
     final scheme = Theme.of(context).colorScheme;
     final wholeBook = widget.hasMultiplePages && _range == PdfRange.allPages;
     return AlertDialog(
-      title: const Text('导出 PDF'),
+      title: Text(AppLocalizations.of(context)?.docMenuExportPdf ?? '导出 PDF'),
       content: SizedBox(
         width: 340,
         child: SingleChildScrollView(
@@ -209,8 +209,7 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
                     contentPadding: EdgeInsets.zero,
                     dense: true,
                     title: Text(
-                      AppLocalizations.of(context)?.pdfFooterLabel ??
-                          '页脚页码',
+                      AppLocalizations.of(context)?.pdfFooterLabel ?? '页脚页码',
                       style: AppleType.controlStyle(scheme.onSurface),
                     ),
                     subtitle: Text(

@@ -97,7 +97,10 @@ extension _NotebookPageManage on _NotebookViewPageState {
           .where((p) => p.id == ref.pageId)
           .firstOrNull;
       if (srcPage == null) {
-        _showSnack('引用的源页面不存在（可能已被删除）');
+        _showSnack(
+          AppLocalizations.of(context)?.refSourcePageMissing ??
+              '引用的源页面不存在（可能已被删除）',
+        );
         return;
       }
       await _openEditor(

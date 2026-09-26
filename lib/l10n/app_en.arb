@@ -2738,5 +2738,105 @@
   "pdfFooterLabel": "Footer page numbers",
   "@pdfFooterLabel": {},
   "pdfFooterDesc": "Print \"title · n / m\" at the bottom of each page",
-  "@pdfFooterDesc": {}
+  "@pdfFooterDesc": {},
+  "conflictDialogTitle": "Sync conflict ({count} documents)",
+  "@conflictDialogTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "conflictDialogBody": "These documents were modified both locally and in the cloud. The winning copy cannot be chosen automatically.",
+  "@conflictDialogBody": {},
+  "conflictLocalMeta": "Local {time} · {size}B",
+  "@conflictLocalMeta": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "conflictRemoteMeta": "Cloud {time} · {size}B",
+  "@conflictRemoteMeta": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "conflictLocalNewer": " (local is newer)",
+  "@conflictLocalNewer": {},
+  "conflictCloudNewer": " (cloud is newer)",
+  "@conflictCloudNewer": {},
+  "conflictIdentical": " (identical)",
+  "@conflictIdentical": {},
+  "docMenuExportPdf": "Export PDF",
+  "@docMenuExportPdf": {},
+  "docMenuExportHtml": "Export HTML",
+  "@docMenuExportHtml": {},
+  "docMenuExportMarkdown": "Export Markdown",
+  "@docMenuExportMarkdown": {},
+  "notebookExportWholePdf": "Export whole notebook as PDF",
+  "@notebookExportWholePdf": {},
+  "refSourcePageMissing": "The referenced source page no longer exists (it may have been deleted)",
+  "@refSourcePageMissing": {},
+  "chartGeneratedSnack": "Chart created ({count} data points)",
+  "@chartGeneratedSnack": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "copyElementsFirstSnack": "Copy elements first (Ctrl+C)",
+  "@copyElementsFirstSnack": {},
+  "pasteFailedSnack": "Paste failed: {error}",
+  "@pasteFailedSnack": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "linkOpenFailedSnack": "Could not open link: {error}",
+  "@linkOpenFailedSnack": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "linkSchemeUnsupportedSnack": "Only http/https/mailto links are supported",
+  "@linkSchemeUnsupportedSnack": {},
+  "pdfEmbedPreviewUnavailable": "Embedded PDF preview unavailable",
+  "@pdfEmbedPreviewUnavailable": {},
+  "pdfEmbedPreviewUnavailableLocal": "Embedded PDF preview unavailable (local file required)",
+  "@pdfEmbedPreviewUnavailableLocal": {},
+  "openPdfLabel": "Open PDF",
+  "@openPdfLabel": {},
+  "openTargetSnack": "Open: {target}",
+  "@openTargetSnack": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "openLinkSnack": "Open link: {link}",
+  "@openLinkSnack": {
+    "placeholders": {
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "emptyDocPlaceholder": "(empty document)",
+  "@emptyDocPlaceholder": {}
 }

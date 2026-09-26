@@ -3025,4 +3025,89 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pdfFooterDesc => '每页底部标注「标题 · n / m」';
+
+  @override
+  String conflictDialogTitle(int count) {
+    return '同步冲突（$count 个文档）';
+  }
+
+  @override
+  String get conflictDialogBody => '这些文档在本地与云端都被修改过，无法自动决定以哪边为准。';
+
+  @override
+  String conflictLocalMeta(String time, String size) {
+    return '本地 $time · ${size}B';
+  }
+
+  @override
+  String conflictRemoteMeta(String time, String size) {
+    return '云端 $time · ${size}B';
+  }
+
+  @override
+  String get conflictLocalNewer => '（本地较新）';
+
+  @override
+  String get conflictCloudNewer => '（云端较新）';
+
+  @override
+  String get conflictIdentical => '（相同）';
+
+  @override
+  String get docMenuExportPdf => '导出 PDF';
+
+  @override
+  String get docMenuExportHtml => '导出 HTML';
+
+  @override
+  String get docMenuExportMarkdown => '导出 Markdown';
+
+  @override
+  String get notebookExportWholePdf => '导出整本 PDF';
+
+  @override
+  String get refSourcePageMissing => '引用的源页面不存在（可能已被删除）';
+
+  @override
+  String chartGeneratedSnack(int count) {
+    return '已生成图表（$count 个数据点）';
+  }
+
+  @override
+  String get copyElementsFirstSnack => '请先复制元素（Ctrl+C）';
+
+  @override
+  String pasteFailedSnack(String error) {
+    return '粘贴失败：$error';
+  }
+
+  @override
+  String linkOpenFailedSnack(String error) {
+    return '无法打开链接：$error';
+  }
+
+  @override
+  String get linkSchemeUnsupportedSnack => '链接仅支持 http/https/mailto';
+
+  @override
+  String get pdfEmbedPreviewUnavailable => 'PDF 内嵌预览不可用';
+
+  @override
+  String get pdfEmbedPreviewUnavailableLocal => 'PDF 内嵌预览不可用（需本地文件）';
+
+  @override
+  String get openPdfLabel => '打开 PDF';
+
+  @override
+  String openTargetSnack(String target) {
+    return '打开：$target';
+  }
+
+  @override
+  String openLinkSnack(String link) {
+    return '打开链接: $link';
+  }
+
+  @override
+  String get emptyDocPlaceholder => '（空文档）';
 }

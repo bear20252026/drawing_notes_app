@@ -449,7 +449,10 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(Icons.picture_as_pdf_rounded),
-                  title: const Text('导出整本 PDF'),
+                  title: Text(
+                    AppLocalizations.of(context)?.notebookExportWholePdf ??
+                        '导出整本 PDF',
+                  ),
                 ),
               ),
               PopupMenuItem(

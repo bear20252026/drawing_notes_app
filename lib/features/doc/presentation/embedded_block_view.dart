@@ -242,7 +242,10 @@ class EmbeddedBlockView extends StatelessWidget {
           // 实际项目中应使用 url_launcher；此处仅展示链接样式
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('打开链接: $href'),
+              content: Text(
+                AppLocalizations.of(context)?.openLinkSnack(href) ??
+                    '打开链接: $href',
+              ),
               duration: const Duration(seconds: 2),
             ),
           );

@@ -73,7 +73,10 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  DomainDisplayLabels.docTitle(AppLocalizations.of(context), title),
+                  DomainDisplayLabels.docTitle(
+                    AppLocalizations.of(context),
+                    title,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppleType.controlStyle(scheme.onSurface),
@@ -192,7 +195,9 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
                     color: scheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 10),
-                  const Text('导出 PDF'),
+                  Text(
+                    AppLocalizations.of(context)?.docMenuExportPdf ?? '导出 PDF',
+                  ),
                 ],
               ),
             ),
@@ -206,7 +211,10 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
                     color: scheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 10),
-                  const Text('导出 HTML'),
+                  Text(
+                    AppLocalizations.of(context)?.docMenuExportHtml ??
+                        '导出 HTML',
+                  ),
                 ],
               ),
             ),
@@ -220,7 +228,10 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
                     color: scheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 10),
-                  const Text('导出 Markdown'),
+                  Text(
+                    AppLocalizations.of(context)?.docMenuExportMarkdown ??
+                        '导出 Markdown',
+                  ),
                 ],
               ),
             ),
@@ -370,7 +381,10 @@ class _BacklinksPanelState extends State<_BacklinksPanel> {
                     Expanded(
                       child: Text(
                         doc.title.isEmpty
-                            ? DomainDisplayLabels.docTitle(AppLocalizations.of(context), null)
+                            ? DomainDisplayLabels.docTitle(
+                                AppLocalizations.of(context),
+                                null,
+                              )
                             : doc.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

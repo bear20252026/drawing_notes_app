@@ -136,7 +136,9 @@ class _PdfAttachmentPreviewState extends State<PdfAttachmentPreview> {
             child: OutlinedButton.icon(
               onPressed: widget.onOpen,
               icon: const Icon(Icons.open_in_new, size: 16),
-              label: const Text('打开 PDF'),
+              label: Text(
+                AppLocalizations.of(context)?.openPdfLabel ?? '打开 PDF',
+              ),
             ),
           ),
         ],

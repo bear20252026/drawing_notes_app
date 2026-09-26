@@ -5761,6 +5761,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Print \"title · n / m\" at the bottom of each page'**
   String get pdfFooterDesc;
+
+  /// No description provided for @conflictDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync conflict ({count} documents)'**
+  String conflictDialogTitle(int count);
+
+  /// No description provided for @conflictDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'These documents were modified both locally and in the cloud. The winning copy cannot be chosen automatically.'**
+  String get conflictDialogBody;
+
+  /// No description provided for @conflictLocalMeta.
+  ///
+  /// In en, this message translates to:
+  /// **'Local {time} · {size}B'**
+  String conflictLocalMeta(String time, String size);
+
+  /// No description provided for @conflictRemoteMeta.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud {time} · {size}B'**
+  String conflictRemoteMeta(String time, String size);
+
+  /// No description provided for @conflictLocalNewer.
+  ///
+  /// In en, this message translates to:
+  /// **' (local is newer)'**
+  String get conflictLocalNewer;
+
+  /// No description provided for @conflictCloudNewer.
+  ///
+  /// In en, this message translates to:
+  /// **' (cloud is newer)'**
+  String get conflictCloudNewer;
+
+  /// No description provided for @conflictIdentical.
+  ///
+  /// In en, this message translates to:
+  /// **' (identical)'**
+  String get conflictIdentical;
+
+  /// No description provided for @docMenuExportPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Export PDF'**
+  String get docMenuExportPdf;
+
+  /// No description provided for @docMenuExportHtml.
+  ///
+  /// In en, this message translates to:
+  /// **'Export HTML'**
+  String get docMenuExportHtml;
+
+  /// No description provided for @docMenuExportMarkdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Markdown'**
+  String get docMenuExportMarkdown;
+
+  /// No description provided for @notebookExportWholePdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Export whole notebook as PDF'**
+  String get notebookExportWholePdf;
+
+  /// No description provided for @refSourcePageMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'The referenced source page no longer exists (it may have been deleted)'**
+  String get refSourcePageMissing;
+
+  /// No description provided for @chartGeneratedSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'Chart created ({count} data points)'**
+  String chartGeneratedSnack(int count);
+
+  /// No description provided for @copyElementsFirstSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy elements first (Ctrl+C)'**
+  String get copyElementsFirstSnack;
+
+  /// No description provided for @pasteFailedSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste failed: {error}'**
+  String pasteFailedSnack(String error);
+
+  /// No description provided for @linkOpenFailedSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open link: {error}'**
+  String linkOpenFailedSnack(String error);
+
+  /// No description provided for @linkSchemeUnsupportedSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'Only http/https/mailto links are supported'**
+  String get linkSchemeUnsupportedSnack;
+
+  /// No description provided for @pdfEmbedPreviewUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Embedded PDF preview unavailable'**
+  String get pdfEmbedPreviewUnavailable;
+
+  /// No description provided for @pdfEmbedPreviewUnavailableLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Embedded PDF preview unavailable (local file required)'**
+  String get pdfEmbedPreviewUnavailableLocal;
+
+  /// No description provided for @openPdfLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Open PDF'**
+  String get openPdfLabel;
+
+  /// No description provided for @openTargetSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'Open: {target}'**
+  String openTargetSnack(String target);
+
+  /// No description provided for @openLinkSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'Open link: {link}'**
+  String openLinkSnack(String link);
+
+  /// No description provided for @emptyDocPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'(empty document)'**
+  String get emptyDocPlaceholder;
 }
 
 class _AppLocalizationsDelegate

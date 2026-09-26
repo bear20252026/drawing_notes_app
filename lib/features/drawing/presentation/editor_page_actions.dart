@@ -193,7 +193,10 @@ extension _EditorPageActions on _EditorPageState {
       _selectedItemId = page.charts.last.id;
     });
     _notifyChanged();
-    _showSnack('已生成图表（${data.length} 个数据点）');
+    _showSnack(
+      _l10nSafe?.chartGeneratedSnack(data.length) ??
+          '已生成图表（${data.length} 个数据点）',
+    );
   }
 
   /// 幻灯片演示（对齐 Excalidraw presentation）：全屏逐元素展示。
@@ -389,7 +392,7 @@ extension _EditorPageActions on _EditorPageState {
   void _pasteCopiedElement() {
     final page = widget.session;
     if (page == null || _copiedElements.isEmpty) {
-      _showSnack('请先复制元素（Ctrl+C）');
+      _showSnack(_l10nSafe?.copyElementsFirstSnack ?? '请先复制元素（Ctrl+C）');
       return;
     }
     _applyState(() {
@@ -585,7 +588,7 @@ extension _EditorPageActions on _EditorPageState {
       // 图片粘贴需平台通道（后续增强），此处明确提示。
       _showSnack(_l10nSafe?.actClipboardNoText ?? '剪贴板没有可粘贴的文本');
     } catch (e) {
-      _showSnack('粘贴失败：$e');
+      _showSnack(_l10nSafe?.pasteFailedSnack('$e') ?? '粘贴失败：$e');
     }
   }
 

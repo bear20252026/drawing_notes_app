@@ -3144,4 +3144,93 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get pdfFooterDesc =>
       'Print \"title · n / m\" at the bottom of each page';
+
+  @override
+  String conflictDialogTitle(int count) {
+    return 'Sync conflict ($count documents)';
+  }
+
+  @override
+  String get conflictDialogBody =>
+      'These documents were modified both locally and in the cloud. The winning copy cannot be chosen automatically.';
+
+  @override
+  String conflictLocalMeta(String time, String size) {
+    return 'Local $time · ${size}B';
+  }
+
+  @override
+  String conflictRemoteMeta(String time, String size) {
+    return 'Cloud $time · ${size}B';
+  }
+
+  @override
+  String get conflictLocalNewer => ' (local is newer)';
+
+  @override
+  String get conflictCloudNewer => ' (cloud is newer)';
+
+  @override
+  String get conflictIdentical => ' (identical)';
+
+  @override
+  String get docMenuExportPdf => 'Export PDF';
+
+  @override
+  String get docMenuExportHtml => 'Export HTML';
+
+  @override
+  String get docMenuExportMarkdown => 'Export Markdown';
+
+  @override
+  String get notebookExportWholePdf => 'Export whole notebook as PDF';
+
+  @override
+  String get refSourcePageMissing =>
+      'The referenced source page no longer exists (it may have been deleted)';
+
+  @override
+  String chartGeneratedSnack(int count) {
+    return 'Chart created ($count data points)';
+  }
+
+  @override
+  String get copyElementsFirstSnack => 'Copy elements first (Ctrl+C)';
+
+  @override
+  String pasteFailedSnack(String error) {
+    return 'Paste failed: $error';
+  }
+
+  @override
+  String linkOpenFailedSnack(String error) {
+    return 'Could not open link: $error';
+  }
+
+  @override
+  String get linkSchemeUnsupportedSnack =>
+      'Only http/https/mailto links are supported';
+
+  @override
+  String get pdfEmbedPreviewUnavailable => 'Embedded PDF preview unavailable';
+
+  @override
+  String get pdfEmbedPreviewUnavailableLocal =>
+      'Embedded PDF preview unavailable (local file required)';
+
+  @override
+  String get openPdfLabel => 'Open PDF';
+
+  @override
+  String openTargetSnack(String target) {
+    return 'Open: $target';
+  }
+
+  @override
+  String openLinkSnack(String link) {
+    return 'Open link: $link';
+  }
+
+  @override
+  String get emptyDocPlaceholder => '(empty document)';
 }

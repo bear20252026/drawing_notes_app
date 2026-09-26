@@ -560,7 +560,7 @@ extension _EditorPageEditing on _EditorPageState {
       }
       _showSnack(_l10nSafe?.edLinkOpened ?? '已打开链接');
     } catch (e) {
-      _showSnack('无法打开链接：$e');
+      _showSnack(_l10nSafe?.linkOpenFailedSnack('$e') ?? '无法打开链接：$e');
     }
   }
 
@@ -627,7 +627,9 @@ extension _EditorPageEditing on _EditorPageState {
     // 审计修复（2026-08-15）：保存前 scheme 白名单校验，拒绝危险链接。
     final link = trimmed.isEmpty ? null : sanitizeHref(trimmed);
     if (trimmed.isNotEmpty && link == null) {
-      _showSnack('链接仅支持 http/https/mailto');
+      _showSnack(
+        _l10nSafe?.linkSchemeUnsupportedSnack ?? '链接仅支持 http/https/mailto',
+      );
       return;
     }
     _applyState(() {

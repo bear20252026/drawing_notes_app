@@ -39,13 +39,19 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return AlertDialog(
-      title: Text('同步冲突（${widget.conflicts.length} 个文档）'),
+      title: Text(
+        AppLocalizations.of(
+              context,
+            )?.conflictDialogTitle(widget.conflicts.length) ??
+            '同步冲突（${widget.conflicts.length} 个文档）',
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '这些文档在本地与云端都被修改过，无法自动决定以哪边为准。',
+              AppLocalizations.of(context)?.conflictDialogBody ??
+                  '这些文档在本地与云端都被修改过，无法自动决定以哪边为准。',
               style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: 12),
@@ -68,6 +74,7 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
   }
 
   Widget _buildConflict(ThemeData theme, SyncConflict c) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Column(
@@ -82,12 +89,14 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
           Text(
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            '本地 ${_fmt(c.localUpdatedAt)} · ${c.localSize}B   |   云端 ${_fmt(c.remoteUpdatedAt)} · ${c.remoteSize}B'
+            '${l10n?.conflictLocalMeta(_fmt(c.localUpdatedAt), '${c.localSize}') ?? '本地 ${_fmt(c.localUpdatedAt)} · ${c.localSize}B'}'
+            '   |   '
+            '${l10n?.conflictRemoteMeta(_fmt(c.remoteUpdatedAt), '${c.remoteSize}') ?? '云端 ${_fmt(c.remoteUpdatedAt)} · ${c.remoteSize}B'}'
             '${c.localNewer
-                ? '（本地较新）'
+                ? l10n?.conflictLocalNewer ?? '（本地较新）'
                 : c.remoteNewer
-                ? '（云端较新）'
-                : '（相同）'}',
+                ? l10n?.conflictCloudNewer ?? '（云端较新）'
+                : l10n?.conflictIdentical ?? '（相同）'}',
             style: theme.textTheme.bodySmall,
           ),
           RadioGroup<ConflictResolution>(

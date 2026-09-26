@@ -51,7 +51,7 @@ extension DocEditorToolbar on DocEditorState {
                           Icon(option.icon, size: 20),
                           const SizedBox(height: AppleSpacing.xxs),
                           Text(
-                            option.tooltip,
+                            _blockTypeTooltip(option.type) ?? option.tooltip,
                             style: AppleType.captionStyle(
                               Theme.of(context).colorScheme.onSurfaceVariant,
                             ),

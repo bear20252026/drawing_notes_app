@@ -217,14 +217,15 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
           Icon(Icons.picture_as_pdf, size: 32, color: scheme.outline),
           const SizedBox(height: 6),
           Text(
-            'PDF 内嵌预览不可用（需本地文件）',
+            AppLocalizations.of(context)?.pdfEmbedPreviewUnavailableLocal ??
+                'PDF 内嵌预览不可用（需本地文件）',
             style: AppleType.captionStyle(scheme.onSurface),
           ),
           const SizedBox(height: 6),
           OutlinedButton.icon(
             onPressed: () => _open(a),
             icon: const Icon(Icons.open_in_new, size: 16),
-            label: const Text('打开 PDF'),
+            label: Text(AppLocalizations.of(context)?.openPdfLabel ?? '打开 PDF'),
           ),
         ],
       ),
@@ -323,7 +324,14 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
   void _open(NoteAttachment a) {
     // v1：给出外部打开提示；后续接入 url_launcher / 本地文件打开。
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('打开：${a.url.isEmpty ? a.filePath : a.url}')),
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(
+                context,
+              )?.openTargetSnack(a.url.isEmpty ? a.filePath : a.url) ??
+              '打开：${a.url.isEmpty ? a.filePath : a.url}',
+        ),
+      ),
     );
   }
 }

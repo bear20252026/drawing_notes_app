@@ -22,7 +22,13 @@ import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import '../../../core/theme/apple_design.dart';
 
 /// 将块文档渲染为 PDF 字节流（A4，中文内嵌字体）。
-Future<Uint8List> noteBlockDocToPdf(NoteBlockDoc doc) async {
+///
+/// [emptyDocLabel] 为空文档占位文案：PDF 排版域无 BuildContext，
+/// 由调用方传入本地化文案（默认中文兜底，与 l10n 兜底策略一致）。
+Future<Uint8List> noteBlockDocToPdf(
+  NoteBlockDoc doc, {
+  String emptyDocLabel = '（空文档）',
+}) async {
   final fontData = await rootBundle.load(
     'assets/fonts/DroidSansFallbackFull.ttf',
   );
@@ -49,7 +55,7 @@ Future<Uint8List> noteBlockDocToPdf(NoteBlockDoc doc) async {
         ),
         pw.SizedBox(height: 12),
         if (doc.body.isEmpty)
-          pw.Text('（空文档）')
+          pw.Text(emptyDocLabel)
         else
           ..._buildBlocks(doc.body, 0),
       ],
