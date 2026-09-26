@@ -21,6 +21,7 @@ import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_entity.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
+import '../../../helpers/fake_block_doc_accessor.dart';
 
 /// 无 IO 画布存储（FakeAsync 安全；画布 Tab 的无限画布区与本测试无关）。
 class _NoDocsStorage extends StorageService {
@@ -85,6 +86,7 @@ Widget _homePage({
 }) {
   return _wrap(
     HomePage(
+      blockDocAccessor: const FakeBlockDocAccessor(),
       docStorage: _NoDocsStorage(),
       notebookStorage: NotebookStorage(
         directoryProvider: _NoDocsStorage._tempDir,

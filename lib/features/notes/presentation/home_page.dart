@@ -16,7 +16,7 @@ import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
-import 'package:drawing_notes_app/features/doc/infrastructure/block_doc_search_accessor_impl.dart';
+import 'package:drawing_notes_app/core/notes_accessor.dart';
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
@@ -42,19 +42,20 @@ import 'package:drawing_notes_app/shared/utils/image_decode_cap.dart';
 import 'package:drawing_notes_app/shared/utils/time_format.dart';
 import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_templates.dart';
-import 'package:drawing_notes_app/features/doc/doc_controller.dart';
-import 'package:drawing_notes_app/features/doc/doc_page.dart';
+import 'package:drawing_notes_app/features/doc/application/doc_controller.dart';
+import 'package:drawing_notes_app/features/doc/presentation/doc_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/search_page.dart';
 // 首页刷新修复②（2026-09-01）：RouteAware 可见性兜底——从编辑器/笔记本页
 // 返回时自动刷新，覆盖所有遗漏的写路径（IndexedStack 保活下 initState 不再执行）。
-import 'package:drawing_notes_app/features/security/sync_fix.dart'
-    show SyncFix, SyncFixRouteAware;
+// 审计 2026-09-26 #43：原 features/security/sync_fix.dart 归位 core/navigation。
+import 'package:drawing_notes_app/core/navigation/app_refresh.dart'
+    show AppRefresh, AppRefreshRouteAware;
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
 // N4 批 2：忘记密码重置流 + 设密时插盘绑定重置密码盘。
-import 'package:drawing_notes_app/features/security/file_password_reset_flow.dart';
+import 'package:drawing_notes_app/features/security/presentation/file_password_reset_flow.dart';
 // N2：笔记（块文档）文件密码——解锁拦截与忘记密码重置流。
-import 'package:drawing_notes_app/features/security/block_doc_password_reset_flow.dart';
+import 'package:drawing_notes_app/features/security/presentation/block_doc_password_reset_flow.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 
 part 'home_page_widgets.dart';
@@ -83,6 +84,7 @@ const double _kTabSlotHeight = 56;
 /// 数据来源：本地文件存储（[StorageService] / [NotebookStorage]），无网络请求。
 class HomePage extends StatefulWidget {
   const HomePage({
+    required this.blockDocAccessor,
     this.refreshSignal,
     super.key,
     this.notebookStorage,
@@ -100,6 +102,11 @@ class HomePage extends StatefulWidget {
 
   /// 编辑器页面由应用组合根注入，notes 模块不直接依赖 drawing 的 UI。
   final EditorPageBuilder? editorPageBuilder;
+
+  /// 块文档全文搜索访问器（审计 2026-09-26 #17）：由应用组合根注入
+  /// doc 侧实现——本页只依赖 core 契约，不再直接实例化另一 feature
+  /// 的 infrastructure 类型。
+  final IBlockDocSearchAccessor blockDocAccessor;
 
   /// 数据版本通知（shell 在文档新增/修改后自增）：触发首页刷新。
   final ValueListenable<int>? refreshSignal;
@@ -128,7 +135,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with SyncFixRouteAware {
+class _HomePageState extends State<HomePage> with AppRefreshRouteAware {
   late final NotebookStorage _nbStorage;
   late final StorageService _docStorage;
   late final NoteBlockDocStore _blockDocStore;
@@ -163,7 +170,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
   void didChangeDependencies() {
     super.didChangeDependencies();
     // 首页刷新修复②：订阅路由可见性——从笔记本页/编辑器 didPopNext 时刷新。
-    SyncFix.routeObserver.subscribe(this, ModalRoute.of(context)! as PageRoute);
+    AppRefresh.routeObserver.subscribe(this, ModalRoute.of(context)! as PageRoute);
   }
 
   @override
@@ -173,7 +180,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
 
   @override
   void dispose() {
-    SyncFix.routeObserver.unsubscribe(this);
+    AppRefresh.routeObserver.unsubscribe(this);
     widget.refreshSignal?.removeListener(_onDataVersionChanged);
     super.dispose();
   }
@@ -656,9 +663,7 @@ class _HomePageState extends State<HomePage> with SyncFixRouteAware {
                     searchService: SearchService(
                       notebookAccessor: _nbStorage,
                       docStorage: _docStorage,
-                      blockDocAccessor: BlockDocSearchAccessorImpl(
-                        store: _blockDocStore,
-                      ),
+                      blockDocAccessor: widget.blockDocAccessor,
                     ),
                     notebookStorage: _nbStorage,
                     documentStorage: _docStorage,

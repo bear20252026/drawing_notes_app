@@ -9,7 +9,7 @@ import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:drawing_notes_app/features/doc/domain/clone_ref.dart';
 import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
-import 'package:drawing_notes_app/features/doc/doc_editor.dart';
+import 'package:drawing_notes_app/features/doc/presentation/doc_editor.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_page.dart';
 
 /// P0-7 判定的镜像实现（notebook_view_page 私有 getter 的语义契约）：

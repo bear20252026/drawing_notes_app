@@ -81,6 +81,10 @@ class GlassDialog {
   /// barrier 点击，系统返回键走的是路由 pop——进度类模态传 `false`
   /// 拦截返回键，防止 finally 的 `navigator.pop()` 误弹栈顶的编辑器路由。
   /// 默认 true，既有调用点零行为变化。
+  ///
+  /// Esc（审计 2026-09-26 #12）：统一挂 `AppleDialog.escClosable`——
+  /// Esc 经 `maybePop` 走同一条路由 pop 通道，`canPop: false` 时天然
+  /// 免疫（进度类模态不可被返回键/Esc 关闭）。
   static Future<T?> show<T>({
     required BuildContext context,
     required WidgetBuilder builder,
@@ -90,8 +94,9 @@ class GlassDialog {
     return showDialog<T>(
       context: context,
       barrierDismissible: barrierDismissible,
-      builder: (dialogContext) =>
-          PopScope(canPop: canPop, child: _glassShell(builder(dialogContext))),
+      builder: (dialogContext) => AppleDialog.escClosable(
+        PopScope(canPop: canPop, child: _glassShell(builder(dialogContext))),
+      ),
     );
   }
 

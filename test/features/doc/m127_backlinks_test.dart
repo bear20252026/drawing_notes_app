@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_link_index.dart';
-import 'package:drawing_notes_app/features/doc/doc_editor.dart';
+import 'package:drawing_notes_app/features/doc/presentation/doc_editor.dart';
 import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 

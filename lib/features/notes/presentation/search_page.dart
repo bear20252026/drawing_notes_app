@@ -11,12 +11,12 @@ import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
-import 'package:drawing_notes_app/features/doc/doc_controller.dart';
-import 'package:drawing_notes_app/features/doc/doc_page.dart';
+import 'package:drawing_notes_app/features/doc/application/doc_controller.dart';
+import 'package:drawing_notes_app/features/doc/presentation/doc_page.dart';
 // N4 批 3：加密分页画布解锁拦截（与 app_shell 同口径）。
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
-import 'package:drawing_notes_app/features/security/notebook_password_reset_flow.dart';
-import 'package:drawing_notes_app/features/security/block_doc_password_reset_flow.dart';
+import 'package:drawing_notes_app/features/security/presentation/notebook_password_reset_flow.dart';
+import 'package:drawing_notes_app/features/security/presentation/block_doc_password_reset_flow.dart';
 import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;

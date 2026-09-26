@@ -178,7 +178,7 @@ void main() {
 
     test('笔记编辑器正文块走梯子，且不再用 FontWeight.bold（=700）', () {
       final src = _withoutComments(
-        File('lib/features/doc/doc_editor_blocks.dart').readAsStringSync(),
+        File('lib/features/doc/presentation/doc_editor_blocks.dart').readAsStringSync(),
       );
       // 标题此前是 FontWeight.bold（700），:369 要求 600。
       // 注释里会提到这个历史值，故必须剥掉注释再扫。

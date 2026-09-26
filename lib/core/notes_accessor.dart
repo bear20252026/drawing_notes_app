@@ -81,8 +81,9 @@ class BlockDocSearchHit {
 /// 块文档搜索访问器（core 中立契约）。
 ///
 /// shared 的 SearchService 依赖该接口进行块文档全文检索，避免 shared→notes
-/// 特性层耦合；notes 侧用 `NoteBlockDocStore` + `NoteBlockDocSearchIndex`
-/// 实现（见 `features/notes/infrastructure/block_doc_search_accessor_impl.dart`）。
+/// 特性层耦合；doc 侧用 `NoteBlockDocStore` + `NoteBlockDocSearchIndex`
+/// 实现（见 `features/doc/infrastructure/block_doc_search_accessor_impl.dart`，
+/// 由应用组合根 `app_shell` 注入给消费者——审计 2026-09-26 #17）。
 abstract interface class IBlockDocSearchAccessor {
   /// 按 [query] 检索所有块文档，返回文档级命中（可能命中多块，折一为代表）。
   Future<List<BlockDocSearchHit>> search(String query);

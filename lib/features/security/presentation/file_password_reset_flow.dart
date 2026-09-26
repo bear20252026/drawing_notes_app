@@ -11,7 +11,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
-import 'package:drawing_notes_app/features/security/password_reset_common.dart';
+import 'package:drawing_notes_app/features/security/presentation/password_reset_common.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 abstract final class FilePasswordResetFlow {

@@ -7,6 +7,7 @@
 // 平台按钮顺序（C1 裁决：Windows 主按钮在左，Android 在右）/
 // 未注入 surface 时 AppleDialog.confirm 保持裸 AlertDialog（回归保护）。
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
@@ -503,6 +504,87 @@ void main() {
       await tester.binding.handlePopRoute();
       await settle(tester);
       expect(find.text('POPTHROUGH_TITLE'), findsNothing);
+    });
+
+    // 审计 2026-09-26 #12：showDialog 不处理 Esc，GlassDialog.show 统一
+    // 挂 AppleDialog.escClosable——Esc 经 maybePop 走与返回键同一条 pop
+    // 通道，canPop=false 的进度类模态天然免疫。
+    testWidgets('默认 canPop=true 时 Esc 关闭弹窗（返回 null）', (tester) async {
+      late final Future<bool?> result;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => Center(
+                child: FilledButton(
+                  onPressed: () {
+                    result = GlassDialog.show<bool>(
+                      context: context,
+                      builder: (dialogContext) => AlertDialog(
+                        title: const Text('ESC_TITLE'),
+                        content: const Text('c'),
+                        actions: <Widget>[
+                          TextButton(
+                            autofocus: true,
+                            onPressed: () => Navigator.of(dialogContext).pop(),
+                            child: const Text('关闭'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: const Text('OPEN'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('OPEN'));
+      await settle(tester);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await settle(tester);
+      expect(find.text('ESC_TITLE'), findsNothing);
+      expect(await result, isNull);
+    });
+
+    testWidgets('canPop=false 时 Esc 不关闭（进度类模态免疫 Esc）', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => Center(
+                child: FilledButton(
+                  onPressed: () {
+                    GlassDialog.show<bool>(
+                      context: context,
+                      canPop: false,
+                      builder: (dialogContext) => AlertDialog(
+                        title: const Text('ESCGUARD_TITLE'),
+                        content: const Text('c'),
+                        actions: <Widget>[
+                          TextButton(
+                            autofocus: true,
+                            onPressed: () => Navigator.of(dialogContext).pop(),
+                            child: const Text('关闭'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: const Text('OPEN'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('OPEN'));
+      await settle(tester);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await settle(tester);
+      // 弹窗仍在。
+      expect(find.text('ESCGUARD_TITLE'), findsOneWidget);
     });
   });
 }

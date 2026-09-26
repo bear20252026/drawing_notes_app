@@ -1,54 +1,55 @@
 // ============================================================================
-// notebook_password_reset_flow.dart —— 分页画布密码「忘记密码」重置流
-// （N4 批 3）
+// block_doc_password_reset_flow.dart —— 笔记（块文档）文件密码「忘记密码」
+// 重置流（N2）
 // ============================================================================
 //
-// 前提：分页画布为 v5 双保护器载荷且已绑定重置密码盘（USB 槽位）。
+// 前提：该笔记文件为 v5 双保护器信封且已绑定重置密码盘（USB 槽位）。
 // 流程骨架（公共步骤见 password_reset_common.dart）：说明确认 → 插盘
-// 读钥匙 → 新密码两遍（≠开屏密码）→ resetNotebookPasswordWithUsb
-// （LUKS 同款：USB 钥匙解出 DEK → 新盐重绕密码槽，payload 密文不动）。
-// 成功后会话已缓存新密码——调用方可直接继续解锁打开。
+// 读钥匙 → 新密码两遍（≠开屏密码）→ resetBlockDocPasswordWithUsb
+// （LUKS 同款：USB 钥匙解出 DEK → 新盐重绕密码槽，载荷密文不动）。
+// 成功后会话已缓存 DEK——调用方（解锁弹窗关闭后）可直接继续打开文档。
 
 import 'package:flutter/material.dart';
 
-import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
-import 'package:drawing_notes_app/features/security/password_reset_common.dart';
+import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
+import 'package:drawing_notes_app/features/security/presentation/password_reset_common.dart';
 
-abstract final class NotebookPasswordResetFlow {
+abstract final class BlockDocPasswordResetFlow {
   /// 运行完整重置流；返回 true = 重置成功（会话已缓存新密码）。
   static Future<bool> show(
     BuildContext context, {
-    required NotebookStorage storage,
-    required String notebookId,
-    String notebookTitle = '',
+    required NoteBlockDocStore store,
+    required String docId,
+    String docTitle = '',
   }) async {
     final l10n0 = AppLocalizations.of(context);
-    final name = notebookTitle.isEmpty
-        ? l10n0?.resetThisNotebook ?? '该分页画布'
-        : l10n0?.resetDocNameQuote(notebookTitle) ?? '「$notebookTitle」';
+    // 注：与「加密笔记」比较是对旧默认标题的兜底判断（存储默认值本地化
+    // 属存储/展示分离专项，暂保持 zh 常量）。
+    final name = docTitle.isEmpty || docTitle == '加密笔记'
+        ? l10n0?.resetThisNote ?? '该笔记'
+        : l10n0?.resetDocNameQuote(docTitle) ?? '「$docTitle」';
 
     // 1. 说明确认。
     final proceed = await PasswordResetSteps.confirm(
       context,
-      title: l10n0?.resetForgotPassword ?? '忘记密码',
+      title: l10n0?.resetForgotFilePassword ?? '忘记文件密码',
       message:
-          l10n0?.resetIntroNotebook(name) ??
-          '使用重置密码盘（U 盘）重置$name的密码。\n\n'
-              '前提：该分页画布已绑定重置密码盘（设置密码或密码管理中绑定）。',
+          l10n0?.resetIntroNote(name) ??
+          '使用重置密码盘（U 盘）重置$name的独立密码。\n\n'
+              '前提：该笔记已绑定重置密码盘（设置密码或密码管理中绑定）。',
     );
     if (!proceed || !context.mounted) return false;
 
-    // 2. 未绑定重置盘 → 无法重置（fail-closed，含旧格式提示）。
-    if (!await storage.hasNotebookUsbSlot(notebookId)) {
+    // 2. 未绑定重置盘 → 无法重置（fail-closed）。
+    if (!await store.hasBlockDocUsbSlot(docId)) {
       if (!context.mounted) return false;
       await PasswordResetSteps.alert(
         context,
         l10n0?.resetImpossible ?? '无法重置',
-        l10n0?.resetNotBoundNotebook(name) ??
+        l10n0?.resetNotBoundNote(name) ??
             '$name未绑定重置密码盘（U 盘），无法通过重置盘重置密码。\n\n'
-                '可在「设置/修改密码保护」后于菜单中选择「绑定重置密码盘」；'
-                '旧版本设置的密码需先修改一次密码升级格式。',
+                '可在密码管理中选择「绑定重置密码盘」。',
       );
       return false;
     }
@@ -61,16 +62,12 @@ abstract final class NotebookPasswordResetFlow {
     // 4. 新密码两遍（与开屏密码同码直接拒绝——与设密口径一致）。
     final pin = await PasswordResetSteps.collectNewPassword(
       context,
-      label: l10n0?.commonPassword ?? '密码',
+      label: l10n0?.resetStandalonePassword ?? '独立密码',
     );
     if (pin == null || !context.mounted) return false;
 
     // 5. 重置（盘不匹配 / 损坏 → false，fail-closed）。
-    final ok = await storage.resetNotebookPasswordWithUsb(
-      notebookId,
-      usbKey,
-      pin,
-    );
+    final ok = await store.resetBlockDocPasswordWithUsb(docId, usbKey, pin);
     if (!ok) {
       if (!context.mounted) return false;
       await PasswordResetSteps.alert(
@@ -83,7 +80,7 @@ abstract final class NotebookPasswordResetFlow {
     if (!context.mounted) return false;
     PasswordResetSteps.snack(
       context,
-      l10n0?.resetDonePassword(name) ?? '已用重置密码盘重置$name的密码',
+      l10n0?.resetDoneStandalone(name) ?? '已用重置密码盘重置$name的独立密码',
     );
     return true;
   }

@@ -1,12 +1,12 @@
-// SyncFix（同步刷新修复）单测：
-// notifyDataChanged 空回调/有效回调解耦 + SyncFixRouteAware 路由感知
+// AppRefresh（同步刷新修复）单测：
+// notifyDataChanged 空回调/有效回调解耦 + AppRefreshRouteAware 路由感知
 // （didPopNext 触发刷新，didPush/didPushNext/didPop 不触发）。
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drawing_notes_app/features/security/sync_fix.dart';
+import 'package:drawing_notes_app/core/navigation/app_refresh.dart';
 
-/// 最小可路由感知页面（按 sync_fix.dart 文档用法接入 routeObserver）。
+/// 最小可路由感知页面（按 app_refresh.dart 文档用法接入 routeObserver）。
 class _AwareHome extends StatefulWidget {
   const _AwareHome({required this.onVisibleAgain});
 
@@ -17,16 +17,16 @@ class _AwareHome extends StatefulWidget {
 }
 
 class _AwareHomeState extends State<_AwareHome>
-    with SyncFixRouteAware<_AwareHome> {
+    with AppRefreshRouteAware<_AwareHome> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    SyncFix.routeObserver.subscribe(this, ModalRoute.of(context)! as PageRoute);
+    AppRefresh.routeObserver.subscribe(this, ModalRoute.of(context)! as PageRoute);
   }
 
   @override
   void dispose() {
-    SyncFix.routeObserver.unsubscribe(this);
+    AppRefresh.routeObserver.unsubscribe(this);
     super.dispose();
   }
 
@@ -38,33 +38,33 @@ class _AwareHomeState extends State<_AwareHome>
 }
 
 void main() {
-  group('SyncFix.notifyDataChanged（表驱动）', () {
+  group('AppRefresh.notifyDataChanged（表驱动）', () {
     test('null 回调：不抛错、不调用（未装配 bumpDataVersion 的窗口期安全）', () {
-      expect(() => SyncFix.notifyDataChanged(null), returnsNormally);
+      expect(() => AppRefresh.notifyDataChanged(null), returnsNormally);
     });
 
     test('非空回调：被调用且恰好一次', () {
       var calls = 0;
 
-      SyncFix.notifyDataChanged(() => calls++);
+      AppRefresh.notifyDataChanged(() => calls++);
 
       expect(calls, 1);
     });
 
     test('回调内抛错正常向上传播（通知入口不吞业务异常）', () {
       expect(
-        () => SyncFix.notifyDataChanged(() => throw StateError('boom')),
+        () => AppRefresh.notifyDataChanged(() => throw StateError('boom')),
         throwsStateError,
       );
     });
 
     test('routeObserver 为共享单例（多处注册指向同一观察者）', () {
-      expect(identical(SyncFix.routeObserver, SyncFix.routeObserver), isTrue);
-      expect(SyncFix.routeObserver, isA<RouteObserver<ModalRoute<void>>>());
+      expect(identical(AppRefresh.routeObserver, AppRefresh.routeObserver), isTrue);
+      expect(AppRefresh.routeObserver, isA<RouteObserver<ModalRoute<void>>>());
     });
   });
 
-  group('SyncFixRouteAware 路由钩子（直接驱动）', () {
+  group('AppRefreshRouteAware 路由钩子（直接驱动）', () {
     test('didPopNext 触发 onPageVisibleAgain', () {
       var fired = 0;
       // 直接实例化 State（无需绑定 widget 树）驱动 mixin 的路由回调分支。
@@ -87,12 +87,12 @@ void main() {
     });
   });
 
-  group('SyncFixRouteAware 集成（真实路由栈）', () {
+  group('AppRefreshRouteAware 集成（真实路由栈）', () {
     testWidgets('被覆盖不刷新，pop 返回时刷新恰好一次', (tester) async {
       var visibleAgain = 0;
       await tester.pumpWidget(
         MaterialApp(
-          navigatorObservers: [SyncFix.routeObserver],
+          navigatorObservers: [AppRefresh.routeObserver],
           home: _AwareHome(onVisibleAgain: () => visibleAgain++),
         ),
       );
@@ -124,7 +124,7 @@ class _HookWidget extends StatefulWidget {
 }
 
 class _HookState extends State<_HookWidget>
-    with SyncFixRouteAware<_HookWidget> {
+    with AppRefreshRouteAware<_HookWidget> {
   _HookState({this.onVisible});
 
   VoidCallback? onVisible;

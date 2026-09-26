@@ -2,6 +2,44 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.26] - 2026-09-26
+
+### 审计批次 D（需单项决策项）：架构收口 + 对话框 Esc 全库基建 + 依赖清理
+
+> 来源：`docs/audit_full_2026-09-26.html`（全量审计 44 条）批次 D。
+
+- **架构收口（审计 #18）**：doc 16 文件 + security 4 文件自 feature 根目录
+  迁入层子目录（doc：`doc_controller`→application，其余 15 文件→
+  presentation；security：4 个密码重置流→presentation），架构测试的层
+  方向/洋葱 glob 自此对 doc/security 生效（此前块文档编辑器核心与安全
+  流程 20 文件完全不受约束，仅 ratchet 计数兜底）。part 文件与宿主同迁，
+  `part of` 相对引用不变；全仓 import 同步更新；ratchet 按目录名键控，
+  方向计数不变。
+- **home_page 直连 infra 收口（审计 #17）**：`HomePage` 新增 required
+  `blockDocAccessor` 构造参数（core 契约 `IBlockDocSearchAccessor`），由
+  组合根 app_shell 注入 `BlockDocSearchAccessorImpl`（同一 store 实例，
+  行为等价）——首页不再直接实例化另一 feature 的 infrastructure 实现；
+  `notes_accessor.dart` 过时注释修正（实现已迁 doc）。棘轮基线
+  notes→doc 30→29。
+- **sync_fix 更名归位（审计 #43）**：`features/security/sync_fix.dart` →
+  `core/navigation/app_refresh.dart`，`SyncFix`→`AppRefresh`、
+  `SyncFixRouteAware`→`AppRefreshRouteAware`——以「Fix」命名的常驻
+  production 代码（实为路由观察者 + 数据变更通知，与 security 无关）
+  归位导航域；app.dart / home_page / 测试同步更新，行为零变化。
+- **对话框 Esc 全库基建（审计 #12）**：`AppleDialog.escClosable` 统一挂
+  `Esc→DismissIntent` 映射（Flutter 的 showDialog 不处理 Esc，Windows
+  对话框惯例取消键全库缺失）——`AppleDialog.confirm` 与
+  `GlassDialog.show` 共用一处、一次收口全库；Esc 经 `maybePop` 与系统
+  返回键同一条路由 pop 通道，`canPop:false` 的进度类模态天然免疫
+  （v1.17.24 基建）。测试 +2（Esc 关闭返回 null / canPop=false 免疫）。
+- **依赖清理（审计 #21）**：删除零引用 direct main 依赖 `cupertino_ui: any`
+  （全仓 lib/test/integration_test 0 命中，any 约束有版本漂移风险）。
+- **审计 #20 纠错（不删代码）**：复核确认 `core/storage/vfs/` 并非零引用
+  孤岛——`VaultService.instance` 已被媒体双轨（`encrypted_file_image`）
+  与笔记本 PDF 导出（`notebook_pdf_exporter`）消费（2026-08-16 接线），
+  另有 4 个 vault 测试覆盖；`architecture_test.dart` 中「尚未接线
+  fan-in=0」的过时注释同步修正。原审计条目撤回，无需删除或接线里程碑。
+
 ## [1.17.25] - 2026-09-26
 
 ### 审计批次 C（按域批量）：手势重建收敛 + l10n 批量 + 设计令牌 + 性能

@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
+import '../../../helpers/fake_block_doc_accessor.dart';
 
 Future<Directory> _tempDir() async {
   return Directory.systemTemp.createTemp('home_page_test');
@@ -31,6 +32,7 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         HomePage(
+          blockDocAccessor: const FakeBlockDocAccessor(),
           docStorage: StorageService(directoryProvider: _tempDir),
           notebookStorage: NotebookStorage(directoryProvider: _tempDir),
         ),
@@ -48,6 +50,7 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         HomePage(
+          blockDocAccessor: const FakeBlockDocAccessor(),
           docStorage: StorageService(directoryProvider: _tempDir),
           notebookStorage: NotebookStorage(directoryProvider: _tempDir),
         ),

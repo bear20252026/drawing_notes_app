@@ -24,10 +24,13 @@ import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/notes/application/notebook_title_sync.dart';
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
+// 审计 2026-09-26 #17：块文档搜索访问器由组合根装配——home_page 只依赖
+// core 契约，不再直接实例化 doc 侧的 infrastructure 实现。
+import 'package:drawing_notes_app/features/doc/infrastructure/block_doc_search_accessor_impl.dart';
 // 批次⑤：第四界面「设置」——密码体系集中管理。
 import 'package:drawing_notes_app/features/notes/presentation/settings_page.dart';
-import 'package:drawing_notes_app/features/doc/doc_controller.dart';
-import 'package:drawing_notes_app/features/doc/doc_page.dart';
+import 'package:drawing_notes_app/features/doc/application/doc_controller.dart';
+import 'package:drawing_notes_app/features/doc/presentation/doc_page.dart';
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
 import 'package:drawing_notes_app/features/doc/presentation/trash_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
@@ -39,10 +42,10 @@ import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
 // v1.10.5：导航类控件玻璃化——底部导航条换液态玻璃胶囊。
 import 'package:drawing_notes_app/shared/widgets/glass_nav_bar.dart';
 // N4 批 2：画布解锁弹窗「忘记密码？」→ 重置密码盘重置流。
-import 'package:drawing_notes_app/features/security/file_password_reset_flow.dart';
+import 'package:drawing_notes_app/features/security/presentation/file_password_reset_flow.dart';
 // N4 批 3：分页画布解锁弹窗「忘记密码？」→ 重置密码盘重置流。
-import 'package:drawing_notes_app/features/security/notebook_password_reset_flow.dart';
-import 'package:drawing_notes_app/features/security/block_doc_password_reset_flow.dart';
+import 'package:drawing_notes_app/features/security/presentation/notebook_password_reset_flow.dart';
+import 'package:drawing_notes_app/features/security/presentation/block_doc_password_reset_flow.dart';
 // N4 批 3：加密分页画布解锁后媒体加密注入（页面图片解密用）。
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
@@ -258,6 +261,11 @@ class _AppShellState extends State<AppShell> {
       docStorage: widget.docStorage,
       editorPageBuilder: widget.editorPageBuilder,
       refreshSignal: _services.dataVersion,
+      // 审计 2026-09-26 #17：搜索访问器由组合根注入（同一 store 实例，
+      // 与 home_page 自建 Impl 的旧行为等价）。
+      blockDocAccessor: BlockDocSearchAccessorImpl(
+        store: _services.blockDocStore,
+      ),
       // R2 列表同步：注入同一 store 实例 + 写后通知（新建/删除驱动 AllDocs 刷新）。
       blockDocStore: _services.blockDocStore,
       onDataChanged: _services.bumpDataVersion,

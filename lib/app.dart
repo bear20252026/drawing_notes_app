@@ -19,7 +19,9 @@ import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
 // 首页刷新修复②：注册全局路由观察者（HomePage 的 RouteAware 兜底刷新依赖它）。
-import 'package:drawing_notes_app/features/security/sync_fix.dart' show SyncFix;
+// 审计 2026-09-26 #43：原 features/security/sync_fix.dart 归位 core/navigation。
+import 'package:drawing_notes_app/core/navigation/app_refresh.dart'
+    show AppRefresh;
 // 应用启动锁：冷启动 + 切后台回锁（2026-09-01）。
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/app_lock_gate.dart';
@@ -160,7 +162,7 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
       builder: (context, _) => Consumer(
         builder: (context, ref, _) => MaterialApp(
           navigatorKey: _navigatorKey,
-          navigatorObservers: [SyncFix.routeObserver],
+          navigatorObservers: [AppRefresh.routeObserver],
           // L-04 国际化（专家审计 2026-08-15）：gen_l10n 本地化标题。
           title: AppLocalizations.of(context)?.appTitle ?? '绘图笔记',
           localizationsDelegates: [

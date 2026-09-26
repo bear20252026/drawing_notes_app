@@ -5,9 +5,9 @@
 import 'package:flutter/material.dart' as m;
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:drawing_notes_app/features/doc/doc_controller.dart';
-import 'package:drawing_notes_app/features/doc/doc_outline_rail.dart';
-import 'package:drawing_notes_app/features/doc/doc_page.dart';
+import 'package:drawing_notes_app/features/doc/application/doc_controller.dart';
+import 'package:drawing_notes_app/features/doc/presentation/doc_outline_rail.dart';
+import 'package:drawing_notes_app/features/doc/presentation/doc_page.dart';
 import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 

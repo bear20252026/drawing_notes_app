@@ -19,7 +19,9 @@ import 'package:flutter_test/flutter_test.dart';
 /// PDF 引擎 `pdf_hybrid_exporter`——与 notebook_pdf_exporter 同源的
 /// 「单一事实来源」先例，非新横向耦合面。
 const Map<String, int> _baseline = {
-  'notes->doc': 30,
+  // notes->doc 30→29（v1.17.26，审计 #17）：home_page 对 doc/infrastructure
+  // 的 BlockDocSearchAccessorImpl 直连改为 core 契约 + 组合根注入。
+  'notes->doc': 29,
   'notes->security': 6,
   'notes->drawing': 7,
   'doc->notes': 3,

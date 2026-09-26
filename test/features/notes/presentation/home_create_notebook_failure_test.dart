@@ -14,6 +14,7 @@ import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
+import '../../../helpers/fake_block_doc_accessor.dart';
 
 Future<Directory> _tempDir() async {
   return Directory.systemTemp.createTemp('u5_home_test');
@@ -40,6 +41,7 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         HomePage(
+          blockDocAccessor: const FakeBlockDocAccessor(),
           docStorage: StorageService(directoryProvider: _tempDir),
           // 笔记本存储指向不可写「磁盘」——save 必抛。
           notebookStorage: NotebookStorage(directoryProvider: _brokenDir),

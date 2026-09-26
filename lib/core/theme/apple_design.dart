@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show LogicalKeyboardKey;
 
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/apple_pressable.dart';
@@ -586,6 +587,26 @@ class AppleDialog {
   static List<Widget> actions(List<Widget> secondaryToPrimary) =>
       _primaryFirst ? secondaryToPrimary.reversed.toList() : secondaryToPrimary;
 
+  /// Esc 取消基建（审计 2026-09-26 #12）：Flutter 的 `showDialog` 不处理
+  /// Esc（SDK 源码已核），Windows 对话框惯例的取消键全库缺失。把 [child]
+  /// 包上 `Esc → DismissIntent` 映射，[DismissAction] 经 `Navigator.maybePop`
+  /// 关闭——与系统返回键同一条路由 pop 通道，因此 `PopScope(canPop: false)`
+  /// 的进度类模态天然免疫 Esc（v1.17.24 基建）。
+  ///
+  /// [confirm] 与 `GlassDialog.show` 共用本方法（单一事实来源）。Esc 关闭
+  /// 返回 null，调用方既有的 `?? false` 兜底即取消语义。
+  static Widget escClosable(Widget child) {
+    return Shortcuts(
+      shortcuts: const <ShortcutActivator, Intent>{
+        SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{DismissIntent: _EscDismissAction()},
+        child: child,
+      ),
+    );
+  }
+
   static Future<bool> confirm(
     BuildContext context, {
     required String title,
@@ -621,13 +642,15 @@ class AppleDialog {
     final build = surface ?? _plainSurface;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => build(
-        title: Text(title),
-        content: Text(content),
-        // 代码里恒定写成「次要 → 主要」，由平台决定谁在左。
-        actions: _primaryFirst
-            ? <Widget>[confirmButton, cancelButton]
-            : <Widget>[cancelButton, confirmButton],
+      builder: (dialogContext) => escClosable(
+        build(
+          title: Text(title),
+          content: Text(content),
+          // 代码里恒定写成「次要 → 主要」，由平台决定谁在左。
+          actions: _primaryFirst
+              ? <Widget>[confirmButton, cancelButton]
+              : <Widget>[cancelButton, confirmButton],
+        ),
       ),
     );
     return ok ?? false;
@@ -640,5 +663,18 @@ class AppleDialog {
     required List<Widget> actions,
   }) {
     return AlertDialog(title: title, content: content, actions: actions);
+  }
+}
+
+/// Esc 取消动作（审计 2026-09-26 #12）：内置 `DismissAction` 在本 Flutter
+/// 版本为抽象类，且需携带 BuildContext 取 Navigator——走 `maybePop` 与
+/// 系统返回键同一条路由 pop 通道，`PopScope(canPop: false)` 的模态天然免疫。
+class _EscDismissAction extends ContextAction<DismissIntent> {
+  _EscDismissAction();
+
+  @override
+  Object? invoke(DismissIntent intent, [BuildContext? context]) {
+    Navigator.of(context!).maybePop();
+    return null;
   }
 }

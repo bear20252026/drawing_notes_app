@@ -138,7 +138,8 @@ void main() {
       ...Metrics.martin('core/theme/**', graph),
       ...Metrics.martin('core/utils/**', graph),
     };
-    // core/storage/vfs（加密对象仓库）尚未接线，lib 内 fan-in 为 0；
+    // core/storage/vfs（加密对象仓库）经 VaultService 单例接线（媒体双轨
+    // 与笔记本 PDF 导出消费，2026-08-16 起）；它是服务而非稳定数据层。
     // document_codec 是存储输出适配器而非稳定数据层。二者的 I 值不应
     // 扭曲 domain/core 数据层的稳定性约束，依赖方向仍由前述严格规则保障。
     report.removeWhere(
