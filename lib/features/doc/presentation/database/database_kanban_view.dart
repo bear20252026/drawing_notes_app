@@ -102,7 +102,9 @@ class DatabaseKanbanView extends StatelessWidget {
                       value.isEmpty
                           ? AppLocalizations.of(context)?.dbUngrouped ?? '未分组'
                           : value,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      style: DefaultTextStyle.of(
+                        context,
+                      ).style.copyWith(fontWeight: AppleType.semibold),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),

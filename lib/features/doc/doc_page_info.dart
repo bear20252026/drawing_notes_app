@@ -5,18 +5,15 @@ part of 'doc_page.dart';
 
 /// 信息卡/标签域私有助手（拆分自 doc_page.dart）。
 extension _DocPageInfo on _DocPageState {
-
   void _snack(String message) {
     if (!mounted) return;
     AppSnack.show(context, message);
   }
 
-
   /// 文档显示名（空标题回退「未命名」，可被 l10n 覆盖）。
   String _docName(NoteBlockDoc doc) => doc.title.isEmpty
       ? AppLocalizations.of(context)?.docUntitled ?? '未命名'
       : doc.title;
-
 
   /// 文档信息对话框（含标签编辑——M12.6 标签系统入口）。
   void _showInfoDialog(BuildContext context) {
@@ -39,7 +36,9 @@ extension _DocPageInfo on _DocPageState {
               const SizedBox(height: 12),
               Text(
                 l10n?.docTags ?? '标签',
-                style: const TextStyle(fontWeight: FontWeight.w600),
+                style: DefaultTextStyle.of(
+                  context,
+                ).style.copyWith(fontWeight: AppleType.semibold),
               ),
               const SizedBox(height: 8),
               Flexible(
@@ -93,7 +92,6 @@ extension _DocPageInfo on _DocPageState {
     );
   }
 
-
   /// 给当前文档加/移除标签（编辑即保存）。
   Future<void> _toggleDocTag(String tagId) async {
     final tags = List.of(_doc.tags);
@@ -118,7 +116,6 @@ extension _DocPageInfo on _DocPageState {
     Navigator.of(context).pop();
     _showInfoDialog(context);
   }
-
 
   /// 快速新建标签（输入名称 → 默认紫色）。
   Future<void> _createTagInline(TagStore tagStore) async {
@@ -164,7 +161,6 @@ extension _DocPageInfo on _DocPageState {
     }
   }
 
-
   Widget _infoRow(String label, String value) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
@@ -188,7 +184,6 @@ extension _DocPageInfo on _DocPageState {
       ),
     );
   }
-
 
   // 日期部分为 yyyy/M/d（不补零）的本地展示格式，与 formatShortDate
   // 不同，仅钟点读数复用 formatClock。

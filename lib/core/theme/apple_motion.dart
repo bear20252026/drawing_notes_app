@@ -69,6 +69,12 @@ abstract final class AppleMotion {
   /// 列表错位入场：项间延迟。区间 30–80ms（Web 配方 50ms / Expo 40ms）。
   static const Duration staggerStep = Duration(milliseconds: 40);
 
+  /// 骨架屏呼吸脉冲周期（skeleton.dart 共享 controller 用）。
+  /// 加载占位属「持续状态动画」（同进度条/跑马灯走 linear 的归类），
+  /// 不受 <300ms 的 UI 过渡硬规则约束；1.2s 是 shimmer 类占位的通行节奏，
+  /// reverse:true 往返渐变（审计 #33 收编：两处硬编码 1200ms → 本令牌）。
+  static const Duration skeletonPulse = Duration(milliseconds: 1200);
+
   // ---------------------------------------------------------------------------
   // 弹簧
   // ---------------------------------------------------------------------------

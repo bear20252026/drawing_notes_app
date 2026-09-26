@@ -359,7 +359,7 @@ class _BacklinksPanelState extends State<_BacklinksPanel> {
                 '反向链接 · ${backlinks.length}',
                 style: AppleType.captionStyle(
                   scheme.onSurfaceVariant,
-                ).copyWith(fontWeight: FontWeight.w700),
+                ).copyWith(fontWeight: AppleType.bold),
               ),
             ],
           ),

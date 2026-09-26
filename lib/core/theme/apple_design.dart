@@ -168,6 +168,15 @@ abstract final class AppleType {
   /// the brand」。此前本项目完全缺失，走的是 Flutter 默认行高。
   static const double bodyLineHeight = 1.47;
 
+  /// Bold 700——DESIGN.md 字梯合法档（300 / 400 / 600 / 700）中最重的一档。
+  /// 用于「比 Semibold 高一档」的强调（面板节标题、文档大标题等）；
+  /// 裸 FontWeight.w700 不允许散落调用点，统一引用此常量（审计 #11）。
+  static const FontWeight bold = FontWeight.w700;
+
+  /// Semibold 600——字梯标准强调档（标题/按钮/标签默认字重）。
+  /// 裸 FontWeight.w600 同样收编到此常量（审计 #11/#35）。
+  static const FontWeight semibold = FontWeight.w600;
+
   static TextStyle headlineStyle(Color color) => TextStyle(
     fontSize: headline,
     fontWeight: FontWeight.w600,

@@ -5,7 +5,6 @@ part of 'doc_editor.dart';
 
 /// 大纲/对话框域私有助手（拆分自 doc_editor.dart）。
 extension _DocEditorUi on DocEditorState {
-
   /// AFFiNE 式正文大标题。
   Widget _buildTitleField() {
     return Padding(
@@ -18,12 +17,11 @@ extension _DocEditorUi on DocEditorState {
         ),
         style: AppleType.titleStyle(
           Theme.of(context).colorScheme.onSurface,
-        ).copyWith(fontSize: 26, fontWeight: FontWeight.w700),
+        ).copyWith(fontSize: 26, fontWeight: AppleType.bold),
         maxLines: null,
       ),
     );
   }
-
 
   bool _containsId(NoteBlock node, String id) {
     if (node.id == id) return true;
@@ -32,7 +30,6 @@ extension _DocEditorUi on DocEditorState {
     }
     return false;
   }
-
 
   /// 大纲停靠面板。
   Widget _buildOutlineDrawer() {
@@ -59,7 +56,7 @@ extension _DocEditorUi on DocEditorState {
                     child: Text(
                       AppLocalizations.of(context)?.outlineTitle ?? '大纲',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
+                        fontWeight: AppleType.bold,
                       ),
                     ),
                   ),
@@ -67,7 +64,7 @@ extension _DocEditorUi on DocEditorState {
                     tooltip:
                         AppLocalizations.of(context)?.docToolbarRefresh ?? '刷新',
                     icon: const Icon(Icons.refresh, size: 20),
-                    onPressed: () =>editorSetState(() {}),
+                    onPressed: () => editorSetState(() {}),
                   ),
                 ],
               ),
@@ -123,7 +120,6 @@ extension _DocEditorUi on DocEditorState {
       ),
     );
   }
-
 
   /// 退出未保存提醒对话框。
   void _showExitDialog() {

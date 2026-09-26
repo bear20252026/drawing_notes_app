@@ -110,7 +110,9 @@ class DatabaseTableView extends StatelessWidget {
             child: Text(
               field.name,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: DefaultTextStyle.of(
+                context,
+              ).style.copyWith(fontWeight: AppleType.semibold),
             ),
           ),
           const SizedBox(width: 4),

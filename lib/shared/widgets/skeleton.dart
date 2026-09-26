@@ -13,6 +13,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 
 /// 呼吸脉冲骨架块（脉冲动画由父组件的共享 controller 驱动）。
 class _SkeletonBlock extends StatelessWidget {
@@ -67,7 +68,7 @@ class _SkeletonListState extends State<SkeletonList>
   /// 全部骨架块共享的呼吸脉冲（见文件头说明）。
   late final AnimationController _pulse = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1200),
+    duration: AppleMotion.skeletonPulse,
   )..repeat(reverse: true);
 
   @override
@@ -85,7 +86,12 @@ class _SkeletonListState extends State<SkeletonList>
       separatorBuilder: (_, _) => const SizedBox(height: 14),
       itemBuilder: (_, _) => Row(
         children: [
-          _SkeletonBlock(controller: _pulse, width: 36, height: 36, radius: AppleRadius.sm),
+          _SkeletonBlock(
+            controller: _pulse,
+            width: 36,
+            height: 36,
+            radius: AppleRadius.sm,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -108,7 +114,12 @@ class _SkeletonListState extends State<SkeletonList>
             ),
           ),
           const SizedBox(width: 12),
-          _SkeletonBlock(controller: _pulse, width: 22, height: 22, radius: AppleRadius.md),
+          _SkeletonBlock(
+            controller: _pulse,
+            width: 22,
+            height: 22,
+            radius: AppleRadius.md,
+          ),
         ],
       ),
     );
@@ -138,7 +149,7 @@ class _SkeletonCardGridState extends State<SkeletonCardGrid>
   /// 全部卡片块共享的呼吸脉冲（见文件头说明）。
   late final AnimationController _pulse = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1200),
+    duration: AppleMotion.skeletonPulse,
   )..repeat(reverse: true);
 
   @override

@@ -125,7 +125,9 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
                       a.name.isEmpty
                           ? AppLocalizations.of(context)?.attUntitled ?? '未命名附件'
                           : a.name,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      style: DefaultTextStyle.of(
+                        context,
+                      ).style.copyWith(fontWeight: AppleType.semibold),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
