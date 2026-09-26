@@ -309,7 +309,7 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
 
   Widget _groupLabel(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 4),
       child: Text(text, style: AppleType.controlStyle(AppleColor.inkMuted)),
     );
   }

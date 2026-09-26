@@ -116,7 +116,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
                 ),
                 child: Icon(_icon, size: 22, color: scheme.primary),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,7 +159,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
             ],
           ),
           if (a.isEmbeddable) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             _embedPreview(context, a),
           ],
         ],
@@ -179,7 +179,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
       child: Row(
         children: [
           Icon(Icons.attachment_outlined, size: 22, color: scheme.outline),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Text(
             '附件（待补充）',
             style: AppleType.controlStyle(
@@ -208,7 +208,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(AppleRadius.sm),
@@ -217,13 +217,13 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
       child: Column(
         children: [
           Icon(Icons.picture_as_pdf, size: 32, color: scheme.outline),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             AppLocalizations.of(context)?.pdfEmbedPreviewUnavailableLocal ??
                 'PDF 内嵌预览不可用（需本地文件）',
             style: AppleType.captionStyle(scheme.onSurface),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: () => _open(a),
             icon: const Icon(Icons.open_in_new, size: 16),
@@ -259,7 +259,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: () => _open(a),
                 icon: const Icon(Icons.open_in_new, size: 16),

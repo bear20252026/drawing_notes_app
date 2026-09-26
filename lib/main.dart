@@ -177,7 +177,7 @@ class RootRefusalApp extends StatelessWidget {
                       size: 64,
                       color: AppleColor.errorRed,
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                     Text(
                       l10n?.rootRefusalTitle ?? '无法在此设备上启动',
                       style: Theme.of(context).textTheme.titleLarge,

@@ -143,7 +143,7 @@ class _LayerItem extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppleRadius.sm),
           onTap: onSelect,
           child: Padding(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

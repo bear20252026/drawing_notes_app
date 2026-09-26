@@ -332,7 +332,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
               ),
               const SizedBox(height: 16),
               // 同色系色阶（对齐 Excalidraw ShadeList）：当前色相的明度档位。
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -340,7 +340,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
               ),
               // 最近使用色（对齐 Excalidraw CustomColorList）
               if (_recentColors.isNotEmpty) ...[
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -379,7 +379,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                   ],
                 ),
               ],
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               // 当前颜色预览
               Row(
                 children: [
@@ -400,9 +400,9 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                   Row(
                     children: [
                       _rgbField('R', _rCtrl, _rFocus),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 8),
                       _rgbField('G', _gCtrl, _gFocus),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 8),
                       _rgbField('B', _bCtrl, _bFocus),
                     ],
                   ),

@@ -58,7 +58,7 @@ class DatabaseKanbanView extends StatelessWidget {
         children: [
           for (final e in buckets.entries) ...[
             _column(context, e.key, e.value),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
           ],
         ],
       ),
@@ -67,7 +67,7 @@ class DatabaseKanbanView extends StatelessWidget {
 
   Widget _empty(BuildContext context, String message) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20),
+      padding: const EdgeInsets.symmetric(vertical: 24),
       alignment: Alignment.center,
       child: Text(
         message,
@@ -91,7 +91,7 @@ class DatabaseKanbanView extends StatelessWidget {
           side: BorderSide(color: scheme.outlineVariant),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -114,7 +114,7 @@ class DatabaseKanbanView extends StatelessWidget {
               const SizedBox(height: 8),
               for (final r in records) ...[
                 _card(context, r),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
               ],
             ],
           ),
@@ -139,7 +139,7 @@ class DatabaseKanbanView extends StatelessWidget {
       ),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: scheme.surface,
           borderRadius: BorderRadius.circular(AppleRadius.sm),

@@ -76,7 +76,7 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
   Widget _buildConflict(ThemeData theme, SyncConflict c) {
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

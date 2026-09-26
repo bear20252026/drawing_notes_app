@@ -279,7 +279,7 @@ class _MobileHeader extends StatelessWidget {
           ...List.generate(_tabsOf(context).length, (i) {
             final selected = i == tabIndex;
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
               child: InkWell(
                 borderRadius: BorderRadius.circular(AppleRadius.sm),
                 onTap: () => onTabChanged(i),
@@ -376,7 +376,7 @@ class _MobileHeader extends StatelessWidget {
                 child: Row(
                   children: [
                     Icon(Icons.history_rounded, size: 18),
-                    SizedBox(width: 10),
+                    SizedBox(width: 8),
                     Text(AppLocalizations.of(context)?.docsRecent ?? '最近文档'),
                   ],
                 ),
@@ -386,7 +386,7 @@ class _MobileHeader extends StatelessWidget {
                 child: Row(
                   children: [
                     Icon(Icons.delete_outline_rounded, size: 18),
-                    SizedBox(width: 10),
+                    SizedBox(width: 8),
                     Text(AppLocalizations.of(context)?.docsTrashTab ?? '回收站'),
                   ],
                 ),

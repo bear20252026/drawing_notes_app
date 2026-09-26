@@ -217,6 +217,15 @@ List<int> generateSalt({int length = 16}) {
 /// 默认 60 万次迭代（OWASP 2026 推荐）。密码/盐相同 → 同 key。
 /// N3 提速 B 方案：走 KekSessionCache（会话缓存 + isolate 后台派生）。
 /// 批B 注：同步格式跨设备互操作，KDF 与既有密文耦合，维持 PBKDF2。
+///
+/// 为何不升 Argon2id（审计 2026-09-26 #39 评估结论，全量分析见
+/// `docs/KDF_MIGRATION_EVALUATION_2026-09-26.md`）：PBKDF2 600k 是纯
+/// 计算硬度，GPU 吞吐下实耗毫秒级/口令；Argon2id 的 64MiB 内存硬度可
+/// 把同硬件爆破吞吐压低 2–3 个数量级。差距真实但兑现需「WebDAV 服务器
+/// 副本泄露 + 低熵口令」双条件叠加，当前 OWASP 合规、非紧急漏洞。
+/// 迁移方案（信封版本化 + 用户主动事件触发重绕，不做后台静默迁移）与
+/// 风险对策见上述评估文档；下次触及同步加密域（改密/配对协议）时顺车
+/// 实施。
 Future<List<int>> deriveMasterKey(
   String password,
   List<int> salt, {

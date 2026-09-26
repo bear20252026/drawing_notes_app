@@ -127,7 +127,7 @@ extension DocEditorBlocks on DocEditorState {
                     (block.type != NoteBlockType.toggle ||
                         (block.props['expanded'] as bool? ?? true)))
                   Padding(
-                    padding: const EdgeInsets.only(left: 20),
+                    padding: const EdgeInsets.only(left: 16),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [

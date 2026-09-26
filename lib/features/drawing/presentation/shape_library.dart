@@ -167,7 +167,7 @@ class _ShapeLibraryDialogState extends State<ShapeLibraryDialog> {
                 isDense: true,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Expanded(
               child: results.isEmpty
                   ? Center(
@@ -203,7 +203,7 @@ class _ShapeLibraryDialogState extends State<ShapeLibraryDialog> {
                                 AppleRadius.xs,
                               ),
                             ),
-                            padding: const EdgeInsets.all(6),
+                            padding: const EdgeInsets.all(8),
                             child: Column(
                               children: [
                                 Expanded(

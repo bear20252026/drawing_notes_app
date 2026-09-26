@@ -217,7 +217,7 @@ class _PasswordLayersCard extends StatelessWidget {
       margin: EdgeInsets.zero,
       color: AppleColor.panelOf(scheme),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -231,7 +231,7 @@ class _PasswordLayersCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             _layer(
               context,
               icon: Icons.smartphone_rounded,
@@ -278,7 +278,7 @@ class _PasswordLayersCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(icon, size: 20, color: scheme.primary),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -313,7 +313,7 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 0, 0, 6),
+        padding: const EdgeInsets.fromLTRB(4, 0, 0, 4),
       child: Text(
         title,
         style: Theme.of(context).textTheme.labelLarge?.copyWith(color: outline),

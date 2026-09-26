@@ -78,7 +78,7 @@ class _PdfAttachmentPreviewState extends State<PdfAttachmentPreview> {
     final page = _page;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(AppleRadius.sm),

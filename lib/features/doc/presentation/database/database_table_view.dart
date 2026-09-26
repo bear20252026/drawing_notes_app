@@ -102,7 +102,7 @@ class DatabaseTableView extends StatelessWidget {
 
   Widget _empty(BuildContext context, String message) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20),
+      padding: const EdgeInsets.symmetric(vertical: 24),
       alignment: Alignment.center,
       child: Text(
         message,

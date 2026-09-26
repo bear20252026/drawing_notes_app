@@ -134,7 +134,7 @@ class _DocsToolbar extends StatelessWidget {
     return Container(
       height: 52,
       color: surface,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
           // 面包屑
@@ -217,7 +217,7 @@ class _DocsToolbar extends StatelessWidget {
                 size: 18,
                 color: AppleColor.noteGreen,
               ),
-              SizedBox(width: 10),
+              SizedBox(width: 8),
               Text(AppLocalizations.of(context)?.docsNewNote ?? '新建笔记'),
             ],
           ),
@@ -233,7 +233,7 @@ class _DocsToolbar extends StatelessWidget {
                 size: 18,
                 color: AppleColor.actionBlue,
               ),
-              SizedBox(width: 10),
+              SizedBox(width: 8),
               Text(
                 AppLocalizations.of(context)?.docsNewPagedCanvas ?? '新建分页画布',
               ),
@@ -249,7 +249,7 @@ class _DocsToolbar extends StatelessWidget {
                 size: 18,
                 color: AppleColor.actionBlue,
               ),
-              SizedBox(width: 10),
+              SizedBox(width: 8),
               Text(AppLocalizations.of(context)?.docsNewCanvas ?? '新建画布'),
             ],
           ),
@@ -289,12 +289,12 @@ class _DocsTabBar extends StatelessWidget {
       // U4a：42→48——Tab 点击目标达触控标准（InkWell 撑满容器高）。
       height: 48,
       color: surface,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: List.generate(tabs.length, (i) {
           final selected = i == tabIndex;
           return Padding(
-            padding: const EdgeInsets.only(right: 18),
+            padding: const EdgeInsets.only(right: 16),
             child: InkWell(
               onTap: () => onTabChanged(i),
               child: SizedBox(
@@ -311,7 +311,7 @@ class _DocsTabBar extends StatelessWidget {
                                 : FontWeight.w400,
                           ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Container(
                       height: 2,
                       width: 18,
@@ -495,7 +495,7 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final subtle = AppleColor.mutedOf(theme.colorScheme);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 8, 6),
+      padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
       child: Text(
         label,
         style: AppleType.captionStyle(

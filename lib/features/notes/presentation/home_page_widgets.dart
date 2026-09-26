@@ -82,7 +82,7 @@ class _DrawingCardState extends State<_DrawingCard> {
           child: Row(
             children: [
               Icon(Icons.open_in_new_rounded, size: 18),
-              SizedBox(width: 10),
+              SizedBox(width: 8),
               Text(AppLocalizations.of(context)?.open ?? '打开'),
             ],
           ),
@@ -92,7 +92,7 @@ class _DrawingCardState extends State<_DrawingCard> {
           child: Row(
             children: [
               Icon(Icons.lock_outline_rounded, size: 18),
-              SizedBox(width: 10),
+              SizedBox(width: 8),
               Text(
                 AppLocalizations.of(context)?.homeStandalonePasswordMenu ??
                     '独立密码…',
@@ -105,7 +105,7 @@ class _DrawingCardState extends State<_DrawingCard> {
           child: Row(
             children: [
               Icon(Icons.delete_outline_rounded, size: 18),
-              SizedBox(width: 10),
+              SizedBox(width: 8),
               Text(AppLocalizations.of(context)?.delete ?? '删除'),
             ],
           ),
@@ -211,7 +211,7 @@ class _DrawingCardState extends State<_DrawingCard> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 10, 6, 8),
+                    padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
                     child: Row(
                       children: [
                         Expanded(
@@ -335,7 +335,7 @@ class _NotebookCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -347,7 +347,7 @@ class _NotebookCard extends StatelessWidget {
                       color: scheme.primary,
                     ),
                     if (locked) ...[
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 4),
                       Icon(
                         Icons.lock_rounded,
                         size: 16,

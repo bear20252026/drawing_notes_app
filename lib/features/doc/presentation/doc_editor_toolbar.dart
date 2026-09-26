@@ -114,8 +114,8 @@ extension DocEditorToolbar on DocEditorState {
             borderRadius: BorderRadius.circular(AppleRadius.sm),
             onTap: onPressed,
             child: Padding(
-              // U4a：AppleSpacing.sm(12)→14——20px 图标 + 28 = 48px 触控目标。
-              padding: const EdgeInsets.all(14),
+              // #34 间距归一：14→12（20px 图标 + 24 = 44px 触控目标，仍达标）。
+              padding: const EdgeInsets.all(12),
               child: Icon(
                 icon,
                 size: 20,

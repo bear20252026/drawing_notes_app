@@ -202,7 +202,7 @@ class EmbeddedBlockView extends StatelessWidget {
             ),
           ),
           if (caption.isNotEmpty) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               caption,
               style:
@@ -235,7 +235,7 @@ class EmbeddedBlockView extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppleRadius.xs),
         onTap: () {
@@ -251,7 +251,7 @@ class EmbeddedBlockView extends StatelessWidget {
           );
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
           decoration: BoxDecoration(
             color: Theme.of(
               context,
@@ -270,7 +270,7 @@ class EmbeddedBlockView extends StatelessWidget {
                 size: 20,
                 color: Theme.of(context).colorScheme.primary,
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

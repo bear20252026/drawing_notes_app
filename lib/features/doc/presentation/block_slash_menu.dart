@@ -369,7 +369,7 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
 
   Widget _buildGroupHeader(BuildContext context, SlashItemGroup group) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Text(

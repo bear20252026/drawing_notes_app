@@ -116,7 +116,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
       borderRadius: BorderRadius.circular(AppleRadius.lg),
       color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.87),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -217,7 +217,7 @@ class _PaginationPreviewState extends State<PaginationPreview> {
         final items = pages[i];
         return Container(
           margin: const EdgeInsets.all(12),
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
             border: Border.all(color: AppleColor.hairline),

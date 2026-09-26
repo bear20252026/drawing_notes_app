@@ -94,7 +94,7 @@ class _CommandPaletteDialogState extends State<_CommandPaletteDialog> {
                 prefixIcon: Icon(Icons.search_rounded),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Expanded(
               child: commands.isEmpty
                   ? Center(
@@ -119,7 +119,7 @@ class _CommandPaletteDialogState extends State<_CommandPaletteDialog> {
                         for (final category in EditorCommandCategory.values)
                           if (grouped[category]?.isNotEmpty ?? false) ...[
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(8, 10, 8, 2),
+                              padding: const EdgeInsets.fromLTRB(8, 12, 8, 2),
                               child: Text(
                                 _categoryLabelOf(context, category) ??
                                     category.label,

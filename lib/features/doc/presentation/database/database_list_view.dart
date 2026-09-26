@@ -39,7 +39,7 @@ class DatabaseListView extends StatelessWidget {
   Widget build(BuildContext context) {
     if (records.isEmpty) {
       return Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
+        padding: const EdgeInsets.symmetric(vertical: 24),
         alignment: Alignment.center,
         child: Text(
           '还没有记录，点击“添加记录”',

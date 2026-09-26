@@ -141,7 +141,7 @@ class AppLockSettingsPage extends StatelessWidget {
                     size: 16,
                     color: Theme.of(context).colorScheme.outline,
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       service.isConfigured

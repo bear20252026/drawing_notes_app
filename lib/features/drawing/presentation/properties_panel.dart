@@ -63,7 +63,7 @@ class PropertiesPanel extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       width: 190,
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       color: scheme.surfaceContainerLow,
       child: ListenableBuilder(
         listenable: controller,
@@ -76,7 +76,7 @@ class PropertiesPanel extends StatelessWidget {
                 AppLocalizations.of(context)?.propBrush ?? '画笔',
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Row(
                 children: [
                   // 当前颜色圆点（点击弹色板）
@@ -111,7 +111,7 @@ class PropertiesPanel extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   // 粗细滑块
                   Expanded(
                     child: Column(
@@ -300,7 +300,7 @@ class PropertiesPanel extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 // 字体族循环切换（借鉴 Excalidraw FontPicker）。
                 Row(
                   children: [

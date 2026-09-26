@@ -163,7 +163,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
                       size: 18,
                       color: scheme.onSurfaceVariant,
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Text(AppLocalizations.of(context)?.wDocInfo ?? '文档信息'),
                   ],
                 ),
@@ -178,7 +178,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
                       size: 18,
                       color: scheme.onSurfaceVariant,
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Text(
                       AppLocalizations.of(context)?.wInsertPageLink ?? '插入页面链接',
                     ),
@@ -246,7 +246,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
                       size: 18,
                       color: scheme.onSurfaceVariant,
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Text(AppLocalizations.of(context)?.wFilePassword ?? '文件密码'),
                   ],
                 ),
@@ -263,7 +263,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
               style: FilledButton.styleFrom(
                 backgroundColor: AppleColor.actionBlue,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
               ),
             ),
           ),
@@ -354,7 +354,7 @@ class _BacklinksPanelState extends State<_BacklinksPanel> {
                 size: 16,
                 color: scheme.onSurfaceVariant,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 4),
               Text(
                 '反向链接 · ${backlinks.length}',
                 style: AppleType.captionStyle(

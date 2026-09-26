@@ -8,7 +8,7 @@ extension _DocEditorUi on DocEditorState {
   /// AFFiNE 式正文大标题。
   Widget _buildTitleField() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: TextField(
         controller: _titleController,
         decoration: InputDecoration(

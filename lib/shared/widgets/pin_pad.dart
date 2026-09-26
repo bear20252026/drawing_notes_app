@@ -197,9 +197,9 @@ class _PinPadCoreState extends State<PinPadCore>
                     widget.title ??
                         AppLocalizations.of(context)?.unlockEnterPassword ??
                         '输入密码',
-                    style: AppleType.titleStyle(Colors.white),
+                        style: AppleType.titleStyle(Colors.white),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   AnimatedBuilder(
                     animation: _shake,
                     builder: (context, child) {
@@ -249,7 +249,7 @@ class _PinPadCoreState extends State<PinPadCore>
                               }),
                             ),
                             if (_isFlexible) ...[
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 8),
                               Text(
                                 AppLocalizations.of(context)?.pinDigitsCount(
                                       _entered.length,
@@ -289,7 +289,7 @@ class _PinPadCoreState extends State<PinPadCore>
     final cancel = widget.onCancel;
     if (emergency == null && cancel == null) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 0, 28, 16),
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

@@ -180,7 +180,7 @@ extension _HomePageTabs on _HomePageState {
           96,
         ),
         itemCount: _notes.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 10),
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (context, i) {
           final doc = _notes[i];
           final isTyped = doc.kind == AllDocKind.blockdoc;

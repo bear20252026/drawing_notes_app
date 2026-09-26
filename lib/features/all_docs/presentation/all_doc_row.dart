@@ -145,7 +145,7 @@ class AllDocRow extends StatelessWidget {
               // N2：文件密码锁标（本会话未解锁）
               if (doc.locked) ...[
                 Icon(Icons.lock_outline_rounded, size: 14, color: subtle),
-                const SizedBox(width: 6),
+                const SizedBox(width: 4),
               ],
               // 相对时间
               Text(timeLabel, style: AppleType.captionStyle(subtle)),
@@ -167,7 +167,7 @@ class AllDocRow extends StatelessWidget {
                   ).copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 4),
               // 星标（U4a：触控目标 26→44px；R6：读屏语义——状态化标签）。
               Semantics(
                 label: doc.isFavorite
@@ -292,7 +292,7 @@ Future<void> showAllDocContextMenu(
         child: Row(
           children: [
             Icon(Icons.open_in_new_rounded, size: 18),
-            SizedBox(width: 10),
+            SizedBox(width: 8),
             Text(AppLocalizations.of(context)?.open ?? '打开'),
           ],
         ),
@@ -306,7 +306,7 @@ Future<void> showAllDocContextMenu(
                 doc.isFavorite ? Icons.star_border_rounded : Icons.star_rounded,
                 size: 18,
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Text(
                 doc.isFavorite
                     ? AppLocalizations.of(context)?.docsUnfavorite ?? '取消收藏'

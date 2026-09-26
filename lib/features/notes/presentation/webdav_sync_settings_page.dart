@@ -494,7 +494,7 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
             ),
           ],
           if (_lastSummary != null) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               _lastSummary!,
               style: Theme.of(context).textTheme.bodySmall,

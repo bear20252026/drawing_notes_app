@@ -147,7 +147,7 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
                 itemCount: navCount + 2 + treeDocCount + (showTreeEmpty ? 1 : 0),
                 itemBuilder: (context, i) {
                   if (i < navCount) return _buildNavItem(context, i);
-                  if (i == navCount) return const SizedBox(height: 10);
+                  if (i == navCount) return const SizedBox(height: 12);
                   if (i == navCount + 1) return _buildTreeHeader(context);
                   final docIndex = i - navCount - 2;
                   if (docIndex < treeDocCount) {
@@ -270,7 +270,7 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
           child: Row(
             children: [
               Icon(visual.icon, size: 16, color: visual.color),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   doc.title.isEmpty
@@ -323,7 +323,7 @@ class _WorkspaceHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 12, 8),
+      padding: const EdgeInsets.fromLTRB(16, 16, 12, 8),
       child: Row(
         children: [
           // 工作区头像
@@ -340,7 +340,7 @@ class _WorkspaceHeader extends StatelessWidget {
               style: AppleType.controlStyle(Colors.white),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               name,

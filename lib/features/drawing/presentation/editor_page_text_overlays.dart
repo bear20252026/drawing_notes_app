@@ -124,7 +124,7 @@ extension _EditorPageTextOverlays on _EditorPageState {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
       ),
     );

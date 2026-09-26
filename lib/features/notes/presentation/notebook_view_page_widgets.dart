@@ -67,7 +67,7 @@ class _PageCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 6, 4, 6),
+              padding: const EdgeInsets.fromLTRB(8, 4, 4, 4),
               child: Row(
                 children: [
                   Expanded(
@@ -310,7 +310,7 @@ class _CreatePageDialogState extends State<_CreatePageDialog> {
                   _NewPageRequest(title: _controller.text, template: _template),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               Text(
                 AppLocalizations.of(context)?.nbChooseTemplate ?? '选择模板',
                 style: Theme.of(context).textTheme.titleSmall,
