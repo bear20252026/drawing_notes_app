@@ -95,9 +95,16 @@ List<ui.Rect> sliceContentIntoPages(
   if (maxPages != null && rows * cols > maxPages) {
     return const [];
   }
+  // 审计 2026-09-26 #28：单页（cols=rows=1）时内容居中于纸张——与单页
+  // 大图档（fitContentOnPaper offset 居中）对同一内容成页观感一致，消除
+  // 两档位「极小内容贴左上角 vs 居中」的视觉不一致；多页保持网格原点
+  // 对齐 content.topLeft（页序/拼接语义）。
+  final singlePage = cols == 1 && rows == 1;
+  final dx = singlePage ? (pageW - content.width) / 2 : 0.0;
+  final dy = singlePage ? (pageH - content.height) / 2 : 0.0;
   ui.Rect tile(int r, int c) => ui.Rect.fromLTWH(
-    content.left + c * pageW,
-    content.top + r * pageH,
+    content.left + c * pageW - dx,
+    content.top + r * pageH - dy,
     pageW,
     pageH,
   );

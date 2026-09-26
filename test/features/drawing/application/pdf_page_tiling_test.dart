@@ -7,18 +7,20 @@ import 'package:drawing_notes_app/features/drawing/application/pdf_export_option
 
 void main() {
   group('sliceContentIntoPages', () {
-    test('单页内的小内容 → 恰好 1 页（整页世界尺寸）', () {
+    test('单页内的小内容 → 恰好 1 页（整页世界尺寸，内容居中）', () {
       // A4 pt 595.28×841.89，scale=1 → 页世界尺寸 = 纸张尺寸。
+      // 审计 #28：单页 tile 内容居中（与单页大图档成页观感一致）。
       final pages = sliceContentIntoPages(
         const Rect.fromLTWH(0, 0, 500, 700),
         pageSize: const Size(595.28, 841.89),
         scale: 1,
       );
       expect(pages, hasLength(1));
-      expect(pages.first.left, 0);
-      expect(pages.first.top, 0);
       expect(pages.first.width, closeTo(595.28, 1e-6));
       expect(pages.first.height, closeTo(841.89, 1e-6));
+      // 内容中心 = 页中心。
+      expect(pages.first.center.dx, closeTo(250, 1e-6));
+      expect(pages.first.center.dy, closeTo(350, 1e-6));
     });
 
     test('横向 2.5 页宽 → 3 列；纵向 1.2 页高 → 2 行（ceil 语义）', () {

@@ -79,6 +79,12 @@ class _PdfExportPanelDialog extends StatefulWidget {
 }
 
 class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
+  // 审计 2026-09-26 #26：M3 SegmentedButton 默认高 40 < 44 触控下限，
+  // 面板 5 组分段控件统一抬到 44。
+  static const _segmentButtonStyle = ButtonStyle(
+    minimumSize: WidgetStatePropertyAll<Size>(Size(0, 44)),
+  );
+
   late PdfPaper _paper = widget.initialPaper;
   late PdfRange _range = PdfRange.currentPage;
   late PdfQuality _quality = widget.initialQuality;
@@ -101,6 +107,7 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
             children: [
               _groupLabel(AppLocalizations.of(context)?.pdfGroupPaper ?? '纸张'),
               SegmentedButton<PdfPaper>(
+                style: _segmentButtonStyle,
                 segments: [
                   for (final p in PdfPaper.values)
                     ButtonSegment(
@@ -128,6 +135,7 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
               if (widget.hasMultiplePages) ...[
                 _groupLabel('范围（共 ${widget.pageCount} 页）'),
                 SegmentedButton<PdfRange>(
+                  style: _segmentButtonStyle,
                   segments: [
                     for (final r in PdfRange.values)
                       ButtonSegment(
@@ -152,6 +160,7 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
                   AppLocalizations.of(context)?.pdfGroupLayout ?? '布局',
                 ),
                 SegmentedButton<PdfLayout>(
+                  style: _segmentButtonStyle,
                   segments: [
                     for (final l in PdfLayout.values)
                       ButtonSegment(
@@ -183,6 +192,7 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
                     AppLocalizations.of(context)?.pdfPageOrderLabel ?? '页序',
                   ),
                   SegmentedButton<bool>(
+                    style: _segmentButtonStyle,
                     segments: [
                       ButtonSegment(
                         value: false,
@@ -227,6 +237,7 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
                 AppLocalizations.of(context)?.pdfGroupQuality ?? '质量',
               ),
               SegmentedButton<PdfQuality>(
+                style: _segmentButtonStyle,
                 segments: [
                   for (final q in PdfQuality.values)
                     ButtonSegment(
@@ -289,7 +300,6 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
                         )?.pdfExportNPages(widget.pageCount) ??
                         '导出 ${widget.pageCount} 页'
                   : AppLocalizations.of(context)?.catExport ?? '导出',
-              style: const TextStyle(color: Colors.white),
             ),
           ),
         ),

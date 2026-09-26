@@ -2822,14 +2822,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String expExportFailErr(String error) {
-    return 'Export failed: $error';
-  }
+  String get expExportFailErr => 'Export failed. Please try again.';
 
   @override
-  String expCopyPlatformFail(String error) {
-    return 'Copying PNG needs platform support: $error';
-  }
+  String get expCopyPlatformFail =>
+      'Copying PNG isn\'t supported on this platform';
 
   @override
   String expExportAllPdf(int count, String path) {
@@ -2837,9 +2834,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String expExportAllPdfFail(String error) {
-    return 'Failed to export full PDF: $error';
-  }
+  String get expExportAllPdfFail =>
+      'Failed to export the full PDF. Please try again.';
 
   @override
   String get expRenderFailHard => 'Export failed: cannot render canvas';
@@ -2850,9 +2846,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String expExportPagedPdfFail(String error) {
-    return 'Failed to export paged note PDF: $error';
-  }
+  String get expExportPagedPdfFail =>
+      'Failed to export the paged note PDF. Please try again.';
 
   @override
   String expExportedSvgTo(String path) {
@@ -2865,9 +2860,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String expExportWordFail(String error) {
-    return 'Failed to export Word-compatible document: $error';
-  }
+  String get expExportWordFail =>
+      'Failed to export the Word-compatible document. Please try again.';
 
   @override
   String expExportedTextTo(String path) {

@@ -312,25 +312,30 @@ class EditorContextBar extends StatelessWidget {
     required String tooltip,
     required VoidCallback onPressed,
   }) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppleRadius.lg),
-        onTap: onPressed,
-        // 热区 44×44（HIG 最小触控尺寸），视觉圆点保持 26（同
-        // properties_panel 颜色圆点写法）。
-        child: SizedBox(
-          width: 44,
-          height: 44,
-          child: Center(
-            child: Container(
-              width: 26,
-              height: 26,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
+    // 审计 2026-09-26 #13：InkWell 不自带 button 标志，色板钮补
+    // button 角色（label 复用 Tooltip 的 message，读屏不重复朗读）。
+    return Semantics(
+      button: true,
+      child: Tooltip(
+        message: tooltip,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppleRadius.lg),
+          onTap: onPressed,
+          // 热区 44×44（HIG 最小触控尺寸），视觉圆点保持 26（同
+          // properties_panel 颜色圆点写法）。
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: Center(
+              child: Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
                 ),
               ),
             ),

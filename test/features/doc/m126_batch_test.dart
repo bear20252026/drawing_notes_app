@@ -39,8 +39,8 @@ void main() {
 
       final trash = await store.listTrash();
       expect(trash, hasLength(1));
-      expect(trash.single.doc.id, 'trash1');
-      expect(trash.single.doc.title, '被删的笔记');
+      expect(trash.single.id, 'trash1');
+      expect(trash.single.title, '被删的笔记');
 
       // 恢复：回到激活区、回收站清空
       expect(await store.restoreDocument('trash1'), isTrue);
@@ -81,7 +81,7 @@ void main() {
       expect(await store.loadDocument('race1'), isNull);
       final trash = await store.listTrash();
       expect(trash, hasLength(1));
-      expect(trash.single.doc.title, '第二版');
+      expect(trash.single.title, '第二版');
 
       // 反向交错：delete 先入队、save 后入队 → 文档复活（保存语义优先）。
       await store.restoreDocument('race1');

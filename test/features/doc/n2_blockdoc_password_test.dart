@@ -259,8 +259,8 @@ void main() {
       // 与 listDocHeaders 同口径；仍可恢复）。
       final lockedTrash = await cold.listTrash();
       expect(lockedTrash, hasLength(1));
-      expect(lockedTrash.single.doc.id, id);
-      expect(lockedTrash.single.doc.title, '加密笔记');
+      expect(lockedTrash.single.id, id);
+      expect(lockedTrash.single.title, '加密笔记');
 
       // 恢复（rename 回激活区）→ 仍是 v5 信封，未解锁仍抛锁定。
       expect(await cold.restoreDocument(id), isTrue);

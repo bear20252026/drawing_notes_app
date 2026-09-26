@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart' show Stroke;
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
@@ -49,9 +50,14 @@ class NotebookPdfExporter {
   const NotebookPdfExporter._();
 
   /// 导出整本为多页 PDF 字节（既有行为：页尺寸 = 画布逻辑尺寸）。
+  ///
+  /// [footer]（审计 2026-09-26 #38 接线）：页脚「标题 · n / m」，与画布
+  /// 分页导出同一特性（v1.17.22 只接了画布 tiled 路径，整本路径缺失）；
+  /// 默认 false，既有调用点零行为变化。
   static Future<Uint8List> exportNotebook(
     Notebook notebook, {
     int? jpegQuality,
+    bool footer = false,
   }) => exportPages([
     for (final page in notebook.pages)
       NotebookPrintPageData(
@@ -62,14 +68,21 @@ class NotebookPdfExporter {
         imageItems: page.imageItems,
         shapes: page.shapes,
       ),
-  ], jpegQuality: jpegQuality);
+  ], jpegQuality: jpegQuality, footer: footer);
 
   /// 导出给定页数据为多页 PDF 字节（[jpegQuality] 透传 hybrid 引擎）。
+  ///
+  /// [footer]（审计 #38 接线）：开启后每页页脚 =「页标题 · n / m」，CJK
+  /// 字体主题与画布分页导出同源（pdf 包默认 Type1 字体编不了中文标题，
+  /// 见 PdfHybridExporter.exportMultiPage 的 cjkFontData）。
   static Future<Uint8List> exportPages(
     List<NotebookPrintPageData> pages, {
     int? jpegQuality,
+    bool footer = false,
   }) async {
-    final inputs = <PdfPageInput>[];
+    // 渲染完成的页（footerText 需要最终页数——跳过异常页后才知道 n/m
+    // 的分母，故先收集再统一组 PdfPageInput）。
+    final rendered = <({ui.Rect bounds, Uint8List png, List<Stroke> strokes, String title})>[];
     // 整页解码位图登记表：任何退出路径（成功/异常）统一释放（审计修复
     // 2026-09-06：此前 rendered 之外，页面内嵌图片的 ui.Image 从不 dispose，
     // 多图/多页导出累积显存）。
@@ -84,7 +97,7 @@ class NotebookPdfExporter {
         // 光栅层：离屏渲染整页内容（排除钢笔笔画，走矢量通道）。
         // 画家要 NotebookPage：用数据现场组装轻量页（仅 paintContent 通道，
         // 不进存储/历史——createdAt/updatedAt 取默认值无影响）。
-        ui.Image? rendered;
+        ui.Image? renderedImage;
         try {
           final paintPage = NotebookPage(
             id: page.id,
@@ -105,7 +118,7 @@ class NotebookPdfExporter {
           painter.paintContent(ui.Canvas(recorder), ui.Size(width, height));
           final picture = recorder.endRecording();
           try {
-            rendered = await picture.toImage(
+            renderedImage = await picture.toImage(
               width.round().clamp(1, 8192),
               height.round().clamp(1, 8192),
             );
@@ -113,11 +126,11 @@ class NotebookPdfExporter {
             picture.dispose();
           }
         } catch (_) {
-          rendered = null;
+          renderedImage = null;
         }
-        if (rendered == null) continue;
+        if (renderedImage == null) continue;
         try {
-          final pngData = await rendered.toByteData(
+          final pngData = await renderedImage.toByteData(
             format: ui.ImageByteFormat.png,
           );
           if (pngData == null) continue;
@@ -130,22 +143,43 @@ class NotebookPdfExporter {
                   if (!PdfHybridExporter.shouldRasterize(stroke)) stroke,
           ];
 
-          inputs.add(
-            PdfPageInput(
-              bounds: ui.Rect.fromLTWH(0, 0, width, height),
-              rasterPng: pngData.buffer.asUint8List(),
-              vectorStrokes: vectorStrokes,
-              jpegQuality: jpegQuality,
-            ),
-          );
+          rendered.add((
+            bounds: ui.Rect.fromLTWH(0, 0, width, height),
+            png: pngData.buffer.asUint8List(),
+            strokes: vectorStrokes,
+            title: page.title,
+          ));
         } finally {
-          rendered.dispose();
+          renderedImage.dispose();
         }
       }
+      final total = rendered.length;
+      final inputs = <PdfPageInput>[
+        for (var i = 0; i < total; i++)
+          PdfPageInput(
+            bounds: rendered[i].bounds,
+            rasterPng: rendered[i].png,
+            vectorStrokes: rendered[i].strokes,
+            jpegQuality: jpegQuality,
+            footerText: footer
+                ? '${rendered[i].title} · ${i + 1} / $total'
+                : null,
+          ),
+      ];
+      // 页脚 CJK 字体（审计 #38 接线，与 editor_exporter tiled 路径同源）：
+      // pdf 包默认 Type1 字体只认 ≤0xFF 码点，中文标题页脚必须挂 CJK 字体
+      // 主题（真字形嵌入）；ByteData 可跨 isolate 发送、主题在 isolate 内
+      // 构建，footer=false 时零开销。
+      final cjkFontData = footer
+          ? await rootBundle.load('assets/fonts/DroidSansFallbackFull.ttf')
+          : null;
       // 必须在 try 内 await：finally 释放解码位图，若提前 return Future，
       // 混合导出尚未完成位图就被释放（lint unawaited_return_in_try_block
       // 抓到的真实生命周期 bug）。
-      return await PdfHybridExporter.exportMultiPage(pages: inputs);
+      return await PdfHybridExporter.exportMultiPage(
+        pages: inputs,
+        cjkFontData: cjkFontData,
+      );
     } finally {
       for (final image in decodedImages) {
         image.dispose();

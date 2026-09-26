@@ -2403,22 +2403,10 @@
       }
     }
   },
-  "expExportFailErr": "Export failed: {error}",
-  "@expExportFailErr": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "expCopyPlatformFail": "Copying PNG needs platform support: {error}",
-  "@expCopyPlatformFail": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
+  "expExportFailErr": "Export failed. Please try again.",
+  "@expExportFailErr": {},
+  "expCopyPlatformFail": "Copying PNG isn't supported on this platform",
+  "@expCopyPlatformFail": {},
   "expExportAllPdf": "Exported full notebook PDF ({count} pages): {path}",
   "@expExportAllPdf": {
     "placeholders": {
@@ -2430,14 +2418,8 @@
       }
     }
   },
-  "expExportAllPdfFail": "Failed to export full PDF: {error}",
-  "@expExportAllPdfFail": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
+  "expExportAllPdfFail": "Failed to export the full PDF. Please try again.",
+  "@expExportAllPdfFail": {},
   "expRenderFailHard": "Export failed: cannot render canvas",
   "@expRenderFailHard": {},
   "expExportPagedPdf": "Exported paged note PDF: {path}",
@@ -2448,14 +2430,8 @@
       }
     }
   },
-  "expExportPagedPdfFail": "Failed to export paged note PDF: {error}",
-  "@expExportPagedPdfFail": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
+  "expExportPagedPdfFail": "Failed to export the paged note PDF. Please try again.",
+  "@expExportPagedPdfFail": {},
   "expExportedSvgTo": "Exported SVG to: {path}",
   "@expExportedSvgTo": {
     "placeholders": {
@@ -2472,14 +2448,8 @@
       }
     }
   },
-  "expExportWordFail": "Failed to export Word-compatible document: {error}",
-  "@expExportWordFail": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
+  "expExportWordFail": "Failed to export the Word-compatible document. Please try again.",
+  "@expExportWordFail": {},
   "expExportedTextTo": "Exported text to: {path}",
   "@expExportedTextTo": {
     "placeholders": {

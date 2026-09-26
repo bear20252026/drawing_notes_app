@@ -103,4 +103,40 @@ void main() {
 
     expect(countPdfPages(bytes), 3);
   });
+
+  // 审计 2026-09-26 #38：notes 整本导出路径的 footer 接线专项断言——
+  // v1.17.22 的页脚特性只接了画布 tiled 路径，整本路径缺失；本组用例
+  // 锁死「footer 开启 → CJK 字体真嵌入（FontFile2）+ 页数不变」。
+  test('footer=false：无字体嵌入（Type1 默认字体现状回归锁）', () async {
+    final notebook = Notebook(id: 'nb', title: '无页脚整本')
+      ..pages.add(pageOf('p1', docOf('p1')));
+
+    final bytes = await NotebookPdfExporter.exportNotebook(notebook);
+
+    expect(String.fromCharCodes(bytes.sublist(0, 5)), '%PDF-');
+    expect(countPdfPages(bytes), 1);
+    expect(
+      String.fromCharCodes(bytes),
+      isNot(contains('FontFile2')),
+      reason: '默认 Type1 字体不嵌入文件（footer 关闭零开销）',
+    );
+  });
+
+  test('footer=true：CJK 字体真嵌入（FontFile2）且页数不变', () async {
+    final notebook = Notebook(id: 'nb', title: '页脚整本')
+      ..pages.addAll([pageOf('p1', docOf('p1')), pageOf('p2', docOf('p2'))]);
+
+    final bytes = await NotebookPdfExporter.exportNotebook(
+      notebook,
+      footer: true,
+    );
+
+    expect(String.fromCharCodes(bytes.sublist(0, 5)), '%PDF-');
+    expect(countPdfPages(bytes), 2, reason: '页脚不影响页集合');
+    expect(
+      String.fromCharCodes(bytes),
+      contains('FontFile2'),
+      reason: '中文标题页脚必须挂 CJK 字体主题（DroidSansFallbackFull 真字形嵌入）',
+    );
+  });
 }

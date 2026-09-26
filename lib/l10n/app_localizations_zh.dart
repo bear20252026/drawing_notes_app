@@ -2717,14 +2717,10 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String expExportFailErr(String error) {
-    return '导出失败：$error';
-  }
+  String get expExportFailErr => '导出失败，请重试';
 
   @override
-  String expCopyPlatformFail(String error) {
-    return '复制 PNG 需平台支持：$error';
-  }
+  String get expCopyPlatformFail => '复制 PNG 需平台支持';
 
   @override
   String expExportAllPdf(int count, String path) {
@@ -2732,9 +2728,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String expExportAllPdfFail(String error) {
-    return '导出整本 PDF 失败：$error';
-  }
+  String get expExportAllPdfFail => '导出整本 PDF 失败，请重试';
 
   @override
   String get expRenderFailHard => '导出失败：无法渲染画布';
@@ -2745,9 +2739,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String expExportPagedPdfFail(String error) {
-    return '导出分页笔记 PDF 失败：$error';
-  }
+  String get expExportPagedPdfFail => '导出分页笔记 PDF 失败，请重试';
 
   @override
   String expExportedSvgTo(String path) {
@@ -2760,9 +2752,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String expExportWordFail(String error) {
-    return '导出 Word 兼容文档失败：$error';
-  }
+  String get expExportWordFail => '导出 Word 兼容文档失败，请重试';
 
   @override
   String expExportedTextTo(String path) {

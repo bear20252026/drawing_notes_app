@@ -102,22 +102,27 @@ extension DocEditorToolbar on DocEditorState {
     required String tooltip,
     VoidCallback? onPressed,
   }) {
+    // 审计 2026-09-26 #13：InkWell 不自带 button 标志，图标钮补
+    // button 角色（label 复用 Tooltip 的 message，读屏不重复朗读）。
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppleSpacing.xxs),
-      child: Tooltip(
-        message: tooltip,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppleRadius.sm),
-          onTap: onPressed,
-          child: Padding(
-            // U4a：AppleSpacing.sm(12)→14——20px 图标 + 28 = 48px 触控目标。
-            padding: const EdgeInsets.all(14),
-            child: Icon(
-              icon,
-              size: 20,
-              color: onPressed != null
-                  ? Theme.of(context).colorScheme.onSurface
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
+      child: Semantics(
+        button: true,
+        child: Tooltip(
+          message: tooltip,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppleRadius.sm),
+            onTap: onPressed,
+            child: Padding(
+              // U4a：AppleSpacing.sm(12)→14——20px 图标 + 28 = 48px 触控目标。
+              padding: const EdgeInsets.all(14),
+              child: Icon(
+                icon,
+                size: 20,
+                color: onPressed != null
+                    ? Theme.of(context).colorScheme.onSurface
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ),

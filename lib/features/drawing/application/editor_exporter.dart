@@ -105,7 +105,7 @@ class EditorExporter {
         codec?.dispose();
       }
     } catch (e) {
-      showSnack(_l?.expCopyPlatformFail(e.toString()) ?? '复制 PNG 需平台支持：$e');
+      showSnack(_l?.expCopyPlatformFail ?? '复制 PNG 需平台支持');
     }
   }
 
@@ -132,7 +132,7 @@ class EditorExporter {
       await file.writeAsBytes(png, flush: true);
       showSnack(_l?.expExportedTo(location.path) ?? '已导出到：${location.path}');
     } catch (e) {
-      showSnack(_l?.expExportFailErr(e.toString()) ?? '导出失败：$e');
+      showSnack(_l?.expExportFailErr ?? '导出失败，请重试');
     }
   }
 
@@ -186,7 +186,7 @@ class EditorExporter {
       await file.writeAsBytes(bytes, flush: true);
       showSnack(_l?.expExportedTo(location.path) ?? '已导出到：${location.path}');
     } catch (e) {
-      showSnack(_l?.expExportFailErr(e.toString()) ?? '导出失败：$e');
+      showSnack(_l?.expExportFailErr ?? '导出失败，请重试');
     }
   }
 
@@ -269,7 +269,7 @@ class EditorExporter {
             '已导出整本 ${pages.length} 页 PDF：${location.path}',
       );
     } catch (e) {
-      showSnack(_l?.expExportAllPdfFail(e.toString()) ?? '导出整本 PDF 失败：$e');
+      showSnack(_l?.expExportAllPdfFail ?? '导出整本 PDF 失败，请重试');
     }
   }
 
@@ -423,7 +423,7 @@ class EditorExporter {
             '已导出 ${pages.length} 页 PDF：${location.path}',
       );
     } catch (e) {
-      showSnack(_l?.expExportFailErr(e.toString()) ?? '导出失败：$e');
+      showSnack(_l?.expExportFailErr ?? '导出失败，请重试');
     }
   }
 
@@ -497,7 +497,7 @@ class EditorExporter {
       await file.writeAsBytes(bytes, flush: true);
       showSnack(_l?.expExportedTo(location.path) ?? '已导出到：${location.path}');
     } catch (e) {
-      showSnack(_l?.expExportFailErr(e.toString()) ?? '导出失败：$e');
+      showSnack(_l?.expExportFailErr ?? '导出失败，请重试');
     }
   }
 
@@ -602,7 +602,7 @@ class EditorExporter {
         _l?.expExportPagedPdf(location.path) ?? '已导出分页笔记 PDF：${location.path}',
       );
     } catch (e) {
-      showSnack(_l?.expExportPagedPdfFail(e.toString()) ?? '导出分页笔记 PDF 失败：$e');
+      showSnack(_l?.expExportPagedPdfFail ?? '导出分页笔记 PDF 失败，请重试');
     }
   }
 
@@ -649,7 +649,7 @@ class EditorExporter {
         _l?.expExportedSvgTo(location.path) ?? '已导出 SVG 到：${location.path}',
       );
     } catch (e) {
-      showSnack(_l?.expExportFailErr(e.toString()) ?? '导出失败：$e');
+      showSnack(_l?.expExportFailErr ?? '导出失败，请重试');
     }
   }
 
@@ -687,7 +687,7 @@ class EditorExporter {
         _l?.expExportedWord(location.path) ?? '已导出 Word 兼容文档：${location.path}',
       );
     } catch (e) {
-      showSnack(_l?.expExportWordFail(e.toString()) ?? '导出 Word 兼容文档失败：$e');
+      showSnack(_l?.expExportWordFail ?? '导出 Word 兼容文档失败，请重试');
     }
   }
 
@@ -734,7 +734,7 @@ class EditorExporter {
         _l?.expExportedTextTo(location.path) ?? '已导出文本到：${location.path}',
       );
     } catch (e) {
-      showSnack(_l?.expExportFailErr(e.toString()) ?? '导出失败：$e');
+      showSnack(_l?.expExportFailErr ?? '导出失败，请重试');
     }
   }
 
@@ -837,7 +837,7 @@ class EditorExporter {
         _l?.expExportedPptxTo(location.path) ?? '已导出 PPTX 到：${location.path}',
       );
     } catch (e) {
-      showSnack(_l?.expExportFailErr(e.toString()) ?? '导出失败：$e');
+      showSnack(_l?.expExportFailErr ?? '导出失败，请重试');
     }
   }
 
@@ -862,7 +862,7 @@ class EditorExporter {
         _l?.expExportedJsonTo(location.path) ?? '已导出 JSON 到：${location.path}',
       );
     } catch (e) {
-      showSnack(_l?.expExportFailErr(e.toString()) ?? '导出失败：$e');
+      showSnack(_l?.expExportFailErr ?? '导出失败，请重试');
     }
   }
 }

@@ -2312,22 +2312,10 @@
       }
     }
   },
-  "expExportFailErr": "导出失败：{error}",
-  "@expExportFailErr": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "expCopyPlatformFail": "复制 PNG 需平台支持：{error}",
-  "@expCopyPlatformFail": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
+  "expExportFailErr": "导出失败，请重试",
+  "@expExportFailErr": {},
+  "expCopyPlatformFail": "复制 PNG 需平台支持",
+  "@expCopyPlatformFail": {},
   "expExportAllPdf": "已导出整本 {count} 页 PDF：{path}",
   "@expExportAllPdf": {
     "placeholders": {
@@ -2339,14 +2327,8 @@
       }
     }
   },
-  "expExportAllPdfFail": "导出整本 PDF 失败：{error}",
-  "@expExportAllPdfFail": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
+  "expExportAllPdfFail": "导出整本 PDF 失败，请重试",
+  "@expExportAllPdfFail": {},
   "expRenderFailHard": "导出失败：无法渲染画布",
   "@expRenderFailHard": {},
   "expExportPagedPdf": "已导出分页笔记 PDF：{path}",
@@ -2357,14 +2339,8 @@
       }
     }
   },
-  "expExportPagedPdfFail": "导出分页笔记 PDF 失败：{error}",
-  "@expExportPagedPdfFail": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
+  "expExportPagedPdfFail": "导出分页笔记 PDF 失败，请重试",
+  "@expExportPagedPdfFail": {},
   "expExportedSvgTo": "已导出 SVG 到：{path}",
   "@expExportedSvgTo": {
     "placeholders": {
@@ -2381,14 +2357,8 @@
       }
     }
   },
-  "expExportWordFail": "导出 Word 兼容文档失败：{error}",
-  "@expExportWordFail": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
+  "expExportWordFail": "导出 Word 兼容文档失败，请重试",
+  "@expExportWordFail": {},
   "expExportedTextTo": "已导出文本到：{path}",
   "@expExportedTextTo": {
     "placeholders": {

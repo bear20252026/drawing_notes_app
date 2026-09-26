@@ -47,22 +47,26 @@ class PdfTilePreviewPainter extends CustomPainter {
       Paint()..color = AppleColor.surfaceWhite,
     );
     // 各页：白纸 + 灰界线 + 页号。
-    final pageFill = Paint()..color = const ui.Color(0xFFFFFFFF);
+    // 审计 2026-09-26 #25：页纸白色统一走 AppleColor.surfaceWhite（与画布
+    // 底同源，原此处双写 0xFFFFFFFF）；页号字号随页框显示尺寸自适应
+    //（多页大内容 fit 缩小后页框不足 10px，固定字号会溢出页框互相重叠）。
+    final pageFill = Paint()..color = AppleColor.surfaceWhite;
     final pageBorder = Paint()
       ..color = AppleColor.inkMuted.withValues(alpha: 0.5)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
-    final textStyle = ui.TextStyle(color: AppleColor.ink, fontSize: 10);
     for (var i = 0; i < tiles.length; i++) {
       final r = map(tiles[i]);
       canvas.drawRect(r, pageFill);
       canvas.drawRect(r, pageBorder);
-      final builder = ui.ParagraphBuilder(ui.ParagraphStyle(fontSize: 10))
+      final fontSize = math.min(10.0, math.max(3.0, r.shortestSide / 4));
+      final textStyle = ui.TextStyle(color: AppleColor.ink, fontSize: fontSize);
+      final builder = ui.ParagraphBuilder(ui.ParagraphStyle(fontSize: fontSize))
         ..pushStyle(textStyle)
         ..addText('${i + 1}');
       final para = builder.build()
-        ..layout(ui.ParagraphConstraints(width: r.width));
-      canvas.drawParagraph(para, Offset(r.left + 4, r.top + 4));
+        ..layout(ui.ParagraphConstraints(width: math.max(r.width, 8)));
+      canvas.drawParagraph(para, Offset(r.left + 2, r.top + 2));
     }
     // 内容包围盒虚线：页网格恒等于内容包围盒按整页对齐，这里画外框强调。
     canvas.drawRect(map(union), pageBorder);

@@ -131,162 +131,181 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
           const SizedBox(height: 12),
           // 主导航 + 文档树
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              children: [
-                ..._buildNavGroup(context),
-                const SizedBox(height: 10),
-                ..._buildDocTree(context),
-              ],
-            ),
+            // 审计 2026-09-26 #30：ListView.builder 懒构建——文档多时行
+            // 组件延迟到滚动可见才构建（原 ListView(children:) 一次性
+            // 全量构建全部文档行）。索引布局：导航行 × N / 间隔 / 树头 /
+            // （展开时）文档行 × N。
+            child: Builder(builder: (context) {
+              final navCount = _navItemsOf(context).length;
+              final treeDocCount = _treeExpanded
+                  ? widget.recentDocs.length
+                  : 0;
+              // 展开且无文档 → 追加一行空态提示。
+              final showTreeEmpty = _treeExpanded && treeDocCount == 0;
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                itemCount: navCount + 2 + treeDocCount + (showTreeEmpty ? 1 : 0),
+                itemBuilder: (context, i) {
+                  if (i < navCount) return _buildNavItem(context, i);
+                  if (i == navCount) return const SizedBox(height: 10);
+                  if (i == navCount + 1) return _buildTreeHeader(context);
+                  final docIndex = i - navCount - 2;
+                  if (docIndex < treeDocCount) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 1),
+                      child: _buildDocTreeRow(
+                        context,
+                        widget.recentDocs[docIndex],
+                      ),
+                    );
+                  }
+                  return _buildTreeEmptyRow(context);
+                },
+              );
+            }),
           ),
         ],
       ),
     );
   }
 
-  List<Widget> _buildNavGroup(BuildContext context) {
+  Widget _buildNavItem(BuildContext context, int i) {
     final theme = Theme.of(context);
     final onSurface = theme.colorScheme.onSurface;
     final muted = AppleColor.mutedOf(theme.colorScheme);
     final accent = theme.colorScheme.primary;
 
-    return List.generate(_navItemsOf(context).length, (i) {
-      final selected = i == widget.selectedNavIndex;
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 1),
-        child: Material(
-          color: selected ? accent.withValues(alpha: 0.10) : Colors.transparent,
+    final selected = i == widget.selectedNavIndex;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: Material(
+        color: selected ? accent.withValues(alpha: 0.10) : Colors.transparent,
+        borderRadius: BorderRadius.circular(AppleRadius.sm),
+        child: InkWell(
           borderRadius: BorderRadius.circular(AppleRadius.sm),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(AppleRadius.sm),
-            onTap: () {
-              if (i == 3) {
-                widget.onOpenTrash?.call();
-                return;
-              }
-              widget.onNavSelected?.call(i);
-            },
-            child: Padding(
-              // U4a：vertical 8→12——导航行点击目标 ≥44px。
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              child: Row(
-                children: [
-                  Icon(
-                    _navItemsOf(context)[i].icon,
-                    size: 18,
-                    color: selected ? accent : muted,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      _navItemsOf(context)[i].label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style:
-                          AppleType.controlStyle(
-                            selected ? accent : onSurface,
-                          ).copyWith(
-                            fontWeight: selected
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                          ),
+          onTap: () {
+            if (i == 3) {
+              widget.onOpenTrash?.call();
+              return;
+            }
+            widget.onNavSelected?.call(i);
+          },
+          child: Padding(
+            // U4a：vertical 8→12——导航行点击目标 ≥44px。
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            child: Row(
+              children: [
+                Icon(
+                  _navItemsOf(context)[i].icon,
+                  size: 18,
+                  color: selected ? accent : muted,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _navItemsOf(context)[i].label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppleType.controlStyle(
+                      selected ? accent : onSurface,
+                    ).copyWith(
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
-      );
-    });
+      ),
+    );
   }
 
-  List<Widget> _buildDocTree(BuildContext context) {
+  /// 文档树头行（展开/折叠切换，点击目标 ≥44px）。
+  Widget _buildTreeHeader(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = AppleColor.mutedOf(theme.colorScheme);
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppleRadius.sm),
+      onTap: () => setState(() => _treeExpanded = !_treeExpanded),
+      child: Padding(
+        // U4a：vertical 8→12——文档树头点击目标 ≥44px。
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        child: Row(
+          children: [
+            Icon(
+              _treeExpanded
+                  ? Icons.keyboard_arrow_down_rounded
+                  : Icons.keyboard_arrow_right_rounded,
+              size: 18,
+              color: muted,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              AppLocalizations.of(context)?.docsTree ?? '文档树',
+              style: AppleType.captionStyle(
+                muted,
+              ).copyWith(fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 文档树单行（审计 #30：由 ListView.builder 按需构建）。
+  Widget _buildDocTreeRow(BuildContext context, AllDoc doc) {
     final theme = Theme.of(context);
     final onSurface = theme.colorScheme.onSurface;
     final muted = AppleColor.mutedOf(theme.colorScheme);
-    final widgets = <Widget>[
-      InkWell(
+    final visual = visualForKind(doc.kind);
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(AppleRadius.sm),
+      child: InkWell(
         borderRadius: BorderRadius.circular(AppleRadius.sm),
-        onTap: () => setState(() => _treeExpanded = !_treeExpanded),
+        onTap: () => widget.onOpenDoc?.call(doc),
         child: Padding(
-          // U4a：vertical 8→12——文档树头点击目标 ≥44px。
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          padding: const EdgeInsets.only(left: 24, right: 12),
           child: Row(
             children: [
-              Icon(
-                _treeExpanded
-                    ? Icons.keyboard_arrow_down_rounded
-                    : Icons.keyboard_arrow_right_rounded,
-                size: 18,
-                color: muted,
+              Icon(visual.icon, size: 16, color: visual.color),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  doc.title.isEmpty
+                      ? DomainDisplayLabels.docTitle(
+                          AppLocalizations.of(context),
+                          null,
+                        )
+                      : doc.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppleType.controlStyle(
+                    onSurface,
+                  ).copyWith(fontWeight: FontWeight.w400),
+                ),
               ),
-              const SizedBox(width: 8),
-              Text(
-                AppLocalizations.of(context)?.docsTree ?? '文档树',
-                style: AppleType.captionStyle(
-                  muted,
-                ).copyWith(fontWeight: FontWeight.w600),
-              ),
+              // N2：文件密码锁标（本会话未解锁）
+              if (doc.locked)
+                Icon(Icons.lock_outline_rounded, size: 13, color: muted),
             ],
           ),
         ),
       ),
-    ];
-    if (!_treeExpanded) return widgets;
-    for (final doc in widget.recentDocs) {
-      final visual = visualForKind(doc.kind);
-      widgets.add(
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 1),
-          child: Material(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(AppleRadius.sm),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(AppleRadius.sm),
-              onTap: () => widget.onOpenDoc?.call(doc),
-              child: Padding(
-                padding: const EdgeInsets.only(left: 24, right: 12),
-                child: Row(
-                  children: [
-                    Icon(visual.icon, size: 16, color: visual.color),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        doc.title.isEmpty
-                            ? DomainDisplayLabels.docTitle(AppLocalizations.of(context), null)
-                            : doc.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppleType.controlStyle(
-                          onSurface,
-                        ).copyWith(fontWeight: FontWeight.w400),
-                      ),
-                    ),
-                    // N2：文件密码锁标（本会话未解锁）
-                    if (doc.locked)
-                      Icon(Icons.lock_outline_rounded, size: 13, color: muted),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-    if (widget.recentDocs.isEmpty) {
-      widgets.add(
-        Padding(
-          padding: const EdgeInsets.only(left: 24, top: 4, bottom: 8),
-          child: Text(
-            AppLocalizations.of(context)?.docsNoDocs ?? '暂无文档',
-            style: AppleType.captionStyle(muted),
-          ),
-        ),
-      );
-    }
-    return widgets;
+    );
+  }
+
+  /// 展开且无文档时的空态行。
+  Widget _buildTreeEmptyRow(BuildContext context) {
+    final muted = AppleColor.mutedOf(Theme.of(context).colorScheme);
+    return Padding(
+      padding: const EdgeInsets.only(left: 24, top: 4, bottom: 8),
+      child: Text(
+        AppLocalizations.of(context)?.docsNoDocs ?? '暂无文档',
+        style: AppleType.captionStyle(muted),
+      ),
+    );
   }
 }
 

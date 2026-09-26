@@ -5243,14 +5243,14 @@ abstract class AppLocalizations {
   /// No description provided for @expExportFailErr.
   ///
   /// In en, this message translates to:
-  /// **'Export failed: {error}'**
-  String expExportFailErr(String error);
+  /// **'Export failed. Please try again.'**
+  String get expExportFailErr;
 
   /// No description provided for @expCopyPlatformFail.
   ///
   /// In en, this message translates to:
-  /// **'Copying PNG needs platform support: {error}'**
-  String expCopyPlatformFail(String error);
+  /// **'Copying PNG isn\'t supported on this platform'**
+  String get expCopyPlatformFail;
 
   /// No description provided for @expExportAllPdf.
   ///
@@ -5261,8 +5261,8 @@ abstract class AppLocalizations {
   /// No description provided for @expExportAllPdfFail.
   ///
   /// In en, this message translates to:
-  /// **'Failed to export full PDF: {error}'**
-  String expExportAllPdfFail(String error);
+  /// **'Failed to export the full PDF. Please try again.'**
+  String get expExportAllPdfFail;
 
   /// No description provided for @expRenderFailHard.
   ///
@@ -5279,8 +5279,8 @@ abstract class AppLocalizations {
   /// No description provided for @expExportPagedPdfFail.
   ///
   /// In en, this message translates to:
-  /// **'Failed to export paged note PDF: {error}'**
-  String expExportPagedPdfFail(String error);
+  /// **'Failed to export the paged note PDF. Please try again.'**
+  String get expExportPagedPdfFail;
 
   /// No description provided for @expExportedSvgTo.
   ///
@@ -5297,8 +5297,8 @@ abstract class AppLocalizations {
   /// No description provided for @expExportWordFail.
   ///
   /// In en, this message translates to:
-  /// **'Failed to export Word-compatible document: {error}'**
-  String expExportWordFail(String error);
+  /// **'Failed to export the Word-compatible document. Please try again.'**
+  String get expExportWordFail;
 
   /// No description provided for @expExportedTextTo.
   ///

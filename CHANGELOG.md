@@ -2,6 +2,51 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.27] - 2026-09-26
+
+### 审计批次 E（P2 清零 + P3 批量）：可达性 + 性能待办 + 测试基建
+
+> 来源：`docs/audit_full_2026-09-26.html`（全量审计 44 条）遗留项批次 E。
+
+- **导出总编排端到端测试（审计 #19，P2）**：新增
+  `editor_exporter_tiled_test`——真 DrawingController →
+  `exportPdfWithOptions(tiled)` → 逐页渲染 → isolate 合成 → 落盘全链路
+  （file_selector mock 到临时目录真实写文件）：生产等价输入 2 页 PDF
+  （%PDF + 进度信号序列 1/2、2/2、3/2）、isCancelled 静默中止、
+  confirmTiles 取消、200 页上限前置分支。锁死「单测手选 scale 通过、
+  生产恒单页」断层复发（v1.17.20/22 教训的端到端版回归锁）。
+- **整本导出页脚接线 + 测试（审计 #38，P3）**：复核确认 notes 整本
+  导出路径的 footer 并非缺测试而是**缺接线**（v1.17.22 只接了画布
+  tiled 路径）——`exportNotebook/exportPages` 补可选 `footer` 参数
+  （「页标题 · n / m」+ CJK 字体主题，与画布分页同源；默认 false 零
+  行为变化），测试 +2（footer=false 无嵌入回归锁 / footer=true
+  FontFile2 真字形嵌入 + 页数不变）。
+- **可达性（审计 #10/#13）**：PDF 导出面板主按钮移除硬编码白字（深色
+  主题对比度 ~1.7:1 → 主题 onPrimary 自适应）；画板顶栏色板钮与文档
+  格式工具条图标钮补 `Semantics(button: true)`（label 复用 Tooltip
+  message，读屏不重复朗读）。
+- **性能待办（审计 #30/#32，v1.17.25 记账项）**：桌面侧栏文档树改
+  `ListView.builder` 懒构建（索引布局：导航行/间隔/树头/文档行/空态，
+  行为视觉不变）；回收站 `listTrash` 轻量化 + isolate 化——整棵文档树
+  不再跨 isolate/进列表（沿用 listDocHeaders C4 的搬运反噬规避），
+  返回 `{id, title, deletedAt}` 轻量记录（UI 仅消费这三个字段），
+  jsonDecode 搬 `Isolate.run`，解密/信封判定依赖会话密钥留主 isolate；
+  `TrashPage` typedef 与 3 个测试文件同步适配。
+- **设计/交互小项（审计 #25/#26/#28/#29）**：切片预览画师页纸白色
+  统一 `AppleColor.surfaceWhite`（原双写 0xFFFFFFFF）+ 页号字号随页框
+  显示尺寸自适应；PDF 导出面板 5 组 SegmentedButton 触控高度 40→44
+  （M3 默认 < 44 触控下限）；分页切片单页时内容居中于纸张（与单页
+  大图档成页观感一致，消除「极小内容贴左上角 vs 居中」不一致——
+  多页网格原点语义不变）；`glass_nav_bar` MediaQuery 全量订阅改
+  aspect 化拼装（键盘弹出等 viewInsets 变化不再重建导航条子树）。
+- **导出错误文案收敛（审计 #40）**：12 处 `e.toString()` 原始异常不再
+  拼入用户可见 SnackBar——5 个 arb 键去 {error} 占位改安全文案
+  （zh/en 双语），失败详情不再暴露内部路径。
+- **#16 数据库视图虚拟化保持记账**：完整虚拟化需「限高内部滚动」或
+  「自绘表格」的交互/布局语义决策，超出批量收尾授权，维持待办。
+- 测试 +8（tiled 端到端 ×4、footer ×2、单页居中断言更新 ×1、
+  侧栏/回收站适配既有用例全绿）。
+
 ## [1.17.26] - 2026-09-26
 
 ### 审计批次 D（需单项决策项）：架构收口 + 对话框 Esc 全库基建 + 依赖清理

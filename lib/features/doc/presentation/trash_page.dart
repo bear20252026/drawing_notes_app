@@ -9,13 +9,13 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
-import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 import '../../../core/theme/apple_design.dart';
 
-/// 回收站条目（store.listTrash 的记录类型）。
-typedef TrashEntry = ({NoteBlockDoc doc, DateTime deletedAt});
+/// 回收站条目（store.listTrash 的轻量记录类型，审计 2026-09-26 #32：
+/// 整棵文档树不跨 isolate/不进列表，UI 只消费 id/title/deletedAt）。
+typedef TrashEntry = ({String id, String title, DateTime deletedAt});
 
 /// 回收站页。
 class TrashPage extends StatefulWidget {
@@ -55,14 +55,14 @@ class _TrashPageState extends State<TrashPage> {
       context,
       title: AppLocalizations.of(context)?.trashDeleteForeverTitle ?? '彻底删除',
       content:
-          '「${entry.doc.title.isEmpty ? '未命名' : entry.doc.title}」'
+          '「${entry.title.isEmpty ? '未命名' : entry.title}」'
           '将被永久删除，无法恢复。确定继续吗？',
       confirmText:
           AppLocalizations.of(context)?.trashDeleteForeverTitle ?? '彻底删除',
       dangerous: true,
     );
     if (ok) {
-      await widget.onPurge(entry.doc.id);
+      await widget.onPurge(entry.id);
       await _reload();
     }
   }
@@ -115,9 +115,9 @@ class _TrashPageState extends State<TrashPage> {
                 return ListTile(
                   leading: const Icon(Icons.edit_note_rounded),
                   title: Text(
-                    entry.doc.title.isEmpty
+                    entry.title.isEmpty
                         ? DomainDisplayLabels.docTitle(AppLocalizations.of(context), null)
-                        : entry.doc.title,
+                        : entry.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -138,7 +138,7 @@ class _TrashPageState extends State<TrashPage> {
                             AppLocalizations.of(context)?.trashRestore ?? '恢复',
                         icon: const Icon(Icons.restore_rounded),
                         onPressed: () async {
-                          await widget.onRestore(entry.doc.id);
+                          await widget.onRestore(entry.id);
                           await _reload();
                         },
                       ),

@@ -5,6 +5,41 @@
 
 part of 'note_block_doc_store.dart';
 
+/// 回收站条目轻量解析（isolate 内执行，审计 2026-09-26 #32）。
+///
+/// 旧 envelope 返回内容内 deletedAt；新原子格式返回 deletedAt=null（由
+/// 调用方读 sidecar/mtime 补齐）。id 缺失或损坏内容返回 null（fail-closed
+/// 丢弃，与原 NoteBlockDoc.fromJson 的必填 id 断言同口径）。
+({String id, String title, DateTime? deletedAt})? parseTrashDocMeta(
+  String content,
+) {
+  try {
+    final decoded = jsonDecode(content);
+    if (decoded is! Map<String, dynamic>) return null;
+    final docRaw = decoded['document'];
+    if (docRaw is Map<String, dynamic>) {
+      final deletedAt = timeFromIsoOrNull(decoded['deletedAt']);
+      if (deletedAt == null) return null;
+      final id = docRaw['id'] as String?;
+      if (id == null) return null;
+      return (
+        id: id,
+        title: docRaw['title'] as String? ?? '',
+        deletedAt: deletedAt,
+      );
+    }
+    final id = decoded['id'] as String?;
+    if (id == null) return null;
+    return (
+      id: id,
+      title: decoded['title'] as String? ?? '',
+      deletedAt: null,
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
 extension NoteBlockDocStoreTrash on NoteBlockDocStore {
   /// 读回收站条目内容（批次①c）：激活区 rename 进来的文件可能是密文，
   /// 解密后返回文本；锁定/损坏返回 null（调用方跳过——fail-closed）。
@@ -165,40 +200,34 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
     return source.lastModifiedSync();
   }
 
-  /// 解码回收站条目：兼容两种格式——
-  /// 旧 envelope（{deletedAt, document}）与 M12.6b 原子格式
-  /// （裸文档 json + `<id>.meta.json` sidecar；meta 缺失时用文件修改时间）。
+  /// 解码回收站条目为轻量记录（审计 2026-09-26 #32）：已解密文本的
+  /// jsonDecode + 字段提取搬进 Isolate.run——整棵文档树不跨 isolate
+  /// （沿用 listDocHeaders C4 的搬运反噬规避；UI 只消费 id/title）。
+  /// 解密与信封判定依赖会话密钥（_currentKey/_sessionDeks），必须留在
+  /// 主 isolate。
   ///
-  /// U5b（审计 P1-18）：meta 读取由 existsSync/readAsStringSync/
-  /// lastModifiedSync 改为异步——打开回收站在 UI isolate 上执行，
-  /// 同步 IO 会在条目多时卡列表。
-  Future<({NoteBlockDoc doc, DateTime deletedAt})?> _decodeTrashEntry(
-    String content,
-    File source,
-  ) async {
-    try {
-      final decoded = jsonDecode(content);
-      if (decoded is! Map<String, dynamic>) return null;
-      final docRaw = decoded['document'];
-      if (docRaw is Map<String, dynamic>) {
-        final deletedAt = timeFromIsoOrNull(decoded['deletedAt']);
-        if (deletedAt == null) return null;
-        return (doc: NoteBlockDoc.fromJson(docRaw), deletedAt: deletedAt);
-      }
-      final doc = NoteBlockDoc.fromJson(decoded);
-      return (doc: doc, deletedAt: await _deletedAtOf(source));
-    } catch (_) {
-      return null;
-    }
+  /// 兼容两种格式——旧 envelope（{deletedAt, document}）与 M12.6b 原子
+  /// 格式（裸文档 json + `<id>.meta.json` sidecar；meta 缺失时用文件
+  /// 修改时间）。U5b（审计 P1-18）：meta 读取保持异步。
+  Future<({String id, String title, DateTime deletedAt})?>
+  _decodeTrashEntry(String content, File source) async {
+    final parsed = await Isolate.run(() => parseTrashDocMeta(content));
+    if (parsed == null) return null;
+    return (
+      id: parsed.id,
+      title: parsed.title,
+      deletedAt: parsed.deletedAt ?? await _deletedAtOf(source),
+    );
   }
 
-  /// 列出回收站条目（按删除时间倒序）。
+  /// 列出回收站条目（按删除时间倒序，轻量记录——审计 #32）。
   ///
   /// N2：受密且未解锁的条目给「加密笔记」占位（fail-closed 不泄露标题，
   /// 与 listDocHeaders 同口径；仍可恢复——restore 对信封条目是纯 rename）。
-  Future<List<({NoteBlockDoc doc, DateTime deletedAt})>> listTrash() async {
+  Future<List<({String id, String title, DateTime deletedAt})>>
+  listTrash() async {
     final dir = await _ensureTrashDir();
-    final entries = <({NoteBlockDoc doc, DateTime deletedAt})>[];
+    final entries = <({String id, String title, DateTime deletedAt})>[];
     await for (final entity in dir.list()) {
       if (entity is! File || !entity.path.endsWith('.json')) continue;
       if (entity.path.endsWith('.meta.json')) continue;
@@ -210,15 +239,7 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
           if (!NoteBlockDocStore.isValidId(id)) continue;
           // C14：锁定占位条目同走修复后的 deletedAt 读取（json sidecar）。
           final deletedAt = await _deletedAtOf(entity);
-          entries.add((
-            doc: NoteBlockDoc(
-              id: id,
-              title: '加密笔记',
-              createdAt: deletedAt,
-              updatedAt: deletedAt,
-            ),
-            deletedAt: deletedAt,
-          ));
+          entries.add((id: id, title: '加密笔记', deletedAt: deletedAt));
           continue;
         }
         final entry = await _decodeTrashEntry(content, entity);

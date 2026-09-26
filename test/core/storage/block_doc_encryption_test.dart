@@ -130,7 +130,7 @@ void main() {
 
     // 回收站列表可解密读出标题（密文内容经 _readTrashContent 解密）。
     final trash = await store.listTrash();
-    expect(trash.map((t) => t.doc.id), contains('cycle_b'));
+    expect(trash.map((t) => t.id), contains('cycle_b'));
 
     // 恢复后原位可读（内容不丢）。
     await store.restoreDocument('cycle_b');

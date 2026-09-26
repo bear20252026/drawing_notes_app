@@ -73,7 +73,16 @@ class GlassNavigationBar extends StatelessWidget {
             height: kHeight,
             child: Builder(
               builder: (innerContext) {
-                final mq = MediaQuery.of(innerContext);
+                // 审计 2026-09-26 #29：aspect 化读取拼装——只订阅
+                // NavigationBar 实际消费的维度（padding/viewPadding/
+                // textScaler/devicePixelRatio），键盘弹出等 viewInsets
+                // 变化不再重建导航条子树（原 MediaQuery.of 全量订阅）。
+                final mq = MediaQueryData(
+                  padding: MediaQuery.paddingOf(innerContext),
+                  viewPadding: MediaQuery.viewPaddingOf(innerContext),
+                  textScaler: MediaQuery.textScalerOf(innerContext),
+                  devicePixelRatio: MediaQuery.devicePixelRatioOf(innerContext),
+                );
                 return MediaQuery(
                   // 胶囊内不再吃任何底部注入：外层 SafeArea 已完成系统栏
                   // 让位，Scaffold 的 extendBody 注入只应被 body 页面消费，
