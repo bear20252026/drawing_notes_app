@@ -77,11 +77,15 @@ class _NotebookReaderPageState extends State<NotebookReaderPage> {
   @override
   Widget build(BuildContext context) {
     final pages = widget.notebook.pages;
-    final surface = Theme.of(context).colorScheme.surface;
+    // 沉浸深色 chrome（审计 #4）：原取主题 surface——浅色模式 ≈ 白底，
+    // 与硬编码白系前景（标题/前景/空态）对比度 ≈ 1:1。翻页阅读是
+    // 沉浸式查看器（同页码药丸的黑系设计意图，PDF 阅读惯例），背景
+    // 恒深、纸面（_ReaderSheet 画布）自白。
+    const immersiveBg = Colors.black;
     return Scaffold(
-      backgroundColor: surface,
+      backgroundColor: immersiveBg,
       appBar: AppBar(
-        backgroundColor: surface,
+        backgroundColor: immersiveBg,
         foregroundColor: Colors.white70,
         title: Text(
           AppLocalizations.of(context)?.readerTitle(widget.notebook.title) ??

@@ -76,15 +76,22 @@ class GlassDialog {
   /// `显式参数 ?? dialogTheme ?? M3 默认`，故调用点未显式定制表面时
   /// 覆盖必然生效（若调用点显式写了 backgroundColor 等参数，
   /// 玻璃会被其色板压住——这是调用点的锅，需自行移除）。
+  ///
+  /// [canPop]（审计 2026-09-26 #3 基建）：`barrierDismissible` 只拦
+  /// barrier 点击，系统返回键走的是路由 pop——进度类模态传 `false`
+  /// 拦截返回键，防止 finally 的 `navigator.pop()` 误弹栈顶的编辑器路由。
+  /// 默认 true，既有调用点零行为变化。
   static Future<T?> show<T>({
     required BuildContext context,
     required WidgetBuilder builder,
     bool barrierDismissible = true,
+    bool canPop = true,
   }) {
     return showDialog<T>(
       context: context,
       barrierDismissible: barrierDismissible,
-      builder: (dialogContext) => _glassShell(builder(dialogContext)),
+      builder: (dialogContext) =>
+          PopScope(canPop: canPop, child: _glassShell(builder(dialogContext))),
     );
   }
 

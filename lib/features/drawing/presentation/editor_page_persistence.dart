@@ -141,43 +141,67 @@ extension _EditorPagePersistence on _EditorPageState {
     final navigator = Navigator.of(context, rootNavigator: true);
     final progress = ValueNotifier<int>(0);
     var total = 0;
+    // 对话框开合状态（审计 #3/#9）：取消按钮 pop 后同步置 false——
+    // finally 据此不再重复 pop（canPop 不辨对象会把此刻栈顶的编辑器
+    // 路由弹掉）；同时作为 exporter 的取消轮询信号。
+    var dialogOpen = true;
+    // 审计 #24：出场动画期间对话框仍订阅 progress，pop 启动动画即
+    // dispose 会触碰已释放 notifier——捕获路由完全退出时机再释放
+    // （复用 _renameCanvas 的 routeExited 手法）。
+    var routeExited = Future<void>.value();
     unawaited(
       GlassDialog.show<void>(
         context: context,
         barrierDismissible: false,
-        builder: (_) => ValueListenableBuilder<int>(
-          valueListenable: progress,
-          builder: (context, done, _) => AlertDialog(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2.5),
-                ),
-                const SizedBox(height: AppleSpacing.md),
-                Text(
-                  done == 0
-                      ? (AppLocalizations.of(context)?.pdfExporting ??
-                            '正在导出 PDF…')
-                      : (done >= total && total > 0
-                            ? (AppLocalizations.of(
-                                    context,
-                                  )?.pdfExportComposing ??
-                                  '正在合成 PDF…')
-                            : (AppLocalizations.of(
-                                    context,
-                                  )?.pdfExportRenderingPage(done, total) ??
-                                  '正在渲染第 $done / $total 页')),
-                  style: AppleType.controlStyle(
-                    Theme.of(context).colorScheme.onSurface,
+        canPop: false, // 返回键拦截（审计 #3）：进度模态不可被系统返回关闭
+        builder: (dialogContext) {
+          routeExited = ModalRoute.of(dialogContext)!.completed;
+          return ValueListenableBuilder<int>(
+            valueListenable: progress,
+            builder: (context, done, _) => AlertDialog(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2.5),
                   ),
+                  const SizedBox(height: AppleSpacing.md),
+                  Text(
+                    done == 0
+                        ? (AppLocalizations.of(context)?.pdfExporting ??
+                              '正在导出 PDF…')
+                        : (done > total
+                              ? (AppLocalizations.of(
+                                      context,
+                                    )?.pdfExportComposing ??
+                                    '正在合成 PDF…')
+                              : (AppLocalizations.of(
+                                      context,
+                                    )?.pdfExportRenderingPage(done, total) ??
+                                    '正在渲染第 $done / $total 页')),
+                    style: AppleType.controlStyle(
+                      Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+              // 取消按钮（审计 #9）：200 页 × 每页光栅 + isolate 合成
+              // 可持续数分钟，必须给出口；关闭对话框即置取消信号，
+              // exporter 在下一页渲染前静默中止。
+              actions: AppleDialog.actions([
+                TextButton(
+                  onPressed: () {
+                    dialogOpen = false;
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
                 ),
-              ],
+              ]),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
     try {
@@ -193,9 +217,11 @@ extension _EditorPagePersistence on _EditorPageState {
           progress.value = done;
         },
         confirmTiles: _confirmTileLayout,
+        isCancelled: () => !dialogOpen,
       );
     } finally {
-      if (navigator.canPop()) navigator.pop();
+      if (dialogOpen && navigator.canPop()) navigator.pop();
+      await routeExited;
       progress.dispose();
     }
   }
@@ -206,6 +232,9 @@ extension _EditorPagePersistence on _EditorPageState {
     if (!mounted) return false;
     final choice = await GlassDialog.show<bool>(
       context: context,
+      // 审计 #22：默认 true 时误触弹窗外空白 → 返回 null → 按 false
+      // 处理 → 整个导出被静默取消且无任何反馈。确认框必须显式点击。
+      barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         title: Text(
           AppLocalizations.of(context)?.pdfTilePreviewTitle ?? '确认分页方式',

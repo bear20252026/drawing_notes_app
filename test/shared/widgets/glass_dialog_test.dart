@@ -427,5 +427,82 @@ void main() {
       // 弹窗仍在。
       expect(find.text('MODAL_TITLE'), findsOneWidget);
     });
+
+    // 审计 2026-09-26 #3：barrierDismissible 只拦 barrier 点击，系统
+    // 返回键走路由 pop——进度类模态传 canPop:false 拦截。
+    testWidgets('canPop=false 时系统返回键不关闭', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => Center(
+                child: FilledButton(
+                  onPressed: () {
+                    GlassDialog.show<bool>(
+                      context: context,
+                      canPop: false,
+                      builder: (dialogContext) => AlertDialog(
+                        title: const Text('POPGUARD_TITLE'),
+                        content: const Text('c'),
+                        actions: <Widget>[
+                          TextButton(
+                            onPressed: () => Navigator.of(dialogContext).pop(),
+                            child: const Text('关闭'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: const Text('OPEN'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('OPEN'));
+      await settle(tester);
+      // 模拟系统返回键（WidgetsBinding.handlePopRoute → maybePop，
+      // 受 PopScope.canPop=false 拦截）。
+      await tester.binding.handlePopRoute();
+      await settle(tester);
+      expect(find.text('POPGUARD_TITLE'), findsOneWidget);
+    });
+
+    testWidgets('默认 canPop=true 系统返回键可关闭（既有行为回归保护）', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => Center(
+                child: FilledButton(
+                  onPressed: () {
+                    GlassDialog.show<bool>(
+                      context: context,
+                      builder: (dialogContext) => AlertDialog(
+                        title: const Text('POPTHROUGH_TITLE'),
+                        content: const Text('c'),
+                        actions: <Widget>[
+                          TextButton(
+                            onPressed: () => Navigator.of(dialogContext).pop(),
+                            child: const Text('关闭'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: const Text('OPEN'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('OPEN'));
+      await settle(tester);
+      await tester.binding.handlePopRoute();
+      await settle(tester);
+      expect(find.text('POPTHROUGH_TITLE'), findsNothing);
+    });
   });
 }

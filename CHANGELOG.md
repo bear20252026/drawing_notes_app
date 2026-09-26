@@ -2,6 +2,34 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.24] - 2026-09-26
+
+### 审计批次 B（高优）：导出对话框生命周期统一收口 + 阅读页配色修复
+
+> 来源：`docs/audit_full_2026-09-26.html`（全量审计 44 条）批次 B。
+
+- **返回键拦截基建（审计 #3）**：`GlassDialog.show` 新增 `canPop`
+  参数（默认 true，既有调用点零行为变化）——`barrierDismissible`
+  只拦 barrier 点击，系统返回键走路由 pop；进度类模态传 false，
+  杜绝 finally 的 `navigator.pop()` 误弹栈顶编辑器路由。
+- **逐页导出可取消（审计 #9）**：进度模态新增「取消」按钮，经
+  `exportPdfWithOptions(isCancelled:)` 轮询在下一页渲染前静默中止
+  （200 页 × 每页光栅 + isolate 合成可持续数分钟，此前唯一出口是
+  问题 #3 的返回键 bug）。
+- **进度 off-by-one 修正（审计 #23）**：`onProgress` 语义改为
+  「当前正在渲染的页号」（1-based，渲染前回调）——原口径第 1 页
+  渲染期间显示"第 1/m 页"实际在渲染第 2 页，末页 m/m 永不可达；
+  合成阶段改发 `total+1` 信号（同值会撞 ValueNotifier 槽）。
+- **dispose 时序修正（审计 #24）**：进度 ValueNotifier 在出场动画
+  完成后才释放（复用 `_renameCanvas` 的 routeExited 手法）——原
+  pop 启动动画即 dispose，动画期间对话框重建会触碰已释放 notifier。
+- **切片确认框防误触（审计 #22）**：`barrierDismissible: false`——
+  原误触弹窗外空白 → 返回 null → 整个导出被静默取消且无反馈。
+- **翻页阅读页深色沉浸（审计 #4）**：Scaffold/AppBar 背景从主题
+  surface（浅色 ≈ 白底）改为沉浸黑，与硬编码白系前景对比度从
+  ≈1:1 恢复（对齐页码药丸黑系的设计意图，纸面仍白）。
+- 测试 +2：GlassDialog canPop 返回键拦截 / 默认放行回归保护。
+
 ## [1.17.23] - 2026-09-26
 
 ### 审计批次 A（紧急）：分页导出三处功能性修复 + KDF 测试标签收口

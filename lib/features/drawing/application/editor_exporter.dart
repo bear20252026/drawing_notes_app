@@ -196,7 +196,7 @@ class EditorExporter {
   ///   [NotebookPdfExporter.exportPages]（多会话快照经 [allPagesProvider]）；
   /// - 独立画布：单页 hybrid 导出（纸张适配 + 质量透传）；
   ///   v1.17.20 布局档位 按纸张分页 → [_exportCanvasPdfTiled]
-  ///   （v1.17.22：页序/页脚/进度回调/切片预览确认）。
+  ///   （v1.17.22：页序/页脚/进度回调/切片预览确认；v1.17.24：取消轮询）。
   Future<void> exportPdfWithOptions({
     required PdfPaper paper,
     required PdfQuality quality,
@@ -206,6 +206,7 @@ class EditorExporter {
     bool footer = false,
     void Function(int done, int total)? onProgress,
     Future<bool> Function(List<ui.Rect> tiles)? confirmTiles,
+    bool Function()? isCancelled,
   }) async {
     final page = _page;
     if (page != null) {
@@ -233,6 +234,7 @@ class EditorExporter {
         footer: footer,
         onProgress: onProgress,
         confirmTiles: confirmTiles,
+        isCancelled: isCancelled,
       );
       return;
     }
@@ -286,6 +288,11 @@ class EditorExporter {
   /// （原 fitContentOnPaper 口径使切片恒为 1×1 单页）；页数上限经
   /// [sliceContentIntoPages] 的 maxPages 前置拦截；页脚挂 CJK 字体
   /// 主题（默认 Type1 latin1 编不了中文标题）。
+  ///
+  /// v1.17.24：[isCancelled] 取消轮询（每页渲染前检查，true = 静默
+  /// 中止，不发 snack——用户主动取消）；[onProgress] 页号对齐修正
+  /// （审计 #23 off-by-one）：渲染第 i 页前 call(i+1)，合成开始
+  /// call(total+1)——UI 以 done>total 判别合成阶段。
   Future<void> _exportCanvasPdfTiled({
     required PdfPaper paper,
     required PdfQuality quality,
@@ -293,6 +300,7 @@ class EditorExporter {
     bool footer = false,
     void Function(int done, int total)? onProgress,
     Future<bool> Function(List<ui.Rect> tiles)? confirmTiles,
+    bool Function()? isCancelled,
   }) async {
     try {
       final content = controller.document.infinite
@@ -352,7 +360,11 @@ class EditorExporter {
       final pages = <PdfPageInput>[];
       for (var i = 0; i < total; i++) {
         final tile = tiles[i];
-        onProgress?.call(i, total);
+        // 取消轮询（审计 #9）：用户点取消后静默中止，不弹部分结果。
+        if (isCancelled?.call() ?? false) return;
+        // 页号对齐（审计 #23 off-by-one）：done = 当前正在渲染的页号
+        // （1-based），不再是"已完成页数"。
+        onProgress?.call(i + 1, total);
         // 光栅层：只渲染本页区域（钢笔矢量排除，同单页管线）。
         final png = await controller.renderToPng(
           scale: s,
@@ -387,7 +399,9 @@ class EditorExporter {
           ),
         );
       }
-      onProgress?.call(total, total);
+      // 合成信号（审计 #23）：done = total+1 区分「渲染末页」与「合成」
+      // （同值会撞 ValueNotifier 槽，末页 m/m 就永远显示不出来）。
+      onProgress?.call(total + 1, total);
       final bytes = await PdfHybridExporter.exportMultiPage(
         pages: pages,
         cjkFontData: cjkFontData,
