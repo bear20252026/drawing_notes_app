@@ -7,6 +7,7 @@ import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
+import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'package:drawing_notes_app/core/theme/app_locale_controller.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/features/notes/presentation/app_lock_settings_page.dart';
@@ -136,6 +137,22 @@ void main() {
       await tester.pumpWidget(const MaterialApp(home: SettingsPage()));
       expect(find.text('导出诊断信息'), findsOneWidget);
       expect(find.text('脱敏日志，帮助排查问题'), findsOneWidget);
+    });
+
+    testWidgets('备份/恢复入口：注入数据根后显示，未注入隐藏（批次 M）', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+
+      // 未注入 AppDataRoot：两行隐藏（测试装配兼容）。
+      await tester.pumpWidget(const MaterialApp(home: SettingsPage()));
+      expect(find.text('备份全部数据'), findsNothing);
+      expect(find.text('从备份恢复'), findsNothing);
+
+      // 注入后可见（不点按——打包/恢复流涉及文件选择器，服务级测试覆盖）。
+      await tester.pumpWidget(
+        MaterialApp(home: SettingsPage(appDataRoot: AppDataRoot())),
+      );
+      expect(find.text('备份全部数据'), findsOneWidget);
+      expect(find.text('从备份恢复'), findsOneWidget);
     });
 
     testWidgets('单文件密码：帮助弹窗展示说明', (tester) async {

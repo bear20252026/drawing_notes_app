@@ -12,6 +12,8 @@ import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
+import 'package:drawing_notes_app/core/storage/app_data_root.dart';
+import 'package:drawing_notes_app/core/storage/backup_service.dart';
 import 'package:drawing_notes_app/core/theme/app_locale_controller.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/features/notes/presentation/app_lock_settings_page.dart';
@@ -35,6 +37,7 @@ class SettingsPage extends StatelessWidget {
     this.quickUnlockService,
     this.themeController,
     this.localeController,
+    this.appDataRoot,
   });
 
   /// 应用锁服务（应用锁入口需要；null 时隐藏应用锁入口）。
@@ -51,6 +54,9 @@ class SettingsPage extends StatelessWidget {
 
   /// 语言控制器（语言入口需要；null 时隐藏语言入口）。
   final AppLocaleController? localeController;
+
+  /// 统一数据根（备份/恢复入口需要；null 时隐藏两行——测试装配兼容）。
+  final AppDataRoot? appDataRoot;
 
   @override
   Widget build(BuildContext context) {
@@ -163,6 +169,24 @@ class SettingsPage extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (appDataRoot != null) ...[
+                  ListTile(
+                    leading: const Icon(Icons.archive_outlined),
+                    title: Text(l10n?.settingsBackup ?? '备份全部数据'),
+                    subtitle:
+                        Text(l10n?.settingsBackupHint ?? '打包全部笔记与设置（含密钥文件，请妥善保管）'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => _createBackup(context),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.restore_rounded),
+                    title: Text(l10n?.settingsRestore ?? '从备份恢复'),
+                    subtitle:
+                        Text(l10n?.settingsRestoreHint ?? '覆盖当前数据，重启应用后生效'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => _startRestore(context),
+                  ),
+                ],
                 ListTile(
                   leading: const Icon(Icons.bug_report_outlined),
                   title: Text(l10n?.settingsDiagnostics ?? '导出诊断信息'),
@@ -278,6 +302,109 @@ class SettingsPage extends StatelessWidget {
         context,
         l10n?.settingsDiagnosticsExportFail ?? '导出失败，请重试',
       );
+    }
+  }
+
+  /// 备份全部数据（批次 M）：数据根整体打包为 zip（含 manifest 与密钥
+  /// 文件），用户选位置保存。打包在 isolate 内执行，大目录不卡 UI。
+  Future<void> _createBackup(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    try {
+      final dataRoot = await appDataRoot!.root();
+      final now = DateTime.now();
+      final stamp =
+          '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}'
+          '_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
+      final location = await getSaveLocation(
+        suggestedName: 'drawing_notes_backup_$stamp.zip',
+        acceptedTypeGroups: [
+          XTypeGroup(
+            label: l10n?.fileTypeBackup ?? '绘图笔记备份',
+            extensions: const ['zip'],
+          ),
+        ],
+      );
+      if (location == null) return; // 用户取消
+      await BackupService.createBackup(
+        dataRoot: dataRoot,
+        destinationPath: location.path,
+      );
+      if (!context.mounted) return;
+      AppSnack.show(context, l10n?.backupExported ?? '备份已导出');
+    } catch (e) {
+      AuditLogger.log(
+        'settings.backup.export_failed',
+        success: false,
+        detail: e.runtimeType.toString(),
+      );
+      if (!context.mounted) return;
+      AppSnack.show(context, l10n?.backupFailed ?? '备份失败，请重试');
+    }
+  }
+
+  /// 从备份恢复（批次 M）：选包 → 校验并解压到暂存 → 强确认 → 退出应用；
+  /// 下次启动 main() 早期 applyPendingRestore 原子换目录后自动生效。
+  Future<void> _startRestore(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    try {
+      final docsDir = await appDataRoot!.documentsDirectory();
+      final selected = await openFile(
+        acceptedTypeGroups: [
+          XTypeGroup(
+            label: l10n?.fileTypeBackup ?? '绘图笔记备份',
+            extensions: const ['zip'],
+          ),
+        ],
+      );
+      if (selected == null) return; // 用户取消
+      await BackupService.stageRestore(
+        backupPath: selected.path,
+        documentsDir: docsDir,
+      );
+      if (!context.mounted) return;
+      final proceed = await GlassDialog.confirm(
+        context,
+        title: l10n?.restoreConfirmTitle ?? '从备份恢复',
+        content:
+            l10n?.restoreConfirmBody ??
+                '恢复将覆盖当前全部数据（含保险库密钥）。数据已就绪，'
+                    '确认后应用将退出，重新打开时生效。',
+        confirmText: l10n?.restoreConfirmAction ?? '确认恢复',
+        dangerous: true,
+      );
+      if (proceed != true) {
+        // 用户取消：清掉刚写的标记与暂存，保持现网原状。
+        try {
+          final marker = File(
+            '${docsDir.path}${Platform.pathSeparator}'
+                '${AppDataRoot.pendingRestoreMarkerName}',
+          );
+          if (marker.existsSync()) {
+            final stagingPath = (await marker.readAsString()).trim();
+            await marker.delete();
+            final staging = Directory(stagingPath);
+            if (stagingPath.isNotEmpty && staging.existsSync()) {
+              await staging.delete(recursive: true);
+            }
+          }
+        } catch (_) {
+          // 清理失败不阻塞——残留暂存会在下次成功恢复或重启时被处理。
+        }
+        return;
+      }
+      // 用户确认：退出应用；下次启动 applyPendingRestore 完成交换。
+      exit(0);
+    } on FormatException {
+      if (!context.mounted) return;
+      AppSnack.show(context, l10n?.restoreInvalid ?? '无效的备份文件');
+    } catch (e) {
+      AuditLogger.log(
+        'settings.backup.restore_failed',
+        success: false,
+        detail: e.runtimeType.toString(),
+      );
+      if (!context.mounted) return;
+      AppSnack.show(context, l10n?.restoreFailed ?? '恢复失败，请重试');
     }
   }
 }

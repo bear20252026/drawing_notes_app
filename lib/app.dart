@@ -200,6 +200,7 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
               docStorage: _documentStorage,
               themeController: _themeController,
               localeController: _localeController,
+              appDataRoot: _appDataRoot,
               editorPageBuilder: DefaultEditorPageBuilder.build,
               blockDocStore: _blockDocStore,
               favoriteStore: _favoriteStore,

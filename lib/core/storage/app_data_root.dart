@@ -41,6 +41,9 @@ class AppDataRoot {
   /// 文档目录提供者（测试注入；默认系统文档目录）。
   final Future<Directory> Function()? documentsDirProvider;
 
+  /// 文档目录（备份恢复的暂存定位用；公开只读出口，批次 M）。
+  Future<Directory> documentsDirectory() => _documentsDir();
+
   /// 支持目录提供者（测试注入；默认系统应用支持目录）。
   final Future<Directory> Function()? supportDirProvider;
 
@@ -49,6 +52,83 @@ class AppDataRoot {
 
   /// 默认根目录名（系统文档目录下的可见文件夹）。
   static const String defaultRootName = '绘图笔记数据';
+
+  /// 待恢复标记文件名（与数据根同级，位于文档目录直下；批次 M 2026-09-27）。
+  /// 内容为暂存目录绝对路径，由 [writePendingRestoreMarker] 写入、
+  /// [applyPendingRestore] 在下次启动早期消费。
+  static const String pendingRestoreMarkerName =
+      '$defaultRootName.restore_pending';
+
+  /// 写入待恢复标记（恢复流第三步：暂存解压完成后、退出应用前调用）。
+  static Future<void> writePendingRestoreMarker({
+    required Directory documentsDir,
+    required String stagingPath,
+  }) async {
+    final marker = File(
+      '${documentsDir.path}${Platform.pathSeparator}$pendingRestoreMarkerName',
+    );
+    await marker.writeAsString(stagingPath, flush: true);
+  }
+
+  /// 应用待恢复标记（批次 M）：main() 早期调用——此刻无任何存储打开，
+  /// 目录交换原子且无文件锁。返回是否执行了恢复。
+  ///
+  /// fail-safe：标记存在但暂存目录/清单缺失（上次恢复中断）时，仅清除
+  /// 标记并放弃恢复——绝不用残缺暂存覆盖现网数据。
+  static Future<bool> applyPendingRestore({
+    String? Function()? documentsPathProvider,
+  }) async {
+    final String docsPath;
+    try {
+      docsPath =
+          documentsPathProvider?.call() ??
+          (await getApplicationDocumentsDirectory()).path;
+    } catch (_) {
+      return false; // 文档目录不可得，跳过恢复检查
+    }
+    final marker = File('$docsPath${Platform.pathSeparator}$pendingRestoreMarkerName');
+    if (!marker.existsSync()) return false;
+    final stagingPath = (await marker.readAsString()).trim();
+    try {
+      final staging = Directory(stagingPath);
+      final manifest = File(
+        '${staging.path}${Platform.pathSeparator}backup_manifest.json',
+      );
+      if (stagingPath.isEmpty ||
+          !staging.existsSync() ||
+          !manifest.existsSync()) {
+        try {
+          await marker.delete();
+        } catch (_) {}
+        return false;
+      }
+      final root = Directory('$docsPath${Platform.pathSeparator}$defaultRootName');
+      Directory? oldRoot;
+      if (root.existsSync()) {
+        oldRoot = Directory(
+          '$docsPath${Platform.pathSeparator}'
+          '$defaultRootName.old_${DateTime.now().millisecondsSinceEpoch}',
+        );
+        await root.rename(oldRoot.path);
+      }
+      await staging.rename(root.path);
+      try {
+        await marker.delete();
+      } catch (_) {}
+      if (oldRoot != null) {
+        try {
+          await oldRoot.delete(recursive: true);
+        } catch (_) {
+          // 旧数据删除尽力而为：失败仅留下 .old_<ts> 目录，不阻塞启动。
+        }
+      }
+      return true;
+    } catch (_) {
+      // 交换失败（磁盘/权限）：放弃本次恢复，保留标记供下次再试。
+      return false;
+    }
+  }
+
 
   /// 旧版分散的子目录名（迁移源，位于系统文档目录直下）。
   static const List<String> legacyDirNames = [

@@ -435,6 +435,43 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fileTypeText => '文本文档';
 
   @override
+  String get settingsBackup => '备份全部数据';
+
+  @override
+  String get settingsBackupHint => '打包全部笔记与设置（含密钥文件，请妥善保管）';
+
+  @override
+  String get settingsRestore => '从备份恢复';
+
+  @override
+  String get settingsRestoreHint => '覆盖当前数据，重启应用后生效';
+
+  @override
+  String get fileTypeBackup => '绘图笔记备份';
+
+  @override
+  String get backupExported => '备份已导出';
+
+  @override
+  String get backupFailed => '备份失败，请重试';
+
+  @override
+  String get restoreConfirmTitle => '从备份恢复';
+
+  @override
+  String get restoreConfirmBody =>
+      '恢复将覆盖当前全部数据（含保险库密钥）。数据已就绪，确认后应用将退出，重新打开时生效。';
+
+  @override
+  String get restoreConfirmAction => '确认恢复';
+
+  @override
+  String get restoreInvalid => '无效的备份文件';
+
+  @override
+  String get restoreFailed => '恢复失败，请重试';
+
+  @override
   String get settingsPasswordSystem => '密码体系';
 
   @override

@@ -588,6 +588,54 @@
   "@fileTypeText": {
     "description": "文件选择器 txt 类型组标签"
   },
+  "settingsBackup": "备份全部数据",
+  "@settingsBackup": {
+    "description": "备份入口"
+  },
+  "settingsBackupHint": "打包全部笔记与设置（含密钥文件，请妥善保管）",
+  "@settingsBackupHint": {
+    "description": "备份说明"
+  },
+  "settingsRestore": "从备份恢复",
+  "@settingsRestore": {
+    "description": "恢复入口"
+  },
+  "settingsRestoreHint": "覆盖当前数据，重启应用后生效",
+  "@settingsRestoreHint": {
+    "description": "恢复说明"
+  },
+  "fileTypeBackup": "绘图笔记备份",
+  "@fileTypeBackup": {
+    "description": "文件选择器备份类型组标签"
+  },
+  "backupExported": "备份已导出",
+  "@backupExported": {
+    "description": "备份成功提示"
+  },
+  "backupFailed": "备份失败，请重试",
+  "@backupFailed": {
+    "description": "备份失败提示"
+  },
+  "restoreConfirmTitle": "从备份恢复",
+  "@restoreConfirmTitle": {
+    "description": "恢复确认对话框标题"
+  },
+  "restoreConfirmBody": "恢复将覆盖当前全部数据（含保险库密钥）。数据已就绪，确认后应用将退出，重新打开时生效。",
+  "@restoreConfirmBody": {
+    "description": "恢复确认对话框正文"
+  },
+  "restoreConfirmAction": "确认恢复",
+  "@restoreConfirmAction": {
+    "description": "恢复确认按钮"
+  },
+  "restoreInvalid": "无效的备份文件",
+  "@restoreInvalid": {
+    "description": "备份文件无效提示"
+  },
+  "restoreFailed": "恢复失败，请重试",
+  "@restoreFailed": {
+    "description": "恢复失败提示"
+  },
   "settingsPasswordSystem": "Password System",
   "@settingsPasswordSystem": {
     "description": "密码体系分组标题"

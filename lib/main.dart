@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'app.dart';
@@ -143,6 +144,13 @@ Future<void> main() async {
   // 二次启动检测：已有实例则直接退出（桌面单实例）。
   if (!await _acquireSingleInstance()) {
     return;
+  }
+  // 批次 M（2026-09-27）：应用「从备份恢复」的落地步——此刻无任何存储
+  // 打开，原子交换目录最安全。失败不阻塞启动（fail-safe，标记保留）。
+  try {
+    await AppDataRoot.applyPendingRestore();
+  } catch (_) {
+    // 恢复检查失败不阻塞正常启动。
   }
   // R2 审计（用户拍板 2026-09-03）：桌面窗口最小尺寸 360×560——
   // 防止窗口拖得过窄触发布局溢出。尽力而为：失败不阻塞启动。
