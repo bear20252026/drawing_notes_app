@@ -1,30 +1,40 @@
-# Drawing Notes App
+# Drawing Notes App（绘图笔记）
 
 A cross-platform **drawing and note-taking** application for **Windows desktop + Android**, built with **Flutter (Dart)**.
-Local-first: fully offline by default — **no accounts, no AI features**; sync is **optional user-configured WebDAV end-to-end encrypted sync** (no vendor cloud, zero network requests unless enabled).
+**Local-first**: fully offline by default — **no accounts, no AI features**; sync is **optional user-configured WebDAV end-to-end encrypted sync** (no vendor cloud, zero network requests unless enabled).
+中文说明见 [README.md](README.md)。
 
 ![CI](https://img.shields.io/github/actions/workflow/status/bear20252026/drawing_notes_app/ci.yml)
 ![License](https://img.shields.io/github/license/bear20252026/drawing_notes_app)
 
-> **Security posture**: government-grade security — encrypted notebooks (per-note K_note keys),
+> **Security posture**: government-grade security — encrypted notes (per-note keys),
 > policy engine (default-deny), session guard (auto-lock), VFS encrypted object vault
 > (versioned / atomic commits), tamper-evident audit (SHA-256 hash chain), import isolation
 > (SVG/PDF preflight).
 
 ---
 
+## Product Shapes: Three Note Carriers
+
+| Carrier | Description |
+|---------|-------------|
+| **Typed notes (block docs)** | AFFiNE-style block model: headings / lists / todos / code / quotes / dividers / database blocks, slash menu, block drag handles, bidirectional Markdown, block-level undo, outline rail, document templates — **the flagship carrier** |
+| **Paged canvas (notebooks)** | Multi-page sketchbooks: each page is an independent vector canvas with text/image/shape mixing, whole-book & multi-page PDF export (footers, embedded CJK font), password protection with USB reset disk |
+| **Infinite canvas (Edgeless)** | Pan-zoom camera + hand-drawn (rough) shapes, diagrams & connectors, object eraser, laser pointer, alignment guides, mini-map, command palette (Ctrl+K) |
+
+All three are managed in the **All Docs workspace**: grouped timeline, favorites, tags, trash (soft delete + 30-day expiry), global search, presentation mode.
+
 ## Features
 
-| Phase | Content | Status |
-| --- | --- | --- |
-| 1 | Minimal canvas: draw lines, undo, clear | ✅ |
-| 2 | Drawing tools: pen width, color palette, eraser (transparent), eyedropper | ✅ |
-| 3 | Layers: create/delete/visibility/opacity/order/merge | ✅ |
-| 4 | Selection & transform: rect/lasso, move/scale/rotate, copy/paste/delete | ✅ |
-| 5 | Notebooks: notebook/page management, text input, image embedding | ✅ |
-| 6 | Persistence: auto-save, thumbnail list, PNG export, delete confirmation | ✅ |
-| 7 | Polish: dark mode, pinch gestures, fullscreen, onboarding | ✅ |
-| Security | Expert-audit closure: P0-P2 fixes + military-grade audit chain + encryption system | ✅ |
+| Area | Content | Status |
+|------|---------|--------|
+| Drawing engine | Pressure-sensitive strokes (perfect_freehand), pencil grain shader (FragmentShader), layer system (visibility/opacity/order/merge/offscreen cache), selection transforms, blended ink rendering (marker darken compositing) | ✅ |
+| Block docs | Database blocks (table/kanban/list views), attachment & embed blocks, slash commands, block-level undo/redo, HTML/Markdown export | ✅ |
+| Interop | PDF import as page backgrounds (page/size/output caps); export to PDF (vector+raster hybrid, tiled pages, footers), PNG, SVG, Word (RTF), HTML, JSON, PPTX | ✅ |
+| Workspace | All Docs three-layer architecture (domain/query/UI), desktop two-pane + mobile single-column responsive (900dp), quick search, presentation mode | ✅ |
+| Sync | Optional WebDAV: AES end-to-end encryption, https enforced (loopback exception), conflict visibility, path-traversal protection, operation timeouts end-to-end | ✅ |
+| Security | See table below (expert & military-grade audit closures) | ✅ |
+| Accessibility | Touch/mouse/keyboard parity, 44px touch targets, semantic canvas handles, Esc closes dialogs, reduced-motion (3 signals) | ✅ |
 
 ## Requirements
 
@@ -42,50 +52,77 @@ flutter build windows --debug
 flutter build apk --debug
 ```
 
-## Tests & Static Analysis
+## Tests & Quality Gates
 
 ```bash
-dart analyze   # zero issues (project uses dart analyze due to Chinese path LSP compatibility)
-flutter test   # 1950+ tests (Phase 1-7 + security audit + full 2026-09 audit regressions)
-flutter test test/architecture_test.dart   # +5 architecture rules
+flutter analyze   # must report "No issues found" (commit gate)
+flutter test      # 1851 tests (canvas / block docs / security audit regressions /
+                  # WebDAV sync / export pipelines + 2026-09 full audit regressions;
+                  # real-KDF cases split into a serial tagged suite)
+flutter test test/architecture_test.dart   # 9 architecture rules (layer direction incl.
+                                           # rendering layer, zero cycles, feature isolation,
+                                           # onion rules, Martin coupling baseline)
 bash tools/check_boundaries.sh             # boundary checks
 python tools/code_guard.py --dir lib --force-native --json   # line-count gate
 ```
+
+All five CI workflows (CI / quality gate / Code Guard / SBOM / Secret Scan) must be green before merge.
 
 ## Security Features (expert-audit closure)
 
 | Component | Description |
 | --- | --- |
-| Encrypted notebooks | AES-256-GCM + AAD context binding (NIST SP 800-38D) — content/media/trash encrypted |
-| Per-note K_note keys | Independent data key + AAD bound to notebook ID — one leaked note key never affects others |
+| Encrypted notes | AES-256-GCM + AAD context binding (NIST SP 800-38D) — content/media/trash encrypted, per-encryption random nonce |
+| Per-note keys | Independent data key + AAD bound to note ID — one leaked note key never affects others (Knovya pattern) |
+| App-lock PIN / vault | Argon2id derivation + constant-time comparison + persistent exponential backoff; versioned envelope encryption + atomic commits |
+| Quick unlock | Windows Hello / Android BiometricPrompt (local_auth), DPAPI/Keystore-bound |
+| USB reset disk | "Forgot password" reset for notebook/file passwords (LUKS-style: disk key unwraps DEK → re-wrap password slot with new salt) |
 | Policy engine | Operation allowlist with **default-deny** (fail-closed) + audit — import/delete gated |
 | Session guard | Immediate lock on focus loss (memory keys zeroed) + file-picker exemption + re-auth |
-| VFS encrypted vault | Object manifest + version rollback + AAD binding + atomic commits (crash-safe) — media objects onboarded |
-| Tamper-evident audit | SHA-256 hash chain (prevHash linkage — tamper breaks chain) + verifyIntegrity |
-| Import isolation | SVG preflight (XXE/Billion Laughs/script injection/bomb) + PDF page/size quotas |
+| VFS encrypted vault | Object manifest + version rollback + AAD binding + atomic commits (crash-safe) |
+| Tamper-evident audit | SHA-256 hash chain (prevHash linkage — tamper breaks chain) + verifyIntegrity; user-facing errors always sanitized |
+| Import isolation | SVG preflight (XXE/Billion Laughs/script injection/bomb) + PDF page/size quotas + hyperlink scheme allowlist |
 | Release gates | SBOM generation (CycloneDX) + secret scanning (Gitleaks pattern) + CI integration |
 
 ## Data Storage
 
-All data lives under the app documents directory:
+All business data lives under a single data root `<Documents>/绘图笔记数据/`
+(legacy scattered locations are migrated in on first access — never overwriting):
 
 ```
-<documents>/
-├── documents/        standalone drawing project files (JSON — layers & strokes)
-├── thumbnails/       drawing thumbnails (PNG)
-├── notebooks/        notebook project files (JSON — all pages)
-└── notebook_images/  embedded page images (new media via VFS encrypted objects)
+<Documents>/绘图笔记数据/
+├── documents/            standalone drawing project files (JSON — layers & strokes)
+├── documents_trash/      drawing trash
+├── thumbnails/           drawing thumbnails
+├── document_images/      imported image copies
+├── notebooks/            notebook (paged canvas) project files
+├── notebook_images/      notebook image copies (sealed per encryption tier)
+├── blockdocs/            typed notes (block docs)
+├── blockdocs_trash/      block-doc trash
+├── security/             vault keys + app-lock guard keys
+└── *.json                favorites / tags / schedule configs
 ```
 
 ## Technical Highlights
 
-- Canvas: Flutter `CustomPainter` + `Canvas` API (no third-party drawing engine)
-- Stroke model: vector point sequences (undo/redo, layer merge, lossless export at any resolution)
-- Layer cache: offscreen bitmap (`PictureRecorder → toImage`) for smooth drawing
-- Auto-save: 800ms debounce + exit-time backup save
-- Architecture: God Class split (8 pure-computation services — official incremental approach) + five-domain notifiers
+- Canvas: Flutter `CustomPainter` + `Canvas` API (no third-party drawing engine);
+  viewport culling + per-layer render-plan cache + incremental dirty-rect rebuild
+- Stroke model: vector point sequences (undo/redo, layer merge, lossless export at
+  any resolution); hot paths (inking/erasing) driven by frameTick, decoupled from
+  panel rebuilds
+- Off-main-thread: large JSON codecs, encryption envelopes, JPEG compression, ZIP
+  packaging and PDF composition all run in background `Isolate.run`
+- Design system: Apple HIG static tokens (`apple_design.dart`) + Emil motion tokens
+  (`apple_motion.dart`) + liquid-glass floating layers (blur σ=12 + saturate 1.4,
+  floating layers only)
+- Architecture guardrails: Feature-First layering (presentation/application/
+  infrastructure/rendering/domain) + core contract injection (zero cross-feature
+  direct imports) + 9-rule dart_arch_test gate
+- Auto-save: debounced persistence + exit-time backup; critical writes always
+  tmp + rename atomic (crash-safe)
 
-Design docs: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/AUDIT_REPORT_2026-08-15.md`](docs/AUDIT_REPORT_2026-08-15.md), [`docs/PHASES.md`](docs/PHASES.md).
+Design docs: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/PHASES.md`](docs/PHASES.md).
+Changelog: [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Open Source
 
