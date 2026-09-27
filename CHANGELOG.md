@@ -2,6 +2,26 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.30] - 2026-09-27
+
+### 审计批次 H：god-page home_page.dart 拆分收敛（#37 闭环）
+
+> 来源：`docs/audit_full_2026-09-26.html`（全量审计 44 条）最后一项可执行
+> 待办 #37。至此 44 条全部闭环（#44 备案不动作）。
+
+- **home_page.dart 职责拆分（审计 #37，方案 A 文件级拆分）**：仿 F1 拆分
+  先例把 732 行宿主按职责归位——创建流与编辑器导航（画布/分页画布/笔记
+  新建、画布打开与解锁、模板图标，~290 行）迁 `home_page_create.dart`，
+  回收站对话框（恢复/永久删除/清空，~120 行）迁 `home_page_trash.dart`，
+  宿主收敛到 ~370 行（组件契约 + 生命周期 + 三源装配刷新 + build）。
+  **行为零变化**：同库 `part`/`part of` + `extension on _HomePageState`
+  迁移，不改任何运行时路径；import 全部留在宿主，棘轮 notes→doc 29 /
+  notes→security 6 等基线**计数不变**（本批次为可读性收敛，跨 feature
+  依赖的契约化倒置维持备案，待下次触及注入接线时顺车）。
+  - 技术注记：`_refresh` 留宿主——extension 成员不可调用 `setState`
+    （`invalid_use_of_protected_member`），曾试拆 refresh part 即触发，
+    已回退并以注释留痕（新 part 的 setState 消费方若再出现，同此口径）。
+
 ## [1.17.29] - 2026-09-27
 
 ### 审计批次 G：间距令牌专项归一（#34 清零）+ KDF 威胁模型注释补全（#39）
