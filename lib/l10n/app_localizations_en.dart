@@ -492,6 +492,105 @@ class AppLocalizationsEn extends AppLocalizations {
   String get restoreFailed => '恢复失败，请重试';
 
   @override
+  String get settingsShortcuts => 'Keyboard shortcuts';
+
+  @override
+  String get settingsShortcutsHint => 'Keys and what they do';
+
+  @override
+  String get scGroupCanvas => 'Canvas tools';
+
+  @override
+  String get scGroupEditing => 'Editing (canvas & text)';
+
+  @override
+  String get scGroupDoc => 'Block docs & panels';
+
+  @override
+  String get scGroupGlobal => 'Global';
+
+  @override
+  String get scToolBrush => 'Brush';
+
+  @override
+  String get scToolEraser => 'Eraser';
+
+  @override
+  String get scToolRectSelect => 'Rect select';
+
+  @override
+  String get scToolLasso => 'Lasso select';
+
+  @override
+  String get scToolText => 'Text tool';
+
+  @override
+  String get scShapeRect => 'Rectangle';
+
+  @override
+  String get scShapeEllipse => 'Ellipse';
+
+  @override
+  String get scShapeArrow => 'Arrow';
+
+  @override
+  String get scShapeLine => 'Line';
+
+  @override
+  String get scUndo => 'Undo';
+
+  @override
+  String get scRedo => 'Redo';
+
+  @override
+  String get scBold => 'Bold';
+
+  @override
+  String get scItalic => 'Italic';
+
+  @override
+  String get scUnderline => 'Underline';
+
+  @override
+  String get scAlignText => 'Align text';
+
+  @override
+  String get scCopyPaste => 'Copy / Paste';
+
+  @override
+  String get scCopyPasteStyle => 'Copy / Paste style';
+
+  @override
+  String get scDuplicate => 'Duplicate';
+
+  @override
+  String get scDeleteSelected => 'Delete selected';
+
+  @override
+  String get scNudge => 'Nudge selected';
+
+  @override
+  String get scSaveDoc => 'Save document';
+
+  @override
+  String get scCommandPalette => 'Command palette';
+
+  @override
+  String get scSlashMenu => 'Insert block (slash menu)';
+
+  @override
+  String get scSlashNavigate => 'Navigate / confirm / close menu';
+
+  @override
+  String get scCloseDialog => 'Close dialog / cancel action';
+
+  @override
+  String get scFocusNav => 'Focus traversal (keyboard nav)';
+
+  @override
+  String get scQuickRecord => 'Quick record (new canvas)';
+
+  @override
   String get settingsPasswordSystem => 'Password System';
 
   @override

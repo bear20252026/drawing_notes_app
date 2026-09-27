@@ -155,6 +155,39 @@ void main() {
       expect(find.text('从备份恢复'), findsOneWidget);
     });
 
+    testWidgets('快捷键速查：入口默认可见，点开弹分组列表（批次 N）', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+
+      await tester.pumpWidget(const MaterialApp(home: SettingsPage()));
+      expect(find.text('键盘快捷键'), findsOneWidget);
+
+      // 行位于列表折叠线以下：先滚到可见再点（ListView.builder 惰性构建）。
+      await tester.ensureVisible(find.text('键盘快捷键'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('键盘快捷键'));
+      await tester.pumpAndSettle();
+      // 对话框内容为可滚动列表：首组直接断言，末组滚动后再断言。
+      expect(find.text('画布工具'), findsOneWidget);
+      expect(find.text('编辑（画布与文字）'), findsOneWidget);
+      expect(find.text('Ctrl+Z'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('全局'),
+        200,
+        scrollable: find
+            .descendant(
+              of: find.byType(AlertDialog),
+              matching: find.byType(Scrollable),
+            )
+            .last,
+      );
+      expect(find.text('全局'), findsOneWidget);
+      expect(find.text('Ctrl+Alt+N'), findsOneWidget);
+
+      await tester.tap(find.text('知道了'));
+      await tester.pumpAndSettle();
+      expect(find.text('画布工具'), findsNothing);
+    });
+
     testWidgets('单文件密码：帮助弹窗展示说明', (tester) async {
       SharedPreferences.setMockInitialValues({});
 

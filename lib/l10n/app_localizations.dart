@@ -980,6 +980,204 @@ abstract class AppLocalizations {
   /// **'恢复失败，请重试'**
   String get restoreFailed;
 
+  /// No description provided for @settingsShortcuts.
+  ///
+  /// In en, this message translates to:
+  /// **'Keyboard shortcuts'**
+  String get settingsShortcuts;
+
+  /// No description provided for @settingsShortcutsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Keys and what they do'**
+  String get settingsShortcutsHint;
+
+  /// No description provided for @scGroupCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'Canvas tools'**
+  String get scGroupCanvas;
+
+  /// No description provided for @scGroupEditing.
+  ///
+  /// In en, this message translates to:
+  /// **'Editing (canvas & text)'**
+  String get scGroupEditing;
+
+  /// No description provided for @scGroupDoc.
+  ///
+  /// In en, this message translates to:
+  /// **'Block docs & panels'**
+  String get scGroupDoc;
+
+  /// No description provided for @scGroupGlobal.
+  ///
+  /// In en, this message translates to:
+  /// **'Global'**
+  String get scGroupGlobal;
+
+  /// No description provided for @scToolBrush.
+  ///
+  /// In en, this message translates to:
+  /// **'Brush'**
+  String get scToolBrush;
+
+  /// No description provided for @scToolEraser.
+  ///
+  /// In en, this message translates to:
+  /// **'Eraser'**
+  String get scToolEraser;
+
+  /// No description provided for @scToolRectSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Rect select'**
+  String get scToolRectSelect;
+
+  /// No description provided for @scToolLasso.
+  ///
+  /// In en, this message translates to:
+  /// **'Lasso select'**
+  String get scToolLasso;
+
+  /// No description provided for @scToolText.
+  ///
+  /// In en, this message translates to:
+  /// **'Text tool'**
+  String get scToolText;
+
+  /// No description provided for @scShapeRect.
+  ///
+  /// In en, this message translates to:
+  /// **'Rectangle'**
+  String get scShapeRect;
+
+  /// No description provided for @scShapeEllipse.
+  ///
+  /// In en, this message translates to:
+  /// **'Ellipse'**
+  String get scShapeEllipse;
+
+  /// No description provided for @scShapeArrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrow'**
+  String get scShapeArrow;
+
+  /// No description provided for @scShapeLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Line'**
+  String get scShapeLine;
+
+  /// No description provided for @scUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get scUndo;
+
+  /// No description provided for @scRedo.
+  ///
+  /// In en, this message translates to:
+  /// **'Redo'**
+  String get scRedo;
+
+  /// No description provided for @scBold.
+  ///
+  /// In en, this message translates to:
+  /// **'Bold'**
+  String get scBold;
+
+  /// No description provided for @scItalic.
+  ///
+  /// In en, this message translates to:
+  /// **'Italic'**
+  String get scItalic;
+
+  /// No description provided for @scUnderline.
+  ///
+  /// In en, this message translates to:
+  /// **'Underline'**
+  String get scUnderline;
+
+  /// No description provided for @scAlignText.
+  ///
+  /// In en, this message translates to:
+  /// **'Align text'**
+  String get scAlignText;
+
+  /// No description provided for @scCopyPaste.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy / Paste'**
+  String get scCopyPaste;
+
+  /// No description provided for @scCopyPasteStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy / Paste style'**
+  String get scCopyPasteStyle;
+
+  /// No description provided for @scDuplicate.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate'**
+  String get scDuplicate;
+
+  /// No description provided for @scDeleteSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete selected'**
+  String get scDeleteSelected;
+
+  /// No description provided for @scNudge.
+  ///
+  /// In en, this message translates to:
+  /// **'Nudge selected'**
+  String get scNudge;
+
+  /// No description provided for @scSaveDoc.
+  ///
+  /// In en, this message translates to:
+  /// **'Save document'**
+  String get scSaveDoc;
+
+  /// No description provided for @scCommandPalette.
+  ///
+  /// In en, this message translates to:
+  /// **'Command palette'**
+  String get scCommandPalette;
+
+  /// No description provided for @scSlashMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert block (slash menu)'**
+  String get scSlashMenu;
+
+  /// No description provided for @scSlashNavigate.
+  ///
+  /// In en, this message translates to:
+  /// **'Navigate / confirm / close menu'**
+  String get scSlashNavigate;
+
+  /// No description provided for @scCloseDialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Close dialog / cancel action'**
+  String get scCloseDialog;
+
+  /// No description provided for @scFocusNav.
+  ///
+  /// In en, this message translates to:
+  /// **'Focus traversal (keyboard nav)'**
+  String get scFocusNav;
+
+  /// No description provided for @scQuickRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick record (new canvas)'**
+  String get scQuickRecord;
+
   /// 密码体系分组标题
   ///
   /// In en, this message translates to:

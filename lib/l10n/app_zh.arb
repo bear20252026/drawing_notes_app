@@ -545,6 +545,138 @@
   "@restoreFailed": {
     "description": "恢复失败提示"
   },
+  "settingsShortcuts": "键盘快捷键",
+  "@settingsShortcuts": {
+    "description": "设置页快捷键入口"
+  },
+  "settingsShortcutsHint": "按键与作用速查",
+  "@settingsShortcutsHint": {
+    "description": "快捷键入口说明"
+  },
+  "scGroupCanvas": "画布工具",
+  "@scGroupCanvas": {
+    "description": "快捷键分组"
+  },
+  "scGroupEditing": "编辑（画布与文字）",
+  "@scGroupEditing": {
+    "description": "快捷键分组"
+  },
+  "scGroupDoc": "块文档与面板",
+  "@scGroupDoc": {
+    "description": "快捷键分组"
+  },
+  "scGroupGlobal": "全局",
+  "@scGroupGlobal": {
+    "description": "快捷键分组"
+  },
+  "scToolBrush": "画笔",
+  "@scToolBrush": {
+    "description": ""
+  },
+  "scToolEraser": "橡皮擦",
+  "@scToolEraser": {
+    "description": ""
+  },
+  "scToolRectSelect": "矩形选区",
+  "@scToolRectSelect": {
+    "description": ""
+  },
+  "scToolLasso": "套索选区",
+  "@scToolLasso": {
+    "description": ""
+  },
+  "scToolText": "文字工具",
+  "@scToolText": {
+    "description": ""
+  },
+  "scShapeRect": "矩形形状",
+  "@scShapeRect": {
+    "description": ""
+  },
+  "scShapeEllipse": "椭圆形状",
+  "@scShapeEllipse": {
+    "description": ""
+  },
+  "scShapeArrow": "箭头形状",
+  "@scShapeArrow": {
+    "description": ""
+  },
+  "scShapeLine": "直线形状",
+  "@scShapeLine": {
+    "description": ""
+  },
+  "scUndo": "撤销",
+  "@scUndo": {
+    "description": ""
+  },
+  "scRedo": "重做",
+  "@scRedo": {
+    "description": ""
+  },
+  "scBold": "加粗",
+  "@scBold": {
+    "description": ""
+  },
+  "scItalic": "斜体",
+  "@scItalic": {
+    "description": ""
+  },
+  "scUnderline": "下划线",
+  "@scUnderline": {
+    "description": ""
+  },
+  "scAlignText": "对齐文字",
+  "@scAlignText": {
+    "description": ""
+  },
+  "scCopyPaste": "复制 / 粘贴",
+  "@scCopyPaste": {
+    "description": ""
+  },
+  "scCopyPasteStyle": "复制 / 粘贴样式",
+  "@scCopyPasteStyle": {
+    "description": ""
+  },
+  "scDuplicate": "创建副本",
+  "@scDuplicate": {
+    "description": ""
+  },
+  "scDeleteSelected": "删除选中对象",
+  "@scDeleteSelected": {
+    "description": ""
+  },
+  "scNudge": "微调选中对象",
+  "@scNudge": {
+    "description": ""
+  },
+  "scSaveDoc": "保存文档",
+  "@scSaveDoc": {
+    "description": ""
+  },
+  "scCommandPalette": "命令面板",
+  "@scCommandPalette": {
+    "description": ""
+  },
+  "scSlashMenu": "插入块（斜杠菜单）",
+  "@scSlashMenu": {
+    "description": ""
+  },
+  "scSlashNavigate": "菜单选择 / 确认 / 关闭",
+  "@scSlashNavigate": {
+    "description": ""
+  },
+  "scCloseDialog": "关闭对话框 / 取消当前操作",
+  "@scCloseDialog": {
+    "description": ""
+  },
+  "scFocusNav": "焦点遍历（键盘导航）",
+  "@scFocusNav": {
+    "description": ""
+  },
+  "scQuickRecord": "快速记录（新建画布）",
+  "@scQuickRecord": {
+    "description": ""
+  },
   "settingsPasswordSystem": "密码体系",
   "@settingsPasswordSystem": {
     "description": "密码体系分组标题"

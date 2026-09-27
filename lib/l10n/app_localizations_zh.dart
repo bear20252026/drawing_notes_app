@@ -472,6 +472,105 @@ class AppLocalizationsZh extends AppLocalizations {
   String get restoreFailed => '恢复失败，请重试';
 
   @override
+  String get settingsShortcuts => '键盘快捷键';
+
+  @override
+  String get settingsShortcutsHint => '按键与作用速查';
+
+  @override
+  String get scGroupCanvas => '画布工具';
+
+  @override
+  String get scGroupEditing => '编辑（画布与文字）';
+
+  @override
+  String get scGroupDoc => '块文档与面板';
+
+  @override
+  String get scGroupGlobal => '全局';
+
+  @override
+  String get scToolBrush => '画笔';
+
+  @override
+  String get scToolEraser => '橡皮擦';
+
+  @override
+  String get scToolRectSelect => '矩形选区';
+
+  @override
+  String get scToolLasso => '套索选区';
+
+  @override
+  String get scToolText => '文字工具';
+
+  @override
+  String get scShapeRect => '矩形形状';
+
+  @override
+  String get scShapeEllipse => '椭圆形状';
+
+  @override
+  String get scShapeArrow => '箭头形状';
+
+  @override
+  String get scShapeLine => '直线形状';
+
+  @override
+  String get scUndo => '撤销';
+
+  @override
+  String get scRedo => '重做';
+
+  @override
+  String get scBold => '加粗';
+
+  @override
+  String get scItalic => '斜体';
+
+  @override
+  String get scUnderline => '下划线';
+
+  @override
+  String get scAlignText => '对齐文字';
+
+  @override
+  String get scCopyPaste => '复制 / 粘贴';
+
+  @override
+  String get scCopyPasteStyle => '复制 / 粘贴样式';
+
+  @override
+  String get scDuplicate => '创建副本';
+
+  @override
+  String get scDeleteSelected => '删除选中对象';
+
+  @override
+  String get scNudge => '微调选中对象';
+
+  @override
+  String get scSaveDoc => '保存文档';
+
+  @override
+  String get scCommandPalette => '命令面板';
+
+  @override
+  String get scSlashMenu => '插入块（斜杠菜单）';
+
+  @override
+  String get scSlashNavigate => '菜单选择 / 确认 / 关闭';
+
+  @override
+  String get scCloseDialog => '关闭对话框 / 取消当前操作';
+
+  @override
+  String get scFocusNav => '焦点遍历（键盘导航）';
+
+  @override
+  String get scQuickRecord => '快速记录（新建画布）';
+
+  @override
   String get settingsPasswordSystem => '密码体系';
 
   @override

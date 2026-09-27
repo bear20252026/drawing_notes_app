@@ -21,6 +21,7 @@ import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settin
 import '../../../core/theme/apple_design.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
 import 'package:drawing_notes_app/shared/application/diagnostics_exporter.dart';
+import 'package:drawing_notes_app/shared/application/keyboard_shortcuts.dart';
 import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
@@ -194,6 +195,13 @@ class SettingsPage extends StatelessWidget {
                       Text(l10n?.settingsDiagnosticsHint ?? '脱敏日志，帮助排查问题'),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => _exportDiagnostics(context),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.keyboard_rounded),
+                  title: Text(l10n?.settingsShortcuts ?? '键盘快捷键'),
+                  subtitle: Text(l10n?.settingsShortcutsHint ?? '按键与作用速查'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => _showShortcuts(context),
                 ),
               ],
             ),
@@ -406,6 +414,82 @@ class SettingsPage extends StatelessWidget {
       if (!context.mounted) return;
       AppSnack.show(context, l10n?.restoreFailed ?? '恢复失败，请重试');
     }
+  }
+
+  /// 快捷键速查（批次 N）：目录数据全部来自代码注册点核对
+  /// （KeyboardShortcuts.catalog），滚动列表按交互域分组。
+  void _showShortcuts(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final groups = KeyboardShortcuts.catalog(l10n);
+    GlassDialog.show<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(l10n?.settingsShortcuts ?? '键盘快捷键'),
+          content: SizedBox(
+            width: 420,
+            height: 480,
+            child: ListView.builder(
+              itemCount: groups.length,
+              itemBuilder: (context, gi) {
+                final group = groups[gi];
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 12, 4, 6),
+                      child: Text(
+                        group.title(l10n),
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    for (final entry in group.entries)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 3),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 168,
+                              child: Text(
+                                entry.keys,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      fontFeatures: const [
+                                        FontFeature.tabularFigures(),
+                                      ],
+                                    ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                entry.label(l10n),
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              autofocus: true,
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l10n?.gotIt ?? '知道了'),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
 

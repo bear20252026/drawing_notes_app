@@ -2,6 +2,27 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.36] - 2026-09-27
+
+### 审计批次 N：后审计改进第三批——快捷键速查面板 + docs 索引
+
+> 来源：后审计改进建议（第 4、14 条）。纯增量。
+
+- **快捷键速查面板（增量新增）**：新增 `KeyboardShortcuts.catalog`
+  （lib/shared/application/keyboard_shortcuts.dart）——目录数据逐处核对
+  代码注册点（editor_page_shortcuts 1-9 工具/Ctrl 组合/方向键微调、
+  doc_editor Ctrl+S、block_slash_menu 斜杠菜单导航、apple_design Esc
+  通道、app.dart 全局热键），非拍脑袋清单；设置页「通用」组新增
+  「键盘快捷键」入口 → 分组滚动对话框（键位符号列 + l10n 说明列，
+  tabular figures 对齐）。此前键盘支持散落代码里，用户无从发现——
+  三输入投入自此可被感知。arb 新键 33 对（zh/en 1022=1022 对称）。
+- **docs/INDEX.md（新增）**：116 个文档的分类导航——常用入口/现行
+  治理与评估 21 / 审计报告 14 / 验收记录 16 / 实现设计 9 / 分析评估
+  研究 16 / 其他日期记录 40；约定「无日期=现行规范、带日期=当时点
+  存档（结论以最新为准）」，终结每次协作者（含 AI）考古成本。
+- 测试 +1（设置页快捷键入口显隐 + 对话框分组断言，含视口折叠线
+  ensureVisible 与对话框内滚动断言）；门禁 analyze 0 告警、全量绿。
+
 ## [1.17.35] - 2026-09-27
 
 ### 审计批次 M：后审计改进第二批——全量数据备份与恢复（产品最大缺口闭环）
