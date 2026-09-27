@@ -14,6 +14,7 @@ import 'package:drawing_notes_app/shared/widgets/glass_navigation_rail.dart';
 // 批次②：AllDocs 打开画布的单文件密码拦截（与首页同口径）。
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart'
     show VaultFileLockException, VaultFilePasswordLockException;
+import 'package:drawing_notes_app/core/theme/app_locale_controller.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
@@ -69,6 +70,7 @@ class AppShell extends StatefulWidget {
     this.notebookStorage,
     this.docStorage,
     this.themeController,
+    this.localeController,
     this.editorPageBuilder,
     this.blockDocStore,
     this.favoriteStore,
@@ -81,6 +83,9 @@ class AppShell extends StatefulWidget {
   final NotebookStorage? notebookStorage;
   final StorageService? docStorage;
   final AppThemeController? themeController;
+
+  /// 应用内语言覆盖（2026-09-27；null 时设置页隐藏语言入口）。
+  final AppLocaleController? localeController;
   final EditorPageBuilder? editorPageBuilder;
   final NoteBlockDocStore? blockDocStore;
   final FavoriteStore? favoriteStore;
@@ -284,6 +289,7 @@ class _AppShellState extends State<AppShell> {
       vaultKeyService: widget.vaultKeyService,
       quickUnlockService: widget.quickUnlockService,
       themeController: widget.themeController,
+      localeController: widget.localeController,
     ),
   ];
 

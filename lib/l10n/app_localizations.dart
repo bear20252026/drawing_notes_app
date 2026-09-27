@@ -854,6 +854,60 @@ abstract class AppLocalizations {
   /// **'Local-first, sync across devices'**
   String get settingsWebdavHint;
 
+  /// 设置页语言入口
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get settingsLanguage;
+
+  /// 语言=跟随系统时的副标题
+  ///
+  /// In en, this message translates to:
+  /// **'System (tap to switch to 中文)'**
+  String get settingsLanguageSystem;
+
+  /// 语言=中文时的副标题
+  ///
+  /// In en, this message translates to:
+  /// **'中文 (tap to switch to English)'**
+  String get settingsLanguageZh;
+
+  /// 语言=English 时的副标题
+  ///
+  /// In en, this message translates to:
+  /// **'English (tap to switch to system)'**
+  String get settingsLanguageEn;
+
+  /// 诊断导出入口
+  ///
+  /// In en, this message translates to:
+  /// **'Export diagnostics'**
+  String get settingsDiagnostics;
+
+  /// 诊断导出说明
+  ///
+  /// In en, this message translates to:
+  /// **'Sanitized logs for troubleshooting'**
+  String get settingsDiagnosticsHint;
+
+  /// 诊断导出成功提示
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics exported'**
+  String get settingsDiagnosticsExported;
+
+  /// 诊断导出失败提示
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed. Please try again'**
+  String get settingsDiagnosticsExportFail;
+
+  /// 文件选择器 txt 类型组标签
+  ///
+  /// In en, this message translates to:
+  /// **'Text document'**
+  String get fileTypeText;
+
   /// 密码体系分组标题
   ///
   /// In en, this message translates to:

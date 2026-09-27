@@ -428,6 +428,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsWebdavHint => 'Local-first, sync across devices';
 
   @override
+  String get settingsLanguage => 'Language';
+
+  @override
+  String get settingsLanguageSystem => 'System (tap to switch to 中文)';
+
+  @override
+  String get settingsLanguageZh => '中文 (tap to switch to English)';
+
+  @override
+  String get settingsLanguageEn => 'English (tap to switch to system)';
+
+  @override
+  String get settingsDiagnostics => 'Export diagnostics';
+
+  @override
+  String get settingsDiagnosticsHint => 'Sanitized logs for troubleshooting';
+
+  @override
+  String get settingsDiagnosticsExported => 'Diagnostics exported';
+
+  @override
+  String get settingsDiagnosticsExportFail => 'Export failed. Please try again';
+
+  @override
+  String get fileTypeText => 'Text document';
+
+  @override
   String get settingsPasswordSystem => 'Password System';
 
   @override

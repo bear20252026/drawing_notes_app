@@ -408,6 +408,33 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsWebdavHint => '本地优先，跨设备同步';
 
   @override
+  String get settingsLanguage => '语言';
+
+  @override
+  String get settingsLanguageSystem => '跟随系统（点击切换为中文）';
+
+  @override
+  String get settingsLanguageZh => '中文（点击切换为 English）';
+
+  @override
+  String get settingsLanguageEn => 'English（点击切换为跟随系统）';
+
+  @override
+  String get settingsDiagnostics => '导出诊断信息';
+
+  @override
+  String get settingsDiagnosticsHint => '脱敏日志，帮助排查问题';
+
+  @override
+  String get settingsDiagnosticsExported => '诊断信息已导出';
+
+  @override
+  String get settingsDiagnosticsExportFail => '导出失败，请重试';
+
+  @override
+  String get fileTypeText => '文本文档';
+
+  @override
   String get settingsPasswordSystem => '密码体系';
 
   @override

@@ -3,16 +3,23 @@
 // 单一事实来源：密码类设置（应用锁/单文件密码）与通用设置
 // （外观/WebDAV）此前散落在 HomePage 的 AppBar 图标与「更多」菜单里，
 // 本页收编为唯一入口（HomePage 原入口随批次⑤移除，功能只搬家不删除）。
+import 'dart:io';
+
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
+import 'package:drawing_notes_app/core/theme/app_locale_controller.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/features/notes/presentation/app_lock_settings_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settings_page.dart';
 import '../../../core/theme/apple_design.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
+import 'package:drawing_notes_app/shared/application/diagnostics_exporter.dart';
+import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 
@@ -27,6 +34,7 @@ class SettingsPage extends StatelessWidget {
     this.vaultKeyService,
     this.quickUnlockService,
     this.themeController,
+    this.localeController,
   });
 
   /// 应用锁服务（应用锁入口需要；null 时隐藏应用锁入口）。
@@ -40,6 +48,9 @@ class SettingsPage extends StatelessWidget {
 
   /// 外观控制器（外观入口需要；null 时隐藏外观入口）。
   final AppThemeController? themeController;
+
+  /// 语言控制器（语言入口需要；null 时隐藏语言入口）。
+  final AppLocaleController? localeController;
 
   @override
   Widget build(BuildContext context) {
@@ -133,6 +144,14 @@ class SettingsPage extends StatelessWidget {
                     trailing: const Icon(Icons.sync_alt_rounded),
                     onTap: () => themeController!.cycleHighContrast(),
                   ),
+                if (localeController != null)
+                  ListTile(
+                    leading: const Icon(Icons.translate_rounded),
+                    title: Text(l10n?.settingsLanguage ?? '语言'),
+                    subtitle: Text(_localeLabel(context, localeController!)),
+                    trailing: const Icon(Icons.sync_alt_rounded),
+                    onTap: () => localeController!.cycle(),
+                  ),
                 ListTile(
                   leading: const Icon(Icons.cloud_sync_outlined),
                   title: Text(l10n?.settingsWebdav ?? 'WebDAV 同步'),
@@ -143,6 +162,14 @@ class SettingsPage extends StatelessWidget {
                       builder: (_) => const WebDavSyncSettingsPage(),
                     ),
                   ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.bug_report_outlined),
+                  title: Text(l10n?.settingsDiagnostics ?? '导出诊断信息'),
+                  subtitle:
+                      Text(l10n?.settingsDiagnosticsHint ?? '脱敏日志，帮助排查问题'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => _exportDiagnostics(context),
                 ),
               ],
             ),
@@ -199,6 +226,60 @@ class SettingsPage extends StatelessWidget {
     ThemeMode.dark =>
       AppLocalizations.of(context)?.settingsThemeDark ?? '深色（点击切换为跟随系统）',
   };
+
+  String _localeLabel(BuildContext context, AppLocaleController controller) =>
+      switch (controller.locale) {
+        null => AppLocalizations.of(context)?.settingsLanguageSystem ??
+            '跟随系统（点击切换为中文）',
+        const Locale('zh') =>
+          AppLocalizations.of(context)?.settingsLanguageZh ?? '中文（点击切换为 English）',
+        _ => AppLocalizations.of(context)?.settingsLanguageEn ??
+            'English（点击切换为跟随系统）',
+      };
+
+  /// 导出诊断信息（2026-09-27）：用户选位置保存脱敏报告——环境摘要 +
+  /// AuditLogger 哈希链校验结果 + 近期条目（类型级别，无路径/正文）。
+  Future<void> _exportDiagnostics(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    try {
+      final report = DiagnosticsExporter.buildReport(
+        platformInfo:
+            '${Platform.operatingSystem} ${Platform.operatingSystemVersion} · '
+            'Dart ${Platform.version.split(' ').first}',
+        localeName: l10n?.localeName ?? 'zh',
+        auditIntegrity: AuditLogger.verifyIntegrity(),
+        auditEntries: AuditLogger.snapshot(),
+      );
+      final now = DateTime.now();
+      final stamp =
+          '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}'
+          '_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
+      final location = await getSaveLocation(
+        suggestedName: 'drawing_notes_diagnostics_$stamp.txt',
+        acceptedTypeGroups: [
+          XTypeGroup(label: l10n?.fileTypeText ?? '文本文档', extensions: const ['txt']),
+        ],
+      );
+      if (location == null) return; // 用户取消
+      await File(location.path).writeAsString(report, flush: true);
+      if (!context.mounted) return;
+      AppSnack.show(
+        context,
+        l10n?.settingsDiagnosticsExported ?? '诊断信息已导出',
+      );
+    } catch (e) {
+      AuditLogger.log(
+        'settings.diagnostics.export_failed',
+        success: false,
+        detail: e.runtimeType.toString(),
+      );
+      if (!context.mounted) return;
+      AppSnack.show(
+        context,
+        l10n?.settingsDiagnosticsExportFail ?? '导出失败，请重试',
+      );
+    }
+  }
 }
 
 /// 密码体系展示卡：一眼看懂「谁保护谁」。

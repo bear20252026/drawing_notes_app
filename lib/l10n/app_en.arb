@@ -552,6 +552,42 @@
   "@settingsWebdavHint": {
     "description": "WebDAV 说明"
   },
+  "settingsLanguage": "Language",
+  "@settingsLanguage": {
+    "description": "设置页语言入口"
+  },
+  "settingsLanguageSystem": "System (tap to switch to 中文)",
+  "@settingsLanguageSystem": {
+    "description": "语言=跟随系统时的副标题"
+  },
+  "settingsLanguageZh": "中文 (tap to switch to English)",
+  "@settingsLanguageZh": {
+    "description": "语言=中文时的副标题"
+  },
+  "settingsLanguageEn": "English (tap to switch to system)",
+  "@settingsLanguageEn": {
+    "description": "语言=English 时的副标题"
+  },
+  "settingsDiagnostics": "Export diagnostics",
+  "@settingsDiagnostics": {
+    "description": "诊断导出入口"
+  },
+  "settingsDiagnosticsHint": "Sanitized logs for troubleshooting",
+  "@settingsDiagnosticsHint": {
+    "description": "诊断导出说明"
+  },
+  "settingsDiagnosticsExported": "Diagnostics exported",
+  "@settingsDiagnosticsExported": {
+    "description": "诊断导出成功提示"
+  },
+  "settingsDiagnosticsExportFail": "Export failed. Please try again",
+  "@settingsDiagnosticsExportFail": {
+    "description": "诊断导出失败提示"
+  },
+  "fileTypeText": "Text document",
+  "@fileTypeText": {
+    "description": "文件选择器 txt 类型组标签"
+  },
   "settingsPasswordSystem": "Password System",
   "@settingsPasswordSystem": {
     "description": "密码体系分组标题"

@@ -7,6 +7,7 @@ import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
+import 'package:drawing_notes_app/core/theme/app_locale_controller.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/features/notes/presentation/app_lock_settings_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/settings_page.dart';
@@ -99,6 +100,42 @@ void main() {
       await tester.tap(find.text('外观'));
       await tester.pump();
       expect(controller.mode, isNot(before));
+    });
+
+    testWidgets('语言入口：注入控制器后显示，点击三态循环', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final controller = AppLocaleController();
+
+      // 生产装配：app.dart 的 ListenableBuilder 监听控制器重建整树——
+      // SettingsPage 为 StatelessWidget，测试须镜像同一 rebuild 通道。
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ListenableBuilder(
+            listenable: controller,
+            builder: (_, _) => SettingsPage(localeController: controller),
+          ),
+        ),
+      );
+      expect(find.text('语言'), findsOneWidget);
+      expect(find.textContaining('跟随系统'), findsOneWidget);
+
+      await tester.tap(find.text('语言'));
+      await tester.pump();
+      expect(controller.locale, const Locale('zh'));
+      expect(find.textContaining('点击切换为 English'), findsOneWidget);
+
+      await tester.tap(find.text('语言'));
+      await tester.pump();
+      expect(controller.locale, const Locale('en'));
+      expect(find.textContaining('点击切换为跟随系统'), findsOneWidget);
+    });
+
+    testWidgets('诊断导出入口默认可见（无需注入控制器）', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+
+      await tester.pumpWidget(const MaterialApp(home: SettingsPage()));
+      expect(find.text('导出诊断信息'), findsOneWidget);
+      expect(find.text('脱敏日志，帮助排查问题'), findsOneWidget);
     });
 
     testWidgets('单文件密码：帮助弹窗展示说明', (tester) async {

@@ -8,6 +8,7 @@ import 'package:drawing_notes_app/app/default_editor_page_builder.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_contrast.dart';
 import 'package:drawing_notes_app/core/di/providers.dart';
+import 'package:drawing_notes_app/core/theme/app_locale_controller.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
@@ -48,6 +49,8 @@ class DrawingNotesApp extends StatefulWidget {
 
 class _DrawingNotesAppState extends State<DrawingNotesApp> {
   late final AppThemeController _themeController;
+  // 应用内语言覆盖（2026-09-27 增量）：设置页可切换 跟随系统/中文/English。
+  late final AppLocaleController _localeController;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   // 组合根拥有共享依赖的生命周期；页面只接收这些实例，不自行创建。
@@ -100,6 +103,7 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
   void initState() {
     super.initState();
     _themeController = widget.themeController ?? AppThemeController();
+    _localeController = AppLocaleController();
     // 批次①c：注册共享保险库实例——无 context 的底层管线（图片裁剪
     // 写回等）经 VaultKeyService.sharedMasterKeyOrNull 取解锁态主密钥。
     _vaultKeyService.registerShared();
@@ -152,17 +156,20 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
   void dispose() {
     hotKeyManager.unregisterAll();
     _themeController.dispose();
+    _localeController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: _themeController,
+      listenable: Listenable.merge([_themeController, _localeController]),
       builder: (context, _) => Consumer(
         builder: (context, ref, _) => MaterialApp(
           navigatorKey: _navigatorKey,
           navigatorObservers: [AppRefresh.routeObserver],
+          // 应用内语言覆盖（2026-09-27）：null = 跟随系统（既有行为）。
+          locale: _localeController.locale,
           // L-04 国际化（专家审计 2026-08-15）：gen_l10n 本地化标题。
           title: AppLocalizations.of(context)?.appTitle ?? '绘图笔记',
           localizationsDelegates: [
@@ -192,6 +199,7 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
               notebookStorage: _notebookStorage,
               docStorage: _documentStorage,
               themeController: _themeController,
+              localeController: _localeController,
               editorPageBuilder: DefaultEditorPageBuilder.build,
               blockDocStore: _blockDocStore,
               favoriteStore: _favoriteStore,

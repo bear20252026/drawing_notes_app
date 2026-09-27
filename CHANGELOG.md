@@ -2,6 +2,37 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.34] - 2026-09-27
+
+### 审计批次 L：后审计改进建议第一批——应用内语言切换 + 诊断导出 + CI flake 对策 + 版本脚本
+
+> 来源：审计收官后的补充建议（产品/发布/流程维度，14 条中的 4 条）。
+> 备份/恢复（密钥信封设计）、release 自动挂载、Android 自适应图标待后续批次。
+
+- **应用内语言切换（增量新增）**：新增 `AppLocaleController`
+  （仿 AppThemeController：跟随系统/中文/English 三态、shared_preferences
+  持久化、非法值回退）；`app.dart` MaterialApp 挂 `locale:` 覆盖并合并
+  双控制器监听；`app_shell` 透传；设置页「通用」组新增「语言」行
+  （控制器未注入时隐藏，测试装配兼容）。此前应用只跟随系统语言，
+  977 个 arb 键的 en 能力对用户不可达。
+- **设置页「导出诊断信息」（增量新增）**：新增
+  `DiagnosticsExporter.buildReport`（纯函数）——平台摘要 + 生效语言 +
+  AuditLogger 哈希链校验结果 + 近期条目（设计上仅错误类型级别，无路径/
+  正文）；设置页一键经 file_selector 保存为 txt，异常走 AuditLogger +
+  固定文案。本地优先应用的用户排障自此有自助出口。
+- **CI 真 KDF flake 对策（实证修复）**：`block_doc_encryption_test`
+  文件级超时 3→8 分钟（ed17992 CI run 36304750434 的「懒迁移」用例在
+  满负载 runner 上真实 Argon2id 派生超时；重跑即绿属环境起伏）；
+  注释固化「失败先重跑一次、连续两次红才立案」政策。其余 15 个 KDF
+  文件维持 3 分钟约定。
+- **tools/bump_version.sh（增量新增）**：版本三处同步自动化——pubspec
+  （build 号自增）+ iss 同步改写 + CHANGELOG 顶部条目校验（缺条目仅
+  警告，内容仍由人写）；修复两轮脚本自身 bug（依赖约束 "+1" 误入
+  build 号捕获、本机 grep 不支持变长 lookbehind → 改 \K）。
+- 测试 +9（locale controller 5 / diagnostics exporter 2 / 设置页语言
+  与诊断行 2，含 ListenableBuilder 生产装配镜像）；arb 新键 9 对
+  （zh/en 977=977 对称）；门禁 analyze 0 告警、全量测试 1860 绿。
+
 ## [1.17.33] - 2026-09-27
 
 ### 审计批次 K：深度审计（134 条）第三批修复——性能热路径 + 动效/令牌合规

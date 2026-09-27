@@ -1,6 +1,10 @@
 // 懒迁移真 KDF 重写，CI 高负载可超 30s 默认超时（与 storage/notebook 同类）。
+// L1（2026-09-27）：本文件用例在满负载 CI runner 上可超 3 分钟（run
+// 36304750434——「懒迁移：旧明文块文档」真实 Argon2id 派生 + 排队等待），
+// 放宽到 8 分钟；其余 KDF 文件维持 3 分钟约定，复现同类超时再逐文件放宽。
+// CI 政策：套件失败先重跑一次，重跑绿视为环境起伏；连续两次红才立案。
 @Tags(["kdf"])
-@Timeout(Duration(minutes: 3))
+@Timeout(Duration(minutes: 8))
 library;
 
 import 'dart:convert';
