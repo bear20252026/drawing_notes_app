@@ -2,6 +2,38 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.37] - 2026-09-27
+
+### 审计批次 O：深度审计剩余项小修复清扫（17 条，数据安全 + 动效 + i18n + 性能 + 测试）
+
+> 来源：`docs/audit_2026-09-27.md` 剩余 111 条中可独立小步落地的一批。
+
+- **数据安全**：R-05 `migrateLegacyMedia` 原地重加密改 tmp+rename（写中
+  崩溃不再产生半明文半密文媒体）；R-07 `ensureMediaSalt` 短盐文件从
+  「静默换盐」改 fail-closed 显式抛错（旧盐派生媒体不再被批量报废）+
+  盐写入原子化；S-04 `SyncService.cipher` 收紧为 required（消除
+  NoopSyncCipher 默认 fail-open 陷阱）；S-09 保险库 tmp 孤儿清扫阈值
+  1 小时 → 10 分钟（崩溃残留密钥副本滞留收敛）。
+- **动效**：M-03 画布对象删除延迟与配对淡出同用 `AppleMotion.dropdown`
+  （原 180ms 裸值致动画截断跳变）；M-04 残留两处（glass_surface/skeleton）
+  统一 `AppleMotion.reduceMotionOf` 三信号判定；M-07 全屏图片预览时长
+  对齐同族 modal 档；M-11 首页缩略图恒值 AnimatedOpacity 改
+  TweenAnimationBuilder 真实 0→1 入场渐显。
+- **i18n**：L-05 状态栏保存状态接线 `saveStateSaving/saveStateSavedAt`
+  （键已有未用）；L-06 命令面板三条导出命令接线 `editorExport*` 键。
+- **性能**：P-10 `paintStrokes` cull/plan 缓存单槽改 8 槽多槽表（可见
+  图层 ≥2 时逐帧互踢命中率恒 0 的自击穿消除）；P-11 文档嵌入网络图按
+  显示宽度量化解码（全库最后一个未封顶图片通道）；P-12 取色器 RGB 焦点
+  监听器具名化 + dispose 配平；P-13 擦除拖拽中 `notifyListeners` 改
+  `tickFrame`（面板重建与画布重绘解耦，收笔一次性刷新）。
+- **健壮性**：R-08 反向链接打开 `.then` 链改 async/await + 异常兜底
+  （非锁定异常不再静默无反应）；R-09 首页打开笔记补捕损坏文档
+  （FormatException/TypeError → 明确提示）。
+- **测试 + 功能补全**：T-12 斜杠菜单全集精确断言上线即抓到真实缺口——
+  `attachment` 块类型插入链路齐备但菜单漏入口，补全「附件」菜单项
+  （heading 三级菜单项为唯一合法重复例外，测试按此细化）。
+- arb 新键 4 对（zh/en 1024=1024 对称）；门禁 analyze 0 告警、全量绿。
+
 ## [1.17.36] - 2026-09-27
 
 ### 审计批次 N：后审计改进第三批——快捷键速查面板 + docs 索引

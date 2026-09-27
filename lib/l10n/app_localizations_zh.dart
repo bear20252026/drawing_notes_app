@@ -571,6 +571,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get scQuickRecord => '快速记录（新建画布）';
 
   @override
+  String get docOpenFailed => '打开失败，请重试';
+
+  @override
+  String get homeDocCorrupt => '笔记数据损坏，无法打开';
+
+  @override
   String get settingsPasswordSystem => '密码体系';
 
   @override

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 
 import 'package:drawing_notes_app/shared/widgets/liquid_glass_rim.dart';
 import 'package:drawing_notes_app/shared/widgets/liquid_glass_shader.dart';
@@ -135,7 +136,9 @@ class _GlassSurfaceState extends State<GlassSurface> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final isDark = scheme.brightness == Brightness.dark;
-    final reduceEffects = MediaQuery.disableAnimationsOf(context);
+    // M-04（审计 2026-09-27）：减弱动效判定统一走三信号合一的令牌入口
+    // （原直读 disableAnimationsOf 漏 high-contrast 信号）。
+    final reduceEffects = AppleMotion.reduceMotionOf(context);
     // L1 配方底色：默认 regular 0.62（LiquidGlassRecipe.kRegularOpacity，
     // AGENTS.md §4 / DESIGN_SYSTEM），可由 [surfaceOpacity] 调到 clear 0.45。
     final surfaceColor =

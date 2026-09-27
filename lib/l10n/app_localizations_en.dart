@@ -591,6 +591,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scQuickRecord => 'Quick record (new canvas)';
 
   @override
+  String get docOpenFailed => 'Failed to open. Please try again';
+
+  @override
+  String get homeDocCorrupt => 'Note data is corrupted; cannot open';
+
+  @override
   String get settingsPasswordSystem => 'Password System';
 
   @override

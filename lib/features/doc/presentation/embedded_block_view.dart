@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/utils/safe_url.dart';
+import 'package:drawing_notes_app/shared/utils/image_decode_cap.dart';
 import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/features/doc/presentation/image_preview_dialog.dart';
 import 'package:drawing_notes_app/features/doc/presentation/table_editor_widget.dart';
@@ -127,37 +128,59 @@ class EmbeddedBlockView extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppleRadius.sm),
                 child: Stack(
                   children: [
-                    Image.network(
-                      safeSrc,
-                      fit: BoxFit.cover,
-                      height: 200,
-                      width: double.infinity,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          height: 160,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest
-                              .withValues(alpha: 0.5),
-                          alignment: Alignment.center,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.broken_image_outlined,
-                                size: 48,
-                                color: Theme.of(context).colorScheme.outline,
+                    // P-11（审计 2026-09-27）：按显示宽度量化解码——块内
+                    // 嵌图此前无 cacheWidth，数千万像素照片整幅进图像缓存
+                    // （全库其余图片路径均已封顶，网络图为唯一未治理通道）。
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final width = constraints.maxWidth;
+                        final int? cacheWidth =
+                            width.isFinite && width > 0
+                            ? ImageDecodeCap.quantizedCacheWidth(
+                                width,
+                                MediaQuery.devicePixelRatioOf(context),
+                              )
+                            : null;
+                        return Image.network(
+                          safeSrc,
+                          fit: BoxFit.cover,
+                          height: 200,
+                          width: double.infinity,
+                          cacheWidth: cacheWidth,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              height: 160,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest
+                                  .withValues(alpha: 0.5),
+                              alignment: Alignment.center,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.broken_image_outlined,
+                                    size: 48,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.outline,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    AppLocalizations.of(
+                                          context,
+                                        )?.embImageFailed ??
+                                        '图片加载失败',
+                                    style: TextStyle(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.outline,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                AppLocalizations.of(context)?.embImageFailed ??
-                                    '图片加载失败',
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.outline,
-                                ),
-                              ),
-                            ],
-                          ),
+                            );
+                          },
                         );
                       },
                     ),

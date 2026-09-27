@@ -27,6 +27,23 @@ void main() {
       expect(types.contains(NoteBlockType.database), isTrue);
     });
 
+    test('T-12（审计 2026-09-27）：菜单全集精确等于块类型枚举——'
+        '误注册多余/重复类型不再漏检', () {
+      final types = BlockSlashMenu.options.map((o) => o.type).toList();
+      expect(types.toSet(), equals(NoteBlockType.values.toSet()));
+      // heading 按级别拆 3 个菜单项（标题 1/2/3，级别存 props）——唯一
+      // 合法例外；其余类型不得重复注册。
+      final nonHeading = types
+          .where((t) => t != NoteBlockType.heading)
+          .toList();
+      expect(
+        nonHeading.length,
+        nonHeading.toSet().length,
+        reason: '除 heading 多级入口外无重复注册',
+      );
+      expect(types.where((t) => t == NoteBlockType.heading).length, 3);
+    });
+
     test('每个 option 都有 label、icon 和 group', () {
       for (final option in BlockSlashMenu.options) {
         expect(option.label, isNotEmpty);

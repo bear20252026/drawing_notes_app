@@ -508,7 +508,9 @@ class VaultKeyService {
 
   /// 三-6 收尾（审计第 4 轮）：清扫上一会话崩溃遗留的 `<vault>.tmp.*`
   /// 孤儿（内含被包装主密钥——隐私残留）。每实例只扫一次；仅删修改时间
-  /// 早于 1 小时的 tmp，避免误删并发写入中的临时文件。
+  /// 早于 10 分钟的 tmp——避免误删并发写入中的临时文件（写入耗时秒级，
+  /// 10 分钟余量充足；S-09（审计 2026-09-27）：原 1 小时阈值让崩溃残留
+  /// 的密钥副本在磁盘滞留过久）。
   Future<void> _sweepStaleTmpFiles(File vaultFile) async {
     if (_tmpSwept) return;
     _tmpSwept = true;
@@ -520,7 +522,7 @@ class VaultKeyService {
         if (!name.startsWith(prefix)) continue;
         final stat = entry.statSync();
         if (DateTime.now().difference(stat.modified) >
-            const Duration(hours: 1)) {
+            const Duration(minutes: 10)) {
           await entry.delete();
         }
       }

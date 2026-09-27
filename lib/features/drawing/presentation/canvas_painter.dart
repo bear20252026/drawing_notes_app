@@ -34,6 +34,17 @@ class CanvasPainter extends CustomPainter {
   /// 纸型点阵点色（同上 domain 豁免）。
   static const Color paperDotColor = Color(0x5542A5F5);
 
+  /// D-03（审计 2026-09-27）具名收编（原内联字面量，随导出产物呈现的
+  /// 画布域数据色——domain 豁免，不进 AppleColor 令牌表）。
+  /// 无限画布底色（浅色纸面）。
+  static const Color canvasPaperBackground = Color(0xFFF4F5F7);
+
+  /// 多选锁定态选框琥珀（Excalidraw 同款锁定警示色）。
+  static const Color lockedSelectionAmber = Color(0xFFF59E0B);
+
+  /// 缩放提示角标描边（画布域半透明灰）。
+  static const Color zoomBadgeOutline = Color(0xB0636B78);
+
   CanvasPainter({required this.controller})
     : super(
         repaint: Listenable.merge([
@@ -57,7 +68,7 @@ class CanvasPainter extends CustomPainter {
     if (doc.infinite) {
       canvas.drawRect(
         Offset.zero & size,
-        Paint()..color = const Color(0xFFF4F5F7),
+        Paint()..color = canvasPaperBackground,
       );
     }
 
@@ -197,7 +208,7 @@ class CanvasPainter extends CustomPainter {
         canvas,
         mixedBounds,
         controller.mixedDocumentSelectionHasLockedObjects
-            ? const Color(0xFFF59E0B)
+            ? lockedSelectionAmber
             : AppleColor.actionBlue,
         inflate: 5,
         strokeWidth: 1.75,
@@ -315,7 +326,7 @@ class CanvasPainter extends CustomPainter {
     required bool locked,
   }) {
     final selectionColor = locked
-        ? const Color(0xFFF59E0B)
+        ? lockedSelectionAmber
         : AppleColor.actionBlue;
     _paintSelectionFrame(canvas, bounds, selectionColor, locked: locked);
     if (locked) {
@@ -335,7 +346,7 @@ class CanvasPainter extends CustomPainter {
     if (stroke.points.isEmpty) return;
     final point = stroke.points.last.offset;
     final paint = Paint()
-      ..color = const Color(0xB0636B78)
+      ..color = zoomBadgeOutline
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;

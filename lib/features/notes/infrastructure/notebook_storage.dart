@@ -402,10 +402,22 @@ class NotebookStorage
       try {
         final bytes = await entity.readAsBytes();
         if (MediaCryptoService.isEncryptedFile(bytes)) continue;
-        await entity.writeAsBytes(
-          await service.encryptFile(bytes),
-          flush: true,
+        // R-05（审计 2026-09-27）：原地重加密非原子——写中崩溃留下半明文
+        // 半密文文件、永久不可解密（「幂等」只覆盖写前失败）。tmp + rename。
+        final tmp = File(
+          '${entity.path}.${LocalIdGenerator.next('write')}.tmp',
         );
+        try {
+          await tmp.writeAsBytes(await service.encryptFile(bytes), flush: true);
+          await tmp.rename(entity.path);
+        } catch (_) {
+          try {
+            if (tmp.existsSync()) await tmp.delete();
+          } catch (_) {
+            // 清理失败不覆盖原始异常。
+          }
+          rethrow;
+        }
         migrated++;
       } catch (_) {
         // 单个迁移失败忽略（后续解锁再试——幂等）。
@@ -422,9 +434,25 @@ class NotebookStorage
     if (file.existsSync()) {
       final bytes = await file.readAsBytes();
       if (bytes.length >= 16) return bytes.take(16).toList();
+      // R-07（审计 2026-09-27）：短于 16 字节 = 部分写入，它仍对应已加密
+      // 媒体的真实盐——静默换盐会让旧盐派生的媒体全部不可解密。显式失败
+      // （fail-closed）交由调用方提示，保住恢复可能。
+      throw StateError('媒体加密盐文件损坏（不足 16 字节），已拒绝重新生成以保护已加密媒体');
     }
     final salt = MediaCryptoService.generateSalt();
-    await file.writeAsBytes(salt, flush: true);
+    // 同批次 R-05：盐写入走 tmp + rename（部分写入不再产生半截盐文件）。
+    final tmp = File('${file.path}.${LocalIdGenerator.next('write')}.tmp');
+    try {
+      await tmp.writeAsBytes(salt, flush: true);
+      await tmp.rename(file.path);
+    } catch (_) {
+      try {
+        if (tmp.existsSync()) await tmp.delete();
+      } catch (_) {
+        // 清理失败不覆盖原始异常。
+      }
+      rethrow;
+    }
     return salt;
   }
 

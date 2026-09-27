@@ -189,6 +189,16 @@ class BlockSlashMenu extends StatefulWidget {
       group: SlashItemGroup.embed,
       description: '数据库视图',
     ),
+    // T-12（审计 2026-09-27）：附件入口补全——插入链路（_changeBlockType
+    // → updateType → 渲染/工具栏分支）此前已齐备，唯独斜杠菜单漏了本项
+    // （原测试只断言子集未发现；全等断言上线即抓到）。
+    SlashItem(
+      type: NoteBlockType.attachment,
+      label: '附件',
+      icon: Icons.attach_file,
+      group: SlashItemGroup.embed,
+      description: '添加文件附件',
+    ),
     SlashItem(
       type: NoteBlockType.toggle,
       label: '切换列表',

@@ -93,50 +93,63 @@ extension _DocPageLinkOutline on _DocPageState {
     final store = widget.blockDocStore;
     if (store == null) return;
     // N2：受密未解锁的笔记点击反向链接 → 先解锁（与宿主路由同口径）。
-    store
-        .isBlockDocPasswordProtected(id)
-        .then((protected) async {
-          if (protected && !store.isBlockDocUnlocked(id)) {
-            if (!mounted) return false;
-            final l10n = AppLocalizations.of(context);
-            final pin = await UnlockFlow.show(
-              context,
-              title: l10n?.docUnlockTitle ?? '该笔记已加密，输入密码',
-              flexible: true,
-              onVerify: (p) => store.verifyBlockDocPassword(id, p),
-              footerLabel: l10n?.docForgotPassword ?? '忘记密码？',
-              onFooter: () {
-                BlockDocPasswordResetFlow.show(
-                  context,
-                  store: store,
-                  docId: id,
-                );
-              },
-            );
-            if (pin == null && !store.isBlockDocUnlocked(id)) return false;
-          }
-          return true;
-        })
-        .then((allowed) async {
-          if (allowed != true) return null;
-          try {
-            return await store.loadDocument(id);
-          } on BlockDocLockedException {
-            return null; // 会话 DEK 已被清——不暴露内容
-          }
-        })
-        .then((doc) {
-          if (!mounted || doc == null) return;
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => DocPage(
-                document: doc,
-                controller: DocController(onSave: (d) => store.saveDocument(d)),
-                blockDocStore: store,
-                tagStore: widget.tagStore,
-              ),
-            ),
+    // R-08（审计 2026-09-27）：原 `.then` 链无 catchError 且未 await——
+    // loadDocument 抛非锁定异常（IO/主备双坏 rethrow）时成为未处理异步
+    // 异常，点击反向链接毫无反应。改 async/await + 统一兜底反馈。
+    Future<void> run() async {
+      try {
+        final protected = await store.isBlockDocPasswordProtected(id);
+        if (protected && !store.isBlockDocUnlocked(id)) {
+          if (!mounted) return;
+          final l10n = AppLocalizations.of(context);
+          final pin = await UnlockFlow.show(
+            context,
+            title: l10n?.docUnlockTitle ?? '该笔记已加密，输入密码',
+            flexible: true,
+            onVerify: (p) => store.verifyBlockDocPassword(id, p),
+            footerLabel: l10n?.docForgotPassword ?? '忘记密码？',
+            onFooter: () {
+              BlockDocPasswordResetFlow.show(
+                context,
+                store: store,
+                docId: id,
+              );
+            },
           );
-        });
+          if (pin == null && !store.isBlockDocUnlocked(id)) return;
+        }
+        NoteBlockDoc? doc;
+        try {
+          doc = await store.loadDocument(id);
+        } on BlockDocLockedException {
+          return; // 会话 DEK 已被清——不暴露内容
+        }
+        // doc 在 try 内赋值不做类型提升——经 final 局部变量收口空安全。
+        final loaded = doc;
+        if (!mounted || loaded == null) return;
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => DocPage(
+              document: loaded,
+              controller: DocController(onSave: (d) => store.saveDocument(d)),
+              blockDocStore: store,
+              tagStore: widget.tagStore,
+            ),
+          ),
+        );
+      } catch (e) {
+        AuditLogger.log(
+          'doc.link.open_failed',
+          success: false,
+          detail: e.runtimeType.toString(),
+        );
+        if (!mounted) return;
+        AppSnack.show(
+          context,
+          AppLocalizations.of(context)?.docOpenFailed ?? '打开失败，请重试',
+        );
+      }
+    }
+    unawaited(run());
   }
 }

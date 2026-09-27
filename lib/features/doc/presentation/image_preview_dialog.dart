@@ -29,7 +29,9 @@ Future<void> showImagePreviewDialog(
     barrierDismissible: true,
     barrierLabel: AppLocalizations.of(context)?.close ?? '关闭',
     barrierColor: Colors.black87,
-    transitionDuration: AppleMotion.dropdown,
+    // M-07（审计 2026-09-27）：全屏沉浸预览属模态，时长对齐同族
+    // unlock_sheets 的 modal 档（原用 dropdown，同族不一致）。
+    transitionDuration: AppleMotion.modal,
     pageBuilder: (context, animation, secondaryAnimation) {
       return _ImagePreviewPage(src: safeSrc, caption: caption);
     },

@@ -245,11 +245,19 @@ extension _HomePageTabs on _HomePageState {
     if (doc.kind != AllDocKind.blockdoc) return;
     if (!await _ensureUnlocked(doc.id)) return;
     // 锁定异常折叠为 null（fail-closed）——独立方法保证空安全提升。
+    // R-09（审计 2026-09-27）：损坏文档（主备双坏 rethrow FormatException/
+    // TypeError）此前静默无反应——补捕并给用户反馈。
     Future<NoteBlockDoc?> loadGuarded() async {
       try {
         return await _blockDocStore.loadDocument(doc.id);
       } on BlockDocLockedException {
         return null; // 会话 DEK 已被清——不暴露内容
+      } on FormatException {
+        _showSnack(_l10nSafe?.homeDocCorrupt ?? '笔记数据损坏，无法打开');
+        return null;
+      } on TypeError {
+        _showSnack(_l10nSafe?.homeDocCorrupt ?? '笔记数据损坏，无法打开');
+        return null;
       }
     }
 

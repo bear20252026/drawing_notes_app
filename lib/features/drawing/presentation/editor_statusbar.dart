@@ -69,12 +69,17 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
           defaultTargetPlatform == TargetPlatform.linux);
 
   String _saveLabel(bool dirty) {
-    if (widget.saving) return '保存中…';
+    // L-05（审计 2026-09-27）：saveState* 键族接线（原写死，arb 键已有
+    // ——editor_page.dart:206 同族在用）。
+    if (widget.saving) {
+      return AppLocalizations.of(context)?.saveStateSaving ?? '保存中…';
+    }
     final t = widget.lastSavedAt;
     if (t == null || dirty) {
       return AppLocalizations.of(context)?.saveStateUnsaved ?? '未保存';
     }
-    return '已保存 ${formatClock(t)}';
+    return AppLocalizations.of(context)?.saveStateSavedAt(formatClock(t)) ??
+        '已保存 ${formatClock(t)}';
   }
 
   Color _saveColor(ThemeData theme, bool dirty) {

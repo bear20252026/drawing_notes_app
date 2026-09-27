@@ -702,6 +702,10 @@
   "@scFocusNav": {},
   "scQuickRecord": "Quick record (new canvas)",
   "@scQuickRecord": {},
+  "docOpenFailed": "Failed to open. Please try again",
+  "@docOpenFailed": {},
+  "homeDocCorrupt": "Note data is corrupted; cannot open",
+  "@homeDocCorrupt": {},
   "settingsPasswordSystem": "Password System",
   "@settingsPasswordSystem": {
     "description": "密码体系分组标题"

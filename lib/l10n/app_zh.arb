@@ -677,6 +677,10 @@
   "@scQuickRecord": {
     "description": ""
   },
+  "docOpenFailed": "打开失败，请重试",
+  "@docOpenFailed": {},
+  "homeDocCorrupt": "笔记数据损坏，无法打开",
+  "@homeDocCorrupt": {},
   "settingsPasswordSystem": "密码体系",
   "@settingsPasswordSystem": {
     "description": "密码体系分组标题"

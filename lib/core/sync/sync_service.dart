@@ -101,7 +101,10 @@ class SyncService {
     required this.documentStore,
     required this.baselineStore,
     this.planner = const SyncPlanner(),
-    this.cipher = const NoopSyncCipher(),
+    // S-04（审计 2026-09-27）：加密方案必选——默认 NoopSyncCipher（明文
+    // 透传）是 fail-open 陷阱，未来新增调用点漏配即静默明文上云。现网
+    // 调用点（设置页）与测试助手均显式传 cipher，收紧为 required。
+    required this.cipher,
     this.conflictHandler = const LwwConflictHandler(),
     this.onProgress,
   });

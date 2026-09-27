@@ -11,19 +11,20 @@ import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dar
 class InkLayerPainter {
   const InkLayerPainter._();
 
-  // ---- cull/plan 单槽缓存（渲染性能 2026-09-07）----
+  // ---- cull/plan 多槽缓存（渲染性能 2026-09-07；P-10 审计 2026-09-27）----
   // 活动绘制期间 paintStrokes 每帧执行：每次 cullStrokes 新建 List、
-  // InkRenderPlan.fromStrokes 新分配纯属浪费。按 (strokes 引用, 长度,
-  // 内容指纹, bounds) 缓存，输入未变则直接复用上次结果。
+  // InkRenderPlan.fromStrokes 新分配纯属浪费。按 (strokes 引用, 内容指纹,
+  // bounds) 缓存，输入未变则直接复用上次结果。
   // 失效前提（调用方现状）：canvas_painter / layer_compositor 等传入
   // 图层笔画列表的稳定引用，增删笔画必改变长度；点列替换走
   // Stroke.replacePoints（version 递增）；整条替换（移动/缩放重建对象）
   // 改变元素 identity——三者都进指纹。
-  static Iterable<Stroke>? _cachedStrokes;
-  static Rect _cachedBounds = Rect.zero;
-  static int _cachedFingerprint = 0;
-  static List<Stroke>? _cachedVisible;
-  static InkRenderPlan? _cachedPlan;
+  // P-10：单槽改按 strokes 引用标识的小型多槽表——无限画布
+  // paintVectorLayers 按图层循环调用本方法，可见图层 ≥2 时两图层逐帧
+  // 互踢单槽、命中率恒 0。容量 8（超出按插入序自然淘汰）；
+  // identityHashCode 碰撞以 identical 复核，不命中仅重算一次，无误渲染风险。
+  static final Map<int, _CullCacheEntry> _cullCache = <int, _CullCacheEntry>{};
+  static const int _cullCacheCapacity = 8;
 
   /// 内容指纹：元素 identity（捕获整条替换）+ version（捕获
   /// replacePoints 点列替换）+ 长度（捕获增删）。O(n) 整数运算。
@@ -49,18 +50,24 @@ class InkLayerPainter {
     Iterable<Stroke> strokes,
   ) {
     final fingerprint = _fingerprintOf(strokes);
-    if (!identical(_cachedStrokes, strokes) ||
-        _cachedBounds != bounds ||
-        _cachedFingerprint != fingerprint ||
-        _cachedVisible == null ||
-        _cachedPlan == null) {
-      _cachedVisible = cullStrokes(strokes, bounds);
-      _cachedPlan = InkRenderPlan.fromStrokes(_cachedVisible!);
-      _cachedStrokes = strokes;
-      _cachedBounds = bounds;
-      _cachedFingerprint = fingerprint;
+    final key = identityHashCode(strokes);
+    final entry = _cullCache[key];
+    if (entry == null ||
+        !identical(entry.strokes, strokes) ||
+        entry.bounds != bounds ||
+        entry.fingerprint != fingerprint) {
+      final visible = cullStrokes(strokes, bounds);
+      _cullCache[key] = _CullCacheEntry(
+        strokes: strokes,
+        bounds: bounds,
+        fingerprint: fingerprint,
+        plan: InkRenderPlan.fromStrokes(visible),
+      );
+      if (_cullCache.length > _cullCacheCapacity) {
+        _cullCache.remove(_cullCache.keys.first);
+      }
     }
-    final plan = _cachedPlan!;
+    final plan = _cullCache[key]!.plan;
     for (final strokesForColor in plan.markerGroups) {
       _paintMarkerColorGroup(canvas, bounds, strokesForColor);
     }
@@ -161,4 +168,19 @@ class InkRenderPlan {
       normalStrokes: normalStrokes,
     );
   }
+}
+
+/// P-10 多槽缓存条目：strokes 引用 + bounds + 指纹 + 渲染计划。
+class _CullCacheEntry {
+  const _CullCacheEntry({
+    required this.strokes,
+    required this.bounds,
+    required this.fingerprint,
+    required this.plan,
+  });
+
+  final Iterable<Stroke> strokes;
+  final Rect bounds;
+  final int fingerprint;
+  final InkRenderPlan plan;
 }

@@ -163,9 +163,17 @@ class _DrawingCardState extends State<_DrawingCard> {
                       fit: StackFit.expand,
                       children: [
                         _thumbBytes != null
-                            ? AnimatedOpacity(
-                                opacity: 1,
+                            ? // M-11（审计 2026-09-27）：原 AnimatedOpacity
+                              // (opacity: 1) 恒为目标值的空转包装——真实意图
+                              // 的 0→1 渐显从未发生。改 TweenAnimationBuilder
+                              // 驱动入场渐显（减弱动效时 motion=Duration.zero
+                              // 即瞬时呈现）；只动 opacity，合规。
+                              TweenAnimationBuilder<double>(
+                                tween: Tween(begin: 0, end: 1),
                                 duration: motion,
+                                curve: AppleMotion.easeOut,
+                                builder: (context, opacity, child) =>
+                                    Opacity(opacity: opacity, child: child),
                                 // U4（审计三-10）：缩略图按显示密度解码降采样——
                                 // 存储的 PNG 是画布 scale 0.2 产物，大画布仍可达
                                 // 上千像素；卡片只需 ~300 逻辑像素。

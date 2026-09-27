@@ -173,7 +173,9 @@ extension _EditorPageCommands on _EditorPageState {
       ..register(
         EditorCommand(
           id: 'exportPng',
-          label: '导出 PNG',
+          // L-06（审计 2026-09-27）：editorExport* 键接线（原写死，同文件
+          // 相邻命令全走 l10n?.cmd*——同族不一致的漏网三处）。
+          label: l10n?.editorExportPng ?? '导出 PNG',
           category: EditorCommandCategory.export,
           keywords: const ['export', 'image', '图片'],
           run: _exportPng,
@@ -182,7 +184,7 @@ extension _EditorPageCommands on _EditorPageState {
       ..register(
         EditorCommand(
           id: 'exportPdf',
-          label: '导出 PDF',
+          label: l10n?.editorExportPdf ?? '导出 PDF',
           category: EditorCommandCategory.export,
           keywords: const ['export', 'document', '文档'],
           run: _exportPdf,
@@ -191,7 +193,7 @@ extension _EditorPageCommands on _EditorPageState {
       ..register(
         EditorCommand(
           id: 'exportSvg',
-          label: '导出 SVG',
+          label: l10n?.editorExportSvg ?? '导出 SVG',
           category: EditorCommandCategory.export,
           keywords: const ['export', 'vector', '矢量'],
           run: _exportSvg,

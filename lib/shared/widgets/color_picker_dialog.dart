@@ -43,11 +43,25 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
   final _gFocus = FocusNode();
   final _bFocus = FocusNode();
 
+  // P-12（审计 2026-09-27）：监听器持具名引用——dispose 前显式 remove
+  // （对齐全库 addListener/removeListener 配平纪律；匿名闭包无法移除，
+  // 依赖节点 dispose 兜底且有「带监听器 dispose」debug 断言风险）。
+  void _onRgbFocusChanged() {
+    if (!_rFocus.hasFocus &&
+        !_gFocus.hasFocus &&
+        !_bFocus.hasFocus) {
+      _submitRgb();
+    }
+  }
+
   @override
   void dispose() {
     _rCtrl.dispose();
     _gCtrl.dispose();
     _bCtrl.dispose();
+    _rFocus.removeListener(_onRgbFocusChanged);
+    _gFocus.removeListener(_onRgbFocusChanged);
+    _bFocus.removeListener(_onRgbFocusChanged);
     _rFocus.dispose();
     _gFocus.dispose();
     _bFocus.dispose();
@@ -83,11 +97,10 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
     _bCtrl = TextEditingController(
       text: '${(widget.initialColor.b * 255).round()}',
     );
-    // 失焦即提交（与 Enter 一致）。
+    // 失焦即提交（与 Enter 一致）——P-12：具名监听器，全部格子失焦时
+    // 提交一次（原匿名闭包逐格触发三次，且无法 removeListener）。
     for (final f in [_rFocus, _gFocus, _bFocus]) {
-      f.addListener(() {
-        if (!f.hasFocus) _submitRgb();
-      });
+      f.addListener(_onRgbFocusChanged);
     }
     _selected = widget.initialColor;
   }

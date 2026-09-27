@@ -1178,6 +1178,18 @@ abstract class AppLocalizations {
   /// **'Quick record (new canvas)'**
   String get scQuickRecord;
 
+  /// No description provided for @docOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to open. Please try again'**
+  String get docOpenFailed;
+
+  /// No description provided for @homeDocCorrupt.
+  ///
+  /// In en, this message translates to:
+  /// **'Note data is corrupted; cannot open'**
+  String get homeDocCorrupt;
+
   /// 密码体系分组标题
   ///
   /// In en, this message translates to:

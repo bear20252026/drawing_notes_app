@@ -32,7 +32,9 @@ class _SkeletonBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final base = Theme.of(context).colorScheme.surfaceContainerHighest;
-    final disabled = MediaQuery.disableAnimationsOf(context);
+    // M-04（审计 2026-09-27）：统一走三信号合一的令牌入口（原直读
+    // disableAnimationsOf 漏 high-contrast 信号）。
+    final disabled = AppleMotion.reduceMotionOf(context);
     return AnimatedBuilder(
       animation: controller,
       builder: (context, child) {

@@ -471,7 +471,11 @@ class DrawingController extends ChangeNotifier
     for (final layerIndex in step.changedLayerIndices) {
       unawaited(_invalidateLayer(_document.layers[layerIndex].id));
     }
-    notifyListeners();
+    // P-13（审计 2026-09-27）：拖擦进行中只 tick frameTick 驱动画布重绘
+    // （对齐本类 ：225 的高频路径纪律）；顶栏标题/图层面板等全控制器
+    // 监听者由 endObjectErase 收笔时的唯一 notifyListeners 统一刷新。
+    // 此前每命中样本 notifyListeners，连续擦除手势随采样频率整树重建。
+    tickFrame();
     return true;
   }
 

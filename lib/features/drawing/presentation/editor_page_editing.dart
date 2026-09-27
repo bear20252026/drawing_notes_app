@@ -719,7 +719,10 @@ extension _EditorPageEditing on _EditorPageState {
       _canvasInteraction.beginDeleting(ids);
       _canvasInteraction.clearObjectSelection();
     });
-    Future.delayed(const Duration(milliseconds: 180), () {
+    // M-03（审计 2026-09-27）：移除延迟与配对淡出动画同用 AppleMotion
+    // .dropdown（200ms）——原裸 180ms 会让元素在淡出完成前 20ms 被移除，
+    // 动画截断跳变；两处引用同一令牌常量即永不再漂移。
+    Future.delayed(AppleMotion.dropdown, () {
       if (!mounted) return;
       _applyState(() {
         EditorPageObjectMutation.remove(
