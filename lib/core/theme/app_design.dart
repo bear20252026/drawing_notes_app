@@ -44,8 +44,10 @@ abstract final class AppDesign {
   /// capsules」11px）。此前写死 12——属于 DESIGN.md:511 明令禁止的
   ///「mixing radii grammars」。
   static const double controlRadius = AppleRadius.md;
-  static const Duration quickMotion = Duration(milliseconds: 140);
-  static const Duration standardMotion = Duration(milliseconds: 200);
+  // M-01（审计 2026-09-27）：影子时长令牌 quickMotion(140ms)/
+  // standardMotion(200ms) 已删除——时长令牌唯一权威是 AppleMotion
+  // （press 120 / dropdown 200 等七档），影子令牌会让 140ms 这样的
+  // 离档值绕过动效域门禁。消费点 home_page_widgets 已改 AppleMotion.press。
 
   /// 明亮模式主题；[contrast] 为 [AppleContrast.high] 时走 Windows
   /// 高对比度配色（平台域裁决 C2）。

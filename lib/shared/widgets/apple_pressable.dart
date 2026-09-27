@@ -82,9 +82,8 @@ class ApplePressable extends StatefulWidget {
 class _ApplePressableState extends State<ApplePressable> {
   /// 按下来源集合：指针与键盘各算一路，任意一路按下即处于按压态。
   ///（用 Set 而非 bool，避免「键盘按住 + 鼠标松开」提前取消缩放。）
+  ///（M-02 后缩放判定只看指针来源，键盘按压语义保留在集合本身。）
   final Set<_PressSource> _pressed = <_PressSource>{};
-
-  bool get _isPressed => _pressed.isNotEmpty && widget.enabled;
 
   void _add(_PressSource source) {
     if (!widget.enabled) return;
@@ -112,7 +111,11 @@ class _ApplePressableState extends State<ApplePressable> {
     // 减弱动效时不缩放（仍保留颜色类反馈）。三信号合一判定，
     // 见 AppleMotion.reduceMotionOf 的映射说明。
     final reduceMotion = AppleMotion.reduceMotionOf(context);
-    final pressed = _isPressed && !reduceMotion;
+    // M-02（审计 2026-09-27）：频率闸门——键盘触发的动作永不动画。
+    // 键盘按压保留触感反馈与按压状态语义（KeyUp 移除、禁用拦截不变），
+    // 但不再播放缩放过渡；指针按压照常缩放（触屏主用通道）。
+    final pressed =
+        _pressed.contains(_PressSource.pointer) && !reduceMotion;
 
     final scaled = AnimatedScale(
       scale: pressed ? widget.scale : 1.0,

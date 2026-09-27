@@ -194,7 +194,9 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
                     size: 18,
                     color: scheme.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 10),
+                  // D-01（审计 2026-09-27）：菜单图标距 10→8（归档决策
+                  // 「菜单图标距 10→8」的残留收尾，与同文件已归一处对齐）。
+                  const SizedBox(width: 8),
                   Text(
                     AppLocalizations.of(context)?.docMenuExportPdf ?? '导出 PDF',
                   ),
@@ -210,7 +212,9 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
                     size: 18,
                     color: scheme.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 10),
+                  // D-01（审计 2026-09-27）：菜单图标距 10→8（归档决策
+                  // 「菜单图标距 10→8」的残留收尾，与同文件已归一处对齐）。
+                  const SizedBox(width: 8),
                   Text(
                     AppLocalizations.of(context)?.docMenuExportHtml ??
                         '导出 HTML',
@@ -227,7 +231,9 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
                     size: 18,
                     color: scheme.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 10),
+                  // D-01（审计 2026-09-27）：菜单图标距 10→8（归档决策
+                  // 「菜单图标距 10→8」的残留收尾，与同文件已归一处对齐）。
+                  const SizedBox(width: 8),
                   Text(
                     AppLocalizations.of(context)?.docMenuExportMarkdown ??
                         '导出 Markdown',

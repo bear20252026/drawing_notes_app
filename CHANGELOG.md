@@ -2,6 +2,38 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.33] - 2026-09-27
+
+### 审计批次 K：深度审计（134 条）第三批修复——性能热路径 + 动效/令牌合规
+
+> 来源：`docs/audit_2026-09-27.md` 第三批之性能 P-01~P-04、动效 M-01/M-02、
+> 令牌 D-01/D-02/D-08（共 9 条）。V-01 键盘选画布、i18n L 系、P-05~P-13
+> 留后续批次。
+
+- **P-01（P1）对象橡皮擦包围盒预筛**：`object_eraser_session` 此前每次
+  采样事件对全部图层×全部笔画逐点命中（O(总采样点)/事件），高采样率
+  触屏笔拖擦明显掉帧。接入 `StrokeRenderer.strokeBounds` 缓存查询
+  （O(1)/条，轮廓缓存同源）做相交预筛，单事件成本降为 O(笔画数)。
+- **P-02~P-04（P1/P2）导出主 isolate 重活清零**：单页混合 PDF 的
+  `encodeJpeg`（image 包纯 Dart 编码，大画布数百 ms~秒级冻结）包进
+  `Isolate.run`（对齐 pdf_hybrid_exporter 既有先例）；PPTX 打包
+  `ZipEncoder().encode`、JSON 导出 `JsonEncoder.withIndent` 同批迁出
+  （纯 Dart 对象可安全跨 isolate）。
+- **M-01（P1）影子时长令牌删除**：`AppDesign.quickMotion(140ms)/
+  standardMotion(200ms)` 不在 AppleMotion 令牌表任何档位（140ms 离档）
+  ——删除影子令牌，消费点 `home_page_widgets` 改 `AppleMotion.press`
+  （120ms）且减弱动效判定统一走三信号合一的 `reduceMotionOf`（原直读
+  `disableAnimationsOf` 漏 high-contrast 信号，顺带修复该处 M-04）；
+  `app_design_test` 改锁 AppleMotion 两档防回归。
+- **M-02（P1）键盘按压不再动画**：`ApplePressable` 键盘 Enter/Space 触发
+  的按压此前播放 120ms 缩放过渡，违反「键盘触发的动作永不动画」频率
+  闸门——缩放判定改为仅指针按压（键盘保留触感反馈与按压状态语义）。
+- **D-01/P2**：`doc_page_widgets` 菜单项图标距 10→8 三处（昨日归档决策
+  残留收尾）；**D-02**：对齐参考线 `Color(0xFFFF5252)` 具名收编
+  （画布域数据色豁免注释）；**D-08/P2**：`pin_pad` 移除 `height: 1`
+  覆写（行高 1 低于全库 1.47 硬底线，全库唯一一处 UI 文本违规）。
+- 门禁：`flutter analyze` 0 告警、全量测试绿。
+
 ## [1.17.32] - 2026-09-27
 
 ### 审计批次 J：深度审计（134 条）第二批修复——架构门禁（防问题再生）

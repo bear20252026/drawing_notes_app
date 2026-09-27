@@ -1,6 +1,7 @@
 import 'dart:ui' show Offset;
 
 import 'package:drawing_notes_app/features/drawing/rendering/shape_binding_geometry.dart';
+import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
 import 'package:drawing_notes_app/features/drawing/application/selection_geometry_service.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
@@ -147,6 +148,14 @@ class ObjectEraserSession {
   static bool _strokeHitsCircle(Stroke stroke, Offset center, double radius) {
     if (stroke.points.isEmpty) return false;
     final threshold = radius + stroke.width / 2;
+    // P-01（审计 2026-09-27）：包围盒预筛——StrokeRenderer.strokeBounds 为
+    // 缓存查询（O(1)/条，轮廓缓存同源），不相交直接跳过逐段遍历。此前
+    // 每次采样事件对全部笔画逐点命中（O(总采样点)），高采样率触屏笔
+    // 拖擦明显掉帧；预筛后单事件成本降为 O(笔画数)。
+    final bounds = StrokeRenderer.strokeBounds(stroke);
+    if (bounds == null || !bounds.inflate(threshold).contains(center)) {
+      return false;
+    }
     for (var index = 0; index < stroke.points.length - 1; index++) {
       if (_distanceToSegment(
             center,

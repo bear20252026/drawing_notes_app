@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:ui' as ui;
 
 import 'package:archive/archive.dart';
@@ -585,9 +586,15 @@ class EditorExporter {
       final inkPng = await controller.renderToPng();
       if (inkPng != null) {
         // 二级面板质量：墨迹页光栅按档位压缩（无损 = PNG 原样）。
+        // P-02（审计 2026-09-27）：image 包纯 Dart JPEG 编码此前在主
+        // isolate 执行（大画布数百 ms~秒级 UI 冻结）——对齐
+        // pdf_hybrid_exporter 的 Isolate.run 先例（静态纯函数，
+        // Uint8List 可跨 isolate 拷贝）。
         final inkBytes = quality.jpegQuality == null
             ? inkPng
-            : PdfHybridExporter.encodeJpeg(inkPng, quality.jpegQuality!);
+            : await Isolate.run(
+                () => PdfHybridExporter.encodeJpeg(inkPng, quality.jpegQuality!),
+              );
         document.addPage(
           pw.Page(
             pageFormat: textFormat,
@@ -829,7 +836,10 @@ class EditorExporter {
           ArchiveFile(entry.key, entry.value.length, entry.value),
         );
       }
-      final bytes = ZipEncoder().encode(archive);
+      // P-03（审计 2026-09-27）：ZIP deflate 压缩整幅画布 PNG（数 MB 级）
+      // 移入后台 isolate——打包期间 UI 不冻结（Archive/ArchiveFile 为纯
+      // Dart 对象，可安全跨 isolate 拷贝）。
+      final bytes = await Isolate.run(() => ZipEncoder().encode(archive));
       if (bytes.isEmpty) {
         showSnack(_l?.expPptxPackFail ?? '导出失败：PPTX 打包失败');
         return;
@@ -859,7 +869,11 @@ class EditorExporter {
   Future<void> exportJson() async {
     try {
       final data = buildExportPayload(controller.document, page: _page);
-      final json = const JsonEncoder.withIndent('  ').convert(data);
+      // P-04（审计 2026-09-27）：整本文档带缩进序列化移入后台 isolate
+      // （笔画多时主 isolate 卡顿一拍；payload 为纯 Map/List 可安全发送）。
+      final json = await Isolate.run(
+        () => const JsonEncoder.withIndent('  ').convert(data),
+      );
       final location = await getSaveLocation(
         suggestedName: '${controller.document.title}.json',
         acceptedTypeGroups: [

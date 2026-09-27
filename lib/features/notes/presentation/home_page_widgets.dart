@@ -126,9 +126,13 @@ class _DrawingCardState extends State<_DrawingCard> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final motion = MediaQuery.disableAnimationsOf(context)
+    // M-01（审计 2026-09-27）：影子时长令牌 AppDesign.quickMotion(140ms)
+    // 不在 AppleMotion 令牌表任何档位——改用 press(120ms)，且减弱动效
+    // 判定统一走三信号合一的 reduceMotionOf（原直读 disableAnimationsOf
+    // 漏 high-contrast 信号）。
+    final motion = AppleMotion.reduceMotionOf(context)
         ? Duration.zero
-        : AppDesign.quickMotion;
+        : AppleMotion.press;
     return Semantics(
       button: true,
       label: '打开无限画布 ${widget.meta.title}',

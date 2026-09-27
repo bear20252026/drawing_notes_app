@@ -414,7 +414,9 @@ class _PinPadCoreState extends State<PinPadCore>
                     ).copyWith(
                       fontWeight: FontWeight.w600,
                       letterSpacing: 2.5,
-                      height: 1,
+                      // D-08（审计 2026-09-27）：移除 height:1 覆写——
+                      // 行高 1 低于全库 1.47 硬底线，承接 captionStyle
+                      // 自带行高（三字母提示宽度增量可忽略）。
                     ),
               ),
             ),

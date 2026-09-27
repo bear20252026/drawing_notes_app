@@ -1,5 +1,6 @@
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -39,8 +40,10 @@ void main() {
     });
 
     test('motion and layout tokens stay intentionally compact', () {
-      expect(AppDesign.quickMotion, const Duration(milliseconds: 140));
-      expect(AppDesign.standardMotion, const Duration(milliseconds: 200));
+      // M-01（审计 2026-09-27）：影子时长令牌已删，时长唯一权威
+      // = AppleMotion（锁两条档位防回归）。
+      expect(AppleMotion.press, const Duration(milliseconds: 120));
+      expect(AppleMotion.dropdown, const Duration(milliseconds: 200));
       expect(AppDesign.pagePadding, 20);
       expect(AppDesign.cardRadius, 18);
       // 12 → 11（AppleRadius.md）：DESIGN.md:511 明令「Don't mix radii
