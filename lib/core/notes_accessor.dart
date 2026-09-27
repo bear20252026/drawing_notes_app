@@ -88,3 +88,21 @@ abstract interface class IBlockDocSearchAccessor {
   /// 按 [query] 检索所有块文档，返回文档级命中（可能命中多块，折一为代表）。
   Future<List<BlockDocSearchHit>> search(String query);
 }
+
+/// 分页画布密码重置能力契约（C-03，审计 2026-09-27）。
+///
+/// security 展示层的「忘记密码」重置流依赖本端口而非 notes 基础设施
+/// 实现类（此前 notebook_password_reset_flow 直连 NotebookStorage，
+/// 构成 security→notes/infrastructure 的未备案横向倒挂）；由组合根注入。
+abstract interface class INotebookPasswordResetPort {
+  /// 该分页画布是否已绑定重置密码盘（USB 槽位）。
+  Future<bool> hasNotebookUsbSlot(String notebookId);
+
+  /// 用重置盘钥匙重绕密码槽（LUKS 同款：USB 钥匙解出 DEK → 新盐重绕，
+  /// payload 密文不动）。返回 false = 未绑定/盘不匹配/非 v5（fail-closed）。
+  Future<bool> resetNotebookPasswordWithUsb(
+    String notebookId,
+    List<int> usbKey,
+    String newPassword,
+  );
+}

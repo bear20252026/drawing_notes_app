@@ -11,7 +11,7 @@
 
 import 'package:flutter/material.dart';
 
-import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
+import 'package:drawing_notes_app/core/notes_accessor.dart';
 import 'package:drawing_notes_app/features/security/presentation/password_reset_common.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
@@ -19,7 +19,9 @@ abstract final class NotebookPasswordResetFlow {
   /// 运行完整重置流；返回 true = 重置成功（会话已缓存新密码）。
   static Future<bool> show(
     BuildContext context, {
-    required NotebookStorage storage,
+    // C-03（审计 2026-09-27）：依赖 core 重置端口而非 notes 基础设施
+    // 实现类——由组合根注入 NotebookStorage（已实现该端口）。
+    required INotebookPasswordResetPort storage,
     required String notebookId,
     String notebookTitle = '',
   }) async {

@@ -27,10 +27,16 @@ void main() {
   });
 
   test('规则1：层方向单向——高层只允许依赖低层', () {
+    // C-02（审计 2026-09-27）：rendering/ 纳入分层——此前该目录对所有
+    // 层规则不可见（notes→drawing/rendering 的 7 条跨 feature 依赖全部
+    // 逃逸门禁）。定位依据实证：infrastructure→rendering 存在（
+    // shape_creation_geometry）、rendering→application/presentation/
+    // infrastructure 为零——故 rendering 列于 infrastructure 之下。
     defineLayers({
       'presentation': 'features/**/presentation/**',
       'application': 'features/**/application/**',
       'infrastructure': 'features/**/infrastructure/**',
+      'rendering': 'features/**/rendering/**',
       'domain': 'features/**/domain/**',
     }).enforceDirection(graph);
   });
@@ -108,6 +114,29 @@ void main() {
       filesMatching('features/drawing/presentation/**'),
       graph,
     );
+    // C-01 解环（审计 2026-09-27）：application 层横向互斥——此前
+    // drawing/application/editor_exporter → notes/application/
+    // notebook_pdf_exporter → drawing/rendering 构成 feature 级环
+    // （文件级无环，规则2 测不到）。editor_exporter 经 core 打印页契约
+    // + 组合根注入合成引擎解环后，两侧 application 依赖全部锁死。
+    shouldNotDependOn(
+      filesMatching('features/drawing/**'),
+      filesMatching('features/notes/application/**'),
+      graph,
+    );
+    shouldNotDependOn(
+      filesMatching('features/notes/**'),
+      filesMatching('features/drawing/application/**'),
+      graph,
+    );
+    // C-03 契约化（审计 2026-09-27）：security 展示层不再直连 notes
+    // 基础设施（notebook_password_reset_flow 改依赖
+    // INotebookPasswordResetPort，NotebookStorage 由组合根注入）。
+    shouldNotDependOn(
+      filesMatching('features/security/**'),
+      filesMatching('features/notes/infrastructure/**'),
+      graph,
+    );
   });
 
   test('规则4：六边形方向——依赖仅指向内层（domain 最内）', () {
@@ -116,10 +145,13 @@ void main() {
     // 共享层（任何 feature 层均可依赖，视为 SDK 同级）。
     // 审计确认 application 已通过 core 协作者和窄契约使用渲染、识别、
     // 导出能力；严格拦截任何 application → infrastructure 及其他反向依赖。
+    // C-02（审计 2026-09-27）：rendering 入洋葱（infrastructure 之下、
+    // domain 之上，定位依据同规则 1 注释）。
     defineOnion({
       'domain': 'features/**/domain/**',
-      'application': 'features/**/application/**',
+      'rendering': 'features/**/rendering/**',
       'infrastructure': 'features/**/infrastructure/**',
+      'application': 'features/**/application/**',
       'presentation': 'features/**/presentation/**',
     }).enforceOnionRules(graph);
   });

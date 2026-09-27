@@ -1,9 +1,12 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
-import 'package:drawing_notes_app/core/notes_accessor.dart';
-import 'package:drawing_notes_app/core/navigation/editor_page_session.dart';
-import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/navigation/editor_page_session.dart';
+import 'package:drawing_notes_app/core/notes_accessor.dart';
+import 'package:drawing_notes_app/core/rendering/notebook_print_page_data.dart';
+import 'package:drawing_notes_app/core/storage/storage_service.dart';
 
 /// 由应用组合根提供的编辑器页面构建契约。
 ///
@@ -20,6 +23,15 @@ typedef EditorPageBuilder =
       /// 同本全部会话（笔记本范围=全部页用；独立画布为 null）。
       /// 类型保持 core 契约（notes 聚合不泄漏进组合签名）。
       List<EditorPageSession> Function()? allSessions,
+
+      /// 多页 PDF 合成引擎（C-01 解环，审计 2026-09-27）：core 只读页
+      /// 契约入参，实现由组合根绑定（notes 的 NotebookPdfExporter）。
+      Future<Uint8List> Function(
+        List<NotebookPrintPageData> pages, {
+        int? jpegQuality,
+      })?
+      multipageComposer,
+
       INotebookAccessor? notebookAccessor,
       StorageService? documentStorage,
       VoidCallback? onChanged,

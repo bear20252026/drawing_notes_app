@@ -2,6 +2,44 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.32] - 2026-09-27
+
+### 审计批次 J：深度审计（134 条）第二批修复——架构门禁（防问题再生）
+
+> 来源：`docs/audit_2026-09-27.md` 第二批（C-01/C-02/C-03；T-01/T-02 已随
+> 批次 I 完成）。本批闭环架构域全部 3 条 P1，架构门禁自此覆盖 rendering 层
+> 与 feature 级环；新增规则 3 条。**行为零变化**（纯依赖方向重构）。
+
+- **C-01（P1）drawing⇄notes feature 级环解环**：此前
+  `drawing/application/editor_exporter` → `notes/application/
+  notebook_pdf_exporter` → `drawing/rendering/pdf_hybrid_exporter` 构成
+  feature 级环（文件级无环，规则 2 测不到）。
+  ①`NotebookPrintPageData` 打印页契约下沉 core（新建
+  `core/rendering/notebook_print_page_data.dart`，纯 core 类型）；
+  ②多页 PDF 合成引擎改注入——`EditorExporter.multipageComposer` /
+  `EditorPage.multipagePdfComposer` / `EditorPageBuilder` 契约新增可选
+  参数，由组合根 `default_editor_page_builder` 绑定
+  `NotebookPdfExporter.exportPages` 实现（lib/app 是唯一组合点，可依赖
+  features）；③architecture_test 新增规则锁死两侧 application 横向依赖。
+- **C-02（P1）rendering/ 纳入架构门禁**：此前分层 glob 只认
+  presentation/application/infrastructure/domain 四层，
+  `features/*/rendering/` 对所有层规则不可见（notes→drawing/rendering
+  的 7 条跨 feature 依赖全部逃逸）。实证定位（infrastructure→rendering
+  存在、rendering→上层为零）后入层：`defineLayers` 与 `defineOnion`
+  均列 rendering 于 infrastructure 之下、domain 之上；规则 1/规则 4 自此
+  覆盖 14 个 rendering 文件。
+- **C-03（P1）security→notes 契约化**：`notebook_password_reset_flow`
+  （security 展示层）此前直连 `notes/infrastructure/notebook_storage`
+  实现类（未备案横向倒挂，跨层最深）。core/notes_accessor 新增
+  `INotebookPasswordResetPort`（hasNotebookUsbSlot /
+  resetNotebookPasswordWithUsb），NotebookStorage 实现该端口，两个调用点
+  （app_shell / search_page）经子类型零改动。architecture_test 补
+  `security ↛ notes/infrastructure` 规则。
+- 顺带清理：`notebook_pdf_exporter` 移除本地契约类后未用导入。
+- 门禁：`flutter analyze` 0 告警；architecture_test 9/9 绿（含 3 条新
+  规则）；全量测试绿。**运行时零行为变化**——导出/重置流经同一实现，
+  仅依赖方向经 core 契约 + 组合根注入改道。
+
 ## [1.17.31] - 2026-09-27
 
 ### 审计批次 I：全项目深度审计（2026-09-27，134 条）修复——第一批（数据与用户安全）

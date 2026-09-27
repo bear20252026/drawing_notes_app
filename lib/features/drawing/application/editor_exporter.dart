@@ -16,12 +16,12 @@ import 'package:drawing_notes_app/core/canvas_model/stroke.dart'
     show BrushType, Stroke;
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_session.dart';
+import 'package:drawing_notes_app/core/rendering/notebook_print_page_data.dart';
 import 'package:drawing_notes_app/core/rtf_exporter.dart';
 import 'package:drawing_notes_app/features/drawing/application/pdf_export_options.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/pdf_hybrid_exporter.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/svg_exporter.dart';
-import 'package:drawing_notes_app/features/notes/application/notebook_pdf_exporter.dart';
 
 /// 画布导出域（参考 Saber 的 editor_exporter 模块化设计）。
 ///
@@ -33,6 +33,7 @@ class EditorExporter {
     required this.pageProvider,
     required this.showSnack,
     this.allPagesProvider,
+    this.multipageComposer,
 
     /// i18n（E1 批 3）：导出提示按 locale 解析；惰性求值（导出跨越
     /// async 间隙，调用方以 mounted 守卫闭包传入）。
@@ -43,8 +44,17 @@ class EditorExporter {
   final PagedExportSnapshot? Function() pageProvider;
 
   /// 整本全部页数据源（笔记本模式由编辑器注入多会话快照；独立画布为 null）。
-  /// 类型为 notes 侧打印页数据（架构门禁允许 drawing→notes/application）。
+  /// 类型为 core 只读打印页契约（C-01 解环后不再依赖 notes/application）。
   final List<NotebookPrintPageData> Function()? allPagesProvider;
+
+  /// 多页 PDF 合成引擎（C-01 解环，审计 2026-09-27）：由组合根注入
+  /// （default_editor_page_builder 绑定 notes 的 NotebookPdfExporter
+  /// 实现），drawing 侧只依赖本函数签名——feature 级环自此斩断。
+  final Future<Uint8List> Function(
+    List<NotebookPrintPageData> pages, {
+    int? jpegQuality,
+  })?
+  multipageComposer;
 
   final void Function(String message) showSnack;
 
@@ -193,7 +203,8 @@ class EditorExporter {
   /// 二级面板导出入口（M12.5）：按纸张/范围/质量三档位分发。
   ///
   /// - 笔记本模式：范围 当前页 → [exportNotebookPdf]；全部页 →
-  ///   [NotebookPdfExporter.exportPages]（多会话快照经 [allPagesProvider]）；
+  ///   [multipageComposer]（多会话快照经 [allPagesProvider]，合成引擎由
+  ///   组合根注入）；
   /// - 独立画布：单页 hybrid 导出（纸张适配 + 质量透传）；
   ///   v1.17.20 布局档位 按纸张分页 → [_exportCanvasPdfTiled]
   ///   （v1.17.22：页序/页脚/进度回调/切片预览确认；v1.17.24：取消轮询）。
@@ -248,11 +259,14 @@ class EditorExporter {
     required PdfQuality quality,
     required String baseName,
   }) async {
+    final composer = multipageComposer;
+    if (composer == null) {
+      // 防御面：组合根未注入合成引擎（测试直构 EditorExporter 场景）。
+      showSnack(_l?.expExportFailErr ?? '导出失败，请重试');
+      return;
+    }
     try {
-      final bytes = await NotebookPdfExporter.exportPages(
-        pages,
-        jpegQuality: quality.jpegQuality,
-      );
+      final bytes = await composer(pages, jpegQuality: quality.jpegQuality);
       final location = await getSaveLocation(
         suggestedName: '$baseName.pdf',
         acceptedTypeGroups: [

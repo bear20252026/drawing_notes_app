@@ -3,8 +3,8 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart' show Stroke;
+import 'package:drawing_notes_app/core/rendering/notebook_print_page_data.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
@@ -12,27 +12,6 @@ import 'package:drawing_notes_app/features/drawing/rendering/pdf_hybrid_exporter
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/rendering/notebook_page_canvas_painter.dart';
 import 'package:drawing_notes_app/shared/utils/image_decode_cap.dart';
-
-/// 整本/多页导出的单页数据（与 [NotebookPage] 解耦的最小结构——
-/// 笔记本整本与编辑器多会话共用同一管线，drawing 侧只需按此结构供数，
-/// 不触碰 notes 聚合根）。
-class NotebookPrintPageData {
-  const NotebookPrintPageData({
-    required this.id,
-    required this.title,
-    required this.document,
-    required this.textItems,
-    required this.imageItems,
-    required this.shapes,
-  });
-
-  final String id;
-  final String title;
-  final DrawingDocument document;
-  final List<PageTextItem> textItems;
-  final List<PageImageItem> imageItems;
-  final List<PageShapeItem> shapes;
-}
 
 /// 分页画布整本多页 PDF 导出（W2 核心能力）。
 ///

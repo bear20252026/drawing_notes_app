@@ -45,6 +45,7 @@ import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:drawing_notes_app/core/notes_accessor.dart';
+import 'package:drawing_notes_app/core/rendering/notebook_print_page_data.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
@@ -110,6 +111,7 @@ class EditorPage extends ConsumerStatefulWidget {
     DrawingDocument? document,
     this.session,
     this.allSessionsProvider,
+    this.multipagePdfComposer,
     this.storage,
     this.docStorage,
     this.onChanged,
@@ -124,6 +126,14 @@ class EditorPage extends ConsumerStatefulWidget {
 
   /// 同本全部页面会话（二级面板范围=全部页用；独立画布为 null）。
   final List<EditorPageSession> Function()? allSessionsProvider;
+
+  /// 多页 PDF 合成引擎（C-01 解环）：由组合根注入（default_editor_page_
+  /// builder 绑定 notes 实现）；null 时多页导出走兜底提示。
+  final Future<Uint8List> Function(
+    List<NotebookPrintPageData> pages, {
+    int? jpegQuality,
+  })?
+  multipagePdfComposer;
 
   /// 笔记侧存储契约（插入图片时复制图片副本用）。
   final INotebookAccessor? storage;
@@ -745,13 +755,14 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         );
       },
       // 二级面板范围=全部页：会话直转打印页数据（与整本引擎同管线；
-      // 映射收口在 EditorExporter.printDataOf，notes 导入只留 application 一处）。
+      // 映射收口在 EditorExporter.printDataOf）。合成引擎经组合根注入。
       allPagesProvider: widget.allSessionsProvider == null
           ? null
           : () => [
               for (final s in widget.allSessionsProvider!.call())
                 EditorExporter.printDataOf(s),
             ],
+      multipageComposer: widget.multipagePdfComposer,
       showSnack: _showSnack,
     );
     unawaited(_loadBrushPresets());

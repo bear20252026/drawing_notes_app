@@ -38,7 +38,11 @@ part 'notebook_storage_codec.dart';
 /// 已通过 [NotebookRepository] 接口抽象（见 repository.dart），
 /// 未来替换为云同步实现时无需改动上层逻辑。
 class NotebookStorage
-    implements NotebookRepository, INotebookAccessor, SessionSecretsHolder {
+    implements
+        NotebookRepository,
+        INotebookAccessor,
+        INotebookPasswordResetPort,
+        SessionSecretsHolder {
   NotebookStorage({
     this.directoryProvider,
     this.vaultService,
@@ -546,6 +550,7 @@ class NotebookStorage
   }
 
   /// 该分页画布是否已绑定重置密码盘（v5 且含 USB 槽位）。
+  @override
   Future<bool> hasNotebookUsbSlot(String id) async {
     final nb = await load(id);
     final payload = nb?.encryptedPayload;
@@ -595,6 +600,7 @@ class NotebookStorage
   /// 前提：v5 信封且已绑定重置密码盘。重置 = U 盘钥匙解出 DEK → 新盐
   /// 重绕密码槽，payload 密文不动。成功后会话密码已缓存（可直接解锁）。
   /// 返回 false = 未绑定/盘不匹配/非 v5（fail-closed）。
+  @override
   Future<bool> resetNotebookPasswordWithUsb(
     String id,
     List<int> usbKey,
