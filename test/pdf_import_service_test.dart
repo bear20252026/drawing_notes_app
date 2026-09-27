@@ -95,4 +95,71 @@ void main() {
       throwsArgumentError,
     );
   });
+
+  test('S-01：注入密封回调时页面 PNG 以密文落盘（不再明文残留）', () async {
+    final temp = await Directory.systemTemp.createTemp('pdf_seal_test_');
+    addTearDown(() => temp.delete(recursive: true));
+    final source = File('${temp.path}${Platform.pathSeparator}source.pdf');
+    await source.writeAsBytes(const [37, 80, 68, 70, 45], flush: true);
+    final output = Directory('${temp.path}${Platform.pathSeparator}pages');
+
+    const marker = <int>[1, 2, 3, 4];
+    final pages = await PdfImportService.renderPages(
+      sourcePath: source.path,
+      outputDirectory: output,
+      importId: 'pdf_seal',
+      maxRenderSide: 512,
+      rasterizer: (_, _) async => [
+        RenderedPdfPage(
+          pageNumber: 1,
+          pngBytes: Uint8List.fromList(pngHeader),
+          width: 362,
+          height: 512,
+        ),
+      ],
+      sealBytes: (destinationPath, bytes) async {
+        expect(destinationPath, contains('pdf_seal'));
+        // 模拟信封加密：真实实现为 VaultFileCodec / DAN 加密。
+        return Uint8List.fromList([...marker, ...bytes]);
+      },
+    );
+
+    expect(pages, hasLength(1));
+    final stored = await File(pages.single.filePath).readAsBytes();
+    // 落盘内容是密封结果而非明文 PNG。
+    expect(stored, orderedEquals([...marker, ...pngHeader]));
+    // R-11：无 tmp 半成品残留。
+    final leftovers = output
+        .listSync()
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.tmp'))
+        .toList();
+    expect(leftovers, isEmpty);
+  });
+
+  test('R-11：未注入密封回调时保持明文落盘（未加密模式兼容）', () async {
+    final temp = await Directory.systemTemp.createTemp('pdf_plain_test_');
+    addTearDown(() => temp.delete(recursive: true));
+    final source = File('${temp.path}${Platform.pathSeparator}source.pdf');
+    await source.writeAsBytes(const [37, 80, 68, 70, 45], flush: true);
+    final output = Directory('${temp.path}${Platform.pathSeparator}pages');
+
+    final pages = await PdfImportService.renderPages(
+      sourcePath: source.path,
+      outputDirectory: output,
+      importId: 'pdf_plain',
+      maxRenderSide: 512,
+      rasterizer: (_, _) async => [
+        RenderedPdfPage(
+          pageNumber: 1,
+          pngBytes: Uint8List.fromList(pngHeader),
+          width: 362,
+          height: 512,
+        ),
+      ],
+    );
+
+    final stored = await File(pages.single.filePath).readAsBytes();
+    expect(stored, orderedEquals(pngHeader));
+  });
 }

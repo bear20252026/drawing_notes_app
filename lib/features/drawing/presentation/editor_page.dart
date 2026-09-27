@@ -461,6 +461,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         return;
       }
       final outBytes = data.buffer.asUint8List();
+      final Uint8List payload;
       if (wasSealed) {
         // 原文件是 DNV 密文：写回前重新密封（密钥锁定 → 拒绝保存）。
         final key = VaultKeyService.sharedMasterKeyOrNull;
@@ -468,16 +469,34 @@ class _EditorPageState extends ConsumerState<EditorPage> {
           _showSnack(_l10nSafe?.cropVaultLocked ?? '保险库已锁定，无法保存裁剪');
           return;
         }
-        await file.writeAsBytes(
-          await VaultFileCodec.encrypt(
-            outBytes,
-            key,
-            aadContext: VaultFileCodec.contextForPath(file.path),
-          ),
-          flush: true,
+        payload = await VaultFileCodec.encrypt(
+          outBytes,
+          key,
+          aadContext: VaultFileCodec.contextForPath(file.path),
         );
       } else {
-        await file.writeAsBytes(outBytes, flush: true);
+        payload = outBytes;
+      }
+      // A-01（审计 2026-09-27）：原地 writeAsBytes 非原子——写入中断
+      // （崩溃/断电）会截断唯一原图。改走 tmp + rename + 失败清理
+      // （同 NotebookStorage._writeNotebookBytes 单一出口纪律）。
+      final tmp = File('${file.path}.${LocalIdGenerator.next('write')}.tmp');
+      try {
+        await tmp.writeAsBytes(payload, flush: true);
+        try {
+          await tmp.rename(file.path);
+        } on FileSystemException {
+          if (!file.existsSync()) rethrow;
+          await file.delete();
+          await tmp.rename(file.path);
+        }
+      } catch (_) {
+        try {
+          if (tmp.existsSync()) await tmp.delete();
+        } catch (_) {
+          // 清理失败不覆盖原始写入异常。
+        }
+        rethrow;
       }
       // 审计三-1：等待写入（含加密）期间退出页面则放弃 UI 更新，
       // 避免 setState() called after dispose()。
@@ -495,7 +514,14 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       _notifyChanged();
       _showSnack(_l10nSafe?.cropDone ?? '已裁剪图片');
     } catch (e) {
-      _showSnack('裁剪失败：$e');
+      // R-02（审计 2026-09-27）：$e 含文件路径/加密封包内部细节——按 H-04
+      // 脱敏口径 UI 只给固定文案，错误类型进审计日志。
+      AuditLogger.log(
+        'editor.crop.save_failed',
+        success: false,
+        detail: e.runtimeType.toString(),
+      );
+      _showSnack(_l10nSafe?.cropFailed ?? '裁剪失败，请重试');
     } finally {
       srcImage?.dispose();
       outImage?.dispose();

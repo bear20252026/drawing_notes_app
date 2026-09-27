@@ -1654,6 +1654,8 @@
   "@cropEncodeFail": {},
   "cropVaultLocked": "保险库已锁定，无法保存裁剪",
   "@cropVaultLocked": {},
+  "cropFailed": "裁剪失败，请重试",
+  "@cropFailed": {},
   "cropDone": "已裁剪图片",
   "@cropDone": {},
   "cropDragHint": "拖动图片四角调整裁剪区域，再点裁剪按钮确认",

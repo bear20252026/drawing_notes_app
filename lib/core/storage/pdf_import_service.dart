@@ -49,6 +49,14 @@ typedef PdfRasterizer =
       int maxRenderSide,
     );
 
+/// 页面 PNG 落盘前的密封回调（S-01，审计 2026-09-27）。
+///
+/// 签名对齐 [NotebookStorage.sealMediaBytesForPath] 的 tear-off：保险库或
+/// 加密笔记本开启时由调用方注入信封加密；null 保持明文（未加密模式与
+/// 测试）。此前 PDF 导入直接明文写盘，绕过 storeImage 密封路径。
+typedef PdfPageSealer =
+    Future<Uint8List> Function(String destinationPath, Uint8List pngBytes);
+
 /// 将本地 PDF 按页渲染为笔记可持久化的 PNG 底图。
 ///
 /// 这是“PDF 资料 + 矢量批注”的导入层：PDF 内容并不被伪装为可编辑笔画，
@@ -76,6 +84,7 @@ class PdfImportService {
     int maxRenderSide = defaultMaxRenderSide,
     Set<int>? pageNumbers,
     PdfRasterizer? rasterizer,
+    PdfPageSealer? sealBytes,
   }) async {
     if (maxRenderSide < 256) {
       throw ArgumentError.value(
@@ -128,7 +137,34 @@ class PdfImportService {
         final destination = File(
           '${outputDirectory.path}${Platform.pathSeparator}$filename',
         );
-        await destination.writeAsBytes(page.pngBytes, flush: true);
+        // S-01（审计 2026-09-27）：注入密封回调时不再明文落盘——与同目录
+        // 其他受管媒体的密封路径对齐。
+        final payload = sealBytes == null
+            ? page.pngBytes
+            : await sealBytes(destination.path, page.pngBytes);
+        // R-11（同审计）：直写非原子——写入中断留半张 PNG 且下方失败清理
+        // 漏掉当前正在写的文件。tmp + rename + 失败清理（同
+        // NotebookStorage._writeNotebookBytes 单一出口纪律）。
+        final tmp = File(
+          '${destination.path}.${LocalIdGenerator.next('write')}.tmp',
+        );
+        try {
+          await tmp.writeAsBytes(payload, flush: true);
+          try {
+            await tmp.rename(destination.path);
+          } on FileSystemException {
+            if (!destination.existsSync()) rethrow;
+            await destination.delete();
+            await tmp.rename(destination.path);
+          }
+        } catch (_) {
+          try {
+            if (tmp.existsSync()) await tmp.delete();
+          } catch (_) {
+            // 清理失败不覆盖原始写入异常。
+          }
+          rethrow;
+        }
         results.add(
           ImportedPdfPage(
             pageNumber: page.pageNumber,

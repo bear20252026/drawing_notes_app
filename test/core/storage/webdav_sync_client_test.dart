@@ -1,6 +1,7 @@
 // P3-W2 WebDAV 同步客户端单元测试。
 // 使用 http.MockClient 注入假响应，覆盖全部 HTTP 方法。
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -334,6 +335,54 @@ void main() {
       expect(await client.getBytes('manifest.json'), isNull);
       expect(await client.getBytes('abc123~conflict~1725000000000'), isNull);
       expect(await client.listLeafNames(''), isEmpty);
+    });
+  });
+
+  group('R-01 操作超时（审计 2026-09-27）', () {
+    // 永不完成的假服务器：模拟半开连接/挂起（此前全链路无超时即永久卡死）。
+    http.Client hangingClient() =>
+        MockClient((request) => Completer<http.Response>().future);
+
+    test('getBytes：服务器挂起时按 operationTimeout 抛 TimeoutException', () async {
+      final client = WebDavSyncClient(
+        baseUrl: baseUrl,
+        client: hangingClient(),
+        operationTimeout: const Duration(milliseconds: 80),
+      );
+      await expectLater(client.getBytes('a.txt'), throwsA(isA<TimeoutException>()));
+    });
+
+    test('ensureCollection：MKCOL 流式路径同样受超时保护', () async {
+      final client = WebDavSyncClient(
+        baseUrl: baseUrl,
+        client: hangingClient(),
+        operationTimeout: const Duration(milliseconds: 80),
+      );
+      await expectLater(client.ensureCollection(), throwsA(isA<TimeoutException>()));
+    });
+
+    test('listLeafNames：PROPFIND 响应体读取阶段也受超时保护', () async {
+      // send 立即返回、响应体永不完成——覆盖 fromStream 阶段的超时。
+      final neverBody = Completer<Uint8List>();
+      final client = WebDavSyncClient(
+        baseUrl: baseUrl,
+        client: MockClient.streaming(
+          (request, bodyStream) async =>
+              http.StreamedResponse(neverBody.future.asStream(), 207),
+        ),
+        operationTimeout: const Duration(milliseconds: 80),
+      );
+      await expectLater(
+        client.listLeafNames(''),
+        throwsA(isA<TimeoutException>()),
+      );
+    });
+
+    test('默认超时常量锁定 30s', () {
+      expect(
+        WebDavSyncClient.defaultOperationTimeout,
+        const Duration(seconds: 30),
+      );
     });
   });
 }

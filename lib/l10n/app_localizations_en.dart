@@ -1895,6 +1895,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cropVaultLocked => 'Vault is locked; cannot save the crop';
 
   @override
+  String get cropFailed => 'Crop failed. Please try again';
+
+  @override
   String get cropDone => 'Image cropped';
 
   @override

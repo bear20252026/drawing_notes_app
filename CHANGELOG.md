@@ -2,6 +2,41 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.31] - 2026-09-27
+
+### 审计批次 I：全项目深度审计（2026-09-27，134 条）修复——第一批（数据与用户安全）
+
+> 来源：`docs/audit_2026-09-27.md`（9 域 134 条，1 P0 / 15 P1）。本批闭环
+> 第一优先级 9 条 + 顺带 2 条，新增回归测试 7 个；其余批次按报告优先级后续跟进。
+
+- **A-01（P0）裁剪保存原子性**：`editor_page.dart` 图片裁剪保存此前对唯一
+  原图（含保险库密封件）原地 `writeAsBytes`（truncate+write），写入中断
+  即永久截断原图。改走 tmp + rename + 失败清理（同
+  `_writeNotebookBytes` 单一出口纪律）；密封分支先加密到内存再统一落盘。
+- **S-01（P1）PDF 导入明文旁路密封**：`PdfImportService.renderPages` 新增
+  可选 `sealBytes` 回调，页面 PNG 落盘前经 `NotebookStorage
+  .sealMediaBytesForPath`（新增公开方法）三级密封分支（DAN / DNV 信封 /
+  明文兼容）——保险库或加密笔记本开启时不再明文残留磁盘；未注入保持
+  明文（未加密模式与测试兼容）。
+- **R-01（P1）WebDAV 全链路操作超时**：`WebDavSyncClient` 五个操作
+  （MKCOL/GET/PUT/DELETE/PROPFIND）全部 await 套 `operationTimeout`
+  （默认 30s，可注入），服务器挂起不再令 `syncNow()` 永久卡死；既有
+  `TimeoutException` →「连不上服务器」humanizer 分支自此可达。
+- **R-02~R-04（P1）`$e` 拼用户文案反弹清零**：裁剪失败 / 粘贴失败 / 打开
+  链接失败三处 SnackBar 不再透出原始异常（路径/URL/命令行），改固定文案
+  + `AuditLogger` 记错误类型（H-04 脱敏口径）；arb 新键 `cropFailed`（zh/en）。
+- **R-06（P1）标签颜色解析加固**：`tags_view.dart` 的 `int.parse(tag.color)`
+  改 `tryParse` + 主题色兜底——损坏标签 JSON 不再于构建期抛 FormatException。
+- **R-13（P2）构建期异常兜底**：`main.dart` 装配 `ErrorWidget.builder` →
+  `_BuildErrorFallback`（零依赖静态排版），release 下不再灰 ErrorBox 无解释。
+- **R-11（P2，顺车）PDF 导入原子写**：页面 PNG 落盘同步改 tmp + rename +
+  失败清理，半导入残留窗口收敛。
+- **T-01/T-02（P1）不可逆路径回归锁**：新增 `purgeFromTrash` 彻底删除
+  测试（回收站清空 / 激活区不可见 / 幂等 false）；`policy_engine_test`
+  补 `note.restore` / `note.purge` 白名单断言。
+- 测试 +7（WebDAV 超时 4 / PDF 密封与明文兼容 2 / 回收站彻底删除 1）；
+  门禁 `flutter analyze` 0 告警、全量测试绿。
+
 ## [1.17.30] - 2026-09-27
 
 ### 审计批次 H：god-page home_page.dart 拆分收敛（#37 闭环）

@@ -145,7 +145,10 @@ class _TagsViewState extends State<TagsView> {
         return ListTile(
           leading: Icon(
             Icons.label_rounded,
-            color: Color(int.parse(tag.color)),
+            // R-06（审计 2026-09-27）：标签颜色来自盘上明文 JSON，可能损坏/
+            // 手工编辑——int.parse 抛 FormatException 会灰屏整页（无
+            // ErrorWidget 兜底面）。tryParse + 主题色兜底。
+            color: _tagColorOrNull(tag.color) ?? theme.colorScheme.primary,
           ),
           title: Text(tag.name),
           trailing: Text(
@@ -157,4 +160,11 @@ class _TagsViewState extends State<TagsView> {
       },
     );
   }
+}
+
+/// R-06（审计 2026-09-27）：解析标签 ARGB 颜色——损坏/手工编辑的 JSON 返回
+/// null（调用方落主题色兜底），不再在构建期抛 FormatException 灰屏整页。
+Color? _tagColorOrNull(String raw) {
+  final argb = int.tryParse(raw);
+  return argb == null ? null : Color(argb);
 }

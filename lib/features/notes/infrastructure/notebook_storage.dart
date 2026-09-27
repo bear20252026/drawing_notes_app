@@ -367,6 +367,24 @@ class NotebookStorage
     }
   }
 
+  /// S-01（审计 2026-09-27）：媒体字节写入前密封——供 PDF 导入等绕过
+  /// storeImage 的旁路写路径共用。三级分支与 storeImage 同口径：
+  /// ① 会话密钥已注入（加密笔记本解锁）→ DAN 文件头加密；
+  /// ② 保险库解锁 → DNV 信封（AAD 绑定目标路径）；
+  /// ③ 均未解锁 → 明文（读取端懒迁移兼容）。
+  Future<Uint8List> sealMediaBytesForPath(String path, Uint8List bytes) async {
+    if (MediaCryptoService.instance.isActive) {
+      return MediaCryptoService.instance.encryptFile(bytes);
+    }
+    final key = await _currentKey();
+    if (key == null) return bytes;
+    return VaultFileCodec.encrypt(
+      bytes,
+      key,
+      aadContext: VaultFileCodec.contextForPath(path),
+    );
+  }
+
   /// 旧明文媒体迁移（H-03 专家审计 2026-08-15）：解锁后批量重加密——
   /// payload-plugins 批量加密器模式（幂等——已 DAN 密文跳过）。
   /// 返回迁移的文件数；未解锁（会话密钥未注入）返回 0。

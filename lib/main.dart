@@ -130,6 +130,16 @@ Future<void> main() async {
     AuditLogger.log('app.uncaught.${error.runtimeType}', success: false);
     return true;
   };
+  // R-13（审计 2026-09-27）：构建期异常兜底——此前全库无 ErrorWidget
+  // .builder，release 下任何构建异常（如标签颜色解析损坏）渲染灰色
+  // ErrorBox 且无用户可读信息。保持日志纪律：只记错误类型。
+  ErrorWidget.builder = (details) {
+    AuditLogger.log(
+      'app.build.${details.exception.runtimeType}',
+      success: false,
+    );
+    return const _BuildErrorFallback();
+  };
   // 二次启动检测：已有实例则直接退出（桌面单实例）。
   if (!await _acquireSingleInstance()) {
     return;
@@ -195,6 +205,39 @@ class RootRefusalApp extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+/// 构建期异常的用户可见兜底（R-13，审计 2026-09-27）：release 下替换默认
+/// 灰色 ErrorBox。兜底自身刻意零依赖——不取 Theme.of/InheritedWidget/l10n
+/// （出错上下文可能已损坏）；排版走 AppleType 静态令牌；文案为无 arb
+/// 上下文可用时的固定兜底（与全库 `?? '中文'` 双轨口径一致）。
+class _BuildErrorFallback extends StatelessWidget {
+  const _BuildErrorFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: Colors.white,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              color: Colors.black54,
+              size: 40,
+            ),
+            const SizedBox(height: AppleSpacing.sm),
+            Text(
+              '页面显示出现问题，请返回后重试',
+              textAlign: TextAlign.center,
+              style: AppleType.bodyStyle(Colors.black87),
+            ),
+          ],
+        ),
       ),
     );
   }

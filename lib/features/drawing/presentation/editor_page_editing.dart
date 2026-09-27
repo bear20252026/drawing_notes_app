@@ -560,7 +560,17 @@ extension _EditorPageEditing on _EditorPageState {
       }
       _showSnack(_l10nSafe?.edLinkOpened ?? '已打开链接');
     } catch (e) {
-      _showSnack(_l10nSafe?.linkOpenFailedSnack('$e') ?? '无法打开链接：$e');
+      // R-04/S-08（审计 2026-09-27）：$e 含完整 URL/命令行等内部信息——
+      // 只透出错误类型，细节按 H-04 口径进审计日志。
+      AuditLogger.log(
+        'editor.href.open_failed',
+        success: false,
+        detail: e.runtimeType.toString(),
+      );
+      _showSnack(
+        _l10nSafe?.linkOpenFailedSnack(e.runtimeType.toString()) ??
+            '无法打开链接：${e.runtimeType}',
+      );
     }
   }
 

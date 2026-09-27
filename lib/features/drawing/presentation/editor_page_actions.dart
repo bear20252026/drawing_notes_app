@@ -588,7 +588,17 @@ extension _EditorPageActions on _EditorPageState {
       // 图片粘贴需平台通道（后续增强），此处明确提示。
       _showSnack(_l10nSafe?.actClipboardNoText ?? '剪贴板没有可粘贴的文本');
     } catch (e) {
-      _showSnack(_l10nSafe?.pasteFailedSnack('$e') ?? '粘贴失败：$e');
+      // R-03（审计 2026-09-27）：$e 可含路径与平台通道内部信息——只透出
+      // 错误类型，细节按 H-04 口径进审计日志。
+      AuditLogger.log(
+        'editor.paste.failed',
+        success: false,
+        detail: e.runtimeType.toString(),
+      );
+      _showSnack(
+        _l10nSafe?.pasteFailedSnack(e.runtimeType.toString()) ??
+            '粘贴失败：${e.runtimeType}',
+      );
     }
   }
 

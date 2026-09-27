@@ -48,6 +48,26 @@ void main() {
       expect(await store.listTrash(), isEmpty);
     });
 
+    test('purgeFromTrash 彻底删除回收站条目（T-01 审计 2026-09-27）', () async {
+      final doc = NoteBlockDoc(
+        id: 'purge1',
+        title: '回收站里的笔记',
+        createdAt: DateTime(2026, 8, 31),
+        updatedAt: DateTime(2026, 8, 31),
+      );
+      await store.saveDocument(doc);
+      expect(await store.deleteDocument('purge1'), isTrue);
+      expect(await store.listTrash(), hasLength(1));
+
+      // 彻底删除：回收站清空、激活区不可见——不可逆销毁路径必须有回归锁。
+      expect(await store.purgeFromTrash('purge1'), isTrue);
+      expect(await store.listTrash(), isEmpty);
+      expect(await store.loadDocument('purge1'), isNull);
+
+      // 幂等：对不存在的条目再删返回 false。
+      expect(await store.purgeFromTrash('purge1'), isFalse);
+    });
+
     test('purgeDocument 彻底删除（不进回收站）', () async {
       final doc = NoteBlockDoc(
         id: 'gone1',

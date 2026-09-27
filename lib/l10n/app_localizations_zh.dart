@@ -1807,6 +1807,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cropVaultLocked => '保险库已锁定，无法保存裁剪';
 
   @override
+  String get cropFailed => '裁剪失败，请重试';
+
+  @override
   String get cropDone => '已裁剪图片';
 
   @override

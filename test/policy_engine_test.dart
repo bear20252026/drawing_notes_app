@@ -13,6 +13,11 @@ void main() {
     expect(engine.check('note.import.pdf').isAllowed, isTrue);
     expect(engine.check('note.save').isAllowed, isTrue);
     expect(engine.check('note.delete').isAllowed, isTrue);
+    // T-02（审计 2026-09-27）：回收站恢复/彻底删除的白名单回归锁——
+    // 默认拒绝引擎误删这两项会让回收站操作静默失败
+    // （app_shell 的 purgeResult.isAllowed 分支失败无用户反馈）。
+    expect(engine.check('note.restore').isAllowed, isTrue);
+    expect(engine.check('note.purge').isAllowed, isTrue);
     // 未列入操作——默认拒绝。
     expect(engine.check('note.export.unknown').isAllowed, isFalse);
     expect(engine.check('system.exec').isAllowed, isFalse);

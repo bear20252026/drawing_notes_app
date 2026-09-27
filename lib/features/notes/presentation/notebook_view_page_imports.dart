@@ -125,6 +125,9 @@ extension _NotebookPageImports on _NotebookViewPageState {
         sourcePath: selected.path,
         outputDirectory: await widget.storage.ensureImagesDir(),
         importId: importId,
+        // S-01（审计 2026-09-27）：页面 PNG 落盘前走与 storeImage 同款三级
+        // 密封分支——保险库/加密笔记本开启时不再明文残留磁盘。
+        sealBytes: widget.storage.sealMediaBytesForPath,
       );
       if (rendered.isEmpty) {
         _showSnack(_l10nSafe?.impPdfNoPages ?? 'PDF 没有可导入的页面');

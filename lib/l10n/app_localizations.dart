@@ -3464,6 +3464,12 @@ abstract class AppLocalizations {
   /// **'Vault is locked; cannot save the crop'**
   String get cropVaultLocked;
 
+  /// No description provided for @cropFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Crop failed. Please try again'**
+  String get cropFailed;
+
   /// No description provided for @cropDone.
   ///
   /// In en, this message translates to:

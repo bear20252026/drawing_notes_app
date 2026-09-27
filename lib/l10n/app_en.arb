@@ -1745,6 +1745,8 @@
   "@cropEncodeFail": {},
   "cropVaultLocked": "Vault is locked; cannot save the crop",
   "@cropVaultLocked": {},
+  "cropFailed": "Crop failed. Please try again",
+  "@cropFailed": {},
   "cropDone": "Image cropped",
   "@cropDone": {},
   "cropDragHint": "Drag the corners to adjust the crop area, then tap the crop button",

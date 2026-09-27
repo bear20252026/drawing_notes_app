@@ -2,6 +2,7 @@
 // 纯 Dart，可注入 http.Client 便于单测。
 // 提供 PROPFIND/GET/PUT/DELETE/MKCOL 基本操作 + Basic 认证。
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -34,11 +35,21 @@ class WebDavSyncClient {
     http.Client? client,
     this.username = '',
     this.password = '',
+    this.operationTimeout = defaultOperationTimeout,
   }) : _client = client,
        _ownsClient = client == null;
 
+  /// R-01（审计 2026-09-27）：单次 HTTP 操作超时。此前全链路无超时——
+  /// 服务器挂起（半开连接/慢速响应）时 syncNow() 永不返回，设置页
+  /// `_syncing` 永久转圈；且 humanizeWebDavSyncError 的 TimeoutException
+  /// 分支因全链路无超时来源成为死分支。测试可注入更短窗口。
+  static const Duration defaultOperationTimeout = Duration(seconds: 30);
+
   /// WebDAV 集合根目录 URL。
   final Uri baseUrl;
+
+  /// 单次 HTTP 操作超时（覆盖请求发送与响应体读取全程）。
+  final Duration operationTimeout;
 
   /// 认证用户名。
   final String username;
@@ -64,6 +75,11 @@ class WebDavSyncClient {
 
   /// 是否已配置认证。
   bool get _hasAuth => username.isNotEmpty || password.isNotEmpty;
+
+  /// 给单次 HTTP await 套操作超时。超时抛 [TimeoutException]——设置页
+  /// humanizer 已有该分支（「连不上服务器」），与 SocketException 同文案。
+  Future<T> _withTimeout<T>(Future<T> future) =>
+      future.timeout(operationTimeout);
 
   /// 远端路径段白名单（P1 修复：默认 NoopSyncCipher 下 `remotePath=id`，
   /// `id="../../.."` 经 `baseUrl.resolve` 逃逸集合——遍历写/删）。
@@ -122,8 +138,8 @@ class WebDavSyncClient {
     final client = _activeClient;
     final request = http.Request('MKCOL', baseUrl);
     request.headers.addAll(_authHeader);
-    final streamed = await client.send(request);
-    final response = await http.Response.fromStream(streamed);
+    final streamed = await _withTimeout(client.send(request));
+    final response = await _withTimeout(http.Response.fromStream(streamed));
 
     if (response.statusCode == 201 || response.statusCode == 200) {
       return true;
@@ -147,7 +163,7 @@ class WebDavSyncClient {
   Future<Uint8List?> getBytes(String relativePath) async {
     final client = _activeClient;
     final url = _resolve(relativePath);
-    final response = await client.get(url, headers: _authHeader);
+    final response = await _withTimeout(client.get(url, headers: _authHeader));
 
     if (response.statusCode == 200 || response.statusCode == 207) {
       return response.bodyBytes;
@@ -176,7 +192,9 @@ class WebDavSyncClient {
       ..._authHeader,
       if (!overwrite) 'If-None-Match': '*',
     };
-    final response = await client.put(url, headers: headers, body: bytes);
+    final response = await _withTimeout(
+      client.put(url, headers: headers, body: bytes),
+    );
 
     if (response.statusCode == 201 || response.statusCode == 204) {
       return;
@@ -194,7 +212,9 @@ class WebDavSyncClient {
   Future<bool> deleteRemaining(String relativePath) async {
     final client = _activeClient;
     final url = _resolve(relativePath);
-    final response = await client.delete(url, headers: _authHeader);
+    final response = await _withTimeout(
+      client.delete(url, headers: _authHeader),
+    );
 
     if (response.statusCode == 204 || response.statusCode == 404) {
       return true;
@@ -229,8 +249,8 @@ class WebDavSyncClient {
     });
     request.body = body;
 
-    final streamed = await client.send(request);
-    final resp = await http.Response.fromStream(streamed);
+    final streamed = await _withTimeout(client.send(request));
+    final resp = await _withTimeout(http.Response.fromStream(streamed));
 
     if (resp.statusCode != 200 && resp.statusCode != 207) {
       throw WebDavSyncException(
