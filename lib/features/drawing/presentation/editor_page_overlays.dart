@@ -78,6 +78,12 @@ extension _EditorPageOverlays on _EditorPageState {
         button: true,
         child: GestureDetector(
           onTap: () => _onItemTap(chart.id),
+          // V-04（审计 2026-09-27）：补右键+长按上下文菜单——文字/形状
+          // 都有，图表此前漏配，行为不一致（触屏长按 = 右键等价入口）。
+          onSecondaryTapDown: (d) =>
+              _showItemContextMenu(chart.id, globalAnchor: d.globalPosition),
+          onLongPressStart: (d) =>
+              _showItemContextMenu(chart.id, globalAnchor: d.globalPosition),
           onPanUpdate: (d) => _dragItem(chart.id, d.delta),
           onPanEnd: (_) => _notifyChanged(),
           child: Container(
@@ -363,6 +369,12 @@ extension _EditorPageOverlays on _EditorPageState {
         button: true,
         child: GestureDetector(
           onTap: () => _onItemTap(item.id),
+          // V-04（审计 2026-09-27）：补右键+长按上下文菜单——与形状/
+          // 图表 overlay 同款（触屏长按 = 右键等价入口）。
+          onSecondaryTapDown: (d) =>
+              _showItemContextMenu(item.id, globalAnchor: d.globalPosition),
+          onLongPressStart: (d) =>
+              _showItemContextMenu(item.id, globalAnchor: d.globalPosition),
           onPanUpdate: (d) => _dragItem(item.id, d.delta),
           onPanEnd: (_) => _notifyChanged(),
           child: Stack(

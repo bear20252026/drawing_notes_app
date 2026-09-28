@@ -266,7 +266,9 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
         borderRadius: BorderRadius.circular(AppleRadius.sm),
         onTap: () => widget.onOpenDoc?.call(doc),
         child: Padding(
-          padding: const EdgeInsets.only(left: 24, right: 12),
+          // V-02（审计 2026-09-27）：补 vertical 12——文档树行点击目标
+          // 此前仅 ~22px，仿同文件导航行（U4a）提到 ≥44px。
+          padding: const EdgeInsets.only(left: 24, right: 12, top: 12, bottom: 12),
           child: Row(
             children: [
               Icon(visual.icon, size: 16, color: visual.color),

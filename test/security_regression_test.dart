@@ -36,9 +36,14 @@ void main() {
       c.startStroke(const Offset(10, 10));
       c.extendStroke(const Offset(50, 50));
       await c.endStroke();
+      // T-03（审计 2026-09-27）：原固定 50ms 真实延时在慢机上可能早于
+      // 重建启动而漏报。改确定性探针：rebuildAll 的任务被排到协调器
+      // 串行重建队列末尾（排在既有飞行中重建之后），dispose 后 await
+      // 它即等待整条任务链排空——dispose 防护缺失会在此确定性抛
+      // 「已释放对象」异常，与机器快慢无关。
+      final drain = c.rebuildAll();
       c.dispose();
-      // 给异步重建留出完成时间——若修复缺失会在此处抛"已释放对象"异常。
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await drain;
       expect(c.isDisposed, isTrue);
     });
 

@@ -174,10 +174,18 @@ class _DocsToolbar extends StatelessWidget {
                 ),
               ),
             ],
-            child: Icon(
-              Icons.sort_rounded,
-              size: 20,
-              color: sort == AllDocSort.timeGrouped ? subtle : onSurface,
+            // V-03（审计 2026-09-27）：图标 20×20 命中区远低于 44×44，
+            // 包 44×44 SizedBox+Center（视觉不变、热区达标）。
+            child: SizedBox(
+              width: 44,
+              height: 44,
+              child: Center(
+                child: Icon(
+                  Icons.sort_rounded,
+                  size: 20,
+                  color: sort == AllDocSort.timeGrouped ? subtle : onSurface,
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 12),
