@@ -10,11 +10,13 @@
 > Menu 键上下文菜单等键盘链路的公共前提是「先用指针选中对象」，纯键盘
 > 用户无法选中、因而无法删除或微调画布对象。
 
-- **轮选与清除**：新增 `editor_page_keyboard_select.dart`——Tab /
-  Shift+Tab 按 z 序轮选画布对象（无选中取首个、到边界循环、无对象放行
-  焦点遍历），Esc 清除选中（与指针「点空白取消」等价）；选中对象落在
-  视口外时平移视口使其可见（rotation ≠ 0 跳过）。轮选顺序与叠加层渲染
-  同源（`EditorOverlayItemPlan`），「选中的顺序 = 看到的叠放顺序」。
+- **轮选与清除**：Tab / Shift+Tab 按 z 序轮选画布对象（无选中取首个、
+  到边界循环、无对象放行焦点遍历），Esc 清除选中（与指针「点空白取消」
+  等价）；选中对象落在视口外时平移视口使其可见（rotation ≠ 0 跳过）。
+  轮选顺序与叠加层渲染同源（`EditorOverlayItemPlan`），「选中的顺序 =
+  看到的叠放顺序」。实现落在 `editor_page_shortcuts.dart` 键盘域同域
+  （presentation 目录文件数已抵 sloc-guard 结构门禁上限 40，不再新建
+  part 文件）。
 - **入口可发现**：命令面板新增 `selectNextObject`（Ctrl+K 可达，键位提示
   Tab）；设置页「键盘快捷键」速查目录补「Tab / Shift+Tab 轮选下一个
   对象」「Esc 清除选中」两条。
