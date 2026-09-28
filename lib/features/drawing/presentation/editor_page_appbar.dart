@@ -206,39 +206,8 @@ extension _EditorPageAppBar on _EditorPageState {
   }) {
     final l = AppLocalizations.of(context);
     return [
-      if (showPanelToggles) ...[
-        _mainMenuItem(
-          _MainMenuItem.layers,
-          icon: _layersVisible ? Icons.layers : Icons.layers_outlined,
-          label: _layersVisible
-              ? AppLocalizations.of(context)?.barHideLayers ?? '隐藏图层'
-              : AppLocalizations.of(context)?.barShowLayers ?? '显示图层',
-        ),
-        _mainMenuItem(
-          _MainMenuItem.inspector,
-          icon: _inspectorVisible ? Icons.tune : Icons.tune_outlined,
-          label: _inspectorVisible
-              ? AppLocalizations.of(context)?.barHideInspector ?? '隐藏属性'
-              : AppLocalizations.of(context)?.barShowInspector ?? '显示属性',
-        ),
-        _mainMenuItem(
-          _MainMenuItem.fullscreen,
-          icon: _fullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
-          label: _fullscreen
-              ? AppLocalizations.of(context)?.barExitFullscreen ?? '退出全屏'
-              : AppLocalizations.of(context)?.barEnterFullscreen ?? '全屏模式',
-        ),
-        _mainMenuItem(
-          _MainMenuItem.reading,
-          icon: _readingInverted
-              ? Icons.invert_colors_on_outlined
-              : Icons.invert_colors_off_outlined,
-          label: _readingInverted
-              ? AppLocalizations.of(context)?.barReadingOff ?? '关闭深色阅读'
-              : AppLocalizations.of(context)?.barReadingOn ?? '深色阅读（仅显示）',
-        ),
-        const PopupMenuDivider(),
-      ],
+      // R3：窄屏面板开关组（DCM 复杂度收编：抽独立方法，2026-09-28）。
+      if (showPanelToggles) ..._panelToggleMenuItems(),
       _mainMenuItem(
         _MainMenuItem.clearCanvas,
         icon: Icons.delete_sweep_outlined,
@@ -326,6 +295,44 @@ extension _EditorPageAppBar on _EditorPageState {
               ? AppLocalizations.of(context)?.menuSwitchToFixed ?? '切换为固定纸张'
               : AppLocalizations.of(context)?.menuSwitchToInfinite ?? '切换为无限画布',
         ),
+    ];
+  }
+
+  /// R3 面板开关组（图层/属性/全屏/深色阅读）——从 _buildMainMenuItems
+  /// 抽出，DCM 圈复杂度收编（2026-09-28）。
+  List<PopupMenuEntry<_MainMenuItem>> _panelToggleMenuItems() {
+    return [
+      _mainMenuItem(
+        _MainMenuItem.layers,
+        icon: _layersVisible ? Icons.layers : Icons.layers_outlined,
+        label: _layersVisible
+            ? AppLocalizations.of(context)?.barHideLayers ?? '隐藏图层'
+            : AppLocalizations.of(context)?.barShowLayers ?? '显示图层',
+      ),
+      _mainMenuItem(
+        _MainMenuItem.inspector,
+        icon: _inspectorVisible ? Icons.tune : Icons.tune_outlined,
+        label: _inspectorVisible
+            ? AppLocalizations.of(context)?.barHideInspector ?? '隐藏属性'
+            : AppLocalizations.of(context)?.barShowInspector ?? '显示属性',
+      ),
+      _mainMenuItem(
+        _MainMenuItem.fullscreen,
+        icon: _fullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
+        label: _fullscreen
+            ? AppLocalizations.of(context)?.barExitFullscreen ?? '退出全屏'
+            : AppLocalizations.of(context)?.barEnterFullscreen ?? '全屏模式',
+      ),
+      _mainMenuItem(
+        _MainMenuItem.reading,
+        icon: _readingInverted
+            ? Icons.invert_colors_on_outlined
+            : Icons.invert_colors_off_outlined,
+        label: _readingInverted
+            ? AppLocalizations.of(context)?.barReadingOff ?? '关闭深色阅读'
+            : AppLocalizations.of(context)?.barReadingOn ?? '深色阅读（仅显示）',
+      ),
+      const PopupMenuDivider(),
     ];
   }
 }

@@ -16,110 +16,113 @@ extension _EditorPageTextOverlays on _EditorPageState {
       child: Focus(
         onKeyEvent: _onSlashMenuKey,
         child: Stack(
-        children: [
-          SizedBox(
-            width: 320, // 固定编辑宽度，避免布局跳动
-            child: TextField(
-              controller: _editController,
-              focusNode: _editFocus,
-              autofocus: true,
-              textInputAction: TextInputAction.done,
-              maxLines: null,
-              minLines: 1,
-              style: TextStyle(
-                fontSize: item.fontSize * _controller.viewScale,
-                color: Color(item.color),
-              ),
-              decoration: InputDecoration(
-                isCollapsed: false,
-                // 可见文本框（对齐 Excalidraw 打字体验）：
-                // 空文本时也显示明显边框+背景，用户能清楚看到输入位置。
-                filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.92),
-                border: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(
-                    Radius.circular(AppleRadius.xs),
+          children: [
+            SizedBox(
+              width: 320, // 固定编辑宽度，避免布局跳动
+              child: TextField(
+                controller: _editController,
+                focusNode: _editFocus,
+                autofocus: true,
+                textInputAction: TextInputAction.done,
+                maxLines: null,
+                minLines: 1,
+                style: TextStyle(
+                  fontSize: item.fontSize * _controller.viewScale,
+                  color: Color(item.color),
+                ),
+                decoration: InputDecoration(
+                  isCollapsed: false,
+                  // 可见文本框（对齐 Excalidraw 打字体验）：
+                  // 空文本时也显示明显边框+背景，用户能清楚看到输入位置。
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.92),
+                  border: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(
+                      Radius.circular(AppleRadius.xs),
+                    ),
+                    borderSide: BorderSide(
+                      color: AppleColor.actionBlue,
+                      width: 1.5,
+                    ),
                   ),
-                  borderSide: BorderSide(
-                    color: AppleColor.actionBlue,
-                    width: 1.5,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: const BorderRadius.all(
+                      Radius.circular(AppleRadius.xs),
+                    ),
+                    borderSide: BorderSide(
+                      color: AppleColor.actionBlue.withValues(alpha: 0.7),
+                      width: 1.5,
+                    ),
+                  ),
+                  // 键盘焦点环：Focus Blue 2px（DESIGN.md:300/440）。
+                  focusedBorder: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(
+                      Radius.circular(AppleRadius.xs),
+                    ),
+                    borderSide: BorderSide(
+                      color: AppleColor.focusBlue,
+                      width: 2,
+                    ),
+                  ),
+                  hintText: '输入文字…（回车结束）',
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
                   ),
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: const BorderRadius.all(
-                    Radius.circular(AppleRadius.xs),
-                  ),
-                  borderSide: BorderSide(
-                    color: AppleColor.actionBlue.withValues(alpha: 0.7),
-                    width: 1.5,
-                  ),
-                ),
-                // 键盘焦点环：Focus Blue 2px（DESIGN.md:300/440）。
-                focusedBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(
-                    Radius.circular(AppleRadius.xs),
-                  ),
-                  borderSide: BorderSide(color: AppleColor.focusBlue, width: 2),
-                ),
-                hintText: '输入文字…（回车结束）',
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 6,
-                ),
-              ),
-              onChanged: (_) {
-                // D5 斜杠命令：输入 / 展开快捷菜单，继续输入则收起。
-                final text = _editController.text;
-                final showSlash =
-                    text == '/' ||
-                    (text.endsWith('/') &&
-                        !text.substring(0, text.length - 1).contains('/'));
-                if (showSlash != _slashOpen) {
-                  _applyState(() {
-                    _slashOpen = showSlash;
-                    _slashHighlight = 0;
-                  });
-                }
-              },
-              onSubmitted: (_) {
-                // V-08：菜单展开时 Enter 应用键盘高亮项（替代提交文本）。
-                if (_slashOpen) {
-                  final cmds = _slashCommands;
-                  _applySlashCommand(
-                    cmds[_slashHighlight.clamp(0, cmds.length - 1)].apply,
-                  );
-                } else {
+                onChanged: (_) {
+                  // D5 斜杠命令：输入 / 展开快捷菜单，继续输入则收起。
+                  final text = _editController.text;
+                  final showSlash =
+                      text == '/' ||
+                      (text.endsWith('/') &&
+                          !text.substring(0, text.length - 1).contains('/'));
+                  if (showSlash != _slashOpen) {
+                    _applyState(() {
+                      _slashOpen = showSlash;
+                      _slashHighlight = 0;
+                    });
+                  }
+                },
+                onSubmitted: (_) {
+                  // V-08：菜单展开时 Enter 应用键盘高亮项（替代提交文本）。
+                  if (_slashOpen) {
+                    final cmds = _slashCommands;
+                    _applySlashCommand(
+                      cmds[_slashHighlight.clamp(0, cmds.length - 1)].apply,
+                    );
+                  } else {
+                    _commitTextEditing();
+                  }
+                },
+                onTapOutside: (_) {
                   _commitTextEditing();
-                }
-              },
-              onTapOutside: (_) {
-                _commitTextEditing();
-              },
-            ),
-          ),
-          // 斜杠命令菜单（D5，借鉴 Lokus）：输入 / 时弹出
-          if (_slashOpen)
-            Positioned(
-              top: 26,
-              left: 0,
-              child: Material(
-                elevation: 4,
-                borderRadius: BorderRadius.circular(AppleRadius.xs),
-                color: Theme.of(context).colorScheme.surface,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (final (i, cmd) in _slashCommands.indexed)
-                      _slashCommand(
-                        label: cmd.label,
-                        highlighted: i == _slashHighlight,
-                        onTap: () => _applySlashCommand(cmd.apply),
-                      ),
-                  ],
-                ),
+                },
               ),
             ),
-        ],
+            // 斜杠命令菜单（D5，借鉴 Lokus）：输入 / 时弹出
+            if (_slashOpen)
+              Positioned(
+                top: 26,
+                left: 0,
+                child: Material(
+                  elevation: 4,
+                  borderRadius: BorderRadius.circular(AppleRadius.xs),
+                  color: Theme.of(context).colorScheme.surface,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final (i, cmd) in _slashCommands.indexed)
+                        _slashCommand(
+                          label: cmd.label,
+                          highlighted: i == _slashHighlight,
+                          onTap: () => _applySlashCommand(cmd.apply),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -149,22 +152,20 @@ extension _EditorPageTextOverlays on _EditorPageState {
   /// 斜杠菜单键盘导航（V-08）：仅菜单展开时拦截 ↑↓/Esc；Enter 由
   /// TextField 的 onSubmitted 分支处理。收起时全部放行（就地编辑的
   /// 撤销/光标移动不受影响）。
-  KeyEventResult _onSlashMenuKey(FocusNode node, KeyEvent event) {
+  KeyEventResult _onSlashMenuKey(FocusNode _, KeyEvent event) {
     if (!_slashOpen || event is! KeyDownEvent) {
       return KeyEventResult.ignored;
     }
     final key = event.logicalKey;
     final cmds = _slashCommands;
     if (key == LogicalKeyboardKey.arrowDown) {
-      _applyState(
-        () => _slashHighlight = (_slashHighlight + 1) % cmds.length,
-      );
+      _applyState(() => _slashHighlight = (_slashHighlight + 1) % cmds.length);
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.arrowUp) {
       _applyState(
-        () => _slashHighlight =
-            (_slashHighlight - 1 + cmds.length) % cmds.length,
+        () =>
+            _slashHighlight = (_slashHighlight - 1 + cmds.length) % cmds.length,
       );
       return KeyEventResult.handled;
     }
@@ -255,9 +256,9 @@ extension _EditorPageTextOverlays on _EditorPageState {
       // 画布对象（内部 Text 提供内容名，此处补 button 角色）。
       label:
           AppLocalizations.of(context)?.canvasItemSemantics(
-                AppLocalizations.of(context)?.canvasKindText ?? '文字',
-              ) ??
-              '画布对象：文字',
+            AppLocalizations.of(context)?.canvasKindText ?? '文字',
+          ) ??
+          '画布对象：文字',
       button: true,
       child: GestureDetector(
         onTap: () => _onItemTap(item.id),
@@ -270,198 +271,205 @@ extension _EditorPageTextOverlays on _EditorPageState {
         onPanUpdate: (d) => _dragItem(item.id, d.delta),
         onPanEnd: (_) => _notifyChanged(),
         child: Stack(
-        children: [
-          Container(
-            constraints: item.isSticky
-                ? const BoxConstraints(minWidth: 120, minHeight: 40)
-                : null,
-            padding: item.isSticky
-                ? const EdgeInsets.symmetric(horizontal: 10, vertical: 6)
-                : EdgeInsets.zero,
-            decoration: item.isSticky
-                ? BoxDecoration(
-                    color: Color(item.color),
-                    borderRadius: BorderRadius.circular(AppleRadius.xs),
-                    border: selected || linkSource
-                        ? Border.all(
-                            color: linkSource
-                                ? AppleColor.favourite
-                                : AppleColor.actionBlue,
-                            width: 1.5,
+          children: [
+            Container(
+              constraints: item.isSticky
+                  ? const BoxConstraints(minWidth: 120, minHeight: 40)
+                  : null,
+              padding: item.isSticky
+                  ? const EdgeInsets.symmetric(horizontal: 10, vertical: 6)
+                  : EdgeInsets.zero,
+              decoration: item.isSticky
+                  ? BoxDecoration(
+                      color: Color(item.color),
+                      borderRadius: BorderRadius.circular(AppleRadius.xs),
+                      border: selected || linkSource
+                          ? Border.all(
+                              color: linkSource
+                                  ? AppleColor.favourite
+                                  : AppleColor.actionBlue,
+                              width: 1.5,
+                            )
+                          : null,
+                    )
+                  : (selected || linkSource
+                        ? BoxDecoration(
+                            border: Border.all(
+                              color: linkSource
+                                  ? AppleColor.favourite
+                                  : AppleColor.actionBlue,
+                              width: 1.5,
+                            ),
                           )
-                        : null,
-                  )
-                : (selected || linkSource
-                      ? BoxDecoration(
-                          border: Border.all(
-                            color: linkSource
-                                ? AppleColor.favourite
-                                : AppleColor.actionBlue,
-                            width: 1.5,
-                          ),
-                        )
-                      : null),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 待办 checkbox（借鉴 QOwnNotes：点击切换勾选状态）。
-                // 缩放后图标常 <20px——外包 44×44 热区（HIG 最小触控尺寸），
-                // 视觉图标保持原尺寸居中，并暴露勾选语义给读屏。
-                if (item.isTodo)
-                  Semantics(
-                    checked: item.todoChecked,
-                    button: true,
-                    label: AppLocalizations.of(context)?.textDone ?? '完成',
-                    child: InkWell(
-                      onTap: () {
-                        _applyState(() => item.todoChecked = !item.todoChecked);
-                        _notifyChanged();
-                      },
-                      child: SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: Center(
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 6),
-                            child: Icon(
-                              item.todoChecked
-                                  ? Icons.check_box
-                                  : Icons.check_box_outline_blank,
-                              size: item.fontSize * _controller.viewScale * 0.9,
-                              color: Color(item.color),
+                        : null),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 待办 checkbox（借鉴 QOwnNotes：点击切换勾选状态）。
+                  // 缩放后图标常 <20px——外包 44×44 热区（HIG 最小触控尺寸），
+                  // 视觉图标保持原尺寸居中，并暴露勾选语义给读屏。
+                  if (item.isTodo)
+                    Semantics(
+                      checked: item.todoChecked,
+                      button: true,
+                      label: AppLocalizations.of(context)?.textDone ?? '完成',
+                      child: InkWell(
+                        onTap: () {
+                          _applyState(
+                            () => item.todoChecked = !item.todoChecked,
+                          );
+                          _notifyChanged();
+                        },
+                        child: SizedBox(
+                          width: 44,
+                          height: 44,
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: Icon(
+                                item.todoChecked
+                                    ? Icons.check_box
+                                    : Icons.check_box_outline_blank,
+                                size:
+                                    item.fontSize * _controller.viewScale * 0.9,
+                                color: Color(item.color),
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                // 多行文本（对齐 Excalidraw 文本框）：width 非 null 时
-                // 约束宽度 + softWrap 自动换行，可拖拽右侧手柄调整。
-                Flexible(
-                  child: ConstrainedBox(
-                    constraints: textLayout.constraints,
-                    // 富文本片段渲染（落地 Quill Delta runs，独立实现）：
-                    // 有 runs 时按片段应用各自样式（加粗/斜体/下划线/颜色），
-                    // 无 runs（旧文档）回退整块样式。
-                    child: item.runs != null
-                        ? Text.rich(
-                            TextSpan(
-                              style: EditorTextPresentationStyle.richBaseStyle(
-                                fontSize: item.fontSize,
-                                viewScale: _controller.viewScale,
-                                fontFamily: item.fontFamily,
+                  // 多行文本（对齐 Excalidraw 文本框）：width 非 null 时
+                  // 约束宽度 + softWrap 自动换行，可拖拽右侧手柄调整。
+                  Flexible(
+                    child: ConstrainedBox(
+                      constraints: textLayout.constraints,
+                      // 富文本片段渲染（落地 Quill Delta runs，独立实现）：
+                      // 有 runs 时按片段应用各自样式（加粗/斜体/下划线/颜色），
+                      // 无 runs（旧文档）回退整块样式。
+                      child: item.runs != null
+                          ? Text.rich(
+                              TextSpan(
+                                style:
+                                    EditorTextPresentationStyle.richBaseStyle(
+                                      fontSize: item.fontSize,
+                                      viewScale: _controller.viewScale,
+                                      fontFamily: item.fontFamily,
+                                    ),
+                                children: [
+                                  for (final run in item.runs!)
+                                    TextSpan(
+                                      text: run.text,
+                                      style:
+                                          EditorTextPresentationStyle.richRunStyle(
+                                            fallbackColor: item.color,
+                                            color: run.color,
+                                            bold: run.bold,
+                                            italic: run.italic,
+                                            underline: run.underline,
+                                            strikethrough: run.strikethrough,
+                                          ),
+                                    ),
+                                ],
                               ),
-                              children: [
-                                for (final run in item.runs!)
-                                  TextSpan(
-                                    text: run.text,
-                                    style:
-                                        EditorTextPresentationStyle.richRunStyle(
-                                          fallbackColor: item.color,
-                                          color: run.color,
-                                          bold: run.bold,
-                                          italic: run.italic,
-                                          underline: run.underline,
-                                          strikethrough: run.strikethrough,
-                                        ),
+                              softWrap: textLayout.softWrap,
+                              textAlign:
+                                  EditorTextPresentationStyle.textAlignFor(
+                                    item.align.name,
                                   ),
-                              ],
+                            )
+                          : Text(
+                              item.text,
+                              softWrap: textLayout.softWrap,
+                              textAlign:
+                                  EditorTextPresentationStyle.textAlignFor(
+                                    item.align.name,
+                                  ),
+                              style:
+                                  EditorTextPresentationStyle.plainTextStyle((
+                                    fontSize: item.fontSize,
+                                    viewScale: _controller.viewScale,
+                                    color: item.color,
+                                    fontFamily: item.fontFamily,
+                                    isTodo: item.isTodo,
+                                    todoChecked: item.todoChecked,
+                                    isSticky: item.isSticky,
+                                    bold: item.bold,
+                                    italic: item.italic,
+                                    underline: item.underline,
+                                    strikethrough: item.strikethrough,
+                                  )),
                             ),
-                            softWrap: textLayout.softWrap,
-                            textAlign: EditorTextPresentationStyle.textAlignFor(
-                              item.align.name,
-                            ),
-                          )
-                        : Text(
-                            item.text,
-                            softWrap: textLayout.softWrap,
-                            textAlign: EditorTextPresentationStyle.textAlignFor(
-                              item.align.name,
-                            ),
-                            style: EditorTextPresentationStyle.plainTextStyle((
-                              fontSize: item.fontSize,
-                              viewScale: _controller.viewScale,
-                              color: item.color,
-                              fontFamily: item.fontFamily,
-                              isTodo: item.isTodo,
-                              todoChecked: item.todoChecked,
-                              isSticky: item.isSticky,
-                              bold: item.bold,
-                              italic: item.italic,
-                              underline: item.underline,
-                              strikethrough: item.strikethrough,
-                            )),
-                          ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          // 宽度拖拽手柄（落地 Excalidraw resizeElements 的文字缩放
-          // 重排版）：选中且有宽度时，右下角手柄拖拽同步调整宽度与字号
-          // （字号随宽度比例缩放，保持文字整体版式不变形）。
-          if (selected && item.width != null)
-            Positioned(
-              // 44×44 命中区、10×10 视觉点居中：视觉中心相对角点内收 1px
-              // 与旧定位（right/bottom -4 + 10/2）保持一致。
-              right: -21,
-              bottom: -21,
-              child: Semantics(
-                label:
-                    AppLocalizations.of(context)?.textWidthHandle ?? '调整文字宽度',
-                button: true,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onPanStart: (_) {
-                    _textResizeAnchor = (
-                      width: item.width!,
-                      fontSize: item.fontSize,
-                      x: _controller.canvasToView(item.position).dx,
-                    );
-                  },
-                  onPanUpdate: (d) {
-                    final anchor = _textResizeAnchor;
-                    if (anchor == null) return;
-                    final delta = screenDeltaToCanvas(
-                      d.delta,
-                      _controller.viewRotation,
-                      _controller.viewScale,
-                    );
-                    _applyState(() {
-                      final newWidth = (anchor.width + delta.dx)
-                          .clamp(40, 2000)
-                          .toDouble();
-                      // 字号随宽度等比缩放（Excalidraw measureFontSizeFromWidth
-                      // 思路），最小 8pt 保证可读性。
-                      item.fontSize =
-                          (anchor.fontSize * newWidth / anchor.width)
-                              .clamp(8.0, 120.0)
-                              .toDouble();
-                      item.width = newWidth;
-                    });
-                    _notifyChanged();
-                  },
-                  onPanEnd: (_) => _textResizeAnchor = null,
-                  child: SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: Center(
-                      child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: AppleColor.actionBlue,
-                          borderRadius: BorderRadius.circular(AppleRadius.xs),
-                          border: Border.all(color: Colors.white, width: 1),
+            // 宽度拖拽手柄（落地 Excalidraw resizeElements 的文字缩放
+            // 重排版）：选中且有宽度时，右下角手柄拖拽同步调整宽度与字号
+            // （字号随宽度比例缩放，保持文字整体版式不变形）。
+            if (selected && item.width != null)
+              Positioned(
+                // 44×44 命中区、10×10 视觉点居中：视觉中心相对角点内收 1px
+                // 与旧定位（right/bottom -4 + 10/2）保持一致。
+                right: -21,
+                bottom: -21,
+                child: Semantics(
+                  label:
+                      AppLocalizations.of(context)?.textWidthHandle ?? '调整文字宽度',
+                  button: true,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onPanStart: (_) {
+                      _textResizeAnchor = (
+                        width: item.width!,
+                        fontSize: item.fontSize,
+                        x: _controller.canvasToView(item.position).dx,
+                      );
+                    },
+                    onPanUpdate: (d) {
+                      final anchor = _textResizeAnchor;
+                      if (anchor == null) return;
+                      final delta = screenDeltaToCanvas(
+                        d.delta,
+                        _controller.viewRotation,
+                        _controller.viewScale,
+                      );
+                      _applyState(() {
+                        final newWidth = (anchor.width + delta.dx)
+                            .clamp(40, 2000)
+                            .toDouble();
+                        // 字号随宽度等比缩放（Excalidraw measureFontSizeFromWidth
+                        // 思路），最小 8pt 保证可读性。
+                        item.fontSize =
+                            (anchor.fontSize * newWidth / anchor.width)
+                                .clamp(8.0, 120.0)
+                                .toDouble();
+                        item.width = newWidth;
+                      });
+                      _notifyChanged();
+                    },
+                    onPanEnd: (_) => _textResizeAnchor = null,
+                    child: SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: Center(
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: AppleColor.actionBlue,
+                            borderRadius: BorderRadius.circular(AppleRadius.xs),
+                            border: Border.all(color: Colors.white, width: 1),
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
         ),
       ),
     );
