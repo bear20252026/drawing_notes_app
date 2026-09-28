@@ -57,6 +57,16 @@ class _NotebookReaderPageState extends State<NotebookReaderPage> {
       return KeyEventResult.ignored;
     }
     final key = event.logicalKey;
+    // V-15（审计 2026-09-27）：Enter = 「打开页面编辑」键盘等价入口——
+    // 此前该动作仅指针 onTap 可达。
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      final pages = widget.notebook.pages;
+      if (pages.isNotEmpty) {
+        widget.onEditPage(pages[_index.clamp(0, pages.length - 1)]);
+      }
+      return KeyEventResult.handled;
+    }
     if (key == LogicalKeyboardKey.arrowDown ||
         key == LogicalKeyboardKey.pageDown ||
         key == LogicalKeyboardKey.space) {
@@ -174,6 +184,8 @@ class _ReaderSheet extends StatelessWidget {
         child: Semantics(
           button: true,
           label: AppLocalizations.of(context)?.nbOpenPageForEdit ?? '打开页面进行编辑',
+          // V-15：挂 onTap——读屏激活（双击）可触发，此前激活不生效。
+          onTap: onTap,
           child: GestureDetector(
             onTap: onTap,
             child: FittedBox(

@@ -63,10 +63,11 @@ extension _NotebookPageImports on _NotebookViewPageState {
           : paragraphs.first;
       final page = NotebookPage(
         id: NotebookStorage.newId('pg'),
-        title: '导入·$title',
+        // L-09（审计 2026-09-27）：标题拼句走占位键。
+        title: _l10nSafe?.impTextPageTitle(title) ?? '导入·$title',
         document: NotebookPageTemplateStrategy.createDocument(
           id: StorageService.newId(),
-          title: '未命名页面',
+          title: _l10nSafe?.nbUntitledPage ?? '未命名页面',
         ),
       );
       // 可用性修复：y 增量按段落行数估算（原 `40 + 段长/2` 对长段落
@@ -140,16 +141,20 @@ extension _NotebookPageImports on _NotebookViewPageState {
       final created = <NotebookPage>[];
       for (final pageImage in rendered) {
         final pageId = NotebookStorage.newId('pg');
+        // L-09（审计 2026-09-27）：页/文档标题拼句走 impPdfPageTitle 占位键。
+        final pageTitle =
+            _l10nSafe?.impPdfPageTitle(sourceName, pageImage.pageNumber) ??
+            '$sourceName · 第 ${pageImage.pageNumber} 页';
         final document = NotebookPageTemplateStrategy.createDocument(
           id: StorageService.newId(),
-          title: '$sourceName · ${pageImage.pageNumber}',
+          title: pageTitle,
           width: pageImage.width,
           height: pageImage.height,
         );
         created.add(
           NotebookPage(
             id: pageId,
-            title: '$sourceName · 第 ${pageImage.pageNumber} 页',
+            title: pageTitle,
             document: document,
             imageItems: [
               PageImageItem(
@@ -185,7 +190,12 @@ extension _NotebookPageImports on _NotebookViewPageState {
     if (_notebook.pages.isEmpty) return;
     final folder = await GlassDialog.show<String>(
       context: context,
-      builder: (ctx) => const _PageNameDialog(title: '移动到的分组名（留空=根）'),
+      // L-09（审计 2026-09-27）：弹层标题写死 → 走 l10n。
+      builder: (ctx) => _PageNameDialog(
+        title:
+            AppLocalizations.of(context)?.nbMoveFolderDialogTitle ??
+            '移动到的分组名（留空=根）',
+      ),
     );
     if (folder == null || !mounted) return;
     final target = folder.trim();

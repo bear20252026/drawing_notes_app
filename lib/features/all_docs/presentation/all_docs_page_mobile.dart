@@ -108,7 +108,12 @@ extension _AllDocsPageMobile on _AllDocsPageState {
               // 标签 Tab：独立视图（M12.6，与桌面一致）。
               if (_tabIndex == 2)
                 Expanded(
-                  child: TagsView(docs: result.docs, loadTags: widget.loadTags),
+                  child: TagsView(
+                    docs: result.docs,
+                    loadTags: widget.loadTags,
+                    // V-13：标签下钻文档行接真实打开回调（原空回调死入口）。
+                    onOpenDoc: widget.onOpenDoc,
+                  ),
                 )
               else
                 // 文档列表：与桌面完全相同的渲染组件（业务共享）。

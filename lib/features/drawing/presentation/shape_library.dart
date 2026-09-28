@@ -147,7 +147,9 @@ class _ShapeLibraryDialogState extends State<ShapeLibraryDialog> {
   Widget build(BuildContext context) {
     final results = widget.library.search(_query);
     return AlertDialog(
-      title: const Text('形状库（图书馆）'),
+      title: Text(
+        AppLocalizations.of(context)?.shapeLibraryTitle ?? '形状库（图书馆）',
+      ),
       content: SizedBox(
         width: 460,
         height: 420,
@@ -156,8 +158,10 @@ class _ShapeLibraryDialogState extends State<ShapeLibraryDialog> {
             TextField(
               controller: _search,
               onChanged: (v) => setState(() => _query = v),
-              decoration: const InputDecoration(
-                hintText: '检索形状（如：矩形/椭圆/箭头）…',
+              decoration: InputDecoration(
+                hintText:
+                    AppLocalizations.of(context)?.shapeLibSearchHint ??
+                    '检索形状（如：矩形/椭圆/箭头）…',
                 prefixIcon: Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.all(

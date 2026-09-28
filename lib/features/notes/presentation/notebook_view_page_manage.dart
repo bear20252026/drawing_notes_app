@@ -308,7 +308,8 @@ extension _NotebookPageManage on _NotebookViewPageState {
           title: NotebookTitleSync.cloneTitleFor(srcPage.title),
           document: NotebookPageTemplateStrategy.createDocument(
             id: StorageService.newId(),
-            title: '未命名页面',
+            // L-09（审计 2026-09-27）：占位标题走既有 nbUntitledPage 键。
+            title: AppLocalizations.of(context)?.nbUntitledPage ?? '未命名页面',
           ), // 占位，实际内容从源实时加载
           cloneOf: CloneRef(notebookId: srcNb.id, pageId: srcPage.id),
         ),

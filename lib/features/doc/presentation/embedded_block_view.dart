@@ -92,7 +92,7 @@ class EmbeddedBlockView extends StatelessWidget {
       return _buildPlaceholderCard(
         context,
         icon: Icons.broken_image_outlined,
-        label: '图片（无来源）',
+        label: AppLocalizations.of(context)?.docImageNoSource ?? '图片（无来源）',
         caption: caption,
       );
     }
@@ -134,8 +134,7 @@ class EmbeddedBlockView extends StatelessWidget {
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final width = constraints.maxWidth;
-                        final int? cacheWidth =
-                            width.isFinite && width > 0
+                        final int? cacheWidth = width.isFinite && width > 0
                             ? ImageDecodeCap.quantizedCacheWidth(
                                 width,
                                 MediaQuery.devicePixelRatioOf(context),

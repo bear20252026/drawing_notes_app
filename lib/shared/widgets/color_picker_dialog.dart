@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/apple_design.dart';
+import '../../core/theme/apple_palette.dart';
 import '../../l10n/app_localizations.dart';
 
 /// 颜色选择对话框（Phase 2 验收：色板 + 自由调色）。
@@ -47,9 +48,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
   // （对齐全库 addListener/removeListener 配平纪律；匿名闭包无法移除，
   // 依赖节点 dispose 兜底且有「带监听器 dispose」debug 断言风险）。
   void _onRgbFocusChanged() {
-    if (!_rFocus.hasFocus &&
-        !_gFocus.hasFocus &&
-        !_bFocus.hasFocus) {
+    if (!_rFocus.hasFocus && !_gFocus.hasFocus && !_bFocus.hasFocus) {
       _submitRgb();
     }
   }
@@ -68,21 +67,8 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
     super.dispose();
   }
 
-  /// 预设色板（12 种常用色）。
-  static const List<Color> _presetColors = [
-    Color(0xFF1A1A1A), // 黑
-    Color(0xFF555555), // 深灰
-    Color(0xFF8B8B8B), // 中灰
-    AppleColor.surfaceWhite, // 白
-    Color(0xFFD32F2F), // 红
-    Color(0xFFFF7043), // 橙
-    Color(0xFFFBC02D), // 黄
-    Color(0xFF388E3C), // 绿
-    Color(0xFF00897B), // 青
-    Color(0xFF1976D2), // 蓝
-    Color(0xFF7B1FA2), // 紫
-    Color(0xFFC2185B), // 粉
-  ];
+  /// 预设色板（12 种常用色）——D-06 收编至 ApplePalette.preset。
+  static const List<Color> _presetColors = ApplePalette.preset;
 
   @override
   void initState() {
@@ -147,7 +133,9 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
     const radius = BorderRadius.all(Radius.circular(AppleRadius.xs));
     return Semantics(
       // 读屏：避免只听到单字母前缀（审计 2026-09-18 P2-1）。
-      label: '$label 通道',
+      // L-12（审计 2026-09-27）：「{label} 通道」拼句走占位键。
+      label:
+          AppLocalizations.of(context)?.colorChannelLabel(label) ?? '$label 通道',
       textField: true,
       child: SizedBox(
         width: 76,

@@ -185,8 +185,10 @@ extension _DocPageInfo on _DocPageState {
     );
   }
 
-  // 日期部分为 yyyy/M/d（不补零）的本地展示格式，与 formatShortDate
-  // 不同，仅钟点读数复用 formatClock。
-  String _fmtDate(DateTime d) =>
-      '${d.year}/${d.month}/${d.day} ${formatClock(d)}';
+  // 日期部分走 timeFullDate 占位键（zh yyyy/M/d、en M/d/yyyy），
+  // 仅钟点读数复用 formatClock。
+  String _fmtDate(DateTime d) {
+    final l10n = AppLocalizations.of(context);
+    return '${l10n?.timeFullDate(d.year, d.month, d.day) ?? '${d.year}/${d.month}/${d.day}'} ${formatClock(d)}';
+  }
 }

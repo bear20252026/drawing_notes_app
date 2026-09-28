@@ -148,21 +148,47 @@ class _PresentationPageState extends State<PresentationPage> {
                     ),
                   ),
                 ),
-                // 底部进度指示。
+                // 底部进度指示（V-07 审计 2026-09-27）：补上一页/下一页
+                // 图标按钮对——此前上一页仅键盘 ← 可达，触屏/鼠标无回退。
                 Positioned(
                   left: 0,
                   right: 0,
                   bottom: 24,
                   child: Center(
-                    child: Text(
-                      AppLocalizations.of(
-                            context,
-                          )?.presIndicator(_index + 1, elements.length) ??
-                          '${_index + 1} / ${elements.length} · 点击或 → 下一页，Esc 退出',
-                      style: AppleType.controlStyle(
-                        Colors.white38,
-                        weight: FontWeight.w400,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          tooltip:
+                              AppLocalizations.of(context)?.presPrevSlide ??
+                              '上一页',
+                          icon: const Icon(
+                            Icons.arrow_back_rounded,
+                            color: Colors.white70,
+                          ),
+                          onPressed: _index > 0 ? _prev : null,
+                        ),
+                        Text(
+                          AppLocalizations.of(
+                                context,
+                              )?.presIndicator(_index + 1, elements.length) ??
+                              '${_index + 1} / ${elements.length} · 点击或 → 下一页，Esc 退出',
+                          style: AppleType.controlStyle(
+                            Colors.white38,
+                            weight: FontWeight.w400,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip:
+                              AppLocalizations.of(context)?.presNextSlide ??
+                              '下一页（长按退出）',
+                          icon: const Icon(
+                            Icons.arrow_forward_rounded,
+                            color: Colors.white70,
+                          ),
+                          onPressed: _index < elements.length - 1 ? _next : null,
+                        ),
+                      ],
                     ),
                   ),
                 ),

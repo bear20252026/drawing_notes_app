@@ -221,7 +221,9 @@ class PropertiesPanel extends StatelessWidget {
                       onPressed: onShapeDash,
                     ),
                     IconButton(
-                      tooltip: '手绘风格（rough）',
+                      tooltip:
+                          AppLocalizations.of(context)?.shapeRoughTooltip ??
+                          '手绘风格（rough）',
                       icon: Icon(
                         selectedShape!.rough
                             ? Icons.gesture

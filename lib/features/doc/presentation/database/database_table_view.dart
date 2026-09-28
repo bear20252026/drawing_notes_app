@@ -60,6 +60,9 @@ class DatabaseTableView extends StatelessWidget {
     if (records.isEmpty) {
       return _empty(context, '还没有记录，点击“添加记录”');
     }
+    // V-10（审计 2026-09-27）：表头/单元格补最小 44px 热区——行高
+    // （headingRowHeight/dataRowMinHeight 44）内 InkWell 的命中范围此前
+    // 只有内容本身（14-28px）。
     final table = SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: DataTable(
@@ -69,7 +72,13 @@ class DatabaseTableView extends StatelessWidget {
         columns: [
           for (final f in fields)
             DataColumn(
-              label: _sortableHeader(context, f),
+              label: SizedBox(
+                height: 44,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: _sortableHeader(context, f),
+                ),
+              ),
               numeric: f.type == NoteFieldType.number,
             ),
           const DataColumn(label: SizedBox(width: 28)),
@@ -78,7 +87,18 @@ class DatabaseTableView extends StatelessWidget {
           for (final r in records)
             DataRow(
               cells: [
-                for (final f in fields) DataCell(_cell(context, r, f)),
+                for (final f in fields)
+                  DataCell(
+                    SizedBox(
+                      height: 44,
+                      child: Align(
+                        alignment: f.type == NoteFieldType.number
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        child: _cell(context, r, f),
+                      ),
+                    ),
+                  ),
                 DataCell(_deleteRowIcon(context, r)),
               ],
             ),

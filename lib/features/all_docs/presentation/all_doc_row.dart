@@ -168,25 +168,31 @@ class AllDocRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              // 星标（U4a：触控目标 26→44px；R6：读屏语义——状态化标签）。
+              // 星标（U4a：触控目标 26→44px；R6：读屏语义——状态化标签；
+              // V-06：补桌面悬停 Tooltip）。
               Semantics(
                 label: doc.isFavorite
                     ? AppLocalizations.of(context)?.docsUnfavorite ?? '取消收藏'
                     : AppLocalizations.of(context)?.docsFavorite ?? '添加收藏',
                 button: true,
-                child: InkWell(
-                  onTap: onToggleFavorite,
-                  borderRadius: BorderRadius.circular(AppleRadius.md),
-                  child: SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: Center(
-                      child: Icon(
-                        doc.isFavorite
-                            ? Icons.star_rounded
-                            : Icons.star_border_rounded,
-                        size: 18,
-                        color: doc.isFavorite ? AppleColor.favourite : subtle,
+                child: Tooltip(
+                  message: doc.isFavorite
+                      ? AppLocalizations.of(context)?.docsUnfavorite ?? '取消收藏'
+                      : AppLocalizations.of(context)?.docsFavorite ?? '添加收藏',
+                  child: InkWell(
+                    onTap: onToggleFavorite,
+                    borderRadius: BorderRadius.circular(AppleRadius.md),
+                    child: SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: Center(
+                        child: Icon(
+                          doc.isFavorite
+                              ? Icons.star_rounded
+                              : Icons.star_border_rounded,
+                          size: 18,
+                          color: doc.isFavorite ? AppleColor.favourite : subtle,
+                        ),
                       ),
                     ),
                   ),
@@ -194,27 +200,33 @@ class AllDocRow extends StatelessWidget {
               ),
               const SizedBox(width: 2),
               // ⋮ 菜单（U4a：触控目标 26→44px；死入口接活——onMenu 未传时
-              // 打开与右键一致的上下文菜单。R6：读屏语义）。
+              // 打开与右键一致的上下文菜单。R6：读屏语义。V-05：裸
+              // GestureDetector 无 Focus 节点 Tab 遍历跳过——改 InkWell
+              // 自带焦点；V-06：补桌面悬停 Tooltip）。
               Semantics(
                 label: AppLocalizations.of(context)?.docsMoreActions ?? '更多操作',
                 button: true,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTapUp: (details) {
-                    if (onMenu != null) {
-                      onMenu!();
-                    } else {
-                      showMenuAt(details.globalPosition);
-                    }
-                  },
-                  child: SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: Center(
-                      child: Icon(
-                        Icons.more_horiz_rounded,
-                        size: 18,
-                        color: subtle,
+                child: Tooltip(
+                  message:
+                      AppLocalizations.of(context)?.docsMoreActions ?? '更多操作',
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(AppleRadius.md),
+                    onTapUp: (details) {
+                      if (onMenu != null) {
+                        onMenu!();
+                      } else {
+                        showMenuAt(details.globalPosition);
+                      }
+                    },
+                    child: SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: Center(
+                        child: Icon(
+                          Icons.more_horiz_rounded,
+                          size: 18,
+                          color: subtle,
+                        ),
                       ),
                     ),
                   ),
@@ -252,7 +264,10 @@ String _dateLabel(DateTime t, DateTime now, AppLocalizations? l10n) {
   if (t.year == now.year) {
     return l10n?.timeMonthDay(t.month, t.day) ?? '${t.month} 月 ${t.day} 日';
   }
-  return '${t.year}/${t.month}/${t.day}';
+  // L-16（审计 2026-09-27）：跨年分支此前手拼 yyyy/M/d 无键——补
+  // timeFullDate 占位键（zh yyyy/M/d、en M/d/yyyy），与其余分支同走 l10n。
+  return l10n?.timeFullDate(t.year, t.month, t.day) ??
+      '${t.year}/${t.month}/${t.day}';
 }
 
 /// 按 kind 返回图标与主题色（顶层，供行组件与侧栏文档树共用）。

@@ -316,8 +316,10 @@ extension _EditorPageCanvasSurface on _EditorPageState {
           final miniScale = _miniMapWidth / doc.width;
           return Semantics(
             container: true,
-            label: '画布小地图',
-            hint: '方向键平移视口，Shift 加速',
+            label: AppLocalizations.of(context)?.canvasMiniMap ?? '画布小地图',
+            hint:
+                AppLocalizations.of(context)?.canvasMiniMapHint ??
+                '方向键平移视口，Shift 加速',
             child: Focus(
               onKeyEvent: _handleMiniMapKey,
               child: GestureDetector(

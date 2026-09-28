@@ -327,6 +327,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   /// 斜杠命令菜单是否展开（D5，借鉴 Lokus 斜杠命令）。
   bool _slashOpen = false;
 
+  /// 斜杠命令菜单当前键盘高亮项（V-08 审计 2026-09-27：↑↓/Enter 驱动）。
+  int _slashHighlight = 0;
+
   /// 连线模式（D1）：开启后依次点选两个元素创建连接线。
   bool get _linkMode => _viewModel.linkMode;
 

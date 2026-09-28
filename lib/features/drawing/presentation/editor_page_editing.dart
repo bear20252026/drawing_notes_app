@@ -497,7 +497,13 @@ extension _EditorPageEditing on _EditorPageState {
           value: _CtxAction.group,
           child: Text(AppLocalizations.of(context)?.ctxGroup ?? '分组'),
         ),
-        PopupMenuItem(value: _CtxAction.link, child: Text('设置链接…')),
+        PopupMenuItem(
+          value: _CtxAction.link,
+          // L-07（审计 2026-09-27）：同菜单其余项全走 ctx* 键，本项补键。
+          child: Text(
+            AppLocalizations.of(context)?.ctxSetLink ?? '设置链接…',
+          ),
+        ),
         PopupMenuItem(
           value: _CtxAction.ungroup,
           child: Text(AppLocalizations.of(context)?.ctxUngroup ?? '取消分组'),

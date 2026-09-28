@@ -2949,5 +2949,71 @@
     }
   },
   "emptyDocPlaceholder": "（空文档）",
-  "@emptyDocPlaceholder": {}
+  "@emptyDocPlaceholder": {},
+  "shapeLibraryTitle": "形状库（图书馆）",
+  "@shapeLibraryTitle": {},
+  "shapeLibSearchHint": "检索形状（如：矩形/椭圆/箭头）…",
+  "@shapeLibSearchHint": {},
+  "shapeRoughTooltip": "手绘风格（rough）",
+  "@shapeRoughTooltip": {},
+  "menuChartPasteData": "图表（粘贴数据）",
+  "@menuChartPasteData": {},
+  "canvasMiniMap": "画布小地图",
+  "@canvasMiniMap": {},
+  "canvasMiniMapHint": "方向键平移视口，Shift 加速",
+  "@canvasMiniMapHint": {},
+  "docImageNoSource": "图片（无来源）",
+  "@docImageNoSource": {},
+  "ctxSetLink": "设置链接…",
+  "@ctxSetLink": {},
+  "impTextPageTitle": "导入·{title}",
+  "@impTextPageTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "nbMoveFolderDialogTitle": "移动到文件夹",
+  "@nbMoveFolderDialogTitle": {},
+  "homeOpenCanvasCard": "打开无限画布 {title}",
+  "@homeOpenCanvasCard": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "homeOpenNotebookCard": "打开分页画布 {title}",
+  "@homeOpenNotebookCard": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "colorChannelLabel": "{label} 通道",
+  "@colorChannelLabel": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "presPrevSlide": "上一页",
+  "@presPrevSlide": {},
+  "timeFullDate": "{year}/{month}/{day}",
+  "@timeFullDate": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      },
+      "month": {
+        "type": "int"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  }
 }

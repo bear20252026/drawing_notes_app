@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_palette.dart';
 
 /// 单个书写工具的持久化预设。
 class BrushPreset {
@@ -54,19 +55,20 @@ class BrushPresetBook {
   final Map<BrushType, BrushPreset> _presets;
 
   factory BrushPresetBook.defaults() => BrushPresetBook({
+    // D-07：工具默认色收编至 ApplePalette。
     BrushType.pen: const BrushPreset(
       tool: BrushType.pen,
-      color: Color(0xFF1A1A1A),
+      color: ApplePalette.brushPen,
       size: 6,
     ),
     BrushType.pencil: const BrushPreset(
       tool: BrushType.pencil,
-      color: Color(0xFF424242),
+      color: ApplePalette.brushPencil,
       size: 5,
     ),
     BrushType.marker: const BrushPreset(
       tool: BrushType.marker,
-      color: Color(0xFFFFD54F),
+      color: ApplePalette.brushMarker,
       size: 24,
     ),
     BrushType.laser: const BrushPreset(

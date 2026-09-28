@@ -135,7 +135,9 @@ class _DrawingCardState extends State<_DrawingCard> {
         : AppleMotion.press;
     return Semantics(
       button: true,
-      label: '打开无限画布 ${widget.meta.title}',
+      label:
+          AppLocalizations.of(context)?.homeOpenCanvasCard(widget.meta.title) ??
+          '打开无限画布 ${widget.meta.title}',
       child: AnimatedScale(
         scale: _hovered ? 1.012 : 1,
         duration: motion,
@@ -341,7 +343,9 @@ class _NotebookCard extends StatelessWidget {
         (notebook.encrypted && notebook.pages.isEmpty);
     return Semantics(
       button: true,
-      label: '打开分页画布 ${notebook.title}',
+      label:
+          AppLocalizations.of(context)?.homeOpenNotebookCard(notebook.title) ??
+          '打开分页画布 ${notebook.title}',
       child: Card(
         clipBehavior: Clip.antiAlias,
         child: InkWell(

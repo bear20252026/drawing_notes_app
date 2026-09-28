@@ -16,10 +16,19 @@ import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 
 /// 标签视图：先列标签（带计数），点选后展示该标签下的打字笔记。
 class TagsView extends StatefulWidget {
-  const TagsView({super.key, required this.docs, this.loadTags});
+  const TagsView({
+    super.key,
+    required this.docs,
+    required this.onOpenDoc,
+    this.loadTags,
+  });
 
   /// 全量文档（过滤用）。
   final List<AllDoc> docs;
+
+  /// 打开文档回调（V-13 审计 2026-09-27：标签下钻文档行此前传空回调
+  /// `onOpenDoc: () {}`——可点但毫无反应的死入口）。
+  final void Function(AllDoc doc) onOpenDoc;
 
   /// 标签注册表读取。
   final Future<List<DocTag>> Function()? loadTags;
@@ -124,7 +133,7 @@ class _TagsViewState extends State<TagsView> {
                     ),
                     itemBuilder: (context, i) => AllDocRow(
                       doc: docs[i],
-                      onOpenDoc: () {},
+                      onOpenDoc: () => widget.onOpenDoc(docs[i]),
                       onToggleFavorite: () {},
                     ),
                   ),

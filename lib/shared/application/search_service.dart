@@ -45,7 +45,14 @@ class SearchService {
   final IBlockDocSearchAccessor? blockDocAccessor;
 
   /// 搜索 [query]，忽略大小写；命中文字块内容或标题。
-  Future<List<SearchResult>> search(String query) async {
+  ///
+  /// [blockDocFallbackTitle]：块文档空标题的展示兜底（L-11 审计
+  /// 2026-09-27）——本服务无 BuildContext，由调用方传 l10n 值
+  /// （searchKindBlockDoc），缺省保留 zh。
+  Future<List<SearchResult>> search(
+    String query, {
+    String blockDocFallbackTitle = '块文档',
+  }) async {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return const [];
 
@@ -135,7 +142,7 @@ class SearchService {
             kind: 'blockdoc',
             notebookId: null,
             pageId: h.docId,
-            title: h.title.isNotEmpty ? h.title : '块文档',
+            title: h.title.isNotEmpty ? h.title : blockDocFallbackTitle,
             snippet: h.snippet,
           ),
         );

@@ -10,7 +10,12 @@ extension _EditorPageTextOverlays on _EditorPageState {
     return Positioned(
       left: viewPos.dx,
       top: viewPos.dy,
-      child: Stack(
+      // V-08（审计 2026-09-27）：斜杠菜单键盘导航——Focus 包装节点是
+      // TextField 焦点链的祖先，↑↓/Esc 在冒泡路径上先于应用级文本编辑
+      // Shortcuts 到达此处；菜单展开时拦截驱动高亮，收起时全部放行。
+      child: Focus(
+        onKeyEvent: _onSlashMenuKey,
+        child: Stack(
         children: [
           SizedBox(
             width: 320, // 固定编辑宽度，避免布局跳动
@@ -70,11 +75,22 @@ extension _EditorPageTextOverlays on _EditorPageState {
                     (text.endsWith('/') &&
                         !text.substring(0, text.length - 1).contains('/'));
                 if (showSlash != _slashOpen) {
-                  _applyState(() => _slashOpen = showSlash);
+                  _applyState(() {
+                    _slashOpen = showSlash;
+                    _slashHighlight = 0;
+                  });
                 }
               },
               onSubmitted: (_) {
-                _commitTextEditing();
+                // V-08：菜单展开时 Enter 应用键盘高亮项（替代提交文本）。
+                if (_slashOpen) {
+                  final cmds = _slashCommands;
+                  _applySlashCommand(
+                    cmds[_slashHighlight.clamp(0, cmds.length - 1)].apply,
+                  );
+                } else {
+                  _commitTextEditing();
+                }
               },
               onTapOutside: (_) {
                 _commitTextEditing();
@@ -93,38 +109,86 @@ extension _EditorPageTextOverlays on _EditorPageState {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _slashCommand(
-                      label: AppLocalizations.of(context)?.textBold ?? '加粗',
-                      onTap: () => _applySlashCommand((it) => it.bold = true),
-                    ),
-                    _slashCommand(
-                      label: AppLocalizations.of(context)?.textItalic ?? '斜体',
-                      onTap: () => _applySlashCommand((it) => it.italic = true),
-                    ),
-                    _slashCommand(
-                      label: AppLocalizations.of(context)?.textTodo ?? '待办',
-                      onTap: () => _applySlashCommand((it) => it.isTodo = true),
-                    ),
-                    _slashCommand(
-                      label: AppLocalizations.of(context)?.textCenter ?? '居中',
-                      onTap: () => _applySlashCommand(
-                        (it) => it.align = TextAlignType.center,
+                    for (final (i, cmd) in _slashCommands.indexed)
+                      _slashCommand(
+                        label: cmd.label,
+                        highlighted: i == _slashHighlight,
+                        onTap: () => _applySlashCommand(cmd.apply),
                       ),
-                    ),
                   ],
                 ),
               ),
             ),
         ],
+        ),
       ),
     );
   }
 
-  Widget _slashCommand({required String label, required VoidCallback onTap}) {
+  /// 斜杠命令表（V-08）：菜单渲染与键盘 Enter 共用同一数据源。
+  List<({String label, void Function(PageTextItem) apply})>
+  get _slashCommands => [
+    (
+      label: AppLocalizations.of(context)?.textBold ?? '加粗',
+      apply: (it) => it.bold = true,
+    ),
+    (
+      label: AppLocalizations.of(context)?.textItalic ?? '斜体',
+      apply: (it) => it.italic = true,
+    ),
+    (
+      label: AppLocalizations.of(context)?.textTodo ?? '待办',
+      apply: (it) => it.isTodo = true,
+    ),
+    (
+      label: AppLocalizations.of(context)?.textCenter ?? '居中',
+      apply: (it) => it.align = TextAlignType.center,
+    ),
+  ];
+
+  /// 斜杠菜单键盘导航（V-08）：仅菜单展开时拦截 ↑↓/Esc；Enter 由
+  /// TextField 的 onSubmitted 分支处理。收起时全部放行（就地编辑的
+  /// 撤销/光标移动不受影响）。
+  KeyEventResult _onSlashMenuKey(FocusNode node, KeyEvent event) {
+    if (!_slashOpen || event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+    final key = event.logicalKey;
+    final cmds = _slashCommands;
+    if (key == LogicalKeyboardKey.arrowDown) {
+      _applyState(
+        () => _slashHighlight = (_slashHighlight + 1) % cmds.length,
+      );
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowUp) {
+      _applyState(
+        () => _slashHighlight =
+            (_slashHighlight - 1 + cmds.length) % cmds.length,
+      );
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.escape) {
+      _applyState(() => _slashOpen = false);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  Widget _slashCommand({
+    required String label,
+    required bool highlighted,
+    required VoidCallback onTap,
+  }) {
+    // V-08：行高 vertical 8→12（20px 文本 + 24 = 44px 触控目标），
+    // 键盘高亮项加 actionBlue 12% 底（与工具栏选中态同语言）。
     return InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        color: highlighted
+            ? AppleColor.actionBlue.withValues(alpha: 0.12)
+            : null,
         child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
       ),
     );

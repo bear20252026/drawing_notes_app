@@ -3408,4 +3408,61 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get emptyDocPlaceholder => '(empty document)';
+
+  @override
+  String get shapeLibraryTitle => 'Shape Library';
+
+  @override
+  String get shapeLibSearchHint =>
+      'Search shapes (e.g. rectangle/ellipse/arrow)…';
+
+  @override
+  String get shapeRoughTooltip => 'Hand-drawn style (rough)';
+
+  @override
+  String get menuChartPasteData => 'Chart (paste data)';
+
+  @override
+  String get canvasMiniMap => 'Canvas mini-map';
+
+  @override
+  String get canvasMiniMapHint =>
+      'Arrow keys pan the viewport, Shift to speed up';
+
+  @override
+  String get docImageNoSource => 'Image (no source)';
+
+  @override
+  String get ctxSetLink => 'Set link…';
+
+  @override
+  String impTextPageTitle(String title) {
+    return 'Imported · $title';
+  }
+
+  @override
+  String get nbMoveFolderDialogTitle => 'Move to folder';
+
+  @override
+  String homeOpenCanvasCard(String title) {
+    return 'Open infinite canvas $title';
+  }
+
+  @override
+  String homeOpenNotebookCard(String title) {
+    return 'Open paged canvas $title';
+  }
+
+  @override
+  String colorChannelLabel(String label) {
+    return '$label channel';
+  }
+
+  @override
+  String get presPrevSlide => 'Previous slide';
+
+  @override
+  String timeFullDate(int year, int month, int day) {
+    return '$month/$day/$year';
+  }
 }

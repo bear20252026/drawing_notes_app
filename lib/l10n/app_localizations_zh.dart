@@ -3281,4 +3281,59 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get emptyDocPlaceholder => '（空文档）';
+
+  @override
+  String get shapeLibraryTitle => '形状库（图书馆）';
+
+  @override
+  String get shapeLibSearchHint => '检索形状（如：矩形/椭圆/箭头）…';
+
+  @override
+  String get shapeRoughTooltip => '手绘风格（rough）';
+
+  @override
+  String get menuChartPasteData => '图表（粘贴数据）';
+
+  @override
+  String get canvasMiniMap => '画布小地图';
+
+  @override
+  String get canvasMiniMapHint => '方向键平移视口，Shift 加速';
+
+  @override
+  String get docImageNoSource => '图片（无来源）';
+
+  @override
+  String get ctxSetLink => '设置链接…';
+
+  @override
+  String impTextPageTitle(String title) {
+    return '导入·$title';
+  }
+
+  @override
+  String get nbMoveFolderDialogTitle => '移动到文件夹';
+
+  @override
+  String homeOpenCanvasCard(String title) {
+    return '打开无限画布 $title';
+  }
+
+  @override
+  String homeOpenNotebookCard(String title) {
+    return '打开分页画布 $title';
+  }
+
+  @override
+  String colorChannelLabel(String label) {
+    return '$label 通道';
+  }
+
+  @override
+  String get presPrevSlide => '上一页';
+
+  @override
+  String timeFullDate(int year, int month, int day) {
+    return '$year/$month/$day';
+  }
 }

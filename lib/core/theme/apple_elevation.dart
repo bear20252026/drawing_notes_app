@@ -57,6 +57,27 @@ abstract final class AppleElevation {
 
   /// 给 `shadowColor` 用的颜色，与 [overlay] 同色。
   static const Color overlayColor = Color(0x38000000);
+
+  /// Glass —— 液态玻璃浮层（GlassSurface 专用，D-04 收编 2026-09-28）。
+  ///
+  /// 亮色 8% 黑 / 暗色 16% 黑，均 20px 模糊 + 8px 下沉——比 [raised] 更弥散、
+  /// 比 [overlay] 更克制，匹配玻璃「半浮」质感。
+  static const List<BoxShadow> glassLight = <BoxShadow>[
+    BoxShadow(
+      color: Color(0x14000000), // 8%
+      blurRadius: 20,
+      offset: Offset(0, 8),
+    ),
+  ];
+
+  /// [glassLight] 的暗色档（16% 黑）。
+  static const List<BoxShadow> glassDark = <BoxShadow>[
+    BoxShadow(
+      color: Color(0x29000000), // 16%
+      blurRadius: 20,
+      offset: Offset(0, 8),
+    ),
+  ];
 }
 
 /// 发丝线（hairline）—— Apple 表达层级的默认手段。

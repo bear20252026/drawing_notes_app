@@ -67,7 +67,13 @@ class _SearchPageState extends State<SearchPage> {
       return;
     }
     setState(() => _searching = true);
-    final results = await widget.searchService.search(query);
+    // L-11（审计 2026-09-27）：块文档空标题兜底传 l10n 值（服务层无
+    // BuildContext，原写死 zh）。
+    final results = await widget.searchService.search(
+      query,
+      blockDocFallbackTitle:
+          AppLocalizations.of(context)?.searchKindBlockDoc ?? '块文档',
+    );
     // 评审发现 P3：丢弃乱序响应——仅当查询仍是当前输入时应用结果，
     // 否则旧查询的扫描结果会覆盖新查询（慢扫描后完成时）。
     if (!mounted) return;

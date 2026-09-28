@@ -93,11 +93,13 @@ extension _DocEditorUi on DocEditorState {
                             Navigator.of(context).pop();
                           },
                           child: Padding(
+                            // V-11（审计 2026-09-27）：8→12——对话框行命中
+                            // 提到 ~44px（bodyMedium + 24 纵向）。
                             padding: EdgeInsets.only(
                               left: 16 + (e.level - 1) * 16.0,
                               right: 16,
-                              top: 8,
-                              bottom: 8,
+                              top: 12,
+                              bottom: 12,
                             ),
                             child: Text(
                               e.text.isEmpty ? '（空标题）' : e.text,

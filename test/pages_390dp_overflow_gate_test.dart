@@ -138,7 +138,7 @@ void main() {
   });
 
   testWidgets('390x844：标签视图无溢出', (tester) async {
-    await pump390(tester, TagsView(docs: [makeAllDoc()]));
+    await pump390(tester, TagsView(docs: [makeAllDoc()], onOpenDoc: (_) {}));
     expect(tester.takeException(), isNull, reason: '标签视图 390dp 溢出');
   });
 
@@ -206,7 +206,7 @@ void main() {
   testWidgets('390x844 dark：标签视图无溢出', (tester) async {
     await pumpAt(
       tester,
-      TagsView(docs: [makeAllDoc()]),
+      TagsView(docs: [makeAllDoc()], onOpenDoc: (_) {}),
       theme: AppDesign.darkTheme(),
     );
     expect(tester.takeException(), isNull, reason: '标签视图 390dp 深色溢出');
@@ -278,7 +278,7 @@ void main() {
   });
 
   testWidgets('390x844 1.5x：标签视图无溢出', (tester) async {
-    await pumpAt(tester, TagsView(docs: [makeAllDoc()]), textScale: 1.5);
+    await pumpAt(tester, TagsView(docs: [makeAllDoc()], onOpenDoc: (_) {}), textScale: 1.5);
     expect(tester.takeException(), isNull, reason: '标签视图 390dp 1.5× 溢出');
   });
 

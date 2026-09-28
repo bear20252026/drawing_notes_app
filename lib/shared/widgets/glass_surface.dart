@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_elevation.dart';
 import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 
 import 'package:drawing_notes_app/shared/widgets/liquid_glass_rim.dart';
@@ -152,9 +153,8 @@ class _GlassSurfaceState extends State<GlassSurface> {
     final sideColor = scheme.outlineVariant.withValues(
       alpha: isDark ? 0.62 : 0.72,
     );
-    const shadows = [
-      BoxShadow(color: Color(0x14000000), blurRadius: 20, offset: Offset(0, 8)),
-    ];
+    // D-04：阴影字面量已收编 AppleElevation.glass 档。
+    final shadows = AppleElevation.glassLight;
 
     final resolved = LiquidGlassGate.resolve(context, widget.level);
     final useSuperellipse = resolved != LiquidGlassLevel.l1 && !reduceEffects;
@@ -178,15 +178,7 @@ class _GlassSurfaceState extends State<GlassSurface> {
       decoration: ShapeDecoration(
         color: surfaceColor,
         shape: shapeBorder,
-        shadows: isDark
-            ? const [
-                BoxShadow(
-                  color: Color(0x29000000),
-                  blurRadius: 20,
-                  offset: Offset(0, 8),
-                ),
-              ]
-            : shadows,
+        shadows: isDark ? AppleElevation.glassDark : shadows,
       ),
       child: padded,
     );

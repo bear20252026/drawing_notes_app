@@ -54,37 +54,37 @@ extension _EditorPageAppBar on _EditorPageState {
                           '重命名画布',
                       triggerMode: TooltipTriggerMode.longPress,
                       child: InkWell(
-                      onTap: _renameCanvas,
-                      borderRadius: BorderRadius.circular(AppleRadius.xs),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 4,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                _controller.document.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                        onTap: _renameCanvas,
+                        borderRadius: BorderRadius.circular(AppleRadius.xs),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 4,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  _controller.document.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 4),
-                            // Flexible：极窄时图标随标题一起收缩，避免二级溢出。
-                            Flexible(
-                              child: Icon(
-                                Icons.edit_rounded,
-                                size: 14,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
+                              const SizedBox(width: 4),
+                              // Flexible：极窄时图标随标题一起收缩，避免二级溢出。
+                              Flexible(
+                                child: Icon(
+                                  Icons.edit_rounded,
+                                  size: 14,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
                       ),
                     ),
                   ),
@@ -295,7 +295,7 @@ extension _EditorPageAppBar on _EditorPageState {
       _mainMenuItem(
         _MainMenuItem.chart,
         icon: Icons.bar_chart,
-        label: '图表（粘贴数据）',
+        label: AppLocalizations.of(context)?.menuChartPasteData ?? '图表（粘贴数据）',
       ),
       _mainMenuItem(
         _MainMenuItem.presentation,
@@ -310,7 +310,7 @@ extension _EditorPageAppBar on _EditorPageState {
       _mainMenuItem(
         _MainMenuItem.library,
         icon: Icons.library_books_outlined,
-        label: '形状库（图书馆）',
+        label: AppLocalizations.of(context)?.shapeLibraryTitle ?? '形状库（图书馆）',
       ),
       _mainMenuItem(
         _MainMenuItem.shortcuts,

@@ -78,7 +78,12 @@ class _MainContent extends StatelessWidget {
         // 标签 Tab：独立视图（M12.6）
         if (tabIndex == 2)
           Expanded(
-            child: TagsView(docs: allDocs, loadTags: loadTags),
+            child: TagsView(
+              docs: allDocs,
+              loadTags: loadTags,
+              // V-13：标签下钻文档行接真实打开回调（原空回调死入口）。
+              onOpenDoc: onOpenDoc,
+            ),
           )
         else
           // 分组文档列表

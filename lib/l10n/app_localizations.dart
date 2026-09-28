@@ -6259,6 +6259,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'(empty document)'**
   String get emptyDocPlaceholder;
+
+  /// No description provided for @shapeLibraryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shape Library'**
+  String get shapeLibraryTitle;
+
+  /// No description provided for @shapeLibSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search shapes (e.g. rectangle/ellipse/arrow)…'**
+  String get shapeLibSearchHint;
+
+  /// No description provided for @shapeRoughTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Hand-drawn style (rough)'**
+  String get shapeRoughTooltip;
+
+  /// No description provided for @menuChartPasteData.
+  ///
+  /// In en, this message translates to:
+  /// **'Chart (paste data)'**
+  String get menuChartPasteData;
+
+  /// No description provided for @canvasMiniMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Canvas mini-map'**
+  String get canvasMiniMap;
+
+  /// No description provided for @canvasMiniMapHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrow keys pan the viewport, Shift to speed up'**
+  String get canvasMiniMapHint;
+
+  /// No description provided for @docImageNoSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Image (no source)'**
+  String get docImageNoSource;
+
+  /// No description provided for @ctxSetLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Set link…'**
+  String get ctxSetLink;
+
+  /// No description provided for @impTextPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported · {title}'**
+  String impTextPageTitle(String title);
+
+  /// No description provided for @nbMoveFolderDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to folder'**
+  String get nbMoveFolderDialogTitle;
+
+  /// No description provided for @homeOpenCanvasCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Open infinite canvas {title}'**
+  String homeOpenCanvasCard(String title);
+
+  /// No description provided for @homeOpenNotebookCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Open paged canvas {title}'**
+  String homeOpenNotebookCard(String title);
+
+  /// No description provided for @colorChannelLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} channel'**
+  String colorChannelLabel(String label);
+
+  /// No description provided for @presPrevSlide.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous slide'**
+  String get presPrevSlide;
+
+  /// No description provided for @timeFullDate.
+  ///
+  /// In en, this message translates to:
+  /// **'{month}/{day}/{year}'**
+  String timeFullDate(int year, int month, int day);
 }
 
 class _AppLocalizationsDelegate

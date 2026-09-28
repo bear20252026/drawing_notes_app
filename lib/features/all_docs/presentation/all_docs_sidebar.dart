@@ -6,6 +6,7 @@ import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
 // 纯展示：所有数据由父 widget 注入。不 import 任何存储/服务实现。
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
@@ -64,6 +65,38 @@ class AllDocsSidebar extends StatefulWidget {
 class _AllDocsSidebarState extends State<AllDocsSidebar> {
   bool _treeExpanded = true;
 
+  /// V-14（审计 2026-09-27）：桌面快速搜索清空/Esc——需要控制器改写文本。
+  final TextEditingController _searchCtrl = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _searchCtrl.text = widget.searchQuery;
+  }
+
+  @override
+  void didUpdateWidget(covariant AllDocsSidebar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.searchQuery != oldWidget.searchQuery &&
+        widget.searchQuery != _searchCtrl.text) {
+      _searchCtrl.text = widget.searchQuery;
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    _searchFocus.dispose();
+    super.dispose();
+  }
+
+  /// 清空搜索（清除按钮与 Esc 共用）。
+  void _clearSearch() {
+    _searchCtrl.clear();
+    widget.onSearchChanged?.call('');
+  }
+
   /// i18n（E1 批 1）：导航文案按 locale 解析（原 static const 数组）。
   List<_NavItem> _navItemsOf(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -100,29 +133,58 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
             onSurface: onSurface,
           ),
           const SizedBox(height: 8),
-          // 搜索框
+          // 搜索框（V-14：补清除按钮 + Esc 清空——移动端有，桌面此前缺）
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: SizedBox(
               height: 36,
-              child: TextField(
-                onChanged: widget.onSearchChanged,
-                style: AppleType.controlStyle(
-                  onSurface,
-                ).copyWith(fontWeight: FontWeight.w400),
-                decoration: InputDecoration(
-                  hintText:
-                      AppLocalizations.of(context)?.docsQuickSearch ?? '快速搜索',
-                  hintStyle: AppleType.controlStyle(
-                    muted,
+              // V-14：Esc 清空搜索（有内容时）。TextField 无 onKeyEvent，
+              // 用 Focus 包装冒泡拦截（与斜杠菜单 V-08 同模式）。
+              child: Focus(
+                onKeyEvent: (node, event) {
+                  if (event is KeyDownEvent &&
+                      event.logicalKey == LogicalKeyboardKey.escape &&
+                      _searchCtrl.text.isNotEmpty) {
+                    _clearSearch();
+                    return KeyEventResult.handled;
+                  }
+                  return KeyEventResult.ignored;
+                },
+                child: TextField(
+                  controller: _searchCtrl,
+                  focusNode: _searchFocus,
+                  onChanged: widget.onSearchChanged,
+                  style: AppleType.controlStyle(
+                    onSurface,
                   ).copyWith(fontWeight: FontWeight.w400),
-                  prefixIcon: Icon(Icons.search, size: 18, color: muted),
-                  filled: true,
-                  fillColor: surface,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppleRadius.md),
-                    borderSide: BorderSide.none,
+                  decoration: InputDecoration(
+                    hintText:
+                        AppLocalizations.of(context)?.docsQuickSearch ?? '快速搜索',
+                    hintStyle: AppleType.controlStyle(
+                      muted,
+                    ).copyWith(fontWeight: FontWeight.w400),
+                    prefixIcon: Icon(Icons.search, size: 18, color: muted),
+                    suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: _searchCtrl,
+                      builder: (context, value, _) => value.text.isEmpty
+                          ? const SizedBox.shrink()
+                          : IconButton(
+                              tooltip:
+                                  AppLocalizations.of(
+                                    context,
+                                  )?.docsClearSearch ??
+                                  '清除搜索',
+                              icon: Icon(Icons.close_rounded, size: 16),
+                              onPressed: _clearSearch,
+                            ),
+                    ),
+                    filled: true,
+                    fillColor: surface,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppleRadius.md),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
               ),
@@ -135,34 +197,37 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
             // 组件延迟到滚动可见才构建（原 ListView(children:) 一次性
             // 全量构建全部文档行）。索引布局：导航行 × N / 间隔 / 树头 /
             // （展开时）文档行 × N。
-            child: Builder(builder: (context) {
-              final navCount = _navItemsOf(context).length;
-              final treeDocCount = _treeExpanded
-                  ? widget.recentDocs.length
-                  : 0;
-              // 展开且无文档 → 追加一行空态提示。
-              final showTreeEmpty = _treeExpanded && treeDocCount == 0;
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                itemCount: navCount + 2 + treeDocCount + (showTreeEmpty ? 1 : 0),
-                itemBuilder: (context, i) {
-                  if (i < navCount) return _buildNavItem(context, i);
-                  if (i == navCount) return const SizedBox(height: 12);
-                  if (i == navCount + 1) return _buildTreeHeader(context);
-                  final docIndex = i - navCount - 2;
-                  if (docIndex < treeDocCount) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 1),
-                      child: _buildDocTreeRow(
-                        context,
-                        widget.recentDocs[docIndex],
-                      ),
-                    );
-                  }
-                  return _buildTreeEmptyRow(context);
-                },
-              );
-            }),
+            child: Builder(
+              builder: (context) {
+                final navCount = _navItemsOf(context).length;
+                final treeDocCount = _treeExpanded
+                    ? widget.recentDocs.length
+                    : 0;
+                // 展开且无文档 → 追加一行空态提示。
+                final showTreeEmpty = _treeExpanded && treeDocCount == 0;
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  itemCount:
+                      navCount + 2 + treeDocCount + (showTreeEmpty ? 1 : 0),
+                  itemBuilder: (context, i) {
+                    if (i < navCount) return _buildNavItem(context, i);
+                    if (i == navCount) return const SizedBox(height: 12);
+                    if (i == navCount + 1) return _buildTreeHeader(context);
+                    final docIndex = i - navCount - 2;
+                    if (docIndex < treeDocCount) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 1),
+                        child: _buildDocTreeRow(
+                          context,
+                          widget.recentDocs[docIndex],
+                        ),
+                      );
+                    }
+                    return _buildTreeEmptyRow(context);
+                  },
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -206,11 +271,12 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
                     _navItemsOf(context)[i].label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppleType.controlStyle(
-                      selected ? accent : onSurface,
-                    ).copyWith(
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                    ),
+                    style: AppleType.controlStyle(selected ? accent : onSurface)
+                        .copyWith(
+                          fontWeight: selected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
                   ),
                 ),
               ],
@@ -268,7 +334,12 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
         child: Padding(
           // V-02（审计 2026-09-27）：补 vertical 12——文档树行点击目标
           // 此前仅 ~22px，仿同文件导航行（U4a）提到 ≥44px。
-          padding: const EdgeInsets.only(left: 24, right: 12, top: 12, bottom: 12),
+          padding: const EdgeInsets.only(
+            left: 24,
+            right: 12,
+            top: 12,
+            bottom: 12,
+          ),
           child: Row(
             children: [
               Icon(visual.icon, size: 16, color: visual.color),

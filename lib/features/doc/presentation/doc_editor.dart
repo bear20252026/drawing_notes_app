@@ -116,6 +116,19 @@ class _SaveIntent extends Intent {
   const _SaveIntent();
 }
 
+/// 删除聚焦块意图（V-09 审计 2026-09-27：Ctrl+Shift+Backspace /
+/// Cmd+Shift+Backspace → [_deleteFocusedBlock]）——删除属核心操作，
+/// 此前唯一入口是浮动工具条，非空块键盘删不掉。
+class _DeleteBlockIntent extends Intent {
+  const _DeleteBlockIntent();
+}
+
+/// 复制（创建副本）聚焦块意图（V-09：Ctrl+D / Cmd+D →
+/// [_duplicateFocusedBlock]）。
+class _DuplicateBlockIntent extends Intent {
+  const _DuplicateBlockIntent();
+}
+
 /// 支持的块类型工具栏列表（顺序即展示顺序）。
 const List<_BlockTypeOption> _blockTypeOptions = [
   _BlockTypeOption(
@@ -528,18 +541,47 @@ class DocEditorState extends State<DocEditor> {
           );
     // 键盘等价入口：Ctrl+S（Win/Linux）/ Cmd+S（macOS）手动保存，
     // 与顶栏保存按钮、宿主 DocPage 的保存按钮同调 _manualSave()。
+    // V-09（审计 2026-09-27）：补删除块 / 复制块快捷键——与浮动工具条
+    // 同调（Shortcuts 在 TextField 焦点链上游，文本框不消费的组合键
+    // 冒泡至此）。
     return Shortcuts(
       shortcuts: <ShortcutActivator, Intent>{
         const SingleActivator(LogicalKeyboardKey.keyS, control: true):
             const _SaveIntent(),
         const SingleActivator(LogicalKeyboardKey.keyS, meta: true):
             const _SaveIntent(),
+        const SingleActivator(
+          LogicalKeyboardKey.backspace,
+          control: true,
+          shift: true,
+        ): const _DeleteBlockIntent(),
+        const SingleActivator(
+          LogicalKeyboardKey.backspace,
+          meta: true,
+          shift: true,
+        ): const _DeleteBlockIntent(),
+        const SingleActivator(LogicalKeyboardKey.keyD, control: true):
+            const _DuplicateBlockIntent(),
+        const SingleActivator(LogicalKeyboardKey.keyD, meta: true):
+            const _DuplicateBlockIntent(),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
           _SaveIntent: CallbackAction<_SaveIntent>(
             onInvoke: (_) {
               _manualSave();
+              return null;
+            },
+          ),
+          _DeleteBlockIntent: CallbackAction<_DeleteBlockIntent>(
+            onInvoke: (_) {
+              _deleteFocusedBlock();
+              return null;
+            },
+          ),
+          _DuplicateBlockIntent: CallbackAction<_DuplicateBlockIntent>(
+            onInvoke: (_) {
+              _duplicateFocusedBlock();
               return null;
             },
           ),

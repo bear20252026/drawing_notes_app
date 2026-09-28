@@ -9,7 +9,6 @@ import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 
-
 /// 编辑器纯展示组件集（架构重构 R1：从 editor_page 外移的零耦合组件）。
 ///
 /// 设计原则（见 docs/ARCHITECTURE_REVISION.md）：
@@ -53,7 +52,6 @@ class ShortcutRow extends StatelessWidget {
   }
 }
 
-
 /// 番茄钟专注计时浮层（D2，借鉴 Relatum 学习工具）。
 ///
 /// 默认 25 分钟专注计时，支持开始/暂停/重置；到时触发 [onFinished]。
@@ -68,7 +66,6 @@ class PomodoroTimer extends StatefulWidget {
   @override
   State<PomodoroTimer> createState() => _PomodoroTimerState();
 }
-
 
 class _PomodoroTimerState extends State<PomodoroTimer> {
   late Duration _remaining = PomodoroTimer.defaultDuration;
@@ -150,7 +147,6 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
   }
 }
 
-
 /// 分页预览组件（D3：长笔记多页预览，借鉴 Umo Editor 分页模式）。
 ///
 /// 把文字块按 A4 页面高度（逻辑像素）分页渲染，
@@ -163,7 +159,6 @@ class PaginationPreview extends StatefulWidget {
   @override
   State<PaginationPreview> createState() => _PaginationPreviewState();
 }
-
 
 class _PaginationPreviewState extends State<PaginationPreview> {
   /// A4 页面逻辑高度（对应画布 2480x3508 的近似高度）。
@@ -220,8 +215,8 @@ class _PaginationPreviewState extends State<PaginationPreview> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
+            // D-05（审计 2026-09-28）：内容层零阴影，层级靠发丝线。
             border: Border.all(color: AppleColor.hairline),
-            boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black26)],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,17 +241,20 @@ class _PaginationPreviewState extends State<PaginationPreview> {
                   child: Text(
                     t.text,
                     // 文档列表条目：control 13 + 块级富文本修饰。
-                    style: AppleType.controlStyle(
-                      Color(t.color),
-                      weight: t.bold ? FontWeight.bold : FontWeight.normal,
-                    ).copyWith(
-                      fontStyle: t.italic ? FontStyle.italic : FontStyle.normal,
-                      decoration: t.underline
-                          ? TextDecoration.underline
-                          : (t.strikethrough
-                                ? TextDecoration.lineThrough
-                                : TextDecoration.none),
-                    ),
+                    style:
+                        AppleType.controlStyle(
+                          Color(t.color),
+                          weight: t.bold ? FontWeight.bold : FontWeight.normal,
+                        ).copyWith(
+                          fontStyle: t.italic
+                              ? FontStyle.italic
+                              : FontStyle.normal,
+                          decoration: t.underline
+                              ? TextDecoration.underline
+                              : (t.strikethrough
+                                    ? TextDecoration.lineThrough
+                                    : TextDecoration.none),
+                        ),
                   ),
                 ),
             ],
@@ -266,7 +264,6 @@ class _PaginationPreviewState extends State<PaginationPreview> {
     );
   }
 }
-
 
 /// 线性元素拖拽读数气泡（审计二-6，2026-09-06）。
 ///

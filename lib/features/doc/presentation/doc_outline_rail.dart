@@ -125,11 +125,13 @@ class DocOutlinePanel extends StatelessWidget {
                       return InkWell(
                         onTap: () => onTapEntry(e.id),
                         child: Padding(
+                          // V-11（审计 2026-09-27）：7→12——行命中提到
+                          // ~44px（bodySmall ≈ 20px 文本 + 24 纵向）。
                           padding: EdgeInsets.only(
                             left: 16 + (e.level - 1) * 14.0,
                             right: 12,
-                            top: 7,
-                            bottom: 7,
+                            top: 12,
+                            bottom: 12,
                           ),
                           child: Text(
                             e.text.isEmpty ? '（空标题）' : e.text,

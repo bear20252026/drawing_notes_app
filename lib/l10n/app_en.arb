@@ -2970,5 +2970,71 @@
     }
   },
   "emptyDocPlaceholder": "(empty document)",
-  "@emptyDocPlaceholder": {}
+  "@emptyDocPlaceholder": {},
+  "shapeLibraryTitle": "Shape Library",
+  "@shapeLibraryTitle": {},
+  "shapeLibSearchHint": "Search shapes (e.g. rectangle/ellipse/arrow)…",
+  "@shapeLibSearchHint": {},
+  "shapeRoughTooltip": "Hand-drawn style (rough)",
+  "@shapeRoughTooltip": {},
+  "menuChartPasteData": "Chart (paste data)",
+  "@menuChartPasteData": {},
+  "canvasMiniMap": "Canvas mini-map",
+  "@canvasMiniMap": {},
+  "canvasMiniMapHint": "Arrow keys pan the viewport, Shift to speed up",
+  "@canvasMiniMapHint": {},
+  "docImageNoSource": "Image (no source)",
+  "@docImageNoSource": {},
+  "ctxSetLink": "Set link…",
+  "@ctxSetLink": {},
+  "impTextPageTitle": "Imported · {title}",
+  "@impTextPageTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "nbMoveFolderDialogTitle": "Move to folder",
+  "@nbMoveFolderDialogTitle": {},
+  "homeOpenCanvasCard": "Open infinite canvas {title}",
+  "@homeOpenCanvasCard": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "homeOpenNotebookCard": "Open paged canvas {title}",
+  "@homeOpenNotebookCard": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "colorChannelLabel": "{label} channel",
+  "@colorChannelLabel": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "presPrevSlide": "Previous slide",
+  "@presPrevSlide": {},
+  "timeFullDate": "{month}/{day}/{year}",
+  "@timeFullDate": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      },
+      "month": {
+        "type": "int"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  }
 }

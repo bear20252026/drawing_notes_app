@@ -2,6 +2,37 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.40] - 2026-09-28
+
+### 审计批次 R：可达性 / i18n / 令牌三域收尾（约 20 条）
+
+> 来源：`docs/audit_2026-09-27.md` 批次 R——V-05~V-15 可达性、
+> L-07~L-16 i18n、D-03~D-07 令牌收编；D-03/L-02 实查已闭环。
+
+- **可达性**：V-05 ⋮ 菜单 GestureDetector→InkWell（热区+水波一致）；
+  V-06 星标/⋮ 包 Tooltip；V-07 演示模式底部补 上一页/下一页 IconButton
+  （边界禁用）；V-08 斜杠命令菜单 ↑↓/Enter/Esc 键盘驱动（Focus 冒泡
+  拦截，菜单与回车同源 `_slashCommands`）；V-09 文档块 Ctrl/Cmd+D 复制、
+  Ctrl/Cmd+Shift+Backspace 删除；V-10 数据库表格行 44px 命中高度+
+  数字列右对齐；V-11 大纲行补纵向 12 padding；V-13 标签下钻行接通
+  `onOpenDoc`（原死入口）；V-14 桌面搜索框补清除按钮 + Esc 清空
+  （Focus 冒泡拦截，与 V-08 同模式）；V-15 阅读页 Enter 进入编辑 +
+  Semantics onTap。
+- **i18n**：L-07 右键菜单设链接、L-08 图片无来源占位、L-09 文本导入/
+  PDF 页标题/移动对话框/克隆占位、L-10 首页画布卡片 Semantics、
+  L-11 块文档搜索回退标题（服务层可选参数注入）、L-12 取色器通道
+  Semantics、L-13 形状库标题/检索提示/图表菜单/小地图 Semantics/
+  手绘 tooltip 共 7 处、L-15 文档信息日期走 `timeFullDate` 占位键
+  （zh yyyy/M/d、en M/d/yyyy）、L-16 跨年时间标签——全部改走 arb 键，
+  新增 zh/en 对称键 15 个。
+- **令牌**：D-04 GlassSurface 阴影字面量收编 `AppleElevation.glass`
+  档（亮 8%/暗 16%）；D-05 内容层预览卡去 `black26` 阴影（发丝线表
+  层级）；D-06 12 色板与 D-07 画笔默认色收编新域文件
+  `core/theme/apple_palette.dart`（shared 不可依赖 features，落 core
+  双方可引）。
+- 门禁 analyze 0 告警、全量 1873 绿；三处 async gap（L-09 引入）
+  改 `_l10nSafe` mounted 守卫 getter。
+
 ## [1.17.39] - 2026-09-28
 
 ### 审计批次 Q：可达性 P1 收尾 + 测试探针加固（4 条）
