@@ -649,6 +649,14 @@
   "@scNudge": {
     "description": ""
   },
+  "scSelectNextObject": "轮选下一个对象",
+  "@scSelectNextObject": {
+    "description": ""
+  },
+  "scClearSelection": "清除选中",
+  "@scClearSelection": {
+    "description": ""
+  },
   "scSaveDoc": "保存文档",
   "@scSaveDoc": {
     "description": ""
@@ -681,6 +689,8 @@
   "@docOpenFailed": {},
   "homeDocCorrupt": "笔记数据损坏，无法打开",
   "@homeDocCorrupt": {},
+  "cmdSelectNextObject": "选中下一个对象",
+  "@cmdSelectNextObject": {},
   "settingsPasswordSystem": "密码体系",
   "@settingsPasswordSystem": {
     "description": "密码体系分组标题"

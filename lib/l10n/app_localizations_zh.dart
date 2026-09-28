@@ -550,6 +550,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get scNudge => '微调选中对象';
 
   @override
+  String get scSelectNextObject => '轮选下一个对象';
+
+  @override
+  String get scClearSelection => '清除选中';
+
+  @override
   String get scSaveDoc => '保存文档';
 
   @override
@@ -575,6 +581,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get homeDocCorrupt => '笔记数据损坏，无法打开';
+
+  @override
+  String get cmdSelectNextObject => '选中下一个对象';
 
   @override
   String get settingsPasswordSystem => '密码体系';

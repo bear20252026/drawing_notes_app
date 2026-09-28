@@ -2,6 +2,33 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.38] - 2026-09-28
+
+### 审计批次 P：键盘轮选画布对象（V-01，键盘可达性主缺口闭环）
+
+> 来源：`docs/audit_2026-09-27.md` V-01。既有 Delete / Alt+方向键微调 /
+> Menu 键上下文菜单等键盘链路的公共前提是「先用指针选中对象」，纯键盘
+> 用户无法选中、因而无法删除或微调画布对象。
+
+- **轮选与清除**：新增 `editor_page_keyboard_select.dart`——Tab /
+  Shift+Tab 按 z 序轮选画布对象（无选中取首个、到边界循环、无对象放行
+  焦点遍历），Esc 清除选中（与指针「点空白取消」等价）；选中对象落在
+  视口外时平移视口使其可见（rotation ≠ 0 跳过）。轮选顺序与叠加层渲染
+  同源（`EditorOverlayItemPlan`），「选中的顺序 = 看到的叠放顺序」。
+- **入口可发现**：命令面板新增 `selectNextObject`（Ctrl+K 可达，键位提示
+  Tab）；设置页「键盘快捷键」速查目录补「Tab / Shift+Tab 轮选下一个
+  对象」「Esc 清除选中」两条。
+- **伴生缺口（画布模式 no-op）**：独立画布模式（`session` 为空）此前
+  `_deleteSelectedItem` 与 `_nudgeSelected` 直接 return——Delete 与
+  Alt+方向键对画布文字对象全是 no-op；两者回退到
+  `document.textItems`（与 `forCanvas` 可选集合同源）。
+- **测试抓到的真实缺陷**：画布模式删除时其余三类集合传 `const []`，
+  `EditorPageObjectMutation.remove` 对四类集合一律 `removeWhere`——
+  不可变空表抛 `UnsupportedError`，删除整个失效；改传可增长空表。
+- arb 新键 3 对（`cmdSelectNextObject` / `scSelectNextObject` /
+  `scClearSelection`，zh/en 1027=1027 对称）；测试 +4（轮选前进/反向与
+  循环/删除与 Esc 清除/空画布放行）；门禁 analyze 0 告警、全量 1871 绿。
+
 ## [1.17.37] - 2026-09-27
 
 ### 审计批次 O：深度审计剩余项小修复清扫（17 条，数据安全 + 动效 + i18n + 性能 + 测试）

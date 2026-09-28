@@ -33,6 +33,19 @@ extension _EditorPageCommands on _EditorPageState {
       )
       ..register(
         EditorCommand(
+          id: 'selectNextObject',
+          // V-01（审计 2026-09-27）：键盘轮选入口进命令面板（Ctrl+K
+          // 可达），与 Tab 主路径等价。
+          label: l10n?.cmdSelectNextObject ?? '选中下一个对象',
+          category: EditorCommandCategory.edit,
+          keywords: const ['select', 'next', 'tab', '选中'],
+          shortcut: 'Tab',
+          isAvailable: () => _selectablePlan.isNotEmpty,
+          run: () => _selectNextObject(reverse: false),
+        ),
+      )
+      ..register(
+        EditorCommand(
           id: 'copy',
           label: l10n?.cmdCopySelection ?? '复制选中对象',
           category: EditorCommandCategory.edit,

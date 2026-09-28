@@ -93,6 +93,7 @@ part 'editor_page_persistence.dart';
 part 'editor_page_toolbar_actions.dart';
 part 'editor_page_appbar.dart';
 part 'editor_page_body.dart';
+part 'editor_page_keyboard_select.dart';
 
 /// 编辑器页面。
 ///

@@ -708,13 +708,17 @@ extension _EditorPageEditing on _EditorPageState {
 
   void _deleteSelectedItem() {
     final page = widget.session;
-    if (page == null) return;
+    // V-01（审计 2026-09-27）：独立画布模式（session 为空）此前直接
+    // return——Delete/选中工具条的删除对画布文字对象全是 no-op（伴生
+    // 缺口，指针与键盘一起受害）。画布模式可选对象 = document.textItems
+    // （与 forCanvas 计划同源），回退到文档集合删除。
+    final textItems = page?.textItems ?? _controller.document.textItems;
     // 多选删除：删除全部选中的混排对象（文字/图片/形状，借鉴 Excalidraw 多选）。
     final ids = _multiSelectedIds.isNotEmpty
         ? _multiSelectedIds
         : <String>{?_selectedItemId};
     if (ids.isEmpty) return;
-    // 删除淡出动画：先标记为删除中，180ms 后真正移除（借鉴 Excalidraw）。
+    // 删除淡出动画：先标记为删除中，稍后真正移除（借鉴 Excalidraw）。
     _applyState(() {
       _canvasInteraction.beginDeleting(ids);
       _canvasInteraction.clearObjectSelection();
@@ -727,10 +731,13 @@ extension _EditorPageEditing on _EditorPageState {
       _applyState(() {
         EditorPageObjectMutation.remove(
           ids: ids,
-          textItems: page.textItems,
-          imageItems: page.imageItems,
-          shapes: page.shapes,
-          charts: page.charts,
+          textItems: textItems,
+          // V-01：画布模式无其余三类集合——必须给可增长空表，const []
+          // 是不可变表，removeWhere 会抛 UnsupportedError（删除路径
+          // 对四类集合一律调用 removeWhere）。
+          imageItems: page?.imageItems ?? <PageImageItem>[],
+          shapes: page?.shapes ?? <PageShapeItem>[],
+          charts: page?.charts ?? <PageChartItem>[],
         );
         _canvasInteraction.finishDeleting(ids);
       });

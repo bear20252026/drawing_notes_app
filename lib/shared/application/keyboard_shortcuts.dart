@@ -62,6 +62,13 @@ abstract final class KeyboardShortcuts {
           (x) => x?.scDeleteSelected ?? '删除选中对象',
         ),
         ShortcutEntry('方向键', (x) => x?.scNudge ?? '微调选中对象'),
+        // V-01（审计 2026-09-27）：键盘轮选入口——此前 Delete/微调等
+        // 键盘链路的前提「先用指针选中」对用户无从发现。
+        ShortcutEntry(
+          'Tab / Shift+Tab',
+          (x) => x?.scSelectNextObject ?? '轮选下一个对象',
+        ),
+        ShortcutEntry('Esc', (x) => x?.scClearSelection ?? '清除选中'),
       ],
     ),
     ShortcutGroup(

@@ -457,23 +457,25 @@ extension _EditorPageActions on _EditorPageState {
   /// Alt+方向键微调：选中元素按画布像素微移（对齐 Excalidraw nudge）。
   void _nudgeSelected(double dx, double dy) {
     final page = widget.session;
-    if (page == null) return;
+    // V-01（审计 2026-09-27）：独立画布模式回退到 document.textItems
+    // （与 forCanvas 可选集合同源）——此前 session 为空时微调是 no-op。
+    final textItems = page?.textItems ?? _controller.document.textItems;
     final id = _selectedItemId;
     if (id == null) return;
     _applyState(() {
-      for (final t in page.textItems) {
+      for (final t in textItems) {
         if (t.id == id) {
           t.x += dx;
           t.y += dy;
         }
       }
-      for (final i in page.imageItems) {
+      for (final i in page?.imageItems ?? const <PageImageItem>[]) {
         if (i.id == id) {
           i.x += dx;
           i.y += dy;
         }
       }
-      for (final sh in page.shapes) {
+      for (final sh in page?.shapes ?? const <PageShapeItem>[]) {
         if (sh.id == id) {
           sh.x += dx;
           sh.y += dy;

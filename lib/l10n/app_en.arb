@@ -688,6 +688,10 @@
   "@scDeleteSelected": {},
   "scNudge": "Nudge selected",
   "@scNudge": {},
+  "scSelectNextObject": "Cycle to next object",
+  "@scSelectNextObject": {},
+  "scClearSelection": "Clear selection",
+  "@scClearSelection": {},
   "scSaveDoc": "Save document",
   "@scSaveDoc": {},
   "scCommandPalette": "Command palette",
@@ -706,6 +710,8 @@
   "@docOpenFailed": {},
   "homeDocCorrupt": "Note data is corrupted; cannot open",
   "@homeDocCorrupt": {},
+  "cmdSelectNextObject": "Select next object",
+  "@cmdSelectNextObject": {},
   "settingsPasswordSystem": "Password System",
   "@settingsPasswordSystem": {
     "description": "密码体系分组标题"

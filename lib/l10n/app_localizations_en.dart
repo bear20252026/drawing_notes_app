@@ -570,6 +570,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scNudge => 'Nudge selected';
 
   @override
+  String get scSelectNextObject => 'Cycle to next object';
+
+  @override
+  String get scClearSelection => 'Clear selection';
+
+  @override
   String get scSaveDoc => 'Save document';
 
   @override
@@ -595,6 +601,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeDocCorrupt => 'Note data is corrupted; cannot open';
+
+  @override
+  String get cmdSelectNextObject => 'Select next object';
 
   @override
   String get settingsPasswordSystem => 'Password System';

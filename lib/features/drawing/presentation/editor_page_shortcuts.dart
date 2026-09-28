@@ -58,6 +58,14 @@ extension _EditorPageShortcuts on _EditorPageState {
         _selectShapeTool(ShapeType.line);
         return KeyEventResult.handled;
       }
+      // V-01（审计 2026-09-27）：Tab/Shift+Tab 轮选画布对象——Delete/
+      // Alt+方向键/Menu 键等既有键盘链路此前的公共前提「先指针选中」
+      // 被本分支闭合。无对象时返回 ignored 放行焦点遍历。
+      if (key == LogicalKeyboardKey.tab) {
+        return _selectNextObject(reverse: isShift)
+            ? KeyEventResult.handled
+            : KeyEventResult.ignored;
+      }
       if ((key == LogicalKeyboardKey.delete ||
               key == LogicalKeyboardKey.backspace) &&
           _commands.run('deleteSelection')) {
@@ -120,6 +128,14 @@ extension _EditorPageShortcuts on _EditorPageState {
         default:
           break;
       }
+    }
+
+    // V-01：Esc 清除选中（与指针「点空白取消」等价；裁剪模式已在上方
+    // 分支先行处理；就地编辑由顶部 _editFocus 守卫放行给 TextField）。
+    if (key == LogicalKeyboardKey.escape && !isCtrlOrMeta && !isAlt) {
+      return _clearKeyboardSelection()
+          ? KeyEventResult.handled
+          : KeyEventResult.ignored;
     }
 
     if (!isCtrlOrMeta) return KeyEventResult.ignored;

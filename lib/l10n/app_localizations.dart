@@ -1136,6 +1136,18 @@ abstract class AppLocalizations {
   /// **'Nudge selected'**
   String get scNudge;
 
+  /// No description provided for @scSelectNextObject.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycle to next object'**
+  String get scSelectNextObject;
+
+  /// No description provided for @scClearSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear selection'**
+  String get scClearSelection;
+
   /// No description provided for @scSaveDoc.
   ///
   /// In en, this message translates to:
@@ -1189,6 +1201,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Note data is corrupted; cannot open'**
   String get homeDocCorrupt;
+
+  /// No description provided for @cmdSelectNextObject.
+  ///
+  /// In en, this message translates to:
+  /// **'Select next object'**
+  String get cmdSelectNextObject;
 
   /// 密码体系分组标题
   ///
