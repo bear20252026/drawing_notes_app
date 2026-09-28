@@ -135,9 +135,12 @@ class _DrawingCardState extends State<_DrawingCard> {
         : AppleMotion.press;
     return Semantics(
       button: true,
+      // L-04：锁定占位（空标题）读屏播锁定名而非空串。
       label:
-          AppLocalizations.of(context)?.homeOpenCanvasCard(widget.meta.title) ??
-          '打开无限画布 ${widget.meta.title}',
+          widget.meta.locked
+          ? DomainDisplayLabels.lockedDocTitle(AppLocalizations.of(context))
+          : AppLocalizations.of(context)?.homeOpenCanvasCard(widget.meta.title) ??
+            '打开无限画布 ${widget.meta.title}',
       child: AnimatedScale(
         scale: _hovered ? 1.012 : 1,
         duration: motion,
@@ -230,7 +233,12 @@ class _DrawingCardState extends State<_DrawingCard> {
                       children: [
                         Expanded(
                           child: Text(
-                            widget.meta.title,
+                            // L-04：锁定画布占位统一渲染单一键。
+                            widget.meta.locked
+                                ? DomainDisplayLabels.lockedDocTitle(
+                                    AppLocalizations.of(context),
+                                  )
+                                : widget.meta.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.titleSmall,
@@ -343,9 +351,12 @@ class _NotebookCard extends StatelessWidget {
         (notebook.encrypted && notebook.pages.isEmpty);
     return Semantics(
       button: true,
+      // L-04：锁定占位（空标题）读屏播锁定名而非空串。
       label:
-          AppLocalizations.of(context)?.homeOpenNotebookCard(notebook.title) ??
-          '打开分页画布 ${notebook.title}',
+          locked
+          ? DomainDisplayLabels.lockedDocTitle(AppLocalizations.of(context))
+          : AppLocalizations.of(context)?.homeOpenNotebookCard(notebook.title) ??
+            '打开分页画布 ${notebook.title}',
       child: Card(
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -374,7 +385,12 @@ class _NotebookCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  notebook.title.isEmpty
+                  // L-04：锁定占位统一渲染单一键（优先于未命名）。
+                  locked
+                      ? DomainDisplayLabels.lockedDocTitle(
+                          AppLocalizations.of(context),
+                        )
+                      : notebook.title.isEmpty
                       ? DomainDisplayLabels.docTitle(AppLocalizations.of(context), null)
                       : notebook.title,
                   maxLines: 1,

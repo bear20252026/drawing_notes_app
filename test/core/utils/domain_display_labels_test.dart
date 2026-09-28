@@ -50,5 +50,28 @@ void main() {
       final msg = humanizeVaultException(e, null);
       expect(msg, isNotEmpty);
     });
+
+    test('L-04：锁定占位单一键——locked 优先于未命名，真实标题原样', () {
+      // zh 兜底（l10n 缺失时测试装配惯例）。
+      expect(DomainDisplayLabels.lockedDocTitle(null), '加密内容');
+      // locked 优先：空标题（新契约）与真实标题（防御）都显示锁定名。
+      expect(
+        DomainDisplayLabels.docTitleWithLock(null, '', locked: true),
+        '加密内容',
+      );
+      expect(
+        DomainDisplayLabels.docTitleWithLock(null, '机密画布', locked: true),
+        '加密内容',
+      );
+      // 未锁定走原 docTitle 语义。
+      expect(
+        DomainDisplayLabels.docTitleWithLock(null, '', locked: false),
+        '未命名',
+      );
+      expect(
+        DomainDisplayLabels.docTitleWithLock(null, '产品图', locked: false),
+        '产品图',
+      );
+    });
   });
 }

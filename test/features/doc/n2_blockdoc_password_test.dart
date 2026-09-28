@@ -158,7 +158,7 @@ void main() {
       expect(headers, hasLength(1));
       final h = headers.single;
       expect(h.id, id);
-      expect(h.title, '加密笔记');
+      expect(h.title, ''); // L-04：占位不产出标题
       expect(h.tags, isEmpty);
       expect(h.locked, isTrue);
 
@@ -260,7 +260,7 @@ void main() {
       final lockedTrash = await cold.listTrash();
       expect(lockedTrash, hasLength(1));
       expect(lockedTrash.single.id, id);
-      expect(lockedTrash.single.title, '加密笔记');
+      expect(lockedTrash.single.title, ''); // L-04：占位不产出标题
 
       // 恢复（rename 回激活区）→ 仍是 v5 信封，未解锁仍抛锁定。
       expect(await cold.restoreDocument(id), isTrue);

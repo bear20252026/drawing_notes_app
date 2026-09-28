@@ -72,6 +72,9 @@ AllDocQueryResult buildAllDocs({
       createdAt: d.createdAt,
       updatedAt: d.updatedAt,
       drawingId: d.id,
+      // L-04：锁定画布占位（空标题 + locked）在 All Docs 同样显示锁标，
+      // 标题经 DomainDisplayLabels.lockedDocTitle 统一渲染。
+      locked: d.locked,
     );
     if (_tryAdd(seen, doc)) all.add(doc);
   }

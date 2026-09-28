@@ -298,7 +298,9 @@ class NoteBlockDocStore implements SessionSecretsHolder {
         result.add(
           NoteBlockDocHeader(
             id: fileId,
-            title: '加密笔记',
+            // L-04：锁定占位标题不落盘——空串 + locked 标志，展示层经
+            // DomainDisplayLabels.lockedDocTitle 统一渲染单一键。
+            title: '',
             tags: const [],
             createdAt: stamp,
             updatedAt: stamp,

@@ -149,7 +149,7 @@ void main() {
     final cold = storageWith(key);
     final metas = await cold.listDocuments();
     expect(metas.first.locked, isTrue);
-    expect(metas.first.title, '加密画布');
+    expect(metas.first.title, ''); // L-04：锁定占位不产出标题（展示层统一渲染）
     await expectLater(
       cold.load('v3_doc4'),
       throwsA(isA<VaultFilePasswordLockException>()),

@@ -141,4 +141,25 @@ void main() {
     final restored = await store.loadDocument('cycle_b');
     expect(restored?.title, '回收站往返');
   });
+
+  test('L-04：锁定态回收站条目 → 空标题 + locked 标志（不泄露真实标题）', () async {
+    final key = VaultKeyService.randomBytes(32);
+    final writer = NoteBlockDocStore(
+      directoryProvider: () async => tempDir,
+      keyProvider: () async => key,
+    );
+    await writer.saveDocument(doc('trash_locked', '不可泄露'));
+    await writer.deleteDocument('trash_locked');
+
+    // 冷实例（保险库锁定）：密文标题解不开 → 空标题 + locked 标志，
+    // 展示层经 DomainDisplayLabels.lockedDocTitle 统一渲染占位。
+    final lockedReader = NoteBlockDocStore(
+      directoryProvider: () async => tempDir,
+      keyProvider: () async => null,
+    );
+    final trash = await lockedReader.listTrash();
+    expect(trash, hasLength(1));
+    expect(trash.single.locked, isTrue);
+    expect(trash.single.title, '');
+  });
 }

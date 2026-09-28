@@ -14,8 +14,8 @@ import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 import '../../../core/theme/apple_design.dart';
 
 /// 回收站条目（store.listTrash 的轻量记录类型，审计 2026-09-26 #32：
-/// 整棵文档树不跨 isolate/不进列表，UI 只消费 id/title/deletedAt）。
-typedef TrashEntry = ({String id, String title, DateTime deletedAt});
+/// 整棵文档树不跨 isolate/不进列表，UI 只消费 id/title/locked/deletedAt）。
+typedef TrashEntry = ({String id, String title, bool locked, DateTime deletedAt});
 
 /// 回收站页。
 class TrashPage extends StatefulWidget {
@@ -55,7 +55,7 @@ class _TrashPageState extends State<TrashPage> {
       context,
       title: AppLocalizations.of(context)?.trashDeleteForeverTitle ?? '彻底删除',
       content:
-          '「${entry.title.isEmpty ? '未命名' : entry.title}」'
+          '「${DomainDisplayLabels.docTitleWithLock(AppLocalizations.of(context), entry.title, locked: entry.locked)}」'
           '将被永久删除，无法恢复。确定继续吗？',
       confirmText:
           AppLocalizations.of(context)?.trashDeleteForeverTitle ?? '彻底删除',
@@ -115,9 +115,11 @@ class _TrashPageState extends State<TrashPage> {
                 return ListTile(
                   leading: const Icon(Icons.edit_note_rounded),
                   title: Text(
-                    entry.title.isEmpty
-                        ? DomainDisplayLabels.docTitle(AppLocalizations.of(context), null)
-                        : entry.title,
+                    DomainDisplayLabels.docTitleWithLock(
+                      AppLocalizations.of(context),
+                      entry.title,
+                      locked: entry.locked,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

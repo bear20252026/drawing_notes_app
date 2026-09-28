@@ -87,7 +87,7 @@ void main() {
     expect(metas, hasLength(1));
     expect(metas.first.locked, isTrue);
     expect(metas.first.id, 'fp_doc2');
-    expect(metas.first.title, '加密画布'); // 不暴露真实标题
+    expect(metas.first.title, ''); // L-04：不产出占位标题（展示层统一渲染）
 
     await expectLater(
       cold.load('fp_doc2'),

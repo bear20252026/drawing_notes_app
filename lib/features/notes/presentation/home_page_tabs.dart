@@ -120,9 +120,12 @@ extension _HomePageTabs on _HomePageState {
   /// 分页画布卡片副标题：锁定（占位/文件密码未解锁）不泄露页数。
   String _notebookSubtitle(Notebook nb) {
     final time = formatSmartTime(nb.updatedAt);
+    final l10n = AppLocalizations.of(context);
     final locked = nb.isLockedPlaceholder || (nb.encrypted && nb.pages.isEmpty);
-    if (locked) return '已加密 · 更新于 $time';
-    return '${nb.pages.length} 页 · 更新于 $time';
+    // L-04：锁定与页数副标题接 arb 键（原写死中文）。
+    if (locked) return l10n?.nbLockedSubtitle(time) ?? '已加密 · 更新于 $time';
+    return l10n?.nbPageCountSubtitle(nb.pages.length, time) ??
+        '${nb.pages.length} 页 · 更新于 $time';
   }
 
   /// 打开分页画布（整本）：统一走 shell 的 onOpenDoc（复用完整解锁链路）。

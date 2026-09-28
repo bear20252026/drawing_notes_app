@@ -2557,6 +2557,33 @@
   "@sgItemCallout": {},
   "sgItemCalloutDesc": "Highlighted tip",
   "@sgItemCalloutDesc": {},
+  "sgItemAttachment": "Attachment",
+  "@sgItemAttachment": {},
+  "sgItemAttachmentDesc": "Attach a file",
+  "@sgItemAttachmentDesc": {},
+  "sgSearchHint": "Search types...",
+  "@sgSearchHint": {},
+  "docLockedTitle": "Encrypted content",
+  "@docLockedTitle": {},
+  "nbLockedSubtitle": "Encrypted · Updated {time}",
+  "@nbLockedSubtitle": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "nbPageCountSubtitle": "{count} pages · Updated {time}",
+  "@nbPageCountSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "expExportedTo": "Exported to: {path}",
   "@expExportedTo": {
     "placeholders": {

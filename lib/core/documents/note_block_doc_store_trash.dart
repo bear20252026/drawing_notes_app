@@ -209,25 +209,28 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
   /// 兼容两种格式——旧 envelope（{deletedAt, document}）与 M12.6b 原子
   /// 格式（裸文档 json + `<id>.meta.json` sidecar；meta 缺失时用文件
   /// 修改时间）。U5b（审计 P1-18）：meta 读取保持异步。
-  Future<({String id, String title, DateTime deletedAt})?>
+  Future<({String id, String title, bool locked, DateTime deletedAt})?>
   _decodeTrashEntry(String content, File source) async {
     final parsed = await Isolate.run(() => parseTrashDocMeta(content));
     if (parsed == null) return null;
     return (
       id: parsed.id,
       title: parsed.title,
+      locked: false,
       deletedAt: parsed.deletedAt ?? await _deletedAtOf(source),
     );
   }
 
   /// 列出回收站条目（按删除时间倒序，轻量记录——审计 #32）。
   ///
-  /// N2：受密且未解锁的条目给「加密笔记」占位（fail-closed 不泄露标题，
-  /// 与 listDocHeaders 同口径；仍可恢复——restore 对信封条目是纯 rename）。
-  Future<List<({String id, String title, DateTime deletedAt})>>
+  /// N2：受密且未解锁的条目不泄露标题（fail-closed，与 listDocHeaders
+  /// 同口径；仍可恢复——restore 对信封条目是纯 rename）。L-04：标题
+  /// 存空串 + locked 标志，展示层统一渲染锁定占位键。
+  Future<List<({String id, String title, bool locked, DateTime deletedAt})>>
   listTrash() async {
     final dir = await _ensureTrashDir();
-    final entries = <({String id, String title, DateTime deletedAt})>[];
+    final entries =
+        <({String id, String title, bool locked, DateTime deletedAt})>[];
     await for (final entity in dir.list()) {
       if (entity is! File || !entity.path.endsWith('.json')) continue;
       if (entity.path.endsWith('.meta.json')) continue;
@@ -239,7 +242,7 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
           if (!NoteBlockDocStore.isValidId(id)) continue;
           // C14：锁定占位条目同走修复后的 deletedAt 读取（json sidecar）。
           final deletedAt = await _deletedAtOf(entity);
-          entries.add((id: id, title: '加密笔记', deletedAt: deletedAt));
+          entries.add((id: id, title: '', locked: true, deletedAt: deletedAt));
           continue;
         }
         final entry = await _decodeTrashEntry(content, entity);

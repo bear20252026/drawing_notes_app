@@ -25,6 +25,21 @@ abstract final class DomainDisplayLabels {
   /// 导出/文件名等无 locale 上下文时的英文回退。
   static const filesystemUntitled = 'untitled';
 
+  /// 受密未解锁条目显示名（L-04 单一键）。
+  ///
+  /// 存储侧（四处列表期装配）一律写空串 + locked/encrypted 标志，三种
+  /// 历史叫法（加密笔记/加密画布/加密分页画布）不再产出；展示层统一经
+  /// 本方法渲染。
+  static String lockedDocTitle(AppLocalizations? l10n) =>
+      l10n?.docLockedTitle ?? '加密内容';
+
+  /// 未命名或锁定占位二合一显示名：locked 优先于未命名。
+  static String docTitleWithLock(
+    AppLocalizations? l10n,
+    String? title, {
+    required bool locked,
+  }) => locked ? lockedDocTitle(l10n) : docTitle(l10n, title);
+
   static bool isUntitledDocTitle(String? title) {
     final t = title?.trim();
     return t == null || t.isEmpty || t == legacyUntitledDoc || t == legacyUntitledCanvas;

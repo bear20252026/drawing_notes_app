@@ -252,7 +252,9 @@ class NotebookStorage
             result.add(
               Notebook(
                 id: id,
-                title: '加密分页画布',
+                // L-04：锁定占位标题不产出——空串 + encrypted 标志，
+                // 展示层经 DomainDisplayLabels.lockedDocTitle 统一渲染。
+                title: '',
                 encrypted: true,
                 createdAt: mtime,
                 updatedAt: mtime,

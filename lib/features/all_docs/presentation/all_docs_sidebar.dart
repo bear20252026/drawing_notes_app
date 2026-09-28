@@ -346,12 +346,11 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  doc.title.isEmpty
-                      ? DomainDisplayLabels.docTitle(
-                          AppLocalizations.of(context),
-                          null,
-                        )
-                      : doc.title,
+                  DomainDisplayLabels.docTitleWithLock(
+                    AppLocalizations.of(context),
+                    doc.title,
+                    locked: doc.locked,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppleType.controlStyle(

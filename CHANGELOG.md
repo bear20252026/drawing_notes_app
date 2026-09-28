@@ -2,6 +2,42 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.41] - 2026-09-28
+
+### 审计批次 S：i18n P1 三条收尾 + 工程化 E 域清扫（L-01/L-03/L-04 + E-01/E-04）
+
+> 来源：`docs/audit_2026-09-27.md` 剩余 P1 与工程化域。
+
+- **L-01 斜杠菜单 i18n 根修**：`BlockSlashMenu.options` 静态 const
+  （中文写死 + 按中文串反查 key 的映射函数）改 `optionsOf(
+  AppLocalizations?)` 工厂——label/description 直接产出当前语言，
+  搜索过滤与展示同源（en 环境可用英文关键词过滤，此前只匹配中文兜底
+  串）；顺带修复 v1.17.37 附件项漏配映射（en 下唯一穿帮点，反查式
+  方案的固有脆弱性实证）+ 搜索框 hint 接 `sgSearchHint`；删除两处
+  反查映射函数（分组头 `_slashGroupTitleOf` 保留）。arb 新键 3 对。
+- **L-03 快速记录标题**：全局热键新建画布标题「快速记录 HH:MM」不再
+  写进持久化标题（locale 相关数据落盘后无法随语言变化）——改存空串
+  （E6 新建惯例，同图层空名），列表/标题栏经既有
+  `DomainDisplayLabels.docTitle` 渲染。
+- **L-04 锁定占位标题统一**：四处列表期装配（块文档头
+  `note_block_doc_store`/块文档回收站/画布 `DocumentMeta`/分页画布
+  `Notebook`）三种叫法（加密笔记/加密画布/加密分页画布）统一为
+  **空串 + locked/encrypted 标志**；展示层新增
+  `DomainDisplayLabels.lockedDocTitle/docTitleWithLock` 单一键
+  （`docLockedTitle`），All Docs 行/移动端/侧栏/首页画布卡与笔记本卡
+  （含读屏 label）/回收站页全量接线；`all_doc_query` 画布段补
+  locked 映射（All Docs 此前对锁定画布不显示锁标）；块文档回收站
+  `TrashEntry` record 增 `locked` 字段；顺带 home_page_tabs 锁定/
+  页数副标题写死中文接 `nbLockedSubtitle`/`nbPageCountSubtitle`。
+  arb 新键 3 对（zh/en 1048=1048 对称）。
+- **E-01**：删除 `cupertino_icons` 死依赖（CupertinoIcons 全 lib/test
+  零命中）；**E-04**：sbom/secret-scan 两工作流补 `timeout-minutes: 15`
+  （原无超时默认 360 分钟占 runner）。
+- 测试 +4（L-01 en 全量本地化无中文残留锁 + en 渲染/英文过滤 +
+  L-04 锁定回收站空标题 + lockedDocTitle 单一键断言），存量断言随
+  契约更新（锁定占位标题断言 '加密笔记' 等 → 空串 + locked 标志）；
+  门禁 analyze 0 告警、全量 1877 绿。
+
 ## [1.17.40] - 2026-09-28
 
 ### 审计批次 R：可达性 / i18n / 令牌三域收尾（约 20 条）

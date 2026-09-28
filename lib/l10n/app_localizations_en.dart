@@ -2998,6 +2998,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sgItemCalloutDesc => 'Highlighted tip';
 
   @override
+  String get sgItemAttachment => 'Attachment';
+
+  @override
+  String get sgItemAttachmentDesc => 'Attach a file';
+
+  @override
+  String get sgSearchHint => 'Search types...';
+
+  @override
+  String get docLockedTitle => 'Encrypted content';
+
+  @override
+  String nbLockedSubtitle(String time) {
+    return 'Encrypted · Updated $time';
+  }
+
+  @override
+  String nbPageCountSubtitle(int count, String time) {
+    return '$count pages · Updated $time';
+  }
+
+  @override
   String expExportedTo(String path) {
     return 'Exported to: $path';
   }

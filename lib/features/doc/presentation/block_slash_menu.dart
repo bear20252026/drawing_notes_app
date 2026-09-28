@@ -83,144 +83,153 @@ class BlockSlashMenu extends StatefulWidget {
   final VoidCallback onDismiss;
 
   /// 全部可选类型（按 AFFiNE 常用顺序，含分组）。
-  static const List<SlashItem> options = [
-    SlashItem(
-      type: NoteBlockType.text,
-      label: '段落',
-      icon: Icons.text_fields,
-      group: SlashItemGroup.basic,
-      description: '普通文本',
-    ),
-    SlashItem(
-      type: NoteBlockType.heading,
-      label: '标题 1',
-      icon: Icons.title,
-      group: SlashItemGroup.basic,
-      description: '最大标题',
-    ),
-    SlashItem(
-      type: NoteBlockType.heading,
-      label: '标题 2',
-      icon: Icons.title,
-      group: SlashItemGroup.basic,
-      description: '二级标题',
-    ),
-    SlashItem(
-      type: NoteBlockType.heading,
-      label: '标题 3',
-      icon: Icons.title,
-      group: SlashItemGroup.basic,
-      description: '三级标题',
-    ),
-    SlashItem(
-      type: NoteBlockType.todo,
-      label: '待办事项',
-      icon: Icons.check_box,
-      group: SlashItemGroup.basic,
-      description: '勾选框',
-    ),
-    SlashItem(
-      type: NoteBlockType.bullet,
-      label: '无序列表',
-      icon: Icons.format_list_bulleted,
-      group: SlashItemGroup.basic,
-      description: '圆点列表',
-    ),
-    SlashItem(
-      type: NoteBlockType.ordered,
-      label: '有序列表',
-      icon: Icons.format_list_numbered,
-      group: SlashItemGroup.basic,
-      description: '数字列表',
-    ),
-    SlashItem(
-      type: NoteBlockType.quote,
-      label: '引用',
-      icon: Icons.format_quote,
-      group: SlashItemGroup.quoteCode,
-      description: '引用文本',
-    ),
-    SlashItem(
-      type: NoteBlockType.code,
-      label: '代码块',
-      icon: Icons.code,
-      group: SlashItemGroup.quoteCode,
-      description: '等宽代码',
-    ),
-    SlashItem(
-      type: NoteBlockType.image,
-      label: '图片',
-      icon: Icons.image,
-      group: SlashItemGroup.media,
-      description: '插入图片',
-    ),
-    SlashItem(
-      type: NoteBlockType.link,
-      label: '链接',
-      icon: Icons.link,
-      group: SlashItemGroup.media,
-      description: '网页链接',
-    ),
-    SlashItem(
-      type: NoteBlockType.canvas,
-      label: '画布',
-      icon: Icons.brush,
-      group: SlashItemGroup.embed,
-      description: '内嵌画布',
-    ),
-    SlashItem(
-      type: NoteBlockType.chart,
-      label: '图表',
-      icon: Icons.bar_chart,
-      group: SlashItemGroup.embed,
-      description: '数据图表',
-    ),
-    SlashItem(
-      type: NoteBlockType.table,
-      label: '表格',
-      icon: Icons.table_chart,
-      group: SlashItemGroup.embed,
-      description: '数据表格',
-    ),
-    SlashItem(
-      type: NoteBlockType.database,
-      label: '数据库',
-      icon: Icons.grid_view,
-      group: SlashItemGroup.embed,
-      description: '数据库视图',
-    ),
-    // T-12（审计 2026-09-27）：附件入口补全——插入链路（_changeBlockType
-    // → updateType → 渲染/工具栏分支）此前已齐备，唯独斜杠菜单漏了本项
-    // （原测试只断言子集未发现；全等断言上线即抓到）。
-    SlashItem(
-      type: NoteBlockType.attachment,
-      label: '附件',
-      icon: Icons.attach_file,
-      group: SlashItemGroup.embed,
-      description: '添加文件附件',
-    ),
-    SlashItem(
-      type: NoteBlockType.toggle,
-      label: '切换列表',
-      icon: Icons.expand_more,
-      group: SlashItemGroup.basic,
-      description: '可折叠列表',
-    ),
-    SlashItem(
-      type: NoteBlockType.divider,
-      label: '分割线',
-      icon: Icons.horizontal_rule,
-      group: SlashItemGroup.other,
-      description: '分隔线',
-    ),
-    SlashItem(
-      type: NoteBlockType.callout,
-      label: '提示',
-      icon: Icons.info_outline,
-      group: SlashItemGroup.other,
-      description: '高亮提示',
-    ),
-  ];
+  ///
+  /// L-01（审计 2026-09-27）：工厂构造接 AppLocalizations——label/description
+  /// 直接产出当前语言文案，搜索过滤与展示同源；替代旧的「const 中文 +
+  /// 按中文串反查 key」方案（v1.17.37 补附件项时即漏配映射，en 下穿帮）。
+  /// l10n 缺失（部分测试装配）时中文兜底。
+  static List<SlashItem> optionsOf(AppLocalizations? l10n) {
+    String text(String zh, String Function(AppLocalizations) key) =>
+        l10n == null ? zh : key(l10n);
+    return [
+      SlashItem(
+        type: NoteBlockType.text,
+        label: text('段落', (l) => l.sgItemParagraph),
+        icon: Icons.text_fields,
+        group: SlashItemGroup.basic,
+        description: text('普通文本', (l) => l.sgItemParagraphDesc),
+      ),
+      SlashItem(
+        type: NoteBlockType.heading,
+        label: text('标题 1', (l) => l.sgItemH1),
+        icon: Icons.title,
+        group: SlashItemGroup.basic,
+        description: text('最大标题', (l) => l.sgItemH1Desc),
+      ),
+      SlashItem(
+        type: NoteBlockType.heading,
+        label: text('标题 2', (l) => l.sgItemH2),
+        icon: Icons.title,
+        group: SlashItemGroup.basic,
+        description: text('二级标题', (l) => l.sgItemH2Desc),
+      ),
+      SlashItem(
+        type: NoteBlockType.heading,
+        label: text('标题 3', (l) => l.sgItemH3),
+        icon: Icons.title,
+        group: SlashItemGroup.basic,
+        description: text('三级标题', (l) => l.sgItemH3Desc),
+      ),
+      SlashItem(
+        type: NoteBlockType.todo,
+        label: text('待办事项', (l) => l.sgItemTodo),
+        icon: Icons.check_box,
+        group: SlashItemGroup.basic,
+        description: text('勾选框', (l) => l.sgItemTodoDesc),
+      ),
+      SlashItem(
+        type: NoteBlockType.bullet,
+        label: text('无序列表', (l) => l.sgItemBullet),
+        icon: Icons.format_list_bulleted,
+        group: SlashItemGroup.basic,
+        description: text('圆点列表', (l) => l.sgItemBulletDesc),
+      ),
+      SlashItem(
+        type: NoteBlockType.ordered,
+        label: text('有序列表', (l) => l.sgItemOrdered),
+        icon: Icons.format_list_numbered,
+        group: SlashItemGroup.basic,
+        description: text('数字列表', (l) => l.sgItemOrderedDesc),
+      ),
+      SlashItem(
+        type: NoteBlockType.quote,
+        label: text('引用', (l) => l.sgItemQuote),
+        icon: Icons.format_quote,
+        group: SlashItemGroup.quoteCode,
+        description: text('引用文本', (l) => l.sgItemQuoteDesc),
+      ),
+      SlashItem(
+        type: NoteBlockType.code,
+        label: text('代码块', (l) => l.sgItemCode),
+        icon: Icons.code,
+        group: SlashItemGroup.quoteCode,
+        description: text('等宽代码', (l) => l.sgItemCodeDesc),
+      ),
+      SlashItem(
+        type: NoteBlockType.image,
+        label: text('图片', (l) => l.sgItemImage),
+        icon: Icons.image,
+        group: SlashItemGroup.media,
+        description: text('插入图片', (l) => l.sgItemImageDesc),
+      ),
+      SlashItem(
+        type: NoteBlockType.link,
+        label: text('链接', (l) => l.sgItemLink),
+        icon: Icons.link,
+        group: SlashItemGroup.media,
+        description: text('网页链接', (l) => l.sgItemLinkDesc),
+      ),
+      SlashItem(
+        type: NoteBlockType.canvas,
+        label: text('画布', (l) => l.sgItemCanvas),
+        icon: Icons.brush,
+        group: SlashItemGroup.embed,
+        description: text('内嵌画布', (l) => l.sgItemCanvasDesc),
+      ),
+      SlashItem(
+        type: NoteBlockType.chart,
+        label: text('图表', (l) => l.sgItemChart),
+        icon: Icons.bar_chart,
+        group: SlashItemGroup.embed,
+        description: text('数据图表', (l) => l.sgItemChartDesc),
+      ),
+      SlashItem(
+        type: NoteBlockType.table,
+        label: text('表格', (l) => l.sgItemTable),
+        icon: Icons.table_chart,
+        group: SlashItemGroup.embed,
+        description: text('数据表格', (l) => l.sgItemTableDesc),
+      ),
+      SlashItem(
+        type: NoteBlockType.database,
+        label: text('数据库', (l) => l.sgItemDatabase),
+        icon: Icons.grid_view,
+        group: SlashItemGroup.embed,
+        description: text('数据库视图', (l) => l.sgItemDatabaseDesc),
+      ),
+      // T-12（审计 2026-09-27）：附件入口补全——插入链路（_changeBlockType
+      // → updateType → 渲染/工具栏分支）此前已齐备，唯独斜杠菜单漏了本项
+      // （原测试只断言子集未发现；全等断言上线即抓到）。
+      SlashItem(
+        type: NoteBlockType.attachment,
+        label: text('附件', (l) => l.sgItemAttachment),
+        icon: Icons.attach_file,
+        group: SlashItemGroup.embed,
+        description: text('添加文件附件', (l) => l.sgItemAttachmentDesc),
+      ),
+      SlashItem(
+        type: NoteBlockType.toggle,
+        label: text('切换列表', (l) => l.sgItemToggle),
+        icon: Icons.expand_more,
+        group: SlashItemGroup.basic,
+        description: text('可折叠列表', (l) => l.sgItemToggleDesc),
+      ),
+      SlashItem(
+        type: NoteBlockType.divider,
+        label: text('分割线', (l) => l.sgItemDivider),
+        icon: Icons.horizontal_rule,
+        group: SlashItemGroup.other,
+        description: text('分隔线', (l) => l.sgItemDividerDesc),
+      ),
+      SlashItem(
+        type: NoteBlockType.callout,
+        label: text('提示', (l) => l.sgItemCallout),
+        icon: Icons.info_outline,
+        group: SlashItemGroup.other,
+        description: text('高亮提示', (l) => l.sgItemCalloutDesc),
+      ),
+    ];
+  }
 
   @override
   State<BlockSlashMenu> createState() => _BlockSlashMenuState();
@@ -231,14 +240,18 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
   final FocusNode _searchFocusNode = FocusNode();
   int _selectedIndex = 0;
 
-  /// 当前可见项（扁平化，用于索引选择）。
-  List<SlashItem> _visibleItems = [];
+  /// 全部菜单项（按当前 locale 产出，locale 切换即时生效）。
+  List<SlashItem> get _allItems =>
+      BlockSlashMenu.optionsOf(AppLocalizations.of(context));
+
+  /// 当前可见项（按搜索词过滤，扁平化，用于索引选择）。
+  List<SlashItem> get _visibleItems =>
+      filterSlashItems(_allItems, _searchController.text);
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
-    _visibleItems = BlockSlashMenu.options;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _searchFocusNode.requestFocus();
     });
@@ -254,17 +267,14 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
 
   void _onSearchChanged() {
     setState(() {
-      _visibleItems = filterSlashItems(
-        BlockSlashMenu.options,
-        _searchController.text,
-      );
       _selectedIndex = 0;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final groups = groupSlashItems(_visibleItems);
+    final visibleItems = _visibleItems;
+    final groups = groupSlashItems(visibleItems);
     return Material(
       elevation: 8,
       borderRadius: BorderRadius.circular(AppleRadius.sm),
@@ -283,9 +293,9 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
             _buildSearchField(context),
             const Divider(height: 1),
             Flexible(
-              child: _visibleItems.isEmpty
+              child: visibleItems.isEmpty
                   ? _buildEmptyState(context)
-                  : _buildGroupedList(context, groups),
+                  : _buildGroupedList(context, groups, visibleItems),
             ),
           ],
         ),
@@ -299,8 +309,9 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
       child: TextField(
         controller: _searchController,
         focusNode: _searchFocusNode,
-        decoration: const InputDecoration(
-          hintText: '搜索类型...',
+        decoration: InputDecoration(
+          hintText:
+              AppLocalizations.of(context)?.sgSearchHint ?? '搜索类型...',
           isDense: true,
           prefixIcon: Icon(Icons.search, size: 18),
           border: InputBorder.none,
@@ -330,14 +341,15 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
   Widget _buildGroupedList(
     BuildContext _,
     List<MapEntry<SlashItemGroup, List<SlashItem>>> groups,
+    List<SlashItem> visibleItems,
   ) {
-    // 构建扁平索引映射：每个可见项在 _visibleItems 中的位置。
+    // 构建扁平索引映射：每个可见项在可见列表中的位置。
     return ListView.builder(
       shrinkWrap: true,
       padding: const EdgeInsets.symmetric(vertical: 4),
       itemCount: _countGroupedItems(groups),
       itemBuilder: (context, index) {
-        return _buildGroupedItem(context, groups, index);
+        return _buildGroupedItem(context, groups, visibleItems, index);
       },
     );
   }
@@ -356,6 +368,7 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
   Widget _buildGroupedItem(
     BuildContext context,
     List<MapEntry<SlashItemGroup, List<SlashItem>>> groups,
+    List<SlashItem> visibleItems,
     int flatIndex,
   ) {
     var current = 0;
@@ -369,7 +382,7 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
       if (flatIndex < current + entry.value.length) {
         final itemIndexInGroup = flatIndex - current;
         final item = entry.value[itemIndexInGroup];
-        final globalIndex = _visibleItems.indexOf(item);
+        final globalIndex = visibleItems.indexOf(item);
         return _buildItemRow(context, item, globalIndex);
       }
       current += entry.value.length;
@@ -394,9 +407,6 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
 
   Widget _buildItemRow(BuildContext context, SlashItem item, int globalIndex) {
     final isSelected = globalIndex == _selectedIndex;
-    final l10n = AppLocalizations.of(context);
-    final label = _slashItemLabelOf(l10n, item) ?? item.label;
-    final desc = _slashItemDescOf(l10n, item) ?? item.description;
     return InkWell(
       onTap: () => _selectItem(item),
       onHover: (_) => setState(() => _selectedIndex = globalIndex),
@@ -416,14 +426,14 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    label,
+                    item.label,
                     style: AppleType.controlStyle(
                       Theme.of(context).colorScheme.onSurface,
                     ).copyWith(fontWeight: FontWeight.w400),
                   ),
-                  if (desc != null)
+                  if (item.description != null)
                     Text(
-                      desc,
+                      item.description!,
                       style: AppleType.captionStyle(
                         AppleColor.mutedOf(Theme.of(context).colorScheme),
                       ),
@@ -496,55 +506,4 @@ String? _slashGroupTitleOf(BuildContext context, SlashItemGroup group) {
     case SlashItemGroup.other:
       return l10n?.sgOther ?? '其他';
   }
-}
-
-/// i18n（E1）：/ 菜单条目显示文案（const 列表中文作搜索兜底）。
-String? _slashItemLabelOf(AppLocalizations? l10n, SlashItem item) {
-  if (l10n == null) return null;
-  return switch (item.label) {
-    '段落' => l10n.sgItemParagraph,
-    '标题 1' => l10n.sgItemH1,
-    '标题 2' => l10n.sgItemH2,
-    '标题 3' => l10n.sgItemH3,
-    '待办事项' => l10n.sgItemTodo,
-    '无序列表' => l10n.sgItemBullet,
-    '有序列表' => l10n.sgItemOrdered,
-    '引用' => l10n.sgItemQuote,
-    '代码块' => l10n.sgItemCode,
-    '图片' => l10n.sgItemImage,
-    '链接' => l10n.sgItemLink,
-    '画布' => l10n.sgItemCanvas,
-    '图表' => l10n.sgItemChart,
-    '表格' => l10n.sgItemTable,
-    '数据库' => l10n.sgItemDatabase,
-    '切换列表' => l10n.sgItemToggle,
-    '分割线' => l10n.sgItemDivider,
-    '提示' => l10n.sgItemCallout,
-    _ => null,
-  };
-}
-
-String? _slashItemDescOf(AppLocalizations? l10n, SlashItem item) {
-  if (l10n == null) return null;
-  return switch (item.description) {
-    '普通文本' => l10n.sgItemParagraphDesc,
-    '最大标题' => l10n.sgItemH1Desc,
-    '二级标题' => l10n.sgItemH2Desc,
-    '三级标题' => l10n.sgItemH3Desc,
-    '勾选框' => l10n.sgItemTodoDesc,
-    '圆点列表' => l10n.sgItemBulletDesc,
-    '数字列表' => l10n.sgItemOrderedDesc,
-    '引用文本' => l10n.sgItemQuoteDesc,
-    '等宽代码' => l10n.sgItemCodeDesc,
-    '插入图片' => l10n.sgItemImageDesc,
-    '网页链接' => l10n.sgItemLinkDesc,
-    '内嵌画布' => l10n.sgItemCanvasDesc,
-    '数据图表' => l10n.sgItemChartDesc,
-    '数据表格' => l10n.sgItemTableDesc,
-    '数据库视图' => l10n.sgItemDatabaseDesc,
-    '可折叠列表' => l10n.sgItemToggleDesc,
-    '分隔线' => l10n.sgItemDividerDesc,
-    '高亮提示' => l10n.sgItemCalloutDesc,
-    _ => null,
-  };
 }

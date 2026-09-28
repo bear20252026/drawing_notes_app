@@ -111,7 +111,11 @@ class AllDocRow extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      DomainDisplayLabels.docTitle(AppLocalizations.of(context), doc.title),
+                      DomainDisplayLabels.docTitleWithLock(
+                        AppLocalizations.of(context),
+                        doc.title,
+                        locked: doc.locked,
+                      ),
                       // 14 → 15：列表标题是触屏主用设备上的主要点击目标，
                       // 14px 偏小；15px 仍在 UI 尺度内（DESIGN.md 的
                       // 17px 是**营销正文**档，不适用于列表条目）。

@@ -5594,6 +5594,42 @@ abstract class AppLocalizations {
   /// **'Highlighted tip'**
   String get sgItemCalloutDesc;
 
+  /// No description provided for @sgItemAttachment.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment'**
+  String get sgItemAttachment;
+
+  /// No description provided for @sgItemAttachmentDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach a file'**
+  String get sgItemAttachmentDesc;
+
+  /// No description provided for @sgSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search types...'**
+  String get sgSearchHint;
+
+  /// No description provided for @docLockedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted content'**
+  String get docLockedTitle;
+
+  /// No description provided for @nbLockedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted · Updated {time}'**
+  String nbLockedSubtitle(String time);
+
+  /// No description provided for @nbPageCountSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} pages · Updated {time}'**
+  String nbPageCountSubtitle(int count, String time);
+
   /// No description provided for @expExportedTo.
   ///
   /// In en, this message translates to:

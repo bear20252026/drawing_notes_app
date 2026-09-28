@@ -128,7 +128,7 @@ void main() {
     final list = await lockedReader.listAll();
     expect(list, hasLength(1));
     expect(list.single.id, 'locked_nb');
-    expect(list.single.title, '加密分页画布');
+    expect(list.single.title, ''); // L-04：占位不产出标题
     expect(list.single.isLockedPlaceholder, isTrue);
   });
 

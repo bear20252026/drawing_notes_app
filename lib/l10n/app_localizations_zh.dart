@@ -2893,6 +2893,28 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sgItemCalloutDesc => '高亮提示';
 
   @override
+  String get sgItemAttachment => '附件';
+
+  @override
+  String get sgItemAttachmentDesc => '添加文件附件';
+
+  @override
+  String get sgSearchHint => '搜索类型...';
+
+  @override
+  String get docLockedTitle => '加密内容';
+
+  @override
+  String nbLockedSubtitle(String time) {
+    return '已加密 · 更新于 $time';
+  }
+
+  @override
+  String nbPageCountSubtitle(int count, String time) {
+    return '$count 页 · 更新于 $time';
+  }
+
+  @override
   String expExportedTo(String path) {
     return '已导出到：$path';
   }

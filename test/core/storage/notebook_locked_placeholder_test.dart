@@ -79,7 +79,7 @@ void main() {
     expect(list, hasLength(1));
     final placeholder = list.single;
     expect(placeholder.id, 'nb_locked_1');
-    expect(placeholder.title, '加密分页画布');
+    expect(placeholder.title, ''); // L-04：锁定占位不产出标题
     expect(placeholder.encrypted, isTrue);
     expect(placeholder.pages, isEmpty);
     expect(placeholder.encryptedPayload, isNull);
@@ -138,7 +138,8 @@ void main() {
   test('buildAllDocs：占位 → 单行 locked note 条目；真实条目按页展开', () async {
     final placeholder = Notebook(
       id: 'nb_locked_6',
-      title: '加密分页画布',
+      // L-04：存储侧锁定占位标题为空串。
+      title: '',
       encrypted: true,
     );
     final real = nbWithPage('nb_locked_7', '真实画布');
@@ -157,7 +158,7 @@ void main() {
     expect(lockedRows.single.kind, AllDocKind.note);
     expect(lockedRows.single.locked, isTrue);
     expect(lockedRows.single.notebookId, 'nb_locked_6');
-    expect(lockedRows.single.title, '加密分页画布');
+    expect(lockedRows.single.title, ''); // L-04：锁定占位不产出标题
 
     final realRows = result.docs
         .where((d) => d.notebookId == 'nb_locked_7')

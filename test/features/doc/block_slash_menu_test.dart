@@ -5,11 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/features/doc/presentation/block_slash_menu.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 void main() {
   group('BlockSlashMenu', () {
     test('options 包含所有常用块类型', () {
-      final types = BlockSlashMenu.options.map((o) => o.type).toSet();
+      final types = BlockSlashMenu.optionsOf(null).map((o) => o.type).toSet();
       expect(types.contains(NoteBlockType.text), isTrue);
       expect(types.contains(NoteBlockType.heading), isTrue);
       expect(types.contains(NoteBlockType.todo), isTrue);
@@ -29,7 +30,7 @@ void main() {
 
     test('T-12（审计 2026-09-27）：菜单全集精确等于块类型枚举——'
         '误注册多余/重复类型不再漏检', () {
-      final types = BlockSlashMenu.options.map((o) => o.type).toList();
+      final types = BlockSlashMenu.optionsOf(null).map((o) => o.type).toList();
       expect(types.toSet(), equals(NoteBlockType.values.toSet()));
       // heading 按级别拆 3 个菜单项（标题 1/2/3，级别存 props）——唯一
       // 合法例外；其余类型不得重复注册。
@@ -45,7 +46,7 @@ void main() {
     });
 
     test('每个 option 都有 label、icon 和 group', () {
-      for (final option in BlockSlashMenu.options) {
+      for (final option in BlockSlashMenu.optionsOf(null)) {
         expect(option.label, isNotEmpty);
         expect(option.icon, isNotNull);
         expect(option.group, isNotNull);
@@ -141,17 +142,17 @@ void main() {
 
   group('filterSlashItems 纯逻辑', () {
     test('空 query 返回全部', () {
-      final result = filterSlashItems(BlockSlashMenu.options, '');
-      expect(result.length, BlockSlashMenu.options.length);
+      final result = filterSlashItems(BlockSlashMenu.optionsOf(null), '');
+      expect(result.length, BlockSlashMenu.optionsOf(null).length);
     });
 
     test('空 query（含空格）返回全部', () {
-      final result = filterSlashItems(BlockSlashMenu.options, '   ');
-      expect(result.length, BlockSlashMenu.options.length);
+      final result = filterSlashItems(BlockSlashMenu.optionsOf(null), '   ');
+      expect(result.length, BlockSlashMenu.optionsOf(null).length);
     });
 
     test('匹配 label', () {
-      final result = filterSlashItems(BlockSlashMenu.options, '标题');
+      final result = filterSlashItems(BlockSlashMenu.optionsOf(null), '标题');
       expect(result, isNotEmpty);
       for (final item in result) {
         expect(item.label.contains('标题'), isTrue);
@@ -159,15 +160,15 @@ void main() {
     });
 
     test('匹配描述', () {
-      final result = filterSlashItems(BlockSlashMenu.options, '勾选框');
+      final result = filterSlashItems(BlockSlashMenu.optionsOf(null), '勾选框');
       expect(result, isNotEmpty);
       expect(result.first.type, NoteBlockType.todo);
     });
 
     test('大小写不敏感', () {
       // 标签为中文，大小写混合查询应返回相同结果
-      final lower = filterSlashItems(BlockSlashMenu.options, '代码');
-      final upper = filterSlashItems(BlockSlashMenu.options, '代码');
+      final lower = filterSlashItems(BlockSlashMenu.optionsOf(null), '代码');
+      final upper = filterSlashItems(BlockSlashMenu.optionsOf(null), '代码');
       expect(lower.length, upper.length);
       expect(lower.first.type, upper.first.type);
       // 匹配到代码块
@@ -175,14 +176,14 @@ void main() {
     });
 
     test('无结果返回空', () {
-      final result = filterSlashItems(BlockSlashMenu.options, '不存在的关键词xyz123');
+      final result = filterSlashItems(BlockSlashMenu.optionsOf(null), '不存在的关键词xyz123');
       expect(result, isEmpty);
     });
   });
 
   group('groupSlashItems 纯逻辑', () {
     test('分组包含预期类别', () {
-      final groups = groupSlashItems(BlockSlashMenu.options);
+      final groups = groupSlashItems(BlockSlashMenu.optionsOf(null));
       final groupKeys = groups.map((e) => e.key).toList();
       expect(groupKeys.contains(SlashItemGroup.basic), isTrue);
       expect(groupKeys.contains(SlashItemGroup.quoteCode), isTrue);
@@ -192,7 +193,7 @@ void main() {
     });
 
     test('基础组包含预期类型', () {
-      final groups = groupSlashItems(BlockSlashMenu.options);
+      final groups = groupSlashItems(BlockSlashMenu.optionsOf(null));
       final basicGroup = groups.firstWhere(
         (e) => e.key == SlashItemGroup.basic,
       );
@@ -205,7 +206,7 @@ void main() {
     });
 
     test('引用与代码组包含预期类型', () {
-      final groups = groupSlashItems(BlockSlashMenu.options);
+      final groups = groupSlashItems(BlockSlashMenu.optionsOf(null));
       final quoteCodeGroup = groups.firstWhere(
         (e) => e.key == SlashItemGroup.quoteCode,
       );
@@ -215,7 +216,7 @@ void main() {
     });
 
     test('媒体组包含预期类型', () {
-      final groups = groupSlashItems(BlockSlashMenu.options);
+      final groups = groupSlashItems(BlockSlashMenu.optionsOf(null));
       final mediaGroup = groups.firstWhere(
         (e) => e.key == SlashItemGroup.media,
       );
@@ -225,7 +226,7 @@ void main() {
     });
 
     test('嵌入组包含预期类型', () {
-      final groups = groupSlashItems(BlockSlashMenu.options);
+      final groups = groupSlashItems(BlockSlashMenu.optionsOf(null));
       final embedGroup = groups.firstWhere(
         (e) => e.key == SlashItemGroup.embed,
       );
@@ -237,7 +238,7 @@ void main() {
     });
 
     test('其他组包含预期类型', () {
-      final groups = groupSlashItems(BlockSlashMenu.options);
+      final groups = groupSlashItems(BlockSlashMenu.optionsOf(null));
       final otherGroup = groups.firstWhere(
         (e) => e.key == SlashItemGroup.other,
       );
@@ -249,6 +250,68 @@ void main() {
     test('空列表返回空', () {
       final groups = groupSlashItems(<SlashItem>[]);
       expect(groups, isEmpty);
+    });
+  });
+
+  group('L-01（审计 2026-09-27）：optionsOf 工厂接 l10n', () {
+    final cjk = RegExp(r'[\u4e00-\u9fff]');
+
+    testWidgets('en locale 下 label/description 全本地化且无中文残留'
+        '——附件项曾是漏映射唯一穿帮点', (tester) async {
+      late BuildContext captured;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: Builder(
+            builder: (context) {
+              captured = context;
+              return const Scaffold(body: SizedBox.shrink());
+            },
+          ),
+        ),
+      );
+      final l10n = AppLocalizations.of(captured)!;
+      final items = BlockSlashMenu.optionsOf(l10n);
+      // 项数与 zh 兜底一致（heading 按级别拆 3 项）。
+      expect(items.length, BlockSlashMenu.optionsOf(null).length);
+      for (final item in items) {
+        expect(item.label, isNotEmpty);
+        expect(item.label, isNot(contains(cjk)),
+            reason: 'en 下 label 不得残留中文：${item.label}');
+        if (item.description != null) {
+          expect(item.description, isNot(contains(cjk)),
+              reason: 'en 下 description 不得残留中文：${item.description}');
+        }
+      }
+      final attachment =
+          items.firstWhere((i) => i.type == NoteBlockType.attachment);
+      expect(attachment.label, 'Attachment');
+      expect(attachment.description, 'Attach a file');
+    });
+
+    testWidgets('en locale 菜单渲染英文且可用英文搜索', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: Scaffold(
+            body: BlockSlashMenu(onSelected: (_) {}, onDismiss: () {}),
+          ),
+        ),
+      );
+
+      // ListView 惰性构建：初始断言取视口内首项；Attachment 的英文文案
+      // 由上一条 optionsOf 全量用例锁死。
+      expect(find.text('Paragraph'), findsOneWidget);
+
+      // 过滤与展示同源：英文关键词直接命中本地化 label。
+      await tester.enterText(find.byType(TextField), 'attach');
+      await tester.pumpAndSettle();
+      expect(find.text('Attachment'), findsOneWidget);
+      expect(find.text('Paragraph'), findsNothing);
     });
   });
 }

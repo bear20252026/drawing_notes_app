@@ -488,7 +488,8 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
           metas.add(
             DocumentMeta(
               id: fileId,
-              title: '加密画布',
+              // L-04：锁定占位标题不产出——空串 + locked 标志，展示层统一渲染。
+              title: '',
               width: 0,
               height: 0,
               createdAt: DateTime.now(),

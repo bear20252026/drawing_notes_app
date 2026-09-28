@@ -2536,6 +2536,33 @@
   "@sgItemCallout": {},
   "sgItemCalloutDesc": "高亮提示",
   "@sgItemCalloutDesc": {},
+  "sgItemAttachment": "附件",
+  "@sgItemAttachment": {},
+  "sgItemAttachmentDesc": "添加文件附件",
+  "@sgItemAttachmentDesc": {},
+  "sgSearchHint": "搜索类型...",
+  "@sgSearchHint": {},
+  "docLockedTitle": "加密内容",
+  "@docLockedTitle": {},
+  "nbLockedSubtitle": "已加密 · 更新于 {time}",
+  "@nbLockedSubtitle": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "nbPageCountSubtitle": "{count} 页 · 更新于 {time}",
+  "@nbPageCountSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "expExportedTo": "已导出到：{path}",
   "@expExportedTo": {
     "placeholders": {

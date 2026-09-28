@@ -28,7 +28,6 @@ import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/app_lock_gate.dart';
 import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
-import 'package:drawing_notes_app/shared/utils/time_format.dart';
 
 /// 应用根组件：主题 + 路由。
 ///
@@ -139,8 +138,9 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
     if (nav == null) return;
     final doc = DrawingDocument(
       id: StorageService.newId(),
-      // 单一时刻快照：避免跨午夜的时/分取自两个不同 now()。
-      title: '快速记录 ${formatClock(DateTime.now())}',
+      // L-03（审计 2026-09-27）：标题落盘无法按 locale 变化——新建存空串
+      // （E6 惯例，同图层空名），列表/标题栏经 DomainDisplayLabels 渲染。
+      title: '',
     );
     nav.push(
       MaterialPageRoute(
