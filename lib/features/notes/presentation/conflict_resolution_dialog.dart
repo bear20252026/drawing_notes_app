@@ -136,10 +136,9 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
   }
 
   // 冲突列表的紧凑读数：MM-dd + 钟点（同日冲突居多的场景下时间最关键）。
-  // 钟点复用 formatClock；月-日无对应工具格式，保留本地 two。
+  // L-20：月-日复用 time_format.formatMonthDay，手拼收敛到唯一实现。
   static String _fmt(int epochMs) {
     final dt = DateTime.fromMillisecondsSinceEpoch(epochMs);
-    String two(int n) => n.toString().padLeft(2, '0');
-    return '${two(dt.month)}-${two(dt.day)} ${formatClock(dt)}';
+    return '${formatMonthDay(dt)} ${formatClock(dt)}';
   }
 }

@@ -690,7 +690,7 @@ extension DocEditorBlocks on DocEditorState {
       case NoteBlockType.code:
         return l10n?.hintCode ?? '代码';
       case NoteBlockType.text:
-        return l10n?.hintTypeContent ?? '输入内容...';
+        return l10n?.hintTypeContent ?? '输入内容…';
       case NoteBlockType.divider:
       case NoteBlockType.image:
       case NoteBlockType.callout:

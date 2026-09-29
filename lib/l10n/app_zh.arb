@@ -437,7 +437,7 @@
   "@settingsAppLockHint": {
     "description": "应用锁入口说明"
   },
-  "settingsStandalonePassword": "单文件密码",
+  "settingsStandalonePassword": "独立密码",
   "@settingsStandalonePassword": {
     "description": "单文件密码入口"
   },
@@ -739,7 +739,7 @@
   "@settingsSectionGeneral": {
     "description": "设置页分组标题"
   },
-  "settingsFilePasswordHelpContent": "在首页或全部文档页，点击画布卡片上的锁形按钮，可为单个画布设置独立密码。设置后打开该画布需要输入此密码，缩略图也会隐藏为锁形占位。\n\n单文件密码独立于开屏密码——即使有人解锁了你的应用，没有这个密码也打不开对应的画布。",
+  "settingsFilePasswordHelpContent": "在首页或全部文档页，点击画布卡片上的锁形按钮，可为单个画布设置独立密码。设置后打开该画布需要输入此密码，缩略图也会隐藏为锁形占位。\n\n独立密码与开屏密码相互独立——即使有人解锁了你的应用，没有这个密码也打不开对应的画布。",
   "@settingsFilePasswordHelpContent": {
     "description": "单文件密码帮助弹窗正文"
   },
@@ -763,7 +763,7 @@
   "@settingsLayer1Desc": {
     "description": "密码体系卡第 1 层说明"
   },
-  "settingsLayer2Title": "第 2 层 · 文件密码",
+  "settingsLayer2Title": "第 2 层 · 独立密码",
   "@settingsLayer2Title": {
     "description": "密码体系卡第 2 层"
   },
@@ -775,7 +775,7 @@
   "@settingsLayer3Title": {
     "description": "密码体系卡第 3 层"
   },
-  "settingsLayer3Desc": "插入 U 盘 → 点「忘记密码」→ 重置新密码。开屏密码与文件密码通用同一把盘。",
+  "settingsLayer3Desc": "插入 U 盘 → 点「忘记密码」→ 重置新密码。开屏密码与独立密码通用同一把盘。",
   "@settingsLayer3Desc": {
     "description": "密码体系卡第 3 层说明"
   },
@@ -853,7 +853,7 @@
   "@docDiskNotFoundNoBind": {},
   "docDiskNotFound": "未找到有效的重置密码盘文件（password_reset_disk.key）",
   "@docDiskNotFound": {},
-  "docVerifyToBind": "验证独立密码以绑定重置盘",
+  "docVerifyToBind": "验证独立密码以绑定重置密码盘",
   "@docVerifyToBind": {},
   "docDiskBound": "已绑定重置密码盘",
   "@docDiskBound": {},
@@ -992,7 +992,7 @@
       }
     }
   },
-  "resetForgotFilePassword": "忘记文件密码",
+  "resetForgotFilePassword": "忘记独立密码",
   "@resetForgotFilePassword": {},
   "resetForgotPassword": "忘记密码",
   "@resetForgotPassword": {},
@@ -1024,7 +1024,7 @@
   "@resetUseDisk": {},
   "resetNoValidKey": "未找到有效钥匙",
   "@resetNoValidKey": {},
-  "resetSetNewFilePassword": "设置新文件密码",
+  "resetSetNewFilePassword": "设置新独立密码",
   "@resetSetNewFilePassword": {},
   "resetSameAsLockScreen": "{label}不能与开屏密码相同",
   "@resetSameAsLockScreen": {
@@ -1034,7 +1034,7 @@
       }
     }
   },
-  "resetConfirmNewFilePassword": "确认新文件密码",
+  "resetConfirmNewFilePassword": "确认新独立密码",
   "@resetConfirmNewFilePassword": {},
   "resetMismatchRetry": "两次输入不一致，请重试",
   "@resetMismatchRetry": {},
@@ -1084,7 +1084,7 @@
       }
     }
   },
-  "resetNotBoundNote": "{name}未绑定重置密码盘（U 盘），无法通过重置盘重置密码。\n\n可在密码管理中选择「绑定重置密码盘」。",
+  "resetNotBoundNote": "{name}未绑定重置密码盘（U 盘），无法通过重置密码盘重置密码。\n\n可在密码管理中选择「绑定重置密码盘」。",
   "@resetNotBoundNote": {
     "placeholders": {
       "name": {
@@ -1092,7 +1092,7 @@
       }
     }
   },
-  "resetNotBoundCanvas": "{name}未绑定重置密码盘（U 盘），无法通过重置盘重置密码。\n\n可在密码管理中选择「绑定重置密码盘」；旧版本（v1.5.x）设置的密码文件需先修改一次密码升级格式。",
+  "resetNotBoundCanvas": "{name}未绑定重置密码盘（U 盘），无法通过重置密码盘重置密码。\n\n可在密码管理中选择「绑定重置密码盘」；旧版本（v1.5.x）设置的密码文件需先修改一次密码升级格式。",
   "@resetNotBoundCanvas": {
     "placeholders": {
       "name": {
@@ -1100,7 +1100,7 @@
       }
     }
   },
-  "resetNotBoundNotebook": "{name}未绑定重置密码盘（U 盘），无法通过重置盘重置密码。\n\n可在「设置/修改密码保护」后于菜单中选择「绑定重置密码盘」；旧版本设置的密码需先修改一次密码升级格式。",
+  "resetNotBoundNotebook": "{name}未绑定重置密码盘（U 盘），无法通过重置密码盘重置密码。\n\n可在「设置/修改密码保护」后于菜单中选择「绑定重置密码盘」；旧版本设置的密码需先修改一次密码升级格式。",
   "@resetNotBoundNotebook": {
     "placeholders": {
       "name": {
@@ -1122,7 +1122,7 @@
   "@homeNewInfiniteCanvasSub": {},
   "homeNewPagedCanvasSub": "多页装订、纸张模板与图文混排",
   "@homeNewPagedCanvasSub": {},
-  "homeCreateFailedFull": "新建失败：笔记本未能保存，请检查磁盘空间后重试",
+  "homeCreateFailedFull": "新建失败：分页画布未能保存，请检查磁盘空间后重试",
   "@homeCreateFailedFull": {},
   "homeCanvasMissing": "画布文件不存在或已损坏",
   "@homeCanvasMissing": {},
@@ -1573,7 +1573,7 @@
     }
   },
   "homeDeleteNoteConfirm": "确定删除笔记「{name}」吗？此操作不可恢复。",
-  "@homeDeleteNoteConfirm": {},
+  "@homeDeleteNoteConfirm": {"placeholders": {"name": {"type": "String"}}},
   "homeUntitledNotebookPage": "未命名",
   "@homeUntitledNotebookPage": {},
   "homeStandalonePasswordMenu": "独立密码…",
@@ -2310,7 +2310,7 @@
   "@hintQuote": {},
   "hintCode": "代码",
   "@hintCode": {},
-  "hintTypeContent": "输入内容...",
+  "hintTypeContent": "输入内容…",
   "@hintTypeContent": {},
   "mtBold": "粗体",
   "@mtBold": {},
@@ -2340,7 +2340,7 @@
   "@wDocInfo": {},
   "wMore": "更多",
   "@wMore": {},
-  "wFilePassword": "文件密码",
+  "wFilePassword": "独立密码",
   "@wFilePassword": {},
   "wShare": "分享",
   "@wShare": {},
@@ -2540,7 +2540,7 @@
   "@sgItemAttachment": {},
   "sgItemAttachmentDesc": "添加文件附件",
   "@sgItemAttachmentDesc": {},
-  "sgSearchHint": "搜索类型...",
+  "sgSearchHint": "搜索类型…",
   "@sgSearchHint": {},
   "docLockedTitle": "加密内容",
   "@docLockedTitle": {},

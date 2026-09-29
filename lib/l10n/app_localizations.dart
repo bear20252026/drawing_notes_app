@@ -821,7 +821,7 @@ abstract class AppLocalizations {
   /// 单文件密码入口
   ///
   /// In en, this message translates to:
-  /// **'Per-file Password'**
+  /// **'Standalone Password'**
   String get settingsStandalonePassword;
 
   /// 单文件密码说明
@@ -1283,7 +1283,7 @@ abstract class AppLocalizations {
   /// 单文件密码帮助弹窗正文
   ///
   /// In en, this message translates to:
-  /// **'On the home page or in All Documents, tap the lock button on a canvas card to set a standalone password for that canvas. Opening it will then require this password, and the thumbnail is hidden behind a lock placeholder.\n\nThe per-file password is independent of the app-lock password — even if someone unlocks your app, they cannot open the canvas without it.'**
+  /// **'On the home page or in All Documents, tap the lock button on a canvas card to set a standalone password for that canvas. Opening it will then require this password, and the thumbnail is hidden behind a lock placeholder.\n\nThe standalone password is independent of the app-lock password — even if someone unlocks your app, they cannot open the canvas without it.'**
   String get settingsFilePasswordHelpContent;
 
   /// 外观状态标签
@@ -1319,7 +1319,7 @@ abstract class AppLocalizations {
   /// 密码体系卡第 2 层
   ///
   /// In en, this message translates to:
-  /// **'Layer 2 · Per-file password'**
+  /// **'Layer 2 · Standalone password'**
   String get settingsLayer2Title;
 
   /// 密码体系卡第 2 层说明
@@ -1337,7 +1337,7 @@ abstract class AppLocalizations {
   /// 密码体系卡第 3 层说明
   ///
   /// In en, this message translates to:
-  /// **'Plug in the USB drive → tap \"Forgot password\" → set a new one. The same disk resets both the app-lock and per-file passwords.'**
+  /// **'Plug in the USB drive → tap \"Forgot password\" → set a new one. The same disk resets both the app-lock and standalone passwords.'**
   String get settingsLayer3Desc;
 
   /// No description provided for @docUnsaved.
@@ -1847,7 +1847,7 @@ abstract class AppLocalizations {
   /// No description provided for @resetForgotFilePassword.
   ///
   /// In en, this message translates to:
-  /// **'Forgot file password'**
+  /// **'Forgot standalone password'**
   String get resetForgotFilePassword;
 
   /// No description provided for @resetForgotPassword.
@@ -1907,7 +1907,7 @@ abstract class AppLocalizations {
   /// No description provided for @resetSetNewFilePassword.
   ///
   /// In en, this message translates to:
-  /// **'Set a new file password'**
+  /// **'Set a new standalone password'**
   String get resetSetNewFilePassword;
 
   /// No description provided for @resetSameAsLockScreen.
@@ -1919,7 +1919,7 @@ abstract class AppLocalizations {
   /// No description provided for @resetConfirmNewFilePassword.
   ///
   /// In en, this message translates to:
-  /// **'Confirm the new file password'**
+  /// **'Confirm the new standalone password'**
   String get resetConfirmNewFilePassword;
 
   /// No description provided for @resetMismatchRetry.
@@ -2027,7 +2027,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeCreateFailedFull.
   ///
   /// In en, this message translates to:
-  /// **'Create failed: the notebook was not saved. Check disk space and retry'**
+  /// **'Create failed: the paged canvas was not saved. Check disk space and retry'**
   String get homeCreateFailedFull;
 
   /// No description provided for @homeCanvasMissing.
@@ -4937,7 +4937,7 @@ abstract class AppLocalizations {
   /// No description provided for @hintTypeContent.
   ///
   /// In en, this message translates to:
-  /// **'Type something...'**
+  /// **'Type something…'**
   String get hintTypeContent;
 
   /// No description provided for @mtBold.
@@ -5027,7 +5027,7 @@ abstract class AppLocalizations {
   /// No description provided for @wFilePassword.
   ///
   /// In en, this message translates to:
-  /// **'File password'**
+  /// **'Standalone password'**
   String get wFilePassword;
 
   /// No description provided for @wShare.
@@ -5609,7 +5609,7 @@ abstract class AppLocalizations {
   /// No description provided for @sgSearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search types...'**
+  /// **'Search types…'**
   String get sgSearchHint;
 
   /// No description provided for @docLockedTitle.

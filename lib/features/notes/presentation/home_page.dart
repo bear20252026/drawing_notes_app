@@ -292,7 +292,7 @@ class _HomePageState extends State<HomePage> with AppRefreshRouteAware {
           title: Text(_l10nSafe?.appTitle ?? '绘图笔记'),
           actions: [
             IconButton(
-              tooltip: _l10nSafe?.search ?? '搜索全部内容',
+              tooltip: _l10nSafe?.search ?? '搜索',
               icon: const Icon(Icons.search_rounded),
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(

@@ -58,19 +58,8 @@ class PropertiesPanel extends StatelessWidget {
   /// 裁剪选中的图片（对齐 Excalidraw 图片裁剪）。
   final VoidCallback onCropImage;
 
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      width: 190,
-      padding: const EdgeInsets.all(12),
-      color: scheme.surfaceContainerLow,
-      child: ListenableBuilder(
-        listenable: controller,
-        builder: (context, _) {
-          final isEraser = controller.tool == BrushType.eraser;
-          return ListView(
-            children: [
+  /// 画笔/橡皮属性段（E-03：自 build 提取，方法 SLOC 回 250 内）。
+  List<Widget> _brushSection(BuildContext context, bool isEraser) => [
               // ---- 画笔属性 ----
               Text(
                 AppLocalizations.of(context)?.propBrush ?? '画笔',
@@ -137,6 +126,22 @@ class PropertiesPanel extends StatelessWidget {
                 ],
               ),
               const Divider(height: 20),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: 190,
+      padding: const EdgeInsets.all(12),
+      color: scheme.surfaceContainerLow,
+      child: ListenableBuilder(
+        listenable: controller,
+        builder: (context, _) {
+          final isEraser = controller.tool == BrushType.eraser;
+          return ListView(
+            children: [
+              ..._brushSection(context, isEraser),
 
               // ---- 选中图片属性（对齐 Excalidraw 图片裁剪）----
               if (selectedImage != null) ...[

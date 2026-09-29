@@ -99,7 +99,7 @@ void main() {
       // 搜索框存在
       expect(find.byType(TextField), findsOneWidget);
       // 搜索 hint
-      expect(find.text('搜索类型...'), findsOneWidget);
+      expect(find.text('搜索类型…'), findsOneWidget);
     });
 
     testWidgets('搜索过滤：输入关键词后只显示匹配项', (tester) async {

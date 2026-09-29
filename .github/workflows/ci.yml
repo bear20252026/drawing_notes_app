@@ -51,6 +51,12 @@ jobs:
         run: flutter test --tags kdf --concurrency=1
 
       - name: Install dart_code_metrics
+        # E-02（审计 2026-09-27）供应链论证：精确版本钉死——pub.dev 已
+        # 发布版本内容不可变，activate 5.7.6 每次解析同一内容，无 range
+        # 漂移风险；残余风险仅「包被下架致激活失败」（届时再议去留）。
+        # 5.7.6 要求 sdk <3.0.0，无法入 dev_dependencies 锁 pubspec.lock
+        # （项目 sdk ^3.12.2）；迁闭源 dcm 需商业 license，移除门禁需
+        # 用户同意——维持现状并在此备案（分析选项注释同步）。
         run: dart pub global activate dart_code_metrics 5.7.6
 
       - name: DCM quality gates
@@ -58,7 +64,7 @@ jobs:
         run: |
           $dcm = "$env:LOCALAPPDATA\Pub\Cache\bin\metrics.bat"
           if (Test-Path $dcm) {
-            & $dcm analyze lib --reporter=console
+            & $dcm analyze lib --reporter=console --disable-sunset-warning
           } else {
-            metrics analyze lib --reporter=console
+            metrics analyze lib --reporter=console --disable-sunset-warning
           }

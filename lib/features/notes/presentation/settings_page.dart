@@ -439,7 +439,7 @@ class SettingsPage extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(4, 12, 4, 6),
                       child: Text(
-                        group.title(l10n),
+                        group.title,
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           color: Theme.of(context).colorScheme.primary,
                         ),
@@ -468,7 +468,7 @@ class SettingsPage extends StatelessWidget {
                             ),
                             Expanded(
                               child: Text(
-                                entry.label(l10n),
+                                entry.label,
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
                             ),

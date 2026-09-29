@@ -275,7 +275,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
     );
     if (srcNb == null || !mounted) return;
     if (srcNb.pages.isEmpty) {
-      _showSnack(_l10nSafe?.nbNoPages ?? '该分页画布还没有页面');
+      _showSnack(_l10nSafe?.nbNoPages ?? '这个分页画布还没有页面');
       return;
     }
     // 第二步：选择页面。

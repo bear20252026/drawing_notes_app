@@ -390,7 +390,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsAppLockHint => '开屏密码 · 重置密码盘';
 
   @override
-  String get settingsStandalonePassword => '单文件密码';
+  String get settingsStandalonePassword => '独立密码';
 
   @override
   String get settingsStandalonePasswordHint => '个别画布的第二道锁（在画布卡片设置）';
@@ -623,7 +623,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsFilePasswordHelpContent =>
-      '在首页或全部文档页，点击画布卡片上的锁形按钮，可为单个画布设置独立密码。设置后打开该画布需要输入此密码，缩略图也会隐藏为锁形占位。\n\n单文件密码独立于开屏密码——即使有人解锁了你的应用，没有这个密码也打不开对应的画布。';
+      '在首页或全部文档页，点击画布卡片上的锁形按钮，可为单个画布设置独立密码。设置后打开该画布需要输入此密码，缩略图也会隐藏为锁形占位。\n\n独立密码与开屏密码相互独立——即使有人解锁了你的应用，没有这个密码也打不开对应的画布。';
 
   @override
   String get settingsThemeSystem => '跟随系统（点击切换为浅色）';
@@ -641,7 +641,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsLayer1Desc => '解锁应用，同时解开主密钥保险库——保护全部画布与笔记。忘记时可用重置密码盘重设。';
 
   @override
-  String get settingsLayer2Title => '第 2 层 · 文件密码';
+  String get settingsLayer2Title => '第 2 层 · 独立密码';
 
   @override
   String get settingsLayer2Desc => '给单个画布/分页画布/笔记另设的独立密码，独立于开屏密码。忘记时可用重置密码盘重设。';
@@ -650,7 +650,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsLayer3Title => '重置密码盘（U 盘）';
 
   @override
-  String get settingsLayer3Desc => '插入 U 盘 → 点「忘记密码」→ 重置新密码。开屏密码与文件密码通用同一把盘。';
+  String get settingsLayer3Desc => '插入 U 盘 → 点「忘记密码」→ 重置新密码。开屏密码与独立密码通用同一把盘。';
 
   @override
   String get docUnsaved => '未保存';
@@ -745,7 +745,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get docDiskNotFound => '未找到有效的重置密码盘文件（password_reset_disk.key）';
 
   @override
-  String get docVerifyToBind => '验证独立密码以绑定重置盘';
+  String get docVerifyToBind => '验证独立密码以绑定重置密码盘';
 
   @override
   String get docDiskBound => '已绑定重置密码盘';
@@ -921,7 +921,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get resetForgotFilePassword => '忘记文件密码';
+  String get resetForgotFilePassword => '忘记独立密码';
 
   @override
   String get resetForgotPassword => '忘记密码';
@@ -955,7 +955,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get resetNoValidKey => '未找到有效钥匙';
 
   @override
-  String get resetSetNewFilePassword => '设置新文件密码';
+  String get resetSetNewFilePassword => '设置新独立密码';
 
   @override
   String resetSameAsLockScreen(String label) {
@@ -963,7 +963,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get resetConfirmNewFilePassword => '确认新文件密码';
+  String get resetConfirmNewFilePassword => '确认新独立密码';
 
   @override
   String get resetMismatchRetry => '两次输入不一致，请重试';
@@ -1002,17 +1002,17 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String resetNotBoundNote(String name) {
-    return '$name未绑定重置密码盘（U 盘），无法通过重置盘重置密码。\n\n可在密码管理中选择「绑定重置密码盘」。';
+    return '$name未绑定重置密码盘（U 盘），无法通过重置密码盘重置密码。\n\n可在密码管理中选择「绑定重置密码盘」。';
   }
 
   @override
   String resetNotBoundCanvas(String name) {
-    return '$name未绑定重置密码盘（U 盘），无法通过重置盘重置密码。\n\n可在密码管理中选择「绑定重置密码盘」；旧版本（v1.5.x）设置的密码文件需先修改一次密码升级格式。';
+    return '$name未绑定重置密码盘（U 盘），无法通过重置密码盘重置密码。\n\n可在密码管理中选择「绑定重置密码盘」；旧版本（v1.5.x）设置的密码文件需先修改一次密码升级格式。';
   }
 
   @override
   String resetNotBoundNotebook(String name) {
-    return '$name未绑定重置密码盘（U 盘），无法通过重置盘重置密码。\n\n可在「设置/修改密码保护」后于菜单中选择「绑定重置密码盘」；旧版本设置的密码需先修改一次密码升级格式。';
+    return '$name未绑定重置密码盘（U 盘），无法通过重置密码盘重置密码。\n\n可在「设置/修改密码保护」后于菜单中选择「绑定重置密码盘」；旧版本设置的密码需先修改一次密码升级格式。';
   }
 
   @override
@@ -1032,7 +1032,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeNewPagedCanvasSub => '多页装订、纸张模板与图文混排';
 
   @override
-  String get homeCreateFailedFull => '新建失败：笔记本未能保存，请检查磁盘空间后重试';
+  String get homeCreateFailedFull => '新建失败：分页画布未能保存，请检查磁盘空间后重试';
 
   @override
   String get homeCanvasMissing => '画布文件不存在或已损坏';
@@ -2561,7 +2561,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get hintCode => '代码';
 
   @override
-  String get hintTypeContent => '输入内容...';
+  String get hintTypeContent => '输入内容…';
 
   @override
   String get mtBold => '粗体';
@@ -2606,7 +2606,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get wMore => '更多';
 
   @override
-  String get wFilePassword => '文件密码';
+  String get wFilePassword => '独立密码';
 
   @override
   String get wShare => '分享';
@@ -2899,7 +2899,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sgItemAttachmentDesc => '添加文件附件';
 
   @override
-  String get sgSearchHint => '搜索类型...';
+  String get sgSearchHint => '搜索类型…';
 
   @override
   String get docLockedTitle => '加密内容';

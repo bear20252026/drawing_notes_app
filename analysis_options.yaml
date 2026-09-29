@@ -34,16 +34,16 @@ linter:
 # 规则按"政府验收级严谨"选取：偏执检测复杂度过高、过深嵌套、
 # 过长方法等影响可维护性的模式；lint 规则只启用少量低噪音项。
 #
-# 复杂度阈值 60 说明：_reorderSelected（41）/ _onPointerUp（45）/
-# SelectionBar.build（45）为复杂交互编排方法（拖拽/输入/选择栏——
-# 手势与选区状态机的固有复杂度）。按项目"拆分须简化"原则评估：
-# 拆分会增加抽象层且不降风险（与 _onPointerMove 拆分评估同结论——
-# 记录留专项），故阈值反映项目现状（60/8——45 为阈值的 75% Below
-# 级——不触发警告），改进留专项后随代码收敛逐步回调阈值。
+# 阈值数据驱动回调（E-03，审计 2026-09-27；2026-09-29 以阈值=1 全量
+# 实测重定基线）：CC 最高 54（_onShortcutKey——画布按键派发状态机，
+# 拆分须简化原则留专项）→ 阈值 60→55；NEST 最高 6 → 8→7；
+# SLOC 原 250 已真实达标（原最高 258 properties_panel.build 已提取
+# _brushSection 回落 ~195），250 保留。后续 CC 专项收敛（次高 53/50）
+# 后可继续回调至 50。
 dart_code_metrics:
   metrics:
-    cyclomatic-complexity: 60
-    maximum-nesting-level: 8
+    cyclomatic-complexity: 55
+    maximum-nesting-level: 7
     source-lines-of-code: 250
     number-of-parameters: 10
   metrics-exclude:

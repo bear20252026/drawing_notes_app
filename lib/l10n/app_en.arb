@@ -528,7 +528,7 @@
   "@settingsAppLockHint": {
     "description": "应用锁入口说明"
   },
-  "settingsStandalonePassword": "Per-file Password",
+  "settingsStandalonePassword": "Standalone Password",
   "@settingsStandalonePassword": {
     "description": "单文件密码入口"
   },
@@ -760,7 +760,7 @@
   "@settingsSectionGeneral": {
     "description": "设置页分组标题"
   },
-  "settingsFilePasswordHelpContent": "On the home page or in All Documents, tap the lock button on a canvas card to set a standalone password for that canvas. Opening it will then require this password, and the thumbnail is hidden behind a lock placeholder.\n\nThe per-file password is independent of the app-lock password — even if someone unlocks your app, they cannot open the canvas without it.",
+  "settingsFilePasswordHelpContent": "On the home page or in All Documents, tap the lock button on a canvas card to set a standalone password for that canvas. Opening it will then require this password, and the thumbnail is hidden behind a lock placeholder.\n\nThe standalone password is independent of the app-lock password — even if someone unlocks your app, they cannot open the canvas without it.",
   "@settingsFilePasswordHelpContent": {
     "description": "单文件密码帮助弹窗正文"
   },
@@ -784,7 +784,7 @@
   "@settingsLayer1Desc": {
     "description": "密码体系卡第 1 层说明"
   },
-  "settingsLayer2Title": "Layer 2 · Per-file password",
+  "settingsLayer2Title": "Layer 2 · Standalone password",
   "@settingsLayer2Title": {
     "description": "密码体系卡第 2 层"
   },
@@ -796,7 +796,7 @@
   "@settingsLayer3Title": {
     "description": "密码体系卡第 3 层"
   },
-  "settingsLayer3Desc": "Plug in the USB drive → tap \"Forgot password\" → set a new one. The same disk resets both the app-lock and per-file passwords.",
+  "settingsLayer3Desc": "Plug in the USB drive → tap \"Forgot password\" → set a new one. The same disk resets both the app-lock and standalone passwords.",
   "@settingsLayer3Desc": {
     "description": "密码体系卡第 3 层说明"
   },
@@ -1013,7 +1013,7 @@
       }
     }
   },
-  "resetForgotFilePassword": "Forgot file password",
+  "resetForgotFilePassword": "Forgot standalone password",
   "@resetForgotFilePassword": {},
   "resetForgotPassword": "Forgot password",
   "@resetForgotPassword": {},
@@ -1045,7 +1045,7 @@
   "@resetUseDisk": {},
   "resetNoValidKey": "No valid key found",
   "@resetNoValidKey": {},
-  "resetSetNewFilePassword": "Set a new file password",
+  "resetSetNewFilePassword": "Set a new standalone password",
   "@resetSetNewFilePassword": {},
   "resetSameAsLockScreen": "{label} must differ from the screen-lock password",
   "@resetSameAsLockScreen": {
@@ -1055,7 +1055,7 @@
       }
     }
   },
-  "resetConfirmNewFilePassword": "Confirm the new file password",
+  "resetConfirmNewFilePassword": "Confirm the new standalone password",
   "@resetConfirmNewFilePassword": {},
   "resetMismatchRetry": "The two entries don't match. Please try again",
   "@resetMismatchRetry": {},
@@ -1139,7 +1139,7 @@
   "@homeNewInfiniteCanvasSub": {},
   "homeNewPagedCanvasSub": "Multi-page binding, paper templates and mixed content",
   "@homeNewPagedCanvasSub": {},
-  "homeCreateFailedFull": "Create failed: the notebook was not saved. Check disk space and retry",
+  "homeCreateFailedFull": "Create failed: the paged canvas was not saved. Check disk space and retry",
   "@homeCreateFailedFull": {},
   "homeCanvasMissing": "The canvas file is missing or corrupted",
   "@homeCanvasMissing": {},
@@ -2331,7 +2331,7 @@
   "@hintQuote": {},
   "hintCode": "Code",
   "@hintCode": {},
-  "hintTypeContent": "Type something...",
+  "hintTypeContent": "Type something…",
   "@hintTypeContent": {},
   "mtBold": "Bold",
   "@mtBold": {},
@@ -2361,7 +2361,7 @@
   "@wDocInfo": {},
   "wMore": "More",
   "@wMore": {},
-  "wFilePassword": "File password",
+  "wFilePassword": "Standalone password",
   "@wFilePassword": {},
   "wShare": "Share",
   "@wShare": {},
@@ -2561,7 +2561,7 @@
   "@sgItemAttachment": {},
   "sgItemAttachmentDesc": "Attach a file",
   "@sgItemAttachmentDesc": {},
-  "sgSearchHint": "Search types...",
+  "sgSearchHint": "Search types…",
   "@sgSearchHint": {},
   "docLockedTitle": "Encrypted content",
   "@docLockedTitle": {},

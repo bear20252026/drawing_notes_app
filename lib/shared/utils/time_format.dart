@@ -24,6 +24,12 @@ String formatShortDate(DateTime t) =>
 ///
 /// 对应原首页 Tab 与笔记本版本历史的 _formatTime 语义（列表里今天
 /// 的条目给钟点，更早的给日期）。
+/// 月-日 `MM-dd`（两位补零）。
+///
+/// 冲突列表等「同年冲突居多、月-日+钟点最关键」场景的紧凑读数。
+String formatMonthDay(DateTime t) =>
+    '${t.month.toString().padLeft(2, '0')}-${t.day.toString().padLeft(2, '0')}';
+
 String formatSmartTime(DateTime t) {
   final now = DateTime.now();
   if (t.year == now.year && t.month == now.month && t.day == now.day) {

@@ -311,7 +311,7 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
         focusNode: _searchFocusNode,
         decoration: InputDecoration(
           hintText:
-              AppLocalizations.of(context)?.sgSearchHint ?? '搜索类型...',
+              AppLocalizations.of(context)?.sgSearchHint ?? '搜索类型…',
           isDense: true,
           prefixIcon: Icon(Icons.search, size: 18),
           border: InputBorder.none,

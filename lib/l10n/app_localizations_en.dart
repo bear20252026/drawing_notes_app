@@ -409,7 +409,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAppLockHint => 'App-lock password · Reset disk';
 
   @override
-  String get settingsStandalonePassword => 'Per-file Password';
+  String get settingsStandalonePassword => 'Standalone Password';
 
   @override
   String get settingsStandalonePasswordHint =>
@@ -643,7 +643,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsFilePasswordHelpContent =>
-      'On the home page or in All Documents, tap the lock button on a canvas card to set a standalone password for that canvas. Opening it will then require this password, and the thumbnail is hidden behind a lock placeholder.\n\nThe per-file password is independent of the app-lock password — even if someone unlocks your app, they cannot open the canvas without it.';
+      'On the home page or in All Documents, tap the lock button on a canvas card to set a standalone password for that canvas. Opening it will then require this password, and the thumbnail is hidden behind a lock placeholder.\n\nThe standalone password is independent of the app-lock password — even if someone unlocks your app, they cannot open the canvas without it.';
 
   @override
   String get settingsThemeSystem => 'Follow system (tap to switch to light)';
@@ -662,7 +662,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Unlocks the app and the master-key vault — protects all canvases and notes. Reset with the reset disk if forgotten.';
 
   @override
-  String get settingsLayer2Title => 'Layer 2 · Per-file password';
+  String get settingsLayer2Title => 'Layer 2 · Standalone password';
 
   @override
   String get settingsLayer2Desc =>
@@ -673,7 +673,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsLayer3Desc =>
-      'Plug in the USB drive → tap \"Forgot password\" → set a new one. The same disk resets both the app-lock and per-file passwords.';
+      'Plug in the USB drive → tap \"Forgot password\" → set a new one. The same disk resets both the app-lock and standalone passwords.';
 
   @override
   String get docUnsaved => 'Unsaved';
@@ -957,7 +957,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get resetForgotFilePassword => 'Forgot file password';
+  String get resetForgotFilePassword => 'Forgot standalone password';
 
   @override
   String get resetForgotPassword => 'Forgot password';
@@ -992,7 +992,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resetNoValidKey => 'No valid key found';
 
   @override
-  String get resetSetNewFilePassword => 'Set a new file password';
+  String get resetSetNewFilePassword => 'Set a new standalone password';
 
   @override
   String resetSameAsLockScreen(String label) {
@@ -1000,7 +1000,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get resetConfirmNewFilePassword => 'Confirm the new file password';
+  String get resetConfirmNewFilePassword =>
+      'Confirm the new standalone password';
 
   @override
   String get resetMismatchRetry =>
@@ -1073,7 +1074,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeCreateFailedFull =>
-      'Create failed: the notebook was not saved. Check disk space and retry';
+      'Create failed: the paged canvas was not saved. Check disk space and retry';
 
   @override
   String get homeCanvasMissing => 'The canvas file is missing or corrupted';
@@ -2661,7 +2662,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hintCode => 'Code';
 
   @override
-  String get hintTypeContent => 'Type something...';
+  String get hintTypeContent => 'Type something…';
 
   @override
   String get mtBold => 'Bold';
@@ -2706,7 +2707,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wMore => 'More';
 
   @override
-  String get wFilePassword => 'File password';
+  String get wFilePassword => 'Standalone password';
 
   @override
   String get wShare => 'Share';
@@ -3004,7 +3005,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sgItemAttachmentDesc => 'Attach a file';
 
   @override
-  String get sgSearchHint => 'Search types...';
+  String get sgSearchHint => 'Search types…';
 
   @override
   String get docLockedTitle => 'Encrypted content';

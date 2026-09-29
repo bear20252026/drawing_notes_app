@@ -9,8 +9,10 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
+import 'package:drawing_notes_app/shared/utils/time_format.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
+
 import '../../../core/theme/apple_design.dart';
 
 /// 回收站条目（store.listTrash 的轻量记录类型，审计 2026-09-26 #32：
@@ -125,12 +127,9 @@ class _TrashPageState extends State<TrashPage> {
                   ),
                   subtitle: Text(
                     AppLocalizations.of(context)?.homeDeletedAt(
-                          '${deleted.year}-${deleted.month.toString().padLeft(2, '0')}-'
-                          '${deleted.day.toString().padLeft(2, '0')}',
+                          formatShortDate(deleted),
                         ) ??
-                        '删除于 '
-                            '${deleted.year}-${deleted.month.toString().padLeft(2, '0')}-'
-                            '${deleted.day.toString().padLeft(2, '0')}',
+                        '删除于 ${formatShortDate(deleted)}',
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,

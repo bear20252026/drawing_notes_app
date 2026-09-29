@@ -2,6 +2,45 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.42] - 2026-09-29
+
+### 审计批次 T：i18n P3 六条清尾 + E-03 阈值数据驱动回调 + E-02 备案（L-14/L-17~L-22 + E-02/E-03）
+
+> 来源：`docs/audit_2026-09-27.md` P3 零碎与工程化域收尾。
+
+- **L-14/L-22 术语收敛（纯 arb 值替换，键不动）**：zh「单文件密码/
+  文件密码」×8 归主流「独立密码」（en Per-file/file password 同步归
+  Standalone password）；「重置盘」×4 归主流「重置密码盘」×35（en
+  reset disk 本已统一）；「新建失败：笔记本」改「分页画布」（全库最后
+  一处该域旧称）。
+- **L-17/L-18 兜底对齐**：home_page 搜索 tooltip 兜底「搜索全部内容」
+  →「搜索」（= arb search）；nbNoPages 兜底「该分页画布」→「这个
+  分页画布」。
+- **L-19**：zh `@homeDeleteNoteConfirm` 元数据补 {name} 占位声明
+  （en 已有，工具链换模板语言即断的隐患）。
+- **L-21**：省略号统一 U+2026——zh/en 各 2 处 ASCII `...`
+  （hintTypeContent/sgSearchHint）归 9 处主流 `…`，lib 兜底串与测试
+  断言同步。
+- **L-20**：`time_format` 新增 `formatMonthDay`（MM-dd）；冲突弹窗
+  `_fmt` 本地 two() 与回收站页两处 `yyyy-MM-dd` 手拼收敛到
+  `formatMonthDay/formatShortDate` 唯一实现。
+- **E-03 阈值数据驱动回调**：以阈值=1 全量实测重定基线——
+  ①CC 唯一超标点 `KeyboardShortcuts.catalog`（67——33 条
+  `x?.getter ?? '中文'` 闭包的空判分支累计）重构：label 改 catalog
+  调用时直接求值（唯一消费方 settings_page 同帧传同一 l10n，延迟闭包
+  无意义），null 走 const 中文兜底表/非空走直接 getter，两路径零分支
+  （catalog CC 67→1）；②SLOC 唯一超标点 properties_panel.build（258）
+  提取 `_brushSection`（回落 ~195）；③阈值 CC 60→55（现最高
+  _onShortcutKey 54，按键派发状态机拆分留专项）、NEST 8→7（最高 6）、
+  SLOC 250 已真实达标保留；metrics 全量复跑零违规。
+- **E-02 备案**：dart_code_metrics 5.7.6 要求 sdk <3.0.0（项目
+  ^3.12.2）——dev_dependencies 锁定不可行，迁闭源 dcm 需商业
+  license；CI 精确版本钉死已内容不可变（pub.dev 已发布版本不可改，
+  无 range 漂移），残余风险仅「包下架致激活失败」。ci.yml 注释固化
+  论证 + `--disable-sunset-warning` 降噪。
+- 门禁 analyze 0 告警、全量 1877 绿；arb 键数不变（1048=1048，纯值/元
+  数据变更）。
+
 ## [1.17.41] - 2026-09-28
 
 ### 审计批次 S：i18n P1 三条收尾 + 工程化 E 域清扫（L-01/L-03/L-04 + E-01/E-04）
