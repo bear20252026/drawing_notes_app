@@ -1,10 +1,11 @@
-import 'dart:typed_data';
-
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+// C-11（审计 2026-09-27）：原 sync_service_test.dart——文件头曾同时覆盖
+// 已删除的死三件套 SyncFile/SyncService（features/drawing/infrastructure，
+// 零实现零消费）与存活的 SyncPathCipher；死部分随模块删除，本文件
+// 更名对齐实际覆盖面（路径加密）。
 import 'package:drawing_notes_app/features/drawing/infrastructure/sync_path_cipher.dart';
-import 'package:drawing_notes_app/features/drawing/infrastructure/sync_service.dart';
 
 void main() {
   const cipher = SyncPathCipher();
@@ -56,48 +57,5 @@ void main() {
       isNull,
     );
   });
-
-  test('SyncFile 模型：等价性与 copyWith', () {
-    const a = SyncFile(localPath: 'a.json', remotePath: 'x.sbe');
-    const b = SyncFile(localPath: 'a.json', remotePath: 'x.sbe');
-    const c = SyncFile(localPath: 'b.json', remotePath: 'x.sbe');
-    expect(a, b);
-    expect(a == c, isFalse);
-    expect(a.copyWith(localPath: 'b.json').localPath, 'b.json');
-  });
-
-  test('同步抽象层：三件套接口可被测试桩实现（不绑定协议）', () async {
-    final stub = _StubSyncService();
-    final localChanges = await stub.findLocalChanges();
-    expect(localChanges, hasLength(1));
-    final remoteChanges = await stub.findRemoteChanges();
-    expect(remoteChanges, hasLength(1));
-    final best = await stub.getBestFile(localChanges.first, preferLocal: true);
-    expect(best.localPath, 'local.json');
-  });
 }
 
-class _StubSyncService implements SyncService {
-  @override
-  Future<List<SyncFile>> findLocalChanges() async => const [
-    SyncFile(localPath: 'local.json', remotePath: 'l.sbe'),
-  ];
-
-  @override
-  Future<List<SyncFile>> findRemoteChanges() async => const [
-    SyncFile(localPath: 'remote.json', remotePath: 'r.sbe'),
-  ];
-
-  @override
-  Future<SyncFile> getBestFile(
-    SyncFile file, {
-    required bool preferLocal,
-  }) async =>
-      file.copyWith(localPath: preferLocal ? 'local.json' : 'remote.json');
-
-  @override
-  Future<void> upload(SyncFile file, Uint8List bytes) async {}
-
-  @override
-  Future<Uint8List?> download(SyncFile file) async => null;
-}

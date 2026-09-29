@@ -24,9 +24,10 @@ abstract final class BlockDocPasswordResetFlow {
     String docTitle = '',
   }) async {
     final l10n0 = AppLocalizations.of(context);
-    // 注：与「加密笔记」比较是对旧默认标题的兜底判断（存储默认值本地化
-    // 属存储/展示分离专项，暂保持 zh 常量）。
-    final name = docTitle.isEmpty || docTitle == '加密笔记'
+    // C-11 顺带（L-04 后无生产来源）：标题为空即锁定占位/未命名——
+    // 旧默认标题「加密笔记」自 v1.17.41 起不再产出（headers 为列表期
+    // 内存计算、从不落盘），历史版本亦无持久化载体。
+    final name = docTitle.isEmpty
         ? l10n0?.resetThisNote ?? '该笔记'
         : l10n0?.resetDocNameQuote(docTitle) ?? '「$docTitle」';
 

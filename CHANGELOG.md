@@ -2,6 +2,30 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.44] - 2026-09-29
+
+### 审计批次 V：删除类待决收口（C-11/C-15 + 死分支微清理，用户已同意）
+
+> 来源：`docs/audit_2026-09-27.md` 备案待办中「删需用户同意」三条；
+> 至此 134 条审计全部闭环（余 E-05 pdfrx override 等上游、E-02 已备案）。
+
+- **C-11**：删除 `features/drawing/infrastructure/sync_service.dart`
+  （60 行，Saber 式 SyncFile/SyncService 三件套——零实现零消费，与
+  core/sync 真实接线模块平行的未接线重复）；`test/sync_service_test.dart`
+  同文件兼测存活的 SyncPathCipher，死三件套用例与 `_StubSyncService`
+  随删、路径加密 3 用例保留，文件更名 `sync_path_cipher_test.dart`
+  对齐实际覆盖面。
+- **C-15**：删除 `core/di/providers.dart` 的
+  darkModeProvider/DarkModeNotifier（注释自认「无 UI 消费点，纯示例」
+  死代码；主题能力由 AppThemeController/themeModeProvider 承载）；
+  riverpod 测试的 overrideWithBuild 演示载体改测试内本地 `_TestFlag`
+  provider（不再借用生产代码）。
+- **微清理（L-04 顺带收口）**：
+  `block_doc_password_reset_flow.dart` 移除 `docTitle == '加密笔记'`
+  死分支——旧默认标题自 v1.17.41 起不再产出（headers 列表期内存
+  计算、从不落盘），历史版本亦无持久化载体，isEmpty 判断已覆盖。
+- 测试 −3（死代码专测用例），门禁 analyze 0 告警、全量 1874 绿。
+
 ## [1.17.43] - 2026-09-29
 
 ### 审计批次 U：测试健壮性 T 域 P2 专项收尾（T-04~T-11/T-13/T-14，9 条）

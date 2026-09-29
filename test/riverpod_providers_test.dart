@@ -33,23 +33,16 @@ void main() {
     expect(highShape.side.color, Colors.black);
   });
 
-  test('darkModeProvider 可读可写（单向状态流）', () {
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
-
-    expect(container.read(darkModeProvider), isFalse);
-    container.read(darkModeProvider.notifier).state = true;
-    expect(container.read(darkModeProvider), isTrue);
-  });
-
   test('provider override 可测试替换（依赖注入）', () {
     // Riverpod 3.x：overrideWithBuild 覆盖 build 返回值（closure 签名 (ref, notifier)）。
+    // C-15：载体改测试内本地 provider（原借 darkModeProvider 死代码，已删）。
+    final localProvider = NotifierProvider<_TestFlag, bool>(_TestFlag.new);
     final container = ProviderContainer(
-      overrides: [darkModeProvider.overrideWithBuild((ref, notifier) => true)],
+      overrides: [localProvider.overrideWithBuild((ref, notifier) => true)],
     );
     addTearDown(container.dispose);
 
-    expect(container.read(darkModeProvider), isTrue, reason: 'override 生效');
+    expect(container.read(localProvider), isTrue, reason: 'override 生效');
   });
 
   test('themeModeProvider：Notifier 维护主题模式（替代 ChangeNotifier）', () {
@@ -168,4 +161,10 @@ void main() {
     expect(container.read(historyProvider).canRedo, isTrue);
     expect(container.read(historyProvider).canUndo, isFalse);
   });
+}
+
+/// override 测试的本地载体（C-15 后不再借用生产 provider）。
+class _TestFlag extends Notifier<bool> {
+  @override
+  bool build() => false;
 }
