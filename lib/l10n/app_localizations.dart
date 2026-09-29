@@ -5630,6 +5630,24 @@ abstract class AppLocalizations {
   /// **'{count} pages · Updated {time}'**
   String nbPageCountSubtitle(int count, String time);
 
+  /// No description provided for @s02CloudSyncTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes are stored in a cloud-synced folder'**
+  String get s02CloudSyncTitle;
+
+  /// No description provided for @s02CloudSyncBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your system Documents folder is managed by OneDrive or another cloud-sync service, so the Drawing Notes data folder is synced to the cloud. No app-lock PIN is set and notes are saved unencrypted — to keep data off the cloud, exclude this folder from sync in your cloud settings, or enable password protection in app settings.'**
+  String get s02CloudSyncBody;
+
+  /// No description provided for @s02CloudSyncOkay.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get s02CloudSyncOkay;
+
   /// No description provided for @expExportedTo.
   ///
   /// In en, this message translates to:

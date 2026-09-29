@@ -2,6 +2,30 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.45] - 2026-09-29
+
+### 审计批次 W：S-02 收口——云同步 Known Folder 未加密暴露警示（方案 A）
+
+> 来源：`docs/audit_2026-09-27.md` 备案待办最后一条 P1（S-02）。
+> 方案 A（启动警示）为审计列出的首选修法，纯增量零数据搬迁；
+> 方案 B（迁 ApplicationSupport 迁移选项）留作独立功能批次待决策。
+
+- **检测**：`AppDataRoot.isCloudSyncedKnownFolderPath`——文档 Known
+  Folder 路径任一段含 OneDrive（大小写不敏感，KFM/组织后缀变体均
+  命中；段内子串也命中，保守策略宁可多警不漏警）。
+- **警示**：app.dart 新增 `CloudSyncNoticeHost` 挂在 AppLockGate 与
+  AppShell 之间——命中 OneDrive 路径且**未设开屏 PIN** 时启动期弹
+  玻璃对话框说明暴露面与两种缓解（云同步排除该文件夹 / 开启密码
+  保护），「我知道了」写 SharedPreferences（`s02.cloud_sync_warning_
+  dismissed`）永久记住；已设 PIN 落盘为保险库密文不打扰；检测/弹窗
+  失败静默跳过不阻塞启动；arb 新键 3 对（zh/en 1051=1051 对称）。
+- **测试** +5：检测单测 2（KFM 变体命中/常规路径与段内子串）；
+  宿主 widget 测试 3（弹出+永久记住+重启不弹 / 常规路径不弹 /
+  PIN 已设不弹——FakeAsync 下 Isolate.run 永不回投，按
+  app_lock_gate_test 备案双保险：testPinKdfOverride 轻量档 +
+  bypassIsolateForTests）。
+- 门禁 analyze 0 告警、全量 1879 绿。v1.17.44 CI 七工作流全绿。
+
 ## [1.17.44] - 2026-09-29
 
 ### 审计批次 V：删除类待决收口（C-11/C-15 + 死分支微清理，用户已同意）

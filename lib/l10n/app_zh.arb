@@ -2563,6 +2563,12 @@
       }
     }
   },
+  "s02CloudSyncTitle": "笔记存储在云同步文件夹中",
+  "@s02CloudSyncTitle": {},
+  "s02CloudSyncBody": "你的系统「文档」文件夹由 OneDrive 等云同步服务管理，「绘图笔记数据」会随之同步上云。当前未设置开屏密码，笔记以明文保存——若不希望数据上云，可在云同步设置中排除该文件夹，或在应用设置中开启密码保护。",
+  "@s02CloudSyncBody": {},
+  "s02CloudSyncOkay": "我知道了",
+  "@s02CloudSyncOkay": {},
   "expExportedTo": "已导出到：{path}",
   "@expExportedTo": {
     "placeholders": {

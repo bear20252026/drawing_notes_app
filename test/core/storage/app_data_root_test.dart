@@ -7,6 +7,41 @@ import '../../helpers/temp_dir_cleanup.dart';
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 
 void main() {
+  group('S-02（审计 2026-09-27）：云同步 Known Folder 检测', () {
+    test('OneDrive KFM 路径特征命中（含大小写/组织后缀变体）', () {
+      expect(
+        AppDataRoot.isCloudSyncedKnownFolderPath(
+          r'C:\Users\a\OneDrive\Documents',
+        ),
+        isTrue,
+      );
+      expect(
+        AppDataRoot.isCloudSyncedKnownFolderPath(
+          r'C:\Users\a\onedrive - contoso\Documents',
+        ),
+        isTrue,
+      );
+    });
+
+    test('常规本地路径不命中', () {
+      expect(
+        AppDataRoot.isCloudSyncedKnownFolderPath(r'C:\Users\a\Documents'),
+        isFalse,
+      );
+      expect(
+        AppDataRoot.isCloudSyncedKnownFolderPath('/home/a/Documents'),
+        isFalse,
+      );
+      // 路径段内含 onedrive 子串亦命中（保守策略：宁可多警不漏警）。
+      expect(
+        AppDataRoot.isCloudSyncedKnownFolderPath(
+          r'C:\Users\a\Documents\OneDriveBackup',
+        ),
+        isTrue,
+      );
+    });
+  });
+
   late Directory tempDocs;
   late Directory tempSupport;
 

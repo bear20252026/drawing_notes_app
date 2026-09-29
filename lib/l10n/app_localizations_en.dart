@@ -3021,6 +3021,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get s02CloudSyncTitle => 'Notes are stored in a cloud-synced folder';
+
+  @override
+  String get s02CloudSyncBody =>
+      'Your system Documents folder is managed by OneDrive or another cloud-sync service, so the Drawing Notes data folder is synced to the cloud. No app-lock PIN is set and notes are saved unencrypted — to keep data off the cloud, exclude this folder from sync in your cloud settings, or enable password protection in app settings.';
+
+  @override
+  String get s02CloudSyncOkay => 'Got it';
+
+  @override
   String expExportedTo(String path) {
     return 'Exported to: $path';
   }

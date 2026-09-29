@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'package:drawing_notes_app/app/default_editor_page_builder.dart';
@@ -12,6 +13,7 @@ import 'package:drawing_notes_app/core/theme/app_locale_controller.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/app/app_shell.dart';
@@ -195,19 +197,23 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
             service: _appLockService,
             vault: _vaultKeyService,
             quickUnlock: _quickUnlockService,
-            child: AppShell(
-              notebookStorage: _notebookStorage,
-              docStorage: _documentStorage,
-              themeController: _themeController,
-              localeController: _localeController,
+            child: CloudSyncNoticeHost(
               appDataRoot: _appDataRoot,
-              editorPageBuilder: DefaultEditorPageBuilder.build,
-              blockDocStore: _blockDocStore,
-              favoriteStore: _favoriteStore,
-              tagStore: _tagStore,
               appLockService: _appLockService,
-              vaultKeyService: _vaultKeyService,
-              quickUnlockService: _quickUnlockService,
+              child: AppShell(
+                notebookStorage: _notebookStorage,
+                docStorage: _documentStorage,
+                themeController: _themeController,
+                localeController: _localeController,
+                appDataRoot: _appDataRoot,
+                editorPageBuilder: DefaultEditorPageBuilder.build,
+                blockDocStore: _blockDocStore,
+                favoriteStore: _favoriteStore,
+                tagStore: _tagStore,
+                appLockService: _appLockService,
+                vaultKeyService: _vaultKeyService,
+                quickUnlockService: _quickUnlockService,
+              ),
             ),
           ),
         ),
@@ -224,4 +230,79 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
     override: _themeController.highContrastOverride,
     platform: AppleContrast.of(context),
   );
+}
+
+/// S-02（审计 2026-09-27）：云同步 Known Folder 未加密暴露警示宿主。
+///
+/// 数据根默认在系统「文档」Known Folder；OneDrive KFM 等会把该目录
+/// 静默迁入云盘——未设开屏 PIN 时全量明文笔记随之上云（已设 PIN 的
+/// 落盘为保险库密文，不在暴露面内）。命中时启动期弹一次性说明，
+/// 「我知道了」写入 SharedPreferences 永久记住。检测/弹窗尽力而为，
+/// 任何失败静默跳过，不阻塞启动。
+class CloudSyncNoticeHost extends StatefulWidget {
+  const CloudSyncNoticeHost({
+    super.key,
+    required this.appDataRoot,
+    required this.appLockService,
+    required this.child,
+  });
+
+  final AppDataRoot appDataRoot;
+  final AppLockService appLockService;
+  final Widget child;
+
+  /// 「不再提醒」持久化键（公开供测试断言）。
+  static const dismissedPrefKey = 's02.cloud_sync_warning_dismissed';
+
+  @override
+  State<CloudSyncNoticeHost> createState() => _CloudSyncNoticeHostState();
+}
+
+class _CloudSyncNoticeHostState extends State<CloudSyncNoticeHost> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAndShow());
+  }
+
+  Future<void> _checkAndShow() async {
+    try {
+      final docsDir = await widget.appDataRoot.documentsDirectory();
+      if (!AppDataRoot.isCloudSyncedKnownFolderPath(docsDir.path)) return;
+      await widget.appLockService.load();
+      // 已设 PIN：落盘为保险库密文，云同步暴露面收敛，不打扰。
+      if (widget.appLockService.isConfigured) return;
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool(CloudSyncNoticeHost.dismissedPrefKey) ?? false) {
+        return;
+      }
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
+      await GlassDialog.show<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l10n?.s02CloudSyncTitle ?? '笔记存储在云同步文件夹中'),
+          content: Text(
+            l10n?.s02CloudSyncBody ??
+                '你的系统「文档」文件夹由 OneDrive 等云同步服务管理，'
+                    '「绘图笔记数据」会随之同步上云。',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await prefs.setBool(CloudSyncNoticeHost.dismissedPrefKey, true);
+                if (context.mounted) Navigator.of(context).pop();
+              },
+              child: Text(l10n?.s02CloudSyncOkay ?? '我知道了'),
+            ),
+          ],
+        ),
+      );
+    } catch (_) {
+      // 警示尽力而为：路径不可得/存储失败等一律静默跳过。
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

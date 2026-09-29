@@ -50,6 +50,16 @@ class AppDataRoot {
   /// 根目录名（默认 [defaultRootName]）。
   final String rootName;
 
+  /// S-02（审计 2026-09-27）：文档 Known Folder 被云客户端接管
+  /// （OneDrive KFM 等）的路径特征——任一路径段含 OneDrive（大小写
+  /// 不敏感）。命中即「文档」目录实际位于云同步盘内，数据根随之上云
+  /// （未设开屏 PIN 时为明文暴露）。
+  static bool isCloudSyncedKnownFolderPath(String documentsPath) =>
+      documentsPath
+          .toLowerCase()
+          .split(Platform.pathSeparator)
+          .any((segment) => segment.contains('onedrive'));
+
   /// 默认根目录名（系统文档目录下的可见文件夹）。
   static const String defaultRootName = '绘图笔记数据';
 
@@ -86,7 +96,9 @@ class AppDataRoot {
     } catch (_) {
       return false; // 文档目录不可得，跳过恢复检查
     }
-    final marker = File('$docsPath${Platform.pathSeparator}$pendingRestoreMarkerName');
+    final marker = File(
+      '$docsPath${Platform.pathSeparator}$pendingRestoreMarkerName',
+    );
     if (!marker.existsSync()) return false;
     final stagingPath = (await marker.readAsString()).trim();
     try {
@@ -102,7 +114,9 @@ class AppDataRoot {
         } catch (_) {}
         return false;
       }
-      final root = Directory('$docsPath${Platform.pathSeparator}$defaultRootName');
+      final root = Directory(
+        '$docsPath${Platform.pathSeparator}$defaultRootName',
+      );
       Directory? oldRoot;
       if (root.existsSync()) {
         oldRoot = Directory(
@@ -128,7 +142,6 @@ class AppDataRoot {
       return false;
     }
   }
-
 
   /// 旧版分散的子目录名（迁移源，位于系统文档目录直下）。
   static const List<String> legacyDirNames = [
