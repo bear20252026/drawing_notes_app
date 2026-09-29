@@ -22,6 +22,7 @@ import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
+import '../../helpers/temp_dir_cleanup.dart';
 
 /// 可编程假系统验证后端（代替 local_auth——测试环境无插件注册）。
 class FakeAuthBackend implements SystemAuthBackend {
@@ -43,11 +44,7 @@ class FakeAuthBackend implements SystemAuthBackend {
 
 VaultKeyService _tempVault() {
   final dir = Directory.systemTemp.createTempSync('quick_unlock_test');
-  addTearDown(() {
-    try {
-      dir.deleteSync(recursive: true);
-    } catch (_) {} // 临时目录清理尽力而为：Windows 句柄延迟释放时交由系统临时目录回收。
-  });
+  addTearDown(() => deleteTempDirWithRetry(dir));
   return VaultKeyService(
     vaultFileResolver: () async =>
         File('${dir.path}${Platform.pathSeparator}vault.key.json'),

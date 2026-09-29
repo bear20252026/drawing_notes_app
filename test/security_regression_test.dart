@@ -248,6 +248,11 @@ void main() {
       expect(png, isNotNull);
       expect(png![0], 0x89);
       expect(png[1], 0x50);
+      // T-11：PNG 尺寸断言——渲染尺寸取错（如文档宽高互换）不再是全绿。
+      int be32(int i) =>
+          (png[i] << 24) | (png[i + 1] << 16) | (png[i + 2] << 8) | png[i + 3];
+      expect(be32(16), 64, reason: 'PNG IHDR 宽应等于文档宽');
+      expect(be32(20), 64, reason: 'PNG IHDR 高应等于文档高');
     });
 
     test('pickColorAt 正常取色', () async {
@@ -263,6 +268,11 @@ void main() {
       final color = await c.pickColorAt(const Offset(30, 30));
       expect(color, isNotNull);
       expect(color!.a, greaterThan(0));
+      // T-11：断言期望色值——笔画为纯红、采样点位于笔画中心线上，
+      // 取错像素（透明/背景/其他通道）在此前 isNotNull 断言下全绿。
+      expect(color.r, greaterThan(0.9), reason: '采样点应落在红色笔画上');
+      expect(color.g, lessThan(0.1));
+      expect(color.b, lessThan(0.1));
     });
   });
 

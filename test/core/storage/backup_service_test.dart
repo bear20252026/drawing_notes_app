@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'package:drawing_notes_app/core/storage/backup_service.dart';
+import '../../helpers/temp_dir_cleanup.dart';
 
 void main() {
   late Directory docsDir;
@@ -26,7 +27,7 @@ void main() {
 
   tearDown(() async {
     try {
-      await docsDir.delete(recursive: true);
+      await deleteTempDirWithRetry(docsDir);
     } catch (_) {}
   });
 

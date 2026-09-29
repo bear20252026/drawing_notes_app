@@ -5,6 +5,7 @@ import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/storage/vfs/encrypted_vault.dart';
+import 'helpers/temp_dir_cleanup.dart';
 
 /// VFS 加密对象仓库单测（专家目标架构 VFS——2026-08-16）：
 /// 对象读写往返/版本递增/篡改检测（错误密钥 AAD 不符）/原子提交/缺失。
@@ -16,13 +17,7 @@ void main() {
     tempDir = Directory.systemTemp.createTempSync('vault_test');
   });
 
-  tearDown(() {
-    try {
-      tempDir.deleteSync(recursive: true);
-    } catch (_) {
-      /* 忽略清理失败 */
-    }
-  });
+  tearDown(() => deleteTempDirWithRetry(tempDir));
 
   test('VFS：对象写入读取往返（明文一致）', () async {
     final vault = EncryptedVault(directory: tempDir, key: key);

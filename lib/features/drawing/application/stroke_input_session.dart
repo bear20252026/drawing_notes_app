@@ -29,9 +29,13 @@ abstract interface class StrokeInputHost {
 /// 所有活动状态只存在于该会话中，未提交笔画不会修改文档、历史或保存状态；
 /// 收笔时以完整原始采样替换预览点列，并将持久化工作交给宿主执行。
 class StrokeInputSession {
-  StrokeInputSession(this._host);
+  /// [clock] 供测试注入假时钟（T-04：激光消退时序确定性验证）；
+  /// 生产缺省 DateTime.now，行为不变。
+  StrokeInputSession(this._host, {DateTime Function()? clock})
+    : _clock = clock ?? DateTime.now;
 
   final StrokeInputHost _host;
+  final DateTime Function() _clock;
 
   Stroke? _activeStroke;
   StrokeGeometryCache? _activeGeometry;
@@ -42,7 +46,7 @@ class StrokeInputSession {
 
   void startStroke(Offset canvasPoint, {double pressure = 1.0}) {
     _activeLaserStartedAt = _host.strokeTool == BrushType.laser
-        ? DateTime.now()
+        ? _clock()
         : null;
     final first = StrokePoint(canvasPoint.dx, canvasPoint.dy, pressure);
     final geometry = StrokeGeometryCache(first);
@@ -89,7 +93,7 @@ class StrokeInputSession {
     }
 
     if (stroke.type == BrushType.laser) {
-      _host.addTemporaryLaser(stroke, laserStartedAt ?? DateTime.now());
+      _host.addTemporaryLaser(stroke, laserStartedAt ?? _clock());
       _host.requestFrame();
       return;
     }

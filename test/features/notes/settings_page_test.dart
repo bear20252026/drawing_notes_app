@@ -136,7 +136,8 @@ void main() {
 
       await tester.pumpWidget(const MaterialApp(home: SettingsPage()));
       expect(find.text('导出诊断信息'), findsOneWidget);
-      expect(find.text('脱敏日志，帮助排查问题'), findsOneWidget);
+      // T-14：textContaining 关键片段——整句断言与标点/措辞格式级耦合。
+      expect(find.textContaining('脱敏日志'), findsOneWidget);
     });
 
     testWidgets('备份/恢复入口：注入数据根后显示，未注入隐藏（批次 M）', (tester) async {

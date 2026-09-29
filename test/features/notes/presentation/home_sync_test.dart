@@ -22,13 +22,26 @@ import 'package:drawing_notes_app/features/notes/domain/notebook_entity.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
 import '../../../helpers/fake_block_doc_accessor.dart';
+import '../../../helpers/temp_dir_cleanup.dart';
 
 /// 无 IO 画布存储（FakeAsync 安全；画布 Tab 的无限画布区与本测试无关）。
 class _NoDocsStorage extends StorageService {
   _NoDocsStorage() : super(directoryProvider: _tempDir);
 
-  static Future<Directory> _tempDir() async =>
-      Directory.systemTemp.createTemp('home_sync_test');
+  static final _tempDirs = <Directory>[];
+
+  static Future<Directory> _tempDir() async {
+    final dir = await Directory.systemTemp.createTemp('home_sync_test');
+    _tempDirs.add(dir);
+    return dir;
+  }
+
+  /// T-13：tearDownAll 统一清理（provider 内联创建、无外部引用）。
+  static Future<void> cleanupTempDirs() async {
+    for (final d in _tempDirs) {
+      await deleteTempDirWithRetry(d);
+    }
+  }
 
   @override
   Future<List<DocumentMeta>> listDocuments() async => const <DocumentMeta>[];
@@ -100,6 +113,8 @@ Widget _homePage({
 }
 
 void main() {
+  tearDownAll(_NoDocsStorage.cleanupTempDirs);
+
   testWidgets('笔记 Tab 只显示打字笔记：kind=note 页条目不再混入（W1 归位）', (tester) async {
     final entries = [
       _entry(id: 'pg1', title: '旅行计划页', kind: AllDocKind.note),
@@ -117,7 +132,10 @@ void main() {
 
     // 切到「笔记」Tab（TabBarView 懒构建）。
     await tester.tap(find.text('笔记'));
-    await tester.pumpAndSettle();
+    // T-09：固定步长替代 pumpAndSettle——骨架屏 shimmer repeat 无止境，
+    // 同屏出现即无限等待（潜伏雷）；固定泵覆盖切页动画上限。
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
     // W1 归位：页粒度分页画布条目不再出现在笔记 Tab。
     expect(find.text('旅行计划页'), findsNothing);
@@ -140,10 +158,16 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
     await tester.tap(find.text('笔记'));
-    await tester.pumpAndSettle();
+    // T-09：固定步长替代 pumpAndSettle——骨架屏 shimmer repeat 无止境，
+    // 同屏出现即无限等待（潜伏雷）；固定泵覆盖切页动画上限。
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
     await tester.tap(find.text('读书笔记'));
-    await tester.pumpAndSettle();
+    // T-09：固定步长替代 pumpAndSettle——骨架屏 shimmer repeat 无止境，
+    // 同屏出现即无限等待（潜伏雷）；固定泵覆盖切页动画上限。
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(opened, hasLength(1));
     expect(opened.single.id, 'bd1');
@@ -172,13 +196,19 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
     await tester.tap(find.text('笔记'));
-    await tester.pumpAndSettle();
+    // T-09：固定步长替代 pumpAndSettle——骨架屏 shimmer repeat 无止境，
+    // 同屏出现即无限等待（潜伏雷）；固定泵覆盖切页动画上限。
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('读书笔记'), findsOneWidget);
     expect(find.text('第二篇笔记'), findsNothing);
 
     signal.value++;
     await tester.pump();
-    await tester.pumpAndSettle();
+    // T-09：固定步长替代 pumpAndSettle——骨架屏 shimmer repeat 无止境，
+    // 同屏出现即无限等待（潜伏雷）；固定泵覆盖切页动画上限。
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('第二篇笔记'), findsOneWidget);
   });
 
@@ -199,7 +229,10 @@ void main() {
     expect(find.text('旅行画册'), findsOneWidget);
     expect(find.textContaining('页 · 更新于'), findsOneWidget);
     await tester.tap(find.text('旅行画册'));
-    await tester.pumpAndSettle();
+    // T-09：固定步长替代 pumpAndSettle——骨架屏 shimmer repeat 无止境，
+    // 同屏出现即无限等待（潜伏雷）；固定泵覆盖切页动画上限。
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(opened, hasLength(1));
     expect(opened.single.notebookId, 'nb1');

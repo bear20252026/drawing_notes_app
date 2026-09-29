@@ -3,12 +3,14 @@ import 'dart:typed_data';
 
 import 'package:drawing_notes_app/core/storage/pdf_import_service.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'helpers/temp_dir_cleanup.dart';
 
 void main() {
   const pngHeader = <int>[137, 80, 78, 71, 13, 10, 26, 10];
 
   test('PDF 导入会将每一页持久化为可供批注的 PNG 底图', () async {
     final temp = await Directory.systemTemp.createTemp('pdf_import_test_');
+    addTearDown(() => deleteTempDirWithRetry(temp));
     addTearDown(() => temp.delete(recursive: true));
     final source = File('${temp.path}${Platform.pathSeparator}source.pdf');
     await source.writeAsBytes(const [37, 80, 68, 70, 45], flush: true);
@@ -47,6 +49,7 @@ void main() {
 
   test('页范围选择：pageNumbers 仅导入指定页（本地化适配）', () async {
     final temp = await Directory.systemTemp.createTemp('pdf_range_test_');
+    addTearDown(() => deleteTempDirWithRetry(temp));
     addTearDown(() => temp.delete(recursive: true));
     final source = File('${temp.path}${Platform.pathSeparator}source.pdf');
     await source.writeAsBytes(const [37, 80, 68, 70, 45], flush: true);
@@ -81,6 +84,7 @@ void main() {
 
   test('PDF 导入拒绝非 PDF 路径，不调用渲染后端', () async {
     final temp = await Directory.systemTemp.createTemp('pdf_import_invalid_');
+    addTearDown(() => deleteTempDirWithRetry(temp));
     addTearDown(() => temp.delete(recursive: true));
     final source = File('${temp.path}${Platform.pathSeparator}source.txt');
     await source.writeAsString('not a pdf');
@@ -98,6 +102,7 @@ void main() {
 
   test('S-01：注入密封回调时页面 PNG 以密文落盘（不再明文残留）', () async {
     final temp = await Directory.systemTemp.createTemp('pdf_seal_test_');
+    addTearDown(() => deleteTempDirWithRetry(temp));
     addTearDown(() => temp.delete(recursive: true));
     final source = File('${temp.path}${Platform.pathSeparator}source.pdf');
     await source.writeAsBytes(const [37, 80, 68, 70, 45], flush: true);
@@ -139,6 +144,7 @@ void main() {
 
   test('R-11：未注入密封回调时保持明文落盘（未加密模式兼容）', () async {
     final temp = await Directory.systemTemp.createTemp('pdf_plain_test_');
+    addTearDown(() => deleteTempDirWithRetry(temp));
     addTearDown(() => temp.delete(recursive: true));
     final source = File('${temp.path}${Platform.pathSeparator}source.pdf');
     await source.writeAsBytes(const [37, 80, 68, 70, 45], flush: true);

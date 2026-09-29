@@ -15,9 +15,14 @@ import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import '../../../helpers/fake_block_doc_accessor.dart';
+import '../../../helpers/temp_dir_cleanup.dart';
+
+final _tempDirs = <Directory>[];
 
 Future<Directory> _tempDir() async {
-  return Directory.systemTemp.createTemp('u5_home_test');
+  final dir = await Directory.systemTemp.createTemp('u5_home_test');
+  _tempDirs.add(dir);
+  return dir;
 }
 
 Future<Directory> _brokenDir() async {
@@ -37,6 +42,11 @@ Widget _wrap(Widget child) {
 }
 
 void main() {
+  tearDownAll(() async {
+    for (final d in _tempDirs) {
+      await deleteTempDirWithRetry(d);
+    }
+  });
   testWidgets('新建分页画布保存失败 → SnackBar 提示且不进入编辑页', (tester) async {
     await tester.pumpWidget(
       _wrap(

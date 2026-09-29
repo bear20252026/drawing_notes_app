@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
+import 'helpers/temp_dir_cleanup.dart';
 
 /// 媒体 VFS 双轨接入测试（专家目标架构 VFS——2026-08-16）：
 /// 新媒体写 VFS 对象（'vfs:' 标记 + 读回）+ 旧媒体兼容（未注入走现有
@@ -18,13 +19,7 @@ void main() {
     tempDir = Directory.systemTemp.createTempSync('vault_media_test');
   });
 
-  tearDown(() {
-    try {
-      tempDir.deleteSync(recursive: true);
-    } catch (_) {
-      /* 忽略清理失败 */
-    }
-  });
+  tearDown(() => deleteTempDirWithRetry(tempDir));
 
   Future<NotebookStorage> buildStorage({VaultService? vfs}) async {
     final imagesDir = Directory('${tempDir.path}/images');

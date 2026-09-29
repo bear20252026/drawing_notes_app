@@ -11,11 +11,22 @@ import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc_markdown.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
+import '../../helpers/temp_dir_cleanup.dart';
 
-Future<Directory> _tempDir() async =>
-    Directory.systemTemp.createTemp('m126_test');
+final _tempDirs = <Directory>[];
+
+Future<Directory> _tempDir() async {
+  final dir = await Directory.systemTemp.createTemp('m126_test');
+  _tempDirs.add(dir);
+  return dir;
+}
 
 void main() {
+  tearDownAll(() async {
+    for (final d in _tempDirs) {
+      await deleteTempDirWithRetry(d);
+    }
+  });
   group('回收站（软删除）', () {
     late NoteBlockDocStore store;
 

@@ -4,6 +4,7 @@ import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'helpers/temp_dir_cleanup.dart';
 
 /// Phase 5 验收测试：笔记功能。
 ///
@@ -21,7 +22,7 @@ void main() {
 
   tearDown(() async {
     if (tempDir.existsSync()) {
-      await tempDir.delete(recursive: true);
+      await deleteTempDirWithRetry(tempDir);
     }
   });
 

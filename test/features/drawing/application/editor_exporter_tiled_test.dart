@@ -14,6 +14,7 @@ import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/features/drawing/application/editor_exporter.dart';
 import 'package:drawing_notes_app/features/drawing/application/pdf_export_options.dart';
+import '../../../helpers/temp_dir_cleanup.dart';
 
 const MethodChannel _fileSelectorChannel = MethodChannel(
   'plugins.flutter.io/file_selector',
@@ -36,6 +37,7 @@ void main() {
   late Directory tempDir;
   setUp(() {
     tempDir = Directory.systemTemp.createTempSync('editor_exporter_tiled');
+    addTearDown(() => deleteTempDirWithRetry(tempDir));
     // getSavePath → 临时目录固定文件名（真实落盘；返回 null 即用户取消）。
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(_fileSelectorChannel, (call) async {

@@ -7,6 +7,7 @@ import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/document_codec.dart'
     as legacy_codec;
 import 'package:flutter_test/flutter_test.dart';
+import 'helpers/temp_dir_cleanup.dart';
 
 void main() {
   group('DocumentCodec 所有权迁移', () {
@@ -45,9 +46,7 @@ void main() {
 
     test('StorageService 接受核心存储路径的编解码器', () async {
       final tempDir = await Directory.systemTemp.createTemp('codec_owner_');
-      addTearDown(() async {
-        if (tempDir.existsSync()) await tempDir.delete(recursive: true);
-      });
+      addTearDown(() => deleteTempDirWithRetry(tempDir));
       final storage = StorageService(
         codec: const core_codec.DocumentCodec(),
         directoryProvider: () async => tempDir,

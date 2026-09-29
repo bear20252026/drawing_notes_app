@@ -132,7 +132,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(service.isConfigured, isFalse);
-    expect(find.text('两次输入不一致，请重新设置'), findsOneWidget);
+    expect(find.textContaining('两次输入不一致'), findsOneWidget);
   });
 
   testWidgets('已配置：修改密码需先验证旧密码（验证模式按钮仍为「解锁」）', (tester) async {
@@ -191,7 +191,8 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(home: AppLockSettingsPage(service: service)),
     );
-    expect(find.text('开启应用锁后，可绑定重置密码盘以防忘记密码。'), findsOneWidget);
+    // T-14：textContaining 关键片段——整句断言与标点/措辞格式级耦合。
+    expect(find.textContaining('可绑定重置密码盘'), findsOneWidget);
     // 未配置时不展示重置密码盘 tile（需要 vault + 已开启应用锁）。
     expect(find.text('重置密码盘'), findsNothing);
   });
@@ -204,7 +205,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(home: AppLockSettingsPage(service: service)),
     );
-    expect(find.text('绑定重置密码盘后，忘记密码可用它重置；未绑定时忘记密码将无法找回。'), findsOneWidget);
+    expect(find.textContaining('忘记密码可用它重置'), findsOneWidget);
   });
 
   testWidgets('宽限期（U1 尾项）：默认 30 秒，可改为关闭并持久化', (tester) async {

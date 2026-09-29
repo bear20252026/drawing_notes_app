@@ -28,6 +28,7 @@ import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page
 import 'package:drawing_notes_app/features/notes/presentation/search_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/settings_page.dart';
 import 'package:drawing_notes_app/shared/application/search_service.dart';
+import 'helpers/temp_dir_cleanup.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -161,6 +162,7 @@ void main() {
 
   testWidgets('390x844：分页画布页（NotebookViewPage）无溢出', (tester) async {
     final tempDir = Directory.systemTemp.createTempSync('gate390_nb');
+    addTearDown(() => deleteTempDirWithRetry(tempDir));
     addTearDown(() => tempDir.deleteSync(recursive: true));
     final notebook = Notebook(id: 'nb-gate', title: '门禁分页画布');
     await pump390(
@@ -236,6 +238,7 @@ void main() {
 
   testWidgets('390x844 dark：分页画布页（NotebookViewPage）无溢出', (tester) async {
     final tempDir = Directory.systemTemp.createTempSync('gate390_nb_d');
+    addTearDown(() => deleteTempDirWithRetry(tempDir));
     addTearDown(() => tempDir.deleteSync(recursive: true));
     final notebook = Notebook(id: 'nb-gate-d', title: '门禁分页画布');
     await pumpAt(
@@ -302,6 +305,7 @@ void main() {
 
   testWidgets('390x844 1.5x：分页画布页（NotebookViewPage）无溢出', (tester) async {
     final tempDir = Directory.systemTemp.createTempSync('gate390_nb_t');
+    addTearDown(() => deleteTempDirWithRetry(tempDir));
     addTearDown(() => tempDir.deleteSync(recursive: true));
     final notebook = Notebook(id: 'nb-gate-t', title: '门禁分页画布');
     await pumpAt(

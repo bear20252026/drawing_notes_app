@@ -26,6 +26,12 @@ Stroke _markerStroke() => Stroke(
   points: const [StrokePoint(40, 40, 0.5), StrokePoint(160, 40, 0.5)],
 );
 
+/// T-10（审计 2026-09-27）：统计 PDF 页数——pdf 包页面字典写作无空格
+/// 的 `/Type/Page`（负向环视排除 /Pages）；只断 %PDF 魔数时「页数被
+/// 静默丢弃」全绿。
+int _pdfPageCount(List<int> bytes) =>
+    RegExp('/Type/Page(?!s)').allMatches(String.fromCharCodes(bytes)).length;
+
 void main() {
   test('strokeToSvgPath 生成闭合的 M…L…Z 矢量路径', () {
     final svg = StrokeRenderer.strokeToSvgPath(_penStroke());
@@ -143,6 +149,8 @@ void main() {
 
     expect(bytes, isNotEmpty);
     expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+    // T-10：两页输入必须产出两页——页数被静默丢弃不再是全绿。
+    expect(_pdfPageCount(bytes), 2);
   });
 
   test('footerText + contentRect 组合：页脚与信纸放置互不干扰（%PDF）', () async {
@@ -170,6 +178,7 @@ void main() {
 
     expect(bytes, isNotEmpty);
     expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+    expect(_pdfPageCount(bytes), 1);
   });
 
   test('footerText=null 与非 null 页混排：null 页保持零边距既有行为', () async {
@@ -199,6 +208,7 @@ void main() {
 
     expect(bytes, isNotEmpty);
     expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+    expect(_pdfPageCount(bytes), 2);
   });
 
   // v1.17.23 审计修复 #2：页脚含中文标题必须挂 CJK 字体主题——pdf 包

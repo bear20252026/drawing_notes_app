@@ -6,6 +6,7 @@ import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/doc/presentation/doc_editor.dart';
+import '../../../helpers/temp_dir_cleanup.dart';
 
 /// M4 集成测试：验证 DocEditor + NoteBlockDoc 双向绑定。
 ///
@@ -119,7 +120,7 @@ void main() {
     });
 
     tearDown(() async {
-      if (tempDir.existsSync()) await tempDir.delete(recursive: true);
+      await deleteTempDirWithRetry(tempDir);
     });
 
     test('saveDocument → loadDocument → 内容一致', () async {

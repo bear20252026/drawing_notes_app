@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/infrastructure/storage/v2/encrypted_write_transaction.dart';
+import '../helpers/temp_dir_cleanup.dart';
 
 /// 专家第一周更正期 S-001~S-004（2026-08-16）：加密写入事务更正——
 /// S-001 V1 明文拒绝（不 .bak）/ S-002 V2 密文备份 / S-003 backup 失败
@@ -16,13 +17,7 @@ void main() {
     tempDir = Directory.systemTemp.createTempSync('ewt_test');
   });
 
-  tearDown(() {
-    try {
-      tempDir.deleteSync(recursive: true);
-    } catch (_) {
-      /* 忽略清理失败 */
-    }
-  });
+  tearDown(() => deleteTempDirWithRetry(tempDir));
 
   test('S-001：V1 明文 destination 拒绝——不生成 .bak——主文件不变', () async {
     final dest = File('${tempDir.path}/note.json');

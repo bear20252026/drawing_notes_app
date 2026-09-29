@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/thumbnail_backfill.dart';
+import '../../../helpers/temp_dir_cleanup.dart';
 
 void main() {
   late Directory tempDir;
@@ -23,7 +24,7 @@ void main() {
   tearDown(() async {
     ThumbnailBackfill.resetForTest();
     if (tempDir.existsSync()) {
-      await tempDir.delete(recursive: true);
+      await deleteTempDirWithRetry(tempDir);
     }
   });
 

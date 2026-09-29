@@ -352,7 +352,8 @@ class DocEditorState extends State<DocEditor> {
 
   /// P2-M6：文本击键的历史压栈合帧窗口（500ms）——连续输入停顿后
   /// 才压一次历史栈（撤销粒度＝输入 burst，非单字符）。
-  static const Duration _historyDebounceDelay = Duration(milliseconds: 500);
+  /// P2-M6 文本击键合帧窗口（公开供测试对齐，避免硬扛私有常量）。
+  static const Duration historyDebounceDelay = Duration(milliseconds: 500);
 
   /// U3 P1-9：外观刷新合帧定时器。
   Timer? _cosmeticRefreshDebounce;

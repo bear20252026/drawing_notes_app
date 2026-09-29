@@ -36,7 +36,7 @@ extension _DocEditorHistory on DocEditorState {
   /// 一致），消除每键全文档深拷贝。脏标记仍即时（自动保存不受影响）。
   void _commitHistoryCoalesced() {
     _historyDebounce?.cancel();
-    _historyDebounce = Timer(DocEditorState._historyDebounceDelay, () {
+    _historyDebounce = Timer(DocEditorState.historyDebounceDelay, () {
       _history.push(_buildDocFromState());
     });
     _isDirty = true;

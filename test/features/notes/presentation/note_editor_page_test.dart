@@ -223,8 +223,10 @@ void main() {
       await tester.showKeyboard(find.byWidget(block));
       await tester.enterText(find.byWidget(block), 'Changed');
       await tester.pumpAndSettle();
-      // P2-M6 击键合帧：泵过 500ms 合帧窗口，快照才入史栈。
-      await tester.pump(const Duration(milliseconds: 600));
+      // P2-M6 击键合帧：泵过合帧窗口（T-06：对齐公开常量+余量），快照才入史栈。
+      await tester.pump(
+        DocEditorState.historyDebounceDelay + const Duration(milliseconds: 100),
+      );
 
       // Ctrl+Z 撤销
       await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
@@ -249,7 +251,9 @@ void main() {
       await tester.enterText(find.byWidget(block), 'Changed');
       await tester.pumpAndSettle();
       // P2-M6 击键合帧：泵过合帧窗口让「Changed」入栈，撤销才有意义。
-      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump(
+        DocEditorState.historyDebounceDelay + const Duration(milliseconds: 100),
+      );
 
       // 撤销
       await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);

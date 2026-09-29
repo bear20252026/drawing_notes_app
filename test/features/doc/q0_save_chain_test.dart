@@ -5,8 +5,10 @@
 
 import 'package:flutter/material.dart' as m;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_controller.dart';
+import 'package:drawing_notes_app/features/doc/presentation/doc_editor.dart';
 import 'package:drawing_notes_app/features/doc/presentation/doc_page.dart';
 import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
@@ -45,11 +47,19 @@ void main() {
 
     final bodyField = find.byType(m.TextField).last;
     await tester.enterText(bodyField, 'Q0 复现文本');
-    // 推进防抖（5s，2026-09-06 起自动保存最小间隔）+ 合帧（0.5s）+ 写盘余量。
-    // 注意：pumpAndSettle 在保存 Timer（无帧调度）场景会提前停止，
-    // 必须用固定步长 pump 推进 fake clock 触发到期 Timer。
-    for (var i = 0; i < 22; i++) {
-      await tester.pump(const Duration(milliseconds: 300));
+    // T-07：推进时长由公开常量推导（自动保存最小间隔 + 击键合帧 + 写盘
+    // 余量），生产改档位不再静默击穿；仍用固定步长 pump——保存 Timer
+    // 无帧调度，pumpAndSettle 会提前停止。
+    final total = SaveScheduler.autoSaveInterval +
+        DocEditorState.historyDebounceDelay +
+        const Duration(milliseconds: 1500);
+    var remaining = total;
+    while (remaining > Duration.zero) {
+      final step = remaining >= const Duration(milliseconds: 300)
+          ? const Duration(milliseconds: 300)
+          : remaining;
+      await tester.pump(step);
+      remaining -= step;
     }
 
     expect(saved, isTrue, reason: '防抖保存应已触发');

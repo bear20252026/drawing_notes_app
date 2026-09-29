@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:drawing_notes_app/core/sync/sync_planner.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/file_sync_baseline_store.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../../helpers/temp_dir_cleanup.dart';
 
 void main() {
   late Directory tempDir;
@@ -18,7 +19,7 @@ void main() {
 
   tearDown(() async {
     if (tempDir.existsSync()) {
-      await tempDir.delete(recursive: true);
+      await deleteTempDirWithRetry(tempDir);
     }
   });
 

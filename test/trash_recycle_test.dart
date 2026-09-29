@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'helpers/temp_dir_cleanup.dart';
 
 /// M-06 修复（专家审计 2026-08-15）：回收站——删除移入回收站（30 天保留，
 /// Android 官方 createTrashRequest/Files by Google 模式）+ 恢复 + 过期清理。
@@ -17,7 +18,7 @@ void main() {
   });
 
   tearDown(() async {
-    await tempDir.delete(recursive: true);
+    await deleteTempDirWithRetry(tempDir);
   });
 
   test('M-06：删除移入回收站（listTrash 可见，listDocuments 不可见）', () async {

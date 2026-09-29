@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
+import '../../helpers/temp_dir_cleanup.dart';
 
 void main() {
   late Directory tmp;
@@ -12,9 +13,7 @@ void main() {
     tmp = Directory.systemTemp.createTempSync('password_reset_disk_test');
   });
 
-  tearDown(() {
-    tmp.deleteSync(recursive: true);
-  });
+  tearDown(() => deleteTempDirWithRetry(tmp));
 
   group('ResetDiskFile', () {
     test('writeTo 生成 32B 钥匙并落盘（FROG v1 格式，37 字节）', () async {

@@ -119,7 +119,8 @@ void main() {
     expect(coordinator.debugIdleTimerActive, isTrue, reason: '活动后应安排空闲释放计时');
 
     // 空闲超过延迟 → 自动释放；painter 走矢量回退，内容仍可见。
-    await Future<void>.delayed(const Duration(milliseconds: 80));
+    // T-05：等待取 idleReleaseDelay 的 4 倍余量（50ms×4），慢机不击穿。
+    await Future<void>.delayed(const Duration(milliseconds: 200));
     expect(coordinator.paintViews.single.image, isNull, reason: '空闲超时后位图应释放');
     expect(coordinator.debugIdleTimerActive, isFalse, reason: '计时器应已触发完毕');
 

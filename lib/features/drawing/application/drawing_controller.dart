@@ -57,15 +57,19 @@ class DrawingController extends ChangeNotifier
         StrokeSelectionEditingHost,
         StrokeSelectionInteractionHost,
         StrokeInputHost {
-  DrawingController(this._document) {
+  /// [temporaryInkClock] 供测试注入假时钟（T-04：激光消退时序确定性
+  /// 验证——startedAt 与消退判定共用同一时钟源）；生产缺省 DateTime.now，
+  /// 行为不变。
+  DrawingController(this._document, {DateTime Function()? temporaryInkClock}) {
     // 临时墨迹（激光/标记）淡出走独立 tick（审计 2026-09-26 #6）：16ms
     // Timer 若驱动共享 frameTick，会逐帧全量重建 overlay items/小地图/
     // 端点层——激光期间只有画布层需要重绘（临时墨迹仅 CanvasPainter
     // 绘制），监听方相应收窄。
     _temporaryInkSession = TemporaryInkSession(
       onFrameTick: () => temporaryInkTick.value++,
+      clock: temporaryInkClock,
     );
-    _strokeInputSession = StrokeInputSession(this);
+    _strokeInputSession = StrokeInputSession(this, clock: temporaryInkClock);
     _documentImageCache = DocumentImageCache(
       onImageAvailable: tickFrame,
       isOwnerDisposed: () => _disposed,

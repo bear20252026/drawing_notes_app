@@ -2,6 +2,52 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.43] - 2026-09-29
+
+### 审计批次 U：测试健壮性 T 域 P2 专项收尾（T-04~T-11/T-13/T-14，9 条）
+
+> 来源：`docs/audit_2026-09-27.md` T 域剩余 P2（批次 Q 仅闭环 T-03）。
+> 除 T-04 注入参数与 T-06 常量转公开外全部为测试域改动，产品行为零变化。
+
+- **T-04 激光消退假时钟**：`DrawingController`/`StrokeInputSession`/
+  `TemporaryInkSession` 加可选 `clock` 注入（默认 DateTime.now 行为
+  不变；startedAt 与消退判定共用同一时钟源）；测试显式推进假时间——
+  真实延时 3.8s → 0（fake_async 方案否决：fakeAsync 驱不动
+  DateTime.now，消退进度会停在 0）。
+- **T-05**：图层缓存空闲释放等待 80ms→200ms（idleReleaseDelay 50ms
+  的 4 倍余量，慢机不击穿）。
+- **T-06**：`DocEditorState._historyDebounceDelay` 转公开
+  `historyDebounceDelay`，note_editor_page_test 两处 pump(600ms)
+  硬扛私有常量改「常量+100ms」推导。
+- **T-07**：q0_save_chain_test 22×300ms 固定泵改由
+  `SaveScheduler.autoSaveInterval + historyDebounceDelay + 1.5s`
+  推导总时长（生产改档位不再静默击穿），保留固定步长 pump 纪律。
+- **T-08**：editor_shortcuts_text_guard_test 抽 `pumpUntil` helper
+  （条件早退、50ms 步长、40 步上限）——初始化/提交/工具切换 8 处
+  等待改早退式；「断言无变化」类保留固定步长；早退使总 fake 时钟
+  变短致击键合帧 Timer 未到期，三用例收尾补 1s 冲刷泵
+  （pending-timer 不变量不再随机爆）。
+- **T-09**：home_sync_test 6 处 `pumpAndSettle` 全改固定步长
+  （pump+400ms）——骨架屏 shimmer repeat 无止境，同屏即无限等待
+  的潜伏雷拆除。
+- **T-10**：pdf_hybrid_exporter_test 三个多页用例补页数断言
+  （`/Type/Page(?!s)` 计数——pdf 包页面字典无空格格式经落盘字节
+  校准），「页数被静默丢弃也全绿」闭合。
+- **T-11**：security_regression_test 取色断言升级（红笔画采样点断
+  r>0.9 且 g/b<0.1，取错像素不再全绿）+ renderToPng 补 IHDR 宽高
+  断言（渲染尺寸取错不再是全绿）。
+- **T-13**：临时目录清理收口 29 文件——13 处裸 `delete(recursive)`
+  / 6 处 `deleteSync`（Windows 句柄锁 flaky）统一换
+  `deleteTempDirWithRetry`；editor_exporter_tiled 补 tearDown；
+  m126/provider 内联创建（app_shell_smoke/两个 home/home_sync）
+  挂记录表 + tearDownAll；pages_390dp/pdf_import_service 8 处内联
+  创建逐点 addTearDown。实证：m126 改造前 TEMP 堆积 119 个残留，
+  改造后运行前后数量不变（新目录全部即时清理）。
+- **T-14**：4 处整句文案断言改 `textContaining` 关键片段
+  （app_lock_settings_page ×3、settings_page ×1），标点/措辞格式级
+  耦合解除。
+- 门禁 analyze 0 告警、全量 1877 绿。
+
 ## [1.17.42] - 2026-09-29
 
 ### 审计批次 T：i18n P3 六条清尾 + E-03 阈值数据驱动回调 + E-02 备案（L-14/L-17~L-22 + E-02/E-03）

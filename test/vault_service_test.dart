@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
+import 'helpers/temp_dir_cleanup.dart';
 
 /// VFS 统一服务单测（专家目标架构 VFS 接入层——2026-08-16）：
 /// 对象 CRUD/密钥上下文（未注入拒绝）/跨会话持久化。
@@ -16,13 +17,7 @@ void main() {
     tempDir = Directory.systemTemp.createTempSync('vault_service_test');
   });
 
-  tearDown(() {
-    try {
-      tempDir.deleteSync(recursive: true);
-    } catch (_) {
-      /* 忽略清理失败 */
-    }
-  });
+  tearDown(() => deleteTempDirWithRetry(tempDir));
 
   test('VaultService：对象 CRUD——写入/读取/清单（usecase key 标识）', () async {
     final service = VaultService(directory: tempDir);

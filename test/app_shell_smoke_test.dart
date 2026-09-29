@@ -22,6 +22,7 @@ import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
 // v1.10.5：导航类控件玻璃化——底部导航条 / FAB 材质替换壳。
 import 'package:drawing_notes_app/shared/widgets/glass_fab.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_nav_bar.dart';
+import 'helpers/temp_dir_cleanup.dart';
 
 /// 内存版块文档存储（FakeAsync 安全）。
 class _MemBlockDocStore extends NoteBlockDocStore {
@@ -39,7 +40,14 @@ class _MemBlockDocStore extends NoteBlockDocStore {
   Future<List<String>> listIds() async => docs.keys.toList();
 }
 
+final _tempDirs = <Directory>[];
+
 void main() {
+  tearDownAll(() async {
+    for (final d in _tempDirs) {
+      await deleteTempDirWithRetry(d);
+    }
+  });
   Future<void> pumpShell(
     WidgetTester tester, {
     _MemBlockDocStore? blockDocStore,
@@ -57,8 +65,11 @@ void main() {
         home: AppShell(
           blockDocStore: blockDocStore ?? _MemBlockDocStore(),
           favoriteStore: FavoriteStore(
-            directoryProvider: () async =>
-                Directory.systemTemp.createTemp('shell_smoke'),
+            directoryProvider: () async {
+                final d = await Directory.systemTemp.createTemp('shell_smoke');
+                _tempDirs.add(d);
+                return d;
+              },
           ),
         ),
       ),

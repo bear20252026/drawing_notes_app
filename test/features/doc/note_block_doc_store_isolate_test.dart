@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
+import '../../helpers/temp_dir_cleanup.dart';
 
 void main() {
   late Directory tmp;
@@ -17,7 +18,7 @@ void main() {
 
   tearDown(() async {
     try {
-      await tmp.delete(recursive: true);
+      await deleteTempDirWithRetry(tmp);
     } catch (_) {} // 临时目录清理尽力而为：失败交由系统临时目录回收。
   });
 

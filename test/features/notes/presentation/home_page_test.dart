@@ -10,9 +10,14 @@ import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
 import '../../../helpers/fake_block_doc_accessor.dart';
+import '../../../helpers/temp_dir_cleanup.dart';
+
+final _tempDirs = <Directory>[];
 
 Future<Directory> _tempDir() async {
-  return Directory.systemTemp.createTemp('home_page_test');
+  final dir = await Directory.systemTemp.createTemp('home_page_test');
+  _tempDirs.add(dir);
+  return dir;
 }
 
 Widget _wrap(Widget child) {
@@ -28,6 +33,11 @@ Widget _wrap(Widget child) {
 }
 
 void main() {
+  tearDownAll(() async {
+    for (final d in _tempDirs) {
+      await deleteTempDirWithRetry(d);
+    }
+  });
   testWidgets('HomePage 渲染：AppBar + TabBar + FAB 存在', (tester) async {
     await tester.pumpWidget(
       _wrap(

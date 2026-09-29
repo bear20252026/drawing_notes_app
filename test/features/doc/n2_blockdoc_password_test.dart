@@ -20,6 +20,7 @@ import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../helpers/temp_dir_cleanup.dart';
 
 void main() {
   // 批B：注入测试轻量 KDF（新槽位 Argon2id 8MiB≈几十 ms；生产默认
@@ -34,7 +35,7 @@ void main() {
   tearDown(() async {
     if (tempDir.existsSync()) {
       try {
-        await tempDir.delete(recursive: true);
+        await deleteTempDirWithRetry(tempDir);
       } on FileSystemException {
         // Windows 句柄延迟释放——尽力清理。
       }

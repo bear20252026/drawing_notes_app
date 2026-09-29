@@ -9,6 +9,7 @@ import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'helpers/temp_dir_cleanup.dart';
 
 /// 用户视角可用性回归测试（站在用户角度：入口→操作→保存→重开全链路）。
 void main() {
@@ -22,7 +23,7 @@ void main() {
 
   tearDown(() async {
     if (tempDir.existsSync()) {
-      await tempDir.delete(recursive: true);
+      await deleteTempDirWithRetry(tempDir);
     }
   });
 
