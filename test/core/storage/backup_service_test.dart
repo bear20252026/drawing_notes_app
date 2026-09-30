@@ -139,11 +139,12 @@ void main() {
     await File(
       '${staging.path}${Platform.pathSeparator}backup_manifest.json',
     ).writeAsString('{"formatVersion":1}');
-    await File(
-      '${staging.path}${Platform.pathSeparator}documents${Platform.pathSeparator}a.json',
-    )
-      ..createSync(recursive: true)
-      ..writeAsString('{"from":"docs-marker"}');
+    final aJson = File(
+      '${staging.path}${Platform.pathSeparator}documents'
+      '${Platform.pathSeparator}a.json',
+    );
+    aJson.createSync(recursive: true);
+    await aJson.writeAsString('{"from":"docs-marker"}');
 
     await AppDataRoot.writePendingRestoreMarker(
       parentDir: docsDir,
