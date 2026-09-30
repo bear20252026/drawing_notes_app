@@ -19,6 +19,11 @@
 - **`EditorToolModeController`**（application）：手型/框选/形状互斥
   从 presentation `EditorToolModeState` 迁出并 ChangeNotifier 化；
   页面 `_toolMode` getter 返回该 Controller。
+- **sloc-guard 收口**：C-04 各 Controller 合并进单一
+  `application/editor_interaction_controllers.dart`（含画布混排交互/
+  缩放旋转滑块暂态），presentation `editor_interaction_state.dart` 改为
+  re-export + `EditorToolModeState` typedef——application 目录回到
+  **39/40**，避免 Code Guard 结构门禁（42/40）。
 - 门禁：analyze 0 告警；drawing 域测试全绿（含新 Controller 单测 +
   就地编辑快捷键闸门/键盘选中回归）。
 

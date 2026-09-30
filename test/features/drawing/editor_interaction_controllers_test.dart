@@ -1,8 +1,7 @@
 // C-04：斜杠菜单 + 指针采样状态机控制器单测。
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:drawing_notes_app/features/drawing/application/editor_pointer_sample_state.dart';
-import 'package:drawing_notes_app/features/drawing/application/editor_slash_menu_controller.dart';
+import 'package:drawing_notes_app/features/drawing/application/editor_interaction_controllers.dart';
 
 void main() {
   group('EditorSlashMenuController', () {
