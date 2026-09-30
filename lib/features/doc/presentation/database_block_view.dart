@@ -297,20 +297,16 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final records = _visible;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppleColor.panelOf(scheme),
-        borderRadius: BorderRadius.circular(AppleRadius.md),
-        border: Border.all(color: scheme.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(context),
-          const SizedBox(height: 8),
-          switch (_db.viewType) {
-            DatabaseViewType.table => DatabaseTableView(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 有界父容器（面板/测试 Scaffold）：视图区用 Expanded 吃剩余高度，
+        // 限高子视图被紧约束后自动取剩余空间，避免「表头 + 480」溢出。
+        // 文档滚动路径父级高度无界，视图区自然展开，大表/看板维持 480。
+        final bounded = constraints.hasBoundedHeight;
+        Widget view;
+        switch (_db.viewType) {
+          case DatabaseViewType.table:
+            view = DatabaseTableView(
               fields: _db.fields,
               records: records,
               sortFieldId: _db.sortFieldId,
@@ -327,25 +323,42 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
               onPickSelect: _pickSelect,
               onRemoveField: _removeField,
               onRemoveRecord: _removeRecord,
-            ),
-            DatabaseViewType.kanban => DatabaseKanbanView(
+            );
+          case DatabaseViewType.kanban:
+            view = DatabaseKanbanView(
               fields: _db.fields,
               records: records,
               groupField: _selectField(),
               titleField: _primaryTextField(),
               displayValue: _db.displayValue,
               onRemoveRecord: _removeRecord,
-            ),
-            DatabaseViewType.list => DatabaseListView(
+            );
+          case DatabaseViewType.list:
+            view = DatabaseListView(
               fields: _db.fields,
               records: records,
               titleField: _primaryTextField(),
               displayValue: _db.displayValue,
               onRemoveRecord: _removeRecord,
-            ),
-          },
-        ],
-      ),
+            );
+        }
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppleColor.panelOf(scheme),
+            borderRadius: BorderRadius.circular(AppleRadius.md),
+            border: Border.all(color: scheme.outlineVariant),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(context),
+              const SizedBox(height: 8),
+              if (bounded) Expanded(child: view) else view,
+            ],
+          ),
+        );
+      },
     );
   }
 }

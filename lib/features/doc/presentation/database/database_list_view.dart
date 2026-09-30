@@ -17,6 +17,7 @@ class DatabaseListView extends StatelessWidget {
     required this.fields,
     required this.records,
     required this.titleField,
+    this.viewportHeight,
     required this.displayValue,
     required this.onRemoveRecord,
   });
@@ -32,6 +33,10 @@ class DatabaseListView extends StatelessWidget {
   final List<NoteFieldDef> fields;
   final List<NoteRecord> records;
   final NoteFieldDef? titleField;
+
+  /// 大数据集限高视口；null 用默认 [maxViewportHeight]。
+  final double? viewportHeight;
+
   final String Function(NoteRecord record, NoteFieldDef field) displayValue;
   final ValueChanged<NoteRecord> onRemoveRecord;
 
@@ -52,7 +57,7 @@ class DatabaseListView extends StatelessWidget {
     // 大数据集：行级虚拟化（不可见行不 build/layout/paint）。
     if (records.length > largeRecordThreshold) {
       return SizedBox(
-        height: maxViewportHeight,
+        height: viewportHeight ?? maxViewportHeight,
         child: ListView.builder(
           itemCount: records.length,
           padding: const EdgeInsets.symmetric(vertical: 4),

@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -3025,7 +3026,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get s02CloudSyncBody =>
-      'Your system Documents folder is managed by OneDrive or another cloud-sync service, so the Drawing Notes data folder is synced to the cloud. No app-lock PIN is set and notes are saved unencrypted — to keep data off the cloud, exclude this folder from sync in your cloud settings, or enable password protection in app settings.';
+      'Your note data directory is inside a cloud-sync folder. With no app-lock PIN, notes are saved unencrypted — to keep data off the cloud, exclude this directory from sync in your cloud settings, or enable password protection in app settings.';
 
   @override
   String get s02CloudSyncOkay => 'Got it';

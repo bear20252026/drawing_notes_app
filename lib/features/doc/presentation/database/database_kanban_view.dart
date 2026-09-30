@@ -2,6 +2,10 @@
 ///
 /// 按指定 select 字段（[groupField]）把已排序记录分列成卡片墙。
 /// 纯展示，把「删除」通过 [onRemoveRecord] 抛给协调者。
+///
+/// #16 完整虚拟化（2026-09-29）：任一分列记录数超过
+/// [DatabaseListView.largeRecordThreshold] 时，该列改「限高 + 卡片
+/// ListView.builder」行级虚拟化——此前 Column 一次性 build 全部卡片。
 library;
 
 import 'package:flutter/material.dart';
@@ -9,6 +13,7 @@ import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/features/doc/domain/note_database.dart';
 import 'package:drawing_notes_app/features/doc/presentation/database/database_cell_editor.dart';
+import 'package:drawing_notes_app/features/doc/presentation/database/database_list_view.dart';
 import '../../../../core/theme/apple_design.dart';
 
 /// 看板视图。
@@ -19,9 +24,16 @@ class DatabaseKanbanView extends StatelessWidget {
     required this.records,
     required this.groupField,
     required this.titleField,
+    this.viewportHeight,
     required this.displayValue,
     required this.onRemoveRecord,
   });
+
+  /// 与 list/table 视图共用的阈值与限高（语义耦合，批次 E/#16）。
+  static const int largeRecordThreshold =
+      DatabaseListView.largeRecordThreshold;
+  static const double maxViewportHeight =
+      DatabaseListView.maxViewportHeight;
 
   final List<NoteFieldDef> fields;
   final List<NoteRecord> records;
@@ -29,6 +41,9 @@ class DatabaseKanbanView extends StatelessWidget {
   /// 分列依据的 select 字段（null 时由调用方给出空态）。
   final NoteFieldDef? groupField;
   final NoteFieldDef? titleField;
+
+  /// 大列限高视口；null 用默认 [maxViewportHeight]。
+  final double? viewportHeight;
 
   final String Function(NoteRecord record, NoteFieldDef field) displayValue;
   final ValueChanged<NoteRecord> onRemoveRecord;
@@ -80,8 +95,30 @@ class DatabaseKanbanView extends StatelessWidget {
 
   Widget _column(BuildContext context, String value, List<NoteRecord> records) {
     final scheme = Theme.of(context).colorScheme;
+    final isLarge = records.length > largeRecordThreshold;
+    final vp = viewportHeight ?? maxViewportHeight;
+    final list = ListView.builder(
+      itemCount: records.length,
+      padding: EdgeInsets.zero,
+      itemBuilder: (context, i) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: _card(context, records[i]),
+      ),
+    );
+    final body = isLarge
+        ? Expanded(child: list)
+        : Column(
+            children: [
+              for (final r in records) ...[
+                _card(context, r),
+                const SizedBox(height: 8),
+              ],
+            ],
+          );
+    // 大列：整列限高（含列头），列表吃剩余空间——虚拟化卡片。
     return SizedBox(
       width: 230,
+      height: isLarge ? vp : null,
       child: Card(
         margin: EdgeInsets.zero,
         elevation: 0,
@@ -112,10 +149,7 @@ class DatabaseKanbanView extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              for (final r in records) ...[
-                _card(context, r),
-                const SizedBox(height: 8),
-              ],
+              body,
             ],
           ),
         ),

@@ -232,13 +232,12 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
   );
 }
 
-/// S-02（审计 2026-09-27）：云同步 Known Folder 未加密暴露警示宿主。
+/// S-02（审计 2026-09-27 + 方案 B）：云同步路径未加密暴露警示宿主。
 ///
-/// 数据根默认在系统「文档」Known Folder；OneDrive KFM 等会把该目录
-/// 静默迁入云盘——未设开屏 PIN 时全量明文笔记随之上云（已设 PIN 的
-/// 落盘为保险库密文，不在暴露面内）。命中时启动期弹一次性说明，
-/// 「我知道了」写入 SharedPreferences 永久记住。检测/弹窗尽力而为，
-/// 任何失败静默跳过，不阻塞启动。
+/// 方案 B 后数据根默认在 ApplicationSupport（不随 Documents Known Folder
+/// 上云）。仍检测**实际数据根路径**是否含 OneDrive 等云同步特征；命中
+/// 且未设开屏 PIN 时启动期弹一次性说明，「我知道了」写入 SharedPreferences
+/// 永久记住。检测/弹窗尽力而为，任何失败静默跳过，不阻塞启动。
 class CloudSyncNoticeHost extends StatefulWidget {
   const CloudSyncNoticeHost({
     super.key,
@@ -267,8 +266,12 @@ class _CloudSyncNoticeHostState extends State<CloudSyncNoticeHost> {
 
   Future<void> _checkAndShow() async {
     try {
-      final docsDir = await widget.appDataRoot.documentsDirectory();
-      if (!AppDataRoot.isCloudSyncedKnownFolderPath(docsDir.path)) return;
+      // S-02 方案 B：现网数据根在 ApplicationSupport（默认不被 OneDrive
+      // Known Folder 管理）。仍检测「实际数据根路径」是否落入云同步盘，
+      // 覆盖自定义根/极端配置。此处**不触发**旧位置迁移（只读路径解析），
+      // 避免 FakeAsync 测试/启动早期被真实 IO 拖住。
+      final root = await widget.appDataRoot.resolveRootWithoutMigrate();
+      if (!AppDataRoot.isCloudSyncedKnownFolderPath(root.path)) return;
       await widget.appLockService.load();
       // 已设 PIN：落盘为保险库密文，云同步暴露面收敛，不打扰。
       if (widget.appLockService.isConfigured) return;
@@ -284,8 +287,9 @@ class _CloudSyncNoticeHostState extends State<CloudSyncNoticeHost> {
           title: Text(l10n?.s02CloudSyncTitle ?? '笔记存储在云同步文件夹中'),
           content: Text(
             l10n?.s02CloudSyncBody ??
-                '你的系统「文档」文件夹由 OneDrive 等云同步服务管理，'
-                    '「绘图笔记数据」会随之同步上云。',
+                '笔记数据目录位于云同步文件夹内。当前未设置开屏密码时，'
+                    '笔记以明文保存——若不希望数据上云，可在云同步设置中排除该目录，'
+                    '或在应用设置中开启密码保护。',
           ),
           actions: [
             TextButton(

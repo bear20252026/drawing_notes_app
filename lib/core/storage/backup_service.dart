@@ -54,13 +54,14 @@ abstract final class BackupService {
     }
   }
 
-  /// 校验 [backupPath] 并解压到文档目录下的暂存目录，写入待恢复标记。
+  /// 校验 [backupPath] 并解压到数据根父目录下的暂存目录，写入待恢复标记。
   ///
-  /// 本方法不触碰现网数据根；实际交换在下次启动时进行。
+  /// S-02 方案 B 后 [dataParentDir] 通常为 ApplicationSupport（与现网数据根
+  /// 同级）。本方法不触碰现网数据根；实际交换在下次启动时进行。
   /// 备份无效（缺 manifest / 版本更高 / zip 损坏）抛 [FormatException]。
   static Future<void> stageRestore({
     required String backupPath,
-    required Directory documentsDir,
+    required Directory dataParentDir,
   }) async {
     final bytes = await File(backupPath).readAsBytes();
     final entries = await Isolate.run(() {
@@ -84,7 +85,7 @@ abstract final class BackupService {
     }
 
     final staging = Directory(
-      '${documentsDir.path}${Platform.pathSeparator}'
+      '${dataParentDir.path}${Platform.pathSeparator}'
       '${AppDataRoot.defaultRootName}.restore_${DateTime.now().millisecondsSinceEpoch}',
     );
     if (staging.existsSync()) {
@@ -104,7 +105,7 @@ abstract final class BackupService {
     // 写待恢复标记（含暂存目录绝对路径）——下次启动由
     // [AppDataRoot.applyPendingRestore] 消费。
     await AppDataRoot.writePendingRestoreMarker(
-      documentsDir: documentsDir,
+      parentDir: dataParentDir,
       stagingPath: staging.path,
     );
   }

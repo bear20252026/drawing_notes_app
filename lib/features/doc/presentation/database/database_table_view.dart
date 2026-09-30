@@ -2,6 +2,11 @@
 ///
 /// 纯展示：接收已排序/过滤的 [records] 与字段定义，把「点击」通过回调抛给协调者。
 /// 不含状态、不写回，与持久化解耦。
+///
+/// #16 完整虚拟化（2026-09-29）：表头与数据行分离——行用
+/// [ListView.builder] 行级虚拟化；记录数超过 [largeRecordThreshold] 时限高
+/// 内部滚动（与 list 视图同一交互语义）。此前 DataTable 一次性布局全部
+/// DataRow，限高只做视口裁剪、并未真正虚拟化。
 library;
 
 import 'package:flutter/material.dart';
@@ -18,6 +23,7 @@ class DatabaseTableView extends StatelessWidget {
     required this.records,
     required this.sortFieldId,
     required this.sortAscending,
+    this.viewportHeight,
     required this.displayValue,
     required this.onSort,
     required this.onEditCell,
@@ -34,10 +40,17 @@ class DatabaseTableView extends StatelessWidget {
   /// 大数据集的视口上限（与 list 视图一致，约一屏高）。
   static const double maxViewportHeight = 480;
 
+  /// 数据行基准高度（触控 44 下限 + 垂直内边距，对齐原 DataTable 行高）。
+  static const double rowHeight = 48;
+
   final List<NoteFieldDef> fields;
   final List<NoteRecord> records;
   final String? sortFieldId;
   final bool sortAscending;
+
+  /// 大数据集限高视口；null 用默认 [maxViewportHeight]。
+  /// 协调层在有界父容器里按剩余高度压低，避免「表头+视口」溢出外层 Column。
+  final double? viewportHeight;
 
   /// 单元格显示文本（如 '✓'、数字串等）。
   final String Function(NoteRecord record, NoteFieldDef field) displayValue;
@@ -60,64 +73,63 @@ class DatabaseTableView extends StatelessWidget {
     if (records.isEmpty) {
       return _empty(context, '还没有记录，点击“添加记录”');
     }
-    // V-10（审计 2026-09-27）：表头/单元格补最小 44px 热区——行高
-    // （headingRowHeight/dataRowMinHeight 44）内 InkWell 的命中范围此前
-    // 只有内容本身（14-28px）。
-    final table = SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        headingRowHeight: 44,
-        dataRowMinHeight: 44,
-        dataRowMaxHeight: 56,
-        columns: [
-          for (final f in fields)
-            DataColumn(
-              label: SizedBox(
-                height: 44,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: _sortableHeader(context, f),
-                ),
-              ),
-              numeric: f.type == NoteFieldType.number,
-            ),
-          const DataColumn(label: SizedBox(width: 28)),
-        ],
-        rows: [
-          for (final r in records)
-            DataRow(
-              cells: [
-                for (final f in fields)
-                  DataCell(
-                    SizedBox(
-                      height: 44,
-                      child: Align(
-                        alignment: f.type == NoteFieldType.number
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: _cell(context, r, f),
-                      ),
-                    ),
-                  ),
-                DataCell(_deleteRowIcon(context, r)),
-              ],
-            ),
-        ],
-      ),
+
+    final header = _header(context);
+    // 行级虚拟化：builder 只 build 视口内（+ cacheExtent）可见行。
+    final body = ListView.builder(
+      itemCount: records.length,
+      padding: EdgeInsets.zero,
+      itemBuilder: (context, i) => _dataRow(context, records[i]),
     );
-    // 大数据集：限高内部滚动。DataTable 一次性布局全部 DataRow（无法
-    // 行级虚拟化），限高只做视口裁剪，避免大表把文档页无限撑长；真正的
-    // 行级虚拟化在 list 视图（ListView.builder）。
+
+    // 大数据集：限高内部滚动 + 行级虚拟化。交互语义与 list 视图一致：
+    // 大表在约一屏高内滚动，不再把文档页无限撑长。
+    // 有界父级传入 viewportHeight 时，SizedBox 会被父级（Expanded）紧约束，
+    // 高度自动取剩余空间——无需在此再减 chrome。
     if (records.length > largeRecordThreshold) {
+      final vp = viewportHeight ?? maxViewportHeight;
       return SizedBox(
-        height: maxViewportHeight,
-        child: SingleChildScrollView(
-          scrollDirection: Axis.vertical,
-          child: table,
+        height: vp,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            header,
+            const Divider(height: 1, thickness: 0.5),
+            Expanded(child: body),
+          ],
         ),
       );
     }
-    return table;
+    // 小数据集：自然高度嵌入文档滚动；仍走 builder（行为零变化）。
+    // 注意：Column 在文档滚动里高度无界，不能包 Flexible/Expanded。
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        header,
+        const Divider(height: 1, thickness: 0.5),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: records.length,
+          padding: EdgeInsets.zero,
+          itemBuilder: (context, i) => _dataRow(context, records[i]),
+        ),
+      ],
+    );
+  }
+
+  double _columnWidth(NoteFieldDef field) {
+    switch (field.type) {
+      case NoteFieldType.checkbox:
+        return 72;
+      case NoteFieldType.number:
+        return 100;
+      case NoteFieldType.select:
+        return 140;
+      case NoteFieldType.date:
+      case NoteFieldType.text:
+        return 160;
+    }
   }
 
   Widget _empty(BuildContext context, String message) {
@@ -129,6 +141,54 @@ class DatabaseTableView extends StatelessWidget {
         style: AppleType.controlStyle(
           Theme.of(context).colorScheme.outline,
         ).copyWith(fontWeight: FontWeight.w400),
+      ),
+    );
+  }
+
+  Widget _header(BuildContext context) {
+    return SizedBox(
+      height: 44,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (final f in fields)
+              SizedBox(
+                width: _columnWidth(f),
+                child: Align(
+                  alignment: f.type == NoteFieldType.number
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
+                  child: _sortableHeader(context, f),
+                ),
+              ),
+            const SizedBox(width: 28),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _dataRow(BuildContext context, NoteRecord record) {
+    return SizedBox(
+      height: rowHeight,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (final f in fields)
+              SizedBox(
+                width: _columnWidth(f),
+                child: Align(
+                  alignment: f.type == NoteFieldType.number
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
+                  child: _cell(context, record, f),
+                ),
+              ),
+            SizedBox(width: 28, child: _deleteRowIcon(context, record)),
+          ],
+        ),
       ),
     );
   }

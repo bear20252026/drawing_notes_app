@@ -142,4 +142,81 @@ void main() {
     expect(find.text('写文档'), findsOneWidget);
     expect(find.text('2 条记录'), findsOneWidget);
   });
+
+  // #16 完整虚拟化（2026-09-29）：大表/大看板行级 builder——视口外行不 build。
+  group('#16 数据库视图完整虚拟化', () {
+    NoteBlock buildLargeBlock({
+      int count = 80,
+      DatabaseViewType? view,
+      String? selectValue,
+    }) {
+      var d = NoteDatabase.empty(title: '大表')
+          .addField(
+            const NoteFieldDef(
+              id: 'n',
+              name: '名称',
+              type: NoteFieldType.text,
+            ),
+          );
+      if (view == DatabaseViewType.kanban) {
+        d = d.addField(
+          const NoteFieldDef(
+            id: 's',
+            name: '状态',
+            type: NoteFieldType.select,
+            options: ['待办'],
+          ),
+        );
+      }
+      if (view != null) d = d.setViewType(view);
+      for (var i = 0; i < count; i++) {
+        final cells = <String, Object?>{'n': '记录$i'};
+        if (selectValue != null) cells['s'] = selectValue;
+        d = d.addRecord(NoteRecord(id: 'r$i', cells: cells));
+      }
+      return NoteBlock(
+        id: 'db-large',
+        type: NoteBlockType.database,
+        props: {'database': jsonEncode(d.toJson())},
+      );
+    }
+
+    testWidgets('表视图：>50 条时限高虚拟化，视口外行不 build', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DatabaseBlockView(
+              block: buildLargeBlock(view: DatabaseViewType.table),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('80 条记录'), findsOneWidget);
+      // 视口内可见（约 480/48 ≈ 10 行 + cacheExtent）
+      expect(find.text('记录0'), findsOneWidget);
+      // 视口外远端行不应进树——行级虚拟化生效
+      expect(find.text('记录79'), findsNothing);
+    });
+
+    testWidgets('看板视图：大列卡片虚拟化', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DatabaseBlockView(
+              block: buildLargeBlock(
+                view: DatabaseViewType.kanban,
+                selectValue: '待办',
+              ),
+            ),
+          ),
+        ),
+      );
+      // 切到看板
+      await tester.tap(find.byTooltip('看板'));
+      await tester.pumpAndSettle();
+      expect(find.text('记录0'), findsOneWidget);
+      expect(find.text('记录79'), findsNothing);
+    });
+  });
 }

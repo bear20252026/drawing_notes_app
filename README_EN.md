@@ -86,11 +86,11 @@ All five CI workflows (CI / quality gate / Code Guard / SBOM / Secret Scan) must
 
 ## Data Storage
 
-All business data lives under a single data root `<Documents>/绘图笔记数据/`
+All business data lives under a single data root in the system **Application Support** directory: `绘图笔记数据/` (Windows typically `%APPDATA%\<app>\绘图笔记数据\` — **S-02 option B**: not under the Documents Known Folder, so it is not cloud-synced by default). First access migrates any legacy scattered paths / old Documents root into the new root without overwriting existing data.
 (legacy scattered locations are migrated in on first access — never overwriting):
 
 ```
-<Documents>/绘图笔记数据/
+<ApplicationSupport>/绘图笔记数据/
 ├── documents/            standalone drawing project files (JSON — layers & strokes)
 ├── documents_trash/      drawing trash
 ├── thumbnails/           drawing thumbnails

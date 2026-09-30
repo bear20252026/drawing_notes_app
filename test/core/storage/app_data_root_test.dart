@@ -1,4 +1,4 @@
-// app_data_root_test.dart —— 统一数据根迁移测试（存储收口 2026-09-02）
+// app_data_root_test.dart —— 统一数据根迁移测试（存储收口 + S-02 方案 B）
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -66,15 +66,52 @@ void main() {
   File legacyFile(String name) =>
       File('${tempDocs.path}${Platform.pathSeparator}$name');
 
-  test('无旧数据时：root() 直接创建统一根目录', () async {
+  test('S-02 方案 B：无旧数据时 root() 位于 ApplicationSupport', () async {
     final root = await build().root();
     expect(root.path, contains(AppDataRoot.defaultRootName));
     expect(root.existsSync(), isTrue);
     expect(
-      root.path.startsWith(tempDocs.path),
+      root.path.startsWith(tempSupport.path),
       isTrue,
-      reason: '根目录必须位于注入的系统文档目录之下',
+      reason: '根目录必须位于注入的 ApplicationSupport 之下（S-02 B）',
     );
+    expect(
+      root.path.startsWith(tempDocs.path),
+      isFalse,
+      reason: '数据根不得再落在 Documents Known Folder',
+    );
+  });
+
+  test('S-02 方案 B：Documents/绘图笔记数据/ 整树迁入 ApplicationSupport', () async {
+    final oldRoot = legacy(AppDataRoot.defaultRootName);
+    final blockdocs = Directory(
+      '${oldRoot.path}${Platform.pathSeparator}blockdocs',
+    );
+    await blockdocs.create(recursive: true);
+    await File(
+      '${blockdocs.path}${Platform.pathSeparator}d1.json',
+    ).writeAsString('{}');
+    await File(
+      '${oldRoot.path}${Platform.pathSeparator}schedule_events.json',
+    ).writeAsString('[]');
+
+    final root = await build().root();
+    expect(root.path.startsWith(tempSupport.path), isTrue);
+    expect(
+      File(
+        '${root.path}${Platform.pathSeparator}blockdocs'
+        '${Platform.pathSeparator}d1.json',
+      ).existsSync(),
+      isTrue,
+      reason: '旧 Documents 根内容必须整体迁入新根',
+    );
+    expect(
+      File(
+        '${root.path}${Platform.pathSeparator}schedule_events.json',
+      ).existsSync(),
+      isTrue,
+    );
+    expect(oldRoot.existsSync(), isFalse, reason: 'move 语义：旧根不再保留');
   });
 
   test('旧业务子目录整体迁入统一根目录', () async {
@@ -140,14 +177,15 @@ void main() {
   });
 
   test('目标已存在时不覆盖（保守策略，绝不丢数据）', () async {
-    // 预置：旧目录 Documents/documents 与新根目录下的同名目录同时存在。
+    // 预置：旧目录 Documents/documents 与新根（ApplicationSupport）下的
+    // 同名目录同时存在。
     final oldSrc = legacy('documents');
     await oldSrc.create(recursive: true);
     await File(
       '${oldSrc.path}${Platform.pathSeparator}old.json',
     ).writeAsString('old');
     final preDst = Directory(
-      '${tempDocs.path}${Platform.pathSeparator}'
+      '${tempSupport.path}${Platform.pathSeparator}'
       '${AppDataRoot.defaultRootName}${Platform.pathSeparator}documents',
     );
     await preDst.create(recursive: true);
@@ -176,5 +214,12 @@ void main() {
     final a = await svc.root();
     final b = await svc.root();
     expect(a.path, b.path);
+  });
+
+  test('dataParentDirectory 返回根的父目录（备份标记定位）', () async {
+    final svc = build();
+    final root = await svc.root();
+    final parent = await svc.dataParentDirectory();
+    expect(parent.path, root.parent.path);
   });
 }

@@ -18,6 +18,8 @@ import 'package:drawing_notes_app/features/drawing/application/command_registry.
 import 'package:drawing_notes_app/features/drawing/application/di_providers.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/features/drawing/application/editor_input_arbiter.dart';
+import 'package:drawing_notes_app/features/drawing/application/editor_pointer_sample_state.dart';
+import 'package:drawing_notes_app/features/drawing/application/editor_slash_menu_controller.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/paged_export_snapshot.dart';
 import 'package:drawing_notes_app/features/drawing/application/pdf_export_options.dart';
@@ -237,8 +239,17 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   /// 选区是否已完成（完成后再拖动 = 移动选中内容，而非新建选区）。
   bool get _selectionDone => _viewModel.selectionDone;
 
-  /// 上次拖动位置（画布坐标），用于计算移动增量。
-  Offset? _lastDragCanvas;
+  /// C-04：指针/压感采样暂态（application 协作者，见 editor_pointer_sample_state）。
+  final EditorPointerSampleState _pointerSamples = EditorPointerSampleState();
+
+  Offset? get _lastDragCanvas => _pointerSamples.lastDragCanvas;
+  set _lastDragCanvas(Offset? v) {
+    if (v == null) {
+      _pointerSamples.resetDrag();
+    } else {
+      _pointerSamples.noteDrag(v);
+    }
+  }
 
   /// 选区缩放/旋转滑块的短生命周期显示值与增量换算。
   final EditorSelectionTransformState _selectionTransform =
@@ -324,11 +335,16 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   /// 就地编辑中的临时文字块（提交时才加入页面）。
   PageTextItem? _pendingTextItem;
 
+  /// C-04：斜杠命令菜单状态机（application 协作者）。
+  final EditorSlashMenuController _slashMenu = EditorSlashMenuController();
+
   /// 斜杠命令菜单是否展开（D5，借鉴 Lokus 斜杠命令）。
-  bool _slashOpen = false;
+  bool get _slashOpen => _slashMenu.open;
+  set _slashOpen(bool v) => _slashMenu.setOpen(v);
 
   /// 斜杠命令菜单当前键盘高亮项（V-08 审计 2026-09-27：↑↓/Enter 驱动）。
-  int _slashHighlight = 0;
+  int get _slashHighlight => _slashMenu.highlight;
+  set _slashHighlight(int v) => _slashMenu.setHighlight(v);
 
   /// 连线模式（D1）：开启后依次点选两个元素创建连接线。
   bool get _linkMode => _viewModel.linkMode;
@@ -375,7 +391,11 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   /// 上次取色时间（P-2 修复 2026-08-15）：pickColorAt 每次完整重绘文档
   /// 到图片（极重操作），取色做 200ms 冷却节流防连续触发卡顿。
-  DateTime? _lastPickColorAt;
+  DateTime? get _lastPickColorAt => _pointerSamples.lastPickColorAt;
+  set _lastPickColorAt(DateTime? v) {
+    if (v == null) return;
+    _pointerSamples.notePickColor(v);
+  }
 
   /// 拖动轨迹点（对齐 Excalidraw animatedTrail：拖动元素显示轨迹动画）。
   List<Offset> get _trailPoints => _canvasInteraction.trailPoints;
@@ -387,8 +407,22 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   /// 压感笔刷：上一采样点位置与时间（用于鼠标速度模拟压感，
   /// 对齐 Excalidraw：速度快 -> 笔画细，速度慢 -> 笔画粗）。
-  Offset? _lastPenPos;
-  DateTime? _lastPenTime;
+  Offset? get _lastPenPos => _pointerSamples.lastPenPos;
+  set _lastPenPos(Offset? v) {
+    if (v == null) {
+      _pointerSamples.resetPen();
+    } else {
+      _pointerSamples.notePen(v, DateTime.now());
+    }
+  }
+
+  DateTime? get _lastPenTime => _pointerSamples.lastPenTime;
+  set _lastPenTime(DateTime? v) {
+    _pointerSamples.lastPenTime = v;
+    if (v != null && _pointerSamples.lastPenPos == null) {
+      // 仅时间戳时保留位置语义：由调用方先 set 位置再 set 时间。
+    }
+  }
 
   /// 压感解释、平滑与设备诊断。真实笔压与鼠标速度回退在同一策略中处理，
   /// 状态栏明确展示来源，避免把模拟效果误认为硬件压感。
@@ -653,6 +687,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     _saveScheduler.savingState.removeListener(_onSavingStateChanged);
     unawaited(_viewModel.flushIfDirty());
     _viewModel.dispose();
+    _slashMenu.dispose();
     _shortcutFocus.dispose();
     _editController.dispose();
     _editFocus.dispose();

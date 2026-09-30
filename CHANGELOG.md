@@ -2,6 +2,33 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.47] - 2026-09-30
+
+### 审计批次 Y：#16 完整虚拟化 + S-02 方案 B + C-04 交互状态机首批
+
+> 三项产品决策项（用户 2026-09-30 指示继续推进）合并发版。
+
+- **#16 数据库视图完整虚拟化**：表视图弃 DataTable 全量布局，改
+  「粘性表头 + 数据行 ListView.builder」；看板大列（>50）整列限高 +
+  卡片 builder。记录 >50 时限高内部滚动（与 list 同语义）；有界父容器
+  下协调层 Expanded 吃剩余高度，避免「表头+480」溢出。测试 +2（表/看板
+  视口外行不 build）。
+- **S-02 方案 B：数据根迁 ApplicationSupport**：`AppDataRoot.root()` 基底
+  从 `Documents/绘图笔记数据/` 改为 **ApplicationSupport/绘图笔记数据/**
+  （Windows `%APPDATA%\<app>\`，默认不被 OneDrive Known Folder 管理）。
+  启动期一次性迁移旧 Documents 根与收口前分散路径（目标已存在不覆盖）；
+  备份标记/暂存改写在数据根父目录；`applyPendingRestore` 兼容 Documents
+  在途标记仍交换到新根。云同步警示改为检测**实际数据根路径**（不触发
+  迁移的只读解析）。README 数据存储位置同步。
+- **C-04 交互状态机首批**：斜杠菜单开关/↑↓ 高亮与指针/压感采样暂态
+  从 `EditorPage` 私有字段抽到 application 层
+  `EditorSlashMenuController` / `EditorPointerSampleState`（State 经
+  getter/setter 代理，part 零改）。编辑器 O1 域 part 与既有
+  `EditorCanvasInteractionState`/`EditorViewModel` 继续承接剩余职责；
+  后续控制器拆分沿用「窄协作者 + 不增 presentation 无边界 part」纪律。
+- 门禁：analyze 0 告警；关键测试（#16/S-02/C-04/设置/编辑器快捷键/
+  键盘选中）全绿。
+
 ## [1.17.46] - 2026-09-29
 
 ### 审计批次 X：E-05 收口——pdfrx 升级并移除 engine override

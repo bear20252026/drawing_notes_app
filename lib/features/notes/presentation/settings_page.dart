@@ -355,7 +355,8 @@ class SettingsPage extends StatelessWidget {
   Future<void> _startRestore(BuildContext context) async {
     final l10n = AppLocalizations.of(context);
     try {
-      final docsDir = await appDataRoot!.documentsDirectory();
+      // S-02 方案 B：暂存/标记写在数据根父目录（通常 ApplicationSupport）。
+      final dataParent = await appDataRoot!.dataParentDirectory();
       final selected = await openFile(
         acceptedTypeGroups: [
           XTypeGroup(
@@ -367,7 +368,7 @@ class SettingsPage extends StatelessWidget {
       if (selected == null) return; // 用户取消
       await BackupService.stageRestore(
         backupPath: selected.path,
-        documentsDir: docsDir,
+        dataParentDir: dataParent,
       );
       if (!context.mounted) return;
       final proceed = await GlassDialog.confirm(
@@ -384,7 +385,7 @@ class SettingsPage extends StatelessWidget {
         // 用户取消：清掉刚写的标记与暂存，保持现网原状。
         try {
           final marker = File(
-            '${docsDir.path}${Platform.pathSeparator}'
+            '${dataParent.path}${Platform.pathSeparator}'
                 '${AppDataRoot.pendingRestoreMarkerName}',
           );
           if (marker.existsSync()) {

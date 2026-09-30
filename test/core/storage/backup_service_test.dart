@@ -1,8 +1,8 @@
-// BackupService + AppDataRoot 待恢复交换 单测（批次 M，2026-09-27）。
+// BackupService + AppDataRoot 待恢复交换 单测（批次 M + S-02 方案 B）。
 //
 // 覆盖：打包（含 manifest、排除 tmp/bak）→ 暂存恢复 → 启动期原子交换
 // 全链路 roundtrip；无效包 fail-fast；zip slip 防护；fail-safe（暂存
-// 缺失时放弃恢复且清除标记）。
+// 缺失时放弃恢复且清除标记）；Documents 在途标记仍可应用到新根。
 import 'dart:io';
 import 'dart:convert';
 
@@ -15,12 +15,15 @@ import '../../helpers/temp_dir_cleanup.dart';
 
 void main() {
   late Directory docsDir;
+  late Directory supportDir;
   late Directory dataRoot;
 
   setUp(() async {
     docsDir = await Directory.systemTemp.createTemp('backup_test_docs_');
+    supportDir = await Directory.systemTemp.createTemp('backup_test_supp_');
+    // S-02 方案 B：现网数据根在 ApplicationSupport 下。
     dataRoot = Directory(
-      '${docsDir.path}${Platform.pathSeparator}${AppDataRoot.defaultRootName}',
+      '${supportDir.path}${Platform.pathSeparator}${AppDataRoot.defaultRootName}',
     );
     await dataRoot.create(recursive: true);
   });
@@ -28,6 +31,9 @@ void main() {
   tearDown(() async {
     try {
       await deleteTempDirWithRetry(docsDir);
+    } catch (_) {}
+    try {
+      await deleteTempDirWithRetry(supportDir);
     } catch (_) {}
   });
 
@@ -57,13 +63,13 @@ void main() {
     await rootFile('documents/new_after_backup.json').create(recursive: true);
     await rootFile('documents/a.json').delete();
 
-    // 暂存恢复。
+    // 暂存恢复（标记写在数据根父目录 = ApplicationSupport）。
     await BackupService.stageRestore(
       backupPath: backupPath,
-      documentsDir: docsDir,
+      dataParentDir: supportDir,
     );
     final marker = File(
-      '${docsDir.path}${Platform.pathSeparator}'
+      '${supportDir.path}${Platform.pathSeparator}'
       '${AppDataRoot.pendingRestoreMarkerName}',
     );
     expect(marker.existsSync(), isTrue);
@@ -88,6 +94,7 @@ void main() {
     // 启动期交换。
     final applied = await AppDataRoot.applyPendingRestore(
       documentsPathProvider: () => docsDir.path,
+      supportPathProvider: () => supportDir.path,
     );
     expect(applied, isTrue);
     expect(marker.existsSync(), isFalse);
@@ -104,7 +111,7 @@ void main() {
     expect(rootFile('documents/a.json.bak').existsSync(), isFalse);
     // 残留 .old_<ts> 已清理。
     expect(
-      docsDir
+      supportDir
           .listSync()
           .whereType<Directory>()
           .where((d) => d.path.contains('.old_'))
@@ -116,8 +123,46 @@ void main() {
     expect(
       await AppDataRoot.applyPendingRestore(
         documentsPathProvider: () => docsDir.path,
+        supportPathProvider: () => supportDir.path,
       ),
       isFalse,
+    );
+  });
+
+  test('S-02 B 兼容：Documents 在途标记仍应用到 ApplicationSupport 根', () async {
+    // 构造一份最小合法备份包放在 Documents 标记指向的暂存目录。
+    final staging = Directory(
+      '${docsDir.path}${Platform.pathSeparator}'
+      '${AppDataRoot.defaultRootName}.restore_compat',
+    );
+    await staging.create(recursive: true);
+    await File(
+      '${staging.path}${Platform.pathSeparator}backup_manifest.json',
+    ).writeAsString('{"formatVersion":1}');
+    await File(
+      '${staging.path}${Platform.pathSeparator}documents${Platform.pathSeparator}a.json',
+    )
+      ..createSync(recursive: true)
+      ..writeAsString('{"from":"docs-marker"}');
+
+    await AppDataRoot.writePendingRestoreMarker(
+      parentDir: docsDir,
+      stagingPath: staging.path,
+    );
+
+    final applied = await AppDataRoot.applyPendingRestore(
+      documentsPathProvider: () => docsDir.path,
+      supportPathProvider: () => supportDir.path,
+    );
+    expect(applied, isTrue);
+    expect(
+      rootFile('documents/a.json').existsSync(),
+      isTrue,
+      reason: '在途 Documents 标记必须交换到 ApplicationSupport 现网根',
+    );
+    expect(
+      await rootFile('documents/a.json').readAsString(),
+      '{"from":"docs-marker"}',
     );
   });
 
@@ -128,12 +173,12 @@ void main() {
     await File(junkPath).writeAsBytes(ZipEncoder().encode(archive));
 
     await expectLater(
-      BackupService.stageRestore(backupPath: junkPath, documentsDir: docsDir),
+      BackupService.stageRestore(backupPath: junkPath, dataParentDir: supportDir),
       throwsFormatException,
     );
     expect(
       File(
-        '${docsDir.path}${Platform.pathSeparator}'
+        '${supportDir.path}${Platform.pathSeparator}'
         '${AppDataRoot.pendingRestoreMarkerName}',
       ).existsSync(),
       isFalse,
@@ -149,16 +194,16 @@ void main() {
 
     await BackupService.stageRestore(
       backupPath: evilPath,
-      documentsDir: docsDir,
+      dataParentDir: supportDir,
     );
 
     final marker = File(
-      '${docsDir.path}${Platform.pathSeparator}'
+      '${supportDir.path}${Platform.pathSeparator}'
       '${AppDataRoot.pendingRestoreMarkerName}',
     );
     final stagingPath = (await marker.readAsString()).trim();
     expect(
-      File('${docsDir.path}${Platform.pathSeparator}evil.txt').existsSync(),
+      File('${supportDir.path}${Platform.pathSeparator}evil.txt').existsSync(),
       isFalse,
     );
     expect(
@@ -169,17 +214,18 @@ void main() {
 
   test('fail-safe：标记存在但暂存缺失 → 放弃恢复并清标记', () async {
     await AppDataRoot.writePendingRestoreMarker(
-      documentsDir: docsDir,
+      parentDir: supportDir,
       stagingPath:
-          '${docsDir.path}${Platform.pathSeparator}nonexistent_staging',
+          '${supportDir.path}${Platform.pathSeparator}nonexistent_staging',
     );
     final applied = await AppDataRoot.applyPendingRestore(
       documentsPathProvider: () => docsDir.path,
+      supportPathProvider: () => supportDir.path,
     );
     expect(applied, isFalse);
     expect(
       File(
-        '${docsDir.path}${Platform.pathSeparator}'
+        '${supportDir.path}${Platform.pathSeparator}'
         '${AppDataRoot.pendingRestoreMarkerName}',
       ).existsSync(),
       isFalse,

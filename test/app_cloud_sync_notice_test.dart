@@ -1,7 +1,8 @@
-// S-02（审计 2026-09-27）：云同步 Known Folder 未加密暴露警示宿主。
+// S-02（审计 2026-09-27 + 方案 B）：云同步路径未加密暴露警示宿主。
 //
-// 覆盖：OneDrive 路径 + 未设 PIN → 弹警示；「我知道了」永久记住；
-// 二次挂载不再弹；常规路径/PIN 已设不弹。检测/弹窗失败静默跳过。
+// 覆盖：数据根位于 OneDrive 路径 + 未设 PIN → 弹警示；「我知道了」永久
+// 记住；二次挂载不再弹；常规 ApplicationSupport 路径/PIN 已设不弹。
+// 检测/弹窗失败静默跳过。
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -38,12 +39,17 @@ void main() {
     await deleteTempDirWithRetry(tempDocs);
   });
 
+  /// 方案 B 后检测的是**数据根**（ApplicationSupport）路径，故
+  /// oneDrive 标志通过 supportDirProvider 注入。
   CloudSyncNoticeHost host({required bool oneDrive}) {
-    final docsDir = oneDrive
+    final supportDir = oneDrive
         ? Directory('${tempDocs.path}${Platform.pathSeparator}OneDrive')
         : tempDocs;
     return CloudSyncNoticeHost(
-      appDataRoot: AppDataRoot(documentsDirProvider: () async => docsDir),
+      appDataRoot: AppDataRoot(
+        documentsDirProvider: () async => tempDocs,
+        supportDirProvider: () async => supportDir,
+      ),
       appLockService: AppLockService(),
       child: const Scaffold(body: Text('home')),
     );
@@ -55,7 +61,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('OneDrive 路径 + 未设 PIN → 弹警示；我知道了后永久记住', (tester) async {
+  testWidgets('数据根在 OneDrive 路径 + 未设 PIN → 弹警示；我知道了后永久记住', (tester) async {
     await settle(tester, host(oneDrive: true));
 
     expect(find.text('笔记存储在云同步文件夹中'), findsOneWidget);
@@ -71,7 +77,7 @@ void main() {
     expect(find.text('笔记存储在云同步文件夹中'), findsNothing);
   });
 
-  testWidgets('常规本地路径不弹', (tester) async {
+  testWidgets('常规 ApplicationSupport 路径不弹（S-02 B 默认根）', (tester) async {
     await settle(tester, host(oneDrive: false));
     expect(find.text('笔记存储在云同步文件夹中'), findsNothing);
   });
@@ -79,11 +85,14 @@ void main() {
   testWidgets('已设 PIN（密文落盘）不弹', (tester) async {
     final service = AppLockService();
     await service.setPin('135790');
-    final docsDir = Directory(
+    final supportDir = Directory(
       '${tempDocs.path}${Platform.pathSeparator}OneDrive',
     );
     final h = CloudSyncNoticeHost(
-      appDataRoot: AppDataRoot(documentsDirProvider: () async => docsDir),
+      appDataRoot: AppDataRoot(
+        documentsDirProvider: () async => tempDocs,
+        supportDirProvider: () async => supportDir,
+      ),
       appLockService: service,
       child: const Scaffold(body: Text('home')),
     );

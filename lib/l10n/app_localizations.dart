@@ -5639,7 +5639,7 @@ abstract class AppLocalizations {
   /// No description provided for @s02CloudSyncBody.
   ///
   /// In en, this message translates to:
-  /// **'Your system Documents folder is managed by OneDrive or another cloud-sync service, so the Drawing Notes data folder is synced to the cloud. No app-lock PIN is set and notes are saved unencrypted — to keep data off the cloud, exclude this folder from sync in your cloud settings, or enable password protection in app settings.'**
+  /// **'Your note data directory is inside a cloud-sync folder. With no app-lock PIN, notes are saved unencrypted — to keep data off the cloud, exclude this directory from sync in your cloud settings, or enable password protection in app settings.'**
   String get s02CloudSyncBody;
 
   /// No description provided for @s02CloudSyncOkay.

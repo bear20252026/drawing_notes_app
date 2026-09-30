@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -2919,7 +2920,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get s02CloudSyncBody =>
-      '你的系统「文档」文件夹由 OneDrive 等云同步服务管理，「绘图笔记数据」会随之同步上云。当前未设置开屏密码，笔记以明文保存——若不希望数据上云，可在云同步设置中排除该文件夹，或在应用设置中开启密码保护。';
+      '笔记数据目录位于云同步文件夹内。当前未设置开屏密码时，笔记以明文保存——若不希望数据上云，可在云同步设置中排除该目录，或在应用设置中开启密码保护。';
 
   @override
   String get s02CloudSyncOkay => '我知道了';
