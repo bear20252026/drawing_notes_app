@@ -2,6 +2,28 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.46] - 2026-09-29
+
+### 审计批次 X：E-05 收口——pdfrx 升级并移除 engine override
+
+> 来源：`docs/audit_2026-09-27.md` 工程化备案待办 E-05（等上游修复后
+> 移除 `pdfrx_engine` override）。134 条审计自此仅剩产品决策项
+> （S-02 方案 B / C-04 等），无工程化未闭环项。
+
+- **pdfrx 2.4.7 → 2.6.5**：上游 2.6.0 起要求 Dart ^3.13 / Flutter 3.47，
+  本机 Flutter 3.47.0 自带 Dart 3.13.0，`pubspec.environment.sdk`
+  对齐为 `^3.13.0`。2.4.7 时代的 `PdfFileCache` 可空性编译问题
+  （曾靠 `dependency_overrides: pdfrx_engine: 0.4.6` 绕过）已被上游
+  2.4.8+/2.6.x 正式修复——**override 整段删除**，engine 由主包解析
+  为 0.6.1（transitive）。
+- **API 兼容**：本应用仅用低层 PDFium 门面（`pdfrxFlutterInitialize` /
+  `PdfDocument.openFile` / `ensureLoaded` / `page.render` /
+  `PdfImage.pixels|width|height|dispose`），2.6.5 仍导出且签名兼容；
+  未使用 PdfViewer 组件族，material_ui 仅作为 pdfrx 传递依赖出现
+  （应用 UI 方言仍为 `flutter/material`）。
+- **门禁**：`flutter analyze` 0 告警；PDF 相关测试 28 绿；全量
+  **1879 绿 + 1 skipped**（含 architecture 9 规则）。
+
 ## [1.17.45] - 2026-09-29
 
 ### 审计批次 W：S-02 收口——云同步 Known Folder 未加密暴露警示（方案 A）

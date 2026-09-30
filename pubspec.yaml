@@ -16,10 +16,11 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.17.45+114
+version: 1.17.46+115
 
 environment:
-  sdk: ^3.12.2
+  # 与 Flutter 3.47（Dart 3.13.0）对齐；pdfrx 2.6.x 也要求 sdk ^3.13.0。
+  sdk: ^3.13.0
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -53,9 +54,11 @@ dependencies:
   local_auth: ^3.0.0
   pdf: ^3.11.1
   # MIT：基于 PDFium 的跨平台本地 PDF 读取与逐页渲染，供资料批注导入使用。
-  # 锁定 2.4.7：2.5.0 上游发布不完整（包内引用自身不存在的 debugLazyLoading/
-  # pdfrxLazyLog，编译失败），待 2.5.1+ 修复后再升。
-  pdfrx: 2.4.7
+  # E-05 收口（2026-09-29）：升到 2.6.5（Dart 3.13+/Flutter 3.47+），
+  # 上游已自带 pdfrx_engine 0.6.x，移除 dependency_overrides；2.4.7 时代的
+  # PdfFileCache 可空性 override（0.4.6）不再需要。低层 API（openFile/
+  # ensureLoaded/page.render）未破坏。
+  pdfrx: 2.6.5
   hotkey_manager: ^0.2.3
   # 与 pdfrx 的 PDFium 渲染引擎共用 image 4.x 依赖树。
   archive: ^4.0.9
@@ -146,7 +149,4 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 
-# Flutter 3.47 兼容修复：pdfrx_engine 0.4.5 在 3.47 下 PdfFileCache?
-# 可空性编译错误（官方 0.4.6 修复）；主包约束仍锁 0.4.5，用 override 强制。
-dependency_overrides:
-  pdfrx_engine: 0.4.6
+# E-05：pdfrx 2.6.5 已自带 pdfrx_engine 0.6.x，无需 override。
