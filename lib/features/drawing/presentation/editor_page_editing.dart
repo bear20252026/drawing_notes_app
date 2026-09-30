@@ -23,11 +23,9 @@ extension _EditorPageEditing on _EditorPageState {
         x: canvasPoint.dx,
         y: canvasPoint.dy,
       );
-      _editingItemId = item.id;
+      _beginTextSession(item);
       _editController.clear();
       _viewModel.setTextToolActive(false);
-      // 保存临时项供 overlay 渲染与提交。
-      _pendingTextItem = item;
       _selectedItemId = null;
     });
     // 下一帧把焦点交给就地编辑框。
@@ -48,10 +46,9 @@ extension _EditorPageEditing on _EditorPageState {
         x: canvasPoint.dx,
         y: canvasPoint.dy,
       );
-      _editingItemId = item.id;
+      _beginTextSession(item);
       _editController.clear();
       _viewModel.setTextToolActive(false);
-      _pendingTextItem = item;
       _selectedItemId = null;
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -107,17 +104,14 @@ extension _EditorPageEditing on _EditorPageState {
       });
       _notifyChanged();
     }
-    _editingItemId = null;
-    _pendingTextItem = null;
-    _slashOpen = false;
+    // C-04：会话字段/状态机统一收口（不论文本是否有效变更都结束会话）。
+    _endTextSession(committed: true);
     _editFocus.unfocus();
   }
 
   /// 结束就地编辑（点画布其他位置/切换工具时调用）。
   void _cancelTextEditing() {
     _commitTextEditing();
-    _editingItemId = null;
-    _pendingTextItem = null;
   }
 
   /// 添加"特殊标签"（便利贴样式文字块，弹窗输入，可拖动移动）。
@@ -781,9 +775,8 @@ extension _EditorPageEditing on _EditorPageState {
     _applyState(() {
       // 清理上一个未提交的就地编辑。
       _commitTextEditing();
-      _editingItemId = item.id;
+      _beginTextSession(item);
       _editController.text = item.text;
-      _pendingTextItem = item;
     });
     // 下一帧把焦点交给就地编辑框，并把光标移到末尾。
     WidgetsBinding.instance.addPostFrameCallback((_) {

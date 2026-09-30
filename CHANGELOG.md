@@ -2,6 +2,26 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.48] - 2026-09-30
+
+### 审计批次 Z：C-04 第二批——就地文字会话与工具模式 Controller 化
+
+> 承接 v1.17.47 C-04 首批（斜杠菜单/指针采样），本批把仍在 `EditorPage`
+> State 的文字编辑会话与工具互斥状态机收口到 application 层。
+
+- **`EditorInPlaceTextSessionController`**（application）：
+  - 包装既有纯逻辑 `TextEditSessionStateMachine`（idle→editing→
+    committing/settled）+ 会话字段（editingItemId / pendingTextItem）；
+  - `beginEdit`（重复 begin 先 cancel 上一会话）、`completeCommit` /
+    `completeCancel`、`reset`；
+  - `_editingItemId`/`_pendingTextItem` 改为只读 getter；写路径统一
+    `_beginTextSession`/`_endTextSession`（编辑器 part 零改字段语法）。
+- **`EditorToolModeController`**（application）：手型/框选/形状互斥
+  从 presentation `EditorToolModeState` 迁出并 ChangeNotifier 化；
+  页面 `_toolMode` getter 返回该 Controller。
+- 门禁：analyze 0 告警；drawing 域测试全绿（含新 Controller 单测 +
+  就地编辑快捷键闸门/键盘选中回归）。
+
 ## [1.17.47] - 2026-09-30
 
 ### 审计批次 Y：#16 完整虚拟化 + S-02 方案 B + C-04 交互状态机首批

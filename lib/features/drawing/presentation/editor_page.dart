@@ -18,8 +18,10 @@ import 'package:drawing_notes_app/features/drawing/application/command_registry.
 import 'package:drawing_notes_app/features/drawing/application/di_providers.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/features/drawing/application/editor_input_arbiter.dart';
+import 'package:drawing_notes_app/features/drawing/application/editor_in_place_text_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/editor_pointer_sample_state.dart';
 import 'package:drawing_notes_app/features/drawing/application/editor_slash_menu_controller.dart';
+import 'package:drawing_notes_app/features/drawing/application/editor_tool_mode_controller.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/paged_export_snapshot.dart';
 import 'package:drawing_notes_app/features/drawing/application/pdf_export_options.dart';
@@ -326,17 +328,39 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   /// 命令面板最近一次成功执行的命令（仅保留会话内记录）。
   String? _lastCommandId;
 
-  /// 就地编辑（点击页面直接打字）状态：
-  /// 正在编辑的文字块 id（null = 无就地编辑）。
-  String? _editingItemId;
+  /// 就地编辑（点击页面直接打字）状态：经 [EditorInPlaceTextSessionController]。
+  /// 读路径只暴露 getter；写路径统一走 [_beginTextSession]/[_endTextSession]。
+  String? get _editingItemId => _textSession.editingItemId;
+
+  PageTextItem? get _pendingTextItem => _textSession.pendingTextItem;
+
+  /// 进入就地编辑会话（C-04：与 TextEditSessionStateMachine.begin 对齐）。
+  void _beginTextSession(PageTextItem draft) {
+    _textSession.beginEdit(id: draft.id, draft: draft);
+  }
+
+  /// 结束就地编辑会话。[committed]=true 走提交 settled；否则取消。
+  void _endTextSession({required bool committed}) {
+    if (committed) {
+      _textSession.completeCommit();
+    } else {
+      _textSession.completeCancel();
+    }
+    _slashOpen = false;
+  }
+
   final TextEditingController _editController = TextEditingController();
   final FocusNode _editFocus = FocusNode();
 
-  /// 就地编辑中的临时文字块（提交时才加入页面）。
-  PageTextItem? _pendingTextItem;
-
   /// C-04：斜杠命令菜单状态机（application 协作者）。
   final EditorSlashMenuController _slashMenu = EditorSlashMenuController();
+
+  /// C-04 第二批：就地文字编辑会话（TextEditSessionStateMachine + 字段）。
+  final EditorInPlaceTextSessionController _textSession =
+      EditorInPlaceTextSessionController();
+
+  /// C-04 第二批：工具模式互斥（手型/框选/形状）。
+  final EditorToolModeController _toolModeCtrl = EditorToolModeController();
 
   /// 斜杠命令菜单是否展开（D5，借鉴 Lokus 斜杠命令）。
   bool get _slashOpen => _slashMenu.open;
@@ -349,11 +373,11 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   /// 连线模式（D1）：开启后依次点选两个元素创建连接线。
   bool get _linkMode => _viewModel.linkMode;
 
-  /// 手型、框选和形状工具的互斥展示状态。
-  final EditorToolModeState _toolMode = EditorToolModeState();
-  bool get _handToolActive => _toolMode.handActive;
-  bool get _marqueeActive => _toolMode.marqueeActive;
-  ShapeType? get _activeShapeTool => _toolMode.activeShape;
+  /// 手型、框选和形状工具的互斥展示状态（C-04：application Controller）。
+  EditorToolModeController get _toolMode => _toolModeCtrl;
+  bool get _handToolActive => _toolModeCtrl.handActive;
+  bool get _marqueeActive => _toolModeCtrl.marqueeActive;
+  ShapeType? get _activeShapeTool => _toolModeCtrl.activeShape;
 
   /// 画布视口尺寸（小地图导航用，由布局回调更新）。
   /// 声明在主类（extension 不能声明实例字段，拆分专用）。
@@ -688,6 +712,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     unawaited(_viewModel.flushIfDirty());
     _viewModel.dispose();
     _slashMenu.dispose();
+    _textSession.dispose();
+    _toolModeCtrl.dispose();
     _shortcutFocus.dispose();
     _editController.dispose();
     _editFocus.dispose();
