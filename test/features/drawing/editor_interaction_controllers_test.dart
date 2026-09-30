@@ -1,4 +1,4 @@
-// C-04：斜杠菜单 + 指针采样状态机控制器单测。
+// C-04：斜杠菜单 + 指针采样 + 壳层 UI 状态机控制器单测。
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/features/drawing/application/editor_interaction_controllers.dart';
@@ -52,6 +52,30 @@ void main() {
 
       s.notePickColor(t);
       expect(s.lastPickColorAt, t);
+    });
+  });
+
+  group('EditorChromeController', () {
+    test('toggle 全屏/阅读反相/图层面板/检查器', () {
+      final c = EditorChromeController();
+      expect(c.fullscreen, isFalse);
+      expect(c.toggleFullscreen(), isTrue);
+      expect(c.toggleFullscreen(), isFalse);
+      expect(c.toggleReadingInverted(), isTrue);
+      expect(c.toggleLayers(), isTrue);
+      expect(c.toggleInspector(), isTrue);
+      c.setLayersVisible(false);
+      expect(c.layersVisible, isFalse);
+    });
+
+    test('网格/吸附/命令记忆 setter', () {
+      final c = EditorChromeController();
+      expect(c.toggleGrid(), isTrue);
+      expect(c.toggleSnapToGrid(), isTrue);
+      c.setLastCommandId('cmd.a');
+      expect(c.lastCommandId, 'cmd.a');
+      c.setLastCommandId(null);
+      expect(c.lastCommandId, isNull);
     });
   });
 }

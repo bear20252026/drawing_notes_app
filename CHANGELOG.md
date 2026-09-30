@@ -2,6 +2,22 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.49] - 2026-09-30
+
+### 审计批次 AA：C-04 第三批——编辑器壳层 UI 状态 Controller 化
+
+> 承接 v1.17.47/48 C-04 前两批，本批把会话级壳层开关收口到
+> `EditorChromeController`（合入既有 `editor_interaction_controllers.dart`，
+> 不增加 application 目录文件数）。
+
+- **`EditorChromeController`**：全屏、阅读反相、图层面板、检查器、网格
+  显示、网格吸附、命令面板最近命令 id——toggle/set 语义可单测。
+- **State 接线**：顶栏 `_toggleLayers/Inspector/Fullscreen/ReadingInverted`
+  经 Controller.toggle 并写回 State 私有字段（part 文件零改动）；
+  CommandPalette 的 grid/snap/lastCommandId 赋值路径不变，Controller
+  承载可测开关逻辑。
+- 门禁：analyze 0 告警；C-04 相关测试全绿。
+
 ## [1.17.48] - 2026-09-30
 
 ### 审计批次 Z：C-04 第二批——就地文字会话与工具模式 Controller 化

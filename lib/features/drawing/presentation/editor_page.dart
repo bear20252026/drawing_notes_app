@@ -276,6 +276,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   }
 
   /// 全屏模式：隐藏应用框架，只保留画布。
+  /// C-04 第三批：与 [EditorChromeController] 同步（toggle 时写回）。
   bool _fullscreen = false;
 
   /// 阅读反相仅作用于当前编辑器显示层；不修改页面颜色、资源字节、导出或保存。
@@ -313,6 +314,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   /// 图层与详细属性默认按需展开，避免在普通屏幕上长期挤压创作区域。
   bool _layersVisible = false;
   bool _inspectorVisible = false;
+
+  /// C-04 第三批：编辑器壳层 UI 模式（全屏/阅读反相/面板/网格/命令记忆）。
+  /// 与 State 私有字段双写：part 读 State 字段；Controller 承载 toggle 语义。
+  final EditorChromeController _chrome = EditorChromeController();
 
   /// 键盘快捷键监听焦点（Ctrl+Z/Ctrl+Y 撤销重做）。
   final FocusNode _shortcutFocus = FocusNode(debugLabel: 'editor_shortcuts');
@@ -465,12 +470,30 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   // 顶栏开关（O1 拆分后供 editor_page_appbar.dart 的 extension 调用；
   // 在 State 实例内封装受保护的 setState，避免扩展方法中非法访问）。
-  void _toggleLayers() => setState(() => _layersVisible = !_layersVisible);
-  void _toggleInspector() =>
-      setState(() => _inspectorVisible = !_inspectorVisible);
-  void _toggleFullscreen() => setState(() => _fullscreen = !_fullscreen);
-  void _toggleReadingInverted() =>
-      setState(() => _readingInverted = !_readingInverted);
+  // C-04 第三批：State 字段仍为 UI 真源；Controller 承载可测 toggle 语义并双写。
+  void _toggleLayers() {
+    setState(() {
+      _layersVisible = _chrome.toggleLayers();
+    });
+  }
+
+  void _toggleInspector() {
+    setState(() {
+      _inspectorVisible = _chrome.toggleInspector();
+    });
+  }
+
+  void _toggleFullscreen() {
+    setState(() {
+      _fullscreen = _chrome.toggleFullscreen();
+    });
+  }
+
+  void _toggleReadingInverted() {
+    setState(() {
+      _readingInverted = _chrome.toggleReadingInverted();
+    });
+  }
 
   /// 确认裁剪：按裁剪矩形重新编码图片并写回文件（对齐 Excalidraw 图片裁剪）。
   Future<void> _confirmCrop() async {
@@ -710,6 +733,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     _slashMenu.dispose();
     _textSession.dispose();
     _toolModeCtrl.dispose();
+    _chrome.dispose();
     _shortcutFocus.dispose();
     _editController.dispose();
     _editFocus.dispose();

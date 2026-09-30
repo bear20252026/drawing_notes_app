@@ -375,3 +375,99 @@ class EditorSelectionTransformState {
     _rotationDegrees = 0.0;
   }
 }
+
+// ── 编辑器壳层 UI 模式（C-04 第三批）────────────────────────
+
+/// 编辑器壳层 UI 模式 Controller（全屏/阅读反相/侧栏面板/网格吸附/命令记忆）。
+///
+/// 与手势会话状态不同：这些是**会话级 UI 开关**，随页面生命周期保持，
+/// 不随单次手势复位。State 经 getter 读、经 toggle/set 写。
+class EditorChromeController extends ChangeNotifier {
+  bool _fullscreen = false;
+  bool _readingInverted = false;
+  bool _layersVisible = false;
+  bool _inspectorVisible = false;
+  bool _gridVisible = false;
+  bool _snapToGrid = false;
+  String? _lastCommandId;
+
+  bool get fullscreen => _fullscreen;
+  bool get readingInverted => _readingInverted;
+  bool get layersVisible => _layersVisible;
+  bool get inspectorVisible => _inspectorVisible;
+  bool get gridVisible => _gridVisible;
+  bool get snapToGrid => _snapToGrid;
+  String? get lastCommandId => _lastCommandId;
+
+  void setFullscreen(bool v) {
+    if (_fullscreen == v) return;
+    _fullscreen = v;
+    notifyListeners();
+  }
+
+  bool toggleFullscreen() {
+    setFullscreen(!_fullscreen);
+    return _fullscreen;
+  }
+
+  void setReadingInverted(bool v) {
+    if (_readingInverted == v) return;
+    _readingInverted = v;
+    notifyListeners();
+  }
+
+  bool toggleReadingInverted() {
+    setReadingInverted(!_readingInverted);
+    return _readingInverted;
+  }
+
+  void setLayersVisible(bool v) {
+    if (_layersVisible == v) return;
+    _layersVisible = v;
+    notifyListeners();
+  }
+
+  bool toggleLayers() {
+    setLayersVisible(!_layersVisible);
+    return _layersVisible;
+  }
+
+  void setInspectorVisible(bool v) {
+    if (_inspectorVisible == v) return;
+    _inspectorVisible = v;
+    notifyListeners();
+  }
+
+  bool toggleInspector() {
+    setInspectorVisible(!_inspectorVisible);
+    return _inspectorVisible;
+  }
+
+  void setGridVisible(bool v) {
+    if (_gridVisible == v) return;
+    _gridVisible = v;
+    notifyListeners();
+  }
+
+  bool toggleGrid() {
+    setGridVisible(!_gridVisible);
+    return _gridVisible;
+  }
+
+  void setSnapToGrid(bool v) {
+    if (_snapToGrid == v) return;
+    _snapToGrid = v;
+    notifyListeners();
+  }
+
+  bool toggleSnapToGrid() {
+    setSnapToGrid(!_snapToGrid);
+    return _snapToGrid;
+  }
+
+  void setLastCommandId(String? id) {
+    if (_lastCommandId == id) return;
+    _lastCommandId = id;
+    notifyListeners();
+  }
+}
