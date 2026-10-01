@@ -32,6 +32,7 @@ import 'package:drawing_notes_app/features/drawing/presentation/pdf_export_panel
 import 'package:drawing_notes_app/features/drawing/application/gesture_math.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/pencil_shader.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/shape_binding_geometry.dart';
+import 'package:drawing_notes_app/features/drawing/infrastructure/editor_image_crop.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/shape_creation_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/shape_library.dart';
 import 'package:drawing_notes_app/core/utils/safe_url.dart';
@@ -50,9 +51,7 @@ import 'package:drawing_notes_app/core/notes_accessor.dart';
 import 'package:drawing_notes_app/core/rendering/notebook_print_page_data.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
-import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
-import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/canvas_painter.dart';
 import 'package:drawing_notes_app/shared/utils/time_format.dart';
 import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
@@ -460,6 +459,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   void _toggleReadingInverted() => setState(_chrome.toggleReadingInverted);
 
   /// 确认裁剪：按裁剪矩形重新编码图片并写回文件（对齐 Excalidraw 图片裁剪）。
+  ///
+  /// C-04 第五批：解码/几何换算/密封/原子写管线整体迁
+  /// infrastructure/editor_image_crop.dart；本页只做守卫、结果映射与
+  /// 画布状态更新（行为零变化，提示文案逐条对应）。
   Future<void> _confirmCrop() async {
     final img = _cropItem;
     final rect = _cropRect;
@@ -467,106 +470,36 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       _showSnack(AppLocalizations.of(context)?.cropInvalid ?? '裁剪区域无效');
       return;
     }
-    // P1 修复（审计 H-05）：GPU 纹理在 finally 释放——此前异常路径
-    // （toImage/toByteData 抛错）泄漏 src/out，重复失败耗尽显存。
-    // 审计修复 2026-09-06：srcImage 解码的 Codec 也必须释放（此前每次
-    // 裁剪泄漏一个原生 Codec）。
-    ui.Image? srcImage;
-    ui.Image? outImage;
-    ui.Codec? srcCodec;
     try {
-      final file = File(img.filePath);
-      if (!file.existsSync()) {
-        _showSnack(_l10nSafe?.cropSourceMissing ?? '原图文件不存在');
-        return;
-      }
-      // 批次①c：DNV 密文 → 解密后裁剪；写回时按原密文状态重新密封，
-      // 防止裁剪把明文覆盖到原密文文件上（锁定时拒绝裁剪——fail-closed）。
-      final raw = await file.readAsBytes();
-      final wasSealed = VaultFileCodec.isEncrypted(raw);
-      final bytes = wasSealed ? await VaultFileCodec.readImageBytes(file) : raw;
-      srcCodec = await ui.instantiateImageCodec(bytes);
-      final frame = await srcCodec.getNextFrame();
-      srcImage = frame.image;
-      final src = srcImage;
-      // 裁剪矩形（画布坐标）映射为原图像素坐标；纯几何不触碰文件或状态。
-      final srcRect = EditorImageCropGeometry.sourceRectForCrop(
+      final outcome = await const EditorImageCropWriter().writeCrop(
+        file: File(img.filePath),
         cropRect: rect,
         imageBounds: Rect.fromLTWH(img.x, img.y, img.width, img.height),
-        sourceSize: Size(src.width.toDouble(), src.height.toDouble()),
       );
-      final recorder = ui.PictureRecorder();
-      final canvas = Canvas(recorder);
-      canvas.drawImageRect(
-        src,
-        srcRect,
-        Rect.fromLTWH(0, 0, srcRect.width, srcRect.height),
-        Paint()..filterQuality = FilterQuality.medium,
-      );
-      final picture = recorder.endRecording();
-      outImage = await picture.toImage(
-        srcRect.width.round().clamp(1, 10000),
-        srcRect.height.round().clamp(1, 10000),
-      );
-      final out = outImage;
-      final data = await out.toByteData(format: ui.ImageByteFormat.png);
-      if (data == null) {
-        _showSnack(_l10nSafe?.cropEncodeFail ?? '裁剪编码失败');
-        return;
-      }
-      final outBytes = data.buffer.asUint8List();
-      final Uint8List payload;
-      if (wasSealed) {
-        // 原文件是 DNV 密文：写回前重新密封（密钥锁定 → 拒绝保存）。
-        final key = VaultKeyService.sharedMasterKeyOrNull;
-        if (key == null) {
-          _showSnack(_l10nSafe?.cropVaultLocked ?? '保险库已锁定，无法保存裁剪');
-          return;
-        }
-        payload = await VaultFileCodec.encrypt(
-          outBytes,
-          key,
-          aadContext: VaultFileCodec.contextForPath(file.path),
-        );
-      } else {
-        payload = outBytes;
-      }
-      // A-01（审计 2026-09-27）：原地 writeAsBytes 非原子——写入中断
-      // （崩溃/断电）会截断唯一原图。改走 tmp + rename + 失败清理
-      // （同 NotebookStorage._writeNotebookBytes 单一出口纪律）。
-      final tmp = File('${file.path}.${LocalIdGenerator.next('write')}.tmp');
-      try {
-        await tmp.writeAsBytes(payload, flush: true);
-        try {
-          await tmp.rename(file.path);
-        } on FileSystemException {
-          if (!file.existsSync()) rethrow;
-          await file.delete();
-          await tmp.rename(file.path);
-        }
-      } catch (_) {
-        try {
-          if (tmp.existsSync()) await tmp.delete();
-        } catch (_) {
-          // 清理失败不覆盖原始写入异常。
-        }
-        rethrow;
-      }
-      // 审计三-1：等待写入（含加密）期间退出页面则放弃 UI 更新，
+      // 审计三-1：等待写回（含加密）期间退出页面则放弃 UI 更新，
       // 避免 setState() called after dispose()。
       if (!mounted) return;
-      setState(() {
-        img.x = rect.left;
-        img.y = rect.top;
-        img.width = rect.width;
-        img.height = rect.height;
-        _canvasInteraction.clearCrop();
-      });
-      // 裁剪已重写磁盘文件：失效 DocumentImageCache 的旧位图，否则画布
-      // 仍把「裁剪前的全尺寸位图」拉伸进新矩形显示（审计发现 2026-09-06）。
-      _controller.invalidateDocumentImage(img.id);
-      _notifyChanged();
-      _showSnack(_l10nSafe?.cropDone ?? '已裁剪图片');
+      switch (outcome) {
+        case EditorImageCropWriteOutcome.success:
+          setState(() {
+            img.x = rect.left;
+            img.y = rect.top;
+            img.width = rect.width;
+            img.height = rect.height;
+            _canvasInteraction.clearCrop();
+          });
+          // 裁剪已重写磁盘文件：失效 DocumentImageCache 的旧位图，否则画布
+          // 仍把「裁剪前的全尺寸位图」拉伸进新矩形显示（审计发现 2026-09-06）。
+          _controller.invalidateDocumentImage(img.id);
+          _notifyChanged();
+          _showSnack(_l10nSafe?.cropDone ?? '已裁剪图片');
+        case EditorImageCropWriteOutcome.sourceMissing:
+          _showSnack(_l10nSafe?.cropSourceMissing ?? '原图文件不存在');
+        case EditorImageCropWriteOutcome.encodeFailed:
+          _showSnack(_l10nSafe?.cropEncodeFail ?? '裁剪编码失败');
+        case EditorImageCropWriteOutcome.vaultLocked:
+          _showSnack(_l10nSafe?.cropVaultLocked ?? '保险库已锁定，无法保存裁剪');
+      }
     } catch (e) {
       // R-02（审计 2026-09-27）：$e 含文件路径/加密封包内部细节——按 H-04
       // 脱敏口径 UI 只给固定文案，错误类型进审计日志。
@@ -576,10 +509,6 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         detail: e.runtimeType.toString(),
       );
       _showSnack(_l10nSafe?.cropFailed ?? '裁剪失败，请重试');
-    } finally {
-      srcImage?.dispose();
-      outImage?.dispose();
-      srcCodec?.dispose();
     }
   }
 

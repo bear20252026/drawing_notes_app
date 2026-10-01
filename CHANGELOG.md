@@ -2,6 +2,34 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.50] - 2026-10-01
+
+### 审计批次 AB：C-04 第五批——图片裁剪写回管线迁 infrastructure
+
+> 承接 v1.17.47~49 C-04 前三批与 Code Guard 修复批（第四批，壳层状态
+> 单一真源化），本批把 `editor_page.dart` 的图片裁剪域（几何 + 字节
+> 管线）整体迁出，主文件 980→911 行，远离 1000 行硬上限。
+
+- **`infrastructure/editor_image_crop.dart` 新模块**（目录 4→5 文件，
+  40 上限内；application 保持 39/40）：
+  - `EditorImageCropHandle` + `EditorImageCropGeometry` 纯几何自
+    presentation/editor_selection_geometry.dart 原样随迁（该文件同步
+    瘦身 196→103 行）；
+  - `EditorImageCropWriter.writeCrop`：解码（兼容 DNV 密文）→ 画布↔
+    像素几何换算 → 重采样 → PNG 编码 → 按原密文状态重新密封 →
+    tmp+rename 原子写；GPU 纹理 finally 释放（H-05）随迁；
+  - `EditorImageCropWriteOutcome` 四态结果（sourceMissing / encodeFailed /
+    vaultLocked / success）；意外异常不吞、上抛由调用方兜底（R-02
+    脱敏审计日志留在页面层）。
+- **`_confirmCrop` 改薄映射层**：守卫 + 调管线 + switch 结果映射 +
+  setState / invalidateDocumentImage / notifyChanged；行为零变化，
+  提示文案逐条对应。顺带把写回早退提示统一置于 mounted 守卫之后
+  （原实现在 unmount 后调 `_showSnack` 有抛错隐患）。
+- **import 收口**：主文件随迁移除 VaultFileCodec / VaultKeyService
+  直连（LocalIdGenerator 仍由 part 共享使用，保留）。
+- 测试：editor_image_crop_geometry_test 改引新模块，用例零改。
+- 门禁：analyze 0 告警；全量测试绿。
+
 ## [1.17.49] - 2026-09-30
 
 ### 审计批次 AA：C-04 第三批——编辑器壳层 UI 状态 Controller 化
