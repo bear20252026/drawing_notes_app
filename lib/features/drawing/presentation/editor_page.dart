@@ -1,4 +1,5 @@
 import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
+
 import 'dart:async';
 
 import 'dart:io';
@@ -276,47 +277,23 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   }
 
   /// 全屏模式：隐藏应用框架，只保留画布。
-  /// C-04 第三批：与 [EditorChromeController] 同步（toggle 时写回）。
-  bool _fullscreen = false;
+  /// C-04 第四批：壳层开关由 [EditorChromeController] 单一承载，State 只读代理。
+  bool get _fullscreen => _chrome.fullscreen;
 
   /// 阅读反相仅作用于当前编辑器显示层；不修改页面颜色、资源字节、导出或保存。
-  bool _readingInverted = false;
+  bool get _readingInverted => _chrome.readingInverted;
 
-  // 深色阅读反相矩阵（问题9修复）。
-  //
-  // 原 Rec.709 保亮度矩阵系数误算：白色 (255,255,255) 经其作用后变为
-  // (0,255,0) 纯绿色，即用户实测的"一片绿幕"。标准 RGB 反相矩阵保证
-  // 白色背景 → 黑色、黑色墨迹 → 白色，实现真正的深色阅读（仅显示层
-  // 反相，不修改文档数据）。
-  static const ColorFilter _readingInvertFilter = ColorFilter.matrix(<double>[
-    -1,
-    0,
-    0,
-    0,
-    255,
-    0,
-    -1,
-    0,
-    0,
-    255,
-    0,
-    0,
-    -1,
-    0,
-    255,
-    0,
-    0,
-    0,
-    1,
-    0,
-  ]);
+  /// 深色阅读反相矩阵本体已迁 [EditorChromeController.readingInvertFilter]；
+  /// 保留库内别名，canvas_surface 等 part 引用零改。
+  static const ColorFilter _readingInvertFilter =
+      EditorChromeController.readingInvertFilter;
 
   /// 图层与详细属性默认按需展开，避免在普通屏幕上长期挤压创作区域。
-  bool _layersVisible = false;
-  bool _inspectorVisible = false;
+  bool get _layersVisible => _chrome.layersVisible;
+  bool get _inspectorVisible => _chrome.inspectorVisible;
 
-  /// C-04 第三批：编辑器壳层 UI 模式（全屏/阅读反相/面板/网格/命令记忆）。
-  /// 与 State 私有字段双写：part 读 State 字段；Controller 承载 toggle 语义。
+  /// C-04 第三/四批：编辑器壳层 UI 模式唯一真源（全屏/阅读反相/面板/网格/
+  /// 吸附/命令记忆）；State 私有字段改为对本 Controller 的读写代理。
   final EditorChromeController _chrome = EditorChromeController();
 
   /// 键盘快捷键监听焦点（Ctrl+Z/Ctrl+Y 撤销重做）。
@@ -327,7 +304,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   late final CommandRegistry _commands;
 
   /// 命令面板最近一次成功执行的命令（仅保留会话内记录）。
-  String? _lastCommandId;
+  String? get _lastCommandId => _chrome.lastCommandId;
+  set _lastCommandId(String? v) => _chrome.setLastCommandId(v);
 
   /// 就地编辑（点击页面直接打字）状态：经 [EditorInPlaceTextSessionController]。
   /// 读路径只暴露 getter；写路径统一走 [_beginTextSession]/[_endTextSession]。
@@ -406,10 +384,12 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   Set<String> get _multiSelectedIds => _canvasInteraction.multiSelectedIds;
 
   /// 网格显示开关（借鉴 Excalidraw 画布导航）。
-  bool _gridVisible = false;
+  bool get _gridVisible => _chrome.gridVisible;
+  set _gridVisible(bool v) => _chrome.setGridVisible(v);
 
   /// 网格吸附开关（拖动元素吸附到 20px 网格，借鉴 Excalidraw）。
-  bool _snapToGrid = false;
+  bool get _snapToGrid => _chrome.snapToGrid;
+  set _snapToGrid(bool v) => _chrome.setSnapToGrid(v);
 
   /// 正在播放删除淡出动画的元素 id 集合（借鉴 Excalidraw 删除动画）。
   Set<String> get _deletingIds => _canvasInteraction.deletingIds;
@@ -470,30 +450,14 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   // 顶栏开关（O1 拆分后供 editor_page_appbar.dart 的 extension 调用；
   // 在 State 实例内封装受保护的 setState，避免扩展方法中非法访问）。
-  // C-04 第三批：State 字段仍为 UI 真源；Controller 承载可测 toggle 语义并双写。
-  void _toggleLayers() {
-    setState(() {
-      _layersVisible = _chrome.toggleLayers();
-    });
-  }
+  // C-04 第四批：Controller 单一真源，toggle 即写 Controller，State getter 随动。
+  void _toggleLayers() => setState(_chrome.toggleLayers);
 
-  void _toggleInspector() {
-    setState(() {
-      _inspectorVisible = _chrome.toggleInspector();
-    });
-  }
+  void _toggleInspector() => setState(_chrome.toggleInspector);
 
-  void _toggleFullscreen() {
-    setState(() {
-      _fullscreen = _chrome.toggleFullscreen();
-    });
-  }
+  void _toggleFullscreen() => setState(_chrome.toggleFullscreen);
 
-  void _toggleReadingInverted() {
-    setState(() {
-      _readingInverted = _chrome.toggleReadingInverted();
-    });
-  }
+  void _toggleReadingInverted() => setState(_chrome.toggleReadingInverted);
 
   /// 确认裁剪：按裁剪矩形重新编码图片并写回文件（对齐 Excalidraw 图片裁剪）。
   Future<void> _confirmCrop() async {

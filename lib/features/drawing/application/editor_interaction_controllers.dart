@@ -383,6 +383,31 @@ class EditorSelectionTransformState {
 /// 与手势会话状态不同：这些是**会话级 UI 开关**，随页面生命周期保持，
 /// 不随单次手势复位。State 经 getter 读、经 toggle/set 写。
 class EditorChromeController extends ChangeNotifier {
+  /// 深色阅读反相矩阵（问题9修复，仅显示层反相）：标准 RGB 反相保证
+  /// 白底→黑、黑墨→白；原 Rec.709 保亮度矩阵会把白色误反相为纯绿。
+  static const ColorFilter readingInvertFilter = ColorFilter.matrix(<double>[
+    -1,
+    0,
+    0,
+    0,
+    255,
+    0,
+    -1,
+    0,
+    0,
+    255,
+    0,
+    0,
+    -1,
+    0,
+    255,
+    0,
+    0,
+    0,
+    1,
+    0,
+  ]);
+
   bool _fullscreen = false;
   bool _readingInverted = false;
   bool _layersVisible = false;
