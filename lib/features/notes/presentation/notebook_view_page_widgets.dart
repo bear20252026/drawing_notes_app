@@ -200,21 +200,10 @@ class _PageThumbnailPainter extends CustomPainter {
     // 图片采用低成本块预览，保持真实布局而不在滚动列表中解码文件。
     for (final image in page.imageItems) {
       final rect = Rect.fromLTWH(image.x, image.y, image.width, image.height);
-      canvas.drawRect(rect, Paint()..color = const Color(0xFFCFD8DC));
-      canvas.drawRect(
-        rect,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2 / scale
-          ..color = const Color(0xFF607D8B),
-      );
-      canvas.drawLine(
-        rect.topLeft,
-        rect.bottomRight,
-        Paint()
-          ..strokeWidth = 1 / scale
-          ..color = const Color(0x66546E7A),
-      );
+      // D-13（审计 2026-09-27）：占位块绘制收口到 rendering 层唯一实现
+      //（此前与 notebook_page_canvas_painter 逐字节重复两份）。
+      // scale 反算线宽 → 任何缩放下线宽视觉恒定。
+      drawImagePlaceholder(canvas, rect, scale: scale);
     }
 
     // 文字仅按实际坐标和字框表示，不调用昂贵文字排版。
@@ -224,6 +213,10 @@ class _PageThumbnailPainter extends CustomPainter {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           Rect.fromLTWH(text.x, text.y, width, height),
+          // D-16（审计 2026-09-27）豁免：画布域按 `2 / scale` 生成「视觉恒 2px」
+          // 的描边半径——scale 是文档→屏幕的缩放，除以它才能在任何缩放下都保持
+          // 同样的物理粗细。AppleRadius 是**屏幕逻辑像素**令牌，不参与缩放换算，
+          // 套上来会在放大时失真。此处属画布渲染域的换算常量，非 UI 圆角。
           Radius.circular(2 / scale),
         ),
         Paint()..color = Color(text.color).withValues(alpha: 0.72),

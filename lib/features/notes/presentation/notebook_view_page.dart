@@ -41,6 +41,9 @@ import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
 import 'package:drawing_notes_app/features/notes/presentation/presentation_page.dart';
 // W2：翻页阅读模式（上下滑动切页）+ 整本多页 PDF 导出。
 import 'package:drawing_notes_app/features/notes/presentation/notebook_reader_page.dart';
+// D-13：图片占位块绘制唯一实现（rendering 层），供 part
+// notebook_view_page_widgets.dart 调用 drawImagePlaceholder。
+import 'package:drawing_notes_app/features/notes/rendering/notebook_page_canvas_painter.dart';
 import 'package:drawing_notes_app/features/notes/application/notebook_pdf_exporter.dart';
 // N2：笔记（块文档）文件密码——分页画布内打开受密块文档副本的解锁拦截。
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'

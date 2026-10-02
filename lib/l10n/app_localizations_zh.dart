@@ -3073,6 +3073,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get webdavSavedEncrypted => '已保存 WebDAV 配置（已启用端到端加密）';
 
   @override
+  String get webdavSecretKeepHint => '已保存 · 留空保持不变';
+
+  @override
   String get webdavBadUrl => '请先填写合法的服务器 URL（含 http/https 与 /）';
 
   @override

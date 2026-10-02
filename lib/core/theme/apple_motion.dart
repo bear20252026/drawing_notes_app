@@ -27,12 +27,20 @@ abstract final class AppleMotion {
   static const Curve easeOut = Cubic(0.23, 1.0, 0.32, 1.0);
 
   /// 强 ease-in-out：屏幕上移动/形变。
+  ///
+  /// **预留（M-09，审计 2026-09-27）**：全库暂无消费方——当前的移动/形变
+  /// 场景都落在进出场（easeOut）或抽屉（easeSheet）里。保留定义供将来
+  /// 「元素在屏内移动」类动画直接取用，避免届时另造裸 Cubic。
   static const Curve easeInOut = Cubic(0.77, 0.0, 0.175, 1.0);
 
   /// iOS 抽屉曲线（Ionic 提取）：抽屉/底部面板。
   static const Curve easeSheet = Cubic(0.32, 0.72, 0.0, 1.0);
 
   /// 匀速：进度条、跑马灯、长按确认的进度推进。
+  ///
+  /// **预留（M-09，审计 2026-09-27）**：三类场景当前都未接动画（进度条
+  /// 用数值直出、跑马灯未实现）。保留定义——它与 UI 过渡的「<300ms +
+  /// 禁 ease-in」硬规则不同类，属持续状态动画，须有权威出口。
   static const Curve linear = Curves.linear;
 
   // ---------------------------------------------------------------------------
@@ -47,6 +55,13 @@ abstract final class AppleMotion {
 
   /// 工具提示 / 小浮层。区间 125–200ms，配方取下限。
   static const Duration tooltip = Duration(milliseconds: 125);
+
+  /// 工具提示**出现前的悬停延迟**（`TooltipThemeData.waitDuration`）。
+  /// M-10（审计 2026-09-27）：原为 app_design 内 450ms 裸值、令牌表无对应
+  /// 延迟档——收编为令牌。450ms 取「比 press(120) 长、但不迟钝」的中段：
+  /// 鼠标掠过控件不该立刻弹提示（噪声），真正停留又必须弹得出来。
+  /// 注意与上方 [tooltip] 是两件事：那个是淡入时长，这个是触发前等待。
+  static const Duration tooltipDelay = Duration(milliseconds: 450);
 
   /// 下拉菜单 / 选择器。区间 150–250ms，配方取 200ms。
   static const Duration dropdown = Duration(milliseconds: 200);
@@ -64,9 +79,14 @@ abstract final class AppleMotion {
   static const Duration toastOut = Duration(milliseconds: 250);
 
   /// 列表错位入场：单项时长。
+  ///
+  /// **预留（M-09，审计 2026-09-27）**：全库暂无错位入场消费方（列表入场
+  /// 现走骨架屏/淡入）。与 staggerStep 成对保留——单用其一无意义。
   static const Duration staggerItem = Duration(milliseconds: 300);
 
   /// 列表错位入场：项间延迟。区间 30–80ms（Web 配方 50ms / Expo 40ms）。
+  ///
+  /// **预留（M-09，审计 2026-09-27）**：见 [staggerItem]，成对保留。
   static const Duration staggerStep = Duration(milliseconds: 40);
 
   /// 骨架屏呼吸脉冲周期（skeleton.dart 共享 controller 用）。
@@ -92,6 +112,12 @@ abstract final class AppleMotion {
 
   /// 默认：临界阻尼，无过冲。用于普通 UI 的弹簧过渡。
   /// 对应 animation-vocabulary 的 damping 1.0。
+  ///
+  /// **预留（M-09，审计 2026-09-27）**：三把弹簧当前零调用——项目里的
+  /// 过渡都走时长+曲线（AppleMotion.press/dropdown/modal 等），尚未接入
+  /// spring 驱动的动画。保留定义是**刻意的**：与下方 [gesture]、
+  /// [playful] 构成三档完整配方，且参数口径（dampingRatio 为唯一口径）
+  /// 已在上方裁决表定案，日后接线直接取用即可，不必重新查三份来源。
   static final SpringDescription settled = SpringDescription.withDampingRatio(
     mass: 1,
     stiffness: 180,
@@ -100,6 +126,8 @@ abstract final class AppleMotion {
 
   /// 手势带惯性：轻微回弹。拖拽归位、吸附、抽屉回弹、滑动删除撤销。
   /// 对应 animation-vocabulary 的 damping 0.8（旋转 0.8/0.4、抽屉 0.8/0.3）。
+  ///
+  /// **预留（M-09，审计 2026-09-27）**：见 [settled]，三把弹簧成套保留。
   static final SpringDescription gesture = SpringDescription.withDampingRatio(
     mass: 1,
     stiffness: 150,
@@ -108,6 +136,8 @@ abstract final class AppleMotion {
 
   /// 活泼：仅用于罕见/首次的愉悦时刻（onboarding、成功庆祝）。
   /// bounce 上限 0.3（STANDARDS.md:73 要求 0.1–0.3）。
+  ///
+  /// **预留（M-09，审计 2026-09-27）**：见 [settled]，三把弹簧成套保留。
   static final SpringDescription playful = SpringDescription.withDampingRatio(
     mass: 1,
     stiffness: 120,
@@ -123,6 +153,10 @@ abstract final class AppleMotion {
   static const double enterScale = 0.96;
 
   /// 入场起始位移（px）。配方用 translateY(8px)，百分比场景改用 Offset。
+  ///
+  /// **预留（M-09，审计 2026-09-27）**：全库入场目前只用 [enterScale]
+  ///（0.96 + opacity），未叠加位移。保留定义——它与 enterScale 是同一条
+  /// 入场配方的两个分量，将来要做「下滑入场」时不该现造 8 这个数。
   static const double enterOffsetY = 8;
 
   /// 按压缩放。DESIGN.md:439 明文 0.95；STANDARDS.md:59 标准值 0.97、
@@ -130,12 +164,24 @@ abstract final class AppleMotion {
   /// 且落在 subtle 区间内，两处不冲突。
   static const double pressScale = 0.95;
 
+  /// 悬停抬升缩放（hover 反馈，非按压）。M-05（审计 2026-09-27）收编：
+  /// 原为 home_page_widgets 卡片上的 1.012 裸值。1.012 = +1.2%，落在
+  /// 静默区间——**悬停只提示「可点」，不制造弹跳**；按压态另走
+  /// [pressScale]（0.95 缩小），两者方向相反、不可混用。
+  static const double hoverScale = 1.012;
+
   /// 速度甩除阈值：`|位移| / 耗时(ms) > 0.11` 即判定为快速滑动。
   /// 出处 STANDARDS.md:139。达到阈值即可关闭，不要求跨越距离门槛。
+  ///
+  /// **预留（M-09，审计 2026-09-27）**：全库暂无消费方——手势甩除
+  /// （fling）尚未接入动画关闭逻辑。保留定义以免将来另造裸值。
   static const double flingVelocityThreshold = 0.11;
 
   /// 遮掩不完美交叉淡入时的模糊半径（px）。上限 20px，
   /// 且移动端每帧重渲模糊代价高——仅在确有重影时使用。
+  ///
+  /// **预留（M-09，审计 2026-09-27）**：当前交叉淡入实现未出现重影，
+  /// 暂无消费方；保留定义以免将来另造裸值。
   static const double crossfadeMaskBlur = 2;
 
   // ---------------------------------------------------------------------------

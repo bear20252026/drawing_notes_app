@@ -136,12 +136,19 @@ class _PresentationPageState extends State<PresentationPage> {
                     child: KeyedSubtree(
                       key: ValueKey(_index),
                       child: Padding(
-                        padding: const EdgeInsets.all(40),
+                        // D-10（审计 2026-09-27）：40 离档，归一 AppleSpacing.xl。
+                        padding: const EdgeInsets.all(AppleSpacing.xl),
                         child: elements.isEmpty
                             ? Text(
                                 AppLocalizations.of(context)?.presNoContent ??
                                     '没有可演示的内容',
-                                style: const TextStyle(color: Colors.white54),
+                                // D-15：Material 白系捷径改令牌——等价
+                                // surfaceWhite 54%（0x8AFFFFFF）。
+                                style: TextStyle(
+                                  color: AppleColor.surfaceWhite.withValues(
+                                    alpha: 0.54,
+                                  ),
+                                ),
                               )
                             : elements[_index],
                       ),
@@ -162,9 +169,12 @@ class _PresentationPageState extends State<PresentationPage> {
                           tooltip:
                               AppLocalizations.of(context)?.presPrevSlide ??
                               '上一页',
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.arrow_back_rounded,
-                            color: Colors.white70,
+                            // D-15：白系捷径 → AppleColor.surfaceWhite 令牌。
+                            color: AppleColor.surfaceWhite.withValues(
+                              alpha: 0.7,
+                            ),
                           ),
                           onPressed: _index > 0 ? _prev : null,
                         ),
@@ -174,7 +184,7 @@ class _PresentationPageState extends State<PresentationPage> {
                               )?.presIndicator(_index + 1, elements.length) ??
                               '${_index + 1} / ${elements.length} · 点击或 → 下一页，Esc 退出',
                           style: AppleType.controlStyle(
-                            Colors.white38,
+                            AppleColor.surfaceWhite.withValues(alpha: 0.38),
                             weight: FontWeight.w400,
                           ),
                         ),
@@ -182,9 +192,11 @@ class _PresentationPageState extends State<PresentationPage> {
                           tooltip:
                               AppLocalizations.of(context)?.presNextSlide ??
                               '下一页（长按退出）',
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.arrow_forward_rounded,
-                            color: Colors.white70,
+                            color: AppleColor.surfaceWhite.withValues(
+                              alpha: 0.7,
+                            ),
                           ),
                           onPressed: _index < elements.length - 1 ? _next : null,
                         ),
@@ -198,7 +210,11 @@ class _PresentationPageState extends State<PresentationPage> {
                   top: 12,
                   child: IconButton(
                     tooltip: AppLocalizations.of(context)?.presExit ?? '退出演示',
-                    icon: const Icon(Icons.close, color: Colors.white70),
+                    icon: Icon(
+                      Icons.close,
+                      // D-15：白系捷径 → AppleColor.surfaceWhite 令牌。
+                      color: AppleColor.surfaceWhite.withValues(alpha: 0.7),
+                    ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),

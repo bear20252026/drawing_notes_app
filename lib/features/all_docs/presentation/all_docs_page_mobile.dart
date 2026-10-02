@@ -307,7 +307,8 @@ class _MobileHeader extends StatelessWidget {
                                   : FontWeight.w400,
                             ),
                       ),
-                      const SizedBox(height: 3),
+                      // D-12（审计 2026-09-27）：3 → AppleSpacing.xxs（离档微间隙归一）。
+                      const SizedBox(height: AppleSpacing.xxs),
                       Container(
                         height: 2,
                         width: 16,

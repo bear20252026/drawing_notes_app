@@ -15,13 +15,22 @@ import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 /// 临时荧光笔墨迹生命周期常量。
 const Duration temporaryMarkerLifetime = Duration(seconds: 4);
 
-/// 激光尾迹保持时长。
+// M-08（审计 2026-09-27）豁免裁决：以下三个激光常量**不迁入**
+// AppleMotion——后者是 **UI 过渡**令牌域（曲线/时长/弹簧，服务界面进
+// 出场），激光尾迹却是**画布内容**的时间轴（与笔画同层的视觉物件生命周期）。
+// 两者调参维度不同：UI 过渡受「<300ms、无 ease-in」硬规则约束，画布墨迹
+// 要跨越数秒才让人眼跟得上；混入会让令牌表出现违反自身硬规则的条目
+//（1800ms 远超 300ms 上限）。与 skeletonPulse(1200ms) 同类：持续状态
+// 动画而非 UI 过渡。出处：按笔迹跟手性标定——700ms 保住起点可读、
+// 1800ms 扫过对应视线移动速度、260ms 收尾与 AppleMotion.modal(250ms) 同量级。
+
+/// 激光尾迹保持时长（M-08 豁免：不入 AppleMotion，理由见上方裁决）。
 const Duration laserHoldDuration = Duration(milliseconds: 700);
 
-/// 激光尾迹扫过时长。
+/// 激光尾迹扫过时长（M-08 豁免：不入 AppleMotion，理由见上方裁决）。
 const Duration laserSweepDuration = Duration(milliseconds: 1800);
 
-/// 激光尾迹最终淡出时长。
+/// 激光尾迹最终淡出时长（M-08 豁免：不入 AppleMotion，理由见上方裁决）。
 const Duration laserFinalFadeDuration = Duration(milliseconds: 260);
 
 /// 一条尚未持久化的临时荧光笔墨迹（纯数据 + 纯计算）。

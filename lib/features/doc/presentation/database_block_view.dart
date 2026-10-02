@@ -110,7 +110,8 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
         Row(
           children: [
             Icon(Icons.table_chart_outlined, size: 18, color: scheme.primary),
-            const SizedBox(width: 2),
+            // D-12（审计 2026-09-27）：2 → AppleSpacing.xxs（离档微间隙归一）。
+            const SizedBox(width: AppleSpacing.xxs),
             Flexible(
               child: Text(
                 _db.title.isEmpty

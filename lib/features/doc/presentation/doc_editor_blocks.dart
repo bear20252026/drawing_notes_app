@@ -382,6 +382,11 @@ extension DocEditorBlocks on DocEditorState {
           padding: const EdgeInsets.only(top: 12, right: 4),
           child: Text(
             '${index + 1}.',
+            // D-09（审计 2026-09-27）：序号标记刻意取 16px，不入字梯——
+            // 字梯 17（body）会与序号后的正文同大、抢主体，14（caption）
+            // 又小于正文导致层级倒挂；16 落在两者之间，让「1.」只作导航
+            // 提示不作正文。同本文件 code 块 15px 的论证口径：等宽/标记类
+            // 允许脱离营销字梯，但必须就地写明理由（下方 _styleFor case）。
             style: AppleType.controlStyle(
               Theme.of(context).colorScheme.onSurface,
             ).copyWith(fontSize: 16),

@@ -162,7 +162,10 @@ class DatabaseTableView extends StatelessWidget {
                   child: _sortableHeader(context, f),
                 ),
               ),
-            const SizedBox(width: 28),
+            // D-12（审计 2026-09-27）：28 离档 → AppleSpacing.xl（就近归档，
+            // 同 sweep「仅数值归档不改布局结构」）。删除列固定宽——表头占位与
+            // 行内按钮**必须同值**，否则表头与数据列错位。
+            const SizedBox(width: AppleSpacing.xl),
           ],
         ),
       ),
@@ -186,7 +189,11 @@ class DatabaseTableView extends StatelessWidget {
                   child: _cell(context, record, f),
                 ),
               ),
-            SizedBox(width: 28, child: _deleteRowIcon(context, record)),
+            // D-12：删除列宽与表头占位同步归一（见表头侧注释）。
+            SizedBox(
+              width: AppleSpacing.xl,
+              child: _deleteRowIcon(context, record),
+            ),
           ],
         ),
       ),

@@ -3190,6 +3190,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'WebDAV config saved (end-to-end encryption on)';
 
   @override
+  String get webdavSecretKeepHint => 'Saved · leave blank to keep';
+
+  @override
   String get webdavBadUrl =>
       'Enter a valid server URL first (including http/https and /)';
 

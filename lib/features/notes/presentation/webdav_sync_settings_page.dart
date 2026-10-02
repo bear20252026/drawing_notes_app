@@ -102,6 +102,13 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
   SyncProgress? _progress;
   String? _lastSummary;
 
+  /// S-03（审计 2026-09-27）方案 A：口令**不回填**控制器，只记存在性
+  /// 用于占位提示。明文一旦写进 `TextEditingController` 就绕过了
+  /// `SessionSecrets.clearAll()`（切后台清的是各 store 的会话缓存，清不到
+  /// 仍在内存里的 widget 树），堆转储可直接读出。此处仅存 bool。
+  bool _hasSavedPassword = false;
+  bool _hasSavedPassphrase = false;
+
   /// 空操作回调（用于禁用态按钮）。
   static void _noop() {}
 
@@ -121,14 +128,26 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     setState(() {
       _url.text = cfg.baseUrl;
       _user.text = cfg.username;
-      _pass.text = secrets.webdavPassword ?? '';
-      _syncSecret.text = secrets.syncPassphrase ?? '';
+      // S-03 方案 A：口令留空，仅记存在性（占位提示由 hintText 呈现）。
+      // 空值在保存/同步两侧一律解释为「沿用已存」，见 _save / _syncNow。
+      _hasSavedPassword = secrets.webdavPassword?.isNotEmpty ?? false;
+      _hasSavedPassphrase = secrets.syncPassphrase?.isNotEmpty ?? false;
     });
   }
 
   Future<void> _save() async {
     final existing = await _configStore.load();
-    final passphrase = _syncSecret.text.trim();
+    // S-03 方案 A：空输入框 = 沿用已存口令（明文不回填，空是常态）。
+    // 因此保存前先读已存机密，把「未改」与「清空」合并为同一分支——
+    // 本页不再提供「删除已存口令」入口（该路径本就是 footgun：清空后
+    // 同步要么认证失败、要么被 fail-closed 挡住）。
+    final stored = await _secretStore.read();
+    final passphrase =
+        _syncSecret.text.trim().isNotEmpty
+            ? _syncSecret.text.trim()
+            : (stored.syncPassphrase ?? '');
+    final password =
+        _pass.text.isNotEmpty ? _pass.text : (stored.webdavPassword ?? '');
     String? saltBase64;
     if (passphrase.isNotEmpty) {
       // 复用已有盐（若无则生成新的），保证派生 key 对已上传密文保持稳定。
@@ -153,11 +172,16 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     }
     await _secretStore.write(
       SyncSecrets(
-        webdavPassword: _pass.text.isEmpty ? null : _pass.text,
+        webdavPassword: password.isEmpty ? null : password,
         syncPassphrase: passphrase.isEmpty ? null : passphrase,
       ),
     );
     if (!mounted) return;
+    // 保存后刷新存在性标记：用户若把口令敲了进去，占位提示即刻让位。
+    setState(() {
+      _hasSavedPassword = password.isNotEmpty;
+      _hasSavedPassphrase = passphrase.isNotEmpty;
+    });
     _toast(
       passphrase.isEmpty
           ? (AppLocalizations.of(context)?.webdavSavedPlain ?? '已保存 WebDAV 配置（未启用端到端加密）')
@@ -188,22 +212,34 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     // 安全审计修复（2026-09-06 P1-2）：未配置同步密码 = 同步层明文透传，
     // 笔记正文会以明文落在 WebDAV 服务器（UI 曾误称「云端仅保存加密数据」）。
     // fail-closed：拒绝同步，要求先设置同步密码。
-    final passphrase = _syncSecret.text.trim();
+    // S-03 方案 A：口令不回填 → 生效值 = 表单非空 ? 表单 : 已存。
+    final cfg = await _configStore.load();
+    final secrets = await _secretStore.read();
+    final passphrase =
+        _syncSecret.text.trim().isNotEmpty
+            ? _syncSecret.text.trim()
+            : (secrets.syncPassphrase ?? '');
+    final password =
+        _pass.text.isNotEmpty ? _pass.text : (secrets.webdavPassword ?? '');
     if (passphrase.isEmpty) {
-      _toast(AppLocalizations.of(context)?.webdavNeedSyncPassword ?? '未设置同步密码：为避免笔记明文上云，已阻止同步。请在下方设置同步密码后重试。');
+      // mounted 守卫：本分支前已 await 两次（cfg/secrets），与下方两处同款。
+      _toast(
+        (mounted ? AppLocalizations.of(context) : null)?.webdavNeedSyncPassword ??
+            '未设置同步密码：为避免笔记明文上云，已阻止同步。请在下方设置同步密码后重试。',
+      );
       return;
     }
     // F-21 修复（审计 2026-09-07）：cipher 用「已保存盐 + 表单口令」构造——
     // 表单有未保存修改时密钥会与云端数据错配（首次设置未保存时盐缺失，
     // _buildCipher 甚至退化为 Noop 明文透传）。检测到表单与已保存配置/
     // 机密不一致时，先提示保存再同步。
-    final cfg = await _configStore.load();
-    final secrets = await _secretStore.read();
+    // S-03 方案 A：空值表示「未改」，故只有**非空且与已存不等**才算脏。
     final formDirty =
         _url.text.trim() != cfg.baseUrl ||
         _user.text.trim() != cfg.username ||
-        (_pass.text.isEmpty ? null : _pass.text) != secrets.webdavPassword ||
-        passphrase != secrets.syncPassphrase;
+        (_pass.text.isNotEmpty && _pass.text != secrets.webdavPassword) ||
+        (_syncSecret.text.trim().isNotEmpty &&
+            _syncSecret.text.trim() != secrets.syncPassphrase);
     if (formDirty) {
       _toast(
         (mounted ? AppLocalizations.of(context) : null)?.webdavFormDirty ??
@@ -232,7 +268,9 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
         transport: WebDavSyncClient(
           baseUrl: uri,
           username: _user.text.trim(),
-          password: _pass.text,
+          // S-03 方案 A：口令不回填 → 用生效值（表单非空 ? 表单 : 已存），
+          // 否则留空提交会拿空串去认证。
+          password: password,
         ),
         // 批次①c：自建 store 也接共享保险库密钥——保险库解锁时同步能
         // 读写 DNV 密文文档（锁定时 keyProvider 返回 null，fail-closed）。
@@ -443,6 +481,13 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
             decoration: _appleDecoration(
               labelText: AppLocalizations.of(context)?.commonPassword ?? '密码',
               icon: Icons.lock_outline,
+              // S-03 方案 A：不回填明文，用占位提示告知「已存且留空沿用」。
+              hintText:
+                  _hasSavedPassword
+                      ? (AppLocalizations.of(
+                            context,
+                          )?.webdavSecretKeepHint ?? '已保存 · 留空保持不变')
+                      : null,
             ),
           ),
           const SizedBox(height: AppleSpacing.sm),
@@ -454,6 +499,12 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
                   AppLocalizations.of(context)?.webdavSyncSecretLabel ??
                   '同步密码（必填，用于端到端加密）',
               icon: Icons.vpn_key_outlined,
+              hintText:
+                  _hasSavedPassphrase
+                      ? (AppLocalizations.of(
+                            context,
+                          )?.webdavSecretKeepHint ?? '已保存 · 留空保持不变')
+                      : null,
               helperText:
                   AppLocalizations.of(context)?.webdavSyncSecretHelper ??
                   '未设置同步密码时同步会被阻止（防止笔记明文上云）',

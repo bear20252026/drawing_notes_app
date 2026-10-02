@@ -5882,6 +5882,12 @@ abstract class AppLocalizations {
   /// **'WebDAV config saved (end-to-end encryption on)'**
   String get webdavSavedEncrypted;
 
+  /// No description provided for @webdavSecretKeepHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved · leave blank to keep'**
+  String get webdavSecretKeepHint;
+
   /// No description provided for @webdavBadUrl.
   ///
   /// In en, this message translates to:

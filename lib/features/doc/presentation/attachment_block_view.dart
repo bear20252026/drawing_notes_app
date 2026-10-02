@@ -131,7 +131,8 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2),
+                    // D-12（审计 2026-09-27）：2 → AppleSpacing.xxs（离档微间隙归一）。
+                    const SizedBox(height: AppleSpacing.xxs),
                     Text(
                       a.displaySubtitle,
                       style: AppleType.captionStyle(scheme.outline),

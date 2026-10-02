@@ -314,7 +314,8 @@ class EmbeddedBlockView extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     if (caption.isNotEmpty && caption != href) ...[
-                      const SizedBox(height: 2),
+                      // D-12（审计 2026-09-27）：2 → AppleSpacing.xxs（离档微间隙归一）。
+                      const SizedBox(height: AppleSpacing.xxs),
                       Text(
                         href,
                         style: AppleType.captionStyle(

@@ -128,7 +128,8 @@ class AllDocRow extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     if (doc.description.isNotEmpty) ...[
-                      const SizedBox(height: 2),
+                      // D-12（审计 2026-09-27）：2 → AppleSpacing.xxs（离档微间隙归一）。
+                      const SizedBox(height: AppleSpacing.xxs),
                       Text(
                         doc.description,
                         style: AppleType.controlStyle(muted).copyWith(
@@ -202,7 +203,8 @@ class AllDocRow extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 2),
+              // D-12（审计 2026-09-27）：2 → AppleSpacing.xxs（离档微间隙归一）。
+              const SizedBox(width: AppleSpacing.xxs),
               // ⋮ 菜单（U4a：触控目标 26→44px；死入口接活——onMenu 未传时
               // 打开与右键一致的上下文菜单。R6：读屏语义。V-05：裸
               // GestureDetector 无 Focus 节点 Tab 遍历跳过——改 InkWell

@@ -61,6 +61,3 @@ String buildSvgDocument({
     ..writeln('</svg>');
   return buf.toString();
 }
-
-/// 导出失败时统一的错误提示文案（供 UI 层 snackbar 使用）。
-String svgExportErrorMessage(Object error) => '导出失败：$error';

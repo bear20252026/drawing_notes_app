@@ -96,7 +96,9 @@ class _NotebookReaderPageState extends State<NotebookReaderPage> {
       backgroundColor: immersiveBg,
       appBar: AppBar(
         backgroundColor: immersiveBg,
-        foregroundColor: Colors.white70,
+        // D-15（审计 2026-09-27）：Material 白系捷径 → AppleColor.surfaceWhite
+        // 令牌（等价 70%），沉浸层不走主题色的理由见上方 immersiveBg 注释。
+        foregroundColor: AppleColor.surfaceWhite.withValues(alpha: 0.7),
         title: Text(
           AppLocalizations.of(context)?.readerTitle(widget.notebook.title) ??
               '${widget.notebook.title} · 翻页阅读',
@@ -112,7 +114,9 @@ class _NotebookReaderPageState extends State<NotebookReaderPage> {
             ? Center(
                 child: Text(
                   AppLocalizations.of(context)?.nbNoPages ?? '这个分页画布还没有页面',
-                  style: const TextStyle(color: Colors.white38),
+                  style: TextStyle(
+                    color: AppleColor.surfaceWhite.withValues(alpha: 0.38),
+                  ),
                 ),
               )
             : Stack(
@@ -149,7 +153,7 @@ class _NotebookReaderPageState extends State<NotebookReaderPage> {
                               ) ??
                               '第 ${_index + 1} 页 / 共 ${pages.length} 页',
                           style: AppleType.controlStyle(
-                            Colors.white70,
+                            AppleColor.surfaceWhite.withValues(alpha: 0.7),
                             weight: FontWeight.w400,
                           ),
                         ),

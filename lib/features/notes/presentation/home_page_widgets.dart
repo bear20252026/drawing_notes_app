@@ -142,7 +142,9 @@ class _DrawingCardState extends State<_DrawingCard> {
           : AppLocalizations.of(context)?.homeOpenCanvasCard(widget.meta.title) ??
             '打开无限画布 ${widget.meta.title}',
       child: AnimatedScale(
-        scale: _hovered ? 1.012 : 1,
+        // M-05（审计 2026-09-27）：1.012 原为无出处裸值——收编为令牌
+        // AppleMotion.hoverScale（悬停抬升，非按压；按压另有 pressScale=0.95）。
+        scale: _hovered ? AppleMotion.hoverScale : 1,
         duration: motion,
         // 曲线走 AppleMotion 令牌（内置 easeOutCubic 与规范曲线不同）。
         curve: AppleMotion.easeOut,

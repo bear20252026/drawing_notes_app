@@ -321,7 +321,8 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
               ),
               const SizedBox(width: 4),
               Text('$scalePercent%', style: theme.textTheme.bodySmall),
-              const SizedBox(width: 2),
+              // D-12（审计 2026-09-27）：2 → AppleSpacing.xxs（离档微间隙归一）。
+              const SizedBox(width: AppleSpacing.xxs),
               Icon(
                 Icons.expand_more_rounded,
                 size: 14,

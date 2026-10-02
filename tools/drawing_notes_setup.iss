@@ -3,7 +3,7 @@
 ; 说明：本脚本位于 tools/，路径均相对本脚本所在目录，可在仓库内直接复现打包。
 
 #define MyAppName "绘图笔记"
-#define MyAppVersion "1.17.50"
+#define MyAppVersion "1.17.51"
 #define MyAppPublisher "Drawing Notes Studio"
 #define MyAppExeName "drawing_notes_app.exe"
 ; Release 构建产物（相对 tools/）
@@ -30,7 +30,11 @@ Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
 ArchitecturesInstallIn64BitMode=x64os
+; S-07（审计 2026-09-27）：默认仍管理员安装（与历史版本一致，升级不改变
+; 行为），但允许用户在向导里改选「仅为当前用户安装」——触屏笔记本上无
+; 管理员口令时不必卡死。commandline 供静默安装用 /CURRENTUSER 覆盖。
 PrivilegesRequired=admin
+PrivilegesRequiredOverridesAllowed=dialog commandline
 MinVersion=10.0
 
 [Languages]

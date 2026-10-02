@@ -4,6 +4,9 @@ import 'apple_contrast.dart';
 import 'apple_design.dart';
 import 'apple_elevation.dart';
 import 'apple_focus.dart';
+// 同域（core/theme）令牌引用：TooltipThemeData.waitDuration 走
+// AppleMotion.tooltipDelay（M-10），不在此处自造数值。
+import 'apple_motion.dart';
 
 /// 应用统一设计语言。
 ///
@@ -250,7 +253,8 @@ abstract final class AppDesign {
         ),
       ),
       tooltipTheme: TooltipThemeData(
-        waitDuration: const Duration(milliseconds: 450),
+        // M-10（审计 2026-09-27）：450ms 裸值 → AppleMotion.tooltipDelay 令牌。
+        waitDuration: AppleMotion.tooltipDelay,
         decoration: BoxDecoration(
           color: colorScheme.inverseSurface,
           borderRadius: BorderRadius.circular(AppleRadius.sm),
@@ -259,6 +263,14 @@ abstract final class AppDesign {
           color: colorScheme.onInverseSurface,
         ),
       ),
+      // M-06（审计 2026-09-27）豁免裁决：**维持双轨制，不统一**。
+      // 路由转场是平台惯例域——Material 各平台默认即 M3 zoom，改走
+      // AppleMotion 曲线会与系统级返回手势/任务切换器打架（OS 层转场与
+      // App 内不一致更显廉价）。故全 App MaterialPageRoute 一律走平台默认
+      //（下方 Zoom 显式钉住，防 Flutter 版本变更时回落到各平台各异的默认
+      // 值），AppleSheetFadeRoute 只用于抽屉式底部面板这一种自定义几何转场
+      //（notebook_view_page_manage），不在其列。将来若出现第三种自定义几何
+      // 转场，再评估是否收编进 AppleMotion。
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.android: ZoomPageTransitionsBuilder(),

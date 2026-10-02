@@ -13,22 +13,38 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// 当前基线（2026-09-06 快照）：方向 → 允许的最大 import 条数。
+/// 当前基线（**2026-10-01 重立快照**，C-16 审计要求）：方向 → 允许的最大
+/// import 条数。
+///
+/// 口径（C-16：原「29/6」与实测「9/5」对不上，即因口径未注明）：
+/// - **计数单位 = `import` 语句行数**（同一文件重复 import 同一方向计多条），
+///   非「涉及文件数」、也非「符号引用数」；
+/// - 扫描范围 = `lib/features/**` 全部 `.dart`，**组合根
+///   （`app/`、`app.dart`）不在内**（见文件头）；
+/// - 源 feature = 路径首段 `lib/features/<src>/`，目标 = import URI 里的
+///   `features/<dst>/`，`src == dst`（同 feature 内分层 import）不计。
+///
+/// 本次实测（与本测试同口径）：notes->doc 9、notes->security 5、
+/// notes->drawing 6、doc->notes 2、notes->all_docs 2、doc->security 1、
+/// all_docs->notes 1、security->notes 0、security->doc 0、drawing->notes 0。
+/// 基线全部收紧至实测值（棘轮只紧不松）；原值 29/6/7/3 系 2026-09-06 快照，
+/// 其后 v1.17.26「home_page 直连 infra 收口」等迁移已实际下降但基线未回跟。
 ///
 /// notes->drawing 6→7（v1.17.17）：无限画布整图 PDF 导出复用全仓唯一
 /// PDF 引擎 `pdf_hybrid_exporter`——与 notebook_pdf_exporter 同源的
 /// 「单一事实来源」先例，非新横向耦合面。
 const Map<String, int> _baseline = {
-  // notes->doc 30→29（v1.17.26，审计 #17）：home_page 对 doc/infrastructure
-  // 的 BlockDocSearchAccessorImpl 直连改为 core 契约 + 组合根注入。
-  'notes->doc': 29,
-  'notes->security': 6,
-  'notes->drawing': 7,
-  'doc->notes': 3,
+  // notes->doc 29→9（2026-10-01，C-16 重立快照）：home_page 对
+  // doc/infrastructure 的 BlockDocSearchAccessorImpl 直连已改 core 契约 +
+  // 组合根注入（v1.17.26，审计 #17），基线回跟实测。
+  'notes->doc': 9,
+  'notes->security': 5,
+  'notes->drawing': 6,
+  'doc->notes': 2,
   'notes->all_docs': 2,
-  'security->notes': 1,
-  'security->doc': 1,
-  'drawing->notes': 1,
+  'security->notes': 0,
+  'security->doc': 0,
+  'drawing->notes': 0,
   'doc->security': 1,
   'all_docs->notes': 1,
 };

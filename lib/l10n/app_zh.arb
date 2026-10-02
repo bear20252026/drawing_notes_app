@@ -2746,6 +2746,8 @@
   "@webdavSavedPlain": {},
   "webdavSavedEncrypted": "已保存 WebDAV 配置（已启用端到端加密）",
   "@webdavSavedEncrypted": {},
+  "webdavSecretKeepHint": "已保存 · 留空保持不变",
+  "@webdavSecretKeepHint": {},
   "webdavBadUrl": "请先填写合法的服务器 URL（含 http/https 与 /）",
   "@webdavBadUrl": {},
   "webdavNeedSyncPassword": "未设置同步密码：为避免笔记明文上云，已阻止同步。请在下方设置同步密码后重试。",

@@ -110,21 +110,7 @@ class NotebookPageCanvasPainter extends CustomPainter {
           Paint(),
         );
       } else {
-        canvas.drawRect(rect, Paint()..color = const Color(0xFFCFD8DC));
-        canvas.drawRect(
-          rect,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 2
-            ..color = const Color(0xFF607D8B),
-        );
-        canvas.drawLine(
-          rect.topLeft,
-          rect.bottomRight,
-          Paint()
-            ..strokeWidth = 1
-            ..color = const Color(0x66546E7A),
-        );
+        drawImagePlaceholder(canvas, rect);
       }
     }
 
@@ -216,4 +202,38 @@ class _TextItemPainterEntry {
       _isTodo == text.isTodo &&
       _todoChecked == text.todoChecked &&
       _align == text.align;
+}
+
+// ---------------------------------------------------------------------------
+// D-13（审计 2026-09-27）：图片占位块绘制的**唯一实现**。
+// 此前 notebook_page_canvas_painter（翻页/PDF 导出）与
+// notebook_view_page_widgets（滚动列表缩略）各持一份逐字节相同的
+// 「底色 + 边框 + 对角线」三笔绘制，改色/改线宽必漏改一处。
+//
+// [scale] 是文档→屏幕缩放：列表缩略图按 1/scale 反算，让线宽在任何缩放
+// 下视觉恒定（画布域换算，同 D-16 的 `2 / scale`）；忠实渲染器（painter）
+// 走文档原始坐标、不除 scale，传默认 1 即原行为。
+//
+// 色值为 Material BlueGrey 系（100/500/600@40%），是**文档占位内容**的
+// 固定语义色（占位块不随主题翻转——它代表「这里本该有一张图」，与主题
+// 无关），故不走 AppleColor；见 D-13 裁决。
+// ---------------------------------------------------------------------------
+
+/// 画出未解码图片的占位块：浅底 + 深描边 + 对角线（「此处有图」的通用约定）。
+void drawImagePlaceholder(Canvas canvas, Rect rect, {double scale = 1}) {
+  canvas.drawRect(rect, Paint()..color = const Color(0xFFCFD8DC));
+  canvas.drawRect(
+    rect,
+    Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2 / scale
+      ..color = const Color(0xFF607D8B),
+  );
+  canvas.drawLine(
+    rect.topLeft,
+    rect.bottomRight,
+    Paint()
+      ..strokeWidth = 1 / scale
+      ..color = const Color(0x66546E7A),
+  );
 }

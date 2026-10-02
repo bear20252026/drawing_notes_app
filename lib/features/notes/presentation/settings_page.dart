@@ -577,7 +577,8 @@ class _PasswordLayersCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: Theme.of(context).textTheme.bodyMedium),
-              const SizedBox(height: 2),
+              // D-12（审计 2026-09-27）：2 → AppleSpacing.xxs（离档微间隙归一）。
+              const SizedBox(height: AppleSpacing.xxs),
               Text(
                 desc,
                 style: Theme.of(

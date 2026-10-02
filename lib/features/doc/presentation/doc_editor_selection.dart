@@ -229,9 +229,11 @@ extension DocEditorSelection on DocEditorState {
           onTap();
         },
         child: Padding(
-          // U4a：6→13——18px 图标 + 13×2 = 44px 触控目标（触屏铁律 ≥44）。
-          padding: const EdgeInsets.all(13),
-          child: Icon(icon, size: 18, color: Colors.white),
+          // D-11（审计 2026-09-27）：触控目标算法统一走归档口径
+          //「20px 图标 + 12×2 = 44px」（同 doc_editor_toolbar / database_table_view），
+          // 原「18px 图标 + 13×2」虽同为 44px，但两套并存会让后来者算不清。
+          padding: const EdgeInsets.all(AppleSpacing.sm),
+          child: Icon(icon, size: 20, color: Colors.white),
         ),
       ),
     );

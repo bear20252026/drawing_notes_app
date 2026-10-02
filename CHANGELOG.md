@@ -2,6 +2,79 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.51] - 2026-10-02
+
+### 审计批次 AC：安全增量批——S-03 根治 + 令牌/间距/装配 16 项收口
+
+> 承接 v1.17.31~50 审计批次，本批处理 2026-09-27 全量审计中**仍未闭环的
+> 非架构类条目**（架构域 C-05~C-10、C-12~C-14 与性能 P-06~P-09、可达性
+> V-12 留待各自专项批次）。开工前逐条实查过代码——审计快照已知会过时
+>（先例 L-02/D-03），本次确认 **R-10、S-08 其实早已闭环**（分别由
+> R-13、R-04 修复，只是 commit 未写 ID），故实际改动 17 项。
+
+- **S-03 [P2] WebDAV 口令回填驻留内存——按「占位符模式」根治**：
+  `webdav_sync_settings_page.dart` 此前把已存密码与 E2E 口令
+  `?? ''` 回填进 `TextEditingController`，而 `SessionSecrets.clearAll()`
+  （切后台触发）只清各 store 的会话缓存，**清不到 widget 树里的这份明文**
+  ——堆转储可直接读出。改为：
+  - `_loadConfig` 不再写口令框，只记 `_hasSavedPassword` /
+    `_hasSavedPassphrase` 两个 bool，用 `hintText` 呈现「已保存 ·
+    留空保持不变」（新增 arb 键 `webdavSecretKeepHint`，zh/en 对称
+    1052=1052）；
+  - **空值语义从「清空」改为「沿用已存」**：`_save` 先读已存机密再
+    合并写回，`_syncNow` 的生效口令 = 表单非空 ? 表单 : 已存；
+  - `formDirty` 同步改为「**非空且与已存不等**才算脏」——空框是常态
+    而非未保存状态；
+  - 代价：本页不再提供「删除已存口令」入口（该路径本就是 footgun：
+    清空后同步要么认证失败、要么被 fail-closed 挡住）。
+  - 回归锁 +3：明文不回填且不出现在可见文本 / 留空点保存不抹掉口令 /
+    输入新值仍可覆盖（防止「留空沿用」把覆盖能力一起关掉）。
+- **D-09/D-10/D-11/D-12/D-15/D-16 令牌与间距**：序号 `fontSize: 16`
+  补离档论证（同 code 块 15px 的口径）；演示页 `EdgeInsets.all(40)`
+  → `AppleSpacing.xl`；选区工具条触控算法统一为归档口径
+  「20px 图标 + 12×2 = 44」（原 18+13×2 同为 44 但两套并存）；8 处
+  2/3px 微间隙 + 删除列 28 归一 `AppleSpacing.xxs/xl`（表头占位与行内
+  按钮**同步改**，否则列错位）；沉浸层 10 处 `Colors.white54/38/70`
+  → `AppleColor.surfaceWhite.withValues`；画布域 `2 / scale` 圆角补豁免
+  注释（除以缩放才恒定，AppleRadius 不参与换算）。
+- **D-13 图片占位块去重**：`notebook_page_canvas_painter` 与
+  `notebook_view_page_widgets` 各持一份逐字节相同的「底色+边框+对角线」
+  绘制——收口为 rendering 层唯一实现 `drawImagePlaceholder(canvas, rect,
+  {scale})`，`scale` 参数化保留两处原行为（忠实渲染器不除、缩略图除）。
+  presentation→rendering 方向合法（`notebook_reader_page` 已有先例）。
+- **M-05/M-10 动效令牌收编**：悬停 `1.012` → `AppleMotion.hoverScale`
+  （悬停抬升，与 `pressScale` 0.95 方向相反不可混用）；tooltip
+  `waitDuration` 450ms → `AppleMotion.tooltipDelay`（与 `tooltip`
+  125ms 淡入是两件事）。`app_design.dart` 补 import `apple_motion.dart`
+  （同域）——Martin I 实测 0.24，仍远低于 0.4 上限。
+- **M-06/M-08/M-09 三项豁免裁决落注释**（审计给了「统一 or 记录」两
+  选项，本轮取记录，不动行为）：路由转场**维持双轨制**——Material
+  转场走平台默认（Zoom 显式钉住防回落），`AppleSheetFadeRoute` 只用于
+  抽屉式几何转场；激光 700/1800/260ms **不迁入 AppleMotion**——那是
+  UI 过渡令牌域（受 <300ms 硬约束），激光尾迹是画布内容的时间轴，
+  混入会让令牌表出现违反自身规则的条目（同 skeletonPulse 先例）；
+  easeInOut / linear / stagger 两件 / 三把弹簧 / enterOffsetY /
+  flingVelocityThreshold / crossfadeMaskBlur 共 10 个零调用令牌标注
+  **预留**并写明保留理由（成套配方与已定案的口径，避免将来另造裸值）。
+- **P-08 最近文档 memo**：侧栏「最近文档」原每次 build 全量拷贝+排序
+  +take(30)，打字搜索/切 Tab 都白跑 O(n log n)——改以 `_cached` 对象
+  身份为键缓存，数据根不变即复用，仅刷新或收藏乐观更新时重算。
+- **C-16 棘轮基线重立快照**：原「29/6」与实测「9/5」对不上是因**口径
+  未注明**——补写计数单位（`import` 语句行数，非文件数；组合根不在
+  扫描范围），基线全部收紧至 2026-10-01 实测值（notes→doc 29→9、
+  notes→security 6→5、notes→drawing 7→6、doc→notes 3→2、
+  security→* 与 drawing→notes 1→0），棘轮只紧不松。
+- **R-12 [P2] 删零调用死模板**（用户已同意）：
+  `svgExportErrorMessage(Object error) => '导出失败：$error'` 全库
+  零调用，留着就是「接线即把原始异常带进 UI」的隐患——删除。
+- **S-07 [P2] 安装包 per-user 安装**：`PrivilegesRequired=admin` 后补
+  `PrivilegesRequiredOverridesAllowed=dialog commandline`——默认行为
+  不变（仍管理员安装、升级路径一致），但触屏笔记本无管理员口令时可
+  在向导改选「仅为当前用户安装」，静默装用 `/CURRENTUSER` 覆盖。
+- 门禁：analyze 0 告警；全量 **1899 绿 + 1 skip**（含 3 条新回归锁）；
+  架构门禁 9/9（含 C-16 收紧后的棘轮）；linecheck EXIT 0；SLOC 最高
+  616 < 1000；结构门禁 presentation 40/40 未增文件；DCM no issues。
+
 ## [1.17.50] - 2026-10-01
 
 ### 审计批次 AB：C-04 第五批——图片裁剪写回管线迁 infrastructure

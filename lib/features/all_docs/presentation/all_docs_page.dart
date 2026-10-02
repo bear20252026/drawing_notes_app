@@ -129,6 +129,29 @@ class _AllDocsPageState extends State<AllDocsPage> {
   /// 已加载的结果缓存（收藏切换时在其上做乐观更新）。
   AllDocQueryResult? _cached;
 
+  /// 最近文档 memo（P-08，审计 2026-09-27）：侧栏「最近文档」原在每次
+  /// build 里做全量 `List.of` 拷贝 + 排序 + take(30)——文档一多，任何
+  /// setState（打字搜索、Tab 切换）都白跑一遍 O(n log n)。现以 `_cached`
+  /// 的**对象身份**为键缓存结果：数据根不变就直接复用，只有刷新
+  /// （`_onDataVersionChanged` 置空 `_cached`）或收藏乐观更新换新实例时
+  /// 才重算。返回的列表为只读语义（消费方 all_docs_sidebar 只读下标）。
+  List<AllDoc>? _recentDocsCache;
+  AllDocQueryResult? _recentDocsCacheKey;
+
+  List<AllDoc> _recentDocs() {
+    final result = _cached;
+    if (result == null) return const [];
+    if (!identical(result, _recentDocsCacheKey)) {
+      _recentDocsCacheKey = result;
+      _recentDocsCache =
+          (List.of(result.docs)
+                ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt)))
+              .take(30)
+              .toList(growable: false);
+    }
+    return _recentDocsCache!;
+  }
+
   /// 当前加载任务（数据版本变化时由 [_onDataVersionChanged] 重启）。
   Future<AllDocQueryResult>? _future;
 
@@ -206,12 +229,7 @@ class _AllDocsPageState extends State<AllDocsPage> {
             _tabIndex = i.clamp(0, 2);
           }),
           // 文档树（M11.3）：最近文档，点击直接打开。
-          recentDocs: _cached == null
-              ? const []
-              : (List.of(_cached!.docs)
-                      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt)))
-                    .take(30)
-                    .toList(growable: false),
+          recentDocs: _recentDocs(),
           onOpenDoc: widget.onOpenDoc,
         ),
         // 垂直分隔线

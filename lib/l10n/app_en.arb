@@ -2767,6 +2767,8 @@
   "@webdavSavedPlain": {},
   "webdavSavedEncrypted": "WebDAV config saved (end-to-end encryption on)",
   "@webdavSavedEncrypted": {},
+  "webdavSecretKeepHint": "Saved · leave blank to keep",
+  "@webdavSecretKeepHint": {},
   "webdavBadUrl": "Enter a valid server URL first (including http/https and /)",
   "@webdavBadUrl": {},
   "webdavNeedSyncPassword": "No sync password set: sync is blocked to avoid uploading plaintext notes. Set a sync password below and retry.",
