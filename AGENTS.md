@@ -91,6 +91,32 @@ flutter test             # 必须全绿
 
 提交后 push，并确认 CI 五个工作流（CI / 软件质量工程门禁 / Code Guard / SBOM / Secret Scan）全绿。
 
+### 云端验证纪律（2026-10-03 起，降速日适用）
+
+> 缘起：v1.17.52 发版日本机整体降速约 10 倍（`flutter analyze` 660s），
+> 满并发全量下 `architecture_test`（analyzer 全仓建图，其文件头注释即
+> 记载「本机全量曾偶发超时，单跑秒级」）与真 KDF 用例双双撞超时；隔离
+> 重跑与 HEAD 干净 worktree 对照均绿。结论：环境问题不得阻塞发版，也
+> 不得反过来虚报绿。
+
+1. **CI 是权威验证**。本地只跑**可行**的快门禁：`flutter analyze`、与本批
+   改动直接相关的小套件（新门禁测试 / 被改域的测试）、
+   `dart run tools/check_version_consistency.dart`。降速日全量
+   `flutter test` 允许留空，交推送后的云端五工作流裁决；commit message
+   必须如实写本地门禁跑了什么、什么没跑，**不得虚报全量绿**。
+2. **降速判定**：analyze 或单套件耗时较基线劣化 ≥5 倍（analyze >5 分钟
+   即算）即降速日，触发本纪律；判定依据写进 commit。纪律降的是验证
+   场所，不是代码标准。
+3. **测试失败先归因再动手**：先分「改动引起 vs 环境引起」——用
+   `git worktree add <临时目录> <HEAD>` 建干净对照、同机跑同一测试
+   （**不许 stash 用户未提交的工作**做对照）；对照绿 → 环境/负载问题，
+   对照红 → 才是改动问题。实验完 `git worktree remove --force` 清理。
+4. **重超时套件本地跑法**：`architecture_test`（analyzer 建图）与 `kdf`
+   标签套件在满并发下本会互相击穿超时（`dart_test.yaml` 已备案，CI 按
+   `--exclude-tags kdf` 与 `--tags kdf --concurrency=1` 拆分）。本地
+   复现 CI 口径就用同一拆分；**裸跑满并发全量后的超时不作为「改动有罪」
+   的证据**，须按第 3 条对照归因后再下结论。
+
 ## 7. 其他铁律
 
 - **任何删改（删功能 / 删入口 / 删代码 / 重构）必须先征求用户同意**，不得自行判断删除。增量新增不受限。
