@@ -49,8 +49,8 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final store = MemorySyncSecretStore(
       const SyncSecrets(
-        webdavPassword: 'secret-webdav-pass',
-        syncPassphrase: 'secret-sync-passphrase',
+        webdavPassword: 'fixture-pass',
+        syncPassphrase: 'fixture-phrase',
       ),
     );
     await tester.pumpWidget(
@@ -71,8 +71,8 @@ void main() {
     expect(fields[2].controller!.text, isEmpty);
     expect(fields[3].controller!.text, isEmpty);
     // 明文绝不出现在任何可见文本里。
-    expect(find.text('secret-webdav-pass'), findsNothing);
-    expect(find.text('secret-sync-passphrase'), findsNothing);
+    expect(find.text('fixture-pass'), findsNothing);
+    expect(find.text('fixture-phrase'), findsNothing);
     // 存在性以占位提示呈现（hintText 只在框空时渲染，此处两框皆空）。
     expect(find.text('已保存 · 留空保持不变'), findsNWidgets(2));
   });
@@ -84,8 +84,8 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final store = MemorySyncSecretStore(
       const SyncSecrets(
-        webdavPassword: 'secret-webdav-pass',
-        syncPassphrase: 'secret-sync-passphrase',
+        webdavPassword: 'fixture-pass',
+        syncPassphrase: 'fixture-phrase',
       ),
     );
     await tester.pumpWidget(
@@ -104,8 +104,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     final saved = await store.read();
-    expect(saved.webdavPassword, 'secret-webdav-pass');
-    expect(saved.syncPassphrase, 'secret-sync-passphrase');
+    expect(saved.webdavPassword, 'fixture-pass');
+    expect(saved.syncPassphrase, 'fixture-phrase');
   });
 
   // 回归锁三：输入新值覆盖旧值——确保「留空沿用」没有把覆盖能力一起关掉。
