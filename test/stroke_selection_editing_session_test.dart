@@ -33,20 +33,31 @@ void main() {
     final points = host.currentLayer.strokes.single.points;
     expect(points.first.offset, const Offset(0, 4));
     expect(points.last.offset, const Offset(20, 4));
-    expect(host.snapshots, hasLength(1));
+    // P-05（审计 2026-09-27）：变换提交窄命令三元组，不再产生整层快照。
+    expect(host.snapshots, isEmpty, reason: '变换不再走整层快照桥接');
+    expect(host.transformCommands, hasLength(1));
+    final transform = host.transformCommands.single;
+    expect(transform.layerIndex, 0);
+    expect(transform.pairs, hasLength(1));
+    expect(transform.pairs.single.index, 0);
     expect(
-      host.snapshots.single.before.single.strokes.single.points.first.offset,
+      transform.pairs.single.before.points.first.offset,
       const Offset(0, 0),
+      reason: 'before 是手势首个采样前的原始对象',
     );
     expect(
-      host.snapshots.single.after.single.strokes.single.points.last.offset,
+      transform.pairs.single.after.points.last.offset,
       const Offset(20, 4),
     );
     expect(host.invalidatedLayerIds, ['base', 'base']);
     expect(host.changeNotifications, 2);
 
     session.endTransform();
-    expect(host.snapshots, hasLength(1), reason: '没有新变换时不能产生空历史记录');
+    expect(
+      host.transformCommands,
+      hasLength(1),
+      reason: '没有新变换时不能产生空历史记录',
+    );
   });
 
   test('会话复制、粘贴和删除只修改选中笔画并保持快照边界', () {
@@ -120,11 +131,23 @@ class _StrokeSelectionHost implements StrokeSelectionEditingHost {
   final DrawingSelectionSession selectionSession;
 
   final List<_LayerSnapshot> snapshots = <_LayerSnapshot>[];
+  final List<_TransformCommand> transformCommands = <_TransformCommand>[];
   final List<String> invalidatedLayerIds = <String>[];
   int changeNotifications = 0;
 
   @override
   Layer get currentLayer => document.layers.single;
+
+  @override
+  int get currentLayerIndex => 0;
+
+  @override
+  void pushStrokeTransform(
+    int layerIndex,
+    List<({int index, Stroke before, Stroke after})> pairs,
+  ) {
+    transformCommands.add(_TransformCommand(layerIndex: layerIndex, pairs: pairs));
+  }
 
   @override
   Future<void> invalidateLayer(String layerId) async {
@@ -145,4 +168,12 @@ class _LayerSnapshot {
 
   final List<Layer> before;
   final List<Layer> after;
+}
+
+/// 捕获会话提交的变换窄命令载荷（宿主侧只负责组装命令入栈）。
+class _TransformCommand {
+  const _TransformCommand({required this.layerIndex, required this.pairs});
+
+  final int layerIndex;
+  final List<({int index, Stroke before, Stroke after})> pairs;
 }

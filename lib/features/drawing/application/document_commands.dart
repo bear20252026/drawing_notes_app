@@ -146,6 +146,48 @@ class EraseStrokesCommand extends DocCommand {
   }
 }
 
+/// 选区变换的窄命令（P-05，审计 2026-09-27）。
+///
+/// 一次变换手势（拖拽平移/缩放/旋转）只把选中笔画的点列替换为新
+/// [Stroke] 对象，图层笔画数不变。此前经 [SnapshotCommand] 提交
+/// 全图层 before/after 双份快照——开销 O(全部图层全部笔画) 引用拷贝，
+/// 且撤销栈（容量 60）里每条变换都常驻两份。这里只记录受影响笔画的
+/// (位置, 变换前, 变换后) 三元组，内存 O(选中笔画数)。
+///
+/// 按索引直接覆写的 LIFO 正确性：命令栈按序回放，执行到本命令时
+/// 文档必处于本命令提交时的状态（栈中上方命令已全部忠实还原），
+/// 三元组索引即可精确定位——与 [EraseStrokesCommand] 记录原位置插回
+/// 是同一假设，中删/层操作等快照命令还原的是完整图层列表，同样成立。
+class TransformStrokesCommand extends DocCommand {
+  TransformStrokesCommand(this._context, this._layerIndex, this._pairs);
+
+  final DocCommandContext _context;
+  final int _layerIndex;
+
+  /// (图层内位置, 变换前对象, 变换后对象)，按位置升序、位置互异。
+  final List<({int index, Stroke before, Stroke after})> _pairs;
+
+  @override
+  void undo() {
+    final strokes = _context.document.layers[_layerIndex].strokes;
+    for (final pair in _pairs) {
+      strokes[pair.index] = pair.before;
+    }
+    _context.afterStrokeUndoRedo(_layerIndex);
+    _context.touchDocument();
+  }
+
+  @override
+  void redo() {
+    final strokes = _context.document.layers[_layerIndex].strokes;
+    for (final pair in _pairs) {
+      strokes[pair.index] = pair.after;
+    }
+    _context.afterStrokeUndoRedo(_layerIndex);
+    _context.touchDocument();
+  }
+}
+
 /// 手绘识别形状的原子替换命令。
 ///
 /// 创建时控制器已将笔画替换为 [shape]；撤销恢复原笔画，重做再次显示形状，

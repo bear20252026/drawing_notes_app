@@ -18,7 +18,13 @@ class DrawingSelectionSession {
   Offset? centerCache;
   bool centerDirty = true;
   List<Stroke>? clipboard;
-  List<Layer>? transformBefore;
+
+  /// 变换手势锚点：首个采样时选中笔画的 (图层内位置, 原对象)。
+  ///
+  /// P-05（审计 2026-09-27）：原为全图层快照 `List<Layer>`，手势结束才
+  /// 消费一次却常驻 O(全部图层全部笔画) 引用拷贝；现只记选中项，
+  /// [StrokeSelectionEditingSession.endTransform] 据此组装窄命令三元组。
+  List<({int index, Stroke stroke})>? transformBefore;
 
   List<Offset> get draft => _draft;
   bool get hasSelection => selection.polygon.length >= 3;
@@ -162,17 +168,28 @@ class StrokeSelectionInteractionSession {
 abstract interface class StrokeSelectionEditingHost {
   DrawingDocument get document;
   Layer get currentLayer;
+  int get currentLayerIndex;
   DrawingSelectionSession get selectionSession;
 
+  /// 低频计数变更操作（删除/粘贴）仍走整层快照桥接。
   void pushLayerSnapshot(List<Layer> before, List<Layer> after);
+
+  /// P-05：变换手势（计数不变）提交窄命令——只记受影响笔画三元组，
+  /// 由宿主组装 TransformStrokesCommand（见 document_commands.dart）入栈。
+  void pushStrokeTransform(
+    int layerIndex,
+    List<({int index, Stroke before, Stroke after})> pairs,
+  );
+
   Future<void> invalidateLayer(String layerId);
   void notifyChanged();
 }
 
-/// 已选笔画的变换、复制、粘贴、删除及其撤销快照编排。
+/// 已选笔画的变换、复制、粘贴、删除及其撤销编排。
 ///
-/// 连续手势只保存首次变换前的快照；在 [endTransform] 时统一提交一条历史
-/// 记录，从而保持拖动和滑块操作的单步撤销语义。
+/// 连续手势只锚定首次变换前的选中笔画；在 [endTransform] 时统一提交
+/// 一条历史记录，从而保持拖动和滑块操作的单步撤销语义。变换走窄命令
+/// （P-05），删除/粘贴等计数变更操作仍走整层快照。
 class StrokeSelectionEditingSession {
   StrokeSelectionEditingSession(this._host);
 
@@ -244,7 +261,12 @@ class StrokeSelectionEditingSession {
   }
 
   void _ensureTransformBefore() {
-    _selection.transformBefore ??= _snapshotLayers();
+    // P-05：只锚定选中笔画的 (位置, 原对象)——变换不改图层笔画数，
+    // 位置在手势期间稳定（变换手势独占画布，无并发增删）。
+    _selection.transformBefore ??= <({int index, Stroke stroke})>[
+      for (final index in _selection.selection.selectedStrokeIndices)
+        (index: index, stroke: _host.currentLayer.strokes[index]),
+    ];
   }
 
   void _transformSelected(Offset Function(Offset) transform) {
@@ -272,12 +294,26 @@ class StrokeSelectionEditingSession {
     _host.notifyChanged();
   }
 
-  /// 在连续拖动或滑块操作结束时提交一条可逆图层快照。
+  /// 在连续拖动或滑块操作结束时提交一条可逆窄命令（P-05）。
+  ///
+  /// 手势锚点（原对象）与当前对象 identity 不同的选中项组装成三元组；
+  /// 全部相同（锚定后零变换即收笔）则不产生历史条目。防御性跳过越界
+  /// 位置——变换手势独占画布，正常路径不会发生。
   void endTransform() {
     final before = _selection.transformBefore;
     if (before == null) return;
     _selection.clearTransformBefore();
-    _commitSnapshot(before);
+    final strokes = _host.currentLayer.strokes;
+    final pairs = <({int index, Stroke before, Stroke after})>[];
+    for (final anchor in before) {
+      if (anchor.index < 0 || anchor.index >= strokes.length) continue;
+      final now = strokes[anchor.index];
+      if (!identical(now, anchor.stroke)) {
+        pairs.add((index: anchor.index, before: anchor.stroke, after: now));
+      }
+    }
+    if (pairs.isEmpty) return;
+    _host.pushStrokeTransform(_host.currentLayerIndex, pairs);
   }
 
   /// 删除选中的笔画。

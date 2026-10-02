@@ -144,6 +144,17 @@ class DrawingController extends ChangeNotifier
   }
 
   @override
+  void pushStrokeTransform(
+    int layerIndex,
+    List<({int index, Stroke before, Stroke after})> pairs,
+  ) {
+    // P-05（审计 2026-09-27）：选区变换走窄命令——此前经快照桥接提交
+    // 全图层 before/after 双份拷贝，撤销栈容量 60 下每条变换常驻两份
+    // O(全部笔画) 引用列表。
+    _pushCommand(TransformStrokesCommand(this, layerIndex, pairs));
+  }
+
+  @override
   void addLayerCache(Layer layer) => _addLayerCache(layer);
 
   @override

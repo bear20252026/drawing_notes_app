@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/utils/safe_url.dart';
+import 'package:drawing_notes_app/shared/utils/image_decode_cap.dart';
 import '../../../core/theme/apple_design.dart';
 import '../../../core/theme/apple_motion.dart';
 
@@ -61,9 +62,17 @@ class _ImagePreviewPage extends StatelessWidget {
             child: InteractiveViewer(
               minScale: 0.5,
               maxScale: 4.0,
+              // P-11（审计 2026-09-27）：全屏预览按屏宽量化解码——此前
+              // 无 cacheWidth，数千万像素照片整幅进图像缓存。量化档位与
+              // 嵌入图同源（ImageDecodeCap，2048 封顶）；1:1 满屏物理像素
+              // 内清晰，InteractiveViewer 4x 内放大由 GPU 上采样补足。
               child: Image.network(
                 src,
                 fit: BoxFit.contain,
+                cacheWidth: ImageDecodeCap.quantizedCacheWidth(
+                  MediaQuery.sizeOf(context).width,
+                  MediaQuery.devicePixelRatioOf(context),
+                ),
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
                   // 刻意保留 spinner（审计二-6 分类裁决）：图片传输
