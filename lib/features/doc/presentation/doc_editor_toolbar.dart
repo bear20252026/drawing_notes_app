@@ -26,7 +26,7 @@ extension DocEditorToolbar on DocEditorState {
                 padding: const EdgeInsets.symmetric(horizontal: 2),
                 child: Tooltip(
                   message: _blockTypeTooltip(option.type) ?? option.tooltip,
-                  child: InkWell(
+                  child: AppleFocusRing(borderRadius: AppleRadius.md, child: InkWell(
                     borderRadius: BorderRadius.circular(AppleRadius.md),
                     onTap: _focusedBlockId != null
                         ? () => _changeBlockType(_focusedBlockId!, option.type)
@@ -59,7 +59,7 @@ extension DocEditorToolbar on DocEditorState {
                         ],
                       ),
                     ),
-                  ),
+                  )),
                 ),
               );
             }),
@@ -110,18 +110,27 @@ extension DocEditorToolbar on DocEditorState {
         button: true,
         child: Tooltip(
           message: tooltip,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(AppleRadius.sm),
-            onTap: onPressed,
-            child: Padding(
-              // #34 间距归一：14→12（20px 图标 + 24 = 44px 触控目标，仍达标）。
-              padding: const EdgeInsets.all(12),
-              child: Icon(
-                icon,
-                size: 20,
-                color: onPressed != null
-                    ? Theme.of(context).colorScheme.onSurface
-                    : Theme.of(context).colorScheme.onSurfaceVariant,
+          // V-12（审计 2026-09-27）：裸 Semantics+Tooltip+InkWell 图标钮的
+          // 键盘焦点此前只有 Material 的 focusColor overlay（深色底几乎看不
+          // 出），补 2px Focus Blue 描边。环外扩绘制不占布局，且
+          // AppleFocusRing 的 Focus 节点 canRequestFocus:false 只观察不抢
+          // 焦点，因此不多出 Tab 停靠。半径对齐 InkWell 自身的 sm。
+          child: AppleFocusRing(
+            borderRadius: AppleRadius.sm,
+            enabled: onPressed != null,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppleRadius.sm),
+              onTap: onPressed,
+              child: Padding(
+                // #34 间距归一：14→12（20px 图标 + 24 = 44px 触控目标，仍达标）。
+                padding: const EdgeInsets.all(12),
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: onPressed != null
+                      ? Theme.of(context).colorScheme.onSurface
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           ),

@@ -3,6 +3,53 @@ part of 'editor_page.dart';
 // 编辑器顶栏/主菜单域（O1 拆分）：AppBar 与汉堡菜单从 editor_page.dart
 // 移出为 extension；行为零变化。
 
+/// 顶栏标题区的**过滤型**只读视图模型（P-09，审计 2026-09-27）。
+///
+/// 标题子树对 `DrawingController` 的真实依赖只有两项：**文档标题**与
+/// **isDirty**。其余显示输入都不来自 controller——`_canvasSaving` /
+/// `_canvasLastSavedAt` 是 `_EditorPageState` 字段（各自 setState 驱动），
+/// 类型 chip 取 `widget.session != null`（整页生命周期为常量）。此前直接
+/// 挂整个 controller，笔画提交、框选、图层切换等**任何** notifyListeners
+/// 都会把 LayoutBuilder + Row + Text + Chip 子树整个重建一遍。
+///
+/// 本适配器把签名比对放在源通知回调里：**签名未变就不转发**，于是重建
+/// 只在标题或未保存标记真正变化时发生。
+///
+/// 为什么留在 presentation 的 part 里而不是 `application/`：它是单一子树
+/// 的读模型，不是 C-04 意义上的交互状态控制器；且
+/// `features/drawing/application` 已 39/40 文件（sloc-guard 上限 40），
+/// 新文件会吃掉最后一个空位，而塞进 `editor_interaction_controllers.dart`
+/// 又会把它从 498 行顶过 500 警告线。留在这里两者都不动。
+class TitleReadModel extends ChangeNotifier {
+  TitleReadModel(this._source) {
+    _source.addListener(_sync);
+    // 首帧就要与源一致，否则首次通知前 builder 读到的是零值签名。
+    _sync();
+  }
+
+  final DrawingController _source;
+
+  String _title = '';
+  bool _dirty = false;
+
+  void _sync() {
+    final title = _source.document.title;
+    final dirty = _source.isDirty;
+    if (title == _title && dirty == _dirty) return;
+    _title = title;
+    _dirty = dirty;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    // SDK 注释明确：removeListener 允许在源已 dispose 后调用（宿主常比
+    // 监听者早一帧释放），故此处无需判断源是否存活。
+    _source.removeListener(_sync);
+    super.dispose();
+  }
+}
+
 /// 顶栏主菜单的单个小项工厂（DRY：统一头像/文本、紧凑排版）。
 PopupMenuItem<_MainMenuItem> _mainMenuItem(
   _MainMenuItem value, {
@@ -35,7 +82,12 @@ extension _EditorPageAppBar on _EditorPageState {
     final narrow = MediaQuery.sizeOf(context).width < 600;
     return AppBar(
       title: ListenableBuilder(
-        listenable: _controller,
+        // P-09（审计 2026-09-27）：挂过滤型读模型而非整个 controller——
+        // 标题子树只依赖 title 与 isDirty，此前笔画提交/框选/图层切换等
+        // 每次 notifyListeners 都把 LayoutBuilder+Row+Chip 重建一遍。
+        // 下方撤销/重做仍挂 _controller：它们依赖历史可用性，必须随每次
+        // 历史变更重建（且各自只包一个 IconButton，成本可忽略）。
+        listenable: _titleReadModel,
         builder: (context, _) {
           final isNote = _isNotebookMode;
           return LayoutBuilder(
@@ -53,7 +105,7 @@ extension _EditorPageAppBar on _EditorPageState {
                           AppLocalizations.of(context)?.renameCanvasTitle ??
                           '重命名画布',
                       triggerMode: TooltipTriggerMode.longPress,
-                      child: InkWell(
+                      child: AppleFocusRing(borderRadius: AppleRadius.xs, child: InkWell(
                         onTap: _renameCanvas,
                         borderRadius: BorderRadius.circular(AppleRadius.xs),
                         child: Padding(
@@ -85,7 +137,7 @@ extension _EditorPageAppBar on _EditorPageState {
                             ],
                           ),
                         ),
-                      ),
+                      )),
                     ),
                   ),
                   if (showStatus) ...[

@@ -8,6 +8,7 @@ import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_focus.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_doc_row.dart'
@@ -246,7 +247,7 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
       child: Material(
         color: selected ? accent.withValues(alpha: 0.10) : Colors.transparent,
         borderRadius: BorderRadius.circular(AppleRadius.sm),
-        child: InkWell(
+        child: AppleFocusRing(borderRadius: AppleRadius.sm, child: InkWell(
           borderRadius: BorderRadius.circular(AppleRadius.sm),
           onTap: () {
             if (i == 3) {
@@ -282,7 +283,7 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
               ],
             ),
           ),
-        ),
+        )),
       ),
     );
   }
@@ -291,7 +292,7 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
   Widget _buildTreeHeader(BuildContext context) {
     final theme = Theme.of(context);
     final muted = AppleColor.mutedOf(theme.colorScheme);
-    return InkWell(
+    return AppleFocusRing(borderRadius: AppleRadius.sm, child: InkWell(
       borderRadius: BorderRadius.circular(AppleRadius.sm),
       onTap: () => setState(() => _treeExpanded = !_treeExpanded),
       child: Padding(
@@ -316,7 +317,7 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   /// 文档树单行（审计 #30：由 ListView.builder 按需构建）。
@@ -328,7 +329,7 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(AppleRadius.sm),
-      child: InkWell(
+      child: AppleFocusRing(borderRadius: AppleRadius.sm, child: InkWell(
         borderRadius: BorderRadius.circular(AppleRadius.sm),
         onTap: () => widget.onOpenDoc?.call(doc),
         child: Padding(
@@ -364,7 +365,7 @@ class _AllDocsSidebarState extends State<AllDocsSidebar> {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 

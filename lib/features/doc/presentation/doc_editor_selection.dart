@@ -223,7 +223,7 @@ extension DocEditorSelection on DocEditorState {
   ) {
     return Tooltip(
       message: tooltip,
-      child: InkWell(
+      child: AppleFocusRing(borderRadius: AppleRadius.sm, child: InkWell(
         borderRadius: BorderRadius.circular(AppleRadius.sm),
         onTap: () {
           onTap();
@@ -235,7 +235,7 @@ extension DocEditorSelection on DocEditorState {
           padding: const EdgeInsets.all(AppleSpacing.sm),
           child: Icon(icon, size: 20, color: Colors.white),
         ),
-      ),
+      )),
     );
   }
 

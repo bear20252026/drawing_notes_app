@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_focus.dart';
 import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
 import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
@@ -81,7 +82,7 @@ class AllDocRow extends StatelessWidget {
     // InkWell 不带 onLongPressStart（需位置），长按经 GestureDetector 承接。
     return GestureDetector(
       onLongPressStart: (details) => showMenuAt(details.globalPosition),
-      child: InkWell(
+      child: AppleFocusRing(borderRadius: AppleRadius.sm, child: InkWell(
         onTap: onOpenDoc,
         onSecondaryTapUp: (details) => showMenuAt(details.globalPosition),
         child: Padding(
@@ -184,19 +185,25 @@ class AllDocRow extends StatelessWidget {
                   message: doc.isFavorite
                       ? AppLocalizations.of(context)?.docsUnfavorite ?? '取消收藏'
                       : AppLocalizations.of(context)?.docsFavorite ?? '添加收藏',
-                  child: InkWell(
-                    onTap: onToggleFavorite,
-                    borderRadius: BorderRadius.circular(AppleRadius.md),
-                    child: SizedBox(
-                      width: 44,
-                      height: 44,
-                      child: Center(
-                        child: Icon(
-                          doc.isFavorite
-                              ? Icons.star_rounded
-                              : Icons.star_border_rounded,
-                          size: 18,
-                          color: doc.isFavorite ? AppleColor.favourite : subtle,
+                  // V-12（审计 2026-09-27）：裸按钮键盘焦点只有 focusColor
+                  // overlay（深色底不可见）——补 2px Focus Blue 描边环。
+                  child: AppleFocusRing(
+                    borderRadius: AppleRadius.md,
+                    child: InkWell(
+                      onTap: onToggleFavorite,
+                      borderRadius: BorderRadius.circular(AppleRadius.md),
+                      child: SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: Center(
+                          child: Icon(
+                            doc.isFavorite
+                                ? Icons.star_rounded
+                                : Icons.star_border_rounded,
+                            size: 18,
+                            color:
+                                doc.isFavorite ? AppleColor.favourite : subtle,
+                          ),
                         ),
                       ),
                     ),
@@ -215,23 +222,27 @@ class AllDocRow extends StatelessWidget {
                 child: Tooltip(
                   message:
                       AppLocalizations.of(context)?.docsMoreActions ?? '更多操作',
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(AppleRadius.md),
-                    onTapUp: (details) {
-                      if (onMenu != null) {
-                        onMenu!();
-                      } else {
-                        showMenuAt(details.globalPosition);
-                      }
-                    },
-                    child: SizedBox(
-                      width: 44,
-                      height: 44,
-                      child: Center(
-                        child: Icon(
-                          Icons.more_horiz_rounded,
-                          size: 18,
-                          color: subtle,
+                  // V-12（审计 2026-09-27）：同上——补 2px 键盘焦点环。
+                  child: AppleFocusRing(
+                    borderRadius: AppleRadius.md,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(AppleRadius.md),
+                      onTapUp: (details) {
+                        if (onMenu != null) {
+                          onMenu!();
+                        } else {
+                          showMenuAt(details.globalPosition);
+                        }
+                      },
+                      child: SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: Center(
+                          child: Icon(
+                            Icons.more_horiz_rounded,
+                            size: 18,
+                            color: subtle,
+                          ),
                         ),
                       ),
                     ),
@@ -241,7 +252,7 @@ class AllDocRow extends StatelessWidget {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 }

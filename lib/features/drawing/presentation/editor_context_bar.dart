@@ -4,6 +4,7 @@ import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar_c
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import '../../../core/theme/apple_design.dart';
+import '../../../core/theme/apple_focus.dart';
 
 /// 编辑器上下文工具条。
 ///
@@ -318,23 +319,28 @@ class EditorContextBar extends StatelessWidget {
       button: true,
       child: Tooltip(
         message: tooltip,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppleRadius.lg),
-          onTap: onPressed,
-          // 热区 44×44（HIG 最小触控尺寸），视觉圆点保持 26（同
-          // properties_panel 颜色圆点写法）。
-          child: SizedBox(
-            width: 44,
-            height: 44,
-            child: Center(
-              child: Container(
-                width: 26,
-                height: 26,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.outlineVariant,
+        // V-12（审计 2026-09-27）：裸图标钮键盘焦点只有 focusColor overlay
+        //（深色底不可见）——补 2px Focus Blue 描边环，半径对齐 InkWell 的 lg。
+        child: AppleFocusRing(
+          borderRadius: AppleRadius.lg,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppleRadius.lg),
+            onTap: onPressed,
+            // 热区 44×44（HIG 最小触控尺寸），视觉圆点保持 26（同
+            // properties_panel 颜色圆点写法）。
+            child: SizedBox(
+              width: 44,
+              height: 44,
+              child: Center(
+                child: Container(
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                    ),
                   ),
                 ),
               ),

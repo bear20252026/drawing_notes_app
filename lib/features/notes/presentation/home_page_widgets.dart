@@ -148,7 +148,7 @@ class _DrawingCardState extends State<_DrawingCard> {
         duration: motion,
         // 曲线走 AppleMotion 令牌（内置 easeOutCubic 与规范曲线不同）。
         curve: AppleMotion.easeOut,
-        child: Card(
+        child: AppleFocusRing(borderRadius: AppleRadius.lg, child: Card(
           clipBehavior: Clip.antiAlias,
           // U4a：InkWell 不带 onLongPressStart——长按经 GestureDetector 承接。
           child: GestureDetector(
@@ -283,7 +283,7 @@ class _DrawingCardState extends State<_DrawingCard> {
               ),
             ),
           ),
-        ),
+        )),
       ),
     );
   }
@@ -359,7 +359,7 @@ class _NotebookCard extends StatelessWidget {
           ? DomainDisplayLabels.lockedDocTitle(AppLocalizations.of(context))
           : AppLocalizations.of(context)?.homeOpenNotebookCard(notebook.title) ??
             '打开分页画布 ${notebook.title}',
-      child: Card(
+      child: AppleFocusRing(borderRadius: AppleRadius.lg, child: Card(
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
@@ -412,7 +412,7 @@ class _NotebookCard extends StatelessWidget {
             ),
           ),
         ),
-      ),
+      )),
     );
   }
 }

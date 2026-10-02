@@ -4,6 +4,7 @@ import 'dart:isolate';
 import 'package:drawing_notes_app/shared/widgets/apple_empty_state.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_focus.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'dart:io';
 import 'dart:math' as math;

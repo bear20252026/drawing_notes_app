@@ -1,4 +1,4 @@
-import 'dart:ui' show Offset;
+import 'dart:ui' show Offset, Rect;
 
 import 'package:drawing_notes_app/features/drawing/rendering/shape_binding_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
@@ -18,7 +18,22 @@ typedef ObjectEraseResult = ({
 });
 
 /// 一次橡皮擦采样点对当前文档产生的即时变更。
-typedef ObjectEraseStep = ({bool changed, Set<int> changedLayerIndices});
+///
+/// [dirty]（P-06，审计 2026-09-27）：本次采样点**被移除对象的包围盒并集**，
+/// 供调用方做增量脏矩形重建。此前该字段缺失，调用方只能整层重光栅化
+/// （层位图最高 ~24MB），而书写路径早已传 region。
+///
+/// 取「被擦对象的包围盒」而非「指针所在圆」：对象橡皮擦删的是**整条**
+/// 笔画/整个形状，一个大对象可能远超指针采样点的半径——按指针圆算脏区
+/// 会漏掉对象尾部，留下残影。形状的包围盒还要按 `strokeWidth` 外扩
+/// （`rawBounds` 只是 x/y/w/h，不含居中描边），宁可稍大不可偏小。
+///
+/// 为 null 表示「无可见变化」或「包围盒不可得」——调用方应退回整层重建。
+typedef ObjectEraseStep = ({
+  bool changed,
+  Set<int> changedLayerIndices,
+  Rect? dirty,
+});
 
 /// 运行时对象橡皮擦会话。
 ///
@@ -61,6 +76,9 @@ class ObjectEraserSession {
     final radius = eraserSize / 2;
     var changedAtPoint = false;
     final changedLayerIndices = <int>{};
+    // P-06：本采样点被移除对象的包围盒并集（**每采样点**局部，非整个手势
+    // 累积——调用方按采样点逐次做增量重建，跨采样点合并会让脏区虚大）。
+    Rect? dirty;
 
     for (
       var layerIndex = 0;
@@ -84,6 +102,12 @@ class ObjectEraserSession {
         for (final entry in removed)
           (layerIndex: layerIndex, index: entry.index, stroke: entry.stroke),
       ]);
+      // strokeBounds 含描边外扩（与书写路径 commitPersistentStroke 同源），
+      // 直接可用作重绘区域；null = 空笔画（无像素），跳过即可。
+      for (final entry in removed) {
+        final bounds = StrokeRenderer.strokeBounds(entry.stroke);
+        if (bounds != null) dirty = _union(dirty, bounds);
+      }
       _changedLayerIndices.add(layerIndex);
       changedLayerIndices.add(layerIndex);
       changedAtPoint = true;
@@ -99,6 +123,15 @@ class ObjectEraserSession {
           document.shapes.remove(shape);
         }
         _removedShapes.addAll(hitShapes);
+        // 形状**不进**图层位图（由 canvas_painter 直绘），本字段只描述
+        // 「画布上可见的变化范围」——同采样点还擦到笔画时并入，让该区域
+        // 一并重建；纯形状擦除不改 changedLayerIndices，行为与既往一致。
+        for (final shape in hitShapes) {
+          dirty = _union(
+            dirty,
+            ShapeBindingGeometry.rawBounds(shape).inflate(shape.strokeWidth),
+          );
+        }
         changedAtPoint = true;
       }
     }
@@ -107,8 +140,11 @@ class ObjectEraserSession {
     return (
       changed: changedAtPoint,
       changedLayerIndices: Set<int>.of(changedLayerIndices),
+      dirty: dirty,
     );
   }
+
+  static Rect? _union(Rect? a, Rect b) => a == null ? b : a.expandToInclude(b);
 
   /// 返回本次手势的不可变结果并开始新的空会话；无变更时返回 null。
   ObjectEraseResult? consumeResult() {

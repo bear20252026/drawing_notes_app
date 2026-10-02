@@ -14,6 +14,7 @@ import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/features/doc/domain/note_database.dart';
 import '../../../../core/theme/apple_design.dart';
+import '../../../../core/theme/apple_focus.dart';
 
 /// 表视图。
 class DatabaseTableView extends StatelessWidget {
@@ -208,7 +209,7 @@ class DatabaseTableView extends StatelessWidget {
             size: 14,
           )
         : const Icon(Icons.arrow_upward, size: 14, color: Colors.transparent);
-    return InkWell(
+    return AppleFocusRing(borderRadius: 0, child: InkWell(
       onTap: () => onSort(field),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -243,7 +244,7 @@ class DatabaseTableView extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _cell(BuildContext context, NoteRecord record, NoteFieldDef field) {
@@ -259,15 +260,22 @@ class DatabaseTableView extends StatelessWidget {
           child: SizedBox(
             width: 44,
             height: 44,
-            child: InkWell(
-              onTap: () => onToggleCheckbox(record, field),
-              child: Center(
-                child: Icon(
-                  value ? Icons.check_box : Icons.check_box_outline_blank,
-                  size: 20,
-                  color: value
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.outline,
+            // V-12（审计 2026-09-27）：表格勾选框键盘焦点此前只有
+            // focusColor overlay——补 2px Focus Blue 描边环。
+            // 半径 0：InkWell 无 borderRadius（方形），环随之为直角，
+            // 对应 AppleRadius 的 none 档。
+            child: AppleFocusRing(
+              borderRadius: 0,
+              child: InkWell(
+                onTap: () => onToggleCheckbox(record, field),
+                child: Center(
+                  child: Icon(
+                    value ? Icons.check_box : Icons.check_box_outline_blank,
+                    size: 20,
+                    color: value
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.outline,
+                  ),
                 ),
               ),
             ),
@@ -275,7 +283,7 @@ class DatabaseTableView extends StatelessWidget {
         );
       case NoteFieldType.select:
         final current = record.cell(field.id);
-        return InkWell(
+        return AppleFocusRing(borderRadius: AppleRadius.xs, child: InkWell(
           onTap: () => onPickSelect(record, field),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -294,9 +302,9 @@ class DatabaseTableView extends StatelessWidget {
               ).copyWith(fontWeight: FontWeight.w400),
             ),
           ),
-        );
+        ));
       case NoteFieldType.number:
-        return InkWell(
+        return AppleFocusRing(borderRadius: 0, child: InkWell(
           onTap: () => onEditCell(record, field),
           child: Text(
             displayValue(record, field),
@@ -305,10 +313,10 @@ class DatabaseTableView extends StatelessWidget {
             ).copyWith(fontWeight: FontWeight.w400),
             textAlign: TextAlign.right,
           ),
-        );
+        ));
       case NoteFieldType.date:
       case NoteFieldType.text:
-        return InkWell(
+        return AppleFocusRing(borderRadius: 0, child: InkWell(
           onTap: () => onEditCell(record, field),
           child: Text(
             displayValue(record, field),
@@ -317,7 +325,7 @@ class DatabaseTableView extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-        );
+        ));
     }
   }
 

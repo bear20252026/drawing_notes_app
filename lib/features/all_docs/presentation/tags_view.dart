@@ -10,6 +10,7 @@ import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/shared/widgets/apple_empty_state.dart';
 import 'package:drawing_notes_app/core/theme/apple_elevation.dart';
+import 'package:drawing_notes_app/core/theme/apple_focus.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_doc_row.dart';
 import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
@@ -90,7 +91,7 @@ class _TagsViewState extends State<TagsView> {
             child: Row(
               children: [
                 // 热区补足 44（审计二-1）：18px 图标 + 垂直 13px 内边距。
-                InkWell(
+                AppleFocusRing(borderRadius: AppleRadius.sm, child: InkWell(
                   onTap: () => setState(() => _selectedTagId = null),
                   borderRadius: BorderRadius.circular(AppleRadius.sm),
                   child: Padding(
@@ -107,7 +108,7 @@ class _TagsViewState extends State<TagsView> {
                       ],
                     ),
                   ),
-                ),
+                )),
                 const SizedBox(width: 12),
                 Text(
                   '# ${tagName ?? ''}',

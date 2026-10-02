@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_motion.dart';
+import 'package:drawing_notes_app/core/theme/apple_focus.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 // PART 2 · PinPadUnlockSheet —— iOS 锁屏风格全屏数字密码盘
@@ -365,7 +366,7 @@ class _PinPadCoreState extends State<PinPadCore>
     return Semantics(
       button: true,
       label: label,
-      child: Material(
+      child: AppleFocusRing(borderRadius: AppleRadius.pill, child: Material(
         color: accent
             ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.85)
             : Colors.white.withValues(alpha: 0.14),
@@ -377,14 +378,14 @@ class _PinPadCoreState extends State<PinPadCore>
           highlightColor: Colors.white.withValues(alpha: 0.16),
           child: Icon(icon, color: Colors.white, size: 26),
         ),
-      ),
+      )),
     );
   }
 
   /// 单个按键：半透明白色磨砂圆 + 居中大数字 + 底部小号字母标注。
   Widget _buildKey(String digit) {
     final letters = _keyLetters[digit];
-    return Material(
+    return AppleFocusRing(borderRadius: AppleRadius.pill, child: Material(
       color: Colors.white.withValues(alpha: 0.22),
       shape: const CircleBorder(),
       clipBehavior: Clip.antiAlias,
@@ -423,6 +424,6 @@ class _PinPadCoreState extends State<PinPadCore>
           ],
         ),
       ),
-    );
+    ));
   }
 }

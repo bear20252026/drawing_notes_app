@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/apple_design.dart';
 import '../../core/theme/apple_palette.dart';
+import '../../core/theme/apple_focus.dart';
 import '../../l10n/app_localizations.dart';
 
 /// 颜色选择对话框（Phase 2 验收：色板 + 自由调色）。
@@ -210,16 +211,22 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                       child: SizedBox(
                         width: 44,
                         height: 44,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(AppleRadius.lg),
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            _apply(HSVColor.fromColor(c));
-                          },
-                          child: Center(
-                            child: _Swatch(
-                              color: c,
-                              selected: _sameColor(c, _selected),
+                        // V-12（审计 2026-09-27）：色板钮键盘焦点此前只有
+                        // focusColor overlay——补 2px Focus Blue 描边环。
+                        child: AppleFocusRing(
+                          borderRadius: AppleRadius.lg,
+                          child: InkWell(
+                            borderRadius:
+                                BorderRadius.circular(AppleRadius.lg),
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              _apply(HSVColor.fromColor(c));
+                            },
+                            child: Center(
+                              child: _Swatch(
+                                color: c,
+                                selected: _sameColor(c, _selected),
+                              ),
                             ),
                           ),
                         ),
@@ -353,23 +360,28 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                         child: SizedBox(
                           width: 44,
                           height: 44,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(AppleRadius.md),
-                            onTap: () {
-                              HapticFeedback.selectionClick();
-                              _apply(HSVColor.fromColor(c));
-                            },
-                            child: Center(
-                              child: Container(
-                                width: 24,
-                                height: 24,
-                                decoration: BoxDecoration(
-                                  color: c,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.outlineVariant,
+                          // V-12（审计 2026-09-27）：同上——补 2px 焦点环。
+                          child: AppleFocusRing(
+                            borderRadius: AppleRadius.md,
+                            child: InkWell(
+                              borderRadius:
+                                  BorderRadius.circular(AppleRadius.md),
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                _apply(HSVColor.fromColor(c));
+                              },
+                              child: Center(
+                                child: Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    color: c,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.outlineVariant,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -447,21 +459,26 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
       child: SizedBox(
         width: 44,
         height: 44,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppleRadius.md),
-          onTap: () {
-            HapticFeedback.selectionClick();
-            _apply(shade);
-          },
-          child: Center(
-            child: Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
+        // V-12（审计 2026-09-27）：色阶点键盘焦点此前只有 focusColor
+        // overlay——补 2px Focus Blue 描边环。
+        child: AppleFocusRing(
+          borderRadius: AppleRadius.md,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppleRadius.md),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              _apply(shade);
+            },
+            child: Center(
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
                 ),
               ),
             ),

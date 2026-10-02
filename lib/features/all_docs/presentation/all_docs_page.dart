@@ -22,6 +22,7 @@ import 'package:drawing_notes_app/features/all_docs/presentation/all_docs_sideba
 import 'package:drawing_notes_app/features/all_docs/presentation/all_doc_row.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/tags_view.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_focus.dart';
 import 'package:drawing_notes_app/shared/utils/search_debouncer.dart';
 // U4a：首屏加载骨架屏。
 import 'package:drawing_notes_app/shared/widgets/skeleton.dart';

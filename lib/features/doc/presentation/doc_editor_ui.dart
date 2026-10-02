@@ -87,7 +87,7 @@ extension _DocEditorUi on DocEditorState {
                       itemCount: entries.length,
                       itemBuilder: (context, i) {
                         final e = entries[i];
-                        return InkWell(
+                        return AppleFocusRing(borderRadius: 0, child: InkWell(
                           onTap: () {
                             scrollToBlock(e.id);
                             Navigator.of(context).pop();
@@ -113,7 +113,7 @@ extension _DocEditorUi on DocEditorState {
                                   ),
                             ),
                           ),
-                        );
+                        ));
                       },
                     ),
             ),

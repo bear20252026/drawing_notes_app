@@ -7,6 +7,7 @@ import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import '../../../core/theme/apple_design.dart';
+import '../../../core/theme/apple_focus.dart';
 
 /// 右侧属性面板（对齐 Excalidraw 右侧属性栏体验）。
 ///
@@ -77,7 +78,7 @@ class PropertiesPanel extends StatelessWidget {
                       width: 44,
                       height: 44,
                       child: Center(
-                        child: InkWell(
+                        child: AppleFocusRing(borderRadius: AppleRadius.md, child: InkWell(
                           borderRadius: BorderRadius.circular(AppleRadius.md),
                           onTap: onPickColor,
                           child: Container(
@@ -96,7 +97,7 @@ class PropertiesPanel extends StatelessWidget {
                               ),
                             ),
                           ),
-                        ),
+                        )),
                       ),
                     ),
                   ),
@@ -278,7 +279,7 @@ class PropertiesPanel extends StatelessWidget {
                         width: 44,
                         height: 44,
                         child: Center(
-                          child: InkWell(
+                          child: AppleFocusRing(borderRadius: AppleRadius.md, child: InkWell(
                             borderRadius: BorderRadius.circular(AppleRadius.md),
                             onTap: onTextColor,
                             child: Container(
@@ -296,7 +297,7 @@ class PropertiesPanel extends StatelessWidget {
                                 ),
                               ),
                             ),
-                          ),
+                          )),
                         ),
                       ),
                     ),

@@ -32,7 +32,7 @@ class _PageCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppleRadius.md),
         side: BorderSide(color: scheme.outlineVariant),
       ),
-      child: InkWell(
+      child: AppleFocusRing(borderRadius: AppleRadius.sm, child: InkWell(
         onTap: onTap,
         onLongPress: onOpenAsBlockDoc,
         child: Column(
@@ -138,7 +138,7 @@ class _PageCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
+      )),
     );
   }
 }

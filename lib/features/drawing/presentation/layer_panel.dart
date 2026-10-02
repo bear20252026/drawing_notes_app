@@ -5,6 +5,7 @@ import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_focus.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 
 /// 图层面板（Phase 3 验收核心）。
@@ -139,7 +140,7 @@ class _LayerItem extends StatelessWidget {
       child: Material(
         color: selected ? scheme.primaryContainer.withValues(alpha: 0.5) : null,
         borderRadius: BorderRadius.circular(AppleRadius.sm),
-        child: InkWell(
+        child: AppleFocusRing(borderRadius: AppleRadius.sm, child: InkWell(
           borderRadius: BorderRadius.circular(AppleRadius.sm),
           onTap: onSelect,
           child: Padding(
@@ -258,7 +259,7 @@ class _LayerItem extends StatelessWidget {
               ],
             ),
           ),
-        ),
+        )),
       ),
     );
   }

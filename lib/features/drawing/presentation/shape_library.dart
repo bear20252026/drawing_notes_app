@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_focus.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_components.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'editor_toolbar_contracts.dart' show shapeTypeName, shapeTypeDisplayName;
@@ -192,7 +193,7 @@ class _ShapeLibraryDialogState extends State<ShapeLibraryDialog> {
                       itemCount: results.length,
                       itemBuilder: (context, i) {
                         final s = results[i];
-                        return InkWell(
+                        return AppleFocusRing(borderRadius: AppleRadius.xs, child: InkWell(
                           borderRadius: BorderRadius.circular(AppleRadius.xs),
                           onTap: () {
                             widget.onInsert(s);
@@ -226,7 +227,7 @@ class _ShapeLibraryDialogState extends State<ShapeLibraryDialog> {
                               ],
                             ),
                           ),
-                        );
+                        ));
                       },
                     ),
             ),

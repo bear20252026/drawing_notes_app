@@ -8,6 +8,9 @@ import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_motion.dart';
+// V-12（审计 2026-09-27）：本库 part（home_page_widgets 等）给卡片/图标钮
+// 补 2px 键盘焦点环，用 AppleFocusRing。
+import 'package:drawing_notes_app/core/theme/apple_focus.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 // 批次②：单文件密码需与开屏密码比对（matchesAppLockPin 静态探测）。
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';

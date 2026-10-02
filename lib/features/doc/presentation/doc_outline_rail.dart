@@ -10,6 +10,7 @@
 // 若沿用统一的停靠窄栏，手机上 240 会吃掉约 60% 屏宽，编辑器只剩 160。
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_focus.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 /// 大纲条目（由宿主从编辑器抽取）。
@@ -122,7 +123,7 @@ class DocOutlinePanel extends StatelessWidget {
                     itemCount: entries.length,
                     itemBuilder: (context, i) {
                       final e = entries[i];
-                      return InkWell(
+                      return AppleFocusRing(borderRadius: 0, child: InkWell(
                         onTap: () => onTapEntry(e.id),
                         child: Padding(
                           // V-11（审计 2026-09-27）：7→12——行命中提到
@@ -148,7 +149,7 @@ class DocOutlinePanel extends StatelessWidget {
                                 ),
                           ),
                         ),
-                      );
+                      ));
                     },
                   ),
           ),

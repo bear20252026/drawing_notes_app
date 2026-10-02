@@ -2,6 +2,58 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.52] - 2026-10-03
+
+### 审计批次 AD：可达性 V-12 键盘焦点环全库覆盖 + 性能 P-06/P-09/P-13 三项
+
+> 承接 v1.17.31~51 审计批次，本批闭环 2026-09-27 全量审计余下的可达性
+> V-12 与性能域 P-06/P-09/P-13 共 4 条；零删改、纯增量包裹与参数传递，
+> 用户可见行为除「键盘焦点环出现」外无变化。
+
+- **V-12 键盘焦点可见性——全库 38 处裸 `InkWell` 统一包 `AppleFocusRing`**：
+  审计实测「全库 0 处 FocusableActionDetector；裸 Semantics+Tooltip+
+  InkWell 按钮键盘聚焦仅主题 focusColor overlay（深色底几乎不可见），
+  无 2px Focus Blue 描边」——键盘用户 Tab 到按钮时看不出焦点在哪。
+  本批按统一解法收口（`AppleFocusRing` 外扩绘制 2px Focus Blue 环，
+  `canRequestFocus: false` 只观察不抢焦点，不多出 Tab 停靠；半径对齐
+  各 InkWell 自身 borderRadius）：All Docs 行/侧栏/标签视图/移动端、
+  块文档（编辑器工具条/斜杠菜单/大纲栏/表格勾选框与排序头/嵌入块/
+  就地文本覆盖层）、画板（上下文工具条/顶栏重命名钮/图层面板/属性
+  面板/形状库）、笔记本视图页、首页、共享件（取色器色板、PIN 码盘
+  按键）。`core/theme/apple_focus.dart` 本身零改动（已是入库件）。
+  - **新增静态扫描门禁** `test/focus_ring_coverage_test.dart`：扫描
+    lib/ 全部 dart 文件，先做**等长遮蔽**（注释与字符串替换为空格、
+    保留换行——否则 `apple_focus.dart` 文档注释里的用法示例会被当成
+    真实调用，首跑即栽），再括号配对求每个 `AppleFocusRing(` 的覆盖
+    区间，断言每个 `InkWell(` 都落在区间内——「新增裸 InkWell 即红」，
+    与 architecture_test / 棘轮测试同一门禁思路。豁免表当前为空；
+    将来加豁免须写明理由，不许为变绿删断言。
+- **P-06 对象橡皮擦增量脏矩形重建**：`ObjectEraseStep` 新增 `dirty`
+  字段 = 本采样点**被移除对象的包围盒并集**（笔画走
+  `StrokeRenderer.strokeBounds` 含描边外扩；形状
+  `rawBounds.inflate(strokeWidth)`——`rawBounds` 不含居中描边，宁可
+  稍大不可偏小，否则大对象尾部残影）；`DrawingController.eraseAt`
+  命中后把 region 传给 `_invalidateLayer` 做增量重建，null（无可见
+  变化/包围盒不可得）安全退回整层。此前每命中样本整层重光栅化
+  （层位图最高 ~24MB），拖擦大图层明显掉帧；书写路径早已传 region。
+  回归锁 +1：断言脏区**下界**（覆盖对象原始外接范围）——比对象小就
+  会在边缘留残影，故不与 strokeBounds 逐像素比对（那只证明同源，
+  证不了不偏小）。
+- **P-09 顶栏标题子树重建过滤**：新增 `TitleReadModel` 过滤型只读
+  视图模型——在源通知回调里做签名比对（title + isDirty），**未变不
+  转发**；标题子树（LayoutBuilder+Row+Chip）只在真变化时重建。此前
+  直接挂整个 `DrawingController`，笔画提交/框选/图层切换等每次
+  notifyListeners 都把子树白跑一遍。撤销/重做按钮仍挂全 controller
+  （依赖历史可用性，且各只包一个 IconButton）。留 presentation 的
+  part 而非 application：application 已 39/40 文件（sloc-guard 上限
+  40），`editor_interaction_controllers.dart` 498 行（警告线 500），
+  留在此处两者都不动。
+- **P-13 拖擦进行中只 `tickFrame()` 驱动画布重绘**（对齐
+  drawing_controller 既有高频路径纪律）：此前每命中采样点
+  notifyListeners 整树重建，连续擦除手势随采样频率重建全页；改
+  tickFrame 后顶栏标题/图层面板等全控制器监听者由 `endObjectErase`
+  收笔时的唯一 notifyListeners 统一刷新。
+
 ## [1.17.51] - 2026-10-02
 
 ### 审计批次 AC：安全增量批——S-03 根治 + 令牌/间距/装配 16 项收口

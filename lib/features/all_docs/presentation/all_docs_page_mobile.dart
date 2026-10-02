@@ -287,7 +287,7 @@ class _MobileHeader extends StatelessWidget {
             final selected = i == tabIndex;
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: InkWell(
+              child: AppleFocusRing(borderRadius: AppleRadius.sm, child: InkWell(
                 borderRadius: BorderRadius.circular(AppleRadius.sm),
                 onTap: () => onTabChanged(i),
                 child: Padding(
@@ -320,7 +320,7 @@ class _MobileHeader extends StatelessWidget {
                     ],
                   ),
                 ),
-              ),
+              )),
             );
           }),
           const Spacer(),

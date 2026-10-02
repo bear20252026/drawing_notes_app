@@ -7,6 +7,7 @@ import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:drawing_notes_app/core/documents/note_block.dart';
 import '../../../core/theme/apple_design.dart';
+import '../../../core/theme/apple_focus.dart';
 
 /// / 菜单分组类别。
 enum SlashItemGroup {
@@ -407,7 +408,7 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
 
   Widget _buildItemRow(BuildContext context, SlashItem item, int globalIndex) {
     final isSelected = globalIndex == _selectedIndex;
-    return InkWell(
+    return AppleFocusRing(borderRadius: 0, child: InkWell(
       onTap: () => _selectItem(item),
       onHover: (_) => setState(() => _selectedIndex = globalIndex),
       child: Container(
@@ -444,7 +445,7 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   /// 处理键盘导航（上下选择 / Enter 确认 / Escape 关闭）。

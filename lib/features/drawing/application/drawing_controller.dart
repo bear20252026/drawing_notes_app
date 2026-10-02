@@ -472,8 +472,17 @@ class DrawingController extends ChangeNotifier
     );
     if (!step.changed) return false;
     _document.touch();
+    // P-06（审计 2026-09-27）：增量脏矩形重建——此前每命中样本整层
+    // 重光栅化（层位图最高 ~24MB），拖擦大图层明显掉帧；书写路径早已
+    // 传 region。dirty 为被擦对象的包围盒并集（见 ObjectEraseStep 注释），
+    // 为 null 时 region 为 null，_invalidateLayer 自然退回整层重建。
     for (final layerIndex in step.changedLayerIndices) {
-      unawaited(_invalidateLayer(_document.layers[layerIndex].id));
+      unawaited(
+        _invalidateLayer(
+          _document.layers[layerIndex].id,
+          region: step.dirty,
+        ),
+      );
     }
     // P-13（审计 2026-09-27）：拖擦进行中只 tick frameTick 驱动画布重绘
     // （对齐本类 ：225 的高频路径纪律）；顶栏标题/图层面板等全控制器

@@ -371,7 +371,7 @@ class _BacklinksPanelState extends State<_BacklinksPanel> {
           ),
           const SizedBox(height: 4),
           for (final doc in backlinks)
-            InkWell(
+            AppleFocusRing(borderRadius: AppleRadius.xs, child: InkWell(
               onTap: () => widget.onOpenDocById?.call(doc.id),
               borderRadius: BorderRadius.circular(AppleRadius.xs),
               child: Padding(
@@ -403,7 +403,7 @@ class _BacklinksPanelState extends State<_BacklinksPanel> {
                   ],
                 ),
               ),
-            ),
+            )),
         ],
       ),
     );

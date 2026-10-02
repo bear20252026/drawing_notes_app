@@ -14,6 +14,9 @@ import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_motion.dart';
+// V-12（审计 2026-09-27）：本库 part（editor_page_text_overlays 等）给裸
+// 图标钮补 2px 键盘焦点环，用 AppleFocusRing。
+import 'package:drawing_notes_app/core/theme/apple_focus.dart';
 import 'package:drawing_notes_app/features/drawing/application/brush_preset_store.dart';
 import 'package:drawing_notes_app/features/drawing/application/command_registry.dart';
 import 'package:drawing_notes_app/features/drawing/application/di_providers.dart';
@@ -185,6 +188,11 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   }
 
   late final DrawingController _controller;
+
+  /// 顶栏标题区专用只读视图模型（P-09，审计 2026-09-27）：只在文档标题或
+  /// isDirty 变化时通知，避免标题子树随每次 notifyListeners 重建。
+  /// 定义见 editor_page_appbar.dart（同库 part）。
+  late final TitleReadModel _titleReadModel;
 
   /// 画布导出域（参考 Saber editor_exporter 模块化）：PNG/PDF/SVG/RTF/
   /// TXT/PPTX/JSON 与剪贴板复制集中在独立模块，本页只负责调用。
@@ -627,6 +635,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     _textSession.dispose();
     _toolModeCtrl.dispose();
     _chrome.dispose();
+    // P-09：先解绑对 _controller 的监听（removeListener 允许在源已释放后调用）。
+    _titleReadModel.dispose();
     _shortcutFocus.dispose();
     _editController.dispose();
     _editFocus.dispose();
@@ -718,6 +728,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         widget._initialDocument ??
         DrawingDocument(id: StorageService.newId(), title: '');
     _controller = ref.read(drawingControllerProvider(doc));
+    // P-09：标题子树改挂过滤型读模型，须在 _controller 就绪后建立。
+    _titleReadModel = TitleReadModel(_controller);
     _exporter = EditorExporter(
       l10n: () => _l10nSafe,
       controller: _controller,

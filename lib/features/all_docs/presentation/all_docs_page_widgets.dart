@@ -308,7 +308,7 @@ class _DocsTabBar extends StatelessWidget {
           final selected = i == tabIndex;
           return Padding(
             padding: const EdgeInsets.only(right: 16),
-            child: InkWell(
+            child: AppleFocusRing(borderRadius: AppleRadius.xs, child: InkWell(
               onTap: () => onTabChanged(i),
               child: SizedBox(
                 height: 48,
@@ -336,7 +336,7 @@ class _DocsTabBar extends StatelessWidget {
                   ],
                 ),
               ),
-            ),
+            )),
           );
         }),
       ),

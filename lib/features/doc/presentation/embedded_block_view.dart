@@ -20,6 +20,7 @@ import 'package:drawing_notes_app/features/doc/presentation/table_editor_widget.
 import 'package:drawing_notes_app/features/doc/presentation/database_block_view.dart';
 import 'package:drawing_notes_app/features/doc/presentation/attachment_block_view.dart';
 import '../../../core/theme/apple_design.dart';
+import '../../../core/theme/apple_focus.dart';
 
 /// 内嵌块视图：按块类型分发到对应的富渲染。
 ///
@@ -258,7 +259,7 @@ class EmbeddedBlockView extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      child: InkWell(
+      child: AppleFocusRing(borderRadius: AppleRadius.xs, child: InkWell(
         borderRadius: BorderRadius.circular(AppleRadius.xs),
         onTap: () {
           // 实际项目中应使用 url_launcher；此处仅展示链接样式
@@ -336,7 +337,7 @@ class EmbeddedBlockView extends StatelessWidget {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 

@@ -21,6 +21,9 @@ import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+// V-12（审计 2026-09-27）：本库 part（doc_editor_toolbar 等）给裸图标钮
+// 补 2px 键盘焦点环，用 AppleFocusRing。
+import 'package:drawing_notes_app/core/theme/apple_focus.dart';
 import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_editor.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';

@@ -183,7 +183,7 @@ extension _EditorPageTextOverlays on _EditorPageState {
   }) {
     // V-08：行高 vertical 8→12（20px 文本 + 24 = 44px 触控目标），
     // 键盘高亮项加 actionBlue 12% 底（与工具栏选中态同语言）。
-    return InkWell(
+    return AppleFocusRing(borderRadius: 0, child: InkWell(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -192,7 +192,7 @@ extension _EditorPageTextOverlays on _EditorPageState {
             : null,
         child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
       ),
-    );
+    ));
   }
 
   /// 应用斜杠命令：给当前文字块设置样式，并清除 '/' 与菜单。
@@ -314,26 +314,34 @@ extension _EditorPageTextOverlays on _EditorPageState {
                       checked: item.todoChecked,
                       button: true,
                       label: AppLocalizations.of(context)?.textDone ?? '完成',
-                      child: InkWell(
-                        onTap: () {
-                          _applyState(
-                            () => item.todoChecked = !item.todoChecked,
-                          );
-                          _notifyChanged();
-                        },
-                        child: SizedBox(
-                          width: 44,
-                          height: 44,
-                          child: Center(
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 6),
-                              child: Icon(
-                                item.todoChecked
-                                    ? Icons.check_box
-                                    : Icons.check_box_outline_blank,
-                                size:
-                                    item.fontSize * _controller.viewScale * 0.9,
-                                color: Color(item.color),
+                      // V-12（审计 2026-09-27）：画布待办勾选框键盘焦点此前
+                      // 只有 focusColor overlay——补 2px Focus Blue 描边环。
+                      // 半径 0：InkWell 无 borderRadius（方形）。
+                      child: AppleFocusRing(
+                        borderRadius: 0,
+                        child: InkWell(
+                          onTap: () {
+                            _applyState(
+                              () => item.todoChecked = !item.todoChecked,
+                            );
+                            _notifyChanged();
+                          },
+                          child: SizedBox(
+                            width: 44,
+                            height: 44,
+                            child: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: Icon(
+                                  item.todoChecked
+                                      ? Icons.check_box
+                                      : Icons.check_box_outline_blank,
+                                  size:
+                                      item.fontSize *
+                                      _controller.viewScale *
+                                      0.9,
+                                  color: Color(item.color),
+                                ),
                               ),
                             ),
                           ),
