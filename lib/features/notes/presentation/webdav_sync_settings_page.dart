@@ -2,26 +2,16 @@
 // WebDAV 本地优先同步：设置页（服务器/认证 + 立即同步 + 端到端加密）。
 
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
-import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
-import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/sync/sync_progress.dart';
-import 'package:drawing_notes_app/core/sync/sync_retry_policy.dart';
-import 'package:drawing_notes_app/core/sync/sync_service.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/file_sync_baseline_store.dart';
-import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
-import 'package:drawing_notes_app/core/documents/note_block_doc_sync_store.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/sync_secret_store.dart';
-import 'package:drawing_notes_app/features/notes/infrastructure/webdav_config_store.dart';
+import 'package:drawing_notes_app/features/notes/application/sync_controller.dart';
 import 'package:drawing_notes_app/features/notes/presentation/conflict_resolution_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
@@ -81,19 +71,21 @@ String humanizeWebDavSyncError(Object? e, {AppLocalizations? l10n}) {
 }
 
 /// WebDAV 同步设置页。
+///
+/// C-05（审计 2026-09-27）：同步装配收口到 [SyncController]（application 层，
+/// 组合根 AppServices → AppShell → SettingsPage 注入，生产路径恒有）——
+/// 本页不再 new 基础设施 store、不再自选加密方案、不再直接构建 SyncService。
 class WebDavSyncSettingsPage extends StatefulWidget {
-  const WebDavSyncSettingsPage({super.key, this.configStore, this.secretStore});
+  const WebDavSyncSettingsPage({super.key, required this.syncController});
 
-  final WebDavConfigStore? configStore;
-  final SyncSecretStore? secretStore;
+  final SyncController syncController;
 
   @override
   State<WebDavSyncSettingsPage> createState() => _WebDavSyncSettingsPageState();
 }
 
 class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
-  late final WebDavConfigStore _configStore;
-  late final SyncSecretStore _secretStore;
+  SyncController get _sync => widget.syncController;
   final _url = TextEditingController();
   final _user = TextEditingController();
   final _pass = TextEditingController();
@@ -115,15 +107,12 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
   @override
   void initState() {
     super.initState();
-    _configStore =
-        widget.configStore ?? WebDavConfigStore(SecureSyncSecretStore());
-    _secretStore = widget.secretStore ?? SecureSyncSecretStore();
     _loadConfig();
   }
 
   Future<void> _loadConfig() async {
-    final cfg = await _configStore.load();
-    final secrets = await _secretStore.read();
+    final cfg = await _sync.loadConfig();
+    final secrets = await _sync.readSecrets();
     if (!mounted) return;
     setState(() {
       _url.text = cfg.baseUrl;
@@ -136,54 +125,29 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
   }
 
   Future<void> _save() async {
-    final existing = await _configStore.load();
-    // S-03 方案 A：空输入框 = 沿用已存口令（明文不回填，空是常态）。
-    // 因此保存前先读已存机密，把「未改」与「清空」合并为同一分支——
-    // 本页不再提供「删除已存口令」入口（该路径本就是 footgun：清空后
-    // 同步要么认证失败、要么被 fail-closed 挡住）。
-    final stored = await _secretStore.read();
-    final passphrase =
-        _syncSecret.text.trim().isNotEmpty
-            ? _syncSecret.text.trim()
-            : (stored.syncPassphrase ?? '');
-    final password =
-        _pass.text.isNotEmpty ? _pass.text : (stored.webdavPassword ?? '');
-    String? saltBase64;
-    if (passphrase.isNotEmpty) {
-      // 复用已有盐（若无则生成新的），保证派生 key 对已上传密文保持稳定。
-      saltBase64 = existing.syncSalt;
-      if (saltBase64 == null || saltBase64.isEmpty) {
-        saltBase64 = base64Encode(generateSalt());
-      }
-    }
-    // P1 修复：save 内 https 门禁抛 ArgumentError——捕获后明示，不崩溃。
+    // C-05：装配与「空值沿用」语义收口到 SyncController——本页只提交表单
+    // 原文，不再触碰配置/机密存储；https 门禁 ArgumentError 在此明示。
+    final ({String password, String passphrase}) effective;
     try {
-      await _configStore.save(
-        WebDavSyncConfig(
-          baseUrl: _url.text.trim(),
-          username: _user.text.trim(),
-          syncSalt: saltBase64,
-        ),
+      effective = await _sync.save(
+        baseUrl: _url.text,
+        username: _user.text,
+        password: _pass.text,
+        passphrase: _syncSecret.text,
       );
     } on ArgumentError catch (e) {
       if (!mounted) return;
       _toast(AppLocalizations.of(context)?.webdavSaveFail(e.message) ?? '保存失败：${e.message}');
       return;
     }
-    await _secretStore.write(
-      SyncSecrets(
-        webdavPassword: password.isEmpty ? null : password,
-        syncPassphrase: passphrase.isEmpty ? null : passphrase,
-      ),
-    );
     if (!mounted) return;
     // 保存后刷新存在性标记：用户若把口令敲了进去，占位提示即刻让位。
     setState(() {
-      _hasSavedPassword = password.isNotEmpty;
-      _hasSavedPassphrase = passphrase.isNotEmpty;
+      _hasSavedPassword = effective.password.isNotEmpty;
+      _hasSavedPassphrase = effective.passphrase.isNotEmpty;
     });
     _toast(
-      passphrase.isEmpty
+      effective.passphrase.isEmpty
           ? (AppLocalizations.of(context)?.webdavSavedPlain ?? '已保存 WebDAV 配置（未启用端到端加密）')
           : (AppLocalizations.of(context)?.webdavSavedEncrypted ?? '已保存 WebDAV 配置（已启用端到端加密）'),
     );
@@ -199,7 +163,7 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     // URL 能过预检，直到 WebDavSyncClient 传输层门禁才失败。复用保存路径
     // 同一 requireHttpsBaseUrl 预检（https；本地回环 http 例外）。
     try {
-      WebDavConfigStore.requireHttpsBaseUrl(rawUrl);
+      SyncController.requireHttpsBaseUrl(rawUrl);
     } on ArgumentError catch (e) {
       _toast(AppLocalizations.of(context)?.webdavSyncFailRaw(e.message) ?? '同步失败：${e.message}');
       return;
@@ -213,8 +177,8 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     // 笔记正文会以明文落在 WebDAV 服务器（UI 曾误称「云端仅保存加密数据」）。
     // fail-closed：拒绝同步，要求先设置同步密码。
     // S-03 方案 A：口令不回填 → 生效值 = 表单非空 ? 表单 : 已存。
-    final cfg = await _configStore.load();
-    final secrets = await _secretStore.read();
+    final cfg = await _sync.loadConfig();
+    final secrets = await _sync.readSecrets();
     final passphrase =
         _syncSecret.text.trim().isNotEmpty
             ? _syncSecret.text.trim()
@@ -260,58 +224,39 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
       _lastSummary = null;
     });
     try {
-      final cipher = await _buildCipher(
+      // C-05：cipher/SyncService/transport 装配 + 有界重试 + close 全部
+      // 收口到 SyncController；本页只注入冲突裁决（弹窗）与进度回调。
+      final outcome = await _sync.syncNow(
+        baseUrl: uri,
+        username: _user.text.trim(),
+        // S-03 方案 A：口令不回填 → 用生效值（表单非空 ? 表单 : 已存），
+        // 否则留空提交会拿空串去认证。
+        password: password,
+        passphrase: passphrase,
         syncSalt: cfg.syncSalt,
-        syncPassphrase: passphrase,
-      );
-      final service = SyncService(
-        transport: WebDavSyncClient(
-          baseUrl: uri,
-          username: _user.text.trim(),
-          // S-03 方案 A：口令不回填 → 用生效值（表单非空 ? 表单 : 已存），
-          // 否则留空提交会拿空串去认证。
-          password: password,
-        ),
-        // 批次①c：自建 store 也接共享保险库密钥——保险库解锁时同步能
-        // 读写 DNV 密文文档（锁定时 keyProvider 返回 null，fail-closed）。
-        documentStore: NoteBlockDocSyncStore(
-          NoteBlockDocStore(
-            keyProvider: () async => VaultKeyService.sharedMasterKeyOrNull,
-          ),
-        ),
-        baselineStore: FileSyncBaselineStore(),
-        cipher: cipher,
         conflictHandler: _DialogConflictHandler(this),
         onProgress: (p) {
           if (mounted) setState(() => _progress = p);
         },
       );
-      try {
-        // 有界自动重试：派生密钥复用同一 service，失败按策略退避。
-        final retry = SyncRetryPolicy();
-        final start = DateTime.now();
-        final outcome = await _runWithRetry(service, retry, start);
-        if (!mounted) return;
-        if (outcome.result != null) {
-          final summary = _summaryOf(outcome.result!);
-          setState(() {
-            _progress = SyncProgress.complete();
-            _lastSummary = summary;
-          });
-          _toast(summary);
-        } else {
-          final summary = humanizeWebDavSyncError(
-            outcome.error,
-            l10n: mounted ? AppLocalizations.of(context) : null,
-          );
-          setState(() {
-            _progress = SyncProgress.failure(summary);
-            _lastSummary = summary;
-          });
-          _toast(summary);
-        }
-      } finally {
-        service.close();
+      if (!mounted) return;
+      if (outcome.result != null) {
+        final summary = _summaryOf(outcome.result!);
+        setState(() {
+          _progress = SyncProgress.complete();
+          _lastSummary = summary;
+        });
+        _toast(summary);
+      } else {
+        final summary = humanizeWebDavSyncError(
+          outcome.error,
+          l10n: mounted ? AppLocalizations.of(context) : null,
+        );
+        setState(() {
+          _progress = SyncProgress.failure(summary);
+          _lastSummary = summary;
+        });
+        _toast(summary);
       }
     } catch (e) {
       if (!mounted) return;
@@ -329,34 +274,6 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     }
   }
 
-  // 有界重试：达到 maxAttempts 或策略判定 giveUp 则放弃；返回最后一次结果/错误。
-  Future<({SyncResult? result, Object? error})> _runWithRetry(
-    SyncService service,
-    SyncRetryPolicy retry,
-    DateTime start,
-  ) async {
-    var attempt = 0;
-    while (attempt < retry.maxAttempts) {
-      try {
-        final r = await service.syncNow();
-        return (result: r, error: null);
-      } catch (e) {
-        attempt++;
-        if (attempt >= retry.maxAttempts) return (result: null, error: e);
-        final elapsed = DateTime.now().difference(start);
-        final input = SyncRetryInput(failureCount: attempt, elapsed: elapsed);
-        final decision = retry.decide(input);
-        if (decision == SyncRetryDecision.giveUp) {
-          return (result: null, error: e);
-        }
-        final wait = retry.delayFor(attempt);
-        if (wait > Duration.zero) await Future<void>.delayed(wait);
-      }
-    }
-    final l10n = mounted ? AppLocalizations.of(context) : null;
-    return (result: null, error: l10n?.webdavMaxRetry ?? '达到最大重试次数');
-  }
-
   String _summaryOf(SyncResult r) {
     final l10n = mounted ? AppLocalizations.of(context) : null;
     final base = r.changed
@@ -368,19 +285,6 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
           '$base；另有 ${r.conflictedDocIds.length} 个文档本地与云端均有改动，已按你的选择处理';
     }
     return base;
-  }
-
-  // 已配置口令（含盐）→ 派生主密钥并用 AES 加密器；否则用 Noop（明文透传）。
-  Future<SyncCipher> _buildCipher({
-    required String? syncSalt,
-    required String syncPassphrase,
-  }) async {
-    if (syncSalt == null || syncSalt.isEmpty || syncPassphrase.isEmpty) {
-      return const NoopSyncCipher();
-    }
-    final salt = base64Decode(syncSalt);
-    final key = await deriveMasterKey(syncPassphrase, salt);
-    return AesSyncCipher(key: key);
   }
 
   void _toast(String msg) {

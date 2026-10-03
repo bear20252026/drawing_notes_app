@@ -27,7 +27,7 @@ import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage
 import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/search_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/settings_page.dart';
-import 'package:drawing_notes_app/shared/application/search_service.dart';
+import 'package:drawing_notes_app/features/notes/application/search_service.dart';
 import 'helpers/temp_dir_cleanup.dart';
 
 void main() {

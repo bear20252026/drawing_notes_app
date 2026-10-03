@@ -297,6 +297,9 @@ class _AppShellState extends State<AppShell> {
       themeController: widget.themeController,
       localeController: widget.localeController,
       appDataRoot: widget.appDataRoot,
+      // C-05（审计 2026-09-27）：WebDAV 同步装配收口 application 层，
+      // 经组合根注入设置页，页面不再自行 new 基础设施。
+      syncController: _services.syncController,
     ),
   ];
 

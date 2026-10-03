@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:drawing_notes_app/shared/application/search_service.dart';
+import 'package:drawing_notes_app/features/notes/application/search_service.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_accessor_impl.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
@@ -11,7 +11,10 @@ import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'helpers/temp_dir_cleanup.dart';
+
+// C-10（审计 2026-09-27）自 shared 归位 notes：唯一消费方在此，伪共享解除。
+// 目录随迁自 test/ 根，helper 相对路径同步加深。
+import '../../../helpers/temp_dir_cleanup.dart';
 
 void main() {
   late Directory tempDir;

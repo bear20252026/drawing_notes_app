@@ -59,7 +59,7 @@ import 'package:drawing_notes_app/features/drawing/presentation/canvas_painter.d
 import 'package:drawing_notes_app/shared/utils/time_format.dart';
 import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
-import 'package:drawing_notes_app/shared/widgets/color_picker_dialog.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/dialogs/color_picker_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/encrypted_file_image.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_components.dart';

@@ -1,3 +1,4 @@
+// C-10（审计 2026-09-27）自 shared 归位 notes：唯一消费方在此，伪共享解除。
 import 'package:drawing_notes_app/core/notes_accessor.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
@@ -23,10 +24,12 @@ class SearchResult {
 
 /// 全文搜索服务：扫描所有笔记本的文字块内容与画作标题。
 ///
-/// 跨 feature 的_应用服务_：同时搜笔记本（经 core 契约 INotebookSearchAccessor）
-/// 与画作（经 core 的 StorageService），因此放在 shared 层（feature 无关实现），
-/// 而非归属某一 feature（原误放在 drawing/application，导致 notes→drawing 应用层耦合）。
-/// 依赖方向：应用 feature → shared → core（纯向内，注释见架构学习报告 S4b）。
+/// notes 的_应用服务_：同时搜笔记本（经 core 契约 INotebookSearchAccessor）
+/// 与画作（经 core 的 StorageService）。曾因"跨 feature"放在 shared 层
+/// （再之前误放在 drawing/application，导致 notes→drawing 应用层耦合），
+/// C-10（审计 2026-09-27）归位 notes——消费方（search_page / home_page）
+/// 均在 notes；drawing 侧仍只依赖 core 契约，不依赖本类。
+/// 依赖方向：features/notes → core（纯向内，注释见架构学习报告 S4b）。
 ///
 /// 纯本地扫描（listAll 读取全部工程文件），无需索引文件；
 /// 规模增长后可换 SQLite 索引（见学习报告 C1 备注）。

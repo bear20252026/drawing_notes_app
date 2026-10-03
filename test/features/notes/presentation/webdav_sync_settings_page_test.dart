@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:drawing_notes_app/features/notes/application/sync_controller.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/webdav_config_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/sync_secret_store.dart';
 import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settings_page.dart';
@@ -26,8 +27,11 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         WebDavSyncSettingsPage(
-          configStore: WebDavConfigStore(),
-          secretStore: MemorySyncSecretStore(),
+          // C-05：页面只接收注入的 SyncController，装配在测试里完成。
+          syncController: SyncController(
+            configStore: WebDavConfigStore(),
+            secretStore: MemorySyncSecretStore(),
+          ),
         ),
       ),
     );
@@ -56,8 +60,10 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         WebDavSyncSettingsPage(
-          configStore: WebDavConfigStore(),
-          secretStore: store,
+          syncController: SyncController(
+            configStore: WebDavConfigStore(),
+            secretStore: store,
+          ),
         ),
       ),
     );
@@ -91,8 +97,10 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         WebDavSyncSettingsPage(
-          configStore: WebDavConfigStore(),
-          secretStore: store,
+          syncController: SyncController(
+            configStore: WebDavConfigStore(),
+            secretStore: store,
+          ),
         ),
       ),
     );
@@ -117,8 +125,10 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         WebDavSyncSettingsPage(
-          configStore: WebDavConfigStore(),
-          secretStore: store,
+          syncController: SyncController(
+            configStore: WebDavConfigStore(),
+            secretStore: store,
+          ),
         ),
       ),
     );

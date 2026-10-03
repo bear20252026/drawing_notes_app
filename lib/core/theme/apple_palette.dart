@@ -9,8 +9,9 @@ import 'package:drawing_notes_app/core/theme/apple_design.dart';
 /// - 工具默认色：pen / pencil / marker / laser 四件，BrushPresetBook
 ///   默认档引用。
 ///
-/// 放 core/theme 而非 features/drawing：ColorPickerDialog 在 shared，
-/// 边界规则禁止 shared→features，core 双方可依赖。
+/// 放 core/theme：ColorPickerDialog（C-10，审计 2026-09-27 已归位
+/// features/drawing/presentation/dialogs）与画笔取色双方共用，
+/// features→core 方向合法，由 core 持有单一事实来源。
 abstract final class ApplePalette {
   /// 12 色预设色板（顺序即展示顺序）。
   static const List<Color> preset = <Color>[

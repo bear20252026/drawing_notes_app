@@ -16,6 +16,7 @@ import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'package:drawing_notes_app/core/storage/backup_service.dart';
 import 'package:drawing_notes_app/core/theme/app_locale_controller.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
+import 'package:drawing_notes_app/features/notes/application/sync_controller.dart';
 import 'package:drawing_notes_app/features/notes/presentation/app_lock_settings_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settings_page.dart';
 import '../../../core/theme/apple_design.dart';
@@ -39,6 +40,7 @@ class SettingsPage extends StatelessWidget {
     this.themeController,
     this.localeController,
     this.appDataRoot,
+    this.syncController,
   });
 
   /// 应用锁服务（应用锁入口需要；null 时隐藏应用锁入口）。
@@ -58,6 +60,11 @@ class SettingsPage extends StatelessWidget {
 
   /// 统一数据根（备份/恢复入口需要；null 时隐藏两行——测试装配兼容）。
   final AppDataRoot? appDataRoot;
+
+  /// WebDAV 同步控制器（C-05，审计 2026-09-27：同步装配收口 application 层）。
+  /// 生产路径由组合根（AppServices → AppShell）恒注入；null（部分测试装配）
+  /// 时推入页退回默认生产装配。
+  final SyncController? syncController;
 
   @override
   Widget build(BuildContext context) {
@@ -166,7 +173,10 @@ class SettingsPage extends StatelessWidget {
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => const WebDavSyncSettingsPage(),
+                      builder:
+                          (_) => WebDavSyncSettingsPage(
+                            syncController: syncController ?? SyncController(),
+                          ),
                     ),
                   ),
                 ),

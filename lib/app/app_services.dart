@@ -11,6 +11,7 @@ import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
+import 'package:drawing_notes_app/features/notes/application/sync_controller.dart';
 
 /// 应用级服务门面。
 class AppServices {
@@ -18,9 +19,11 @@ class AppServices {
     NoteBlockDocStore? blockDocStore,
     FavoriteStore? favoriteStore,
     TagStore? tagStore,
+    SyncController? syncController,
   }) : blockDocStore = blockDocStore ?? NoteBlockDocStore(),
        favoriteStore = favoriteStore ?? FavoriteStore(),
-       tagStore = tagStore ?? TagStore();
+       tagStore = tagStore ?? TagStore(),
+       syncController = syncController ?? SyncController();
 
   /// 块文档存储（打字笔记）。
   final NoteBlockDocStore blockDocStore;
@@ -30,6 +33,10 @@ class AppServices {
 
   /// 标签注册表。
   final TagStore tagStore;
+
+  /// WebDAV 同步控制器（C-05，审计 2026-09-27：同步装配收口 application
+  /// 层，设置页经组合根注入，不再自行 new 基础设施）。
+  final SyncController syncController;
 
   /// 数据版本通知器：任何文档写盘后自增，驱动首页/AllDocs 刷新。
   final ValueNotifier<int> dataVersion = ValueNotifier(0);

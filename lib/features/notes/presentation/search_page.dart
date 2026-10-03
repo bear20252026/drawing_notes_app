@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/shared/utils/search_debouncer.dart';
-import 'package:drawing_notes_app/shared/application/search_service.dart';
+import 'package:drawing_notes_app/features/notes/application/search_service.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';

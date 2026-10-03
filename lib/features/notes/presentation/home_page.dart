@@ -14,7 +14,7 @@ import 'package:drawing_notes_app/core/theme/apple_focus.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 // 批次②：单文件密码需与开屏密码比对（matchesAppLockPin 静态探测）。
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
-import 'package:drawing_notes_app/shared/application/search_service.dart';
+import 'package:drawing_notes_app/features/notes/application/search_service.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';

@@ -1,9 +1,10 @@
+// C-10（审计 2026-09-27）自 shared 归位 drawing：唯一消费方在此，伪共享解除。
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../core/theme/apple_design.dart';
-import '../../core/theme/apple_palette.dart';
-import '../../core/theme/apple_focus.dart';
-import '../../l10n/app_localizations.dart';
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_palette.dart';
+import 'package:drawing_notes_app/core/theme/apple_focus.dart';
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 /// 颜色选择对话框（Phase 2 验收：色板 + 自由调色）。
 ///

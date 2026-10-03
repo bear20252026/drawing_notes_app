@@ -2,6 +2,56 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.55] - 2026-10-03
+
+### 审计批次 AG：C-10 shared 伪共享归位 + C-05 WebDAV 设置页 DI 旁路根治（子代理执行）
+
+> 架构域大项五条（C-05/06/07/08/10）的第一波，两单由子代理串行执行、
+> 宿主统一验证提交；后续波次：C-06+C-08（批次 AH）、C-07（批次 AI）。
+
+- **C-10 [P2] shared 层伪共享归位**：`shared/widgets/color_picker_dialog`
+  与 `shared/application/search_service` 各自只有**一个** feature 消费方，
+  伪共享解除——
+  - 取色器迁 `features/drawing/presentation/dialogs/`（presentation 目录
+    已满 sloc-guard 40 文件上限，落嵌套子目录；迁出后 39/40、dialogs/1，
+    深度 5 合规），唯一消费方 editor_page 改引；其内部 4 条相对 import
+    改 package: 绝对路径；
+  - SearchService 迁 `features/notes/application/`，消费方
+    search_page/home_page/390dp 门禁测试改引；
+  - **core 契约实查零代码依赖**：`core/notes_accessor.dart` 无任何
+    SearchService import/类型引用（只用自有 DTO，依赖方向本就
+    features→core），仅第 83 行文档注释提及「shared 的」——随迁移更新
+    措辞；`apple_palette.dart` 头注释里「取色器在 shared、边界禁止
+    shared→features」的失效理由改写为归位后事实（结论不变）；
+  - 测试随迁 ×2（search_service_test→notes/application、
+    color_picker_rgb_input_test→drawing/dialogs），`test/shared/` 迁空
+    移除；全库旧路径零残留。
+- **C-05 [P2] WebDAV 设置页 DI 旁路根治**：审计三处构造点全部迁出
+  presentation——
+  - 实查确认：:112-113 `initState` new `WebDavConfigStore`/
+    `SecureSyncSecretStore`；:231 `_syncNow` 全套装配 `SyncService`
+    （transport+documentStore+baselineStore）；:341-345 私有
+    `_buildCipher` 自选加密方案（Noop/PBKDF2 60 万次/AES）；
+  - 新增 `notes/application/sync_controller.dart`（214 行，纯类门面，
+    风格贴 AppServices）：四注入口缺省装配生产实现；`save` 收口
+    S-03 空值沿用/盐复用/https fail-closed；`syncNow` 收口 cipher
+    选择+装配+有界重试+`finally close`；`requireHttpsBaseUrl` 转发；
+    页面所需纯值/异常类型经门面 `export ... show` 再导出——页面不再
+    import 任何基础设施与传输实现文件；
+  - 装配链：`AppServices.syncController`（可注入缺省装配）→
+    `SettingsPage`（可选注入，null 仅测试装配）→
+    `WebDavSyncSettingsPage`（required 注入）；app_shell 组合根传线；
+    全仓页面构造点收敛为 settings_page 一处生产 + 4 处已更新测试；
+  - 回归锁 +9：默认装配可构造/转发注入桩/S-03 空值沿用/盐复用/
+    https fail-closed/requireHttps 转发/本地回环 HTTP 端到端一轮上传/
+    500 按 SyncRetryPolicy 有界重试收敛等；
+  - 刻意裁决：documentStore 缺省自建
+    `NoteBlockDocStore(keyProvider: VaultKeyService...)` 而非复用
+    `AppServices.blockDocStore`——后者无 keyProvider，语义不同。
+- 版本三处 1.17.55+124；门禁：本地 analyze 0（子代理两单各自全量跑过，
+  后单覆盖前单改动）；相关测试 129 用例 + 新增 9 用例 + 架构九规则
+  单跑全绿；全量按 AGENTS.md §6 云端验证纪律交 CI 五工作流裁决。
+
 ## [1.17.54] - 2026-10-03
 
 ### 审计批次 AF：架构域小项包——C-09 四处跨 feature 直连清零 + C-12 更名消歧 + C-13/C-14 裁决记录
