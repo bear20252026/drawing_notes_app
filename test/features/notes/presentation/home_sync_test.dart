@@ -13,6 +13,7 @@ import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart'
     show DocumentMeta;
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
@@ -100,6 +101,7 @@ Widget _homePage({
   return _wrap(
     HomePage(
       blockDocAccessor: const FakeBlockDocAccessor(),
+      mediaCrypto: MediaCryptoService.instance,
       docStorage: _NoDocsStorage(),
       notebookStorage: NotebookStorage(
         directoryProvider: _NoDocsStorage._tempDir,

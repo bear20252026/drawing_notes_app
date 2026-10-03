@@ -15,7 +15,12 @@ extension _HomePageCreateOps on _HomePageState {
         ),
       );
     }
-    return builder(document: document, documentStorage: documentStorage);
+    return builder(
+      document: document,
+      documentStorage: documentStorage,
+      // C-06（审计 2026-09-27）：编辑器内嵌图片解密服务传线。
+      mediaCrypto: widget.mediaCrypto,
+    );
   }
 
   Future<void> _openEditor({
@@ -131,6 +136,8 @@ extension _HomePageCreateOps on _HomePageState {
           storage: _nbStorage,
           blockDocStore: _blockDocStore,
           editorPageBuilder: widget.editorPageBuilder,
+          // C-06（审计 2026-09-27）：媒体服务同一实例传线。
+          mediaCrypto: widget.mediaCrypto,
         ),
       ),
     );

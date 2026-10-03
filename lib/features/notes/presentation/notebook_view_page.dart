@@ -72,6 +72,7 @@ class NotebookViewPage extends StatefulWidget {
     super.key,
     required this.notebook,
     required this.storage,
+    required this.mediaCrypto,
     this.onChanged,
     this.editorPageBuilder,
     this.blockDocStore,
@@ -84,6 +85,11 @@ class NotebookViewPage extends StatefulWidget {
   final NoteBlockDocStore? blockDocStore;
   final NotebookStorage storage;
   final VoidCallback? onChanged;
+
+  /// 媒体会话加密服务（C-06，审计 2026-09-27 构造注入）：锁定清理/重派生
+  /// 媒体密钥、页面图片解密与整本 PDF 导出共用——组合根传线同一解锁
+  /// 会话单例，本页不再直取 `.instance`。
+  final MediaCryptoService mediaCrypto;
 
   /// 编辑器页面由应用组合根注入，避免 notes 直接依赖 drawing UI。
   final EditorPageBuilder? editorPageBuilder;
@@ -158,7 +164,8 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   late final SessionGuard _sessionGuard = SessionGuard(
     onLock: () {
       _saveIfChanged();
-      MediaCryptoService.instance.clearSessionKey();
+      // C-06（审计 2026-09-27）：媒体服务构造注入（清理语义不变）。
+      widget.mediaCrypto.clearSessionKey();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -183,7 +190,8 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
     if (_notebook.encrypted && pw != null && pw.isNotEmpty) {
       try {
         final mediaSalt = await widget.storage.ensureMediaSalt();
-        await MediaCryptoService.instance.setSessionPassword(pw, mediaSalt);
+        // C-06（审计 2026-09-27）：媒体服务构造注入（重派生语义不变）。
+        await widget.mediaCrypto.setSessionPassword(pw, mediaSalt);
       } catch (_) {
         _sessionGuard.unlock();
         if (!mounted) return;
@@ -231,7 +239,8 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
     _sessionPassword = null;
     _sessionGuard.dispose();
     // H-03 密钥清理时机：页面退出清除媒体加密会话密钥（D-2 内存清理）。
-    MediaCryptoService.instance.clearSessionKey();
+    // C-06（审计 2026-09-27）：媒体服务构造注入（清理语义不变）。
+    widget.mediaCrypto.clearSessionKey();
     _tagFilterDebouncer.dispose();
     _lifecycleListener?.dispose();
     super.dispose();
@@ -367,6 +376,9 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                 builder: (_) => NotebookReaderPage(
                   notebook: _notebook,
                   onEditPage: _openPage,
+                  // C-06（审计 2026-09-27）：媒体解密/VFS 依赖传线。
+                  mediaCrypto: widget.mediaCrypto,
+                  vaultService: widget.storage.vaultService,
                 ),
               ),
             ),

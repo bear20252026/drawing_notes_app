@@ -48,8 +48,8 @@ import 'package:drawing_notes_app/features/security/presentation/file_password_r
 // N4 批 3：分页画布解锁弹窗「忘记密码？」→ 重置密码盘重置流。
 import 'package:drawing_notes_app/features/security/presentation/notebook_password_reset_flow.dart';
 import 'package:drawing_notes_app/features/security/presentation/block_doc_password_reset_flow.dart';
-// N4 批 3：加密分页画布解锁后媒体加密注入（页面图片解密用）。
-import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+// C-06（审计 2026-09-27）：媒体会话加密服务由组合根 AppServices 持有，
+// shell 自身经 _services.mediaCrypto 使用，不再 import 全局单例。
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 /// 应用导航壳：3 个顶层目的地（M11 IA 收敛 + 批次⑤设置集中）。
@@ -271,6 +271,8 @@ class _AppShellState extends State<AppShell> {
       notebookStorage: widget.notebookStorage,
       docStorage: widget.docStorage,
       editorPageBuilder: widget.editorPageBuilder,
+      // C-06（审计 2026-09-27）：媒体会话加密服务组合根传线。
+      mediaCrypto: _services.mediaCrypto,
       refreshSignal: _services.dataVersion,
       // 审计 2026-09-26 #17：搜索访问器由组合根注入（同一 store 实例，
       // 与 home_page 自建 Impl 的旧行为等价）。
@@ -477,7 +479,12 @@ class _AppShellState extends State<AppShell> {
         nav.push(
           MaterialPageRoute(
             builder: (_) => builder != null
-                ? builder(document: drawing, documentStorage: storage)
+                ? builder(
+                    document: drawing,
+                    documentStorage: storage,
+                    // C-06（审计 2026-09-27）：编辑器内嵌图片解密服务传线。
+                    mediaCrypto: _services.mediaCrypto,
+                  )
                 : Scaffold(
                     body: Center(
                       child: Text(
@@ -542,11 +549,9 @@ class _AppShellState extends State<AppShell> {
             if (!ok) return;
             nb = fresh;
             // H-03 媒体加密注入（与旧解锁路径同口径——页面图片解密用）。
+            // C-06：媒体服务经 AppServices 组合根持有（不再直取全局单例）。
             final mediaSalt = await nbStorage.ensureMediaSalt();
-            await MediaCryptoService.instance.setSessionPassword(
-              sessionPw,
-              mediaSalt,
-            );
+            await _services.mediaCrypto.setSessionPassword(sessionPw, mediaSalt);
           } on FormatException {
             return; // 密码失效（缓存过期/重置竞态）——fail-closed
           }
@@ -558,6 +563,8 @@ class _AppShellState extends State<AppShell> {
               storage: nbStorage,
               blockDocStore: _services.blockDocStore,
               editorPageBuilder: widget.editorPageBuilder,
+              // C-06（审计 2026-09-27）：媒体会话加密服务组合根传线。
+              mediaCrypto: _services.mediaCrypto,
               sessionPassword: sessionPw,
             ),
           ),
@@ -611,7 +618,12 @@ class _AppShellState extends State<AppShell> {
         nav.push(
           MaterialPageRoute(
             builder: (_) => builder != null
-                ? builder(document: draft, documentStorage: storage)
+                ? builder(
+                    document: draft,
+                    documentStorage: storage,
+                    // C-06（审计 2026-09-27）：编辑器内嵌图片解密服务传线。
+                    mediaCrypto: _services.mediaCrypto,
+                  )
                 : Scaffold(
                     body: Center(
                       child: Text(
@@ -638,6 +650,8 @@ class _AppShellState extends State<AppShell> {
               storage: nbStorage,
               blockDocStore: _services.blockDocStore,
               editorPageBuilder: widget.editorPageBuilder,
+              // C-06（审计 2026-09-27）：媒体会话加密服务组合根传线。
+              mediaCrypto: _services.mediaCrypto,
             ),
           ),
         );

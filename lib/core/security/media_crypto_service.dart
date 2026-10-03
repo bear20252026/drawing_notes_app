@@ -16,6 +16,13 @@ import 'package:drawing_notes_app/core/security/kdf_params.dart';
 /// 服务（Flutter 官方 DI 模式：服务注入，密钥不散传）。
 class MediaCryptoService {
   MediaCryptoService._();
+
+  // C-06 裁决（审计 2026-09-27，2026-10-03 落地）：对外全局可达性已收敛——
+  // features/shared 零 `.instance` 直取（消费方一律构造注入，实例由组合根
+  // 装配：AppServices 缺省持有 + app.dart/default_editor_page_builder 组装
+  // 传线），由 test/security_static_access_gate_test.dart 门禁锁死；core
+  // 内部互调（kek_session_cache 派生等）属解锁生命周期作用域的会话单例
+  // 实现细节，保留静态语义、不注入。本体收敛留后续批次。
   static final MediaCryptoService instance = MediaCryptoService._();
 
   List<int>? _sessionKey;

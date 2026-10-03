@@ -52,6 +52,7 @@ import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:drawing_notes_app/core/notes_accessor.dart';
 import 'package:drawing_notes_app/core/rendering/notebook_print_page_data.dart';
+import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
@@ -118,6 +119,7 @@ class EditorPage extends ConsumerStatefulWidget {
     this.storage,
     this.docStorage,
     this.onChanged,
+    this.mediaCrypto,
     this.openPresentation,
   }) : _initialDocument = document;
 
@@ -148,6 +150,12 @@ class EditorPage extends ConsumerStatefulWidget {
   /// 由笔记侧注入实现（跳转 PresentationPage），drawing 不直接依赖
   /// notes 的 presentation UI；null 时演示功能提示不可用。
   final Future<void> Function(BuildContext context)? openPresentation;
+
+  /// 媒体会话解密服务（C-06，审计 2026-09-27）：组合根传线——内嵌图片
+  /// （EncryptedFileImage，见 editor_page_overlays）的解密依赖不再直取
+  /// 全局单例；可空（测试直构未注入时按既有「会话密钥未注入」语义
+  /// fail-closed，生产恒由组合根注入）。
+  final MediaCryptoService? mediaCrypto;
 
   /// 内容变更回调（自动保存由上级页面实现）。
   final VoidCallback? onChanged;

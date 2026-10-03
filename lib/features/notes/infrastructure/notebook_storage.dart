@@ -47,6 +47,7 @@ class NotebookStorage
     this.directoryProvider,
     this.vaultService,
     this.keyProvider,
+    this.mediaCrypto,
   }) {
     // P1 修复 M-09：注册会话机密清理——切后台回锁时笔记本口令一并失效。
     SessionSecrets.register(this);
@@ -56,6 +57,12 @@ class NotebookStorage
   /// JSON 以 DNV 信封落盘（AAD 绑定 `nb:<id>`）、页面图片以 DNV 信封落盘
   /// （AAD 绑定 `file:<basename>`）；null 时保持既有行为明文/DAN 兼容。
   final Future<Uint8List?> Function()? keyProvider;
+
+  /// 媒体会话加密服务（C-06，审计 2026-09-27 构造注入）：组合根 app.dart
+  /// 注入解锁生命周期作用域的同一单例（与 AppServices 同源）；null 仅测试
+  /// /兜底自建场景——此时按既有「会话密钥未注入」语义降级（DAN 分支跳过，
+  /// DNV/明文分支照旧），生产恒注入、行为不变。
+  final MediaCryptoService? mediaCrypto;
 
   /// VFS 媒体仓库（可选——解锁时注入——新媒体写 VFS 对象——双轨：
   /// s3-encryption-gateway 双读窗口模式——旧媒体 DAN 文件兼容读）。
@@ -344,8 +351,10 @@ class NotebookStorage
       // ③ 均未解锁 → 明文写入（旧数据兼容，读取时懒迁移）。
       final bytes = await src.readAsBytes();
       final Uint8List stored;
-      if (MediaCryptoService.instance.isActive) {
-        stored = await MediaCryptoService.instance.encryptFile(bytes);
+      // C-06：媒体服务构造注入（null 降级 = 既有「未注入」语义）。
+      final media = mediaCrypto;
+      if (media != null && media.isActive) {
+        stored = await media.encryptFile(bytes);
       } else {
         final key = await _currentKey();
         stored = key == null
@@ -379,8 +388,10 @@ class NotebookStorage
   /// ② 保险库解锁 → DNV 信封（AAD 绑定目标路径）；
   /// ③ 均未解锁 → 明文（读取端懒迁移兼容）。
   Future<Uint8List> sealMediaBytesForPath(String path, Uint8List bytes) async {
-    if (MediaCryptoService.instance.isActive) {
-      return MediaCryptoService.instance.encryptFile(bytes);
+    // C-06：媒体服务构造注入（null 降级 = 既有「未注入」语义）。
+    final media = mediaCrypto;
+    if (media != null && media.isActive) {
+      return media.encryptFile(bytes);
     }
     final key = await _currentKey();
     if (key == null) return bytes;
@@ -395,8 +406,9 @@ class NotebookStorage
   /// payload-plugins 批量加密器模式（幂等——已 DAN 密文跳过）。
   /// 返回迁移的文件数；未解锁（会话密钥未注入）返回 0。
   Future<int> migrateLegacyMedia() async {
-    final service = MediaCryptoService.instance;
-    if (!service.isActive) return 0; // 未解锁——不迁移
+    // C-06：媒体服务构造注入（null 降级 = 既有「未注入」语义——不迁移）。
+    final service = mediaCrypto;
+    if (service == null || !service.isActive) return 0; // 未解锁——不迁移
     final dir = await _ensureImagesDir();
     var migrated = 0;
     await for (final entity in dir.list()) {

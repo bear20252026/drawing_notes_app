@@ -258,8 +258,9 @@ extension _NotebookPageImports on _NotebookViewPageState {
       _sessionPassword = password;
       // H-03 密码模式媒体加密（方案 B）：全局盐派生注入（storeImage 加密
       // 写入 + EncryptedFileImage 渲染解密用——跨会话同盐重派生 key 一致）。
+      // C-06（审计 2026-09-27）：媒体服务构造注入（注入语义不变）。
       final mediaSalt = await widget.storage.ensureMediaSalt();
-      await MediaCryptoService.instance.setSessionPassword(password, mediaSalt);
+      await widget.mediaCrypto.setSessionPassword(password, mediaSalt);
       if (mounted) {
         _applyState(() {});
         ScaffoldMessenger.of(context).showSnackBar(

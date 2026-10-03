@@ -9,6 +9,7 @@ import 'package:drawing_notes_app/app/default_editor_page_builder.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_contrast.dart';
 import 'package:drawing_notes_app/core/di/providers.dart';
+import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/theme/app_locale_controller.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'l10n/app_localizations.dart';
@@ -75,6 +76,8 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
       final vault = _vaultKeyService;
       return vault.isUnlocked ? vault.masterKey : null;
     },
+    // C-06（审计 2026-09-27）：媒体会话加密服务组合根注入（同一解锁单例）。
+    mediaCrypto: _mediaCrypto,
   );
   late final NoteBlockDocStore _blockDocStore = NoteBlockDocStore(
     directoryProvider: _appDataRoot.root,
@@ -91,6 +94,10 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
     directoryProvider: _appDataRoot.root,
   );
   final AppLockService _appLockService = AppLockService();
+  // 媒体会话加密服务（C-06，审计 2026-09-27）：解锁生命周期作用域单例由
+  // 组合根装配——注入 NotebookStorage（媒体 DAN 加密封支）并与 AppServices
+  // 缺省同源（同一实例），页面与 shared 层不再直取 `.instance`。
+  final MediaCryptoService _mediaCrypto = MediaCryptoService.instance;
   // 保险库密钥文件迁入统一根目录 security/（原 AppData 支持目录）。
   late final VaultKeyService _vaultKeyService = VaultKeyService(
     vaultFileResolver: () => _appDataRoot.securityFile('vault.key.json'),

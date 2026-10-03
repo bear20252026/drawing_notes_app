@@ -1,14 +1,40 @@
-// storage_service.dart 的 part：单文件密码管理 API（批次②/N2：文件密码 + U 盘槽位）。
-// 与主文件同 library，extension 可直接访问 StorageService 私有成员。
-part of 'storage_service.dart';
+import 'dart:io';
+import 'dart:typed_data';
 
-extension StorageServiceFilePassword on StorageService {
-  // ---- 单文件密码管理 API（批次②：画作级独立密码） ----
+import 'package:drawing_notes_app/core/storage/storage_directories.dart';
+import 'package:drawing_notes_app/core/storage/storage_media_store.dart';
+import 'package:drawing_notes_app/core/storage/storage_secret_session.dart';
+import 'package:drawing_notes_app/core/storage/storage_write_pipeline.dart';
+import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
+
+// C-08（审计 2026-09-27）：自 StorageService 的 part 五域拆为真协作类。
+// 本类承载**文件密码域**公开 API（批次②/N2：v2/v3 密码信封 + U 盘重置
+// 槽位）：校验/设置/修改/绑定重置盘/重置/移除。所有重封落盘挂入
+// per-document 独占队列（E-17）——与在途保存/删除交错时按请求顺序执行。
+// StorageService 保留门面，消费方 API 零变化。
+
+/// 文件密码域：画作级独立密码的完整管理面。
+class StorageFilePasswordManager {
+  StorageFilePasswordManager({
+    required this.directories,
+    required this.secrets,
+    required this.pipeline,
+    required this.media,
+    required this.fireOnWrite,
+  });
+
+
+  /// 内部协作面：仅 StorageService 门面装配（C-08 拆分协作类，只读）。
+  final StorageDirectories directories;
+  final StorageSecretSession secrets;
+  final StorageWritePipeline pipeline;
+  final StorageMediaStore media;
+  final void Function() fireOnWrite;
 
   /// 读取当前正式文件（缺失回退 .bak）；两者都不存在返回 null。
   Future<Uint8List?> _readCurrentRaw(String id) async {
-    await _ensureDocumentsDir();
-    final file = File(_pathFor(id));
+    await directories.ensureDocuments();
+    final file = File(directories.documentPathFor(id));
     final bak = File('${file.path}.bak');
     if (file.existsSync()) return file.readAsBytes();
     if (bak.existsSync()) return bak.readAsBytes();
@@ -34,7 +60,7 @@ extension StorageServiceFilePassword on StorageService {
           password,
           aadContext: 'doc:$id',
         );
-        _cacheV3Material(id, unlock);
+        secrets.cacheV3Material(id, unlock);
       } else {
         await VaultFileCodec.decryptWithPassword(
           raw,
@@ -45,7 +71,7 @@ extension StorageServiceFilePassword on StorageService {
     } on VaultFileException {
       return false;
     }
-    cacheFilePassword(id, password);
+    secrets.cacheFilePassword(id, password);
     return true;
   }
 
@@ -64,14 +90,14 @@ extension StorageServiceFilePassword on StorageService {
   /// 同款：U 盘钥匙不在设备上，错过本次可事后走 [bindFileUsbSlot]）。
   ///
   /// E-17 同步（审计 2026-09-07）：重封落盘挂入该文档的 per-document
-  /// 独占队列（[_runDocExclusive]）——与在途保存/删除交错时按请求顺序
-  /// 执行，且保证在队列中重新读取最新已落盘明文后再重封（非陈旧快照）。
+  /// 独占队列——与在途保存/删除交错时按请求顺序执行，且保证在队列中
+  /// 重新读取最新已落盘明文后再重封（非陈旧快照）。
   Future<void> setFilePassword(
     String id,
     String password, {
     List<int>? resetDiskKey,
   }) {
-    return _runDocExclusive(
+    return pipeline.runDocExclusive(
       id,
       () => _setFilePasswordLocked(id, password, resetDiskKey: resetDiskKey),
     );
@@ -92,7 +118,7 @@ extension StorageServiceFilePassword on StorageService {
     // 取明文：v1 信封需主密钥（锁定时 fail-closed）。
     Uint8List plain;
     if (VaultFileCodec.isEncrypted(raw)) {
-      final key = await _currentKey();
+      final key = await pipeline.currentKey();
       if (key == null) throw const VaultFileLockException();
       plain = await VaultFileCodec.decrypt(raw, key, aadContext: 'doc:$id');
     } else {
@@ -107,13 +133,8 @@ extension StorageServiceFilePassword on StorageService {
             dek: dek,
             aadContext: 'doc:$id',
           );
-    cacheFilePassword(id, password);
-    _sessionDocDeks[id] = dek;
-    if (usbWrapped != null) {
-      _sessionFileUsbWrapped[id] = usbWrapped;
-    } else {
-      _sessionFileUsbWrapped.remove(id);
-    }
+    secrets.cacheFilePassword(id, password);
+    secrets.cacheDekMaterial(id, dek, usbWrapped);
     try {
       final sealed = await VaultFileCodec.encryptWithPasswordV3(
         plain,
@@ -122,13 +143,13 @@ extension StorageServiceFilePassword on StorageService {
         dek: dek,
         usbWrapped: usbWrapped,
       );
-      await _writeSealedBytes(id, sealed);
+      await pipeline.writeSealedBytes(id, sealed);
     } catch (_) {
-      forgetFilePassword(id); // 密封失败不残留会话密码（防后续写回明文语义错乱）
+      secrets.forgetFilePassword(id); // 密封失败不残留会话密码（防后续写回明文语义错乱）
       rethrow;
     }
-    await _deleteThumbnail(id);
-    onWrite?.call();
+    await media.deleteThumbnail(id);
+    fireOnWrite();
   }
 
   /// 修改文件密码（验证旧密码 → 重封）。旧密码错误抛 [VaultFileException]。
@@ -143,7 +164,7 @@ extension StorageServiceFilePassword on StorageService {
     String oldPassword,
     String newPassword,
   ) {
-    return _runDocExclusive(
+    return pipeline.runDocExclusive(
       id,
       () => _changeFilePasswordLocked(id, oldPassword, newPassword),
     );
@@ -164,8 +185,8 @@ extension StorageServiceFilePassword on StorageService {
         oldPassword,
         aadContext: 'doc:$id',
       ); // 旧密码错误在此抛出——会话缓存尚未改动
-      _cacheV3Material(id, unlock);
-      cacheFilePassword(id, newPassword);
+      secrets.cacheV3Material(id, unlock);
+      secrets.cacheFilePassword(id, newPassword);
       try {
         final sealed = await VaultFileCodec.encryptWithPasswordV3(
           unlock.plain,
@@ -174,13 +195,13 @@ extension StorageServiceFilePassword on StorageService {
           dek: unlock.dek,
           usbWrapped: unlock.usbWrapped,
         );
-        await _writeSealedBytes(id, sealed);
+        await pipeline.writeSealedBytes(id, sealed);
       } catch (_) {
-        cacheFilePassword(id, oldPassword); // 回滚会话缓存到仍有效的旧密码
+        secrets.cacheFilePassword(id, oldPassword); // 回滚会话缓存到仍有效的旧密码
         rethrow;
       }
-      await _deleteThumbnail(id);
-      onWrite?.call();
+      await media.deleteThumbnail(id);
+      fireOnWrite();
       return;
     }
     final plain = await VaultFileCodec.decryptWithPassword(
@@ -190,9 +211,8 @@ extension StorageServiceFilePassword on StorageService {
     );
     // v2 → v3 升级：生成新 DEK，暂不嵌重置盘槽位（钥匙不在设备上）。
     final dek = VaultFileCodec.generateDek();
-    _sessionDocDeks[id] = dek;
-    _sessionFileUsbWrapped.remove(id);
-    cacheFilePassword(id, newPassword);
+    secrets.cacheDekMaterial(id, dek, null);
+    secrets.cacheFilePassword(id, newPassword);
     try {
       final sealed = await VaultFileCodec.encryptWithPasswordV3(
         Uint8List.fromList(plain),
@@ -200,13 +220,13 @@ extension StorageServiceFilePassword on StorageService {
         aadContext: 'doc:$id',
         dek: dek,
       );
-      await _writeSealedBytes(id, sealed);
+      await pipeline.writeSealedBytes(id, sealed);
     } catch (_) {
-      cacheFilePassword(id, oldPassword); // 回滚会话缓存到仍有效的旧密码
+      secrets.cacheFilePassword(id, oldPassword); // 回滚会话缓存到仍有效的旧密码
       rethrow;
     }
-    await _deleteThumbnail(id);
-    onWrite?.call();
+    await media.deleteThumbnail(id);
+    fireOnWrite();
   }
 
   /// 绑定重置密码盘到已设密文档（事后绑定通道；须验证文件密码）。
@@ -215,7 +235,7 @@ extension StorageServiceFilePassword on StorageService {
   /// E-17 同步（审计 2026-09-07）：重封落盘挂入 per-document 独占队列
   /// （避免与在途保存交错的陈旧读取/覆盖）。
   Future<void> bindFileUsbSlot(String id, String password, List<int> usbKey) {
-    return _runDocExclusive(
+    return pipeline.runDocExclusive(
       id,
       () => _bindFileUsbSlotLocked(id, password, usbKey),
     );
@@ -253,14 +273,14 @@ extension StorageServiceFilePassword on StorageService {
       dek: unlock.dek,
       usbWrapped: usbWrapped,
     );
-    _cacheV3Material(
+    secrets.cacheV3Material(
       id,
       VaultFileV3Unlock(unlock.plain, unlock.dek, usbWrapped),
     );
-    cacheFilePassword(id, password);
-    await _writeSealedBytes(id, sealed);
-    await _deleteThumbnail(id);
-    onWrite?.call();
+    secrets.cacheFilePassword(id, password);
+    await pipeline.writeSealedBytes(id, sealed);
+    await media.deleteThumbnail(id);
+    fireOnWrite();
   }
 
   /// 重置密码盘重置文件密码（N4 批 2：忘记密码通道）。
@@ -275,7 +295,7 @@ extension StorageServiceFilePassword on StorageService {
     List<int> usbKey,
     String newPassword,
   ) {
-    return _runDocExclusive(
+    return pipeline.runDocExclusive(
       id,
       () => _resetFilePasswordWithUsbLocked(id, usbKey, newPassword),
     );
@@ -299,17 +319,11 @@ extension StorageServiceFilePassword on StorageService {
     } on VaultFileException {
       return false;
     }
-    _sessionDocDeks[id] = rewrap.dek;
-    final usb = rewrap.usbWrapped;
-    if (usb != null) {
-      _sessionFileUsbWrapped[id] = usb;
-    } else {
-      _sessionFileUsbWrapped.remove(id);
-    }
-    cacheFilePassword(id, newPassword);
-    await _writeSealedBytes(id, rewrap.blob);
-    await _deleteThumbnail(id);
-    onWrite?.call();
+    secrets.cacheDekMaterial(id, rewrap.dek, rewrap.usbWrapped);
+    secrets.cacheFilePassword(id, newPassword);
+    await pipeline.writeSealedBytes(id, rewrap.blob);
+    await media.deleteThumbnail(id);
+    fireOnWrite();
     return true;
   }
 
@@ -319,7 +333,10 @@ extension StorageServiceFilePassword on StorageService {
   /// E-17 同步（审计 2026-09-07）：回封落盘挂入 per-document 独占队列，
   /// 避免与在途保存交错的陈旧读取/覆盖。
   Future<void> removeFilePassword(String id, String password) {
-    return _runDocExclusive(id, () => _removeFilePasswordLocked(id, password));
+    return pipeline.runDocExclusive(
+      id,
+      () => _removeFilePasswordLocked(id, password),
+    );
   }
 
   Future<void> _removeFilePasswordLocked(String id, String password) async {
@@ -334,7 +351,7 @@ extension StorageServiceFilePassword on StorageService {
         password,
         aadContext: 'doc:$id',
       );
-      _cacheV3Material(id, unlock);
+      secrets.cacheV3Material(id, unlock);
       plain = unlock.plain;
     } else {
       plain = await VaultFileCodec.decryptWithPassword(
@@ -343,7 +360,7 @@ extension StorageServiceFilePassword on StorageService {
         aadContext: 'doc:$id',
       );
     }
-    final key = await _currentKey();
+    final key = await pipeline.currentKey();
     if (key == null) {
       throw const VaultFileLockException();
     }
@@ -352,19 +369,8 @@ extension StorageServiceFilePassword on StorageService {
       key,
       aadContext: 'doc:$id',
     );
-    forgetFilePassword(id);
-    await _writeSealedBytes(id, sealed);
-    onWrite?.call();
-  }
-
-  /// 删除缩略图（设密/改密时调用——防首页预览泄露，用户拍板「隐藏缩略图」）。
-  Future<void> _deleteThumbnail(String id) async {
-    try {
-      await _ensureThumbsDir();
-      final thumb = File(_thumbPathFor(id));
-      if (thumb.existsSync()) await thumb.delete();
-    } catch (_) {
-      // 缩略图清理失败不影响密码设置本身。
-    }
+    secrets.forgetFilePassword(id);
+    await pipeline.writeSealedBytes(id, sealed);
+    fireOnWrite();
   }
 }

@@ -15,7 +15,12 @@ void main() {
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('media_migration');
-    storage = NotebookStorage(directoryProvider: () async => tempDir);
+    // C-06（审计 2026-09-27）：媒体服务构造注入——迁移判定从全局单例直取
+    // 改为注入字段；测试注入同一单例，语义与此前一致。
+    storage = NotebookStorage(
+      directoryProvider: () async => tempDir,
+      mediaCrypto: MediaCryptoService.instance,
+    );
     MediaCryptoService.instance.clearSessionKey();
   });
 

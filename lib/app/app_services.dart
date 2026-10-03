@@ -7,6 +7,7 @@
 
 import 'package:flutter/foundation.dart';
 
+import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
@@ -20,10 +21,12 @@ class AppServices {
     FavoriteStore? favoriteStore,
     TagStore? tagStore,
     SyncController? syncController,
+    MediaCryptoService? mediaCrypto,
   }) : blockDocStore = blockDocStore ?? NoteBlockDocStore(),
        favoriteStore = favoriteStore ?? FavoriteStore(),
        tagStore = tagStore ?? TagStore(),
-       syncController = syncController ?? SyncController();
+       syncController = syncController ?? SyncController(),
+       mediaCrypto = mediaCrypto ?? MediaCryptoService.instance;
 
   /// 块文档存储（打字笔记）。
   final NoteBlockDocStore blockDocStore;
@@ -37,6 +40,11 @@ class AppServices {
   /// WebDAV 同步控制器（C-05，审计 2026-09-27：同步装配收口 application
   /// 层，设置页经组合根注入，不再自行 new 基础设施）。
   final SyncController syncController;
+
+  /// 媒体会话加密服务（C-06，审计 2026-09-27）：组合根持有解锁生命周期
+  /// 作用域的同一单例并向下传线——页面与 shared 渲染管线不再直取
+  /// `.instance`（test/security_static_access_gate_test.dart 门禁锁死）。
+  final MediaCryptoService mediaCrypto;
 
   /// 数据版本通知器：任何文档写盘后自增，驱动首页/AllDocs 刷新。
   final ValueNotifier<int> dataVersion = ValueNotifier(0);

@@ -6,6 +6,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/canvas_model/layer.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
+// C-06（审计 2026-09-27）：NotebookPdfExporter 改实例类——媒体解密依赖
+// 构造注入（测试注入生产同一全局单例，语义与此前 static 直取一致）。
+import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/pdf_hybrid_exporter.dart';
 import 'package:drawing_notes_app/features/notes/application/notebook_pdf_exporter.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
@@ -50,11 +53,15 @@ void main() {
     return RegExp(r'/Type\s*/Page(?![A-Za-z])').allMatches(text).length;
   }
 
+  /// C-06：导出器实例（媒体解密依赖注入生产同一全局单例）。
+  NotebookPdfExporter buildExporter() =>
+      NotebookPdfExporter(mediaCrypto: MediaCryptoService.instance);
+
   test('多页导出：两个画布页 → PDF 两页', () async {
     final notebook = Notebook(id: 'nb', title: '整本测试')
       ..pages.addAll([pageOf('p1', docOf('p1')), pageOf('p2', docOf('p2'))]);
 
-    final bytes = await NotebookPdfExporter.exportNotebook(notebook);
+    final bytes = await buildExporter().exportNotebook(notebook);
 
     expect(bytes, isNotEmpty);
     // PDF 头魔数。
@@ -73,7 +80,7 @@ void main() {
         ),
       );
 
-    final bytes = await NotebookPdfExporter.exportNotebook(notebook);
+    final bytes = await buildExporter().exportNotebook(notebook);
 
     expect(bytes, isNotEmpty);
     expect(String.fromCharCodes(bytes.sublist(0, 5)), '%PDF-');
@@ -111,7 +118,7 @@ void main() {
     final notebook = Notebook(id: 'nb', title: '无页脚整本')
       ..pages.add(pageOf('p1', docOf('p1')));
 
-    final bytes = await NotebookPdfExporter.exportNotebook(notebook);
+    final bytes = await buildExporter().exportNotebook(notebook);
 
     expect(String.fromCharCodes(bytes.sublist(0, 5)), '%PDF-');
     expect(countPdfPages(bytes), 1);
@@ -126,7 +133,7 @@ void main() {
     final notebook = Notebook(id: 'nb', title: '页脚整本')
       ..pages.addAll([pageOf('p1', docOf('p1')), pageOf('p2', docOf('p2'))]);
 
-    final bytes = await NotebookPdfExporter.exportNotebook(
+    final bytes = await buildExporter().exportNotebook(
       notebook,
       footer: true,
     );

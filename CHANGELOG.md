@@ -2,6 +2,59 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.56] - 2026-10-03
+
+### 审计批次 AH：C-06 安全服务注入收敛 + C-08 StorageService 五职责分解（子代理执行 + 宿主 worktree 并行）
+
+> 架构域大项第二波：C-06 由子代理执行，C-08 由宿主在独立 git worktree
+> 与子代理并行完成（环境并发限一代理；两者文件所有权互不相交），宿主
+> 合并门禁后统一提交。
+
+- **C-06 [P2] 三个安全服务 static instance 全局可达收敛**：features 与
+  shared 层**零 `.instance` 直取**（原 13 文件直取）——
+  - 注入链：`MediaCryptoService` 经组合根（app.dart/AppServices 缺省
+    装配）→ HomePage → SearchPage/NotebookViewPage（required 构造注入）
+    → Reader/Presentation 页透传；编辑器链经 `EditorPageBuilder` typedef
+    新增可选 `mediaCrypto`（tear-off 兼容）；`VaultService` 注入
+    encrypted_file_image 与 NotebookPdfExporter；
+  - `NotebookPdfExporter` 静态类改实例类（语义逐条保持）；
+  - `notebook_storage`（infrastructure）可选注入：生产构造点唯一在
+    组合根 app.dart:72，null 容忍降级与既有「会话密钥未注入」分支
+    语义一致，生产恒注入行为不变——避免 25+ 测试构造点连锁；
+  - **裁决**：`KekSessionCache` 的 5 个消费方全在 core 内部——解锁
+    生命周期作用域的会话单例语义保留，三个服务文件仅落 C-06 裁决
+    注释不改静态语义（对外 API 兼容优先，本体收敛留后续）；
+  - **新静态扫描门禁** `test/security_static_access_gate_test.dart`：
+    features+shared 全库遮蔽扫描三服务 `.instance` 零命中（core/app
+    组合根豁免并写明理由），新增直取即红；
+  - 未初始化分支同文 StateError 镜像原全局单例语义（生产不可达路径
+    逐字保持）；EncryptedFileImage ==/hashCode 不含注入件（图片缓存
+    键不分叉）。
+- **C-08 [P2] StorageService 单类五职责分解**：原 639 行本体 + 4 个
+  共享全部私有态的 part（O1 域分权 F9 只做了物理拆分，共 1371 行）
+  分解为**六个真协作类**（各自持有自有状态，依赖无环）——
+  - 目录域 `StorageDirectories`（四目录懒加载 + 路径推导 + ID 防遍历
+    校验）/ 会话机密域 `StorageSecretSession`（文件密码 + v3 DEK/USB
+    材料，D-2 擦除纪律原样保留）/ 写入管线域 `StorageWritePipeline`
+    （per-id 写尾队列 + 三级密封分流 + 原子替换 + Windows 退避）/
+    媒体资产域 `StorageMediaStore`（缩略图 + 受管图片，fail-closed
+    读取）/ 回收站域 `StorageTrashBin`（M-06 移入/恢复/清理）/
+    文件密码域 `StorageFilePasswordManager`（v2/v3 管理面）；
+  - **门面保留**：StorageService 继续实现 DocumentRepository +
+    SessionSecretsHolder，公共 API 逐一委托（含 `purgeTrash` 的
+    retention 参数转发），**消费方与测试零改动**；媒体域经回调取
+    密码域查询（构造序解环）；装配面注释「仅门面装配」；
+  - 新文件全部 ≤411 行（≤500 警告线），core/storage 目录 19/40；
+  - **同构病灶四处核实**：审计快照滞后——note_block_doc_store
+    1234→647、drawing_controller 1118→730、notebook_view_page
+    2051→627、doc_editor 库已分件，全部退至 1000 硬上限内（v1.17.47
+    起的 C-04 系列批次实绩），本批不再重复动刀，落备案；
+  - worktree 并行验证：analyze 0 + 存储域 221 用例全绿（文件密码
+    v3/并发/回收站 retention/加密/安全回归全套）。
+- 版本三处 1.17.56+125；门禁：合并后本地 analyze 0；三扫描门禁
+  （安全 static 访问/棘轮/焦点环）+ C-06、C-08 受影响域合计 248 用例
+  全绿；全量按 AGENTS.md §6 云端验证纪律交 CI 五工作流裁决。
+
 ## [1.17.55] - 2026-10-03
 
 ### 审计批次 AG：C-10 shared 伪共享归位 + C-05 WebDAV 设置页 DI 旁路根治（子代理执行）

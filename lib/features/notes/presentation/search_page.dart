@@ -29,6 +29,7 @@ class SearchPage extends StatefulWidget {
   const SearchPage({
     super.key,
     required this.searchService,
+    required this.mediaCrypto,
     this.notebookStorage,
     this.documentStorage,
     this.editorPageBuilder,
@@ -36,6 +37,11 @@ class SearchPage extends StatefulWidget {
   });
 
   final SearchService searchService;
+
+  /// 媒体会话加密服务（C-06，审计 2026-09-27 构造注入）：解锁加密分页
+  /// 画布后注入媒体密钥 + 传线给 NotebookViewPage——不再直取全局单例。
+  final MediaCryptoService mediaCrypto;
+
   final NotebookStorage? notebookStorage;
   final StorageService? documentStorage;
   final EditorPageBuilder? editorPageBuilder;
@@ -94,7 +100,12 @@ class _SearchPageState extends State<SearchPage> {
       if (doc == null || !mounted || builder == null) return;
       await Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => builder(document: doc, documentStorage: storage),
+          builder: (_) => builder(
+            document: doc,
+            documentStorage: storage,
+            // C-06（审计 2026-09-27）：编辑器内嵌图片解密服务传线。
+            mediaCrypto: widget.mediaCrypto,
+          ),
         ),
       );
       return;
@@ -199,10 +210,8 @@ class _SearchPageState extends State<SearchPage> {
         if (!ok || !mounted) return;
         nb = fresh;
         final mediaSalt = await nbStorage.ensureMediaSalt();
-        await MediaCryptoService.instance.setSessionPassword(
-          sessionPw,
-          mediaSalt,
-        );
+        // C-06（审计 2026-09-27）：媒体服务构造注入（不再直取全局单例）。
+        await widget.mediaCrypto.setSessionPassword(sessionPw, mediaSalt);
       } on FormatException {
         return; // 密码失效——fail-closed
       }
@@ -214,6 +223,8 @@ class _SearchPageState extends State<SearchPage> {
           notebook: nb,
           storage: nbStorage,
           editorPageBuilder: widget.editorPageBuilder,
+          // C-06（审计 2026-09-27）：媒体服务同一实例继续传线。
+          mediaCrypto: widget.mediaCrypto,
           sessionPassword: sessionPw,
         ),
       ),

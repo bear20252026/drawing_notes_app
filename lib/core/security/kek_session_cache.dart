@@ -41,6 +41,13 @@ import 'package:drawing_notes_app/core/security/kdf_params.dart';
 class KekSessionCache {
   KekSessionCache._();
 
+  // C-06 裁决（审计 2026-09-27，2026-10-03 落地）：对外全局可达性已收敛——
+  // features/shared 零 `.instance` 直取（本缓存全部消费方均在 core 内：
+  // encryption_service / app_lock_gate / app_lock_service / vault_key_service
+  // / media_crypto_service / sync_cipher），由
+  // test/security_static_access_gate_test.dart 门禁锁死；core 内部会话缓存
+  // 语义保留——解锁生命周期作用域单例（hidden 即清），core 内互调属实现
+  // 细节，不注入。
   static final KekSessionCache instance = KekSessionCache._();
 
   /// LRU 容量上限：写路径（随机新盐）的缓存条目无复用价值，靠上限

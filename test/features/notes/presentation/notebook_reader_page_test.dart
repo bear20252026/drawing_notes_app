@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/canvas_model/layer.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
+// C-06（审计 2026-09-27）：NotebookReaderPage 构造注入媒体服务。
+import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_reader_page.dart';
 
@@ -16,7 +18,11 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: NotebookReaderPage(notebook: notebook, onEditPage: (_) {}),
+        home: NotebookReaderPage(
+          notebook: notebook,
+          onEditPage: (_) {},
+          mediaCrypto: MediaCryptoService.instance,
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -42,6 +48,7 @@ void main() {
         home: NotebookReaderPage(
           notebook: notebook,
           onEditPage: (page) => edited = page,
+          mediaCrypto: MediaCryptoService.instance,
         ),
       ),
     );
@@ -59,7 +66,11 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: NotebookReaderPage(notebook: notebook, onEditPage: (_) {}),
+        home: NotebookReaderPage(
+          notebook: notebook,
+          onEditPage: (_) {},
+          mediaCrypto: MediaCryptoService.instance,
+        ),
       ),
     );
     await tester.pumpAndSettle();

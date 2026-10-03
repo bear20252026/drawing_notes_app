@@ -7,6 +7,8 @@ import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/shared/widgets/encrypted_file_image.dart';
 
@@ -20,11 +22,21 @@ class PresentationPage extends StatefulWidget {
     required this.textItems,
     required this.imageItems,
     required this.shapes,
+    required this.mediaCrypto,
+    this.vaultService,
   });
 
   final List<PageTextItem> textItems;
   final List<PageImageItem> imageItems;
   final List<PageShapeItem> shapes;
+
+  /// 媒体会话解密服务（C-06，审计 2026-09-27 构造注入）：页面图片
+  /// （EncryptedFileImage）解密依赖由 NotebookViewPage 传线——不再直取
+  /// 全局单例。
+  final MediaCryptoService mediaCrypto;
+
+  /// VFS 媒体仓库（可选——'vfs:' 对象读回；沿 NotebookStorage 透传）。
+  final VaultService? vaultService;
 
   @override
   State<PresentationPage> createState() => _PresentationPageState();
@@ -57,7 +69,12 @@ class _PresentationPageState extends State<PresentationPage> {
           // 解密渲染；保险库锁定/损坏显示占位色块（fail-closed）。
           child: i.filePath.isNotEmpty
               ? Image(
-                  image: EncryptedFileImage(File(i.filePath)),
+                  // C-06（审计 2026-09-27）：解密/VFS 依赖传线。
+                  image: EncryptedFileImage(
+                    File(i.filePath),
+                    mediaCrypto: widget.mediaCrypto,
+                    vaultService: widget.vaultService,
+                  ),
                   fit: BoxFit.contain,
                   errorBuilder: (_, _, _) =>
                       const ColoredBox(color: AppleColor.inkSubtle),

@@ -14,6 +14,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
+// C-06（审计 2026-09-27）：SearchPage/NotebookViewPage 构造注入媒体服务
+// （测试直取全局单例与生产组合根装配同一实例）。
+import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/core/all_doc.dart';
@@ -134,7 +137,13 @@ void main() {
   });
 
   testWidgets('390x844：搜索页无溢出', (tester) async {
-    await pump390(tester, SearchPage(searchService: SearchService()));
+    await pump390(
+      tester,
+      SearchPage(
+        searchService: SearchService(),
+        mediaCrypto: MediaCryptoService.instance,
+      ),
+    );
     expect(tester.takeException(), isNull, reason: '搜索页 390dp 溢出');
   });
 
@@ -170,6 +179,7 @@ void main() {
       NotebookViewPage(
         notebook: notebook,
         storage: NotebookStorage(directoryProvider: () async => tempDir),
+        mediaCrypto: MediaCryptoService.instance,
       ),
     );
     expect(tester.takeException(), isNull, reason: '分页画布页 390dp 溢出');
@@ -199,7 +209,10 @@ void main() {
   testWidgets('390x844 dark：搜索页无溢出', (tester) async {
     await pumpAt(
       tester,
-      SearchPage(searchService: SearchService()),
+      SearchPage(
+        searchService: SearchService(),
+        mediaCrypto: MediaCryptoService.instance,
+      ),
       theme: AppDesign.darkTheme(),
     );
     expect(tester.takeException(), isNull, reason: '搜索页 390dp 深色溢出');
@@ -246,6 +259,7 @@ void main() {
       NotebookViewPage(
         notebook: notebook,
         storage: NotebookStorage(directoryProvider: () async => tempDir),
+        mediaCrypto: MediaCryptoService.instance,
       ),
       theme: AppDesign.darkTheme(),
     );
@@ -274,7 +288,10 @@ void main() {
   testWidgets('390x844 1.5x：搜索页无溢出', (tester) async {
     await pumpAt(
       tester,
-      SearchPage(searchService: SearchService()),
+      SearchPage(
+        searchService: SearchService(),
+        mediaCrypto: MediaCryptoService.instance,
+      ),
       textScale: 1.5,
     );
     expect(tester.takeException(), isNull, reason: '搜索页 390dp 1.5× 溢出');
@@ -313,6 +330,7 @@ void main() {
       NotebookViewPage(
         notebook: notebook,
         storage: NotebookStorage(directoryProvider: () async => tempDir),
+        mediaCrypto: MediaCryptoService.instance,
       ),
       textScale: 1.5,
     );

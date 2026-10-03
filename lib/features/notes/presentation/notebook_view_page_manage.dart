@@ -14,6 +14,9 @@ extension _NotebookPageManage on _NotebookViewPageState {
           textItems: page.textItems,
           imageItems: page.imageItems,
           shapes: page.shapes,
+          // C-06（审计 2026-09-27）：媒体解密/VFS 依赖传线。
+          mediaCrypto: widget.mediaCrypto,
+          vaultService: widget.storage.vaultService,
         ),
       ),
     );
@@ -44,6 +47,8 @@ extension _NotebookPageManage on _NotebookViewPageState {
           ],
           notebookAccessor: widget.storage,
           onChanged: onChanged,
+          // C-06（审计 2026-09-27）：编辑器内嵌图片解密服务传线。
+          mediaCrypto: widget.mediaCrypto,
           openPresentation: (context) => _openPresentation(context, page),
         ),
       ),
@@ -474,7 +479,12 @@ extension _NotebookPageManage on _NotebookViewPageState {
         ],
       );
       if (location == null) return; // 用户取消
-      final bytes = await NotebookPdfExporter.exportNotebook(_notebook);
+      // C-06（审计 2026-09-27）：导出器实例化——媒体解密/VFS 依赖由本页
+      // 注入（同一解锁会话单例；VFS 仓库沿 NotebookStorage 注入透传）。
+      final bytes = await NotebookPdfExporter(
+        mediaCrypto: widget.mediaCrypto,
+        vaultService: widget.storage.vaultService,
+      ).exportNotebook(_notebook);
       await File(location.path).writeAsBytes(bytes, flush: true);
       _showSnack(
         _l10nSafe?.nbExportedPdf(_notebook.pages.length, location.path) ??

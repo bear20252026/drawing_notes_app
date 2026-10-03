@@ -394,7 +394,12 @@ extension _EditorPageOverlays on _EditorPageState {
                     : null,
                 child: item.filePath.isNotEmpty
                     ? Image(
-                        image: EncryptedFileImage(File(item.filePath)),
+                        // C-06（审计 2026-09-27）：解密服务组合根传线
+                        // （widget.mediaCrypto，见 EditorPage.mediaCrypto）。
+                        image: EncryptedFileImage(
+                          File(item.filePath),
+                          mediaCrypto: widget.mediaCrypto,
+                        ),
                         fit: BoxFit.contain,
                         // L-03 语义（专家审计 2026-08-15）：图片可读名。
                         semanticLabel:

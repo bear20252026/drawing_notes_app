@@ -25,15 +25,29 @@ import 'package:drawing_notes_app/shared/utils/image_decode_cap.dart';
 ///
 /// 二级面板泛化：[exportPages] 接受任意页数据（笔记本整本 / 编辑器多会话），
 /// 与 [exportNotebook] 同一管线（零重复实现）。
+///
+/// C-06（审计 2026-09-27）：静态类改实例类——媒体解密/VFS 读回依赖由
+/// 组合根构造注入（features 层不再直取 `MediaCryptoService.instance` /
+/// `VaultService.instance`，由 test/security_static_access_gate_test.dart
+/// 门禁锁死）。导出/解密语义逐条保持；组合根装配点：
+/// default_editor_page_builder（编辑器多页路径）与 notebook_view_page
+/// （整本导出路径）。
 class NotebookPdfExporter {
-  const NotebookPdfExporter._();
+  NotebookPdfExporter({required this.mediaCrypto, this.vaultService});
+
+  /// 媒体会话解密服务（DAN 密文读回——组合根注入同一解锁会话单例）。
+  final MediaCryptoService mediaCrypto;
+
+  /// VFS 媒体仓库（可选——'vfs:' 对象读回；null 时保持既有「未配置」
+  /// 语义：抛 StateError，由单图 catch 吞掉退化为占位块）。
+  final VaultService? vaultService;
 
   /// 导出整本为多页 PDF 字节（既有行为：页尺寸 = 画布逻辑尺寸）。
   ///
   /// [footer]（审计 2026-09-26 #38 接线）：页脚「标题 · n / m」，与画布
   /// 分页导出同一特性（v1.17.22 只接了画布 tiled 路径，整本路径缺失）；
   /// 默认 false，既有调用点零行为变化。
-  static Future<Uint8List> exportNotebook(
+  Future<Uint8List> exportNotebook(
     Notebook notebook, {
     int? jpegQuality,
     bool footer = false,
@@ -54,7 +68,7 @@ class NotebookPdfExporter {
   /// [footer]（审计 #38 接线）：开启后每页页脚 =「页标题 · n / m」，CJK
   /// 字体主题与画布分页导出同源（pdf 包默认 Type1 字体编不了中文标题，
   /// 见 PdfHybridExporter.exportMultiPage 的 cjkFontData）。
-  static Future<Uint8List> exportPages(
+  Future<Uint8List> exportPages(
     List<NotebookPrintPageData> pages, {
     int? jpegQuality,
     bool footer = false,
@@ -170,10 +184,13 @@ class NotebookPdfExporter {
   /// VFS 对象 → VaultService；DNV 信封 → 保险库解密；DAN/明文 → 媒体解密。
   /// 单图失败不阻断整本导出（该图退化为渲染器内置占位块）。
   ///
+  /// C-06：解密/VFS 依赖为构造注入（[mediaCrypto] / [vaultService]），
+  /// 分支语义与注入前逐条一致。
+  ///
   /// 返回 path → 位图映射，调用方收集 values 在 finally 统一 dispose。
   /// 解码套用 [ImageDecodeCap.canvasMaxLongEdge] 封顶——此前全分辨率解码，
   /// 高像素照片单张可达数百 MB（审计修复 2026-09-06）。Codec 用后即释放。
-  static Future<Map<String, ui.Image>> _decodePageImages(
+  Future<Map<String, ui.Image>> _decodePageImages(
     List<PageImageItem> items,
   ) async {
     final images = <String, ui.Image>{};
@@ -184,12 +201,16 @@ class NotebookPdfExporter {
       try {
         final Uint8List clear;
         if (path.startsWith('vfs:')) {
-          clear = await VaultService.instance.getObject(path.substring(4));
+          final vault = vaultService;
+          if (vault == null) {
+            throw StateError('VaultService 未初始化（解锁时 configure）');
+          }
+          clear = await vault.getObject(path.substring(4));
         } else {
           final bytes = await File(path).readAsBytes();
           clear = VaultFileCodec.isEncrypted(bytes)
               ? await VaultFileCodec.readImageBytes(File(path))
-              : await MediaCryptoService.instance.readMediaFile(bytes);
+              : await mediaCrypto.readMediaFile(bytes);
         }
         if (clear.isEmpty) continue;
         final buffer = await ui.ImmutableBuffer.fromUint8List(clear);

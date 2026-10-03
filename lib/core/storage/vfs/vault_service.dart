@@ -18,6 +18,14 @@ class VaultService {
   VaultService({required this.directory});
 
   /// 全局实例（媒体读取双轨——'vfs:' 前缀对象——解锁时 [configure] + setKey）。
+  //
+  // C-06 裁决（审计 2026-09-27，2026-10-03 落地）：对外全局可达性已收敛——
+  // features/shared 零 `.instance` 直取（'vfs:' 媒体读回分支改构造注入，
+  // 实例经 NotebookStorage.vaultService / 组合根装配），由
+  // test/security_static_access_gate_test.dart 门禁锁死；core 内部语义
+  // 保留——本单例为解锁生命周期作用域（configure 即解锁期初始化，未配置
+  // 时 instance getter 抛 StateError 的 fail-closed 语义不变），对外 API
+  // （instance/configure）保持兼容，本体收敛留后续批次。
   static VaultService? _instance;
 
   /// 获取全局实例（未初始化抛 StateError——解锁时 configure）。

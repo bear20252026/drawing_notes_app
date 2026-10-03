@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
@@ -43,6 +44,7 @@ void main() {
       _wrap(
         HomePage(
           blockDocAccessor: const FakeBlockDocAccessor(),
+          mediaCrypto: MediaCryptoService.instance,
           docStorage: StorageService(directoryProvider: _tempDir),
           notebookStorage: NotebookStorage(directoryProvider: _tempDir),
         ),
@@ -61,6 +63,7 @@ void main() {
       _wrap(
         HomePage(
           blockDocAccessor: const FakeBlockDocAccessor(),
+          mediaCrypto: MediaCryptoService.instance,
           docStorage: StorageService(directoryProvider: _tempDir),
           notebookStorage: NotebookStorage(directoryProvider: _tempDir),
         ),

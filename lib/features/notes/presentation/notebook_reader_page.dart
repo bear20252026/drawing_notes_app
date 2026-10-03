@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 
+import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/rendering/notebook_page_canvas_painter.dart';
 import 'package:drawing_notes_app/shared/widgets/encrypted_file_image.dart';
@@ -23,12 +25,22 @@ class NotebookReaderPage extends StatefulWidget {
     super.key,
     required this.notebook,
     required this.onEditPage,
+    required this.mediaCrypto,
+    this.vaultService,
   });
 
   final Notebook notebook;
 
   /// 点击当前页进入编辑器（调用方负责导航）。
   final void Function(NotebookPage page) onEditPage;
+
+  /// 媒体会话解密服务（C-06，审计 2026-09-27 构造注入）：页面图片
+  /// （EncryptedFileImage）解密依赖由 NotebookViewPage 传线——不再直取
+  /// 全局单例。
+  final MediaCryptoService mediaCrypto;
+
+  /// VFS 媒体仓库（可选——'vfs:' 对象读回；沿 NotebookStorage 透传）。
+  final VaultService? vaultService;
 
   @override
   State<NotebookReaderPage> createState() => _NotebookReaderPageState();
@@ -129,6 +141,9 @@ class _NotebookReaderPageState extends State<NotebookReaderPage> {
                     itemBuilder: (context, i) => _ReaderSheet(
                       page: pages[i],
                       onTap: () => widget.onEditPage(pages[i]),
+                      // C-06（审计 2026-09-27）：解密/VFS 依赖传线。
+                      mediaCrypto: widget.mediaCrypto,
+                      vaultService: widget.vaultService,
                     ),
                   ),
                   // 页码指示器（底部居中药丸）。
@@ -172,10 +187,21 @@ class _NotebookReaderPageState extends State<NotebookReaderPage> {
 /// 手写/形状/文字由 [NotebookPageCanvasPainter] 忠实渲染；图片以
 /// [EncryptedFileImage] widget 层叠加（解密/占位 fail-closed 复用既有管线）。
 class _ReaderSheet extends StatelessWidget {
-  const _ReaderSheet({required this.page, required this.onTap});
+  const _ReaderSheet({
+    required this.page,
+    required this.onTap,
+    required this.mediaCrypto,
+    this.vaultService,
+  });
 
   final NotebookPage page;
   final VoidCallback onTap;
+
+  /// 媒体会话解密服务（C-06，审计 2026-09-27 构造注入——宿主传线）。
+  final MediaCryptoService mediaCrypto;
+
+  /// VFS 媒体仓库（可选——'vfs:' 对象读回；宿主沿 NotebookStorage 透传）。
+  final VaultService? vaultService;
 
   @override
   Widget build(BuildContext context) {
@@ -215,7 +241,12 @@ class _ReaderSheet extends StatelessWidget {
                           width: image.width,
                           height: image.height,
                           child: Image(
-                            image: EncryptedFileImage(File(image.filePath)),
+                            // C-06（审计 2026-09-27）：解密/VFS 依赖传线。
+                            image: EncryptedFileImage(
+                              File(image.filePath),
+                              mediaCrypto: mediaCrypto,
+                              vaultService: vaultService,
+                            ),
                             fit: BoxFit.fill,
                             errorBuilder: (_, _, _) => const SizedBox.expand(),
                           ),

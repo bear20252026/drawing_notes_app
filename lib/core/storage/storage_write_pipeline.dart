@@ -1,12 +1,43 @@
-part of 'storage_service.dart';
+import 'dart:io';
+import 'dart:isolate';
+import 'dart:typed_data';
 
-// 写入与加密落盘域（O1 拆分自 storage_service.dart）：文档独占锁、
-// 密封（isolate 分档）、懒迁移队列、临时文件原子替换（含 Windows
-// 共享冲突退避）。save/@override 与静态阈值留在本体。行为零变化。
+import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
+import 'package:drawing_notes_app/core/storage/storage_directories.dart';
+import 'package:drawing_notes_app/core/storage/storage_secret_session.dart';
+import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 
-/// 写入与加密落盘私有助手（拆分自 storage_service.dart）。
-extension _StorageWrite on StorageService {
-  Future<T> _runDocExclusive<T>(String id, Future<T> Function() op) {
+// C-08（审计 2026-09-27）：自 StorageService 的 part 五域拆为真协作类。
+// 本类持有**写入管线域**自有状态：每文档写入尾队列（同一文档按请求顺序
+// 落盘，不同文档仍可并行，A/B 画布互不覆盖）、密封分流与原子替换。
+// 消费方仅经 StorageService 门面（实现 DocumentRepository），API 零变化。
+
+/// 写入管线域：文档独占队列、v3/v1/明文三级密封分流、懒迁移队列、
+/// 临时文件原子替换（含 Windows 共享冲突退避）。
+class StorageWritePipeline {
+  StorageWritePipeline({
+    required this.directories,
+    required this.secrets,
+    required this.keyProvider,
+  });
+
+
+  /// 内部协作面：仅 StorageService 门面装配（C-08 拆分协作类，只读）。
+  final StorageDirectories directories;
+  final StorageSecretSession secrets;
+  final Future<Uint8List?> Function()? keyProvider;
+
+  /// 每个文档各自的写入尾队列。同一文档按请求顺序落盘，不同文档仍可并行，
+  /// 因此 A/B 画布不会共享临时文件或相互覆盖较新的版本。
+  final Map<String, Future<void>> _writeTails = <String, Future<void>>{};
+
+  /// isolate 加密封包的字节阈值：小于该值时主线程同步封包（isolate
+  /// 拷贝往返开销大于收益），大载荷移入 isolate 避免 UI 掉帧。
+  static const int isolateSealThreshold = 64 * 1024;
+
+  /// 把 [op] 挂到 [id] 的写尾队列（E-17，与 save/enqueueRawRewrite 共用
+  /// [_writeTails]），返回 op 的原始结果。链上某步失败不影响后续步骤。
+  Future<T> runDocExclusive<T>(String id, Future<T> Function() op) {
     final previous = _writeTails[id] ?? Future<void>.value();
     final task = previous.catchError((_) {}).then((_) => op());
     late final Future<void> chain;
@@ -22,20 +53,49 @@ extension _StorageWrite on StorageService {
     return task;
   }
 
-  Future<Uint8List?> _currentKey() async {
+  /// 保存入队（门面 save 专用）：与 [runDocExclusive] 同一队列，但保持
+  /// 原 save 链语义——`whenComplete` 自清理后把结果/错误原样传给门面的
+  /// path/onWrite 后续链。
+  Future<void> enqueueSave(String id, Future<void> Function() op) {
+    final previous = _writeTails[id] ?? Future<void>.value();
+    late final Future<void> operation;
+    operation = previous.catchError((_) {}).then((_) => op());
+    _writeTails[id] = operation;
+    return operation.whenComplete(() {
+      if (identical(_writeTails[id], operation)) _writeTails.remove(id);
+    });
+  }
+
+  /// 当前主密钥（未启用加密返回 null——明文兼容是产品设计）。
+  Future<Uint8List?> currentKey() async {
     final provider = keyProvider;
     if (provider == null) return null;
     return provider();
   }
 
-  /// isolate 加密封包的字节阈值：小于该值时主线程同步封包（isolate
-  /// 拷贝往返开销大于收益），大载荷移入 isolate 避免 UI 掉帧。
+  /// 保存文档的原始快照（encode 后密封落盘）。
+  Future<void> saveEncoded(String id, Uint8List data) async {
+    await directories.ensureDocuments();
+    final sealed = await _sealDocBytes(id, data);
+    await writeSealedBytes(id, sealed);
+  }
 
+  /// 写入前的字节准备（批次② 三级分流）：
+  /// ① 会话有文件密码 → v3 双保护器信封（N4 批 2：复用会话 DEK——
+  ///    重置盘槽位跨保存持续有效）；
+  /// ② 无文件密码 + 有主密钥 → v1 主密钥信封（AAD 绑定文档 ID）；
+  /// ③ 保险库已启用但处于锁定态 → 抛 [VaultFileLockException]
+  ///    （fail-closed，与读路径对齐；保存链按失败策略退避，解锁后自愈）；
+  /// ④ 未启用加密（无 keyProvider）→ 明文兼容（旧数据行为）。
+  ///
+  /// U2 优化（2026-09-02，P1-10）：≥64KB 的载荷在 isolate 内完成
+  /// AES-GCM 封包（参数均为可跨 isolate 传递的纯数据），加密期间的
+  /// 字节处理不再占用主线程。
   Future<Uint8List> _sealDocBytes(String id, Uint8List data) async {
-    final filePassword = _sessionFilePasswords[id];
+    final filePassword = secrets.filePasswordFor(id);
     if (filePassword != null) {
-      final dek = _sessionDocDeks[id];
-      final usbWrapped = _sessionFileUsbWrapped[id];
+      final dek = secrets.dekFor(id);
+      final usbWrapped = secrets.usbWrappedFor(id);
       Future<Uint8List> seal() => VaultFileCodec.encryptWithPasswordV3(
         data,
         filePassword,
@@ -43,7 +103,7 @@ extension _StorageWrite on StorageService {
         dek: dek,
         usbWrapped: usbWrapped,
       );
-      if (data.length < StorageService._isolateSealThreshold) return seal();
+      if (data.length < isolateSealThreshold) return seal();
       return Isolate.run(seal);
     }
     final provider = keyProvider;
@@ -55,26 +115,11 @@ extension _StorageWrite on StorageService {
     // 但取不到密钥 = 锁定态。此前静默明文落盘（fail-open，与读路径的
     // fail-closed 不对齐）；现显式失败，交由 SaveScheduler 重试策略处理。
     if (key == null) throw const VaultFileLockException();
-    if (data.length < StorageService._isolateSealThreshold) {
+    if (data.length < isolateSealThreshold) {
       return VaultFileCodec.encrypt(data, key, aadContext: 'doc:$id');
     }
     return Isolate.run(
       () => VaultFileCodec.encrypt(data, key, aadContext: 'doc:$id'),
-    );
-  }
-
-  /// 媒体字节写入前准备（批次①c：缩略图 / 受管图片）：有主密钥 →
-  /// 信封加密（AAD 绑定文件名）。锁定态与文档同口径 fail-closed；
-  /// 未启用加密（无 keyProvider）保持明文兼容。
-  Future<Uint8List> _sealMediaBytes(String path, Uint8List bytes) async {
-    final provider = keyProvider;
-    if (provider == null) return bytes;
-    final key = await provider();
-    if (key == null) throw const VaultFileLockException();
-    return VaultFileCodec.encrypt(
-      bytes,
-      key,
-      aadContext: VaultFileCodec.contextForPath(path),
     );
   }
 
@@ -83,9 +128,9 @@ extension _StorageWrite on StorageService {
   /// - v1 主密钥信封 + 已解锁 → 解密；锁定 → [VaultFileLockException]；
   /// - 明文 + 有密钥 → 原样返回并排队懒迁移（下次写队列将明文重写为密文）；
   /// - 明文 + 无密钥 → 原样返回（旧版本兼容）。
-  Future<Uint8List> _prepareDocBytes(String id, Uint8List raw) async {
+  Future<Uint8List> prepareDocBytes(String id, Uint8List raw) async {
     if (VaultFileCodec.isPasswordEnvelope(raw)) {
-      final filePassword = _sessionFilePasswords[id];
+      final filePassword = secrets.filePasswordFor(id);
       if (filePassword == null) {
         throw const VaultFilePasswordLockException();
       }
@@ -96,7 +141,7 @@ extension _StorageWrite on StorageService {
           filePassword,
           aadContext: 'doc:$id',
         );
-        _cacheV3Material(id, unlock);
+        secrets.cacheV3Material(id, unlock);
         return unlock.plain;
       }
       return VaultFileCodec.decryptWithPassword(
@@ -105,21 +150,21 @@ extension _StorageWrite on StorageService {
         aadContext: 'doc:$id',
       );
     }
-    final key = await _currentKey();
+    final key = await currentKey();
     if (VaultFileCodec.isEncrypted(raw)) {
       if (key == null) throw const VaultFileLockException();
       return VaultFileCodec.decrypt(raw, key, aadContext: 'doc:$id');
     }
-    if (key != null) _enqueueRawRewrite(id, raw);
+    if (key != null) enqueueRawRewrite(id, raw);
     return raw;
   }
 
   /// 懒迁移：把明文字节经既有写尾队列重写为密文（与保存共用并发纪律）。
-  void _enqueueRawRewrite(String id, Uint8List plaintext) {
+  void enqueueRawRewrite(String id, Uint8List plaintext) {
     final previous = _writeTails[id] ?? Future<void>.value();
     late final Future<void> operation;
     operation = previous.catchError((_) {}).then((_) async {
-      await _saveEncoded(id, plaintext);
+      await saveEncoded(id, plaintext);
     });
     _writeTails[id] = operation;
     operation.whenComplete(() {
@@ -127,13 +172,7 @@ extension _StorageWrite on StorageService {
     });
   }
 
-  Future<void> _saveEncoded(String id, Uint8List data) async {
-    await _ensureDocumentsDir();
-    final sealed = await _sealDocBytes(id, data);
-    await _writeSealedBytes(id, sealed);
-  }
-
-  /// 把已密封字节原子落盘（含 .bak 备份——与 _saveEncoded 同纪律）。
+  /// 把已密封字节原子落盘（含 .bak 备份——与 saveEncoded 同纪律）。
   ///
   /// A2/A3 修复（审计 2026-09-07）：
   /// - `.bak` 备份失败改为 fail-closed——复制失败时中止本次写入（正式文件
@@ -143,9 +182,9 @@ extension _StorageWrite on StorageService {
   /// - tmp 写入/rename 任一失败都清理残留临时文件，防止半写 .tmp 堆积。
   /// 失败路径顺序保证：copy bak 在 rename tmp→dest 之前，任何失败发生时
   /// 正式文件都未被删除/覆盖。
-  Future<void> _writeSealedBytes(String id, Uint8List sealed) async {
-    await _ensureDocumentsDir();
-    final finalFile = File(_pathFor(id));
+  Future<void> writeSealedBytes(String id, Uint8List sealed) async {
+    await directories.ensureDocuments();
+    final finalFile = File(directories.documentPathFor(id));
     final tmp = File('${finalFile.path}.${LocalIdGenerator.next('write')}.tmp');
     try {
       await tmp.writeAsBytes(sealed, flush: true);
@@ -159,7 +198,7 @@ extension _StorageWrite on StorageService {
           throw FileSystemException('备份写入失败：$e', finalFile.path);
         }
       }
-      await _replaceWithTemp(tmp, finalFile);
+      await replaceWithTemp(tmp, finalFile);
     } catch (_) {
       try {
         if (tmp.existsSync()) await tmp.delete();
@@ -176,10 +215,10 @@ extension _StorageWrite on StorageService {
   ///
   /// Windows 共享冲突退避（2026-09-24 懒迁移 flake 根因修复）：杀毒/
   /// 索引器/并发读会短暂持有目标句柄——delete 抛 errno 32，甚至 delete
-  /// 返回后的 delete-pending 窗口里 rename 也会失败。与 [_readWithRetry]
+  /// 返回后的 delete-pending 窗口里 rename 也会失败。与 [readWithRetry]
   /// 同思路做有界退避重试：`.bak` 已先行落盘，重试不放大风险；耗尽后
   /// 按原样抛出（备份仍在，读路径可恢复）。
-  Future<void> _replaceWithTemp(File tmp, File destination) async {
+  Future<void> replaceWithTemp(File tmp, File destination) async {
     for (var attempt = 1;; attempt++) {
       try {
         try {
@@ -200,9 +239,20 @@ extension _StorageWrite on StorageService {
     }
   }
 
-  /// 加载指定文档。文件不存在返回 null，格式损坏抛出异常（由调用方提示）。
-  ///
-  /// 崩溃恢复：正式文件损坏时，尝试读取 `.bak` 上一版备份。
-  /// 读失败重试（对齐 Saber FileManager）：瞬时 IO 错误自动重试 3 次，
-  /// 避免 U 盘/网络盘抖动导致误报"文档损坏"。
+  /// 带重试的文件读取：瞬时 IO 错误（`FileSystemException`）自动重试
+  /// [retries] 次，间隔 50ms 递增；最终仍失败则向上抛出
+  /// （对齐 Saber FileManager：避免 U 盘/网络盘抖动误报"文档损坏"）。
+  static Future<Uint8List> readWithRetry(
+    Future<Uint8List> Function() read, {
+    int retries = 3,
+  }) async {
+    for (var attempt = 0; ; attempt++) {
+      try {
+        return await read();
+      } on FileSystemException {
+        if (attempt >= retries) rethrow;
+        await Future<void>.delayed(Duration(milliseconds: 50 * (attempt + 1)));
+      }
+    }
+  }
 }
