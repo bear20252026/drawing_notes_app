@@ -2,6 +2,36 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.59] - 2026-10-03
+
+### 维护批：import_request_guard 死模板删除（用户拍板）+ 图层显隐/换位撤销窄命令化
+
+> 审计清零后的两项遗留收尾，同批发版；行为零变化（窄命令的可观测
+> 语义与快照路径逐条一致）。
+
+- **import_request_guard 删除**：`lib/core/import_request_guard.dart`
+  （原 `import_guard.dart`，v1.17.54 C-12 更名消歧后实查 lib 内零生产
+  消费方）+ 测试共约 190 行下架——异步请求代次过期守卫本意留作
+  notebook 导入流接线预留，用户拍板删除（git 历史可随时找回）。
+- **图层显隐/换位撤销窄命令化**（v1.17.53 P-05 批次明确留下的同病灶，
+  彼时「不悄悄扩批」，本批收口）：
+  - `LayerVisibilityCommand`（只记 索引/前/后 三个值）+
+    `LayerReorderCommand`（只记 from/to 两个索引，undo/redo 互为反向
+    removeAt+insert）——显隐是图层对象上的布尔翻转、换位不改图层集合
+    成员与位图缓存（可见性/顺序是合成期参数），此前却各自提交全图层
+    列表双份快照；
+  - `DocCommandContext` 新增 `afterLayerUndoRedo()` 收尾钩子（钳制当前
+    图层索引 + 通知，与快照路径 `_restoreLayers` 的钳制语义一致），
+    DrawingController 实现；
+  - **快照边界收窄**：图层增/删/合并/清空仍走快照（结构性/破坏性、
+    低频用户动作，快照是最不易错的形式——P-05 对删除/粘贴的同款
+    裁决）；`setLayerOpacity` 维持不进历史（既有行为）；
+  - phase3 真控制器 move+undo 测试零改动穿过新命令（可观测行为
+    一致的实证）；会话测试补窄命令载荷断言与显隐专测。
+- 版本三处 1.17.59+128；门禁：本地 analyze 0；四道扫描门禁 + 受影响域
+  37 用例全绿（图层会话/phase3/编辑历史/脏跟踪/事务/上下文桩）；全量
+  按 AGENTS.md §6 云端验证纪律交 CI 五工作流裁决。
+
 ## [1.17.58] - 2026-10-03
 
 ### 跨端密码输入统一（C-14 兑现批）：UnlockFlow 全链路支持任意字符 + 笔记本设密路径统一

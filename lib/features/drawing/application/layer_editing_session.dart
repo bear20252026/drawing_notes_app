@@ -15,6 +15,14 @@ abstract interface class LayerEditingHost {
   void setCurrentLayerIndexForLayerEdit(int value);
 
   void pushLayerSnapshot(List<Layer> before, List<Layer> after);
+
+  /// 显隐切换窄命令（2026-10-03）：只记 (索引, 前, 后)，由宿主组装
+  /// LayerVisibilityCommand 入栈。
+  void pushLayerVisibility(int index, bool before, bool after);
+
+  /// 相邻换位窄命令：只记 (from, to)，由宿主组装 LayerReorderCommand 入栈。
+  void pushLayerMove(int from, int to);
+
   void addLayerCache(Layer layer);
   void removeLayerCache(String layerId);
   Future<void> invalidateLayer(String layerId, {Rect? region});
@@ -22,10 +30,13 @@ abstract interface class LayerEditingHost {
   void notifyChanged();
 }
 
-/// 图层增删、排序、合并、清空及其快照事务的运行时会话。
+/// 图层增删、排序、合并、清空及其撤销事务的运行时会话。
 ///
-/// 每个结构性变更在会话内生成深拷贝快照，并委托宿主压入同一条可逆
-/// 图层命令。会话不拥有历史游标、渲染资源或 UI 通知机制。
+/// **快照边界（2026-10-03，P-05 同款拆分）**：结构性/破坏性变更
+/// （增/删/合并/清空）仍提交全图层列表快照（低频用户动作，快照是
+/// 最不易错的形式）；**显隐切换与相邻换位**走窄命令——它们不改变
+/// 图层集合成员与位图缓存，只翻转布尔或相邻互换，快照纯属浪费。
+/// 会话不拥有历史游标、渲染资源或 UI 通知机制。
 class LayerEditingSession {
   LayerEditingSession(this._host);
 
@@ -80,13 +91,13 @@ class LayerEditingSession {
     _host.notifyChanged();
   }
 
-  /// 切换图层显隐。
+  /// 切换图层显隐（窄命令——布尔翻转，不产生快照）。
   void toggleLayerVisibility(int index) {
-    final before = _snapshotLayers();
     final layer = _document.layers[index];
-    layer.visible = !layer.visible;
+    final before = layer.visible;
+    layer.visible = !before;
     _document.touch();
-    _commitSnapshot(before);
+    _host.pushLayerVisibility(index, before, !before);
     _host.notifyChanged();
   }
 
@@ -99,27 +110,25 @@ class LayerEditingSession {
     _host.notifyChanged();
   }
 
-  /// 上移图层（向更上层移动一格）。
+  /// 上移图层（向更上层移动一格；相邻换位走窄命令）。
   void moveLayerUp(int index) {
     if (index >= _document.layers.length - 1) return;
-    final before = _snapshotLayers();
     final l = _document.layers.removeAt(index);
     _document.layers.insert(index + 1, l);
     _document.touch();
     _host.setCurrentLayerIndexForLayerEdit(index + 1);
-    _commitSnapshot(before);
+    _host.pushLayerMove(index, index + 1);
     _host.notifyChanged();
   }
 
-  /// 下移图层（向更下层移动一格）。
+  /// 下移图层（向更下层移动一格；相邻换位走窄命令）。
   void moveLayerDown(int index) {
     if (index <= 0) return;
-    final before = _snapshotLayers();
     final l = _document.layers.removeAt(index);
     _document.layers.insert(index - 1, l);
     _document.touch();
     _host.setCurrentLayerIndexForLayerEdit(index - 1);
-    _commitSnapshot(before);
+    _host.pushLayerMove(index, index - 1);
     _host.notifyChanged();
   }
 

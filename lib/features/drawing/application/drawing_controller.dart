@@ -575,6 +575,26 @@ class DrawingController extends ChangeNotifier
   Future<void> afterStrokeUndoRedo(int layerIndex) =>
       _afterStrokeUndoRedo(layerIndex);
 
+  @override
+  void afterLayerUndoRedo() {
+    // 图层窄命令（显隐/换位）收尾：位图缓存与图层对象不变，只需钳制
+    // 当前图层索引并通知（与快照路径 _restoreLayers 的钳制语义一致）。
+    if (_currentLayerIndex >= _document.layers.length) {
+      _currentLayerIndex = _document.layers.length - 1;
+    }
+    notifyListeners();
+  }
+
+  @override
+  void pushLayerVisibility(int index, bool before, bool after) {
+    _pushCommand(LayerVisibilityCommand(this, index, before, after));
+  }
+
+  @override
+  void pushLayerMove(int from, int to) {
+    _pushCommand(LayerReorderCommand(this, from, to));
+  }
+
   /// 把由手绘识别转出的形状撤销回原笔画。供命令对象调用。
   @override
   void undoRecognizedShape(int layerIndex, Stroke stroke, PageShapeItem shape) {

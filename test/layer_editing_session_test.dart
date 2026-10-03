@@ -30,22 +30,48 @@ void main() {
     expect(host.snapshots.single.before, hasLength(1));
     expect(host.snapshots.single.after, hasLength(2));
 
+    // 换位走窄命令（2026-10-03）：不产生快照，只记 (from, to)。
     session.moveLayerDown(1);
     expect(host.document.layers.map((layer) => layer.id), [topId, 'base']);
     expect(host.currentLayerIndex, 0);
-    expect(host.snapshots, hasLength(2));
+    expect(host.moves, hasLength(1));
+    expect(host.moves.single, (from: 1, to: 0));
+    expect(host.snapshots, hasLength(1), reason: '换位不产生快照');
 
     session.mergeLayerDown(1);
     expect(host.document.layers.map((layer) => layer.id), [topId]);
     expect(host.currentLayerIndex, 0);
     expect(host.removedCacheLayerIds, ['base']);
     expect(host.fullRebuilds, 1);
-    expect(host.snapshots, hasLength(3));
+    // 快照 = 增层 + 合并（换位不再入快照）。
+    expect(host.snapshots, hasLength(2));
     expect(host.snapshots.last.before.map((layer) => layer.id), [
       topId,
       'base',
     ]);
     expect(host.snapshots.last.after.map((layer) => layer.id), [topId]);
+  });
+
+  test('显隐切换走窄命令：翻转并记录 (索引, 前, 后)，不产生快照', () {
+    final host = _LayerEditingHost(
+      DrawingDocument(
+        id: 'layer_visibility',
+        title: '显隐窄命令',
+        infinite: true,
+        layers: [layer('base')],
+      ),
+    );
+    final session = LayerEditingSession(host);
+
+    session.toggleLayerVisibility(0);
+    expect(host.document.layers[0].visible, isFalse);
+    expect(host.visibilityChanges, hasLength(1));
+    expect(host.visibilityChanges.single, (index: 0, before: true, after: false));
+    expect(host.snapshots, isEmpty, reason: '显隐不产生快照');
+
+    session.toggleLayerVisibility(0);
+    expect(host.document.layers[0].visible, isTrue);
+    expect(host.visibilityChanges.last, (index: 0, before: false, after: true));
   });
 
   test('局部和全量清空保留既有缓存刷新与无操作语义', () {
@@ -104,6 +130,9 @@ class _LayerEditingHost implements LayerEditingHost {
   @override
   int currentLayerIndex;
   final List<_LayerSnapshot> snapshots = <_LayerSnapshot>[];
+  final List<({int from, int to})> moves = <({int from, int to})>[];
+  final List<({int index, bool before, bool after})> visibilityChanges =
+      <({int index, bool before, bool after})>[];
   final List<String> addedCacheLayerIds = <String>[];
   final List<String> removedCacheLayerIds = <String>[];
   final List<String> invalidatedLayerIds = <String>[];
@@ -127,6 +156,16 @@ class _LayerEditingHost implements LayerEditingHost {
   @override
   void pushLayerSnapshot(List<Layer> before, List<Layer> after) {
     snapshots.add(_LayerSnapshot(before: before, after: after));
+  }
+
+  @override
+  void pushLayerVisibility(int index, bool before, bool after) {
+    visibilityChanges.add((index: index, before: before, after: after));
+  }
+
+  @override
+  void pushLayerMove(int from, int to) {
+    moves.add((from: from, to: to));
   }
 
   @override

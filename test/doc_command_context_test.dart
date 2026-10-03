@@ -15,9 +15,15 @@ class _RecordingCommandContext implements DocCommandContext {
   final DrawingDocument document;
 
   int touchCount = 0;
+  int layerUndoRedoCount = 0;
   final List<int> refreshedLayers = [];
   List<Layer>? restoredLayers;
   String? recognizedShapeAction;
+
+  @override
+  void afterLayerUndoRedo() {
+    layerUndoRedoCount++;
+  }
 
   @override
   Future<void> afterStrokeUndoRedo(int layerIndex) async {

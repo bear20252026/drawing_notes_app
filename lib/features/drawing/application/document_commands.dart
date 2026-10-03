@@ -188,6 +188,63 @@ class TransformStrokesCommand extends DocCommand {
   }
 }
 
+/// 图层显隐切换的窄命令（P-05 同款拆分，2026-10-03）。
+///
+/// 此前显隐切换经 [SnapshotCommand] 提交全图层列表双份快照；显隐只是
+/// 图层对象上的一个布尔翻转（合成期参数，位图缓存不变），窄命令只记
+/// (索引, 前, 后) 三个值。
+class LayerVisibilityCommand extends DocCommand {
+  LayerVisibilityCommand(this._context, this._layerIndex, this._before, this._after);
+
+  final DocCommandContext _context;
+  final int _layerIndex;
+  final bool _before;
+  final bool _after;
+
+  @override
+  void undo() {
+    _context.document.layers[_layerIndex].visible = _before;
+    _context.touchDocument();
+    _context.afterLayerUndoRedo();
+  }
+
+  @override
+  void redo() {
+    _context.document.layers[_layerIndex].visible = _after;
+    _context.touchDocument();
+    _context.afterLayerUndoRedo();
+  }
+}
+
+/// 图层相邻换位的窄命令（图层面板的上移/下移）。
+///
+/// 换位不改图层集合成员（列表长度不变、图层对象引用不变），只记
+/// (from, to) 两个索引；undo/redo 互为反向 removeAt+insert。
+class LayerReorderCommand extends DocCommand {
+  LayerReorderCommand(this._context, this._from, this._to)
+    : assert(_from != _to);
+
+  final DocCommandContext _context;
+  final int _from;
+  final int _to;
+
+  @override
+  void undo() {
+    final l = _context.document.layers.removeAt(_to);
+    _context.document.layers.insert(_from, l);
+    _context.touchDocument();
+    _context.afterLayerUndoRedo();
+  }
+
+  @override
+  void redo() {
+    final l = _context.document.layers.removeAt(_from);
+    _context.document.layers.insert(_to, l);
+    _context.touchDocument();
+    _context.afterLayerUndoRedo();
+  }
+}
+
 /// 手绘识别形状的原子替换命令。
 ///
 /// 创建时控制器已将笔画替换为 [shape]；撤销恢复原笔画，重做再次显示形状，

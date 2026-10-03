@@ -15,6 +15,10 @@ abstract interface class DocCommandContext {
 
   void touchDocument();
 
+  /// 图层级窄命令（显隐/换位）undo/redo 后的收尾：位图缓存与图层对象
+  /// 不变（可见性/顺序是合成期参数），只需钳制当前图层索引并通知。
+  void afterLayerUndoRedo();
+
   Future<void> afterStrokeUndoRedo(int layerIndex);
 
   void undoRecognizedShape(int layerIndex, Stroke stroke, PageShapeItem shape);
