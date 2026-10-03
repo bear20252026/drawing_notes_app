@@ -24,6 +24,7 @@ import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_docs_page.dart';
 import 'package:drawing_notes_app/features/notes/application/sync_controller.dart';
+
 import 'helpers/temp_dir_cleanup.dart';
 
 /// 内存版块文档存储（testWidgets 是 FakeAsync 区，真实文件 IO 会挂起——
@@ -84,9 +85,7 @@ void main() {
     services.dispose();
   });
 
-  testWidgets('AppShell 卸载时释放它装配的 dataVersion（调用点接线）', (
-    tester,
-  ) async {
+  testWidgets('AppShell 卸载时释放它装配的 dataVersion（调用点接线）', (tester) async {
     await tester.pumpWidget(
       m.MaterialApp(
         theme: AppDesign.lightTheme(),
@@ -107,15 +106,21 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
+    // AppShell 用 IndexedStack 承载 3 个目的地，非当前目的地在 offstage
+    // 子树里（State 已 initState 并订阅信号），故 finder 须放行 offstage。
     final notifier =
         tester
-                .widgetList<AllDocsPage>(find.byType(AllDocsPage))
+                .widgetList<AllDocsPage>(
+                  find.byType(AllDocsPage, skipOffstage: false),
+                )
                 .first
                 .refreshSignal
             as ValueNotifier<int>;
     // 本用例只锁「卸载即释放」：hasListeners 是 ChangeNotifier 的 protected
     // 成员，测试里读它属越界访问，而释放断言本身不依赖壳在场的订阅状态。
-    await tester.pumpWidget(const m.Scaffold());
+    // 卸载壳：换成空树。裸 pumpWidget(Scaffold()) 没有 Directionality 祖先，
+    // 会在 debug 下另抛一条无关断言，掩盖本用例真正要验的释放语义。
+    await tester.pumpWidget(const m.SizedBox.shrink());
     await tester.pump();
 
     expect(

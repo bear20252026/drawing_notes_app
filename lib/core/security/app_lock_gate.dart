@@ -423,9 +423,8 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
                                 size: 22,
                               ),
                               label: Text(
-                                AppLocalizations.of(
-                                      context,
-                                    )?.lockSystemUnlock ??
+                                AppLocalizations.of(context)
+                                        ?.lockSystemUnlock ??
                                     '系统验证解锁',
                                 style: AppleType.titleStyle(
                                   Colors.white.withValues(alpha: 0.9),
@@ -494,8 +493,12 @@ class _DesktopPinFieldState extends State<_DesktopPinField> {
   @override
   void initState() {
     super.initState();
-    // 锁屏出现即聚焦（与桌面解锁对话框同纪律）。
-    WidgetsBinding.instance.addPostFrameCallback((_) => _focus.requestFocus());
+    // 锁屏出现即聚焦（与桌面解锁对话框同纪律）。post-frame 回调可能在
+    // 同帧拆树之后才跑（如解锁瞬间撤锁屏），届时 _focus 已 dispose。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _focus.requestFocus();
+    });
   }
 
   @override
@@ -510,16 +513,17 @@ class _DesktopPinFieldState extends State<_DesktopPinField> {
     final pin = _controller.text;
     final l10n = AppLocalizations.of(context);
     if (pin.isEmpty) {
-      setState(
-        () => _errorText =
-            l10n?.passwordEmptyHint ?? '密码不能为空',
-      );
+      setState(() => _errorText = l10n?.passwordEmptyHint ?? '密码不能为空');
       return;
     }
     if (pin.length != widget.pinLength) {
       setState(
         () => _errorText =
-            l10n?.pinDigitsCount(pin.length, widget.pinLength, widget.pinLength) ??
+            l10n?.pinDigitsCount(
+              pin.length,
+              widget.pinLength,
+              widget.pinLength,
+            ) ??
             '密码长度不足',
       );
       return;
@@ -530,9 +534,7 @@ class _DesktopPinFieldState extends State<_DesktopPinField> {
     _submitting = false;
     _controller.clear();
     if (ok) return; // 门组件随即撤掉锁屏
-    setState(
-      () => _errorText = l10n?.unlockPasswordWrong ?? '密码不正确',
-    );
+    setState(() => _errorText = l10n?.unlockPasswordWrong ?? '密码不正确');
     _focus.requestFocus();
   }
 
@@ -563,27 +565,21 @@ class _DesktopPinFieldState extends State<_DesktopPinField> {
               errorText: _errorText,
               errorStyle: AppleType.captionStyle(const Color(0xFFFF6B6B)),
               counterText: AppLocalizations.of(context)?.pinDigitsCount(
-                    _controller.text.length,
-                    widget.pinLength,
-                    widget.pinLength,
-                  ),
+                _controller.text.length,
+                widget.pinLength,
+                widget.pinLength,
+              ),
               filled: true,
               fillColor: Colors.white.withValues(alpha: 0.14),
               border: const OutlineInputBorder(
-                borderRadius: BorderRadius.all(
-                  Radius.circular(AppleRadius.xs),
-                ),
+                borderRadius: BorderRadius.all(Radius.circular(AppleRadius.xs)),
               ),
               enabledBorder: const OutlineInputBorder(
-                borderRadius: BorderRadius.all(
-                  Radius.circular(AppleRadius.xs),
-                ),
+                borderRadius: BorderRadius.all(Radius.circular(AppleRadius.xs)),
                 borderSide: BorderSide(color: Colors.white24),
               ),
               focusedBorder: const OutlineInputBorder(
-                borderRadius: BorderRadius.all(
-                  Radius.circular(AppleRadius.xs),
-                ),
+                borderRadius: BorderRadius.all(Radius.circular(AppleRadius.xs)),
                 borderSide: BorderSide(color: Colors.white54),
               ),
             ),
@@ -667,9 +663,8 @@ class _CooldownViewState extends State<_CooldownView> {
                 // 19 无档位：titleStyle 基底 + copyWith 保留原字号。
                 Text(
                   AppLocalizations.of(context)?.lockTooManyAttempts ?? '尝试次数过多',
-                  style: AppleType.titleStyle(
-                    Colors.white,
-                  ).copyWith(fontSize: 19),
+                  style: AppleType.titleStyle(Colors.white)
+                      .copyWith(fontSize: 19),
                 ),
                 const SizedBox(height: 8),
                 _RemainingText(service: widget.service, tick: _tick),

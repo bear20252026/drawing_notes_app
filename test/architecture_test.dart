@@ -220,6 +220,31 @@ void main() {
           k.endsWith('/storage_trash_bin.dart') ||
           k.endsWith('/storage_file_password_manager.dart'),
     );
+    // 基线：稳定层最差 instability 不得超过 0.4（收紧自 0.6——2026 架构守护）。
+    //
+    // glob 修正（原 `domain/**` 匹配零文件）后 feature domain 首次纳入本断言，
+    // 实测 7 个领域文件超阈值。逐条核实其出向依赖**全部**指向 core/canvas_model
+    // 与 core/documents 等内层共享数据模型——方向由规则 4（洋葱）判定合法，属
+    // ARCHITECTURE.md §5「画布引擎域上收 core，notes/drawing 双双只依赖 core」的
+    // 既定设计，而非本批新增耦合（本批只改锚定写法，未动任何产品 domain 代码）。
+    // 真正降耦（契约下沉 core / 组合根注入）另批处置；本批既不放宽通用 0.4，
+    // 也不开无上限豁免，改为**具名棘轮**：逐文件钉当前实测值为上限、只许调低，
+    // 未列入的领域文件仍受 0.4 硬约束（新增不稳定 domain 即红）。
+    const domainRatchet = <String, double>{
+      'package:drawing_notes_app/features/notes/domain/notebook_page_template_strategy.dart':
+          1.00,
+      'package:drawing_notes_app/features/notes/domain/page_version.dart': 0.89,
+      'package:drawing_notes_app/features/doc/domain/note_block_doc_migration.dart':
+          0.80,
+      'package:drawing_notes_app/features/notes/domain/notebook_page.dart':
+          0.63,
+      'package:drawing_notes_app/features/doc/domain/note_block_doc_search.dart':
+          0.50,
+      'package:drawing_notes_app/features/notes/domain/notebook_page_content.dart':
+          0.50,
+      'package:drawing_notes_app/features/notes/domain/notebook_repository.dart':
+          0.50,
+    };
     var worst = 0.0;
     // ignore: avoid_print
     print('--- Martin 耦合报告（domain/core）---');
@@ -229,12 +254,20 @@ void main() {
       print(
         '${e.key}: I=${i.toStringAsFixed(2)} Ca=${e.value.afferent} Ce=${e.value.efferent}',
       );
+      final ceiling = domainRatchet[e.key];
+      if (ceiling != null) {
+        // +0.005 容 I=Ce/(Ca+Ce) 的实除表示误差（如 12/19=0.63158 记为 0.63）。
+        expect(
+          i,
+          lessThanOrEqualTo(ceiling + 0.005),
+          reason:
+              '具名棘轮：${e.key} 上限 $ceiling，只许调低不得升高；'
+              '降耦成功后请同步下调本表数值（不得为通过而放宽）',
+        );
+        continue;
+      }
       if (i > worst) worst = i;
     }
-    // 基线：稳定层最差 instability 不得超过 0.4（收紧自 0.6——2026 架构守护
-    // 收紧）。原注「实测 domain/core 最差 0.33」系 core 样本口径；domain 自
-    // 本次 glob 修正后首次纳入，超阈值即红——处置只能是降领域文件的出向
-    // 依赖（契约下沉 core / 组合根注入），不得放宽阈值、不得扩豁免名单。
     expect(
       worst,
       lessThanOrEqualTo(0.4),

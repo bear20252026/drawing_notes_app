@@ -25,11 +25,25 @@ class DrawingSelectionSession {
   /// 消费一次却常驻 O(全部图层全部笔画) 引用拷贝；现只记选中项，
   /// [StrokeSelectionEditingSession.endTransform] 据此组装窄命令三元组。
   ///
-  /// 锚点只在 [selection] 写入时作废（见下方 setter）——2026-10-03 复核：
-  /// 原先只有 `endTransform` 清锚点，`_ensureTransformBefore` 又用 `??=`，
-  /// 于是「上一次手势没提交成功/换了选区」的残留锚点会被下一次手势当作
-  /// 起点，按陈旧图层位置组装三元组，撤销还原错位、越界项被静默丢弃。
+  /// 锚点在新手势边界必须先结算再作废（见 [pendingTransformSettler]）——
+  /// 2026-10-03 复核：原先只在边界直接清空，未提交的几何变更既没进历史
+  /// 也没被还原，成为永远撤不回的改动。
   List<({int index, Stroke stroke})>? transformBefore;
+
+  /// 锚点归属的图层对象与锚定时的笔画数。
+  ///
+  /// 结算可能落在图层换位/删除或混合删除之后：按 identity 解析图层，按
+  /// 笔画数校验「纯变换不改笔画数」的前提，任一不成立就放弃提交——错位
+  /// 覆写比丢弃更危险（该场景由结构变更自身的历史条目承担）。
+  Layer? transformBeforeLayer;
+  int? transformBeforeStrokeCount;
+
+  /// 手势边界结算钩子（宿主 DrawingController 装配）。
+  ///
+  /// 选区写入 = 新手势开始：若上一手势留下未提交锚点，先「隐式收笔」提交
+  /// 窄命令再作废，与画布直驱手势 [StrokeSelectionEditingSession.endTransform]
+  /// 的收笔语义一致。锚点在结算后立即置空，因此一次手势只可能产生一条记录。
+  void Function()? pendingTransformSettler;
 
   List<Offset> get draft => _draft;
   bool get hasSelection => _selection.polygon.length >= 3;
@@ -38,10 +52,11 @@ class DrawingSelectionSession {
   /// 当前选区。
   Selection get selection => _selection;
 
-  /// 写入即视为「选区变更 = 手势边界」，同时作废变换锚点（见 [transformBefore]）。
+  /// 写入即视为「选区变更 = 手势边界」：先结算未提交的变换，再作废锚点。
   set selection(Selection value) {
+    pendingTransformSettler?.call();
     _selection = value;
-    transformBefore = null;
+    clearTransformBefore();
   }
 
   /// 切换工具时清除正式选区与中心缓存，但保留剪贴板以支持跨选区粘贴。
@@ -67,7 +82,8 @@ class DrawingSelectionSession {
     _draft.add(canvasPoint);
   }
 
-  /// 用新结果结束草稿选区，并使变换锚点缓存失效。
+  /// 用新结果结束草稿选区（经 [selection] setter，即手势边界：先结算再作废
+  /// 锚点），并使中心缓存失效。
   void completeDraft(Selection value) {
     selection = value;
     invalidateCenter();
@@ -90,7 +106,14 @@ class DrawingSelectionSession {
     return value;
   }
 
-  void clearTransformBefore() => transformBefore = null;
+  /// 仅作废锚点、不结算：保留给历史恢复等「边界处不得压入新命令」的路径
+  /// （见 DrawingController.setCurrentLayerIndexForRestore）；用户手势边界
+  /// 一律走 [pendingTransformSettler] 先结算。
+  void clearTransformBefore() {
+    transformBefore = null;
+    transformBeforeLayer = null;
+    transformBeforeStrokeCount = null;
+  }
 }
 
 /// 笔画选区交互会话与宿主控制器之间的最小协作边界。
@@ -277,10 +300,14 @@ class StrokeSelectionEditingSession {
   void _ensureTransformBefore() {
     // P-05：只锚定选中笔画的 (位置, 原对象)——变换不改图层笔画数，
     // 位置在手势期间稳定（变换手势独占画布，无并发增删）。
-    _selection.transformBefore ??= <({int index, Stroke stroke})>[
+    // ??= 保证一次手势只在首个采样锚定一次。
+    if (_selection.transformBefore != null) return;
+    _selection.transformBefore = <({int index, Stroke stroke})>[
       for (final index in _selection.selection.selectedStrokeIndices)
         (index: index, stroke: _host.currentLayer.strokes[index]),
     ];
+    _selection.transformBeforeLayer = _host.currentLayer;
+    _selection.transformBeforeStrokeCount = _host.currentLayer.strokes.length;
   }
 
   void _transformSelected(Offset Function(Offset) transform) {
@@ -313,11 +340,22 @@ class StrokeSelectionEditingSession {
   /// 手势锚点（原对象）与当前对象 identity 不同的选中项组装成三元组；
   /// 全部相同（锚定后零变换即收笔）则不产生历史条目。防御性跳过越界
   /// 位置——变换手势独占画布，正常路径不会发生。
+  ///
+  /// 本方法也是手势边界的「隐式收笔」：由 DrawingController 在换选区、
+  /// 清除选区、切层、起笔、起擦处结算一次，未提交的滑块变换因此可撤销。
   void endTransform() {
     final before = _selection.transformBefore;
     if (before == null) return;
+    final layer = _selection.transformBeforeLayer ?? _host.currentLayer;
+    final anchoredCount = _selection.transformBeforeStrokeCount;
     _selection.clearTransformBefore();
-    final strokes = _host.currentLayer.strokes;
+    // 锚点归属图层按 identity 解析（图层可能被换位或删除）；笔画数与锚定
+    // 时不一致说明边界前有增删，按索引覆写会错位，此时放弃提交。
+    final layerIndex = _host.document.layers.indexWhere(
+      (candidate) => identical(candidate, layer),
+    );
+    if (layerIndex < 0 || layer.strokes.length != anchoredCount) return;
+    final strokes = layer.strokes;
     final pairs = <({int index, Stroke before, Stroke after})>[];
     for (final anchor in before) {
       if (anchor.index < 0 || anchor.index >= strokes.length) continue;
@@ -327,12 +365,15 @@ class StrokeSelectionEditingSession {
       }
     }
     if (pairs.isEmpty) return;
-    _host.pushStrokeTransform(_host.currentLayerIndex, pairs);
+    _host.pushStrokeTransform(layerIndex, pairs);
   }
 
   /// 删除选中的笔画。
   void deleteSelectedStrokes() {
     if (!hasSelectedStrokes) return;
+    // 结构变更前先结算未提交的变换：窄命令入栈早于删除快照，撤销顺序
+    // 才是「先撤销删除、再撤销变换」；否则下面清选区时索引已错位。
+    endTransform();
     final before = _snapshotLayers();
     final strokes = _host.currentLayer.strokes;
     for (final index in _selection.selection.selectedStrokeIndices.reversed) {
@@ -358,6 +399,8 @@ class StrokeSelectionEditingSession {
   void pasteClipboard() {
     final clipboard = _selection.clipboard;
     if (clipboard == null || clipboard.isEmpty) return;
+    // 同 deleteSelectedStrokes：增删前先结算未提交的变换手势。
+    endTransform();
     final before = _snapshotLayers();
     const delta = Offset(20, 20);
     for (final stroke in clipboard) {

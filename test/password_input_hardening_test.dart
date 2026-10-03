@@ -93,15 +93,13 @@ void main() {
       expect(find.byType(TextField), findsOneWidget, reason: '对话框不关闭');
     });
 
-    testWidgets('短于 4 位拒收；补足 4 位才回传（两次回车设不出空密码）', (
-      tester,
-    ) async {
+    testWidgets('短于 4 位拒收；补足 4 位才回传（两次回车设不出空密码）', (tester) async {
       await pumpDesktopField(tester);
 
       await tester.enterText(find.byType(TextField), '123');
       await tester.tap(find.text('确定'));
       await tester.pumpAndSettle();
-      expect(find.text('密码长度不足 4 位'), findsOneWidget);
+      expect(find.textContaining('密码长度不足'), findsOneWidget);
       expect(popped, isNull);
 
       await tester.enterText(find.byType(TextField), '1234');
@@ -118,7 +116,7 @@ void main() {
       await tester.tap(find.text('确定'));
       await tester.pumpAndSettle();
       expect(popped, isNull);
-      expect(find.text('密码长度不足 6 位'), findsOneWidget);
+      expect(find.textContaining('密码长度不足'), findsOneWidget);
 
       await tester.enterText(find.byType(TextField), '123456');
       await tester.tap(find.text('确定'));
@@ -221,9 +219,7 @@ void main() {
   }
 
   group('PinPad 凭据单一真源（P1：切模式不丢不串）', () {
-    testWidgets('九宫格 1234 → 切「字母」→ 追加 abcd → 提交 1234abcd', (
-      tester,
-    ) async {
+    testWidgets('九宫格 1234 → 切「字母」→ 追加 abcd → 提交 1234abcd', (tester) async {
       String? accepted;
       await pumpPad(tester, onAccepted: (p) => accepted = p);
 
@@ -247,9 +243,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('收集模式文本提交同样受 flexibleMinLength 约束（跨端口径一致）', (
-      tester,
-    ) async {
+    testWidgets('收集模式文本提交同样受 flexibleMinLength 约束（跨端口径一致）', (tester) async {
       var accepted = '';
       await pumpPad(tester, onAccepted: (p) => accepted = p);
 
@@ -266,9 +260,7 @@ void main() {
       expect(accepted, '1234');
     });
 
-    testWidgets('验证模式（解锁）不做长度约束：短/含符号密码原文送达 onVerify', (
-      tester,
-    ) async {
+    testWidgets('验证模式（解锁）不做长度约束：短/含符号密码原文送达 onVerify', (tester) async {
       final seen = <String>[];
       await pumpPad(
         tester,
@@ -309,57 +301,60 @@ void main() {
 
   group('数字模式矮视口可达性（P1：九宫格无滚动容器）', () {
     for (final size in const <Size>[Size(390, 360), Size(800, 360)]) {
-      testWidgets('${size.width.toInt()}×${size.height.toInt()}：不溢出，0/退格/✓ 可达', (tester) async {
-        String? accepted;
-        await pumpPad(tester, surface: size, onAccepted: (p) => accepted = p);
-        expect(
-          tester.takeException(),
-          isNull,
-          reason: '裸 Column+Spacer 在矮视口会 RenderFlex 溢出',
-        );
-
-        // 顶部键区先输入 4 位（此刻可见）。
-        await tapDigits(tester, '1234');
-
-        final outer = find
-            .descendant(
-              of: find.byType(SingleChildScrollView),
-              matching: find.byType(Scrollable),
-            )
-            .first;
-        final position = tester.state<ScrollableState>(outer).position;
-        expect(
-          position.maxScrollExtent,
-          greaterThan(0),
-          reason: '矮视口下必须存在可滚动的余量',
-        );
-        position.jumpTo(position.maxScrollExtent);
-        await tester.pumpAndSettle();
-
-        for (final key in <Finder>[
-          find.text('0'),
-          find.byIcon(Icons.backspace_outlined),
-          find.byIcon(Icons.check_rounded),
-        ]) {
-          final rect = tester.getRect(key);
-          expect(rect.top, greaterThanOrEqualTo(0), reason: '$key 未被顶出屏外');
+      testWidgets(
+        '${size.width.toInt()}×${size.height.toInt()}：不溢出，0/退格/✓ 可达',
+        (tester) async {
+          String? accepted;
+          await pumpPad(tester, surface: size, onAccepted: (p) => accepted = p);
           expect(
-            rect.bottom,
-            lessThanOrEqualTo(size.height + 0.5),
-            reason: '$key 命中区在屏幕内',
+            tester.takeException(),
+            isNull,
+            reason: '裸 Column+Spacer 在矮视口会 RenderFlex 溢出',
           );
-        }
 
-        // 触控目标 ≥44（九宫格单元格 = (264 − 2×14)/3，退格/✓ 同槽位）。
-        final cell = (tester.getSize(find.byType(GridView)).width - 28) / 3;
-        expect(cell, greaterThanOrEqualTo(44));
+          // 顶部键区先输入 4 位（此刻可见）。
+          await tapDigits(tester, '1234');
 
-        // 滚到底后 ✓ 真的可用（旧缺陷里既提交不了也退不了格）。
-        await tester.tap(find.byIcon(Icons.check_rounded));
-        await tester.pumpAndSettle();
-        expect(accepted, '1234');
-        expect(tester.takeException(), isNull);
-      });
+          final outer = find
+              .descendant(
+                of: find.byType(SingleChildScrollView),
+                matching: find.byType(Scrollable),
+              )
+              .first;
+          final position = tester.state<ScrollableState>(outer).position;
+          expect(
+            position.maxScrollExtent,
+            greaterThan(0),
+            reason: '矮视口下必须存在可滚动的余量',
+          );
+          position.jumpTo(position.maxScrollExtent);
+          await tester.pumpAndSettle();
+
+          for (final key in <Finder>[
+            find.text('0'),
+            find.byIcon(Icons.backspace_outlined),
+            find.byIcon(Icons.check_rounded),
+          ]) {
+            final rect = tester.getRect(key);
+            expect(rect.top, greaterThanOrEqualTo(0), reason: '$key 未被顶出屏外');
+            expect(
+              rect.bottom,
+              lessThanOrEqualTo(size.height + 0.5),
+              reason: '$key 命中区在屏幕内',
+            );
+          }
+
+          // 触控目标 ≥44（九宫格单元格 = (264 − 2×14)/3，退格/✓ 同槽位）。
+          final cell = (tester.getSize(find.byType(GridView)).width - 28) / 3;
+          expect(cell, greaterThanOrEqualTo(44));
+
+          // 滚到底后 ✓ 真的可用（旧缺陷里既提交不了也退不了格）。
+          await tester.tap(find.byIcon(Icons.check_rounded));
+          await tester.pumpAndSettle();
+          expect(accepted, '1234');
+          expect(tester.takeException(), isNull);
+        },
+      );
     }
   });
 

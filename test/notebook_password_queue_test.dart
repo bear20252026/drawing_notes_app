@@ -16,11 +16,16 @@
 /// 表现为下面所有并发用例挂死）；②载荷重读不走 `load`——`load` 会顺带
 /// 排一次懒迁移重写，用「读时的整本明文」反超随后写回的新载荷。
 ///
+/// 重置盘用例另锁「payload 密文字节不动、只重绕密码槽（盐换新）」——
+/// 载荷被整本重加密或写成空信封都会在这条字节断言下现形。页面内容一律
+/// 经 `decryptNotebook` 取回：`load` 只给 JSON 壳（加密本 pages 恒为空）。
+///
 /// 批B 起新槽位默认 Argon2id——注入轻量参数（[KdfParams.testLight]），
 /// 槽位格式与生产一致、无真 KDF 耗时（同 n2/blockdoc v5 套件口径）。
 @Timeout(Duration(minutes: 3))
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
@@ -135,15 +140,30 @@ void main() {
       final unlocked = (await storage.load(id))!;
       expect(await storage.decryptNotebook(unlocked, 'bind-pass-1'), isTrue);
       expect(unlocked.pages.single.textItems.single.text, '绑盘期间的自动保存');
-      // 绑上的盘立刻可用（DEK 未变）。
+      // 绑上的盘立刻可用（DEK 未变），且重置只重绕槽位、正文密文不动。
+      final beforeReset = (await storage.load(id))!.encryptedPayload!;
       expect(
         await storage.resetNotebookPasswordWithUsb(id, usbKey, 'reset-pass-9'),
         isTrue,
       );
+      final afterReset = (await storage.load(id))!;
       expect(
-        (await storage.load(id))!.pages.single.textItems.single.text,
-        '绑盘期间的自动保存',
+        _v5CipherOf(afterReset.encryptedPayload!),
+        _v5CipherOf(beforeReset),
+        reason: '重置 = U 盘解 DEK + 新盐重绕密码槽，payload 密文必须原样保留',
       );
+      expect(
+        _v5PasswordSaltOf(afterReset.encryptedPayload!),
+        isNot(_v5PasswordSaltOf(beforeReset)),
+        reason: '密码槽确实换了新盐重绕（不是原信封空转一遍）',
+      );
+      // 载荷不丢：新密码解出同一份正文。注意 load 只给 JSON 壳——加密笔记本
+      // 的 pages 恒为空（notebook_entity.dart:78），页面内容一律经
+      // decryptNotebook 解出（口径同 app_shell_routes.dart 的会话解密路径）。
+      expect(await storage.decryptNotebook(afterReset, 'reset-pass-9'), isTrue);
+      expect(afterReset.pages.single.textItems.single.text, '绑盘期间的自动保存');
+      expect(await storage.verifyNotebookPassword(id, 'bind-pass-1'), isFalse);
+      expect(await storage.hasNotebookUsbSlot(id), isTrue);
     });
 
     test('保存在前 + 重置盘重置在后：新载荷存活、旧密码失效', () async {
@@ -244,4 +264,16 @@ void main() {
       expect(unlocked.pages.single.textItems.single.text, '明文正文');
     });
   });
+}
+
+/// v5 信封的正文密文（`payload` 字段）——槽位重绕不得改动它。
+String _v5CipherOf(String envelope) =>
+    jsonEncode((jsonDecode(envelope) as Map<String, dynamic>)['payload']);
+
+/// v5 信封的密码槽盐（`slots.pw.s`）——重绕必然换新盐。
+String _v5PasswordSaltOf(String envelope) {
+  final slots =
+      (jsonDecode(envelope) as Map<String, dynamic>)['slots']
+          as Map<String, dynamic>;
+  return ((slots['pw'] as Map<String, dynamic>)['s']) as String;
 }

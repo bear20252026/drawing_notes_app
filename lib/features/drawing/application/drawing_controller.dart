@@ -85,6 +85,9 @@ class DrawingController extends ChangeNotifier
     _strokeSelectionInteractionSession = StrokeSelectionInteractionSession(
       this,
     );
+    // 手势边界统一收口：选区写入（换选区/清除选区/切工具/点选对象）前，
+    // 先把上一手势未提交的变换按「隐式收笔」结算成一条窄命令。
+    _selectionSession.pendingTransformSettler = settlePendingTransform;
   }
 
   final DrawingDocument _document;
@@ -130,14 +133,18 @@ class DrawingController extends ChangeNotifier
 
   @override
   void setCurrentLayerIndexForRestore(int value) {
+    // 历史恢复内部入口：此处不得结算，否则会在 undo/redo 执行过程中压入
+    // 新命令、打乱历史顺序——因此只作废锚点（锚定内容随被恢复的图层一同回退）。
     _currentLayerIndex = value;
     _selectionSession.clearTransformBefore();
   }
 
   @override
   void setCurrentLayerIndexForLayerEdit(int value) {
+    // 图层增删/换位跟随：先结算未提交的变换手势（锚点按图层 identity 解析，
+    // 换位后仍能落到正确图层；图层已被移除或笔画数变化时安全丢弃）。
+    settlePendingTransform();
     _currentLayerIndex = value;
-    _selectionSession.clearTransformBefore();
   }
 
   @override
@@ -217,6 +224,16 @@ class DrawingController extends ChangeNotifier
 
   @override
   void clearStrokeSelection() => _selectionSession.clearSelection();
+
+  /// 手势边界结算：把未提交的选区变换按「隐式收笔」提交为一条窄命令（P-05）。
+  ///
+  /// 2026-10-03 二次复核：边界原先只清锚点，滑块改的笔画坐标既没进历史也
+  /// 没被还原，成为永久撤不回的改动；现改为「先结算、再作废锚点」，与画布
+  /// 直驱手势 endTransform 的收笔语义一致。调用点：选区写入 setter（见
+  /// [DrawingSelectionSession.pendingTransformSettler]）、切层入口、起笔、起擦。
+  /// 无未提交锚点时是空操作，锚点在结算当场置空，故一次手势只会产生一条记录。
+  void settlePendingTransform() =>
+      _strokeSelectionEditingSession.endTransform();
 
   /// 图片、形状及混合对象的选择和手势中间态由独立会话持有。
   late final DocumentObjectEditingSession _documentObjectEditingSession;
@@ -313,9 +330,10 @@ class DrawingController extends ChangeNotifier
   int get currentLayerIndex => _currentLayerIndex;
   set currentLayerIndex(int value) {
     if (value >= 0 && value < _document.layers.length) {
+      // 切层 = 手势边界：锚点记的是「旧图层内位置」，切层后含义全变，
+      // 故先把旧图层的未提交变换结算进历史，再切（2026-10-03 复核）。
+      settlePendingTransform();
       _currentLayerIndex = value;
-      // 锚点记录的是「当前图层内位置」，切层后位置含义全变（2026-10-03 复核）。
-      _selectionSession.clearTransformBefore();
       notifyListeners();
     }
   }
@@ -472,7 +490,12 @@ class DrawingController extends ChangeNotifier
   }
 
   /// 开始对象橡皮擦手势。调用方只在 [EraserMode.stroke] 下调用。
-  void beginObjectErase() => _objectEraserSession.begin();
+  void beginObjectErase() {
+    // 起擦 = 手势边界：先结算未提交的选区变换，否则擦除命令会先移除笔画，
+    // 锚点的图层内位置随之错位（2026-10-03 复核）。
+    settlePendingTransform();
+    _objectEraserSession.begin();
+  }
 
   /// 擦除以 [canvasPoint] 为中心、以橡皮擦半径命中的整条笔画。
   ///
@@ -493,10 +516,7 @@ class DrawingController extends ChangeNotifier
     // 为 null 时 region 为 null，_invalidateLayer 自然退回整层重建。
     for (final layerIndex in step.changedLayerIndices) {
       unawaited(
-        _invalidateLayer(
-          _document.layers[layerIndex].id,
-          region: step.dirty,
-        ),
+        _invalidateLayer(_document.layers[layerIndex].id, region: step.dirty),
       );
     }
     // P-13（审计 2026-09-27）：拖擦进行中只 tick frameTick 驱动画布重绘
@@ -533,8 +553,12 @@ class DrawingController extends ChangeNotifier
   }
 
   /// 开始一笔：创建活动笔画。
-  void startStroke(Offset canvasPoint, {double pressure = 1.0}) =>
-      _strokeInputSession.startStroke(canvasPoint, pressure: pressure);
+  void startStroke(Offset canvasPoint, {double pressure = 1.0}) {
+    // 起笔 = 手势边界：先结算上一手势未提交的变换，再开始新笔画
+    // （新笔画会改变图层笔画数，锚点索引随之失效）。
+    settlePendingTransform();
+    _strokeInputSession.startStroke(canvasPoint, pressure: pressure);
+  }
 
   /// 延伸当前笔画（追加采样点）。
   void extendStroke(Offset canvasPoint, {double pressure = 1.0}) =>
