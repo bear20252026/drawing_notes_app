@@ -131,9 +131,16 @@ class PinPadUnlockSheet extends StatelessWidget {
 /// 保证「错误密码不可能被上层当成已验证凭据」。
 ///
 /// [allowTextInput]（C-14 兑现）：文件密码域（flexible 场景）放开字符——
-/// 去 digitsOnly/数字键盘、不设长度上限（既有超长密码的**解锁**不能被
+/// 去 digitsOnly/数字键盘、不设长度上限（既有超长/短密码的**解锁**不能被
 /// UI 挡在门外，业务校验由 onVerify 与收集方确认步骤承担）；默认 false
 /// 时行为与既往逐字节一致（开屏 PIN 纯数字 + 长度上限 + 实时计数）。
+///
+/// [minLength]（P1 空密码收口，2026-10-03）：**仅作用于收集模式**
+/// （[onVerify] == null，即设密/改密/重置）——空串与短于该长度的凭据
+/// 一律不提交。口径与移动端 [PinPadCore.flexibleMinLength]（默认 4）
+/// 统一：两端「设出来的密码」必须同样强，否则桌面两次回车即可设成空密码、
+/// 文档显示「已加密」却形同裸奔。验证模式（解锁）不受影响——既有已设
+/// 短密码/空密码文档的解锁路径语义保持不变。
 class DesktopUnlockField extends StatefulWidget {
   const DesktopUnlockField({
     super.key,
@@ -143,6 +150,7 @@ class DesktopUnlockField extends StatefulWidget {
     this.footerLabel,
     this.onFooterTap,
     this.allowTextInput = false,
+    this.minLength,
   });
 
   /// null 时按 locale 解析（i18n E1 批 1）。
@@ -163,6 +171,12 @@ class DesktopUnlockField extends StatefulWidget {
   /// 任意字符输入（文件密码域）；false = 纯数字 + 长度上限（开屏 PIN）。
   final bool allowTextInput;
 
+  /// 收集模式最短长度；null 时取 [_kMinCredentialLength]。
+  final int? minLength;
+
+  /// 与 AppLockService.minPinLength / PinPadCore.flexibleMinLength 同档。
+  static const int _kMinCredentialLength = 4;
+
   static Future<String?> show(
     BuildContext context, {
     String? title,
@@ -171,6 +185,7 @@ class DesktopUnlockField extends StatefulWidget {
     String? footerLabel,
     VoidCallback? onFooterTap,
     bool allowTextInput = false,
+    int? minLength,
   }) {
     return GlassDialog.show<String>(
       context: context,
@@ -181,6 +196,7 @@ class DesktopUnlockField extends StatefulWidget {
         footerLabel: footerLabel,
         onFooterTap: onFooterTap,
         allowTextInput: allowTextInput,
+        minLength: minLength,
       ),
     );
   }
@@ -192,7 +208,14 @@ class DesktopUnlockField extends StatefulWidget {
 class _DesktopUnlockFieldState extends State<DesktopUnlockField> {
   final _controller = TextEditingController();
   final _focus = FocusNode();
-  bool _error = false;
+
+  /// 就地错误文案（null = 无错误）：原 `_error` 布尔位承载不了
+  /// 「空密码」「长度不足」两类提示，改存文案。
+  String? _errorText;
+
+  /// 收集模式最短长度（未指定时与移动端同口径 4 位）。
+  int get _minLength =>
+      widget.minLength ?? DesktopUnlockField._kMinCredentialLength;
 
   @override
   void initState() {
@@ -210,14 +233,40 @@ class _DesktopUnlockFieldState extends State<DesktopUnlockField> {
   Future<void> _confirm() async {
     final value = _controller.text;
     if (widget.onVerify != null) {
+      // 验证模式（解锁）：语义零改动——空串也照送，由后端判定，
+      // 既有短/空密码文档不因 UI 校验被挡在门外。
       final ok = await widget.onVerify!(value);
       if (!mounted) return;
       if (!ok) {
-        setState(() => _error = true);
+        setState(() {
+          _errorText =
+              AppLocalizations.of(context)?.unlockPasswordWrong ?? '密码不正确';
+        });
         _controller.clear();
         _focus.requestFocus();
         return;
       }
+      Navigator.of(context).pop(value);
+      return;
+    }
+    // 收集模式（设密/改密/重置）：空值与过短都不提交（P1 三层收口第一层）。
+    if (value.isEmpty) {
+      setState(
+        () => _errorText =
+            AppLocalizations.of(context)?.passwordEmptyHint ?? '密码不能为空',
+      );
+      _focus.requestFocus();
+      return;
+    }
+    if (value.length < _minLength) {
+      // 不用 pinDigitsCount 充当错误提示：它是「3 / 12 位（4–12 位可选）」
+      // 这类实时计数串，作错误文案语义偏软（长度下限另由 store 层兜底）。
+      setState(
+        () => _errorText =
+            AppLocalizations.of(context)?.passwordTooShortHint ?? '密码长度不足',
+      );
+      _focus.requestFocus();
+      return;
     }
     Navigator.of(context).pop(value);
   }
@@ -245,18 +294,16 @@ class _DesktopUnlockFieldState extends State<DesktopUnlockField> {
             LengthLimitingTextInputFormatter(maxLength),
         ],
         onSubmitted: (_) => _confirm(),
-        onChanged: (_) => setState(() => _error = false),
+        onChanged: (_) => setState(() => _errorText = null),
         decoration: InputDecoration(
           hintText: AppLocalizations.of(context)?.commonPassword ?? '密码',
-          errorText: _error
-              ? AppLocalizations.of(context)?.unlockPasswordWrong ?? '密码不正确'
-              : null,
+          errorText: _errorText,
           counterText:
               (maxLength == null || widget.allowTextInput)
               ? null
               : AppLocalizations.of(
                   context,
-                )?.pinDigitsCount(_controller.text.length, 4, maxLength),
+                )?.pinDigitsCount(_controller.text.length, _minLength, maxLength),
           border: const OutlineInputBorder(
             borderRadius: BorderRadius.all(Radius.circular(AppleRadius.xs)),
           ),
@@ -343,6 +390,9 @@ abstract final class UnlockFlow {
       onFooterTap: onFooter,
       // C-14：文件密码域（flexible）⇒ 桌面端放开字符与长度上限。
       allowTextInput: flexible,
+      // P1：收集模式最短长度与移动端 flexibleMinLength 同口径
+      // （固定 PIN 走 DesktopUnlockField 默认 4 = AppLockService.minPinLength）。
+      minLength: flexible ? flexibleMinLength : null,
     );
   }
 }

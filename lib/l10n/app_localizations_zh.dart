@@ -896,6 +896,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get unlockPasswordWrong => '密码不正确';
 
   @override
+  String get passwordEmptyHint => '密码不能为空';
+
+  @override
+  String get passwordTooShortHint => '密码长度不足';
+
+  @override
   String get unlockKeyboardText => '字母';
 
   @override
@@ -2494,6 +2500,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get docUnsavedChangesTitle => '未保存的改动';
 
   @override
+  String get docUnsavedChangesBody => '文档有未保存的改动，确定要退出吗？';
+
+  @override
   String get docDiscard => '放弃';
 
   @override
@@ -2680,6 +2689,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get dbCellNone => '未选择';
+
+  @override
+  String dbEditCell(String name) {
+    return '编辑$name';
+  }
 
   @override
   String dbRecordCount(int count) {
@@ -3349,6 +3363,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get nbMoveFolderDialogTitle => '移动到文件夹';
+
+  @override
+  String get nbRootFolder => '根';
+
+  @override
+  String nbMovedPagesTo(int count, String folder) {
+    return '已批量移动 $count 页到分组「$folder」';
+  }
 
   @override
   String homeOpenCanvasCard(String title) {

@@ -69,14 +69,25 @@ abstract final class PasswordResetSteps {
     final sameAsLockMsg =
         l10n?.resetSameAsLockScreen(label) ?? '$label不能与开屏密码相同';
     final mismatchMsg = l10n?.resetMismatchRetry ?? '两次输入不一致，请重试';
+    final undeterminedMsg =
+        l10n?.lockTemporarilyLocked ?? '为防止暴力猜测，密码验证已暂时锁定';
     final pin = await UnlockFlow.show(
       context,
       title: l10n?.resetSetNewFilePassword ?? '设置新文件密码',
       flexible: true,
     );
-    if (pin == null || !context.mounted) return null;
-    if (await AppLockService.matchesAppLockPin(pin)) {
+    // P1 空值保底（三层收口的第二层）：重置同样是在设新密码。
+    if (pin == null || pin.isEmpty || !context.mounted) return null;
+    // ≠开屏密码强制：只读探测，不消耗防爆破计数。
+    final sameAsLock = await AppLockService.probeMatchesAppLockPin(pin);
+    if (sameAsLock == true) {
       snack(sameAsLockMsg);
+      return null;
+    }
+    if (sameAsLock == null) {
+      // P2 fail-closed：判定不了（多为开屏锁冷却中）——拒绝设密，
+      // 提示稍后重试，绝不静默放行「与开屏密码同码」。
+      snack(undeterminedMsg);
       return null;
     }
     if (!context.mounted) return null;
@@ -85,7 +96,9 @@ abstract final class PasswordResetSteps {
       title: l10n?.resetConfirmNewFilePassword ?? '确认新文件密码',
       flexible: true,
     );
-    if (confirmPin == null || !context.mounted) return null;
+    if (confirmPin == null || confirmPin.isEmpty || !context.mounted) {
+      return null;
+    }
     if (confirmPin != pin) {
       snack(mismatchMsg);
       return null;

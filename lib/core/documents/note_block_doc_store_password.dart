@@ -2,6 +2,14 @@
 ///
 /// v5 双保护器设密/验证/改密/重置盘/移除，共享主库的会话 DEK 缓存
 /// 与写链，通过 part 同库访问。
+///
+/// P0 竞态收口（审计 2026-10-03）：**改密/绑盘/重置/移密的「读信封 →
+/// Argon2id 重绕 → 写回」三步必须整体在同 id 的独占写队列内执行**。
+/// 重绕是数百毫秒级的慢操作，旧实现在队列外读信封，期间编辑器自动
+/// 保存落盘的新正文会被「旧正文 + 新槽位」覆盖，而 UI 仍提示成功。
+/// 口径对齐 StorageFilePasswordManager（E-17 同步注释）与其
+/// `_readCurrentRaw` 在队列内重读最新已落盘文件的既有先例——
+/// 见 `storage_file_password_manager.dart` 的 `setFilePassword`。
 
 part of 'note_block_doc_store.dart';
 
@@ -17,6 +25,8 @@ extension NoteBlockDocStorePasswords on NoteBlockDocStore {
     String password, {
     List<int>? usbKey,
   }) {
+    // P1 fail-closed（空密码收口第三层）：空串绝不封成「已加密」。
+    if (password.isEmpty) throw ArgumentError('密码不能为空');
     return _enqueue(doc.id, () => _encryptAndSaveLocked(doc, password, usbKey));
   }
 
@@ -76,12 +86,35 @@ extension NoteBlockDocStorePasswords on NoteBlockDocStore {
 
   /// 修改笔记文件密码：仅重绕密码槽（payload 与重置盘槽位原样保留）。
   /// 旧密码错误抛 [FormatException]。成功后 DEK 已更新缓存。
+  ///
+  /// 读信封 + 重绕 + 写回整体在写队列内（见本文件头 P0 竞态收口）。
   Future<void> changeBlockDocPassword(
     String id,
     String oldPassword,
     String newPassword, {
     List<int>? usbKey,
+  }) {
+    // P1 fail-closed：新密码空串直接拒绝（旧密码可为历史遗留空值，
+    // 仍须允许其通过校验以解密密文，故只拦新密码）。
+    if (newPassword.isEmpty) throw ArgumentError('密码不能为空');
+    return _enqueue(
+      id,
+      () => _changeBlockDocPasswordLocked(
+        id,
+        oldPassword,
+        newPassword,
+        usbKey: usbKey,
+      ),
+    );
+  }
+
+  Future<void> _changeBlockDocPasswordLocked(
+    String id,
+    String oldPassword,
+    String newPassword, {
+    List<int>? usbKey,
   }) async {
+    // 队列内重读：拿到的必然是「此刻已落盘」的最新信封。
     final envelope = await _readEnvelopeJson(id);
     if (envelope == null) {
       throw StateError('该笔记未设置文件密码');
@@ -101,7 +134,7 @@ extension NoteBlockDocStorePasswords on NoteBlockDocStore {
         usbKey: usbKey,
       );
     }
-    await _enqueue(id, () => _writeFileAtomic(id, utf8.encode(newEnvelope)));
+    await _writeFileAtomic(id, utf8.encode(newEnvelope));
     final dek = await NoteBlockDocStore._encryption
         .unwrapBlockDocPasswordSlotForRewrap(
           docId: id,
@@ -119,7 +152,17 @@ extension NoteBlockDocStorePasswords on NoteBlockDocStore {
   }
 
   /// 事后绑定重置密码盘。密码错误/已绑定抛 [FormatException]。
+  ///
+  /// 读信封 + 重绕 + 写回整体在写队列内（见本文件头 P0 竞态收口）。
   Future<void> bindBlockDocUsbSlot(
+    String id,
+    String password,
+    List<int> usbKey,
+  ) {
+    return _enqueue(id, () => _bindBlockDocUsbSlotLocked(id, password, usbKey));
+  }
+
+  Future<void> _bindBlockDocUsbSlotLocked(
     String id,
     String password,
     List<int> usbKey,
@@ -135,14 +178,29 @@ extension NoteBlockDocStorePasswords on NoteBlockDocStore {
           password: password,
           usbKey: usbKey,
         );
-    await _enqueue(id, () => _writeFileAtomic(id, utf8.encode(newEnvelope)));
+    await _writeFileAtomic(id, utf8.encode(newEnvelope));
   }
 
   /// 用重置密码盘重置笔记文件密码。
   ///
   /// 重置 = U 盘钥匙解出 DEK → 新盐重绕密码槽，payload 密文不动。
   /// 成功后 DEK 已缓存（可直接解锁）。返回 false = 未绑定/盘不匹配/非 v5。
+  ///
+  /// 读信封 + 重绕 + 写回整体在写队列内（见本文件头 P0 竞态收口）。
   Future<bool> resetBlockDocPasswordWithUsb(
+    String id,
+    List<int> usbKey,
+    String newPassword,
+  ) {
+    // P1 fail-closed：重置即设新密码，空串拒绝。
+    if (newPassword.isEmpty) throw ArgumentError('密码不能为空');
+    return _enqueue(
+      id,
+      () => _resetBlockDocPasswordWithUsbLocked(id, usbKey, newPassword),
+    );
+  }
+
+  Future<bool> _resetBlockDocPasswordWithUsbLocked(
     String id,
     List<int> usbKey,
     String newPassword,
@@ -157,7 +215,7 @@ extension NoteBlockDocStorePasswords on NoteBlockDocStore {
           newPassword: newPassword,
         );
     if (newEnvelope == null) return false;
-    await _enqueue(id, () => _writeFileAtomic(id, utf8.encode(newEnvelope)));
+    await _writeFileAtomic(id, utf8.encode(newEnvelope));
     final dek = await NoteBlockDocStore._encryption
         .unwrapBlockDocPasswordSlotForRewrap(
           docId: id,
@@ -171,7 +229,16 @@ extension NoteBlockDocStorePasswords on NoteBlockDocStore {
 
   /// 移除文件密码：密码解出整份明文 → 回到普通存储（有主密钥则回封
   /// 主密钥信封——绝不落裸明文）。密码错误抛 [FormatException]。
-  Future<void> removeBlockDocPassword(String id, String password) async {
+  ///
+  /// 解密 + 回封 + 写回整体在写队列内（见本文件头 P0 竞态收口）。
+  Future<void> removeBlockDocPassword(String id, String password) {
+    return _enqueue(id, () => _removeBlockDocPasswordLocked(id, password));
+  }
+
+  Future<void> _removeBlockDocPasswordLocked(
+    String id,
+    String password,
+  ) async {
     final envelope = await _readEnvelopeJson(id);
     if (envelope == null) {
       throw StateError('该笔记未设置文件密码');
@@ -186,7 +253,7 @@ extension NoteBlockDocStorePasswords on NoteBlockDocStore {
     if (key != null) {
       data = await VaultFileCodec.encrypt(data, key, aadContext: 'block:$id');
     }
-    await _enqueue(id, () => _writeFileAtomic(id, data));
+    await _writeFileAtomic(id, data);
     forgetBlockDocPassword(id);
     _headerCache = null;
   }

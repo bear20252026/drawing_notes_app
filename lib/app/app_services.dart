@@ -52,6 +52,9 @@ class AppServices {
 
   List<NoteBlockDoc>? _blockDocsCache;
 
+  /// [dispose] 已执行——写回调（存储层 onWrite）在此之后仍需静默丢弃。
+  bool _disposed = false;
+
   /// 全量块文档读取（反向链接索引数据源）。
   /// 内存缓存，[bumpDataVersion] 时失效。
   Future<List<NoteBlockDoc>> loadAllBlockDocs() {
@@ -66,9 +69,16 @@ class AppServices {
   /// 数据版本自增 + 文档缓存失效（shell 内所有写盘后的统一出口）。
   void bumpDataVersion() {
     _blockDocsCache = null;
+    if (_disposed) return;
     dataVersion.value++;
   }
 
-  /// 释放通知器（AppShell dispose 时调用）。
-  void dispose() => dataVersion.dispose();
+  /// 释放通知器（AppShell dispose 时调用——本方法此前无调用点，P2 修复）。
+  /// 幂等：存储层的 onWrite 仍指向 [bumpDataVersion]，释放后的迟到写回调
+  /// 静默丢弃（而不是抛「used after being disposed」）。
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    dataVersion.dispose();
+  }
 }

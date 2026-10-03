@@ -205,8 +205,12 @@ extension _NotebookPageImports on _NotebookViewPageState {
       }
     });
     await _save();
+    // 空 target 即根分组，名字也走 l10n，不再内联中文。
+    final folderLabel =
+        target.isEmpty ? (_l10nSafe?.nbRootFolder ?? '根') : target;
     _showSnack(
-      '已批量移动 ${_notebook.pages.length} 页到分组「${target.isEmpty ? '根' : target}」',
+      _l10nSafe?.nbMovedPagesTo(_notebook.pages.length, folderLabel) ??
+          '已批量移动 ${_notebook.pages.length} 页到分组「$folderLabel」',
     );
   }
 
@@ -245,12 +249,23 @@ extension _NotebookPageImports on _NotebookViewPageState {
       _showSnack(_l10nSafe?.impPasswordMismatch ?? '两次输入不一致，请重试');
       return;
     }
-    // 批次②：≠开屏密码强制——哈希加盐不可直接比对，verify 探测
-    // （能通过开屏锁校验即同码），同码会削弱两层独立的保护边界。
-    if (await AppLockService.matchesAppLockPin(password)) {
+    // 批次②：≠开屏密码强制——哈希加盐不可直接比对，用**只读探测**
+    // （同 home/doc/reset 三处口径：旧实现走 verify 会把「正常设密」记成
+    // 开屏密码猜错，累计即触发防爆破冷却）。同码会削弱两层独立的保护边界。
+    final sameAsLock = await AppLockService.probeMatchesAppLockPin(password);
+    if (sameAsLock == true) {
       _showSnack(_l10nSafe?.impPasswordSameAsLock ?? '密码不能与开屏密码相同');
       return;
     }
+    if (sameAsLock == null) {
+      // P2 fail-closed：判定不了（多为开屏锁防爆破冷却中）——拒绝本次设密
+      // 并提示稍后重试，绝不静默放行「与开屏密码同码」。
+      _showSnack(
+        _l10nSafe?.lockTemporarilyLocked ?? '为防止暴力猜测，密码验证已暂时锁定',
+      );
+      return;
+    }
+    if (!mounted) return; // 探测为异步操作，跨缺口守卫
     try {
       if (isChange) {
         // v5 改密：旧密码解出 DEK → 重绕密码槽（payload 与重置盘槽位不动）。

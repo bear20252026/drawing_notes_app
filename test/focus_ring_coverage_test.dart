@@ -16,12 +16,22 @@
 // `apple_focus.dart` 文档注释里的用法示例 `/// AppleFocusRing(` 会被当成
 // 真实调用（首跑即栽在这），注释里的撇号也会把字符串状态机骗跑偏。
 //
+// 遮蔽器已于 P1 修正（审计 2026-10-04）抽到 `test/helpers/dart_lexical_mask.dart`
+// 的 `maskDartLexically`，与 C-06（security_static_access_gate_test）共用同一份
+// 实现：原先两处各自复制的状态机不认 `${...}` 插值里的嵌套引号、不真正
+// 处理三引号与 raw string，一处嵌套引号即让字符串态错位、把其后的纯代码
+// 整段抹成空格——本门禁的覆盖区间随之失真（错位区间内的裸 `InkWell(` 与
+// 被多算的假区间都会放行）。词法细节与等长契约见该文件头注释；词法回归
+// 见 dart_lexical_mask_test.dart。
+//
 // 豁免：当前为空。若将来出现**已自带焦点绘制**的容器，把相对 lib/ 的
 // posix 路径加进 [_exempt] 并写明理由——不要为了让门禁变绿而删断言。
 
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+
+import 'helpers/dart_lexical_mask.dart';
 
 /// 已自带焦点绘制、无需再包一层的文件（相对 lib/ 的 posix 路径）。
 const Set<String> _exempt = {};
@@ -37,8 +47,7 @@ void main() {
       final relToLib = rel.substring(rel.indexOf('lib/'));
       if (_exempt.contains(relToLib)) continue;
 
-      final raw = entity.readAsStringSync();
-      final code = _maskCommentsAndStrings(raw);
+      final code = maskDartLexically(entity.readAsStringSync());
 
       // 本文件内每个 AppleFocusRing 的覆盖区间（在遮蔽文本上求括号，
       // 避开注释/字符串里的假括号；偏移与原文一一对应）。
@@ -72,62 +81,6 @@ void main() {
           '${offenders.take(30).join('\n')}',
     );
   });
-}
-
-/// 等长遮蔽：注释与字符串内容换为空格（保留换行，行号不变）。
-String _maskCommentsAndStrings(String src) {
-  final b = StringBuffer();
-  var i = 0;
-  while (i < src.length) {
-    final c = src[i];
-    // 行注释（含 ///）——必须先于引号判断，否则注释里的撇号会被当字符串。
-    if (c == '/' && i + 1 < src.length && src[i + 1] == '/') {
-      while (i < src.length && src[i] != '\n') {
-        b.write(' ');
-        i++;
-      }
-      continue;
-    }
-    // 块注释。
-    if (c == '/' && i + 1 < src.length && src[i + 1] == '*') {
-      b.write('  ');
-      i += 2;
-      while (i < src.length) {
-        if (src[i] == '*' && i + 1 < src.length && src[i + 1] == '/') {
-          b.write('  ');
-          i += 2;
-          break;
-        }
-        b.write(src[i] == '\n' ? '\n' : ' ');
-        i++;
-      }
-      continue;
-    }
-    // 字符串字面量（单双引号；含三引号——遇前三个同引号自然终止）。
-    if (c == "'" || c == '"') {
-      final quote = c;
-      b.write(' ');
-      i++;
-      while (i < src.length) {
-        if (src[i] == r'\') {
-          b.write('  ');
-          i += 2;
-          continue;
-        }
-        if (src[i] == quote) break;
-        b.write(src[i] == '\n' ? '\n' : ' ');
-        i++;
-      }
-      if (i < src.length) {
-        b.write(' ');
-        i++;
-      }
-      continue;
-    }
-    b.write(c);
-    i++;
-  }
-  return b.toString();
 }
 
 /// 从 `i`（指向 `(`）找配对 `)`；未闭合返回 -1。

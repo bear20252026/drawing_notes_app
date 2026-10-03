@@ -1,6 +1,8 @@
 // WebDAV 同步传输客户端（P3-W2）。
 // 纯 Dart，可注入 http.Client 便于单测。
 // 提供 PROPFIND/GET/PUT/DELETE/MKCOL 基本操作 + Basic 认证。
+// 重定向一律不跟随（3xx 判失败）：跟随会把 Basic 口令送到服务器指定的
+// 下一跳，而 https 门禁只校验用户配置的 baseUrl——见 _newRequest。
 
 import 'dart:async';
 import 'dart:convert';
@@ -15,10 +17,31 @@ class WebDavSyncException implements Exception {
   WebDavSyncException(this.message, {this.statusCode});
 
   /// 错误描述。
+  ///
+  /// 注意：除下面两条门禁常量外，message 可能内嵌**远端可控文本**
+  /// （reasonPhrase / relativePath）——UI 只能按
+  /// [WebDavSyncException.isLocalGateMessage] 白名单透出，其余走静态文案。
   final String message;
 
   /// HTTP 状态码（如有）。
   final int? statusCode;
+
+  /// 传输层 TLS 门禁文案（本地静态构造，不含任何远端内容）。
+  static const String httpsGateMessage =
+      '仅允许 https WebDAV（明文 http 会泄露认证口令与文档），本地回环除外';
+
+  /// 重定向门禁文案（本地静态构造，**刻意不带 Location 值**——那是远端
+  /// 可控文本，进 UI 即成注入面）。
+  static const String redirectGateMessage =
+      '服务器要求跳转到其他地址：为避免认证口令被转发到非授权站点，'
+      '已停止跟随重定向。请在 WebDAV 服务端直接填写跳转后的最终地址';
+
+  /// 白名单：只有**精确等于**本地静态门禁文案的 message 才允许原样透出到
+  /// 用户界面。用全等而非 `contains('https')` 之类的关键词猜测——关键词
+  /// 可被远端 reasonPhrase（例如 "Moved to https://…"）伪造，等于把任意
+  /// 字符串送进 snackbar（脱敏违例）。
+  static bool isLocalGateMessage(String message) =>
+      message == httpsGateMessage || message == redirectGateMessage;
 
   @override
   String toString() =>
@@ -98,7 +121,7 @@ class WebDavSyncClient {
     final scheme = baseUrl.scheme.toLowerCase();
     if (scheme == 'https') return;
     if (scheme == 'http' && _isLoopback(baseUrl.host)) return;
-    throw WebDavSyncException('仅允许 https WebDAV（明文 http 会泄露认证口令与文档），本地回环除外');
+    throw WebDavSyncException(WebDavSyncException.httpsGateMessage);
   }
 
   /// 安全解析远端路径：先过 TLS 门禁，再拒绝 `..`/反斜杠/绝对 URL/
@@ -128,6 +151,48 @@ class WebDavSyncClient {
     return {'Authorization': 'Basic $token'};
   }
 
+  /// 构造单次请求：**恒定关闭自动跟随重定向**。
+  ///
+  /// P1 修复（重定向绕过 https 门禁）：`package:http` 的便捷方法
+  /// （get/put/delete）内部建的 Request 默认 `followRedirects = true`，
+  /// 于是配置的 https 地址一旦被服务器 302 到 http://attacker/，客户端会
+  /// 自动跟随并把 `Authorization: Basic …` 明文送出去（回环 http 例外也被
+  /// 顺着 Location 扩到非回环）。门禁只校验**配置**的 baseUrl，从不校验
+  /// Location——所以正确做法是根本不发第二跳：跟随关死，3xx 判失败，
+  /// 由 [_rejectRedirect] 提示用户去服务端填最终地址。
+  /// 注入式 client（测试）同样收到 `followRedirects == false` 的请求。
+  http.Request _newRequest(
+    String method,
+    Uri url, {
+    Map<String, String>? headers,
+  }) {
+    final request = http.Request(method, url)..followRedirects = false;
+    if (headers != null) request.headers.addAll(headers);
+    return request;
+  }
+
+  /// 发送请求并读干响应体（两腿各自套操作超时，R-01 口径不变）。
+  Future<http.Response> _send(http.Request request) async {
+    final client = _activeClient;
+    final streamed = await _withTimeout(client.send(request));
+    return _withTimeout(http.Response.fromStream(streamed));
+  }
+
+  /// 3xx 一律判失败（不跟随、不解析 Location、不带远端文本）。
+  ///
+  /// 例外：MKCOL 的 301 由 [ensureCollection] 按「集合已存在」处理——那是
+  /// 既有契约，且我们从不向 Location 重发，口令不外发；真正承载数据的
+  /// GET/PUT/DELETE/PROPFIND 走到同一个跳转时仍会命中这里。
+  void _rejectRedirect(http.Response response) {
+    final code = response.statusCode;
+    if (code >= 300 && code < 400) {
+      throw WebDavSyncException(
+        WebDavSyncException.redirectGateMessage,
+        statusCode: code,
+      );
+    }
+  }
+
   /// 确保集合存在（MKCOL）。
   ///
   /// - 201/200 → 创建成功，返回 true。
@@ -135,11 +200,8 @@ class WebDavSyncClient {
   /// - 其他 → 抛 [WebDavSyncException]。
   Future<bool> ensureCollection() async {
     _requireHttps();
-    final client = _activeClient;
-    final request = http.Request('MKCOL', baseUrl);
-    request.headers.addAll(_authHeader);
-    final streamed = await _withTimeout(client.send(request));
-    final response = await _withTimeout(http.Response.fromStream(streamed));
+    final request = _newRequest('MKCOL', baseUrl, headers: _authHeader);
+    final response = await _send(request);
 
     if (response.statusCode == 201 || response.statusCode == 200) {
       return true;
@@ -149,6 +211,7 @@ class WebDavSyncClient {
         response.statusCode == 409) {
       return true;
     }
+    _rejectRedirect(response);
     throw WebDavSyncException(
       'MKCOL failed: ${response.reasonPhrase}',
       statusCode: response.statusCode,
@@ -159,11 +222,14 @@ class WebDavSyncClient {
   ///
   /// - 200/207 → 返回字节。
   /// - 404 → 返回 null。
+  /// - 3xx → 抛重定向门禁异常（不跟随）。
   /// - 其他 → 抛 [WebDavSyncException]。
   Future<Uint8List?> getBytes(String relativePath) async {
-    final client = _activeClient;
     final url = _resolve(relativePath);
-    final response = await _withTimeout(client.get(url, headers: _authHeader));
+    final response = await _send(
+      _newRequest('GET', url, headers: _authHeader),
+    );
+    _rejectRedirect(response);
 
     if (response.statusCode == 200 || response.statusCode == 207) {
       return response.bodyBytes;
@@ -180,21 +246,22 @@ class WebDavSyncClient {
   /// 上传字节到指定路径（PUT）。
   ///
   /// - 201/204 → 成功。
+  /// - 3xx → 抛重定向门禁异常（绝不把文档与口令带到第二跳）。
   /// - 其他 → 抛 [WebDavSyncException]。
   Future<void> putBytes(
     String relativePath,
     List<int> bytes, {
     bool overwrite = true,
   }) async {
-    final client = _activeClient;
     final url = _resolve(relativePath);
     final headers = <String, String>{
       ..._authHeader,
       if (!overwrite) 'If-None-Match': '*',
     };
-    final response = await _withTimeout(
-      client.put(url, headers: headers, body: bytes),
-    );
+    final request = _newRequest('PUT', url, headers: headers)
+      ..bodyBytes = Uint8List.fromList(bytes);
+    final response = await _send(request);
+    _rejectRedirect(response);
 
     if (response.statusCode == 201 || response.statusCode == 204) {
       return;
@@ -208,13 +275,14 @@ class WebDavSyncClient {
   /// 删除指定路径的文件（DELETE）。
   ///
   /// - 204/404 → 成功（404 视为已删除）。
+  /// - 3xx → 抛重定向门禁异常（不跟随）。
   /// - 其他 → 抛 [WebDavSyncException]。
   Future<bool> deleteRemaining(String relativePath) async {
-    final client = _activeClient;
     final url = _resolve(relativePath);
-    final response = await _withTimeout(
-      client.delete(url, headers: _authHeader),
+    final response = await _send(
+      _newRequest('DELETE', url, headers: _authHeader),
     );
+    _rejectRedirect(response);
 
     if (response.statusCode == 204 || response.statusCode == 404) {
       return true;
@@ -230,7 +298,6 @@ class WebDavSyncClient {
   /// 返回相对当前路径的叶子文件名（不含目录名与父路径）；
   /// 只收普通文件，跳过目录。失败返回空列表或抛异常。
   Future<List<String>> listLeafNames(String relativePath) async {
-    final client = _activeClient;
     final url = _resolve(relativePath);
 
     final body = '''<?xml version="1.0" encoding="utf-8" ?>
@@ -240,26 +307,24 @@ class WebDavSyncClient {
   </d:prop>
 </d:propfind>''';
 
-    final request = http.Request('PROPFIND', url);
-    request.headers.addAll({
+    final request = _newRequest('PROPFIND', url, headers: {
       ..._authHeader,
       'Depth': '1',
       'Connection': 'close',
       'Content-Type': 'application/xml',
     });
     request.body = body;
+    final response = await _send(request);
+    _rejectRedirect(response);
 
-    final streamed = await _withTimeout(client.send(request));
-    final resp = await _withTimeout(http.Response.fromStream(streamed));
-
-    if (resp.statusCode != 200 && resp.statusCode != 207) {
+    if (response.statusCode != 200 && response.statusCode != 207) {
       throw WebDavSyncException(
-        'PROPFIND failed: ${resp.reasonPhrase}',
-        statusCode: resp.statusCode,
+        'PROPFIND failed: ${response.reasonPhrase}',
+        statusCode: response.statusCode,
       );
     }
 
-    return _parseLeafNames(resp.body, relativePath);
+    return _parseLeafNames(response.body, relativePath);
   }
 
   /// 从 PROPFIND 多状态 XML 中解析叶子文件名。

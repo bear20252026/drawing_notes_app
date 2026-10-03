@@ -190,8 +190,13 @@ void main() {
     // core/rendering（渲染/导出器）及 core/storage/document_codec
     // （离线工程格式输出适配器）均依赖多、被依赖少，I 天然偏高；它们
     // 不属于稳定数据层，故不纳入稳定性断言。
+    // P1 修正（审计 2026-10-04）：原 glob 写作 `domain/**`，但 `lib/` 下
+    // 不存在顶层 `domain/` 目录——17 个 feature 领域文件全在
+    // `features/<f>/domain/`，与本文件规则 1/4 的锚定写法不一致，样本集
+    // 恒空、领域层从未被这条断言检查过（下面「实测最差 0.33」只基于 core
+    // 样本）。改为与本文件其余规则一致的 `features/**/domain/**`。
     final report = {
-      ...Metrics.martin('domain/**', graph),
+      ...Metrics.martin('features/**/domain/**', graph),
       ...Metrics.martin('core/storage/**', graph),
       ...Metrics.martin('core/di/**', graph),
       ...Metrics.martin('core/theme/**', graph),
@@ -226,8 +231,10 @@ void main() {
       );
       if (i > worst) worst = i;
     }
-    // 基线：稳定层最差 instability 不得超过 0.4（实测 domain/core 最差
-    // 0.33 有余量，收紧自 0.6——2026 架构守护收紧）。
+    // 基线：稳定层最差 instability 不得超过 0.4（收紧自 0.6——2026 架构守护
+    // 收紧）。原注「实测 domain/core 最差 0.33」系 core 样本口径；domain 自
+    // 本次 glob 修正后首次纳入，超阈值即红——处置只能是降领域文件的出向
+    // 依赖（契约下沉 core / 组合根注入），不得放宽阈值、不得扩豁免名单。
     expect(
       worst,
       lessThanOrEqualTo(0.4),

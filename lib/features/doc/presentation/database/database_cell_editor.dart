@@ -29,7 +29,10 @@ Future<void> showTextCellEditor(
       builder: (ctx) {
         routeExited = ModalRoute.of(ctx)!.completed;
         return AlertDialog(
-          title: Text('编辑$fieldName'),
+          title: Text(
+            AppLocalizations.of(context)?.dbEditCell(fieldName) ??
+                '编辑$fieldName',
+          ),
           content: TextField(
             controller: controller,
             autofocus: true,

@@ -1796,6 +1796,18 @@ abstract class AppLocalizations {
   /// **'Incorrect password'**
   String get unlockPasswordWrong;
 
+  /// No description provided for @passwordEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Password can\'t be empty'**
+  String get passwordEmptyHint;
+
+  /// No description provided for @passwordTooShortHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Password is too short'**
+  String get passwordTooShortHint;
+
   /// No description provided for @unlockKeyboardText.
   ///
   /// In en, this message translates to:
@@ -4802,6 +4814,12 @@ abstract class AppLocalizations {
   /// **'Unsaved changes'**
   String get docUnsavedChangesTitle;
 
+  /// No description provided for @docUnsavedChangesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The document has unsaved changes. Quit anyway?'**
+  String get docUnsavedChangesBody;
+
   /// No description provided for @docDiscard.
   ///
   /// In en, this message translates to:
@@ -5173,6 +5191,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not selected'**
   String get dbCellNone;
+
+  /// Cell editor dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Edit {name}'**
+  String dbEditCell(String name);
 
   /// No description provided for @dbRecordCount.
   ///
@@ -6379,6 +6403,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Move to folder'**
   String get nbMoveFolderDialogTitle;
+
+  /// No description provided for @nbRootFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Root'**
+  String get nbRootFolder;
+
+  /// Batch move pages result
+  ///
+  /// In en, this message translates to:
+  /// **'Moved {count} pages to folder “{folder}”'**
+  String nbMovedPagesTo(int count, String folder);
 
   /// No description provided for @homeOpenCanvasCard.
   ///

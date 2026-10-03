@@ -13,7 +13,7 @@ import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 /// [DrawingController] 仍负责命中测试、几何变换和命令提交。
 class DrawingSelectionSession {
   SelectionTool tool = SelectionTool.none;
-  Selection selection = const Selection();
+  Selection _selection = const Selection();
   final List<Offset> _draft = <Offset>[];
   Offset? centerCache;
   bool centerDirty = true;
@@ -24,11 +24,25 @@ class DrawingSelectionSession {
   /// P-05（审计 2026-09-27）：原为全图层快照 `List<Layer>`，手势结束才
   /// 消费一次却常驻 O(全部图层全部笔画) 引用拷贝；现只记选中项，
   /// [StrokeSelectionEditingSession.endTransform] 据此组装窄命令三元组。
+  ///
+  /// 锚点只在 [selection] 写入时作废（见下方 setter）——2026-10-03 复核：
+  /// 原先只有 `endTransform` 清锚点，`_ensureTransformBefore` 又用 `??=`，
+  /// 于是「上一次手势没提交成功/换了选区」的残留锚点会被下一次手势当作
+  /// 起点，按陈旧图层位置组装三元组，撤销还原错位、越界项被静默丢弃。
   List<({int index, Stroke stroke})>? transformBefore;
 
   List<Offset> get draft => _draft;
-  bool get hasSelection => selection.polygon.length >= 3;
-  bool get hasSelectedStrokes => selection.selectedStrokeIndices.isNotEmpty;
+  bool get hasSelection => _selection.polygon.length >= 3;
+  bool get hasSelectedStrokes => _selection.selectedStrokeIndices.isNotEmpty;
+
+  /// 当前选区。
+  Selection get selection => _selection;
+
+  /// 写入即视为「选区变更 = 手势边界」，同时作废变换锚点（见 [transformBefore]）。
+  set selection(Selection value) {
+    _selection = value;
+    transformBefore = null;
+  }
 
   /// 切换工具时清除正式选区与中心缓存，但保留剪贴板以支持跨选区粘贴。
   void setTool(SelectionTool value) {

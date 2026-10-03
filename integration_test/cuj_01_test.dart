@@ -25,7 +25,18 @@ void main() {
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
     expect(find.text('请输入名称'), findsOneWidget);
-    await tester.enterText(find.byType(TextField).last, 'CUJ-01 画作');
+    // 按占位文案定位（语义选择器）：`byType(TextField).last` 依赖树中顺序，
+    // 桌面开屏锁的键盘输入框（app_lock_gate 的 _DesktopPinField）一旦同树
+    // 存在就会命中错的字段。
+    // 按「当前对话框里的输入框」定位：不依赖树中 TextField 的出现顺序
+    // （桌面开屏锁的 _DesktopPinField 也是同类型），也不依赖 hint 文案。
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextField),
+      ),
+      'CUJ-01 画作',
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('确定'));
     await tester.pumpAndSettle();

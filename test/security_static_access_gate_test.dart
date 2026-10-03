@@ -22,9 +22,16 @@
 // 渲染管线与存储层，逐个搭桩既脆又漏——扫描一次性锁死「新增直取即红」，
 // 与 focus_ring_coverage_test / architecture_test 同一门禁思路。
 //
-// 扫描前先做**等长遮蔽**（注释与字符串替换为空格、保留换行）：本批次落
+// 扫描前先做**等长遮蔽**（注释与字符串换成空格、保留换行）：本批次落
 // 进三个服务文件与若干消费方的 C-06 裁决注释里写到了 `Xxx.instance` 字样，
 // 不遮蔽会被当成真实调用（门禁首跑即假红）。
+//
+// 遮蔽器已于 P1 修正（审计 2026-10-04）抽到 `test/helpers/dart_lexical_mask.dart`
+// 的 `maskDartLexically`，与 V-12（focus_ring_coverage_test）共用同一份实现：
+// 原先两处各自复制的状态机不认 `${...}` 插值里的嵌套引号（本文件旧注释
+// 「含转义与三引号」的说法与实现不符），一处嵌套引号即让字符串态错位、
+// 把其后的纯代码整段抹成空格，命中落在错位区间里就直接失明放行。词法
+// 细节与等长契约见该文件头注释；词法回归见 dart_lexical_mask_test.dart。
 //
 // 豁免：当前为空。若将来确需在 features/shared 直取（如深管线拿不到组合
 // 根实例），把「相对 lib/ 的 posix 路径 → 理由」加进 [_exempt] 并在该文件
@@ -33,6 +40,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+
+import 'helpers/dart_lexical_mask.dart';
 
 /// 豁免表（相对 lib/ 的 posix 路径 → 豁免理由）。当前为空。
 const Map<String, String> _exempt = {};
@@ -55,7 +64,7 @@ void main() {
         final relToLib = rel.substring(rel.indexOf('lib/'));
         if (_exempt.containsKey(relToLib)) continue;
 
-        final code = _maskCommentsAndStrings(entity.readAsStringSync());
+        final code = maskDartLexically(entity.readAsStringSync());
         for (final m in _pattern.allMatches(code)) {
           total++;
           final line = code.substring(0, m.start).split('\n').length;
@@ -84,62 +93,4 @@ void main() {
           '${offenders.take(30).join('\n')}',
     );
   });
-}
-
-/// 等长遮蔽：注释与字符串内容换为空格（保留换行，行号不变）。
-/// 与 focus_ring_coverage_test 同款状态机（行注释/块注释/单双引号字符串，
-/// 含转义与三引号——遇前三个同引号自然终止）。
-String _maskCommentsAndStrings(String src) {
-  final b = StringBuffer();
-  var i = 0;
-  while (i < src.length) {
-    final c = src[i];
-    // 行注释（含 ///）——必须先于引号判断，否则注释里的撇号会被当字符串。
-    if (c == '/' && i + 1 < src.length && src[i + 1] == '/') {
-      while (i < src.length && src[i] != '\n') {
-        b.write(' ');
-        i++;
-      }
-      continue;
-    }
-    // 块注释。
-    if (c == '/' && i + 1 < src.length && src[i + 1] == '*') {
-      b.write('  ');
-      i += 2;
-      while (i < src.length) {
-        if (src[i] == '*' && i + 1 < src.length && src[i + 1] == '/') {
-          b.write('  ');
-          i += 2;
-          break;
-        }
-        b.write(src[i] == '\n' ? '\n' : ' ');
-        i++;
-      }
-      continue;
-    }
-    // 字符串字面量（单双引号；含三引号——遇前三个同引号自然终止）。
-    if (c == "'" || c == '"') {
-      final quote = c;
-      b.write(' ');
-      i++;
-      while (i < src.length) {
-        if (src[i] == r'\') {
-          b.write('  ');
-          i += 2;
-          continue;
-        }
-        if (src[i] == quote) break;
-        b.write(src[i] == '\n' ? '\n' : ' ');
-        i++;
-      }
-      if (i < src.length) {
-        b.write(' ');
-        i++;
-      }
-      continue;
-    }
-    b.write(c);
-    i++;
-  }
-  return b.toString();
 }

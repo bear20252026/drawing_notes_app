@@ -69,7 +69,18 @@ void main() {
     await tester.pumpAndSettle();
 
     // 命名对话框：输入名称并确定。
-    await tester.enterText(find.byType(TextField).last, '冒烟测试画作');
+    // 按占位文案定位（语义选择器）——`byType(TextField).last` 依赖树中顺序，
+    // 桌面开屏锁新增的键盘输入框（app_lock_gate 的 _DesktopPinField）一旦
+    // 出现在同一棵树里就会命中错的字段。
+    // 按「当前对话框里的输入框」定位：不依赖树中 TextField 的出现顺序
+    // （桌面开屏锁的 _DesktopPinField 也是同类型），也不依赖 hint 文案。
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextField),
+      ),
+      '冒烟测试画作',
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('确定'));
     await tester.pumpAndSettle();

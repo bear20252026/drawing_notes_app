@@ -16,6 +16,27 @@ import 'package:drawing_notes_app/features/notes/presentation/conflict_resolutio
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
 
+/// P2 脱敏（审计 2026-10）：审计日志的 detail 也可能带远端可控文本
+/// （reasonPhrase / 远端路径），落盘前先剥掉凭据形态（Basic token、URL
+/// userinfo）、折行（防伪造审计行）并截断——审计链虽只在内存，仍按
+/// H-04「绝不落凭据」口径处理。
+final RegExp _basicTokenRe = RegExp(r'Basic\s+[A-Za-z0-9+/=]+');
+final RegExp _urlUserInfoRe = RegExp(
+  r'([A-Za-z][A-Za-z0-9+.-]*://)[^\s/@:]+:[^\s/@]*@',
+);
+final RegExp _whitespaceRe = RegExp(r'\s+');
+const int _logDetailMaxLen = 160;
+
+String _redactForLog(String raw) {
+  final scrubbed = raw
+      .replaceAll(_basicTokenRe, 'Basic [redacted]')
+      .replaceAllMapped(_urlUserInfoRe, (m) => '${m[1]}[redacted]@')
+      .replaceAll(_whitespaceRe, ' ');
+  return scrubbed.length <= _logDetailMaxLen
+      ? scrubbed
+      : '${scrubbed.substring(0, _logDetailMaxLen)}…';
+}
+
 /// R1：把同步异常映射为人话文案——用户界面只出现可读懂的提示，
 /// 原始异常对象进调试日志（debugPrint），不再直接拼进 UI 字符串。
 String humanizeWebDavSyncError(Object? e, {AppLocalizations? l10n}) {
@@ -29,6 +50,12 @@ String humanizeWebDavSyncError(Object? e, {AppLocalizations? l10n}) {
     detail: e.runtimeType.toString(),
   );
   if (e is WebDavSyncException) {
+    // 原文（脱敏 + 截断后）进审计日志供本机排查；UI 一律走下面的静态文案。
+    AuditLogger.log(
+      'webdav.sync.detail',
+      success: false,
+      detail: _redactForLog('HTTP ${e.statusCode ?? '-'} ${e.message}'),
+    );
     // F-20 修复（审计 2026-09-07）：「远端路径」分支的 message 内嵌
     // relativePath——docId 来自未认证远端 manifest，可被操控（注入换行/
     // 钓鱼文案）。不再拼进用户可见文案，改静态提示；原文只进审计日志
@@ -37,12 +64,22 @@ String humanizeWebDavSyncError(Object? e, {AppLocalizations? l10n}) {
       AuditLogger.log(
         'webdav.sync.unsafe_path',
         success: false,
-        detail: e.message,
+        detail: _redactForLog(e.message),
       );
       return l10n?.syncFailedRemoteFile ?? '同步失败：同步远端文件失败，请检查服务器';
     }
-    // 本地安全门禁（https）文案是本地静态文本，可直接透出。
-    if (e.message.contains('https')) {
+    // P2 修复（审计 2026-10）：此前用 `message.contains('https')` 猜「本地
+    // 门禁文案」——远端 reasonPhrase 里带一个 https 字样就能把任意字符串送进
+    // snackbar，且该分支排在 401/5xx/404 分类之前会把认证失败降级成裸文本。
+    // 改为全等白名单：只有本地静态构造的门禁 message 才允许透出。
+    if (WebDavSyncException.isLocalGateMessage(e.message)) {
+      if (e.message == WebDavSyncException.redirectGateMessage) {
+        AuditLogger.log(
+          'webdav.sync.redirect_blocked',
+          success: false,
+          detail: 'HTTP ${e.statusCode ?? '-'}',
+        );
+      }
       return l10n?.webdavSyncFailRaw(e.message) ?? '同步失败：${e.message}';
     }
     final code = e.statusCode;
@@ -179,6 +216,10 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     // S-03 方案 A：口令不回填 → 生效值 = 表单非空 ? 表单 : 已存。
     final cfg = await _sync.loadConfig();
     final secrets = await _sync.readSecrets();
+    // mounted 守卫（P2 修复）：上面 await 了两次，页面可能已被 pop。下面的
+    // 三个提示分支（未设密码 / 表单脏 / 缺盐）与 setState 都要碰 UI，统一在
+    // 此早退；_toast 内另有一道同款兜底守卫。
+    if (!mounted) return;
     final passphrase =
         _syncSecret.text.trim().isNotEmpty
             ? _syncSecret.text.trim()
@@ -186,9 +227,8 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     final password =
         _pass.text.isNotEmpty ? _pass.text : (secrets.webdavPassword ?? '');
     if (passphrase.isEmpty) {
-      // mounted 守卫：本分支前已 await 两次（cfg/secrets），与下方两处同款。
       _toast(
-        (mounted ? AppLocalizations.of(context) : null)?.webdavNeedSyncPassword ??
+        AppLocalizations.of(context)?.webdavNeedSyncPassword ??
             '未设置同步密码：为避免笔记明文上云，已阻止同步。请在下方设置同步密码后重试。',
       );
       return;
@@ -206,14 +246,14 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
             _syncSecret.text.trim() != secrets.syncPassphrase);
     if (formDirty) {
       _toast(
-        (mounted ? AppLocalizations.of(context) : null)?.webdavFormDirty ??
+        AppLocalizations.of(context)?.webdavFormDirty ??
             '表单有未保存的修改：请先点击「保存配置」再同步（避免加密密钥与云端数据错配）',
       );
       return;
     }
     if (cfg.syncSalt == null || cfg.syncSalt!.isEmpty) {
       _toast(
-        (mounted ? AppLocalizations.of(context) : null)?.syncMissingSalt ??
+        AppLocalizations.of(context)?.syncMissingSalt ??
             '同步配置缺少加密盐：请重新点击「保存配置」后再同步',
       );
       return;
@@ -287,7 +327,13 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     return base;
   }
 
+  /// 轻提示。
+  ///
+  /// mounted 守卫收口在此（P2 修复）：本页多处 await 之后才提示，页面被
+  /// pop 时 `ScaffoldMessenger.of(context)` 会拿 defunct element 的 context
+  /// 直接抛错。各调用点仍保留早退守卫——不弹就别继续走 setState。
   void _toast(String msg) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(SnackBar(content: Text(msg)));

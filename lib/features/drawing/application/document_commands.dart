@@ -87,20 +87,30 @@ class EraseStrokesCommand extends DocCommand {
   EraseStrokesCommand(
     this._context,
     this._removed, {
-    this.removedShapes = const [],
+    this.removedShapeEntries = const [],
   });
 
   final DocCommandContext _context;
 
-  /// 被删笔画按删除顺序记录：(图层索引, 删除前原位置, 笔画对象)。
+  /// 被删笔画按删除顺序记录：(图层索引, 手势起始原始序号, 笔画对象)。
   final List<({int layerIndex, int index, Stroke stroke})> _removed;
 
-  /// 本次手势一并删除的标准形状（引用快照），撤销时插回、重做时再移除。
-  final List<PageShapeItem> removedShapes;
+  /// 本次手势一并删除的标准形状：(手势起始原始序号, 原实例)（引用快照）。
+  ///
+  /// 2026-10-03 复核：原先只记实例、撤销时 `copy()` 追加到末尾——undo 放回的是
+  /// 新副本，redo 按 identity `remove` 移不掉 ⇒ 重做无效；再次 undo 又追加
+  /// 一个**同 id** 形状（破坏箭头 `firstOrNull` 绑定与按 id 选择，并原样存盘），
+  /// 且末尾追加丢失原 z 序。现按原实例 + 原序号精确插回，redo 按 identity 移除。
+  final List<({int index, PageShapeItem shape})> removedShapeEntries;
+
+  /// 被删形状实例（既有只读视图，与 [removedShapeEntries] 同序）。
+  List<PageShapeItem> get removedShapes =>
+      removedShapeEntries.map((entry) => entry.shape).toList(growable: false);
 
   @override
   void undo() {
-    // 按 (图层, 原位置) 升序插回原处；同一图层先插小索引不会影响大索引位置。
+    // 按 (图层, 原始序号) 升序插回原处：存活笔画相对序不变、序号更小的已先
+    // 插回，故逐次 insert(entry.index) 恰好还原手势起始次序。
     final byLayer = <int, List<({int index, Stroke stroke})>>{};
     for (final entry in _removed) {
       byLayer.putIfAbsent(entry.layerIndex, () => []).add((
@@ -117,11 +127,15 @@ class EraseStrokesCommand extends DocCommand {
       }
       _context.afterStrokeUndoRedo(layerIndex);
     }
-    // 恢复被擦除的标准形状（保持原顺序追加）。
-    if (removedShapes.isNotEmpty) {
-      _context.document.shapes.addAll(
-        removedShapes.map((shape) => shape.copy()),
-      );
+    // 恢复被擦除的标准形状：按原始序号插回原实例（同笔画，形状也保持原 z 序）。
+    if (removedShapeEntries.isNotEmpty) {
+      final shapes = _context.document.shapes;
+      final entries = <({int index, PageShapeItem shape})>[
+        ...removedShapeEntries,
+      ]..sort((a, b) => a.index.compareTo(b.index));
+      for (final entry in entries) {
+        shapes.insert(entry.index.clamp(0, shapes.length), entry.shape);
+      }
     }
     _context.touchDocument();
   }
@@ -138,9 +152,9 @@ class EraseStrokesCommand extends DocCommand {
     for (final layerIndex in changedLayers) {
       _context.afterStrokeUndoRedo(layerIndex);
     }
-    // 再次移除被擦除的标准形状。
-    for (final shape in removedShapes) {
-      _context.document.shapes.remove(shape);
+    // 再次移除被擦除的标准形状：undo 放回的就是这些实例，identity 移除成立。
+    for (final entry in removedShapeEntries) {
+      _context.document.shapes.remove(entry.shape);
     }
     _context.touchDocument();
   }

@@ -929,6 +929,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unlockPasswordWrong => 'Incorrect password';
 
   @override
+  String get passwordEmptyHint => 'Password can\'t be empty';
+
+  @override
+  String get passwordTooShortHint => 'Password is too short';
+
+  @override
   String get unlockKeyboardText => 'ABC';
 
   @override
@@ -2593,6 +2599,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get docUnsavedChangesTitle => 'Unsaved changes';
 
   @override
+  String get docUnsavedChangesBody =>
+      'The document has unsaved changes. Quit anyway?';
+
+  @override
   String get docDiscard => 'Discard';
 
   @override
@@ -2779,6 +2789,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dbCellNone => 'Not selected';
+
+  @override
+  String dbEditCell(String name) {
+    return 'Edit $name';
+  }
 
   @override
   String dbRecordCount(int count) {
@@ -3477,6 +3492,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get nbMoveFolderDialogTitle => 'Move to folder';
+
+  @override
+  String get nbRootFolder => 'Root';
+
+  @override
+  String nbMovedPagesTo(int count, String folder) {
+    return 'Moved $count pages to folder “$folder”';
+  }
 
   @override
   String homeOpenCanvasCard(String title) {

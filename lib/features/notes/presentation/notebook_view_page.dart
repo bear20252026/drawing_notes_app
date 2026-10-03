@@ -183,26 +183,25 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
 
   /// 再认证后恢复会话：重派生媒体密钥 + 复位锁定态 + 刷新 UI。
   ///
-  /// 派生失败保持 fail-closed（密钥不注入），仅提示重新打开笔记本。
+  /// 派生失败**或无口令可用**一律保持锁定（fail-closed，P1 修复本次）：
+  /// 旧实现在这两条分支上都 `_sessionGuard.unlock()` 并弹「会话已恢复」，
+  /// 会话解了却没装媒体密钥——加密笔记本此后插入的图片会走「无密钥」密封
+  /// 分支明文落 `notebook_images/`——本方法的 fail-closed 承诺被自己的行为
+  /// 推翻。存储侧的另一半收口见 `NotebookStorage._plainMediaOrLock`。
   Future<void> _restoreSessionAfterReauth() async {
     if (!mounted) return;
     final pw = _effectivePassword;
-    if (_notebook.encrypted && pw != null && pw.isNotEmpty) {
+    if (_notebook.encrypted) {
+      if (pw == null || pw.isEmpty) {
+        _notifySessionNeedsReopen();
+        return;
+      }
       try {
         final mediaSalt = await widget.storage.ensureMediaSalt();
         // C-06（审计 2026-09-27）：媒体服务构造注入（重派生语义不变）。
         await widget.mediaCrypto.setSessionPassword(pw, mediaSalt);
       } catch (_) {
-        _sessionGuard.unlock();
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)?.nbSessionExpired ??
-                  '会话已过期，请重新打开该分页画布',
-            ),
-          ),
-        );
+        _notifySessionNeedsReopen();
         return;
       }
     }
@@ -213,6 +212,20 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
       SnackBar(
         content: Text(
           AppLocalizations.of(context)?.nbSessionRestored ?? '会话已恢复',
+        ),
+      ),
+    );
+  }
+
+  /// 媒体密钥未能重派生：保持锁定、提示重开该分页画布（提示文案静态，
+  /// 不把原始异常带进 UI）。
+  void _notifySessionNeedsReopen() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(context)?.nbSessionExpired ??
+              '会话已过期，请重新打开该分页画布',
         ),
       ),
     );

@@ -160,16 +160,46 @@ class StorageWritePipeline {
   }
 
   /// 懒迁移：把明文字节经既有写尾队列重写为密文（与保存共用并发纪律）。
+  ///
+  /// P1 修复（本次）：入队时捕获的 `plaintext` 是**读路径 await 之前**的快照
+  /// （listDocuments 读 raw → 若干 await → 才入队），队列里排在它前面的较新
+  /// 保存会被这份陈旧快照反超覆盖（编辑内容静默回退）。现在在队列内重读当前
+  /// 文件字节，与快照不一致（或文件已消失）就放弃本次迁移——下次读取会重新
+  /// 排队（幂等），语义对齐 file_password_concurrency_test 断言的「重封写不
+  /// 是覆盖陈旧明文」。
   void enqueueRawRewrite(String id, Uint8List plaintext) {
     final previous = _writeTails[id] ?? Future<void>.value();
     late final Future<void> operation;
     operation = previous.catchError((_) {}).then((_) async {
+      if (!await _isStillCurrentPlaintext(id, plaintext)) return;
       await saveEncoded(id, plaintext);
     });
     _writeTails[id] = operation;
     operation.whenComplete(() {
       if (identical(_writeTails[id], operation)) _writeTails.remove(id);
     });
+  }
+
+  /// 迁移前置校验：磁盘当前字节仍是入队时捕获的明文快照才允许重写。
+  /// 读取失败/文件缺失一律判否（fail-closed——宁可这次不迁移，也不覆盖新内容）。
+  Future<bool> _isStillCurrentPlaintext(String id, Uint8List snapshot) async {
+    if (!StorageDirectories.validIdPattern.hasMatch(id)) return false;
+    try {
+      await directories.ensureDocuments();
+      final file = File(directories.documentPathFor(id));
+      if (!file.existsSync()) return false; // 已删除/已进回收站——不复活
+      return _bytesEqual(await file.readAsBytes(), snapshot);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static bool _bytesEqual(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   /// 把已密封字节原子落盘（含 .bak 备份——与 saveEncoded 同纪律）。

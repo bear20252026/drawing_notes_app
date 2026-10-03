@@ -133,9 +133,22 @@ class LayerRenderCacheCoordinator {
         .where((candidate) => candidate.id == layerId)
         .firstOrNull;
     if (cache == null || layer == null) return;
-    cache
-      ..dirty = true
-      ..dirtyRegion = region;
+    // 脏区**并集**累积，不覆盖（2026-10-03 复核 P-06）：一个
+    // PointerDataPacket 里的多次 move 事件在同一轮事件循环内全部派发完
+    // 才轮到重建任务，两次擦除各入队一次重建；原先直接赋值，前一个采样点
+    // 的区域还没被 _rebuildLayerNow 取走就被后者抹掉，重建只覆盖最后一处
+    // ⇒ 前一处留下永久残影（光栅化排队越深越易复现）。
+    // null = 整层重建（覆盖面最大）：任一侧为 null 时结果取 null；
+    // 待处理侧为 null 表示队列已取空，直接用本次区域，不放大成整层重建。
+    final pending = cache.dirtyRegion;
+    if (pending != null && region != null) {
+      cache.dirtyRegion = pending.expandToInclude(region);
+    } else if (pending != null) {
+      cache.dirtyRegion = null;
+    } else {
+      cache.dirtyRegion = region;
+    }
+    cache.dirty = true;
     // 任务链串行执行（见 _rebuildQueue）：本 await 覆盖此前飞行中的重建
     // 轮到并完成本次重建，无需旧实现的「跳过后补跑」兜底。
     await _rebuildLayer(layer);

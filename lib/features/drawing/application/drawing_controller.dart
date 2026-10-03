@@ -131,11 +131,13 @@ class DrawingController extends ChangeNotifier
   @override
   void setCurrentLayerIndexForRestore(int value) {
     _currentLayerIndex = value;
+    _selectionSession.clearTransformBefore();
   }
 
   @override
   void setCurrentLayerIndexForLayerEdit(int value) {
     _currentLayerIndex = value;
+    _selectionSession.clearTransformBefore();
   }
 
   @override
@@ -312,6 +314,8 @@ class DrawingController extends ChangeNotifier
   set currentLayerIndex(int value) {
     if (value >= 0 && value < _document.layers.length) {
       _currentLayerIndex = value;
+      // 锚点记录的是「当前图层内位置」，切层后位置含义全变（2026-10-03 复核）。
+      _selectionSession.clearTransformBefore();
       notifyListeners();
     }
   }
@@ -511,7 +515,7 @@ class DrawingController extends ChangeNotifier
       EraseStrokesCommand(
         this,
         result.removedStrokes,
-        removedShapes: result.removedShapes,
+        removedShapeEntries: result.removedShapeEntries,
       ),
     );
     notifyListeners();
@@ -524,7 +528,7 @@ class DrawingController extends ChangeNotifier
     EraseStrokesCommand(
       this,
       result.removedStrokes,
-      removedShapes: result.removedShapes,
+      removedShapeEntries: result.removedShapeEntries,
     ).undo();
   }
 

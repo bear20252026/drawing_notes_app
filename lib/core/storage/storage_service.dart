@@ -175,7 +175,10 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
   @override
   Future<List<DocumentMeta>> listDocuments() async {
     // M-06：列表时自动清理过期回收站项（30 天保留——Android 官方模式）。
-    await purgeTrash();
+    // P1 修复（本次）：改走节流入口——原实现每次列表都全扫回收站，配合
+    // 「过期判定用 mtime」的缺陷把误删放大到每次刷新首页（详见
+    // StorageTrashBin.purgeTrashThrottled）。
+    await _trash.purgeTrashThrottled();
     final dir = await _directories.ensureDocuments();
     final metas = <DocumentMeta>[];
     await for (final entity in dir.list()) {

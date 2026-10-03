@@ -102,10 +102,20 @@ extension _HomePagePasswordOps on _HomePageState {
   /// 独立密码收集（两次一致才生效）；与开屏密码同码直接拒绝。
   Future<String?> _collectNewFilePassword(String title) async {
     final pin = await UnlockFlow.show(context, title: title, flexible: true);
-    if (pin == null || !mounted) return null;
-    // ≠开屏密码强制（哈希加盐不可比对，用 verify 探测）。
-    if (await AppLockService.matchesAppLockPin(pin)) {
+    // P1 空值保底（三层收口的第二层）：UI 之外仍有绕过路径，此处兜底。
+    if (pin == null || pin.isEmpty || !mounted) return null;
+    // ≠开屏密码强制（哈希加盐不可比对，用只读探测——不消耗防爆破计数）。
+    final sameAsLock = await AppLockService.probeMatchesAppLockPin(pin);
+    if (sameAsLock == true) {
       _showSnack(_l10nSafe?.docPinSameAsLock ?? '独立密码不能与开屏密码相同');
+      return null;
+    }
+    if (sameAsLock == null) {
+      // P2 fail-closed：判定不了（多为开屏锁防爆破冷却中）——拒绝设密
+      // 并提示稍后重试，绝不静默放行「与开屏密码同码」。
+      _showSnack(
+        _l10nSafe?.lockTemporarilyLocked ?? '为防止暴力猜测，密码验证已暂时锁定',
+      );
       return null;
     }
     if (!mounted) return null; // matchesAppLockPin 为异步操作，跨缺口守卫
@@ -114,7 +124,7 @@ extension _HomePagePasswordOps on _HomePageState {
       title: _l10nSafe?.docConfirmStandalonePassword ?? '确认独立密码',
       flexible: true,
     );
-    if (confirm == null) return null;
+    if (confirm == null || confirm.isEmpty) return null;
     if (confirm != pin) {
       _showSnack(_l10nSafe?.docPinMismatch ?? '两次输入不一致，请重试');
       return null;

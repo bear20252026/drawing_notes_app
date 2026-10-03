@@ -70,6 +70,13 @@ extension _EditorPageBody on _EditorPageState {
                             c.endDocumentShapeTransform();
                           } else if (c.hasSelectedDocumentImage) {
                             c.endDocumentImageTransform();
+                          } else {
+                            // 2026-10-03 复核：此处原先缺笔画分支——上面的
+                            // onScaleChanged/onRotateChanged 确实调用了
+                            // scaleSelectedStrokes/rotateSelectedStrokes，
+                            // 滑块改的笔画坐标会存盘，但窄命令从未提交，
+                            // Ctrl+Z 撤不回（与上面三个分支的派发口径对齐）。
+                            c.endTransform();
                           }
                           _notifyChanged();
                         },

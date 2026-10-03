@@ -97,6 +97,9 @@ class StorageFilePasswordManager {
     String password, {
     List<int>? resetDiskKey,
   }) {
+    // P1 fail-closed（空密码收口第三层）：空串绝不封成「已加密」信封
+    // ——UI 与收集方各有前置校验，此处兜底任何绕过路径。
+    if (password.isEmpty) throw ArgumentError('密码不能为空');
     return pipeline.runDocExclusive(
       id,
       () => _setFilePasswordLocked(id, password, resetDiskKey: resetDiskKey),
@@ -164,6 +167,9 @@ class StorageFilePasswordManager {
     String oldPassword,
     String newPassword,
   ) {
+    // P1 fail-closed：新密码空串拒绝（旧密码允许历史遗留空值通过校验，
+    // 否则既有已设空密码的文档将无法改密自救）。
+    if (newPassword.isEmpty) throw ArgumentError('密码不能为空');
     return pipeline.runDocExclusive(
       id,
       () => _changeFilePasswordLocked(id, oldPassword, newPassword),
@@ -295,6 +301,8 @@ class StorageFilePasswordManager {
     List<int> usbKey,
     String newPassword,
   ) {
+    // P1 fail-closed：重置即设新密码，空串拒绝。
+    if (newPassword.isEmpty) throw ArgumentError('密码不能为空');
     return pipeline.runDocExclusive(
       id,
       () => _resetFilePasswordWithUsbLocked(id, usbKey, newPassword),

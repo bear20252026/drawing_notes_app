@@ -11,9 +11,16 @@ import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 /// 一次对象橡皮擦手势所产生的增量变更。
 ///
 /// 删除前位置和对象引用可由命令层精确回放，无需为连续擦除手势复制整层数据。
+///
+/// 两处 `index` 均为**手势起始时的原始序号**（2026-10-03 复核）：同一手势
+/// 跨采样点反复删除会让列表变短，删除当下的瞬时索引插回会把 [A,X,C] 还原成
+/// [A,C,X]——叠色次序（`BlendMode.clear` 橡皮、高亮笔）随之改变。
 typedef ObjectEraseResult = ({
   List<({int layerIndex, int index, Stroke stroke})> removedStrokes,
   List<PageShapeItem> removedShapes,
+
+  /// 与 [removedShapes] 同序的 (原始序号, 原实例) 记录，供撤销按 z 序插回。
+  List<({int index, PageShapeItem shape})> removedShapeEntries,
   Set<int> changedLayerIndices,
 });
 
@@ -46,8 +53,17 @@ class ObjectEraserSession {
 
   final List<({int layerIndex, int index, Stroke stroke})> _removedStrokes =
       <({int layerIndex, int index, Stroke stroke})>[];
-  final List<PageShapeItem> _removedShapes = <PageShapeItem>[];
+  final List<({int index, PageShapeItem shape})> _removedShapeEntries =
+      <({int index, PageShapeItem shape})>[];
   final Set<int> _changedLayerIndices = <int>{};
+
+  /// 本手势首次删除前抓取的引用快照，作为「原始序号」基准。
+  ///
+  /// 只在实际发生删除的图层上快照一次（O(该层笔画数) 引用拷贝，收笔即弃），
+  /// 之后的删除都换算回快照下标；Stroke/PageShapeItem 未重写 `==`，
+  /// `indexOf` 即按 identity 定位。
+  final Map<int, List<Stroke>> _strokeBaselines = <int, List<Stroke>>{};
+  List<PageShapeItem>? _shapeBaseline;
 
   bool _changed = false;
 
@@ -58,8 +74,10 @@ class ObjectEraserSession {
 
   void begin() {
     _removedStrokes.clear();
-    _removedShapes.clear();
+    _removedShapeEntries.clear();
     _changedLayerIndices.clear();
+    _strokeBaselines.clear();
+    _shapeBaseline = null;
     _changed = false;
   }
 
@@ -95,12 +113,21 @@ class ObjectEraserSession {
         }
       }
       if (removed.isEmpty) continue;
+      // 快照须在 removeAt 之前取：本采样点之前的删除已让列表变短。
+      final baseline = _strokeBaselines.putIfAbsent(
+        layerIndex,
+        () => List<Stroke>.of(layer.strokes),
+      );
       for (final entry in removed.reversed) {
         layer.strokes.removeAt(entry.index);
       }
       _removedStrokes.addAll(<({int layerIndex, int index, Stroke stroke})>[
         for (final entry in removed)
-          (layerIndex: layerIndex, index: entry.index, stroke: entry.stroke),
+          (
+            layerIndex: layerIndex,
+            index: baseline.indexOf(entry.stroke),
+            stroke: entry.stroke,
+          ),
       ]);
       // strokeBounds 含描边外扩（与书写路径 commitPersistentStroke 同源），
       // 直接可用作重绘区域；null = 空笔画（无像素），跳过即可。
@@ -119,10 +146,16 @@ class ObjectEraserSession {
           if (_shapeHitsEraser(shape, canvasPoint, radius)) shape,
       ];
       if (hitShapes.isNotEmpty) {
+        final baseline = _shapeBaseline ??= List<PageShapeItem>.of(
+          document.shapes,
+        );
         for (final shape in hitShapes) {
           document.shapes.remove(shape);
         }
-        _removedShapes.addAll(hitShapes);
+        _removedShapeEntries.addAll(<({int index, PageShapeItem shape})>[
+          for (final shape in hitShapes)
+            (index: baseline.indexOf(shape), shape: shape),
+        ]);
         // 形状**不进**图层位图（由 canvas_painter 直绘），本字段只描述
         // 「画布上可见的变化范围」——同采样点还擦到笔画时并入，让该区域
         // 一并重建；纯形状擦除不改 changedLayerIndices，行为与既往一致。
@@ -156,7 +189,13 @@ class ObjectEraserSession {
       removedStrokes: List<({int layerIndex, int index, Stroke stroke})>.of(
         _removedStrokes,
       ),
-      removedShapes: List<PageShapeItem>.of(_removedShapes),
+      removedShapes: List<PageShapeItem>.unmodifiable(
+        _removedShapeEntries.map((entry) => entry.shape),
+      ),
+      removedShapeEntries:
+          List<({int index, PageShapeItem shape})>.unmodifiable(
+            _removedShapeEntries,
+          ),
       changedLayerIndices: Set<int>.of(_changedLayerIndices),
     );
     begin();

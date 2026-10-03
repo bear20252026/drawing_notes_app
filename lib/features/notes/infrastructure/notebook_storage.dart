@@ -9,6 +9,7 @@ import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/security/session_secrets.dart';
+import 'package:drawing_notes_app/core/security/svg_preflight.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
@@ -34,6 +35,15 @@ part 'notebook_storage_codec.dart';
 ///
 /// 密码保护（C3/C5）：启用加密的笔记本以 AES-GCM 密文存储页面内容，
 /// 明文不落盘；打开时需输入密码解密（见 [encryptNotebook]/[decryptNotebook]）。
+///
+/// P0 竞态收口（审计 2026-10-03）：设密/改密/绑盘/重置盘的「读载荷 →
+/// Argon2id 重绕 → 写回」三步必须整体在同 id 的独占写队列（[_runExclusive]）
+/// 内执行——重绕是数百毫秒级慢操作，队列外读载荷会让窗口内的并发落盘被
+/// 陈旧快照覆盖（UI 仍提示成功）。口径对齐
+/// `core/documents/note_block_doc_store_password.dart` 与
+/// `StorageFilePasswordManager.setFilePassword` 的「保证在队列中重新读取
+/// 最新已落盘明文后再重封（非陈旧快照）」。空口令在入口即
+/// [ArgumentError] 拒绝（同 `StorageFilePasswordManager`），绝不封成「已加密」。
 ///
 /// 已通过 [NotebookRepository] 接口抽象（见 repository.dart），
 /// 未来替换为云同步实现时无需改动上层逻辑。
@@ -301,27 +311,6 @@ class NotebookStorage
     if (!isValidId(pageId)) {
       throw ArgumentError('非法 pageId: $pageId');
     }
-    // 媒体 VFS 双轨（2026-08-16）：新媒体写入 VFS 对象（'vfs:' 标记——
-    // 解锁会话内 VaultService 注入——s3-encryption-gateway 双读窗口模式）；
-    // 旧媒体 DAN 文件保持兼容读。
-    final vfs = vaultService;
-    if (vfs != null && vfs.hasKey) {
-      final src = File(sourcePath);
-      if (!src.existsSync()) {
-        throw FileSystemException('源图片不存在', sourcePath);
-      }
-      final id = 'media/${pageId}_${DateTime.now().microsecondsSinceEpoch}';
-      await vfs.putObject(id, plain: await src.readAsBytes(), type: 'media');
-      return 'vfs:$id';
-    }
-    final src = File(sourcePath);
-    if (!src.existsSync()) throw FileSystemException('源图片不存在', sourcePath);
-    // H-03 部分落地（专家审计 2026-08-15）：源文件大小配额（防超大图片
-    // 资产入库；完整媒体加密——每笔记 DEK + 渲染解密——评估为数据保密
-    // 重构专项，涉及渲染管线跨域改造，见 Inqrypt/heritage 分层加密模式）。
-    if (await src.length() > _maxImageSourceBytes) {
-      throw FileSystemException('图片源文件过大（超过 50MB 限制）', sourcePath);
-    }
     // 扩展名白名单：只接受常见图片格式，防止任意文件以图片身份入库。
     final ext = sourcePath.contains('.')
         ? sourcePath.split('.').last.toLowerCase()
@@ -340,6 +329,32 @@ class NotebookStorage
       'tiff',
     };
     final safeExt = allowed.contains(ext) ? ext : 'png';
+    // 媒体 VFS 双轨（2026-08-16）：新媒体写入 VFS 对象（'vfs:' 标记——
+    // 解锁会话内 VaultService 注入——s3-encryption-gateway 双读窗口模式）；
+    // 旧媒体 DAN 文件保持兼容读。
+    final vfs = vaultService;
+    if (vfs != null && vfs.hasKey) {
+      final src = File(sourcePath);
+      if (!src.existsSync()) {
+        throw FileSystemException('源图片不存在', sourcePath);
+      }
+      final id = 'media/${pageId}_${DateTime.now().microsecondsSinceEpoch}';
+      final bytes = await src.readAsBytes();
+      // 预检在入库前（P3 修复本次）：VFS 对象同样落进应用数据目录。
+      if (_requiresSvgPreflight(safeExt, bytes)) {
+        _rejectUnsafeSvg(bytes);
+      }
+      await vfs.putObject(id, plain: bytes, type: 'media');
+      return 'vfs:$id';
+    }
+    final src = File(sourcePath);
+    if (!src.existsSync()) throw FileSystemException('源图片不存在', sourcePath);
+    // H-03 部分落地（专家审计 2026-08-15）：源文件大小配额（防超大图片
+    // 资产入库；完整媒体加密——每笔记 DEK + 渲染解密——评估为数据保密
+    // 重构专项，涉及渲染管线跨域改造，见 Inqrypt/heritage 分层加密模式）。
+    if (await src.length() > _maxImageSourceBytes) {
+      throw FileSystemException('图片源文件过大（超过 50MB 限制）', sourcePath);
+    }
     final dir = await _ensureImagesDir();
     final target = File(
       '${dir.path}${Platform.pathSeparator}${pageId}_${DateTime.now().microsecondsSinceEpoch}.$safeExt',
@@ -348,8 +363,11 @@ class NotebookStorage
       // H-03 双端接入（专家审计 2026-08-15）+ 批次①c 三级加密封支：
       // ① 会话密钥已注入（加密笔记本解锁场景）→ DAN 文件头加密；
       // ② 保险库解锁 → DNV 信封（AAD 绑定 file:<basename>）；
-      // ③ 均未解锁 → 明文写入（旧数据兼容，读取时懒迁移）。
+      // ③ 未启用加密（无 keyProvider）→ 明文写入（旧数据兼容，读取时懒迁移）。
       final bytes = await src.readAsBytes();
+      if (_requiresSvgPreflight(safeExt, bytes)) {
+        _rejectUnsafeSvg(bytes);
+      }
       final Uint8List stored;
       // C-06：媒体服务构造注入（null 降级 = 既有「未注入」语义）。
       final media = mediaCrypto;
@@ -358,7 +376,7 @@ class NotebookStorage
       } else {
         final key = await _currentKey();
         stored = key == null
-            ? bytes
+            ? _plainMediaOrLock(bytes)
             : await VaultFileCodec.encrypt(
                 bytes,
                 key,
@@ -386,7 +404,7 @@ class NotebookStorage
   /// storeImage 的旁路写路径共用。三级分支与 storeImage 同口径：
   /// ① 会话密钥已注入（加密笔记本解锁）→ DAN 文件头加密；
   /// ② 保险库解锁 → DNV 信封（AAD 绑定目标路径）；
-  /// ③ 均未解锁 → 明文（读取端懒迁移兼容）。
+  /// ③ 未启用加密（无 keyProvider）→ 明文（读取端懒迁移兼容）。
   Future<Uint8List> sealMediaBytesForPath(String path, Uint8List bytes) async {
     // C-06：媒体服务构造注入（null 降级 = 既有「未注入」语义）。
     final media = mediaCrypto;
@@ -394,12 +412,48 @@ class NotebookStorage
       return media.encryptFile(bytes);
     }
     final key = await _currentKey();
-    if (key == null) return bytes;
+    if (key == null) return _plainMediaOrLock(bytes);
     return VaultFileCodec.encrypt(
       bytes,
       key,
       aadContext: VaultFileCodec.contextForPath(path),
     );
+  }
+
+  /// 媒体密封的「无密钥」分支收口（P1 修复，本次）。
+  ///
+  /// 保险库已装配（keyProvider 非空）却取不到密钥 = **锁定态**：此时加密
+  /// 笔记本的图片一旦明文落盘就永久明文（读端懒迁移只对 DAN/DNV 生效），
+  /// 故拒绝写入并抛 [VaultFileLockException]，口径对齐画布域
+  /// `StorageMediaStore._sealMediaBytes` 的「锁定即抛」。可达路径即
+  /// `NotebookViewPage._restoreSessionAfterReauth` 未安装媒体密钥却解锁会话
+  /// 的场景（该项另一处收口）。
+  /// 未启用加密（keyProvider == null）时明文落盘仍是产品设计，行为不变。
+  Uint8List _plainMediaOrLock(Uint8List bytes) {
+    if (keyProvider != null) throw const VaultFileLockException();
+    return bytes;
+  }
+
+  /// SVG 是否需要在落盘前预检（导入隔离——README 宣称项落地，P3 修复本次）。
+  ///
+  /// 白名单保留 svg（不删功能），但 svg 是唯一「内容即可执行载体」的合法
+  /// 扩展名——恶意 SVG（脚本/XXE/膨胀）进 notebook_images/ 就有渲染风险。
+  /// 除扩展名外还嗅探内容：svg 改名成 .png 也照样预检（防绕过白名单口径）。
+  static bool _requiresSvgPreflight(String extension, Uint8List bytes) {
+    if (extension == 'svg') return true;
+    if (bytes.length < 5) return false;
+    final head = String.fromCharCodes(
+      bytes.take(2048).map((b) => b >= 0x20 && b < 0x7f ? b : 0x20),
+    ).toLowerCase();
+    return head.contains('<svg');
+  }
+
+  /// SVG 预检不合规即拒绝导入。文案静态脱敏（不把解析细节/原始异常带进 UI）。
+  static void _rejectUnsafeSvg(Uint8List bytes) {
+    final reason = SvgPreflight.check(bytes);
+    if (reason == null) return;
+    AuditLogger.log('notebook.media.svg_reject', success: false);
+    throw const FormatException('SVG 预检未通过，已拒绝导入');
   }
 
   /// 旧明文媒体迁移（H-03 专家审计 2026-08-15）：解锁后批量重加密——
@@ -476,18 +530,39 @@ class NotebookStorage
   /// 已是 v5 时复用信封内的 DEK 与重置盘槽位（续写不失效已绑定槽位——
   /// LUKS 槽位语义），仅重生成 payload 密文。
   /// [usbKey] 为重置密码盘钥匙（可选——设密/改密时当场插盘绑定）。
+  ///
+  /// 载荷重读 + Argon2id 重绕 + 写回整体在同 id 独占槽位内（见本文件
+  /// [_patchEncryptedPayloadInsideExclusive] 的读-改-写纪律）。
   Future<String> encryptAndSave(
     Notebook notebook,
     String password, {
     List<int>? usbKey,
-  }) async {
+  }) {
+    // P1 fail-closed（空密码收口第三层）：空串绝不封成「已加密」。
+    if (password.isEmpty) throw ArgumentError('密码不能为空');
+    return _runExclusive(
+      notebook.id,
+      () => _encryptAndSaveLocked(notebook, password, usbKey),
+    );
+  }
+
+  Future<String> _encryptAndSaveLocked(
+    Notebook notebook,
+    String password,
+    List<int>? usbKey,
+  ) async {
     // 第一步合规（2026-08-16 专家审计最优先行动②）：加密笔记本不生成
     // 明文 searchSummary——"废除默认明文 searchSummary"。未来 K_note
     // 密钥层级落地后摘要可加密存储（解锁会话内搜索——安全）。
     final payloadJson = jsonEncode({
       'pages': notebook.pages.map((p) => p.toJson()).toList(),
     });
-    final existing = notebook.encryptedPayload;
+    // 队列内重读：拿到的必然是「此刻已落盘」的最新载荷。旧实现在队列外照抄
+    // 内存快照的信封——重绕是数百毫秒级慢操作，窗口内的改密/绑盘会被
+    // 「旧槽位组 + 新载荷」覆盖（旧密码复活 = 静默降密）。
+    final existing =
+        await _encryptedPayloadOnDiskInsideExclusive(notebook.id) ??
+        notebook.encryptedPayload;
     if (existing != null &&
         EncryptionService.isDualProtectorEnvelope(existing)) {
       // v5 续写：密码解出 DEK → 复用槽位组，仅重生成 payload。
@@ -520,7 +595,10 @@ class NotebookStorage
     // 直接原子写入（toJson 中 encrypted 时 pages 序列化为空，仅存密文载荷）。
     // 注意：不能走 save()——save 对"加密且内存有明文页面"会抛 StateError
     // （这是编辑会话的守卫），而加密保存时内存本来就有明文页面。
-    return _writeNotebook(notebook);
+    // 落盘用 [_writeNotebookInsideExclusive]（非排队原语）：本方法已持有
+    // 该 id 的独占槽位，`_writeNotebook` 再挂 `_writeTails` 等于 await 自己
+    // 所在的链 → 死锁（[:617] 同款纪律）。
+    return _writeNotebookInsideExclusive(notebook);
   }
 
   /// 校验分页画布文件密码（正确即入会话缓存——解锁一次本会话免重复输入）。
@@ -540,20 +618,162 @@ class NotebookStorage
     return true;
   }
 
+  /// 分页画布「读-改-写」的局部字段更新收口（P1 修复，本次）。
+  ///
+  /// 原实现是队列外的整本 `load → save`：load 取到的是打开那一刻的快照，
+  /// 期间任何并发保存（编辑器自动保存、另一次改密）先落盘的新快照都会被
+  /// 这份陈旧快照**整体覆盖**。这里把读→改→写收进同一 per-id 写尾队列槽位
+  /// （[_runExclusive]），且只替换信封字段 `encrypted`/`encryptedPayload`，
+  /// 其余字段一律取槽位内重读到的磁盘当前值。
+  ///
+  /// **本方法是「独占槽位内」原语**：调用方（设密/改密/绑盘/重置盘）自己
+  /// 持有槽位，此处不再排队——`_runExclusive` 重入同一 id 等于 await 自己
+  /// 所在的链 → 死锁。
+  ///
+  /// 落盘用 [_writeNotebookBytes]（非排队原语）：`_writeNotebook` 自己会挂到
+  /// `_writeTails`，在独占槽位内再排队等于 await 自己所在的链 → 死锁；画布域
+  /// 同场景用的是 `runDocExclusive` + `saveEncoded`（非队列原语）的同款纪律。
+  Future<void> _patchEncryptedPayloadInsideExclusive(
+    String id,
+    String newPayload,
+  ) async {
+    // 先取密钥再读文件：读到的必须是自己即将写回的那一份（顺序不能颠倒）。
+    final key = await _currentKey();
+    final file = File(await _pathFor(id));
+    if (!file.existsSync()) throw StateError('该分页画布已不存在：$id');
+    final onDisk = await file.readAsBytes();
+    final clear = key == null || !VaultFileCodec.isEncrypted(onDisk)
+        ? onDisk
+        : await VaultFileCodec.decrypt(
+            onDisk,
+            key,
+            aadContext: 'nb:$id',
+          );
+    Map<String, dynamic> root;
+    try {
+      final decoded = jsonDecode(utf8.decode(clear));
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('笔记本数据损坏');
+      }
+      root = decoded;
+    } on FormatException {
+      throw const FormatException('笔记本数据损坏');
+    }
+    root['encrypted'] = true;
+    root['encryptedPayload'] = newPayload;
+    final data = utf8.encode(jsonEncode(root));
+    await _writeNotebookBytes(
+      file,
+      key == null
+          ? data
+          : await VaultFileCodec.encrypt(
+              data,
+              key,
+              aadContext: 'nb:$id',
+            ),
+    );
+    onWrite?.call();
+  }
+
+  /// 独占槽位内重读磁盘当前的加密载荷（非陈旧快照）。
+  ///
+  /// **不走 [load]**：它会顺带 `_enqueueRawRewrite` 懒迁移——迁移捕获的正是
+  /// 本次读到的明文，排在调用方那条独占链之后执行，会用「读时的整本明文」
+  /// 反超随后写回的新载荷（口径同
+  /// `test/storage_staleness_guards_test.dart` 锁的画布懒迁移陈旧快照）。
+  /// 文件不存在返回 null（新建笔记本首存场景）；保险库锁定
+  /// （有信封却无密钥）抛 [VaultFileLockException]，与 [load] 同语义。
+  Future<String?> _encryptedPayloadOnDiskInsideExclusive(String id) async {
+    final file = File(await _pathFor(id));
+    if (!file.existsSync()) return null;
+    final key = await _currentKey();
+    final onDisk = await file.readAsBytes();
+    if (key == null && VaultFileCodec.isEncrypted(onDisk)) {
+      throw const VaultFileLockException();
+    }
+    final clear = key == null
+        ? onDisk
+        : await VaultFileCodec.decrypt(
+            onDisk,
+            key,
+            aadContext: 'nb:$id',
+          );
+    Map<String, dynamic> root;
+    try {
+      final decoded = jsonDecode(utf8.decode(clear));
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('笔记本数据损坏');
+      }
+      root = decoded;
+    } on FormatException {
+      throw const FormatException('笔记本数据损坏');
+    }
+    final payload = root['encryptedPayload'];
+    return payload is String && payload.isNotEmpty ? payload : null;
+  }
+
+  /// 独占槽位内的整本落盘原语：编码/密封口径与 `_writeNotebook` 一致，
+  /// 但**不挂 `_writeTails`**——调用方已持有该 id 的槽位，再排队就是 await
+  /// 自己所在的链 → 死锁（见 [_patchEncryptedPayloadInsideExclusive] 头注释）。
+  Future<String> _writeNotebookInsideExclusive(Notebook notebook) async {
+    if (!NotebookStorage.isValidId(notebook.id)) {
+      throw ArgumentError.value(notebook.id, 'notebook.id', '笔记本 ID 不合法');
+    }
+    await _ensureNotebooksDir();
+    final finalPath = await _pathFor(notebook.id);
+    final data = await NotebookStorage._encodeSnapshotAsync(notebook.toJson());
+    final key = await _currentKey();
+    await _writeNotebookBytes(
+      File(finalPath),
+      key == null
+          ? data
+          : await VaultFileCodec.encrypt(
+              data,
+              key,
+              aadContext: 'nb:${notebook.id}',
+            ),
+    );
+    onWrite?.call();
+    return finalPath;
+  }
+
   /// 修改分页画布文件密码（N4 批 3）。
   ///
   /// v5 信封：仅重绕密码槽（payload 与重置盘槽位原样保留——LUKS 语义）。
   /// v4/v3/v2 旧信封：解密后整体升级为 v5（可选顺带绑定重置盘）。
   /// 旧密码错误抛 [FormatException]。
+  ///
+  /// 读载荷 + 重绕 + 写回整体在同 id 独占槽位内（见
+  /// [_patchEncryptedPayloadInsideExclusive] 头注释的读-改-写纪律）。
   Future<void> changeNotebookPassword(
     String id,
     String oldPassword,
     String newPassword, {
     List<int>? usbKey,
+  }) {
+    // P1 fail-closed：新密码空串直接拒绝（旧密码可为历史遗留空值，
+    // 仍须允许其通过校验以解密密文，故只拦新密码）。
+    if (newPassword.isEmpty) throw ArgumentError('密码不能为空');
+    return _runExclusive(
+      id,
+      () => _changeNotebookPasswordLocked(
+        id,
+        oldPassword,
+        newPassword,
+        usbKey: usbKey,
+      ),
+    );
+  }
+
+  Future<void> _changeNotebookPasswordLocked(
+    String id,
+    String oldPassword,
+    String newPassword, {
+    List<int>? usbKey,
   }) async {
-    final nb = await load(id);
-    final payload = nb?.encryptedPayload;
-    if (nb == null || payload == null) {
+    // 队列内重读：拿到的必然是「此刻已落盘」的最新载荷（非陈旧快照）。
+    final payload = await _encryptedPayloadOnDiskInsideExclusive(id);
+    if (payload == null) {
       throw StateError('该分页画布未设置文件密码');
     }
     String newPayload;
@@ -586,9 +806,8 @@ class NotebookStorage
         usbKey: usbKey,
       );
     }
-    nb.encryptedPayload = newPayload;
     _cacheNotebookPassword(id, newPassword);
-    await save(nb);
+    await _patchEncryptedPayloadInsideExclusive(id, newPayload);
   }
 
   /// 该分页画布是否已绑定重置密码盘（v5 且含 USB 槽位）。
@@ -602,14 +821,26 @@ class NotebookStorage
 
   /// 事后绑定重置密码盘（v5 信封；旧格式自动升级 v5）。
   /// 密码错误抛 [FormatException]；已绑定抛 [FormatException]。
+  ///
+  /// 读载荷 + 重绕 + 写回整体在同 id 独占槽位内（见
+  /// [_patchEncryptedPayloadInsideExclusive] 头注释的读-改-写纪律）。
   Future<void> bindNotebookUsbSlot(
     String id,
     String password,
     List<int> usbKey,
+  ) => _runExclusive(
+    id,
+    () => _bindNotebookUsbSlotLocked(id, password, usbKey),
+  );
+
+  Future<void> _bindNotebookUsbSlotLocked(
+    String id,
+    String password,
+    List<int> usbKey,
   ) async {
-    final nb = await load(id);
-    final payload = nb?.encryptedPayload;
-    if (nb == null || payload == null) {
+    // 队列内重读：拿到的必然是「此刻已落盘」的最新载荷（非陈旧快照）。
+    final payload = await _encryptedPayloadOnDiskInsideExclusive(id);
+    if (payload == null) {
       throw StateError('该分页画布未设置文件密码');
     }
     String newPayload;
@@ -633,8 +864,7 @@ class NotebookStorage
         usbKey: usbKey,
       );
     }
-    nb.encryptedPayload = newPayload;
-    await save(nb);
+    await _patchEncryptedPayloadInsideExclusive(id, newPayload);
   }
 
   /// 用重置密码盘重置分页画布文件密码（N4 批 3）。
@@ -642,15 +872,31 @@ class NotebookStorage
   /// 前提：v5 信封且已绑定重置密码盘。重置 = U 盘钥匙解出 DEK → 新盐
   /// 重绕密码槽，payload 密文不动。成功后会话密码已缓存（可直接解锁）。
   /// 返回 false = 未绑定/盘不匹配/非 v5（fail-closed）。
+  ///
+  /// 读载荷 + 重绕 + 写回整体在同 id 独占槽位内（见
+  /// [_patchEncryptedPayloadInsideExclusive] 头注释的读-改-写纪律）。
   @override
   Future<bool> resetNotebookPasswordWithUsb(
     String id,
     List<int> usbKey,
     String newPassword,
+  ) {
+    // P1 fail-closed：重置即设新密码，空串拒绝。
+    if (newPassword.isEmpty) throw ArgumentError('密码不能为空');
+    return _runExclusive(
+      id,
+      () => _resetNotebookPasswordWithUsbLocked(id, usbKey, newPassword),
+    );
+  }
+
+  Future<bool> _resetNotebookPasswordWithUsbLocked(
+    String id,
+    List<int> usbKey,
+    String newPassword,
   ) async {
-    final nb = await load(id);
-    final payload = nb?.encryptedPayload;
-    if (nb == null || payload == null) return false;
+    // 队列内重读：拿到的必然是「此刻已落盘」的最新载荷（非陈旧快照）。
+    final payload = await _encryptedPayloadOnDiskInsideExclusive(id);
+    if (payload == null) return false;
     final newPayload = await _encryption.resetNotebookPasswordWithUsbV5(
       notebookId: id,
       encryptedJson: payload,
@@ -658,9 +904,8 @@ class NotebookStorage
       newPassword: newPassword,
     );
     if (newPayload == null) return false;
-    nb.encryptedPayload = newPayload;
     _cacheNotebookPassword(id, newPassword);
-    await save(nb);
+    await _patchEncryptedPayloadInsideExclusive(id, newPayload);
     return true;
   }
 

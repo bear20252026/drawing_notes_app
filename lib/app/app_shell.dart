@@ -127,6 +127,12 @@ class _AppShellState extends State<AppShell> {
     tagStore: widget.tagStore,
   );
 
+  /// [_services] 是否已完成装配（initState 走到接线末尾）。
+  /// `late final` 未初始化时读取会**触发装配**（dispose 里访问 = 退出时新造
+  /// 一堆 store），故 dispose 必须先守卫这个标志（P2 修复：AppServices.dispose
+  /// 的注释承诺「AppShell dispose 时调用」，此前无调用点）。
+  bool _servicesWired = false;
+
   @override
   void initState() {
     super.initState();
@@ -137,6 +143,16 @@ class _AppShellState extends State<AppShell> {
     widget.notebookStorage?.onWrite = _services.bumpDataVersion;
     widget.docStorage?.onWrite = _services.bumpDataVersion;
     _services.blockDocStore.onWrite = _services.bumpDataVersion;
+    _servicesWired = true;
+  }
+
+  @override
+  void dispose() {
+    // 只释放本壳持有的服务门面（通知器），不碰 widget 传入的 store 实例
+    // ——它们由组合根拥有、可能在别处仍被引用。时序不变：仍在 super.dispose
+    // 之前、且不触发任何路由/装配逻辑。
+    if (_servicesWired) _services.dispose();
+    super.dispose();
   }
 
   int _index = 0;

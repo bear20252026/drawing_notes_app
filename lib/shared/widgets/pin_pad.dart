@@ -44,9 +44,17 @@ import 'package:drawing_notes_app/l10n/app_localizations.dart';
 /// 「字母/数字」切换键——切到文本模式后圆点与九宫格替换为 obscure
 /// TextField（任意字符、无长度上限），提交走与数字模式相同的校验管线。
 /// 用途：文件密码域（[UnlockFlow] 的 flexible 场景）——密码可含字母，
-/// 纯数字九宫格打不出字母密码。文本模式不做 min/max 长度约束：
-/// 既有超长/短密码（如笔记本 `_PasswordDialog` 时代所设）的**解锁**不能
-/// 被 UI 挡在门外，业务校验由 [onVerify] 与收集方的确认步骤承担。
+/// 纯数字九宫格打不出字母密码。文本模式对**解锁**不做 min/max 长度约束
+/// （既有超长/短密码不能被 UI 挡在门外，业务校验由 [onVerify] 与收集方的
+/// 确认步骤承担）；收集模式（[onVerify] 为空）与数字模式同口径校验
+/// [flexibleMinLength]，两端设出来的密码强度一致。
+///
+/// **凭据单一真源 = [_entered] 缓冲**（P1 修复，2026-10-03）：九宫格 tap
+/// 与文本框 onChanged 都写它，提交一律取它，切换模式时把当前值同步进
+/// [_textController]——旧实现在切文本时只 setState，已输入的 1234 被静默
+/// 丢弃（`1234abcd` 变成 `abcd`：设成非预期密码/永远解不开）。
+/// 模式切换不播动画（解锁/设密高频，频率闸门）。
+///
 /// 开屏 PIN（纯数字场景）不传 [enableTextInput]，行为零变化。
 ///
 /// 底部「紧急情况 / 取消」按钮按传入回调按需显示，均未传时整行隐藏
@@ -68,6 +76,7 @@ class PinPadCore extends StatefulWidget {
     this.emergencyLabel,
     this.onCancel,
     this.enableTextInput = false,
+    this.keyboardInput,
   });
 
   final String? title;
@@ -101,6 +110,13 @@ class PinPadCore extends StatefulWidget {
   /// （flexible 场景）开启；开屏 PIN 保持纯数字。
   final bool enableTextInput;
 
+  /// 桌面物理键盘输入槽（P2 可达性修复，2026-10-03）：非空时渲染在
+  /// 标题/圆点区之下、九宫格之上——Windows 等桌面宿主上用户可直接用
+  /// 物理键盘敲密码，**九宫格仍在**（鼠标/触屏通道不删，三输入并行）。
+  /// 提交语义由调用方掌握（AppLockGate 走同一 verify 管线，防爆破计数
+  /// 与冷却不因新增通道被绕过）；移动端不传（九宫格即主通道）。
+  final Widget? keyboardInput;
+
   @override
   State<PinPadCore> createState() => _PinPadCoreState();
 }
@@ -115,8 +131,10 @@ class _PinPadCoreState extends State<PinPadCore>
   );
 
   // ---- 文本切换模式（C-14 兑现）----
-  // 数字缓冲（_entered）跨切换保留；文本控制器隐藏不销毁，往返切换
-  // 输入内容不丢。模式切换不做过渡动画（解锁/设密属高频操作，频率闸门）。
+  // 凭据单一真源 = _entered（P1 修复）：九宫格与文本框都写它，切换时把
+  // 当前值同步进 _textController——旧实现切换即丢弃已输入内容。
+  // 文本控制器隐藏不销毁，往返切换输入内容不丢。模式切换不做过渡动画
+  // （解锁/设密属高频操作，频率闸门）。
   bool _textMode = false;
   final TextEditingController _textController = TextEditingController();
   final FocusNode _textFocus = FocusNode();
@@ -146,6 +164,9 @@ class _PinPadCoreState extends State<PinPadCore>
           widget.flexibleMaxLength,
         )
       : widget.pinLength;
+
+  /// 当前凭据（单一真源）。
+  String get _credential => _entered.toString();
 
   void _tap(String digit) {
     if (_entered.length >= _maxLength) return;
@@ -178,7 +199,7 @@ class _PinPadCoreState extends State<PinPadCore>
   }
 
   Future<void> _submit() async {
-    final pin = _entered.toString();
+    final pin = _credential;
     if (widget.onVerify == null) {
       widget.onAccepted?.call(pin);
       return;
@@ -190,45 +211,60 @@ class _PinPadCoreState extends State<PinPadCore>
     } else {
       unawaited(HapticFeedback.heavyImpact());
       await _shake.forward(from: 0);
-      if (mounted) setState(_entered.clear);
+      // 失败清空两个视图（文本模式下控制器与缓冲都得归零）。
+      if (mounted) {
+        setState(() {
+          _entered.clear();
+          _textController.clear();
+        });
+      }
     }
   }
 
-  /// 文本模式：切到字母键盘。
+  /// 文本模式：切到字母键盘——把当前凭据搬进文本框（P1 修复：旧实现
+  /// 只 setState，九宫格已输入的 1234 被静默丢弃）。切换不播动画。
   void _toggleTextMode() {
     HapticFeedback.lightImpact();
-    setState(() => _textMode = true);
+    final current = _credential;
+    setState(() {
+      _textMode = true;
+      _textController.value = TextEditingValue(
+        text: current,
+        selection: TextSelection.collapsed(offset: current.length),
+      );
+    });
   }
 
-  /// 数字模式：切回九宫格（数字缓冲保留）。
+  /// 数字模式：切回九宫格（缓冲即真源，内容不丢不串）。
   void _toggleDigitMode() {
     HapticFeedback.lightImpact();
-    setState(() => _textMode = false);
+    setState(() {
+      _entered
+        ..clear()
+        ..write(_textController.text);
+      _textMode = false;
+    });
   }
 
-  /// 文本模式提交：与数字模式同一管线——收集模式直接 onAccepted；
-  /// 验证模式失败 heavyImpact + 抖动 + 清空。空提交轻抖忽略
-  /// （文本模式不做长度约束，见 [PinPadCore.enableTextInput]）。
+  /// 文本模式提交：与数字模式同一管线、同一真源（_entered，onChanged
+  /// 已把文本框内容写入）。空提交轻抖忽略（文本模式对解锁不做长度约束，
+  /// 见 [PinPadCore.enableTextInput]）；收集模式（设密）按
+  /// [PinPadCore.flexibleMinLength] 抖动拒绝——与九宫格 ✓ 同口径。
   Future<void> _submitText() async {
-    final value = _textController.text;
+    final value = _credential;
     if (value.isEmpty) {
       unawaited(HapticFeedback.lightImpact());
       await _shake.forward(from: 0);
       return;
     }
-    if (widget.onVerify == null) {
-      widget.onAccepted?.call(value);
-      return;
-    }
-    final ok = await widget.onVerify!(value);
-    if (!mounted) return;
-    if (ok) {
-      widget.onAccepted?.call(value);
-    } else {
+    if (widget.onVerify == null &&
+        _isFlexible &&
+        value.length < widget.flexibleMinLength) {
       unawaited(HapticFeedback.heavyImpact());
       await _shake.forward(from: 0);
-      if (mounted) _textController.clear();
+      return;
     }
+    await _submit();
   }
 
   @override
@@ -256,96 +292,150 @@ class _PinPadCoreState extends State<PinPadCore>
               // viewInsets 避让、SingleChildScrollView 防小屏溢出。
               child: _textMode
                   ? _buildTextModeBody()
-                  : Column(
-                children: [
-                  const Spacer(flex: 3),
-                  Text(
-                    widget.title ??
-                        AppLocalizations.of(context)?.unlockEnterPassword ??
-                        '输入密码',
-                        style: AppleType.titleStyle(Colors.white),
-                  ),
-                  const SizedBox(height: 24),
-                  AnimatedBuilder(
-                    animation: _shake,
-                    builder: (context, child) {
-                      // 减弱动效三信号：抖动属位移类（前庭刺激），按规范
-                      // 「更少更轻不是零」改为不位移——错误反馈仍由清空+
-                      // 触感/颜色承担，只去掉横向晃动本身。
-                      final shake = _shake.isAnimating &&
-                          !AppleMotion.reduceMotionOf(context);
-                      final dx = shake
-                          ? 12 *
-                                (1 - _shake.value * 2) *
-                                (_shake.value < 0.5 ? 1 : -1)
-                          : 0.0;
-                      return Transform.translate(
-                        offset: Offset(dx, 0),
-                        child: child,
-                      );
-                    },
-                    // FittedBox：可变长度最多 12 个圆点，窄屏自动缩放防溢出。
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 360),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: List.generate(_dotCount, (i) {
-                                final filled = i < _entered.length;
-                                return Container(
-                                  width: 11,
-                                  height: 11,
-                                  margin: const EdgeInsets.symmetric(
-                                    horizontal: 13,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: filled
-                                        ? Colors.white
-                                        : Colors.transparent,
-                                    border: Border.all(
-                                      color: Colors.white,
-                                      width: filled ? 5.5 : 1.5,
-                                    ),
-                                  ),
-                                );
-                              }),
-                            ),
-                            if (_isFlexible) ...[
-                              const SizedBox(height: 8),
-                              Text(
-                                AppLocalizations.of(context)?.pinDigitsCount(
-                                      _entered.length,
-                                      widget.flexibleMinLength,
-                                      widget.flexibleMaxLength,
-                                    ) ??
-                                    '${_entered.length} / ${widget.flexibleMaxLength} 位'
-                                        '（${widget.flexibleMinLength}–'
-                                        '${widget.flexibleMaxLength} 位可选）',
-                                style: AppleType.captionStyle(
-                                  Colors.white.withValues(alpha: 0.7),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const Spacer(flex: 2),
-                  _buildKeypad(),
-                  const Spacer(flex: 2),
-                  _buildBottomActions(),
-                ],
-              ),
+                  : _buildDigitModeBody(),
             ),
           ),
         ),
       ),
     );
+  }
+
+  /// 数字模式主体（九宫格）。
+  ///
+  /// P1 可达性修复（2026-10-03）：原实现是 `Column + Spacer`，矮视口
+  /// （Android 横屏、Windows 压扁窗口）下 Spacer 分不到空间，`0`/退格/✓
+  /// 直接被裁到屏外——既提交不了也退不了格。改为
+  /// `LayoutBuilder + SingleChildScrollView + ConstrainedBox(minHeight:)`：
+  /// 视口够用 ⇒ 留白按原 3:2:2 比例分配（视觉不变，触控目标仍 ≥44）；
+  /// 视口不足 ⇒ 留白归零、整盘纵向可滚动，任何键都能滚进命中区。
+  Widget _buildDigitModeBody() {
+    final l10n = AppLocalizations.of(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final free = constraints.maxHeight - _digitContentEstimate;
+        final gap = free <= 0 ? 0.0 : free / 7;
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              // 估算高度与实际内容的差额交居中吸收（比例留白仍按 3:2:2）。
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(height: gap * 3),
+                Text(
+                  widget.title ??
+                      l10n?.unlockEnterPassword ??
+                      '输入密码',
+                  style: AppleType.titleStyle(Colors.white),
+                ),
+                const SizedBox(height: 24),
+                AnimatedBuilder(
+                  animation: _shake,
+                  builder: (context, child) {
+                    // 减弱动效三信号：抖动属位移类（前庭刺激），按规范
+                    // 「更少更轻不是零」改为不位移——错误反馈仍由清空+
+                    // 触感/颜色承担，只去掉横向晃动本身。
+                    final shake = _shake.isAnimating &&
+                        !AppleMotion.reduceMotionOf(context);
+                    final dx = shake
+                        ? 12 *
+                              (1 - _shake.value * 2) *
+                              (_shake.value < 0.5 ? 1 : -1)
+                        : 0.0;
+                    return Transform.translate(
+                      offset: Offset(dx, 0),
+                      child: child,
+                    );
+                  },
+                  // FittedBox：可变长度最多 12 个圆点，窄屏自动缩放防溢出。
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 360),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(_dotCount, (i) {
+                              final filled = i < _entered.length;
+                              return Container(
+                                width: 11,
+                                height: 11,
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 13,
+                                ),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: filled
+                                      ? Colors.white
+                                      : Colors.transparent,
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: filled ? 5.5 : 1.5,
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                          if (_isFlexible) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              AppLocalizations.of(context)?.pinDigitsCount(
+                                    _entered.length,
+                                    widget.flexibleMinLength,
+                                    widget.flexibleMaxLength,
+                                  ) ??
+                                  '${_entered.length} / ${widget.flexibleMaxLength} 位'
+                                      '（${widget.flexibleMinLength}–'
+                                      '${widget.flexibleMaxLength} 位可选）',
+                              style: AppleType.captionStyle(
+                                Colors.white.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                // 桌面物理键盘输入槽（P2 可达性）：九宫格保留，键鼠直输
+                // 与点按并行——三输入同时可用。
+                if (widget.keyboardInput != null) ...[
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: widget.keyboardInput!,
+                  ),
+                ],
+                SizedBox(height: gap * 2),
+                _buildKeypad(),
+                SizedBox(height: gap * 2),
+                _buildBottomActions(),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// 数字模式内容自然高度估算（用于把「视口剩余留白」按原 Spacer 3:2:2
+  /// 比例分下去）：标题 25 + 间距 24 + 圆点区 37 + 九宫格 351，按需再加
+  /// 可变长度计数行 25、底部动作区 65、桌面键盘槽 64。
+  ///
+  /// 为什么按开关逐项累加：留白 = 视口高 − 本估算，估少了键会被顶到折叠线
+  /// 之下（要滚才够得着），估多了只是留白偏小。差额由
+  /// [MainAxisAlignment.center] 吸收，估高偏大不会裁键。
+  double get _digitContentEstimate {
+    var estimate = 437.0; // 标题 25 + 间距 24 + 圆点区 37 + 九宫格 351
+    if (_isFlexible) estimate += 25;
+    if (widget.enableTextInput ||
+        widget.onEmergency != null ||
+        widget.onCancel != null) {
+      estimate += 65;
+    }
+    if (widget.keyboardInput != null) estimate += 64;
+    return estimate;
   }
 
   /// 文本模式主体（C-14 兑现）：标题 + obscure TextField + 提交钮。
@@ -384,6 +474,13 @@ class _PinPadCoreState extends State<PinPadCore>
                 obscureText: true,
                 autofocus: true,
                 onSubmitted: (_) => _submitText(),
+                // 文本框内容即凭据真源：每次改动回写 _entered（P1 修复，
+                // 与九宫格同一缓冲，跨模式不丢不串）。
+                onChanged: (value) => setState(() {
+                  _entered
+                    ..clear()
+                    ..write(value);
+                }),
                 style: AppleType.bodyStyle(Colors.white),
                 cursorColor: Colors.white,
                 decoration: InputDecoration(

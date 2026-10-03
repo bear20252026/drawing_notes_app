@@ -970,6 +970,10 @@
   "@unlockBarrier": {},
   "unlockPasswordWrong": "密码不正确",
   "@unlockPasswordWrong": {},
+  "passwordEmptyHint": "密码不能为空",
+  "@passwordEmptyHint": {},
+  "passwordTooShortHint": "密码长度不足",
+  "@passwordTooShortHint": {},
   "unlockKeyboardText": "字母",
   "@unlockKeyboardText": {},
   "unlockKeyboardDigits": "数字",
@@ -2260,6 +2264,8 @@
   "@docOutlineEmpty": {},
   "docUnsavedChangesTitle": "未保存的改动",
   "@docUnsavedChangesTitle": {},
+  "docUnsavedChangesBody": "文档有未保存的改动，确定要退出吗？",
+  "@docUnsavedChangesBody": {},
   "docDiscard": "放弃",
   "@docDiscard": {},
   "blkSlashHint": "键入 / 添加块",
@@ -2390,6 +2396,15 @@
   "@dbCellHint": {},
   "dbCellNone": "未选择",
   "@dbCellNone": {},
+  "dbEditCell": "编辑{name}",
+  "@dbEditCell": {
+    "description": "单元格编辑框标题",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "dbRecordCount": "{count} 条记录",
   "@dbRecordCount": {
     "placeholders": {
@@ -3011,6 +3026,20 @@
   },
   "nbMoveFolderDialogTitle": "移动到文件夹",
   "@nbMoveFolderDialogTitle": {},
+  "nbRootFolder": "根",
+  "@nbRootFolder": {},
+  "nbMovedPagesTo": "已批量移动 {count} 页到分组「{folder}」",
+  "@nbMovedPagesTo": {
+    "description": "批量移动页面结果提示",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "folder": {
+        "type": "String"
+      }
+    }
+  },
   "homeOpenCanvasCard": "打开无限画布 {title}",
   "@homeOpenCanvasCard": {
     "placeholders": {

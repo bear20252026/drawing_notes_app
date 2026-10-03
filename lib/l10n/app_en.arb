@@ -991,6 +991,10 @@
   "@unlockBarrier": {},
   "unlockPasswordWrong": "Incorrect password",
   "@unlockPasswordWrong": {},
+  "passwordEmptyHint": "Password can't be empty",
+  "@passwordEmptyHint": {},
+  "passwordTooShortHint": "Password is too short",
+  "@passwordTooShortHint": {},
   "unlockKeyboardText": "ABC",
   "@unlockKeyboardText": {},
   "unlockKeyboardDigits": "123",
@@ -2281,6 +2285,8 @@
   "@docOutlineEmpty": {},
   "docUnsavedChangesTitle": "Unsaved changes",
   "@docUnsavedChangesTitle": {},
+  "docUnsavedChangesBody": "The document has unsaved changes. Quit anyway?",
+  "@docUnsavedChangesBody": {},
   "docDiscard": "Discard",
   "@docDiscard": {},
   "blkSlashHint": "Type / to add a block",
@@ -2411,6 +2417,15 @@
   "@dbCellHint": {},
   "dbCellNone": "Not selected",
   "@dbCellNone": {},
+  "dbEditCell": "Edit {name}",
+  "@dbEditCell": {
+    "description": "Cell editor dialog title",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "dbRecordCount": "{count} records",
   "@dbRecordCount": {
     "placeholders": {
@@ -3032,6 +3047,20 @@
   },
   "nbMoveFolderDialogTitle": "Move to folder",
   "@nbMoveFolderDialogTitle": {},
+  "nbRootFolder": "Root",
+  "@nbRootFolder": {},
+  "nbMovedPagesTo": "Moved {count} pages to folder “{folder}”",
+  "@nbMovedPagesTo": {
+    "description": "Batch move pages result",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "folder": {
+        "type": "String"
+      }
+    }
+  },
   "homeOpenCanvasCard": "Open infinite canvas {title}",
   "@homeOpenCanvasCard": {
     "placeholders": {

@@ -3,7 +3,12 @@
 //
 // 覆盖：切换键仅在 enableTextInput 出现；文本模式字母输入端到端
 // （验证模式原文送达 onVerify / 收集模式 onAccepted 返回）；验证失败
-// 抖动清空；空提交忽略；数字缓冲跨切换保留；数字模式回归（无切换键）。
+// 抖动清空；空提交忽略；凭据单一真源——跨模式不丢不串（P1 修复）；
+// 数字模式回归（无切换键）。
+//
+// 2026-10-03：原「往返切换：文本输入不串入数字模式」用例把「切换即丢弃」
+// 当成了预期（旧实现切文本只 setState，1234 被静默丢掉）。真源改为
+// [_entered] 缓冲后，该断言与缺陷同源，按新语义重写。
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -129,7 +134,7 @@ void main() {
     expect(accepted, isNull);
   });
 
-  testWidgets('往返切换：数字缓冲保留，文本输入不串入数字模式', (tester) async {
+  testWidgets('往返切换：凭据单一真源——切换不丢不串（P1 修复）', (tester) async {
     String? accepted;
     await pumpPad(tester, onAccepted: (p) => accepted = p);
 
@@ -139,25 +144,30 @@ void main() {
     await tester.tap(find.text('2'));
     await tester.pump();
 
-    // 切文本 → 输字母 → 不提交，切回数字。
+    // 切文本：九宫格已输入的 12 必须搬进文本框——旧实现只 setState，
+    // 12 被静默丢弃（`12abcd` 变 `abcd`：设成非预期密码/永远解不开）。
     await tester.tap(find.text('字母'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'abc');
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      '12',
+      reason: '切换即把当前凭据同步进文本框',
+    );
+
+    // 文本框在 12 之后追加 abcd（enterText 经真实输入通道整值替换）。
+    await tester.enterText(find.byType(TextField), '12abcd');
+    await tester.pump();
+
+    // 切回九宫格：缓冲 = 文本框当前值（6 位），既没退回旧的 12，
+    // 也没把文本内容丢掉（两模式共用同一真源）。
     await tester.tap(find.text('数字'));
     await tester.pumpAndSettle();
-
-    // 九宫格回归，圆点仍是 2 位（文本输入未污染数字缓冲）。
     expect(find.text('1'), findsOneWidget);
     expect(find.byType(TextField), findsNothing);
-    expect(find.text('2 / 12 位（4–12 位可选）'), findsOneWidget);
+    expect(find.text('6 / 12 位（4–12 位可选）'), findsOneWidget);
 
-    // 补足 4 位提交：值 = 纯数字缓冲（abc 未混入）。
-    await tester.tap(find.text('3'));
-    await tester.pump();
-    await tester.tap(find.text('4'));
-    await tester.pump();
     await tester.tap(find.byIcon(Icons.check_rounded));
     await tester.pumpAndSettle();
-    expect(accepted, '1234');
+    expect(accepted, '12abcd');
   });
 }

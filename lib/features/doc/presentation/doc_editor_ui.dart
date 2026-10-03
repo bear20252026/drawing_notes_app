@@ -131,7 +131,10 @@ extension _DocEditorUi on DocEditorState {
         title: Text(
           AppLocalizations.of(context)?.docUnsavedChangesTitle ?? '未保存的改动',
         ),
-        content: const Text('文档有未保存的改动，确定要退出吗？'),
+        content: Text(
+          AppLocalizations.of(context)?.docUnsavedChangesBody ??
+              '文档有未保存的改动，确定要退出吗？',
+        ),
         actions: AppleDialog.actions([
           TextButton(
             // 键盘可达 + 防误触：默认聚焦「取消」，Enter 不会直接丢数据。

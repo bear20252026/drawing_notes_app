@@ -17,8 +17,17 @@ import 'package:flutter_test/flutter_test.dart';
 /// import 条数。
 ///
 /// 口径（C-16：原「29/6」与实测「9/5」对不上，即因口径未注明）：
-/// - **计数单位 = `import` 语句行数**（同一文件重复 import 同一方向计多条），
-///   非「涉及文件数」、也非「符号引用数」；
+/// - **计数单位 = 代码上下文里的 `import` / `export` 语句行数**（同一文件
+///   重复 import 同一方向计多条），非「涉及文件数」、也非「符号引用数」；
+///   再导出 `export` 与 `import` 同计——`notes->doc` 的 9 条里含 1 条
+///   （`features/notes/domain/notebook.dart` 再导出 `doc/domain/clone_ref.dart`）；
+/// - 语句行须行首即关键字（排除注释/字符串里的同形文本，与
+///   `test/architecture/forbidden_import_test.dart` 同一取法）；
+/// - 目标 feature 由 URI 归一化得出：`package:drawing_notes_app/features/<f>/`
+///   与相对路径（`../<f>/`、`<f>/`、`../../drawing/rendering/` 等，按导入方
+///   所在目录解析）同等对待（P1 修正，审计 2026-10-04：原正则只认 `package:`
+///   URI，跨 feature 的相对路径 import 是盲区。归一化后实测与下方快照逐条
+///   相等，说明当前 lib/features 内尚无此类 import，属潜伏盲区而非既有违规）；
 /// - 扫描范围 = `lib/features/**` 全部 `.dart`，**组合根
 ///   （`app/`、`app.dart`）不在内**（见文件头）；
 /// - 源 feature = 路径首段 `lib/features/<src>/`，目标 = import URI 里的
@@ -34,9 +43,10 @@ import 'package:flutter_test/flutter_test.dart';
 /// 基线全部收紧至实测值（棘轮只紧不松）；原值 29/6/7/3 系 2026-09-06 快照，
 /// 其后 v1.17.26「home_page 直连 infra 收口」等迁移已实际下降但基线未回跟。
 ///
-/// notes->drawing 6→7（v1.17.17）：无限画布整图 PDF 导出复用全仓唯一
-/// PDF 引擎 `pdf_hybrid_exporter`——与 notebook_pdf_exporter 同源的
-/// 「单一事实来源」先例，非新横向耦合面。
+/// notes->drawing 现值 6（v1.17.51 重立快照实测）：无限画布整图 PDF 导出复用
+/// 全仓唯一 PDF 引擎 `pdf_hybrid_exporter`——与 notebook_pdf_exporter 同源的
+/// 「单一事实来源」先例，非新横向耦合面。历史注释曾记「6→7（v1.17.17）」，
+/// 属 v1.17.51 重立快照前的中间态，已随基线回跟作废（以本行现值为准）。
 const Map<String, int> _baseline = {
   // notes->doc 29→9（2026-10-01，C-16 重立快照）：home_page 对
   // doc/infrastructure 的 BlockDocSearchAccessorImpl 直连已改 core 契约 +

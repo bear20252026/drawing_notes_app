@@ -14,9 +14,13 @@
 // （iOS 锁屏同款密码盘，与笔记本解锁完全一致的单一事实来源）。
 
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'
+    show FilteringTextInputFormatter, LengthLimitingTextInputFormatter;
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
@@ -50,6 +54,7 @@ class AppLockGate extends StatefulWidget {
     this.vault,
     this.quickUnlock,
     this.awayDurationReader,
+    this.desktopKeyboardInput,
     required this.child,
   });
 
@@ -70,6 +75,15 @@ class AppLockGate extends StatefulWidget {
   /// 宽限判定需要「离开超过 30s」的可控场景，真实秒表无法快进。
   @visibleForTesting
   final Duration Function()? awayDurationReader;
+
+  /// 锁屏是否附带**物理键盘**输入通道（P2 可达性修复，2026-10-03）：
+  /// 原实现只嵌 [PinPadCore] 九宫格，Windows 上只能用鼠标点 12 次。
+  /// 默认（null）= 非手机/非 Web 平台自动开启；开启时九宫格**仍然在场**
+  /// （鼠标/触屏通道不删，三输入并行），键盘通道与九宫格共用同一条
+  /// `service.verify` 管线——防爆破计数与冷却一律不被绕过。
+  /// 传 true/false 可强制（测试跨宿主确定性）。
+  @visibleForTesting
+  final bool? desktopKeyboardInput;
 
   final Widget child;
 
@@ -195,6 +209,30 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   }
 
   void _unlock() => setState(() => _locked = false);
+
+  /// 手机端判定（与 UnlockFlow 同口径）：Web 视为桌面（有物理键盘）。
+  static bool get _isMobilePlatform =>
+      !kIsWeb && (Platform.isIOS || Platform.isAndroid);
+
+  /// 是否叠加桌面物理键盘输入槽（P2 可达性修复）。
+  bool get _useDesktopKeyboardInput =>
+      widget.desktopKeyboardInput ?? !_isMobilePlatform;
+
+  /// 开屏 PIN 校验的**唯一**入口（九宫格与桌面键盘槽共用）。
+  ///
+  /// 安全自查（键盘通道新增时逐条核对）：一律走 [AppLockService.verify]，
+  /// 失败计数、指数冷却、v1→v2 透明升级与保险库解锁全部原样生效——
+  /// 键盘路径不获得任何旁路；失败后若已进入冷却，立即重建锁屏换成
+  /// [_CooldownView]（键盘槽随之销毁，冷却期内敲不动）。
+  Future<bool> _verifyLockPin(String pin) async {
+    final ok = await widget.service.verify(pin);
+    if (!ok) {
+      if (mounted && widget.service.isLockedOut) setState(() {});
+      return false;
+    }
+    await _unlockVault(pin);
+    return true;
+  }
 
   /// 系统验证快速解锁（批D1）：Windows Hello 通过 → OS 凭据库副本注入
   /// 保险库 → 放行。失败（取消/未通过/副本异常）只提示，锁屏原状——
@@ -332,6 +370,8 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
                 children: [
                   Positioned.fill(
                     // 批次③：冷却期内用倒计时面板替代密码盘（输不进去就不展示）。
+                    // P2 可达性：冷却面板同样替换掉桌面键盘槽——键盘通道
+                    // 不获得「冷却期继续猜」的能力（与九宫格同一闸门）。
                     child: widget.service.isLockedOut
                         ? _CooldownView(
                             service: widget.service,
@@ -343,13 +383,23 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
                                 '输入密码',
                             // 开屏密码长度由设置页决定（批次②：4–12 位可选）。
                             pinLength: widget.service.pinLength,
-                            onVerify: (pin) async {
-                              final ok = await widget.service.verify(pin);
-                              if (!ok) return false;
-                              await _unlockVault(pin);
-                              return true;
-                            },
+                            onVerify: _verifyLockPin,
                             onAccepted: (_) => _unlock(),
+                            // 桌面：九宫格之上叠加物理键盘输入槽（三输入并行，
+                            // 九宫格不删——鼠标/触屏仍是可用通道）。
+                            // 键盘槽只回「校验结果」，放行仍由本门做：与九宫格
+                            // 的 onAccepted 同一收口（旧实现在这里只 verify 不
+                            // _unlock，键盘输对密码锁屏不消失）。
+                            keyboardInput: _useDesktopKeyboardInput
+                                ? _DesktopPinField(
+                                    pinLength: widget.service.pinLength,
+                                    onSubmit: (pin) async {
+                                      final ok = await _verifyLockPin(pin);
+                                      if (ok) _unlock();
+                                      return ok;
+                                    },
+                                  )
+                                : null,
                           ),
                   ),
                   // 底部入口区（批D1）：快速解锁（就绪才显示）+ 忘记密码。
@@ -401,6 +451,157 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
               ),
             ),
           ),
+      ],
+    );
+  }
+}
+
+/// 桌面物理键盘密码槽（P2 可达性修复，2026-10-03）。
+///
+/// 嵌在 [PinPadCore] 标题/圆点区之下、九宫格之上，只补「物理键盘直接敲
+/// 密码」这一条通道——九宫格仍在原位，鼠标点按与触屏点按零改动（三输入
+/// 并行，不删任何入口）。语义严格对齐九宫格：
+/// - 纯数字（digitsOnly）+ 长度上限 = 当前开屏 PIN 长度（4–12），输满自动
+///   提交（与九宫格「输满即校验」同拍）；
+/// - 提交一律经 [onSubmit] → `AppLockService.verify`：防爆破失败计数与
+///   指数冷却照常生效，键盘路径**不构成旁路**；
+/// - 校验失败原地清空 + 显示错误，锁屏不关闭（错误凭据不可能被上层当成
+///   已验证）；
+/// - 空串/长度不足就地提示，不发校验（不白耗一次失败计数）。
+///
+/// 「失去焦点立即锁定」的会话守卫（[SessionGuard] 走 AppLifecycleListener
+/// onInactive，即窗口/应用级失焦）与本组件的焦点无关：TextField 内部焦点
+/// 不会触发 onInactive，故新增输入框不改变该交互。
+class _DesktopPinField extends StatefulWidget {
+  const _DesktopPinField({required this.pinLength, required this.onSubmit});
+
+  final int pinLength;
+  final Future<bool> Function(String pin) onSubmit;
+
+  @override
+  State<_DesktopPinField> createState() => _DesktopPinFieldState();
+}
+
+class _DesktopPinFieldState extends State<_DesktopPinField> {
+  final TextEditingController _controller = TextEditingController();
+  final FocusNode _focus = FocusNode();
+  String? _errorText;
+
+  /// 在途校验标记：输满自动提交与「解锁」按钮可能同帧撞车，重复提交会
+  /// 让同一凭据走两次 verify（= 白耗一次失败计数）。
+  bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 锁屏出现即聚焦（与桌面解锁对话框同纪律）。
+    WidgetsBinding.instance.addPostFrameCallback((_) => _focus.requestFocus());
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_submitting) return;
+    final pin = _controller.text;
+    final l10n = AppLocalizations.of(context);
+    if (pin.isEmpty) {
+      setState(
+        () => _errorText =
+            l10n?.passwordEmptyHint ?? '密码不能为空',
+      );
+      return;
+    }
+    if (pin.length != widget.pinLength) {
+      setState(
+        () => _errorText =
+            l10n?.pinDigitsCount(pin.length, widget.pinLength, widget.pinLength) ??
+            '密码长度不足',
+      );
+      return;
+    }
+    _submitting = true;
+    final ok = await widget.onSubmit(pin);
+    if (!mounted) return;
+    _submitting = false;
+    _controller.clear();
+    if (ok) return; // 门组件随即撤掉锁屏
+    setState(
+      () => _errorText = l10n?.unlockPasswordWrong ?? '密码不正确',
+    );
+    _focus.requestFocus();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _controller,
+            focusNode: _focus,
+            obscureText: true,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(widget.pinLength),
+            ],
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _submit(),
+            // 输满即校验（与九宫格同一拍），中途不校验（否则每次都记失败）。
+            onChanged: (value) {
+              setState(() => _errorText = null);
+              if (value.length == widget.pinLength) _submit();
+            },
+            style: AppleType.bodyStyle(Colors.white),
+            decoration: InputDecoration(
+              hintText: AppLocalizations.of(context)?.commonPassword ?? '密码',
+              errorText: _errorText,
+              errorStyle: AppleType.captionStyle(const Color(0xFFFF6B6B)),
+              counterText: AppLocalizations.of(context)?.pinDigitsCount(
+                    _controller.text.length,
+                    widget.pinLength,
+                    widget.pinLength,
+                  ),
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: 0.14),
+              border: const OutlineInputBorder(
+                borderRadius: BorderRadius.all(
+                  Radius.circular(AppleRadius.xs),
+                ),
+              ),
+              enabledBorder: const OutlineInputBorder(
+                borderRadius: BorderRadius.all(
+                  Radius.circular(AppleRadius.xs),
+                ),
+                borderSide: BorderSide(color: Colors.white24),
+              ),
+              focusedBorder: const OutlineInputBorder(
+                borderRadius: BorderRadius.all(
+                  Radius.circular(AppleRadius.xs),
+                ),
+                borderSide: BorderSide(color: Colors.white54),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: AppleSpacing.xs),
+        // 鼠标/触屏等价入口（三输入硬性要求）：≥44 高。
+        FilledButton(
+          onPressed: _submit,
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            minimumSize: const Size(88, 44),
+          ),
+          child: Text(
+            AppLocalizations.of(context)?.unlock ?? '解锁',
+            style: AppleType.bodyStyle(Colors.white),
+          ),
+        ),
       ],
     );
   }

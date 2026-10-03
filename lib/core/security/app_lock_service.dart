@@ -162,45 +162,86 @@ class AppLockService extends ChangeNotifier {
   /// 批次③：冷却期内一律拒绝（不计入失败——冷却本身就是惩罚，
   /// 反复尝试不应延长；到期后重新开始接受尝试）。
   /// P0 迁移：v1（SHA-256）旧哈希验证通过即透明升级 v2（用户无感）。
-  Future<bool> verify(String pin) async {
-    if (!_configured) return false;
+  ///
+  /// [recordAttempt] 默认 true（既有调用点行为逐字节不变）；置 false 时
+  /// 本次比对不写防爆破计数——仅供「同码探测」这类**非登录**校验使用：
+  /// 正常设置独立密码不该被记成「开屏密码猜错」。安全语义不变：冷却期
+  /// 内照旧拒绝、存储缺失/派生异常照旧按不命中处理。
+  Future<bool> verify(String pin, {bool recordAttempt = true}) async {
+    final matched = await _verifyWithoutGuardPin(pin);
+    if (matched == null) return false; // 存储缺失/派生异常：既有语义，不计次
+    final guard = _lockoutGuard;
+    if (guard != null && recordAttempt) {
+      await guard.recordAttempt(matched, _preferencesLoader);
+    }
+    return matched;
+  }
+
+  /// [verify] 的「取哈希比对结果」主体（不含防爆破计数的写入侧）。
+  ///
+  /// 返回 null = **本次不应当计次**的情形（未配置 PIN、冷却期内被拦截、
+  /// 盐/哈希缺失、派生异常）——与既有语义一致：这些路径都在
+  /// `recordAttempt` 之前 return。
+  Future<bool?> _verifyWithoutGuardPin(String pin) async {
+    if (!_configured) return null;
     final guard = _lockoutGuard;
     if (guard != null) {
       // 惰性补载：未走 load() 的调用路径（如直接 verify）也保证守卫就绪。
       if (!guard.isLoaded) await guard.load(_preferencesLoader);
-      if (guard.isLockedOut) return false;
+      // 冷却期内拒绝且不计数（既有语义）——判定不了，故为 null。
+      if (guard.isLockedOut) return null;
     }
+    return _compareAgainstStore(pin);
+  }
+
+  /// 只读比对候选密码与开屏密码：**不写防爆破计数**（P2 修复）。
+  ///
+  /// 用途：设置/重置独立密码时的「≠开屏密码」探测。旧实现走 [verify]，
+  /// 每设一次独立密码就给开屏锁记一次「猜错」，累计即触发冷却；且冷却期
+  /// 内 verify 恒返回 false，探测被静默放行同码。
+  ///
+  /// 返回 true = 同码；false = 不同码（含未设开屏密码——必然不同）；
+  /// **null = 无法判定**（冷却中 / 存储缺失 / 派生异常）。调用方须对
+  /// null 走 fail-closed：宁可拒绝本次设密并提示稍后重试，也不放行同码。
+  Future<bool?> matchPinReadOnly(String candidate) async {
+    if (!_configured) return false;
+    final guard = _lockoutGuard;
+    if (guard != null) {
+      if (!guard.isLoaded) await guard.load(_preferencesLoader);
+      if (guard.isLockedOut) return null;
+    }
+    return _compareAgainstStore(candidate);
+  }
+
+  /// 读持久化哈希并比对（v1 命中即透明升级 v2）。
+  /// null = 无法判定（盐/哈希缺失或派生异常）。
+  Future<bool?> _compareAgainstStore(String pin) async {
     final prefs = await _preferencesLoader();
     final salt = prefs.getString(_kSaltKey);
     final stored = prefs.getString(_kPinHashKey);
-    if (salt == null || stored == null) return false;
+    if (salt == null || stored == null) return null;
     // P0 加固：版本不依赖独立 int 键（存储后端 int 编解码差异曾导致误判），
     // 直接按哈希形值识别——64 位 hex = v1 SHA-256，其余按 v2 Argon2id 验。
     // 版本键保留写入（诊断可观测），读取不再信任它。
     final legacyFormat = stored.length == 64;
-    bool ok;
     try {
       if (!legacyFormat) {
-        ok = _constantTimeEquals(await _hashV2(pin, salt), stored);
-      } else {
-        ok = _constantTimeEquals(_hashLegacy(pin, salt), stored);
-        if (ok) {
-          // 透明升级：旧哈希命中后换 Argon2id（失败不影响本次结果）。
-          try {
-            await prefs.setString(_kPinHashKey, await _hashV2(pin, salt));
-            await prefs.setInt(_kPinKdfVersionKey, _kdfArgon2id);
-          } catch (_) {
-            /* 尽力而为：透明升级失败不影响本次验证结果，下次登录再试 */
-          }
+        return _constantTimeEquals(await _hashV2(pin, salt), stored);
+      }
+      final ok = _constantTimeEquals(_hashLegacy(pin, salt), stored);
+      if (ok) {
+        // 透明升级：旧哈希命中后换 Argon2id（失败不影响本次结果）。
+        try {
+          await prefs.setString(_kPinHashKey, await _hashV2(pin, salt));
+          await prefs.setInt(_kPinKdfVersionKey, _kdfArgon2id);
+        } catch (_) {
+          /* 尽力而为：透明升级失败不影响本次验证结果，下次登录再试 */
         }
       }
+      return ok;
     } catch (_) {
-      return false;
+      return null;
     }
-    if (guard != null) {
-      await guard.recordAttempt(ok, _preferencesLoader);
-    }
-    return ok;
   }
 
   /// 关闭应用锁（清除持久化 PIN 与防爆破守卫记录）。
@@ -225,14 +266,32 @@ class AppLockService extends ChangeNotifier {
   }
 
   /// 候选密码是否与开屏密码相同（批次②：单文件密码设置时强制不同——
-  /// 哈希加盐不可直接比对，用 verify 探测：能通过校验即同码）。
+  /// 哈希加盐不可直接比对，用只读探测比对）。
   ///
   /// 静态便捷入口：内部临时实例直读持久化层，供无法注入 service 的
   /// 页面（笔记本设密对话框等）做同码检测。
-  static Future<bool> matchesAppLockPin(String candidate) async {
+  ///
+  /// P2 修复：探测改走 [matchPinReadOnly]——**不再消耗防爆破失败计数**
+  /// （旧实现调 verify，正常设密也会被记成「开屏密码猜错」）。
+  /// 本方法保留既有 `Future<bool>` 签名（对外 API 兼容优先）：仅在
+  /// **确证同码**时为 true；「无法判定」请按 [probeMatchesAppLockPin]
+  /// 的 null 分支处理，新代码一律用之（fail-closed）。
+  static Future<bool> matchesAppLockPin(String candidate) async =>
+      await probeMatchesAppLockPin(candidate) == true;
+
+  /// 同码探测三态入口：true = 同码 / false = 不同码 / null = 无法判定。
+  ///
+  /// 「无法判定」（开屏锁处于防爆破冷却、持久层缺失或派生异常）时调用方
+  /// 必须 fail-closed：拒绝本次设密并提示稍后重试——否则冷却期内
+  /// 「同码探测」静默放行，独立密码与开屏密码失去区分保证。
+  static Future<bool?> probeMatchesAppLockPin(String candidate) async {
     final probe = AppLockService();
-    await probe.load();
-    return probe.verify(candidate);
+    try {
+      await probe.load();
+    } catch (_) {
+      return null; // 持久层读失败 = 判定不了（不抛，交调用方 fail-closed）
+    }
+    return probe.matchPinReadOnly(candidate);
   }
 
   /// 16 字节加密安全随机盐（hex 编码）。

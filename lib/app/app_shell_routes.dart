@@ -211,8 +211,13 @@ extension _AppShellRoutes on _AppShellState {
   }
 
   /// 打开任意文档，按类型路由到对应编辑器。
+  ///
+  /// P2 修复（审计 2026-10）：此前在方法开头捕获 `Navigator.of(context)` 并
+  /// 跨过解锁弹窗与多次加载才 push——widget 被 dispose 后仍用旧引用推页。
+  /// 现与兄弟路径 [_openBlockDocById] 同款：await 之后先复查 `mounted`，
+  /// 再从当前 context 现取 Navigator。解锁拦截顺序、路由参数、错误兜底
+  /// 语义逐条不变（C-07 零行为变化承诺）。
   Future<void> _openAllDoc(AllDoc doc) async {
-    final nav = Navigator.of(context, rootNavigator: true);
     switch (doc.kind) {
       case AllDocKind.canvas:
         final storage = widget.docStorage;
@@ -248,8 +253,9 @@ extension _AppShellRoutes on _AppShellState {
           return; // 会话密码已被忘记（如切后台）——不暴露内容
         }
         if (drawing == null) return;
+        if (!mounted) return;
         final builder = widget.editorPageBuilder;
-        nav.push(
+        Navigator.of(context, rootNavigator: true).push(
           MaterialPageRoute(
             builder: (_) => builder != null
                 ? builder(
@@ -329,7 +335,8 @@ extension _AppShellRoutes on _AppShellState {
             return; // 密码失效（缓存过期/重置竞态）——fail-closed
           }
         }
-        nav.push(
+        if (!mounted) return;
+        Navigator.of(context, rootNavigator: true).push(
           MaterialPageRoute(
             builder: (_) => NotebookViewPage(
               notebook: nb,
@@ -350,7 +357,8 @@ extension _AppShellRoutes on _AppShellState {
         final bd = await _loadBlockDocGuarded(store, doc.id);
         if (bd == null) return;
         final favs = await _services.favoriteStore.loadKeys();
-        await nav.push(
+        if (!mounted) return;
+        await Navigator.of(context, rootNavigator: true).push(
           MaterialPageRoute(
             builder: (_) => DocPage(
               document: bd,
@@ -379,16 +387,20 @@ extension _AppShellRoutes on _AppShellState {
   }
 
   /// 新建文档：按类型创建并打开。
+  ///
+  /// P2 修复（审计 2026-10）：与 [_openAllDoc] 同型——await 落盘之后才推页，
+  /// 必须复查 mounted 并现取 Navigator（旧写法把跨 await 的引用留到最后）。
+  /// 文档在 push 之前已保存成功，早退只影响「是否自动进入编辑器」，不影响数据。
   Future<void> _newAllDoc(AllDocKind kind) async {
-    final nav = Navigator.of(context, rootNavigator: true);
     switch (kind) {
       case AllDocKind.canvas:
         final storage = widget.docStorage;
         if (storage == null) return;
         final draft = DrawingDocument(id: StorageService.newId(), title: '');
         await storage.save(draft);
+        if (!mounted) return;
         final builder = widget.editorPageBuilder;
-        nav.push(
+        Navigator.of(context, rootNavigator: true).push(
           MaterialPageRoute(
             builder: (_) => builder != null
                 ? builder(
@@ -416,7 +428,8 @@ extension _AppShellRoutes on _AppShellState {
           title: '',
         );
         await nbStorage.save(nb);
-        nav.push(
+        if (!mounted) return;
+        Navigator.of(context, rootNavigator: true).push(
           MaterialPageRoute(
             builder: (_) => NotebookViewPage(
               notebook: nb,
@@ -432,7 +445,8 @@ extension _AppShellRoutes on _AppShellState {
       case AllDocKind.blockdoc:
         final bd = NoteBlockDoc.empty(NoteBlockDocStore.newId());
         await _services.blockDocStore.saveDocument(bd);
-        await nav.push(
+        if (!mounted) return;
+        await Navigator.of(context, rootNavigator: true).push(
           MaterialPageRoute(
             builder: (_) => DocPage(
               document: bd,
