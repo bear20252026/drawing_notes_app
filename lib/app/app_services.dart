@@ -4,6 +4,11 @@
 // 收敛 AppShell 中与"数据"相关的横切状态：store 实例、数据版本通知器、
 // 全量文档缓存与加载器。AppShell 只保留导航与页面装配；路由函数因需要
 // BuildContext 留在 shell。store 实例支持注入（测试用内存实现）。
+//
+// C-07（审计 2026-09-27）：缺省装配知识移出本文件——服务单例装配唯一
+// 落点 = 组合根 `CompositionRoot.createAppServices`（composition_root.dart
+// 头注释为裁决原文）。本构造器自此只保留注入参数（required）：实例由
+// 组合根装配或测试显式传入，门面自身不再隐式 new 缺省实现。
 
 import 'package:flutter/foundation.dart';
 
@@ -17,16 +22,12 @@ import 'package:drawing_notes_app/features/notes/application/sync_controller.dar
 /// 应用级服务门面。
 class AppServices {
   AppServices({
-    NoteBlockDocStore? blockDocStore,
-    FavoriteStore? favoriteStore,
-    TagStore? tagStore,
-    SyncController? syncController,
-    MediaCryptoService? mediaCrypto,
-  }) : blockDocStore = blockDocStore ?? NoteBlockDocStore(),
-       favoriteStore = favoriteStore ?? FavoriteStore(),
-       tagStore = tagStore ?? TagStore(),
-       syncController = syncController ?? SyncController(),
-       mediaCrypto = mediaCrypto ?? MediaCryptoService.instance;
+    required this.blockDocStore,
+    required this.favoriteStore,
+    required this.tagStore,
+    required this.syncController,
+    required this.mediaCrypto,
+  });
 
   /// 块文档存储（打字笔记）。
   final NoteBlockDocStore blockDocStore;
