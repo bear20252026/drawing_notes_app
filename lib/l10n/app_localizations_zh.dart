@@ -896,6 +896,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get unlockPasswordWrong => '密码不正确';
 
   @override
+  String get unlockKeyboardText => '字母';
+
+  @override
+  String get unlockKeyboardDigits => '数字';
+
+  @override
+  String get unlockTextInputHint => '可包含字母与符号';
+
+  @override
   String get unlock => '解锁';
 
   @override
@@ -1203,15 +1212,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get nbPageNameHint => '请输入页面名称';
 
   @override
-  String get nbPasswordHint => '请输入密码';
-
-  @override
-  String get nbShowPassword => '显示密码';
-
-  @override
-  String get nbHidePassword => '隐藏密码';
-
-  @override
   String get impMarkdownText => 'Markdown / 文本';
 
   @override
@@ -1257,13 +1257,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get impSetPasswordProtect => '设置密码保护';
 
   @override
-  String get impChangeHint => '修改后打开需输入新密码';
-
-  @override
-  String get impSetHint => '设置后页面内容将加密存储，打开需输入密码';
-
-  @override
   String get impPasswordSameAsLock => '密码不能与开屏密码相同';
+
+  @override
+  String get impConfirmPasswordProtect => '确认新密码';
+
+  @override
+  String get impPasswordMismatch => '两次输入不一致，请重试';
 
   @override
   String get impRelockNeeded => '请重新输入密码解锁后再修改';

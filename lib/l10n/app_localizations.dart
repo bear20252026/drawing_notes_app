@@ -1796,6 +1796,24 @@ abstract class AppLocalizations {
   /// **'Incorrect password'**
   String get unlockPasswordWrong;
 
+  /// No description provided for @unlockKeyboardText.
+  ///
+  /// In en, this message translates to:
+  /// **'ABC'**
+  String get unlockKeyboardText;
+
+  /// No description provided for @unlockKeyboardDigits.
+  ///
+  /// In en, this message translates to:
+  /// **'123'**
+  String get unlockKeyboardDigits;
+
+  /// No description provided for @unlockTextInputHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Letters and symbols allowed'**
+  String get unlockTextInputHint;
+
   /// No description provided for @unlock.
   ///
   /// In en, this message translates to:
@@ -2348,24 +2366,6 @@ abstract class AppLocalizations {
   /// **'Enter a page name'**
   String get nbPageNameHint;
 
-  /// No description provided for @nbPasswordHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter the password'**
-  String get nbPasswordHint;
-
-  /// No description provided for @nbShowPassword.
-  ///
-  /// In en, this message translates to:
-  /// **'Show password'**
-  String get nbShowPassword;
-
-  /// No description provided for @nbHidePassword.
-  ///
-  /// In en, this message translates to:
-  /// **'Hide password'**
-  String get nbHidePassword;
-
   /// No description provided for @impMarkdownText.
   ///
   /// In en, this message translates to:
@@ -2444,23 +2444,23 @@ abstract class AppLocalizations {
   /// **'Set password protection'**
   String get impSetPasswordProtect;
 
-  /// No description provided for @impChangeHint.
-  ///
-  /// In en, this message translates to:
-  /// **'After changing, opening requires the new password'**
-  String get impChangeHint;
-
-  /// No description provided for @impSetHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Once set, page content is stored encrypted and requires the password to open'**
-  String get impSetHint;
-
   /// No description provided for @impPasswordSameAsLock.
   ///
   /// In en, this message translates to:
   /// **'The password must differ from the screen-lock password'**
   String get impPasswordSameAsLock;
+
+  /// No description provided for @impConfirmPasswordProtect.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm new password'**
+  String get impConfirmPasswordProtect;
+
+  /// No description provided for @impPasswordMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords don\'t match. Try again'**
+  String get impPasswordMismatch;
 
   /// No description provided for @impRelockNeeded.
   ///

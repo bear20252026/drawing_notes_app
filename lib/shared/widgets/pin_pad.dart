@@ -40,6 +40,15 @@ import 'package:drawing_notes_app/l10n/app_localizations.dart';
 /// ✓ 确认键（补位原空键位）；输满 [flexibleMaxLength] 位或按 ✓ 提交，
 /// 不足 [flexibleMinLength] 位按 ✓ 抖动提示。
 ///
+/// 文本切换模式（C-14 兑现，[enableTextInput] 为 true）：底部动作区出现
+/// 「字母/数字」切换键——切到文本模式后圆点与九宫格替换为 obscure
+/// TextField（任意字符、无长度上限），提交走与数字模式相同的校验管线。
+/// 用途：文件密码域（[UnlockFlow] 的 flexible 场景）——密码可含字母，
+/// 纯数字九宫格打不出字母密码。文本模式不做 min/max 长度约束：
+/// 既有超长/短密码（如笔记本 `_PasswordDialog` 时代所设）的**解锁**不能
+/// 被 UI 挡在门外，业务校验由 [onVerify] 与收集方的确认步骤承担。
+/// 开屏 PIN（纯数字场景）不传 [enableTextInput]，行为零变化。
+///
 /// 底部「紧急情况 / 取消」按钮按传入回调按需显示，均未传时整行隐藏
 /// （全屏启动锁不允许退出，两个回调皆不传即可）。
 class PinPadCore extends StatefulWidget {
@@ -58,6 +67,7 @@ class PinPadCore extends StatefulWidget {
     this.onEmergency,
     this.emergencyLabel,
     this.onCancel,
+    this.enableTextInput = false,
   });
 
   final String? title;
@@ -86,6 +96,11 @@ class PinPadCore extends StatefulWidget {
   /// 「取消」按钮回调；不传则不显示该按钮。
   final VoidCallback? onCancel;
 
+  /// 文本切换模式开关（C-14 兑现）：true 时底部动作区出现「字母/数字」
+  /// 切换键，文本模式提交与数字模式共用校验管线。仅文件密码域
+  /// （flexible 场景）开启；开屏 PIN 保持纯数字。
+  final bool enableTextInput;
+
   @override
   State<PinPadCore> createState() => _PinPadCoreState();
 }
@@ -98,6 +113,13 @@ class _PinPadCoreState extends State<PinPadCore>
     // 抖动 = 模态档时长（250ms；原 400ms 超出令牌表）。
     duration: AppleMotion.modal,
   );
+
+  // ---- 文本切换模式（C-14 兑现）----
+  // 数字缓冲（_entered）跨切换保留；文本控制器隐藏不销毁，往返切换
+  // 输入内容不丢。模式切换不做过渡动画（解锁/设密属高频操作，频率闸门）。
+  bool _textMode = false;
+  final TextEditingController _textController = TextEditingController();
+  final FocusNode _textFocus = FocusNode();
 
   /// 数字键对应的字母标注（iOS 电话键盘布局）。
   static const _keyLetters = <String, String>{
@@ -172,9 +194,48 @@ class _PinPadCoreState extends State<PinPadCore>
     }
   }
 
+  /// 文本模式：切到字母键盘。
+  void _toggleTextMode() {
+    HapticFeedback.lightImpact();
+    setState(() => _textMode = true);
+  }
+
+  /// 数字模式：切回九宫格（数字缓冲保留）。
+  void _toggleDigitMode() {
+    HapticFeedback.lightImpact();
+    setState(() => _textMode = false);
+  }
+
+  /// 文本模式提交：与数字模式同一管线——收集模式直接 onAccepted；
+  /// 验证模式失败 heavyImpact + 抖动 + 清空。空提交轻抖忽略
+  /// （文本模式不做长度约束，见 [PinPadCore.enableTextInput]）。
+  Future<void> _submitText() async {
+    final value = _textController.text;
+    if (value.isEmpty) {
+      unawaited(HapticFeedback.lightImpact());
+      await _shake.forward(from: 0);
+      return;
+    }
+    if (widget.onVerify == null) {
+      widget.onAccepted?.call(value);
+      return;
+    }
+    final ok = await widget.onVerify!(value);
+    if (!mounted) return;
+    if (ok) {
+      widget.onAccepted?.call(value);
+    } else {
+      unawaited(HapticFeedback.heavyImpact());
+      await _shake.forward(from: 0);
+      if (mounted) _textController.clear();
+    }
+  }
+
   @override
   void dispose() {
     _shake.dispose();
+    _textController.dispose();
+    _textFocus.dispose();
     super.dispose();
   }
 
@@ -191,7 +252,11 @@ class _PinPadCoreState extends State<PinPadCore>
           child: Container(
             color: Colors.black.withValues(alpha: 0.38),
             child: SafeArea(
-              child: Column(
+              // 文本模式（C-14）：标题+ obscure 输入框+提交钮，键盘弹出经
+              // viewInsets 避让、SingleChildScrollView 防小屏溢出。
+              child: _textMode
+                  ? _buildTextModeBody()
+                  : Column(
                 children: [
                   const Spacer(flex: 3),
                   Text(
@@ -283,26 +348,121 @@ class _PinPadCoreState extends State<PinPadCore>
     );
   }
 
+  /// 文本模式主体（C-14 兑现）：标题 + obscure TextField + 提交钮。
+  /// 无 Spacer（键盘弹出时经 viewInsets 避让）；SingleChildScrollView
+  /// 防小屏溢出；错误抖动复用同一 _shake 控制器。
+  Widget _buildTextModeBody() {
+    final l10n = AppLocalizations.of(context);
+    return SingleChildScrollView(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: AnimatedBuilder(
+        animation: _shake,
+        builder: (context, child) {
+          // 与数字模式同一减弱动效门控（reduceMotionOf）。
+          final shake = _shake.isAnimating &&
+              !AppleMotion.reduceMotionOf(context);
+          final dx = shake
+              ? 12 * (1 - _shake.value * 2) * (_shake.value < 0.5 ? 1 : -1)
+              : 0.0;
+          return Transform.translate(offset: Offset(dx, 0), child: child);
+        },
+        child: Column(
+          children: [
+            const SizedBox(height: 48),
+            Text(
+              widget.title ??
+                  l10n?.unlockEnterPassword ??
+                  '输入密码',
+              style: AppleType.titleStyle(Colors.white),
+            ),
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: TextField(
+                controller: _textController,
+                focusNode: _textFocus,
+                obscureText: true,
+                autofocus: true,
+                onSubmitted: (_) => _submitText(),
+                style: AppleType.bodyStyle(Colors.white),
+                cursorColor: Colors.white,
+                decoration: InputDecoration(
+                  hintText: l10n?.commonPassword ?? '密码',
+                  helperText: l10n?.unlockTextInputHint ?? '可包含字母与符号',
+                  helperStyle: AppleType.captionStyle(
+                    Colors.white.withValues(alpha: 0.7),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.14),
+                  border: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(AppleRadius.md)),
+                  ),
+                  enabledBorder: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(AppleRadius.md)),
+                    borderSide: BorderSide(color: Colors.white24),
+                  ),
+                  focusedBorder: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(AppleRadius.md)),
+                    borderSide: BorderSide(color: Colors.white54),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // 验证模式 =「解锁」；收集模式（设密等）=「确定」——
+            // 与桌面端 DesktopUnlockField 同一文案对。
+            FilledButton(
+              onPressed: _submitText,
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                minimumSize: const Size(140, 44),
+              ),
+              child: Text(
+                widget.onVerify == null
+                    ? l10n?.commonConfirm ?? '确定'
+                    : l10n?.unlock ?? '解锁',
+                style: AppleType.bodyStyle(Colors.white),
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildBottomActions(),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// 底部操作区：「紧急情况 / 取消」按传入回调按需显示，
   /// 均未传时整行隐藏（全屏启动锁不允许退出）。
+  /// 文本切换模式（C-14）在最左侧加「字母/数字」切换键——行随其一可见。
   Widget _buildBottomActions() {
     final emergency = widget.onEmergency;
     final cancel = widget.onCancel;
-    if (emergency == null && cancel == null) return const SizedBox.shrink();
+    final showToggle = widget.enableTextInput;
+    if (emergency == null && cancel == null && !showToggle) {
+      return const SizedBox.shrink();
+    }
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          if (showToggle)
+            _bottomAction(
+              _textMode
+                  ? l10n?.unlockKeyboardDigits ?? '数字'
+                  : l10n?.unlockKeyboardText ?? '字母',
+              _textMode ? _toggleDigitMode : _toggleTextMode,
+            ),
+          if (showToggle && emergency != null) const SizedBox(width: 4),
           if (emergency != null)
             _bottomAction(
-              widget.emergencyLabel ??
-                  AppLocalizations.of(context)?.unlockEmergency ??
-                  '紧急情况',
+              widget.emergencyLabel ?? l10n?.unlockEmergency ?? '紧急情况',
               emergency,
             ),
+          const Spacer(),
           if (cancel != null)
-            _bottomAction(AppLocalizations.of(context)?.cancel ?? '取消', cancel),
+            _bottomAction(l10n?.cancel ?? '取消', cancel),
         ],
       ),
     );

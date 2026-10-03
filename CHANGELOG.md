@@ -2,6 +2,55 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.58] - 2026-10-03
+
+### 跨端密码输入统一（C-14 兑现批）：UnlockFlow 全链路支持任意字符 + 笔记本设密路径统一
+
+> 修复审计批次 AF 备案的跨端不对称——实查后根因比备案更严重：
+> `DesktopUnlockField` 也带 `digitsOnly`（unlock_sheets:220-222），即
+> UnlockFlow 全链路在**两端都只能收数字**；唯一字母密码通道是笔记本
+> 自建 `_PasswordDialog`（无限制），而笔记本解锁又走数字-only 的
+> UnlockFlow——**字母笔记本密码在任何端都无法解锁（自锁面）**。
+
+- **① PinPadCore 文本切换模式**（429→457 SLOC）：新参数
+  `enableTextInput`——底部动作区出现「字母/数字」切换键，文本模式下
+  圆点与九宫格替换为 obscure TextField（任意字符、深色玻璃白字、
+  AppleRadius.md），提交走与数字模式**同一校验管线**（验证失败
+  heavyImpact+抖动+清空，成功/收集 → onAccepted）；空提交轻抖忽略；
+  数字缓冲跨切换保留（文本输入不污染数字模式）；键盘弹出经
+  viewInsets 避让 + SingleChildScrollView 防小屏溢出；模式切换不动画
+  （解锁/设密属高频操作，频率闸门纪律）；减弱动效门控复用
+  reduceMotionOf。
+- **② DesktopUnlockField 放开字符**：新参数 `allowTextInput`——为
+  true 时去 digitsOnly/数字键盘、不设长度上限；默认 false 时行为与
+  既往逐字节一致（开屏 PIN 纯数字 + 4–12 计数）。
+- **③ UnlockFlow 派生规则（21 处调用点零改动）**：`flexible: true` ⇒
+  文本输入自动开启（移动端切换键 + 桌面端放开字符）。依据实查：
+  flexible 当前仅被文件密码域使用（设/改/解锁/重置 21 处，密码可含
+  字母），开屏 PIN 体系 8 处全部固定长度纯数字——一条参数完成场景
+  分界；将来出现「可变长但纯数字」场景再加显式覆盖参数。
+  **文本模式无 min/max 长度约束的原因**：既有超长/短密码（笔记本
+  `_PasswordDialog` 时代所设）的**解锁**不能被 UI 挡在门外，业务校验
+  由 onVerify 与收集方确认步骤承担。
+- **④ 笔记本设/改密统一到 UnlockFlow（用户拍板；C-14 完全闭合）**：
+  `_enablePasswordEncryption` 从 `_PasswordDialog` 单次收集改为
+  UnlockFlow flexible **收集+确认两遍**（对齐 doc/重置流家族，消除
+  obscured 误输无法察觉的自锁面）；改密的「会话密码免验旧密码」语义
+  不变（两遍只收集新密码）；`_PasswordDialog` 类删除（80 行，含 C-14
+  「记录不合并」裁决注释——前提已消失，裁决迁移至本条），原
+  impSetHint/impChangeHint 的结果性信息由成功 snack 承载。
+- **l10n**：新增 5 对（unlockKeyboardText 字母/ABC、unlockKeyboardDigits
+  数字/123、unlockTextInputHint、impConfirmPasswordProtect、
+  impPasswordMismatch）、删除 5 对孤儿键（nbPasswordHint/nbShowPassword/
+  nbHidePassword/impSetHint/impChangeHint，删前实查零生产消费方）——
+  净零，zh/en 1052=1052 对称；gen-l10n 生成文件同步提交。
+- 版本三处 1.17.58+127；门禁：本地 analyze 0；四道扫描门禁（焦点环/
+  安全 static/棘轮/架构九规则）+ 受影响域 451 用例全绿（新增
+  pin_pad_text_mode_test 6 例 + desktop_unlock_field_test 4 例，
+  pin_pad_flexible 回归、notes 全域、core/security、usability 回归、
+  笔记本加密 v5）；全量按 AGENTS.md §6 云端验证纪律交 CI 五工作流
+  裁决。
+
 ## [1.17.57] - 2026-10-03
 
 ### 审计批次 AI：C-07 装配机制统一 + app_shell 瘦身（架构域大项全部闭环）

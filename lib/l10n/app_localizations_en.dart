@@ -929,6 +929,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unlockPasswordWrong => 'Incorrect password';
 
   @override
+  String get unlockKeyboardText => 'ABC';
+
+  @override
+  String get unlockKeyboardDigits => '123';
+
+  @override
+  String get unlockTextInputHint => 'Letters and symbols allowed';
+
+  @override
   String get unlock => 'Unlock';
 
   @override
@@ -1254,15 +1263,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nbPageNameHint => 'Enter a page name';
 
   @override
-  String get nbPasswordHint => 'Enter the password';
-
-  @override
-  String get nbShowPassword => 'Show password';
-
-  @override
-  String get nbHidePassword => 'Hide password';
-
-  @override
   String get impMarkdownText => 'Markdown / Text';
 
   @override
@@ -1309,16 +1309,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get impSetPasswordProtect => 'Set password protection';
 
   @override
-  String get impChangeHint =>
-      'After changing, opening requires the new password';
-
-  @override
-  String get impSetHint =>
-      'Once set, page content is stored encrypted and requires the password to open';
-
-  @override
   String get impPasswordSameAsLock =>
       'The password must differ from the screen-lock password';
+
+  @override
+  String get impConfirmPasswordProtect => 'Confirm new password';
+
+  @override
+  String get impPasswordMismatch => 'Passwords don\'t match. Try again';
 
   @override
   String get impRelockNeeded =>

@@ -216,21 +216,35 @@ extension _NotebookPageImports on _NotebookViewPageState {
   }
 
   /// 密码模式加密/改密（N4 批 3：v5 双保护器——改密=重绕密码槽）。
+  ///
+  /// C-14 兑现（2026-10-03）：设/改密统一走 shared UnlockFlow——文本模式
+  /// 随 flexible 自动开启，移动端九宫格可切字母键盘，任意字符密码双端
+  /// 可设可解（此前 _PasswordDialog 设的字母密码在数字-only 解锁链路上
+  /// 无法输入，存在自锁面）。新增**两遍确认**对齐 doc/重置流家族
+  /// （obscured 输入误敲无法察觉）；改密的「会话密码免验旧密码」语义
+  /// 不变——两遍只收集新密码。原 impSetHint/impChangeHint 的结果性信息
+  /// 由成功 snack（impPasswordEnabled/impPasswordChanged）承载。
   Future<void> _enablePasswordEncryption() async {
     final isChange = _notebook.encrypted;
-    final password = await GlassDialog.show<String>(
-      context: context,
-      builder: (ctx) => _PasswordDialog(
-        title: isChange
-            ? AppLocalizations.of(context)?.impChangePasswordProtect ?? '修改密码保护'
-            : AppLocalizations.of(context)?.impSetPasswordProtect ?? '设置密码保护',
-        hint: isChange
-            ? AppLocalizations.of(context)?.impChangeHint ?? '修改后打开需输入新密码'
-            : AppLocalizations.of(context)?.impSetHint ??
-                  '设置后页面内容将加密存储，打开需输入密码',
-      ),
+    final title = isChange
+        ? AppLocalizations.of(context)?.impChangePasswordProtect ?? '修改密码保护'
+        : AppLocalizations.of(context)?.impSetPasswordProtect ?? '设置密码保护';
+    final password = await UnlockFlow.show(
+      context,
+      title: title,
+      flexible: true,
     );
     if (password == null || password.isEmpty) return;
+    if (!mounted) return;
+    final confirm = await UnlockFlow.show(
+      context,
+      title: AppLocalizations.of(context)?.impConfirmPasswordProtect ?? '确认新密码',
+      flexible: true,
+    );
+    if (confirm != password) {
+      _showSnack(_l10nSafe?.impPasswordMismatch ?? '两次输入不一致，请重试');
+      return;
+    }
     // 批次②：≠开屏密码强制——哈希加盐不可直接比对，verify 探测
     // （能通过开屏锁校验即同码），同码会削弱两层独立的保护边界。
     if (await AppLockService.matchesAppLockPin(password)) {

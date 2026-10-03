@@ -29,6 +29,7 @@ class PinPadUnlockSheet extends StatelessWidget {
     this.onVerify,
     this.onEmergency,
     this.emergencyLabel,
+    this.enableTextInput = false,
   });
 
   /// null 时按 locale 解析（i18n E1 批 1）。
@@ -52,6 +53,9 @@ class PinPadUnlockSheet extends StatelessWidget {
   /// 「紧急情况」按钮文案；null 时按 locale 解析（i18n E1 批 1）。
   final String? emergencyLabel;
 
+  /// 文本切换模式（C-14 兑现，透传 [PinPadCore.enableTextInput]）。
+  final bool enableTextInput;
+
   /// 全屏打开密码盘并返回用户输入的 PIN（取消返回 null）。
   static Future<String?> show(
     BuildContext context, {
@@ -63,6 +67,7 @@ class PinPadUnlockSheet extends StatelessWidget {
     Future<bool> Function(String pin)? onVerify,
     VoidCallback? onEmergency,
     String? emergencyLabel,
+    bool enableTextInput = false,
   }) {
     return showGeneralDialog<String>(
       context: context,
@@ -82,6 +87,7 @@ class PinPadUnlockSheet extends StatelessWidget {
         onVerify: onVerify,
         onEmergency: onEmergency,
         emergencyLabel: emergencyLabel,
+        enableTextInput: enableTextInput,
       ),
       transitionBuilder: (_, animation, _, child) => FadeTransition(
         opacity: CurvedAnimation(parent: animation, curve: AppleMotion.easeOut),
@@ -109,6 +115,7 @@ class PinPadUnlockSheet extends StatelessWidget {
             },
       emergencyLabel: emergencyLabel,
       onCancel: () => Navigator.of(context).pop(),
+      enableTextInput: enableTextInput,
     );
   }
 }
@@ -122,6 +129,11 @@ class PinPadUnlockSheet extends StatelessWidget {
 /// 传入 [onVerify] 时（验证模式，如关闭/修改应用锁）：确认后先服务端校验，
 /// 通过才关闭并回传 PIN；失败在原地显示错误并清空，对话框不关闭——
 /// 保证「错误密码不可能被上层当成已验证凭据」。
+///
+/// [allowTextInput]（C-14 兑现）：文件密码域（flexible 场景）放开字符——
+/// 去 digitsOnly/数字键盘、不设长度上限（既有超长密码的**解锁**不能被
+/// UI 挡在门外，业务校验由 onVerify 与收集方确认步骤承担）；默认 false
+/// 时行为与既往逐字节一致（开屏 PIN 纯数字 + 长度上限 + 实时计数）。
 class DesktopUnlockField extends StatefulWidget {
   const DesktopUnlockField({
     super.key,
@@ -130,12 +142,14 @@ class DesktopUnlockField extends StatefulWidget {
     this.onVerify,
     this.footerLabel,
     this.onFooterTap,
+    this.allowTextInput = false,
   });
 
   /// null 时按 locale 解析（i18n E1 批 1）。
   final String? title;
 
-  /// 最大长度（可变长度密码 4–12 位时传 12，附实时计数）。
+  /// 最大长度（可变长度密码 4–12 位时传 12，附实时计数）；
+  /// [allowTextInput] 为 true 时忽略（不设上限、不显计数）。
   final int? maxLength;
 
   /// 验证回调；为空则为收集模式（直接回传输入值）。
@@ -146,6 +160,9 @@ class DesktopUnlockField extends StatefulWidget {
   final String? footerLabel;
   final VoidCallback? onFooterTap;
 
+  /// 任意字符输入（文件密码域）；false = 纯数字 + 长度上限（开屏 PIN）。
+  final bool allowTextInput;
+
   static Future<String?> show(
     BuildContext context, {
     String? title,
@@ -153,6 +170,7 @@ class DesktopUnlockField extends StatefulWidget {
     Future<bool> Function(String pin)? onVerify,
     String? footerLabel,
     VoidCallback? onFooterTap,
+    bool allowTextInput = false,
   }) {
     return GlassDialog.show<String>(
       context: context,
@@ -162,6 +180,7 @@ class DesktopUnlockField extends StatefulWidget {
         onVerify: onVerify,
         footerLabel: footerLabel,
         onFooterTap: onFooterTap,
+        allowTextInput: allowTextInput,
       ),
     );
   }
@@ -217,10 +236,13 @@ class _DesktopUnlockFieldState extends State<DesktopUnlockField> {
         focusNode: _focus,
         obscureText: true,
         autofocus: true,
-        keyboardType: TextInputType.number,
+        // C-14 兑现：文件密码域（allowTextInput）放开字符与长度上限——
+        // 既有字母/超长密码的解锁不能被输入过滤挡住；开屏 PIN 维持数字。
+        keyboardType: widget.allowTextInput ? TextInputType.text : TextInputType.number,
         inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-          if (maxLength != null) LengthLimitingTextInputFormatter(maxLength),
+          if (!widget.allowTextInput) FilteringTextInputFormatter.digitsOnly,
+          if (!widget.allowTextInput && maxLength != null)
+            LengthLimitingTextInputFormatter(maxLength),
         ],
         onSubmitted: (_) => _confirm(),
         onChanged: (_) => setState(() => _error = false),
@@ -229,7 +251,8 @@ class _DesktopUnlockFieldState extends State<DesktopUnlockField> {
           errorText: _error
               ? AppLocalizations.of(context)?.unlockPasswordWrong ?? '密码不正确'
               : null,
-          counterText: maxLength == null
+          counterText:
+              (maxLength == null || widget.allowTextInput)
               ? null
               : AppLocalizations.of(
                   context,
@@ -272,6 +295,13 @@ class _DesktopUnlockFieldState extends State<DesktopUnlockField> {
 // ===========================================================================
 
 /// 平台自适应解锁入口：手机端九宫格，桌面端键盘输入。
+///
+/// 文本能力派生规则（C-14 兑现，2026-10-03）：**[flexible] 为 true ⇒ 文本
+/// 输入自动开启**——移动端九宫格出现「字母/数字」切换键，桌面端 TextField
+/// 放开 digitsOnly 与长度上限。依据：`flexible` 当前仅被文件密码域使用
+/// （设/改/解锁/重置共 21 处，密码可含字母），开屏 PIN 体系 8 处全部
+/// 固定长度纯数字——一条参数即完成场景分界，调用点零改动。将来若出现
+/// 「可变长但纯数字」的场景，再加显式覆盖参数，不改此派生默认。
 abstract final class UnlockFlow {
   static bool get _isMobile =>
       !kIsWeb && (Platform.isIOS || Platform.isAndroid);
@@ -300,6 +330,8 @@ abstract final class UnlockFlow {
         onEmergency: onFooter,
         // null 交由 PinPadCore 按 locale 解析「紧急情况」。
         emergencyLabel: footerLabel,
+        // C-14：文件密码域（flexible）⇒ 移动端开放文本切换模式。
+        enableTextInput: flexible,
       );
     }
     return DesktopUnlockField.show(
@@ -309,6 +341,8 @@ abstract final class UnlockFlow {
       onVerify: onVerify,
       footerLabel: footerLabel,
       onFooterTap: onFooter,
+      // C-14：文件密码域（flexible）⇒ 桌面端放开字符与长度上限。
+      allowTextInput: flexible,
     );
   }
 }
