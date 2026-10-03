@@ -2,6 +2,65 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.54] - 2026-10-03
+
+### 审计批次 AF：架构域小项包——C-09 四处跨 feature 直连清零 + C-12 更名消歧 + C-13/C-14 裁决记录
+
+> 架构域余量 9 条（C-05~C-10、C-12~C-14），本批收口其中 4 条可独立
+> 验证的小项；C-05~C-08、C-10 为大型重构专项（DI 收敛/装配统一/
+> StorageService 分解/伪共享归位），留各自批次。
+
+- **C-09 [P2] 四处跨 feature 直连收口（notes⇄all_docs 环解体）**：
+  1. **doc→notes 展示件随迁**：`PdfAttachmentPreview` 全库唯一生产
+     消费方是 doc 附件块视图（notes 自身从不使用），自
+     `notes/presentation/pdf_preview.dart` 迁入
+     `doc/presentation/pdf_attachment_preview.dart`（测试随迁
+     `test/features/doc/`）——留在 notes 即一条无必要的 doc→notes
+     展示层直连；
+  2. **doc→security 注入化**：`DocPage` 新增
+     `BlockDocPasswordResetLauncher`（签名只依赖 core 的
+     `NoteBlockDocStore`），组合根（app_shell ×3、notes 首页 Tab
+     ×1）传 security 的 `BlockDocPasswordResetFlow.show` tear-off，
+     doc 内部反向链接打开路径透传——doc 展示层不再 import security
+     展示层；launcher 为 null（测试桩）时解锁弹窗「忘记密码？」页脚
+     不出现，与 allDocsLoader null 时隐藏反向链接面板同一先例
+     （生产路径恒注入，入口不丢）；
+  3. **notes⇄all_docs 环解体**：`AllDoc` 契约与 `buildAllDocs` 查询
+     纯函数下沉 core（`core/all_doc.dart` / `core/all_doc_query.dart`
+     ——首页与 All Docs 页两侧都消费，留任一侧都是环的一半）；笔记本
+     输入改走新增只读契约 `core/documents/notebook_index_source.dart`
+     （`Notebook`/`NotebookPage` 纯声明实现之，`List<Notebook>` 因
+     Dart 泛型协变直接传入，调用点零改动），core 不反向依赖 notes
+     领域实体。四处全清后 architecture_test 以 `shouldNotDependOn`
+     双向锁死 notes⇄all_docs、锁死 doc→security 与
+     doc→notes/presentation（同 C-01/C-03 解环先例）。
+  - **棘轮基线四向下调**（只紧不松）：doc->notes 2→1（余为
+    domain→domain 迁移映射，不在本批范围）、doc->security 1→0、
+    notes->all_docs 2→0、all_docs->notes 1→0。
+- **C-12 [P3] `core/import_guard.dart` 更名消歧**：实为「异步导入请求
+  代次过期守卫」而非 import 方向治理（真门禁在 architecture_test/
+  棘轮），文件与类更名 `import_request_guard.dart` /
+  `ImportRequestGuard`（`ImportRequestToken` 不变），测试随迁随名。
+  实查确认该件当前 lib 内零生产消费方（仅测试覆盖）——纯逻辑部件
+  留作 notebook 导入流接线预留，删除另行征求同意。
+- **C-13 [P3] 裁决：记录，不迁移**。`domain_display_labels` 依赖
+  l10n 确属 core 方向例外，但该类就是「展示侧」契约（存储侧写空串，
+  展示侧经 l10n 渲染），迁 shared 成 C-10 式伪共享、再往下沉拿不到
+  AppLocalizations——裁决落文件头注释（审计 ID + 理由），零行为变化。
+- **C-14 [P3] 裁决：记录，不与 shared UnlockFlow 合并**。两者仅在
+  桌面端等价（DesktopUnlockField 是文本框）；移动端 UnlockFlow 走
+  PinPadUnlockSheet **纯数字键盘**，而 `_PasswordDialog` 用于设置/
+  修改笔记本文件密码（任意字符）——合并等于移动端只能设数字密码，
+  属功能回退。裁决落 `_PasswordDialog` 头注释。顺带发现（备案不修）：
+  doc 侧文件密码设置/解锁均经 UnlockFlow（flexible 12 位），移动端
+  同样只能数字密码、桌面端可设字母密码——跨端不对称是既有行为，
+  修复需给 PinPad 补文本输入模式，留待用户裁决。
+- 版本三处 1.17.54+123；门禁：本地 analyze 0；architecture_test +
+  棘轮门禁绿（新锁 4 条生效）；受影响域 110+ 用例全绿（all_docs
+  全套/home_sync/doc_page/q0/u5/390dp 溢出门禁/焦点环门禁/更名守卫/
+  锁定占位/PDF 预览迁移件）；全量按 AGENTS.md §6 云端验证纪律交
+  CI 五工作流裁决。
+
 ## [1.17.53] - 2026-10-03
 
 ### 审计批次 AE：性能域清尾——P-05 选区撤销窄命令 + P-11 预览图封顶（P 域 13 条全闭环）

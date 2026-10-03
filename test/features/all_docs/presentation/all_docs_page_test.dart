@@ -5,8 +5,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 
-import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
-import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
+import 'package:drawing_notes_app/core/all_doc.dart';
+import 'package:drawing_notes_app/core/all_doc_query.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_docs_page.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_docs_sidebar.dart';
 

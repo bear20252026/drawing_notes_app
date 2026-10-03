@@ -1,3 +1,4 @@
+import 'package:drawing_notes_app/core/documents/notebook_index_source.dart';
 import 'package:drawing_notes_app/core/utils/time_serialization.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_page.dart';
 
@@ -11,7 +12,9 @@ enum EncryptionMode {
 ///
 /// 加密后的可编辑页面不以明文落盘；解锁后才填充 [pages]。加密、密钥管理、
 /// I/O 与界面刷新仍分别属于基础设施、会话和展示层。
-class Notebook {
+/// C-09（审计 2026-09-27）：实现 core 只读索引源契约——AllDoc 统一索引
+/// （core/all_doc_query）据此聚合笔记本源，core 无需反向依赖本实体。
+class Notebook implements NotebookIndexSource {
   Notebook({
     required this.id,
     required this.title,
@@ -26,14 +29,19 @@ class Notebook {
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 
+  @override
   final String id;
+  @override
   String title;
+  @override
   final List<NotebookPage> pages;
   bool encrypted;
   EncryptionMode encryptionMode;
   String? encryptedPayload;
   String searchSummary;
+  @override
   final DateTime createdAt;
+  @override
   DateTime updatedAt;
 
   void touch() => updatedAt = DateTime.now();
@@ -41,6 +49,7 @@ class Notebook {
   /// 锁定占位条目（listAll fail-closed 可见性，与 N2 块文档占位同口径）：
   /// 保险库锁定时 DNV 密文分页画布以占位形式出现在列表——加密、无页面、
   /// 无可读文件密码信封（真实受密分页画布的 JSON 壳含 encryptedPayload）。
+  @override
   bool get isLockedPlaceholder =>
       encrypted && pages.isEmpty && encryptedPayload == null;
 

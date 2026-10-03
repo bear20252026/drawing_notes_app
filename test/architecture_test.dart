@@ -137,6 +137,33 @@ void main() {
       filesMatching('features/notes/infrastructure/**'),
       graph,
     );
+    // C-09 收口（审计 2026-09-27，v1.17.54）：四处跨 feature 直连清零。
+    // ① doc→notes 展示件随迁——PdfAttachmentPreview 唯一消费方是
+    // doc 附件块视图，迁入 doc/presentation（notes 从不使用）。
+    shouldNotDependOn(
+      filesMatching('features/doc/presentation/**'),
+      filesMatching('features/notes/presentation/**'),
+      graph,
+    );
+    // ② doc→security 注入化——DocPage 的文件密码重置流经
+    // BlockDocPasswordResetLauncher 由组合根注入（签名只依赖 core）。
+    shouldNotDependOn(
+      filesMatching('features/doc/**'),
+      filesMatching('features/security/**'),
+      graph,
+    );
+    // ③④ notes⇄all_docs 环解体——AllDoc 契约与查询纯函数下沉 core，
+    // Notebook/NotebookPage 实现 core 只读接口 NotebookIndexSource。
+    shouldNotDependOn(
+      filesMatching('features/notes/**'),
+      filesMatching('features/all_docs/**'),
+      graph,
+    );
+    shouldNotDependOn(
+      filesMatching('features/all_docs/**'),
+      filesMatching('features/notes/**'),
+      graph,
+    );
   });
 
   test('规则4：六边形方向——依赖仅指向内层（domain 最内）', () {

@@ -1,10 +1,14 @@
 // 由 Claude 团队生成 | Drawing Notes App
 // AllDocQuery：把画布 / 笔记本页 / 块文档三源统一为 AllDoc 列表 + 分组。
 // 纯映射/聚合，无 IO；不可变输入 → 确定性输出。
+//
+// C-09（审计 2026-09-27）随 AllDoc 契约下沉 core：笔记本输入改走
+// NotebookIndexSource 只读契约（Notebook 实现之），消除
+// all_docs→notes 与 notes→all_docs 的 feature 级环。
 
+import 'package:drawing_notes_app/core/all_doc.dart';
+import 'package:drawing_notes_app/core/documents/notebook_index_source.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
-import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
-import 'package:drawing_notes_app/features/notes/domain/notebook_entity.dart';
 
 /// 块文档的轻量 meta（供集成方从 NoteBlockDoc 提取）。
 class BlockDocMeta {
@@ -54,7 +58,7 @@ class AllDocQueryResult {
 /// - [favoriteOnly] 为 true 时只保留 isFavorite==true 的文档。
 AllDocQueryResult buildAllDocs({
   required List<DocumentMeta> docs,
-  required List<Notebook> notebooks,
+  required List<NotebookIndexSource> notebooks,
   required List<BlockDocMeta> blockDocs,
   required DateTime now,
   bool favoriteOnly = false,

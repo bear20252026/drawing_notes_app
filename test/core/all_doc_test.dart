@@ -1,7 +1,7 @@
 // 由 Claude 团队生成 | Drawing Notes App
 // AllDoc 领域模型 + 分组纯函数测试。
 
-import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
+import 'package:drawing_notes_app/core/all_doc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

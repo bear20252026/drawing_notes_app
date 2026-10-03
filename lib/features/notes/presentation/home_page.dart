@@ -26,8 +26,8 @@ import 'package:drawing_notes_app/core/storage/storage_service.dart';
 // 批次②：单文件密码——移除密码需回封 v1 主密钥信封，锁定时 fail-closed。
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart'
     show VaultFileException, VaultFileLockException;
-import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
-import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
+import 'package:drawing_notes_app/core/all_doc_query.dart';
+import 'package:drawing_notes_app/core/all_doc.dart';
 import 'package:drawing_notes_app/features/notes/presentation/onboarding.dart';
 // N1 命名统一：画布 tab FAB 弹两选项（新建无限画布/新建分页画布）——
 // 分页画布新建入口恢复（M12 曾移除「新建笔记本」入口）。

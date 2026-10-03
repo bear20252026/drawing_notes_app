@@ -402,6 +402,14 @@ class _PageNameDialogState extends State<_PageNameDialog> {
 }
 
 /// 密码输入对话框（C3 加密设置/解锁用）。
+///
+/// C-14（审计 2026-09-27）裁决：**记录，不与 shared UnlockFlow 合并**。
+/// 两者仅在桌面端等价（DesktopUnlockField 是文本框）；移动端
+/// UnlockFlow 走 PinPadUnlockSheet——3×4 **纯数字键盘**，无法输入
+/// 字母/符号，而本对话框用于**设置/修改**笔记本文件密码（任意字符），
+/// 合并等于让移动端只能设数字密码，属功能回退。doc 侧统一走
+/// UnlockFlow（doc_page_password）是其密码本就经 UnlockFlow 设置、
+/// 两侧能力自洽；若将来给 PinPad 补文本输入模式再行统一。
 class _PasswordDialog extends StatefulWidget {
   const _PasswordDialog({required this.title, this.hint = ''});
 

@@ -4,7 +4,7 @@
 // 默认模式（timeGrouped）保留 AFFiNE 式「今天/本周/更早/从未更新」分组；
 // 其余模式渲染为扁平列表（分组头无意义）。
 
-import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
+import 'package:drawing_notes_app/core/all_doc.dart';
 
 /// 排序模式。
 enum AllDocSort {

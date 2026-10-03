@@ -1,5 +1,6 @@
 // 由 Claude 团队生成 | Drawing Notes App
 // PdfAttachmentPreview / AttachmentBlockView PDF 分支的 widget 测试。
+// （C-09：随组件自 test/features/notes/ 迁入 test/features/doc/。）
 // 注入 fake PdfPreviewRenderer，避免依赖 pdfrx 原生库。
 
 import 'dart:convert';
@@ -13,7 +14,7 @@ import 'package:drawing_notes_app/core/storage/pdf_preview_renderer.dart';
 import 'package:drawing_notes_app/core/documents/note_attachment.dart';
 import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/features/doc/presentation/attachment_block_view.dart';
-import 'package:drawing_notes_app/features/notes/presentation/pdf_preview.dart';
+import 'package:drawing_notes_app/features/doc/presentation/pdf_attachment_preview.dart';
 
 class _FakeRenderer implements PdfPreviewRenderer {
   _FakeRenderer(this.page, {this.shouldThrow = false});

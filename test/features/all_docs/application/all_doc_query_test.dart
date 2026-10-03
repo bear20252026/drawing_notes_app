@@ -2,8 +2,8 @@
 // AllDocQuery 三源统一查询测试。
 
 import 'package:drawing_notes_app/core/storage/repository.dart';
-import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
-import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
+import 'package:drawing_notes_app/core/all_doc_query.dart';
+import 'package:drawing_notes_app/core/all_doc.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_entity.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_page.dart';

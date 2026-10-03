@@ -1,7 +1,7 @@
 // M11 产品清晰化：All Docs 搜索过滤纯函数。
 // 纯 Dart，无 flutter/io 依赖，可单测锁定。
 
-import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
+import 'package:drawing_notes_app/core/all_doc.dart';
 
 /// 按关键词过滤文档区段（大小写不敏感的包含匹配）。
 ///

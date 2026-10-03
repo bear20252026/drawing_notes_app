@@ -1,3 +1,4 @@
+import 'package:drawing_notes_app/core/documents/notebook_index_source.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/canvas_model/page_chart_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/page_connector.dart';
@@ -15,7 +16,9 @@ import 'package:drawing_notes_app/features/notes/domain/page_version.dart';
 /// 聚合根保存页面库元数据和一个活动 [content]。既有内容访问器继续转发到
 /// [content]，从而让编辑器会话持有稳定的对象引用，而快照、恢复和版本上限
 /// 由单一领域入口维护。
-class NotebookPage {
+/// C-09（审计 2026-09-27）：实现 core 只读索引源契约（见
+/// notebook_index_source.dart）——AllDoc 统一索引据此聚合页源。
+class NotebookPage implements NotebookPageIndexSource {
   NotebookPage({
     required this.id,
     required this.title,
@@ -52,7 +55,9 @@ class NotebookPage {
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 
+  @override
   final String id;
+  @override
   String title;
   final NotebookPageContent content;
 
@@ -64,6 +69,7 @@ class NotebookPage {
   List<PageChartItem> get charts => content.charts;
 
   /// 分组名（空字符串表示根级）。
+  @override
   String folder;
 
   /// 指向源页面的克隆引用；克隆内容解析不在聚合中执行。
@@ -81,11 +87,14 @@ class NotebookPage {
   PageTemplate template;
 
   /// 收藏/置顶标记。
+  @override
   bool favorite;
 
   /// 最近一次进入编辑器的时间，不等同于内容更新时间。
   DateTime? lastOpenedAt;
+  @override
   final DateTime createdAt;
+  @override
   DateTime updatedAt;
 
   void touch() => updatedAt = DateTime.now();

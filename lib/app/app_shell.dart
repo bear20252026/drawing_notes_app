@@ -17,8 +17,8 @@ import 'package:drawing_notes_app/core/storage/vault_file_codec.dart'
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'package:drawing_notes_app/core/theme/app_locale_controller.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
-import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
-import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
+import 'package:drawing_notes_app/core/all_doc_query.dart';
+import 'package:drawing_notes_app/core/all_doc.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_docs_page.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
@@ -221,6 +221,7 @@ class _AppShellState extends State<AppShell> {
           tagStore: _services.tagStore,
           allDocsLoader: _services.loadAllBlockDocs,
           onOpenDocById: _openBlockDocById,
+          resetBlockDocPassword: BlockDocPasswordResetFlow.show,
         ),
       ),
     );
@@ -586,6 +587,7 @@ class _AppShellState extends State<AppShell> {
               tagStore: _services.tagStore,
               allDocsLoader: _services.loadAllBlockDocs,
               onOpenDocById: _openBlockDocById,
+              resetBlockDocPassword: BlockDocPasswordResetFlow.show,
             ),
           ),
         );
@@ -656,6 +658,7 @@ class _AppShellState extends State<AppShell> {
               tagStore: _services.tagStore,
               allDocsLoader: _services.loadAllBlockDocs,
               onOpenDocById: _openBlockDocById,
+              resetBlockDocPassword: BlockDocPasswordResetFlow.show,
             ),
           ),
         );

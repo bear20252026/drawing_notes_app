@@ -2,6 +2,10 @@
 // PDF 附件内嵌预览部件：把本地 PDF 的首页渲染成一张内存 PNG 并展示，
 // 失败/无图回退为「打开 PDF」卡片。只依赖 core 的 [PdfPreviewRenderer]
 // 接口（组合根注入实现），widget 层不直接触原生库。
+//
+// C-09（审计 2026-09-27）自 notes/presentation 迁入 doc/presentation：
+// 全库唯一生产消费方是 doc 的附件块视图（attachment_block_view），notes
+// 自身从不使用——留在 notes 即一条无必要的 doc→notes 展示层直连。
 
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';

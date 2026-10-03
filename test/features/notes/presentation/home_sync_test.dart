@@ -16,8 +16,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart'
     show DocumentMeta;
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
-import 'package:drawing_notes_app/features/all_docs/application/all_doc_query.dart';
-import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
+import 'package:drawing_notes_app/core/all_doc_query.dart';
+import 'package:drawing_notes_app/core/all_doc.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_entity.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';

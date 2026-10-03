@@ -102,19 +102,21 @@ extension _DocPageLinkOutline on _DocPageState {
         if (protected && !store.isBlockDocUnlocked(id)) {
           if (!mounted) return;
           final l10n = AppLocalizations.of(context);
+          // C-09：重置流启动器由组合根注入；null（测试桩）时页脚不出现。
+          final reset = widget.resetBlockDocPassword;
           final pin = await UnlockFlow.show(
             context,
             title: l10n?.docUnlockTitle ?? '该笔记已加密，输入密码',
             flexible: true,
             onVerify: (p) => store.verifyBlockDocPassword(id, p),
-            footerLabel: l10n?.docForgotPassword ?? '忘记密码？',
-            onFooter: () {
-              BlockDocPasswordResetFlow.show(
-                context,
-                store: store,
-                docId: id,
-              );
-            },
+            footerLabel: reset != null
+                ? (l10n?.docForgotPassword ?? '忘记密码？')
+                : null,
+            onFooter: reset == null
+                ? null
+                : () {
+                    reset(context, store: store, docId: id);
+                  },
           );
           if (pin == null && !store.isBlockDocUnlocked(id)) return;
         }
@@ -134,6 +136,7 @@ extension _DocPageLinkOutline on _DocPageState {
               controller: DocController(onSave: (d) => store.saveDocument(d)),
               blockDocStore: store,
               tagStore: widget.tagStore,
+              resetBlockDocPassword: widget.resetBlockDocPassword,
             ),
           ),
         );

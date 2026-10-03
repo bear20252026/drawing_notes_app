@@ -16,7 +16,7 @@ import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
-import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
+import 'package:drawing_notes_app/core/all_doc.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/tags_view.dart';
 import 'package:drawing_notes_app/features/doc/presentation/doc_page.dart';
 import 'package:drawing_notes_app/core/documents/note_block.dart';

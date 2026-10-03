@@ -1,18 +1,18 @@
 // import_guard.dart 单元测试（drawing_notes_app）。
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drawing_notes_app/core/import_guard.dart';
+import 'package:drawing_notes_app/core/import_request_guard.dart';
 
 void main() {
-  group('ImportGuard', () {
+  group('ImportRequestGuard', () {
     test('初始状态为 idle，无 current token', () {
-      final guard = ImportGuard.initial();
+      final guard = ImportRequestGuard.initial();
       expect(guard.lifecycle, ImportLifecycleState.idle);
       expect(guard.currentToken, isNull);
     });
 
     test('beginImport 返回 generation=1 的 token 并进入 active', () {
-      final guard = ImportGuard.initial();
+      final guard = ImportRequestGuard.initial();
       final token = guard.beginImport();
 
       expect(token.generation, 1);
@@ -23,7 +23,7 @@ void main() {
     });
 
     test('连续两次 beginImport：第一次 token 在第二次后变 stale', () {
-      final guard = ImportGuard.initial();
+      final guard = ImportRequestGuard.initial();
       final first = guard.beginImport();
       final second = guard.beginImport();
 
@@ -37,7 +37,7 @@ void main() {
     });
 
     test('页面退出（invalidateAll）后 complete 旧 token 不生效', () {
-      final guard = ImportGuard.initial();
+      final guard = ImportRequestGuard.initial();
       final token = guard.beginImport();
 
       guard.invalidateAll();
@@ -51,7 +51,7 @@ void main() {
     });
 
     test('active 中 cancel 生效并进入 cancelled 状态', () {
-      final guard = ImportGuard.initial();
+      final guard = ImportRequestGuard.initial();
       final token = guard.beginImport();
 
       final result = guard.cancel(token);
@@ -61,7 +61,7 @@ void main() {
     });
 
     test('已 stale 的 complete 被拒绝（返回 false）', () {
-      final guard = ImportGuard.initial();
+      final guard = ImportRequestGuard.initial();
       final old = guard.beginImport();
       guard.beginImport(); // 使 old 变 stale
 
@@ -71,7 +71,7 @@ void main() {
     });
 
     test('generation 严格递增', () {
-      final guard = ImportGuard.initial();
+      final guard = ImportRequestGuard.initial();
       final t1 = guard.beginImport();
       final t2 = guard.beginImport();
       final t3 = guard.beginImport();
@@ -84,7 +84,7 @@ void main() {
     });
 
     test('invalidateAll 后所有历史 token 均为 stale', () {
-      final guard = ImportGuard.initial();
+      final guard = ImportRequestGuard.initial();
       final t1 = guard.beginImport();
       final t2 = guard.beginImport();
 
@@ -97,7 +97,7 @@ void main() {
     });
 
     test('complete 后 guard 回到 idle，可再次 beginImport', () {
-      final guard = ImportGuard.initial();
+      final guard = ImportRequestGuard.initial();
       final token = guard.beginImport();
 
       expect(guard.complete(token), isTrue);
@@ -110,7 +110,7 @@ void main() {
     });
 
     test('cancel 非 current token 返回 false', () {
-      final guard = ImportGuard.initial();
+      final guard = ImportRequestGuard.initial();
       final old = guard.beginImport();
       guard.beginImport(); // old 变 stale
 
@@ -119,7 +119,7 @@ void main() {
     });
 
     test('token 的 isCurrent / isStale 实例方法委托给 guard', () {
-      final guard = ImportGuard.initial();
+      final guard = ImportRequestGuard.initial();
       final token = guard.beginImport();
 
       expect(token.isCurrent(guard), isTrue);

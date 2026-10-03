@@ -274,6 +274,7 @@ extension _HomePageTabs on _HomePageState {
           controller: DocController(
             onSave: (updated) => _blockDocStore.saveDocument(updated),
           ),
+          resetBlockDocPassword: BlockDocPasswordResetFlow.show,
         ),
       ),
     );

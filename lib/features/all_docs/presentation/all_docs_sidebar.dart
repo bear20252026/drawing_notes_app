@@ -10,7 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_focus.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
-import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
+import 'package:drawing_notes_app/core/all_doc.dart';
 import 'package:drawing_notes_app/features/all_docs/presentation/all_doc_row.dart'
     show visualForKind;
 

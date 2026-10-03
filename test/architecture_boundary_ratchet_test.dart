@@ -25,8 +25,12 @@ import 'package:flutter_test/flutter_test.dart';
 ///   `features/<dst>/`，`src == dst`（同 feature 内分层 import）不计。
 ///
 /// 本次实测（与本测试同口径）：notes->doc 9、notes->security 5、
-/// notes->drawing 6、doc->notes 2、notes->all_docs 2、doc->security 1、
-/// all_docs->notes 1、security->notes 0、security->doc 0、drawing->notes 0。
+/// notes->drawing 6、doc->notes 1、notes->all_docs 0、doc->security 0、
+/// all_docs->notes 0、security->notes 0、security->doc 0、drawing->notes 0。
+/// C-09（审计 2026-09-27，v1.17.54）：doc->notes 2→1（PdfAttachmentPreview
+/// 随唯一消费方迁 doc）、doc->security 1→0（DocPage 重置流改组合根注入）、
+/// notes->all_docs 2→0 与 all_docs->notes 1→0（AllDoc 契约+查询纯函数
+/// 下沉 core，Notebook 经 core 只读接口满足查询输入，环解体）。
 /// 基线全部收紧至实测值（棘轮只紧不松）；原值 29/6/7/3 系 2026-09-06 快照，
 /// 其后 v1.17.26「home_page 直连 infra 收口」等迁移已实际下降但基线未回跟。
 ///
@@ -40,13 +44,13 @@ const Map<String, int> _baseline = {
   'notes->doc': 9,
   'notes->security': 5,
   'notes->drawing': 6,
-  'doc->notes': 2,
-  'notes->all_docs': 2,
+  'doc->notes': 1,
+  'notes->all_docs': 0,
   'security->notes': 0,
   'security->doc': 0,
   'drawing->notes': 0,
-  'doc->security': 1,
-  'all_docs->notes': 1,
+  'doc->security': 0,
+  'all_docs->notes': 0,
 };
 
 final RegExp _importRe = RegExp(

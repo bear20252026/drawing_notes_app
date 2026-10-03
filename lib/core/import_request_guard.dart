@@ -1,4 +1,8 @@
-// 纯逻辑部件：异步导入过期/取消守卫（drawing_notes_app）。
+// 纯逻辑部件：异步导入请求过期/取消守卫（drawing_notes_app）。
+//
+// C-12（审计 2026-09-27）更名消歧：原文件/类名 import_guard/ImportRequestGuard
+// 易误读为「import 方向治理」（真门禁在 architecture_test 与棘轮测试）；
+// 本件实为文件导入等异步请求的代次过期守卫，更名 ImportRequestGuard。
 // 无 flutter/io/controller/存储依赖；不可变输入 → 确定性输出。
 
 /// 导入请求的生命周期状态。
@@ -18,7 +22,7 @@ enum ImportLifecycleState {
 
 /// 不可变的导入请求令牌。
 ///
-/// 每次 [ImportGuard.beginImport] 调用生成一个严格递增 [generation] 的新
+/// 每次 [ImportRequestGuard.beginImport] 调用生成一个严格递增 [generation] 的新
 /// 令牌。旧令牌在生成新令牌后立即变为 stale，从而保证"旧请求晚返回覆盖
 /// 新选择"的竞态被拦截。
 class ImportRequestToken {
@@ -28,10 +32,10 @@ class ImportRequestToken {
   final int generation;
 
   /// 当 guard 仍视此 token 为 current 时为 true。
-  bool isCurrent(ImportGuard guard) => guard.isCurrent(this);
+  bool isCurrent(ImportRequestGuard guard) => guard.isCurrent(this);
 
   /// 当 guard 已视此 token 为 stale 时为 true。
-  bool isStale(ImportGuard guard) => guard.isStale(this);
+  bool isStale(ImportRequestGuard guard) => guard.isStale(this);
 
   @override
   bool operator ==(Object other) =>
@@ -56,11 +60,11 @@ class ImportRequestToken {
 /// - complete / cancel 仅在 token 仍 current 时生效。
 ///
 /// 不触发 I/O、不持有 BuildContext、不调用 setState。
-class ImportGuard {
-  ImportGuard._(this._lastGeneration, _GuardState state) : _state = state;
+class ImportRequestGuard {
+  ImportRequestGuard._(this._lastGeneration, _GuardState state) : _state = state;
 
   /// 创建处于 idle 状态的 guard。
-  factory ImportGuard.initial() => ImportGuard._(
+  factory ImportRequestGuard.initial() => ImportRequestGuard._(
     0,
     _GuardState(current: null, lifecycle: ImportLifecycleState.idle),
   );

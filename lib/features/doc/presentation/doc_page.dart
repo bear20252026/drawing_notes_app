@@ -25,7 +25,6 @@ import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
-import 'package:drawing_notes_app/features/security/presentation/block_doc_password_reset_flow.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_export_io.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_link_index.dart';
@@ -57,6 +56,22 @@ void _showShareSnackBar(BuildContext context) {
 
 /// AFFiNE 式笔记页：白底、居中窄栏、顶栏（收藏/信息/更多/分享）、右缘大纲。
 ///
+/// 块文档文件密码「忘记密码」重置流的启动器（C-09 注入化，审计
+/// 2026-09-27）。
+///
+/// 实现由组合根在构造 DocPage 时提供（app_shell 传 security 的
+/// BlockDocPasswordResetFlow.show tear-off）；签名只依赖 core 类型
+/// （NoteBlockDocStore），doc 展示层不再 import security 展示层。
+/// null 时解锁弹窗的「忘记密码？」页脚不出现——与 allDocsLoader 为
+/// null 时隐藏反向链接面板是同一先例（生产路径恒注入，入口不丢）。
+typedef BlockDocPasswordResetLauncher =
+    Future<bool> Function(
+      BuildContext context, {
+      required NoteBlockDocStore store,
+      required String docId,
+      String docTitle,
+    });
+
 /// 与画板完全分离：
 /// - 不使用环境背景 / 玻璃拟态（画板视觉）；
 /// - 不内嵌画布组件。
@@ -71,6 +86,7 @@ class DocPage extends StatefulWidget {
     this.allDocsLoader,
     this.onOpenDocById,
     this.blockDocStore,
+    this.resetBlockDocPassword,
   });
 
   /// 要编辑的笔记文档。
@@ -98,6 +114,9 @@ class DocPage extends StatefulWidget {
   /// 时，用它在 DocPage 内部自建反向链接索引数据源与点击路由——
   /// 各入口（搜索/笔记本管理/首页）无需各自接线即可获得完整能力。
   final NoteBlockDocStore? blockDocStore;
+
+  /// 文件密码重置流启动器（C-09，见 [BlockDocPasswordResetLauncher]）。
+  final BlockDocPasswordResetLauncher? resetBlockDocPassword;
 
   @override
   State<DocPage> createState() => _DocPageState();

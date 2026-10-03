@@ -1,6 +1,10 @@
 // 由 Claude 团队生成 | Drawing Notes App
 // AllDoc：AFFiNE「全部文档」统一领域模型 + 分组纯函数。
 // 纯 Dart，无 flutter/io/controller/存储依赖。
+//
+// C-09（审计 2026-09-27）自 features/all_docs/domain 下沉 core：首页
+// （notes）与 All Docs 页（all_docs）两侧都消费本契约，留任一侧都构成
+// notes⇄all_docs feature 级环的一半——下沉后两侧各自只依赖 core。
 
 /// 统一文档种类。
 enum AllDocKind {

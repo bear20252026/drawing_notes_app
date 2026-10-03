@@ -2,7 +2,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/features/all_docs/application/all_doc_search.dart';
-import 'package:drawing_notes_app/features/all_docs/domain/all_doc.dart';
+import 'package:drawing_notes_app/core/all_doc.dart';
 
 AllDoc _doc(String id, String title, {String desc = ''}) => AllDoc(
   id: id,
