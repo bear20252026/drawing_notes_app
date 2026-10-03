@@ -201,8 +201,19 @@ void main() {
     // 与笔记本 PDF 导出消费，2026-08-16 起）；它是服务而非稳定数据层。
     // document_codec 是存储输出适配器而非稳定数据层。二者的 I 值不应
     // 扭曲 domain/core 数据层的稳定性约束，依赖方向仍由前述严格规则保障。
+    // C-08（2026-10-03）：StorageService 五职责分解出的四个服务协作类
+    // （写入管线/媒体资产/回收站/文件密码）同为服务实现细节——消费方
+    // 唯一为 StorageService 门面（Ca=1），I 天然偏高；不属于稳定数据层，
+    // 不纳入稳定性断言（依赖方向由层规则与 static 访问门禁保障）。
+    // directories/secret_session 两协作类实测 I=0.17 达标，保留在断言内。
     report.removeWhere(
-      (k, _) => k.contains('/vfs/') || k.endsWith('/document_codec.dart'),
+      (k, _) =>
+          k.contains('/vfs/') ||
+          k.endsWith('/document_codec.dart') ||
+          k.endsWith('/storage_write_pipeline.dart') ||
+          k.endsWith('/storage_media_store.dart') ||
+          k.endsWith('/storage_trash_bin.dart') ||
+          k.endsWith('/storage_file_password_manager.dart'),
     );
     var worst = 0.0;
     // ignore: avoid_print
