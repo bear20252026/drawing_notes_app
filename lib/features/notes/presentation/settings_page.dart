@@ -304,14 +304,18 @@ class SettingsPage extends StatelessWidget {
       final stamp =
           '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}'
           '_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
-      final location = await getSaveLocation(
-        suggestedName: 'drawing_notes_diagnostics_$stamp.txt',
-        acceptedTypeGroups: [
-          XTypeGroup(
-            label: l10n?.fileTypeText ?? '文本文档',
-            extensions: const ['txt'],
-          ),
-        ],
+      // 「切后台即锁」豁免只圈这一次原生存盘对话框（抢焦点投 inactive/hidden
+      // 会假锁开屏）；位置选完之后的写盘在窗口外，照常受锁。
+      final location = await LockExemption.run(
+        () => getSaveLocation(
+          suggestedName: 'drawing_notes_diagnostics_$stamp.txt',
+          acceptedTypeGroups: [
+            XTypeGroup(
+              label: l10n?.fileTypeText ?? '文本文档',
+              extensions: const ['txt'],
+            ),
+          ],
+        ),
       );
       if (location == null) return; // 用户取消
       await File(location.path).writeAsString(report, flush: true);
@@ -338,14 +342,18 @@ class SettingsPage extends StatelessWidget {
       final stamp =
           '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}'
           '_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
-      final location = await getSaveLocation(
-        suggestedName: 'drawing_notes_backup_$stamp.zip',
-        acceptedTypeGroups: [
-          XTypeGroup(
-            label: l10n?.fileTypeBackup ?? '绘图笔记备份',
-            extensions: const ['zip'],
-          ),
-        ],
+      // 同上：豁免只圈存盘对话框那一次调用；打包（含密钥文件的 zip 写出）
+      // 在窗口外执行，不受豁免影响。
+      final location = await LockExemption.run(
+        () => getSaveLocation(
+          suggestedName: 'drawing_notes_backup_$stamp.zip',
+          acceptedTypeGroups: [
+            XTypeGroup(
+              label: l10n?.fileTypeBackup ?? '绘图笔记备份',
+              extensions: const ['zip'],
+            ),
+          ],
+        ),
       );
       if (location == null) return; // 用户取消
       await BackupService.createBackup(

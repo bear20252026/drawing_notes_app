@@ -252,12 +252,14 @@ extension _EditorPageEditing on _EditorPageState {
         label: AppLocalizations.of(context)?.edImageLabel ?? '图片',
         extensions: const ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'],
       );
-      // 「切后台即锁」豁免（LockExemption）待接入本选择器：本文件是
-      // editor_page.dart 的 part，Dart 禁止 part 携带 import，故须在库文件引入
-      // core/security/session_guard.dart 后再把下行包进 LockExemption.run（与
-      // notebook_view_page_imports 同款）。债表盯住此缺口：
-      // test/core/storage/reset_disk_picker_exemption_test.dart。
-      final XFile? result = await openFile(acceptedTypeGroups: [typeGroup]);
+      // 「切后台即锁」豁免（[LockExemption]，import 在库本体 editor_page.dart）：
+      // 原生图片选择器抢走 OS 焦点会投 inactive/hidden，不豁免就在选图途中
+      // 假锁开屏、hidden 侧还清 KEK/会话口令。窗口**只**圈下面那一次对话框
+      // 调用——拷图进应用存储（mediaCrypto 解密/加密读写）与后续弹框一律在
+      // 窗口外，需要密钥的操作照常受锁约束；取消/异常由 run 的 finally 释放。
+      final XFile? result = await LockExemption.run(
+        () => openFile(acceptedTypeGroups: [typeGroup]),
+      );
       if (result == null || result.path.isEmpty) return;
       if (!mounted) return;
 
@@ -325,9 +327,8 @@ extension _EditorPageEditing on _EditorPageState {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              AppLocalizations.of(
-                    context,
-                  )?.editorImageInsertFail(e.runtimeType.toString()) ??
+              AppLocalizations.of(context)
+                      ?.editorImageInsertFail(e.runtimeType.toString()) ??
                   '插入图片失败，请重试',
             ),
           ),
@@ -499,9 +500,7 @@ extension _EditorPageEditing on _EditorPageState {
         PopupMenuItem(
           value: _CtxAction.link,
           // L-07（审计 2026-09-27）：同菜单其余项全走 ctx* 键，本项补键。
-          child: Text(
-            AppLocalizations.of(context)?.ctxSetLink ?? '设置链接…',
-          ),
+          child: Text(AppLocalizations.of(context)?.ctxSetLink ?? '设置链接…'),
         ),
         PopupMenuItem(
           value: _CtxAction.ungroup,

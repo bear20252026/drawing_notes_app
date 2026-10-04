@@ -19,6 +19,8 @@ import 'package:drawing_notes_app/features/drawing/application/drawing_controlle
 import 'package:drawing_notes_app/core/navigation/editor_page_session.dart';
 import 'package:drawing_notes_app/core/rendering/notebook_print_page_data.dart';
 import 'package:drawing_notes_app/core/rtf_exporter.dart';
+import 'package:drawing_notes_app/core/security/session_guard.dart'
+    show LockExemption;
 import 'package:drawing_notes_app/features/drawing/application/pdf_export_options.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/pdf_hybrid_exporter.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
@@ -65,6 +67,29 @@ class EditorExporter {
   AppLocalizations? get _l => l10n?.call();
 
   PagedExportSnapshot? get _page => pageProvider();
+
+  /// 「另存为」原生对话框——本类全部存盘点位（11 处导出格式）的唯一入口，
+  /// 单点根治：豁免窗口**只**圈住这一次对话框调用。
+  ///
+  /// 原生存盘对话框抢走 OS 焦点会投 `inactive`（有时 `hidden`），不豁免就会
+  /// 在「导出 → 选位置」途中假锁开屏（hidden 侧另清 KEK/会话口令）。窗口在
+  /// 对话框一返回/一取消即关闭——之后按位置渲染、合成、写盘一律在窗口外，
+  /// 需要密钥的操作照常受锁约束；取消（回 null）与通道异常都由
+  /// [LockExemption.run] 的 finally 释放，绝不留免死金牌。
+  /// 绕过本方法直调 `getSaveLocation(` 会被静态门禁拦下
+  /// （test/core/storage/save_location_exemption_test.dart）。
+  Future<FileSaveLocation?> _pickSaveLocation({
+    required String suggestedName,
+    required String typeGroupLabel,
+    required List<String> extensions,
+  }) => LockExemption.run(
+    () => getSaveLocation(
+      suggestedName: suggestedName,
+      acceptedTypeGroups: [
+        XTypeGroup(label: typeGroupLabel, extensions: extensions),
+      ],
+    ),
+  );
 
   /// 会话 → 整本打印页数据（二级面板范围=全部页的组合边界映射；
   /// notes 聚合不泄漏，drawing 侧只读 core 契约字段）。
@@ -129,14 +154,10 @@ class EditorExporter {
         return;
       }
       final suggested = '${controller.document.title}.png';
-      final location = await getSaveLocation(
+      final location = await _pickSaveLocation(
         suggestedName: suggested,
-        acceptedTypeGroups: [
-          XTypeGroup(
-            label: _l?.fileTypePng ?? 'PNG 图片',
-            extensions: const ['png'],
-          ),
-        ],
+        typeGroupLabel: _l?.fileTypePng ?? 'PNG 图片',
+        extensions: const ['png'],
       );
       if (location == null) return; // 用户取消
       final file = File(location.path);
@@ -183,14 +204,10 @@ class EditorExporter {
         rasterPng: png,
         vectorStrokes: vectorStrokes,
       );
-      final location = await getSaveLocation(
+      final location = await _pickSaveLocation(
         suggestedName: '${controller.document.title}.pdf',
-        acceptedTypeGroups: [
-          XTypeGroup(
-            label: _l?.fileTypePdf ?? 'PDF 文档',
-            extensions: const ['pdf'],
-          ),
-        ],
+        typeGroupLabel: _l?.fileTypePdf ?? 'PDF 文档',
+        extensions: const ['pdf'],
       );
       if (location == null) return; // 用户取消
       final file = File(location.path);
@@ -268,14 +285,10 @@ class EditorExporter {
     }
     try {
       final bytes = await composer(pages, jpegQuality: quality.jpegQuality);
-      final location = await getSaveLocation(
+      final location = await _pickSaveLocation(
         suggestedName: '$baseName.pdf',
-        acceptedTypeGroups: [
-          XTypeGroup(
-            label: _l?.fileTypePdf ?? 'PDF 文档',
-            extensions: const ['pdf'],
-          ),
-        ],
+        typeGroupLabel: _l?.fileTypePdf ?? 'PDF 文档',
+        extensions: const ['pdf'],
       );
       if (location == null) return; // 用户取消
       await File(location.path).writeAsBytes(bytes, flush: true);
@@ -421,14 +434,10 @@ class EditorExporter {
         pages: pages,
         cjkFontData: cjkFontData,
       );
-      final location = await getSaveLocation(
+      final location = await _pickSaveLocation(
         suggestedName: '${controller.document.title}.pdf',
-        acceptedTypeGroups: [
-          XTypeGroup(
-            label: _l?.fileTypePdf ?? 'PDF 文档',
-            extensions: const ['pdf'],
-          ),
-        ],
+        typeGroupLabel: _l?.fileTypePdf ?? 'PDF 文档',
+        extensions: const ['pdf'],
       );
       if (location == null) return; // 用户取消
       final file = File(location.path);
@@ -498,14 +507,10 @@ class EditorExporter {
                 content.height * s,
               ),
       );
-      final location = await getSaveLocation(
+      final location = await _pickSaveLocation(
         suggestedName: '${controller.document.title}.pdf',
-        acceptedTypeGroups: [
-          XTypeGroup(
-            label: _l?.fileTypePdf ?? 'PDF 文档',
-            extensions: const ['pdf'],
-          ),
-        ],
+        typeGroupLabel: _l?.fileTypePdf ?? 'PDF 文档',
+        extensions: const ['pdf'],
       );
       if (location == null) return; // 用户取消
       final file = File(location.path);
@@ -593,7 +598,8 @@ class EditorExporter {
         final inkBytes = quality.jpegQuality == null
             ? inkPng
             : await Isolate.run(
-                () => PdfHybridExporter.encodeJpeg(inkPng, quality.jpegQuality!),
+                () =>
+                    PdfHybridExporter.encodeJpeg(inkPng, quality.jpegQuality!),
               );
         document.addPage(
           pw.Page(
@@ -606,19 +612,14 @@ class EditorExporter {
         );
       }
 
-      final location = await getSaveLocation(
+      final location = await _pickSaveLocation(
         suggestedName: '${page.title}.pdf',
-        acceptedTypeGroups: [
-          XTypeGroup(
-            label: _l?.fileTypePdf ?? 'PDF 文档',
-            extensions: const ['pdf'],
-          ),
-        ],
+        typeGroupLabel: _l?.fileTypePdf ?? 'PDF 文档',
+        extensions: const ['pdf'],
       );
       if (location == null) return;
-      await File(
-        location.path,
-      ).writeAsBytes(await document.save(), flush: true);
+      await File(location.path)
+          .writeAsBytes(await document.save(), flush: true);
       showSnack(
         _l?.expExportPagedPdf(location.path) ?? '已导出分页笔记 PDF：${location.path}',
       );
@@ -654,14 +655,10 @@ class EditorExporter {
       }
 
       final svg = buildSvgDocument(width: w, height: h, body: body.toString());
-      final location = await getSaveLocation(
+      final location = await _pickSaveLocation(
         suggestedName: '${doc.title}.svg',
-        acceptedTypeGroups: [
-          XTypeGroup(
-            label: _l?.fileTypeSvg ?? 'SVG 矢量图',
-            extensions: const ['svg'],
-          ),
-        ],
+        typeGroupLabel: _l?.fileTypeSvg ?? 'SVG 矢量图',
+        extensions: const ['svg'],
       );
       if (location == null) return; // 用户取消
       final file = File(location.path);
@@ -693,14 +690,10 @@ class EditorExporter {
         title: page.title,
         textItems: page.textItems,
       );
-      final location = await getSaveLocation(
+      final location = await _pickSaveLocation(
         suggestedName: '${page.title}.rtf',
-        acceptedTypeGroups: [
-          XTypeGroup(
-            label: _l?.fileTypeWord ?? 'Word 兼容文档',
-            extensions: const ['rtf'],
-          ),
-        ],
+        typeGroupLabel: _l?.fileTypeWord ?? 'Word 兼容文档',
+        extensions: const ['rtf'],
       );
       if (location == null) return;
       await File(location.path).writeAsString(rtf, flush: true);
@@ -739,14 +732,10 @@ class EditorExporter {
     final content = '# ${page.title}\n\n${lines.join('\n\n')}\n';
 
     try {
-      final location = await getSaveLocation(
+      final location = await _pickSaveLocation(
         suggestedName: '${page.title}.md',
-        acceptedTypeGroups: [
-          XTypeGroup(
-            label: _l?.fileTypeMarkdown ?? 'Markdown / 文本',
-            extensions: const ['md', 'txt'],
-          ),
-        ],
+        typeGroupLabel: _l?.fileTypeMarkdown ?? 'Markdown / 文本',
+        extensions: const ['md', 'txt'],
       );
       if (location == null) return; // 用户取消
       final file = File(location.path);
@@ -845,14 +834,10 @@ class EditorExporter {
         return;
       }
 
-      final location = await getSaveLocation(
+      final location = await _pickSaveLocation(
         suggestedName: '${doc.title}.pptx',
-        acceptedTypeGroups: [
-          XTypeGroup(
-            label: _l?.fileTypePptx ?? 'PPTX 演示文稿',
-            extensions: const ['pptx'],
-          ),
-        ],
+        typeGroupLabel: _l?.fileTypePptx ?? 'PPTX 演示文稿',
+        extensions: const ['pptx'],
       );
       if (location == null) return; // 用户取消
       final file = File(location.path);
@@ -874,14 +859,10 @@ class EditorExporter {
       final json = await Isolate.run(
         () => const JsonEncoder.withIndent('  ').convert(data),
       );
-      final location = await getSaveLocation(
+      final location = await _pickSaveLocation(
         suggestedName: '${controller.document.title}.json',
-        acceptedTypeGroups: [
-          XTypeGroup(
-            label: _l?.fileTypeJson ?? 'JSON 工程文件',
-            extensions: const ['json'],
-          ),
-        ],
+        typeGroupLabel: _l?.fileTypeJson ?? 'JSON 工程文件',
+        extensions: const ['json'],
       );
       if (location == null) return; // 用户取消
       final file = File(location.path);

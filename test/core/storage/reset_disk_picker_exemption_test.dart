@@ -11,7 +11,7 @@
 //     给进程挂一张永久免死金牌，门从此再不因切后台加锁（本类代码最典型缺陷）；
 //  ③ 豁免只圈对话框：选完之后的读盘/写盘在窗口外（需要密钥的操作照常受锁）；
 //  ④ 静态门禁：目录选择器入口不得长出第二处、下游不得绕过 pickDirectory 直调
-//     原生通道（那会静默丢掉 ①），openFile 站点的接入状态由债表盯住。
+//     原生通道（那会静默丢掉 ①）；openFile 站点债表已清空，任何新裸站点判红。
 //
 // 取径：plain test + mock 方法通道（与 editor_exporter_tiled_test 一致）。
 // 不用 testWidgets：这里不需要 widget 树，而 FakeAsync 区不推进真实文件 IO。
@@ -277,14 +277,14 @@ void main() {
       }
     });
 
-    test('openFile 站点接入状态：未接入的只允许债表里那一处', () {
-      // 债表（记债而非遗忘）：editor_page_editing.dart 是 editor_page.dart 的
-      // part，Dart 禁止 part 携带 import ⇒ LockExemption 在该库内不可见，须在
-      // 库文件补一行 import 后收口（该文件选择器处有标记注释）。补齐后请把本
-      // 表清空——门禁要求表与实态一致，不会让债静默滚存。
-      const debt = <String>{
-        'lib/features/drawing/presentation/editor_page_editing.dart',
-      };
+    test('openFile 站点接入状态：债表已清空（全部圈进豁免窗口）', () {
+      // 债表（记债而非遗忘）：editor_page_editing.dart 曾是无豁免缺口——它是
+      // editor_page.dart 的 part，Dart 禁止 part 携带 import，故 LockExemption
+      // 在库本体 editor_page.dart 引入后于该 part 内可见，缺口已闭合。
+      // 本表保持为空 = 门禁要求「任何新的裸 openFile 选择器站点一律判红」，
+      // 债不得静默滚存（存盘对话框 getSaveLocation 的同款门禁见
+      // save_location_exemption_test.dart）。
+      const debt = <String>{};
       final unwrapped = <String>{};
       var seen = 0;
       for (final f in _libDartFiles()) {

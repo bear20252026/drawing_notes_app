@@ -56,6 +56,9 @@ import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
+// part（editor_page_editing）的选择器需 LockExemption——part 不能带 import。
+import 'package:drawing_notes_app/core/security/session_guard.dart'
+    show LockExemption;
 import 'package:drawing_notes_app/features/drawing/presentation/canvas_painter.dart';
 import 'package:drawing_notes_app/shared/utils/time_format.dart';
 import 'package:drawing_notes_app/shared/widgets/app_snack.dart';

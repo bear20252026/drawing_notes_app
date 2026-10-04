@@ -458,8 +458,8 @@ extension _NotebookPageManage on _NotebookViewPageState {
 
   /// W2：整本导出多页 PDF——每个画布页对应 PDF 一页，合成单个文件。
   ///
-  /// 导出前先保存（确保磁盘内容 = 界面最新内容）；文件选择器运行中
-  /// SessionGuard 有失焦豁免（既有语义），无需额外处理。
+  /// 导出前先保存（确保磁盘内容 = 界面最新内容）；存盘对话框那一次调用由
+  /// [LockExemption] 圈出失焦豁免窗口（理由见下方调用点注释）。
   Future<void> _exportWholePdf() async {
     if (_notebook.pages.isEmpty) {
       _showSnack(
@@ -469,14 +469,20 @@ extension _NotebookPageManage on _NotebookViewPageState {
     }
     try {
       await _save();
-      final location = await getSaveLocation(
-        suggestedName: '${_notebook.title}.pdf',
-        acceptedTypeGroups: [
-          XTypeGroup(
-            label: _l10nSafe?.impPdfTypeGroup ?? 'PDF 文档',
-            extensions: const ['pdf'],
-          ),
-        ],
+      // 「切后台即锁」豁免只圈这一次原生存盘对话框（[LockExemption] 由库本体
+      // notebook_view_page.dart 引入，part 内可见）：对话框抢焦点投 inactive/
+      // hidden 会假锁开屏。导出前的 _save() 与之后的媒体解密/合成/落盘都留在
+      // 窗口外——需要密钥的操作照常受锁约束，取消/异常由 run 的 finally 释放。
+      final location = await LockExemption.run(
+        () => getSaveLocation(
+          suggestedName: '${_notebook.title}.pdf',
+          acceptedTypeGroups: [
+            XTypeGroup(
+              label: _l10nSafe?.impPdfTypeGroup ?? 'PDF 文档',
+              extensions: const ['pdf'],
+            ),
+          ],
+        ),
       );
       if (location == null) return; // 用户取消
       // C-06（审计 2026-09-27）：导出器实例化——媒体解密/VFS 依赖由本页
