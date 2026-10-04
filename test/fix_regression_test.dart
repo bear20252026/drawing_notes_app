@@ -7,6 +7,8 @@ import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'helpers/wait_until.dart';
+
 /// 本轮缺陷修复回归测试。
 ///
 /// 覆盖：
@@ -14,6 +16,12 @@ import 'package:flutter_test/flutter_test.dart';
 /// - 橡皮擦：透明擦除生效（像素级验证）；
 /// - 快捷键：Ctrl+Z/Ctrl+Y 对应的控制器操作（undo/redo）可用；
 /// - 便利贴标签：isSticky 字段创建与序列化保留。
+///
+/// 等待判据（2026-10-04 测试侧加固）：原先三处「重建完成」都用
+/// `for (i<100) await delayed(10ms)` 睡满 1 秒——睡够了并不等于做完，
+/// 慢机器上仍会假红、快机器上白等 1 秒，且完成信号从未被观测。现改为
+/// `helpers/wait_until.dart` 的轮询探针观测**完成条件本身**（图层位图已
+/// 生成）；随后的像素/条数断言与探针条件不同，牙齿不被削弱。
 void main() {
   DrawingDocument makeDoc({int w = 200, int h = 200}) =>
       DrawingDocument(id: 'fix_doc', title: '修复回归', width: w, height: h);
@@ -26,10 +34,13 @@ void main() {
         c.extendStroke(Offset(i * 30.0 + 20, 10));
         await c.endStroke(); // 每笔触发一次异步重建
       }
-      // 等所有重建完成。
-      for (var i = 0; i < 100; i++) {
-        await Future<void>.delayed(const Duration(milliseconds: 10));
-      }
+      // 等所有重建完成——探针观测完成条件本身（图层位图已生成）而非盲睡。
+      // 串行重建任务链下 `await endStroke()` 返回时本层重建已落定，探针
+      // 通常 0 轮即通过；10s 上界仅作兜底，超时后由下面的 expect 报原始原因。
+      await waitUntil(
+        () => c.paintViews.first.image != null,
+        timeout: const Duration(seconds: 10),
+      );
       expect(c.document.layers.first.strokes.length, 5, reason: '5 笔都应保留');
       final image = c.paintViews.first.image;
       expect(image, isNotNull, reason: '位图应已生成（画面不空白）');
@@ -47,9 +58,11 @@ void main() {
       c.startStroke(const Offset(140, 100));
       c.extendStroke(const Offset(180, 100));
       await c.endStroke();
-      for (var i = 0; i < 100; i++) {
-        await Future<void>.delayed(const Duration(milliseconds: 10));
-      }
+      // 位图就绪后再读像素（原为 100×10ms 盲睡当完成判据）。
+      await waitUntil(
+        () => c.paintViews.first.image != null,
+        timeout: const Duration(seconds: 10),
+      );
       // 校验位图右侧有内容（第二笔可见）。
       final bytes = await c.paintViews.first.image!.toByteData(
         format: ui.ImageByteFormat.rawRgba,
@@ -75,9 +88,11 @@ void main() {
       c.startStroke(const Offset(80, 100));
       c.extendStroke(const Offset(120, 100));
       await c.endStroke();
-      for (var i = 0; i < 100; i++) {
-        await Future<void>.delayed(const Duration(milliseconds: 10));
-      }
+      // 擦除后的整层重建落定再读像素（原为 100×10ms 盲睡当完成判据）。
+      await waitUntil(
+        () => c.paintViews.first.image != null,
+        timeout: const Duration(seconds: 10),
+      );
 
       final bytes = await c.paintViews.first.image!.toByteData(
         format: ui.ImageByteFormat.rawRgba,

@@ -16,6 +16,8 @@ import 'package:drawing_notes_app/core/canvas_model/document_image_item.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_image_cache.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/stroke_picture_cache.dart';
 
+import 'helpers/wait_until.dart';
+
 Stroke _stroke(int seed) => Stroke(
   points: [
     StrokePoint(seed * 10, 20, 0.5),
@@ -40,19 +42,11 @@ Future<ui.Image> _pixelImage(int width, int height) {
   return completer.future;
 }
 
-/// 轮询等待真实引擎异步完成（替代固定 20ms 魔法等待——满负载并发
-/// 跑全量套件时 20ms 不够，2026-09-23 全量跑两次均在此偶发失败）。
-/// 超时后直接返回，让随后的 expect 带原始断言信息失败。
-Future<void> _waitUntil(
-  bool Function() probe, {
-  Duration timeout = const Duration(seconds: 2),
-}) async {
-  final sw = Stopwatch()..start();
-  while (!probe()) {
-    if (sw.elapsed > timeout) return;
-    await Future<void>.delayed(const Duration(milliseconds: 5));
-  }
-}
+// 轮询等待真实引擎异步完成（替代固定 20ms 魔法等待——满负载并发
+// 跑全量套件时 20ms 不够，2026-09-23 全量跑两次均在此偶发失败）。
+// 实现已于 2026-10-04 抽到 `helpers/wait_until.dart` 供 fix_regression_test
+// 共用（该文件原先用 100×10ms 盲睡当完成判据），语义不变：超时即返回、
+// 让随后的 expect 带原始断言信息失败。
 
 void main() {
   group('StrokePictureCache：LRU 淘汰后条数有界（P0 #3）', () {
@@ -99,12 +93,12 @@ void main() {
     await tester.runAsync(() async {
       // 载入 a → 保留。
       cache.imageFor(a);
-      await _waitUntil(() => cache.imageFor(a) != null);
+      await waitUntil(() => cache.imageFor(a) != null);
       expect(cache.imageFor(a), isNotNull, reason: 'a 应已解码');
 
       // 载入 b → a 是最久未用且总字节超预算，应被 LRU 淘汰。
       cache.imageFor(b);
-      await _waitUntil(() => cache.imageFor(b) != null);
+      await waitUntil(() => cache.imageFor(b) != null);
       expect(cache.imageFor(b), isNotNull, reason: 'b 应已解码');
       expect(cache.imageFor(a), isNull, reason: 'a 应被 LRU 淘汰并释放');
     });
@@ -112,7 +106,7 @@ void main() {
     // 淘汰的 a 会再触发异步重新加载（budget 内只有它，按需重新解码）。
     await tester.runAsync(() async {
       cache.imageFor(a);
-      await _waitUntil(() => cache.imageFor(a) != null);
+      await waitUntil(() => cache.imageFor(a) != null);
       expect(cache.imageFor(a), isNotNull, reason: 'a 被淘汰后按需重新解码');
     });
   });

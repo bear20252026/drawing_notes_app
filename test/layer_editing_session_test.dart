@@ -29,6 +29,14 @@ void main() {
     expect(host.snapshots, hasLength(1));
     expect(host.snapshots.single.before, hasLength(1));
     expect(host.snapshots.single.after, hasLength(2));
+    // 通知计数（2026-10-04 加固：`changeNotifications` 原先自增却从不断言，
+    // 而同文件的 `fullRebuilds` 有断言——属遗漏）。读码算值：addLayer 发
+    // 恰好 1 次 `notifyChanged`（layer_editing_session.dart:77）。
+    expect(
+      host.changeNotifications,
+      1,
+      reason: 'addLayer 只发一次 UI 通知（快照 + 一次通知）',
+    );
 
     // 换位走窄命令（2026-10-03）：不产生快照，只记 (from, to)。
     session.moveLayerDown(1);
@@ -50,6 +58,13 @@ void main() {
       'base',
     ]);
     expect(host.snapshots.last.after.map((layer) => layer.id), [topId]);
+    // 总值锁死：addLayer(1) + moveLayerDown(1，:132) = 2；mergeLayerDown
+    // 走 rebuildAll 而**不**发 notifyChanged(:148) ⇒ 仍为 2。多一发少一发都红。
+    expect(
+      host.changeNotifications,
+      2,
+      reason: '增层与换位各一次通知；向下合并不发通知（只 rebuildAll）',
+    );
   });
 
   test('显隐切换走窄命令：翻转并记录 (索引, 前, 后)，不产生快照', () {
@@ -66,12 +81,18 @@ void main() {
     session.toggleLayerVisibility(0);
     expect(host.document.layers[0].visible, isFalse);
     expect(host.visibilityChanges, hasLength(1));
-    expect(host.visibilityChanges.single, (index: 0, before: true, after: false));
+    expect(host.visibilityChanges.single, (
+      index: 0,
+      before: true,
+      after: false,
+    ));
     expect(host.snapshots, isEmpty, reason: '显隐不产生快照');
 
     session.toggleLayerVisibility(0);
     expect(host.document.layers[0].visible, isTrue);
     expect(host.visibilityChanges.last, (index: 0, before: false, after: true));
+    // 窄命令不产生快照，但每次翻转都必须刷 UI：2 次切换 = 2 次通知（:101）。
+    expect(host.changeNotifications, 2, reason: '显隐切换各发一次通知——漏发即画面不更新，多发即重复重建');
   });
 
   test('局部和全量清空保留既有缓存刷新与无操作语义', () {
@@ -111,6 +132,14 @@ void main() {
     session.setLayerOpacity(0, 1.5);
     expect(host.document.layers[0].opacity, 1.0);
     expect(host.snapshots, hasLength(2), reason: '透明度滑块不创建快照历史');
+    // 通知计数锁死（读码算值）：clearCurrentLayer 只 invalidateLayer(:160)、
+    // clearAll 只 rebuildAll(:176)、第二次 clearAll 空操作提前返回(:173)、
+    // 仅 setLayerOpacity 发 1 次通知(:110) ⇒ 总计 1。
+    expect(
+      host.changeNotifications,
+      1,
+      reason: '清空走缓存失效/全量重建路径而不重复发通知；只有透明度变更发通知',
+    );
   });
 }
 

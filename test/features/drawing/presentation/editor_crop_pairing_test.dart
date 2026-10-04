@@ -9,6 +9,8 @@ import 'package:drawing_notes_app/features/drawing/infrastructure/editor_image_c
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../helpers/temp_dir_cleanup.dart';
+
 /// 裁剪「文档几何 ↔ 磁盘字节」成对更新回归锁（修复 3，审计 2026-10-04）。
 ///
 /// 被锁定的缺陷（原 editor_page.dart:490-506）：`await` 写盘之后才
@@ -29,7 +31,11 @@ void main() {
   });
 
   tearDown(() {
-    if (dir.existsSync()) dir.deleteSync(recursive: true);
+    // T-13 回退（2026-10-04 测试侧加固）：原先裸 `deleteSync` 在本仓 Windows
+    // 机器上会撞句柄锁——写盘 await 收尾时可能仍持文件句柄，立即递归删除抛
+    // PathAccessException（errno 32）造成 flaky。改用全仓共用的带退避重试
+    // helper；语义不变（目录已不在即返回，真泄漏仍抛）。
+    if (dir.existsSync()) return deleteTempDirWithRetry(dir);
   });
 
   // 渲染 size×size 纯色 PNG（确定性产物，作在档原图夹具）。

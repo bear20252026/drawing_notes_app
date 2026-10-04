@@ -11,6 +11,7 @@ import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc_markdown.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
+
 import '../../helpers/temp_dir_cleanup.dart';
 
 final _tempDirs = <Directory>[];
@@ -127,18 +128,73 @@ void main() {
     });
 
     test('purgeExpiredTrash 清理过期条目', () async {
-      final doc = NoteBlockDoc(
+      // 加固（2026-10-04）：原断言 `purged >= 1` 而场景里只有 1 条过期——
+      // 清扫器把未过期条目一并烧掉（过度清扫，真实用户症状是「回收站被清空」）
+      // 照样能过。现改为精确 equals(1) + 「未过期兄弟项必须存活」双锁。
+      //
+      // provider 每次调用都会新建临时目录（`_dir`/`_trashDir` 各自首次调用时
+      // 缓存），这里缓存同一个 base，保证文档区与回收站在同一棵目录树下。
+      Directory? base;
+      final store = NoteBlockDocStore(
+        directoryProvider: () async {
+          return base ??= await _tempDir();
+        },
+      );
+      final expiredDoc = NoteBlockDoc(
         id: 'old1',
         title: '过期条目',
         createdAt: DateTime(2026, 8, 31),
         updatedAt: DateTime(2026, 8, 31),
       );
-      await store.saveDocument(doc);
-      await store.deleteDocument('old1');
-      // 31 天前删除 → 超过 30 天保留期
-      final purged = await store.purgeExpiredTrash(retainDays: -1);
-      expect(purged, greaterThanOrEqualTo(1));
-      expect(await store.listTrash(), isEmpty);
+      final freshDoc = NoteBlockDoc(
+        id: 'fresh1',
+        title: '未过期条目',
+        createdAt: DateTime(2026, 8, 31),
+        updatedAt: DateTime(2026, 8, 31),
+      );
+      await store.saveDocument(expiredDoc);
+      await store.saveDocument(freshDoc);
+      expect(await store.deleteDocument('old1'), isTrue);
+      expect(await store.deleteDocument('fresh1'), isTrue);
+      expect(await store.listTrash(), hasLength(2));
+
+      // 删除时间读取源是 sidecar JSON 的 deletedAt（C14）——只把 old1 推到
+      // 31 天前，fresh1 保持「刚刚删除」，于是**过期项恰好 1 条**。
+      final meta = File(
+        '${base!.path}${Platform.pathSeparator}blockdocs_trash'
+        '${Platform.pathSeparator}old1.json.meta.json',
+      );
+      expect(meta.existsSync(), isTrue, reason: 'deleteDocument 应已写 sidecar');
+      await meta.writeAsString(
+        jsonEncode({
+          'deletedAt': DateTime.now()
+              .subtract(const Duration(days: 31))
+              .toIso8601String(),
+        }),
+      );
+
+      final purged = await store.purgeExpiredTrash(retainDays: 30);
+      expect(
+        purged,
+        equals(1),
+        reason:
+            '场景里恰好 1 条过期（old1）——purged > 1 说明连未过期条目一起'
+            '烧掉了，正是本用例要抓的过度清扫',
+      );
+
+      final trash = await store.listTrash();
+      expect(trash, hasLength(1), reason: '未过期的兄弟项必须存活在回收站里');
+      expect(trash.single.id, 'fresh1');
+      expect(
+        await store.loadDocument('fresh1'),
+        isNull,
+        reason: '存活项仍是软删除状态，不得被复活到激活区',
+      );
+      expect(
+        await store.loadDocument('old1'),
+        isNull,
+        reason: '过期项已从激活区消失（本用例只依赖回收站侧计数）',
+      );
     });
 
     test('C14：删除时间读取 sidecar JSON 的 deletedAt 字段（非 mtime）', () async {

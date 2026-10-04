@@ -6,6 +6,8 @@ import 'dart:ui';
 import 'package:drawing_notes_app/features/drawing/infrastructure/editor_image_crop.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../helpers/temp_dir_cleanup.dart';
+
 /// 裁剪写回管线（[EditorImageCropWriter]）——修复 2（审计 2026-10-04）：
 /// 覆盖唯一原图前逐字保留 `.bak` 可恢复副本，异常路径不留半成品。
 ///
@@ -22,7 +24,11 @@ void main() {
   });
 
   tearDown(() {
-    if (dir.existsSync()) dir.deleteSync(recursive: true);
+    // T-13 回退（2026-10-04 测试侧加固）：原先裸 `deleteSync` 在本仓 Windows
+    // 机器上会撞句柄锁——真实栅格化写盘收尾时仍可能持文件句柄，立即递归删除
+    // 抛 PathAccessException（errno 32）造成 flaky。改用全仓 55 个文件共用的
+    // 带退避重试 helper；语义不变（目录已不在即返回，真泄漏仍抛）。
+    if (dir.existsSync()) return deleteTempDirWithRetry(dir);
   });
 
   // 渲染 size×size 纯色 PNG（确定性产物，作在档原图夹具）。
@@ -46,10 +52,8 @@ void main() {
     return file;
   }
 
-  Iterable<File> tmpLeftovers() => dir
-      .listSync()
-      .whereType<File>()
-      .where((f) => f.path.endsWith('.tmp'));
+  Iterable<File> tmpLeftovers() =>
+      dir.listSync().whereType<File>().where((f) => f.path.endsWith('.tmp'));
 
   test('裁剪写回后原图逐字保留为 .bak（可恢复）', () async {
     final original = await renderPng(4);
