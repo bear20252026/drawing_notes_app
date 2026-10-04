@@ -19,10 +19,14 @@ import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
+import 'package:drawing_notes_app/features/doc/presentation/doc_page.dart';
+import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 // v1.10.5：导航类控件玻璃化——底部导航条 / FAB 材质替换壳。
 import 'package:drawing_notes_app/shared/widgets/glass_fab.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_nav_bar.dart';
+
 import 'helpers/temp_dir_cleanup.dart';
+import 'helpers/wait_until.dart';
 
 /// 内存版块文档存储（FakeAsync 安全）。
 class _MemBlockDocStore extends NoteBlockDocStore {
@@ -41,6 +45,18 @@ class _MemBlockDocStore extends NoteBlockDocStore {
 }
 
 final _tempDirs = <Directory>[];
+
+/// 首屏数据已回灌的完成信号（T-08，2026-10-04）：加载骨架（列表形态
+/// `SkeletonList` / 卡片网格形态 `SkeletonCardGrid`）从树上退场。
+///
+/// 为什么用它当判据而不是「泵够 300ms」：骨架只在 `_loading` / FutureBuilder
+/// `waiting` 期间存在，它消失就是「数据已经落到 widget 树」这件事本身；
+/// 而固定步长把「泵够了」当成「做完了」，慢机假红、快机空耗。
+/// 骨架自身的呼吸 `repeat` 是无止境动画——这也正是本文件不能用
+/// `pumpAndSettle` 的原因（`pumpUntil` 有步数上界，不受影响）。
+bool _firstScreenLoaded() =>
+    find.byType(SkeletonList).evaluate().isEmpty &&
+    find.byType(SkeletonCardGrid).evaluate().isEmpty;
 
 void main() {
   tearDownAll(() async {
@@ -66,17 +82,17 @@ void main() {
           blockDocStore: blockDocStore ?? _MemBlockDocStore(),
           favoriteStore: FavoriteStore(
             directoryProvider: () async {
-                final d = await Directory.systemTemp.createTemp('shell_smoke');
-                _tempDirs.add(d);
-                return d;
-              },
+              final d = await Directory.systemTemp.createTemp('shell_smoke');
+              _tempDirs.add(d);
+              return d;
+            },
           ),
         ),
       ),
     );
-    // 常驻环境背景动画，不能 pumpAndSettle。
+    // 常驻环境背景动画，不能 pumpAndSettle——用有上界的条件泵。
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpUntil(_firstScreenLoaded);
   }
 
   testWidgets('手机尺寸（390x844）：各主页面无布局溢出', (tester) async {
@@ -99,7 +115,10 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
+      // T-08：目的地切换后等「新目的地的首屏骨架退场」，取代固定 300ms 泵。
+      // 首帧由上面的 pump() 产出——溢出异常正是在那一帧的布局阶段抛给
+      // takeException，判据只负责把慢机上尚未回灌的数据等完。
+      await tester.pumpUntil(_firstScreenLoaded);
       expect(tester.takeException(), isNull, reason: '$label 在 390dp 下布局溢出');
     }
   });
@@ -118,7 +137,17 @@ void main() {
     );
     await tester.tap(ctaFinder.first);
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    // T-08：语义判据取代固定 500ms 泵，两条同时成立才算就绪——
+    // ① DocPage 已推入路由；② 下层「全部文档」页已从 Overlay 摘除
+    //（`GlassFab` 是它的入口按钮，不透明路由过渡**完成**时才不再构建）。
+    // 原写法靠 `pump(500ms)` 赌过渡时长：过渡未完时下面 `findsOneWidget`
+    // 会因两页共存而数到 2 个 ⋯ 图标。探针不抄这三条 expect（图标 /
+    // 正文输入框 / 落库计数各自独立成立），慢机多泵、快机一帧即退。
+    await tester.pumpUntil(
+      () =>
+          find.byType(DocPage).evaluate().isNotEmpty &&
+          find.byType(GlassFab).evaluate().isEmpty,
+    );
 
     // DocPage 已推入：顶栏（分享/大纲/更多）+ 正文大标题；文档已落库（内存）。
     // 注意：默认测试曲面 800x600 < 900 断点 → 走移动端顶栏，「文档信息」收在

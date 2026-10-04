@@ -127,13 +127,19 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
-                    '整本按画布尺寸成页（沿用整本导出行为）',
+                    AppLocalizations.of(context)?.pdfWholeBookHint ??
+                        '整本按画布尺寸成页（沿用整本导出行为）',
                     style: AppleType.captionStyle(scheme.onSurfaceVariant),
                   ),
                 ),
               const SizedBox(height: 12),
               if (widget.hasMultiplePages) ...[
-                _groupLabel('范围（共 ${widget.pageCount} 页）'),
+                _groupLabel(
+                  AppLocalizations.of(context)?.pdfRangeGroupLabel(
+                        widget.pageCount,
+                      ) ??
+                      '范围（共 ${widget.pageCount} 页）',
+                ),
                 SegmentedButton<PdfRange>(
                   style: _segmentButtonStyle,
                   segments: [

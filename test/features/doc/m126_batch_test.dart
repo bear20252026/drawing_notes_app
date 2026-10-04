@@ -22,6 +22,18 @@ Future<Directory> _tempDir() async {
   return dir;
 }
 
+/// 回收站里某个 id 的**一对**盘上文件：正文 `<id>.json` 与配套 sidecar
+/// `<id>.json.meta.json`（路径口径同 `note_block_doc_store_trash.dart`
+/// 的 `_trashPathFor`：`<base>/blockdocs_trash/<id>.json`，sidecar 追加
+/// `.meta.json`）。T-01 残留断言用它把「正文删了、元数据还在」钉死。
+({File doc, File meta}) _trashFilesOf(Directory base, String id) {
+  final doc = File(
+    '${base.path}${Platform.pathSeparator}blockdocs_trash'
+    '${Platform.pathSeparator}$id.json',
+  );
+  return (doc: doc, meta: File('${doc.path}.meta.json'));
+}
+
 void main() {
   tearDownAll(() async {
     for (final d in _tempDirs) {
@@ -61,23 +73,53 @@ void main() {
     });
 
     test('purgeFromTrash 彻底删除回收站条目（T-01 审计 2026-09-27）', () async {
+      // 本用例还要断**盘上**文件，故自建捕获目录版 store：组 setUp 的 store
+      // 用 `_tempDir`（每次调用新建目录），测试拿不到它缓存的 base。
+      Directory? captured;
+      final localStore = NoteBlockDocStore(
+        directoryProvider: () async => captured ??= await _tempDir(),
+      );
       final doc = NoteBlockDoc(
         id: 'purge1',
         title: '回收站里的笔记',
         createdAt: DateTime(2026, 8, 31),
         updatedAt: DateTime(2026, 8, 31),
       );
-      await store.saveDocument(doc);
-      expect(await store.deleteDocument('purge1'), isTrue);
-      expect(await store.listTrash(), hasLength(1));
+      await localStore.saveDocument(doc);
+      expect(await localStore.deleteDocument('purge1'), isTrue);
+      expect(await localStore.listTrash(), hasLength(1));
+
+      // T-01 残留断言（2026-10-04）：`_purgeFromTrashLocked` 删正文后再尽力删
+      // sidecar（note_block_doc_store_trash.dart:336-343，catch 吞错的幂等清理）。
+      // 只断 listTrash/load 时「正文删了、`.meta.json` 残留」完全看不出来，
+      // 故 purge 前先把两份文件的存在性钉住，purge 后断双双消失。
+      final purged = _trashFilesOf(captured!, 'purge1');
+      expect(purged.doc.existsSync(), isTrue, reason: '回收站正文应已落盘');
+      expect(
+        purged.meta.existsSync(),
+        isTrue,
+        reason: 'deleteDocument 应已写 sidecar',
+      );
 
       // 彻底删除：回收站清空、激活区不可见——不可逆销毁路径必须有回归锁。
-      expect(await store.purgeFromTrash('purge1'), isTrue);
-      expect(await store.listTrash(), isEmpty);
-      expect(await store.loadDocument('purge1'), isNull);
+      expect(await localStore.purgeFromTrash('purge1'), isTrue);
+      expect(await localStore.listTrash(), isEmpty);
+      expect(await localStore.loadDocument('purge1'), isNull);
+      expect(
+        purged.doc.existsSync(),
+        isFalse,
+        reason: '正文须已从盘上删除（与 listTrash 计数互证）',
+      );
+      expect(
+        purged.meta.existsSync(),
+        isFalse,
+        reason:
+            'sidecar 不得残留：删除上下文（deletedAt 等）留在盘上等于'
+            '「彻底删除」只删了一半',
+      );
 
       // 幂等：对不存在的条目再删返回 false。
-      expect(await store.purgeFromTrash('purge1'), isFalse);
+      expect(await localStore.purgeFromTrash('purge1'), isFalse);
     });
 
     test('purgeDocument 彻底删除（不进回收站）', () async {
@@ -160,12 +202,14 @@ void main() {
 
       // 删除时间读取源是 sidecar JSON 的 deletedAt（C14）——只把 old1 推到
       // 31 天前，fresh1 保持「刚刚删除」，于是**过期项恰好 1 条**。
-      final meta = File(
-        '${base!.path}${Platform.pathSeparator}blockdocs_trash'
-        '${Platform.pathSeparator}old1.json.meta.json',
+      final expired = _trashFilesOf(base!, 'old1');
+      final survivor = _trashFilesOf(base!, 'fresh1');
+      expect(
+        expired.meta.existsSync(),
+        isTrue,
+        reason: 'deleteDocument 应已写 sidecar',
       );
-      expect(meta.existsSync(), isTrue, reason: 'deleteDocument 应已写 sidecar');
-      await meta.writeAsString(
+      await expired.meta.writeAsString(
         jsonEncode({
           'deletedAt': DateTime.now()
               .subtract(const Duration(days: 31))
@@ -194,6 +238,32 @@ void main() {
         await store.loadDocument('old1'),
         isNull,
         reason: '过期项已从激活区消失（本用例只依赖回收站侧计数）',
+      );
+
+      // T-01 残留断言（2026-10-04 测试侧加固）：以上全是**API 视图**的计数
+      // （listTrash / loadDocument），清扫器只删正文、把配套 `.meta.json`
+      // sidecar 留在盘上时照样能过——而 sidecar 存的是 deletedAt 等删除上下文，
+      // 残留意味着「已彻底删除的笔记」其删除时间线仍可从目录里枚举出来。
+      // 故过期项的**两份**文件都必须真从盘上消失。
+      expect(
+        expired.doc.existsSync(),
+        isFalse,
+        reason: '过期项正文 old1.json 应已从盘上删除',
+      );
+      expect(
+        expired.meta.existsSync(),
+        isFalse,
+        reason:
+            '过期项 sidecar old1.json.meta.json 不得残留（防正文删了、'
+            '元数据还在）',
+      );
+      // 反向锁：存活项（未过期）的两份文件都必须在位——只该删过期项的配对，
+      // 既不能只删一半，也不能顺手把兄弟项的元数据一起清掉。
+      expect(survivor.doc.existsSync(), isTrue, reason: '未过期项正文必须仍在盘上');
+      expect(
+        survivor.meta.existsSync(),
+        isTrue,
+        reason: '未过期项 sidecar 必须仍在盘上（deletedAt 是过期判定的读取源）',
       );
     });
 

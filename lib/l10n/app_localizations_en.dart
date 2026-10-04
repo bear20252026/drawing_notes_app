@@ -711,6 +711,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get docBlockCount => 'Blocks';
 
   @override
+  String docBacklinkCount(int count) {
+    return 'Backlinks · $count';
+  }
+
+  @override
   String get docTagNameHint => 'Tag name';
 
   @override
@@ -1913,6 +1918,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pdfRangeCurrent => 'Current page';
 
   @override
+  String pdfRangeGroupLabel(int count) {
+    return 'Range ($count pages)';
+  }
+
+  @override
   String get pdfRangeAll => 'All pages';
 
   @override
@@ -1952,6 +1962,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pdfGroupPaper => 'Paper';
+
+  @override
+  String get pdfWholeBookHint =>
+      'The whole book paginates by canvas size (matches whole-book export behaviour)';
 
   @override
   String get pdfGroupQuality => 'Quality';
@@ -2262,6 +2276,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paletteNoMatch => 'No matching commands';
 
   @override
+  String get paletteSearchHint => 'Search actions, tools or export formats…';
+
+  @override
   String get textInputTitle => 'Enter text';
 
   @override
@@ -2430,6 +2447,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get propDash => 'Solid/dashed';
 
   @override
+  String propLineWidthValue(int width) {
+    return 'Line width $width';
+  }
+
+  @override
   String get propText => 'Text';
 
   @override
@@ -2596,6 +2618,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'No heading blocks yet — insert a heading via the / menu to see it here';
 
   @override
+  String get outlineUntitledHeading => '(Untitled heading)';
+
+  @override
   String get docUnsavedChangesTitle => 'Unsaved changes';
 
   @override
@@ -2737,6 +2762,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get attOpenLink => 'Open link';
 
   @override
+  String get attachmentPlaceholder => 'Attachment (content pending)';
+
+  @override
+  String get attachmentNoUrl => '(No link)';
+
+  @override
   String get attEditNote => 'Edit note';
 
   @override
@@ -2815,6 +2846,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'No fields yet — tap “Add field” to start the table';
 
   @override
+  String get dbNoRecordsYet => 'No records yet — tap “Add record”';
+
+  @override
   String get dbFieldActions => 'Field actions';
 
   @override
@@ -2847,6 +2881,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tblAddColumn => 'Add column';
+
+  @override
+  String tableGridSize(int rows, int cols) {
+    return 'Table $rows×$cols';
+  }
 
   @override
   String get tblDeleteColumn => 'Delete column';
@@ -3252,6 +3291,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get canvasKindText => 'text';
 
   @override
+  String get canvasTextOverlayHint => 'Type text… (Enter to finish)';
+
+  @override
   String get frameCornerSemantics => 'Adjust note frame corner';
 
   @override
@@ -3481,6 +3523,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get docImageNoSource => 'Image (no source)';
+
+  @override
+  String get docLinkNoHref => 'Link (no URL)';
 
   @override
   String get ctxSetLink => 'Set link…';

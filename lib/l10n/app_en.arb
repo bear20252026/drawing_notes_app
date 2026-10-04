@@ -826,6 +826,15 @@
   "@docUpdatedAt": {},
   "docBlockCount": "Blocks",
   "@docBlockCount": {},
+  "docBacklinkCount": "Backlinks · {count}",
+  "@docBacklinkCount": {
+    "description": "文档信息面板反向链接计数标题",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "docTagNameHint": "Tag name",
   "@docTagNameHint": {},
   "docPinSameAsLock": "The standalone password must differ from the app password",
@@ -1790,6 +1799,15 @@
   "@pdfPaperFollow": {},
   "pdfRangeCurrent": "Current page",
   "@pdfRangeCurrent": {},
+  "pdfRangeGroupLabel": "Range ({count} pages)",
+  "@pdfRangeGroupLabel": {
+    "description": "PDF 导出范围分组标题（含页数）",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pdfRangeAll": "All pages",
   "@pdfRangeAll": {},
   "pdfQualityLossless": "Lossless",
@@ -1814,6 +1832,8 @@
   "@expExportTiledPdf": { "placeholders": { "count": { "type": "int" }, "path": { "type": "String" } } },
   "pdfGroupPaper": "Paper",
   "@pdfGroupPaper": {},
+  "pdfWholeBookHint": "The whole book paginates by canvas size (matches whole-book export behaviour)",
+  "@pdfWholeBookHint": {},
   "pdfGroupQuality": "Quality",
   "@pdfGroupQuality": {},
   "pdfExportNPages": "Export {count} pages",
@@ -2037,6 +2057,8 @@
   "@paletteRecent": {},
   "paletteNoMatch": "No matching commands",
   "@paletteNoMatch": {},
+  "paletteSearchHint": "Search actions, tools or export formats…",
+  "@paletteSearchHint": {},
   "textInputTitle": "Enter text",
   "@textInputTitle": {},
   "textInputHint": "Enter text content",
@@ -2155,6 +2177,15 @@
   "@propFillColor": {},
   "propDash": "Solid/dashed",
   "@propDash": {},
+  "propLineWidthValue": "Line width {width}",
+  "@propLineWidthValue": {
+    "description": "选中形状线宽读数",
+    "placeholders": {
+      "width": {
+        "type": "int"
+      }
+    }
+  },
   "propText": "Text",
   "@propText": {},
   "propTextColor": "Text color",
@@ -2283,6 +2314,8 @@
   "@docToolbarRefresh": {},
   "docOutlineEmpty": "No heading blocks yet — insert a heading via the / menu to see it here",
   "@docOutlineEmpty": {},
+  "outlineUntitledHeading": "(Untitled heading)",
+  "@outlineUntitledHeading": {},
   "docUnsavedChangesTitle": "Unsaved changes",
   "@docUnsavedChangesTitle": {},
   "docUnsavedChangesBody": "The document has unsaved changes. Quit anyway?",
@@ -2381,6 +2414,10 @@
   "@attEditDesc": {},
   "attOpenLink": "Open link",
   "@attOpenLink": {},
+  "attachmentPlaceholder": "Attachment (content pending)",
+  "@attachmentPlaceholder": {},
+  "attachmentNoUrl": "(No link)",
+  "@attachmentNoUrl": {},
   "attEditNote": "Edit note",
   "@attEditNote": {},
   "attDescHint": "Attachment description / note",
@@ -2442,6 +2479,8 @@
   "@dbNoTitleRecord": {},
   "dbNoFieldsYet": "No fields yet — tap “Add field” to start the table",
   "@dbNoFieldsYet": {},
+  "dbNoRecordsYet": "No records yet — tap “Add record”",
+  "@dbNoRecordsYet": {},
   "dbFieldActions": "Field actions",
   "@dbFieldActions": {},
   "dbDeleteField": "Delete field",
@@ -2464,6 +2503,18 @@
   "@embHostBuilderHint": {},
   "tblAddColumn": "Add column",
   "@tblAddColumn": {},
+  "tableGridSize": "Table {rows}×{cols}",
+  "@tableGridSize": {
+    "description": "表格编辑器尺寸读数",
+    "placeholders": {
+      "rows": {
+        "type": "int"
+      },
+      "cols": {
+        "type": "int"
+      }
+    }
+  },
   "tblDeleteColumn": "Delete column",
   "@tblDeleteColumn": {},
   "tblAddRow": "Add row",
@@ -2828,6 +2879,8 @@
   "@canvasKindImage": {},
   "canvasKindText": "text",
   "@canvasKindText": {},
+  "canvasTextOverlayHint": "Type text… (Enter to finish)",
+  "@canvasTextOverlayHint": {},
   "frameCornerSemantics": "Adjust note frame corner",
   "@frameCornerSemantics": {},
   "pinBackspace": "Backspace",
@@ -3035,6 +3088,8 @@
   "@canvasMiniMapHint": {},
   "docImageNoSource": "Image (no source)",
   "@docImageNoSource": {},
+  "docLinkNoHref": "Link (no URL)",
+  "@docLinkNoHref": {},
   "ctxSetLink": "Set link…",
   "@ctxSetLink": {},
   "impTextPageTitle": "Imported · {title}",

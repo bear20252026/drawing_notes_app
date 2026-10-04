@@ -111,7 +111,8 @@ class DocOutlinePanel extends StatelessWidget {
             child: entries.isEmpty
                 ? Center(
                     child: Text(
-                      '暂无标题块\n用 / 菜单插入「标题」',
+                      AppLocalizations.of(context)?.docOutlineEmpty ??
+                          '暂无标题块，用 / 菜单插入「标题」后出现在这里',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
@@ -135,7 +136,11 @@ class DocOutlinePanel extends StatelessWidget {
                             bottom: 12,
                           ),
                           child: Text(
-                            e.text.isEmpty ? '（空标题）' : e.text,
+                            e.text.isEmpty
+                                ? AppLocalizations.of(context)
+                                    ?.outlineUntitledHeading ??
+                                    '（空标题）'
+                                : e.text,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.bodySmall

@@ -186,7 +186,8 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
           Row(
             children: [
               Text(
-                '表格 $_rows×$_cols',
+                AppLocalizations.of(context)?.tableGridSize(_rows, _cols) ??
+                    '表格 $_rows×$_cols',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   color: scheme.primary,

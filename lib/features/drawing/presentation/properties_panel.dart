@@ -241,7 +241,10 @@ class PropertiesPanel extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '线宽 ${selectedShape!.strokeWidth.round()}',
+                      AppLocalizations.of(context)?.propLineWidthValue(
+                            selectedShape!.strokeWidth.round(),
+                          ) ??
+                          '线宽 ${selectedShape!.strokeWidth.round()}',
                       style: Theme.of(context).textTheme.labelSmall,
                     ),
                   ],

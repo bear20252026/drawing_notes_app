@@ -1400,6 +1400,12 @@ abstract class AppLocalizations {
   /// **'Blocks'**
   String get docBlockCount;
 
+  /// 文档信息面板反向链接计数标题
+  ///
+  /// In en, this message translates to:
+  /// **'Backlinks · {count}'**
+  String docBacklinkCount(int count);
+
   /// No description provided for @docTagNameHint.
   ///
   /// In en, this message translates to:
@@ -3518,6 +3524,12 @@ abstract class AppLocalizations {
   /// **'Current page'**
   String get pdfRangeCurrent;
 
+  /// PDF 导出范围分组标题（含页数）
+  ///
+  /// In en, this message translates to:
+  /// **'Range ({count} pages)'**
+  String pdfRangeGroupLabel(int count);
+
   /// No description provided for @pdfRangeAll.
   ///
   /// In en, this message translates to:
@@ -3589,6 +3601,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Paper'**
   String get pdfGroupPaper;
+
+  /// No description provided for @pdfWholeBookHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The whole book paginates by canvas size (matches whole-book export behaviour)'**
+  String get pdfWholeBookHint;
 
   /// No description provided for @pdfGroupQuality.
   ///
@@ -4178,6 +4196,12 @@ abstract class AppLocalizations {
   /// **'No matching commands'**
   String get paletteNoMatch;
 
+  /// No description provided for @paletteSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search actions, tools or export formats…'**
+  String get paletteSearchHint;
+
   /// No description provided for @textInputTitle.
   ///
   /// In en, this message translates to:
@@ -4496,6 +4520,12 @@ abstract class AppLocalizations {
   /// **'Solid/dashed'**
   String get propDash;
 
+  /// 选中形状线宽读数
+  ///
+  /// In en, this message translates to:
+  /// **'Line width {width}'**
+  String propLineWidthValue(int width);
+
   /// No description provided for @propText.
   ///
   /// In en, this message translates to:
@@ -4808,6 +4838,12 @@ abstract class AppLocalizations {
   /// **'No heading blocks yet — insert a heading via the / menu to see it here'**
   String get docOutlineEmpty;
 
+  /// No description provided for @outlineUntitledHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'(Untitled heading)'**
+  String get outlineUntitledHeading;
+
   /// No description provided for @docUnsavedChangesTitle.
   ///
   /// In en, this message translates to:
@@ -5084,6 +5120,18 @@ abstract class AppLocalizations {
   /// **'Open link'**
   String get attOpenLink;
 
+  /// No description provided for @attachmentPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment (content pending)'**
+  String get attachmentPlaceholder;
+
+  /// No description provided for @attachmentNoUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'(No link)'**
+  String get attachmentNoUrl;
+
   /// No description provided for @attEditNote.
   ///
   /// In en, this message translates to:
@@ -5228,6 +5276,12 @@ abstract class AppLocalizations {
   /// **'No fields yet — tap “Add field” to start the table'**
   String get dbNoFieldsYet;
 
+  /// No description provided for @dbNoRecordsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No records yet — tap “Add record”'**
+  String get dbNoRecordsYet;
+
   /// No description provided for @dbFieldActions.
   ///
   /// In en, this message translates to:
@@ -5293,6 +5347,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add column'**
   String get tblAddColumn;
+
+  /// 表格编辑器尺寸读数
+  ///
+  /// In en, this message translates to:
+  /// **'Table {rows}×{cols}'**
+  String tableGridSize(int rows, int cols);
 
   /// No description provided for @tblDeleteColumn.
   ///
@@ -5990,6 +6050,12 @@ abstract class AppLocalizations {
   /// **'text'**
   String get canvasKindText;
 
+  /// No description provided for @canvasTextOverlayHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type text… (Enter to finish)'**
+  String get canvasTextOverlayHint;
+
   /// No description provided for @frameCornerSemantics.
   ///
   /// In en, this message translates to:
@@ -6385,6 +6451,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Image (no source)'**
   String get docImageNoSource;
+
+  /// No description provided for @docLinkNoHref.
+  ///
+  /// In en, this message translates to:
+  /// **'Link (no URL)'**
+  String get docLinkNoHref;
 
   /// No description provided for @ctxSetLink.
   ///

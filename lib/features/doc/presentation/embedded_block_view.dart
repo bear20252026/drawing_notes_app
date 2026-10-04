@@ -252,7 +252,7 @@ class EmbeddedBlockView extends StatelessWidget {
       return _buildPlaceholderCard(
         context,
         icon: Icons.link_off,
-        label: '链接（无地址）',
+        label: AppLocalizations.of(context)?.docLinkNoHref ?? '链接（无地址）',
         caption: caption,
       );
     }

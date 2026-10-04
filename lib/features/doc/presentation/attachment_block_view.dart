@@ -182,7 +182,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
           Icon(Icons.attachment_outlined, size: 22, color: scheme.outline),
           const SizedBox(width: 8),
           Text(
-            '附件（待补充）',
+            AppLocalizations.of(context)?.attachmentPlaceholder ?? '附件（待补充）',
             style: AppleType.controlStyle(
               scheme.outline,
             ).copyWith(fontWeight: FontWeight.w400),
@@ -253,7 +253,9 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                a.url.isEmpty ? '（无链接）' : a.url,
+                a.url.isEmpty
+                    ? AppLocalizations.of(context)?.attachmentNoUrl ?? '（无链接）'
+                    : a.url,
                 style: AppleType.controlStyle(
                   scheme.primary,
                 ).copyWith(fontWeight: FontWeight.w400),

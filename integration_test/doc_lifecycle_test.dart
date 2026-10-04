@@ -67,22 +67,39 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.tap(find.text('新建笔记（打字）').last);
     var editorReady = false;
+    // 就绪判据（2026-10-04 测试侧加固）：原先只看「全树 TextField 数 ≥ 2」——
+    // 非语义且脆：IndexedStack 三个目的地常驻，AllDocs 搜索框 / 桌面开屏锁的
+    // PIN 框都是 TextField，凑够 2 个可以在 DocPage 根本没推入的情况下就误判
+    // 就绪（随后 `.last` 定位正文框就会打空）。现改为**限定在 DocPage 作用域
+    // 内**计数（标题框 + 正文块编辑框），与 smoke_test.dart 的
+    // `find.descendant(of: find.byType(AlertDialog), matching: find.byType(TextField))`
+    // 同一口径。（`find.byPlaceholder` 在 CommonFinders 上不存在，不可用。）
+    final editorScope = find.byType(DocPage);
+    final editorFields = find.descendant(
+      of: editorScope,
+      matching: find.byType(TextField),
+    );
     for (var i = 0; i < 20; i++) {
       await tester.pump(const Duration(milliseconds: 500));
-      if (find.byType(TextField).evaluate().length >= 2) {
+      if (editorScope.evaluate().isNotEmpty &&
+          editorFields.evaluate().length >= 2) {
         editorReady = true;
         break;
       }
     }
-    expect(editorReady, isTrue, reason: 'DocPage 编辑器应在 10s 内就绪');
+    expect(
+      editorReady,
+      isTrue,
+      reason:
+          'DocPage 编辑器应在 10s 内就绪：DocPage 已推入且其子树内'
+          '标题框+正文框都在位',
+    );
 
     // 输入唯一文本 → 等防抖自动保存写盘（P0-H1 保存链）。
-    // 注意：IndexedStack 下三个目的地常驻，必须限定 DocPage 子树定位正文框。
-    final docPageFinder = find.byType(DocPage);
-    expect(docPageFinder, findsOneWidget);
-    final bodyField = find
-        .descendant(of: docPageFinder, matching: find.byType(TextField))
-        .last;
+    // 注意：IndexedStack 下三个目的地常驻，必须限定 DocPage 子树定位正文框
+    //（复用上面就绪判据的同一对 finder，不再另建一遍）。
+    expect(editorScope, findsOneWidget);
+    final bodyField = editorFields.last;
     await tester.enterText(bodyField, _uniqueText);
     // 真实时钟等防抖（1.2s）+ 写盘余量。
     await realWait(tester, const Duration(seconds: 3));

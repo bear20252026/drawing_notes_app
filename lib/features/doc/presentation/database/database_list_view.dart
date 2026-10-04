@@ -47,7 +47,7 @@ class DatabaseListView extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 24),
         alignment: Alignment.center,
         child: Text(
-          '还没有记录，点击“添加记录”',
+          AppLocalizations.of(context)?.dbNoRecordsYet ?? '还没有记录，点击“添加记录”',
           style: AppleType.controlStyle(
             Theme.of(context).colorScheme.outline,
           ).copyWith(fontWeight: FontWeight.w400),

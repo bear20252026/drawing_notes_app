@@ -52,7 +52,10 @@ class DatabaseKanbanView extends StatelessWidget {
   Widget build(BuildContext context) {
     final field = groupField;
     if (records.isEmpty) {
-      return _empty(context, '还没有记录，点击“添加记录”');
+      return _empty(
+        context,
+        AppLocalizations.of(context)?.dbNoRecordsYet ?? '还没有记录，点击“添加记录”',
+      );
     }
     if (field == null) {
       return _empty(

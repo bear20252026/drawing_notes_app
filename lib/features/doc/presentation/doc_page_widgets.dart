@@ -342,6 +342,9 @@ class _BacklinksPanelState extends State<_BacklinksPanel> {
     if (backlinks == null || backlinks.isEmpty) {
       return const SizedBox.shrink();
     }
+    final backlinkTitle =
+        AppLocalizations.of(context)?.docBacklinkCount(backlinks.length) ??
+            '反向链接 · ${backlinks.length}';
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       padding: const EdgeInsets.all(12),
@@ -362,7 +365,7 @@ class _BacklinksPanelState extends State<_BacklinksPanel> {
               ),
               const SizedBox(width: 4),
               Text(
-                '反向链接 · ${backlinks.length}',
+                backlinkTitle,
                 style: AppleType.captionStyle(
                   scheme.onSurfaceVariant,
                 ).copyWith(fontWeight: AppleType.bold),

@@ -64,7 +64,9 @@ extension _EditorPageTextOverlays on _EditorPageState {
                       width: 2,
                     ),
                   ),
-                  hintText: '输入文字…（回车结束）',
+                  hintText:
+                      AppLocalizations.of(context)?.canvasTextOverlayHint ??
+                      '输入文字…（回车结束）',
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 6,

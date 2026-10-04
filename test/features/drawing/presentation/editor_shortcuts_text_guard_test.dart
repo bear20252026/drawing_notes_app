@@ -14,26 +14,19 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../helpers/wait_until.dart';
+
 void main() {
-  /// T-08（审计 2026-09-27）：固定步长 pump 至条件满足或步数耗尽——
-  /// 初始化/提交类等待有早退条件，慢机不因固定余量击穿，快机不空耗。
-  /// 「断言无变化」类等待无早退信号，保留固定步长（语义所需）。
-  Future<void> pumpUntil(
-    WidgetTester tester,
-    bool Function() condition, {
-    Duration step = const Duration(milliseconds: 50),
-    int maxSteps = 40,
-  }) async {
-    for (var i = 0; i < maxSteps && !condition(); i++) {
-      await tester.pump(step);
-    }
-  }
+  // T-08（审计 2026-09-27）：固定步长 pump 至条件满足或步数耗尽——
+  // 初始化/提交类等待有早退条件，慢机不因固定余量击穿，快机不空耗。
+  // 「断言无变化」类等待无早退信号，保留固定步长（语义所需）。
+  // 实现已下沉到 `helpers/wait_until.dart` 的 `tester.pumpUntil`（唯一一份），
+  // 默认 step/maxSteps 与本文件原私有实现逐字一致（50ms × 40）。
 
   /// 编辑器页初始化就绪（左工具条已装配）。
   Future<void> pumpEditorReady(WidgetTester tester) async {
     await tester.pump();
-    await pumpUntil(
-      tester,
+    await tester.pumpUntil(
       () => find.byType(EditorLeftToolbar).evaluate().isNotEmpty,
     );
   }
@@ -52,10 +45,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tapAt(const Offset(420, 300));
     await tester.pump();
-    await pumpUntil(
-      tester,
-      () => find.byType(TextField).evaluate().isNotEmpty,
-    );
+    await tester.pumpUntil(() => find.byType(TextField).evaluate().isNotEmpty);
   }
 
   String currentText(WidgetTester tester) {
@@ -95,10 +85,7 @@ void main() {
     // 提交文字。
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();
-    await pumpUntil(
-      tester,
-      () => document.textItems.any((t) => t.text == 'ab'),
-    );
+    await tester.pumpUntil(() => document.textItems.any((t) => t.text == 'ab'));
     expect(document.textItems.map((t) => t.text), contains('ab'));
 
     // 提交后快捷键恢复：焦点交还键盘监听节点（真机上提交后点击画布
@@ -110,12 +97,12 @@ void main() {
     await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.digit6);
     await tester.pump();
-    await pumpUntil(
-      tester,
-      () => tester
-          .widget<EditorLeftToolbar>(find.byType(EditorLeftToolbar))
-          .activeShape ==
-      ShapeType.rect,
+    await tester.pumpUntil(
+      () =>
+          tester
+              .widget<EditorLeftToolbar>(find.byType(EditorLeftToolbar))
+              .activeShape ==
+          ShapeType.rect,
     );
     final toolbarAfter = tester.widget<EditorLeftToolbar>(
       find.byType(EditorLeftToolbar),
@@ -142,7 +129,7 @@ void main() {
 
     await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
     await tester.pump();
-    await pumpUntil(tester, () => currentText(tester) == 'a');
+    await tester.pumpUntil(() => currentText(tester) == 'a');
     // 修复前：若该块处于选中态会触发 deleteSelection 整块删除；
     // 修复后：正常删除一个字符。
     expect(currentText(tester), 'a');
@@ -166,10 +153,7 @@ void main() {
     // 回车（done 动作）提交就地编辑。
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();
-    await pumpUntil(
-      tester,
-      () => document.textItems.any((t) => t.text == '你好'),
-    );
+    await tester.pumpUntil(() => document.textItems.any((t) => t.text == '你好'));
     expect(document.textItems.map((t) => t.text), contains('你好'));
 
     // 提交后快捷键恢复：按 1 应切换回画笔工具而不是输入字符

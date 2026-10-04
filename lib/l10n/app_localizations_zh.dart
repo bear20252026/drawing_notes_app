@@ -686,6 +686,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get docBlockCount => '块数量';
 
   @override
+  String docBacklinkCount(int count) {
+    return '反向链接 · $count';
+  }
+
+  @override
   String get docTagNameHint => '标签名称';
 
   @override
@@ -1828,6 +1833,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pdfRangeCurrent => '当前页';
 
   @override
+  String pdfRangeGroupLabel(int count) {
+    return '范围（共 $count 页）';
+  }
+
+  @override
   String get pdfRangeAll => '全部页';
 
   @override
@@ -1866,6 +1876,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pdfGroupPaper => '纸张';
+
+  @override
+  String get pdfWholeBookHint => '整本按画布尺寸成页（沿用整本导出行为）';
 
   @override
   String get pdfGroupQuality => '质量';
@@ -2170,6 +2183,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get paletteNoMatch => '没有可执行的匹配命令';
 
   @override
+  String get paletteSearchHint => '搜索操作、工具或导出格式…';
+
+  @override
   String get textInputTitle => '输入文字';
 
   @override
@@ -2331,6 +2347,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get propDash => '实线/虚线';
+
+  @override
+  String propLineWidthValue(int width) {
+    return '线宽 $width';
+  }
 
   @override
   String get propText => '文字';
@@ -2497,6 +2518,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get docOutlineEmpty => '暂无标题块，用 / 菜单插入「标题」后出现在这里';
 
   @override
+  String get outlineUntitledHeading => '（空标题）';
+
+  @override
   String get docUnsavedChangesTitle => '未保存的改动';
 
   @override
@@ -2637,6 +2661,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get attOpenLink => '打开链接';
 
   @override
+  String get attachmentPlaceholder => '附件（待补充）';
+
+  @override
+  String get attachmentNoUrl => '（无链接）';
+
+  @override
   String get attEditNote => '编辑备注';
 
   @override
@@ -2713,6 +2743,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dbNoFieldsYet => '还没有字段，点击“添加字段”开始建表';
 
   @override
+  String get dbNoRecordsYet => '还没有记录，点击“添加记录”';
+
+  @override
   String get dbFieldActions => '字段操作';
 
   @override
@@ -2744,6 +2777,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get tblAddColumn => '添加列';
+
+  @override
+  String tableGridSize(int rows, int cols) {
+    return '表格 $rows×$cols';
+  }
 
   @override
   String get tblDeleteColumn => '删除列';
@@ -3134,6 +3172,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get canvasKindText => '文字';
 
   @override
+  String get canvasTextOverlayHint => '输入文字…（回车结束）';
+
+  @override
   String get frameCornerSemantics => '调整便签框角点';
 
   @override
@@ -3352,6 +3393,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get docImageNoSource => '图片（无来源）';
+
+  @override
+  String get docLinkNoHref => '链接（无地址）';
 
   @override
   String get ctxSetLink => '设置链接…';

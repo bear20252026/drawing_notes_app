@@ -89,9 +89,11 @@ class _CommandPaletteDialogState extends State<_CommandPaletteDialog> {
                   Navigator.of(context).pop(commands.first.id);
                 }
               },
-              decoration: const InputDecoration(
-                hintText: '搜索操作、工具或导出格式…',
-                prefixIcon: Icon(Icons.search_rounded),
+              decoration: InputDecoration(
+                hintText:
+                    AppLocalizations.of(context)?.paletteSearchHint ??
+                    '搜索操作、工具或导出格式…',
+                prefixIcon: const Icon(Icons.search_rounded),
               ),
             ),
             const SizedBox(height: 8),

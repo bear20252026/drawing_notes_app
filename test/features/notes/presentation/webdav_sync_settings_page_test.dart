@@ -9,6 +9,8 @@ import 'package:drawing_notes_app/features/notes/infrastructure/webdav_config_st
 import 'package:drawing_notes_app/features/notes/infrastructure/sync_secret_store.dart';
 import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settings_page.dart';
 
+import '../../../helpers/wait_until.dart';
+
 Widget _wrap(Widget child) {
   return MaterialApp(
     localizationsDelegates: const [
@@ -20,6 +22,30 @@ Widget _wrap(Widget child) {
     home: child,
   );
 }
+
+// ---- T-08（审计 2026-09-27）就绪判据：固定 pump 计数 → 观测完成条件本身 ----
+//
+// 原写法是每处两段 `pump(100ms)` 的**盲泵**——把「泵够了 200ms」当成「加载
+// 完了」的时序判据：慢机器上 200ms 仍没回灌完就假红，快机器上纯空耗 fake
+// 时钟。现改为 `helpers/wait_until.dart` 的 `tester.pumpUntil`（早退 + 有界）。
+// 每条判据都刻意**不等于**紧随其后的 expect：探针只看「加载/保存这条链路
+// 自己结束了没有」，原断言的牙齿一条没少（超时后 pumpUntil 静默返回，
+// expect 照样带原始信息失败）。
+
+/// 表单骨架已建完：`保存配置` 与标题/输入框/`立即同步` 同批渲染，
+/// 且它本身不是任何 expect 的对象——用它作「首帧已出」的信号最不吃断言。
+bool _formBuilt() => find.text('保存配置').evaluate().isNotEmpty;
+
+/// `_loadConfig()` 已 setState 落树：口令**存在性** bool 置位后，两个口令框
+/// 才换成「已保存 · 留空保持不变」占位提示（配置/机密两次 await 之后唯一
+/// 的可见完成信号）。这里只要求**至少出现一个**——「恰好两个」仍由用例
+/// 自己的 `findsNWidgets(2)` 裁决，不把断言整条抄进判据。
+bool _secretsLoaded() => find.text('已保存 · 留空保持不变').evaluate().isNotEmpty;
+
+/// `_save()` 全链结束的可见信号：成功提示（两条文案变体）与失败/取消提示
+/// 都在 `await _sync.save(...)` **之后**才弹，故 SnackBar 入树即代表写盘
+/// 动作已尘埃落定——随后 `store.read()` 读到的必然是最终态。
+bool _saveSettled() => find.byType(SnackBar).evaluate().isNotEmpty;
 
 void main() {
   testWidgets('WebDavSyncSettingsPage 渲染：表单字段 + 按钮', (tester) async {
@@ -35,8 +61,8 @@ void main() {
         ),
       ),
     );
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump();
+    await tester.pumpUntil(_formBuilt);
 
     expect(find.text('WebDAV 同步'), findsWidgets);
     expect(find.byType(TextField), findsNWidgets(4));
@@ -67,8 +93,9 @@ void main() {
         ),
       ),
     );
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump();
+    await tester.pumpUntil(_formBuilt);
+    await tester.pumpUntil(_secretsLoaded);
 
     final fields = tester
         .widgetList<TextField>(find.byType(TextField))
@@ -104,12 +131,15 @@ void main() {
         ),
       ),
     );
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump();
+    await tester.pumpUntil(_formBuilt);
+    await tester.pumpUntil(_secretsLoaded);
 
     await tester.tap(find.text('保存配置'));
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pump(const Duration(milliseconds: 300));
+    // T-08：成功/失败提示都在 `await _sync.save(...)` 之后才弹，故 SnackBar
+    // 入树即写盘已尘埃落定——取代原「两段 300ms 盲泵」，store.read 断言不变。
+    await tester.pump();
+    await tester.pumpUntil(_saveSettled);
 
     final saved = await store.read();
     expect(saved.webdavPassword, 'fixture-pass');
@@ -120,7 +150,10 @@ void main() {
   testWidgets('S-03：输入新口令覆盖旧值', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final store = MemorySyncSecretStore(
-      const SyncSecrets(webdavPassword: 'old-pass', syncPassphrase: 'old-passphrase'),
+      const SyncSecrets(
+        webdavPassword: 'old-pass',
+        syncPassphrase: 'old-passphrase',
+      ),
     );
     await tester.pumpWidget(
       _wrap(
@@ -132,8 +165,9 @@ void main() {
         ),
       ),
     );
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump();
+    await tester.pumpUntil(_formBuilt);
+    await tester.pumpUntil(_secretsLoaded);
 
     final fields = tester
         .widgetList<TextField>(find.byType(TextField))
@@ -145,8 +179,9 @@ void main() {
     await tester.pump();
 
     await tester.tap(find.text('保存配置'));
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pump(const Duration(milliseconds: 300));
+    // T-08：同上——以「保存结果提示已入树」为写盘完成判据，取代两段盲泵。
+    await tester.pump();
+    await tester.pumpUntil(_saveSettled);
 
     final saved = await store.read();
     expect(saved.webdavPassword, 'new-pass');

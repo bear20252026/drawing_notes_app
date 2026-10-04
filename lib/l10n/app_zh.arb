@@ -805,6 +805,15 @@
   "@docUpdatedAt": {},
   "docBlockCount": "块数量",
   "@docBlockCount": {},
+  "docBacklinkCount": "反向链接 · {count}",
+  "@docBacklinkCount": {
+    "description": "文档信息面板反向链接计数标题",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "docTagNameHint": "标签名称",
   "@docTagNameHint": {},
   "docPinSameAsLock": "独立密码不能与开屏密码相同",
@@ -1769,6 +1778,15 @@
   "@pdfPaperFollow": {},
   "pdfRangeCurrent": "当前页",
   "@pdfRangeCurrent": {},
+  "pdfRangeGroupLabel": "范围（共 {count} 页）",
+  "@pdfRangeGroupLabel": {
+    "description": "PDF 导出范围分组标题（含页数）",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pdfRangeAll": "全部页",
   "@pdfRangeAll": {},
   "pdfQualityLossless": "无损",
@@ -1793,6 +1811,8 @@
   "@expExportTiledPdf": { "placeholders": { "count": { "type": "int" }, "path": { "type": "String" } } },
   "pdfGroupPaper": "纸张",
   "@pdfGroupPaper": {},
+  "pdfWholeBookHint": "整本按画布尺寸成页（沿用整本导出行为）",
+  "@pdfWholeBookHint": {},
   "pdfGroupQuality": "质量",
   "@pdfGroupQuality": {},
   "pdfExportNPages": "导出 {count} 页",
@@ -2016,6 +2036,8 @@
   "@paletteRecent": {},
   "paletteNoMatch": "没有可执行的匹配命令",
   "@paletteNoMatch": {},
+  "paletteSearchHint": "搜索操作、工具或导出格式…",
+  "@paletteSearchHint": {},
   "textInputTitle": "输入文字",
   "@textInputTitle": {},
   "textInputHint": "请输入文字内容",
@@ -2134,6 +2156,15 @@
   "@propFillColor": {},
   "propDash": "实线/虚线",
   "@propDash": {},
+  "propLineWidthValue": "线宽 {width}",
+  "@propLineWidthValue": {
+    "description": "选中形状线宽读数",
+    "placeholders": {
+      "width": {
+        "type": "int"
+      }
+    }
+  },
   "propText": "文字",
   "@propText": {},
   "propTextColor": "文字颜色",
@@ -2262,6 +2293,8 @@
   "@docToolbarRefresh": {},
   "docOutlineEmpty": "暂无标题块，用 / 菜单插入「标题」后出现在这里",
   "@docOutlineEmpty": {},
+  "outlineUntitledHeading": "（空标题）",
+  "@outlineUntitledHeading": {},
   "docUnsavedChangesTitle": "未保存的改动",
   "@docUnsavedChangesTitle": {},
   "docUnsavedChangesBody": "文档有未保存的改动，确定要退出吗？",
@@ -2360,6 +2393,10 @@
   "@attEditDesc": {},
   "attOpenLink": "打开链接",
   "@attOpenLink": {},
+  "attachmentPlaceholder": "附件（待补充）",
+  "@attachmentPlaceholder": {},
+  "attachmentNoUrl": "（无链接）",
+  "@attachmentNoUrl": {},
   "attEditNote": "编辑备注",
   "@attEditNote": {},
   "attDescHint": "附件的描述/备注",
@@ -2421,6 +2458,8 @@
   "@dbNoTitleRecord": {},
   "dbNoFieldsYet": "还没有字段，点击“添加字段”开始建表",
   "@dbNoFieldsYet": {},
+  "dbNoRecordsYet": "还没有记录，点击“添加记录”",
+  "@dbNoRecordsYet": {},
   "dbFieldActions": "字段操作",
   "@dbFieldActions": {},
   "dbDeleteField": "删除字段",
@@ -2443,6 +2482,18 @@
   "@embHostBuilderHint": {},
   "tblAddColumn": "添加列",
   "@tblAddColumn": {},
+  "tableGridSize": "表格 {rows}×{cols}",
+  "@tableGridSize": {
+    "description": "表格编辑器尺寸读数",
+    "placeholders": {
+      "rows": {
+        "type": "int"
+      },
+      "cols": {
+        "type": "int"
+      }
+    }
+  },
   "tblDeleteColumn": "删除列",
   "@tblDeleteColumn": {},
   "tblAddRow": "添加行",
@@ -2806,6 +2857,8 @@
   "@canvasKindImage": {},
   "canvasKindText": "文字",
   "@canvasKindText": {},
+  "canvasTextOverlayHint": "输入文字…（回车结束）",
+  "@canvasTextOverlayHint": {},
   "frameCornerSemantics": "调整便签框角点",
   "@frameCornerSemantics": {},
   "pinBackspace": "退格",
@@ -3014,6 +3067,8 @@
   "@canvasMiniMapHint": {},
   "docImageNoSource": "图片（无来源）",
   "@docImageNoSource": {},
+  "docLinkNoHref": "链接（无地址）",
+  "@docLinkNoHref": {},
   "ctxSetLink": "设置链接…",
   "@ctxSetLink": {},
   "impTextPageTitle": "导入·{title}",
