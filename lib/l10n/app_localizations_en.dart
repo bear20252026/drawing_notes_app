@@ -3523,4 +3523,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String timeFullDate(int year, int month, int day) {
     return '$month/$day/$year';
   }
+
+  @override
+  String get webdavKeyRotationConfirmTitle => 'Change the sync password?';
+
+  @override
+  String get webdavKeyRotationConfirmBody =>
+      'Changing the sync password replaces the end-to-end encryption key entirely: the encrypted data already in the cloud will become UNDECRYPTABLE, and you will have to re-upload all local notes afterwards. Local data is not affected. To keep syncing as before, leave this field empty (keeps the current password) or type your previous password.';
+
+  @override
+  String get webdavKeyRotationConfirmAction => 'Change it and re-upload';
+
+  @override
+  String get webdavKeyRotationCancelled =>
+      'Change cancelled: the sync password keeps its previous value and cloud data stays readable';
+
+  @override
+  String get syncKeyRotatedUnreadable =>
+      'Sync failed: the cloud data was encrypted with the previous sync password and the current one cannot decrypt it (retrying will not help). To keep using the cloud data, type your previous password into “Sync password” and save. To deliberately abandon the old cloud data, save a new password and re-upload everything — leftover cloud objects from the old key are not cleaned up automatically, so delete them on the server yourself';
+
+  @override
+  String syncUnreadableRemoteCount(int count) {
+    return '; $count cloud document(s) could not be decrypted with the current sync password (likely ciphertext from before a password change); the rest synced normally';
+  }
 }

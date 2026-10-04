@@ -64,6 +64,7 @@ class SyncResult {
     required this.deletedRemote,
     this.conflictedDocIds = const [],
     this.failedDocIds = const [],
+    this.unreadableDocIds = const [],
   });
 
   final int uploaded;
@@ -77,21 +78,33 @@ class SyncResult {
   /// 基线/远端清单均不回写它们，下轮自动重试；调用方可用此列表提示用户）。
   final List<String> failedDocIds;
 
+  /// [failedDocIds] 中因**解密认证失败**而失败的那部分（修复 1②）：
+  /// 口令换过 ⇒ 云端旧密文永远解不开，重试不会变好，必须与网络抖动分开
+  /// 上报，否则用户只看到一句泛化「同步失败」。也绝不当作当轮毒丸反复消耗。
+  final List<String> unreadableDocIds;
+
   bool get changed => uploaded > 0 || downloaded > 0 || deletedRemote > 0;
 
   @override
   String toString() =>
       'SyncResult(upload=$uploaded, download=$downloaded, '
       'deleteRemote=$deletedRemote, conflicts=${conflictedDocIds.length}, '
-      'failed=${failedDocIds.length})';
+      'failed=${failedDocIds.length}, unreadable=${unreadableDocIds.length})';
 }
 
 /// 单轮执行结果（M2：成功与失败的操作分离，清单回写只认成功项）。
 class _ExecuteOutcome {
-  const _ExecuteOutcome({required this.succeeded, required this.failedIds});
+  const _ExecuteOutcome({
+    required this.succeeded,
+    required this.failedIds,
+    required this.unreadableIds,
+  });
 
   final List<SyncOperation> succeeded;
   final List<String> failedIds;
+
+  /// 失败项中认证失败（密钥/AAD 与密文不匹配）的子集——确定性失败。
+  final List<String> unreadableIds;
 }
 
 /// WebDAV 本地优先同步服务。
@@ -155,6 +168,9 @@ class SyncService {
       final manifestJson = await cipher.openManifestJson(
         utf8.decode(remoteBytes),
       );
+      // 修复 1②：解不开远端 manifest 时上面抛 [SyncKeyMismatchException]
+      // 直接终止整轮（既有 fail-closed 语义：宁可不同步，也不按残缺清单
+      // 行动）。类型可判别 ⇒ SyncController 不再对它做退避重试。
       final decoded = jsonDecode(manifestJson);
       if (decoded is! Map<String, dynamic>) {
         throw const FormatException('远端清单格式损坏');
@@ -263,6 +279,7 @@ class SyncService {
       deletedRemote: deletedRemote,
       conflictedDocIds: List.unmodifiable(conflicts.map((c) => c.docId)),
       failedDocIds: List.unmodifiable(executed.failedIds),
+      unreadableDocIds: List.unmodifiable(executed.unreadableIds),
     );
     _emit(SyncProgress.complete());
     return result;
@@ -323,6 +340,7 @@ class SyncService {
     final total = plan.operations.length;
     final succeeded = <SyncOperation>[];
     final failedIds = <String>[];
+    final unreadableIds = <String>[];
     var done = 0;
     for (final op in plan.operations) {
       try {
@@ -370,13 +388,24 @@ class SyncService {
             break;
         }
         succeeded.add(op);
+      } on SyncKeyMismatchException {
+        // 修复 1②：认证失败是确定性结果——本轮对它只做一次尝试（循环自然
+        // 向前，不重跑），并单独记账供 UI 给出「换回旧口令 / 全量重传」的
+        // 可执行文案；仍留在 failedIds 里享受「不回写清单」的毒丸保护
+        // （绝不因此删远端或覆盖任一侧）。
+        if (!failedIds.contains(op.id)) failedIds.add(op.id);
+        if (!unreadableIds.contains(op.id)) unreadableIds.add(op.id);
       } catch (_) {
         // 毒丸隔离：记失败、继续下一操作（manifest 回写跳过此项）。
         if (!failedIds.contains(op.id)) failedIds.add(op.id);
       }
       done++;
     }
-    return _ExecuteOutcome(succeeded: succeeded, failedIds: failedIds);
+    return _ExecuteOutcome(
+      succeeded: succeeded,
+      failedIds: failedIds,
+      unreadableIds: unreadableIds,
+    );
   }
 
   /// 释放资源（交给上层组合根调用）。

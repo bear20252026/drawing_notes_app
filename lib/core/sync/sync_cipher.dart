@@ -1,9 +1,10 @@
 // 由 Claude 团队生成 | Drawing Notes App
 // WebDAV 同步端到端加密（P4-A1）：纯逻辑密码模块。
 // 复用 cryptography（AES-256-GCM）+ crypto（HMAC-SHA256），无新依赖。
-// 纯 Dart，无 flutter/io/controller/storage/drawing 依赖。
+// 纯 Dart，无 flutter/io/controller/storage/drawing 依赖（dart:isolate 不算）。
 
 import 'dart:convert';
+import 'dart:isolate';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -32,6 +33,22 @@ abstract class SyncCipher {
 
   /// 打开密封的 manifest JSON（AAD 校验上下文）。
   Future<String> openManifestJson(String sealedJson);
+}
+
+/// 解密认证失败专用异常（修复 1②）。
+///
+/// 仍是 [FormatException]（既有调用方与测试的 `on FormatException` /
+/// `throwsFormatException` 口径不变），但类型可判别：GCM 认证失败意味着
+/// 「密钥或 AAD 与密文不匹配」，对同一密钥+同一密文是**确定性**结果，
+/// 退避重试永远不可能让它成功——与网络抖动/服务器 5xx 必须分开处理，
+/// 否则一轮口令错配会被当成毒丸反复消耗，并被泛化成「检查网络」。
+///
+/// 消息为本地静态构造，不含口令、密钥、docId 或任何远端原文（脱敏红线）。
+class SyncKeyMismatchException extends FormatException {
+  const SyncKeyMismatchException([super.message = defaultKeyMismatchMessage]);
+
+  /// 与原 `_decrypt` 抛出的文案逐字一致（不改既有可观测行为）。
+  static const String defaultKeyMismatchMessage = '同步数据认证失败：AAD 不符或密钥错误';
 }
 
 /// 恒等加密器（默认）：全部透传，保现有行为与测试不变。
@@ -63,10 +80,17 @@ class NoopSyncCipher implements SyncCipher {
 /// 构造注入 32 字节主密钥；加密载荷格式：
 /// `{"mode":"sync-doc"|"sync-manifest","v":1,"n":base64(nonce),"c":base64(cipherText),"m":base64(mac)}`
 class AesSyncCipher implements SyncCipher {
-  AesSyncCipher({required this.key}) : assert(key.length == 32, '主密钥必须 32 字节');
+  AesSyncCipher({required this.key, int? isolateThreshold})
+    : assert(key.length == 32, '主密钥必须 32 字节'),
+      _isolateThreshold = isolateThreshold ?? isolateCodecThreshold;
 
   /// 32 字节主密钥。
   final List<int> key;
+
+  /// 本实例的 isolate 门限（缺省 [isolateCodecThreshold]）。测试用它把
+  /// **同一份字节**分别逼上主 isolate / worker isolate 两条路径，验证两侧
+  /// 产出可互相解回；生产调用点不传（阈值口径单一事实来源仍是常量）。
+  final int _isolateThreshold;
 
   static const int _nonceLength = 12;
   static const int _macLength = 16;
@@ -80,6 +104,15 @@ class AesSyncCipher implements SyncCipher {
   /// 文档 AAD：绑定 docId。
   Uint8List _docAad(String docId) =>
       Uint8List.fromList(utf8.encode('$_docAadPrefix$docId$_docAadSuffix'));
+
+  /// 达阈值载荷的 AES 下沉 isolate 的门限（修复 2，本仓「大载荷才进
+  /// isolate」口径）：一次同步要逐文档加解密，数十/数百条笔记时纯 Dart
+  /// AES 连续占住主 isolate，UI 掉帧甚至假死——与 NoteBlockDocStore
+  /// 的 `_isolateCodecThreshold`（32 KiB）同一形态的载荷（JSON 文档字节），
+  /// 故取同值；低于它时 isolate 往返（spawn + 字节拷贝）开销大于收益，
+  /// 留在主 isolate（对照 StorageService.isolateSealThreshold 的 64 KiB，
+  /// 本域载荷更小、更密，取更低的文档侧阈值宁可早进 isolate 不漏大文档）。
+  static const int isolateCodecThreshold = 32 * 1024;
 
   @override
   String remotePath(String docId) {
@@ -126,15 +159,53 @@ class AesSyncCipher implements SyncCipher {
   );
 
   /// 加密并编码为 JSON 字符串（UTF-8 字节承载）。
+  ///
+  /// 达 [isolateCodecThreshold] 的载荷在 worker isolate 完成全部计算
+  /// （AES + base64 + JSON），跨 isolate 只传字节数组与 mode 字符串；
+  /// 主密钥以 `Uint8List` 局部变量随闭包进 worker，绝不拼进 String、
+  /// 不落盘、不进日志（修复 2 的泄密红线）。
   Future<Uint8List> _encrypt(
     Uint8List plain,
     Uint8List aad,
     String mode,
   ) async {
+    if (plain.length < _isolateThreshold) {
+      return _encryptToWire(plain, aad, mode, key);
+    }
+    final keyBytes = Uint8List.fromList(key);
+    return Isolate.run(() => _encryptToWire(plain, aad, mode, keyBytes));
+  }
+
+  /// 解码 JSON 字符串并解密（mode 不匹配 → 抛异常）。
+  ///
+  /// 判阈值用的是**入参密文**字节数（与待处理工作量成正比，base64 后
+  /// 比明文大 ~1.37×，同阈值只会更早进 isolate，方向安全）。
+  Future<Uint8List> _decrypt(
+    Uint8List cipher,
+    Uint8List aad,
+    String expectedMode,
+  ) async {
+    if (cipher.length < _isolateThreshold) {
+      return _decryptFromWire(cipher, aad, expectedMode, key);
+    }
+    final keyBytes = Uint8List.fromList(key);
+    return Isolate.run(
+      () => _decryptFromWire(cipher, aad, expectedMode, keyBytes),
+    );
+  }
+
+  /// 加密 + 封装为线格式字节（主 isolate 与 worker isolate 共用同一份实现，
+  /// 纯静态函数：入参全可序列化，返回值 Uint8List 可序列化）。
+  static Future<Uint8List> _encryptToWire(
+    Uint8List plain,
+    Uint8List aad,
+    String mode,
+    List<int> key,
+  ) async {
     final nonce = _randomBytes(_nonceLength);
     final box = await AesGcm.with256bits().encrypt(
       plain,
-      secretKey: SecretKey(key),
+      secretKey: SecretKey(Uint8List.fromList(key)),
       nonce: nonce,
       aad: aad,
     );
@@ -148,11 +219,12 @@ class AesSyncCipher implements SyncCipher {
     return Uint8List.fromList(utf8.encode(payload));
   }
 
-  /// 解码 JSON 字符串并解密（mode 不匹配 / AAD 不符 → 抛异常）。
-  Future<Uint8List> _decrypt(
+  /// 线格式字节 → 明文（与 [_encryptToWire] 对偶；语义与阈值分流前一致）。
+  static Future<Uint8List> _decryptFromWire(
     Uint8List cipher,
     Uint8List aad,
     String expectedMode,
+    List<int> key,
   ) async {
     // B9 修复（审计 2026-09-07）：解密载荷是远端/他人可控数据——裸
     // `as Map<String, dynamic>` 强转会抛 TypeError；改类型检查抛
@@ -174,13 +246,14 @@ class AesSyncCipher implements SyncCipher {
     try {
       final plain = await AesGcm.with256bits().decrypt(
         SecretBox(cipherText, nonce: nonce, mac: Mac(macBytes)),
-        secretKey: SecretKey(key),
+        secretKey: SecretKey(Uint8List.fromList(key)),
         aad: aad,
       );
       return Uint8List.fromList(plain);
     } on SecretBoxAuthenticationError {
       // AAD 不符（docId 被替换）或密钥错误 → 认证失败。
-      throw FormatException('同步数据认证失败：AAD 不符或密钥错误');
+      // 修复 1②：抛可判别的子类型（仍是 FormatException，文案不变）。
+      throw const SyncKeyMismatchException();
     }
   }
 

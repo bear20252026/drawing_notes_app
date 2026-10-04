@@ -34,12 +34,35 @@ export 'package:drawing_notes_app/core/sync/sync_service.dart' show SyncResult;
 export 'package:drawing_notes_app/core/storage/webdav_sync_client.dart'
     show WebDavSyncException;
 
+// 修复 1：口令轮换的两个判据类型随门面再导出（presentation 只经本门面对话，
+// 不再自行 import 密码模块）。
+export 'package:drawing_notes_app/core/sync/sync_cipher.dart'
+    show SyncKeyMismatchException;
+
 /// 一次同步的收敛结果（成功带 [result]，失败带最后一次 [error]）。
 ///
 /// [error] 可能为 Exception/Error（同步失败原样），也可能为 String
 /// （重试策略文案，如「达到最大重试次数」）——与原设置页 `_runWithRetry`
 /// 的返回形状一致，由 humanizeWebDavSyncError 统一转人话。
 typedef SyncRunOutcome = ({SyncResult? result, Object? error});
+
+/// 改同步口令需要用户显式确认（修复 1①）。
+///
+/// 成因（读码核实）：保存时盐沿用旧值（[SyncController.save] 的
+/// `existing.syncSalt` 分支），口令 P1→P2 ⇒ 派生出全新主密钥，而
+/// `AesSyncCipher.remotePath = HMAC(key, docId)` ⇒ ①新对象名全变、
+/// ②固定名的 `manifest.json` 用新密钥解不开旧密文。结果：旧的云端
+/// 加密数据从此不可读，旧对象成为无人清理的孤儿。
+///
+/// 抛该异常时 **一个字节都不上盘**（与 https 门禁同款 fail-closed），
+/// 由调用方出示二次确认后带 `confirmKeyRotation: true` 重试。
+/// 不携带口令/密钥/远端原文（脱敏红线）。
+class SyncKeyRotationConfirmationRequired implements Exception {
+  const SyncKeyRotationConfirmationRequired();
+
+  @override
+  String toString() => '需要确认：更换同步口令会让旧的云端加密数据无法解密';
+}
 
 /// WebDAV 同步控制器：设置页的用例门面（加载配置 / 保存 / 立即同步）。
 class SyncController {
@@ -82,6 +105,35 @@ class SyncController {
   /// 读取机密（WebDAV 密码 / 同步口令；OS 凭据库）。
   Future<SyncSecrets> readSecrets() => _secretStore.read();
 
+  /// 预检（修复 1①）：「用这个同步口令保存，会不会让既有云端加密数据变成
+  /// 不可读」。保存前调用，为真就要先向用户二次确认，别等同步失败才说。
+  ///
+  /// 只看本地已存值，**零网络**（默认零网络纪律）；不接触口令以外的机密。
+  Future<bool> willRotateSyncKey({required String passphrase}) async {
+    final trimmed = passphrase.trim();
+    if (trimmed.isEmpty) return false; // 空 = 沿用已存，不构成改口令
+    return _rotatesSyncKey(
+      existing: await loadConfig(),
+      stored: await readSecrets(),
+      newPassphrase: trimmed,
+    );
+  }
+
+  /// [willRotateSyncKey] 与 [save] 共用的判据（单一事实来源，两处不得漂移）：
+  /// 已存盐非空（保存时会被原样复用）+ 已存口令非空（云端走的是 AES，不是
+  /// 明文透传）+ 新口令非空且与已存不同 ⇒ 派生出全新主密钥。
+  static bool _rotatesSyncKey({
+    required WebDavSyncConfig existing,
+    required SyncSecrets stored,
+    required String newPassphrase,
+  }) {
+    final previous = stored.syncPassphrase;
+    if (newPassphrase.isEmpty) return false;
+    if (previous == null || previous.isEmpty) return false;
+    if (!existing.hasSyncSalt) return false;
+    return newPassphrase != previous;
+  }
+
   /// 保存配置 + 机密（S-03 方案 A 语义在此收口）。
   ///
   /// - 空表单值 = 沿用已存（明文不回填，空是常态）——把「未改」与「清空」
@@ -89,7 +141,10 @@ class SyncController {
   ///   同步要么认证失败、要么被 fail-closed 挡住）；
   /// - 口令非空时复用已有盐（保证派生 key 对已上传密文稳定），无盐则生成；
   /// - https 门禁抛 [ArgumentError] 时不上盘任何数据（fail-closed），
-  ///   由调用方捕获后向用户明示。
+  ///   由调用方捕获后向用户明示；
+  /// - 修复 1①：换同步口令（盐不变）会让旧的云端密文永久解不开，未经
+  ///   [confirmKeyRotation] 确认抛 [SyncKeyRotationConfirmationRequired]，
+  ///   同样一个字节都不上盘、已存口令原样保留。
   ///
   /// 返回合并已存后的生效机密，供页面刷新「已保存」存在性标记。
   Future<({String password, String passphrase})> save({
@@ -97,7 +152,11 @@ class SyncController {
     required String username,
     required String password,
     required String passphrase,
+    bool confirmKeyRotation = false,
   }) async {
+    // https 门禁前移到任何写盘之前（与 WebDavConfigStore.save 内同一道检查
+    // 同口径、幂等）：先拒非法地址，再谈口令轮换——两道门都是 fail-closed。
+    requireHttpsBaseUrl(baseUrl);
     final existing = await _configStore.load();
     final stored = await _secretStore.read();
     // S-03 方案 A：空输入框 = 沿用已存口令（明文不回填，空是常态）。
@@ -105,6 +164,15 @@ class SyncController {
         passphrase.trim().isNotEmpty
             ? passphrase.trim()
             : (stored.syncPassphrase ?? '');
+    // 修复 1①：确认门禁放在任何写盘之前（fail-closed：不改已存口令）。
+    if (!confirmKeyRotation &&
+        _rotatesSyncKey(
+          existing: existing,
+          stored: stored,
+          newPassphrase: effectivePassphrase,
+        )) {
+      throw const SyncKeyRotationConfirmationRequired();
+    }
     final effectivePassword =
         password.isNotEmpty ? password : (stored.webdavPassword ?? '');
     String? saltBase64;
@@ -133,12 +201,23 @@ class SyncController {
     return (password: effectivePassword, passphrase: effectivePassphrase);
   }
 
+  /// 失败是否值得再试一次（修复 1②，[syncNow] 重试循环的裁决口径）。
+  ///
+  /// [SyncKeyMismatchException]（GCM 认证失败）对同一密钥 + 同一密文是
+  /// 确定性结果：退避重试永远不可能让它成功，只会把 4 轮网络与用户时间
+  /// 烧掉，并把原因糊成一句泛化「同步失败」。其余失败（网络抖动、远端
+  /// 5xx、超时）按既有 [SyncRetryPolicy] 有界收敛。
+  static bool isRetryableSyncFailure(Object error) =>
+      error is! SyncKeyMismatchException;
+
   /// 组装并执行一次完整同步（transport + cipher + SyncService + 有界重试）。
   ///
   /// - 加密方案在此收口（C-05「自选加密方案」上移）：已配置口令（含盐）→
   ///   派生主密钥用 AES；否则 Noop（明文透传）。
   /// - 装配失败（如 KDF 派生异常）原样抛出；同步执行失败经 [SyncRetryPolicy]
   ///   有界收敛，以 outcome.error 返回（不抛）——与原设置页行为一致。
+  /// - 例外：[SyncKeyMismatchException]（口令轮换 ⇒ 旧云端密文不可解）是
+  ///   确定性失败，不进重试（修复 1②），原样作为 outcome.error 返回。
   /// - 每次同步独立构建 transport，用毕 [SyncService.close]（finally）。
   Future<SyncRunOutcome> syncNow({
     required Uri baseUrl,
@@ -177,6 +256,12 @@ class SyncController {
           final r = await service.syncNow();
           return (result: r, error: null);
         } catch (e) {
+          // 修复 1②：确定性失败不退避重试——旧写法会白跑满 4 轮网络，最后
+          // 只剩一句「检查网络与账号」的泛化文案，把真实原因（口令换过）
+          // 藏掉。原样返回类型，由 humanize 给可执行指引。
+          if (!isRetryableSyncFailure(e)) {
+            return (result: null, error: e);
+          }
           attempt++;
           if (attempt >= retry.maxAttempts) {
             return (result: null, error: e);

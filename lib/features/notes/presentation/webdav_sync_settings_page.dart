@@ -49,6 +49,14 @@ String humanizeWebDavSyncError(Object? e, {AppLocalizations? l10n}) {
     success: false,
     detail: e.runtimeType.toString(),
   );
+  // 修复 1②：口令轮换导致的「旧云端密文解不开」是确定性失败——文案必须
+  // 可执行（填回旧口令 / 决定全量重传），不得落到下面那句「检查网络与账号」。
+  // 走静态文案：该异常 message 本地固定构造，不含口令、密钥或远端原文。
+  if (e is SyncKeyMismatchException) {
+    AuditLogger.log('webdav.sync.key_mismatch', success: false);
+    return l10n?.syncKeyRotatedUnreadable ??
+        '同步失败：云端数据是用改动前的同步口令加密的，当前口令解不开（重试无用）。要继续用云端数据，请在「同步密码」里填回原来的口令并保存；确定放弃旧的云端数据，就换一个新口令保存后重新全量上传——旧的云端对象不会被自动清理，需要你在服务器上手动删除';
+  }
   if (e is WebDavSyncException) {
     // 原文（脱敏 + 截断后）进审计日志供本机排查；UI 一律走下面的静态文案。
     AuditLogger.log(
@@ -164,6 +172,36 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
   Future<void> _save() async {
     // C-05：装配与「空值沿用」语义收口到 SyncController——本页只提交表单
     // 原文，不再触碰配置/机密存储；https 门禁 ArgumentError 在此明示。
+    //
+    // 修复 1①：换同步口令就换整把主密钥（盐沿用旧值，remotePath=HMAC(key,id)
+    // 与固定名 manifest 全部错位）⇒ 旧的云端加密数据从此解不开。判定必须在
+    // 保存**之前**（零网络预检），用户二次确认后才带 confirmKeyRotation 落盘；
+    // 不确认则一个字节都不改，已存口令原样保留。
+    bool confirmKeyRotation = false;
+    if (_syncSecret.text.trim().isNotEmpty) {
+      if (await _sync.willRotateSyncKey(passphrase: _syncSecret.text)) {
+        if (!mounted) return;
+        final l10n = AppLocalizations.of(context);
+        final confirmed = await GlassDialog.confirm(
+          context,
+          title: l10n?.webdavKeyRotationConfirmTitle ?? '确认更换同步口令？',
+          content: l10n?.webdavKeyRotationConfirmBody ??
+              '同步口令一改，端到端加密的密钥就会整体更换：云端已有的加密数据将「无法再解密」，之后需要把本地笔记全量重新上传；本地数据不受影响。若只是想接着同步，请留空（沿用原口令）或填回原来的口令。',
+          confirmText:
+              l10n?.webdavKeyRotationConfirmAction ?? '仍要更换并重新上传',
+          dangerous: true,
+        );
+        if (!confirmed) {
+          if (!mounted) return;
+          _toast(
+            AppLocalizations.of(context)?.webdavKeyRotationCancelled ??
+                '已取消更换：同步口令保持原值，云端数据仍可读',
+          );
+          return;
+        }
+        confirmKeyRotation = true;
+      }
+    }
     final ({String password, String passphrase}) effective;
     try {
       effective = await _sync.save(
@@ -171,10 +209,20 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
         username: _user.text,
         password: _pass.text,
         passphrase: _syncSecret.text,
+        confirmKeyRotation: confirmKeyRotation,
       );
     } on ArgumentError catch (e) {
       if (!mounted) return;
       _toast(AppLocalizations.of(context)?.webdavSaveFail(e.message) ?? '保存失败：${e.message}');
+      return;
+    } on SyncKeyRotationConfirmationRequired {
+      // 预检到落盘之间口令状态变了：控制器 fail-closed（未上盘），这里同样
+      // 只给静态文案，不把异常原文送进 UI。
+      if (!mounted) return;
+      _toast(
+        AppLocalizations.of(context)?.webdavKeyRotationConfirmTitle ??
+            '确认更换同步口令？',
+      );
       return;
     }
     if (!mounted) return;
@@ -316,15 +364,22 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
 
   String _summaryOf(SyncResult r) {
     final l10n = mounted ? AppLocalizations.of(context) : null;
-    final base = r.changed
+    var summary = r.changed
         ? l10n?.syncDoneSummary(r.uploaded, r.downloaded, r.deletedRemote) ??
               '同步完成：↑${r.uploaded} ↓${r.downloaded} ✕${r.deletedRemote}'
         : l10n?.syncUpToDate ?? '已是最新，无需同步';
     if (r.conflictedDocIds.isNotEmpty) {
-      return l10n?.syncWithConflicts(base, r.conflictedDocIds.length) ??
-          '$base；另有 ${r.conflictedDocIds.length} 个文档本地与云端均有改动，已按你的选择处理';
+      summary =
+          l10n?.syncWithConflicts(summary, r.conflictedDocIds.length) ??
+          '$summary；另有 ${r.conflictedDocIds.length} 个文档本地与云端均有改动，已按你的选择处理';
     }
-    return base;
+    // 修复 1②：解不开的旧密文必须对用户可见（同「冲突不得静默」纪律）——
+    // 只说「同步完成」会把 N 个文档永远下不下来这件事藏起来。
+    if (r.unreadableDocIds.isNotEmpty) {
+      summary =
+          '$summary${l10n?.syncUnreadableRemoteCount(r.unreadableDocIds.length) ?? '；${r.unreadableDocIds.length} 个云端文档用当前同步口令解不开（多半是改过口令之前的旧密文），其余文档已正常同步'}';
+    }
+    return summary;
   }
 
   /// 轻提示。

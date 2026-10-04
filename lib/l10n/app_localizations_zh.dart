@@ -3394,4 +3394,26 @@ class AppLocalizationsZh extends AppLocalizations {
   String timeFullDate(int year, int month, int day) {
     return '$year/$month/$day';
   }
+
+  @override
+  String get webdavKeyRotationConfirmTitle => '确认更换同步口令？';
+
+  @override
+  String get webdavKeyRotationConfirmBody =>
+      '同步口令一改，端到端加密的密钥就会整体更换：云端已有的加密数据将「无法再解密」，之后需要把本地笔记全量重新上传；本地数据不受影响。若只是想接着同步，请留空（沿用原口令）或填回原来的口令。';
+
+  @override
+  String get webdavKeyRotationConfirmAction => '仍要更换并重新上传';
+
+  @override
+  String get webdavKeyRotationCancelled => '已取消更换：同步口令保持原值，云端数据仍可读';
+
+  @override
+  String get syncKeyRotatedUnreadable =>
+      '同步失败：云端数据是用改动前的同步口令加密的，当前口令解不开（重试无用）。要继续用云端数据，请在「同步密码」里填回原来的口令并保存；确定放弃旧的云端数据，就换一个新口令保存后重新全量上传——旧的云端对象不会被自动清理，需要你在服务器上手动删除';
+
+  @override
+  String syncUnreadableRemoteCount(int count) {
+    return '；$count 个云端文档用当前同步口令解不开（多半是改过口令之前的旧密文），其余文档已正常同步';
+  }
 }

@@ -215,11 +215,23 @@ void main() {
       );
       final saltBefore = (await controller.loadConfig()).syncSalt;
 
+      // 修复 1①：换同步口令 = 换整把主密钥（盐复用 ⇒ 旧云端密文从此解不开），
+      // 未经确认不再落盘。这里验证的是「确认后照常覆盖」，故显式带确认位。
+      await expectLater(
+        controller.save(
+          baseUrl: 'https://dav.example.com/dn/',
+          username: 'bob',
+          password: 'pw2',
+          passphrase: 'phrase2',
+        ),
+        throwsA(isA<SyncKeyRotationConfirmationRequired>()),
+      );
       final effective = await controller.save(
         baseUrl: 'https://dav.example.com/dn/',
         username: 'bob',
         password: 'pw2',
         passphrase: 'phrase2',
+        confirmKeyRotation: true,
       );
       expect(effective.password, 'pw2');
       expect(effective.passphrase, 'phrase2');
