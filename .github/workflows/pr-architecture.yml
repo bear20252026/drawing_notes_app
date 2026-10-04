@@ -4,6 +4,12 @@ name: PR Architecture
 on:
   pull_request:
     branches: [master]
+  # 本仓实际走「直推 master」流程：原仅 pull_request 触发，导致本工作流的
+  # tools/check_boundaries.sh 在 master 上从未被 CI 执行过（审计 2026-10-04
+  # 发现的门禁盲区——脚本本身当时还是恒红状态）。补 push 触发，使架构门与
+  # 边界检查在每次合入 master 后真正确认一次。
+  push:
+    branches: [master]
 permissions: {}
 
 # 快速连推/重开 PR 时取消同组在跑的旧 run，节省排队时长。
