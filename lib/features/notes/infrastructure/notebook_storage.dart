@@ -591,6 +591,10 @@ class NotebookStorage
       );
     }
     notebook.encrypted = true;
+    // 会话口令回滚纪律（对齐 StorageFilePasswordManager 的密封失败回滚）：
+    // 先记失败前状态再缓存新口令，密封落盘失败（文件被删/保险库回锁）即回滚——
+    // 磁盘信封未变时残留新口令会让后续 load+decrypt 抛 FormatException。
+    final priorPassword = notebookPasswordFor(notebook.id);
     _cacheNotebookPassword(notebook.id, password);
     // 直接原子写入（toJson 中 encrypted 时 pages 序列化为空，仅存密文载荷）。
     // 注意：不能走 save()——save 对"加密且内存有明文页面"会抛 StateError
@@ -598,7 +602,12 @@ class NotebookStorage
     // 落盘用 [_writeNotebookInsideExclusive]（非排队原语）：本方法已持有
     // 该 id 的独占槽位，`_writeNotebook` 再挂 `_writeTails` 等于 await 自己
     // 所在的链 → 死锁（[:617] 同款纪律）。
-    return _writeNotebookInsideExclusive(notebook);
+    try {
+      return await _writeNotebookInsideExclusive(notebook);
+    } catch (_) {
+      _rollbackSessionPassword(notebook.id, priorPassword);
+      rethrow;
+    }
   }
 
   /// 校验分页画布文件密码（正确即入会话缓存——解锁一次本会话免重复输入）。
@@ -806,8 +815,15 @@ class NotebookStorage
         usbKey: usbKey,
       );
     }
+    // 会话口令回滚纪律（见 _rollbackSessionPassword）。
+    final priorPassword = notebookPasswordFor(id);
     _cacheNotebookPassword(id, newPassword);
-    await _patchEncryptedPayloadInsideExclusive(id, newPayload);
+    try {
+      await _patchEncryptedPayloadInsideExclusive(id, newPayload);
+    } catch (_) {
+      _rollbackSessionPassword(id, priorPassword);
+      rethrow;
+    }
   }
 
   /// 该分页画布是否已绑定重置密码盘（v5 且含 USB 槽位）。
@@ -904,8 +920,15 @@ class NotebookStorage
       newPassword: newPassword,
     );
     if (newPayload == null) return false;
+    // 会话口令回滚纪律（见 _rollbackSessionPassword）。
+    final priorPassword = notebookPasswordFor(id);
     _cacheNotebookPassword(id, newPassword);
-    await _patchEncryptedPayloadInsideExclusive(id, newPayload);
+    try {
+      await _patchEncryptedPayloadInsideExclusive(id, newPayload);
+    } catch (_) {
+      _rollbackSessionPassword(id, priorPassword);
+      rethrow;
+    }
     return true;
   }
 
@@ -924,6 +947,19 @@ class NotebookStorage
   /// 清除会话密码（移除文件密码 / 文档删除后调用）。
   void forgetNotebookPassword(String id) {
     _sessionNotebookPasswords.remove(id);
+  }
+
+  /// 把会话口令回滚到「密封/落盘失败之前」的状态（对齐
+  /// StorageFilePasswordManager 的密封失败回滚纪律）：失败前无口令 → forget，
+  /// 有旧口令 → 恢复旧值。落盘失败时磁盘信封未变，若残留新口令则下一次
+  /// load+decrypt 会抛 FormatException——选 fail-closed（宁可重新问一次口令），
+  /// 不残留与磁盘错配的口令导致后续写回明文语义错乱。
+  void _rollbackSessionPassword(String id, String? prior) {
+    if (prior == null) {
+      forgetNotebookPassword(id);
+    } else {
+      _cacheNotebookPassword(id, prior);
+    }
   }
 
   /// P1 修复 M-09：清空全部会话笔记本口令（切后台回锁联动）。

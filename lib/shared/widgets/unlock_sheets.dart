@@ -220,7 +220,12 @@ class _DesktopUnlockFieldState extends State<DesktopUnlockField> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _focus.requestFocus());
+    // 对话框出现即聚焦（与 AppLockGate 桌面密码槽同纪律）。post-frame 回调
+    // 可能在同帧拆树之后才跑（如解锁瞬间撤对话框），届时 _focus 已 dispose。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _focus.requestFocus();
+    });
   }
 
   @override

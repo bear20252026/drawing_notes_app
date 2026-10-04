@@ -2,6 +2,109 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.60] - 2026-10-04
+
+### 全面审计批（AJ）：9 域并行审计 + 逐条读码复核，修 16 类已核实缺陷与 3 处门禁自身失效
+
+> 审计基线 v1.17.59（`34133c8`），方法为 9 个专项域子代理并行扫描、全部结论由
+> 宿主回读原始代码逐条复核后再定案（推翻 3 条误报）。分两个 commit 落地：
+> `96261cc`（六包并行修复）+ `fbb2090`（收尾归因）+ 本批最后两处安全小项。
+> 本机门禁：`flutter analyze` No issues found；`flutter test --exclude-tags kdf`
+> 1974 通过/1 跳过/0 失败（03:29）；`--tags kdf --concurrency=1` 64 通过（04:25）；
+> `tools/check_boundaries.sh` exit 0；架构九规则含修好的规则 3b 全绿。
+
+**数据完整性（P0 两条）**
+
+- 画布回收站过期判定由「文件修改时间」改为文件名携带的删除时刻（`rename` 不改
+  mtime，原实现把「最后一次保存时间」当删除时间——30 天未编辑的画布一经删除
+  即被物理清理，反悔窗口归零）；`listDocuments` 惰性清理补 1 小时节流。口径对齐
+  块文档域 C14 备案
+- 同一文件名解析另挖出第二处 P0：生成式 ID 本身含下划线，旧 `split('_').first`
+  使 `restoreTrash` 把**不同文档**移回同一个 `documents/doc.json` 互相覆盖，
+  且过期时间恒解析失败 → 改按最后一个下划线切分
+- 块文档 / 分页画布共 7 个密码入口（设密/改密/绑盘/USB 重置/移除）的
+  「读信封 → Argon2id 重绕 → 写回」整体移入同 id 独占区，消除重绕窗口内
+  自动保存被陈旧快照反超覆盖的静默丢稿；口径对齐
+  `StorageFilePasswordManager._readCurrentRaw` 既有纪律
+- 懒迁移改在队列内重读磁盘，与入队快照不一致即放弃，不再反超较新保存
+- 分页画布整本读改写在队列外完成的问题收口；`AppServices.dispose()` 接上
+  调用点（此前注释承诺但全仓零调用，`dataVersion` 通知器泄漏）
+
+**安全**
+
+- 桌面收集模式不再接受空密码/过短密码（UI + 收集方 + store 三层 fail-closed），
+  与移动端 `flexibleMinLength` 同口径；此前桌面可按两次回车把文档封成
+  「显示已加密、回车即解」的空密码信封
+- PinPad 字母/数字切换改为凭据单一真源（原切换后提交会静默丢弃已输入的数字段，
+  导致设成非预期密码或永远解不开）；数字模式九宫格补高度自适应（矮视口下
+  `0`/退格/确认被裁出屏幕，既不能提交也不能退格）
+- 「新密码不得等于开屏密码」的探测改只读比对，不再消耗防爆破计数；无法判定时
+  fail-closed 拒绝设密（原实现每设一次密记一次「开屏密码猜错」，且冷却期内
+  静默放行同码）
+- 加密笔记本媒体密封在锁定态改抛 `VaultFileLockException`（对齐画布域），
+  再认证失败/无口令时不再谎报「会话已恢复」却不安装媒体密钥——该路径此前会
+  把受密分页画布的新增图片明文写进 `notebook_images/`
+- WebDAV 关闭自动重定向并逐请求化：原默认 `http.Client()` 跟随 3xx，而 https
+  门禁只校验配置的 baseUrl，恶意/被劫持端点一句 302 即可把 Basic 口令带到
+  非回环第三方，击穿「强制 https + 不经过第三方」
+- 同步错误文案不再透传远端 `reasonPhrase`（服务器可控文本可直入 UI）；日志侧
+  剥 `Basic <token>` 与 URL userinfo、折叠换行、截断
+- 笔记本设密路径统一到三态只读探测；SVG 导入预检生产接线（此前只有测试引用，
+  README 宣称的「导入隔离」实际未落地，白名单未删项）
+- 会话口令缓存补写失败回滚（三处入口），对齐 `forgetFilePassword` 先例；
+  桌面解锁输入框的 post-frame `requestFocus` 补 `mounted` 守卫
+
+**正确性 / 可达性**
+
+- 对象橡皮擦撤销还原原实例并按手势起始原始序号插回（原 `copy()` 追加致
+  redo 失效、产生重复同 id 形状破坏箭头绑定、丢 z 序）；跨采样点索引基准同修
+- 选区栏缩放/旋转滑块补提交笔画变换，且新手势边界「先结算再作废锚点」
+  （此前把已改的几何变更从历史里抹掉：改了、存盘了、永远撤不回）
+- 同帧多采样点脏区改并集（原覆盖留永久残影）；图层窄命令
+  `afterLayerUndoRedo` 补真断言（此前计数变量从无 `expect`，删掉四行生产调用
+  测试仍全绿）
+- `mounted` 守卫补齐（同步设置页三处提示分支、`_openAllDoc`/`_newAllDoc`
+  跨解锁弹窗复用陈旧 `Navigator` 引用）
+- 桌面开屏锁补物理键盘通道（此前只认指针点击，违背三输入硬要求）；键盘与
+  九宫格共用同一 `service.verify` 管线，冷却面板同样替换键盘槽，不获任何旁路
+- 同步冲突判定加结构性「一端相对基线未动却在比大小中获胜」判据，时钟超前设备
+  不再静默吃掉另一端的真实编辑
+- i18n：未保存退出对话框正文、数据库单元格标题、批量移动 snackbar 接 arb；
+  新增 `passwordEmptyHint` / `passwordTooShortHint`，zh/en 各 1058 对称
+
+**门禁自身失效（危害面最大的一条）**
+
+- `tools/check_boundaries.sh` 用纯文本 grep 把 C-10 迁移**文档注释**当 import，
+  本地门禁恒红；且它只在 `pull_request` 触发，本项目走直推 master ⇒ CI 从未
+  真正执行过它。已改为只匹配 import/export 语句行
+- `architecture_test` 规则 3b 的 `Metrics.martin('domain/**')` 匹配零文件
+  （`lib/` 无顶层 `domain/`），17 个 feature 领域文件从未被稳定性断言覆盖，
+  注释里「实测 domain/core 最差 0.33」只基于 core 样本
+- 两个静态门禁共用的注释/字符串遮蔽器不识别 `${...}` 内嵌引号，实证
+  `conflict_resolution_dialog.dart:92` 使 `:95-99` 纯代码被整段抹成空格 ⇒
+  错位区间内新增的裸 `InkWell(` 或被禁的 `VaultService.instance` 门禁看不见。
+  已抽 `test/helpers/dart_lexical_mask.dart` 单份实现（补齐嵌套块注释、三引号、
+  raw string、插值递归）并配独立回归
+- 边界棘轮只认 `package:` URI，跨 feature 的相对路径 import 是盲区 → 补归一化，
+  实测十条边与基线仍逐条相等
+
+**本批两项治理决定（可回退）**
+
+- 规则 3b 修好锚定后 7 个 feature domain 文件超 `I≤0.4`（最高 1.00）。逐条核实
+  其出向依赖全部指向 `core/canvas_model` / `core/documents` 等内层共享数据模型，
+  方向由洋葱规则判定合法，属 ARCHITECTURE.md §5 既定设计而非新增耦合。处置为
+  **具名棘轮**：逐文件钉实测值为上限、只许调低，未列入者仍受 0.4 硬约束；
+  真正降耦（契约下沉 / 组合根注入）另批
+- 审计发现的「桌面失焦即锁不生效」未改：锁屏门 `didChangeAppLifecycleState`
+  只处理 `hidden`（清 KEK 会话缓存）/`paused`/`resumed` 三个分支，**没有
+  `inactive` 分支，整个门组件也没有任何窗口焦点监听**（grep
+  `FocusManager|onBlur|onFocus|WindowListener` 零命中）。因此 Windows 上
+  最小化能锁，但「窗口仍可见、只是焦点切到别的应用」以及 Win+L（通常只给
+  `inactive` 甚至无 lifecycle 回调）**不会锁** ⇒ README 的「失去焦点立即锁定」
+  在桌面名不副实（Android 的 paused/inactive/hidden 均投递，路径完整）。
+  补齐需同步处理宽限期起点（现锚 `paused`）、文件选择器豁免（原生对话框抢焦点
+  会假锁）与再认证代价（门走全 PIN 重输），属安全策略决策，待裁决
+
 ## [1.17.59] - 2026-10-03
 
 ### 维护批：import_request_guard 死模板删除（用户拍板）+ 图层显隐/换位撤销窄命令化
