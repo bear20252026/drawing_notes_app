@@ -206,8 +206,9 @@ extension _NotebookPageImports on _NotebookViewPageState {
     });
     await _save();
     // 空 target 即根分组，名字也走 l10n，不再内联中文。
-    final folderLabel =
-        target.isEmpty ? (_l10nSafe?.nbRootFolder ?? '根') : target;
+    final folderLabel = target.isEmpty
+        ? (_l10nSafe?.nbRootFolder ?? '根')
+        : target;
     _showSnack(
       _l10nSafe?.nbMovedPagesTo(_notebook.pages.length, folderLabel) ??
           '已批量移动 ${_notebook.pages.length} 页到分组「$folderLabel」',
@@ -260,9 +261,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
     if (sameAsLock == null) {
       // P2 fail-closed：判定不了（多为开屏锁防爆破冷却中）——拒绝本次设密
       // 并提示稍后重试，绝不静默放行「与开屏密码同码」。
-      _showSnack(
-        _l10nSafe?.lockTemporarilyLocked ?? '为防止暴力猜测，密码验证已暂时锁定',
-      );
+      _showSnack(_l10nSafe?.lockTemporarilyLocked ?? '为防止暴力猜测，密码验证已暂时锁定');
       return;
     }
     if (!mounted) return; // 探测为异步操作，跨缺口守卫
@@ -337,7 +336,12 @@ extension _NotebookPageImports on _NotebookViewPageState {
 
   /// N4 批 3：选盘读钥匙并绑定（菜单入口与设密后询问共用）。
   Future<void> _bindUsbDisk(String password) async {
-    final dir = await ResetDiskFile.pickDirectory();
+    // 选 U 盘目录 = 原生对话框抢焦点 → 桌面投 inactive。AppLockGate 现对
+    // inactive 全量锁定，须走豁免窗口（runWithExemption 委托进程级
+    // LockExemption，同时按住 SessionGuard 媒体锁 + 开屏锁），否则绑盘时假锁。
+    final dir = await _sessionGuard.runWithExemption(
+      ResetDiskFile.pickDirectory,
+    );
     if (dir == null || !mounted) return;
     final usbKey = await ResetDiskFile.readFrom(dir);
     if (usbKey == null) {

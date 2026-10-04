@@ -94,7 +94,7 @@ CI 五个工作流（CI / 软件质量工程门禁 / Code Guard / SBOM / Secret 
 | **快速解锁** | Windows Hello / Android BiometricPrompt（local_auth），DPAPI/Keystore 绑定 |
 | **USB 重置盘** | 分页画布/文件密码「忘记密码」重置（LUKS 同款：盘钥匙解 DEK → 新盐重绕密码槽） |
 | **策略引擎** | 操作白名单**默认拒绝**（fail-closed）+ 审计（PolicyEngine）——导入/删除经策略门禁 |
-| **会话守卫** | 切后台 / 最小化立即锁定（清除内存密钥）+ 文件选择器豁免 + 再认证（SessionGuard）。注：桌面「窗口仍可见、仅焦点切走」与 Win+L 目前**不**触发开屏锁（门只认 hidden/paused），已列为待办 |
+| **会话守卫** | 切后台 / 最小化 / 纯失焦（`inactive`）**全量锁定**——走开屏锁并清除内存密钥，桌面与安卓一致（宽限期锚在**首个**后台信号，同会话重复信号不重锚）。原生文件对话框 / 系统权限弹窗 / 外部查看器抢焦点期间失焦走**豁免窗口**（默认不豁免、5 分钟 TTL 上界，防导入/导出/绑盘时假锁）。回前台一律经同一条 `AppLockService.verify`（防爆破失败计数与指数冷却、快速解锁语义不旁路）。（AppLockGate + SessionGuard） |
 | **VFS 加密对象仓库** | 对象清单 + 版本回溯 + AAD 绑定 + 原子提交（临时文件+rename——崩溃安全） |
 | **不可篡改审计** | SHA-256 哈希链（prevHash 链接——篡改断链）+ verifyIntegrity（AuditLogger）；用户可见错误一律脱敏 |
 | **导入隔离** | SVG 预检（XXE/Billion Laughs/脚本注入/膨胀防护）+ PDF 页数/大小配额 + 超链接 scheme 白名单 |

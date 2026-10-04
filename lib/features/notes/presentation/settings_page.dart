@@ -10,6 +10,8 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
+import 'package:drawing_notes_app/core/security/session_guard.dart'
+    show LockExemption;
 import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
@@ -19,7 +21,9 @@ import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/features/notes/application/sync_controller.dart';
 import 'package:drawing_notes_app/features/notes/presentation/app_lock_settings_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settings_page.dart';
+
 import '../../../core/theme/apple_design.dart';
+
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
 import 'package:drawing_notes_app/shared/application/diagnostics_exporter.dart';
 import 'package:drawing_notes_app/shared/application/keyboard_shortcuts.dart';
@@ -173,10 +177,9 @@ class SettingsPage extends StatelessWidget {
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder:
-                          (_) => WebDavSyncSettingsPage(
-                            syncController: syncController ?? SyncController(),
-                          ),
+                      builder: (_) => WebDavSyncSettingsPage(
+                        syncController: syncController ?? SyncController(),
+                      ),
                     ),
                   ),
                 ),
@@ -184,16 +187,18 @@ class SettingsPage extends StatelessWidget {
                   ListTile(
                     leading: const Icon(Icons.archive_outlined),
                     title: Text(l10n?.settingsBackup ?? '备份全部数据'),
-                    subtitle:
-                        Text(l10n?.settingsBackupHint ?? '打包全部笔记与设置（含密钥文件，请妥善保管）'),
+                    subtitle: Text(
+                      l10n?.settingsBackupHint ?? '打包全部笔记与设置（含密钥文件，请妥善保管）',
+                    ),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => _createBackup(context),
                   ),
                   ListTile(
                     leading: const Icon(Icons.restore_rounded),
                     title: Text(l10n?.settingsRestore ?? '从备份恢复'),
-                    subtitle:
-                        Text(l10n?.settingsRestoreHint ?? '覆盖当前数据，重启应用后生效'),
+                    subtitle: Text(
+                      l10n?.settingsRestoreHint ?? '覆盖当前数据，重启应用后生效',
+                    ),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => _startRestore(context),
                   ),
@@ -201,8 +206,9 @@ class SettingsPage extends StatelessWidget {
                 ListTile(
                   leading: const Icon(Icons.bug_report_outlined),
                   title: Text(l10n?.settingsDiagnostics ?? '导出诊断信息'),
-                  subtitle:
-                      Text(l10n?.settingsDiagnosticsHint ?? '脱敏日志，帮助排查问题'),
+                  subtitle: Text(
+                    l10n?.settingsDiagnosticsHint ?? '脱敏日志，帮助排查问题',
+                  ),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => _exportDiagnostics(context),
                 ),
@@ -269,15 +275,17 @@ class SettingsPage extends StatelessWidget {
       AppLocalizations.of(context)?.settingsThemeDark ?? '深色（点击切换为跟随系统）',
   };
 
-  String _localeLabel(BuildContext context, AppLocaleController controller) =>
-      switch (controller.locale) {
-        null => AppLocalizations.of(context)?.settingsLanguageSystem ??
-            '跟随系统（点击切换为中文）',
-        const Locale('zh') =>
-          AppLocalizations.of(context)?.settingsLanguageZh ?? '中文（点击切换为 English）',
-        _ => AppLocalizations.of(context)?.settingsLanguageEn ??
-            'English（点击切换为跟随系统）',
-      };
+  String _localeLabel(
+    BuildContext context,
+    AppLocaleController controller,
+  ) => switch (controller.locale) {
+    null =>
+      AppLocalizations.of(context)?.settingsLanguageSystem ?? '跟随系统（点击切换为中文）',
+    const Locale('zh') =>
+      AppLocalizations.of(context)?.settingsLanguageZh ?? '中文（点击切换为 English）',
+    _ =>
+      AppLocalizations.of(context)?.settingsLanguageEn ?? 'English（点击切换为跟随系统）',
+  };
 
   /// 导出诊断信息（2026-09-27）：用户选位置保存脱敏报告——环境摘要 +
   /// AuditLogger 哈希链校验结果 + 近期条目（类型级别，无路径/正文）。
@@ -299,16 +307,16 @@ class SettingsPage extends StatelessWidget {
       final location = await getSaveLocation(
         suggestedName: 'drawing_notes_diagnostics_$stamp.txt',
         acceptedTypeGroups: [
-          XTypeGroup(label: l10n?.fileTypeText ?? '文本文档', extensions: const ['txt']),
+          XTypeGroup(
+            label: l10n?.fileTypeText ?? '文本文档',
+            extensions: const ['txt'],
+          ),
         ],
       );
       if (location == null) return; // 用户取消
       await File(location.path).writeAsString(report, flush: true);
       if (!context.mounted) return;
-      AppSnack.show(
-        context,
-        l10n?.settingsDiagnosticsExported ?? '诊断信息已导出',
-      );
+      AppSnack.show(context, l10n?.settingsDiagnosticsExported ?? '诊断信息已导出');
     } catch (e) {
       AuditLogger.log(
         'settings.diagnostics.export_failed',
@@ -316,10 +324,7 @@ class SettingsPage extends StatelessWidget {
         detail: e.runtimeType.toString(),
       );
       if (!context.mounted) return;
-      AppSnack.show(
-        context,
-        l10n?.settingsDiagnosticsExportFail ?? '导出失败，请重试',
-      );
+      AppSnack.show(context, l10n?.settingsDiagnosticsExportFail ?? '导出失败，请重试');
     }
   }
 
@@ -367,13 +372,17 @@ class SettingsPage extends StatelessWidget {
     try {
       // S-02 方案 B：暂存/标记写在数据根父目录（通常 ApplicationSupport）。
       final dataParent = await appDataRoot!.dataParentDirectory();
-      final selected = await openFile(
-        acceptedTypeGroups: [
-          XTypeGroup(
-            label: l10n?.fileTypeBackup ?? '绘图笔记备份',
-            extensions: const ['zip'],
-          ),
-        ],
+      // 选备份包 = 原生文件对话框抢焦点 → 桌面投 inactive。AppLockGate 现对
+      // inactive 全量锁定，须走豁免窗口按住开屏锁，否则选备份时会假锁开屏。
+      final selected = await LockExemption.run(
+        () => openFile(
+          acceptedTypeGroups: [
+            XTypeGroup(
+              label: l10n?.fileTypeBackup ?? '绘图笔记备份',
+              extensions: const ['zip'],
+            ),
+          ],
+        ),
       );
       if (selected == null) return; // 用户取消
       await BackupService.stageRestore(
@@ -386,8 +395,8 @@ class SettingsPage extends StatelessWidget {
         title: l10n?.restoreConfirmTitle ?? '从备份恢复',
         content:
             l10n?.restoreConfirmBody ??
-                '恢复将覆盖当前全部数据（含保险库密钥）。数据已就绪，'
-                    '确认后应用将退出，重新打开时生效。',
+            '恢复将覆盖当前全部数据（含保险库密钥）。数据已就绪，'
+                '确认后应用将退出，重新打开时生效。',
         confirmText: l10n?.restoreConfirmAction ?? '确认恢复',
         dangerous: true,
       );
@@ -396,7 +405,7 @@ class SettingsPage extends StatelessWidget {
         try {
           final marker = File(
             '${dataParent.path}${Platform.pathSeparator}'
-                '${AppDataRoot.pendingRestoreMarkerName}',
+            '${AppDataRoot.pendingRestoreMarkerName}',
           );
           if (marker.existsSync()) {
             final stagingPath = (await marker.readAsString()).trim();
@@ -466,9 +475,7 @@ class SettingsPage extends StatelessWidget {
                               width: 168,
                               child: Text(
                                 entry.keys,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
+                                style: Theme.of(context).textTheme.bodySmall
                                     ?.copyWith(
                                       fontWeight: FontWeight.w600,
                                       fontFeatures: const [
@@ -591,9 +598,8 @@ class _PasswordLayersCard extends StatelessWidget {
               const SizedBox(height: AppleSpacing.xxs),
               Text(
                 desc,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: scheme.outline),
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: scheme.outline),
               ),
             ],
           ),
@@ -617,7 +623,7 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-        padding: const EdgeInsets.fromLTRB(4, 0, 0, 4),
+      padding: const EdgeInsets.fromLTRB(4, 0, 0, 4),
       child: Text(
         title,
         style: Theme.of(context).textTheme.labelLarge?.copyWith(color: outline),

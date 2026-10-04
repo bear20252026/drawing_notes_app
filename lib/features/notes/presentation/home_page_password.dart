@@ -39,9 +39,8 @@ extension _HomePagePasswordOps on _HomePageState {
                       '设置独立密码',
                 ),
                 subtitle: Text(
-                  AppLocalizations.of(
-                        sheetContext,
-                      )?.docSetStandalonePasswordHint ??
+                  AppLocalizations.of(sheetContext)
+                          ?.docSetStandalonePasswordHint ??
                       '4–12 位数字，须与开屏密码不同',
                 ),
                 onTap: () {
@@ -53,9 +52,8 @@ extension _HomePagePasswordOps on _HomePageState {
               ListTile(
                 leading: const Icon(Icons.key_rounded),
                 title: Text(
-                  AppLocalizations.of(
-                        sheetContext,
-                      )?.docChangeStandalonePassword ??
+                  AppLocalizations.of(sheetContext)
+                          ?.docChangeStandalonePassword ??
                       '修改独立密码',
                 ),
                 onTap: () {
@@ -82,9 +80,8 @@ extension _HomePagePasswordOps on _HomePageState {
               ListTile(
                 leading: const Icon(Icons.no_encryption_outlined),
                 title: Text(
-                  AppLocalizations.of(
-                        sheetContext,
-                      )?.docRemoveStandalonePassword ??
+                  AppLocalizations.of(sheetContext)
+                          ?.docRemoveStandalonePassword ??
                       '移除独立密码',
                 ),
                 onTap: () {
@@ -113,9 +110,7 @@ extension _HomePagePasswordOps on _HomePageState {
     if (sameAsLock == null) {
       // P2 fail-closed：判定不了（多为开屏锁防爆破冷却中）——拒绝设密
       // 并提示稍后重试，绝不静默放行「与开屏密码同码」。
-      _showSnack(
-        _l10nSafe?.lockTemporarilyLocked ?? '为防止暴力猜测，密码验证已暂时锁定',
-      );
+      _showSnack(_l10nSafe?.lockTemporarilyLocked ?? '为防止暴力猜测，密码验证已暂时锁定');
       return null;
     }
     if (!mounted) return null; // matchesAppLockPin 为异步操作，跨缺口守卫
@@ -152,7 +147,8 @@ extension _HomePagePasswordOps on _HomePageState {
     );
     if (bindUsb == true) {
       if (!mounted) return;
-      final dir = await ResetDiskFile.pickDirectory();
+      // 原生目录选择器抢焦点 → 桌面投 inactive；豁免窗口按住开屏锁（解锁态下操作）。
+      final dir = await LockExemption.run(ResetDiskFile.pickDirectory);
       if (dir != null) {
         resetDiskKey = await ResetDiskFile.readFrom(dir);
         if (resetDiskKey == null && mounted) {
@@ -218,7 +214,8 @@ extension _HomePagePasswordOps on _HomePageState {
       onVerify: (p) => _docStorage.verifyFilePassword(meta.id, p),
     );
     if (pin == null || !mounted) return;
-    final dir = await ResetDiskFile.pickDirectory();
+    // 选盘 = 原生目录对话框抢焦点 → inactive；豁免窗口防绑盘时假锁开屏。
+    final dir = await LockExemption.run(ResetDiskFile.pickDirectory);
     if (dir == null || !mounted) return;
     final usbKey = await ResetDiskFile.readFrom(dir);
     if (usbKey == null) {

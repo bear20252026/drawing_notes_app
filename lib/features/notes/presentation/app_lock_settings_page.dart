@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
+import 'package:drawing_notes_app/core/security/session_guard.dart'
+    show LockExemption;
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
@@ -305,8 +307,9 @@ class AppLockSettingsPage extends StatelessWidget {
       return;
     }
 
-    // 选取 U 盘目录。
-    final dir = await ResetDiskFile.pickDirectory();
+    // 选取 U 盘目录。原生目录选择器抢焦点 → 桌面投 inactive；AppLockGate 现对
+    // inactive 全量锁定，须走豁免窗口按住开屏锁（本页在解锁态下操作）。
+    final dir = await LockExemption.run(ResetDiskFile.pickDirectory);
     if (dir == null || !context.mounted) return;
 
     // 写入重置钥匙文件 + 建立槽 2。

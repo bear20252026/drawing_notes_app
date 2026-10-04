@@ -13,6 +13,8 @@ import 'package:drawing_notes_app/core/security/app_lock_gate.dart';
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
+import 'package:drawing_notes_app/core/security/session_guard.dart'
+    show LockExemption;
 
 /// 走**合法状态机链路**切到后台：resumed → inactive → hidden → paused。
 ///
@@ -82,10 +84,13 @@ void main() {
   setUp(() {
     AppLockService.testPinKdfOverride = KdfParams.testLight;
     KekSessionCache.bypassIsolateForTests = true;
+    // 豁免窗口是进程级静态——每个用例前后复位，防串味。
+    LockExemption.resetForTest();
   });
   tearDown(() {
     AppLockService.testPinKdfOverride = null;
     KekSessionCache.bypassIsolateForTests = false;
+    LockExemption.resetForTest();
   });
 
   testWidgets('未配置 PIN：不锁屏，内容直接可见', (tester) async {
@@ -275,5 +280,276 @@ void main() {
 
     expect(find.text('输入密码'), findsNothing);
     expect(find.text('SECRET_HOME'), findsOneWidget);
+  });
+
+  // ==========================================================================
+  // 「切后台与最小化全量锁定」回归（2026-10-04 安全策略变更）。
+  // ==========================================================================
+
+  // ① 桌面纯失焦（仅 inactive，桌面从不投递 paused）：必须置锁并回前台重解锁。
+  testWidgets('①仅 inactive 即锁：桌面纯失焦回前台须重新解锁', (tester) async {
+    final service = await _configuredService('1357');
+    await service.setGraceSeconds(0); // 关宽限，让「回前台仍锁」不依赖真实秒表
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockGate(
+          service: service,
+          desktopKeyboardInput: true,
+          child: const Text('SECRET_HOME'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _enterPin(tester, '1357');
+    expect(find.text('输入密码'), findsNothing);
+
+    // 只投 inactive（不经过 hidden/paused）——Windows「焦点切走、窗口仍可见」
+    // 的真实形态。旧版门只认 paused ⇒ 此路径根本不锁；本批须锁。
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+    expect(find.text('输入密码'), findsOneWidget); // 失焦即锁（隐藏内容）
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(find.text('输入密码'), findsOneWidget); // 回前台仍锁，须重解锁
+    await _enterPin(tester, '1357');
+    expect(find.text('输入密码'), findsNothing);
+  });
+
+  // ② hidden（最小化）：随最小化链置锁，且保留「hidden 即清 KEK」的既有加固
+  //    （不倒退）。注：hidden/paused 会关闭帧渲染，锁屏要到 resumed 才可见，
+  //    故锁屏断言放在回前台后；KEK 清理是同步副作用，可在后台态即时断言。
+  testWidgets('②最小化链锁定 + hidden 清 KEK 行为不倒退', (tester) async {
+    final service = await _configuredService('1357');
+    await service.setGraceSeconds(0); // 关宽限：回前台仍锁，不依赖真实秒表
+
+    KekSessionCache.instance.clear(); // 归零起点
+    await KekSessionCache.instance.deriveKek('seed', const [
+      1,
+      2,
+      3,
+    ], KdfParams.testLight);
+    expect(KekSessionCache.instance.entryCount, greaterThan(0));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockGate(
+          service: service,
+          desktopKeyboardInput: true,
+          child: const Text('SECRET_HOME'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _enterPin(tester, '1357');
+    expect(find.text('输入密码'), findsNothing);
+
+    // 最小化链（resumed→inactive→hidden→paused，Windows 真实形态）。
+    await _toBackground(tester);
+    // 行为保持：hidden 那一步即清 KEK（N3/审计 M-05），与是否渲染无关。
+    expect(KekSessionCache.instance.entryCount, 0);
+
+    await _toForeground(tester);
+    expect(find.text('输入密码'), findsOneWidget); // 最小化 → 锁定（关宽限仍锁）
+  });
+
+  // ③ 同一后台会话 inactive+hidden(+paused) 双/三信号：宽限期锚在首个，
+  //    后续信号不重置成「免锁」——超宽限回前台仍锁（既有「连续快切不重置
+  //    资格」断言的同一会话版本）。
+  testWidgets('③同一后台会话多信号不重置宽限期（超宽限仍锁）', (tester) async {
+    final service = await _configuredService('1357');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockGate(
+          service: service,
+          // reader 恒「已超宽限」：证明第二/第三个信号没有把窗口刷新成免锁。
+          awayDurationReader: () => const Duration(seconds: 40),
+          desktopKeyboardInput: true,
+          child: const Text('SECRET_HOME'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _enterPin(tester, '1357');
+
+    await _toBackground(tester); // inactive→hidden→paused，同一会话
+    await _toForeground(tester);
+
+    expect(find.text('输入密码'), findsOneWidget); // 锚在首个，未重置 → 仍锁
+    await _enterPin(tester, '1357');
+    expect(find.text('输入密码'), findsNothing);
+  });
+
+  // ④ 豁免窗口内失焦不锁（不假锁）；释放后再真后台且超剩余宽限期 → 锁。
+  //    hidden/paused 关帧，锁屏只在 resumed 可见；宽限期锚点仅在「非豁免」
+  //    首信号起，故豁免期间的失焦不吃宽限期。
+  testWidgets('④豁免窗口内不锁；释放后真后台超宽限才锁', (tester) async {
+    final service = await _configuredService('1357');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockGate(
+          service: service,
+          awayDurationReader: () => const Duration(seconds: 61), // 超 30s 宽限
+          desktopKeyboardInput: true,
+          child: const Text('SECRET_HOME'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _enterPin(tester, '1357');
+    expect(find.text('输入密码'), findsNothing);
+
+    // —— 相位 A：原生对话框抢焦点（豁免窗口）期间切后台再回来 → 不假锁 ——
+    LockExemption.begin();
+    await _toBackground(tester); // inactive→hidden→paused，全程豁免
+    await _toForeground(tester); // 回前台：豁免期未锚表/未置锁 → 放行
+    expect(find.text('输入密码'), findsNothing); // ④a 窗口内不锁（不假锁）
+    expect(find.text('SECRET_HOME'), findsOneWidget);
+    LockExemption.end(); // 选择器关闭
+
+    // —— 相位 B：释放后再真后台，宽限期锚在首个非豁免信号，超宽限 → 锁 ——
+    await _toBackground(tester); // 非豁免：inactive 即锁 + 锚表
+    await _toForeground(tester); // resumed：reader 61s > 30s → 仍锁
+    expect(find.text('输入密码'), findsOneWidget); // ④b 超剩余宽限期锁定
+    await _enterPin(tester, '1357');
+    expect(find.text('输入密码'), findsNothing);
+  });
+
+  // ④b hidden 在豁免窗口内不清 KEK 缓存（原生选择器不算切后台）；出窗口即清。
+  testWidgets('④b 豁免窗口内 hidden 不清 KEK，出窗口后即清', (tester) async {
+    final service = await _configuredService('1357');
+
+    KekSessionCache.instance.clear();
+    await KekSessionCache.instance.deriveKek('seed', const [
+      1,
+      2,
+      3,
+    ], KdfParams.testLight);
+    expect(KekSessionCache.instance.entryCount, greaterThan(0));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockGate(
+          service: service,
+          desktopKeyboardInput: true,
+          child: const Text('SECRET_HOME'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _enterPin(tester, '1357');
+
+    LockExemption.begin();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    await tester.pump();
+    // 豁免期不清缓存（否则笔记本导入选择器会顺手清掉在用的派生材料）。
+    expect(KekSessionCache.instance.entryCount, greaterThan(0));
+    LockExemption.end();
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    await tester.pump();
+    expect(KekSessionCache.instance.entryCount, 0); // 出窗口 → 恢复即清
+  });
+
+  // ⑤a 新路径锁定后失败计数仍生效：键盘通道与九宫格都不获旁路。
+  testWidgets('⑤a 新路径锁定后键盘/九宫格失败都计入防爆破', (tester) async {
+    final service = await _configuredService('1357');
+    await service.setGraceSeconds(0);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockGate(
+          service: service,
+          desktopKeyboardInput: true,
+          child: const Text('SECRET_HOME'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _enterPin(tester, '1357');
+    expect(service.failedAttempts, 0);
+
+    // inactive→resumed 触发新路径锁定。
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(find.text('输入密码'), findsOneWidget);
+
+    // 键盘通道输错——仍走同一条 service.verify，记一次失败（非旁路）。
+    expect(find.byType(TextField), findsOneWidget);
+    await tester.enterText(find.byType(TextField), '2468');
+    await tester.pumpAndSettle();
+    expect(service.failedAttempts, 1);
+    expect(find.text('输入密码'), findsOneWidget);
+
+    // 键盘输对——同管线解锁并清零计数。
+    await tester.enterText(find.byType(TextField), '1357');
+    await tester.pumpAndSettle();
+    expect(find.text('输入密码'), findsNothing);
+    expect(service.failedAttempts, 0);
+  });
+
+  // ⑤b 冷却在新路径下仍生效：达阈值后锁屏切冷却面板，键盘槽一并销毁。
+  testWidgets('⑤b 冷却期内新路径不获继续尝试（九宫格+键盘都被替换）', (tester) async {
+    final service = await _configuredService('1357');
+    await service.setGraceSeconds(0);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockGate(
+          service: service,
+          desktopKeyboardInput: true,
+          child: const Text('SECRET_HOME'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _enterPin(tester, '1357');
+
+    // 新路径锁定。
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(find.text('输入密码'), findsOneWidget);
+
+    // 打满防爆破阈值（默认 10 次）触发冷却。
+    for (var i = 0; i < 10; i++) {
+      await _enterPin(tester, '2468');
+    }
+    expect(service.isLockedOut, isTrue);
+    // 冷却面板替换密码盘：九宫格与桌面键盘槽都撤下（都不获「冷却期继续猜」）。
+    expect(find.text('输入密码'), findsNothing);
+    expect(find.text('尝试次数过多'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+  });
+
+  // ⑥ Android 既有链路（inactive→hidden→paused）宽限/锁定语义保持。
+  testWidgets('⑥Android 三信号链路：超宽限仍锁（既有语义不破）', (tester) async {
+    final service = await _configuredService('1357');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockGate(
+          service: service,
+          awayDurationReader: () => const Duration(seconds: 45), // > 30s
+          desktopKeyboardInput: true,
+          child: const Text('SECRET_HOME'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _enterPin(tester, '1357');
+
+    await _toBackground(tester); // 移动端整切后台的合法链路
+    await _toForeground(tester);
+
+    expect(find.text('输入密码'), findsOneWidget);
+    await _enterPin(tester, '1357');
+    expect(find.text('输入密码'), findsNothing);
   });
 }

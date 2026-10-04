@@ -4,11 +4,23 @@
 //
 // 包裹应用根内容（AppShell），负责三件事：
 //   1. 冷启动加锁：已配置 PIN 则进门先解锁（加载完成前短暂空白防闪内容）；
-//   2. 切后台回锁：监听应用生命周期，paused 即置锁，回到前台直接见锁屏；
-//      ——2026-09-06 起有宽限期：paused 起在 service.graceDuration 内回
-//      前台自动放行（Windows 任务视图扫一眼不再弹锁屏）；宽限判定用
-//      单调秒表（Stopwatch），系统时钟回拨绕不过；
+//   2. 切后台/失焦回锁：监听应用生命周期，`inactive`（窗口失焦——桌面
+//      「焦点切走、窗口仍可见」的唯一信号）/`hidden`（最小化）/`paused`
+//      任一即置锁，回到前台直接见锁屏；三平台一致（桌面从不投递 paused，
+//      旧版只认 paused ⇒ 桌面「只给 inactive」的纯失焦此前根本不锁）。
+//      ——宽限期（2026-09-06，2026-10-04 重锚）：**第一个**后台锁信号
+//      （inactive/hidden  whichever first）起单调秒表，service.graceDuration
+//      内回前台自动放行（任务视图扫一眼不弹锁屏）；同一后台会话内的重复
+//      信号（如 inactive 后再 hidden/paused）**不**重锚秒表，否则连切两下
+//      会把宽限期刷新成「免锁」；系统时钟回拨绕不过单调秒表；
+//      ——原生选择器豁免（2026-10-04）：文件对话框/系统权限弹窗抢焦点期间
+//      失焦不算切后台（LockExemption 窗口，默认不豁免、5 分钟 TTL 上界），
+//      否则门处理 inactive 会在导入/导出时假锁开屏。豁免期间不锚秒表 ⇒
+//      对话框停留时长不吃宽限期；末位释放后由回前台 resumed 按宽限期判定。
 //   3. 关闭联动：设置页关闭应用锁后立即放行。
+//
+// 回前台一律走同一条 AppLockService.verify 管线（防爆破失败计数 / 指数冷却 /
+// v1→v2 透明升级 / 保险库解锁 / 快速解锁语义全数保持，新路径不获任何旁路）。
 //
 // 锁屏 UI 复用 shared/widgets/pin_pad.dart 的 [PinPadCore]
 // （iOS 锁屏同款密码盘，与笔记本解锁完全一致的单一事实来源）。
@@ -25,6 +37,8 @@ import 'package:flutter/services.dart'
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
+import 'package:drawing_notes_app/core/security/session_guard.dart'
+    show LockExemption;
 import 'package:drawing_notes_app/core/security/session_secrets.dart';
 import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
@@ -98,7 +112,9 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   /// 本次锁定是否由「切后台」触发（冷启动锁定不吃宽限期）。
   bool _lockedFromBackground = false;
 
-  /// 后台驻留单调秒表：paused 起表，resumed 读数后归档。
+  /// 后台驻留单调秒表：**第一个非豁免后台信号**（inactive/hidden whichever
+  /// first）起表，resumed 读数后归档（2026-10-04 重锚：旧版锚在 paused，
+  /// 桌面从不投递 paused ⇒ 桌面宽限期事实上从未正确起表）。
   Stopwatch? _awayStopwatch;
 
   /// 批D1：快速解锁是否就绪（平台支持 + 开关开 + 副本存在）。
@@ -150,25 +166,19 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     // （fill(0) 擦除），不做超时等待——切后台敏感派生材料零驻留。
     // P1 联动（审计 M-05/M-09）：文件/笔记本/块文档会话口令与 DEK
     // 同一时机一并失效（此前仅 KEK 被清，口令驻留——口径拉齐）。
-    if (state == AppLifecycleState.hidden) {
+    // 豁免窗口内不清（2026-10-04）：原生选择器/系统弹窗抢焦点触发的 hidden
+    // 不算切后台——否则笔记本导入选择器会顺手清掉本页正在用的会话口令。
+    if (state == AppLifecycleState.hidden && !LockExemption.isActive) {
       KekSessionCache.instance.clear();
       SessionSecrets.clearAll();
     }
-    // 切后台即置锁：回到前台时锁屏已在最上层（iOS 同款行为）。
-    // 宽限期（2026-09-06）：是否「真锁」由 resumed 时判定——paused 期间
-    // 无帧可渲染，setState 与 resumed 侧的放行会在回前台的同一帧合并，
-    // 宽限内用户直接看到内容、无锁屏闪现。
-    if (state == AppLifecycleState.paused &&
-        widget.service.isConfigured &&
-        !_locked) {
-      setState(() {
-        _locked = true;
-        _lockedFromBackground = true;
-      });
-      _awayStopwatch = Stopwatch()..start();
-      // 回锁时重查快速解锁就绪态（设置页可能中途开/关过开关）。
-      // 生命周期回调非 async：fire-and-forget（就绪态刷新失败仅影响按钮显隐）。
-      unawaited(_refreshQuickUnlock());
+    // 切后台/失焦即置锁：inactive（桌面纯失焦——「焦点切走、窗口仍可见」
+    // 的唯一信号，桌面从不投递 paused）/hidden（最小化）/paused（移动端
+    // 整切后台）三信号统一走本分支——把触发源从旧版「只认 paused」补全为
+    // 三平台一致。是否「真锁」仍由 resumed 判定：真后台无帧可渲染，置锁与
+    // 放行在回前台的同一帧合并，宽限内用户直接看到内容、无锁屏闪现。
+    if (_isBackgroundSignal(state)) {
+      _onBackgroundSignal();
     }
     // 宽限判定：仅「切后台导致的锁定」有资格；每次后台只评估一次，
     // 评估后即失去资格（超宽限的锁必须输 PIN，随后的快速再切不重置）。
@@ -192,6 +202,41 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     }
   }
 
+  /// 是否为「离开前台」的生命周期信号（三平台口径统一：桌面失焦给
+  /// inactive、最小化给 hidden、移动端整切后台给 paused，任一都须锁）。
+  static bool _isBackgroundSignal(AppLifecycleState state) =>
+      state == AppLifecycleState.inactive ||
+      state == AppLifecycleState.hidden ||
+      state == AppLifecycleState.paused;
+
+  /// 后台锁信号处理（2026-10-04「切后台全量锁定」核心）。
+  ///
+  /// 宽限期锚点 = 第一个「非豁免」后台信号（inactive/hidden whichever
+  /// first）：本函数只在 `!_locked` 时推进锁定，而锁定一旦发生即持续到有
+  /// 资格人在 resumed 放行——所以同一后台会话内的后续信号（例如 Windows
+  /// 最小化链 resumed→inactive→hidden→paused）只会命中**第一个**去锚表，
+  /// 其余信号因 `_locked` 已真直接返回，**不重锚**——这正是「连续快切不
+  /// 重置宽限期资格」既有断言的根据。冷启动锁 / 关闭宽限外的手动锁同样
+  /// 因 `_locked` 已真不进入本分支，不吃宽限（`_lockedFromBackground` 保持
+  /// false，resumed 侧据其拒绝放行）。
+  ///
+  /// LockExemption 窗口内（原生文件对话框 / 系统权限弹窗 / 外部查看器抢
+  /// 走 OS 焦点）既不置锁也不锚表：这不算用户切后台，且对话框停留时长不
+  /// 应吃掉宽限期；末位释放后由回前台 resumed 按已锚定的宽限期秒表判定。
+  void _onBackgroundSignal() {
+    if (!widget.service.isConfigured || _locked) return;
+    if (LockExemption.isActive) return;
+    setState(() {
+      _locked = true;
+      _lockedFromBackground = true;
+    });
+    // 锚在第一个后台信号（见上）。
+    _awayStopwatch = Stopwatch()..start();
+    // 回锁时重查快速解锁就绪态（设置页可能中途开/关过开关）。
+    // 生命周期回调非 async：fire-and-forget（就绪态刷新失败仅影响按钮显隐）。
+    unawaited(_refreshQuickUnlock());
+  }
+
   @override
   void didUpdateWidget(covariant AppLockGate oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -208,7 +253,14 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  void _unlock() => setState(() => _locked = false);
+  /// 放行（走同一条 verify 管线成功后的唯一收口）：清锁屏，并把后台会话态
+  /// （秒表 + 宽限资格）一并归档——防止残留的旧秒表让下一次切后台吃到错误
+  /// 的宽限读数。
+  void _unlock() {
+    _awayStopwatch = null;
+    _lockedFromBackground = false;
+    setState(() => _locked = false);
+  }
 
   /// 手机端判定（与 UnlockFlow 同口径）：Web 视为桌面（有物理键盘）。
   static bool get _isMobilePlatform =>
@@ -281,8 +333,10 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     );
     if (!proceed || !mounted) return;
 
-    // 步骤 2：选取 U 盘目录（取消即静默返回）。
-    final dir = await ResetDiskFile.pickDirectory();
+    // 步骤 2：选取 U 盘目录（取消即静默返回）。原生目录选择器抢焦点会投
+    // inactive/hidden——本门已处理 inactive 全量锁定，须豁免这一抢焦点窗口，
+    // 否则 hidden 侧的 KEK/会话口令清理会在重置流程中途被误触发。
+    final dir = await LockExemption.run(ResetDiskFile.pickDirectory);
     if (dir == null || !mounted) return;
 
     // 步骤 3：读取重置钥匙（fail-closed：文件缺失/无效即止步）。
