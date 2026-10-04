@@ -29,6 +29,16 @@ extension _EditorPagePersistence on _EditorPageState {
     // 「保存中」状态由 SaveScheduler.savingState 统一驱动（v1.17.20），
     // 覆盖手动保存与退出兜底路径，此处不再手工置位。
     // StorageService 在调用时立即编码不可变快照；后续笔画不会改写此版本。
+    //
+    // 修复 3（审计 2026-10-04）：裁剪磁盘写入「飞行中」不得取快照——先等它
+    // 落定（成功保新矩形 / 失败回滚旧矩形）再编码，落盘的文档矩形与磁盘图像
+    // 字节只会同向，不会留下「文档裁剪后 + 图像裁剪前」的中间态。
+    final cropGate = _cropWriteInFlight;
+    if (cropGate != null) {
+      // 上限 5s：写盘极端卡死不得长期堵死整条文档保存链（宁可留一次可由
+      // `.bak` 复原的中间态，也不让无关笔画丢掉）。
+      await cropGate.timeout(const Duration(seconds: 5), onTimeout: () {});
+    }
     await storage.save(doc);
     // 文档 JSON 是数据完整性的第一优先级。关闭中控制器可能已释放，
     // 因此只跳过可再生的缩略图，不跳过正文保存。
@@ -273,4 +283,171 @@ extension _EditorPagePersistence on _EditorPageState {
 
   /// 导出页面文字为 Markdown/TXT（委托给 [EditorExporter]）。
   Future<void> _exportText() => _exporter.exportText();
+
+  /// 确认裁剪：按裁剪矩形重新编码图片并写回文件（对齐 Excalidraw 图片裁剪）。
+  ///
+  /// C-04 第五批：解码/几何换算/密封/原子写管线整体迁
+  /// infrastructure/editor_image_crop.dart；本页只做守卫、结果映射与画布
+  /// 状态更新（提示文案逐条对应）。
+  ///
+  /// 修复 3（审计 2026-10-04）：旧时序「await 落盘 → `if (!mounted) return`
+  /// → 才改 rect」把「文档几何更新」与「磁盘写入」拆成不成对的两步——写盘
+  /// await 期间退出页面就留下「磁盘裁剪后像素 + 文档裁剪前矩形」的永久错位。
+  /// 现交 [commitCropPairing] 成对提交，本页只保留守卫与文案映射。
+  Future<void> _confirmCrop() async {
+    final img = _cropItem;
+    final rect = _cropRect;
+    if (img == null || rect == null || rect.width < 10 || rect.height < 10) {
+      _showSnack(AppLocalizations.of(context)?.cropInvalid ?? '裁剪区域无效');
+      return;
+    }
+    // 写盘飞行中忽略重复确认（旧实现会在同一矩形上二次裁剪）。
+    if (_cropWriteInFlight != null) return;
+    final filePath = img.filePath;
+    final imageId = img.id;
+    final EditorCropCommitResult result;
+    try {
+      result = await commitCropPairing(
+        sourceBounds: Rect.fromLTWH(img.x, img.y, img.width, img.height),
+        cropRect: rect,
+        writeToDisk: (crop, bounds) => const EditorImageCropWriter().writeCrop(
+          file: File(filePath),
+          cropRect: crop,
+          imageBounds: bounds,
+        ),
+        // 文档几何更新（内存对象，不看 mounted——页面卸载也必须成对更新）。
+        applyRect: (target) {
+          img
+            ..x = target.left
+            ..y = target.top
+            ..width = target.width
+            ..height = target.height;
+          // 磁盘文件被重写（或被回滚）后都要失效 DocumentImageCache 的旧位图，
+          // 否则画布仍把「裁剪前的全尺寸位图」拉伸进新矩形（审计 2026-09-06）。
+          _controller.invalidateDocumentImage(imageId);
+          // 标脏：由既有 5s 防抖自动保存 / 退出兜底 flush 持久化（见闸门注释）。
+          _notifyChanged();
+          if (mounted) notify();
+        },
+        endCrop: () {
+          _canvasInteraction.clearCrop();
+          if (mounted) notify();
+        },
+        writeGate: (inFlight) => _cropWriteInFlight = inFlight,
+        reportError: (e) {
+          // R-02（审计 2026-09-27）：$e 含文件路径/加密封包内部细节——按 H-04
+          // 脱敏口径 UI 只给固定文案，错误类型进审计日志。
+          AuditLogger.log(
+            'editor.crop.save_failed',
+            success: false,
+            detail: e.runtimeType.toString(),
+          );
+        },
+      );
+    } catch (e) {
+      // 兜底（对齐旧实现的整体 try/catch）：几何/通知回调意外抛不得成为
+      // 未处理异步异常；快照闸门已在 commitCropPairing 的 finally 里解除。
+      AuditLogger.log(
+        'editor.crop.save_failed',
+        success: false,
+        detail: e.runtimeType.toString(),
+      );
+      _showSnack(_l10nSafe?.cropFailed ?? '裁剪失败，请重试');
+      return;
+    }
+    // 提示文案逐条沿用原实现（_showSnack 自带 mounted 守卫）。
+    switch (result) {
+      case EditorCropCommitResult.committed:
+        _showSnack(_l10nSafe?.cropDone ?? '已裁剪图片');
+      case EditorCropCommitResult.sourceMissing:
+        _showSnack(_l10nSafe?.cropSourceMissing ?? '原图文件不存在');
+      case EditorCropCommitResult.encodeFailed:
+        _showSnack(_l10nSafe?.cropEncodeFail ?? '裁剪编码失败');
+      case EditorCropCommitResult.vaultLocked:
+        _showSnack(_l10nSafe?.cropVaultLocked ?? '保险库已锁定，无法保存裁剪');
+      case EditorCropCommitResult.failed:
+        _showSnack(_l10nSafe?.cropFailed ?? '裁剪失败，请重试');
+    }
+  }
+}
+
+/// 裁剪成对提交的落定结果（页面据此映射提示文案；[committed] 之外文档几何
+/// 都已回滚为裁剪前矩形，与未变的磁盘字节保持同向）。
+enum EditorCropCommitResult {
+  /// 磁盘字节与文档矩形都已落到裁剪后。
+  committed,
+
+  /// 已回滚：原图文件不存在。
+  sourceMissing,
+
+  /// 已回滚：PNG 编码失败。
+  encodeFailed,
+
+  /// 已回滚：保险库锁定（fail-closed 拒绝写回）。
+  vaultLocked,
+
+  /// 已回滚：写盘抛出异常（细节由 reportError 进审计日志，R-02）。
+  failed,
+}
+
+/// 裁剪「文档几何 ↔ 磁盘字节」成对更新（修复 3，审计 2026-10-04）。
+///
+/// 时序：
+/// 1. [applyRect] 先把裁剪后矩形落进文档对象并标脏（持久化交既有防抖自动
+///    保存 / 退出兜底 flush）；
+/// 2. [writeGate] 暴露写盘飞行句柄，自动保存在它落定前不得取文档快照；
+/// 3. [writeToDisk] 落盘字节（生产实现 [EditorImageCropWriter.writeCrop]：
+///    tmp+rename 原子写 + `.bak` 原图副本 + 保险库 fail-closed，失败即在档
+///    文件逐字未变）；
+/// 4. 非成功结果/异常 → [applyRect] 回滚裁剪前矩形并再次标脏，调度器串行化
+///    保证「最后一写」胜出。
+/// 四步都不看 `mounted`：页面在 await 期间卸载只会少一次 setState/提示，
+/// 不会再造成「磁盘裁剪后像素 + 文档裁剪前矩形」。落定顺序是「几何决定 →
+/// 放行快照」，故快照永远是最终几何。
+Future<EditorCropCommitResult> commitCropPairing({
+  required Rect sourceBounds,
+  required Rect cropRect,
+  required Future<EditorImageCropWriteOutcome> Function(
+    Rect cropRect,
+    Rect sourceBounds,
+  )
+  writeToDisk,
+  required void Function(Rect apply) applyRect,
+  required void Function() endCrop,
+  required void Function(Future<void>? inFlight) writeGate,
+  required void Function(Object error) reportError,
+}) async {
+  applyRect(cropRect);
+  final gate = Completer<void>();
+  writeGate(gate.future);
+  try {
+    EditorImageCropWriteOutcome? outcome;
+    Object? error;
+    try {
+      outcome = await writeToDisk(cropRect, sourceBounds);
+    } catch (e) {
+      error = e;
+      reportError(e);
+    }
+    if (error == null && outcome == EditorImageCropWriteOutcome.success) {
+      endCrop();
+      return EditorCropCommitResult.committed;
+    }
+    // 回滚文档几何：原子写保证在档字节逐字未变，两侧同时退回裁剪前状态。
+    applyRect(sourceBounds);
+    if (error != null) return EditorCropCommitResult.failed;
+    return switch (outcome!) {
+      EditorImageCropWriteOutcome.success => EditorCropCommitResult.committed,
+      EditorImageCropWriteOutcome.sourceMissing =>
+        EditorCropCommitResult.sourceMissing,
+      EditorImageCropWriteOutcome.encodeFailed =>
+        EditorCropCommitResult.encodeFailed,
+      EditorImageCropWriteOutcome.vaultLocked =>
+        EditorCropCommitResult.vaultLocked,
+    };
+  } finally {
+    // 几何落定之后才放行快照（含回滚），并解除飞行标记。
+    writeGate(null);
+    if (!gate.isCompleted) gate.complete();
+  }
 }

@@ -3118,5 +3118,13 @@
         "type": "int"
       }
     }
+  },
+  "syncRemoteCopyUnprotectedCount": "; {count} cloud copy(ies) could not be read this time, so uploading those document(s) was skipped to avoid overwriting them (not synced this round): make sure the sync password is your original one, or try syncing again later",
+  "@syncRemoteCopyUnprotectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

@@ -65,6 +65,7 @@ class SyncResult {
     this.conflictedDocIds = const [],
     this.failedDocIds = const [],
     this.unreadableDocIds = const [],
+    this.unprotectedRemoteDocIds = const [],
   });
 
   final int uploaded;
@@ -83,13 +84,21 @@ class SyncResult {
   /// 上报，否则用户只看到一句泛化「同步失败」。也绝不当作当轮毒丸反复消耗。
   final List<String> unreadableDocIds;
 
+  /// keepBoth 裁决下**没能保住的云端副本**（取不回 / 解不开 / 本地落副本失败）：
+  /// 这些文档本轮**跳过上传**——拿本地版本 PUT 上去会毁掉云端唯一副本，
+  /// 违反「冲突必须对用户可见、禁止静默覆盖任一侧」。单列一个字段而非并进
+  /// [unreadableDocIds]：那不是「某操作执行失败」，而是为保护远端主动跳过，
+  /// 混用会让下轮的处置口径漂移。
+  final List<String> unprotectedRemoteDocIds;
+
   bool get changed => uploaded > 0 || downloaded > 0 || deletedRemote > 0;
 
   @override
   String toString() =>
       'SyncResult(upload=$uploaded, download=$downloaded, '
       'deleteRemote=$deletedRemote, conflicts=${conflictedDocIds.length}, '
-      'failed=${failedDocIds.length}, unreadable=${unreadableDocIds.length})';
+      'failed=${failedDocIds.length}, unreadable=${unreadableDocIds.length}, '
+      'unprotectedRemote=${unprotectedRemoteDocIds.length})';
 }
 
 /// 单轮执行结果（M2：成功与失败的操作分离，清单回写只认成功项）。
@@ -106,6 +115,12 @@ class _ExecuteOutcome {
   /// 失败项中认证失败（密钥/AAD 与密文不匹配）的子集——确定性失败。
   final List<String> unreadableIds;
 }
+
+/// keepBoth 远端副本的取回结果（[_preserveRemoteCopies] 的返回形状）。
+typedef _RemoteCopies = ({
+  List<SyncSnapshot> copies,
+  List<String> unprotectedDocIds,
+});
 
 /// WebDAV 本地优先同步服务。
 class SyncService {
@@ -210,8 +225,26 @@ class SyncService {
     final resolutions = conflicts.isEmpty
         ? const <String, ConflictResolution>{}
         : await conflictHandler.resolve(conflicts);
-    final plan = applyConflictResolutions(basePlan, conflicts, resolutions);
-    final keptCopies = await _preserveRemoteCopies(conflicts, resolutions);
+    final resolvedPlan = applyConflictResolutions(
+      basePlan,
+      conflicts,
+      resolutions,
+    );
+    // keepBoth 的云端副本在**上传之前**取回（此时远端还是原始版本）；
+    // 取不回或解不开的那些文档本轮不得上传，否则 PUT 会把云端唯一副本盖掉。
+    final preserved = await _preserveRemoteCopies(conflicts, resolutions);
+    final keptCopies = preserved.copies;
+    final unprotected = preserved.unprotectedDocIds.toSet();
+    final plan = unprotected.isEmpty
+        ? resolvedPlan
+        : SyncPlan(
+            operations: [
+              for (final op in resolvedPlan.operations)
+                if (!(op.kind == SyncOperationKind.upload &&
+                    unprotected.contains(op.id)))
+                  op,
+            ],
+          );
 
     // 5. 执行（M2：单操作隔离——失败项记入 outcome，不中断整轮）。
     final executed = await _execute(plan);
@@ -263,6 +296,19 @@ class SyncService {
     for (final copy in keptCopies) {
       baselineEntries[copy.id] = copy;
     }
+    // 没能保住云端副本的文档本轮一个字节都没同步（上传已跳过）：基线必须退回
+    // 本轮开始时的值（远端清单仍保留该条目——远端文件真实存在）。若沿用
+    // {...newEntries} 里的远端快照，基线等于谎称「云端那版就是上次同步态」，
+    // 下轮冲突判据会退化成「远端没改过却比本地新」⇒ 用户不出裁决时的兜底
+    // 方向正是上传 ⇒ 又变成静默盖掉云端。
+    for (final id in unprotected) {
+      final previous = baseline.entries[id];
+      if (previous == null) {
+        baselineEntries.remove(id);
+      } else {
+        baselineEntries[id] = previous;
+      }
+    }
     // 已知两阶段提交窗口（M3·文档化取舍）：远端 manifest 已回写、本地基线
     // 未回写之间崩溃 → 两端 manifest 领先于本地基线。后果全部幂等无害：
     // - 本轮已上传成功的文档：下轮按旧基线重传一次（服务端覆盖同内容）；
@@ -280,6 +326,7 @@ class SyncService {
       conflictedDocIds: List.unmodifiable(conflicts.map((c) => c.docId)),
       failedDocIds: List.unmodifiable(executed.failedIds),
       unreadableDocIds: List.unmodifiable(executed.unreadableIds),
+      unprotectedRemoteDocIds: List.unmodifiable(preserved.unprotectedDocIds),
     );
     _emit(SyncProgress.complete());
     return result;
@@ -291,18 +338,33 @@ class SyncService {
   /// （`^[A-Za-z0-9_-]+$`）直接抛错——keepBoth 必崩；②`c.docId` 来自
   /// 未认证远端 manifest，消毒后才可作本地 id。单副本失败隔离，不中断整轮。
   /// M4：返回成功创建的副本快照（调用方并入本地基线；远端清单不含它们）。
-  Future<List<SyncSnapshot>> _preserveRemoteCopies(
+  ///
+  /// 诚实化修复（本批）：**没能保住云端副本**（取回抛错 / 解不开 / 本地落副本
+  /// 失败）的文档 id 一并上报，调用方据此跳过该文档本轮的上传——旧写法静默
+  /// `continue` 后本地版本照样 PUT，等于用「两者皆保留」的名义毁掉云端唯一副本，
+  /// 违反「冲突必须对用户可见、禁止静默覆盖任一侧」。GET 返回 null（404，云端
+  /// 根本没有这个对象，多发生在清单已回写、文档未落盘的崩溃窗口）时不跳过：
+  /// 上传不会覆盖任何内容，跳过反而让该文档永远同步不上。
+  /// 每轮对每个这类文档只尝试一次 GET，不抛异常、不进退避重试链。
+  Future<_RemoteCopies> _preserveRemoteCopies(
     List<SyncConflict> conflicts,
     Map<String, ConflictResolution> resolutions,
   ) async {
     final copies = <SyncSnapshot>[];
+    final unprotected = <String>[];
     for (final c in conflicts) {
       if (resolutions[c.docId] != ConflictResolution.keepBoth) continue;
+      final Uint8List? remoteBytes;
       try {
-        final remoteBytes = await transport.getBytes(
-          cipher.remotePath(c.docId),
-        );
-        if (remoteBytes == null) continue;
+        remoteBytes = await transport.getBytes(cipher.remotePath(c.docId));
+      } catch (_) {
+        // 取不回（网络/5xx/重定向门禁/超时）⇒ 无法确认云端副本内容，
+        // 不能拿本地版本盖上去；本轮跳过该文档上传并在摘要里可见。
+        if (!unprotected.contains(c.docId)) unprotected.add(c.docId);
+        continue;
+      }
+      if (remoteBytes == null) continue; // 云端无此对象，无可覆盖。
+      try {
         final plain = await cipher.decryptDocumentBytes(remoteBytes, c.docId);
         final copyId = _safeCopyId(c.docId);
         await documentStore.writeDocument(copyId, plain);
@@ -314,10 +376,12 @@ class SyncService {
           ),
         );
       } catch (_) {
-        continue;
+        // 解不开（口令/密钥错配、密文损坏）或本地落副本失败 ⇒ keepBoth 无法
+        // 兑现，同上不覆盖云端。失败原因分型由摘要文案统一给出。
+        if (!unprotected.contains(c.docId)) unprotected.add(c.docId);
       }
     }
-    return copies;
+    return (copies: copies, unprotectedDocIds: unprotected);
   }
 
   /// 冲突副本 id 消毒：仅保留白名单字符（下游 `_pathFor` 同口径），

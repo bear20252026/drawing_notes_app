@@ -3546,4 +3546,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String syncUnreadableRemoteCount(int count) {
     return '; $count cloud document(s) could not be decrypted with the current sync password (likely ciphertext from before a password change); the rest synced normally';
   }
+
+  @override
+  String syncRemoteCopyUnprotectedCount(int count) {
+    return '; $count cloud copy(ies) could not be read this time, so uploading those document(s) was skipped to avoid overwriting them (not synced this round): make sure the sync password is your original one, or try syncing again later';
+  }
 }

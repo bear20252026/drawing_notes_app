@@ -474,59 +474,11 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   void _toggleReadingInverted() => setState(_chrome.toggleReadingInverted);
 
-  /// 确认裁剪：按裁剪矩形重新编码图片并写回文件（对齐 Excalidraw 图片裁剪）。
-  ///
-  /// C-04 第五批：解码/几何换算/密封/原子写管线整体迁
-  /// infrastructure/editor_image_crop.dart；本页只做守卫、结果映射与
-  /// 画布状态更新（行为零变化，提示文案逐条对应）。
-  Future<void> _confirmCrop() async {
-    final img = _cropItem;
-    final rect = _cropRect;
-    if (img == null || rect == null || rect.width < 10 || rect.height < 10) {
-      _showSnack(AppLocalizations.of(context)?.cropInvalid ?? '裁剪区域无效');
-      return;
-    }
-    try {
-      final outcome = await const EditorImageCropWriter().writeCrop(
-        file: File(img.filePath),
-        cropRect: rect,
-        imageBounds: Rect.fromLTWH(img.x, img.y, img.width, img.height),
-      );
-      // 审计三-1：等待写回（含加密）期间退出页面则放弃 UI 更新，
-      // 避免 setState() called after dispose()。
-      if (!mounted) return;
-      switch (outcome) {
-        case EditorImageCropWriteOutcome.success:
-          setState(() {
-            img.x = rect.left;
-            img.y = rect.top;
-            img.width = rect.width;
-            img.height = rect.height;
-            _canvasInteraction.clearCrop();
-          });
-          // 裁剪已重写磁盘文件：失效 DocumentImageCache 的旧位图，否则画布
-          // 仍把「裁剪前的全尺寸位图」拉伸进新矩形显示（审计发现 2026-09-06）。
-          _controller.invalidateDocumentImage(img.id);
-          _notifyChanged();
-          _showSnack(_l10nSafe?.cropDone ?? '已裁剪图片');
-        case EditorImageCropWriteOutcome.sourceMissing:
-          _showSnack(_l10nSafe?.cropSourceMissing ?? '原图文件不存在');
-        case EditorImageCropWriteOutcome.encodeFailed:
-          _showSnack(_l10nSafe?.cropEncodeFail ?? '裁剪编码失败');
-        case EditorImageCropWriteOutcome.vaultLocked:
-          _showSnack(_l10nSafe?.cropVaultLocked ?? '保险库已锁定，无法保存裁剪');
-      }
-    } catch (e) {
-      // R-02（审计 2026-09-27）：$e 含文件路径/加密封包内部细节——按 H-04
-      // 脱敏口径 UI 只给固定文案，错误类型进审计日志。
-      AuditLogger.log(
-        'editor.crop.save_failed',
-        success: false,
-        detail: e.runtimeType.toString(),
-      );
-      _showSnack(_l10nSafe?.cropFailed ?? '裁剪失败，请重试');
-    }
-  }
+  /// 裁剪磁盘写入的在飞行句柄（修复 3，审计 2026-10-04；写入本体在
+  /// editor_page_persistence.dart 的 [_confirmCrop]）：非 null 期间自动保存
+  /// 不得取用文档快照，否则会把「文档已换新矩形、磁盘仍是旧字节」的中间态
+  /// 落盘（退出兜底 flush 也走同一条闸门）。
+  Future<void>? _cropWriteInFlight;
 
   /// 当前工作区的形状集合：笔记页使用分页混排集合，独立绘图使用文档集合。
   List<PageShapeItem> get _shapeItems =>

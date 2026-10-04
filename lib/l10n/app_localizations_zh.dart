@@ -3416,4 +3416,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String syncUnreadableRemoteCount(int count) {
     return '；$count 个云端文档用当前同步口令解不开（多半是改过口令之前的旧密文），其余文档已正常同步';
   }
+
+  @override
+  String syncRemoteCopyUnprotectedCount(int count) {
+    return '；$count 个云端副本暂时读不出来，为避免覆盖已跳过这几个文档的上传（本次未同步）：请确认同步口令是否填回原值，或稍后再同步一次';
+  }
 }

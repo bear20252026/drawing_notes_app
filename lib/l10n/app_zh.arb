@@ -3097,5 +3097,13 @@
         "type": "int"
       }
     }
+  },
+  "syncRemoteCopyUnprotectedCount": "；{count} 个云端副本暂时读不出来，为避免覆盖已跳过这几个文档的上传（本次未同步）：请确认同步口令是否填回原值，或稍后再同步一次",
+  "@syncRemoteCopyUnprotectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

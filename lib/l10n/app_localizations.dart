@@ -6481,6 +6481,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'; {count} cloud document(s) could not be decrypted with the current sync password (likely ciphertext from before a password change); the rest synced normally'**
   String syncUnreadableRemoteCount(int count);
+
+  /// No description provided for @syncRemoteCopyUnprotectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'; {count} cloud copy(ies) could not be read this time, so uploading those document(s) was skipped to avoid overwriting them (not synced this round): make sure the sync password is your original one, or try syncing again later'**
+  String syncRemoteCopyUnprotectedCount(int count);
 }
 
 class _AppLocalizationsDelegate
