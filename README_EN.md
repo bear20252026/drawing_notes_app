@@ -78,7 +78,7 @@ All five CI workflows (CI / quality gate / Code Guard / SBOM / Secret Scan) must
 | Quick unlock | Windows Hello / Android BiometricPrompt (local_auth), DPAPI/Keystore-bound |
 | USB reset disk | "Forgot password" reset for notebook/file passwords (LUKS-style: disk key unwraps DEK → re-wrap password slot with new salt) |
 | Policy engine | Operation allowlist with **default-deny** (fail-closed) + audit — import/delete gated |
-| Session guard | Immediate lock on focus loss (memory keys zeroed) + file-picker exemption + re-auth |
+| Session guard | Immediate lock on backgrounding / minimize (memory keys zeroed) + file-picker exemption + re-auth. Note: on desktop, plain window focus loss (still visible) and Win+L do **not** currently trigger the boot lock — the gate only reacts to hidden/paused; tracked as a known gap |
 | VFS encrypted vault | Object manifest + version rollback + AAD binding + atomic commits (crash-safe) |
 | Tamper-evident audit | SHA-256 hash chain (prevHash linkage — tamper breaks chain) + verifyIntegrity; user-facing errors always sanitized |
 | Import isolation | SVG preflight (XXE/Billion Laughs/script injection/bomb) + PDF page/size quotas + hyperlink scheme allowlist |
