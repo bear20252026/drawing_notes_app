@@ -68,7 +68,10 @@ void main() {
     expect(find.byType(LayerPanel), findsOneWidget, reason: '图层面板应常驻显示');
 
     // 3) 工具切换与撤销语义操作不崩溃。
-    await tester.tap(find.byTooltip('画笔'));
+    // 工具条 tooltip 现由 EditorLeftToolbar 提供（画笔硬编码字面量
+    // editor_left_toolbar.dart:81，非 arb；旧横栏 editor_toolbar.dart 的
+    // 「画笔」字样已随 247f3b1 删除）。
+    await tester.tap(find.byTooltip('画笔 (P)'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull, reason: '工具切换不应抛异常');
 
@@ -83,13 +86,16 @@ void main() {
   testWidgets('图层操作：新建图层不崩溃（图层能力可用）', (tester) async {
     await pumpEditor(tester);
 
-    // 打开图层面板。
-    final layerBtn = find.byTooltip('图层');
-    if (layerBtn.evaluate().isNotEmpty) {
-      await tester.tap(layerBtn);
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull, reason: '打开图层面板不应抛异常');
-    }
+    // 打开图层面板。开关 tooltip 随状态取 arb barShowLayers / barHideLayers
+    //（editor_page_appbar.dart:205-207）；初值 _layersVisible=false
+    //（editor_interaction_controllers.dart:413，EditorChromeController 新建
+    // 不读盘）→ 当前渲染「显示图层」。原「图层」字样来自已删除的旧横栏，命中
+    // 不到，下面的 if 会让整段静默跳过（空跑）——故改为硬断言。
+    final layerBtn = find.byTooltip('显示图层');
+    expect(layerBtn, findsOneWidget, reason: '宽屏顶栏应有图层开关（窄屏才收进主菜单）');
+    await tester.tap(layerBtn);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull, reason: '打开图层面板不应抛异常');
     // 关闭（Esc 或再次点击）。
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();

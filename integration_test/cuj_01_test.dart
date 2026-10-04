@@ -1,4 +1,5 @@
 import 'package:drawing_notes_app/app.dart';
+import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,8 +23,25 @@ void main() {
     await tester.pumpAndSettle();
 
     // 1) Create：新建画作（输入名称 → 进入编辑器）。
-    await tester.tap(find.byType(FloatingActionButton));
+    // 起始目的地是 AllDocs（app_shell.dart:158 `_index = 0`），其 FAB 仅窄屏
+    // 存在（all_docs_page.dart:200-206）且打开三选项 bottom sheet——不弹命名
+    // 框。带命名框的无限画布入口在「画布·笔记」：HomePage 的 GlassFab.extended
+    // （home_page.dart:368-373，label 为 arb docsNewCanvas）→ _createCanvas
+    // 弹两选项（home_page_create.dart:44-78）→ _createDrawing 弹 _NameDialog
+    // （:90）。FAB 限定在 HomePage 子树内，避免窄屏与 AllDocs 的 FAB 同树撞车。
+    await tester.tap(find.text('画布·笔记').first);
     await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(HomePage),
+        matching: find.byType(FloatingActionButton),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // arb homeNewInfiniteCanvas（home_page_create.dart:57 SimpleDialog 选项）。
+    await tester.tap(find.text('新建无限画布'));
+    await tester.pumpAndSettle();
+    // arb homeNameHint（home_page_widgets.dart:447 _NameDialog 的 hintText）。
     expect(find.text('请输入名称'), findsOneWidget);
     // 按占位文案定位（语义选择器）：`byType(TextField).last` 依赖树中顺序，
     // 桌面开屏锁的键盘输入框（app_lock_gate 的 _DesktopPinField）一旦同树
@@ -55,9 +73,11 @@ void main() {
     await tester.pumpAndSettle();
 
     // 3) Save：返回首页（自动保存——800ms 防抖 + 退出兜底）。
-    // 注：不能用 tester.pageBack()——它会找 Flutter 的 BackButton，而本应用
-    // 的 Material 组件来自 material_ui（自带一套 BackButton 类型）。这里按中文
-    // 返回 tooltip 定位（App 已按 zh 渲染，上面 '请输入名称' 断言已证实）。
+    // 返回 tooltip 来自 AppBar 自动植入的 BackButton：编辑器顶栏未写
+    // leading/automaticallyImplyLeading（editor_page_appbar.dart:83-179），
+    // 框架取其默认 backButtonTooltip（action_buttons.dart:199-200），zh 值为
+    // 「返回」（generated_material_localizations.dart:45002），App 已注册
+    // GlobalMaterialLocalizations 且 supportedLocales 含 zh（app.dart:189-193）。
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
 
@@ -69,7 +89,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('CUJ-01 画作'), findsWidgets);
     // 编辑器工具栏（画笔——tooltip 定位）存在——内容可继续编辑。
-    expect(find.byTooltip('画笔'), findsOneWidget);
+    // EditorLeftToolbar 硬编码字面量 '画笔 (P)'（editor_left_toolbar.dart:81，
+    // 非 arb；旧横栏的裸「画笔」字样已随 247f3b1 删除）。
+    expect(find.byTooltip('画笔 (P)'), findsOneWidget);
     // 重开后画布仍有内容（painter 非空——笔画保留——P-001 内容断言）。
     final canvasAfter = find.byType(CustomPaint).last;
     final painterAfter = tester.widget<CustomPaint>(canvasAfter).painter;

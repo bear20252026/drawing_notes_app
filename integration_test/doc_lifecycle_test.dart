@@ -46,7 +46,7 @@ void main() {
     }
     expect(ready, isTrue, reason: 'AllDocs 工具条应在 10s 内就绪');
 
-    // 打开「新建文档 ▾」下拉 → 选「新建笔记（打字）」。
+    // 打开「新建文档 ▾」下拉 → 选「新建笔记」（arb docsNewNote）。
     await IntegrationTestWidgetsFlutterBinding.instance.runAsync(() async {
       final base = await getApplicationDocumentsDirectory();
       final dir = Directory('${base.path}${Platform.pathSeparator}blockdocs');
@@ -65,7 +65,11 @@ void main() {
     });
     await tester.tap(find.text('新建文档'));
     await tester.pump(const Duration(milliseconds: 400));
-    await tester.tap(find.text('新建笔记（打字）').last);
+    // arb docsNewNote 现值「新建笔记」——原字面量「新建笔记（打字）」随 N1
+    // 命名统一改名，全 lib/ 零命中（2026-10-04 排查）。渲染点：桌面 showMenu
+    // 首项 all_docs_page_widgets.dart:234。`.last` 取覆盖层菜单项——菜单晚于
+    // 页面主体入树，空态同名按钮（:550）在前。
+    await tester.tap(find.text('新建笔记').last);
     var editorReady = false;
     // 就绪判据（2026-10-04 测试侧加固）：原先只看「全树 TextField 数 ≥ 2」——
     // 非语义且脆：IndexedStack 三个目的地常驻，AllDocs 搜索框 / 桌面开屏锁的
