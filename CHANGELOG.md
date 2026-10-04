@@ -2,6 +2,258 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.61] - 2026-10-04
+
+### 审计批 AK→AQ 收尾：切后台即锁全量落地、两处静默覆盖收口、门禁恒绿病灶加固
+
+> 收 v1.17.60 之后的 11 个提交：`f23d445`（CI 触发）→ `8f3cd3d`（行数硬上限）
+> → `1144f32`（README 校正）→ `5bc77e1`（AK）→ `9520f8d`（AK2）→ `51f81fb`
+> （AL）→ `fa349f7`（AM）→ `8afe3e1`（AN）→ `9f33c86`（AP）→ `bbbf569` +
+> `3f08ab5`（AQ）。各批本地 `flutter analyze` 均 No issues found、被改域测试
+> 全绿；全量 `flutter test` 按 AGENTS.md §6 云端验证纪律交 CI 五工作流裁决
+> （无一批跑过无文件参数的全量套件）。
+
+**数据完整性**
+
+- `keepBoth` 冲突下远端副本不再被静默覆盖（AK2）：远端副本在上传**之前**取回
+  （`sync_service.dart:235-237`），而 keepBoth 在纯函数层被强制成 upload
+  （`sync_conflict.dart:246-252`）；旧实现对 GET 返回 null 与 catch 两条分支
+  都 `continue`、随后仍 PUT ⇒ 本地版本覆盖云端同路径唯一副本（AES 路径由当前
+  密钥确定性导出），用户零可见性，直接违「冲突必须可见/禁止静默覆盖任一侧」。
+  改为取回抛错/解密失败/本地落副本失败 ⇒ 计入**新字段**
+  `SyncResult.unprotectedRemoteDocIds`（不并入 `unreadableDocIds`，后者语义是
+  「执行失败」，此为「为保护远端而主动跳过」）并剔除本轮该文档的 upload op
+  ⇒ 零 PUT；404（云端本无此对象）不跳过，否则永不能同步；基线退回本轮开始值、
+  远端清单保留真实条目（不谎记进度，幂等与收敛不破）；每轮每文档仅 1 次 GET
+- 图片裁剪的「文档几何更新」与「磁盘写入」成对（AK2）：原时序是写盘成功 →
+  复查 `mounted` → 才改 `img.x/y/width/height` ⇒ 写盘期间退出编辑页则磁盘是
+  裁剪后像素、文档仍是裁剪前矩形（永久拉伸/错位）。选型 A：先 `applyRect` +
+  标脏（交既有 5s 防抖／退出兜底）再进闸门写盘，非成功结果码或异常一律回滚
+  `applyRect` 并再标脏，`finally` 放行快照；几何更新不看 mounted、仅 UI 反馈
+  看；`_persistArtwork` 编码快照前等闸门（上限 5s），防「快照先于写盘取、后于
+  写盘落」。方案 B（把 doc 更新移到 mounted 复查之前）经核实**不成立**——
+  `editor_page.dart` dispose 已 `unawaited(flushIfDirty)` 而 `save_scheduler`
+  在 `_disposed` 后 `markDirty` 直接 return，缺陷只会换向复发
+- 裁剪保留原图（AK）：`editor_image_crop.dart:203` 在 tmp+rename 之前先做
+  `*.bak` 逐字副本（A-01 只修了原子性、原像素仍不可恢复）。选 `.bak` 而非
+  「新路径 + 切换引用」的依据：DNV 的 AAD 经 `contextForPath` 绑定文件**基名**，
+  换基名破坏绑定；UI 只按在档精确路径读图、从不自动读 `.bak`；`backup_service`
+  已排除 `*.bak`；fail-closed 与 GPU 纹理释放逻辑未动
+- 审计哈希链滚动裁剪后不再自证「已篡改」（AK，P3 提级为真实回归）：更正上一轮
+  口头结论——`verifyIntegrity()` 在生产**有消费方**（`settings_page.dart:300`
+  展示审计完整性），长会话写入超上限后正常日志会被 UI 误报为已被篡改。裁剪头部
+  时记录 checkpoint（`_droppedCount` + 新链首条 `prevHash`，
+  `audit_logger.dart:29-37`），`verifyIntegrity` 从当前链真实起点重放而非假装从
+  genesis 起，`clear()` 归零锚点；「篡改既有条目必断链」不回退。本类严格仅内存、
+  无文件 IO，checkpoint 单独落盘而 entries 不落盘无意义 ⇒ 未新增持久化路径/公共 API
+
+**安全：切后台即锁（AP `9f33c86` + AQ `bbbf569`/`3f08ab5`）**
+
+- 锁屏门补 `inactive`：抽出 `_isBackgroundSignal`（inactive/hidden/paused 三信号
+  统一，`app_lock_gate.dart:207`）与 `_onBackgroundSignal()`，仅在 `!_locked`
+  且非豁免期置锁并锚宽限表；回前台一律走同一条 `AppLockService.verify`——失败
+  计数、指数冷却、v1→v2 透明升级、保险库解锁、快速解锁语义全部不变，冷却期内
+  新路径不获得旁路；`hidden` 清 KEK/SessionSecrets 加 `!LockExemption.isActive`
+  守卫（`:171`）
+- 桌面宽限期起点重锚（此前事实上从未正确起表）：原锚 `paused`，而 Flutter
+  桌面/Web 从不投递 `paused` ⇒ 宽限期形同虚设；改锚「首个非豁免后台信号」，
+  同一后台会话的后续信号（resumed→inactive→hidden→paused 链）仅首个锚表、
+  其余直接返回 ⇒ 不重锚、不吃免死金牌
+- 豁免机制进程化：从 `SessionGuard` 私有态抽出共享 `LockExemption`
+  （`session_guard.dart:28`，计数 + 单调 `Stopwatch` TTL 默认不豁免，TTL 5 分钟
+  对齐原值——漏 `end` 即过期失效，不给无限期豁免），`runWithExemption` 改委托，
+  消除「豁免只存在于 SessionGuard、门拿不到」的结构性缺口
+- U 盘选择器单点根治（AQ）：`password_reset_disk.dart:51-56` 把原生
+  `getDirectoryPath` 包进 `LockExemption.run` ⇒ 全仓该直调恰 1 处，
+  `doc_page_password.dart` 与 `password_reset_common.dart` 三处下游经此自动进
+  窗口；既有外层包法转为嵌套、成对复位已测
+- 存盘对话框接入（AQ，实测 14 处而非上批报的 11：editor_exporter 11 +
+  settings_page 2 + nb_manage 1）：新建单点封装
+  `editor_exporter.dart:81-92` `_pickSaveLocation` 收 11 条导出路径、另 3 处
+  就地圈住 ⇒ 改后全仓 `getSaveLocation(` 直调恰 4 处（封装内 1 + 就地 3），新
+  门禁断言该数字并逐处判是否已圈住（与 AJ 批「vacuous 分母」同一思路，防接入点
+  被静默回退）；上批挡住的一处（part 不能带 import）由库本体
+  `editor_page.dart:59-61` 加 `show LockExemption` 打通，画布 `openFile`
+  （`editor_page_editing.dart:260-261`）只圈那一次原生调用
+- 窗口范围逐处自查：对话框一关即释放，readFrom/writeTo/绑槽/encryptAndSave/
+  渲染/合成/报告构建/写盘/解密导出全在窗外 ⇒ 不存在「豁免吞掉 hidden 清 KEK」
+  的情形，拒绝接入的点：无；取消 / 返回 null / 空串 / `PlatformException` 四条
+  路径均断言豁免已释放且 `remaining==0`（这类代码最典型的缺陷是取消/异常时泄漏
+  成永久豁免），拆掉 `LockExemption.run` 即 3 例转红（突变自证）
+
+**安全：同步口令轮换诚实化 + 加密下沉（AK）**
+
+- 根因证据链：`sync_controller.dart:112` 一侧复用 `existing.syncSalt` +
+  `remotePath = HMAC(key, ctx|docId)` ⇒ 换口令即新 key、远端对象名整体错位、
+  固定名 `manifest.json` 用新 key 解不开旧密文；原实现抛裸 `FormatException`
+  中止整轮、退避重试满 4 轮后只给「请检查网络与账号」泛化文案，孤儿确无清理
+  （`listLeafNames` 零生产调用方）。交付为**诚实化，非协议改造**：保存前零网络
+  预检 `willRotateSyncKey` + `save(confirmKeyRotation:)`，未确认即抛
+  `SyncKeyRotationConfirmationRequired` 且一个字节不上盘（https 门禁仍排最前）
+  + 设置页二次确认弹窗
+- `SyncKeyMismatchException`（文案逐字不变，以免破坏 `on FormatException`
+  消费方）；认证类失败一轮即止不再空耗重试链；`SyncResult.unreadableDocIds`
+  把「多少条远端数据解不开」写进摘要
+- 同步 AES-GCM 从主 isolate 下沉：`sync_cipher.dart:115`
+  `isolateCodecThreshold = 32 * 1024`（对齐文档存储侧 `_isolateCodecThreshold`
+  同形态 JSON 字节档，取更低者——宁可早进不漏大文档；画布侧 2000 元素、
+  StorageService 64 KiB）；≥阈值走 `Isolate.run`，闭包只捕获
+  `Uint8List`/`String`，密钥以 32B 字节进 worker、不拼 String、不落盘、不进
+  日志，AAD 绑定与 mode/v 分支原样，`finally service.close()` 未动
+
+**可达性**
+
+- README / README_EN 的「会话守卫」措辞两步收口：`1144f32` 先把名不副实的
+  「失去焦点立即锁定」改为准确描述并**显式标注缺口为待办、不粉饰**（当时门只
+  处理 hidden/paused/resumed、无任何窗口焦点监听，grep
+  `FocusManager|onBlur|onFocus|WindowListener` 零命中）；`9f33c86` 补齐功能后
+  改回「切后台/最小化/纯失焦(inactive) 全量锁定 + 宽限期锚首个后台信号 +
+  原生对话框豁免窗口（默认不豁免、5 分钟 TTL）+ 回前台同一条 verify 管线」并
+  删除 known-gap 段
+- 口令轮换失败的 UI 文案给「填回旧口令 / 全量重传」的可执行指引，同步摘要
+  新增条数上报（`syncRemoteCopyUnprotectedCount`）且只报条数不报 docId
+
+**门禁与测试**
+
+- CI 补 `push:branches[master]` 触发（`f23d445`，`pr-architecture.yml`）：原仅
+  `pull_request`，而本仓走直推 master ⇒ 架构门里的 `tools/check_boundaries.sh`
+  **从未在 CI 上执行过**（审计 2026-10-04 发现的门禁盲区）
+- `notebook_storage.dart` 1027 行越 1000 硬上限（本批由媒体 fail-closed、SVG
+  预检、独占区读写原语、会话口令回滚撑爆），按 ARCHITECTURE.md F9 的 O1 域分权
+  纪律拆出 `notebook_storage_password.dart`（333 行，extension 收 9 个口令/信封域
+  私有助手），本体降至 715 行、零行为变化；唯一必要文本改写是 11 处
+  `_encryption.x` → `NotebookStorage._encryption.x`（extension 不能隐式访问被
+  扩展类的私有静态）；拆分正确性以脚本证明（新本体 == HEAD 减 9 块 + 一行 part
+  指令、整库成员名集合差集为空）
+- 两处 vacuous 分母门禁加固（AL，纯 `test/`）：
+  `test/security_static_access_gate_test.dart:74` 补被扫描文件数下限
+  `_minScannedFiles = 120`（实测 217 = lib/features 195 + lib/shared 22，取
+  ≈55%）；`test/focus_ring_coverage_test.dart:55` 补
+  `expect(total, greaterThan(0))`（基线 38 处 `InkWell`）+ scannedFiles ≥180
+  （实测 320）+ 4 条反向锁；判定逻辑各抽一份与主循环同源
+- 突变实验取证（AL）：把 `maskDartLexically` 临时改为「非换行符全抹空格」，
+  **加固前两份门禁均 +1 全绿（恒绿实证）**；加固后 C-06 -2、V-12 -4，主用例
+  reason 为「分母为 0：扫了 320 个文件却匹配到 0 个 `InkWell(`」
+- 纠正派单指令一处（AL）：原要求给 C-06 也加 `total > 0`——实查其中 `total++`
+  与 `offenders.add` 在同一无条件循环体内、`total ≡ offenders.length`，合规时
+  恒 0 ⇒ 照加即永久假红；真分母改用扫描文件数
+- 「计数变量从无 expect」两处收口（AL，与 AJ 抓到的 `layerUndoRedoCount` 同类
+  病灶）：`layer_editing_session_test` 补 1/2/2/1 精确通知数（逐条读码依据：
+  `addLayer:77`/`moveLayerDown:132` 各 1、merge 仅 `rebuildAll:148`、
+  `toggle:101` 两次、`clearCurrentLayer:160`/`clearAll:176` 不发通知、
+  `setLayerOpacity:110` 发 1）；`m126_batch_test` 的 `purged >= 1` 改
+  `equals(1)`，并把过期 sidecar 推到 31 天前、`retainDays` 用真实默认 30，新增
+  「未过期兄弟项必须存活且不复活」
+- 盲睡 oracle 消除（AL/AM）：`fix_regression_test` 三处 100×10ms 改为观测完成
+  条件（上限 10s），`pumpUntil` 下沉为唯一一份
+  `test/helpers/wait_until.dart` 的 `WidgetTesterPumpUntil` 扩展，`memory_p0`
+  与 `editor_shortcuts_text_guard` 改引用；T-13 回退——AK2 新增两文件的裸
+  `deleteSync` 改回共用 `test/helpers/temp_dir_cleanup.dart`（Windows 句柄锁
+  flaky 类）
+- 判据替代盲泵（AM）：webdav 设置页 4 处 2×100ms 改判据 `_formBuilt`/
+  `_secretsLoaded`、2 处 2×300ms 改 `_saveSettled`；`app_shell_smoke` 三处改
+  「首屏骨架退场 + DocPage 已推入 + 下层 GlassFab 已摘除」（实测原 500ms 是在
+  赌路由过渡时长，过渡未完时 ⋯ 图标会数到 2 个，新判据严格更强）；`m126_batch`
+  补盘上锁（`.json` 与配套 `.meta.json` 必须双双不存在/双双都在）
+- T-09 潜伏雷复核（AM）：全库 52 文件出现 `pumpAndSettle`、42 有真实调用，但
+  **同时**渲染 skeleton 的仅 `all_docs_page_test:94` 与 `u4_design_polish_test`
+  5 处，且两处骨架在前置 pump 后已退场（实测全绿）；smoke/cuj_01 是真机实时钟、
+  settle 即正确等待 ⇒ 结论无需改造
+- 行数：`app_lock_gate` 779 / `session_guard` 171 / `editor_page` 884 /
+  `editor_page_persistence` 453 / `notebook_storage` 715+333 /
+  `editor_exporter` 919→900，均 <1000
+
+**集成测试（AN `8afe3e1`）**
+
+- 背景：集成测试不在 CI 覆盖范围（`flutter test` 不含 `integration_test/`，跑它
+  要真机/模拟器）⇒ 文案改名零信号；`find.text('X')` 是运行时匹配，analyze 也抓
+  不到。逐文件排查后按证据校正：`doc_lifecycle_test.dart:72`
+  「新建笔记（打字）」→ arb `docsNewNote` 现值「新建笔记」（旧串在 `lib/` 零
+  命中）；`toolbar_test` 13 串（画笔 (P)/橡皮擦 (E)/`toolEyedropper` 吸管工具/
+  矩形选区 (R)/文字 (T)，证据 `editor_left_toolbar.dart:81/125/129/136/150`，
+  旧串仅存在于**已删除的** `editor_toolbar.dart`）；`feature_test` 画笔与
+  `barShowLayers`「显示图层」
+- `cuj_01` 流程腐烂修复：原假设「FAB 直弹命名框」已不成立（起始页为 AllDocs、
+  其 FAB 仅窄屏且弹三选项表），真路径是 HomePage `GlassFab.extended` →
+  `_createCanvas` 两选项 → `_createDrawing` 弹 `_NameDialog`（见
+  `integration_test/cuj_01_test.dart:24-31` 的证据注释）⇒ 补两步导航并把 finder
+  限定在 HomePage 子树内
+- **恒假断言修复**：`toolbar_test:61` 的 `isToolSelected` 原读
+  `IconButton.isSelected`，而 `_tool` 从不传该参数 ⇒ 恒 false，「选中态」断言
+  从未真的裁决过任何东西；改读真正的选中编码 Tooltip→Container
+  （`BoxDecoration.color == AppleColor.actionBlue`）——命题不变，由恒假变为可
+  裁决；`feature_test` 的 `if (evaluate().isNotEmpty)` 空跑守卫收紧为
+  `findsOneWidget` 硬断言
+- 新静态门禁 `test/integration_finding_text_gate_test.dart`（防复发）：语料 =
+  两份 arb 非 @ 值（去重 1891）∪ `lib/**/*.dart` 字面量（3029）；匹配点 =
+  `find.{text,textContaining,byTooltip,bySemanticsLabel}` 括号区间 ∪「形参直接
+  喂文本 finder」的转发器区间；`enterText` 第二参登记为测试自备数据；变量实参
+  计动态、插值/拼接计缺口并报警；复用 AJ 批修好的
+  `test/helpers/dart_lexical_mask.dart`（未改动它）；分母下限
+  4/20/1500/1891（实测 5/50/3029/1891）取保守比例并写明依据，避免正常重构随机
+  变红；突变自证三条（注入两条不存在文案 / 只经转发器喂串 / 改回原漂移串）均
+  精确转红；内置反向锁 A–F，**豁免表为空**
+
+**i18n**
+
+- arb 键数沿链推进且 zh/en 始终相等、零删除：1058（v1.17.60）→ 1064（AK 轮换 6
+  键 `webdavKeyRotation*`/`syncKeyRotatedUnreadable`/`syncUnreadableRemoteCount`）
+  → 1065（AK2 摘要 1 键）→ **1077**（AM +12 键，4 个插值键补 `@placeholders`）；
+  gen-l10n 通过、`untranslated_messages` 为 `{}`
+- L 域台账 22 条实查 20 条已闭环，AM 只补**真漏翻** 15 站：
+  `embedded_block_view.dart:255`（L-08 唯一残留，新键 `docLinkNoHref`）、命令面板
+  `hintText` → `paletteSearchHint`（同 widget 已接同族键，属不一致）、database 三
+  视图同串归 1 键 `dbNoRecordsYet`、大纲栏复用现键 `docOutlineEmpty`、附件块
+  `attachmentPlaceholder`/`attachmentNoUrl`、`tableGridSize(rows,cols)` /
+  `docBacklinkCount(n)` / `propLineWidthValue(width)` 三插值、PDF 导出
+  `pdfWholeBookHint`/`pdfRangeGroupLabel(n)`、`canvasTextOverlayHint`
+- 判为**刻意不译**而未动：`main.dart:222-225` `_BuildErrorFallback`——类注释明文
+  「兜底自身刻意零依赖，不取 `Theme.of`/`InheritedWidget`/`l10n`（出错上下文可能
+  已损坏）」，ErrorWidget 兜底无 l10n 通道，硬接会引入新依赖风险
+- AM 未改任何测试断言：所有 zh 兜底串与被替换硬编码逐字节一致，相关用例用裸
+  `MaterialApp` 无 delegate 走 `??` 兜底，原 `find.text` 照常命中
+
+**遗留与待裁决（本批未做，原样保留）**
+
+- 规则 3b（承接 AJ / v1.17.60）的落地形态是**具名棘轮**：7 个 feature domain
+  文件按实测 I 值钉上限（`test/architecture_test.dart:186` 起的
+  `domainRatchet`，最高 1.00）、只紧不松，未列入者仍受 0.4 硬约束；**真正降耦
+  （契约下沉 core / 组合根注入）未做**
+- 同步口令轮换的「③一次性清理旧远端对象」**未做**，需协议/产品决策：要在保存
+  路径新增网络腿并落盘旧路径清单（事实上的协议增补）；删除不可逆，其他设备可能
+  仍持旧口令、远端文档可能是本地没有的唯一副本（与「禁止静默覆盖任一侧」直接
+  冲突）；PROPFIND 非全服务器可用；清理与重传之间的崩溃窗口会让两端同时不可读
+- 桌面**过度锁定**风险未消：Windows 多屏副屏、通知横幅、任务视图均投递
+  `inactive` ⇒ 每次即锁；默认 30s 宽限可吸收 Alt-Tab 抖动，但长于宽限的遮挡会
+  要求重验，真实多屏投递频率无法本地验证 ⇒ **需真机体验后再调**。Android 展开
+  通知栏会锁（宽限内回来放行）；系统自发权限弹窗无我方接入点，仍可能假锁；长于
+  宽限期的原生选择器（>30s）释放后回前台需重验（安全优先所致）
+- **集成测试不在 CI 覆盖内** ⇒ 新加的文案门禁只防文案漂移、**不执行流程**；
+  `find.byTooltip('返回')` 依赖框架 `backButtonTooltip` 能否 pop 无法静态证、
+  `feature_test` 图层开关硬断言依赖窗口 ≥600dp、`cuj_01` 新增导航步与 `.last`
+  覆盖层顺序——三条均待真机验证
+- 门禁抓不到的两处产品侧疑点，均**待产品裁决**（按 AGENTS.md §7 保留入口铁律，
+  本批未动）：①「插入图片」入口疑似在旧横栏重构中丢失——
+  `integration_test/toolbar_test.dart:152` 的 `byTooltip('插入图片')` 入口已随
+  旧横栏删除、`_insertImage` 无 UI 消费方 ⇒ 串在 arb 仍存活、门禁绿、真机必红；
+  ②`integration_test/feature_test.dart:68` 断言 `LayerPanel` 常驻
+  `findsOneWidget`，与 `editor_page_body.dart:90` 的 `if (_layersVisible)`
+  （默认 false）冲突
+- E-02（`dart_code_metrics` 5.7.6 上游停维护、要求 sdk <3.0.0）
+  **处置未定**：CI 精确钉版 + `--disable-sunset-warning` 维持现状，备案论证见
+  `.github/workflows/ci.yml:54-60`（残余风险仅「包被下架致激活失败」）；迁闭源
+  dcm 需商业 license、移除门禁需用户同意
+- 14 处 `getSaveLocation` 中 **2 处（备份 zip 与整本 PDF 导出）仅有静态门禁**——
+  UI 级取消只在诊断 txt 站点实测；`openFile` 站点无 widget 级行为测试
+  （`_insertImage` 私有且需整页装配），由债表门禁 + 封装行为测试覆盖
+- AK2 残余：笔记本模式下整本落盘由父页 `_save` 承担（该批禁改 notes 域），闸门不
+  覆盖，「卸载 + 写盘失败」同时发生才有理论残留、可经 `.bak` 复原；口令长期错配
+  时每轮仍 1 次 GET（跨轮「已放弃」记忆需在基线谎记，风险更高，未做）
+- AK 备案：审计链 checkpoint 仅内存，进程重启即空链（未加持久化，属加功能）
+- 8f3cd3d 备案：`lib/` 下非 l10n 最大文件仍是 `editor_page.dart`（884 行，warn
+  档既有祖父化，非本批引入）；`tools/cfg_notebook_storage.json` 是当年拆分用的
+  一次性描述文件、无门禁消费，未随之更新
+
 ## [1.17.60] - 2026-10-04
 
 ### 全面审计批（AJ）：9 域并行审计 + 逐条读码复核，修 16 类已核实缺陷与 3 处门禁自身失效
