@@ -23,6 +23,9 @@ import 'dart:math';
 
 import 'package:file_selector/file_selector.dart';
 
+import 'package:drawing_notes_app/core/security/session_guard.dart'
+    show LockExemption;
+
 /// 重置密码盘钥匙文件读写（password_reset_disk.key）。
 class ResetDiskFile {
   ResetDiskFile._();
@@ -38,7 +41,18 @@ class ResetDiskFile {
       File('$dir${Platform.pathSeparator}$name');
 
   /// 让用户选择重置密码盘位置（U 盘目录），取消返回 null。
-  static Future<String?> pickDirectory() async {
+  ///
+  /// 「切后台即锁」豁免（[LockExemption]）收在本方法，且**只**圈住那一次原生
+  /// 目录选择器：对话框抢走 OS 焦点会投 inactive/hidden，不豁免就会被
+  /// AppLockGate 当成切后台——选盘途中假锁开屏、hidden 侧还清掉 KEK/会话口令。
+  /// 收在单一原生调用点而不是各调用点，是为了让全部下游选盘路径（文档密码页、
+  /// 重置流公共步骤、设置页、锁门自身）一次覆盖；选完之后的读盘/写盘/重置
+  /// 不吃豁免——需要密钥的操作照常受锁约束（异常/取消由 run 的 finally 释放）。
+  static Future<String?> pickDirectory() =>
+      LockExemption.run(_getDirectoryPath);
+
+  /// 原生选择器本体（单独成方法只为把豁免范围钉死在这一行调用上）。
+  static Future<String?> _getDirectoryPath() async {
     final dir = await getDirectoryPath(confirmButtonText: '选择重置密码盘位置');
     return dir == null || dir.isEmpty ? null : dir;
   }

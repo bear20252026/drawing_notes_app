@@ -252,6 +252,11 @@ extension _EditorPageEditing on _EditorPageState {
         label: AppLocalizations.of(context)?.edImageLabel ?? '图片',
         extensions: const ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'],
       );
+      // 「切后台即锁」豁免（LockExemption）待接入本选择器：本文件是
+      // editor_page.dart 的 part，Dart 禁止 part 携带 import，故须在库文件引入
+      // core/security/session_guard.dart 后再把下行包进 LockExemption.run（与
+      // notebook_view_page_imports 同款）。债表盯住此缺口：
+      // test/core/storage/reset_disk_picker_exemption_test.dart。
       final XFile? result = await openFile(acceptedTypeGroups: [typeGroup]);
       if (result == null || result.path.isEmpty) return;
       if (!mounted) return;

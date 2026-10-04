@@ -36,6 +36,8 @@ abstract final class PasswordResetSteps {
   /// 步骤 2：选盘读钥匙（password_reset_disk.key，兼容旧名）。
   /// 失败已就地提示；返回 null = 中止。
   static Future<List<int>?> pickAndReadDisk(BuildContext context) async {
+    // 「切后台即锁」豁免（LockExemption）由 ResetDiskFile.pickDirectory 内部
+    // 统一包住原生目录选择器；读盘在窗口外——密钥操作照常受锁约束。
     final dir = await ResetDiskFile.pickDirectory();
     if (dir == null || !context.mounted) return null;
     final usbKey = await ResetDiskFile.readFrom(dir);

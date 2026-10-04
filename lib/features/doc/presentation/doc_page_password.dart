@@ -143,6 +143,8 @@ extension _DocPagePassword on _DocPageState {
     );
     if (bindUsb == true) {
       if (!mounted) return;
+      // 「切后台即锁」豁免（LockExemption）收在 pickDirectory 内部，只圈原生
+      // 选择器那一段；随后的 readFrom 在窗口外，照常受锁约束。
       final dir = await ResetDiskFile.pickDirectory();
       if (dir != null) {
         resetDiskKey = await ResetDiskFile.readFrom(dir);
@@ -211,6 +213,8 @@ extension _DocPagePassword on _DocPageState {
       onVerify: (p) => store.verifyBlockDocPassword(_doc.id, p),
     );
     if (pin == null || !mounted) return;
+    // 选盘的原生目录对话框由 pickDirectory 内部套 LockExemption 豁免（防选盘
+    // 途中假锁清掉刚验证的会话口令）；绑槽本身仍在窗口外。
     final dir = await ResetDiskFile.pickDirectory();
     if (dir == null || !mounted) return;
     final usbKey = await ResetDiskFile.readFrom(dir);
