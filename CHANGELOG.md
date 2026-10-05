@@ -2,6 +2,47 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.62] - 2026-10-05
+
+### 审计批 AR→AU2：审计收尾五项落地、D-14 两梯队棘轮化、E-02 决策实施、集成测试真机归绿 + 六域并行复核报告入库
+
+> 收 v1.17.61 之后的 9 个提交：`260179a`（AGENTS 工作目录改指 D 盘）→
+> `6d0a033`（AR）→ `c8de3ca`（AS）→ `8e387ff`（E-02）→ `ca70319`（AT）→
+> `13942ea`（AU）→ `613e6a5`（CI 预算）→ `2c983d2` + `344912b`（AU2）。
+> 各批本地 `flutter analyze` 均 No issues found、被改域测试全绿；全量按
+> AGENTS.md §6 云端验证纪律交 CI 裁决。本发版日 CI attempt 1 在 Real-KDF
+> 套件单测超时（懒迁移用例），attempt 2 同代码重跑全绿归因 flake——结构性
+> 诱因（wait_encrypted 内部 deadline 与库级超时等长）已立台账
+> `docs/audit_2026-10-05.md`（T-P2①）待下批修复。
+
+**审计收尾（AR `6d0a033`）**
+
+- 插入图片入口补回：编辑器工具条恢复插图入口（`edInsertImage` 等 3 对 arb 新键，zh/en 各 1080）
+- S-10 明文感知：未设 PIN 时设置页常驻「未加密形式保存」明示（`app_lock_settings_page.dart:111-125`）+ 首启引导补 `obSecurityTip`（`onboarding.dart:122`）
+- S-05 迁移器 fail-closed：`migrateLegacyMedia` 增加 DNV 信封与未知头部判定（`notebook_storage.dart:484-494`），非明文 DAN 载荷一律跳过并记审计——拆掉「接线即双重加密」的雷；仍保持生产零调用，删除需用户授权（与台账一致）
+- T-01 孤儿收口：回收站孤儿 `.meta.json` sidecar 回扫清理路径补回归锁
+- D-14 间距棘轮门禁立表：`test/spacing_token_ratchet_test.dart` 具名基线 + 未登记文件上限 0 + 表腐化双向防护 + 反向锁
+
+**设计令牌 D-14 两梯队收敛（AS `c8de3ca` + AT `ca70319`）**
+
+- 第一梯队：15 文件 82 个裸间距调用点换 AppleSpacing 令牌，零数值改动（档位映射逐一对上 xxs4/xs8/sm12/md16/lg24/xl32）
+- 第二梯队：44 触控热区立 `AppleTouch.minTarget` 具名常量（`apple_design.dart:166/181/194`），棘轮基线 329→310（=当前实测，诚实口径）
+
+**工程化（E-02 `8e387ff` + CI `613e6a5`）**
+
+- E-02 决策实施（钉版+降级）：DCM 激活失败从静默通过改为 `::warning::` + Step Summary 可见告警，门禁工具可用时真违规照常红拦截（`ci.yml`/`quality_gate.yml` 拆 `dcm_install` 两步）
+- CI job 预算 30→45 分钟：慢 runner 日不再把 DCM 步骤连带砍掉
+
+**集成测试真机归绿（AU `13942ea` + AU2 `2c983d2`/`344912b`）**
+
+- 修集成测试运行时类型假设：toolbar_test 真机由 5 红转 7 绿
+- 三处真实缺陷修正（不掩盖剩余红）：数据根（集成验证路径与生产 `_baseDir()` 回退源错位）、图层面板断言（改 findsNothing→tap→findsOneWidget 更强断言）、真实时钟等待（抽 `integration_test/real_wait.dart` 共用）
+- 新增 CI 判据：`doc_autosave_roundtrip_test.dart` 守「编辑正文必须触发保存调度」腿（此前无人守）；「真机编辑未落盘」分歧仍悬置待真机定性（见审计报告 P1-4）
+
+**审计报告入库**
+
+- `docs/audit_2026-10-05.md`：六代理并行复核（S+R / C+E / P+V / D+M / T / L）。台账 134 条：132 闭环属实、零假闭环；S-06 仍存（签名，外部决策）；D-15 降级部分闭环（白系捷径 7 处残留）。新发现 4 P1 / 5 P2 / 14 P3（含 3 存疑待裁决），无发版阻塞项
+
 ## [1.17.61] - 2026-10-04
 
 ### 审计批 AK→AQ 收尾：切后台即锁全量落地、两处静默覆盖收口、门禁恒绿病灶加固
