@@ -193,8 +193,8 @@ class AllDocRow extends StatelessWidget {
                       onTap: onToggleFavorite,
                       borderRadius: BorderRadius.circular(AppleRadius.md),
                       child: SizedBox(
-                        width: 44,
-                        height: 44,
+                        width: AppleTouch.minTarget,
+                        height: AppleTouch.minTarget,
                         child: Center(
                           child: Icon(
                             doc.isFavorite
@@ -235,8 +235,8 @@ class AllDocRow extends StatelessWidget {
                         }
                       },
                       child: SizedBox(
-                        width: 44,
-                        height: 44,
+                        width: AppleTouch.minTarget,
+                        height: AppleTouch.minTarget,
                         child: Center(
                           child: Icon(
                             Icons.more_horiz_rounded,

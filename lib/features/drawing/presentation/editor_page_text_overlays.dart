@@ -329,8 +329,8 @@ extension _EditorPageTextOverlays on _EditorPageState {
                             _notifyChanged();
                           },
                           child: SizedBox(
-                            width: 44,
-                            height: 44,
+                            width: AppleTouch.minTarget,
+                            height: AppleTouch.minTarget,
                             child: Center(
                               child: Padding(
                                 padding: const EdgeInsets.only(right: 6),
@@ -462,8 +462,8 @@ extension _EditorPageTextOverlays on _EditorPageState {
                     },
                     onPanEnd: (_) => _textResizeAnchor = null,
                     child: SizedBox(
-                      width: 44,
-                      height: 44,
+                      width: AppleTouch.minTarget,
+                      height: AppleTouch.minTarget,
                       child: Center(
                         child: Container(
                           width: 10,

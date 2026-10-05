@@ -210,8 +210,8 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                       button: true,
                       label: _hexLabel(c),
                       child: SizedBox(
-                        width: 44,
-                        height: 44,
+                        width: AppleTouch.minTarget,
+                        height: AppleTouch.minTarget,
                         // V-12（审计 2026-09-27）：色板钮键盘焦点此前只有
                         // focusColor overlay——补 2px Focus Blue 描边环。
                         child: AppleFocusRing(
@@ -294,7 +294,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
               // 宽度显式 300，与 _pickHue 的换算宽度一致（修复 320/300 偏差）。
               SizedBox(
                 width: 300,
-                height: 44,
+                height: AppleTouch.minTarget,
                 child: Semantics(
                   label:
                       AppLocalizations.of(context)?.colorPickerHueHint ??
@@ -359,8 +359,8 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                         button: true,
                         label: _hexLabel(c),
                         child: SizedBox(
-                          width: 44,
-                          height: 44,
+                          width: AppleTouch.minTarget,
+                          height: AppleTouch.minTarget,
                           // V-12（审计 2026-09-27）：同上——补 2px 焦点环。
                           child: AppleFocusRing(
                             borderRadius: AppleRadius.md,
@@ -458,8 +458,8 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
       button: true,
       label: _hexLabel(color),
       child: SizedBox(
-        width: 44,
-        height: 44,
+        width: AppleTouch.minTarget,
+        height: AppleTouch.minTarget,
         // V-12（审计 2026-09-27）：色阶点键盘焦点此前只有 focusColor
         // overlay——补 2px Focus Blue 描边环。
         child: AppleFocusRing(

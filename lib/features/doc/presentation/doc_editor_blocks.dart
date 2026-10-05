@@ -261,8 +261,8 @@ extension DocEditorBlocks on DocEditorState {
         label: AppLocalizations.of(context)?.blkDragToSort ?? '拖拽排序',
         button: true,
         child: SizedBox(
-          width: 44,
-          height: 44,
+          width: AppleTouch.minTarget,
+          height: AppleTouch.minTarget,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => _selectBlock(block.id),
@@ -401,8 +401,8 @@ extension DocEditorBlocks on DocEditorState {
           button: true,
           checked: checked,
           child: SizedBox(
-            width: 44,
-            height: 44,
+            width: AppleTouch.minTarget,
+            height: AppleTouch.minTarget,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => _toggleTodo(block.id),
@@ -438,8 +438,8 @@ extension DocEditorBlocks on DocEditorState {
           button: true,
           expanded: expanded,
           child: SizedBox(
-            width: 44,
-            height: 44,
+            width: AppleTouch.minTarget,
+            height: AppleTouch.minTarget,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => _toggleToggleExpanded(block.id),

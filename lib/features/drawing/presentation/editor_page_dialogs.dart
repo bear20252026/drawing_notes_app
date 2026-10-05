@@ -204,7 +204,7 @@ class _TextInputDialogState extends State<_TextInputDialog> {
                 ),
               ),
               SizedBox(
-                width: 44,
+                width: AppleTouch.minTarget,
                 child: Text(
                   '${_fontSize.round()}',
                   textAlign: TextAlign.right,

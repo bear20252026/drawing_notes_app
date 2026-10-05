@@ -75,8 +75,8 @@ class PropertiesPanel extends StatelessWidget {
                         AppLocalizations.of(context)?.propBrushColor ?? '画笔颜色',
                     // 热区 44×44（审计二-1：HIG 最小触控尺寸），视觉圆点保持 28。
                     child: SizedBox(
-                      width: 44,
-                      height: 44,
+                      width: AppleTouch.minTarget,
+                      height: AppleTouch.minTarget,
                       child: Center(
                         child: AppleFocusRing(borderRadius: AppleRadius.md, child: InkWell(
                           borderRadius: BorderRadius.circular(AppleRadius.md),
@@ -279,8 +279,8 @@ class PropertiesPanel extends StatelessWidget {
                           AppLocalizations.of(context)?.propTextColor ?? '文字颜色',
                       // 热区 44×44（审计二-1），视觉圆点保持 22。
                       child: SizedBox(
-                        width: 44,
-                        height: 44,
+                        width: AppleTouch.minTarget,
+                        height: AppleTouch.minTarget,
                         child: Center(
                           child: AppleFocusRing(borderRadius: AppleRadius.md, child: InkWell(
                             borderRadius: BorderRadius.circular(AppleRadius.md),

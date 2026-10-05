@@ -151,7 +151,7 @@ class DatabaseTableView extends StatelessWidget {
 
   Widget _header(BuildContext context) {
     return SizedBox(
-      height: 44,
+      height: AppleTouch.minTarget,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -261,8 +261,8 @@ class DatabaseTableView extends StatelessWidget {
           checked: value,
           button: true,
           child: SizedBox(
-            width: 44,
-            height: 44,
+            width: AppleTouch.minTarget,
+            height: AppleTouch.minTarget,
             // V-12（审计 2026-09-27）：表格勾选框键盘焦点此前只有
             // focusColor overlay——补 2px Focus Blue 描边环。
             // 半径 0：InkWell 无 borderRadius（方形），环随之为直角，

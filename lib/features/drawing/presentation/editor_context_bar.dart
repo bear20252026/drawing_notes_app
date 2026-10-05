@@ -329,8 +329,8 @@ class EditorContextBar extends StatelessWidget {
             // 热区 44×44（HIG 最小触控尺寸），视觉圆点保持 26（同
             // properties_panel 颜色圆点写法）。
             child: SizedBox(
-              width: 44,
-              height: 44,
+              width: AppleTouch.minTarget,
+              height: AppleTouch.minTarget,
               child: Center(
                 child: Container(
                   width: 26,

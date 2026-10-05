@@ -138,6 +138,17 @@ abstract final class AppleSpacing {
   static const double xxl = 48;
 }
 
+/// 触控与指针命中区尺寸（**不是**间距刻度，故不入 [AppleSpacing]）。
+///
+/// AGENTS.md §3 硬要求「触控目标 ≥ 44×44」，DESIGN.md 同口径；此前这条要求在
+/// 代码里以 22 个调用点（37 个字面量）的裸 `44` 散落存在（`SizedBox(width: 44,
+/// height: 44)` 热区、三个按钮主题的 `Size(44, 44)`），改小了不会有任何门禁报警，
+/// 也无法 grep 审计。收敛成具名常量后，§3 的最小目标变成一处可验证的事实。
+abstract final class AppleTouch {
+  /// 可点击目标的最小边长（触屏主用设备，含图标按钮的热区，不只是图标本体）。
+  static const double minTarget = 44;
+}
+
 /// Apple 圆角刻度。
 ///
 /// 数值严格对齐 DESIGN.md:127-135（`rounded:` 段），**不得自创中间值**：

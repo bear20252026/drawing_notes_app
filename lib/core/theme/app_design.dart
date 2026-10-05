@@ -163,7 +163,7 @@ abstract final class AppDesign {
       filledButtonTheme: FilledButtonThemeData(
         style:
             FilledButton.styleFrom(
-              minimumSize: const Size(44, 44),
+              minimumSize: const Size(AppleTouch.minTarget, AppleTouch.minTarget),
               textStyle: base.textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -178,7 +178,7 @@ abstract final class AppDesign {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style:
             OutlinedButton.styleFrom(
-              minimumSize: const Size(44, 44),
+              minimumSize: const Size(AppleTouch.minTarget, AppleTouch.minTarget),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               side: BorderSide(color: colorScheme.outlineVariant),
               shape: RoundedRectangleBorder(
@@ -191,7 +191,7 @@ abstract final class AppDesign {
       iconButtonTheme: IconButtonThemeData(
         style:
             IconButton.styleFrom(
-              minimumSize: const Size(44, 44),
+              minimumSize: const Size(AppleTouch.minTarget, AppleTouch.minTarget),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppleRadius.md),
               ),

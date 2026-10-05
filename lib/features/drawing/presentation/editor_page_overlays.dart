@@ -198,8 +198,8 @@ extension _EditorPageOverlays on _EditorPageState {
                                             ) ??
                                             '画布对象：旋转手柄',
                                         child: SizedBox(
-                                          width: 44,
-                                          height: 44,
+                                          width: AppleTouch.minTarget,
+                                          height: AppleTouch.minTarget,
                                           child: Center(
                                             child: GestureDetector(
                                               behavior: HitTestBehavior.opaque,
