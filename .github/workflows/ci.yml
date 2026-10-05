@@ -18,7 +18,13 @@ jobs:
   analyze-and-test:
     name: Analyze + Test + Metrics
     runs-on: windows-latest
-    timeout-minutes: 30
+    # 30 → 45（批次 AU，2026-10-05）：GitHub 托管 Windows runner 有速度方差，
+    # 同一条 job 在 `c8de3ca` 用 15.3 分钟（unit 5.9 + real-KDF 6.8 + DCM 0.4），
+    # 到 `13942ea` 同一批步骤跑了 25+ 分钟（unit 11.2 + real-KDF 13.8），
+    # 于是**没改任何东西的 DCM 步骤被 30 分钟上限连带取消**（conclusion=cancelled，
+    # 看着像门禁挂了，实为预算不足）。30 分钟只给了基线约 2 倍余量，容不下慢 runner 日。
+    # 45 分钟仍是有界上限（quality_gate.yml 本来就是 60），不是无限放水。
+    timeout-minutes: 45
 
     steps:
       # Skylos SKY-D293（2026-08-16）：checkout 不持久化凭据（无后续 git push）。
