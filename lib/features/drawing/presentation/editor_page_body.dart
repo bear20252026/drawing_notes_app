@@ -206,6 +206,7 @@ extension _EditorPageBody on _EditorPageState {
       }),
       onShape: _selectShapeTool,
       onLink: _toggleLinkMode,
+      onInsertImage: _insertImage,
     );
   }
 }

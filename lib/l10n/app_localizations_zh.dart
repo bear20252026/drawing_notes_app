@@ -189,6 +189,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lockOff => '未开启';
 
   @override
+  String get lockPlaintextNotice =>
+      '当前未设置应用密码：笔记正文与图片在本机以未加密形式保存。设置密码后，新写入的内容会以 AES-256-GCM 加密存储。';
+
+  @override
   String get lockChangePassword => '修改密码';
 
   @override
@@ -1655,6 +1659,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get obAutosaveTip => '内容自动保存，无需手动保存；可随时导出为 PNG';
 
   @override
+  String get obSecurityTip => '数据安全：默认只存本机、不联网；在「设置 › 应用锁」设密码后，正文与图片会加密保存';
+
+  @override
   String get syncFailedAuth => '同步失败：用户名或密码不对（服务器拒绝登录）';
 
   @override
@@ -2216,6 +2223,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get edImageLabel => '图片';
+
+  @override
+  String get edInsertImage => '插入图片';
 
   @override
   String get edNoteImageStoreUnavailable => '笔记页图片存储不可用';

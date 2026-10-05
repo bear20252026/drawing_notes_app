@@ -34,10 +34,11 @@
 // 转发器不漏、插值不静默放行），门禁不是恒真。
 //
 // 已知口径局限（不是豁免）：语料只回答「这个串在 lib/arb 里存在吗」，不回答
-// 「在被 pump 的那个页面上会不会渲染」。故 toolbar_test.dart 的
-// `find.byTooltip('插入图片')`（旧横栏 editor_toolbar.dart:162 随 247f3b1
-// 删除、`_insertImage` 现无 UI 消费方）能过门禁但真机必红——属产品入口缺口，
-// 已在该用例注释留证据并交宿主裁决，不在文案门禁里伪装成合规。
+// 「在被 pump 的那个页面上会不会渲染」。曾经栽过一例：toolbar_test.dart 的
+// `find.byTooltip('插入图片')` 能过本门禁（旧横栏 editor_toolbar.dart:162 随
+// 247f3b1 删除后 `_insertImage` 无 UI 消费方），真机却必红。AR-1（2026-10-05）
+// 已把该入口补回左工具条并落 arb 键 edInsertImage，串现在既有语料也有渲染点；
+// 但**局限本身不变**——本门禁仍不能证明「文案会在被测试的那个页面上出现」。
 
 import 'dart:convert';
 import 'dart:io';

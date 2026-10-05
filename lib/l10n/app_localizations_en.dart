@@ -194,6 +194,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lockOff => 'Off';
 
   @override
+  String get lockPlaintextNotice =>
+      'No app password is set: note text and images are stored unencrypted on this device. Once you set a password, newly written content is encrypted with AES-256-GCM.';
+
+  @override
   String get lockChangePassword => 'Change Password';
 
   @override
@@ -1727,6 +1731,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Content autosaves — no manual save needed; export to PNG anytime';
 
   @override
+  String get obSecurityTip =>
+      'Privacy: everything stays on this device and offline by default; set a password under Settings › App lock to encrypt notes and images';
+
+  @override
   String get syncFailedAuth =>
       'Sync failed: wrong username or password (server rejected the login)';
 
@@ -2310,6 +2318,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get edImageLabel => 'Image';
+
+  @override
+  String get edInsertImage => 'Insert image';
 
   @override
   String get edNoteImageStoreUnavailable => 'Note image storage unavailable';

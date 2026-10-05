@@ -21,6 +21,7 @@ import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:drawing_notes_app/core/security/session_secrets.dart';
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';

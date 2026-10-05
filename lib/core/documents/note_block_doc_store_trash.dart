@@ -312,14 +312,7 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
     }
     // 新原子格式：rename 回激活区
     await f.rename(active.path);
-    final meta = File('$trashFile.meta.json');
-    if (meta.existsSync()) {
-      try {
-        await meta.delete();
-      } catch (_) {
-        /* 幂等清理：meta 副文件删除尽力而为（TOCTOU 竞态），不阻断恢复 */
-      }
-    }
+    await _deleteTrashMetaSidecar(File('$trashFile.meta.json'));
     onWrite?.call();
     return true;
   }
@@ -333,14 +326,7 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
     final f = File(trashFile);
     if (!f.existsSync()) return false;
     await f.delete();
-    final meta = File('$trashFile.meta.json');
-    if (meta.existsSync()) {
-      try {
-        await meta.delete();
-      } catch (_) {
-        /* 幂等清理：meta 副文件删除尽力而为（TOCTOU 竞态），主文件已删即成功 */
-      }
-    }
+    await _deleteTrashMetaSidecar(File('$trashFile.meta.json'));
     onWrite?.call();
     return true;
   }
@@ -362,22 +348,54 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
             );
             if (entry != null && entry.deletedAt.isBefore(cutoff)) {
               await entity.delete();
-              final meta = File('${entity.path}.meta.json');
-              if (meta.existsSync()) {
-                try {
-                  await meta.delete();
-                } catch (_) {
-                  /* 幂等清理：meta 副文件删除尽力而为，单条失败不中断整批清扫 */
-                }
-              }
+              await _deleteTrashMetaSidecar(File('${entity.path}.meta.json'));
               purged++;
             }
           } catch (_) {
             continue;
           }
         }
+        // T-01 残留（审计 2026-09-27 复核）：上一轮若正文删成功、meta 删失败，
+        // 盘上会留孤儿 `<id>.json.meta.json`。每次过期清扫顺带回扫一次，
+        // 使「删除不成对」不再永久残留。
+        await for (final entity in dir.list()) {
+          if (entity is! File || !entity.path.endsWith('.meta.json')) continue;
+          final subject = entity.path.substring(
+            0,
+            entity.path.length - '.meta.json'.length,
+          );
+          if (File(subject).existsSync()) continue;
+          await _deleteTrashMetaSidecar(entity);
+        }
         return purged;
       });
+
+  /// 删除回收站条目的 `.meta.json` 副文件（T-01 残留收口，AR 批 2026-10-05）。
+  ///
+  /// 三个调用点原先各自「尽力删 + 吞异常」，正文删成功而 meta 删失败时盘上
+  /// 留下孤儿且**零信号**。现在重试一次、仍失败则记审计后继续：返回值语义不变
+  /// （主文件已删即成功），孤儿 meta 只含 deletedAt 时间戳、无正文，`listTrash`
+  /// 跳过 `.meta.json` 所以不会显示成幽灵条目。
+  /// TOCTOU：删失败时文件若已不存在（被并发删除），视为成功。
+  Future<void> _deleteTrashMetaSidecar(File meta) async {
+    for (var attempt = 0; attempt < 2; attempt++) {
+      try {
+        if (!meta.existsSync()) return;
+        await meta.delete();
+        return;
+      } catch (_) {
+        if (!meta.existsSync()) return;
+        if (attempt == 1) {
+          final segments = meta.uri.pathSegments;
+          AuditLogger.log(
+            'notes.blockdoc.trash.meta_orphaned',
+            success: false,
+            detail: segments.isEmpty ? 'meta' : segments.last,
+          );
+        }
+      }
+    }
+  }
 
   Future<Directory> _ensureTrashDir() async {
     if (_trashDir != null) return _trashDir!;

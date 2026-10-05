@@ -36,6 +36,7 @@ class EditorLeftToolbar extends StatelessWidget {
     required this.onText,
     required this.onShape,
     required this.onLink,
+    required this.onInsertImage,
   });
 
   final DrawingController controller;
@@ -57,6 +58,13 @@ class EditorLeftToolbar extends StatelessWidget {
   final VoidCallback onText;
   final ValueChanged<ShapeType> onShape;
   final VoidCallback onLink;
+
+  /// 「插入图片」动作（AR-1，审计 2026-10-05）：非模式切换，点了就选文件并
+  /// 落到画布中心。旧横栏 `editor_toolbar.dart` 随 `247f3b1` 整文件删除后，
+  /// `_insertImage` 只剩 `EditorToolbarActions.insertImage` 这个无人读取的
+  /// 字段 ⇒ 画布编辑器一度没有图片入口。挂在工具条末端而非工具位，
+  /// 因为它没有「选中态」。
+  final VoidCallback onInsertImage;
 
   @override
   Widget build(BuildContext context) {
@@ -159,6 +167,13 @@ class EditorLeftToolbar extends StatelessWidget {
                 AppLocalizations.of(context)?.toolNodeLink ?? '节点连线',
                 linkMode,
                 onLink,
+              ),
+              // 插入图片（动作项，非工具态：恒不选中）
+              _tool(
+                Icons.image_outlined,
+                AppLocalizations.of(context)?.edInsertImage ?? '插入图片',
+                false,
+                onInsertImage,
               ),
               Divider(height: 12, color: scheme.outlineVariant),
             ],

@@ -157,6 +157,10 @@
   "@lockOff": {
     "description": "开关未开启状态"
   },
+  "lockPlaintextNotice": "当前未设置应用密码：笔记正文与图片在本机以未加密形式保存。设置密码后，新写入的内容会以 AES-256-GCM 加密存储。",
+  "@lockPlaintextNotice": {
+    "description": "S-10：未设密码时的明文落盘告知（设置页应用锁卡片下方）"
+  },
   "lockChangePassword": "修改密码",
   "@lockChangePassword": {
     "description": "修改应用锁密码入口"
@@ -1644,6 +1648,10 @@
   "@obPinchTip": {},
   "obAutosaveTip": "内容自动保存，无需手动保存；可随时导出为 PNG",
   "@obAutosaveTip": {},
+  "obSecurityTip": "数据安全：默认只存本机、不联网；在「设置 › 应用锁」设密码后，正文与图片会加密保存",
+  "@obSecurityTip": {
+    "description": "S-10：首启引导里的数据保护告知（原引导只讲工具，不提加密状态）"
+  },
   "syncFailedAuth": "同步失败：用户名或密码不对（服务器拒绝登录）",
   "@syncFailedAuth": {},
   "syncFailedRejected": "同步失败：服务器拒绝了这次请求（HTTP {code}）",
@@ -2064,6 +2072,8 @@
   },
   "edImageLabel": "图片",
   "@edImageLabel": {},
+  "edInsertImage": "插入图片",
+  "@edInsertImage": {},
   "edNoteImageStoreUnavailable": "笔记页图片存储不可用",
   "@edNoteImageStoreUnavailable": {},
   "edDrawingImageStoreUnavailable": "绘图文档图片存储不可用",

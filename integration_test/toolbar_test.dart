@@ -143,12 +143,13 @@ void main() {
   testWidgets('工具栏可用：图片工具按钮存在且可点击', (tester) async {
     await pumpEditor(tester);
 
-    // 无法文案修复——该入口已不存在：'插入图片' tooltip 来自旧横栏
-    // editor_toolbar.dart:162（随 247f3b1 整文件删除）。现 `_insertImage`
-    // （editor_page_editing.dart:247）只被赋给 EditorToolbarActions.insertImage
-    // （editor_page_toolbar_actions.dart:83），全 lib 无读取方 → 编辑器无图片
-    // 按钮。本用例真机必红，属产品缺口（AGENTS.md §7 删入口需同意），交宿主
-    // 裁决「补入口」还是「授权改用例」，不在文案修复范围内擅改。
+    // AR-1（审计 2026-10-05）入口已补回：'插入图片' tooltip 原来自旧横栏
+    // editor_toolbar.dart:162（随 247f3b1 整文件删除），此后 `_insertImage`
+    // 只被赋给 EditorToolbarActions.insertImage、全 lib 无读取方 → 本用例
+    // 真机必红。现按动作项挂在左工具条末端
+    // （editor_left_toolbar.dart `_tool(Icons.image_outlined, edInsertImage)`，
+    // 经 editor_page_body.dart 的 `onInsertImage: _insertImage` 接线），
+    // 文案走新 arb 键 edInsertImage（zh「插入图片」/ en "Insert image"）。
     final imgBtn = find.byTooltip('插入图片');
     expect(imgBtn, findsOneWidget, reason: '工具栏应有插入图片按钮');
     // 点击触发文件选择器（测试环境会取消），不应抛异常。

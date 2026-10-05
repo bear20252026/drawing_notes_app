@@ -267,6 +267,57 @@ void main() {
       );
     });
 
+    test('T-01 残留收口：孤儿 sidecar 由过期清扫回扫删除（AR 批 2026-10-05）', () async {
+      // 上一轮的 T-01 断言只覆盖 happy path（正文与 meta 都在/都不在）。
+      // 产码窗口是「正文删成功、meta 删失败」——盘上留下 `<id>.json.meta.json`
+      // 孤儿，删除时间线仍可被枚举。现在 purgeExpiredTrash 末尾回扫孤儿。
+      Directory? base;
+      final store = NoteBlockDocStore(
+        directoryProvider: () async => base ??= await _tempDir(),
+      );
+      await store.saveDocument(
+        NoteBlockDoc(
+          id: 'orphan1',
+          title: '孤儿对照',
+          createdAt: DateTime(2026, 8, 31),
+          updatedAt: DateTime(2026, 8, 31),
+        ),
+      );
+      expect(await store.deleteDocument('orphan1'), isTrue);
+      final orphan = _trashFilesOf(base!, 'orphan1');
+      expect(orphan.meta.existsSync(), isTrue, reason: 'deleteDocument 应已写 sidecar');
+      // 制造删除失败后的盘上状态：只剩 sidecar。
+      orphan.doc.deleteSync();
+
+      // retainDays 给很大值 ⇒ 本轮「没有任何条目过期」，但孤儿回扫仍应执行。
+      await store.purgeExpiredTrash(retainDays: 3650);
+      expect(
+        orphan.meta.existsSync(),
+        isFalse,
+        reason: '正文已不存在的孤儿 sidecar 应被回扫删除',
+      );
+
+      // 反向锁：配对完整（正文仍在）的 sidecar 不得被回扫误删——
+      // 否则过期判定源 deletedAt 就没了，回收站会显示成错误时间。
+      await store.saveDocument(
+        NoteBlockDoc(
+          id: 'keep1',
+          title: '配对完整项',
+          createdAt: DateTime(2026, 8, 31),
+          updatedAt: DateTime(2026, 8, 31),
+        ),
+      );
+      expect(await store.deleteDocument('keep1'), isTrue);
+      final kept = _trashFilesOf(base!, 'keep1');
+      expect(kept.doc.existsSync(), isTrue);
+      await store.purgeExpiredTrash(retainDays: 3650);
+      expect(
+        kept.meta.existsSync(),
+        isTrue,
+        reason: '正文仍在的 sidecar 不得被孤儿回扫误删（它是 deletedAt 的读取源）',
+      );
+    });
+
     test('C14：删除时间读取 sidecar JSON 的 deletedAt 字段（非 mtime）', () async {
       // 捕获目录：directoryProvider 每次调用生成新临时目录，需拿到首个。
       late Directory captured;

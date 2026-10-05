@@ -113,6 +113,14 @@ class _OnboardingDialog extends StatelessWidget {
                   AppLocalizations.of(context)?.obAutosaveTip ??
                   '内容自动保存，无需手动保存；可随时导出为 PNG',
             ),
+            // S-10（AR-2，2026-10-05）：引导原先只讲工具，用户不会知道默认是
+            // 明文落盘、以及在哪里开启加密。
+            _TipRow(
+              icon: Icons.shield_outlined,
+              text:
+                  AppLocalizations.of(context)?.obSecurityTip ??
+                  '数据安全：默认只存本机、不联网；在「设置 › 应用锁」设密码后，正文与图片会加密保存',
+            ),
           ],
         ),
       ),

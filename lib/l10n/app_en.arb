@@ -248,6 +248,10 @@
   "@lockOff": {
     "description": "开关未开启状态"
   },
+  "lockPlaintextNotice": "No app password is set: note text and images are stored unencrypted on this device. Once you set a password, newly written content is encrypted with AES-256-GCM.",
+  "@lockPlaintextNotice": {
+    "description": "S-10：未设密码时的明文落盘告知（设置页应用锁卡片下方）"
+  },
   "lockChangePassword": "Change Password",
   "@lockChangePassword": {
     "description": "修改应用锁密码入口"
@@ -1665,6 +1669,10 @@
   "@obPinchTip": {},
   "obAutosaveTip": "Content autosaves — no manual save needed; export to PNG anytime",
   "@obAutosaveTip": {},
+  "obSecurityTip": "Privacy: everything stays on this device and offline by default; set a password under Settings › App lock to encrypt notes and images",
+  "@obSecurityTip": {
+    "description": "S-10：首启引导里的数据保护告知（原引导只讲工具，不提加密状态）"
+  },
   "syncFailedAuth": "Sync failed: wrong username or password (server rejected the login)",
   "@syncFailedAuth": {},
   "syncFailedRejected": "Sync failed: the server rejected this request (HTTP {code})",
@@ -2085,6 +2093,8 @@
   },
   "edImageLabel": "Image",
   "@edImageLabel": {},
+  "edInsertImage": "Insert image",
+  "@edInsertImage": {},
   "edNoteImageStoreUnavailable": "Note image storage unavailable",
   "@edNoteImageStoreUnavailable": {},
   "edDrawingImageStoreUnavailable": "Drawing image storage unavailable",

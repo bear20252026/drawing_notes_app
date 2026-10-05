@@ -460,6 +460,10 @@ class NotebookStorage
   /// 旧明文媒体迁移（H-03 专家审计 2026-08-15）：解锁后批量重加密——
   /// payload-plugins 批量加密器模式（幂等——已 DAN 密文跳过）。
   /// 返回迁移的文件数；未解锁（会话密钥未注入）返回 0。
+  ///
+  /// S-05（AR 批 2026-10-05）：判定改为**明文签名白名单**，DNV 信封与认不出
+  /// 头部的文件一律跳过并记审计。代价是极少数头部损坏的历史明文媒体不会被
+  /// 迁移（保持明文、仍可读），换来的是「绝不把密文当明文二次加密」。
   Future<int> migrateLegacyMedia() async {
     // C-06：媒体服务构造注入（null 降级 = 既有「未注入」语义——不迁移）。
     final service = mediaCrypto;
@@ -471,6 +475,27 @@ class NotebookStorage
       try {
         final bytes = await entity.readAsBytes();
         if (MediaCryptoService.isEncryptedFile(bytes)) continue;
+        // S-05（审计 2026-09-27，AR-2 批 2026-10-05 处置）：本目录里的媒体有
+        // 三种成对写盘形态（storeImage 的三级加密封支）——① DAN 会话密钥密文、
+        // ② DNV 保险库信封（AAD 绑 file:<basename>）、③ 明文。原判定只认 ①，
+        // 于是 ② 会被当成"明文"再包一层 DAN ⇒ 双重加密、永久解不开。
+        // 现在改成**签名白名单 fail-closed**：只认已知明文图片头才迁移，
+        // 其余一律跳过并记审计（宁可少迁，不可坏迁）。
+        if (_isDnvEnvelope(bytes)) {
+          AuditLogger.log(
+            'notebook.media.migrate_skip',
+            detail: 'dnv_envelope:${entity.uri.pathSegments.last}',
+          );
+          continue;
+        }
+        if (!_hasPlaintextMediaSignature(bytes)) {
+          AuditLogger.log(
+            'notebook.media.migrate_skip',
+            success: false,
+            detail: 'unknown_header:${entity.uri.pathSegments.last}',
+          );
+          continue;
+        }
         // R-05（审计 2026-09-27）：原地重加密非原子——写中崩溃留下半明文
         // 半密文文件、永久不可解密（「幂等」只覆盖写前失败）。tmp + rename。
         final tmp = File(
@@ -493,6 +518,45 @@ class NotebookStorage
       }
     }
     return migrated;
+  }
+
+  /// DNV 保险库信封文件头（魔数 'DNV' + 已知版本字节，见 vault_file_codec.dart
+  /// 的格式表：0x01 载荷 / 0x02 KDF 槽 / 0x03 槽位头）。S-05：迁移器必须认出它，
+  /// 否则会把信封当明文再包一层 DAN ⇒ 双重加密、永久解不开。
+  static bool _isDnvEnvelope(Uint8List bytes) =>
+      bytes.length >= 4 &&
+      bytes[0] == 0x44 &&
+      bytes[1] == 0x4E &&
+      bytes[2] == 0x56 &&
+      bytes[3] <= 0x03;
+
+  /// 已知**明文**图片签名白名单（S-05 的 fail-closed 判据）：认不出的头部一律
+  /// 不迁移——未知即可能是某种密文，重加密是不可逆损坏。SVG 走文本嗅探，
+  /// 与 [_requiresSvgPreflight] 同一口径。
+  static bool _hasPlaintextMediaSignature(Uint8List b) {
+    if (b.length < 4) return false;
+    bool at(int offset, List<int> sig) {
+      if (offset + sig.length > b.length) return false;
+      for (var k = 0; k < sig.length; k++) {
+        if (b[offset + k] != sig[k]) return false;
+      }
+      return true;
+    }
+
+    if (at(0, [0x89, 0x50, 0x4E, 0x47])) return true; // PNG
+    if (at(0, [0xFF, 0xD8, 0xFF])) return true; // JPEG
+    if (at(0, [0x47, 0x49, 0x46, 0x38])) return true; // GIF87a/GIF89a
+    if (at(0, [0x42, 0x4D])) return true; // BMP
+    if (at(0, [0x49, 0x49, 0x2A, 0x00])) return true; // TIFF (LE)
+    if (at(0, [0x4D, 0x4D, 0x00, 0x2A])) return true; // TIFF (BE)
+    if (at(0, [0x52, 0x49, 0x46, 0x46]) && at(8, [0x57, 0x45, 0x42, 0x50])) {
+      return true; // RIFF....WEBP
+    }
+    if (at(4, [0x66, 0x74, 0x79, 0x70])) return true; // ISO-BMFF: HEIC/HEIF
+    final head = String.fromCharCodes(
+      b.take(2048).map((x) => x >= 0x20 && x < 0x7f ? x : 0x20),
+    ).toLowerCase();
+    return head.contains('<svg');
   }
 
   /// 全局媒体加密盐（H-03 方案 B 2026-08-15）：密码模式媒体加密的派生

@@ -108,6 +108,21 @@ class AppLockSettingsPage extends StatelessWidget {
                           : (l10n?.lockOff ?? '未开启'),
                     ),
                   ),
+                  // S-10（审计 2026-09-27，AR-2 于 2026-10-05 处置）：未设密码时
+                  // 正文与图片是明文落盘的，但此前这一页只写「未开启」，用户不会
+                  // 把它读成「数据不加密」。首启引导同样从不提加密状态。
+                  if (!service.isConfigured)
+                    ListTile(
+                      leading: Icon(
+                        Icons.lock_open_rounded,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      title: Text(
+                        l10n?.lockPlaintextNotice ??
+                            '当前未设置应用密码：笔记正文与图片在本机以未加密形式保存。'
+                                '设置密码后，新写入的内容会以 AES-256-GCM 加密存储。',
+                      ),
+                    ),
                   if (service.isConfigured)
                     ListTile(
                       leading: const Icon(Icons.password_rounded),

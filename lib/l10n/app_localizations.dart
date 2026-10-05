@@ -440,6 +440,12 @@ abstract class AppLocalizations {
   /// **'Off'**
   String get lockOff;
 
+  /// S-10：未设密码时的明文落盘告知（设置页应用锁卡片下方）
+  ///
+  /// In en, this message translates to:
+  /// **'No app password is set: note text and images are stored unencrypted on this device. Once you set a password, newly written content is encrypted with AES-256-GCM.'**
+  String get lockPlaintextNotice;
+
   /// 修改应用锁密码入口
   ///
   /// In en, this message translates to:
@@ -3176,6 +3182,12 @@ abstract class AppLocalizations {
   /// **'Content autosaves — no manual save needed; export to PNG anytime'**
   String get obAutosaveTip;
 
+  /// S-10：首启引导里的数据保护告知（原引导只讲工具，不提加密状态）
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy: everything stays on this device and offline by default; set a password under Settings › App lock to encrypt notes and images'**
+  String get obSecurityTip;
+
   /// No description provided for @syncFailedAuth.
   ///
   /// In en, this message translates to:
@@ -4261,6 +4273,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Image'**
   String get edImageLabel;
+
+  /// No description provided for @edInsertImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert image'**
+  String get edInsertImage;
 
   /// No description provided for @edNoteImageStoreUnavailable.
   ///
