@@ -58,8 +58,22 @@ void main() {
   /// （editor_left_toolbar.dart:221-238）。原先读 `IconButton.isSelected`，
   /// 但 `_tool` 从不传该参数（恒 null→`?? false`），`isTrue` 断言其实没有
   /// 过裁决力——现改读真正的选中编码（仍是「工具是否被选中」同一命题）。
+  ///
+  /// AU（2026-10-05 真机跑出来的缺陷）：`find.byTooltip` 命中的是框架**内部**的
+  /// `RawTooltip`，不是公开的 `Tooltip`。原写法
+  /// `tester.widget<Tooltip>(find.byTooltip(...))` 是运行时强转，真机上必抛
+  /// `_TypeError: type 'RawTooltip' is not a subtype of type 'Tooltip' in type cast`
+  /// ——`flutter analyze` 抓不到（静态类型是 Widget，强转在运行时才判），而 CI 从不
+  /// 跑 integration_test，所以这条在真机验证前一直是红的。现改走「取公开 Tooltip
+  /// 祖先」并显式判空，取不到即按未选中处理（不再有强转炸点）。
   bool isToolSelected(WidgetTester tester, String tooltip) {
-    final child = tester.widget<Tooltip>(find.byTooltip(tooltip)).child;
+    final public = find.ancestor(
+      of: find.byTooltip(tooltip),
+      matching: find.byType(Tooltip),
+    );
+    final elements = public.evaluate().toList();
+    if (elements.isEmpty) return false;
+    final child = (elements.first.widget as Tooltip).child;
     if (child is! Container) return false;
     final decoration = child.decoration;
     return decoration is BoxDecoration &&
