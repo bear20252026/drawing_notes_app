@@ -14,7 +14,6 @@ import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:drawing_notes_app/features/drawing/application/doc_command_context.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_image_cache.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
-import 'package:drawing_notes_app/features/drawing/application/document_edit_history.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_object_editing_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_selection_session.dart';
 import 'package:drawing_notes_app/features/drawing/application/stroke_input_session.dart';
@@ -26,6 +25,10 @@ import 'package:drawing_notes_app/features/drawing/application/document_transact
 import 'package:drawing_notes_app/features/drawing/application/drawing_viewport.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
 import 'package:drawing_notes_app/features/drawing/application/temporary_ink_session.dart';
+import 'package:drawing_notes_app/features/drawing/application/services/stroke_service.dart';
+import 'package:drawing_notes_app/features/drawing/application/services/layer_service.dart';
+import 'package:drawing_notes_app/features/drawing/application/services/selection_service.dart';
+import 'package:drawing_notes_app/features/drawing/application/services/history_service.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/ink_layer_painter.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/layer_compositor.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/shape_binding_geometry.dart';
@@ -81,16 +84,37 @@ class DrawingController extends ChangeNotifier
     );
     _documentObjectEditingSession = DocumentObjectEditingSession(this);
     _layerEditingSession = LayerEditingSession(this);
-    _strokeSelectionEditingSession = StrokeSelectionEditingSession(this);
-    _strokeSelectionInteractionSession = StrokeSelectionInteractionSession(
-      this,
-    );
-    // 手势边界统一收口：选区写入（换选区/清除选区/切工具/点选对象）前，
-    // 先把上一手势未提交的变换按「隐式收笔」结算成一条窄命令。
-    _selectionSession.pendingTransformSettler = settlePendingTransform;
+    _bindLayerServiceMigration();
   }
 
   final DrawingDocument _document;
+
+  /// 服务层入口（v2 架构迁移）：
+  ///
+  /// 目前保持向后兼容，由 Controller 继续协调旧会话；后续逐步把
+  /// Stroke/Layer 业务迁移到 Service，而不改变外部 API。
+  late final StrokeService strokeService = StrokeService(
+    onStart: (point, {pressure = 1.0}) =>
+        _strokeInputSession.startStroke(point, pressure: pressure),
+    onUpdate: (point, {pressure = 1.0}) =>
+        _strokeInputSession.extendStroke(point, pressure: pressure),
+    onFinish: () => _strokeInputSession.endStroke(),
+  );
+  final LayerService layerService = LayerService();
+
+  /// Selection/History service boundaries (v2 architecture migration).
+  ///
+  /// The existing sessions remain the source of truth during migration;
+  /// services provide stable extension points for plugins and AI features.
+  late final SelectionService selectionService = SelectionService(
+    interactionHost: this,
+    editingHost: this,
+    onChanged: _applyNotify,
+    onClearDocumentSelection: clearDocumentObjectSelection,
+  );
+  final HistoryService historyService = HistoryService(
+    maxEntries: maxHistoryEntries,
+  );
 
   @override
   DrawingDocument get document => _document;
@@ -218,12 +242,11 @@ class DrawingController extends ChangeNotifier
 
   @override
   void replaceStrokeSelection(Selection value) {
-    _selectionSession.selection = value;
-    _selectionSession.invalidateCenter();
+    selectionService.replaceSelection(value);
   }
 
   @override
-  void clearStrokeSelection() => _selectionSession.clearSelection();
+  void clearStrokeSelection() => selectionService.clearStrokeSelection();
 
   /// 手势边界结算：把未提交的选区变换按「隐式收笔」提交为一条窄命令（P-05）。
   ///
@@ -232,8 +255,7 @@ class DrawingController extends ChangeNotifier
   /// 直驱手势 endTransform 的收笔语义一致。调用点：选区写入 setter（见
   /// [DrawingSelectionSession.pendingTransformSettler]）、切层入口、起笔、起擦。
   /// 无未提交锚点时是空操作，锚点在结算当场置空，故一次手势只会产生一条记录。
-  void settlePendingTransform() =>
-      _strokeSelectionEditingSession.endTransform();
+  void settlePendingTransform() => selectionService.endTransform();
 
   /// 图片、形状及混合对象的选择和手势中间态由独立会话持有。
   late final DocumentObjectEditingSession _documentObjectEditingSession;
@@ -241,12 +263,6 @@ class DrawingController extends ChangeNotifier
   /// 图层增删、排序、合并和清空的快照编排由独立会话持有。
   late final LayerEditingSession _layerEditingSession;
 
-  /// 已选笔画的变换、剪贴板和快照提交由独立会话持有。
-  late final StrokeSelectionEditingSession _strokeSelectionEditingSession;
-
-  /// 矩形/套索草稿完成与笔画命中由独立会话持有。
-  late final StrokeSelectionInteractionSession
-  _strokeSelectionInteractionSession;
   bool _disposed = false;
   bool get isDisposed => _disposed;
 
@@ -585,7 +601,7 @@ class DrawingController extends ChangeNotifier
 
   @override
   void touchDocument() {
-    _editHistory.markDirty();
+    historyService.markDirty();
     _document.touch();
   }
 
@@ -594,10 +610,10 @@ class DrawingController extends ChangeNotifier
   ///
   /// 任何内容变更（命令入栈/触摸文档）都会置脏；自动保存成功后调用
   /// [markSaved] 清除。可用于标题栏未保存标记与退出前提示。
-  bool get isDirty => _editHistory.isDirty;
+  bool get isDirty => historyService.isDirty;
 
   /// 标记当前状态为"已保存"（自动保存成功后调用）。
-  void markSaved() => _editHistory.markSaved();
+  void markSaved() => historyService.markSaved();
 
   @override
   Future<void> afterStrokeUndoRedo(int layerIndex) =>
@@ -675,13 +691,8 @@ class DrawingController extends ChangeNotifier
   /// 超出上限时丢弃最旧的记录（与主流绘图软件行为一致）。
   static const int maxHistoryEntries = 60;
 
-  /// 命令栈、重做游标和保存状态由独立协作者维护。
-  late final DocumentEditHistory _editHistory = DocumentEditHistory(
-    maxEntries: maxHistoryEntries,
-  );
-
-  bool get canUndo => _editHistory.canUndo;
-  bool get canRedo => _editHistory.canRedo;
+  bool get canUndo => historyService.canUndo;
+  bool get canRedo => historyService.canRedo;
 
   /// 记录一条命令。
   ///
@@ -712,44 +723,27 @@ class DrawingController extends ChangeNotifier
   // ---------------- 选区与变换（Phase 4） ----------------
 
   /// 选区工具、草稿、变换缓存和剪贴板的运行时会话。
-  final DrawingSelectionSession _selectionSession = DrawingSelectionSession();
+  DrawingSelectionSession get _selectionSession => selectionService.session;
 
   /// 当前选区工具（none = 正常绘制）。
-  SelectionTool get selectionTool => _selectionSession.tool;
+  SelectionTool get selectionTool => selectionService.tool;
   set selectionTool(SelectionTool value) {
-    _selectionSession.setTool(value);
-    notifyListeners();
+    selectionService.setTool(value);
   }
 
   /// 当前选区（多边形 + 命中笔画）。
-  Selection get selection => _selectionSession.selection;
+  Selection get selection => selectionService.selection;
 
   /// 选区主色（对齐 Saber select.dart 的 getDominantStrokeColor）：
   /// 按笔画长度加权统计当前选中笔画的颜色，最“长”的颜色胜出，
   /// 用于"取主色/批量改色"时给出代表性颜色，避免被零星小笔画误导。
-  Color? get dominantStrokeColor {
-    final distribution = <int, double>{};
-    for (final index in _selectionSession.selection.selectedStrokeIndices) {
-      if (index < 0 || index >= currentLayer.strokes.length) continue;
-      final stroke = currentLayer.strokes[index];
-      distribution.update(
-        stroke.color.toARGB32(),
-        (weight) => weight + stroke.points.length,
-        ifAbsent: () => stroke.points.length.toDouble(),
-      );
-    }
-    if (distribution.isEmpty) return null;
-    final entry = distribution.entries.reduce(
-      (a, b) => a.value >= b.value ? a : b,
-    );
-    return Color(entry.key);
-  }
+  Color? get dominantStrokeColor => selectionService.dominantStrokeColor;
 
   /// 选区草稿（只读，供渲染层实时预览矩形/套索轮廓）。
-  List<Offset> get selectionDraft => _selectionSession.draft;
+  List<Offset> get selectionDraft => selectionService.draft;
 
-  bool get hasSelection => _selectionSession.hasSelection;
-  bool get hasSelectedStrokes => _selectionSession.hasSelectedStrokes;
+  bool get hasSelection => selectionService.hasSelection;
+  bool get hasSelectedStrokes => selectionService.hasSelectedStrokes;
 
   /// 开始绘制选区（工具按下时调用）。
 
@@ -768,6 +762,11 @@ class DrawingController extends ChangeNotifier
   @override
   void dispose() {
     if (_disposed) return;
+
+    strokeService.dispose();
+    layerService.dispose();
+    selectionService.dispose();
+    historyService.dispose();
     _disposed = true;
     _renderCacheCoordinator.dispose();
     _temporaryInkSession.dispose();

@@ -6,6 +6,9 @@ import 'package:drawing_notes_app/features/drawing/rendering/ink_layer_painter.d
 import 'package:drawing_notes_app/features/drawing/rendering/layer_compositor.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/shape_renderer.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
+import 'package:drawing_notes_app/features/drawing/rendering/render_context.dart';
+import 'package:drawing_notes_app/features/drawing/rendering/render_pipeline.dart';
+import 'package:drawing_notes_app/features/drawing/rendering/render_stage.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/canvas_model/selection.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
@@ -58,6 +61,16 @@ class CanvasPainter extends CustomPainter {
 
   final DrawingController controller;
 
+  late final RenderPipeline _pipeline = RenderPipeline(
+    stages: [
+      CallbackRenderStage(_paintPaper),
+      CallbackRenderStage(_paintLayers),
+      CallbackRenderStage(_paintObjects),
+      CallbackRenderStage(_paintInk),
+      CallbackRenderStage((context) => _paintSelection(context.canvas)),
+    ],
+  );
+
   @override
   void paint(Canvas canvas, Size size) {
     final doc = controller.document;
@@ -84,6 +97,16 @@ class CanvasPainter extends CustomPainter {
     canvas.scale(scale);
     canvas.translate(-center.dx, -center.dy);
 
+    try {
+      _pipeline.render(RenderContext(canvas: canvas, size: size));
+    } finally {
+      canvas.restore();
+    }
+  }
+
+  void _paintPaper(RenderContext context) {
+    final canvas = context.canvas;
+    final doc = controller.document;
     // 1. 分页笔记使用有限白色纸张与模板；无限绘图不绘制页面边界。
     final canvasRect = Rect.fromLTWH(
       0,
@@ -101,7 +124,17 @@ class CanvasPainter extends CustomPainter {
       );
       _paintPaperTemplate(canvas, doc);
     }
+  }
 
+  void _paintLayers(RenderContext context) {
+    final canvas = context.canvas;
+    final doc = controller.document;
+    final canvasRect = Rect.fromLTWH(
+      0,
+      0,
+      doc.width.toDouble(),
+      doc.height.toDouble(),
+    );
     // 2. 无限画布按可视区直接绘制矢量图层；分页笔记保留离屏位图缓存。
     if (doc.infinite) {
       controller.paintVectorLayers(canvas, canvas.getLocalClipBounds());
@@ -142,7 +175,11 @@ class CanvasPainter extends CustomPainter {
         );
       }
     }
+  }
 
+  void _paintObjects(RenderContext context) {
+    final canvas = context.canvas;
+    final doc = controller.document;
     // 3. 独立绘图文档的图片元素。位图由控制器惰性解码并缓存；首次加载
     // 完成后会仅刷新画布，避免整个编辑器因大图解码而卡顿。
     // U2 优化（2026-09-02，P1-14）：paint 每帧执行，List.of + sort 的
@@ -216,7 +253,17 @@ class CanvasPainter extends CustomPainter {
         locked: controller.mixedDocumentSelectionHasLockedObjects,
       );
     }
+  }
 
+  void _paintInk(RenderContext context) {
+    final canvas = context.canvas;
+    final doc = controller.document;
+    final canvasRect = Rect.fromLTWH(
+      0,
+      0,
+      doc.width.toDouble(),
+      doc.height.toDouble(),
+    );
     // 5. 活动笔画（正在画的这一笔实时预览）。
     // 高亮笔与已提交内容共享同一分层规则，避免收笔时视觉突变。
     final active = controller.activeStroke;
@@ -254,11 +301,6 @@ class CanvasPainter extends CustomPainter {
         opacity: laser.opacity,
       );
     }
-
-    // 8. 选区高亮.
-    _paintSelection(canvas);
-
-    canvas.restore();
   }
 
   /// 绘制独立图片对象的选择边界与四角操作提示。

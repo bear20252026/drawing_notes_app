@@ -92,8 +92,7 @@ extension DrawingControllerObjectOps on DrawingController {
   void selectDocumentObjectsInPolygon(List<Offset> polygon) =>
       _documentObjectEditingSession.selectDocumentObjectsInPolygon(
         polygon,
-        selectedStrokeIndices: _strokeSelectionInteractionSession
-            .hitTestStrokes(polygon),
+        selectedStrokeIndices: selectionService.hitTestStrokes(polygon),
       );
   void clearDocumentObjectSelection() =>
       _documentObjectEditingSession.clearDocumentObjectSelection();

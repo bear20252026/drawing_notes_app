@@ -7,26 +7,24 @@ part of 'drawing_controller.dart';
 /// 保留既有调用面，避免输入层、工具栏与测试发生迁移。
 extension DrawingControllerSelectionOps on DrawingController {
   void beginSelection(Offset canvasPoint) =>
-      _strokeSelectionInteractionSession.beginSelection(canvasPoint);
+      selectionService.beginSelection(canvasPoint);
 
   void extendSelection(Offset canvasPoint) =>
-      _strokeSelectionInteractionSession.extendSelection(canvasPoint);
+      selectionService.extendSelection(canvasPoint);
 
-  void endSelection() => _strokeSelectionInteractionSession.endSelection();
+  void endSelection() => selectionService.endSelection();
 
   /// 清除笔画、形状和图片的统一选择状态。
-  void clearSelection() => clearDocumentObjectSelection();
+  void clearSelection() => selectionService.clearSelection();
 
   void moveSelectedStrokes(Offset delta) =>
-      _strokeSelectionEditingSession.moveSelectedStrokes(delta);
+      selectionService.moveSelectedStrokes(delta);
   void scaleSelectedStrokes(double factor) =>
-      _strokeSelectionEditingSession.scaleSelectedStrokes(factor);
+      selectionService.scaleSelectedStrokes(factor);
   void rotateSelectedStrokes(double radians) =>
-      _strokeSelectionEditingSession.rotateSelectedStrokes(radians);
-  void endTransform() => _strokeSelectionEditingSession.endTransform();
-  void deleteSelectedStrokes() =>
-      _strokeSelectionEditingSession.deleteSelectedStrokes();
-  void copySelectedStrokes() =>
-      _strokeSelectionEditingSession.copySelectedStrokes();
-  void pasteClipboard() => _strokeSelectionEditingSession.pasteClipboard();
+      selectionService.rotateSelectedStrokes(radians);
+  void endTransform() => selectionService.endTransform();
+  void deleteSelectedStrokes() => selectionService.deleteSelectedStrokes();
+  void copySelectedStrokes() => selectionService.copySelectedStrokes();
+  void pasteClipboard() => selectionService.pasteClipboard();
 }
