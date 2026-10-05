@@ -306,7 +306,7 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
 
   Widget _buildSearchField(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppleSpacing.xs, vertical: AppleSpacing.xxs),
       child: TextField(
         controller: _searchController,
         focusNode: _searchFocusNode,
@@ -316,7 +316,7 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
           isDense: true,
           prefixIcon: Icon(Icons.search, size: 18),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 8),
+          contentPadding: EdgeInsets.symmetric(vertical: AppleSpacing.xs),
         ),
         style: AppleType.controlStyle(
           Theme.of(context).colorScheme.onSurface,
@@ -327,7 +327,7 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
 
   Widget _buildEmptyState(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppleSpacing.lg),
       child: Center(
         child: Text(
           AppLocalizations.of(context)?.slashNoMatch ?? '无匹配项',
@@ -347,7 +347,7 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
     // 构建扁平索引映射：每个可见项在可见列表中的位置。
     return ListView.builder(
       shrinkWrap: true,
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppleSpacing.xxs),
       itemCount: _countGroupedItems(groups),
       itemBuilder: (context, index) {
         return _buildGroupedItem(context, groups, visibleItems, index);
@@ -393,7 +393,7 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
 
   Widget _buildGroupHeader(BuildContext context, SlashItemGroup group) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+      padding: const EdgeInsets.fromLTRB(AppleSpacing.sm, AppleSpacing.sm, AppleSpacing.sm, AppleSpacing.xxs),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Text(
@@ -412,7 +412,7 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
       onTap: () => _selectItem(item),
       onHover: (_) => setState(() => _selectedIndex = globalIndex),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: AppleSpacing.sm, vertical: AppleSpacing.xs),
         color: isSelected
             ? Theme.of(
                 context,
@@ -421,7 +421,7 @@ class _BlockSlashMenuState extends State<BlockSlashMenu> {
         child: Row(
           children: [
             Icon(item.icon, size: 20),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppleSpacing.sm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

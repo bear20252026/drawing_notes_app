@@ -121,8 +121,8 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
                     final pressureLabel = pressure?.diagnostics;
                     return Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
+                        horizontal: AppleSpacing.sm,
+                        vertical: AppleSpacing.xxs,
                       ),
                       child: Row(
                         children: [
@@ -133,7 +133,7 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
                             size: 14,
                             color: theme.colorScheme.primary,
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: AppleSpacing.xxs),
                           // 各 Text 包 Flexible + ellipsis：窄屏/压感诊断
                           // 文案变长时收缩省略，不再溢出报错。
                           Flexible(
@@ -149,7 +149,7 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
                               style: theme.textTheme.bodySmall,
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: AppleSpacing.sm),
                           Flexible(
                             child: Text(
                               '${activeSize.round()}px',
@@ -158,7 +158,7 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
                             ),
                           ),
                           if (pressureLabel != null) ...[
-                            const SizedBox(width: 12),
+                            const SizedBox(width: AppleSpacing.sm),
                             Flexible(
                               child: Tooltip(
                                 message: pressure!.hasHardwarePressure
@@ -186,12 +186,12 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
                           // 保存状态芯片：状态切换带 toastIn 微动效
                           //（频率闸门：偶发档，标准动画合规）。
                           _buildSaveChip(theme, controller.isDirty),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: AppleSpacing.sm),
                           // 缩放胶囊：点开 50/100/200/适应画布。
                           _buildZoomPill(theme, scalePercent),
                           // 画布坐标读数：仅桌面 + 默认关（审计三-2）。
                           if (_isDesktop) ...[
-                            const SizedBox(width: 4),
+                            const SizedBox(width: AppleSpacing.xxs),
                             // 触控目标 ≥44×44：compact 密度下默认 ~40px，
                             // 补 min 约束（视觉不变，仅扩大命中区）。
                             IconButton(
@@ -214,7 +214,7 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
                             if (_coordsVisible)
                               Flexible(
                                 child: Padding(
-                                  padding: const EdgeInsets.only(left: 4),
+                                  padding: const EdgeInsets.only(left: AppleSpacing.xxs),
                                   child: Text(
                                     pos != null
                                         ? 'x:${pos.dx.round()} y:${pos.dy.round()}'
@@ -246,7 +246,7 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(_saveIcon, size: 14, color: color),
-        const SizedBox(width: 4),
+        const SizedBox(width: AppleSpacing.xxs),
         Text(label, style: theme.textTheme.bodySmall?.copyWith(color: color)),
       ],
     );
@@ -310,7 +310,7 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
           ),
         ],
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: AppleSpacing.xs, vertical: AppleSpacing.xxs),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -319,7 +319,7 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
                 size: 14,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: AppleSpacing.xxs),
               Text('$scalePercent%', style: theme.textTheme.bodySmall),
               // D-12（审计 2026-09-27）：2 → AppleSpacing.xxs（离档微间隙归一）。
               const SizedBox(width: AppleSpacing.xxs),

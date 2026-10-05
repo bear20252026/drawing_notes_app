@@ -73,7 +73,7 @@ class EditorLeftToolbar extends StatelessWidget {
     return GlassSurface(
       borderRadius: BorderRadius.circular(AppleRadius.lg),
       sigma: 12,
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(AppleSpacing.xxs),
       child: ListenableBuilder(
         listenable: controller,
         builder: (context, _) => SingleChildScrollView(

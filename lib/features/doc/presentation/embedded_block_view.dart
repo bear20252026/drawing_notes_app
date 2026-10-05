@@ -111,7 +111,7 @@ class EmbeddedBlockView extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppleSpacing.xs, horizontal: AppleSpacing.xxs),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -165,7 +165,7 @@ class EmbeddedBlockView extends StatelessWidget {
                                       context,
                                     ).colorScheme.outline,
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: AppleSpacing.xs),
                                   Text(
                                     AppLocalizations.of(
                                           context,
@@ -191,8 +191,8 @@ class EmbeddedBlockView extends StatelessWidget {
                       child: IgnorePointer(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
+                            horizontal: AppleSpacing.xs,
+                            vertical: AppleSpacing.xxs,
                           ),
                           decoration: BoxDecoration(
                             color: Colors.black54,
@@ -208,7 +208,7 @@ class EmbeddedBlockView extends StatelessWidget {
                                 color: Colors.white,
                                 size: 16,
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: AppleSpacing.xxs),
                               Text(
                                 AppLocalizations.of(context)?.embClickPreview ??
                                     '点击预览',
@@ -225,7 +225,7 @@ class EmbeddedBlockView extends StatelessWidget {
             ),
           ),
           if (caption.isNotEmpty) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: AppleSpacing.xxs),
             Text(
               caption,
               style:
@@ -258,7 +258,7 @@ class EmbeddedBlockView extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppleSpacing.xs, horizontal: AppleSpacing.xxs),
       child: AppleFocusRing(borderRadius: AppleRadius.xs, child: InkWell(
         borderRadius: BorderRadius.circular(AppleRadius.xs),
         onTap: () {
@@ -274,7 +274,7 @@ class EmbeddedBlockView extends StatelessWidget {
           );
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+          padding: const EdgeInsets.symmetric(vertical: AppleSpacing.sm, horizontal: AppleSpacing.sm),
           decoration: BoxDecoration(
             color: Theme.of(
               context,
@@ -293,7 +293,7 @@ class EmbeddedBlockView extends StatelessWidget {
                 size: 20,
                 color: Theme.of(context).colorScheme.primary,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppleSpacing.xs),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -360,7 +360,7 @@ class EmbeddedBlockView extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppleSpacing.xs, horizontal: AppleSpacing.xxs),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Table(
@@ -377,7 +377,7 @@ class EmbeddedBlockView extends StatelessWidget {
                     ? cellTexts[cellIndex]
                     : '';
                 return Padding(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(AppleSpacing.xs),
                   child: Text(
                     text,
                     style: AppleType.controlStyle(
@@ -426,9 +426,9 @@ class EmbeddedBlockView extends StatelessWidget {
     String? caption,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppleSpacing.xs, horizontal: AppleSpacing.xxs),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppleSpacing.md),
         decoration: BoxDecoration(
           color: AppleColor.panelOf(Theme.of(context).colorScheme),
           borderRadius: BorderRadius.circular(AppleRadius.sm),
@@ -440,7 +440,7 @@ class EmbeddedBlockView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 40, color: Theme.of(context).colorScheme.outline),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppleSpacing.xs),
             Text(
               label,
               style: AppleType.controlStyle(
@@ -448,7 +448,7 @@ class EmbeddedBlockView extends StatelessWidget {
               ).copyWith(fontWeight: FontWeight.w400),
             ),
             if (caption != null && caption.isNotEmpty) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: AppleSpacing.xxs),
               Text(
                 caption,
                 style: AppleType.captionStyle(

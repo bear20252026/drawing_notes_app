@@ -82,7 +82,7 @@ class _DrawingCardState extends State<_DrawingCard> {
           child: Row(
             children: [
               Icon(Icons.open_in_new_rounded, size: 18),
-              SizedBox(width: 8),
+              SizedBox(width: AppleSpacing.xs),
               Text(AppLocalizations.of(context)?.open ?? '打开'),
             ],
           ),
@@ -92,7 +92,7 @@ class _DrawingCardState extends State<_DrawingCard> {
           child: Row(
             children: [
               Icon(Icons.lock_outline_rounded, size: 18),
-              SizedBox(width: 8),
+              SizedBox(width: AppleSpacing.xs),
               Text(
                 AppLocalizations.of(context)?.homeStandalonePasswordMenu ??
                     '独立密码…',
@@ -105,7 +105,7 @@ class _DrawingCardState extends State<_DrawingCard> {
           child: Row(
             children: [
               Icon(Icons.delete_outline_rounded, size: 18),
-              SizedBox(width: 8),
+              SizedBox(width: AppleSpacing.xs),
               Text(AppLocalizations.of(context)?.delete ?? '删除'),
             ],
           ),
@@ -215,7 +215,7 @@ class _DrawingCardState extends State<_DrawingCard> {
                           const Align(
                             alignment: Alignment.topRight,
                             child: Padding(
-                              padding: EdgeInsets.all(8),
+                              padding: EdgeInsets.all(AppleSpacing.xs),
                               child: Icon(
                                 Icons.lock_rounded,
                                 size: 18,
@@ -230,7 +230,7 @@ class _DrawingCardState extends State<_DrawingCard> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+                    padding: const EdgeInsets.fromLTRB(AppleSpacing.sm, AppleSpacing.xs, AppleSpacing.xxs, AppleSpacing.xs),
                     child: Row(
                       children: [
                         Expanded(
@@ -318,7 +318,7 @@ class _CanvasSectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppDesign.pagePadding, 16, 16, 0),
+      padding: const EdgeInsets.fromLTRB(AppDesign.pagePadding, AppleSpacing.md, AppleSpacing.md, 0),
       child: Align(
         alignment: AlignmentDirectional.centerStart,
         child: Text(
@@ -364,7 +364,7 @@ class _NotebookCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppleSpacing.md),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -376,7 +376,7 @@ class _NotebookCard extends StatelessWidget {
                       color: scheme.primary,
                     ),
                     if (locked) ...[
-                      const SizedBox(width: 4),
+                      const SizedBox(width: AppleSpacing.xxs),
                       Icon(
                         Icons.lock_rounded,
                         size: 16,
@@ -399,7 +399,7 @@ class _NotebookCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppleSpacing.xxs),
                 Text(
                   subtitle,
                   maxLines: 1,

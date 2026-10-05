@@ -38,10 +38,10 @@ class AppleEmptyState extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 56, color: subtle),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppleSpacing.sm),
           Text(title, style: AppleType.titleStyle(scheme.onSurface)),
           if (tip != null) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: AppleSpacing.xxs),
             Text(
               tip!,
               textAlign: TextAlign.center,
@@ -49,7 +49,7 @@ class AppleEmptyState extends StatelessWidget {
             ),
           ],
           if (actions.isNotEmpty) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: AppleSpacing.md),
             Wrap(
               alignment: WrapAlignment.center,
               spacing: 12,

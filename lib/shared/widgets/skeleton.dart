@@ -83,9 +83,9 @@ class _SkeletonListState extends State<SkeletonList>
   Widget build(BuildContext context) {
     return ListView.separated(
       physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: AppleSpacing.xs, horizontal: AppleSpacing.md),
       itemCount: widget.rows,
-      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      separatorBuilder: (_, _) => const SizedBox(height: AppleSpacing.sm),
       itemBuilder: (_, _) => Row(
         children: [
           _SkeletonBlock(
@@ -94,7 +94,7 @@ class _SkeletonListState extends State<SkeletonList>
             height: 36,
             radius: AppleRadius.sm,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppleSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -105,7 +105,7 @@ class _SkeletonListState extends State<SkeletonList>
                   height: 13,
                   radius: AppleRadius.xs,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppleSpacing.xs),
                 _SkeletonBlock(
                   controller: _pulse,
                   width: 160,
@@ -115,7 +115,7 @@ class _SkeletonListState extends State<SkeletonList>
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppleSpacing.sm),
           _SkeletonBlock(
             controller: _pulse,
             width: 22,
@@ -164,7 +164,7 @@ class _SkeletonCardGridState extends State<SkeletonCardGrid>
   Widget build(BuildContext context) {
     return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: const EdgeInsets.fromLTRB(AppleSpacing.md, AppleSpacing.xs, AppleSpacing.md, 0),
       gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: widget.maxCrossAxisExtent,
         childAspectRatio: widget.childAspectRatio,

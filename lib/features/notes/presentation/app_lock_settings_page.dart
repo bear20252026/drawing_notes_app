@@ -61,22 +61,22 @@ class AppLockSettingsPage extends StatelessWidget {
         builder: (context, _) => ListView(
           // 可滚动 padding——见 settings_page 同名注释。
           padding: EdgeInsets.fromLTRB(
-            16,
-            GlassAppBar.bodyTopPadding(context) + 16,
-            16,
-            16,
+            AppleSpacing.md,
+            GlassAppBar.bodyTopPadding(context) + AppleSpacing.md,
+            AppleSpacing.md,
+            AppleSpacing.md,
           ),
           children: [
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppleSpacing.md),
                 child: Row(
                   children: [
                     Icon(
                       Icons.lock_rounded,
                       color: Theme.of(context).colorScheme.primary,
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppleSpacing.sm),
                     Expanded(
                       child: Text(
                         l10n?.lockDescription ??
@@ -88,7 +88,7 @@ class AppLockSettingsPage extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppleSpacing.xs),
             Card(
               child: Column(
                 children: [
@@ -148,9 +148,9 @@ class AppLockSettingsPage extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppleSpacing.xs),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: AppleSpacing.xs),
               child: Row(
                 children: [
                   Icon(
@@ -158,7 +158,7 @@ class AppLockSettingsPage extends StatelessWidget {
                     size: 16,
                     color: Theme.of(context).colorScheme.outline,
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: AppleSpacing.xxs),
                   Expanded(
                     child: Text(
                       service.isConfigured
@@ -224,7 +224,7 @@ class AppLockSettingsPage extends StatelessWidget {
                   Theme.of(dialogContext).colorScheme.outline,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppleSpacing.xs),
               // RadioGroup 祖先管理组值（Radio 的 groupValue/onChanged 已弃用）。
               RadioGroup<int>(
                 groupValue: service.graceDuration.inSeconds,

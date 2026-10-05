@@ -186,7 +186,7 @@ class RootRefusalApp extends StatelessWidget {
           return Scaffold(
             body: Center(
               child: Padding(
-                padding: const EdgeInsets.all(32),
+                padding: const EdgeInsets.all(AppleSpacing.xl),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -195,12 +195,12 @@ class RootRefusalApp extends StatelessWidget {
                       size: 64,
                       color: AppleColor.errorRed,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppleSpacing.lg),
                     Text(
                       l10n?.rootRefusalTitle ?? '无法在此设备上启动',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppleSpacing.sm),
                     Text(
                       l10n?.rootRefusalBody ??
                           '检测到设备已获取 ROOT 权限。为保护你的加密笔记数据，'

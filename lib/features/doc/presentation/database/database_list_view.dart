@@ -44,7 +44,7 @@ class DatabaseListView extends StatelessWidget {
   Widget build(BuildContext context) {
     if (records.isEmpty) {
       return Container(
-        padding: const EdgeInsets.symmetric(vertical: 24),
+        padding: const EdgeInsets.symmetric(vertical: AppleSpacing.lg),
         alignment: Alignment.center,
         child: Text(
           AppLocalizations.of(context)?.dbNoRecordsYet ?? '还没有记录，点击“添加记录”',
@@ -60,7 +60,7 @@ class DatabaseListView extends StatelessWidget {
         height: viewportHeight ?? maxViewportHeight,
         child: ListView.builder(
           itemCount: records.length,
-          padding: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(vertical: AppleSpacing.xxs),
           itemBuilder: (context, i) => _tile(context, records[i]),
         ),
       );
@@ -77,7 +77,7 @@ class DatabaseListView extends StatelessWidget {
         .map((f) => '${f.name}: ${displayValue(record, f)}')
         .join(' · ');
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: AppleSpacing.xxs),
       elevation: 0,
       child: ListTile(
         leading: Icon(Icons.article_outlined, color: scheme.primary),

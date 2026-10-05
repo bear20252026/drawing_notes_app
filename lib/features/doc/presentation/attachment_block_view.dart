@@ -97,7 +97,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
     }
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppleSpacing.sm),
       decoration: BoxDecoration(
         color: AppleColor.panelOf(scheme),
         borderRadius: BorderRadius.circular(AppleRadius.md),
@@ -109,14 +109,14 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(AppleSpacing.xs),
                 decoration: BoxDecoration(
                   color: scheme.primaryContainer,
                   borderRadius: BorderRadius.circular(AppleRadius.sm),
                 ),
                 child: Icon(_icon, size: 22, color: scheme.primary),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppleSpacing.xs),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,7 +142,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppleSpacing.xs),
               if (a.description.isNotEmpty)
                 Tooltip(
                   message: a.description,
@@ -160,7 +160,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
             ],
           ),
           if (a.isEmbeddable) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: AppleSpacing.xs),
             _embedPreview(context, a),
           ],
         ],
@@ -171,7 +171,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
   Widget _placeholder(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppleSpacing.sm),
       decoration: BoxDecoration(
         color: AppleColor.panelOf(scheme),
         borderRadius: BorderRadius.circular(AppleRadius.md),
@@ -180,7 +180,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
       child: Row(
         children: [
           Icon(Icons.attachment_outlined, size: 22, color: scheme.outline),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppleSpacing.xs),
           Text(
             AppLocalizations.of(context)?.attachmentPlaceholder ?? '附件（待补充）',
             style: AppleType.controlStyle(
@@ -209,7 +209,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppleSpacing.sm),
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(AppleRadius.sm),
@@ -218,13 +218,13 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
       child: Column(
         children: [
           Icon(Icons.picture_as_pdf, size: 32, color: scheme.outline),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppleSpacing.xxs),
           Text(
             AppLocalizations.of(context)?.pdfEmbedPreviewUnavailableLocal ??
                 'PDF 内嵌预览不可用（需本地文件）',
             style: AppleType.captionStyle(scheme.onSurface),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppleSpacing.xs),
           OutlinedButton.icon(
             onPressed: () => _open(a),
             icon: const Icon(Icons.open_in_new, size: 16),
@@ -243,7 +243,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
       case AttachmentKind.bookmark:
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppleSpacing.sm),
           decoration: BoxDecoration(
             color: scheme.surface,
             borderRadius: BorderRadius.circular(AppleRadius.sm),
@@ -262,7 +262,7 @@ class _AttachmentBlockViewState extends State<AttachmentBlockView> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppleSpacing.xs),
               OutlinedButton.icon(
                 onPressed: () => _open(a),
                 icon: const Icon(Icons.open_in_new, size: 16),

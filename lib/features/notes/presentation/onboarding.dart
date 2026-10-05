@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
+import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
@@ -146,12 +147,12 @@ class _TipRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: AppleSpacing.xs),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppleSpacing.xs),
           Expanded(
             child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
           ),

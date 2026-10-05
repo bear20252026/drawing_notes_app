@@ -54,7 +54,7 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
                   '这些文档在本地与云端都被修改过，无法自动决定以哪边为准。',
               style: theme.textTheme.bodySmall,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppleSpacing.sm),
             for (final c in widget.conflicts) _buildConflict(theme, c),
           ],
         ),
@@ -76,7 +76,7 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
   Widget _buildConflict(ThemeData theme, SyncConflict c) {
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: AppleSpacing.xs),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

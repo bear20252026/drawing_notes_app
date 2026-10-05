@@ -23,7 +23,7 @@ extension _DocPagePassword on _DocPageState {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 8),
+            const SizedBox(height: AppleSpacing.xs),
             ListTile(
               leading: const Icon(Icons.lock_outline_rounded),
               title: Text(
