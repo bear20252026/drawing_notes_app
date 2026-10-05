@@ -61,14 +61,30 @@ jobs:
       # 锁定 5.7.6 与 ci.yml / 本机工具链一致（未锁定时 CI 拉到新版本，
       # 规则行为漂移导致门禁结果不可复现——W3 修正 2026-09-02）。
       - name: 安装 dart_code_metrics（反模式扫描）
+        id: dcm_install
+        # E-02 降级（批次 AT，用户拍板「继续钉版 + 激活失败降级」）：上游已停维护并归档转
+        # 闭源 DCM，唯一新增残余风险是「包被下架 ⇒ 激活失败 ⇒ 本门禁把 job 打死」。
+        # 那是工具供应链故障、不是代码质量问题 ⇒ 降级为可见告警（warning + Step Summary），
+        # 门禁在工具可用时照常拦截。精确钉版 5.7.6 不变（未锁定时曾出现规则行为漂移，
+        # W3 修正 2026-09-02）。
         run: |
-          dart pub global activate dart_code_metrics 5.7.6
-          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+          if dart pub global activate dart_code_metrics 5.7.6; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::E-02：dart_code_metrics 5.7.6 激活失败（上游下架或网络故障），本次反模式扫描门禁未执行——需人工处置，见本步注释。"
+            echo "## E-02 告警：反模式扫描门禁被跳过（非代码问题）" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "激活 dart_code_metrics 5.7.6 失败，本次 metrics analyze lib **未执行**。" >> "$GITHUB_STEP_SUMMARY"
+            echo "CI 故意不因此变红；这是上游停维护带来的工具供应链告警，处置口径见本步注释。" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: 静态分析（analyze）
         run: flutter analyze --no-pub
 
       - name: 反模式扫描门禁（metrics analyze lib）
+        if: steps.dcm_install.outputs.available == 'true'
         run: metrics analyze lib
 
       - name: 分层架构门禁（architecture_test）
