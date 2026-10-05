@@ -79,15 +79,17 @@ DESIGN.md:502-503 禁止**装饰性**渐变与阴影；但 :396-398、:434、:47
 ## 6. 门禁（提交前必须全绿）
 
 ```bash
-cd /c/Users/17296/WorkBuddy/2026-08-29-23-43-00/drawing_notes_app
+cd /d/Workbuddy/2026-08-29-23-43-00/drawing_notes_app
 flutter analyze          # 必须 No issues found
 flutter test             # 必须全绿
 ```
 
 > ⚠️ **shell 工作目录铁律**：本工作区外层是 `2026-08-29-23-43-00`，项目在子目录 `drawing_notes_app`。
-> 每条命令**必须**以 `cd /c/Users/17296/WorkBuddy/2026-08-29-23-43-00/drawing_notes_app &&` 开头，
+> 每条命令**必须**以 `cd /d/Workbuddy/2026-08-29-23-43-00/drawing_notes_app &&` 开头，
 > 否则 `flutter` 报 "No pubspec.yaml file found"、`git` 作用错仓库、`flutter analyze` 会静默分析外层
 > 目录并误报 "No issues found"（最危险）。同一命令失败 ≥3 次立即改用子代理接管。
+> （2026-10-05 仓库从 `C:\Users\17296\WorkBuddy\` 迁至 `D:\Workbuddy\`，C 盘那份副本已清空删除
+> ——仅剩一个空目录名被其他会话占用。迁移原因正是两棵同名目录树会让门禁静默跑在另一份代码上。）
 
 提交后 push，并确认 CI 五个工作流（CI / 软件质量工程门禁 / Code Guard / SBOM / Secret Scan）全绿。
 
