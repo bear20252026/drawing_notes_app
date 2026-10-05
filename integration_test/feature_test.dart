@@ -64,8 +64,22 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull, reason: '绘制不应抛异常');
 
-    // 2) 图层面板常驻渲染（右侧内嵌 LayerPanel）。
-    expect(find.byType(LayerPanel), findsOneWidget, reason: '图层面板应常驻显示');
+    // 2) 图层面板由顶栏开关驱动、默认关闭（AU-2 修正真机红）。
+    //    原断言「图层面板常驻渲染 findsOneWidget」与实现冲突：
+    //    `editor_page_body.dart:90` 写的是 `if (_layersVisible) LayerPanel(...)`，
+    //    而 `_layersVisible` 初值为 false（editor_interaction_controllers.dart:413，
+    //    EditorChromeController 新建不读盘，自 v1.17.49 批次 AA 起如此）。
+    //    ⇒ 断言改成在制品的真实行为：默认不渲染 → 顶栏开关切开后渲染。
+    //    同一条用例第 90 行附近那条「图层操作」已在 AN 批改对，本条当时漏改，
+    //    真机跑（不在 CI 覆盖内）才暴露。
+    expect(find.byType(LayerPanel), findsNothing, reason: '图层面板默认应关闭');
+    await tester.tap(find.byTooltip('显示图层'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byType(LayerPanel),
+      findsOneWidget,
+      reason: '顶栏「显示图层」开关应让图层面板渲染出来',
+    );
 
     // 3) 工具切换与撤销语义操作不崩溃。
     // 工具条 tooltip 现由 EditorLeftToolbar 提供（画笔硬编码字面量

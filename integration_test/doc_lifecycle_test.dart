@@ -7,24 +7,26 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:drawing_notes_app/app.dart';
+// AU-2（2026-10-05 真机跑出来的红）：落盘验证必须走产品自己的数据根。
+// 原写法用 `getApplicationDocumentsDirectory()` 拼 `blockdocs`——那是 S-02
+// 方案 B（v1.17.47）迁移**之前**的位置；迁移后统一根是
+// `AppDataRoot.defaultRootDir()`（生产 `_baseDir()` 的单一事实来源，
+// note_block_doc_store.dart:154）。旧路径不存在 ⇒ `dir.listSync()` 直接抛
+// PathNotFoundException，本用例自 v1.17.47 起在真机上从未能通过。
+// `path_provider` 因此不再需要，已移除该 import。
+import 'package:drawing_notes_app/core/storage/app_data_root.dart';
+import 'real_wait.dart';
 import 'package:drawing_notes_app/features/doc/presentation/doc_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 const _uniqueText = 'Q0 实测内容 v142';
 
-/// 真实时钟等待：LiveTest binding 下 Timer 为真实定时器，
-/// pump(duration) 不会推进——必须真实 sleep + pump 出帧。
-Future<void> realWait(WidgetTester tester, Duration d) async {
-  final end = DateTime.now().add(d);
-  while (DateTime.now().isBefore(end)) {
-    await Future<void>.delayed(const Duration(milliseconds: 100));
-    await tester.pump(const Duration(milliseconds: 100));
-  }
-}
+// 真实时钟等待已抽到 `real_wait.dart`（AU-2，2026-10-05）——此前只有本文件
+// 内有一份私有实现，`cuj_01_test` 缺它而长期真机红。本仓对「同一实现只留一份」
+// 有明确先例（test/helpers/wait_until.dart）。
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -48,7 +50,7 @@ void main() {
 
     // 打开「新建文档 ▾」下拉 → 选「新建笔记」（arb docsNewNote）。
     await IntegrationTestWidgetsFlutterBinding.instance.runAsync(() async {
-      final base = await getApplicationDocumentsDirectory();
+      final base = await AppDataRoot.defaultRootDir();
       final dir = Directory('${base.path}${Platform.pathSeparator}blockdocs');
       debugPrint(
         'BEFORE-TAP blockdocs: '
@@ -109,18 +111,22 @@ void main() {
     await realWait(tester, const Duration(seconds: 3));
 
     await IntegrationTestWidgetsFlutterBinding.instance.runAsync(() async {
-      final base = await getApplicationDocumentsDirectory();
+      final base = await AppDataRoot.defaultRootDir();
       final dir = Directory('${base.path}${Platform.pathSeparator}blockdocs');
       debugPrint(
         'AFTER-INPUT blockdocs: '
         '${dir.existsSync() ? dir.listSync().length : 0} files',
       );
-      for (final f in dir.listSync()) {
-        final c = f is File ? f.readAsStringSync() : '';
-        debugPrint(
-          '  AFTER ${f.path} len=${c.length} '
-          'hasText=${c.contains(_uniqueText)}',
-        );
+      // 诊断输出判存再列（AU-2）：目录尚未创建时不该把整条用例炸成
+      // PathNotFoundException——真正的落盘判定在下面的 `persisted` 断言里。
+      if (dir.existsSync()) {
+        for (final f in dir.listSync()) {
+          final c = f is File ? f.readAsStringSync() : '';
+          debugPrint(
+            '  AFTER ${f.path} len=${c.length} '
+            'hasText=${c.contains(_uniqueText)}',
+          );
+        }
       }
     });
 
@@ -138,11 +144,11 @@ void main() {
       reason: '退出后应回到 AllDocs 且不崩溃（Q0 回归）',
     );
 
-    // 落盘验证：Documents/blockdocs 下任一 json 含唯一文本
+    // 落盘验证：统一数据根下的 `blockdocs/` 任一 json 含唯一文本
     // （自动保存链真实写盘，P0-H1 的核心保证）。
     var persisted = false;
     await IntegrationTestWidgetsFlutterBinding.instance.runAsync(() async {
-      final base = await getApplicationDocumentsDirectory();
+      final base = await AppDataRoot.defaultRootDir();
       final dir = Directory('${base.path}${Platform.pathSeparator}blockdocs');
       debugPrint('DIR ${dir.path} exists=${dir.existsSync()}');
       if (!dir.existsSync()) return;
