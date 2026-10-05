@@ -10,6 +10,8 @@ import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:drawing_notes_app/app.dart';
+// 防抖阈值引用产品常量本身（见下方 realWait 注释），不再抄数字。
+import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
 // AU-2（2026-10-05 真机跑出来的红）：落盘验证必须走产品自己的数据根。
 // 原写法用 `getApplicationDocumentsDirectory()` 拼 `blockdocs`——那是 S-02
 // 方案 B（v1.17.47）迁移**之前**的位置；迁移后统一根是
@@ -107,8 +109,19 @@ void main() {
     expect(editorScope, findsOneWidget);
     final bodyField = editorFields.last;
     await tester.enterText(bodyField, _uniqueText);
-    // 真实时钟等防抖（1.2s）+ 写盘余量。
-    await realWait(tester, const Duration(seconds: 3));
+    // 真实时钟等防抖 + 写盘余量。
+    //
+    // AU-2/AV 定性结论（2026-10-05）：本用例原先固定等 3 秒，注释还写着
+    // 「等防抖（1.2s）」——那是 800ms 防抖时代的数字。实际阈值早已改为
+    // **5 秒**（`SaveScheduler.autoSaveInterval`，2026-09-06 用户要求
+    // 「改动后最多每 5 秒落盘一次」，save_scheduler.dart:69）。等不够 → 防抖
+    // 未触发 → 盘上没有该文本 → 看起来像「打字笔记丢内容」的 P0，实为测试
+    // 抄了一份产品常量的陈旧副本。**现改为引用常量本身**，产品再调阈值时
+    // 测试自动跟随，不会再以这种方式腐烂。
+    await realWait(
+      tester,
+      SaveScheduler.autoSaveInterval + const Duration(seconds: 3),
+    );
 
     await IntegrationTestWidgetsFlutterBinding.instance.runAsync(() async {
       final base = await AppDataRoot.defaultRootDir();

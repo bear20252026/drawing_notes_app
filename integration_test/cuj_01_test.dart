@@ -1,4 +1,6 @@
 import 'package:drawing_notes_app/app.dart';
+// 防抖阈值引用产品常量本身（见下方 realWait 注释），不再抄数字。
+import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -83,14 +85,15 @@ void main() {
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
 
-    // AU-2（2026-10-05 真机跑出来的红，基线 `2e87d96` 复现同一失败 ⇒ 长期存在，
-    // 非本批引入）：自动保存是 **800ms 真实防抖**（退出兜底同样是异步写），
-    // 而 LiveTest binding 下 `pumpAndSettle` 只推进测试时钟、不消耗真实时间
-    // ——所以列表里「刚建的画作凭空消失」并不代表数据丢了，而是测试从没跨过
-    // 那个真实 Timer。同目录 doc_lifecycle_test 正是为此才有个 realWait。
-    // 这里补齐等待；**断言不放宽**：等到位还找不到画作，就是产品缺陷（保存链
-    // 或列表刷新），该报就该修，不在测试里伪装成绿。
-    await realWait(tester, const Duration(seconds: 2));
+    // AU-2/AV 定性（2026-10-05）：自动保存阈值是 `SaveScheduler.autoSaveInterval`
+    // = **5 秒**（save_scheduler.dart:69，2026-09-06 起；更早是 800ms）。本用例
+    // 原先只 pumpAndSettle（LiveTest binding 下不消耗真实时间），补 2 秒仍不够
+    // ⇒ 列表里看不到刚建的画作，症状与「丢数据」一模一样。等待时长改为**引用常量**，
+    // 产品再调阈值时本用例自动跟随。
+    await realWait(
+      tester,
+      SaveScheduler.autoSaveInterval + const Duration(seconds: 3),
+    );
 
     // 4) Reopen：首页列表找到画作 → 重开 → 内容保留（编辑器标题/工具栏 +
     // 画布仍有内容——U-001 契约断言 same_stroke_id/same_point_count 由
