@@ -460,41 +460,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fileTypeText => 'Text document';
 
   @override
-  String get settingsBackup => '备份全部数据';
+  String get settingsBackup => 'Back up all data';
 
   @override
-  String get settingsBackupHint => '打包全部笔记与设置（含密钥文件，请妥善保管）';
+  String get settingsBackupHint =>
+      'Bundles all notes and settings, including key files - keep the archive safe';
 
   @override
-  String get settingsRestore => '从备份恢复';
+  String get settingsRestore => 'Restore from backup';
 
   @override
-  String get settingsRestoreHint => '覆盖当前数据，重启应用后生效';
+  String get settingsRestoreHint =>
+      'Overwrites current data. Takes effect after you restart the app';
 
   @override
-  String get fileTypeBackup => '绘图笔记备份';
+  String get fileTypeBackup => 'Drawing Notes backup';
 
   @override
-  String get backupExported => '备份已导出';
+  String get backupExported => 'Backup exported';
 
   @override
-  String get backupFailed => '备份失败，请重试';
+  String get backupFailed => 'Backup failed. Please try again';
 
   @override
-  String get restoreConfirmTitle => '从备份恢复';
+  String get restoreConfirmTitle => 'Restore from backup';
 
   @override
   String get restoreConfirmBody =>
-      '恢复将覆盖当前全部数据（含保险库密钥）。数据已就绪，确认后应用将退出，重新打开时生效。';
+      'Restoring overwrites all current data, including vault keys. The data is ready: the app will quit after you confirm, and the restored content takes effect when you reopen it';
 
   @override
-  String get restoreConfirmAction => '确认恢复';
+  String get restoreConfirmAction => 'Confirm restore';
 
   @override
-  String get restoreInvalid => '无效的备份文件';
+  String get restoreInvalid => 'Invalid backup file';
 
   @override
-  String get restoreFailed => '恢复失败，请重试';
+  String get restoreFailed => 'Restore failed. Please try again';
 
   @override
   String get settingsShortcuts => 'Keyboard shortcuts';

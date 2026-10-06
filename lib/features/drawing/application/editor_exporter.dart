@@ -248,7 +248,10 @@ class EditorExporter {
         await _exportNotebookPages(
           all,
           quality: quality,
-          baseName: '${page.title}-全本',
+          // P2-5：落盘文件名会随文档一起被用户长期保存，写死「-全本」等于
+          // 让 en 用户拿到「XXX-全本.pdf」（L-03 同型）。arb 键
+          // `expWholeBookSuffix`（zh 全本 / en whole-book）早已存在，只是没接线。
+          baseName: '${page.title}-${_l?.expWholeBookSuffix ?? '全本'}',
         );
         return;
       }

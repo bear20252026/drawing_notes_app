@@ -25,9 +25,18 @@ import 'package:flutter_test/flutter_test.dart';
 ///   `test/architecture/forbidden_import_test.dart` 同一取法）；
 /// - 目标 feature 由 URI 归一化得出：`package:drawing_notes_app/features/<f>/`
 ///   与相对路径（`../<f>/`、`<f>/`、`../../drawing/rendering/` 等，按导入方
-///   所在目录解析）同等对待（P1 修正，审计 2026-10-04：原正则只认 `package:`
-///   URI，跨 feature 的相对路径 import 是盲区。归一化后实测与下方快照逐条
-///   相等，说明当前 lib/features 内尚无此类 import，属潜伏盲区而非既有违规）；
+///   所在目录解析）同等对待。
+///   ⚠️ **本条注释在 2026-10-01 写下时，实现并没有做相对路径归一化，也没有
+///   锚定行首关键字**——只有 `_packageFeatureRe` 一条正则、且对整行做
+///   `firstMatch`（审计 2026-10-04 记为「注释声称已修正、代码从未实现」，
+///   台账 P2-3）。P2-3 于 2026-10-06（批次 AW10）真正补齐：`_statementRe`
+///   锚定 `import`/`export` 行首，`_targetFeature` 把相对 URI 按导入方目录
+///   解析后再归位。补齐后实测计数与下方快照**逐条相等**（印证「当前
+///   lib/features 内尚无此类 import」），突变自证：临时塞一条
+///   `import '../../doc/domain/clone_ref.dart'` → 门禁当场报
+///   `notes->doc：10 条 > 基线 9 条`（旧实现对此零反应）。
+///   ⇒ 教训：**注释里的口径必须与代码一致**，否则一条写了三年的"已修正"
+///   比没写更危险——它让后来人以为盲区已经闭上，不再去查。
 /// - 扫描范围 = `lib/features/**` 全部 `.dart`，**组合根
 ///   （`app/`、`app.dart`）不在内**（见文件头）；
 /// - 源 feature = 路径首段 `lib/features/<src>/`，目标 = import URI 里的
@@ -63,9 +72,47 @@ const Map<String, int> _baseline = {
   'all_docs->notes': 0,
 };
 
-final RegExp _importRe = RegExp(
-  r'''package:drawing_notes_app/features/([a-z_]+)/''',
+/// 语句行锚定：去前导空白后必须以 `import` / `export` 开头并紧跟一个
+/// 引号包裹的 URI。注释、字符串内部、文档示例里的同形文本因此不计
+/// （口径注释从 2026-10-01 就承诺了这条，实现漏了——P2-3 本轮补上）。
+final RegExp _statementRe = RegExp(
+  r'''^(?:import|export)\s+(['"])([^'"]+)\1''',
 );
+
+/// `package:drawing_notes_app/features/<f>/…` → `<f>`。
+final RegExp _packageFeatureRe = RegExp(
+  r'''^package:drawing_notes_app/features/([a-z_]+)/''',
+);
+
+/// 相对 URI 按导入方目录解析后，落在 `lib/features/<f>/` 下 → `<f>`。
+final RegExp _resolvedFeatureRe = RegExp(r'''^lib/features/([a-z_]+)/''');
+
+/// 把相对 URI 按导入方所在目录解析成仓库根视角的路径（就地折叠 `.` / `..`）。
+/// 不这么做，`import '../../drawing/rendering/x.dart'` 这类跨 feature 相对
+/// 引用就完全绕过棘轮——而 Dart 的相对 import **不要求文件真实存在**，
+/// 分析器与 `check_boundaries.sh`（规则 2 对 notes→drawing 仅 informational）
+/// 都不拦，等于一条静默通道（P2-3 的原始发现）。
+String _resolveRelative(String fromDir, String uri) {
+  final segments = <String>[];
+  for (final part in <String>[...fromDir.split('/'), ...uri.split('/')]) {
+    if (part.isEmpty || part == '.') continue;
+    if (part == '..') {
+      if (segments.isNotEmpty) segments.removeLast();
+      continue;
+    }
+    segments.add(part);
+  }
+  return segments.join('/');
+}
+
+/// 目标 feature：`package:` 直接取段；其它 `package:`/`dart:` 一律不算；
+/// 相对路径解析后按目录归位。
+String? _targetFeature({required String uri, required String fromDir}) {
+  final pkg = _packageFeatureRe.firstMatch(uri);
+  if (pkg != null) return pkg.group(1);
+  if (uri.startsWith('dart:') || uri.startsWith('package:')) return null;
+  return _resolvedFeatureRe.firstMatch(_resolveRelative(fromDir, uri))?.group(1);
+}
 
 void main() {
   test('跨 feature 依赖棘轮：不允许新增越界 import（只许逐步清零）', () {
@@ -80,11 +127,12 @@ void main() {
       ).firstMatch(normalized);
       if (srcMatch == null) continue;
       final src = srcMatch.group(1)!;
+      final fromDir = normalized.substring(0, normalized.lastIndexOf('/') + 1);
       for (final line in entity.readAsLinesSync()) {
-        final m = _importRe.firstMatch(line);
-        if (m == null) continue;
-        final dst = m.group(1)!;
-        if (dst == src) continue;
+        final stmt = _statementRe.firstMatch(line.trimLeft());
+        if (stmt == null) continue;
+        final dst = _targetFeature(uri: stmt.group(2)!, fromDir: fromDir);
+        if (dst == null || dst == src) continue;
         final key = '$src->$dst';
         counts[key] = (counts[key] ?? 0) + 1;
         offenders.putIfAbsent(key, () => []).add('$normalized: ${line.trim()}');

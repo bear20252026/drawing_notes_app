@@ -917,73 +917,73 @@ abstract class AppLocalizations {
   /// 备份入口
   ///
   /// In en, this message translates to:
-  /// **'备份全部数据'**
+  /// **'Back up all data'**
   String get settingsBackup;
 
   /// 备份说明
   ///
   /// In en, this message translates to:
-  /// **'打包全部笔记与设置（含密钥文件，请妥善保管）'**
+  /// **'Bundles all notes and settings, including key files - keep the archive safe'**
   String get settingsBackupHint;
 
   /// 恢复入口
   ///
   /// In en, this message translates to:
-  /// **'从备份恢复'**
+  /// **'Restore from backup'**
   String get settingsRestore;
 
   /// 恢复说明
   ///
   /// In en, this message translates to:
-  /// **'覆盖当前数据，重启应用后生效'**
+  /// **'Overwrites current data. Takes effect after you restart the app'**
   String get settingsRestoreHint;
 
   /// 文件选择器备份类型组标签
   ///
   /// In en, this message translates to:
-  /// **'绘图笔记备份'**
+  /// **'Drawing Notes backup'**
   String get fileTypeBackup;
 
   /// 备份成功提示
   ///
   /// In en, this message translates to:
-  /// **'备份已导出'**
+  /// **'Backup exported'**
   String get backupExported;
 
   /// 备份失败提示
   ///
   /// In en, this message translates to:
-  /// **'备份失败，请重试'**
+  /// **'Backup failed. Please try again'**
   String get backupFailed;
 
   /// 恢复确认对话框标题
   ///
   /// In en, this message translates to:
-  /// **'从备份恢复'**
+  /// **'Restore from backup'**
   String get restoreConfirmTitle;
 
   /// 恢复确认对话框正文
   ///
   /// In en, this message translates to:
-  /// **'恢复将覆盖当前全部数据（含保险库密钥）。数据已就绪，确认后应用将退出，重新打开时生效。'**
+  /// **'Restoring overwrites all current data, including vault keys. The data is ready: the app will quit after you confirm, and the restored content takes effect when you reopen it'**
   String get restoreConfirmBody;
 
   /// 恢复确认按钮
   ///
   /// In en, this message translates to:
-  /// **'确认恢复'**
+  /// **'Confirm restore'**
   String get restoreConfirmAction;
 
   /// 备份文件无效提示
   ///
   /// In en, this message translates to:
-  /// **'无效的备份文件'**
+  /// **'Invalid backup file'**
   String get restoreInvalid;
 
   /// 恢复失败提示
   ///
   /// In en, this message translates to:
-  /// **'恢复失败，请重试'**
+  /// **'Restore failed. Please try again'**
   String get restoreFailed;
 
   /// No description provided for @settingsShortcuts.
