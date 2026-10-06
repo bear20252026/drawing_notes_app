@@ -2021,6 +2021,32 @@ class AppLocalizationsZh extends AppLocalizations {
   String get toolNodeLink => '节点连线';
 
   @override
+  String get toolHand => '平移画布';
+
+  @override
+  String get toolPen => '画笔';
+
+  @override
+  String get toolPencil => '铅笔';
+
+  @override
+  String get toolMarker => '高亮笔';
+
+  @override
+  String get toolLaser => '激光指示器（临时尾迹）';
+
+  @override
+  String get toolRectSelect => '矩形选区';
+
+  @override
+  String get toolText => '文字';
+
+  @override
+  String toolWithShortcut(String label, String key) {
+    return '$label ($key)';
+  }
+
+  @override
   String get shapeRect => '矩形';
 
   @override

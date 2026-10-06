@@ -1972,6 +1972,42 @@
   "@toolMarquee": {},
   "toolNodeLink": "Node link",
   "@toolNodeLink": {},
+  "toolHand": "Pan canvas",
+  "@toolHand": {
+    "description": "Left toolbar: hand tool (pan canvas)"
+  },
+  "toolPen": "Pen",
+  "@toolPen": {
+    "description": "Left toolbar: pen"
+  },
+  "toolPencil": "Pencil",
+  "@toolPencil": {
+    "description": "Left toolbar: pencil"
+  },
+  "toolMarker": "Highlighter",
+  "@toolMarker": {
+    "description": "Left toolbar: highlighter"
+  },
+  "toolLaser": "Laser pointer (ephemeral trail)",
+  "@toolLaser": {
+    "description": "Left toolbar: laser pointer, a temporary trail never written to the document"
+  },
+  "toolRectSelect": "Rectangular selection",
+  "@toolRectSelect": {
+    "description": "Left toolbar: rectangular selection"
+  },
+  "toolText": "Text",
+  "@toolText": {
+    "description": "Left toolbar: text tool"
+  },
+  "toolWithShortcut": "{label} ({key})",
+  "@toolWithShortcut": {
+    "description": "Wrapper that appends the keyboard shortcut to a left-toolbar tooltip (P1-1: eight of these labels used to be hardcoded Chinese in Dart)",
+    "placeholders": {
+      "label": { "type": "String" },
+      "key": { "type": "String" }
+    }
+  },
   "shapeRect": "Rectangle",
   "@shapeRect": {},
   "shapeEllipse": "Ellipse",

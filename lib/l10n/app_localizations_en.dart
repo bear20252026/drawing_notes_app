@@ -2112,6 +2112,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get toolNodeLink => 'Node link';
 
   @override
+  String get toolHand => 'Pan canvas';
+
+  @override
+  String get toolPen => 'Pen';
+
+  @override
+  String get toolPencil => 'Pencil';
+
+  @override
+  String get toolMarker => 'Highlighter';
+
+  @override
+  String get toolLaser => 'Laser pointer (ephemeral trail)';
+
+  @override
+  String get toolRectSelect => 'Rectangular selection';
+
+  @override
+  String get toolText => 'Text';
+
+  @override
+  String toolWithShortcut(String label, String key) {
+    return '$label ($key)';
+  }
+
+  @override
   String get shapeRect => 'Rectangle';
 
   @override

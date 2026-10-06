@@ -76,17 +76,35 @@ class EditorLeftToolbar extends StatelessWidget {
       padding: const EdgeInsets.all(AppleSpacing.xxs),
       child: ListenableBuilder(
         listenable: controller,
-        builder: (context, _) => SingleChildScrollView(
+        builder: (context, _) {
+          // P1-1：左工具条 8 个工具的 tooltip 此前整块写死中文（含快捷键后缀），
+          // 同文件里吸管/框选/连线/插图四处却已经走 arb 键——en 用户在画布
+          // 核心工具条上悬停看到的全是中文。统一改走 arb（`toolWithShortcut`
+          // 负责「标签 (快捷键)」的组合，组合形态本身也本地化）。
+          // 回落串与 arb 的 zh 值**逐字相同**：集成测试按 tooltip 文本定位按钮
+          // （toolbar_test / feature_test / smoke_test 都钉着这些串），
+          // 回落在别的字符串上就会真机找不到按钮。
+          final l10n = AppLocalizations.of(context);
+          String tip(
+            String Function(AppLocalizations l) label,
+            String fallback,
+          ) => l10n == null ? fallback : label(l10n);
+          return SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               // 手型：画布导航与绘制模式显式分离，避免误触发笔画。
-              _tool(Icons.pan_tool_alt_rounded, '平移画布 (H)', handActive, onHand),
+              _tool(
+                Icons.pan_tool_alt_rounded,
+                tip((l) => l.toolWithShortcut(l.toolHand, 'H'), '平移画布 (H)'),
+                handActive,
+                onHand,
+              ),
               Divider(height: 12, color: scheme.outlineVariant),
               // 画笔
               _tool(
                 Icons.edit_rounded,
-                '画笔 (P)',
+                tip((l) => l.toolWithShortcut(l.toolPen, 'P'), '画笔 (P)'),
                 controller.tool == BrushType.pen &&
                     controller.selectionTool == SelectionTool.none &&
                     !eyedropperActive &&
@@ -97,7 +115,7 @@ class EditorLeftToolbar extends StatelessWidget {
               // 铅笔：与钢笔分离的独立预设，保留略深的石墨色与尺寸。
               _tool(
                 Icons.draw_rounded,
-                '铅笔 (N)',
+                tip((l) => l.toolWithShortcut(l.toolPencil, 'N'), '铅笔 (N)'),
                 controller.tool == BrushType.pencil &&
                     controller.selectionTool == SelectionTool.none &&
                     !eyedropperActive &&
@@ -108,7 +126,7 @@ class EditorLeftToolbar extends StatelessWidget {
               // 高亮笔：采用独立局部合成层，实际支持不叠色书写。
               _tool(
                 Icons.highlight_rounded,
-                '高亮笔 (M)',
+                tip((l) => l.toolWithShortcut(l.toolMarker, 'M'), '高亮笔 (M)'),
                 controller.tool == BrushType.marker &&
                     controller.selectionTool == SelectionTool.none &&
                     !eyedropperActive &&
@@ -120,7 +138,7 @@ class EditorLeftToolbar extends StatelessWidget {
               // 激光指示器：独立的、不会写入文档的临时尾迹工具。
               _tool(
                 Icons.gesture_rounded,
-                '激光指示器（临时尾迹）',
+                tip((l) => l.toolLaser, '激光指示器（临时尾迹）'),
                 controller.tool == BrushType.laser &&
                     controller.selectionTool == SelectionTool.none &&
                     !eyedropperActive &&
@@ -130,7 +148,12 @@ class EditorLeftToolbar extends StatelessWidget {
               ),
 
               // 橡皮擦
-              _tool(Icons.auto_fix_high_rounded, '橡皮擦 (E)', isEraser, onEraser),
+              _tool(
+                Icons.auto_fix_high_rounded,
+                tip((l) => l.toolWithShortcut(l.toolEraserName, 'E'), '橡皮擦 (E)'),
+                isEraser,
+                onEraser,
+              ),
               // 吸管
               _tool(
                 Icons.colorize_rounded,
@@ -141,7 +164,10 @@ class EditorLeftToolbar extends StatelessWidget {
               // 矩形选区
               _tool(
                 Icons.crop_free_rounded,
-                '矩形选区 (R)',
+                tip(
+                  (l) => l.toolWithShortcut(l.toolRectSelect, 'R'),
+                  '矩形选区 (R)',
+                ),
                 controller.selectionTool == SelectionTool.rect,
                 onRectSelect,
               ),
@@ -155,7 +181,7 @@ class EditorLeftToolbar extends StatelessWidget {
               // 文字
               _tool(
                 Icons.text_fields_rounded,
-                '文字 (T)',
+                tip((l) => l.toolWithShortcut(l.toolText, 'T'), '文字 (T)'),
                 textToolActive,
                 onText,
               ),
@@ -178,7 +204,8 @@ class EditorLeftToolbar extends StatelessWidget {
               Divider(height: 12, color: scheme.outlineVariant),
             ],
           ),
-        ),
+          );
+        },
       ),
     );
   }

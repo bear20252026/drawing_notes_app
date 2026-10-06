@@ -1951,6 +1951,42 @@
   "@toolMarquee": {},
   "toolNodeLink": "节点连线",
   "@toolNodeLink": {},
+  "toolHand": "平移画布",
+  "@toolHand": {
+    "description": "左工具条：手型（平移画布）"
+  },
+  "toolPen": "画笔",
+  "@toolPen": {
+    "description": "左工具条：画笔"
+  },
+  "toolPencil": "铅笔",
+  "@toolPencil": {
+    "description": "左工具条：铅笔"
+  },
+  "toolMarker": "高亮笔",
+  "@toolMarker": {
+    "description": "左工具条：高亮笔"
+  },
+  "toolLaser": "激光指示器（临时尾迹）",
+  "@toolLaser": {
+    "description": "左工具条：激光指示器（不写入文档的临时尾迹）"
+  },
+  "toolRectSelect": "矩形选区",
+  "@toolRectSelect": {
+    "description": "左工具条：矩形选区"
+  },
+  "toolText": "文字",
+  "@toolText": {
+    "description": "左工具条：文字工具"
+  },
+  "toolWithShortcut": "{label} ({key})",
+  "@toolWithShortcut": {
+    "description": "左工具条 tooltip 的快捷键后缀包装（P1-1：此前 8 处中文连同快捷键一起写死在 Dart 里）",
+    "placeholders": {
+      "label": { "type": "String" },
+      "key": { "type": "String" }
+    }
+  },
   "shapeRect": "矩形",
   "@shapeRect": {},
   "shapeEllipse": "椭圆",

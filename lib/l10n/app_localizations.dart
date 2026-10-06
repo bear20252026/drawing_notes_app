@@ -3866,6 +3866,54 @@ abstract class AppLocalizations {
   /// **'Node link'**
   String get toolNodeLink;
 
+  /// Left toolbar: hand tool (pan canvas)
+  ///
+  /// In en, this message translates to:
+  /// **'Pan canvas'**
+  String get toolHand;
+
+  /// Left toolbar: pen
+  ///
+  /// In en, this message translates to:
+  /// **'Pen'**
+  String get toolPen;
+
+  /// Left toolbar: pencil
+  ///
+  /// In en, this message translates to:
+  /// **'Pencil'**
+  String get toolPencil;
+
+  /// Left toolbar: highlighter
+  ///
+  /// In en, this message translates to:
+  /// **'Highlighter'**
+  String get toolMarker;
+
+  /// Left toolbar: laser pointer, a temporary trail never written to the document
+  ///
+  /// In en, this message translates to:
+  /// **'Laser pointer (ephemeral trail)'**
+  String get toolLaser;
+
+  /// Left toolbar: rectangular selection
+  ///
+  /// In en, this message translates to:
+  /// **'Rectangular selection'**
+  String get toolRectSelect;
+
+  /// Left toolbar: text tool
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get toolText;
+
+  /// Wrapper that appends the keyboard shortcut to a left-toolbar tooltip (P1-1: eight of these labels used to be hardcoded Chinese in Dart)
+  ///
+  /// In en, this message translates to:
+  /// **'{label} ({key})'**
+  String toolWithShortcut(String label, String key);
+
   /// No description provided for @shapeRect.
   ///
   /// In en, this message translates to:
