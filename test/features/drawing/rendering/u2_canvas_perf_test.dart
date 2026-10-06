@@ -72,6 +72,37 @@ void main() {
     });
   });
 
+  // 导出腿的解码档位（台账 2026-10-05 AW 第 5 条）：导出多大就解多大，
+  // 但方向与缓存档位相反——只升不降，欠一档就是往产物里塞低分辨率图。
+  group('ImageDecodeCap.exportTierFor（导出解码档位，只升不降）', () {
+    test('取不小于所需长边的最小档位', () {
+      expect(ImageDecodeCap.exportTierFor(1), 256);
+      expect(ImageDecodeCap.exportTierFor(256), 256);
+      expect(ImageDecodeCap.exportTierFor(257), 512);
+      expect(ImageDecodeCap.exportTierFor(900), 1024);
+      expect(ImageDecodeCap.exportTierFor(1025), 2048);
+      expect(ImageDecodeCap.exportTierFor(2049), 4096);
+    });
+
+    test('封顶 4096（与原图上限一致，深缩放导出不无限吃内存）', () {
+      expect(
+        ImageDecodeCap.exportTierFor(5000),
+        ImageDecodeCap.canvasMaxLongEdge,
+      );
+      expect(
+        ImageDecodeCap.exportTierFor(100000),
+        ImageDecodeCap.canvasMaxLongEdge,
+      );
+    });
+
+    test('退化输入留一档最低分辨率（解码尺寸不得为 0）', () {
+      expect(ImageDecodeCap.exportTierFor(0), 256);
+      expect(ImageDecodeCap.exportTierFor(-1), 256);
+      expect(ImageDecodeCap.exportTierFor(double.nan), 256);
+      expect(ImageDecodeCap.exportTierFor(double.infinity), 256);
+    });
+  });
+
   group('InkLayerPainter.cullStrokes（P1-8 视口剔除）', () {
     test('视口内笔画保留、视口外剔除、空点列剔除', () {
       final inside = _stroke(

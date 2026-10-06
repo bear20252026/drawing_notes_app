@@ -78,64 +78,139 @@ extension DrawingControllerRenderOps on DrawingController {
     Rect? bounds,
     Set<BrushType> excludedTypes = const {},
   }) {
+    _paintLayers(canvas, bounds: bounds, excludedTypes: excludedTypes);
+    _paintDocumentImages(canvas);
+    _paintDocumentShapes(canvas);
+  }
+
+  /// 图层腿（矢量 or 已合成位图），`_paintDocument` 与导出腿共用。
+  void _paintLayers(
+    ui.Canvas canvas, {
+    Rect? bounds,
+    Set<BrushType> excludedTypes = const {},
+  }) {
     if (_document.infinite || excludedTypes.isNotEmpty) {
       paintVectorLayers(
         canvas,
         bounds ?? contentBounds(),
         excludedTypes: excludedTypes,
       );
-    } else {
-      for (final view in paintViews) {
-        final image = view.image;
-        if (image == null || !view.visible || view.opacity <= 0) continue;
-        final paint = Paint()
-          ..color = Color.fromRGBO(0, 0, 0, view.opacity)
-          ..filterQuality = FilterQuality.high;
-        // 图层位图可能按长边封顶光栅化（LayerCompositor，内存治理）：
-        // 以位图实际尺寸为 src、文档尺寸为 dst 统一缩放绘制。
-        canvas.drawImageRect(
-          image,
-          ui.Rect.fromLTWH(
-            0,
-            0,
-            image.width.toDouble(),
-            image.height.toDouble(),
-          ),
-          ui.Rect.fromLTWH(
-            0,
-            0,
-            _document.width.toDouble(),
-            _document.height.toDouble(),
-          ),
-          paint,
-        );
-      }
+      return;
     }
-    // U2 同款短路（canvas_painter 的 isSorted 检查模式）：先 O(n) 检查
-    // 是否已按 zOrder 有序（新增图片走递增 zOrder，绝大多数调用已有序），
-    // 仅乱序时才拷贝排序，免去 List.of 分配与 O(n log n) 排序。
-    final imageItems = _document.imageItems;
-    var images = imageItems;
-    for (var i = 1; i < imageItems.length; i++) {
-      if (imageItems[i - 1].zOrder.compareTo(imageItems[i].zOrder) > 0) {
-        images = List.of(imageItems)
-          ..sort((a, b) => a.zOrder.compareTo(b.zOrder));
-        break;
-      }
-    }
-    for (final item in images) {
-      final image = documentImage(item);
-      if (image == null) continue;
+    for (final view in paintViews) {
+      final image = view.image;
+      if (image == null || !view.visible || view.opacity <= 0) continue;
+      final paint = Paint()
+        ..color = Color.fromRGBO(0, 0, 0, view.opacity)
+        ..filterQuality = FilterQuality.high;
+      // 图层位图可能按长边封顶光栅化（LayerCompositor，内存治理）：
+      // 以位图实际尺寸为 src、文档尺寸为 dst 统一缩放绘制。
       canvas.drawImageRect(
         image,
-        Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
-        Rect.fromLTWH(item.x, item.y, item.width, item.height),
-        Paint()..filterQuality = FilterQuality.high,
+        ui.Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+        ui.Rect.fromLTWH(
+          0,
+          0,
+          _document.width.toDouble(),
+          _document.height.toDouble(),
+        ),
+        paint,
       );
     }
+  }
+
+  /// 图片按 zOrder 的绘制序（U2 同款短路：递增 zOrder 是常态，只有真的乱序
+  /// 才拷贝排序，免去 `List.of` 分配与 O(n log n)）。
+  List<DocumentImageItem> _imagesByZOrder() {
+    final imageItems = _document.imageItems;
+    for (var i = 1; i < imageItems.length; i++) {
+      if (imageItems[i - 1].zOrder.compareTo(imageItems[i].zOrder) > 0) {
+        return List.of(imageItems)
+          ..sort((a, b) => a.zOrder.compareTo(b.zOrder));
+      }
+    }
+    return imageItems;
+  }
+
+  void _drawDocumentImage(
+    ui.Canvas canvas,
+    DocumentImageItem item,
+    ui.Image image,
+  ) {
+    canvas.drawImageRect(
+      image,
+      Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+      Rect.fromLTWH(item.x, item.y, item.width, item.height),
+      Paint()..filterQuality = FilterQuality.high,
+    );
+  }
+
+  void _paintDocumentImages(ui.Canvas canvas) {
+    for (final item in _imagesByZOrder()) {
+      final image = documentImage(item);
+      if (image == null) continue;
+      _drawDocumentImage(canvas, item, image);
+    }
+  }
+
+  /// 导出腿的图片绘制：逐张「解码→记录绘制→立即释放」，**不经过 LRU 缓存**。
+  ///
+  /// 修的是台账 2026-10-05（AW 第 5 条）那条静默缺图：`ensureLoaded` 只保证
+  /// 「每张都尝试解码过」，整组字节超预算时后载入的淘汰先载入的，而渲染腿对
+  /// 未驻留的图片直接 `continue` ⇒ 页面图片总量一大，导出产物就缺图，用户
+  /// 全程无感知。逐张解码把「全部同时在场」降成「一次一张」，完整性不再依赖
+  /// 预算装得下整组；解码尺寸按 [outputScale] 换算成该图在**输出光栅**里占的
+  /// 长边再取档位（只升不降），导出多大就解多大。
+  ///
+  /// 已驻留的图片直接复用现成位图（不释放——它归缓存管）：导出不得为了走一遍
+  /// 一次性解码把交互缓存里已有的结果再解一遍，反之也不得用 `imageFor` 探测，
+  /// 那 miss 会当场发起整组并发解码，内存界就没了。
+  Future<void> _paintDocumentImagesForExport(
+    ui.Canvas canvas, {
+    required double outputScale,
+  }) async {
+    for (final item in _imagesByZOrder()) {
+      final ui.Image? image;
+      final bool transient;
+      if (_documentImageCache.isCached(item.id)) {
+        final resident = documentImage(item);
+        if (resident == null) continue;
+        image = resident;
+        transient = false;
+      } else {
+        image = await _documentImageCache.decodeForExport(
+          item,
+          maxLongEdge: ImageDecodeCap.exportTierFor(
+            math.max(item.width, item.height) * outputScale,
+          ),
+        );
+        if (image == null) continue;
+        transient = true;
+      }
+      try {
+        _drawDocumentImage(canvas, item, image);
+      } finally {
+        if (transient) image.dispose();
+      }
+    }
+  }
+
+  void _paintDocumentShapes(ui.Canvas canvas) {
     for (final shape in _document.shapes) {
       ShapeRenderer.drawDocumentShape(canvas, shapeForRendering(shape));
     }
+  }
+
+  /// 导出用的完整绘制腿：图层 → 图片（逐张解码）→ 形状，顺序与 `_paintDocument` 一致。
+  Future<void> _paintDocumentForExport(
+    ui.Canvas canvas, {
+    Rect? bounds,
+    Set<BrushType> excludedTypes = const {},
+    required double outputScale,
+  }) async {
+    _paintLayers(canvas, bounds: bounds, excludedTypes: excludedTypes);
+    await _paintDocumentImagesForExport(canvas, outputScale: outputScale);
+    _paintDocumentShapes(canvas);
   }
 
   PageShapeItem shapeForRendering(PageShapeItem shape) {
@@ -165,7 +240,6 @@ extension DrawingControllerRenderOps on DrawingController {
     /// 传子矩形时只渲染该区域（世界坐标）。
     ui.Rect? renderBounds,
   }) async {
-    await _ensureDocumentImagesLoaded();
     final bounds =
         renderBounds ??
         (_document.infinite
@@ -213,7 +287,15 @@ extension DrawingControllerRenderOps on DrawingController {
     );
     canvas.scale(effectiveScale);
     canvas.translate(-bounds.left, -bounds.top);
-    _paintDocument(canvas, bounds: bounds, excludedTypes: excludedTypes);
+    // 导出腿自带逐张解码（见 [_paintDocumentImagesForExport]）：这里不再
+    // `ensureLoaded` 预热整组——预热完也不保证同时驻留，反而会把先解码的挤掉，
+    // 最后由渲染腿静默 `continue` 成「产物缺图」。
+    await _paintDocumentForExport(
+      canvas,
+      bounds: bounds,
+      excludedTypes: excludedTypes,
+      outputScale: effectiveScale,
+    );
     final picture = recorder.endRecording();
     ui.Image? image;
     try {

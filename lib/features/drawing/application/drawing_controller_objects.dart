@@ -6,9 +6,6 @@ part of 'drawing_controller.dart';
 /// [DocumentObjectEditingSession] 持有。控制器保留此层，以维持既有 UI、
 /// 命令回调和测试的稳定公开 API，同时避免对象会话反向依赖控制器实现。
 extension DrawingControllerObjectOps on DrawingController {
-  Future<void> _ensureDocumentImagesLoaded() =>
-      _documentImageCache.ensureLoaded(_document.imageItems);
-
   Set<String> get selectedDocumentShapeIds =>
       _documentObjectEditingSession.selectedDocumentShapeIds;
   Set<String> get selectedDocumentImageIds =>

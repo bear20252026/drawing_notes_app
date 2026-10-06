@@ -46,4 +46,20 @@ class ImageDecodeCap {
     }
     return defaultMaxLongEdge;
   }
+
+  /// 导出/一次性解码档位：取**不小于**所需长边的最小档位，封顶
+  /// [canvasMaxLongEdge]。
+  ///
+  /// 与 [quantizedCacheWidth] 的方向相反是有意的：缓存档位宁可略降一档换「相邻
+  /// 尺寸复用同一位图」，导出则要保证完整性——欠一档就是往产物里塞一张比输出
+  /// 分辨率还低的图（放大后发糊），那正是我们要修的「静默劣化」的另一半。
+  static int exportTierFor(double requiredLongEdge) {
+    // 退化尺寸（0 / 非有限）也留一档最低分辨率： dst 面积为零时 Skia 本来
+    // 就不落任何像素，但解码尺寸不能算成 0（instantiateCodec 会拒）。
+    if (!requiredLongEdge.isFinite || requiredLongEdge <= 0) return 256;
+    for (final tier in const [256, 512, 1024, 2048]) {
+      if (requiredLongEdge <= tier) return tier;
+    }
+    return canvasMaxLongEdge;
+  }
 }

@@ -21,13 +21,21 @@ import 'package:drawing_notes_app/shared/utils/image_decode_cap.dart';
 /// 「按可见性优先保活，离屏图片先 dispose」）。
 typedef DocumentImageDecoder = Future<ui.Image> Function(String filePath);
 
+/// 导出腿解码器：按调用方给的长边上限降采样（见 [DocumentImageCache.decodeForExport]）。
+typedef DocumentImageExportDecoder = Future<ui.Image> Function(
+  String filePath,
+  int maxLongEdge,
+);
+
 class DocumentImageCache {
   DocumentImageCache({
     required this._onImageAvailable,
     required this._isOwnerDisposed,
     DocumentImageDecoder? decoder,
+    DocumentImageExportDecoder? exportDecoder,
     this.maxCacheBytes = maxCacheBytesDefault,
-  }) : _decoder = decoder ?? _decodeImageFile;
+  }) : _decoder = decoder ?? _decodeImageFile,
+       _exportDecoder = exportDecoder ?? _decodeImageFileCapped;
 
   /// 文档图片解码缓存字节预算。单张 RGBA 上限 4096²×4 ≈ 64MB，预算 48MB
   /// 可容纳约 1 张超清大图或近十张常规图，超限即淘汰最久未用
@@ -40,6 +48,7 @@ class DocumentImageCache {
   final VoidCallback _onImageAvailable;
   final bool Function() _isOwnerDisposed;
   final DocumentImageDecoder _decoder;
+  final DocumentImageExportDecoder _exportDecoder;
   final Map<String, ui.Image> _images = <String, ui.Image>{};
   final Map<String, _ImageLoad> _loads = <String, _ImageLoad>{};
 
@@ -68,7 +77,10 @@ class DocumentImageCache {
 
   /// 只读探测位图是否已驻留，**不**触发加载（`imageFor` 的 miss 会起一次
   /// 解码，不能在渲染/导出前后用来判断「图还在不在」）。
-  @visibleForTesting
+  ///
+  /// 导出腿用它分流：已驻留的直接复用，未驻留的走 [decodeForExport] 一次性
+  /// 解码。若改用 `imageFor` 探测，miss 会当场发起整组并发解码，
+  /// 「逐张解码→绘制→释放」的内存界就没了。
   bool isCached(String imageId) => _images.containsKey(imageId);
 
   void _touch(String id) {
@@ -103,7 +115,7 @@ class DocumentImageCache {
   /// ⚠️ 完成只代表「每张都尝试解码过」，**不代表它们同时驻留**：整组字节数
   /// 超预算时，后载入的会把先载入的淘汰掉。调用方不能把本方法当成
   /// 「导出时图片一定在」的保证（`test/document_image_cache_test.dart`
-  /// 用一条特征测试把这个事实钉住）。
+  /// 用一条特征测试把这个事实钉住）。导出腿因此改走 [decodeForExport]。
   Future<void> ensureLoaded(Iterable<DocumentImageItem> items) async {
     final pending = <DocumentImageItem>[
       for (final item in items)
@@ -116,6 +128,30 @@ class DocumentImageCache {
       final batch = pending.skip(index).take(batchSize);
       index += batchSize;
       await Future.wait(<Future<void>>[for (final item in batch) _load(item)]);
+    }
+  }
+
+  /// 导出腿的一次性解码：**不进 LRU 缓存**，按调用方给的长边上限降采样，
+  /// 由调用方在绘制记录完成后负责 `dispose`。
+  ///
+  /// 为什么导出不能走 `ensureLoaded` + `imageFor`（台账 2026-10-05，AW 第 5 条）：
+  /// `ensureLoaded` 只保证「每张都尝试解码过」，整组字节数超预算时后载入的会
+  /// 淘汰先载入的，于是渲染腿拿到 null、直接 `continue`，**导出产物静默缺图**。
+  /// 逐张「解码→绘制→释放」把驻留量从「全部图片同时在场」降成「一次一张」，
+  /// 完整性不再依赖预算是否装得下整组；[maxLongEdge] 由调用方按**输出光栅真正
+  /// 需要**的分辨率给出，导出多大就解多大，内存不再随原图尺寸走。
+  ///
+  /// 与 `_decodeAndStore` 同一宽容口径：文件缺失/损坏、保险库锁定都返回 null
+  /// （导出其余内容照常完成），不抛、不请求宿主刷新（缓存没变，无需重绘）。
+  Future<ui.Image?> decodeForExport(
+    DocumentImageItem item, {
+    required int maxLongEdge,
+  }) async {
+    if (_isInactive) return null;
+    try {
+      return await _exportDecoder(item.filePath, maxLongEdge);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -201,7 +237,15 @@ final class _ImageLoad {
 /// U2 降采样（2026-09-02，P1-13）：长边超过 [ImageDecodeCap.canvasMaxLongEdge]
 /// 时解码阶段直接缩图——画布可深度缩放故上限放宽到 4096，极端照片
 /// （8000px+）的解码内存仍被钳制。
-Future<ui.Image> _decodeImageFile(String filePath) async {
+Future<ui.Image> _decodeImageFile(String filePath) =>
+    _decodeImageFileCapped(filePath, ImageDecodeCap.canvasMaxLongEdge);
+
+/// 同一解码路径的可指定尺寸版本（导出腿用，见 [DocumentImageCache.decodeForExport]）：
+/// 导出输出多大就解多大，驻留量不再随原图尺寸走。
+Future<ui.Image> _decodeImageFileCapped(
+  String filePath,
+  int maxLongEdge,
+) async {
   ui.ImmutableBuffer? buffer;
   ui.ImageDescriptor? descriptor;
   ui.Codec? codec;
@@ -212,7 +256,7 @@ Future<ui.Image> _decodeImageFile(String filePath) async {
     final target = ImageDecodeCap.targetSize(
       descriptor.width,
       descriptor.height,
-      ImageDecodeCap.canvasMaxLongEdge,
+      maxLongEdge,
     );
     codec = await descriptor.instantiateCodec(
       targetWidth: target.width,

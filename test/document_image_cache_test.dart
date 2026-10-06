@@ -140,9 +140,7 @@ void main() {
       expect(attempts, 1, reason: '已驻留的图片被重绘不得再次触发解码');
     });
 
-    testWidgets('两张以上仍受字节预算约束：淘汰最久未用、留住最近使用', (
-      tester,
-    ) async {
+    testWidgets('两张以上仍受字节预算约束：淘汰最久未用、留住最近使用', (tester) async {
       final cache = DocumentImageCache(
         onImageAvailable: () {},
         isOwnerDisposed: () => false,
@@ -168,9 +166,7 @@ void main() {
       expect(cache.isCached('b'), isFalse, reason: 'b 是最久未用，必须被淘汰');
     });
 
-    testWidgets('宿主销毁后返回的解码结果不写回缓存、不请求刷新', (
-      tester,
-    ) async {
+    testWidgets('宿主销毁后返回的解码结果不写回缓存、不请求刷新', (tester) async {
       var ownerDisposed = false;
       var refreshes = 0;
       // ⚠️ 挂起中的解码句柄必须在 `runAsync` 的**真实异步区**里创建：
@@ -195,9 +191,7 @@ void main() {
       expect(refreshes, 0, reason: '销毁后不得再请求宿主刷新');
     });
 
-    testWidgets('invalidate 作废在途旧解码，新内容不被旧结果覆盖', (
-      tester,
-    ) async {
+    testWidgets('invalidate 作废在途旧解码，新内容不被旧结果覆盖', (tester) async {
       var attempts = 0;
       // 同上一条用例：挂起的解码只能在真实异步区内构造，否则 complete 之后
       // 续体落在 FakeAsync 队列里永不执行。
@@ -228,11 +222,7 @@ void main() {
 
       expect(attempts, 2, reason: 'invalidate 后进行中的旧任务不得继续占据任务位');
       final resident = cache.imageFor(_item('crop'));
-      expect(
-        resident?.width,
-        4,
-        reason: '驻留的必须是改写后的新位图，旧字节结果必须作废并释放',
-      );
+      expect(resident?.width, 4, reason: '驻留的必须是改写后的新位图，旧字节结果必须作废并释放');
     });
 
     testWidgets('特征钉桩：ensureLoaded 完成 ≠ 整组图片同时驻留', (tester) async {
@@ -250,11 +240,103 @@ void main() {
         expect(
           resident,
           lessThan(3),
-          reason: '整组 192 字节 > 预算：后载入的必然淘汰先载入的。'
-              '导出/整册渲染不得把 ensureLoaded 当成「图一定在内存里」的保证，'
-              '否则就是静默产出缺图的导出文件。',
+          reason:
+              '整组 192 字节 > 预算：后载入的必然淘汰先载入的。'
+              '导出腿因此改走 decodeForExport，不得把 ensureLoaded 当成'
+              '「图一定在内存里」的保证，否则就是静默产出缺图的导出文件。',
         );
       });
+    });
+  });
+
+  // 导出腿的一次性解码（台账 2026-10-05 AW 第 5 条的修复面）：不进 LRU、
+  // 不动字节预算、按调用方给的长边解码、失败与销毁都不抛。
+  group('decodeForExport 一次性解码（导出腿，2026-10-06）', () {
+    testWidgets('不进缓存、不挤掉已驻留图片、不请求宿主刷新', (tester) async {
+      var refreshes = 0;
+      final cache = DocumentImageCache(
+        onImageAvailable: () => refreshes++,
+        isOwnerDisposed: () => false,
+        maxCacheBytes: 64, // 只容一张 4×4：导出解码若误进缓存必然触发淘汰
+        decoder: (_) => _pixelImage(4, 4),
+        exportDecoder: (_, _) => _pixelImage(8, 8),
+      );
+      addTearDown(cache.dispose);
+
+      await tester.runAsync(() async {
+        cache.imageFor(_item('resident'));
+        await waitUntil(() => cache.isCached('resident'));
+
+        final transient = await cache.decodeForExport(
+          _item('exported'),
+          maxLongEdge: 512,
+        );
+        expect(transient, isNotNull);
+        expect(transient!.width, 8);
+        expect(
+          cache.isCached('exported'),
+          isFalse,
+          reason: '一次性解码不得写进 LRU——它会把交互缓存整组冲掉',
+        );
+        expect(
+          cache.isCached('resident'),
+          isTrue,
+          reason: '导出多张图不该挤掉交互态正在用的位图（字节预算不能被触碰）',
+        );
+        transient.dispose();
+      });
+
+      expect(refreshes, 1, reason: '缓存内容没变，导出解码不该请求画布重绘');
+    });
+
+    test('长边按调用方给的值解码（导出多大就解多大）', () async {
+      final requested = <int>[];
+      final cache = DocumentImageCache(
+        onImageAvailable: () {},
+        isOwnerDisposed: () => false,
+        exportDecoder: (_, maxLongEdge) async {
+          requested.add(maxLongEdge);
+          return _pixelImage(2, 2);
+        },
+      );
+      addTearDown(cache.dispose);
+
+      await cache.decodeForExport(_item('a'), maxLongEdge: 256);
+      await cache.decodeForExport(_item('b'), maxLongEdge: 4096);
+
+      expect(requested, [256, 4096]);
+    });
+
+    testWidgets('解码失败返回 null：导出其余内容照常完成，不抛', (tester) async {
+      final cache = DocumentImageCache(
+        onImageAvailable: () {},
+        isOwnerDisposed: () => false,
+        exportDecoder: (_, _) async => throw StateError('文件缺失或保险库锁定'),
+      );
+      addTearDown(cache.dispose);
+
+      await tester.runAsync(() async {
+        expect(
+          await cache.decodeForExport(_item('gone'), maxLongEdge: 512),
+          isNull,
+        );
+      });
+    });
+
+    test('宿主或缓存已销毁时不再解码', () async {
+      var attempts = 0;
+      final cache = DocumentImageCache(
+        onImageAvailable: () {},
+        isOwnerDisposed: () => true,
+        exportDecoder: (_, _) async {
+          attempts++;
+          return _pixelImage(2, 2);
+        },
+      );
+      addTearDown(cache.dispose);
+
+      expect(await cache.decodeForExport(_item('a'), maxLongEdge: 256), isNull);
+      expect(attempts, 0);
     });
   });
 }

@@ -35,6 +35,7 @@ import 'package:drawing_notes_app/features/drawing/rendering/shape_binding_geome
 import 'package:drawing_notes_app/features/drawing/rendering/shape_renderer.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/shared/utils/image_decode_cap.dart';
 
 /// 绘图引擎控制器：UI 层与数据模型之间的唯一桥梁。
 ///
