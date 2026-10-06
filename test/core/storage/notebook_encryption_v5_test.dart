@@ -222,6 +222,28 @@ void main() {
         'legacy-v4-content',
       );
     });
+
+    // P2-2（审计 2026-10-06）：v4 分支的「密码错误」此前抛的是 cryptography 的
+    // `SecretBoxAuthenticationError`，而三个生产调用点都按文档只捕
+    // `FormatException` ⇒ 遗留笔记本（v5 之前加密、之后没改过密）输错密码时
+    // 异常一路穿透到 pin_pad/unlock_sheets（两处无 try），用户看到的就是
+    // 「点了确定没反应」——既不抖动也不提示，像按钮坏了。
+    test('v4 旧载荷错口令 → FormatException（不得穿透 SecretBoxAuthenticationError）',
+        () async {
+      final legacy = await svc.encryptWithPasswordAad(
+        notebookId: id,
+        plaintext: 'legacy-v4-content',
+        password: pw,
+      );
+      expect(
+        () => svc.decryptWithPasswordAad(
+          notebookId: id,
+          encryptedJson: legacy,
+          password: 'wrong-$pw',
+        ),
+        throwsFormatException,
+      );
+    });
   });
 
   group('NotebookStorage v5 存储层', () {
@@ -317,6 +339,49 @@ void main() {
       expect(await storage.decryptNotebook(afterReset, 'reset-3333'), isTrue);
       expect(afterReset.pages.single.textItems.single.text, '绝密正文');
     });
+
+    // P2-2（审计 2026-10-06）：把「遗留笔记本输错密码 = 点了没反应」这条
+    // 用户可见缺陷钉成断言——正确形状是 `verifyNotebookPassword` 返回 false
+    // （UI 据此抖动/提示），而不是抛未捕获的异步异常穿透 pin_pad:207 /
+    // unlock_sheets:243（两处都没有 try）。
+    test(
+      'v4 旧载荷 verifyNotebookPassword：错口令返回 false，不抛异常穿透',
+      () async {
+        final storage = storageWith();
+        const svc = EncryptionService();
+        const legacyId = 'nb_v5_legacy_verify';
+        final nb = nbWithPage(legacyId);
+        nb.encryptedPayload = await svc.encryptWithPasswordAad(
+          notebookId: legacyId,
+          plaintext: jsonEncode({
+            'pages': nb.pages.map((p) => p.toJson()).toList(),
+          }),
+          password: 'legacy-pass',
+        );
+        nb.encrypted = true;
+        nb.pages.clear();
+        await storage.save(nb);
+
+        expect(
+          await storage.verifyNotebookPassword(legacyId, 'wrong-pass'),
+          isFalse,
+          reason: '错口令必须是「返回 false」，让密码框能正常给反馈',
+        );
+        expect(
+          await storage.verifyNotebookPassword(legacyId, 'legacy-pass'),
+          isTrue,
+        );
+
+        final loaded = (await storage.load(legacyId))!;
+        await expectLater(
+          storage.decryptNotebook(loaded, 'wrong-pass'),
+          throwsFormatException,
+          reason: 'decryptNotebook 头注释的契约（密码错误抛 FormatException）',
+        );
+        expect(await storage.decryptNotebook(loaded, 'legacy-pass'), isTrue);
+        expect(loaded.pages.single.textItems.single.text, '绝密正文');
+      },
+    );
 
     test('事后绑定：须验证文件密码；重复绑定拒绝', () async {
       final storage = storageWith();

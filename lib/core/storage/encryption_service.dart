@@ -257,6 +257,34 @@ class EncryptionService {
     required String encryptedJson,
     required String password,
   }) async {
+    try {
+      return await _decryptNotebookEnvelope(
+        notebookId: notebookId,
+        encryptedJson: encryptedJson,
+        password: password,
+      );
+    } on SecretBoxAuthenticationError {
+      // P2-2 收口（2026-10-06）：AEAD 认证失败（密码错 / 密文篡改）抛的是
+      // cryptography 的 `SecretBoxAuthenticationError`，而本方法的三个生产
+      // 调用点全按文档只捕 `FormatException`——
+      //   · `NotebookStorage.verifyNotebookPassword`（`on FormatException → false`）
+      //   · `NotebookStorage.decryptNotebook`（头注释即「密码错误抛 FormatException」）
+      //   · `notebook_storage_password.dart:228` 改密前校验
+      // 于是 v5 之前加密、之后没改过密的**遗留笔记本**（走 v4 分支）输错密码时，
+      // 异常一路穿透到 `pin_pad.dart:207` / `unlock_sheets.dart:243`（两处都无 try），
+      // 用户看到的是「点了确定没反应」——既不抖动也不提示，像按钮坏了。
+      // 收口放在本方法（契约声明处）而不是底层 `_decryptPayload`：后者是加密
+      // 原语，其「认证失败抛原生异常」的语义有独立单测守着
+      // （`test/encryption_v4_aad_test.dart`），不该为了迁就上层契约而改宽。
+      throw const FormatException('密码错误或数据已损坏');
+    }
+  }
+
+  Future<String> _decryptNotebookEnvelope({
+    required String notebookId,
+    required String encryptedJson,
+    required String password,
+  }) async {
     _requireInputSize(encryptedJson);
     final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
     if (isDualProtectorEnvelope(encryptedJson)) {
