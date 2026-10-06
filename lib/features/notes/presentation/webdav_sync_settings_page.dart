@@ -27,6 +27,56 @@ final RegExp _urlUserInfoRe = RegExp(
 final RegExp _whitespaceRe = RegExp(r'\s+');
 const int _logDetailMaxLen = 160;
 
+/// 同步进度的展示文案（审计 P1-2）。
+///
+/// core 层的 `SyncProgress` 只给「阶段 + 计数」，文案在这里按 arb 键取——
+/// 此前界面直接渲染 `SyncProgress.description`，而那是 core 里写死的一整块
+/// 中文（纯 Dart 层拿不到 `AppLocalizations`），于是 **en 用户整条同步进度
+/// 全程中文**（「正在上传 3/7」「同步完成」一路陪到结束）。
+///
+/// 缺 l10n 时回落到 core 的中文兜底串——与本仓所有 `l10n?.x ?? '中文兜底'`
+/// 站点同一口径，同时也让 `SyncProgress.description` 保有生产消费方
+/// （它正是无本地化环境下的兜底），不留孤儿 API。
+///
+/// switch 覆盖整个枚举：**以后新增阶段必须在这里补文案**（否则编译不过），
+/// 避免新阶段悄悄退回中文兜底而没人发现。
+String syncProgressLabel(SyncProgress p, AppLocalizations? l10n) {
+  final hasTotal = p.totalCount > 0;
+  switch (p.phase) {
+    case SyncProgressPhase.started:
+      return l10n?.syncPhaseStarted ?? p.description;
+    case SyncProgressPhase.connecting:
+      return l10n?.syncPhaseConnecting ?? p.description;
+    case SyncProgressPhase.planning:
+      return l10n?.syncPhasePlanning ?? p.description;
+    case SyncProgressPhase.uploading:
+      return hasTotal
+          ? (l10n?.syncPhaseUploadingCount(p.doneCount, p.totalCount) ??
+                p.description)
+          : (l10n?.syncPhaseUploading ?? p.description);
+    case SyncProgressPhase.downloading:
+      return hasTotal
+          ? (l10n?.syncPhaseDownloadingCount(p.doneCount, p.totalCount) ??
+                p.description)
+          : (l10n?.syncPhaseDownloading ?? p.description);
+    case SyncProgressPhase.deleting:
+      return hasTotal
+          ? (l10n?.syncPhaseDeletingCount(p.doneCount, p.totalCount) ??
+                p.description)
+          : (l10n?.syncPhaseDeleting ?? p.description);
+    case SyncProgressPhase.writingManifest:
+      return l10n?.syncPhaseWritingManifest ?? p.description;
+    case SyncProgressPhase.done:
+      return l10n?.syncPhaseDone ?? p.description;
+    case SyncProgressPhase.failed:
+      // 失败原因由 humanizeWebDavSyncError 生成，本身已按当前语言取 arb 文案
+      // （且过脱敏纪律），所以有 message 时优先用它——与修复前行为一致。
+      final detail = p.message;
+      if (detail != null && detail.isNotEmpty) return detail;
+      return l10n?.syncPhaseFailed ?? p.description;
+  }
+}
+
 String _redactForLog(String raw) {
   final scrubbed = raw
       .replaceAll(_basicTokenRe, 'Basic [redacted]')
@@ -545,7 +595,8 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
             ),
             const SizedBox(height: 4),
             Text(
-              _progress!.description,
+              // P1-2：文案来自 arb（core 只给阶段与计数）。
+              syncProgressLabel(_progress!, AppLocalizations.of(context)),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: _progress!.phase == SyncProgressPhase.failed
                     ? AppleColor.errorRed

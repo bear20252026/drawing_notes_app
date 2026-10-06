@@ -2,7 +2,13 @@
 // 纯 Dart，无 Flutter/io/controller/存储依赖；不可变值类型。
 //
 // SyncService 通过 onProgress 回调发射 SyncProgress 事件，
-// 设置页据此渲染进度条与状态文案。文案生成不依赖 context。
+// 设置页据此渲染进度条与状态文案。
+//
+// ⚠️ 文案归属（审计 P1-2，2026-10-06）：本文件的 [SyncProgress.description]
+// 是**中文兜底**，不是界面文案来源——纯 Dart 层拿不到 `AppLocalizations`，
+// 在这里写死中文并直接渲染上 UI，结果就是 en 用户整条进度全程中文。
+// 界面文案请走 `webdav_sync_settings_page.dart` 的 `syncProgressLabel`
+// （按 arb 键 `syncPhase*` 取，缺 l10n 时才回落到本方法）。
 
 /// 同步阶段枚举。
 enum SyncProgressPhase {
@@ -58,7 +64,9 @@ class SyncProgress {
     return 0.0;
   }
 
-  /// 按阶段生成的可读文案（中文为主）。
+  /// 按阶段生成的**中文兜底**可读文案（无 `AppLocalizations` 时使用）。
+  ///
+  /// 界面不要直接渲染它——走 `syncProgressLabel`（见文件头 P1-2 说明）。
   String get description {
     switch (phase) {
       case SyncProgressPhase.started:

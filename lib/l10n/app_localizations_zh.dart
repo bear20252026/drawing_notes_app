@@ -1343,6 +1343,48 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncUpToDate => '已是最新，无需同步';
 
   @override
+  String get syncPhaseStarted => '正在启动同步…';
+
+  @override
+  String get syncPhaseConnecting => '正在连接服务器…';
+
+  @override
+  String get syncPhasePlanning => '正在比对变更…';
+
+  @override
+  String get syncPhaseUploading => '正在上传…';
+
+  @override
+  String syncPhaseUploadingCount(int done, int total) {
+    return '正在上传 $done/$total…';
+  }
+
+  @override
+  String get syncPhaseDownloading => '正在下载…';
+
+  @override
+  String syncPhaseDownloadingCount(int done, int total) {
+    return '正在下载 $done/$total…';
+  }
+
+  @override
+  String get syncPhaseDeleting => '正在删除远端文件…';
+
+  @override
+  String syncPhaseDeletingCount(int done, int total) {
+    return '正在删除远端 $done/$total…';
+  }
+
+  @override
+  String get syncPhaseWritingManifest => '正在写入同步清单…';
+
+  @override
+  String get syncPhaseDone => '同步完成';
+
+  @override
+  String get syncPhaseFailed => '同步失败';
+
+  @override
   String syncWithConflicts(String base, int count) {
     return '$base；另有 $count 个文档本地与云端均有改动，已按你的选择处理';
   }

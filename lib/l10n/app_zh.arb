@@ -1376,6 +1376,63 @@
   "@syncMaxRetries": {},
   "syncUpToDate": "已是最新，无需同步",
   "@syncUpToDate": {},
+  "syncPhaseStarted": "正在启动同步…",
+  "@syncPhaseStarted": {
+    "description": "同步进度文案：启动（P1-2 从 core 层移入 arb）"
+  },
+  "syncPhaseConnecting": "正在连接服务器…",
+  "@syncPhaseConnecting": {
+    "description": "同步进度文案：连接"
+  },
+  "syncPhasePlanning": "正在比对变更…",
+  "@syncPhasePlanning": {
+    "description": "同步进度文案：比对本地与远端变更"
+  },
+  "syncPhaseUploading": "正在上传…",
+  "@syncPhaseUploading": {
+    "description": "同步进度文案：上传（总数未知）"
+  },
+  "syncPhaseUploadingCount": "正在上传 {done}/{total}…",
+  "@syncPhaseUploadingCount": {
+    "placeholders": {
+      "done": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "syncPhaseDownloading": "正在下载…",
+  "@syncPhaseDownloading": {
+    "description": "同步进度文案：下载（总数未知）"
+  },
+  "syncPhaseDownloadingCount": "正在下载 {done}/{total}…",
+  "@syncPhaseDownloadingCount": {
+    "placeholders": {
+      "done": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "syncPhaseDeleting": "正在删除远端文件…",
+  "@syncPhaseDeleting": {
+    "description": "同步进度文案：删除远端（总数未知）"
+  },
+  "syncPhaseDeletingCount": "正在删除远端 {done}/{total}…",
+  "@syncPhaseDeletingCount": {
+    "placeholders": {
+      "done": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "syncPhaseWritingManifest": "正在写入同步清单…",
+  "@syncPhaseWritingManifest": {
+    "description": "同步进度文案：写清单"
+  },
+  "syncPhaseDone": "同步完成",
+  "@syncPhaseDone": {
+    "description": "同步进度文案：完成"
+  },
+  "syncPhaseFailed": "同步失败",
+  "@syncPhaseFailed": {
+    "description": "同步进度文案：失败且无具体原因"
+  },
   "syncWithConflicts": "{base}；另有 {count} 个文档本地与云端均有改动，已按你的选择处理",
   "@syncWithConflicts": {
     "placeholders": {

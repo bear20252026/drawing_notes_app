@@ -2606,6 +2606,78 @@ abstract class AppLocalizations {
   /// **'Already up to date'**
   String get syncUpToDate;
 
+  /// Sync progress label: started (P1-2 moved out of the core layer into arb)
+  ///
+  /// In en, this message translates to:
+  /// **'Starting sync…'**
+  String get syncPhaseStarted;
+
+  /// Sync progress label: connecting
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting to the server…'**
+  String get syncPhaseConnecting;
+
+  /// Sync progress label: comparing local and remote changes
+  ///
+  /// In en, this message translates to:
+  /// **'Comparing changes…'**
+  String get syncPhasePlanning;
+
+  /// Sync progress label: uploading (total unknown)
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading…'**
+  String get syncPhaseUploading;
+
+  /// No description provided for @syncPhaseUploadingCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading {done}/{total}…'**
+  String syncPhaseUploadingCount(int done, int total);
+
+  /// Sync progress label: downloading (total unknown)
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading…'**
+  String get syncPhaseDownloading;
+
+  /// No description provided for @syncPhaseDownloadingCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {done}/{total}…'**
+  String syncPhaseDownloadingCount(int done, int total);
+
+  /// Sync progress label: deleting remote (total unknown)
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting remote files…'**
+  String get syncPhaseDeleting;
+
+  /// No description provided for @syncPhaseDeletingCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting remote {done}/{total}…'**
+  String syncPhaseDeletingCount(int done, int total);
+
+  /// Sync progress label: writing manifest
+  ///
+  /// In en, this message translates to:
+  /// **'Writing sync manifest…'**
+  String get syncPhaseWritingManifest;
+
+  /// Sync progress label: done
+  ///
+  /// In en, this message translates to:
+  /// **'Sync complete'**
+  String get syncPhaseDone;
+
+  /// Sync progress label: failed without a specific reason
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed'**
+  String get syncPhaseFailed;
+
   /// No description provided for @syncWithConflicts.
   ///
   /// In en, this message translates to:

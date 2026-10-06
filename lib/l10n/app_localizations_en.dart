@@ -1406,6 +1406,48 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncUpToDate => 'Already up to date';
 
   @override
+  String get syncPhaseStarted => 'Starting sync…';
+
+  @override
+  String get syncPhaseConnecting => 'Connecting to the server…';
+
+  @override
+  String get syncPhasePlanning => 'Comparing changes…';
+
+  @override
+  String get syncPhaseUploading => 'Uploading…';
+
+  @override
+  String syncPhaseUploadingCount(int done, int total) {
+    return 'Uploading $done/$total…';
+  }
+
+  @override
+  String get syncPhaseDownloading => 'Downloading…';
+
+  @override
+  String syncPhaseDownloadingCount(int done, int total) {
+    return 'Downloading $done/$total…';
+  }
+
+  @override
+  String get syncPhaseDeleting => 'Deleting remote files…';
+
+  @override
+  String syncPhaseDeletingCount(int done, int total) {
+    return 'Deleting remote $done/$total…';
+  }
+
+  @override
+  String get syncPhaseWritingManifest => 'Writing sync manifest…';
+
+  @override
+  String get syncPhaseDone => 'Sync complete';
+
+  @override
+  String get syncPhaseFailed => 'Sync failed';
+
+  @override
   String syncWithConflicts(String base, int count) {
     return '$base; $count more documents changed both locally and remotely and were handled per your choice';
   }

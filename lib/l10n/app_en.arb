@@ -1393,6 +1393,63 @@
   "@syncMaxRetries": {},
   "syncUpToDate": "Already up to date",
   "@syncUpToDate": {},
+  "syncPhaseStarted": "Starting sync…",
+  "@syncPhaseStarted": {
+    "description": "Sync progress label: started (P1-2 moved out of the core layer into arb)"
+  },
+  "syncPhaseConnecting": "Connecting to the server…",
+  "@syncPhaseConnecting": {
+    "description": "Sync progress label: connecting"
+  },
+  "syncPhasePlanning": "Comparing changes…",
+  "@syncPhasePlanning": {
+    "description": "Sync progress label: comparing local and remote changes"
+  },
+  "syncPhaseUploading": "Uploading…",
+  "@syncPhaseUploading": {
+    "description": "Sync progress label: uploading (total unknown)"
+  },
+  "syncPhaseUploadingCount": "Uploading {done}/{total}…",
+  "@syncPhaseUploadingCount": {
+    "placeholders": {
+      "done": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "syncPhaseDownloading": "Downloading…",
+  "@syncPhaseDownloading": {
+    "description": "Sync progress label: downloading (total unknown)"
+  },
+  "syncPhaseDownloadingCount": "Downloading {done}/{total}…",
+  "@syncPhaseDownloadingCount": {
+    "placeholders": {
+      "done": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "syncPhaseDeleting": "Deleting remote files…",
+  "@syncPhaseDeleting": {
+    "description": "Sync progress label: deleting remote (total unknown)"
+  },
+  "syncPhaseDeletingCount": "Deleting remote {done}/{total}…",
+  "@syncPhaseDeletingCount": {
+    "placeholders": {
+      "done": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "syncPhaseWritingManifest": "Writing sync manifest…",
+  "@syncPhaseWritingManifest": {
+    "description": "Sync progress label: writing manifest"
+  },
+  "syncPhaseDone": "Sync complete",
+  "@syncPhaseDone": {
+    "description": "Sync progress label: done"
+  },
+  "syncPhaseFailed": "Sync failed",
+  "@syncPhaseFailed": {
+    "description": "Sync progress label: failed without a specific reason"
+  },
   "syncWithConflicts": "{base}; {count} more documents changed both locally and remotely and were handled per your choice",
   "@syncWithConflicts": {
     "placeholders": {
