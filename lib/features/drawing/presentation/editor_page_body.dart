@@ -87,7 +87,10 @@ extension _EditorPageBody on _EditorPageState {
                 ),
               ),
               // 图层与详细属性仅在用户需要时展开，画布默认保持居中和宽阔。
-              if (_layersVisible) LayerPanel(controller: _controller),
+              // onChanged 必传：面板里的图层操作只 notify 控制器（重绘 UI），
+              // 笔记本页模式的落盘完全靠这里的 _notifyChanged 置脏 + 排保存。
+              if (_layersVisible)
+                LayerPanel(controller: _controller, onChanged: _notifyChanged),
               if (_inspectorVisible)
                 PropertiesPanel(
                   controller: _controller,

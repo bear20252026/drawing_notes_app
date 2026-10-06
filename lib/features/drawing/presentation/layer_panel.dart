@@ -22,10 +22,23 @@ import 'package:drawing_notes_app/features/drawing/application/drawing_controlle
 ///   与内部存储顺序 [DrawingDocument.layers] 相反）；
 /// - 所有操作直接调用 [DrawingController] 的方法，
 ///   撤销历史由控制器统一记录。
+/// - [onChanged]：**必须**由宿主传入。控制器只 `notifyListeners`（重绘 UI），
+///   而笔记本页面模式的落盘完全靠宿主的 `onChanged`/自动保存调度
+///   （`editor_page.dart:_notifyChanged`）。此前面板没有任何保存回调，
+///   导致「新建/删除/显隐/合并/透明度」这些操作在笔记本页里从不置脏、
+///   从不排保存——最后一次动作是图层操作就丢改动（真机集成测试实测抓到）。
 class LayerPanel extends StatelessWidget {
-  const LayerPanel({super.key, required this.controller, this.width = 220});
+  const LayerPanel({
+    super.key,
+    required this.controller,
+    this.onChanged,
+    this.width = 220,
+  });
 
   final DrawingController controller;
+
+  /// 图层内容变更后的宿主回调（置脏 + 排自动保存）。
+  final VoidCallback? onChanged;
   final double width;
 
   @override
@@ -59,7 +72,10 @@ class LayerPanel extends StatelessWidget {
                         tooltip:
                             AppLocalizations.of(context)?.layerNew ?? '新建图层',
                         icon: const Icon(Icons.add_box_outlined, size: 20),
-                        onPressed: controller.addLayer,
+                        onPressed: () {
+                          controller.addLayer();
+                          onChanged?.call();
+                        },
                       ),
                     ],
                   ),
@@ -77,6 +93,7 @@ class LayerPanel extends StatelessWidget {
                       final selected = internalIndex == currentIndex;
                       return _LayerItem(
                         controller: controller,
+                        onChanged: onChanged,
                         layerIndex: internalIndex,
                         selected: selected,
                         opacity: layer.opacity,
@@ -118,6 +135,7 @@ class _LayerItem extends StatelessWidget {
     required this.canMoveDown,
     required this.canMerge,
     required this.onSelect,
+    this.onChanged,
   });
 
   final DrawingController controller;
@@ -131,6 +149,9 @@ class _LayerItem extends StatelessWidget {
   final bool canMoveDown;
   final bool canMerge;
   final VoidCallback onSelect;
+
+  /// 见 [LayerPanel.onChanged]：每次改到图层内容都要让宿主置脏并排保存。
+  final VoidCallback? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -193,8 +214,10 @@ class _LayerItem extends StatelessWidget {
                         minWidth: 44,
                         minHeight: 44,
                       ),
-                      onPressed: () =>
-                          controller.toggleLayerVisibility(layerIndex),
+                      onPressed: () {
+                        controller.toggleLayerVisibility(layerIndex);
+                        onChanged?.call();
+                      },
                     ),
                   ],
                 ),
@@ -217,6 +240,10 @@ class _LayerItem extends StatelessWidget {
                           value: opacity.clamp(0.0, 1.0),
                           onChanged: (v) =>
                               controller.setLayerOpacity(layerIndex, v),
+                          // 只在拖拽结束时通知：拖动过程中每帧都置脏/排保存
+                          // 是纯 IO 风暴（自动保存本身有防抖，但宿主的
+                          // onChanged 回调没有）。
+                          onChangeEnd: (_) => onChanged?.call(),
                         ),
                       ),
                     ),
@@ -234,25 +261,37 @@ class _LayerItem extends StatelessWidget {
                       Icons.arrow_upward,
                       AppLocalizations.of(context)?.layerUp ?? '上移',
                       canMoveUp,
-                      () => controller.moveLayerUp(layerIndex),
+                      () {
+                        controller.moveLayerUp(layerIndex);
+                        onChanged?.call();
+                      },
                     ),
                     _smallIcon(
                       Icons.arrow_downward,
                       AppLocalizations.of(context)?.layerDown ?? '下移',
                       canMoveDown,
-                      () => controller.moveLayerDown(layerIndex),
+                      () {
+                        controller.moveLayerDown(layerIndex);
+                        onChanged?.call();
+                      },
                     ),
                     _smallIcon(
                       Icons.call_merge,
                       AppLocalizations.of(context)?.layerMergeDown ?? '向下合并',
                       canMerge,
-                      () => controller.mergeLayerDown(layerIndex),
+                      () {
+                        controller.mergeLayerDown(layerIndex);
+                        onChanged?.call();
+                      },
                     ),
                     _smallIcon(
                       Icons.delete_outline,
                       AppLocalizations.of(context)?.layerDelete ?? '删除图层',
                       controller.document.layers.length > 1,
-                      () => controller.removeLayer(layerIndex),
+                      () {
+                        controller.removeLayer(layerIndex);
+                        onChanged?.call();
+                      },
                     ),
                   ],
                 ),

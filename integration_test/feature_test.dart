@@ -22,13 +22,13 @@ import '../test/helpers/temp_dir_cleanup.dart';
 /// ⚠️ 用例名的口径（交接文档 2026-10-05 第二优先指出的问题）：本文件此前
 /// 把存储目录注入成 `throw UnimplementedError()`，所以「保存」这条腿在真机上
 /// 从来没被走过；断言也只到「界面不抛异常」，没有一条在核对内容。
-/// 本轮先把**注入**改成真实临时目录（落盘路径可用、可复查），并在文件头记下
-/// 仍未补齐的部分：绘制→撤销→重做的**内容**断言（笔画落在哪个集合、
-/// `onChanged` 是否真的把页面写进磁盘）必须先在真机上确认一次再写死——
-/// 凭猜测写断言就是拿「改断言换绿」的反向做法污染门禁台账。
-/// 数据层的真实落盘往返已由单测覆盖：
+/// 本轮两件事一起做了：注入改成真实临时目录，并把「绘制→撤销→重做→图层」
+/// 升级成**逐次核对文档真实内容**（`session.document` 与 `page.document` 是同一个
+/// 对象，见 `notebook_page_editor_session.dart:25` ⇒ 断言打在页面模型上就是
+/// 在打用户刚画的东西），同时断言每次变更都真的走到上级的保存回调。
+/// 数据层的落盘往返另有单测覆盖（真实临时目录）：
 /// `test/drawing_content_roundtrip_test.dart`、
-/// `test/document_image_persistence_test.dart`（均为真实临时目录）。
+/// `test/document_image_persistence_test.dart`。
 void main() {
   /// 建一个真实临时目录给 NotebookStorage 用，返回目录句柄供后续断言/清理。
   Future<Directory> editorTempDir() async {
@@ -37,7 +37,10 @@ void main() {
     return dir;
   }
 
-  Future<void> pumpEditor(WidgetTester tester) async {
+  /// 起编辑器，返回页面模型与「上级保存回调」的调用记录。
+  Future<({NotebookPage page, List<int> changes})> pumpEditor(
+    WidgetTester tester,
+  ) async {
     final tempDir = await editorTempDir();
     final doc = DrawingDocument(
       id: 'feature_test_doc',
@@ -50,6 +53,7 @@ void main() {
       title: '功能测试页',
       document: doc,
     );
+    final changes = <int>[];
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
@@ -66,16 +70,24 @@ void main() {
             storage: NotebookStorage(
               directoryProvider: () async => tempDir,
             ),
+            // 笔记本页面模式由上级落盘（`editor_page_persistence.dart:22` 的
+            // 「session != null 直接返回」），所以这条回调就是「有没有通知保存」。
+            onChanged: () => changes.add(changes.length),
           ),
         ),
       ),
     );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull, reason: '编辑器页面不应有构建异常');
+    return (page: page, changes: changes);
   }
 
-  testWidgets('全链路：绘制笔画 → 撤销 → 重做 → 图层 → 保存，全程不崩溃', (tester) async {
-    await pumpEditor(tester);
+  /// 当前页面上的笔画总数（跨所有图层）。
+  int strokeCount(NotebookPage page) =>
+      page.document.layers.fold(0, (sum, l) => sum + l.strokes.length);
+
+  testWidgets('全链路：绘制笔画 → 撤销 → 重做 → 图层 → 保存，内容逐步核对', (tester) async {
+    final h = await pumpEditor(tester);
 
     // 1) 在画布上拖动画一笔（模拟用户真实绘制）。
     final canvas = find.byType(CustomPaint).first;
@@ -88,6 +100,29 @@ void main() {
     await gesture.up();
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull, reason: '绘制不应抛异常');
+    expect(
+      strokeCount(h.page),
+      1,
+      reason: '画完一笔后，页面模型里必须真有这一笔（不是只没崩）',
+    );
+    expect(
+      h.changes,
+      isNotEmpty,
+      reason: '内容变更必须通知上级落盘——此前存储目录是 throw，这条腿从未被走通',
+    );
+
+    // 1b) 撤销/重做要真的改内容，而不是不抛异常。
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+    expect(strokeCount(h.page), 0, reason: 'Ctrl+Z 应把刚画的那一笔撤掉');
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyY);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+    expect(strokeCount(h.page), 1, reason: 'Ctrl+Y 应把这一笔重做回来');
 
     // 2) 图层面板由顶栏开关驱动、默认关闭（AU-2 修正真机红）。
     //    原断言「图层面板常驻渲染 findsOneWidget」与实现冲突：
@@ -122,8 +157,8 @@ void main() {
     expect(tester.takeException(), isNull, reason: '画布点击不应抛异常');
   });
 
-  testWidgets('图层操作：新建图层不崩溃（图层能力可用）', (tester) async {
-    await pumpEditor(tester);
+  testWidgets('图层操作：新建图层真的加了一层，且撤销能撤回去', (tester) async {
+    final h = await pumpEditor(tester);
 
     // 打开图层面板。开关 tooltip 随状态取 arb barShowLayers / barHideLayers
     //（editor_page_appbar.dart:205-207）；初值 _layersVisible=false
@@ -135,6 +170,30 @@ void main() {
     await tester.tap(layerBtn);
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull, reason: '打开图层面板不应抛异常');
+
+    // 用例名此前只说「不崩溃」，从没真的建过图层。这里按面板上的
+    // 「新建图层」（layer_panel.dart:58-63，tooltip=arb layerNew）实际点一次，
+    // 并核对页面模型里的图层数确实 +1、撤销后又回来。
+    final layersBefore = h.page.document.layers.length;
+    await tester.tap(find.byTooltip('新建图层'));
+    await tester.pumpAndSettle();
+    expect(
+      h.page.document.layers.length,
+      layersBefore + 1,
+      reason: '点「新建图层」必须在文档里真加一层，而不是只弹个不报错的按钮',
+    );
+    expect(h.changes.length, greaterThan(0), reason: '图层变更也要通知上级落盘');
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+    expect(
+      h.page.document.layers.length,
+      layersBefore,
+      reason: '新建图层必须是一条可撤销的历史记录',
+    );
+
     // 关闭（Esc 或再次点击）。
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
