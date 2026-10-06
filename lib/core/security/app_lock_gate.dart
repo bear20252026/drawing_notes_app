@@ -16,7 +16,11 @@
 //      ——原生选择器豁免（2026-10-04）：文件对话框/系统权限弹窗抢焦点期间
 //      失焦不算切后台（LockExemption 窗口，默认不豁免、5 分钟 TTL 上界），
 //      否则门处理 inactive 会在导入/导出时假锁开屏。豁免期间不锚秒表 ⇒
-//      对话框停留时长不吃宽限期；末位释放后由回前台 resumed 按宽限期判定。
+//      对话框停留时长不吃宽限期。**窗口一关（末位 end，或 TTL 到点由定时器
+//      主动失效）而应用仍不在前台时，宽限期从那一刻起表；等满宽限仍未
+//      resumed ⇒ 落锁且不给宽限资格**（P2-1，2026-10-06）。此前这里两条
+//      途径都不动作：「豁免期内离席 + 之后再无生命周期信号」会永远不锁，
+//      而 TTL 到期只在有人来读 isActive 时才惰性生效。
 //   3. 关闭联动：设置页关闭应用锁后立即放行。
 //
 // 回前台一律走同一条 AppLockService.verify 管线（防爆破失败计数 / 指数冷却 /
@@ -118,6 +122,77 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   /// 桌面从不投递 paused ⇒ 桌面宽限期事实上从未正确起表）。
   Stopwatch? _awayStopwatch;
 
+  /// 豁免窗口关闭时应用仍不在前台（P2-1，2026-10-06）：宽限期从**窗口关闭**
+  /// 起表，等满 `graceDuration` 还没等到 `resumed` ⇒ 认定人已离席，直接落锁。
+  ///
+  /// 为什么不在窗口关闭那一刻就地置锁：桌面原生对话框期间窗口**仍然可见并有帧**
+  /// （与真后台「无帧可渲染」不同），就地锁会让用户每次导出/导入都看见一下锁屏。
+  /// 走宽限期既能吸收「选完文件焦点立刻回来」这条常见路径，又不再留下
+  /// 「豁免期内离席 + 之后再无生命周期信号 ⇒ 永远不锁」的空档——那条空档正是
+  /// 此前的实际行为：豁免期间的失焦信号既不置锁也不锚表，而 TTL 到期只在有人
+  /// 来读 `isActive` 时才惰性生效。
+  bool _gracePending = false;
+  Timer? _graceDeadlineTimer;
+
+  /// 豁免窗口关闭事件的订阅句柄（与 `addWindowClosedListener` 严格配对）。
+  void _onExemptionWindowClosed(bool ttlExpired) {
+    if (!mounted || !widget.service.isConfigured || _locked) return;
+    // 人已经回到前台（或拿不到生命周期态）：不构成离席，维持现状。
+    final state = WidgetsBinding.instance.lifecycleState;
+    if (state == null || state == AppLifecycleState.resumed) return;
+    if (ttlExpired) {
+      // TTL 到期 = 调用方漏 end 或选择器挂了 5 分钟以上，两种都不是「人还在」。
+      // 直接落锁，不给宽限资格（审计留痕见 [AuditLogger]）。
+      _lockWithoutGrace(reason: 'lock.exemption_ttl_expired');
+      return;
+    }
+    _beginPendingGrace();
+  }
+
+  /// 从豁免窗口关闭起锚宽限期秒表，并挂一个到期即锁的定时器。
+  void _beginPendingGrace() {
+    _cancelPendingGrace();
+    _awayStopwatch = Stopwatch()..start();
+    _gracePending = true;
+    final grace = widget.service.graceDuration;
+    if (grace <= Duration.zero) {
+      // 宽限关闭：窗口一结束就锁，与「切后台即锁」口径一致。
+      _lockWithoutGrace(reason: 'lock.exemption_closed_no_grace');
+      return;
+    }
+    _graceDeadlineTimer = Timer(grace, _onGraceDeadline);
+  }
+
+  void _onGraceDeadline() {
+    _graceDeadlineTimer = null;
+    if (!_gracePending || !mounted) return;
+    // 等满宽限期仍未回到前台 ⇒ 视为离席。
+    final away = widget.awayDurationReader?.call() ?? _awayStopwatch?.elapsed;
+    final grace = widget.service.graceDuration;
+    if (away != null && away < grace) return; // 时钟源异常短，交给 resumed 判定
+    _lockWithoutGrace(reason: 'lock.exemption_grace_elapsed');
+  }
+
+  /// 落锁且**不**给予宽限资格：回前台必须重新验证。
+  void _lockWithoutGrace({required String reason}) {
+    _cancelPendingGrace();
+    if (_locked) return;
+    AuditLogger.log(reason, success: false, detail: 'grace_or_ttl');
+    setState(() {
+      _locked = true;
+      _lockedFromBackground = false;
+    });
+    // 与「超宽限」同一收口：主密钥掉锁，此后加密读写 fail-closed。
+    widget.vault?.lock();
+    unawaited(_refreshQuickUnlock());
+  }
+
+  void _cancelPendingGrace() {
+    _gracePending = false;
+    _graceDeadlineTimer?.cancel();
+    _graceDeadlineTimer = null;
+  }
+
   /// 批D1：快速解锁是否就绪（平台支持 + 开关开 + 副本存在）。
   /// 锁屏出现时查询一次；切后台回锁时再查（设置页可能中途改过开关）。
   bool _quickUnlockReady = false;
@@ -127,6 +202,7 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.service.addListener(_onServiceChanged);
+    LockExemption.addWindowClosedListener(_onExemptionWindowClosed);
     _restoreLockState();
   }
 
@@ -181,6 +257,18 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     if (_isBackgroundSignal(state)) {
       _onBackgroundSignal();
     }
+    // 豁免窗口关闭后的挂起判定（P2-1）：`resumed` 先于到期定时器到达
+    // ⇒ 人立刻回来了，宽限内放行；等满宽限没人回来由 _onGraceDeadline 落锁。
+    if (state == AppLifecycleState.resumed && _gracePending && !_locked) {
+      final away = widget.awayDurationReader?.call() ?? _awayStopwatch?.elapsed;
+      final grace = widget.service.graceDuration;
+      _cancelPendingGrace();
+      if (away == null || (grace > Duration.zero && away < grace)) {
+        _awayStopwatch = null;
+      } else {
+        _lockWithoutGrace(reason: 'lock.exemption_grace_elapsed');
+      }
+    }
     // 宽限判定：仅「切后台导致的锁定」有资格；每次后台只评估一次，
     // 评估后即失去资格（超宽限的锁必须输 PIN，随后的快速再切不重置）。
     if (state == AppLifecycleState.resumed &&
@@ -227,6 +315,9 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   void _onBackgroundSignal() {
     if (!widget.service.isConfigured || _locked) return;
     if (LockExemption.isActive) return;
+    // 真实后台信号接管宽限期锚点：挂起态（由豁免窗口关闭起表）作废，
+    // 否则两条秒表会抢同一个「每次后台只评估一次」的宽限资格。
+    _cancelPendingGrace();
     setState(() {
       _locked = true;
       _lockedFromBackground = true;
@@ -250,6 +341,8 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   @override
   void dispose() {
     widget.service.removeListener(_onServiceChanged);
+    LockExemption.removeWindowClosedListener(_onExemptionWindowClosed);
+    _cancelPendingGrace();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -260,6 +353,7 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   void _unlock() {
     _awayStopwatch = null;
     _lockedFromBackground = false;
+    _cancelPendingGrace();
     setState(() => _locked = false);
   }
 

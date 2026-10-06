@@ -78,6 +78,59 @@ void main() {
     expect(LockExemption.remaining, Duration.zero);
   });
 
+  // 窗口关闭事件（台账 P2-1，2026-10-06）：门靠它把「豁免期离席」变成可判定
+  // 的事实。通知只交付事实，不替调用方决定要不要置锁。
+  test('末位 end 通知一次，携带 ttlExpired=false；嵌套只由末位触发', () {
+    final events = <bool>[];
+    void listener(bool ttlExpired) => events.add(ttlExpired);
+    LockExemption.addWindowClosedListener(listener);
+    addTearDown(() => LockExemption.removeWindowClosedListener(listener));
+
+    LockExemption.begin();
+    LockExemption.begin();
+    LockExemption.end(); // 内层退——外层仍在窗口内，不该通知
+    expect(events, isEmpty);
+    LockExemption.end(); // 末位——窗口真的没了
+    expect(events, [false]);
+  });
+
+  test('未开启窗口时不通知（多余 end 不制造假事件）', () {
+    var calls = 0;
+    void listener(bool _) => calls++;
+    LockExemption.addWindowClosedListener(listener);
+    addTearDown(() => LockExemption.removeWindowClosedListener(listener));
+
+    LockExemption.end();
+    LockExemption.end();
+    expect(calls, 0);
+  });
+
+  test('监听者配对移除后不再收到通知', () {
+    var calls = 0;
+    void listener(bool _) => calls++;
+    LockExemption.addWindowClosedListener(listener);
+    LockExemption.begin();
+    LockExemption.removeWindowClosedListener(listener);
+    LockExemption.end();
+    expect(calls, 0);
+  });
+
+  testWidgets('TTL 到点由定时器主动失效并通知：全程没人读 isActive 也生效', (
+    tester,
+  ) async {
+    final events = <bool>[];
+    void listener(bool ttlExpired) => events.add(ttlExpired);
+    LockExemption.addWindowClosedListener(listener);
+
+    LockExemption.begin();
+    expect(LockExemption.isActive, isTrue);
+    // 关键：不读 isActive、不发任何生命周期信号，只让时钟走过 TTL。
+    await tester.pump(LockExemption.ttl + const Duration(milliseconds: 1));
+
+    expect(events, [true], reason: '「绝不限期挂免死金牌」的承诺要有兑现时机');
+    expect(LockExemption.remaining, Duration.zero);
+  });
+
   test('SessionGuard.runWithExemption 与门共用同一窗口（委托生效）', () async {
     var locked = false;
     final guard = SessionGuard(onLock: () => locked = true);

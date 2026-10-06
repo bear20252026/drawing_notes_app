@@ -454,6 +454,143 @@ void main() {
     expect(KekSessionCache.instance.entryCount, 0); // 出窗口 → 恢复即清
   });
 
+  // ④c/④d/④e 豁免窗口**关闭**这条腿（台账 P2-1，2026-10-06）。
+  //    此前这里两条释放途径都不动作：末位 end 不锚表也不置锁，TTL 到期只在
+  //    有人来读 isActive 时才惰性失效 ⇒「豁免期内离席 + 之后再无生命周期信号」
+  //    永远不锁。现在：窗口一关而应用仍不在前台 ⇒ 宽限期从那一刻起表，
+  //    等满宽限仍未 resumed 就落锁；TTL 到点视为调用方漏 end，直接落锁。
+  testWidgets('④c 窗口关闭后人立刻回来：宽限内放行，不闪锁屏', (tester) async {
+    final service = await _configuredService('1357');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockGate(
+          service: service,
+          awayDurationReader: () => const Duration(seconds: 3), // 宽限内
+          desktopKeyboardInput: true,
+          child: const Text('SECRET_HOME'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _enterPin(tester, '1357');
+    expect(find.text('SECRET_HOME'), findsOneWidget);
+
+    LockExemption.begin();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+    LockExemption.end(); // 选择器关闭，此刻窗口仍是 inactive（焦点尚未回来）
+    expect(
+      find.text('输入密码'),
+      findsNothing,
+      reason: '桌面对话框关闭后焦点通常立刻回来——就地置锁会让每次导出闪一下锁屏',
+    );
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(find.text('输入密码'), findsNothing); // 宽限内回来 ⇒ 放行
+    expect(find.text('SECRET_HOME'), findsOneWidget);
+  });
+
+  testWidgets('④d 窗口关闭后无人回来：等满宽限期落锁，回来必须重新验证', (
+    tester,
+  ) async {
+    final service = await _configuredService('1357');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockGate(
+          service: service,
+          awayDurationReader: () => const Duration(seconds: 61), // 超 30s 宽限
+          desktopKeyboardInput: true,
+          child: const Text('SECRET_HOME'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _enterPin(tester, '1357');
+
+    LockExemption.begin();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+    LockExemption.end();
+
+    await tester.pump(const Duration(seconds: 31)); // 宽限期到点
+    expect(
+      find.text('输入密码'),
+      findsOneWidget,
+      reason: '等满宽限仍未回前台 ⇒ 认定人已离席，锁必须在**没有下一个信号**时落下',
+    );
+
+    await _toForeground(tester);
+    expect(find.text('输入密码'), findsOneWidget); // 落锁不给宽限资格
+    await _enterPin(tester, '1357');
+    expect(find.text('SECRET_HOME'), findsOneWidget);
+  });
+
+  testWidgets('④e TTL 到点由定时器主动失效：没人读 isActive 也照样落锁', (
+    tester,
+  ) async {
+    final service = await _configuredService('1357');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockGate(
+          service: service,
+          desktopKeyboardInput: true,
+          child: const Text('SECRET_HOME'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _enterPin(tester, '1357');
+
+    LockExemption.begin(); // 调用方漏 end 的场景
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+    expect(find.text('输入密码'), findsNothing); // 窗口内不假锁
+
+    // 关键：全程**不读** isActive——惰性失效在这里永远不会发生。
+    await tester.pump(LockExemption.ttl + const Duration(seconds: 1));
+    expect(
+      find.text('输入密码'),
+      findsOneWidget,
+      reason: 'TTL 上界是「绝不限期挂免死金牌」的承诺，兑现不能依赖有人来查',
+    );
+  });
+
+  testWidgets('④f 宽限期关闭时：豁免窗口一关即锁（无到期定时器可等）', (
+    tester,
+  ) async {
+    final service = await _configuredService('1357');
+    await service.setGraceSeconds(0); // 用户明确不要宽限
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockGate(
+          service: service,
+          desktopKeyboardInput: true,
+          child: const Text('SECRET_HOME'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _enterPin(tester, '1357');
+
+    LockExemption.begin();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+    expect(find.text('输入密码'), findsNothing); // 窗口内仍不假锁
+
+    LockExemption.end();
+    await tester.pump();
+    expect(
+      find.text('输入密码'),
+      findsOneWidget,
+      reason: 'grace=0 没有「等一等看有没有人回来」这档事，口径与切后台即锁一致',
+    );
+  });
+
   // ⑤a 新路径锁定后失败计数仍生效：键盘通道与九宫格都不获旁路。
   testWidgets('⑤a 新路径锁定后键盘/九宫格失败都计入防爆破', (tester) async {
     final service = await _configuredService('1357');
