@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/notes/application/notebook_page_editor_session.dart';
@@ -9,6 +11,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../test/helpers/temp_dir_cleanup.dart';
+
 /// 用户视角核心回归：工具栏所有工具必须可用（画笔/橡皮擦/吸管/选区）。
 ///
 /// 这是用户报告的"工具栏里一个都用不了"的重现测试：
@@ -16,6 +20,11 @@ import 'package:flutter_test/flutter_test.dart';
 /// 实际切换，证明 onPressed 生效、页面没有崩溃。
 void main() {
   Future<void> pumpEditor(WidgetTester tester) async {
+    // 与 feature_test.dart 同一条修正（AW6）：目录注入原先是
+    // `throw UnimplementedError()`，任何真走到存储层的动作都会当场炸，
+    // 等于「改动会不会触发保存」这条腿在本文件里根本不存在。
+    final tempDir = await Directory.systemTemp.createTemp('toolbar_test_');
+    addTearDown(() => deleteTempDirWithRetry(tempDir));
     final doc = DrawingDocument(
       id: 'tool_test_doc',
       title: '工具测试',
@@ -39,7 +48,7 @@ void main() {
           home: EditorPage(
             session: NotebookPageEditorSession(page),
             storage: NotebookStorage(
-              directoryProvider: () async => throw UnimplementedError(),
+              directoryProvider: () async => tempDir,
             ),
           ),
         ),
