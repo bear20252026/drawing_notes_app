@@ -180,13 +180,20 @@ class StorageMediaStore {
   }
 
   /// 媒体字节写入前准备（批次①c：缩略图 / 受管图片）：有主密钥 →
-  /// 信封加密（AAD 绑定文件名）。锁定态与文档同口径 fail-closed；
-  /// 未启用加密（无 keyProvider）保持明文兼容。
+  /// 信封加密（AAD 绑定文件名）。
+  ///
+  /// 「取不到密钥」的两种含义由 [StorageWritePipeline.encryptionInUse] 统一
+  /// 判定（与文档写路径同一口径，不放两份）：未建保险库 → 明文（产品设计，
+  /// 否则无 PIN 用户的缩略图/图片一律写不进去）；已建库但锁定 → fail-closed
+  /// （P2-3，写明文会把密文用户的媒体永久降级）。
   Future<Uint8List> _sealMediaBytes(String path, Uint8List bytes) async {
     final provider = keyProvider;
     if (provider == null) return bytes;
     final key = await provider();
-    if (key == null) throw const VaultFileLockException();
+    if (key == null) {
+      if (!await pipeline.encryptionInUse()) return bytes;
+      throw const VaultFileLockException();
+    }
     return VaultFileCodec.encrypt(
       bytes,
       key,

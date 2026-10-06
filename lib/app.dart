@@ -67,6 +67,13 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
       final vault = _vaultKeyService;
       return vault.isUnlocked ? vault.masterKey : null;
     },
+    // P0 修复（2026-10-06，cuj_01 真机取证）：写路径需要区分
+    // 「未建库（用户没设 PIN，明文落盘是产品设计）」与「建过库但本会话锁定
+    // （fail-closed）」。只凭 keyProvider 非空判断会把前者误判成锁定，
+    // 导致从未设置 PIN 的用户**完全保存不了画布**。
+    // 用闭包而非方法 tear-off：`_vaultKeyService` 是 late final，避免依赖
+    // 两个字段的初始化先后顺序。
+    vaultConfigured: () => _vaultKeyService.isConfigured(),
   );
   // late final：keyProvider 闭包引用 _vaultKeyService（late 初始化器允许
   // 访问实例成员；与 _documentStorage 同模式）。
@@ -78,6 +85,10 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
     },
     // C-06（审计 2026-09-27）：媒体会话加密服务组合根注入（同一解锁单例）。
     mediaCrypto: _mediaCrypto,
+    // 与 _documentStorage 同一条 P0 修复：笔记本页面图片写入也要区分
+    // 「未建库 → 明文」与「已建库锁定 → fail-closed」，否则无 PIN 用户
+    // 往页面插图会静默失败。
+    vaultConfigured: () => _vaultKeyService.isConfigured(),
   );
   late final NoteBlockDocStore _blockDocStore = NoteBlockDocStore(
     directoryProvider: _appDataRoot.root,

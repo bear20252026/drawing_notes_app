@@ -45,6 +45,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
     DocumentCodec? codec,
     this.directoryProvider,
     this.keyProvider,
+    this.vaultConfigured,
   }) : _codec = codec ?? const DocumentCodec() {
     _directories = StorageDirectories(directoryProvider: directoryProvider);
     _secrets = StorageSecretSession();
@@ -52,6 +53,7 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
       directories: _directories,
       secrets: _secrets,
       keyProvider: keyProvider,
+      vaultConfigured: vaultConfigured,
     );
     _media = StorageMediaStore(
       directories: _directories,
@@ -93,6 +95,12 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
 
   /// 目录提供者：测试时可注入临时目录，生产环境使用系统文档目录。
   final Future<Directory> Function()? directoryProvider;
+
+  /// 保险库**是否已建立**（用户设过 PIN）。写路径据此区分
+  /// 「未建库 → 明文落盘（产品设计）」与「已建库但锁定 → fail-closed」；
+  /// 生产由 `app.dart` 注入 `VaultKeyService.isConfigured`。
+  /// 详见 `StorageWritePipeline.vaultConfigured`。
+  final Future<bool> Function()? vaultConfigured;
 
   /// 主密钥提供者（加密底座批次①b）：返回解锁态主密钥时，文档 JSON 以
   /// AES-256-GCM 信封落盘（`DNV` 魔数，AAD 绑定文档 ID）；返回 null

@@ -59,10 +59,17 @@ class NotebookStorage
     this.vaultService,
     this.keyProvider,
     this.mediaCrypto,
+    this.vaultConfigured,
   }) {
     // P1 修复 M-09：注册会话机密清理——切后台回锁时笔记本口令一并失效。
     SessionSecrets.register(this);
   }
+
+  /// 保险库**是否已建立**（用户设过 PIN）。媒体写入据此区分
+  /// 「未建库 → 明文（产品设计）」与「已建库但锁定 → fail-closed」，
+  /// 与 `StorageWritePipeline.encryptionInUse` 同一口径。
+  /// 未注入时保守视为已建库（维持 P1/P2-3 的 fail-closed）。
+  final Future<bool> Function()? vaultConfigured;
 
   /// 主密钥提供者（加密底座批次①c）：返回解锁态主密钥时，笔记本工程文件
   /// JSON 以 DNV 信封落盘（AAD 绑定 `nb:<id>`）、页面图片以 DNV 信封落盘
@@ -377,7 +384,7 @@ class NotebookStorage
       } else {
         final key = await _currentKey();
         stored = key == null
-            ? _plainMediaOrLock(bytes)
+            ? await _plainMediaOrLock(bytes)
             : await VaultFileCodec.encrypt(
                 bytes,
                 key,
@@ -421,18 +428,19 @@ class NotebookStorage
     );
   }
 
-  /// 媒体密封的「无密钥」分支收口（P1 修复，本次）。
+  /// 媒体密封的「无密钥」分支收口（P1 修复；P0 修正 2026-10-06）。
   ///
-  /// 保险库已装配（keyProvider 非空）却取不到密钥 = **锁定态**：此时加密
-  /// 笔记本的图片一旦明文落盘就永久明文（读端懒迁移只对 DAN/DNV 生效），
-  /// 故拒绝写入并抛 [VaultFileLockException]，口径对齐画布域
-  /// `StorageMediaStore._sealMediaBytes` 的「锁定即抛」。可达路径即
-  /// `NotebookViewPage._restoreSessionAfterReauth` 未安装媒体密钥却解锁会话
-  /// 的场景（该项另一处收口）。
-  /// 未启用加密（keyProvider == null）时明文落盘仍是产品设计，行为不变。
-  Uint8List _plainMediaOrLock(Uint8List bytes) {
-    if (keyProvider != null) throw const VaultFileLockException();
-    return bytes;
+  /// 「取不到密钥」有两种完全不同的含义，此前一律当锁定，于是
+  /// **从未设置 PIN 的用户（保险库尚未建立）无法把图片写进笔记本**——
+  /// `app.dart` 恒注入 keyProvider，`keyProvider != null` 并不能说明建过库。
+  /// 现在只在「确实建过库、但本会话没解锁」时拒绝（写明文会把这位用户的
+  /// 既有密文媒体永久降级，读端懒迁移对 DAN/DNV 之外不生效）；
+  /// 未建库时明文落盘是产品设计，行为与 NoteBlockDocStore 写路径一致。
+  Future<Uint8List> _plainMediaOrLock(Uint8List bytes) async {
+    if (keyProvider == null) return bytes;
+    final configured = await (vaultConfigured?.call() ?? Future.value(true));
+    if (!configured) return bytes;
+    throw const VaultFileLockException();
   }
 
   /// SVG 是否需要在落盘前预检（导入隔离——README 宣称项落地，P3 修复本次）。

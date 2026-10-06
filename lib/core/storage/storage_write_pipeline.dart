@@ -19,6 +19,7 @@ class StorageWritePipeline {
     required this.directories,
     required this.secrets,
     required this.keyProvider,
+    this.vaultConfigured,
   });
 
 
@@ -26,6 +27,22 @@ class StorageWritePipeline {
   final StorageDirectories directories;
   final StorageSecretSession secrets;
   final Future<Uint8List?> Function()? keyProvider;
+
+  /// 保险库**是否已建立**（用户设过 PIN / 启用过加密）。
+  ///
+  /// 写路径必须把「取不到密钥」拆成两种语义，见 [_sealDocBytes]：未建库时
+  /// 明文落盘是产品设计，已建库却锁定时明文会把密文用户降级成明文。
+  /// 二者在 `keyProvider` 的返回值上长得一样（都是 null），只能由装配层
+  /// 显式告知——`app.dart` 注入 `VaultKeyService.isConfigured`。
+  final Future<bool> Function()? vaultConfigured;
+
+  /// 未注入探测器时保守按「已建库」处理：维持 2026-09-06 P2-3 的 fail-closed
+  /// 语义，不让这个新增的可选参数变成新的 fail-open 后门。
+  ///
+  /// 媒体域（`StorageMediaStore._sealMediaBytes`）共用本判定——写路径的
+  /// 「未建库 vs 锁定」只允许有一处口径。
+  Future<bool> encryptionInUse() async =>
+      await vaultConfigured?.call() ?? true;
 
   /// 每个文档各自的写入尾队列。同一文档按请求顺序落盘，不同文档仍可并行，
   /// 因此 A/B 画布不会共享临时文件或相互覆盖较新的版本。
@@ -111,10 +128,17 @@ class StorageWritePipeline {
     // 与读路径「明文 + 无密钥 → 原样返回」对称。
     if (provider == null) return data;
     final key = await provider();
-    // 安全审计修复（2026-09-06 P2-3）：keyProvider 已装配（保险库启用）
-    // 但取不到密钥 = 锁定态。此前静默明文落盘（fail-open，与读路径的
-    // fail-closed 不对齐）；现显式失败，交由 SaveScheduler 重试策略处理。
-    if (key == null) throw const VaultFileLockException();
+    if (key == null) {
+      // 「取不到密钥」有两种完全不同的含义，必须分清（P0 修复，2026-10-06，
+      // 由 cuj_01 真机取证定性）：
+      //  ① 保险库**从未建立**（用户没设过 PIN）——明文落盘是产品设计，与
+      //     NoteBlockDocStore 写路径同口径；一律拒绝会让这类用户**完全存不了
+      //     画布**（异常被 SaveScheduler 退避吞掉，表现就是「画完关掉就没了」）；
+      //  ② 已建立但本会话未解锁——写明文会把密文用户降级成明文，保持
+      //     2026-09-06 P2-3 的 fail-closed，交由重试策略在解锁后自愈。
+      if (!await encryptionInUse()) return data;
+      throw const VaultFileLockException();
+    }
     if (data.length < isolateSealThreshold) {
       return VaultFileCodec.encrypt(data, key, aadContext: 'doc:$id');
     }

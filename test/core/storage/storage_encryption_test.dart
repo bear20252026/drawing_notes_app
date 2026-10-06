@@ -115,6 +115,61 @@ void main() {
     expect(await lockedReader.listDocuments(), isEmpty);
   });
 
+  // P0 定性（2026-10-06，由 integration_test/cuj_01_test.dart 真机取证）：
+  // `app.dart` **无条件**注入 keyProvider，而写路径把「provider 非空 +
+  // key 为 null」一律当锁定 → 从未设置 PIN 的用户（保险库尚未建立，是合法
+  // 稳态：`VaultKeyService.initialize` 只在设置页/门禁/快速解锁三处被调用）
+  // 每次保存画布都抛 VaultFileLockException，被 SaveScheduler 的退避吞掉，
+  // 用户侧表现就是「画完的东西关掉就没了」。同文件的笔记块写路径
+  // （NoteBlockDocStore）在无密钥时是**明文落盘**的，那才是产品设计的口径
+  // （S-10 记录过「未设 PIN 明文落盘」）。
+  test('未建立保险库（用户从未设 PIN）时保存画布必须明文落盘', () async {
+    final storage = StorageService(
+      directoryProvider: () async => tempDir,
+      // 生产装配形状：keyProvider 恒被注入，未建库时取不到密钥。
+      keyProvider: () async => null,
+      vaultConfigured: () async => false, // 保险库文件不存在
+    );
+
+    final path = await storage.save(doc('no_vault_doc', '无 PIN 用户的画作'));
+
+    final bytes = await File(path).readAsBytes();
+    expect(
+      VaultFileCodec.isEncrypted(bytes),
+      isFalse,
+      reason: '未建库时明文落盘是产品设计（与 NoteBlockDocStore 写路径同口径）',
+    );
+    expect(utf8.decode(bytes).contains('无 PIN 用户的画作'), isTrue);
+    expect((await storage.load('no_vault_doc'))?.title, '无 PIN 用户的画作');
+  });
+
+  test('已建立保险库但锁定时保存仍 fail-closed（P2-3 语义不得回退）', () async {
+    final storage = StorageService(
+      directoryProvider: () async => tempDir,
+      keyProvider: () async => null, // 建过库，但本会话未解锁
+    );
+    await expectLater(
+      storage.save(doc('locked_write_doc', '锁定态写入')),
+      throwsA(isA<VaultFileLockException>()),
+    );
+    // 未注入 vaultConfigured 时保守按「已建库」处理——新增的可选参数
+    // 不能变成新的 fail-open 后门（上面这条就是这个默认值的证据）。
+  });
+
+  test('未建库时缩略图同样必须明文落盘（同一 P0 的媒体覆盖面）', () async {
+    final storage = StorageService(
+      directoryProvider: () async => tempDir,
+      keyProvider: () async => null,
+      vaultConfigured: () async => false,
+    );
+    final png = Uint8List.fromList([1, 2, 3, 4, 5, 6, 7, 8]);
+
+    final path = await storage.saveThumbnail('no_vault_doc', png);
+
+    expect(File(path).existsSync(), isTrue, reason: '缩略图写不进去=首页永远没预览');
+    expect(await storage.thumbnailBytes('no_vault_doc'), png);
+  });
+
   test('密文被篡改 → 读取抛 VaultFileException（拒载，不静默降级）', () async {
     final key = VaultKeyService.randomBytes(32);
     final storage = StorageService(
