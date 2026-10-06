@@ -22,6 +22,8 @@ final class LayerService implements DrawingService {
   void Function(int index)? _moveUp;
   void Function(int index)? _moveDown;
   void Function(int index)? _mergeDown;
+  Future<void> Function(String layerId, {Rect? region})? _invalidate;
+  void Function(String layerId, int targetIndex)? _reorder;
 
   /// Connects the migration boundary to the existing LayerEditingSession.
   /// The session remains the implementation owner until the next migration step.
@@ -33,6 +35,8 @@ final class LayerService implements DrawingService {
     void Function(int index)? moveUp,
     void Function(int index)? moveDown,
     void Function(int index)? mergeDown,
+    Future<void> Function(String layerId, {Rect? region})? invalidate,
+    void Function(String layerId, int targetIndex)? reorder,
   }) {
     _createLayer = createLayer;
     _deleteLayer = deleteLayer;
@@ -41,12 +45,16 @@ final class LayerService implements DrawingService {
     _moveUp = moveUp;
     _moveDown = moveDown;
     _mergeDown = mergeDown;
+    _invalidate = invalidate;
+    _reorder = reorder;
   }
 
   /// Future migration entry point for layer invalidation-aware operations.
   Future<void> invalidate(String layerId, {Rect? region}) async {
     if (_disposed) return;
-    // Implementation stays delegated to LayerEditingSession during migration.
+    final operation = _invalidate;
+    if (operation == null) throw StateError('Layer invalidation is not bound');
+    await operation(layerId, region: region);
   }
 
   /// Stable entry point for structural layer operations.
@@ -91,6 +99,9 @@ final class LayerService implements DrawingService {
 
   void reorderLayer(String layerId, int targetIndex) {
     if (_disposed) return;
+    final operation = _reorder;
+    if (operation == null) throw StateError('Layer reordering is not bound');
+    operation(layerId, targetIndex);
   }
 
   void beginLayerTransaction() {

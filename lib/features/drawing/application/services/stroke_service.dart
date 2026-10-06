@@ -8,8 +8,9 @@ import 'drawing_service.dart';
 /// Migration is intentionally incremental: the current input session remains
 /// the source of truth while new stroke workflows can move here safely.
 final class StrokeService implements DrawingService {
-  StrokeService({this.onStart, this.onUpdate, this.onFinish});
+  StrokeService({this.onPrepare, this.onStart, this.onUpdate, this.onFinish});
 
+  final void Function(Offset point)? onPrepare;
   final void Function(Offset point, {double pressure})? onStart;
   final void Function(Offset point, {double pressure})? onUpdate;
   final Future<void> Function()? onFinish;
@@ -24,6 +25,7 @@ final class StrokeService implements DrawingService {
   /// session remains the source of truth while callers move to this boundary.
   void prepareStroke(Offset point) {
     if (_disposed) return;
+    onPrepare?.call(point);
   }
 
   void startStroke(Offset point, {double pressure = 1.0}) {

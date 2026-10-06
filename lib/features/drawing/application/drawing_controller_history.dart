@@ -20,6 +20,8 @@ extension DrawingControllerHistoryOps on DrawingController {
       moveUp: (index) => _layerEditingSession.moveLayerUp(index),
       moveDown: (index) => _layerEditingSession.moveLayerDown(index),
       mergeDown: (index) => _layerEditingSession.mergeLayerDown(index),
+      invalidate: _invalidateLayer,
+      reorder: _layerEditingSession.reorderLayer,
     );
   }
 

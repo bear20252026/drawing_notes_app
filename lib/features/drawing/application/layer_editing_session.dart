@@ -132,6 +132,23 @@ class LayerEditingSession {
     _host.notifyChanged();
   }
 
+  /// Moves a layer directly to its final index as one undoable command.
+  void reorderLayer(String layerId, int targetIndex) {
+    final layers = _document.layers;
+    final from = layers.indexWhere((layer) => layer.id == layerId);
+    if (from < 0) throw ArgumentError.value(layerId, 'layerId');
+    RangeError.checkValidIndex(targetIndex, layers, 'targetIndex');
+    if (from == targetIndex) return;
+    // Settle pending transforms before indices change, keeping undo order valid.
+    _host.setCurrentLayerIndexForLayerEdit(_host.currentLayerIndex);
+    final layer = layers.removeAt(from);
+    layers.insert(targetIndex, layer);
+    _document.touch();
+    _host.setCurrentLayerIndexForLayerEdit(targetIndex);
+    _host.pushLayerMove(from, targetIndex);
+    _host.notifyChanged();
+  }
+
   /// 向下合并图层：把 [index] 层的内容合并到 index-1 层，并删除 [index] 层。
   void mergeLayerDown(int index) {
     if (index <= 0 || index >= _document.layers.length) return;

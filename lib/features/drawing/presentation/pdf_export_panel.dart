@@ -135,9 +135,8 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
               const SizedBox(height: 12),
               if (widget.hasMultiplePages) ...[
                 _groupLabel(
-                  AppLocalizations.of(context)?.pdfRangeGroupLabel(
-                        widget.pageCount,
-                      ) ??
+                  AppLocalizations.of(context)
+                          ?.pdfRangeGroupLabel(widget.pageCount) ??
                       '范围（共 ${widget.pageCount} 页）',
                 ),
                 SegmentedButton<PdfRange>(
@@ -239,42 +238,7 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
                 ],
                 const SizedBox(height: 12),
               ],
-              _groupLabel(
-                AppLocalizations.of(context)?.pdfGroupQuality ?? '质量',
-              ),
-              SegmentedButton<PdfQuality>(
-                style: _segmentButtonStyle,
-                segments: [
-                  for (final q in PdfQuality.values)
-                    ButtonSegment(
-                      value: q,
-                      label: Text(
-                        q == PdfQuality.lossless
-                            ? AppLocalizations.of(
-                                    context,
-                                  )?.pdfQualityLossless ??
-                                  q.label
-                            : q.label,
-                      ),
-                    ),
-                ],
-                selected: {_quality},
-                onSelectionChanged: (s) => setState(() => _quality = s.first),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  _quality == PdfQuality.lossless
-                      ? AppLocalizations.of(context)?.pdfQualityLosslessDesc ??
-                            _quality.hint
-                      : _quality == PdfQuality.standard
-                      ? AppLocalizations.of(context)?.pdfQualityStandardDesc ??
-                            _quality.hint
-                      : AppLocalizations.of(context)?.pdfQualitySaverDesc ??
-                            _quality.hint,
-                  style: AppleType.captionStyle(scheme.onSurfaceVariant),
-                ),
-              ),
+              ..._qualityControls(scheme),
             ],
           ),
         ),
@@ -301,9 +265,8 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
             ),
             child: Text(
               wholeBook
-                  ? AppLocalizations.of(
-                          context,
-                        )?.pdfExportNPages(widget.pageCount) ??
+                  ? AppLocalizations.of(context)
+                            ?.pdfExportNPages(widget.pageCount) ??
                         '导出 ${widget.pageCount} 页'
                   : AppLocalizations.of(context)?.catExport ?? '导出',
             ),
@@ -312,6 +275,40 @@ class _PdfExportPanelDialogState extends State<_PdfExportPanelDialog> {
       ],
     );
   }
+
+  List<Widget> _qualityControls(ColorScheme scheme) => [
+    _groupLabel(AppLocalizations.of(context)?.pdfGroupQuality ?? '质量'),
+    SegmentedButton<PdfQuality>(
+      style: _segmentButtonStyle,
+      segments: [
+        for (final q in PdfQuality.values)
+          ButtonSegment(
+            value: q,
+            label: Text(
+              q == PdfQuality.lossless
+                  ? AppLocalizations.of(context)?.pdfQualityLossless ?? q.label
+                  : q.label,
+            ),
+          ),
+      ],
+      selected: {_quality},
+      onSelectionChanged: (s) => setState(() => _quality = s.first),
+    ),
+    Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Text(
+        _quality == PdfQuality.lossless
+            ? AppLocalizations.of(context)?.pdfQualityLosslessDesc ??
+                  _quality.hint
+            : _quality == PdfQuality.standard
+            ? AppLocalizations.of(context)?.pdfQualityStandardDesc ??
+                  _quality.hint
+            : AppLocalizations.of(context)?.pdfQualitySaverDesc ??
+                  _quality.hint,
+        style: AppleType.captionStyle(scheme.onSurfaceVariant),
+      ),
+    ),
+  ];
 
   Widget _groupLabel(String text) {
     return Padding(
