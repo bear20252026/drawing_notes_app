@@ -32,13 +32,16 @@ class DocumentImageCache {
   /// 文档图片解码缓存字节预算。单张 RGBA 上限 4096²×4 ≈ 64MB，预算 48MB
   /// 可容纳约 1 张超清大图或近十张常规图，超限即淘汰最久未用
   /// （2026-09-24 内存优化批次：96→48MiB，LRU 框架不变）。
+  ///
+  /// 口径：**两张以上**时的稳态上限。单张就超预算时退化为「保留那一张」
+  /// （见 [_evictIfOverBudget]），否则每张超清大图都会自我淘汰。
   static const int maxCacheBytesDefault = 48 << 20; // 48 MiB
 
   final VoidCallback _onImageAvailable;
   final bool Function() _isOwnerDisposed;
   final DocumentImageDecoder _decoder;
   final Map<String, ui.Image> _images = <String, ui.Image>{};
-  final Map<String, Future<void>> _loads = <String, Future<void>>{};
+  final Map<String, _ImageLoad> _loads = <String, _ImageLoad>{};
 
   /// LRU 访问序（索引 0 = 最久未用）。
   final List<String> _lru = [];
@@ -63,6 +66,11 @@ class DocumentImageCache {
     return null;
   }
 
+  /// 只读探测位图是否已驻留，**不**触发加载（`imageFor` 的 miss 会起一次
+  /// 解码，不能在渲染/导出前后用来判断「图还在不在」）。
+  @visibleForTesting
+  bool isCached(String imageId) => _images.containsKey(imageId);
+
   void _touch(String id) {
     _lru
       ..remove(id)
@@ -70,8 +78,13 @@ class DocumentImageCache {
   }
 
   /// 超出字节预算时按最久未用淘汰并释放其图像资源（P0 修复）。
+  ///
+  /// 至少留住最新那一张：长边钳到 4096 后单张 RGBA 仍可达 64MB，而预算只有
+  /// 48MB——若允许淘汰「刚插入的这一张」，`imageFor` 每帧都 miss、每帧重新
+  /// 解码同一张图（2026-10-05 复现的真实退化）。驻留量因此有界于
+  /// `max(预算, 单张最大位图)`，其余图片照常全部淘汰。
   void _evictIfOverBudget() {
-    while (_cachedBytes > maxCacheBytes && _lru.isNotEmpty) {
+    while (_cachedBytes > maxCacheBytes && _lru.length > 1) {
       final oldestId = _lru.removeAt(0);
       final evicted = _images.remove(oldestId);
       if (evicted != null) {
@@ -86,6 +99,11 @@ class DocumentImageCache {
   /// 并发随剩余预算动态收缩（审计 P2-4）：预算充裕时批量 4 张并行；
   /// 已用字节超过预算一半后改为逐张串行——极端 4096 长边单张 ~64MB，
   /// 避免 4 张并行在淘汰介入前出现 150MB+ 的瞬时解码峰值。
+  ///
+  /// ⚠️ 完成只代表「每张都尝试解码过」，**不代表它们同时驻留**：整组字节数
+  /// 超预算时，后载入的会把先载入的淘汰掉。调用方不能把本方法当成
+  /// 「导出时图片一定在」的保证（`test/document_image_cache_test.dart`
+  /// 用一条特征测试把这个事实钉住）。
   Future<void> ensureLoaded(Iterable<DocumentImageItem> items) async {
     final pending = <DocumentImageItem>[
       for (final item in items)
@@ -106,17 +124,21 @@ class DocumentImageCache {
       return Future<void>.value();
     }
     final ongoing = _loads[item.id];
-    if (ongoing != null) return ongoing;
-    final task = _decodeAndStore(item);
-    _loads[item.id] = task;
-    return task;
+    if (ongoing != null) return ongoing.future;
+    final load = _ImageLoad();
+    load.future = _decodeAndStore(item, load);
+    _loads[item.id] = load;
+    return load.future;
   }
 
-  Future<void> _decodeAndStore(DocumentImageItem item) async {
+  Future<void> _decodeAndStore(DocumentImageItem item, _ImageLoad load) async {
     ui.Image? image;
     try {
       image = await _decoder(item.filePath);
-      if (_isInactive) return;
+      // 等待期间宿主销毁、或该图片被 invalidate（文件已重写/回滚）→ 本次结果
+      // 作废，由 finally 释放位图。不作废的话：旧字节解出的位图会盖住新内容，
+      // 且此后 `imageFor` 一直命中这条过期缓存，永远不会再去读新文件。
+      if (load.abandoned || _isInactive) return;
       final previous = _images[item.id];
       _images[item.id] = image;
       _touch(item.id);
@@ -130,7 +152,8 @@ class DocumentImageCache {
       // 图片缺失或损坏时保留其余文档内容的可编辑性；下次按需访问可重试。
     } finally {
       image?.dispose();
-      unawaited(_loads.remove(item.id));
+      // 只摘掉自己这一次的任务位——invalidate 之后可能已有新的进行中任务。
+      if (identical(_loads[item.id], load)) _loads.remove(item.id);
     }
   }
 
@@ -138,7 +161,10 @@ class DocumentImageCache {
   ///
   /// 下一次 `imageFor` 会按需重新解码磁盘上的新内容（P0 审计修复补充：
   /// 此前无单条失效 API，裁剪后画布仍显示裁剪前的旧全尺寸位图）。
+  /// 进行中的解码任务同时作废并摘除，否则「改写文件 → 旧请求返回」会把
+  /// 旧位图写回缓存，新内容再也读不到。
   void invalidate(String imageId) {
+    _loads.remove(imageId)?.abandoned = true;
     final removed = _images.remove(imageId);
     if (removed == null) return;
     _lru.remove(imageId);
@@ -157,6 +183,15 @@ class DocumentImageCache {
     _cachedBytes = 0;
     _loads.clear();
   }
+}
+
+/// 一次进行中的解码任务句柄。
+///
+/// `late final future` 在构造后才赋值：任务体需要拿到自己的句柄来判断是否
+/// 已被作废。作废（abandoned）只能由 [DocumentImageCache.invalidate] 置位。
+final class _ImageLoad {
+  late final Future<void> future;
+  bool abandoned = false;
 }
 
 /// 批次①c：先经 DNV 嗅探读字节（保险库密文解密 / 锁定抛
