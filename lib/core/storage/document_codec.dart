@@ -8,6 +8,7 @@ import 'package:drawing_notes_app/core/canvas_model/document_image_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/layer.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
+import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:drawing_notes_app/core/utils/time_serialization.dart';
 
 /// 文档编解码器：DrawingDocument <-> JSON 字符串（工程文件格式）。
@@ -19,7 +20,8 @@ import 'package:drawing_notes_app/core/utils/time_serialization.dart';
 /// {
 ///   "version": 1,
 ///   "document": { "id","title","width","height","createdAt","updatedAt",
-///                 "layers": [ {id,name,visible,opacity,strokes:[...]} ] }
+///                 "layers": [ {id,name,visible,opacity,strokes:[...]} ],
+///                 "shapes": [...], "imageItems": [...], "textItems": [...] }
 /// }
 class DocumentCodec {
   const DocumentCodec();
@@ -58,6 +60,11 @@ class DocumentCodec {
         'layers': doc.layers.map((l) => l.toJson()).toList(),
         'shapes': doc.shapes.map((shape) => shape.toJson()).toList(),
         'imageItems': doc.imageItems.map((item) => item.toJson()).toList(),
+        // 独立画布的文字工具把文字写进 `document.textItems`
+        // （editor_page_actions.dart:460「独立画布模式回退到 document.textItems」）。
+        // 这一项此前在编码与解码两侧都不存在——画布上打的字「保存成功、重开就没」，
+        // 属于政府审计项目明令禁止的静默丢数据。
+        'textItems': doc.textItems.map((item) => item.toJson()).toList(),
       },
     };
   }
@@ -148,6 +155,7 @@ class DocumentCodec {
       layers: _restoreLayers(document['layers']),
       shapes: _restoreShapes(document['shapes']),
       imageItems: _restoreImageItems(document['imageItems']),
+      textItems: _restoreTextItems(document['textItems']),
       createdAt: timeFromIso(document['createdAt']),
       updatedAt: timeFromIso(document['updatedAt']),
     );
@@ -172,6 +180,10 @@ class DocumentCodec {
   static const int _maxTotalPoints = 1000000;
   static const int _maxShapeCount = 5000;
   static const int _maxImageCount = 5000;
+  static const int _maxTextCount = 5000;
+
+  /// 文字块字号上限（px）：超过这个量级的字号不是用户打出来的，视为损坏数据。
+  static const double _maxFontSize = 512;
 
   static int _restoreCanvasDimension(Object? value, int fallback) {
     if (value is! num || !value.toDouble().isFinite) return fallback;
@@ -292,6 +304,13 @@ class DocumentCodec {
             opacity: opacity is num && opacity.toDouble().isFinite
                 ? opacity.toDouble().clamp(0.0, 1.0).toDouble()
                 : 1.0,
+            // 手写抖动种子与版本计数器必须回读：`Stroke.toJson` 一直在写这三项
+            // （编码端无损），解码端漏掉就让每条笔画在重开时拿到**新的随机
+            // seed**——同一张画重开后抖动/质感会变（用户眼中的「画面自己变了」），
+            // 且 version/versionNonce 归零会让协作与增量同步的冲突检测失效。
+            seed: _restoreNonNegativeInt(json['seed']),
+            version: _restoreNonNegativeInt(json['version']) ?? 0,
+            versionNonce: _restoreNonNegativeInt(json['versionNonce']) ?? 0,
           ),
         );
       } catch (_) {
@@ -398,6 +417,44 @@ class DocumentCodec {
     return images;
   }
 
+  /// 画布/页面文字块恢复（与 shapes/images 同一防御口径）：
+  /// id 必填且不重复、坐标与字号必须有限且在范围内，非法项单独丢弃。
+  /// 旧文档没有 `textItems` 键 → 返回空表，行为与修复前一致。
+  static List<PageTextItem> _restoreTextItems(Object? value) {
+    final texts = <PageTextItem>[];
+    final ids = <String>{};
+    if (value is! List) return texts;
+    final limit = value.length.clamp(0, _maxTextCount);
+    for (var i = 0; i < limit; i++) {
+      final entry = value[i];
+      if (entry is! Map) continue;
+      try {
+        final item = PageTextItem.fromJson(Map<String, dynamic>.from(entry));
+        if (item.id.isEmpty ||
+            !ids.add(item.id) ||
+            !_isSafeCoordinate(item.x) ||
+            !_isSafeCoordinate(item.y) ||
+            !item.fontSize.isFinite ||
+            item.fontSize <= 0 ||
+            item.fontSize > _maxFontSize) {
+          continue;
+        }
+        texts.add(item);
+      } catch (_) {
+        // 单条文字无法安全恢复时隔离该条，其余内容照常可读。
+      }
+    }
+    return texts;
+  }
+
   static bool _isSafeCoordinate(double value) =>
       value.isFinite && value.abs() <= _maxCoordinate;
+
+  /// 恢复单调递增的整数（种子/版本号）：缺失、非数字、负数或不有限时返回
+  /// null，让 `Stroke` 自己按旧文档语义生成——旧文件没有这些字段时行为不变。
+  static int? _restoreNonNegativeInt(Object? value) {
+    if (value is! num) return null;
+    if (!value.isFinite || value < 0) return null;
+    return value.toInt();
+  }
 }
