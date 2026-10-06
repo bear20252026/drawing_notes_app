@@ -299,4 +299,91 @@ void main() {
     // 飞行中链收敛（不再有 queued 补写）。
     expect(save.calls, 1);
   });
+
+  // 用户可见面（2026-10-06）：失败此前只进 AuditLogger + `onError`，
+  // 画布编辑器把它用来写日志，用户界面一点痕迹都没有——AW8 那个 P0
+  // （无 PIN 用户完全存不了画布）能潜伏两个月，直接原因就在这里。
+  group('saveFailure 用户可见通知', () {
+    test('首次失败就挂出通知，且 gaveUp=false（改动已不在盘上，不等放弃才报）',
+        () async {
+      scheduler = build();
+      save.shouldFail = true;
+
+      await scheduler.saveNow(); // 首次失败 → retry → 第二次失败 → backoff
+
+      final notice = scheduler.saveFailure.value;
+      expect(notice, isNotNull, reason: '第一次失败起就该让用户知道没落盘');
+      expect(notice!.gaveUp, isFalse, reason: '仍在退避重试，措辞不该是「手动保存」');
+      expect(notice.failureCount, greaterThanOrEqualTo(2));
+    });
+
+    test('保存成功后通知自动撤下（不留过期的「失败」状态）', () async {
+      scheduler = build();
+      save.shouldFail = true;
+      await scheduler.saveNow();
+      expect(scheduler.saveFailure.value, isNotNull);
+
+      save.shouldFail = false;
+      await scheduler.saveNow();
+      expect(
+        scheduler.saveFailure.value,
+        isNull,
+        reason: '已经落盘成功却还挂着失败提示，比不提示更误导',
+      );
+    });
+
+    test('持续失败到 giveUp：通知升级为「已停止自动重试」', () async {
+      scheduler = build();
+      save.shouldFail = true;
+      await scheduler.saveNow(); // 1 → retry, 2 → backoff
+      for (var i = 0; i < 2; i++) {
+        board.pending().single.fire();
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      final notice = scheduler.saveFailure.value;
+      expect(notice, isNotNull);
+      expect(
+        notice!.gaveUp,
+        isTrue,
+        reason: 'giveUp 后只有下一次内容变更才会再试，措辞必须跟上',
+      );
+      expect(scheduler.isDirty, isTrue, reason: '升级措辞的同时脏标记不得被清掉');
+    });
+
+    test('通知只带异常类型名，不带 message（H-04 不泄漏路径与凭据）', () async {
+      scheduler = build();
+      save.shouldFail = true;
+
+      await scheduler.saveNow();
+
+      final notice = scheduler.saveFailure.value!;
+      expect(notice.errorKind, 'StateError');
+      expect(
+        notice.errorKind.contains('save-failure'),
+        isFalse,
+        reason: '异常 message 可能含路径/远端文本，一律不得外带',
+      );
+    });
+
+    test('dispose 后飞行中的失败不再触碰 notifier（不抛已释放断言）', () async {
+      scheduler = build();
+      save.shouldFail = true; // 让链在 dispose 之后以「失败」收敛
+      save.gate = Completer<void>();
+      scheduler.markDirty();
+      board.fireLast();
+      await Future<void>.delayed(Duration.zero);
+
+      scheduler.dispose();
+      save.gate!.complete();
+      save.gate = null;
+      // 让挂起的保存链跑到失败分支（修复前会 dispose 之后再写 notifier）。
+      for (var i = 0; i < 4; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(scheduler.isDirty, isTrue, reason: '从未成功落盘，脏标记必须保留');
+      // notifier 已被 dispose：写它会触发 debug 断言 ⇒ 走到这里没抛即为通过。
+      // 不要再读 saveFailure 的任何状态——它本身已经释放，读了反而炸在这个断言上。
+    });
+  });
 }

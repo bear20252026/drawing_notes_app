@@ -16,6 +16,7 @@ extension _EditorPageOverlays on _EditorPageState {
       hoverPos: _hoverPos,
       inkPressureSample: _inkPressureSample,
       saving: _canvasSaving,
+      saveFailure: _canvasSaveFailure,
       lastSavedAt: _canvasLastSavedAt,
       onZoomTo: _setScaleFromMenu,
       onZoomFit: _fitCanvasToViewport,

@@ -226,8 +226,47 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     setState(() => _canvasSaving = _saveScheduler.savingState.value);
   }
 
+  /// 保存失败的用户可见通知（2026-10-06）。
+  ///
+  /// 此前失败只进 `AuditLogger`，界面上毫无痕迹：用户继续画、继续丢，
+  /// 直到重开才发现内容没了。这里同时做两件事——状态栏芯片常驻显示
+  /// 「保存失败」（一次性 snackbar 会被划走，而风险一直在），以及
+  /// `giveUp` 时把措辞升级成「请手动保存」。
+  SaveFailureNotice? _canvasSaveFailure;
+
+  /// 只在「失败连击开始」与「升级为放弃」两个时刻弹一次 snack，
+  /// 连续失败不刷屏（与调度器的通知合并同口径；频率闸门：高频态不动画）。
+  bool _snackedForCurrentEpisode = false;
+
+  void _onSaveFailureChanged() {
+    if (!mounted) return;
+    final notice = _saveScheduler.saveFailure.value;
+    setState(() => _canvasSaveFailure = notice);
+    if (notice == null) {
+      _snackedForCurrentEpisode = false;
+      return;
+    }
+    if (_snackedForCurrentEpisode && !notice.gaveUp) return;
+    _snackedForCurrentEpisode = true;
+    _showSaveFailureSnackBar(notice);
+  }
+
+  void _showSaveFailureSnackBar(SaveFailureNotice notice) {
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(
+        content: Text(saveFailureLabel(AppLocalizations.of(context), notice)),
+        duration: const Duration(seconds: 6),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   String get _canvasStatusLabel {
     final l10n = AppLocalizations.of(context);
+    // 失败优先于「保存中/未保存」：这三态互斥地挤在同一个芯片位上，
+    // 而只有「没落盘」是用户必须立刻知道的。
+    final notice = _canvasSaveFailure;
+    if (notice != null) return saveFailureLabel(l10n, notice);
     if (_canvasSaving) return l10n?.saveStateSaving ?? '保存中…';
     final t = _canvasLastSavedAt;
     if (_controller.isDirty) return l10n?.saveStateUnsaved ?? '未保存';
@@ -236,6 +275,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   }
 
   Color get _canvasStatusColor {
+    if (_canvasSaveFailure != null) return AppleColor.errorRed;
     if (_canvasSaving) return AppleColor.actionBlue;
     if (_controller.isDirty) return AppleColor.favourite;
     return AppleColor.noteGreen;
@@ -592,6 +632,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     // 脏检查版：干净退出（_flushBeforePop 已落盘）不重复写盘。
     _closingEditor = true;
     _saveScheduler.savingState.removeListener(_onSavingStateChanged);
+    _saveScheduler.saveFailure.removeListener(_onSaveFailureChanged);
     unawaited(_viewModel.flushIfDirty());
     _viewModel.dispose();
     _slashMenu.dispose();
@@ -752,6 +793,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     // v1.17.20 保存状态指示器：保存链飞行状态统一由调度器通知——
     // 覆盖手动保存与退出兜底路径（此前只有自动保存回调内手工置位）。
     _saveScheduler.savingState.addListener(_onSavingStateChanged);
+    // 保存失败必须可见（2026-10-06）：调度器一直在重试、也一直在记审计，
+    // 但用户完全不知道改动没落盘——AW8 那个 P0 的第二个致因就是这个。
+    _saveScheduler.saveFailure.addListener(_onSaveFailureChanged);
     // 首次进入时立即保存一次，确保新文档落盘（自动保存机制）。
     _scheduleAutosave();
     // 注册编辑器命令（B2：命令表驱动快捷键面板）。

@@ -36,6 +36,7 @@ import 'package:flutter/services.dart'
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 import 'package:drawing_notes_app/core/security/session_guard.dart'
     show LockExemption;
@@ -402,8 +403,17 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
         // 老用户升级：已有 PIN 但尚无保险库 → 以同一位 PIN 补建。
         await vault.initialize(pin);
       }
-    } catch (_) {
-      // fail-closed 兜底在存储层；此处静默避免锁死 UI。
+    } catch (error) {
+      // 不阻塞进入 UI（保险库异常时应用仍可读明文），但**必须留下痕迹**：
+      // 这是「PIN 校验通过、密钥却没到手」的唯一入口，而该状态下一切加密写入
+      // 都会 fail-closed 失败、一切密文读取都读不出来。此前这里 `catch (_) {}`
+      // 全静默，等于把一个可致丢数据的状态藏进不可观测的黑盒（2026-10-06）。
+      // 只记错误类型，不带 message/堆栈（H-04「绝不落凭据」同口径）。
+      AuditLogger.log(
+        'app_lock.vault_unlock_failed',
+        success: false,
+        detail: error.runtimeType.toString(),
+      );
     }
   }
 

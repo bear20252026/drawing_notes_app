@@ -10,6 +10,7 @@ import 'package:drawing_notes_app/features/drawing/application/di_providers.dart
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/drawing/application/stylus_input.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
+import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
 
 /// 编辑器状态栏（审计三-2 改版，2026-09-06）。
 ///
@@ -28,6 +29,7 @@ class EditorStatusBar extends ConsumerStatefulWidget {
     required this.hoverPos,
     required this.inkPressureSample,
     required this.saving,
+    this.saveFailure,
     required this.lastSavedAt,
     required this.onZoomTo,
     required this.onZoomFit,
@@ -44,6 +46,11 @@ class EditorStatusBar extends ConsumerStatefulWidget {
 
   /// 自动保存进行中（编辑器状态传入，非本组件自行推断）。
   final bool saving;
+
+  /// 保存失败通知（2026-10-06）：非空即「有改动没落盘，且保存已经失败」。
+  /// 优先于 [saving] 与 [lastSavedAt]——三态挤在同一颗芯片位上，
+  /// 而只有这一态是用户必须立刻知道的。
+  final SaveFailureNotice? saveFailure;
 
   /// 最近一次保存完成时间（null = 本次会话尚未保存过）。
   final DateTime? lastSavedAt;
@@ -71,6 +78,10 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
   String _saveLabel(bool dirty) {
     // L-05（审计 2026-09-27）：saveState* 键族接线（原写死，arb 键已有
     // ——editor_page.dart:206 同族在用）。
+    final notice = widget.saveFailure;
+    if (notice != null) {
+      return saveFailureLabel(AppLocalizations.of(context), notice);
+    }
     if (widget.saving) {
       return AppLocalizations.of(context)?.saveStateSaving ?? '保存中…';
     }
@@ -83,6 +94,7 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
   }
 
   Color _saveColor(ThemeData theme, bool dirty) {
+    if (widget.saveFailure != null) return AppleColor.errorRed;
     final blue = theme.brightness == Brightness.dark
         ? AppleColor.actionBlueOnDark
         : AppleColor.actionBlue;
@@ -92,6 +104,7 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
   }
 
   IconData get _saveIcon {
+    if (widget.saveFailure != null) return Icons.cloud_off_rounded;
     if (widget.saving) return Icons.sync_rounded;
     if (widget.lastSavedAt == null) return Icons.cloud_upload_rounded;
     return Icons.check_rounded;

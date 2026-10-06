@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import 'package:drawing_notes_app/l10n/app_localizations.dart';
+
 import 'save_failure_policy.dart';
 import 'save_schedule_decision.dart';
 
@@ -30,6 +32,40 @@ class _TimerWrapper implements SaveTimerHandle {
   @override
   void cancel() => _timer.cancel();
 }
+
+/// 「改动没落盘」的用户可见通知（2026-10-06）。
+///
+/// 挂在 [SaveScheduler.saveFailure] 上：非空即表示**当前仍有未落盘的改动，
+/// 且至少一次保存尝试已经失败**。
+class SaveFailureNotice {
+  const SaveFailureNotice({
+    required this.failureCount,
+    required this.errorKind,
+    required this.gaveUp,
+  });
+
+  /// 本轮连续失败的次数（成功落盘后归零）。
+  final int failureCount;
+
+  /// 失败异常的**类型名**——刻意不带 message 与堆栈：远端可控文本、路径与内部
+  /// 结构不得进 UI 与日志（与 H-04「绝不落凭据」、`editor.autosave.error`
+  /// 只记 `runtimeType` 是同一条纪律）。
+  final String errorKind;
+
+  /// 失败策略已放弃本轮自动重试。此后只有下一次内容变更才会再试，
+  /// 所以措辞必须升级成「请手动保存」，不能继续显示「正在重试」。
+  final bool gaveUp;
+}
+
+/// 失败提示文案：**一处定义，两处消费**（编辑器顶栏芯片、状态栏芯片、
+/// snackbar 都走它），避免同一个状态在不同位置说出不同的话。
+///
+/// 复用既有 arb 键（`docSaveFailedRetry` / `docSaveFailed`），不新增文案；
+/// 两者的 en 值都已存在，en 用户不会看到中文。
+String saveFailureLabel(AppLocalizations? l10n, SaveFailureNotice notice) =>
+    notice.gaveUp
+        ? (l10n?.docSaveFailed ?? '保存失败，请重试或手动保存')
+        : (l10n?.docSaveFailedRetry ?? '保存失败，请重试');
 
 /// 统一保存 / 自动保存 / 失败重试调度门面（P0-3b）。
 ///
@@ -94,6 +130,15 @@ class SaveScheduler {
   /// 手动 saveNow、退出兜底 flush 全部路径——此前 UI 侧只在自己的
   /// save 回调里置「保存中」标记，退出兜底路径永远不点亮。
   final ValueNotifier<bool> savingState = ValueNotifier<bool>(false);
+
+  /// 保存失败的用户可见状态（null = 没有待落盘的失败）。
+  ///
+  /// **首次失败就置位**，不等 `giveUp`：从第一次失败起用户的改动就已经不在
+  /// 盘上了。此前失败只进 `AuditLogger`（`editor.autosave.error`），界面上
+  /// 一点痕迹都没有——AW8 那个「无 PIN 用户完全存不了画布」的 P0 能潜伏两个
+  /// 月，直接原因就是这里：调度器确实一直在重试、也确实在记录，只有用户不知道。
+  final ValueNotifier<SaveFailureNotice?> saveFailure =
+      ValueNotifier<SaveFailureNotice?>(null);
 
   bool _saveInFlight = false;
   bool _saveQueued = false;
@@ -167,6 +212,7 @@ class SaveScheduler {
     _disposed = true;
     _cancelTimer();
     savingState.dispose();
+    saveFailure.dispose();
   }
 
   /// 是否尚有待落盘的更改（供调用方判断是否需要保存）。
@@ -230,6 +276,9 @@ class SaveScheduler {
   void _onSaveSuccess() {
     _failureCount = 0;
     _firstFailureAt = null;
+    // 落盘成功即撤下失败提示（dispose 后不再触碰 notifier——与 savingState
+    // 同一收敛规则，见 _coalescedSave 的 whenComplete）。
+    if (!_disposed) saveFailure.value = null;
     // 保存完成即更新最近一次落盘时间；但若保存期间又有变更，仍保持脏，
     // 由外层循环补写最新快照，避免把“未落盘的更改”误标为已保存。
     _lastSaveAt = _clock();
@@ -245,9 +294,19 @@ class SaveScheduler {
     final elapsed = _clock().difference(_firstFailureAt!);
     // 通知合并：只上报“失败事件本身”，策略由这里统一处理。
     onError?.call(error, stackTrace);
-    switch (_failurePolicy.decide(
+    final decision = _failurePolicy.decide(
       SaveFailureInput(failureCount: _failureCount, elapsed: elapsed),
-    )) {
+    );
+    // 用户可见面：第一次失败就报（见 [saveFailure] 的说明），
+    // `giveUp` 只把措辞从「正在重试」升级成「请手动保存」。
+    if (!_disposed) {
+      saveFailure.value = SaveFailureNotice(
+        failureCount: _failureCount,
+        errorKind: error.runtimeType.toString(),
+        gaveUp: decision == SaveRetryDecision.giveUp,
+      );
+    }
+    switch (decision) {
       case SaveRetryDecision.retry:
         return true;
       case SaveRetryDecision.backoff:
