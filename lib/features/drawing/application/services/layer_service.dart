@@ -40,9 +40,6 @@ final class LayerService implements DrawingService {
     void Function(int index)? mergeDown,
     Future<void> Function(String layerId, {Rect? region})? invalidate,
     void Function(String layerId, int targetIndex)? reorder,
-    void Function()? beginTransaction,
-    void Function()? commitTransaction,
-    void Function()? rollbackTransaction,
   }) {
     _createLayer = createLayer;
     _deleteLayer = deleteLayer;
@@ -53,6 +50,16 @@ final class LayerService implements DrawingService {
     _mergeDown = mergeDown;
     _invalidate = invalidate;
     _reorder = reorder;
+  }
+
+  /// 绑定事务宿主钩子（与 [bindLegacyOperations] 分开：图层操作的委托与
+  /// 「一批操作如何合成一次撤销」是两种职责，混在一个 12 参数的方法里，
+  /// DCM 的 Long Parameter List 只是在替你把设计味道喊出来）。
+  void bindTransactionOperations({
+    required void Function() beginTransaction,
+    required void Function() commitTransaction,
+    required void Function() rollbackTransaction,
+  }) {
     _beginTransaction = beginTransaction;
     _commitTransaction = commitTransaction;
     _rollbackTransaction = rollbackTransaction;

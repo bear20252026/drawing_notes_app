@@ -6,6 +6,7 @@ import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_focus.dart';
+import 'package:drawing_notes_app/core/canvas_model/layer.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 
 /// 图层面板（Phase 3 验收核心）。
@@ -54,7 +55,6 @@ class LayerPanel extends StatelessWidget {
             final layers = controller.document.layers;
             // 显示顺序：最上层（索引最大）在列表顶部。
             final displayOrder = layers.reversed.toList();
-            final currentIndex = controller.currentLayerIndex;
 
             return Column(
               children: [
@@ -90,22 +90,11 @@ class LayerPanel extends StatelessWidget {
                       // 把"显示序号"换算回内部索引。
                       final internalIndex = displayOrder.length - 1 - i;
                       final layer = displayOrder[i];
-                      final selected = internalIndex == currentIndex;
                       return _LayerItem(
                         controller: controller,
                         onChanged: onChanged,
+                        layer: layer,
                         layerIndex: internalIndex,
-                        selected: selected,
-                        opacity: layer.opacity,
-                        visible: layer.visible,
-                        name: DomainDisplayLabels.layerName(
-                          AppLocalizations.of(context),
-                          layer.name,
-                        ),
-                        thumbnail: controller.paintViews[internalIndex].image,
-                        canMoveUp: internalIndex < layers.length - 1,
-                        canMoveDown: internalIndex > 0,
-                        canMerge: internalIndex > 0,
                         onSelect: () =>
                             controller.currentLayerIndex = internalIndex,
                       );
@@ -122,32 +111,22 @@ class LayerPanel extends StatelessWidget {
 }
 
 /// 单个图层条目。
+///
+/// 显示所需的一切都从 [controller] + [layer] 现场派生（选中态、缩略图、可移动/
+/// 可合并判定），不再由父层逐个算好传进来：AW5 加第 12 个参数时被 DCM 的
+/// Long Parameter List 抓个正着，那是在提示这个构造函数本来就不该有这么多参。
 class _LayerItem extends StatelessWidget {
   const _LayerItem({
     required this.controller,
+    required this.layer,
     required this.layerIndex,
-    required this.selected,
-    required this.opacity,
-    required this.visible,
-    required this.name,
-    required this.thumbnail,
-    required this.canMoveUp,
-    required this.canMoveDown,
-    required this.canMerge,
     required this.onSelect,
     this.onChanged,
   });
 
   final DrawingController controller;
+  final Layer layer;
   final int layerIndex;
-  final bool selected;
-  final double opacity;
-  final bool visible;
-  final String name;
-  final Object? thumbnail; // ui.Image?，用动态类型避免 UI 层直接依赖 dart:ui
-  final bool canMoveUp;
-  final bool canMoveDown;
-  final bool canMerge;
   final VoidCallback onSelect;
 
   /// 见 [LayerPanel.onChanged]：每次改到图层内容都要让宿主置脏并排保存。
@@ -156,6 +135,19 @@ class _LayerItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final layerCount = controller.document.layers.length;
+    final selected = controller.currentLayerIndex == layerIndex;
+    final visible = layer.visible;
+    final opacity = layer.opacity;
+    final name = DomainDisplayLabels.layerName(
+      AppLocalizations.of(context),
+      layer.name,
+    );
+    // 用动态类型持有，保持与本类字段原本的口径（下方 `is ui.Image` 判定）。
+    final Object? thumbnail = controller.paintViews[layerIndex].image;
+    final canMoveUp = layerIndex < layerCount - 1;
+    final canMoveDown = layerIndex > 0;
+    final canMerge = layerIndex > 0;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Material(
@@ -176,7 +168,7 @@ class _LayerItem extends StatelessWidget {
                       borderRadius: BorderRadius.circular(AppleRadius.xs),
                       child: thumbnail is ui.Image
                           ? RawImage(
-                              image: thumbnail as ui.Image,
+                              image: thumbnail,
                               width: 40,
                               height: 40,
                               fit: BoxFit.contain,

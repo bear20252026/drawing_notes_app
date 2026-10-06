@@ -22,6 +22,8 @@ extension DrawingControllerHistoryOps on DrawingController {
       mergeDown: (index) => _layerEditingSession.mergeLayerDown(index),
       invalidate: _invalidateLayer,
       reorder: _layerEditingSession.reorderLayer,
+    );
+    layerService.bindTransactionOperations(
       beginTransaction: historyService.beginGroup,
       commitTransaction: _commitLayerTransaction,
       rollbackTransaction: _rollbackLayerTransaction,
