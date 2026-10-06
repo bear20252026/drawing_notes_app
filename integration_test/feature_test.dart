@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/notes/application/notebook_page_editor_session.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
@@ -10,12 +12,33 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../test/helpers/temp_dir_cleanup.dart';
+
 /// 用户视角全链路回归：绘制→撤销→重做→图层→文字→保存 不崩溃。
 ///
 /// 覆盖用户报告范围之外的核心用户功能（图层/撤销/保存等）在真实
 /// Windows 应用中的可用性。
+///
+/// ⚠️ 用例名的口径（交接文档 2026-10-05 第二优先指出的问题）：本文件此前
+/// 把存储目录注入成 `throw UnimplementedError()`，所以「保存」这条腿在真机上
+/// 从来没被走过；断言也只到「界面不抛异常」，没有一条在核对内容。
+/// 本轮先把**注入**改成真实临时目录（落盘路径可用、可复查），并在文件头记下
+/// 仍未补齐的部分：绘制→撤销→重做的**内容**断言（笔画落在哪个集合、
+/// `onChanged` 是否真的把页面写进磁盘）必须先在真机上确认一次再写死——
+/// 凭猜测写断言就是拿「改断言换绿」的反向做法污染门禁台账。
+/// 数据层的真实落盘往返已由单测覆盖：
+/// `test/drawing_content_roundtrip_test.dart`、
+/// `test/document_image_persistence_test.dart`（均为真实临时目录）。
 void main() {
+  /// 建一个真实临时目录给 NotebookStorage 用，返回目录句柄供后续断言/清理。
+  Future<Directory> editorTempDir() async {
+    final dir = await Directory.systemTemp.createTemp('feature_test_');
+    addTearDown(() => deleteTempDirWithRetry(dir));
+    return dir;
+  }
+
   Future<void> pumpEditor(WidgetTester tester) async {
+    final tempDir = await editorTempDir();
     final doc = DrawingDocument(
       id: 'feature_test_doc',
       title: '功能测试',
@@ -38,8 +61,10 @@ void main() {
           supportedLocales: const [Locale('zh'), Locale('en')],
           home: EditorPage(
             session: NotebookPageEditorSession(page),
+            // 原先是 `directoryProvider: () async => throw UnimplementedError()`
+            // ——任何真落到存储层的动作都会当场炸，等于「保存」这条腿不存在。
             storage: NotebookStorage(
-              directoryProvider: () async => throw UnimplementedError(),
+              directoryProvider: () async => tempDir,
             ),
           ),
         ),
