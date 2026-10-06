@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/widgets.dart';
 
 /// 全局「失焦豁免窗口」——SessionGuard 与 AppLockGate 共用的单一事实来源。
@@ -25,10 +23,16 @@ import 'package:flutter/widgets.dart';
 /// - **计数配对**：嵌套选择器成对开关，一次 end 不会提前关闭他人豁免。
 ///
 /// 释放途径有两条，且都会**同步通知** [addWindowClosedListener] 的监听者
-/// （2026-10-06，台账 P2-1 的观测面）：
+/// （2026-10-06，台账 P2-1）：
 /// - 末位 [end]：选择器正常关闭；
-/// - TTL 就地失效：[ttl] 到点由定时器**主动**触发，不再只在有人读 [isActive]
-///   时才惰性失效——「之后再也没有信号来读」正是那条漏洞的本体。
+/// - TTL 就地失效：读到 [isActive] 时按单调秒表判定（惰性）。
+///
+/// **本窗口自己不挂定时器**：它是进程级静态，测试里一次未配对的 [begin]
+/// 会把定时器留到用例结束，`testWidgets` 随即以「Pending timers」判红
+/// （AW15 首推即在 `editor_insert_image_entry_test` 撞上，2219 通过 1 红）。
+/// 「到点主动暴露」的责任放在消费者侧——AppLockGate 用随组件释放的看门表
+/// 定时来读 [isActive]，读到的那一刻惰性失效并通知。既不留全局定时器，
+/// 也不再依赖「恰好有人来查」。
 ///
 /// 通知只交付「窗口没了」这个事实，**不替调用方决定要不要置锁**：判定留在
 /// AppLockGate（它才知道当前生命周期态与宽限期），避免在焦点马上就回来的
@@ -41,12 +45,21 @@ class LockExemption {
   /// 门恢复「切后台即锁」。SessionGuard 原 TTL 同取 5 分钟，口径拉齐。
   static const Duration ttl = Duration(minutes: 5);
 
+  /// 测试专用 TTL 覆盖（与 `AppLockService.testPinKdfOverride`、
+  /// `KekSessionCache.bypassIsolateForTests` 同一先例）。
+  ///
+  /// 为什么需要：截止判定走**单调秒表（真实时间）**，而 `testWidgets` 的
+  /// `tester.pump()` 只推进假时钟——不注入短 TTL 的话，任何「等豁免到期」的
+  /// 用例都只能在真实 5 分钟后再断言（同一条用例里的秒表读数永远追不上）。
+  /// 生产恒为 null ⇒ 走 [ttl]。
+  @visibleForTesting
+  static Duration? ttlOverrideForTest;
+
   /// 单调秒表（进程生命周期常驻）——截止只相对它读数，免疫系统时钟调整。
   static final Stopwatch _mono = Stopwatch()..start();
 
   static int _depth = 0;
   static int _untilMonoMs = 0;
-  static Timer? _ttlTimer;
   static final List<void Function(bool ttlExpired)> _closedListeners = [];
 
   /// 当前是否处于豁免窗口内（计数 > 0 且未超 TTL）。
@@ -62,8 +75,8 @@ class LockExemption {
   /// 开启一层豁免（刷新 TTL 截止）。与 [end] 严格配对。
   static void begin() {
     _depth++;
-    _untilMonoMs = _mono.elapsedMilliseconds + ttl.inMilliseconds;
-    _armTtlTimer();
+    final window = ttlOverrideForTest ?? ttl;
+    _untilMonoMs = _mono.elapsedMilliseconds + window.inMilliseconds;
   }
 
   /// 关闭一层豁免；末位关闭即清空窗口。
@@ -95,31 +108,12 @@ class LockExemption {
     void Function(bool ttlExpired) listener,
   ) => _closedListeners.remove(listener);
 
-  /// TTL 定时器：到点**主动**失效并通知，不等人来读 [isActive]。
-  /// 每次 [begin] 刷新截止 ⇒ 同时重锚定时器（与 `_untilMonoMs` 保持同源）。
-  static void _armTtlTimer() {
-    _ttlTimer?.cancel();
-    final remainingMs = _untilMonoMs - _mono.elapsedMilliseconds;
-    _ttlTimer = Timer(
-      Duration(milliseconds: remainingMs < 0 ? 0 : remainingMs),
-      // 到点即失效：这里**不再**拿单调秒表复算一遍——Timer 只会迟到不会早到，
-      // 而复算会让假时钟驱动的测试永远走不到这条分支（2026-10-06 实测）。
-      // 权威判据仍在 [isActive]（单调秒表，防系统调钟），定时器只负责把
-      // 「过期」这件事**提前**暴露出来，永不放松它。
-      () {
-        if (_depth > 0) _clear(ttlExpired: true);
-      },
-    );
-  }
-
   static void _clear({bool ttlExpired = false}) {
     // 窗口「开着」的判据不能只看 `_depth`：`end()` 是先自减再调本函数，
     // 末位释放时 `_depth` 已经是 0，而截止位还在 ⇒ 用两者取或。
     final wasOpen = _depth > 0 || _untilMonoMs != 0;
     _depth = 0;
     _untilMonoMs = 0;
-    _ttlTimer?.cancel();
-    _ttlTimer = null;
     if (!wasOpen) return;
     // 回调前拍快照：监听者可能在回调里摘除自己（remove 会让边遍历边改出问题）。
     for (final listener in List.of(_closedListeners)) {
@@ -139,6 +133,7 @@ class LockExemption {
   static void resetForTest() {
     _clear();
     _closedListeners.clear();
+    ttlOverrideForTest = null;
   }
 }
 

@@ -492,9 +492,7 @@ void main() {
     expect(find.text('SECRET_HOME'), findsOneWidget);
   });
 
-  testWidgets('④d 窗口关闭后无人回来：等满宽限期落锁，回来必须重新验证', (
-    tester,
-  ) async {
+  testWidgets('④d 窗口关闭后无人回来：等满宽限期落锁，回来必须重新验证', (tester) async {
     final service = await _configuredService('1357');
 
     await tester.pumpWidget(
@@ -528,9 +526,7 @@ void main() {
     expect(find.text('SECRET_HOME'), findsOneWidget);
   });
 
-  testWidgets('④e TTL 到点由定时器主动失效：没人读 isActive 也照样落锁', (
-    tester,
-  ) async {
+  testWidgets('④e 门到点自己复核豁免到期：之后再无生命周期信号也照样落锁', (tester) async {
     final service = await _configuredService('1357');
 
     await tester.pumpWidget(
@@ -545,23 +541,26 @@ void main() {
     await tester.pumpAndSettle();
     await _enterPin(tester, '1357');
 
+    LockExemption.ttlOverrideForTest = const Duration(milliseconds: 120);
     LockExemption.begin(); // 调用方漏 end 的场景
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     await tester.pump();
     expect(find.text('输入密码'), findsNothing); // 窗口内不假锁
 
-    // 关键：全程**不读** isActive——惰性失效在这里永远不会发生。
-    await tester.pump(LockExemption.ttl + const Duration(seconds: 1));
+    // 单调秒表走**真实**时间，`pump` 推的是假时钟 ⇒ 先真实越过窗口（runAsync），
+    // 再推进假时钟触发的看门表。用例侧全程不读 isActive——复核是门自己发起的。
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 200)),
+    );
+    await tester.pump(const Duration(milliseconds: 150));
     expect(
       find.text('输入密码'),
       findsOneWidget,
-      reason: 'TTL 上界是「绝不限期挂免死金牌」的承诺，兑现不能依赖有人来查',
+      reason: 'TTL 上界是「绝不限期挂免死金牌」的承诺，兑现不能依赖恰好有人来查',
     );
   });
 
-  testWidgets('④f 宽限期关闭时：豁免窗口一关即锁（无到期定时器可等）', (
-    tester,
-  ) async {
+  testWidgets('④f 宽限期关闭时：豁免窗口一关即锁（无到期定时器可等）', (tester) async {
     final service = await _configuredService('1357');
     await service.setGraceSeconds(0); // 用户明确不要宽限
 

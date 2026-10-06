@@ -134,8 +134,40 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   bool _gracePending = false;
   Timer? _graceDeadlineTimer;
 
+  /// 豁免窗口到期看门表（P2-1，2026-10-06）：**必须挂在门上而不是
+  /// `LockExemption` 静态里**——进程级定时器会被任何一次未配对的 `begin()`
+  /// 带进 `testWidgets` 的假时钟并以「Pending timers」判红（AW15 首推实测：
+  /// `editor_insert_image_entry_test` 一条红，2219 通过）。门随组件 dispose
+  /// 取消，测试树拆掉就干净。
+  Timer? _exemptionWatchTimer;
+
+  /// 豁免窗口内收到后台信号：不置锁、不锚表（那不算用户切后台），
+  /// 但要**约定到点再来读一次** `isActive`——惰性失效由此变成有明确时刻的事件，
+  /// 不再依赖「恰好有人来查」。到点读取会触发 [LockExemption] 的同步通知，
+  /// 判定统一走 `_onExemptionWindowClosed`。
+  void _armExemptionWatch() {
+    _exemptionWatchTimer?.cancel();
+    final remaining = LockExemption.remaining;
+    if (remaining <= Duration.zero) return; // 已经过期，下一读即失效
+    _exemptionWatchTimer = Timer(remaining, _onExemptionWatchTick);
+  }
+
+  void _onExemptionWatchTick() {
+    _exemptionWatchTimer = null;
+    if (!mounted) return;
+    // 读 isActive 就是「到点复核」这件事本身：过期 ⇒ 内部惰性清空并同步通知；
+    // 仍有效 ⇒ 说明期间有新的 begin 刷新过截止，重锚看门表。
+    if (LockExemption.isActive) _armExemptionWatch();
+  }
+
+  void _cancelExemptionWatch() {
+    _exemptionWatchTimer?.cancel();
+    _exemptionWatchTimer = null;
+  }
+
   /// 豁免窗口关闭事件的订阅句柄（与 `addWindowClosedListener` 严格配对）。
   void _onExemptionWindowClosed(bool ttlExpired) {
+    _cancelExemptionWatch();
     if (!mounted || !widget.service.isConfigured || _locked) return;
     // 人已经回到前台（或拿不到生命周期态）：不构成离席，维持现状。
     final state = WidgetsBinding.instance.lifecycleState;
@@ -176,6 +208,7 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   /// 落锁且**不**给予宽限资格：回前台必须重新验证。
   void _lockWithoutGrace({required String reason}) {
     _cancelPendingGrace();
+    _cancelExemptionWatch();
     if (_locked) return;
     AuditLogger.log(reason, success: false, detail: 'grace_or_ttl');
     setState(() {
@@ -314,7 +347,11 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   /// 应吃掉宽限期；末位释放后由回前台 resumed 按已锚定的宽限期秒表判定。
   void _onBackgroundSignal() {
     if (!widget.service.isConfigured || _locked) return;
-    if (LockExemption.isActive) return;
+    if (LockExemption.isActive) {
+      // 豁免期间：既不置锁也不锚表，但约定到点再来复核（见 [_armExemptionWatch]）。
+      _armExemptionWatch();
+      return;
+    }
     // 真实后台信号接管宽限期锚点：挂起态（由豁免窗口关闭起表）作废，
     // 否则两条秒表会抢同一个「每次后台只评估一次」的宽限资格。
     _cancelPendingGrace();
@@ -343,6 +380,7 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     widget.service.removeListener(_onServiceChanged);
     LockExemption.removeWindowClosedListener(_onExemptionWindowClosed);
     _cancelPendingGrace();
+    _cancelExemptionWatch();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

@@ -115,20 +115,18 @@ void main() {
     expect(calls, 0);
   });
 
-  testWidgets('TTL 到点由定时器主动失效并通知：全程没人读 isActive 也生效', (
+  testWidgets('窗口自身不挂待决定时器：未配对的 begin 不留下 Pending timers', (
     tester,
   ) async {
-    final events = <bool>[];
-    void listener(bool ttlExpired) => events.add(ttlExpired);
-    LockExemption.addWindowClosedListener(listener);
-
-    LockExemption.begin();
-    expect(LockExemption.isActive, isTrue);
-    // 关键：不读 isActive、不发任何生命周期信号，只让时钟走过 TTL。
-    await tester.pump(LockExemption.ttl + const Duration(milliseconds: 1));
-
-    expect(events, [true], reason: '「绝不限期挂免死金牌」的承诺要有兑现时机');
-    expect(LockExemption.remaining, Duration.zero);
+    // AW15 首推的云端红就是这条边界的回归锁：TTL 定时器曾经挂在进程级静态里，
+    // 任何一次「开了选择器就直接结束用例」的 testWidgets 都会被
+    // 「Pending timers: Timer (duration: 0:05:00.000000)」判红
+    // （editor_insert_image_entry_test，2219 通过 1 红）。
+    // 「到点主动暴露」因此改由消费者（AppLockGate 的看门表，随组件释放）负责。
+    LockExemption.begin(); // 故意不 end——模拟调用方漏 end
+    await tester.pump();
+    // 用例到此结束：窗口若自己持有着 5 分钟定时器，这里就会红而不是通过。
+    expect(LockExemption.remaining > Duration.zero, isTrue);
   });
 
   test('SessionGuard.runWithExemption 与门共用同一窗口（委托生效）', () async {
