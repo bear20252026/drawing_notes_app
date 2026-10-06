@@ -136,7 +136,25 @@ class DrawingController extends ChangeNotifier
   /// 已销毁标记：dispose 后拒绝一切变更与通知（防止异步回调越界）。
 
   /// 受保护成员 notifyListeners 的转发包装（供 extension 使用）。
-  void _applyNotify() => notifyListeners();
+  ///
+  /// 事务窗口内（见 `LayerService.beginLayerTransaction`）逐次刷新挂起，
+  /// 闭合时由 `_flushDeferredNotify` 补发一次——一批图层操作只重建一次 UI。
+  void _applyNotify() {
+    if (historyService.isGroupOpen) {
+      _notifyDeferred = true;
+      return;
+    }
+    notifyListeners();
+  }
+
+  bool _notifyDeferred = false;
+
+  /// 补发事务窗口内被挂起的通知（没挂起过就什么都不做）。
+  void _flushDeferredNotify() {
+    if (!_notifyDeferred) return;
+    _notifyDeferred = false;
+    notifyListeners();
+  }
 
   /// 对象编辑会话使用的通知、历史、选区与缓存协作入口。
   @override

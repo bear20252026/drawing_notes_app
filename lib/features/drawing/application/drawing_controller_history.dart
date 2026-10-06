@@ -22,7 +22,32 @@ extension DrawingControllerHistoryOps on DrawingController {
       mergeDown: (index) => _layerEditingSession.mergeLayerDown(index),
       invalidate: _invalidateLayer,
       reorder: _layerEditingSession.reorderLayer,
+      beginTransaction: historyService.beginGroup,
+      commitTransaction: _commitLayerTransaction,
+      rollbackTransaction: _rollbackLayerTransaction,
     );
+  }
+
+  /// 图层事务的宿主侧提交：窗口内累积的命令合成**一条**原子历史条目。
+  ///
+  /// 走既有的 [pushTransaction]（空窗口不产生条目），撤销=整批回到 begin 之前，
+  /// 重做=整批回到提交时；命令此前已执行过，这里只登记，不再重放。
+  void _commitLayerTransaction() {
+    final commands = historyService.closeGroup();
+    if (commands == null) return; // 仍在嵌套中，等最外层闭合
+    pushTransaction(commands);
+    _flushDeferredNotify();
+  }
+
+  /// 图层事务的宿主侧回滚：逆序撤销窗口内已执行的命令并丢弃它们，历史条目数
+  /// 不变。用命令自己的 `undo`（与 `DocumentTransaction.undo` 同一语义），
+  /// 各命令负责自己的缓存与当前索引校正。
+  void _rollbackLayerTransaction() {
+    final commands = historyService.discardGroup();
+    for (final command in commands.reversed) {
+      command.undo();
+    }
+    _flushDeferredNotify();
   }
 
   /// 兼容既有基于图层完整快照的历史入口。
