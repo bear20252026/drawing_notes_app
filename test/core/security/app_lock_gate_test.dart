@@ -15,6 +15,7 @@ import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 import 'package:drawing_notes_app/core/security/session_guard.dart'
     show LockExemption;
+import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 
 /// 走**合法状态机链路**切到后台：resumed → inactive → hidden → paused。
 ///
@@ -124,6 +125,37 @@ void main() {
 
     expect(find.text('输入密码'), findsNothing);
     expect(find.text('SECRET_HOME'), findsOneWidget);
+  });
+
+  testWidgets('保险库解锁失败：仍放行进入 UI，但弹用户可见提示（不再静默）', (tester) async {
+    final service = await _configuredService('1357');
+    // 保险库底座故意坏掉：resolver 同步抛错（零真实 IO——testWidgets 假时钟
+    // 内真实 IO Future 永不完成，与 KDF isolate bypass 同一纪律）。
+    // isConfigured / unlock 任何一步炸掉都进同一条 catch——这正是被测契约。
+    final vault = VaultKeyService(
+      vaultFileResolver: () => throw StateError('vault io broken'),
+    );
+
+    // 子树挂真实 Scaffold：SnackBar 渲染在其上（生产里 AppShell 同理）。
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockGate(
+          service: service,
+          vault: vault,
+          child: const Scaffold(body: Center(child: Text('SECRET_HOME'))),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await _enterPin(tester, '1357');
+
+    // 放行语义不变（降级进入——保住导出/恢复入口），但根因必须可见。
+    expect(find.text('输入密码'), findsNothing);
+    expect(find.text('SECRET_HOME'), findsOneWidget);
+    expect(find.text('保险库解锁失败，请重试'), findsOneWidget);
+    // 等 SnackBar 自行退场，避免污染后续用例。
+    await tester.pump(const Duration(seconds: 5));
   });
 
   testWidgets('错误 PIN：抖动清空，仍锁定；随后正确输入可解锁', (tester) async {

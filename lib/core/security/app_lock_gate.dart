@@ -536,15 +536,25 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
         await vault.initialize(pin);
       }
     } catch (error) {
-      // 不阻塞进入 UI（保险库异常时应用仍可读明文），但**必须留下痕迹**：
-      // 这是「PIN 校验通过、密钥却没到手」的唯一入口，而该状态下一切加密写入
-      // 都会 fail-closed 失败、一切密文读取都读不出来。此前这里 `catch (_) {}`
-      // 全静默，等于把一个可致丢数据的状态藏进不可观测的黑盒（2026-10-06）。
+      // 不阻塞进入 UI（保险库异常时应用仍可读明文），但**必须让用户看见**：
+      // 这是「PIN 校验通过、密钥却没到手」的唯一入口，该状态下一切加密写入
+      // 都会 fail-closed 失败、密文读取读不出来、列表按 fail-closed 跳过
+      // （表现为素材「看起来空了」）。此前 `catch (_) {}` 全静默，等于把一个
+      // 可致丢数据的状态藏进不可观测的黑盒（2026-10-06 审计定性「先让它
+      // 可见」）；AW13 已让下游保存失败可见，本条把根因提示补在入口处。
       // 只记错误类型，不带 message/堆栈（H-04「绝不落凭据」同口径）。
       AuditLogger.log(
         'app_lock.vault_unlock_failed',
         success: false,
         detail: error.runtimeType.toString(),
+      );
+      // 文案复用设置页解锁失败同款 arb 键（术语一致，零新增翻译）。
+      // 不阻塞进入的取舍如实声明：拒绝放行会让保险库文件损坏的用户连
+      // 导出/恢复的入口都没有——降级进入 + 可见警示优于不可恢复的锁死。
+      if (!mounted) return;
+      _snack(
+        AppLocalizations.of(context)?.lockVaultUnlockFailed ??
+            '保险库解锁失败，请重试',
       );
     }
   }
