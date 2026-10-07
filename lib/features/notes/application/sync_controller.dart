@@ -85,6 +85,11 @@ class SyncController {
            NoteBlockDocSyncStore(
              NoteBlockDocStore(
                keyProvider: () async => VaultKeyService.sharedMasterKeyOrNull,
+               // 写路径「未建库 vs 已建库锁定」拆分（与 StorageWritePipeline
+               // / app.dart 主 store 同口径）：共享实例未注册（测试独立装配）
+               // 时按未建库处理——与 keyProvider 恒 null 的既有语义一致。
+               vaultConfigured: () async =>
+                   await VaultKeyService.shared?.isConfigured() ?? false,
              ),
            ),
        _baselineStore = baselineStore ?? FileSyncBaselineStore();

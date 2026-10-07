@@ -162,4 +162,67 @@ void main() {
     expect(trash.single.locked, isTrue);
     expect(trash.single.title, '');
   });
+
+  test('写路径收口（2026-10-07）：已建库但锁定 → 保存抛 VaultFileLockException，密文不被明文覆盖', () async {
+    final key = VaultKeyService.randomBytes(32);
+    final writer = NoteBlockDocStore(
+      directoryProvider: () async => tempDir,
+      keyProvider: () async => key,
+      vaultConfigured: () async => true,
+    );
+    await writer.saveDocument(doc('lockwrite_b', '锁定前密文'));
+    expect(
+      VaultFileCodec.isEncrypted(
+        await File(docPath('lockwrite_b')).readAsBytes(),
+      ),
+      isTrue,
+    );
+
+    // 锁定期间 DocPage 的 SaveScheduler 定时器照常开火——收口前这里会把
+    // 密文文档静默覆盖成明文（写路径 fail-open，与读路径 fail-closed 相反）。
+    final lockedSaver = NoteBlockDocStore(
+      directoryProvider: () async => tempDir,
+      keyProvider: () async => null, // 保险库锁定
+      vaultConfigured: () async => true, // 但保险库已建立
+    );
+    await expectLater(
+      lockedSaver.saveDocument(doc('lockwrite_b', '锁定后明文')),
+      throwsA(isA<VaultFileLockException>()),
+    );
+
+    // 盘上字节未被覆盖：仍为密文，原密钥可解出旧内容。
+    final bytes = await File(docPath('lockwrite_b')).readAsBytes();
+    expect(VaultFileCodec.isEncrypted(bytes), isTrue);
+    expect(
+      utf8.decode(bytes, allowMalformed: true).contains('锁定后明文'),
+      isFalse,
+    );
+    final restored = await writer.loadDocument('lockwrite_b');
+    expect(restored?.title, '锁定前密文');
+  });
+
+  test('写路径收口：未建库（探测 false）→ 明文落盘照旧，无 PIN 用户不受影响', () async {
+    final store = NoteBlockDocStore(
+      directoryProvider: () async => tempDir,
+      keyProvider: () async => null, // 未解锁
+      vaultConfigured: () async => false, // 且从未建库
+    );
+    await store.saveDocument(doc('plain_b1', '未建库用户'));
+    final bytes = await File(docPath('plain_b1')).readAsBytes();
+    expect(VaultFileCodec.isEncrypted(bytes), isFalse);
+    expect(utf8.decode(bytes).contains('未建库用户'), isTrue);
+    expect((await store.loadDocument('plain_b1'))?.title, '未建库用户');
+  });
+
+  test('写路径收口：底座接线但未注入探测器 → 保守按已建库 fail-closed（不留 fail-open 后门）', () async {
+    final store = NoteBlockDocStore(
+      directoryProvider: () async => tempDir,
+      keyProvider: () async => null, // 底座接线、未解锁；未注入 vaultConfigured
+    );
+    await expectLater(
+      store.saveDocument(doc('conservative_b', '保守口径')),
+      throwsA(isA<VaultFileLockException>()),
+    );
+    expect(File(docPath('conservative_b')).existsSync(), isFalse);
+  });
 }

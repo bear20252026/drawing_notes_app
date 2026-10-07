@@ -56,7 +56,11 @@ class NoteBlockDocStore implements SessionSecretsHolder {
   ///
   /// [directoryProvider] 为可选的目录提供者回调。测试时可注入临时目录，
   /// 生产环境默认使用系统文档目录。
-  NoteBlockDocStore({this.directoryProvider, this.keyProvider}) {
+  NoteBlockDocStore({
+    this.directoryProvider,
+    this.keyProvider,
+    this.vaultConfigured,
+  }) {
     // P1 修复：注册会话机密清理——切后台回锁时 DEK 一并擦除失效。
     SessionSecrets.register(this);
   }
@@ -67,6 +71,14 @@ class NoteBlockDocStore implements SessionSecretsHolder {
   /// 主密钥提供者（加密底座批次①c）：返回解锁态主密钥时，块文档 JSON
   /// 以 AES-256-GCM 信封落盘（AAD 绑定 `block:<id>`）；null 时明文兼容。
   final Future<Uint8List?> Function()? keyProvider;
+
+  /// 保险库**是否已建立**（用户设过 PIN / 启用过加密）。
+  ///
+  /// 与 `StorageWritePipeline.encryptionInUse` 同一条口径（2026-10-07 收口）：
+  /// 写路径必须把「取不到密钥」拆成两种语义——未建库时明文落盘是产品设计，
+  /// 已建库却锁定时明文会把密文用户降级成明文。二者在 `keyProvider` 的
+  /// 返回值上长得一样（都是 null），只能由装配层显式告知。
+  final Future<bool> Function()? vaultConfigured;
 
   /// 写成功回调（首页刷新修复①）：保存/删除/恢复/彻底删除落盘成功后触发，
   /// 由装配层注入（AppServices.bumpDataVersion）——把刷新通知下沉到存储层，
@@ -188,6 +200,12 @@ class NoteBlockDocStore implements SessionSecretsHolder {
     if (provider == null) return null;
     return provider();
   }
+
+  /// 未注入探测器时保守按「已建库」处理：维持 fail-closed 语义，不让这个
+  /// 新增的可选参数变成新的 fail-open 后门（与 StorageWritePipeline 同款）。
+  /// 守卫只在 `keyProvider != null`（加密底座已接线）时生效——底座未接线的
+  /// 裸实例明文落盘是产品设计，见 [_saveDocumentLocked]。
+  Future<bool> encryptionInUse() async => await vaultConfigured?.call() ?? true;
 
   /// 读取后的字节准备（批次①c，与 StorageService 同纪律）：
   /// 密文+解锁 → 解密；密文+锁定 → [VaultFileLockException]；
@@ -467,6 +485,15 @@ class NoteBlockDocStore implements SessionSecretsHolder {
               VaultFileCodec.encrypt(data, key, aadContext: 'block:${doc.id}'),
         );
       }
+    } else if (keyProvider != null && await encryptionInUse()) {
+      // 「取不到密钥」的两种含义由 [encryptionInUse] 统一拆分（与
+      // StorageWritePipeline._sealDocBytes 同一条 P0 修复口径，2026-10-07）：
+      // 底座已接线且保险库已建立但本会话未解锁——写明文会把既有密文降级
+      // 成明文（锁定期间 SaveScheduler 的防抖/退避定时器照常开火，此处
+      // 曾把密文文档静默覆盖成明文），fail-closed 抛锁；交由重试策略在
+      // 解锁后自愈。底座未接线（keyProvider == null）的裸实例明文落盘
+      // 仍是产品设计（未建库用户与既有测试口径不变）。
+      throw const VaultFileLockException();
     }
     await _writeFileAtomic(doc.id, data);
   }

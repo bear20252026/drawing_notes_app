@@ -96,6 +96,10 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
       final vault = _vaultKeyService;
       return vault.isUnlocked ? vault.masterKey : null;
     },
+    // 与 _documentStorage / _notebookStorage 同一条收口：块文档写路径也要
+    // 区分「未建库 → 明文」与「已建库锁定 → fail-closed」，否则锁屏期间
+    // DocPage 自动保存定时器照常开火，密文笔记会被静默覆盖成明文。
+    vaultConfigured: () => _vaultKeyService.isConfigured(),
   );
   // 收藏/标签同样收进统一根目录（组合根创建，AppShell 透传）。
   late final FavoriteStore _favoriteStore = FavoriteStore(
