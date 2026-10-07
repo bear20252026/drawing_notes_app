@@ -41,6 +41,41 @@ void main() {
     registry.register(_Nova());
     registry.dispose();
   });
+
+  test('unregister：移除并释放插件；未知 id 返回 null；幂等', () {
+    final registry = PluginRegistry();
+    final plugin = _Nova();
+    registry.register(plugin);
+
+    expect(registry.unregister('nope'), isNull);
+    expect(registry.unregister(plugin.id), same(plugin));
+    expect(plugin.disposals, 1);
+    expect(registry.find(plugin.id), isNull);
+    // 二次注销同一 id：未知 → null（幂等）。
+    expect(registry.unregister(plugin.id), isNull);
+    expect(plugin.disposals, 1, reason: '不重复释放');
+    registry.dispose();
+  });
+
+  test('unregister 的 dispose 抛错不影响注销结果', () {
+    final registry = PluginRegistry();
+    final plugin = _NovaBoom();
+    registry.register(plugin);
+    expect(registry.unregister(plugin.id), same(plugin));
+    expect(registry.find(plugin.id), isNull);
+    registry.dispose();
+  });
+}
+
+class _NovaBoom implements DrawingPlugin {
+  @override
+  String get id => 'boom';
+  @override
+  String get name => 'BOOM';
+  @override
+  void register(PluginContext context) {}
+  @override
+  void dispose() => throw StateError('dispose exploded');
 }
 
 class _Nova implements NovaAiPlugin {

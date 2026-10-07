@@ -99,4 +99,27 @@ void main() {
       reason: '更新 a 不应波及 b',
     );
   });
+
+  test('统一引擎（2026-10-07）：注册进 core 引擎单一事实来源，dispose 级联', () {
+    final registry = PluginRegistry();
+    registry
+      ..registerBrush(const BrushExtension(id: 'ink', name: '水墨笔'))
+      ..registerTool(const ToolExtension(id: 'ruler', name: '直尺'));
+
+    // 单一事实来源：两个域的注册都落在同一份 core 引擎里。
+    expect(registry.engine.plugins.map((p) => p.id),
+        containsAll(['brush:ink', 'tool:ruler']));
+    expect(registry.engine.plugins, hasLength(2));
+
+    // 覆盖注册在引擎上同样是替换（旧适配壳被注销），不产生重复条目。
+    registry.registerBrush(const BrushExtension(id: 'ink', name: '水墨2'));
+    expect(registry.engine.plugins, hasLength(2));
+    expect(registry.brushes.single.name, '水墨2');
+
+    // dispose 委托引擎级联——清空注册表。
+    registry.dispose();
+    expect(registry.engine.plugins, isEmpty);
+    expect(registry.brushes, isEmpty);
+    expect(registry.tools, isEmpty);
+  });
 }

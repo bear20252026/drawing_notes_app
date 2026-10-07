@@ -35,6 +35,21 @@ final class PluginRegistry implements PluginContext {
 
   DrawingPlugin? find(String id) => _plugins[id];
 
+  /// 注销并释放指定插件；未注册返回 null。
+  ///
+  /// B3 注册表统一（2026-10-07）：笔刷/工具扩展的「同 id 覆盖」语义经
+  /// unregister + register 两步在同一引擎上实现——注册引擎只有这一份。
+  DrawingPlugin? unregister(String id) {
+    final plugin = _plugins.remove(id);
+    if (plugin == null) return null;
+    try {
+      plugin.dispose();
+    } catch (_) {
+      // dispose 失败不影响注销结果（与 register 失败回滚同口径）。
+    }
+    return plugin;
+  }
+
   @override
   void log(String message) {
     onLog?.call(message);
