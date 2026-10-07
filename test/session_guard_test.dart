@@ -151,6 +151,7 @@ void main() {
     // 真实时间越过 TTL ⇒ 看门表到点读 isActive ⇒ 惰性失效 + 同步通知。
     await Future<void>.delayed(const Duration(milliseconds: 150));
     expect(guard.isLocked, isTrue, reason: 'TTL 到期必须主动落锁，不再依赖下一次 onInactive');
+    expect(locked, isTrue);
     guard.dispose();
   });
 }
