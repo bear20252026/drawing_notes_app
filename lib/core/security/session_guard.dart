@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 
 /// 全局「失焦豁免窗口」——SessionGuard 与 AppLockGate 共用的单一事实来源。
@@ -151,12 +153,31 @@ class LockExemption {
 /// 与 AppLockGate 的开屏锁共用同一窗口，一次 [runWithExemption] 同时按住
 /// 两条锁定链路——否则门新处理 `inactive` 后，笔记本导入选择器会假锁开屏。
 class SessionGuard {
-  SessionGuard({this.onLock, this.onReauthenticateRequired}) {
+  SessionGuard({
+    this.onLock,
+    this.onReauthenticateRequired,
+    this.graceDuration = defaultExemptionCloseGrace,
+    this.lifecycleStateProvider,
+  }) {
     _listener = AppLifecycleListener(
       onInactive: onInactive,
       onResume: onResume,
     );
+    // P2-1 续项（2026-10-07）：订阅豁免窗口关闭事件——末位 end 与 TTL 惰性
+    // 失效都同步通知。此前媒体密钥链路只认「下一次 onInactive」，而笔记本页
+    // 在豁免期内本就处于 inactive，状态不变就没有新信号：用户在原生对话框
+    // 期间离席 + 之后再无生命周期信号 ⇒ 密钥无限期驻留内存。与 AppLockGate
+    // 同源同口径收口（判定留在本类——只有它知道生命周期态与宽限期）。
+    LockExemption.addWindowClosedListener(_onExemptionWindowClosed);
   }
+
+  /// 豁免窗口关闭后、人还没回前台时的宽限时长（默认 5 秒）。
+  ///
+  /// 为什么不是 0：桌面原生对话框关闭的瞬间，`end()` 与 `resumed` 的投递
+  /// 顺序没有保证——就地置锁会把「选完文件焦点立刻回来」的正常路径打成
+  /// 重新认证（恰是豁免窗口要防的假锁）。宽限只吸收信号时序，不是锁延时
+  /// 特性：取一档远大于焦点交接耗时（毫秒级）、又远小于任何人工操作的值。
+  static const Duration defaultExemptionCloseGrace = Duration(seconds: 5);
 
   /// 锁定回调（调用方清除媒体密钥——MediaCryptoService.clearSessionKey——
   /// 并标记 UI 锁定状态）。
@@ -165,9 +186,33 @@ class SessionGuard {
   /// 再认证回调（onResume 时已锁定——导航回解锁/密码输入页）。
   final VoidCallback? onReauthenticateRequired;
 
+  /// 豁免窗口关闭后的宽限时长（测试可注入短值，见
+  /// [defaultExemptionCloseGrace]）。
+  final Duration graceDuration;
+
+  /// 当前生命周期态读取器（测试注入固定态用；生产走 WidgetsBinding）。
+  final AppLifecycleState? Function()? lifecycleStateProvider;
+
+  AppLifecycleState? get _lifecycleState {
+    final provider = lifecycleStateProvider;
+    if (provider != null) return provider();
+    return WidgetsBinding.instance.lifecycleState;
+  }
+
   late final AppLifecycleListener _listener;
 
   bool _locked = false;
+
+  /// 豁免 TTL 看门表：**必须挂在本类实例上而不是 `LockExemption` 静态里**
+  /// （AW15b 教训——进程级定时器会被任何一次未配对的 begin 带进
+  /// `testWidgets` 并以「Pending timers」判红）。豁免期间的失焦信号按
+  /// `LockExemption.remaining` 起表，到点读一次 [LockExemption.isActive]；
+  /// 本实例 dispose 时取消。
+  Timer? _exemptionWatchTimer;
+
+  /// 豁免窗口关闭、人未回前台时的宽限定时器（随实例 dispose 取消）。
+  Timer? _graceDeadlineTimer;
+  bool _gracePending = false;
 
   bool get isLocked => _locked;
 
@@ -193,8 +238,75 @@ class SessionGuard {
   /// onInactive：失去输入焦点（切后台/锁屏）——文件选择器运行中豁免——
   /// 否则立即锁定（密钥即刻清除——private_notes_light 模式）。
   void onInactive() {
-    if (_exempted) return;
+    if (_exempted) {
+      // 豁免期间：不置锁，但约定到点再来读一次 [LockExemption.isActive]——
+      // TTL 惰性失效由此变成有明确时刻的事件，不再依赖「恰好有新信号」。
+      _armExemptionWatch();
+      return;
+    }
+    // 真实后台信号接管：挂起的宽限判定作废（与门组件同语义——两条计时
+    // 不抢同一次宽限资格），直接锁定。
+    _cancelPendingGrace();
     _lock();
+  }
+
+  /// 豁免窗口关闭（末位 end 或 TTL 到点）：人还没回前台 ⇒ 认定离席，
+  /// 走宽限期落锁；TTL 到期视为调用方漏 end，**不给宽限资格**直接落锁。
+  ///
+  /// 人已回前台（`resumed`，或拿不到生命周期态）不构成离席，维持现状。
+  void _onExemptionWindowClosed(bool ttlExpired) {
+    _cancelExemptionWatch();
+    if (_locked) return;
+    final state = _lifecycleState;
+    if (state == null || state == AppLifecycleState.resumed) return;
+    if (ttlExpired) {
+      _cancelPendingGrace();
+      _lock();
+      return;
+    }
+    _beginPendingGrace();
+  }
+
+  void _armExemptionWatch() {
+    _exemptionWatchTimer?.cancel();
+    final remaining = LockExemption.remaining;
+    if (remaining <= Duration.zero) return; // 已经过期，下一读即失效
+    _exemptionWatchTimer = Timer(remaining, _onExemptionWatchTick);
+  }
+
+  void _onExemptionWatchTick() {
+    _exemptionWatchTimer = null;
+    // 读 isActive 就是「到点复核」本身：过期 ⇒ 内部惰性清空并同步通知
+    // [_onExemptionWindowClosed]；仍有效 ⇒ 期间有新的 begin 刷新过，重锚。
+    if (LockExemption.isActive) _armExemptionWatch();
+  }
+
+  void _cancelExemptionWatch() {
+    _exemptionWatchTimer?.cancel();
+    _exemptionWatchTimer = null;
+  }
+
+  void _beginPendingGrace() {
+    _cancelPendingGrace();
+    if (graceDuration <= Duration.zero) {
+      _lock();
+      return;
+    }
+    _gracePending = true;
+    _graceDeadlineTimer = Timer(graceDuration, _onGraceDeadline);
+  }
+
+  void _onGraceDeadline() {
+    _graceDeadlineTimer = null;
+    if (!_gracePending || _locked) return;
+    _gracePending = false;
+    _lock();
+  }
+
+  void _cancelPendingGrace() {
+    _gracePending = false;
+    _graceDeadlineTimer?.cancel();
+    _graceDeadlineTimer = null;
   }
 
   void _lock() {
@@ -203,9 +315,11 @@ class SessionGuard {
     onLock?.call();
   }
 
-  /// onResume：回到前台——已锁定则触发再认证（环境可能已变化——不盲目
-  /// 信任之前状态——Flutter 安全指南）。
+  /// onResume：回到前台——宽限内回来撤销挂起判定（P2-1 续项：`resumed`
+  /// 先于宽限定时器到达 ⇒ 人已回来，媒体密钥不锁）；已锁定则触发再认证
+  /// （环境可能已变化——不盲目信任之前状态——Flutter 安全指南）。
   void onResume() {
+    _cancelPendingGrace();
     if (_locked) onReauthenticateRequired?.call();
   }
 
@@ -216,5 +330,11 @@ class SessionGuard {
   /// 路径调用——本类不持有认证证明，证明责任在调用方。
   void unlock() => _locked = false;
 
-  void dispose() => _listener.dispose();
+  void dispose() {
+    _listener.dispose();
+    // 与构造器里的 addWindowClosedListener 严格配对（监听者须自配对移除）。
+    LockExemption.removeWindowClosedListener(_onExemptionWindowClosed);
+    _cancelExemptionWatch();
+    _cancelPendingGrace();
+  }
 }
