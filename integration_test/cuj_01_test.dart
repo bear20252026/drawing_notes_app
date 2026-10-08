@@ -23,6 +23,13 @@ void main() {
   });
 
   testWidgets('CUJ-01：新建画作 → 绘制 → 返回保存 → 重开内容保留', (tester) async {
+    // 标题带运行时刻：本机数据根是**真实 profile**（不是临时目录），历史运行
+    // 留下的同名画作会让 `findsOneWidget` 撞成「Found 2 widgets」——2026-10-08
+    // 真机红就是这个成因（10-06 AW8 验证那轮的「CUJ-01 画作」还在盘上，
+    // 落盘本身是成功的）。唯一标题让本用例与 profile 干净与否解耦；
+    // 代价是每次运行在真实数据根留一个小文档，用例不去删它（删别人的盘上
+    // 文件不该由一条冒烟用例顺手做）。
+    final title = 'CUJ-01 画作 ${DateTime.now().millisecondsSinceEpoch}';
     await tester.pumpWidget(ProviderScope(child: const DrawingNotesApp()));
     await tester.pumpAndSettle();
 
@@ -57,12 +64,12 @@ void main() {
         of: find.byType(AlertDialog),
         matching: find.byType(TextField),
       ),
-      'CUJ-01 画作',
+      title,
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('确定'));
     await tester.pumpAndSettle();
-    expect(find.text('CUJ-01 画作'), findsWidgets);
+    expect(find.text(title), findsWidgets);
 
     // 2) Draw：在画布上绘制一笔（手势拖拽——产生笔画）。
     final canvas = find.byType(CustomPaint).last;
@@ -76,7 +83,7 @@ void main() {
     await gesture.up();
     await tester.pumpAndSettle();
 
-    // 3) Save：返回首页（自动保存——800ms 防抖 + 退出兜底）。
+    // 3) Save：返回首页（自动保存——阈值见下方 realWait，引用产品常量本身）。
     // 返回 tooltip 来自 AppBar 自动植入的 BackButton：编辑器顶栏未写
     // leading/automaticallyImplyLeading（editor_page_appbar.dart:83-179），
     // 框架取其默认 backButtonTooltip（action_buttons.dart:199-200），zh 值为
@@ -98,10 +105,10 @@ void main() {
     // 4) Reopen：首页列表找到画作 → 重开 → 内容保留（编辑器标题/工具栏 +
     // 画布仍有内容——U-001 契约断言 same_stroke_id/same_point_count 由
     // 真实存储往返验证（设备测试 P-002——integration_test/contracts/cuj01.json）。
-    expect(find.text('CUJ-01 画作'), findsOneWidget);
-    await tester.tap(find.text('CUJ-01 画作'));
+    expect(find.text(title), findsOneWidget);
+    await tester.tap(find.text(title));
     await tester.pumpAndSettle();
-    expect(find.text('CUJ-01 画作'), findsWidgets);
+    expect(find.text(title), findsWidgets);
     // 编辑器工具栏（画笔——tooltip 定位）存在——内容可继续编辑。
     // EditorLeftToolbar 硬编码字面量 '画笔 (P)'（editor_left_toolbar.dart:81，
     // 非 arb；旧横栏的裸「画笔」字样已随 247f3b1 删除）。
