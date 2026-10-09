@@ -2,6 +2,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+
 import '../../helpers/temp_dir_cleanup.dart';
 
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
@@ -88,12 +89,10 @@ void main() {
       '${oldRoot.path}${Platform.pathSeparator}blockdocs',
     );
     await blockdocs.create(recursive: true);
-    await File(
-      '${blockdocs.path}${Platform.pathSeparator}d1.json',
-    ).writeAsString('{}');
-    await File(
-      '${oldRoot.path}${Platform.pathSeparator}schedule_events.json',
-    ).writeAsString('[]');
+    await File('${blockdocs.path}${Platform.pathSeparator}d1.json')
+        .writeAsString('{}');
+    await File('${oldRoot.path}${Platform.pathSeparator}schedule_events.json')
+        .writeAsString('[]');
 
     final root = await build().root();
     expect(root.path.startsWith(tempSupport.path), isTrue);
@@ -106,9 +105,8 @@ void main() {
       reason: '旧 Documents 根内容必须整体迁入新根',
     );
     expect(
-      File(
-        '${root.path}${Platform.pathSeparator}schedule_events.json',
-      ).existsSync(),
+      File('${root.path}${Platform.pathSeparator}schedule_events.json')
+          .existsSync(),
       isTrue,
     );
     expect(oldRoot.existsSync(), isFalse, reason: 'move 语义：旧根不再保留');
@@ -117,9 +115,8 @@ void main() {
   test('旧业务子目录整体迁入统一根目录', () async {
     final src = legacy('notebooks');
     await src.create(recursive: true);
-    await File(
-      '${src.path}${Platform.pathSeparator}nb_1.json',
-    ).writeAsString('{}');
+    await File('${src.path}${Platform.pathSeparator}nb_1.json')
+        .writeAsString('{}');
 
     final root = await build().root();
     final migrated = Directory(
@@ -139,21 +136,18 @@ void main() {
 
     final root = await build().root();
     expect(
-      File(
-        '${root.path}${Platform.pathSeparator}schedule_events.json',
-      ).existsSync(),
+      File('${root.path}${Platform.pathSeparator}schedule_events.json')
+          .existsSync(),
       isTrue,
     );
     expect(legacyFile('schedule_events.json').existsSync(), isFalse);
   });
 
   test('旧密钥文件迁入根目录 security/', () async {
-    await File(
-      '${tempSupport.path}${Platform.pathSeparator}vault.key.json',
-    ).writeAsString('{}');
-    await File(
-      '${tempSupport.path}${Platform.pathSeparator}app_lock_guard.key',
-    ).writeAsString('key');
+    await File('${tempSupport.path}${Platform.pathSeparator}vault.key.json')
+        .writeAsString('{}');
+    await File('${tempSupport.path}${Platform.pathSeparator}app_lock_guard.key')
+        .writeAsString('key');
 
     final root = await build().root();
     final sec = Directory('${root.path}${Platform.pathSeparator}security');
@@ -162,16 +156,14 @@ void main() {
       isTrue,
     );
     expect(
-      File(
-        '${sec.path}${Platform.pathSeparator}app_lock_guard.key',
-      ).existsSync(),
+      File('${sec.path}${Platform.pathSeparator}app_lock_guard.key')
+          .existsSync(),
       isTrue,
     );
     // 支持目录里不再残留密钥。
     expect(
-      File(
-        '${tempSupport.path}${Platform.pathSeparator}vault.key.json',
-      ).existsSync(),
+      File('${tempSupport.path}${Platform.pathSeparator}vault.key.json')
+          .existsSync(),
       isFalse,
     );
   });
@@ -181,17 +173,15 @@ void main() {
     // 同名目录同时存在。
     final oldSrc = legacy('documents');
     await oldSrc.create(recursive: true);
-    await File(
-      '${oldSrc.path}${Platform.pathSeparator}old.json',
-    ).writeAsString('old');
+    await File('${oldSrc.path}${Platform.pathSeparator}old.json')
+        .writeAsString('old');
     final preDst = Directory(
       '${tempSupport.path}${Platform.pathSeparator}'
       '${AppDataRoot.defaultRootName}${Platform.pathSeparator}documents',
     );
     await preDst.create(recursive: true);
-    await File(
-      '${preDst.path}${Platform.pathSeparator}new.json',
-    ).writeAsString('new');
+    await File('${preDst.path}${Platform.pathSeparator}new.json')
+        .writeAsString('new');
 
     // 迁移执行：目标已存在 → 跳过，源保留在原位。
     final root = await build().root();
@@ -221,5 +211,59 @@ void main() {
     final root = await svc.root();
     final parent = await svc.dataParentDirectory();
     expect(parent.path, root.parent.path);
+  });
+
+  // 构建期数据根隔离口（2026-10-08）：真机集成测试跑在真实 profile 上，
+  // 会在用户可见的数据根里造测试文档。隔离口让这类验证改指临时目录。
+  group('数据根隔离口 DRAWING_NOTES_DATA_ROOT', () {
+    test('未设置 / 纯空白 ⇒ 不生效（生产与单测默认走真实根）', () {
+      expect(
+        AppDataRoot.effectiveTestDataRoot('', debug: true),
+        isNull,
+        reason: 'define 未给值时绝不能改变行为',
+      );
+      expect(
+        AppDataRoot.effectiveTestDataRoot('   ', debug: true),
+        isNull,
+        reason: '空白值按未设置处理，避免把数据根指到 "" 这种歧义路径',
+      );
+    });
+
+    test('非 debug 构建一律忽略（生产兜底：误带 define 也不受影响）', () {
+      expect(
+        AppDataRoot.effectiveTestDataRoot('/tmp/x', debug: false),
+        isNull,
+        reason: 'release/profile 即使带 define 也必须走真实根',
+      );
+    });
+
+    test('debug + 有值 ⇒ 生效，且首尾空白被裁掉', () {
+      expect(
+        AppDataRoot.effectiveTestDataRoot('  /tmp/adr_iso  ', debug: true),
+        '/tmp/adr_iso',
+      );
+    });
+
+    test('本测试构建里隔离口处于关闭态 ⇒ 上面所有迁移断言走的是真实路径', () {
+      // 反向锁：如果哪天有人给 `flutter test` 默认加上这个 define，
+      // 本文件其余用例（验证旧位置迁移）就会静默失效——这条会先红。
+      expect(AppDataRoot.usesTestDataRoot, isFalse);
+    });
+
+    testWidgets('生效时根路径就是 define 值本身，且不追加 rootName 子目录', (tester) async {
+      // `String.fromEnvironment` 是编译期常量，单测里无法注入，
+      // 因此这里验的是「生效分支返回 Directory(override)」这条拼接语义：
+      // 用同样的入参走纯函数，再与 rootName 拼接规则对比。
+      final isolated = AppDataRoot.effectiveTestDataRoot(
+        '/tmp/adr_iso',
+        debug: true,
+      );
+      expect(isolated, '/tmp/adr_iso');
+      expect(
+        isolated!.contains(AppDataRoot.defaultRootName),
+        isFalse,
+        reason: 'define 值就是根本身；追加子目录会让测试断言无法预知落点',
+      );
+    });
   });
 }

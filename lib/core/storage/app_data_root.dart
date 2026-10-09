@@ -18,6 +18,7 @@
 // 注入 [root]，存储层内部追加子目录名。
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kDebugMode, visibleForTesting;
 import 'package:path_provider/path_provider.dart';
 
 /// 统一数据根目录。
@@ -27,6 +28,41 @@ class AppDataRoot {
     this.supportDirProvider,
     this.rootName = defaultRootName,
   });
+
+  /// 构建期**数据根隔离口**（真机集成测试用，2026-10-08）。
+  ///
+  /// 用法（把 `--dart-define` 指向一个临时目录）：
+  /// `flutter test integration_test/cuj_01_test.dart -d windows`
+  /// `--dart-define=DRAWING_NOTES_DATA_ROOT=/tmp/adr_iso`
+  ///
+  /// 三条不可妥协的语义：
+  /// ① **仅 debug 构建生效**——release/profile 即使误带 define 也走真实根，
+  ///    生产行为与既往逐字节一致（`--dart-define` 是编译期常量，构建产物里
+  ///    根本不该出现本机路径，这条是兜底）；
+  /// ② 生效时**跳过旧位置一次性迁移**——`_migrateLegacy()` 见目标根不存在就会
+  ///    把 `Documents/绘图笔记数据/` 里的**用户真数据搬进临时目录**，
+  ///    那是灾难级副作用，隔离口绝不能顺手打开这条腿；
+  /// ③ define 的值就是**根本身**（不再追加 [rootName] 子目录），测试可以直接
+  ///    断言落点，不必猜拼接规则。
+  ///
+  /// 缘起：`integration_test` 跑的是真实 profile——2026-10-08 一次真机验证
+  /// 在用户真实画布库里留下了 3 幅测试画作，并把 debug 窗口弹到了使用者屏幕上。
+  static const String testDataRootOverride = String.fromEnvironment(
+    'DRAWING_NOTES_DATA_ROOT',
+  );
+
+  /// 纯函数版判定（可单测：`String.fromEnvironment` 编译期固定，
+  /// 单测里没法改它，只能把「取值 + 是否 debug」这两件事抽出来验）。
+  @visibleForTesting
+  static String? effectiveTestDataRoot(String override, {required bool debug}) {
+    if (!debug) return null;
+    final trimmed = override.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+
+  /// 当前是否处于隔离根模式（生产恒 false）。
+  static bool get usesTestDataRoot =>
+      effectiveTestDataRoot(testDataRootOverride, debug: kDebugMode) != null;
 
   /// 文档目录提供者（测试注入；默认系统文档目录）。
   /// 仅用于定位旧位置 / 检测 Known Folder，不再作为新根基底。
@@ -100,12 +136,8 @@ class AppDataRoot {
 
     // 1) 优先新位置（ApplicationSupport）；2) 回退 Documents（升级在途）。
     final markerCandidates = [
-      File(
-        '$supportPath${Platform.pathSeparator}$pendingRestoreMarkerName',
-      ),
-      File(
-        '$docsPath${Platform.pathSeparator}$pendingRestoreMarkerName',
-      ),
+      File('$supportPath${Platform.pathSeparator}$pendingRestoreMarkerName'),
+      File('$docsPath${Platform.pathSeparator}$pendingRestoreMarkerName'),
     ];
     File? marker;
     for (final m in markerCandidates) {
@@ -221,6 +253,12 @@ class AppDataRoot {
 
   /// 不触发迁移的根路径解析（云同步特征检测 / 启动早期只读探测）。
   Future<Directory> resolveRootWithoutMigrate() async {
+    // 隔离根模式下 define 值就是根本身（语义 ③），且不追加 rootName。
+    final isolated = effectiveTestDataRoot(
+      testDataRootOverride,
+      debug: kDebugMode,
+    );
+    if (isolated != null) return Directory(isolated);
     final support = await _supportDir();
     return Directory('${support.path}${Platform.pathSeparator}$rootName');
   }
@@ -245,10 +283,16 @@ class AppDataRoot {
     return File('${dir.path}${Platform.pathSeparator}$name');
   }
 
-  Future<void> _ensureMigrated() => _migrateFuture ??= _migrateLegacy();
+  /// 隔离根模式下**不迁移**（语义 ②）：迁移会把用户真实旧数据搬进临时目录。
+  /// ⚠️ 这里是**条件分支**——写成 `??= Future<void>.value()` 会把生产迁移整体关掉，
+  /// 老用户数据就再也搬不进新根（2026-10-08 自查时差点这么写）。
+  Future<void> _ensureMigrated() => _migrateFuture ??= (usesTestDataRoot
+      ? Future<void>.value()
+      : _migrateLegacy());
 
   /// 旧位置一次性迁移（幂等；目标已存在不覆盖）。
   Future<void> _migrateLegacy() async {
+    if (usesTestDataRoot) return;
     final docs = await _documentsDir();
     final support = await _supportDir();
     final newRoot = Directory(
