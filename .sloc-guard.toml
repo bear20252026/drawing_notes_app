@@ -28,6 +28,9 @@ skip_blank = true
 
 [structure]
 # 目录结构门禁（防止架构腐化）：单目录文件数上限。
+# P3-8（2026-10-10 人工验证）：--diff 模式确认**会**执行本节 max_files——
+# 第 41 个探针文件当场 FAILED(exit 1)。台账「diff 模式或使结构门失效」疑点
+# 解除。当前临界：根目录 15/15、application 39/40（warning），新增文件注意。
 # docs/test 为文档与测试目录，文件较多属正常，不计入上限。
 max_files = 40
 max_dirs = 15

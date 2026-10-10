@@ -39,11 +39,13 @@ jobs:
           toolchain: stable
           components: clippy
 
-      - name: Install linecheck (官方最新版)
-        run: cargo install linecheck --locked
+      # P3-7（审计 2026-10-05）：门禁工具钉版——未锁版即规则漂移（W3 同款
+      # 教训）。升级流程：本地评估新版 → 改版本号 → 单独提交写明动机。
+      - name: Install linecheck (钉版 1.2.1)
+        run: cargo install linecheck --locked --version 1.2.1
 
-      - name: Install sloc-guard (官方最新版)
-        run: cargo install sloc-guard --locked
+      - name: Install sloc-guard (钉版 0.6.0)
+        run: cargo install sloc-guard --locked --version 0.6.0
 
       - name: linecheck 双档门禁
         # 警告非阻断（退出码 0，由工具语义保证），错误阻断（退出码 1）。
@@ -96,7 +98,8 @@ jobs:
           cache: pip
 
       - name: Install Skylos (官方最新版)
-        run: pip install skylos
+        # P3-7：钉版（原「官方最新版」）。
+        run: pip install skylos==4.33.2
 
       - name: Skylos Dart 安全门禁（正式裁决）
         # 转正式门禁：--gate 阻断 + 聚焦安全域（secrets/danger），
@@ -136,7 +139,8 @@ jobs:
           fetch-depth: 0
 
       - name: Install Open Code Review (官方 npm 包)
-        run: npm install --ignore-scripts -g @alibaba-group/open-code-review
+        # P3-7：钉版（原「官方最新版」）。
+        run: npm install --ignore-scripts -g @alibaba-group/open-code-review@1.12.13
 
       - name: 涉密预检（评审前红线检查）
         # 白名单外目录或涉密内容（密钥/口令）一律拦截，禁止提交给 OCR。
@@ -152,12 +156,17 @@ jobs:
             echo "$OUTSIDE"
             echo "out_of_scope=true" >> "$GITHUB_ENV"
           fi
-          # 2) 涉密内容检查：变更 diff 中出现密钥/口令即拦截
-          if echo "$CHANGED" | grep -qiE "key|secret|token|password|口令|密钥"; then
-            if git diff origin/master...HEAD | grep -qiE "api[_-]?key|secret|password|token|口令|密钥"; then
-              echo "::error::检测到疑似涉密内容，禁止评审！请检查变更文件"
-              exit 1
-            fi
+          # 2) 涉密内容检查（P3-6 收敛，审计 2026-10-05）：原实现「文件名含
+          # 关键词 ⇒ 全量 diff（含上下文行）关键词裸匹配」——Dart 标识符几乎
+          # 必命中，正常提交被误拦，消耗门禁可信度。现只扫**新增行**，且只
+          # 匹配「凭据赋值」真泄密形态（关键字后接赋值符+≥12 字符字面量，
+          # 阈值避开测试短夹具）；深扫描仍由 Secret Scan（Gitleaks）兜底。
+          ADDED=$(git diff origin/master...HEAD --unified=0 | grep -E "^\+[^+]" || true)
+          HIT=$(echo "$ADDED" | grep -iE "(api[_-]?key|secret|password|token|口令|密钥)[\"']?[[:space:]]*[:=][[:space:]]*[\"'][^\"']{12,}" || true)
+          if [ -n "$HIT" ]; then
+            echo "::error::新增行命中凭据赋值形态，疑似涉密，禁止评审！"
+            echo "$HIT" | head -5
+            exit 1
           fi
           echo "涉密预检通过"
 
@@ -202,10 +211,10 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: 安装 py-cq 与 pyscn（官方最新版）
+      - name: 安装 pyscn 等（P3-7 钉版 pyscn；辅助工具不锁）
         run: |
           pip install git+https://github.com/rhiza-fr/py-cq.git
-          pip install pyscn ruff ty bandit vulture radon interrogate
+          pip install pyscn==1.29.0 ruff ty bandit vulture radon interrogate
 
       - name: py-cq 聚合门禁（tools/ Python 辅助脚本）
         # 聚合 11 工具评分；先报告不阻断（continue-on-error）
@@ -270,10 +279,10 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install desloppify (官方 PyPI 包)
+      - name: Install desloppify (P3-7 钉版 1.0)
         # 支持 29 语言含 Dart（full plugin depth）；机械检测 + LLM 主观审查。
         # 许可 OSNL-0.2（非 MIT/Apache）——接入前需法务确认，先观测。
-        run: pip install desloppify
+        run: pip install desloppify==1.0
 
       - name: Desloppify Dart 健康扫描（CI profile，正式门禁）
         # 领导批准，转正式门禁：objective（机械检测）评分 < 60 即阻断。
