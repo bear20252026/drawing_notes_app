@@ -91,6 +91,14 @@ flutter test             # 必须全绿
 > （2026-10-05 仓库从 `C:\Users\17296\WorkBuddy\` 迁至 `D:\Workbuddy\`，C 盘那份副本已清空删除
 > ——仅剩一个空目录名被其他会话占用。迁移原因正是两棵同名目录树会让门禁静默跑在另一份代码上。）
 >
+> ⚠️ **本机代理断本地测试加载器（2026-10-10 根因归档）**：本 shell 环境带
+> `HTTP_PROXY/HTTPS_PROXY=http://127.0.0.1:57777` 且无 NO_PROXY 回环豁免——
+> flutter test 的加载器/集成测试经 WebSocket 连 `127.0.0.1:<port>` 会被路由进
+> 该代理并失败，报「Connection closed before full header was received」。
+> **跑任何 flutter test 前缀 `NO_PROXY=127.0.0.1,localhost no_proxy=127.0.0.1,localhost`**。
+> 当天单测与集成加载「全灭」、干净 worktree 对照同样失败（曾被误归因为负载），
+> 真因即此。代理本身活着（git push 正常），只是不转发回环。
+>
 > ⚠️ **C 盘旧路径复发警示（2026-10-10）**：`C:\Users\17296\WorkBuddy\2026-08-29-23-43-00\drawing_notes_app`
 > 曾于 10-09 被再次 clone 并在其上产生过一批未提交工作（已整体抢救入 `salvage/cdrive-ui-polish`
 > 分支，见该分支 commit message 的来历取证）。**唯一权威工作区 = D 盘这份**；任何会话开始前必须
