@@ -147,6 +147,9 @@ CI 五个工作流（CI / 软件质量工程门禁 / Code Guard / SBOM / Secret 
 - 🔒 安全政策：[SECURITY.md](SECURITY.md)
 - 📜 行为准则：[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 - 📝 变更日志：[CHANGELOG.md](CHANGELOG.md)
+- ✍️ 签名说明：安装包**未做代码签名**（个人开源项目，签名为外部成本决策）——
+  Windows 首次运行若弹 SmartScreen「已保护你的电脑」，点「更多信息 → 仍要运行」即可；
+  产物完整性以 Release 页附带的构建流水线（SBOM + Secret Scan）与版本 tag 为准。
 
 ## 开发计划约束遵守情况
 

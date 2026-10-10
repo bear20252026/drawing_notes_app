@@ -110,6 +110,8 @@ class AppLockGate extends StatefulWidget {
   State<AppLockGate> createState() => _AppLockGateState();
 }
 
+// 锁屏视图段（_LockScreenOverlay 起）的 `Colors.white*`：D-15 豁免
+// （DESIGN_SYSTEM §3.6）——沉浸层功能性对比度设计，不收编域令牌。
 class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   bool _initialized = false;
   bool _locked = false;

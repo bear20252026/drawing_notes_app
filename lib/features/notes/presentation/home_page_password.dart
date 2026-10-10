@@ -147,8 +147,9 @@ extension _HomePagePasswordOps on _HomePageState {
     );
     if (bindUsb == true) {
       if (!mounted) return;
-      // 原生目录选择器抢焦点 → 桌面投 inactive；豁免窗口按住开屏锁（解锁态下操作）。
-      final dir = await LockExemption.run(ResetDiskFile.pickDirectory);
+      // 原生目录选择器抢焦点 → 桌面投 inactive；豁免由 pickDirectory
+      // 内部收口（P3-10：删外层重复包装——内层单一事实来源）。
+      final dir = await ResetDiskFile.pickDirectory();
       if (dir != null) {
         resetDiskKey = await ResetDiskFile.readFrom(dir);
         if (resetDiskKey == null && mounted) {
@@ -214,8 +215,9 @@ extension _HomePagePasswordOps on _HomePageState {
       onVerify: (p) => _docStorage.verifyFilePassword(meta.id, p),
     );
     if (pin == null || !mounted) return;
-    // 选盘 = 原生目录对话框抢焦点 → inactive；豁免窗口防绑盘时假锁开屏。
-    final dir = await LockExemption.run(ResetDiskFile.pickDirectory);
+    // 选盘 = 原生目录对话框抢焦点 → inactive；豁免由 pickDirectory
+    // 内部收口（P3-10：删外层重复包装——内层单一事实来源）。
+    final dir = await ResetDiskFile.pickDirectory();
     if (dir == null || !mounted) return;
     final usbKey = await ResetDiskFile.readFrom(dir);
     if (usbKey == null) {

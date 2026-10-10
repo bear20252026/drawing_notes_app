@@ -2,7 +2,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
-import 'package:drawing_notes_app/shared/application/diagnostics_exporter.dart';
+import 'package:drawing_notes_app/features/notes/application/diagnostics_exporter.dart';
 
 void main() {
   setUp(AuditLogger.clear);

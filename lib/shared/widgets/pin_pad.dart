@@ -1,6 +1,9 @@
 // iOS 风格九宫格数字密码盘核心（弹出层/启动锁屏共用）。
 //
 // 原 `lib/fix/security_and_sync_fix.dart` PART 2（M1 目录迁移，行为零变化）。
+//
+// D-15 豁免（DESIGN_SYSTEM §3.6）：本文件属**沉浸层**（深色遮罩上的锁屏），
+// 全文件 `Colors.white*` 为功能性对比度设计，豁免于白系收编整改，保持原样。
 
 import 'dart:ui' as ui show ImageFilter;
 import 'dart:async';

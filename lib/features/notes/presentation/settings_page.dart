@@ -25,8 +25,8 @@ import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settin
 import '../../../core/theme/apple_design.dart';
 
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
-import 'package:drawing_notes_app/shared/application/diagnostics_exporter.dart';
-import 'package:drawing_notes_app/shared/application/keyboard_shortcuts.dart';
+import 'package:drawing_notes_app/features/notes/application/diagnostics_exporter.dart';
+import 'package:drawing_notes_app/features/notes/application/keyboard_shortcuts.dart';
 import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';

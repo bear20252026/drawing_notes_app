@@ -16,9 +16,6 @@ import 'package:drawing_notes_app/core/theme/apple_focus.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 // 批次②：单文件密码需与开屏密码比对（matchesAppLockPin 静态探测）。
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
-// 选重置密码盘（U 盘目录）等原生对话框抢焦点时按住开屏锁（见 home_page_password.dart）。
-import 'package:drawing_notes_app/core/security/session_guard.dart'
-    show LockExemption;
 // C-06（审计 2026-09-27）：媒体会话加密服务构造注入（组合根传线）。
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/features/notes/application/search_service.dart';

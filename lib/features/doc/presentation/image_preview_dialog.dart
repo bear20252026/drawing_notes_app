@@ -2,6 +2,9 @@
 ///
 /// 支持手势缩放（InteractiveViewer）与点击/滑动关闭。
 /// 无外部依赖，仅使用 Flutter 内置组件。
+///
+/// D-15 豁免（DESIGN_SYSTEM §3.6）：全屏查看器属**沉浸层**，遮罩上的
+/// `Colors.white*` 为功能性对比度设计，豁免于白系收编整改，保持原样。
 library;
 
 import 'package:flutter/material.dart';

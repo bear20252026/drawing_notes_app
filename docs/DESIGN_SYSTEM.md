@@ -126,6 +126,19 @@
 
 **Android 性能阈值**：帧预算 **16.6ms** · 主线程 slice **>8ms** 判卡顿嫌疑 · 列表 >20 项须虚拟化
 
+### 3.6 沉浸层白系豁免（D-15 裁决，2026-10-10）
+
+**裁决**：锁屏 / 全屏图片查看器等**沉浸层**在深色遮罩（黑 38% scrim / 纯黑底）上的
+`Colors.white` / `Colors.white70` / `white.withValues(α)` **豁免于 D-15「白系捷径
+收编域令牌」的整改**，保持原样。这些文件不要求改引 `surfaceWhite` 等域令牌。
+
+**依据**：D-15 整改针对的是**内容层/常规界面**把白色硬编码绕过色板（可维护性
+问题）；沉浸层的白是**功能性对比度设计**——遮罩底下是被查看内容/机密画面，
+文字必须压过任意底色，白是唯一可预期的选择（iOS 锁屏同款）。改引域令牌反而
+把「沉浸层永远白」这个设计约束稀释进色板语义。**管辖文件**（其余白系不豁免）：
+`lib/shared/widgets/pin_pad.dart` · `lib/features/doc/presentation/image_preview_dialog.dart`
+· `lib/core/security/app_lock_gate.dart`（锁屏视图段）。
+
 ---
 
 ## 4. 动效令牌（已落地到 `lib/core/theme/apple_motion.dart`）
