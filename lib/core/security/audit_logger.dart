@@ -1,16 +1,26 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:meta/meta.dart';
 
+import 'package:drawing_notes_app/core/storage/app_data_root.dart';
+
 /// 安全审计日志（红蓝攻防 P2 修复 2026-08-15 + 哈希链强化 2026-08-16）：
-/// 记录密钥加载/密码盘操作（时间戳 + 操作 + 结果），**仅本地内存、绝不含
-/// 密钥与内容**（防审计日志本身成为泄露面——去敏）。
+/// 记录密钥加载/密码盘操作（时间戳 + 操作 + 结果），**绝不含密钥与内容**
+/// （防审计日志本身成为泄露面——去敏）。
 ///
 /// 哈希链（专家目标架构"不可篡改审计事件流"——Thalian verify_audit_chain /
 /// Revka Merkle 链 / 掘金 Layer 6 权威模式）：每条记录含 prevHash（前一条
 /// 哈希）+ 自身 SHA-256 哈希——任何字段篡改立即断链，verifyIntegrity()
 /// 重放检出（篡改检测——审计完整性）。
+///
+/// 落盘（2026-10-10，挂账轻项）：每条记录同步进内存链、异步追加写
+/// `<数据根>/security/audit.log`（JSONL，含链字段，可离线重放验证），
+/// 超 1 MiB 轮转为 audit.log.1（保留一代）。追加失败**静默吞掉**——审计
+/// 永不阻断业务；内存链仍是权威实时视图。`flutter test` 环境默认**不落盘**
+/// （FLUTTER_TEST 护栏——测试不得污染用户真实数据根），测试经
+/// [sinkOverrideForTest] 注入临时目录。
 class AuditLogger {
   AuditLogger._();
 
@@ -29,12 +39,99 @@ class AuditLogger {
   /// 滚动裁剪后的链起点锚（checkpoint）：被丢弃尾部之后、当前首条的
   /// prevHash。verifyIntegrity 从此处而非 genesis 重放——否则一旦裁剪过
   /// 就恒报「已篡改」（裁剪条目仍是新首条的 prevHash，genesis 重放必断）。
+  /// 文件侧无需 checkpoint：audit.log 保留全量历史，链连续性由行序保证。
   static String _anchorPrevHash = _genesisHash;
 
-  /// 累计被丢弃条数（内存内 checkpoint 分量）。本类**仅本地内存、无落盘**
-  /// （见类注释——防审计日志自身成泄露面），重启即空链，故单独持久化
-  /// checkpoint 无意义：不落盘、不新增文件 IO（保持公共 API 与内存设计兼容）。
+  /// 累计被丢弃条数（内存内 checkpoint 分量；文件侧保留全量，见上）。
   static int _droppedCount = 0;
+
+  // ==== 落盘（2026-10-10） ====
+
+  /// 落盘文件大小上限：超过即轮转为 audit.log.1（保留一代，再轮转即覆盖）。
+  static const int _maxFileBytes = 1 << 20;
+
+  /// 生产落盘文件解析器（可注入；null = 不落盘）。默认走数据根 security/
+  /// （异步解析——securityFile 本身是 Future）。测试环境（FLUTTER_TEST）
+  /// 默认不落盘——护栏防污染真实数据根。
+  static Future<File> Function()? _sinkResolver;
+  static bool _resolverChecked = false;
+
+  /// 写入顺序链：log() 是同步 API，文件追加异步化后靠此链保序；
+  /// 任一失败不断链（catchError 继续）。
+  static Future<void> _writeChain = Future<void>.value();
+
+  /// 测试注入临时落盘文件（null = 关闭落盘）。配合 [flushForTest] 等待
+  /// 追加完成、[resetSinkForTest] 用例间复位。
+  @visibleForTesting
+  static set sinkOverrideForTest(File? file) {
+    _sinkResolver = file == null ? null : () async => file;
+    _resolverChecked = true;
+  }
+
+  /// 等待全部在途文件追加完成（测试断言前用）。
+  @visibleForTesting
+  static Future<void> flushForTest() => _writeChain;
+
+  /// 用例间复位 sink 注入与写链（不动内存链——clear 负责那个）。
+  @visibleForTesting
+  static void resetSinkForTest() {
+    _sinkResolver = null;
+    _resolverChecked = true;
+    _writeChain = Future<void>.value();
+  }
+
+  static Future<File> Function()? _resolveSink() {
+    if (!_resolverChecked) {
+      _resolverChecked = true;
+      final inTests = Platform.environment.containsKey('FLUTTER_TEST');
+      if (!inTests) {
+        _sinkResolver = () async {
+          final root = AppDataRoot();
+          return root.securityFile('audit.log');
+        };
+      }
+    }
+    return _sinkResolver; // 解析期失败在追加腿兜底（审计永不阻断业务）。
+  }
+
+  /// 异步追加一条 JSONL（保序、静默失败、超限轮转）。
+  static void _enqueueAppend(_AuditEntry e) {
+    final resolver = _resolveSink();
+    if (resolver == null) return;
+    final line = jsonEncode({
+      'time': e.time,
+      'operation': e.operation,
+      'success': e.success,
+      if (e.detail != null) 'detail': e.detail,
+      'prevHash': e.prevHash,
+      'hash': e.hash,
+    });
+    _writeChain = _writeChain.catchError((_) {}).then((_) async {
+      final File sink;
+      try {
+        sink = await resolver();
+      } catch (_) {
+        return; // 解析失败 = 本次不落盘。
+      }
+      try {
+        final parent = sink.parent;
+        if (!parent.existsSync()) await parent.create(recursive: true);
+        // 轮转：超 1 MiB → audit.log.1（覆盖上一代）。best-effort。
+        if (sink.existsSync() && sink.lengthSync() > _maxFileBytes) {
+          final rotated = File('${sink.path}.1');
+          if (rotated.existsSync()) await rotated.delete();
+          await sink.rename(rotated.path);
+        }
+        await sink.writeAsString(
+          '$line\n',
+          mode: FileMode.append,
+          flush: false,
+        );
+      } catch (_) {
+        // 落盘失败静默——审计绝不阻断业务（内存链不受影响）。
+      }
+    });
+  }
 
   /// 记录一次安全操作：operation 为操作名（如 'password_disk.read_key'），
   /// success 标识结果，detail 为补充说明（**禁止传密钥/内容**）。
@@ -44,17 +141,17 @@ class AuditLogger {
     // skylos: ignore —— 运行时 SHA-256 哈希（非硬编码凭据）——Skylos 静态
     // 高熵检测误报（熵 3.98——hash 是计算值非常量）。
     final hash = _sha256(_payload(time, operation, success, detail, prevHash));
-    _entries.add(
-      _AuditEntry(
-        time: time,
-        operation: operation,
-        success: success,
-        detail: detail,
-        prevHash: prevHash,
-        hash: hash,
-      ),
+    final entry = _AuditEntry(
+      time: time,
+      operation: operation,
+      success: success,
+      detail: detail,
+      prevHash: prevHash,
+      hash: hash,
     );
+    _entries.add(entry);
     _lastHash = hash;
+    _enqueueAppend(entry);
     if (_entries.length > _maxEntries) {
       final drop = _entries.length - _maxEntries;
       _entries.removeRange(0, drop);
