@@ -91,9 +91,13 @@ String _redactForLog(String raw) {
 /// 原始异常对象进调试日志（debugPrint），不再直接拼进 UI 字符串。
 String humanizeWebDavSyncError(Object? e, {AppLocalizations? l10n}) {
   if (e == null) return l10n?.syncFailedUnknown ?? '同步失败：未知错误';
-  // P3-2（审计 2026-10-05）：原「e is String 原样拼 UI」分支已删——字符串
-  // 形态的错误没有任何脱敏保证，与 H-04 纪律冲突（当前零 throw 属防御性死
-  // 分支，但未来任何字符串错误即绕过脱敏）。落到底部通用静态文案。
+  // P3-2 复核（2026-10-10，云端红后恢复原分支）：审计曾建议删掉本分支
+  // （判为防御性死代码），但 webdav_humanize_error_test 钉住的契约是——
+  // **内部构造的策略文案**（如重试上限「达到最大重试次数」）原样透传给
+  // 用户，这是可信文案、不是原始异常；字符串形态的异常在本仓没有产路径。
+  // 透传范围由该测试锁定；未来若引入「外部来源字符串」入口，应先脱敏
+  // 再进来，而不是拆掉这条契约。
+  if (e is String) return l10n?.webdavSyncFailRaw(e) ?? '同步失败：$e';
   // P1 修复（审计 H-04）：原始异常可能含 URL/用户名/口令片段——仅记类型，
   // 不记原文（logcat 可被其他应用读取）。
   AuditLogger.log(
