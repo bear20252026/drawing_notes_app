@@ -66,12 +66,10 @@ extension _EditorPageDragOps on _EditorPageState {
     double snap(double v) => _snapToGrid ? (v / grid).round() * grid : v;
     for (final t in page.textItems) {
       if (moveIds.contains(t.id)) {
-        t.x = snap(
-          t.x + canvasDelta.dx,
-        ).clamp(0, _controller.document.width.toDouble());
-        t.y = snap(
-          t.y + canvasDelta.dy,
-        ).clamp(0, _controller.document.height.toDouble());
+        t.x = snap(t.x + canvasDelta.dx)
+            .clamp(0, _controller.document.width.toDouble());
+        t.y = snap(t.y + canvasDelta.dy)
+            .clamp(0, _controller.document.height.toDouble());
       }
     }
     for (final i in page.imageItems) {
@@ -287,16 +285,27 @@ extension _EditorPageDragOps on _EditorPageState {
   void _distributeItems(bool horizontal) {
     final page = widget.session;
     if (page == null) return;
-    final items = <({double pos, double size})>[];
-    // 收集所有对象的中心位置与尺寸。
+    // 收集 (对象, 轴向中心, 回写器)：排序携带对象引用，按排序结果直接
+    // 回写对应对象——此前目标槽位按「文字→图片→形状」集合顺序分配，
+    // 与位置顺序交叉时元素互相跳位（水平/垂直两分支同病）。
+    final items = <({double pos, void Function(double center) place})>[];
     for (final t in page.textItems) {
-      items.add((pos: t.x + t.fontSize, size: t.fontSize * 2));
+      items.add((
+        pos: t.x + t.fontSize,
+        place: (center) => t.x = center - t.fontSize,
+      ));
     }
     for (final i in page.imageItems) {
-      items.add((pos: i.x + i.width / 2, size: i.width));
+      items.add((
+        pos: i.x + i.width / 2,
+        place: (center) => i.x = center - i.width / 2,
+      ));
     }
     for (final s in page.shapes) {
-      items.add((pos: s.x + s.width / 2, size: s.width));
+      items.add((
+        pos: s.x + s.width / 2,
+        place: (center) => s.x = center - s.width / 2,
+      ));
     }
     if (items.length < 3) {
       _showSnack(
@@ -310,47 +319,42 @@ extension _EditorPageDragOps on _EditorPageState {
       final first = items.first.pos;
       final last = items.last.pos;
       final step = (last - first) / (items.length - 1);
-      var idx = 0;
-      for (final t in page.textItems) {
-        final target = first + step * (idx++);
-        t.x = target - t.fontSize;
-      }
-      for (final i in page.imageItems) {
-        final target = first + step * (idx++);
-        i.x = target - i.width / 2;
-      }
-      for (final s in page.shapes) {
-        final target = first + step * (idx++);
-        s.x = target - s.width / 2;
+      for (var idx = 0; idx < items.length; idx++) {
+        items[idx].place(first + step * idx);
       }
     } else {
       // 垂直分布：按中心 Y 排序。
-      final vItems = <({double pos, double size})>[];
+      final vItems = <({double pos, void Function(double center) place})>[];
       for (final t in page.textItems) {
-        vItems.add((pos: t.y + t.fontSize / 2, size: t.fontSize));
+        vItems.add((
+          pos: t.y + t.fontSize / 2,
+          place: (center) => t.y = center - t.fontSize / 2,
+        ));
       }
       for (final i in page.imageItems) {
-        vItems.add((pos: i.y + i.height / 2, size: i.height));
+        vItems.add((
+          pos: i.y + i.height / 2,
+          place: (center) => i.y = center - i.height / 2,
+        ));
       }
       for (final s in page.shapes) {
-        vItems.add((pos: s.y + s.height / 2, size: s.height));
+        vItems.add((
+          pos: s.y + s.height / 2,
+          place: (center) => s.y = center - s.height / 2,
+        ));
+      }
+      if (vItems.length < 3) {
+        _showSnack(
+          AppLocalizations.of(context)?.distributeNeed3 ?? '至少需要 3 个元素才能分布',
+        );
+        return;
       }
       vItems.sort((a, b) => a.pos.compareTo(b.pos));
       final first = vItems.first.pos;
       final last = vItems.last.pos;
       final step = (last - first) / (vItems.length - 1);
-      var idx = 0;
-      for (final t in page.textItems) {
-        final target = first + step * (idx++);
-        t.y = target - t.fontSize / 2;
-      }
-      for (final i in page.imageItems) {
-        final target = first + step * (idx++);
-        i.y = target - i.height / 2;
-      }
-      for (final s in page.shapes) {
-        final target = first + step * (idx++);
-        s.y = target - s.height / 2;
+      for (var idx = 0; idx < vItems.length; idx++) {
+        vItems[idx].place(first + step * idx);
       }
     }
     _applyState(() {});

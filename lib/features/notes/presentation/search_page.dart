@@ -282,7 +282,9 @@ class _SearchPageState extends State<SearchPage> {
       return Center(
         child: Text(
           AppLocalizations.of(context)?.searchEmptyHint ?? '输入关键词开始搜索',
-          style: TextStyle(color: AppleColor.inkSubtle),
+          style: TextStyle(
+            color: AppleColor.mutedOf(Theme.of(context).colorScheme),
+          ),
         ),
       );
     }
@@ -290,7 +292,9 @@ class _SearchPageState extends State<SearchPage> {
       return Center(
         child: Text(
           AppLocalizations.of(context)?.searchNoResults ?? '未找到匹配内容',
-          style: TextStyle(color: AppleColor.inkSubtle),
+          style: TextStyle(
+            color: AppleColor.mutedOf(Theme.of(context).colorScheme),
+          ),
         ),
       );
     }

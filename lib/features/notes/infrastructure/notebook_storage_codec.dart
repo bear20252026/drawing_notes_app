@@ -33,19 +33,25 @@ extension _NotebookStorageCodec on NotebookStorage {
 
 
   /// 懒迁移：明文笔记本经写尾队列重写为 DNV 密文。
+  ///
+  /// P1 陈旧快照防护（对齐 storage_write_pipeline._isStillCurrentPlaintext）：
+  /// 重写前重读磁盘与入队快照比对，不一致（前面排队的保存已写入新内容/
+  /// 密文）即放弃——防陈旧快照反超覆盖，下次读取重新排队（幂等）。
   void _enqueueRawRewrite(String id, Uint8List plaintext) {
     final previous = _writeTails[id] ?? Future<void>.value();
     late final Future<void> operation;
     operation = previous.catchError((_) {}).then((_) async {
       final key = await _currentKey();
       if (key == null) return;
+      final file = File(await _pathFor(id));
+      if (!file.existsSync()) return; // 已被删除——不复活
+      final current = await file.readAsBytes();
+      if (!_bytesEqual(current, plaintext)) return; // 陈旧快照——放弃
       final sealed = await VaultFileCodec.encrypt(
         plaintext,
         key,
         aadContext: 'nb:$id',
       );
-      final file = File(await _pathFor(id));
-      if (!file.existsSync()) return; // 已被删除——不复活
       final tmp = File('${file.path}.${LocalIdGenerator.next('write')}.tmp');
       await tmp.writeAsBytes(sealed, flush: true);
       try {
@@ -63,6 +69,14 @@ extension _NotebookStorageCodec on NotebookStorage {
     });
   }
 
+
+  static bool _bytesEqual(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
 
   /// 原子写入笔记本文件（不涉及加密判断；被 [save] 调用）。
   Future<String> _writeNotebook(Notebook notebook) async {

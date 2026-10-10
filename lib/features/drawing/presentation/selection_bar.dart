@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
+import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/selection_action_button.dart';
@@ -151,17 +153,25 @@ class SelectionBar extends StatelessWidget {
 
   /// 删除按钮的动作（按类型分发；锁定对象不提供删除）。
   VoidCallback? _deleteAction(_SelectionState s) {
+    // 触觉（审计 2026-10-09）：删除是不可逆破坏性操作，lightImpact 与
+    // 系统「已删除」 toast 同级的确认感；包一层而非改 controller——
+    // 键盘 Delete 路径不重复震。
+    void withHaptic(VoidCallback fn) {
+      HapticFeedback.lightImpact();
+      fn();
+    }
+
     if (s.hasMixed) {
-      return controller.deleteSelectedDocumentObjects;
+      return () => withHaptic(controller.deleteSelectedDocumentObjects);
     }
     if (s.hasShape && !s.shapeLocked) {
-      return controller.deleteSelectedDocumentShape;
+      return () => withHaptic(controller.deleteSelectedDocumentShape);
     }
     if (s.hasImage && !s.imageLocked) {
-      return controller.deleteSelectedDocumentImage;
+      return () => withHaptic(controller.deleteSelectedDocumentImage);
     }
     if (s.hasStrokes) {
-      return controller.deleteSelectedStrokes;
+      return () => withHaptic(controller.deleteSelectedStrokes);
     }
     return null;
   }
@@ -202,7 +212,9 @@ class SelectionBar extends StatelessWidget {
           )?.selNStrokes(controller.selection.selectedStrokeIndices.length) ??
           '已选中 ${controller.selection.selectedStrokeIndices.length} 笔';
     } else {
-      text = '选区未命中内容（可拖动画布重新框选）';
+      text =
+          AppLocalizations.of(context)?.selNoHit ??
+          '选区未命中内容（可拖动画布重新框选）';
     }
     // 状态文案包 Flexible + ellipsis：窄屏/对象数变长时收缩省略，
     // 不与左侧滑块挤爆行宽。
@@ -220,12 +232,36 @@ class SelectionBar extends StatelessWidget {
       builder: (context, _) {
         final s = _deriveState();
         final hasSel = controller.hasSelection || s.hasMixed;
-        final hasEditable = _hasEditable(s);
-        if (!hasSel && !s.hasImage && !s.hasShape) {
-          return const SizedBox.shrink();
-        }
+        final visible = hasSel || s.hasImage || s.hasShape;
+        // P2-9：出现/消失此前在 shrink 与 48px Material 条间硬切——
+        // 高度突变压住底部状态栏无解释。改 AnimatedSize 过渡；
+        // reduceMotion 时直出（无动画路径保持原行为）。
+        final bar = visible
+            ? _buildBar(context, s)
+            : const SizedBox.shrink();
+        if (AppleMotion.reduceMotionOf(context)) return bar;
+        return AnimatedSize(
+          duration: AppleMotion.dropdown,
+          curve: AppleMotion.easeOut,
+          alignment: Alignment.bottomCenter,
+          child: AnimatedSwitcher(
+            duration: AppleMotion.dropdown,
+            switchInCurve: AppleMotion.easeOut,
+            switchOutCurve: AppleMotion.easeOut,
+            transitionBuilder: (child, anim) => FadeTransition(
+              opacity: anim,
+              child: SizeTransition(sizeFactor: anim, child: child),
+            ),
+            child: bar,
+          ),
+        );
+      },
+    );
+  }
 
-        return Material(
+  Widget _buildBar(BuildContext context, _SelectionState s) {
+    final hasEditable = _hasEditable(s);
+    return Material(
           elevation: 1,
           color: Theme.of(context).colorScheme.surfaceContainerLow,
           child: Padding(
@@ -285,7 +321,5 @@ class SelectionBar extends StatelessWidget {
             ),
           ),
         );
-      },
-    );
   }
 }

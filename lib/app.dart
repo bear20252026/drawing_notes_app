@@ -12,7 +12,9 @@ import 'package:drawing_notes_app/core/di/providers.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/theme/app_locale_controller.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
+
 import 'l10n/app_localizations.dart';
+
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
@@ -309,9 +311,7 @@ class _CloudSyncNoticeHostState extends State<CloudSyncNoticeHost> {
           title: Text(l10n?.s02CloudSyncTitle ?? '笔记存储在云同步文件夹中'),
           content: Text(
             l10n?.s02CloudSyncBody ??
-                '笔记数据目录位于云同步文件夹内。当前未设置开屏密码时，'
-                    '笔记以明文保存——若不希望数据上云，可在云同步设置中排除该目录，'
-                    '或在应用设置中开启密码保护。',
+                '笔记数据目录位于云同步文件夹内。当前未设置开屏密码时，笔记以明文保存——若不希望数据上云，可在云同步设置中排除该目录，或在应用设置中开启密码保护。',
           ),
           actions: [
             TextButton(

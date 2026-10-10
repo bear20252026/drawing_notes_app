@@ -35,10 +35,26 @@ extension _AllDocsPageMobile on _AllDocsPageState {
           }
           if (snapshot.hasError) {
             return Center(
-              child: Text(
-                AppLocalizations.of(context)?.docsLoadFailedRetry ??
-                    '加载失败，请下拉刷新重试',
-                style: TextStyle(color: theme.colorScheme.error),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    AppLocalizations.of(context)?.docsLoadFailedRetry ??
+                        '加载失败，请下拉刷新重试',
+                    // P1-3：正文错误用深红档（原色 3.55:1 不过 AA）。
+                    style: TextStyle(
+                      color: AppleColor.errorTextOf(theme.colorScheme),
+                    ),
+                  ),
+                  const SizedBox(height: AppleSpacing.sm),
+                  // P1-11：移动端错误态补重试按钮（错误可恢复）。
+                  OutlinedButton(
+                    onPressed: _reload,
+                    child: Text(
+                      AppLocalizations.of(context)?.homeRetry ?? '重试',
+                    ),
+                  ),
+                ],
               ),
             );
           }
@@ -71,9 +87,8 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                     onChanged: (q) => _searchDebouncer.run(
                       () => allDocsSetState(() => _query = q),
                     ),
-                    style: AppleType.controlStyle(
-                      theme.colorScheme.onSurface,
-                    ).copyWith(fontWeight: FontWeight.w400),
+                    style: AppleType.controlStyle(theme.colorScheme.onSurface)
+                        .copyWith(fontWeight: FontWeight.w400),
                     decoration: InputDecoration(
                       hintText:
                           AppLocalizations.of(context)?.docsQuickSearch ??
@@ -84,9 +99,8 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                           ? null
                           : IconButton(
                               tooltip:
-                                  AppLocalizations.of(
-                                    context,
-                                  )?.docsClearSearch ??
+                                  AppLocalizations.of(context)
+                                      ?.docsClearSearch ??
                                   '清除搜索',
                               icon: const Icon(Icons.close_rounded, size: 18),
                               onPressed: () {
@@ -113,6 +127,8 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                     loadTags: widget.loadTags,
                     // V-13：标签下钻文档行接真实打开回调（原空回调死入口）。
                     onOpenDoc: widget.onOpenDoc,
+                    // P4-5：星标死按钮接真实收藏回调。
+                    onToggleFavorite: _toggleFavorite,
                   ),
                 )
               else
@@ -210,9 +226,8 @@ extension _AllDocsPageMobile on _AllDocsPageState {
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppleType.controlStyle(
-                        theme.colorScheme.onSurface,
-                      ).copyWith(fontWeight: FontWeight.w400),
+                      style: AppleType.controlStyle(theme.colorScheme.onSurface)
+                          .copyWith(fontWeight: FontWeight.w400),
                     ),
                     // N2：文件密码锁标（本会话未解锁）
                     trailing: doc.locked
@@ -287,40 +302,44 @@ class _MobileHeader extends StatelessWidget {
             final selected = i == tabIndex;
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: AppleFocusRing(borderRadius: AppleRadius.sm, child: InkWell(
-                borderRadius: BorderRadius.circular(AppleRadius.sm),
-                onTap: () => onTabChanged(i),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 10,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _tabsOf(context)[i],
-                        style: AppleType.controlStyle(selected ? accent : muted)
-                            .copyWith(
-                              fontWeight: selected
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
-                            ),
-                      ),
-                      // D-12（审计 2026-09-27）：3 → AppleSpacing.xxs（离档微间隙归一）。
-                      const SizedBox(height: AppleSpacing.xxs),
-                      Container(
-                        height: 2,
-                        width: 16,
-                        decoration: BoxDecoration(
-                          color: selected ? accent : Colors.transparent,
-                          borderRadius: BorderRadius.circular(AppleRadius.xs),
+              child: AppleFocusRing(
+                borderRadius: AppleRadius.sm,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(AppleRadius.sm),
+                  onTap: () => onTabChanged(i),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 10,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _tabsOf(context)[i],
+                          style:
+                              AppleType.controlStyle(selected ? accent : muted)
+                                  .copyWith(
+                                    fontWeight: selected
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                  ),
                         ),
-                      ),
-                    ],
+                        // D-12（审计 2026-09-27）：3 → AppleSpacing.xxs（离档微间隙归一）。
+                        const SizedBox(height: AppleSpacing.xxs),
+                        Container(
+                          height: 2,
+                          width: 16,
+                          decoration: BoxDecoration(
+                            color: selected ? accent : Colors.transparent,
+                            borderRadius: BorderRadius.circular(AppleRadius.xs),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              )),
+              ),
             );
           }),
           const Spacer(),

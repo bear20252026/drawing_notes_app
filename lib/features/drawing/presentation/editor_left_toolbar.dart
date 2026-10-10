@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
@@ -90,120 +91,123 @@ class EditorLeftToolbar extends StatelessWidget {
             String fallback,
           ) => l10n == null ? fallback : label(l10n);
           return SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 手型：画布导航与绘制模式显式分离，避免误触发笔画。
-              _tool(
-                Icons.pan_tool_alt_rounded,
-                tip((l) => l.toolWithShortcut(l.toolHand, 'H'), '平移画布 (H)'),
-                handActive,
-                onHand,
-              ),
-              Divider(height: 12, color: scheme.outlineVariant),
-              // 画笔
-              _tool(
-                Icons.edit_rounded,
-                tip((l) => l.toolWithShortcut(l.toolPen, 'P'), '画笔 (P)'),
-                controller.tool == BrushType.pen &&
-                    controller.selectionTool == SelectionTool.none &&
-                    !eyedropperActive &&
-                    !textToolActive &&
-                    !marqueeActive,
-                onBrush,
-              ),
-              // 铅笔：与钢笔分离的独立预设，保留略深的石墨色与尺寸。
-              _tool(
-                Icons.draw_rounded,
-                tip((l) => l.toolWithShortcut(l.toolPencil, 'N'), '铅笔 (N)'),
-                controller.tool == BrushType.pencil &&
-                    controller.selectionTool == SelectionTool.none &&
-                    !eyedropperActive &&
-                    !textToolActive &&
-                    !marqueeActive,
-                onPencil,
-              ),
-              // 高亮笔：采用独立局部合成层，实际支持不叠色书写。
-              _tool(
-                Icons.highlight_rounded,
-                tip((l) => l.toolWithShortcut(l.toolMarker, 'M'), '高亮笔 (M)'),
-                controller.tool == BrushType.marker &&
-                    controller.selectionTool == SelectionTool.none &&
-                    !eyedropperActive &&
-                    !textToolActive &&
-                    !marqueeActive,
-                onHighlighter,
-              ),
-
-              // 激光指示器：独立的、不会写入文档的临时尾迹工具。
-              _tool(
-                Icons.gesture_rounded,
-                tip((l) => l.toolLaser, '激光指示器（临时尾迹）'),
-                controller.tool == BrushType.laser &&
-                    controller.selectionTool == SelectionTool.none &&
-                    !eyedropperActive &&
-                    !textToolActive &&
-                    !marqueeActive,
-                onLaser,
-              ),
-
-              // 橡皮擦
-              _tool(
-                Icons.auto_fix_high_rounded,
-                tip((l) => l.toolWithShortcut(l.toolEraserName, 'E'), '橡皮擦 (E)'),
-                isEraser,
-                onEraser,
-              ),
-              // 吸管
-              _tool(
-                Icons.colorize_rounded,
-                AppLocalizations.of(context)?.toolEyedropper ?? '吸管工具',
-                eyedropperActive,
-                onEyedropper,
-              ),
-              // 矩形选区
-              _tool(
-                Icons.crop_free_rounded,
-                tip(
-                  (l) => l.toolWithShortcut(l.toolRectSelect, 'R'),
-                  '矩形选区 (R)',
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 手型：画布导航与绘制模式显式分离，避免误触发笔画。
+                _tool(
+                  Icons.pan_tool_alt_rounded,
+                  tip((l) => l.toolWithShortcut(l.toolHand, 'H'), '平移画布 (H)'),
+                  handActive,
+                  onHand,
                 ),
-                controller.selectionTool == SelectionTool.rect,
-                onRectSelect,
-              ),
-              // 框选（多元素）
-              _tool(
-                Icons.select_all_rounded,
-                AppLocalizations.of(context)?.toolMarquee ?? '框选多个元素',
-                marqueeActive,
-                onMarquee,
-              ),
-              // 文字
-              _tool(
-                Icons.text_fields_rounded,
-                tip((l) => l.toolWithShortcut(l.toolText, 'T'), '文字 (T)'),
-                textToolActive,
-                onText,
-              ),
-              // 形状弹出菜单
-              _shapeMenu(context),
-              // 连线
-              _tool(
-                Icons.call_merge_rounded,
-                AppLocalizations.of(context)?.toolNodeLink ?? '节点连线',
-                linkMode,
-                onLink,
-              ),
-              // 插入图片（动作项，非工具态：恒不选中）
-              _tool(
-                Icons.image_outlined,
-                AppLocalizations.of(context)?.edInsertImage ?? '插入图片',
-                false,
-                onInsertImage,
-              ),
-              Divider(height: 12, color: scheme.outlineVariant),
-            ],
-          ),
+                Divider(height: 12, color: scheme.outlineVariant),
+                // 画笔
+                _tool(
+                  Icons.edit_rounded,
+                  tip((l) => l.toolWithShortcut(l.toolPen, 'P'), '画笔 (P)'),
+                  controller.tool == BrushType.pen &&
+                      controller.selectionTool == SelectionTool.none &&
+                      !eyedropperActive &&
+                      !textToolActive &&
+                      !marqueeActive,
+                  onBrush,
+                ),
+                // 铅笔：与钢笔分离的独立预设，保留略深的石墨色与尺寸。
+                _tool(
+                  Icons.draw_rounded,
+                  tip((l) => l.toolWithShortcut(l.toolPencil, 'N'), '铅笔 (N)'),
+                  controller.tool == BrushType.pencil &&
+                      controller.selectionTool == SelectionTool.none &&
+                      !eyedropperActive &&
+                      !textToolActive &&
+                      !marqueeActive,
+                  onPencil,
+                ),
+                // 高亮笔：采用独立局部合成层，实际支持不叠色书写。
+                _tool(
+                  Icons.highlight_rounded,
+                  tip((l) => l.toolWithShortcut(l.toolMarker, 'M'), '高亮笔 (M)'),
+                  controller.tool == BrushType.marker &&
+                      controller.selectionTool == SelectionTool.none &&
+                      !eyedropperActive &&
+                      !textToolActive &&
+                      !marqueeActive,
+                  onHighlighter,
+                ),
+
+                // 激光指示器：独立的、不会写入文档的临时尾迹工具。
+                _tool(
+                  Icons.gesture_rounded,
+                  tip((l) => l.toolLaser, '激光指示器（临时尾迹）'),
+                  controller.tool == BrushType.laser &&
+                      controller.selectionTool == SelectionTool.none &&
+                      !eyedropperActive &&
+                      !textToolActive &&
+                      !marqueeActive,
+                  onLaser,
+                ),
+
+                // 橡皮擦
+                _tool(
+                  Icons.auto_fix_high_rounded,
+                  tip(
+                    (l) => l.toolWithShortcut(l.toolEraserName, 'E'),
+                    '橡皮擦 (E)',
+                  ),
+                  isEraser,
+                  onEraser,
+                ),
+                // 吸管
+                _tool(
+                  Icons.colorize_rounded,
+                  AppLocalizations.of(context)?.toolEyedropper ?? '吸管工具',
+                  eyedropperActive,
+                  onEyedropper,
+                ),
+                // 矩形选区
+                _tool(
+                  Icons.crop_free_rounded,
+                  tip(
+                    (l) => l.toolWithShortcut(l.toolRectSelect, 'R'),
+                    '矩形选区 (R)',
+                  ),
+                  controller.selectionTool == SelectionTool.rect,
+                  onRectSelect,
+                ),
+                // 框选（多元素）
+                _tool(
+                  Icons.select_all_rounded,
+                  AppLocalizations.of(context)?.toolMarquee ?? '框选多个元素',
+                  marqueeActive,
+                  onMarquee,
+                ),
+                // 文字
+                _tool(
+                  Icons.text_fields_rounded,
+                  tip((l) => l.toolWithShortcut(l.toolText, 'T'), '文字 (T)'),
+                  textToolActive,
+                  onText,
+                ),
+                // 形状弹出菜单
+                _shapeMenu(context),
+                // 连线
+                _tool(
+                  Icons.call_merge_rounded,
+                  AppLocalizations.of(context)?.toolNodeLink ?? '节点连线',
+                  linkMode,
+                  onLink,
+                ),
+                // 插入图片（动作项，非工具态：恒不选中）
+                _tool(
+                  Icons.image_outlined,
+                  AppLocalizations.of(context)?.edInsertImage ?? '插入图片',
+                  false,
+                  onInsertImage,
+                ),
+                Divider(height: 12, color: scheme.outlineVariant),
+              ],
+            ),
           );
         },
       ),
@@ -261,20 +265,32 @@ class EditorLeftToolbar extends StatelessWidget {
       Icon(icon, size: 20, color: selected ? Colors.white : null);
 
   Widget _tool(IconData icon, String tip, bool selected, VoidCallback onTap) {
-    if (!selected) {
-      return Tooltip(
+    // P1-9：选中态此前只靠蓝底颜色——补 Semantics(selected/toggled)，
+    // 读屏用户才能得知当前激活的是 14 个工具中的哪一个。
+    final button = selected
+        ? Container(
+            decoration: BoxDecoration(
+              color: AppleColor.actionBlue,
+              borderRadius: BorderRadius.circular(AppleRadius.sm),
+            ),
+            child: IconButton(icon: _toolIcon(icon, true), onPressed: onTap),
+          )
+        : IconButton(icon: _toolIcon(icon, false), onPressed: onTap);
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: Tooltip(
         message: tip,
-        child: IconButton(icon: _toolIcon(icon, false), onPressed: onTap),
-      );
-    }
-    return Tooltip(
-      message: tip,
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppleColor.actionBlue,
-          borderRadius: BorderRadius.circular(AppleRadius.sm),
+        // 触觉（审计 2026-10-09）：工具切换是高频「选档」操作，
+        // selectionClick 与系统拾取器同级的最轻反馈；已选中重复点按不震。
+        child: GestureDetector(
+          onTap: () {
+            if (!selected) HapticFeedback.selectionClick();
+            onTap();
+          },
+          behavior: HitTestBehavior.opaque,
+          child: button,
         ),
-        child: IconButton(icon: _toolIcon(icon, true), onPressed: onTap),
       ),
     );
   }

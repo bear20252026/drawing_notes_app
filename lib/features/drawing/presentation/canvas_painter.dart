@@ -395,50 +395,75 @@ class CanvasPainter extends CustomPainter {
     canvas.drawCircle(point, stroke.width / 2, paint);
   }
 
+  /// 纸张模板 Path 缓存（性能，审计 2026-10-09）：
+  /// dot 纸 A4 每帧 ~2700 次 drawCircle、grid/lined 同量级——平移/缩放
+  /// 期间逐帧重画纯浪费（模板几何静态）。按 (type,w,h) 缓存 Path，
+  /// 命中后一次 drawPath。容量 4：同尺寸纸张切换有限，超出即丢最旧。
+  static final _paperPathCache = <_PaperTemplateKey, Path>{};
+
+  Path _buildPaperTemplatePath(PaperType type, double w, double h) {
+    final key = _PaperTemplateKey(type, w, h);
+    return _paperPathCache.putIfAbsent(key, () {
+      if (_paperPathCache.length >= 4) {
+        _paperPathCache.remove(_paperPathCache.keys.first);
+      }
+      final path = Path();
+      switch (type) {
+        case PaperType.grid:
+          const step = 40.0;
+          for (var x = 0.0; x <= w; x += step) {
+            path.moveTo(x, 0);
+            path.lineTo(x, h);
+          }
+          for (var y = 0.0; y <= h; y += step) {
+            path.moveTo(0, y);
+            path.lineTo(w, y);
+          }
+        case PaperType.lined:
+          const margin = 60.0;
+          const step = 48.0;
+          for (var y = margin; y <= h; y += step) {
+            path.moveTo(0, y);
+            path.lineTo(w, y);
+          }
+        case PaperType.dot:
+          const step = 32.0;
+          for (var x = step / 2; x < w; x += step) {
+            for (var y = step / 2; y < h; y += step) {
+              path.addOval(Rect.fromCircle(center: Offset(x, y), radius: 1.5));
+            }
+          }
+        case PaperType.blank:
+          break;
+      }
+      return path;
+    });
+  }
+
   /// 绘制纸张模板背景（仅空白页时跳过）。
   void _paintPaperTemplate(Canvas canvas, DrawingDocument doc) {
     final type = doc.paperType;
     if (type == PaperType.blank) return;
 
-    final w = doc.width.toDouble();
-    final h = doc.height.toDouble();
-    final linePaint = Paint()
-      ..color = CanvasPainter.paperLineColor
-      ..strokeWidth = 1;
-
-    switch (type) {
-      case PaperType.grid:
-        // 网格：固定间距的纵横线。
-        const step = 40.0;
-        for (var x = 0.0; x <= w; x += step) {
-          canvas.drawLine(Offset(x, 0), Offset(x, h), linePaint);
-        }
-        for (var y = 0.0; y <= h; y += step) {
-          canvas.drawLine(Offset(0, y), Offset(w, y), linePaint);
-        }
-        break;
-      case PaperType.lined:
-        // 横线：顶部留白（标题区），下方等距横线。
-        const margin = 60.0;
-        const step = 48.0;
-        for (var y = margin; y <= h; y += step) {
-          canvas.drawLine(Offset(0, y), Offset(w, y), linePaint);
-        }
-        break;
-      case PaperType.dot:
-        // 点阵：固定间距的圆点。
-        const step = 32.0;
-        final dotPaint = Paint()
-          ..color = CanvasPainter.paperDotColor
-          ..style = PaintingStyle.fill;
-        for (var x = step / 2; x < w; x += step) {
-          for (var y = step / 2; y < h; y += step) {
-            canvas.drawCircle(Offset(x, y), 1.5, dotPaint);
-          }
-        }
-        break;
-      case PaperType.blank:
-        break;
+    final path = _buildPaperTemplatePath(
+      type,
+      doc.width.toDouble(),
+      doc.height.toDouble(),
+    );
+    if (path.getBounds().isEmpty) return;
+    // grid/lined 的 Path 是零面积线段——必须 stroke；dot 的 Path 是
+    // 内建圆点矩形——必须 fill。两种风格各自绘制。
+    if (type == PaperType.dot) {
+      final dotPaint = Paint()
+        ..color = CanvasPainter.paperDotColor
+        ..style = PaintingStyle.fill;
+      canvas.drawPath(path, dotPaint);
+    } else {
+      final linePaint = Paint()
+        ..color = CanvasPainter.paperLineColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1;
+      canvas.drawPath(path, linePaint);
     }
   }
 
@@ -600,4 +625,23 @@ class MiniMapPainter extends CustomPainter {
       oldDelegate.viewport != viewport ||
       oldDelegate._viewport != _viewport ||
       oldDelegate._paintViewsFingerprint != _paintViewsFingerprint;
+}
+
+/// 纸张模板 Path 缓存键：模板类型 + 画布尺寸（几何完全决定 Path）。
+class _PaperTemplateKey {
+  const _PaperTemplateKey(this.type, this.width, this.height);
+
+  final PaperType type;
+  final double width;
+  final double height;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _PaperTemplateKey &&
+      other.type == type &&
+      other.width == width &&
+      other.height == height;
+
+  @override
+  int get hashCode => Object.hash(type, width, height);
 }

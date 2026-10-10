@@ -80,8 +80,7 @@ class AppLockSettingsPage extends StatelessWidget {
                     Expanded(
                       child: Text(
                         l10n?.lockDescription ??
-                            '开启后，打开应用需要输入密码才能进入；'
-                                '切后台超过宽限期回来同样需要。',
+                            '开启后，打开应用需要输入密码才能进入；切后台超过宽限期回来同样需要。',
                       ),
                     ),
                   ],
@@ -119,8 +118,7 @@ class AppLockSettingsPage extends StatelessWidget {
                       ),
                       title: Text(
                         l10n?.lockPlaintextNotice ??
-                            '当前未设置应用密码：笔记正文与图片在本机以未加密形式保存。'
-                                '设置密码后，新写入的内容会以 AES-256-GCM 加密存储。',
+                            '当前未设置应用密码：笔记正文与图片在本机以未加密形式保存。设置密码后，新写入的内容会以 AES-256-GCM 加密存储。',
                       ),
                     ),
                   if (service.isConfigured)
@@ -163,8 +161,7 @@ class AppLockSettingsPage extends StatelessWidget {
                     child: Text(
                       service.isConfigured
                           ? (l10n?.lockBindHintBound ??
-                                '绑定重置密码盘后，忘记密码可用它重置；'
-                                    '未绑定时忘记密码将无法找回。')
+                                '绑定重置密码盘后，忘记密码可用它重置；未绑定时忘记密码将无法找回。')
                           : (l10n?.lockBindHintUnbound ??
                                 '开启应用锁后，可绑定重置密码盘以防忘记密码。'),
                       style: AppleType.captionStyle(
@@ -218,8 +215,7 @@ class AppLockSettingsPage extends StatelessWidget {
             children: [
               Text(
                 l10n?.lockGraceHint ??
-                    '离开应用后在宽限期内回来，无需重新输入密码。'
-                        '宽限期只免锁屏，加密文件与笔记的密码仍会重新要求。',
+                    '离开应用后在宽限期内回来，无需重新输入密码。宽限期只免锁屏，加密文件与笔记的密码仍会重新要求。',
                 style: AppleType.captionStyle(
                   Theme.of(dialogContext).colorScheme.outline,
                 ),
@@ -347,8 +343,7 @@ class AppLockSettingsPage extends StatelessWidget {
       SnackBar(
         content: Text(
           AppLocalizations.of(context)?.lockBindSuccess ??
-              '已绑定。请妥善保管 U 盘：U 盘丢失将无法重置密码，'
-                  'U 盘上的 password_reset_disk.key 文件请勿删除',
+              '已绑定。请妥善保管 U 盘：U 盘丢失将无法重置密码，U 盘上的 password_reset_disk.key 文件请勿删除',
         ),
         duration: bindSuccessSnackDuration,
       ),
@@ -425,7 +420,12 @@ class AppLockSettingsPage extends StatelessWidget {
       );
       return;
     }
-    await service.setPin(pin);
+    // P1-2 原子性（审计 2026-10-09）：**先保险库、后开屏 PIN**——
+    // 反序时 changePin 失败（磁盘满/AV 锁文件）会让开屏 PIN 已是新值、
+    // 保险库仍被旧 PIN 包裹：此后每次冷启动门验过、保险库 GCM 认证失败，
+    // 全部密文不可读且无自救。调序后失败点落在 service.setPin（SharedPreferences
+    // 写，几乎不失败且失败仅是可重试的 PIN 门不一致），把不可逆的数据丢失
+    // 换成可重试的不一致。
     // 批次①b：保险库与开屏密码同步生命周期。
     final vault = this.vault;
     if (vault != null) {
@@ -448,6 +448,7 @@ class AppLockSettingsPage extends StatelessWidget {
         return;
       }
     }
+    await service.setPin(pin);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

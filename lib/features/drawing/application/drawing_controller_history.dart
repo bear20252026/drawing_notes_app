@@ -74,6 +74,10 @@ extension DrawingControllerHistoryOps on DrawingController {
   void toggleLayerVisibility(int index) => layerService.toggleVisibility(index);
   void setLayerOpacity(int index, double value) =>
       layerService.setOpacity(index, value);
+
+  /// 结束一次透明度滑块调整：提交可撤销窄命令（与显隐/换位同口径）。
+  void settleLayerOpacity(int index) =>
+      _layerEditingSession.settleLayerOpacity(index);
   void moveLayerUp(int index) => layerService.moveLayerUp(index);
   void moveLayerDown(int index) => layerService.moveLayerDown(index);
   void mergeLayerDown(int index) => layerService.mergeLayerDown(index);

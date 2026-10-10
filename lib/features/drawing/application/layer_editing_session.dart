@@ -20,6 +20,10 @@ abstract interface class LayerEditingHost {
   /// LayerVisibilityCommand 入栈。
   void pushLayerVisibility(int index, bool before, bool after);
 
+  /// 透明度调整窄命令：滑块 onChangeEnd 提交 (索引, 前, 后)，
+  /// 与显隐/换位同口径可撤销。
+  void pushLayerOpacity(int index, double before, double after);
+
   /// 相邻换位窄命令：只记 (from, to)，由宿主组装 LayerReorderCommand 入栈。
   void pushLayerMove(int from, int to);
 
@@ -101,13 +105,29 @@ class LayerEditingSession {
     _host.notifyChanged();
   }
 
-  /// 设置图层透明度（0~1）。
+  /// 调整前的透明度（滑块拖动起点记录，onChangeEnd 提交窄命令）。
+  double? _pendingOpacityBefore;
+
+  /// 设置图层透明度（0~1）。拖动中只改值；[settleLayerOpacity] 在
+  /// onChangeEnd 提交可撤销窄命令——此前透明度调整完全不可撤销
+  /// （与显隐/换位的可撤销口径不一致）。
   void setLayerOpacity(int index, double value) {
     final layer = _document.layers[index];
     if ((layer.opacity - value).abs() < 0.001) return;
+    _pendingOpacityBefore ??= layer.opacity;
     layer.opacity = value.clamp(0.0, 1.0);
     _document.touch();
     _host.notifyChanged();
+  }
+
+  /// 结束一次透明度调整：有净变化才提交 (索引, 前, 后) 窄命令。
+  void settleLayerOpacity(int index) {
+    final before = _pendingOpacityBefore;
+    _pendingOpacityBefore = null;
+    if (before == null) return;
+    final after = _document.layers[index].opacity;
+    if ((before - after).abs() < 0.001) return;
+    _host.pushLayerOpacity(index, before, after);
   }
 
   /// 上移图层（向更上层移动一格；相邻换位走窄命令）。

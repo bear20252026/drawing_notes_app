@@ -24,9 +24,14 @@ import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 /// ```
 class GlassFab extends StatelessWidget {
   /// 圆形玻璃 FAB（M3 默认 56dp）。
-  const GlassFab({super.key, required this.onPressed, this.child, this.heroTag})
-    : _extendedIcon = null,
-      _extendedLabel = null;
+  const GlassFab({
+    super.key,
+    required this.onPressed,
+    this.child,
+    this.heroTag,
+    this.tooltip,
+  }) : _extendedIcon = null,
+       _extendedLabel = null;
 
   /// 胶囊玻璃 FAB（M3 extended，高 56dp）。
   const GlassFab.extended({
@@ -35,6 +40,7 @@ class GlassFab extends StatelessWidget {
     required Widget icon,
     required Widget label,
     this.heroTag,
+    this.tooltip,
   }) : child = null,
        _extendedIcon = icon,
        _extendedLabel = label;
@@ -42,6 +48,10 @@ class GlassFab extends StatelessWidget {
   final VoidCallback? onPressed;
   final Widget? child;
   final Object? heroTag;
+
+  /// 无障碍标签（P1-6）：FAB 主创建入口此前是纯图标无名按钮——读屏用户
+  /// 听到的是空按钮，悬停也无提示。内部包 Tooltip + Semantics(button)。
+  final String? tooltip;
   final Widget? _extendedIcon;
   final Widget? _extendedLabel;
 
@@ -83,7 +93,7 @@ class GlassFab extends StatelessWidget {
       borderRadius: const BorderRadius.all(Radius.circular(kRadius)),
       sigma: kSigma,
       surfaceOpacity: kSurfaceOpacity,
-      child: fab,
+      child: tooltip == null ? fab : Tooltip(message: tooltip!, child: fab),
     );
   }
 }

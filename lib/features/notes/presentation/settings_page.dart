@@ -113,7 +113,7 @@ class SettingsPage extends StatelessWidget {
                   ),
                 ListTile(
                   leading: const Icon(Icons.enhanced_encryption_rounded),
-                  title: Text(l10n?.settingsStandalonePassword ?? '单文件密码'),
+                  title: Text(l10n?.settingsStandalonePassword ?? '独立密码'),
                   subtitle: Text(
                     l10n?.settingsStandalonePasswordHint ??
                         '个别画布的第二道锁（在画布卡片设置）',
@@ -245,13 +245,13 @@ class SettingsPage extends StatelessWidget {
       builder: (context) {
         final l10n = AppLocalizations.of(context);
         return AlertDialog(
-          title: Text(l10n?.settingsStandalonePassword ?? '单文件密码'),
+          title: Text(l10n?.settingsStandalonePassword ?? '独立密码'),
           content: Text(
             l10n?.settingsFilePasswordHelpContent ??
                 '在首页或全部文档页，点击画布卡片上的锁形按钮，可为单个画布'
                     '设置独立密码。设置后打开该画布需要输入此密码，缩略图也会'
                     '隐藏为锁形占位。\n\n'
-                    '单文件密码独立于开屏密码——即使有人解锁了你的应用，没有'
+                    '独立密码与开屏密码相互独立——即使有人解锁了你的应用，没有'
                     '这个密码也打不开对应的画布。',
           ),
           actions: [
@@ -403,8 +403,7 @@ class SettingsPage extends StatelessWidget {
         title: l10n?.restoreConfirmTitle ?? '从备份恢复',
         content:
             l10n?.restoreConfirmBody ??
-            '恢复将覆盖当前全部数据（含保险库密钥）。数据已就绪，'
-                '确认后应用将退出，重新打开时生效。',
+            '恢复将覆盖当前全部数据（含保险库密钥）。数据已就绪，确认后应用将退出，重新打开时生效。',
         confirmText: l10n?.restoreConfirmAction ?? '确认恢复',
         dangerous: true,
       );
@@ -556,18 +555,16 @@ class _PasswordLayersCard extends StatelessWidget {
               title: l10n?.settingsLayer1Title ?? '第 1 层 · 开屏密码',
               desc:
                   l10n?.settingsLayer1Desc ??
-                  '解锁应用，同时解开主密钥保险库——保护全部画布与笔记。'
-                      '忘记时可用重置密码盘重设。',
+                  '解锁应用，同时解开主密钥保险库——保护全部画布与笔记。忘记时可用重置密码盘重设。',
             ),
             _divider(scheme),
             _layer(
               context,
               icon: Icons.enhanced_encryption_rounded,
-              title: l10n?.settingsLayer2Title ?? '第 2 层 · 文件密码',
+              title: l10n?.settingsLayer2Title ?? '第 2 层 · 独立密码',
               desc:
                   l10n?.settingsLayer2Desc ??
-                  '给单个画布/分页画布/笔记另设的独立密码，独立于开屏密码。'
-                      '忘记时可用重置密码盘重设。',
+                  '给单个画布/分页画布/笔记另设的独立密码，独立于开屏密码。忘记时可用重置密码盘重设。',
             ),
             _divider(scheme),
             _layer(
@@ -576,8 +573,7 @@ class _PasswordLayersCard extends StatelessWidget {
               title: l10n?.settingsLayer3Title ?? '重置密码盘（U 盘）',
               desc:
                   l10n?.settingsLayer3Desc ??
-                  '插入 U 盘 → 点「忘记密码」→ 重置新密码。'
-                      '开屏密码与文件密码通用同一把盘。',
+                  '插入 U 盘 → 点「忘记密码」→ 重置新密码。开屏密码与独立密码通用同一把盘。',
             ),
           ],
         ),

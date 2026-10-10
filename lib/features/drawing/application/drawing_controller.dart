@@ -657,6 +657,11 @@ class DrawingController extends ChangeNotifier
   }
 
   @override
+  void pushLayerOpacity(int index, double before, double after) {
+    _pushCommand(LayerOpacityCommand(this, index, before, after));
+  }
+
+  @override
   void pushLayerMove(int from, int to) {
     _pushCommand(LayerReorderCommand(this, from, to));
   }
@@ -681,6 +686,9 @@ class DrawingController extends ChangeNotifier
 
   Future<void> _afterStrokeUndoRedo(int layerIndex) async {
     if (_disposed) return;
+    // 笔画命令回放会改写图层笔画集合（增/删/换对象），选区按索引锚定
+    // 的笔画随之失效——统一清除选区，防止陈旧索引进入变换/删除路径。
+    selectionService.clearStrokeSelection();
     // 同步通知一次：撤销/重做状态、工具栏按钮立即刷新（低频操作语义）。
     notifyListeners();
     final layerId = _document.layers[layerIndex].id;
@@ -697,6 +705,8 @@ class DrawingController extends ChangeNotifier
     if (_currentLayerIndex >= _document.layers.length) {
       _currentLayerIndex = _document.layers.length - 1;
     }
+    // 整层快照回放会重建全部笔画列表，选区索引全部失效——先清除再通知。
+    selectionService.clearStrokeSelection();
     _rebuildCacheMap();
     // 同步通知一次：撤销/重做状态、工具栏按钮立即刷新，
     // 不等异步位图重建（重建完成后 _rebuildAll 会再次通知）。

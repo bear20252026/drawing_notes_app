@@ -100,7 +100,7 @@ void main() {
     }
 
     expect(
-      find.text('新建失败：笔记本未能保存，请检查磁盘空间后重试'),
+      find.text('新建失败：分页画布未能保存，请检查磁盘空间后重试'),
       findsOneWidget,
       reason: '保存失败必须提示用户（审计 P2-6）',
     );

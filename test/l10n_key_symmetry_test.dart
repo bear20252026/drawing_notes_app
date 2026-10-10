@@ -113,4 +113,54 @@ void main() {
       reason: '在两份 arb 同时补键，或改用既有的键：\n${offenders.join('\n')}',
     );
   });
+
+  test('门禁C：zh 兜底串与 arb 逐字一致（防漂移）', () {
+    // 审计 2026-10-09：25 处兜底串与 zh arb 漂移（术语改名/截断/语义缺失
+    // 后只改了 arb 没改兜底）。l10n 未注入的路径（测试/深链/局部 rebuild）
+    // 会露出旧文案。本门禁锁「兜底 == zh arb 值」。
+    final zhValues = <String, String>{
+      for (final e in zhArb.entries)
+        if (!e.key.startsWith('@') && e.value is String)
+          e.key: e.value as String,
+    };
+    final fallbackRe = RegExp(
+      r"([A-Za-z_][A-Za-z0-9_]*)\s*\?\?\s*'((?:[^'\\]|\\.)*)'",
+    );
+    final files = Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.dart'))
+        .where((f) => !relPath(f.path).startsWith('lib/l10n/'))
+        .toList();
+
+    final offenders = <String>[];
+    for (final file in files) {
+      final path = relPath(file.path);
+      final src = file.readAsStringSync();
+      final lines = const LineSplitter().convert(src);
+      for (var i = 0; i < lines.length; i++) {
+        final line = lines[i];
+        if (isCommentLine(line)) continue;
+        for (final m in fallbackRe.allMatches(line)) {
+          final key = m.group(1)!;
+          final fb = m.group(2)!;
+          final want = zhValues[key];
+          if (want == null) continue;
+          // 含占位符的键兜底写法是 Dart 插值（$x），形态不同，跳过；
+          // 带 $ 的兜底（含转义）同样跳过——只锁纯文本兜底。
+          if (want.contains('{') || fb.contains(r'$')) continue;
+          if (fb != want) {
+            offenders.add('$path:${i + 1} $key 兜底与 arb 不一致');
+          }
+        }
+      }
+    }
+    expect(
+      offenders,
+      isEmpty,
+      reason:
+          '兜底串必须与 app_zh.arb 逐字一致（l10n 未注入时露出）：\n'
+          '${offenders.join('\n')}',
+    );
+  });
 }

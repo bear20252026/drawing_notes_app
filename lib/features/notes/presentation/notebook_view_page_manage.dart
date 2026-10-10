@@ -176,7 +176,9 @@ extension _NotebookPageManage on _NotebookViewPageState {
               // 与源页保持同源一致，两处列表显示不再分叉。
               page.title = updatedDoc.title;
               page.updatedAt = updatedDoc.updatedAt;
-              await widget.storage.save(_notebook);
+              // 加密笔记本必须走 _save 的 encryptAndSave 分支——直接
+              // storage.save 对密文笔记本抛 StateError，每次保存必失败。
+              await _save();
             },
           ),
         ),
@@ -542,6 +544,15 @@ extension _NotebookPageManage on _NotebookViewPageState {
               if (_notebook.pages.any((p) => p.id == page.id)) return;
               final at = index.clamp(0, _notebook.pages.length);
               _applyState(() => _notebook.pages.insert(at, page));
+              // P2-5（审计 2026-10-09）：删页时联动把块文档副本软删进
+              // 回收站——撤销必须把它一并恢复，否则页回来了、副本仍躺在
+              // 回收站里 30 天后被清（下次打开会重建，但标签/历史丢失）。
+              // 副本不存在时 restoreDocument 返回 false，无副作用。
+              try {
+                await blockDocStore.restoreDocument(page.id);
+              } catch (_) {
+                // 恢复失败不阻断页面撤销主流程。
+              }
               try {
                 await _save();
               } catch (_) {

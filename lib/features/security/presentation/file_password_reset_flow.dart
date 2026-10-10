@@ -30,7 +30,7 @@ abstract final class FilePasswordResetFlow {
     // 1. 说明确认。
     final proceed = await PasswordResetSteps.confirm(
       context,
-      title: l10n0?.resetForgotFilePassword ?? '忘记文件密码',
+      title: l10n0?.resetForgotFilePassword ?? '忘记独立密码',
       message:
           l10n0?.resetIntroCanvas(name) ??
           '使用重置密码盘（U 盘）重置$name的独立密码。\n\n'

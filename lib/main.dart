@@ -14,6 +14,7 @@ import 'app.dart';
 import 'core/security/audit_logger.dart';
 import 'core/security/root_guard.dart';
 import 'l10n/app_localizations.dart';
+
 import 'package:drawing_notes_app/shared/widgets/liquid_glass_shader.dart';
 
 /// 单实例锁（借鉴 QOwnNotes 二次启动聚焦：
@@ -90,9 +91,8 @@ Future<bool> _isProcessAlive(int pid) async {
     if (Platform.isWindows) {
       final r = await Process.run('tasklist', ['/FI', 'PID eq $pid', '/NH']);
       // tasklist /NH 行如 `app.exe  1232 Console ...`——按词边界匹配。
-      final found = RegExp(
-        '(^|\\s)$pid(\\s|\$)',
-      ).hasMatch(r.stdout.toString().replaceAll(',', ''));
+      final found = RegExp('(^|\\s)$pid(\\s|\$)')
+          .hasMatch(r.stdout.toString().replaceAll(',', ''));
       return found;
     }
     final r = await Process.run('kill', ['-0', '$pid']);
@@ -203,8 +203,7 @@ class RootRefusalApp extends StatelessWidget {
                     const SizedBox(height: AppleSpacing.sm),
                     Text(
                       l10n?.rootRefusalBody ??
-                          '检测到设备已获取 ROOT 权限。为保护你的加密笔记数据，'
-                              '本应用在已破解设备上拒绝运行。',
+                          '检测到设备已获取 ROOT 权限。为保护你的加密笔记数据，本应用在已破解设备上拒绝运行。',
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -227,22 +226,27 @@ class _BuildErrorFallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // P2-18：深色模式用户此前会看到刺眼纯白错误页。platformBrightness 是
+    // 纯 dart:ui API，不依赖 Theme/l10n——保持「零依赖」动机的同时适配
+    // 深浅（构建失败兜底常量对，不经过任何 token 层）。
+    final isDark =
+        WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+        Brightness.dark;
+    final bg = isDark ? const Color(0xFF101521) : Colors.white;
+    final fg = isDark ? const Color(0xFFEBEDF3) : Colors.black87;
+    final fgMuted = isDark ? const Color(0xFF98989F) : Colors.black54;
     return ColoredBox(
-      color: Colors.white,
+      color: bg,
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.error_outline_rounded,
-              color: Colors.black54,
-              size: 40,
-            ),
+            Icon(Icons.error_outline_rounded, color: fgMuted, size: 40),
             const SizedBox(height: AppleSpacing.sm),
             Text(
               '页面显示出现问题，请返回后重试',
               textAlign: TextAlign.center,
-              style: AppleType.bodyStyle(Colors.black87),
+              style: AppleType.bodyStyle(fg),
             ),
           ],
         ),

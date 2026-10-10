@@ -67,39 +67,47 @@ extension _EditorPageOverlays on _EditorPageState {
         _selectedItemId == chart.id || _multiSelectedIds.contains(chart.id);
     final w = chart.width * _controller.viewScale;
     final h = chart.height * _controller.viewScale;
+    // P2-13：删除淡出与形状同口径——图表此前直接闪没。
+    final chartDeleting = _deletingIds.contains(chart.id);
     return Positioned(
       left: viewPos.dx,
       top: viewPos.dy,
-      child: Semantics(
-        label:
-            AppLocalizations.of(context)?.canvasItemSemantics(
-              AppLocalizations.of(context)?.canvasKindChart ?? '图表',
-            ) ??
-            '画布对象：图表',
-        button: true,
-        child: GestureDetector(
-          onTap: () => _onItemTap(chart.id),
-          // V-04（审计 2026-09-27）：补右键+长按上下文菜单——文字/形状
-          // 都有，图表此前漏配，行为不一致（触屏长按 = 右键等价入口）。
-          onSecondaryTapDown: (d) =>
-              _showItemContextMenu(chart.id, globalAnchor: d.globalPosition),
-          onLongPressStart: (d) =>
-              _showItemContextMenu(chart.id, globalAnchor: d.globalPosition),
-          onPanUpdate: (d) => _dragItem(chart.id, d.delta),
-          onPanEnd: (_) => _notifyChanged(),
-          child: Container(
-            width: w,
-            height: h,
-            decoration: BoxDecoration(
-              color: Theme.of(
-                context,
-              ).colorScheme.surface.withValues(alpha: 0.05),
-              border: selected
-                  ? Border.all(color: AppleColor.actionBlue, width: 1.5)
-                  : null,
-            ),
-            child: CustomPaint(
-              painter: ChartPainter(chart: chart, viewScale: 1),
+      child: AnimatedOpacity(
+        opacity: chartDeleting ? 0 : 1,
+        duration: AppleMotion.dropdown,
+        child: Semantics(
+          label:
+              AppLocalizations.of(context)?.canvasItemSemantics(
+                AppLocalizations.of(context)?.canvasKindChart ?? '图表',
+              ) ??
+              '画布对象：图表',
+          button: true,
+          child: GestureDetector(
+            onTap: () => _onItemTap(chart.id),
+            // V-04（审计 2026-09-27）：补右键+长按上下文菜单——文字/形状
+            // 都有，图表此前漏配，行为不一致（触屏长按 = 右键等价入口）。
+            onSecondaryTapDown: (d) =>
+                _showItemContextMenu(chart.id, globalAnchor: d.globalPosition),
+            onLongPressStart: (d) =>
+                _showItemContextMenu(chart.id, globalAnchor: d.globalPosition),
+            onPanUpdate: (d) => _dragItem(chart.id, d.delta),
+            onPanEnd: (_) {
+              _canvasInteraction.clearTrail();
+              _notifyChanged();
+            },
+            child: Container(
+              width: w,
+              height: h,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface
+                    .withValues(alpha: 0.05),
+                border: selected
+                    ? Border.all(color: AppleColor.actionBlue, width: 1.5)
+                    : null,
+              ),
+              child: CustomPaint(
+                painter: ChartPainter(chart: chart, viewScale: 1),
+              ),
             ),
           ),
         ),
@@ -140,7 +148,10 @@ extension _EditorPageOverlays on _EditorPageState {
             onLongPressStart: (d) =>
                 _showItemContextMenu(shape.id, globalAnchor: d.globalPosition),
             onPanUpdate: (d) => _dragItem(shape.id, d.delta),
-            onPanEnd: (_) => _notifyChanged(),
+            onPanEnd: (_) {
+              _canvasInteraction.clearTrail();
+              _notifyChanged();
+            },
             child: SizedBox(
               width: w,
               height: h,
@@ -357,61 +368,70 @@ extension _EditorPageOverlays on _EditorPageState {
     final h = item.height * _controller.viewScale;
     // 裁剪模式：显示可拖动裁剪框（4 角手柄调整 _cropRect）。
     final cropping = _cropItem?.id == item.id;
+    // P2-13：删除淡出与形状/图表同口径——图片此前直接闪没。
+    final imageDeleting = _deletingIds.contains(item.id);
     return Positioned(
       left: viewPos.dx,
       top: viewPos.dy,
-      child: Semantics(
-        // 与形状/图表覆盖层同款语义包装：图片是可点选/可拖拽的画布对象。
-        label:
-            AppLocalizations.of(context)?.canvasItemSemantics(
-              AppLocalizations.of(context)?.canvasKindImage ?? '图片',
-            ) ??
-            '画布对象：图片',
-        button: true,
-        child: GestureDetector(
-          onTap: () => _onItemTap(item.id),
-          // V-04（审计 2026-09-27）：补右键+长按上下文菜单——与形状/
-          // 图表 overlay 同款（触屏长按 = 右键等价入口）。
-          onSecondaryTapDown: (d) =>
-              _showItemContextMenu(item.id, globalAnchor: d.globalPosition),
-          onLongPressStart: (d) =>
-              _showItemContextMenu(item.id, globalAnchor: d.globalPosition),
-          onPanUpdate: (d) => _dragItem(item.id, d.delta),
-          onPanEnd: (_) => _notifyChanged(),
-          child: Stack(
-            children: [
-              Container(
-                width: w,
-                height: h,
-                decoration: selected || linkSource
-                    ? BoxDecoration(
-                        border: Border.all(
-                          color: linkSource
-                              ? AppleColor.favourite
-                              : AppleColor.actionBlue,
-                          width: 1.5,
-                        ),
-                      )
-                    : null,
-                child: item.filePath.isNotEmpty
-                    ? Image(
-                        // C-06（审计 2026-09-27）：解密服务组合根传线
-                        // （widget.mediaCrypto，见 EditorPage.mediaCrypto）。
-                        image: EncryptedFileImage(
-                          File(item.filePath),
-                          mediaCrypto: widget.mediaCrypto,
-                        ),
-                        fit: BoxFit.contain,
-                        // L-03 语义（专家审计 2026-08-15）：图片可读名。
-                        semanticLabel:
-                            AppLocalizations.of(context)?.noteImageSemantic ??
-                            '笔记图片',
-                      )
-                    : const ColoredBox(color: AppleColor.inkSubtle),
-              ),
-              // 裁剪框 4 角手柄（对齐 Excalidraw 图片裁剪）：拖拽调整 _cropRect。
-              if (cropping && _cropRect != null) ..._buildCropHandles(),
-            ],
+      child: AnimatedOpacity(
+        opacity: imageDeleting ? 0 : 1,
+        duration: AppleMotion.dropdown,
+        child: Semantics(
+          // 与形状/图表覆盖层同款语义包装：图片是可点选/可拖拽的画布对象。
+          label:
+              AppLocalizations.of(context)?.canvasItemSemantics(
+                AppLocalizations.of(context)?.canvasKindImage ?? '图片',
+              ) ??
+              '画布对象：图片',
+          button: true,
+          child: GestureDetector(
+            onTap: () => _onItemTap(item.id),
+            // V-04（审计 2026-09-27）：补右键+长按上下文菜单——与形状/
+            // 图表 overlay 同款（触屏长按 = 右键等价入口）。
+            onSecondaryTapDown: (d) =>
+                _showItemContextMenu(item.id, globalAnchor: d.globalPosition),
+            onLongPressStart: (d) =>
+                _showItemContextMenu(item.id, globalAnchor: d.globalPosition),
+            onPanUpdate: (d) => _dragItem(item.id, d.delta),
+            onPanEnd: (_) {
+              _canvasInteraction.clearTrail();
+              _notifyChanged();
+            },
+            child: Stack(
+              children: [
+                Container(
+                  width: w,
+                  height: h,
+                  decoration: selected || linkSource
+                      ? BoxDecoration(
+                          border: Border.all(
+                            color: linkSource
+                                ? AppleColor.favourite
+                                : AppleColor.actionBlue,
+                            width: 1.5,
+                          ),
+                        )
+                      : null,
+                  child: item.filePath.isNotEmpty
+                      ? Image(
+                          // C-06（审计 2026-09-27）：解密服务组合根传线
+                          // （widget.mediaCrypto，见 EditorPage.mediaCrypto）。
+                          image: EncryptedFileImage(
+                            File(item.filePath),
+                            mediaCrypto: widget.mediaCrypto,
+                          ),
+                          fit: BoxFit.contain,
+                          // L-03 语义（专家审计 2026-08-15）：图片可读名。
+                          semanticLabel:
+                              AppLocalizations.of(context)?.noteImageSemantic ??
+                              '笔记图片',
+                        )
+                      : const ColoredBox(color: AppleColor.inkSubtle),
+                ),
+                // 裁剪框 4 角手柄（对齐 Excalidraw 图片裁剪）：拖拽调整 _cropRect。
+                if (cropping && _cropRect != null) ..._buildCropHandles(),
+              ],
+            ),
           ),
         ),
       ),

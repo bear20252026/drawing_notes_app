@@ -124,7 +124,7 @@ extension _HomePageCreateOps on _HomePageState {
     try {
       await _nbStorage.save(nb);
     } catch (_) {
-      _showSnack(_l10nSafe?.homeCreateFailedFull ?? '新建失败：笔记本未能保存，请检查磁盘空间后重试');
+      _showSnack(_l10nSafe?.homeCreateFailedFull ?? '新建失败：分页画布未能保存，请检查磁盘空间后重试');
       return;
     }
     widget.onDataChanged?.call();

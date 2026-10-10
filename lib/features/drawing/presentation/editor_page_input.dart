@@ -140,6 +140,17 @@ extension _EditorPageInput on _EditorPageState {
         if (last != null) {
           final delta = canvasPoint - last;
           if (delta.distance > 0.001) {
+            // 此前 copy-paste 写反调 moveSelectedDocumentImage（返回 null
+            // 即 no-op）——独立画布单选形状完全拖不动。
+            _controller.moveSelectedDocumentShape(delta);
+            _lastDragCanvas = canvasPoint;
+          }
+        }
+      } else if (_selectionDone && _controller.hasSelectedDocumentImage) {
+        final last = _lastDragCanvas;
+        if (last != null) {
+          final delta = canvasPoint - last;
+          if (delta.distance > 0.001) {
             _controller.moveSelectedDocumentImage(delta);
             _lastDragCanvas = canvasPoint;
           }
@@ -452,6 +463,13 @@ extension _EditorPageInput on _EditorPageState {
     if (_isObjectEraser) {
       _controller.endObjectErase();
       _notifyChanged();
+      return;
+    }
+    // 手型/纯视口手势：从未起笔，endStroke 是 no-op——此前落进兜底
+    // _notifyChanged（无条件 markDirty + 缩略图重光栅 + updatedAt 改写），
+    // 每次平移画布都白付一次整文档保存链。
+    if (_handToolActive) {
+      _handDragLast = null;
       return;
     }
     _controller.endStroke();

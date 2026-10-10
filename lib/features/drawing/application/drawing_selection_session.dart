@@ -287,10 +287,14 @@ class StrokeSelectionEditingSession {
     if (!_selection.centerDirty && _selection.centerCache != null) {
       return _selection.centerCache!;
     }
+    // 索引过滤防御：撤销/重做清选区是第一道闸，这里再兜一层——
+    // 任何越界索引直接跳过，避免 RangeError。
+    final layerStrokes = _host.currentLayer.strokes;
     final strokes = <Stroke>[
       for (final index in _selection.selection.selectedStrokeIndices)
-        _host.currentLayer.strokes[index],
+        if (index >= 0 && index < layerStrokes.length) layerStrokes[index],
     ];
+    if (strokes.isEmpty) return _selection.selection.center;
     final center =
         SelectionGeometryService.centerOfStrokes(strokes) ??
         _selection.selection.center;
@@ -302,18 +306,21 @@ class StrokeSelectionEditingSession {
     // 位置在手势期间稳定（变换手势独占画布，无并发增删）。
     // ??= 保证一次手势只在首个采样锚定一次。
     if (_selection.transformBefore != null) return;
+    final layerStrokes = _host.currentLayer.strokes;
     _selection.transformBefore = <({int index, Stroke stroke})>[
       for (final index in _selection.selection.selectedStrokeIndices)
-        (index: index, stroke: _host.currentLayer.strokes[index]),
+        if (index >= 0 && index < layerStrokes.length)
+          (index: index, stroke: layerStrokes[index]),
     ];
     _selection.transformBeforeLayer = _host.currentLayer;
-    _selection.transformBeforeStrokeCount = _host.currentLayer.strokes.length;
+    _selection.transformBeforeStrokeCount = layerStrokes.length;
   }
 
   void _transformSelected(Offset Function(Offset) transform) {
     final indices = _selection.selection.selectedStrokeIndices;
     final strokes = _host.currentLayer.strokes;
     for (final index in indices.reversed) {
+      if (index < 0 || index >= strokes.length) continue;
       final old = strokes[index];
       final points = <StrokePoint>[
         for (final point in old.points)
@@ -377,6 +384,7 @@ class StrokeSelectionEditingSession {
     final before = _snapshotLayers();
     final strokes = _host.currentLayer.strokes;
     for (final index in _selection.selection.selectedStrokeIndices.reversed) {
+      if (index < 0 || index >= strokes.length) continue;
       strokes.removeAt(index);
     }
     _host.document.touch();
@@ -389,9 +397,11 @@ class StrokeSelectionEditingSession {
   /// 复制选中的笔画到会话剪贴板（不修改图层）。
   void copySelectedStrokes() {
     if (!hasSelectedStrokes) return;
+    final layerStrokes = _host.currentLayer.strokes;
     _selection.clipboard = <Stroke>[
       for (final index in _selection.selection.selectedStrokeIndices)
-        _copyStroke(_host.currentLayer.strokes[index]),
+        if (index >= 0 && index < layerStrokes.length)
+          _copyStroke(layerStrokes[index]),
     ];
   }
 

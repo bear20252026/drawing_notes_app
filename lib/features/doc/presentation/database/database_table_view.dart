@@ -17,7 +17,10 @@ import '../../../../core/theme/apple_design.dart';
 import '../../../../core/theme/apple_focus.dart';
 
 /// 表视图。
-class DatabaseTableView extends StatelessWidget {
+///
+/// P2-6（审计 2026-10-09）：Stateful 化以持有共享横向滚动 controller——
+/// 表头与每行此前各自独立 SingleChildScrollView，横向滚动后列错位。
+class DatabaseTableView extends StatefulWidget {
   const DatabaseTableView({
     super.key,
     required this.fields,
@@ -64,14 +67,29 @@ class DatabaseTableView extends StatelessWidget {
   final ValueChanged<NoteRecord> onRemoveRecord;
 
   @override
+  State<DatabaseTableView> createState() => _DatabaseTableViewState();
+}
+
+class _DatabaseTableViewState extends State<DatabaseTableView> {
+  /// 表头与全部数据行共享的横向滚动 controller：任一横滚，表头与所有
+  /// 行列严格对齐（此前每行独立 controller，滚过即错位）。
+  final ScrollController _hScroll = ScrollController();
+
+  @override
+  void dispose() {
+    _hScroll.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (fields.isEmpty) {
+    if (widget.fields.isEmpty) {
       return _empty(
         context,
         AppLocalizations.of(context)?.dbNoFieldsYet ?? '还没有字段，点击“添加字段”开始建表',
       );
     }
-    if (records.isEmpty) {
+    if (widget.records.isEmpty) {
       return _empty(
         context,
         AppLocalizations.of(context)?.dbNoRecordsYet ?? '还没有记录，点击“添加记录”',
@@ -81,17 +99,17 @@ class DatabaseTableView extends StatelessWidget {
     final header = _header(context);
     // 行级虚拟化：builder 只 build 视口内（+ cacheExtent）可见行。
     final body = ListView.builder(
-      itemCount: records.length,
+      itemCount: widget.records.length,
       padding: EdgeInsets.zero,
-      itemBuilder: (context, i) => _dataRow(context, records[i]),
+      itemBuilder: (context, i) => _dataRow(context, widget.records[i]),
     );
 
     // 大数据集：限高内部滚动 + 行级虚拟化。交互语义与 list 视图一致：
     // 大表在约一屏高内滚动，不再把文档页无限撑长。
-    // 有界父级传入 viewportHeight 时，SizedBox 会被父级（Expanded）紧约束，
+    // 有界父级传入 widget.viewportHeight 时，SizedBox 会被父级（Expanded）紧约束，
     // 高度自动取剩余空间——无需在此再减 chrome。
-    if (records.length > largeRecordThreshold) {
-      final vp = viewportHeight ?? maxViewportHeight;
+    if (widget.records.length > DatabaseTableView.largeRecordThreshold) {
+      final vp = widget.viewportHeight ?? DatabaseTableView.maxViewportHeight;
       return SizedBox(
         height: vp,
         child: Column(
@@ -114,9 +132,9 @@ class DatabaseTableView extends StatelessWidget {
         ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: records.length,
+          itemCount: widget.records.length,
           padding: EdgeInsets.zero,
-          itemBuilder: (context, i) => _dataRow(context, records[i]),
+          itemBuilder: (context, i) => _dataRow(context, widget.records[i]),
         ),
       ],
     );
@@ -153,10 +171,11 @@ class DatabaseTableView extends StatelessWidget {
     return SizedBox(
       height: AppleTouch.minTarget,
       child: SingleChildScrollView(
+        controller: _hScroll,
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            for (final f in fields)
+            for (final f in widget.fields)
               SizedBox(
                 width: _columnWidth(f),
                 child: Align(
@@ -178,12 +197,13 @@ class DatabaseTableView extends StatelessWidget {
 
   Widget _dataRow(BuildContext context, NoteRecord record) {
     return SizedBox(
-      height: rowHeight,
+      height: DatabaseTableView.rowHeight,
       child: SingleChildScrollView(
+        controller: _hScroll,
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            for (final f in fields)
+            for (final f in widget.fields)
               SizedBox(
                 width: _columnWidth(f),
                 child: Align(
@@ -205,15 +225,15 @@ class DatabaseTableView extends StatelessWidget {
   }
 
   Widget _sortableHeader(BuildContext context, NoteFieldDef field) {
-    final isSorted = sortFieldId == field.id;
+    final isSorted = widget.sortFieldId == field.id;
     final arrow = isSorted
         ? Icon(
-            sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+            widget.sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
             size: 14,
           )
         : const Icon(Icons.arrow_upward, size: 14, color: Colors.transparent);
     return AppleFocusRing(borderRadius: 0, child: InkWell(
-      onTap: () => onSort(field),
+      onTap: () => widget.onSort(field),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -234,7 +254,7 @@ class DatabaseTableView extends StatelessWidget {
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 60),
             onSelected: (v) {
-              if (v == 'remove') onRemoveField(field);
+              if (v == 'remove') widget.onRemoveField(field);
             },
             itemBuilder: (context) => [
               PopupMenuItem<String>(
@@ -270,7 +290,7 @@ class DatabaseTableView extends StatelessWidget {
             child: AppleFocusRing(
               borderRadius: 0,
               child: InkWell(
-                onTap: () => onToggleCheckbox(record, field),
+                onTap: () => widget.onToggleCheckbox(record, field),
                 child: Center(
                   child: Icon(
                     value ? Icons.check_box : Icons.check_box_outline_blank,
@@ -287,7 +307,7 @@ class DatabaseTableView extends StatelessWidget {
       case NoteFieldType.select:
         final current = record.cell(field.id);
         return AppleFocusRing(borderRadius: AppleRadius.xs, child: InkWell(
-          onTap: () => onPickSelect(record, field),
+          onTap: () => widget.onPickSelect(record, field),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
@@ -308,9 +328,9 @@ class DatabaseTableView extends StatelessWidget {
         ));
       case NoteFieldType.number:
         return AppleFocusRing(borderRadius: 0, child: InkWell(
-          onTap: () => onEditCell(record, field),
+          onTap: () => widget.onEditCell(record, field),
           child: Text(
-            displayValue(record, field),
+            widget.displayValue(record, field),
             style: AppleType.controlStyle(
               Theme.of(context).colorScheme.onSurface,
             ).copyWith(fontWeight: FontWeight.w400),
@@ -320,9 +340,9 @@ class DatabaseTableView extends StatelessWidget {
       case NoteFieldType.date:
       case NoteFieldType.text:
         return AppleFocusRing(borderRadius: 0, child: InkWell(
-          onTap: () => onEditCell(record, field),
+          onTap: () => widget.onEditCell(record, field),
           child: Text(
-            displayValue(record, field),
+            widget.displayValue(record, field),
             // 14/400/1.43 = 梯子里的 {typography.caption}；会折行到 2 行。
             style: AppleTypeScale.of(AppleTypeScale.caption, null),
             maxLines: 2,
@@ -337,7 +357,7 @@ class DatabaseTableView extends StatelessWidget {
       tooltip: AppLocalizations.of(context)?.dbDeleteRecord ?? '删除记录',
       visualDensity: VisualDensity.compact,
       icon: const Icon(Icons.close, size: 16),
-      onPressed: () => onRemoveRecord(record),
+      onPressed: () => widget.onRemoveRecord(record),
     );
   }
 }

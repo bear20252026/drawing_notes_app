@@ -21,6 +21,7 @@ class TagsView extends StatefulWidget {
     super.key,
     required this.docs,
     required this.onOpenDoc,
+    this.onToggleFavorite,
     this.loadTags,
   });
 
@@ -30,6 +31,10 @@ class TagsView extends StatefulWidget {
   /// 打开文档回调（V-13 审计 2026-09-27：标签下钻文档行此前传空回调
   /// `onOpenDoc: () {}`——可点但毫无反应的死入口）。
   final void Function(AllDoc doc) onOpenDoc;
+
+  /// 切换收藏回调（P4-5，审计 2026-10-09：星标此前是 `() {}` 死按钮——
+  /// 可点无任何反馈；null 时 AllDocRow 自身兜底为不可点）。
+  final void Function(AllDoc doc)? onToggleFavorite;
 
   /// 标签注册表读取。
   final Future<List<DocTag>> Function()? loadTags;
@@ -42,6 +47,10 @@ class _TagsViewState extends State<TagsView> {
   List<DocTag>? _tags;
   String? _selectedTagId;
 
+  /// 加载失败标记（P1-12）：此前 loadTags 抛错 _tags 永远为 null——
+  /// 骨架屏无限播放，用户没有任何恢复入口。
+  Object? _error;
+
   @override
   void initState() {
     super.initState();
@@ -49,15 +58,44 @@ class _TagsViewState extends State<TagsView> {
   }
 
   Future<void> _reload() async {
-    final tags = await widget.loadTags?.call() ?? const <DocTag>[];
-    if (!mounted) return;
-    setState(() => _tags = tags);
+    try {
+      final tags = await widget.loadTags?.call() ?? const <DocTag>[];
+      if (!mounted) return;
+      setState(() {
+        _tags = tags;
+        _error = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tags = _tags;
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              AppLocalizations.of(context)?.docsLoadFailedRetry ??
+                  '加载失败，请下拉刷新重试',
+              style: TextStyle(
+                color: AppleColor.errorTextOf(theme.colorScheme),
+              ),
+            ),
+            const SizedBox(height: AppleSpacing.sm),
+            OutlinedButton(
+              onPressed: _reload,
+              child: Text(AppLocalizations.of(context)?.homeRetry ?? '重试'),
+            ),
+          ],
+        ),
+      );
+    }
     if (tags == null) {
       // 审计二-6：列表加载用骨架屏（形态先行），与全部文档页同语言。
       return const Center(child: SkeletonList(rows: 4));
@@ -91,24 +129,27 @@ class _TagsViewState extends State<TagsView> {
             child: Row(
               children: [
                 // 热区补足 44（审计二-1）：18px 图标 + 垂直 13px 内边距。
-                AppleFocusRing(borderRadius: AppleRadius.sm, child: InkWell(
-                  onTap: () => setState(() => _selectedTagId = null),
-                  borderRadius: BorderRadius.circular(AppleRadius.sm),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 13,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.arrow_back_rounded, size: 18),
-                        SizedBox(width: 4),
-                        Text(AppLocalizations.of(context)?.tagsAll ?? '全部标签'),
-                      ],
+                AppleFocusRing(
+                  borderRadius: AppleRadius.sm,
+                  child: InkWell(
+                    onTap: () => setState(() => _selectedTagId = null),
+                    borderRadius: BorderRadius.circular(AppleRadius.sm),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 13,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.arrow_back_rounded, size: 18),
+                          SizedBox(width: 4),
+                          Text(AppLocalizations.of(context)?.tagsAll ?? '全部标签'),
+                        ],
+                      ),
                     ),
                   ),
-                )),
+                ),
                 const SizedBox(width: 12),
                 Text(
                   '# ${tagName ?? ''}',
@@ -135,7 +176,9 @@ class _TagsViewState extends State<TagsView> {
                     itemBuilder: (context, i) => AllDocRow(
                       doc: docs[i],
                       onOpenDoc: () => widget.onOpenDoc(docs[i]),
-                      onToggleFavorite: () {},
+                      onToggleFavorite: widget.onToggleFavorite == null
+                          ? null
+                          : () => widget.onToggleFavorite!(docs[i]),
                     ),
                   ),
           ),

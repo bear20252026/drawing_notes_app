@@ -3,6 +3,7 @@
 // editor_components.dart（export 桶兼容）或直接本文件。
 
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
@@ -39,9 +40,8 @@ class ShortcutRow extends StatelessWidget {
             ),
             child: Text(
               shortcut,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
           const SizedBox(width: 12),
@@ -132,12 +132,15 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
                   : AppLocalizations.of(context)?.pomodoroStart ?? '开始',
               icon: Icon(running ? Icons.pause : Icons.play_arrow, size: 18),
               visualDensity: VisualDensity.compact,
+              // P1-8：开始/重置是高频触屏操作，补 44px 最小命中约束。
+              constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
               onPressed: _toggle,
             ),
             IconButton(
               tooltip: AppLocalizations.of(context)?.pomodoroReset ?? '重置',
               icon: const Icon(Icons.refresh, size: 18),
               visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
               onPressed: _reset,
             ),
           ],
@@ -225,9 +228,8 @@ class _PaginationPreviewState extends State<PaginationPreview> {
                 children: [
                   Expanded(
                     child: Text(
-                      AppLocalizations.of(
-                            context,
-                          )?.pageIndicator(i + 1, pages.length) ??
+                      AppLocalizations.of(context)
+                              ?.pageIndicator(i + 1, pages.length) ??
                           '第 ${i + 1} 页 / 共 ${pages.length} 页',
                       style: Theme.of(context).textTheme.labelSmall,
                     ),

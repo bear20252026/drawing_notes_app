@@ -68,6 +68,9 @@ void main() {
   testWidgets('R6 星标/更多操作读屏语义（状态化 label + button 标志）', (tester) async {
     final handle = tester.ensureSemantics();
     await _pumpDesktop(tester);
+    // 列表错位入场（StaggeredEntrance）首帧 opacity=0——RenderOpacity
+    // 在 0 时把子树排除出语义树（框架行为）；推进伪时钟等入场完成再断言。
+    await tester.pumpAndSettle();
 
     final star = tester.getSemantics(find.byIcon(Icons.star_border_rounded));
     expect(star.label, '添加收藏');

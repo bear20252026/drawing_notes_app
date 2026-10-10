@@ -14,7 +14,12 @@ extension _HomePageTabs on _HomePageState {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_error!, style: const TextStyle(color: AppleColor.errorRed)),
+            Text(
+              _error!,
+              style: TextStyle(
+                color: AppleColor.errorTextOf(Theme.of(context).colorScheme),
+              ),
+            ),
             const SizedBox(height: 8),
             OutlinedButton(
               onPressed: _refresh,
@@ -197,16 +202,19 @@ extension _HomePageTabs on _HomePageState {
               ),
               leading: CircleAvatar(
                 backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                foregroundColor: Theme.of(
-                  context,
-                ).colorScheme.onPrimaryContainer,
+                foregroundColor: Theme.of(context)
+                    .colorScheme
+                    .onPrimaryContainer,
                 child: Icon(
                   isTyped ? Icons.edit_note_rounded : Icons.description_rounded,
                 ),
               ),
               title: Text(
                 doc.title.isEmpty
-                    ? DomainDisplayLabels.docTitle(AppLocalizations.of(context), null)
+                    ? DomainDisplayLabels.docTitle(
+                        AppLocalizations.of(context),
+                        null,
+                      )
                     : doc.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

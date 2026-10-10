@@ -83,6 +83,8 @@ class _MainContent extends StatelessWidget {
               loadTags: loadTags,
               // V-13：标签下钻文档行接真实打开回调（原空回调死入口）。
               onOpenDoc: onOpenDoc,
+              // P4-5：星标死按钮接真实收藏回调。
+              onToggleFavorite: onToggleFavorite,
             ),
           )
         else
@@ -308,35 +310,39 @@ class _DocsTabBar extends StatelessWidget {
           final selected = i == tabIndex;
           return Padding(
             padding: const EdgeInsets.only(right: 16),
-            child: AppleFocusRing(borderRadius: AppleRadius.xs, child: InkWell(
-              onTap: () => onTabChanged(i),
-              child: SizedBox(
-                height: 48,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      tabs[i],
-                      style: AppleType.controlStyle(selected ? accent : subtle)
-                          .copyWith(
-                            fontWeight: selected
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                      height: 2,
-                      width: 18,
-                      decoration: BoxDecoration(
-                        color: selected ? accent : Colors.transparent,
-                        borderRadius: BorderRadius.circular(AppleRadius.xs),
+            child: AppleFocusRing(
+              borderRadius: AppleRadius.xs,
+              child: InkWell(
+                onTap: () => onTabChanged(i),
+                child: SizedBox(
+                  height: 48,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        tabs[i],
+                        style:
+                            AppleType.controlStyle(selected ? accent : subtle)
+                                .copyWith(
+                                  fontWeight: selected
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                                ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Container(
+                        height: 2,
+                        width: 18,
+                        decoration: BoxDecoration(
+                          color: selected ? accent : Colors.transparent,
+                          borderRadius: BorderRadius.circular(AppleRadius.xs),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            )),
+            ),
           );
         }),
       ),
@@ -379,10 +385,13 @@ class _SortedDocList extends StatelessWidget {
       // 分组提示，层级更轻（shadcn 的信息层级做法）。
       separatorBuilder: (context, index) =>
           AppleHairline.listDivider(context, indent: AllDocRow.textIndent),
-      itemBuilder: (context, i) => AllDocRow(
-        doc: docs[i],
-        onOpenDoc: () => onOpenDoc(docs[i]),
-        onToggleFavorite: () => onToggleFavorite(docs[i]),
+      itemBuilder: (context, i) => StaggeredEntrance(
+        index: i,
+        child: AllDocRow(
+          doc: docs[i],
+          onOpenDoc: () => onOpenDoc(docs[i]),
+          onToggleFavorite: () => onToggleFavorite(docs[i]),
+        ),
       ),
     );
   }
@@ -434,10 +443,13 @@ class _GroupedDocList extends StatelessWidget {
         itemCount: favorites.length,
         separatorBuilder: (context, index) =>
             AppleHairline.listDivider(context, indent: AllDocRow.textIndent),
-        itemBuilder: (context, i) => AllDocRow(
-          doc: favorites[i],
-          onOpenDoc: () => onOpenDoc(favorites[i]),
-          onToggleFavorite: () => onToggleFavorite(favorites[i]),
+        itemBuilder: (context, i) => StaggeredEntrance(
+          index: i,
+          child: AllDocRow(
+            doc: favorites[i],
+            onOpenDoc: () => onOpenDoc(favorites[i]),
+            onToggleFavorite: () => onToggleFavorite(favorites[i]),
+          ),
         ),
       );
     }
@@ -474,15 +486,18 @@ class _GroupedDocList extends StatelessWidget {
           return _SectionHeader(theme: theme, label: entry.label!);
         }
         final doc = entry.doc!;
-        return Column(
-          children: [
-            AllDocRow(
-              doc: doc,
-              onOpenDoc: () => onOpenDoc(doc),
-              onToggleFavorite: () => onToggleFavorite(doc),
-            ),
-            AppleHairline.listDivider(context, indent: AllDocRow.textIndent),
-          ],
+        return StaggeredEntrance(
+          index: i,
+          child: Column(
+            children: [
+              AllDocRow(
+                doc: doc,
+                onOpenDoc: () => onOpenDoc(doc),
+                onToggleFavorite: () => onToggleFavorite(doc),
+              ),
+              AppleHairline.listDivider(context, indent: AllDocRow.textIndent),
+            ],
+          ),
         );
       },
     );
@@ -511,9 +526,8 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
       child: Text(
         label,
-        style: AppleType.captionStyle(
-          subtle,
-        ).copyWith(fontWeight: FontWeight.w600, letterSpacing: 0.3),
+        style: AppleType.captionStyle(subtle)
+            .copyWith(fontWeight: FontWeight.w600, letterSpacing: 0.3),
       ),
     );
   }

@@ -20,6 +20,9 @@ extension _EditorPageCanvasSurface on _EditorPageState {
             _buildCanvasPainterLayer(),
             if (_gridVisible) _buildCanvasGridLayer(),
             if (_shapeDraft != null) _buildCanvasShapeDraftLayer(),
+            // 框选/轨迹/吸附参考线无条件渲染：此前挂在对象 overlay 层里
+            // 被门控——独立画布（无文字块）框选生效但完全没有视觉反馈。
+            _buildCanvasSelectionFeedbackLayer(),
             if (_isNotebookMode ||
                 _controller.document.textItems.isNotEmpty ||
                 _pendingTextItem != null)
@@ -37,6 +40,19 @@ extension _EditorPageCanvasSurface on _EditorPageState {
     );
   }
 
+  /// 按当前工具解析桌面端鼠标光标（P4，审计 2026-10-09：此前全工具
+  /// 只有默认箭头，手型/吸管/文字/橡皮四种工具无一有光标暗示）。
+  MouseCursor _cursorForCurrentTool() {
+    if (_handToolActive) return SystemMouseCursors.grab;
+    if (_eyedropperActive) return SystemMouseCursors.precise;
+    if (_textToolActive) return SystemMouseCursors.text;
+    if (_isObjectEraser) return SystemMouseCursors.precise;
+    if (_controller.tool == BrushType.eraser) {
+      return SystemMouseCursors.precise;
+    }
+    return MouseCursor.defer;
+  }
+
   /// 画布层：CustomPainter + 双击插字 + 指针手势。
   Widget _buildCanvasPainterLayer() {
     return Positioned.fill(
@@ -45,31 +61,34 @@ extension _EditorPageCanvasSurface on _EditorPageState {
         hint:
             AppLocalizations.of(context)?.canvasSemanticsHint ??
             '双击空白处插入文字；使用工具栏工具绘制',
-        child: GestureDetector(
-          onDoubleTapDown: _onCanvasDoubleTap,
-          child: Listener(
-            behavior: HitTestBehavior.opaque,
-            onPointerDown: (e) => _onPointerDown(e, e.localPosition),
-            onPointerMove: (e) => _onPointerMove(e, e.localPosition),
-            onPointerUp: (e) => _onPointerUp(e),
-            onPointerCancel: (e) => _onPointerCancel(e),
-            onPointerSignal: _onPointerSignal, // 滚轮缩放画布
-            child: _readingInverted
-                ? ColorFiltered(
-                    colorFilter: _EditorPageState._readingInvertFilter,
-                    child: RepaintBoundary(
+        child: MouseRegion(
+          cursor: _cursorForCurrentTool(),
+          child: GestureDetector(
+            onDoubleTapDown: _onCanvasDoubleTap,
+            child: Listener(
+              behavior: HitTestBehavior.opaque,
+              onPointerDown: (e) => _onPointerDown(e, e.localPosition),
+              onPointerMove: (e) => _onPointerMove(e, e.localPosition),
+              onPointerUp: (e) => _onPointerUp(e),
+              onPointerCancel: (e) => _onPointerCancel(e),
+              onPointerSignal: _onPointerSignal, // 滚轮缩放画布
+              child: _readingInverted
+                  ? ColorFiltered(
+                      colorFilter: _EditorPageState._readingInvertFilter,
+                      child: RepaintBoundary(
+                        child: CustomPaint(
+                          painter: CanvasPainter(controller: _controller),
+                          size: Size.infinite,
+                        ),
+                      ),
+                    )
+                  : RepaintBoundary(
                       child: CustomPaint(
                         painter: CanvasPainter(controller: _controller),
                         size: Size.infinite,
                       ),
                     ),
-                  )
-                : RepaintBoundary(
-                    child: CustomPaint(
-                      painter: CanvasPainter(controller: _controller),
-                      size: Size.infinite,
-                    ),
-                  ),
+            ),
           ),
         ),
       ),
@@ -77,17 +96,70 @@ extension _EditorPageCanvasSurface on _EditorPageState {
   }
 
   /// 网格显示层（借鉴 Excalidraw 画布导航）。
+  ///
+  /// 自监听 frameTick：手型平移/双指缩放/滚轮缩放都只 tick 画布——
+  /// 此前网格层不监听，视口变换期间点阵与画布内容错位漂移，
+  /// 直到下一次 setState 才纠正。
   Widget _buildCanvasGridLayer() {
     return Positioned.fill(
       child: IgnorePointer(
-        child: _readingInverted
-            ? ColorFiltered(
-                colorFilter: _EditorPageState._readingInvertFilter,
-                child: CustomPaint(
-                  painter: GridPainter(controller: _controller),
-                ),
-              )
-            : CustomPaint(painter: GridPainter(controller: _controller)),
+        child: ListenableBuilder(
+          listenable: _controller.frameTick,
+          builder: (context, _) => _readingInverted
+              ? ColorFiltered(
+                  colorFilter: _EditorPageState._readingInvertFilter,
+                  child: CustomPaint(
+                    painter: GridPainter(controller: _controller),
+                  ),
+                )
+              : CustomPaint(painter: GridPainter(controller: _controller)),
+        ),
+      ),
+    );
+  }
+
+  /// 框选反馈层：拖拽轨迹/吸附参考线/框选矩形（自监听 frameTick）。
+  ///
+  /// 与混排对象 overlay 解耦（独立画布无文字块时也要有框选视觉反馈）；
+  /// 三个 painter 空数据时零绘制，常驻成本可忽略。
+  Widget _buildCanvasSelectionFeedbackLayer() {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: ListenableBuilder(
+          listenable: _controller.frameTick,
+          builder: (context, _) {
+            if (_trailPoints.isEmpty &&
+                _snapGuides.isEmpty &&
+                _marqueeRect == null) {
+              return const SizedBox.shrink();
+            }
+            return Stack(
+              children: [
+                if (_trailPoints.isNotEmpty)
+                  CustomPaint(
+                    painter: TrailPainter(
+                      points: _trailPoints,
+                      controller: _controller,
+                    ),
+                  ),
+                if (_snapGuides.isNotEmpty)
+                  CustomPaint(
+                    painter: SnapGuidePainter(
+                      guides: _snapGuides,
+                      controller: _controller,
+                    ),
+                  ),
+                if (_marqueeRect != null)
+                  CustomPaint(
+                    painter: MarqueePainter(
+                      rect: _marqueeRect!,
+                      controller: _controller,
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -117,7 +189,7 @@ extension _EditorPageCanvasSurface on _EditorPageState {
     );
   }
 
-  /// 连接线 + 混排对象 + 轨迹/参考线/框选层。
+  /// 连接线 + 混排对象层（轨迹/参考线/框选已拆到独立反馈层）。
   Widget _buildCanvasObjectOverlayLayer() {
     return Positioned.fill(
       child: ListenableBuilder(
@@ -127,21 +199,6 @@ extension _EditorPageCanvasSurface on _EditorPageState {
             children: [
               if (_isNotebookMode) _buildCanvasConnectorLayer(),
               ..._buildOverlayItems(),
-              if (_trailPoints.isNotEmpty)
-                _buildCanvasIgnorePointerPaint(
-                  TrailPainter(points: _trailPoints, controller: _controller),
-                ),
-              if (_snapGuides.isNotEmpty)
-                _buildCanvasIgnorePointerPaint(
-                  SnapGuidePainter(
-                    guides: _snapGuides,
-                    controller: _controller,
-                  ),
-                ),
-              if (_marqueeRect != null)
-                _buildCanvasIgnorePointerPaint(
-                  MarqueePainter(rect: _marqueeRect!, controller: _controller),
-                ),
             ],
           );
           return _readingInverted
@@ -171,13 +228,6 @@ extension _EditorPageCanvasSurface on _EditorPageState {
           ),
         ),
       ),
-    );
-  }
-
-  /// 覆盖层纯视觉 CustomPaint：IgnorePointer + 不命中。
-  Widget _buildCanvasIgnorePointerPaint(CustomPainter painter) {
-    return Positioned.fill(
-      child: IgnorePointer(child: CustomPaint(painter: painter)),
     );
   }
 

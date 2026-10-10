@@ -772,8 +772,12 @@ extension _EditorPageEditing on _EditorPageState {
   void _editTextItem() {
     final page = widget.session;
     final id = _selectedItemId;
-    if (page == null || id == null) return;
-    final item = EditorTextMutation.findById(items: page.textItems, id: id);
+    if (id == null) return;
+    // 独立画布模式（page == null）同样支持编辑——items 源与双击命中的
+    // _onCanvasDoubleTap 同口径取 document.textItems；此前直接 return，
+    // 画布文字块创建后双击永远进不了编辑。
+    final source = page?.textItems ?? _controller.document.textItems;
+    final item = EditorTextMutation.findById(items: source, id: id);
     if (item == null) return;
 
     _applyState(() {

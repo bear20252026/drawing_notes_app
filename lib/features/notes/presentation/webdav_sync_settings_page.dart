@@ -241,10 +241,8 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
         final confirmed = await GlassDialog.confirm(
           context,
           title: l10n?.webdavKeyRotationConfirmTitle ?? '确认更换同步口令？',
-          content: l10n?.webdavKeyRotationConfirmBody ??
-              '同步口令一改，端到端加密的密钥就会整体更换：云端已有的加密数据将「无法再解密」，之后需要把本地笔记全量重新上传；本地数据不受影响。若只是想接着同步，请留空（沿用原口令）或填回原来的口令。',
-          confirmText:
-              l10n?.webdavKeyRotationConfirmAction ?? '仍要更换并重新上传',
+          content: l10n?.webdavKeyRotationConfirmBody ?? '同步口令一改，端到端加密的密钥就会整体更换：云端已有的加密数据将「无法再解密」，之后需要把本地笔记全量重新上传；本地数据不受影响。若只是想接着同步，请留空（沿用原口令）或填回原来的口令。',
+          confirmText: l10n?.webdavKeyRotationConfirmAction ?? '仍要更换并重新上传',
           dangerous: true,
         );
         if (!confirmed) {
@@ -269,7 +267,10 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
       );
     } on ArgumentError catch (e) {
       if (!mounted) return;
-      _toast(AppLocalizations.of(context)?.webdavSaveFail(e.message) ?? '保存失败：${e.message}');
+      _toast(
+        AppLocalizations.of(context)?.webdavSaveFail(e.message) ??
+            '保存失败：${e.message}',
+      );
       return;
     } on SyncKeyRotationConfirmationRequired {
       // 预检到落盘之间口令状态变了：控制器 fail-closed（未上盘），这里同样
@@ -289,15 +290,20 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     });
     _toast(
       effective.passphrase.isEmpty
-          ? (AppLocalizations.of(context)?.webdavSavedPlain ?? '已保存 WebDAV 配置（未启用端到端加密）')
-          : (AppLocalizations.of(context)?.webdavSavedEncrypted ?? '已保存 WebDAV 配置（已启用端到端加密）'),
+          ? (AppLocalizations.of(context)?.webdavSavedPlain ??
+                '已保存 WebDAV 配置（未启用端到端加密）')
+          : (AppLocalizations.of(context)?.webdavSavedEncrypted ??
+                '已保存 WebDAV 配置（已启用端到端加密）'),
     );
   }
 
   Future<void> _syncNow() async {
     final rawUrl = _url.text.trim();
     if (rawUrl.isEmpty) {
-      _toast(AppLocalizations.of(context)?.webdavBadUrl ?? '请先填写合法的服务器 URL（含 http/https 与 /）');
+      _toast(
+        AppLocalizations.of(context)?.webdavBadUrl ??
+            '请先填写合法的服务器 URL（含 http/https 与 /）',
+      );
       return;
     }
     // F-21 修复（审计 2026-09-07）：原预检仅 `uri.hasScheme`——明文 http
@@ -306,12 +312,18 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     try {
       SyncController.requireHttpsBaseUrl(rawUrl);
     } on ArgumentError catch (e) {
-      _toast(AppLocalizations.of(context)?.webdavSyncFailRaw(e.message) ?? '同步失败：${e.message}');
+      _toast(
+        AppLocalizations.of(context)?.webdavSyncFailRaw(e.message) ??
+            '同步失败：${e.message}',
+      );
       return;
     }
     final uri = Uri.tryParse(rawUrl);
     if (uri == null) {
-      _toast(AppLocalizations.of(context)?.webdavBadUrl ?? '请先填写合法的服务器 URL（含 http/https 与 /）');
+      _toast(
+        AppLocalizations.of(context)?.webdavBadUrl ??
+            '请先填写合法的服务器 URL（含 http/https 与 /）',
+      );
       return;
     }
     // 安全审计修复（2026-09-06 P1-2）：未配置同步密码 = 同步层明文透传，
@@ -324,12 +336,12 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     // 三个提示分支（未设密码 / 表单脏 / 缺盐）与 setState 都要碰 UI，统一在
     // 此早退；_toast 内另有一道同款兜底守卫。
     if (!mounted) return;
-    final passphrase =
-        _syncSecret.text.trim().isNotEmpty
-            ? _syncSecret.text.trim()
-            : (secrets.syncPassphrase ?? '');
-    final password =
-        _pass.text.isNotEmpty ? _pass.text : (secrets.webdavPassword ?? '');
+    final passphrase = _syncSecret.text.trim().isNotEmpty
+        ? _syncSecret.text.trim()
+        : (secrets.syncPassphrase ?? '');
+    final password = _pass.text.isNotEmpty
+        ? _pass.text
+        : (secrets.webdavPassword ?? '');
     if (passphrase.isEmpty) {
       _toast(
         AppLocalizations.of(context)?.webdavNeedSyncPassword ??
@@ -520,7 +532,8 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
         ),
         children: [
           Text(
-            AppLocalizations.of(context)?.webdavLocalFirstBlurb ?? '本地优先同步：数据保存在本机，通过 WebDAV（如 Nextcloud / 自建）在工作区之间同步。',
+            AppLocalizations.of(context)?.webdavLocalFirstBlurb ??
+                '本地优先同步：数据保存在本机，通过 WebDAV（如 Nextcloud / 自建）在工作区之间同步。',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: AppleSpacing.md),
@@ -528,7 +541,9 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
             controller: _url,
             keyboardType: TextInputType.url,
             decoration: _appleDecoration(
-              labelText: AppLocalizations.of(context)?.webdavServerUrlLabel ?? '服务器 URL',
+              labelText:
+                  AppLocalizations.of(context)?.webdavServerUrlLabel ??
+                  '服务器 URL',
               hintText: 'https://dav.example.com/drawing_notes/',
               icon: Icons.cloud_outlined,
             ),
@@ -549,12 +564,10 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
               labelText: AppLocalizations.of(context)?.commonPassword ?? '密码',
               icon: Icons.lock_outline,
               // S-03 方案 A：不回填明文，用占位提示告知「已存且留空沿用」。
-              hintText:
-                  _hasSavedPassword
-                      ? (AppLocalizations.of(
-                            context,
-                          )?.webdavSecretKeepHint ?? '已保存 · 留空保持不变')
-                      : null,
+              hintText: _hasSavedPassword
+                  ? (AppLocalizations.of(context)?.webdavSecretKeepHint ??
+                        '已保存 · 留空保持不变')
+                  : null,
             ),
           ),
           const SizedBox(height: AppleSpacing.sm),
@@ -566,12 +579,10 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
                   AppLocalizations.of(context)?.webdavSyncSecretLabel ??
                   '同步密码（必填，用于端到端加密）',
               icon: Icons.vpn_key_outlined,
-              hintText:
-                  _hasSavedPassphrase
-                      ? (AppLocalizations.of(
-                            context,
-                          )?.webdavSecretKeepHint ?? '已保存 · 留空保持不变')
-                      : null,
+              hintText: _hasSavedPassphrase
+                  ? (AppLocalizations.of(context)?.webdavSecretKeepHint ??
+                        '已保存 · 留空保持不变')
+                  : null,
               helperText:
                   AppLocalizations.of(context)?.webdavSyncSecretHelper ??
                   '未设置同步密码时同步会被阻止（防止笔记明文上云）',
@@ -596,7 +607,9 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
                 minHeight: 6,
                 color: _progress!.phase == SyncProgressPhase.failed
                     ? AppleColor.errorRed
-                    : AppleColor.actionBlue,
+                    : (Theme.of(context).brightness == Brightness.dark
+                          ? AppleColor.actionBlueOnDark
+                          : AppleColor.actionBlue),
               ),
             ),
             const SizedBox(height: 4),
@@ -605,7 +618,7 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
               syncProgressLabel(_progress!, AppLocalizations.of(context)),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: _progress!.phase == SyncProgressPhase.failed
-                    ? AppleColor.errorRed
+                    ? AppleColor.errorTextOf(Theme.of(context).colorScheme)
                     : null,
               ),
               maxLines: 2,
@@ -628,8 +641,12 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
             label: Text(AppLocalizations.of(context)?.webdavSave ?? '保存配置'),
             style: OutlinedButton.styleFrom(
               minimumSize: const Size(double.infinity, 44),
-              foregroundColor: AppleColor.actionBlue,
-              side: const BorderSide(color: AppleColor.hairline),
+              // P1-5：硬编码 actionBlue 深色下 2.96:1——改走主题（浅 primary
+              // #0066CC / 深 #B5CCFF），发丝线同理用主题 outlineVariant。
+              foregroundColor: Theme.of(context).colorScheme.primary,
+              side: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppleRadius.lg),
               ),

@@ -221,17 +221,24 @@ class NoteBlockDocStore implements SessionSecretsHolder {
   }
 
   /// 懒迁移：明文块文档经写链重写为密文。
+  ///
+  /// P1 陈旧快照防护（对齐 storage_write_pipeline._isStillCurrentPlaintext）：
+  /// 快照是读路径入队前捕获的，队列里排在前面的较新保存会被这份陈旧
+  /// 明文反超覆盖（编辑内容静默回退）。重写前重读磁盘比对，不一致即放弃
+  /// ——下次读取会重新排队（幂等）。
   void _enqueueRawRewrite(String id, Uint8List plaintext) {
     _enqueue(id, () async {
       final key = await _currentKey();
       if (key == null) return;
+      final file = File(await _pathFor(id));
+      if (!file.existsSync()) return; // 已被删除——不复活
+      final current = await file.readAsBytes();
+      if (!_bytesEqual(current, plaintext)) return; // 陈旧快照——放弃本次迁移
       final sealed = await VaultFileCodec.encrypt(
         plaintext,
         key,
         aadContext: 'block:$id',
       );
-      final file = File(await _pathFor(id));
-      if (!file.existsSync()) return; // 已被删除——不复活
       final tmp = File('${file.path}.${LocalIdGenerator.next('write')}.tmp');
       await tmp.writeAsBytes(sealed, flush: true);
       try {
@@ -244,6 +251,14 @@ class NoteBlockDocStore implements SessionSecretsHolder {
     }).catchError((_) {
       // 迁移失败静默（下次读取再试——幂等）。
     });
+  }
+
+  static bool _bytesEqual(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   /// 轻量文档头（不含 body 块树）。

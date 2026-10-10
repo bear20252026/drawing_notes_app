@@ -208,7 +208,12 @@ class TransformStrokesCommand extends DocCommand {
 /// 图层对象上的一个布尔翻转（合成期参数，位图缓存不变），窄命令只记
 /// (索引, 前, 后) 三个值。
 class LayerVisibilityCommand extends DocCommand {
-  LayerVisibilityCommand(this._context, this._layerIndex, this._before, this._after);
+  LayerVisibilityCommand(
+    this._context,
+    this._layerIndex,
+    this._before,
+    this._after,
+  );
 
   final DocCommandContext _context;
   final int _layerIndex;
@@ -225,6 +230,38 @@ class LayerVisibilityCommand extends DocCommand {
   @override
   void redo() {
     _context.document.layers[_layerIndex].visible = _after;
+    _context.touchDocument();
+    _context.afterLayerUndoRedo();
+  }
+}
+
+/// 图层透明度调整的窄命令（与显隐同款拆分）。
+///
+/// 滑块 onChangeEnd 提交 (索引, 前, 后)；透明度是合成期参数，位图
+/// 缓存不变，无需快照。
+class LayerOpacityCommand extends DocCommand {
+  LayerOpacityCommand(
+    this._context,
+    this._layerIndex,
+    this._before,
+    this._after,
+  );
+
+  final DocCommandContext _context;
+  final int _layerIndex;
+  final double _before;
+  final double _after;
+
+  @override
+  void undo() {
+    _context.document.layers[_layerIndex].opacity = _before;
+    _context.touchDocument();
+    _context.afterLayerUndoRedo();
+  }
+
+  @override
+  void redo() {
+    _context.document.layers[_layerIndex].opacity = _after;
     _context.touchDocument();
     _context.afterLayerUndoRedo();
   }

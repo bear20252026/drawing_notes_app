@@ -6,7 +6,6 @@ part of 'doc_editor.dart';
 
 /// 历史/保存域私有助手（拆分自 doc_editor.dart）。
 extension _DocEditorHistory on DocEditorState {
-
   /// U3 P1-9：静默模型更新后的装饰性刷新。
   ///
   /// build 对 block.text 的依赖是装饰性的（大纲面板条目、空标题提示、
@@ -16,10 +15,9 @@ extension _DocEditorHistory on DocEditorState {
   void _scheduleCosmeticRefresh() {
     _cosmeticRefreshDebounce?.cancel();
     _cosmeticRefreshDebounce = Timer(DocEditorState._cosmeticRefreshDelay, () {
-      if (mounted)editorSetState(() {});
+      if (mounted) editorSetState(() {});
     });
   }
-
 
   /// 提交一次编辑：压入历史栈并标记脏状态（触发宿主自动保存）。
   /// 结构性操作（分块/合并/删除/类型切换/插入引用）走本方法——即时入栈。
@@ -29,7 +27,6 @@ extension _DocEditorHistory on DocEditorState {
     _isDirty = true;
     _notifyDirtyOnce();
   }
-
 
   /// P2-M6：文本击键合帧——连续输入只在停顿 [_historyDebounceDelay] 后
   /// 压一次史栈（撤销粒度变为「输入 burst」而非单字符，与主流编辑器
@@ -43,7 +40,6 @@ extension _DocEditorHistory on DocEditorState {
     _notifyDirtyOnce();
   }
 
-
   /// 边沿触发一次 onDirty（首次脏时通知宿主启动自动保存）。
   void _notifyDirtyOnce() {
     if (_dirtyNotified) return;
@@ -51,13 +47,11 @@ extension _DocEditorHistory on DocEditorState {
     widget.onDirty?.call();
   }
 
-
   /// 把待提交的合帧快照立即入栈（saveNow/结构操作前调用，防丢撤销粒度）。
   void _flushPendingHistory() {
     _historyDebounce?.cancel();
     _history.push(_buildDocFromState());
   }
-
 
   void _onTitleEdited() {
     if (_restoring) return;
@@ -67,14 +61,12 @@ extension _DocEditorHistory on DocEditorState {
     }
   }
 
-
   /// 退出时把编辑后的 NoteBlockDoc 通过 onSave 回调传给调用方。
   void _notifySave() {
     if (!_initialized || widget.onSave == null) return;
     final updatedDoc = _buildDocFromState();
     widget.onSave!(updatedDoc);
   }
-
 
   // ── 文档 ↔ 状态 互转 ───────────────────────────────────────
 
@@ -88,7 +80,6 @@ extension _DocEditorHistory on DocEditorState {
     );
   }
 
-
   /// 从当前状态重建 NoteBlockDoc。
   NoteBlockDoc _buildDocFromState() {
     return _doc.copyWith(
@@ -97,7 +88,6 @@ extension _DocEditorHistory on DocEditorState {
       updatedAt: DateTime.now(),
     );
   }
-
 
   /// 从历史快照恢复文档（撤销/重做）。
   ///
@@ -117,7 +107,7 @@ extension _DocEditorHistory on DocEditorState {
     }
 
     _restoring = true;
-   editorSetState(() {
+    editorSetState(() {
       _titleController.text = doc.title;
       _root = _buildRootFromDoc(doc);
       // 回填仍存在控制器的文本，使其与快照一致（同步触发 onChanged，被 _restoring 拦截）。
@@ -140,10 +130,9 @@ extension _DocEditorHistory on DocEditorState {
     _updateDirtyState();
   }
 
-
   /// 应用经 NoteBlockEditor 变换后的新根树：确保资源、置脏、推历史。
   void _applyRootChange(NoteBlock newRoot) {
-   editorSetState(() {
+    editorSetState(() {
       _root = newRoot;
       _ensureBlockResourcesForList(_root.children);
       _updateDirtyState();
@@ -151,9 +140,16 @@ extension _DocEditorHistory on DocEditorState {
     _commitHistory();
   }
 
-
   /// 手动触发保存：把当前编辑状态通过 onSave 回调传出。
   Future<void> _manualSave() async {
+    // 宿主接管路径（DocPage）：走真实落盘链路，状态与提示由宿主驱动。
+    // 仍先经 onSave 同步快照，宿主调度器从 editor.saveNow() 取最新文档。
+    if (widget.onManualSave != null) {
+      widget.onSave?.call(_buildDocFromState());
+      await widget.onManualSave!();
+      _dirtyNotified = false; // 已落盘：后续编辑重新走首次脏通知
+      return;
+    }
     if (widget.onSave == null) return;
     final doc = _buildDocFromState();
     // await 落盘结果：失败不置「已保存」，成功才清脏标记。
@@ -172,11 +168,14 @@ extension _DocEditorHistory on DocEditorState {
       return;
     }
     if (mounted) {
-     editorSetState(() {
+      editorSetState(() {
         _doc = doc;
         _lastSavedBodySignature = _computeBodySignature();
         _isDirty = false;
       });
+      // 手动保存成功后复位首次脏通知标志：否则后续编辑不触发 onDirty，
+      // 宿主自动保存停摆（改动只剩退出 flush 兜底）。
+      _dirtyNotified = false;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)?.docSavedToast ?? '文档已保存'),

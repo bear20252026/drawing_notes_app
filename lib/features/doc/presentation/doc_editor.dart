@@ -14,6 +14,7 @@ library;
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_motion.dart';
@@ -71,6 +72,7 @@ class DocEditor extends StatefulWidget {
     this.embeddedBlockBuilder,
     this.showChrome = true,
     this.onDirty,
+    this.onManualSave,
   });
 
   /// 要编辑的文档。为 null 时创建一个新文档。
@@ -87,6 +89,14 @@ class DocEditor extends StatefulWidget {
   /// 为 null 则不通知（用于纯预览/测试场景）。
   /// 回调可为异步（FutureOr）——手动保存路径会 await 落盘结果。
   final FutureOr<void> Function(NoteBlockDoc doc)? onSave;
+
+  /// 手动保存（Ctrl+S）的宿主接管回调。
+  ///
+  /// DocPage 场景 [onSave] 只同步页面快照、不落盘——编辑器若自行弹
+  /// 「已保存」并清脏即是假保存（P1-5）。宿主注入本回调后，Ctrl+S
+  /// 走宿主的真实落盘链路（SaveScheduler.saveNow），状态角标与提示
+  /// 由宿主单一驱动；编辑器不再自弹 toast。
+  final Future<void> Function()? onManualSave;
 
   /// 由组合根注入的自定义内嵌块渲染回调。
   /// 返回 null 时走默认降级渲染。
@@ -310,6 +320,9 @@ class DocEditorState extends State<DocEditor> {
     _titleController = TextEditingController(text: _doc.title);
     _titleController.addListener(_onTitleEdited);
     _root = _buildRootFromDoc(_doc);
+    // 用既有块 id 播种计数器：防止本会话新 id 与落盘存量 id 碰撞
+    // （模板文档自带 block_0… 落盘后重开，计数器从 0 起步必撞）。
+    _seedIdCounterFromExistingIds();
     _lastSavedBodySignature = _computeBodySignature();
     _initialized = true;
 
@@ -390,6 +403,16 @@ class DocEditorState extends State<DocEditor> {
   ///
   /// 仅作快照读取，不会触发任何通知或副作用。
   NoteBlockDoc get currentDoc => _buildDocFromState();
+
+  /// 同步宿主侧修改的标签（信息弹窗编辑即保存，P1-4）。
+  ///
+  /// 编辑器内部 _doc 是 initState 时的快照；宿主改标签落盘后若不同步，
+  /// 编辑器下一次 _buildDocFromState 会用旧 tags copyWith 把标签改动静默
+  /// 回滚。标签不是编辑器内可编辑字段，直接覆写安全。
+  void syncTags(List<String> tags) {
+    if (listEquals(_doc.tags, tags)) return;
+    _doc = _doc.copyWith(tags: List.of(tags));
+  }
 
   /// 在文档末尾追加一个页面引用块（M12.7 反向链接：[[标题]] 双链语法）。
   /// 走完整保存链（脏标记→自动保存→撤销历史）。
@@ -489,7 +512,12 @@ class DocEditorState extends State<DocEditor> {
                         child: Text(
                           AppLocalizations.of(context)?.saveStateUnsaved ??
                               '未保存',
-                          style: AppleType.captionStyle(AppleColor.actionBlue),
+                          // P1-4：#0066CC 对深底 ≈2.96:1 不过 AA；与画板
+                          // 状态栏统一为中性 onSurfaceVariant（「未保存」
+                          // 是中性状态，两个编辑器同语义同色）。
+                          style: AppleType.captionStyle(
+                            Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ),
                     ),
