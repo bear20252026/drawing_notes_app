@@ -8,14 +8,18 @@ import 'package:drawing_notes_app/core/security/audit_logger.dart';
 /// 红蓝攻防 P2 修复（2026-08-15）：安全审计日志——记录密钥加载/密码盘
 /// 操作（时间戳+操作+结果），仅本地内存、绝不含密钥与内容。
 void main() {
-  late Directory tempDir;
+  // 可空 + 顶层 tearDown 判空：落盘分组之外的既有用例不初始化 tempDir，
+  // 顶层清理必须对它们无感（云端首跑 LateInitializationError 教训）。
+  Directory? tempDir;
   File? sinkFile;
 
   setUp(AuditLogger.clear);
   tearDown(() async {
     AuditLogger.resetSinkForTest();
     sinkFile = null;
-    if (tempDir.existsSync()) await tempDir.delete(recursive: true);
+    final dir = tempDir;
+    if (dir != null && dir.existsSync()) await dir.delete(recursive: true);
+    tempDir = null;
   });
 
   test('审计日志：记录操作/时间/结果', () {
@@ -106,7 +110,7 @@ void main() {
     setUp(() async {
       tempDir = await Directory.systemTemp.createTemp('audit_sink_');
       sinkFile = File(
-        '${tempDir.path}${Platform.pathSeparator}security'
+        '${tempDir!.path}${Platform.pathSeparator}security'
         '${Platform.pathSeparator}audit.log',
       );
       AuditLogger.sinkOverrideForTest = sinkFile;
@@ -153,11 +157,11 @@ void main() {
 
     test('sink 抛错不阻断业务：内存链照常、文件缺失', () async {
       final badSink = File(
-        '${tempDir.path}${Platform.pathSeparator}no_dir'
+        '${tempDir!.path}${Platform.pathSeparator}no_dir'
         '${Platform.pathSeparator}sub${Platform.pathSeparator}audit.log',
       );
       // 父路径造成**文件**——对其 create(recursive:true) 必失败。
-      File('${tempDir.path}${Platform.pathSeparator}no_dir')
+      File('${tempDir!.path}${Platform.pathSeparator}no_dir')
           .writeAsStringSync('x');
       AuditLogger.sinkOverrideForTest = badSink;
       AuditLogger.log('should.not.throw');
