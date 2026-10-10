@@ -319,10 +319,6 @@
   "@lockQuickEnableFailed": {
     "description": "快速解锁开启失败"
   },
-  "lockQuickEnableDone": "已开启：锁屏可用系统验证（人脸/指纹/PIN）快速解锁",
-  "@lockQuickEnableDone": {
-    "description": "快速解锁开启成功"
-  },
   "lockQuickDisableDone": "已关闭，系统安全区中的密钥副本已删除",
   "@lockQuickDisableDone": {
     "description": "快速解锁关闭成功"
@@ -1077,10 +1073,6 @@
       }
     }
   },
-  "lockButtonLock": "锁定",
-  "@lockButtonLock": {},
-  "lockButtonUnlock": "解锁",
-  "@lockButtonUnlock": {},
   "shellWorkspaceName": "画记",
   "@shellWorkspaceName": {},
   "resetIntroNote": "使用重置密码盘（U 盘）重置{name}的独立密码。\n\n前提：该笔记已绑定重置密码盘（设置密码或密码管理中绑定）。",
@@ -1133,10 +1125,6 @@
   },
   "resetNoValidKeyBody": "所选位置未找到有效的重置密码盘文件（password_reset_disk.key）。",
   "@resetNoValidKeyBody": {},
-  "rootRefusedTitle": "无法在此设备上启动",
-  "@rootRefusedTitle": {},
-  "rootRefusedBody": "检测到设备已获取 ROOT 权限。为保护你的加密笔记数据，本应用在已破解设备上拒绝运行。",
-  "@rootRefusedBody": {},
   "homeReadListFailed": "读取列表失败，请重试",
   "@homeReadListFailed": {},
   "homeNewInfiniteCanvas": "新建无限画布",
@@ -1155,8 +1143,6 @@
   "@canvasStandalonePasswordProtected": {},
   "canvasStandalonePasswordUnset": "此画布当前未设置独立密码",
   "@canvasStandalonePasswordUnset": {},
-  "canvasVaultLockedSet": "加密底座已锁定：请重新验证开屏密码后再设置",
-  "@canvasVaultLockedSet": {},
   "canvasVaultLockedRemove": "加密底座已锁定，无法回封：请重新验证开屏密码后再试",
   "@canvasVaultLockedRemove": {},
   "canvasPasswordSetDiskBoundFor": "已为「{name}」设置独立密码并绑定重置密码盘",
@@ -1372,8 +1358,6 @@
   "@syncFailedGeneric": {},
   "syncMissingSalt": "同步配置缺少加密盐：请重新点击「保存配置」后再同步",
   "@syncMissingSalt": {},
-  "syncMaxRetries": "达到最大重试次数",
-  "@syncMaxRetries": {},
   "syncUpToDate": "已是最新，无需同步",
   "@syncUpToDate": {},
   "syncPhaseStarted": "正在启动同步…",
@@ -1452,66 +1436,6 @@
   "@webdavSyncNow": {},
   "webdavSave": "保存配置",
   "@webdavSave": {},
-  "cmdNewSticky": "新建便签",
-  "@cmdNewSticky": {},
-  "cmdGroupEdit": "编辑",
-  "@cmdGroupEdit": {},
-  "cmdCancelConnect": "取消连线",
-  "@cmdCancelConnect": {},
-  "cmdConnectMode": "连线模式",
-  "@cmdConnectMode": {},
-  "cmdGroupSelected": "编组所选",
-  "@cmdGroupSelected": {},
-  "cmdNeedTwoFrames": "需 ≥2 帧",
-  "@cmdNeedTwoFrames": {},
-  "cmdFitContent": "适应内容",
-  "@cmdFitContent": {},
-  "cmdGroupView": "视图",
-  "@cmdGroupView": {},
-  "cmdFitSelected": "适应所选",
-  "@cmdFitSelected": {},
-  "cmdZoomIn": "放大",
-  "@cmdZoomIn": {},
-  "cmdZoomOut": "缩小",
-  "@cmdZoomOut": {},
-  "cmdExitMulti": "退出多选",
-  "@cmdExitMulti": {},
-  "cmdEnterMulti": "进入多选",
-  "@cmdEnterMulti": {},
-  "cmdGroupSelect": "选择",
-  "@cmdGroupSelect": {},
-  "cmdClearSelection": "清空所选",
-  "@cmdClearSelection": {},
-  "cmdFocusSelected": "聚焦所选",
-  "@cmdFocusSelected": {},
-  "cmdGroupJump": "跳转",
-  "@cmdGroupJump": {},
-  "cmdNoMatch": "没有匹配的命令",
-  "@cmdNoMatch": {},
-  "edGroup": "编组",
-  "@edGroup": {},
-  "edConnect": "连线",
-  "@edConnect": {},
-  "edShape": "形状",
-  "@edShape": {},
-  "edRect": "矩形",
-  "@edRect": {},
-  "pfCode": "代码块",
-  "@pfCode": {},
-  "pfImage": "图片",
-  "@pfImage": {},
-  "pfLink": "链接",
-  "@pfLink": {},
-  "pfCanvas": "画布",
-  "@pfCanvas": {},
-  "pfChart": "图表",
-  "@pfChart": {},
-  "pfTable": "表格",
-  "@pfTable": {},
-  "pfDatabase": "数据库",
-  "@pfDatabase": {},
-  "pfAttachment": "附件",
-  "@pfAttachment": {},
   "readerTitle": "{name} · 翻页阅读",
   "@readerTitle": {
     "placeholders": {
@@ -1531,8 +1455,6 @@
       }
     }
   },
-  "notesRecent": "最近",
-  "@notesRecent": {},
   "obWelcome": "欢迎使用绘图笔记",
   "@obWelcome": {},
   "obBrushTip": "画笔 / 橡皮擦 / 吸管：顶部工具条切换，拖动鼠标或手指绘画",
@@ -1648,8 +1570,6 @@
   },
   "homeDeleteNoteConfirm": "确定删除笔记「{name}」吗？此操作不可恢复。",
   "@homeDeleteNoteConfirm": {"placeholders": {"name": {"type": "String"}}},
-  "homeUntitledNotebookPage": "未命名",
-  "@homeUntitledNotebookPage": {},
   "homeStandalonePasswordMenu": "独立密码…",
   "@homeStandalonePasswordMenu": {},
   "nbEmptyTip": "点击右上角新建",
@@ -1689,14 +1609,6 @@
         "type": "int"
       },
       "path": {
-        "type": "String"
-      }
-    }
-  },
-  "cmdGotoFrame": "跳转到「{name}」",
-  "@cmdGotoFrame": {
-    "placeholders": {
-      "name": {
         "type": "String"
       }
     }
@@ -1757,8 +1669,6 @@
   "@homeDeleteForeverFailed": {},
   "impDiskNotFound": "未找到有效的重置密码盘文件（password_reset_disk.key）",
   "@impDiskNotFound": {},
-  "lockDiskKeepNote": "U 盘上的 password_reset_disk.key 文件请勿删除",
-  "@lockDiskKeepNote": {},
   "cmdUndo": "撤销",
   "@cmdUndo": {},
   "cmdRedo": "重做",
@@ -1888,14 +1798,6 @@
       }
     }
   },
-  "inkStylusPressure": "触控笔压感",
-  "@inkStylusPressure": {},
-  "inkTouchPressure": "触摸压感",
-  "@inkTouchPressure": {},
-  "inkMouseVelocity": "鼠标速度模拟",
-  "@inkMouseVelocity": {},
-  "inkConstant": "固定笔宽",
-  "@inkConstant": {},
   "pomodoroPause": "暂停",
   "@pomodoroPause": {},
   "pomodoroStart": "开始",
@@ -2306,6 +2208,10 @@
   "@selImageLocked": {},
   "selDeleteContent": "删除选中内容",
   "@selDeleteContent": {},
+  "selNoHit": "选区未命中内容（可拖动画布重新框选）",
+  "@selNoHit": {},
+  "loadingSkeleton": "正在加载",
+  "@loadingSkeleton": {},
   "selNObjects": "已选中 {count} 个对象",
   "@selNObjects": {
     "placeholders": {
@@ -2404,20 +2310,14 @@
   "@docUnsavedChangesBody": {},
   "docDiscard": "放弃",
   "@docDiscard": {},
+  "docSaveAndExit": "保存并退出",
+  "@docSaveAndExit": {},
   "blkSlashHint": "键入 / 添加块",
   "@blkSlashHint": {},
   "blkEnterHint": "按 Enter 分块，按 Backspace 合并空块",
   "@blkEnterHint": {},
   "blkDragToSort": "拖拽排序",
   "@blkDragToSort": {},
-  "semHeading": "标题{level}",
-  "@semHeading": {
-    "placeholders": {
-      "level": {
-        "type": "String"
-      }
-    }
-  },
   "semTodo": "待办事项",
   "@semTodo": {},
   "semCode": "代码块",
@@ -2887,22 +2787,6 @@
       }
     }
   },
-  "webdavSyncServerBusy": "同步失败：服务器暂时不可用（HTTP {code}），请稍后再试",
-  "@webdavSyncServerBusy": {
-    "placeholders": {
-      "code": {
-        "type": "String"
-      }
-    }
-  },
-  "webdavSyncRejected": "同步失败：服务器拒绝了这次请求（HTTP {code}）",
-  "@webdavSyncRejected": {
-    "placeholders": {
-      "code": {
-        "type": "String"
-      }
-    }
-  },
   "webdavSaveFail": "保存失败：{error}",
   "@webdavSaveFail": {
     "placeholders": {
@@ -2925,22 +2809,6 @@
   "@webdavLocalFirstBlurb": {},
   "webdavServerUrlLabel": "服务器 URL",
   "@webdavServerUrlLabel": {},
-  "webdavMaxRetry": "达到最大重试次数",
-  "@webdavMaxRetry": {},
-  "webdavSyncDoneStats": "同步完成：↑{uploaded} ↓{downloaded} ✕{deletedRemote}",
-  "@webdavSyncDoneStats": {
-    "placeholders": {
-      "uploaded": {
-        "type": "int"
-      },
-      "downloaded": {
-        "type": "int"
-      },
-      "deletedRemote": {
-        "type": "int"
-      }
-    }
-  },
   "homeForgotPasswordLink": "忘记密码？",
   "@homeForgotPasswordLink": {},
   "canvasItemSemantics": "画布对象：{kind}",
@@ -2962,15 +2830,11 @@
   "@canvasKindText": {},
   "canvasTextOverlayHint": "输入文字…（回车结束）",
   "@canvasTextOverlayHint": {},
-  "frameCornerSemantics": "调整便签框角点",
-  "@frameCornerSemantics": {},
   "pinBackspace": "退格",
   "@pinBackspace": {},
   "pinConfirm": "确认",
   "@pinConfirm": {},
   "@canvasKindRotateHandle": {},
-  "canvasSearchFieldHint": "搜索",
-  "@canvasSearchFieldHint": {},
   "layerDefaultName": "图层 {n}",
   "@layerDefaultName": {
     "placeholders": {
@@ -3007,8 +2871,6 @@
   "@vaultErrFileCrypto": {},
   "canvasShapeHandleSemantics": "形状角柄",
   "@canvasShapeHandleSemantics": {},
-  "canvasLinearHandleSemantics": "线段端点拖柄",
-  "@canvasLinearHandleSemantics": {},
   "presNextSlide": "下一页（长按退出）",
   "@presNextSlide": {},
   "nbOpenPageForEdit": "打开页面进行编辑",
@@ -3019,8 +2881,6 @@
   "@rootRefusalTitle": {},
   "rootRefusalBody": "检测到设备已获取 ROOT 权限。为保护你的加密笔记数据，本应用在已破解设备上拒绝运行。",
   "@rootRefusalBody": {},
-  "cmdGroupFile": "文件",
-  "@cmdGroupFile": {},
   "pdfExporting": "正在导出 PDF…",
   "@pdfExporting": {},
   "pdfExportComposing": "正在合成 PDF…",
@@ -3132,8 +2992,6 @@
   },
   "linkSchemeUnsupportedSnack": "链接仅支持 http/https/mailto",
   "@linkSchemeUnsupportedSnack": {},
-  "pdfEmbedPreviewUnavailable": "PDF 内嵌预览不可用",
-  "@pdfEmbedPreviewUnavailable": {},
   "pdfEmbedPreviewUnavailableLocal": "PDF 内嵌预览不可用（需本地文件）",
   "@pdfEmbedPreviewUnavailableLocal": {},
   "openPdfLabel": "打开 PDF",

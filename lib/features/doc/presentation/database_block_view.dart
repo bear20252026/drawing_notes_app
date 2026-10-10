@@ -18,6 +18,7 @@ import 'package:drawing_notes_app/features/doc/presentation/database/database_ce
 import 'package:drawing_notes_app/features/doc/presentation/database/database_kanban_view.dart';
 import 'package:drawing_notes_app/features/doc/presentation/database/database_list_view.dart';
 import 'package:drawing_notes_app/features/doc/presentation/database/database_table_view.dart';
+
 import '../../../core/theme/apple_design.dart';
 import '../../../shared/utils/search_debouncer.dart';
 
@@ -224,10 +225,13 @@ class _DatabaseBlockViewState extends State<DatabaseBlockView> {
   }
 
   void _addField() {
+    // 字段 id 用时间戳：按数量生成（f1/f2/f3…）在删除字段后会与存量
+    // id 碰撞，fieldById 命中错列、单元格数据写错字段。
+    final seq = DateTime.now().microsecondsSinceEpoch;
     _apply(
       (d) => d.addField(
         NoteFieldDef(
-          id: 'f${d.fields.length + 1}',
+          id: 'f$seq',
           name: '字段${d.fields.length + 1}',
           type: NoteFieldType.text,
         ),

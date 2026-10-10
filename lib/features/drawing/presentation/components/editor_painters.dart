@@ -3,6 +3,7 @@
 // 子目录。使用方继续 import editor_components.dart（桶兼容）或直接本文件。
 
 import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart' show listEquals, mapEquals;
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
@@ -465,11 +466,21 @@ class GridPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
     final firstX = (left / step).ceilToDouble() * step;
     final firstY = (top / step).ceilToDouble() * step;
+    // 性能（审计 2026-10-09）：平移/缩放期间每帧全区域 ~1.2 万次
+    // drawCircle（每个都是独立绘制指令）。合并为单条 Path 后只剩
+    // 一次 drawPath——视觉完全一致（同色同径圆点）。
+    final dots = Path();
     for (var x = firstX; x <= right; x += step) {
       for (var y = firstY; y <= bottom; y += step) {
-        canvas.drawCircle(controller.canvasToView(Offset(x, y)), 1.2, paint);
+        dots.addOval(
+          Rect.fromCircle(
+            center: controller.canvasToView(Offset(x, y)),
+            radius: 1.2,
+          ),
+        );
       }
     }
+    canvas.drawPath(dots, paint);
   }
 
   @override

@@ -88,6 +88,17 @@ abstract final class AppleColor {
   /// 错误红（Apple 系统红）。
   static const Color errorRed = Color(0xFFFF3B30);
 
+  /// 错误**文本**专用档（P1-3，审计 2026-10-09）。
+  ///
+  /// #FF3B30 对白底仅 3.55:1，做正文颜色不过 AA（4.5:1）——它只适合
+  /// 填充底/图标（3:1 档）。正文级错误提示（保存失败/加载失败/校验
+  /// 信息）一律用本档：浅底深红 #B3261E（6.96:1）、深底提亮
+  /// #FFB4AB（对 #181F2E ≈ 9:1）。
+  static Color errorTextOf(ColorScheme scheme) =>
+      scheme.brightness == Brightness.dark
+      ? const Color(0xFFFFB4AB)
+      : const Color(0xFFB3261E);
+
   // ---------------------------------------------------------------------------
   // 次级信息两级配色
   //
@@ -547,12 +558,11 @@ class AppleSectionHeader extends StatelessWidget {
 ///
 /// 实现约定：外壳必须自己负责与屏幕边缘的间距（inset），因为玻璃层需要
 /// 贴合内容边界；内部 [AlertDialog] 的 `insetPadding` 应交由外壳置零。
-typedef AppleDialogSurface =
-    Widget Function({
-      required Widget? title,
-      required Widget? content,
-      required List<Widget> actions,
-    });
+typedef AppleDialogSurface = Widget Function({
+  required Widget? title,
+  required Widget? content,
+  required List<Widget> actions,
+});
 
 /// 可复用的 Apple 确认对话框（R2-M4，架构审计 2026-08-31）。
 ///

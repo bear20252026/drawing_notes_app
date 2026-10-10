@@ -65,7 +65,11 @@ class NoteBlockHistory {
   bool get canUndo => _pointer >= 0;
 
   /// 是否可以重做。
-  bool get canRedo => _redoStack.isNotEmpty;
+  ///
+  /// 双条件：redo 栈非空，且指针未到 undo 栈顶。指针条件是防御——
+  /// 历史（v1 之前）redo 只看 redo 栈，栈顶后再按一次 redo 会让
+  /// 指针越界直接 RangeError。
+  bool get canRedo => _redoStack.isNotEmpty && _pointer < _undoStack.length - 1;
 
   /// 当前文档（栈顶快照，若无历史返回 null）。
   NoteBlockDoc? get current => (_pointer >= 0 && _pointer < _undoStack.length)
@@ -87,7 +91,10 @@ class NoteBlockHistory {
     final lastEntry = _undoStack.isNotEmpty ? _undoStack.last : null;
     final editedBlockId = _detectSingleBlockTextEdit(lastEntry?.doc, doc);
 
+    // 合并只允许发生在栈顶（指针 == 栈顶）：undo 后指针位于分支中间，
+    // 此时把新状态合并进"已废弃的未来槽位"会让 current 与栈顶脱节。
     if (lastEntry != null &&
+        _pointer == _undoStack.length - 1 &&
         editedBlockId != null &&
         lastEntry.editedBlockId == editedBlockId &&
         now - lastEntry.timestamp < mergeWindowMs) {
@@ -137,7 +144,11 @@ class NoteBlockHistory {
   NoteBlockDoc? redo() {
     if (!canRedo) return null;
     _pointer++;
-    return _undoStack[_pointer].doc;
+    final doc = _undoStack[_pointer].doc;
+    // 与 undo() 对称：弹掉一条 redo 记录，否则 redo 栈只增不减，
+    // canRedo 永真并最终把指针推越界。
+    _redoStack.removeLast();
+    return doc;
   }
 
   /// 清空历史。

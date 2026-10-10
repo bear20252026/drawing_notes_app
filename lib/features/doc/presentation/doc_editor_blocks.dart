@@ -371,10 +371,7 @@ extension DocEditorBlocks on DocEditorState {
           child: Text(
             '•',
             // 项目符号：梯子 buttonLarge 18px。
-            style: AppleTypeScale.of(
-              AppleTypeScale.buttonLarge,
-              bulletColor,
-            ),
+            style: AppleTypeScale.of(AppleTypeScale.buttonLarge, bulletColor),
           ),
         );
       case NoteBlockType.ordered:
@@ -475,6 +472,11 @@ extension DocEditorBlocks on DocEditorState {
       return EmbeddedBlockView(
         block: block,
         embeddedBuilder: widget.embeddedBlockBuilder,
+        // 表格/数据库块的编辑回写：不接线时 onChanged 为 null，块内
+        // 编辑只改本地副本——不标脏、不入撤销栈、永不落盘。
+        onBlockChanged: (updated) => _applyRootChange(
+          _editor.updateProps(_root, updated.id, updated.props),
+        ),
       );
     }
 
@@ -555,8 +557,7 @@ extension DocEditorBlocks on DocEditorState {
       final topIds = _root.children.map((b) => b.id).toList();
       final topIdx = topIds.indexOf(blockId);
       if (topIdx >= 0) {
-        final delta =
-            event.logicalKey == LogicalKeyboardKey.arrowUp ? -1 : 1;
+        final delta = event.logicalKey == LogicalKeyboardKey.arrowUp ? -1 : 1;
         final target = topIdx + delta;
         if (target >= 0 && target < topIds.length) {
           _moveBlockToPosition(blockId, target);
@@ -568,17 +569,28 @@ extension DocEditorBlocks on DocEditorState {
     // ── 上 / 下 方向键块间导航 ───────────────────────────────────────
     final order = List<String>.from(_root.children.map((b) => b.id));
     final idx = order.indexOf(blockId);
+    // 只在光标已到块内文本边界（首/尾）时接管跳块；中段还给
+    // TextField 做折行间移动——此前无条件接管导致多行段落里
+    // 光标无法上下移动（P1-10）。折行块到达首尾后下一次按键才跳块。
+    final activeController = _controllers[blockId];
+    final activeText = activeController?.text ?? '';
+    final caretOffset =
+        activeController?.selection.baseOffset.clamp(0, activeText.length) ?? 0;
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      if (idx > 0) {
+      if (idx > 0 && caretOffset == 0) {
         _focusNodes[order[idx - 1]]?.requestFocus();
+        return KeyEventResult.handled;
       }
-      return KeyEventResult.handled;
+      return KeyEventResult.ignored;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      if (idx >= 0 && idx < order.length - 1) {
+      if (idx >= 0 &&
+          idx < order.length - 1 &&
+          caretOffset >= activeText.length) {
         _focusNodes[order[idx + 1]]?.requestFocus();
+        return KeyEventResult.handled;
       }
-      return KeyEventResult.handled;
+      return KeyEventResult.ignored;
     }
 
     // ── Tab / Shift+Tab 缩进 / 取消缩进（创建/退出嵌套）──────────────

@@ -26,6 +26,9 @@ class SelectionActionButton extends StatelessWidget {
         tooltip: tooltip,
         icon: Icon(icon, size: 20),
         visualDensity: VisualDensity.compact,
+        // P1-7：compact 密度命中区约 40px，低于 HIG/WCAG 2.5.5 的 44px
+        // 触控下限——与状态栏/图层面板同款补最小约束（视觉不变）。
+        constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
         onPressed: onTap,
       ),
     );

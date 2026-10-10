@@ -73,7 +73,14 @@ class VaultKeyService {
   /// OS 凭据库里的主密钥副本注入本保险库（等价于 PIN 解锁成功后的内存态）。
   /// 调用契约：调用方须先完成系统身份验证且副本来自 QuickUnlockService
   /// （单一入口）——本方法本身不做验证，防线在系统验证环节。
-  void adoptMasterKey(List<int> key) => _masterKey = List<int>.of(key);
+  void adoptMasterKey(List<int> key) {
+    _adoptMasterKeyInMemory(List<int>.of(key));
+    // QuickUnlock 等调用方传入的源副本就地清零（String base64 无法擦除，
+    // 字节副本可以）——缩短 MK 明文驻留窗口。
+    if (key is Uint8List) {
+      key.fillRange(0, key.length, 0);
+    }
+  }
 
   /// 仅测试注入：绕过 KDF 直接设置内存主密钥（不落盘）。
   @visibleForTesting
@@ -120,6 +127,16 @@ class VaultKeyService {
   /// 解锁后的主密钥（内存持有；锁定时 fillRange 擦除——D-2 模式）。
   List<int>? _masterKey;
 
+  /// 覆盖式更新内存主密钥：先擦旧值再赋新值（P0-2）。
+  ///
+  /// 此前直接 `_masterKey = mk`——改 PIN/绑盘/注入后，上一世代的旧 MK
+  /// 明文仍留在堆中（lock() 只清"当前"那一份）。
+  void _adoptMasterKeyInMemory(List<int> mk) {
+    final previous = _masterKey;
+    _masterKey = mk;
+    previous?.fillRange(0, previous.length, 0);
+  }
+
   bool get isUnlocked => _masterKey != null;
 
   /// 主密钥副本（注入给文档/媒体解密层用；每次返回独立拷贝，
@@ -151,7 +168,7 @@ class VaultKeyService {
         'wrapped': base64Encode(wrapped),
       },
     );
-    _masterKey = mk;
+    _adoptMasterKeyInMemory(mk);
   }
 
   /// 解锁：PIN 按槽位声明的 KDF 派生 KEK → 解包 MK。错误 PIN / 载荷篡改
@@ -174,9 +191,11 @@ class VaultKeyService {
     final kek = await deriveKek(pin, salt, _paramsOfPinSlot(pinSlot, doc));
     try {
       final mk = await aeadDecrypt(kek, wrapped, _aad.codeUnits);
-      _masterKey = mk;
+      _adoptMasterKeyInMemory(mk);
     } on SecretBoxAuthenticationError {
       throw const VaultUnlockException('PIN 错误或密钥载荷被篡改');
+    } finally {
+      kek.fillRange(0, kek.length, 0);
     }
     // v1 → 槽位结构惰性迁移（批次④）：首解成功后升级（等价改写，
     // KDF 不变——旧 KEK 派生成本不再重付）。
@@ -210,14 +229,17 @@ class VaultKeyService {
     final oldSalt = base64Decode(pinSlot['salt'] as String);
     final oldWrapped = base64Decode(pinSlot['wrapped'] as String);
     final List<int> mk;
+    final oldKek = await deriveKek(
+      oldPin,
+      oldSalt,
+      _paramsOfPinSlot(pinSlot, doc),
+    );
     try {
-      mk = await aeadDecrypt(
-        await deriveKek(oldPin, oldSalt, _paramsOfPinSlot(pinSlot, doc)),
-        oldWrapped,
-        _aad.codeUnits,
-      );
+      mk = await aeadDecrypt(oldKek, oldWrapped, _aad.codeUnits);
     } on SecretBoxAuthenticationError {
       throw const VaultUnlockException('旧 PIN 错误或密钥载荷被篡改');
+    } finally {
+      oldKek.fillRange(0, oldKek.length, 0);
     }
     final newSalt = randomBytes(_saltBytes);
     final newWrapped = await _wrap(newPin, newSalt, mk, newSlotKdf);
@@ -230,7 +252,7 @@ class VaultKeyService {
       },
       usbSlot: usbSlot,
     );
-    _masterKey = mk;
+    _adoptMasterKeyInMemory(mk);
   }
 
   /// 锁定：内存主密钥主动擦除（fillRange 清零——D-2 模式）。
@@ -346,7 +368,7 @@ class VaultKeyService {
       },
       usbSlot: usbSlot,
     );
-    _masterKey = mk;
+    _adoptMasterKeyInMemory(mk);
   }
 
   // ---------- U 盘第二副本（批次①预留，静态数学层） ----------
@@ -437,7 +459,12 @@ class VaultKeyService {
     KdfParams params,
   ) async {
     final kek = await deriveKek(pin, salt, params);
-    return aeadEncrypt(kek, mk, _aad.codeUnits);
+    try {
+      final wrapped = await aeadEncrypt(kek, mk, _aad.codeUnits);
+      return wrapped;
+    } finally {
+      kek.fillRange(0, kek.length, 0);
+    }
   }
 
   /// 槽位 KDF 参数解析：槽位自带 kdf 字段优先；缺失（旧数据）→ doc 级

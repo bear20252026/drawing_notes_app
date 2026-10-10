@@ -40,12 +40,12 @@ void main() {
       // 密码体系卡：标题 + 两层锁 + 重置密码盘。
       expect(find.text('密码体系'), findsOneWidget);
       expect(find.text('第 1 层 · 开屏密码'), findsOneWidget);
-      expect(find.text('第 2 层 · 文件密码'), findsOneWidget);
+      expect(find.text('第 2 层 · 独立密码'), findsOneWidget);
       expect(find.text('重置密码盘（U 盘）'), findsOneWidget);
 
-      // 密码与安全分组：应用锁 / 单文件密码（密码盘入口已删除）。
+      // 密码与安全分组：应用锁 / 独立密码（密码盘入口已删除）。
       expect(find.text('应用锁'), findsOneWidget);
-      expect(find.text('单文件密码'), findsOneWidget);
+      expect(find.text('独立密码'), findsOneWidget);
       expect(find.text('密码盘与恢复'), findsNothing);
 
       // 通用分组：WebDAV（外观需要控制器注入，未注入时隐藏）。
@@ -189,16 +189,16 @@ void main() {
       expect(find.text('画布工具'), findsNothing);
     });
 
-    testWidgets('单文件密码：帮助弹窗展示说明', (tester) async {
+    testWidgets('独立密码：帮助弹窗展示说明', (tester) async {
       SharedPreferences.setMockInitialValues({});
 
       await tester.pumpWidget(
         MaterialApp(home: SettingsPage(appLockService: AppLockService())),
       );
-      await tester.tap(find.text('单文件密码'));
+      await tester.tap(find.text('独立密码'));
       await tester.pumpAndSettle();
 
-      expect(find.text('单文件密码'), findsWidgets); // 列表项 + 弹窗标题
+      expect(find.text('独立密码'), findsWidgets); // 列表项 + 弹窗标题
       // 「锁形占位」只在弹窗文案出现（「独立于开屏密码」会同时命中
       // 密码体系卡第 2 层描述，故用弹窗专属词断言）。
       expect(find.textContaining('锁形占位'), findsOneWidget);

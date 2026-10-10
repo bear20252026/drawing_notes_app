@@ -323,10 +323,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lockQuickEnableFailed => 'Failed to enable, please retry';
 
   @override
-  String get lockQuickEnableDone =>
-      'Enabled: unlock from the lock screen with system verification (face, fingerprint, or PIN)';
-
-  @override
   String get lockQuickDisableDone =>
       'Disabled; the key copy in the system secure enclave has been deleted';
 
@@ -1043,12 +1039,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get lockButtonLock => 'Lock';
-
-  @override
-  String get lockButtonUnlock => 'Unlock';
-
-  @override
   String get shellWorkspaceName => 'NoteStudio';
 
   @override
@@ -1116,10 +1106,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get canvasStandalonePasswordUnset =>
       'This canvas has no standalone password set';
-
-  @override
-  String get canvasVaultLockedSet =>
-      'The vault is locked: re-verify the screen-lock password before setting';
 
   @override
   String get canvasVaultLockedRemove =>
@@ -1400,9 +1386,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'The sync config lacks its salt: tap “Save config” again before syncing';
 
   @override
-  String get syncMaxRetries => 'Max retries reached';
-
-  @override
   String get syncUpToDate => 'Already up to date';
 
   @override
@@ -1465,96 +1448,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get webdavSave => 'Save config';
 
   @override
-  String get cmdNewSticky => 'New sticky note';
-
-  @override
-  String get cmdGroupEdit => 'Edit';
-
-  @override
-  String get cmdCancelConnect => 'Cancel connect';
-
-  @override
-  String get cmdConnectMode => 'Connect mode';
-
-  @override
-  String get cmdGroupSelected => 'Group selected';
-
-  @override
-  String get cmdNeedTwoFrames => 'Needs ≥2 frames';
-
-  @override
-  String get cmdFitContent => 'Fit content';
-
-  @override
-  String get cmdGroupView => 'View';
-
-  @override
-  String get cmdFitSelected => 'Fit selection';
-
-  @override
-  String get cmdZoomIn => 'Zoom in';
-
-  @override
-  String get cmdZoomOut => 'Zoom out';
-
-  @override
-  String get cmdExitMulti => 'Exit multi-select';
-
-  @override
-  String get cmdEnterMulti => 'Enter multi-select';
-
-  @override
-  String get cmdGroupSelect => 'Select';
-
-  @override
-  String get cmdClearSelection => 'Clear selection';
-
-  @override
-  String get cmdFocusSelected => 'Focus selection';
-
-  @override
-  String get cmdGroupJump => 'Go to';
-
-  @override
-  String get cmdNoMatch => 'No matching commands';
-
-  @override
-  String get edGroup => 'Group';
-
-  @override
-  String get edConnect => 'Connect';
-
-  @override
-  String get edShape => 'Shape';
-
-  @override
-  String get edRect => 'Rectangle';
-
-  @override
-  String get pfCode => 'Code block';
-
-  @override
-  String get pfImage => 'Image';
-
-  @override
-  String get pfLink => 'Link';
-
-  @override
-  String get pfCanvas => 'Canvas';
-
-  @override
-  String get pfChart => 'Chart';
-
-  @override
-  String get pfTable => 'Table';
-
-  @override
-  String get pfDatabase => 'Database';
-
-  @override
-  String get pfAttachment => 'Attachment';
-
-  @override
   String readerTitle(String name) {
     return '$name · Page reader';
   }
@@ -1563,9 +1456,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String readerPageIndicator(int index, int total) {
     return 'Page $index of $total';
   }
-
-  @override
-  String get notesRecent => 'Recent';
 
   @override
   String get obWelcome => 'Welcome to Drawing Notes';
@@ -1663,13 +1553,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get templateWhiteboard => 'Wide whiteboard';
 
   @override
-  String get rootRefusedTitle => 'Cannot start on this device';
-
-  @override
-  String get rootRefusedBody =>
-      'This device has ROOT access. To protect your encrypted notes, the app refuses to run on a compromised device.';
-
-  @override
   String get canvasBindConfirmContent =>
       'When you forget this canvas’s standalone password, plug in the reset disk (USB drive) to reset without the old password.\n\nThe drive holds only a random key file (password_reset_disk.key); canvas data never leaves the device.';
 
@@ -1718,9 +1601,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get homeUntitledNotebookPage => 'Untitled';
-
-  @override
   String get homeStandalonePasswordMenu => 'Standalone password…';
 
   @override
@@ -1759,11 +1639,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String nbExportedPdf(int count, String path) {
     return 'Exported a $count-page PDF: $path';
-  }
-
-  @override
-  String cmdGotoFrame(String name) {
-    return 'Go to “$name”';
   }
 
   @override
@@ -1836,10 +1711,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get impDiskNotFound =>
       'No valid reset disk file (password_reset_disk.key) found';
-
-  @override
-  String get lockDiskKeepNote =>
-      'Do not delete the password_reset_disk.key file on the USB drive';
 
   @override
   String get cmdUndo => 'Undo';
@@ -2026,18 +1897,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String pdfExportNPages(int count) {
     return 'Export $count pages';
   }
-
-  @override
-  String get inkStylusPressure => 'Stylus pressure';
-
-  @override
-  String get inkTouchPressure => 'Touch pressure';
-
-  @override
-  String get inkMouseVelocity => 'Mouse velocity simulation';
-
-  @override
-  String get inkConstant => 'Constant width';
 
   @override
   String get pomodoroPause => 'Pause';
@@ -2591,6 +2450,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selDeleteContent => 'Delete selected content';
 
   @override
+  String get selNoHit => 'Nothing selected. Drag on the canvas to reselect';
+
+  @override
+  String get loadingSkeleton => 'Loading';
+
+  @override
   String selNObjects(int count) {
     return '$count objects selected';
   }
@@ -2712,6 +2577,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get docDiscard => 'Discard';
 
   @override
+  String get docSaveAndExit => 'Save and exit';
+
+  @override
   String get blkSlashHint => 'Type / to add a block';
 
   @override
@@ -2719,11 +2587,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get blkDragToSort => 'Drag to sort';
-
-  @override
-  String semHeading(String level) {
-    return 'Heading $level';
-  }
 
   @override
   String get semTodo => 'To-do';
@@ -3300,16 +3163,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String webdavSyncServerBusy(String code) {
-    return 'Sync failed: server temporarily unavailable (HTTP $code). Try again later.';
-  }
-
-  @override
-  String webdavSyncRejected(String code) {
-    return 'Sync failed: server rejected the request (HTTP $code)';
-  }
-
-  @override
   String webdavSaveFail(String error) {
     return 'Save failed: $error';
   }
@@ -3341,14 +3194,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get webdavServerUrlLabel => 'Server URL';
 
   @override
-  String get webdavMaxRetry => 'Max retries reached';
-
-  @override
-  String webdavSyncDoneStats(int uploaded, int downloaded, int deletedRemote) {
-    return 'Sync complete: ↑$uploaded ↓$downloaded ✕$deletedRemote';
-  }
-
-  @override
   String get homeForgotPasswordLink => 'Forgot password?';
 
   @override
@@ -3375,16 +3220,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get canvasTextOverlayHint => 'Type text… (Enter to finish)';
 
   @override
-  String get frameCornerSemantics => 'Adjust note frame corner';
-
-  @override
   String get pinBackspace => 'Backspace';
 
   @override
   String get pinConfirm => 'Confirm';
-
-  @override
-  String get canvasSearchFieldHint => 'Search';
 
   @override
   String layerDefaultName(int n) {
@@ -3437,9 +3276,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get canvasShapeHandleSemantics => 'Shape corner handle';
 
   @override
-  String get canvasLinearHandleSemantics => 'Line endpoint handle';
-
-  @override
   String get presNextSlide => 'Next slide (long-press to exit)';
 
   @override
@@ -3454,9 +3290,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get rootRefusalBody =>
       'Root access was detected. To protect your encrypted notes, this app refuses to run on a compromised device.';
-
-  @override
-  String get cmdGroupFile => 'File';
 
   @override
   String get pdfExporting => 'Exporting PDF…';
@@ -3558,9 +3391,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get linkSchemeUnsupportedSnack =>
       'Only http/https/mailto links are supported';
-
-  @override
-  String get pdfEmbedPreviewUnavailable => 'Embedded PDF preview unavailable';
 
   @override
   String get pdfEmbedPreviewUnavailableLocal =>

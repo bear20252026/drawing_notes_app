@@ -5,7 +5,6 @@ part of 'doc_page.dart';
 
 /// 文档密码四流域私有助手（拆分自 doc_page.dart）。
 extension _DocPagePassword on _DocPageState {
-
   // ── N2：文件密码管理（与画布/分页画布同口径；入口在 ⋯ 菜单） ──
 
   /// 笔记密码操作 sheet：未设密 → 设置；已设密 → 修改 / 绑定重置盘 / 移除。
@@ -84,7 +83,6 @@ extension _DocPagePassword on _DocPageState {
     );
   }
 
-
   /// 独立密码收集（两次一致才生效）；与开屏密码同码直接拒绝。
   Future<String?> _collectNewPassword(String title) async {
     final l10n = AppLocalizations.of(context);
@@ -100,9 +98,7 @@ extension _DocPagePassword on _DocPageState {
     if (sameAsLock == null) {
       // P2 fail-closed：判定不了（多为开屏锁防爆破冷却中）——拒绝设密
       // 并提示稍后重试，绝不静默放行「与开屏密码同码」。
-      _snack(
-        l10n?.lockTemporarilyLocked ?? '为防止暴力猜测，密码验证已暂时锁定',
-      );
+      _snack(l10n?.lockTemporarilyLocked ?? '为防止暴力猜测，密码验证已暂时锁定');
       return null;
     }
     if (!mounted) return null; // matchesAppLockPin 为异步操作，跨缺口守卫
@@ -118,7 +114,6 @@ extension _DocPagePassword on _DocPageState {
     }
     return pin;
   }
-
 
   Future<void> _startSetPassword() async {
     final store = widget.blockDocStore;
@@ -171,7 +166,6 @@ extension _DocPagePassword on _DocPageState {
     }
   }
 
-
   Future<void> _startChangePassword() async {
     final store = widget.blockDocStore;
     if (store == null) return;
@@ -200,7 +194,6 @@ extension _DocPagePassword on _DocPageState {
     }
   }
 
-
   /// 事后绑定重置密码盘：验证文件密码 → 插盘 → 嵌入 USB 槽位。
   Future<void> _startBindUsb() async {
     final store = widget.blockDocStore;
@@ -208,7 +201,7 @@ extension _DocPagePassword on _DocPageState {
     final l10n = AppLocalizations.of(context);
     final pin = await UnlockFlow.show(
       context,
-      title: l10n?.docVerifyToBind ?? '验证独立密码以绑定重置盘',
+      title: l10n?.docVerifyToBind ?? '验证独立密码以绑定重置密码盘',
       flexible: true,
       onVerify: (p) => store.verifyBlockDocPassword(_doc.id, p),
     );
@@ -233,7 +226,6 @@ extension _DocPagePassword on _DocPageState {
       _snack(l10n?.docBindFailed ?? '绑定失败，请重试');
     }
   }
-
 
   Future<void> _startRemovePassword() async {
     final store = widget.blockDocStore;

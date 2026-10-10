@@ -6,6 +6,7 @@ import 'package:cryptography/cryptography.dart';
 
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 import 'package:drawing_notes_app/core/security/kdf_params.dart';
+import 'package:drawing_notes_app/core/security/session_secrets.dart';
 
 /// 媒体加密服务（H-03 跨域专项基础组件，专家审计 2026-08-15）。
 ///
@@ -14,8 +15,15 @@ import 'package:drawing_notes_app/core/security/kdf_params.dart';
 /// 注入（setSessionKey）、退出/锁定时清除（clearSessionKey——D-2 内存
 /// 清理模式）。storeImage 加密写入与 EncryptedFileImage 渲染解密均经此
 /// 服务（Flutter 官方 DI 模式：服务注入，密钥不散传）。
-class MediaCryptoService {
-  MediaCryptoService._();
+///
+/// 注册为 [SessionSecretsHolder]（P0-7，审计 2026-10-09）：此前会话媒体
+/// 密钥只在笔记本页 dispose 时清理——搜索页/路由仅注入密码就派生密钥、
+/// 导航离开后无任何生命周期钩子清它，AppLockGate.hidden 的 SessionSecrets
+/// 联动也够不到。注册后切后台统一掉锁清零。
+class MediaCryptoService implements SessionSecretsHolder {
+  MediaCryptoService._() {
+    SessionSecrets.register(this);
+  }
 
   // C-06 裁决（审计 2026-09-27，2026-10-03 落地）：对外全局可达性已收敛——
   // features/shared 零 `.instance` 直取（消费方一律构造注入，实例由组合根
@@ -59,6 +67,8 @@ class MediaCryptoService {
       const KdfParams.pbkdf2(600000),
     );
     _sessionKey = List.of(key);
+    // KekSessionCache 返回独立副本，注入后源副本就地清零（P0 密钥零化）。
+    key.fillRange(0, key.length, 0);
   }
 
   /// 生成 16 字节全局盐（密码模式媒体加密派生用——明文无害）。
@@ -74,6 +84,9 @@ class MediaCryptoService {
     _notebookId = null;
     _sessionKey = null;
   }
+
+  @override
+  void clearAllSessionSecrets() => clearSessionKey();
 
   bool get isActive => _sessionKey != null;
 

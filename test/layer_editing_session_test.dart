@@ -162,6 +162,8 @@ class _LayerEditingHost implements LayerEditingHost {
   final List<({int from, int to})> moves = <({int from, int to})>[];
   final List<({int index, bool before, bool after})> visibilityChanges =
       <({int index, bool before, bool after})>[];
+  final List<({int index, double before, double after})> opacityChanges =
+      <({int index, double before, double after})>[];
   final List<String> addedCacheLayerIds = <String>[];
   final List<String> removedCacheLayerIds = <String>[];
   final List<String> invalidatedLayerIds = <String>[];
@@ -190,6 +192,11 @@ class _LayerEditingHost implements LayerEditingHost {
   @override
   void pushLayerVisibility(int index, bool before, bool after) {
     visibilityChanges.add((index: index, before: before, after: after));
+  }
+
+  @override
+  void pushLayerOpacity(int index, double before, double after) {
+    opacityChanges.add((index: index, before: before, after: after));
   }
 
   @override

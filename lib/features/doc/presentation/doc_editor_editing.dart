@@ -48,7 +48,9 @@ extension DocEditorEditing on DocEditorState {
     final after = text.substring(cursorPos);
 
     final newId = _nextId();
-    final newBlock = _createBlockOfType(block.type, newId, after);
+    // 拆分保留原块全部属性（标题级别/todo 勾选/code 语言/spans）——
+    // 经工厂重建会丢失这些属性。children 不随后半走——子块仍归属前半。
+    final newBlock = block.copyWith(id: newId, text: after, children: const []);
 
     editorSetState(() {
       // 当前块保留前半
@@ -69,46 +71,6 @@ extension DocEditorEditing on DocEditorState {
     _commitHistory();
   }
 
-  /// 根据类型创建对应工厂的新块。
-  NoteBlock _createBlockOfType(NoteBlockType type, String id, String text) {
-    switch (type) {
-      case NoteBlockType.heading:
-        return NoteBlock.headingBlock(id, level: 1, text: text);
-      case NoteBlockType.toggle:
-        return NoteBlock.toggleBlock(id, text: text);
-      case NoteBlockType.bullet:
-        return NoteBlock.bulletBlock(id, text: text);
-      case NoteBlockType.ordered:
-        return NoteBlock.orderedBlock(id, text: text);
-      case NoteBlockType.todo:
-        return NoteBlock.todoBlock(id, text: text);
-      case NoteBlockType.code:
-        return NoteBlock.codeBlock(id, text: text);
-      case NoteBlockType.quote:
-        return NoteBlock.quoteBlock(id, text: text);
-      case NoteBlockType.text:
-        return NoteBlock.textBlock(id, text: text);
-      case NoteBlockType.divider:
-        return NoteBlock.dividerBlock(id);
-      case NoteBlockType.image:
-        return NoteBlock.textBlock(id, text: text);
-      case NoteBlockType.callout:
-        return NoteBlock(id: id, type: NoteBlockType.callout, text: text);
-      case NoteBlockType.canvas:
-        return NoteBlock(id: id, type: NoteBlockType.canvas);
-      case NoteBlockType.chart:
-        return NoteBlock(id: id, type: NoteBlockType.chart);
-      case NoteBlockType.link:
-        return NoteBlock(id: id, type: NoteBlockType.link, text: text);
-      case NoteBlockType.table:
-        return NoteBlock(id: id, type: NoteBlockType.table);
-      case NoteBlockType.database:
-        return NoteBlock(id: id, type: NoteBlockType.database);
-      case NoteBlockType.attachment:
-        return NoteBlock(id: id, type: NoteBlockType.attachment, text: text);
-    }
-  }
-
   // ── Backspace：空块合并 ────────────────────────────────────
 
   /// 在空块上退格，合并到前一块。
@@ -120,10 +82,20 @@ extension DocEditorEditing on DocEditorState {
     final index = _root.children.indexWhere((b) => b.id == blockId);
     if (index <= 0) return; // 无前一块，不做操作
 
+    final block = _editor.findBlock(_root, blockId);
+    if (block == null) return;
     final previous = _root.children[index - 1];
     final previousText = previous.text;
 
     editorSetState(() {
+      // 空块下挂子块时先把子块上移为同级（Notion 语义）——直接删块
+      // 会按子树连坐销毁，一次退格静默吞掉全部缩进子块。
+      var anchor = previous.id;
+      for (final child in block.children) {
+        _root = _editor.insertAfter(_root, anchor, child);
+        _ensureBlockResources(child);
+        anchor = child.id;
+      }
       _root = _editor.deleteBlock(_root, blockId);
       _disposeBlockResources(blockId);
     });
@@ -178,6 +150,8 @@ extension DocEditorEditing on DocEditorState {
         ...block.props,
         'expanded': !expanded,
       });
+      // props 已纳入脏签名：折叠态翻转须翻转脏态，否则永不触发保存。
+      _updateDirtyState();
     });
   }
 
@@ -195,10 +169,43 @@ extension DocEditorEditing on DocEditorState {
   }
 
   /// 计算当前 body 的签名（用于 dirty 检测）。
+  ///
+  /// 递归覆盖全部块（含嵌套子块）并纳入 props（排序后稳定输出）：
+  /// 旧签名只看顶层 (id,type,text)，导致 ① 缩进子块里的编辑不翻转
+  /// 脏态、自动保存不启动、退出静默丢字；② 折叠态/spans 等 props 变化
+  /// 永不触发保存。签名仍是廉价字符串拼接，无深拷贝。
   String _computeBodySignature() {
-    return _root.children
-        .map((b) => '${b.id}:${b.type.name}:${b.text}')
-        .join('|');
+    final buffer = StringBuffer();
+    void visit(NoteBlock block) {
+      if (block.props.isNotEmpty) {
+        final sortedKeys = block.props.keys.toList()..sort();
+        buffer.write('(');
+        for (final key in sortedKeys) {
+          buffer.write(key);
+          buffer.write('=');
+          buffer.write(block.props[key]);
+          buffer.write(',');
+        }
+        buffer.write(')');
+      }
+      buffer
+        ..write(block.id)
+        ..write(':')
+        ..write(block.type.name)
+        ..write(':')
+        ..write(block.text);
+      for (final child in block.children) {
+        buffer.write('{');
+        visit(child);
+        buffer.write('}');
+      }
+      buffer.write('|');
+    }
+
+    for (final block in _root.children) {
+      visit(block);
+    }
+    return buffer.toString();
   }
 
   // ── 富文本操作 ─────────────────────────────────────────────

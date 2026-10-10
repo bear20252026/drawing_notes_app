@@ -36,9 +36,8 @@ extension _DocPageInfo on _DocPageState {
               const SizedBox(height: 12),
               Text(
                 l10n?.docTags ?? '标签',
-                style: DefaultTextStyle.of(
-                  context,
-                ).style.copyWith(fontWeight: AppleType.semibold),
+                style: DefaultTextStyle.of(context).style
+                    .copyWith(fontWeight: AppleType.semibold),
               ),
               const SizedBox(height: 8),
               Flexible(
@@ -112,6 +111,9 @@ extension _DocPageInfo on _DocPageState {
       return;
     }
     if (!mounted) return;
+    // 同步编辑器内部的文档快照（P1-4）：编辑器 _doc 停在 initState 快照，
+    // 不同步的话下一次自动保存会用旧 tags copyWith，把本次标签改动回滚。
+    _editorKey.currentState?.syncTags(tags);
     pageSetState(() => _doc = updated);
     Navigator.of(context).pop();
     _showInfoDialog(context);
@@ -170,15 +172,13 @@ extension _DocPageInfo on _DocPageState {
         children: [
           Text(
             label,
-            style: AppleType.controlStyle(
-              scheme.onSurfaceVariant,
-            ).copyWith(fontWeight: FontWeight.w400),
+            style: AppleType.controlStyle(scheme.onSurfaceVariant)
+                .copyWith(fontWeight: FontWeight.w400),
           ),
           Text(
             value,
-            style: AppleType.controlStyle(
-              scheme.onSurface,
-            ).copyWith(fontWeight: FontWeight.w400),
+            style: AppleType.controlStyle(scheme.onSurface)
+                .copyWith(fontWeight: FontWeight.w400),
           ),
         ],
       ),

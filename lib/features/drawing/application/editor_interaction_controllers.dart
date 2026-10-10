@@ -320,6 +320,10 @@ class EditorCanvasInteractionState {
     }
   }
 
+  /// 清空拖动轨迹：拖拽手势结束（onPanEnd/onPanCancel）必须调用——
+  /// 此前无任何清理点，一次拖动结束后 8 点 ghost 轨迹永久残留绘制。
+  void clearTrail() => _trailPoints.clear();
+
   /// 更新本次拖动的对齐参考线。
   void replaceSnapGuides(List<({bool vertical, double pos})> guides) {
     _snapGuides = List<({bool vertical, double pos})>.of(guides);

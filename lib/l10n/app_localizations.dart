@@ -668,12 +668,6 @@ abstract class AppLocalizations {
   /// **'Failed to enable, please retry'**
   String get lockQuickEnableFailed;
 
-  /// 快速解锁开启成功
-  ///
-  /// In en, this message translates to:
-  /// **'Enabled: unlock from the lock screen with system verification (face, fingerprint, or PIN)'**
-  String get lockQuickEnableDone;
-
   /// 快速解锁关闭成功
   ///
   /// In en, this message translates to:
@@ -1982,18 +1976,6 @@ abstract class AppLocalizations {
   /// **'{entered} / {max} digits ({min}–{max} optional)'**
   String pinDigitsCount(int entered, int min, int max);
 
-  /// No description provided for @lockButtonLock.
-  ///
-  /// In en, this message translates to:
-  /// **'Lock'**
-  String get lockButtonLock;
-
-  /// No description provided for @lockButtonUnlock.
-  ///
-  /// In en, this message translates to:
-  /// **'Unlock'**
-  String get lockButtonUnlock;
-
   /// No description provided for @shellWorkspaceName.
   ///
   /// In en, this message translates to:
@@ -2095,12 +2077,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This canvas has no standalone password set'**
   String get canvasStandalonePasswordUnset;
-
-  /// No description provided for @canvasVaultLockedSet.
-  ///
-  /// In en, this message translates to:
-  /// **'The vault is locked: re-verify the screen-lock password before setting'**
-  String get canvasVaultLockedSet;
 
   /// No description provided for @canvasVaultLockedRemove.
   ///
@@ -2594,12 +2570,6 @@ abstract class AppLocalizations {
   /// **'The sync config lacks its salt: tap “Save config” again before syncing'**
   String get syncMissingSalt;
 
-  /// No description provided for @syncMaxRetries.
-  ///
-  /// In en, this message translates to:
-  /// **'Max retries reached'**
-  String get syncMaxRetries;
-
   /// No description provided for @syncUpToDate.
   ///
   /// In en, this message translates to:
@@ -2708,186 +2678,6 @@ abstract class AppLocalizations {
   /// **'Save config'**
   String get webdavSave;
 
-  /// No description provided for @cmdNewSticky.
-  ///
-  /// In en, this message translates to:
-  /// **'New sticky note'**
-  String get cmdNewSticky;
-
-  /// No description provided for @cmdGroupEdit.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit'**
-  String get cmdGroupEdit;
-
-  /// No description provided for @cmdCancelConnect.
-  ///
-  /// In en, this message translates to:
-  /// **'Cancel connect'**
-  String get cmdCancelConnect;
-
-  /// No description provided for @cmdConnectMode.
-  ///
-  /// In en, this message translates to:
-  /// **'Connect mode'**
-  String get cmdConnectMode;
-
-  /// No description provided for @cmdGroupSelected.
-  ///
-  /// In en, this message translates to:
-  /// **'Group selected'**
-  String get cmdGroupSelected;
-
-  /// No description provided for @cmdNeedTwoFrames.
-  ///
-  /// In en, this message translates to:
-  /// **'Needs ≥2 frames'**
-  String get cmdNeedTwoFrames;
-
-  /// No description provided for @cmdFitContent.
-  ///
-  /// In en, this message translates to:
-  /// **'Fit content'**
-  String get cmdFitContent;
-
-  /// No description provided for @cmdGroupView.
-  ///
-  /// In en, this message translates to:
-  /// **'View'**
-  String get cmdGroupView;
-
-  /// No description provided for @cmdFitSelected.
-  ///
-  /// In en, this message translates to:
-  /// **'Fit selection'**
-  String get cmdFitSelected;
-
-  /// No description provided for @cmdZoomIn.
-  ///
-  /// In en, this message translates to:
-  /// **'Zoom in'**
-  String get cmdZoomIn;
-
-  /// No description provided for @cmdZoomOut.
-  ///
-  /// In en, this message translates to:
-  /// **'Zoom out'**
-  String get cmdZoomOut;
-
-  /// No description provided for @cmdExitMulti.
-  ///
-  /// In en, this message translates to:
-  /// **'Exit multi-select'**
-  String get cmdExitMulti;
-
-  /// No description provided for @cmdEnterMulti.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter multi-select'**
-  String get cmdEnterMulti;
-
-  /// No description provided for @cmdGroupSelect.
-  ///
-  /// In en, this message translates to:
-  /// **'Select'**
-  String get cmdGroupSelect;
-
-  /// No description provided for @cmdClearSelection.
-  ///
-  /// In en, this message translates to:
-  /// **'Clear selection'**
-  String get cmdClearSelection;
-
-  /// No description provided for @cmdFocusSelected.
-  ///
-  /// In en, this message translates to:
-  /// **'Focus selection'**
-  String get cmdFocusSelected;
-
-  /// No description provided for @cmdGroupJump.
-  ///
-  /// In en, this message translates to:
-  /// **'Go to'**
-  String get cmdGroupJump;
-
-  /// No description provided for @cmdNoMatch.
-  ///
-  /// In en, this message translates to:
-  /// **'No matching commands'**
-  String get cmdNoMatch;
-
-  /// No description provided for @edGroup.
-  ///
-  /// In en, this message translates to:
-  /// **'Group'**
-  String get edGroup;
-
-  /// No description provided for @edConnect.
-  ///
-  /// In en, this message translates to:
-  /// **'Connect'**
-  String get edConnect;
-
-  /// No description provided for @edShape.
-  ///
-  /// In en, this message translates to:
-  /// **'Shape'**
-  String get edShape;
-
-  /// No description provided for @edRect.
-  ///
-  /// In en, this message translates to:
-  /// **'Rectangle'**
-  String get edRect;
-
-  /// No description provided for @pfCode.
-  ///
-  /// In en, this message translates to:
-  /// **'Code block'**
-  String get pfCode;
-
-  /// No description provided for @pfImage.
-  ///
-  /// In en, this message translates to:
-  /// **'Image'**
-  String get pfImage;
-
-  /// No description provided for @pfLink.
-  ///
-  /// In en, this message translates to:
-  /// **'Link'**
-  String get pfLink;
-
-  /// No description provided for @pfCanvas.
-  ///
-  /// In en, this message translates to:
-  /// **'Canvas'**
-  String get pfCanvas;
-
-  /// No description provided for @pfChart.
-  ///
-  /// In en, this message translates to:
-  /// **'Chart'**
-  String get pfChart;
-
-  /// No description provided for @pfTable.
-  ///
-  /// In en, this message translates to:
-  /// **'Table'**
-  String get pfTable;
-
-  /// No description provided for @pfDatabase.
-  ///
-  /// In en, this message translates to:
-  /// **'Database'**
-  String get pfDatabase;
-
-  /// No description provided for @pfAttachment.
-  ///
-  /// In en, this message translates to:
-  /// **'Attachment'**
-  String get pfAttachment;
-
   /// No description provided for @readerTitle.
   ///
   /// In en, this message translates to:
@@ -2899,12 +2689,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Page {index} of {total}'**
   String readerPageIndicator(int index, int total);
-
-  /// No description provided for @notesRecent.
-  ///
-  /// In en, this message translates to:
-  /// **'Recent'**
-  String get notesRecent;
 
   /// No description provided for @obWelcome.
   ///
@@ -3080,18 +2864,6 @@ abstract class AppLocalizations {
   /// **'Wide whiteboard'**
   String get templateWhiteboard;
 
-  /// No description provided for @rootRefusedTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Cannot start on this device'**
-  String get rootRefusedTitle;
-
-  /// No description provided for @rootRefusedBody.
-  ///
-  /// In en, this message translates to:
-  /// **'This device has ROOT access. To protect your encrypted notes, the app refuses to run on a compromised device.'**
-  String get rootRefusedBody;
-
   /// No description provided for @canvasBindConfirmContent.
   ///
   /// In en, this message translates to:
@@ -3164,12 +2936,6 @@ abstract class AppLocalizations {
   /// **'Delete the note “{name}”? This cannot be undone.'**
   String homeDeleteNoteConfirm(String name);
 
-  /// No description provided for @homeUntitledNotebookPage.
-  ///
-  /// In en, this message translates to:
-  /// **'Untitled'**
-  String get homeUntitledNotebookPage;
-
   /// No description provided for @homeStandalonePasswordMenu.
   ///
   /// In en, this message translates to:
@@ -3235,12 +3001,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Exported a {count}-page PDF: {path}'**
   String nbExportedPdf(int count, String path);
-
-  /// No description provided for @cmdGotoFrame.
-  ///
-  /// In en, this message translates to:
-  /// **'Go to “{name}”'**
-  String cmdGotoFrame(String name);
 
   /// No description provided for @obPinchTip.
   ///
@@ -3349,12 +3109,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No valid reset disk file (password_reset_disk.key) found'**
   String get impDiskNotFound;
-
-  /// No description provided for @lockDiskKeepNote.
-  ///
-  /// In en, this message translates to:
-  /// **'Do not delete the password_reset_disk.key file on the USB drive'**
-  String get lockDiskKeepNote;
 
   /// No description provided for @cmdUndo.
   ///
@@ -3703,30 +3457,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Export {count} pages'**
   String pdfExportNPages(int count);
-
-  /// No description provided for @inkStylusPressure.
-  ///
-  /// In en, this message translates to:
-  /// **'Stylus pressure'**
-  String get inkStylusPressure;
-
-  /// No description provided for @inkTouchPressure.
-  ///
-  /// In en, this message translates to:
-  /// **'Touch pressure'**
-  String get inkTouchPressure;
-
-  /// No description provided for @inkMouseVelocity.
-  ///
-  /// In en, this message translates to:
-  /// **'Mouse velocity simulation'**
-  String get inkMouseVelocity;
-
-  /// No description provided for @inkConstant.
-  ///
-  /// In en, this message translates to:
-  /// **'Constant width'**
-  String get inkConstant;
 
   /// No description provided for @pomodoroPause.
   ///
@@ -4778,6 +4508,18 @@ abstract class AppLocalizations {
   /// **'Delete selected content'**
   String get selDeleteContent;
 
+  /// No description provided for @selNoHit.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing selected. Drag on the canvas to reselect'**
+  String get selNoHit;
+
+  /// No description provided for @loadingSkeleton.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading'**
+  String get loadingSkeleton;
+
   /// No description provided for @selNObjects.
   ///
   /// In en, this message translates to:
@@ -5000,6 +4742,12 @@ abstract class AppLocalizations {
   /// **'Discard'**
   String get docDiscard;
 
+  /// No description provided for @docSaveAndExit.
+  ///
+  /// In en, this message translates to:
+  /// **'Save and exit'**
+  String get docSaveAndExit;
+
   /// No description provided for @blkSlashHint.
   ///
   /// In en, this message translates to:
@@ -5017,12 +4765,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Drag to sort'**
   String get blkDragToSort;
-
-  /// No description provided for @semHeading.
-  ///
-  /// In en, this message translates to:
-  /// **'Heading {level}'**
-  String semHeading(String level);
 
   /// No description provided for @semTodo.
   ///
@@ -6074,18 +5816,6 @@ abstract class AppLocalizations {
   /// **'Sync failed: {error}'**
   String webdavSyncFailRaw(String error);
 
-  /// No description provided for @webdavSyncServerBusy.
-  ///
-  /// In en, this message translates to:
-  /// **'Sync failed: server temporarily unavailable (HTTP {code}). Try again later.'**
-  String webdavSyncServerBusy(String code);
-
-  /// No description provided for @webdavSyncRejected.
-  ///
-  /// In en, this message translates to:
-  /// **'Sync failed: server rejected the request (HTTP {code})'**
-  String webdavSyncRejected(String code);
-
   /// No description provided for @webdavSaveFail.
   ///
   /// In en, this message translates to:
@@ -6133,18 +5863,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Server URL'**
   String get webdavServerUrlLabel;
-
-  /// No description provided for @webdavMaxRetry.
-  ///
-  /// In en, this message translates to:
-  /// **'Max retries reached'**
-  String get webdavMaxRetry;
-
-  /// No description provided for @webdavSyncDoneStats.
-  ///
-  /// In en, this message translates to:
-  /// **'Sync complete: ↑{uploaded} ↓{downloaded} ✕{deletedRemote}'**
-  String webdavSyncDoneStats(int uploaded, int downloaded, int deletedRemote);
 
   /// No description provided for @homeForgotPasswordLink.
   ///
@@ -6194,12 +5912,6 @@ abstract class AppLocalizations {
   /// **'Type text… (Enter to finish)'**
   String get canvasTextOverlayHint;
 
-  /// No description provided for @frameCornerSemantics.
-  ///
-  /// In en, this message translates to:
-  /// **'Adjust note frame corner'**
-  String get frameCornerSemantics;
-
   /// No description provided for @pinBackspace.
   ///
   /// In en, this message translates to:
@@ -6211,12 +5923,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Confirm'**
   String get pinConfirm;
-
-  /// No description provided for @canvasSearchFieldHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Search'**
-  String get canvasSearchFieldHint;
 
   /// No description provided for @layerDefaultName.
   ///
@@ -6308,12 +6014,6 @@ abstract class AppLocalizations {
   /// **'Shape corner handle'**
   String get canvasShapeHandleSemantics;
 
-  /// No description provided for @canvasLinearHandleSemantics.
-  ///
-  /// In en, this message translates to:
-  /// **'Line endpoint handle'**
-  String get canvasLinearHandleSemantics;
-
   /// No description provided for @presNextSlide.
   ///
   /// In en, this message translates to:
@@ -6343,12 +6043,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Root access was detected. To protect your encrypted notes, this app refuses to run on a compromised device.'**
   String get rootRefusalBody;
-
-  /// No description provided for @cmdGroupFile.
-  ///
-  /// In en, this message translates to:
-  /// **'File'**
-  String get cmdGroupFile;
 
   /// No description provided for @pdfExporting.
   ///
@@ -6511,12 +6205,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Only http/https/mailto links are supported'**
   String get linkSchemeUnsupportedSnack;
-
-  /// No description provided for @pdfEmbedPreviewUnavailable.
-  ///
-  /// In en, this message translates to:
-  /// **'Embedded PDF preview unavailable'**
-  String get pdfEmbedPreviewUnavailable;
 
   /// No description provided for @pdfEmbedPreviewUnavailableLocal.
   ///

@@ -71,11 +71,10 @@ abstract final class PasswordResetSteps {
     final sameAsLockMsg =
         l10n?.resetSameAsLockScreen(label) ?? '$label不能与开屏密码相同';
     final mismatchMsg = l10n?.resetMismatchRetry ?? '两次输入不一致，请重试';
-    final undeterminedMsg =
-        l10n?.lockTemporarilyLocked ?? '为防止暴力猜测，密码验证已暂时锁定';
+    final undeterminedMsg = l10n?.lockTemporarilyLocked ?? '为防止暴力猜测，密码验证已暂时锁定';
     final pin = await UnlockFlow.show(
       context,
-      title: l10n?.resetSetNewFilePassword ?? '设置新文件密码',
+      title: l10n?.resetSetNewFilePassword ?? '设置新独立密码',
       flexible: true,
     );
     // P1 空值保底（三层收口的第二层）：重置同样是在设新密码。
@@ -95,7 +94,7 @@ abstract final class PasswordResetSteps {
     if (!context.mounted) return null;
     final confirmPin = await UnlockFlow.show(
       context,
-      title: l10n?.resetConfirmNewFilePassword ?? '确认新文件密码',
+      title: l10n?.resetConfirmNewFilePassword ?? '确认新独立密码',
       flexible: true,
     );
     if (confirmPin == null || confirmPin.isEmpty || !context.mounted) {
@@ -129,8 +128,7 @@ abstract final class PasswordResetSteps {
   }
 
   static void snack(BuildContext context, String message) {
-    ScaffoldMessenger.maybeOf(
-      context,
-    )?.showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.maybeOf(context)
+        ?.showSnackBar(SnackBar(content: Text(message)));
   }
 }

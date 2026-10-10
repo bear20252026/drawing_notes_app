@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 import 'package:drawing_notes_app/core/theme/apple_focus.dart';
 import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
 import 'package:drawing_notes_app/core/all_doc.dart';
@@ -82,177 +83,179 @@ class AllDocRow extends StatelessWidget {
     // InkWell 不带 onLongPressStart（需位置），长按经 GestureDetector 承接。
     return GestureDetector(
       onLongPressStart: (details) => showMenuAt(details.globalPosition),
-      child: AppleFocusRing(borderRadius: AppleRadius.sm, child: InkWell(
-        onTap: onOpenDoc,
-        onSecondaryTapUp: (details) => showMenuAt(details.globalPosition),
-        child: Padding(
-          // 纵向 10 → 12：DESIGN.md:376「structural layout snaps to
-          // 8/12/16/20/24」，10 不在栅格上；12 也让 15px 标题 + 13px
-          // 描述的两行结构呼吸更均匀。
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // kind 图标
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: visual.color.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(AppleRadius.sm),
+      child: AppleFocusRing(
+        borderRadius: AppleRadius.sm,
+        child: InkWell(
+          onTap: onOpenDoc,
+          onSecondaryTapUp: (details) => showMenuAt(details.globalPosition),
+          child: Padding(
+            // 纵向 10 → 12：DESIGN.md:376「structural layout snaps to
+            // 8/12/16/20/24」，10 不在栅格上；12 也让 15px 标题 + 13px
+            // 描述的两行结构呼吸更均匀。
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // kind 图标
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: visual.color.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(AppleRadius.sm),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(visual.icon, size: 20, color: visual.color),
                 ),
-                alignment: Alignment.center,
-                child: Icon(visual.icon, size: 20, color: visual.color),
-              ),
-              const SizedBox(width: 12),
-              // 主列：title + description
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      DomainDisplayLabels.docTitleWithLock(
-                        AppLocalizations.of(context),
-                        doc.title,
-                        locked: doc.locked,
-                      ),
-                      // 14 → 15：列表标题是触屏主用设备上的主要点击目标，
-                      // 14px 偏小；15px 仍在 UI 尺度内（DESIGN.md 的
-                      // 17px 是**营销正文**档，不适用于列表条目）。
-                      // 以 controlStyle 为基（无 body 1.47 行高，避免列表行被撑高）。
-                      style: AppleType.controlStyle(
-                        onSurface,
-                        weight: FontWeight.w600,
-                      ).copyWith(fontSize: 15),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (doc.description.isNotEmpty) ...[
-                      // D-12（审计 2026-09-27）：2 → AppleSpacing.xxs（离档微间隙归一）。
-                      const SizedBox(height: AppleSpacing.xxs),
+                const SizedBox(width: 12),
+                // 主列：title + description
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                       Text(
-                        doc.description,
-                        style: AppleType.controlStyle(muted).copyWith(
-                          fontWeight: FontWeight.w400,
-                          // DESIGN.md:506「Don't tighten line-height below
-                          // 1.47 for body copy」。描述最多两行，行高拉开后
-                          // 整行更透气，也和正文阅读节奏一致。
-                          height: AppleType.bodyLineHeight,
+                        DomainDisplayLabels.docTitleWithLock(
+                          AppLocalizations.of(context),
+                          doc.title,
+                          locked: doc.locked,
                         ),
-                        maxLines: 2,
+                        // 14 → 15：列表标题是触屏主用设备上的主要点击目标，
+                        // 14px 偏小；15px 仍在 UI 尺度内（DESIGN.md 的
+                        // 17px 是**营销正文**档，不适用于列表条目）。
+                        // 以 controlStyle 为基（无 body 1.47 行高，避免列表行被撑高）。
+                        style: AppleType.controlStyle(
+                          onSurface,
+                          weight: FontWeight.w600,
+                        ).copyWith(fontSize: 15),
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      if (doc.description.isNotEmpty) ...[
+                        // D-12（审计 2026-09-27）：2 → AppleSpacing.xxs（离档微间隙归一）。
+                        const SizedBox(height: AppleSpacing.xxs),
+                        Text(
+                          doc.description,
+                          style: AppleType.controlStyle(muted).copyWith(
+                            fontWeight: FontWeight.w400,
+                            // DESIGN.md:506「Don't tighten line-height below
+                            // 1.47 for body copy」。描述最多两行，行高拉开后
+                            // 整行更透气，也和正文阅读节奏一致。
+                            height: AppleType.bodyLineHeight,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              // N2：文件密码锁标（本会话未解锁）
-              if (doc.locked) ...[
-                Icon(Icons.lock_outline_rounded, size: 14, color: subtle),
+                const SizedBox(width: 12),
+                // N2：文件密码锁标（本会话未解锁）
+                if (doc.locked) ...[
+                  Icon(Icons.lock_outline_rounded, size: 14, color: subtle),
+                  const SizedBox(width: 4),
+                ],
+                // 相对时间
+                Text(timeLabel, style: AppleType.captionStyle(subtle)),
+                const SizedBox(width: 12),
+                // D 头像圆点
+                Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: visual.color.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    'D',
+                    style: AppleTypeScale.of(
+                      AppleTypeScale.microLegal,
+                      visual.color,
+                    ).copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ),
                 const SizedBox(width: 4),
-              ],
-              // 相对时间
-              Text(timeLabel, style: AppleType.captionStyle(subtle)),
-              const SizedBox(width: 12),
-              // D 头像圆点
-              Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  color: visual.color.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  'D',
-                  style: AppleTypeScale.of(
-                    AppleTypeScale.microLegal,
-                    visual.color,
-                  ).copyWith(fontWeight: FontWeight.w600),
-                ),
-              ),
-              const SizedBox(width: 4),
-              // 星标（U4a：触控目标 26→44px；R6：读屏语义——状态化标签；
-              // V-06：补桌面悬停 Tooltip）。
-              Semantics(
-                label: doc.isFavorite
-                    ? AppLocalizations.of(context)?.docsUnfavorite ?? '取消收藏'
-                    : AppLocalizations.of(context)?.docsFavorite ?? '添加收藏',
-                button: true,
-                child: Tooltip(
-                  message: doc.isFavorite
+                // 星标（U4a：触控目标 26→44px；R6：读屏语义——状态化标签；
+                // V-06：补桌面悬停 Tooltip）。
+                Semantics(
+                  label: doc.isFavorite
                       ? AppLocalizations.of(context)?.docsUnfavorite ?? '取消收藏'
                       : AppLocalizations.of(context)?.docsFavorite ?? '添加收藏',
-                  // V-12（审计 2026-09-27）：裸按钮键盘焦点只有 focusColor
-                  // overlay（深色底不可见）——补 2px Focus Blue 描边环。
-                  child: AppleFocusRing(
-                    borderRadius: AppleRadius.md,
-                    child: InkWell(
-                      onTap: onToggleFavorite,
-                      borderRadius: BorderRadius.circular(AppleRadius.md),
-                      child: SizedBox(
-                        width: AppleTouch.minTarget,
-                        height: AppleTouch.minTarget,
-                        child: Center(
-                          child: Icon(
-                            doc.isFavorite
-                                ? Icons.star_rounded
-                                : Icons.star_border_rounded,
-                            size: 18,
-                            color:
-                                doc.isFavorite ? AppleColor.favourite : subtle,
+                  button: true,
+                  child: Tooltip(
+                    message: doc.isFavorite
+                        ? AppLocalizations.of(context)?.docsUnfavorite ?? '取消收藏'
+                        : AppLocalizations.of(context)?.docsFavorite ?? '添加收藏',
+                    // V-12（审计 2026-09-27）：裸按钮键盘焦点只有 focusColor
+                    // overlay（深色底不可见）——补 2px Focus Blue 描边环。
+                    child: AppleFocusRing(
+                      borderRadius: AppleRadius.md,
+                      child: InkWell(
+                        onTap: onToggleFavorite,
+                        borderRadius: BorderRadius.circular(AppleRadius.md),
+                        child: SizedBox(
+                          width: AppleTouch.minTarget,
+                          height: AppleTouch.minTarget,
+                          child: Center(
+                            child: _FavoriteStarIcon(
+                              favorite: doc.isFavorite,
+                              color: doc.isFavorite
+                                  ? AppleColor.favourite
+                                  : subtle,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              // D-12（审计 2026-09-27）：2 → AppleSpacing.xxs（离档微间隙归一）。
-              const SizedBox(width: AppleSpacing.xxs),
-              // ⋮ 菜单（U4a：触控目标 26→44px；死入口接活——onMenu 未传时
-              // 打开与右键一致的上下文菜单。R6：读屏语义。V-05：裸
-              // GestureDetector 无 Focus 节点 Tab 遍历跳过——改 InkWell
-              // 自带焦点；V-06：补桌面悬停 Tooltip）。
-              Semantics(
-                label: AppLocalizations.of(context)?.docsMoreActions ?? '更多操作',
-                button: true,
-                child: Tooltip(
-                  message:
+                // D-12（审计 2026-09-27）：2 → AppleSpacing.xxs（离档微间隙归一）。
+                const SizedBox(width: AppleSpacing.xxs),
+                // ⋮ 菜单（U4a：触控目标 26→44px；死入口接活——onMenu 未传时
+                // 打开与右键一致的上下文菜单。R6：读屏语义。V-05：裸
+                // GestureDetector 无 Focus 节点 Tab 遍历跳过——改 InkWell
+                // 自带焦点；V-06：补桌面悬停 Tooltip）。
+                Semantics(
+                  label:
                       AppLocalizations.of(context)?.docsMoreActions ?? '更多操作',
-                  // V-12（审计 2026-09-27）：同上——补 2px 键盘焦点环。
-                  child: AppleFocusRing(
-                    borderRadius: AppleRadius.md,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(AppleRadius.md),
-                      onTapUp: (details) {
-                        if (onMenu != null) {
-                          onMenu!();
-                        } else {
-                          showMenuAt(details.globalPosition);
-                        }
-                      },
-                      child: SizedBox(
-                        width: AppleTouch.minTarget,
-                        height: AppleTouch.minTarget,
-                        child: Center(
-                          child: Icon(
-                            Icons.more_horiz_rounded,
-                            size: 18,
-                            color: subtle,
+                  button: true,
+                  child: Tooltip(
+                    message:
+                        AppLocalizations.of(context)?.docsMoreActions ?? '更多操作',
+                    // V-12（审计 2026-09-27）：同上——补 2px 键盘焦点环。
+                    child: AppleFocusRing(
+                      borderRadius: AppleRadius.md,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(AppleRadius.md),
+                        onTapUp: (details) {
+                          if (onMenu != null) {
+                            onMenu!();
+                          } else {
+                            showMenuAt(details.globalPosition);
+                          }
+                        },
+                        child: SizedBox(
+                          width: AppleTouch.minTarget,
+                          height: AppleTouch.minTarget,
+                          child: Center(
+                            child: Icon(
+                              Icons.more_horiz_rounded,
+                              size: 18,
+                              color: subtle,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      )),
+      ),
     );
   }
 }
@@ -354,5 +357,60 @@ Future<void> showAllDocContextMenu(
     onOpenDoc();
   } else if (action == 'favorite') {
     onToggleFavorite?.call();
+  }
+}
+
+/// 收藏星标 + 点亮弹跳动效（正向反馈微交互）。
+///
+/// 收藏是高频正向操作：点亮瞬间 0.6→1.05 的 scale 弹跳（easeOut，
+/// 240ms < 300ms 硬规则）；取消收藏无弹跳直切。reduceMotion 直切。
+/// AnimationController 驱动（不用 Future.delayed 重置——fake_async
+/// 测试里裸 Timer 会泄漏到用例结束后报 pending timer）。
+class _FavoriteStarIcon extends StatefulWidget {
+  const _FavoriteStarIcon({required this.favorite, required this.color});
+
+  final bool favorite;
+  final Color color;
+
+  @override
+  State<_FavoriteStarIcon> createState() => _FavoriteStarIconState();
+}
+
+class _FavoriteStarIconState extends State<_FavoriteStarIcon>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _bounce = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 240),
+    lowerBound: 0.6,
+    upperBound: 1.05,
+  )..value = 1.05;
+
+  @override
+  void didUpdateWidget(_FavoriteStarIcon oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.favorite &&
+        !oldWidget.favorite &&
+        !AppleMotion.reduceMotionOf(context)) {
+      _bounce.forward(from: 0.6);
+    }
+  }
+
+  @override
+  void dispose() {
+    _bounce.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = Icon(
+      widget.favorite ? Icons.star_rounded : Icons.star_border_rounded,
+      size: 18,
+      color: widget.color,
+    );
+    // 未收藏态直接返回裸 Icon：与既有语义树结构完全一致（R6 读屏
+    // 断言依赖），弹跳只在收藏点亮时出现。
+    if (!widget.favorite) return icon;
+    return ScaleTransition(scale: _bounce, child: icon);
   }
 }

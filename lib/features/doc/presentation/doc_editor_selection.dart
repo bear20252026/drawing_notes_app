@@ -16,6 +16,45 @@ extension DocEditorResources on DocEditorState {
 
   String _nextId() => 'block_${_idCounter++}';
 
+  /// 用已载入块树里既有的 `block_N` 序号播种 id 计数器。
+  ///
+  /// 模板/上一会话落盘的文档自带 block_0、block_1… 等既有 id；计数器
+  /// 若仍从 0 起步，本会话新建/拆分/复制块会生成与既有块相同的 id，
+  /// 导致控制器复用错块、findBlock 命中错块甚至落盘重复 id。取既有
+  /// 最大序号 +1 起步即可保证本会话新 id 永不与存量碰撞。
+  void _seedIdCounterFromExistingIds() {
+    var maxIndex = -1;
+    void visit(NoteBlock block) {
+      final match = RegExp(r'^block_(\d+)$').firstMatch(block.id);
+      if (match != null) {
+        final parsed = int.tryParse(match.group(1)!);
+        if (parsed != null && parsed > maxIndex) maxIndex = parsed;
+      }
+      for (final child in block.children) {
+        visit(child);
+      }
+    }
+
+    visit(_root);
+    if (maxIndex >= 0 && maxIndex + 1 > _idCounter) {
+      _idCounter = maxIndex + 1;
+    }
+  }
+
+  /// 深拷贝块并为自身与全部后代子块生成新 id。
+  ///
+  /// copyWith 原样保留 children，直接复制会让副本与原件共享子块 id，
+  /// 破坏控制器/焦点节点按 id 的资源映射——递归换新 id 才能安全复制。
+  NoteBlock _copyBlockWithFreshIds(NoteBlock block) {
+    if (block.children.isEmpty) return block.copyWith(id: _nextId());
+    return block.copyWith(
+      id: _nextId(),
+      children: [
+        for (final child in block.children) _copyBlockWithFreshIds(child),
+      ],
+    );
+  }
+
   /// 确保指定块及其子树拥有控制器和焦点节点。
   void _ensureBlockResources(NoteBlock block) {
     if (!_controllers.containsKey(block.id)) {
@@ -114,8 +153,8 @@ extension DocEditorSelection on DocEditorState {
     if (blockId == null) return;
     final block = _editor.findBlock(_root, blockId);
     if (block == null) return;
-    final copyId = _nextId();
-    final copy = block.copyWith(id: copyId);
+    final copy = _copyBlockWithFreshIds(block);
+    final copyId = copy.id;
     _root = _editor.insertAfter(_root, blockId, copy);
     _ensureBlockResources(_root);
     editorSetState(_updateDirtyState);
@@ -223,19 +262,22 @@ extension DocEditorSelection on DocEditorState {
   ) {
     return Tooltip(
       message: tooltip,
-      child: AppleFocusRing(borderRadius: AppleRadius.sm, child: InkWell(
-        borderRadius: BorderRadius.circular(AppleRadius.sm),
-        onTap: () {
-          onTap();
-        },
-        child: Padding(
-          // D-11（审计 2026-09-27）：触控目标算法统一走归档口径
-          //「20px 图标 + 12×2 = 44px」（同 doc_editor_toolbar / database_table_view），
-          // 原「18px 图标 + 13×2」虽同为 44px，但两套并存会让后来者算不清。
-          padding: const EdgeInsets.all(AppleSpacing.sm),
-          child: Icon(icon, size: 20, color: Colors.white),
+      child: AppleFocusRing(
+        borderRadius: AppleRadius.sm,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppleRadius.sm),
+          onTap: () {
+            onTap();
+          },
+          child: Padding(
+            // D-11（审计 2026-09-27）：触控目标算法统一走归档口径
+            //「20px 图标 + 12×2 = 44px」（同 doc_editor_toolbar / database_table_view），
+            // 原「18px 图标 + 13×2」虽同为 44px，但两套并存会让后来者算不清。
+            padding: const EdgeInsets.all(AppleSpacing.sm),
+            child: Icon(icon, size: 20, color: Colors.white),
+          ),
         ),
-      )),
+      ),
     );
   }
 

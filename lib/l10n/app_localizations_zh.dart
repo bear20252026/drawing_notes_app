@@ -311,9 +311,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lockQuickEnableFailed => '开启失败，请重试';
 
   @override
-  String get lockQuickEnableDone => '已开启：锁屏可用系统验证（人脸/指纹/PIN）快速解锁';
-
-  @override
   String get lockQuickDisableDone => '已关闭，系统安全区中的密钥副本已删除';
 
   @override
@@ -1002,12 +999,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get lockButtonLock => '锁定';
-
-  @override
-  String get lockButtonUnlock => '解锁';
-
-  @override
   String get shellWorkspaceName => '画记';
 
   @override
@@ -1070,9 +1061,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get canvasStandalonePasswordUnset => '此画布当前未设置独立密码';
-
-  @override
-  String get canvasVaultLockedSet => '加密底座已锁定：请重新验证开屏密码后再设置';
 
   @override
   String get canvasVaultLockedRemove => '加密底座已锁定，无法回封：请重新验证开屏密码后再试';
@@ -1337,9 +1325,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncMissingSalt => '同步配置缺少加密盐：请重新点击「保存配置」后再同步';
 
   @override
-  String get syncMaxRetries => '达到最大重试次数';
-
-  @override
   String get syncUpToDate => '已是最新，无需同步';
 
   @override
@@ -1402,96 +1387,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get webdavSave => '保存配置';
 
   @override
-  String get cmdNewSticky => '新建便签';
-
-  @override
-  String get cmdGroupEdit => '编辑';
-
-  @override
-  String get cmdCancelConnect => '取消连线';
-
-  @override
-  String get cmdConnectMode => '连线模式';
-
-  @override
-  String get cmdGroupSelected => '编组所选';
-
-  @override
-  String get cmdNeedTwoFrames => '需 ≥2 帧';
-
-  @override
-  String get cmdFitContent => '适应内容';
-
-  @override
-  String get cmdGroupView => '视图';
-
-  @override
-  String get cmdFitSelected => '适应所选';
-
-  @override
-  String get cmdZoomIn => '放大';
-
-  @override
-  String get cmdZoomOut => '缩小';
-
-  @override
-  String get cmdExitMulti => '退出多选';
-
-  @override
-  String get cmdEnterMulti => '进入多选';
-
-  @override
-  String get cmdGroupSelect => '选择';
-
-  @override
-  String get cmdClearSelection => '清空所选';
-
-  @override
-  String get cmdFocusSelected => '聚焦所选';
-
-  @override
-  String get cmdGroupJump => '跳转';
-
-  @override
-  String get cmdNoMatch => '没有匹配的命令';
-
-  @override
-  String get edGroup => '编组';
-
-  @override
-  String get edConnect => '连线';
-
-  @override
-  String get edShape => '形状';
-
-  @override
-  String get edRect => '矩形';
-
-  @override
-  String get pfCode => '代码块';
-
-  @override
-  String get pfImage => '图片';
-
-  @override
-  String get pfLink => '链接';
-
-  @override
-  String get pfCanvas => '画布';
-
-  @override
-  String get pfChart => '图表';
-
-  @override
-  String get pfTable => '表格';
-
-  @override
-  String get pfDatabase => '数据库';
-
-  @override
-  String get pfAttachment => '附件';
-
-  @override
   String readerTitle(String name) {
     return '$name · 翻页阅读';
   }
@@ -1500,9 +1395,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String readerPageIndicator(int index, int total) {
     return '第 $index 页 / 共 $total 页';
   }
-
-  @override
-  String get notesRecent => '最近';
 
   @override
   String get obWelcome => '欢迎使用绘图笔记';
@@ -1594,12 +1486,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get templateWhiteboard => '宽阔白板';
 
   @override
-  String get rootRefusedTitle => '无法在此设备上启动';
-
-  @override
-  String get rootRefusedBody => '检测到设备已获取 ROOT 权限。为保护你的加密笔记数据，本应用在已破解设备上拒绝运行。';
-
-  @override
   String get canvasBindConfirmContent =>
       '绑定后忘记此画布的独立密码时，可插入重置密码盘（U 盘）免旧密码重置。\n\nU 盘上只有随机钥匙文件（password_reset_disk.key），画布数据不会离开设备。';
 
@@ -1647,9 +1533,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get homeUntitledNotebookPage => '未命名';
-
-  @override
   String get homeStandalonePasswordMenu => '独立密码…';
 
   @override
@@ -1687,11 +1570,6 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String nbExportedPdf(int count, String path) {
     return '已导出整本 $count 页 PDF：$path';
-  }
-
-  @override
-  String cmdGotoFrame(String name) {
-    return '跳转到「$name」';
   }
 
   @override
@@ -1751,9 +1629,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get impDiskNotFound => '未找到有效的重置密码盘文件（password_reset_disk.key）';
-
-  @override
-  String get lockDiskKeepNote => 'U 盘上的 password_reset_disk.key 文件请勿删除';
 
   @override
   String get cmdUndo => '撤销';
@@ -1936,18 +1811,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String pdfExportNPages(int count) {
     return '导出 $count 页';
   }
-
-  @override
-  String get inkStylusPressure => '触控笔压感';
-
-  @override
-  String get inkTouchPressure => '触摸压感';
-
-  @override
-  String get inkMouseVelocity => '鼠标速度模拟';
-
-  @override
-  String get inkConstant => '固定笔宽';
 
   @override
   String get pomodoroPause => '暂停';
@@ -2489,6 +2352,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get selDeleteContent => '删除选中内容';
 
   @override
+  String get selNoHit => '选区未命中内容（可拖动画布重新框选）';
+
+  @override
+  String get loadingSkeleton => '正在加载';
+
+  @override
   String selNObjects(int count) {
     return '已选中 $count 个对象';
   }
@@ -2608,6 +2477,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get docDiscard => '放弃';
 
   @override
+  String get docSaveAndExit => '保存并退出';
+
+  @override
   String get blkSlashHint => '键入 / 添加块';
 
   @override
@@ -2615,11 +2487,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get blkDragToSort => '拖拽排序';
-
-  @override
-  String semHeading(String level) {
-    return '标题$level';
-  }
 
   @override
   String get semTodo => '待办事项';
@@ -3182,16 +3049,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String webdavSyncServerBusy(String code) {
-    return '同步失败：服务器暂时不可用（HTTP $code），请稍后再试';
-  }
-
-  @override
-  String webdavSyncRejected(String code) {
-    return '同步失败：服务器拒绝了这次请求（HTTP $code）';
-  }
-
-  @override
   String webdavSaveFail(String error) {
     return '保存失败：$error';
   }
@@ -3217,14 +3074,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get webdavServerUrlLabel => '服务器 URL';
-
-  @override
-  String get webdavMaxRetry => '达到最大重试次数';
-
-  @override
-  String webdavSyncDoneStats(int uploaded, int downloaded, int deletedRemote) {
-    return '同步完成：↑$uploaded ↓$downloaded ✕$deletedRemote';
-  }
 
   @override
   String get homeForgotPasswordLink => '忘记密码？';
@@ -3253,16 +3102,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get canvasTextOverlayHint => '输入文字…（回车结束）';
 
   @override
-  String get frameCornerSemantics => '调整便签框角点';
-
-  @override
   String get pinBackspace => '退格';
 
   @override
   String get pinConfirm => '确认';
-
-  @override
-  String get canvasSearchFieldHint => '搜索';
 
   @override
   String layerDefaultName(int n) {
@@ -3312,9 +3155,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get canvasShapeHandleSemantics => '形状角柄';
 
   @override
-  String get canvasLinearHandleSemantics => '线段端点拖柄';
-
-  @override
   String get presNextSlide => '下一页（长按退出）';
 
   @override
@@ -3328,9 +3168,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get rootRefusalBody => '检测到设备已获取 ROOT 权限。为保护你的加密笔记数据，本应用在已破解设备上拒绝运行。';
-
-  @override
-  String get cmdGroupFile => '文件';
 
   @override
   String get pdfExporting => '正在导出 PDF…';
@@ -3428,9 +3265,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get linkSchemeUnsupportedSnack => '链接仅支持 http/https/mailto';
-
-  @override
-  String get pdfEmbedPreviewUnavailable => 'PDF 内嵌预览不可用';
 
   @override
   String get pdfEmbedPreviewUnavailableLocal => 'PDF 内嵌预览不可用（需本地文件）';

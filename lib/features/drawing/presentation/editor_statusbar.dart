@@ -94,12 +94,16 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
   }
 
   Color _saveColor(ThemeData theme, bool dirty) {
-    if (widget.saveFailure != null) return AppleColor.errorRed;
+    // P1-2/P1-3：失败正文用 errorTextOf 深红档（#FF3B30 对浅底仅 3.55:1）；
+    // 「未保存」是中性状态而非品牌橙语义（橙对白底 2.06:1 最差正文对比）。
+    if (widget.saveFailure != null) {
+      return AppleColor.errorTextOf(theme.colorScheme);
+    }
     final blue = theme.brightness == Brightness.dark
         ? AppleColor.actionBlueOnDark
         : AppleColor.actionBlue;
     if (widget.saving) return blue;
-    if (dirty) return AppleColor.favourite;
+    if (dirty) return theme.colorScheme.onSurfaceVariant;
     return AppleColor.noteGreen;
   }
 
@@ -152,9 +156,8 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
                           Flexible(
                             child: Text(
                               isEraser
-                                  ? AppLocalizations.of(
-                                          context,
-                                        )?.toolEraserName ??
+                                  ? AppLocalizations.of(context)
+                                            ?.toolEraserName ??
                                         '橡皮擦'
                                   : AppLocalizations.of(context)?.hintBrush ??
                                         '画笔',
@@ -175,13 +178,11 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
                             Flexible(
                               child: Tooltip(
                                 message: pressure!.hasHardwarePressure
-                                    ? AppLocalizations.of(
-                                            context,
-                                          )?.pressureReal ??
+                                    ? AppLocalizations.of(context)
+                                              ?.pressureReal ??
                                           '正在使用设备上报的真实压力范围'
-                                    : AppLocalizations.of(
-                                            context,
-                                          )?.pressureFallback ??
+                                    : AppLocalizations.of(context)
+                                              ?.pressureFallback ??
                                           '当前设备未报告可用压感，正在使用稳定的回退策略',
                                 child: Text(
                                   pressureLabel,
@@ -227,7 +228,9 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
                             if (_coordsVisible)
                               Flexible(
                                 child: Padding(
-                                  padding: const EdgeInsets.only(left: AppleSpacing.xxs),
+                                  padding: const EdgeInsets.only(
+                                    left: AppleSpacing.xxs,
+                                  ),
                                   child: Text(
                                     pos != null
                                         ? 'x:${pos.dx.round()} y:${pos.dy.round()}'
@@ -323,7 +326,10 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
           ),
         ],
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppleSpacing.xs, vertical: AppleSpacing.xxs),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppleSpacing.xs,
+            vertical: AppleSpacing.xxs,
+          ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

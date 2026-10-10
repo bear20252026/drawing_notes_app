@@ -15,9 +15,8 @@ extension _DocEditorUi on DocEditorState {
           hintText: AppLocalizations.of(context)?.docUntitled ?? '未命名',
           border: InputBorder.none,
         ),
-        style: AppleType.titleStyle(
-          Theme.of(context).colorScheme.onSurface,
-        ).copyWith(fontSize: 26, fontWeight: AppleType.bold),
+        style: AppleType.titleStyle(Theme.of(context).colorScheme.onSurface)
+            .copyWith(fontSize: 26, fontWeight: AppleType.bold),
         maxLines: null,
       ),
     );
@@ -55,9 +54,8 @@ extension _DocEditorUi on DocEditorState {
                   Expanded(
                     child: Text(
                       AppLocalizations.of(context)?.outlineTitle ?? '大纲',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: AppleType.bold,
-                      ),
+                      style: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(fontWeight: AppleType.bold),
                     ),
                   ),
                   IconButton(
@@ -77,9 +75,8 @@ extension _DocEditorUi on DocEditorState {
                         AppLocalizations.of(context)?.docOutlineEmpty ??
                             '暂无标题块，用 / 菜单插入「标题」后出现在这里',
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
+                        style: Theme.of(context).textTheme.bodySmall
+                            ?.copyWith(color: scheme.onSurfaceVariant),
                       ),
                     )
                   : ListView.builder(
@@ -87,33 +84,36 @@ extension _DocEditorUi on DocEditorState {
                       itemCount: entries.length,
                       itemBuilder: (context, i) {
                         final e = entries[i];
-                        return AppleFocusRing(borderRadius: 0, child: InkWell(
-                          onTap: () {
-                            scrollToBlock(e.id);
-                            Navigator.of(context).pop();
-                          },
-                          child: Padding(
-                            // V-11（审计 2026-09-27）：8→12——对话框行命中
-                            // 提到 ~44px（bodyMedium + 24 纵向）。
-                            padding: EdgeInsets.only(
-                              left: 16 + (e.level - 1) * 16.0,
-                              right: 16,
-                              top: 12,
-                              bottom: 12,
-                            ),
-                            child: Text(
-                              e.text.isEmpty ? '（空标题）' : e.text,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    fontWeight: e.level <= 2
-                                        ? FontWeight.w600
-                                        : FontWeight.w400,
-                                  ),
+                        return AppleFocusRing(
+                          borderRadius: 0,
+                          child: InkWell(
+                            onTap: () {
+                              scrollToBlock(e.id);
+                              Navigator.of(context).pop();
+                            },
+                            child: Padding(
+                              // V-11（审计 2026-09-27）：8→12——对话框行命中
+                              // 提到 ~44px（bodyMedium + 24 纵向）。
+                              padding: EdgeInsets.only(
+                                left: 16 + (e.level - 1) * 16.0,
+                                right: 16,
+                                top: 12,
+                                bottom: 12,
+                              ),
+                              child: Text(
+                                e.text.isEmpty ? '（空标题）' : e.text,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      fontWeight: e.level <= 2
+                                          ? FontWeight.w600
+                                          : FontWeight.w400,
+                                    ),
+                              ),
                             ),
                           ),
-                        ));
+                        );
                       },
                     ),
             ),
@@ -141,6 +141,20 @@ extension _DocEditorUi on DocEditorState {
             autofocus: true,
             onPressed: () => Navigator.of(context).pop(),
             child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
+          ),
+          TextButton(
+            // P2-11：退出确认此前只有 取消/放弃 二选——主流编辑器标配的
+            // 「保存并退出」缺失，强迫用户先关弹窗再手动保存。
+            onPressed: () async {
+              // 先取 Navigator 再 await：避免 async gap 后使用弹窗 context。
+              final navigator = Navigator.of(context);
+              navigator.pop(); // 关弹窗
+              await _manualSave();
+              if (mounted) navigator.pop(); // 保存成功后退出编辑器
+            },
+            child: Text(
+              AppLocalizations.of(context)?.docSaveAndExit ?? '保存并退出',
+            ),
           ),
           TextButton(
             onPressed: () {

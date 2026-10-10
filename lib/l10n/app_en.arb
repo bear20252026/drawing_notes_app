@@ -410,10 +410,6 @@
   "@lockQuickEnableFailed": {
     "description": "快速解锁开启失败"
   },
-  "lockQuickEnableDone": "Enabled: unlock from the lock screen with system verification (face, fingerprint, or PIN)",
-  "@lockQuickEnableDone": {
-    "description": "快速解锁开启成功"
-  },
   "lockQuickDisableDone": "Disabled; the key copy in the system secure enclave has been deleted",
   "@lockQuickDisableDone": {
     "description": "快速解锁关闭成功"
@@ -1098,10 +1094,6 @@
       }
     }
   },
-  "lockButtonLock": "Lock",
-  "@lockButtonLock": {},
-  "lockButtonUnlock": "Unlock",
-  "@lockButtonUnlock": {},
   "shellWorkspaceName": "NoteStudio",
   "@shellWorkspaceName": {},
   "resetIntroNote": "Reset the standalone password of {name} with the reset disk (USB drive).\n\nPrerequisite: this note has a reset disk bound (set a password, or bind one in password management).",
@@ -1172,8 +1164,6 @@
   "@canvasStandalonePasswordProtected": {},
   "canvasStandalonePasswordUnset": "This canvas has no standalone password set",
   "@canvasStandalonePasswordUnset": {},
-  "canvasVaultLockedSet": "The vault is locked: re-verify the screen-lock password before setting",
-  "@canvasVaultLockedSet": {},
   "canvasVaultLockedRemove": "The vault is locked and cannot re-seal: re-verify the screen-lock password and retry",
   "@canvasVaultLockedRemove": {},
   "canvasPasswordSetDiskBoundFor": "Standalone password set for “{name}” with the reset disk bound",
@@ -1389,8 +1379,6 @@
   "@syncFailedGeneric": {},
   "syncMissingSalt": "The sync config lacks its salt: tap “Save config” again before syncing",
   "@syncMissingSalt": {},
-  "syncMaxRetries": "Max retries reached",
-  "@syncMaxRetries": {},
   "syncUpToDate": "Already up to date",
   "@syncUpToDate": {},
   "syncPhaseStarted": "Starting sync…",
@@ -1469,66 +1457,6 @@
   "@webdavSyncNow": {},
   "webdavSave": "Save config",
   "@webdavSave": {},
-  "cmdNewSticky": "New sticky note",
-  "@cmdNewSticky": {},
-  "cmdGroupEdit": "Edit",
-  "@cmdGroupEdit": {},
-  "cmdCancelConnect": "Cancel connect",
-  "@cmdCancelConnect": {},
-  "cmdConnectMode": "Connect mode",
-  "@cmdConnectMode": {},
-  "cmdGroupSelected": "Group selected",
-  "@cmdGroupSelected": {},
-  "cmdNeedTwoFrames": "Needs ≥2 frames",
-  "@cmdNeedTwoFrames": {},
-  "cmdFitContent": "Fit content",
-  "@cmdFitContent": {},
-  "cmdGroupView": "View",
-  "@cmdGroupView": {},
-  "cmdFitSelected": "Fit selection",
-  "@cmdFitSelected": {},
-  "cmdZoomIn": "Zoom in",
-  "@cmdZoomIn": {},
-  "cmdZoomOut": "Zoom out",
-  "@cmdZoomOut": {},
-  "cmdExitMulti": "Exit multi-select",
-  "@cmdExitMulti": {},
-  "cmdEnterMulti": "Enter multi-select",
-  "@cmdEnterMulti": {},
-  "cmdGroupSelect": "Select",
-  "@cmdGroupSelect": {},
-  "cmdClearSelection": "Clear selection",
-  "@cmdClearSelection": {},
-  "cmdFocusSelected": "Focus selection",
-  "@cmdFocusSelected": {},
-  "cmdGroupJump": "Go to",
-  "@cmdGroupJump": {},
-  "cmdNoMatch": "No matching commands",
-  "@cmdNoMatch": {},
-  "edGroup": "Group",
-  "@edGroup": {},
-  "edConnect": "Connect",
-  "@edConnect": {},
-  "edShape": "Shape",
-  "@edShape": {},
-  "edRect": "Rectangle",
-  "@edRect": {},
-  "pfCode": "Code block",
-  "@pfCode": {},
-  "pfImage": "Image",
-  "@pfImage": {},
-  "pfLink": "Link",
-  "@pfLink": {},
-  "pfCanvas": "Canvas",
-  "@pfCanvas": {},
-  "pfChart": "Chart",
-  "@pfChart": {},
-  "pfTable": "Table",
-  "@pfTable": {},
-  "pfDatabase": "Database",
-  "@pfDatabase": {},
-  "pfAttachment": "Attachment",
-  "@pfAttachment": {},
   "readerTitle": "{name} · Page reader",
   "@readerTitle": {
     "placeholders": {
@@ -1548,8 +1476,6 @@
       }
     }
   },
-  "notesRecent": "Recent",
-  "@notesRecent": {},
   "obWelcome": "Welcome to Drawing Notes",
   "@obWelcome": {},
   "obBrushTip": "Brush / eraser / eyedropper: switch on the top toolbar; draw with mouse or finger",
@@ -1617,10 +1543,6 @@
   "@templatePlanner": {},
   "templateWhiteboard": "Wide whiteboard",
   "@templateWhiteboard": {},
-  "rootRefusedTitle": "Cannot start on this device",
-  "@rootRefusedTitle": {},
-  "rootRefusedBody": "This device has ROOT access. To protect your encrypted notes, the app refuses to run on a compromised device.",
-  "@rootRefusedBody": {},
   "canvasBindConfirmContent": "When you forget this canvas’s standalone password, plug in the reset disk (USB drive) to reset without the old password.\n\nThe drive holds only a random key file (password_reset_disk.key); canvas data never leaves the device.",
   "@canvasBindConfirmContent": {},
   "canvasRemoveConfirmContent": "After removal, “{name}” falls back to vault protection (master-key envelope) and no longer needs a standalone password. Remove it?",
@@ -1669,8 +1591,6 @@
   },
   "homeDeleteNoteConfirm": "Delete the note “{name}”? This cannot be undone.",
   "@homeDeleteNoteConfirm": {"placeholders": {"name": {"type": "String"}}},
-  "homeUntitledNotebookPage": "Untitled",
-  "@homeUntitledNotebookPage": {},
   "homeStandalonePasswordMenu": "Standalone password…",
   "@homeStandalonePasswordMenu": {},
   "nbEmptyTip": "Tap New in the top-right corner",
@@ -1710,14 +1630,6 @@
         "type": "int"
       },
       "path": {
-        "type": "String"
-      }
-    }
-  },
-  "cmdGotoFrame": "Go to “{name}”",
-  "@cmdGotoFrame": {
-    "placeholders": {
-      "name": {
         "type": "String"
       }
     }
@@ -1778,8 +1690,6 @@
   "@homeDeleteForeverFailed": {},
   "impDiskNotFound": "No valid reset disk file (password_reset_disk.key) found",
   "@impDiskNotFound": {},
-  "lockDiskKeepNote": "Do not delete the password_reset_disk.key file on the USB drive",
-  "@lockDiskKeepNote": {},
   "cmdUndo": "Undo",
   "@cmdUndo": {},
   "cmdRedo": "Redo",
@@ -1909,14 +1819,6 @@
       }
     }
   },
-  "inkStylusPressure": "Stylus pressure",
-  "@inkStylusPressure": {},
-  "inkTouchPressure": "Touch pressure",
-  "@inkTouchPressure": {},
-  "inkMouseVelocity": "Mouse velocity simulation",
-  "@inkMouseVelocity": {},
-  "inkConstant": "Constant width",
-  "@inkConstant": {},
   "pomodoroPause": "Pause",
   "@pomodoroPause": {},
   "pomodoroStart": "Start",
@@ -2327,6 +2229,10 @@
   "@selImageLocked": {},
   "selDeleteContent": "Delete selected content",
   "@selDeleteContent": {},
+  "selNoHit": "Nothing selected. Drag on the canvas to reselect",
+  "@selNoHit": {},
+  "loadingSkeleton": "Loading",
+  "@loadingSkeleton": {},
   "selNObjects": "{count} objects selected",
   "@selNObjects": {
     "placeholders": {
@@ -2425,20 +2331,14 @@
   "@docUnsavedChangesBody": {},
   "docDiscard": "Discard",
   "@docDiscard": {},
+  "docSaveAndExit": "Save and exit",
+  "@docSaveAndExit": {},
   "blkSlashHint": "Type / to add a block",
   "@blkSlashHint": {},
   "blkEnterHint": "Enter splits blocks; Backspace merges empty ones",
   "@blkEnterHint": {},
   "blkDragToSort": "Drag to sort",
   "@blkDragToSort": {},
-  "semHeading": "Heading {level}",
-  "@semHeading": {
-    "placeholders": {
-      "level": {
-        "type": "String"
-      }
-    }
-  },
   "semTodo": "To-do",
   "@semTodo": {},
   "semCode": "Code block",
@@ -2908,22 +2808,6 @@
       }
     }
   },
-  "webdavSyncServerBusy": "Sync failed: server temporarily unavailable (HTTP {code}). Try again later.",
-  "@webdavSyncServerBusy": {
-    "placeholders": {
-      "code": {
-        "type": "String"
-      }
-    }
-  },
-  "webdavSyncRejected": "Sync failed: server rejected the request (HTTP {code})",
-  "@webdavSyncRejected": {
-    "placeholders": {
-      "code": {
-        "type": "String"
-      }
-    }
-  },
   "webdavSaveFail": "Save failed: {error}",
   "@webdavSaveFail": {
     "placeholders": {
@@ -2946,22 +2830,6 @@
   "@webdavLocalFirstBlurb": {},
   "webdavServerUrlLabel": "Server URL",
   "@webdavServerUrlLabel": {},
-  "webdavMaxRetry": "Max retries reached",
-  "@webdavMaxRetry": {},
-  "webdavSyncDoneStats": "Sync complete: ↑{uploaded} ↓{downloaded} ✕{deletedRemote}",
-  "@webdavSyncDoneStats": {
-    "placeholders": {
-      "uploaded": {
-        "type": "int"
-      },
-      "downloaded": {
-        "type": "int"
-      },
-      "deletedRemote": {
-        "type": "int"
-      }
-    }
-  },
   "homeForgotPasswordLink": "Forgot password?",
   "@homeForgotPasswordLink": {},
   "canvasItemSemantics": "Canvas object: {kind}",
@@ -2984,14 +2852,10 @@
   "@canvasKindText": {},
   "canvasTextOverlayHint": "Type text… (Enter to finish)",
   "@canvasTextOverlayHint": {},
-  "frameCornerSemantics": "Adjust note frame corner",
-  "@frameCornerSemantics": {},
   "pinBackspace": "Backspace",
   "@pinBackspace": {},
   "pinConfirm": "Confirm",
   "@pinConfirm": {},
-  "canvasSearchFieldHint": "Search",
-  "@canvasSearchFieldHint": {},
   "layerDefaultName": "Layer {n}",
   "@layerDefaultName": {
     "placeholders": {
@@ -3028,8 +2892,6 @@
   "@vaultErrFileCrypto": {},
   "canvasShapeHandleSemantics": "Shape corner handle",
   "@canvasShapeHandleSemantics": {},
-  "canvasLinearHandleSemantics": "Line endpoint handle",
-  "@canvasLinearHandleSemantics": {},
   "presNextSlide": "Next slide (long-press to exit)",
   "@presNextSlide": {},
   "nbOpenPageForEdit": "Open page to edit",
@@ -3040,8 +2902,6 @@
   "@rootRefusalTitle": {},
   "rootRefusalBody": "Root access was detected. To protect your encrypted notes, this app refuses to run on a compromised device.",
   "@rootRefusalBody": {},
-  "cmdGroupFile": "File",
-  "@cmdGroupFile": {},
   "pdfExporting": "Exporting PDF…",
   "@pdfExporting": {},
   "pdfExportComposing": "Composing PDF…",
@@ -3153,8 +3013,6 @@
   },
   "linkSchemeUnsupportedSnack": "Only http/https/mailto links are supported",
   "@linkSchemeUnsupportedSnack": {},
-  "pdfEmbedPreviewUnavailable": "Embedded PDF preview unavailable",
-  "@pdfEmbedPreviewUnavailable": {},
   "pdfEmbedPreviewUnavailableLocal": "Embedded PDF preview unavailable (local file required)",
   "@pdfEmbedPreviewUnavailableLocal": {},
   "openPdfLabel": "Open PDF",

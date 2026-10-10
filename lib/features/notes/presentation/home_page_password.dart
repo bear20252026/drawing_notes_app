@@ -209,7 +209,7 @@ extension _HomePagePasswordOps on _HomePageState {
   Future<void> _startBindFileUsb(DocumentMeta meta) async {
     final pin = await UnlockFlow.show(
       context,
-      title: _l10nSafe?.docVerifyToBind ?? '验证独立密码以绑定重置盘',
+      title: _l10nSafe?.docVerifyToBind ?? '验证独立密码以绑定重置密码盘',
       flexible: true,
       onVerify: (p) => _docStorage.verifyFilePassword(meta.id, p),
     );

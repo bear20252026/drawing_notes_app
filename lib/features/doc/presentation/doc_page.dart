@@ -10,6 +10,7 @@ import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 
 import 'package:drawing_notes_app/core/layout/responsive.dart';
 import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
+
 import 'dart:async';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
@@ -64,13 +65,12 @@ void _showShareSnackBar(BuildContext context) {
 /// （NoteBlockDocStore），doc 展示层不再 import security 展示层。
 /// null 时解锁弹窗的「忘记密码？」页脚不出现——与 allDocsLoader 为
 /// null 时隐藏反向链接面板是同一先例（生产路径恒注入，入口不丢）。
-typedef BlockDocPasswordResetLauncher =
-    Future<bool> Function(
-      BuildContext context, {
-      required NoteBlockDocStore store,
-      required String docId,
-      String docTitle,
-    });
+typedef BlockDocPasswordResetLauncher = Future<bool> Function(
+  BuildContext context, {
+  required NoteBlockDocStore store,
+  required String docId,
+  String docTitle,
+});
 
 /// 与画板完全分离：
 /// - 不使用环境背景 / 玻璃拟态（画板视觉）；
@@ -126,7 +126,6 @@ class DocPage extends StatefulWidget {
 enum _SaveStatus { unsaved, saving, saved }
 
 class _DocPageState extends State<DocPage> {
-
   /// part 文件（extension）用的 setState 包装——State.setState 是
   /// protected，extension 中直接调用会报 invalid_use_of_protected_member。
   void pageSetState(VoidCallback fn) => setState(fn);
@@ -258,6 +257,9 @@ class _DocPageState extends State<DocPage> {
                           document: _doc,
                           onSave: _persist,
                           onDirty: _onEditorDirty,
+                          // Ctrl+S 走真实落盘链路（P1-5）：_persist 只同步
+                          // 快照不写盘，编辑器自行「已保存」即是假保存。
+                          onManualSave: _saveNow,
                         ),
                       ),
                       // 反向链接面板（M12.7，AFFiNE Backlinks 对齐）：

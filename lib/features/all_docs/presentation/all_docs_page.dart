@@ -29,6 +29,7 @@ import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 // v1.10.5：导航类控件玻璃化——FAB 换液态玻璃。
 import 'package:drawing_notes_app/shared/widgets/glass_fab.dart';
 import 'package:drawing_notes_app/shared/widgets/apple_empty_state.dart';
+import 'package:drawing_notes_app/shared/widgets/staggered_entrance.dart';
 part 'all_docs_page_widgets.dart';
 part 'all_docs_page_mobile.dart';
 
@@ -93,6 +94,9 @@ class _AllDocsPageState extends State<AllDocsPage> {
       _future = widget.loadDocs();
     });
   }
+
+  /// 错误态重试入口（P1-11）：重建加载 Future。
+  void _reload() => _onDataVersionChanged();
 
   @override
   void dispose() {
@@ -204,6 +208,8 @@ class _AllDocsPageState extends State<AllDocsPage> {
                   heroTag: 'allDocsNewDocFab',
                   onPressed: () =>
                       showMobileNewDocSheet(context, widget.onNewDoc),
+                  // P1-6：纯图标 FAB 必须带语义标签，读屏不再是无名按钮。
+                  tooltip: AppLocalizations.of(context)?.docsNewDoc ?? '新建文档',
                   child: const Icon(Icons.add_rounded),
                 )
               : null,
@@ -253,10 +259,27 @@ class _AllDocsPageState extends State<AllDocsPage> {
               }
               if (snapshot.hasError) {
                 return Center(
-                  child: Text(
-                    AppLocalizations.of(context)?.docsLoadFailedRetry ??
-                        '加载失败，请下拉刷新重试',
-                    style: TextStyle(color: theme.colorScheme.error),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        AppLocalizations.of(context)?.docsLoadFailedRetry ??
+                            '加载失败，请下拉刷新重试',
+                        // P1-3：error 原色对浅底 3.55:1 不过 AA，正文用深红档。
+                        style: TextStyle(
+                          color: AppleColor.errorTextOf(theme.colorScheme),
+                        ),
+                      ),
+                      const SizedBox(height: AppleSpacing.sm),
+                      // P1-11：错误态文案承诺「下拉刷新」但本页无下拉——
+                      // 补重试按钮，错误从「不可恢复」变回可操作。
+                      OutlinedButton(
+                        onPressed: _reload,
+                        child: Text(
+                          AppLocalizations.of(context)?.homeRetry ?? '重试',
+                        ),
+                      ),
+                    ],
                   ),
                 );
               }

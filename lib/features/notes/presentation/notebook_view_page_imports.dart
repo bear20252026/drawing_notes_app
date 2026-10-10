@@ -137,7 +137,7 @@ extension _NotebookPageImports on _NotebookViewPageState {
       final sourceName = selected.path
           .split(Platform.pathSeparator)
           .last
-          .replaceFirst(RegExp(r'\\.pdf$', caseSensitive: false), '');
+          .replaceFirst(RegExp(r'\.pdf$', caseSensitive: false), '');
       final created = <NotebookPage>[];
       for (final pageImage in rendered) {
         final pageId = NotebookStorage.newId('pg');
@@ -193,14 +193,21 @@ extension _NotebookPageImports on _NotebookViewPageState {
       // L-09（审计 2026-09-27）：弹层标题写死 → 走 l10n。
       builder: (ctx) => _PageNameDialog(
         title:
-            AppLocalizations.of(context)?.nbMoveFolderDialogTitle ??
-            '移动到的分组名（留空=根）',
+            AppLocalizations.of(context)?.nbMoveFolderDialogTitle ?? '移动到文件夹',
       ),
     );
     if (folder == null || !mounted) return;
     final target = folder.trim();
+    // 与列表过滤同口径：筛选生效时只移动命中页，无筛选才动全部——
+    // 此前无条件遍历全部页面，"移动筛选范围"承诺名不副实。
+    final inScope = _tagFilter.isEmpty
+        ? _notebook.pages.toList()
+        : _notebook.pages
+              .where((p) => p.tags.any((t) => t.contains(_tagFilter)))
+              .toList();
+    if (inScope.isEmpty) return;
     _applyState(() {
-      for (final p in _notebook.pages) {
+      for (final p in inScope) {
         p.folder = target;
       }
     });
@@ -210,8 +217,8 @@ extension _NotebookPageImports on _NotebookViewPageState {
         ? (_l10nSafe?.nbRootFolder ?? '根')
         : target;
     _showSnack(
-      _l10nSafe?.nbMovedPagesTo(_notebook.pages.length, folderLabel) ??
-          '已批量移动 ${_notebook.pages.length} 页到分组「$folderLabel」',
+      _l10nSafe?.nbMovedPagesTo(inScope.length, folderLabel) ??
+          '已批量移动 ${inScope.length} 页到分组「$folderLabel」',
     );
   }
 

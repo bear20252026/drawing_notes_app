@@ -106,9 +106,8 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
             child: Center(
               child: Text(
                 statusLabel,
-                style: AppleType.captionStyle(
-                  statusColor,
-                ).copyWith(fontWeight: FontWeight.w600),
+                style: AppleType.captionStyle(statusColor)
+                    .copyWith(fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -253,7 +252,7 @@ class _DocHeader extends StatelessWidget implements PreferredSizeWidget {
                       color: scheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 8),
-                    Text(AppLocalizations.of(context)?.wFilePassword ?? '文件密码'),
+                    Text(AppLocalizations.of(context)?.wFilePassword ?? '独立密码'),
                   ],
                 ),
               ),
@@ -344,7 +343,7 @@ class _BacklinksPanelState extends State<_BacklinksPanel> {
     }
     final backlinkTitle =
         AppLocalizations.of(context)?.docBacklinkCount(backlinks.length) ??
-            '反向链接 · ${backlinks.length}';
+        '反向链接 · ${backlinks.length}';
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       padding: const EdgeInsets.all(12),
@@ -366,47 +365,49 @@ class _BacklinksPanelState extends State<_BacklinksPanel> {
               const SizedBox(width: 4),
               Text(
                 backlinkTitle,
-                style: AppleType.captionStyle(
-                  scheme.onSurfaceVariant,
-                ).copyWith(fontWeight: AppleType.bold),
+                style: AppleType.captionStyle(scheme.onSurfaceVariant)
+                    .copyWith(fontWeight: AppleType.bold),
               ),
             ],
           ),
           const SizedBox(height: 4),
           for (final doc in backlinks)
-            AppleFocusRing(borderRadius: AppleRadius.xs, child: InkWell(
-              onTap: () => widget.onOpenDocById?.call(doc.id),
-              borderRadius: BorderRadius.circular(AppleRadius.xs),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.edit_note_rounded,
-                      size: 16,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        doc.title.isEmpty
-                            ? DomainDisplayLabels.docTitle(
-                                AppLocalizations.of(context),
-                                null,
-                              )
-                            : doc.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppleType.controlStyle(
-                          scheme.onSurface,
-                          weight: FontWeight.w400,
+            AppleFocusRing(
+              borderRadius: AppleRadius.xs,
+              child: InkWell(
+                onTap: () => widget.onOpenDocById?.call(doc.id),
+                borderRadius: BorderRadius.circular(AppleRadius.xs),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.edit_note_rounded,
+                        size: 16,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          doc.title.isEmpty
+                              ? DomainDisplayLabels.docTitle(
+                                  AppLocalizations.of(context),
+                                  null,
+                                )
+                              : doc.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppleType.controlStyle(
+                            scheme.onSurface,
+                            weight: FontWeight.w400,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            )),
+            ),
         ],
       ),
     );
