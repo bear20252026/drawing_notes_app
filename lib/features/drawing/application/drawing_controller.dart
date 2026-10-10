@@ -35,6 +35,7 @@ import 'package:drawing_notes_app/features/drawing/rendering/shape_binding_geome
 import 'package:drawing_notes_app/features/drawing/rendering/shape_renderer.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_palette.dart';
 import 'package:drawing_notes_app/shared/utils/image_decode_cap.dart';
 
 /// 绘图引擎控制器：UI 层与数据模型之间的唯一桥梁。
@@ -321,7 +322,9 @@ class DrawingController extends ChangeNotifier
   }
 
   /// 当前画笔颜色（吸管取色后也会更新这里）。
-  Color _color = const Color(0xFF1A1A1A);
+  // P3-12（审计 2026-10-05）：此色即 apple_palette.dart 注释明言的画笔默认
+  // 墨色，收敛为令牌引用，不再同值双写。
+  Color _color = ApplePalette.brushPen;
   Color get color => _color;
   set color(Color value) {
     _color = value;

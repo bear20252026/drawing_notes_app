@@ -320,6 +320,11 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
         // 加密文档读写 fail-closed；重新解锁走 PIN/快速解锁正常路径
         // （_unlockVault 重新派生并注入主密钥）。
         widget.vault?.lock();
+        // P3-1（审计 2026-10-05）：与 hidden 分支同口径——超宽限落锁时
+        // KEK 缓存与文件会话口令一并失效。此前清理只挂 hidden，桌面纯
+        // inactive（失焦）超宽限后派生材料整会话驻留内存。
+        KekSessionCache.instance.clear();
+        SessionSecrets.clearAll();
       }
     }
   }

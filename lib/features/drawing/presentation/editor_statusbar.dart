@@ -215,8 +215,8 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
                                         '显示画布坐标',
                               visualDensity: VisualDensity.compact,
                               constraints: const BoxConstraints(
-                                minWidth: 44,
-                                minHeight: 44,
+                                minWidth: AppleTouch.minTarget,
+                                minHeight: AppleTouch.minTarget,
                               ),
                               isSelected: _coordsVisible,
                               icon: Icon(Icons.my_location_rounded, size: 16),

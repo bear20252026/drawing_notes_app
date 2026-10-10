@@ -74,7 +74,9 @@ const int _minScannedFiles = 180;
 
   var inkWellCount = 0;
   final uncovered = <String>[];
-  for (final m in RegExp(r'\bInkWell\(').allMatches(code)) {
+  // P3-14（审计 2026-10-05）：\w* 前缀覆盖 FocusableInkWell 等变体类——
+  // 变体同样需要焦点环，原正则对其失明。
+  for (final m in RegExp(r'\b\w*InkWell\(').allMatches(code)) {
     inkWellCount++;
     final inRing = covered.any((r) => m.start > r.start && m.start < r.end);
     if (!inRing) {

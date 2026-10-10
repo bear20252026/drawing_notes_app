@@ -22,6 +22,8 @@ on:
       - 'pubspec.lock'
       - 'analysis_options.yaml'
       - 'tools/**'
+      # P3-4：改本工作流自身的 PR 也必须触发质量门（push 块已有，PR 块漏）。
+      - '.github/workflows/quality_gate.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

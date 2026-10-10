@@ -203,8 +203,8 @@ class _LayerItem extends StatelessWidget {
                       ),
                       visualDensity: VisualDensity.compact,
                       constraints: const BoxConstraints(
-                        minWidth: 44,
-                        minHeight: 44,
+                        minWidth: AppleTouch.minTarget,
+                        minHeight: AppleTouch.minTarget,
                       ),
                       onPressed: () {
                         controller.toggleLayerVisibility(layerIndex);
@@ -307,7 +307,10 @@ class _LayerItem extends StatelessWidget {
       tooltip: tip,
       icon: Icon(icon, size: 16),
       visualDensity: VisualDensity.compact,
-      constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+      constraints: const BoxConstraints(
+        minWidth: AppleTouch.minTarget,
+        minHeight: AppleTouch.minTarget,
+      ),
       disabledColor: AppleColor.inkSubtle,
       onPressed: enabled ? onTap : null,
     );

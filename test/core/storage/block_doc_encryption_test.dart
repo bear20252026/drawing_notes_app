@@ -50,7 +50,8 @@ void main() {
     );
   }
 
-  /// 懒迁移等待统一走 [waitEncryptedFile]（2s→15s，防 CI 慢机器击穿）。
+  /// 懒迁移等待统一走 [waitEncryptedFile]（内部预算 120s，
+  /// 见 waitEncryptedBudget；防 CI 慢机器击穿）。
   Future<Uint8List> waitEncrypted(String id) async =>
       waitEncryptedFile(File(docPath(id)), label: '明文块文档');
 
