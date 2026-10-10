@@ -90,6 +90,12 @@ flutter test             # 必须全绿
 > 目录并误报 "No issues found"（最危险）。同一命令失败 ≥3 次立即改用子代理接管。
 > （2026-10-05 仓库从 `C:\Users\17296\WorkBuddy\` 迁至 `D:\Workbuddy\`，C 盘那份副本已清空删除
 > ——仅剩一个空目录名被其他会话占用。迁移原因正是两棵同名目录树会让门禁静默跑在另一份代码上。）
+>
+> ⚠️ **C 盘旧路径复发警示（2026-10-10）**：`C:\Users\17296\WorkBuddy\2026-08-29-23-43-00\drawing_notes_app`
+> 曾于 10-09 被再次 clone 并在其上产生过一批未提交工作（已整体抢救入 `salvage/cdrive-ui-polish`
+> 分支，见该分支 commit message 的来历取证）。**唯一权威工作区 = D 盘这份**；任何会话开始前必须
+> 先 `pwd` 确认在 `/d/Workbuddy/` 下，禁止在 C 盘旧路径 clone/修改；发现 C 盘再现同名仓库，
+> 先抢救未提交工作到分支、再报告用户清理，不得两边并行开发。
 
 提交后 push，并确认 CI 五个工作流（CI / 软件质量工程门禁 / Code Guard / SBOM / Secret Scan）全绿。
 
