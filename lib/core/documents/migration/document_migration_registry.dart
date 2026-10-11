@@ -1,4 +1,5 @@
 import 'package:drawing_notes_app/core/documents/migration/document_migration.dart';
+import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 
 /// 工程文件迁移注册表（内核 P1-DOC-001，2026-10-10）。
 ///
@@ -48,13 +49,51 @@ final class MigrationV1ToV2 extends DocumentMigration {
   }
 }
 
+/// v2→v3：为缺 id 的笔画补持久唯一 id（格式 v3，2026-10-11）。
+///
+/// v2 及更早的笔画无身份字段（操作记录/增量同步只能按会话内对象引用寻址）。
+/// 迁移按 `LocalIdGenerator` 逐条派生——**一次性定格**：id 写回文件后跨会话
+/// 稳定，这正是它与「解码器缺省派生」的区别（后者每次打开都会换新 id）。
+final class MigrationV2ToV3 extends DocumentMigration {
+  const MigrationV2ToV3();
+
+  @override
+  int get from => 2;
+
+  @override
+  int get to => 3;
+
+  @override
+  void migrate(Map<String, dynamic> envelope) {
+    final document = envelope['document'];
+    if (document is! Map) return;
+    final layers = document['layers'];
+    if (layers is! List) return;
+    for (final layer in layers) {
+      if (layer is! Map) continue;
+      final strokes = layer['strokes'];
+      if (strokes is! List) continue;
+      for (final stroke in strokes) {
+        if (stroke is! Map) continue;
+        if (stroke['id'] is String && (stroke['id'] as String).isNotEmpty) {
+          continue; // 已有 id（同版本重放/部分升级）——绝不重写。
+        }
+        stroke['id'] = LocalIdGenerator.next('str');
+      }
+    }
+  }
+}
+
 /// 当前支持版本的迁移注册表（顺序即推进链）。
-const List<DocumentMigration> kDocumentMigrations = [MigrationV1ToV2()];
+const List<DocumentMigration> kDocumentMigrations = [
+  MigrationV1ToV2(),
+  MigrationV2ToV3(),
+];
 
 /// 当前支持版本。**刻意不 import DocumentCodec**（codec 反向 import 本注册表
 /// 做迁移接线——引回即循环依赖，架构测试规则 2 实际拦截过）。与
 /// `DocumentCodec.latestVersion` 的一致性由 document_migration_test 钉住。
-const int kSupportedDocumentVersion = 2;
+const int kSupportedDocumentVersion = 3;
 
 const DocumentMigrationRunner kDocumentMigrationRunner =
     DocumentMigrationRunner(

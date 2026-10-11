@@ -330,6 +330,7 @@ class StrokeSelectionEditingSession {
           }(),
       ];
       strokes[index] = Stroke(
+        id: old.id,
         points: points,
         color: old.color,
         width: old.width,
@@ -424,6 +425,7 @@ class StrokeSelectionEditingSession {
   }
 
   Stroke _copyStroke(Stroke stroke) => Stroke(
+    id: stroke.id,
     points: <StrokePoint>[
       for (final point in stroke.points)
         StrokePoint(point.x, point.y, point.pressure),
@@ -435,6 +437,7 @@ class StrokeSelectionEditingSession {
   );
 
   Stroke _offsetStroke(Stroke stroke, Offset delta) => Stroke(
+    id: stroke.id,
     points: <StrokePoint>[
       for (final point in stroke.points)
         StrokePoint(point.x + delta.dx, point.y + delta.dy, point.pressure),

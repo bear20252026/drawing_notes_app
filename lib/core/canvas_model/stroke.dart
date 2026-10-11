@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:drawing_notes_app/core/canvas_model/stroke_buffer.dart';
+import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 
 /// 笔画类型（笔刷类型）
 ///
@@ -58,7 +59,15 @@ class Stroke {
     int? seed,
     this.version = 0,
     this.versionNonce = 0,
-  }) : seed = seed ?? _newSeed();
+    String? id,
+  }) : seed = seed ?? _newSeed(),
+       // 持久身份（格式 v3，内核 Operation Engine 前置基座 2026-10-11）：
+       // 可序列化操作记录与未来增量同步按 id 寻址，不再依赖会话内对象引用。
+       id = id ?? LocalIdGenerator.next('str');
+
+  /// 笔画持久唯一 id：跨会话/跨设备稳定（随工程文件落盘，格式 v3 起写入；
+  /// 旧格式文件缺 id 时由迁移 v2→v3 或本构造器派生）。
+  final String id;
 
   /// 随机种子：手绘风格/抖动生成的稳定随机源（对齐 Excalidraw 元素模型），
   /// 同一元素重复渲染时使用同一 seed 保证质感一致。
@@ -156,6 +165,7 @@ class Stroke {
   }
 
   Map<String, dynamic> toJson() => {
+    'id': id,
     'points': _encodePoints(points),
     'color': color.toARGB32(),
     'width': width,
@@ -167,6 +177,7 @@ class Stroke {
   };
 
   factory Stroke.fromJson(Map<String, dynamic> json) => Stroke(
+    id: json['id'] is String ? json['id'] as String : null,
     points: _decodePoints(json['points']),
     color: Color((json['color'] as num).toInt()),
     width: (json['width'] as num).toDouble(),

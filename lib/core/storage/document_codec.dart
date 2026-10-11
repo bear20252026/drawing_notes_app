@@ -32,7 +32,7 @@ class DocumentCodec {
   /// 对齐 Saber SBN 的版本管理思路：写入固定 [version]，读取时若遇到
   /// 高于本值的文件（由新版本应用生成）则明确拒绝并提示升级，而不是
   /// 静默忽略未知字段造成数据损坏（政府审计项目严禁静默丢数据）。
-  static const int latestVersion = 2;
+  static const int latestVersion = 3;
 
   static const int _version = latestVersion;
 
@@ -301,6 +301,9 @@ class DocumentCodec {
         final opacity = json['opacity'];
         strokes.add(
           Stroke(
+            // id（格式 v3）：v2 及更早文件缺 id——迁移层（v2→v3）已补，
+            // 此处宽容回读兜底（直构缺省时由构造器派生新 id）。
+            id: json['id'] is String ? json['id'] as String : null,
             points: points,
             color: Color(color.toInt()),
             width: safeWidth,

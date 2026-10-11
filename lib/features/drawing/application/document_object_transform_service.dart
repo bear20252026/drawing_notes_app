@@ -59,6 +59,7 @@ class DocumentObjectTransformService {
       if (index < 0 || index >= strokes.length) continue;
       final old = strokes[index];
       strokes[index] = Stroke(
+        id: old.id,
         points: old.points
             .map((point) {
               final next = transform(point.offset);

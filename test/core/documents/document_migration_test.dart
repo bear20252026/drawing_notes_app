@@ -1,10 +1,10 @@
-// 迁移框架回归锁（内核 P1-DOC-001，2026-10-10）。
+// 迁移框架回归锁（内核 P1-DOC-001，2026-10-10；v2→v3 增补 2026-10-11）。
 //
 // 钉三条相反方向（T-E 纪律）：
 // ① 迁移生效——v1 文件规范化后版本回写、缺键补齐、内容零丢失；
-// ② 合法稳态不误伤——当前 v2 文件经 runner 原样通过（幂等）；
+// ② 合法稳态不误伤——当前 v3 文件经 runner 原样通过（幂等）；
 // ③ 缺环节不新增拒绝路径——未知版本停留在原样交宽容解码器。
-// 另钉 codec 全链路：v1 信封经 decode 出正确文档（AW2 语义保持）。
+// v2→v3 额外钉：id 派生唯一、已有 id 绝不重写、codec 全链路保 id。
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -15,7 +15,7 @@ import 'package:drawing_notes_app/core/documents/migration/document_migration_re
 import 'package:drawing_notes_app/core/storage/document_codec.dart';
 
 Map<String, dynamic> _v1Envelope() => {
-  // 无 version 键（最早格式）；笔画缺 seed/version/versionNonce；文档缺 textItems。
+  // 无 version 键（最早格式）；笔画缺 seed/version/versionNonce/id；文档缺 textItems。
   'document': {
     'id': 'doc_v1file',
     'title': 'v1 遗留文件',
@@ -40,14 +40,26 @@ Map<String, dynamic> _v1Envelope() => {
   },
 };
 
+Map<String, dynamic> _v2Envelope() {
+  final envelope = _v1Envelope();
+  envelope['version'] = 2;
+  final doc = envelope['document'] as Map<String, dynamic>;
+  doc['textItems'] = <Map<String, dynamic>>[];
+  final stroke =
+      (((doc['layers'] as List).first as Map)['strokes'] as List).first as Map;
+  stroke['version'] = 0;
+  stroke['versionNonce'] = 0;
+  return envelope;
+}
+
 void main() {
   group('DocumentMigrationRunner', () {
-    test('① v1 → v2：版本回写、笔画补版本字段、textItems 补空', () {
+    test('① v1 → v3：逐级推进，版本回写、缺键补齐、id 派生、内容零丢失', () {
       final envelope = _v1Envelope();
       final reached = kDocumentMigrationRunner.migrateToCurrent(envelope);
 
-      expect(reached, 2);
-      expect(envelope['version'], 2);
+      expect(reached, 3);
+      expect(envelope['version'], 3);
       final doc = envelope['document'] as Map<String, dynamic>;
       expect(doc.containsKey('textItems'), isTrue);
       final stroke =
@@ -55,15 +67,18 @@ void main() {
       expect(stroke['version'], 0);
       expect(stroke['versionNonce'], 0);
       expect(stroke.containsKey('seed'), isFalse, reason: 'v1 无 seed——刻意不补（见条目注释）');
+      expect(stroke['id'], isA<String>(), reason: 'v3 迁移派生持久 id');
+      expect((stroke['id'] as String).isNotEmpty, isTrue);
       // 内容零丢失：点列/颜色原样。
       expect(stroke['points'], [10, 20, 0.5, 30, 40, 0.75]);
+      expect(stroke['color'], 0xFF1A1A1A);
     });
 
-    test('② 当前 v2 文件幂等通过（合法稳态不误伤）', () {
+    test('② 当前 v3 文件幂等通过（合法稳态不误伤）', () {
       final envelope = {
-        'version': 2,
+        'version': 3,
         'document': {
-          'id': 'doc_v2file',
+          'id': 'doc_v3file',
           'title': '现行格式',
           'layers': [
             {
@@ -71,6 +86,7 @@ void main() {
               'name': '',
               'strokes': [
                 {
+                  'id': 'str_fixed_identity',
                   'points': [1, 2, 3.0],
                   'color': 255,
                   'width': 1,
@@ -88,23 +104,46 @@ void main() {
         },
       };
       final snapshot = jsonEncode(envelope);
-      expect(kDocumentMigrationRunner.migrateToCurrent(envelope), 2);
-      expect(jsonEncode(envelope), snapshot, reason: 'v2 文件零字节变化');
+      expect(kDocumentMigrationRunner.migrateToCurrent(envelope), 3);
+      expect(jsonEncode(envelope), snapshot, reason: 'v3 文件零字节变化（含 id 不重写）');
+    });
+
+    test('②b v2 → v3：id 逐条派生且唯一；已有 id 的笔画绝不重写', () {
+      final envelope = _v2Envelope();
+      // 预置一条已有 id 的笔画（部分升级/同版本重放场景）。
+      final strokes =
+          (((envelope['document'] as Map)['layers'] as List).first as Map)
+              ['strokes'] as List;
+      strokes.add({
+        'id': 'str_preexisting',
+        'points': [5, 6, 1.0],
+        'color': 255,
+        'width': 1,
+        'type': 'pen',
+        'version': 1,
+        'versionNonce': 1,
+      });
+
+      expect(kDocumentMigrationRunner.migrateToCurrent(envelope), 3);
+      expect(strokes[0]['id'], isA<String>());
+      expect(strokes[0]['id'], isNot('str_preexisting'));
+      expect(strokes[1]['id'], 'str_preexisting', reason: '已有 id 绝不重写');
+      expect(strokes[0]['id'], isNot(strokes[1]['id']), reason: '派生 id 互不相同');
     });
 
     test('③ 缺迁移环节：停在当前版本，不抛出、不伪造推进', () {
       final sparse = DocumentMigrationRunner(
-        supportedVersion: 3,
-        migrations: const [MigrationV1ToV2()], // 缺 2→3
+        supportedVersion: 5,
+        migrations: kDocumentMigrations, // 缺 3→4、4→5
       );
       final envelope = _v1Envelope();
-      expect(sparse.migrateToCurrent(envelope), 2, reason: '推进到有环节的顶即停');
-      expect(envelope['version'], 2);
+      expect(sparse.migrateToCurrent(envelope), 3, reason: '推进到有环节的顶即停');
+      expect(envelope['version'], 3);
     });
   });
 
   group('codec 全链路', () {
-    test('v1 信封经 decode：字段默认正确、seed 维持每次新派生', () {
+    test('v1 信封经 decode：字段默认正确、id 派生、seed 维持每次新派生', () {
       final bytes = Uint8List.fromList(utf8.encode(jsonEncode(_v1Envelope())));
       final doc = const DocumentCodec().decode(bytes);
 
@@ -114,11 +153,40 @@ void main() {
       final stroke = doc.layers.single.strokes.single;
       expect(stroke.version, 0);
       expect(stroke.points, hasLength(2));
+      expect(stroke.id, isNotEmpty, reason: '迁移派生的 id 回读到文档');
       expect(stroke.seed, isNot(0), reason: 'v1 无 seed → 构造器派生新随机种子（历史行为）');
+    });
+
+    test('encode/decode 往返：id 保真，多笔 id 互不冲突', () {
+      final doc = _v1Envelope(); // 借构造逻辑造多笔文档
+      const codec = DocumentCodec();
+      final strokes = doc['document']['layers'][0]['strokes'];
+      for (var i = 0; i < 5; i++) {
+        strokes.add({
+          'points': [i * 1.0, i * 2.0, 0.5],
+          'color': 255,
+          'width': 1,
+          'type': 'pen',
+        });
+      }
+      final decoded = codec.decode(
+        Uint8List.fromList(utf8.encode(jsonEncode(doc))),
+      );
+      final ids = decoded.layers.single.strokes.map((s) => s.id).toList();
+      expect(ids, everyElement(isNotEmpty));
+      expect(ids.toSet().length, ids.length, reason: '同批派生 id 全局唯一');
+
+      final roundtripped = codec.decode(codec.encode(decoded));
+      expect(
+        roundtripped.layers.single.strokes.map((s) => s.id).toList(),
+        ids,
+        reason: 'encode/decode 往返 id 保真（跨会话稳定的前提）',
+      );
     });
 
     test('注册表支持版本与 codec 单一来源一致', () {
       expect(kSupportedDocumentVersion, DocumentCodec.latestVersion);
+      expect(kSupportedDocumentVersion, 3);
     });
   });
 }
