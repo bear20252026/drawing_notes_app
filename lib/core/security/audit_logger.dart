@@ -10,16 +10,25 @@ import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 /// 记录密钥加载/密码盘操作（时间戳 + 操作 + 结果），**绝不含密钥与内容**
 /// （防审计日志本身成为泄露面——去敏）。
 ///
-/// 哈希链（专家目标架构"不可篡改审计事件流"——Thalian verify_audit_chain /
-/// Revka Merkle 链 / 掘金 Layer 6 权威模式）：每条记录含 prevHash（前一条
-/// 哈希）+ 自身 SHA-256 哈希——任何字段篡改立即断链，verifyIntegrity()
-/// 重放检出（篡改检测——审计完整性）。
+/// 哈希链（对应专家目标架构里的 tamper-evident「审计事件流」——Thalian
+/// verify_audit_chain / Revka Merkle 链 / 掘金 Layer 6 权威模式）：每条记录含
+/// prevHash（前一条哈希）+ 自身 SHA-256 哈希——任何字段篡改立即断链，
+/// verifyIntegrity() 重放检出。
+///
+/// **保证等级（口径以代码为准，勿再对外写成防篡改）**：本链是**无密钥**
+/// SHA-256（`_sha256` 直接哈希载荷，既非 HMAC 也非签名），所以只提供
+/// **篡改可检测（tamper-evident）**保证，不构成防篡改（tamper-proof）——拿到
+/// 文件写权限的攻击者可以从任意位置整链重算，事后无从分辨。要把保证等级提上去，
+/// 需要**带密钥的日志段（HMAC / 签名链）**或**外部追加锚（append-only anchor、
+/// 异步签名收据、远端哈希回执）**；这是能力升级、业主尚未裁决，本文件**刻意
+/// 不实现**。
 ///
 /// 落盘（2026-10-10，挂账轻项）：每条记录同步进内存链、异步追加写
-/// `<数据根>/security/audit.log`（JSONL，含链字段，可离线重放验证），
-/// 超 1 MiB 轮转为 audit.log.1（保留一代）。追加失败**静默吞掉**——审计
-/// 永不阻断业务；内存链仍是权威实时视图。`flutter test` 环境默认**不落盘**
-/// （FLUTTER_TEST 护栏——测试不得污染用户真实数据根），测试经
+/// `<数据根>/security/audit.log`（JSONL，含链字段——**文件格式**支持离线重放，
+/// 但**重放验证的生产代码目前不存在**，见下方 [AuditLogger.verifyIntegrity]
+/// 的能力缺位登记），超 1 MiB 轮转为 audit.log.1（保留一代）。追加失败**静默
+/// 吞掉**——审计永不阻断业务；内存链仍是权威实时视图。`flutter test` 环境默认
+/// **不落盘**（FLUTTER_TEST 护栏——测试不得污染用户真实数据根），测试经
 /// [sinkOverrideForTest] 注入临时目录。
 class AuditLogger {
   AuditLogger._();
@@ -39,10 +48,14 @@ class AuditLogger {
   /// 滚动裁剪后的链起点锚（checkpoint）：被丢弃尾部之后、当前首条的
   /// prevHash。verifyIntegrity 从此处而非 genesis 重放——否则一旦裁剪过
   /// 就恒报「已篡改」（裁剪条目仍是新首条的 prevHash，genesis 重放必断）。
-  /// 文件侧无需 checkpoint：audit.log 保留全量历史，链连续性由行序保证。
+  /// 内存链需要这个锚，文件链不需要：追加行按写入顺序成链、连续性由行序
+  /// 保证（`log()` 裁剪尾部时落锚）。但文件侧**也谈不上全量历史**——轮转只
+  /// 保留一代（`audit.log` + `audit.log.1`，再轮转即覆盖上一代），且**没有
+  /// 生产代码回读这些文件做重放**（见 [verifyIntegrity] 的能力缺位登记）。
   static String _anchorPrevHash = _genesisHash;
 
-  /// 累计被丢弃条数（内存内 checkpoint 分量；文件侧保留全量，见上）。
+  /// 累计被丢弃条数（内存内 checkpoint 分量；文件侧按行序追加、轮转只留一代，
+  /// 见上）。
   static int _droppedCount = 0;
 
   // ==== 落盘（2026-10-10） ====
@@ -177,6 +190,17 @@ class AuditLogger {
   /// 模式）：从**当前链真实起点**（_anchorPrevHash，未裁剪时即 genesis）重放
   /// ——prevHash 链接 + 重算哈希——任何字段篡改立即检出。滚动裁剪后从锚点起
   /// 重放，不再假装从 genesis 起（否则正常运行的长会话日志被误判为已篡改）。
+  ///
+  /// **校验范围（消费方必须如实转达——`DiagnosticsExporter` / 设置页诊断报告
+  /// 的「通过」只意味着下面这一句）**：本方法**只遍历内存 `_entries`**，
+  /// 一个文件都不读，覆盖的是**本进程保留的最近 ≤[_maxEntries]（1000）条**。
+  ///
+  /// **能力缺位登记（未实现，勿当作已完成）**：
+  /// - 对落盘 `security/audit.log`（全量历史）与轮转出的 `audit.log.1` 做
+  ///   **文件侧重放验证**——无实现；进程重启后旧历史完全不参与校验，
+  ///   「跨重启的历史审计链是否完好」目前**没有任何代码能回答**。
+  /// - 防「整链重算」的**带密钥**校验（HMAC 段 / 签名链）或**外部追加锚**——
+  ///   无实现（属能力升级，待业主裁决；见文件头「保证等级」）。
   static bool verifyIntegrity() {
     var prev = _anchorPrevHash;
     for (final e in _entries) {

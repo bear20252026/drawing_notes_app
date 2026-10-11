@@ -20,7 +20,13 @@ void main() {
     expect(report, contains('=== 绘图笔记 诊断信息'));
     expect(report, contains('平台: windows 10.0 · Dart 3.12.2'));
     expect(report, contains('语言: zh'));
-    expect(report, contains('审计日志完整性: 通过'));
+    // DN-009 口径诚实化：完整性行必须自带校验范围（内存最近 N 条、不读文件、
+    // 不跨重启），不得让「通过」被读成「落盘全量日志完好」。
+    expect(
+      report,
+      contains('审计日志完整性: 通过 —— 校验范围: 本进程内存保留的最近 1 条'),
+    );
+    expect(report, contains('篡改可检测 tamper-evident'));
     expect(report, contains('审计条目数: 1'));
     expect(report, contains('editor.crop.save_failed'));
   });
@@ -32,7 +38,10 @@ void main() {
       auditIntegrity: false,
       auditEntries: const [],
     );
-    expect(report, contains('审计日志完整性: 异常（哈希链断裂）'));
+    expect(
+      report,
+      contains('审计日志完整性: 异常（哈希链断裂） —— 校验范围: 本进程内存保留的最近 0 条'),
+    );
     expect(report, contains('(无条目)'));
   });
 }

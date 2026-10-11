@@ -9,7 +9,8 @@ A cross-platform **drawing and note-taking** application for **Windows desktop +
 
 > **Security posture**: government-grade security — encrypted notes (per-note keys),
 > policy engine (default-deny), session guard (auto-lock), VFS encrypted object vault
-> (versioned / atomic commits), tamper-evident audit (SHA-256 hash chain), import isolation
+> (versioned / atomic commits), tamper-evident audit (unkeyed SHA-256 hash chain,
+> verified only over the last ≤1000 in-process entries), import isolation
 > (SVG/PDF preflight).
 
 ---
@@ -80,7 +81,7 @@ All five CI workflows (CI / quality gate / Code Guard / SBOM / Secret Scan) must
 | Policy engine | Operation allowlist with **default-deny** (fail-closed) + audit — import/delete gated |
 | Session guard | Backgrounding / minimize / plain focus loss (`inactive`) all trigger a **full lock** — boot lock plus memory keys zeroed, identical on desktop and Android (grace window anchored at the **first** background signal; repeat signals in one session never re-anchor it). While a native file dialog / system permission prompt / external viewer holds OS focus, losing focus is routed through an **exemption window** (off by default, 5-minute TTL cap) so import / export / USB-bind never false-lock. Returning to the foreground always re-runs the single `AppLockService.verify` pipeline — brute-force failure counting, exponential cooldown and quick-unlock semantics are never bypassed. (AppLockGate + SessionGuard) |
 | VFS encrypted vault | Object manifest + version rollback + AAD binding + atomic commits (crash-safe) |
-| Tamper-evident audit | SHA-256 hash chain (prevHash linkage — tamper breaks chain) + verifyIntegrity; user-facing errors always sanitized |
+| Tamper-evident audit | Unkeyed SHA-256 hash chain (prevHash linkage — tamper breaks chain) + verifyIntegrity; user-facing errors always sanitized. **Scope**: the chain carries no key, so an attacker who can rewrite the file can recompute it end-to-end — this is tamper-*evidence*, not tamper-*proofing*. verifyIntegrity replays only the last ≤1000 entries kept in process memory (rolling trim cap, `lib/core/security/audit_logger.dart`) and reads no file; cross-restart replay of `audit.log` / rotated `audit.log.1` is **not implemented** (see SECURITY.md section 「审计链的保证边界」 (Audit chain guarantee boundary)) |
 | Import isolation | SVG preflight (XXE/Billion Laughs/script injection/bomb) + PDF page/size quotas + hyperlink scheme allowlist |
 | Release gates | SBOM generation (CycloneDX) + secret scanning (Gitleaks pattern) + CI integration |
 
