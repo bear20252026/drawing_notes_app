@@ -361,10 +361,10 @@ class StrokeRenderer {
       entry = _StrokeOutlineCacheEntry(stroke.geometryRevision);
       _outlineCache[stroke] = entry;
     }
-    return entry.bounds ??= _computeStrokeBounds(stroke, points);
+    return entry.bounds ??= _computeStrokeBounds(stroke);
   }
 
-  static Rect _computeStrokeBounds(Stroke stroke, List<StrokePoint> points) {
+  static Rect _computeStrokeBounds(Stroke stroke) {
     // 内核 P0-1（2026-10-10）：紧凑缓冲直读（含点间距计算——剔除 overshoot
     // 语义保持逐字段一致，x/y/pressure 之外不再触碰点对象）。
     final buffer = stroke.buffer;
