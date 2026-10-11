@@ -5,8 +5,14 @@
 /// 像素矩形的确定性换算；写回管线负责解码（兼容 DNV 密文）、重采样、
 /// PNG 编码、按原密文状态重新密封与原子落盘。两者都不持有 Widget /
 /// 交互状态 / 通知回调。
+///
+/// 2026-10-12（editor_page 行数棘轮 P3-3 的外移件）：裁剪「文档几何 ↔ 磁盘
+/// 字节」成对提交的编排 [commitCropPairing] 与其结果档
+/// [EditorCropCommitResult] 一并迁入本域——它们同样是纯时序/几何逻辑，
+/// 不认识 Widget，只把回调当端口用；页面侧只留守卫与文案映射。
 library;
 
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
@@ -240,5 +246,86 @@ class EditorImageCropWriter {
       outImage?.dispose();
       srcCodec?.dispose();
     }
+  }
+}
+
+/// 裁剪成对提交的落定结果（页面据此映射提示文案；[committed] 之外文档几何
+/// 都已回滚为裁剪前矩形，与未变的磁盘字节保持同向）。
+enum EditorCropCommitResult {
+  /// 磁盘字节与文档矩形都已落到裁剪后。
+  committed,
+
+  /// 已回滚：原图文件不存在。
+  sourceMissing,
+
+  /// 已回滚：PNG 编码失败。
+  encodeFailed,
+
+  /// 已回滚：保险库锁定（fail-closed 拒绝写回）。
+  vaultLocked,
+
+  /// 已回滚：写盘抛出异常（细节由 reportError 进审计日志，R-02）。
+  failed,
+}
+
+/// 裁剪「文档几何 ↔ 磁盘字节」成对更新（修复 3，审计 2026-10-04）。
+///
+/// 时序：
+/// 1. [applyRect] 先把裁剪后矩形落进文档对象并标脏（持久化交既有防抖自动
+///    保存 / 退出兜底 flush）；
+/// 2. [writeGate] 暴露写盘飞行句柄，自动保存在它落定前不得取文档快照；
+/// 3. [writeToDisk] 落盘字节（生产实现 [EditorImageCropWriter.writeCrop]：
+///    tmp+rename 原子写 + `.bak` 原图副本 + 保险库 fail-closed，失败即在档
+///    文件逐字未变）；
+/// 4. 非成功结果/异常 → [applyRect] 回滚裁剪前矩形并再次标脏，调度器串行化
+///    保证「最后一写」胜出。
+/// 四步都不看 `mounted`：页面在 await 期间卸载只会少一次 setState/提示，
+/// 不会再造成「磁盘裁剪后像素 + 文档裁剪前矩形」。落定顺序是「几何决定 →
+/// 放行快照」，故快照永远是最终几何。
+Future<EditorCropCommitResult> commitCropPairing({
+  required Rect sourceBounds,
+  required Rect cropRect,
+  required Future<EditorImageCropWriteOutcome> Function(
+    Rect cropRect,
+    Rect sourceBounds,
+  )
+  writeToDisk,
+  required void Function(Rect apply) applyRect,
+  required void Function() endCrop,
+  required void Function(Future<void>? inFlight) writeGate,
+  required void Function(Object error) reportError,
+}) async {
+  applyRect(cropRect);
+  final gate = Completer<void>();
+  writeGate(gate.future);
+  try {
+    EditorImageCropWriteOutcome? outcome;
+    Object? error;
+    try {
+      outcome = await writeToDisk(cropRect, sourceBounds);
+    } catch (e) {
+      error = e;
+      reportError(e);
+    }
+    if (error == null && outcome == EditorImageCropWriteOutcome.success) {
+      endCrop();
+      return EditorCropCommitResult.committed;
+    }
+    // 回滚文档几何：原子写保证在档字节逐字未变，两侧同时退回裁剪前状态。
+    applyRect(sourceBounds);
+    if (error != null) return EditorCropCommitResult.failed;
+    return switch (outcome!) {
+      EditorImageCropWriteOutcome.success => EditorCropCommitResult.committed,
+      EditorImageCropWriteOutcome.sourceMissing =>
+        EditorCropCommitResult.sourceMissing,
+      EditorImageCropWriteOutcome.encodeFailed =>
+        EditorCropCommitResult.encodeFailed,
+      EditorImageCropWriteOutcome.vaultLocked =>
+        EditorCropCommitResult.vaultLocked,
+    };
+  } finally {
+    // 几何落定之后才放行快照（含回滚），并解除飞行标记。
+    writeGate(null);
+    if (!gate.isCompleted) gate.complete();
   }
 }

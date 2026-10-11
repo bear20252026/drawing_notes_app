@@ -6385,6 +6385,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'; {count} cloud copy(ies) could not be read this time, so uploading those document(s) was skipped to avoid overwriting them (not synced this round): make sure the sync password is your original one, or try syncing again later'**
   String syncRemoteCopyUnprotectedCount(int count);
+
+  /// DN-003：以预算截断态打开画布时的常驻说明条标题
+  ///
+  /// In en, this message translates to:
+  /// **'This canvas holds less than the file on disk'**
+  String get budgetTruncatedTitle;
+
+  /// DN-003：常驻说明条正文（必须同时给出恢复数与丢弃数，并声明原文件未动）
+  ///
+  /// In en, this message translates to:
+  /// **'Only {restored} stroke(s) were loaded; {dropped} more were dropped by the read budget. The original file on disk was not modified, and autosave and manual save have stopped overwriting it.'**
+  String budgetTruncatedBody(int restored, int dropped);
+
+  /// DN-003：丢弃计数非零时追加的一行（仅在真有此类丢弃时出现）
+  ///
+  /// In en, this message translates to:
+  /// **'Another {objects} shape(s)/image(s)/text item(s) and {points} point(s) were also left out.'**
+  String budgetTruncatedMore(int objects, int points);
+
+  /// DN-003：唯一破坏性处置入口的按钮文案
+  ///
+  /// In en, this message translates to:
+  /// **'Overwrite the file with this content'**
+  String get budgetTruncatedOverride;
+
+  /// DN-003：二次确认对话框的确认按钮
+  ///
+  /// In en, this message translates to:
+  /// **'Overwrite the file'**
+  String get budgetTruncatedOverrideConfirm;
+
+  /// DN-003：二次确认标题
+  ///
+  /// In en, this message translates to:
+  /// **'Overwrite the original file with what\'s on screen?'**
+  String get budgetTruncatedConfirmTitle;
+
+  /// DN-003：确认文案必须重复会丢失的数量并说明不可恢复
+  ///
+  /// In en, this message translates to:
+  /// **'After the overwrite this screen is the only version left in the file: {restored} stroke(s) total, and the {dropped} dropped stroke(s) cannot be recovered. The original file is not backed up elsewhere, so this cannot be undone.'**
+  String budgetTruncatedConfirmBody(int restored, int dropped);
+
+  /// DN-003：截断态下顶栏/状态栏芯片的替代措辞（不得只显示一句没有解释的「保存失败」）
+  ///
+  /// In en, this message translates to:
+  /// **'Overwrite blocked: act on the notice above'**
+  String get budgetTruncatedChip;
+
+  /// DN-005：强制保存失败后仍要退出时的对话框标题
+  ///
+  /// In en, this message translates to:
+  /// **'Changes are not on disk yet'**
+  String get unsavedExitTitle;
+
+  /// DN-005：普通保存失败的退出裁决正文
+  ///
+  /// In en, this message translates to:
+  /// **'That save failed. If you leave now, this session\'s edits will not appear in the file. You can stay and keep editing (another attempt happens shortly), or leave with the changes unsaved.'**
+  String get unsavedExitBody;
+
+  /// DN-005/DN-003 交叉：截断态导致的保存被拒，措辞必须解释原因而不是「保存失败，请重试」
+  ///
+  /// In en, this message translates to:
+  /// **'This canvas was opened in truncated state, so saves are refused by design to protect the original file. If you leave now, this session\'s edits will not appear in the file. To genuinely replace the original, first tap \"Overwrite the file with this content\" in the notice above.'**
+  String get unsavedExitBodyTruncated;
+
+  /// DN-005：安全一侧（默认焦点）
+  ///
+  /// In en, this message translates to:
+  /// **'Stay and keep editing'**
+  String get unsavedExitStay;
+
+  /// DN-005：破坏性一侧，需显式点击
+  ///
+  /// In en, this message translates to:
+  /// **'Leave anyway'**
+  String get unsavedExitLeave;
 }
 
 class _AppLocalizationsDelegate

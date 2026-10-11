@@ -55,6 +55,10 @@ import 'package:drawing_notes_app/core/rendering/notebook_print_page_data.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
+// DN-003 处置入口：常驻说明条 + 二次确认（展示件在 components/，不入本库棘轮）。
+import 'package:drawing_notes_app/core/storage/document_budgets.dart'
+    show DocumentDecodeReport;
+import 'package:drawing_notes_app/features/drawing/presentation/components/editor_budget_truncation_banner.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
 // part（editor_page_editing）的选择器需 LockExemption——part 不能带 import。
 import 'package:drawing_notes_app/core/security/session_guard.dart'
@@ -167,20 +171,6 @@ class EditorPage extends ConsumerStatefulWidget {
   ConsumerState<EditorPage> createState() => _EditorPageState();
 }
 
-/// 线性元素拖拽读数：长度（画布坐标 px）+ 与水平方向夹角（度）。
-/// 气泡锚定在拖拽端点的视图坐标上（审计二-6）。
-class LinearDraftReadout {
-  const LinearDraftReadout({
-    required this.viewPos,
-    required this.length,
-    required this.angleDeg,
-  });
-
-  final Offset viewPos;
-  final double length;
-  final double angleDeg;
-}
-
 class _EditorPageState extends ConsumerState<EditorPage> {
   /// 跨 async 间隙安全取 l10n（mounted 守卫；i18n E1 批 3）。
   AppLocalizations? get _l10nSafe =>
@@ -220,66 +210,24 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   bool _canvasSaving = false;
   DateTime? _canvasLastSavedAt;
 
-  /// v1.17.20：保存状态由调度器统一驱动（覆盖手动/退出兜底保存路径）。
-  void _onSavingStateChanged() {
-    if (!mounted) return;
-    setState(() => _canvasSaving = _saveScheduler.savingState.value);
-  }
-
-  /// 保存失败的用户可见通知（2026-10-06）。
-  ///
-  /// 此前失败只进 `AuditLogger`，界面上毫无痕迹：用户继续画、继续丢，
-  /// 直到重开才发现内容没了。这里同时做两件事——状态栏芯片常驻显示
-  /// 「保存失败」（一次性 snackbar 会被划走，而风险一直在），以及
-  /// `giveUp` 时把措辞升级成「请手动保存」。
+  /// 保存失败的用户可见通知（2026-10-06）：此前失败只进 `AuditLogger`，界面上
+  /// 毫无痕迹——用户继续画、继续丢，直到重开才发现内容没了。监听回调与芯片措辞
+  /// 本体见 editor_page_persistence.dart（2026-10-12 移出，库棘轮持平）。
   SaveFailureNotice? _canvasSaveFailure;
 
   /// 只在「失败连击开始」与「升级为放弃」两个时刻弹一次 snack，
   /// 连续失败不刷屏（与调度器的通知合并同口径；频率闸门：高频态不动画）。
   bool _snackedForCurrentEpisode = false;
 
-  void _onSaveFailureChanged() {
-    if (!mounted) return;
-    final notice = _saveScheduler.saveFailure.value;
-    setState(() => _canvasSaveFailure = notice);
-    if (notice == null) {
-      _snackedForCurrentEpisode = false;
-      return;
-    }
-    if (_snackedForCurrentEpisode && !notice.gaveUp) return;
-    _snackedForCurrentEpisode = true;
-    _showSaveFailureSnackBar(notice);
-  }
+  /// DN-003（处置入口，2026-10-12）：非 null 即本文档是以**预算截断态**打开的
+  /// ——盘上原件比内存更完整，写侧闸门拒绝一切覆盖写。界面上必须给出**常驻**
+  /// 说明（恢复了/丢弃了多少笔、原文件未被改动）与唯一的显式处置入口，
+  /// snackbar 一闪而过不算。
+  DocumentDecodeReport? _budgetTruncation;
 
-  void _showSaveFailureSnackBar(SaveFailureNotice notice) {
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      SnackBar(
-        content: Text(saveFailureLabel(AppLocalizations.of(context), notice)),
-        duration: const Duration(seconds: 6),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  String get _canvasStatusLabel {
-    final l10n = AppLocalizations.of(context);
-    // 失败优先于「保存中/未保存」：这三态互斥地挤在同一个芯片位上，
-    // 而只有「没落盘」是用户必须立刻知道的。
-    final notice = _canvasSaveFailure;
-    if (notice != null) return saveFailureLabel(l10n, notice);
-    if (_canvasSaving) return l10n?.saveStateSaving ?? '保存中…';
-    final t = _canvasLastSavedAt;
-    if (_controller.isDirty) return l10n?.saveStateUnsaved ?? '未保存';
-    if (t == null) return l10n?.saveStateSaved ?? '已保存';
-    return l10n?.saveStateSavedAt(formatClock(t)) ?? '已保存 ${formatClock(t)}';
-  }
-
-  Color get _canvasStatusColor {
-    if (_canvasSaveFailure != null) return AppleColor.errorRed;
-    if (_canvasSaving) return AppleColor.actionBlue;
-    if (_controller.isDirty) return AppleColor.favourite;
-    return AppleColor.noteGreen;
-  }
+  /// 截断态下不弹「保存失败，请重试」——那句既没解释原因，又与常驻说明互相
+  /// 矛盾（芯片措辞同样让位给 [AppLocalizations.budgetTruncatedChip]）。
+  bool get _writeBlockedByTruncation => _budgetTruncation != null;
 
   /// 混排对象的框选、多选、裁剪、对齐与拖动反馈暂态集中在独立协作者中。
   final EditorCanvasInteractionState _canvasInteraction =
@@ -613,10 +561,12 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   ///   PNG 编码是退出路径最贵的一段）。缩略图在画画期间每 5s 自动保存
   ///   已近实时，退出时缺最后一拍的视觉差异可忽略（首页网格 ~256px）；
   /// - `flushIfDirty`：无未落盘改动时零等待直接退出。
-  Future<bool> _flushBeforePop() async {
+  ///
+  /// 返回的是**落盘结果**（DN-005）：它正常完成不代表改动已经写进文件——
+  /// 调用点必须读 [SaveFlushResult.isSafeToLeave] 再决定放行 pop。
+  Future<SaveFlushResult> _flushBeforePop() {
     _closingEditor = true;
-    await _viewModel.flushIfDirty();
-    return true;
+    return _viewModel.flushIfDirty();
   }
 
   @override
@@ -732,6 +682,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         widget._initialDocument ??
         DrawingDocument(id: StorageService.newId(), title: '');
     _controller = ref.read(drawingControllerProvider(doc));
+    // DN-003：这份文档若是**以预算截断态**打开的（探针只读，闸门在
+    // `StorageService.save` 里同步拒绝覆盖原件），页面必须常驻说明并给出
+    // 唯一的显式处置入口——否则中招的用户只能看着「保存失败」动不了。
+    _budgetTruncation = widget.docStorage?.budgetTruncationReport(doc.id);
     // P-09：标题子树改挂过滤型读模型，须在 _controller 就绪后建立。
     _titleReadModel = TitleReadModel(_controller);
     _exporter = EditorExporter(
@@ -903,8 +857,20 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop || _allowPopAfterSave) return;
         final navigator = Navigator.of(context);
-        await _flushBeforePop();
+        final flushed = await _flushBeforePop();
         if (!mounted) return;
+        // DN-005：保存链收敛 ≠ 已落盘。仍有未落盘改动时把「留下 / 仍要离开」
+        // 交给用户显式裁决——此前这里无条件放行 pop，页面一销毁连那颗
+        // 「保存失败」芯片都跟着没了，改动就此静默蒸发。
+        if (flushed.isFailedStillDirty &&
+            !await confirmLeaveWithUnsavedChanges(
+              // 跨异步间隙后只有 State.context 配 `mounted` 检查才合规（此处
+              // 已 recheck）；build 闭包捕获的那个 context 不能用。
+              this.context,
+              blockedByBudgetTruncation: _writeBlockedByTruncation,
+            )) {
+          return;
+        }
         setState(() => _allowPopAfterSave = true);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) navigator.pop(result);
@@ -916,7 +882,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         onKeyEvent: _onShortcutKey,
         child: Scaffold(
           appBar: _buildAppBar(),
-          body: _buildBody(),
+          // DN-003：常态就是 _buildBody() 本身；只有截断态才多包一层常驻说明条
+          // （见 editor_page_persistence.dart 的 _buildBodyWithNotice）。
+          body: _buildBodyWithNotice(),
           // 底部状态栏（借鉴 Joplin StatusBar）：显示缩放/工具/坐标。
           bottomNavigationBar: _buildStatusBar(),
         ),

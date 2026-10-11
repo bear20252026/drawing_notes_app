@@ -144,13 +144,17 @@ class EditorViewModel extends ChangeNotifier {
   /// 高频手势期间不落盘，无修改时决策器直接 skip。
   void scheduleAutosave() => _saveScheduler.markDirty();
 
-  /// 立即保存并取消防抖。调用方可 await 该 Future 再安全关闭页面。
+  /// 立即保存并取消防抖。**返回的是落盘结果，不是「一定存好了」**：
+  /// 保存失败时链照样收敛（调度器不外抛，见 [SaveFlushResult]），调用方
+  /// 必须读 [SaveFlushResult.isSafeToLeave] 再决定是否关闭页面（DN-005）。
   /// 委托给 [SaveScheduler.flush]，获得退出兜底 + 失败重试语义。
-  Future<void> saveNow() => _saveScheduler.flush();
+  Future<SaveFlushResult> saveNow() => _saveScheduler.flush();
 
-  /// 退出兜底（脏检查版）：无未落盘改动时零等待返回。
-  /// 退出路径优先用这个（v1.17.18 退出卡顿优化）。
-  Future<void> flushIfDirty() => _saveScheduler.flushIfDirty();
+  /// 退出兜底（脏检查版）：无未落盘改动时零等待返回
+  /// [SaveFlushOutcome.nothingToSave]。退出路径优先用这个（v1.17.18 退出卡顿
+  /// 优化），并同样按结果裁决——[SaveFlushOutcome.failedStillDirty] 意味着
+  /// 此刻离开就会丢改动。
+  Future<SaveFlushResult> flushIfDirty() => _saveScheduler.flushIfDirty();
 
   /// 保存链飞行状态（v1.17.20 保存状态指示器）：覆盖防抖/手动/退出兜底
   /// 全部保存路径；UI 侧监听即可，无需在各自 save 回调里手工置位。

@@ -67,6 +67,57 @@ String saveFailureLabel(AppLocalizations? l10n, SaveFailureNotice notice) =>
         ? (l10n?.docSaveFailed ?? '保存失败，请重试或手动保存')
         : (l10n?.docSaveFailedRetry ?? '保存失败，请重试');
 
+/// 强制保存（[SaveScheduler.saveNow] / [SaveScheduler.flush] /
+/// [SaveScheduler.flushIfDirty]）的**落盘结果**（DN-005，2026-10-11）。
+///
+/// 为什么要它：保存链在失败时**从不外抛**——`_runDrain` 收敛后 completer
+/// 正常 complete，`giveUp` 分支只是 `return false`（见 `_handleFailure`），
+/// 于是 `Future<void>` 的「正常完成」被调用方读成「已落盘」。真实危害面是两个
+/// 不可逆的退出点（画布页 `editor_page` 的 PopScope、`doc_page` 的返回拦截）：
+/// await 之后直接 pop，页面随之销毁，那颗 `saveFailure` 芯片也一起消失，
+/// 用户的未落盘改动就此静默蒸发。本枚举把「落盘了没有」变成返回值里可裁决
+/// 的事实，调用点无需再猜。
+enum SaveFlushOutcome {
+  /// 快照已落盘：保存链成功收敛且期间没有新的补写，脏标记已清。
+  saved,
+
+  /// 本来就没有待落盘的改动：一次写入都没发起，直接放行。
+  ///
+  /// 产出路径：[SaveScheduler.flushIfDirty] 的干净早退、调度器已释放且当时不脏、
+  /// 以及「写入尝试失败但本就无待落盘改动」（flush 打在干净文档上——快照早已
+  /// 落盘，此刻离开不会丢东西）。它与 [saved] 互斥：后者是**这次真的写成了**。
+  nothingToSave,
+
+  /// 保存链已收敛，但**仍有未落盘的改动**：至少一次保存尝试失败，失败策略
+  /// 给出 `backoff` 或 `giveUp`（由 [SaveFlushResult.failure] 的 `gaveUp`
+  /// 区分），或调度器已 dispose 无从再写。
+  ///
+  /// 这一态**绝不**意味着已落盘；退出前必须让用户显式裁决。
+  failedStillDirty,
+}
+
+/// [SaveFlushOutcome] 附带最后那次失败的用户可见通知（可为 null）。
+class SaveFlushResult {
+  const SaveFlushResult(this.outcome, {this.failure});
+
+  final SaveFlushOutcome outcome;
+
+  /// 当时最近一次的失败通知；[saved] 一定为 null。
+  ///
+  /// [failedStillDirty] 时它**应当**非空（除非调度器已 dispose——notifier 已
+  /// 释放，刻意不外带）；[nothingToSave] 也可能带着一颗失败通知（写尝试失败但
+  /// 本就没有待写内容），调用方据此措辞。
+  final SaveFailureNotice? failure;
+
+  /// 没有「写了却没落盘」的悬空改动：[SaveFlushOutcome.saved] 或
+  /// [SaveFlushOutcome.nothingToSave]——退出点可放行。
+  bool get isSafeToLeave => outcome != SaveFlushOutcome.failedStillDirty;
+
+  /// 仍有未落盘改动（DN-005 要拦的就是这一态）。
+  bool get isFailedStillDirty =>
+      outcome == SaveFlushOutcome.failedStillDirty;
+}
+
 /// 统一保存 / 自动保存 / 失败重试调度门面（P0-3b）。
 ///
 /// 把原先散落在 ViewModel（防抖 Timer）与 page（`_autosaving`/`_autosaveQueued`
@@ -79,7 +130,8 @@ String saveFailureLabel(AppLocalizations? l10n, SaveFailureNotice notice) =>
 /// 职责边界：
 /// - 防抖：`markDirty()` 之后积累 [debounce] 时长再落盘。
 /// - 串行化：同一时刻最多一个保存链在飞行；期间的变更合并为一次补写（`_saveQueued`）。
-/// - 退出兜底：`flush()` 强制保存并等待落盘完成（页面退出前调用）。
+/// - 退出兜底：`flush()` 强制保存并等待保存链收敛，**返回落盘结果**
+///   （页面退出前调用；失败不外抛，见 [SaveFlushResult]）。
 /// - 失败重试：复用 [SaveFailurePolicy] 的退避 / 放弃策略。
 /// - 通知合并：`onError` 只发出最新一次失败，避免连续失败刷屏。
 class SaveScheduler {
@@ -142,10 +194,14 @@ class SaveScheduler {
 
   bool _saveInFlight = false;
   bool _saveQueued = false;
-  Future<void>? _activeDrain;
+  Future<SaveFlushResult>? _activeDrain;
 
   int _failureCount = 0;
   DateTime? _firstFailureAt;
+
+  /// 保存链**最后一次尝试**的结果（DN-005 落盘裁决的第二个事实来源）：
+  /// 成功置 true、失败置 false；初始 false——从未写过即「没有成功的落盘」。
+  bool _lastAttemptSucceeded = false;
 
   int _generation = 0;
   SaveTimerHandle? _pendingTimer;
@@ -164,44 +220,52 @@ class SaveScheduler {
     _scheduleDebounce();
   }
 
-  /// 立即保存并等待落盘完成（手动保存 / 页面退出前强制写入）。
+  /// 立即保存，等待保存链收敛，并**如实回报有没有落盘**
+  /// （手动保存 / 页面退出前强制写入）。
   ///
-  /// 若已有保存链在飞行，则合并为一次补写并等待该链完成后返回。
-  Future<void> saveNow() {
-    if (_disposed) return Future<void>.value();
+  /// 若已有保存链在飞行，则合并为一次补写并等待该链完成——结果取该链收敛时
+  /// 的真实状态。失败不抛异常（既有语义：策略由 [SaveFailurePolicy] 统一处理），
+  /// 但会以 [SaveFlushOutcome.failedStillDirty] 回报「还没落盘」。
+  Future<SaveFlushResult> saveNow() {
+    if (_disposed) return Future.value(_settle(wrote: false));
     _dirty = true;
     _cancelTimer();
     if (_saveInFlight) {
       _saveQueued = true;
-      return _activeDrain ?? Future<void>.value();
+      return _activeDrain ?? Future.value(_settle(wrote: false));
     }
     return _coalescedSave();
   }
 
-  /// 退出兜底：进入退出态、取消防抖，强制保存当前快照并等待落盘。
-  Future<void> flush() {
-    if (_disposed) return Future<void>.value();
+  /// 退出兜底：进入退出态、取消防抖，强制保存当前快照，等待保存链收敛后
+  /// **按落盘结果返回**（DN-005）。
+  ///
+  /// 调用方（退出点）必须检查 [SaveFlushResult.isSafeToLeave]：本方法正常
+  /// 完成**不代表**已经落盘——失败策略退避/放弃时链同样收敛。
+  Future<SaveFlushResult> flush() {
+    if (_disposed) return Future.value(_settle(wrote: false));
     _exiting = true;
     _cancelTimer();
     if (_saveInFlight) {
       _saveQueued = true;
-      return _activeDrain ?? Future<void>.value();
+      return _activeDrain ?? Future.value(_settle(wrote: false));
     }
     return _coalescedSave();
   }
 
   /// 退出兜底（脏检查版，v1.17.18 退出卡顿优化）：无待落盘改动时零等待
-  /// 直接返回，不触发保存；有改动（或保存链在飞行）时与 [flush] 等价。
+  /// 直接返回 [SaveFlushOutcome.nothingToSave]，不触发保存；有改动（或保存链
+  /// 在飞行）时与 [flush] 等价。
   ///
   /// `_dirty` 只在 markDirty 置位、保存成功且无补写时清位——它为 false
   /// 即「当前快照已全部落盘」，退出无需再写。退出路径请优先用本方法，
   /// 让最常见的「已自动保存过再退出」零卡顿。
-  Future<void> flushIfDirty() {
-    if (_disposed) return Future<void>.value();
+  Future<SaveFlushResult> flushIfDirty() {
+    if (_disposed) return Future.value(_settle(wrote: false));
     _cancelTimer();
     if (!_dirty && !_saveInFlight) {
       _exiting = true;
-      return Future<void>.value();
+      return Future.value(_settle(wrote: false));
     }
     return flush();
   }
@@ -223,13 +287,16 @@ class SaveScheduler {
   void _coalescedSaveStart() => savingState.value = true;
 
   /// 立即（或作为补写）启动一个串行化保存链。若已有链在飞行，只排队补写。
-  Future<void> _coalescedSave() {
+  ///
+  /// 链的 Future 以 [_settle] 的落盘结果完成——**失败同样正常完成**（不外抛），
+  /// 落不落盘由结果说话（DN-005）。
+  Future<SaveFlushResult> _coalescedSave() {
     final active = _activeDrain;
     if (active != null) {
       _saveQueued = true;
       return active;
     }
-    final completer = Completer<void>();
+    final completer = Completer<SaveFlushResult>();
     _activeDrain = completer.future;
     _saveInFlight = true;
     _coalescedSaveStart();
@@ -241,14 +308,41 @@ class SaveScheduler {
         // dispose 后 notifier 已释放——飞行中链自然收敛时不再触碰
         //（dispose 语义回归测试覆盖此竞态）。
         if (!_disposed) savingState.value = false;
-        completer.complete();
+        completer.complete(_settle(wrote: true));
       });
     });
     return _activeDrain!;
   }
 
+  /// 保存链收敛后（或调度器已释放、无从再写时）的落盘裁决（DN-005）。
+  ///
+  /// 两个事实来源，缺一不可：
+  /// - `_dirty`：只在保存成功且无补写时清位——仍为 true 即「改动没落盘」；
+  /// - `_lastAttemptSucceeded`：链的**最后一次尝试**是不是成功。只看 `_dirty`
+  ///   会把「干净文档上的一次失败写入」误报成 saved（flush 打在无改动的文档上
+  ///   正是这条路），而把失败的写入说成已落盘，恰恰是本批要修的那类谎。
+  SaveFlushResult _settle({required bool wrote}) {
+    final failure = _disposed ? null : saveFailure.value;
+    if (_dirty) {
+      return SaveFlushResult(
+        SaveFlushOutcome.failedStillDirty,
+        failure: failure,
+      );
+    }
+    if (wrote && !_lastAttemptSucceeded) {
+      return SaveFlushResult(
+        SaveFlushOutcome.nothingToSave,
+        failure: failure,
+      );
+    }
+    return wrote
+        ? const SaveFlushResult(SaveFlushOutcome.saved)
+        : const SaveFlushResult(SaveFlushOutcome.nothingToSave);
+  }
+
   /// 串行化保存链：保存一次；若期间又有变更（`_saveQueued`）或失败要求立即重试，
-  /// 则继续保存，直到快照稳定。成功/退避/放弃时收敛。
+  /// 则继续保存，直到快照稳定。成功/退避/放弃时收敛——**收敛不等于落盘**，
+  /// 有没有写上由 `_settle` 的结果表达。
   Future<void> _runDrain() async {
     while (true) {
       _saveQueued = false;
@@ -276,6 +370,7 @@ class SaveScheduler {
   void _onSaveSuccess() {
     _failureCount = 0;
     _firstFailureAt = null;
+    _lastAttemptSucceeded = true;
     // 落盘成功即撤下失败提示（dispose 后不再触碰 notifier——与 savingState
     // 同一收敛规则，见 _coalescedSave 的 whenComplete）。
     if (!_disposed) saveFailure.value = null;
@@ -289,6 +384,7 @@ class SaveScheduler {
   }
 
   bool _handleFailure(Object error, StackTrace stackTrace) {
+    _lastAttemptSucceeded = false;
     _failureCount++;
     _firstFailureAt ??= _clock();
     final elapsed = _clock().difference(_firstFailureAt!);
@@ -314,6 +410,9 @@ class SaveScheduler {
         return false;
       case SaveRetryDecision.giveUp:
         // 放弃本轮自动重试：保留脏标记，下一次内容变更会重新触发保存。
+        // 链在此正常收敛且**不外抛**——脏标记由 `_settle` 翻成
+        // SaveFlushOutcome.failedStillDirty 回报给调用方（DN-005），
+        // 退出点据此拦下「以为存好了」的静默丢失。
         return false;
     }
   }

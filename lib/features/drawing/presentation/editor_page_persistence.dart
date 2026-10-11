@@ -15,6 +15,114 @@ extension _EditorPagePersistence on _EditorPageState {
     _viewModel.scheduleAutosave();
   }
 
+  // ---------------- 保存状态可视化（2026-10-12 自 editor_page.dart 本体移入） ----
+  // 字段留在 State 类（extension 不能声明实例字段），这里只搬动读它们建 UI 的
+  // 方法，行为逐字不变；动机是让 editor_page.dart 单文件离 Code Guard 的 1000
+  // 行 error 档更远，而库总量（棘轮 P3-3）持平。
+
+  /// v1.17.20：保存链飞行状态由调度器统一驱动（覆盖手动/退出兜底保存路径）。
+  void _onSavingStateChanged() {
+    if (!mounted) return;
+    _canvasSaving = _saveScheduler.savingState.value;
+    notify();
+  }
+
+  /// 保存失败的用户可见通知（2026-10-06）：状态栏芯片常驻显示「保存失败」
+  /// （一次性 snackbar 会被划走，而风险一直在），`giveUp` 时把措辞升级成
+  /// 「请手动保存」。
+  void _onSaveFailureChanged() {
+    if (!mounted) return;
+    final notice = _saveScheduler.saveFailure.value;
+    _canvasSaveFailure = notice;
+    notify();
+    if (notice == null) {
+      _snackedForCurrentEpisode = false;
+      return;
+    }
+    // DN-003：截断态下不弹「保存失败，请重试」——常驻说明条才是这一态的出口。
+    if (_writeBlockedByTruncation) return;
+    if (_snackedForCurrentEpisode && !notice.gaveUp) return;
+    _snackedForCurrentEpisode = true;
+    _showSaveFailureSnackBar(notice);
+  }
+
+  void _showSaveFailureSnackBar(SaveFailureNotice notice) {
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(
+        content: Text(saveFailureLabel(AppLocalizations.of(context), notice)),
+        duration: const Duration(seconds: 6),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  /// 顶栏那颗芯片的措辞：截断态 > 失败 > 保存中 > 未保存 > 已保存 HH:mm。
+  String get _canvasStatusLabel {
+    final l10n = AppLocalizations.of(context);
+    // DN-003：截断态优先——那颗芯片此刻说的是「为什么存不进去」，而不是
+    // 一句没有解释的「保存失败，请重试」（用户按它重试一万次也不会成功）。
+    if (_writeBlockedByTruncation) {
+      return l10n?.budgetTruncatedChip ?? '已停写覆盖：请先处置上方说明';
+    }
+    // 失败优先于「保存中/未保存」：这三态互斥地挤在同一个芯片位上，
+    // 而只有「没落盘」是用户必须立刻知道的。
+    final notice = _canvasSaveFailure;
+    if (notice != null) return saveFailureLabel(l10n, notice);
+    if (_canvasSaving) return l10n?.saveStateSaving ?? '保存中…';
+    final t = _canvasLastSavedAt;
+    if (_controller.isDirty) return l10n?.saveStateUnsaved ?? '未保存';
+    if (t == null) return l10n?.saveStateSaved ?? '已保存';
+    return l10n?.saveStateSavedAt(formatClock(t)) ?? '已保存 ${formatClock(t)}';
+  }
+
+  Color get _canvasStatusColor {
+    if (_writeBlockedByTruncation || _canvasSaveFailure != null) {
+      return AppleColor.errorRed;
+    }
+    if (_canvasSaving) return AppleColor.actionBlue;
+    if (_controller.isDirty) return AppleColor.favourite;
+    return AppleColor.noteGreen;
+  }
+
+  /// 主体 + （仅截断态才有的）常驻说明条（DN-003）。
+  ///
+  /// 说明条在 Scaffold.body 顶端、内容层内：扁平实色、不用玻璃；全屏模式同样
+  /// 可见——它要解释的正是「为什么存不进去」，藏进非全屏才出现的角落里等于没做。
+  Widget _buildBodyWithNotice() {
+    final body = _buildBody();
+    final report = _budgetTruncation;
+    if (report == null) return body;
+    return Column(
+      children: [
+        EditorBudgetTruncationBanner(
+          report: report,
+          onOverride: () => unawaited(_overrideBudgetTruncation()),
+        ),
+        Expanded(child: body),
+      ],
+    );
+  }
+
+  /// **唯一的**破坏性处置入口（DN-003）：用户显式确认「用当前内容覆盖原文件」
+  /// 之后，才解除闸门并立即补一次真实落盘。
+  ///
+  /// 刻意保持显式：它不是任何自动路径的副产物，也没有「以后不再提示」——批量或
+  /// 静默调用 `acknowledgeBudgetTruncation` 等于把本批修的 P0 重新打开。
+  Future<void> _overrideBudgetTruncation() async {
+    final report = _budgetTruncation;
+    final storage = widget.docStorage;
+    if (report == null || storage == null) return;
+    // 确认文案重复会丢失的笔数并写明不可恢复；取消（危险档下的默认焦点）不动闸门。
+    if (!await confirmBudgetTruncationOverride(context, report)) return;
+    storage.acknowledgeBudgetTruncation(report.documentId);
+    if (!mounted) return;
+    // extension 里不能直接碰受保护的 setState——走本域既有的 notify() 薄包装。
+    _budgetTruncation = null;
+    notify();
+    // 放行即写：不等 5s 防抖，让用户当场看到「已保存」或失败措辞回到芯片上。
+    await _viewModel.saveNow();
+  }
+
   /// 保存当前画作：独立画布 → 工程文件 + 缩略图；笔记本页面 → 由上级回调落盘。
   ///
   /// 只负责“执行落盘”，失败时把异常向上抛出（交给 SaveScheduler 的重试/退避/
@@ -368,86 +476,5 @@ extension _EditorPagePersistence on _EditorPageState {
       case EditorCropCommitResult.failed:
         _showSnack(_l10nSafe?.cropFailed ?? '裁剪失败，请重试');
     }
-  }
-}
-
-/// 裁剪成对提交的落定结果（页面据此映射提示文案；[committed] 之外文档几何
-/// 都已回滚为裁剪前矩形，与未变的磁盘字节保持同向）。
-enum EditorCropCommitResult {
-  /// 磁盘字节与文档矩形都已落到裁剪后。
-  committed,
-
-  /// 已回滚：原图文件不存在。
-  sourceMissing,
-
-  /// 已回滚：PNG 编码失败。
-  encodeFailed,
-
-  /// 已回滚：保险库锁定（fail-closed 拒绝写回）。
-  vaultLocked,
-
-  /// 已回滚：写盘抛出异常（细节由 reportError 进审计日志，R-02）。
-  failed,
-}
-
-/// 裁剪「文档几何 ↔ 磁盘字节」成对更新（修复 3，审计 2026-10-04）。
-///
-/// 时序：
-/// 1. [applyRect] 先把裁剪后矩形落进文档对象并标脏（持久化交既有防抖自动
-///    保存 / 退出兜底 flush）；
-/// 2. [writeGate] 暴露写盘飞行句柄，自动保存在它落定前不得取文档快照；
-/// 3. [writeToDisk] 落盘字节（生产实现 [EditorImageCropWriter.writeCrop]：
-///    tmp+rename 原子写 + `.bak` 原图副本 + 保险库 fail-closed，失败即在档
-///    文件逐字未变）；
-/// 4. 非成功结果/异常 → [applyRect] 回滚裁剪前矩形并再次标脏，调度器串行化
-///    保证「最后一写」胜出。
-/// 四步都不看 `mounted`：页面在 await 期间卸载只会少一次 setState/提示，
-/// 不会再造成「磁盘裁剪后像素 + 文档裁剪前矩形」。落定顺序是「几何决定 →
-/// 放行快照」，故快照永远是最终几何。
-Future<EditorCropCommitResult> commitCropPairing({
-  required Rect sourceBounds,
-  required Rect cropRect,
-  required Future<EditorImageCropWriteOutcome> Function(
-    Rect cropRect,
-    Rect sourceBounds,
-  )
-  writeToDisk,
-  required void Function(Rect apply) applyRect,
-  required void Function() endCrop,
-  required void Function(Future<void>? inFlight) writeGate,
-  required void Function(Object error) reportError,
-}) async {
-  applyRect(cropRect);
-  final gate = Completer<void>();
-  writeGate(gate.future);
-  try {
-    EditorImageCropWriteOutcome? outcome;
-    Object? error;
-    try {
-      outcome = await writeToDisk(cropRect, sourceBounds);
-    } catch (e) {
-      error = e;
-      reportError(e);
-    }
-    if (error == null && outcome == EditorImageCropWriteOutcome.success) {
-      endCrop();
-      return EditorCropCommitResult.committed;
-    }
-    // 回滚文档几何：原子写保证在档字节逐字未变，两侧同时退回裁剪前状态。
-    applyRect(sourceBounds);
-    if (error != null) return EditorCropCommitResult.failed;
-    return switch (outcome!) {
-      EditorImageCropWriteOutcome.success => EditorCropCommitResult.committed,
-      EditorImageCropWriteOutcome.sourceMissing =>
-        EditorCropCommitResult.sourceMissing,
-      EditorImageCropWriteOutcome.encodeFailed =>
-        EditorCropCommitResult.encodeFailed,
-      EditorImageCropWriteOutcome.vaultLocked =>
-        EditorCropCommitResult.vaultLocked,
-    };
-  } finally {
-    // 几何落定之后才放行快照（含回滚），并解除飞行标记。
-    writeGate(null);
-    if (!gate.isCompleted) gate.complete();
   }
 }

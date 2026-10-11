@@ -386,4 +386,160 @@ void main() {
       // 不要再读 saveFailure 的任何状态——它本身已经释放，读了反而炸在这个断言上。
     });
   });
+
+  // DN-005（2026-10-12）：强制保存的 Future 正常完成**从不**代表已落盘——
+  // `_runDrain` 在退避/放弃时同样收敛且不外抛，`Future<void>` 把「失败」读成
+  // 「成功」，于是 `editor_page` / `doc_page` 两个 pop 点在 await 之后无条件退出，
+  // 未落盘的改动随页面销毁静默蒸发（AW13 那颗失败芯片也跟着没了）。现在落不落盘
+  // 是返回值里可裁决的事实。
+  group('DN-005：flush/saveNow 的落盘结果契约', () {
+    test('giveUp 之后 flush() = failedStillDirty，且 isDirty 仍为 true', () async {
+      scheduler = build();
+      save.shouldFail = true;
+      // 先把状态推到「已停止自动重试」（与上方 giveUp 用例同一序列）。
+      await scheduler.saveNow(); // 1 → retry, 2 → backoff
+      for (var i = 0; i < 2; i++) {
+        board.pending().single.fire(); // 3 → backoff, 4 → giveUp
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(scheduler.saveFailure.value!.gaveUp, isTrue);
+
+      final result = await scheduler.flush();
+
+      expect(result.outcome, SaveFlushOutcome.failedStillDirty);
+      expect(
+        result.isSafeToLeave,
+        isFalse,
+        reason: '退出点据此必须拦住 pop——这正是本批要修的静默丢失',
+      );
+      expect(result.failure, isNotNull);
+      expect(result.failure!.gaveUp, isTrue, reason: '带上最后一颗通知供措辞');
+      expect(scheduler.isDirty, isTrue, reason: '从未落盘，脏标记不得被结果掩盖');
+    });
+
+    test('backoff（还会重试）同样算 failedStillDirty：此刻改动不在盘上', () async {
+      scheduler = build();
+      save.shouldFail = true;
+      scheduler.markDirty();
+
+      final result = await scheduler.flush(); // 1 → retry, 2 → backoff
+
+      expect(result.outcome, SaveFlushOutcome.failedStillDirty);
+      expect(
+        result.failure!.gaveUp,
+        isFalse,
+        reason: '还在退避重试，但「没落盘」这一事实已经成立',
+      );
+      expect(board.pending(), hasLength(1), reason: '退避定时器行为不变');
+      expect(scheduler.isDirty, isTrue);
+    });
+
+    test('反向钉：flush 打在**无待写改动**的文档上而写入失败，不得报 saved', () async {
+      // `EditorViewModel.saveNow()` 委托的就是 flush()——用户在没有改动时点保存
+      // 也会真的发起一次写入。它失败时若按 `_dirty` 单条件裁决，就会被读成
+      // 「已落盘」，正是本批要杜绝的谎。此刻既没写成功、也没有待写内容，
+      // 诚实的答案是「没有需要落盘的改动」+ 带上那颗失败通知。
+      scheduler = build();
+      final ok = await scheduler.flush();
+      expect(ok.outcome, SaveFlushOutcome.saved, reason: '先钉住成功写入=有写盘');
+
+      save.shouldFail = true;
+      final failed = await scheduler.flush();
+      expect(failed.outcome, SaveFlushOutcome.nothingToSave);
+      expect(
+        failed.failure,
+        isNotNull,
+        reason: '没有待写内容 ≠ 这次写成功了：失败事实必须仍然可见',
+      );
+      expect(scheduler.isDirty, isFalse);
+    });
+
+    test('成功落盘 → saved（钉住既有成功路径语义不变）', () async {
+      scheduler = build();
+      save.gate = Completer<void>();
+      scheduler.markDirty();
+      final flushed = scheduler.flush();
+      await Future<void>.delayed(Duration.zero);
+      save.gate!.complete();
+      save.gate = null;
+
+      final result = await flushed;
+
+      expect(result.outcome, SaveFlushOutcome.saved);
+      expect(result.isSafeToLeave, isTrue);
+      expect(result.failure, isNull);
+      expect(scheduler.isDirty, isFalse);
+      expect(savedEvents, ['saved'], reason: '既有 onSaved 回调不受影响');
+    });
+
+    test('saveNow() 成功 → saved；失败 → failedStillDirty（同一契约）', () async {
+      scheduler = build();
+      expect(
+        (await scheduler.saveNow()).outcome,
+        SaveFlushOutcome.saved,
+        reason: '干净态被 saveNow 强制写一次，写了就是 saved',
+      );
+      expect(save.calls, 1);
+
+      save.shouldFail = true;
+      final failed = await scheduler.saveNow();
+      expect(failed.outcome, SaveFlushOutcome.failedStillDirty);
+      expect(scheduler.isDirty, isTrue);
+    });
+
+    test('无改动 → nothingToSave，且一次写入都不发起', () async {
+      scheduler = build();
+
+      final result = await scheduler.flushIfDirty();
+
+      expect(result.outcome, SaveFlushOutcome.nothingToSave);
+      expect(result.isSafeToLeave, isTrue);
+      expect(save.calls, 0, reason: '零卡顿退出路径不得被结果契约改写');
+      expect(scheduler.isDirty, isFalse);
+    });
+
+    test('飞行中加入的 flush 与 flushIfDirty 拿到同一条链的结果（无双轨）', () async {
+      scheduler = build();
+      save.gate = Completer<void>();
+      scheduler.markDirty();
+      final first = scheduler.flush();
+      await Future<void>.delayed(Duration.zero);
+      final second = scheduler.flushIfDirty();
+      save.gate!.complete();
+      save.gate = null;
+
+      final secondResult = await second;
+      final firstResult = await first;
+
+      expect(secondResult.outcome, SaveFlushOutcome.saved);
+      expect(
+        identical(firstResult, secondResult),
+        isTrue,
+        reason: '两个调用等的是同一条链、同一个结果对象，不是各自再算一遍',
+      );
+      expect(scheduler.isDirty, isFalse);
+    });
+
+    test('dispose 之后的 flush 不得谎称已落盘', () async {
+      scheduler = build();
+      scheduler.markDirty();
+      scheduler.dispose();
+
+      final dirty = await scheduler.flush();
+      expect(dirty.outcome, SaveFlushOutcome.failedStillDirty);
+      expect(
+        dirty.failure,
+        isNull,
+        reason: 'notifier 已释放，结果里不得再带出已 dispose 的对象',
+      );
+
+      final clean = build();
+      clean.dispose();
+      expect(
+        (await clean.flush()).outcome,
+        SaveFlushOutcome.nothingToSave,
+        reason: '已释放且无待写改动：放行，但没有写过盘',
+      );
+    });
+  });
 }

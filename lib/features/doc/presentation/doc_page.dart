@@ -200,16 +200,37 @@ class _DocPageState extends State<DocPage> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    // P0-H2：有未落盘改动时拦截返回，先 flush（saveNow 同步等待写盘）
+    // P0-H2：有未落盘改动时拦截返回，先 flush（saveNow 等待保存链收敛）
     // 再真正退出——消除防抖窗口内的编辑丢失。
     return PopScope(
       canPop: !_pendingChanges,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        await _saveScheduler.saveNow();
+        // Navigator 与文案都在 await **之前**取好：对话框要在保存链收敛之后才弹，
+        // 届时 build 闭包捕获的 context 已经跨了异步间隙（只有 State.context 配
+        // mounted 检查才合规），而 AppLocalizations 对象本身与 BuildContext 无关。
+        final navigator = Navigator.of(context);
+        final l10n = AppLocalizations.of(context);
+        final flushed = await _saveScheduler.saveNow();
         if (!mounted) return;
+        // DN-005：saveNow **正常返回不等于已落盘**——失败策略退避/放弃时同一条
+        // 链照样收敛、且不清脏标记。此前这里无条件 pop，页面随路由销毁，那颗
+        // 失败提示一起消失，未落盘的改动就此静默蒸发。现在把裁决交给用户。
+        if (flushed.isFailedStillDirty &&
+            !await GlassDialog.confirm(
+              this.context,
+              // 危险档：默认焦点在「留下继续编辑」一侧，误触 Enter 不会丢改动。
+              dangerous: true,
+              title: l10n?.unsavedExitTitle ?? '还有改动没有保存到磁盘',
+              content: l10n?.unsavedExitBody ??
+                  '这次保存失败了，现在离开，本次会话里的改动不会出现在文件里。可以留下继续编辑（稍后会再试一次），也可以带着未保存的改动离开。',
+              confirmText: l10n?.unsavedExitLeave ?? '仍要离开',
+              cancelText: l10n?.unsavedExitStay ?? '留下继续编辑',
+            )) {
+          return;
+        }
         setState(() => _pendingChanges = false);
-        Navigator.of(this.context).pop();
+        navigator.pop();
       },
       child: Scaffold(
         backgroundColor: scheme.surface,

@@ -3507,4 +3507,54 @@ class AppLocalizationsEn extends AppLocalizations {
   String syncRemoteCopyUnprotectedCount(int count) {
     return '; $count cloud copy(ies) could not be read this time, so uploading those document(s) was skipped to avoid overwriting them (not synced this round): make sure the sync password is your original one, or try syncing again later';
   }
+
+  @override
+  String get budgetTruncatedTitle =>
+      'This canvas holds less than the file on disk';
+
+  @override
+  String budgetTruncatedBody(int restored, int dropped) {
+    return 'Only $restored stroke(s) were loaded; $dropped more were dropped by the read budget. The original file on disk was not modified, and autosave and manual save have stopped overwriting it.';
+  }
+
+  @override
+  String budgetTruncatedMore(int objects, int points) {
+    return 'Another $objects shape(s)/image(s)/text item(s) and $points point(s) were also left out.';
+  }
+
+  @override
+  String get budgetTruncatedOverride => 'Overwrite the file with this content';
+
+  @override
+  String get budgetTruncatedOverrideConfirm => 'Overwrite the file';
+
+  @override
+  String get budgetTruncatedConfirmTitle =>
+      'Overwrite the original file with what\'s on screen?';
+
+  @override
+  String budgetTruncatedConfirmBody(int restored, int dropped) {
+    return 'After the overwrite this screen is the only version left in the file: $restored stroke(s) total, and the $dropped dropped stroke(s) cannot be recovered. The original file is not backed up elsewhere, so this cannot be undone.';
+  }
+
+  @override
+  String get budgetTruncatedChip =>
+      'Overwrite blocked: act on the notice above';
+
+  @override
+  String get unsavedExitTitle => 'Changes are not on disk yet';
+
+  @override
+  String get unsavedExitBody =>
+      'That save failed. If you leave now, this session\'s edits will not appear in the file. You can stay and keep editing (another attempt happens shortly), or leave with the changes unsaved.';
+
+  @override
+  String get unsavedExitBodyTruncated =>
+      'This canvas was opened in truncated state, so saves are refused by design to protect the original file. If you leave now, this session\'s edits will not appear in the file. To genuinely replace the original, first tap \"Overwrite the file with this content\" in the notice above.';
+
+  @override
+  String get unsavedExitStay => 'Stay and keep editing';
+
+  @override
+  String get unsavedExitLeave => 'Leave anyway';
 }

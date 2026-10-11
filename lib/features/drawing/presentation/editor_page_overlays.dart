@@ -17,6 +17,8 @@ extension _EditorPageOverlays on _EditorPageState {
       inkPressureSample: _inkPressureSample,
       saving: _canvasSaving,
       saveFailure: _canvasSaveFailure,
+      // DN-003：截断态优先——芯片要说清「为什么不写、去哪儿处置」。
+      writeBlocked: _writeBlockedByTruncation,
       lastSavedAt: _canvasLastSavedAt,
       onZoomTo: _setScaleFromMenu,
       onZoomFit: _fitCanvasToViewport,

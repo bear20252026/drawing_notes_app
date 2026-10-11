@@ -30,6 +30,7 @@ class EditorStatusBar extends ConsumerStatefulWidget {
     required this.inkPressureSample,
     required this.saving,
     this.saveFailure,
+    this.writeBlocked = false,
     required this.lastSavedAt,
     required this.onZoomTo,
     required this.onZoomFit,
@@ -51,6 +52,11 @@ class EditorStatusBar extends ConsumerStatefulWidget {
   /// 优先于 [saving] 与 [lastSavedAt]——三态挤在同一颗芯片位上，
   /// 而只有这一态是用户必须立刻知道的。
   final SaveFailureNotice? saveFailure;
+
+  /// 写侧闸门处于「预算截断态」（DN-003，2026-10-12）：非 false 即覆盖原件被
+  /// 按设计拒绝。此时芯片必须说清**原因与出口**，而不是留一句没有解释、
+  /// 用户重试一万次也不会成功的「保存失败，请重试」。
+  final bool writeBlocked;
 
   /// 最近一次保存完成时间（null = 本次会话尚未保存过）。
   final DateTime? lastSavedAt;
@@ -78,6 +84,12 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
   String _saveLabel(bool dirty) {
     // L-05（审计 2026-09-27）：saveState* 键族接线（原写死，arb 键已有
     // ——editor_page.dart:206 同族在用）。
+    // DN-003：截断态优先于失败措辞——同一颗芯片此刻的真相是「按设计不覆盖
+    // 原文件，处置入口在页面上方」，不是「重试就好」。
+    if (widget.writeBlocked) {
+      return AppLocalizations.of(context)?.budgetTruncatedChip ??
+          '已停写覆盖：请先处置上方说明';
+    }
     final notice = widget.saveFailure;
     if (notice != null) {
       return saveFailureLabel(AppLocalizations.of(context), notice);
@@ -96,7 +108,7 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
   Color _saveColor(ThemeData theme, bool dirty) {
     // P1-2/P1-3：失败正文用 errorTextOf 深红档（#FF3B30 对浅底仅 3.55:1）；
     // 「未保存」是中性状态而非品牌橙语义（橙对白底 2.06:1 最差正文对比）。
-    if (widget.saveFailure != null) {
+    if (widget.writeBlocked || widget.saveFailure != null) {
       return AppleColor.errorTextOf(theme.colorScheme);
     }
     final blue = theme.brightness == Brightness.dark
@@ -108,6 +120,8 @@ class _EditorStatusBarState extends ConsumerState<EditorStatusBar> {
   }
 
   IconData get _saveIcon {
+    // 截断态与一般失败分开配图：芯片此刻讲的是「闸门拦住了覆盖」。
+    if (widget.writeBlocked) return Icons.difference_rounded;
     if (widget.saveFailure != null) return Icons.cloud_off_rounded;
     if (widget.saving) return Icons.sync_rounded;
     if (widget.lastSavedAt == null) return Icons.cloud_upload_rounded;

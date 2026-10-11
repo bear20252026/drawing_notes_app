@@ -3142,5 +3142,81 @@
         "type": "int"
       }
     }
+  },
+  "budgetTruncatedTitle": "This canvas holds less than the file on disk",
+  "@budgetTruncatedTitle": {
+    "description": "DN-003：以预算截断态打开画布时的常驻说明条标题"
+  },
+  "budgetTruncatedBody": "Only {restored} stroke(s) were loaded; {dropped} more were dropped by the read budget. The original file on disk was not modified, and autosave and manual save have stopped overwriting it.",
+  "@budgetTruncatedBody": {
+    "description": "DN-003：常驻说明条正文（必须同时给出恢复数与丢弃数，并声明原文件未动）",
+    "placeholders": {
+      "restored": {
+        "type": "int"
+      },
+      "dropped": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetTruncatedMore": "Another {objects} shape(s)/image(s)/text item(s) and {points} point(s) were also left out.",
+  "@budgetTruncatedMore": {
+    "description": "DN-003：丢弃计数非零时追加的一行（仅在真有此类丢弃时出现）",
+    "placeholders": {
+      "objects": {
+        "type": "int"
+      },
+      "points": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetTruncatedOverride": "Overwrite the file with this content",
+  "@budgetTruncatedOverride": {
+    "description": "DN-003：唯一破坏性处置入口的按钮文案"
+  },
+  "budgetTruncatedOverrideConfirm": "Overwrite the file",
+  "@budgetTruncatedOverrideConfirm": {
+    "description": "DN-003：二次确认对话框的确认按钮"
+  },
+  "budgetTruncatedConfirmTitle": "Overwrite the original file with what's on screen?",
+  "@budgetTruncatedConfirmTitle": {
+    "description": "DN-003：二次确认标题"
+  },
+  "budgetTruncatedConfirmBody": "After the overwrite this screen is the only version left in the file: {restored} stroke(s) total, and the {dropped} dropped stroke(s) cannot be recovered. The original file is not backed up elsewhere, so this cannot be undone.",
+  "@budgetTruncatedConfirmBody": {
+    "description": "DN-003：确认文案必须重复会丢失的数量并说明不可恢复",
+    "placeholders": {
+      "restored": {
+        "type": "int"
+      },
+      "dropped": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetTruncatedChip": "Overwrite blocked: act on the notice above",
+  "@budgetTruncatedChip": {
+    "description": "DN-003：截断态下顶栏/状态栏芯片的替代措辞（不得只显示一句没有解释的「保存失败」）"
+  },
+  "unsavedExitTitle": "Changes are not on disk yet",
+  "@unsavedExitTitle": {
+    "description": "DN-005：强制保存失败后仍要退出时的对话框标题"
+  },
+  "unsavedExitBody": "That save failed. If you leave now, this session's edits will not appear in the file. You can stay and keep editing (another attempt happens shortly), or leave with the changes unsaved.",
+  "@unsavedExitBody": {
+    "description": "DN-005：普通保存失败的退出裁决正文"
+  },
+  "unsavedExitBodyTruncated": "This canvas was opened in truncated state, so saves are refused by design to protect the original file. If you leave now, this session's edits will not appear in the file. To genuinely replace the original, first tap \"Overwrite the file with this content\" in the notice above.",
+  "@unsavedExitBodyTruncated": {
+    "description": "DN-005/DN-003 交叉：截断态导致的保存被拒，措辞必须解释原因而不是「保存失败，请重试」"
+  },
+  "unsavedExitStay": "Stay and keep editing",
+  "@unsavedExitStay": {
+    "description": "DN-005：安全一侧（默认焦点）"
+  },
+  "unsavedExitLeave": "Leave anyway",
+  "@unsavedExitLeave": {
+    "description": "DN-005：破坏性一侧，需显式点击"
   }
 }

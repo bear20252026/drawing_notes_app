@@ -267,6 +267,23 @@ class _PaginationPreviewState extends State<PaginationPreview> {
   }
 }
 
+/// 线性元素拖拽读数：长度（画布坐标 px）+ 与水平方向夹角（度）。
+/// 气泡锚定在拖拽端点的视图坐标上（审计二-6）。
+///
+/// 2026-10-12 自 editor_page.dart 迁入（P3-3 库级行数棘轮的外移件）：它是
+/// [LinearReadoutBubble] 的输入载体，两者同属展示域，不该住在页面库里。
+class LinearDraftReadout {
+  const LinearDraftReadout({
+    required this.viewPos,
+    required this.length,
+    required this.angleDeg,
+  });
+
+  final Offset viewPos;
+  final double length;
+  final double angleDeg;
+}
+
 /// 线性元素拖拽读数气泡（审计二-6，2026-09-06）。
 ///
 /// 创建/编辑直线与箭头时显示「长度 px · 角度°」：触屏手指遮挡落点时，

@@ -644,8 +644,16 @@ void main() {
         timerFactory: board.create,
       );
 
-      await scheduler.saveNow();
+      final result = await scheduler.saveNow();
 
+      // DN-005：闸门拒绝必须能在**返回值**上被退出点读到——只挂 notifier 的话，
+      // `await saveNow()` 正常返回会被调用方读成「已落盘」，于是退出即静默丢改动。
+      expect(
+        result.outcome,
+        SaveFlushOutcome.failedStillDirty,
+        reason: '被拒绝的覆盖写不得伪装成已落盘',
+      );
+      expect(result.isSafeToLeave, isFalse);
       expect(attempts, greaterThanOrEqualTo(2), reason: '调度器确实重试过');
       expect(
         scheduler.saveFailure.value,

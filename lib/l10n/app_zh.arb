@@ -3121,5 +3121,81 @@
         "type": "int"
       }
     }
+  },
+  "budgetTruncatedTitle": "画布内容比磁盘上的原文件少",
+  "@budgetTruncatedTitle": {
+    "description": "DN-003：以预算截断态打开画布时的常驻说明条标题"
+  },
+  "budgetTruncatedBody": "本次只载入了 {restored} 笔，另有 {dropped} 笔被读取预算丢弃。磁盘上的原文件没有被改动，自动保存与手动保存都已停止覆盖它。",
+  "@budgetTruncatedBody": {
+    "description": "DN-003：常驻说明条正文（必须同时给出恢复数与丢弃数，并声明原文件未动）",
+    "placeholders": {
+      "restored": {
+        "type": "int"
+      },
+      "dropped": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetTruncatedMore": "此外还有 {objects} 个图形/图片/文字、{points} 个采样点未载入。",
+  "@budgetTruncatedMore": {
+    "description": "DN-003：丢弃计数非零时追加的一行（仅在真有此类丢弃时出现）",
+    "placeholders": {
+      "objects": {
+        "type": "int"
+      },
+      "points": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetTruncatedOverride": "用当前内容覆盖原文件",
+  "@budgetTruncatedOverride": {
+    "description": "DN-003：唯一破坏性处置入口的按钮文案"
+  },
+  "budgetTruncatedOverrideConfirm": "覆盖原文件",
+  "@budgetTruncatedOverrideConfirm": {
+    "description": "DN-003：二次确认对话框的确认按钮"
+  },
+  "budgetTruncatedConfirmTitle": "确认用当前内容覆盖原文件？",
+  "@budgetTruncatedConfirmTitle": {
+    "description": "DN-003：二次确认标题"
+  },
+  "budgetTruncatedConfirmBody": "覆盖后，文件里只剩当前这份内容：共 {restored} 笔，被丢弃的 {dropped} 笔将无法找回。原文件不会被备份到别处，此操作不可恢复。",
+  "@budgetTruncatedConfirmBody": {
+    "description": "DN-003：确认文案必须重复会丢失的数量并说明不可恢复",
+    "placeholders": {
+      "restored": {
+        "type": "int"
+      },
+      "dropped": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetTruncatedChip": "已停写覆盖：请先处置上方说明",
+  "@budgetTruncatedChip": {
+    "description": "DN-003：截断态下顶栏/状态栏芯片的替代措辞（不得只显示一句没有解释的「保存失败」）"
+  },
+  "unsavedExitTitle": "还有改动没有保存到磁盘",
+  "@unsavedExitTitle": {
+    "description": "DN-005：强制保存失败后仍要退出时的对话框标题"
+  },
+  "unsavedExitBody": "这次保存失败了，现在离开，本次会话里的改动不会出现在文件里。可以留下继续编辑（稍后会再试一次），也可以带着未保存的改动离开。",
+  "@unsavedExitBody": {
+    "description": "DN-005：普通保存失败的退出裁决正文"
+  },
+  "unsavedExitBodyTruncated": "这份画布是以截断态打开的，为避免覆盖原文件，保存按设计被拒绝。现在离开，本次会话里的改动不会出现在文件里。确实要用当前内容替换原文件，请先在页面上方的说明里点「用当前内容覆盖原文件」。",
+  "@unsavedExitBodyTruncated": {
+    "description": "DN-005/DN-003 交叉：截断态导致的保存被拒，措辞必须解释原因而不是「保存失败，请重试」"
+  },
+  "unsavedExitStay": "留下继续编辑",
+  "@unsavedExitStay": {
+    "description": "DN-005：安全一侧（默认焦点）"
+  },
+  "unsavedExitLeave": "仍要离开",
+  "@unsavedExitLeave": {
+    "description": "DN-005：破坏性一侧，需显式点击"
   }
 }

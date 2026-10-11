@@ -3377,4 +3377,51 @@ class AppLocalizationsZh extends AppLocalizations {
   String syncRemoteCopyUnprotectedCount(int count) {
     return '；$count 个云端副本暂时读不出来，为避免覆盖已跳过这几个文档的上传（本次未同步）：请确认同步口令是否填回原值，或稍后再同步一次';
   }
+
+  @override
+  String get budgetTruncatedTitle => '画布内容比磁盘上的原文件少';
+
+  @override
+  String budgetTruncatedBody(int restored, int dropped) {
+    return '本次只载入了 $restored 笔，另有 $dropped 笔被读取预算丢弃。磁盘上的原文件没有被改动，自动保存与手动保存都已停止覆盖它。';
+  }
+
+  @override
+  String budgetTruncatedMore(int objects, int points) {
+    return '此外还有 $objects 个图形/图片/文字、$points 个采样点未载入。';
+  }
+
+  @override
+  String get budgetTruncatedOverride => '用当前内容覆盖原文件';
+
+  @override
+  String get budgetTruncatedOverrideConfirm => '覆盖原文件';
+
+  @override
+  String get budgetTruncatedConfirmTitle => '确认用当前内容覆盖原文件？';
+
+  @override
+  String budgetTruncatedConfirmBody(int restored, int dropped) {
+    return '覆盖后，文件里只剩当前这份内容：共 $restored 笔，被丢弃的 $dropped 笔将无法找回。原文件不会被备份到别处，此操作不可恢复。';
+  }
+
+  @override
+  String get budgetTruncatedChip => '已停写覆盖：请先处置上方说明';
+
+  @override
+  String get unsavedExitTitle => '还有改动没有保存到磁盘';
+
+  @override
+  String get unsavedExitBody =>
+      '这次保存失败了，现在离开，本次会话里的改动不会出现在文件里。可以留下继续编辑（稍后会再试一次），也可以带着未保存的改动离开。';
+
+  @override
+  String get unsavedExitBodyTruncated =>
+      '这份画布是以截断态打开的，为避免覆盖原文件，保存按设计被拒绝。现在离开，本次会话里的改动不会出现在文件里。确实要用当前内容替换原文件，请先在页面上方的说明里点「用当前内容覆盖原文件」。';
+
+  @override
+  String get unsavedExitStay => '留下继续编辑';
+
+  @override
+  String get unsavedExitLeave => '仍要离开';
 }
