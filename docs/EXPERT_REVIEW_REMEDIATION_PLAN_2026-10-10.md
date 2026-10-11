@@ -100,4 +100,33 @@
 
 ## 九、变更记录
 
+- 2026-10-11：**内核 P0 第一批交付（基线先行策略执行）**：
+  - **A 性能基线**落地 `test/performance/performance_baseline_test.dart`（4 用例，
+    正确性硬断言+宽松耗时天花板，数字打印留档）。首批结论：
+    18 万点文档 encode 521ms/decode 192ms（13MiB）；5 万笔线性剔除 **13.3ms/帧——
+    已占 60fps 预算 80%，空间索引的真实拐点证据**；撤销栈 2000 条亚毫秒
+    （历史栈无压力）；**重要发现：codec 防御预算限制单文档 ≤1 万笔/≤100 万点
+    （DocumentCodec:172-181）——外部审计设想的「单文档百万点」按设计不可落盘**，
+    Stroke 存储反转的紧迫度据此下调。
+  - **B StrokeBuffer**（内核 P0-1 双轨第一步）：新增 `core/canvas_model/
+    stroke_buffer.dart`（Float32List，stride=3）；`Stroke.buffer` 为按
+    geometryRevision 失效的派生缓存；渲染器轮廓构建与包围盒计算改从缓冲
+    直读，免逐点对象中转。**序列化零变化**（落盘仍是既有扁平数组）。
+    存储反转（15 个消费方的点列权威迁移）**刻意不做**——基线证明当前规模
+    无内存压力，留待触发条件。回归：stroke_buffer_test 4 条 + 绘图域 246 条全绿。
+  - **D 迁移框架**（P1-DOC-001 提前落地）：`core/documents/migration/`
+    （DocumentMigration 抽象+Runner+注册表）；v1→v2 首条目把 AW2 时代的
+    解码器内默认显式化为数据变换（补 version/versionNonce/textItems，
+    **seed 刻意不补**——补确定值会让 v1 全部笔画共享同一抖动纹理）；
+    codec 接线（高版本拒绝之后、宽容解码之前）；缺环节的文件保持原样交
+    宽容解码兜底（迁移层零新增拒绝路径）。回归：document_migration_test
+    5 条（含 T-E 纪律的双向断言）。
+  - **架构门禁实战拦截一次**：registry 引 DocumentCodec.latestVersion 造成
+    codec→registry→codec 循环依赖，`architecture_test` 规则 2 当场红——
+    修复为常量+等值测试钉一致。门禁体系按设计工作。
+  - 审计轮转测试加阈值注入口（`maxFileBytesOverrideForTest`，ttlOverride
+    同款先例）——2500 条真实 IO 在全量并发下曾撞 30s 用例超时。
+  - **P2 未动**（如实声明）：Operation Log/CRDT/native 密钥隔离/core 三分
+    均为多周工程且依赖 Operation Engine 先行，本轮不假完成。
+
 - 2026-10-10：初版。整合外部四轮审计意见，逐条对照代码核实，13 项已解决/不成立被校正，11 项列入 backlog（P0×3 组、P1×3、P2×5）。
