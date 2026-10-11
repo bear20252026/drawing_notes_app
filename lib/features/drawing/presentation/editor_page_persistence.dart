@@ -15,10 +15,7 @@ extension _EditorPagePersistence on _EditorPageState {
     _viewModel.scheduleAutosave();
   }
 
-  // ---------------- 保存状态可视化（2026-10-12 自 editor_page.dart 本体移入） ----
-  // 字段留在 State 类（extension 不能声明实例字段），这里只搬动读它们建 UI 的
-  // 方法，行为逐字不变；动机是让 editor_page.dart 单文件离 Code Guard 的 1000
-  // 行 error 档更远，而库总量（棘轮 P3-3）持平。
+  // 保存状态可视化：extension 不能声明实例字段，故字段留在 State、这里只放读它们建 UI 的方法。
 
   /// v1.17.20：保存链飞行状态由调度器统一驱动（覆盖手动/退出兜底保存路径）。
   void _onSavingStateChanged() {

@@ -229,6 +229,11 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   /// 矛盾（芯片措辞同样让位给 [AppLocalizations.budgetTruncatedChip]）。
   bool get _writeBlockedByTruncation => _budgetTruncation != null;
 
+  /// 必须是同一闭包对象（extension 成员的代次每次求值都新分配）——来历见
+  /// `editor_page_listener_pairing_test.dart` 文件头。
+  late final VoidCallback _savingStateListener = _onSavingStateChanged;
+  late final VoidCallback _saveFailureListener = _onSaveFailureChanged;
+
   /// 混排对象的框选、多选、裁剪、对齐与拖动反馈暂态集中在独立协作者中。
   final EditorCanvasInteractionState _canvasInteraction =
       EditorCanvasInteractionState();
@@ -581,8 +586,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     // 使 _persistArtwork 至少完成文档 JSON 写入而不再访问随后释放的渲染控制器。
     // 脏检查版：干净退出（_flushBeforePop 已落盘）不重复写盘。
     _closingEditor = true;
-    _saveScheduler.savingState.removeListener(_onSavingStateChanged);
-    _saveScheduler.saveFailure.removeListener(_onSaveFailureChanged);
+    _saveScheduler.savingState.removeListener(_savingStateListener);
+    _saveScheduler.saveFailure.removeListener(_saveFailureListener);
     unawaited(_viewModel.flushIfDirty());
     _viewModel.dispose();
     _slashMenu.dispose();
@@ -746,10 +751,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     );
     // v1.17.20 保存状态指示器：保存链飞行状态统一由调度器通知——
     // 覆盖手动保存与退出兜底路径（此前只有自动保存回调内手工置位）。
-    _saveScheduler.savingState.addListener(_onSavingStateChanged);
+    _saveScheduler.savingState.addListener(_savingStateListener);
     // 保存失败必须可见（2026-10-06）：调度器一直在重试、也一直在记审计，
     // 但用户完全不知道改动没落盘——AW8 那个 P0 的第二个致因就是这个。
-    _saveScheduler.saveFailure.addListener(_onSaveFailureChanged);
+    _saveScheduler.saveFailure.addListener(_saveFailureListener);
     // 首次进入时立即保存一次，确保新文档落盘（自动保存机制）。
     _scheduleAutosave();
     // 注册编辑器命令（B2：命令表驱动快捷键面板）。
