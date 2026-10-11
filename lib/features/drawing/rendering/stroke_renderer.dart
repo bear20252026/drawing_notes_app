@@ -221,12 +221,15 @@ class StrokeRenderer {
     final points = stroke.points;
     if (points.isEmpty) return null;
 
+    // 内核 P0-1（2026-10-10）：从紧凑缓冲直读构建输入，免逐点对象中转
+    //（实时预览每帧重建轮廓，此处是最高频的逐点访问点）。
+    final buffer = stroke.buffer;
     final input = <PointVector>[
-      for (final point in points)
+      for (var i = 0; i < buffer.length; i++)
         PointVector(
-          point.x,
-          point.y,
-          usePressure ? point.pressure.clamp(0.0, 1.0) : null,
+          buffer.xAt(i),
+          buffer.yAt(i),
+          usePressure ? buffer.pressureAt(i).clamp(0.0, 1.0) : null,
         ),
     ];
     final outline = getStroke(
@@ -362,22 +365,28 @@ class StrokeRenderer {
   }
 
   static Rect _computeStrokeBounds(Stroke stroke, List<StrokePoint> points) {
-    var minX = double.infinity;
-    var minY = double.infinity;
-    var maxX = -double.infinity;
-    var maxY = -double.infinity;
+    // 内核 P0-1（2026-10-10）：紧凑缓冲直读（含点间距计算——剔除 overshoot
+    // 语义保持逐字段一致，x/y/pressure 之外不再触碰点对象）。
+    final buffer = stroke.buffer;
+    final count = buffer.length;
+    if (count == 0) return Rect.zero;
+    var minX = buffer.xAt(0);
+    var minY = buffer.yAt(0);
+    var maxX = minX;
+    var maxY = minY;
     double maxSpacing = 0;
-    for (var i = 0; i < points.length; i++) {
-      final point = points[i];
-      minX = minX < point.x ? minX : point.x;
-      minY = minY < point.y ? minY : point.y;
-      maxX = maxX > point.x ? maxX : point.x;
-      maxY = maxY > point.y ? maxY : point.y;
-      if (i > 0) {
-        final spacing = (points[i - 1].offset - point.offset).distance;
-        maxSpacing = maxSpacing > spacing ? maxSpacing : spacing;
-      }
+    for (var i = 1; i < count; i++) {
+      final x = buffer.xAt(i), y = buffer.yAt(i);
+      minX = minX < x ? minX : x;
+      minY = minY < y ? minY : y;
+      maxX = maxX > x ? maxX : x;
+      maxY = maxY > y ? maxY : y;
+      final dx = buffer.xAt(i - 1) - x;
+      final dy = buffer.yAt(i - 1) - y;
+      final spacing = dx * dx + dy * dy;
+      maxSpacing = maxSpacing > spacing ? maxSpacing : spacing;
     }
+    maxSpacing = maxSpacing <= 0 ? 0 : math.sqrt(maxSpacing);
     final radius = stroke.width / 2;
     final overshoot = maxSpacing * 0.25;
     const antialias = 2.0;

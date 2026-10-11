@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'dart:ui';
 
+import 'package:drawing_notes_app/core/canvas_model/stroke_buffer.dart';
+
 /// 笔画类型（笔刷类型）
 ///
 /// marker 为半透明高亮笔；
@@ -18,11 +20,14 @@ enum BrushType {
 ///
 /// 记录画布坐标系下的坐标与笔压（0.0~1.0）。
 /// 笔压用于 Phase 2 的压感粗细控制；鼠标/普通手指无压感时压力恒为 1.0。
-class StrokePoint {
+class StrokePoint implements StrokePointLike {
   const StrokePoint(this.x, this.y, this.pressure);
 
+  @override
   final double x;
+  @override
   final double y;
+  @override
   final double pressure;
 
   Offset get offset => Offset(x, y);
@@ -74,6 +79,24 @@ class Stroke {
   /// 当前点列版本（配合 StrokeRenderer 的 Path 惰性缓存使用）。
   int get geometryRevision => _geometryRevision;
 
+  // ---- 紧凑点列视图（内核 P0-1，2026-10-10）----
+
+  StrokeBuffer? _buffer;
+  int _bufferRevision = -1;
+
+  /// 点列的 Float32List 紧凑视图（按 [_geometryRevision] 失效的派生缓存）。
+  ///
+  /// 渲染轮廓构建 / 包围盒计算等热路径经此直读数值，免逐点对象中转；
+  /// 权威存储仍是 [points]（存储反转另批评审，见整改清单）。替换点列
+  /// （[replacePoints]）时缓存随 revision 失效重建。
+  StrokeBuffer get buffer {
+    if (_buffer == null || _bufferRevision != _geometryRevision) {
+      _buffer = StrokeBuffer.fromPoints(points);
+      _bufferRevision = _geometryRevision;
+    }
+    return _buffer!;
+  }
+
   /// 收笔时以最终优化点列替换实时预览点列。
   ///
   /// 替换会使 StrokeRenderer 持有的几何缓存失效，下次绘制重新生成轮廓。
@@ -84,6 +107,7 @@ class Stroke {
     points
       ..clear()
       ..addAll(newPoints);
+    // buffer 由 getter 按 revision 惰性重建，此处无需置空。
   }
 
   final List<StrokePoint> points;
