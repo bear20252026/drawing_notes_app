@@ -100,7 +100,28 @@
 
 ## 九、变更记录
 
-- 2026-10-11（第二批）：**格式 v3 + 笔画持久 id**——Operation Engine 前置基座：
+- 2026-10-11（第三批）：**Operation Engine 第一阶段落地**（模型+applier+日志+
+  命令提交点接线）：
+  - `core/operation/document_operation.dart`：五类可序列化操作
+    （stroke.add / stroke.remove / stroke.replace / layer.prop / layer.reorder
+    + batch 复合），按**格式 v3 的笔画 id 与 layerId 寻址**，apply/revert
+    直接变换文档、语义逐条镜像既有命令（含擦除原位插回的 z 序算法、
+    替换按 id 寻址优于命令的位置寻址）；JSON 双向往返+未知类型拒绝。
+  - `OperationLog`：有界影子流（2000 条，丢最旧）+ JSONL 导出/重建
+    （未知类型抛 FormatException——重放不容静默丢弃）。
+  - **接线**：`DocCommand.operation` 访问器（六条结构命令 + DocumentTransaction
+    产出 OpBatch；形状/图片/快照桥接类返回 null——作用域边界：部分记录会
+    让日志无法完整回放，整批不进流）；`_pushCommand` 中央提交点成对记录。
+    命令栈仍是撤销权威（双轨），操作流是记录面。
+  - **等价性证明**：同场景命令驱动（文档 A）vs 操作流驱动（文档 B），四步
+    （加笔×2/变换/擦除/图层属性+换位）后编解码快照**逐字节相等**，全量撤销
+    vs 操作逆序回退终点亦相等；LIFO 净空语义与命令栈一致（两版测试期望
+    修正记录在案：add+transform 全撤销净空是命令栈正确行为）。
+  - 回归：operation_engine_test 6 条 + 绘图/doc/引擎 406 条 + core 全套
+    635 条全绿。
+  - 本阶段**未做**（下一批排队）：渲染缓存失效迁移（操作层不触碰缓存钩子）、
+    操作日志磁盘持久化（等崩溃恢复消费方）、同步网络侧消费。
+- - 2026-10-11（第二批）：**格式 v3 + 笔画持久 id**——Operation Engine 前置基座：
   - **为什么是它**：现有命令体系全部按「对象引用+图层内位置」寻址，会话内
     正确但不可序列化——操作记录/增量同步/跨会话历史都要求笔画有稳定身份。
     id 是 Operation Engine、未来增量同步的共同前置，且**正是清单预言的
