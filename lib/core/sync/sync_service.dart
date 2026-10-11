@@ -66,6 +66,7 @@ class SyncResult {
     this.failedDocIds = const [],
     this.unreadableDocIds = const [],
     this.unprotectedRemoteDocIds = const [],
+    this.skippedMissingDocIds = const [],
   });
 
   final int uploaded;
@@ -77,6 +78,10 @@ class SyncResult {
 
   /// 本轮执行失败的操作 id（M2：单操作隔离后失败项不中断整轮，
   /// 基线/远端清单均不回写它们，下轮自动重试；调用方可用此列表提示用户）。
+  ///
+  /// 注意：**「不回写」的判据不是本列表**，而是执行结果里「失败 ∪ 缺失跳过」
+  /// 的并集（DN-001）——只盯着本列表会把 [skippedMissingDocIds] 那类
+  /// 「一个字节都没同步却没抛错」的操作当成成功。
   final List<String> failedDocIds;
 
   /// [failedDocIds] 中因**解密认证失败**而失败的那部分（修复 1②）：
@@ -91,6 +96,19 @@ class SyncResult {
   /// 混用会让下轮的处置口径漂移。
   final List<String> unprotectedRemoteDocIds;
 
+  /// 本轮因「文件不存在」被**显式跳过**的文档 id（DN-001）：
+  /// 上传腿 `readDocument` 返回 null（文件在 `listDocuments` 之后消失，或
+  /// 保险库锁定——`note_block_doc_sync_store.readDocument` 的 N2 口径就是
+  /// 「按缺失处理，不解锁受密内容」），下载腿远端 `getBytes` 返回 null（404）。
+  ///
+  /// 与 [unprotectedRemoteDocIds] 同一分工：**主动跳过 ≠ 执行失败**（见该字段
+  /// 注释与本仓 keepBoth 守卫用例「跳过不等于执行失败」），故不并进
+  /// [failedDocIds]。但保护力度完全一致——它们与失败项共用同一个
+  /// 「本轮未同步」通道：清单不新增条目、基线不推进、不产生删除墓碑，
+  /// 下轮按旧状态自动重试（自愈，不静默）。单列一份只为让调用方能给出
+  /// 与「网络抖动」不同的可执行措辞（本地文件被删了/口令锁着/云端无此对象）。
+  final List<String> skippedMissingDocIds;
+
   bool get changed => uploaded > 0 || downloaded > 0 || deletedRemote > 0;
 
   @override
@@ -98,15 +116,24 @@ class SyncResult {
       'SyncResult(upload=$uploaded, download=$downloaded, '
       'deleteRemote=$deletedRemote, conflicts=${conflictedDocIds.length}, '
       'failed=${failedDocIds.length}, unreadable=${unreadableDocIds.length}, '
-      'unprotectedRemote=${unprotectedRemoteDocIds.length})';
+      'unprotectedRemote=${unprotectedRemoteDocIds.length}, '
+      'skippedMissing=${skippedMissingDocIds.length})';
 }
 
 /// 单轮执行结果（M2：成功与失败的操作分离，清单回写只认成功项）。
+///
+/// 三种语义互斥且穷尽（DN-001 钉死）：
+/// - [succeeded]：真成功——两端字节确实落地，**只有它**能推进清单/基线。
+/// - [failedIds]：真失败（网络/5xx/解密认证失败）——享受毒丸保护。
+/// - [skippedMissingIds]：一侧「文件不存在」而显式跳过——同样享受保护。
+/// 「不回写」的判据一律走 [notSyncedIds]（失败 ∪ 跳过），不要单独盯
+/// [failedIds]：那正是 DN-001 伪成功的成因。
 class _ExecuteOutcome {
   const _ExecuteOutcome({
     required this.succeeded,
     required this.failedIds,
     required this.unreadableIds,
+    required this.skippedMissingIds,
   });
 
   final List<SyncOperation> succeeded;
@@ -114,6 +141,15 @@ class _ExecuteOutcome {
 
   /// 失败项中认证失败（密钥/AAD 与密文不匹配）的子集——确定性失败。
   final List<String> unreadableIds;
+
+  /// 因「文件不存在」跳过的文档 id：上传腿本地读不到字节（文件在
+  /// `listDocuments` 之后消失 / 保险库锁定），下载腿远端 404。
+  /// 本轮没有任何数据落地，故与失败项同等处置，但原因不同、措辞不同。
+  final List<String> skippedMissingIds;
+
+  /// 本轮**没有任何字节落地**的 id 全集：清单不新增条目、基线不推进、
+  /// 不产生删除墓碑的唯一判据（单一通道，避免第二套语义重叠的机制）。
+  Set<String> get notSyncedIds => {...failedIds, ...skippedMissingIds};
 }
 
 /// keepBoth 远端副本的取回结果（[_preserveRemoteCopies] 的返回形状）。
@@ -246,12 +282,18 @@ class SyncService {
             ],
           );
 
-    // 5. 执行（M2：单操作隔离——失败项记入 outcome，不中断整轮）。
+    // 5. 执行（M2：单操作隔离——失败/跳过项记入 outcome，不中断整轮）。
     final executed = await _execute(plan);
-    final failedIds = executed.failedIds.toSet();
+    // 「本轮没有任何字节落地」的 id 全集 = 真失败 ∪ 缺失跳过（DN-001）。
+    // 清单/基线回写**只认这一个集合**：过去只看 failedIds，一侧文件不存在
+    // （本地被删/保险库锁定、远端 404）的空操作会漏进成功项，把本地快照
+    // 写进远端清单 + 基线 + 两端同指纹 ⇒ 下轮 planner「== → 忽略」与冲突检测
+    // 「local == remote → continue」双双静默，云端永久缺内容且无自愈路径。
+    final notSyncedIds = executed.notSyncedIds;
 
-    // 6. 回写远端 manifest + 本地基线（只认成功项：失败操作两端都不回写，
-    // 下轮按旧基线自动重试；失败明细进 SyncResult.failedDocIds）。
+    // 6. 回写远端 manifest + 本地基线（只认成功项：失败/跳过操作两端都不回写，
+    // 下轮按旧基线自动重试；明细进 SyncResult.failedDocIds 与
+    // SyncResult.skippedMissingDocIds）。
     _emit(SyncProgress.phase(SyncProgressPhase.writingManifest));
     final newEntries = <String, SyncSnapshot>{...remoteManifest.entries};
     var uploaded = 0;
@@ -280,15 +322,17 @@ class SyncService {
     );
     // M4：keepBoth 副本只进本地基线（远端无此文件，进远端清单会导致
     // 其他设备下载 404 空转）；下轮它们作为本地新增正常上传。
-    // 毒丸防误删：仅远端文档下载失败时，绝不能让它随 {...newEntries} 进入
+    // 毒丸防误删：仅远端文档**没真正下载成功**时（真失败 / 远端 404 而跳过，
+    // 两者都在 notSyncedIds 里），绝不能让它随 {...newEntries} 进入
     // 基线——否则下轮「本地无 + 基线有」会被误判为本地删除墓碑，把从未成功
-    // 下载的远端文档 deleteRemote 掉（数据丢失）。远端 manifest 保留该条目
+    // 下载的远端文档 deleteRemote 掉（数据丢失；服务器对活对象误报 404 时
+    // 更是直接删掉真实云端文件）。远端 manifest 保留该条目
     // （远端文件真实存在），基线剔除后下轮它仍是「仅远端 → download」自动重试。
     // 本地已有该文档的下载失败不受影响（墓碑推导要求本地缺失才会触发）。
     final baselineEntries = <String, SyncSnapshot>{...newEntries};
     for (final op in plan.operations) {
       if (op.kind == SyncOperationKind.download &&
-          failedIds.contains(op.id) &&
+          notSyncedIds.contains(op.id) &&
           !currentEntries.containsKey(op.id)) {
         baselineEntries.remove(op.id);
       }
@@ -327,6 +371,7 @@ class SyncService {
       failedDocIds: List.unmodifiable(executed.failedIds),
       unreadableDocIds: List.unmodifiable(executed.unreadableIds),
       unprotectedRemoteDocIds: List.unmodifiable(preserved.unprotectedDocIds),
+      skippedMissingDocIds: List.unmodifiable(executed.skippedMissingIds),
     );
     _emit(SyncProgress.complete());
     return result;
@@ -394,19 +439,36 @@ class SyncService {
     return '$stem-conflict-${DateTime.now().millisecondsSinceEpoch}';
   }
 
-  /// 顺序执行计划中的操作（M2 毒丸防护）。
+  /// 顺序执行计划中的操作（M2 毒丸防护 + DN-001「缺失不是成功」）。
   ///
   /// 每个操作独立 try/catch：单个文档因网络抖动/远端 5xx/数据损坏失败时，
   /// 只记入失败表并继续其余操作，不中断整轮；调用方按成功项回写清单，
   /// 失败项下轮自动重试。失败有意不记 AuditLogger（审计链 1000 条封顶，
   /// 大批量失败会挤掉安全事件；失败明细经 SyncResult.failedDocIds 上报 UI）。
+  ///
+  /// DN-001：**「文件不存在」是显式结果，不是成功**。上传腿 `readDocument`
+  /// 返回 null（`listDocuments` 之后文件消失，或保险库锁定——
+  /// `note_block_doc_sync_store` 按缺失处理、不解锁受密内容）、下载腿远端
+  /// `getBytes` 返回 null（404）时本轮一个字节都没落地：
+  /// - 计成功 ⇒ 回写把**本地快照**盖进远端清单，一轮内清单+基线+本地三者
+  ///   同指纹 ⇒ 冲突检测 `local == remote → continue` 与 planner「== → 忽略」
+  ///   双双静默，云端永久缺该文档、UI 谎报「已同步」、无自愈路径；
+  /// - 下载侧计成功还会让它带着远端条目进基线，下轮「本地无 + 基线有」被
+  ///   误判成本地删除墓碑 ⇒ DELETE 掉真实云端文件。
+  /// 因此这类 id 单列 [skippedMissingIds]，与失败项一样进
+  /// `_ExecuteOutcome.notSyncedIds`（不回写清单/基线、不产生墓碑、下轮重试），
+  /// 但**不**并进 `failedIds`——「跳过 ≠ 执行失败」是本仓既有分工（keepBoth
+  /// 的 `unprotectedRemoteDocIds` 同理），混淆会让调用方给出错的处置措辞。
   Future<_ExecuteOutcome> _execute(SyncPlan plan) async {
     final total = plan.operations.length;
     final succeeded = <SyncOperation>[];
     final failedIds = <String>[];
     final unreadableIds = <String>[];
+    final skippedMissingIds = <String>[];
     var done = 0;
     for (final op in plan.operations) {
+      // 只有真的把字节搬到另一端的操作才计入 succeeded（DN-001）。
+      var landed = false;
       try {
         switch (op.kind) {
           case SyncOperationKind.upload:
@@ -419,9 +481,14 @@ class SyncService {
               ),
             );
             final bytes = await documentStore.readDocument(op.id);
-            if (bytes != null) {
+            if (bytes == null) {
+              if (!skippedMissingIds.contains(op.id)) {
+                skippedMissingIds.add(op.id);
+              }
+            } else {
               final wire = await cipher.encryptDocumentBytes(bytes, op.id);
               await transport.putBytes(cipher.remotePath(op.id), wire);
+              landed = true;
             }
             break;
           case SyncOperationKind.download:
@@ -434,9 +501,14 @@ class SyncService {
               ),
             );
             final bytes = await transport.getBytes(cipher.remotePath(op.id));
-            if (bytes != null) {
+            if (bytes == null) {
+              if (!skippedMissingIds.contains(op.id)) {
+                skippedMissingIds.add(op.id);
+              }
+            } else {
               final plain = await cipher.decryptDocumentBytes(bytes, op.id);
               await documentStore.writeDocument(op.id, plain);
+              landed = true;
             }
             break;
           case SyncOperationKind.deleteRemote:
@@ -448,10 +520,13 @@ class SyncService {
                 currentDocId: op.id,
               ),
             );
+            // 无「缺失」分支：deleteRemaining 对 404 返回 true（传输层既定
+            // 契约「404 视为已删除」，幂等），本就该计成功并清掉清单条目。
             await transport.deleteRemaining(cipher.remotePath(op.id));
+            landed = true;
             break;
         }
-        succeeded.add(op);
+        if (landed) succeeded.add(op);
       } on SyncKeyMismatchException {
         // 修复 1②：认证失败是确定性结果——本轮对它只做一次尝试（循环自然
         // 向前，不重跑），并单独记账供 UI 给出「换回旧口令 / 全量重传」的
@@ -469,6 +544,7 @@ class SyncService {
       succeeded: succeeded,
       failedIds: failedIds,
       unreadableIds: unreadableIds,
+      skippedMissingIds: skippedMissingIds,
     );
   }
 

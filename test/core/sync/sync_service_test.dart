@@ -29,6 +29,14 @@ class _MemoryServer {
   final Set<String> failPut = {};
   final Set<String> failDelete = {};
 
+  /// 故障注入（DN-001）：GET 这些相对路径**即便文件真实存在也返回 404**。
+  /// 与 [failGet]（500 → 抛异常）分列：`getBytes` 返回 null 是另一条分支，
+  /// 旧实现把它计成成功，进而让基线盖上一条「本地根本没有」的远端快照。
+  final Set<String> notFoundGet = {};
+
+  /// 收到过的 DELETE 相对路径（DN-001：断言「缺失跳过」不会升级为删除墓碑）。
+  final List<String> deletes = [];
+
   String _rel(Uri url) {
     final path = url.path;
     const prefix = '/sync/';
@@ -66,6 +74,7 @@ class _MemoryServer {
         return http.Response('', 201);
       case 'GET':
         if (failGet.contains(rel)) return http.Response('', 500);
+        if (notFoundGet.contains(rel)) return http.Response('', 404);
         if (rel.isNotEmpty && files.containsKey(rel)) {
           return http.Response.bytes(files[rel]!, 200);
         }
@@ -76,6 +85,7 @@ class _MemoryServer {
         return http.Response('', 201);
       case 'DELETE':
         if (failDelete.contains(rel)) return http.Response('', 500);
+        deletes.add(rel);
         if (rel.isNotEmpty) files.remove(rel);
         return http.Response('', 204);
       default:
@@ -121,6 +131,34 @@ class _Doc {
   final int updatedAt;
 }
 
+/// 「列出来了、却读不到」的本地存储门面（DN-001）：`listDocuments` 照常上报，
+/// `readDocument` 对 [blockRead] 里的 id 返回 null。真实对应两条生产路径——
+/// ① `listDocuments` 之后文件被删（同一轮内的竞争窗口）；
+/// ② 保险库锁定：`note_block_doc_sync_store.readDocument` 把
+///    `BlockDocLockedException` 折成 null（N2 口径：按缺失处理，不解锁受密内容）。
+class _VanishingDocStore implements SyncDocumentStore {
+  _VanishingDocStore(this.inner);
+
+  final _MemoryDocStore inner;
+  final Set<String> blockRead = {};
+
+  Map<String, _Doc> get docs => inner.docs;
+
+  @override
+  Future<List<SyncDocMeta>> listDocuments() => inner.listDocuments();
+
+  @override
+  Future<Uint8List?> readDocument(String id) async =>
+      blockRead.contains(id) ? null : inner.readDocument(id);
+
+  @override
+  Future<void> writeDocument(String id, Uint8List bytes) =>
+      inner.writeDocument(id, bytes);
+
+  @override
+  Future<void> deleteDocument(String id) => inner.deleteDocument(id);
+}
+
 class _MemoryBaseline implements SyncBaselineStore {
   SyncManifest? value;
   @override
@@ -133,7 +171,7 @@ Uint8List _localDocBytes(int updatedAt) =>
     Uint8List.fromList(utf8.encode(jsonEncode({'updatedAt': updatedAt})));
 
 SyncService _service(
-  _MemoryDocStore store,
+  SyncDocumentStore store,
   _MemoryServer server, {
   _MemoryBaseline? baseline,
   SyncCipher cipher = const NoopSyncCipher(),
@@ -577,6 +615,178 @@ void main() {
     });
   });
 
+  group('SyncService DN-001 文件不存在是显式结果（不得计成功）', () {
+    test('上传腿本地文件消失 → 不计成功、清单不新增条目、基线不推进；下轮自愈', () async {
+      final store = _VanishingDocStore(_MemoryDocStore());
+      store.docs['a'] = _Doc('a', _localDocBytes(10), 10);
+      store.docs['z'] = _Doc('z', _localDocBytes(11), 11);
+      // 清单列完之后才读不到（listDocuments 与 readDocument 之间的竞争，
+      // 或保险库锁定：受密内容按缺失处理、不解锁）。
+      store.blockRead.add('a');
+      final server = _MemoryServer();
+      final baseline = _MemoryBaseline();
+      final s = _service(store, server, baseline: baseline);
+
+      final r1 = await s.syncNow();
+      // 缺失不是成功：本轮只算 z 真上了云。
+      expect(r1.uploaded, 1);
+      expect(r1.skippedMissingDocIds, ['a']);
+      // 跳过 ≠ 执行失败（与本仓 keepBoth 守卫用例「跳过不等于执行失败」同分工）。
+      expect(r1.failedDocIds, isEmpty);
+      // 远端清单不得为它凭空造条目（云端一个字节都没有）。
+      final entries = _remoteEntries(server);
+      expect(entries.containsKey('a'), isFalse);
+      expect(entries.containsKey('z'), isTrue);
+      // 基线同样不推进。
+      expect(baseline.value!.entries.containsKey('a'), isFalse);
+      expect(server.deletes, isEmpty);
+
+      // 自愈：文件恢复可读后它仍被当作待处理（旧实现在这里永久静默）。
+      store.blockRead.clear();
+      final r2 = await s.syncNow();
+      expect(r2.uploaded, 1);
+      expect(r2.skippedMissingDocIds, isEmpty);
+      expect(server.files.containsKey('a'), isTrue);
+      expect(baseline.value!.entries.containsKey('a'), isTrue);
+    });
+
+    test('上传跳过的既有文档：清单与基线都保留旧快照，两端指纹仍不同 ⇒ 下轮仍判上传', () async {
+      final store = _VanishingDocStore(_MemoryDocStore());
+      store.docs['b'] = _Doc('b', _localDocBytes(20), 20); // 本地较新
+      store.blockRead.add('b');
+      final server = _MemoryServer()
+        ..seedDoc('b', 10)
+        ..seedManifest({'b': 10});
+      final baseline = _MemoryBaseline()
+        ..value = SyncManifest(entries: {'b': _snap('b', 10)});
+      final s = _service(store, server, baseline: baseline);
+
+      final r1 = await s.syncNow();
+      expect(r1.uploaded, 0);
+      expect(r1.skippedMissingDocIds, ['b']);
+      // 关键：回写的清单仍是云端旧值 10，而不是本地快照 20——旧实现盖上 20
+      // 后「本地 == 远端」，冲突检测与 planner 双双静默。
+      expect((_remoteEntries(server)['b'] as Map)['updatedAt'], 10);
+      expect(baseline.value!.entries['b']!.updatedAt, 10);
+      expect(server.files['b']!.length, _localDocBytes(10).length);
+
+      store.blockRead.clear();
+      final r2 = await s.syncNow();
+      expect(r2.uploaded, 1);
+      expect(r2.skippedMissingDocIds, isEmpty);
+      expect((_remoteEntries(server)['b'] as Map)['updatedAt'], 20);
+      expect(baseline.value!.entries['b']!.updatedAt, 20);
+    });
+
+    test('下载腿远端 404 → 不计成功、不产生删除墓碑；清单条目保留待下轮重试', () async {
+      final store = _MemoryDocStore();
+      // 清单登记了 ghost@30，但对象根本不存在（崩溃窗口 / 残缺远端）。
+      final server = _MemoryServer()..seedManifest({'ghost': 30});
+      final baseline = _MemoryBaseline();
+      final s = _service(store, server, baseline: baseline);
+
+      final r1 = await s.syncNow();
+      expect(r1.downloaded, 0);
+      expect(r1.skippedMissingDocIds, ['ghost']);
+      expect(r1.failedDocIds, isEmpty);
+      expect(store.docs.containsKey('ghost'), isFalse);
+      // 基线绝不能收下这条「本地根本没有」的远端快照——那正是删除墓碑的种子。
+      expect(baseline.value!.entries.containsKey('ghost'), isFalse);
+      // 没核实过的条目保留在远端清单里（不擅自清账）。
+      expect(_remoteEntries(server).containsKey('ghost'), isTrue);
+
+      // 第二轮：仍是「仅远端 → 下载」，绝不升级成 deleteRemote。
+      final r2 = await s.syncNow();
+      expect(r2.downloaded, 0);
+      expect(r2.skippedMissingDocIds, ['ghost']);
+      expect(server.deletes, isEmpty);
+      expect(_remoteEntries(server).containsKey('ghost'), isTrue);
+
+      // 对象补上后自愈。
+      server.seedDoc('ghost', 30);
+      final r3 = await s.syncNow();
+      expect(r3.downloaded, 1);
+      expect(r3.skippedMissingDocIds, isEmpty);
+      expect(store.docs['ghost']!.updatedAt, 30);
+    });
+
+    test('服务器对活对象误报 404 → 三轮都不 DELETE 真实云端文件，恢复后补齐下载', () async {
+      final store = _MemoryDocStore();
+      final server = _MemoryServer()
+        ..seedDoc('live', 30)
+        ..seedManifest({'live': 30})
+        ..notFoundGet.add('live'); // 文件在，GET 却报 404
+      final baseline = _MemoryBaseline();
+      final s = _service(store, server, baseline: baseline);
+
+      final r1 = await s.syncNow();
+      expect(r1.downloaded, 0);
+      expect(r1.skippedMissingDocIds, ['live']);
+      // 旧实现计成功 ⇒ 基线盖上 live@30 ⇒ 下轮「本地无 + 基线有」判成本地
+      // 删除墓碑 ⇒ 真实云端文件被删（数据丢失）。连续三轮都必须无 DELETE。
+      await s.syncNow();
+      final r3 = await s.syncNow();
+      expect(r3.skippedMissingDocIds, ['live']);
+      expect(server.deletes, isEmpty);
+      expect(server.files.containsKey('live'), isTrue);
+      expect(_remoteEntries(server).containsKey('live'), isTrue);
+
+      server.notFoundGet.clear();
+      final r4 = await s.syncNow();
+      expect(r4.downloaded, 1);
+      expect(store.docs['live']!.updatedAt, 30);
+    });
+
+    test('三语义分立并钉死：真成功 / 真失败（毒丸保护）/ 缺失跳过（不回写基线）', () async {
+      final store = _VanishingDocStore(_MemoryDocStore());
+      store.docs['okUp'] = _Doc('okUp', _localDocBytes(11), 11);
+      store.docs['failUp'] = _Doc('failUp', _localDocBytes(12), 12);
+      store.docs['missUp'] = _Doc('missUp', _localDocBytes(13), 13);
+      store.blockRead.add('missUp');
+      final server = _MemoryServer()
+        ..seedDoc('okDown', 21)
+        ..seedDoc('failDown', 22)
+        ..seedManifest({'okDown': 21, 'failDown': 22, 'missDown': 23})
+        ..failGet.add('failDown') // 真失败：500（抛异常路径）
+        ..failPut.add('failUp'); //  真失败：500（抛异常路径）
+      // missDown：清单登记了、对象却不存在 → 下载腿 404（返回 null 路径）。
+      final baseline = _MemoryBaseline();
+      final s = _service(store, server, baseline: baseline);
+
+      final r = await s.syncNow();
+      // ① 真成功：计数 + 远端清单 + 基线三处一起推进（既有行为一字不变）。
+      expect(r.uploaded, 1);
+      expect(r.downloaded, 1);
+      // ② 真失败：走毒丸保护的 failedDocIds。
+      expect(r.failedDocIds.toSet(), {'failUp', 'failDown'});
+      expect(r.unreadableDocIds, isEmpty);
+      // ③ 缺失跳过：独立通道，且不混进失败表。
+      expect(r.skippedMissingDocIds.toSet(), {'missUp', 'missDown'});
+
+      final entries = _remoteEntries(server);
+      expect(entries.containsKey('okUp'), isTrue);
+      expect(entries.containsKey('okDown'), isTrue);
+      expect(entries.containsKey('failUp'), isFalse);
+      expect(entries.containsKey('missUp'), isFalse);
+      expect(entries.containsKey('missDown'), isTrue); // 未核实 ⇒ 保留登记
+
+      final base = baseline.value!.entries;
+      expect(base.containsKey('okUp'), isTrue);
+      expect(base.containsKey('okDown'), isTrue);
+      expect(base.containsKey('failUp'), isFalse);
+      expect(base.containsKey('failDown'), isFalse); // 毒丸保护
+      expect(base.containsKey('missUp'), isFalse);
+      expect(base.containsKey('missDown'), isFalse); // 同一保护，不同原因
+
+      // 本地落地只发生在真成功的下载上。
+      expect(store.inner.docs.containsKey('okDown'), isTrue);
+      expect(store.inner.docs.containsKey('failDown'), isFalse);
+      expect(store.inner.docs.containsKey('missDown'), isFalse);
+      // 无论失败还是跳过，都绝不升级为删除。
+      expect(server.deletes, isEmpty);
+    });
+  });
+
   group('SyncService M4 keepBoth 副本收敛', () {
     test('keepBoth 副本当轮进入基线（避免下轮重传）', () async {
       final store = _MemoryDocStore();
@@ -710,3 +920,9 @@ SyncSnapshot _snap(String id, int updatedAt) => SyncSnapshot(
   updatedAt: updatedAt,
   size: _localDocBytes(updatedAt).length,
 );
+
+/// 读回远端 manifest 的条目表（DN-001 用例反复断言清单是否被推进）。
+Map _remoteEntries(_MemoryServer server) =>
+    (jsonDecode(utf8.decode(server.files['manifest.json']!))
+            as Map)['entries']
+        as Map;
