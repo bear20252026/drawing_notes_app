@@ -10,6 +10,7 @@ import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:drawing_notes_app/core/utils/time_serialization.dart';
+import 'package:drawing_notes_app/core/documents/migration/document_migration_registry.dart';
 
 /// 文档编解码器：DrawingDocument <-> JSON 字符串（工程文件格式）。
 ///
@@ -127,10 +128,16 @@ class DocumentCodec {
     }
     // 版本只读降级（对齐 Saber SBN）：文件版本高于当前支持版本时，
     // 拒绝以旧逻辑解码（避免静默丢失新字段），提示用户升级应用。
-    final fileVersion = decoded['version'];
-    if (fileVersion is num && fileVersion.toInt() > _version) {
-      throw FormatException('文档版本过新（v$fileVersion，当前支持 v$_version），请升级应用后再打开');
+    final fileVersionRaw = decoded['version'];
+    if (fileVersionRaw is num && fileVersionRaw.toInt() > _version) {
+      throw FormatException('文档版本过新（v$fileVersionRaw，当前支持 v$_version），请升级应用后再打开');
     }
+    // 迁移管线（内核 P1-DOC-001，2026-10-10）：低于当前版本的文件按注册表
+    // 逐级规范化（补缺键/回写版本号）；缺环节的文件保持原样交给下方宽容
+    // 解码兜底——迁移层不新增拒绝路径。
+    kDocumentMigrationRunner.migrateToCurrent(
+      Map<String, dynamic>.from(decoded),
+    );
     final documentValue = decoded['document'];
     if (documentValue is! Map) {
       throw FormatException('文档缺少 document 对象');

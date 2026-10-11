@@ -140,19 +140,21 @@ void main() {
       expect(second['detail'], 'too_large');
     });
 
-    test('轮转：超过 1MiB 上限 → audit.log 转为 audit.log.1，续写新文件', () async {
-      // ~600B/条 ⇒ 约 2500 条 ≈ 1.5MiB，必然跨过轮转线（生产口径 1MiB）。
-      for (var i = 0; i < 2500; i++) {
+    test('轮转：超阈值 → audit.log 转为 audit.log.1，续写新文件', () async {
+      // 阈值注 4KiB（生产 1MiB 物理量级在同语义小样本下不可达——2500 条
+      // 真实 IO 在全量并发下曾撞 30s 用例超时）。20 条 ≈ 12KB 必跨线。
+      AuditLogger.maxFileBytesOverrideForTest = 4 * 1024;
+      for (var i = 0; i < 20; i++) {
         AuditLogger.log('fill.$i', detail: 'x' * 500);
       }
       await AuditLogger.flushForTest();
       final rotated = File('${sinkFile!.path}.1');
-      expect(rotated.existsSync(), isTrue, reason: '1.5MiB 已跨 1MiB 轮转线');
-      expect(rotated.lengthSync(), greaterThan(1 << 20), reason: '轮转文件承载超限前全量');
+      expect(rotated.existsSync(), isTrue, reason: '12KB 已跨 4KiB 轮转线');
+      expect(rotated.lengthSync(), greaterThan(4 * 1024), reason: '轮转文件承载超限前全量');
       expect(sinkFile!.existsSync(), isTrue, reason: '轮转后继续在新文件追加');
       final tailCount = sinkFile!.readAsLinesSync().length;
       expect(tailCount, greaterThan(0), reason: '轮转后有续写');
-      expect(tailCount, lessThan(2500), reason: '轮转把大部分历史挪进了 .1');
+      expect(tailCount, lessThan(20), reason: '轮转把大部分历史挪进了 .1');
     });
 
     test('sink 抛错不阻断业务：内存链照常、文件缺失', () async {

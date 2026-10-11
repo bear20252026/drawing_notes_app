@@ -50,6 +50,12 @@ class AuditLogger {
   /// 落盘文件大小上限：超过即轮转为 audit.log.1（保留一代，再轮转即覆盖）。
   static const int _maxFileBytes = 1 << 20;
 
+  /// 测试注入口：轮转阈值（生产恒 null 走 [_maxFileBytes]；与
+  /// `AppLockService.testPinKdfOverride`、`LockExemption.ttlOverrideForTest`
+  /// 同一先例——测试需要把物理量级压进假时钟/短用例可达范围）。
+  @visibleForTesting
+  static int? maxFileBytesOverrideForTest;
+
   /// 生产落盘文件解析器（可注入；null = 不落盘）。默认走数据根 security/
   /// （异步解析——securityFile 本身是 Future）。测试环境（FLUTTER_TEST）
   /// 默认不落盘——护栏防污染真实数据根。
@@ -77,6 +83,7 @@ class AuditLogger {
   static void resetSinkForTest() {
     _sinkResolver = null;
     _resolverChecked = true;
+    maxFileBytesOverrideForTest = null;
     _writeChain = Future<void>.value();
   }
 
@@ -116,8 +123,9 @@ class AuditLogger {
       try {
         final parent = sink.parent;
         if (!parent.existsSync()) await parent.create(recursive: true);
-        // 轮转：超 1 MiB → audit.log.1（覆盖上一代）。best-effort。
-        if (sink.existsSync() && sink.lengthSync() > _maxFileBytes) {
+        // 轮转：超阈值 → audit.log.1（覆盖上一代）。best-effort。
+        final threshold = maxFileBytesOverrideForTest ?? _maxFileBytes;
+        if (sink.existsSync() && sink.lengthSync() > threshold) {
           final rotated = File('${sink.path}.1');
           if (rotated.existsSync()) await rotated.delete();
           await sink.rename(rotated.path);
