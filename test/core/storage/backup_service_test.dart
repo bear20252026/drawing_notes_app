@@ -3,6 +3,14 @@
 // 覆盖：打包（含 manifest、排除 tmp/bak）→ 暂存恢复 → 启动期原子交换
 // 全链路 roundtrip；无效包 fail-fast；zip slip 防护；fail-safe（暂存
 // 缺失时放弃恢复且清除标记）；Documents 在途标记仍可应用到新根。
+//
+// DN-004（P0 数据安全，2026-10-12）更正说明——**原「zip slip 防护」用例把
+// 缺陷行为当成了预期**：它构造的 evil 包只有一个 manifest + 一条上跳条目，
+// 却断言「暂存目录里只有 1 个文件（仅 manifest）＝恢复被接受」。真正想钉的
+// 是「上跳条目不落盘」，不是「manifest-only 包合法」。本批把它拆成两条：
+// 路径穿越防护（evil 包补齐成合法数据根 → 恢复被接受，但 evil 条目既不落在
+// 暂存之外、也不落在暂存之内）与 manifest-only 包必须被拒绝。
+// 预算/结构校验的分支覆盖另见 backup_restore_integrity_test.dart。
 import 'dart:io';
 import 'dart:convert';
 
@@ -11,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'package:drawing_notes_app/core/storage/backup_service.dart';
+import 'package:drawing_notes_app/core/storage/document_budgets.dart';
 import '../../helpers/temp_dir_cleanup.dart';
 
 void main() {
@@ -186,11 +195,24 @@ void main() {
     );
   });
 
-  test('zip slip 防护：上跳条目被跳过，不落在暂存之外', () async {
+  test('zip slip 防护：上跳条目被跳过，既不落在暂存之外也不落在暂存之内', () async {
+    // evil 包**补齐为一个合法数据根**（v1 清单 + documents/a.json），这样
+    // 本用例判的才是它本意要判的东西——穿越条目不落盘——而不是
+    // 「manifest-only 包也被接受」（那是 DN-004 修的缺陷，见下一条用例）。
     final evilPath = '${docsDir.path}${Platform.pathSeparator}evil.zip';
     final archive = Archive()
-      ..addFile(ArchiveFile('backup_manifest.json', 2, utf8.encode('{"formatVersion":1}')))
-      ..addFile(ArchiveFile('../evil.txt', 2, [9, 9]));
+      ..addFile(
+        ArchiveFile.bytes(
+          'backup_manifest.json',
+          utf8.encode('{"formatVersion":1}'),
+        ),
+      )
+      ..addFile(
+        ArchiveFile.bytes('documents/a.json', utf8.encode('{"t":1}')),
+      )
+      ..addFile(ArchiveFile.bytes('../../evil.txt', [9, 9]))
+      ..addFile(ArchiveFile.bytes('/etc/evil2.txt', [9, 9]))
+      ..addFile(ArchiveFile.bytes('security/../evil3.txt', [9, 9]));
     await File(evilPath).writeAsBytes(ZipEncoder().encode(archive));
 
     await BackupService.stageRestore(
@@ -202,15 +224,208 @@ void main() {
       '${supportDir.path}${Platform.pathSeparator}'
       '${AppDataRoot.pendingRestoreMarkerName}',
     );
+    expect(
+      marker.existsSync(),
+      isTrue,
+      reason: '合法数据根 + 穿越条目 → 接受包、跳过条目',
+    );
     final stagingPath = (await marker.readAsString()).trim();
+    // 穿越条目一个都不许落在暂存之外。
     expect(
       File('${supportDir.path}${Platform.pathSeparator}evil.txt').existsSync(),
       isFalse,
     );
     expect(
-      Directory(stagingPath).listSync().whereType<File>().length,
-      1, // 仅 manifest
+      File('${docsDir.path}${Platform.pathSeparator}evil.txt').existsSync(),
+      isFalse,
     );
+    // 暂存目录内也只有合法条目：顶层仅清单（`security/../evil3.txt` 被跳过，
+    // security/ 目录因此根本不会建立）。
+    expect(
+      Directory(stagingPath).listSync().whereType<File>().length,
+      1,
+      reason: '暂存顶层只有清单本体',
+    );
+    expect(
+      File(
+        '$stagingPath${Platform.pathSeparator}documents'
+        '${Platform.pathSeparator}a.json',
+      ).existsSync(),
+      isTrue,
+    );
+    expect(
+      Directory(stagingPath)
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((f) => f.path.contains('evil'))
+          .toList(),
+      isEmpty,
+    );
+  });
+
+  test('DN-004：manifest-only 包必须被拒绝——不写 marker、不换根', () async {
+    // 这条正是原「zip slip」用例的反例证据：只有一个清单文件的包此前
+    // 会被接受（并进而把现网整库换掉）。
+    final lonelyPath = '${docsDir.path}${Platform.pathSeparator}lonely.zip';
+    await File(lonelyPath).writeAsBytes(
+      ZipEncoder().encode(
+        Archive()
+          ..addFile(
+            ArchiveFile.bytes(
+              'backup_manifest.json',
+              utf8.encode(
+                '{"formatVersion":1,"createdAt":"2026-01-01T00:00:00.000Z"}',
+              ),
+            ),
+          ),
+      ),
+    );
+
+    // 现网先放一个真文件，证明「拒绝 = 现网一字未动」。
+    await rootFile('documents/keep.json').create(recursive: true);
+    await rootFile('documents/keep.json').writeAsString('{"keep":true}');
+
+    BackupIntegrityException? thrown;
+    try {
+      await BackupService.stageRestore(
+        backupPath: lonelyPath,
+        dataParentDir: supportDir,
+      );
+    } on BackupIntegrityException catch (e) {
+      thrown = e;
+    }
+    expect(thrown, isNotNull, reason: 'manifest-only 包必须被类型化拒绝');
+    expect(thrown!.code, 'incompleteRoot');
+    expect(
+      thrown.stats['gaps'],
+      isA<List<Object?>>().having(
+        (l) => l.any((g) => '$g'.contains('数据文件')),
+        '含缺失项说明',
+        isTrue,
+      ),
+      reason: '拒绝必须带缺失项统计（不静默）',
+    );
+    expect(
+      File(
+        '${supportDir.path}${Platform.pathSeparator}'
+        '${AppDataRoot.pendingRestoreMarkerName}',
+      ).existsSync(),
+      isFalse,
+    );
+    // 不留半截暂存目录。
+    expect(
+      supportDir
+          .listSync()
+          .whereType<Directory>()
+          .where((d) => d.path.contains('.restore_')),
+      isEmpty,
+    );
+    expect(
+      await rootFile('documents/keep.json').readAsString(),
+      '{"keep":true}',
+    );
+  });
+
+  test('DN-004 版本兼容：v1 旧包（无自述字段）仍可完整恢复', () async {
+    // kBackupFormatVersion 已 bump 到 2，但校验口径是「> 当前即拒」，
+    // 历史 v1 包天然通过——这条反向钉不许因版本演进而漂走。
+    expect(kBackupFormatVersion, 2);
+    expect(kBackupFormatVersionMin, 1);
+
+    final v1Path = '${docsDir.path}${Platform.pathSeparator}v1.zip';
+    await File(v1Path).writeAsBytes(
+      ZipEncoder().encode(
+        Archive()
+          ..addFile(
+            ArchiveFile.bytes(
+              'backup_manifest.json',
+              utf8.encode(
+                '{"formatVersion":1,"createdAt":"2026-03-01T00:00:00.000Z"}',
+              ),
+            ),
+          )
+          ..addFile(
+            ArchiveFile.bytes(
+              'documents/old.json',
+              utf8.encode('{"from":"v1"}'),
+            ),
+          )
+          ..addFile(
+            ArchiveFile.bytes(
+              'blockdocs/old_block.json',
+              utf8.encode('{"block":"v1"}'),
+            ),
+          )
+          ..addFile(
+            ArchiveFile.bytes(
+              'security/vault.key.json',
+              utf8.encode('{"k":"v1"}'),
+            ),
+          ),
+      ),
+    );
+
+    await BackupService.stageRestore(
+      backupPath: v1Path,
+      dataParentDir: supportDir,
+    );
+    final applied = await AppDataRoot.applyPendingRestore(
+      documentsPathProvider: () => docsDir.path,
+      supportPathProvider: () => supportDir.path,
+    );
+    expect(applied, isTrue, reason: 'v1 包换根侧也必须被认可（两道闸同口径）');
+    expect(
+      await rootFile('documents/old.json').readAsString(),
+      '{"from":"v1"}',
+    );
+    expect(
+      await rootFile('blockdocs/old_block.json').readAsString(),
+      '{"block":"v1"}',
+    );
+    expect(rootFile('security/vault.key.json').existsSync(), isTrue);
+  });
+
+  test('DN-004 版本闸门：更高版本的包被拒（升级前不猜格式）', () async {
+    final futurePath = '${docsDir.path}${Platform.pathSeparator}future.zip';
+    await File(futurePath).writeAsBytes(
+      ZipEncoder().encode(
+        Archive()
+          ..addFile(
+            ArchiveFile.bytes(
+              'backup_manifest.json',
+              utf8.encode('{"formatVersion":${kBackupFormatVersion + 1}}'),
+            ),
+          )
+          ..addFile(ArchiveFile.bytes('documents/a.json', utf8.encode('{}'))),
+      ),
+    );
+    await expectLater(
+      BackupService.stageRestore(
+        backupPath: futurePath,
+        dataParentDir: supportDir,
+      ),
+      throwsA(
+        isA<BackupIntegrityException>().having(
+          (e) => e.code,
+          'code',
+          'versionTooNew',
+        ),
+      ),
+    );
+  });
+
+  test('DN-006 阈值与画布文档预算同源（不 import，靠测试钉住等值防漂移）', () {
+    // 单条目上限 = DocumentBudgets.maxFileBytes × 2（依据见 backup_service.dart
+    // 注释）。不用 import 建立关系：core/storage 全域受 architecture_test
+    // 规则 3b 的 Martin instability ≤ 0.4 约束，多一条出向依赖当场撞红。
+    expect(kBackupMaxEntryBytes, DocumentBudgets.maxFileBytes * 2);
+    expect(kBackupMaxTotalBytes, kBackupMaxArchiveBytes);
+    expect(kBackupMaxRatioPercent, 10000); // 100:1
+    expect(kBackupMaxManifestBytes, 1 << 20); // 对齐 AuditLogger._maxFileBytes
+    expect(kBackupMaxEntries, greaterThan(15000)); // ≥ PROPFIND 4MiB 的 1.5 万对象档
+    expect(kBackupRestoreLimitsDefault.maxEntries, kBackupMaxEntries);
+    expect(kBackupRestoreLimitsDefault.maxTotalBytes, kBackupMaxTotalBytes);
+    expect(kBackupRestoreLimitsDefault.maxEntryBytes, kBackupMaxEntryBytes);
   });
 
   test('fail-safe：标记存在但暂存缺失 → 放弃恢复并清标记', () async {

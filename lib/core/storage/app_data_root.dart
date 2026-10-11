@@ -16,6 +16,7 @@
 //
 // 各存储层仍保留子目录命名与 directoryProvider 注入点——装配层统一
 // 注入 [root]，存储层内部追加子目录名。
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kDebugMode, visibleForTesting;
@@ -94,6 +95,10 @@ class AppDataRoot {
   static const String pendingRestoreMarkerName =
       '$defaultRootName.restore_pending';
 
+  /// 备份包清单文件名（zip 根部；[BackupService] 与本类的恢复校验共用这一
+  /// 唯一口径，避免两处字符串各写一份而漂移）。
+  static const String backupManifestName = 'backup_manifest.json';
+
   /// 写入待恢复标记（恢复流第三步：暂存解压完成后、退出应用前调用）。
   static Future<void> writePendingRestoreMarker({
     required Directory parentDir,
@@ -151,11 +156,25 @@ class AppDataRoot {
     try {
       final staging = Directory(stagingPath);
       final manifest = File(
-        '${staging.path}${Platform.pathSeparator}backup_manifest.json',
+        '${staging.path}${Platform.pathSeparator}$backupManifestName',
       );
       if (stagingPath.isEmpty ||
           !staging.existsSync() ||
           !manifest.existsSync()) {
+        try {
+          await marker.delete();
+        } catch (_) {}
+        return false;
+      }
+      // DN-004（P0 数据安全）：换根前的第二道闸——暂存目录必须是「一个
+      // 可用的数据根」。此前只看清单文件是否存在，一旦上次解压被中断/
+      // 暂存被外部破坏（防软、磁盘满、人工删档），残缺暂存会直接顶掉
+      // 现网根，而现网根随后被递归删除 ⇒ 整库丢失。
+      // 判定与 BackupService.stageRestore 走同一组函数（单一事实来源）。
+      final gaps = directoryRestoreGaps(staging);
+      if (gaps.isNotEmpty) {
+        // 只清标记、不动暂存内容（保留取证余地）。是否顺手清理残留暂存
+        // 与下面的 .old_ 保留策略同属**业主未裁决项**，本批不开这个口子。
         try {
           await marker.delete();
         } catch (_) {}
@@ -186,6 +205,13 @@ class AppDataRoot {
         }
       }
       if (oldRoot != null) {
+        // ⚠️ 已知缺口（DN-004 关联项，**业主尚未裁决，本批不动策略**）：
+        // 换根成功后旧根**立即**递归删除，且全仓没有 `.old_` 巡检/找回代码。
+        // 改成像模像样的「保留 N 份 / 保留 T 天 / 显式清理入口」会长期占用
+        // 一整份数据根的磁盘，还要决定何时清理与如何提示用户，属产品裁决——
+        // 本批只在代码注释与本批报告里登记，不改删除时机，也不加启动巡检。
+        // 本批做的是：把破坏性一步往前挪一道闸——上面的 directoryRestoreGaps
+        // 保证只有结构完整的暂存才会顶掉现网（残缺暂存不再换根）。
         try {
           await oldRoot.delete(recursive: true);
         } catch (_) {
@@ -223,6 +249,204 @@ class AppDataRoot {
     'vault.key.json',
     'app_lock_guard.key',
   ];
+
+  // ==== 恢复侧「这是一个可用的数据根」最小结构口径（DN-004，P0 数据安全）====
+  //
+  // 缺陷起因：`BackupService.stageRestore` 与 [applyPendingRestore] 此前只判
+  // 「manifest 文件存在 + formatVersion ≤ 当前」，一个**只有一个清单文件的
+  // zip** 就被当成合法备份：写标记 → 用户确认 → 换根 → 旧根立即递归删除
+  // ⇒ 整库丢失。原生选包框只过滤扩展名 `.zip`，接受任意本地文件，所以
+  // 「用户挑错文件 + 确认覆盖」两步即可触发。
+  //
+  // 本段是**单一事实来源**：zip 条目侧（BackupService 读中央目录）与暂存
+  // 目录侧（[applyPendingRestore] 换根前）走同一组判定函数，杜绝两处漂移。
+  // 只做**读**目录结构的事——删除/保留策略一字未动。
+
+  /// 数据根内的已知顶层子目录（备份包必须能对上这套布局，否则它根本不是
+  /// 本应用的备份）。与 [legacyDirNames] 同源 + `security/`。
+  static const List<String> knownSubdirNames = [...legacyDirNames, 'security'];
+
+  /// 笔记承载目录——恢复的下限判据（见 [restoreStructureGaps]）。
+  static const List<String> noteBearingSubdirNames = ['documents', 'blockdocs'];
+
+  /// 非空根的最小数据文件数。依据：真实数据根哪怕只有一条笔记，也必然
+  /// 至少含「1 个文档/块文档 + 1 个 security 密钥」；`< 1` 只可能是空包或
+  /// 用户误挑的无关 zip，恢复它的净效果是**清空现网且无任何可恢复内容**。
+  static const int minRestoreDataFiles = 1;
+
+  /// 崩溃保护的临时/备份文件（不属于有效数据面；打包与校验同一口径，
+  /// 否则 [manifestDeclarationGaps] 会把这些文件算进实际计数而误判）。
+  static final RegExp restoreExcludedPattern = RegExp(r'\.(tmp|bak)(\..*)?$');
+
+  /// 根内相对路径（「/」分隔、无首分隔符）；不在该根下 / 为空返回 null。
+  static String? relativePathOf(String rootPath, String entityPath) {
+    if (!entityPath.startsWith(rootPath)) return null;
+    final rel = entityPath
+        .substring(rootPath.length)
+        .replaceAll('\\', '/')
+        .replaceFirst(RegExp(r'^/+'), '');
+    return rel.isEmpty ? null : rel;
+  }
+
+  /// 相对路径所属的已知顶层子目录名；不属于任何已知子目录返回 null。
+  static String? knownSubdirOf(String relPath) {
+    final normalized = relPath.replaceAll('\\', '/');
+    final slash = normalized.indexOf('/');
+    if (slash <= 0) return null; // 根下散文件（无目录段）或非法前缀
+    final head = normalized.substring(0, slash);
+    return knownSubdirNames.contains(head) ? head : null;
+  }
+
+  /// 结构完整性判定（纯计数版，供 zip 头部预检与磁盘扫描共用）。
+  ///
+  /// 返回人可读的缺失项列表，**空列表 = 可信**；调用方据此拒绝并映射成
+  /// 用户可见文案——不静默、不误伤：
+  /// - [requireNoteBearing] 为 true 时（v1 包**无自述**，只能靠结构证明它
+  ///   确实是「有内容的库」）额外要求 documents/blockdocs 至少有一个文件；
+  /// - v2 包自带清单声明并由 [manifestDeclarationGaps] 逐项目核对，故不再
+  ///   受笔记下限约束（自产的空库备份是真实存在的状态，拒它就是误伤）。
+  static List<String> restoreStructureGaps({
+    required int dataFileCount,
+    required Map<String, int> dirFileCounts,
+    required bool requireNoteBearing,
+  }) {
+    final gaps = <String>[];
+    if (dataFileCount < minRestoreDataFiles) {
+      gaps.add(
+        '备份包不含任何数据文件（仅 $backupManifestName，疑似选错文件）',
+      );
+    }
+    if (!dirFileCounts.keys.any(knownSubdirNames.contains)) {
+      gaps.add(
+        '备份包内没有本应用的数据子目录（已知子目录：'
+        '${knownSubdirNames.take(4).join('/')}…），它不是本应用的数据根布局',
+      );
+    }
+    if (requireNoteBearing) {
+      final noteFiles = noteBearingSubdirNames.fold<int>(
+        0,
+        (sum, d) => sum + (dirFileCounts[d] ?? 0),
+      );
+      if (noteFiles < minRestoreDataFiles) {
+        gaps.add(
+          '笔记目录为空（${noteBearingSubdirNames.join('/')} 合计 '
+          '$noteFiles 个文件，至少需 $minRestoreDataFiles 个）——恢复它只会清空现网',
+        );
+      }
+    }
+    return gaps;
+  }
+
+  /// v2 清单自述 vs 实际内容的一致性判定（空列表 = 一致）。
+  ///
+  /// 「manifest 声明与实际内容一致」这一条只有在备份包**自报**了计数之后
+  /// 才可判；v1 包没有这些字段，调用方不应把缺字段当成缺陷（见
+  /// [BackupService] 的版本兼容说明）。
+  static List<String> manifestDeclarationGaps(
+    Map<String, dynamic> manifest, {
+    required int dataFileCount,
+    required int totalBytes,
+    required Map<String, int> dirFileCounts,
+  }) {
+    final gaps = <String>[];
+    final declaredCount = manifest['dataFileCount'];
+    final declaredBytes = manifest['dataBytes'];
+    final declaredDirs = manifest['dirFileCounts'];
+    if (declaredCount is! int || declaredBytes is! int || declaredDirs is! Map) {
+      gaps.add(
+        'v2 备份清单自述不完整（需 dataFileCount/dataBytes/dirFileCounts 三项，'
+        '实测 ${declaredCount is int ? 'ok' : '缺 dataFileCount'}/'
+        '${declaredBytes is int ? 'ok' : '缺 dataBytes'}/'
+        '${declaredDirs is Map ? 'ok' : '缺 dirFileCounts'}）',
+      );
+      return gaps;
+    }
+    if (declaredCount != dataFileCount) {
+      gaps.add('清单声明 $declaredCount 个数据文件，包内实际 $dataFileCount 个');
+    }
+    if (declaredBytes != totalBytes) {
+      gaps.add(
+        '清单声明 $declaredBytes 字节，实际 $totalBytes 字节',
+      );
+    }
+    final declared = <String, int>{};
+    for (final e in declaredDirs.entries) {
+      final k = e.key;
+      final v = e.value;
+      if (k is! String || v is! int) {
+        gaps.add('清单目录计数格式非法（${e.key}=${e.value}）');
+        continue;
+      }
+      declared[k] = v;
+    }
+    for (final name in {
+      ...declared.keys,
+      ...dirFileCounts.keys.where(knownSubdirNames.contains),
+    }) {
+      final want = declared[name] ?? 0;
+      final got = dirFileCounts[name] ?? 0;
+      if (want != got) {
+        gaps.add('子目录 $name 声明 $want 个文件，实际 $got 个');
+      }
+    }
+    return gaps;
+  }
+
+  /// 读取一个目录里的备份清单（不存在/不可解析返回 null——调用方据此判缺）。
+  static Map<String, dynamic>? readManifestOf(Directory dir) {
+    try {
+      final f = File('${dir.path}${Platform.pathSeparator}$backupManifestName');
+      if (!f.existsSync()) return null;
+      final decoded = jsonDecode(f.readAsStringSync());
+      return decoded is Map<String, dynamic> ? decoded : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 磁盘版恢复校验（暂存目录/现网根）。与 zip 侧同口径：
+  /// 结构下限 + （v2）清单声明一致性。
+  static List<String> directoryRestoreGaps(Directory dir) {
+    var dataFiles = 0;
+    var dataBytes = 0;
+    final dirCounts = <String, int>{};
+    try {
+      for (final entity in dir.listSync(recursive: true, followLinks: false)) {
+        if (entity is! File) continue;
+        final norm = relativePathOf(dir.path, entity.path);
+        if (norm == null || norm == backupManifestName) continue;
+        if (restoreExcludedPattern.hasMatch(norm)) continue;
+        dataFiles++;
+        dataBytes += entity.lengthSync();
+        final sub = knownSubdirOf(norm);
+        if (sub != null) dirCounts[sub] = (dirCounts[sub] ?? 0) + 1;
+      }
+    } catch (_) {
+      return const ['暂存目录无法列出（磁盘或权限异常）'];
+    }
+    final manifest = readManifestOf(dir);
+    if (manifest == null) {
+      return const ['暂存目录缺少可解析的备份清单']; // 兜底：外层已判存在，这里覆盖「内容坏了」
+    }
+    final version = manifest['formatVersion'];
+    final gaps = restoreStructureGaps(
+      dataFileCount: dataFiles,
+      dirFileCounts: dirCounts,
+      // v1 暂存（升级前写入的在途恢复）无自述 → 沿用笔记下限。
+      requireNoteBearing: version is! int || version < 2,
+    );
+    if (version is int && version >= 2) {
+      gaps.addAll(
+        manifestDeclarationGaps(
+          manifest,
+          dataFileCount: dataFiles,
+          totalBytes: dataBytes,
+          dirFileCounts: dirCounts,
+        ),
+      );
+    }
+    return gaps;
+  }
 
   Directory? _rootCache;
   Future<void>? _migrateFuture;

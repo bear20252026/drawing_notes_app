@@ -429,6 +429,17 @@ class SettingsPage extends StatelessWidget {
       }
       // 用户确认：退出应用；下次启动 applyPendingRestore 完成交换。
       exit(0);
+    } on BackupIntegrityException catch (e) {
+      // DN-004：结构/预算/清单不一致的备份包——拒绝并给出用户可见文案，
+      // 拒绝码进审计（哪个缺项可在诊断里回溯）。文案复用既有 arb 键
+      // restoreInvalid（「无效的备份文件」），本批不新增 arb。
+      AuditLogger.log(
+        'settings.backup.restore_rejected',
+        success: false,
+        detail: e.code,
+      );
+      if (!context.mounted) return;
+      AppSnack.show(context, l10n?.restoreInvalid ?? '无效的备份文件');
     } on FormatException {
       if (!context.mounted) return;
       AppSnack.show(context, l10n?.restoreInvalid ?? '无效的备份文件');
