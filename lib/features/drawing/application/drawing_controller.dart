@@ -36,6 +36,7 @@ import 'package:drawing_notes_app/features/drawing/rendering/shape_renderer.dart
 import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_palette.dart';
+import 'package:drawing_notes_app/core/operation/operation_log.dart';
 import 'package:drawing_notes_app/shared/utils/image_decode_cap.dart';
 
 /// 绘图引擎控制器：UI 层与数据模型之间的唯一桥梁。
@@ -117,6 +118,11 @@ class DrawingController extends ChangeNotifier
   final HistoryService historyService = HistoryService(
     maxEntries: maxHistoryEntries,
   );
+
+  /// 会话操作日志（Operation Engine 第一阶段，2026-10-11）：`_pushCommand`
+  /// 提交点成对记录的语义影子流。本阶段不驱动撤销（命令栈权威），消费方
+  /// 为历史压缩/会话导出/未来增量同步（见整改清单 §七）。
+  final OperationLog operationLog = OperationLog(capacity: 2000);
 
   @override
   DrawingDocument get document => _document;

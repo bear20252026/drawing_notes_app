@@ -1,5 +1,6 @@
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
+import 'package:drawing_notes_app/core/operation/document_operation.dart';
 
 /// 批量命令事务（借鉴 iwb_canvas_engine SceneWriteTxn 的原子提交思想，
 /// 见 docs/SOURCE_READ_ADAPTATION_REPORT.md）。
@@ -33,6 +34,15 @@ class DocumentTransaction extends DocCommand {
 
   /// 只读访问子命令（审计留痕用）。
   List<DocCommand> get commands => _commands;
+
+  @override
+  DocumentOperation? get operation {
+    // 全部子命令可表达为操作才产出批量记录；任一不可表达（形状/图片/
+    // 快照桥接）则整批不进操作流——部分记录会让日志无法完整回放。
+    final ops = [for (final cmd in _commands) cmd.operation];
+    if (ops.any((op) => op == null)) return null;
+    return OpBatch(ops: [for (final op in ops) op!]);
+  }
 
   @override
   void redo() {

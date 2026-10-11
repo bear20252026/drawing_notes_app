@@ -6,7 +6,15 @@ part of 'drawing_controller.dart';
 /// 编排由 [LayerEditingSession] 持有。该层保留既有控制器 API，避免 UI、
 /// 命令和测试调用方在架构收口时发生迁移。
 extension DrawingControllerHistoryOps on DrawingController {
-  void _pushCommand(DocCommand command) => historyService.push(command);
+  void _pushCommand(DocCommand command) {
+    historyService.push(command);
+    // Operation Engine（2026-10-11）：命令提交点成对记录语义操作。
+    // 命令栈仍是撤销权威；null = 形状/图片/快照桥接类不进操作流。
+    final op = command.operation;
+    if (op != null) {
+      operationLog.record(op);
+    }
+  }
 
   void _bindLayerServiceMigration() {
     layerService.bindLegacyOperations(

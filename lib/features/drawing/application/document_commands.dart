@@ -6,6 +6,7 @@ import 'package:drawing_notes_app/core/canvas_model/layer.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:drawing_notes_app/features/drawing/application/doc_command_context.dart';
+import 'package:drawing_notes_app/core/operation/document_operation.dart';
 
 /// 撤销/重做历史条目（R5：从 drawing_controller 拆出的命令模式文件）。
 ///
@@ -32,6 +33,10 @@ class HistoryEntry {
 abstract class DocCommand {
   void undo();
   void redo();
+
+  /// 提交时成对产生的语义操作记录（Operation Engine 影子流，2026-10-11）。
+  /// null = 本命令不进入操作流（形状/图片/快照桥接类仍由命令体系独占管理）。
+  DocumentOperation? get operation => null;
 }
 
 /// 快照桥接命令：包装 before/after 整层快照，供低频操作使用。
@@ -75,6 +80,12 @@ class AddStrokeCommand extends DocCommand {
     _context.touchDocument();
     _context.afterStrokeUndoRedo(_layerIndex);
   }
+
+  @override
+  DocumentOperation? get operation => OpStrokeAdd(
+    layerId: _context.document.layers[_layerIndex].id,
+    stroke: _stroke.toJson(),
+  );
 }
 
 /// 对象橡皮擦的增量命令（对齐 excalidraw StoreDelta 只存变更的设计）。
@@ -158,6 +169,21 @@ class EraseStrokesCommand extends DocCommand {
     }
     _context.touchDocument();
   }
+
+  @override
+  DocumentOperation? get operation {
+    final layers = _context.document.layers;
+    return OpStrokeRemove(
+      entries: [
+        for (final e in _removed)
+          (
+            layerId: layers[e.layerIndex].id,
+            index: e.index,
+            stroke: e.stroke.toJson(),
+          ),
+      ],
+    );
+  }
 }
 
 /// 选区变换的窄命令（P-05，审计 2026-09-27）。
@@ -200,6 +226,19 @@ class TransformStrokesCommand extends DocCommand {
     _context.afterStrokeUndoRedo(_layerIndex);
     _context.touchDocument();
   }
+
+  @override
+  DocumentOperation? get operation => OpStrokeReplace(
+    layerId: _context.document.layers[_layerIndex].id,
+    entries: [
+      for (final pair in _pairs)
+        (
+          id: pair.before.id,
+          before: pair.before.toJson(),
+          after: pair.after.toJson(),
+        ),
+    ],
+  );
 }
 
 /// 图层显隐切换的窄命令（P-05 同款拆分，2026-10-03）。
@@ -233,6 +272,14 @@ class LayerVisibilityCommand extends DocCommand {
     _context.touchDocument();
     _context.afterLayerUndoRedo();
   }
+
+  @override
+  DocumentOperation? get operation => OpLayerProp(
+    layerId: _context.document.layers[_layerIndex].id,
+    prop: OpLayerProp.propVisible,
+    before: _before,
+    after: _after,
+  );
 }
 
 /// 图层透明度调整的窄命令（与显隐同款拆分）。
@@ -265,6 +312,14 @@ class LayerOpacityCommand extends DocCommand {
     _context.touchDocument();
     _context.afterLayerUndoRedo();
   }
+
+  @override
+  DocumentOperation? get operation => OpLayerProp(
+    layerId: _context.document.layers[_layerIndex].id,
+    prop: OpLayerProp.propOpacity,
+    before: _before,
+    after: _after,
+  );
 }
 
 /// 图层相邻换位的窄命令（图层面板的上移/下移）。
@@ -294,6 +349,9 @@ class LayerReorderCommand extends DocCommand {
     _context.touchDocument();
     _context.afterLayerUndoRedo();
   }
+
+  @override
+  DocumentOperation? get operation => OpLayerReorder(from: _from, to: _to);
 }
 
 /// 手绘识别形状的原子替换命令。
