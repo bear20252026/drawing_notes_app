@@ -3,6 +3,8 @@
 // 提供 PROPFIND/GET/PUT/DELETE/MKCOL 基本操作 + Basic 认证。
 // 重定向一律不跟随（3xx 判失败）：跟随会把 Basic 口令送到服务器指定的
 // 下一跳，而 https 门禁只校验用户配置的 baseUrl——见 _newRequest。
+// 响应体按用途分档设累计字节闸门（DN-008 纵深加固）：边读边累计，
+// 超限即取消订阅，绝不「先全收下再判长度」。
 
 import 'dart:async';
 import 'dart:convert';
@@ -48,6 +50,172 @@ class WebDavSyncException implements Exception {
       'WebDavSyncException: $message${statusCode != null ? ' (status: $statusCode)' : ''}';
 }
 
+/// 响应体的用途档位（DN-008 加固）：不同档位的载荷性质差别很大，
+/// 一刀切的上限要么误伤合法大文档、要么挡不住 dribble 型错误响应，
+/// 故按用途分档。
+enum WebDavResponseBudget {
+  /// 同步清单 `manifest.json`：纯元数据（每个文档一条快照）。
+  manifest,
+
+  /// 单个文档的线上字节（AES-GCM 封装后的块文档 JSON，或 Noop 明文）。
+  document,
+
+  /// PROPFIND 多状态 XML 列表。
+  propfind,
+
+  /// 控制类响应（MKCOL/PUT/DELETE、3xx/4xx/5xx，以及任何本端不消费正文的
+  /// 状态码）：正文只用于 reasonPhrase 之外的调试，从不解析。
+  control,
+}
+
+/// 超限的类型（错误文案里只出现档位名/类型名/数字，不出现任何远端原文）。
+enum WebDavResponseLimitKind {
+  /// 逐块累计字节数越过档位上限。
+  accumulatedBytes,
+
+  /// 响应自报的 Content-Length 已超上限（快速失败通道；该值由远端
+  /// 自报、可以谎报，因此不参与安全判定，真闸门是逐块累计计数器）。
+  declaredContentLength,
+
+  /// PROPFIND XML 元素总数超结构预算。
+  xmlElements,
+
+  /// PROPFIND XML 嵌套深度超结构预算（递归遍历爆栈防护）。
+  xmlDepth,
+}
+
+/// 各档默认上限（DN-008 加固）。
+///
+/// 数值全部锚在本仓既有同类预算上，不新造量级：
+/// - [documentBytes]：`EncryptionService._maxEncryptedInputBytes = 10 MiB`
+///   是本仓对「一个待封装载荷」的既有封顶。同步线格式是 base64-in-JSON
+///   （`AesSyncCipher` 的 `{"n","c","m"}` 封装），base64 膨胀 4/3 ⇒
+///   10 MiB 明文 ≈ 13.4 MiB 密文，向上取整到 **16 MiB**，保证自家合法
+///   上传永远读得回来（不误伤），同时仍是远端自报体量的硬上限。
+/// - [manifestBytes]：清单条目 ≈90 字节（docId + updatedAt + size），
+///   **4 MiB** ≈ 3 万条快照——参照 `AuditLogger._maxFileBytes = 1 MiB`
+///   的「纯 JSON 账本」量级放大一档，给多设备长期增长留余量，且始终
+///   低于单文档档（清单不该是集合里最大的对象）。
+/// - [propfindBytes]：每个 `<d:response>` 块约 200–300 字节，**4 MiB**
+///   ≈ 1.5 万个远端对象；对齐 `SvgPreflight.maxBytes`（5 MiB）的 XML
+///   预检量级并略低。
+/// - [controlBytes]：对齐 `AuditLogger._maxFileBytes = 1 MiB`。真实服务器
+///   的错误页在 KB 级，而这类正文本端从不解析——闸门只为堵住
+///   「对 PUT 回一个 GB 级正文」这类拖延/灌内存行为。
+/// - [propfindMaxElements] / [propfindMaxDepth]：XML 结构预算。深度参照
+///   `SvgPreflight.maxNestingDepth = 128`（爆栈防护，`_findElementsByLocalName`
+///   是递归的）；元素数参照 `SvgPreflight.maxElements = 5000` 的形态，但
+///   「目录列表」每对象约 5 个元素，按列目录用途放大到 10 万元素
+///   （≈2 万对象，正常场景由字节档先命中）。
+class WebDavResponseLimits {
+  const WebDavResponseLimits._();
+
+  static const int documentBytes = 16 * 1024 * 1024;
+  static const int manifestBytes = 4 * 1024 * 1024;
+  static const int propfindBytes = 4 * 1024 * 1024;
+  static const int controlBytes = 1024 * 1024;
+
+  static const int propfindMaxElements = 100000;
+  static const int propfindMaxDepth = 128;
+
+  /// 档位 → 累计字节上限（实例可用 `responseByteCaps` 覆写，生产恒走这里）。
+  static int maxBytesFor(WebDavResponseBudget budget) => switch (budget) {
+    WebDavResponseBudget.manifest => manifestBytes,
+    WebDavResponseBudget.document => documentBytes,
+    WebDavResponseBudget.propfind => propfindBytes,
+    WebDavResponseBudget.control => controlBytes,
+  };
+}
+
+/// 响应超过本端限额（DN-008 加固）。
+///
+/// 威胁模型（按加固口径，不是漏洞口径）：WebDAV 主机是**用户自己配置**的，
+/// 本闸门属于「远端不可信」的纵深防御——防的是配错/被换的主机、中间设备
+/// 或恶意托管把无界响应灌进内存，不是远程可利用的缺陷。
+///
+/// 继承 [WebDavSyncException] 以便既有 `on WebDavSyncException` 分支照常
+/// 收敛（设置页 humanizer 走静态文案）。message 全为本地构造：只有档位名、
+/// 限额类型与两个数字，**不含 URL、头部、正文或任何远端文本**（脱敏红线）。
+class WebDavResponseTooLargeException extends WebDavSyncException {
+  WebDavResponseTooLargeException({
+    required this.budget,
+    required this.kind,
+    required this.limit,
+    required this.observed,
+  }) : super(
+    '远端响应超过本端限额（档位 ${budget.name}·${kind.name}，'
+    '上限 $limit，实测 $observed），已中止读取',
+    statusCode: null,
+  );
+
+  /// 超限的用途档位（本地枚举名，非远端可控）。
+  final WebDavResponseBudget budget;
+
+  /// 触发的限额类型。
+  final WebDavResponseLimitKind kind;
+
+  /// 该档上限（字节数或结构计数，随 [kind] 口径）。
+  final int limit;
+
+  /// 实测值（字节数或结构计数）。
+  final int observed;
+}
+
+/// 读体的有界累计器（DN-008）。
+///
+/// 单独成类只为一件事：**整轮读取**共用一个 [_withTimeout] 截止期，
+/// 而不是「每个分块 30s」——后者会让慢速 dribble 服务器把连接无限期
+/// 吊住，等于把 R-01 既有超时保护改松。超时后要能取消源订阅，故把
+/// 迭代器持有在对象里。
+class _BoundedBodyRead {
+  _BoundedBodyRead(this.stream);
+
+  final Stream<List<int>> stream;
+
+  StreamIterator<List<int>>? _iterator;
+
+  /// 累计读取，越过 [maxBytes] 立刻取消订阅并抛
+  /// [WebDavResponseTooLargeException]；内存封顶 ≈ `maxBytes + 一个分块`。
+  Future<Uint8List> run({
+    required int maxBytes,
+    required WebDavResponseBudget budget,
+  }) async {
+    final iterator = StreamIterator<List<int>>(stream);
+    _iterator = iterator;
+    final collected = BytesBuilder(copy: true);
+    var received = 0;
+    try {
+      while (await iterator.moveNext()) {
+        final chunk = iterator.current;
+        if (chunk.isEmpty) continue;
+        if (received + chunk.length > maxBytes) {
+          await iterator.cancel();
+          throw WebDavResponseTooLargeException(
+            budget: budget,
+            kind: WebDavResponseLimitKind.accumulatedBytes,
+            limit: maxBytes,
+            observed: received + chunk.length,
+          );
+        }
+        received += chunk.length;
+        collected.add(chunk);
+      }
+      return collected.takeBytes();
+    } finally {
+      // 正常结束 / 超限 / 流错误 / 外层超时都会走到这里：源必须被取消，
+      // 否则「取消订阅」只是说说而已，剩余字节仍会被拉进内存。
+      await iterator.cancel();
+    }
+  }
+
+  /// 外层超时后收尾（`run` 的 finally 此时还挂在 await 上，取消即解锁）。
+  Future<void> abort() async {
+    final iterator = _iterator;
+    if (iterator == null) return;
+    await iterator.cancel();
+  }
+}
+
 /// WebDAV 同步传输客户端。
 ///
 /// 所有 HTTP 操作均通过可注入的 [http.Client] 执行，便于单测替换为
@@ -59,6 +227,7 @@ class WebDavSyncClient {
     this.username = '',
     this.password = '',
     this.operationTimeout = defaultOperationTimeout,
+    this.responseByteCaps,
   }) : _client = client,
        _ownsClient = client == null;
 
@@ -73,6 +242,13 @@ class WebDavSyncClient {
 
   /// 单次 HTTP 操作超时（覆盖请求发送与响应体读取全程）。
   final Duration operationTimeout;
+
+  /// 各档响应体字节上限的**测试注入口**（生产恒 null → 走
+  /// [WebDavResponseLimits] 的档位常量）。与本仓既有形态一致：
+  /// `operationTimeout` 可注入更短窗口、`AuditLogger.maxFileBytesOverrideForTest`、
+  /// `AesSyncCipher.isolateThreshold` 同理——常量口径不改，只是让「超限
+  /// 确实被拦 / 正常规模不被误伤」两条相反断言能压在小数值上验证。
+  final Map<WebDavResponseBudget, int>? responseByteCaps;
 
   /// 认证用户名。
   final String username;
@@ -171,11 +347,94 @@ class WebDavSyncClient {
     return request;
   }
 
-  /// 发送请求并读干响应体（两腿各自套操作超时，R-01 口径不变）。
-  Future<http.Response> _send(http.Request request) async {
+  /// 清单固定名（`SyncService.manifestPath` 同值，漂移由
+  /// webdav_sync_client_response_budget_test 的门禁用例钉住）。
+  /// 用途分档靠它区分「清单」与「文档密文」——同步侧调用点
+  /// （`getBytes(manifestPath)` / `getBytes(remotePath(id))`）不带档位参数，
+  /// 传输层必须自己按路径判定预算。
+  static const String manifestPathName = 'manifest.json';
+
+  /// 该相对路径对应的载荷档位：清单档 vs 文档密文档。
+  WebDavResponseBudget _payloadBudgetFor(String relativePath) =>
+      relativePath == manifestPathName
+      ? WebDavResponseBudget.manifest
+      : WebDavResponseBudget.document;
+
+  /// 本实例生效的档位上限（覆写优先，缺省取常量）。
+  int _capFor(WebDavResponseBudget budget) =>
+      responseByteCaps?[budget] ?? WebDavResponseLimits.maxBytesFor(budget);
+
+  /// 本端会消费正文的状态码（其余状态码一律降级到 [control] 档：
+  /// 错误页 / 重定向页 / MKCOL-PUT-DELETE 回执的正文从不解析，
+  /// 没必要给它文档级的内存预算）。
+  static bool _isPayloadStatus(int statusCode) =>
+      statusCode == 200 || statusCode == 207;
+
+  /// 发送请求并**有界**读干响应体（两腿各自套操作超时，R-01 口径不变）。
+  ///
+  /// 旧写法 `http.Response.fromStream(streamed)` 把整包一次性拉进内存、
+  /// 没有任何字节闸门（DN-008）；现在改为一边读一边累计，越过该档上限
+  /// 立刻取消订阅并抛 [WebDavResponseTooLargeException]。
+  /// 超时截止期覆盖**整轮读体**（不是每个分块 30s），语义与修复前一致。
+  Future<http.Response> _send(
+    http.Request request, {
+    required WebDavResponseBudget budget,
+  }) async {
     final client = _activeClient;
     final streamed = await _withTimeout(client.send(request));
-    return _withTimeout(http.Response.fromStream(streamed));
+    final bodyBudget = _isPayloadStatus(streamed.statusCode)
+        ? budget
+        : WebDavResponseBudget.control;
+    final body = await _readBodyBounded(streamed, bodyBudget);
+    // 与 http.Response.fromStream 逐字段等值（contentLength 取实际读到的
+    // 字节数，仍是 Response.bytes 的既有口径）。
+    return http.Response.bytes(
+      body,
+      streamed.statusCode,
+      request: streamed.request,
+      headers: streamed.headers,
+      isRedirect: streamed.isRedirect,
+      persistentConnection: streamed.persistentConnection,
+      reasonPhrase: streamed.reasonPhrase,
+    );
+  }
+
+  /// 有界读取响应体：先过「自报 Content-Length」快速失败通道，再逐块累计。
+  Future<Uint8List> _readBodyBounded(
+    http.StreamedResponse response,
+    WebDavResponseBudget budget,
+  ) async {
+    final maxBytes = _capFor(budget);
+    // 快速失败通道：Content-Length 由远端自报、可谎报，所以它**只能让它
+    // 更早被拒，不能作为放行依据**，也不是安全判定的一部分（真闸门在下面
+    // 的逐块累计计数器）。
+    final declared = response.contentLength;
+    if (declared != null && declared > maxBytes) {
+      // 订阅后立即取消：既不再取字节，也不把源晾在那里（不消费会让底层
+      // 连接滞留）。取消失败不掩盖限额判定本身。
+      try {
+        await response.stream.listen(null).cancel();
+      } catch (_) {
+        // 忽略：限额判定已经成立，取消只是收尾动作，不得掩盖它。
+      }
+      throw WebDavResponseTooLargeException(
+        budget: budget,
+        kind: WebDavResponseLimitKind.declaredContentLength,
+        limit: maxBytes,
+        observed: declared,
+      );
+    }
+    final read = _BoundedBodyRead(response.stream);
+    try {
+      return await _withTimeout(
+        read.run(maxBytes: maxBytes, budget: budget),
+      );
+    } on Object {
+      // 超时（或其他中断）：整轮读取被放弃，源订阅必须当场取消，
+      // 否则「超限即取消订阅」在超时这条腿上只是空话。
+      await read.abort();
+      rethrow;
+    }
   }
 
   /// 3xx 一律判失败（不跟随、不解析 Location、不带远端文本）。
@@ -201,7 +460,10 @@ class WebDavSyncClient {
   Future<bool> ensureCollection() async {
     _requireHttps();
     final request = _newRequest('MKCOL', baseUrl, headers: _authHeader);
-    final response = await _send(request);
+    final response = await _send(
+      request,
+      budget: WebDavResponseBudget.control,
+    );
 
     if (response.statusCode == 201 || response.statusCode == 200) {
       return true;
@@ -223,11 +485,14 @@ class WebDavSyncClient {
   /// - 200/207 → 返回字节。
   /// - 404 → 返回 null。
   /// - 3xx → 抛重定向门禁异常（不跟随）。
+  /// - 响应体超过该路径用途档位的累计字节上限 → 抛
+  ///   [WebDavResponseTooLargeException]（读一半即取消订阅）。
   /// - 其他 → 抛 [WebDavSyncException]。
   Future<Uint8List?> getBytes(String relativePath) async {
     final url = _resolve(relativePath);
     final response = await _send(
       _newRequest('GET', url, headers: _authHeader),
+      budget: _payloadBudgetFor(relativePath),
     );
     _rejectRedirect(response);
 
@@ -260,7 +525,10 @@ class WebDavSyncClient {
     };
     final request = _newRequest('PUT', url, headers: headers)
       ..bodyBytes = Uint8List.fromList(bytes);
-    final response = await _send(request);
+    final response = await _send(
+      request,
+      budget: WebDavResponseBudget.control,
+    );
     _rejectRedirect(response);
 
     if (response.statusCode == 201 || response.statusCode == 204) {
@@ -281,6 +549,7 @@ class WebDavSyncClient {
     final url = _resolve(relativePath);
     final response = await _send(
       _newRequest('DELETE', url, headers: _authHeader),
+      budget: WebDavResponseBudget.control,
     );
     _rejectRedirect(response);
 
@@ -314,7 +583,10 @@ class WebDavSyncClient {
       'Content-Type': 'application/xml',
     });
     request.body = body;
-    final response = await _send(request);
+    final response = await _send(
+      request,
+      budget: WebDavResponseBudget.propfind,
+    );
     _rejectRedirect(response);
 
     if (response.statusCode != 200 && response.statusCode != 207) {
@@ -327,9 +599,44 @@ class WebDavSyncClient {
     return _parseLeafNames(response.body, relativePath);
   }
 
+  /// PROPFIND 多状态 XML 的**结构**闸门（字节闸门之后的第二道，两者不可
+  /// 互相替代）：字节上限管的是「读进来多少」，这里管的是「解析成多少节点、
+  /// 嵌多深」。深度是刚需——[_findElementsByLocalName] 是递归实现，几百层
+  /// 嵌套的合法 XML 就足以爆栈（进程级崩溃，比 OOM 更难看）。
+  /// 遍历用显式栈迭代，自身不会先于被检查对象崩掉。
+  void _guardXmlStructure(XmlDocument document) {
+    var elements = 0;
+    final pending = <(XmlNode, int)>[(document, 0)];
+    while (pending.isNotEmpty) {
+      final (node, depth) = pending.removeLast();
+      if (depth > WebDavResponseLimits.propfindMaxDepth) {
+        throw WebDavResponseTooLargeException(
+          budget: WebDavResponseBudget.propfind,
+          kind: WebDavResponseLimitKind.xmlDepth,
+          limit: WebDavResponseLimits.propfindMaxDepth,
+          observed: depth,
+        );
+      }
+      for (final child in node.children) {
+        if (child is! XmlElement) continue;
+        elements++;
+        if (elements > WebDavResponseLimits.propfindMaxElements) {
+          throw WebDavResponseTooLargeException(
+            budget: WebDavResponseBudget.propfind,
+            kind: WebDavResponseLimitKind.xmlElements,
+            limit: WebDavResponseLimits.propfindMaxElements,
+            observed: elements,
+          );
+        }
+        pending.add((child, depth + 1));
+      }
+    }
+  }
+
   /// 从 PROPFIND 多状态 XML 中解析叶子文件名。
   List<String> _parseLeafNames(String xmlBody, String relativePath) {
     final document = XmlDocument.parse(xmlBody);
+    _guardXmlStructure(document);
     // 按本地名查找（忽略命名空间前缀），递归遍历全部后代。
     final responses = _findElementsByLocalName(document, 'response');
     final leaves = <String>[];

@@ -32,7 +32,7 @@ import 'package:drawing_notes_app/features/notes/infrastructure/webdav_config_st
 /// 只保留纯 DTO / 异常类型的可见性）。
 export 'package:drawing_notes_app/core/sync/sync_service.dart' show SyncResult;
 export 'package:drawing_notes_app/core/storage/webdav_sync_client.dart'
-    show WebDavSyncException;
+    show WebDavSyncException, WebDavResponseTooLargeException;
 
 // 修复 1：口令轮换的两个判据类型随门面再导出（presentation 只经本门面对话，
 // 不再自行 import 密码模块）。
@@ -217,6 +217,9 @@ class SyncController {
 
   /// 组装并执行一次完整同步（transport + cipher + SyncService + 有界重试）。
   ///
+  /// 单飞互斥（DN-002a）：**已有轮次在飞时不起第二轮，而是并入那一轮**
+  /// ——直接返回同一份在飞 Future 的结果。理由与口径见 [_inFlightSync]。
+  ///
   /// - 加密方案在此收口（C-05「自选加密方案」上移）：已配置口令（含盐）→
   ///   派生主密钥用 AES；否则 Noop（明文透传）。
   /// - 装配失败（如 KDF 派生异常）原样抛出；同步执行失败经 [SyncRetryPolicy]
@@ -225,6 +228,67 @@ class SyncController {
   ///   确定性失败，不进重试（修复 1②），原样作为 outcome.error 返回。
   /// - 每次同步独立构建 transport，用毕 [SyncService.close]（finally）。
   Future<SyncRunOutcome> syncNow({
+    required Uri baseUrl,
+    required String username,
+    required String password,
+    required String passphrase,
+    required String? syncSalt,
+    required ConflictHandler conflictHandler,
+    void Function(SyncProgress progress)? onProgress,
+  }) async {
+    // 在飞标记必须在**任何 await 之前**置位（Dart 单 isolate，async 函数体
+    // 到第一个 await 前是同步执行的），否则两轮能同时穿过这道门。
+    final running = _inFlightSync;
+    if (running != null) return running;
+    final round = _runSyncRound(
+      baseUrl: baseUrl,
+      username: username,
+      password: password,
+      passphrase: passphrase,
+      syncSalt: syncSalt,
+      conflictHandler: conflictHandler,
+      onProgress: onProgress,
+    );
+    _inFlightSync = round;
+    try {
+      return await round;
+    } finally {
+      // 只清自己那一轮的标记：极端时序下（本轮结束时已有新一轮登记）不
+      // 得把别人的标记抹掉，否则互斥失效。
+      if (identical(_inFlightSync, round)) _inFlightSync = null;
+    }
+  }
+
+  /// 在飞的同步轮次（DN-002a 单飞互斥）。
+  ///
+  /// 为什么这道闸必须在这里：远端清单是**无条件读-改-写 PUT**
+  /// （`SyncService.syncNow` 先 GET manifest、合并、再 `putBytes(manifestPath)`，
+  /// 而 WebDAV 客户端没有 If-Match 能力，本批也不引入——那属协议假设变更，
+  /// 待业主裁决）。同一设备并发跑两轮时，后完成的那轮会拿它**开始时刻**
+  /// 的旧快照覆盖云端清单，先完成那轮刚登记上去的文档条目从此消失（别的
+  /// 设备下轮会把它们判成「仅远端无」）。
+  ///
+  /// 页面级按钮禁用挡不住这个：`webdav_sync_mounted_guard_test.dart:127-135`
+  /// 钉死了「页面卸载后该轮继续跑」，于是「退出设置页 → 重进 → 再点同步」
+  /// 就是第二轮。
+  ///
+  /// 处置选择：**合并（join）而不是拒绝**。合并下第二轮拿到的是同一份
+  /// [SyncRunOutcome]，页面照常渲染摘要——零新增文案；「拒绝并提示」要么新增
+  /// arb 键（本批禁改 arb），要么把「已有同步在跑」显示成「同步失败」，
+  /// 是骗人。代价（如实记录）：并入的那轮用的是**第一轮**的 conflictHandler
+  /// 与 onProgress，第二轮自带的裁决弹窗不会被询问——清单只会被写一次，
+  /// 数据不会互相覆盖，这是本条要解决的不变量。
+  ///
+  /// 作用域 = 本实例。生产装配里 SyncController 由 AppServices 持有且
+  /// 只装配一次（`CompositionRoot.createAppServices` + `AppShell` 的
+  /// `late final _services`），重进设置页共用同一实例，足以覆盖上面的场景。
+  /// 没做成进程级静态：静态状态会跨用例残留，且本仓纪律是「别给进程级
+  /// 静态加异步/定时器」（widget 测试 Pending timers 判红）。残留口径：
+  /// 若将来出现两个 SyncController 实例并行同步，本闸门不覆盖。
+  Future<SyncRunOutcome>? _inFlightSync;
+
+  /// [syncNow] 的实际一轮（无互斥语义，便于单测直接驱动）。
+  Future<SyncRunOutcome> _runSyncRound({
     required Uri baseUrl,
     required String username,
     required String password,
