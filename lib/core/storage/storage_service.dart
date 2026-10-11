@@ -86,6 +86,13 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
 
   final DocumentCodec _codec;
 
+  /// 批次 DN-003（P0 静默覆盖止血）：以「预算截断态」载入过的文档登记表。
+  ///
+  /// 键是文档 id，值是那次解码的完整性统计。写路径据此拒绝覆盖盘上更完整的
+  /// 原件——见 [save]。
+  final IncompleteDocumentLoadGuard _incompleteLoads =
+      IncompleteDocumentLoadGuard();
+
   late final StorageDirectories _directories;
   late final StorageSecretSession _secrets;
   late final StorageWritePipeline _pipeline;
@@ -123,15 +130,37 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
   /// 链 G 说明（军工审计 2026-08-15）：`.bak` 保留上一版内容（含用户已
   /// 删除的对象——崩溃恢复的必要代价，仅最近 1 版且 delete 时彻底清理）；
   /// 敏感内容建议启用加密（密文 .bak 无明文残留）。
+  ///
+  /// **两类拒绝都是同步抛出、在进入写尾队列之前**（与 `ArgumentError` 同点位）：
+  /// - 编码侧预算越界 [DocumentBudgetException]——本应用写不出「自己读不回来」
+  ///   的文件（`DocumentCodec.validateSnapshotForEncoding`，批次 DN-003）；
+  /// - 不完整载入态 [DocumentIncompleteLoadException]——见下。
   @override
   Future<String> save(DrawingDocument doc) {
     if (!isValidId(doc.id)) {
       throw ArgumentError.value(doc.id, 'doc.id', '文档 ID 不合法');
     }
+    // 批次 DN-003 止血：文档是以**预算截断态**打开的 ⇒ 盘上的原件比内存更
+    // 完整。此时任何覆盖写（5s 防抖自动保存 / 手动保存 / 退出兜底 flush）都会
+    // 把「解码时静默丢掉的那几笔/那几层」固化成真实数据丢失，必须拒绝。
+    //
+    // 异常从写路径自然抛出，因此复用既有失败可见化链路
+    // （`SaveScheduler.saveFailure` → 顶栏芯片 / 状态栏芯片 / snackbar），
+    // 不新增任何 UI 面。调度器失败分支不清 `_dirty`，内存里的编辑不会丢：
+    // 用户可以撤销/删减内容，或由显式处置入口
+    // [acknowledgeBudgetTruncation] 确认后重写。
+    final truncation = _incompleteLoads.reportOf(doc.id);
+    if (truncation != null) {
+      throw DocumentIncompleteLoadException(
+        documentId: doc.id,
+        report: truncation,
+      );
+    }
     // 在进入异步队列前编码出不可变快照。编辑器继续修改 doc 时，队列中的
     // 某次保存仍代表其被请求时的完整版本，而不是可变对象的半成品状态。
     // U2 优化（2026-09-02，P1-10）：主线程只构建快照 Map，jsonEncode +
     // UTF-8 交给 isolate（大文档时），保存瞬间不再阻塞 UI。
+    // 快照构建即执行编码侧预算校验——越界时在主线程同步抛出，不占用写队列。
     final snapshot = DocumentCodec.snapshotOf(doc);
     final id = doc.id;
     final operation = _pipeline.enqueueSave(id, () async {
@@ -152,6 +181,10 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
   /// 加载指定文档。文件不存在返回 null，格式损坏抛出异常（由调用方提示）。
   ///
   /// 崩溃恢复：正式文件损坏时，尝试读取 `.bak` 上一版备份。
+  ///
+  /// 批次 DN-003：解码走 [DocumentCodec.decodeDetailed]，其完整性统计登记进
+  /// [_incompleteLoads]——被防御预算截断过的文档会失去覆盖原件的资格
+  /// （见 [save]）。恢复语义本身一字未改：同一 `decode` 实现。
   @override
   Future<DrawingDocument?> load(String id) async {
     await _directories.ensureDocuments();
@@ -167,17 +200,49 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
     }
 
     try {
-      return _codec.decode(
-        await preparedBytes(file.existsSync() ? file : bak),
+      return _registerDecode(
+        _codec.decodeDetailed(
+          await preparedBytes(file.existsSync() ? file : bak),
+        ),
       );
     } on FormatException {
       // 正式文件损坏：尝试备份恢复。
       if (bak.existsSync()) {
-        return _codec.decode(await preparedBytes(bak));
+        return _registerDecode(
+          _codec.decodeDetailed(await preparedBytes(bak)),
+        );
       }
       rethrow;
     }
   }
+
+  /// 落账一次解码结果并返回文档（批次 DN-003）。
+  ///
+  /// 截断则置位、完整则解除置位——「重新以完整态打开」就是闸门的一条失效路径。
+  DrawingDocument _registerDecode(DecodedCanvasDocument decoded) {
+    _incompleteLoads.registerDecode(
+      decoded.document.id,
+      decoded.report,
+    );
+    return decoded.document;
+  }
+
+  /// 该文档本次是否以「预算截断态」载入（批次 DN-003 的只读探针）。
+  bool isLoadedWithBudgetTruncation(String id) => _incompleteLoads.isTruncated(
+    id,
+  );
+
+  /// 置位那次解码的完整性统计；未置位返回 null。
+  DocumentDecodeReport? budgetTruncationReport(String id) =>
+      _incompleteLoads.reportOf(id);
+
+  /// **显式处置**：确认放弃盘上更完整的原件、允许该文档重新被覆盖写。
+  ///
+  /// 刻意不是任何自动路径的副产物：调用方必须在用户知情之后接线（未来的
+  /// 「修复并覆盖 / 另存为新文档」入口）。批量/静默调用它等于重新打开本批
+  /// 修的 P0。
+  void acknowledgeBudgetTruncation(String id) =>
+      _incompleteLoads.acknowledge(id);
 
   /// 列出所有已保存文档（含元信息），按更新时间倒序。
   @override
@@ -293,8 +358,17 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
   /// 写尾队列——此前在途保存与删除交错会让已删文档复活（rename 进回收站
   /// 后，队列中的保存又写出正式文件）。
   @override
-  Future<bool> delete(String id) =>
-      _pipeline.runDocExclusive(id, () => _trash.deleteDocumentToTrash(id));
+  Future<bool> delete(String id) async {
+    final removed = await _pipeline.runDocExclusive(
+      id,
+      () => _trash.deleteDocumentToTrash(id),
+    );
+    // 批次 DN-003：文档已进回收站，「盘上原件比内存更完整」这一命题不再成立，
+    // 撤下该 id 的不完整态登记（仅在真删除成功后——失败时文件还在，闸门必须
+    // 继续生效，否则下一次保存就会覆盖它）。
+    if (removed) _incompleteLoads.forget(id);
+    return removed;
+  }
 
   int _countStrokes(List<Map<String, Object?>> layers) {
     var n = 0;
@@ -315,7 +389,9 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
 
   /// 列表页单文件大小上限（链 9 修复 2026-08-15）：防恶意超大 .json
   /// 在 listDocuments 时 OOM（与 DocumentCodec 100MB 预检一致）。
-  static const int _maxListMetaBytes = 100 * 1024 * 1024;
+  /// 批次 DN-003 起引用 [DocumentBudgets.maxFileBytes]——两条入口的 100MB
+  /// 此前各写一份字面量，改一处漏一处；现同源。
+  static int get _maxListMetaBytes => DocumentBudgets.maxFileBytes;
 
   /// 校验文档 ID 是否安全（仅允许字母、数字、下划线、'-'）。
   ///
