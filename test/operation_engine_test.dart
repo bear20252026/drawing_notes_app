@@ -61,15 +61,22 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('命令流 vs 操作流：逐步快照相等 + 全量撤销/revert 终点相等', () async {
+    // 时间戳固定：Windows 时钟精度粗（毫秒级），两文档同刻构造可能恰好
+    // 相等；CI Linux 微秒级——默认 DateTime.now() 会差几微秒打碎逐字节断言。
+    final stamp = DateTime.fromMillisecondsSinceEpoch(0);
     final docA = DrawingDocument(
       id: 'eq_doc',
       title: 'equivalence',
       layers: [Layer(id: 'l1', name: ''), Layer(id: 'l2', name: '')],
+      createdAt: stamp,
+      updatedAt: stamp,
     );
     final docB = DrawingDocument(
       id: 'eq_doc',
       title: 'equivalence',
       layers: [Layer(id: 'l1', name: ''), Layer(id: 'l2', name: '')],
+      createdAt: stamp,
+      updatedAt: stamp,
     );
     final context = _MinimalContext(docA);
     final history = DocumentEditHistory(maxEntries: 100);
