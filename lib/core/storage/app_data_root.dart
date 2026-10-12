@@ -22,6 +22,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kDebugMode, visibleForTesting;
 import 'package:path_provider/path_provider.dart';
 
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
+
 /// 统一数据根目录。
 class AppDataRoot {
   AppDataRoot({
@@ -192,7 +194,36 @@ class AppDataRoot {
         );
         await root.rename(oldRoot.path);
       }
-      await staging.rename(root.path);
+      try {
+        await staging.rename(root.path);
+      } catch (e) {
+        // DN-103（专家审计 2026-10-12）：换根失败必须**回滚**旧根。
+        //
+        // 此前这里直接落到外层 `catch (_) { return false; }`——旧数据其实
+        // 还在 `.old_<ts>` 下没丢，但应用按默认根名再也找不到它，下一次启动
+        // 会新建一个空根，用户看到的是「笔记全部消失」。目录交换不是原子的
+        // 两次 rename，中途失败必须自己收拾，不能把状态留给下一次启动猜。
+        //
+        // 回滚成功则旧根恢复原名，本次恢复作废但现网数据照常可用；外层
+        // catch 仍会保留标记，下次启动可重试。
+        if (oldRoot != null) {
+          try {
+            await oldRoot.rename(root.path);
+          } catch (_) {
+            AuditLogger.log(
+              'appdata.restore.rollback_failed',
+              success: false,
+              detail: '旧根回滚失败，数据完整保留在 ${oldRoot.path}',
+            );
+          }
+        }
+        AuditLogger.log(
+          'appdata.restore.promote_failed',
+          success: false,
+          detail: e.runtimeType.toString(),
+        );
+        rethrow; // 外层 catch：保留标记 + 返回 false，下次启动重试
+      }
       try {
         await marker.delete();
       } catch (_) {}
@@ -312,9 +343,7 @@ class AppDataRoot {
   }) {
     final gaps = <String>[];
     if (dataFileCount < minRestoreDataFiles) {
-      gaps.add(
-        '备份包不含任何数据文件（仅 $backupManifestName，疑似选错文件）',
-      );
+      gaps.add('备份包不含任何数据文件（仅 $backupManifestName，疑似选错文件）');
     }
     if (!dirFileCounts.keys.any(knownSubdirNames.contains)) {
       gaps.add(
@@ -352,7 +381,9 @@ class AppDataRoot {
     final declaredCount = manifest['dataFileCount'];
     final declaredBytes = manifest['dataBytes'];
     final declaredDirs = manifest['dirFileCounts'];
-    if (declaredCount is! int || declaredBytes is! int || declaredDirs is! Map) {
+    if (declaredCount is! int ||
+        declaredBytes is! int ||
+        declaredDirs is! Map) {
       gaps.add(
         'v2 备份清单自述不完整（需 dataFileCount/dataBytes/dirFileCounts 三项，'
         '实测 ${declaredCount is int ? 'ok' : '缺 dataFileCount'}/'
@@ -365,9 +396,7 @@ class AppDataRoot {
       gaps.add('清单声明 $declaredCount 个数据文件，包内实际 $dataFileCount 个');
     }
     if (declaredBytes != totalBytes) {
-      gaps.add(
-        '清单声明 $declaredBytes 字节，实际 $totalBytes 字节',
-      );
+      gaps.add('清单声明 $declaredBytes 字节，实际 $totalBytes 字节');
     }
     final declared = <String, int>{};
     for (final e in declaredDirs.entries) {

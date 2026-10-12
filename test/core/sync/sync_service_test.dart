@@ -99,15 +99,17 @@ class _MemoryDocStore implements SyncDocumentStore {
   final Map<String, _Doc> docs = {};
 
   @override
-  Future<List<SyncDocMeta>> listDocuments() async => docs.entries
-      .map(
-        (e) => SyncDocMeta(
-          id: e.key,
-          updatedAt: e.value.updatedAt,
-          size: e.value.bytes.length,
-        ),
-      )
-      .toList();
+  Future<SyncLocalInventory> listDocuments() async => SyncLocalInventory(
+    readable: docs.entries
+        .map(
+          (e) => SyncDocMeta(
+            id: e.key,
+            updatedAt: e.value.updatedAt,
+            size: e.value.bytes.length,
+          ),
+        )
+        .toList(),
+  );
 
   @override
   Future<Uint8List?> readDocument(String id) async => docs[id]?.bytes;
@@ -145,7 +147,7 @@ class _VanishingDocStore implements SyncDocumentStore {
   Map<String, _Doc> get docs => inner.docs;
 
   @override
-  Future<List<SyncDocMeta>> listDocuments() => inner.listDocuments();
+  Future<SyncLocalInventory> listDocuments() => inner.listDocuments();
 
   @override
   Future<Uint8List?> readDocument(String id) async =>
@@ -904,6 +906,101 @@ void main() {
       expect(s.syncNow(), throwsFormatException);
     });
   });
+
+  group('SyncService DN-107 锁定笔记不得被误判为删除（P0 数据安全）', () {
+    test('已同步的受密笔记重新锁定 → 连续三轮同步都不得 DELETE 云端副本', () async {
+      final server = _MemoryServer();
+      final store = _MemoryDocStore();
+      final baseline = _MemoryBaseline();
+
+      // 第一轮：笔记处于解锁态，正常同步一次（建立基线 + 云端副本）。
+      store.docs['secret'] = _Doc('secret', _localDocBytes(1000), 1000);
+      server.seedDoc('secret', 1000);
+      server.seedManifest({'secret': 1000});
+      final first = await _service(store, server, baseline: baseline).syncNow();
+      expect(first.failedDocIds, isEmpty);
+      expect(server.deletes, isEmpty, reason: '首轮为正常同步，不应产生任何删除');
+      expect(_remoteEntries(server).containsKey('secret'), isTrue);
+
+      // 应用关闭重开、笔记尚未解锁：文件仍在本地磁盘，但读不出来。
+      final locked = _LockedDocStore(store)..locked.add('secret');
+      expect(locked.docs.containsKey('secret'), isTrue, reason: '文件确实还在本地');
+
+      // 连续三轮同步：每轮都必须「什么都不做」——读取不到 ≠ 用户删除。
+      for (var round = 1; round <= 3; round++) {
+        final r = await _service(locked, server, baseline: baseline).syncNow();
+        expect(server.deletes, isEmpty, reason: '第 $round 轮：绝不允许 DELETE 云端副本');
+        expect(r.deletedRemote, 0, reason: '第 $round 轮：删除计数必须为 0');
+        expect(
+          _remoteEntries(server).containsKey('secret'),
+          isTrue,
+          reason: '第 $round 轮：云端清单不得移除该笔记',
+        );
+        expect(locked.docs.containsKey('secret'), isTrue, reason: '第 $round 轮：本地文件不得被删');
+      }
+
+      // 解锁后恢复正常：内容未变，仍是「无需操作」。
+      final unlocked = _LockedDocStore(store)..locked.clear();
+      final after = await _service(unlocked, server, baseline: baseline).syncNow();
+      expect(after.deletedRemote, 0);
+      expect(server.deletes, isEmpty);
+      expect(_remoteEntries(server).containsKey('secret'), isTrue);
+    });
+
+    test('锁定笔记不在基线中（从未同步过）→ 不上传也不删除', () async {
+      final server = _MemoryServer();
+      server.seedManifest(<String, int>{});
+      final store = _MemoryDocStore();
+      store.docs['never-synced'] = _Doc('never-synced', _localDocBytes(5), 5);
+      final locked = _LockedDocStore(store)..locked.add('never-synced');
+
+      final r = await _service(locked, server, baseline: _MemoryBaseline()).syncNow();
+
+      expect(server.deletes, isEmpty, reason: '从未同步过的锁定笔记不得触发任何删除');
+      expect(r.uploaded, 0, reason: '锁定期间不解锁内容，不得上传');
+      expect(_remoteEntries(server).containsKey('never-synced'), isFalse);
+      expect(locked.docs.containsKey('never-synced'), isTrue, reason: '本地文件必须原样保留');
+    });
+  });
+}
+
+/// 「存在但锁定」的本地存储门面（DN-107，P0 数据安全）：`listDocuments()`
+/// 把 [locked] 里的 id 归入 `unreadable`，真实对应 `NoteBlockDocSyncStore`
+/// 捕获 `BlockDocLockedException` 后**如实上报**（而不是从清单里静默消失）。
+class _LockedDocStore implements SyncDocumentStore {
+  _LockedDocStore(this.inner);
+
+  final _MemoryDocStore inner;
+  final Set<String> locked = {};
+
+  Map<String, _Doc> get docs => inner.docs;
+
+  @override
+  Future<SyncLocalInventory> listDocuments() async {
+    final all = await inner.listDocuments();
+    return SyncLocalInventory(
+      readable: [
+        for (final d in all.readable)
+          if (!locked.contains(d.id)) d,
+      ],
+      unreadable: {
+        ...all.unreadable,
+        for (final d in all.readable)
+          if (locked.contains(d.id)) d.id,
+      },
+    );
+  }
+
+  @override
+  Future<Uint8List?> readDocument(String id) async =>
+      locked.contains(id) ? null : inner.readDocument(id);
+
+  @override
+  Future<void> writeDocument(String id, Uint8List bytes) =>
+      inner.writeDocument(id, bytes);
+
+  @override
+  Future<void> deleteDocument(String id) => inner.deleteDocument(id);
 }
 
 class _ScriptedHandler implements ConflictHandler {

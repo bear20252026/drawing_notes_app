@@ -15,6 +15,7 @@
 library;
 
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
@@ -516,6 +517,15 @@ class NoteBlockDocStore implements SessionSecretsHolder {
   /// 原子写（bak 备份 + tmp + rename）——保存/设密/改密/重置/移除共用。
   /// A4 修复（审计 2026-09-07）：tmp 写入/rename 失败时清理残留临时文件
   /// （favorite_store 同款纪律），防止半写 .tmp 堆积。
+  ///
+  /// DN-108 修复（专家审计 2026-10-12）：`.bak` 备份失败改为 **fail-closed
+  /// 中止本次写入**，与 [StorageWritePipeline.writeSealedBytes] 同一契约。
+  ///
+  /// 此前这里是「备份失败不阻塞写入」，于是下面的 Windows 回退分支
+  /// （删除旧目标 → 再换入 tmp）可能在**没有任何备份**的情况下删掉正式文件：
+  /// 一旦第二次 rename 也失败，正式文件已删、`.bak` 不存在、tmp 又被 catch
+  /// 清理 ⇒ 三个副本同时不存在。备份是删除-换入回退的崩溃恢复前提，
+  /// 没有它就不允许进入破坏性分支。
   Future<void> _writeFileAtomic(String id, List<int> data) async {
     final path = await _pathFor(id);
     final file = File(path);
@@ -525,14 +535,17 @@ class NoteBlockDocStore implements SessionSecretsHolder {
       if (file.existsSync()) {
         try {
           await file.copy('$path.bak');
-        } catch (_) {
-          // 备份失败不阻塞写入
+        } catch (e) {
+          // fail-closed：无备份即不得进入「删目标再换入」分支。
+          throw FileSystemException('备份写入失败：$e', path);
         }
       }
       try {
         await tmp.rename(path);
       } on FileSystemException {
         if (!file.existsSync()) rethrow;
+        // 走到这里 .bak 必然已完整落盘（上一段的 fail-closed 保证），
+        // 因此即使下面第二次 rename 失败，加载路径仍可从 .bak 恢复。
         await file.delete();
         await tmp.rename(path);
       }

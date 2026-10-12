@@ -385,4 +385,54 @@ void main() {
       );
     });
   });
+
+  group('DN-106 基址尾斜杠兼容（专家审计 2026-10-12）', () {
+    /// 无尾斜杠基址：URI 相对解析会把最后一段当**文件名**，`manifest.json`
+    /// 被解析到上一级目录，随后被逃逸校验错误拒绝 ⇒ 合法 WebDAV 地址无法同步。
+    /// 这不是穿越漏洞（校验本身是对的），而是正常输入被误拒。
+    WebDavSyncClient noSlashClient(
+      Future<http.Response> Function(http.Request) handler,
+    ) => WebDavSyncClient(
+      baseUrl: Uri.parse('https://dav.example.com/notes'),
+      client: MockClient(handler),
+    );
+
+    test('无尾斜杠基址：GET 仍落在集合目录内', () async {
+      late Uri seen;
+      final client = noSlashClient((request) async {
+        seen = request.url;
+        return http.Response('{}', 200);
+      });
+
+      final bytes = await client.getBytes('manifest.json');
+
+      expect(bytes, isNotNull);
+      expect(
+        seen.toString(),
+        'https://dav.example.com/notes/manifest.json',
+        reason: '必须落在集合目录内，而不是被解析到上一级',
+      );
+    });
+
+    test('无尾斜杠基址：PUT 同样落在集合目录内', () async {
+      late Uri seen;
+      final client = noSlashClient((request) async {
+        seen = request.url;
+        return http.Response('', 201);
+      });
+
+      await client.putBytes('manifest.json', utf8.encode('{}'));
+
+      expect(seen.toString(), 'https://dav.example.com/notes/manifest.json');
+    });
+
+    test('无尾斜杠基址：上跳路径仍被拒绝（修复不得放松逃逸校验）', () async {
+      final client = noSlashClient((request) async => http.Response('{}', 200));
+
+      await expectLater(
+        client.getBytes('../evil.json'),
+        throwsA(isA<WebDavSyncException>()),
+      );
+    });
+  });
 }

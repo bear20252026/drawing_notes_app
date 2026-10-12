@@ -312,7 +312,12 @@ class WebDavSyncClient {
     }
     final base = baseUrl.toString();
     final baseDir = base.endsWith('/') ? base : '$base/';
-    final resolved = baseUrl.resolve(relativePath);
+    // DN-106（专家审计 2026-10-12）：解析必须用**规范化后的目录型 URI**。
+    // 此前用原始 baseUrl 解析：当用户填的是 `https://dav.example.com/notes`
+    // （无尾斜杠）时，URI 相对解析把 `notes` 当作文件名，`manifest.json` 被
+    // 解析到上一级目录，随后被下面的逃逸校验错误拒绝 ⇒ 合法的 WebDAV 地址
+    // 无法同步。这不是路径穿越（校验本身是好的），而是正常输入被误拒。
+    final resolved = Uri.parse(baseDir).resolve(relativePath);
     final target = resolved.toString();
     if (target != base && !target.startsWith(baseDir)) {
       throw WebDavSyncException('远端路径逃逸集合根：$relativePath');

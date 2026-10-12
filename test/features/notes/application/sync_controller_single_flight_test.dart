@@ -43,10 +43,12 @@ class _MemDocStore implements SyncDocumentStore {
   final readCalls = <String>[];
 
   @override
-  Future<List<SyncDocMeta>> listDocuments() async => [
-    for (final e in docs.entries)
-      SyncDocMeta(id: e.key, updatedAt: 12345, size: e.value.length),
-  ];
+  Future<SyncLocalInventory> listDocuments() async => SyncLocalInventory(
+    readable: [
+      for (final e in docs.entries)
+        SyncDocMeta(id: e.key, updatedAt: 12345, size: e.value.length),
+    ],
+  );
 
   @override
   Future<Uint8List?> readDocument(String id) async {

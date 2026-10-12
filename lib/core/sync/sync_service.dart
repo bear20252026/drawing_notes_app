@@ -32,10 +32,41 @@ class SyncDocMeta {
   final int size; // 字节
 }
 
+/// 本地文档清单快照（DN-107，P0 数据安全）。
+///
+/// 为什么要它：旧契约 `listDocuments()` 只能返回**读得出来**的文档，同步侧
+/// 便把「清单里没有」推导成「用户删除了」——受密笔记一旦处于锁定态，再次
+/// 同步就会生成删除墓碑并真的 `DELETE` 掉云端副本。
+///
+/// **读取不到 ≠ 用户删除。** 本类把三种状态拆开表达：
+/// - [readable]：可参与内容比对与上传的文档；
+/// - [unreadable]：**确认存在但当前不可读取**（锁定 / 权限不足 / 暂时不可
+///   访问）。既不产生删除墓碑，也不参与上传，按基线快照原样保留，等它恢复
+///   可读后再自然继续同步；
+/// - 两者都不在：才是「本次确实看不到」，再结合基线判断是否为用户删除。
+class SyncLocalInventory {
+  const SyncLocalInventory({
+    required this.readable,
+    this.unreadable = const <String>{},
+  });
+
+  /// 可读取的文档元数据。
+  final List<SyncDocMeta> readable;
+
+  /// 确认存在但当前不可读取的文档 id。
+  final Set<String> unreadable;
+
+  /// 可读取文档的 id 集合（便捷）。
+  Set<String> get readableIds => {for (final d in readable) d.id};
+}
+
 /// 本地文档存储门面（本地优先的「本地半边」）。
 abstract class SyncDocumentStore {
-  /// 列出当前所有文档的元数据（无文档返回空列表）。
-  Future<List<SyncDocMeta>> listDocuments();
+  /// 列出本地文档清单快照。
+  ///
+  /// **必须如实报告「存在但不可读取」的那部分**（见 [SyncLocalInventory]）：
+  /// 只报「读得出来的」，同步侧就会把锁定误判成删除（DN-107，P0）。
+  Future<SyncLocalInventory> listDocuments();
 
   /// 读取文档字节；不存在返回 null。
   Future<Uint8List?> readDocument(String id);
@@ -230,18 +261,27 @@ class SyncService {
     }
 
     // 3. 构本地 manifest：当前文档 + 删除墓碑（基线有但当前无 → 墓碑）。
-    final currentDocs = await documentStore.listDocuments();
+    final inventory = await documentStore.listDocuments();
     final currentEntries = <String, SyncSnapshot>{
-      for (final d in currentDocs)
+      for (final d in inventory.readable)
         d.id: SyncSnapshot(id: d.id, updatedAt: d.updatedAt, size: d.size),
     };
     final baseline = await baselineStore.load() ?? const SyncManifest();
     final deletedIds = <String>{};
     for (final id in baseline.entries.keys) {
-      if (!currentEntries.containsKey(id) &&
-          !baseline.deletedIds.contains(id)) {
-        deletedIds.add(id);
+      if (currentEntries.containsKey(id)) continue;
+      // DN-107（P0 数据安全）：**存在但读不出来**（受密笔记锁定 / 权限不足 /
+      // 暂时不可访问）绝不算删除。按基线快照原样带回清单 ⇒ 两端一致 ⇒ 计划器
+      // 不产生任何操作，等它解锁后自然继续同步。此前这里直接落到「基线有、
+      // 本次清单无 ⇒ 墓碑」，于是「关掉应用重新打开、笔记还没解锁就同步」
+      // 会把云端副本删掉。
+      if (inventory.unreadable.contains(id)) {
+        final baselineSnap = baseline.entries[id];
+        if (baselineSnap != null) currentEntries[id] = baselineSnap;
+        continue;
       }
+      if (baseline.deletedIds.contains(id)) continue;
+      deletedIds.add(id);
     }
     final localManifest = SyncManifest(
       entries: currentEntries,
