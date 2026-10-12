@@ -11,9 +11,30 @@
 # audit_logger（运行时 SHA-256 hash——非常量非密钥）+ fractional_index
 # （base62 字符集——合法常量）——高熵误报文件（--danger 死代码扫描
 # 仍覆盖其他文件——此 2 文件无其他安全问题）。
+#
+# 2026-10-12（DN-102 整改）修正两处：
+#
+# ① `fractional_index.dart` 的路径**是错的**——文件早已从
+#    `lib/features/drawing/domain/` 迁到 `lib/core/canvas_model/`，而配置没跟着改。
+#    于是该文件的 base62 字符集常量从未真正被豁免，SKY-S101 一直报
+#    `High-entropy value detected (entropy=5.95)`。
+#    ⇒ 这解释了「audit_logger 豁免生效、fractional_index 不生效」的差异。
+#
+# ② 新增 `editor_page.dart`：`04e41d9c42` 引入的长标识符
+#    `confirmLeaveWithUnsavedChanges` 被判 `entropy=4.13`（SKY-S101）——
+#    被扫的是**标识符**不是字面量，属误报。选文件级豁免而非就地改写，依据是
+#    该文件在 Skylos 下本就不可信：一次扫描对它产出 **80 条 unused-import +
+#    54 条 unused-variable + 2 条 unused-function**（part 化库结构让死代码分析
+#    失真），安全类仅此 1 条且已人工确认为误报。
+#
+# ⚠️ 代价与复审条件：文件级豁免会让该文件对**未来**的真实 SKY-S101 失明。
+#    当前残余风险由 Secret Scan（独立 workflow，绿）、PR Security、flutter analyze
+#    共同覆盖。若日后 Skylos 支持规则级 + 文件级组合，或该文件的死代码误报收敛，
+#    应把本条收窄为行级/规则级豁免。
 exclude = [
   "lib/core/security/audit_logger.dart",
-  "lib/features/drawing/domain/fractional_index.dart",
+  "lib/core/canvas_model/fractional_index.dart",
+  "lib/features/drawing/presentation/editor_page.dart",
 ]
 # SKY-D215：路径遍历——storage/pdf_import sink 已受管（_pathFor 运行时
 # 校验 + sourcePath 存在性/大小/扩展名校验）——静态污点误报。

@@ -37,6 +37,25 @@ class _MemoryServer {
   /// 收到过的 DELETE 相对路径（DN-001：断言「缺失跳过」不会升级为删除墓碑）。
   final List<String> deletes = [];
 
+  /// DN-104：远端清单版本号。每次成功 PUT manifest 自增，GET manifest 时作为
+  /// ETag 返回。用于模拟「另一台设备在我们读取之后改了清单」。
+  int manifestVersion = 0;
+
+  /// DN-104：PUT 携带过的 (相对路径, If-Match)。记路径是因为**文档上传**也走
+  /// PUT（不带 If-Match），只看 If-Match 列表会把上传那条 `null` 混进来。
+  final List<(String, String?)> puts = [];
+
+  /// 只取清单 PUT 的 If-Match 序列（DN-104 断言用）。
+  List<String?> get manifestPuts =>
+      [for (final p in puts) if (p.$1 == 'manifest.json') p.$2];
+
+  /// DN-104：GET manifest 返回**之后**触发一次（模拟另一台设备紧接着写回）。
+  void Function()? afterGetManifest;
+
+  /// DN-104：置 true 时 GET manifest **不返回 ETag**——模拟不支持条件写入的
+  /// WebDAV 服务端，用于验证客户端退回无条件 PUT。
+  bool suppressManifestEtag = false;
+
   String _rel(Uri url) {
     final path = url.path;
     const prefix = '/sync/';
@@ -76,12 +95,31 @@ class _MemoryServer {
         if (failGet.contains(rel)) return http.Response('', 500);
         if (notFoundGet.contains(rel)) return http.Response('', 404);
         if (rel.isNotEmpty && files.containsKey(rel)) {
-          return http.Response.bytes(files[rel]!, 200);
+          // DN-104：manifest 带 ETag（真实 WebDAV 服务端行为）。
+          final headers = rel == 'manifest.json' && !suppressManifestEtag
+              ? {'etag': 'v$manifestVersion'}
+              : <String, String>{};
+          final resp = http.Response.bytes(files[rel]!, 200, headers: headers);
+          if (rel == 'manifest.json') {
+            final hook = afterGetManifest;
+            afterGetManifest = null; // 只触发一次
+            hook?.call();
+          }
+          return resp;
         }
         return http.Response('', 404);
       case 'PUT':
         if (failPut.contains(rel)) return http.Response('', 500);
+        final ifMatch = request.headers['if-match'] ?? request.headers['If-Match'];
+        puts.add((rel, ifMatch));
+        // DN-104：manifest 走条件写入——版本对不上即 412（别的设备抢先改过）。
+        if (rel == 'manifest.json' &&
+            ifMatch != null &&
+            ifMatch != 'v$manifestVersion') {
+          return http.Response('', 412);
+        }
         if (rel.isNotEmpty) files[rel] = request.bodyBytes;
+        if (rel == 'manifest.json') manifestVersion++;
         return http.Response('', 201);
       case 'DELETE':
         if (failDelete.contains(rel)) return http.Response('', 500);
@@ -99,15 +137,17 @@ class _MemoryDocStore implements SyncDocumentStore {
   final Map<String, _Doc> docs = {};
 
   @override
-  Future<List<SyncDocMeta>> listDocuments() async => docs.entries
-      .map(
-        (e) => SyncDocMeta(
-          id: e.key,
-          updatedAt: e.value.updatedAt,
-          size: e.value.bytes.length,
-        ),
-      )
-      .toList();
+  Future<SyncLocalInventory> listDocuments() async => SyncLocalInventory(
+    readable: docs.entries
+        .map(
+          (e) => SyncDocMeta(
+            id: e.key,
+            updatedAt: e.value.updatedAt,
+            size: e.value.bytes.length,
+          ),
+        )
+        .toList(),
+  );
 
   @override
   Future<Uint8List?> readDocument(String id) async => docs[id]?.bytes;
@@ -145,7 +185,7 @@ class _VanishingDocStore implements SyncDocumentStore {
   Map<String, _Doc> get docs => inner.docs;
 
   @override
-  Future<List<SyncDocMeta>> listDocuments() => inner.listDocuments();
+  Future<SyncLocalInventory> listDocuments() => inner.listDocuments();
 
   @override
   Future<Uint8List?> readDocument(String id) async =>
@@ -904,6 +944,159 @@ void main() {
       expect(s.syncNow(), throwsFormatException);
     });
   });
+
+  group('SyncService DN-107 锁定笔记不得被误判为删除（P0 数据安全）', () {
+    test('已同步的受密笔记重新锁定 → 连续三轮同步都不得 DELETE 云端副本', () async {
+      final server = _MemoryServer();
+      final store = _MemoryDocStore();
+      final baseline = _MemoryBaseline();
+
+      // 第一轮：笔记处于解锁态，正常同步一次（建立基线 + 云端副本）。
+      store.docs['secret'] = _Doc('secret', _localDocBytes(1000), 1000);
+      server.seedDoc('secret', 1000);
+      server.seedManifest({'secret': 1000});
+      final first = await _service(store, server, baseline: baseline).syncNow();
+      expect(first.failedDocIds, isEmpty);
+      expect(server.deletes, isEmpty, reason: '首轮为正常同步，不应产生任何删除');
+      expect(_remoteEntries(server).containsKey('secret'), isTrue);
+
+      // 应用关闭重开、笔记尚未解锁：文件仍在本地磁盘，但读不出来。
+      final locked = _LockedDocStore(store)..locked.add('secret');
+      expect(locked.docs.containsKey('secret'), isTrue, reason: '文件确实还在本地');
+
+      // 连续三轮同步：每轮都必须「什么都不做」——读取不到 ≠ 用户删除。
+      for (var round = 1; round <= 3; round++) {
+        final r = await _service(locked, server, baseline: baseline).syncNow();
+        expect(server.deletes, isEmpty, reason: '第 $round 轮：绝不允许 DELETE 云端副本');
+        expect(r.deletedRemote, 0, reason: '第 $round 轮：删除计数必须为 0');
+        expect(
+          _remoteEntries(server).containsKey('secret'),
+          isTrue,
+          reason: '第 $round 轮：云端清单不得移除该笔记',
+        );
+        expect(locked.docs.containsKey('secret'), isTrue, reason: '第 $round 轮：本地文件不得被删');
+      }
+
+      // 解锁后恢复正常：内容未变，仍是「无需操作」。
+      final unlocked = _LockedDocStore(store)..locked.clear();
+      final after = await _service(unlocked, server, baseline: baseline).syncNow();
+      expect(after.deletedRemote, 0);
+      expect(server.deletes, isEmpty);
+      expect(_remoteEntries(server).containsKey('secret'), isTrue);
+    });
+
+    test('锁定笔记不在基线中（从未同步过）→ 不上传也不删除', () async {
+      final server = _MemoryServer();
+      server.seedManifest(<String, int>{});
+      final store = _MemoryDocStore();
+      store.docs['never-synced'] = _Doc('never-synced', _localDocBytes(5), 5);
+      final locked = _LockedDocStore(store)..locked.add('never-synced');
+
+      final r = await _service(locked, server, baseline: _MemoryBaseline()).syncNow();
+
+      expect(server.deletes, isEmpty, reason: '从未同步过的锁定笔记不得触发任何删除');
+      expect(r.uploaded, 0, reason: '锁定期间不解锁内容，不得上传');
+      expect(_remoteEntries(server).containsKey('never-synced'), isFalse);
+      expect(locked.docs.containsKey('never-synced'), isTrue, reason: '本地文件必须原样保留');
+    });
+  });
+
+  group('SyncService DN-104 多设备清单并发（条件写入）', () {
+    test('设备 B 抢先写回 → 设备 A 收 412 后合并重试，双方条目都保留', () async {
+      final server = _MemoryServer();
+      server.seedManifest(<String, int>{}); // A 先读到空清单（ETag v0）
+      final baseline = _MemoryBaseline();
+
+      final storeA = _MemoryDocStore();
+      storeA.docs['doc-a'] = _Doc('doc-a', _localDocBytes(100), 100);
+
+      // 模拟「A 读到清单之后、写回之前，B 抢先写入了 doc-b」。
+      server.afterGetManifest = () {
+        server.files['manifest.json'] = utf8.encode(
+          jsonEncode({
+            'entries': {
+              'doc-b': {
+                'id': 'doc-b',
+                'updatedAt': 200,
+                'size': _localDocBytes(200).length,
+              },
+            },
+            'deletedIds': <String>[],
+          }),
+        );
+        server.manifestVersion++;
+      };
+
+      final result = await _service(storeA, server, baseline: baseline).syncNow();
+
+      expect(result.failedDocIds, isEmpty, reason: '412 应被合并重试消化，不记为失败');
+      expect(
+        server.manifestPuts,
+        ['v0', 'v1'],
+        reason: '必须走 If-Match 条件写入，并在 412 后换新 ETag 重试',
+      );
+      // 核心断言：双方合法更新都在最终清单里。
+      final entries = _remoteEntries(server);
+      expect(entries.containsKey('doc-a'), isTrue, reason: '本设备的新增不能被覆盖');
+      expect(entries.containsKey('doc-b'), isTrue, reason: '对方设备的新增不能被丢掉');
+    });
+
+    test('服务器不返回 ETag → 退回无条件写（兼容不支持条件写入的服务端）', () async {
+      final server = _MemoryServer()..suppressManifestEtag = true;
+      server.seedManifest(<String, int>{});
+      final store = _MemoryDocStore();
+      store.docs['doc-a'] = _Doc('doc-a', _localDocBytes(100), 100);
+
+      final result = await _service(
+        store,
+        server,
+        baseline: _MemoryBaseline(),
+      ).syncNow();
+
+      expect(result.failedDocIds, isEmpty);
+      expect(server.manifestPuts, [null], reason: '无 ETag 时不得发送 If-Match');
+      expect(_remoteEntries(server).containsKey('doc-a'), isTrue);
+    });
+  });
+}
+
+/// 「存在但锁定」的本地存储门面（DN-107，P0 数据安全）：`listDocuments()`
+/// 把 [locked] 里的 id 归入 `unreadable`，真实对应 `NoteBlockDocSyncStore`
+/// 捕获 `BlockDocLockedException` 后**如实上报**（而不是从清单里静默消失）。
+class _LockedDocStore implements SyncDocumentStore {
+  _LockedDocStore(this.inner);
+
+  final _MemoryDocStore inner;
+  final Set<String> locked = {};
+
+  Map<String, _Doc> get docs => inner.docs;
+
+  @override
+  Future<SyncLocalInventory> listDocuments() async {
+    final all = await inner.listDocuments();
+    return SyncLocalInventory(
+      readable: [
+        for (final d in all.readable)
+          if (!locked.contains(d.id)) d,
+      ],
+      unreadable: {
+        ...all.unreadable,
+        for (final d in all.readable)
+          if (locked.contains(d.id)) d.id,
+      },
+    );
+  }
+
+  @override
+  Future<Uint8List?> readDocument(String id) async =>
+      locked.contains(id) ? null : inner.readDocument(id);
+
+  @override
+  Future<void> writeDocument(String id, Uint8List bytes) =>
+      inner.writeDocument(id, bytes);
+
+  @override
+  Future<void> deleteDocument(String id) => inner.deleteDocument(id);
 }
 
 class _ScriptedHandler implements ConflictHandler {

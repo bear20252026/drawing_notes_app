@@ -32,10 +32,41 @@ class SyncDocMeta {
   final int size; // 字节
 }
 
+/// 本地文档清单快照（DN-107，P0 数据安全）。
+///
+/// 为什么要它：旧契约 `listDocuments()` 只能返回**读得出来**的文档，同步侧
+/// 便把「清单里没有」推导成「用户删除了」——受密笔记一旦处于锁定态，再次
+/// 同步就会生成删除墓碑并真的 `DELETE` 掉云端副本。
+///
+/// **读取不到 ≠ 用户删除。** 本类把三种状态拆开表达：
+/// - [readable]：可参与内容比对与上传的文档；
+/// - [unreadable]：**确认存在但当前不可读取**（锁定 / 权限不足 / 暂时不可
+///   访问）。既不产生删除墓碑，也不参与上传，按基线快照原样保留，等它恢复
+///   可读后再自然继续同步；
+/// - 两者都不在：才是「本次确实看不到」，再结合基线判断是否为用户删除。
+class SyncLocalInventory {
+  const SyncLocalInventory({
+    required this.readable,
+    this.unreadable = const <String>{},
+  });
+
+  /// 可读取的文档元数据。
+  final List<SyncDocMeta> readable;
+
+  /// 确认存在但当前不可读取的文档 id。
+  final Set<String> unreadable;
+
+  /// 可读取文档的 id 集合（便捷）。
+  Set<String> get readableIds => {for (final d in readable) d.id};
+}
+
 /// 本地文档存储门面（本地优先的「本地半边」）。
 abstract class SyncDocumentStore {
-  /// 列出当前所有文档的元数据（无文档返回空列表）。
-  Future<List<SyncDocMeta>> listDocuments();
+  /// 列出本地文档清单快照。
+  ///
+  /// **必须如实报告「存在但不可读取」的那部分**（见 [SyncLocalInventory]）：
+  /// 只报「读得出来的」，同步侧就会把锁定误判成删除（DN-107，P0）。
+  Future<SyncLocalInventory> listDocuments();
 
   /// 读取文档字节；不存在返回 null。
   Future<Uint8List?> readDocument(String id);
@@ -195,7 +226,36 @@ class SyncService {
 
   static const String manifestPath = 'manifest.json';
 
+  /// DN-104：清单条件写入的最大尝试次数（1 次原始 + 2 次 412 后重试）。
+  static const int _maxManifestCasAttempts = 3;
+
   void _emit(SyncProgress p) => onProgress?.call(p);
+
+  /// 读取远端清单并带回 ETag（DN-104 条件写入的读侧）。
+  ///
+  /// B9 修复（审计 2026-09-07）：远端 manifest 是未认证/可被篡改数据——
+  /// `jsonDecode(...) as Map` 无防护强转会抛裸 TypeError；改为类型检查后抛
+  /// FormatException（与 sync_cipher 错误口径一致，调用方可统一处理）。
+  /// 修复 1②：解不开远端 manifest 时 [cipher.openManifestJson] 抛
+  /// [SyncKeyMismatchException] 直接终止整轮（fail-closed：宁可不同步，也不按
+  /// 残缺清单行动；类型可判别 ⇒ SyncController 不对它做退避重试）。
+  ///
+  /// `etag` 为 null 表示服务器未返回 ETag ⇒ 不支持条件写入，调用方退回无条件
+  /// PUT（不能假设所有 WebDAV 服务端行为相同）。
+  Future<({SyncManifest manifest, String? etag})> _readRemoteManifest() async {
+    final fetched = await transport.fetchBytes(manifestPath);
+    if (fetched == null) {
+      return (manifest: const SyncManifest(), etag: null);
+    }
+    final manifestJson = await cipher.openManifestJson(
+      utf8.decode(fetched.bytes),
+    );
+    final decoded = jsonDecode(manifestJson);
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException('远端清单格式损坏');
+    }
+    return (manifest: SyncManifest.fromJson(decoded), etag: fetched.etag);
+  }
 
   /// 执行一次完整同步。
   ///
@@ -207,41 +267,33 @@ class SyncService {
     _emit(SyncProgress.phase(SyncProgressPhase.connecting));
     await transport.ensureCollection();
 
-    // 2. 拉远端 manifest（不存在则视为空）。
-    final remoteBytes = await transport.getBytes(manifestPath);
-    // B9 修复（审计 2026-09-07）：远端 manifest 是未认证/可被篡改数据——
-    // `jsonDecode(...) as Map` 无防护强转会抛裸 TypeError；改为类型检查后
-    // 抛 FormatException（与 sync_cipher 错误口径一致，调用方可统一处理）。
-    SyncManifest remoteManifest;
-    if (remoteBytes == null) {
-      remoteManifest = const SyncManifest();
-    } else {
-      final manifestJson = await cipher.openManifestJson(
-        utf8.decode(remoteBytes),
-      );
-      // 修复 1②：解不开远端 manifest 时上面抛 [SyncKeyMismatchException]
-      // 直接终止整轮（既有 fail-closed 语义：宁可不同步，也不按残缺清单
-      // 行动）。类型可判别 ⇒ SyncController 不再对它做退避重试。
-      final decoded = jsonDecode(manifestJson);
-      if (decoded is! Map<String, dynamic>) {
-        throw const FormatException('远端清单格式损坏');
-      }
-      remoteManifest = SyncManifest.fromJson(decoded);
-    }
+    // 2. 拉远端 manifest（不存在则视为空）+ 记下 ETag 供 DN-104 条件写入。
+    final remote = await _readRemoteManifest();
+    final remoteManifest = remote.manifest;
+    var manifestEtag = remote.etag;
 
     // 3. 构本地 manifest：当前文档 + 删除墓碑（基线有但当前无 → 墓碑）。
-    final currentDocs = await documentStore.listDocuments();
+    final inventory = await documentStore.listDocuments();
     final currentEntries = <String, SyncSnapshot>{
-      for (final d in currentDocs)
+      for (final d in inventory.readable)
         d.id: SyncSnapshot(id: d.id, updatedAt: d.updatedAt, size: d.size),
     };
     final baseline = await baselineStore.load() ?? const SyncManifest();
     final deletedIds = <String>{};
     for (final id in baseline.entries.keys) {
-      if (!currentEntries.containsKey(id) &&
-          !baseline.deletedIds.contains(id)) {
-        deletedIds.add(id);
+      if (currentEntries.containsKey(id)) continue;
+      // DN-107（P0 数据安全）：**存在但读不出来**（受密笔记锁定 / 权限不足 /
+      // 暂时不可访问）绝不算删除。按基线快照原样带回清单 ⇒ 两端一致 ⇒ 计划器
+      // 不产生任何操作，等它解锁后自然继续同步。此前这里直接落到「基线有、
+      // 本次清单无 ⇒ 墓碑」，于是「关掉应用重新打开、笔记还没解锁就同步」
+      // 会把云端副本删掉。
+      if (inventory.unreadable.contains(id)) {
+        final baselineSnap = baseline.entries[id];
+        if (baselineSnap != null) currentEntries[id] = baselineSnap;
+        continue;
       }
+      if (baseline.deletedIds.contains(id)) continue;
+      deletedIds.add(id);
     }
     final localManifest = SyncManifest(
       entries: currentEntries,
@@ -313,13 +365,55 @@ class SyncService {
         // download：远端快照已在新清单中（远端较新），无需改动。
       }
     }
-    final newManifest = SyncManifest(entries: newEntries);
-    await transport.putBytes(
-      manifestPath,
-      utf8.encode(
-        await cipher.sealManifestJson(jsonEncode(newManifest.toJson())),
-      ),
-    );
+    // DN-104：条件写入 + 有界重试。
+    //
+    // 远端清单是**多设备共享**的可变资源，而本流程是「GET manifest → 本地算
+    // → PUT manifest」。两台设备都读到 M0、各自加上自己的新条目时，后写的
+    // 那台会把前一台的条目整片覆盖：前一台的文档仍在远端（变成孤儿文件），
+    // 却从清单里消失，其他设备再也发现不了它。
+    //
+    // 修法：写时带上读取时拿到的 ETag（`If-Match`）。被抢先则远端返回 412，
+    // 此时**重新读取远端清单并把对方的新条目合并进来**（本轮我们改动过的 id
+    // 以我们为准），再用新 ETag 重试，最多 [_maxManifestCasAttempts] 次。
+    // 服务器不给 ETag（`manifestEtag == null`）时退回无条件写——兼容不支持
+    // 条件写入的服务端，行为与既有实现一致。
+    final touchedIds = <String>{
+      for (final op in executed.succeeded)
+        if (op.kind == SyncOperationKind.upload ||
+            op.kind == SyncOperationKind.deleteRemote)
+          op.id,
+    };
+    for (var attempt = 1; ; attempt++) {
+      try {
+        await transport.putBytes(
+          manifestPath,
+          utf8.encode(
+            await cipher.sealManifestJson(
+              jsonEncode(SyncManifest(entries: newEntries).toJson()),
+            ),
+          ),
+          ifMatch: manifestEtag,
+        );
+        break;
+      } on WebDavPreconditionFailedException {
+        if (attempt >= _maxManifestCasAttempts) rethrow;
+        final fresh = await _readRemoteManifest();
+        manifestEtag = fresh.etag;
+        // 合并口径：不在本轮改动集里的 id 一律以**刚读到的远端**为准——
+        // 对方的新增要保留，对方的删除也不能被我们按旧清单复活。
+        final merged = <String, SyncSnapshot>{
+          for (final e in fresh.manifest.entries.entries)
+            if (!touchedIds.contains(e.key)) e.key: e.value,
+        };
+        for (final id in touchedIds) {
+          final ours = newEntries[id];
+          if (ours != null) merged[id] = ours; // 我们新增/更新；删除则不放入
+        }
+        newEntries
+          ..clear()
+          ..addAll(merged);
+      }
+    }
     // M4：keepBoth 副本只进本地基线（远端无此文件，进远端清单会导致
     // 其他设备下载 404 空转）；下轮它们作为本地新增正常上传。
     // 毒丸防误删：仅远端文档**没真正下载成功**时（真失败 / 远端 404 而跳过，

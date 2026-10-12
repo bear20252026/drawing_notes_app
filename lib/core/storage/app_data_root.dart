@@ -99,6 +99,37 @@ class AppDataRoot {
   /// 唯一口径，避免两处字符串各写一份而漂移）。
   static const String backupManifestName = 'backup_manifest.json';
 
+  /// 恢复失败留痕文件名（与数据根同级）。DN-103。
+  static const String restoreFailureLogName =
+      '$defaultRootName.restore_failure.log';
+
+  /// 记录一次恢复失败（DN-103）。
+  ///
+  /// 刻意**不用 `AuditLogger`**，两个原因：
+  /// 1. `core/security/audit_logger.dart` 本身就 import 本文件，反向依赖会形成
+  ///    import 环——架构门禁「零循环依赖」会红。
+  /// 2. `AuditLogger` 是**进程内内存链、重启即失**；而「恢复失败」恰恰是跨重启
+  ///    才需要看的事件。落在数据根父目录的日志文件才真正可诊断。
+  ///
+  /// 尽力而为：日志写不进去绝不影响恢复主流程。
+  static Future<void> _recordRestoreFailure(
+    String parentPath,
+    String detail,
+  ) async {
+    try {
+      final log = File(
+        '$parentPath${Platform.pathSeparator}$restoreFailureLogName',
+      );
+      await log.writeAsString(
+        '${DateTime.now().toIso8601String()}  $detail\n',
+        mode: FileMode.append,
+        flush: true,
+      );
+    } catch (_) {
+      // 留痕失败可忽略：本次恢复已按失败返回，标记仍保留供下次重试
+    }
+  }
+
   /// 写入待恢复标记（恢复流第三步：暂存解压完成后、退出应用前调用）。
   static Future<void> writePendingRestoreMarker({
     required Directory parentDir,
@@ -192,7 +223,35 @@ class AppDataRoot {
         );
         await root.rename(oldRoot.path);
       }
-      await staging.rename(root.path);
+      try {
+        await staging.rename(root.path);
+      } catch (e) {
+        // DN-103（专家审计 2026-10-12）：换根失败必须**回滚**旧根。
+        //
+        // 此前这里直接落到外层 `catch (_) { return false; }`——旧数据其实
+        // 还在 `.old_<ts>` 下没丢，但应用按默认根名再也找不到它，下一次启动
+        // 会新建一个空根，用户看到的是「笔记全部消失」。目录交换不是原子的
+        // 两次 rename，中途失败必须自己收拾，不能把状态留给下一次启动猜。
+        //
+        // 回滚成功则旧根恢复原名，本次恢复作废但现网数据照常可用；外层
+        // catch 仍会保留标记，下次启动可重试。
+        if (oldRoot != null) {
+          try {
+            await oldRoot.rename(root.path);
+          } catch (_) {
+            await _recordRestoreFailure(
+              supportPath,
+              'rollback_failed  旧根回滚失败，数据完整保留在 ${oldRoot.path}',
+            );
+          }
+        }
+        await _recordRestoreFailure(
+          supportPath,
+          'promote_failed  ${e.runtimeType}'
+          '${oldRoot == null ? '' : '（已尝试回滚旧根）'}',
+        );
+        rethrow; // 外层 catch：保留标记 + 返回 false，下次启动重试
+      }
       try {
         await marker.delete();
       } catch (_) {}
@@ -312,9 +371,7 @@ class AppDataRoot {
   }) {
     final gaps = <String>[];
     if (dataFileCount < minRestoreDataFiles) {
-      gaps.add(
-        '备份包不含任何数据文件（仅 $backupManifestName，疑似选错文件）',
-      );
+      gaps.add('备份包不含任何数据文件（仅 $backupManifestName，疑似选错文件）');
     }
     if (!dirFileCounts.keys.any(knownSubdirNames.contains)) {
       gaps.add(
@@ -352,7 +409,9 @@ class AppDataRoot {
     final declaredCount = manifest['dataFileCount'];
     final declaredBytes = manifest['dataBytes'];
     final declaredDirs = manifest['dirFileCounts'];
-    if (declaredCount is! int || declaredBytes is! int || declaredDirs is! Map) {
+    if (declaredCount is! int ||
+        declaredBytes is! int ||
+        declaredDirs is! Map) {
       gaps.add(
         'v2 备份清单自述不完整（需 dataFileCount/dataBytes/dirFileCounts 三项，'
         '实测 ${declaredCount is int ? 'ok' : '缺 dataFileCount'}/'
@@ -365,9 +424,7 @@ class AppDataRoot {
       gaps.add('清单声明 $declaredCount 个数据文件，包内实际 $dataFileCount 个');
     }
     if (declaredBytes != totalBytes) {
-      gaps.add(
-        '清单声明 $declaredBytes 字节，实际 $totalBytes 字节',
-      );
+      gaps.add('清单声明 $declaredBytes 字节，实际 $totalBytes 字节');
     }
     final declared = <String, int>{};
     for (final e in declaredDirs.entries) {

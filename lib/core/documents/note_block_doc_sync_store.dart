@@ -44,16 +44,24 @@ class NoteBlockDocSyncStore implements SyncDocumentStore {
     return bytes;
   }
 
+  /// DN-107（P0 数据安全）：如实区分「可读取」与「存在但锁定」。
+  ///
+  /// 此前受密未解锁的笔记被直接 `continue` 掉，同步侧看到「基线有、本次
+  /// 清单无」就推导成用户删除，进而真的 `DELETE` 云端副本——关掉应用重开、
+  /// 笔记尚未解锁就同步即可触发。**读取不到 ≠ 用户删除。**
   @override
-  Future<List<SyncDocMeta>> listDocuments() async {
+  Future<SyncLocalInventory> listDocuments() async {
     final ids = await _store.listIds();
     final metas = <SyncDocMeta>[];
+    final unreadable = <String>{};
     for (final id in ids) {
-      // N2：受密未解锁的笔记跳过（fail-closed——同步不解锁受密内容）。
+      // N2：受密未解锁的笔记不解锁内容（fail-closed），但要如实上报为
+      // 「存在但不可读取」，交给同步侧保留其云端记录。
       final NoteBlockDoc? doc;
       try {
         doc = await _store.loadDocument(id);
       } on BlockDocLockedException {
+        unreadable.add(id);
         continue;
       }
       if (doc == null) continue;
@@ -65,7 +73,7 @@ class NoteBlockDocSyncStore implements SyncDocumentStore {
         ),
       );
     }
-    return metas;
+    return SyncLocalInventory(readable: metas, unreadable: unreadable);
   }
 
   @override

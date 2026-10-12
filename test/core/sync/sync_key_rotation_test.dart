@@ -40,10 +40,12 @@ class _Docs implements SyncDocumentStore {
   final Map<String, Uint8List> docs;
 
   @override
-  Future<List<SyncDocMeta>> listDocuments() async => [
-    for (final e in docs.entries)
-      SyncDocMeta(id: e.key, updatedAt: 100, size: e.value.length),
-  ];
+  Future<SyncLocalInventory> listDocuments() async => SyncLocalInventory(
+    readable: [
+      for (final e in docs.entries)
+        SyncDocMeta(id: e.key, updatedAt: 100, size: e.value.length),
+    ],
+  );
 
   @override
   Future<Uint8List?> readDocument(String id) async => docs[id];

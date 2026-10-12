@@ -44,6 +44,20 @@ DEFAULT_DIRS = ["lib"]
 # 忽略的目录/文件（构建产物、生成代码等）
 IGNORED_DIRS = {".git", "build", ".dart_tool", "node_modules", "target", "dist", "vendor"}
 
+# 生成代码豁免路径前缀——与 `.sloc-guard.toml` 的 `[scanner].exclude` 口径**对齐**。
+#
+# 背景：`lib/l10n/` 下的 `app_localizations*.dart` 是 `flutter gen-l10n` 的输出，
+# 行数随 ARB 键数线性增长，人工拆分无意义（且下次 gen-l10n 会重新生成、改动被覆盖）。
+# 2026-09-05 审计 l10n 收编时 `.sloc-guard.toml` 已豁免该目录，但本脚本**没有同步**
+# 这个口径——于是同一份生成代码在 sloc-guard 门禁里豁免、在 code_guard 门禁里报
+# error（3 处：app_localizations.dart 1116 行 / _en 2493 行 / _zh 2360 行，上限 1000）。
+#
+# 该 workflow（pr-quality.yml）仅 `pull_request` 触发，而本仓实际走「直推 master」
+# 流程 ⇒ 这条恒红一直没被发现，直到 2026-10-12 首个 PR（#53）才暴露。
+# 同款盲区本仓已记录过一次：`pr-architecture.yml` 注释里的「tools/check_boundaries.sh
+# 在 master 上从未被 CI 执行过」。
+IGNORED_PATH_PREFIXES = ("lib/l10n/",)
+
 
 @dataclass
 class Violation:
@@ -55,7 +69,10 @@ class Violation:
 
 
 def _is_ignored(path: Path) -> bool:
-    return any(part in IGNORED_DIRS for part in path.parts)
+    if any(part in IGNORED_DIRS for part in path.parts):
+        return True
+    posix = path.as_posix()
+    return any(prefix in posix for prefix in IGNORED_PATH_PREFIXES)
 
 
 def _walk_dart_files(directory: Path) -> List[Path]:
@@ -66,7 +83,7 @@ def _walk_dart_files(directory: Path) -> List[Path]:
         for name in names:
             if name.endswith(".dart"):
                 files.append(Path(root) / name)
-    return files
+    return [f for f in files if not _is_ignored(f)]
 
 
 def _count_lines(path: Path) -> int:

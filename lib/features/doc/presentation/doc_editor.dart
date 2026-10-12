@@ -264,6 +264,26 @@ class DocEditorState extends State<DocEditor> {
   /// 当前挂了选区监听的控制器（防止重复挂/漏摘）。
   TextEditingController? _selectionListenerController;
 
+  /// DN-101（专家审计 2026-10-12）：**监听回调收口成 State 字段**。
+  ///
+  /// 根因：`_onSelectionChanged` / `_onFocusChange` 定义在 extension 里，而
+  /// **extension 成员的方法代次每次求值都新分配一个闭包**（实例方法代次会被
+  /// 规范化，`o.m == o.m` 为真，所以搬进 extension 之前 add/remove 是成对的）。
+  /// 于是「摘监听」摘的是另一个对象 ⇒ 摘不掉，监听在**常驻的
+  /// TextEditingController** 上逐次累积，之后每次选区变化触发 N 份回调与
+  /// 多余重建。
+  ///
+  /// 同一病灶在 `_EditorPagePersistence` 上已由 `dd7a740` 修掉（云端 20 条
+  /// defunct 断言的根因），本批按同款改法收口这里的最后一处。
+  late final VoidCallback _selectionListener = _onSelectionChanged;
+  late final VoidCallback _focusListener = _onFocusChange;
+
+  /// 同源（本批由 DN-101 守卫扫出，审计报告未列）：`_onTitleEdited` 同样声明在
+  /// `doc_editor_history.dart` 的 extension 内。危害较小——`_titleController`
+  /// 只在 initState 挂一次、dispose 里摘完紧接着就 `dispose()`，所以摘不掉也
+  /// 没有累积面；但同属「方法代次不可用于 add/removeListener」这条纪律。
+  late final VoidCallback _titleListener = _onTitleEdited;
+
   /// 当前正在拖拽的块 id（用于 dropline 指示）。
   String? _draggingBlockId;
 
@@ -318,7 +338,7 @@ class DocEditorState extends State<DocEditor> {
         widget.document ??
         NoteBlockDoc.empty('doc_${DateTime.now().microsecondsSinceEpoch}');
     _titleController = TextEditingController(text: _doc.title);
-    _titleController.addListener(_onTitleEdited);
+    _titleController.addListener(_titleListener);
     _root = _buildRootFromDoc(_doc);
     // 用既有块 id 播种计数器：防止本会话新 id 与落盘存量 id 碰撞
     // （模板文档自带 block_0… 落盘后重开，计数器从 0 起步必撞）。
@@ -348,15 +368,15 @@ class DocEditorState extends State<DocEditor> {
     _slashMenuOverlay?.remove();
     _slashMenuOverlay = null;
     _listScroll.dispose();
-    _selectionListenerController?.removeListener(_onSelectionChanged);
+    _selectionListenerController?.removeListener(_selectionListener);
     for (final node in _focusNodes.values) {
-      node.removeListener(_onFocusChange);
+      node.removeListener(_focusListener);
       node.dispose();
     }
     for (final c in _controllers.values) {
       c.dispose();
     }
-    _titleController.removeListener(_onTitleEdited);
+    _titleController.removeListener(_titleListener);
     _titleController.dispose();
     _historyDebounce?.cancel();
     _cosmeticRefreshDebounce?.cancel();

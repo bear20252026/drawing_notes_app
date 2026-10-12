@@ -62,7 +62,7 @@ extension DocEditorResources on DocEditorState {
     }
     if (!_focusNodes.containsKey(block.id)) {
       final node = FocusNode();
-      node.addListener(_onFocusChange);
+      node.addListener(_focusListener);
       _focusNodes[block.id] = node;
     }
     if (!_layerLinks.containsKey(block.id)) {
@@ -79,7 +79,7 @@ extension DocEditorResources on DocEditorState {
     controller?.dispose();
     final node = _focusNodes.remove(blockId);
     if (node != null) {
-      node.removeListener(_onFocusChange);
+      node.removeListener(_focusListener);
       node.dispose();
     }
     _layerLinks.remove(blockId);
@@ -102,11 +102,11 @@ extension DocEditorSelection on DocEditorState {
         _focusedBlockId = focused;
       });
       // 聚焦块切换：选区监听迁移到新控制器，浮动工具条先隐藏。
-      _selectionListenerController?.removeListener(_onSelectionChanged);
+      _selectionListenerController?.removeListener(_selectionListener);
       _selectionListenerController = focused == null
           ? null
           : _controllers[focused];
-      _selectionListenerController?.addListener(_onSelectionChanged);
+      _selectionListenerController?.addListener(_selectionListener);
       _hasTextSelection = false;
       _syncSelectionToolbar();
     }
@@ -168,7 +168,7 @@ extension DocEditorSelection on DocEditorState {
     if (blockId == null) return;
     _dismissSelectionToolbar();
     if (_selectionListenerController == _controllers[blockId]) {
-      _selectionListenerController?.removeListener(_onSelectionChanged);
+      _selectionListenerController?.removeListener(_selectionListener);
       _selectionListenerController = null;
     }
     _root = _editor.deleteBlock(_root, blockId);

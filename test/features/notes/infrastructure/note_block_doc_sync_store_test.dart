@@ -30,14 +30,16 @@ void main() {
     final sync = NoteBlockDocSyncStore(store);
     await store.saveDocument(NoteBlockDoc.empty('d1', title: '设计'));
 
-    final metas = await sync.listDocuments();
-    expect(metas, hasLength(1));
-    expect(metas.single.id, 'd1');
+    // DN-107：返回的是清单快照（readable + unreadable），未锁定时 unreadable 为空。
+    final inventory = await sync.listDocuments();
+    expect(inventory.readable, hasLength(1));
+    expect(inventory.unreadable, isEmpty, reason: '未锁定 ⇒ 不存在「读不出来」的文档');
+    expect(inventory.readable.single.id, 'd1');
     expect(
-      metas.single.updatedAt,
+      inventory.readable.single.updatedAt,
       (await store.loadDocument('d1'))!.updatedAt.millisecondsSinceEpoch,
     );
-    expect(metas.single.size, greaterThan(0));
+    expect(inventory.readable.single.size, greaterThan(0));
   });
 
   test('readDocument / writeDocument / deleteDocument 闭环', () async {
