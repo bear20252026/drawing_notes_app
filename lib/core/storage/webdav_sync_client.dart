@@ -57,8 +57,7 @@ class WebDavSyncException implements Exception {
 /// 调用方（SyncService）据此做有界重试，绝不能把它当成普通失败吞掉——
 /// 吞掉就等于放弃对方的清单更新。
 class WebDavPreconditionFailedException extends WebDavSyncException {
-  WebDavPreconditionFailedException(String message, {int? statusCode})
-    : super(message, statusCode: statusCode);
+  WebDavPreconditionFailedException(super.message, {super.statusCode});
 }
 
 /// 带版本标识的 GET 结果（DN-104）。
@@ -590,8 +589,8 @@ class WebDavSyncClient {
       if (!overwrite) 'If-None-Match': '*',
       // DN-104：条件更新。带上读取时拿到的 ETag；远端在此期间被别的设备改过
       // 就返回 412，从而不覆盖对方的清单更新。ifMatch 为 null（服务器不给
-      // ETag）时退化为无条件写——兼容不支持条件写入的服务端。
-      if (ifMatch != null) 'If-Match': ifMatch,
+      // ETag）时该条目不写入 ⇒ 退化为无条件写——兼容不支持条件写入的服务端。
+      'If-Match': ?ifMatch,
     };
     final request = _newRequest('PUT', url, headers: headers)
       ..bodyBytes = Uint8List.fromList(bytes);
