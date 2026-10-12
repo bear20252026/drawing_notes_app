@@ -13,14 +13,14 @@
 | 涉密内容入库/入评审 | 密钥、口令、内部文档上传到公网模型 → **立即终止并上报** |
 | 测试全红合并 | `flutter test` 有失败项 → 禁止合并 |
 | 超 1000 行新文件 | 新增文件 >1000 行 → 禁止合并（极限需评审记录） |
-| 安全 definite 问题 | Skylos `--gate --secrets --danger` 失败 → 禁止合并 |
+| 安全 definite 问题 | Skylos **安全域**（`--gate --secrets`）失败 → 禁止合并（死代码域 `--danger` 仅归档报告，不阻断） |
 
 ## 二、合并前必过门禁（CI 自动执行）
 
 ```
 code-guard.yml（六 job）
 ├── line-count-gates      # sloc-guard(1000 硬上限/500 警告) + linecheck + 内置回退
-├── skylos-dart-gates     # 安全 definite 裁决（--gate --secrets --danger）
+├── skylos-dart-gates     # 安全域阻断（--gate --secrets）+ 死代码域仅报告（--danger）
 ├── open-code-review      # 行级语义评审（智谱 glm-5.2 优先，白名单目录）
 ├── python-tools-gates    # py-cq + pyscn（tools/ Python 域）
 ├── repopilot-gate        # diff 证据门禁（--fail-on-review definitely）

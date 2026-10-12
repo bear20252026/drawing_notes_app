@@ -81,10 +81,21 @@ jobs:
     name: Skylos Dart Dead-Code/Security Gate
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # 2026-08-31：Skylos 对 Flutter widget 框架（回调/State/入口类）误报率
-    # 近 100%（数百条含 AppleDesign/AppServices 等），发现保留为 sarif
-    # artifact 供人工复核，暂不阻断构建。
-    continue-on-error: true
+    # DN-102 修复（专家审计 2026-10-12）：原为 **job 级** `continue-on-error: true`
+    #（2026-08-31 引入，理由「Skylos 对 Flutter widget 框架误报率近 100%」）。
+    # 但 job 级容错会让 job 报 failure、而 workflow 报 success ⇒ 与
+    # docs/CODE_REVIEW_POLICY.md 第一节「安全 definite 问题 → 禁止合并」
+    # 直接矛盾。实测证据：连续 3 个提交（58a5e62 / 249392f / 0d20acb）均为
+    # workflow=success + job=failure —— 安全门禁在失败，面板却是绿的。
+    #
+    # 修法是**拆域**而非简单翻转（直接翻转会把 --danger 的误报一起变成阻断）：
+    # - 安全域 `--gate --secrets` 恢复阻断：信噪比高（已知 2 处高熵误报已按
+    #   项目既有 exclude 机制基线化），且正是规范所指的「安全 definite」。
+    # - 死代码域 `--danger` 只归档报告：它在 part 化 Dart 库上误报率近 100%
+    #   （实测单个 editor_page.dart 即产出 80 unused-import + 54
+    #   unused-variable + 2 unused-function），全量阻断会让门禁失去可信度。
+    # 拆分不减少当前阻断面：原合并命令（--gate --secrets --danger）退出码为 0，
+    # 即 --danger 当前未贡献任何阻断项。
 
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -101,23 +112,51 @@ jobs:
         # P3-7：钉版（原「官方最新版」）。
         run: pip install skylos==4.33.2
 
-      - name: Skylos Dart 安全门禁（正式裁决）
-        # 转正式门禁：--gate 阻断 + 聚焦安全域（secrets/danger），
-        # 只拦安全 definite 问题；dead-code 存量不阻断（避免历史债阻塞
-        # 合并），由 desloppify/pyscn 跟踪。SARIF 归档审计留痕。
+      - name: Skylos 安全域门禁（secrets，阻断）
+        # DN-102：正式裁决域。--gate 下安全 definite 问题即失败，对应
+        # docs/CODE_REVIEW_POLICY.md 第一节硬性红线（不得再被容错吞掉）。
         # 默认 30 秒在完整历史检出的大仓库中会提前终止 grep 复核，
         # 因此显式放宽至 120 秒，仍受 job 的 15 分钟总超时保护。
         env:
           SKYLOS_GREP_BUDGET: "120"
         run: |
-          skylos . --gate --secrets --danger --sarif skylos.sarif --format github
+          skylos . --gate --secrets --sarif skylos-secrets.sarif --format github
+
+      - name: Skylos 死代码域扫描（danger，仅报告）
+        # DN-102：本域**不加 --gate**（不参与门禁裁决）；命中数另写入 job
+        # summary，保证「不阻断」不等于「不可见」。continue-on-error 为保险：
+        # 本域退出码在任何情况下都不得影响 job 结论。
+        if: always()
+        continue-on-error: true
+        env:
+          SKYLOS_GREP_BUDGET: "120"
+        run: |
+          skylos . --danger --sarif skylos-danger.sarif --format github
+
+      - name: 死代码域命中数写入 job summary（可见但不阻断）
+        if: always()
+        continue-on-error: true
+        run: |
+          python3 - <<'PYEOF'
+          import json, os
+          n = 0
+          try:
+              with open('skylos-danger.sarif', encoding='utf-8') as fh:
+                  n = len(json.load(fh).get('runs', [{}])[0].get('results', []))
+          except Exception:
+              pass
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as fh:
+              fh.write('### Skylos 死代码域（仅报告，不阻断）\n\n')
+              fh.write(f'本次命中 {n} 条。该域在 part 化 Dart 库上误报率近 100%，'
+                       '故只归档不阻断；逐条证据见 artifact `skylos-sarif`。\n')
+          PYEOF
 
       - name: 归档 Skylos SARIF（审计留痕）
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: skylos-sarif
-          path: skylos.sarif
+          path: skylos-*.sarif
           if-no-files-found: ignore
 
   open-code-review:
