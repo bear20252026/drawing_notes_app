@@ -1928,10 +1928,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get markerAutoFade => 'Auto-fade';
 
   @override
-  String get tooltipSwapFill => 'Swap fill color';
+  String get tooltipSwapFill => 'Fill: none / solid / hatched / cross-hatched';
 
   @override
-  String get tooltipDashStyle => 'Solid / dashed';
+  String get tooltipDashStyle => 'Solid / dashed / dotted';
 
   @override
   String get hintEyedropper => 'Tap the canvas to pick a color';
@@ -2381,10 +2381,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get propShape => 'Shape';
 
   @override
-  String get propFillColor => 'Fill color';
+  String get propFillColor => 'Fill: solid/hatch/cross-hatch';
 
   @override
-  String get propDash => 'Solid/dashed';
+  String get propDash => 'Solid/dashed/dotted';
 
   @override
   String propLineWidthValue(int width) {

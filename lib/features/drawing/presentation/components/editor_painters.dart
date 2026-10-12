@@ -114,14 +114,19 @@ class ShapePainter extends CustomPainter {
     // 绘制 2 次轻微偏移的描边，形成"手绘不完美"的粗糙边缘。
     final rough = shape.rough;
 
+    /// 线型（v4）：实线原样；虚线沿用升级前的绝对参数 on 8 / 周期 16；
+    /// 点线是 `dash` 布尔表达不了的第三档，只有显式 `strokeStyle: dotted` 才出现。
     Path dashPath(Path path) {
-      if (!shape.dash) return path;
+      final style = shape.effectiveStrokeStyle;
+      if (style == StrokeStyle.solid) return path;
+      final on = style == StrokeStyle.dashed ? 8.0 : 1.6;
+      final period = style == StrokeStyle.dashed ? 16.0 : 7.2;
       final out = Path();
       for (final metric in path.computeMetrics()) {
         var d = 0.0;
         while (d < metric.length) {
-          out.addPath(metric.extractPath(d, d + 8), Offset.zero);
-          d += 16;
+          out.addPath(metric.extractPath(d, d + on), Offset.zero);
+          d += period;
         }
       }
       return out;
@@ -147,10 +152,17 @@ class ShapePainter extends CustomPainter {
       canvas.drawPath(dashPath(rough2.shift(shift)), stroke);
     }
 
-    // 手绘粗糙填充（借鉴 Excalidraw/rough.js）：rough 且有填充色时，
-    // 用一组斜线阴影填充（而非纯色），形成"手绘涂色"质感。
+    // 斜线阴影填充（借鉴 Excalidraw/rough.js）：v4 起由**有效填充样式**决定，
+    // 不再是 rough 的副产品——`fillStyle: solid` 可以在手绘形状上关掉斜线，
+    // `crossHatch` 再叠一组反向斜线。缺省时仍等于升级前的 rough→斜线。
+    // 函数名 roughFill 保留（多处调用），语义以本注释为准。
     void roughFill(Path clipPath) {
-      if (!shape.rough || shape.fillColor == null) return;
+      final fillStyle = shape.effectiveFillStyle;
+      if (shape.fillColor == null) return;
+      if (fillStyle != FillStyle.hachure && fillStyle != FillStyle.crossHatch) {
+        return;
+      }
+      final crossHatch = fillStyle == FillStyle.crossHatch;
       final hatch = Paint()
         ..color = Color(shape.fillColor!).withValues(alpha: 0.55)
         ..strokeWidth = 1.6
@@ -164,16 +176,18 @@ class ShapePainter extends CustomPainter {
         size.width * size.width + size.height * size.height,
       );
       for (var d = -diag; d < diag; d += spacing) {
-        final dx = math.cos(angle) * d;
-        final dy = math.sin(angle) * d;
-        canvas.drawLine(
-          Offset(dx, dy),
-          Offset(
-            dx + math.cos(angle + math.pi / 2) * diag * 2,
-            dy + math.sin(angle + math.pi / 2) * diag * 2,
-          ),
-          hatch,
-        );
+        for (final dir in (crossHatch ? [angle, angle + math.pi / 2] : [angle])) {
+          final dx = math.cos(dir) * d;
+          final dy = math.sin(dir) * d;
+          canvas.drawLine(
+            Offset(dx, dy),
+            Offset(
+              dx + math.cos(dir + math.pi / 2) * diag * 2,
+              dy + math.sin(dir + math.pi / 2) * diag * 2,
+            ),
+            hatch,
+          );
+        }
       }
       canvas.restore();
     }

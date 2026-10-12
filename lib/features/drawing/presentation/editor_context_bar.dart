@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_toolbar_contracts.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
+import '../../../core/canvas_model/shape_item.dart';
 import '../../../core/theme/apple_design.dart';
 import '../../../core/theme/apple_focus.dart';
 
@@ -241,18 +242,30 @@ class EditorContextBar extends StatelessWidget {
         ),
         _toggleButton(
           context,
-          icon: shape.fillColor != null
-              ? Icons.format_color_fill
-              : Icons.format_color_reset,
-          tooltip: AppLocalizations.of(context)?.tooltipSwapFill ?? '切换填充色',
+          icon: shape.fillColor == null
+              ? Icons.format_color_reset
+              : switch (shape.effectiveFillStyle) {
+                  FillStyle.hachure => Icons.pattern,
+                  FillStyle.crossHatch => Icons.grid_on,
+                  _ => Icons.format_color_fill,
+                },
+          tooltip:
+              AppLocalizations.of(context)?.tooltipSwapFill ??
+              '填充：无 / 实心 / 斜线 / 交叉',
           selected: shape.fillColor != null,
           onPressed: actions.onShapeFillColor,
         ),
         _toggleButton(
           context,
-          icon: shape.dash ? Icons.more_horiz : Icons.remove,
-          tooltip: AppLocalizations.of(context)?.tooltipDashStyle ?? '实线 / 虚线',
-          selected: shape.dash,
+          icon: switch (shape.effectiveStrokeStyle) {
+            StrokeStyle.solid => Icons.remove,
+            StrokeStyle.dashed => Icons.more_horiz,
+            StrokeStyle.dotted => Icons.blur_on,
+          },
+          tooltip:
+              AppLocalizations.of(context)?.tooltipDashStyle ??
+              '实线 / 虚线 / 点线',
+          selected: shape.effectiveStrokeStyle != StrokeStyle.solid,
           onPressed: actions.onToggleDash,
         ),
         IconButton(

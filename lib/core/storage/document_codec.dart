@@ -43,7 +43,13 @@ class DocumentCodec {
   /// 对齐 Saber SBN 的版本管理思路：写入固定 [version]，读取时若遇到
   /// 高于本值的文件（由新版本应用生成）则明确拒绝并提示升级，而不是
   /// 静默忽略未知字段造成数据损坏（政府审计项目严禁静默丢数据）。
-  static const int latestVersion = 3;
+  ///
+  /// **v4（2026-10-12）**：形状新增两个可选样式键 `strokeStyle`（solid/dashed/dotted）
+  /// 与 `fillStyle`（solid/hachure/crossHatch）。之所以升版本而不是「留在 v3 加可选键」：
+  /// 留在 v3 时，旧版本读到带 dotted/crossHatch 的文件会**静默降级**成 dash/实心，
+  /// 正是本文件上面那段注释禁止的行为；升到 v4 后旧版本明确拒绝并提示升级，
+  /// 而 v3 及更早的文件由 `MigrationV3ToV4` 从旧布尔值补出等价显式键，照常打开。
+  static const int latestVersion = 4;
 
   static const int _version = latestVersion;
 

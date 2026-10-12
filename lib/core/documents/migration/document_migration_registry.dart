@@ -84,16 +84,63 @@ final class MigrationV2ToV3 extends DocumentMigration {
   }
 }
 
+/// v3→v4：把「靠布尔值猜」的线型与填充样式定格成显式键（格式 v4，2026-10-12）。
+///
+/// v4 新增两个**可选**形状键：`strokeStyle`（solid/dashed/dotted）与
+/// `fillStyle`（solid/hachure/crossHatch）。`dash`/`rough`/`fillColor` 全部保留并继续写，
+/// 所以旧版本读到 v4 文件时形状仍能画——只是会丢掉 dotted/crossHatch 这两档。
+/// 正因如此必须升版本号：留在 v3 就是「旧版本静默降级」，本仓明令禁止。
+///
+/// 迁移只清一件事：**非法取值的样式键**（解码层本来也会丢弃，留在文件里会让
+/// 「同一份内容编码两次」不幂等）。非法值判据用常量表，避免与模型漂移。
+///
+/// **刻意不补默认值**——这是本步最要紧的一条：一旦把缺键按 `dash`/`rough` 定格成
+/// 显式值，显式值就永久压过这两个布尔，桌面端工具条的「虚线/手绘」开关会变成点了没反应，
+/// 每个被打开过的旧文件也会无谓地长出新键。写盘侧同理：只有**偏离旧推导**的取值才落键
+/// （见 `PageShapeItem.toJson`），所以 v3 文件语义本来就完整，v4 只是取得了一个环节。
+final class MigrationV3ToV4 extends DocumentMigration {
+  const MigrationV3ToV4();
+
+  static const List<String> _strokeStyles = ['solid', 'dashed', 'dotted'];
+  static const List<String> _fillStyles = ['solid', 'hachure', 'crossHatch'];
+
+  @override
+  int get from => 3;
+
+  @override
+  int get to => 4;
+
+  @override
+  void migrate(Map<String, dynamic> envelope) {
+    final document = envelope['document'];
+    if (document is! Map) return;
+    final shapes = document['shapes'];
+    if (shapes is! List) return;
+    for (final shape in shapes) {
+      if (shape is! Map) continue;
+      final stroke = shape['strokeStyle'];
+      if (stroke != null && !_strokeStyles.contains(stroke)) {
+        shape.remove('strokeStyle');
+      }
+      final fill = shape['fillStyle'];
+      if (fill != null && !_fillStyles.contains(fill)) {
+        shape.remove('fillStyle');
+      }
+    }
+  }
+}
+
 /// 当前支持版本的迁移注册表（顺序即推进链）。
 const List<DocumentMigration> kDocumentMigrations = [
   MigrationV1ToV2(),
   MigrationV2ToV3(),
+  MigrationV3ToV4(),
 ];
 
 /// 当前支持版本。**刻意不 import DocumentCodec**（codec 反向 import 本注册表
 /// 做迁移接线——引回即循环依赖，架构测试规则 2 实际拦截过）。与
 /// `DocumentCodec.latestVersion` 的一致性由 document_migration_test 钉住。
-const int kSupportedDocumentVersion = 3;
+const int kSupportedDocumentVersion = 4;
 
 const DocumentMigrationRunner kDocumentMigrationRunner =
     DocumentMigrationRunner(

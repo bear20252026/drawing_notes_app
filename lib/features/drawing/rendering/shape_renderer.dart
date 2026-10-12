@@ -54,12 +54,17 @@ class ShapeRenderer {
     final center = size.center(Offset.zero);
     final random = math.Random(shape.id.hashCode);
 
-    Path dashed(Path path) {
-      if (!shape.dash) return path;
+    /// 线型：实线原样返回；虚线沿用升级前的绝对长度参数（on 8 / 周期 16，
+    /// **不随线宽缩放**），点线是 v4 新增第三档（`dash` 布尔表达不了的那一档）。
+    Path styled(Path path) {
+      final style = shape.effectiveStrokeStyle;
+      if (style == StrokeStyle.solid) return path;
+      final on = style == StrokeStyle.dashed ? 8.0 : 1.6;
+      final period = style == StrokeStyle.dashed ? 16.0 : 7.2;
       final result = Path();
       for (final metric in path.computeMetrics()) {
-        for (var offset = 0.0; offset < metric.length; offset += 16) {
-          result.addPath(metric.extractPath(offset, offset + 8), Offset.zero);
+        for (var offset = 0.0; offset < metric.length; offset += period) {
+          result.addPath(metric.extractPath(offset, offset + on), Offset.zero);
         }
       }
       return result;
@@ -71,17 +76,21 @@ class ShapeRenderer {
         : point;
 
     void drawOutline(Path path) {
-      canvas.drawPath(dashed(path), stroke);
+      canvas.drawPath(styled(path), stroke);
       if (!shape.rough) return;
       final shifted = path.shift(
         Offset(random.nextDouble() * 3 - 1.5, random.nextDouble() * 3 - 1.5),
       );
-      canvas.drawPath(dashed(shifted), stroke);
+      canvas.drawPath(styled(shifted), stroke);
     }
 
+    /// 填充：有填充色就画实心底（沿用升级前的 alpha 0.25）；斜排线只在
+    /// 有效填充样式为 hachure/crossHatch 时叠加，crossHatch 再补一组反向斜线。
+    /// 显式 `fillStyle: solid` 因此能在 rough 形状上关掉斜线——这是 v4 的新能力。
     void drawFill(Path path) {
       if (fill != null) canvas.drawPath(path, fill);
-      if (!shape.rough || shape.fillColor == null) return;
+      final style = shape.effectiveFillStyle;
+      if (style != FillStyle.hachure && style != FillStyle.crossHatch) return;
       final hatch = Paint()
         ..color = Color(shape.fillColor!).withValues(alpha: 0.55)
         ..strokeWidth = 1.6
@@ -97,6 +106,13 @@ class ShapeRenderer {
           Offset(offset + diagonal, diagonal),
           hatch,
         );
+        if (style == FillStyle.crossHatch) {
+          canvas.drawLine(
+            Offset(offset, diagonal),
+            Offset(offset + diagonal, 0),
+            hatch,
+          );
+        }
       }
       canvas.restore();
     }

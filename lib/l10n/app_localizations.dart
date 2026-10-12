@@ -3515,13 +3515,13 @@ abstract class AppLocalizations {
   /// No description provided for @tooltipSwapFill.
   ///
   /// In en, this message translates to:
-  /// **'Swap fill color'**
+  /// **'Fill: none / solid / hatched / cross-hatched'**
   String get tooltipSwapFill;
 
   /// No description provided for @tooltipDashStyle.
   ///
   /// In en, this message translates to:
-  /// **'Solid / dashed'**
+  /// **'Solid / dashed / dotted'**
   String get tooltipDashStyle;
 
   /// No description provided for @hintEyedropper.
@@ -4379,13 +4379,13 @@ abstract class AppLocalizations {
   /// No description provided for @propFillColor.
   ///
   /// In en, this message translates to:
-  /// **'Fill color'**
+  /// **'Fill: solid/hatch/cross-hatch'**
   String get propFillColor;
 
   /// No description provided for @propDash.
   ///
   /// In en, this message translates to:
-  /// **'Solid/dashed'**
+  /// **'Solid/dashed/dotted'**
   String get propDash;
 
   /// 选中形状线宽读数

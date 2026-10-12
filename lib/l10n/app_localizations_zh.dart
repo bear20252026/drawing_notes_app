@@ -1842,10 +1842,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get markerAutoFade => '自动消失';
 
   @override
-  String get tooltipSwapFill => '切换填充色';
+  String get tooltipSwapFill => '填充：无 / 实心 / 斜线 / 交叉';
 
   @override
-  String get tooltipDashStyle => '实线 / 虚线';
+  String get tooltipDashStyle => '实线 / 虚线 / 点线';
 
   @override
   String get hintEyedropper => '点击画布取色';
@@ -2284,10 +2284,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get propShape => '形状';
 
   @override
-  String get propFillColor => '填充色';
+  String get propFillColor => '填充：实心/斜线/交叉';
 
   @override
-  String get propDash => '实线/虚线';
+  String get propDash => '实线/虚线/点线';
 
   @override
   String propLineWidthValue(int width) {

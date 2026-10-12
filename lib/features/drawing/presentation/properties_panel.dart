@@ -205,12 +205,16 @@ class PropertiesPanel extends StatelessWidget {
                 Row(
                   children: [
                     IconButton(
-                      tooltip:
-                          AppLocalizations.of(context)?.propFillColor ?? '填充色',
+                      tooltip: AppLocalizations.of(context)?.propFillColor ??
+                          '填充：实心/斜线/交叉',
                       icon: Icon(
-                        selectedShape!.fillColor != null
-                            ? Icons.format_color_fill
-                            : Icons.format_color_reset,
+                        selectedShape!.fillColor == null
+                            ? Icons.format_color_reset
+                            : switch (selectedShape!.effectiveFillStyle) {
+                                FillStyle.hachure => Icons.pattern,
+                                FillStyle.crossHatch => Icons.grid_on,
+                                _ => Icons.format_color_fill,
+                              },
                         size: 18,
                       ),
                       visualDensity: VisualDensity.compact,
@@ -218,12 +222,18 @@ class PropertiesPanel extends StatelessWidget {
                     ),
                     IconButton(
                       tooltip:
-                          AppLocalizations.of(context)?.propDash ?? '实线/虚线',
+                          AppLocalizations.of(context)?.propDash ??
+                          '实线/虚线/点线',
                       icon: Icon(
-                        selectedShape!.dash ? Icons.more_horiz : Icons.remove,
+                        switch (selectedShape!.effectiveStrokeStyle) {
+                          StrokeStyle.solid => Icons.remove,
+                          StrokeStyle.dashed => Icons.more_horiz,
+                          StrokeStyle.dotted => Icons.blur_on,
+                        },
                         size: 18,
                       ),
-                      isSelected: selectedShape!.dash,
+                      isSelected: selectedShape!.effectiveStrokeStyle !=
+                          StrokeStyle.solid,
                       onPressed: onShapeDash,
                     ),
                     IconButton(

@@ -121,14 +121,14 @@ extension _EditorPageBody on _EditorPageState {
                     final s = _selectedShapeItem;
                     if (s == null) return;
                     _applyState(() {
-                      s.fillColor = s.fillColor == null ? 0x66A5D6A7 : null;
+                      s.cycleFillStyle(0x66A5D6A7);
                     });
                     _notifyChanged();
                   },
                   onShapeDash: () {
                     final s = _selectedShapeItem;
                     if (s == null) return;
-                    _applyState(() => s.dash = !s.dash);
+                    _applyState(() => s.cycleStrokeStyle());
                     _notifyChanged();
                   },
                   onShapeRough: () {

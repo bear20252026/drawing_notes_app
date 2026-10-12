@@ -118,12 +118,12 @@ extension _EditorPageToolbarActions on _EditorPageState {
           }
         }),
         onShapeFillColor: () => _mutateSelectedShape((item) {
-          item.fillColor = item.fillColor == null ? 0x66A5D6A7 : null;
+          item.cycleFillStyle(0x66A5D6A7);
         }),
         onToggleMarquee: _toggleMarqueeTool,
         onReorder: _reorderSelected,
         onToggleDash: () => _mutateSelectedShape((item) {
-          item.dash = !item.dash;
+          item.cycleStrokeStyle();
         }),
       ),
       viewport: EditorToolbarViewportActions(
