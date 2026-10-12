@@ -8,3 +8,10 @@ test/arch_test_violations/*.txt text eol=lf
 *.yaml text eol=lf
 *.md text eol=lf
 *.yml text eol=lf
+
+# 跨端契约夹具必须逐字节稳定（2026-10-13）：网页端 runner 拿这份副本与
+# `drawing_notes_web/tools/interop/fixtures/` 做字节比对，检出时若被 autocrlf
+# 改成 CRLF，「两端同一份夹具」这条断言就自己失效了。.bin 夹具（DNV 信封）
+# 更要禁止任何行尾转换——它验证的是「非 JSON 内容被拒」。
+test/fixtures/v3/*.json text eol=lf
+test/fixtures/v3/*.bin -text
