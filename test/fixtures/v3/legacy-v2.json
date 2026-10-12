@@ -1,0 +1,49 @@
+{
+  "version": 2,
+  "document": {
+    "id": "fx_legacy",
+    "title": "旧格式文档",
+    "width": 2048,
+    "height": 1536,
+    "infinite": false,
+    "paperType": "grid",
+    "folder": "旧账",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-02T00:00:00.000Z",
+    "layers": [
+      {
+        "id": "layer_1",
+        "name": "图层",
+        "visible": true,
+        "opacity": 1,
+        "strokes": [
+          {
+            "points": [
+              { "x": 10, "y": 20, "p": 0.4 },
+              { "x": 30, "y": 40, "p": 0.8 },
+              { "x": 50, "y": 60 }
+            ],
+            "color": 4278190208,
+            "width": 3,
+            "type": "pen"
+          },
+          {
+            "points": [
+              { "x": 1, "y": 1, "p": 1 },
+              { "x": 2, "y": 2, "p": 1 }
+            ],
+            "color": 4294967295,
+            "width": 22,
+            "type": "marker",
+            "opacity": 0.5
+          }
+        ]
+      }
+    ],
+    "shapes": [
+      { "id": "sh_only_geom", "shapeType": "rect", "x": 100, "y": 100, "width": 200, "height": 120 }
+    ],
+    "imageItems": [],
+    "textItems": [{ "id": "tx_only_geom", "x": 40, "y": 300, "text": "旧文档文字", "fontSize": 24 }]
+  }
+}

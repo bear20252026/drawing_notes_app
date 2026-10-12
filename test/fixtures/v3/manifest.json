@@ -1,0 +1,147 @@
+{
+  "$comment": "v3 工程文件契约夹具。两端（网页 codec / 桌面端 DocumentCodec）跑同一批文件与同一份期望值，防格式漂移。over-budget 用例由 runner 按 generate 规则现场生成，避免仓库里塞大文件。",
+  "budgets": {
+    "maxFileBytes": 104857600,
+    "maxLayerCount": 200,
+    "maxStrokesPerLayer": 10000,
+    "maxPointsPerStroke": 50000,
+    "maxTotalStrokes": 50000,
+    "maxTotalPoints": 1000000,
+    "maxShapeCount": 5000,
+    "maxImageCount": 5000,
+    "maxTextCount": 5000,
+    "maxCoordinateMagnitude": 1000000,
+    "maxObjectExtent": 8192,
+    "maxStrokeWidth": 512,
+    "maxFontSize": 512,
+    "formatVersion": 4
+  },
+  "cases": [
+    {
+      "file": "minimal.json",
+      "expect": {
+        "ok": true,
+        "layers": 1,
+        "strokes": 0,
+        "shapes": 0,
+        "textItems": 0,
+        "imageItems": 0,
+        "truncated": false,
+        "invalidDropped": 0
+      }
+    },
+    {
+      "file": "legacy-v2.json",
+      "expect": {
+        "ok": true,
+        "layers": 1,
+        "strokes": 2,
+        "shapes": 1,
+        "textItems": 1,
+        "imageItems": 0,
+        "truncated": false,
+        "invalidDropped": 0,
+        "notes": "旧格式：points 为对象数组且缺 id/seed/version；解码须补扁平点列与种子"
+      }
+    },
+    {
+      "file": "full-features.json",
+      "expect": {
+        "ok": true,
+        "layers": 2,
+        "strokes": 3,
+        "shapes": 5,
+        "textItems": 3,
+        "imageItems": 1,
+        "truncated": false,
+        "invalidDropped": 0,
+        "notes": "桌面端夹具的等价内容：图层可见性/不透明度、箭头绑定与 elbow、dash/rough/rotation/groupId/href/locked、便利贴、待办、runs、桌面图片路径"
+      }
+    },
+    {
+      "file": "v4-style-fields.json",
+      "expect": {
+        "ok": true,
+        "layers": 1,
+        "strokes": 0,
+        "shapes": 5,
+        "textItems": 0,
+        "imageItems": 0,
+        "truncated": false,
+        "invalidDropped": 0,
+        "shapeStyles": [
+          { "id": "sh_dotted", "strokeStyle": "dotted", "fillStyle": null },
+          { "id": "sh_precedence", "strokeStyle": "dashed", "fillStyle": "crossHatch" },
+          { "id": "sh_derive", "strokeStyle": "solid", "fillStyle": "hachure" },
+          { "id": "sh_legacy_dashed", "strokeStyle": "dashed", "fillStyle": null },
+          { "id": "sh_unknown_value", "strokeStyle": "solid", "fillStyle": null }
+        ],
+        "notes": "v4 样式键三条规则两端必须一致：显式键压过旧布尔（sh_precedence 的 dash:false + strokeStyle:dashed 仍是虚线）；缺键按 dash/rough 推导（sh_derive 手绘+有填充 → 斜线）；未知取值降级为推导而不是报错（sh_unknown_value）"
+      }
+    },
+    {
+      "file": "eraser-stroke.json",
+      "expect": {
+        "ok": true,
+        "layers": 1,
+        "strokes": 3,
+        "shapes": 1,
+        "textItems": 0,
+        "imageItems": 0,
+        "truncated": false,
+        "invalidDropped": 0,
+        "strokeTypes": ["pen", "eraser", "marker"],
+        "shapeStyles": [
+          { "id": "sh_dotted_cross", "strokeStyle": "dotted", "fillStyle": "crossHatch" }
+        ],
+        "notes": "像素橡皮的轨迹就是一种 type:\"eraser\" 的普通笔画（桌面端 BrushType.eraser 同键），两端都必须原样读写它——丢了它等于把用户擦过的地方重新画回来。sh_dotted_cross 同时钉住「dash:true + strokeStyle:dotted」这种遗留写法：显式键赢，遗留布尔只表达「非实线」"
+      }
+    },
+    {
+      "file": "invalid-entries.json",
+      "expect": {
+        "ok": true,
+        "layers": 1,
+        "strokes": 3,
+        "shapes": 1,
+        "textItems": 1,
+        "imageItems": 0,
+        "truncated": false,
+        "invalidShapesDroppedMin": 3,
+        "invalidStrokesDroppedMin": 2,
+        "notes": "单个损坏对象隔离，其余可读。宽 0 与空点列各丢一笔；超范围坐标只丢那个点、该笔以 1 点存活（与桌面端逐点判据一致）；重复 id 的两条笔画都保留（两端都不给笔画去重）；形状丢重复 id 之外还丢非正宽高/超尺寸/缺几何；超预算字号的文字被隔离"
+      }
+    },
+    {
+      "file": "future-version.json",
+      "expect": { "reject": "version-newer", "dartMessage": "文档版本过新" }
+    },
+    {
+      "file": "encrypted-dnv.bin",
+      "expect": {
+        "reject": "encrypted",
+        "dartMessage": "文档 JSON 格式无效",
+        "notes": "两端识别层次不同：网页 codec 直接认 DNV 魔数并给独立错误类；桌面端在存储层（VaultFileCodec）识别，codec 层只会报 JSON 无效。断言各自成立，不做拉平"
+      }
+    },
+    {
+      "file": "broken-id.json",
+      "expect": { "reject": "invalid-id", "dartMessage": "文档 ID 无效" }
+    },
+    {
+      "file": "not-an-object.json",
+      "expect": { "reject": "structure", "dartMessage": "文档根节点必须是对象" }
+    },
+    {
+      "generate": "over-budget-strokes",
+      "strokes": 10001,
+      "expect": {
+        "ok": true,
+        "layers": 1,
+        "strokes": 10000,
+        "truncated": true,
+        "notes": "超过 maxStrokesPerLayer：宽容回读截断并上报，截断态必须禁止覆盖原件"
+      }
+    }
+  ]
+}

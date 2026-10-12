@@ -1,0 +1,115 @@
+{
+  "version": 4,
+  "document": {
+    "id": "fx_eraser_stroke",
+    "title": "像素擦除轨迹",
+    "width": 2048,
+    "height": 1536,
+    "infinite": true,
+    "paperType": "blank",
+    "folder": "",
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z",
+    "layers": [
+      {
+        "id": "layer_1",
+        "name": "",
+        "visible": true,
+        "opacity": 1,
+        "strokes": [
+          {
+            "id": "str_pen",
+            "points": [
+              40,
+              60,
+              0.5,
+              90,
+              80,
+              0.6,
+              140,
+              62,
+              0.45,
+              190,
+              96,
+              0.5
+            ],
+            "color": 4278190080,
+            "width": 4,
+            "type": "pen",
+            "opacity": 1,
+            "seed": 4001,
+            "version": 2,
+            "versionNonce": 4002
+          },
+          {
+            "id": "str_eraser",
+            "points": [
+              80,
+              40,
+              1.0,
+              100,
+              70,
+              1.0,
+              120,
+              104,
+              1.0
+            ],
+            "color": 4278190080,
+            "width": 26,
+            "type": "eraser",
+            "opacity": 1,
+            "seed": 5001,
+            "version": 1,
+            "versionNonce": 5002
+          },
+          {
+            "id": "str_marker",
+            "points": [
+              40,
+              140,
+              0.5,
+              200,
+              150,
+              0.5
+            ],
+            "color": 4294628417,
+            "width": 18,
+            "type": "marker",
+            "opacity": 0.55,
+            "seed": 6001,
+            "version": 0,
+            "versionNonce": 0
+          }
+        ]
+      }
+    ],
+    "shapes": [
+      {
+        "id": "sh_dotted_cross",
+        "shapeType": "rect",
+        "x": 260,
+        "y": 40,
+        "width": 180,
+        "height": 120,
+        "color": 4278216396,
+        "fillColor": 855664332,
+        "strokeWidth": 3,
+        "zOrder": 0,
+        "rotation": 0,
+        "dash": true,
+        "rough": false,
+        "elbow": false,
+        "strokeStyle": "dotted",
+        "fillStyle": "crossHatch",
+        "flipX": false,
+        "flipY": false,
+        "locked": false,
+        "seed": 7001,
+        "version": 0,
+        "versionNonce": 0
+      }
+    ],
+    "imageItems": [],
+    "textItems": []
+  }
+}

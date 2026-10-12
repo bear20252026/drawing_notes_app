@@ -1,0 +1,20 @@
+{
+  "version": 3,
+  "document": {
+    "id": "fx_minimal",
+    "title": "最小文档",
+    "width": 2048,
+    "height": 1536,
+    "infinite": false,
+    "paperType": "blank",
+    "folder": "",
+    "createdAt": "2026-10-12T00:00:00.000Z",
+    "updatedAt": "2026-10-12T00:00:00.000Z",
+    "layers": [
+      { "id": "layer_1", "name": "", "visible": true, "opacity": 1, "strokes": [] }
+    ],
+    "shapes": [],
+    "imageItems": [],
+    "textItems": []
+  }
+}

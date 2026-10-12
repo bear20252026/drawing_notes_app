@@ -1,0 +1,44 @@
+{
+  "version": 3,
+  "document": {
+    "id": "fx_invalid",
+    "title": "含损坏条目",
+    "width": 2048,
+    "height": 1536,
+    "infinite": true,
+    "paperType": "blank",
+    "folder": "",
+    "createdAt": "2026-10-12T00:00:00.000Z",
+    "updatedAt": "2026-10-12T00:00:00.000Z",
+    "layers": [
+      {
+        "id": "layer_1",
+        "name": "图层",
+        "visible": true,
+        "opacity": 1,
+        "strokes": [
+          { "id": "ok_stroke", "points": [1, 1, 1, 2, 2, 1], "color": 4278190080, "width": 2, "type": "pen", "opacity": 1, "seed": 5, "version": 1, "versionNonce": 1 },
+          { "id": "zero_width", "points": [1, 1, 1, 2, 2, 1], "color": 4278190080, "width": 0, "type": "pen", "opacity": 1 },
+          { "id": "empty_points", "points": [], "color": 4278190080, "width": 2, "type": "pen", "opacity": 1 },
+          { "id": "far_coord", "points": [99999999, 1, 1, 2, 2, 1], "color": 4278190080, "width": 2, "type": "pen", "opacity": 1 },
+          { "id": "ok_stroke", "points": [3, 3, 1, 4, 4, 1], "color": 4278190080, "width": 2, "type": "pen", "opacity": 1 }
+        ]
+      }
+    ],
+    "shapes": [
+      { "id": "ok_shape", "shapeType": "ellipse", "x": 10, "y": 10, "width": 40, "height": 40, "color": 4279189696, "strokeWidth": 3, "zOrder": 0, "rotation": 0, "dash": false, "rough": true, "elbow": false, "flipX": false, "flipY": false, "locked": false, "seed": 1, "version": 0, "versionNonce": 0 },
+      { "id": "ok_shape", "shapeType": "rect", "x": 1, "y": 1, "width": 10, "height": 10, "color": 4278190080, "strokeWidth": 3, "zOrder": 1, "rotation": 0, "dash": false, "rough": false, "elbow": false, "flipX": false, "flipY": false, "locked": false, "seed": 2, "version": 0, "versionNonce": 0 },
+      { "id": "neg_extent", "shapeType": "rect", "x": 1, "y": 1, "width": -5, "height": 10, "color": 4278190080, "strokeWidth": 3, "zOrder": 2, "rotation": 0, "dash": false, "rough": false, "elbow": false, "flipX": false, "flipY": false, "locked": false, "seed": 3, "version": 0, "versionNonce": 0 },
+      { "id": "too_large", "shapeType": "rect", "x": 1, "y": 1, "width": 99999, "height": 10, "color": 4278190080, "strokeWidth": 3, "zOrder": 3, "rotation": 0, "dash": false, "rough": false, "elbow": false, "flipX": false, "flipY": false, "locked": false, "seed": 4, "version": 0, "versionNonce": 0 },
+      { "id": "no_geom", "shapeType": "rect", "color": 4278190080, "strokeWidth": 3, "zOrder": 4 },
+      "not even an object"
+    ],
+    "imageItems": [
+      { "id": "img_empty_path", "x": 0, "y": 0, "filePath": "", "width": 10, "height": 10, "zOrder": 5, "locked": false }
+    ],
+    "textItems": [
+      { "id": "tx_huge_font", "x": 0, "y": 0, "text": "太大", "fontSize": 99999, "color": 4278190080, "isSticky": false, "bold": false, "italic": false, "underline": false, "strikethrough": false, "isTodo": false, "todoChecked": false, "align": "left", "zOrder": 6 },
+      { "id": "tx_ok", "x": 20, "y": 20, "text": "仍要读出这条", "fontSize": 24, "color": 4278190080, "isSticky": false, "bold": false, "italic": false, "underline": false, "strikethrough": false, "isTodo": false, "todoChecked": false, "align": "left", "zOrder": 7 }
+    ]
+  }
+}
