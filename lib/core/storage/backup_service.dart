@@ -194,9 +194,13 @@ abstract final class BackupService {
     try {
       await Isolate.run(() => _packSync(rootPath, dest));
     } catch (_) {
+      // DN-R04：只清掉本次的半成品 `.partial`，**绝不碰 dest**——它可能是
+      // 用户在选包框里选中的**已有备份文件**，删掉它就是连旧备份一起毁掉。
+      // 目标文件的替换由 [_packSync] 在打包完全成功后才执行（先写 .partial
+      // 再改名，且改名失败会回滚旧目标）。
       try {
-        final f = File(dest);
-        if (f.existsSync()) await f.delete();
+        final partial = File('$dest.partial');
+        if (partial.existsSync()) await partial.delete();
       } catch (_) {
         // 清理失败不覆盖原始异常。
       }
@@ -582,57 +586,129 @@ abstract final class BackupService {
     return _reject(code, message, stats);
   }
 
-  /// 打包主体（在 isolate 内执行）：遍历数据根 → 过滤临时文件 → zip 落盘。
-  static void _packSync(String rootPath, String destinationPath) {
+  /// 打包主体（在 isolate 内执行）：遍历数据根 → 过滤临时文件 → zip 流式落盘。
+  ///
+  /// DN-105（专家审计 2026-10-12）：**改为流式打包**。
+  ///
+  /// 旧实现是「逐文件 `readAsBytesSync` 进 `members` 列表 → 组 `Archive` →
+  /// `ZipEncoder().encode` 整包 → `writeAsBytesSync`」——同一份数据在内存里
+  /// 同时存在三份（`members` 持有的全部文件字节 + Archive 的副本 + 编码结果）。
+  /// `Isolate.run` 只把这段挪出 UI 线程，**并不减少进程内存占用**；Android 上
+  /// 带图片/PDF 附件的笔记库极易触发内存压力甚至进程被杀。
+  ///
+  /// 现改为 `ZipFileEncoder`：它用 `ArchiveFile.stream` + `InputFileStream`
+  /// 逐文件流式写入磁盘，内存峰值 ≈ 一个流缓冲 + 压缩窗口，与库总大小无关。
+  ///
+  /// 清单**写在最后**：流式打包下只有读完所有文件才知道确切字节数。恢复侧按
+  /// **条目名**查找清单（`if (slash == kBackupManifestName)`），不依赖物理顺序。
+  ///
+  /// 输出先落 `.partial` 再改名，失败时目标路径上的**已有备份一字不动**。
+  static Future<void> _packSync(String rootPath, String destinationPath) async {
     final root = Directory(rootPath);
-
-    // 先读内容、后算声明：清单里的 dataBytes/dataFileCount/dirFileCounts 一律
-    // 按**实际入档的字节**统计。若改用遍历时的 lengthSync 记账，备份期间一次
-    // 自动保存改了文件大小，清单就会与包内内容对不上，于是自产合法包被恢复侧
-    // 自己判成 manifestMismatch —— 那是守卫最不能接受的误伤形态。
-    final members = <ArchiveFile>[];
-    final dirCounts = <String, int>{};
+    final tmp = '$destinationPath.partial';
+    final encoder = ZipFileEncoder();
     var dataBytes = 0;
-    for (final entity in root.listSync(recursive: true, followLinks: false)) {
-      if (entity is! File) continue;
-      final norm = AppDataRoot.relativePathOf(rootPath, entity.path);
-      if (norm == null ||
-          norm == kBackupManifestName ||
-          AppDataRoot.restoreExcludedPattern.hasMatch(norm)) {
-        continue;
+    var dataFileCount = 0;
+    final dirCounts = <String, int>{};
+
+    try {
+      encoder.create(tmp);
+      for (final entity in root.listSync(recursive: true, followLinks: false)) {
+        if (entity is! File) continue;
+        final norm = AppDataRoot.relativePathOf(rootPath, entity.path);
+        if (norm == null ||
+            norm == kBackupManifestName ||
+            AppDataRoot.restoreExcludedPattern.hasMatch(norm)) {
+          continue;
+        }
+        // 打包期间被并发保存改过的文件：本轮包内条目与清单记账可能对不上。
+        // 与其产出一个「自产却过不了自家 manifestMismatch 守卫」的包，不如
+        // fail-closed 中止——上层会清掉半成品，目标路径的旧备份不受影响。
+        final before = entity.statSync();
+        await encoder.addFile(entity, norm);
+        final after = entity.statSync();
+        if (before.size != after.size || before.modified != after.modified) {
+          throw StateError('备份期间文件被修改：$norm');
+        }
+        dataBytes += before.size;
+        dataFileCount++;
+        final sub = AppDataRoot.knownSubdirOf(norm);
+        if (sub != null) dirCounts[sub] = (dirCounts[sub] ?? 0) + 1;
       }
-      final bytes = entity.readAsBytesSync();
-      members.add(ArchiveFile(norm, bytes.length, bytes));
-      dataBytes += bytes.length;
-      final sub = AppDataRoot.knownSubdirOf(norm);
-      if (sub != null) dirCounts[sub] = (dirCounts[sub] ?? 0) + 1;
+
+      // v2 的三项自述字段是 DN-004 的结构闸门依据：恢复侧据此核对「包里到底
+      // 是不是我打的那些文件」。
+      final manifest = utf8.encode(
+        jsonEncode(<String, dynamic>{
+          'formatVersion': kBackupFormatVersion,
+          'createdAt': DateTime.now().toIso8601String(),
+          'dataFileCount': dataFileCount,
+          'dataBytes': dataBytes,
+          'dirFileCounts': dirCounts,
+        }),
+      );
+      encoder.addArchiveFile(
+        ArchiveFile(kBackupManifestName, manifest.length, manifest),
+      );
+      await encoder.close();
+    } catch (_) {
+      try {
+        final partial = File(tmp);
+        if (partial.existsSync()) partial.deleteSync();
+      } catch (_) {
+        // 清理失败不覆盖原始异常。
+      }
+      rethrow;
     }
 
-    final archive = Archive();
-    // 清单先行（恢复端第一道校验）。v2 的三项自述字段是 DN-004 的结构闸门
-    // 依据：恢复侧据此核对「包里到底是不是我打的那些文件」。
-    final manifest = utf8.encode(
-      jsonEncode(<String, dynamic>{
-        'formatVersion': kBackupFormatVersion,
-        'createdAt': DateTime.now().toIso8601String(),
-        'dataFileCount': members.length,
-        'dataBytes': dataBytes,
-        'dirFileCounts': dirCounts,
-      }),
-    );
-    archive.addFile(
-      ArchiveFile(kBackupManifestName, manifest.length, manifest),
-    );
-    for (final m in members) {
-      archive.addFile(m);
-    }
-
-    final encoded = ZipEncoder().encode(archive);
-    if (encoded.isEmpty) {
+    final produced = File(tmp);
+    if (!produced.existsSync() || produced.lengthSync() == 0) {
+      try {
+        if (produced.existsSync()) produced.deleteSync();
+      } catch (_) {
+        // 清理失败不覆盖原始异常。
+      }
       throw StateError('备份打包结果为空');
     }
-    File(destinationPath)
-      ..createSync(recursive: true)
-      ..writeAsBytesSync(encoded, flush: true);
+
+    // 打包完全成功后才替换目标：先改名，受限时「移走旧目标 → 再改名 → 失败回滚」，
+    // 与 AudioDownloader._promote 同一条纪律（绝不先删原件再改名）。
+    final target = File(destinationPath);
+    try {
+      produced.renameSync(destinationPath);
+      return;
+    } catch (_) {
+      // 个别平台 rename 覆盖已存在文件受限，回退「移走旧目标后重命名」。
+    }
+    File? parked;
+    if (target.existsSync()) {
+      final candidate = File('$destinationPath.old');
+      try {
+        if (candidate.existsSync()) candidate.deleteSync();
+        target.renameSync(candidate.path);
+        parked = candidate;
+      } catch (_) {
+        parked = null; // 移走失败：旧目标仍在原位，直接重试改名
+      }
+    }
+    try {
+      produced.renameSync(destinationPath);
+    } catch (_) {
+      if (parked != null) {
+        try {
+          parked.renameSync(destinationPath);
+        } catch (_) {
+          // 放回也失败：`.old` 仍留有完整旧备份，下次打包或人工可处理
+        }
+      }
+      rethrow;
+    }
+    if (parked != null) {
+      try {
+        parked.deleteSync();
+      } catch (_) {
+        // 清理失败仅留下 `.old`，不影响新备份可用
+      }
+    }
   }
 }

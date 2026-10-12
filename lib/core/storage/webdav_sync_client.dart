@@ -50,6 +50,28 @@ class WebDavSyncException implements Exception {
       'WebDavSyncException: $message${statusCode != null ? ' (status: $statusCode)' : ''}';
 }
 
+/// 条件写入失败（412 Precondition Failed）——DN-104。
+///
+/// 语义：本次 PUT 带了 `If-Match: <ETag>`，而远端在我们读取之后已被**别的
+/// 设备**改过。这不是网络故障，而是「必须重新读取 → 合并 → 重试」的信号，
+/// 调用方（SyncService）据此做有界重试，绝不能把它当成普通失败吞掉——
+/// 吞掉就等于放弃对方的清单更新。
+class WebDavPreconditionFailedException extends WebDavSyncException {
+  WebDavPreconditionFailedException(String message, {int? statusCode})
+    : super(message, statusCode: statusCode);
+}
+
+/// 带版本标识的 GET 结果（DN-104）。
+class WebDavFetch {
+  const WebDavFetch({required this.bytes, this.etag});
+
+  /// 响应体。
+  final Uint8List bytes;
+
+  /// 远端 ETag；服务器未返回时为 null（= 不支持条件写入）。
+  final String? etag;
+}
+
 /// 响应体的用途档位（DN-008 加固）：不同档位的载荷性质差别很大，
 /// 一刀切的上限要么误伤合法大文档、要么挡不住 dribble 型错误响应，
 /// 故按用途分档。
@@ -518,15 +540,58 @@ class WebDavSyncClient {
   /// - 201/204 → 成功。
   /// - 3xx → 抛重定向门禁异常（绝不把文档与口令带到第二跳）。
   /// - 其他 → 抛 [WebDavSyncException]。
+  /// 带版本标识的 GET（DN-104）。
+  ///
+  /// 与 [getBytes] 的唯一差别是**同时带回远端 ETag**：调用方据此做条件写入
+  /// （`If-Match`），避免多设备并发时「最后写入者覆盖」丢掉对方的清单更新。
+  ///
+  /// 服务器**未返回 ETag** 时 `etag` 为 null —— 这是「不支持条件写入」的信号，
+  /// 调用方据此退回无条件 PUT。不能假设所有 WebDAV 服务端行为相同。
+  Future<WebDavFetch?> fetchBytes(String relativePath) async {
+    final url = _resolve(relativePath);
+    final response = await _send(
+      _newRequest('GET', url, headers: _authHeader),
+      budget: _payloadBudgetFor(relativePath),
+    );
+    _rejectRedirect(response);
+
+    if (response.statusCode == 200 || response.statusCode == 207) {
+      final raw = response.headers['etag'];
+      return WebDavFetch(
+        bytes: response.bodyBytes,
+        etag: (raw == null || raw.trim().isEmpty) ? null : raw.trim(),
+      );
+    }
+    if (response.statusCode == 404) {
+      return null;
+    }
+    throw WebDavSyncException(
+      'GET failed: ${response.reasonPhrase}',
+      statusCode: response.statusCode,
+    );
+  }
+
+  /// 上传字节到指定路径（PUT）。
+  ///
+  /// - 201/204 → 成功。
+  /// - 412 → 抛 [WebDavPreconditionFailedException]（条件写入失败：读取之后
+  ///   远端已被别的设备改过）。DN-104。
+  /// - 3xx → 抛重定向门禁异常（绝不把文档与口令带到第二跳）。
+  /// - 其他 → 抛 [WebDavSyncException]。
   Future<void> putBytes(
     String relativePath,
     List<int> bytes, {
     bool overwrite = true,
+    String? ifMatch,
   }) async {
     final url = _resolve(relativePath);
     final headers = <String, String>{
       ..._authHeader,
       if (!overwrite) 'If-None-Match': '*',
+      // DN-104：条件更新。带上读取时拿到的 ETag；远端在此期间被别的设备改过
+      // 就返回 412，从而不覆盖对方的清单更新。ifMatch 为 null（服务器不给
+      // ETag）时退化为无条件写——兼容不支持条件写入的服务端。
+      if (ifMatch != null) 'If-Match': ifMatch,
     };
     final request = _newRequest('PUT', url, headers: headers)
       ..bodyBytes = Uint8List.fromList(bytes);
@@ -538,6 +603,12 @@ class WebDavSyncClient {
 
     if (response.statusCode == 201 || response.statusCode == 204) {
       return;
+    }
+    if (response.statusCode == 412) {
+      throw WebDavPreconditionFailedException(
+        'PUT 条件失败：远端清单已被其他设备更新',
+        statusCode: 412,
+      );
     }
     throw WebDavSyncException(
       'PUT failed: ${response.reasonPhrase}',
