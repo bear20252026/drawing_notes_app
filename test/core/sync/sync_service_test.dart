@@ -41,8 +41,13 @@ class _MemoryServer {
   /// ETag 返回。用于模拟「另一台设备在我们读取之后改了清单」。
   int manifestVersion = 0;
 
-  /// DN-104：PUT 携带过的 If-Match（断言条件写入确实发出了）。
-  final List<String?> putIfMatch = [];
+  /// DN-104：PUT 携带过的 (相对路径, If-Match)。记路径是因为**文档上传**也走
+  /// PUT（不带 If-Match），只看 If-Match 列表会把上传那条 `null` 混进来。
+  final List<(String, String?)> puts = [];
+
+  /// 只取清单 PUT 的 If-Match 序列（DN-104 断言用）。
+  List<String?> get manifestPuts =>
+      [for (final p in puts) if (p.$1 == 'manifest.json') p.$2];
 
   /// DN-104：GET manifest 返回**之后**触发一次（模拟另一台设备紧接着写回）。
   void Function()? afterGetManifest;
@@ -106,7 +111,7 @@ class _MemoryServer {
       case 'PUT':
         if (failPut.contains(rel)) return http.Response('', 500);
         final ifMatch = request.headers['if-match'] ?? request.headers['If-Match'];
-        putIfMatch.add(ifMatch);
+        puts.add((rel, ifMatch));
         // DN-104：manifest 走条件写入——版本对不上即 412（别的设备抢先改过）。
         if (rel == 'manifest.json' &&
             ifMatch != null &&
@@ -1026,7 +1031,7 @@ void main() {
 
       expect(result.failedDocIds, isEmpty, reason: '412 应被合并重试消化，不记为失败');
       expect(
-        server.putIfMatch,
+        server.manifestPuts,
         ['v0', 'v1'],
         reason: '必须走 If-Match 条件写入，并在 412 后换新 ETag 重试',
       );
@@ -1049,7 +1054,7 @@ void main() {
       ).syncNow();
 
       expect(result.failedDocIds, isEmpty);
-      expect(server.putIfMatch, [null], reason: '无 ETag 时不得发送 If-Match');
+      expect(server.manifestPuts, [null], reason: '无 ETag 时不得发送 If-Match');
       expect(_remoteEntries(server).containsKey('doc-a'), isTrue);
     });
   });
