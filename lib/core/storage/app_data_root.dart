@@ -22,8 +22,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kDebugMode, visibleForTesting;
 import 'package:path_provider/path_provider.dart';
 
-import 'package:drawing_notes_app/core/security/audit_logger.dart';
-
 /// 统一数据根目录。
 class AppDataRoot {
   AppDataRoot({
@@ -100,6 +98,37 @@ class AppDataRoot {
   /// 备份包清单文件名（zip 根部；[BackupService] 与本类的恢复校验共用这一
   /// 唯一口径，避免两处字符串各写一份而漂移）。
   static const String backupManifestName = 'backup_manifest.json';
+
+  /// 恢复失败留痕文件名（与数据根同级）。DN-103。
+  static const String restoreFailureLogName =
+      '$defaultRootName.restore_failure.log';
+
+  /// 记录一次恢复失败（DN-103）。
+  ///
+  /// 刻意**不用 `AuditLogger`**，两个原因：
+  /// 1. `core/security/audit_logger.dart` 本身就 import 本文件，反向依赖会形成
+  ///    import 环——架构门禁「零循环依赖」会红。
+  /// 2. `AuditLogger` 是**进程内内存链、重启即失**；而「恢复失败」恰恰是跨重启
+  ///    才需要看的事件。落在数据根父目录的日志文件才真正可诊断。
+  ///
+  /// 尽力而为：日志写不进去绝不影响恢复主流程。
+  static Future<void> _recordRestoreFailure(
+    String parentPath,
+    String detail,
+  ) async {
+    try {
+      final log = File(
+        '$parentPath${Platform.pathSeparator}$restoreFailureLogName',
+      );
+      await log.writeAsString(
+        '${DateTime.now().toIso8601String()}  $detail\n',
+        mode: FileMode.append,
+        flush: true,
+      );
+    } catch (_) {
+      // 留痕失败可忽略：本次恢复已按失败返回，标记仍保留供下次重试
+    }
+  }
 
   /// 写入待恢复标记（恢复流第三步：暂存解压完成后、退出应用前调用）。
   static Future<void> writePendingRestoreMarker({
@@ -210,17 +239,16 @@ class AppDataRoot {
           try {
             await oldRoot.rename(root.path);
           } catch (_) {
-            AuditLogger.log(
-              'appdata.restore.rollback_failed',
-              success: false,
-              detail: '旧根回滚失败，数据完整保留在 ${oldRoot.path}',
+            await _recordRestoreFailure(
+              supportPath,
+              'rollback_failed  旧根回滚失败，数据完整保留在 ${oldRoot.path}',
             );
           }
         }
-        AuditLogger.log(
-          'appdata.restore.promote_failed',
-          success: false,
-          detail: e.runtimeType.toString(),
+        await _recordRestoreFailure(
+          supportPath,
+          'promote_failed  ${e.runtimeType}'
+          '${oldRoot == null ? '' : '（已尝试回滚旧根）'}',
         );
         rethrow; // 外层 catch：保留标记 + 返回 false，下次启动重试
       }
