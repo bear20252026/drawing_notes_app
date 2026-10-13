@@ -157,8 +157,10 @@ void main() {
 
     await restoreFrom('second');
 
-    final stampOf = (String path) =>
-        int.parse(path.replaceAll('\\', '/').split('.old_').last);
+    // 与生产侧同口径：只按平台分隔符归一，别写字面反斜杠。
+    int stampOf(String path) => int.parse(
+          path.replaceAll(Platform.pathSeparator, '/').split('.old_').last,
+        );
     final remaining = snapshotsOnDisk().map((d) => d.path).toList();
     // 本次换下的快照时间戳必然不早于开始时刻，且严格早于手工塞的「更晚」目录。
     final current = remaining.firstWhere((p) => stampOf(p) >= before);
