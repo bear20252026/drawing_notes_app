@@ -15,6 +15,7 @@ import 'dart:typed_data';
 
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
 import 'package:drawing_notes_app/core/sync/post_restore_baseline.dart';
+import 'package:drawing_notes_app/core/sync/remote_deletes.dart';
 import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/sync/sync_planner.dart';
@@ -114,6 +115,7 @@ class SyncResult {
     this.conditionalWritesUnavailable = false,
     this.postRestorePolicy,
     this.postRestoreDiff,
+    this.remoteDeletes = const [],
   });
 
   final int uploaded;
@@ -178,6 +180,15 @@ class SyncResult {
   /// 或不响应 HEAD）。此时「两台设备同时改同一篇笔记」防不住互相覆盖——
   /// 必须说出来，不能在注释里承认却在界面上假装安全。
   final bool conditionalWritesUnavailable;
+
+  /// A3：云端宣布已删除、本机却还留着活副本的那些文档，按「本地这一份是什么」
+  /// 分好类的报告项。
+  ///
+  /// **本轮不采取任何动作**：跟随删除意味着程序主动删掉用户的画布，那需要点名
+  /// （§10 的甲/乙/丙）。分列三类的意义是把「无损」与「有独有内容」先分开说清，
+  /// 而不是笼统报一句「有 N 篇不一致」。隔离轮次（[postRestorePolicy] 非空）
+  /// 恒为空——那轮的基线不描述当前数据根，拿它判「本地一字未动」会造假红。
+  final List<RemoteDeleteIssue> remoteDeletes;
 
   bool get changed => uploaded > 0 || downloaded > 0 || deletedRemote > 0;
 
@@ -430,6 +441,18 @@ class SyncService {
       remoteManifest,
       policy == null ? baseline : const SyncManifest(),
     );
+    // A3：墓碑的第一位读者。放在计划**之后**、且不进 applyConflictResolutions
+    // ——它不是「等裁决的冲突」，而是一类裁决都还没实现的状态描述；一旦把它
+    // 混进 conflicts，那条「计划里没有操作的冲突文档要补强制操作」的兜底会
+    // 顺手给它们加上传，等于把「报告」悄悄变成「动作」。
+    final remoteDeletes = policy == null
+        ? detectRemoteDeletes(
+            currentEntries: currentEntries,
+            localDeletedIds: deletedIds,
+            remote: remoteManifest,
+            baseline: baseline,
+          )
+        : const <RemoteDeleteIssue>[];
 
     // 4b. 用户裁决（如注入了 handler）→ 覆盖为有效计划。
     final resolutions = conflicts.isEmpty
@@ -661,6 +684,7 @@ class SyncService {
       skippedMissingDocIds: List.unmodifiable(executed.skippedMissingIds),
       remoteChangedDocIds: List.unmodifiable(executed.remoteChangedIds),
       conditionalWritesUnavailable: executed.conditionalWritesUnavailable,
+      remoteDeletes: remoteDeletes,
       postRestorePolicy: policy,
       postRestoreDiff: policy == null
           ? null

@@ -22,6 +22,7 @@ import 'package:http/testing.dart';
 
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
 import 'package:drawing_notes_app/core/sync/post_restore_baseline.dart';
+import 'package:drawing_notes_app/core/sync/remote_deletes.dart';
 import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/sync/sync_planner.dart';
@@ -419,4 +420,86 @@ void main() {
       expect((raw['entries'] as Map).keys, ['a']);
     });
   });
+
+  group('A3 读者上线：报告不产生动作', () {
+    test('云端删过、本机还留着 ⇒ 报出 staleCopy，但本轮动作与报告前一致', () async {
+      // 这条是**反向锁**：加了读者绝不能顺手改变同步方向。今天仍然按「本地独有
+      // ⇒ 上传」处理（要把它变成「不复活」，得先有 §10 甲/乙/丙 的点名）。
+      final docs = _Docs({'stale': 200, 'a': 200});
+      final dav = _Dav()
+        ..seedManifest(
+          SyncManifest(
+            entries: {'a': _snap('a', 200)},
+            deletedIds: const {'stale'},
+            tombstones: const {
+              'stale': SyncTombstone(id: 'stale', deletedAt: 260, baseRev: 200),
+            },
+          ),
+        );
+      final baseline = _Baseline(
+        SyncManifest(
+          entries: {'stale': _snap('stale', 200), 'a': _snap('a', 200)},
+        ),
+      );
+
+      final result = await _service(dav, docs, baseline).syncNow();
+
+      final issue = result.remoteDeletes.single;
+      expect(issue.docId, 'stale');
+      expect(issue.kind, RemoteDeleteKind.staleCopy);
+      expect(issue.tombstoneBaseRev, 200);
+      // 动作面一个都没多：没有下载、没有删远端、没有 -conflict- 副本。
+      expect(result.uploaded, 1, reason: '仍是既有行为：按「仅本地」上传');
+      expect(result.downloaded, 0);
+      expect(result.deletedRemote, 0);
+      expect(
+        docs.updatedAtById.keys.where((k) => k.contains('-conflict-')),
+        isEmpty,
+      );
+      expect(
+        docs.updatedAtById.containsKey('stale'),
+        isTrue,
+        reason: '报告不许顺手删掉用户的东西',
+      );
+    });
+
+    test('隔离轮（基线不描述当前数据根）⇒ 一条都不报', () async {
+      // 那一份基线会让恢复出来的旧副本看起来像「云端删过、本机一字未动」，
+      // 与事实无关。DN-204 已经把冲突判据按首次同步处理，读者必须同样闭嘴。
+      final docs = _Docs({'stale': 200});
+      final dav = _Dav()
+        ..seedManifest(
+          SyncManifest(
+            entries: const {},
+            deletedIds: const {'stale'},
+            tombstones: const {
+              'stale': SyncTombstone(id: 'stale', deletedAt: 260, baseRev: 200),
+            },
+          ),
+        );
+      final baseline = _Baseline(
+        SyncManifest(entries: {'stale': _snap('stale', 200)}),
+      );
+
+      final result = await SyncService(
+        transport: WebDavSyncClient(baseUrl: Uri.parse(_base), client: dav.client()),
+        documentStore: docs,
+        baselineStore: baseline,
+        cipher: const NoopSyncCipher(),
+        conflictHandler: const LwwConflictHandler(),
+        baselineGate: const _AlwaysStaleGate(),
+        reconcile: PostRestoreReconcile.merge,
+      ).syncNow();
+
+      expect(result.remoteDeletes, isEmpty);
+    });
+  });
+}
+
+/// 恒判「基线已过时」的门（隔离轮用例用；真门的判据另有测试）。
+class _AlwaysStaleGate implements PostRestoreBaselineGate {
+  const _AlwaysStaleGate();
+
+  @override
+  Future<bool> isBaselineStaleAfterRestore() async => true;
 }

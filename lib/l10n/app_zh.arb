@@ -3225,6 +3225,24 @@
   "@syncConditionalWriteUnsupported": {
     "description": "同步摘要（DN-201）：服务器无法做文档级条件写入时的如实告知"
   },
+  "syncRemoteDeleteHeld": "；云端报告已删除、本机仍留着 {deleted} 篇：其中 {stale} 篇自上次同步后一字未改（本机没有只此一份的内容），{edited} 篇在本机改过（删除与编辑撞上，两份都还在），{unknown} 篇无从比对（本机基线里没有它）。本机没有删掉任何东西——这几篇接下来怎么处理仍要你定",
+  "@syncRemoteDeleteHeld": {
+    "description": "同步摘要（A3）：远端删除墓碑与本地活副本并存的如实上报；本轮不做任何本地删除",
+    "placeholders": {
+      "deleted": {
+        "type": "int"
+      },
+      "stale": {
+        "type": "int"
+      },
+      "edited": {
+        "type": "int"
+      },
+      "unknown": {
+        "type": "int"
+      }
+    }
+  },
   "budgetTruncatedTitle": "画布内容比磁盘上的原文件少",
   "@budgetTruncatedTitle": {
     "description": "DN-003：以预算截断态打开画布时的常驻说明条标题"

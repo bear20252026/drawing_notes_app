@@ -10,6 +10,7 @@ import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/sync/post_restore_baseline.dart';
+import 'package:drawing_notes_app/core/sync/remote_deletes.dart';
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/sync/sync_progress.dart';
 import 'package:drawing_notes_app/features/notes/application/sync_controller.dart';
@@ -534,6 +535,13 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
       summary =
           '$summary${l10n?.syncRemoteChangedCount(r.remoteChangedDocIds.length) ?? '；${r.remoteChangedDocIds.length} 篇笔记的云端版本在本机读过之后又被其他设备改动：本轮既没有覆盖也没有删除它们，云端版本已另存为本机副本（文件名带 -conflict-），请确认保留哪一份'}';
     }
+    // A3：云端删过、本机还留着的那些。**本轮只说不做**——跟随删除等于程序主动
+    // 删掉用户的画布，那一步要业主点名（§10 甲/乙/丙）。但必须把「无损的那一类」
+    // 和「本机有只此一份内容的那一类」分开说：混成一句「N 篇不一致」会让人以为
+    // 随便删哪边都行，而这三类的下一步动作完全不同。
+    if (r.remoteDeletes.isNotEmpty) {
+      summary = '$summary${_remoteDeleteLine(l10n, r.remoteDeletes)}';
+    }
     // DN-201：服务器给不了文档级条件写入 ⇒ 多设备同改防不住互相覆盖。
     // 刻意不说「已具备多设备保护」，也不因此拒绝同步（那是更糟的静默失效）。
     if (r.conditionalWritesUnavailable) {
@@ -541,6 +549,29 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
           '$summary${l10n?.syncConditionalWriteUnsupported ?? '；当前服务器不支持条件写入（没有 ETag，或不响应 HEAD）：同一篇笔记在多台设备同时修改时无法防止相互覆盖'}';
     }
     return summary;
+  }
+
+  /// A3：远端删除的报告行。空列表返回空串，同样不往既有摘要里塞东西。
+  String _remoteDeleteLine(
+    AppLocalizations? l10n,
+    List<RemoteDeleteIssue> issues,
+  ) {
+    if (issues.isEmpty) return '';
+    int countOf(RemoteDeleteKind kind) =>
+        issues.where((i) => i.kind == kind).length;
+    final stale = countOf(RemoteDeleteKind.staleCopy);
+    final edited = countOf(RemoteDeleteKind.localHasEdits);
+    final unknown = countOf(RemoteDeleteKind.unknowable);
+    return l10n?.syncRemoteDeleteHeld(
+          issues.length,
+          stale,
+          edited,
+          unknown,
+        ) ??
+        '；云端报告已删除、本机仍留着 ${issues.length} 篇：其中 $stale 篇自上次同步后'
+        '一字未改（本机没有只此一份的内容），$edited 篇在本机改过（删除与编辑撞上，'
+        '两份都还在），$unknown 篇无从比对（本机基线里没有它）。本机没有删掉任何东西'
+        '——这几篇接下来怎么处理仍要你定';
   }
 
   /// DN-204：差异行。非隔离轮（diff 为 null）返回空串，不往既有摘要里塞东西。

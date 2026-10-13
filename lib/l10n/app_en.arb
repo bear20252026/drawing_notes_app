@@ -3246,6 +3246,24 @@
   "@syncConditionalWriteUnsupported": {
     "description": "Sync summary (DN-201): honest notice when the server cannot do document-level conditional writes"
   },
+  "syncRemoteDeleteHeld": "; the cloud reports {deleted} note(s) as deleted while this device still holds them: {stale} of those are unchanged since the last sync (this device has no content that exists only here), {edited} were edited on this device afterwards (a delete collided with an edit, and both copies still exist), {unknown} cannot be compared (this device has no baseline entry for them). Nothing was removed on this device - what should happen to these still needs your decision",
+  "@syncRemoteDeleteHeld": {
+    "description": "Sync summary (A3): honest visibility for remote tombstones that this device still holds; no local deletion is performed",
+    "placeholders": {
+      "deleted": {
+        "type": "int"
+      },
+      "stale": {
+        "type": "int"
+      },
+      "edited": {
+        "type": "int"
+      },
+      "unknown": {
+        "type": "int"
+      }
+    }
+  },
   "budgetTruncatedTitle": "This canvas holds less than the file on disk",
   "@budgetTruncatedTitle": {
     "description": "DN-003：以预算截断态打开画布时的常驻说明条标题"

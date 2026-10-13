@@ -6505,6 +6505,12 @@ abstract class AppLocalizations {
   /// **'; this server does not support conditional writes (no ETag, or HEAD is not answered): the same note edited on several devices at the same time cannot be protected against overwriting each other'**
   String get syncConditionalWriteUnsupported;
 
+  /// Sync summary (A3): honest visibility for remote tombstones that this device still holds; no local deletion is performed
+  ///
+  /// In en, this message translates to:
+  /// **'; the cloud reports {deleted} note(s) as deleted while this device still holds them: {stale} of those are unchanged since the last sync (this device has no content that exists only here), {edited} were edited on this device afterwards (a delete collided with an edit, and both copies still exist), {unknown} cannot be compared (this device has no baseline entry for them). Nothing was removed on this device - what should happen to these still needs your decision'**
+  String syncRemoteDeleteHeld(int deleted, int stale, int edited, int unknown);
+
   /// DN-003：以预算截断态打开画布时的常驻说明条标题
   ///
   /// In en, this message translates to:

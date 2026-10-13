@@ -3451,6 +3451,11 @@ class AppLocalizationsZh extends AppLocalizations {
       '；当前服务器不支持条件写入（没有 ETag，或不响应 HEAD）：同一篇笔记在多台设备同时修改时无法防止相互覆盖';
 
   @override
+  String syncRemoteDeleteHeld(int deleted, int stale, int edited, int unknown) {
+    return '；云端报告已删除、本机仍留着 $deleted 篇：其中 $stale 篇自上次同步后一字未改（本机没有只此一份的内容），$edited 篇在本机改过（删除与编辑撞上，两份都还在），$unknown 篇无从比对（本机基线里没有它）。本机没有删掉任何东西——这几篇接下来怎么处理仍要你定';
+  }
+
+  @override
   String get budgetTruncatedTitle => '画布内容比磁盘上的原文件少';
 
   @override
