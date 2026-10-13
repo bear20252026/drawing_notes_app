@@ -528,6 +528,18 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
       summary =
           '$summary${l10n?.syncRemoteCopyUnprotectedCount(r.unprotectedRemoteDocIds.length) ?? '；${r.unprotectedRemoteDocIds.length} 个云端副本暂时读不出来，为避免覆盖已跳过这几个文档的上传（本次未同步）：请确认同步口令是否填回原值，或稍后再同步一次'}';
     }
+    // DN-201：条件写入被 412 挡回 = 云端在我们读过之后又变了。两份内容都还在，
+    // 但「本轮没改动云端」这件事必须说出来，否则摘要读起来像已经调和完了。
+    if (r.remoteChangedDocIds.isNotEmpty) {
+      summary =
+          '$summary${l10n?.syncRemoteChangedCount(r.remoteChangedDocIds.length) ?? '；${r.remoteChangedDocIds.length} 篇笔记的云端版本在本机读过之后又被其他设备改动：本轮既没有覆盖也没有删除它们，云端版本已另存为本机副本（文件名带 -conflict-），请确认保留哪一份'}';
+    }
+    // DN-201：服务器给不了文档级条件写入 ⇒ 多设备同改防不住互相覆盖。
+    // 刻意不说「已具备多设备保护」，也不因此拒绝同步（那是更糟的静默失效）。
+    if (r.conditionalWritesUnavailable) {
+      summary =
+          '$summary${l10n?.syncConditionalWriteUnsupported ?? '；当前服务器不支持条件写入（没有 ETag，或不响应 HEAD）：同一篇笔记在多台设备同时修改时无法防止相互覆盖'}';
+    }
     return summary;
   }
 

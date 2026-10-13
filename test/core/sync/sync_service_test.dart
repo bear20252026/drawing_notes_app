@@ -50,8 +50,19 @@ class _MemoryServer {
   List<String?> get manifestPuts =>
       [for (final p in puts) if (p.$1 == 'manifest.json') p.$2];
 
+  /// DN-202：PUT 携带过的 If-None-Match（`*` = 只允许创建，不允许覆盖）。
+  final List<(String, String?)> inmPuts = [];
+
+  /// 只取清单 PUT 的 If-None-Match 序列（DN-202 首次创建断言用）。
+  List<String?> get manifestInmPuts =>
+      [for (final p in inmPuts) if (p.$1 == 'manifest.json') p.$2];
+
   /// DN-104：GET manifest 返回**之后**触发一次（模拟另一台设备紧接着写回）。
   void Function()? afterGetManifest;
+
+  /// DN-202：PUT manifest **落笔之前**触发一次（模拟另一台设备抢先创建了清单）。
+  /// 放在存在性检查之前，才能真实复现「我们读到的是 404，写时它已经存在」。
+  void Function()? beforePutManifest;
 
   /// DN-104：置 true 时 GET manifest **不返回 ETag**——模拟不支持条件写入的
   /// WebDAV 服务端，用于验证客户端退回无条件 PUT。
@@ -112,7 +123,20 @@ class _MemoryServer {
       case 'PUT':
         if (failPut.contains(rel)) return http.Response('', 500);
         final ifMatch = request.headers['if-match'] ?? request.headers['If-Match'];
+        // DN-202：If-None-Match: * 的真实语义——对象已存在就 412（不许盖）。
+        final ifNoneMatch =
+            request.headers['if-none-match'] ??
+            request.headers['If-None-Match'];
         puts.add((rel, ifMatch));
+        inmPuts.add((rel, ifNoneMatch));
+        if (rel == 'manifest.json') {
+          final hook = beforePutManifest;
+          beforePutManifest = null; // 只触发一次
+          hook?.call();
+        }
+        if (ifNoneMatch == '*' && files.containsKey(rel)) {
+          return http.Response('', 412);
+        }
         // DN-104：manifest 走条件写入——版本对不上即 412（别的设备抢先改过）。
         if (rel == 'manifest.json' &&
             ifMatch != null &&
@@ -1059,6 +1083,87 @@ void main() {
       expect(result.failedDocIds, isEmpty);
       expect(server.manifestPuts, [null], reason: '无 ETag 时不得发送 If-Match');
       expect(_remoteEntries(server).containsKey('doc-a'), isTrue);
+    });
+  });
+
+  // DN-202（第三轮专家审计 2026-10-13）：**首次创建**清单那条腿此前同样是无条件
+  // PUT——文件还不存在时读不到任何 ETag，于是 `ifMatch` 恒为 null。两台设备同时
+  // 第一次同步时，后写的那台把前一台刚创建的清单整片盖掉：对方的文档仍在云端
+  // （成了孤儿文件），却从清单里消失，别的设备再也发现不了它。
+  group('SyncService DN-202 首次创建云端清单', () {
+    test('被抢先创建 → 412 后合并对方清单再重试，两份条目都留下', () async {
+      final server = _MemoryServer(); // 远端还没有 manifest.json
+      // 我们的第一次 PUT 落笔之前，另一台设备刚把清单创建出来。
+      server.beforePutManifest = () {
+        server.seedManifest({'doc-b': 200});
+        server.manifestVersion++;
+      };
+      final store = _MemoryDocStore();
+      store.docs['doc-a'] = _Doc('doc-a', _localDocBytes(100), 100);
+
+      final result = await _service(
+        store,
+        server,
+        baseline: _MemoryBaseline(),
+      ).syncNow();
+
+      expect(result.failedDocIds, isEmpty, reason: '创建被抢先是 412 的正常收敛路径');
+      expect(
+        server.manifestInmPuts,
+        ['*', null],
+        reason: '首次创建只允许「不存在才写」；确认已存在之后不得再带 If-None-Match',
+      );
+      expect(server.manifestPuts, [null, 'v1']);
+      final entries = _remoteEntries(server);
+      expect(entries.containsKey('doc-a'), isTrue);
+      expect(entries.containsKey('doc-b'), isTrue, reason: '别人刚创建的清单不能被盖掉');
+    });
+
+    test('反向锁：清单已存在时写回不带 If-None-Match（否则每次写都 412）', () async {
+      final server = _MemoryServer()..seedManifest(<String, int>{});
+      final store = _MemoryDocStore();
+      store.docs['doc-a'] = _Doc('doc-a', _localDocBytes(100), 100);
+
+      final result = await _service(
+        store,
+        server,
+        baseline: _MemoryBaseline(),
+      ).syncNow();
+
+      expect(result.failedDocIds, isEmpty);
+      expect(server.manifestInmPuts, [null]);
+      expect(server.manifestPuts, ['v0']);
+    });
+
+    test('远端清单在重试时被别人删掉 → 重新按「首次创建」写', () async {
+      final server = _MemoryServer();
+      var hijacked = false;
+      server.beforePutManifest = () {
+        if (hijacked) return;
+        hijacked = true;
+        server.seedManifest({'doc-b': 200});
+        server.manifestVersion++;
+      };
+      // 第二次 PUT 之前，对方又把清单删了 ⇒ 重读得到 exists=false ⇒ 必须回到
+      // If-None-Match: *，而不是拿着已经不存在的对象的旧 ETag 去写。
+      final store = _MemoryDocStore();
+      store.docs['doc-a'] = _Doc('doc-a', _localDocBytes(100), 100);
+      final baseline = _MemoryBaseline();
+      final service = _service(store, server, baseline: baseline);
+      final first = await service.syncNow();
+      expect(first.failedDocIds, isEmpty);
+
+      server.files.remove('manifest.json');
+      store.docs['doc-c'] = _Doc('doc-c', _localDocBytes(300), 300);
+      final second = await service.syncNow();
+
+      expect(second.failedDocIds, isEmpty);
+      expect(
+        server.manifestInmPuts.last,
+        '*',
+        reason: '清单不存在时又回到创建语义',
+      );
+      expect(_remoteEntries(server).containsKey('doc-c'), isTrue);
     });
   });
 }

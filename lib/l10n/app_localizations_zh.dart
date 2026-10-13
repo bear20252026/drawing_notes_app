@@ -3434,6 +3434,15 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String syncRemoteChangedCount(int count) {
+    return '；$count 篇笔记的云端版本在本机读过之后又被其他设备改动：本轮既没有覆盖也没有删除它们，云端版本已另存为本机副本（文件名带 -conflict-），请确认保留哪一份';
+  }
+
+  @override
+  String get syncConditionalWriteUnsupported =>
+      '；当前服务器不支持条件写入（没有 ETag，或不响应 HEAD）：同一篇笔记在多台设备同时修改时无法防止相互覆盖';
+
+  @override
   String get budgetTruncatedTitle => '画布内容比磁盘上的原文件少';
 
   @override

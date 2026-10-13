@@ -71,6 +71,49 @@ class WebDavFetch {
   final String? etag;
 }
 
+/// 只问「在不在、什么版本」的探测结果（DN-201）。
+///
+/// 为什么要有第三态：光问「ETag 是什么」会同时命中「对象不存在」「服务器不给
+/// ETag」「这个服务器不响应 HEAD」三种完全不同的处置——
+/// - [absent] ⇒ 走创建语义（`If-None-Match: *`），这样在探测与写入之间被别人
+///   抢先创建时会被 412 挡下，而不是把对方刚写好的内容盖掉；
+/// - 存在且有 [etag] ⇒ 走 `If-Match`，别人改过就 412；
+/// - 存在但拿不到 ETag / HEAD 不被支持 ⇒ **无法**条件写入，只能退回无条件写。
+///   这一态必须能与前两态区分开，调用方才好在 UI 上如实告诉用户「这台服务器
+///   上，同一篇笔记在两台设备同时改是防不住互相覆盖的」，而不是假装安全。
+class WebDavPresence {
+  const WebDavPresence.absent() : state = WebDavProbeState.absent, etag = null;
+
+  const WebDavPresence.presentWith(this.etag)
+    : state = WebDavProbeState.presentWithETag;
+
+  /// 存在，但拿不到可用于条件写入的版本标识（无 ETag 头，或 HEAD 不被支持）。
+  const WebDavPresence.presentUnknown()
+    : state = WebDavProbeState.presentWithoutETag,
+      etag = null;
+
+  final WebDavProbeState state;
+
+  /// 远端对象的 ETag；仅 [WebDavProbeState.presentWithETag] 时非 null。
+  final String? etag;
+
+  bool get canConditionallyWrite =>
+      state == WebDavProbeState.presentWithETag;
+  bool get isAbsent => state == WebDavProbeState.absent;
+}
+
+/// [WebDavPresence] 的三态（用枚举而不是两个 bool：漏一种就是静默覆盖）。
+enum WebDavProbeState {
+  /// 远端没有这个对象 ⇒ 只允许创建。
+  absent,
+
+  /// 对象在，且有 ETag ⇒ 可以 `If-Match` 覆盖写。
+  presentWithETag,
+
+  /// 对象在，但无法确证版本 ⇒ 只能无条件写（调用方须对用户如实说明）。
+  presentWithoutETag,
+}
+
 /// 响应体的用途档位（DN-008 加固）：不同档位的载荷性质差别很大，
 /// 一刀切的上限要么误伤合法大文档、要么挡不住 dribble 型错误响应，
 /// 故按用途分档。
@@ -570,6 +613,47 @@ class WebDavSyncClient {
     );
   }
 
+  /// HEAD 探测远端对象的存在性与版本标识（DN-201 条件写入的读侧）。
+  ///
+  /// 覆盖一篇笔记之前必须先问一次「它还在不在、还是不是我读过的那版」——
+  /// 清单里的 updatedAt/size 是**我们自己算的指纹**，不是能交给服务端的版本
+  /// 标识，拿它当 `If-Match` 的料等于什么都没条件化。HEAD 不下载正文，
+  /// 成本与文档大小无关。
+  ///
+  /// - 200/204 + ETag 头 → [WebDavProbeState.presentWithETag]。
+  /// - 200/204 无 ETag 头 → [WebDavProbeState.presentWithoutETag]（无法条件写）。
+  /// - 404 → [WebDavProbeState.absent]（只允许创建）。
+  /// - 405/501（这个服务器不响应 HEAD）→ [WebDavProbeState.presentWithoutETag]：
+  ///   刻意不按「不存在」处理——猜成不存在会发出 `If-None-Match: *`，在支持该
+  ///   头却禁了 HEAD 的服务上会直接 412，把能同步的文档永远同步不上。
+  /// - 其他/网络异常 → 抛出，由调用方按「本轮没同步上」处置（绝不静默降级成
+  ///   无条件覆盖）。
+  Future<WebDavPresence> probe(String relativePath) async {
+    final url = _resolve(relativePath);
+    final response = await _send(
+      _newRequest('HEAD', url, headers: _authHeader),
+      budget: WebDavResponseBudget.control,
+    );
+    _rejectRedirect(response);
+
+    final status = response.statusCode;
+    if (status == 200 || status == 204 || status == 207) {
+      final raw = response.headers['etag'];
+      final etag = (raw == null || raw.trim().isEmpty) ? null : raw.trim();
+      return etag == null
+          ? const WebDavPresence.presentUnknown()
+          : WebDavPresence.presentWith(etag);
+    }
+    if (status == 404) return const WebDavPresence.absent();
+    if (status == 405 || status == 501) {
+      return const WebDavPresence.presentUnknown();
+    }
+    throw WebDavSyncException(
+      'HEAD failed: ${response.reasonPhrase}',
+      statusCode: status,
+    );
+  }
+
   /// 上传字节到指定路径（PUT）。
   ///
   /// - 201/204 → 成功。
@@ -618,18 +702,31 @@ class WebDavSyncClient {
   /// 删除指定路径的文件（DELETE）。
   ///
   /// - 204/404 → 成功（404 视为已删除）。
+  /// - 412 → 抛 [WebDavPreconditionFailedException]（DN-201：带了 `If-Match`
+  ///   而远端已被别的设备改过 ⇒ **不许删**。删除也是一种覆盖，把别人刚写好的
+  ///   新版本删掉同样是数据丢失）。
   /// - 3xx → 抛重定向门禁异常（不跟随）。
   /// - 其他 → 抛 [WebDavSyncException]。
-  Future<bool> deleteRemaining(String relativePath) async {
+  Future<bool> deleteRemaining(String relativePath, {String? ifMatch}) async {
     final url = _resolve(relativePath);
     final response = await _send(
-      _newRequest('DELETE', url, headers: _authHeader),
+      _newRequest(
+        'DELETE',
+        url,
+        headers: {..._authHeader, 'If-Match': ?ifMatch},
+      ),
       budget: WebDavResponseBudget.control,
     );
     _rejectRedirect(response);
 
     if (response.statusCode == 204 || response.statusCode == 404) {
       return true;
+    }
+    if (response.statusCode == 412) {
+      throw WebDavPreconditionFailedException(
+        'DELETE 条件失败：远端内容已被其他设备更新',
+        statusCode: 412,
+      );
     }
     throw WebDavSyncException(
       'DELETE failed: ${response.reasonPhrase}',

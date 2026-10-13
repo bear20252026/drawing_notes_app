@@ -6481,6 +6481,18 @@ abstract class AppLocalizations {
   /// **'; {count} cloud copy(ies) could not be read this time, so uploading those document(s) was skipped to avoid overwriting them (not synced this round): make sure the sync password is your original one, or try syncing again later'**
   String syncRemoteCopyUnprotectedCount(int count);
 
+  /// Sync summary (DN-201): documents whose conditional write was refused with 412 while both copies survive
+  ///
+  /// In en, this message translates to:
+  /// **'; {count} note(s) changed on another device after this device read them: nothing was overwritten or deleted for those this round, and the cloud version was saved as a local copy (file name ends with -conflict-) - please decide which copy to keep'**
+  String syncRemoteChangedCount(int count);
+
+  /// Sync summary (DN-201): honest notice when the server cannot do document-level conditional writes
+  ///
+  /// In en, this message translates to:
+  /// **'; this server does not support conditional writes (no ETag, or HEAD is not answered): the same note edited on several devices at the same time cannot be protected against overwriting each other'**
+  String get syncConditionalWriteUnsupported;
+
   /// DN-003：以预算截断态打开画布时的常驻说明条标题
   ///
   /// In en, this message translates to:

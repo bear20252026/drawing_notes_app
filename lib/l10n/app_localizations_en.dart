@@ -3570,6 +3570,15 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String syncRemoteChangedCount(int count) {
+    return '; $count note(s) changed on another device after this device read them: nothing was overwritten or deleted for those this round, and the cloud version was saved as a local copy (file name ends with -conflict-) - please decide which copy to keep';
+  }
+
+  @override
+  String get syncConditionalWriteUnsupported =>
+      '; this server does not support conditional writes (no ETag, or HEAD is not answered): the same note edited on several devices at the same time cannot be protected against overwriting each other';
+
+  @override
   String get budgetTruncatedTitle =>
       'This canvas holds less than the file on disk';
 

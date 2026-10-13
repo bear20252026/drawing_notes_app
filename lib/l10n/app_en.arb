@@ -3217,6 +3217,19 @@
       }
     }
   },
+  "syncRemoteChangedCount": "; {count} note(s) changed on another device after this device read them: nothing was overwritten or deleted for those this round, and the cloud version was saved as a local copy (file name ends with -conflict-) - please decide which copy to keep",
+  "@syncRemoteChangedCount": {
+    "description": "Sync summary (DN-201): documents whose conditional write was refused with 412 while both copies survive",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncConditionalWriteUnsupported": "; this server does not support conditional writes (no ETag, or HEAD is not answered): the same note edited on several devices at the same time cannot be protected against overwriting each other",
+  "@syncConditionalWriteUnsupported": {
+    "description": "Sync summary (DN-201): honest notice when the server cannot do document-level conditional writes"
+  },
   "budgetTruncatedTitle": "This canvas holds less than the file on disk",
   "@budgetTruncatedTitle": {
     "description": "DN-003：以预算截断态打开画布时的常驻说明条标题"

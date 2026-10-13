@@ -99,6 +99,8 @@ class SyncResult {
     this.unreadableDocIds = const [],
     this.unprotectedRemoteDocIds = const [],
     this.skippedMissingDocIds = const [],
+    this.remoteChangedDocIds = const [],
+    this.conditionalWritesUnavailable = false,
     this.postRestorePolicy,
     this.postRestoreDiff,
   });
@@ -153,6 +155,19 @@ class SyncResult {
   /// DN-204：隔离轮次算出的两端差异（含被拦下的删除墓碑清单）；正常轮次为 null。
   final PostRestoreDiff? postRestoreDiff;
 
+  /// DN-201：本轮被服务端以 412 挡回来的文档——远端内容在本机读过之后又变了。
+  /// 处置是**不覆盖、不删除**，并尽力把云端那一版另存成本地副本（两端都不丢）。
+  ///
+  /// 与 [failedDocIds] 分列的理由同 `unprotectedRemoteDocIds`：这不是「某个操作
+  /// 执行失败」，而是「按并发纪律主动不让写」，措辞与下一步动作完全不同
+  /// （失败⇒重试；这里⇒两份都在，需要你确认留哪份）。
+  final List<String> remoteChangedDocIds;
+
+  /// DN-201：本轮至少有一次覆盖写**没能条件化**（这台服务器不返回 ETag，
+  /// 或不响应 HEAD）。此时「两台设备同时改同一篇笔记」防不住互相覆盖——
+  /// 必须说出来，不能在注释里承认却在界面上假装安全。
+  final bool conditionalWritesUnavailable;
+
   bool get changed => uploaded > 0 || downloaded > 0 || deletedRemote > 0;
 
   @override
@@ -162,16 +177,20 @@ class SyncResult {
       'failed=${failedDocIds.length}, unreadable=${unreadableDocIds.length}, '
       'unprotectedRemote=${unprotectedRemoteDocIds.length}, '
       'skippedMissing=${skippedMissingDocIds.length}, '
+      'remoteChanged=${remoteChangedDocIds.length}, '
+      'unconditionalWrite=$conditionalWritesUnavailable, '
       'postRestore=${postRestorePolicy?.name ?? 'none'})';
 }
 
 /// 单轮执行结果（M2：成功与失败的操作分离，清单回写只认成功项）。
 ///
-/// 三种语义互斥且穷尽（DN-001 钉死）：
+/// 四种语义互斥且穷尽（DN-001 钉死前三条，DN-201 补第四条）：
 /// - [succeeded]：真成功——两端字节确实落地，**只有它**能推进清单/基线。
 /// - [failedIds]：真失败（网络/5xx/解密认证失败）——享受毒丸保护。
 /// - [skippedMissingIds]：一侧「文件不存在」而显式跳过——同样享受保护。
-/// 「不回写」的判据一律走 [notSyncedIds]（失败 ∪ 跳过），不要单独盯
+/// - [remoteChangedIds]：条件写入被 412 挡回——按并发纪律**主动不让写**，
+///   云端内容与本地版本都还在——同样享受保护。
+/// 「不回写」的判据一律走 [notSyncedIds]（失败 ∪ 跳过 ∪ 被挡回），不要单独盯
 /// [failedIds]：那正是 DN-001 伪成功的成因。
 class _ExecuteOutcome {
   const _ExecuteOutcome({
@@ -179,6 +198,8 @@ class _ExecuteOutcome {
     required this.failedIds,
     required this.unreadableIds,
     required this.skippedMissingIds,
+    this.remoteChangedIds = const [],
+    this.conditionalWritesUnavailable = false,
   });
 
   final List<SyncOperation> succeeded;
@@ -192,9 +213,23 @@ class _ExecuteOutcome {
   /// 本轮没有任何数据落地，故与失败项同等处置，但原因不同、措辞不同。
   final List<String> skippedMissingIds;
 
+  /// DN-201：条件写入被 412 挡回的文档——远端在我们读过之后又变了，本轮
+  /// **没有覆盖也没有删除**，且（尽力地）已把云端那一版另存成本地副本。
+  /// 与 [failedIds] 分列：那不是「操作执行失败」，而是「按并发纪律主动不让写」，
+  /// 处置措辞完全不同（前者是重试，后者是两端都还留着、等你处理）。
+  final List<String> remoteChangedIds;
+
+  /// DN-201：本轮至少有一次覆盖写没能条件化（服务器不响应 HEAD、不给 ETag，
+  /// 或探测本身失败）。此时多设备同改同一篇**防不住互相覆盖**，必须让用户知道。
+  final bool conditionalWritesUnavailable;
+
   /// 本轮**没有任何字节落地**的 id 全集：清单不新增条目、基线不推进、
   /// 不产生删除墓碑的唯一判据（单一通道，避免第二套语义重叠的机制）。
-  Set<String> get notSyncedIds => {...failedIds, ...skippedMissingIds};
+  Set<String> get notSyncedIds => {
+    ...failedIds,
+    ...skippedMissingIds,
+    ...remoteChangedIds,
+  };
 }
 
 /// keepBoth 远端副本的取回结果（[_preserveRemoteCopies] 的返回形状）。
@@ -267,10 +302,16 @@ class SyncService {
   ///
   /// `etag` 为 null 表示服务器未返回 ETag ⇒ 不支持条件写入，调用方退回无条件
   /// PUT（不能假设所有 WebDAV 服务端行为相同）。
-  Future<({SyncManifest manifest, String? etag})> _readRemoteManifest() async {
+  ///
+  /// `exists`（DN-202）：远端**是否已经有这份清单**。etag 为 null 有两种完全不同的
+  /// 成因——「文件不存在（404）」与「存在但服务器不给 ETag」——而写侧的处置相反：
+  /// 不存在时要 `If-None-Match: *`（首次创建不得盖掉别人刚创建的清单），存在而不给
+  /// ETag 时才退回无条件写。少了这个标志就只能把两种情况当成一种。
+  Future<({SyncManifest manifest, String? etag, bool exists})>
+      _readRemoteManifest() async {
     final fetched = await transport.fetchBytes(manifestPath);
     if (fetched == null) {
-      return (manifest: const SyncManifest(), etag: null);
+      return (manifest: const SyncManifest(), etag: null, exists: false);
     }
     final manifestJson = await cipher.openManifestJson(
       utf8.decode(fetched.bytes),
@@ -279,7 +320,11 @@ class SyncService {
     if (decoded is! Map<String, dynamic>) {
       throw const FormatException('远端清单格式损坏');
     }
-    return (manifest: SyncManifest.fromJson(decoded), etag: fetched.etag);
+    return (
+      manifest: SyncManifest.fromJson(decoded),
+      etag: fetched.etag,
+      exists: true,
+    );
   }
 
   /// 执行一次完整同步。
@@ -308,6 +353,8 @@ class SyncService {
     final remote = await _readRemoteManifest();
     final remoteManifest = remote.manifest;
     var manifestEtag = remote.etag;
+    // DN-202：远端有没有这份清单，决定写侧用 `If-Match` 还是 `If-None-Match: *`。
+    var manifestPresent = remote.exists;
 
     // 3. 构本地 manifest：当前文档 + 删除墓碑（基线有但当前无 → 墓碑）。
     final inventory = await documentStore.listDocuments();
@@ -428,6 +475,13 @@ class SyncService {
     // 以我们为准），再用新 ETag 重试，最多 [_maxManifestCasAttempts] 次。
     // 服务器不给 ETag（`manifestEtag == null`）时退回无条件写——兼容不支持
     // 条件写入的服务端，行为与既有实现一致。
+    //
+    // DN-202（第三轮专家审计 2026-10-13）：**首次创建**那条腿此前同样是无条件写。
+    // 「资源不存在」时根本没有可读到的 ETag，于是 `ifMatch` 恒为 null ⇒ 两台设备
+    // 同时第一次同步时，后写的那台把前一台刚创建的清单整片盖掉（前一台的条目从
+    // 清单里消失，文件却还留在云端成为孤儿，别的设备再也发现不了它）。
+    // 修法按审计给的两条分支分开处理：资源存在 ⇒ `If-Match`；资源不存在 ⇒
+    // `If-None-Match: *`。412 一律走下面既有的「重读 + 合并 + 重试」。
     final touchedIds = <String>{
       for (final op in executed.succeeded)
         if (op.kind == SyncOperationKind.upload ||
@@ -444,12 +498,16 @@ class SyncService {
             ),
           ),
           ifMatch: manifestEtag,
+          overwrite: manifestPresent,
         );
         break;
       } on WebDavPreconditionFailedException {
         if (attempt >= _maxManifestCasAttempts) rethrow;
         final fresh = await _readRemoteManifest();
         manifestEtag = fresh.etag;
+        // 412 之后远端的形状可能整个变了（别人刚创建 / 又被人删掉）：
+        // 下一次尝试的条件头必须按**刚读到的事实**重算，不能沿用旧值。
+        manifestPresent = fresh.exists;
         // 合并口径：不在本轮改动集里的 id 一律以**刚读到的远端**为准——
         // 对方的新增要保留，对方的删除也不能被我们按旧清单复活。
         final merged = <String, SyncSnapshot>{
@@ -537,6 +595,8 @@ class SyncService {
       unreadableDocIds: List.unmodifiable(executed.unreadableIds),
       unprotectedRemoteDocIds: List.unmodifiable(preserved.unprotectedDocIds),
       skippedMissingDocIds: List.unmodifiable(executed.skippedMissingIds),
+      remoteChangedDocIds: List.unmodifiable(executed.remoteChangedIds),
+      conditionalWritesUnavailable: executed.conditionalWritesUnavailable,
       postRestorePolicy: policy,
       postRestoreDiff: policy == null
           ? null
@@ -733,6 +793,53 @@ class SyncService {
     return '$stem-conflict-${DateTime.now().millisecondsSinceEpoch}';
   }
 
+  /// DN-201：HEAD 探测远端版本；**探不到就按「无法条件写」返回，不抛出**。
+  ///
+  /// 为什么不因为一次探测失败就把这篇判成同步失败：那等于新增一个「服务器响应
+  /// 形态不合我意 ⇒ 断同步」的开关，比现状（无条件写）更糟。探测失败退回既有
+  /// 行为，同时把「这台服务器上防不住并发覆盖」如实上报到界面——诚实的降级
+  /// 好过假装安全的降级。
+  Future<WebDavPresence> _probeOrUnknown(String relativePath) async {
+    try {
+      return await transport.probe(relativePath);
+    } catch (_) {
+      return const WebDavPresence.presentUnknown();
+    }
+  }
+
+  /// DN-201：条件写入被 412 挡回之后的处置——**先保两端，再上报，绝不重试覆盖**。
+  ///
+  /// 412 说的是一件很具体的事：远端这一篇在本机读过之后又被别的设备改过。此刻
+  /// 本机手里一份、云端一份，是两份都真实存在的内容，任何一边的「顺手覆盖」都是
+  /// 数据丢失。所以把云端那一版另存成本地副本（与 keepBoth 同一套 `_safeCopyId`
+  /// 命名与消毒），id 记进 remoteChangedIds；连副本都没能留住时记 failedIds，
+  /// 享受「清单/基线都不回写、下轮重试」的毒丸保护。
+  ///
+  /// 两条腿都在本轮**不写云端**——remoteChangedIds 与 failedIds 都并进
+  /// `_ExecuteOutcome.notSyncedIds`，绝不出现「远端没动，本地清单却说同步过了」。
+  Future<void> _handleRejectedWrite(
+    String docId,
+    String relativePath,
+    List<String> remoteChangedIds,
+    List<String> failedIds,
+  ) async {
+    try {
+      final remoteBytes = await transport.getBytes(relativePath);
+      if (remoteBytes == null) {
+        // 远端对象在这一步已经消失：没有要保护的内容，本轮按未同步收工。
+        if (!remoteChangedIds.contains(docId)) remoteChangedIds.add(docId);
+        return;
+      }
+      final plain = await cipher.decryptDocumentBytes(remoteBytes, docId);
+      await documentStore.writeDocument(_safeCopyId(docId), plain);
+      if (!remoteChangedIds.contains(docId)) remoteChangedIds.add(docId);
+    } on SyncKeyMismatchException {
+      rethrow; // 确定性失败：交给外层，同时进 unreadableIds 供 UI 给可执行文案
+    } catch (_) {
+      if (!failedIds.contains(docId)) failedIds.add(docId);
+    }
+  }
+
   /// 顺序执行计划中的操作（M2 毒丸防护 + DN-001「缺失不是成功」）。
   ///
   /// 每个操作独立 try/catch：单个文档因网络抖动/远端 5xx/数据损坏失败时，
@@ -759,6 +866,12 @@ class SyncService {
     final failedIds = <String>[];
     final unreadableIds = <String>[];
     final skippedMissingIds = <String>[];
+    // DN-201：条件写入被服务端挡回（412）的文档——远端在我们读过之后又变了。
+    final remoteChangedIds = <String>[];
+    // DN-201：这一轮里至少有一次覆盖写没能条件化（服务器不响应 HEAD / 不给
+    // ETag）。这不是「同步慢一点」，而是「多设备同改同一篇防不住互相覆盖」，
+    // 必须让用户看见，不能只在代码注释里承认。
+    var conditionalWritesUnavailable = false;
     var done = 0;
     for (final op in plan.operations) {
       // 只有真的把字节搬到另一端的操作才计入 succeeded（DN-001）。
@@ -781,8 +894,31 @@ class SyncService {
               }
             } else {
               final wire = await cipher.encryptDocumentBytes(bytes, op.id);
-              await transport.putBytes(cipher.remotePath(op.id), wire);
-              landed = true;
+              final path = cipher.remotePath(op.id);
+              // DN-201：覆盖一篇云端笔记之前先问一次它的版本。清单里的
+              // updatedAt/size 是我们自己算的指纹，服务端不认——能认的只有 ETag。
+              final probe = await _probeOrUnknown(path);
+              if (!probe.canConditionallyWrite && !probe.isAbsent) {
+                conditionalWritesUnavailable = true;
+              }
+              try {
+                await transport.putBytes(
+                  path,
+                  wire,
+                  ifMatch: probe.etag,
+                  // 探测时远端没有这个对象 ⇒ 只创建、不覆盖：从探测到落笔之间
+                  // 别的设备可能刚把它写上来，无条件 PUT 会盖掉对方唯一的副本。
+                  overwrite: !probe.isAbsent,
+                );
+                landed = true;
+              } on WebDavPreconditionFailedException {
+                await _handleRejectedWrite(
+                  op.id,
+                  path,
+                  remoteChangedIds,
+                  failedIds,
+                );
+              }
             }
             break;
           case SyncOperationKind.download:
@@ -816,8 +952,22 @@ class SyncService {
             );
             // 无「缺失」分支：deleteRemaining 对 404 返回 true（传输层既定
             // 契约「404 视为已删除」，幂等），本就该计成功并清掉清单条目。
-            await transport.deleteRemaining(cipher.remotePath(op.id));
-            landed = true;
+            // DN-201：删除同样是一种覆盖。云端这一版如果在本机读过之后又被
+            // 别的设备改过，把它删掉就是删掉一份本机从未见过的内容 ⇒ 带
+            // `If-Match`，被挡回就不删（清单/基线都不回写，下轮重算）。
+            final path = cipher.remotePath(op.id);
+            final probe = await _probeOrUnknown(path);
+            if (!probe.canConditionallyWrite && !probe.isAbsent) {
+              conditionalWritesUnavailable = true;
+            }
+            try {
+              await transport.deleteRemaining(path, ifMatch: probe.etag);
+              landed = true;
+            } on WebDavPreconditionFailedException {
+              if (!remoteChangedIds.contains(op.id)) {
+                remoteChangedIds.add(op.id);
+              }
+            }
             break;
         }
         if (landed) succeeded.add(op);
@@ -839,6 +989,8 @@ class SyncService {
       failedIds: failedIds,
       unreadableIds: unreadableIds,
       skippedMissingIds: skippedMissingIds,
+      remoteChangedIds: remoteChangedIds,
+      conditionalWritesUnavailable: conditionalWritesUnavailable,
     );
   }
 
