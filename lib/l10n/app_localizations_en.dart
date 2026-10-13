@@ -3416,6 +3416,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get conflictIdentical => ' (identical)';
 
   @override
+  String get conflictFingerprintTie =>
+      ' (same timestamp and same size, different content - both copies are kept, nothing is silently overwritten)';
+
+  @override
+  String conflictDigestPair(String local, String remote) {
+    return 'Content digest: local $local / cloud $remote';
+  }
+
+  @override
   String get docMenuExportPdf => 'Export PDF';
 
   @override

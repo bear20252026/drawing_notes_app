@@ -6241,6 +6241,18 @@ abstract class AppLocalizations {
   /// **' (identical)'**
   String get conflictIdentical;
 
+  /// Conflict dialog (DN-204/DN-206): how to explain a tie where updatedAt and size match but the content digest differs
+  ///
+  /// In en, this message translates to:
+  /// **' (same timestamp and same size, different content - both copies are kept, nothing is silently overwritten)'**
+  String get conflictFingerprintTie;
+
+  /// Conflict dialog (DN-206): the only clue that distinguishes two copies tied on timestamp and size
+  ///
+  /// In en, this message translates to:
+  /// **'Content digest: local {local} / cloud {remote}'**
+  String conflictDigestPair(String local, String remote);
+
   /// No description provided for @docMenuExportPdf.
   ///
   /// In en, this message translates to:

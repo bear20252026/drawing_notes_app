@@ -26,11 +26,16 @@ class SyncDocMeta {
     required this.id,
     required this.updatedAt,
     required this.size,
+    this.digest,
   });
 
   final String id;
   final int updatedAt; // epoch ms
   final int size; // 字节
+
+  /// DN-206：内容摘要（SHA-256 前 16 位十六进制）。可空——存储层没算就不报，
+  /// 同步侧按「不可比」处理，绝不当成「与远端不同」。
+  final String? digest;
 }
 
 /// 本地文档清单快照（DN-107，P0 数据安全）。
@@ -360,7 +365,12 @@ class SyncService {
     final inventory = await documentStore.listDocuments();
     final currentEntries = <String, SyncSnapshot>{
       for (final d in inventory.readable)
-        d.id: SyncSnapshot(id: d.id, updatedAt: d.updatedAt, size: d.size),
+        d.id: SyncSnapshot(
+          id: d.id,
+          updatedAt: d.updatedAt,
+          size: d.size,
+          digest: d.digest,
+        ),
     };
     final baseline = await baselineStore.load() ?? const SyncManifest();
     final deletedIds = <String>{};
@@ -406,6 +416,10 @@ class SyncService {
     final resolutions = conflicts.isEmpty
         ? const <String, ConflictResolution>{}
         : await conflictHandler.resolve(conflicts);
+    // DN-206：有效裁决 = 用户显式选择 ∪ 平局/可疑时钟的兜底方向。
+    // **留副本必须与计划用同一份**，否则「默认 keepBoth」这类兜底只改了方向、
+    // 却没触发副本保留，平局下照样把云端那一版盖掉。
+    final effective = effectiveConflictResolutions(conflicts, resolutions);
     final resolvedPlan = applyConflictResolutions(
       basePlan,
       conflicts,
@@ -413,7 +427,7 @@ class SyncService {
     );
     // keepBoth 的云端副本在**上传之前**取回（此时远端还是原始版本）；
     // 取不回或解不开的那些文档本轮不得上传，否则 PUT 会把云端唯一副本盖掉。
-    final preserved = await _preserveRemoteCopies(conflicts, resolutions);
+    final preserved = await _preserveRemoteCopies(conflicts, effective);
     final keptCopies = preserved.copies;
     final unprotected = preserved.unprotectedDocIds.toSet();
     final guardedPlan = unprotected.isEmpty
@@ -621,7 +635,12 @@ class SyncService {
     final inventory = await documentStore.listDocuments();
     final currentEntries = <String, SyncSnapshot>{
       for (final d in inventory.readable)
-        d.id: SyncSnapshot(id: d.id, updatedAt: d.updatedAt, size: d.size),
+        d.id: SyncSnapshot(
+          id: d.id,
+          updatedAt: d.updatedAt,
+          size: d.size,
+          digest: d.digest,
+        ),
     };
     final baseline = await baselineStore.load() ?? const SyncManifest();
     // 「什么才算用户删除」的判据与 syncNow 第 3 步是同一条，包括 DN-107 的
@@ -745,14 +764,18 @@ class SyncService {
   /// 根本没有这个对象，多发生在清单已回写、文档未落盘的崩溃窗口）时不跳过：
   /// 上传不会覆盖任何内容，跳过反而让该文档永远同步不上。
   /// 每轮对每个这类文档只尝试一次 GET，不抛异常、不进退避重试链。
+  ///
+  /// [effectiveResolutions]（DN-206）：传入的是 [effectiveConflictResolutions]
+  /// 的结果而**不是**用户原始裁决——平局兜底方向也是 keepBoth，副本保留必须
+  /// 认它，否则「默认不偏向任何一侧」会变成「默认把云端盖掉」。
   Future<_RemoteCopies> _preserveRemoteCopies(
     List<SyncConflict> conflicts,
-    Map<String, ConflictResolution> resolutions,
+    Map<String, ConflictResolution> effectiveResolutions,
   ) async {
     final copies = <SyncSnapshot>[];
     final unprotected = <String>[];
     for (final c in conflicts) {
-      if (resolutions[c.docId] != ConflictResolution.keepBoth) continue;
+      if (effectiveResolutions[c.docId] != ConflictResolution.keepBoth) continue;
       final Uint8List? remoteBytes;
       try {
         remoteBytes = await transport.getBytes(cipher.remotePath(c.docId));

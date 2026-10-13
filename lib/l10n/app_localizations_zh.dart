@@ -3286,6 +3286,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get conflictIdentical => '（相同）';
 
   @override
+  String get conflictFingerprintTie => '（时间戳与字节数完全相同，内容不同——两边各留一份，不会静默覆盖）';
+
+  @override
+  String conflictDigestPair(String local, String remote) {
+    return '内容摘要：本地 $local · 云端 $remote';
+  }
+
+  @override
   String get docMenuExportPdf => '导出 PDF';
 
   @override

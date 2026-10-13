@@ -3049,6 +3049,22 @@
   "@conflictCloudNewer": {},
   "conflictIdentical": " (identical)",
   "@conflictIdentical": {},
+  "conflictFingerprintTie": " (same timestamp and same size, different content - both copies are kept, nothing is silently overwritten)",
+  "@conflictFingerprintTie": {
+    "description": "Conflict dialog (DN-204/DN-206): how to explain a tie where updatedAt and size match but the content digest differs"
+  },
+  "conflictDigestPair": "Content digest: local {local} / cloud {remote}",
+  "@conflictDigestPair": {
+    "description": "Conflict dialog (DN-206): the only clue that distinguishes two copies tied on timestamp and size",
+    "placeholders": {
+      "local": {
+        "type": "String"
+      },
+      "remote": {
+        "type": "String"
+      }
+    }
+  },
   "docMenuExportPdf": "Export PDF",
   "@docMenuExportPdf": {},
   "docMenuExportHtml": "Export HTML",

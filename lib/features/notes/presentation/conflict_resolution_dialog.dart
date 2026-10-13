@@ -87,7 +87,7 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
             style: theme.textTheme.titleSmall,
           ),
           Text(
-            maxLines: 2,
+            maxLines: 3,
             overflow: TextOverflow.ellipsis,
             '${l10n?.conflictLocalMeta(_fmt(c.localUpdatedAt), '${c.localSize}') ?? '本地 ${_fmt(c.localUpdatedAt)} · ${c.localSize}B'}'
             '   |   '
@@ -96,7 +96,17 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
                 ? l10n?.conflictLocalNewer ?? '（本地较新）'
                 : c.remoteNewer
                 ? l10n?.conflictCloudNewer ?? '（云端较新）'
-                : l10n?.conflictIdentical ?? '（相同）'}',
+                // DN-206：戳平局而内容不同——这一行的作用就是说清「时间戳和字节数
+                // 一模一样，但确实是两份东西」，并告知两边都会留一份。旧写法在这里
+                // 显示「（相同）」，等于当着用户的面说他正在裁决的两个选项是一回事。
+                : c.fingerprintTie
+                ? l10n?.conflictFingerprintTie ??
+                      '（时间戳与字节数完全相同，内容不同——两边各留一份，不会静默覆盖）'
+                : l10n?.conflictIdentical ?? '（相同）'}'
+            '${c.fingerprintTie && c.localDigest != null && c.remoteDigest != null
+                ? l10n?.conflictDigestPair(c.localDigest!, c.remoteDigest!) ??
+                      '（本地 ${c.localDigest} · 云端 ${c.remoteDigest}）'
+                : ''}',
             style: theme.textTheme.bodySmall,
           ),
           RadioGroup<ConflictResolution>(

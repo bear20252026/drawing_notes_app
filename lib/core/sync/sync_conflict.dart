@@ -49,6 +49,9 @@ class SyncConflict {
     required this.remoteSize,
     this.remoteTimestampUntrusted = false,
     this.localUnchangedSinceBaseline = false,
+    this.fingerprintTie = false,
+    this.localDigest,
+    this.remoteDigest,
   });
 
   final String docId;
@@ -57,18 +60,32 @@ class SyncConflict {
   final int remoteUpdatedAt; // epoch ms
   final int remoteSize;
 
-  /// 远端时间戳不可信（P2 时钟修复）：要么相对基线根本没变却在比大小中赢了
-  /// 本地真实编辑，要么晚于本地当前时间（对端时钟偏快的未来戳）。按 LWW 取
-  /// 远端必然静默覆盖本地——默认裁决改为保本地。
+  /// 远端时间戳不可信（P2 时钟修复）：要么相对基线根本没变却在时间戳比大小中
+  /// 获胜（远端既然没改过，就不该有「更新的版本」——唯一解释是戳来自偏快的时钟
+  /// 或本机时钟偏慢，按 LWW 下载会把本地真实编辑无提示覆盖掉）；
+  /// 要么远端戳晚于本地当前时间超容差（对端时钟偏快的未来戳）。
+  /// 命中任一即报冲突，且默认裁决偏向「保住真有改动的那一侧」。
   final bool remoteTimestampUntrusted;
 
   /// 本地相对基线一字未动，却因时间戳较新而要覆盖远端改动：本地没有需要保住
   /// 的数据，默认裁决改为保远端（下载是无损的）。
   final bool localUnchangedSinceBaseline;
 
-  /// LWW 的时间戳依据可疑：无用户显式裁决时不得沿用 planner 的默认方向。
+  /// DN-206：两端时间戳**完全相等**而内容不同（size 不同，或 size 相同但摘要
+  /// 不同）。这不是「谁较新」的问题——戳给不出任何答案，旧写法在这种平局里
+  /// 默认保留本地并直接上传，等于把云端那一版静默盖掉。
+  final bool fingerprintTie;
+
+  /// DN-206：两端的截断内容摘要（缺省 null = 该侧没报摘要）。UI 在平局场景
+  /// 只能靠这两个短串区分「时间戳与大小都一样的两份不同内容」。
+  final String? localDigest;
+  final String? remoteDigest;
+
+  /// LWW 的时间戳依据不可用：无用户显式裁决时不得沿用 planner 的默认方向。
   bool get lwwTimestampSuspect =>
-      remoteTimestampUntrusted || localUnchangedSinceBaseline;
+      remoteTimestampUntrusted ||
+      localUnchangedSinceBaseline ||
+      fingerprintTie;
 
   /// 本地是否较新（用于 UI 建议的默认裁决）。
   bool get localNewer => localUpdatedAt > remoteUpdatedAt;
@@ -76,11 +93,13 @@ class SyncConflict {
   /// 远端是否较新（用于 UI 建议的默认裁决）。
   bool get remoteNewer => remoteUpdatedAt > localUpdatedAt;
 
-  /// 建议的默认裁决：较新者胜；相等时默认保留本地。
-  /// 时间戳可疑时不看戳——保住「相对基线真有改动」的那一侧（P2 修复）。
+  /// 建议的默认裁决：时间戳可疑时不看戳——保住「相对基线真有改动」的那一侧
+  /// （P2 修复）；戳平局但内容不同时**两边都留**（DN-206：平局下任何一侧胜出
+  /// 都是静默覆盖，而 keepBoth 是唯一无损的兜底）；其余按较新者胜，相等保本地。
   ConflictResolution get suggestedResolution {
     if (remoteTimestampUntrusted) return ConflictResolution.keepLocal;
     if (localUnchangedSinceBaseline) return ConflictResolution.keepRemote;
+    if (fingerprintTie) return ConflictResolution.keepBoth;
     return remoteNewer
         ? ConflictResolution.keepRemote
         : ConflictResolution.keepLocal;
@@ -97,7 +116,10 @@ class SyncConflict {
           remoteUpdatedAt == other.remoteUpdatedAt &&
           remoteSize == other.remoteSize &&
           remoteTimestampUntrusted == other.remoteTimestampUntrusted &&
-          localUnchangedSinceBaseline == other.localUnchangedSinceBaseline;
+          localUnchangedSinceBaseline == other.localUnchangedSinceBaseline &&
+          fingerprintTie == other.fingerprintTie &&
+          localDigest == other.localDigest &&
+          remoteDigest == other.remoteDigest;
 
   @override
   int get hashCode => Object.hash(
@@ -108,14 +130,20 @@ class SyncConflict {
     remoteSize,
     remoteTimestampUntrusted,
     localUnchangedSinceBaseline,
+    fingerprintTie,
+    localDigest,
+    remoteDigest,
   );
 
   @override
   String toString() =>
       'SyncConflict(docId: $docId, local: $localUpdatedAt/'
-      '$localSize, remote: $remoteUpdatedAt/$remoteSize'
+      '$localSize${localDigest == null ? '' : '/$localDigest'}, '
+      'remote: $remoteUpdatedAt/$remoteSize'
+      '${remoteDigest == null ? '' : '/$remoteDigest'}'
       '${remoteTimestampUntrusted ? ', remoteTsUntrusted' : ''}'
-      '${localUnchangedSinceBaseline ? ', localUnchanged' : ''})';
+      '${localUnchangedSinceBaseline ? ', localUnchanged' : ''}'
+      '${fingerprintTie ? ', tie' : ''})';
 }
 
 /// 可疑时钟容差（P2 修复）：远端 updatedAt 晚于本地当前时间超过此值即视为
@@ -142,22 +170,30 @@ List<SyncConflict> detectSyncConflicts(
     final local = currentEntries[id];
     final remote = remoteManifest.entries[id];
     if (base == null || local == null || remote == null) continue;
-    // 两端指纹（时间戳 + size）完全一致：无变化或已收敛，无需裁决。
-    if (local == remote) continue;
+    // DN-206：结构指纹（时间戳 + size）相同**不等于内容相同**——同毫秒保存且
+    // 字节数恰好相同的两次不同编辑，旧实现会在这里 continue，两端永久静默分叉。
+    // 摘要任一侧缺失时 contentDiffersFrom 返回 false（不可比 ≠ 不同），
+    // 所以升级后的第一轮不会把所有旧条目报成冲突。
+    final contentDiffers = local.contentDiffersFrom(remote);
+    if (local == remote && !contentDiffers) continue;
     // 「改过」按内容/版本指纹判（时间戳或 size 任一与基线不同）——只看时间戳
     // 会被时钟问题骗过（P2）。
     final localChanged = local != base;
     final remoteChanged = remote != base;
-    // 两端相对基线都改过，且彼此不同（真·双边独立编辑）。同 ts 同 size 已被
-    // 上面的 local == remote 挡掉；同 ts 不同 size 走 sameTsDiverged。
+    // 两端相对基线都改过，且彼此不同（真·双边独立编辑）。同 ts 同 size 且摘要
+    // 也相同已被上面的 continue 挡掉；同 ts 不同 size / 不同摘要走 sameTsDiverged。
     final bothChanged =
         localChanged &&
         remoteChanged &&
-        (local.updatedAt != remote.updatedAt || local.size != remote.size);
-    // updatedAt 相等但 size 不同：planner 的「== → 忽略」永远不会处理它，
-    // 若不报冲突则两端版本将静默分叉到下一次编辑为止（M6）。
+        (local.updatedAt != remote.updatedAt ||
+            local.size != remote.size ||
+            contentDiffers);
+    // updatedAt 相等但内容不同（size 不同，或 size 相同而摘要不同）：planner 的
+    // 「== → 忽略」永远不会处理它，若不报冲突则两端版本将静默分叉到下一次编辑
+    // 为止（M6 补 size 分支，DN-206 把摘要并入同一判据）。
     final sameTsDiverged =
-        local.updatedAt == remote.updatedAt && local.size != remote.size;
+        local.updatedAt == remote.updatedAt &&
+        (local.size != remote.size || contentDiffers);
     // 结构性判据①：远端相对基线一字未动，LWW 却判远端赢（remote.ts > local.ts）。
     // 远端既然没变过，它就不该有「更新的版本」——唯一解释是戳来自偏快的时钟
     // （或本机时钟偏慢）。按 LWW 下载会把本地真实编辑无提示覆盖掉（P2）。
@@ -189,11 +225,36 @@ List<SyncConflict> detectSyncConflicts(
           remoteSize: remote.size,
           remoteTimestampUntrusted: remoteUntrusted,
           localUnchangedSinceBaseline: localWinsWithoutChanging,
+          fingerprintTie: sameTsDiverged,
+          localDigest: local.digest,
+          remoteDigest: remote.digest,
         ),
       );
     }
   }
   return List.unmodifiable(result);
+}
+
+/// 冲突文档上的**有效**裁决：用户显式选择优先，其次是对时间戳无效场景的兜底
+/// （[SyncConflict.lwwTimestampSuspect]）。
+///
+/// 抽成函数是因为这个合并结果必须有**两个**消费点且不能各算一遍：
+/// ① [applyConflictResolutions] 决定操作方向；
+/// ② `SyncService._preserveRemoteCopies` 决定要不要在上传前先把云端那一版留成
+///    本地副本。以前只有①，于是「默认 keepBoth」这条兜底永远不会触发副本保留
+///    ——平局下照样会把云端盖掉（DN-206 收口的正是这条缝）。
+Map<String, ConflictResolution> effectiveConflictResolutions(
+  List<SyncConflict> conflicts,
+  Map<String, ConflictResolution> resolutions,
+) {
+  if (conflicts.isEmpty) return resolutions;
+  final effective = <String, ConflictResolution>{...resolutions};
+  for (final c in conflicts) {
+    if (effective.containsKey(c.docId)) continue; // 用户显式选择优先
+    if (!c.lwwTimestampSuspect) continue;
+    effective[c.docId] = c.suggestedResolution;
+  }
+  return effective;
 }
 
 /// 把裁决映射应用到同步计划，得到「有效计划」。
@@ -215,19 +276,18 @@ SyncPlan applyConflictResolutions(
   final indexed = {for (final c in conflicts) c.docId: c};
   final planIds = {for (final op in plan.operations) op.id};
 
-  // 时钟可疑的冲突：用户没裁决（默认 LwwConflictHandler，或弹窗被取消）时
+  // 时钟可疑/平局的冲突：用户没裁决（默认 LwwConflictHandler，或弹窗被取消）时
   // 不能沿用 planner 的 LWW 方向——那正是把真实编辑静默覆盖掉的方向。
-  // 这里先按「保住真有改动的一侧」兜底，冲突本身仍会在 UI 上可见。
-  final suspectDefaults = <String, ConflictResolution>{
-    for (final c in conflicts)
-      if (c.lwwTimestampSuspect) c.docId: c.suggestedResolution,
-  };
+  // 与 SyncService「上传前先留云端副本」用的是同一个 [effectiveConflictResolutions]，
+  // 两处判据不许各写一份（DN-206：以前只有这里能看到兜底结果，副本保留只认
+  // 用户显式的 keepBoth，于是默认平局照样盖掉云端）。
+  final effective = effectiveConflictResolutions(conflicts, resolutions);
 
-  // 空裁决 且 所有冲突文档都已在计划中有操作、且无一可疑 → 无 gap，返回原计划
-  // （引用相同，保既有行为）。仅当存在「计划里没有操作的冲突文档」（M6
-  // sameTsDiverged 被 planner 丢弃）或有可疑时钟冲突时才继续。
+  // 空裁决 且 所有冲突文档都已在计划中有操作、且无一需要兜底 → 无 gap，返回原计划
+  // （引用相同，保既有行为）。仅当存在「计划里没有操作的冲突文档」（M6/DN-206
+  // 平局被 planner 丢弃）或有需要兜底的冲突时才继续。
   if (resolutions.isEmpty &&
-      suspectDefaults.isEmpty &&
+      effective.isEmpty &&
       conflicts.every((c) => planIds.contains(c.docId))) {
     return plan;
   }
@@ -238,7 +298,7 @@ SyncPlan applyConflictResolutions(
 
   for (final op in plan.operations) {
     final conflict = indexed[op.id];
-    final resolution = resolutions[op.id] ?? suspectDefaults[op.id];
+    final resolution = effective[op.id];
     if (resolution == null || conflict == null) {
       _bucket(op, uploads, downloads, deletes);
       continue;
@@ -259,13 +319,13 @@ SyncPlan applyConflictResolutions(
   }
 
   // 计划里没有操作（如两端 updatedAt 相等被 planner 「== → 忽略」丢弃）的冲突文档：
-  // 必须补一条强制操作，否则该冲突将静默分叉到下次编辑为止（M6）。
-  // 无显式裁决时按 LWW 默认（ts 相等 → suggestedResolution 为 keepLocal → 上传）。
+  // 必须补一条强制操作，否则该冲突将静默分叉到下次编辑为止（M6 / DN-206）。
+  // 无显式裁决时按建议方向（平局 ⇒ keepBoth：本地为主版本上传，同时由
+  // SyncService 先把云端那一版留成副本；其余 ⇒ LWW 默认）。
   for (final c in conflicts) {
     if (planIds.contains(c.docId)) continue; // 计划已有操作，首轮已 bucket，跳过
-    final resolution = resolutions[c.docId];
-    final effective = resolution ?? c.suggestedResolution;
-    if (effective == ConflictResolution.keepRemote) {
+    final resolution = effective[c.docId] ?? c.suggestedResolution;
+    if (resolution == ConflictResolution.keepRemote) {
       downloads.add(c.docId);
     } else {
       uploads.add(c.docId);
