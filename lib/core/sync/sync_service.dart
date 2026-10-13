@@ -20,6 +20,12 @@ import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/sync/sync_planner.dart';
 import 'package:drawing_notes_app/core/sync/sync_progress.dart';
 
+// DN-201 / DN-204 两条腿的实现拆到同库 part 里（本文件已越过仓库的 1000 行硬上限，
+// CI 的 linecheck 会按文件总行数判错）：拆的是**位置**，不是逻辑——两段都是
+// SyncService 的私有成员，同库 part 可见，行为与拆分前逐字节一致。
+part 'sync_service_conditional_write.dart';
+part 'sync_service_post_restore.dart';
+
 /// 一个待同步文档的元数据（用于构成本地 manifest）。
 class SyncDocMeta {
   const SyncDocMeta({
@@ -624,132 +630,6 @@ class SyncService {
     return result;
   }
 
-  /// DN-204：隔离轮次——**只读**。拉远端清单、算两端差异，然后原样返回。
-  ///
-  /// 刻意不走 `ensureCollection` / 不回写远端清单 / 不推进基线：用户还没裁决，
-  /// 这一轮连「把云端某个文档登记成已知」的资格都没有。基线时间戳不前进，
-  /// 隔离也就自然保持（见 `FilePostRestoreBaselineGate` 的判据）。
-  Future<SyncResult> _reportPostRestoreDiff() async {
-    _emit(SyncProgress.phase(SyncProgressPhase.planning));
-    final remoteManifest = (await _readRemoteManifest()).manifest;
-    final inventory = await documentStore.listDocuments();
-    final currentEntries = <String, SyncSnapshot>{
-      for (final d in inventory.readable)
-        d.id: SyncSnapshot(
-          id: d.id,
-          updatedAt: d.updatedAt,
-          size: d.size,
-          digest: d.digest,
-        ),
-    };
-    final baseline = await baselineStore.load() ?? const SyncManifest();
-    // 「什么才算用户删除」的判据与 syncNow 第 3 步是同一条，包括 DN-107 的
-    // 「存在但读不到」按基线快照带回——两处必须一起改，否则隔离轮会把锁定的
-    // 笔记算进「云端有、本地没有」，用户一选合并就把它盖掉。
-    final suppressed = <String>{};
-    for (final id in baseline.entries.keys) {
-      if (currentEntries.containsKey(id)) continue;
-      if (inventory.unreadable.contains(id)) {
-        final baselineSnap = baseline.entries[id];
-        if (baselineSnap != null) currentEntries[id] = baselineSnap;
-        continue;
-      }
-      if (baseline.deletedIds.contains(id)) continue;
-      suppressed.add(id);
-    }
-    _emit(SyncProgress.complete());
-    return SyncResult(
-      uploaded: 0,
-      downloaded: 0,
-      deletedRemote: 0,
-      postRestorePolicy: PostRestoreReconcile.reportOnly,
-      postRestoreDiff: _diffOf(
-        currentEntries: currentEntries,
-        remoteManifest: remoteManifest,
-        suppressedTombstoneIds: suppressed,
-      ),
-    );
-  }
-
-  /// 两端差异（DN-204 的展示数据；[suppressedTombstoneIds] 是本轮被拦下的删除墓碑）。
-  PostRestoreDiff _diffOf({
-    required Map<String, SyncSnapshot> currentEntries,
-    required SyncManifest remoteManifest,
-    required Set<String> suppressedTombstoneIds,
-  }) {
-    final localOnly = <String>[];
-    final diverged = <String>[];
-    for (final entry in currentEntries.entries) {
-      final remote = remoteManifest.entries[entry.key];
-      if (remote == null) {
-        localOnly.add(entry.key);
-      } else if (remote != entry.value) {
-        diverged.add(entry.key);
-      }
-    }
-    final remoteOnly = [
-      for (final id in remoteManifest.entries.keys)
-        if (!currentEntries.containsKey(id)) id,
-    ];
-    // 排序：这份清单要上屏给用户看，也是测试钉语义的锚点，不能随 Map 迭代序漂。
-    int byId(String a, String b) => a.compareTo(b);
-    return PostRestoreDiff(
-      localOnlyIds: List.unmodifiable(localOnly..sort(byId)),
-      remoteOnlyIds: List.unmodifiable(remoteOnly..sort(byId)),
-      divergedIds: List.unmodifiable(diverged..sort(byId)),
-      suppressedTombstoneIds: List.unmodifiable(
-        suppressedTombstoneIds.toList()..sort(byId),
-      ),
-    );
-  }
-
-  /// DN-204：把计划裁剪到用户裁决的方向。删除墓碑在任何方向下都不放行
-  /// （本轮的 `deletedIds` 已经为空，这里再兜一道：将来若有人改动墓碑来源，
-  /// 这条过滤是最后一道闸）。
-  ///
-  /// 「覆盖云端」方向有一条必须说清的转写：两端都有、内容不同的那篇，planner
-  /// 按时间戳会判成 download（云端更新），而这个方向的语义恰恰是「以本机恢复
-  /// 出来的版本为准」⇒ 判成下载再丢弃，等于两边都不动、用户的选择不生效。
-  /// 所以本地有内容的那篇 download 在这里**改写成 upload**；只有云端有的
-  /// （本地根本没有）仍不动——它既不该被下载，更不该被删。
-  SyncPlan _applyReconcile(
-    SyncPlan plan,
-    PostRestoreReconcile mode,
-    Map<String, SyncSnapshot> currentEntries,
-  ) {
-    final uploads = <String>[];
-    final downloads = <String>[];
-    for (final op in plan.operations) {
-      switch (op.kind) {
-        case SyncOperationKind.deleteRemote:
-          break;
-        case SyncOperationKind.upload:
-          if (mode == PostRestoreReconcile.merge ||
-              mode == PostRestoreReconcile.overwriteRemote) {
-            uploads.add(op.id);
-          }
-        case SyncOperationKind.download:
-          if (mode == PostRestoreReconcile.merge ||
-              mode == PostRestoreReconcile.keepRemote) {
-            downloads.add(op.id);
-          } else if (mode == PostRestoreReconcile.overwriteRemote &&
-              currentEntries.containsKey(op.id)) {
-            uploads.add(op.id);
-          }
-      }
-    }
-    uploads.sort();
-    downloads.sort();
-    return SyncPlan(
-      operations: [
-        for (final id in uploads)
-          SyncOperation(kind: SyncOperationKind.upload, id: id),
-        for (final id in downloads)
-          SyncOperation(kind: SyncOperationKind.download, id: id),
-      ],
-    );
-  }
-
   /// keepBoth 裁决：把远端版本另存为本地副本（「两者皆保留」，不丢失任一侧）。
   /// 纯函数层仅把 keepBoth 视为「本地为主版本（强制上传）」；此处补齐「保留远端副本」。
   /// P2 修复双问题：①旧 `copyId` 含 `~`，下游 `_pathFor` 白名单
@@ -814,53 +694,6 @@ class SyncService {
         ? 'doc'
         : clean.substring(0, clean.length.clamp(0, 64));
     return '$stem-conflict-${DateTime.now().millisecondsSinceEpoch}';
-  }
-
-  /// DN-201：HEAD 探测远端版本；**探不到就按「无法条件写」返回，不抛出**。
-  ///
-  /// 为什么不因为一次探测失败就把这篇判成同步失败：那等于新增一个「服务器响应
-  /// 形态不合我意 ⇒ 断同步」的开关，比现状（无条件写）更糟。探测失败退回既有
-  /// 行为，同时把「这台服务器上防不住并发覆盖」如实上报到界面——诚实的降级
-  /// 好过假装安全的降级。
-  Future<WebDavPresence> _probeOrUnknown(String relativePath) async {
-    try {
-      return await transport.probe(relativePath);
-    } catch (_) {
-      return const WebDavPresence.presentUnknown();
-    }
-  }
-
-  /// DN-201：条件写入被 412 挡回之后的处置——**先保两端，再上报，绝不重试覆盖**。
-  ///
-  /// 412 说的是一件很具体的事：远端这一篇在本机读过之后又被别的设备改过。此刻
-  /// 本机手里一份、云端一份，是两份都真实存在的内容，任何一边的「顺手覆盖」都是
-  /// 数据丢失。所以把云端那一版另存成本地副本（与 keepBoth 同一套 `_safeCopyId`
-  /// 命名与消毒），id 记进 remoteChangedIds；连副本都没能留住时记 failedIds，
-  /// 享受「清单/基线都不回写、下轮重试」的毒丸保护。
-  ///
-  /// 两条腿都在本轮**不写云端**——remoteChangedIds 与 failedIds 都并进
-  /// `_ExecuteOutcome.notSyncedIds`，绝不出现「远端没动，本地清单却说同步过了」。
-  Future<void> _handleRejectedWrite(
-    String docId,
-    String relativePath,
-    List<String> remoteChangedIds,
-    List<String> failedIds,
-  ) async {
-    try {
-      final remoteBytes = await transport.getBytes(relativePath);
-      if (remoteBytes == null) {
-        // 远端对象在这一步已经消失：没有要保护的内容，本轮按未同步收工。
-        if (!remoteChangedIds.contains(docId)) remoteChangedIds.add(docId);
-        return;
-      }
-      final plain = await cipher.decryptDocumentBytes(remoteBytes, docId);
-      await documentStore.writeDocument(_safeCopyId(docId), plain);
-      if (!remoteChangedIds.contains(docId)) remoteChangedIds.add(docId);
-    } on SyncKeyMismatchException {
-      rethrow; // 确定性失败：交给外层，同时进 unreadableIds 供 UI 给可执行文案
-    } catch (_) {
-      if (!failedIds.contains(docId)) failedIds.add(docId);
-    }
   }
 
   /// 顺序执行计划中的操作（M2 毒丸防护 + DN-001「缺失不是成功」）。
