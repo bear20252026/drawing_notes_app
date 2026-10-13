@@ -380,6 +380,10 @@ class SyncService {
     };
     final baseline = await baselineStore.load() ?? const SyncManifest();
     final deletedIds = <String>{};
+    // A3（方案 §9）：与 deletedIds **同一个循环、同一判据**生成的因果侧——
+    // 「哪些算删除」这件事只允许有一处口径，另写一遍迟早和这里分叉。
+    final localTombstones = <String, SyncTombstone>{};
+    final tombstoneStampMs = DateTime.now().millisecondsSinceEpoch;
     // DN-204：隔离态下本会生成的删除墓碑全部改道进这里，一条 DELETE 都不发。
     final suppressedTombstones = <String>{};
     for (final id in baseline.entries.keys) {
@@ -400,10 +404,19 @@ class SyncService {
         continue;
       }
       deletedIds.add(id);
+      // baseRev = 删除作用在哪一版之上（基线里那一条的 updatedAt）。这是下一
+      // 条腿（「云端已删 ⇒ 本地这份是删除前的旧版」判定）唯一能用的因果锚。
+      final removed = baseline.entries[id];
+      localTombstones[id] = SyncTombstone(
+        id: id,
+        deletedAt: tombstoneStampMs,
+        baseRev: removed?.updatedAt,
+      );
     }
     final localManifest = SyncManifest(
       entries: currentEntries,
       deletedIds: deletedIds,
+      tombstones: localTombstones,
     );
 
     // 4. 计划 + 冲突检测。
@@ -508,13 +521,36 @@ class SyncService {
             op.kind == SyncOperationKind.deleteRemote)
           op.id,
     };
+    // A3：远端清单里的删除记录必须**带着走**，不能每轮随 `{...newEntries}`
+    // 的全量重写被抹掉——抹掉它等于「谁后同步谁清空删除历史」，另一端手里那
+    // 份副本下一轮又变成「仅本地 ⇒ 上传」，正是本条要结束的乒乓。三条规则：
+    //  ① 本轮成功上传的 id：一次有据的「这版仍在用」明确否决了那条删除 ⇒ 移除；
+    //  ② 本轮新生成的本地墓碑（含 deleteRemote 已成功的那些）：带上；
+    //  ③ 别人的、我们这轮没碰的：原样保留；总量超上限按 [SyncManifest.pruneTombstones] 裁最旧。
+    // 本轮只是**让信息存在**：还没有任何判据读 baseRev（读它=按删除去掉本地那份，
+    // 会移除用户内容，须单独确认），所以这一改动不改变任何同步方向。
+    final uploadedIds = <String>{
+      for (final op in executed.succeeded)
+        if (op.kind == SyncOperationKind.upload) op.id,
+    };
+    var newTombstones = SyncManifest.pruneTombstones([
+      for (final t in remoteManifest.tombstones.values)
+        if (!uploadedIds.contains(t.id)) t,
+      for (final id in deletedIds) localTombstones[id] ?? SyncTombstone(id: id),
+    ]);
     for (var attempt = 1; ; attempt++) {
       try {
         await transport.putBytes(
           manifestPath,
           utf8.encode(
             await cipher.sealManifestJson(
-              jsonEncode(SyncManifest(entries: newEntries).toJson()),
+              jsonEncode(
+                SyncManifest(
+                  entries: newEntries,
+                  deletedIds: newTombstones.keys.toSet(),
+                  tombstones: newTombstones,
+                ).toJson(),
+              ),
             ),
           ),
           ifMatch: manifestEtag,
@@ -541,6 +577,14 @@ class SyncService {
         newEntries
           ..clear()
           ..addAll(merged);
+        // 墓碑同一条规则：DN-104「对方的新增要保留」同样覆盖对方这轮新写的
+        // **删除**——漏掉它，一次 CAS 重试就把对方刚做的删除历史清空，另一端
+        // 手里的副本下轮又变成「仅本地 ⇒ 上传」。同一 id 以我们算出的为准。
+        newTombstones = SyncManifest.pruneTombstones([
+          for (final t in fresh.manifest.tombstones.values)
+            if (!touchedIds.contains(t.id)) t,
+          ...newTombstones.values,
+        ]);
       }
     }
     // M4：keepBoth 副本只进本地基线（远端无此文件，进远端清单会导致

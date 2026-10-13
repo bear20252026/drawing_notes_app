@@ -71,20 +71,135 @@ class SyncSnapshot {
       '${digest == null ? '' : ', digest: $digest'})';
 }
 
-/// 同步清单：文档集 + 本地删除墓碑。
+/// 一条删除墓碑（A3，第三轮协同方案 §9：删除必须带上「删在哪一版之上」）。
+///
+/// 为什么非要有它：远端清单里「某条目消失了」有两种完全不同的原因——有人删了
+/// 它，或者清单被并发覆盖写丢了这一条（DN-104 的孤儿文件场景）。旧形状下两者
+/// **不可区分**，于是手持该文档的设备一律按「本地独有 ⇒ 上传」处理：对前者这个
+/// 动作把刚删掉的内容复活了（删除方下一轮再删 ⇒ 乒乓），对后者恰恰是唯一的修复
+/// 手段。加害的不是判据，是信息不足。
+///
+/// 缺字段一律按「无因果」处理，绝不按「异常」处理（DN-206 同一纪律）：混合
+/// 版本集群里旧客户端既不写也不读这块，行为与今天逐字节一致。
+class SyncTombstone {
+  const SyncTombstone({required this.id, this.deletedAt, this.baseRev});
+
+  final String id;
+
+  /// 删除在本设备落定的时刻（epoch ms）。跨设备时钟不可信（P2 的教训），所以
+  /// 它**只**用于同一份清单内部的留存裁剪和 UI 叙述，不参与任何胜负判定。
+  final int? deletedAt;
+
+  /// 因果锚：这次删除作用在**哪一版之上**（生成墓碑时基线里那一条的
+  /// `updatedAt`）。有了它，另一端手里的副本才可能被判成「删除之前的旧版」
+  /// 而不是「删除之后的新改」。本轮只写不读——读它的那条腿是「按删除把本地
+  /// 那份也去掉」，那会移除用户内容，须单独确认后再做（A3 第二条腿）。
+  final int? baseRev;
+
+  /// 留存裁剪排序键：缺时间戳（旧清单 / 来路不明）按最旧处理——宁可先淘汰
+  /// 信息不全的那条，也不因为「不知道」就把它当成最新的留下。
+  int get retentionKey => deletedAt ?? 0;
+
+  /// 是否带有任何因果信息（全空的墓碑与 `deletedIds` 里一个字符串等价，
+  /// 写出它只会把清单撑大）。
+  bool get hasCausality => deletedAt != null || baseRev != null;
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    if (deletedAt != null) 'deletedAt': deletedAt,
+    if (baseRev != null) 'baseRev': baseRev,
+  };
+
+  factory SyncTombstone.fromJson(String id, Map<String, dynamic> json) {
+    final deletedAt = json['deletedAt'];
+    final baseRev = json['baseRev'];
+    if ((deletedAt != null && deletedAt is! int) ||
+        (baseRev != null && baseRev is! int)) {
+      throw const FormatException('远端清单墓碑格式损坏');
+    }
+    return SyncTombstone(
+      id: id,
+      deletedAt: deletedAt as int?,
+      baseRev: baseRev as int?,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SyncTombstone &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          deletedAt == other.deletedAt &&
+          baseRev == other.baseRev;
+
+  @override
+  int get hashCode => Object.hash(id, deletedAt, baseRev);
+
+  @override
+  String toString() =>
+      'SyncTombstone(id: $id${deletedAt == null ? '' : ', deletedAt: $deletedAt'}'
+      '${baseRev == null ? '' : ', baseRev: $baseRev'})';
+}
+
+/// 同步清单：文档集 + 本地删除墓碑（可选带因果）。
 class SyncManifest {
-  const SyncManifest({this.entries = const {}, this.deletedIds = const {}});
+  const SyncManifest({
+    this.entries = const {},
+    this.deletedIds = const {},
+    this.tombstones = const {},
+  });
 
   /// 文档 id → 快照。
   final Map<String, SyncSnapshot> entries;
 
   /// 本地已删除的文档 id（墓碑），用于通知远端删除。
+  ///
+  /// A3 之后它**仍然是「是否已删」的唯一裁决源**：[tombstones] 只是它的富信息
+  /// 侧，不另立第二套真相。
   final Set<String> deletedIds;
 
-  Map<String, dynamic> toJson() => {
-    'entries': entries.map((k, v) => MapEntry(k, _snapshotToJson(v))),
-    'deletedIds': deletedIds.toList(),
-  };
+  /// A3：`deletedIds` 的因果侧。不变量 **键 ⊆ deletedIds**——写侧在 [toJson]
+  /// 里过滤，读侧在 [fromJson] 里把两侧并集（只写墓碑不写列表的畸形清单同样
+  /// 算「已删」，否则对端会把它当不存在而重传复活）。
+  final Map<String, SyncTombstone> tombstones;
+
+  /// 墓碑留存上限：清单每轮整份拉取，删除记录不能无界增长。512 条 ≈ 20KB
+  /// （每条几十字节），对「同一批设备各自离线数周」留了余量；超出按
+  /// [pruneTombstones] 淘汰最旧的。
+  static const int maxTombstones = 512;
+
+  /// 按上限裁剪墓碑，保留最新的 [limit] 条。
+  ///
+  /// 排序必须**稳定**：清单要参与 ETag 条件写与逐字节断言，同一输入两次裁剪
+  /// 结果不一致会让下一轮误判「清单变了」。同一时间戳下按 id 字典序兜底。
+  static Map<String, SyncTombstone> pruneTombstones(
+    Iterable<SyncTombstone> all, {
+    int limit = maxTombstones,
+  }) {
+    final sorted = [...all]..sort((a, b) {
+      final byTime = a.retentionKey.compareTo(b.retentionKey);
+      return byTime != 0 ? byTime : a.id.compareTo(b.id);
+    });
+    final kept = sorted.length > limit
+        ? sorted.sublist(sorted.length - limit)
+        : sorted;
+    return {for (final t in kept) t.id: t};
+  }
+
+  Map<String, dynamic> toJson() {
+    // 只写「比 deletedIds 多出来的信息」：无因果字段的墓碑与列表项等价，重复
+    // 一遍只会撑大清单。旧客户端读到未知键忽略，新客户端读到缺键按无因果处理。
+    final enriched = {
+      for (final t in tombstones.values)
+        if (deletedIds.contains(t.id) && t.hasCausality) t.id: t.toJson(),
+    };
+    return {
+      'entries': entries.map((k, v) => MapEntry(k, _snapshotToJson(v))),
+      'deletedIds': deletedIds.toList(),
+      if (enriched.isNotEmpty) 'tombstones': enriched,
+    };
+  }
 
   factory SyncManifest.fromJson(Map<String, dynamic> json) {
     final rawEntries = json['entries'];
@@ -116,7 +231,32 @@ class SyncManifest {
     final parsedDeleted = (json['deletedIds'] as List? ?? const [])
         .whereType<String>()
         .toSet();
-    return SyncManifest(entries: parsedEntries, deletedIds: parsedDeleted);
+    // A3：墓碑的因果侧。整块缺失（旧客户端写的清单）⇒ 空映射 ⇒ 所有墓碑按
+    // 「无因果」处理，行为与今天完全一致；**畸形则整轮中止**（B10 同口径）——
+    // 残缺的删除记录会被读成「没被删」，那正是把云端刚删掉的内容重传复活的方向。
+    final parsedTombstones = <String, SyncTombstone>{};
+    final rawTombstones = json['tombstones'];
+    if (rawTombstones is Map) {
+      for (final e in rawTombstones.entries) {
+        if (e.key is! String || e.value is! Map<String, dynamic>) {
+          throw const FormatException('远端清单墓碑格式损坏');
+        }
+        final tombstone = SyncTombstone.fromJson(
+          e.key as String,
+          e.value as Map<String, dynamic>,
+        );
+        parsedTombstones[tombstone.id] = tombstone;
+      }
+    } else if (rawTombstones != null) {
+      throw const FormatException('远端清单墓碑格式损坏');
+    }
+    return SyncManifest(
+      entries: parsedEntries,
+      // 两侧并起来才是完整的删除集合：只写 tombstones 不写 deletedIds 的清单
+      // 也算「已删」，否则 planner 看不见它，对端会按「本地独有」重传复活。
+      deletedIds: {...parsedDeleted, ...parsedTombstones.keys},
+      tombstones: parsedTombstones,
+    );
   }
 
   static Map<String, dynamic> _snapshotToJson(SyncSnapshot s) => {
