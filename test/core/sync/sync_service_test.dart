@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
+import 'package:drawing_notes_app/core/sync/post_restore_baseline.dart';
 import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/sync/sync_planner.dart';
@@ -217,6 +218,7 @@ SyncService _service(
   SyncCipher cipher = const NoopSyncCipher(),
   SyncProgressCallback? onProgress,
   ConflictHandler? conflictHandler,
+  PostRestoreBaselineGate? baselineGate,
 }) => SyncService(
   transport: WebDavSyncClient(
     baseUrl: Uri.parse(_base),
@@ -227,6 +229,7 @@ SyncService _service(
   cipher: cipher,
   conflictHandler: conflictHandler ?? const LwwConflictHandler(),
   onProgress: onProgress,
+  baselineGate: baselineGate ?? const AlwaysTrustedBaselineGate(),
 );
 
 AesSyncCipher _aes() => AesSyncCipher(key: List<int>.generate(32, (i) => i));

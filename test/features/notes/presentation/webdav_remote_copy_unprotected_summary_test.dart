@@ -49,6 +49,7 @@ class _StubController extends SyncController {
     required String? syncSalt,
     required ConflictHandler conflictHandler,
     void Function(SyncProgress progress)? onProgress,
+    PostRestoreReconcile? reconcile,
   }) async => (result: result, error: null);
 }
 

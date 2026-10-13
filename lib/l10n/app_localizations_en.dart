@@ -1454,6 +1454,49 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get postRestoreHoldTitle =>
+      'A backup was just restored: sync is paused';
+
+  @override
+  String get postRestoreHoldBody =>
+      'Restoring replaced the local data folder but left the sync baseline where it was. Notes that are missing locally are now more likely a side effect of the restore than something you deleted, so until you pick a direction nothing is deleted in the cloud and nothing is uploaded silently.';
+
+  @override
+  String get postRestoreHoldMerge => 'Merge both sides';
+
+  @override
+  String get postRestoreHoldKeepRemote => 'Trust the cloud';
+
+  @override
+  String get postRestoreHoldOverwriteRemote =>
+      'Overwrite the cloud with this device';
+
+  @override
+  String get postRestoreHoldShowDiff => 'Show differences first';
+
+  @override
+  String postRestoreDiffSummary(
+    int localOnly,
+    int remoteOnly,
+    int diverged,
+    int suppressed,
+  ) {
+    return '$localOnly only on this device, $remoteOnly only in the cloud, $diverged changed on both, $suppressed cloud deletion(s) blocked';
+  }
+
+  @override
+  String get postRestoreHeldSummary =>
+      'Sync paused: nothing was uploaded, downloaded or deleted in this round.';
+
+  @override
+  String get postRestoreOverwriteTitle =>
+      'Overwrite the cloud with the restored data?';
+
+  @override
+  String get postRestoreOverwriteBody =>
+      'Newer versions in the cloud would be replaced by the older ones that came out of the restore, and this direction cannot be undone inside the app (the most recent pre-restore snapshot stays on disk). Continue?';
+
+  @override
   String get webdavTitle => 'WebDAV Sync';
 
   @override

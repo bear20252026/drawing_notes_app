@@ -12,22 +12,36 @@ import 'package:drawing_notes_app/core/sync/sync_planner.dart';
 import 'package:drawing_notes_app/core/utils/hex_encode.dart';
 import 'package:drawing_notes_app/core/sync/sync_service.dart';
 
+/// 同步基线的默认落点（系统文档目录）。
+///
+/// 抽成函数而不是写死在两处：DN-204 的隔离判据 `FilePostRestoreBaselineGate`
+/// 必须查**同一个文件**的修改时间，两处各调一次 `getApplicationDocumentsDirectory()`
+/// 的话，将来改落点只改一边就会让隔离判据静默失效（查一个不存在的文件 ⇒
+/// 永远「基线可信」⇒ 恢复后的误删照旧发生）。
+Future<Directory> defaultSyncBaselineDirectory() =>
+    getApplicationDocumentsDirectory();
+
 /// 文件版 [SyncBaselineStore]。
 class FileSyncBaselineStore implements SyncBaselineStore {
   FileSyncBaselineStore({this.directoryProvider});
 
   final Future<Directory> Function()? directoryProvider;
-  static const _fileName = 'sync_state.json';
+
+  /// 基线文件名。公开是因为 DN-204 的隔离判据要在**不复制这份路径拼接逻辑**
+  /// 的前提下摸到同一个文件（见 `FilePostRestoreBaselineGate`）——两处各写一份
+  /// 文件名的话，改名会让隔离判据静默地永远查一个不存在的文件。
+  static const String baselineFileName = 'sync_state.json';
 
   Future<Directory> _baseDir() async {
     final provider = directoryProvider;
     if (provider != null) return provider();
-    return getApplicationDocumentsDirectory();
+    return defaultSyncBaselineDirectory();
   }
 
   Future<File> _file() async {
     final base = await _baseDir();
-    return File('${base.path}${Platform.pathSeparator}$_fileName');
+    return File('${base.path}${Platform.pathSeparator}$baselineFileName');
+
   }
 
   @override

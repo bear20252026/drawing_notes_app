@@ -1469,6 +1469,60 @@
       }
     }
   },
+  "postRestoreHoldTitle": "A backup was just restored: sync is paused",
+  "@postRestoreHoldTitle": {
+    "description": "Sync settings (DN-204): heading of the post-restore baseline quarantine banner"
+  },
+  "postRestoreHoldBody": "Restoring replaced the local data folder but left the sync baseline where it was. Notes that are missing locally are now more likely a side effect of the restore than something you deleted, so until you pick a direction nothing is deleted in the cloud and nothing is uploaded silently.",
+  "@postRestoreHoldBody": {
+    "description": "Sync settings (DN-204): body of the post-restore baseline quarantine banner"
+  },
+  "postRestoreHoldMerge": "Merge both sides",
+  "@postRestoreHoldMerge": {
+    "description": "Sync settings (DN-204): reconcile direction - keep what each side has"
+  },
+  "postRestoreHoldKeepRemote": "Trust the cloud",
+  "@postRestoreHoldKeepRemote": {
+    "description": "Sync settings (DN-204): reconcile direction - download only"
+  },
+  "postRestoreHoldOverwriteRemote": "Overwrite the cloud with this device",
+  "@postRestoreHoldOverwriteRemote": {
+    "description": "Sync settings (DN-204): reconcile direction - upload only"
+  },
+  "postRestoreHoldShowDiff": "Show differences first",
+  "@postRestoreHoldShowDiff": {
+    "description": "Sync settings (DN-204): read-only round that reports the difference"
+  },
+  "postRestoreDiffSummary": "{localOnly} only on this device, {remoteOnly} only in the cloud, {diverged} changed on both, {suppressed} cloud deletion(s) blocked",
+  "@postRestoreDiffSummary": {
+    "description": "Sync summary (DN-204): the difference between both sides and the deletions that were blocked",
+    "placeholders": {
+      "localOnly": {
+        "type": "int"
+      },
+      "remoteOnly": {
+        "type": "int"
+      },
+      "diverged": {
+        "type": "int"
+      },
+      "suppressed": {
+        "type": "int"
+      }
+    }
+  },
+  "postRestoreHeldSummary": "Sync paused: nothing was uploaded, downloaded or deleted in this round.",
+  "@postRestoreHeldSummary": {
+    "description": "Sync summary (DN-204): wording for the reportOnly round - must never read as done/up to date"
+  },
+  "postRestoreOverwriteTitle": "Overwrite the cloud with the restored data?",
+  "@postRestoreOverwriteTitle": {
+    "description": "Confirmation dialog (DN-204): overwrite-the-cloud direction"
+  },
+  "postRestoreOverwriteBody": "Newer versions in the cloud would be replaced by the older ones that came out of the restore, and this direction cannot be undone inside the app (the most recent pre-restore snapshot stays on disk). Continue?",
+  "@postRestoreOverwriteBody": {
+    "description": "Confirmation dialog (DN-204): consequences of overwriting the cloud"
+  },
   "webdavTitle": "WebDAV Sync",
   "@webdavTitle": {},
   "webdavUsername": "Username",

@@ -2684,6 +2684,71 @@ abstract class AppLocalizations {
   /// **'{base}; {count} more documents changed both locally and remotely and were handled per your choice'**
   String syncWithConflicts(String base, int count);
 
+  /// Sync settings (DN-204): heading of the post-restore baseline quarantine banner
+  ///
+  /// In en, this message translates to:
+  /// **'A backup was just restored: sync is paused'**
+  String get postRestoreHoldTitle;
+
+  /// Sync settings (DN-204): body of the post-restore baseline quarantine banner
+  ///
+  /// In en, this message translates to:
+  /// **'Restoring replaced the local data folder but left the sync baseline where it was. Notes that are missing locally are now more likely a side effect of the restore than something you deleted, so until you pick a direction nothing is deleted in the cloud and nothing is uploaded silently.'**
+  String get postRestoreHoldBody;
+
+  /// Sync settings (DN-204): reconcile direction - keep what each side has
+  ///
+  /// In en, this message translates to:
+  /// **'Merge both sides'**
+  String get postRestoreHoldMerge;
+
+  /// Sync settings (DN-204): reconcile direction - download only
+  ///
+  /// In en, this message translates to:
+  /// **'Trust the cloud'**
+  String get postRestoreHoldKeepRemote;
+
+  /// Sync settings (DN-204): reconcile direction - upload only
+  ///
+  /// In en, this message translates to:
+  /// **'Overwrite the cloud with this device'**
+  String get postRestoreHoldOverwriteRemote;
+
+  /// Sync settings (DN-204): read-only round that reports the difference
+  ///
+  /// In en, this message translates to:
+  /// **'Show differences first'**
+  String get postRestoreHoldShowDiff;
+
+  /// Sync summary (DN-204): the difference between both sides and the deletions that were blocked
+  ///
+  /// In en, this message translates to:
+  /// **'{localOnly} only on this device, {remoteOnly} only in the cloud, {diverged} changed on both, {suppressed} cloud deletion(s) blocked'**
+  String postRestoreDiffSummary(
+    int localOnly,
+    int remoteOnly,
+    int diverged,
+    int suppressed,
+  );
+
+  /// Sync summary (DN-204): wording for the reportOnly round - must never read as done/up to date
+  ///
+  /// In en, this message translates to:
+  /// **'Sync paused: nothing was uploaded, downloaded or deleted in this round.'**
+  String get postRestoreHeldSummary;
+
+  /// Confirmation dialog (DN-204): overwrite-the-cloud direction
+  ///
+  /// In en, this message translates to:
+  /// **'Overwrite the cloud with the restored data?'**
+  String get postRestoreOverwriteTitle;
+
+  /// Confirmation dialog (DN-204): consequences of overwriting the cloud
+  ///
+  /// In en, this message translates to:
+  /// **'Newer versions in the cloud would be replaced by the older ones that came out of the restore, and this direction cannot be undone inside the app (the most recent pre-restore snapshot stays on disk). Continue?'**
+  String get postRestoreOverwriteBody;
+
   /// No description provided for @webdavTitle.
   ///
   /// In en, this message translates to:

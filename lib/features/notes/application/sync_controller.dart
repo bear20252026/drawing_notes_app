@@ -18,11 +18,13 @@ import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc_sync_store.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
+import 'package:drawing_notes_app/core/sync/post_restore_baseline.dart';
 import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/sync/sync_progress.dart';
 import 'package:drawing_notes_app/core/sync/sync_retry_policy.dart';
 import 'package:drawing_notes_app/core/sync/sync_service.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/file_post_restore_baseline_gate.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/file_sync_baseline_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/sync_secret_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/webdav_config_store.dart';
@@ -31,6 +33,8 @@ import 'package:drawing_notes_app/features/notes/infrastructure/webdav_config_st
 /// 实现文件（C-05：presentation 不再触碰 SyncService / 传输客户端模块，
 /// 只保留纯 DTO / 异常类型的可见性）。
 export 'package:drawing_notes_app/core/sync/sync_service.dart' show SyncResult;
+export 'package:drawing_notes_app/core/sync/post_restore_baseline.dart'
+    show PostRestoreReconcile;
 export 'package:drawing_notes_app/core/storage/webdav_sync_client.dart'
     show WebDavSyncException, WebDavResponseTooLargeException;
 
@@ -78,6 +82,7 @@ class SyncController {
     SyncSecretStore? secretStore,
     SyncDocumentStore? documentStore,
     SyncBaselineStore? baselineStore,
+    PostRestoreBaselineGate? baselineGate,
   }) : _configStore = configStore ?? WebDavConfigStore(SecureSyncSecretStore()),
        _secretStore = secretStore ?? SecureSyncSecretStore(),
        _documentStore =
@@ -92,12 +97,23 @@ class SyncController {
                    await VaultKeyService.shared?.isConfigured() ?? false,
              ),
            ),
-       _baselineStore = baselineStore ?? FileSyncBaselineStore();
+       _baselineStore = baselineStore ?? FileSyncBaselineStore(),
+       _baselineGate = baselineGate ?? FilePostRestoreBaselineGate();
 
   final WebDavConfigStore _configStore;
   final SyncSecretStore _secretStore;
   final SyncDocumentStore _documentStore;
   final SyncBaselineStore _baselineStore;
+
+  /// DN-204：恢复换根后基线是否已被甩在身后（决定同步是否要先按住等裁决）。
+  final PostRestoreBaselineGate _baselineGate;
+
+  /// DN-204：当前是否处于「恢复后同步隔离」态。设置页据此挂出方向选择条。
+  ///
+  /// 判据是**读盘**（快照目录名里的换根时刻 vs 基线文件修改时间），不依赖任何
+  /// 进程内状态，所以重进页面、重启应用都得到同一答案——用户没裁决就一直挂着。
+  Future<bool> isBaselineHeldForRestore() =>
+      _baselineGate.isBaselineStaleAfterRestore();
 
   /// 保存前 TLS 门禁（与保存路径同一预检）：非空 baseUrl 必须 https
   /// （本地回环 http 例外）。非法抛 [ArgumentError]。
@@ -235,6 +251,7 @@ class SyncController {
     required String? syncSalt,
     required ConflictHandler conflictHandler,
     void Function(SyncProgress progress)? onProgress,
+    PostRestoreReconcile? reconcile,
   }) async {
     // 在飞标记必须在**任何 await 之前**置位（Dart 单 isolate，async 函数体
     // 到第一个 await 前是同步执行的），否则两轮能同时穿过这道门。
@@ -248,6 +265,7 @@ class SyncController {
       syncSalt: syncSalt,
       conflictHandler: conflictHandler,
       onProgress: onProgress,
+      reconcile: reconcile,
     );
     _inFlightSync = round;
     try {
@@ -288,6 +306,11 @@ class SyncController {
   Future<SyncRunOutcome>? _inFlightSync;
 
   /// [syncNow] 的实际一轮（无互斥语义，便于单测直接驱动）。
+  ///
+  /// [reconcile]（DN-204）：恢复后基线隔离态下用户裁决的调和方向；null 且
+  /// 确实处于隔离时，SyncService 按 `reportOnly` 处理（只报差异、零写入）。
+  /// 刻意**只活在这一轮**：隔离判据本身是从磁盘事实反推的，不需要、也不该
+  /// 再把用户的选择持久化成第二份状态（选完跑一轮，基线推进，隔离自动解除）。
   Future<SyncRunOutcome> _runSyncRound({
     required Uri baseUrl,
     required String username,
@@ -296,6 +319,7 @@ class SyncController {
     required String? syncSalt,
     required ConflictHandler conflictHandler,
     void Function(SyncProgress progress)? onProgress,
+    PostRestoreReconcile? reconcile,
   }) async {
     final cipher = await _buildCipher(
       syncSalt: syncSalt,
@@ -314,6 +338,8 @@ class SyncController {
       cipher: cipher,
       conflictHandler: conflictHandler,
       onProgress: onProgress,
+      baselineGate: _baselineGate,
+      reconcile: reconcile,
     );
     try {
       // 有界自动重试：派生密钥复用同一 service，失败按策略退避。

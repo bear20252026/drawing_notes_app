@@ -20,6 +20,7 @@ import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
+import 'package:drawing_notes_app/core/sync/post_restore_baseline.dart';
 import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/sync/sync_planner.dart';
@@ -113,6 +114,7 @@ class _Dav {
     baselineStore: baseline,
     cipher: AesSyncCipher(key: key),
     conflictHandler: const LwwConflictHandler(),
+    baselineGate: const AlwaysTrustedBaselineGate(),
   );
 }
 

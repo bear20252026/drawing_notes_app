@@ -164,6 +164,28 @@ class AppDataRoot {
     return int.tryParse(tail.substring(underscore + 5));
   }
 
+  /// 磁盘上最近一次「恢复换根」的毫秒时间戳（`.old_<毫秒>` 快照目录名里的最大者），
+  /// 没有快照或解析不出时间戳时返回 null（DN-204 的隔离判据用）。
+  ///
+  /// 取最大者而不是「存在任何一个」：快照可能被 [_pruneRestoreSnapshots] 换掉、
+  /// 也可能同时留着一次更早的；只有最近那次换根才是「基线是否落后于现网」的
+  /// 分界线。列目录失败按「无换根证据」返回 null——与恢复主流程同口径，
+  /// 读不出事实时绝不凭空造出一个隔离态。
+  static int? latestRestoreSnapshotMs(String supportPath) {
+    int? newest;
+    try {
+      for (final entity in Directory(supportPath).listSync()) {
+        if (entity is! Directory) continue;
+        final stamp = _snapshotStampOf(entity.path);
+        if (stamp == null) continue;
+        if (newest == null || stamp > newest) newest = stamp;
+      }
+    } catch (_) {
+      return null;
+    }
+    return newest;
+  }
+
   /// 记录一次恢复失败（DN-103）。
   ///
   /// 刻意**不用 `AuditLogger`**，两个原因：

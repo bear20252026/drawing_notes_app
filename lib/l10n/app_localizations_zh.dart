@@ -1391,6 +1391,45 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get postRestoreHoldTitle => '刚恢复过备份：同步已暂停';
+
+  @override
+  String get postRestoreHoldBody =>
+      '恢复只替换了本机的数据目录，同步基线还在原地。此时「本地没有的笔记」更可能是恢复的副作用，而不是你删掉的，所以在你选出一个方向之前：不删云端、不擅自上传。';
+
+  @override
+  String get postRestoreHoldMerge => '合并两端';
+
+  @override
+  String get postRestoreHoldKeepRemote => '以云端为准';
+
+  @override
+  String get postRestoreHoldOverwriteRemote => '用本机数据覆盖云端';
+
+  @override
+  String get postRestoreHoldShowDiff => '先看差异';
+
+  @override
+  String postRestoreDiffSummary(
+    int localOnly,
+    int remoteOnly,
+    int diverged,
+    int suppressed,
+  ) {
+    return '本地 $localOnly 篇云端没有 · 云端 $remoteOnly 篇本地没有 · 两端内容不同 $diverged 篇 · 已拦住「删除云端」$suppressed 篇';
+  }
+
+  @override
+  String get postRestoreHeldSummary => '同步已暂停：本轮没有上传、下载或删除任何数据。';
+
+  @override
+  String get postRestoreOverwriteTitle => '用本机恢复的数据覆盖云端？';
+
+  @override
+  String get postRestoreOverwriteBody =>
+      '云端较新的版本会被恢复出来的旧版本替换，这个方向在应用内无法撤销（恢复前的现网数据仍留着最近一份快照）。确定要继续吗？';
+
+  @override
   String get webdavTitle => 'WebDAV 同步';
 
   @override

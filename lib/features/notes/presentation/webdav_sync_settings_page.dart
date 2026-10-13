@@ -9,10 +9,12 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/sync/post_restore_baseline.dart';
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/sync/sync_progress.dart';
 import 'package:drawing_notes_app/features/notes/application/sync_controller.dart';
 import 'package:drawing_notes_app/features/notes/presentation/conflict_resolution_dialog.dart';
+import 'package:drawing_notes_app/features/notes/presentation/post_restore_sync_banner.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
 
@@ -202,6 +204,12 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
   bool _hasSavedPassword = false;
   bool _hasSavedPassphrase = false;
 
+  /// DN-204：恢复换根后基线是否仍被隔离（决定提示条可见）。
+  bool _baselineHeld = false;
+
+  /// DN-204：最近一次只读比对算出的两端差异，供提示条常驻显示（null = 还没比过）。
+  PostRestoreDiff? _lastDiff;
+
   /// 空操作回调（用于禁用态按钮）。
   static void _noop() {}
 
@@ -209,6 +217,9 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
   void initState() {
     super.initState();
     _loadConfig();
+    // DN-204：隔离判据是**读盘**的独立探测，刻意不与配置加载串在一起——
+    // 表单不该因为一个提示条的探活而晚填一秒。
+    _refreshBaselineHold();
   }
 
   Future<void> _loadConfig() async {
@@ -223,6 +234,24 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
       _hasSavedPassword = secrets.webdavPassword?.isNotEmpty ?? false;
       _hasSavedPassphrase = secrets.syncPassphrase?.isNotEmpty ?? false;
     });
+  }
+
+  /// DN-204：刷新提示条的可见性（判据见 [_queryBaselineHold]）。
+  Future<void> _refreshBaselineHold() async {
+    final held = await _queryBaselineHold();
+    if (!mounted) return;
+    setState(() => _baselineHeld = held);
+  }
+
+  /// DN-204：查一次「基线是否已被换根甩在身后」。读盘判据，异常按「不隔离」
+  /// 处理——提示条是让人做决定的，判据读不出来时不该凭空拦下同步（那时用户
+  /// 面对的是一个没有差异信息的暂停，反而更危险）。
+  Future<bool> _queryBaselineHold() async {
+    try {
+      return await _sync.isBaselineHeldForRestore();
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> _save() async {
@@ -297,7 +326,7 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     );
   }
 
-  Future<void> _syncNow() async {
+  Future<void> _syncNow({PostRestoreReconcile? reconcile}) async {
     final rawUrl = _url.text.trim();
     if (rawUrl.isEmpty) {
       _toast(
@@ -391,6 +420,7 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
         passphrase: passphrase,
         syncSalt: cfg.syncSalt,
         conflictHandler: _DialogConflictHandler(this),
+        reconcile: reconcile,
         onProgress: (p) {
           if (mounted) setState(() => _progress = p);
         },
@@ -401,6 +431,10 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
         setState(() {
           _progress = SyncProgress.complete();
           _lastSummary = summary;
+          // DN-204：本轮算出的差异留在提示条上（toast 会消失，决定要在屏上）。
+          if (outcome.result!.postRestoreDiff != null) {
+            _lastDiff = outcome.result!.postRestoreDiff;
+          }
         });
         _toast(summary);
       } else {
@@ -427,15 +461,56 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
       _toast(summary);
     } finally {
       if (mounted) setState(() => _syncing = false);
+      // DN-204：轮次收尾后重查隔离态。走完一轮正常/调和同步会把基线推进到与
+      // 现网一致 ⇒ 判据自动不再触发隔离，提示条就此消失；reportOnly 那轮一个
+      // 字节都没写 ⇒ 基线不动 ⇒ 提示条继续挂着。
+      //
+      // 刻意**不 await**：提示条的读盘探活不许挡在本轮结果前面——判据万一读不
+      // 出来，用户至少还得看到「上传了几篇、失败了几篇」这句摘要。
+      unawaited(_refreshBaselineHold());
     }
+  }
+
+  /// DN-204：提示条上四个按钮的落点——每个都只驱动**这一轮**同步。
+  ///
+  /// 「用本机覆盖云端」会把云端较新的版本换成恢复出来的旧版本，且应用内不可
+  /// 撤销 ⇒ 走危险态二次确认，绝不让人一键点到。其余三个方向都不会删云端
+  /// 内容（删除墓碑在隔离态下已被 SyncService 一律拦下），直接执行。
+  Future<void> _reconcile(PostRestoreReconcile mode) async {
+    if (mode == PostRestoreReconcile.overwriteRemote) {
+      final l10n = AppLocalizations.of(context);
+      final proceed = await GlassDialog.confirm(
+        context,
+        title: l10n?.postRestoreOverwriteTitle ?? '用本机恢复的数据覆盖云端？',
+        content:
+            l10n?.postRestoreOverwriteBody ??
+            '云端较新的版本会被恢复出来的旧版本替换，这个方向在应用内无法撤销'
+            '（恢复前的现网数据仍留着最近一份快照）。确定要继续吗？',
+        confirmText:
+            l10n?.postRestoreHoldOverwriteRemote ?? '用本机数据覆盖云端',
+        dangerous: true,
+      );
+      if (proceed != true) return;
+    }
+    await _syncNow(reconcile: mode);
   }
 
   String _summaryOf(SyncResult r) {
     final l10n = mounted ? AppLocalizations.of(context) : null;
+    final diff = r.postRestoreDiff;
+    // DN-204：reportOnly 轮次**一个字节都没写**，绝不能说「同步完成/已是最新」
+    // ——那是把「同步被按住、等用户选方向」这件事藏起来，与本条要防的
+    // 「静默」正好是同一种病。
+    if (r.postRestorePolicy == PostRestoreReconcile.reportOnly) {
+      return '${l10n?.postRestoreHeldSummary ?? '同步已暂停：本轮没有上传、下载或删除任何数据。'}${_postRestoreDiffLine(l10n, diff)}';
+    }
     var summary = r.changed
         ? l10n?.syncDoneSummary(r.uploaded, r.downloaded, r.deletedRemote) ??
               '同步完成：↑${r.uploaded} ↓${r.downloaded} ✕${r.deletedRemote}'
         : l10n?.syncUpToDate ?? '已是最新，无需同步';
+    // 隔离态下跑完的调和轮：把「拦住了多少条本该删云端的操作」跟着摘要一起说
+    // 出来——用户选的是方向，不是「从此不再看见这些差异」。
+    summary = '$summary${_postRestoreDiffLine(l10n, diff)}';
     if (r.conflictedDocIds.isNotEmpty) {
       summary =
           l10n?.syncWithConflicts(summary, r.conflictedDocIds.length) ??
@@ -454,6 +529,22 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
           '$summary${l10n?.syncRemoteCopyUnprotectedCount(r.unprotectedRemoteDocIds.length) ?? '；${r.unprotectedRemoteDocIds.length} 个云端副本暂时读不出来，为避免覆盖已跳过这几个文档的上传（本次未同步）：请确认同步口令是否填回原值，或稍后再同步一次'}';
     }
     return summary;
+  }
+
+  /// DN-204：差异行。非隔离轮（diff 为 null）返回空串，不往既有摘要里塞东西。
+  String _postRestoreDiffLine(AppLocalizations? l10n, PostRestoreDiff? diff) {
+    if (diff == null) return '';
+    return diff.isEmpty
+        ? ''
+        : '；${l10n?.postRestoreDiffSummary(
+              diff.localOnlyIds.length,
+              diff.remoteOnlyIds.length,
+              diff.divergedIds.length,
+              diff.suppressedTombstoneIds.length,
+            ) ?? '本地 ${diff.localOnlyIds.length} 篇云端没有 · 云端 '
+              '${diff.remoteOnlyIds.length} 篇本地没有 · 两端内容不同 '
+              '${diff.divergedIds.length} 篇 · 已拦住「删除云端」'
+              '${diff.suppressedTombstoneIds.length} 篇'}';
   }
 
   /// 轻提示。
@@ -537,6 +628,15 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: AppleSpacing.md),
+          // DN-204：恢复换根后基线失效 ⇒ 同步已被按住，等用户选方向。
+          // 位置刻意在表单与「立即同步」按钮之前：先看见这条再做决定。
+          PostRestoreSyncBanner(
+            visible: _baselineHeld,
+            enabled: !_syncing,
+            diff: _lastDiff,
+            onReconcile: _reconcile,
+          ),
+          if (_baselineHeld) const SizedBox(height: AppleSpacing.md),
           TextField(
             controller: _url,
             keyboardType: TextInputType.url,

@@ -1448,6 +1448,60 @@
       }
     }
   },
+  "postRestoreHoldTitle": "刚恢复过备份：同步已暂停",
+  "@postRestoreHoldTitle": {
+    "description": "同步设置页（DN-204）：恢复换根后基线隔离横幅标题"
+  },
+  "postRestoreHoldBody": "恢复只替换了本机的数据目录，同步基线还在原地。此时「本地没有的笔记」更可能是恢复的副作用，而不是你删掉的，所以在你选出一个方向之前：不删云端、不擅自上传。",
+  "@postRestoreHoldBody": {
+    "description": "同步设置页（DN-204）：恢复后基线隔离横幅正文"
+  },
+  "postRestoreHoldMerge": "合并两端",
+  "@postRestoreHoldMerge": {
+    "description": "同步设置页（DN-204）：恢复后调和方向——两端独有的都保留"
+  },
+  "postRestoreHoldKeepRemote": "以云端为准",
+  "@postRestoreHoldKeepRemote": {
+    "description": "同步设置页（DN-204）：恢复后调和方向——只从云端下载"
+  },
+  "postRestoreHoldOverwriteRemote": "用本机数据覆盖云端",
+  "@postRestoreHoldOverwriteRemote": {
+    "description": "同步设置页（DN-204）：恢复后调和方向——只上传本机数据"
+  },
+  "postRestoreHoldShowDiff": "先看差异",
+  "@postRestoreHoldShowDiff": {
+    "description": "同步设置页（DN-204）：只读一轮，报出两端差异"
+  },
+  "postRestoreDiffSummary": "本地 {localOnly} 篇云端没有 · 云端 {remoteOnly} 篇本地没有 · 两端内容不同 {diverged} 篇 · 已拦住「删除云端」{suppressed} 篇",
+  "@postRestoreDiffSummary": {
+    "description": "同步摘要（DN-204）：恢复后两端差异与被拦下的删除数",
+    "placeholders": {
+      "localOnly": {
+        "type": "int"
+      },
+      "remoteOnly": {
+        "type": "int"
+      },
+      "diverged": {
+        "type": "int"
+      },
+      "suppressed": {
+        "type": "int"
+      }
+    }
+  },
+  "postRestoreHeldSummary": "同步已暂停：本轮没有上传、下载或删除任何数据。",
+  "@postRestoreHeldSummary": {
+    "description": "同步摘要（DN-204）：reportOnly 轮次的措辞，绝不得写成「同步完成/已是最新」"
+  },
+  "postRestoreOverwriteTitle": "用本机恢复的数据覆盖云端？",
+  "@postRestoreOverwriteTitle": {
+    "description": "二次确认（DN-204）：覆盖云端方向"
+  },
+  "postRestoreOverwriteBody": "云端较新的版本会被恢复出来的旧版本替换，这个方向在应用内无法撤销（恢复前的现网数据仍留着最近一份快照）。确定要继续吗？",
+  "@postRestoreOverwriteBody": {
+    "description": "二次确认（DN-204）：覆盖云端方向的后果说明"
+  },
   "webdavTitle": "WebDAV 同步",
   "@webdavTitle": {},
   "webdavUsername": "用户名",

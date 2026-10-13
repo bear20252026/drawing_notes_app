@@ -21,6 +21,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
+import 'package:drawing_notes_app/core/sync/post_restore_baseline.dart';
 import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/sync/sync_planner.dart';
@@ -186,6 +187,7 @@ void main() {
         baselineStore: baseline,
         cipher: const NoopSyncCipher(),
         conflictHandler: const LwwConflictHandler(),
+        baselineGate: const AlwaysTrustedBaselineGate(),
       );
 
       final r = await service.syncNow();

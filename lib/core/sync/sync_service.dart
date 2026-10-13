@@ -14,6 +14,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
+import 'package:drawing_notes_app/core/sync/post_restore_baseline.dart';
 import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/sync/sync_planner.dart';
@@ -98,6 +99,8 @@ class SyncResult {
     this.unreadableDocIds = const [],
     this.unprotectedRemoteDocIds = const [],
     this.skippedMissingDocIds = const [],
+    this.postRestorePolicy,
+    this.postRestoreDiff,
   });
 
   final int uploaded;
@@ -140,6 +143,16 @@ class SyncResult {
   /// 与「网络抖动」不同的可执行措辞（本地文件被删了/口令锁着/云端无此对象）。
   final List<String> skippedMissingDocIds;
 
+  /// DN-204：本轮处于「恢复后基线隔离」时实际采用的调和方向；基线可信时为 null。
+  ///
+  /// [PostRestoreReconcile.reportOnly] 意味着**一个字节都没动**（不上传、不下载、
+  /// 不删除、基线不推进）——UI 必须据此措辞，绝不能把它当「同步完成/已是最新」，
+  /// 那是把「同步被按住」藏起来。
+  final PostRestoreReconcile? postRestorePolicy;
+
+  /// DN-204：隔离轮次算出的两端差异（含被拦下的删除墓碑清单）；正常轮次为 null。
+  final PostRestoreDiff? postRestoreDiff;
+
   bool get changed => uploaded > 0 || downloaded > 0 || deletedRemote > 0;
 
   @override
@@ -148,7 +161,8 @@ class SyncResult {
       'deleteRemote=$deletedRemote, conflicts=${conflictedDocIds.length}, '
       'failed=${failedDocIds.length}, unreadable=${unreadableDocIds.length}, '
       'unprotectedRemote=${unprotectedRemoteDocIds.length}, '
-      'skippedMissing=${skippedMissingDocIds.length})';
+      'skippedMissing=${skippedMissingDocIds.length}, '
+      'postRestore=${postRestorePolicy?.name ?? 'none'})';
 }
 
 /// 单轮执行结果（M2：成功与失败的操作分离，清单回写只认成功项）。
@@ -202,6 +216,8 @@ class SyncService {
     required this.cipher,
     this.conflictHandler = const LwwConflictHandler(),
     this.onProgress,
+    required this.baselineGate,
+    this.reconcile,
   });
 
   /// WebDAV 传输客户端。
@@ -223,6 +239,15 @@ class SyncService {
 
   /// 同步进度回调（默认为 null：不发射，保现有测试行为）。
   final SyncProgressCallback? onProgress;
+
+  /// DN-204：恢复换根后基线是否失效的判据。**刻意 required**——「没接闸」与
+  /// 「已确认基线可信」必须是两种写得出来的状态，合成一个就是 fail-open：
+  /// 那正是本轮审计里「备份打包不到基线」这条能活到今天的成因。
+  /// 没有恢复感知的调用点显式传 [AlwaysTrustedBaselineGate]。
+  final PostRestoreBaselineGate baselineGate;
+
+  /// DN-204：隔离态下用户裁决的调和方向；null = 用户还没选 ⇒ [PostRestoreReconcile.reportOnly]。
+  final PostRestoreReconcile? reconcile;
 
   static const String manifestPath = 'manifest.json';
 
@@ -261,8 +286,20 @@ class SyncService {
   ///
   /// 步骤：ensureCollection → GET 远端 manifest → 构本地 manifest（含删除墓碑）
   /// → plan → 执行操作 → 回写远端 + 本地 manifest 基线。
+  ///
+  /// DN-204：第 0 步先问闸门——数据根刚被备份恢复换掉时，基线描述的还是换根
+  /// 之前的那批笔记，此时「基线有、本地无」不是用户删除，而是恢复的副作用。
   Future<SyncResult> syncNow() async {
     _emit(SyncProgress.starting());
+    // 0. DN-204：基线是否已被换根甩在身后。用户没选方向时按 reportOnly 处理：
+    //    只读、只报差异，一个字节都不写（既不误删云端，也不把恢复出来的旧版
+    //    静默推上去）。
+    final policy = await baselineGate.isBaselineStaleAfterRestore()
+        ? (reconcile ?? PostRestoreReconcile.reportOnly)
+        : null;
+    if (policy == PostRestoreReconcile.reportOnly) {
+      return _reportPostRestoreDiff();
+    }
     // 1. 确保远端集合存在。
     _emit(SyncProgress.phase(SyncProgressPhase.connecting));
     await transport.ensureCollection();
@@ -280,6 +317,8 @@ class SyncService {
     };
     final baseline = await baselineStore.load() ?? const SyncManifest();
     final deletedIds = <String>{};
+    // DN-204：隔离态下本会生成的删除墓碑全部改道进这里，一条 DELETE 都不发。
+    final suppressedTombstones = <String>{};
     for (final id in baseline.entries.keys) {
       if (currentEntries.containsKey(id)) continue;
       // DN-107（P0 数据安全）：**存在但读不出来**（受密笔记锁定 / 权限不足 /
@@ -293,6 +332,10 @@ class SyncService {
         continue;
       }
       if (baseline.deletedIds.contains(id)) continue;
+      if (policy != null) {
+        suppressedTombstones.add(id);
+        continue;
+      }
       deletedIds.add(id);
     }
     final localManifest = SyncManifest(
@@ -303,10 +346,13 @@ class SyncService {
     // 4. 计划 + 冲突检测。
     _emit(SyncProgress.phase(SyncProgressPhase.planning));
     final basePlan = planner.plan(localManifest, remoteManifest);
+    // DN-204：冲突判据同样不能用被换根甩在身后的基线——那份基线会让恢复出来
+    // 的旧版本看起来像「本地一字未动、远端却更新」，从而触发一堆与事实无关的
+    // 裁决。按首次同步处理：无基线 ⇒ 只看两端清单本身。
     final conflicts = detectSyncConflicts(
       currentEntries,
       remoteManifest,
-      baseline,
+      policy == null ? baseline : const SyncManifest(),
     );
 
     // 4b. 用户裁决（如注入了 handler）→ 覆盖为有效计划。
@@ -323,7 +369,7 @@ class SyncService {
     final preserved = await _preserveRemoteCopies(conflicts, resolutions);
     final keptCopies = preserved.copies;
     final unprotected = preserved.unprotectedDocIds.toSet();
-    final plan = unprotected.isEmpty
+    final guardedPlan = unprotected.isEmpty
         ? resolvedPlan
         : SyncPlan(
             operations: [
@@ -333,6 +379,11 @@ class SyncService {
                   op,
             ],
           );
+    // DN-204：隔离态下按用户裁决的方向过滤。**删除墓碑任何方向都不放行**——
+    // 它来自一份不描述当前数据根的基线，不是用户的删除意图。
+    final plan = policy == null
+        ? guardedPlan
+        : _applyReconcile(guardedPlan, policy, currentEntries);
 
     // 5. 执行（M2：单操作隔离——失败/跳过项记入 outcome，不中断整轮）。
     final executed = await _execute(plan);
@@ -447,6 +498,26 @@ class SyncService {
         baselineEntries[id] = previous;
       }
     }
+    if (policy != null) {
+      // DN-204：隔离轮的基线只能描述「本机现在真有」的那几篇。
+      //
+      // 沿用上面的 `{...newEntries}`（= 本轮结束时的云端清单）会把云端独有的
+      // 篇目一并记进基线——而恢复出来的库里就是没有它们。下一轮（基线已推进，
+      // 隔离解除）判据又是「基线有、本地无」⇒ 同一批删除墓碑重新生成，云端
+      // 副本照旧被删掉，只是**延后一轮**发生。那正是本条要修的事，绝不能以
+      // 「用户已经选了方向」为名把它放回管道里。
+      //
+      // 允许进基线的三来源：本轮列得出来的本地文档（含 DN-107 的「存在但读不到」，
+      // 它按基线快照带回，本来就是本地文件）、keepBoth 刚落到本地的副本、
+      // 本轮真下载成功的文档。
+      final localIds = <String>{
+        ...currentEntries.keys,
+        for (final copy in keptCopies) copy.id,
+        for (final op in executed.succeeded)
+          if (op.kind == SyncOperationKind.download) op.id,
+      };
+      baselineEntries.removeWhere((id, _) => !localIds.contains(id));
+    }
     // 已知两阶段提交窗口（M3·文档化取舍）：远端 manifest 已回写、本地基线
     // 未回写之间崩溃 → 两端 manifest 领先于本地基线。后果全部幂等无害：
     // - 本轮已上传成功的文档：下轮按旧基线重传一次（服务端覆盖同内容）；
@@ -466,9 +537,138 @@ class SyncService {
       unreadableDocIds: List.unmodifiable(executed.unreadableIds),
       unprotectedRemoteDocIds: List.unmodifiable(preserved.unprotectedDocIds),
       skippedMissingDocIds: List.unmodifiable(executed.skippedMissingIds),
+      postRestorePolicy: policy,
+      postRestoreDiff: policy == null
+          ? null
+          : _diffOf(
+              currentEntries: currentEntries,
+              remoteManifest: remoteManifest,
+              suppressedTombstoneIds: suppressedTombstones,
+            ),
     );
     _emit(SyncProgress.complete());
     return result;
+  }
+
+  /// DN-204：隔离轮次——**只读**。拉远端清单、算两端差异，然后原样返回。
+  ///
+  /// 刻意不走 `ensureCollection` / 不回写远端清单 / 不推进基线：用户还没裁决，
+  /// 这一轮连「把云端某个文档登记成已知」的资格都没有。基线时间戳不前进，
+  /// 隔离也就自然保持（见 `FilePostRestoreBaselineGate` 的判据）。
+  Future<SyncResult> _reportPostRestoreDiff() async {
+    _emit(SyncProgress.phase(SyncProgressPhase.planning));
+    final remoteManifest = (await _readRemoteManifest()).manifest;
+    final inventory = await documentStore.listDocuments();
+    final currentEntries = <String, SyncSnapshot>{
+      for (final d in inventory.readable)
+        d.id: SyncSnapshot(id: d.id, updatedAt: d.updatedAt, size: d.size),
+    };
+    final baseline = await baselineStore.load() ?? const SyncManifest();
+    // 「什么才算用户删除」的判据与 syncNow 第 3 步是同一条，包括 DN-107 的
+    // 「存在但读不到」按基线快照带回——两处必须一起改，否则隔离轮会把锁定的
+    // 笔记算进「云端有、本地没有」，用户一选合并就把它盖掉。
+    final suppressed = <String>{};
+    for (final id in baseline.entries.keys) {
+      if (currentEntries.containsKey(id)) continue;
+      if (inventory.unreadable.contains(id)) {
+        final baselineSnap = baseline.entries[id];
+        if (baselineSnap != null) currentEntries[id] = baselineSnap;
+        continue;
+      }
+      if (baseline.deletedIds.contains(id)) continue;
+      suppressed.add(id);
+    }
+    _emit(SyncProgress.complete());
+    return SyncResult(
+      uploaded: 0,
+      downloaded: 0,
+      deletedRemote: 0,
+      postRestorePolicy: PostRestoreReconcile.reportOnly,
+      postRestoreDiff: _diffOf(
+        currentEntries: currentEntries,
+        remoteManifest: remoteManifest,
+        suppressedTombstoneIds: suppressed,
+      ),
+    );
+  }
+
+  /// 两端差异（DN-204 的展示数据；[suppressedTombstoneIds] 是本轮被拦下的删除墓碑）。
+  PostRestoreDiff _diffOf({
+    required Map<String, SyncSnapshot> currentEntries,
+    required SyncManifest remoteManifest,
+    required Set<String> suppressedTombstoneIds,
+  }) {
+    final localOnly = <String>[];
+    final diverged = <String>[];
+    for (final entry in currentEntries.entries) {
+      final remote = remoteManifest.entries[entry.key];
+      if (remote == null) {
+        localOnly.add(entry.key);
+      } else if (remote != entry.value) {
+        diverged.add(entry.key);
+      }
+    }
+    final remoteOnly = [
+      for (final id in remoteManifest.entries.keys)
+        if (!currentEntries.containsKey(id)) id,
+    ];
+    // 排序：这份清单要上屏给用户看，也是测试钉语义的锚点，不能随 Map 迭代序漂。
+    int byId(String a, String b) => a.compareTo(b);
+    return PostRestoreDiff(
+      localOnlyIds: List.unmodifiable(localOnly..sort(byId)),
+      remoteOnlyIds: List.unmodifiable(remoteOnly..sort(byId)),
+      divergedIds: List.unmodifiable(diverged..sort(byId)),
+      suppressedTombstoneIds: List.unmodifiable(
+        suppressedTombstoneIds.toList()..sort(byId),
+      ),
+    );
+  }
+
+  /// DN-204：把计划裁剪到用户裁决的方向。删除墓碑在任何方向下都不放行
+  /// （本轮的 `deletedIds` 已经为空，这里再兜一道：将来若有人改动墓碑来源，
+  /// 这条过滤是最后一道闸）。
+  ///
+  /// 「覆盖云端」方向有一条必须说清的转写：两端都有、内容不同的那篇，planner
+  /// 按时间戳会判成 download（云端更新），而这个方向的语义恰恰是「以本机恢复
+  /// 出来的版本为准」⇒ 判成下载再丢弃，等于两边都不动、用户的选择不生效。
+  /// 所以本地有内容的那篇 download 在这里**改写成 upload**；只有云端有的
+  /// （本地根本没有）仍不动——它既不该被下载，更不该被删。
+  SyncPlan _applyReconcile(
+    SyncPlan plan,
+    PostRestoreReconcile mode,
+    Map<String, SyncSnapshot> currentEntries,
+  ) {
+    final uploads = <String>[];
+    final downloads = <String>[];
+    for (final op in plan.operations) {
+      switch (op.kind) {
+        case SyncOperationKind.deleteRemote:
+          break;
+        case SyncOperationKind.upload:
+          if (mode == PostRestoreReconcile.merge ||
+              mode == PostRestoreReconcile.overwriteRemote) {
+            uploads.add(op.id);
+          }
+        case SyncOperationKind.download:
+          if (mode == PostRestoreReconcile.merge ||
+              mode == PostRestoreReconcile.keepRemote) {
+            downloads.add(op.id);
+          } else if (mode == PostRestoreReconcile.overwriteRemote &&
+              currentEntries.containsKey(op.id)) {
+            uploads.add(op.id);
+          }
+      }
+    }
+    uploads.sort();
+    downloads.sort();
+    return SyncPlan(
+      operations: [
+        for (final id in uploads)
+          SyncOperation(kind: SyncOperationKind.upload, id: id),
+        for (final id in downloads)
+          SyncOperation(kind: SyncOperationKind.download, id: id),
+      ],
+    );
   }
 
   /// keepBoth 裁决：把远端版本另存为本地副本（「两者皆保留」，不丢失任一侧）。
