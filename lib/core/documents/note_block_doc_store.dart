@@ -240,17 +240,25 @@ class NoteBlockDocStore implements SessionSecretsHolder {
         key,
         aadContext: 'block:$id',
       );
-      final tmp = File('${file.path}.${LocalIdGenerator.next('write')}.tmp');
-      await tmp.writeAsBytes(sealed, flush: true);
-      try {
-        await tmp.rename(file.path);
-      } on FileSystemException {
-        if (!file.existsSync()) rethrow;
-        await file.delete();
-        await tmp.rename(file.path);
-      }
-    }).catchError((_) {
-      // 迁移失败静默（下次读取再试——幂等）。
+      // DN-205（第三轮专家审计 2026-10-13）：落盘交给**同一个** `_writeFileAtomic`。
+      //
+      // 此前这里自己手写 tmp + rename + 删旧目标，绕过了上一轮 DN-108 刚立起来的
+      // 契约（`.bak` 备份失败即中止写入、失败时清理 tmp）。后果是「正常保存」比
+      // 「后台迁移」更安全：第二次 rename 失败时正式文件已被删、`.bak` 又没写成，
+      // 三个副本同时不存在——而这条腿是用户完全无感知的后台动作。
+      // 三条写腿（正常保存 / 口令重封 / 懒加密迁移）必须共用同一份数据安全契约，
+      // 否则每修一条就漏一条。
+      await _writeFileAtomic(id, sealed);
+    }).catchError((Object e) {
+      // 迁移失败既不重试也不上抛（下次读取会重新排队——幂等），但**必须可诊断**：
+      // 原来整个异常被 `catch (_) {}` 吞掉，「为什么这篇笔记过了三个月还是明文」
+      // 在日志里查不到任何线索。行为不变，只是不再静默（同 AW13 的口径）。
+      // detail 只带异常类型——路径与文档内容不进审计链。
+      AuditLogger.log(
+        'note_block_doc.lazy_migration_failed',
+        success: false,
+        detail: e.runtimeType.toString(),
+      );
     });
   }
 
