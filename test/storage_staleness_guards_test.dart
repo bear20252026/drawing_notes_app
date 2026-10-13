@@ -22,6 +22,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
@@ -130,16 +131,68 @@ void main() {
       expect(await titleOnDisk(id), 'v1');
     });
 
-    test('迁移排队后文档被删除 → 不复活', () async {
+    // DN-207（第三轮专家审计 2026-10-13）：下面三条以前是**碰运气**的时序——
+    // 删除落在密封之前就一直绿，落在密封之后就红（本机满并发实测红过、
+    // 同 SHA 重跑绿；发版提交里也记过一次这类红被错误归类）。
+    // 现在用 `rewriteBarrierForTest` 把「校验通过 → 外部动作 → 迁移落盘」钉死，
+    // 生产路径该钩子恒 null。
+    test('迁移排队后文档被删除 → 不复活（时序屏障钉死，不再赌调度）', () async {
       const id = 'stale_migrate_gone';
       final plainBytes = plain(id, 'v1');
       File(docPath(id)).writeAsBytesSync(plainBytes);
 
+      pipeline.rewriteBarrierForTest = (docId) async {
+        await File(docPath(docId)).delete();
+      };
       pipeline.enqueueRawRewrite(id, plainBytes);
-      await File(docPath(id)).delete();
       await drain(id);
 
       expect(File(docPath(id)).existsSync(), isFalse);
+      pipeline.rewriteBarrierForTest = null;
+    });
+
+    test('屏障内改写盘上字节 → 迁移放弃，不覆盖那次改写', () async {
+      const id = 'stale_migrate_raced';
+      final stale = plain(id, 'v1');
+      File(docPath(id)).writeAsBytesSync(stale);
+      final raced = plain(id, 'v2');
+
+      pipeline.rewriteBarrierForTest = (docId) async {
+        await File(docPath(docId)).writeAsBytes(raced);
+      };
+      pipeline.enqueueRawRewrite(id, stale);
+      await drain(id);
+
+      expect(
+        File(docPath(id)).readAsBytesSync(),
+        equals(raced),
+        reason: '落盘前的最后一刻复查必须读到新字节并放弃（旧写法会照抄陈旧快照）',
+      );
+      pipeline.rewriteBarrierForTest = null;
+    });
+
+    test('迁移落盘失败 ⇒ 错误被收敛并留下审计（不再有未处理异步错误）', () async {
+      const id = 'stale_migrate_fail';
+      final plainBytes = plain(id, 'v1');
+      final file = File(docPath(id));
+      file.writeAsBytesSync(plainBytes);
+      // `.bak` 目标位被目录占住 ⇒ 密封失败即中止（DN-108 的 fail-closed）。
+      await Directory('${file.path}.bak').create(recursive: true);
+      AuditLogger.clear();
+
+      pipeline.enqueueRawRewrite(id, plainBytes);
+      await drain(id);
+
+      expect(
+        file.readAsBytesSync(),
+        equals(plainBytes),
+        reason: '失败不得吃掉用户唯一的明文副本',
+      );
+      expect(
+        AuditLogger.snapshot().any((l) => l.contains('lazy_migration_failed')),
+        isTrue,
+        reason: '错误在本条腿内收敛，但必须可诊断',
+      );
     });
   });
 

@@ -17,6 +17,7 @@
 @Timeout(Duration(minutes: 3))
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -56,6 +57,25 @@ void main() {
       createdAt: now,
       updatedAt: now,
     );
+  }
+
+
+  /// 等懒迁移这条**fire-and-forget** 的腿走完：轮询到「审计留下放弃/失败痕迹」
+  /// 或文件已变成密文为止（两条都是终点，谁先到算谁）。预算 < 库级 @Timeout。
+  Future<void> drainRewrite(File file) async {
+    final steps = waitEncryptedBudget.inMilliseconds ~/ 10;
+    for (var i = 0; i < steps; i++) {
+      if (file.existsSync() && VaultFileCodec.isEncrypted(await file.readAsBytes())) {
+        return;
+      }
+      if (AuditLogger.snapshot().any(
+        (l) => l.contains('lazy_migration_aborted') || l.contains('lazy_migration_failed'),
+      )) {
+        return;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+    fail('迁移这条腿在 ${waitEncryptedBudget.inSeconds}s 内既没完成也没留下放弃痕迹');
   }
 
   /// 注入「`.bak` 写不下去」：同名目录会让 `File.copy('$path.bak')` 抛错。
@@ -130,6 +150,60 @@ void main() {
       );
       expect(await file.readAsBytes(), before, reason: '旧内容不得被吃掉');
       expect(residue(file.parent.path), isEmpty);
+    });
+
+    // DN-207：两条**确定性**竞态用例。以前这类窗口只能靠调度碰运气
+    // （满并发全量下真 KDF 用例红过、同 SHA 重跑绿），现在用
+    // `rewriteBarrierForTest` 把「校验通过 → 外部动作 → 迁移落盘」钉死。
+    test('时序屏障内删除文件 ⇒ 迁移放弃，不复活已删笔记', () async {
+      final plainStore = NoteBlockDocStore(directoryProvider: () async => tempDir);
+      await plainStore.saveDocument(doc('gone_in_window', '会被删除'));
+      final file = File(docPath('gone_in_window'));
+      final key = VaultKeyService.randomBytes(32);
+      final store = NoteBlockDocStore(
+        directoryProvider: () async => tempDir,
+        keyProvider: () async => key,
+      );
+      store.rewriteBarrierForTest = (id) async {
+        await File(docPath(id)).delete();
+      };
+
+      await store.loadDocument('gone_in_window');
+      await drainRewrite(file);
+
+      expect(
+        file.existsSync(),
+        isFalse,
+        reason: '校验通过后文件被删 ⇒ 迁移不得把它写成密文复活（旧写法会）',
+      );
+      store.rewriteBarrierForTest = null;
+    });
+
+    test('时序屏障内改写盘上内容 ⇒ 迁移放弃，不反超那次改写', () async {
+      final plainStore = NoteBlockDocStore(directoryProvider: () async => tempDir);
+      await plainStore.saveDocument(doc('raced_in_window', '入队时的快照'));
+      final file = File(docPath('raced_in_window'));
+      final key = VaultKeyService.randomBytes(32);
+      final store = NoteBlockDocStore(
+        directoryProvider: () async => tempDir,
+        keyProvider: () async => key,
+      );
+      final raced = doc('raced_in_window', '窗口内的较新内容');
+      store.rewriteBarrierForTest = (id) async {
+        await File(docPath(id)).writeAsBytes(
+          utf8.encode(jsonEncode(raced.toJson())),
+        );
+      };
+
+      await store.loadDocument('raced_in_window');
+      await drainRewrite(file);
+
+      expect(
+        jsonDecode(utf8.decode(await file.readAsBytes()))['title'],
+        '窗口内的较新内容',
+        reason: '落盘前的最后一刻复查必须读到新内容并放弃',
+      );
+      store.rewriteBarrierForTest = null;
     });
 
     test('反向锁：障碍移除后迁移照常完成（没把迁移写成永不生效）', () async {

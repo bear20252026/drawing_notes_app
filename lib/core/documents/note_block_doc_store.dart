@@ -21,6 +21,8 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
+
 import 'package:drawing_notes_app/core/security/session_secrets.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
@@ -85,6 +87,13 @@ class NoteBlockDocStore implements SessionSecretsHolder {
   /// 由装配层注入（AppServices.bumpDataVersion）——把刷新通知下沉到存储层，
   /// 覆盖所有写路径（笔记本内新建、DocPage 自动保存等），不再依赖调用点逐一通知。
   void Function()? onWrite;
+
+  /// DN-207：测试专用**时序屏障**——在「陈旧快照校验通过」与「迁移落盘」之间
+  /// await（生产恒 null）。与 `StorageWritePipeline.rewriteBarrierForTest` 同一
+  /// 用意：这条竞态以前只能靠调度碰运气，用例既抓不住 bug 也守不住修复。
+  /// 字段必须驻留主文件（extension 内不可声明实例字段）。
+  @visibleForTesting
+  Future<void> Function(String id)? rewriteBarrierForTest;
 
   Directory? _dir;
 
@@ -235,11 +244,27 @@ class NoteBlockDocStore implements SessionSecretsHolder {
       if (!file.existsSync()) return; // 已被删除——不复活
       final current = await file.readAsBytes();
       if (!_bytesEqual(current, plaintext)) return; // 陈旧快照——放弃本次迁移
+      // 测试可在这里插一步（生产恒 null）：确定性地制造
+      // 「校验通过 → 文件被删 → 迁移落盘」这个窗口。
+      await rewriteBarrierForTest?.call(id);
       final sealed = await VaultFileCodec.encrypt(
         plaintext,
         key,
         aadContext: 'block:$id',
       );
+      // DN-207：密封（真 KDF，大载荷还进 isolate）是本条腿最长的一段 await，
+      // 上面那次校验早就跨过它了——旧写法因此会把刚被删除、或刚被改写过内容的
+      // 笔记重新写成密文（复活 / 反超）。落盘前的最后一刻再读一次盘并与快照比对
+      // （与 StorageWritePipeline 的同名守卫同一判据），删除与改写都无处翻身。
+      if (!file.existsSync() ||
+          !_bytesEqual(await file.readAsBytes(), plaintext)) {
+        AuditLogger.log(
+          'note_block_doc.lazy_migration_aborted',
+          success: false,
+          detail: 'changed_before_write',
+        );
+        return;
+      }
       // DN-205（第三轮专家审计 2026-10-13）：落盘交给**同一个** `_writeFileAtomic`。
       //
       // 此前这里自己手写 tmp + rename + 删旧目标，绕过了上一轮 DN-108 刚立起来的

@@ -2,6 +2,9 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
+
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/storage_directories.dart';
 import 'package:drawing_notes_app/core/storage/storage_secret_session.dart';
@@ -47,6 +50,15 @@ class StorageWritePipeline {
   /// 每个文档各自的写入尾队列。同一文档按请求顺序落盘，不同文档仍可并行，
   /// 因此 A/B 画布不会共享临时文件或相互覆盖较新的版本。
   final Map<String, Future<void>> _writeTails = <String, Future<void>>{};
+
+  /// DN-207：测试专用**时序屏障**——在「陈旧校验通过」与「迁移落盘」之间 await。
+  ///
+  /// 生产恒 null（只有一次 null 判定，零开销）。存在的唯一理由：这条竞态窗口
+  /// 以前只能靠调度碰运气，于是 `storage_staleness_guards_test` 首跑红、重跑绿
+  /// ——**不确定的测试既抓不住 bug，也守不住修复**。有了屏障，用例可以确定地
+  /// 制造「校验通过 → 文件被删 → 迁移落盘」并断言文件不会复活。
+  @visibleForTesting
+  Future<void> Function(String id)? rewriteBarrierForTest;
 
   /// isolate 加密封包的字节阈值：小于该值时主线程同步封包（isolate
   /// 拷贝往返开销大于收益），大载荷移入 isolate 避免 UI 掉帧。
@@ -191,12 +203,43 @@ class StorageWritePipeline {
   /// 文件字节，与快照不一致（或文件已消失）就放弃本次迁移——下次读取会重新
   /// 排队（幂等），语义对齐 file_password_concurrency_test 断言的「重封写不
   /// 是覆盖陈旧明文」。
+  ///
+  /// DN-207（第三轮专家审计 2026-10-13）补两处：
+  /// ① **校验与落盘之间的窗口**：旧写法是「校验 → `saveEncoded`（内含密封）→
+  ///    落盘」，而密封才是最长的一段 await（≥64KB 进 isolate、真 KDF 秒级），
+  ///    窗口正好开在那里。外部/异常清理在这个 await 期间删掉文件时，迁移会把
+  ///    已删文档重新写成密文（复活）。现在改成「校验 → 密封 → **落盘前最后一刻
+  ///    复查** → 写」：复查读的是盘上当前字节，既挡删除也挡刚发生的改写。
+  /// ② **异步错误收敛**：`operation.whenComplete(...)` 返回的是一个**新 Future**，
+  ///    带着同一个错误却没有任何消费者 ⇒ 未处理异步错误（真 KDF 用例在测试里
+  ///    正是以此判红的）。错误现在在本条腿内部收敛并留下审计，whenComplete 那条
+  ///    派生链按构造不会再携带错误。
   void enqueueRawRewrite(String id, Uint8List plaintext) {
     final previous = _writeTails[id] ?? Future<void>.value();
     late final Future<void> operation;
     operation = previous.catchError((_) {}).then((_) async {
       if (!await _isStillCurrentPlaintext(id, plaintext)) return;
-      await saveEncoded(id, plaintext);
+      // 测试可在这里插一步（生产恒 null）：确定性地制造
+      // 「校验通过 → 文件被删 → 迁移落盘」这个此前只能碰运气的时序。
+      await rewriteBarrierForTest?.call(id);
+      final sealed = await _sealDocBytes(id, plaintext);
+      if (!await _isStillCurrentPlaintext(id, plaintext)) {
+        AuditLogger.log(
+          'storage.lazy_migration_aborted',
+          success: false,
+          detail: 'stale_after_seal',
+        );
+        return;
+      }
+      await writeSealedBytes(id, sealed);
+    }).catchError((Object e) {
+      // 后台迁移不影响用户可见的保存结果：错误在此收敛，但必须留下可诊断痕迹
+      // （detail 只带异常类型，不带路径与正文）。
+      AuditLogger.log(
+        'storage.lazy_migration_failed',
+        success: false,
+        detail: e.runtimeType.toString(),
+      );
     });
     _writeTails[id] = operation;
     operation.whenComplete(() {
