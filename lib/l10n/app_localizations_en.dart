@@ -495,6 +495,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get restoreFailed => 'Restore failed. Please try again';
 
   @override
+  String get restoreStagedTitle => 'Unconfirmed restore waiting';
+
+  @override
+  String get restoreStagedBody =>
+      'A backup was staged earlier but never confirmed. Tap this row to confirm — it overwrites all current data on the next launch. Discarding leaves your data untouched.';
+
+  @override
+  String get restoreStagedDiscard => 'Discard this restore';
+
+  @override
+  String get restoreStagedDiscarded =>
+      'Staged restore discarded. Your current data is unchanged';
+
+  @override
+  String get restoreStageInvalid =>
+      'The staged data is no longer usable. Pick the backup file again';
+
+  @override
   String get settingsShortcuts => 'Keyboard shortcuts';
 
   @override

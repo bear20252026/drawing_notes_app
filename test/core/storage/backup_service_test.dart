@@ -77,12 +77,22 @@ void main() {
       backupPath: backupPath,
       dataParentDir: supportDir,
     );
-    final marker = File(
+    final pending = File(
       '${supportDir.path}${Platform.pathSeparator}'
       '${AppDataRoot.pendingRestoreMarkerName}',
     );
-    expect(marker.existsSync(), isTrue);
-    final stagingPath = (await marker.readAsString()).trim();
+    final staged = File(
+      '${supportDir.path}${Platform.pathSeparator}'
+      '${AppDataRoot.restoreStageMarkerName}',
+    );
+    // DN-203：暂存只留 inert 记录，可触发换根的标记此刻**必须还不存在**。
+    expect(staged.existsSync(), isTrue);
+    expect(
+      pending.existsSync(),
+      isFalse,
+      reason: '用户还没确认，任何启动都不该换根',
+    );
+    final stagingPath = (await staged.readAsString()).trim();
     expect(
       File('$stagingPath${Platform.pathSeparator}backup_manifest.json')
           .existsSync(),
@@ -100,13 +110,17 @@ void main() {
       isFalse,
     );
 
-    // 启动期交换。
+    // 用户确认 → 才产生待恢复标记；再走启动期交换。
+    expect(
+      await AppDataRoot.confirmRestoreStage(parentDir: supportDir),
+      RestoreStageDecision.confirmed,
+    );
     final applied = await AppDataRoot.applyPendingRestore(
       documentsPathProvider: () => docsDir.path,
       supportPathProvider: () => supportDir.path,
     );
     expect(applied, isTrue);
-    expect(marker.existsSync(), isFalse);
+    expect(pending.existsSync(), isFalse);
     // 现网回到备份时点。
     expect(rootFile('documents/a.json').existsSync(), isTrue);
     expect(
@@ -220,16 +234,24 @@ void main() {
       dataParentDir: supportDir,
     );
 
-    final marker = File(
+    final staged = File(
       '${supportDir.path}${Platform.pathSeparator}'
-      '${AppDataRoot.pendingRestoreMarkerName}',
+      '${AppDataRoot.restoreStageMarkerName}',
     );
     expect(
-      marker.existsSync(),
+      staged.existsSync(),
       isTrue,
       reason: '合法数据根 + 穿越条目 → 接受包、跳过条目',
     );
-    final stagingPath = (await marker.readAsString()).trim();
+    expect(
+      File(
+        '${supportDir.path}${Platform.pathSeparator}'
+        '${AppDataRoot.pendingRestoreMarkerName}',
+      ).existsSync(),
+      isFalse,
+      reason: 'DN-203：接受暂存 ≠ 用户已确认',
+    );
+    final stagingPath = (await staged.readAsString()).trim();
     // 穿越条目一个都不许落在暂存之外。
     expect(
       File('${supportDir.path}${Platform.pathSeparator}evil.txt').existsSync(),
@@ -368,6 +390,11 @@ void main() {
     await BackupService.stageRestore(
       backupPath: v1Path,
       dataParentDir: supportDir,
+    );
+    // DN-203：暂存之后仍需确认，v1 兼容性判定与这条状态机互不豁免。
+    expect(
+      await AppDataRoot.confirmRestoreStage(parentDir: supportDir),
+      RestoreStageDecision.confirmed,
     );
     final applied = await AppDataRoot.applyPendingRestore(
       documentsPathProvider: () => docsDir.path,

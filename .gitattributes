@@ -15,3 +15,9 @@ test/arch_test_violations/*.txt text eol=lf
 # 更要禁止任何行尾转换——它验证的是「非 JSON 内容被拒」。
 test/fixtures/v3/*.json text eol=lf
 test/fixtures/v3/*.bin -text
+
+# ARB 与生成的本地化代码必须同为 LF（2026-10-13，DN-203 批次）：
+# `l10n_key_symmetry_test` 的门禁 C 是「代码里的 zh 兜底串与 arb 逐字比对」，
+# autocrlf 检出把 arb 变成 CRLF 后，这类逐字比对会出现「内容一样但字节不同」的假红；
+# gen-l10n 的产物同样按 LF 入库。
+*.arb text eol=lf

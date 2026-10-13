@@ -636,6 +636,26 @@
   "@restoreFailed": {
     "description": "恢复失败提示"
   },
+  "restoreStagedTitle": "Unconfirmed restore waiting",
+  "@restoreStagedTitle": {
+    "description": "设置页：已暂存但未确认的恢复提醒标题（DN-203）"
+  },
+  "restoreStagedBody": "A backup was staged earlier but never confirmed. Tap this row to confirm — it overwrites all current data on the next launch. Discarding leaves your data untouched.",
+  "@restoreStagedBody": {
+    "description": "设置页：已暂存但未确认的恢复提醒正文"
+  },
+  "restoreStagedDiscard": "Discard this restore",
+  "@restoreStagedDiscard": {
+    "description": "设置页：放弃未确认的暂存恢复"
+  },
+  "restoreStagedDiscarded": "Staged restore discarded. Your current data is unchanged",
+  "@restoreStagedDiscarded": {
+    "description": "放弃暂存恢复后的提示"
+  },
+  "restoreStageInvalid": "The staged data is no longer usable. Pick the backup file again",
+  "@restoreStageInvalid": {
+    "description": "确认时暂存结构校验失败"
+  },
   "settingsShortcuts": "Keyboard shortcuts",
   "@settingsShortcuts": {},
   "settingsShortcutsHint": "Keys and what they do",

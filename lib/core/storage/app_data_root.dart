@@ -92,8 +92,24 @@ class AppDataRoot {
   static const String defaultRootName = '绘图笔记数据';
 
   /// 待恢复标记文件名（与数据根同级，位于根目录父路径直下；批次 M + S-02 B）。
+  ///
+  /// **DN-203（第三轮专家审计 2026-10-13）**：这个标记现在**只有用户明确确认
+  /// 之后**才会被写出（见 [confirmRestoreStage]），内容也从「裸暂存路径」升级为
+  /// 带确认字段的 JSON。此前它是 `stageRestore` 在校验完备份包、**还没弹确认框
+  /// 之前**就写下的——于是「暂存完成后崩溃 / 用户直接杀进程 / 页面已卸载
+  /// (`if (!context.mounted) return;`) / 取消时清标记失败」这四条路径都会留下一
+  /// 个下次启动即换根并删旧根的标记，把「用户确认后才能覆盖现网」这条约束变成
+  /// 一句愿望。暂存事实改由 [restoreStageMarkerName] 承载，启动侧绝不消费它。
   static const String pendingRestoreMarkerName =
       '$defaultRootName.restore_pending';
+
+  /// 「已暂存、未确认」标记（DN-203）。内容 = 暂存目录绝对路径。
+  ///
+  /// 刻意是 **inert** 的：[applyPendingRestore] 不看它，只有设置页读到它并让用户
+  /// 点下「确认恢复」（→ [confirmRestoreStage]）才会转成可触发换根的
+  /// [pendingRestoreMarkerName]。所以任何崩溃/重启都不可能让一次未确认的暂存生效。
+  static const String restoreStageMarkerName =
+      '$defaultRootName.restore_staged';
 
   /// 备份包清单文件名（zip 根部；[BackupService] 与本类的恢复校验共用这一
   /// 唯一口径，避免两处字符串各写一份而漂移）。
@@ -130,15 +146,181 @@ class AppDataRoot {
     }
   }
 
-  /// 写入待恢复标记（恢复流第三步：暂存解压完成后、退出应用前调用）。
+  /// 写「已暂存」标记（[BackupService.stageRestore] 用）。
+  ///
+  /// 这一步**不产生任何破坏性后果**：暂存解压完成后只留下这条 inert 记录，
+  /// 换根必须等 [confirmRestoreStage]（DN-203）。
+  static Future<void> writeRestoreStageMarker({
+    required Directory parentDir,
+    required String stagingPath,
+  }) => _writeMarker(
+    parentDir: parentDir,
+    name: restoreStageMarkerName,
+    content: stagingPath,
+  );
+
+  /// 读「已暂存、未确认」的恢复（设置页横幅用）。
+  ///
+  /// 暂存目录已经不在了（被手工清理 / 磁盘回收）就连 inert 标记一起清掉，
+  /// 免得 UI 一直提示一件无法确认的事。
+  static Future<String?> readRestoreStagePath({
+    required Directory parentDir,
+  }) async {
+    final marker = _markerFile(parentDir, restoreStageMarkerName);
+    if (!marker.existsSync()) return null;
+    final String stagingPath;
+    try {
+      stagingPath = (await marker.readAsString()).trim();
+    } catch (_) {
+      return null;
+    }
+    if (!_stagingAlive(stagingPath)) {
+      try {
+        await marker.delete();
+      } catch (_) {}
+      return null;
+    }
+    return stagingPath;
+  }
+
+  /// 用户点下「确认恢复」之后才产生可触发换根的标记（DN-203 的 CONFIRMED 态）。
+  ///
+  /// 确认时就复核一次暂存结构（[directoryRestoreGaps] 与换根侧同一口径）：
+  /// 暂存在「弹出确认框」这段时间里被外部破坏掉的话，宁可拒绝确认，
+  /// 也不能让一个坏暂存拿到可触发标记。
+  static Future<RestoreStageDecision> confirmRestoreStage({
+    required Directory parentDir,
+  }) async {
+    final stagingPath = await readRestoreStagePath(parentDir: parentDir);
+    if (stagingPath == null) return RestoreStageDecision.noStagedRestore;
+    final gaps = directoryRestoreGaps(Directory(stagingPath));
+    if (gaps.isNotEmpty) {
+      try {
+        await _markerFile(parentDir, restoreStageMarkerName).delete();
+      } catch (_) {}
+      await _recordRestoreFailure(
+        parentDir.path,
+        'confirm_rejected  暂存结构不合格：${gaps.join('；')}',
+      );
+      return RestoreStageDecision.stagingInvalid;
+    }
+    await writePendingRestoreMarker(
+      parentDir: parentDir,
+      stagingPath: stagingPath,
+    );
+    try {
+      await _markerFile(parentDir, restoreStageMarkerName).delete();
+    } catch (_) {}
+    return RestoreStageDecision.confirmed;
+  }
+
+  /// 放弃一次未确认的暂存恢复：清 inert 标记 + 尽力清暂存目录。
+  static Future<void> discardRestoreStage({
+    required Directory parentDir,
+  }) async {
+    final stagingPath = await readRestoreStagePath(parentDir: parentDir);
+    try {
+      await _markerFile(parentDir, restoreStageMarkerName).delete();
+    } catch (_) {}
+    if (stagingPath == null || stagingPath.isEmpty) return;
+    try {
+      final staging = Directory(stagingPath);
+      if (staging.existsSync()) await staging.delete(recursive: true);
+    } catch (_) {
+      // 残留暂存不影响数据安全（没有标记就没有换根），下次暂存会覆盖同名目录。
+    }
+  }
+
+  static File _markerFile(Directory parentDir, String name) =>
+      File('${parentDir.path}${Platform.pathSeparator}$name');
+
+  static Future<void> _writeMarker({
+    required Directory parentDir,
+    required String name,
+    required String content,
+  }) => _markerFile(parentDir, name).writeAsString(content, flush: true);
+
+  /// 写入**已确认**的待恢复标记（只由 [confirmRestoreStage] 调用）。
+  ///
+  /// 载荷从裸路径升级为带确认字段的 JSON——换根侧据此区分「用户确认过的恢复」
+  /// 与「上一次暂存到一半」（后者绝不能自动换根）。签名保持不变，避免旧调用点
+  /// 各写一份载荷格式。
   static Future<void> writePendingRestoreMarker({
     required Directory parentDir,
     required String stagingPath,
-  }) async {
-    final marker = File(
-      '${parentDir.path}${Platform.pathSeparator}$pendingRestoreMarkerName',
+  }) => _writeMarker(
+    parentDir: parentDir,
+    name: pendingRestoreMarkerName,
+    content: jsonEncode({
+      'markerVersion': 2,
+      'stagingPath': stagingPath,
+      // 没有这个字段就视为未确认（旧格式或不完整写入都落在这里）。
+      'confirmedAtMs': DateTime.now().millisecondsSinceEpoch,
+    }),
+  );
+
+  /// 解析待恢复标记，返回暂存目录路径；**未确认的一律返回 null**。
+  ///
+  /// 旧版本（≤1.17.65）写的是裸路径文本，且它可能压根没被用户确认过
+  /// ——那种标记在本版启动时会被降级成 inert 暂存（见
+  /// [applyPendingRestore]），由设置页请用户重新确认，绝不自动换根。
+  static String? _confirmedStagingPathOf(String raw) {
+    if (!raw.startsWith('{')) return null;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return null;
+      final staging = decoded['stagingPath'];
+      final confirmedAt = decoded['confirmedAtMs'];
+      if (staging is! String || staging.trim().isEmpty) return null;
+      if (confirmedAt is! int) return null;
+      return staging.trim();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 暂存目录是否还在。路径内容不可信（旧标记可能被截断成半截 JSON），
+  /// Windows 上对非法路径直接 `existsSync()` 会抛 errno 123 ——一律按「不在」处理。
+  static bool _stagingAlive(String path) {
+    try {
+      return path.isNotEmpty && Directory(path).existsSync();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 把「未确认格式」的旧待恢复标记降级成 inert 暂存（DN-203 的升级路径）。
+  ///
+  /// 只动标记，不动暂存内容：暂存目录留着，用户还能在设置页点「确认恢复」
+  /// 继续这次恢复；点「放弃」或下次暂存会覆盖它。全过程失败也不影响现网。
+  static Future<void> _demoteUnconfirmedRestoreMarker(
+    File marker,
+    String rawMarker,
+  ) async {
+    final stagingPath = rawMarker.trim();
+    final stagingAlive = _stagingAlive(stagingPath);
+    if (stagingAlive) {
+      try {
+        // 挪到同级的暂存标记文件，pending 标记随之消失。
+        final staged = File(
+          '${marker.parent.path}${Platform.pathSeparator}$restoreStageMarkerName',
+        );
+        await staged.writeAsString(stagingPath, flush: true);
+        await marker.delete();
+      } catch (_) {
+        // 降级失败：宁可这次不恢复，也不带着不可信标记换根（下次启动再试一次）。
+      }
+    } else {
+      try {
+        await marker.delete();
+      } catch (_) {}
+    }
+    await _recordRestoreFailure(
+      marker.parent.path,
+      stagingAlive
+          ? 'unconfirmed_marker  旧格式待恢复标记已降级为待确认暂存（需在设置页重新确认）'
+          : 'unconfirmed_marker_missing_staging  旧格式标记指向的暂存已不存在，已清除标记',
     );
-    await marker.writeAsString(stagingPath, flush: true);
   }
 
   /// 应用待恢复标记（批次 M + S-02 B）：main() 早期调用——此刻无任何
@@ -149,6 +331,9 @@ class AppDataRoot {
   ///
   /// fail-safe：标记存在但暂存目录/清单缺失（上次恢复中断）时，仅清除
   /// 标记并放弃恢复——绝不用残缺暂存覆盖现网数据。
+  ///
+  /// DN-203：标记还必须是**用户确认过**的载荷；旧格式（裸路径，可能在确认
+  /// 之前写好）降级成 inert 暂存，交设置页重新确认。
   static Future<bool> applyPendingRestore({
     String? Function()? documentsPathProvider,
     String? Function()? supportPathProvider,
@@ -183,7 +368,15 @@ class AppDataRoot {
       }
     }
     if (marker == null) return false;
-    final stagingPath = (await marker.readAsString()).trim();
+    final rawMarker = (await marker.readAsString()).trim();
+    final stagingPath = _confirmedStagingPathOf(rawMarker);
+    if (stagingPath == null) {
+      // DN-203：拿到的是旧格式（裸路径）或不带确认字段的标记——它在旧版本里
+      // 可能是**用户还没确认就写好**的，而换根的净效果是删掉现网根。
+      // 这里不猜意图：降级成 inert 暂存 + 落一条留痕，由设置页请用户重新确认。
+      await _demoteUnconfirmedRestoreMarker(marker, rawMarker);
+      return false;
+    }
     try {
       final staging = Directory(stagingPath);
       final manifest = File(
@@ -700,4 +893,16 @@ class AppDataRoot {
 
   /// 统一根目录静态解析（存储层默认基目录的单一事实来源）。
   static Future<Directory> defaultRootDir() => _default.root();
+}
+
+/// [AppDataRoot.confirmRestoreStage] 的结果（DN-203 三态里的确认一步）。
+enum RestoreStageDecision {
+  /// 已写出可触发换根的确认标记——调用方可以退出应用，下次启动生效。
+  confirmed,
+
+  /// 没有（或已失效的）暂存记录：无操作。
+  noStagedRestore,
+
+  /// 暂存目录结构不合格：已清掉暂存标记并留痕，绝不产生可触发标记。
+  stagingInvalid,
 }

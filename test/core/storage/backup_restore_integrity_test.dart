@@ -68,16 +68,19 @@ void main() {
   ArchiveFile v1Manifest() =>
       text('backup_manifest.json', '{"formatVersion":1}');
 
-  /// 断言拒绝分支的「零副作用」：无标记、无残留暂存、现网原样。
+  /// 断言拒绝分支的「零副作用」：两类标记都没有、无残留暂存、现网原样。
   Future<void> expectNoSideEffects(Map<String, String> snapshot) async {
-    expect(
-      File(
-        '${supportDir.path}${Platform.pathSeparator}'
-        '${AppDataRoot.pendingRestoreMarkerName}',
-      ).existsSync(),
-      isFalse,
-      reason: '被拒的包绝不能写待恢复标记（写了下次启动就真换根）',
-    );
+    for (final name in [
+      AppDataRoot.pendingRestoreMarkerName,
+      // DN-203：暂存标记同样是「下次会怎样」的持久事实，被拒的包不能留。
+      AppDataRoot.restoreStageMarkerName,
+    ]) {
+      expect(
+        File('${supportDir.path}${Platform.pathSeparator}$name').existsSync(),
+        isFalse,
+        reason: '被拒的包绝不能写 $name（写了下次启动就真换根）',
+      );
+    }
     expect(
       supportDir
           .listSync()
@@ -355,6 +358,20 @@ void main() {
         dataParentDir: supportDir,
       ); // 默认预算，不得抛
 
+      // DN-203：暂存不是恢复——用户确认之前换根必须不发生。
+      expect(
+        await AppDataRoot.applyPendingRestore(
+          documentsPathProvider: () => docsDir.path,
+          supportPathProvider: () => supportDir.path,
+        ),
+        isFalse,
+        reason: '只暂存未确认，绝不能换根',
+      );
+      expect(
+        await AppDataRoot.confirmRestoreStage(parentDir: supportDir),
+        RestoreStageDecision.confirmed,
+      );
+
       final applied = await AppDataRoot.applyPendingRestore(
         documentsPathProvider: () => docsDir.path,
         supportPathProvider: () => supportDir.path,
@@ -428,9 +445,17 @@ void main() {
       );
       final marker = File(
         '${supportDir.path}${Platform.pathSeparator}'
-        '${AppDataRoot.pendingRestoreMarkerName}',
+        '${AppDataRoot.restoreStageMarkerName}',
       );
-      expect(marker.existsSync(), isTrue);
+      expect(marker.existsSync(), isTrue, reason: '暂存标记是 inert 的确认候选（DN-203）');
+      expect(
+        File(
+          '${supportDir.path}${Platform.pathSeparator}'
+          '${AppDataRoot.pendingRestoreMarkerName}',
+        ).existsSync(),
+        isFalse,
+        reason: '确认之前不得存在可触发换根的标记',
+      );
       final staging = Directory((await marker.readAsString()).trim());
       expect(AppDataRoot.directoryRestoreGaps(staging), isEmpty);
     });

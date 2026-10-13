@@ -184,6 +184,9 @@ class SettingsPage extends StatelessWidget {
                   ),
                 ),
                 if (appDataRoot != null) ...[
+                  // DN-203：上一次暂存但从未确认的恢复在这里显形——它平时只是
+                  // 磁盘上一条 inert 记录，绝不会被某次启动悄悄顶掉现网数据。
+                  _PendingRestoreBanner(appDataRoot: appDataRoot!),
                   ListTile(
                     leading: const Icon(Icons.archive_outlined),
                     title: Text(l10n?.settingsBackup ?? '备份全部数据'),
@@ -373,8 +376,13 @@ class SettingsPage extends StatelessWidget {
     }
   }
 
-  /// 从备份恢复（批次 M）：选包 → 校验并解压到暂存 → 强确认 → 退出应用；
+  /// 从备份恢复（批次 M）：选包 → 校验并解压到暂存 → 强确认 → 写确认标记 → 退出应用；
   /// 下次启动 main() 早期 applyPendingRestore 原子换目录后自动生效。
+  ///
+  /// DN-203（第三轮专家审计 2026-10-13）：确认之前**不存在任何可触发换根的状态**。
+  /// `stageRestore` 只留一条 inert 暂存标记（[_PendingRestoreBanner] 会把它显形），
+  /// 换根标记只在用户点下「确认恢复」之后由 [AppDataRoot.confirmRestoreStage] 写出。
+  /// 于是「暂存后崩溃 / 用户杀进程 / 本页已卸载」都不再能让一次未确认的覆盖生效。
   Future<void> _startRestore(BuildContext context) async {
     final l10n = AppLocalizations.of(context);
     try {
@@ -397,6 +405,7 @@ class SettingsPage extends StatelessWidget {
         backupPath: selected.path,
         dataParentDir: dataParent,
       );
+      // 页面已卸载：到此为止——只留下一份 inert 暂存，没有任何东西会被应用。
       if (!context.mounted) return;
       final proceed = await GlassDialog.confirm(
         context,
@@ -408,26 +417,29 @@ class SettingsPage extends StatelessWidget {
         dangerous: true,
       );
       if (proceed != true) {
-        // 用户取消：清掉刚写的标记与暂存，保持现网原状。
-        try {
-          final marker = File(
-            '${dataParent.path}${Platform.pathSeparator}'
-            '${AppDataRoot.pendingRestoreMarkerName}',
-          );
-          if (marker.existsSync()) {
-            final stagingPath = (await marker.readAsString()).trim();
-            await marker.delete();
-            final staging = Directory(stagingPath);
-            if (stagingPath.isNotEmpty && staging.existsSync()) {
-              await staging.delete(recursive: true);
-            }
-          }
-        } catch (_) {
-          // 清理失败不阻塞——残留暂存会在下次成功恢复或重启时被处理。
-        }
+        // 用户取消：清掉 inert 暂存标记与暂存目录，保持现网原状。
+        await AppDataRoot.discardRestoreStage(parentDir: dataParent);
         return;
       }
-      // 用户确认：退出应用；下次启动 applyPendingRestore 完成交换。
+      // 用户确认：此刻才产生可触发换根的标记。确认时再复核一次暂存结构——
+      // 确认框停留期间暂存被外部破坏（磁盘满、人工删档）也不能放行。
+      final decision = await AppDataRoot.confirmRestoreStage(
+        parentDir: dataParent,
+      );
+      if (decision != RestoreStageDecision.confirmed) {
+        AuditLogger.log(
+          'settings.restore.confirm_rejected',
+          success: false,
+          detail: decision.name,
+        );
+        if (!context.mounted) return;
+        AppSnack.show(
+          context,
+          l10n?.restoreStageInvalid ?? '暂存数据已不可用，请重新选择备份包',
+        );
+        return;
+      }
+      // 确认落地：退出应用；下次启动 applyPendingRestore 完成交换。
       exit(0);
     } on BackupIntegrityException catch (e) {
       // DN-004：结构/预算/清单不一致的备份包——拒绝并给出用户可见文案，
@@ -642,6 +654,125 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         title,
         style: Theme.of(context).textTheme.labelLarge?.copyWith(color: outline),
+      ),
+    );
+  }
+}
+
+/// 「已暂存、未确认」的恢复提醒（DN-203，第三轮专家审计 2026-10-13）。
+///
+/// 暂存标记刻意是 **inert** 的：没有用户确认就没有换根。但那份暂存会一直留在
+/// 磁盘上（上次选完备份包应用就被杀、或确认框还没弹出页面先卸载了），所以要显形，
+/// 让用户二选一——确认生效，或放弃并清掉暂存。绝不把它留给某次启动去隐性覆盖。
+class _PendingRestoreBanner extends StatefulWidget {
+  const _PendingRestoreBanner({required this.appDataRoot});
+
+  final AppDataRoot appDataRoot;
+
+  @override
+  State<_PendingRestoreBanner> createState() => _PendingRestoreBannerState();
+}
+
+class _PendingRestoreBannerState extends State<_PendingRestoreBanner> {
+  Directory? _parent;
+  String? _stagingPath;
+  bool _checked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    Directory? parent;
+    String? staging;
+    try {
+      parent = await widget.appDataRoot.dataParentDirectory();
+      staging = await AppDataRoot.readRestoreStagePath(parentDir: parent);
+    } catch (_) {
+      // 读不到就不提示：横幅是提醒，不是数据链路的一环。
+    }
+    if (!mounted) return;
+    setState(() {
+      _parent = parent;
+      _stagingPath = staging;
+      _checked = true;
+    });
+  }
+
+  Future<void> _confirm() async {
+    final parent = _parent;
+    if (parent == null) return;
+    final l10n = AppLocalizations.of(context);
+    final proceed = await GlassDialog.confirm(
+      context,
+      title: l10n?.restoreConfirmTitle ?? '从备份恢复',
+      content:
+          l10n?.restoreConfirmBody ??
+          '恢复将覆盖当前全部数据（含保险库密钥）。数据已就绪，确认后应用将退出，重新打开时生效。',
+      confirmText: l10n?.restoreConfirmAction ?? '确认恢复',
+      dangerous: true,
+    );
+    if (proceed != true) return;
+    final decision = await AppDataRoot.confirmRestoreStage(parentDir: parent);
+    if (decision != RestoreStageDecision.confirmed) {
+      AuditLogger.log(
+        'settings.restore.staged_confirm_rejected',
+        success: false,
+        detail: decision.name,
+      );
+      if (!mounted) return;
+      AppSnack.show(
+        context,
+        l10n?.restoreStageInvalid ?? '暂存数据已不可用，请重新选择备份包',
+      );
+      await _load();
+      return;
+    }
+    AuditLogger.log('settings.restore.staged_confirmed', success: true);
+    // 与「从备份恢复」同口径：换根只发生在下次启动早期。
+    exit(0);
+  }
+
+  Future<void> _discard() async {
+    final parent = _parent;
+    if (parent == null) return;
+    await AppDataRoot.discardRestoreStage(parentDir: parent);
+    AuditLogger.log('settings.restore.staged_discarded', success: true);
+    if (!mounted) return;
+    AppSnack.show(
+      context,
+      AppLocalizations.of(
+        context,
+      )?.restoreStagedDiscarded ??
+      '已放弃暂存的恢复，现网数据未改动',
+    );
+    await _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_checked || _stagingPath == null) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    return ListTile(
+      // 整行 = 确认恢复（键盘可达），尾部图标 = 放弃。两件事都是可点控件，
+      // 按压态与焦点环由主题统一给（三输入硬规则）。
+      onTap: _confirm,
+      leading: const Icon(
+        Icons.pending_actions_rounded,
+        color: AppleColor.errorRed,
+      ),
+      isThreeLine: true,
+      title: Text(l10n?.restoreStagedTitle ?? '有未确认的恢复'),
+      subtitle: Text(
+        l10n?.restoreStagedBody ??
+            '上次选择的备份包已暂存，但你还没有确认。点本行确认后将覆盖当前全部数据并在重启时生效；放弃则现网数据保持不变。',
+      ),
+      trailing: IconButton(
+        tooltip: l10n?.restoreStagedDiscard ?? '放弃这次恢复',
+        onPressed: _discard,
+        icon: const Icon(Icons.close_rounded),
       ),
     );
   }

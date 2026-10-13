@@ -6,9 +6,10 @@
 //   密文 + security/ 密钥文件；未设 PIN 时为明文（与运行时落盘一致，
 //   导出提示明确告知「含密钥文件，请妥善保管」）。
 // - 恢复 = 校验 manifest → 解压到数据根旁的暂存目录（绝不动现网数据）
-//   → 写待恢复标记 → 用户确认后退出应用；下次启动 main() 早期由
-//   [AppDataRoot.applyPendingRestore] 原子交换目录——此刻无任何存储
-//   打开，规避运行中覆盖的文件锁与内存缓存脏数据。
+//   → 写**暂存标记**（inert，不会被启动流程消费）→ 用户确认后写确认标记
+//   并退出应用；下次启动 main() 早期由 [AppDataRoot.applyPendingRestore]
+//   原子交换目录——此刻无任何存储打开，规避运行中覆盖的文件锁与内存缓存脏
+//   数据。确认之前不存在任何可触发换根的状态（DN-203）。
 //
 // 排除项：*.tmp / *.tmp.* / *.bak（崩溃保护的临时/备份文件不属于有效
 // 数据面；口径见 [AppDataRoot.restoreExcludedPattern]）；恢复后现网即与
@@ -248,9 +249,15 @@ abstract final class BackupService {
             : const <String, Object?>{},
       );
     }
-    // 只有全部校验通过才落 marker —— 反序（先 marker 后校验）会让一次
-    // 失败的恢复在下启动时把残缺暂存顶掉现网。
-    await AppDataRoot.writePendingRestoreMarker(
+    // 只有全部校验通过才落标记 —— 反序（先标记后校验）会让一次失败的恢复
+    // 在下启动时把残缺暂存顶掉现网。
+    //
+    // DN-203（第三轮专家审计 2026-10-13）：这里落的是 **inert 暂存标记**，
+    // 不是可触发换根的待恢复标记。此前这一步写完标记后确认框才弹出来，于是
+    // 「暂存完成后崩溃 / 用户直接杀进程 / 页面已卸载 / 取消时清标记失败」
+    // 四条路径都会让一次**从未被确认**的恢复在下次启动真的换根并删旧根。
+    // 确认动作改由设置页调用 [AppDataRoot.confirmRestoreStage] 完成。
+    await AppDataRoot.writeRestoreStageMarker(
       parentDir: dataParentDir,
       stagingPath: outcome['stagingPath'] as String,
     );

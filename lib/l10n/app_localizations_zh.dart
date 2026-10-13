@@ -474,6 +474,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get restoreFailed => '恢复失败，请重试';
 
   @override
+  String get restoreStagedTitle => '有未确认的恢复';
+
+  @override
+  String get restoreStagedBody =>
+      '上次选择的备份包已暂存，但你还没有确认。点本行确认后将覆盖当前全部数据并在重启时生效；放弃则现网数据保持不变。';
+
+  @override
+  String get restoreStagedDiscard => '放弃这次恢复';
+
+  @override
+  String get restoreStagedDiscarded => '已放弃暂存的恢复，现网数据未改动';
+
+  @override
+  String get restoreStageInvalid => '暂存数据已不可用，请重新选择备份包';
+
+  @override
   String get settingsShortcuts => '键盘快捷键';
 
   @override

@@ -980,6 +980,36 @@ abstract class AppLocalizations {
   /// **'Restore failed. Please try again'**
   String get restoreFailed;
 
+  /// 设置页：已暂存但未确认的恢复提醒标题（DN-203）
+  ///
+  /// In en, this message translates to:
+  /// **'Unconfirmed restore waiting'**
+  String get restoreStagedTitle;
+
+  /// 设置页：已暂存但未确认的恢复提醒正文
+  ///
+  /// In en, this message translates to:
+  /// **'A backup was staged earlier but never confirmed. Tap this row to confirm — it overwrites all current data on the next launch. Discarding leaves your data untouched.'**
+  String get restoreStagedBody;
+
+  /// 设置页：放弃未确认的暂存恢复
+  ///
+  /// In en, this message translates to:
+  /// **'Discard this restore'**
+  String get restoreStagedDiscard;
+
+  /// 放弃暂存恢复后的提示
+  ///
+  /// In en, this message translates to:
+  /// **'Staged restore discarded. Your current data is unchanged'**
+  String get restoreStagedDiscarded;
+
+  /// 确认时暂存结构校验失败
+  ///
+  /// In en, this message translates to:
+  /// **'The staged data is no longer usable. Pick the backup file again'**
+  String get restoreStageInvalid;
+
   /// No description provided for @settingsShortcuts.
   ///
   /// In en, this message translates to:
