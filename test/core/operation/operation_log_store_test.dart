@@ -261,6 +261,29 @@ void main() {
     });
   });
 
+  group('崩溃残留：上一轮留下的 .tmp', () {
+    test('残留临时文件不算侧车，也不干扰后续读写', () async {
+      await storePlain().append('residue', [rec(1, 10)]);
+      // 改名之前断电留下的半份内容：文件名带随机 token，正式文件名不可能撞上。
+      final stale = File(
+        '${sidecar('residue').path}.oplog_crashresidue.tmp',
+      );
+      stale.writeAsStringSync('{"seq":99,"baseRev":99,"op":{"type":"no.such"}}');
+
+      // 读侧只认 `<docId>.jsonl`：残留既不会被当成第二份日志，也不会让
+      // 已有记录读不出来（append 的兜底会把「读不懂现有侧车」判成放弃写入，
+      // 误把残留当侧车就会从此不再落盘）。
+      expect((await storePlain().load('residue')).map((r) => r.seq), [1]);
+      expect(await storePlain().append('residue', [rec(2, 20)]), 1);
+      expect((await storePlain().load('residue')).map((r) => r.seq), [1, 2]);
+      expect(
+        stale.readAsStringSync(),
+        contains('no.such'),
+        reason: '本用例只主张「残留不碍事」，不主张它会被清扫',
+      );
+    });
+  });
+
   group('畸形输入与非法 id（fail-closed）', () {
     test('未知操作类型 ⇒ load 抛 FormatException（回放不容静默丢弃）', () async {
       final file = sidecar('unknown_op');
