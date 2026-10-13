@@ -132,14 +132,21 @@ void main() {
     // 排除项不会随恢复回来。
     expect(rootFile('documents/a.json.tmp').existsSync(), isFalse);
     expect(rootFile('documents/a.json.bak').existsSync(), isFalse);
-    // 残留 .old_<ts> 已清理。
+    // DN-208：换根成功后保留**一份**恢复前快照（不再立即递归删除旧根），
+    // 且留下的那份必须就是换根前的现网内容——选错备份包时它是唯一的回退依据。
+    final snapshots = supportDir
+        .listSync()
+        .whereType<Directory>()
+        .where((d) => d.path.contains('.old_'))
+        .toList();
+    expect(snapshots, hasLength(1), reason: '磁盘上限一份，不无限增长');
     expect(
-      supportDir
-          .listSync()
-          .whereType<Directory>()
-          .where((d) => d.path.contains('.old_'))
-          .isEmpty,
+      File(
+        '${snapshots.single.path}${Platform.pathSeparator}documents'
+        '${Platform.pathSeparator}new_after_backup.json',
+      ).existsSync(),
       isTrue,
+      reason: '快照里要有恢复前现网新增的那个文件——它才是「选错包还能退回」的证据',
     );
 
     // 幂等：无标记时再调返回 false。

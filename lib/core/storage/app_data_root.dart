@@ -119,6 +119,51 @@ class AppDataRoot {
   static const String restoreFailureLogName =
       '$defaultRootName.restore_failure.log';
 
+  /// 保留最近一份恢复前快照，清掉更老的 `.old_<毫秒>` 兄弟目录（DN-208）。
+  ///
+  /// 判据刻意用**目录名里的时间戳**而不是路径字符串相等：Windows 上
+  /// `listSync()` 回来的路径写法可能与拼出来的 `keep` 不完全一致，一旦比较
+  /// 失败就会把刚留下的那份快照删掉——正是要避免的事反过来发生。时间戳
+  /// 严格小于本次的才清，等值的永远留下。解析不出时间戳的目录一律不动
+  /// （宁可多占磁盘，也不猜它是什么）。
+  static Future<void> _pruneRestoreSnapshots(
+    String supportPath, {
+    required String keep,
+  }) async {
+    final keepStamp = _snapshotStampOf(keep);
+    if (keepStamp == null) return;
+    try {
+      for (final entity in Directory(supportPath).listSync()) {
+        if (entity is! Directory) continue;
+        // 判据只认目录名尾部的 `.old_<毫秒>`（_snapshotStampOf 解析不出即不动），
+        // 不再叠加一次路径前缀比较——URI 路径段的写法差异不该参与删除决策。
+        final stamp = _snapshotStampOf(entity.path);
+        if (stamp == null || stamp >= keepStamp) continue;
+        try {
+          await entity.delete(recursive: true);
+        } catch (_) {
+          // 删不掉只多占一份磁盘，不影响本次恢复结果。
+        }
+      }
+    } catch (_) {
+      // 列目录失败：一份都不清。
+    }
+  }
+
+  /// 从 `.old_<毫秒>` 目录名尾部取毫秒时间戳；解析不出返回 null。
+  ///
+  /// 分隔符走 `Platform.pathSeparator` 而不是字面量反斜杠：源码里写转义反斜杠
+  /// 极易被工具链吃掉变成空字符串，那时 `replaceAll('', '/')` 会在每个字符前
+  /// 插一个斜杠，本函数就永远解析不出时间戳——保留策略会**静默退化成不清理**
+  /// （第一版正是这样，靠 `只清严格更早的快照` 用例才暴露）。
+  static int? _snapshotStampOf(String path) {
+    final normalized = path.replaceAll(Platform.pathSeparator, '/');
+    final tail = normalized.substring(normalized.lastIndexOf('/') + 1);
+    final underscore = tail.lastIndexOf('.old_');
+    if (underscore < 0) return null;
+    return int.tryParse(tail.substring(underscore + 5));
+  }
+
   /// 记录一次恢复失败（DN-103）。
   ///
   /// 刻意**不用 `AuditLogger`**，两个原因：
@@ -397,8 +442,7 @@ class AppDataRoot {
       // 判定与 BackupService.stageRestore 走同一组函数（单一事实来源）。
       final gaps = directoryRestoreGaps(staging);
       if (gaps.isNotEmpty) {
-        // 只清标记、不动暂存内容（保留取证余地）。是否顺手清理残留暂存
-        // 与下面的 .old_ 保留策略同属**业主未裁决项**，本批不开这个口子。
+        // 只清标记、不动暂存内容（保留取证余地）。
         try {
           await marker.delete();
         } catch (_) {}
@@ -457,18 +501,18 @@ class AppDataRoot {
         }
       }
       if (oldRoot != null) {
-        // ⚠️ 已知缺口（DN-004 关联项，**业主尚未裁决，本批不动策略**）：
-        // 换根成功后旧根**立即**递归删除，且全仓没有 `.old_` 巡检/找回代码。
-        // 改成像模像样的「保留 N 份 / 保留 T 天 / 显式清理入口」会长期占用
-        // 一整份数据根的磁盘，还要决定何时清理与如何提示用户，属产品裁决——
-        // 本批只在代码注释与本批报告里登记，不改删除时机，也不加启动巡检。
-        // 本批做的是：把破坏性一步往前挪一道闸——上面的 directoryRestoreGaps
-        // 保证只有结构完整的暂存才会顶掉现网（残缺暂存不再换根）。
-        try {
-          await oldRoot.delete(recursive: true);
-        } catch (_) {
-          // 旧数据删除尽力而为：失败仅留下 .old_<ts> 目录，不阻塞启动。
-        }
+        // DN-208（第三轮专家审计 2026-10-13）：换根成功后**保留最近一份**恢复前快照，
+        // 不再当场递归删除。此前旧根在 `staging.rename(root)` 成功后立即被清，
+        // 而这条是「成功」路径——DN-103 的回滚根本不会触发，用户选错备份包时
+        // 应用内没有任何退回手段。
+        //
+        // 保留口径（本批裁决为「1 份」，不无限增长）：
+        // - 本次换下的 `.old_<ts>` 留下，比它更老的 `.old_*` 兄弟目录此刻清掉；
+        // - 于是任何时刻磁盘上最多一份恢复前快照，且它至少经过了一次
+        //   「新根正常启动并跑到这里」的验证才可能被替换——符合审计建议的
+        //   「验证新根正常后再按保留期限清理」。
+        // - 清理尽力而为：删不掉只多占磁盘，绝不影响本次恢复结果。
+        await _pruneRestoreSnapshots(supportPath, keep: oldRoot.path);
       }
       return true;
     } catch (_) {

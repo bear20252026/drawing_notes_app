@@ -389,14 +389,15 @@ void main() {
       }
       expect(rootFile('documents/d1.json.tmp').existsSync(), isFalse);
       expect(rootFile('documents/d1.json.bak').existsSync(), isFalse);
-      // 换根侧不留 .old_（现网旧根按既有策略**立即**递归删除——该保留策略
-      // 是否改成留档属业主裁决，本批一字未动，见 app_data_root.dart 注释）。
+      // DN-208：换根侧保留**一份**恢复前快照（此前立即递归删除，选错备份包就
+      // 再无退回手段）。上限是一份，不是无限增长——更老的由本次换根时清掉。
       expect(
         supportDir
             .listSync()
             .whereType<Directory>()
             .where((d) => d.path.contains('.old_')),
-        isEmpty,
+        hasLength(1),
+        reason: '留一份恢复前快照；多于 1 份说明保留上限失控',
       );
     });
 
