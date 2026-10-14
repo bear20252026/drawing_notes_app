@@ -8,16 +8,27 @@
 // 序号从 1 重新开始）、以及 `await` 期间用户继续画（拿 `log.lastSerial` 收尾
 // 会把那几笔当成已落盘而静默丢掉）。
 //
-// 突变自证（每行改完只让对应的用例变红，改完立刻还原）：
-//  M1 去掉 `if (pending.isEmpty) return 0`        ⇒ 「空日志 ⇒ 不建文件」「落过一次之后不再重放」
-//  M2 收尾改用 `log.lastSerial`                    ⇒ 「await 期间新记录的操作不算已落盘」
-//  M3 `written == 0` 也照样推进水位                ⇒ 「锁定 ⇒ 不推进；解锁后重试同一批，seq 不重复」
-//  M4 `_cursorFor` 里去掉「换实例 ⇒ 水位归零」      ⇒ 「同一篇文档关掉再打开」
-//  M5 `_seqBase` 失败时返回 0（凭空猜号段起点）      ⇒ 「现有侧车读不懂 ⇒ 不猜号段起点」
-//  M6 flush 里不再 try/catch                       ⇒ 「侧车这一头出事 ⇒ 正文保存照样成功」
-//  M7 `_storeFor` 恒传 keyProvider（丢掉建库判据）  ⇒ 「没建库⇒明文，建过库⇒DNV」
-//  M8 saveAndLog 里把 revision 挪到 save 之后       ⇒ 「revision 必须取自 save 之前」
-//  M9 把接线点换回裸 `storage.save(doc)`            ⇒ 「editor_page 的自动保存真的走 saveAndLog」
+// 突变自证（每行改完只让对应的用例变红，改完立刻还原；2026-10-15 实跑，
+// 括号里是当轮真正变红的那条用例名）：
+//  M1 去掉 `if (pending.isEmpty) return 0`        ⇒ （空日志 ⇒ 连 store 都不构造）
+//  M2 收尾改用 `log.lastSerial`                    ⇒ （await 期间新记录的操作不算已落盘）
+//  M3 `written == 0` 也照样推进水位                ⇒ （锁定 ⇒ 不推进、重试 seq 不重复；同一段停滞只报第一次）
+//  M4 `_cursorFor` 里去掉「换实例 ⇒ 水位归零」      ⇒ （同一篇文档关掉再打开）
+//  M5 `_seqBase` 失败时返回 0（凭空猜号段起点）      ⇒ （锁定那一轮问不出号段起点 ⇒ 不把猜来的 0 缓存下来）
+//  M6 flush 里不再 try/catch                       ⇒ （写盘抛异常 ⇒ 吞掉、返回 0、水位不动，下一轮补齐）
+//  M7 `_opLogStore` 恒传 keyProvider（丢掉建库判据） ⇒ （侧车加密判据与文档同一条：没建库⇒明文，建过库⇒DNV 信封）
+//  M8 saveAndLog 里把 revision 挪到 save 之后       ⇒ （revision 必须取自 save 之前）
+//  M9 把接线点换回裸 `storage.save(doc)`            ⇒ （editor_page 的自动保存真的走 saveAndLog）
+//
+// **M1/M5/M7 第一版是无效的**（改完仍全绿＝那条门禁根本没在守门），补法各不一样：
+//  M1：`append` 对空列表本来就返回 0，「不建文件」看不出差别 ⇒ 改成注入**计数工厂**，
+//      断言没有新操作时 store 一次都不被构造（连解析目录、读盘都不该发生）。
+//  M5：store 自己的「读不懂就放弃写入」把猜来的 0 掩盖了 ⇒ 加一条**加密侧车**用例：
+//      先落 2 条，再把密钥锁掉（load 抛）跑一轮，解锁后第 3 条必须接成 seq 3——
+//      缓存了 0 的话它会被 seq 去重静默吞掉，正好是这条契约要防的形状。
+//  M7：「没建库」那半边原来根本不传 keyProvider，判据那条 `configured ? … : null`
+//      是死代码 ⇒ 改成按生产形状传一个「取不到密钥就返回 null」的 provider，
+//      此时恒传 keyProvider 会让侧车被当成「建过库但锁定」，一份都不写。
 @Timeout(Duration(minutes: 3))
 library;
 
