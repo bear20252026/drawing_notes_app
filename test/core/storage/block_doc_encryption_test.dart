@@ -52,8 +52,14 @@ void main() {
 
   /// 懒迁移等待统一走 [waitEncryptedFile]（内部预算 120s，
   /// 见 waitEncryptedBudget；防 CI 慢机器击穿）。
-  Future<Uint8List> waitEncrypted(String id) async =>
-      waitEncryptedFile(File(docPath(id)), label: '明文块文档');
+  Future<Uint8List> waitEncrypted(
+    String id, {
+    Future<void>? pendingWrite,
+  }) async => waitEncryptedFile(
+        File(docPath(id)),
+        label: '明文块文档',
+        pendingWrite: pendingWrite,
+      );
 
   test('有主密钥时保存 → 磁盘为 DNV 密文，无明文标题/正文泄露；读取/列表正常', () async {
     final key = VaultKeyService.randomBytes(32);
@@ -95,7 +101,11 @@ void main() {
     final loaded = await upgraded.loadDocument('legacy_b');
     expect(loaded?.title, '升级前旧块文档');
 
-    final bytes = await waitEncrypted('legacy_b');
+    // 确定信号：等这篇笔记自己的写尾队列跑完，而不是掐表猜它跑没跑。
+    final bytes = await waitEncrypted(
+      'legacy_b',
+      pendingWrite: upgraded.drainWritesForTest('legacy_b'),
+    );
     expect(
       utf8.decode(bytes, allowMalformed: true).contains('升级前旧块文档'),
       isFalse,

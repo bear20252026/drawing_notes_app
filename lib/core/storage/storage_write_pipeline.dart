@@ -74,6 +74,18 @@ class StorageWritePipeline {
   /// 与 [rewriteBarrierForTest] 同一纪律：不靠调度碰运气；生产恒 null。
   @visibleForTesting
   Future<void> Function(String id, String tmpPath)? renameBarrierForTest;
+  /// 批次 D（CI kdf 分片随机红的根因，任务 #24）：等 **id 这条腿当前排队的写**
+  /// 全部落完。测试用它把「等懒迁移把明文重写成密文」从掐表轮询换成确定信号——
+  /// 以前 `--tags kdf` 串行分片会随机报「120 秒内未迁移」，可真正该问的是
+  /// 「这条腿排队的写跑完了没有」，掐表答不了这个问题。
+  ///
+  /// 返回的就是队列里那个 Future 本体：不新建计时器、不加 sleep、不改变任何
+  /// 生产行为（生产不调用，只有测试会取它）。队列为空时返回已完成的 Future，
+  /// 调用方随后判一次字节即可——因此它只会让用例更快确定，不会更慢。
+  @visibleForTesting
+  Future<void> drainWritesForTest(String id) =>
+      _writeTails[id] ?? Future<void>.value();
+
 
   /// isolate 加密封包的字节阈值：小于该值时主线程同步封包（isolate
   /// 拷贝往返开销大于收益），大载荷移入 isolate 避免 UI 掉帧。

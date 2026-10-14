@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -30,8 +31,40 @@ const Duration _waitEncryptedStep = Duration(milliseconds: 10);
 /// 有限时间内 fail，否则用例会挂到套件超时。
 /// KDF 套件在 CI 里按 `--tags kdf --concurrency=1` 串行跑，排队压力小于
 /// 满并发全量，120s 是留过余量的。
-Future<Uint8List> waitEncryptedFile(File file, {String label = '明文'}) async {
-  final maxSteps = waitEncryptedBudget.inMilliseconds ~/ _waitEncryptedStep.inMilliseconds;
+Future<Uint8List> waitEncryptedFile(
+  File file, {
+  String label = '明文',
+  Future<void>? pendingWrite,
+}) async {
+  final sw = Stopwatch()..start();
+  var drainNote = '未提供确定信号（纯轮询）';
+  var drainCompleted = false;
+  if (pendingWrite != null) {
+    // 先等「这条腿自己排队的写」落完——这是**确定信号**，不是掐表。上限取预算
+    // 的一半，剩下的留给下面的轮询兜底，因此总时长仍严格不超过
+    // [waitEncryptedBudget]（P2-4 不变式：预算必须小于库级 @Timeout，否则
+    // 诊断信息永远被裸「Test timed out」挡在后面）。
+    final drainCap = Duration(
+      milliseconds: waitEncryptedBudget.inMilliseconds ~/ 2,
+    );
+    try {
+      await pendingWrite.timeout(drainCap);
+      drainNote = '排队写 ${sw.elapsedMilliseconds}ms 内跑完';
+      drainCompleted = true;
+    } on TimeoutException {
+      drainNote = '排队写超过 ${drainCap.inSeconds}s 仍未跑完（写尾队列被卡住？）';
+    }
+  }
+  var remaining = waitEncryptedBudget - sw.elapsed;
+  if (drainCompleted) {
+    // 排队写已经跑完而盘上仍是明文 ⇒ 答案就出来了，不必把剩下的预算轮询完。
+    // 只留一个**短宽限**（防「队列取早了、迁移还在后面排队」这类顺序意外把
+    // 好代码判成红），于是真缺陷在 ~秒级就失败，而不是拖满 120s 才报。
+    final grace = const Duration(seconds: 5);
+    if (grace < remaining) remaining = grace;
+  }
+  final budgeted = remaining.inMilliseconds ~/ _waitEncryptedStep.inMilliseconds;
+  final maxSteps = budgeted < 1 ? 1 : budgeted;
   for (var i = 0; i < maxSteps; i++) {
     final Uint8List bytes;
     try {
@@ -45,5 +78,18 @@ Future<Uint8List> waitEncryptedFile(File file, {String label = '明文'}) async 
     if (VaultFileCodec.isEncrypted(bytes)) return bytes;
     await Future<void>.delayed(_waitEncryptedStep);
   }
-  fail('${waitEncryptedBudget.inSeconds} 秒内$label未被迁移为密文');
+  var lastLook = '读不到文件';
+  try {
+    lastLook = VaultFileCodec.isEncrypted(await file.readAsBytes())
+        ? '已是密文'
+        : '仍是明文';
+  } on FileSystemException {
+    // 句柄占用等瞬态：诊断措辞降级为「读不到」，不影响失败结论。
+  }
+  // 报**实际用时**而不是预算：加了宽限上限之后，真缺陷往往是几秒就判出来的，
+  // 文案还写「120 秒内」就是在对读者说谎（诊断信息假比没有诊断更糟）。
+  fail(
+    '$label未被迁移为密文（实际等待 ${sw.elapsed.inSeconds}s / '
+    '预算 ${waitEncryptedBudget.inSeconds}s；$drainNote；最后一次读盘$lastLook）',
+  );
 }
