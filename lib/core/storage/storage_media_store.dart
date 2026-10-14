@@ -227,6 +227,9 @@ class StorageMediaStore {
   /// 文档在锁定态）即中止整个回收**——无法证明它是否引用了资产，保守策略
   /// 优先保证用户数据不被误删（安全审计 P2-4，2026-09-06：此前跳过失败
   /// 文档，其引用的图片可能被误判孤儿并删除）。
+  ///
+  /// 引用面同时认「只剩 `.json.bak`」的那一篇（正文缺失时侧车就是它的当前内容，
+  /// `load` 也真会读它）——见下面第二趟循环的注释。
   Future<void> deleteUnreferencedManagedImages(
     Set<String> candidates, {
     required String excludingDocumentId,
@@ -261,6 +264,50 @@ class StorageMediaStore {
         }
       } catch (_) {
         // 解析失败同样中止，避免将未知引用误判为孤儿资产。
+        return;
+      }
+    }
+
+    // 「正文没了、只剩 `.json.bak`」这一格以前对回收**完全隐形**（上面那趟只认
+    // `.json`）：那篇文档引用的图片会被当成无引用孤儿删掉，而它的正文还能从侧车
+    // 读回来（`StorageService.load` 的兜底）——图片真没了、画布还在，正是被撕开的
+    // 状态。所以正文缺失而有侧车时，侧车就是那一篇的当前内容，引用照算。
+    // 制造这种形态的成因本批已经堵住（失败的写会把上一版放回正文位），但**老数据根
+    // 里可能已经躺着残留**，这一层是残留形态下的止损，不是重复防护。
+    await for (final entity in dir.list()) {
+      if (entity is! File || !entity.path.endsWith('.json.bak')) continue;
+      final primaryPath = entity.path.substring(
+        0,
+        entity.path.length - '.bak'.length,
+      );
+      // 正文还在 ⇒ 上面那趟已经算过它的引用；侧车只是上一版，不该让 GC
+      // 把「新版已经不再引用」的图片永久供起来（那会堆垃圾）。
+      if (File(primaryPath).existsSync()) continue;
+      final fileName = entity.uri.pathSegments.last;
+      final docId = fileName.substring(
+        0,
+        fileName.length - '.json.bak'.length,
+      );
+      final Uint8List raw;
+      try {
+        raw = await entity.readAsBytes();
+      } catch (_) {
+        return; // 读不出侧车就无法证明引用关系，保守中止回收。
+      }
+      final Uint8List plain;
+      try {
+        plain = await pipeline.prepareDocBytes(docId, raw);
+      } catch (_) {
+        return; // 锁定/损坏的侧车：引用不可知，同 P2-4 的保守口径。
+      }
+      try {
+        final other = codec.decode(plain);
+        if (other.id == excludingDocumentId) continue;
+        for (final item in other.imageItems) {
+          final managedPath = await _managedImagePathOrNull(item.filePath);
+          if (managedPath != null) referencedElsewhere.add(managedPath);
+        }
+      } catch (_) {
         return;
       }
     }
