@@ -56,7 +56,7 @@
 | L1 | 同上 | 同上 | rename 失败且**没有** `.bak`（首写） | 这次编辑确实丢失，但盘上不留半份文件骗过下一次读 | `write_fault_injection_test.dart`「(b2) 首写就撞上改名失败」 | 无（如实记录：首写失败就是丢内容） |
 | L2 | 画布懒迁移 `enqueueRawRewrite` | 走同一条 L1 契约（批次 C 收口） | 密封之后、落盘之前盘上内容被改/被删 | 不复查就会反超那次改写或复活已删笔记 | `test/storage_staleness_guards_test.dart:139,154,174`（时序屏障 `rewriteBarrierForTest`） | 下轮列表时重新判定 |
 | L3 | 块文档 `NoteBlockDocStore._writeFileAtomic` | tmp → rename | 备份失败 / 屏障内改写 | 明文原件字节必须原样活着 | `test/core/documents/block_doc_write_path_contract_test.dart:108,139,158,182,209` | 迁移放弃 ≠ 放弃：`:209` 反向锁「障碍移除后照常完成」 |
-| L4 | 操作日志侧车 `OperationLogStore._writeAtomic`（`lib/core/operation/operation_log_store.dart:239`） | tmp → rename，**刻意没有删除-换入回退** | 改名前崩溃 / 改名后崩溃 | 上一份逐字节不变 + 无 tmp 残留 / 读回恰为新内容无半行 | `test/core/operation/operation_log_store_test.dart`「窗口 1」「窗口 2」 | 侧车可再生：少一次追加不伤文档本体 |
+| L4 | 操作日志侧车 `OperationLogStore._writeAtomic`（`lib/core/operation/operation_log_store.dart:258`） | tmp → **回读校验** → rename，**刻意没有删除-换入回退** | 改名前崩溃 / 改名后崩溃 | 上一份逐字节不变 + 无 tmp 残留 / 读回恰为新内容无半行 | `test/core/operation/operation_log_store_test.dart`「窗口 1」「窗口 2」 | 侧车可再生：少一次追加不伤文档本体 |
 | L5 | 分页画布载荷 `EncryptedWriteTransaction`（`lib/infrastructure/storage/v2/encrypted_write_transaction.dart:61`） | 自己的 tmp/`.bak` 事务（**不共用 L1 契约**） | 备份失败 → `BackupFailedException`（`:27`） | 主文件保留 | `test/security/encrypted_write_transaction_test.dart:22(S-001),45(S-002),82(S-003),104(S-004)` | 下一次提交重来 |
 
 **补上 (a)/(b) 之后新增的行**（同一天，钩子见 §3-A/B）：
@@ -68,6 +68,7 @@
 | L1 | 改名失败且是首写 | 同上 | 同文件「(b2) …」 | 没有半份文件、没有 `.bak`、没有 tmp（这次编辑确实丢了，如实记录） |
 | L3 | 改名失败（块文档，喂同步的那条腿） | `NoteBlockDocStore.renameBarrierForTest` | `test/core/documents/block_doc_write_rollback_test.dart`（3 条） | 回滚 + 列表**仍看得见这篇**（列表可见性就是这条链的终点）；反向锁：成功写入绝不触发回滚 |
 | L4 | 改名失败（操作日志侧车） | 已有的 `writeBarrierForTest` 里移走 tmp | `operation_log_store_test.dart`「改名这一步真失败」 | 上一份侧车逐字节不变、不留 tmp、队列没被毒住（摘掉屏障后还能追加） |
+| L4 | 写完回读不是所写（**§3-C，2026-10-14 补**） | 同一个屏障里改写 tmp —— 校验就排在这个屏障之后，不需要新钩子 | `operation_log_store_test.dart`「不变量④」两条 | 抛 `OperationLogIntegrityException`；旧侧车逐字节活着、不留 tmp、摘掉注入后照常能写；**加密腿比密文**：tmp 上出现明文同样判失败 |
 
 ⇒ L5 是这张表里唯一一条**另写了一套事务**的腿。批次 C 的统一契约没有覆盖它，
 不是遗漏的缺陷，是还没并轨的既有实现（合并它需要在 L5 上做一轮等价性验证）。
@@ -100,9 +101,27 @@
   Linux 上 skip），两条不互相顶替。用例见 (b)/(b2) 与
   `test/core/documents/block_doc_write_rollback_test.dart`、
   `operation_log_store_test.dart`「改名这一步真失败」。
-- **C. 写完不回读**：四条腿都不做写后校验（读回比对）。这是**代码缺口**而不是测试
-  缺口——加它等于每次保存多读一遍整个文件（大画布/低内存机器上是可感知的成本）。
-  取舍要业主点头。
+- **C. 写完不回读**：**L4 已闭合（2026-10-14，业主批准只做这一条腿）**。`_writeAtomic`
+  在改名**之前**回读临时文件，与 `sealed`（密文，不是明文）逐字节比对，不一致就抛
+  `OperationLogIntegrityException` 并回收 tmp（`operation_log_store.dart:269`）。选「改名前验」
+  而不是「改名后验」只有一个理由：验不过时正式侧车还没被换掉，失败出口的形状与
+  「改名真失败」那一格**完全相同**（上一份逐字节活着、盘上没有半份日志）。比的是密文，
+  所以既不多一次解密，又顺带把「tmp 上出现明文」判成失败——不变量③的第二条降级通道
+  一并堵在这里（用例：`operation_log_store_test.dart`「加密腿比的是密文」）。
+  **代价实测**（本机一次性基准：flush 写 + 同名文件回读，不含加密与改名，n=200）：
+
+  | 体积 | 不回读 median | 回读 median | 回读 p95 |
+  |---|---|---|---|
+  | 4 KB | 1.35 ms | 3.51 ms | 5.28 ms |
+  | 64 KB（侧车 `maxBytes` 上限） | 1.58 ms | 11.12 ms | 19.35 ms |
+  | 512 KB | 2.68 ms | 13.13 ms | 19.04 ms |
+  | 2 MB | 3.26 ms | 18.14 ms | **75.02 ms** |
+
+  ⇒ 多出的是一次「开文件 + 读」的固定开销（约 +9 ms），落在 5 秒一次的自动保存节奏上
+  不构成可感知延迟，所以侧车这一档值得加。**L1/L3 不要照抄这张结论**：大画布可达 MB 级，
+  p95 已到 75 ms，且真实写腿还要多付一次解密与一次整份读。要给 L1/L3 加，得先拿
+  「加密 + 改名 + 回读」的全链路实测说话——那一格仍按业主决策处理，本轮不擅自铺开。
+  另外 L2（画布懒迁移）复用 L1 契约，L5（分页画布事务）仍是独立一套（§1 末注）。
 - **D. 远端侧窗口**：`manifest.json` 已回写、本地基线未回写之间的两阶段窗口是
   **文档化的已知取舍**（`sync_service.dart:666` M3），后果全部幂等无害，本轮不改变。
 - **E. 恢复换根**：`.old_<ms>` 恢复前快照（DN-208）与隔离判据（DN-204）都从
@@ -115,7 +134,8 @@
 - 「`documents/` / `oplog/` 的残留 `.tmp` 会被清扫」。现状是没有清扫器（§2），
   把它写成断言等于把将来真该写的清扫器判成回归。现有用例只主张
   **「残留不碍事」**，并在注释里点明这一点。
-- 「任何写入都会回读校验」。生产里没有这件事（§3-C），测试不许假装它存在。
+- 「所有写腿都会回读校验」。只有 L4 有（§3-C，业主批准的范围就到这条腿）；L1/L2/L3/L5
+  都没有，测试不许把这一条推广到其余四条腿。
 
 ## 5. 删除路径的侧车（本批逐条核实的结果，任务 #23）
 

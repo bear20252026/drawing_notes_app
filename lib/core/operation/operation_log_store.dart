@@ -7,7 +7,7 @@
 // `sync_state.json` 那样）就会造出「恢复出来的旧库 + 新日志」这种第二套真相,
 // 而那正是 DN-204 两条提交刚堵掉的病。
 //
-// 三条不变量（都在 test/core/operation/operation_log_store_test.dart 里钉着）：
+// 四条不变量（都在 test/core/operation/operation_log_store_test.dart 里钉着）：
 //  ① **文档是权威**：读回时丢掉 `baseRev` 超前于盘上文档 revision 的记录。
 //     「文档写了、日志没写」只是少几条可再生的记录；「日志写了、文档没写」会让
 //     回放造出不存在的内容 —— 后者不可接受，所以一律以前者为准。
@@ -15,12 +15,15 @@
 //     队列重复消费都不会把日志拉长）。
 //  ③ **加密降级不留第二条通道**：建过库却拿不到密钥（保险库锁定）时**什么都不写**，
 //     绝不落一份明文侧车；没建库时明文落盘与文档写路径同口径。
+//  ④ **写完必回读**：改名之前先验一次临时文件的字节，不一致就抛
+//     `OperationLogIntegrityException` 并回收 tmp——正式侧车此刻还没被换掉，
+//     所以失败出口的形状与「改名真失败」那一格完全相同。
 
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/foundation.dart' show listEquals, visibleForTesting;
 
 import 'package:drawing_notes_app/core/operation/document_operation.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
@@ -64,9 +67,7 @@ class OperationLogRecord {
     return OperationLogRecord(
       seq: seq,
       baseRev: baseRev,
-      operation: DocumentOperation.fromJson(
-        Map<String, dynamic>.from(op),
-      ),
+      operation: DocumentOperation.fromJson(Map<String, dynamic>.from(op)),
     );
   }
 
@@ -86,6 +87,20 @@ class OperationLogLimits {
   static const OperationLogLimits standard = OperationLogLimits();
 }
 
+/// 写完回读校验失败：OS 说写成功了，但临时文件上不是我们要的那份字节。
+///
+/// 这是批次 D §3-C 那一格（部分写 / 内存序 / 杀软在句柄释放后改写）——此前四条写腿
+/// 一条防线都没有。业主 2026-10-14 批准只给本条腿（几 KB 的侧车）加，L1/L3 大文件腿
+/// 的代价另议。
+class OperationLogIntegrityException implements Exception {
+  const OperationLogIntegrityException(this.docId);
+
+  final String docId;
+
+  @override
+  String toString() => '操作日志侧车回读与所写不一致：$docId';
+}
+
 /// 操作日志侧车存储。
 class OperationLogStore {
   OperationLogStore({
@@ -103,9 +118,11 @@ class OperationLogStore {
 
   final OperationLogLimits limits;
 
-  /// 测试专用时序屏障：在「临时文件写完」与「改名替换正式文件」之间 await。
+  /// 测试专用时序屏障：在「临时文件写完」与「回读 + 改名替换正式文件」之间 await。
   /// 生产恒 null。用意与 `StorageWritePipeline.rewriteBarrierForTest` 相同——
   /// 崩溃窗口不能靠调度碰运气，要能确定地停在「tmp 已写、尚未改名」那一格。
+  /// 顺带给了回读校验一个确定性的注入口：屏障里改写或删除 tmp，即可分别命中
+  /// 不变量④与「改名这一步真失败」。
   @visibleForTesting
   Future<void> Function(String docId)? writeBarrierForTest;
 
@@ -120,9 +137,7 @@ class OperationLogStore {
   Future<File> _fileFor(String docId) async {
     _requireValidDocId(docId);
     final root = await directoryProvider();
-    final dir = Directory(
-      '${root.path}${Platform.pathSeparator}oplog',
-    );
+    final dir = Directory('${root.path}${Platform.pathSeparator}oplog');
     if (!dir.existsSync()) await dir.create(recursive: true);
     return File('${dir.path}${Platform.pathSeparator}$docId.jsonl');
   }
@@ -244,6 +259,12 @@ class OperationLogStore {
     try {
       await tmp.writeAsBytes(sealed, flush: true);
       await writeBarrierForTest?.call(docId);
+      // 不变量④：回读排在改名**之前**——此刻正式侧车还没被换掉，验不过就是纯失败，
+      // 下面的 catch 清掉 tmp 后上一份仍逐字节活着。比让改名去发现它更早一格，
+      // 且不给这条腿留「写了但盘上不是所写」的窗口。
+      if (!listEquals(await tmp.readAsBytes(), sealed)) {
+        throw OperationLogIntegrityException(docId);
+      }
       // 改名失败时**只清临时文件、绝不删正式文件**：侧车是可再生的记录面，
       // 留着上一份总比两边都没有好（「先删再 rename」在 Windows 共享冲突下
       // 正是 DN-108/205 那条契约要防的三副本同时消失）。

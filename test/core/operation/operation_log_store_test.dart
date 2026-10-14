@@ -1,10 +1,11 @@
 // A2（协同方案 §9）：操作日志磁盘侧车的不变量与崩溃窗口。
 //
-// 三条不变量各自成组：②幂等（同 seq 重放不拉长日志）、①文档是权威
+// 不变量②①③各自成组：②幂等（同 seq 重放不拉长日志）、①文档是权威
 // （baseRev 超前于盘上 revision 的尾巴读回时丢弃）、③加密降级不留第二通道
 // （锁定 ⇒ 什么都不写，已建库 ⇒ 不落明文）。另钉两个崩溃窗口——它们靠
 // `writeBarrierForTest` 停在「tmp 已写、尚未改名」那一格，不靠调度碰运气
-// （与 DN-207 的 `rewriteBarrierForTest` 同一纪律）。
+// （与 DN-207 的 `rewriteBarrierForTest` 同一纪律）。第四条不变量④是写完必回读
+// （批次 D §3-C，业主批准只给本条腿加），用的正是同一个注入口。
 //
 // 本阶段侧车**尚未接进保存路径**（接线受 editor_page 行数棘轮约束，见提交
 // 说明），所以这里验的是存储面自身的契约，不是「保存后日志一定在」。
@@ -100,7 +101,9 @@ void main() {
         'after': true, // rec(4, …) 的 after = seq.isEven
       });
       // 侧车里的 `seq`/`baseRev` 只活在日志行上。
-      final line = const LineSplitter().convert(sidecar('roundtrip').readAsStringSync()).single;
+      final line = const LineSplitter()
+          .convert(sidecar('roundtrip').readAsStringSync())
+          .single;
       expect(line, contains('"seq":4'));
       expect(line, contains('"baseRev":40'));
       expect(line, contains('"op":{'));
@@ -135,10 +138,13 @@ void main() {
 
   group('上限必须有', () {
     test('记录数超上限 ⇒ 只保最新 maxRecords 条', () async {
-      final store = storePlain(
-        limits: const OperationLogLimits(maxRecords: 3),
+      final store = storePlain(limits: const OperationLogLimits(maxRecords: 3));
+      expect(
+        await store.append('cap_n', [
+          for (var i = 1; i <= 5; i++) rec(i, i * 10),
+        ]),
+        5,
       );
-      expect(await store.append('cap_n', [for (var i = 1; i <= 5; i++) rec(i, i * 10)]), 5);
 
       final loaded = await store.load('cap_n');
       expect(loaded.map((r) => r.seq), [3, 4, 5]);
@@ -150,14 +156,19 @@ void main() {
       final store = storePlain(
         limits: const OperationLogLimits(maxRecords: 100, maxBytes: 220),
       );
-      await store.append('cap_bytes', [for (var i = 1; i <= 8; i++) rec(i, i * 10)]);
+      await store.append('cap_bytes', [
+        for (var i = 1; i <= 8; i++) rec(i, i * 10),
+      ]);
 
       final raw = sidecar('cap_bytes').readAsStringSync();
       final lines = const LineSplitter().convert(raw);
       expect(raw.length, lessThanOrEqualTo(220));
       expect(lines, isNotEmpty);
-      expect(int.parse(lines.last.split('"seq":').last.split(',').first), 8,
-          reason: '裁剪必须从最旧一端下手，最新记录不能被丢掉');
+      expect(
+        int.parse(lines.last.split('"seq":').last.split(',').first),
+        8,
+        reason: '裁剪必须从最旧一端下手，最新记录不能被丢掉',
+      );
     });
   });
 
@@ -170,7 +181,10 @@ void main() {
 
       expect(await store.append('locked', [rec(1, 10)]), 0);
       expect(sidecar('locked').existsSync(), isFalse);
-      expect(Directory('${tempDir.path}${Platform.pathSeparator}oplog').listSync(), isEmpty);
+      expect(
+        Directory('${tempDir.path}${Platform.pathSeparator}oplog').listSync(),
+        isEmpty,
+      );
     });
 
     test('有密钥 ⇒ 盘上是 DNV 信封，读回逐条一致且不见明文', () async {
@@ -261,9 +275,11 @@ void main() {
     });
 
     test('改名这一步真失败 ⇒ 上一份逐字节不变、不留 tmp，且队列没被毒住', () async {
-      // 与 write_fault_injection_test 的 (b) 同一等价类（tmp 已完整、换入前失效），
-      // 这里补上侧车这一条腿：它刻意没有「删除-换入」回退，所以 rename 失败就是
+      // 与 write_fault_injection_test 的 (b) 同一等价类（换入之前临时文件失效）。
+      // 这里补上侧车这一条腿：它刻意没有「删除-换入」回退，所以这一步就是
       // 纯失败——必须什么都不改，而不是留下半份日志让下次回放读到脏行。
+      // 不变量④落地后，tmp 消失比改名更早一格被回读抓到（PathNotFoundException
+      // 是 FileSystemException 的子类，所以本用例主张的失败形状不变）。
       final store = storePlain();
       await store.append('rename_fail', [rec(1, 10)]);
       final before = await sidecar('rename_fail').readAsBytes();
@@ -284,7 +300,9 @@ void main() {
 
       expect(await sidecar('rename_fail').readAsBytes(), equals(before));
       expect(
-        oplogDir.listSync().whereType<File>().where((f) => f.path.endsWith('.tmp')),
+        oplogDir.listSync().whereType<File>().where(
+          (f) => f.path.endsWith('.tmp'),
+        ),
         isEmpty,
       );
 
@@ -294,14 +312,97 @@ void main() {
     });
   });
 
+  group('不变量④：写完必回读（批次 D §3-C，业主批准只给 L4 这条腿）', () {
+    test('tmp 上的字节不是所写那份 ⇒ 抛错、上一份逐字节活着、不留 tmp', () async {
+      // 注入方式沿用 writeBarrierForTest：它停在「tmp 已写完、尚未换入」那一格，
+      // 于是可以确定地造出「OS 说写成功但盘上不是所写」这一类失败。
+      final store = storePlain();
+      await store.append('verify1', [rec(1, 10)]);
+      final before = await sidecar('verify1').readAsBytes();
+      final oplogDir = Directory(
+        '${tempDir.path}${Platform.pathSeparator}oplog',
+      );
+
+      store.writeBarrierForTest = (_) async {
+        for (final f in oplogDir.listSync().whereType<File>()) {
+          if (!f.path.endsWith('.tmp')) continue;
+          f.writeAsBytesSync(
+            Uint8List.fromList([...f.readAsBytesSync(), 0x7b, 0x7d]),
+          );
+        }
+      };
+      await expectLater(
+        store.append('verify1', [rec(2, 20)]),
+        throwsA(isA<OperationLogIntegrityException>()),
+      );
+      store.writeBarrierForTest = null;
+
+      expect(await sidecar('verify1').readAsBytes(), equals(before));
+      expect(
+        oplogDir.listSync().whereType<File>().where(
+          (f) => f.path.endsWith('.tmp'),
+        ),
+        isEmpty,
+        reason: '回读验不过也要回收 tmp，不许留半份日志给下次回放',
+      );
+      expect((await store.load('verify1')).map((r) => r.seq), [1]);
+      // 一次回读失败不该把这篇侧车永久封掉。
+      expect(await store.append('verify1', [rec(2, 20)]), 1);
+      expect((await store.load('verify1')).map((r) => r.seq), [1, 2]);
+    });
+
+    test('加密腿比的是密文：tmp 上出现明文 ⇒ 判失败，明文一条都不落盘', () async {
+      // 这条钉的是「拿什么去比」。若实现把回读与**明文**比，本用例会把明文换进正式
+      // 侧车（不变量③的降级通道就是这么开出来的）；与密文比才谈得上④+③同时成立。
+      final key = VaultKeyService.randomBytes(32);
+      final store = storeVaulted(key);
+      final oplogDir = Directory(
+        '${tempDir.path}${Platform.pathSeparator}oplog',
+      );
+
+      store.writeBarrierForTest = (_) async {
+        for (final f in oplogDir.listSync().whereType<File>()) {
+          if (!f.path.endsWith('.tmp')) continue;
+          f.writeAsBytesSync(
+            Uint8List.fromList(
+              utf8.encode('${jsonEncode(rec(1, 10).toJson())}\n'),
+            ),
+          );
+        }
+      };
+      await expectLater(
+        store.append('verify_sealed', [rec(1, 10)]),
+        throwsA(isA<OperationLogIntegrityException>()),
+      );
+      store.writeBarrierForTest = null;
+
+      expect(
+        sidecar('verify_sealed').existsSync(),
+        isFalse,
+        reason: '验不过就不许换入 ⇒ 新文档宁可一条没有，也不能落一份明文',
+      );
+      expect(
+        oplogDir.listSync().whereType<File>().where(
+          (f) => f.path.endsWith('.tmp'),
+        ),
+        isEmpty,
+      );
+      // 摘掉注入后同一篇照常密封落盘。
+      expect(await store.append('verify_sealed', [rec(1, 10)]), 1);
+      final raw = await sidecar('verify_sealed').readAsBytes();
+      expect(VaultFileCodec.isEncrypted(raw), isTrue);
+      expect(latin1.decode(raw), isNot(contains('"seq"')));
+    });
+  });
+
   group('崩溃残留：上一轮留下的 .tmp', () {
     test('残留临时文件不算侧车，也不干扰后续读写', () async {
       await storePlain().append('residue', [rec(1, 10)]);
       // 改名之前断电留下的半份内容：文件名带随机 token，正式文件名不可能撞上。
-      final stale = File(
-        '${sidecar('residue').path}.oplog_crashresidue.tmp',
+      final stale = File('${sidecar('residue').path}.oplog_crashresidue.tmp');
+      stale.writeAsStringSync(
+        '{"seq":99,"baseRev":99,"op":{"type":"no.such"}}',
       );
-      stale.writeAsStringSync('{"seq":99,"baseRev":99,"op":{"type":"no.such"}}');
 
       // 读侧只认 `<docId>.jsonl`：残留既不会被当成第二份日志，也不会让
       // 已有记录读不出来（append 的兜底会把「读不懂现有侧车」判成放弃写入，
@@ -346,10 +447,7 @@ void main() {
         store.append('../evil', [rec(1, 10)]),
         throwsA(isA<ArgumentError>()),
       );
-      await expectLater(
-        store.load('a/b'),
-        throwsA(isA<ArgumentError>()),
-      );
+      await expectLater(store.load('a/b'), throwsA(isA<ArgumentError>()));
       expect(
         Directory('${tempDir.path}${Platform.pathSeparator}oplog').existsSync(),
         isFalse,
