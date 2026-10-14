@@ -1,0 +1,215 @@
+{
+  "name": "replay-batch-nested",
+  "note": "batch 里套 batch：apply 正序、revert 逆序的复合",
+  "doc": {
+    "version": 4,
+    "document": {
+      "id": "fx_replay",
+      "title": "重放夹具",
+      "width": 2048,
+      "height": 1536,
+      "infinite": true,
+      "paperType": "blank",
+      "folder": "",
+      "createdAt": "2026-10-14T00:00:00.000Z",
+      "updatedAt": "2026-10-14T00:00:00.000Z",
+      "layers": [
+        {
+          "id": "layer_1",
+          "name": "底",
+          "visible": true,
+          "opacity": 1,
+          "strokes": [
+            {
+              "id": "s1",
+              "points": [
+                0,
+                0,
+                1,
+                10.5,
+                20.25,
+                1,
+                30,
+                40.125,
+                0.5
+              ],
+              "color": 4278190080,
+              "width": 2,
+              "type": "pen",
+              "opacity": 1,
+              "seed": 1049,
+              "version": 1,
+              "versionNonce": 7
+            },
+            {
+              "id": "s2",
+              "points": [
+                -7.25,
+                3,
+                0.75,
+                12,
+                12,
+                1
+              ],
+              "color": 4278219980,
+              "width": 0.5,
+              "type": "pencil",
+              "opacity": 0.35,
+              "seed": 1050,
+              "version": 1,
+              "versionNonce": 7
+            },
+            {
+              "id": "s3",
+              "points": [
+                100,
+                100,
+                1,
+                200,
+                200,
+                1
+              ],
+              "color": 2164260928,
+              "width": 2,
+              "type": "marker",
+              "opacity": 1,
+              "seed": 42,
+              "version": 1,
+              "versionNonce": 7
+            }
+          ]
+        },
+        {
+          "id": "layer_2",
+          "name": "注",
+          "visible": true,
+          "opacity": 1,
+          "strokes": [
+            {
+              "id": "s4",
+              "points": [
+                5,
+                5,
+                1,
+                6,
+                6,
+                1
+              ],
+              "color": 4278190080,
+              "width": 3.5,
+              "type": "pen",
+              "opacity": 1,
+              "seed": 1052,
+              "version": 1,
+              "versionNonce": 11
+            },
+            {
+              "id": "s5",
+              "points": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "color": 4278190080,
+              "width": 2,
+              "type": "pen",
+              "opacity": 0.5,
+              "seed": 9007199254740991,
+              "version": 1,
+              "versionNonce": 7
+            }
+          ]
+        },
+        {
+          "id": "layer_3",
+          "name": "空",
+          "visible": true,
+          "opacity": 1,
+          "strokes": []
+        }
+      ],
+      "shapes": [],
+      "imageItems": [],
+      "textItems": []
+    }
+  },
+  "ops": [
+    {
+      "type": "batch",
+      "ops": [
+        {
+          "type": "stroke.add",
+          "layerId": "layer_3",
+          "stroke": {
+            "id": "s7",
+            "points": [
+              2,
+              4,
+              1,
+              6,
+              8,
+              1
+            ],
+            "color": 4278190080,
+            "width": 12,
+            "type": "eraser",
+            "opacity": 1,
+            "seed": 1055,
+            "version": 1,
+            "versionNonce": 7
+          }
+        },
+        {
+          "type": "batch",
+          "ops": [
+            {
+              "type": "stroke.remove",
+              "entries": [
+                {
+                  "layerId": "layer_1",
+                  "index": 0,
+                  "stroke": {
+                    "id": "s1",
+                    "points": [
+                      0,
+                      0,
+                      1,
+                      10.5,
+                      20.25,
+                      1,
+                      30,
+                      40.125,
+                      0.5
+                    ],
+                    "color": 4278190080,
+                    "width": 2,
+                    "type": "pen",
+                    "opacity": 1,
+                    "seed": 1049,
+                    "version": 1,
+                    "versionNonce": 7
+                  }
+                }
+              ]
+            },
+            {
+              "type": "layer.prop",
+              "layerId": "layer_2",
+              "prop": "visible",
+              "before": true,
+              "after": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "expect": {
+    "digestBefore": "a3922d73b9565ba23b3d6341ed497c1cbb3ad05cc6e0227e1261cf38198de43a",
+    "digestAfter": "df64300da071c911ad3cd3e3cceedbc0a0de32f8dddf51b456d9e4206f22a339",
+    "digestRestored": "a3922d73b9565ba23b3d6341ed497c1cbb3ad05cc6e0227e1261cf38198de43a"
+  }
+}

@@ -181,20 +181,84 @@ flutter_rust_bridge（桥接）、Axum/Tokio（自有后端底座）；BlockSuit
 | 1 | 产品目标是**多人实时协同**，还是**我的多设备**优先 | 先「我的多设备」 | 阶段 B 的最小集与是否需要账号体系 |
 | 2 | 确认隐私承诺走**方案 B**（服务端只见密文） | 确认（现状已是 E2E，退回不划算） | Y-Sweet 能否直接用作依赖；C2/C4 的设计边界 |
 | 3 | 后端部署在哪、谁运维（Sites 托管已核实 `disabled`） | 自建 Docker/VPS，先单实例 | 整个阶段 B 能否开工 |
+|   | **→ 2026-10-14 更新**：本机已核实存在一条在用运维轨道（阿里云 + pm2 + Cloudflare + R2 + WS 房间），本条已从「要不要自建」变成「复用还是另起」，三个落法与默认建议见 **§11** | | |
 | 4 | 引入 op-log 后 v4 是否 bump 到 v5 | **不 bump**：可选字段 + 快照仍权威 + 迁移框架兜底 | A1/A3 的落盘格式与夹具基线 |
+|   | **→ 2026-10-14 更新**：Spike C 的重放夹具证明 op-log 是文档之外的旁侧文件，重放不动 `version` 语义 ⇒ 本条按默认执行，见 **§7.3** | | |
 | 5 | 是否接受 Rust 工具链进 CI（原生构建矩阵、缓存、时长） | 先把 Spike 放本地/夜间任务，阶段 C 定型后再进 CI | Spike A 的验证方式与成本 |
 | 6 | 阶段 A（= DN-206/205/207 + A2/A3）现在是否开工 | **开工**，它与既有审计 backlog 完全重叠，不需新决定 | 无 —— 这一条只是走个确认 |
 
-另外两件与本方案无关但悬着的：网页版新构建仍卡在 Sites 上传通道故障（`prepare_site` 报 `sites_unavailable`，
-站点读取正常 ⇒ 通道故障，恢复后用同一 actionId 重放）；以及批次 A/B 这批要不要收进 **1.17.66+135** 并发 tag（推 tag = 对外公开）。
+另外两件与本方案无关但悬着的：网页版新构建仍卡在 Sites 上传通道故障（2026-10-14 再次核实：
+`get_publish_status` 报 `sites_action_unavailable`，站点元数据读取正常 ⇒ 通道故障，不是配置问题，
+恢复后用同一 actionId 重放）；批次 A/B/D 这批已经收进 **v1.17.66+135** 并于 2026-10-14 推 tag、
+发 Release、四件资产齐（本条悬案已结，桌面侧后续提交不再自带发版）。
 
 ---
 
-## 7. spike 结论（待填）
+## 7. spike 结论
 
 - Spike A（Dart ↔ Yrs）：_未开始_
 - Spike B（Y-Sweet vs 自建密文中继）：_未开始_
-- Spike C（增量协议双实现字节一致）：_未开始_
+- **Spike C（增量协议双实现字节一致）：2026-10-14 做完，结论是「op 粒度没选错」，
+  但挖出三条必须写进阶段 A 协议条款的账。** 判据里那条「新增『操作重放』夹具一族」已落地。
+
+### 7.1 这一版拿什么当证据
+
+| 件 | 位置 | 作用 |
+|---|---|---|
+| TS 侧第二实现 | `drawing_notes_web/src/core/operations.ts` | 与 Dart `document_operation.dart` 并列的 6 个 typeKey 的 apply/revert/fromJson/toJson，**不是**参考实现 |
+| 规范化 + 摘要（TS） | `drawing_notes_web/tools/replay/canonical.mjs` | 规格全文写在文件头，代号 `spikec-1` |
+| 规范化 + 摘要（Dart） | `test/core/operation/replay_canonical.dart` | 同一份规格的另一侧实现，两端不互相 import |
+| 重放夹具 9 例 | `drawing_notes_web/tools/interop/fixtures/replay-*.json` + `replay-manifest.json` | 与 v3 契约夹具同目录，因而**自动进那条跨仓逐字节比对** |
+| 跑法 | 网页 `npm run check:replay`（`--bless` 重定期望值）；桌面 `flutter test test/core/operation/replay_parity_test.dart` | 每例断言三个摘要：初始 / 正向重放 / 逆序回退 |
+
+实测：网页侧 9 例全绿、桌面侧 43 条断言全绿（同一批文件）。突变自证：把 Dart 侧
+`toStringAsFixed(6)` 改成 `(4)` ⇒ 34 条红。⇒ 摘要真的在守门，不是摆设。
+
+**一处必须说出来的脆弱**：`drawing_notes_web` 目录**不是 git 仓库**（有 `.gitignore`、无 `.git`），
+所以 `src/core/operations.ts` 与 `tools/replay/*.mjs` 这两件 TS 侧的实物只有本机一份，进了版本库的
+只有共享夹具（`test/fixtures/v3/replay-*`，与网页侧逐字节一致）和 Dart 侧实现。规格文本在
+`replay_canonical.dart` 与 `canonical.mjs` 的文件头各抄了一份，代号 `spikec-1` 对不上就会红，
+但**镜像实现本身没有备份**。要么给网页工作区建仓，要么把 `operations.ts` 也纳入那条跨仓逐字节
+比对——两条都属结构决定，业主点头之前我没动。
+
+为什么要中间那一层规范化：两端落盘 JSON 本来就不可能逐字节相同（Dart 把整数线宽写成
+`2.0`、TS 写成 `2`；键序与可选键取舍也各有习惯）。把状态压成 `f6` 定长文本再取 SHA-256，
+就把「数字怎么写」这个已知分歧从比较里剥掉，只留「数字是什么」。`-0` 坐标专门做了一例探针：
+两端 `toFixed(6)` / `toStringAsFixed(6)` 给出同一个串，摘要一致 ⇒ 这条规范化站得住。
+
+### 7.2 挖出来的三条账（都要进阶段 A 的协议条款）
+
+1. **每个端都有两条解析腿，混用会互相掩盖。** 整份文件走宽容回读（预算裁剪、非法点丢弃、
+   opacity clamp），操作体走严格解析（对应 `Stroke.fromJson`：`width=0`、`opacity=1.7`、
+   遗留对象点列、末尾不足三点的点列、未知笔刷名，全都**照收**）。第一版镜像实现顺手用了
+   宽容腿，`replay-strict-ops.json` 一跑就把这个分歧暴露出来——这条夹具从此钉住「操作体
+   不经过预算裁剪」。含义：服务端收到的 op 体**不会**因为超预算被静默改写，预算只在落盘/解码时生效。
+2. **随机身份会让重放不可复现。** `id` 或 `seed` 缺失时，两端的构造器各自随机生成
+   （Dart `LocalIdGenerator.next('str')` / TS `newId`），重放摘要必然不同。⇒ 协议条款：
+   **操作体必须自带 `id` 与 `seed`**，服务端与回放器都可以按「缺即拒绝」处理（`replay-manifest.json`
+   的 notes 已写死这条，夹具 accordingly 全带 id/seed）。
+3. **失败不是原子的，而且这个「不原子」现在两端同形。** Dart 的 `layer.reorder` 先 `removeAt(from)`
+   再 `insert(to, l)`，`to` 越界时不回滚 ⇒ 文档少一层。镜像实现照搬（没有顺手改成原子的），
+   `replay-errors.json` 里那条 `digestAfterError` 钉的就是抛完之后那个「少一层」的形状。
+   含义：op-log 回放中途抛错**不能**继续往下回放，必须整份放弃、回退到文档权威态
+   （A2 读侧那条 `baseRev` 截断正是这个用途）。
+4. **顺带一条潜在分歧（本次夹具没打到，但已定位）**：`stroke.remove` 的 revert 依赖
+   「按图层分组 + 组内按 `index` 升序」。同一图层里出现**重复 index** 时，还原顺序与原始顺序
+   **不同**（`replay-duplicate-index.json` 实测：回退后摘要 `7e5b8c…` ≠ 初始 `a3922d…`），
+   两端目前一致，是因为两侧都落到**稳定**排序（JS `Array.sort` 自 ES2019 要求稳定；Dart 对
+   ≤32 条走插入排序，稳定，阈值见 `D:\flutter\bin\cache\dart-sdk\lib\internal\sort.dart:18`）。
+   **条目数 >32 时 Dart 换双轴快排，不稳定 ⇒ 两端可能分叉。** 现网擦除手势按命中序记录，
+   并不保证 index 严格递增，所以这不是假想问题。阶段 A 要做的收敛：记录时把同图层的条目
+   按 `index` 规范化（严格递增），使 revert 不再依赖排序稳定性。本轮**没有**改记录侧。
+
+### 7.3 判据回看
+
+§4 那条判据是「现有 11 份夹具全部通过 + 新增『操作重放』夹具一族」。实际达成：
+`check:interop` 11 例 + 预算 14 项绿，`check:replay` 9 例绿，桌面 43 条断言绿。
+⇒ **失败退路（「说明 op 粒度选错，回到元素级补丁」）不启用**：元素级（stroke/layer）寻址
++ 完整笔画负载这条形状，两端可以逐字节重放同一份操作序列。v4 与 op-log 的兼容策略随之
+可以定：**不必 bump v5**——op-log 是文档之外的旁侧文件，`version` 仍是文档格式的版本，
+§6-④ 那条拍板因此有了默认答案（除非要改的是文档内字段本身）。
 
 ---
 
@@ -355,3 +419,60 @@ A2 = 操作日志磁盘持久化 + 幂等重放（任务 #22；也是 10-10 内�
 混合版本集群的已知降级面：尚未升级的旧客户端写清单时仍会抹掉墓碑，所以新代码将来
 读 `baseRev` 时必须按「可能缺失」处理，缺失就退回今天的保守行为（A3-1 已把这条形状
 钉在用例里）。
+
+---
+
+## 11. §6-③ 的实测答案：本机已有一条跑得通的运维轨道（2026-10-14 核实）
+
+原 P-3 写的是「当前托管放不住后端 ⇒ 阶段 B 需要一个部署决策」。**前半句仍然成立**
+（Qoder Sites 该站点 `get_backend` 依旧 `disabled`），但后半句要改写：业主已经有一条
+在用的部署轨道，只是它不属于本仓库，所以此前没进过这份方案。
+
+### 11.1 核实到的事实（逐条回查过文件与进程，不是推测）
+
+| 项 | 事实 | 出处 |
+|---|---|---|
+| 项目 | 同工作区父目录下的另一个产品 `dream-gallery`（B612 画廊），与本项目无代码关系 | `D:\Workbuddy\2026-08-29-08-24-29\dream-gallery` |
+| 此刻在跑 | 本机 3000 端口 `node server.js` 正在 LISTENING（PID 29184），另在 3443 挂 HTTPS 回源 | `netstat` + `Get-CimInstance Win32_Process` 实测 |
+| 生产部署 | 阿里云 Ubuntu：`_setup_server.sh` 装 Node 22 → 解压到 `/opt/gallery` → **pm2** 常驻 + `pm2 startup systemd` + `ufw allow 3000` | 该目录 `_setup_server.sh` |
+| 边缘与域名 | Cloudflare 边缘 `cloudbear.cloud`，Origin CA 证书做「边缘↔源站全加密回源」；CSP 里 `connect-src` 已含 `https://cloudbear.cloud` | `server.js:123-134`、`lib/config.js`、响应头实测 |
+| 对象存储 | 已在用 **Cloudflare R2**（S3 兼容，`@aws-sdk/client-s3`），桶 `gallery-media`，后台增删媒体自动镜像 | `lib/r2sync.js`、`lib/config.js` 的 `CF_R2_*` |
+| 数据库 | `better-sqlite3`（`gate_data.db` + WAL），**不是** PostgreSQL | `package.json`、盘上 `.db-wal` |
+| 实时通道 | **已有可用的 WS 房间服务**：大厅 + 房间码、join/leave/welcome 下发既有玩家、30 s `ping` 心跳清僵尸、**空房即刻 `delete`**（正是阶段 B 要的「房间按需加载活动状态，无人后释放」） | `lib/multiplayer.js`（183 行，`ROOM_CAP=8`） |
+| 鉴权 | 单个 `TOKEN`（`?token=` 或 `x-token` 头）+ 设备/入口守卫，**不是**设备令牌体系 | `server.js:106`、`lib/gate.js` |
+| 进程兜底 | `uncaughtException` / `unhandledRejection` 接住不打崩服务；单请求畸形 URL 返回 400 | `server.js:21-26,37-50` |
+| 运维责任人 | 该项目 SOP 的 RACI 明写：主人决策 / Kimi 改码测试部署，「全绿才能部署」是硬门禁 | `SOP-代码结构与改动部署.md` |
+
+### 11.2 它直接解决了 §6-③ 的哪一半，没解决哪一半
+
+**已解决**（不用再从零开始）：主机与运维习惯、pm2 常驻与开机自启、防火墙口径、
+Cloudflare 边缘 + 域名 + Origin 证书、一个已在生产的 S3 兼容对象存储桶、
+「Node 零依赖裸跑兜底」的部署纪律、以及一份已经跑过 3-4 人实时房间的 WS 生命周期代码。
+
+**没解决**（阶段 B 仍要新建，且不能靠复用糊过去）：
+1. **有界队列与背压**：`lib/multiplayer.js` 的 `send`/`broadcast` 是 `try { ws.send() } catch {}`
+   ——满了直接丢，没有水位、没有「超阈值要求重同步」。这正是 §5 阶段 B 明文要的可断言规则，
+   现成代码给不了。
+2. **ack 语义**：它没有 ack 概念。而 §2.2 的硬规则是「服务端 ack ≠ 他端已应用」，
+   必须按「已送达 / 已收敛」两级建模。
+3. **落库**：房间状态纯内存，重启即丢。阶段 B 要的是 op-log CRUD + `baseRev` CAS。
+4. **设备令牌**：现在是共享 `TOKEN`，与「谁的设备、哪篇文档、什么权限」无关。
+5. **per-doc 密钥**（§2.3-5 的真缺口）：完全没有，多人协同的前置条件。
+6. **PostgreSQL vs SQLite**：现成轨道只有 SQLite。单实例「我的多设备」阶段 SQLite 够用，
+   但它与 §5 写的目标栈不一致——这是**一条要业主认下来的偏差**，不是实现细节。
+
+### 11.3 三个可点名的落法（含我的默认建议）
+
+| 方案 | 内容 | 代价 |
+|---|---|---|
+| **A 同机同进程扩路由**（我不建议） | 把 op-log CRUD 直接加进 `dream-gallery` 的 `lib/routes.js` | 两个产品的可用性绑死；画廊那侧的门禁/回归会拦住笔记的迭代节奏，反之亦然。改别人在跑的生产项目，属对方项目的决策 |
+| **B 同主机新进程新库**（默认建议） | 阿里云那台机器上再起一个服务（pm2 第二个 app），独立端口、独立 SQLite/PG 文件、独立 Cloudflare 子域与 Origin 证书；R2 用**新桶**不复用 `gallery-media` | 需要一条新的部署 SOP；与画廊共享一台机器的故障域（可接受，两者都非关键业务） |
+| **C 另起 VPS** | 全新主机、全新运维轨道 | 从零建立部署与监控，重复劳动；除非故障域不可接受，否则没有理由 |
+
+⇒ 我的建议是 **B**，并且阶段 B 的第一版目标收窄为 §6-①默认值「我的多设备」：
+设备令牌 + op-log CRUD（`baseRev` CAS）+ 单文档密文中继，`lib/multiplayer.js` 的房间生命周期
+可以照形状重写（加上 11.2 的第 1、2 条），而不是直接引它的代码。
+
+**边界（本轮没做的事）**：我没有向那台生产服务部署、修改或写入任何东西；对它只做了
+本机端口探测与源码阅读。跨项目的部署属业主决策，且部署是对外动作。
+

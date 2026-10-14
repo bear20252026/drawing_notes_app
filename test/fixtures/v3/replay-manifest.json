@@ -1,0 +1,39 @@
+{
+  "digestSpec": "spikec-1",
+  "notes": [
+    "Spike C：增量协议草案的 TS+Dart 双实现重放夹具。与 v3 契约夹具同目录、同一份跨仓逐字节比对。",
+    "摘要规格与算法见 tools/replay/canonical.mjs 文件头；桌面端镜像在 test/core/operation/replay_canonical.dart。",
+    "操作体里的笔画必须自带 id 与 seed：缺任一个，两端的 Stroke.fromJson 各自随机生成，重放摘要必然不同（这是随机身份，不是协议分歧）。",
+    "操作体走严格解析（对应 Dart Stroke.fromJson），不走整份文件的宽容回读腿：width=0、opacity>1、末尾不足三点的点列都能进文档。",
+    "digestBefore 也在断言范围内：它把两端整份解码后的初始状态一并钉住。"
+  ],
+  "cases": [
+    {
+      "file": "replay-add.json"
+    },
+    {
+      "file": "replay-erase.json"
+    },
+    {
+      "file": "replay-duplicate-index.json"
+    },
+    {
+      "file": "replay-transform.json"
+    },
+    {
+      "file": "replay-layer-prop.json"
+    },
+    {
+      "file": "replay-reorder.json"
+    },
+    {
+      "file": "replay-batch-nested.json"
+    },
+    {
+      "file": "replay-strict-ops.json"
+    },
+    {
+      "file": "replay-errors.json"
+    }
+  ]
+}
