@@ -259,6 +259,39 @@ void main() {
       expect(raw.endsWith('\n'), isTrue, reason: '整行落盘，末行不带半截');
       expect(const LineSplitter().convert(raw), hasLength(2));
     });
+
+    test('改名这一步真失败 ⇒ 上一份逐字节不变、不留 tmp，且队列没被毒住', () async {
+      // 与 write_fault_injection_test 的 (b) 同一等价类（tmp 已完整、换入前失效），
+      // 这里补上侧车这一条腿：它刻意没有「删除-换入」回退，所以 rename 失败就是
+      // 纯失败——必须什么都不改，而不是留下半份日志让下次回放读到脏行。
+      final store = storePlain();
+      await store.append('rename_fail', [rec(1, 10)]);
+      final before = await sidecar('rename_fail').readAsBytes();
+      final oplogDir = Directory(
+        '${tempDir.path}${Platform.pathSeparator}oplog',
+      );
+
+      store.writeBarrierForTest = (_) async {
+        for (final f in oplogDir.listSync().whereType<File>()) {
+          if (f.path.endsWith('.tmp')) f.deleteSync();
+        }
+      };
+      await expectLater(
+        store.append('rename_fail', [rec(2, 20)]),
+        throwsA(isA<FileSystemException>()),
+      );
+      store.writeBarrierForTest = null;
+
+      expect(await sidecar('rename_fail').readAsBytes(), equals(before));
+      expect(
+        oplogDir.listSync().whereType<File>().where((f) => f.path.endsWith('.tmp')),
+        isEmpty,
+      );
+
+      // 屏障摘掉后同一 id 还能写进去：一次真失败不该把侧车永久封掉。
+      expect(await store.append('rename_fail', [rec(2, 20)]), 1);
+      expect((await store.load('rename_fail')).map((r) => r.seq), [1, 2]);
+    });
   });
 
   group('崩溃残留：上一轮留下的 .tmp', () {

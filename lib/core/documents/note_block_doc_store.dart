@@ -95,6 +95,12 @@ class NoteBlockDocStore implements SessionSecretsHolder {
   @visibleForTesting
   Future<void> Function(String id)? rewriteBarrierForTest;
 
+  /// 批次 D 故障注入：在**备份已落盘**与**改名换入**之间 await（生产恒 null，
+  /// 一次 null 判定）。与 `StorageWritePipeline.renameBarrierForTest` 同一用意，
+  /// 好让「换入这一步真失败」这条腿也能确定地复现，而不是等 Windows 句柄冲突。
+  @visibleForTesting
+  Future<void> Function(String id, String tmpPath)? renameBarrierForTest;
+
   Directory? _dir;
 
   /// 回收站目录缓存（字段必须驻留主文件——extension 内禁止声明实例字段；
@@ -563,6 +569,8 @@ class NoteBlockDocStore implements SessionSecretsHolder {
     final path = await _pathFor(id);
     final file = File(path);
     final tmp = File('$path.${LocalIdGenerator.next('write')}.tmp');
+    // 回滚前提：这次写入之前盘上有没有正式版。
+    final hadPrevious = file.existsSync();
     try {
       await tmp.writeAsBytes(data, flush: true);
       if (file.existsSync()) {
@@ -573,6 +581,7 @@ class NoteBlockDocStore implements SessionSecretsHolder {
           throw FileSystemException('备份写入失败：$e', path);
         }
       }
+      await renameBarrierForTest?.call(id, tmp.path);
       try {
         await tmp.rename(path);
       } on FileSystemException {
@@ -583,6 +592,11 @@ class NoteBlockDocStore implements SessionSecretsHolder {
         await tmp.rename(path);
       }
     } catch (_) {
+      // 与画布腿同一条契约（批次 D 补）：第二次 rename 失败时正式文件已被删，
+      // 只剩 `.bak`——读路径能回退，但 `listDocHeaders` 只认 `.json`，于是这篇
+      // 从首页消失，同步侧「基线有、清单无」还会推导成用户删除并 `DELETE` 云端
+      // 副本。失败的写必须把上一版放回去。
+      _restoreFromBackup(file, hadPrevious);
       try {
         if (tmp.existsSync()) await tmp.delete();
       } catch (_) {
@@ -591,6 +605,24 @@ class NoteBlockDocStore implements SessionSecretsHolder {
       rethrow;
     }
     onWrite?.call();
+  }
+
+  /// 失败出口的回滚：只在 catch 分支执行，成功路径零额外 IO。
+  /// 用 `copy` 保留 `.bak`（读路径的兜底依赖它仍在）。
+  void _restoreFromBackup(File file, bool hadPrevious) {
+    if (!hadPrevious) return;
+    try {
+      if (file.existsSync()) return;
+      final bak = File('${file.path}.bak');
+      if (!bak.existsSync()) return;
+      bak.copySync(file.path);
+      AuditLogger.log(
+        'note_block_doc.write_rolled_back_from_backup',
+        detail: file.path.split(Platform.pathSeparator).last,
+      );
+    } catch (_) {
+      // 回滚失败不盖掉这次写入的原始异常。
+    }
   }
 
   /// 加载指定 ID 的块文档。不存在返回 null，损坏时尝试 .bak 恢复。

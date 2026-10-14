@@ -10,6 +10,42 @@
 - 「自愈」指**下一次正常操作会自动修正**，不是「人还能手动救」。
 - 故意不钉的断言会写明理由（见 §4）。
 
+## 0. 本批实测发现的一条数据丢失链（写这张矩阵的直接收获）
+
+**发现方式**：给 L1 补 (b)「改名失败」用例时，断言 `正式文件应等于上一版` 直接抛
+`PathNotFoundException` —— 文件根本不在盘上了。不是测试写错，是生产真的会这样。
+
+链条（Windows 为主，Linux 上 rename 直接覆盖成功所以走不到）：
+
+1. `replaceWithTemp`（`storage_write_pipeline.dart:318`）的兜底是「rename 被拒 ⇒
+   **删掉正式文件** ⇒ 再 rename」。第二次 rename 仍可能失败：句柄删除挂起期返回
+   ACCESS_DENIED(5)，代码把它当瞬态退避重试，5 次用尽后 rethrow。
+2. 此刻正式 `.json` 已没了，只剩刚写好的 `.bak`。
+3. 读路径能从 `.bak` 回退（`storage_service.dart:193`、`note_block_doc_store.dart`
+   的 `loadDocument`），所以**打开它还是好的**——正因如此这条链一直没被发现。
+4. 但 `listDocuments` / `listDocHeaders` **只认 `.json`**（`storage_service.dart:258`、
+   `note_block_doc_store.dart:315`）⇒ 这篇笔记从首页与搜索里消失。
+5. 首页消失还不是最坏的：同步侧 `listDocuments()` 的清单里没有它，而基线里有
+   ⇒ 走 `sync_service.dart:385` 的墓碑推导 ⇒ `deleteRemote` ⇒ **云端副本被真删**。
+   `note_block_doc_sync_store.dart` 里 DN-107 的注释写的正是这条推导——DN-107 修的是
+   「存在但解不开」，这次是同一个形状的**另一种成因**。
+
+⇒ 结论：**一次失败的保存，可以让一篇笔记从本地列表和云端一起消失**。
+
+**本批的处置**（两条腿同一出口，纯新增，只在 catch 分支跑，成功路径零额外 IO）：
+失败出口先把 `.bak` **复制**回正式文件（`_restoreFromBackup`，
+`storage_write_pipeline.dart` / `note_block_doc_store.dart` 各一份，同一形状），
+再清 tmp，再原样上抛；并在审计链留下 `*.write_rolled_back_from_backup`。
+用 `copy` 而不是 `rename`：`.bak` 是读路径的兜底依赖，回滚不该把另一份唯一副本吃掉
+（这一条由突变验证：改成 `rename` 后「`.bak` 仍在」的断言立刻红）。
+
+**仍然敞着的第二层**（本批没做，需要点头）：列表把「只有 `.bak`」这种情况当成
+「存在但读不出来」（DN-107 的口径）而不是「已删除」。它防的是**其它**让正式文件消失
+的成因（杀软隔离、手动改文件、恢复换根中途断电）。做之前要先确认删除路径是否
+总能把 `.bak` 一起清掉——否则「列出 `.bak`」会把用户真删掉的笔记复活
+（现有线索：`storage_trash_bin.dart:126` 删除时处理了 `.bak`，
+`notebook_storage_io.dart:99` 会记一条 `notebook.delete.bak_left`，块文档腿**尚未核实**）。
+
 ## 1. 四条本地写腿
 
 | # | 腿 | 写入契约 | 失败点 | 后果 | 现有用例 | 自愈 |
@@ -17,11 +53,21 @@
 | L1 | 文档正常保存 `StorageService.save` → `StorageWritePipeline.writeSealedBytes`（`lib/core/storage/storage_write_pipeline.dart:282`） | tmp 写 → copy `.bak` → `replaceWithTemp` | 备份位被占 | 抛错，正式文件未动，tmp 回收 | `test/core/storage/write_fault_injection_test.dart`「备份失败 ⇒ 抛错、原字节逐字节活着、不留 .tmp」 | 下一次保存正常落地上（同文件「解除阻塞后同一 id 必须还能写进去」） |
 | L1 | 同上 | 同上 | 备份位被占**连续多次** | 每次都必须回收自己的 tmp，不许累积半份内容 | 同文件「连续两次失败 + 一次成功」 | 同上 |
 | L1 | 同上 | `replaceWithTemp:318` | rename 被拒 + 目标仍在 ⇒ 删除-换入回退 | 崩溃窗口落在「已删目标、未换入」之间 | 仅 `test/core/storage/storage_encryption_test.dart:225`（Windows-only，验的是**退避重试自愈**，成功分支没单独断言） | `.bak` 仍在 ⇒ 读路径回落 |
-| L1 | 同上 | 同上 | rename 失败且**没有** `.bak`（首写） | 正式文件消失 | **未覆盖**（需要注入口，见 §3-B） | 无（首写失败等于这次编辑丢了） |
+| L1 | 同上 | 同上 | rename 失败且**没有** `.bak`（首写） | 这次编辑确实丢失，但盘上不留半份文件骗过下一次读 | `write_fault_injection_test.dart`「(b2) 首写就撞上改名失败」 | 无（如实记录：首写失败就是丢内容） |
 | L2 | 画布懒迁移 `enqueueRawRewrite` | 走同一条 L1 契约（批次 C 收口） | 密封之后、落盘之前盘上内容被改/被删 | 不复查就会反超那次改写或复活已删笔记 | `test/storage_staleness_guards_test.dart:139,154,174`（时序屏障 `rewriteBarrierForTest`） | 下轮列表时重新判定 |
 | L3 | 块文档 `NoteBlockDocStore._writeFileAtomic` | tmp → rename | 备份失败 / 屏障内改写 | 明文原件字节必须原样活着 | `test/core/documents/block_doc_write_path_contract_test.dart:108,139,158,182,209` | 迁移放弃 ≠ 放弃：`:209` 反向锁「障碍移除后照常完成」 |
 | L4 | 操作日志侧车 `OperationLogStore._writeAtomic`（`lib/core/operation/operation_log_store.dart:239`） | tmp → rename，**刻意没有删除-换入回退** | 改名前崩溃 / 改名后崩溃 | 上一份逐字节不变 + 无 tmp 残留 / 读回恰为新内容无半行 | `test/core/operation/operation_log_store_test.dart`「窗口 1」「窗口 2」 | 侧车可再生：少一次追加不伤文档本体 |
 | L5 | 分页画布载荷 `EncryptedWriteTransaction`（`lib/infrastructure/storage/v2/encrypted_write_transaction.dart:61`） | 自己的 tmp/`.bak` 事务（**不共用 L1 契约**） | 备份失败 → `BackupFailedException`（`:27`） | 主文件保留 | `test/security/encrypted_write_transaction_test.dart:22(S-001),45(S-002),82(S-003),104(S-004)` | 下一次提交重来 |
+
+**补上 (a)/(b) 之后新增的行**（同一天，钩子见 §3-A/B）：
+
+| # | 窗口 | 注入方式 | 用例 | 主张 |
+|---|---|---|---|---|
+| L1 | tmp 第一笔字节就失败 | `tmpPathObserverForTest` 把 tmp 路径占成目录 | `write_fault_injection_test.dart`「(a) …」 | 抛错；正式文件一字节没动；**此时不该有 `.bak`**（备份排在 tmp 之后）；不留 tmp |
+| L1 | 改名这一步失败（已有上一版） | `renameBarrierForTest` 移走 tmp | 同文件「(b) …」 | 上一版逐字节活着 + `.bak` 正是被保住的 v2 + **回滚把正式文件放回** + 审计留痕 |
+| L1 | 改名失败且是首写 | 同上 | 同文件「(b2) …」 | 没有半份文件、没有 `.bak`、没有 tmp（这次编辑确实丢了，如实记录） |
+| L3 | 改名失败（块文档，喂同步的那条腿） | `NoteBlockDocStore.renameBarrierForTest` | `test/core/documents/block_doc_write_rollback_test.dart`（3 条） | 回滚 + 列表**仍看得见这篇**（列表可见性就是这条链的终点）；反向锁：成功写入绝不触发回滚 |
+| L4 | 改名失败（操作日志侧车） | 已有的 `writeBarrierForTest` 里移走 tmp | `operation_log_store_test.dart`「改名这一步真失败」 | 上一份侧车逐字节不变、不留 tmp、队列没被毒住（摘掉屏障后还能追加） |
 
 ⇒ L5 是这张表里唯一一条**另写了一套事务**的腿。批次 C 的统一契约没有覆盖它，
 不是遗漏的缺陷，是还没并轨的既有实现（合并它需要在 L5 上做一轮等价性验证）。
@@ -39,14 +85,21 @@
 
 ## 3. 未覆盖的窗口（下一批的排期，每格都写了它卡在哪）
 
-- **A. tmp 写入本身抛错**（磁盘满 / 权限 / 杀软占用新建文件）：四条腿里没有任何一条
-  在 tmp `writeAsBytes` 处有注入口。`S-004` 挨着但不是同一窗口——它在**封包阶段**
-  因无效密钥抛错，那时 tmp 还没创建。补法要么给 L1/L3 各加一个
-  `@visibleForTesting` 钩子（沿用已成立的 `rewriteBarrierForTest` /
-  `writeBarrierForTest` 命名与「生产恒 null」纪律），要么写 `IOOverrides` 委托
-  `File`——后者不可行：`dart:io` 的 `File` 没有可委托基类，要实现整个 API 面。
-- **B. rename 真失败**（不是屏障里抛，而是 `File.rename` 自己抛）：同 A 的注入口问题；
-  且 Windows 的删除-换入**成功**分支只有 Windows 能验，CI 是 Linux ⇒ 该用例会被 skip。
+- **A. tmp 写入本身抛错**（磁盘满 / 权限 / 杀软抢占新建文件）：**已闭合**。注入口用
+  `@visibleForTesting tmpPathObserverForTest`（`storage_write_pipeline.dart:69`，同处另有
+  `renameBarrierForTest:76`；块文档腿的同名钩子在 `note_block_doc_store.dart:102`）——
+  它在 tmp 路径算出来之后、写第一笔字节之前同步回调，测试据此把该路径占成目录，
+  于是 `writeAsBytes` 确定失败。选它而不是 `IOOverrides`：`dart:io` 的 `File` 没有
+  可委托基类，委托等于重写整个 API 面。用例：
+  `test/core/storage/write_fault_injection_test.dart`「(a) tmp 写第一笔字节就失败」，
+  并断言此时**不该有 `.bak`**（备份排在 tmp 之后）。
+- **B. 改名这一步真失败**：**已闭合**（`renameBarrierForTest`，画布腿与块文档腿各一份，
+  侧车腿复用已有的 `writeBarrierForTest`）。注入的是**等价类**而不是真实共享冲突：
+  屏障里把 tmp 移走 ⇒ rename 抛错，Linux 与 Windows 同判，所以 CI 上也真跑。
+  真实句柄冲突那一格仍由 `storage_encryption_test.dart:225` 覆盖（Windows-only，
+  Linux 上 skip），两条不互相顶替。用例见 (b)/(b2) 与
+  `test/core/documents/block_doc_write_rollback_test.dart`、
+  `operation_log_store_test.dart`「改名这一步真失败」。
 - **C. 写完不回读**：四条腿都不做写后校验（读回比对）。这是**代码缺口**而不是测试
   缺口——加它等于每次保存多读一遍整个文件（大画布/低内存机器上是可感知的成本）。
   取舍要业主点头。

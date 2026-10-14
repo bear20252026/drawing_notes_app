@@ -14,11 +14,16 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
+import 'package:drawing_notes_app/core/storage/storage_directories.dart';
+import 'package:drawing_notes_app/core/storage/storage_secret_session.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
+import 'package:drawing_notes_app/core/storage/storage_write_pipeline.dart';
 
 import '../../helpers/temp_dir_cleanup.dart';
 
@@ -161,7 +166,9 @@ void main() {
       );
       final loaded = await repo.load('residue_a');
       expect(loaded?.title, '真文档');
-      expect(loaded?.id, 'residue_a');      // 残留存在时，新的成功保存照样按正常契约落盘（不被半份内容干扰）。
+      expect(loaded?.id, 'residue_a');
+
+      // 残留存在时，新的成功保存照样按正常契约落盘（不被半份内容干扰）。
       await repo.save(doc('residue_a', '保存后的'));
       expect(
         utf8.decode(File(pathOf('residue_a')).readAsBytesSync()),
@@ -182,6 +189,119 @@ void main() {
         repo.load('residue_b.json.whatever.tmp'),
         throwsA(isA<ArgumentError>()),
       );
+    });
+  });
+  // 故障注入钩子挂在 StorageWritePipeline 上，所以这一组直接驱动
+  // `writeSealedBytes`——走 StorageService 反而碰不到它（那条只是调用方之一）。
+  group('批次 D 故障注入：tmp 第一笔字节 与 改名换入 这两格', () {
+    late StorageWritePipeline pipeline;
+
+    setUp(() async {
+      final dirs = StorageDirectories(directoryProvider: () async => tempDir);
+      await dirs.ensureDocuments();
+      // 不给 keyProvider：本组验的是文件面，明文最便于逐字节断言。
+      pipeline = StorageWritePipeline(
+        directories: dirs,
+        secrets: StorageSecretSession(),
+        keyProvider: null,
+      );
+    });
+
+    tearDown(() {
+      pipeline.tmpPathObserverForTest = null;
+      pipeline.renameBarrierForTest = null;
+    });
+
+    Uint8List bytesOf(String marker) =>
+        Uint8List.fromList(utf8.encode('{"marker":"$marker"}'));
+
+    test('(a) tmp 写第一笔字节就失败 ⇒ 抛错、原文件没动、既不建 .bak 也不留 tmp', () async {
+      await pipeline.writeSealedBytes('inj_a', bytesOf('v1'));
+      final path = pathOf('inj_a');
+      final before = File(path).readAsBytesSync();
+
+      String? observed;
+      pipeline.tmpPathObserverForTest = (id, tmpPath) {
+        observed = tmpPath;
+        // 把 tmp 路径占成目录 ⇒ writeAsBytes 必失败。代表的等价类是
+        // 「磁盘满 / 目录权限 / 杀软抢占新建文件」，不是特指某一种。
+        Directory(tmpPath).createSync(recursive: true);
+      };
+
+      await expectLater(
+        pipeline.writeSealedBytes('inj_a', bytesOf('v2')),
+        throwsA(isA<FileSystemException>()),
+      );
+      expect(observed, isNotNull, reason: '钩子没被调到 = 这条用例什么都没验');
+
+      // 收拾本用例自己造的占位目录（生产不会造它，它也不是数据）。
+      final blocker = Directory(observed!);
+      if (blocker.existsSync()) blocker.deleteSync();
+
+      expect(File(path).readAsBytesSync(), equals(before));
+      expect(
+        File('$path.bak').existsSync(),
+        isFalse,
+        reason: '备份排在 tmp 之后：tmp 都没写成，就不该凭空多出一份 .bak',
+      );
+      expect(tmpResidue(), isEmpty);
+    });
+
+    test('(b) 改名失败 ⇒ 上一版逐字节活着、tmp 被回收、.bak 正是这一版', () async {
+      await pipeline.writeSealedBytes('inj_b', bytesOf('v1'));
+      await pipeline.writeSealedBytes('inj_b', bytesOf('v2'));
+      final path = pathOf('inj_b');
+      final v2 = File(path).readAsBytesSync();
+      AuditLogger.clear();
+
+      pipeline.renameBarrierForTest = (id, tmpPath) async {
+        // 制造 rename 失败的**等价类**：把 tmp 移走 ⇒ rename 抛错，Linux 与
+        // Windows 同判。真实共享冲突那一格由 storage_encryption_test:225 的
+        // Windows 用例覆盖（它只在 Windows 上跑），两条不互相顶替。
+        File(tmpPath).deleteSync();
+      };
+
+      await expectLater(
+        pipeline.writeSealedBytes('inj_b', bytesOf('v3')),
+        throwsA(isA<FileSystemException>()),
+      );
+
+      expect(
+        File(path).readAsBytesSync(),
+        equals(v2),
+        reason: '换入失败绝不能把上一版一起带走',
+      );
+      expect(tmpResidue(), isEmpty);
+      expect(
+        File('$path.bak').readAsBytesSync(),
+        equals(v2),
+        reason: '备份先于换入：出事的这一刻 .bak 里必须正好是被保住的 v2',
+      );
+      expect(
+        AuditLogger.snapshot().any(
+          (l) => l.contains('storage.write_rolled_back_from_backup'),
+        ),
+        isTrue,
+        reason: '兜底删过正式文件又换入失败 ⇒ 必须由回滚放回去，且留下可诊断痕迹',
+      );
+    });
+
+    test('(b2) 首写就撞上改名失败 ⇒ 盘上没有半份文件，也没有 .bak 与 tmp', () async {
+      // 诚实记录后果：这一笔新内容**确实丢了**（没有上一版可保）。本用例主张的是
+      // 「不留下半份文件骗过下一次读」，不是「不丢数据」。
+      pipeline.renameBarrierForTest = (id, tmpPath) async {
+        File(tmpPath).deleteSync();
+      };
+
+      await expectLater(
+        pipeline.writeSealedBytes('inj_c', bytesOf('only')),
+        throwsA(isA<FileSystemException>()),
+      );
+
+      expect(File(pathOf('inj_c')).existsSync(), isFalse);
+      expect(File('${pathOf('inj_c')}.bak').existsSync(), isFalse);
+      expect(tmpResidue(), isEmpty);
+      expect(await repo.load('inj_c'), isNull);
     });
   });
 }

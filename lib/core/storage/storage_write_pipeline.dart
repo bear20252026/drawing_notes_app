@@ -60,6 +60,21 @@ class StorageWritePipeline {
   @visibleForTesting
   Future<void> Function(String id)? rewriteBarrierForTest;
 
+  /// 批次 D 故障注入（一）：在 tmp 路径**算出来之后、写第一笔字节之前**同步回调。
+  /// 测试据此把 tmp 路径占成目录，于是 `tmp.writeAsBytes` 确定地失败——代表的
+  /// 等价类是「磁盘满 / 目录权限 / 杀软抢占新建文件」。没有这个观察点就只能猜
+  /// 随机 tmp 名，注入永远是偶发的。
+  /// 生产恒 null（一次 null 判定，零开销），且它只做观察、不改任何数据。
+  @visibleForTesting
+  void Function(String id, String tmpPath)? tmpPathObserverForTest;
+
+  /// 批次 D 故障注入（二）：在**备份已落盘**与**改名换入**之间 await。测试据此
+  /// 确定地停在「tmp 完整、尚未换入」那一格，并可把 tmp 移走来制造改名失败
+  /// （rename 对不存在的路径在 Linux 与 Windows 上同判抛错）。
+  /// 与 [rewriteBarrierForTest] 同一纪律：不靠调度碰运气；生产恒 null。
+  @visibleForTesting
+  Future<void> Function(String id, String tmpPath)? renameBarrierForTest;
+
   /// isolate 加密封包的字节阈值：小于该值时主线程同步封包（isolate
   /// 拷贝往返开销大于收益），大载荷移入 isolate 避免 UI 掉帧。
   static const int isolateSealThreshold = 64 * 1024;
@@ -283,7 +298,10 @@ class StorageWritePipeline {
     await directories.ensureDocuments();
     final finalFile = File(directories.documentPathFor(id));
     final tmp = File('${finalFile.path}.${LocalIdGenerator.next('write')}.tmp');
+    // 回滚的前提：这次写入**之前**盘上有没有一份正式版。没有上一版就无从回滚。
+    final hadPrevious = finalFile.existsSync();
     try {
+      tmpPathObserverForTest?.call(id, tmp.path);
       await tmp.writeAsBytes(sealed, flush: true);
 
       // 备份上一版：若平台不允许直接覆盖目标文件，恢复路径仍保留上一份
@@ -295,14 +313,46 @@ class StorageWritePipeline {
           throw FileSystemException('备份写入失败：$e', finalFile.path);
         }
       }
+      await renameBarrierForTest?.call(id, tmp.path);
       await replaceWithTemp(tmp, finalFile);
     } catch (_) {
+      // 顺序很重要：先把上一版放回去，再清临时文件，最后原样上抛。
+      _restoreFromBackup(finalFile, hadPrevious);
       try {
         if (tmp.existsSync()) await tmp.delete();
       } catch (_) {
         // 清理失败不覆盖原始存储异常。
       }
       rethrow;
+    }
+  }
+
+  /// 失败出口的回滚（批次 D 实测发现，同步侧后果见 `note_block_doc_sync_store`
+  /// 的 DN-107 注释）。
+  ///
+  /// Windows 那条兜底是「rename 被拒 ⇒ **先删目标** ⇒ 再 rename」。第二次 rename
+  /// 仍可能失败（句柄删除挂起期返回 ACCESS_DENIED，退避 5 次后用尽），那时
+  /// 正式文件已经被删掉，盘上只剩 `.bak`。读路径确实能从 `.bak` 打开，
+  /// 但**列表只认 `.json`**：这篇笔记于是从首页与搜索里消失；而同步侧看到的形状是
+  /// 「基线有、本次清单无」⇒ 推导成用户删除 ⇒ 真的 `DELETE` 云端副本——一次失败的
+  /// 保存就变成云端数据丢失。DN-107 堵的是「存在但解不开」，这条是同一形状的另一种成因。
+  ///
+  /// 用 `copy` 而不是 `rename`：`.bak` 是这次写入刚刚做出来的上一版，回滚之后
+  /// 两份都该留着（读路径的兜底依赖 `.bak` 仍在）。只在 catch 分支执行，
+  /// 成功路径零额外 IO。
+  void _restoreFromBackup(File finalFile, bool hadPrevious) {
+    if (!hadPrevious) return;
+    try {
+      if (finalFile.existsSync()) return;
+      final bak = File('${finalFile.path}.bak');
+      if (!bak.existsSync()) return;
+      bak.copySync(finalFile.path);
+      AuditLogger.log(
+        'storage.write_rolled_back_from_backup',
+        detail: finalFile.path.split(Platform.pathSeparator).last,
+      );
+    } catch (_) {
+      // 回滚本身失败不能盖掉这次保存失败的原始异常——原因必须仍然查得到。
     }
   }
 
