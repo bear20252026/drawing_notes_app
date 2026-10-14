@@ -604,6 +604,7 @@ Rust / yjs / dart:ffi 三侧的整份转储 **5231 B 且 SHA-256 相同**（`6fa
 |---|---|
 | `get_publish_status(25b00a58-3f8d-430a-8769-2d61e2a9ee18)` | `sites_action_unavailable` |
 | `get_site(01a1300f-42c9-7225-b774-3df286e7c74e)` | `sites_request_failed` |
+| `get_project(01a1300f-42c8-7546-86bd-381a3e76a4ea)` | `sites_request_failed`（项目级读同样取不到） |
 | `get_local_context()` | 站点描述符在盘上，但被标为 `unavailableSites: sites_request_failed` |
 | `list_sites()` | 返回空列表（不报错）——与上一条并读，不能当成「账号下没有站点」 |
 
