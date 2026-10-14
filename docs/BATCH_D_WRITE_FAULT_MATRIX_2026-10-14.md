@@ -117,7 +117,28 @@
   **「残留不碍事」**，并在注释里点明这一点。
 - 「任何写入都会回读校验」。生产里没有这件事（§3-C），测试不许假装它存在。
 
-## 5. 这一批怎么做才算数（复现步骤）
+## 5. 删除路径的侧车（本批逐条核实的结果，任务 #23）
+
+矩阵本来只覆盖写，但 §3 那条「只剩 `.bak`」把删除也拖进来了：想让列表把侧车当存在，
+前提是**用户主动删除后侧车一定不残留**。逐条核实后这个前提**不成立**，所以放宽列表
+语义的做法被否决，改成把删除本身的四个漏口堵掉。
+
+| 位置 | 以前的行为 | 后果 | 现在 |
+|---|---|---|---|
+| `storage_trash_bin.dart` 入口 | `if (!file.existsSync()) return false` | 只剩侧车 ⇒ **删不掉**，种子原地留着 | 侧车也算源：搬进回收站并清干净（用例：`trash_delete_bak_test.dart`） |
+| `storage_trash_bin.dart` 侧车删除 | 正文已 rename **之后**裸 `await backup.delete()` | 抛出 ⇒ 调用方看到「删除失败」，文档却已消失 | 收进 try + 审计 `trash.delete.bak_left` |
+| `note_block_doc_store_trash.dart` 入口 | 同上早退 | 同上（这一族还喂同步，形状是「基线有、清单无」⇒ 云端 `DELETE`） | 同上（用例：`block_doc_delete_bak_test.dart`） |
+| `note_block_doc_store_trash.dart` rename 失败的回退分支 | 直接 `return true`，**没调** `_removeBak` | 用户删进回收站了，盘上还留一份 `.bak` | 回退分支也清侧车 |
+| `_removeBak` | `catch (_) { // 忽略 }` | 静默失败 = 没人知道这里着过火 | 落审计 `note_block_doc.delete.bak_left` |
+| notebook 家族 | 本来就是「正文或侧车都算存在、删就一起删、失败落审计」 | — | 只改了一句**错注释**（原文写「旧备份不再参与加载」，而 `notebook_storage.dart:224` 确实会回退读 `.bak`） |
+
+**仍未修（单独开卡）**：`storage_media_store.dart:237` 的托管图片回收同样只认 `.json`
+且不读侧车 ⇒ 处于「只剩侧车」形态的画布，其图片会被当无引用孤儿**回收掉**，
+而正文还活在 `.bak` 里（能读回来）——图片真没了、文字回来了，一致性被撕开。
+本批已经把制造这种形态的主要成因堵住（失败回滚 + 残留可删），这条是残留形态下的
+二次伤害，动的是资产 GC 这种破坏性路径，需要自己的用例与突变自证。
+
+## 6. 这一批怎么做才算数（复现步骤）
 
 1. `cd drawing_notes_app`
 2. `NO_PROXY=127.0.0.1,localhost flutter analyze` ⇒ 必须 `No issues found`

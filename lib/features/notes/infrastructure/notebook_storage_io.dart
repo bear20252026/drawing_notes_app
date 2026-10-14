@@ -94,8 +94,10 @@ extension _NotebookStorageIo on NotebookStorage {
       try {
         await backup.delete();
       } catch (_) {
-        // 主文件已删、加载路径只认主文件优先，旧备份不再参与加载；
-        // 残留含旧内容（隐私），落审计日志供排查。
+        // 这条失败**不是无害的**：主文件已删而侧车还在，`load()` 会凭 `.bak`
+        // 把这个已删除的笔记本再读出来（见 notebook_storage.dart 的 .bak 兜底），
+        // 下次删除或换根恢复都可能把它带回来。旧注释写「不再参与加载」是错的，
+        // 现在改成留审计、由下一次删除再清。
         AuditLogger.log('notebook.delete.bak_left', success: false);
       }
     }

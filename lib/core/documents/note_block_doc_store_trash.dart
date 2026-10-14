@@ -90,8 +90,15 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
       _enqueue(pageId, () => _deleteDocumentLocked(pageId));
 
   Future<bool> _deleteDocumentLocked(String pageId) async {
-    final active = File(await _pathFor(pageId));
-    if (!active.existsSync()) return false;
+    final path = await _pathFor(pageId);
+    final active = File(path);
+    // 「正式文件没了、只剩 `.bak`」是**一篇存在的笔记**——`loadDocument` 就会从
+    // 它的 `.bak` 兜底把它读出来。旧写法在这里直接 return false，于是这篇既删不掉
+    // 也永不消失：列表与同步清单只认 `.json` 看不见它，而基线里有它 ⇒ 被推成
+    // 「用户删除」⇒ 云端副本收到 DELETE。正确语义是「要删的就是这一份」：
+    // 把侧车当源移进回收站，并且不再留下任何副本。
+    final backup = File('$path.bak');
+    if (!active.existsSync() && !backup.existsSync()) return false;
     final trashFile = await _trashPathFor(pageId);
     final metaFile = File('$trashFile.meta.json');
     final metaTmp = File('$trashFile.meta.tmp');
@@ -101,7 +108,8 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
     );
     await metaTmp.rename(metaFile.path);
     try {
-      await active.rename(trashFile);
+      // 主文件在就搬主文件；只剩侧车时搬侧车（两条路都不留第二份）。
+      await (active.existsSync() ? active : backup).rename(trashFile);
     } on FileSystemException {
       // 回退：读内容→写 envelope→删激活（非原子，仅 rename 不可用时）
       final doc = await loadDocument(pageId);
@@ -116,6 +124,8 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
       );
       await tmp.rename(trashFile);
       await _removeActiveFiles(pageId);
+      // 这条腿以前**没有**清侧车：用户已经删进回收站了，盘上却还留着一份 `.bak`。
+      await _removeBak(pageId);
       onWrite?.call();
       return true;
     }
@@ -125,12 +135,19 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
     return true;
   }
 
+  /// 删掉侧车 `.bak`。失败**必须留痕**，不能静默忽略：删过的笔记留着侧车就是一颗
+  /// 定时复活的种子（列表看不见它而基线里有它 ⇒ 同步推成删除 ⇒ 云端被清；而恢复
+  /// 换根或外部工具若把侧车当正文读回，又会把已删内容带回来）。
   Future<void> _removeBak(String pageId) async {
     try {
       final backup = File('${await _pathFor(pageId)}.bak');
       if (backup.existsSync()) await backup.delete();
-    } catch (_) {
-      // 备份删除失败忽略
+    } catch (e) {
+      AuditLogger.log(
+        'note_block_doc.delete.bak_left',
+        success: false,
+        detail: e.runtimeType.toString(),
+      );
     }
   }
 

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/storage/document_codec.dart';
 import 'package:drawing_notes_app/core/storage/storage_directories.dart';
 import 'package:drawing_notes_app/core/storage/storage_media_store.dart';
@@ -94,12 +95,17 @@ class StorageTrashBin {
   Future<bool> deleteDocumentToTrash(String id) async {
     await directories.ensureDocuments();
     final file = File(directories.documentPathFor(id));
-    if (!file.existsSync()) return false;
+    final backup = File('${file.path}.bak');
+    // 只剩侧车也算这篇存在（`StorageService.load` 会回退读 `.bak`）：旧写法在这里
+    // return false ⇒ 它既删不掉，又会通过「基线有、清单无」被同步推成用户删除并
+    // DELETE 云端副本。源按可得性取，两条路都不留第二份。
+    if (!file.existsSync() && !backup.existsSync()) return false;
+    final source = file.existsSync() ? file : backup;
 
     // 必须在删除主文件前读取其引用；无法读取时不进行资产回收，保证数据安全。
     DrawingDocument? document;
     try {
-      var raw = await file.readAsBytes();
+      var raw = await source.readAsBytes();
       if (VaultFileCodec.isEncrypted(raw)) {
         final key = await pipeline.currentKey();
         // 锁定/无密钥：解不开就不读——文档置 null，保守跳过资产回收。
@@ -119,13 +125,23 @@ class StorageTrashBin {
     // M-06 修复（专家审计 2026-08-15）：删除移入回收站（30 天保留——
     // Android 官方 createTrashRequest 模式），非永久删除——误删可恢复。
     final trashDir = await directories.ensureTrash();
-    await file.rename(
+    await source.rename(
       '${trashDir.path}${Platform.pathSeparator}'
       '${id}_${DateTime.now().millisecondsSinceEpoch}.json',
     );
-    final backup = File('${file.path}.bak');
-    if (backup.existsSync()) {
-      await backup.delete();
+    // 侧车清理失败绝不能把这次删除整个打断：主文件此刻**已经**在回收站里了。
+    // 旧写法让 backup.delete() 的异常向外冒 ⇒ 调用方看到「删除失败」而文档已经
+    // 消失，残留的 `.bak` 还留在原地当复活种子。
+    try {
+      if (backup.existsSync()) {
+        await backup.delete();
+      }
+    } catch (e) {
+      AuditLogger.log(
+        'trash.delete.bak_left',
+        success: false,
+        detail: e.runtimeType.toString(),
+      );
     }
 
     // 清理缩略图（尽力而为，缩略图缺失不影响使用）。
