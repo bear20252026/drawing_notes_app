@@ -523,6 +523,12 @@ Cloudflare 边缘 + 域名 + Origin 证书、一个已在生产的 S3 兼容对�
 编译产物和临时密钥，不进版本库、不进 CI、不上车（已在 `analysis_options.yaml` 的
 `analyzer.exclude` 里点名，避免它们的 `print` 混进 lint 计数）。
 
+⇒ 这与 §7.1 当初是同一个形状的后果：**`run.sh` 与两条 Spike B 探针只有本机一份**，
+本节记下的是数字，不是可 checkout 的证据。要不要把 spike 代码入库，得先排除
+`yw.gz`（6 MB 下载缓存）、`node_modules/`、`.env_probe*`（临时密钥），并且要过
+Code Guard 的目录/行数结构门禁——属结构决定，等业主点头，本轮没动。
+（一次性突变跑批脚本也一并挪进来了：`spikes/mutation_proof_a2.py`，同样 untracked。）
+
 ### 12.1 Spike A（Dart ↔ Yrs 桥）——GO，但中继有三条硬约束
 
 复现：`spikes/spike_a_yrs/run.sh`（夹具 → rust build → js build → rust merge → js merge →
