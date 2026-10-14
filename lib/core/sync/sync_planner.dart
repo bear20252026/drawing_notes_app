@@ -82,7 +82,12 @@ class SyncSnapshot {
 /// 缺字段一律按「无因果」处理，绝不按「异常」处理（DN-206 同一纪律）：混合
 /// 版本集群里旧客户端既不写也不读这块，行为与今天逐字节一致。
 class SyncTombstone {
-  const SyncTombstone({required this.id, this.deletedAt, this.baseRev});
+  const SyncTombstone({
+    required this.id,
+    this.deletedAt,
+    this.baseRev,
+    this.baseSize,
+  });
 
   final String id;
 
@@ -92,9 +97,20 @@ class SyncTombstone {
 
   /// 因果锚：这次删除作用在**哪一版之上**（生成墓碑时基线里那一条的
   /// `updatedAt`）。有了它，另一端手里的副本才可能被判成「删除之前的旧版」
-  /// 而不是「删除之后的新改」。本轮只写不读——读它的那条腿是「按删除把本地
-  /// 那份也去掉」，那会移除用户内容，须单独确认后再做（A3 第二条腿）。
+  /// 而不是「删除之后的新改」。
+  ///
+  /// 它是**不需要自己基线**就能成立的判据：`updatedAt` 是文档自己的字段，
+  /// 同步过之后两端拿到的是同一个数（不是判定时各读各的钟），所以「我手里这版
+  /// 的 updatedAt 正等于被删那一版」是跨设备可比的因果事实。A3-2 的「不复活」
+  /// 就落在这条判据上。
   final int? baseRev;
+
+  /// 因果锚的第二条腿：被删那一版的字节数。只比 `baseRev` 的话，「另一端在同一
+  /// 毫秒又存了一次、大小恰好没变」的真编辑会被误判成旧副本而被按住不上传；
+  /// 要求两项都吻合之后，这条判据的假阳性面就窄到与结构判据同级。
+  /// 缺字段（旧客户端写的清单）⇒ 退回只比时间戳，并由 [RemoteDeleteProof]
+  /// 一侧如实记录证据强弱。
+  final int? baseSize;
 
   /// 留存裁剪排序键：缺时间戳（旧清单 / 来路不明）按最旧处理——宁可先淘汰
   /// 信息不全的那条，也不因为「不知道」就把它当成最新的留下。
@@ -104,23 +120,30 @@ class SyncTombstone {
   /// 写出它只会把清单撑大）。
   bool get hasCausality => deletedAt != null || baseRev != null;
 
+  /// 这份墓碑能不能支撑「对方手里就是被删那一版」的因果判定。
+  bool get hasRevisionAnchor => baseRev != null;
+
   Map<String, dynamic> toJson() => {
     'id': id,
     if (deletedAt != null) 'deletedAt': deletedAt,
     if (baseRev != null) 'baseRev': baseRev,
+    if (baseSize != null) 'baseSize': baseSize,
   };
 
   factory SyncTombstone.fromJson(String id, Map<String, dynamic> json) {
     final deletedAt = json['deletedAt'];
     final baseRev = json['baseRev'];
+    final baseSize = json['baseSize'];
     if ((deletedAt != null && deletedAt is! int) ||
-        (baseRev != null && baseRev is! int)) {
+        (baseRev != null && baseRev is! int) ||
+        (baseSize != null && baseSize is! int)) {
       throw const FormatException('远端清单墓碑格式损坏');
     }
     return SyncTombstone(
       id: id,
       deletedAt: deletedAt as int?,
       baseRev: baseRev as int?,
+      baseSize: baseSize as int?,
     );
   }
 
@@ -131,15 +154,17 @@ class SyncTombstone {
           runtimeType == other.runtimeType &&
           id == other.id &&
           deletedAt == other.deletedAt &&
-          baseRev == other.baseRev;
+          baseRev == other.baseRev &&
+          baseSize == other.baseSize;
 
   @override
-  int get hashCode => Object.hash(id, deletedAt, baseRev);
+  int get hashCode => Object.hash(id, deletedAt, baseRev, baseSize);
 
   @override
   String toString() =>
       'SyncTombstone(id: $id${deletedAt == null ? '' : ', deletedAt: $deletedAt'}'
-      '${baseRev == null ? '' : ', baseRev: $baseRev'})';
+      '${baseRev == null ? '' : ', baseRev: $baseRev'}'
+      '${baseSize == null ? '' : ', baseSize: $baseSize'})';
 }
 
 /// 同步清单：文档集 + 本地删除墓碑（可选带因果）。

@@ -3456,6 +3456,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String syncResurrectionHeld(int count) {
+    return '；$count 篇笔记云端已删除，而本机留着的正是被删的那一版：这些没有再推上云端。本机没有删掉任何东西——本地副本原样保留，你不处理的话这条提示每轮都会继续出现';
+  }
+
+  @override
   String get budgetTruncatedTitle => '画布内容比磁盘上的原文件少';
 
   @override

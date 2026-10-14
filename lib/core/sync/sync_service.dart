@@ -26,6 +26,7 @@ import 'package:drawing_notes_app/core/sync/sync_progress.dart';
 // SyncService 的私有成员，同库 part 可见，行为与拆分前逐字节一致。
 part 'sync_service_conditional_write.dart';
 part 'sync_service_post_restore.dart';
+part 'sync_service_resurrection.dart';
 
 /// 一个待同步文档的元数据（用于构成本地 manifest）。
 class SyncDocMeta {
@@ -116,6 +117,7 @@ class SyncResult {
     this.postRestorePolicy,
     this.postRestoreDiff,
     this.remoteDeletes = const [],
+    this.resurrectionSuppressedDocIds = const [],
   });
 
   final int uploaded;
@@ -190,6 +192,14 @@ class SyncResult {
   /// 恒为空——那轮的基线不描述当前数据根，拿它判「本地一字未动」会造假红。
   final List<RemoteDeleteIssue> remoteDeletes;
 
+  /// A3-2（甲）：本轮被按住的「复活上传」——云端已删除、而本地这一份经证明只是
+  /// 删除前的旧副本（见 [RemoteDeleteProof]）。
+  ///
+  /// 说清它**不是**什么：不是失败、不是跳过（那两类都有各自的集合与语义），也不
+  /// 是本地删除——本机那篇文档原样留着。它就是「按删除的意图不再往上推」，
+  /// 每轮都会重新报一次，直到用户自己处理那篇本地副本为止。
+  final List<String> resurrectionSuppressedDocIds;
+
   bool get changed => uploaded > 0 || downloaded > 0 || deletedRemote > 0;
 
   @override
@@ -201,7 +211,9 @@ class SyncResult {
       'skippedMissing=${skippedMissingDocIds.length}, '
       'remoteChanged=${remoteChangedDocIds.length}, '
       'unconditionalWrite=$conditionalWritesUnavailable, '
-      'postRestore=${postRestorePolicy?.name ?? 'none'})';
+      'postRestore=${postRestorePolicy?.name ?? 'none'}, '
+      'remoteDeleted=${remoteDeletes.length}, '
+      'resurrectionHeld=${resurrectionSuppressedDocIds.length})';
 }
 
 /// 单轮执行结果（M2：成功与失败的操作分离，清单回写只认成功项）。
@@ -422,6 +434,7 @@ class SyncService {
         id: id,
         deletedAt: tombstoneStampMs,
         baseRev: removed?.updatedAt,
+        baseSize: removed?.size,
       );
     }
     final localManifest = SyncManifest(
@@ -482,11 +495,14 @@ class SyncService {
                   op,
             ],
           );
+    // A3-2（甲，任务 #22）：云端已删除、本地只剩删除前旧副本的那些，**不再推回去**。
+    // 本地文件一个字节都不动；被按住的 id 进 SyncResult，让这件事每轮都看得见。
+    final held = _holdStaleResurrections(guardedPlan, remoteDeletes);
     // DN-204：隔离态下按用户裁决的方向过滤。**删除墓碑任何方向都不放行**——
     // 它来自一份不描述当前数据根的基线，不是用户的删除意图。
     final plan = policy == null
-        ? guardedPlan
-        : _applyReconcile(guardedPlan, policy, currentEntries);
+        ? held.plan
+        : _applyReconcile(held.plan, policy, currentEntries);
 
     // 5. 执行（M2：单操作隔离——失败/跳过项记入 outcome，不中断整轮）。
     final executed = await _execute(plan);
@@ -685,6 +701,7 @@ class SyncService {
       remoteChangedDocIds: List.unmodifiable(executed.remoteChangedIds),
       conditionalWritesUnavailable: executed.conditionalWritesUnavailable,
       remoteDeletes: remoteDeletes,
+      resurrectionSuppressedDocIds: held.suppressedIds,
       postRestorePolicy: policy,
       postRestoreDiff: policy == null
           ? null

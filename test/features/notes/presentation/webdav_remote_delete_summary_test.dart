@@ -31,6 +31,7 @@ const _secretsReady = SyncSecrets(webdavPassword: 'w', syncPassphrase: 'p');
 const _stale = RemoteDeleteIssue(
   docId: 'stale',
   kind: RemoteDeleteKind.staleCopy,
+  proof: RemoteDeleteProof.baselineUnchanged,
   localUpdatedAt: 200,
   localSize: 100,
   tombstoneBaseRev: 200,
@@ -38,6 +39,7 @@ const _stale = RemoteDeleteIssue(
 const _edited = RemoteDeleteIssue(
   docId: 'edited',
   kind: RemoteDeleteKind.localHasEdits,
+  proof: RemoteDeleteProof.baselineChanged,
   localUpdatedAt: 300,
   localSize: 120,
   tombstoneBaseRev: 200,
@@ -45,6 +47,7 @@ const _edited = RemoteDeleteIssue(
 const _unknown = RemoteDeleteIssue(
   docId: 'unknown',
   kind: RemoteDeleteKind.unknowable,
+  proof: RemoteDeleteProof.none,
   localUpdatedAt: 100,
   localSize: 80,
 );
@@ -154,6 +157,48 @@ void main() {
 
     expect(find.textContaining('云端报告已删除、本机仍留着 1 篇'), findsWidgets);
     expect(find.textContaining('这几篇接下来怎么处理仍要你定'), findsWidgets);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('甲方案：被按住的复活上传要单独说清「不是失败、也没删本机」', (tester) async {
+    await _runSync(
+      tester,
+      const SyncResult(
+        uploaded: 0,
+        downloaded: 0,
+        deletedRemote: 0,
+        remoteDeletes: [_stale],
+        resurrectionSuppressedDocIds: ['stale'],
+      ),
+    );
+
+    expect(find.textContaining('这些没有再推上云端'), findsWidgets);
+    expect(
+      find.textContaining('本机没有删掉任何东西'),
+      findsWidgets,
+      reason: '这句话既否掉「失败」的误读，也否掉「程序删了我的画布」的误读',
+    );
+    expect(
+      find.textContaining('这条提示每轮都会继续出现'),
+      findsWidgets,
+      reason: '不说明它会重复出现，用户会以为已经调和完了',
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('没有被按住的上传时，这句不得凭空出现', (tester) async {
+    await _runSync(
+      tester,
+      const SyncResult(
+        uploaded: 0,
+        downloaded: 0,
+        deletedRemote: 0,
+        remoteDeletes: [_edited],
+      ),
+    );
+    expect(find.textContaining('这些没有再推上云端'), findsNothing);
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });

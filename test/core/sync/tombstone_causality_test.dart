@@ -421,8 +421,8 @@ void main() {
     });
   });
 
-  group('A3 读者上线：报告不产生动作', () {
-    test('云端删过、本机还留着 ⇒ 报出 staleCopy，但本轮动作与报告前一致', () async {
+  group('A3-2 甲：陈旧副本不复活（其余方向一律不变）', () {
+    test('云端删过、本机留着的正是被删那一版 ⇒ 报出来 **且不再推上去**', () async {
       // 这条是**反向锁**：加了读者绝不能顺手改变同步方向。今天仍然按「本地独有
       // ⇒ 上传」处理（要把它变成「不复活」，得先有 §10 甲/乙/丙 的点名）。
       final docs = _Docs({'stale': 200, 'a': 200});
@@ -447,20 +447,156 @@ void main() {
       final issue = result.remoteDeletes.single;
       expect(issue.docId, 'stale');
       expect(issue.kind, RemoteDeleteKind.staleCopy);
+      expect(issue.proof, RemoteDeleteProof.baselineUnchanged);
       expect(issue.tombstoneBaseRev, 200);
-      // 动作面一个都没多：没有下载、没有删远端、没有 -conflict- 副本。
-      expect(result.uploaded, 1, reason: '仍是既有行为：按「仅本地」上传');
+
+      // 甲方案唯一的动作面变化：**这一篇不再被推回云端**。
+      expect(result.uploaded, 0, reason: '陈旧副本不得复活云端已删掉的内容');
+      expect(result.resurrectionSuppressedDocIds, ['stale']);
+      // 其余方向一个都没多：没有下载、没有删远端、没有 -conflict- 副本。
       expect(result.downloaded, 0);
       expect(result.deletedRemote, 0);
       expect(
         docs.updatedAtById.keys.where((k) => k.contains('-conflict-')),
         isEmpty,
       );
+      // 关键反向锁：抑制**不是**本地删除。用户那篇画布必须原样在本地。
       expect(
         docs.updatedAtById.containsKey('stale'),
         isTrue,
-        reason: '报告不许顺手删掉用户的东西',
+        reason: '甲方案不删本机内容；删本机是乙，未获授权',
       );
+      expect(
+        dav.requests.any((r) => r.$1 == 'DELETE' && r.$2 == 'stale'),
+        isFalse,
+        reason: '也不该对云端发 DELETE——云端本来就没有它，再发一次是多余动作',
+      );
+      // 云端清单里那条删除记录必须**还在**（否则下一轮它就变成「仅本地」而复活）。
+      expect(dav.remoteManifest().deletedIds, contains('stale'));
+    });
+
+    test('第二轮（基线已推进掉这篇）仍靠因果锚按住 ⇒ 既不复活也不振荡', () async {
+      // 这条是甲方案的**承重墙**：抑制上传之后，本地基线里不会再有这篇
+      // （基线沿用来自云端清单的形状）。如果判据只靠基线，第二轮就会退化成
+      // `unknowable ⇒` 照常上传 ⇒ 变成隔一轮复活一次的振荡，比原缺陷更难查。
+      final docs = _Docs({'stale': 200});
+      final dav = _Dav()
+        ..seedManifest(
+          SyncManifest(
+            entries: const {},
+            deletedIds: const {'stale'},
+            tombstones: {
+              'stale': SyncTombstone(
+                id: 'stale',
+                deletedAt: 260,
+                baseRev: 200,
+                baseSize: _docBytes(200).length,
+              ),
+            },
+          ),
+        );
+      final baseline = _Baseline(
+        SyncManifest(entries: {'stale': _snap('stale', 200)}),
+      );
+      final service = _service(dav, docs, baseline);
+
+      final first = await service.syncNow();
+      expect(first.resurrectionSuppressedDocIds, ['stale']);
+      expect(first.uploaded, 0);
+      // 第一轮之后基线**确实没有**这篇了——判据必须还能成立。
+      expect(baseline.value!.entries.containsKey('stale'), isFalse);
+
+      final second = await service.syncNow();
+      expect(
+        second.remoteDeletes.single.proof,
+        RemoteDeleteProof.causalAnchor,
+        reason: '没有基线可用时，靠墓碑的 baseRev/baseSize 定案',
+      );
+      expect(second.resurrectionSuppressedDocIds, ['stale']);
+      expect(second.uploaded, 0, reason: '第二轮同样不复活');
+      expect(docs.updatedAtById.containsKey('stale'), isTrue);
+    });
+
+    test('被删的这篇本机又改过 ⇒ 仍然上传（甲不替用户丢独有内容）', () async {
+      // 注意 `detectRemoteDeletes` 只遍历**远端删除集**：一篇没被云端删过的文档
+      // 根本不会进这份报告，所以这里必须让 `edited` 自己就是被删的那一篇。
+      final docs = _Docs({'edited': 300, 'fresh': 400});
+      final dav = _Dav()
+        ..seedManifest(
+          SyncManifest(
+            entries: {'fresh': _snap('fresh', 300)},
+            deletedIds: const {'edited'},
+            tombstones: {
+              'edited': SyncTombstone(
+                id: 'edited',
+                deletedAt: 260,
+                baseRev: 200,
+                baseSize: _docBytes(200).length,
+              ),
+            },
+          ),
+        );
+      dav.files['fresh'] = _docBytes(300);
+      final baseline = _Baseline(
+        SyncManifest(
+          entries: {'edited': _snap('edited', 200), 'fresh': _snap('fresh', 300)},
+        ),
+      );
+
+      final result = await _service(dav, docs, baseline).syncNow();
+
+      final issue = result.remoteDeletes.single;
+      expect(issue.docId, 'edited');
+      expect(issue.kind, RemoteDeleteKind.localHasEdits);
+      expect(
+        issue.proof,
+        RemoteDeleteProof.baselineChanged,
+        reason: '本机相对基线改过 ⇒ 结构证据优先，即便 baseRev 也能对上',
+      );
+      // 没有被按住的：edited（本机有独有内容）与 fresh（与删除无关）都照常上传。
+      expect(result.resurrectionSuppressedDocIds, isEmpty);
+      expect(result.uploaded, 2);
+      expect(dav.remoteManifest().entries.containsKey('fresh'), isTrue);
+      expect(dav.remoteManifest().entries.containsKey('edited'), isTrue);
+    });
+
+    test('缺信息（无从比对）那一类仍然上传——缺信息永远不收紧成「不上传」', () async {
+      // 旧客户端写的清单没有 baseRev/baseSize，而本机又没有基线 ⇒ 不能假装知道
+      // 「这就是被删那一版」。把它按住就等于悄悄停止同步一篇正常文档。
+      final docs = _Docs({'blind': 200});
+      final dav = _Dav()
+        ..seedManifest(SyncManifest(deletedIds: const {'blind'}));
+      final result = await _service(dav, docs, _Baseline(const SyncManifest())).syncNow();
+
+      expect(result.remoteDeletes.single.kind, RemoteDeleteKind.unknowable);
+      expect(result.remoteDeletes.single.proof, RemoteDeleteProof.none);
+      expect(result.resurrectionSuppressedDocIds, isEmpty);
+      expect(result.uploaded, 1);
+    });
+
+    test('因果锚只比时间戳不够：size 不吻合就不算陈旧', () async {
+      // 「同一毫秒又存了一次、字节数恰好没变」才是陈旧；size 对不上说明本机
+      // 这份与被删那一版不同，按未知处理并照常上传，不替用户按住。
+      final docs = _Docs({'sameTs': 200});
+      final dav = _Dav()
+        ..seedManifest(
+          SyncManifest(
+            deletedIds: const {'sameTs'},
+            tombstones: {
+              'sameTs': SyncTombstone(
+                id: 'sameTs',
+                deletedAt: 260,
+                baseRev: 200,
+                baseSize: _docBytes(200).length + 1,
+              ),
+            },
+          ),
+        );
+
+      final result = await _service(dav, docs, _Baseline(const SyncManifest())).syncNow();
+
+      expect(result.remoteDeletes.single.kind, RemoteDeleteKind.unknowable);
+      expect(result.uploaded, 1);
     });
 
     test('隔离轮（基线不描述当前数据根）⇒ 一条都不报', () async {

@@ -6511,6 +6511,12 @@ abstract class AppLocalizations {
   /// **'; the cloud reports {deleted} note(s) as deleted while this device still holds them: {stale} of those are unchanged since the last sync (this device has no content that exists only here), {edited} were edited on this device afterwards (a delete collided with an edit, and both copies still exist), {unknown} cannot be compared (this device has no baseline entry for them). Nothing was removed on this device - what should happen to these still needs your decision'**
   String syncRemoteDeleteHeld(int deleted, int stale, int edited, int unknown);
 
+  /// Sync summary (A3-2, option A): stale copies whose re-upload was withheld; must not read as a failure and must state that nothing was deleted locally
+  ///
+  /// In en, this message translates to:
+  /// **'; {count} note(s) were deleted in the cloud and the copy this device still holds is exactly the version that was deleted: those were not pushed back up. Nothing was removed on this device - the local copy stays where it is, and this notice keeps appearing each round until you deal with it yourself'**
+  String syncResurrectionHeld(int count);
+
   /// DN-003：以预算截断态打开画布时的常驻说明条标题
   ///
   /// In en, this message translates to:

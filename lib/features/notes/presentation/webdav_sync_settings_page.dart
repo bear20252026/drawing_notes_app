@@ -535,10 +535,22 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
       summary =
           '$summary${l10n?.syncRemoteChangedCount(r.remoteChangedDocIds.length) ?? '；${r.remoteChangedDocIds.length} 篇笔记的云端版本在本机读过之后又被其他设备改动：本轮既没有覆盖也没有删除它们，云端版本已另存为本机副本（文件名带 -conflict-），请确认保留哪一份'}';
     }
-    // A3：云端删过、本机还留着的那些。**本轮只说不做**——跟随删除等于程序主动
-    // 删掉用户的画布，那一步要业主点名（§10 甲/乙/丙）。但必须把「无损的那一类」
-    // 和「本机有只此一份内容的那一类」分开说：混成一句「N 篇不一致」会让人以为
-    // 随便删哪边都行，而这三类的下一步动作完全不同。
+    // A3-2（甲）：陈旧副本被按住不上传。这句话必须**同时**说清两件事：它不是
+    // 失败（没有哪个操作出错），也不是本机删了东西（本地副本原样留着）；
+    // 而且要说明它会每轮重现——否则用户会以为它已经被调和掉了。
+    if (r.resurrectionSuppressedDocIds.isNotEmpty) {
+      summary =
+          '$summary${l10n?.syncResurrectionHeld(
+                r.resurrectionSuppressedDocIds.length,
+              ) ?? '；${r.resurrectionSuppressedDocIds.length} 篇笔记云端已删除，'
+                '而本机留着的正是被删的那一版：这些没有再推上云端。'
+                '本机没有删掉任何东西——本地副本原样保留，'
+                '你不处理的话这条提示每轮都会继续出现'}';
+    }
+    // A3：云端删过、本机还留着的那些，按「陈旧 / 有独有内容 / 无从比对」分开说。
+    // 甲方案落地后这一段**不再是纯报告**：陈旧那类上面已经不复活了；但本地
+    // 依旧一个字都不动——「让删除赢」要删的是用户本机的画布，那一步（乙）不在
+    // 本方案里。混成一句「N 篇不一致」会让人以为随便删哪边都行。
     if (r.remoteDeletes.isNotEmpty) {
       summary = '$summary${_remoteDeleteLine(l10n, r.remoteDeletes)}';
     }

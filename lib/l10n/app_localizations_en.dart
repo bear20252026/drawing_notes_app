@@ -3593,6 +3593,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String syncResurrectionHeld(int count) {
+    return '; $count note(s) were deleted in the cloud and the copy this device still holds is exactly the version that was deleted: those were not pushed back up. Nothing was removed on this device - the local copy stays where it is, and this notice keeps appearing each round until you deal with it yourself';
+  }
+
+  @override
   String get budgetTruncatedTitle =>
       'This canvas holds less than the file on disk';
 

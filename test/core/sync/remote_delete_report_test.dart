@@ -92,6 +92,88 @@ void main() {
     });
   });
 
+  group('A3-2 甲依赖的因果判据：没有基线也要能定案', () {
+    test('无基线 + 墓碑锚吻合（updatedAt 与 size 都对上）⇒ staleCopy/causalAnchor', () {
+      final issues = detect(
+        local: {'x': _snap('x', 200, 100)},
+        remote: SyncManifest(
+          deletedIds: const {'x'},
+          tombstones: const {
+            'x': SyncTombstone(id: 'x', deletedAt: 260, baseRev: 200, baseSize: 100),
+          },
+        ),
+        baseline: const SyncManifest(),
+      );
+
+      expect(issues.single.kind, RemoteDeleteKind.staleCopy);
+      expect(issues.single.proof, RemoteDeleteProof.causalAnchor);
+      expect(issues.single.isLossFreeToDrop, isTrue);
+    });
+
+    test('无基线 + 旧客户端没写 size ⇒ 退回只比时间戳，并如实标成因果锚', () {
+      final issues = detect(
+        local: {'x': _snap('x', 200, 777)},
+        remote: SyncManifest(
+          deletedIds: const {'x'},
+          tombstones: const {'x': SyncTombstone(id: 'x', baseRev: 200)},
+        ),
+        baseline: const SyncManifest(),
+      );
+
+      expect(issues.single.proof, RemoteDeleteProof.causalAnchor);
+      expect(issues.single.tombstoneBaseSize, isNull);
+    });
+
+    test('无基线 + size 对不上 ⇒ 判成无从比对，**不许**当陈旧按住', () {
+      // 「同一毫秒又存了一次、字节数恰好没变」才算同一版；对不上就是本机另有内容。
+      // 把它误判成陈旧 ⇒ 用户的编辑会被无限期按住不上传。
+      final issues = detect(
+        local: {'x': _snap('x', 200, 101)},
+        remote: SyncManifest(
+          deletedIds: const {'x'},
+          tombstones: const {
+            'x': SyncTombstone(id: 'x', baseRev: 200, baseSize: 100),
+          },
+        ),
+        baseline: const SyncManifest(),
+      );
+
+      expect(issues.single.kind, RemoteDeleteKind.unknowable);
+      expect(issues.single.proof, RemoteDeleteProof.none);
+    });
+
+    test('证据优先级：基线说「改过」压过时间戳巧合（结构证据赢）', () {
+      // 本机相对基线确实改过 ⇒ 即便 updatedAt 恰好等于墓碑的 baseRev，也必须报
+      // localHasEdits。否则「改过但大小与时间戳都撞上」会被当成陈旧副本按住。
+      final issues = detect(
+        local: {'x': _snap('x', 200, 999)},
+        remote: SyncManifest(
+          deletedIds: const {'x'},
+          tombstones: const {
+            'x': SyncTombstone(id: 'x', baseRev: 200, baseSize: 100),
+          },
+        ),
+        baseline: SyncManifest(entries: {'x': _snap('x', 200, 100)}),
+      );
+
+      expect(issues.single.kind, RemoteDeleteKind.localHasEdits);
+      expect(issues.single.proof, RemoteDeleteProof.baselineChanged);
+    });
+
+    test('有基线且一字未动 ⇒ staleCopy/baselineUnchanged（最强的可得证据）', () {
+      final issues = detect(
+        local: {'x': _snap('x', 200)},
+        remote: SyncManifest(
+          deletedIds: const {'x'},
+          tombstones: const {'x': SyncTombstone(id: 'x', baseRev: 200)},
+        ),
+        baseline: SyncManifest(entries: {'x': _snap('x', 200)}),
+      );
+
+      expect(issues.single.proof, RemoteDeleteProof.baselineUnchanged);
+    });
+  });
+
   group('A3 远端删除判定：三种不该报的情形', () {
     test('远端同时有条目又有墓碑 ⇒ 按「还活着」处理，不报', () {
       // 报错了会诱导用户去删自己正在用的东西：有条目就说明此刻云端有活副本
