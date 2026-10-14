@@ -25,6 +25,11 @@
 一句提醒（专家原话的本地化）：**Rust 负责跑得省、跑得稳；协议负责数据对不对**。P0 永远是并发/断线/恢复不丢内容，
 这一点我们过去三天的整改（DN-201/202/204）已经在做，方向没错。
 
+（**2026-10-14 更新**：三条前提里 P-2 的那次「必须 spike 先验」已经做完——结论是 **GO**，
+纯 `dart:ffi` 就够，`flutter_rust_bridge` 不是必需项，但中继侧换来三条硬约束，见 §12.1。
+P-1 里「Y-Sweet 的明文 CRDT 合并路径不能当生产依赖」这句现在是**实测**而不是推断：服务端存储里
+连笔画 JSON 都原样可读，见 §12.2。P-3 那条外部故障（Sites 上传通道）仍在，见 §13。）
+
 ---
 
 ## 1. 现在已经具备的地基（都在仓库里，file:line 可查）
@@ -151,7 +156,8 @@ WebDAV 整篇 blob 同步与 op-log 服务同时写同一篇文档 = **两个真
 | **C：增量协议草案双实现** | 画布元素 op 集在 TS + Dart 各实现一遍，用现有跨端契约夹具断言「同一操作序列 ⇒ 同一字节」；顺带定 v4 与 op-log 的兼容/压缩策略 | 现有 11 份夹具全部通过 + 新增「操作重放」夹具一族 | 说明 op 粒度选错，回到元素级补丁 |
 
 三个结论写回本文件 §7，再定稿路线。**这一节的目的是避免「先宣布架构、再找证据」。**
-（2026-10-14：**C 已做完，结论在 §7**；A、B 未开始，判据与退路照旧。）
+（2026-10-14：**C、A、B 三条都已有实测结论**——C 在 §7，A、B 在 §12。B 那条判据只兑现了
+一半：端到端加密的结论拿到了，两张性能对比表在自建中继有代码之前没有可测对象，那一格留着。）
 
 ---
 
@@ -197,8 +203,8 @@ flutter_rust_bridge（桥接）、Axum/Tokio（自有后端底座）；BlockSuit
 
 ## 7. spike 结论
 
-- Spike A（Dart ↔ Yrs）：_未开始_
-- Spike B（Y-Sweet vs 自建密文中继）：_未开始_
+- Spike A（Dart ↔ Yrs）：**2026-10-14 做完，GO，结论与三条中继约束在 §12.1**
+- Spike B（Y-Sweet vs 自建密文中继）：**2026-10-14 做完，Y-Sweet 当不了密文中继，证据在 §12.2**
 - **Spike C（增量协议双实现字节一致）：2026-10-14 做完，结论是「op 粒度没选错」，
   但挖出三条必须写进阶段 A 协议条款的账。** 判据里那条「新增『操作重放』夹具一族」已落地。
 
@@ -215,12 +221,14 @@ flutter_rust_bridge（桥接）、Axum/Tokio（自有后端底座）；BlockSuit
 实测：网页侧 9 例全绿、桌面侧 43 条断言全绿（同一批文件）。突变自证：把 Dart 侧
 `toStringAsFixed(6)` 改成 `(4)` ⇒ 34 条红。⇒ 摘要真的在守门，不是摆设。
 
-**一处必须说出来的脆弱**：`drawing_notes_web` 目录**不是 git 仓库**（有 `.gitignore`、无 `.git`），
-所以 `src/core/operations.ts` 与 `tools/replay/*.mjs` 这两件 TS 侧的实物只有本机一份，进了版本库的
-只有共享夹具（`test/fixtures/v3/replay-*`，与网页侧逐字节一致）和 Dart 侧实现。规格文本在
-`replay_canonical.dart` 与 `canonical.mjs` 的文件头各抄了一份，代号 `spikec-1` 对不上就会红，
-但**镜像实现本身没有备份**。要么给网页工作区建仓，要么把 `operations.ts` 也纳入那条跨仓逐字节
-比对——两条都属结构决定，业主点头之前我没动。
+**一处必须说出来的脆弱（2026-10-14 已解除）**：`drawing_notes_web` 目录当时**不是 git 仓库**
+（有 `.gitignore`、无 `.git`），所以 `src/core/operations.ts` 与 `tools/replay/*.mjs` 这两件
+TS 侧的实物只有本机一份，进了版本库的只有共享夹具（`test/fixtures/v3/replay-*`，与网页侧逐字节
+一致）和 Dart 侧实现。规格文本在 `replay_canonical.dart` 与 `canonical.mjs` 的文件头各抄了一份，
+代号 `spikec-1` 对不上就会红，但**镜像实现本身没有备份**。
+⇒ 已给网页工作区建仓：`drawing_notes_web` 现为 git 仓库，首提交 `2b5bbd7`（130 个文件，
+排除 `node_modules/`、`dist/`、`tmp/` 与站点描述符 `*.qoder.site`；无远端、未推送）。
+镜像实现从此有历史可回溯。
 
 为什么要中间那一层规范化：两端落盘 JSON 本来就不可能逐字节相同（Dart 把整数线宽写成
 `2.0`、TS 写成 `2`；键序与可选键取舍也各有习惯）。把状态压成 `f6` 定长文本再取 SHA-256，
@@ -337,9 +345,9 @@ A2 = 操作日志磁盘持久化 + 幂等重放（任务 #22；也是 10-10 内�
 - **加密**：sidecar 走与文档同一套 DNV 信封（AAD 绑 `oplog:<docId>`），
   不给「日志是明文」留第二条降级通道——写路径的契约统一（批次 C）同样适用于新文件类型。
 
-## 10. A2 / A3 落地进度（2026-10-14 实测，含仍未闭合的那半）
+## 10. A2 / A3 落地进度（2026-10-14 实测；A2 那半已闭合，剩的是「有没有读者」）
 
-### A2 操作日志落盘 —— 存储面已闭合，**保存路径未接线**
+### A2 操作日志落盘 —— 存储面与保存路径**两半都已闭合**（接线于 2026-10-14 落地）
 
 `lib/core/operation/operation_log_store.dart` + `test/core/operation/operation_log_store_test.dart`
 （17 条用例，CI 7/7 绿于 `a091d9b`）。§9 定的四件事逐条对上了：落点 `oplog/<docId>.jsonl`
@@ -347,16 +355,45 @@ A2 = 操作日志磁盘持久化 + 幂等重放（任务 #22；也是 10-10 内�
 两个崩溃窗口用可注入时序屏障 `writeBarrierForTest` 钉死（发送 / ack 那两条仍按 §9
 的约定不写占位断言）。四条突变各自只让对应的用例变红。
 
-没有接进保存路径，两个理由都还成立：
+**接线（本轮补齐的那半）**，三件：
 
-1. `editor_page` 库现在 **7119 行 / 棘轮基线 7120**，只剩 1 行余量，而唯一的干净
-   落点 `_persistArtwork`（`editor_page_persistence.dart`，`await storage.save(doc)`
-   在那儿）就在这个库里。抬基线或把代码搬出该库都属于要先点头的改动。
-2. 更要紧的是**现在没有读者**，而 `append` 是整份重写：接到每 5 秒一次的自动保存上，
-   等于给热路径加一次全量加密重写，纯成本、零收益。
+1. `operation_log.dart`：日志条目带上单调 `serial`，新增 `entriesSince(serial)`。
+   容量截断时**序号不清零**——水位线要能区分「同一条记录」与「同内容的新记录」，
+   否则被截掉的那一段会被当成已落盘。
+2. `lib/core/operation/operation_log_recorder.dart`（新，落在 `core/operation`，
+   **不进 `editor_page` 库**）：按文档维护游标（`flushedSerial` / `seqBase` / `owner`），
+   三条契约——①这一轮没有新操作 ⇒ **连 store 都不构造**（用例注入计数工厂，断言
+   `built == 0`：没有新操作却不碰盘也要付一次解析目录 + 读盘的代价）；②水位只在写成功
+   那一格前进，锁定、`append` 抛错、侧车读不懂三种情形都停在原地下一轮补齐，且
+   **不把猜来的号段起点缓存下来**；③侧车任何失败都不许挡住正文保存，失败进
+   `AuditLogger`，同一段停滞只报第一次（否则每 5 秒刷一条）。
+3. `StorageService.saveAndLog(doc, log)` + `editor_page_persistence.dart:147` 的自动保存
+   改走它。`revision` 取在 `save` **之前**（用例钉语句顺序，因为侧车记的必须是正在落盘
+   那一版的号）；侧车的加密判据复用同一条 `vaultConfigured`，不另开一条通道。
 
-⇒ 接线时机 = A3 的墓碑有了读者（或阶段 B 的增量同步开工）之时，且只在
-「这一轮真有新操作」时接，不进无条件路径。
+**棘轮基线没动**：`editor_page` 库仍是 **7119 / 7120**。落点选在「替换一行既有语句」
+而不是新增，recorder 因此放进 `core/operation`——这也顺带避免了 core 反向 import feature。
+
+原先那两条不接的理由，现在一条解除、一条仍然成立，都写清楚：
+
+1. ~~只剩 1 行余量~~ ⇒ 已用「净 0 行」的落法绕开，没有抬基线、没有搬代码。
+2. **仍然没有读者**：中继（阶段 B）还没开工，`oplog/*.jsonl` 目前只有测试在读。
+   ⇒ 代价是可控且有界的：契约①保证「没画就不碰盘」，`append` 虽是整份重写，
+   上限被 `OperationLogLimits.standard`（256 条 / 64 KB）钉住，最坏情况是每 5 秒
+   一次 ≤64 KB 的重写，且只在真有新操作那几轮发生。收益要等阶段 B 才兑现。
+
+**已知边界（接线时就说清的）**：
+
+- 只有走 `_persistArtwork` 的画布自动保存带上操作日志；其余仍调裸 `save` 的写入点
+  （`lib/features/notes/**` 的笔记本集合页、`app_shell_routes.dart` 的草稿）没有
+  `OperationLog` 实例可传，本轮未接。**笔记本入口照旧，没有动它。**
+- 游标表 `_cursors` 按文档只增不减（进程内，`putIfAbsent` 唯一入口），关掉文档不清理。
+  量级是每文档几十字节 + 一个 `_Cursor` 对象；等阶段 B 有真实的多文档数量上限再决定收不收。
+
+门禁：`flutter analyze` 全项目 **0**（`spikes/**` 已进 `analyzer.exclude`，一次性脚本的
+`print` 不该把 spike 代码诱进 `lib/`）、`flutter test` **2585 条全绿（1 skipped）**、
+棘轮用例绿。突变自证 **M1–M9 九条各自只让对应那一条用例变红**（锚点与预期红项都写在
+测试文件头注释里；跑批脚本是一次性工具，没进仓库）。
 
 ### A3-1 墓碑带因果 —— 已闭合（信息面），CI 待回
 
@@ -477,3 +514,101 @@ Cloudflare 边缘 + 域名 + Origin 证书、一个已在生产的 S3 兼容对�
 **边界（本轮没做的事）**：我没有向那台生产服务部署、修改或写入任何东西；对它只做了
 本机端口探测与源码阅读。跨项目的部署属业主决策，且部署是对外动作。
 
+
+---
+
+## 12. Spike A / B 的实测结论（2026-10-14）
+
+两条都在本机跑完、结论可一键复现。**`spikes/**` 全程 untracked**：里面有一次性夹具、
+编译产物和临时密钥，不进版本库、不进 CI、不上车（已在 `analysis_options.yaml` 的
+`analyzer.exclude` 里点名，避免它们的 `print` 混进 lint 计数）。
+
+### 12.1 Spike A（Dart ↔ Yrs 桥）——GO，但中继有三条硬约束
+
+复现：`spikes/spike_a_yrs/run.sh`（夹具 → rust build → js build → rust merge → js merge →
+dart → js mergeffi → verify，顺序是硬约束）。脚本自带突变自证：篡改 `cross.js.dump`
+末字节 ⇒ `verify` 必须非 0 返回。本轮结束时再跑一次 `interop.exe verify work`：
+**11 条 PASS + 2 条 AS-EXPECTED 负例**。
+
+编译面（§4 判据里「原生构建可控」那一半）：
+
+| 平台 | 产物 | 体积 |
+|---|---|---|
+| Windows | `native/target/release/spike_a_yrs.dll` | 728,064 B |
+| Android arm64-v8a | `android/jniLibs/arm64-v8a/libspike_a_yrs.so` | 1,373,352 B |
+| Android x86_64 | `android/jniLibs/x86_64/libspike_a_yrs.so` | 1,337,192 B |
+
+Dart 腿是**纯 `dart:ffi`**：不引 `package:ffi`、不用 `flutter_rust_bridge`，字符串与结构体
+都走 Rust 导出的 `spike_alloc/spike_dealloc`。⇒ frb 在「画布 op 的最小桥」这件事上不是必需项，
+它的价值只在生成绑定与 Dart 侧类型安全，那条账要在阶段 B 真正写桥时再算。
+
+互通面：夹具是 40 条**画布笔画**（`work/strokes.jsonl`，取值刻意带小数、`-0`、2^53 附近的
+seed——Spike C 记下过数值漂移这一课），不是 §4 原文写的「中文打字笔记」。换成笔画负载是有意的
+偏离：我们要合并的就是笔画，判据那句「三端逐字节相同」按真实形态验收。
+Rust / yjs / dart:ffi 三侧的整份转储 **5231 B 且 SHA-256 相同**（`6fa738e16324…`）。
+
+三条必须写进阶段 B 中继条款的结论：
+
+1. **差量不自带基线**（两条负例钉死）：一端独立写前半、另一端发来一份按*第三方*状态向量算出的
+   差量，收下之后仍是半份（`incgap.rust.dump` == `incgap.js.dump` == `half.dump`，2603 B）。
+   ⇒ 中继**必须按每个接收方的状态向量现算差量**，广播一份差量给全房间会静默漏内容。
+2. **update 字节跨实现不同形**：`inc.js.diff` 与 `inc.rust.diff` 同为 2883 B 但 SHA 不同
+   （`a43a4128…` / `c0f90de6…`）；同一份内容 `conv.rust.update` 5647 B 对 `conv.js.update`
+   5683 B。状态向量同理（各 6 B，clientID 随机 ⇒ 字节必不同）。
+   ⇒ 中继**不许按 update 哈希去重**，收敛只由 CRDT 语义判定。顺带一个成本数：一条新笔画的
+   差量只要 38 B（`inc.dart.diff`），全量 update 是 5734 B ⇒ 增量确实省了一个数量级。
+3. **LWW 不等于删除赢**：并发「A 删 s2 / B 改 s2」双向合并**同形**（收敛没问题），
+   但落点是 `s2=存在`——写入压过删除。⇒ 删除要赢只能靠 A3-1 的墓碑在 CRDT 之上裁决，
+   yrs 自己不会替我们做这件事。这条与 §7.2 第 3 条（回放中途抛错必须整份放弃）是同族风险。
+
+### 12.2 Spike B（Y-Sweet vs 自建密文中继）——Y-Sweet 当不了密文中继
+
+探针在 `spikes/spike_b_ysweet/`，一枚含明文标记的 Y.Doc 走两条路进服务端：
+
+| 步 | 实测 |
+|---|---|
+| `convert-from-update` 写文件存储 | `data_probe/probe.doc.7c1f/data.ysweet`（251 B）里标记**原样可读**，偏移 93 与 193；连键名 `strokes`/`probe`/`s2` 和 JSON 值一起明文 |
+| 真实客户端经服务器写入 | `POST /doc/<id>/auth` + `Bearer server_token` ⇒ **HTTP 200**（返回 scoped client token，`authorization:"full"`）；WS 握手后已有内容同步下来（`syncedKeys:["probe","s2"]`），写入 `LIVE_PUSH_MARK_9B3E` ⇒ checkpoint（`--checkpoint-freq-seconds 1`）后同一文件涨到 320 B，标记在偏移 92 **明文可见** |
+| 不存在的文档 | `POST /doc/<id>/auth` ⇒ **404**：文件存储不自动建文档，中继层发 token 之前文档必须先在盘上 |
+
+⇒ §4 判据那句「验证『服务器不理解内容』在 Y-Sweet 上是否根本做不到」的答案是
+**做不到**，不是「没做到」。机械原因不在配置：服务端要算每个 peer 的差量（12.1 第 1 条），
+就必须持有**解析后的** yrs 文档，落盘即 yrs checkpoint 明文；它没有服务端侧的加密层，
+只有 token 签名。§6-② 的默认选项 B（服务端只见密文）在这条路上没有回旋空间。
+
+顺带把那条 401 结清（不是网络/代理：curl `--noproxy '*'` 与走代理响应一致）：
+`--auth` 收的是**内联密钥字符串**而不是文件路径，且**服务端持 `private_key`、调用方出示
+`server_token`**；用错一侧就 401，用对之后 200/404 的区分才有意义。
+
+**裁决**：走 §4 写好的失败退路，也是当前主判断——**中继自建**（服务端只做密文转发 + 版本水位，
+按 §2.3 的 E2EE 边界与 §11 那条本机运维轨道的形状来），只借 Y-Sweet 的**运维语义**（token 分层、
+按 doc 路由、周期性 checkpoint），不借它的存储。
+
+**判据没兑现的那一半要说清**：§4 要的是「两张对比表（1000 长连接的 RSS/延迟/恢复成本）」。
+自建中继在本轮之前没有一行代码，没有可测对象 ⇒ 这张表**留空**，而不是填一个估出来的数。
+它该在阶段 B 交付物里补上，届时 Y-Sweet 那条腿只作为「明文服务端」的下界参照。
+
+---
+
+## 13. 网页版发布仍卡在同一条外部通道（2026-10-15 复测）
+
+业主指令里的「恢复后用 actionId 25b00a58-… 重放」这一条**仍未解锁**。复测到的三件事：
+
+| 调用 | 结果 |
+|---|---|
+| `get_publish_status(25b00a58-3f8d-430a-8769-2d61e2a9ee18)` | `sites_action_unavailable` |
+| `get_site(01a1300f-42c9-7225-b774-3df286e7c74e)` | `sites_request_failed` |
+| `get_local_context()` | 站点描述符在盘上，但被标为 `unavailableSites: sites_request_failed` |
+| `list_sites()` | 返回空列表（不报错）——与上一条并读，不能当成「账号下没有站点」 |
+
+⇒ 这不是我这一侧的动作失败：**连只读的生命周期查询都取不到**。描述符文件本身仍是有效的一份
+（`drawing_notes_web/.绘图笔记 · 网页版.qoder.site`，内含 projectId / siteId / deploymentId /
+releaseId / artifactSha256，是上一次成功发布留下的那一版），所以通道恢复之后可以直接拿它核对，
+不需要重新 `prepare_site` 猜参数。**该文件已进 `.gitignore`，不入库。**
+
+我没有做的事：没有新建站点、没有换 projectId、没有用新 actionId 重传一份草稿——在只读通道都
+取不到状态的时候重开一次 prepare 只会造出一个无法核对的第二身份。发布属对外动作，等通道回来
+再做，且按 §「Reuse an existing matching draft」的规矩先读状态再决定。
+
+**这条 P-3 的后果没有变**：网页版的**新构建**（含 §12 两条 spike 之后的形态）目前只有本机一份；
+线上仍是旧 release。阶段 B 的服务端仍需要一个部署决策（§6-③、§11），与这条通道故障无关。

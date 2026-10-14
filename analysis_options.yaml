@@ -64,6 +64,9 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
+    # Spike 脚本（`spikes/**`，untracked、不进 CI、不上车）：一次性验证工具
+    # 用 print 直接出结论，套 lint 只会诱把它们塞进 lib/。
+    - spikes/**
 
 
 # Additional information about this file can be found at

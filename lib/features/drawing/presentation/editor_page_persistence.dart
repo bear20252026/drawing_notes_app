@@ -144,7 +144,7 @@ extension _EditorPagePersistence on _EditorPageState {
       // `.bak` 复原的中间态，也不让无关笔画丢掉）。
       await cropGate.timeout(const Duration(seconds: 5), onTimeout: () {});
     }
-    await storage.save(doc);
+    await storage.saveAndLog(doc, _controller.operationLog);
     // 文档 JSON 是数据完整性的第一优先级。关闭中控制器可能已释放，
     // 因此只跳过可再生的缩略图，不跳过正文保存。
     if (!_closingEditor) {

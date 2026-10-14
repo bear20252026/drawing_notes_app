@@ -3,6 +3,9 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/operation/operation_log.dart';
+import 'package:drawing_notes_app/core/operation/operation_log_recorder.dart';
+import 'package:drawing_notes_app/core/operation/operation_log_store.dart';
 import 'package:drawing_notes_app/core/security/session_secrets.dart';
 import 'package:drawing_notes_app/core/storage/document_codec.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
@@ -117,6 +120,35 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
   /// 写成功回调（首页刷新修复①）：画布保存/缩略图更新/删除落盘成功后触发，
   /// 由装配层注入（AppServices.bumpDataVersion），驱动首页/AllDocs 刷新。
   void Function()? onWrite;
+
+  /// A2 接线：会话操作流 → 数据根内 `oplog/<docId>.jsonl` 侧车的水位线持有者。
+  /// 只有 [saveAndLog] 会碰它，`save` 本身一字未改。
+  late final OperationLogRecorder _opLog = OperationLogRecorder(_opLogStore);
+
+  /// 侧车必须与文档走**同一条**加密降级判据（§9「不给日志是明文留第二条通道」）：
+  /// 没建库 ⇒ 明文落盘（产品设计）；建过库 ⇒ 交主密钥，取不到就是锁定、什么都不写。
+  /// 这条判据是异步的，所以 store 每次现取，而不是在构造期定死一个 keyProvider。
+  Future<OperationLogStore> _opLogStore() async {
+    final configured = await vaultConfigured?.call() ?? false;
+    return OperationLogStore(
+      directoryProvider: _directories.rootDir,
+      keyProvider: configured ? keyProvider : null,
+    );
+  }
+
+  /// 保存文档，并在正文落盘之后补上这一轮新增的操作日志侧车。
+  ///
+  /// 与 [save] 的差别只在尾巴那一步：侧车失败**不**把正文保存带下水（日志是
+  /// 可再生的记录面，判据与代价都记在 `OperationLogRecorder` 的契约③）。
+  Future<String> saveAndLog(DrawingDocument doc, OperationLog log) async {
+    // revision 必须在 save 之前取：save 编码的是「调用这一刻」的不可变快照，
+    // 而 await 期间用户还能继续画（`touch()` 会把 updatedAt 推后）。事后才读会把
+    // baseRev 写成超前于盘上那一版 ⇒ 读侧不变量①把这批记录当幻影整段丢掉。
+    final revision = doc.updatedAt.millisecondsSinceEpoch;
+    final path = await save(doc);
+    await _opLog.flush(doc, log, revision);
+    return path;
+  }
 
   void _fireOnWrite() => onWrite?.call();
 

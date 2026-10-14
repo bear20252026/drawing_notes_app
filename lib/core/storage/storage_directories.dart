@@ -41,6 +41,16 @@ class StorageDirectories {
     return dir;
   }
 
+  /// 数据根（备份包打包的就是这一层）。
+  ///
+  /// 侧车族（`oplog/`）用它，落点必须在**根内**——协同方案 §9 那条理由：
+  /// 恢复旧备份时日志跟着一起回退，落在根外就是「旧库 + 新日志」第二套真相。
+  /// 与 [_ensure] 同一个 provider 判据，只是不拼子目录、不建目录。
+  Future<Directory> rootDir() async {
+    final provider = directoryProvider;
+    return provider != null ? await provider() : await AppDataRoot.defaultRootDir();
+  }
+
   /// 文档存放目录（懒加载，首次调用时创建）：`appDir/documents/`。
   Future<Directory> ensureDocuments() => _ensure(
     _documentsDir,
