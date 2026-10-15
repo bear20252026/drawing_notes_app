@@ -636,5 +636,20 @@ releaseId / artifactSha256，是上一次成功发布留下的那一版），所
 取不到状态的时候重开一次 prepare 只会造出一个无法核对的第二身份。发布属对外动作，等通道回来
 再做，且按 §「Reuse an existing matching draft」的规矩先读状态再决定。
 
-**这条 P-3 的后果没有变**：网页版的**新构建**（含 §12 两条 spike 之后的形态）目前只有本机一份；
-线上仍是旧 release。阶段 B 的服务端仍需要一个部署决策（§6-③、§11），与这条通道故障无关。
+**这条 P-3 的后果没有变**：阶段 B 的服务端仍需要一个部署决策（§6-③、§11），与这条通道故障无关。
+
+### 13.1 更正（2026-10-15 复测，只读通道已恢复）：线上**就是**那份新构建
+
+上面这张表记的是通道故障当时的读数，其中一个结论是错的，现在按证据改对：
+
+| 复核项 | 实测 |
+|---|---|
+| `get_site(01a1300f-42c9-7225-b774-3df286e7c74e)` | 成功，`active_release_id = 01a13627-…` |
+| 描述符里那份 release 的 `indexHtml`（base64 解码后） | 引用 `assets/index-fYCfc0MT.js` |
+| 本机 `dist/index.html` | 同样引用 `assets/index-fYCfc0MT.js` |
+| `find src lib -newer dist/index.html`（.ts/.tsx） | **空** ⇒ 本机没有比线上更新的构建 |
+
+⇒ 「新构建只有本机一份、线上仍是旧 release」**不成立**：线上跑的就是含像素橡皮 +
+`.excalidraw` 旁路 + v4 样式那一版（发布动作 `25b00a58-…`，`published:true`）。
+§13 表格里那些 `sites_request_failed` 是故障窗口的真实读数，保留不删；但**结论必须按现在的事实写**。
+站点访问策略仍是 `private`，没有对外公开。
