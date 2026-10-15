@@ -3248,6 +3248,51 @@
   },
   "syncRemoteDeleteHeld": "; the cloud reports {deleted} note(s) as deleted while this device still holds them: {stale} of those are unchanged since the last sync (this device has no content that exists only here), {edited} were edited on this device afterwards (a delete collided with an edit, and both copies still exist), {unknown} cannot be compared (this device has no baseline entry for them). Nothing was removed on this device - what should happen to these still needs your decision",
   "syncResurrectionHeld": "; {count} note(s) were deleted in the cloud and the copy this device still holds is exactly the version that was deleted: those were not pushed back up. Nothing was removed on this device - the local copy stays where it is, and this notice keeps appearing each round until you deal with it yourself",
+  "remoteDeleteHoldTitle": "The cloud deleted {count} note(s) that this device still holds",
+  "@remoteDeleteHoldTitle": {
+    "description": "Disposition banner title (A3-2 option A): the unresolved asymmetry, per device decision",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "remoteDeleteHoldBody": "Sync already holds these back (they are not pushed up again), but the local copy is still here. All three actions below need your tap: the app never decides for you whether to remove local content.",
+  "@remoteDeleteHoldBody": {
+    "description": "Disposition banner body: must state that no action is automatic"
+  },
+  "remoteDeleteHoldReason": "Basis: this local version is exactly the one the cloud deleted (same version number on both ends after sync).",
+  "@remoteDeleteHoldReason": {
+    "description": "Why this item counts as a stale copy; the proof comes from the causal anchor"
+  },
+  "remoteDeleteKeepAsCopy": "Keep it as a new note",
+  "@remoteDeleteKeepAsCopy": {
+    "description": "Disposition action 1: copy under a new id, then honour the delete for the old id"
+  },
+  "remoteDeletePushAnyway": "Upload it anyway",
+  "@remoteDeletePushAnyway": {
+    "description": "Disposition action 2: waive the hold once for this note"
+  },
+  "remoteDeleteHonorCloud": "Accept the cloud deletion (local copy to Trash)",
+  "@remoteDeleteHonorCloud": {
+    "description": "Disposition action 3: the only destructive one, worded so Trash recovery is visible"
+  },
+  "remoteDeleteHonorConfirmTitle": "Move this local note to Trash?",
+  "@remoteDeleteHonorConfirmTitle": {
+    "description": "Confirm dialog title for the destructive disposition"
+  },
+  "remoteDeleteHonorConfirmBody": "The cloud copy is already gone. After this, the note lives only in Trash for 30 days. If you want to keep the content, choose Keep as a new note first.",
+  "@remoteDeleteHonorConfirmBody": {
+    "description": "Confirm dialog body: state the 30-day window and the non-destructive alternative"
+  },
+  "remoteDeleteDidKeepAsCopy": "Saved as a new note; the deleted one is gone from this device",
+  "@remoteDeleteDidKeepAsCopy": {
+    "description": "Toast after action 1"
+  },
+  "remoteDeleteDidHonor": "Moved to Trash",
+  "@remoteDeleteDidHonor": {
+    "description": "Toast after action 3"
+  },
+  "remoteDeleteDidPush": "Noted - this note will be uploaded on the next sync",
+  "@remoteDeleteDidPush": {
+    "description": "Toast after action 2: the upload happens next round, not right now"
+  },
   "@syncResurrectionHeld": {
     "description": "Sync summary (A3-2, option A): stale copies whose re-upload was withheld; must not read as a failure and must state that nothing was deleted locally",
     "placeholders": {

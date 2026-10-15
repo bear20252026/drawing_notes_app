@@ -3227,6 +3227,51 @@
   },
   "syncRemoteDeleteHeld": "；云端报告已删除、本机仍留着 {deleted} 篇：其中 {stale} 篇自上次同步后一字未改（本机没有只此一份的内容），{edited} 篇在本机改过（删除与编辑撞上，两份都还在），{unknown} 篇无从比对（本机基线里没有它）。本机没有删掉任何东西——这几篇接下来怎么处理仍要你定",
   "syncResurrectionHeld": "；{count} 篇笔记云端已删除，而本机留着的正是被删的那一版：这些没有再推上云端。本机没有删掉任何东西——本地副本原样保留，你不处理的话这条提示每轮都会继续出现",
+  "remoteDeleteHoldTitle": "云端已删除 {count} 篇，本机还留着同样的内容",
+  "@remoteDeleteHoldTitle": {
+    "description": "处置条标题（A3-2 甲）：未闭合的不对称，由业主决定怎么处理",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "remoteDeleteHoldBody": "同步已经把这几篇按住了（不会再推上云端），但本机这一份还在。下面三个动作都要你点：程序不会自己替你决定要不要删本机内容。",
+  "@remoteDeleteHoldBody": {
+    "description": "处置条正文：必须说清没有任何动作是自动的"
+  },
+  "remoteDeleteHoldReason": "依据：本机这一版与云端删掉的正是同一版（同步后两端同一个版本号）。",
+  "@remoteDeleteHoldReason": {
+    "description": "为什么算陈旧副本：判据来自墓碑的因果锚"
+  },
+  "remoteDeleteKeepAsCopy": "本机这份另存为新笔记",
+  "@remoteDeleteKeepAsCopy": {
+    "description": "处置动作一：先另存副本，再按云端删除处理原 id"
+  },
+  "remoteDeletePushAnyway": "仍要上传到云端",
+  "@remoteDeletePushAnyway": {
+    "description": "处置动作二：为这一篇撤销一次抑制"
+  },
+  "remoteDeleteHonorCloud": "认云端删除（本机移入回收站）",
+  "@remoteDeleteHonorCloud": {
+    "description": "处置动作三：三个里唯一会移走本机文件的，措辞要让人看见可恢复"
+  },
+  "remoteDeleteHonorConfirmTitle": "把这篇本机笔记移入回收站？",
+  "@remoteDeleteHonorConfirmTitle": {
+    "description": "破坏性处置的二次确认标题"
+  },
+  "remoteDeleteHonorConfirmBody": "云端那份已经没了。执行后这篇只存在于回收站 30 天。想留住内容的话，先选「另存为新笔记」。",
+  "@remoteDeleteHonorConfirmBody": {
+    "description": "二次确认正文：必须写出 30 天窗口和不破坏的替代选项"
+  },
+  "remoteDeleteDidKeepAsCopy": "已另存为新笔记，被删的那一篇已从本机移走",
+  "@remoteDeleteDidKeepAsCopy": {
+    "description": "动作一的提示"
+  },
+  "remoteDeleteDidHonor": "已移入回收站",
+  "@remoteDeleteDidHonor": {
+    "description": "动作三的提示"
+  },
+  "remoteDeleteDidPush": "已记下：下一篇会在下次同步时上传",
+  "@remoteDeleteDidPush": {
+    "description": "动作二的提示：上传发生在下一轮，不是当场"
+  },
   "@syncResurrectionHeld": {
     "description": "同步摘要（A3-2 甲方案）：被按住的陈旧副本上传；不得读成失败，也必须说清本机没删东西",
     "placeholders": {

@@ -6517,6 +6517,72 @@ abstract class AppLocalizations {
   /// **'; {count} note(s) were deleted in the cloud and the copy this device still holds is exactly the version that was deleted: those were not pushed back up. Nothing was removed on this device - the local copy stays where it is, and this notice keeps appearing each round until you deal with it yourself'**
   String syncResurrectionHeld(int count);
 
+  /// Disposition banner title (A3-2 option A): the unresolved asymmetry, per device decision
+  ///
+  /// In en, this message translates to:
+  /// **'The cloud deleted {count} note(s) that this device still holds'**
+  String remoteDeleteHoldTitle(int count);
+
+  /// Disposition banner body: must state that no action is automatic
+  ///
+  /// In en, this message translates to:
+  /// **'Sync already holds these back (they are not pushed up again), but the local copy is still here. All three actions below need your tap: the app never decides for you whether to remove local content.'**
+  String get remoteDeleteHoldBody;
+
+  /// Why this item counts as a stale copy; the proof comes from the causal anchor
+  ///
+  /// In en, this message translates to:
+  /// **'Basis: this local version is exactly the one the cloud deleted (same version number on both ends after sync).'**
+  String get remoteDeleteHoldReason;
+
+  /// Disposition action 1: copy under a new id, then honour the delete for the old id
+  ///
+  /// In en, this message translates to:
+  /// **'Keep it as a new note'**
+  String get remoteDeleteKeepAsCopy;
+
+  /// Disposition action 2: waive the hold once for this note
+  ///
+  /// In en, this message translates to:
+  /// **'Upload it anyway'**
+  String get remoteDeletePushAnyway;
+
+  /// Disposition action 3: the only destructive one, worded so Trash recovery is visible
+  ///
+  /// In en, this message translates to:
+  /// **'Accept the cloud deletion (local copy to Trash)'**
+  String get remoteDeleteHonorCloud;
+
+  /// Confirm dialog title for the destructive disposition
+  ///
+  /// In en, this message translates to:
+  /// **'Move this local note to Trash?'**
+  String get remoteDeleteHonorConfirmTitle;
+
+  /// Confirm dialog body: state the 30-day window and the non-destructive alternative
+  ///
+  /// In en, this message translates to:
+  /// **'The cloud copy is already gone. After this, the note lives only in Trash for 30 days. If you want to keep the content, choose Keep as a new note first.'**
+  String get remoteDeleteHonorConfirmBody;
+
+  /// Toast after action 1
+  ///
+  /// In en, this message translates to:
+  /// **'Saved as a new note; the deleted one is gone from this device'**
+  String get remoteDeleteDidKeepAsCopy;
+
+  /// Toast after action 3
+  ///
+  /// In en, this message translates to:
+  /// **'Moved to Trash'**
+  String get remoteDeleteDidHonor;
+
+  /// Toast after action 2: the upload happens next round, not right now
+  ///
+  /// In en, this message translates to:
+  /// **'Noted - this note will be uploaded on the next sync'**
+  String get remoteDeleteDidPush;
+
   /// DN-003：以预算截断态打开画布时的常驻说明条标题
   ///
   /// In en, this message translates to:

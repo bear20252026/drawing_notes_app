@@ -16,6 +16,7 @@ import 'package:drawing_notes_app/core/sync/sync_progress.dart';
 import 'package:drawing_notes_app/features/notes/application/sync_controller.dart';
 import 'package:drawing_notes_app/features/notes/presentation/conflict_resolution_dialog.dart';
 import 'package:drawing_notes_app/features/notes/presentation/post_restore_sync_banner.dart';
+import 'package:drawing_notes_app/features/notes/presentation/remote_delete_disposition_banner.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
 
@@ -210,6 +211,12 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
 
   /// DN-204：最近一次只读比对算出的两端差异，供提示条常驻显示（null = 还没比过）。
   PostRestoreDiff? _lastDiff;
+
+  /// A3-2 甲：最近一轮算出的「云端已删、本机仍留着」项——处置条的常驻数据源。
+  ///
+  /// 刻意不从 `SyncResult` 现拿：处置完之后同一轮里这份列表要跟着变短，
+  /// 而重跑一轮同步只为刷新一行提示是不成比例的代价。
+  List<RemoteDeleteIssue> _lastRemoteDeletes = const [];
 
   /// 空操作回调（用于禁用态按钮）。
   static void _noop() {}
@@ -436,6 +443,9 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
           if (outcome.result!.postRestoreDiff != null) {
             _lastDiff = outcome.result!.postRestoreDiff;
           }
+          // A3-2：处置入口用的是「刚才那一轮看见了什么」；toast 会消失，
+          // 但「有 N 篇悬着没处理」这件事必须留在屏上。
+          _lastRemoteDeletes = outcome.result!.remoteDeletes;
         });
         _toast(summary);
       } else {
@@ -494,6 +504,58 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
       if (proceed != true) return;
     }
     await _syncNow(reconcile: mode);
+  }
+
+  /// A3-2 甲：用户对一篇陈旧副本做出处置。三个动作都是**用户点了才做**，
+  /// 其中「认云端删除」是唯一会移走本机文件的 ⇒ 二次确认，且确认文案里必须
+  /// 写出「回收站 30 天」与那个不破坏内容的替代选项。
+  Future<void> _disposeRemoteDelete(
+    String docId,
+    RemoteDeleteDisposition disposition,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    if (disposition == RemoteDeleteDisposition.honorCloudDelete) {
+      final proceed = await GlassDialog.confirm(
+        context,
+        title:
+            l10n?.remoteDeleteHonorConfirmTitle ?? '把这篇本机笔记移入回收站？',
+        content: l10n?.remoteDeleteHonorConfirmBody ??
+            '云端那份已经没了。执行后这篇只存在于回收站 30 天。'
+            '想留住内容的话，先选「另存为新笔记」。',
+        confirmText:
+            l10n?.remoteDeleteHonorCloud ?? '认云端删除（本机移入回收站）',
+        dangerous: true,
+      );
+      if (proceed != true) return;
+    }
+    final out = await _sync.applyRemoteDeleteDisposition(
+      docId: docId,
+      disposition: disposition,
+    );
+    if (!mounted) return;
+    if (!out.applied) {
+      // 本机已经没有这一篇（多半是另一台设备处理过了）——不是错误，重跑一轮
+      // 同步就会刷新；说成失败会让人以为刚才那一下把数据弄坏了。
+      _toast('本机已经没有这一篇，下次同步会自动刷新状态');
+      setState(() => _lastRemoteDeletes = const []);
+      return;
+    }
+    _toast(
+      switch (disposition) {
+        RemoteDeleteDisposition.keepAsCopy =>
+          l10n?.remoteDeleteDidKeepAsCopy ?? '已另存为新笔记，被删的那一篇已从本机移走',
+        RemoteDeleteDisposition.honorCloudDelete =>
+          l10n?.remoteDeleteDidHonor ?? '已移入回收站',
+        RemoteDeleteDisposition.pushAnyway =>
+          l10n?.remoteDeleteDidPush ?? '已记下：下一篇会在下次同步时上传',
+      },
+    );
+    setState(() {
+      _lastRemoteDeletes = [
+        for (final i in _lastRemoteDeletes)
+          if (i.docId != docId) i,
+      ];
+    });
   }
 
   String _summaryOf(SyncResult r) {
@@ -692,6 +754,12 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
             onReconcile: _reconcile,
           ),
           if (_baselineHeld) const SizedBox(height: AppleSpacing.md),
+          // A3-2 甲：云端删过、本机仍留着的陈旧副本——给出处置入口。
+          RemoteDeleteDispositionBanner(
+            issues: _lastRemoteDeletes,
+            enabled: !_syncing,
+            onDispose: _disposeRemoteDelete,
+          ),
           TextField(
             controller: _url,
             keyboardType: TextInputType.url,

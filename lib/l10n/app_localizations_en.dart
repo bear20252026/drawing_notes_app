@@ -3598,6 +3598,47 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String remoteDeleteHoldTitle(int count) {
+    return 'The cloud deleted $count note(s) that this device still holds';
+  }
+
+  @override
+  String get remoteDeleteHoldBody =>
+      'Sync already holds these back (they are not pushed up again), but the local copy is still here. All three actions below need your tap: the app never decides for you whether to remove local content.';
+
+  @override
+  String get remoteDeleteHoldReason =>
+      'Basis: this local version is exactly the one the cloud deleted (same version number on both ends after sync).';
+
+  @override
+  String get remoteDeleteKeepAsCopy => 'Keep it as a new note';
+
+  @override
+  String get remoteDeletePushAnyway => 'Upload it anyway';
+
+  @override
+  String get remoteDeleteHonorCloud =>
+      'Accept the cloud deletion (local copy to Trash)';
+
+  @override
+  String get remoteDeleteHonorConfirmTitle => 'Move this local note to Trash?';
+
+  @override
+  String get remoteDeleteHonorConfirmBody =>
+      'The cloud copy is already gone. After this, the note lives only in Trash for 30 days. If you want to keep the content, choose Keep as a new note first.';
+
+  @override
+  String get remoteDeleteDidKeepAsCopy =>
+      'Saved as a new note; the deleted one is gone from this device';
+
+  @override
+  String get remoteDeleteDidHonor => 'Moved to Trash';
+
+  @override
+  String get remoteDeleteDidPush =>
+      'Noted - this note will be uploaded on the next sync';
+
+  @override
   String get budgetTruncatedTitle =>
       'This canvas holds less than the file on disk';
 

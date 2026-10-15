@@ -3461,6 +3461,43 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String remoteDeleteHoldTitle(int count) {
+    return '云端已删除 $count 篇，本机还留着同样的内容';
+  }
+
+  @override
+  String get remoteDeleteHoldBody =>
+      '同步已经把这几篇按住了（不会再推上云端），但本机这一份还在。下面三个动作都要你点：程序不会自己替你决定要不要删本机内容。';
+
+  @override
+  String get remoteDeleteHoldReason => '依据：本机这一版与云端删掉的正是同一版（同步后两端同一个版本号）。';
+
+  @override
+  String get remoteDeleteKeepAsCopy => '本机这份另存为新笔记';
+
+  @override
+  String get remoteDeletePushAnyway => '仍要上传到云端';
+
+  @override
+  String get remoteDeleteHonorCloud => '认云端删除（本机移入回收站）';
+
+  @override
+  String get remoteDeleteHonorConfirmTitle => '把这篇本机笔记移入回收站？';
+
+  @override
+  String get remoteDeleteHonorConfirmBody =>
+      '云端那份已经没了。执行后这篇只存在于回收站 30 天。想留住内容的话，先选「另存为新笔记」。';
+
+  @override
+  String get remoteDeleteDidKeepAsCopy => '已另存为新笔记，被删的那一篇已从本机移走';
+
+  @override
+  String get remoteDeleteDidHonor => '已移入回收站';
+
+  @override
+  String get remoteDeleteDidPush => '已记下：下一篇会在下次同步时上传';
+
+  @override
   String get budgetTruncatedTitle => '画布内容比磁盘上的原文件少';
 
   @override
