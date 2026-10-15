@@ -9,6 +9,12 @@
 //
 // 刻意不写「断言 tmp 会被清扫」：本仓现在**没有** documents/ 的 tmp 清扫器
 // （只有保险库密钥侧有一条），那是现状而不是承诺，钉死了反而挡住将来的改进。
+//
+// 第三格（(f)）要验的是「改名被拒 ⇒ 删目标再换入」这条**兜底腿的成功分支**。
+// 它必须靠注入：本机实测 Windows 的 rename 会覆盖已存在目标（所以这条腿不是
+// Windows 的常规路径），而真正的拒绝只在别人持句柄时发生（rename 报 5、紧随的
+// delete 报 32）⇒ 成功窗口是两次调用之间对方刚好放手，用 sleep 赌赢的测试同样
+// 是假的，Linux CI 更是永远走不到。判据见 `StorageWritePipeline.renameFaultForTest`。
 @Timeout(Duration(minutes: 3))
 library;
 
@@ -210,6 +216,7 @@ void main() {
     tearDown(() {
       pipeline.tmpPathObserverForTest = null;
       pipeline.renameBarrierForTest = null;
+      pipeline.renameFaultForTest = null;
     });
 
     Uint8List bytesOf(String marker) =>
@@ -302,6 +309,55 @@ void main() {
       expect(File('${pathOf('inj_c')}.bak').existsSync(), isFalse);
       expect(tmpResidue(), isEmpty);
       expect(await repo.load('inj_c'), isNull);
+    });
+
+    test('(f) 改名被拒之后那条兜底换入：成功分支要真落地，且不触发回滚', () async {
+      await pipeline.writeSealedBytes('inj_f', bytesOf('v1'));
+      await pipeline.writeSealedBytes('inj_f', bytesOf('v2'));
+      final path = pathOf('inj_f');
+      final v2 = File(path).readAsBytesSync();
+      AuditLogger.clear();
+
+      var refused = 0;
+      pipeline.renameFaultForTest = (tmpPath, destinationPath) {
+        if (refused > 0) return false; // 第二次换入走真实 rename
+        // 注入必须复刻真实拒绝留下的盘上形状：两份都原地不动，否则下面
+        // 「删目标 → 拿同一个 tmp 再换入」验的就不是同一条腿了。
+        expect(
+          File(tmpPath).existsSync(),
+          isTrue,
+          reason: '兜底腿要用同一个 tmp 再换入一次：此刻它必须已经完整存在',
+        );
+        expect(
+          File(destinationPath).existsSync(),
+          isTrue,
+          reason: '被拒的那一刻正式文件没被动过——它还在，才会需要「先删再换」',
+        );
+        refused++;
+        return true;
+      };
+
+      await pipeline.writeSealedBytes('inj_f', bytesOf('v3'));
+
+      expect(refused, 1, reason: '钩子一次都没被调到 = 这条用例什么都没验');
+      expect(
+        File(path).readAsBytesSync(),
+        equals(bytesOf('v3')),
+        reason: '兜底腿的全部意义：这次写入仍然要落地，而不是白删一次目标',
+      );
+      expect(
+        File('$path.bak').readAsBytesSync(),
+        equals(v2),
+        reason: '换入成功也不该顺手吃掉上一版——它还是回滚与读路径的依据',
+      );
+      expect(tmpResidue(), isEmpty);
+      expect(
+        AuditLogger.snapshot().any(
+          (l) => l.contains('storage.write_rolled_back_from_backup'),
+        ),
+        isFalse,
+        reason: '换入最终成功了，回滚一条都不许跑——跑了就把刚落地的 v3 又盖回 v2',
+      );
     });
   });
 }

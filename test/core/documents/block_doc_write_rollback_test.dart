@@ -14,6 +14,7 @@
 @Timeout(Duration(minutes: 2))
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -37,6 +38,7 @@ void main() {
 
   tearDown(() async {
     store.renameBarrierForTest = null;
+    store.renameFaultForTest = null;
     await deleteTempDirWithRetry(tempDir);
   });
 
@@ -128,5 +130,61 @@ void main() {
     );
     final loaded = await store.loadDocument('rb_c');
     expect(loaded?.title, '第三版');
+  });
+
+  test('兜底腿的成功分支：改名被拒 ⇒ 删目标再换入要真落地，且不触发回滚', () async {
+    // 与上一条「反向锁」不重复：那条走的是 rename 一次成功的常规路径，本条走的是
+    // **被拒之后**的兜底路径。这条腿只能注入——判据与实测记录见
+    // `NoteBlockDocStore.renameFaultForTest`（本仓跑在 Linux CI 上永远到不了，
+    // 真机上又只在「持句柄者刚好放手」的窗口里才成立）。
+    await store.saveDocument(doc('rf_a', '第一版'));
+    await store.saveDocument(doc('rf_a', '第二版'));
+    final path = docPath('rf_a');
+    final v2 = File(path).readAsBytesSync();
+    AuditLogger.clear();
+
+    var refused = 0;
+    store.renameFaultForTest = (tmpPath, destinationPath) {
+      if (refused > 0) return false; // 第二次换入走真实 rename
+      // 注入的形状必须等于真实拒绝：两份都原地不动。
+      expect(
+        File(tmpPath).existsSync(),
+        isTrue,
+        reason: '兜底腿要用同一个 tmp 再换入一次：此刻它必须已经完整存在',
+      );
+      expect(
+        File(destinationPath).existsSync(),
+        isTrue,
+        reason: '被拒的那一刻正式文件没被动过——它还在，才会需要「先删再换」',
+      );
+      refused++;
+      return true;
+    };
+
+    await store.saveDocument(doc('rf_a', '第三版'));
+
+    expect(refused, 1, reason: '钩子一次都没被调到 = 这条用例什么都没验');
+    final text = utf8.decode(File(path).readAsBytesSync());
+    expect(text, contains('第三版'), reason: '兜底腿的全部意义：这次写入要落地');
+    expect(text, isNot(contains('第二版')));
+    expect(
+      File('$path.bak').readAsBytesSync(),
+      equals(v2),
+      reason: '换入成功也不该顺手吃掉上一版',
+    );
+    expect(
+      Directory('${tempDir.path}${Platform.pathSeparator}blockdocs')
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.tmp')),
+      isEmpty,
+    );
+    expect(
+      AuditLogger.snapshot().any((l) => l.contains('write_rolled_back_from_backup')),
+      isFalse,
+      reason: '换入最终成功了，回滚一条都不许跑——跑了就把刚落地的第三版盖回第二版',
+    );
+    expect((await store.loadDocument('rf_a'))?.title, '第三版');
+    expect((await store.listDocHeaders()).map((h) => h.id), contains('rf_a'));
   });
 }

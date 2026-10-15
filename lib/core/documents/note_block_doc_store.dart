@@ -27,6 +27,7 @@ import 'package:drawing_notes_app/core/security/session_secrets.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
+import 'package:drawing_notes_app/core/storage/rename_injection.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:drawing_notes_app/core/utils/time_serialization.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
@@ -100,6 +101,16 @@ class NoteBlockDocStore implements SessionSecretsHolder {
   /// 好让「换入这一步真失败」这条腿也能确定地复现，而不是等 Windows 句柄冲突。
   @visibleForTesting
   Future<void> Function(String id, String tmpPath)? renameBarrierForTest;
+
+  /// 批次 D 故障注入：把**其中一次**改名替换成「系统拒绝」，其余仍走真实 rename
+  /// （生产恒 null）。实测依据与「拒绝」这个动作的统一定义都在
+  /// `core/storage/rename_injection.dart`：兜底腿在真机上只在别人持句柄又刚好
+  /// 放手的窗口里走得通（Windows 的 rename 本身会覆盖已存在目标；句柄占用时
+  /// rename 报 5、紧随的 delete 报 32），所以它不能靠 sleep 赌、Linux CI 更是永远到不了。
+  /// 返回 true = 这一次改名不执行，tmp 与目标原地不动。
+  @visibleForTesting
+  bool Function(String tmpPath, String destinationPath)? renameFaultForTest;
+
   /// 批次 D（CI kdf 分片随机红的根因，任务 #24）：等 **id 这条腿当前排队的写**
   /// 全部落完。测试用它把「等懒迁移把明文重写成密文」从掐表轮询换成确定信号——
   /// 以前 `--tags kdf` 串行分片会随机报「120 秒内未迁移」，可真正该问的是
@@ -595,13 +606,13 @@ class NoteBlockDocStore implements SessionSecretsHolder {
       }
       await renameBarrierForTest?.call(id, tmp.path);
       try {
-        await tmp.rename(path);
+        await renameIntoPlace(tmp, file, renameFaultForTest);
       } on FileSystemException {
         if (!file.existsSync()) rethrow;
         // 走到这里 .bak 必然已完整落盘（上一段的 fail-closed 保证），
         // 因此即使下面第二次 rename 失败，加载路径仍可从 .bak 恢复。
         await file.delete();
-        await tmp.rename(path);
+        await renameIntoPlace(tmp, file, renameFaultForTest);
       }
     } catch (_) {
       // 与画布腿同一条契约（批次 D 补）：第二次 rename 失败时正式文件已被删，

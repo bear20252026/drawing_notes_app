@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
+import 'package:drawing_notes_app/core/storage/rename_injection.dart';
 import 'package:drawing_notes_app/core/storage/storage_directories.dart';
 import 'package:drawing_notes_app/core/storage/storage_secret_session.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
@@ -74,6 +75,16 @@ class StorageWritePipeline {
   /// 与 [rewriteBarrierForTest] 同一纪律：不靠调度碰运气；生产恒 null。
   @visibleForTesting
   Future<void> Function(String id, String tmpPath)? renameBarrierForTest;
+
+  /// 批次 D 故障注入（三）：把**其中一次**改名替换成「系统拒绝」，其余仍走真实
+  /// 系统调用。存在的理由（本机实测，不是猜的）与「拒绝」这个动作的统一定义都在
+  /// `core/storage/rename_injection.dart`：这条兜底腿在真机上只在别人持句柄又刚好放手的
+  /// 窗口里走得通，用 sleep 赌赢的测试同样是假的，Linux CI 更是永远走不到。
+  /// 返回 true = 这一次改名不执行，tmp 与目标都原地不动——与真实拒绝留下的盘上
+  /// 形状一致。生产恒 null（一次 null 判定）。
+  @visibleForTesting
+  bool Function(String tmpPath, String destinationPath)? renameFaultForTest;
+
   /// 批次 D（CI kdf 分片随机红的根因，任务 #24）：等 **id 这条腿当前排队的写**
   /// 全部落完。测试用它把「等懒迁移把明文重写成密文」从掐表轮询换成确定信号——
   /// 以前 `--tags kdf` 串行分片会随机报「120 秒内未迁移」，可真正该问的是
@@ -368,8 +379,9 @@ class StorageWritePipeline {
     }
   }
 
-  /// 首选 rename（POSIX 原子替换）；若 Windows 拒绝覆盖已有文件，则在已经
-  /// 生成 `.bak` 的前提下删除旧目标并立即换入完整临时文件。加载逻辑会在
+  /// 首选 rename；被系统拒绝时（**实测**只在别人持有目标句柄时发生，不是
+  /// 「目标已存在」——Windows 的 rename 是会覆盖已存在目标的）则在已经生成
+  /// `.bak` 的前提下删除旧目标并立即换入完整临时文件。加载逻辑会在
   /// 正式文件缺失或损坏时读取 `.bak`，因此崩溃窗口不会表现为文档消失。
   ///
   /// Windows 共享冲突退避（2026-09-24 懒迁移 flake 根因修复）：杀毒/
@@ -381,11 +393,11 @@ class StorageWritePipeline {
     for (var attempt = 1;; attempt++) {
       try {
         try {
-          await tmp.rename(destination.path);
+          await renameIntoPlace(tmp, destination, renameFaultForTest);
         } on FileSystemException {
           if (!destination.existsSync()) rethrow;
           await destination.delete();
-          await tmp.rename(destination.path);
+          await renameIntoPlace(tmp, destination, renameFaultForTest);
         }
         return;
       } on FileSystemException catch (e) {
