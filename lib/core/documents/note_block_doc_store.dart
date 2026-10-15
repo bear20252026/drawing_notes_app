@@ -46,6 +46,23 @@ class BlockDocLockedException implements Exception {
   String toString() => 'BlockDocLockedException: 笔记已加密且会话未解锁';
 }
 
+/// 盘上那份笔记的受密状态——三态，**不是**「有没有信封」两态（审计 SYN-D1）。
+///
+/// `unreadable` 必须单独成立：它与 `notEnvelope` 在旧的两态形状里共用一个 null，
+/// 而对写路径两者的含义相反（一个可以落盘，另一个必须拒写）。详见
+/// `NoteBlockDocStore._readEnvelope`。
+enum _EnvelopeRead {
+  /// 没有 v5 文件密码信封：文件不存在、是主密钥信封、是明文、或内容损坏。
+  notEnvelope,
+
+  /// 是 v5 文件密码信封，`json` 里放着它的原文（写路径只能走 rewrap 腿）。
+  envelope,
+
+  /// 文件在，但**这一刻读不出它是什么**（句柄被占用 / 权限抖动 / 瞬时 IO 错误）。
+  /// ⇒ 不许据此推断任何落盘动作。
+  unreadable,
+}
+
 /// 块文档本地存储门面。
 ///
 /// 用法：
@@ -95,6 +112,13 @@ class NoteBlockDocStore implements SessionSecretsHolder {
   /// 字段必须驻留主文件（extension 内不可声明实例字段）。
   @visibleForTesting
   Future<void> Function(String id)? rewriteBarrierForTest;
+
+  /// SYN-D1：测试专用**读失败注入**——在「文件存在」与「读出其内容」之间抛
+  /// （生产恒 null）。要造的是「这一刻读不出来」那一格（errno 32 句柄被占用、
+  /// 权限抖动、瞬时 IO 错误），它和「盘上这份不是信封」在旧形状里是同一个 null，
+  /// 而这两者对写路径的含义完全相反：一个可以落盘，另一个必须拒写。
+  @visibleForTesting
+  Future<void> Function(String id)? readBarrierForTest;
 
   /// 批次 D 故障注入：在**备份已落盘**与**改名换入**之间 await（生产恒 null，
   /// 一次 null 判定）。与 `StorageWritePipeline.renameBarrierForTest` 同一用意，
@@ -181,23 +205,62 @@ class NoteBlockDocStore implements SessionSecretsHolder {
   }
 
   /// 读取指定笔记的落盘字节；若为 v5 文件密码信封则返回其 JSON 串，
-  /// 否则（不存在/主密钥信封/明文/损坏）返回 null。
+  /// 否则（不存在/主密钥信封/明文/损坏/**这一刻读不出来**）返回 null。
+  ///
+  /// 密码域那几个流程只用得到「有没有信封、信封内容是什么」，null 对它们是安全的
+  /// （每条 null 分支都抛错或返回 false，不写盘）。**写路径不许用这个方法**——
+  /// 用 [_readEnvelope] 拿三态，见该方法的注释。
   Future<String?> _readEnvelopeJson(String id) async {
+    final read = await _readEnvelope(id);
+    return read.state == _EnvelopeRead.envelope ? read.json : null;
+  }
+
+  /// 盘上这份笔记的**三态**受密状态（审计 SYN-D1，第四轮 2026-10-15）。
+  ///
+  /// 旧形状就是上面那个 `String?`：「不存在 / 主密钥信封 / 明文 / 损坏」与
+  /// 「读不出来（句柄被占用、权限抖动、IO 错误）」被压成**同一个 null**，而
+  /// `saveDocument` 正是拿这个 null 走「未受密 ⇒ 可以落盘」那一支 ⇒
+  /// **一次瞬时读失败就把 v5 文件密码信封整份盖成主密钥信封或明文**，
+  /// 原密文连同那份 DEK 一起没了，用户再怎么输密码也开不了。
+  ///
+  /// 三态之后：只有 `envelope` 进 rewrap 腿、只有 `notEnvelope` 进未受密腿，
+  /// `unreadable` **拒写**（抛错、盘上那份一字不动、下一轮自动保存再来）。
+  /// 「拒写」而不是「按最坏假设加密落盘」：读不出来的这一次，我们连该用哪个
+  /// AAD 分支都不确定，任何猜测都是在赌那份信封的生死。
+  Future<({ _EnvelopeRead state, String? json })> _readEnvelope(String id) async {
+    final path = await _pathFor(id);
     try {
-      final file = File(await _pathFor(id));
-      if (!file.existsSync()) return null;
+      final file = File(path);
+      if (!file.existsSync()) {
+        return (state: _EnvelopeRead.notEnvelope, json: null);
+      }
+      // 测试屏障（生产恒 null）：崩溃/失败窗口不能靠调度碰运气，要能确定地
+      // 停在「文件在，但这一刻读不出内容」那一格——与 `rewriteBarrierForTest` 同纪律。
+      await readBarrierForTest?.call(id);
       final raw = await file.readAsBytes();
-      if (VaultFileCodec.isEncrypted(raw)) return null; // 主密钥信封——非文件密码
+      if (VaultFileCodec.isEncrypted(raw)) {
+        // 主密钥信封——非文件密码，走下面的正常加密落盘腿。
+        return (state: _EnvelopeRead.notEnvelope, json: null);
+      }
       final text = utf8.decode(raw);
-      return EncryptionService.isDualProtectorEnvelope(text) ? text : null;
-    } catch (_) {
-      return null;
+      return EncryptionService.isDualProtectorEnvelope(text)
+          ? (state: _EnvelopeRead.envelope, json: text)
+          : (state: _EnvelopeRead.notEnvelope, json: null);
+    } on Object {
+      return (state: _EnvelopeRead.unreadable, json: null);
     }
   }
 
   /// 该笔记是否受独立文件密码保护（v5 信封；不解密、不暴露内容）。
-  Future<bool> isBlockDocPasswordProtected(String id) async =>
-      await _readEnvelopeJson(id) != null;
+  ///
+  /// SYN-D1 的另一半：读不出来时答 **true**（当成受密）。调用点的形状一律是
+  /// 「未受密 ⇒ 直接放行动作」（`app_shell_routes.dart:107`、`home_page_tabs.dart:296`、
+  /// `search_page.dart:118` 等），所以保守方向只有这一个——宁可让用户多解一次锁，
+  /// 不能把一个可能受密的文件当明文去删/去盖。
+  Future<bool> isBlockDocPasswordProtected(String id) async {
+    final read = await _readEnvelope(id);
+    return read.state != _EnvelopeRead.notEnvelope;
+  }
 
   Future<Directory> _baseDir() async {
     final provider = directoryProvider;
@@ -526,7 +589,18 @@ class NoteBlockDocStore implements SessionSecretsHolder {
     // 直落盘，仅重生成 payload 密文、槽位组原样保留——LUKS 语义）。
     // 无 DEK 时 fail-closed：绝不把明文覆盖到密文上（与 NotebookStorage
     // save 守卫同纪律）。DocPage 自动保存零改动——透明 rewrap。
-    final envelope = await _readEnvelopeJson(doc.id);
+    final read = await _readEnvelope(doc.id);
+    // SYN-D1：读不出受密状态 ⇒ 拒写。这一格以前是 null ⇒ 当成「未受密」⇒
+    // 一次瞬时读失败就把 v5 信封整份盖掉（原密文与那份 DEK 一起没了）。
+    if (read.state == _EnvelopeRead.unreadable) {
+      AuditLogger.log(
+        'blockdoc.save.readUnknown',
+        success: false,
+        detail: doc.id,
+      );
+      throw StateError('笔记「${doc.id}」的受密状态此刻读不出来：拒绝落盘覆盖');
+    }
+    final envelope = read.json;
     if (envelope != null) {
       final dek = _sessionDeks[doc.id];
       if (dek == null) {
