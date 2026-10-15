@@ -70,7 +70,6 @@ class EditorLeftToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final isEraser = controller.tool == BrushType.eraser;
     return GlassSurface(
       borderRadius: BorderRadius.circular(AppleRadius.lg),
       sigma: 12,
@@ -90,6 +89,24 @@ class EditorLeftToolbar extends StatelessWidget {
             String Function(AppLocalizations l) label,
             String fallback,
           ) => l10n == null ? fallback : label(l10n);
+          // 「哪一格绘制档现在真的在接落笔」只在这一处判定（2026-10-15）。
+          // 以前这条判据抄了四遍（pen/pencil/marker/laser 各一份，且四份都漏了手型与
+          // 形状），而橡皮擦读的是 `build()` **外面**另算的快照值——既没参与互斥，也只在
+          // 宿主重建时才刷新。于是三种可达组合会两格同时亮：吸管 + 橡皮擦、
+          // 手型 + 任一绘制档、形状 + 任一绘制档。后两类不是豁免而是漏项：手型那格的
+          // 注释早就写了「画布导航与绘制模式显式分离」，形状一旦选中则直接接管落笔
+          // （`editor_page_input.dart:72`），而宿主的 `_toggleHandTool` /
+          // `_selectShapeTool` / 吸管都不碰 `controller.tool`。
+          // 值必须算在 builder **里面**：橡皮擦那一格此前靠宿主 `setState` 才刷新，
+          // 任何一个只写控制器不重建的新入口都会让它停在旧快照上、两格并亮。
+          bool writingActive(BrushType t) =>
+              controller.tool == t &&
+              controller.selectionTool == SelectionTool.none &&
+              !eyedropperActive &&
+              !textToolActive &&
+              !marqueeActive &&
+              !handActive &&
+              activeShape == null;
           return SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -106,33 +123,21 @@ class EditorLeftToolbar extends StatelessWidget {
                 _tool(
                   Icons.edit_rounded,
                   tip((l) => l.toolWithShortcut(l.toolPen, 'P'), '画笔 (P)'),
-                  controller.tool == BrushType.pen &&
-                      controller.selectionTool == SelectionTool.none &&
-                      !eyedropperActive &&
-                      !textToolActive &&
-                      !marqueeActive,
+                  writingActive(BrushType.pen),
                   onBrush,
                 ),
                 // 铅笔：与钢笔分离的独立预设，保留略深的石墨色与尺寸。
                 _tool(
                   Icons.draw_rounded,
                   tip((l) => l.toolWithShortcut(l.toolPencil, 'N'), '铅笔 (N)'),
-                  controller.tool == BrushType.pencil &&
-                      controller.selectionTool == SelectionTool.none &&
-                      !eyedropperActive &&
-                      !textToolActive &&
-                      !marqueeActive,
+                  writingActive(BrushType.pencil),
                   onPencil,
                 ),
                 // 高亮笔：采用独立局部合成层，实际支持不叠色书写。
                 _tool(
                   Icons.highlight_rounded,
                   tip((l) => l.toolWithShortcut(l.toolMarker, 'M'), '高亮笔 (M)'),
-                  controller.tool == BrushType.marker &&
-                      controller.selectionTool == SelectionTool.none &&
-                      !eyedropperActive &&
-                      !textToolActive &&
-                      !marqueeActive,
+                  writingActive(BrushType.marker),
                   onHighlighter,
                 ),
 
@@ -140,11 +145,7 @@ class EditorLeftToolbar extends StatelessWidget {
                 _tool(
                   Icons.gesture_rounded,
                   tip((l) => l.toolLaser, '激光指示器（临时尾迹）'),
-                  controller.tool == BrushType.laser &&
-                      controller.selectionTool == SelectionTool.none &&
-                      !eyedropperActive &&
-                      !textToolActive &&
-                      !marqueeActive,
+                  writingActive(BrushType.laser),
                   onLaser,
                 ),
 
@@ -155,7 +156,7 @@ class EditorLeftToolbar extends StatelessWidget {
                     (l) => l.toolWithShortcut(l.toolEraserName, 'E'),
                     '橡皮擦 (E)',
                   ),
-                  isEraser,
+                  writingActive(BrushType.eraser),
                   onEraser,
                 ),
                 // 吸管
@@ -244,12 +245,19 @@ class EditorLeftToolbar extends StatelessWidget {
       ],
     );
     if (!selected) return menu;
-    return Container(
-      decoration: BoxDecoration(
-        color: AppleColor.actionBlue,
-        borderRadius: BorderRadius.circular(AppleRadius.sm),
+    // P1-9 给 14 个工具格补过语义，形状这一格漏了：它只有视觉蓝底，读屏用户拿不到
+    // 「形状已选中」。这里补成与 `_tool` 同形的两份编码（button + selected），
+    // 否则「选中态有两份」这条规则在工具条上仍有例外。
+    return Semantics(
+      button: true,
+      selected: true,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppleColor.actionBlue,
+          borderRadius: BorderRadius.circular(AppleRadius.sm),
+        ),
+        child: menu,
       ),
-      child: menu,
     );
   }
 

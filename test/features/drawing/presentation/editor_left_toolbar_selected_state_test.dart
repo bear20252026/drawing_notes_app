@@ -32,6 +32,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
@@ -41,6 +42,8 @@ void main() {
   const penTip = '画笔 (P)';
   const eraserTip = '橡皮擦 (E)';
   const eyedropperTip = '吸管工具';
+  const handTip = '平移画布 (H)';
+  const shapeTip = '形状工具';
 
   /// 与 `editor_insert_image_entry_test.dart` 同一装配：不给本地化代理，
   /// `AppLocalizations.of(context)` 返回 null ⇒ 工具条走 arb 缺失时的中文兜底串，
@@ -51,6 +54,8 @@ void main() {
     DrawingController controller, {
     required void Function() rebuild,
     bool eyedropperActive = false,
+    bool handActive = false,
+    ShapeType? activeShape,
   }) => MaterialApp(
     home: Scaffold(
       body: EditorLeftToolbar(
@@ -59,9 +64,9 @@ void main() {
         textToolActive: false,
         marqueeActive: false,
         linkMode: false,
-        handActive: false,
+        handActive: handActive,
         onHand: rebuild,
-        activeShape: null,
+        activeShape: activeShape,
         onBrush: () {
           controller.tool = BrushType.pen;
           rebuild();
@@ -230,6 +235,137 @@ void main() {
       reason: '另一档模式激活时 pen 那格必须退出选中——这是 `_tool` 那串互斥条件的全部意义',
     );
     expect(toolSelected(tester, eyedropperTip), isTrue);
+    expect(selectedSemantics(), findsOneWidget);
+    expect(accentBlocks(), findsOneWidget);
+
+    await unmount(tester, controller);
+  });
+
+  testWidgets('互斥：橡皮擦 + 吸管不得两格同时亮（isEraser 也得参与判定）', (
+    tester,
+  ) async {
+    final controller = DrawingController(
+      DrawingDocument(id: 'sel_state_eraser_mutex', title: '互斥回归'),
+    );
+    var eyedropperActive = false;
+    await tester.pumpWidget(
+      StatefulHost(
+        builder: (rebuild) => host(
+          controller,
+          rebuild: () => rebuild(),
+          eyedropperActive: eyedropperActive,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip(eraserTip));
+    await tester.pumpAndSettle();
+    expect(controller.tool, BrushType.eraser);
+    expect(toolSelected(tester, eraserTip), isTrue, reason: '基线：橡皮擦单独激活时亮');
+
+    eyedropperActive = true;
+    await tester.pumpWidget(
+      StatefulHost(
+        builder: (rebuild) => host(
+          controller,
+          rebuild: () => rebuild(),
+          eyedropperActive: eyedropperActive,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 宿主激活吸管时不会改 `controller.tool`（`editor_page_body.dart:190` 只清
+    // 指针模式），所以这一格只能靠工具条自己的互斥退出。
+    expect(controller.tool, BrushType.eraser);
+    expect(toolSelected(tester, eyedropperTip), isTrue);
+    expect(
+      toolSelected(tester, eraserTip),
+      isFalse,
+      reason: '吸管接管输入时橡皮擦不得继续亮——两格同时亮就是「当前用什么画」说不清',
+    );
+    expect(selectedSemantics(), findsOneWidget);
+    expect(accentBlocks(), findsOneWidget);
+
+    await unmount(tester, controller);
+  });
+
+  testWidgets('互斥：手型导航时绘制档不得继续亮（注释早就写了「显式分离」）', (
+    tester,
+  ) async {
+    final controller = DrawingController(
+      DrawingDocument(id: 'sel_state_hand_mutex', title: '互斥回归'),
+    );
+    var handActive = false;
+    await tester.pumpWidget(
+      StatefulHost(
+        builder: (rebuild) =>
+            host(controller, rebuild: () => rebuild(), handActive: handActive),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(toolSelected(tester, penTip), isTrue);
+
+    // 宿主的 `_toggleHandTool`（`editor_page_tools.dart:33`）不碰 `controller.tool`：
+    // 手型是页面持有的模式位，画笔仍是「下次落笔用什么」。
+    handActive = true;
+    await tester.pumpWidget(
+      StatefulHost(
+        builder: (rebuild) =>
+            host(controller, rebuild: () => rebuild(), handActive: handActive),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.tool, BrushType.pen);
+    expect(toolSelected(tester, handTip), isTrue);
+    expect(
+      toolSelected(tester, penTip),
+      isFalse,
+      reason: '`editor_left_toolbar.dart:97` 写的就是「画布导航与绘制模式显式分离」，'
+          '两格同时亮等于没分离',
+    );
+    expect(selectedSemantics(), findsOneWidget);
+    expect(accentBlocks(), findsOneWidget);
+
+    await unmount(tester, controller);
+  });
+
+  testWidgets('互斥：形状档接管落笔时，绘制档那一格也得退出选中态', (tester) async {
+    final controller = DrawingController(
+      DrawingDocument(id: 'sel_state_shape_mutex', title: '互斥回归'),
+    );
+    ShapeType? activeShape;
+    Future<void> remount() async {
+      await tester.pumpWidget(
+        StatefulHost(
+          builder: (rebuild) => host(
+            controller,
+            rebuild: () => rebuild(),
+            activeShape: activeShape,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await remount();
+    expect(toolSelected(tester, penTip), isTrue);
+
+    // 宿主的 `_selectShapeTool`（`editor_page_tools.dart:8`）同样不碰 `controller.tool`，
+    // 而形状一旦选中就接管落笔（`editor_page_input.dart:72` 直接短路画笔分支）：
+    // 此时「当前用什么画」已经是形状，笔那一格不能再亮。
+    activeShape = ShapeType.rect;
+    await remount();
+
+    expect(controller.tool, BrushType.pen);
+    expect(toolSelected(tester, shapeTip), isTrue);
+    expect(
+      toolSelected(tester, penTip),
+      isFalse,
+      reason: '形状接管落笔时 pen 不得继续亮，否则两格同时高亮',
+    );
     expect(selectedSemantics(), findsOneWidget);
     expect(accentBlocks(), findsOneWidget);
 
