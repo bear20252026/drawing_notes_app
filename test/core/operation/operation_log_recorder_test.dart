@@ -19,6 +19,7 @@
 //  M7 `_opLogStore` 恒传 keyProvider（丢掉建库判据） ⇒ （侧车加密判据与文档同一条：没建库⇒明文，建过库⇒DNV 信封）
 //  M8 saveAndLog 里把 revision 挪到 save 之后       ⇒ （revision 必须取自 save 之前）
 //  M9 把接线点换回裸 `storage.save(doc)`            ⇒ （editor_page 的自动保存真的走 saveAndLog）
+//  M10 `_opLogStore` 的判据缺席默认改回 `?? false`   ⇒ （STO-012：判据缺席时侧车默认走加密腿，不抢跑一份明文）
 //
 // **M1/M5/M7 第一版是无效的**（改完仍全绿＝那条门禁根本没在守门），补法各不一样：
 //  M1：`append` 对空列表本来就返回 0，「不建文件」看不出差别 ⇒ 改成注入**计数工厂**，
@@ -363,6 +364,27 @@ void main() {
       expect(
         String.fromCharCodes(sidecar('doc_vault').readAsBytesSync().take(3)),
         'DNV',
+      );
+    });
+
+    test('STO-012：判据缺席时侧车默认走加密腿，不抢跑一份明文', () async {
+      // 组合根恒注入 `vaultConfigured`，所以「缺席」代表的是一种**装配失误**的形状：
+      // 给了 keyProvider、忘了判据。这一格原本按「没建库」处理 ⇒ 明文侧车与加密正文
+      // 同盘共存（等于给加密边界开了第二条通道）；现在必须与正文同向、走 fail-closed。
+      // 反向对照用上面那条显式 `vaultConfigured: false` 的用例——那才是产品设计里的明文。
+      final key = Uint8List(32);
+      final storage = StorageService(
+        directoryProvider: () async => tempDir,
+        keyProvider: () async => key,
+      );
+      final log = OperationLog()..record(op(1));
+      await storage.saveAndLog(doc(id: 'doc_no_detector'), log);
+
+      final bytes = sidecar('doc_no_detector').readAsBytesSync();
+      expect(
+        String.fromCharCodes(bytes.take(3)),
+        'DNV',
+        reason: '判据缺席 ⇒ 侧车不许落明文（与本仓其余三条腿的默认同向）',
       );
     });
 

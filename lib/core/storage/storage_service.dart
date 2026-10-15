@@ -128,8 +128,20 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
   /// 侧车必须与文档走**同一条**加密降级判据（§9「不给日志是明文留第二条通道」）：
   /// 没建库 ⇒ 明文落盘（产品设计）；建过库 ⇒ 交主密钥，取不到就是锁定、什么都不写。
   /// 这条判据是异步的，所以 store 每次现取，而不是在构造期定死一个 keyProvider。
+  ///
+  /// **判据缺席时默认 fail-closed（`?? true`）**——审计 STO-012 抓的就是这里原本写
+  /// `?? false`：那等于「没人告诉我建没建库 ⇒ 当成没建库 ⇒ 落明文」，与本仓其余三条腿
+  /// 反着走（`storage_write_pipeline.dart:49`、`note_block_doc_store.dart` 的
+  /// `encryptionInUse()`、`notebook_storage.dart:455` 缺席时一律 true）。
+  ///
+  /// 不破坏 `app.dart:71-77` 那条 P0 修复：未建库的真用户走的是**显式**返回 false 那一支
+  /// （组合根一直注入 `vaultConfigured`），不是「判据缺席」。真正被这次改动换掉形状的是
+  /// 「注入了 keyProvider 却漏了判据」这种装配——过去会悄悄落一份明文侧车（画布内容以明文
+  /// 形式越过加密边界），现在交回同一条 keyProvider 问一次：取到密钥就加密，取不到就一份不写
+  /// （`OperationLogStore._seal` 里 keyProvider 非空但返回 null ⇒ null ⇒ 不写，见该文件 :232-236）。
+  /// 用例钉住的是这个差别。
   Future<OperationLogStore> _opLogStore() async {
-    final configured = await vaultConfigured?.call() ?? false;
+    final configured = await vaultConfigured?.call() ?? true;
     return OperationLogStore(
       directoryProvider: _directories.rootDir,
       keyProvider: configured ? keyProvider : null,
