@@ -14,30 +14,18 @@ extension SyncServicePostRestore on SyncService {
     _emit(SyncProgress.phase(SyncProgressPhase.planning));
     final remoteManifest = (await _readRemoteManifest()).manifest;
     final inventory = await documentStore.listDocuments();
-    final currentEntries = <String, SyncSnapshot>{
-      for (final d in inventory.readable)
-        d.id: SyncSnapshot(
-          id: d.id,
-          updatedAt: d.updatedAt,
-          size: d.size,
-          digest: d.digest,
-        ),
-    };
     final baseline = await baselineStore.load() ?? const SyncManifest();
-    // 「什么才算用户删除」的判据与 syncNow 第 3 步是同一条，包括 DN-107 的
-    // 「存在但读不到」按基线快照带回——两处必须一起改，否则隔离轮会把锁定的
-    // 笔记算进「云端有、本地没有」，用户一选合并就把它盖掉。
-    final suppressed = <String>{};
-    for (final id in baseline.entries.keys) {
-      if (currentEntries.containsKey(id)) continue;
-      if (inventory.unreadable.contains(id)) {
-        final baselineSnap = baseline.entries[id];
-        if (baselineSnap != null) currentEntries[id] = baselineSnap;
-        continue;
-      }
-      if (baseline.deletedIds.contains(id)) continue;
-      suppressed.add(id);
-    }
+    // 「什么才算用户删除」（含 DN-107 的「存在但读不到 ⇒ 按基线快照带回」）此前
+    // 在这里被**逐行抄了第二遍**，注释还写着「两处必须一起改」——第四轮审计
+    // SYN-03 的定性是：靠人记住「一起改」的判据等于没有判据。改成直接调正常轮
+    // 用的那一份 `_buildLocalManifest`（它是纯函数、已有 policy 参数；传
+    // reportOnly 就把所有候选删除改道进 suppressed，一条 DELETE 都不生成，
+    // 与本函数原来的手写循环逐条等价）。
+    final local = _buildLocalManifest(
+      inventory: inventory,
+      baseline: baseline,
+      policy: PostRestoreReconcile.reportOnly,
+    );
     _emit(SyncProgress.complete());
     return SyncResult(
       uploaded: 0,
@@ -45,9 +33,9 @@ extension SyncServicePostRestore on SyncService {
       deletedRemote: 0,
       postRestorePolicy: PostRestoreReconcile.reportOnly,
       postRestoreDiff: _diffOf(
-        currentEntries: currentEntries,
+        currentEntries: local.currentEntries,
         remoteManifest: remoteManifest,
-        suppressedTombstoneIds: suppressed,
+        suppressedTombstoneIds: local.suppressedTombstoneIds,
       ),
     );
   }
@@ -64,7 +52,15 @@ extension SyncServicePostRestore on SyncService {
       final remote = remoteManifest.entries[entry.key];
       if (remote == null) {
         localOnly.add(entry.key);
-      } else if (remote != entry.value) {
+      } else if (remote != entry.value ||
+          remote.contentDiffersFrom(entry.value)) {
+        // 第四轮审计 SYN-04：`SyncSnapshot.operator ==` **刻意不含摘要**
+        // （`sync_planner.dart:52-63`，升级兼容的取舍），所以只看 `!=` 的话，
+        // 「同一毫秒、字节数恰好相同、内容不同」那一对会在差异表里显示成
+        // 「两端一致」。而这张表正是用户选方向的依据——他会照着「无差异」点
+        // 「以云端为准」，把本机那一份同戳不同内容的版本盖掉，且这一步没有
+        // 任何副本保留。正常轮的冲突检测读的是 `contentDiffersFrom`
+        // （`sync_conflict.dart:177`），这里补成同一条判据，不再留第二套口径。
         diverged.add(entry.key);
       }
     }

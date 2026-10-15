@@ -106,6 +106,83 @@ void main() {
     });
   });
 
+  testWidgets('旋转滑块松手也要结算：不结算＝旋转永不落盘（EUI-01）', (tester) async {
+    final a = strokeAt(10);
+    final doc = DrawingDocument(
+      id: 'slider-rotate-widget',
+      title: '选区滑块旋转',
+      width: 400,
+      height: 400,
+      layers: <Layer>[
+        Layer(id: 'layer_1', name: '图层 1', strokes: <Stroke>[a]),
+      ],
+    );
+    var changes = 0;
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: EditorPage(document: doc, onChanged: () => changes++),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    final bar = tester.widget<SelectionBar>(find.byType(SelectionBar));
+    final controller = bar.controller;
+    // 用**套索**而不是矩形框选：`SelectionBar` 的可见条件是
+    // `controller.hasSelection || hasImage || hasShape`，而 `hasSelection` 判的是
+    // 多边形 ≥3 点（`drawing_selection_session.dart:49`）——矩形框选只有
+    // `hasSelectedStrokes`，条子根本不渲染，滑块也就不存在。上面那条缩放用例之所以
+    // 手调回调，很可能就是先撞上这一点。
+    controller.selectionTool = SelectionTool.lasso;
+    controller.beginSelection(const Offset(5, 0));
+    controller.extendSelection(const Offset(80, 0));
+    controller.extendSelection(const Offset(80, 30));
+    controller.extendSelection(const Offset(5, 30));
+    controller.endSelection();
+    await tester.pumpAndSettle();
+    expect(controller.hasSelectedStrokes, isTrue);
+
+    // 真的拖那个柄，而不是手调回调：同条文件上面那条缩放用例是 `bar.onTransformEnd()`
+    // 直接调出去的，所以「旋转滑块没接 onChangeEnd」这种断线它永远不会红。
+    // 按量程认柄（旋转 0..360、缩放 0.1..5）——别用 `.last`，页面上不止两个滑块。
+    final rotateSlider = find.byWidgetPredicate(
+      (w) => w is Slider && w.max == 360,
+    );
+    expect(rotateSlider, findsOneWidget);
+    expect(tester.widget<Slider>(rotateSlider).value, 0);
+
+    await tester.drag(rotateSlider, const Offset(60, 0));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<Slider>(rotateSlider).value,
+      isNonZero,
+      reason: '拖拽本身没生效的话，下面的断言就不是在验接线',
+    );
+
+    expect(
+      controller.canUndo,
+      isTrue,
+      reason: '旋转收尾必须结算窄命令——否则既撤不回，也不告诉宿主「有改动」',
+    );
+    expect(
+      changes,
+      greaterThan(0),
+      reason:
+          'EUI-01 的实际后果：`onRotateChanged` 只 tickFrame()，不置脏 ⇒ '
+          'flushIfDirty 按 nothingToSave 早退 ⇒ 旋转过的笔画根本不落盘',
+    );
+
+    controller.undo();
+    expect(
+      firstPoint(doc.layers.first.strokes.first),
+      firstPoint(a),
+      reason: '撤销要能把旋转还原回起点角度',
+    );
+  });
+
   group('变换锚点归属', () {
     test('残留锚点不得跨手势：换选区后的第一次 undo 只还原第二次手势', () {
       final a = strokeAt(10);

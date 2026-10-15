@@ -78,3 +78,9 @@ app.*.map.json
 /tools/dump_uia.ps1
 /tools/install_test.ps1
 /tools/ui_automate.ps1
+
+# Spike 证据目录（第四轮审计 2026-10-15 GATE-CTL-05）：268MB / 3,264 文件，其中 2,083
+# 个在 node_modules 下，另有 Rust target/ 与 2.7MB .so。analysis_options 早写了「untracked、
+# 不进 CI、不上车」，但那条不变式此前只靠「还没人跑 tools/sync_github.sh」维持——那个脚本
+# 是 `git add -A`。这一行把它变成显式规则。
+/spikes/

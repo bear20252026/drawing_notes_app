@@ -53,6 +53,23 @@ class _Server {
     );
   }
 
+  /// 带摘要的清单种子（SYN-04）：造出「同 updatedAt、同 size，只有内容摘要不同」
+  /// 这一型——结构相等而内容分叉，只有摘要抓得到。
+  void seedManifestDigest(Map<String, (int, String)> idToEntry) {
+    final entries = {
+      for (final e in idToEntry.entries)
+        e.key: {
+          'id': e.key,
+          'updatedAt': e.value.$1,
+          'size': _docBytes(e.value.$1).length,
+          'digest': e.value.$2,
+        },
+    };
+    files['manifest.json'] = utf8.encode(
+      jsonEncode({'entries': entries, 'deletedIds': <String>[]}),
+    );
+  }
+
   /// 云端清单当前的条目 id（断言 manifest 有没有被本轮改写）。
   Set<String> manifestIds() {
     final raw = files['manifest.json'];
@@ -99,6 +116,9 @@ class _Docs implements SyncDocumentStore {
   final Map<String, int> updatedAtById = {};
   final Set<String> unreadable = {};
 
+  /// SYN-04：摘要与 updatedAt 解耦地注入，用来造「同毫秒同字节数、内容不同」。
+  final Map<String, String> digestById = {};
+
   void put(String id, int updatedAt) => updatedAtById[id] = updatedAt;
 
   @override
@@ -106,7 +126,12 @@ class _Docs implements SyncDocumentStore {
     readable: [
       for (final e in updatedAtById.entries)
         if (!unreadable.contains(e.key))
-          SyncDocMeta(id: e.key, updatedAt: e.value, size: _docBytes(e.value).length),
+          SyncDocMeta(
+            id: e.key,
+            updatedAt: e.value,
+            size: _docBytes(e.value).length,
+            digest: digestById[e.key],
+          ),
     ],
     unreadable: unreadable.toSet(),
   );
@@ -190,6 +215,31 @@ void _seedRestoredWorld({
 
 void main() {
   group('DN-204 未裁决：只报差异，零写入', () {
+    test('同 ts 同字节数、只有内容不同 ⇒ 差异表必须报成分叉（SYN-04）', () async {
+      final docs = _Docs();
+      final server = _Server();
+      docs
+        ..put('a', 60)
+        ..digestById['a'] = 'aaaa111122223333';
+      server
+        ..seedDoc('a', 60)
+        ..seedManifestDigest({'a': (60, 'bbbb111122223333')});
+
+      final r = await _service(
+        docs: docs,
+        server: server,
+        baseline: _Baseline(null),
+        gate: _Gate(true),
+      ).syncNow();
+
+      // `SyncSnapshot.operator ==` 刻意不含摘要（升级兼容），所以只比 `!=` 的
+      // 差异表会把它显示成「两端一致」——而这张表正是用户选方向的依据，
+      // 照着「无差异」点「以云端为准」就把本机这一版盖掉了，且没有副本保留。
+      expect(r.postRestoreDiff!.divergedIds, ['a']);
+      expect(r.postRestoreDiff!.localOnlyIds, isEmpty);
+      expect(r.postRestoreDiff!.remoteOnlyIds, isEmpty);
+    });
+
     test('reportOnly 不删云端、不上传、不下载，也不推进基线与远端清单', () async {
       final docs = _Docs();
       final server = _Server();

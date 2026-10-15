@@ -310,6 +310,18 @@ class SelectionBar extends StatelessWidget {
                           min: 0,
                           max: 360,
                           onChanged: s.hasStrokes ? onRotateChanged : null,
+                          // 第四轮审计 EUI-01（2026-10-15）：旋转此前**只有**
+                          // `onChanged`，同一个条里的缩放滑块有 `onChangeEnd`。
+                          // 后果不是手感而是数据：`onRotateChanged` 只做
+                          // `tickFrame()`（瞬 redraw），既不置脏也不结算窄命令 ⇒
+                          // 转完直接返回/关页时 `flushIfDirty` 按 `nothingToSave`
+                          // 早退，**旋转永不落盘且不报任何失败**；撤销也只剩隐式结算。
+                          // 缺这条的原因很典型：唯一的滑块回归用例手调
+                          // `bar.onTransformEnd()`（test/selection_slider_transform_test.dart），
+                          // 而不是真拖那个柄——接线断了它也不会红。
+                          onChangeEnd: s.hasStrokes
+                              ? (_) => onTransformEnd()
+                              : null,
                         ),
                       ),
                       const Icon(Icons.rotate_right, size: 18),
