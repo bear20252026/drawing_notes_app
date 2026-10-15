@@ -996,6 +996,17 @@ void main() {
         final r = await _service(locked, server, baseline: baseline).syncNow();
         expect(server.deletes, isEmpty, reason: '第 $round 轮：绝不允许 DELETE 云端副本');
         expect(r.deletedRemote, 0, reason: '第 $round 轮：删除计数必须为 0');
+        // 2026-10-15（抽 `_buildLocalManifest` 时做的突变自证现形）：只钉「不删」
+        // 是不够的。把 DN-107 那条「按基线快照带回清单」摘掉，本地清单里就**没有**
+        // 这一篇 ⇒ 计划器判它「仅远端 ⇒ download」⇒ 每轮重新下载一次并**覆写盘上
+        // 那个锁定文件**。不删云端、也不丢文件，所以原来这四条断言一条都不会红——
+        // 而这条腿的注释写的从来就是「计划器不产生任何操作」。
+        expect(
+          r.downloaded,
+          0,
+          reason: '第 $round 轮：读不出来要按基线快照带回清单，不是重新下载覆盖本地锁定文件',
+        );
+        expect(r.uploaded, 0, reason: '第 $round 轮：锁定期间不得上传');
         expect(
           _remoteEntries(server).containsKey('secret'),
           isTrue,

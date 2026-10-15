@@ -28,6 +28,7 @@ import 'package:drawing_notes_app/core/sync/sync_push_waivers.dart';
 // SyncService 的私有成员，同库 part 可见，行为与拆分前逐字节一致。
 part 'sync_service_conditional_write.dart';
 part 'sync_service_post_restore.dart';
+part 'sync_service_reconcile.dart';
 part 'sync_service_resurrection.dart';
 
 /// 一个待同步文档的元数据（用于构成本地 manifest）。
@@ -398,57 +399,19 @@ class SyncService {
     var manifestPresent = remote.exists;
 
     // 3. 构本地 manifest：当前文档 + 删除墓碑（基线有但当前无 → 墓碑）。
+    //    判据本体在 `sync_service_reconcile.dart`（同库 part）：那两段自己不做
+    //    任何 IO，网络和磁盘的腿留在这里，读到的清单与基线原样传进去。
     final inventory = await documentStore.listDocuments();
-    final currentEntries = <String, SyncSnapshot>{
-      for (final d in inventory.readable)
-        d.id: SyncSnapshot(
-          id: d.id,
-          updatedAt: d.updatedAt,
-          size: d.size,
-          digest: d.digest,
-        ),
-    };
     final baseline = await baselineStore.load() ?? const SyncManifest();
-    final deletedIds = <String>{};
-    // A3（方案 §9）：与 deletedIds **同一个循环、同一判据**生成的因果侧——
-    // 「哪些算删除」这件事只允许有一处口径，另写一遍迟早和这里分叉。
-    final localTombstones = <String, SyncTombstone>{};
-    final tombstoneStampMs = DateTime.now().millisecondsSinceEpoch;
-    // DN-204：隔离态下本会生成的删除墓碑全部改道进这里，一条 DELETE 都不发。
-    final suppressedTombstones = <String>{};
-    for (final id in baseline.entries.keys) {
-      if (currentEntries.containsKey(id)) continue;
-      // DN-107（P0 数据安全）：**存在但读不出来**（受密笔记锁定 / 权限不足 /
-      // 暂时不可访问）绝不算删除。按基线快照原样带回清单 ⇒ 两端一致 ⇒ 计划器
-      // 不产生任何操作，等它解锁后自然继续同步。此前这里直接落到「基线有、
-      // 本次清单无 ⇒ 墓碑」，于是「关掉应用重新打开、笔记还没解锁就同步」
-      // 会把云端副本删掉。
-      if (inventory.unreadable.contains(id)) {
-        final baselineSnap = baseline.entries[id];
-        if (baselineSnap != null) currentEntries[id] = baselineSnap;
-        continue;
-      }
-      if (baseline.deletedIds.contains(id)) continue;
-      if (policy != null) {
-        suppressedTombstones.add(id);
-        continue;
-      }
-      deletedIds.add(id);
-      // baseRev = 删除作用在哪一版之上（基线里那一条的 updatedAt）。这是下一
-      // 条腿（「云端已删 ⇒ 本地这份是删除前的旧版」判定）唯一能用的因果锚。
-      final removed = baseline.entries[id];
-      localTombstones[id] = SyncTombstone(
-        id: id,
-        deletedAt: tombstoneStampMs,
-        baseRev: removed?.updatedAt,
-        baseSize: removed?.size,
-      );
-    }
-    final localManifest = SyncManifest(
-      entries: currentEntries,
-      deletedIds: deletedIds,
-      tombstones: localTombstones,
+    final local = _buildLocalManifest(
+      inventory: inventory,
+      baseline: baseline,
+      policy: policy,
     );
+    final currentEntries = local.currentEntries;
+    final localManifest = local.manifest;
+    final deletedIds = localManifest.deletedIds;
+    final suppressedTombstones = local.suppressedTombstoneIds;
 
     // 4. 计划 + 冲突检测。
     _emit(SyncProgress.phase(SyncProgressPhase.planning));
@@ -520,12 +483,13 @@ class SyncService {
 
     // 5. 执行（M2：单操作隔离——失败/跳过项记入 outcome，不中断整轮）。
     final executed = await _execute(plan);
-    // 「本轮没有任何字节落地」的 id 全集 = 真失败 ∪ 缺失跳过（DN-001）。
-    // 清单/基线回写**只认这一个集合**：过去只看 failedIds，一侧文件不存在
-    // （本地被删/保险库锁定、远端 404）的空操作会漏进成功项，把本地快照
-    // 写进远端清单 + 基线 + 两端同指纹 ⇒ 下轮 planner「== → 忽略」与冲突检测
-    // 「local == remote → continue」双双静默，云端永久缺内容且无自愈路径。
-    final notSyncedIds = executed.notSyncedIds;
+    // 「本轮没有任何字节落地」的 id 全集 = 真失败 ∪ 缺失跳过 ∪ 被 412 挡回
+    //（DN-001，`_ExecuteOutcome.notSyncedIds` 是唯一出口）。清单/基线回写**只认
+    // 这一个集合**：过去只看 failedIds，一侧文件不存在（本地被删/保险库锁定、
+    // 远端 404）的空操作会漏进成功项，把本地快照写进远端清单 + 基线 + 两端同指纹
+    // ⇒ 下轮 planner「== → 忽略」与冲突检测「local == remote → continue」双双静默，
+    // 云端永久缺内容且无自愈路径。下面清单侧按 `executed.succeeded` 正向挑，
+    // 基线侧由 `_baselineEntriesFor` 读同一个 `executed` 做反向剔除。
 
     // 6. 回写远端 manifest + 本地基线（只认成功项：失败/跳过操作两端都不回写，
     // 下轮按旧基线自动重试；明细进 SyncResult.failedDocIds 与
@@ -607,7 +571,8 @@ class SyncService {
     var newTombstones = SyncManifest.pruneTombstones([
       for (final t in remoteManifest.tombstones.values)
         if (!uploadedIds.contains(t.id)) t,
-      for (final id in deletedIds) localTombstones[id] ?? SyncTombstone(id: id),
+      for (final id in deletedIds)
+        localManifest.tombstones[id] ?? SyncTombstone(id: id),
     ]);
     for (var attempt = 1; ; attempt++) {
       try {
@@ -658,59 +623,18 @@ class SyncService {
         ]);
       }
     }
-    // M4：keepBoth 副本只进本地基线（远端无此文件，进远端清单会导致
-    // 其他设备下载 404 空转）；下轮它们作为本地新增正常上传。
-    // 毒丸防误删：仅远端文档**没真正下载成功**时（真失败 / 远端 404 而跳过，
-    // 两者都在 notSyncedIds 里），绝不能让它随 {...newEntries} 进入
-    // 基线——否则下轮「本地无 + 基线有」会被误判为本地删除墓碑，把从未成功
-    // 下载的远端文档 deleteRemote 掉（数据丢失；服务器对活对象误报 404 时
-    // 更是直接删掉真实云端文件）。远端 manifest 保留该条目
-    // （远端文件真实存在），基线剔除后下轮它仍是「仅远端 → download」自动重试。
-    // 本地已有该文档的下载失败不受影响（墓碑推导要求本地缺失才会触发）。
-    final baselineEntries = <String, SyncSnapshot>{...newEntries};
-    for (final op in plan.operations) {
-      if (op.kind == SyncOperationKind.download &&
-          notSyncedIds.contains(op.id) &&
-          !currentEntries.containsKey(op.id)) {
-        baselineEntries.remove(op.id);
-      }
-    }
-    for (final copy in keptCopies) {
-      baselineEntries[copy.id] = copy;
-    }
-    // 没能保住云端副本的文档本轮一个字节都没同步（上传已跳过）：基线必须退回
-    // 本轮开始时的值（远端清单仍保留该条目——远端文件真实存在）。若沿用
-    // {...newEntries} 里的远端快照，基线等于谎称「云端那版就是上次同步态」，
-    // 下轮冲突判据会退化成「远端没改过却比本地新」⇒ 用户不出裁决时的兜底
-    // 方向正是上传 ⇒ 又变成静默盖掉云端。
-    for (final id in unprotected) {
-      final previous = baseline.entries[id];
-      if (previous == null) {
-        baselineEntries.remove(id);
-      } else {
-        baselineEntries[id] = previous;
-      }
-    }
-    if (policy != null) {
-      // DN-204：隔离轮的基线只能描述「本机现在真有」的那几篇。
-      //
-      // 沿用上面的 `{...newEntries}`（= 本轮结束时的云端清单）会把云端独有的
-      // 篇目一并记进基线——而恢复出来的库里就是没有它们。下一轮（基线已推进，
-      // 隔离解除）判据又是「基线有、本地无」⇒ 同一批删除墓碑重新生成，云端
-      // 副本照旧被删掉，只是**延后一轮**发生。那正是本条要修的事，绝不能以
-      // 「用户已经选了方向」为名把它放回管道里。
-      //
-      // 允许进基线的三来源：本轮列得出来的本地文档（含 DN-107 的「存在但读不到」，
-      // 它按基线快照带回，本来就是本地文件）、keepBoth 刚落到本地的副本、
-      // 本轮真下载成功的文档。
-      final localIds = <String>{
-        ...currentEntries.keys,
-        for (final copy in keptCopies) copy.id,
-        for (final op in executed.succeeded)
-          if (op.kind == SyncOperationKind.download) op.id,
-      };
-      baselineEntries.removeWhere((id, _) => !localIds.contains(id));
-    }
+    // M4 / 毒丸 / 未保住副本 / DN-204 四条基线规则都在 `_baselineEntriesFor` 里
+    // （同库 part）——它只算「基线该长什么样」，落盘仍是下面这一行。
+    final baselineEntries = _baselineEntriesFor(
+      newEntries: newEntries,
+      plan: plan,
+      executed: executed,
+      currentEntries: currentEntries,
+      keptCopies: keptCopies,
+      unprotected: unprotected,
+      baseline: baseline,
+      policy: policy,
+    );
     // 已知两阶段提交窗口（M3·文档化取舍）：远端 manifest 已回写、本地基线
     // 未回写之间崩溃 → 两端 manifest 领先于本地基线。后果全部幂等无害：
     // - 本轮已上传成功的文档：下轮按旧基线重传一次（服务端覆盖同内容）；
