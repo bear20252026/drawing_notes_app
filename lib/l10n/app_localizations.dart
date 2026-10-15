@@ -500,6 +500,12 @@ abstract class AppLocalizations {
   /// **'Failed to unlock the vault, please retry'**
   String get lockVaultUnlockFailed;
 
+  /// 补建保险库时发现旧的主密钥备份并保留
+  ///
+  /// In en, this message translates to:
+  /// **'Password recreated; a previous vault backup was detected and kept'**
+  String get lockVaultRebuiltOldBackupKept;
+
   /// 绑定失败
   ///
   /// In en, this message translates to:

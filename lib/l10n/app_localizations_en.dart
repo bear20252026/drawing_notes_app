@@ -227,6 +227,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Failed to unlock the vault, please retry';
 
   @override
+  String get lockVaultRebuiltOldBackupKept =>
+      'Password recreated; a previous vault backup was detected and kept';
+
+  @override
   String get lockBindFailed => 'Binding failed, please retry';
 
   @override

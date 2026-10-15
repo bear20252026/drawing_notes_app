@@ -25,6 +25,24 @@ class VaultUnlockException implements Exception {
   String toString() => 'VaultUnlockException($reason)';
 }
 
+/// [VaultKeyService.initialize] 的结果（审计 STO-001 的**可观测半边**）。
+///
+/// 只用于**告知**，不改变任何落盘行为——「盘上有旧备份就拒绝自动补建」属产品裁决，
+/// 需要点名后才做（见 `docs/audit_2026-10-15.md` §5）。
+enum VaultInitOutcome {
+  /// 正常首建：盘上没有「别一世」的保险库残留。
+  fresh,
+
+  /// 补建时发现「主文件不在、但 `.bak` 里躺着一份能解析的保险库文档」。
+  ///
+  /// 那是**另一支主密钥**的包装（`isConfigured()` 只看主文件，所以这条路径在上层
+  /// 长得和「从没设过密码」一模一样：老用户升级 / 主文件被删或被杀软隔走 / rename
+  /// 期崩溃）。已把它另存为 `<vault>.bak.preserved-*` 并落了审计——因为紧接着的
+  /// 补建会让 `.bak` 在**下一次**任意保险库写入时被新主密钥覆盖，那是唯一可恢复
+  /// 旧内容的句柄，覆盖之后所有既有密文永久解不开。
+  preservedOrphanBackup,
+}
+
 /// 主密钥保险库（加密底座批次① 2026-09-01——密钥链根）。
 ///
 /// 密钥链（OWASP M10 信封模式，复用 MediaCryptoService 既有层）：
@@ -155,11 +173,16 @@ class VaultKeyService {
   /// 首次建立：生成主密钥并用 PIN 包裹后落盘（原子写：tmp + rename）。
   /// 批次④：槽位结构（单 PIN 槽；U 盘槽位由绑定流程追加）。
   /// 批B：PIN 槽自带 Argon2id KDF 字段（槽位 JSON 自描述）。
-  Future<void> initialize(String pin) async {
+  Future<VaultInitOutcome> initialize(String pin) async {
     if (pin.isEmpty) throw ArgumentError('PIN 不能为空');
+    // STO-001：补建**之前**先看盘上有没有「别一世」的保险库备份，有就先另存一份。
+    // 顺序是承重的：`.bak` 会在下一次任意保险库写入时被当时主文件覆盖（见
+    // `_persistSlots`），而这一次 `initialize` 正是让主文件重新存在的那一笔。
+    final orphanBackup = await _orphanBackupDoc();
+    if (orphanBackup != null) await _preserveOrphanBackup();
+    final freshMk = randomBytes(_mkBytes);
     final salt = randomBytes(_saltBytes);
-    final mk = randomBytes(_mkBytes);
-    final wrapped = await _wrap(pin, salt, mk, newSlotKdf);
+    final wrapped = await _wrap(pin, salt, freshMk, newSlotKdf);
     await _persistSlots(
       pinSlot: {
         'type': _slotPin,
@@ -168,7 +191,63 @@ class VaultKeyService {
         'wrapped': base64Encode(wrapped),
       },
     );
-    _adoptMasterKeyInMemory(mk);
+    _adoptMasterKeyInMemory(freshMk);
+    return orphanBackup == null
+        ? VaultInitOutcome.fresh
+        : VaultInitOutcome.preservedOrphanBackup;
+  }
+
+  /// 盘上那份「主文件不在、`.bak` 里是一份能解析的保险库文档」的孤儿备份（无则 null）。
+  ///
+  /// 判据与 [_readDoc] 的回退腿同形（v2+ 看 `slots`，v1 看顶层 `salt`/`wrapped`），
+  /// 但**不抛错**：这里只是「有没有一份值得保住的旧副本」的问询，坏 JSON 就当作没有。
+  Future<Map<String, dynamic>?> _orphanBackupDoc() async {
+    final file = await _vaultFile();
+    if (file.existsSync()) return null;
+    final bak = File('${file.path}.bak');
+    if (!bak.existsSync()) return null;
+    try {
+      final doc = jsonDecode(await bak.readAsString());
+      if (doc is! Map<String, dynamic>) return null;
+      return (doc['slots'] != null || doc['wrapped'] != null) ? doc : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 把孤儿 `.bak` **复制**（不是移动）成 `<vault>.bak.preserved-<utc>-<rand>`。
+  ///
+  /// 复制而非移动：移动会顺手拆掉 [_readDoc] 的 `.bak` 回退腿——那条腿在这个状态下
+  /// 反而是用户唯一还能解旧内容的路。保留件用独立后缀，避开 `.bak` 与
+  /// `_sweepStaleTmpFiles` 的 `.tmp.` 前缀，谁也不会把它当临时文件清掉。
+  /// 尽力而为：复制失败只落审计，绝不因此拒绝补建（拒绝放行会让用户连入口都没有）。
+  Future<void> _preserveOrphanBackup() async {
+    final file = await _vaultFile();
+    final bak = File('${file.path}.bak');
+    AuditLogger.log(
+      'vault.initialize.orphanBackupFound',
+      success: false,
+      detail: 'main=${file.existsSync()}',
+    );
+    final stamp = DateTime.now().toUtc().toIso8601String().replaceAll(
+      RegExp(r'[^0-9]'),
+      '',
+    );
+    final kept = File('${file.path}.bak.preserved-$stamp-${_randomHex(4)}');
+    try {
+      await bak.copy(kept.path);
+      AuditLogger.log(
+        'vault.initialize.orphanBackupPreserved',
+        success: true,
+        detail: kept.uri.pathSegments.last,
+      );
+    } catch (e) {
+      AuditLogger.log(
+        'vault.initialize.orphanBackupPreserveFailed',
+        success: false,
+        detail: e.runtimeType.toString(),
+      );
+    }
   }
 
   /// 解锁：PIN 按槽位声明的 KDF 派生 KEK → 解包 MK。错误 PIN / 载荷篡改

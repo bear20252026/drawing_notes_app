@@ -220,6 +220,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lockVaultUnlockFailed => '保险库解锁失败，请重试';
 
   @override
+  String get lockVaultRebuiltOldBackupKept => '已重新建立密码；检测到旧的保险库备份，已另存一份保留件';
+
+  @override
   String get lockBindFailed => '绑定失败，请重试';
 
   @override

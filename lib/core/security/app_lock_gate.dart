@@ -540,7 +540,23 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
         if (!vault.isUnlocked) await vault.unlock(pin);
       } else {
         // 老用户升级：已有 PIN 但尚无保险库 → 以同一位 PIN 补建。
-        await vault.initialize(pin);
+        final outcome = await vault.initialize(pin);
+        if (outcome == VaultInitOutcome.preservedOrphanBackup) {
+          // STO-001 的可观测半边：补建这一刻盘上其实躺着**另一支主密钥**的包装
+          // （主文件不在、`.bak` 里是一份能解析的保险库文档），而 `isConfigured()`
+          // 只看主文件，所以这条路径对用户长得和「从没设过密码」一模一样。服务层已
+          // 把旧副本另存为 `<vault>.bak.preserved-*`；这里把它说给用户听——静默补建
+          // 才是本条审计项的真正伤害：用户以为「重新设一次密码就好」。
+          AuditLogger.log(
+            'app_lock.vault_rebuilt_over_orphan_backup',
+            success: false,
+          );
+          if (!mounted) return;
+          _snack(
+            AppLocalizations.of(context)?.lockVaultRebuiltOldBackupKept ??
+                '已重新建立密码；检测到旧的保险库备份，已另存一份保留件',
+          );
+        }
       }
     } catch (error) {
       // 不阻塞进入 UI（保险库异常时应用仍可读明文），但**必须让用户看见**：
