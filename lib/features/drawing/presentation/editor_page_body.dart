@@ -189,12 +189,14 @@ extension _EditorPageBody on _EditorPageState {
       onEraser: () => _selectWritingTool(BrushType.eraser),
       onEyedropper: () => _applyState(() {
         _toolMode.clearPointerModes();
+        _viewModel.leaveLinkMode();
         _controller.selectionTool = SelectionTool.none;
         _viewModel.setEyedropperActive(true);
         _viewModel.setTextToolActive(false);
       }),
       onRectSelect: () => _applyState(() {
         _toolMode.clearPointerModes();
+        _viewModel.leaveLinkMode();
         _viewModel.setEyedropperActive(false);
         _viewModel.setTextToolActive(false);
         _viewModel.setSelectionDone(false);
@@ -203,6 +205,7 @@ extension _EditorPageBody on _EditorPageState {
       onMarquee: _toggleMarqueeTool,
       onText: () => _applyState(() {
         _toolMode.clearPointerModes();
+        _viewModel.leaveLinkMode();
         _controller.selectionTool = SelectionTool.none;
         _viewModel.setEyedropperActive(false);
         _viewModel.setTextToolActive(true);

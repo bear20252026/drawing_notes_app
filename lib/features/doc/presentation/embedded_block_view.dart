@@ -350,8 +350,7 @@ class EmbeddedBlockView extends StatelessWidget {
     }
 
     // 无编辑回调时显示只读表格
-    final rows = (block.props['rows'] as int? ?? 1).clamp(1, 50);
-    final cols = (block.props['cols'] as int? ?? 1).clamp(1, 10);
+    final (rows, cols) = noteTableSize(block.props);
 
     // 从 children 中提取单元格文本（每个 child 是一个 text 块）
     final cellTexts = <String>[];

@@ -48,22 +48,26 @@ extension _EditorPageToolbarActions on _EditorPageState {
       ),
       object: EditorToolbarObjectActions(
         selectEyedropper: () => _applyState(() {
+          _viewModel.leaveLinkMode();
           _viewModel.setEyedropperActive(true);
           _viewModel.setTextToolActive(false);
         }),
         selectRect: () => _applyState(() {
+          _viewModel.leaveLinkMode();
           _viewModel.setEyedropperActive(false);
           _viewModel.setTextToolActive(false);
           _viewModel.setSelectionDone(false);
           _controller.selectionTool = SelectionTool.rect;
         }),
         selectLasso: () => _applyState(() {
+          _viewModel.leaveLinkMode();
           _viewModel.setEyedropperActive(false);
           _viewModel.setTextToolActive(false);
           _viewModel.setSelectionDone(false);
           _controller.selectionTool = SelectionTool.lasso;
         }),
         selectText: () => _applyState(() {
+          _viewModel.leaveLinkMode();
           _viewModel.setTextToolActive(true);
           _viewModel.setEyedropperActive(false);
           _controller.selectionTool = SelectionTool.none;

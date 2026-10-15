@@ -71,7 +71,34 @@ enum NoteBlockType {
 /// canvas → {'document': `<DrawingDocument json>`}
 /// database → {'database': `<NoteDatabase json>`}
 /// attachment → {'attachment': `<NoteAttachment json>`}
+/// table → {'rows': int, 'cols': int}（见 [noteTableSize] 的归一入口）
 typedef NoteBlockProps = Map<String, dynamic>;
+
+/// 表格行数上限。
+///
+/// 「50×10」这两个数字此前只写在**读侧**，且重复了三遍
+/// （`table_editor_widget` 的 initState、`embedded_block_view` 的降级渲染、
+/// `note_block_doc_markdown` 的导出），而**写侧**（`TableEditOps.insertRow/
+/// insertCol` 与四个工具按钮）一处都没有。后果不是「显示不全」而是数据错位：
+/// 连点 11 次「添加列」会把 `cols=11` 落盘，重新打开时读侧按 `cols=10` 把
+/// 行主序的 cell 数组重排，于是每一行整体错一格、第 11 列成为孤儿，
+/// 并在下一次编辑的 `children` 重建中被静默丢弃。
+/// 上限沿用读侧既有数值——本次收敛只是把「写侧也认这条线」补上，
+/// 不改变任何现存文档的呈现。
+const int kNoteTableMaxRows = 50;
+
+/// 表格列数上限（与 [kNoteTableMaxRows] 同源，理由同上）。
+const int kNoteTableMaxCols = 10;
+
+/// 表格块 props → 行列数：读侧唯一的归一入口。
+///
+/// 缺省按 1×1，越界夹回 `[1, 上限]`（历史文档可能被别的端写成 0 或负数，
+/// 不归一则 `List.generate` 直接抛）。写侧不在此处夹——它的判据是
+/// 「已达上限就拒绝再增」，见 `TableEditOps`。
+(int rows, int cols) noteTableSize(NoteBlockProps props) => (
+  (props['rows'] as int? ?? 1).clamp(1, kNoteTableMaxRows),
+  (props['cols'] as int? ?? 1).clamp(1, kNoteTableMaxCols),
+);
 
 /// AFFiNE 风格的不可变内容块。
 ///

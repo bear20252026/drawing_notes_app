@@ -8,8 +8,7 @@ extension _EditorPageTools on _EditorPageState {
   void _selectShapeTool(ShapeType type) {
     _applyState(() {
       _toolMode.selectShape(type);
-      _viewModel.setLinkMode(false);
-      _viewModel.setLinkSourceId(null);
+      _viewModel.leaveLinkMode();
       _viewModel.setEyedropperActive(false);
       _viewModel.setTextToolActive(false);
       _controller.selectionTool = SelectionTool.none;
@@ -33,8 +32,7 @@ extension _EditorPageTools on _EditorPageState {
   void _toggleHandTool() {
     _applyState(() {
       final handActive = _toolMode.toggleHand();
-      _viewModel.setLinkMode(false);
-      _viewModel.setLinkSourceId(null);
+      _viewModel.leaveLinkMode();
       _viewModel.setEyedropperActive(false);
       _viewModel.setTextToolActive(false);
       _controller.selectionTool = SelectionTool.none;
@@ -49,8 +47,7 @@ extension _EditorPageTools on _EditorPageState {
   void _toggleMarqueeTool() {
     _applyState(() {
       final marqueeActive = _toolMode.toggleMarquee();
-      _viewModel.setLinkMode(false);
-      _viewModel.setLinkSourceId(null);
+      _viewModel.leaveLinkMode();
       _viewModel.setEyedropperActive(false);
       _viewModel.setTextToolActive(false);
       _controller.selectionTool = SelectionTool.none;
@@ -100,6 +97,7 @@ extension _EditorPageTools on _EditorPageState {
   void _selectWritingTool(BrushType tool) {
     _applyState(() {
       _toolMode.clearPointerModes();
+      _viewModel.leaveLinkMode();
       _viewModel.setEyedropperActive(false);
       _viewModel.setTextToolActive(false);
       _controller.selectionTool = SelectionTool.none;

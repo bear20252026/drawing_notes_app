@@ -4,6 +4,8 @@
 /// 所有操作返回新的行列数与单元格文本列表，不修改输入。
 library;
 
+import 'package:drawing_notes_app/core/documents/note_block.dart';
+
 /// 表格编辑操作工具类。
 ///
 /// 单元格按行优先顺序存储：cellIndex = rowIndex * cols + colIndex。
@@ -12,6 +14,10 @@ class TableEditOps {
 
   /// 在指定行索引后插入新行（该行空白）。
   ///
+  /// 已达 [kNoteTableMaxRows] 时**原样返回**（行列数与文本都不变）——
+  /// 写侧必须认这条线，否则落盘的 rows 超过读侧 clamp，重开即整体错位。
+  /// 返回同一实例也是判据：调用方据此可以「什么都没变，不发变更」。
+  ///
   /// 返回 (newRows, newCellTexts)。
   static (int, List<String>) insertRow(
     int rows,
@@ -19,6 +25,7 @@ class TableEditOps {
     List<String> cellTexts, {
     int atRow = -1,
   }) {
+    if (rows >= kNoteTableMaxRows) return (rows, cellTexts);
     final insertAt = atRow < 0 ? rows : (atRow + 1).clamp(0, rows);
     final newTexts = List<String>.from(cellTexts);
     // 在插入位置添加 cols 个空白单元格
@@ -45,6 +52,8 @@ class TableEditOps {
 
   /// 在指定列索引后插入新列（该列空白）。
   ///
+  /// 已达 [kNoteTableMaxCols] 时原样返回，理由同 [insertRow]。
+  ///
   /// 返回 (newCols, newCellTexts)。
   static (int, List<String>) insertCol(
     int rows,
@@ -52,6 +61,7 @@ class TableEditOps {
     List<String> cellTexts, {
     int atCol = -1,
   }) {
+    if (cols >= kNoteTableMaxCols) return (cols, cellTexts);
     // insertAfterCol: 在该列索引之后插入新列。-1 表示追加到末尾。
     final insertAfterCol = atCol < 0 ? cols - 1 : atCol.clamp(0, cols - 1);
     final newTexts = <String>[];

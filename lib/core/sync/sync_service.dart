@@ -616,10 +616,21 @@ class SyncService {
         // 墓碑同一条规则：DN-104「对方的新增要保留」同样覆盖对方这轮新写的
         // **删除**——漏掉它，一次 CAS 重试就把对方刚做的删除历史清空，另一端
         // 手里的副本下轮又变成「仅本地 ⇒ 上传」。同一 id 以我们算出的为准。
+        //
+        // SYN-02（第四轮审计 2026-10-15）：上一版在这里摊回整个 `newTombstones`，
+        // 而它里面还夹着**第一次读到的**远端墓碑。于是重试只补了新到的、却把对方
+        // 这一轮清掉的那些又抄回去一遍——典型的是对方把那篇重新建回来（他的清单
+        // 里同一 id 有 entries、没有 deletedIds）。我们复活那条已作废的删除后，
+        // 写出的清单自相矛盾：同一 id 既在 entries 又在 deletedIds，第三台设备按
+        // 「已删」处理，把对方刚建回来那版抹掉。
+        // 口径与上面 entries 的合并严格对称：未碰的一律以刚读到的事实为准，
+        // 我们自己的贡献只有本轮本地删除的那些。这两处表达式（首轮 571 行附近
+        // 与这里）必须逐字同构，只有 `remoteManifest` / `fresh.manifest` 之差。
         newTombstones = SyncManifest.pruneTombstones([
           for (final t in fresh.manifest.tombstones.values)
-            if (!touchedIds.contains(t.id)) t,
-          ...newTombstones.values,
+            if (!uploadedIds.contains(t.id)) t,
+          for (final id in deletedIds)
+            localManifest.tombstones[id] ?? SyncTombstone(id: id),
         ]);
       }
     }

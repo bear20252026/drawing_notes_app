@@ -67,6 +67,30 @@ class EditorViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 退出连线模式——`_linkMode` 与它的端点草稿必须成对清，判据只写在这一处。
+  ///
+  /// 为什么这里要有这个方法，而不是让每个入口自己写 `setLinkMode(false)`：
+  /// 连线模式不改 `controller.tool`，它靠 `_linkMode` 接管**元素点击**
+  /// （`_onItemTap` 的 `if (_linkMode)` 分支）。EUI-03（审计 2026-10-15）实测
+  /// 到 14 格工具条里只有形状/手型/框选三格清了它，画笔系、吸管、矩形选区、
+  /// 套索、文字全都没清——工具条与上下文栏两套入口都没清。后果有两半：
+  /// ① 工具条的 `writingActive` 因 `!linkMode` 互斥判据一格都不亮，用户看不出
+  ///    自己在哪个模式；② 点任何元素仍被当成连线端点，选不中、也切不出去。
+  ///
+  /// 所以下面每一个 `select*` 意图方法都调用它；editor_page 的十个入口也各自
+  /// 显式调一行（宁可多十行，也不要「赋值某个别的标志位就顺手退出连线」这种
+  /// 隐式副作用——`toggleLinkMode()` 里「先清吸管、后置 linkMode」的语句顺序
+  /// 不该是承重结构）。
+  void leaveLinkMode() {
+    // 什么都不变时不发通知：这一句在每个工具入口的每一行都会跑到，
+    // 而绝大多数时候本来就不在连线模式——无条件 notify 会让工具条
+    // 在每次切档时多重建一次（页面侧还有 `_applyState` 的那一次）。
+    if (!_linkMode && _linkSourceId == null) return;
+    _linkMode = false;
+    _linkSourceId = null;
+    notifyListeners();
+  }
+
   // ---------------- 工具切换（UI 只调用这些方法） ----------------
 
   /// 切到画笔。
@@ -74,6 +98,7 @@ class EditorViewModel extends ChangeNotifier {
     _eyedropperActive = false;
     _textToolActive = false;
     controller.tool = BrushType.pen;
+    leaveLinkMode();
     notifyListeners();
   }
 
@@ -82,6 +107,7 @@ class EditorViewModel extends ChangeNotifier {
     _eyedropperActive = false;
     _textToolActive = false;
     controller.tool = BrushType.eraser;
+    leaveLinkMode();
     notifyListeners();
   }
 
@@ -89,6 +115,7 @@ class EditorViewModel extends ChangeNotifier {
   void selectEyedropper() {
     _eyedropperActive = true;
     _textToolActive = false;
+    leaveLinkMode();
     notifyListeners();
   }
 
@@ -97,6 +124,7 @@ class EditorViewModel extends ChangeNotifier {
     _textToolActive = true;
     _eyedropperActive = false;
     controller.selectionTool = SelectionTool.none;
+    leaveLinkMode();
     notifyListeners();
   }
 
@@ -106,6 +134,7 @@ class EditorViewModel extends ChangeNotifier {
     _textToolActive = false;
     _selectionDone = false;
     controller.selectionTool = SelectionTool.rect;
+    leaveLinkMode();
     notifyListeners();
   }
 
@@ -115,6 +144,7 @@ class EditorViewModel extends ChangeNotifier {
     _textToolActive = false;
     _selectionDone = false;
     controller.selectionTool = SelectionTool.lasso;
+    leaveLinkMode();
     notifyListeners();
   }
 

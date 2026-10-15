@@ -137,8 +137,7 @@ String _blockToMarkdown(NoteBlock block, {int orderedIndex = 0}) {
 
 /// 将表格块转为 Markdown 表格。
 String _tableToMarkdown(NoteBlock block) {
-  final rows = (block.props['rows'] as int? ?? 1).clamp(1, 50);
-  final cols = (block.props['cols'] as int? ?? 1).clamp(1, 10);
+  final (rows, cols) = noteTableSize(block.props);
 
   // 从 children 提取单元格文本
   final cellTexts = <String>[];
@@ -276,9 +275,8 @@ NoteBlockDoc noteBlockDocFromMarkdown(String md, {String? id}) {
     }
 
     // 图片
-    final imgMatch = RegExp(
-      r'^!\[([^\]]*)\]\(([^)]+)\)',
-    ).firstMatch(line.trim());
+    final imgMatch = RegExp(r'^!\[([^\]]*)\]\(([^)]+)\)')
+        .firstMatch(line.trim());
     if (imgMatch != null) {
       blocks.add(
         NoteBlock.imageBlock(

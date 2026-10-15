@@ -18,7 +18,15 @@ import 'package:flutter_test/flutter_test.dart';
 /// 注意口径：`editor_page_*.dart` 通配比本基线多 273 行——那是
 /// editor_page_object_mutation.dart（独立库，非 part），不计入本棘轮；
 /// 它归 linecheck 单文件门禁管。
-const int kBaselineTotalLines = 7120;
+///
+/// 2026-10-15（EUI-03，用户点名抬基线）：7120 → 7127。动机不是「功能变多」，
+/// 而是**把一条只写在三个入口的互斥判据补齐到十个入口**——连线模式不清出，
+/// 工具条会一格不亮、元素点击会一直被当连线端点。逐条算：十个入口各 +1 行
+/// `_viewModel.leaveLinkMode()`（+10），形状/手型/框选原先手写的
+/// `setLinkMode(false)` + `setLinkSourceId(null)` 两行收敛成一行（−3），
+/// 收口方法本体落在 `editor_viewmodel.dart`（不属本库，不计入）。
+/// 抬完仍只比基线小 1 行——下一次增长要么先拆，要么再点名。
+const int kBaselineTotalLines = 7127;
 
 int _countLines(File f) => f.readAsLinesSync().length;
 

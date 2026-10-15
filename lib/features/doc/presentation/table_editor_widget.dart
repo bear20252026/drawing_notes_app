@@ -41,8 +41,9 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
   @override
   void initState() {
     super.initState();
-    _rows = (widget.block.props['rows'] as int? ?? 1).clamp(1, 50);
-    _cols = (widget.block.props['cols'] as int? ?? 1).clamp(1, 10);
+    final (rows, cols) = noteTableSize(widget.block.props);
+    _rows = rows;
+    _cols = cols;
 
     // 从 children 中提取单元格文本
     _cellTexts = <String>[];
@@ -111,7 +112,19 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
     }
   }
 
+  /// 增删的可达边界——判据只有一条线（[kNoteTableMaxRows]/[kNoteTableMaxCols]
+  /// 与 1），按钮的禁用态和 `_insert*`/`_delete*` 的早退共用它。
+  ///
+  /// 早退**必须**发生在 `_emitChange()` 之前：`_emitChange` 会为每个格子重建
+  /// `NoteBlock.textBlock('cell_i_微秒')`，即便行列没变也会产出一批新 id 的
+  /// children → 脏标记 → 落盘。上限处「点了没反应」不能顺带把文档标脏。
+  bool get _canAddRow => _rows < kNoteTableMaxRows;
+  bool get _canDeleteRow => _rows > 1;
+  bool get _canAddCol => _cols < kNoteTableMaxCols;
+  bool get _canDeleteCol => _cols > 1;
+
   void _insertRow(int atRow) {
+    if (!_canAddRow) return;
     setState(() {
       final result = TableEditOps.insertRow(
         _rows,
@@ -127,7 +140,7 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
   }
 
   void _deleteRow(int atRow) {
-    if (_rows <= 1) return;
+    if (!_canDeleteRow) return;
     setState(() {
       final result = TableEditOps.deleteRow(
         _rows,
@@ -143,6 +156,7 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
   }
 
   void _insertCol(int atCol) {
+    if (!_canAddCol) return;
     setState(() {
       final result = TableEditOps.insertCol(
         _rows,
@@ -158,7 +172,7 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
   }
 
   void _deleteCol(int atCol) {
-    if (_cols <= 1) return;
+    if (!_canDeleteCol) return;
     setState(() {
       final result = TableEditOps.deleteCol(
         _rows,
@@ -198,24 +212,24 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
               _ToolButton(
                 icon: Icons.add,
                 tooltip: AppLocalizations.of(context)?.tblAddColumn ?? '添加列',
-                onPressed: () => _insertCol(_cols - 1),
+                onPressed: _canAddCol ? () => _insertCol(_cols - 1) : null,
               ),
               _ToolButton(
                 icon: Icons.remove,
                 tooltip: AppLocalizations.of(context)?.tblDeleteColumn ?? '删除列',
-                onPressed: () => _deleteCol(_cols - 1),
+                onPressed: _canDeleteCol ? () => _deleteCol(_cols - 1) : null,
               ),
               const SizedBox(width: 4),
               // 行操作
               _ToolButton(
                 icon: Icons.exposure_plus_1,
                 tooltip: AppLocalizations.of(context)?.tblAddRow ?? '添加行',
-                onPressed: () => _insertRow(_rows - 1),
+                onPressed: _canAddRow ? () => _insertRow(_rows - 1) : null,
               ),
               _ToolButton(
                 icon: Icons.exposure_minus_1,
                 tooltip: AppLocalizations.of(context)?.tblDeleteRow ?? '删除行',
-                onPressed: () => _deleteRow(_rows - 1),
+                onPressed: _canDeleteRow ? () => _deleteRow(_rows - 1) : null,
               ),
             ],
           ),
@@ -276,7 +290,10 @@ class _ToolButton extends StatelessWidget {
 
   final IconData icon;
   final String tooltip;
-  final VoidCallback onPressed;
+
+  /// null 表示不可用（行列已到边界）：`IconButton` 自己会画禁用态并吞掉点击，
+  /// 比「能点但什么也不做」诚实——后者正是此前四个按钮在边界处的状态。
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {

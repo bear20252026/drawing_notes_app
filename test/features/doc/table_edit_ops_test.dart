@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/features/doc/presentation/table_edit_ops.dart';
 
 void main() {
@@ -126,6 +129,102 @@ void main() {
         text: 'NEW',
       );
       expect(result, ['a', 'b', 'c', 'd', 'NEW', 'f']);
+    });
+  });
+
+  // FDC-02：上限此前只存在于读侧的三处 clamp（每处字面量各写一遍），
+  // 写侧一处都没有——连点「添加列」把 cols=11 落盘后，重开时读侧按
+  // cols=10 重排行主序数组，每行整体错一格。下面这组用例把「写侧也认
+  // 这条线」钉住；UI 侧的禁用/零动作用例见 table_editor_widget_test。
+  group('TableEditOps 行列上限（写侧与读侧同源）', () {
+    test('insertCol 在 colMax-1 时仍可增到上限（边界不外溢一格）', () {
+      final (newCols, newTexts) = TableEditOps.insertCol(
+        1,
+        kNoteTableMaxCols - 1,
+        List<String>.filled(kNoteTableMaxCols - 1, 'x'),
+      );
+      expect(newCols, kNoteTableMaxCols);
+      expect(newTexts.length, kNoteTableMaxCols);
+    });
+
+    test('insertCol 已达上限时原样返回，不新增列也不新增格子', () {
+      final texts = List<String>.filled(kNoteTableMaxCols, 'x');
+      final (newCols, newTexts) = TableEditOps.insertCol(
+        1,
+        kNoteTableMaxCols,
+        texts,
+      );
+      expect(newCols, kNoteTableMaxCols);
+      expect(newTexts.length, kNoteTableMaxCols);
+      expect(
+        identical(newTexts, texts),
+        isTrue,
+        reason: '返回入参同一实例是调用方判定「什么都没变、不必发变更」的凭据',
+      );
+    });
+
+    test('insertRow 在 rowMax-1 时仍可增到上限', () {
+      final (newRows, newTexts) = TableEditOps.insertRow(
+        kNoteTableMaxRows - 1,
+        2,
+        List<String>.filled((kNoteTableMaxRows - 1) * 2, 'x'),
+      );
+      expect(newRows, kNoteTableMaxRows);
+      expect(newTexts.length, kNoteTableMaxRows * 2);
+    });
+
+    test('insertRow 已达上限时原样返回', () {
+      final texts = List<String>.filled(kNoteTableMaxRows * 2, 'x');
+      final (newRows, newTexts) = TableEditOps.insertRow(
+        kNoteTableMaxRows,
+        2,
+        texts,
+        atRow: 0,
+      );
+      expect(newRows, kNoteTableMaxRows);
+      expect(identical(newTexts, texts), isTrue);
+    });
+
+    test('noteTableSize 归一：缺省 1×1、越界夹回、非法值不抛', () {
+      expect(noteTableSize(const {}), (1, 1));
+      expect(noteTableSize(const {'rows': 0, 'cols': -3}), (1, 1));
+      expect(noteTableSize(const {'rows': 9999, 'cols': 9999}), (
+        kNoteTableMaxRows,
+        kNoteTableMaxCols,
+      ));
+    });
+
+    test('上限字面量不得再出现在读侧（单一来源，防第四份拷贝）', () {
+      // 读侧原来有三处各写一遍 `clamp(1, 50)` / `clamp(1, 10)`——数字改了
+      // 其中一处就再也对不上。现在唯一的出处是 note_block.dart 的两个常量。
+      final offenders = <String>[];
+      for (final entity in Directory('lib').listSync(recursive: true)) {
+        if (entity is! File || !entity.path.endsWith('.dart')) continue;
+        final text = entity.readAsStringSync();
+        if (text.contains("props['rows']") || text.contains("props['cols']")) {
+          // 只有定义常量的那个文件允许出现归一表达式。
+          if (!entity.path.endsWith('note_block.dart')) {
+            offenders.add(entity.path);
+          }
+        }
+      }
+      expect(
+        offenders,
+        isEmpty,
+        reason: '行列 props 的读取必须走 noteTableSize：$offenders',
+      );
+
+      // 归一函数本体之外，不得再有 50/10 的表格 clamp 字面量。
+      final clamps = <String>[];
+      for (final entity in Directory('lib').listSync(recursive: true)) {
+        if (entity is! File || !entity.path.endsWith('.dart')) continue;
+        for (final line in entity.readAsLinesSync()) {
+          if (line.contains('clamp(1, 50)') || line.contains('clamp(1, 10)')) {
+            clamps.add('${entity.path}: $line');
+          }
+        }
+      }
+      expect(clamps, isEmpty, reason: '残留的字面量 clamp：$clamps');
     });
   });
 }

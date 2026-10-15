@@ -425,6 +425,60 @@ void main() {
       );
     });
 
+    test('412 重试不得把对方这轮已清除的墓碑抄回来（SYN-02：作废的删除不许复活）', () async {
+      // 上面那条验「新到的要留下」，这条验它的镜面：首轮读到的 `gone` 删除记录，
+      // 对方在我们写回之前已经清掉了——他把这篇重新建了回来（清单里 gone 有
+      // entries、deletedIds/tombstones 都没有）。旧写法在重试时摊回整个
+      // `newTombstones`，那份里还夹着第一次读到的 gone 墓碑 ⇒ 复活成一条已作废
+      // 的删除，写出的清单同一 id 既在 entries 又在 deletedIds，第三台设备会按
+      // 「已删」把对方刚建回来那版抹掉。
+      final docs = _Docs({'a': 300});
+      final theirs = SyncManifest(
+        entries: {'a': _snap('a', 200), 'gone': _snap('gone', 260)},
+      );
+      final dav = _Dav()
+        ..seedManifest(
+          SyncManifest(
+            entries: {'a': _snap('a', 200)},
+            deletedIds: const {'gone'},
+            tombstones: const {
+              'gone': SyncTombstone(id: 'gone', deletedAt: 50, baseRev: 40),
+            },
+          ),
+        );
+      dav.hijackManifestWith = utf8.encode(jsonEncode(theirs.toJson()));
+      final baseline = _Baseline(SyncManifest(entries: {'a': _snap('a', 200)}));
+
+      final result = await _service(dav, docs, baseline).syncNow();
+
+      expect(result.uploaded, 1);
+      final manifestPuts = dav.requests
+          .where((r) => r.$1 == 'PUT' && r.$2 == 'manifest.json')
+          .toList();
+      expect(
+        manifestPuts.length,
+        greaterThanOrEqualTo(2),
+        reason: '桩必须真的制造过一次 412，否则本条什么都没验',
+      );
+
+      final written = dav.remoteManifest();
+      expect(
+        written.entries['gone']?.updatedAt,
+        260,
+        reason: '对方重建的那一版要留住（DN-104 的条目口径不受本次改动影响）',
+      );
+      expect(
+        written.tombstones.containsKey('gone'),
+        isFalse,
+        reason: '对方已清除的删除记录不能被重试复活',
+      );
+      expect(
+        written.deletedIds,
+        isEmpty,
+        reason: '同一 id 同时出现在 entries 与 deletedIds = 清单自相矛盾',
+      );
+    });
+
     test('反向锁：无删除发生 ⇒ 写出的清单里根本不出现 tombstones 键', () async {
       // 兼容性的硬要求：混合版本集群里，没有删除时新客户端写出的 JSON 形状
       // 必须与旧版本逐键一致，别让一次普通同步就把共享清单改成旧版读不懂的样子。

@@ -439,6 +439,7 @@ extension _EditorPageActions on _EditorPageState {
   /// 快捷键：切到矩形选区工具。
   void _selectRectSelectTool() {
     _applyState(() {
+      _viewModel.leaveLinkMode();
       _viewModel.setEyedropperActive(false);
       _viewModel.setTextToolActive(false);
       _viewModel.setSelectionDone(false);
@@ -449,6 +450,7 @@ extension _EditorPageActions on _EditorPageState {
   /// 快捷键：切到文字工具。
   void _selectTextTool() {
     _applyState(() {
+      _viewModel.leaveLinkMode();
       _viewModel.setEyedropperActive(false);
       _viewModel.setTextToolActive(true);
     });
