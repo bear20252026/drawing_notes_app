@@ -2,9 +2,12 @@
 ///
 /// 提供 [NoteBlockDoc] 与 Markdown 字符串的互转能力，保证数据可迁移性。
 ///
-/// 注意：当前 NoteBlock 模型仅存储纯文本（无 spans 字段），
-/// 因此富文本样式（bold/italic/underline）暂不导出。
-/// 若未来 NoteBlock 扩展 spans 字段，可在此补充富文本序列化。
+/// 注意：本导出器**只写 `block.text`**，富文本样式一律丢失。
+/// 块模型另有样式载体（`props['spans']`，见 `text_span_editor.dart` 与
+/// `doc_editor_editing.dart` 的读写口径），而这里从不读它——导出成 Markdown
+/// 再导回来，粗体/斜体/下划线/链接全部消失（正文本身不丢，丢的是样式）。
+/// 补齐需要 Markdown 侧的 `**`/`_` 往返规则与「样式无读者」这件事一起定
+/// （见第四轮审计 FDC-03：这套样式入口目前没有任何渲染消费方）。
 library;
 
 import 'dart:convert';

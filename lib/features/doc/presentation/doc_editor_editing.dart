@@ -219,13 +219,27 @@ extension DocEditorEditing on DocEditorState {
   }
 
   /// 从 NoteBlock 的 props 中解析 span 列表（向后兼容纯文本）。
+  ///
+  /// FDC-01（第四轮审计 2026-10-15）：`props['spans']` **只有与正文逐字相等时**
+  /// 才是可信的样式载体。打字走 `_syncText`，它只写 `block.text`，span 列表留在
+  /// 上一次点样式时的旧值；而 `_updateSpans` 又会 `updateText(spans.plainText)`
+  /// 写回正文。于是「点粗体 → 打一段字 → 点斜体」这三下之后，第二次打的那段
+  /// 被旧列表的 plainText 整体覆盖——**用户刚输入的内容静默消失**，不报错，
+  /// 撤销栈里也只留下一条「样式命令」。同类形状还有 `_splitBlock`：它用
+  /// `copyWith` 把整段 spans 带进后半块，那份列表描述的是前一块的文字。
+  ///
+  /// 判据取最保守的一档：对不上就当作「这块没有样式」，按当前正文重建纯文本
+  /// span——**内容永远赢，样式可以退化成一次性**，绝不反过来拿样式表当正文的
+  /// 第二个真相。
   List<NoteInlineSpan> _spansFromBlock(NoteBlock block) {
     final spansData = block.props['spans'];
-    if (spansData is List) {
-      return spansData
+    // 元素不是 Map（畸形清单）时也走纯文本回退：下面 `e['text']` 会直接抛，
+    // 而「读不出来」在这一层从来不等价于「正文就是这些」。
+    if (spansData is List && spansData.every((e) => e is Map)) {
+      final spans = spansData
           .map(
             (e) => NoteInlineSpan(
-              text: e['text'] as String? ?? '',
+              text: (e as Map)['text'] as String? ?? '',
               bold: e['bold'] as bool? ?? false,
               italic: e['italic'] as bool? ?? false,
               underline: e['underline'] as bool? ?? false,
@@ -233,8 +247,9 @@ extension DocEditorEditing on DocEditorState {
             ),
           )
           .toList();
+      if (spans.map((s) => s.text).join() == block.text) return spans;
     }
-    // 向后兼容：无 spans 属性 → 纯文本
+    // 向后兼容：无 spans 属性（或与正文对不上）→ 纯文本
     return NoteInlineSpanList.fromPlainText(block.text);
   }
 
