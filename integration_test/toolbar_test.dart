@@ -61,32 +61,43 @@ void main() {
 
   /// 通过 tooltip 找到对应工具按钮并判断是否处于选中态。
   ///
-  /// 选中编码 = `Tooltip(child: Container(decoration:
-  /// BoxDecoration(color: AppleColor.actionBlue), child: IconButton(...)))`，
-  /// 未选中时 Tooltip 直接挂 IconButton
-  /// （editor_left_toolbar.dart:221-238）。原先读 `IconButton.isSelected`，
-  /// 但 `_tool` 从不传该参数（恒 null→`?? false`），`isTrue` 断言其实没有
-  /// 过裁决力——现改读真正的选中编码（仍是「工具是否被选中」同一命题）。
+  /// 选中编码有**两份**，本函数要求两份同时成立：
+  /// ① 视觉：这一工具的子树里存在 `Container(decoration:
+  ///    BoxDecoration(color: AppleColor.actionBlue))`——用户看得到的那块蓝底
+  ///    （`editor_left_toolbar.dart` 的 `_tool`）；
+  /// ② 语义：包住它的那个 `Semantics(selected: true)`——P1-9 为读屏用户加的同一命题。
   ///
-  /// AU（2026-10-05 真机跑出来的缺陷）：`find.byTooltip` 命中的是框架**内部**的
-  /// `RawTooltip`，不是公开的 `Tooltip`。原写法
-  /// `tester.widget<Tooltip>(find.byTooltip(...))` 是运行时强转，真机上必抛
-  /// `_TypeError: type 'RawTooltip' is not a subtype of type 'Tooltip' in type cast`
-  /// ——`flutter analyze` 抓不到（静态类型是 Widget，强转在运行时才判），而 CI 从不
-  /// 跑 integration_test，所以这条在真机验证前一直是红的。现改走「取公开 Tooltip
-  /// 祖先」并显式判空，取不到即按未选中处理（不再有强转炸点）。
+  /// 遍历**不假定嵌套深度**。上一版按「公开 Tooltip 的**直接子节点**是不是
+  /// `Container`」判；2026-10-09 给工具按钮补触觉时在 `Tooltip` 与蓝底之间插了一层
+  /// `GestureDetector`（外面还多一层 `Semantics`），于是真机上 5 条用例从
+  /// 「初始应为画笔工具」这一步就当场红——而 CI 从不跑 `integration_test`，
+  /// 红了五天没人看见（本文件一度是这条编码**唯一**的守卫，`test/` 里没有第二个
+  /// 用例读它）。教训：断言要钉「同一命题的语义」，不能钉实现的中转层数。
+  ///
+  /// 保留的历史坑（AU 2026-10-05）：`find.byTooltip` 命中的是框架**内部**的
+  /// `RawTooltip`，不是公开的 `Tooltip`；`tester.widget<Tooltip>(find.byTooltip(...))`
+  /// 是运行时强转，真机上必抛 `_TypeError`——`flutter analyze` 抓不到（静态类型是
+  /// Widget，强转在运行时才判）。所以下面一律走 `find.ancestor` + 显式判空。
   bool isToolSelected(WidgetTester tester, String tooltip) {
-    final public = find.ancestor(
+    final marked = find.ancestor(
       of: find.byTooltip(tooltip),
-      matching: find.byType(Tooltip),
+      matching: find.byWidgetPredicate(
+        (w) => w is Semantics && w.properties.selected == true,
+      ),
     );
-    final elements = public.evaluate().toList();
-    if (elements.isEmpty) return false;
-    final child = (elements.first.widget as Tooltip).child;
-    if (child is! Container) return false;
-    final decoration = child.decoration;
-    return decoration is BoxDecoration &&
-        decoration.color == AppleColor.actionBlue;
+    if (marked.evaluate().isEmpty) return false;
+    // 蓝底必须落在**这一个工具**的子树里，不能是别的工具留下的。
+    return find
+        .descendant(
+          of: marked,
+          matching: find.byWidgetPredicate((w) {
+            if (w is! Container) return false;
+            final d = w.decoration;
+            return d is BoxDecoration && d.color == AppleColor.actionBlue;
+          }),
+        )
+        .evaluate()
+        .isNotEmpty;
   }
 
   testWidgets('工具栏可用：点击"橡皮擦"后橡皮擦进入选中态、画笔退出', (tester) async {
