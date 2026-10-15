@@ -44,6 +44,7 @@ void main() {
   const eyedropperTip = '吸管工具';
   const handTip = '平移画布 (H)';
   const shapeTip = '形状工具';
+  const linkTip = '节点连线';
 
   /// 与 `editor_insert_image_entry_test.dart` 同一装配：不给本地化代理，
   /// `AppLocalizations.of(context)` 返回 null ⇒ 工具条走 arb 缺失时的中文兜底串，
@@ -55,6 +56,7 @@ void main() {
     required void Function() rebuild,
     bool eyedropperActive = false,
     bool handActive = false,
+    bool linkMode = false,
     ShapeType? activeShape,
   }) => MaterialApp(
     home: Scaffold(
@@ -63,7 +65,7 @@ void main() {
         eyedropperActive: eyedropperActive,
         textToolActive: false,
         marqueeActive: false,
-        linkMode: false,
+        linkMode: linkMode,
         handActive: handActive,
         onHand: rebuild,
         activeShape: activeShape,
@@ -365,6 +367,47 @@ void main() {
       toolSelected(tester, penTip),
       isFalse,
       reason: '形状接管落笔时 pen 不得继续亮，否则两格同时高亮',
+    );
+    expect(selectedSemantics(), findsOneWidget);
+    expect(accentBlocks(), findsOneWidget);
+
+    await unmount(tester, controller);
+  });
+
+  testWidgets('互斥：连线模式下绘制档不得继续亮（上下文条早把它算作同族模式）', (
+    tester,
+  ) async {
+    final controller = DrawingController(
+      DrawingDocument(id: 'sel_state_link_mutex', title: '互斥回归'),
+    );
+    var linkMode = false;
+    Future<void> remount() async {
+      await tester.pumpWidget(
+        StatefulHost(
+          builder: (rebuild) =>
+              host(controller, rebuild: () => rebuild(), linkMode: linkMode),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await remount();
+    expect(toolSelected(tester, penTip), isTrue);
+
+    // 依据两条：① `_toggleLinkMode`（`editor_page_editing.dart:341`）清了指针模式/
+    // 吸管/文字/选区，唯独不碰 `controller.tool`；② 连线模式一旦开启就接管元素点击
+    // （`:369` 起），而 `editor_context_bar.dart:301` 早就把
+    // `eyedropperActive || textToolActive || linkMode` 算成同一族「模式激活」——
+    // 工具条这份副本漏了 linkMode，于是 pen 与连线两格并亮。
+    linkMode = true;
+    await remount();
+
+    expect(controller.tool, BrushType.pen);
+    expect(toolSelected(tester, linkTip), isTrue);
+    expect(
+      toolSelected(tester, penTip),
+      isFalse,
+      reason: '连线接管元素点击时 pen 那格必须退出——同族模式在工具条上要有一份完整判据',
     );
     expect(selectedSemantics(), findsOneWidget);
     expect(accentBlocks(), findsOneWidget);

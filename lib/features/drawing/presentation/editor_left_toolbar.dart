@@ -90,13 +90,17 @@ class EditorLeftToolbar extends StatelessWidget {
             String fallback,
           ) => l10n == null ? fallback : label(l10n);
           // 「哪一格绘制档现在真的在接落笔」只在这一处判定（2026-10-15）。
-          // 以前这条判据抄了四遍（pen/pencil/marker/laser 各一份，且四份都漏了手型与
-          // 形状），而橡皮擦读的是 `build()` **外面**另算的快照值——既没参与互斥，也只在
-          // 宿主重建时才刷新。于是三种可达组合会两格同时亮：吸管 + 橡皮擦、
-          // 手型 + 任一绘制档、形状 + 任一绘制档。后两类不是豁免而是漏项：手型那格的
-          // 注释早就写了「画布导航与绘制模式显式分离」，形状一旦选中则直接接管落笔
-          // （`editor_page_input.dart:72`），而宿主的 `_toggleHandTool` /
-          // `_selectShapeTool` / 吸管都不碰 `controller.tool`。
+          // 以前这条判据抄了四遍（pen/pencil/marker/laser 各一份，且四份都漏了手型、
+          // 形状与连线），而橡皮擦读的是 `build()` **外面**另算的快照值——既没参与互斥，
+          // 也只在宿主重建时才刷新。于是四种可达组合会两格同时亮：吸管 + 橡皮擦、
+          // 手型 + 任一绘制档、形状 + 任一绘制档、连线 + 任一绘制档。这些都不是豁免
+          // 而是漏项，逐条有依据：手型那格的注释写着「画布导航与绘制模式显式分离」；
+          // 形状一旦选中直接接管落笔（`editor_page_input.dart:72`）；连线模式接管元素
+          // 点击（`editor_page_editing.dart:369`），而 `editor_context_bar.dart:301`
+          // 早就把 `eyedropperActive || textToolActive || linkMode` 认成同一族「模式
+          // 激活」——工具条这份副本漏了 linkMode，正是「一个判据两处各写一遍」的分叉。
+          // 宿主的 `_toggleHandTool` / `_selectShapeTool` / `_toggleLinkMode` / 吸管
+          // 都不碰 `controller.tool`，所以退出只能靠这一处。
           // 值必须算在 builder **里面**：橡皮擦那一格此前靠宿主 `setState` 才刷新，
           // 任何一个只写控制器不重建的新入口都会让它停在旧快照上、两格并亮。
           bool writingActive(BrushType t) =>
@@ -106,6 +110,7 @@ class EditorLeftToolbar extends StatelessWidget {
               !textToolActive &&
               !marqueeActive &&
               !handActive &&
+              !linkMode &&
               activeShape == null;
           return SingleChildScrollView(
             child: Column(
