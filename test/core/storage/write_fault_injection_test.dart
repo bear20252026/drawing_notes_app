@@ -356,7 +356,8 @@ void main() {
           (l) => l.contains('storage.write_rolled_back_from_backup'),
         ),
         isFalse,
-        reason: '换入最终成功了，回滚一条都不许跑——跑了就把刚落地的 v3 又盖回 v2',
+        reason: '回滚是失败出口的动作：换入已经成功还去跑它，说明这次写被当成失败'
+            '（新内容没被盖回去只是靠 existsSync 那道守卫，不该拿守卫当正确性）',
       );
     });
   });

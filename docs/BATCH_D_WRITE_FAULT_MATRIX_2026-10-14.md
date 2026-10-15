@@ -39,34 +39,39 @@
 用 `copy` 而不是 `rename`：`.bak` 是读路径的兜底依赖，回滚不该把另一份唯一副本吃掉
 （这一条由突变验证：改成 `rename` 后「`.bak` 仍在」的断言立刻红）。
 
-**仍然敞着的第二层**（本批没做，需要点头）：列表把「只有 `.bak`」这种情况当成
-「存在但读不出来」（DN-107 的口径）而不是「已删除」。它防的是**其它**让正式文件消失
-的成因（杀软隔离、手动改文件、恢复换根中途断电）。做之前要先确认删除路径是否
-总能把 `.bak` 一起清掉——否则「列出 `.bak`」会把用户真删掉的笔记复活
-（现有线索：`storage_trash_bin.dart:126` 删除时处理了 `.bak`，
-`notebook_storage_io.dart:99` 会记一条 `notebook.delete.bak_left`，块文档腿**尚未核实**）。
+**曾经列出的第二层，逐条核实后被否决**（不是没做完，是方向错了，任务 #23）：原设想让列表把
+「只有 `.bak`」这种情况当成「存在但读不出来」（DN-107 的口径）而不是「已删除」，用来防
+**其它**让正式文件消失的成因（杀软隔离、手动改文件、恢复换根中途断电）。它依赖的前提是
+「用户主动删除后侧车一定不残留」——实测**不成立**：两族删除入口都在主文件缺失时早退
+（等于「删不掉」）、块文档 rename 回退分支不清侧车、`_removeBak` 静默吞失败、画布族侧车删除
+会把整次删除抛断。放宽列表等于**复活用户真删的笔记**，比它要防的问题更糟 ⇒ 改成把删除
+本身的这些漏口堵掉（§5）。
+**推论**：想给「读得到但列不出」加纵深防御之前，先证明它依赖的前提成立；证明不了就修源头。
 
-## 1. 四条本地写腿
+## 1. 五条本地写腿
 
 | # | 腿 | 写入契约 | 失败点 | 后果 | 现有用例 | 自愈 |
 |---|---|---|---|---|---|---|
-| L1 | 文档正常保存 `StorageService.save` → `StorageWritePipeline.writeSealedBytes`（`lib/core/storage/storage_write_pipeline.dart:282`） | tmp 写 → copy `.bak` → `replaceWithTemp` | 备份位被占 | 抛错，正式文件未动，tmp 回收 | `test/core/storage/write_fault_injection_test.dart`「备份失败 ⇒ 抛错、原字节逐字节活着、不留 .tmp」 | 下一次保存正常落地上（同文件「解除阻塞后同一 id 必须还能写进去」） |
+| L1 | 文档正常保存 `StorageService.save` → `StorageWritePipeline.writeSealedBytes`（`lib/core/storage/storage_write_pipeline.dart:320`） | tmp 写 → copy `.bak` → `replaceWithTemp` | 备份位被占 | 抛错，正式文件未动，tmp 回收 | `test/core/storage/write_fault_injection_test.dart`「备份失败 ⇒ 抛错、原字节逐字节活着、不留 .tmp」 | 下一次保存正常落地上（同文件「解除阻塞后同一 id 必须还能写进去」） |
 | L1 | 同上 | 同上 | 备份位被占**连续多次** | 每次都必须回收自己的 tmp，不许累积半份内容 | 同文件「连续两次失败 + 一次成功」 | 同上 |
-| L1 | 同上 | `replaceWithTemp:318` | rename 被拒 + 目标仍在 ⇒ 删除-换入回退 | 崩溃窗口落在「已删目标、未换入」之间 | 仅 `test/core/storage/storage_encryption_test.dart:225`（Windows-only，验的是**退避重试自愈**，成功分支没单独断言） | `.bak` 仍在 ⇒ 读路径回落 |
+| L1 | 同上 | `replaceWithTemp:392` | rename 被拒 + 目标仍在 ⇒ 删除-换入回退 | 崩溃窗口落在「已删目标、未换入」之间 | 成功分支：`write_fault_injection_test.dart`「(f)」+ `block_doc_write_rollback_test.dart`「兜底腿的成功分支」（注入点见 §3-F）；退避重试自愈那一格仍只有 `storage_encryption_test.dart:225`（Windows-only） | `.bak` 仍在 ⇒ 读路径回落 |
 | L1 | 同上 | 同上 | rename 失败且**没有** `.bak`（首写） | 这次编辑确实丢失，但盘上不留半份文件骗过下一次读 | `write_fault_injection_test.dart`「(b2) 首写就撞上改名失败」 | 无（如实记录：首写失败就是丢内容） |
 | L2 | 画布懒迁移 `enqueueRawRewrite` | 走同一条 L1 契约（批次 C 收口） | 密封之后、落盘之前盘上内容被改/被删 | 不复查就会反超那次改写或复活已删笔记 | `test/storage_staleness_guards_test.dart:139,154,174`（时序屏障 `rewriteBarrierForTest`） | 下轮列表时重新判定 |
 | L3 | 块文档 `NoteBlockDocStore._writeFileAtomic` | tmp → rename | 备份失败 / 屏障内改写 | 明文原件字节必须原样活着 | `test/core/documents/block_doc_write_path_contract_test.dart:108,139,158,182,209` | 迁移放弃 ≠ 放弃：`:209` 反向锁「障碍移除后照常完成」 |
 | L4 | 操作日志侧车 `OperationLogStore._writeAtomic`（`lib/core/operation/operation_log_store.dart:258`） | tmp → **回读校验** → rename，**刻意没有删除-换入回退** | 改名前崩溃 / 改名后崩溃 | 上一份逐字节不变 + 无 tmp 残留 / 读回恰为新内容无半行 | `test/core/operation/operation_log_store_test.dart`「窗口 1」「窗口 2」 | 侧车可再生：少一次追加不伤文档本体 |
 | L5 | 分页画布载荷 `EncryptedWriteTransaction`（`lib/infrastructure/storage/v2/encrypted_write_transaction.dart:61`） | 自己的 tmp/`.bak` 事务（**不共用 L1 契约**） | 备份失败 → `BackupFailedException`（`:27`） | 主文件保留 | `test/security/encrypted_write_transaction_test.dart:22(S-001),45(S-002),82(S-003),104(S-004)` | 下一次提交重来 |
 
-**补上 (a)/(b) 之后新增的行**（同一天，钩子见 §3-A/B）：
+**补上 (a)/(b) 之后新增的行**（钩子见 §3-A/B/F；(a)(b) 是 10-14 同日，标 (f) 的两行是
+10-15 补的兜底换入成功分支）：
 
 | # | 窗口 | 注入方式 | 用例 | 主张 |
 |---|---|---|---|---|
 | L1 | tmp 第一笔字节就失败 | `tmpPathObserverForTest` 把 tmp 路径占成目录 | `write_fault_injection_test.dart`「(a) …」 | 抛错；正式文件一字节没动；**此时不该有 `.bak`**（备份排在 tmp 之后）；不留 tmp |
 | L1 | 改名这一步失败（已有上一版） | `renameBarrierForTest` 移走 tmp | 同文件「(b) …」 | 上一版逐字节活着 + `.bak` 正是被保住的 v2 + **回滚把正式文件放回** + 审计留痕 |
 | L1 | 改名失败且是首写 | 同上 | 同文件「(b2) …」 | 没有半份文件、没有 `.bak`、没有 tmp（这次编辑确实丢了，如实记录） |
+| L1 | 改名被拒**之后**兜底换入成功（(f)，10-15 补） | `renameFaultForTest` 只拒第一次，第二次走真系统调用 | 同文件「(f) 改名被拒之后那条兜底换入」 | 新内容仍落地 + `.bak` 仍是上一版 + 不留 tmp + **回滚审计一条都不许出现**（回滚只属于失败出口；成功路径跑进它=这次写被误判成失败，新内容没被盖回去只是靠 `existsSync` 那道守卫） |
 | L3 | 改名失败（块文档，喂同步的那条腿） | `NoteBlockDocStore.renameBarrierForTest` | `test/core/documents/block_doc_write_rollback_test.dart`（3 条） | 回滚 + 列表**仍看得见这篇**（列表可见性就是这条链的终点）；反向锁：成功写入绝不触发回滚 |
+| L3 | 改名被拒**之后**兜底换入成功（(f)，10-15 补） | `NoteBlockDocStore.renameFaultForTest` | 同文件「兜底腿的成功分支」 | 同 L1 那条，另加两条终点断言：`loadDocument` 读回第三版、`listDocHeaders` 仍列出这篇 |
 | L4 | 改名失败（操作日志侧车） | 已有的 `writeBarrierForTest` 里移走 tmp | `operation_log_store_test.dart`「改名这一步真失败」 | 上一份侧车逐字节不变、不留 tmp、队列没被毒住（摘掉屏障后还能追加） |
 | L4 | 写完回读不是所写（**§3-C，2026-10-14 补**） | 同一个屏障里改写 tmp —— 校验就排在这个屏障之后，不需要新钩子 | `operation_log_store_test.dart`「不变量④」两条 | 抛 `OperationLogIntegrityException`；旧侧车逐字节活着、不留 tmp、摘掉注入后照常能写；**加密腿比密文**：tmp 上出现明文同样判失败 |
 
@@ -87,8 +92,9 @@
 ## 3. 未覆盖的窗口（下一批的排期，每格都写了它卡在哪）
 
 - **A. tmp 写入本身抛错**（磁盘满 / 权限 / 杀软抢占新建文件）：**已闭合**。注入口用
-  `@visibleForTesting tmpPathObserverForTest`（`storage_write_pipeline.dart:69`，同处另有
-  `renameBarrierForTest:76`；块文档腿的同名钩子在 `note_block_doc_store.dart:102`）——
+  `@visibleForTesting tmpPathObserverForTest`（`storage_write_pipeline.dart:70`，同处另有
+  `renameBarrierForTest:77` 与 `renameFaultForTest:86`；块文档腿的同名钩子在
+  `note_block_doc_store.dart:103` 与 `:112`）——
   它在 tmp 路径算出来之后、写第一笔字节之前同步回调，测试据此把该路径占成目录，
   于是 `writeAsBytes` 确定失败。选它而不是 `IOOverrides`：`dart:io` 的 `File` 没有
   可委托基类，委托等于重写整个 API 面。用例：
@@ -128,6 +134,26 @@
   **磁盘事实**反推（快照时间戳 vs 基线 mtime），不依赖任何写标记 ⇒ 换根中途断电
   不会留下「半恢复」的第二套真相。用例：`test/core/storage/restore_snapshot_retention_test.dart`、
   `test/features/notes/infrastructure/file_post_restore_baseline_gate_test.dart`。
+
+- **F. 兜底换入的成功分支**（B 留下的那半格）：**已闭合（2026-10-15，`9aa44d7`）**。
+  B 注的是「改名失败」这个**等价类**（把 tmp 移走 ⇒ 第二次 rename 也必然失败），所以
+  「被拒之后先删目标再换入」这条兜底腿从来没能**成功**跑通一次。原排期写的是「只有
+  Windows 本机可以验」——动手前先量了它的前提，**前提是假的**：
+  ① 目标已存在时 Windows 的 `File.rename` **直接成功**（带 replace 语义），代码注释里
+  「若 Windows 拒绝覆盖已有文件」描述的是一条不发生的事，这条兜底并不是 Windows 的常规路径；
+  ② 真正会拒的是别人持有目标句柄：实测 rename 报 `code 5 拒绝访问`，而同一个句柄让紧随的
+  `delete` 报 `code 32 另一个程序正在使用此文件`；
+  ③ ⇒ 这条腿只在「持句柄者刚好在两次调用之间放手」的窗口里才走得通。用 sleep 去赌那个窗口，
+  赌赢的测试同样是假的；Linux CI 更是永远到不了。
+  处置：`@visibleForTesting renameFaultForTest`（两条写腿各一个，生产恒 null），返回 true 表示
+  这一次改名**不执行**、tmp 与目标都原地不动——复刻真实拒绝留下的盘上形状，第二次换入仍走
+  真系统调用。「拒绝」这个动作的定义收在 `lib/core/storage/rename_injection.dart` 一处：
+  两条腿各自决定要不要拒，但异常形状若在两处各写一遍，注入验的就不再是同一条腿。
+  三条突变自证：①注入点永不拒绝 ⇒ 恰好只有这两条新用例红（证明它们真的依赖钩子被调到）；
+  ②画布腿摘掉兜底 ⇒ (f) + (b) 红（(b) 红是因为兜底没删目标，回滚审计自然没有）；
+  ③块文档腿摘掉兜底 ⇒ 新用例 + 「换入失败放回上一版」红。
+  **仍然**只有 Windows 有语义的是 `storage_encryption_test.dart:225` 那条**退避重试自愈**
+  （靠 40ms 后关句柄去赌窗口），与 (f) 不是同一条主张，两条不互相顶替。
 
 ## 4. 故意不钉的断言
 

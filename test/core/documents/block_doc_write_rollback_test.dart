@@ -182,7 +182,8 @@ void main() {
     expect(
       AuditLogger.snapshot().any((l) => l.contains('write_rolled_back_from_backup')),
       isFalse,
-      reason: '换入最终成功了，回滚一条都不许跑——跑了就把刚落地的第三版盖回第二版',
+      reason: '回滚只属于失败出口：换入已成功还去跑它，说明这次写被当成失败'
+          '（第三版没被第二版盖回去只是靠 existsSync 那道守卫）',
     );
     expect((await store.loadDocument('rf_a'))?.title, '第三版');
     expect((await store.listDocHeaders()).map((h) => h.id), contains('rf_a'));
