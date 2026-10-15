@@ -26,6 +26,7 @@ import 'package:drawing_notes_app/core/sync/remote_deletes.dart';
 import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/sync/sync_planner.dart';
+import 'package:drawing_notes_app/core/sync/sync_push_waivers.dart';
 import 'package:drawing_notes_app/core/sync/sync_service.dart';
 
 const _base = 'https://dav.example.com/sync/';
@@ -47,6 +48,9 @@ class _Dav {
 
   /// 下一次 PUT manifest.json 之前，别的设备抢先改写清单（触发 412 重试）。
   List<int>? hijackManifestWith;
+
+  /// 这些路径的 PUT 直接 500 —— 制造**上传失败**，用来验豁免只在真成功时才撤销。
+  final Set<String> failPut = {};
 
   void seedManifest(SyncManifest manifest, {String etag = 'm1'}) {
     files['manifest.json'] = utf8.encode(jsonEncode(manifest.toJson()));
@@ -82,6 +86,7 @@ class _Dav {
           headers: {'etag': etags[rel] ?? 'g-$rel'},
         );
       case 'PUT':
+        if (failPut.contains(rel)) return http.Response('', 500);
         if (rel == 'manifest.json' && hijackManifestWith != null) {
           final hijacked = hijackManifestWith!;
           hijackManifestWith = null;
@@ -149,14 +154,29 @@ class _Baseline implements SyncBaselineStore {
   Future<void> save(SyncManifest manifest) async => value = manifest;
 }
 
-SyncService _service(_Dav dav, _Docs docs, _Baseline baseline) => SyncService(
+SyncService _service(
+  _Dav dav,
+  _Docs docs,
+  _Baseline baseline, {
+  SyncPushWaiverStore? waivers,
+}) => SyncService(
   transport: WebDavSyncClient(baseUrl: Uri.parse(_base), client: dav.client()),
   documentStore: docs,
   baselineStore: baseline,
   cipher: const NoopSyncCipher(),
   conflictHandler: const LwwConflictHandler(),
   baselineGate: const AlwaysTrustedBaselineGate(),
+  pushWaivers: waivers,
 );
+
+/// 一读就抛的豁免存储：验「读不出来按无豁免处理」而不是按全豁免放行。
+class _BrokenWaivers implements SyncPushWaiverStore {
+  @override
+  Future<Set<String>> load() async => throw StateError('盘读不了');
+
+  @override
+  Future<void> save(Set<String> ids) async {}
+}
 
 void main() {
   group('A3 值模型：墓碑带因果', () {
@@ -418,6 +438,92 @@ void main() {
       expect(raw.containsKey('tombstones'), isFalse);
       expect(raw['deletedIds'], isEmpty);
       expect((raw['entries'] as Map).keys, ['a']);
+    });
+  });
+
+  group('A3-2 甲的豁免：用户点了「仍要上传」之后', () {
+    /// 云端已删 `stale`，本机留着的正是被删那一版（baseRev 200 ⇒ 因果锚成立）。
+    _Dav staleCase({Set<String> failPut = const {}}) {
+      final dav = _Dav()
+        ..seedManifest(
+          SyncManifest(
+            deletedIds: const {'stale'},
+            tombstones: const {
+              'stale': SyncTombstone(id: 'stale', deletedAt: 260, baseRev: 200),
+            },
+          ),
+        );
+      dav.files['stale'] = _docBytes(200);
+      dav.failPut.addAll(failPut);
+      return dav;
+    }
+
+    test('豁免的那一篇照常上传，且**成功之后豁免自动撤销**', () async {
+      final waivers = MemoryPushWaiverStore({'stale'});
+      final docs = _Docs({'stale': 200});
+
+      final result = await _service(
+        staleCase(),
+        docs,
+        _Baseline(const SyncManifest()),
+        waivers: waivers,
+      ).syncNow();
+
+      expect(result.resurrectionSuppressedDocIds, isEmpty,
+          reason: '豁免生效：这一篇不再被按住');
+      expect(result.uploaded, 1);
+      expect(result.remoteDeletes.single.kind, RemoteDeleteKind.staleCopy,
+          reason: '分类不变——豁免只解除抑制，不改写上一次的判断');
+      expect(
+        await waivers.load(),
+        isEmpty,
+        reason: '留着等于永久关闭抑制：云端下次再删同一篇，我们还会不问就推回去',
+      );
+      expect(result.remoteDeletes.single.docId, 'stale');
+    });
+
+    test('上传失败 ⇒ 豁免**不撤销**，用户的授权没被一次网络抖动用掉', () async {
+      final waivers = MemoryPushWaiverStore({'stale'});
+      final docs = _Docs({'stale': 200});
+
+      final result = await _service(
+        staleCase(failPut: {'stale'}),
+        docs,
+        _Baseline(const SyncManifest()),
+        waivers: waivers,
+      ).syncNow();
+
+      expect(result.uploaded, 0);
+      expect(result.resurrectionSuppressedDocIds, isEmpty,
+          reason: '它没被按住，是推失败了');
+      expect(await waivers.load(), {'stale'});
+    });
+
+    test('豁免存储读不出来 ⇒ 按「无豁免」处理（继续按住，不放行）', () async {
+      final result = await _service(
+        staleCase(),
+        _Docs({'stale': 200}),
+        _Baseline(const SyncManifest()),
+        waivers: _BrokenWaivers(),
+      ).syncNow();
+
+      expect(result.resurrectionSuppressedDocIds, ['stale'],
+          reason: '把读失败当全豁免 = 一次 IO 抖动就把云端已删的内容推回去');
+      expect(result.uploaded, 0);
+    });
+
+    test('豁免的是别的 id ⇒ 这一篇照旧被按住', () async {
+      final waivers = MemoryPushWaiverStore({'someone_else'});
+
+      final result = await _service(
+        staleCase(),
+        _Docs({'stale': 200}),
+        _Baseline(const SyncManifest()),
+        waivers: waivers,
+      ).syncNow();
+
+      expect(result.resurrectionSuppressedDocIds, ['stale']);
+      expect(result.uploaded, 0);
     });
   });
 

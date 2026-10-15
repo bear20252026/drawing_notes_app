@@ -23,9 +23,12 @@ import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/sync/sync_progress.dart';
 import 'package:drawing_notes_app/core/sync/sync_retry_policy.dart';
+import 'package:drawing_notes_app/core/sync/remote_deletes.dart';
+import 'package:drawing_notes_app/core/sync/sync_push_waivers.dart';
 import 'package:drawing_notes_app/core/sync/sync_service.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/file_post_restore_baseline_gate.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/file_sync_baseline_store.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/file_sync_push_waiver_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/sync_secret_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/webdav_config_store.dart';
 
@@ -83,6 +86,7 @@ class SyncController {
     SyncDocumentStore? documentStore,
     SyncBaselineStore? baselineStore,
     PostRestoreBaselineGate? baselineGate,
+    SyncPushWaiverStore? pushWaiverStore,
   }) : _configStore = configStore ?? WebDavConfigStore(SecureSyncSecretStore()),
        _secretStore = secretStore ?? SecureSyncSecretStore(),
        _documentStore =
@@ -98,7 +102,9 @@ class SyncController {
              ),
            ),
        _baselineStore = baselineStore ?? FileSyncBaselineStore(),
-       _baselineGate = baselineGate ?? FilePostRestoreBaselineGate();
+       _baselineGate = baselineGate ?? FilePostRestoreBaselineGate(),
+       _pushWaivers =
+           pushWaiverStore ?? FileSyncPushWaiverStore();
 
   final WebDavConfigStore _configStore;
   final SyncSecretStore _secretStore;
@@ -108,12 +114,68 @@ class SyncController {
   /// DN-204：恢复换根后基线是否已被甩在身后（决定同步是否要先按住等裁决）。
   final PostRestoreBaselineGate _baselineGate;
 
+  /// A3-2 甲：用户对「云端已删、本机仍留着」选「仍要上传」之后的豁免记录。
+  /// 与基线同目录（数据根之外）——恢复旧根之后不该继承上次的豁免。
+  final SyncPushWaiverStore _pushWaivers;
+
   /// DN-204：当前是否处于「恢复后同步隔离」态。设置页据此挂出方向选择条。
   ///
   /// 判据是**读盘**（快照目录名里的换根时刻 vs 基线文件修改时间），不依赖任何
   /// 进程内状态，所以重进页面、重启应用都得到同一答案——用户没裁决就一直挂着。
   Future<bool> isBaselineHeldForRestore() =>
       _baselineGate.isBaselineStaleAfterRestore();
+
+  /// A3-2 甲：处置一篇「云端已删、本机仍留着」的文档。**三个动作都必须用户点**，
+  /// 程序自己不挑一个——挑哪个都会丢东西：认云端删除要删本机这份（那是乙，没做），
+  /// 推上去又等于把云端刚删掉的内容复活。
+  ///
+  /// 返回 `(applied, copyId)`：`copyId` 只在「留成副本」时有值（新文档 id，UI 要
+  /// 拿它说「已另存为」）。`applied == false` 表示本机已经没有这份可处置（多半是
+  /// 另一台设备处理过了），UI 只需重跑一轮同步刷新，不当失败。
+  Future<({bool applied, String? copyId})> applyRemoteDeleteDisposition({
+    required String docId,
+    required RemoteDeleteDisposition disposition,
+  }) async {
+    switch (disposition) {
+      case RemoteDeleteDisposition.pushAnyway:
+        // 只是登记一次豁免：真正的上传发生在下一轮同步，且**成功之后自动失效**
+        // （见 SyncService 里的撤销）。放在这里而不是直接改文档时间戳——伪造
+        // `updatedAt` 会污染整套以它为输入的判据。
+        final waived = await _pushWaivers.load();
+        if (waived.contains(docId)) return (applied: true, copyId: null);
+        await _pushWaivers.save({...waived, docId});
+        return (applied: true, copyId: null);
+      case RemoteDeleteDisposition.honorCloudDelete:
+        // 走的是普通删除 ⇒ 块文档进回收站，30 天内还能恢复。
+        await _documentStore.deleteDocument(docId);
+        await _dropWaiver(docId);
+        return (applied: true, copyId: null);
+      case RemoteDeleteDisposition.keepAsCopy:
+        final bytes = await _documentStore.readDocument(docId);
+        if (bytes == null) return (applied: false, copyId: null);
+        final copyId = _copyIdFor(docId);
+        // 顺序：先写副本、后删原件。写失败 ⇒ 什么都没少；删失败 ⇒ 两边都在，
+        // 下一轮原件仍会被按住（幂等），不会出现「原件没了、副本没写成」。
+        await _documentStore.writeDocument(copyId, bytes);
+        await _documentStore.deleteDocument(docId);
+        await _dropWaiver(docId);
+        return (applied: true, copyId: copyId);
+    }
+  }
+
+  /// 副本 id：`docId` 来自未认证的远端清单，必须消毒过才能进本地路径
+  /// （白名单 `^[A-Za-z0-9_-]+$`，与 `SyncService` 的 keepBoth 副本同一条纪律）。
+  static String _copyIdFor(String docId) {
+    final safe = docId.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_');
+    final stem = safe.length <= 40 ? safe : safe.substring(0, 40);
+    return '$stem-copy-${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  Future<void> _dropWaiver(String docId) async {
+    final waived = await _pushWaivers.load();
+    if (!waived.contains(docId)) return;
+    await _pushWaivers.save(waived.difference({docId}));
+  }
 
   /// 保存前 TLS 门禁（与保存路径同一预检）：非空 baseUrl 必须 https
   /// （本地回环 http 例外）。非法抛 [ArgumentError]。
@@ -340,6 +402,7 @@ class SyncController {
       onProgress: onProgress,
       baselineGate: _baselineGate,
       reconcile: reconcile,
+      pushWaivers: _pushWaivers,
     );
     try {
       // 有界自动重试：派生密钥复用同一 service，失败按策略退避。

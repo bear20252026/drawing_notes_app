@@ -13,6 +13,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
 import 'package:drawing_notes_app/core/sync/post_restore_baseline.dart';
 import 'package:drawing_notes_app/core/sync/remote_deletes.dart';
@@ -20,6 +21,7 @@ import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/sync/sync_planner.dart';
 import 'package:drawing_notes_app/core/sync/sync_progress.dart';
+import 'package:drawing_notes_app/core/sync/sync_push_waivers.dart';
 
 // DN-201 / DN-204 两条腿的实现拆到同库 part 里（本文件已越过仓库的 1000 行硬上限，
 // CI 的 linecheck 会按文件总行数判错）：拆的是**位置**，不是逻辑——两段都是
@@ -287,6 +289,7 @@ class SyncService {
     this.onProgress,
     required this.baselineGate,
     this.reconcile,
+    this.pushWaivers,
   });
 
   /// WebDAV 传输客户端。
@@ -314,6 +317,10 @@ class SyncService {
   /// 那正是本轮审计里「备份打包不到基线」这条能活到今天的成因。
   /// 没有恢复感知的调用点显式传 [AlwaysTrustedBaselineGate]。
   final PostRestoreBaselineGate baselineGate;
+
+  /// A3-2 甲的配套：用户点过「仍要上传」的那些文档 id（见 [SyncPushWaiverStore]）。
+  /// null ⇒ 无人可以豁免（比如未装配），抑制行为与之前逐字节一致。
+  final SyncPushWaiverStore? pushWaivers;
 
   /// DN-204：隔离态下用户裁决的调和方向；null = 用户还没选 ⇒ [PostRestoreReconcile.reportOnly]。
   final PostRestoreReconcile? reconcile;
@@ -497,7 +504,14 @@ class SyncService {
           );
     // A3-2（甲，任务 #22）：云端已删除、本地只剩删除前旧副本的那些，**不再推回去**。
     // 本地文件一个字节都不动；被按住的 id 进 SyncResult，让这件事每轮都看得见。
-    final held = _holdStaleResurrections(guardedPlan, remoteDeletes);
+    // 豁免集合读不出来（IO 抖动）时按「无豁免」处理：后果是最多多按住一篇，
+    // 而不是把一个云端已删的内容悄悄推回去——保守方向只有一个。
+    final waivedIds = await _loadPushWaivers();
+    final held = _holdStaleResurrections(
+      guardedPlan,
+      remoteDeletes,
+      waivedIds,
+    );
     // DN-204：隔离态下按用户裁决的方向过滤。**删除墓碑任何方向都不放行**——
     // 它来自一份不描述当前数据根的基线，不是用户的删除意图。
     final plan = policy == null
@@ -572,6 +586,24 @@ class SyncService {
       for (final op in executed.succeeded)
         if (op.kind == SyncOperationKind.upload) op.id,
     };
+    // 豁免的使命只是「这一次把它推上去」：真上传成功就要撤掉。留着等于一条
+    // 永久的抑制关闭——云端下次再删同一篇，我们还会不问就推回去。
+    if (pushWaivers != null && waivedIds.isNotEmpty) {
+      final cleared = waivedIds.intersection(uploadedIds);
+      if (cleared.isNotEmpty) {
+        try {
+          await pushWaivers!.save(waivedIds.difference(cleared));
+        } catch (_) {
+          // 撤销失败不影响本轮同步结果（文档已经推上去了）；下轮它会被再按一次，
+          // 方向是保守的，所以只上审计、不改变本轮结论。
+          AuditLogger.log(
+            'sync.push_waiver_clear_failed',
+            success: false,
+            detail: cleared.length.toString(),
+          );
+        }
+      }
+    }
     var newTombstones = SyncManifest.pruneTombstones([
       for (final t in remoteManifest.tombstones.values)
         if (!uploadedIds.contains(t.id)) t,

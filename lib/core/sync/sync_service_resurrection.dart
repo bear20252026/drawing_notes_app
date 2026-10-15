@@ -23,6 +23,18 @@ part of 'sync_service.dart';
 /// 「计划里没有操作的冲突文档要补一条强制操作」的兜底——顺序上放在
 /// keepBoth 副本保留之后、DN-204 隔离过滤之前，两条腿都不必重算判据。
 extension SyncServiceResurrection on SyncService {
+  /// 读豁免集合。null（未装配）与读失败都按空集处理——空集是「继续按住」，
+  /// 保守方向；反过来把读失败当全豁免，等于一次 IO 抖动把云端已删的内容推回去。
+  Future<Set<String>> _loadPushWaivers() async {
+    final store = pushWaivers;
+    if (store == null) return const <String>{};
+    try {
+      return await store.load();
+    } catch (_) {
+      return const <String>{};
+    }
+  }
+
   /// 摘掉「把云端已删除的旧副本重新推上去」的那些上传操作。
   ///
   /// 返回被按住的 id（空表示本轮没有抑制任何东西，**计划对象原样返回**，
@@ -30,13 +42,18 @@ extension SyncServiceResurrection on SyncService {
   ({SyncPlan plan, List<String> suppressedIds}) _holdStaleResurrections(
     SyncPlan plan,
     List<RemoteDeleteIssue> remoteDeletes,
+    Set<String> waivedIds,
   ) {
     if (remoteDeletes.isEmpty) {
       return (plan: plan, suppressedIds: const <String>[]);
     }
     final stale = <String>{
       for (final issue in remoteDeletes)
-        if (issue.kind == RemoteDeleteKind.staleCopy) issue.docId,
+        // 用户明确选过「仍要上传」的那几篇从陈旧集合里摘出去：抑制是**默认**，
+        // 不是不可撤销的裁决——撤销的代价（把云端已删的内容推回去）由用户自己承担。
+        if (issue.kind == RemoteDeleteKind.staleCopy &&
+            !waivedIds.contains(issue.docId))
+          issue.docId,
     };
     if (stale.isEmpty) {
       return (plan: plan, suppressedIds: const <String>[]);
