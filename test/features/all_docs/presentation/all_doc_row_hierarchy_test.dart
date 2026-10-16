@@ -105,27 +105,75 @@ void main() {
     });
 
     test('全库不再出现 dividerColor 二次衰减', () {
-      final offenders = <String>[];
-      for (final entity in Directory('lib').listSync(recursive: true)) {
-        if (entity is! File || !entity.path.endsWith('.dart')) continue;
-        var lineNo = 0;
-        for (final line in entity.readAsStringSync().split('\n')) {
-          lineNo++;
-          final code = line.trim();
-          // 注释里引用历史写法（说明「以前错在哪」）不算违规
-          if (code.startsWith('//')) continue;
-          if (code.contains('dividerColor.withValues')) {
-            offenders.add('${entity.path}:$lineNo');
-          }
-        }
-      }
+      final sources = _readLibSources();
+      // 分母下限先于结论（审计 TE-TST-04）：`offenders` 恒空有两种成因——真的都改干净了，
+      // 或者扫描面塌了（2026-10-16 实测该字面量在 lib 里本来就只剩注释中的历史说明），
+      // 而这两种在断言层**完全同形**。
+      expect(
+        sources.length,
+        greaterThanOrEqualTo(300),
+        reason:
+            '只扫到 ${sources.length} 个 .dart（实测基线 354）⇒ 扫描根或后缀判定动了，'
+            '此时下面那句 `isEmpty` 没有裁决力。',
+      );
+      final offenders = _hairlineOffenders(sources);
       expect(
         offenders,
         isEmpty,
         reason:
             'dividerColor 本身已是 8% 发丝线，再叠乘会淡到看不见。'
-            '要分隔线请直接用 AppleHairline。',
+            '要分隔线请直接用 AppleHairline。\n$offenders',
       );
     });
+
+    test('判据自证：代码行里的二次衰减必须报，注释里的历史说明不许报', () {
+      // 正控（突变 H-1：把判据里的 `dividerColor.withValues` 打错一个字母 ⇒ 这里零报，
+      // 而真实库那条照样绿——那正是这条扫描坏掉而无人察觉的形状）。
+      expect(
+        _hairlineOffenders(const {
+          'lib/a.dart': 'Divider(color: c.dividerColor.withValues(alpha: 0.5))',
+        }),
+        hasLength(1),
+        reason: '代码行里的 `dividerColor.withValues` 必须被报出来',
+      );
+      // 反向锁（突变 H-2：去掉注释过滤 ⇒ 这里误报）。
+      expect(
+        _hairlineOffenders(const {
+          'lib/b.dart': '// 以前写 dividerColor.withValues(alpha: .5)，现在用 AppleHairline',
+        }),
+        isEmpty,
+        reason: '注释里引用历史写法是说明，不是违规——误报会把这条门禁练成哭墙',
+      );
+      expect(_hairlineOffenders(const <String, String>{}), isEmpty);
+    });
   });
+}
+
+/// 判据本体：给定「路径 → 源码」，报出代码行里的 `dividerColor.withValues`。
+/// 抽成函数只为让上面那条 canary 与真实扫描**共用同一份定义**（R11 记下的纪律：
+/// canary 若另抄一份判据，它验证的是自己的副本，等于什么都没验证）。
+List<String> _hairlineOffenders(Map<String, String> sources) {
+  final offenders = <String>[];
+  for (final entry in sources.entries) {
+    var lineNo = 0;
+    for (final line in entry.value.split('\n')) {
+      lineNo++;
+      final code = line.trim();
+      // 注释里引用历史写法（说明「以前错在哪」）不算违规
+      if (code.startsWith('//')) continue;
+      if (code.contains('dividerColor.withValues')) {
+        offenders.add('${entry.key}:$lineNo');
+      }
+    }
+  }
+  return offenders;
+}
+
+Map<String, String> _readLibSources() {
+  final sources = <String, String>{};
+  for (final entity in Directory('lib').listSync(recursive: true)) {
+    if (entity is! File || !entity.path.endsWith('.dart')) continue;
+    sources[entity.path.replaceAll(r'\', '/')] = entity.readAsStringSync();
+  }
+  return sources;
 }

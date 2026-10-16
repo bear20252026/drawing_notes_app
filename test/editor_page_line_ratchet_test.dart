@@ -52,6 +52,25 @@ void main() {
     }
     expect(parts, isNotEmpty, reason: 'part 解析落空——正则与源码形态失配，先修本测试');
 
+    // ── 下限也要钉（审计 TE-TST-04，2026-10-16）──
+    // 这条棘轮原本**只有上限**：`total ≤ 基线`。让 `total` 变小到 0 的坏法有好几种
+    // （`_countLines` 改成返回 0、主文件被读到空、part 清单解析出空集但恰好 isNotEmpty 挡住），
+    // 每一种都让这条门禁**更容易绿**——棘轮类门禁的失效方向天生朝「数字变小」，
+    // 所以它比一般门禁更需要一条下限。数字取实测（15 个 part / 7126 行）之下很宽的一档，
+    // 只用于抓塌空，不参与「只许减不许增」的裁决。
+    expect(
+      parts.length,
+      greaterThanOrEqualTo(10),
+      reason: '只解析出 ${parts.length} 个 part（实测基线 15）⇒ part 声明正则与源码形态失配',
+    );
+    expect(
+      total,
+      greaterThanOrEqualTo(5000),
+      reason:
+          '整个 editor_page 库只数出 $total 行（实测基线 7126）⇒ 读盘或计数坏了。'
+          '此时 `total ≤ $kBaselineTotalLines` 成立得毫无意义：那是没数到，不是没超。',
+    );
+
     expect(
       total,
       lessThanOrEqualTo(kBaselineTotalLines),
