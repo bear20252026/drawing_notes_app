@@ -16,4 +16,17 @@ class LocalIdGenerator {
     final entropy = _random.nextInt(1 << 32).toRadixString(36).padLeft(7, '0');
     return '${prefix}_${timestamp}_${sequence}_$entropy';
   }
+
+  /// [next] 产出的 id 的**形状**：`<前缀>_<时间戳36>_<序号>_<7 位随机段>`。
+  ///
+  /// 为什么把形状也暴露出来（审计 2026-10-16）：写腿用 `next(...)` 命名临时文件
+  /// （前缀有 `write`/`thumb`/`oplog` 三家），崩溃遗留的孤儿要靠这同一个形状被认出来。
+  /// 若清扫侧自己抄一份「前缀白名单」，新增一家前缀就自动漏一家——正是本仓「一份判据
+  /// N 份副本、修一条漏五条」那一族。判据只有这一份定义。
+  static final RegExp generatedIdPattern = RegExp(
+    r'^[a-z][a-z0-9]*_[0-9a-z]{6,12}_[0-9a-z]{4,6}_[0-9a-z]{7}$',
+  );
+
+  /// [generatedIdPattern] 的可读别名：这一段是不是本生成器产出的 id。
+  static bool isGeneratedId(String segment) => generatedIdPattern.hasMatch(segment);
 }

@@ -9,6 +9,7 @@ import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/rename_injection.dart';
 import 'package:drawing_notes_app/core/storage/storage_directories.dart';
 import 'package:drawing_notes_app/core/storage/storage_secret_session.dart';
+import 'package:drawing_notes_app/core/storage/stale_tmp_cleanup.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 
 // C-08（审计 2026-09-27）：自 StorageService 的 part 五域拆为真协作类。
@@ -84,6 +85,9 @@ class StorageWritePipeline {
   /// 形状一致。生产恒 null（一次 null 判定）。
   @visibleForTesting
   bool Function(String tmpPath, String destinationPath)? renameFaultForTest;
+
+  /// 孤儿 tmp 清扫每实例只跑一次（见 `sweepStaleTempFiles` 与 [writeSealedBytes]）。
+  bool _staleTmpSwept = false;
 
   /// 批次 D（CI kdf 分片随机红的根因，任务 #24）：等 **id 这条腿当前排队的写**
   /// 全部落完。测试用它把「等懒迁移把明文重写成密文」从掐表轮询换成确定信号——
@@ -319,6 +323,24 @@ class StorageWritePipeline {
   /// 正式文件都未被删除/覆盖。
   Future<void> writeSealedBytes(String id, Uint8List sealed) async {
     await directories.ensureDocuments();
+    // 孤儿 tmp 回收（审计 2026-10-16）：崩溃/被杀在 write 与 rename 之间时留下的
+    // `*.<LocalIdGenerator id>.tmp` 以前**只有保险库那条腿**会清；实测本机真实数据根
+    // 里有 7 枚（documents/ 4、notebooks/ 2、thumbnails/ 1），前六枚合计 7.3 MB 正文副本。
+    // 这里从**数据根递归**扫一次（每实例一次），因为八个生产者（write 5 / thumb 2 /
+    // oplog 1）分散在四个子目录里，只扫 documents/ 会漏掉缩略图、媒体盐与侧车日志。
+    // 判据复用 `LocalIdGenerator` 自己暴露的形状，不在这里抄前缀白名单。
+    // 已知缺口（如实记录）：notebooks/ 那两枚靠这条递归腿覆盖，所以只在**画布或块文档
+    // 至少保存过一次**的会话里生效；「只改笔记本元数据、整个会话没存过画布页」时它们
+    // 会活到下一次画布保存。没给笔记本那条腿单独立触发点，是因为笔记本页面本身就是
+    // 画布文档——真出问题时下一轮就清掉了，不是永久残留。
+    if (!_staleTmpSwept) {
+      _staleTmpSwept = true;
+      await sweepStaleTempFiles(
+        await directories.rootDir(),
+        auditScope: 'dataroot',
+        recursive: true,
+      );
+    }
     final finalFile = File(directories.documentPathFor(id));
     final tmp = File('${finalFile.path}.${LocalIdGenerator.next('write')}.tmp');
     // 回滚的前提：这次写入**之前**盘上有没有一份正式版。没有上一版就无从回滚。

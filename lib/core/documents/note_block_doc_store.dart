@@ -28,6 +28,7 @@ import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/rename_injection.dart';
+import 'package:drawing_notes_app/core/storage/stale_tmp_cleanup.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:drawing_notes_app/core/utils/time_serialization.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
@@ -119,6 +120,9 @@ class NoteBlockDocStore implements SessionSecretsHolder {
   /// 而这两者对写路径的含义完全相反：一个可以落盘，另一个必须拒写。
   @visibleForTesting
   Future<void> Function(String id)? readBarrierForTest;
+
+  /// 孤儿 tmp 清扫每实例只跑一次（见 `sweepStaleTempFiles` 与 `_writeFileAtomic`）。
+  bool _staleTmpSwept = false;
 
   /// 批次 D 故障注入：在**备份已落盘**与**改名换入**之间 await（生产恒 null，
   /// 一次 null 判定）。与 `StorageWritePipeline.renameBarrierForTest` 同一用意，
@@ -665,6 +669,14 @@ class NoteBlockDocStore implements SessionSecretsHolder {
   Future<void> _writeFileAtomic(String id, List<int> data) async {
     final path = await _pathFor(id);
     final file = File(path);
+    // 孤儿 tmp 回收（审计 2026-10-16）：崩溃/被杀在 write 与 rename 之间时，这条腿
+    // 以前没人清扫（只有保险库那条腿有）。实测本机真实数据根 `blockdocs/` 今天**没有**
+    // 残留，所以这条接线是**预防**而非补漏——但它必须与画布那条腿同型，否则就成了
+    // 「四条腿里修两条」的同一个形状。本地扫（不递归），判据见 `sweepStaleTempFiles`。
+    if (!_staleTmpSwept) {
+      _staleTmpSwept = true;
+      await sweepStaleTempFiles(file.parent, auditScope: 'blockdocs');
+    }
     final tmp = File('$path.${LocalIdGenerator.next('write')}.tmp');
     // 回滚前提：这次写入之前盘上有没有正式版。
     final hadPrevious = file.existsSync();
