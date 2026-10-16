@@ -733,15 +733,15 @@ extension _EditorPageEditing on _EditorPageState {
     Future.delayed(AppleMotion.dropdown, () {
       if (!mounted) return;
       _applyState(() {
-        EditorPageObjectMutation.remove(
+        // EUI-02（第四轮审计）：删除登记成一条可撤销记录。
+        MixedObjectDeleteRecorder.deleteAndRecord(
           ids: ids,
           textItems: textItems,
-          // V-01：画布模式无其余三类集合——必须给可增长空表，const []
-          // 是不可变表，removeWhere 会抛 UnsupportedError（删除路径
-          // 对四类集合一律调用 removeWhere）。
           imageItems: page?.imageItems ?? <PageImageItem>[],
           shapes: page?.shapes ?? <PageShapeItem>[],
           charts: page?.charts ?? <PageChartItem>[],
+          host: _controller,
+          markDirty: _notifyChanged,
         );
         _canvasInteraction.finishDeleting(ids);
       });

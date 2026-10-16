@@ -3,8 +3,11 @@ import 'package:flutter/foundation.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/canvas_model/document_image_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/layer.dart';
+import 'package:drawing_notes_app/core/canvas_model/page_chart_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/page_image_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
+import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:drawing_notes_app/features/drawing/application/doc_command_context.dart';
 import 'package:drawing_notes_app/core/operation/document_operation.dart';
 
@@ -562,4 +565,77 @@ class DocumentObjectsSnapshotCommand extends DocCommand {
 
   @override
   void redo() => restoreObjectsSnapshot(_after);
+}
+
+/// 混排对象四类集合的一份浅快照（条目仍是原实例，只复制列表本身）。
+@immutable
+class MixedObjectCollections {
+  MixedObjectCollections({
+    required List<PageTextItem> textItems,
+    required List<PageImageItem> imageItems,
+    required List<PageShapeItem> shapes,
+    required List<PageChartItem> charts,
+  }) : textItems = List.of(textItems),
+       imageItems = List.of(imageItems),
+       shapes = List.of(shapes),
+       charts = List.of(charts);
+
+  final List<PageTextItem> textItems;
+  final List<PageImageItem> imageItems;
+  final List<PageShapeItem> shapes;
+  final List<PageChartItem> charts;
+}
+
+/// 混排对象（文字/图片/形状/图表）删除的可撤销记录（EUI-02）。
+///
+/// 为什么不复用 [DocumentObjectsSnapshotCommand]：那份快照只覆盖
+/// `layers/shapes/images`，而删除命中的是这四类集合，且分页宿主持有的是
+/// `NotebookPage` 自己的四份列表引用。用那份撤销会把文字和图表留在删除后的
+/// 状态——正是本条缺陷的形状。
+///
+/// 恢复用 `clear + addAll` **原地写回**：宿主列表的实例不换，分页与独立画布
+/// 共用同一条命令。
+class MixedObjectsSnapshotCommand extends DocCommand {
+  MixedObjectsSnapshotCommand({
+    required this.textItems,
+    required this.imageItems,
+    required this.shapes,
+    required this.charts,
+    required this.before,
+    required this.after,
+    this.onRestored,
+  });
+
+  /// 宿主当前持有的四份列表（撤销/重做原地写回的目标）。
+  final List<PageTextItem> textItems;
+  final List<PageImageItem> imageItems;
+  final List<PageShapeItem> shapes;
+  final List<PageChartItem> charts;
+  final MixedObjectCollections before;
+  final MixedObjectCollections after;
+
+  /// 恢复之后的渲染收尾（失效图层缓存、补一帧重绘）。由宿主注入，
+  /// 命令自己不碰渲染与会话状态，和 [DocumentObjectsSnapshotCommand] 同形。
+  final void Function()? onRestored;
+
+  @override
+  void undo() => _restore(before);
+
+  @override
+  void redo() => _restore(after);
+
+  void _restore(MixedObjectCollections snapshot) {
+    _writeBack(textItems, snapshot.textItems);
+    _writeBack(imageItems, snapshot.imageItems);
+    _writeBack(shapes, snapshot.shapes);
+    _writeBack(charts, snapshot.charts);
+    onRestored?.call();
+  }
+
+  static void _writeBack<T>(List<T> live, List<T> snapshot) {
+    if (identical(live, snapshot)) return;
+    live
+      ..clear()
+      ..addAll(snapshot);
+  }
 }

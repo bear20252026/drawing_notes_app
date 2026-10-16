@@ -75,6 +75,7 @@ import 'package:drawing_notes_app/features/drawing/presentation/editor_context_b
 import 'package:drawing_notes_app/features/drawing/presentation/editor_left_toolbar.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_overlay_group_resolver.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page_object_mutation.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_object_delete_recorder.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_layer_order_mutation.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_overlay_item_plan.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_selection_geometry.dart';
