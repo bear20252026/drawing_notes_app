@@ -83,7 +83,10 @@ bash tools/check_boundaries.sh
 python tools/code_guard.py --dir lib --force-native --json
 ```
 
-CI 五个工作流（CI / 软件质量工程门禁 / Code Guard / SBOM / Secret Scan）全部绿合并。
+直推 master 触发 7 条编排，全部绿才合并：`CI` / `PR Architecture` / `软件质量工程门禁` /
+`Code Guard (行数门禁)` / `SBOM` / `Secret Scan` 六个仓库自定义编排 + GitHub 托管的 `CodeQL`。
+两个已知边界：`软件质量工程门禁` 带 `paths:` 过滤，纯文档提交那轮只有 6 条；
+`PR Platform` / `PR Quality` / `PR Security` 只在 `pull_request` 触发，直推流程不跑它们。
 
 ## 安全特性（专家审计闭环）
 
