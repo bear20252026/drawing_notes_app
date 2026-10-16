@@ -96,10 +96,37 @@ _import_uris() {
   find "$1" -type f -name '*.dart' -exec awk "$_AWK_IMPORT_URIS" {} + 2>/dev/null || true
 }
 
+# ── 扫描面自证（审计 TE-TST-04「空集即通过」，2026-10-16）────────────────
+# 本脚本每条硬规则的形状都是 `VIOL=$(... | grep ... || true)` + `[ -n "$VIOL" ]`，
+# 而 `_import_uris` 又把 find/awk 的一切失败吞成空输出（`2>/dev/null || true`）。
+# 两者合起来的语义是：**扫描本身坏掉 ⇒ VIOL 为空 ⇒ 打印 ✓ 并判合格**。
+# 目录被挪走、awk 程序被改坏、URI 提取口径变化（P2-3 那次就是口径与注释不符）
+# 都会走到这一格。审计 2026-10-04 记过一次同族的**假红**（纯文本 grep 把注释当违规），
+# 修那次假红时补的是词法遮蔽，没补「抽不到东西」这一侧——于是假红治好了，假绿还在。
+#
+# 下限取实测（2026-10-16：lib/core 381 条、lib/shared 76 条 URI）之下**很宽**的一档：
+# 只用来抓「扫描塌空」，不用来抓「依赖数下降」（依赖下降是好事，由棘轮测试裁决）。
+# runner 之间 find/awk 的差异不可能把 381 打成 <100，但目录不存在就是 0。
+_require_scan_surface() {
+  local label="$1" min="$2" uris="$3"
+  local n
+  n=$(printf '%s\n' "$uris" | grep -c .)
+  if [ "$n" -lt "$min" ]; then
+    echo "✗ 门禁失明：$label 只抽到 $n 条 import/export URI（下限 $min）"
+    echo "   ⇒ 扫描根不存在 / find 或 awk 失败 / 提取口径被改坏。"
+    echo "     此时「没有违规」是**没在看**，不是合规——判失败。"
+    return 1
+  fi
+  echo "  (扫描面 $label：$n 条 URI，下限 $min)"
+  return 0
+}
+
 # 规则 1：core/ 不得依赖 features/ 的 application/infrastructure/presentation
 # （core 允许依赖 features 的 domain 实体——domain 是最内层纯数据，
 #  依赖向内原则允许；storage 编解码依赖实体属此列）。
-VIOL=$(_import_uris lib/core | grep -E "features/[a-z_]+/(application|infrastructure|presentation)/" || true)
+CORE_URIS=$(_import_uris lib/core)
+_require_scan_surface "core/（lib/core）" 100 "$CORE_URIS" || FAIL=1
+VIOL=$(printf '%s\n' "$CORE_URIS" | grep -E "features/[a-z_]+/(application|infrastructure|presentation)/" || true)
 if [ -n "$VIOL" ]; then
   echo "✗ core/ 违规依赖 features 非 domain 层:"
   echo "$VIOL" | sed 's/^/    /'
@@ -130,7 +157,9 @@ else
 fi
 
 # 规则 3：shared/ 不得依赖 features/（共享 UI 保持独立）
-VIOL=$(_import_uris lib/shared | grep -E "features/" || true)
+SHARED_URIS=$(_import_uris lib/shared)
+_require_scan_surface "shared/（lib/shared）" 20 "$SHARED_URIS" || FAIL=1
+VIOL=$(printf '%s\n' "$SHARED_URIS" | grep -E "features/" || true)
 if [ -n "$VIOL" ]; then
   echo "✗ shared/ 违规依赖 features/:"
   echo "$VIOL" | sed 's/^/    /'
@@ -140,7 +169,7 @@ else
 fi
 
 if [ "$FAIL" -eq 1 ]; then
-  echo "=== 边界检查失败：存在硬性违规（core/shared 依赖 features）==="
+  echo "=== 边界检查失败：存在硬性违规（core/shared 依赖 features），或扫描面塌掉被判失明 ==="
   exit 1
 fi
 echo "=== 边界检查通过（core/shared 硬性规则合规；横向外层依赖由架构测试严格阻断）==="
