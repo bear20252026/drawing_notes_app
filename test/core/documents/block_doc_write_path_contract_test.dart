@@ -219,7 +219,15 @@ void main() {
 
       await store.loadDocument('mig_ok');
       final file = File(docPath('mig_ok'));
-      final sealed = await waitEncryptedFile(file, label: '明文块文档（反向锁）');
+      // 迁移这条腿是 fire-and-forget 的排队写，所以给它**确定信号**，不要纯掐表。
+      // CI 上这条用例曾以「未提供确定信号（纯轮询）」烧满 120s 预算后失败
+      // （run 38849399643，2026-10-16），事后连「队列卡住」「迁移放弃」还是
+      // 「runner 太慢」都分不出来——而同文件另外两条用例早就在排空队列了。
+      final sealed = await waitEncryptedFile(
+        file,
+        label: '明文块文档（反向锁）',
+        pendingWrite: store.drainWritesForTest('mig_ok'),
+      );
       expect(VaultFileCodec.isEncrypted(sealed), isTrue);
 
       // 迁移后仍读得回来，且内容一字未丢。
@@ -229,7 +237,9 @@ void main() {
       expect(
         AuditLogger.snapshot().any((l) => l.contains('lazy_migration_failed')),
         isFalse,
-        reason: '成功路径不该留下失败记录',
+        reason:
+            '成功路径不该留下失败记录。审计尾部的最后三条：'
+            '${AuditLogger.snapshot().reversed.take(3).toList()}',
       );
     });
   });
