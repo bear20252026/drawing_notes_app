@@ -12,7 +12,7 @@ import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
-import 'package:drawing_notes_app/features/drawing/presentation/editor_object_delete_recorder.dart';
+import 'package:drawing_notes_app/features/drawing/presentation/editor_page_object_mutation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
