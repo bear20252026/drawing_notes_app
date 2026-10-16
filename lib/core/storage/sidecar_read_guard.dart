@@ -48,11 +48,11 @@ enum SidecarRead {
 /// 顶层形状不对）——这与改动前「`catch (_) => 空集合`」的容错面**一致**：本函数只是把
 /// 那份容错**分了类**，没有把任何一条失败路径变成抛异常（两个 store 的调用方都不接异常，
 /// UI 继续拿到空集合）。
-({SidecarRead state, List<dynamic> items}) readSidecarList(File file, String listKey) {
-  const unreadable = (state: SidecarRead.unreadable, items: <dynamic>[]);
+({SidecarRead state, List<Object?> items}) readSidecarList(File file, String listKey) {
+  const unreadable = (state: SidecarRead.unreadable, items: <Object?>[]);
   try {
     if (!file.existsSync()) {
-      return (state: SidecarRead.absent, items: const <dynamic>[]);
+      return (state: SidecarRead.absent, items: const <Object?>[]);
     }
     final raw = file.readAsStringSync();
     final Object? decoded;
@@ -64,7 +64,7 @@ enum SidecarRead {
     if (decoded is! Map<String, dynamic>) return unreadable;
     final list = decoded[listKey];
     if (list is! List) return unreadable;
-    return (state: SidecarRead.readable, items: list);
+    return (state: SidecarRead.readable, items: list.cast<Object?>());
   } on FileSystemException {
     return unreadable; // stat / 读句柄失败（权限、盘没挂上、文件正被占用）
   } on FormatException {
