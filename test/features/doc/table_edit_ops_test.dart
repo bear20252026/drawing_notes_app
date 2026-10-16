@@ -197,34 +197,113 @@ void main() {
     test('上限字面量不得再出现在读侧（单一来源，防第四份拷贝）', () {
       // 读侧原来有三处各写一遍 `clamp(1, 50)` / `clamp(1, 10)`——数字改了
       // 其中一处就再也对不上。现在唯一的出处是 note_block.dart 的两个常量。
-      final offenders = <String>[];
-      for (final entity in Directory('lib').listSync(recursive: true)) {
-        if (entity is! File || !entity.path.endsWith('.dart')) continue;
-        final text = entity.readAsStringSync();
-        if (text.contains("props['rows']") || text.contains("props['cols']")) {
-          // 只有定义常量的那个文件允许出现归一表达式。
-          if (!entity.path.endsWith('note_block.dart')) {
-            offenders.add(entity.path);
-          }
-        }
-      }
+      //
+      // ⚠ 审计 TE-TST-04（2026-10-16）：这一整块是 `expect(x, isEmpty)` 形状，而且
+      // **今天两个集合都真的是空**——`clamp(1, 50)` / `clamp(1, 10)` 在全库 0 处，
+      // `props['rows'|'cols']` 只剩 1 个文件（就是定义常量那个，被豁免掉）。
+      // 也就是说「扫描坏了」和「纪律守住了」在这里同形。补三件事：
+      // ① 判据抽成 `_rawTableReadOffenders` / `_literalClampOffenders`，与下面那条
+      //    canary **共用同一份定义**（R11 的纪律：canary 抄一份就等于什么都没验）；
+      // ② 分母下限：扫到的文件数、以及豁免规则实际扫到的候选文件数；
+      // ③ 正控：人造样本必须报出来。
+      final sources = _readLibSources();
+      expect(
+        sources.length,
+        greaterThanOrEqualTo(300),
+        reason: '只扫到 ${sources.length} 个 .dart（实测基线 354）⇒ 扫描面塌了，下面两句 isEmpty 无裁决力',
+      );
+      final candidates = sources.keys
+          .where((p) => !p.endsWith('note_block.dart'))
+          .length;
+      expect(
+        candidates,
+        greaterThanOrEqualTo(290),
+        reason: '豁免之后只剩 $candidates 个候选文件 ⇒ 豁免条件写宽了，等于整条扫描放行',
+      );
+
+      final offenders = _rawTableReadOffenders(sources);
       expect(
         offenders,
         isEmpty,
         reason: '行列 props 的读取必须走 noteTableSize：$offenders',
       );
-
-      // 归一函数本体之外，不得再有 50/10 的表格 clamp 字面量。
-      final clamps = <String>[];
-      for (final entity in Directory('lib').listSync(recursive: true)) {
-        if (entity is! File || !entity.path.endsWith('.dart')) continue;
-        for (final line in entity.readAsLinesSync()) {
-          if (line.contains('clamp(1, 50)') || line.contains('clamp(1, 10)')) {
-            clamps.add('${entity.path}: $line');
-          }
-        }
-      }
+      final clamps = _literalClampOffenders(sources);
       expect(clamps, isEmpty, reason: '残留的字面量 clamp：$clamps');
     });
+
+    test('判据自证：第四份拷贝与残留字面量都必须被抓到', () {
+      // 正控一：又一个文件直接读 `props['rows']` 而不走归一入口（突变 K-1：
+      // 把判据里的 `props['rows']` 改错，这里零报而真实库照样绿）。
+      expect(
+        _rawTableReadOffenders(const {
+          'lib/features/doc/presentation/sneaky.dart':
+              "final r = block.props['rows'] ?? 3;",
+        }),
+        hasLength(1),
+        reason: '读侧第四份拷贝必须被拦在合入之前',
+      );
+      // 正控二：残留的 50 上限字面量。
+      expect(
+        _literalClampOffenders(const {
+          'lib/features/doc/domain/x.dart': 'final cols = raw.clamp(1, 50).toInt();',
+        }),
+        hasLength(1),
+        reason: '突变 K-2：`clamp(1, 50)` 这个字面量比对若被改成别的写法就永远零报',
+      );
+      // 反向锁：定义常量的那个文件允许出现归一表达式；合法入口不许误报。
+      expect(
+        _rawTableReadOffenders(const {
+          'lib/core/documents/note_block.dart':
+              "final r = props['rows']; final c = props['cols'];",
+        }),
+        isEmpty,
+        reason: '豁免那一处定义是设计，不是漏口——反向锁钉住它，别把它改成「一律报警」',
+      );
+      expect(
+        _literalClampOffenders(const {
+          'lib/core/documents/note_block.dart':
+              'const kNoteTableMaxRows = 50; // rows.clamp(1, kNoteTableMaxRows)',
+        }),
+        isEmpty,
+      );
+    });
   });
+}
+
+/// 判据一：除定义常量的 `note_block.dart` 之外，谁再直接读 `props['rows'/'cols']`。
+List<String> _rawTableReadOffenders(Map<String, String> sources) {
+  final offenders = <String>[];
+  for (final entry in sources.entries) {
+    if (!entry.value.contains("props['rows']") &&
+        !entry.value.contains("props['cols']")) {
+      continue;
+    }
+    if (entry.key.endsWith('note_block.dart')) continue;
+    offenders.add(entry.key);
+  }
+  return offenders;
+}
+
+/// 判据二：全库不得再出现表格上限的裸字面量 clamp。
+List<String> _literalClampOffenders(Map<String, String> sources) {
+  final clamps = <String>[];
+  for (final entry in sources.entries) {
+    var lineNo = 0;
+    for (final line in entry.value.split('\n')) {
+      lineNo++;
+      if (line.contains('clamp(1, 50)') || line.contains('clamp(1, 10)')) {
+        clamps.add('${entry.key}:$lineNo $line');
+      }
+    }
+  }
+  return clamps;
+}
+
+Map<String, String> _readLibSources() {
+  final sources = <String, String>{};
+  for (final entity in Directory('lib').listSync(recursive: true)) {
+    if (entity is! File || !entity.path.endsWith('.dart')) continue;
+    sources[entity.path.replaceAll(r'\', '/')] = entity.readAsStringSync();
+  }
+  return sources;
 }
