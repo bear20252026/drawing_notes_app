@@ -39,7 +39,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeDeleteForever => 'Delete forever';
 
   @override
-  String get homeEmptyTrash => 'Empty trash';
+  String get homeEmptyTrash => 'Purge expired items';
+
+  @override
+  String homePurgeExpiredConfirm(int days) {
+    return 'This only removes items older than $days days; anything still within the window is kept. Purge now?';
+  }
+
+  @override
+  String homePurgedN(int count) {
+    return '$count expired items purged';
+  }
 
   @override
   String get homeCancel => 'Cancel';

@@ -41,9 +41,27 @@
   "@homeDeleteForever": {
     "description": "Permanent delete action"
   },
-  "homeEmptyTrash": "Empty trash",
+  "homeEmptyTrash": "Purge expired items",
   "@homeEmptyTrash": {
-    "description": "Empty trash action"
+    "description": "Trash action (only removes items past the retention window)"
+  },
+  "homePurgeExpiredConfirm": "This only removes items older than {days} days; anything still within the window is kept. Purge now?",
+  "@homePurgeExpiredConfirm": {
+    "description": "Second confirmation before purging expired trash items",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "homePurgedN": "{count} expired items purged",
+  "@homePurgedN": {
+    "description": "Result notice after purging expired trash items",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "homeCancel": "Cancel",
   "@homeCancel": {

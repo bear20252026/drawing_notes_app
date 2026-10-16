@@ -39,7 +39,17 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeDeleteForever => '永久删除';
 
   @override
-  String get homeEmptyTrash => '清空回收站';
+  String get homeEmptyTrash => '清除过期条目';
+
+  @override
+  String homePurgeExpiredConfirm(int days) {
+    return '这里只会删除超过 $days 天的条目，未满期的仍会保留。确定现在清除吗？';
+  }
+
+  @override
+  String homePurgedN(int count) {
+    return '已清除 $count 个过期条目';
+  }
 
   @override
   String get homeCancel => '取消';

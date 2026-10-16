@@ -152,11 +152,23 @@ abstract class AppLocalizations {
   /// **'Delete forever'**
   String get homeDeleteForever;
 
-  /// Empty trash action
+  /// Trash action (only removes items past the retention window)
   ///
   /// In en, this message translates to:
-  /// **'Empty trash'**
+  /// **'Purge expired items'**
   String get homeEmptyTrash;
+
+  /// Second confirmation before purging expired trash items
+  ///
+  /// In en, this message translates to:
+  /// **'This only removes items older than {days} days; anything still within the window is kept. Purge now?'**
+  String homePurgeExpiredConfirm(int days);
+
+  /// Result notice after purging expired trash items
+  ///
+  /// In en, this message translates to:
+  /// **'{count} expired items purged'**
+  String homePurgedN(int count);
 
   /// Cancel action
   ///

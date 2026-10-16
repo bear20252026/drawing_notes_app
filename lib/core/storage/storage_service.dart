@@ -473,6 +473,12 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
     Duration retention = StorageTrashBin.defaultTrashRetention,
   }) => _trash.purgeTrash(retention: retention);
 
+  /// 回收站保留期（天）。UI 需要向用户说明「这次点的是删哪些」时读这里，
+  /// 不要在展示层再抄一遍 30（NOT-01：文案与行为对齐的前提是同一个数）。
+  /// 用 getter 而不是 const：`Duration.inDays` 不是常量表达式。
+  static int get trashRetentionDays =>
+      StorageTrashBin.defaultTrashRetention.inDays;
+
   /// 永久删除单个回收站项（M-06 UI：Delete forever 与 Restore 分离——
   /// UX Patterns 官方模式）。返回是否删除成功。
   Future<bool> deleteTrashPermanently(String trashName) =>

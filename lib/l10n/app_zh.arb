@@ -41,9 +41,27 @@
   "@homeDeleteForever": {
     "description": "永久删除操作"
   },
-  "homeEmptyTrash": "清空回收站",
+  "homeEmptyTrash": "清除过期条目",
   "@homeEmptyTrash": {
-    "description": "清空回收站操作"
+    "description": "回收站动作（NOT-01：只删超过保留期的条目，不是全部清空）"
+  },
+  "homePurgeExpiredConfirm": "这里只会删除超过 {days} 天的条目，未满期的仍会保留。确定现在清除吗？",
+  "@homePurgeExpiredConfirm": {
+    "description": "清除过期回收站条目的二次确认",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "homePurgedN": "已清除 {count} 个过期条目",
+  "@homePurgedN": {
+    "description": "清除过期条目后的结果回执",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "homeCancel": "取消",
   "@homeCancel": {
