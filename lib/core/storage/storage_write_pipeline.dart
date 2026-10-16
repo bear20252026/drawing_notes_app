@@ -326,8 +326,8 @@ class StorageWritePipeline {
     // 孤儿 tmp 回收（审计 2026-10-16）：崩溃/被杀在 write 与 rename 之间时留下的
     // `*.<LocalIdGenerator id>.tmp` 以前**只有保险库那条腿**会清；实测本机真实数据根
     // 里有 7 枚（documents/ 4、notebooks/ 2、thumbnails/ 1），前六枚合计 7.3 MB 正文副本。
-    // 这里从**数据根递归**扫一次（每实例一次），因为八个生产者（write 5 / thumb 2 /
-    // oplog 1）分散在四个子目录里，只扫 documents/ 会漏掉缩略图、媒体盐与侧车日志。
+    // 这里从**数据根递归**扫一次（每实例一次），因为十个带生成器 id 的生产者（write 7 /
+    // thumb 2 / oplog 1）分散在四个子目录里，只扫 documents/ 会漏掉缩略图、媒体盐与侧车日志。
     // 判据复用 `LocalIdGenerator` 自己暴露的形状，不在这里抄前缀白名单。
     // 已知缺口（如实记录）：notebooks/ 那两枚靠这条递归腿覆盖，所以只在**画布或块文档
     // 至少保存过一次**的会话里生效；「只改笔记本元数据、整个会话没存过画布页」时它们

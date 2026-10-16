@@ -671,8 +671,10 @@ class NoteBlockDocStore implements SessionSecretsHolder {
     final file = File(path);
     // 孤儿 tmp 回收（审计 2026-10-16）：崩溃/被杀在 write 与 rename 之间时，这条腿
     // 以前没人清扫（只有保险库那条腿有）。实测本机真实数据根 `blockdocs/` 今天**没有**
-    // 残留，所以这条接线是**预防**而非补漏——但它必须与画布那条腿同型，否则就成了
-    // 「四条腿里修两条」的同一个形状。本地扫（不递归），判据见 `sweepStaleTempFiles`。
+    // 残留，所以这条接线是**预防**而非补漏。画布那条腿的递归扫（从数据根）顺带也能覆盖
+    // blockdocs/ 这个**位置**，但只有本这条能保证「整个会话只写打字笔记、没存过一张画布」
+    // 时也扫得到——不给它自己的触发点，就又是本仓那个「一修就漏一处」的形状。
+    // 本地扫（不递归），判据见 `sweepStaleTempFiles`。
     if (!_staleTmpSwept) {
       _staleTmpSwept = true;
       await sweepStaleTempFiles(file.parent, auditScope: 'blockdocs');

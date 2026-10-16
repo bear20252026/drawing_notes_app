@@ -1,9 +1,13 @@
 // 孤儿原子写临时文件的清扫（审计 2026-10-16 新发现）。
 //
-// 缺陷形状：写 tmp → rename 换入这套原子写在本仓有 **8 个生产者**（实测
-// `grep ".LocalIdGenerator.next('"`：`write` 5 处、`thumb` 2 处、`oplog` 1 处），
-// 失败路径各自都清了 tmp，但**进程在 write 与 rename 之间被杀**时留下的那一份没人回收
-// ——只有保险库那条腿有清扫（`vault_key_service._sweepStaleTmpFiles`）。「一修就漏七处」。
+// 缺陷形状：`写 tmp → rename 换入` 这套原子写在本仓有 **10 个带生成器 id 的生产者**
+// （逐条实测 `grep -rn "LocalIdGenerator.next('" lib | grep '\.tmp'`：`write` **7** 处、
+// `thumb` 2 处、`oplog` 1 处），失败路径各自都清了 tmp，但**进程在 write 与 rename
+// 之间被杀**时留下的那一份没人回收——只有保险库那条腿有清扫
+// （`vault_key_service._sweepStaleTmpFiles`）。「一修就漏九处」。
+// ⚠ 一处自我纠正值得记：本文件第一版把数量写成「8 个生产者、write 5 处」，那是照着一
+// 次粗 grep 记的；逐条数下来 write 是 **7** 处（pdf_import_service 与 notebook_storage_codec
+// 的两处一度被我漏数）。计数本身也是会被引用的证据，不能估。
 //
 // 实测证据（本机真实数据根 `Documents/绘图笔记数据/`，2026-10-16 只读列出、未删）：
 // **7 枚**孤儿，横跨三个目录、两种前缀：

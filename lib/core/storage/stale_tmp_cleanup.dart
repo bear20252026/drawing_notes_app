@@ -3,10 +3,21 @@
 /// 原子写留下的「孤儿临时文件」清扫（审计 2026-10-16 新发现）。
 ///
 /// 缘起：所有写腿都用 `写 tmp → .bak 备份 → rename 换入` 这套原子写。失败路径各自都
-/// 清了 tmp，但**进程被杀 / 崩溃在 write 与 rename 之间**时没人回收；这个形状在本仓
-/// 有 **8 个生产者**（实测 `grep ".LocalIdGenerator.next('`：`write` 5 处、`thumb` 2 处、
-/// `oplog` 1 处），而清扫**只有保险库那一条腿**有（`vault_key_service._sweepStaleTmpFiles`）
-/// ——同一条风险在八条腿上只有一条有解，正是本仓「一修就漏七处」的头号形态。
+/// 清了 tmp，但**进程被杀 / 崩溃在 write 与 rename 之间**时没人回收；带生成器 id 的
+/// 原子写在本仓有 **10 个生产者**（逐条实测 `grep -rn "LocalIdGenerator.next('" lib | grep '\.tmp'`：
+/// `write` **7** 处、`thumb` 2 处、`oplog` 1 处），而清扫**只有保险库那一条腿**有
+/// （`vault_key_service._sweepStaleTmpFiles`）——同一条风险在十条腿上只有一条有解，
+/// 正是本仓「一修就漏九处」的头号形态。
+/// 另有 **3 处裸 `.tmp`**（`note_block_doc_store_trash.dart:104/117`、
+/// `storage_media_store.dart:153`）不带生成器 id ⇒ 按下面的判据**故意不扫**（判据表里
+/// 钉住 `trash.meta.tmp` 这一格），它们的清理归各自那条腿的失败路径。
+/// 还有 **6 处 `<目标>.tmp.<时间>.<十六进制>`**（实测：`vault_key_service.dart:688`、
+/// `vfs/encrypted_vault.dart:345`、`tag_store.dart:187`、`favorite_store.dart:75`、
+/// `file_sync_baseline_store.dart:68`、`file_sync_push_waiver_store.dart:60`）——
+/// **只有保险库那一处**自带前缀清扫（`_sweepStaleTmpFiles`），另外 **5 处今天仍没人回收**。
+/// 但同一批 `find` 实测：真根里**没有**这一族的残留 ⇒ 这条是「未覆盖」，不是「已观测到堆积」。
+/// 本批刻意不伸手扩到那一族：它要的是「按前缀 + 目标名」的另一套授权边界，混进这条判据
+/// 会让两边都变得说不清；已记入台账作为下一步的独立一格。
 ///
 /// 实测证据（本机真实数据根 `Documents/绘图笔记数据/`，2026-10-16 只读列出、未删）：
 /// **7 枚**孤儿——`documents/` 4 枚（最老 2026-09-04，最大 1,546,137 字节）、
@@ -39,8 +50,8 @@ import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 /// 「修一条漏五条」的面，把同一条风险又切掉一半。
 ///
 /// 必须**同时**满足「以 `.tmp` 结尾」与「最后那段是本生成器的形状」：后者是授权边界，
-/// 前者挡住 `<目标>.tmp.<时间>.<十六进制>` 这一族（保险库/收藏/标签用它，由保险库
-/// 那条腿自己的前缀清扫负责，两套判据不互相伸手）。
+/// 前者挡住 `<目标>.tmp.<时间>.<十六进制>` 那一族（它由各自的 `.tmp.` 前缀清扫负责，
+/// 覆盖情况见文件头——本判据不替它做主，两套判据不互相伸手）。
 bool isStaleLocalIdTempName(String name) {
   if (!name.endsWith('.tmp')) return false;
   final head = name.substring(0, name.length - '.tmp'.length);
