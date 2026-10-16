@@ -10,6 +10,7 @@
 library;
 
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
+import 'package:drawing_notes_app/core/storage/sidecar_read_guard.dart';
 import 'package:drawing_notes_app/core/utils/hex_encode.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -27,6 +28,10 @@ class FavoriteStore {
   final Future<Directory> Function()? directoryProvider;
 
   File? _file;
+
+  /// 每实例只落一条「读不出来」审计、只抢救一份原件（见 `sidecar_read_guard.dart`）。
+  bool _unreadableNoted = false;
+  bool _corruptPreserved = false;
 
   /// 写链（P2 修复：add/remove/toggle 的读-改-写非原子——快速连点丢更新）。
   Future<void> _tail = Future<void>.value();
@@ -49,26 +54,40 @@ class FavoriteStore {
     return _file!;
   }
 
-  /// 读取全部收藏键。文件不存在或损坏时返回空集（fail-open，不阻塞 UI）。
+  /// 读取全部收藏键。
+  ///
+  /// DOC-12（审计 2026-10-16）：与标签注册表**同一条判据**（`sidecar_read_guard.dart`，
+  /// 不抄第二份）——「文件在但读不出来」与「文件不存在」都仍然返回空集（**产品语义未变**），
+  /// 但前者落一条审计，且下一次整体覆盖前先把原件复制成 `.corrupt-*`（见 [_writeKeys]）。
+  /// 原来这里是 `catch (_) => {}`：一次半写就够把「用户收藏过什么」答成「什么都没收藏」，
+  /// 而 `toggleFavorite` 紧接着按这份空集整体覆盖，收藏集合就此清零。
   Future<Set<String>> loadKeys() async {
-    try {
-      final file = await _fileRef();
-      if (!file.existsSync()) return <String>{};
-      final raw = await file.readAsString();
-      final decoded = jsonDecode(raw);
-      if (decoded is! Map<String, dynamic>) return <String>{};
-      final list = decoded['favorites'];
-      if (list is! List) return <String>{};
-      return list.whereType<String>().toSet();
-    } catch (_) {
+    final file = await resolveSidecarFile(_fileRef);
+    if (file == null) return <String>{}; // 目录解析失败：同改动前，不抛给 UI
+    final read = readSidecarList(file, 'favorites');
+    if (read.state != SidecarRead.readable) {
+      if (read.state == SidecarRead.unreadable) {
+        noteUnreadableSidecar('favorites', alreadyNoted: _unreadableNoted);
+        _unreadableNoted = true;
+      }
       return <String>{};
     }
+    return read.items.whereType<String>().toSet();
   }
 
   /// 写入全部收藏键（整体覆盖）。
   /// P2 修复：随机 tmp + flush + 失败清理（固定名劫持/崩溃半写）。
   Future<void> _writeKeys(Set<String> keys) async {
     final file = await _fileRef();
+    // 覆盖前抢救（DOC-12 可观测半边）：盘上此刻仍读不出来时先复制一份 `.corrupt-*`。
+    // 复制失败不阻断写入，也不静默——`preserveUnreadableSidecar` 自己落审计。
+    final preserved = await preserveUnreadableSidecar(
+      file,
+      listKey: 'favorites',
+      auditScope: 'favorites',
+      alreadyPreserved: _corruptPreserved,
+    );
+    if (preserved != null) _corruptPreserved = true;
     final r = Random.secure();
     final suffix = hexEncode(List<int>.generate(8, (_) => r.nextInt(256)));
     final tmp = File(
