@@ -33,6 +33,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
+import 'package:drawing_notes_app/core/canvas_model/selection.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
@@ -45,6 +46,16 @@ void main() {
   const handTip = '平移画布 (H)';
   const shapeTip = '形状工具';
   const linkTip = '节点连线';
+  const rectTip = '矩形选区 (R)';
+
+  /// 与真实宿主 `_selectWritingTool`（`editor_page_tools.dart:97-106`）同形的选档动作：
+  /// 换绘制档要**同时**清掉 `selectionTool`。装配原来只写 `controller.tool`，
+  /// 于是「选区接管时绘制档退出 / 交回绘制档时选区退出」这半边在测试里根本验不到。
+  void selectWriting(DrawingController c, BrushType t, void Function() rebuild) {
+    c.selectionTool = SelectionTool.none;
+    c.tool = t;
+    rebuild();
+  }
 
   /// 与 `editor_insert_image_entry_test.dart` 同一装配：不给本地化代理，
   /// `AppLocalizations.of(context)` 返回 null ⇒ 工具条走 arb 缺失时的中文兜底串，
@@ -69,28 +80,19 @@ void main() {
         handActive: handActive,
         onHand: rebuild,
         activeShape: activeShape,
-        onBrush: () {
-          controller.tool = BrushType.pen;
-          rebuild();
-        },
-        onPencil: () {
-          controller.tool = BrushType.pencil;
-          rebuild();
-        },
-        onHighlighter: () {
-          controller.tool = BrushType.marker;
-          rebuild();
-        },
-        onLaser: () {
-          controller.tool = BrushType.laser;
-          rebuild();
-        },
-        onEraser: () {
-          controller.tool = BrushType.eraser;
-          rebuild();
-        },
+        onBrush: () => selectWriting(controller, BrushType.pen, rebuild),
+        onPencil: () => selectWriting(controller, BrushType.pencil, rebuild),
+        onHighlighter: () => selectWriting(controller, BrushType.marker, rebuild),
+        onLaser: () => selectWriting(controller, BrushType.laser, rebuild),
+        onEraser: () => selectWriting(controller, BrushType.eraser, rebuild),
         onEyedropper: rebuild,
-        onRectSelect: rebuild,
+        // 与真实宿主的 `_selectRectTool` 同形：选档 = 写控制器 + 重建。
+        // 原来这里只 `rebuild`，等于「按下去什么档都没换」，那下面那条矩形选区
+        // 用例就只能在一个「从未换档」的世界里断言。
+        onRectSelect: () {
+          controller.selectionTool = SelectionTool.rect;
+          rebuild();
+        },
         onMarquee: rebuild,
         onText: rebuild,
         onShape: (_) => rebuild(),
@@ -373,6 +375,64 @@ void main() {
 
     await unmount(tester, controller);
   });
+
+  testWidgets(
+    '矩形选区档：接管时全条只有它亮，交回绘制档后它退出（TST2-10 的 CI 落点）',
+    (tester) async {
+      // 这条命题以前**只有 `integration_test/toolbar_test.dart:148-155` 一个落点**，
+      // 而 integration_test 不在 CI 覆盖内（`ci.yml` 跑 `flutter test`，只吃 `test/`）
+      // ⇒ 「点矩形选区后进入选中态」在每次合并门禁上其实没人验。
+      final controller = DrawingController(
+        DrawingDocument(id: 'sel_state_rect', title: '选区档回归'),
+      );
+      Future<void> remount() async {
+        await tester.pumpWidget(
+          StatefulHost(
+            builder: (rebuild) => host(controller, rebuild: () => rebuild()),
+          ),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      await remount();
+      expect(toolSelected(tester, penTip), isTrue, reason: '初始是画笔');
+      expect(controller.selectionTool, SelectionTool.none);
+
+      await tester.tap(find.byTooltip(rectTip));
+      await tester.pumpAndSettle();
+
+      expect(
+        controller.selectionTool,
+        SelectionTool.rect,
+        reason: '点下去必须真的换档，不是只重绘一次',
+      );
+      expect(toolSelected(tester, rectTip), isTrue);
+      expect(
+        toolSelected(tester, penTip),
+        isFalse,
+        reason:
+            '「当前用什么画」已经交给选区工具，画笔那一格不能再亮——这条判据正是 '
+            '`editor_left_toolbar.dart:108` 里 `selectionTool == none` 那一项存在的理由',
+      );
+      // 整体约束：不是「这一格看起来亮」，而是「全条只有这一格亮」。
+      expect(selectedSemantics(), findsOneWidget);
+      expect(accentBlocks(), findsOneWidget);
+
+      // 交回绘制档（真实宿主 `_selectWritingTool` 会清 `selectionTool`）。
+      selectWriting(controller, BrushType.pen, () {});
+      await remount();
+      expect(
+        toolSelected(tester, rectTip),
+        isFalse,
+        reason: '反向锁：档交回去之后选区那格必须退出，不能粘住',
+      );
+      expect(toolSelected(tester, penTip), isTrue);
+      expect(selectedSemantics(), findsOneWidget);
+      expect(accentBlocks(), findsOneWidget);
+
+      await unmount(tester, controller);
+    },
+  );
 
   testWidgets('互斥：连线模式下绘制档不得继续亮（上下文条早把它算作同族模式）', (
     tester,
