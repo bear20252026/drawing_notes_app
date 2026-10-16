@@ -89,7 +89,6 @@ const Map<String, int> _baseline = {
   'lib/features/drawing/presentation/editor_page_text_overlays.dart': 5,
   'lib/features/doc/presentation/doc_editor_ui.dart': 4,
   'lib/features/notes/presentation/webdav_sync_settings_page.dart': 4,
-  'lib/core/security/app_lock_gate.dart': 4,
   'lib/features/doc/presentation/doc_page_info.dart': 4,
   'lib/features/doc/presentation/pdf_attachment_preview.dart': 4,
   'lib/features/doc/presentation/database/database_table_view.dart': 4,

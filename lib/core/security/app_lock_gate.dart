@@ -643,7 +643,9 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
                       children: [
                         if (_quickUnlockReady && widget.vault != null)
                           Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
+                            padding: const EdgeInsets.only(
+                              bottom: AppleSpacing.xxs,
+                            ),
                             child: TextButton.icon(
                               onPressed: _startQuickUnlock,
                               icon: Icon(
@@ -888,16 +890,16 @@ class _CooldownViewState extends State<_CooldownView> {
                   color: Colors.white,
                   size: 44,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppleSpacing.md),
                 // 19 无档位：titleStyle 基底 + copyWith 保留原字号。
                 Text(
                   AppLocalizations.of(context)?.lockTooManyAttempts ?? '尝试次数过多',
                   style: AppleType.titleStyle(Colors.white)
                       .copyWith(fontSize: 19),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppleSpacing.xs),
                 _RemainingText(service: widget.service, tick: _tick),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppleSpacing.xxs),
                 Text(
                   AppLocalizations.of(context)?.lockTemporarilyLocked ??
                       '为防止暴力猜测，密码验证已暂时锁定',
