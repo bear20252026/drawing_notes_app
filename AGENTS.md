@@ -118,6 +118,13 @@ flutter test             # 必须全绿
    `cancelled`（既不是失败也不是通过）。全量结论只能报在**最新 SHA** 上，被掐掉的旧 run
    要么等最新覆盖，要么 `gh run rerun <id>` 单独补跑。
 
+**新开文件前先数目录（`Code Guard` 会因此红）**：`.sloc-guard.toml` 的 `[structure]` 一节
+`max_files = 40` / `max_dirs = 15` 在 `--diff` 模式下**会**执行（P3-8 已人工验证：第 41 个文件
+当场 FAILED）。当前临界：`lib/features/drawing/presentation` **40/40 满载**、
+`lib/features/drawing/application` 39/40、`lib/` 根目录 15/15。
+⇒ 新逻辑优先并进同目录已有的多类库文件（如 `editor_page_object_mutation.dart` 就装了 7 个协作者类），
+**不要为了让一个新类有自己的文件而抬 `max_files`**。
+
 ### 云端验证纪律（2026-10-03 起，降速日适用）
 
 > 缘起：v1.17.52 发版日本机整体降速约 10 倍（`flutter analyze` 660s），
