@@ -12,6 +12,21 @@
 /// `test/l10n_key_symmetry_test.dart` 的「注释行不算引用」），只裁决代码。
 /// 行为部分注入轻量 KDF + 同 isolate 直派生（口径同
 /// `test/password_input_hardening_test.dart`），不新增真 KDF 慢用例。
+///
+/// ── 审计 TE-TST-04 / R11（2026-10-16）：全仓那一条扫描原本没有裁决力 ──
+/// 「全仓 lib/ 已无 bool 型同码探测」是 `expect(offenders, isEmpty)` 形状，而
+/// `AppLockService.matchesAppLockPin` 这个精确写法今天全库**确实一次都没被调用**
+/// （只剩 `app_lock_service.dart:279` 的定义本身 + 三处注释提及）⇒ 这条门禁今天的绿
+/// 与它坏掉时的绿完全同形。补两件事：① 扫描面分母下限（≥300，实测基线 354）；
+/// ② 判据抽成 [usesBoolProbeEntry] 后喂人造样本做正控（那句调用必须扫得出来）
+/// 与两格反向锁（注释里的历史说明不算、被推荐的三态 `probe…` 入口不许误报）。
+/// 突变自证：N-1 判据恒不命中 ⇒ 恰好 `判据自证` 红（实测 `+5 -1`）而真实库那条扫描**照样绿**。
+///
+/// ⚠ 顺带一条本批**没有动**的事实，留给业主裁决：那个 bool 型入口
+/// `AppLockService.matchesAppLockPin` 至今仍在生产代码里定义着，只是**生产路径零调用**——
+/// 现在唯一调用它的是它自己的单元测试。也就是说「会消耗防爆破计数、且在冷却期静默放行同码」
+/// 的那把旧枪还挂在墙上，只是没人拿得起来。删掉它属于删代码，需点名；
+/// 本批只保证「新代码再拿起来就会红」。
 @Timeout(Duration(minutes: 3))
 library;
 
@@ -28,6 +43,16 @@ import 'helpers/dart_lexical_mask.dart';
 
 const _notebookImportsPath =
     'lib/features/notes/presentation/notebook_view_page_imports.dart';
+
+/// 判据本体：遮蔽注释与字符串之后，这段源码里是否仍有 bool 型同码探测入口的调用。
+///
+/// 抽出来只有一个目的——**让它能被喂样本**。原来这条扫描直接坐在 `expect(offenders, isEmpty)`
+/// 上（审计 TE-TST-04：让 `offenders` 恒空的坏法和「真的没有违规」在断言层完全同形），
+/// 而 `AppLockService.matchesAppLockPin` 这个精确写法今天在全库确实是 0 次调用
+/// （只剩 `app_lock_service.dart` 里的定义本身 + 三处注释提及）——也就是说这条门禁
+/// 今天的绿和它坏掉的绿长得一模一样。下面的 `正控/反向锁` 用例就是为了把这两种分开。
+bool usesBoolProbeEntry(String src) =>
+    maskDartLexically(src).contains('AppLockService.matchesAppLockPin');
 
 /// 遮蔽后的源码里按 [definition] 匹配方法定义并取其方法体（含首尾花括号）。
 /// 用「定义式」正则而非裸方法名：`_setPassword` 里也调用同名方法，按首次
@@ -101,20 +126,55 @@ void main() {
 
     test('全仓 lib/ 已无 bool 型同码探测调用（四入口口径统一）', () {
       final offenders = <String>[];
+      var scanned = 0;
       for (final entity in Directory('lib').listSync(recursive: true)) {
         if (entity is! File || !entity.path.endsWith('.dart')) continue;
+        scanned++;
         final src = entity.readAsStringSync();
         // 粗筛（含注释/字符串）后必须用遮蔽文本裁决，注释里的历史说明不算调用。
         if (!src.contains('AppLockService.matchesAppLockPin')) continue;
-        if (maskDartLexically(src)
-            .contains('AppLockService.matchesAppLockPin')) {
-          offenders.add(entity.path);
-        }
+        if (usesBoolProbeEntry(src)) offenders.add(entity.path);
       }
+      // 分母下限先于结论（2026-10-16 实测 354 个 .dart）：扫描面塌掉时下面那句
+      // `isEmpty` 成立得毫无意义。
+      expect(
+        scanned,
+        greaterThanOrEqualTo(300),
+        reason:
+            '只扫到 $scanned 个 .dart（基线 354）⇒ 扫描根/后缀判定被动过，'
+            '此时「零 offender」是没在看，不是合规。',
+      );
       expect(
         offenders,
         isEmpty,
         reason: '新代码一律用 probeMatchesAppLockPin 并处理 null 分支：$offenders',
+      );
+    });
+
+    test('判据自证：那段调用必须扫得出来，注释与三态入口不许误报', () {
+      // 正控（突变 N：把判据字符串打错一个字母，这里立刻红，而真实库那条仍绿）。
+      expect(
+        usesBoolProbeEntry(
+          "class A { Future<void> f() async => AppLockService.matchesAppLockPin('1234'); }",
+        ),
+        isTrue,
+        reason: '这条扫描的全部意义就是拦住这一句；拦不住就等于没有门禁',
+      );
+      // 反向锁一：注释里的历史说明不算调用（文件头 P2 回归锁的口径）。
+      expect(
+        usesBoolProbeEntry(
+          "// 曾用 AppLockService.matchesAppLockPin，已改三态入口\nclass A {}",
+        ),
+        isFalse,
+        reason: '注释命中会把门禁练成天天红，最后被人绕过',
+      );
+      // 反向锁二：被推荐的三态入口不许被拦。
+      expect(
+        usesBoolProbeEntry(
+          "class A { Future<void> f() async => AppLockService.probeMatchesAppLockPin('1234'); }",
+        ),
+        isFalse,
+        reason: '`probe…` 里含 `matchesAppLockPin` 的子串形状必须不判为违规调用',
       );
     });
   });
