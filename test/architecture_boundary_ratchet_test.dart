@@ -32,11 +32,25 @@ import 'package:flutter_test/flutter_test.dart';
 ///   台账 P2-3）。P2-3 于 2026-10-06（批次 AW10）真正补齐：`_statementRe`
 ///   锚定 `import`/`export` 行首，`_targetFeature` 把相对 URI 按导入方目录
 ///   解析后再归位。补齐后实测计数与下方快照**逐条相等**（印证「当前
-///   lib/features 内尚无此类 import」），突变自证：临时塞一条
+///   lib/features 内尚无此类 import」）。当时的「突变自证：临时塞一条
 ///   `import '../../doc/domain/clone_ref.dart'` → 门禁当场报
-///   `notes->doc：10 条 > 基线 9 条`（旧实现对此零反应）。
+///   `notes->doc：10 条 > 基线 9 条`（旧实现对此零反应）」是**手工做的、写在注释里**
+///   ——2026-10-16 起它是 `判据自证` 那条会跑的用例了（TE-TST-04 补的正是这一格：
+///   **注释里的自证不是自证**，它不会在下次改动时再响一次）。
 ///   ⇒ 教训：**注释里的口径必须与代码一致**，否则一条写了三年的"已修正"
 ///   比没写更危险——它让后来人以为盲区已经闭上，不再去查。
+///
+/// ── TE-TST-04 / R10（2026-10-16）：这条棘轮原本是「空集即通过」最别扭的一格 ──
+/// 扫描面塌掉 ⇒ `counts` 是空映射 ⇒ `actual > allowed` **永不成立** ⇒ 棘轮不但判合格，
+/// 还比平时更容易绿（别的门禁至少要有人写违规代码才红，这条连都不用）。
+/// 补两件事：① `棘轮自证` 钉两条与依赖治理进度**无关**的下限（读到的文件数、认出的
+/// import/export 行数——注意**不能**把下限钉在跨 feature 条数上，那是会被清干净的，
+/// 钉上去等于在有人修好依赖时把门禁打红、奖励绕过它）；② 判据抽成纯函数
+/// （`countCrossFeature` / `ratchetViolations`），喂人造图逐格验证承重面。
+/// 突变自证：M-R1 `_targetFeature` 不再解析相对 URI ⇒ `判据自证` 红（notes->doc 少计）；
+/// M-R2 `_statementRe` 去掉行首锚定 ⇒ `判据自证` 红（注释/字符串里的同形文本被计入）；
+/// M-R3 `ratchetViolations` 的 `actual > allowed` 改成恒 false ⇒ `判据自证` 红而真实库绿
+/// ⇒ 与 R8/R9 同格：只做下限抓不到「判据本身恒空」。
 /// - 扫描范围 = `lib/features/**` 全部 `.dart`，**组合根
 ///   （`app/`、`app.dart`）不在内**（见文件头）；
 /// - 源 feature = 路径首段 `lib/features/<src>/`，目标 = import URI 里的
@@ -114,48 +128,94 @@ String? _targetFeature({required String uri, required String fromDir}) {
   return _resolvedFeatureRe.firstMatch(_resolveRelative(fromDir, uri))?.group(1);
 }
 
+/// 读盘：`lib/features/**` 全部 .dart，返回「仓库根视角路径 → 逐行文本」。
+Map<String, List<String>> readFeatureSources() {
+  final result = <String, List<String>>{};
+  for (final entity in Directory('lib/features').listSync(recursive: true)) {
+    if (entity is! File || !entity.path.endsWith('.dart')) continue;
+    final normalized = entity.path.replaceAll('\\', '/');
+    if (!_srcFeatureRe.hasMatch(normalized)) continue;
+    result[normalized] = entity.readAsLinesSync();
+  }
+  return result;
+}
+
+final RegExp _srcFeatureRe = RegExp(r'lib/features/([a-z_]+)/');
+
+/// 判据一：方向计数。输入「路径 → 逐行文本」，输出「`src->dst` → 条数」。
+///
+/// 从 `main()` 里抽出来不是为了好看（审计 TE-TST-04 / R8 同一口径）：抽出来之后，
+/// 文件头那句**只存在于注释里**的「突变自证：临时塞一条
+/// `import '../../doc/domain/clone_ref.dart'` → 当场报超限」才第一次变成一条会跑的
+/// 用例（见 `判据自证`）。注释写着的自证不是自证。
+Map<String, int> countCrossFeature(Map<String, List<String>> linesByFile) {
+  final counts = <String, int>{};
+  for (final entry in linesByFile.entries) {
+    final srcMatch = _srcFeatureRe.firstMatch(entry.key);
+    if (srcMatch == null) continue;
+    final src = srcMatch.group(1)!;
+    final fromDir = entry.key.substring(0, entry.key.lastIndexOf('/') + 1);
+    for (final line in entry.value) {
+      final stmt = _statementRe.firstMatch(line.trimLeft());
+      if (stmt == null) continue;
+      final dst = _targetFeature(uri: stmt.group(2)!, fromDir: fromDir);
+      if (dst == null || dst == src) continue;
+      final key = '$src->$dst';
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+  }
+  return counts;
+}
+
+/// 判据二：把计数对到基线上。新方向（基线里没有）与超线都算违规。
+List<String> ratchetViolations(Map<String, int> counts, Map<String, int> baseline) {
+  final violations = <String>[];
+  for (final key in {...counts.keys, ...baseline.keys}) {
+    final actual = counts[key] ?? 0;
+    final allowed = baseline[key];
+    if (allowed == null) {
+      violations.add(
+        '$key：新增越界方向（$actual 条，基线为 0）——'
+        '跨 feature 依赖必须经组合根或 application 契约',
+      );
+    } else if (actual > allowed) {
+      violations.add(
+        '$key：$actual 条 > 基线 $allowed 条。新增 import 违反棘轮基线；'
+        '如属必要重构，请先评审并在本测试下调基线',
+      );
+    }
+  }
+  return violations;
+}
+
+/// 判据一的明细（只为把违规打印到人能看懂的位置，不参与裁决）。
+Map<String, List<String>> collectCrossFeatureDetail(
+  Map<String, List<String>> linesByFile,
+) {
+  final detail = <String, List<String>>{};
+  for (final entry in linesByFile.entries) {
+    final srcMatch = _srcFeatureRe.firstMatch(entry.key);
+    if (srcMatch == null) continue;
+    final src = srcMatch.group(1)!;
+    final fromDir = entry.key.substring(0, entry.key.lastIndexOf('/') + 1);
+    for (final line in entry.value) {
+      final stmt = _statementRe.firstMatch(line.trimLeft());
+      if (stmt == null) continue;
+      final dst = _targetFeature(uri: stmt.group(2)!, fromDir: fromDir);
+      if (dst == null || dst == src) continue;
+      detail.putIfAbsent('$src->$dst', () => []).add(
+        '${entry.key}: ${line.trim()}',
+      );
+    }
+  }
+  return detail;
+}
+
 void main() {
+  final sources = readFeatureSources();
+
   test('跨 feature 依赖棘轮：不允许新增越界 import（只许逐步清零）', () {
-    final counts = <String, int>{};
-    final offenders = <String, List<String>>{};
-
-    for (final entity in Directory('lib/features').listSync(recursive: true)) {
-      if (entity is! File || !entity.path.endsWith('.dart')) continue;
-      final normalized = entity.path.replaceAll('\\', '/');
-      final srcMatch = RegExp(
-        r'lib/features/([a-z_]+)/',
-      ).firstMatch(normalized);
-      if (srcMatch == null) continue;
-      final src = srcMatch.group(1)!;
-      final fromDir = normalized.substring(0, normalized.lastIndexOf('/') + 1);
-      for (final line in entity.readAsLinesSync()) {
-        final stmt = _statementRe.firstMatch(line.trimLeft());
-        if (stmt == null) continue;
-        final dst = _targetFeature(uri: stmt.group(2)!, fromDir: fromDir);
-        if (dst == null || dst == src) continue;
-        final key = '$src->$dst';
-        counts[key] = (counts[key] ?? 0) + 1;
-        offenders.putIfAbsent(key, () => []).add('$normalized: ${line.trim()}');
-      }
-    }
-
-    final violations = <String>[];
-    for (final key in {...counts.keys, ..._baseline.keys}) {
-      final actual = counts[key] ?? 0;
-      final allowed = _baseline[key];
-      if (allowed == null) {
-        violations.add(
-          '$key：新增越界方向（$actual 条，基线为 0）——'
-          '跨 feature 依赖必须经组合根或 application 契约',
-        );
-      } else if (actual > allowed) {
-        violations.add(
-          '$key：$actual 条 > 基线 $allowed 条。新增 import 违反棘轮基线；'
-          '如属必要重构，请先评审并在本测试下调基线',
-        );
-      }
-    }
-
+    final violations = ratchetViolations(countCrossFeature(sources), _baseline);
     expect(
       violations,
       isEmpty,
@@ -163,7 +223,80 @@ void main() {
           '跨 feature 依赖棘轮被突破：\n'
           '${violations.join('\n')}\n\n'
           '现有 offenders：\n'
-          '${offenders.entries.expand((e) => e.value).take(20).join('\n')}',
+          '${collectCrossFeatureDetail(sources).entries.expand((e) => e.value).take(20).join('\n')}',
+    );
+  });
+
+  test('棘轮自证：扫描面塌掉 ⇒ 红（TE-TST-04；下限**不**钉在依赖计数上）', () {
+    // 为什么下限钉在「读到的文件数 / import 语句行数」而不是「跨 feature 条数」：
+    // 后者是**会被清干净的**——迁移做完就是 0，那正是这条棘轮想要的结果。
+    // 把下限设成 21（今天的实测跨 feature 总数）会在有人把依赖修好之后把门禁打红，
+    // 等于奖励绕过它。前者与依赖治理进度无关，塌掉只可能是扫描本身坏了。
+    expect(
+      sources.length,
+      greaterThanOrEqualTo(180),
+      reason:
+          'lib/features 下只读到 ${sources.length} 个 .dart（实测基线 210）⇒ 扫描根/后缀/'
+          'feature 名判定塌了。此时 `counts` 是空映射，`actual > allowed` 永远不成立，'
+          '上面那条 `isEmpty` 断言就变成「没人违规因为我没在看」。',
+    );
+    final stmtLines = sources.values.fold<int>(
+      0,
+      (sum, lines) => sum + lines.where((l) => _statementRe.hasMatch(l.trimLeft())).length,
+    );
+    expect(
+      stmtLines,
+      greaterThanOrEqualTo(900),
+      reason:
+          '读到 ${sources.length} 个文件却只认出 $stmtLines 行 import/export 语句'
+          '（实测基线 1074）⇒ `_statementRe` 的行首锚定被改坏了（P2-3 修的就是这条），'
+          '跨 feature 计数会静默归零。',
+    );
+  });
+
+  test('判据自证：相对路径 / 同 feature / 注释 / 字符串四种形状各判对（P2-3 的落点）', () {
+    // 文件头那句「临时塞一条相对 import 门禁当场报超限」的自证，从这一版起是真用例。
+    final synthetic = <String, List<String>>{
+      'lib/features/notes/presentation/x.dart': [
+        "import '../../doc/domain/clone_ref.dart';",
+        "import 'package:drawing_notes_app/features/security/vault.dart';",
+        "import 'home_page.dart';",
+        "import 'dart:async';",
+        "// import '../../drawing/rendering/ink.dart';",
+        "final s = 'import \\'../../drawing/rendering/hidden.dart\\';';",
+      ],
+      'lib/features/doc/presentation/y.dart': [
+        "import '../../notes/domain/note.dart';",
+      ],
+    };
+    expect(
+      countCrossFeature(synthetic),
+      const <String, int>{'notes->doc': 1, 'notes->security': 1, 'doc->notes': 1},
+      reason: '逐条都是判据的承重面：相对 URI 不解析 ⇒ notes→doc 这条静默绕过（P2-3 原案）；'
+          '同 feature、`dart:`、注释行、字符串里的同形文本都必须**不**计数——'
+          '任何一格判错，这张表就对不上。',
+    );
+
+    // 棘轮判据本身也要能红：超线一位、恰好到线、新方向各一格。
+    expect(
+      ratchetViolations(const {'notes->doc': 10}, _baseline),
+      hasLength(1),
+      reason: '10 > 基线 9 ⇒ 必须报（突变：把 `actual > allowed` 改成恒 false，这里就零报了）',
+    );
+    expect(
+      ratchetViolations(const {'notes->doc': 9}, _baseline),
+      isEmpty,
+      reason: '恰好等于基线不算违规——棘轮只紧不松，不能把已达标的迁移判红',
+    );
+    expect(
+      ratchetViolations(const {'drawing->security': 1}, _baseline),
+      hasLength(1),
+      reason: '基线里没有的新方向（含只有一条的）必须报',
+    );
+    expect(
+      ratchetViolations(const <String, int>{}, _baseline),
+      isEmpty,
+      reason: '依赖被迁干净 ⇒ 全零是**合格**，不是失明（失明由上面那条下限抓）',
     );
   });
 }
