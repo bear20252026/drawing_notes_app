@@ -198,8 +198,45 @@ jobs:
       - name: 涉密预检（评审前红线检查）
         # 白名单外目录或涉密内容（密钥/口令）一律拦截，禁止提交给 OCR。
         # 依据 docs/OCR_REVIEW_POLICY.md 第三节。
+        #
+        # ⚠ 审计 TE-TST-05 / CTL-02（2026-10-16）：原实现固定用
+        # `git diff origin/master...HEAD`，而**直推 master 的工作流里 HEAD 就是刚被推上去的
+        # origin/master** ⇒ 三点 diff 产出 0 个文件，白名单检查与涉密检查都在**空输入**上跑，
+        # 末尾照样打印「涉密预检通过」。实测（本仓最近一次推送）：
+        # `git diff origin/master...HEAD --name-only | wc -l` = **0**。
+        # 「没有违规」与「什么都没看」在这里是同一个输出——这是本仓「空集即通过」那一族里
+        # 唯一一条**安全类**门禁，所以优先修。
+        #
+        # 修法两件事：① 按事件类型选基线（push 用本次推送进来的那一段，PR 保持 origin/master）；
+        # ② 基线算出空变更集就判失败，不再判通过。
+        # 误拦风险已实测回看：以父提交为基线，最近 12 次推送的凭据赋值命中数全部为 0
+        # （变更文件数 1~17，均非空）⇒ 换基线之后这条检查才开始真跑，且不会回头拦历史。
         run: |
-          CHANGED=$(git diff origin/master...HEAD --name-only 2>/dev/null || echo "")
+          set -euo pipefail
+          ZERO_SHA="0000000000000000000000000000000000000000"
+          if [ "${GITHUB_EVENT_NAME:-}" = "pull_request" ]; then
+            BASE="origin/master"
+          else
+            BEFORE='${{ github.event.before }}'
+            if [ -n "$BEFORE" ] && [ "$BEFORE" != "$ZERO_SHA" ] \
+               && git merge-base --is-ancestor "$BEFORE" HEAD 2>/dev/null; then
+              BASE="$BEFORE"
+            else
+              # 首推分支 / force push 改写历史：退回上一个提交。
+              # 这比原来扫 0 个文件好，但**多提交推送时只覆盖最后一笔**——
+              # 深扫描由 Secret Scan（Gitleaks 全量）兜底，本步只是评审前的粗筛。
+              BASE="HEAD~1"
+            fi
+          fi
+          echo "diff 基线：$BASE（事件：${GITHUB_EVENT_NAME:-unknown}）"
+          CHANGED=$(git diff "$BASE...HEAD" --name-only 2>/dev/null || true)
+          # 空变更集 == 门禁失明。此时下面两句「0 个白名单外、0 个涉密命中」
+          # 与真的合规完全同形，必须判失败（审计 TE-TST-05）。
+          if [ -z "$CHANGED" ]; then
+            echo "::error::涉密预检失明：以 $BASE 为基线算不出任何变更文件——" \
+                 "基线选错/浅克隆/事件假设变了都会走到这里，绝不能当成「检查通过」。"
+            exit 1
+          fi
           echo "本次变更文件:"
           echo "$CHANGED"
           # 1) 白名单检查：只允许 lib/test/tools/.github/workflows
@@ -214,14 +251,14 @@ jobs:
           # 必命中，正常提交被误拦，消耗门禁可信度。现只扫**新增行**，且只
           # 匹配「凭据赋值」真泄密形态（关键字后接赋值符+≥12 字符字面量，
           # 阈值避开测试短夹具）；深扫描仍由 Secret Scan（Gitleaks）兜底。
-          ADDED=$(git diff origin/master...HEAD --unified=0 | grep -E "^\+[^+]" || true)
+          ADDED=$(git diff "$BASE...HEAD" --unified=0 | grep -E "^\+[^+]" || true)
           HIT=$(echo "$ADDED" | grep -iE "(api[_-]?key|secret|password|token|口令|密钥)[\"']?[[:space:]]*[:=][[:space:]]*[\"'][^\"']{12,}" || true)
           if [ -n "$HIT" ]; then
             echo "::error::新增行命中凭据赋值形态，疑似涉密，禁止评审！"
             echo "$HIT" | head -5
             exit 1
           fi
-          echo "涉密预检通过"
+          echo "涉密预检通过（扫了 $(echo "$CHANGED" | wc -l) 个文件、$(echo "$ADDED" | grep -c . || true) 行新增）"
 
       - name: 配置模型端点（Secrets 注入；领导批准后正式生效）
         run: |

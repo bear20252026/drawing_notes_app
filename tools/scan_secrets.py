@@ -29,6 +29,11 @@ RULES = [
 
 # 扫描排除（构建/缓存/生成的产物）。
 EXCLUDED_DIRS = {".git", ".dart_tool", "build", ".idea", ".vs", "node_modules", ".desloppify"}
+
+# 门禁自证用的扫描面下限（审计 TE-TST-05，2026-10-16）：一次干净 clone 是
+# `git ls-files` = 1019 个文件，取一半再一档之下——**只用来抓「一个文件都没扫到」**，
+# 不用来抓日常增删。曾经想过 1500，那高于真实扫描面，第一次推送就会把 CI 打红。
+MIN_SCANNED_FILES = 600
 EXCLUDED_FILES = {"sbom.cdx.json", "pubspec.lock", "untranslated_messages.json", "generated_plugin_registrant.cc"}
 # 误报豁免（2026-08-16）：base62 字符集 const（fractional_index——默认
 # 参数要求 const——合法字符集常量非密钥——高熵检测误报）。
@@ -57,11 +62,18 @@ def shannon_entropy(s: str) -> float:
     return -sum((c / n) * math.log2(c / n) for c in freq.values())
 
 
-def scan_file(path: Path, findings: list, skip_entropy: bool = False) -> None:
+def scan_file(path: Path, findings: list, skip_entropy: bool = False) -> bool:
+    """扫描单个文件；返回是否**真的读到了内容**。
+
+    读不出来（权限、句柄被占、符号链接断、解码炸）以前是 `except OSError: return`——
+    一声不响地把这个文件当成「干净」。这正是本仓「读不出来被答成没有」那一族
+    （审计 STO-001 / STO-012 / SYN-D1 同形），而秘密扫描器最坏的失效方式就是
+    「扫不到 ⇒ ✅ 通过」。现在把这一格上抛给调用方计数并在末尾打印。
+    """
     try:
         text = path.read_text(encoding="utf-8", errors="ignore")
     except OSError:
-        return
+        return False
     for line_no, line in enumerate(text.splitlines(), 1):
         for pattern, desc in RULES:
             m = pattern.search(line)
@@ -77,6 +89,8 @@ def scan_file(path: Path, findings: list, skip_entropy: bool = False) -> None:
                 if shannon_entropy(token) > 4.0:
                     findings.append((str(path), line_no, f"高熵字符串（熵 {shannon_entropy(token):.2f}）", token[:32]))
                     break  # 每行一条熵告警即可
+    return True  # 走到这里就是真的读到了内容（审计 R13：漏掉这一句时 1000 个文件
+                 # 全被记成「读不出来」——见 commit message 里那条自查）
 
 
 def main() -> int:
@@ -87,6 +101,8 @@ def main() -> int:
 
     root = Path(args.path)
     findings: list = []
+    scanned = 0
+    unreadable = 0
     for path in root.rglob("*"):
         if not path.is_file():
             continue
@@ -99,14 +115,41 @@ def main() -> int:
             continue
         if path.suffix.lower() in SKIP_EXTENSIONS:
             continue
-        scan_file(path, findings, skip_entropy=rel.as_posix() in ENTROPY_EXCLUDED_PATHS)
+        scanned += 1
+        if not scan_file(
+            path, findings, skip_entropy=rel.as_posix() in ENTROPY_EXCLUDED_PATHS
+        ):
+            unreadable += 1
+
+    # ── 门禁自证（审计 TE-TST-05 / R13，2026-10-16）──────────────────────
+    # 本脚本原来的末尾只有一句「没有 findings 就 return 0」，而让 findings 为空
+    # 有两种同形成因：① 真的干净；② **一个文件都没扫到**（cwd 不对、--path 指空、
+    # 目录被挪走）。秘密扫描器走到 ② 时打印的是「✅ 未发现敏感信息」，
+    # 属于本仓「空集即通过」那一族里唯一的**安全类**成员，所以必须下限先于结论。
+    # 阈值取一次干净 clone 的扫描面（git ls-files = 1019 个文件）之下很宽的一档：
+    # 只用于抓塌空，不参与日常增删。
+    if scanned < MIN_SCANNED_FILES:
+        print(
+            f"❌ 门禁失明：只扫到 {scanned} 个文件（下限 {MIN_SCANNED_FILES}，"
+            f"实测一次 clone 为 1019）——此时「没有 findings」是没在看，不是合规。"
+        )
+        return 2
+    # 扫描面每次都说出来：让「扫了多少」与「有没有违规」两件事分开可见，
+    # 这样某天 surface 从 1019 掉到 700 也能在日志里一眼看出来（而不是只看到通过）。
+    print(f"扫描面：{scanned} 个文件（下限 {MIN_SCANNED_FILES}）")
+    if unreadable:
+        # 读不出来的文件以前被静默当成干净；现在至少让它们出现在输出里。
+        print(f"⚠ 有 {unreadable} 个文件读不出来（已跳过，不计入「干净」）")
 
     if findings:
         print(f"⚠ 发现 {len(findings)} 处潜在敏感信息：")
         for f, ln, desc, snippet in findings[:20]:
             print(f"  {f}:{ln} [{desc}] {snippet}")
         return 1
-    print("✅ 未发现敏感信息（秘密扫描通过——Gitleaks 模式）")
+    print(
+        f"✅ 未发现敏感信息（秘密扫描通过——Gitleaks 模式，"
+        f"实扫 {scanned} 个文件、跳过读不出 {unreadable} 个）"
+    )
     return 0
 
 
