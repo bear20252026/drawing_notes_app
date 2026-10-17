@@ -8,19 +8,33 @@
 // 修复①（本文件验证的契约）：三个存储层（块文档/笔记本/画布）的写成功
 // 回调 onWrite——落盘成功即触发，由 shell 注入 bumpDataVersion，
 // 覆盖所有写路径，不再依赖调用点逐一通知。
+//
+// 2026-10-17（R36）：`encryptAndSave` 那条腿以前吃的是**生产 KDF**
+// （Argon2id 64MiB t2p2），而本文件既没打 `kdf` 标签、也没有 `@Timeout`，
+// 于是满并发的 Windows runner 上撞过 30 秒默认超时（CI run 39029634857）。
+// 本文件要验的是「写成功回调有没有响」，不是密钥派生有多慢 ⇒ 按仓内既有口径
+// 注入 `KdfParams.testLight`（槽位格式与生产一致，只换参数），并保留 3 分钟兜底。
+@Timeout(Duration(minutes: 3))
+library;
+
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import '../../helpers/temp_dir_cleanup.dart';
 
 void main() {
+  // 见文件头：本文件不测 KDF 成本，注入轻量参数（与 notebook_encryption_v5_test
+  // 同一口径——槽位格式不变，只换工作因子）。
+  KdfParams.newSlotDefault = KdfParams.testLight;
   late Directory tempDir;
 
   setUp(() async {

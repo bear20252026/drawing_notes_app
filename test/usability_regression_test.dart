@@ -1,18 +1,24 @@
 // 加密笔记本用例走 PBKDF2/Argon2id 派生，CI 高负载下可超 30s 默认单测
 // 超时（7b846e0 云端首跑实测）——按加密族先例放宽到 3 分钟。
+// R36 补上另一条腿：同时注入 `KdfParams.testLight`（与 notebook_encryption_v5_test
+// 同一口径），因为本文件验的是「编辑→保存→重开内容不丢」，不是密钥派生成本；
+// 3 分钟预算保留作兜底，不再当作主要手段。
 @Timeout(Duration(minutes: 3))
 library;
 
 import 'dart:io';
 
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import 'helpers/temp_dir_cleanup.dart';
 
 /// 用户视角可用性回归测试（站在用户角度：入口→操作→保存→重开全链路）。
 void main() {
+  KdfParams.newSlotDefault = KdfParams.testLight;
   late Directory tempDir;
   late NotebookStorage storage;
 
