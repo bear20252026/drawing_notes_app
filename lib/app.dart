@@ -61,6 +61,21 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
   // 加密底座批次①b：保险库是密钥链根，存储层经 keyProvider 拿解锁态主密钥。
   // 存储收口（2026-09-02）：统一数据根——所有业务数据收进 Documents/绘图笔记数据/。
   final AppDataRoot _appDataRoot = AppDataRoot();
+
+  /// 「加密是否在用」的**唯一口径**，三条写腿（画布 / 笔记本媒体 / 块文档）共用。
+  ///
+  /// = 主文件在场，**或**盘上躺着一份能解析的孤儿 `.bak` 信封。后一半是 STO-001
+  /// 的连带（2026-10-16）：用户拒绝「以当前密码重建保险库」之后主文件仍然不在，
+  /// 若按「未建库」处理，`_sealDocBytes` 会把一个加密世代的内容降级成**明文**落盘——
+  /// 那是 AW8 那条 P0（无 PIN 用户存不进画布）的**反方向**，比多弹一次锁定严重得多。
+  /// 从未设过密码的新用户两份都不在 ⇒ 仍然 false，明文落盘的产品设计不变。
+  ///
+  /// 用闭包而非方法 tear-off：`_vaultKeyService` 是 late final，避免依赖两个字段的
+  /// 初始化先后顺序（与 keyProvider 同口径）。
+  Future<bool> _encryptionInUse() async =>
+      await _vaultKeyService.isConfigured() ||
+      await _vaultKeyService.hasOrphanBackupOnDisk();
+
   late final StorageService _documentStorage = StorageService(
     // 统一根目录：存储层内部仍追加自己的子目录名（documents/thumbnails 等），
     // 落点收拢为 绘图笔记数据/<子目录>。
@@ -75,7 +90,7 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
     // 导致从未设置 PIN 的用户**完全保存不了画布**。
     // 用闭包而非方法 tear-off：`_vaultKeyService` 是 late final，避免依赖
     // 两个字段的初始化先后顺序。
-    vaultConfigured: () => _vaultKeyService.isConfigured(),
+    vaultConfigured: _encryptionInUse,
   );
   // late final：keyProvider 闭包引用 _vaultKeyService（late 初始化器允许
   // 访问实例成员；与 _documentStorage 同模式）。
@@ -90,7 +105,7 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
     // 与 _documentStorage 同一条 P0 修复：笔记本页面图片写入也要区分
     // 「未建库 → 明文」与「已建库锁定 → fail-closed」，否则无 PIN 用户
     // 往页面插图会静默失败。
-    vaultConfigured: () => _vaultKeyService.isConfigured(),
+    vaultConfigured: _encryptionInUse,
   );
   late final NoteBlockDocStore _blockDocStore = NoteBlockDocStore(
     directoryProvider: _appDataRoot.root,
@@ -101,7 +116,7 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
     // 与 _documentStorage / _notebookStorage 同一条收口：块文档写路径也要
     // 区分「未建库 → 明文」与「已建库锁定 → fail-closed」，否则锁屏期间
     // DocPage 自动保存定时器照常开火，密文笔记会被静默覆盖成明文。
-    vaultConfigured: () => _vaultKeyService.isConfigured(),
+    vaultConfigured: _encryptionInUse,
   );
   // 收藏/标签同样收进统一根目录（组合根创建，AppShell 透传）。
   late final FavoriteStore _favoriteStore = FavoriteStore(
