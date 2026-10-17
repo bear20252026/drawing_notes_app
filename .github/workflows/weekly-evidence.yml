@@ -1,0 +1,161 @@
+# 每周证据采集（CTL-09，审计 2026-10-17，业主点名采纳甲档）。
+#
+# 为什么需要这一条：`pr-platform` / `pr-quality` / `pr-security` **只在 pull_request 触发**，
+# 而本仓走直推 master ⇒ 这三条今天从不执行。后果不是「少个绿灯」，而是三件具体的事
+# **从来没有过证据**：
+#  · `tools/check_deps.sh`（依赖清单与过期检查）只在 PR 里跑过 ⇒ 直推流程一次都没执行；
+#  · Windows/Android 的**发布形态构建**（`flutter build windows --release` 这类真命令）
+#    只在 PR 里跑过 ⇒ 出货命令今天能不能编，直推流程同样没有任何证据；
+#  · `docs/supply_chain_evidence.md` 声称的供应链证据，其生产步骤也在 PR-only 那一侧。
+# R23 已经把这个事实更正进 AGENTS.md §6 与 README（不能再说「已经验证过」）；本条是
+# 把「验证」真的补上，而不是继续只在文档里承认盲区。
+#
+# 定位要写清：**这不是 PR 门禁**。红了不阻断 master（否则就等于把 pr-* 那三条搬进
+# 每次推送，业主明确不要那个耗时），它的产出是「每周一次的证据 + 一条待办 issue」。
+name: Weekly Evidence (直推流程的补证)
+
+on:
+  schedule:
+    # 每周日 18:00 UTC（周一上午开工就能看到上周尾巴上的证据）。
+    - cron: '0 18 * * 0'
+  # 允许任何时候手动补跑一次（排查依赖/平台构建问题时用）。
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # 周期任务不互相取消：手动补跑不该把正在跑的定时 run 掐掉。
+  cancel-in-progress: false
+
+jobs:
+  supply-chain:
+    name: 依赖清单 / 秘密扫描 / SBOM
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+
+      # 步骤名照抄 pr-security.yml 的口径：check_deps.sh 只输出依赖概览 +
+      # `dart pub outdated`，**没有真实 CVE 数据源与失败阈值**，所以这里不得称 CVE 扫描
+      # （pr-security.yml:30-33 的 C-004/C-005 更正就是为了让这句话可被背书）。
+      - name: 秘密扫描（Gitleaks 模式——0 误报）
+        run: python tools/scan_secrets.py
+
+      - name: SBOM 生成（CycloneDX）
+        run: python tools/generate_sbom.py
+
+      - name: 依赖清单与过期检查
+        run: bash tools/check_deps.sh
+
+      - name: 失败时开一条待办 issue（不重复开）
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          # 标题**不带日期**：带日期就每周都判成「新问题」，去重形同虚设。
+          title="每周补证失败：依赖清单/秘密扫描/SBOM"
+          if gh issue list --search "$title in:title" --state open --limit 1 | grep -q .; then
+            echo "已有未关闭的同族 issue，跳过创建"
+            exit 0
+          fi
+          gh issue create --title "$title" --body \
+            "工作流 [supply-chain]($RUN_URL) 失败。本条是周期证据，不阻断 master；请人工判定是依赖面真出问题，还是脚本/环境需要修。"
+
+  windows-release-build:
+    name: Windows 发布形态构建证据
+    runs-on: windows-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: 3.47.0
+          cache: true
+
+      - run: flutter pub get
+      - run: flutter config --enable-windows-desktop
+      # 这条要的是「**真正出货的那个命令**在 Windows runner 上编得动」的周期证据。
+      # 命令必须与 release-build.yml 的 `Build Windows release` 逐字同形——证据不能
+      # 对着一个不出货的形状采。CTL-03（加 `--obfuscate`）现在被挡在出货链路外面，
+      # 原因写在那个文件的文件头；等它落地，这里要跟着一起加。
+      - name: Build Windows release
+        run: flutter build windows --release
+
+      - name: 失败时开一条待办 issue（不重复开）
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # 标题不带日期（带日期 ⇒ 每周都算新问题，去重形同虚设）。
+          $title = "每周补证失败：Windows 发布形态构建"
+          $existing = gh issue list --search "$title in:title" --state open --limit 1
+          if ([string]::IsNullOrWhiteSpace($existing)) {
+            $body = "工作流 [windows-release-build]($env:RUN_URL) 失败。本条是周期证据，不阻断 master；混淆发布构建一旦在此变红，说明下一次发版会当场失败，请优先处理。"
+            gh issue create --title $title --body $body
+          } else {
+            Write-Host "已有未关闭的同族 issue，跳过创建"
+          }
+
+  android-debug-build:
+    name: Android 构建证据
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: 3.47.0
+          cache: true
+
+      - run: flutter pub get
+      # 照抄 pr-platform.yml:48 的形态（`--debug`）：这条要的是「Android 端还能构建」
+      # 的周期证据，不是发布产物——发布产物由 release-build.yml 那条腿负责（已带混淆）。
+      - name: Build Android debug
+        run: flutter build apk --debug
+
+      - name: 失败时开一条待办 issue（不重复开）
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          # 标题**不带日期**：带日期就每周都判成「新问题」，去重形同虚设。
+          title="每周补证失败：Android 构建"
+          if gh issue list --search "$title in:title" --state open --limit 1 | grep -q .; then
+            echo "已有未关闭的同族 issue，跳过创建"
+            exit 0
+          fi
+          gh issue create --title "$title" --body \
+            "工作流 [android-debug-build]($RUN_URL) 失败。本条是周期证据，不阻断 master。"

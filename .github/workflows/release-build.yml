@@ -4,7 +4,36 @@ name: Release Build (Windows + Android)
 # 再由使用者下载（不在本地机器打包，保证构建环境统一、可复现）。
 # 触发方式：
 #  - Workflow 页面手动 Dispatch（可分别勾选 Android / Windows）
-#  - 推送 tag v* 时自动构建并在 GitHub Release 挂载 Windows 安装包 + Android APK（2026-08-30 对齐）
+#  - 推送 **版本号形态的 tag**（`v[0-9]*`）时自动构建并挂载 Windows 安装包 + Android APK
+#
+# CTL-04（审计 2026-10-17，业主点名采纳）：本工作流**不再等于对外发布**。两道闸门：
+#  ① `preflight` job —— 出包之前先校验「这个 tag 剥出来的那个提交」的 CI 结论。
+#     此前这条只有口头纪律（「先确认编排全绿再推 tag」），机器上一个闸门都没有。
+#  ② `draft: true` —— 推 tag 只产出一个草稿 Release，人在 GitHub 上点 Publish 才公开；
+#     此前 `draft: false` 意味着「推 tag = 立刻公开」，一次手滑就对外。「推 tag 要业主
+#     点名」这条口径此前只写在台账里（AGENTS.md 并没有这一条），机器链路上也没有闸门。
+#  tag 过滤同时从 `v*` 收紧到 `v[0-9]*` —— `v-test` / `vX` 这类误 tag 不再触发构建。
+#  产物本身仍走 artifact → Release 附件，四件资产（setup exe/zip + APK/zip）齐全，
+#  草稿状态下 `gh release upload` 同样能挂附件（attach-android 已按此验证过形状）。
+#
+# CTL-03（同批点名）**没有**跟着落地。理由是一条读代码 + 查官方文档查出来的副作用：
+# Flutter 3.47 的混淆文档明写「Code that relies on matching specific class, function,
+# or library names will fail」，而本仓有 **28 处**在运行时读类型名（22 处
+# `e.runtimeType.toString()` + 6 处 `${e.runtimeType}`），落在用户可见面和审计面上：
+# 粘贴失败 / 插图失败 / 打开链接失败三条 snackbar、`saveFailure` 芯片的 `errorKind`
+# （AW13 那条「保存失败可见化」）、`AuditLogger` 的 `detail` 字段，以及
+# `main.dart` 的全局异常处理把类型名拼进了**审计 action id**
+# （`app.error.${runtimeType}` / `app.uncaught.${error.runtimeType}`）。
+# 加 `--obfuscate` 会把这些一起换成 `a.Q3` 这种**每次构建都不同**的随机串；而
+# `flutter test -d windows` 跑的是 debug 编译、`test/` 全量也从不混淆 ⇒
+# **CI 抓不到，只有装到用户机器上才现形**。
+# （另 20 处 `runtimeType` 是 `operator ==` 里的同类型比较，那部分不受影响：同一进程里
+#  两边一起改名，比较照样成立。落盘枚举那半边也另说：同一份文档写的是
+#  「Enum names are not obfuscated **currently**」——今天不炸，但 "currently" 不是承诺，
+#  要显式 wire 名才能长期把 `.name` 当格式。）
+# ⇒ 解锁顺序：① 诊断面改成用 `is` 判定出的**字面量代码**（类型判断不受混淆影响），
+#   ② 落盘枚举加显式 wire 名，③ 然后才在两条出货命令上加 `--obfuscate`。
+#   周期证据侧（weekly-evidence.yml）保持与下面的出货命令**逐字同形**，改一处要改两处。
 
 on:
   workflow_dispatch:
@@ -19,9 +48,10 @@ on:
         default: true
   push:
     tags:
-      - 'v*'
+      - 'v[0-9]*'
 
-# 权限：Android 任务仅需读；Windows 任务需要 contents: write 以便打 tag 时创建 Release。
+# 权限：workflow 级只给读。Android 任务仅需读；preflight 另要 checks/actions 读
+# （读那个提交的 CI 结论）；Windows 任务需要 contents: write 以便打 tag 时创建 Release。
 permissions:
   contents: read
 
@@ -31,10 +61,104 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  # CTL-04 第一道闸门：tag 指向的那个提交必须先拿到**全量 CI 的成功结论**才允许出包。
+  # 以前这条只是口头纪律（「先确认编排全绿再推 tag」），机器上一个闸门都没有。
+  # 三条容易踩空的设计点：
+  #  · 本仓 annotated / lightweight 两种 tag 混用 ⇒ 必须先把 tag 剥成**提交**。
+  #    拿 `github.sha` 直接查，annotated tag 查的是 tag 对象，结论表永远是空的。
+  #  · lightweight tag 时 `github.sha` 就等于这个提交 ⇒ 本次 release run 自己的
+  #    check run 也在同一张表里，要**按工作流整批排掉**——只排「本次 run」不够，
+  #    一次失败的出包尝试会把「删掉重推 tag」永久锁死。
+  #  · 判据不能写成「没有红的就放行」：那条 CI 从没跑过的提交会**空集通过**
+  #    （本仓 R8~R14 一整批修的就是这类门禁），所以还要全量那条 job 的结论**在册**。
+  preflight:
+    name: Release 前置校验（该提交的 CI 结论）
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      checks: read
+      actions: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: 校验 CI 结论（只有 tag 触发需要；Dispatch 本身就是人明确按的按钮）
+        if: ${{ github.event_name == 'push' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_JOB: Analyze + Test + Metrics
+          DEADLINE_MIN: '45'
+        run: |
+          set -euo pipefail
+          case "$(git cat-file -t "$GITHUB_SHA" 2>/dev/null || echo missing)" in
+            tag) sha=$(git rev-parse "$GITHUB_SHA^{commit}") ;;
+            commit) sha="$GITHUB_SHA" ;;
+            *) sha=$(git rev-parse HEAD) ;;
+          esac
+          echo "tag=$GITHUB_REF_NAME → commit=$sha"
+          # 实测：把 annotated tag 的对象 SHA 直接喂给 check-runs API 返回的是 **422**
+          # （不是空表），所以剥不出提交时必须在这里就地失败，别让它变成一个看不懂的
+          # API 错误，也别指望「空表」那条分支兜住它。
+          if [ "$(git cat-file -t "$sha" 2>/dev/null || echo missing)" != "commit" ]; then
+            echo "::error::无法把 tag $GITHUB_REF_NAME 剥成提交（得到 $sha），拒绝继续——没有可校验的 CI 结论。"
+            exit 1
+          fi
+          deadline=$(( $(date +%s) + DEADLINE_MIN * 60 ))
+          # 本工作流自己在这个提交上留下的结论要整批排掉：lightweight tag 时
+          # `github.sha` 就等于这个提交，出包 job 的 check run 会混进同一张表；
+          # 只排「本次 run」不够——一次失败的出包尝试会把「删掉重推 tag」永久锁死。
+          # 工作流文件名从 `GITHUB_WORKFLOW_REF` 取，避免把名字抄成第二份真相。
+          wf=${GITHUB_WORKFLOW_REF:+$(basename "${GITHUB_WORKFLOW_REF%%@*}")}
+          [ -n "$wf" ] || wf=release-build.yml
+          rel=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$wf/runs?head_sha=$sha&per_page=100" \
+            -q '.workflow_runs[].id' | paste -sd'|' -)
+          [ -n "$rel" ] || rel='-1'
+          export RELEASE_RUN_IDS="$rel"
+          while : ; do
+            rows=$(gh api "repos/$GITHUB_REPOSITORY/commits/$sha/check-runs?per_page=100" --paginate \
+              -q '.check_runs[]
+                  | select((.html_url // "") | test("/runs/(" + env.RELEASE_RUN_IDS + ")/") | not)
+                  | [.status, (.conclusion // "-"), .name] | @tsv') || {
+              echo "::error::读不到提交 $sha 的 check 结论（API 失败 ⇒ 按「没有证据」处理，不放行）。"
+              exit 1
+            }
+            rows=$(printf '%s\n' "$rows" | grep -v '^[[:space:]]*$' || true)
+            if [ -z "$rows" ]; then
+              echo "::error::提交 $sha 一条 check run 都没有 ⇒ 它从没被 CI 跑过（tag 大概不在 master 头上）。不放行。"
+              exit 1
+            fi
+            bad=$(printf '%s\n' "$rows" | awk -F'\t' '$2 ~ /^(failure|cancelled|timed_out|action_required|startup_failure)$/' || true)
+            if [ -n "$bad" ]; then
+              echo "::error::该提交有未通过的编排，不能拿它出包（status/conclusion/name）："
+              printf '%s\n' "$bad"
+              exit 1
+            fi
+            pending=$(printf '%s\n' "$rows" | awk -F'\t' '$1 != "completed"' || true)
+            if [ -z "$pending" ]; then
+              if ! printf '%s\n' "$rows" | awk -F'\t' -v j="$CI_JOB" '$3 == j && $2 == "success" { f = 1 } END { exit !f }'; then
+                echo "::error::结论表里没有全量 CI 那条 job（$CI_JOB）的成功记录 ⇒ 拒绝「空集通过」。"
+                printf '%s\n' "$rows"
+                exit 1
+              fi
+              echo "CI 结论已齐（$(printf '%s\n' "$rows" | grep -c '.') 条 check run，本工作流的出包尝试已排除）："
+              printf '%s\n' "$rows"
+              exit 0
+            fi
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "::error::等待超过 $DEADLINE_MIN 分钟仍有 $(printf '%s\n' "$pending" | grep -c '.') 条在跑。等它跑完再重推 tag（或用手动 Dispatch 单独出包，那条路不建 Release）。"
+              exit 1
+            fi
+            echo "还有 $(printf '%s\n' "$pending" | grep -c '.') 条在跑，30s 后重查"
+            sleep 30
+          done
+
   android:
     name: Android Release Build
     # tag 推送时 inputs 为空（falsy），需显式包含 tag 触发（与 windows job 对齐）。
     if: ${{ inputs.build_android || startsWith(github.ref, 'refs/tags/') }}
+    needs: preflight
     runs-on: ubuntu-latest
     timeout-minutes: 40
     # 最小权限（2026-09-06 审计）：Android 产物只上传 artifact，不再写
@@ -79,6 +203,8 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # 出货命令保持未混淆（CTL-03 的阻塞原因见文件头）。改这里必须同步改
+      # weekly-evidence.yml 的那条证据命令——证据必须对着真正出货的形状采。
       - name: Build release APK
         run: flutter build apk --release
 
@@ -110,6 +236,7 @@ jobs:
   windows:
     name: Windows Release Build
     if: ${{ inputs.build_windows || startsWith(github.ref, 'refs/tags/') }}
+    needs: preflight
     runs-on: windows-latest
     permissions:
       contents: write
@@ -144,6 +271,7 @@ jobs:
       - name: Smoke test (integration_test on Windows)
         run: flutter test integration_test/smoke_test.dart -d windows
 
+      # 出货命令保持未混淆（原因见文件头 CTL-03 那段）。
       - name: Build Windows release
         run: flutter build windows --release
 
@@ -215,7 +343,8 @@ jobs:
           files: |
             build/windows/installer/setup_*.exe
             build/windows/installer/drawing_notes_windows_setup.zip
-          draft: false
+          # CTL-04：草稿 = 推 tag 不再对外公开；发布这一步交回人（AGENTS.md §7）。
+          draft: true
           generate_release_notes: true
 
   # v1.17.22：Android 产物自动补挂 Release（收尾 job）——此前 APK/ZIP 只进
