@@ -44,9 +44,15 @@ class NotebookPdfExporter {
 
   /// 导出整本为多页 PDF 字节（既有行为：页尺寸 = 画布逻辑尺寸）。
   ///
-  /// [footer]（审计 2026-09-26 #38 接线）：页脚「标题 · n / m」，与画布
-  /// 分页导出同一特性（v1.17.22 只接了画布 tiled 路径，整本路径缺失）；
-  /// 默认 false，既有调用点零行为变化。
+  /// [footer]：页脚「标题 · n / m」，与画布分页导出同一特性。
+  /// ⚠ 注释更正（R44，逐行回读调用点后）：这里以前写着「（审计 2026-09-26 #38 接线）」——
+  /// **整本这条路径并没有接上**。`grep -rn "exportNotebook(" lib` 唯一的生产调用是
+  /// `notebook_view_page_manage.dart:495`，它不传 `footer`，默认 false ⇒ 整本导出的 PDF
+  /// 今天仍然没有页脚；真正接了的只有画布 tiled 那条路径。测试
+  /// （`test/features/notes/application/notebook_pdf_exporter_test.dart:138`）传了
+  /// `footer: true`，所以绿灯不代表生产有页脚（「命题只活在 CI 看不见的地方」那一族）。
+  /// 补这一行接线会改掉用户拿到的导出件 ⇒ 归业主点名，这里只把话说清楚。
+  /// 原来那句「默认 false，既有调用点零行为变化」仍然成立。
   Future<Uint8List> exportNotebook(
     Notebook notebook, {
     int? jpegQuality,

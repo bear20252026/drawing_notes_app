@@ -11,10 +11,17 @@ typedef OperationLogEntry = ({int serial, DocumentOperation operation});
 /// 会话操作日志（Operation Engine 第一阶段，2026-10-11）。
 ///
 /// 在命令提交点成对记录的语义影子流：有界（丢最旧）、可导出为 JSONL
-/// （一行一操作，供历史压缩 Level 3 / 会话导出 / 未来增量同步消费）。
+/// （一行一操作）。
+///
+/// ⚠ 措辞更正（R44）：这里以前把 JSONL 写成「供历史压缩 Level 3 / 会话导出 /
+/// 未来增量同步消费」，读起来像三条腿里至少有一条接了。实数：**三个消费方今天都不存在**——
+/// `grep -rn "toJsonl|fromJsonl" lib test` 除定义外只命中 `test/operation_engine_test.dart:313/318`，
+/// 诊断导出（`diagnostics_exporter.dart`）里没有 OperationLog。落盘那条腿是**写入**
+/// （A2 已接，见 `OperationLogRecorder`）；读回与消费还没有 ⇒ 下面那句「供重放验证」
+/// 同样只在测试里发生。
 ///
 /// 本阶段**不驱动撤销**——撤销仍由命令栈权威执行；日志是记录面。
-/// `toJsonl/fromJsonl` 双向往返逐字节保真，供重放验证。
+/// `toJsonl/fromJsonl` 双向往返逐字节保真（今天只有测试用它做往返验证）。
 class OperationLog {
   OperationLog({int capacity = 2000})
     : assert(capacity > 0, '容量必须大于 0'),
