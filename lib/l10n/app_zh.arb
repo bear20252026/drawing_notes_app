@@ -2994,6 +2994,8 @@
   "@vaultErrUnsupportedVersion": {},
   "vaultErrFileCrypto": "加密文件无法读取",
   "@vaultErrFileCrypto": {},
+  "vaultErrUsbKey": "U 盘恢复钥匙不匹配或已损坏",
+  "@vaultErrUsbKey": {},
   "canvasShapeHandleSemantics": "形状角柄",
   "@canvasShapeHandleSemantics": {},
   "presNextSlide": "下一页（长按退出）",

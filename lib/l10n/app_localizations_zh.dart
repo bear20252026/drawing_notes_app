@@ -3241,6 +3241,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get vaultErrFileCrypto => '加密文件无法读取';
 
   @override
+  String get vaultErrUsbKey => 'U 盘恢复钥匙不匹配或已损坏';
+
+  @override
   String get canvasShapeHandleSemantics => '形状角柄';
 
   @override

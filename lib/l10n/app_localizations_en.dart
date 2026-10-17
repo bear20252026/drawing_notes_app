@@ -3370,6 +3370,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vaultErrFileCrypto => 'Encrypted file cannot be read';
 
   @override
+  String get vaultErrUsbKey =>
+      'The USB recovery key does not match or is damaged';
+
+  @override
   String get canvasShapeHandleSemantics => 'Shape corner handle';
 
   @override

@@ -45,11 +45,16 @@ String _mapUnlockReason(String reason, AppLocalizations? l10n) {
   if (reason.contains('槽位')) {
     return l10n?.vaultErrMissingSlot ?? '保险库缺少 PIN 槽位';
   }
+  // U 盘那一支必须排在「错误/篡改/损坏」之前：`vault_key_service.dart:444` 抛的是
+  // `VaultUnlockException('U 盘恢复钥匙不匹配或已损坏')`，按旧顺序先命中 `损坏` ⇒
+  // 用户 PIN 明明是对的，屏幕却说「PIN 错误或密钥载荷被篡改」，把人往错误的恢复
+  // 路径上引（会反复重试开屏密码而不是去查 U 盘）。本仓 arb 分支以前没有测试，
+  // 所以这条错映射一直没现形（审计 2026-10-17，TE-TST-02 复核时挖出）。
+  if (reason.contains('U 盘') || reason.contains('USB')) {
+    return l10n?.vaultErrUsbKey ?? 'U 盘恢复钥匙不匹配或已损坏';
+  }
   if (reason.contains('错误') || reason.contains('篡改') || reason.contains('损坏')) {
     return l10n?.vaultErrWrongPin ?? 'PIN 错误或密钥载荷被篡改';
-  }
-  if (reason.contains('U 盘') || reason.contains('USB')) {
-    return l10n?.vaultErrFileCrypto ?? '加密文件无法读取';
   }
   return l10n?.vaultErrUnlockFail ?? '保险库解锁失败';
 }

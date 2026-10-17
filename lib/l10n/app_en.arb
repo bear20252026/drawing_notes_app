@@ -3015,6 +3015,8 @@
   "@vaultErrUnsupportedVersion": {},
   "vaultErrFileCrypto": "Encrypted file cannot be read",
   "@vaultErrFileCrypto": {},
+  "vaultErrUsbKey": "The USB recovery key does not match or is damaged",
+  "@vaultErrUsbKey": {},
   "canvasShapeHandleSemantics": "Shape corner handle",
   "@canvasShapeHandleSemantics": {},
   "presNextSlide": "Next slide (long-press to exit)",

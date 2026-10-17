@@ -6157,6 +6157,12 @@ abstract class AppLocalizations {
   /// **'Encrypted file cannot be read'**
   String get vaultErrFileCrypto;
 
+  /// No description provided for @vaultErrUsbKey.
+  ///
+  /// In en, this message translates to:
+  /// **'The USB recovery key does not match or is damaged'**
+  String get vaultErrUsbKey;
+
   /// No description provided for @canvasShapeHandleSemantics.
   ///
   /// In en, this message translates to:
