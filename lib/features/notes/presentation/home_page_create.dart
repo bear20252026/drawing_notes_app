@@ -238,6 +238,12 @@ extension _HomePageCreateOps on _HomePageState {
       MaterialPageRoute(
         builder: (_) => DocPage(
           document: doc,
+          // EUI-12 重采（R42）抓到的一格：`DocPage.blockDocStore` 的注释承诺
+          // 「各入口（搜索/笔记本管理/首页）无需各自接线即可获得完整能力」，
+          // 而这条**新建**腿以前一个都没传 ⇒ 刚建好的笔记里没有「管理密码」入口
+          // （doc_page.dart:260 的门控）也没有反向链接面板（doc_page_link_outline.dart:75/93）。
+          // 首页「打开已有笔记」那条腿一直是接好的（home_page_tabs.dart:281），差的只有这里。
+          blockDocStore: _blockDocStore,
           controller: DocController(
             onSave: (d) => _blockDocStore.saveDocument(d),
           ),
