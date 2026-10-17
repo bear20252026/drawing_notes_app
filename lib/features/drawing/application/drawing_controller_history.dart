@@ -10,6 +10,15 @@ extension DrawingControllerHistoryOps on DrawingController {
     historyService.push(command);
     // Operation Engine（2026-10-11）：命令提交点成对记录语义操作。
     // 命令栈仍是撤销权威；null = 形状/图片/快照桥接类不进操作流。
+    //
+    // DRW-08：分组窗口开着时**不记**单条。窗口闭合时整批会以一个 `OpBatch`
+    // 记一次（`DocumentTransaction.operation` 就是子命令的 op 聚合），在这里
+    // 也记就是**同一批 op 落两遍**；回滚那条腿更糟——`command.undo()` 撤得掉
+    // 文档改动，撤不掉已经写进会话日志的 op，磁盘侧车会留下一段从没生效过的
+    // 操作。还有一处顺带修掉：窗口内混进一条不可表达的命令（形状/图片/快照）时，
+    // 旧写法会记下半批 op，而 `DocumentTransaction.operation` 故意返回 null
+    // ——「部分记录」正是那句注释禁止的形状。
+    if (historyService.isGroupOpen) return;
     final op = command.operation;
     if (op != null) {
       operationLog.record(op);

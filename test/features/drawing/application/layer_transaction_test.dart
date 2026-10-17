@@ -7,6 +7,7 @@
 import 'dart:convert';
 
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/operation/document_operation.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_transaction.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
@@ -224,6 +225,97 @@ void main() {
     expect(history.undo(), isTrue);
     expect(history.undo(), isTrue);
     expect(events, ['undo:b', 'undo:a', 'undo:outside']);
+  });
+
+  // ---------------- DRW-08：分组窗口与会话操作日志（第四轮台账 §25） ----------------
+  //
+  // 旧写法每条子命令在窗口内就记一次 op，最外层提交时 `DocumentTransaction.operation`
+  // 又把同一批聚成 `OpBatch` 记第二次 ⇒ 一次事务落**两遍**；回滚那条腿更糟：
+  // `command.undo()` 撤得掉文档改动，撤不掉已经写进日志的 op，而 A2 那条腿会把
+  // 「水位线之后」的日志写进磁盘侧车给将来的重放/增量同步用——等于留下一段从没生效过的操作。
+  // 下面刻意用**两步都可表达**的图层操作（显隐 + 换位）；新建/删除图层那两条命令本来
+  // 就不进操作流（`operation` 为 null），混进它们整批都不记，见最后一条。
+
+  test('分组提交：日志里恰好一条 OpBatch，不是「两单条 + 一批」三条', () {
+    final c = controller('oplog-commit');
+    addTearDown(c.dispose);
+    c.addLayer(name: 'keep'); // 事务外的参照（这条命令本身不进操作流）
+    c.layerService.beginLayerTransaction();
+    c.toggleLayerVisibility(0);
+    c.moveLayerUp(0);
+    expect(c.operationLog.length, 0, reason: '窗口内一条都不该记——提交时整批记一次');
+    final serialBefore = c.operationLog.lastSerial;
+    c.layerService.commitLayerTransaction();
+
+    expect(c.operationLog.length, 1, reason: '一批操作 = 一条日志记录');
+    expect(
+      c.operationLog.lastSerial - serialBefore,
+      1,
+      reason: '水位线只前进一格：A2 侧靠它决定「哪些操作还没落盘」',
+    );
+    final op = c.operationLog.records.single;
+    expect(op, isA<OpBatch>());
+    expect((op as OpBatch).ops, hasLength(2), reason: '两步操作聚成一批，成员数要真对得上');
+  });
+
+  test('分组回滚：日志里不留那段从没生效过的操作', () {
+    final c = controller('oplog-rollback');
+    addTearDown(c.dispose);
+    c.addLayer(name: 'keep');
+    final logBefore = c.operationLog.length;
+
+    c.layerService.beginLayerTransaction();
+    c.toggleLayerVisibility(0);
+    c.moveLayerUp(0);
+    expect(c.operationLog.length, logBefore, reason: '窗口内不记');
+    c.layerService.rollbackLayerTransaction();
+
+    expect(
+      c.operationLog.length,
+      logBefore,
+      reason: '回滚撤掉了文档改动就必须也撤得掉日志——写进侧车会被将来重放',
+    );
+  });
+
+  test('反向锁：事务外的命令照旧逐条记录（不许把正常记录一起吞掉）', () {
+    final c = controller('oplog-outside');
+    addTearDown(c.dispose);
+    c.addLayer(name: 'second'); // 只有一层时 moveLayerUp 是空操作，会少记一条
+    c.toggleLayerVisibility(0);
+    c.moveLayerUp(0);
+    expect(c.operationLog.length, 2, reason: '不开事务时两步各记一条——延迟记录不能顺手把这条路也关掉');
+    expect(c.operationLog.records.whereType<OpBatch>(), isEmpty);
+  });
+
+  test('嵌套：内层提交不产出记录，最外层整批记一次', () {
+    final c = controller('oplog-nested');
+    addTearDown(c.dispose);
+    c.addLayer(name: 'second');
+    c.layerService.beginLayerTransaction();
+    c.layerService.beginLayerTransaction();
+    c.toggleLayerVisibility(0);
+    c.layerService.commitLayerTransaction(); // 内层：事务仍未闭合
+    expect(c.operationLog.length, 0, reason: '内层提交不该产出记录');
+    c.moveLayerUp(0);
+    c.layerService.commitLayerTransaction(); // 外层：整批落地一次
+    expect(c.operationLog.length, 1);
+    expect((c.operationLog.records.single as OpBatch).ops, hasLength(2));
+  });
+
+  test('整批里混进不可表达的命令 ⇒ 一批都不记，而不是留下半批', () {
+    final c = controller('oplog-mixed');
+    addTearDown(c.dispose);
+    c.layerService.beginLayerTransaction();
+    c.addLayer(name: 'structural'); // 新建图层这类命令本来没有 op 表达
+    c.toggleLayerVisibility(0);
+    c.layerService.commitLayerTransaction();
+    expect(
+      c.operationLog.length,
+      0,
+      reason:
+          '`DocumentTransaction.operation` 的口径是「部分记录无法完整回放」——'
+          '窗口内逐条记会绕过这个口径，留下回放不了的前半批',
+    );
   });
 }
 
