@@ -208,6 +208,15 @@ extension _AppShellRoutes on _AppShellState {
   /// 收藏切换：持久化（UI 乐观更新由 AllDocsPage 负责）。
   Future<void> _toggleFavorite(AllDoc doc) async {
     await _services.favoriteStore.toggleKey(doc.dedupKey);
+    // STO-004 乙（业主 2026-10-16 点名）：这次写之前若真从「读不出来」的收藏集合里
+    // 抢救出一份原件，必须说出来——「什么都没收藏」与「收藏保住了一份可恢复的原件」
+    // 是两码事，前者用户只能当自己记错了。判据与文案只在 `AppSnack` 一处。
+    if (mounted) {
+      AppSnack.showSidecarSalvage(
+        context,
+        _services.favoriteStore.salvagedOriginalName,
+      );
+    }
   }
 
   /// 打开任意文档，按类型路由到对应编辑器。
@@ -372,9 +381,19 @@ extension _AppShellRoutes on _AppShellState {
                 },
               ),
               isFavorite: favs.contains(doc.id),
-              onToggleFavorite: (fav) async => fav
-                  ? _services.favoriteStore.addKey(doc.id)
-                  : _services.favoriteStore.removeKey(doc.id),
+              onToggleFavorite: (fav) async {
+                await (fav
+                    ? _services.favoriteStore.addKey(doc.id)
+                    : _services.favoriteStore.removeKey(doc.id));
+                // 同上（STO-004 乙）：文档页内的收藏开关走的是 addKey/removeKey，
+                // 与全量列表那条切换腿共用同一个「保住原件要说出来」的判据。
+                if (mounted) {
+                  AppSnack.showSidecarSalvage(
+                    context,
+                    _services.favoriteStore.salvagedOriginalName,
+                  );
+                }
+              },
               tagStore: _services.tagStore,
               allDocsLoader: _services.loadAllBlockDocs,
               onOpenDocById: _openBlockDocById,

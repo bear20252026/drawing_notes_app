@@ -362,6 +362,13 @@ void main() {
       expect(audit, contains('tag_registry.sidecar_unreadable FAIL'), reason: 'G7：拆掉提示 ⇒ 这里红');
       expect(audit, contains('tag_registry.sidecar_unreadable_preserved'));
       expect(corruptedNames(), hasLength(1));
+      // STO-004 乙（2026-10-16）：这份原件还得**说给用户**，光进审计等于没说。
+      // store 只交出事实（文件名），句子由 `AppSnack` 一处组装。
+      expect(
+        store.salvagedOriginalName,
+        corruptedNames().single,
+        reason: '交给展示层的必须是真躺在盘上那份，不能是另编的名字',
+      );
     });
 
     test('收藏集合：同一份判据、同一条接线（DOC-12）', () async {
@@ -380,6 +387,8 @@ void main() {
       expect(audit, contains('favorites.sidecar_unreadable FAIL'));
       expect(audit, contains('favorites.sidecar_unreadable_preserved'));
       expect(await store.loadKeys(), {'canvas:new'}, reason: '覆盖仍发生（语义未变）');
+      // STO-004 乙：收藏侧同样要把这份原件的名字交给展示层。
+      expect(store.salvagedOriginalName, kept.single);
 
       // 反向锁：同一目录里收藏正常读写时**不许再多长**垃圾（这里已有上面那 1 份保留件，
       // 所以判据是「数量不增」而不是 isEmpty——写错成 isEmpty 会永远红，别照抄）。
@@ -416,6 +425,8 @@ void main() {
       await tags.addTag('正常路径');
       expect((await tags.listTags()).map((t) => t.name), ['正常路径']);
       expect(corruptedNames(), isEmpty);
+      // 反向锁：没抢救过就一个字都不许说——把门禁练成哭墙，用户会忽略真的那一次。
+      expect(tags.salvagedOriginalName, isNull);
     });
   });
 }

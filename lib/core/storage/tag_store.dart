@@ -74,6 +74,14 @@ class TagStore {
   bool _unreadableNoted = false;
   bool _corruptPreserved = false;
 
+  /// 已被抢救出来的那份原件的保留件文件名（`.corrupt-*`；没抢救过为 null）。
+  ///
+  /// STO-004 乙（业主 2026-10-16 点名）：这件事以前只进审计，用户看不见——
+  /// 「标签看起来全空了」与「标签被保住了一份可恢复的原件」是两码事，后者必须
+  /// 说出来。本字段只是**给展示层的事实**，判据仍在 `sidecar_read_guard.dart` 一份。
+  String? get salvagedOriginalName => _salvagedOriginalName;
+  String? _salvagedOriginalName;
+
   /// 写尾队列（D-15 修复 2026-09-07）：add/rename/delete 的读-改-写
   /// 串行化——快速连点时并发读改写会相互覆盖丢标签（favorite_store
   /// 同款 _enqueue 模式）。
@@ -199,7 +207,10 @@ class TagStore {
       auditScope: 'tag_registry',
       alreadyPreserved: _corruptPreserved,
     );
-    if (preserved != null) _corruptPreserved = true;
+    if (preserved != null) {
+      _corruptPreserved = true;
+      _salvagedOriginalName ??= File(preserved).uri.pathSegments.last;
+    }
     final r = Random.secure();
     final suffix = hexEncode(List<int>.generate(8, (_) => r.nextInt(256)));
     final tmp = File(

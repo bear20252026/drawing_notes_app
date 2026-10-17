@@ -33,6 +33,12 @@ class FavoriteStore {
   bool _unreadableNoted = false;
   bool _corruptPreserved = false;
 
+  /// 已被抢救出来的那份原件的保留件文件名（`.corrupt-*`；没抢救过为 null）。
+  /// DOC-12 乙（业主 2026-10-16 点名）：与标签注册表的 `salvagedOriginalName` 同一件事、
+  /// 同一个形状——「收藏看起来全空了」必须被说成「旧内容保住了一份原件」。
+  String? get salvagedOriginalName => _salvagedOriginalName;
+  String? _salvagedOriginalName;
+
   /// 写链（P2 修复：add/remove/toggle 的读-改-写非原子——快速连点丢更新）。
   Future<void> _tail = Future<void>.value();
 
@@ -87,7 +93,10 @@ class FavoriteStore {
       auditScope: 'favorites',
       alreadyPreserved: _corruptPreserved,
     );
-    if (preserved != null) _corruptPreserved = true;
+    if (preserved != null) {
+      _corruptPreserved = true;
+      _salvagedOriginalName ??= File(preserved).uri.pathSegments.last;
+    }
     final r = Random.secure();
     final suffix = hexEncode(List<int>.generate(8, (_) => r.nextInt(256)));
     final tmp = File(

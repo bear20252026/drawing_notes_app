@@ -239,6 +239,15 @@
   "@lockOrphanBackupHeld": {
     "description": "用户拒绝重建后的可见回执"
   },
+  "sidecarOriginalKept": "旧内容读不出来，已另存一份原件（{fileName}），本次覆盖没有删掉它。",
+  "@sidecarOriginalKept": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    },
+    "description": "STO-004/DOC-12：侧车注册表读不出来、覆盖前已抢救出原件时的可见回执"
+  },
   "lockBindFailed": "绑定失败，请重试",
   "@lockBindFailed": {
     "description": "绑定失败"

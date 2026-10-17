@@ -52,6 +52,8 @@ import 'package:drawing_notes_app/features/security/presentation/block_doc_passw
 // C-06（审计 2026-09-27）：媒体会话加密服务由组合根 AppServices 持有，
 // shell 自身经 _services.mediaCrypto 使用，不再 import 全局单例。
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
+// STO-004 乙（2026-10-16）：收藏集合读不出来时，覆盖前已抢救出的那份原件要说给用户。
+import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
 
 // C-07（审计 2026-09-27）：app_shell 三职责拆分——路由装配域（open* 方法
 // 群、全量文档查询、密码解锁拦截、命名同源回写）拆入下方 part，本主文件

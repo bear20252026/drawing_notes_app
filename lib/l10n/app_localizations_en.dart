@@ -258,6 +258,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Old vault kept; encrypted content stays unreadable';
 
   @override
+  String sidecarOriginalKept(String fileName) {
+    return 'The old content could not be read. A copy was kept as $fileName; this overwrite did not delete it.';
+  }
+
+  @override
   String get lockBindFailed => 'Binding failed, please retry';
 
   @override

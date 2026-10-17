@@ -249,6 +249,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lockOrphanBackupHeld => '已保留旧保险库，未重建；加密内容暂时解不开';
 
   @override
+  String sidecarOriginalKept(String fileName) {
+    return '旧内容读不出来，已另存一份原件（$fileName），本次覆盖没有删掉它。';
+  }
+
+  @override
   String get lockBindFailed => '绑定失败，请重试';
 
   @override

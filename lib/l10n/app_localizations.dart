@@ -548,6 +548,12 @@ abstract class AppLocalizations {
   /// **'Old vault kept; encrypted content stays unreadable'**
   String get lockOrphanBackupHeld;
 
+  /// STO-004/DOC-12：侧车注册表读不出来、覆盖前已抢救出原件时的可见回执
+  ///
+  /// In en, this message translates to:
+  /// **'The old content could not be read. A copy was kept as {fileName}; this overwrite did not delete it.'**
+  String sidecarOriginalKept(String fileName);
+
   /// 绑定失败
   ///
   /// In en, this message translates to:

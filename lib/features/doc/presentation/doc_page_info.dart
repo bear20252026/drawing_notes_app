@@ -150,6 +150,12 @@ extension _DocPageInfo on _DocPageState {
       );
       if (name == null || name.trim().isEmpty) return;
       final tag = await tagStore.addTag(name);
+      // STO-004 乙（业主 2026-10-16 点名）：加标签是「读全表→追加→整体覆盖」，
+      // 若注册表此前读不出来，覆盖前已经抢救出一份 `.corrupt-*` 原件——这件事
+      // 以前只进审计，用户只看到「标签全空了」。判据与文案只在 `AppSnack` 一处。
+      if (mounted) {
+        AppSnack.showSidecarSalvage(context, tagStore.salvagedOriginalName);
+      }
       if (tag != null && !_doc.tags.contains(tag.id)) {
         await _toggleDocTag(tag.id);
       }
