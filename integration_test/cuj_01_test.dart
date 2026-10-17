@@ -102,9 +102,15 @@ void main() {
       SaveScheduler.autoSaveInterval + const Duration(seconds: 3),
     );
 
-    // 4) Reopen：首页列表找到画作 → 重开 → 内容保留（编辑器标题/工具栏 +
-    // 画布仍有内容——U-001 契约断言 same_stroke_id/same_point_count 由
-    // 真实存储往返验证（设备测试 P-002——integration_test/contracts/cuj01.json）。
+    // 4) Reopen：首页列表找到画作 → 重开 → 画布已装配。
+    //
+    // 契约五条（same_document_id / same_stroke_id / same_point_count / same_bounds /
+    // revision_increases_once）的**执行侧**在 `test/core/storage/cuj01_contract_test.dart`：
+    // 那个用例读这份 `contracts/cuj01.json` 并按名逐条跑真实存储往返，CI 会跑。
+    // 本用例下面那条 `painter isNotNull` 只证明**画布装配了**，不是内容断言——
+    // 第四轮 §23 判 TST2-04 成立的理由正是「画布只要有画就有 painter，与笔画保不保留无关」。
+    // 改成真读数（从 `CanvasPainter.controller.document` 比笔画 id/点数）要动断言逻辑，
+    // 而 `integration_test` 只有真机能跑、CI 从不跑 ⇒ 本批不改，留给业主点头。
     expect(find.text(title), findsOneWidget);
     await tester.tap(find.text(title));
     await tester.pumpAndSettle();
