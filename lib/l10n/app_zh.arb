@@ -219,6 +219,26 @@
   "@lockVaultRebuiltOldBackupKept": {
     "description": "补建保险库时发现旧的主密钥备份并保留"
   },
+  "lockOrphanBackupTitle": "检测到旧保险库备份",
+  "@lockOrphanBackupTitle": {
+    "description": "STO-001：补建之前发现盘上躺着另一世主密钥的备份"
+  },
+  "lockOrphanBackupBody": "盘上有一份旧的保险库备份，但你刚输入的密码打不开它。\n\n以当前密码重建会生成一支全新主密钥：所有既有加密内容都将无法解开（旧备份会先另存一份保留件）。\n\n如果你还记得另一个密码，请选「先不重建」，之后可重试。",
+  "@lockOrphanBackupBody": {
+    "description": "重建保险库前的不可逆告知"
+  },
+  "lockOrphanBackupConfirm": "确认重建",
+  "@lockOrphanBackupConfirm": {
+    "description": "确认以当前密码重建保险库"
+  },
+  "lockOrphanBackupCancel": "先不重建",
+  "@lockOrphanBackupCancel": {
+    "description": "保留旧保险库、不做重建"
+  },
+  "lockOrphanBackupHeld": "已保留旧保险库，未重建；加密内容暂时解不开",
+  "@lockOrphanBackupHeld": {
+    "description": "用户拒绝重建后的可见回执"
+  },
   "lockBindFailed": "绑定失败，请重试",
   "@lockBindFailed": {
     "description": "绑定失败"

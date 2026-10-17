@@ -310,6 +310,26 @@
   "@lockVaultRebuiltOldBackupKept": {
     "description": "补建保险库时发现旧的主密钥备份并保留"
   },
+  "lockOrphanBackupTitle": "Old vault backup detected",
+  "@lockOrphanBackupTitle": {
+    "description": "STO-001：补建之前发现盘上躺着另一世主密钥的备份"
+  },
+  "lockOrphanBackupBody": "An old vault backup is on disk, but the password you just entered does not open it.\n\nRebuilding with the current password creates a brand-new master key: all existing encrypted content becomes unreadable (the old backup is kept as a separate copy first).\n\nIf you remember a different password, choose \"Don't rebuild yet\" and retry later.",
+  "@lockOrphanBackupBody": {
+    "description": "重建保险库前的不可逆告知"
+  },
+  "lockOrphanBackupConfirm": "Rebuild anyway",
+  "@lockOrphanBackupConfirm": {
+    "description": "确认以当前密码重建保险库"
+  },
+  "lockOrphanBackupCancel": "Don't rebuild yet",
+  "@lockOrphanBackupCancel": {
+    "description": "保留旧保险库、不做重建"
+  },
+  "lockOrphanBackupHeld": "Old vault kept; encrypted content stays unreadable",
+  "@lockOrphanBackupHeld": {
+    "description": "用户拒绝重建后的可见回执"
+  },
   "lockBindFailed": "Binding failed, please retry",
   "@lockBindFailed": {
     "description": "绑定失败"

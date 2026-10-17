@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_gate.dart';
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 import 'package:drawing_notes_app/core/security/session_guard.dart'
@@ -720,4 +721,168 @@ void main() {
     await _enterPin(tester, '1357');
     expect(find.text('输入密码'), findsNothing);
   });
+
+  // STO-001 的默认阻断半边（业主 2026-10-16 点名）：盘上躺着**另一世主密钥**的
+  // 备份时，补建必须先问人。`vault_orphan_backup_preserve_test.dart` 钉的是服务层
+  // 「补建前把旧副本抢下来」，这一组钉的是门组件「先试旧那一世 → 解不开才问 →
+  // 不点确认就一支新密钥都不生成」。
+  group('STO-001 补建遇上旧保险库备份：门组件先试旧世、再要显式确认', () {
+    setUp(() => AuditLogger.clear());
+
+    Future<void> pumpGate(WidgetTester tester, VaultKeyService vault) async {
+      final service = await _configuredService('1357');
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AppLockGate(
+            service: service,
+            vault: vault,
+            child: const Scaffold(body: Center(child: Text('SECRET_HOME'))),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('旧那一世能用同一个密码解开 ⇒ 一支新密钥都不生成、不弹确认', (
+      tester,
+    ) async {
+      final vault = _StubVault(orphanBackupOnDisk: true, oldGenerationOpens: true);
+      await pumpGate(tester, vault);
+
+      await _enterPin(tester, '1357');
+      await tester.pumpAndSettle();
+
+      expect(vault.unlockCalls, 1, reason: '先按旧那一世试解——这条腿是本条的全部价值');
+      expect(vault.initializeCalls, 0, reason: '解得开就不许生成新主密钥');
+      expect(find.text('检测到旧保险库备份'), findsNothing);
+      expect(find.text('SECRET_HOME'), findsOneWidget);
+    });
+
+    testWidgets('解不开 ⇒ 弹确认；选「先不重建」则零补建、仍放行进入、回执可见', (
+      tester,
+    ) async {
+      final vault = _StubVault(orphanBackupOnDisk: true);
+      await pumpGate(tester, vault);
+
+      await _enterPin(tester, '1357');
+      await tester.pumpAndSettle();
+
+      expect(find.text('检测到旧保险库备份'), findsOneWidget);
+      // 确认对话框挂着的时候，锁屏**仍在场**（`_unlock()` 排在 verify 返回之后，
+      // 而 verify 正等这个确认）——「没确认就不放行」必须是可观测的，不是注释里说的。
+      expect(find.text('输入密码'), findsOneWidget);
+
+      await tester.tap(find.text('先不重建'));
+      await tester.pumpAndSettle();
+
+      expect(vault.initializeCalls, 0, reason: '不可逆那一步只有用户点名才走');
+      expect(
+        find.text('已保留旧保险库，未重建；加密内容暂时解不开'),
+        findsOneWidget,
+      );
+      // 降级进入的既有口径不变：拒绝放行会让用户连导出/恢复的入口都没有。
+      expect(find.text('SECRET_HOME'), findsOneWidget);
+      expect(
+        AuditLogger.snapshot().any(
+          (l) => l.contains('app_lock.vault_rebuild_declined'),
+        ),
+        isTrue,
+        reason: '「用户选择不重建」也得留痕，否则下次排查只看得到没建库',
+      );
+      await tester.pump(const Duration(seconds: 5));
+    });
+
+    testWidgets('点「确认重建」⇒ 补建恰好一次，并如实回执旧副本已被保留', (
+      tester,
+    ) async {
+      final vault = _StubVault(orphanBackupOnDisk: true);
+      await pumpGate(tester, vault);
+
+      await _enterPin(tester, '1357');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('确认重建'));
+      await tester.pumpAndSettle();
+
+      expect(vault.initializeCalls, 1);
+      expect(
+        find.text('已重新建立密码；检测到旧的保险库备份，已另存一份保留件'),
+        findsOneWidget,
+      );
+      expect(
+        AuditLogger.snapshot().any(
+          (l) => l.contains('app_lock.vault_rebuilt_over_orphan_backup'),
+        ),
+        isTrue,
+      );
+      await tester.pump(const Duration(seconds: 5));
+    });
+
+    testWidgets('反向锁：盘上没有旧备份 ⇒ 正常首建，不许弹确认（别把门禁练成哭墙）', (
+      tester,
+    ) async {
+      final vault = _StubVault(
+        orphanBackupOnDisk: false,
+        initOutcome: VaultInitOutcome.fresh,
+      );
+      await pumpGate(tester, vault);
+
+      await _enterPin(tester, '1357');
+      await tester.pumpAndSettle();
+
+      expect(vault.initializeCalls, 1, reason: '老用户升级首建这条腿不能被新闸门挡住');
+      expect(find.text('检测到旧保险库备份'), findsNothing);
+      expect(find.text('SECRET_HOME'), findsOneWidget);
+    });
+  });
+}
+
+/// STO-001 用例所需的**零真实 IO** 假保险库。
+///
+/// 为什么是替身而不是种盘上文件：`testWidgets` 的 body 跑在假时钟区，门组件里
+/// `isConfigured` / `_readDoc` / `initialize` 任何一步的真实磁盘 Future 都永不
+/// 完成（本文件「保险库解锁失败」那条用 `vaultFileResolver: () => throw` 同样是
+/// 为了避开真实 IO）。盘上形态在这里是被**声明**出来的，不是被制造的。
+class _StubVault extends VaultKeyService {
+  _StubVault({
+    required this.orphanBackupOnDisk,
+    this.oldGenerationOpens = false,
+    this.initOutcome = VaultInitOutcome.preservedOrphanBackup,
+  });
+
+  /// 盘上是否躺着「主文件不在、`.bak` 里是另一世主密钥」的孤儿备份。
+  final bool orphanBackupOnDisk;
+
+  /// 当前 PIN 能不能解开旧那一世（即 `_readDoc` 的 `.bak` 回退腿走不走得通）。
+  final bool oldGenerationOpens;
+
+  final VaultInitOutcome initOutcome;
+
+  int initializeCalls = 0;
+  int unlockCalls = 0;
+  bool _unlocked = false;
+
+  @override
+  bool get isUnlocked => _unlocked;
+
+  @override
+  Future<bool> isConfigured() async => false;
+
+  @override
+  Future<bool> hasOrphanBackupOnDisk() async => orphanBackupOnDisk;
+
+  @override
+  Future<void> unlock(String pin) async {
+    unlockCalls++;
+    if (!oldGenerationOpens) {
+      throw const VaultUnlockException('PIN 错误或密钥载荷被篡改');
+    }
+    _unlocked = true;
+  }
+
+  @override
+  Future<VaultInitOutcome> initialize(String pin) async {
+    initializeCalls++;
+    _unlocked = true;
+    return initOutcome;
+  }
 }

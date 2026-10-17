@@ -241,6 +241,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'Password recreated; a previous vault backup was detected and kept';
 
   @override
+  String get lockOrphanBackupTitle => 'Old vault backup detected';
+
+  @override
+  String get lockOrphanBackupBody =>
+      'An old vault backup is on disk, but the password you just entered does not open it.\n\nRebuilding with the current password creates a brand-new master key: all existing encrypted content becomes unreadable (the old backup is kept as a separate copy first).\n\nIf you remember a different password, choose \"Don\'t rebuild yet\" and retry later.';
+
+  @override
+  String get lockOrphanBackupConfirm => 'Rebuild anyway';
+
+  @override
+  String get lockOrphanBackupCancel => 'Don\'t rebuild yet';
+
+  @override
+  String get lockOrphanBackupHeld =>
+      'Old vault kept; encrypted content stays unreadable';
+
+  @override
   String get lockBindFailed => 'Binding failed, please retry';
 
   @override

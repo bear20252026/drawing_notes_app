@@ -12,8 +12,9 @@
 //
 // 本批按 §5 的口径只做**可观测 + 不留销毁**那半边：补建之前先把 `.bak` **复制**成
 // 保留件（复制不移动——移动会顺手拆掉 `_readDoc` 那条唯一还能解旧内容的回退腿），
-// 前后各落一条审计，并把这件事说给用户听。「盘上有旧备份就**拒绝**自动补建」属产品
-// 裁决，需点名，本文件不钉它。
+// 前后各落一条审计，并把这件事说给用户听。「盘上有旧备份就**拒绝**自动补建」已由
+// 业主 2026-10-16 点名（取「先试旧那一世，解不开再要显式确认」那一档），门组件那
+// 半边钉在 `app_lock_gate_test.dart` 的 STO-001 组，本文件只钉服务层的判据与副本。
 //
 // 突变自证：
 //  T1 检测到却**不保留**（去掉 `_preserveOrphanBackup()` 那一次调用）
@@ -185,6 +186,40 @@ void main() {
       expect(await service.initialize('9527'), VaultInitOutcome.fresh);
       expect(preservedFiles(), isEmpty);
       expect(service.isUnlocked, isTrue, reason: '坏备份不能把补建本身拖住');
+    });
+
+    test('判据 API `hasOrphanBackupOnDisk`：只在孤儿那一格为真', () async {
+      // 门组件靠它在**动手之前**问用户，所以判据必须与 `initialize` 内部那次检测
+      // 逐字同形（同一份 `_orphanBackupDoc`），否则「问了却不必问」会反过来练成哭墙。
+      expect(
+        await newService().hasOrphanBackupOnDisk(),
+        isFalse,
+        reason: '干净首建（全新装）不许报警',
+      );
+
+      await seedOrphanBackup();
+      expect(
+        await newService().hasOrphanBackupOnDisk(),
+        isTrue,
+        reason: '主文件不在、.bak 是另一世 ⇒ 这正是必须问用户的那一格',
+      );
+
+      final cold = newService();
+      await cold.initialize('9527');
+      expect(
+        await newService().hasOrphanBackupOnDisk(),
+        isFalse,
+        reason: '补建之后主文件在场 ⇒ 旧副本不再是「唯一句柄」，别再重复报警',
+      );
+
+      cold.lock();
+      File(vaultFile.path).deleteSync();
+      File('${vaultFile.path}.bak').writeAsStringSync('{"slots": [ 坏掉的');
+      expect(
+        await newService().hasOrphanBackupOnDisk(),
+        isFalse,
+        reason: '坏 JSON 不算「另一世主密钥」——没有值得保住的东西',
+      );
     });
   });
 }

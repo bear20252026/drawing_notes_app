@@ -233,6 +233,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lockVaultRebuiltOldBackupKept => '已重新建立密码；检测到旧的保险库备份，已另存一份保留件';
 
   @override
+  String get lockOrphanBackupTitle => '检测到旧保险库备份';
+
+  @override
+  String get lockOrphanBackupBody =>
+      '盘上有一份旧的保险库备份，但你刚输入的密码打不开它。\n\n以当前密码重建会生成一支全新主密钥：所有既有加密内容都将无法解开（旧备份会先另存一份保留件）。\n\n如果你还记得另一个密码，请选「先不重建」，之后可重试。';
+
+  @override
+  String get lockOrphanBackupConfirm => '确认重建';
+
+  @override
+  String get lockOrphanBackupCancel => '先不重建';
+
+  @override
+  String get lockOrphanBackupHeld => '已保留旧保险库，未重建；加密内容暂时解不开';
+
+  @override
   String get lockBindFailed => '绑定失败，请重试';
 
   @override

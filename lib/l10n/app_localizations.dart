@@ -518,6 +518,36 @@ abstract class AppLocalizations {
   /// **'Password recreated; a previous vault backup was detected and kept'**
   String get lockVaultRebuiltOldBackupKept;
 
+  /// STO-001：补建之前发现盘上躺着另一世主密钥的备份
+  ///
+  /// In en, this message translates to:
+  /// **'Old vault backup detected'**
+  String get lockOrphanBackupTitle;
+
+  /// 重建保险库前的不可逆告知
+  ///
+  /// In en, this message translates to:
+  /// **'An old vault backup is on disk, but the password you just entered does not open it.\n\nRebuilding with the current password creates a brand-new master key: all existing encrypted content becomes unreadable (the old backup is kept as a separate copy first).\n\nIf you remember a different password, choose \"Don\'t rebuild yet\" and retry later.'**
+  String get lockOrphanBackupBody;
+
+  /// 确认以当前密码重建保险库
+  ///
+  /// In en, this message translates to:
+  /// **'Rebuild anyway'**
+  String get lockOrphanBackupConfirm;
+
+  /// 保留旧保险库、不做重建
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t rebuild yet'**
+  String get lockOrphanBackupCancel;
+
+  /// 用户拒绝重建后的可见回执
+  ///
+  /// In en, this message translates to:
+  /// **'Old vault kept; encrypted content stays unreadable'**
+  String get lockOrphanBackupHeld;
+
   /// 绑定失败
   ///
   /// In en, this message translates to:

@@ -56,6 +56,9 @@ import 'package:drawing_notes_app/shared/widgets/pin_pad.dart' show PinPadCore;
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
 
+part 'app_lock_gate_views.dart';
+
+
 /// 应用启动锁门组件。
 ///
 /// 用法（组合根）：
@@ -538,25 +541,19 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     try {
       if (await vault.isConfigured()) {
         if (!vault.isUnlocked) await vault.unlock(pin);
+      } else if (await vault.hasOrphanBackupOnDisk()) {
+        // STO-001 的默认阻断半边（业主 2026-10-16 点名「补建需显式确认」那一档）。
+        // 先按**旧那一世**试解：`_readDoc` 有 `.bak` 回退腿，同一个密码很可能直接
+        // 就能解开旧库——解得开就一支新密钥都不用生成。解不开才去问用户，因为
+        // [VaultKeyService.initialize] 生成的是全新随机主密钥，落笔之后既有密文
+        // 全部永久解不开（`.bak` 也会在下一次保险库写入时被盖掉）。
+        if (!await _tryUnlockOldGeneration(vault, pin)) {
+          if (!await _confirmRebuildOverOrphanBackup()) return;
+          await _initializeVaultAndReport(vault, pin);
+        }
       } else {
         // 老用户升级：已有 PIN 但尚无保险库 → 以同一位 PIN 补建。
-        final outcome = await vault.initialize(pin);
-        if (outcome == VaultInitOutcome.preservedOrphanBackup) {
-          // STO-001 的可观测半边：补建这一刻盘上其实躺着**另一支主密钥**的包装
-          // （主文件不在、`.bak` 里是一份能解析的保险库文档），而 `isConfigured()`
-          // 只看主文件，所以这条路径对用户长得和「从没设过密码」一模一样。服务层已
-          // 把旧副本另存为 `<vault>.bak.preserved-*`；这里把它说给用户听——静默补建
-          // 才是本条审计项的真正伤害：用户以为「重新设一次密码就好」。
-          AuditLogger.log(
-            'app_lock.vault_rebuilt_over_orphan_backup',
-            success: false,
-          );
-          if (!mounted) return;
-          _snack(
-            AppLocalizations.of(context)?.lockVaultRebuiltOldBackupKept ??
-                '已重新建立密码；检测到旧的保险库备份，已另存一份保留件',
-          );
-        }
+        await _initializeVaultAndReport(vault, pin);
       }
     } catch (error) {
       // 不阻塞进入 UI（保险库异常时应用仍可读明文），但**必须让用户看见**：
@@ -580,6 +577,67 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
             '保险库解锁失败，请重试',
       );
     }
+  }
+
+  /// 用当前 PIN 试解盘上那份**旧那一世**的保险库（走 `_readDoc` 的 `.bak` 回退腿）。
+  /// 解得开 ⇒ 主密钥到手、一支新密钥都不生成；解不开 ⇒ false，由调用方去问用户。
+  /// 只吞 [VaultUnlockException]（那正是「PIN 与旧副本不匹配」的判据本身），其余
+  /// 异常照旧上抛给 `_unlockVault` 的 catch——IO 错误不能伪装成「密码不对」。
+  Future<bool> _tryUnlockOldGeneration(
+    VaultKeyService vault,
+    String pin,
+  ) async {
+    try {
+      await vault.unlock(pin);
+      return true;
+    } on VaultUnlockException {
+      return false;
+    }
+  }
+
+  /// 「以当前密码重建保险库」的显式确认——不可逆，默认拒绝。
+  /// 用户不重建时仍放行进入 UI（与保险库异常同口径：连导出/恢复的入口都得留着）。
+  Future<bool> _confirmRebuildOverOrphanBackup() async {
+    if (!mounted) return false;
+    final l10n = AppLocalizations.of(context);
+    final proceed = await GlassDialog.confirm(
+      context,
+      title: l10n?.lockOrphanBackupTitle ?? '检测到旧保险库备份',
+      content: l10n?.lockOrphanBackupBody ??
+          '盘上有一份旧的保险库备份，但你刚输入的密码打不开它。\n\n'
+              '以当前密码重建会生成一支全新主密钥：所有既有加密内容都将无法解开'
+              '（旧备份会先另存一份保留件）。\n\n'
+              '如果你还记得另一个密码，请选「先不重建」，之后可重试。',
+      confirmText: l10n?.lockOrphanBackupConfirm ?? '确认重建',
+      cancelText: l10n?.lockOrphanBackupCancel ?? '先不重建',
+      dangerous: true,
+    );
+    if (proceed) return true;
+    AuditLogger.log('app_lock.vault_rebuild_declined', success: false);
+    if (mounted) {
+      _snack(
+        l10n?.lockOrphanBackupHeld ?? '已保留旧保险库，未重建；加密内容暂时解不开',
+      );
+    }
+    return false;
+  }
+
+  /// 补建，并如实报告「这次补建盖住了另一世的主密钥」（STO-001 的可观测半边）。
+  Future<void> _initializeVaultAndReport(
+    VaultKeyService vault,
+    String pin,
+  ) async {
+    final outcome = await vault.initialize(pin);
+    if (outcome != VaultInitOutcome.preservedOrphanBackup) return;
+    AuditLogger.log(
+      'app_lock.vault_rebuilt_over_orphan_backup',
+      success: false,
+    );
+    if (!mounted) return;
+    _snack(
+      AppLocalizations.of(context)?.lockVaultRebuiltOldBackupKept ??
+          '已重新建立密码；检测到旧的保险库备份，已另存一份保留件',
+    );
   }
 
   @override
@@ -682,275 +740,6 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
             ),
           ),
       ],
-    );
-  }
-}
-
-/// 桌面物理键盘密码槽（P2 可达性修复，2026-10-03）。
-///
-/// 嵌在 [PinPadCore] 标题/圆点区之下、九宫格之上，只补「物理键盘直接敲
-/// 密码」这一条通道——九宫格仍在原位，鼠标点按与触屏点按零改动（三输入
-/// 并行，不删任何入口）。语义严格对齐九宫格：
-/// - 纯数字（digitsOnly）+ 长度上限 = 当前开屏 PIN 长度（4–12），输满自动
-///   提交（与九宫格「输满即校验」同拍）；
-/// - 提交一律经 [onSubmit] → `AppLockService.verify`：防爆破失败计数与
-///   指数冷却照常生效，键盘路径**不构成旁路**；
-/// - 校验失败原地清空 + 显示错误，锁屏不关闭（错误凭据不可能被上层当成
-///   已验证）；
-/// - 空串/长度不足就地提示，不发校验（不白耗一次失败计数）。
-///
-/// 「失去焦点立即锁定」的会话守卫（[SessionGuard] 走 AppLifecycleListener
-/// onInactive，即窗口/应用级失焦）与本组件的焦点无关：TextField 内部焦点
-/// 不会触发 onInactive，故新增输入框不改变该交互。
-class _DesktopPinField extends StatefulWidget {
-  const _DesktopPinField({required this.pinLength, required this.onSubmit});
-
-  final int pinLength;
-  final Future<bool> Function(String pin) onSubmit;
-
-  @override
-  State<_DesktopPinField> createState() => _DesktopPinFieldState();
-}
-
-class _DesktopPinFieldState extends State<_DesktopPinField> {
-  final TextEditingController _controller = TextEditingController();
-  final FocusNode _focus = FocusNode();
-  String? _errorText;
-
-  /// 在途校验标记：输满自动提交与「解锁」按钮可能同帧撞车，重复提交会
-  /// 让同一凭据走两次 verify（= 白耗一次失败计数）。
-  bool _submitting = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // 锁屏出现即聚焦（与桌面解锁对话框同纪律）。post-frame 回调可能在
-    // 同帧拆树之后才跑（如解锁瞬间撤锁屏），届时 _focus 已 dispose。
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _focus.requestFocus();
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focus.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (_submitting) return;
-    final pin = _controller.text;
-    final l10n = AppLocalizations.of(context);
-    if (pin.isEmpty) {
-      setState(() => _errorText = l10n?.passwordEmptyHint ?? '密码不能为空');
-      return;
-    }
-    if (pin.length != widget.pinLength) {
-      setState(
-        () => _errorText =
-            l10n?.pinDigitsCount(
-              pin.length,
-              widget.pinLength,
-              widget.pinLength,
-            ) ??
-            '密码长度不足',
-      );
-      return;
-    }
-    _submitting = true;
-    final ok = await widget.onSubmit(pin);
-    if (!mounted) return;
-    _submitting = false;
-    _controller.clear();
-    if (ok) return; // 门组件随即撤掉锁屏
-    setState(() => _errorText = l10n?.unlockPasswordWrong ?? '密码不正确');
-    _focus.requestFocus();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: TextField(
-            controller: _controller,
-            focusNode: _focus,
-            obscureText: true,
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(widget.pinLength),
-            ],
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => _submit(),
-            // 输满即校验（与九宫格同一拍），中途不校验（否则每次都记失败）。
-            onChanged: (value) {
-              setState(() => _errorText = null);
-              if (value.length == widget.pinLength) _submit();
-            },
-            style: AppleType.bodyStyle(Colors.white),
-            decoration: InputDecoration(
-              hintText: AppLocalizations.of(context)?.commonPassword ?? '密码',
-              errorText: _errorText,
-              errorStyle: AppleType.captionStyle(const Color(0xFFFF6B6B)),
-              counterText: AppLocalizations.of(context)?.pinDigitsCount(
-                _controller.text.length,
-                widget.pinLength,
-                widget.pinLength,
-              ),
-              filled: true,
-              fillColor: Colors.white.withValues(alpha: 0.14),
-              border: const OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(AppleRadius.xs)),
-              ),
-              enabledBorder: const OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(AppleRadius.xs)),
-                borderSide: BorderSide(color: Colors.white24),
-              ),
-              focusedBorder: const OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(AppleRadius.xs)),
-                borderSide: BorderSide(color: Colors.white54),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: AppleSpacing.xs),
-        // 鼠标/触屏等价入口（三输入硬性要求）：≥44 高。
-        FilledButton(
-          onPressed: _submit,
-          style: FilledButton.styleFrom(
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            minimumSize: const Size(88, 44),
-          ),
-          child: Text(
-            AppLocalizations.of(context)?.unlock ?? '解锁',
-            style: AppleType.bodyStyle(Colors.white),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// 批次③：冷却倒计时面板（视觉与 PinPadCore 锁屏一致：模糊 + 深色底）。
-/// 每秒自检；冷却结束回调父级切回密码盘。
-class _CooldownView extends StatefulWidget {
-  const _CooldownView({required this.service, required this.onExpired});
-
-  final AppLockService service;
-  final VoidCallback onExpired;
-
-  @override
-  State<_CooldownView> createState() => _CooldownViewState();
-}
-
-class _CooldownViewState extends State<_CooldownView> {
-  Timer? _ticker;
-
-  /// U3 P1-11：每秒跳动的 tick 计数——仅驱动内层 [_RemainingText]
-  /// 重建，父层 BackdropFilter/ClipRect/Column 静态子树不再每秒重建。
-  final ValueNotifier<int> _tick = ValueNotifier<int>(0);
-
-  @override
-  void initState() {
-    super.initState();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      if (!widget.service.isLockedOut) {
-        widget.onExpired();
-      } else {
-        _tick.value++; // 刷新倒计时（原 setState 整层重建已下沉）
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _ticker?.cancel();
-    _tick.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRect(
-      child: BackdropFilter(
-        // U3 P1-11：sigma 30→18——视觉差异极小，GPU 模糊开销显著降低。
-        filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: Container(
-          color: Colors.black.withValues(alpha: 0.38),
-          child: SafeArea(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.hourglass_top_rounded,
-                  color: Colors.white,
-                  size: 44,
-                ),
-                const SizedBox(height: AppleSpacing.md),
-                // 19 无档位：titleStyle 基底 + copyWith 保留原字号。
-                Text(
-                  AppLocalizations.of(context)?.lockTooManyAttempts ?? '尝试次数过多',
-                  style: AppleType.titleStyle(Colors.white)
-                      .copyWith(fontSize: 19),
-                ),
-                const SizedBox(height: AppleSpacing.xs),
-                _RemainingText(service: widget.service, tick: _tick),
-                const SizedBox(height: AppleSpacing.xxs),
-                Text(
-                  AppLocalizations.of(context)?.lockTemporarilyLocked ??
-                      '为防止暴力猜测，密码验证已暂时锁定',
-                  style: AppleType.captionStyle(
-                    Colors.white.withValues(alpha: 0.55),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 冷却倒计时文本（U3 P1-11：下沉为内部小 widget）。
-///
-/// 每秒 tick 只重建这一行 Text，不再拖动整个模糊面板。
-class _RemainingText extends StatelessWidget {
-  const _RemainingText({required this.service, required this.tick});
-
-  final AppLockService service;
-  final ValueNotifier<int> tick;
-
-  String _format(BuildContext context, Duration remaining) {
-    final minutes = remaining.inMinutes;
-    final seconds = remaining.inSeconds % 60;
-    if (minutes >= 60) {
-      final hours = remaining.inHours;
-      final mins = minutes % 60;
-      return AppLocalizations.of(context)?.lockDurHoursMins(hours, mins) ??
-          '$hours 小时 $mins 分';
-    }
-    return AppLocalizations.of(context)?.lockDurMinsSecs(minutes, seconds) ??
-        '$minutes 分 $seconds 秒';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<int>(
-      valueListenable: tick,
-      builder: (context, _, _) {
-        return Text(
-          AppLocalizations.of(
-                context,
-              )?.lockRetryAfter(_format(context, service.lockoutRemaining)) ??
-              '请在 ${_format(context, service.lockoutRemaining)} 后重试',
-          style: AppleType.bodyStyle(Colors.white.withValues(alpha: 0.82)),
-        );
-      },
     );
   }
 }

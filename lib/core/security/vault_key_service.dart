@@ -197,6 +197,13 @@ class VaultKeyService {
         : VaultInitOutcome.preservedOrphanBackup;
   }
 
+  /// 盘上是否躺着「主文件不在、`.bak` 里是一份能解析的保险库文档」的孤儿备份。
+  ///
+  /// 给锁门在**动手之前**问用户用（STO-001）：`isConfigured()` 只看主文件，所以
+  /// 「补建会盖掉另一世主密钥」这件事上层光靠 `isConfigured()` 永远看不见，而
+  /// [initialize] 一旦生成新主密钥，既有密文就再也解不开了。
+  Future<bool> hasOrphanBackupOnDisk() async => (await _orphanBackupDoc()) != null;
+
   /// 盘上那份「主文件不在、`.bak` 里是一份能解析的保险库文档」的孤儿备份（无则 null）。
   ///
   /// 判据与 [_readDoc] 的回退腿同形（v2+ 看 `slots`，v1 看顶层 `salt`/`wrapped`），
