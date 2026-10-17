@@ -23,11 +23,21 @@ code-guard.yml（六 job）
 ├── skylos-dart-gates     # 安全域阻断（--gate --secrets）+ 死代码域仅报告（--danger）
 ├── open-code-review      # 行级语义评审（智谱 glm-5.2 优先，白名单目录）
 ├── python-tools-gates    # py-cq + pyscn（tools/ Python 域）
-├── repopilot-gate        # diff 证据门禁（--fail-on-review definitely）
+├── repopilot-gate        # diff 证据门禁（--fail-on-review none，见 code-guard.yml:356）
 └── desloppify-gate       # Dart 健康门禁（objective ≥ 60）
 + ci.yml
-  └── analyze-and-test    # flutter analyze（零问题）+ flutter test（249 项基线）
+  └── analyze-and-test    # flutter analyze（零问题）+ flutter test（全量，条数以当次 CI 实录为准）
 ```
+
+> 两处陈述与代码不符已按 2026-10-17 的逐行回读更正：本文此前把 repopilot 写成
+> `--fail-on-review definitely`（实参是 `none`——definitely 级信号需人工确认，自动作业里
+> 无法确认，所以刻意不阻断；findings 那条轴 `--fail-on` 仍在阻断），以及把全量测试写成
+> 「249 项基线」（本仓 CI 实录：10-06 是 2219 通过/1 红，10-14 是 2415）。
+>
+> 还有一条要知道的**边界**（同日回读，属现状不是承诺）：`line-count-gates` 里那步「内置回退检查」
+> 没有 `if: always()`，而上一步是 `sloc-guard … || exit $?` ⇒ sloc-guard 一旦失败，作业当场结束，
+> 这条「兜底」在**失败路径上从不执行**（步骤自身又是 `continue-on-error: true` + `|| true`，
+> 双重不阻断）。所以「Rust 工具不可用仍能发现超限文件」这句只在 sloc-guard **正常退出**时成立。
 
 **判定规则**：
 - 任一 job 失败 → PR 标记"需修复"；修复后重跑
@@ -82,10 +92,10 @@ code-guard.yml（六 job）
 
 | 产物 | 位置 | 保留期 |
 | --- | --- | --- |
-| CI 门禁输出（SARIF/JSON） | GitHub Actions artifacts | 永久 |
-| OCR 评审评论 | PR 页面 + artifacts/ocr-reviews/ | 永久 |
+| CI 门禁输出（SARIF/JSON） | GitHub Actions artifacts | GitHub 默认 90 天（本仓全部 workflow 均未设 `retention-days`，2026-10-17 实测 grep 零命中——原写「永久」无依据） |
+| OCR 评审评论 | PR 页面（GitHub 侧）+ artifacts/ocr-reviews/ | PR 页面随 PR 存在；artifacts 同上 90 天 |
 | 技术债清单（desloppify 报告等） | docs/ 或看板 | 持续更新 |
-| 门禁运行周报 | 每周汇总 | 永久 |
+| 门禁运行周报 | **尚未建立** | 原写「每周汇总 / 永久」，但 `.github/workflows/` 里 `schedule`/`cron` 零命中（2026-10-17）⇒ 那条产物从来不存在 |
 
 ## 七、违规处理
 
@@ -93,7 +103,7 @@ code-guard.yml（六 job）
 | --- | --- |
 | 涉密上传 | 终止 + 上报 + 排查历史 |
 | 门禁豁免未经批准 | 回滚豁免 + 记录 |
-| 评论长期无人认领（>7 天） | 周报跟踪 |
+| 评论长期无人认领（>7 天） | 暂无自动跟踪（原写「周报跟踪」，依赖上一条不存在的周报）；现由下一轮全仓审计点名 |
 
 ## 八、落地检查清单（合并前自检）
 
