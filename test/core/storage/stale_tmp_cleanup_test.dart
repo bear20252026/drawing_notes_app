@@ -58,6 +58,7 @@ import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/stale_tmp_cleanup.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
+import 'package:drawing_notes_app/core/utils/hex_encode.dart';
 
 import '../../helpers/temp_dir_cleanup.dart';
 
@@ -259,4 +260,97 @@ void main() {
       expect(header.existsSync(), isTrue, reason: '正式块文档永不被清扫碰');
     });
   });
+  // ─────────────── 第二族（R41）：`<目标>.tmp.<微秒>.<16 位十六进制>` ───────────────
+  //
+  // R18 当时把这一族**刻意留在外面**（文件头原话：「它要的是另一套授权边界」），
+  // 于是 5 处生产者写出的孤儿 tmp 至今没人回收：`tag_store.dart:217`、
+  // `favorite_store.dart:103`、`file_sync_baseline_store.dart:68`、
+  // `file_sync_push_waiver_store.dart:60`、`vfs/encrypted_vault.dart:345`。
+  // 这一组就是那套边界：它比第一族**更窄**——十六进制尾巴钉死 16 位（实测五处的尾巴
+  // 全部来自 `hexEncode(8 字节)`），宁可将来生成器改长度时停止回收，也不放宽去误删。
+  group('第二族：形状、互斥与接线', () {
+    /// 名字按**生产者的做法**拼：尾巴由 `hexEncode` 现产，判据与写腿共用一份形状定义，
+    /// 谁改了字节数另一头就红（而不是悄悄少扫五个生产者）。
+    String suffixOrphan(String target, {int bytes = 8}) =>
+        '$target.tmp.${DateTime.now().microsecondsSinceEpoch}.'
+        '${hexEncode(List<int>.filled(bytes, 0))}';
+
+    test('判据表：正控与反向锁都不许缩水', () {
+      final shapes = <(String, bool)>[
+        // ── 该删 ──
+        ('all_docs_tags.json.tmp.1721123456789012.1a2b3c4d5e6f7a89', true),
+        (
+          'objects/media/note-1.tmp.1721123456789012.abcdef0123456789',
+          true,
+        ), // 保险库对象的落点
+        (suffixOrphan('sync_state.json'), true),
+        // ── 不该删（每一格都对应一种「放宽后会误删」的方向）──
+        ('live.json', false),
+        ('d.json.bak', false),
+        ('somebody-else.tmp', false),
+        // 第一族的名字：归另一条判据管，这里必须 false（互斥，见下一条用例）
+        ('a.json.write_hlzc0xjyt5_0019_0qc7mzs.tmp', false),
+        ('x.tmp.1721123456789012.ab12cd34', false), // 8 位十六进制：比实测形状短 ⇒ 不猜、不放宽
+        ('x.tmp.1721123456789012.1a2b3c4d5e6f7a890', false), // 17 位：同样不是本仓的形状
+        ('x.tmp.1721123456789012.1a2b3c4d5e6f7a8Z', false), // 非十六进制字符
+        ('x.tmp.1721123456789012.1A2B3C4D5E6F7A89', false), // 大写：生产者只出小写
+        ('x.tmp.1a2b3c4d5e6f7a89', false), // 缺时间段
+        ('x.tmp.1721123456789012.1a2b3c4d5e6f7a89.json', false), // 尾巴还跟着扩展名
+        ('.tmp.1721123456789012.1a2b3c4d5e6f7a89', false), // 目标名为空
+      ];
+      expect(shapes.length, greaterThanOrEqualTo(14), reason: '表本身缩水了');
+      expect(
+        shapes.where((e) => e.$2).length,
+        greaterThanOrEqualTo(3),
+        reason: '正控不足⇒「什么都不删」也能全绿',
+      );
+      expect(
+        shapes.where((e) => !e.$2).length,
+        greaterThanOrEqualTo(8),
+        reason: '反向锁不足⇒「含 .tmp. 就删」也能全绿',
+      );
+      for (final (name, want) in shapes) {
+        expect(isStaleSuffixTempName(name), want, reason: '$name 应为 $want');
+      }
+    });
+
+    test('两族互斥：谁也不替谁做主（并成一条「含 .tmp. 就删」要在这里红）', () {
+      const familyOne = 'a.json.write_hlzc0xjyt5_0019_0qc7mzs.tmp';
+      const familyTwo =
+          'all_docs_tags.json.tmp.1721123456789012.1a2b3c4d5e6f7a89';
+      expect(isStaleLocalIdTempName(familyOne), isTrue);
+      expect(isStaleSuffixTempName(familyOne), isFalse);
+      expect(isStaleLocalIdTempName(familyTwo), isFalse);
+      expect(isStaleSuffixTempName(familyTwo), isTrue);
+      // 总判据把两族都接住——少了任何一族就是「修一条漏五处」复发。
+      expect(isStaleTempName(familyOne), isTrue);
+      expect(isStaleTempName(familyTwo), isTrue);
+      expect(isStaleTempName('notes.json'), isFalse);
+    });
+
+    test('接线：数据根递归扫把侧车与 objects/ 两种落点都收掉，新鲜的留着', () async {
+      final sidecar = await put(suffixOrphan('all_docs_tags.json'), age: stale);
+      final vaultObject = await put(
+        'objects/media/${suffixOrphan('note-1.bin')}',
+        age: stale,
+      );
+      final inflight = await put(suffixOrphan('sync_state.json'));
+
+      expect(
+        await sweepStaleTempFiles(root, auditScope: 'r41', recursive: true),
+        2,
+      );
+      expect(sidecar.existsSync(), isFalse, reason: '标签侧车的孤儿从此有人回收');
+      expect(vaultObject.existsSync(), isFalse, reason: '保险库对象落在子目录，只能靠递归');
+      expect(inflight.existsSync(), isTrue, reason: '在途写入不能抢删（②）');
+      expect(
+        AuditLogger.snapshot().any(
+          (l) => l.contains('storage.stale_tmp_swept') && l.contains('r41:n=2'),
+        ),
+        isTrue,
+        reason: '删过就要留下可查的记录',
+      );
+    });
+  });
+
 }
