@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
+import 'package:drawing_notes_app/core/utils/single_instance.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'app.dart';
@@ -17,90 +18,30 @@ import 'l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/shared/widgets/liquid_glass_shader.dart';
 
-/// 单实例锁（借鉴 QOwnNotes 二次启动聚焦：
-/// Windows 桌面重复启动时检测已有实例并退出，避免多窗口混乱）。
+/// 单实例检测（ASM-02）。策略与三条现状写在
+/// `core/utils/single_instance.dart` 文件头：**并存、不阻断、只上报事实**。
 ///
-/// 实现：以"原子创建锁文件"（`File.create(exclusive: true)`）作为互斥——
-/// 第二个实例创建失败即判定已有实例并退出（评审发现 P3 修复：
-/// 原 `RandomAccessFile.lock()` 在 POSIX 上会阻塞挂起，而非立即失败）。
-/// 锁文件写入启动进程的 PID；下次启动若发现 PID 已不存活，则清理陈旧锁
-/// 后重试，避免上次异常退出留下的残留锁导致永远无法启动。
-///
-/// Android 上由系统管理应用生命周期，本机制自然退化为"始终通过"。
-File? _instanceLockFile;
+/// 历史教训（也是为什么这里刻意没有任何 `return`）：曾经的做法是「检测到已有实例
+/// 就退出」，用户反馈回来的原话是「应用打不开 / 工具栏全用不了」——残留锁或 PID
+/// 误判会让第二个实例**静默**起不来。Android 上由系统管理生命周期，本机制自然退化。
+SingleInstanceLock? _instanceLock;
 
-/// 是否持有单实例锁（供调试/退出时释放）。
-bool get holdsInstanceLock => _instanceLockFile != null;
+/// 是否持有单实例锁（诊断用；**今天零调用方**，台账 §24 已登记，删它需点名）。
+bool get holdsInstanceLock => _instanceLock?.holdsLock ?? false;
 
-/// 释放单实例锁（应用正常退出时调用，删除锁文件）。
+/// 释放单实例锁（**今天零调用方**：桌面端没有可靠的退出钩子，见模块文件头①）。
 Future<void> releaseInstanceLock() async {
-  try {
-    await _instanceLockFile?.delete();
-  } catch (_) {
-    // 删除失败忽略（锁文件由 OS 进程退出自动清理语义兜底）。
-  }
-  _instanceLockFile = null;
+  await _instanceLock?.release();
 }
 
-/// 获取应用数据目录下的锁文件路径。
-Future<File> _lockFile() async {
+/// 取锁。**任何返回值都继续启动**。
+Future<SingleInstanceStatus> _acquireSingleInstance() async {
   final dir = await getApplicationSupportDirectory();
-  return File('${dir.path}${Platform.pathSeparator}app.lock');
-}
-
-/// 尝试获取单实例锁（尽力而为，绝不阻塞启动）。
-///
-/// 修复用户反馈"应用打不开/工具栏全用不了"的根因：原实现检测到已有
-/// 实例时**静默退出**（main 直接 return），配合残留 app.lock 或 PID
-/// 存活误判，用户双击图标毫无反应，表现为"所有功能都用不了"。
-/// 现改为：锁获取失败不退出，正常启动（本地单机工具允许多实例无害）。
-Future<bool> _acquireSingleInstance() async {
-  try {
-    final lockFile = await _lockFile();
-    // 残留锁清理：读取 PID，若进程已不存活则删除陈旧锁。
-    if (lockFile.existsSync()) {
-      final pid = int.tryParse((await lockFile.readAsString()).trim());
-      if (pid != null && !await _isProcessAlive(pid)) {
-        try {
-          await lockFile.delete();
-        } catch (_) {
-          // 清理失败忽略。
-        }
-      }
-    }
-    try {
-      final created = await lockFile.create(exclusive: true);
-      await created.writeAsString(pid.toString(), flush: true);
-      _instanceLockFile = created;
-    } catch (_) {
-      // 已有存活实例（锁被占用）：不退出，正常启动。
-    }
-    return true;
-  } catch (_) {
-    // 任何异常都不阻塞启动。
-    return true;
-  }
-}
-
-/// 判断进程 [pid] 是否存活（Windows: tasklist；POSIX: kill -0）。
-/// P2 修复：① pid 越界（≤0/超大）直接按不存活处理，不 spawn 子进程；
-/// ② tasklist 输出子串匹配（`2` 命中 `1232`）误判存活→改整词匹配。
-Future<bool> _isProcessAlive(int pid) async {
-  if (pid <= 0 || pid > 4194304) return false;
-  try {
-    if (Platform.isWindows) {
-      final r = await Process.run('tasklist', ['/FI', 'PID eq $pid', '/NH']);
-      // tasklist /NH 行如 `app.exe  1232 Console ...`——按词边界匹配。
-      final found = RegExp('(^|\\s)$pid(\\s|\$)')
-          .hasMatch(r.stdout.toString().replaceAll(',', ''));
-      return found;
-    }
-    final r = await Process.run('kill', ['-0', '$pid']);
-    return r.exitCode == 0;
-  } catch (_) {
-    // 无法判断时保守视为存活（避免误清活跃实例的锁）。
-    return true;
-  }
+  final lock = SingleInstanceLock(
+    lockFile: File('${dir.path}${Platform.pathSeparator}app.lock'),
+  );
+  _instanceLock = lock;
+  return lock.acquire();
 }
 
 /// 应用入口。
@@ -141,9 +82,16 @@ Future<void> main() async {
     );
     return const _BuildErrorFallback();
   };
-  // 二次启动检测：已有实例则直接退出（桌面单实例）。
-  if (!await _acquireSingleInstance()) {
-    return;
+  // ASM-02：二次启动检测。**这里没有任何 return**——把检测结果当事实上报，
+  // 不当闸门（旧写法「已有实例就退出」被用户投诉成「应用打不开」，理由全写在
+  // core/utils/single_instance.dart 文件头）。判不出来时也不谎报成「有另一个实例」。
+  final instanceStatus = await _acquireSingleInstance();
+  if (instanceStatus != SingleInstanceStatus.acquired) {
+    AuditLogger.log(
+      'app.instance_${instanceStatus.name}',
+      success: true,
+      detail: 'startup_continues',
+    );
   }
   // 批次 M（2026-09-27）：应用「从备份恢复」的落地步——此刻无任何存储
   // 打开，原子交换目录最安全。失败不阻塞启动（fail-safe，标记保留）。
