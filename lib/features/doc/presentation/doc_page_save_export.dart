@@ -70,19 +70,29 @@ extension _DocPageSaveExport on _DocPageState {
   }
 
   /// 导出门禁（P1-M1）：md/html/pdf 均需白名单放行，fail-closed。
+  ///
+  /// 审计 2026-10-16 §21 新登记第 1 条：**原来这句是死分支**。[PolicyEngine
+  /// .enforceCheck] 在 deny 时先抛 [PolicyDeniedException]，永远不返回
+  /// `isAllowed == false`，所以 `if (!result.isAllowed)` 那段提示从没能执行过——
+  /// 真被拒时异常从同步的 `_exportAllowed` 逃到菜单按钮上（用户看到的不是
+  /// 「操作被策略拒绝」，是一次未捕获异常）。改成捕获，提示仍取既有 arb 键。
   bool _exportAllowed(String operation) {
-    final result = const PolicyEngine().enforceCheck(operation);
-    if (!result.isAllowed) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(context)?.docPolicyDenied(operation) ??
-                '操作被策略拒绝（$operation）',
+    try {
+      const PolicyEngine().enforceCheck(operation);
+      return true;
+    } on PolicyDeniedException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)?.docPolicyDenied(e.operation) ??
+                  '操作被策略拒绝（$operation）',
+            ),
           ),
-        ),
-      );
+        );
+      }
+      return false;
     }
-    return result.isAllowed;
   }
 
   /// 导出 Markdown / HTML / PDF（AFFiNE Export 对齐）。

@@ -124,6 +124,30 @@ extension _AppShellRoutes on _AppShellState {
 
   /// 聚合画布 / 笔记页 / 块文档三类文档为统一的「全部文档」查询结果，
   /// 并按 FavoriteStore 回填收藏状态。
+  /// 策略门禁（NOT-01 同一条判据的第二、三格，审计 2026-10-16 §21 第 1 条）：
+  /// [PolicyEngine.enforceCheck] 在 deny 时**先抛** `PolicyDeniedException`，
+  /// 所以「拿返回值再 `if (!isAllowed)`」是永远不成立的死分支——真被拒时异常会逃进
+  /// TrashPage 的 `Future<bool>` 回调，用户看到的是一次未捕获异常而不是一句「被拒绝」。
+  /// 与 `home_page_trash._allowTrashOp` 同形：捕获、提示、返回 false（fail-closed 且不说谎）。
+  bool _policyAllows(String operation, String target) {
+    try {
+      const PolicyEngine().enforceCheck(operation, target: target);
+      return true;
+    } on PolicyDeniedException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)?.docPolicyDenied(e.operation) ??
+                  '操作被策略拒绝（$operation）',
+            ),
+          ),
+        );
+      }
+      return false;
+    }
+  }
+
   /// 打开回收站（M12.6）：软删除的打字笔记恢复/彻底删除。
   Future<void> _openTrash() async {
     await Navigator.of(context, rootNavigator: true).push(
@@ -132,21 +156,13 @@ extension _AppShellRoutes on _AppShellState {
           loadTrash: _services.blockDocStore.listTrash,
           onRestore: (id) async {
             // P1-M1：恢复/彻底删除补门禁（白名单 note.restore / note.purge）。
-            final restoreResult = const PolicyEngine().enforceCheck(
-              'note.restore',
-              target: id,
-            );
-            if (!restoreResult.isAllowed) return false;
+            if (!_policyAllows('note.restore', id)) return false;
             final ok = await _services.blockDocStore.restoreDocument(id);
             _services.bumpDataVersion();
             return ok;
           },
           onPurge: (id) async {
-            final purgeResult = const PolicyEngine().enforceCheck(
-              'note.purge',
-              target: id,
-            );
-            if (!purgeResult.isAllowed) return false;
+            if (!_policyAllows('note.purge', id)) return false;
             final ok = await _services.blockDocStore.purgeFromTrash(id);
             _services.bumpDataVersion();
             return ok;
