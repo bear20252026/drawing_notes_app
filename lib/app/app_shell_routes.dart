@@ -15,16 +15,23 @@ part of 'app_shell.dart';
 /// 路由装配域（C-07）：AppShell 三职责之一——页面构造 + 解锁拦截 + 导航
 /// 参数装配。导航 UI（rail/底部导航/_onSelect/build）留在主文件。
 extension _AppShellRoutes on _AppShellState {
-  /// N2：加载块文档——锁定异常折叠为 null（fail-closed，不暴露内容）。
+  /// N2：加载块文档——**三态**：拿到 / 被锁（需重新解锁）/ 确实没有。
+  ///
+  /// 以前「锁了」和「没有」被折叠成同一个 null（fail-closed 不暴露内容这一半是对的），
+  /// 于是调用点只能静默 `return` ⇒ 用户从全部文档/反向链接点一篇刚锁定的笔记，
+  /// **界面毫无反应，看起来就像条目坏了**。笔记本那条腿在审计一-3 已经修过同一个坑
+  /// （`notebook_view_page_manage.dart` 那句「但不再静默消失……明确告知需重新解锁」），
+  /// 这条腿漏了——本仓的「一修就漏九处」。
   /// 独立 helper 以保证空安全类型提升（try 内赋值的局部变量不提升）。
-  Future<NoteBlockDoc?> _loadBlockDocGuarded(
+  Future<({NoteBlockDoc? doc, bool locked})> _loadBlockDocGuarded(
     NoteBlockDocStore store,
     String id,
   ) async {
     try {
-      return await store.loadDocument(id);
+      return (doc: await store.loadDocument(id), locked: false);
     } on BlockDocLockedException {
-      return null; // 会话 DEK 已被清（如切后台）——不暴露内容
+      // 会话 DEK 已被清（如切后台）——不暴露内容，但要说给用户。
+      return (doc: null, locked: true);
     }
   }
 
@@ -79,7 +86,22 @@ extension _AppShellRoutes on _AppShellState {
   Future<void> _openBlockDocById(String id) async {
     final store = _services.blockDocStore;
     if (!await _ensureBlockDocUnlocked(store, id)) return;
-    final doc = await _loadBlockDocGuarded(store, id);
+    final loaded = await _loadBlockDocGuarded(store, id);
+    if (loaded.locked) {
+      // await 之后先用 mounted 守一次再用 context（`use_build_context_synchronously`）。
+      if (!mounted) return;
+      // 复用笔记本那条腿的同一句文案：同一件事不该有两个说法，也不该为新格造新键。
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)?.nbNoteEncryptedLocked ??
+                '该笔记已加密且会话已锁定，请重新解锁后再打开',
+          ),
+        ),
+      );
+      return;
+    }
+    final doc = loaded.doc;
     if (doc == null || !mounted) return;
     await Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(

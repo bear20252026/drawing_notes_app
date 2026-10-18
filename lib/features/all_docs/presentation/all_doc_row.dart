@@ -229,12 +229,27 @@ class AllDocRow extends StatelessWidget {
                       borderRadius: AppleRadius.md,
                       child: InkWell(
                         borderRadius: BorderRadius.circular(AppleRadius.md),
-                        onTapUp: (details) {
+                        // R52b（第五轮 UI 采集 F-11）：这里以前只有 `onTapUp`。
+                        // `InkWell` 的键盘激活（Enter/Space → `activateOnIntent`）与读屏的
+                        // `Semantics.onTap` **只回调 `onTap`**，`onTapUp` 是纯指针路径 ⇒
+                        // V-05 那次「改 InkWell 自带焦点」只补上了 Tab 焦点：焦点环亮着、
+                        // 按 Enter 什么也不发生，而这颗钮正是被指定为「长按/右键等价入口」
+                        // 的那一颗。改成鼠标/触屏/键盘**同一条** `onTap` 路径
+                        // （以前两条路径并存会在指针点击时 onTap 与 onTapUp 各命中一次）。
+                        // 菜单位置改从整行的 rect 右下角推——那正是 ⋮ 所在的一侧。
+                        onTap: () {
                           if (onMenu != null) {
                             onMenu!();
-                          } else {
-                            showMenuAt(details.globalPosition);
+                            return;
                           }
+                          final box = context.findRenderObject() as RenderBox?;
+                          showMenuAt(
+                            box == null
+                            ? Offset.zero
+                            : box.localToGlobal(
+                                box.size.bottomRight(Offset.zero),
+                              ),
+                          );
                         },
                         child: SizedBox(
                           width: AppleTouch.minTarget,
