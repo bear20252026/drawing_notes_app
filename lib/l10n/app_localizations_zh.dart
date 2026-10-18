@@ -408,6 +408,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get shellAllDocs => '全部文档';
 
   @override
+  String get instanceSameDataRootNotice =>
+      '检测到另一个窗口可能也在打开同一份数据 —— 同一篇在两处分别保存会互相覆盖，建议只用一个窗口编辑。';
+
+  @override
   String get shellCanvasNotes => '画布·笔记';
 
   @override

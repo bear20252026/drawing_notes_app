@@ -272,6 +272,23 @@
   代价如实说：snackbar 上以前印 `FileSystemException`，现在印 `io_file_system`——
   读起来更陌生，但换到的是「混淆后仍然可读、且每次出包都同一个键」。
 
+### R51（2026-10-18，ASM-02 剩下那一半：同根判定 + 把事实说给用户看）
+
+- 单实例检测的状态从三态改四态：`acquired / sameDataRootRunning / otherDataRoot / undetectable`。
+  以前锁文件是**应用全局**的（`<ApplicationSupport>/app.lock`），两个各开各数据根的实例也会
+  被判成「同机第二个实例」⇒ 那一格不能对用户开口。现在锁的第二行写数据根路径，
+  只有**确认是同一个根**才提示；老版本留下的只有一行 PID 的锁 ⇒ 根未知 ⇒ `undetectable`，
+  不猜也不提示。路径比较只做必要的归一化（分隔符、尾斜杠、Windows 大小写）。
+- **提示照旧不阻断启动**，而且这次是判据不是承诺：`test/app_shell_instance_notice_test.dart`
+  扫 `lib/main.dart`，从取锁调用点到 `runApp` 之间出现任何 `return` 即红（旧写法
+  「已有实例就退出」正是用户投诉「应用打不开」的形状）。
+- 取锁多了解析一次数据根（会顺带跑「旧位置→ApplicationSupport」的一次性迁移）⇒ 整段包进
+  try，失败就退回「根未知」并落一条 `app.instance_root_resolve_failed` 审计
+  （detail 用 R50 那份 `errorCode`，顺手 dogfood）。
+- 措辞留「可能」：PID 会被系统复用，这条判据有固有误差，只够提示、不够下结论（中英各一条新键）。
+- 写入面也钉住了：`instanceStatusAtLaunch` 在 `lib/` 里只允许**一个**赋值点且必须在 `main.dart`，
+  `??=` 也算写（漏了它这条就能被绕过去）。
+
 ## [1.17.66] - 2026-10-14
 
 ### 第三轮外部专家审计整改（DN-201→DN-208）+ 协同地基 A2/A3 + 批次 D（确定性验证）

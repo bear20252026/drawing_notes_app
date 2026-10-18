@@ -35,14 +35,33 @@ Future<void> releaseInstanceLock() async {
   await _instanceLock?.release();
 }
 
-/// 取锁。**任何返回值都继续启动**。
+/// 取锁。**任何返回值、任何异常都不阻止启动**。
+///
+/// R51 之后这里多解析了一次数据根（`root()` 会顺带跑「旧位置→ApplicationSupport」的
+/// 一次性迁移）⇒ 多了一条**能把启动打死**的路径：磁盘只读、迁移标记损坏、path_provider
+/// 失败……所以整段包在 try 里，失败就退回「根未知」（`dataRootKey: ''` ⇒ 结果是
+/// `undetectable`，不出提示、也不阻断）。这条契约写在
+/// `test/app_shell_instance_notice_test.dart` 的「取锁之后不许有 return」判据旁边。
 Future<SingleInstanceStatus> _acquireSingleInstance() async {
-  final dir = await getApplicationSupportDirectory();
-  final lock = SingleInstanceLock(
-    lockFile: File('${dir.path}${Platform.pathSeparator}app.lock'),
-  );
-  _instanceLock = lock;
-  return lock.acquire();
+  try {
+    final supportPath = (await getApplicationSupportDirectory()).path;
+    // 根路径必须在 `applyPendingRestore()` 之后取：那一步会换根，取早了写进锁的就是
+    // 另一个根，下一次启动会把「同一个数据根」判成「不同根」——静默失效，比误报更难查。
+    final rootKey = (await AppDataRoot.defaultRootDir()).path;
+    final lock = SingleInstanceLock(
+      lockFile: File('$supportPath${Platform.pathSeparator}app.lock'),
+    );
+    _instanceLock = lock;
+    return lock.acquire(dataRootKey: rootKey);
+  } catch (e) {
+    // 根都解析不出来 ⇒ 连锁放哪儿都不知道：这一格就是「判不出来」，不出提示、不阻断。
+    AuditLogger.log(
+      'app.instance_root_resolve_failed',
+      success: false,
+      detail: errorCode(e),
+    );
+    return SingleInstanceStatus.undetectable;
+  }
 }
 
 /// 应用入口。
@@ -83,23 +102,25 @@ Future<void> main() async {
     );
     return const _BuildErrorFallback();
   };
-  // ASM-02：二次启动检测。**这里没有任何 return**——把检测结果当事实上报，
-  // 不当闸门（旧写法「已有实例就退出」被用户投诉成「应用打不开」，理由全写在
-  // core/utils/single_instance.dart 文件头）。判不出来时也不谎报成「有另一个实例」。
-  final instanceStatus = await _acquireSingleInstance();
-  if (instanceStatus != SingleInstanceStatus.acquired) {
-    AuditLogger.log(
-      'app.instance_${instanceStatus.name}',
-      success: true,
-      detail: 'startup_continues',
-    );
-  }
   // 批次 M（2026-09-27）：应用「从备份恢复」的落地步——此刻无任何存储
   // 打开，原子交换目录最安全。失败不阻塞启动（fail-safe，标记保留）。
   try {
     await AppDataRoot.applyPendingRestore();
   } catch (_) {
     // 恢复检查失败不阻塞正常启动。
+  }
+  // ASM-02：二次启动检测。**这里没有任何 return**——把检测结果当事实上报，
+  // 不当闸门（旧写法「已有实例就退出」被用户投诉成「应用打不开」，理由全写在
+  // core/utils/single_instance.dart 文件头）。判不出来时也不谎报成「有另一个实例」。
+  // 挪到 `applyPendingRestore()` 之后是 R51 要求的：锁里要写**换根之后**的数据根路径。
+  final instanceStatus = await _acquireSingleInstance();
+  instanceStatusAtLaunch = instanceStatus;
+  if (instanceStatus != SingleInstanceStatus.acquired) {
+    AuditLogger.log(
+      'app.instance_${instanceStatus.name}',
+      success: true,
+      detail: 'startup_continues',
+    );
   }
   // R2 审计（用户拍板 2026-09-03）：桌面窗口最小尺寸 360×560——
   // 防止窗口拖得过窄触发布局溢出。尽力而为：失败不阻塞启动。

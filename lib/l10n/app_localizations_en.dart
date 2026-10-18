@@ -427,6 +427,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shellAllDocs => 'All Documents';
 
   @override
+  String get instanceSameDataRootNotice =>
+      'Another window may also be opening this same data — saving the same note in both can overwrite edits. Use a single window.';
+
+  @override
   String get shellCanvasNotes => 'Canvas & Notes';
 
   @override

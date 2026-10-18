@@ -555,6 +555,10 @@
   "@shellAllDocs": {
     "description": "导航目的地"
   },
+  "instanceSameDataRootNotice": "Another window may also be opening this same data — saving the same note in both can overwrite edits. Use a single window.",
+  "@instanceSameDataRootNotice": {
+    "description": "Single-instance check (R51): shown only when the lock holder shares this data root; PID can be reused by the OS, so the wording stays hedged and startup is never blocked"
+  },
   "shellCanvasNotes": "Canvas & Notes",
   "@shellCanvasNotes": {
     "description": "导航目的地"

@@ -52,6 +52,7 @@ import 'package:drawing_notes_app/features/security/presentation/block_doc_passw
 // C-06（审计 2026-09-27）：媒体会话加密服务由组合根 AppServices 持有，
 // shell 自身经 _services.mediaCrypto 使用，不再 import 全局单例。
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
+import 'package:drawing_notes_app/core/utils/single_instance.dart';
 // STO-004 乙（2026-10-16）：收藏集合读不出来时，覆盖前已抢救出的那份原件要说给用户。
 import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
 
@@ -119,6 +120,28 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
+/// 只在 [SingleInstanceStatus.sameDataRootRunning] 这一格出声（R51）。
+///
+/// 为什么另外三格不出声（台账 §35）：锁文件是**应用全局**的——`otherDataRoot` 说明那个
+/// 实例读写的是别的数据根，`undetectable` 说明锁里连根都没记（老格式锁）或进程探测本身
+/// 失败。对这两种出声，等于把「我不知道」说成「有人在动你这份数据」。
+/// [status] 为 null（没跑过检测，例如测试里直接 pump 壳）同样不出声。
+/// 措辞里留「可能」：PID 会被系统复用，这条判据有固有误差，只够提示、不够下结论。
+void showInstanceNotice(BuildContext context, SingleInstanceStatus? status) {
+  if (status != SingleInstanceStatus.sameDataRootRunning) return;
+  final l10n = AppLocalizations.of(context);
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      behavior: SnackBarBehavior.floating,
+      duration: const Duration(seconds: 8),
+      content: Text(
+        l10n?.instanceSameDataRootNotice ??
+            '检测到另一个窗口可能也在打开同一份数据，建议只用一个窗口编辑。',
+      ),
+    ),
+  );
+}
+
 class _AppShellState extends State<AppShell> {
   /// 应用级服务门面（R2-Q2）：store 实例/数据版本/全量加载缓存。
   /// C-07（审计 2026-09-27）：缺省装配经组合根 createAppServices——
@@ -146,6 +169,11 @@ class _AppShellState extends State<AppShell> {
     widget.docStorage?.onWrite = _services.bumpDataVersion;
     _services.blockDocStore.onWrite = _services.bumpDataVersion;
     _servicesWired = true;
+    // R51：把「同数据根的第二个实例」说给用户看。**只在 post-frame 里做**——initState
+    // 阶段 `ScaffoldMessenger.of(context)` 还找不到宿主 Scaffold。
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => showInstanceNotice(context, instanceStatusAtLaunch),
+    );
   }
 
   @override

@@ -836,6 +836,12 @@ abstract class AppLocalizations {
   /// **'All Documents'**
   String get shellAllDocs;
 
+  /// Single-instance check (R51): shown only when the lock holder shares this data root; PID can be reused by the OS, so the wording stays hedged and startup is never blocked
+  ///
+  /// In en, this message translates to:
+  /// **'Another window may also be opening this same data — saving the same note in both can overwrite edits. Use a single window.'**
+  String get instanceSameDataRootNotice;
+
   /// 导航目的地
   ///
   /// In en, this message translates to:

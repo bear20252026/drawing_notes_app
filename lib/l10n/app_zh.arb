@@ -464,6 +464,10 @@
   "@shellAllDocs": {
     "description": "导航目的地"
   },
+  "instanceSameDataRootNotice": "检测到另一个窗口可能也在打开同一份数据 —— 同一篇在两处分别保存会互相覆盖，建议只用一个窗口编辑。",
+  "@instanceSameDataRootNotice": {
+    "description": "单实例检测（R51）：只在「锁里的实例与本实例同一个数据根」这一格显示；PID 可能被系统复用，所以措辞用「可能」，且绝不阻断启动"
+  },
   "shellCanvasNotes": "画布·笔记",
   "@shellCanvasNotes": {
     "description": "导航目的地"
